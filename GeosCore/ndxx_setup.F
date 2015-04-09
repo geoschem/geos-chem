@@ -650,6 +650,7 @@
          ENDIF
       ENDIF
 
+#if !defined(NO_BPCH)
       !=================================================================
       ! ND38: Rainout of tracer (nfcldmx.f) 
       !       --> uses AD38 array (allocatable)
@@ -691,6 +692,7 @@
             IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD39' )
          ENDIF
       ENDIF
+#endif
 
       !=================================================================
       ! ND42: SOA concentration
@@ -910,7 +912,7 @@
       ENDIF
 
       !=================================================================
-      ! ND53: Free diagnostics
+      ! ND53: POPs emissions
       !
       ! ND54 - Time spend in the troposphere
       !        --> uses AD54 array (allocatable)
@@ -932,7 +934,7 @@
       ENDIF
 
       !=================================================================
-      ! ND56: Free diagnostic
+      ! ND56: Lightning flash rate diagnostics
       !=================================================================
 
       !FP_ISOP (6/2009)
@@ -1147,6 +1149,17 @@
          ALLOCATE( AD71_LHR, STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71_LHR' )
 
+      ENDIF
+
+      !=================================================================
+      ! ND72: Radiative output diagnostics (TOASW, SRFSW, TOALW, SRFLW,
+      !       GTOASW, GSRFSW, GTOALW, GSRFLW, ATOASW, ASRFSW, ATOALW,
+      !       ASRFLW) for both clear and all sky (prefix CLR and ALL)
+      !       --> uses AD72 array (allocatable)
+      !=================================================================
+      IF ( ND72 > 0 ) THEN
+         ALLOCATE( AD72( IIPAR, JJPAR, PD72 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD72' )
       ENDIF
 
       ! Save LD* fields back into the Input_Opt object (bmy, 11/9/12)

@@ -48,6 +48,7 @@
 # Directories
 GEOSAPM :=GeosApm
 GEOSDIR :=GeosCore
+GEOSRAD :=GeosRad
 GTMM    :=GTMM
 
 ###############################################################################
@@ -56,7 +57,7 @@ GTMM    :=GTMM
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: all lib libkpp libnc libutil exe clean realclean doc docclean help
+.PHONY: all lib libkpp libnc libutil librad exe clean realclean doc docclean help
 .PHONY: tauclean
 
 all:
@@ -85,6 +86,9 @@ ncdfcheck:
 
 libutil:
 	@$(MAKE) -C $(GEOSDIR) libutil
+
+librad:
+	@$(MAKE) -C $(GEOSDIR) librad
 
 libheaders:
 	@$(MAKE) -C $(GEOSDIR) libheaders

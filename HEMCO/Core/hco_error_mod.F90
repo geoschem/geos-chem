@@ -121,7 +121,7 @@ MODULE HCO_Error_Mod
   TYPE :: HcoErr
      LOGICAL                     :: IsRoot
      LOGICAL                     :: LogIsOpen
-     LOGICAL                     :: ShowWarnings 
+     INTEGER                     :: Warnings 
      INTEGER                     :: Verbose
      INTEGER                     :: nWarnings
      INTEGER                     :: CurrLoc
@@ -217,11 +217,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Warning( ErrMsg, RC, THISLOC )
+  SUBROUTINE HCO_Warning( ErrMsg, RC, WARNLEV, THISLOC )
 !
 ! !INPUT PARAMETERS"
 !
     CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg 
+    INTEGER         , INTENT(IN   ), OPTIONAL  :: WARNLEV 
     CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: THISLOC 
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -230,16 +231,24 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
+!  26 Mar 2015 - C. Keller - Added warning levels
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+    INTEGER            :: WLEV
     CHARACTER(LEN=255) :: MSG
 
     !======================================================================
     ! HCO_WARNING begins here 
     !======================================================================
 
-    IF ( Err%ShowWarnings ) THEN
+    IF ( PRESENT(WARNLEV) ) THEN
+       WLEV = WARNLEV
+    ELSE
+       WLEV = 3
+    ENDIF
+
+    IF ( Err%Warnings >= WLEV ) THEN
 
        ! Print warning
        MSG = 'HEMCO WARNING: ' // TRIM( ErrMsg )
@@ -502,7 +511,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE HCO_ERROR_SET( am_I_Root, LogFile,      & 
-                            Verbose,   ShowWarnings, RC )
+                            Verbose,   WarningLevel, RC )
 !
 !  !INPUT PARAMETERS:
 !
@@ -512,7 +521,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(INOUT)  :: Verbose        ! verbose level 
-    LOGICAL,          INTENT(INOUT)  :: ShowWarnings   ! prompt warnings?
+    INTEGER,          INTENT(INOUT)  :: WarningLevel   ! warning level 
     INTEGER,          INTENT(INOUT)  :: RC 
 !
 ! !REVISION HISTORY:
@@ -541,14 +550,14 @@ CONTAINS
     ! log-file messages 
     IF ( .NOT. am_I_Root ) THEN
        Verbose      = -1
-       ShowWarnings = .FALSE.
+       WarningLevel =  0
     ENDIF
 
     ! Pass values
     Err%IsRoot       = am_I_Root
     Err%LogFile      = TRIM(LogFile)
     Err%Verbose      = Verbose
-    Err%ShowWarnings = ShowWarnings
+    Err%Warnings     = WarningLevel
 
     ! Init misc. values
     Err%LogIsOpen = .FALSE.

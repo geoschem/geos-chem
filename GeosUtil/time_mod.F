@@ -38,6 +38,7 @@
       PUBLIC  :: SET_CT_DYN
       PUBLIC  :: SET_CT_EMIS
       PUBLIC  :: SET_CT_DIAG
+      PUBLIC  :: SET_CT_RAD
       PUBLIC  :: SET_CT_A1 
       PUBLIC  :: SET_CT_A3
       PUBLIC  :: SET_CT_A6
@@ -79,10 +80,12 @@
       PUBLIC  :: GET_TS_DYN
       PUBLIC  :: GET_TS_EMIS
       PUBLIC  :: GET_TS_UNIT
+      PUBLIC  :: GET_TS_RAD
       PUBLIC  :: GET_CT_CHEM
       PUBLIC  :: GET_CT_CONV
       PUBLIC  :: GET_CT_DYN
       PUBLIC  :: GET_CT_EMIS
+      PUBLIC  :: GET_CT_RAD
       PUBLIC  :: GET_CT_A1
       PUBLIC  :: GET_CT_A3
       PUBLIC  :: GET_CT_A6
@@ -107,6 +110,8 @@
       PUBLIC  :: ITS_TIME_FOR_EXCH
       PUBLIC  :: ITS_TIME_FOR_UNIT
       PUBLIC  :: ITS_TIME_FOR_DIAG
+      PUBLIC  :: ITS_TIME_FOR_RT
+      PUBLIC  :: ITS_TIME_FOR_SURFACE_RAD
       PUBLIC  :: ITS_TIME_FOR_A1
       PUBLIC  :: ITS_TIME_FOR_A3
       PUBLIC  :: ITS_TIME_FOR_A6
@@ -290,6 +295,7 @@
       INTEGER             :: TS_DYN       ! Dynamic timestep         [min]
       INTEGER             :: TS_EMIS      ! Emissions timestep       [min]
       INTEGER             :: TS_UNIT      ! Unit conversion timestep [min]
+      INTEGER             :: TS_RAD       ! Radiation timestep       [min]
 
       !---------------------------------
       ! Counter values
@@ -298,6 +304,7 @@
       INTEGER             :: CT_CONV      ! # of elapsed convection timesteps
       INTEGER             :: CT_DYN       ! # of elapsed dynamic timesteps
       INTEGER             :: CT_EMIS      ! # of elapsed emission timesteps
+      INTEGER             :: CT_RAD       ! # of elapsed radiation timesteps
       INTEGER             :: CT_A1        ! # of elapsed A1 met field reads
       INTEGER             :: CT_A3        ! # of elapsed A3 met field reads
       INTEGER             :: CT_A6        ! # of elapsed I6 met field reads
@@ -733,9 +740,10 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_TIMESTEPS( am_I_Root, 
+      SUBROUTINE SET_TIMESTEPS( am_I_Root,
      &                          CHEMISTRY, CONVECTION, DYNAMICS,  
-     &                          EMISSION,  UNIT_CONV,  DIAGNOS )
+     &                          EMISSION,  UNIT_CONV,  DIAGNOS,
+     &                          RADIATION )
 !
 ! !INPUT PARAMETERS:
 !
@@ -746,6 +754,7 @@
       INTEGER, INTENT(IN) :: EMISSION     ! Emission   timestep [min]
       INTEGER, INTENT(IN) :: UNIT_CONV    ! Unit conve timestep [min]
       INTEGER, INTENT(IN) :: DIAGNOS      ! Diagnostic timestep [min]
+      INTEGER, INTENT(IN) :: RADIATION    ! Radiation  timestep [min]
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -769,12 +778,14 @@
       TS_EMIS  = EMISSION
       TS_UNIT  = UNIT_CONV
       TS_DIAG  = DIAGNOS
+      TS_RAD   = RADIATION
 
       ! Zero timestep counters
       CT_CHEM  = 0
       CT_CONV  = 0
       CT_DYN   = 0
       CT_EMIS  = 0
+      CT_RAD   = 0
       CT_A3    = 0
       CT_A6    = 0
       CT_I6    = 0
@@ -792,9 +803,9 @@
        WRITE( 6, '(''Emission   Timestep [min] : '', i4 )' ) TS_EMIS
        WRITE( 6, '(''Unit Conv  Timestep [min] : '', i4 )' ) TS_UNIT
        WRITE( 6, '(''Diagnostic Timestep [min] : '', i4 )' ) TS_DIAG
+       WRITE( 6, '(''Radiation  Timestep [min] : '', i4 )' ) TS_RAD
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE SET_TIMESTEPS
 !EOC
 !------------------------------------------------------------------------------
@@ -830,7 +841,39 @@
       ENDIF
 
       END SUBROUTINE SET_CT_CHEM
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_ct_rad
+!
+! !DESCRIPTION: Subroutine SET\_CT\_RAD increments CT\_RAD, the
+! counter of radiation timesteps executed thus far.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_CT_RAD( INCREMENT, RESET )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+!
+! !REVISION HISTORY:
+!  06 Oct 2012 - D. Ridley   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      IF ( PRESENT( INCREMENT ) ) THEN
+         CT_RAD = CT_RAD + 1
+      ELSE IF ( PRESENT( RESET ) ) THEN
+         CT_RAD = 0
+      ENDIF
 
+      END SUBROUTINE SET_CT_RAD
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2321,6 +2364,34 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: get_ts_rad
+!
+! !DESCRIPTION: Function GET\_TS\_RAD returns the radiation timestep in
+!  minutes.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_TS_RAD() RESULT( THIS_TS_RAD )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: THIS_TS_RAD   ! ! Radiation timestep [min]
+!
+! !REVISION HISTORY:
+!  06 Oct 2012 - D. Ridley   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      THIS_TS_RAD = TS_RAD
+
+      END FUNCTION GET_TS_RAD
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: get_ts_conv
 !
 ! !DESCRIPTION: Function GET\_TS\_CONV returns the convection timestep in 
@@ -2489,6 +2560,34 @@
       THIS_CT_CHEM = CT_CHEM
 
       END FUNCTION GET_CT_CHEM
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ct_rad
+!
+! !DESCRIPTION: Function GET\_CT\_RAD returns the radiation timestep counter
+!  to the calling program.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_CT_RAD() RESULT( THIS_CT_RAD )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: THIS_CT_RAD
+!
+! !REVISION HISTORY:
+!  06 Oct 2012 - D. Ridley   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      THIS_CT_RAD = CT_RAD
+
+      END FUNCTION GET_CT_RAD
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3401,6 +3500,88 @@
       FLAG = ( MOD( ELAPSED_MIN, TS_CHEM ) == (M-1)*TS_DYN )
 
       END FUNCTION ITS_TIME_FOR_CHEM
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_rt
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_RT returns TRUE if it is time to do
+!  radiative transfer calculations, or FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION ITS_TIME_FOR_RT() RESULT( FLAG )
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: FLAG
+!
+! !REVISION HISTORY:
+!  04 Oct 2012 - D. Ridley   - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: M
+
+      !=================================================================
+      ! ITS_TIME_FOR_RT begins here!
+      !=================================================================
+      ! Get half a time step value
+      M = TS_RAD/2
+
+      ! Is it time for radiation calcs?
+      ! RT time step is in the center of time step
+      FLAG = ( MOD( ELAPSED_MIN, TS_RAD ) == M )
+
+      END FUNCTION ITS_TIME_FOR_RT
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_surface_rad
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_SURFACE\_RAD returns TRUE if it is
+!  time to read surface albedo and emissivity fields, or FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION ITS_TIME_FOR_SURFACE_RAD() RESULT( FLAG )
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: FLAG
+!
+! !REVISION HISTORY:
+!  06 Oct 2012 - D. Ridley   - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: M
+
+      !=================================================================
+      ! ITS_TIME_FOR_SURFACE_RAD begins here!
+      !=================================================================
+      ! Get half a time step value
+      M = GET_DAY_OF_YEAR()
+
+      ! Is it time to read the 8-day file?
+      ! files start on 1, then 9, 17... etc
+      FLAG = ( MOD( M, 8 ) == 1 )
+
+      END FUNCTION ITS_TIME_FOR_SURFACE_RAD
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

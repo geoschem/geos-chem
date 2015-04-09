@@ -117,6 +117,8 @@ MODULE HCO_CharTools_Mod
   CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '1x125'
 #elif defined( GRID05x0666 )
   CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '05x0666'
+#elif defined( GRID025x03125 )
+  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '025x03125'
 #else
   CHARACTER(LEN=15),   PARAMETER :: DEF_RES = 'unknown_res'
 #endif

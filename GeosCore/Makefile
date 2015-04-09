@@ -172,6 +172,7 @@ LIB   :=$(ROOT)/lib
 KPP   :=$(ROOT)/KPP
 MOD   :=$(ROOT)/mod
 NCDF  :=$(ROOT)/NcdfUtil
+RAD   :=$(ROOT)/GeosRad
 UTIL  :=$(ROOT)/GeosUtil
 DYN   := $(GIGC)/FVdycoreCubed_GridComp
 
@@ -237,6 +238,7 @@ lib:                                               # Build all G-C libraries
 	@$(MAKE) libutil 
 	@$(MAKE) libhemco
 	@$(MAKE) libiso 			  
+	@$(MAKE) librad
 	@$(MAKE) libcore			  
 
 libcore: $(OBJ)                                    # Build code in GeosCore/
@@ -253,6 +255,11 @@ libhemco:
 
 libiso:                                            # Build code in ISOROPIA/
 	@$(MAKE) -C $(ISO)			  
+
+librad:                                            # Build code in GeosRad/
+ifeq ($(RRTMG),yes)
+	@$(MAKE) -C $(RAD)			  
+endif
 
 libkpp:                                            # Build code in KPP/
 	@$(MAKE) -C $(KPP)			  
@@ -293,6 +300,7 @@ realclean:                                         # Remove files everywhere
 	@$(MAKE) -C $(ISO)   clean
 	@$(MAKE) -C $(KPP)   realclean
 	@$(MAKE) -C $(NCDF)  clean
+	@$(MAKE) -C $(RAD)   clean
 	@$(MAKE) -C $(UTIL)  clean
 	@$(MAKE) docclean
 ifeq ($(HPC),yes)
@@ -441,7 +449,8 @@ cleanup.o                   : cleanup.F                                      \
                               transport_mod.o         ucx_mod.o              \
                               uvalbedo_mod.o          tpcore_fvdas_mod.o     \
                               tpcore_geos5_window_mod.o                      \
-                              tpcore_geosfp_window_mod.o
+                              tpcore_geosfp_window_mod.o                     \
+                              rrtmg_rad_transfer_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
@@ -526,7 +535,7 @@ diagnostics_mod.o           : diagnostics_mod.F90                            \
                               hcoi_gc_main_mod.o                             \
                               tracer_mod.o                                   \
                               tracerid_mod.o                                 \
-                              ucx_mod.o
+                              wetscav_mod.o
 
 diag_2pm.o                  : diag_2pm.F                                     \
                               chemgrid_mod.o          diag_mod.o
@@ -715,7 +724,8 @@ main.o                      : main.F                                         \
                               tracerid_mod.o          wetscav_mod.o          \
                               ucx_mod.o               vdiff_mod.o            \
                               emissions_mod.o         cleanup.o              \
-                              mixing_mod.o
+                              mixing_mod.o                                   \
+                              rrtmg_rad_transfer_mod.o
 
 mapping_mod.o               : mapping_mod.F90                              
 
@@ -817,6 +827,11 @@ RnPbBe_mod.o                : RnPbBe_mod.F                                   \
                               tracerid_mod.o                                 \
                               hcoi_gc_main_mod.o
 
+rrtmg_rad_transfer_mod.o    : rrtmg_rad_transfer_mod.F                        \
+                              chemgrid_mod.o          comode_mod.o            \
+                              diag_mod.o              set_prof_o3.o           \
+                              toms_mod.o              tracerid_mod.o
+
 rpmares_mod.o               : rpmares_mod.F                                  \
                               chemgrid_mod.o                                 \
                               tracer_mod.o            tracerid_mod.o
@@ -830,6 +845,8 @@ seasalt_mod.o               : seasalt_mod.F           dao_mod.o              \
                               tracerid_mod.o          vdiff_pre_mod.o        \
                               tracer_mod.o            hcoi_gc_main_mod.o
 
+set_prof_o3.o               : set_prof_o3.F                                   
+
 setemdep.o                  : setemdep.F                                     \
                               tracerid_mod.o
 
@@ -840,7 +857,8 @@ setemis.o                   : setemis.F                                      \
 
 ucx_mod.o                   : ucx_mod.F                                      \
                               chemgrid_mod.o          global_ch4_mod.o       \
-                              fast_jx_mod.o           tracer_mod.o           \
+                              fast_jx_mod.o           hcoi_gc_main_mod.o     \
+                              tracer_mod.o                                   \
                               tracerid_mod.o          future_emissions_mod.o
 
 setmodel.o                  : setmodel.F

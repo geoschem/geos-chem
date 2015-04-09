@@ -3607,6 +3607,65 @@
       ! INIT_OCEAN_MERCURY begins here!
       !=================================================================
 
+      !-----------------------------------------------------------------
+      ! Allocate these arrays regardless of whether you are using
+      ! the dynamic ocean.  These are needed for Hg2 partitioning.
+      ! (bmy, 3/30/15)
+      !-----------------------------------------------------------------
+
+      ALLOCATE( BULK_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'BULK_CONC' )
+      BULK_CONC = 0e+0_fpp  
+
+      ALLOCATE( SO4_GC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO4_GC' )
+      SO4_GC = 0e+0_fpp 
+
+      ALLOCATE( NIT_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NIT_CONC' )
+      NIT_CONC = 0e+0_fpp 
+
+      ALLOCATE( NH4_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NH4_CONC' )
+      NH4_CONC = 0e+0_fpp 
+
+      ALLOCATE( OC_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'OC_CONC' )
+      OC_CONC = 0e+0_fpp 
+
+      ALLOCATE( BC_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'BC_CONC' )
+      BC_CONC = 0e+0_fpp 
+
+      ALLOCATE( DST_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'DST_CONC' )
+      DST_CONC = 0e+0_fpp 
+
+      ALLOCATE( R( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'R' )
+      R = 0e+0_fpp 
+
+      ALLOCATE( SO4_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO4_CONC' )
+      SO4_CONC = 0e+0_fpp 
+
+      ALLOCATE( Fg( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Fg' )
+      Fg = 0e+0_fpp    
+
+      ALLOCATE( Fp( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Fp' )
+      Fp = 0e+0_fpp  
+     
+      !-----------------------------------------------------------------
+      ! Exit if you are not using the dynamic ocean
+      !-----------------------------------------------------------------
+      IF ( .not. Input_Opt%LDYNOCEAN ) RETURN
+      
+      !-----------------------------------------------------------------
+      ! These variables are only needed for the dynamic ocean option
+      !-----------------------------------------------------------------
+
       ! Ocean Hg restart file name
       Hg_RST_FILE = Input_Opt%Hg_RST_FILE
       
@@ -3666,10 +3725,6 @@
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'HgPaq_SUNK' )
       HgPaq = 0e+0_fpp
 
-!      ALLOCATE( MLD( IIPAR, JJPAR ), STAT=RC )
-!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'MLD' )
-!      MLD = 0e+0_fpp
-
       ALLOCATE( MLDav( IIPAR, JJPAR ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'MLDav' )
       MLDav = 0e+0_fpp
@@ -3682,63 +3737,6 @@
       ALLOCATE( prevMLD( IIPAR, JJPAR ), STAT=RC )
       IF ( RC /=0 ) CALL ALLOC_ERR( 'prevMLD' )
       prevMLD = 0e+0_fpp
-
-!      ALLOCATE( NPP( IIPAR, JJPAR ), STAT=RC )
-!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NPP' )
-!      NPP = 0e+0_fpp
-
-!      ALLOCATE( CHL( IIPAR, JJPAR ), STAT=RC )
-!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'CHL' )
-!      CHL = 0e+0_fpp
-
-!      ALLOCATE( UPVEL( IIPAR, JJPAR ), STAT=RC )
-!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'UPVEL' )
-!      UPVEL = 0e+0_fpp
-
-      ALLOCATE( Fg( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Fg' )
-      Fg = 0e+0_fpp    
-
-      ALLOCATE( Fp( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Fp' )
-      Fp = 0e+0_fpp  
-     
-      ALLOCATE( BULK_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'BULK_CONC' )
-      BULK_CONC = 0e+0_fpp  
-
-      ALLOCATE( SO4_GC( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO4_GC' )
-      SO4_GC = 0e+0_fpp 
-
-      ALLOCATE( NIT_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NIT_CONC' )
-      NIT_CONC = 0e+0_fpp 
-
-      ALLOCATE( NH4_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NH4_CONC' )
-      NH4_CONC = 0e+0_fpp 
-
-      ALLOCATE( OC_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'OC_CONC' )
-      OC_CONC = 0e+0_fpp 
-
-      ALLOCATE( BC_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'BC_CONC' )
-      BC_CONC = 0e+0_fpp 
-
-      ALLOCATE( DST_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'DST_CONC' )
-      DST_CONC = 0e+0_fpp 
-
-      ALLOCATE( R( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'R' )
-      R = 0e+0_fpp 
-
-      ALLOCATE( SO4_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO4_CONC' )
-      SO4_CONC = 0e+0_fpp 
-
 
       ! Return to calling program
       END SUBROUTINE INIT_OCEAN_MERCURY
@@ -3768,13 +3766,9 @@
       IF ( ALLOCATED( Hg0aq     ) ) DEALLOCATE( Hg0aq     )  
       IF ( ALLOCATED( Hg2aq     ) ) DEALLOCATE( Hg2aq     )
       IF ( ALLOCATED( HgPaq     ) ) DEALLOCATE( HgPaq     )  
-!      IF ( ALLOCATED( MLD       ) ) DEALLOCATE( MLD       )
       IF ( ALLOCATED( MLDav     ) ) DEALLOCATE( MLDav     )
       IF ( ALLOCATED( newMLD    ) ) DEALLOCATE( newMLD    )
       IF ( ALLOCATED( prevMLD   ) ) DEALLOCATE( prevMLD   ) !eds 10/19/10
-!      IF ( ALLOCATED( NPP       ) ) DEALLOCATE( NPP       )
-!      IF ( ALLOCATED( CHL       ) ) DEALLOCATE( CHL       )
-!      IF ( ALLOCATED( UPVEL     ) ) DEALLOCATE( UPVEL     )
       IF ( ALLOCATED( BULK_CONC ) ) DEALLOCATE( BULK_CONC )
       IF ( ALLOCATED( Fg        ) ) DEALLOCATE( Fg        )
       IF ( ALLOCATED( Fp        ) ) DEALLOCATE( Fp        )

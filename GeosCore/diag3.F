@@ -19,16 +19,19 @@
       USE CMN_SIZE_MOD                       ! Size parameters
       USE CMN_O3_MOD                         ! FMOL, XNUMOL
       USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays
-      USE CMN_FJX_MOD,        ONLY : W_      ! Fast-JX flux diagnostics
+      USE CMN_FJX_MOD                        ! Fast-JX flux diagnostics
       USE COMODE_LOOP_MOD                    ! IDEMS
-      USE FILE_MOD                           
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GRID_MOD, ONLY : GET_AREA_M2, GET_YOFFSET, GET_XOFFSET
-      USE TIME_MOD
-      USE ERROR_MOD, ONLY : ERROR_STOP
       USE PRECISION_MOD                      ! For GEOS-Chem Precision (fp)
+
+      ! Modules from GeosUtil directory
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD                           
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE GRID_MOD,           ONLY : GET_YOFFSET, GET_XOFFSET
+      USE TIME_MOD
 
       ! Modules from GeosCore directory
       USE BPCH2_MOD                          ! For binary punch I/O routines
@@ -243,8 +246,13 @@
 !  24 Nov 2014 - R. Yantosca - Bug fix for ND28 BC/OC: Don't multiply by area
 !  04 Dec 2014 - R. Yantosca - No longer crashes if BIOGENIC_OCPI=0 everywhere
 !  12 Dec 2014 - M. Yannetti - Converted HEMCO Precision updates
+!  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND71 to ND72 to
+!                              avoid conflicts with hourly max ppbv diagnostic.
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  23 Feb 2015 - C. Keller   - Split volcano SO2 into eruptive & degassing
+!  02 Apr 2015 - M. Sulprizio- Now write out LIGHTNING_CLOUD_TOP diagnostic from
+!                              HEMCO to the ctm.bpch file. Otherwise, if will
+!                              save out to the HEMCO restart file.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -254,6 +262,7 @@
       INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, LMAX
       INTEGER            :: N, NN, NMAX, NTEST, N_TOT_TRC, T
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
+      INTEGER            :: NSPECOUT
 
       INTEGER            :: NN1    ! TOMAS tracers
       INTEGER            :: NBIN   ! TOMAS bin counter (win, 1/25/10)
@@ -263,6 +272,7 @@
       REAL(fp)           :: SCALE_A1,   SCALED,     SCALEDYN
       REAL(fp)           :: SCALECONV,  SCALESRCE,  SCALECHEM  
       REAL(fp)           :: SCALEDIAG,  SCALE_ND66, SCALE_ND67 
+      REAL(fp)           :: SCALERAD
       REAL(fp)           :: SCALEX,     SECONDS,    PMASS      
       REAL(fp)           :: PRESSX,     FDTT,       AREA_M2
       REAL(fp)           :: SCALE_I3
@@ -346,6 +356,7 @@
       SCALECONV  = DBLE( GET_CT_CONV() ) + 1e-32_fp
       SCALESRCE  = DBLE( GET_CT_EMIS() ) + 1e-32_fp
       SCALECHEM  = DBLE( GET_CT_CHEM() ) + 1e-32_fp
+      SCALERAD   = DBLE( GET_CT_RAD()  ) + 1e-32_fp
       SCALE_A1   = DBLE( GET_CT_A1()   ) + 1e-32_fp
       SCALE_A3   = DBLE( GET_CT_A3()   ) + 1e-32_fp
       SCALE_A6   = DBLE( GET_CT_A6()   ) + 1e-32_fp
@@ -1831,8 +1842,20 @@
                CASE DEFAULT
                   UNIT = 'unitless'
             END SELECT
-               
-            IF (( N > 3 .AND. N < 6 ) .OR. (N > 20)) THEN
+
+           !Only output extra wavelengths if they are requested
+           !standard is 5+3*NAER+NDUST but then each extra wavelength
+           !adds NAER+NDUST+1 <-- +1 for TOTALDUST
+           IF (( N < (6+NAER*3+NDUST) ) .OR. 
+     &         ( N > (5+NAER*3+NDUST) .AND. N < (7+NAER*4+NDUST*2) .AND.
+     &           NWVSELECT > 1 ) .OR.
+     &         ( N > (6+NAER*4+NDUST*2) .AND. NWVSELECT > 2 )) THEN 
+
+            !Dust arrays
+            IF (( N > 3 .AND. N < 6 ) .OR. (N > 5+NAER*3 .AND. 
+     &            N < 13+NAER*3) .OR. 
+     &         ( N > 5+NAER*4+NDUST .AND. N < (7+NAER*4+NDUST*2) ) .OR. 
+     &         ( N > (6+NAER*5+NDUST*2))) THEN
 
                ! Online or offline dust fields?
                IF ( Input_Opt%LDUST ) THEN
@@ -1855,7 +1878,7 @@
                ! For all other types of optical depths, we need 
                ! to scale by the chemistry timestep (bmy, 4/9/04)
                ARRAY(:,:,1:LD21) = AD21(:,:,1:LD21,N) / SCALEX
-
+               
             ENDIF
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -1863,6 +1886,7 @@
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     LD21,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD21) )
+           ENDIF
          ENDDO    
 
          !==============================================================
@@ -3214,6 +3238,9 @@
          ENDDO
       ENDIF
 !
+
+#if !defined( NO_BPCH )
+
 !******************************************************************************
 !  ND38: Rainout loss of tracer in convective updrafts
 !
@@ -3309,6 +3336,8 @@
          ENDDO
 
       ENDIF
+
+#endif
 !
 !******************************************************************************
 !  ND41: Afternoon boundary layer heights
@@ -4689,9 +4718,16 @@
              END SELECT
 
              CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                       UNIT,   N, 1, -1,   .TRUE.,     FACTOR, RC)
+     &                       UNIT,  N,  -1, -1,   .TRUE.,    FACTOR,
+     &                       RC)
              IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDDO
+
+         DiagnName = 'LIGHTNING_CLOUD_TOP'
+         N         = 4
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,  N,  -1, -1,   .TRUE.,    FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)   
 
       ENDIF
 !
@@ -5717,6 +5753,110 @@
 
       ! Echo output
       WRITE( 6, '(a)' ) '     - DIAG3: Diagnostics written to bpch!'
+!
+!******************************************************************************
+!  ND72: RRTMG radiation fields
+!
+!   # : Field  : Description                      : Units    : Scale
+!   factor
+!  -----------------------------------------------------------------------
+!  (1 ) ALLTOASW  : All-sky TOA SW (Total)        : W/m2     : SCALERAD
+!  (2 ) ALLSRFSW  : All-sky Surface SW (Total)    : W/m2     : SCALERAD
+!  (3 ) ALLTOALW  : All-sky TOA LW (Total)        : W/m2     : SCALERAD
+!  (4 ) ALLSRFLW  : All-sky Surface LW (Total)    : W/m2     : SCALERAD
+!  (5 ) CLRTOASW  : Clear-sky TOA SW (Total)      : W/m2     : SCALERAD
+!  (6 ) CLRSRFSW  : Clear-sky Surface SW (Total)  : W/m2     : SCALERAD
+!  (7 ) CLRTOALW  : Clear-sky TOA LW (Total)      : W/m2     : SCALERAD
+!  (8 ) CLRSRFLW  : Clear-sky Surface LW (Total)  : W/m2     : SCALERAD
+!
+!******************************************************************************
+!
+      !check that RRTMG is actually switched on
+      IF ( Input_Opt%LRAD ) THEN
+      IF ( ND72 > 0 ) THEN
+         CATEGORY = 'RADMAP-$'
+         write(6,*) 'NWVSELECT',NWVSELECT
+         ! ND72 is updated every rad timestep
+         SCALEX = SCALERAD
+         NSPECOUT=NSPECRADMENU+1 !number of output species plus baseline
+         DO M = 1, TMAX(72)
+            N  = TINDEX(72,M)
+            
+            IF ( N > PD72R ) CYCLE
+             !only output clear-sky and all-sky if they are switched on
+             !or if we're doing the optics
+             !but only output 2nd and 3rd sets of optics if they're
+             !requested by user in input.geos.rad
+             IF (((N.LE.4).AND.(Input_Opt%LSKYRAD(2).EQ..TRUE.)).OR.
+     &           ((N.GT.4).AND.(N.LE.8).AND.
+     &                         (Input_Opt%LSKYRAD(1).EQ..TRUE.)).OR.
+     &           ((N.GT.8).AND.(N.LE.11)).OR.                         !1st set of optics
+     &           ((N.GT.11).AND.(N.LE.14).AND.(NWVSELECT.GT.1)).OR.   !2nd set of optics
+     &           ((N.GT.14).AND.(N.LE.17).AND.(NWVSELECT.GT.2))) THEN !3rd set of optics
+
+             ! Select proper unit string (cf list above)
+             IF (N.LE.8) THEN
+              UNIT = 'W/m2'
+             ELSE
+              !AOD, SSA, ASYM
+              UNIT = 'UNITLESS'
+             ENDIF
+               
+             ! each case is for different output type, within each
+             ! of those are the values for each species in the RAD input
+             ! menu. Only output species that are switched on for each
+           ! output type selected in the ND72 menu
+           DO IS=1,NSPECOUT
+            NN=(N-1)*NSPECOUT+IS
+
+            !if output is a flux...
+            IF (N.LE.8) THEN
+             !always output the baseline flux
+             IF (IS.EQ.1) THEN
+              ARRAY(:,:,1) = AD72(:,:,NN) / SCALEX
+              CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                   HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                   UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                   IIPAR,     JJPAR,     1,        IFIRST,
+     &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
+             !for other outputs check species has been selected
+             ELSE IF (IS.GE.2) THEN
+              IF (LSPECRADMENU(IS-1).EQ.1) THEN
+               DO I=1,IIPAR
+                DO J=1,JJPAR
+                 !store as difference in flux from baseline
+                 ARRAY(I,J,1) = (AD72(I,J,(N-1)*NSPECOUT+1) - 
+     &                           AD72(I,J,NN))/SCALEX
+                ENDDO
+               ENDDO
+             
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                   HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                   UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                   IIPAR,     JJPAR,     1,        IFIRST,
+     &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
+              ENDIF
+             ENDIF
+            ! N > 8 so we are outputting optics
+            ! but only for turned on species and only for aerosols
+            ! i.e. skip IS=2 and IS=3
+            ELSE IF (IS.GE.4) THEN
+             IF (LSPECRADMENU(IS-1).EQ.1) THEN
+             !output optics
+              ARRAY(:,:,1) = AD72(:,:,NN) / SCALEX
+              CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                   HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                   UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                   IIPAR,     JJPAR,     1,        IFIRST,
+     &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
+             ENDIF
+            ENDIF !flux vs optics check
+           ENDDO
+          ENDIF !all-sky, clear-sky check
+         ENDDO
+      ENDIF
+      ENDIF
+                     
 
       ! Cleanup
       HcoState => NULL()

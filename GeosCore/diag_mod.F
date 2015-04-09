@@ -114,11 +114,13 @@
       ! For ND37 -- Fraction of tracer scavenged in cloud updrafts
       REAL*4,  ALLOCATABLE :: AD37(:,:,:,:)      
 
+#if !defined(NO_BPCH)
       ! For ND38 -- Rainout in moist convection diagnostic
       REAL*4,  ALLOCATABLE :: AD38(:,:,:,:)      
 
       ! For ND39 -- Washout in aerosol wet deposition diagnostic
       REAL*4,  ALLOCATABLE :: AD39(:,:,:,:)      
+#endif
 
       ! For ND43 -- OH and HO2 chemical diagnostics
       REAL*4,  ALLOCATABLE :: AD43(:,:,:,:)      
@@ -231,6 +233,8 @@
       INTEGER, ALLOCATABLE :: AD71_LHR
       INTEGER, ALLOCATABLE :: AD71_LDAY
 
+      ! For ND72 -- Radiation output diagnostic
+      REAL*4,  ALLOCATABLE :: AD72(:,:,:)
 !
 ! !REVISION HISTORY:
 !  30 Nov 1999 - A. Fiore - Initial version
@@ -372,8 +376,10 @@
       IF ( ALLOCATED( AD33        ) ) DEALLOCATE( AD33        )
       IF ( ALLOCATED( AD35        ) ) DEALLOCATE( AD35        )
       IF ( ALLOCATED( AD37        ) ) DEALLOCATE( AD37        )
+#if !defined( NO_BPCH )
       IF ( ALLOCATED( AD38        ) ) DEALLOCATE( AD38        )  
       IF ( ALLOCATED( AD39        ) ) DEALLOCATE( AD39        )
+#endif
       IF ( ALLOCATED( AD43        ) ) DEALLOCATE( AD43        )
 #if !defined( NO_BPCH )
       IF ( ALLOCATED( AD44        ) ) DEALLOCATE( AD44        )
@@ -419,6 +425,7 @@
       IF ( ALLOCATED( AD71_HRCT   ) ) DEALLOCATE( AD71_HRCT   )
       IF ( ALLOCATED( AD71_LDAY   ) ) DEALLOCATE( AD71_LDAY   )
       IF ( ALLOCATED( AD71_LHR    ) ) DEALLOCATE( AD71_LHR    )
+      IF ( ALLOCATED( AD72        ) ) DEALLOCATE( AD72        )
       IF ( ALLOCATED( CONVFLUP    ) ) DEALLOCATE( CONVFLUP    )
       IF ( ALLOCATED( CT16        ) ) DEALLOCATE( CT16        )
       IF ( ALLOCATED( CT17        ) ) DEALLOCATE( CT17        )
