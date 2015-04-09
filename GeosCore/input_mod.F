@@ -1763,6 +1763,9 @@
 !  16 Apr 2014 - M. Sulprizio- Now read path for PSC restart file
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  09 Apr 2015 - M. Sulprizio- Removed options for DEAD dust emissions and
+!                              PSC restart file. These options are now handled
+!                              by HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1771,12 +1774,12 @@
 !
       ! Scalars
       LOGICAL            :: LSULF,      LCARB,      LSOA
-      LOGICAL            :: LSVPOA,     LDUST,      LDEAD
+      LOGICAL            :: LSVPOA,     LDUST
       LOGICAL            :: LSSALT,     LCRYST,     LDICARB
       LOGICAL            :: LGRAVSTRAT, LHOMNUCNAT, LSOLIDPSC
       LOGICAL            :: LPSCCHEM,   LSTRATOD
       INTEGER            :: N,          T,          I 
-      CHARACTER(LEN=255) :: MSG,        LOCATION,   PSC_RST_FILE
+      CHARACTER(LEN=255) :: MSG,        LOCATION
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -1828,10 +1831,6 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:8' )
       READ( SUBSTRS(1:N), * ) LDUST
 
-      ! Use DEAD dust mobilization (=T) or GINOUX (=F)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:9' )
-      READ( SUBSTRS(1:N), * ) LDEAD      
-
       ! Use online sea-salt aerosols?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
       READ( SUBSTRS(1:N), * ) LSSALT      
@@ -1860,10 +1859,6 @@
       ! Use solid polar stratospheric clouds (PSCs)?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15' )
       READ( SUBSTRS(1:N), * ) LSOLIDPSC   
-
-      ! PSC restart file name
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15b' )
-      READ( SUBSTRS(1:N), '(a)' ) PSC_RST_FILE
 
       ! Allow homogeneous nucleation of NAT?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:16' )
@@ -1907,7 +1902,6 @@
          LCARB  = .FALSE.
          LSOA   = .FALSE.
          LDUST  = .FALSE.
-         LDEAD  = .FALSE.
          LSSALT = .FALSE.
          LSVPOA = .FALSE.
       ENDIF
@@ -2119,12 +2113,10 @@
       Input_Opt%LSOA               = LSOA 
       Input_Opt%LSVPOA             = LSVPOA
       Input_Opt%LDUST              = LDUST 
-      Input_Opt%LDEAD              = LDEAD
       Input_Opt%LSSALT             = LSSALT
       Input_Opt%LDICARB            = LDICARB  
       Input_Opt%LGRAVSTRAT         = LGRAVSTRAT
       Input_Opt%LSOLIDPSC          = LSOLIDPSC
-      Input_Opt%PSC_RST_FILE       = PSC_RST_FILE
       Input_Opt%LHOMNUCNAT         = LHOMNUCNAT
       Input_Opt%T_NAT_SUPERCOOL    = T_NAT_SUPERCOOL
       Input_Opt%P_ICE_SUPERSAT     = P_ICE_SUPERSAT
@@ -2150,7 +2142,6 @@
          WRITE( 6, 105     ) 'POA emission scale [dimless]: ', 
      &                        Input_Opt%POAEMISSSCALE
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
-         WRITE( 6, 100     ) 'Use DEAD dust emissions?    : ', LDEAD
          WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
          WRITE( 6, 110     ) 'Accum  SEA SALT radii [um]  : ', 
      &                        Input_Opt%SALA_REDGE_um(1), 
@@ -2160,8 +2151,6 @@
      &                        Input_Opt%SALC_REDGE_um(2)
          WRITE( 6, 100     ) 'Settle strat. aerosols?     : ',LGRAVSTRAT
          WRITE( 6, 100     ) 'Online SOLID PSC aerosols?  : ',LSOLIDPSC
-         WRITE( 6, 130     ) 'PSC restart file name?      : ',
-     &                        TRIM( PSC_RST_FILE )
          WRITE( 6, 100     ) 'Allow hom. NAT nucleation?  : ',LHOMNUCNAT
          WRITE( 6, 120     ) 'NAT supercooling requirement: ',
      &                                                 T_NAT_SUPERCOOL
