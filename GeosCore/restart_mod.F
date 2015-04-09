@@ -653,7 +653,7 @@
       !=================================================================
       ! CHECK_DIMENSIONS begins here!
       !=================================================================
-
+      write(6,*) NI,IIPAR,NJ,JJPAR,NL,LLPAR
       ! Error check longitude dimension: NI must equal IIPAR
       IF ( NI /= IIPAR ) THEN
          WRITE( 6, '(a)' ) 'ERROR reading in restart file!'

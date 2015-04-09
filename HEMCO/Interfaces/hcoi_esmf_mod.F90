@@ -376,13 +376,13 @@ CONTAINS
       ENDIF
       Ptr3D => NULL()
 
-      CALL MAPL_GetPointer( IMPORT, Ptr3D, 'RCCODE', notFoundOK=.TRUE., __RC__ )
-      IF ( ASSOCIATED(Ptr3D) ) THEN
-         ExtState%RCCODE%Arr%Val => Ptr3D(:,:,HcoState%NZ:1:-1)
-      ENDIF
-      Ptr3D => NULL()
-
       ! Not needed at the moment
+!      CALL MAPL_GetPointer( IMPORT, Ptr3D, 'RCCODE', notFoundOK=.TRUE., __RC__ )
+!      IF ( ASSOCIATED(Ptr3D) ) THEN
+!         ExtState%RCCODE%Arr%Val => Ptr3D(:,:,HcoState%NZ:1:-1)
+!      ENDIF
+!      Ptr3D => NULL()
+
 !      CALL MAPL_GetPointer( IMPORT, Ptr2D, 'CNV_TOPP', notFoundOK=.TRUE., __RC__ )
 !      IF ( ASSOCIATED(Ptr2D) ) THEN
 !         ExtState%CNV_TOPP%Arr%Val => Ptr2D

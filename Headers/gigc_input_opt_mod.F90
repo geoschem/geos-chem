@@ -216,6 +216,15 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER, POINTER            :: NTLOOPNCS(:)
 
      !----------------------------------------
+     ! RADIATION MENU fields
+     !----------------------------------------
+     LOGICAL                     :: LRAD
+     LOGICAL                     :: LLWRAD
+     LOGICAL                     :: LSWRAD
+     LOGICAL, POINTER            :: LSKYRAD(:)
+     INTEGER                     :: TS_RAD
+
+     !----------------------------------------
      ! TRANSPORT MENU fields
      !----------------------------------------
      LOGICAL                     :: LTRAN
@@ -393,6 +402,11 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: ND69,             LD69
      CHARACTER(LEN=15)           :: ND69_OUTPUT_FREQ, ND69_OUTPUT_TYPE
      INTEGER                     :: ND70,             LD70
+     INTEGER                     :: ND71,             LD71
+     CHARACTER(LEN=15)           :: ND71_OUTPUT_FREQ, ND71_OUTPUT_TYPE
+     INTEGER                     :: ND72,             LD72
+     CHARACTER(LEN=15)           :: ND72_OUTPUT_FREQ, ND72_OUTPUT_TYPE
+
      INTEGER                     :: TS_DIAG
      LOGICAL                     :: LPRT
      INTEGER,            POINTER :: TINDEX(:,:)
@@ -689,6 +703,7 @@ MODULE GIGC_Input_Opt_Mod
 !  25 Jun 2014 - R. Yantosca - Now add Input_Opt%SIM_TYPE field
 !  29 Sep 2014 - R. Yantosca - Now add Input_Opt%N_DUST_BINS field
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
+!  03 Dec 2014 - M. Sulprizio- Add fields for Radiation Menu
 !  16 Dec 2014 - R. Yantosca - Removed JLOP, JLOP_PREV; these are in State_Chm
 !EOP
 !------------------------------------------------------------------------------
@@ -966,6 +981,17 @@ CONTAINS
     Input_Opt%LO3FJX                 = .FALSE.
 
     !----------------------------------------
+    ! RADIATION MENU fields
+    !----------------------------------------
+    ALLOCATE( Input_Opt%LSKYRAD( 2 ), STAT=RC )
+
+    Input_Opt%LRAD                   = .FALSE.
+    Input_Opt%LLWRAD                 = .FALSE.
+    Input_Opt%LSWRAD                 = .FALSE.
+    Input_Opt%LSKYRAD                = .FALSE.
+    Input_Opt%TS_RAD                 = 0
+
+    !----------------------------------------
     ! TRANSPORT MENU fields
     !----------------------------------------
     Input_Opt%LTRAN                  = .FALSE.
@@ -1082,6 +1108,8 @@ CONTAINS
     Input_Opt%ND68                   = 0
     Input_Opt%ND69                   = 0
     Input_Opt%ND70                   = 0
+    Input_Opt%ND71                   = 0
+    Input_Opt%ND72                   = 0
     Input_Opt%LD01                   = 0
     Input_Opt%LD02                   = 0
     Input_Opt%LD03                   = 0
@@ -1152,6 +1180,8 @@ CONTAINS
     Input_Opt%LD68                   = 0
     Input_Opt%LD69                   = 0
     Input_Opt%LD70                   = 0
+    Input_Opt%LD71                   = 0
+    Input_Opt%LD72                   = 0
     Input_Opt%LPRT                   = .FALSE.
     Input_Opt%TINDEX(:,:)            = 0
     Input_Opt%TCOUNT(:)              = 0	  

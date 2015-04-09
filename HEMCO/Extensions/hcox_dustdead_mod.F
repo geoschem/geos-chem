@@ -358,6 +358,9 @@
       ! Loop over latitudes
       DO J = 1, HcoState%NY 
 
+         ! Don't do calculations if there has been an error
+         IF ( ERR ) CYCLE 
+
          ! Loop over longitudes
          DO I = 1, HcoState%NX
  
@@ -1049,6 +1052,9 @@
       ! Total dust tendency due to gravitational settling [kg/kg/s]
       REAL*8 Q_DST_TND_MBL_TTL(HcoState%NX)
 
+      ! Temperature
+      REAL(dp) :: TMP
+
       ! For error handling
       CHARACTER(LEN=255)   :: MSG
 
@@ -1086,14 +1092,20 @@
       DO I = 1, HcoState%NX
 
          ! Stop occasional haywire model runs
+!         IF ( TPT_MDP(I) > 350.0d0 ) THEN
+!            MSG = 'TPT_MDP(i) > 350.0'
+!            CALL HCO_ERROR ( MSG, RC, THISLOC='DST_MBL' ) 
+!            RETURN
+!         ENDIF
+         ! Now simply restrict to 350K, rather than crashing
          IF ( TPT_MDP(I) > 350.0d0 ) THEN
-            MSG = 'TPT_MDP(i) > 350.0'
-            CALL HCO_ERROR ( MSG, RC, THISLOC='DST_MBL' ) 
-            RETURN
+            TMP = 350.0d0
+         ELSE
+            TMP = TPT_MDP(I)
          ENDIF
 
          ! Midlayer virtual temperature [K]
-         TPT_VRT_MDP = TPT_MDP(I)
+         TPT_VRT_MDP = TMP
      &               * (1.0d0 + EPS_H2O_RCP_M1 * Q_H2O_VPR(I))
 
          ! Density at center of gridbox [kg/m3]

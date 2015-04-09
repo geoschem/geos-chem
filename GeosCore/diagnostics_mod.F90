@@ -77,7 +77,7 @@ CONTAINS
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
     USE GRID_MOD,           ONLY : AREA_M2
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE UCX_MOD,            ONLY : DIAGINIT_UCX
+!    USE UCX_MOD,            ONLY : DIAGINIT_UCX
 !
 ! !INPUT PARAMETERS:
 !
@@ -95,6 +95,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  09 Jan 2015 - C. Keller   - Initial version 
+!  25 Mar 2015 - C. Keller   - Moved UCX initialization to UCX_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -142,13 +143,18 @@ CONTAINS
     ! we may want to add more (i.e. hourly, instantaneous, monthly, etc.)
     !-----------------------------------------------------------------------
 
-    ! UCX diagnostics
-    IF ( Input_Opt%LUCX ) THEN
-       CALL DIAGINIT_UCX( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
-          CALL ERROR_STOP( 'Error in DIAGINIT_UCX', LOC ) 
-       ENDIF
-    ENDIF
+    ! UCX diagnostics are now initialized in ucx_mod.F. The UCX diagnostics
+    ! currently only include the PSC state, which is written into the HEMCO
+    ! restart file for now. Initialize this outside this module to make sure
+    ! that this field is also diagnosed if we are not using the DEVEL compiler
+    ! switch (ckeller, 3/25/2015). 
+!    ! UCX diagnostics
+!    IF ( Input_Opt%LUCX ) THEN
+!       CALL DIAGINIT_UCX( am_I_Root, Input_Opt, RC )
+!       IF ( RC /= GIGC_SUCCESS ) THEN
+!          CALL ERROR_STOP( 'Error in DIAGINIT_UCX', LOC ) 
+!       ENDIF
+!    ENDIF
 
     ! Convective scavenging loss (ND38)
     CALL DIAGINIT_CONV_LOSS( am_I_Root, Input_Opt, State_Met, RC )
@@ -380,7 +386,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: cId,      Collection, D, N
+    INTEGER            :: cID,      Collection, D, N
     CHARACTER(LEN=15)  :: OutOper,  WriteFreq
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
@@ -416,11 +422,13 @@ CONTAINS
           !----------------------------------------------------------------
 
           ! Diagnostic name
-          DiagnName = 'DEPVEL_' // TRIM( Input_Opt%DEPNAME(D) )
+          DiagnName = 'DEPVEL_' // TRIM( Input_Opt%TRACER_NAME(N) )
+          cID       = 44000 + N
 
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
                              Col       = Collection,        & 
+                             cID       = cID,               &
                              cName     = TRIM( DiagnName ), &
                              AutoFill  = 0,                 &
                              ExtNr     = -1,                &
@@ -432,6 +440,7 @@ CONTAINS
                              OutUnit   = 's-1',             &
                              OutOper   = TRIM( OutOper   ), &
                              WriteFreq = TRIM( WriteFreq ), &
+                             OkIfExist = .TRUE.,            &
                              RC        = RC )
 
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -440,15 +449,17 @@ CONTAINS
           ENDIF
           
           !----------------------------------------------------------------
-          ! Create containers for drydep flux [molec/cm2/s]
+          ! Create containers for drydep flux [kg/m2/s]
           !----------------------------------------------------------------
 
           ! Diagnostic name
-          DiagnName = 'DEPFLUX_' // TRIM( Input_Opt%DEPNAME(D) )
+          DiagnName = 'DEPFLUX_' // TRIM( Input_Opt%TRACER_NAME(N) )
+          cID       = 44500 + N
 
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
                              Col       = Collection,        &
+                             cID       = cID,               &
                              cName     = TRIM( DiagnName ), &
                              AutoFill  = 0,                 &
                              ExtNr     = -1,                &
@@ -457,9 +468,10 @@ CONTAINS
                              HcoID     = -1,                &
                              SpaceDim  =  2,                &
                              LevIDx    = -1,                &
-                             OutUnit   = 'cm-2 s-1',        &
+                             OutUnit   = 'kg m-2 s-1',      &
                              OutOper   = TRIM( OutOper   ), &
                              WriteFreq = TRIM( WriteFreq ), &
+                             OkIfExist = .TRUE.,            &
                              RC        = RC )
 
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -613,7 +625,7 @@ CONTAINS
 !
     INTEGER            :: cId, Collection, N
     REAL(hp)           :: ScaleFact
-    CHARACTER(LEN=15)  :: OutOper, OutUnit, WriteFreq
+    CHARACTER(LEN=31)  :: OutOper, OutUnit, WriteFreq
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGINIT_GRIDBOX (diagnostics_mod.F90)' 
@@ -905,7 +917,7 @@ CONTAINS
                              HcoID     = -1,                &
                              SpaceDim  =  2,                & ! 2D for now!!
                              LevIDx    = -1,                & ! sum over all vert. levels
-                             OutUnit   = 'kg/s',            &
+                             OutUnit   = 'kg/m2/s',         &
                              OutOper   = TRIM( OutOper   ), &
                              WriteFreq = TRIM( WriteFreq ), &
                              RC        = RC                  )
@@ -1013,7 +1025,7 @@ CONTAINS
                              HcoID     = -1,                &
                              SpaceDim  =  2,                &
                              LevIDx    = -1,                &
-                             OutUnit   = 'kg/s',            &
+                             OutUnit   = 'kg/m2/s',         &
                              OutOper   = TRIM( OutOper   ), &
                              WriteFreq = TRIM( WriteFreq ), &
                              RC        = RC                  )

@@ -479,7 +479,7 @@ CONTAINS
        CALL xmap_r4r4(im, jm-ig, lon1, q1(1,1+ig),in, lon2, qtmp(1,1+ig) )
 
     ENDIF
-    
+
     !===================================================================
     ! N-S regridding
     !===================================================================    
@@ -843,6 +843,8 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
+!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined 
+!                                values in nested grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -867,6 +869,7 @@ CONTAINS
     !$OMP DEFAULT( SHARED                    ) &
     !$OMP PRIVATE( I, J0, J, M, QSUM, MM, DY )
     do 1000 i=1,im
+       qsum = 0.0d0
        j0 = 1
        do 555 j=1,jn-ig
        do 100 m=j0,jm-ig
@@ -1009,6 +1012,8 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
+!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined 
+!                                values in nested grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1033,6 +1038,7 @@ CONTAINS
     !$OMP DEFAULT( SHARED                    ) &
     !$OMP PRIVATE( I, J0, J, M, QSUM, MM, DY )
     do 1000 i=1,im
+       qsum = 0.0d0
        j0 = 1
        do 555 j=1,jn-ig
        do 100 m=j0,jm-ig
@@ -1175,6 +1181,8 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
+!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined 
+!                                values in nested grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1199,6 +1207,7 @@ CONTAINS
     !$OMP DEFAULT( SHARED                    ) &
     !$OMP PRIVATE( I, J0, J, M, QSUM, MM, DY )
     do 1000 i=1,im
+       qsum = 0.0d0
        j0 = 1
        do 555 j=1,jn-ig
        do 100 m=j0,jm-ig
@@ -1341,6 +1350,8 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
+!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined 
+!                                values in nested grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1365,6 +1376,7 @@ CONTAINS
     !$OMP DEFAULT( SHARED                    ) &
     !$OMP PRIVATE( I, J0, J, M, QSUM, MM, DY )
     do 1000 i=1,im
+       qsum = 0.0
        j0 = 1
        do 555 j=1,jn-ig
        do 100 m=j0,jm-ig
@@ -1384,7 +1396,7 @@ CONTAINS
                 
                 ! South most fractional area
                 qsum=(sin1(m+1)-sin2(j))*q1(i,m)
-                
+ 
                 do mm=m+1,jm-ig
                    
                    ! locate the northern edge: sin2(j+1)
@@ -1436,7 +1448,6 @@ CONTAINS
         do i=1,im
            q2(i,jn) = sum
         enddo
-
      endif
 
    END SUBROUTINE ymap_r4r4
@@ -1793,7 +1804,7 @@ CONTAINS
        enddo
     endif    
 
-    ! Reduce input grid
+    ! Reduce output grid
     n1 = 1
     n2 = iin+1
     do i=1,iin+1

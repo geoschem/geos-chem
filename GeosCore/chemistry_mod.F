@@ -438,9 +438,10 @@
             MONTH      = 0
             YEAR       = 0
             WAVELENGTH = 0
+            write(6,*) 'before RDAER, FJX'
             CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
      &                  MONTH,     YEAR,      WAVELENGTH      )
-
+            write(6,*) 'after RDAER'
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
             IF ( LSULF ) THEN
                IF ( LSSALT ) THEN
@@ -485,7 +486,7 @@
 
             !*** MINERAL DUST AEROSOLS ***
             IF ( LDUST ) THEN 
- 
+            write(6,*) 'before DUST'
                ! Do dust aerosol chemsitry
                CALL CHEMDUST
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -495,6 +496,7 @@
                CALL RDUST_ONLINE
      &             ( am_I_Root, Input_Opt,  State_Met, 
      &               SOILDUST,  WAVELENGTH, RC         )
+            write(6,*) 'after DUST'
             ENDIF
  
          !---------------------------------
@@ -624,7 +626,7 @@
 
       ! Free pointer
       NULLIFY( STT )
-
+    
       END SUBROUTINE DO_CHEMISTRY
 !EOC
 #if defined( USE_REAL8 )
@@ -1063,9 +1065,10 @@
 
                ! Calculate the AOD at the wavelength specified in jv_spec_aod
                WAVELENGTH = 1
+              write(6,*) 'before RDAER, AOD'
                CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
      &                     MONTH,     YEAR,      WAVELENGTH      )
-
+               write(6,*) 'after RDAER, AOD'
                !### Debug
                IF ( LPRT .and. am_I_Root ) THEN 
                   CALL DEBUG_MSG( '### RECOMPUTE_OD: after RDAER' )

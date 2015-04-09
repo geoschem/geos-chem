@@ -1560,7 +1560,7 @@ CONTAINS
     !Molecules/cm2/s --> kg NO/m2/s 
     NTS  = HcoState%TS_EMIS / HcoState%TS_CHEM
     DRYN = ExtState%DRY_TOTN%Arr%Val(I,J) * CM2_PER_M2 / NTS / &
-           HcoState%Phys%Avgdr * HcoState%Spc(IDTNO)%MW_g / 1000.0e+0_hp
+           HcoState%Phys%Avgdr * HcoState%Spc(IDTNO)%EmMW_g / 1000.0e+0_hp
 
   END FUNCTION Source_DryN
 !EOC

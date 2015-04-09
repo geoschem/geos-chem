@@ -24,7 +24,6 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: CHEMDUST      
-!      PUBLIC  :: DUSTMIX
 #if   defined( TOMAS )
       PUBLIC  :: SETTLEDUST
 #endif
@@ -36,7 +35,6 @@
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: DRY_SETTLING
-      PRIVATE :: DRY_DEPOSITION
 !
 !  !REVISION HISTORY:
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -68,15 +66,16 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  20 Jun 2014 - R. Yantosca - Remove obsolete emissions code; we now use HEMCO
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  01 Apr 2015 - R. Yantosca - Remove obsolete DUSTMIX, DRY_DEPOSITION routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
-      INTEGER              :: DRYDST1, DRYDST2, DRYDST3, DRYDST4
-      REAL(fp),  ALLOCATABLE :: FRAC_S(:)
-      REAL(fp),  ALLOCATABLE :: SRCE_FUNC(:,:,:)
+      INTEGER               :: DRYDST1, DRYDST2, DRYDST3, DRYDST4
+      REAL(fp), ALLOCATABLE :: FRAC_S(:)
+      REAL(fp), ALLOCATABLE :: SRCE_FUNC(:,:,:)
 
       CONTAINS
 !EOC
@@ -138,6 +137,8 @@
 !  15 Nov 2012 - M. Payer    - Now pass State_Met as an argument
 !  05 Mar 2013 - R. Yantosca - Add ND70 debug print output
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  01 Apr 2015 - R. Yantosca - Remove call to DRY_DEPOSITION, this is now
+!                              done in mixing_mod.F90.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -207,166 +208,10 @@
          CALL DEBUG_MSG( '### CHEMDUST: a DRY_SETTLING' )
       ENDIF
 
-      !----------------------
-      ! Dust deposition
-      ! This is now done in mixing_mod.F90 (ckeller, 3/5/15)
-      !----------------------
-!      IF ( LDRYD ) THEN
-!         CALL DRY_DEPOSITION( am_I_Root,                  Input_Opt, 
-!     &                        STT(:,:,:,IDTDST1:IDTDST4), RC         )
-
-!         ! Debug print
-!         IF ( prtDebug ) THEN
-!            CALL DEBUG_MSG( '### CHEMDUST: a DRY_DEPOSITION' )
-!         ENDIF
-!      ENDIF
-
       ! Free pointer
       NULLIFY( STT )
 
       END SUBROUTINE CHEMDUST
-!EOC
-!!------------------------------------------------------------------------------
-!!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: DustMix 
-!!
-!! !DESCRIPTION: Subroutine DustMix adds the HEMCO dust emissions directly
-!! to the GEOS-Chem tracer array and resets HEMCO dust emissions to zero.
-!! This ensures that dust is not mixed twice.
-!!\\
-!!\\
-!! This routine also checks for dry deposition rates calculated by HEMCO
-!! and applies them here if necessary. There shouldn't be any dust drydep
-!! rates calculated by HEMCO as only air-sea exchange and PARANOX deposition
-!! rates are covered by HEMCO.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE DUSTMIX ( am_I_Root, Input_Opt, 
-!     &                     State_Met, State_Chm, RC )
-!!
-!! !USES:
-!!
-!      USE GIGC_ErrCode_Mod
-!      USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-!      USE GIGC_State_Chm_Mod,    ONLY : ChmState
-!      USE GIGC_State_Met_Mod,    ONLY : MetState
-!      USE TRACERID_MOD,          ONLY : IDTDST1, IDTDST2
-!      USE TRACERID_MOD,          ONLY : IDTDST3, IDTDST4
-!      USE HCOI_GC_MAIN_MOD,      ONLY : GetHcoState, GetHcoID
-!      USE HCO_STATE_MOD,         ONLY : HCO_STATE
-!      USE HCO_ERROR_MOD
-!!
-!! !INPUT PARAMETERS:
-!!
-!      LOGICAL,         INTENT(IN   )  :: am_I_Root   ! Root CPU?
-!      TYPE(OptInput),  INTENT(IN   )  :: Input_Opt   ! Input Options object
-!      TYPE(MetState),  INTENT(IN   )  :: State_Met   ! Meteorology State object
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!      TYPE(ChmState),  INTENT(INOUT)  :: State_Chm   ! Chemistry State object
-!      INTEGER,         INTENT(INOUT)  :: RC          ! Failure?
-!!
-!! !REMARKS:
-!!  For a detailed discussion of how emissions get added from HEMCO into
-!!  GEOS-Chem (and how emissions are distributed throughout the boundary
-!!  layer), please see this wiki page:
-!!  http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
-!!  
-!! !REVISION HISTORY:
-!!  21 Oct 2014 - C. Keller   - Initial Version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! LOCAL VARIABLES:
-!!
-!      TYPE(HCO_STATE), POINTER :: HcoState => NULL()
-!      INTEGER                  :: I, L, TrcID, HcoID
-!  
-!      !=======================================================================
-!      ! DUSTMIX begins here
-!      !=======================================================================
-!  
-!      ! Assume success until otherwise
-!      RC = GIGC_SUCCESS
-! 
-!      ! Get pointer to HEMCO state object
-!      CALL GetHcoState ( HcoState )
-!      IF ( .NOT. ASSOCIATED(HcoState) ) RETURN
-!
-!      ! Do for all four dust tracers
-!      DO I = 1, 4
-!  
-!         ! Select dust tracer
-!         SELECT CASE ( I )
-!            CASE ( 1 ) 
-!               HcoID = GetHcoID( TrcID=IDTDST1 )
-!               TrcID = IDTDST1
-!            CASE ( 2 ) 
-!               HcoID = GetHcoID( TrcID=IDTDST2 )
-!               TrcID = IDTDST2
-!            CASE ( 3 ) 
-!               HcoID = GetHcoID( TrcID=IDTDST3 )
-!               TrcID = IDTDST3
-!            CASE ( 4 ) 
-!               HcoID = GetHcoID( TrcID=IDTDST4 )
-!               TrcID = IDTDST4
-!            CASE DEFAULT
-!               HcoID = -1
-!               TrcID = -1 
-!         END SELECT
-!         IF ( HcoID <= 0 .OR. TrcID <= 0 ) CYCLE
-!  
-!         ! There shouldn't be any dry deposition values defined for dust, but check
-!         ! for safety's sake. If found, apply them here and set deposition rate to
-!         ! zero afterwards.
-!         ! Do this before emissions because we want to apply dry deposition on the 
-!         ! 'original' tracer concentration (before emissions applied to it).
-!         IF ( ASSOCIATED(HcoState%Spc(HcoID)%Depv%Val) ) THEN
-!  
-!            ! Deposition rates are in 1/s. Convert to kg. 
-!            State_Chm%Tracers(:,:,1,TrcID) 
-!     &      = State_Chm%Tracers(:,:,1,TrcID)
-!     &      * ( 1 - ( HcoState%Spc(HcoID)%Depv%Val(:,:)
-!     &              * HcoState%TS_EMIS ) )
-!
-!            ! Make sure it's not negative          
-!            WHERE( State_Chm%Tracers(:,:,:,TrcID) < 0.0e+0_fp )
-!     &         State_Chm%Tracers(:,:,:,TrcID) = 0.0e+0_fp
-!  
-!            ! Reset to zero
-!            HcoState%Spc(HcoID)%Depv%Val = 0.0_hp
-!         ENDIF
-!  
-!         ! If defined, add emissions to tracers array.
-!         IF ( ASSOCIATED(HcoState%Spc(HcoID)%Emis%Val) ) THEN
-!  
-!            ! Emissions are in kg/m2/s. Convert to kg. 
-!            ! Dust emissions are currently only emitted into the first level, so only
-!            ! loop over the surface level...
-!            DO L = 1, 1 !HcoState%NZ
-!               State_Chm%Tracers(:,:,L,TrcID) 
-!     &         = State_Chm%Tracers(:,:,L,TrcID)
-!     &         + ( HcoState%Spc(HcoID)%Emis%Val(:,:,L)
-!     &         *   HcoState%Grid%AREA_M2%Val(:,:)
-!     &         *   HcoState%TS_EMIS
-!     &           )
-!            ENDDO
-! 
-!            ! Reset to zero
-!            HcoState%Spc(HcoID)%Emis%Val = 0.0_hp
-!         ENDIF
-!  
-!      ENDDO !I
-!  
-!      END SUBROUTINE DUSTMIX
-!!EOC
 #if   defined( TOMAS )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -627,6 +472,7 @@
       LOGICAL       :: LDEAD
       LOGICAL       :: LDUST
       LOGICAL       :: LPRT
+      LOGICAL       :: LINTERP 
       INTEGER       :: I, J, K                            !(win, 7/17/09)
       REAL(fp)        :: MEMIS, MINIT(IIPAR,JJPAR,1,IBINS)  !(win, 7/17/09)
 
@@ -685,16 +531,8 @@
      &           'dust DEAD emission yet!  Switch to GINOUX for now'
             stop
 
-!            ! Use Zender's DEAD dust source function
-!            CALL SRC_DUST_DEAD( STT(:,:,:,IDTDUST1:IDTDUST1-1+IBINS),
-!     &                          State_Met )
-!            !### Debug
-!            IF ( LPRT ) 
-!     &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_DEAD' )
          ELSE 
-!            ! Use Paul Ginoux's dust source function
-!            CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDUST1:IDTDUST1-1+IBINS),
-!     &                            State_Met, Input_Opt )
+
             !### Debug
             IF ( LPRT ) 
      &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
@@ -719,30 +557,6 @@
             ENDDO
          ENDIF
       ENDIF
-!#else
-!      !=================================================================
-!      ! For standard GEOS-Chem simulations w/o TOMAS:
-!      !=================================================================
-!      IF ( LDEAD ) THEN
-!
-!         ! Use Zender's DEAD dust source function
-!         CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4), State_Met )
-!
-!         !### Debug
-!         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_DEAD' )
-!         
-!      ELSE
-!
-!         ! Use Paul Ginoux's dust source function
-!         CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4 ), 
-!     &                         State_Met,
-!     &                         Input_Opt )
-!
-!         !### Debug
-!         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
-!
-!      ENDIF    
-!#endif
 
       ! Free pointers
       STT => NULL()
@@ -998,132 +812,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: dry_deposition
-!
-! !DESCRIPTION: Subroutine DRY\_DEPOSITION computes the loss of dust due to 
-!  dry deposition at the surface using an implicit method. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE DRY_DEPOSITION( am_I_Root, Input_Opt, TC, RC )
-!
-! !USES:
-!
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV 
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTDST1
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!
-! !INPUT/OUTPUT PARAMETERS: 
-! 
-      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust [kg]
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
-!  30 Mar 2004 - T. D. Fairlie - Initial version
-!  (1 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
-!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      INTEGER :: I,   J,   L,      N,    N_TRACERS
-      REAL(fp)  :: OLD, NEW, DTCHEM, FLUX, AREA_CM2
-
-      ! Arrays
-      REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
-
-      !=================================================================
-      ! DRY_DEPOSITION begins here!
-      !=================================================================
-
-      ! Assume success
-      RC        = GIGC_SUCCESS
-
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-
-      ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM    = Input_Opt%TS_CHEM * 60e+0_fp
-
-      ! Loop over dust bins
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, N, OLD, NEW, AREA_CM2, FLUX )
-!$OMP+SCHEDULE( DYNAMIC )
-
-      ! Loop over dust bins
-      DO N = 1, NDSTBIN    
-
-         ! Loop over latitudes
-         DO J = 1, JJPAR
-
-            ! Loop over longitudes
-            DO I = 1, IIPAR
-
-               ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-
-               ! Original dust concentration at surface
-               OLD = TC(I,J,1,N)
-
-               ! Dust left after dry deposition
-               NEW = OLD * 
-     &               EXP( -DEPSAV(I,J,Input_Opt%IDDEP(N)) * DTCHEM  )
-
-               !========================================================
-               ! ND44 diagnostic: dust drydep loss [#/cm2/s]
-               !========================================================
-               IF ( ND44 > 0 ) THEN
-
-                  ! Convert drydep flux from [kg/s] to [#/cm2/s]
-                  FLUX     = ( OLD - NEW ) / DTCHEM 
-                  FLUX     = FLUX * XNUMOL(IDTDST1) / AREA_CM2 
-               
-#if !defined( NO_BPCH )
-                  ! Store in AD44
-                  AD44(I,J,Input_Opt%IDDEP(N),1) = 
-     &            AD44(I,J,Input_Opt%IDDEP(N),1) + FLUX
-#endif
-               ENDIF
-
-               ! Save back into STT
-               TC(I,J,1,N) = NEW 
-            ENDDO
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE DRY_DEPOSITION
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: rdust_online
 !
 ! !DESCRIPTION: Subroutine RDUST\_ONLINE reads global mineral dust 
@@ -1134,14 +822,14 @@
 ! !INTERFACE:
 !
       SUBROUTINE RDUST_ONLINE( am_I_Root, Input_Opt,  State_Met, 
-     &                         DUST,      WAVELENGTH, RC         )
+     &                         DUST,      ODSWITCH,   RC         )
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD,        ONLY : ODMDUST, IND999, NDUST
-      USE CMN_FJX_MOD,        ONLY : QAA, QAA_AOD, RAA, RAA_AOD
+      USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE COMODE_MOD,         ONLY : ERADIUS, IXSAVE, IYSAVE 
       USE COMODE_MOD,         ONLY : IZSAVE,  JLOP,   TAREA
       USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
@@ -1158,8 +846,8 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-      REAL(fp),         INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST) !Dust [kg/m3]
-      INTEGER,        INTENT(IN)  :: WAVELENGTH
+      REAL(fp),       INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST) !Dust [kg/m3]
+      INTEGER,        INTENT(IN)  :: ODSWITCH
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1179,6 +867,9 @@
 !                              used for the calculation of the AOD. The ND21 
 !                              diagnostic should only be updated when 
 !                              WAVELENGTH = 1. (skim, 02/03/11)
+!  04 Sep 2012 - D. Ridley   - WAVELENGTH now ODSWITCH for clarity now
+!                              that multiple wavelengths can be
+!                              calculated at once.
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
@@ -1188,13 +879,18 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: I, J, JLOOP, L, N
-      REAL(fp)             :: MSDENS(NDUST), XTAU
+      LOGICAL            :: LINTERP
+      INTEGER            :: I, J, JLOOP, L, N, NOUT, W
+      INTEGER            :: IWV, IIWV, NWVS, IDST
+      REAL(fp)           :: MSDENS(NDUST), XTAU
       ! Added to calculate aqueous dust surface area (WTAREA, WERADIUS)
       ! (tmf, 3/6/09)
-      REAL(fp)             :: XRH
-      REAL(fp)             :: CRITRH      ! Critical RH [%], above which 
+      REAL(fp)           :: XRH
+      REAL(fp)           :: CRITRH      ! Critical RH [%], above which 
                                         !  heteorogeneous chem takes place
+
+      INTEGER            :: IWV1,  IWV2
+      REAL(fp)           :: ACOEF, BCOEF, LOGTERM
 
       !=================================================================
       ! RDUST_ONLINE begins here!
@@ -1202,6 +898,12 @@
 
       ! Assume success
       RC        =  GIGC_SUCCESS
+
+      ! Index for dust in ODAER and LUT arrays
+      IDST      = 6 
+#if defined( UCX )
+      IDST      = 8
+#endif
 
       ! Dust density 
       MSDENS(1) = 2500.0e+0_fp
@@ -1232,33 +934,82 @@
       ! NOTES: 
       ! (1) Do the calculation at QAA(IND999,:) (i.e. 999 nm).          
       !=================================================================
+      ! DAR Oct 2012
+      ! if the call is from chemistry (ODSWITCH=0) only need one wavelength
+      ! if radiation on (LRAD=TRUE) then cycle over all LUT wavelengths
+      ! if radiation off but call is for AOD then cycle over the
+      ! wavelength required or the wavelengths between which to
+      ! interpolate
+
+      IF (ODSWITCH .EQ. 0) THEN
+         NWVS   = 1
+      ELSE
+         IF ( Input_Opt%LRAD ) THEN !Loop over all RT wavelengths (30)
+            ! plus any required for calculating the AOD
+            NWVS   = NWVAART+NWVREQUIRED
+         ELSE                       !Loop over wavelengths needed (from RD_AOD)
+            NWVS   = NWVREQUIRED
+         ENDIF
+      ENDIF
+      
+      DO IIWV = 1, NWVS
+         ! get current wavelength index
+         ! (specified by user or all wavelengths for RRTMG)
+         ! (1000nm always used for FAST-J and stored in first index)
+         IF (ODSWITCH .EQ. 0) THEN
+            ! only doing for 1000nm i.e. IWV=10 in LUT
+            ! N.B. NWVS is fixed to 1 above - only one wavelength
+            IWV=IWV1000
+         ELSE
+            IF ( Input_Opt%LRAD ) THEN
+            ! RRTMG wavelengths begin after NWVAA0 standard wavelengths
+            ! but add on any others required
+               IF (IIWV.LE.NWVAART) THEN
+                  !index of RRTMG wavelengths starts after the standard NWVAA0
+                  !(currently NWVAA0=11, set in CMN_FJX_mod based on the .dat
+                  !LUT)
+                  IWV = IIWV+NWVAA0
+               ELSE
+                  !now we calculate at wvs for the requested AOD
+                  !offset index by NWVAART i.e. start from 1 
+                  IWV = IWVREQUIRED(IIWV-NWVAART)
+               ENDIF
+            ELSE
+               ! IWVREQUIRED lists the index of requires standard wavelengths
+               IWV = IWVREQUIRED(IIWV)
+            ENDIF
+         ENDIF
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, NDUST
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+         DO N = 1, NDUST
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-         IF ( WAVELENGTH > 0 ) THEN
+            ! dust stored in the 6th species bin of LUT variables
+            ODMDUST(I,J,L,IWV,N) = 0.75e+0_fp *
+     &                             State_Met%BXHEIGHT(I,J,L) * 
+     &                             DUST(I,J,L,N) * QQAA(IWV,N,IDST)  / 
+     &                           ( MSDENS(N) * RDAA(N,IDST) * 1.0e-6_fp)
 
-            ODMDUST(I,J,L,N) = 0.75e+0_fp * State_Met%BXHEIGHT(I,J,L) * 
-     &                         DUST(I,J,L,N) * QAA_AOD(14+N)     / 
-     &                   ( MSDENS(N) * RAA_AOD(14+N) * 1.0e-6_fp )
+#if defined ( RRTMG )
+            !add dust optics to the RT code arrays
+            !SSA and ASYM copying seems a little redundant...
+            !will keep this way for uniformity for now but
+            !possibly could deal with SSA and ASYM in RT module
+            RTODAER(I,J,L,IWV,NAER+2+N) = ODMDUST(I,J,L,IWV,N)
+            RTSSAER(I,J,L,IWV,NAER+2+N) = SSAA(IWV,N,IDST)
+            RTASYMAER(I,J,L,IWV,NAER+2+N) = ASYMAA(IWV,N,IDST)
+#endif
 
-         ELSE
-
-            ODMDUST(I,J,L,N) = 0.75e+0_fp * State_Met%BXHEIGHT(I,J,L) * 
-     &                         DUST(I,J,L,N) * QAA(IND999,14+N)     / 
-     &                   ( MSDENS(N) * RAA(IND999,14+N) * 1.0e-6_fp )
-
-         ENDIF
-
-      ENDDO
-      ENDDO
-      ENDDO
-      ENDDO
+         ENDDO
+         ENDDO
+         ENDDO
+         ENDDO
 !$OMP END PARALLEL DO
+      ENDDO !wavelength loop
 
       !==============================================================
       ! Calculate Dust Surface Area
@@ -1286,15 +1037,7 @@
          J = IYSAVE(JLOOP)
          L = IZSAVE(JLOOP)
 
-         IF ( WAVELENGTH > 0 ) THEN
-
-            ERADIUS(JLOOP,N) = RAA_AOD(14+N) * 1.0e-4_fp
-
-         ELSE
-
-            ERADIUS(JLOOP,N) = RAA(IND999,14+N) * 1.0e-4_fp
-
-         ENDIF
+         ERADIUS(JLOOP,N) = RDAA(N,6) * 1.0e-4_fp
 
          TAREA(JLOOP,N)   = 3.e+0_fp / ERADIUS(JLOOP,N) *
      &                      DUST(I,J,L,N) / MSDENS(N)  
@@ -1322,36 +1065,93 @@
       ! Tracer #3: Random Overlap Cld Frac (from "optdepth_mod.f")
       ! Tracer #4: Dust optical depths (total all size bins)
       ! Tracer #5: Dust surface areas (from all size bins)
-      ! Tracers #21-27: Dust AOD for each size bin
+      ! Tracers #31-37: Dust AOD for each size bin
+      ! Tracers #38-44: Dust SSA for each size bin
+      ! Tracers #45-51: Dust ASYM for each size bin
       !==============================================================
-      IF ( ND21 > 0 .and. WAVELENGTH > 0 ) THEN
+      IF ( ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
 
-         DO N = 1, NDUST
+!#############################################################################
+!### Prior to 4/6/15
+!### NOTE: Activating this parallel loop causes differences in the ND21
+!### diagnostic outputs for some reason.  We have not been able to diagnose
+!### this.  The cheap solution is to disable the parallelization, and then
+!### we get identical results between single and multiprocessor runs.
+!### (bmy, 4/6/15)
+!###
+!###!$OMP PARALLEL DO
+!###!$OMP+DEFAULT( SHARED )
+!###!$OMP+PRIVATE( I, J, JLOOP, L, N, W, NOUT, LINTERP )
+!#############################################################################
+         DO N=1, NDUST
+         DO W = 1, NWVSELECT !loop over required number of wavelengths
+            IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
+               LINTERP=.FALSE.
+            ELSE
+               LINTERP=.TRUE.
+            ENDIF
+            SELECT CASE(W)
+               CASE(1)
+                  NOUT=21+(N-1)
+               CASE(2)
+                  NOUT=21+NAER+NDUST+(N-1)
+               CASE(3)
+                  NOUT=21+2*(NAER+NDUST)+(N-1)
+               CASE DEFAULT
+                  NOUT=21+(N-1)
+            END SELECT
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L )
             DO L = 1, LD21
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 
-               !--------------------------------------
-               ! ND21 tracer #4: Dust optical depths (clh)
-               !--------------------------------------
-               AD21(I,J,L,4) = AD21(I,J,L,4) + ODMDUST(I,J,L,N)
+               IF ( .not. LINTERP ) THEN
 
-               !--------------------------------------
-               ! ND21 tracer #21-27: size-resolved dust optical depths
-               !--------------------------------------
-               AD21(I,J,L,21+(N-1)) = AD21(I,J,L,21+(N-1)) + 
-     &                                ODMDUST(I,J,L,N)
-  
+                  !--------------------------------------
+                  ! ND21 tracer #4: Dust optical depths (clh)
+                  !--------------------------------------
+                  AD21(I,J,L,4) = AD21(I,J,L,4) + 
+     &                            ODMDUST(I,J,L,IWVSELECT(1,W),N)
+
+                  !--------------------------------------
+                  ! ND21 tracer #21-27: size-resolved dust optical depths
+                  !--------------------------------------
+                  AD21(I,J,L,NOUT) = AD21(I,J,L,NOUT) + 
+     &                               ODMDUST(I,J,L,IWVSELECT(1,W),N)
+
+               ELSE
+
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  ! AOD sometimes zero (if Q zero), must catch this
+                  IF ((ODMDUST(I,J,L,IWVSELECT(1,W),N).GT.0).AND.
+     &                (ODMDUST(I,J,L,IWVSELECT(2,W),N).GT.0)) THEN
+
+                     !--------------------------------------
+                     ! ND21 tracer #4: Dust optical depths (clh)
+                     !--------------------------------------
+                     AD21(I,J,L,4) = AD21(I,J,L,4) +
+     &                             ODMDUST(I,J,L,IWVSELECT(2,W),N)*
+     &                             ACOEF_WV(W)**(BCOEF_WV(W)*LOG(
+     &                             ODMDUST(I,J,L,IWVSELECT(1,W),N)/
+     &                             ODMDUST(I,J,L,IWVSELECT(2,W),N)))
+
+                     AD21(I,J,L,NOUT) = AD21(I,J,L,NOUT) +
+     &                                ODMDUST(I,J,L,IWVSELECT(2,W),N)*
+     &                                ACOEF_WV(W)**(BCOEF_WV(W)*LOG(
+     &                                ODMDUST(I,J,L,IWVSELECT(1,W),N)/
+     &                                ODMDUST(I,J,L,IWVSELECT(2,W),N)))
+
+
+                  ENDIF
+               ENDIF
 
                !--------------------------------------
                ! ND21 tracer #5: Dust surface areas
                !--------------------------------------
                IF ( L <= LLCHEM ) THEN
-               
+              
                   ! Convert 3-D indices to 1-D index
                   ! JLOP is only defined in the tropopause
                   JLOOP = JLOP(I,J,L)
@@ -1360,12 +1160,24 @@
                   IF ( JLOOP > 0 ) THEN
                      AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(JLOOP,N)
                   ENDIF
+
                ENDIF
             ENDDO
             ENDDO
             ENDDO
-!$OMP END PARALLEL DO
          ENDDO
+         ENDDO
+!#############################################################################
+!### Prior to 4/6/15
+!### NOTE: Activating this parallel loop causes differences in the ND21
+!### diagnostic outputs for some reason.  We have not been able to diagnose
+!### this.  The cheap solution is to disable the parallelization, and then
+!### we get identical results between single and multiprocessor runs.
+!### (bmy, 4/6/15)
+!###
+!###!$OMP END PARALLEL DO
+!#############################################################################
+
       ENDIF 
 
       END SUBROUTINE RDUST_ONLINE
@@ -1385,14 +1197,13 @@
 ! !INTERFACE:
 !
       SUBROUTINE RDUST_OFFLINE( am_I_Root, Input_Opt, State_Met,
-     &                          THISMONTH, THISYEAR, WAVELENGTH, RC )
+     &                          THISMONTH, THISYEAR,  ODSWITCH,  RC )
 !
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
-      USE CMN_FJX_MOD,        ONLY : IND999
-      USE CMN_FJX_MOD,        ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
+      USE CMN_FJX_MOD
       USE COMODE_MOD,         ONLY : ERADIUS, IXSAVE, IYSAVE
       USE COMODE_MOD,         ONLY : IZSAVE,  JLOP,   TAREA
       USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
@@ -1414,7 +1225,7 @@
       TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
       INTEGER,        INTENT(IN)  :: THISMONTH  ! Current month (1-12)
       INTEGER,        INTENT(IN)  :: THISYEAR   ! Current year  (YYYY format)
-      INTEGER,        INTENT(IN)  :: WAVELENGTH ! Determine which wavelength to
+      INTEGER,        INTENT(IN)  :: ODSWITCH   ! Determine which wavelength to
                                                 !  use for optical properties
 !
 ! !OUTPUT PARAMETERS:
@@ -1486,6 +1297,9 @@
 !                              WAVELENGTH = 1.
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  04 Sep 2012 - D. Ridley   - WAVELENGTH now ODSWITCH for clarity now
+!                              that multiple wavelengths can be
+!                              calculated at once.
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
@@ -1497,8 +1311,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, JLOOP, L, N
+      LOGICAL             :: LINTERP
+      INTEGER             :: I, J, JLOOP, L, N, NOUT, W
+      INTEGER             :: IWV, IIWV, NWVS
       INTEGER, SAVE       :: MONTH_LAST = -999
+      LOGICAL, SAVE       :: DO_DIAG = .FALSE.
       REAL(f4)            :: TEMP(IIPAR,JJPAR,LGLOB)
       REAL(fp)            :: DUST(IIPAR,JJPAR,LLPAR,NDUST)
       REAL(fp)            :: MSDENS(NDUST)
@@ -1517,11 +1334,8 @@
       ! Read aerosol data from the binary punch file during the first 
       ! chemistry timestep and, after that, at the start of each month.
       !=================================================================
-      IF ( THISMONTH /= MONTH_LAST ) THEN   
+      IF ( THISMONTH /= MONTH_LAST .or. DO_DIAG ) THEN
          
-         ! Save the current month
-         MONTH_LAST = THISMONTH
-
          ! Get TAU0 value used to index the punch file
          ! Use the "generic" year 1985
          XTAU = GET_TAU0( THISMONTH, 1, 1985 )
@@ -1548,33 +1362,85 @@
             CALL TRANSFER_3D( TEMP, DUST(:,:,:,N) )
          ENDDO
 
-         !==============================================================
-         ! Convert concentration [kg/m3] to optical depth [unitless].
-         !
-         ! ODMDUST = ( 0.75 * BXHEIGHT * CONC * QAA ) / 
-         !           ( MSDENS * RAA * 1e-6 )
-         ! (see Tegen and Lacis, JGR, 1996, 19237-19244, eq. 1)
-         !
-         !  Units ==> DUST     [ kg/m3    ]
-         !            MSDENS   [ kg/m3    ]
-         !            RAA      [ um       ]
-         !            BXHEIGHT [ m        ]
-         !            QAA      [ unitless ]
-         !            ODMDUST  [ unitless ]
-         !
-         ! NOTES: 
-         ! (1) Do the calculation at QAA(IND999,:) (i.e. 999 nm).          
-         !==============================================================
-         MSDENS(1) = 2500.0e+0_fp
-         MSDENS(2) = 2500.0e+0_fp
-         MSDENS(3) = 2500.0e+0_fp
-         MSDENS(4) = 2500.0e+0_fp
-         MSDENS(5) = 2650.0e+0_fp
-         MSDENS(6) = 2650.0e+0_fp
-         MSDENS(7) = 2650.0e+0_fp
+      !==============================================================
+      ! Convert concentration [kg/m3] to optical depth [unitless].
+      !
+      ! ODMDUST = ( 0.75 * BXHEIGHT * CONC * QAA ) / 
+      !           ( MSDENS * RAA * 1e-6 )
+      ! (see Tegen and Lacis, JGR, 1996, 19237-19244, eq. 1)
+      !
+      !  Units ==> DUST     [ kg/m3    ]
+      !            MSDENS   [ kg/m3    ]
+      !            RAA      [ um       ]
+      !            BXHEIGHT [ m        ]
+      !            QAA      [ unitless ]
+      !            ODMDUST  [ unitless ]
+      !
+      ! NOTES: 
+      ! (1) Do the calculation at QAA(IND999,:) (i.e. 999 nm).          
+      !==============================================================
+      MSDENS(1) = 2500.0e+0_fp
+      MSDENS(2) = 2500.0e+0_fp
+      MSDENS(3) = 2500.0e+0_fp
+      MSDENS(4) = 2500.0e+0_fp
+      MSDENS(5) = 2650.0e+0_fp
+      MSDENS(6) = 2650.0e+0_fp
+      MSDENS(7) = 2650.0e+0_fp
 
       ! Critical RH, above which heteorogeneous chem takes place (tmf, 6/14/07)
-      CRITRH = 35.0e+0_fp   ! [%]
+      CRITRH    = 35.0e+0_fp  ! [%]
+
+      ! DAR 09/2013
+      ! There are two ways RDUST_ can be called:
+      ! (1) When Fast-J requires aerosol optics at 1000nm (ODSWITCH=0)
+      ! (2) Before diags are accumulated, from RECOMPUTE_AOD (ODSWITCH=1)
+      ! for (1) we just need the optics stored at a single wavelength
+      !     not for all user specified wavelengths, hence NWVS=1, IWV=IWV1000
+      ! for (2) we need to determine if RRTMG is switched on
+      !     if LRAD=true, calculation is over total minus standard wavelengths
+      !     in optics dat files (NWVAA-NWVAA0)
+      !     if LRAD=false, calculation is for the wavelengths required for
+      !     user-requested wavelength output. These are determined in CALC_AOD
+      !     within RD_AOD.F and stored in IWVREQUIRED. The coefficients to
+      !     interpolate from the LUT wavelengths to the user-requested
+      !     waveelenths (in CALC_AOD) are used here.
+
+      ! Select number of wavelengths required to loop over
+      IF (ODSWITCH .EQ. 0) THEN
+         NWVS   = 1
+      ELSE
+         IF ( Input_Opt%LRAD ) THEN !Loop over all RT wavelengths (30)
+            ! plus any required for calculating the AOD
+            NWVS   = NWVAA-NWVAA0+NWVREQUIRED
+         ELSE                       !Loop over wavelengths needed (from RD_AOD)
+            NWVS   = NWVREQUIRED
+         ENDIF
+      ENDIF
+
+      DO IIWV = 1, NWVS
+         !now select the correct LUT wavelength
+         IF (ODSWITCH .EQ. 0) THEN
+            ! only doing for 1000nm (IWV1000 is set in RD_AOD)
+            ! N.B. NWVS is fixed to 1 above - only one wavelength
+            IWV=IWV1000
+         ELSE
+            IF ( Input_Opt%LRAD ) THEN
+               ! RRTMG wavelengths begin after NWVAA0 standard wavelengths
+               ! but add on any others required
+               IF (IIWV.LE.30) THEN
+                  !index of RRTMG wavelengths starts after the standard NWVAA0
+                  !(currently NWVAA0=11, set in CMN_FJX_mod based on the .dat
+                  !LUT)
+                  IWV = IIWV+NWVAA0
+               ELSE
+                  !now we calculate at wvs for the requested AOD
+                  IWV = IWVREQUIRED(IIWV-30)
+               ENDIF
+            ELSE
+               ! IWVREQUIRED lists the index of requires standard wavelengths
+               IWV = IWVREQUIRED(IIWV)
+            ENDIF
+         ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1584,73 +1450,65 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            IF ( WAVELENGTH > 0 ) THEN
+            ! dust stored in the 6th species bin of LUT variables
+            ODMDUST(I,J,L,IWV,N) = 0.75e+0_fp *
+     &                             State_Met%BXHEIGHT(I,J,L) *
+     &                             DUST(I,J,L,N) * QQAA(IWV,N,6)  /
+     &                           ( MSDENS(N) * RDAA(N,6) * 1.0e-6_fp )
 
-               ODMDUST(I,J,L,N) = 0.75e+0_fp        *
-     &                            State_Met%BXHEIGHT(I,J,L) * 
-     &                            DUST(I,J,L,N) * QAA_AOD(14+N)     / 
-     &                      ( MSDENS(N) * RAA_AOD(14+N) * 1.0e-6_fp )
-
-            ELSE
-
-               ODMDUST(I,J,L,N) = 0.75e+0_fp        *
-     &                            State_Met%BXHEIGHT(I,J,L) * 
-     &                            DUST(I,J,L,N) * QAA(IND999,14+N)  / 
-     &                            ( MSDENS(N) * RAA(IND999,14+N) *
-     &                            1.0e-6_fp )
-
-            ENDIF
+#if defined ( RRTMG )
+            !add dust optics to the RT code arrays
+            !SSA and ASYM copying seems a little redundant...
+            !will keep this way for uniformity for now but
+            !possibly could deal with SSA and ASYM in RT module
+            RTODAER(I,J,L,IWV,NAER+4+N) = ODMDUST(I,J,L,IWV,N)
+            RTSSAER(I,J,L,IWV,NAER+4+N) = SSAA(IWV,N,6)
+            RTASYMAER(I,J,L,IWV,NAER+4+N) = ASYMAA(IWV,N,6)
+#endif
 
          ENDDO
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
+      ENDDO !wavelength loop
 
-         ! Echo information
-         IF ( am_I_Root ) THEN
-            WRITE( 6, 110 ) 
-         ENDIF
- 110     FORMAT( '     - RDUST: Finished computing optical depths' )
+      ! Echo information
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 110 )
+      ENDIF
+ 110  FORMAT( '     - RDUST: Finished computing optical depths' )
 
-         !==============================================================
-         ! Calculate Dust Surface Area
-         !
-         ! Units ==> DUST     [ kg dust/m^3 air    ]
-         !           MSDENS   [ kg dust/m^3 dust   ]
-         !           RAA      [ um                 ]
-         !           TAREA    [ cm^2 dust/cm^3 air ]
-         !           ERADIUS  [ cm                 ]
-         !
-         ! NOTE: first find volume of dust (cm3 dust/cm3 air), then 
-         !       multiply by 3/radius to convert to surface area in cm2
-         !  
-         ! TAREA(:,1:NDUST) and ERADIUS(:,1:NDUST) are for 
-         ! the NDUST FAST-J dust wavelength bins (read into DUST)
-         !==============================================================
+      !==============================================================
+      ! Calculate Dust Surface Area
+      !
+      ! Units ==> DUST     [ kg dust/m^3 air    ]
+      !           MSDENS   [ kg dust/m^3 dust   ]
+      !           RAA      [ um                 ]
+      !           TAREA    [ cm^2 dust/cm^3 air ]
+      !           ERADIUS  [ cm                 ]
+      !
+      ! NOTE: first find volume of dust (cm3 dust/cm3 air), then 
+      !       multiply by 3/radius to convert to surface area in cm2
+      !  
+      ! TAREA(:,1:NDUST) and ERADIUS(:,1:NDUST) are for 
+      ! the NDUST FAST-J dust wavelength bins (read into DUST)
+      !==============================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, JLOOP, L, N, XRH )
-         DO N     = 1, NDUST
-         DO JLOOP = 1, NTTLOOP
+      DO N     = 1, NDUST
+      DO JLOOP = 1, NTTLOOP
 
-            ! Compute 3-D grid box indices
-            I = IXSAVE(JLOOP)
-            J = IYSAVE(JLOOP)
-            L = IZSAVE(JLOOP)
+         ! Compute 3-D grid box indices
+         I = IXSAVE(JLOOP)
+         J = IYSAVE(JLOOP)
+         L = IZSAVE(JLOOP)
 
-            IF ( WAVELENGTH > 0 ) THEN
+         ERADIUS(JLOOP,N) = RDAA(N,6) * 1.0e-4_fp
 
-               ERADIUS(JLOOP,N) = RAA_AOD(14+N) * 1.0e-4_fp
-
-            ELSE
-
-               ERADIUS(JLOOP,N) = RAA(IND999,14+N) * 1.0e-4_fp
-
-            ENDIF
-
-            TAREA(JLOOP,N)   = 3.e+0_fp / ERADIUS(JLOOP,N) *
-     &                         DUST(I,J,L,N) / MSDENS(N)  
+         TAREA(JLOOP,N)   = 3.e+0_fp / ERADIUS(JLOOP,N) *
+     &                      DUST(I,J,L,N) / MSDENS(N)  
 
          ! Archive WTAREA and WERADIUS when RH > 35% (tmf, 6/13/07) 
          ! Get RH  
@@ -1663,67 +1521,122 @@
             WERADIUS(JLOOP, N) = ERADIUS(JLOOP, N)
          ENDIF
 
-         ENDDO
-         ENDDO
+      ENDDO
+      ENDDO
 !$OMP END PARALLEL DO
 
-         !==============================================================
-         ! ND21 Diagnostic: 
-         !
-         ! Tracer #1: Cloud optical depths    (from "optdepth_mod.f")
-         ! Tracer #2: Max Overlap Cld Frac    (from "optdepth_mod.f")
-         ! Tracer #3: Random Overlap Cld Frac (from "optdepth_mod.f")
-         ! Tracer #4: Dust optical depths at  (from all size bins)
-         ! Tracer #5: Dust surface areas (from all size bins)
-         !==============================================================
-         IF ( ND21 > 0 .and. WAVELENGTH > 0 ) THEN
-            DO N = 1, NDUST
+      !==============================================================
+      ! ND21 Diagnostic: 
+      !
+      ! Tracer #1: Cloud optical depths    (from "optdepth_mod.f")
+      ! Tracer #2: Max Overlap Cld Frac    (from "optdepth_mod.f")
+      ! Tracer #3: Random Overlap Cld Frac (from "optdepth_mod.f")
+      ! Tracer #4: Dust optical depths at  (from all size bins)
+      ! Tracer #5: Dust surface areas (from all size bins)
+      !==============================================================
+      IF ( ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L ) 
-               DO L = 1, LD21
-               DO J = 1, JJPAR
-               DO I = 1, IIPAR
+!$OMP+PRIVATE( I, J, JLOOP, L, N, W, NOUT, LINTERP )
+         DO N=1, NDUST
+         DO W = 1, NWVSELECT !different to NWVSELECT if interp
+            IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
+               LINTERP=.FALSE.
+            ELSE
+               LINTERP=.TRUE.
+            ENDIF
+            SELECT CASE(W)
+               CASE(1)
+                  NOUT=6+3*NAER+(N-1)
+               CASE(2)
+                  NOUT=6+3*NAER+NAER+NDUST+(N-1)
+               CASE(3)
+                  NOUT=6+3*NAER+2*(NAER+NDUST)+(N-1)
+               CASE DEFAULT
+                  NOUT=6+3*NAER+(N-1)
+            END SELECT
+
+            DO L = 1, LD21
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               IF ( .not. LINTERP ) THEN
 
                   !--------------------------------------
-                  ! ND21 tracer #4: Dust optical depths
+                  ! ND21 tracer #4: Dust optical depths (clh, dar)
                   !--------------------------------------
-                  AD21(I,J,L,4) = AD21(I,J,L,4) + ODMDUST(I,J,L,N)
-
+                  AD21(I,J,L,4) = AD21(I,J,L,4) +
+     &                            ODMDUST(I,J,L,IWVSELECT(1,W),N)
 
                   !--------------------------------------
                   ! ND21 tracer #21-27: size-resolved dust optical depths
                   !--------------------------------------
+                  AD21(I,J,L,NOUT) = AD21(I,J,L,NOUT) +
+     &                               ODMDUST(I,J,L,IWVSELECT(1,W),N)
 
-                  ! Added the optical depths for each size bin
-                  ! (skim, 02/03/11)
+               ELSE
 
-                  AD21(I,J,L,21+(N-1)) = AD21(I,J,L,21+(N-1)) + 
-     &                                   ODMDUST(I,J,L,N)
-  
-                  !--------------------------------------
-                  ! ND21 tracer #5: Dust surface areas
-                  !--------------------------------------
-                  IF ( L <= LLCHEM ) THEN
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  ! AOD sometimes zero (if Q zero), must catch this
+                  IF ((ODMDUST(I,J,L,IWVSELECT(1,W),N).EQ.0).OR.
+     &                (ODMDUST(I,J,L,IWVSELECT(2,W),N).EQ.0)) THEN
+                     !Dont add anything to diagnostic
+                  ELSE
 
-                     ! Convert 3-D indices to 1-D index
-                     ! JLOP is only defined in the tropopause
-                     JLOOP = JLOP(I,J,L)
-             
-                     ! Add to AD21
-                     IF ( JLOOP > 0 ) THEN
-                        AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(JLOOP,N)
-                     ENDIF
+                     !--------------------------------------
+                     ! ND21 tracer #4: Dust optical depths (clh, dar)
+                     !--------------------------------------
+                     AD21(I,J,L,4) = AD21(I,J,L,4) +
+     &                             ODMDUST(I,J,L,IWVSELECT(2,W),N)*
+     &                             ACOEF_WV(W)**(BCOEF_WV(W)*LOG(
+     &                             ODMDUST(I,J,L,IWVSELECT(1,W),N)/
+     &                             ODMDUST(I,J,L,IWVSELECT(2,W),N)))
+
+                     AD21(I,J,L,NOUT) = AD21(I,J,L,NOUT) +
+     &                                ODMDUST(I,J,L,IWVSELECT(2,W),N)*
+     &                                ACOEF_WV(W)**(BCOEF_WV(W)*LOG(
+     &                                ODMDUST(I,J,L,IWVSELECT(1,W),N)/
+     &                                ODMDUST(I,J,L,IWVSELECT(2,W),N)))
+
                   ENDIF
-               ENDDO
-               ENDDO
-               ENDDO
-!$OMP END PARALLEL DO
+               ENDIF
+
+               !--------------------------------------
+               ! ND21 tracer #5: Dust surface areas
+               !--------------------------------------
+               IF ( L <= LLTROP ) THEN
+
+                  ! Convert 3-D indices to 1-D index
+                  ! JLOP is only defined in the tropopause
+                  JLOOP = JLOP(I,J,L)
+
+                  ! Add to AD21
+                  IF ( JLOOP > 0 ) THEN
+                     AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(JLOOP,N)
+                  ENDIF
+
+               ENDIF
             ENDDO
-         ENDIF 
+            ENDDO
+            ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
       ENDIF
 
+         ! Save the current month
+         ! Set diagnostic to aggregate next call time. 
+         IF ( THISMONTH /= MONTH_LAST ) THEN
+            MONTH_LAST = THISMONTH
+            DO_DIAG = .TRUE.
+         ELSE
+            DO_DIAG = .FALSE.
+         ENDIF
+         
+      ENDIF
+      
       END SUBROUTINE RDUST_OFFLINE
 !EOC
 !------------------------------------------------------------------------------

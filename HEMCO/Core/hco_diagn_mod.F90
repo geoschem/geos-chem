@@ -347,7 +347,8 @@ CONTAINS
                            WriteFreq, OutOper,    LevIdx,     &
                            AutoFill,  Trgt2D,     Trgt3D,     &
                            MW_g,      EmMW_g,     MolecRatio, &
-                           ScaleFact, cID,        RC,     COL  )
+                           ScaleFact, cID,        RC,         &
+                           COL,       OkIfExist                )
 !
 ! !USES:
 !
@@ -386,6 +387,7 @@ CONTAINS
     REAL(hp),         INTENT(IN   ), OPTIONAL :: ScaleFact     ! uniform scale factor 
     INTEGER,          INTENT(IN   ), OPTIONAL :: COL           ! Collection number 
     INTEGER,          INTENT(IN   ), OPTIONAL :: cID           ! Container ID 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: OkIfExist     ! Is it ok if already exists? 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -394,6 +396,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller - Initialization
 !  05 Mar 2015 - C. Keller - container ID can now be set by the user
+!  31 Mar 2015 - C. Keller - added argument OkIfExist
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -428,6 +431,33 @@ CONTAINS
                     'adding diagnostics to that collection.'
        CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
        RETURN
+    ENDIF
+
+    !----------------------------------------------------------------------
+    ! Check if diagnostics already exists 
+    !----------------------------------------------------------------------
+    IF ( PRESENT(OkIfExist) ) THEN
+       IF ( OkIfExist ) THEN
+          IF ( PRESENT(cID) ) THEN
+             CALL DiagnCont_Find( cID, -1, -1, -1, -1, &
+                           '', -1, FOUND, TmpDiagn, COL=PS )
+          ELSE
+             CALL DiagnCont_Find( -1, -1, -1, -1, -1, &
+                           TRIM(cName), -1, FOUND, TmpDiagn, COL=PS )
+          ENDIF
+          TmpDiagn => NULL()
+
+          ! Exit if found
+          IF ( FOUND ) THEN
+             IF ( HCO_IsVerb(2) ) THEN
+                WRITE(MSG,*) 'Diagnostics already exists - ', &
+                             'will not added again: ', TRIM(cName) 
+                CALL HCO_MSG ( MSG )
+             ENDIF
+             RC = HCO_SUCCESS
+             RETURN
+          ENDIF
+       ENDIF
     ENDIF
 
     !----------------------------------------------------------------------
