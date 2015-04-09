@@ -918,6 +918,7 @@ CONTAINS
        ! This will cause an error if the input data is not in 
        ! units of kg already!
        ELSE
+          KeepSpec   = .TRUE.
           MW_g       = -999.0_hp
           EmMW_g     = -999.0_hp
           MolecRatio = -999.0_hp

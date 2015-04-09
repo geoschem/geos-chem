@@ -165,8 +165,10 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Use concentration data only
-       CALL HCO_CalcEmis( am_I_Root, HcoState, .TRUE., RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       ! This is currently not being used. Concentrations can be read
+       ! through HEMCO but should be assembled manually.
+       !CALL HCO_CalcEmis( am_I_Root, HcoState, .TRUE., RC ) 
+       !IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
     ! Leave w/ success
@@ -310,7 +312,8 @@ CONTAINS
 
     ! Write diagnostics if needed
     IF ( HcoState%Options%HcoWritesDiagn ) THEN
-       CALL  HcoDiagn_Write( am_I_Root, HcoState, .TRUE., RC )
+       CALL  HcoDiagn_Write( am_I_Root, HcoState, .FALSE., RC )
+       CALL  HcoDiagn_Write( am_I_Root, HcoState, .TRUE.,  RC )
     ENDIF
 
     CALL cIDList_Cleanup  (         ) 

@@ -130,7 +130,7 @@ CONTAINS
 #if defined(ESMF_)
     WriteFreq = 'Always' 
 #else
-    WriteFreq = 'Daily' 
+    WriteFreq = 'Hourly' 
 #endif
 
     CALL DiagnCollection_Create( am_I_Root,                   &
@@ -669,7 +669,7 @@ CONTAINS
             N /= IDTDST4  .AND. N /= IDTSALA   .AND. &
             N /= IDTSALC  .AND. N /= IDTBr2    .AND. &
             N /= IDTBrO   .AND. N /= IDTCH2Br2 .AND. &
-            N /= IDTCH3Br                              ) THEN
+            N /= IDTCH3Br .AND. N /= IDTO3             ) THEN
           ID = -1
        ENDIF
  

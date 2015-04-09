@@ -11,8 +11,8 @@
 ! vertical interpolation amongst GEOS model levels (full <--> reduced).
 !\\
 !\\
-! Horizontal regridding is supported for concentration quantities (default)
-! and index-based values. For the latter, the values in the regridded grid 
+! Regridding is supported for concentration quantities (default) and 
+! index-based values. For the latter, the values in the regridded grid 
 ! boxes correspond to the value of the original grid that contrbutes most
 ! to the given box.
 !\\

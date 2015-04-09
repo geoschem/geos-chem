@@ -353,7 +353,7 @@ CONTAINS
     REAL(hp), POINTER        :: Arr2D(:,:) => NULL()
 
     ! For diagnostics
-    REAL(hp), TARGET         :: DIAGN   (HcoState%NX,HcoState%NY,4)
+    REAL(hp), TARGET         :: DIAGN   (HcoState%NX,HcoState%NY,5)
     LOGICAL, SAVE            :: DODIAGN = .FALSE.
     CHARACTER(LEN=31)        :: DiagnName
     TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
@@ -407,6 +407,11 @@ CONTAINS
        ENDIF
        IF ( .NOT. DoDiagn ) THEN
           DiagnName = 'PARANOX_O3_PRODUCTION'
+          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+          TmpCnt => NULL()
+       ENDIF
+       IF ( .NOT. DoDiagn ) THEN
+          DiagnName = 'PARANOX_NO_PRODUCTION'
           CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
           TmpCnt => NULL()
        ENDIF
@@ -644,6 +649,7 @@ CONTAINS
           DIAGN(I,J,2) = SHIP_OPE
           DIAGN(I,J,3) = FLUXO3(I,J) 
           DIAGN(I,J,4) = ShipNoEmis(I,J,1)
+          DIAGN(I,J,5) = FLUXNO(I,J) 
        ENDIF
 
        ! Reset ship NO emissions to zero. Will be refilled on next
@@ -801,6 +807,13 @@ CONTAINS
 
        DiagnName =  'PARANOX_TOTAL_SHIPNOX'
        Arr2D     => DIAGN(:,:,4)
+       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       Arr2D => NULL()       
+
+       DiagnName =  'PARANOX_NO_PRODUCTION'
+       Arr2D     => DIAGN(:,:,5)
        CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN

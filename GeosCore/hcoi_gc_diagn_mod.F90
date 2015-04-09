@@ -242,7 +242,7 @@ CONTAINS
           !-------------------------------------
 
           ! Do for all emission species
-          DO I = 1,38
+          DO I = 1,39
 
              ! Get species name
              SELECT CASE ( I )
@@ -322,6 +322,8 @@ CONTAINS
                    SpcName = 'ISOP'
                 CASE ( 38 )
                    SpcName = 'Rn'
+                CASE ( 39 )
+                   SpcName = 'O3'
                 CASE DEFAULT
                    SpcName = 'DUMMY'
              END SELECT
@@ -3441,13 +3443,13 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Exit if we are doing a specialty simulation w/o lightning
-    IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
+    IF ( .NOT. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
 
     ! Extension number
     ExtNr = GetExtNr('ParaNOx')
 
     ! Exit if PARANOX extension was turned off
-    IF ( ExtNr <= 0 .AND. ND63 > 0 ) THEN
+    IF ( ExtNr <= 0 .AND. Input_Opt%DO_ND63 ) THEN
        MSG = 'ParaNOx is not enabled - cannot write diagnostics ND63!'
        CALL HCO_Error( MSG, RC, THISLOC=LOC )
        RETURN
@@ -3464,7 +3466,7 @@ CONTAINS
        !
        ! These are the final NO emissions
        !-------------------------------------------       
-       IF ( ND63 > 0 .OR. ND32 > 0 ) THEN
+       IF ( Input_Opt%DO_ND63 .OR. ND32 > 0 ) THEN
           
           ! Create diagnostic container
           DiagnName = 'SHIP_NO'
@@ -3487,7 +3489,7 @@ CONTAINS
        !-------------------------------------------
        ! %%%%% PARANOX specific diagnostics %%%%%
        !-------------------------------------------
-       IF ( ND63 > 0 ) THEN
+       IF ( Input_Opt%DO_ND63 ) THEN
  
           ! These are the ship NO emissions before PARANOX chemistry
           DiagnName = 'PARANOX_TOTAL_SHIPNOX'
@@ -3506,23 +3508,6 @@ CONTAINS
                              RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN
   
-          ! These is the O3 production/loss through PARANOX 
-          DiagnName = 'PARANOX_O3_PRODUCTION'
-          CALL Diagn_Create( am_I_Root,                     & 
-                             HcoState  = HcoState,          &
-                             cName     = TRIM( DiagnName ), &
-                             ExtNr     = ExtNr,             &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
-                             LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
-                             COL       = HcoDiagnIDManual,  &
-                             AutoFill  = 0,                 &
-                             RC        = RC                  )
-          IF ( RC /= HCO_SUCCESS ) RETURN
- 
           DiagnName = 'PARANOX_NOXFRAC_REMAINING'
           CALL Diagn_Create( am_I_Root,                     & 
                              HcoState  = HcoState,          &
@@ -3533,7 +3518,7 @@ CONTAINS
                              HcoID     = HcoID,             &
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
-                             OutUnit   = 'unitless',        &
+                             OutUnit   = '1',               &
                              OutOper   = 'Mean',            &
                              COL       = HcoDiagnIDManual,  &
                              AutoFill  = 0,                 &
@@ -3550,13 +3535,33 @@ CONTAINS
                              HcoID     = HcoID,             &
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
-                             OutUnit   = 'unitless',        &
+                             OutUnit   = '1',               &
                              OutOper   = 'Mean',            &
                              COL       = HcoDiagnIDManual,  &
                              AutoFill  = 0,                 &
                              RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN
- 
+
+          ! This is the O3 production through PARANOX 
+          HcoID = GetHemcoId( 'O3', HcoState, LOC, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          IF ( HcoID > 0 ) THEN
+             DiagnName = 'PARANOX_O3_PRODUCTION'
+             CALL Diagn_Create( am_I_Root,                     & 
+                                HcoState  = HcoState,          &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &
+                                Cat       = -1,                &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg/m2/s',         &
+                                COL       = HcoDiagnIDManual,  &
+                                AutoFill  = 0,                 &
+                                RC        = RC                  )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+          ENDIF 
        ENDIF
     ENDIF
 

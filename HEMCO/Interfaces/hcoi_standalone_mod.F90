@@ -367,7 +367,6 @@ CONTAINS
     USE HCO_Clock_Mod,         ONLY : HcoClock_Increase
     USE HCO_Driver_Mod,        ONLY : HCO_RUN
     USE HCOX_Driver_Mod,       ONLY : HCOX_RUN
-    USE HCOIO_Diagn_Mod,       ONLY : HCOIO_DIAGN_WRITEOUT
 !
 ! !INPUT PARAMETERS:
 !
@@ -518,7 +517,6 @@ CONTAINS
     USE HCO_Driver_Mod,    ONLY : HCO_Final
     USE HCOX_Driver_Mod,   ONLY : HCOX_Final
     USE HCO_State_Mod,     ONLY : HcoState_Final
-    USE HCOIO_Diagn_Mod,   ONLY : HCOIO_Diagn_WriteOut
 !
 ! !INPUT PARAMETERS:
 !

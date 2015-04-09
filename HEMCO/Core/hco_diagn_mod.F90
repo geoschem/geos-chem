@@ -1586,12 +1586,6 @@ CONTAINS
           IF ( DgnCont%Counter == 0 ) THEN
              DgnCont => NULL()
           ENDIF
-!          ! Don't consider container if not at the desired
-!          ! time interval or if counter is zero.
-!          IF ( DgnCont%ResetFlag <  MinResetFlag .OR. &
-!               DgnCont%Counter   == 0                  ) THEN
-!             DgnCont => NULL()
-!          ENDIF
        ENDIF
        CF = .TRUE.
 
@@ -1609,12 +1603,6 @@ CONTAINS
           IF ( DgnCont%Counter == 0 ) THEN
              DgnCont => NULL()
           ENDIF
-!          ! Don't consider container if not at the desired
-!          ! time interval or if counter is zero.
-!          IF ( DgnCont%ResetFlag <  MinResetFlag .OR. &
-!               DgnCont%Counter   == 0                  ) THEN
-!             DgnCont => NULL()
-!          ENDIF
        ENDIF
        CF = .TRUE.
     ENDIF
@@ -1641,8 +1629,6 @@ CONTAINS
           ! updates since last output (counter) is not zero.
           DO WHILE ( ASSOCIATED ( DgnCont ) ) 
              IF ( DgnCont%Counter > 0 ) EXIT
-!             IF ( DgnCont%ResetFlag >= MinResetFlag .AND. &
-!                  DgnCont%Counter   >  0                   ) EXIT
              DgnCont => DgnCont%NextCont
           ENDDO
    
@@ -1812,12 +1798,6 @@ CONTAINS
 
     ! Nullify DiagnList pointer
     DiagnList => NULL()
-
-    ! Reset all internal variables to default initial values
-!    nnDiagn            = 0
-!    MaxResetFlag       = -1 
-!    AF_LevelDefined(:) = .FALSE.
-!    DiagnPrefix        = 'HEMCO_Diagn'
 
   END SUBROUTINE DiagnList_Cleanup
 !EOC
@@ -2032,6 +2012,7 @@ CONTAINS
     DgnCont%Counter   = 0
     DgnCont%TimeAvg   = -1   
     DgnCont%AvgFlag   = -1
+    DgnCont%AvgName   = 'mean'
 
     ! Set last update time to -1 to start with
     DgnCont%LastUpdateID = -1
