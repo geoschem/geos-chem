@@ -155,6 +155,8 @@
 #  06 Jan 2015 - R. Yantosca - Add two-way nesting options from Y. Y. Yan
 #  09 Jan 2015 - M. Sulprizio- Now properly link to the RRTMG directory
 #  13 Jan 2015 - R. Yantosca - Add fix for GEOS-Chem-Libraries library path
+#  08 Apr 2015 - R. Yantosca - Bug fix: set RRTMG=yes if it passes the regexp
+#  09 Apr 2015 - R. Yantosca - Export RRTMG variable to be used elsewhere
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -317,6 +319,7 @@ RRTMG_NEEDED         :=0
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(RRTMG)" =~ $(REGEXP) ]] && echo true),true)
   RRTMG_NEEDED       :=1
+  RRTMG              :=yes
   USER_DEFS          += -DRRTMG
 endif
 
@@ -977,7 +980,7 @@ endif
 ###  Export global variables so that the main Makefile will see these       ###
 ###                                                                         ###
 ###############################################################################
-
+ 
 export CC
 export F90
 export F90ISO
@@ -990,6 +993,7 @@ export NCL
 export NC_LINK_CMD
 export HPC
 export PRECISION
+export RRTMG
 
 #EOC
 

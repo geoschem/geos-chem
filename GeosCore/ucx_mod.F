@@ -34,7 +34,7 @@
       IMPLICIT NONE
 #if !defined(ESMF_)
 #     include "netcdf.inc"
-#endif!  14 Jan 2015 - R. Yantosca -  
+#endif
 
       PRIVATE
 
@@ -69,18 +69,17 @@
       PUBLIC  :: INIT_UCX
       PUBLIC  :: DIAGINIT_UCX
       PUBLIC  :: CLEANUP_UCX
+      PUBLIC  :: READ_PSC_FILE
 !
 ! PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: APPLY_2DTRAC
       PRIVATE :: READ_SFC
       PRIVATE :: SET_MONTREAL
-      !PRIVATE :: GET_MONTREAL
       PRIVATE :: SET_MONTREAL_NCDF
       PRIVATE :: GET_MONTREAL_NCDF
       PRIVATE :: MONTREAL_SCALEFAC
       PRIVATE :: TERNARY
-      PRIVATE :: READ_PSC_FILE
       PRIVATE :: CARSLAW_DENSITY
       PRIVATE :: CALC_H2SO4_GAS
       PRIVATE :: CALC_SLA_GAMMA
@@ -101,6 +100,7 @@
 !                                Now map NOx coefficients onto grids other than
 !                                4x5 or 2x25.
 !  14 Jan 2014 - C. Keller     - Now read and diagnose STATE_PSC through HEMCO.
+!  08 Apr 2015 - R. Yantosca   - Now make READ_PSC_FILE a PUBLIC routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2487,135 +2487,6 @@
       ! Return to calling routine
       END SUBROUTINE SET_MONTREAL
 !EOC
-!!------------------------------------------------------------------------------
-!!               MIT Laboratory for Aviation and the Environment               !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: get_montreal
-!!
-!! !DESCRIPTION: Function GET\_MONTREAL gets mean surface mixing ratio of a 
-!!  given species based on forecasts from WHO estimates. Values are
-!!  interpolated between two monthly averages.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      FUNCTION GET_MONTREAL (TRAC_NAME,TARG_LINE) RESULT (MEAN_MIXRATIO)
-!!
-!! !USES:
-!!
-!      USE ERROR_MOD,   ONLY : ERROR_STOP, ALLOC_ERR
-!      USE FILE_MOD,    ONLY : IOERROR
-!!
-!! !INPUT PARAMETERS:
-!!
-!      REAL(fp)                         :: MEAN_MIXRATIO
-!      CHARACTER*(*),INTENT(IN)       :: TRAC_NAME
-!      INTEGER,INTENT(IN)             :: TARG_LINE
-!!
-!! !REVISION HISTORY: 
-!!  04 Apr 2013 - S. D. Eastham - Initial version
-!!  10 Oct 2013 - S. D. Eastham - Split into two routines (GET and SET)
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      CHARACTER(LEN=255)             :: FILENAME, DBGMSG
-!      REAL(fp)                         :: CURRLINE
-!      REAL(fp)                         :: SCALEFAC
-!      REAL(fp)                         :: TEMPMR,TEMPYR
-!      INTEGER                        :: ILINE
-!      INTEGER                        :: IU_FILE, IOS, AS
-!      ! For NetCDF
-!      INTEGER                        :: fId, st1d, ct1d
-!
-!      !=================================================================
-!      ! GET_MONTREAL begins here!
-!      !=================================================================
-!
-!      ! Read from ASCII files
-!      FILENAME = TRIM(MONTREAL_FILE_ROOT) // TRIM(TRAC_NAME) // 
-!     &          '_boundary'
-!
-!      IF ( doPrint ) THEN
-!         WRITE(DBGMSG,'(a,a,a,a)') ' ### UCX: Reading ', 
-!     &        TRIM(TRAC_NAME), ' from ', TRIM( FILENAME )
-!         CALL DEBUG_MSG( TRIM(DBGMSG) )
-!      ENDIF
-!
-!      ! Get a free LUN
-!      IU_FILE = findFreeLUN()
-!
-!      IOS=1
-!
-!      OPEN( IU_FILE, FILE=TRIM( FILENAME ), IOSTAT=IOS )
-!      IF ( IOS /= 0 ) THEN 
-!         WRITE(6,*) 'UCX: FAILED TO FIND ', TRIM(FILENAME)
-!          CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
-!      ENDIF
-!
-!      ! First line not important
-!      READ(IU_FILE,*,IOSTAT=IOS)
-!      IF ( IOS /= 0 ) THEN
-!         WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
-!          CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
-!      ENDIF
-!
-!      ! Second line contains scaling factor
-!      READ(IU_FILE,101,IOSTAT=IOS) SCALEFAC
-!
-!101   FORMAT(E7.1)
-!
-!      ! Third and fourth line also to be ignored
-!      DO ILINE=1,2
-!         READ(IU_FILE,*,IOSTAT=IOS)
-!         IF ( IOS /= 0 ) THEN
-!            WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
-!             CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
-!         ENDIF
-!      ENDDO
-!
-!      ! Skip to line specified
-!      DO ILINE=1,(TARG_LINE-1)
-!         READ(IU_FILE,*,IOSTAT=IOS) ! Skip line
-!         IF ( IOS /= 0 ) THEN 
-!            WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
-!             CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
-!         ENDIF
-!      ENDDO
-!
-!      ! Read relevant line
-!      IF (TRAC_NAME.eq.'C2BR2F4') THEN
-!         WRITE(6,*) 'C2Br2F4 encountered - reading...'
-!         READ(IU_FILE,103,IOSTAT=IOS) TEMPYR,TEMPMR
-!      ELSE
-!         READ(IU_FILE,102,IOSTAT=IOS) TEMPYR,TEMPMR
-!      ENDIF
-!      IF ( IOS /= 0 ) THEN
-!         WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
-!          CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
-!      ENDIF
-!
-!      CLOSE(IU_FILE)
-!
-!      MEAN_MIXRATIO = TEMPMR * SCALEFAC
-!
-!102   FORMAT(F7.2,F11.2)
-!      ! C2Br2F4 only
-!103   FORMAT(F7.2,F8.2)
-!
-!      IF ( doPrint ) THEN
-!         WRITE(DBGMSG,'(a,E16.4)') ' ### UCX: Retrieved value: ', 
-!     &        MEAN_MIXRATIO
-!         CALL DEBUG_MSG( TRIM(DBGMSG) )
-!      ENDIF
-!
-!      ! Return to calling program
-!      END FUNCTION GET_MONTREAL
-!!EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
 !------------------------------------------------------------------------------
@@ -2672,6 +2543,8 @@
 !                              State_Met%PMID and State_Met%PEDGE
 !  24 Feb 2014 - E. Lundgren - Remove dependency on PRESSURE_MOD
 !  24 Feb 2014 - E. Lundgren - Use State_Met%DELP in place of PEDGE difference
+!  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
+!                                now done from DO_CHEMISTRY (chemistry_mod.F)  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2680,28 +2553,28 @@
 !
       ! Common
       INTEGER                :: I,      J,     L,        DTCHEM
-      REAL(fp)                 :: DELZ,   DELZ1
-      REAL(fp)                 :: P,      TEMP,  DP,       PDP     
-      REAL(fp)                 :: CONST,  SLIP,  VISC,     FAC1
-      REAL(fp)                 :: FAC2,   FLUX,  AREA_CM2, RHB
-      REAL(fp)                 :: RCM
-      REAL(fp)                 :: TOT1,   TOT2
+      REAL(fp)               :: DELZ,   DELZ1
+      REAL(fp)               :: P,      TEMP,  DP,       PDP     
+      REAL(fp)               :: CONST,  SLIP,  VISC,     FAC1
+      REAL(fp)               :: FAC2,   FLUX,  AREA_CM2, RHB
+      REAL(fp)               :: RCM
+      REAL(fp)               :: TOT1,   TOT2
       INTEGER                :: KLOOP, K
       LOGICAL                :: NATCOL
      
       ! Specific to each class
-      REAL(fp)                 :: RWET(2),CONST_V(2)
-      REAL(fp)                 :: RHO(2),RATIO_R(2),REFF(2)
-      REAL(fp)                 :: VTS(LLPAR,2)
+      REAL(fp)               :: RWET(2),CONST_V(2)
+      REAL(fp)               :: RHO(2),RATIO_R(2),REFF(2)
+      REAL(fp)               :: VTS(LLPAR,2)
  
       ! Used for old Seinfeld & Pandis slip factor calc
-      REAL(fp)                 :: sp_Lambda, sp_Num
+      REAL(fp)               :: sp_Lambda, sp_Num
 
       ! Parameters
 #if defined( APM )
-      REAL(fp), PARAMETER      :: BCDEN = 1800.e+0_fp
+      REAL(fp), PARAMETER    :: BCDEN = 1800.e+0_fp
 #else
-      REAL(fp), PARAMETER      :: BCDEN = 1000.e+0_fp ! density (kg/m3)
+      REAL(fp), PARAMETER    :: BCDEN = 1000.e+0_fp ! density (kg/m3)
 #endif
 
       ! Indexing
@@ -2712,13 +2585,13 @@
       LOGICAL                :: RUNCALC
 
       ! Partitioning
-      REAL(fp), DIMENSION(3,2) :: PHASEMASS
-      REAL(fp)                 :: SEDMASS
+      REAL(fp)               :: PHASEMASS(3,2)
+      REAL(fp)               :: SEDMASS
       INTEGER                :: IDTCURRENT
 
       ! NAT only
-      REAL(fp)                 :: VFALLMAX
-      REAL(fp),DIMENSION(LLPAR):: VNAT
+      REAL(fp)               :: VFALLMAX
+      REAL(fp)               :: VNAT(LLPAR)
       INTEGER                :: MAXALT, MINALT
       REAL(fp)               :: BXMIN, SEDSTEP, TEMPREAL, P_0, P_ABOVE
       REAL(fp)               :: PSED0, PSEDABOVE, INVAIR_0, INVAIR_ABOVE
@@ -2732,20 +2605,20 @@
       INTEGER                :: LOCALPROFILE, NUMSEDSTEPS, STARTPT, ISED
 
       ! SDE 2013-07-07: Debug variables
-      REAL(fp)                 :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
-      REAL(fp)                 :: D_ICE1, D_ICE0, D_H2O1, D_H2O0
-      REAL(fp)                 :: D_NAT1, D_NAT0, D_SEDQ, D_PSED, D_HNO3
-      REAL(fp)                 :: D_RMAX, D_VMAX, MAXLOSS, FRACLOSS
+      REAL(fp)               :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
+      REAL(fp)               :: D_ICE1, D_ICE0, D_H2O1, D_H2O0
+      REAL(fp)               :: D_NAT1, D_NAT0, D_SEDQ, D_PSED, D_HNO3
+      REAL(fp)               :: D_RMAX, D_VMAX, MAXLOSS, FRACLOSS
 
       ! Local variables for quantities from Input_Opt
       LOGICAL                :: LPRT
       LOGICAL                :: LGRAVSTRAT
       INTEGER                :: N_TRACERS
-      REAL(fp)                 :: XNUMOL(Input_Opt%N_TRACERS)
-      REAL(fp)                 :: TRACER_MW_G(Input_Opt%N_TRACERS)
+      REAL(fp)               :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)               :: TRACER_MW_G(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL(fp), POINTER        :: STT(:,:,:,:)
+      REAL(fp), POINTER      :: STT(:,:,:,:)
 
       !=================================================================
       ! SETTLE_STRAT_AER begins here!
@@ -2773,10 +2646,16 @@
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
 
-      ! Eventually get STATE_PSC
-      IF ( .NOT. GOT_STATE_PSC ) THEN
-         CALL READ_PSC_FILE( am_I_Root )
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 4/8/15:
+! Now call READ_PSC_FILE from chemistry_mod.F (before CHEMDR).  This will
+! avoid any issues with READ_PSC_FILE being called from within a parallel
+! loop (bmy, 4/8/15)
+!      ! Eventually get STATE_PSC
+!      IF ( .NOT. GOT_STATE_PSC ) THEN
+!         CALL READ_PSC_FILE( am_I_Root )
+!      ENDIF
+!------------------------------------------------------------------------------
  
       ! For debugging
       MAXLOSS= 0e+0_fp
@@ -3067,7 +2946,7 @@
                ! per m3 in a grid box
                L = STARTPT
                !IF (STATE_PSC(I,J,L).lt.2) THEN
-               IF (STATE_PSC(I,J,L) < 2.0_f4 ) THEN
+               IF (STATE_PSC(I,J,L) < 2.0e+0_f4 ) THEN
                   XNO3_0 = 0e+0_fp
                   XNAT_0 = 0e+0_fp
                   XICE_0 = 0e+0_fp
@@ -3086,7 +2965,7 @@
                IF (L .lt. (LLPAR-1)) THEN
                   INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+1)
                   !IF (STATE_PSC(I,J,L+1).lt.2) THEN
-                  IF (STATE_PSC(I,J,L+1) < 2.0_f4 ) THEN
+                  IF (STATE_PSC(I,J,L+1) < 2.0e+0_f4 ) THEN
                      XNO3_ABOVE = 0e+0_fp
                      XNAT_ABOVE = 0e+0_fp
                      XICE_ABOVE = 0e+0_fp
@@ -3144,7 +3023,7 @@
                   IF (L.lt.(LLPAR-1)) THEN
                      INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+2)
                      !IF (STATE_PSC(I,J,L+2).ge.2) THEN
-                     IF (STATE_PSC(I,J,L+2) >= 2.0_f4 ) THEN
+                     IF (STATE_PSC(I,J,L+2) >= 2.0e+0_f4 ) THEN
                         XNO3_ABOVE = STT(I,J,L+2,IDTNIT)*INVAIR_ABOVE/ 
      &                                TRACER_MW_G(IDTNIT)
                         XNAT_ABOVE = XNO3_ABOVE! * 4.e+0_fp
@@ -3594,6 +3473,8 @@
 !  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
 !                                air pressure, with State_Met%PMID_DRY and
 !                                remove dependency on PRESSURE_MOD.
+!  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
+!                                now done from DO_CHEMISTRY (chemistry_mod.F)  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3719,10 +3600,16 @@
          CALL DEBUG_MSG( '### UCX: start CALC_STRAT_AER' )
       ENDIF
 
-      ! Read in PSC state
-      IF ( .NOT. GOT_STATE_PSC ) THEN
-         CALL READ_PSC_FILE( am_I_Root )
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 4/8/15:
+! Now call READ_PSC_FILE from chemistry_mod.F (before CHEMDR).  This will
+! avoid any issues with READ_PSC_FILE being called from within a parallel
+! loop (bmy, 4/8/15)
+!      ! Read in PSC state
+!      IF ( .NOT. GOT_STATE_PSC ) THEN
+!         CALL READ_PSC_FILE( am_I_Root )
+!      ENDIF
+!------------------------------------------------------------------------------
 
       ! Partition H2SO4 before proceeding
       CALL CALC_H2SO4_GAS( Input_Opt, State_Met, State_Chm )
@@ -3745,8 +3632,8 @@
 !$OMP+PRIVATE( INVAIR,       PSATHNO3,           PSATH2O       )
 !$OMP+PRIVATE( JLOOP,        VOL_NAT,            VOL_ICE       )
 !$OMP+PRIVATE( VOL_SLA,      PSATHNO3_SUPERCOOL, TCENTER       )
-!$OMP+PRIVATE( TINV,         IS_VALID,           BOX_LAT_S     )
-!$OMP+PRIVATE( BOX_LAT_N,    RAD_AER_BOX,        RHO_AER_BOX   )
+!$OMP+PRIVATE( TINV,         IS_VALID                          )
+!$OMP+PRIVATE( RAD_AER_BOX,  RHO_AER_BOX                       )
 !$OMP+PRIVATE( KG_AER_BOX,   NDENS_AER_BOX,      SAD_AER_BOX   )
 !$OMP+PRIVATE( KG_NAT,       KG_ICE,             KG_NO3        )
 !$OMP+PRIVATE( GAMMA_BOX,    PSATH2O_SUPERSAT,   H2OSUM        )
@@ -3771,11 +3658,6 @@
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
-!         BOX_LAT_S = GET_YEDGE(1,J,1)
-!         BOX_LAT_N = GET_YEDGE(1,J+1,1)
-!         IS_POLAR = ((BOX_LAT_S.lt.PSC_MINLAT).or.
-!     &               (BOX_LAT_N.gt.PSC_MAXLAT))
-         ! Loop over longitudinal boxes
          DO I = 1, IIPAR
 
                ! Now do IS_POLAR check for every grid box separately
@@ -4505,6 +4387,8 @@
 !  17 Apr 2013 - S. D. Eastham - Initial version
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
 !                                objects via the arg list
+!  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
+!                                now done from DO_CHEMISTRY (chemistry_mod.F) 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4513,9 +4397,15 @@
       ! CHECK_NAT begins here!
       !=================================================================
 
-      IF ( .NOT. GOT_STATE_PSC ) THEN
-         CALL READ_PSC_FILE( am_I_Root )
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 4/8/15:
+! Now call READ_PSC_FILE from chemistry_mod.F (before CHEMDR).  This will
+! avoid any issues with READ_PSC_FILE being called from within a parallel
+! loop (bmy, 4/8/15)
+!      IF ( .NOT. GOT_STATE_PSC ) THEN
+!         CALL READ_PSC_FILE( am_I_Root )
+!      ENDIF
+!------------------------------------------------------------------------------
 
       IS_STRAT = ITS_IN_THE_STRAT(I,J,L,State_Met)
 
@@ -6911,7 +6801,7 @@
       ALLOCATE( STATE_PSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'STATE_PSC' )
       !STATE_PSC = 0e+0_fp
-      STATE_PSC     = 0.0_f4
+      STATE_PSC     = 0.0e+0_f4
       
       ! Mass fraction of tracers contained in liquid aerosol
       ! Indices: 1 - SO4
@@ -7110,6 +7000,7 @@
 !BOC
       TYPE(HCO_STATE), POINTER  :: HcoState => NULL()
       INTEGER                   :: RC, N
+      integer :: i,j,l
 
       !=================================================================
       ! CLEANUP_UCX begins here!
@@ -7117,6 +7008,7 @@
 
       ! Eventually write PSC_STATE to restart. 
       CALL GetHcoState ( HcoState )
+
       CALL HCO_RestartWrite( am_I_Root, HcoState, 
      &                       'STATE_PSC', STATE_PSC, RC )
       HcoState => NULL()
