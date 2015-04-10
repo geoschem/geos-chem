@@ -319,7 +319,6 @@ RRTMG_NEEDED         :=0
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(RRTMG)" =~ $(REGEXP) ]] && echo true),true)
   RRTMG_NEEDED       :=1
-  RRTMG              :=yes
   USER_DEFS          += -DRRTMG
 endif
 
@@ -723,7 +722,7 @@ ifeq ($(GTMM_NEEDED),1)
   LINK               :=-L$(LIB) -lHg
 else
 ifeq ($(RRTMG_NEEDED),1)
-  LINK               :=-L$(LIB) -lrad
+  LINK               :=-L$(LIB) -l rad
 else
   LINK               :=-L$(LIB)
 endif
@@ -993,7 +992,7 @@ export NCL
 export NC_LINK_CMD
 export HPC
 export PRECISION
-export RRTMG
+export RRTMG_NEEDED
 
 #EOC
 
@@ -1014,3 +1013,4 @@ export RRTMG
 #	@@echo "include : $(INCLUDE)"
 #	@@echo "link    : $(LINK)"
 #	@@echo "userdefs: $(USER_DEFS)"
+
