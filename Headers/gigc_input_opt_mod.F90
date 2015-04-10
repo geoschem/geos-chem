@@ -117,8 +117,6 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LCARB              
      LOGICAL                     :: LSOA               
      LOGICAL                     :: LSVPOA
-     REAL(fp)                    :: NAPEMISS
-     REAL(fp)                    :: POAEMISSSCALE
      LOGICAL                     :: LDUST              
      LOGICAL                     :: LDEAD              
      LOGICAL                     :: LSSALT             
@@ -127,7 +125,6 @@ MODULE GIGC_Input_Opt_Mod
      REAL(fp),           POINTER :: SALC_REDGE_um(:)   
      LOGICAL                     :: LGRAVSTRAT
      LOGICAL                     :: LSOLIDPSC
-     CHARACTER(LEN=255)          :: PSC_RST_FILE
      LOGICAL                     :: LHOMNUCNAT
      REAL(fp)                    :: T_NAT_SUPERCOOL
      REAL(fp)                    :: P_ICE_SUPERSAT
@@ -705,6 +702,9 @@ MODULE GIGC_Input_Opt_Mod
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  03 Dec 2014 - M. Sulprizio- Add fields for Radiation Menu
 !  16 Dec 2014 - R. Yantosca - Removed JLOP, JLOP_PREV; these are in State_Chm
+!  09 Apr 2015 - M. Sulprizio- Removed fields for NAPEMISS, POAEMISSSCALE,
+!                              and PST_RST_FILE. These options are now handled
+!                              by HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -884,8 +884,6 @@ CONTAINS
     Input_Opt%LCARB                  = .FALSE.
     Input_Opt%LSOA                   = .FALSE.
     Input_Opt%LSVPOA                 = .FALSE.
-    Input_Opt%NAPEMISS               = 0e+0_fp
-    Input_Opt%POAEMISSSCALE          = 0e+0_fp
     Input_Opt%LDUST                  = .FALSE.
     Input_Opt%LDEAD                  = .FALSE.
     Input_Opt%LSSALT                 = .FALSE.
@@ -894,7 +892,6 @@ CONTAINS
     Input_Opt%SALC_REDGE_um          = 0e+0_fp
     Input_Opt%LGRAVSTRAT             = .FALSE.
     Input_Opt%LSOLIDPSC              = .FALSE.
-    Input_Opt%PSC_RST_FILE           = ''
     Input_Opt%LHOMNUCNAT             = .FALSE.
     Input_Opt%T_NAT_SUPERCOOL        = 0e+0_fp
     Input_Opt%P_ICE_SUPERSAT         = 0e+0_fp

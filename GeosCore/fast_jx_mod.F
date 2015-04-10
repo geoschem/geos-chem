@@ -206,6 +206,8 @@
 !  05 Mar 2014 - R. Yantosca - Cosmetic changes
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
+!  09 Apr 2015 - R. Yantosca - Bug fixes: Add missing vars to !$OMP+PRIVATE
+!                              clause and error check for JLOOP > 0
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -283,13 +285,13 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( NLAT,    NLON,   YLAT,      CSZA,   P_CTM   )
-!$OMP+PRIVATE( T_CTM,   SFCA,   O3_TOMS,   O3_CTM, OPTAER  )
-!$OMP+PRIVATE( OPTDUST, OPTD,   CLDF1D,    JLOOP           )
-!$OMP+PRIVATE( N, IOPT                                     )
+!$OMP+PRIVATE( NLAT,    NLON,   YLAT,      CSZA,    L       )
+!$OMP+PRIVATE( P_CTM ,  T_CTM,  SFCA,      O3_TOMS, O3_CTM  )
+!$OMP+PRIVATE( LCHEM,   JLOOP,  OPTAER,    N,       IOPT    )
+!$OMP+PRIVATE( OPTDUST, OPTD,   CLDF1D                      )
 #if defined( USE_MAXIMUM_RANDOM_OVERLAP )
-!$OMP+PRIVATE( FMAX,    KK,     NUMB,      L       KBOT    )
-!$OMP+PRIVATE( KTOP     ODNEW,  INDICATOR, INDIC           )
+!$OMP+PRIVATE( FMAX,    KK,     NUMB,      KBOT             )
+!$OMP+PRIVATE( KTOP     ODNEW,  INDICATOR, INDIC            )
 #endif
 !$OMP+SCHEDULE( DYNAMIC )
 
@@ -337,7 +339,9 @@
             LCHEM           = GET_CHEMGRID_LEVEL(NLON,NLAT,State_Met)
             DO L = 1, LCHEM
                JLOOP        = JLOP(NLON,NLAT,L)
-               O3_CTM(L)    = CSPEC(JLOOP,IDO3)
+               IF ( JLOOP > 0 ) THEN
+                  O3_CTM(L) = CSPEC(JLOOP,IDO3)
+               ENDIF
             ENDDO
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
@@ -349,7 +353,7 @@
             ! and at 1000nm, IWV1000 (DAR)
             !OPTAER wants NAER*NRH values but ODAER is now NAER
             !use IRHARR to map to correct OPTAER bin (DAR 08/13)
-            OPTAER(:,:)=0.0
+            OPTAER = 0.0e+0_fp
             DO N = 1, NAER
             DO L = 1, LLPAR
                IOPT = ( (N-1) * NRH ) + IRHARR(NLON,NLAT,L)
@@ -364,7 +368,7 @@
 !            OPTDUST         = ODMDUST(NLON,NLAT,:,:)
 !------------------------------------------------------------------------------
             ! and at 1000nm, IWV1000 (DAR)
-            OPTDUST(:,:)    = ODMDUST(NLON,NLAT,:,IWV1000,:)
+            OPTDUST         = ODMDUST(NLON,NLAT,:,IWV1000,:)
 
             ! Cloud OD profile [unitless] at (NLON,NLAT)
             OPTD            = State_Met%OPTD(NLON,NLAT,1:LLPAR)
