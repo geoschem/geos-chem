@@ -1458,8 +1458,8 @@
 !     &            'modis_surf_201210/'       //
 !-----------------------------------------------------------------------------
       FILENAME  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) //
-                  'modis_surf_201210/'              //
-                  GET_RES_EXT()                     //
+     &            'modis_surf_201210/'              //
+     &            GET_RES_EXT()                     //
 ! the 02-07 file contains our regridded and filled emissivity
 ! and albedo climatology for 2002-2007 direct from MODIS products
 ! N.B. this is raw MODIS data so contains snow cover but may have more
