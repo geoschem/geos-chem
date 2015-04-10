@@ -502,7 +502,9 @@ CONTAINS
        ! Skip if no ship emissions in this grid box
        IF ( ShipNoEmis(I,J,1) == 0d0 ) CYCLE
 
-       ! Paranox update (ckeller, 02/04/2015)
+       ! Production Efficiency for ship emiss (gvinken,mpayer,2/7/12)
+       ! Updated to include effects of wind speed (cdh, 3/25/2014)
+       ! Updated for HEMCO (ckeller, 02/04/2015)
        CALL PARANOX_LUT( am_I_Root, ExtState,  HcoState, I, J, RC, &
                          SHIP_FNOx, SHIP_DNOx, SHIP_OPE, SHIP_MOE ) 
        IF ( RC /= HCO_SUCCESS ) THEN
@@ -2432,7 +2434,7 @@ CONTAINS
 !   VARS(4) = ASIND( State_Met%SUNCOSmid5(I,J) )
 !   VARS(5) = ASIND( State_Met%SUNCOSmid(I,J)  )
    VARS(4) = ASIND( SC5(I,J,6) )
-   VARS(5) = ExtState%SUNCOSmid%Arr%Val(I,J)
+   VARS(5) = ASIND( ExtState%SUNCOSmid%Arr%Val(I,J) )
 
    ! J(OH)/J(NO2), unitless
    ! Note J(OH) is the loss rate (1/s) of O3 to OH, which accounts for 

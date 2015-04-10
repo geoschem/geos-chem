@@ -508,14 +508,15 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
    
        ! ----------------------------------------------------------------
-       ! Update diagnostics reset flag 
-       ! ----------------------------------------------------------------
-       CurrMinResetFlag = HcoClock_SetMinResetFlag()
-
-       ! ----------------------------------------------------------------
        ! Update counter
        ! ----------------------------------------------------------------
        HcoClock%nSteps = HcoClock%nSteps + 1
+
+       ! ----------------------------------------------------------------
+       ! Update diagnostics reset flag
+       ! Needs to be done after updating the counter 
+       ! ----------------------------------------------------------------
+       CurrMinResetFlag = HcoClock_SetMinResetFlag()
 
     ENDIF !New time step
  

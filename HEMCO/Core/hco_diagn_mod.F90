@@ -2330,6 +2330,7 @@ CONTAINS
 ! rather intended to be used in the background, e.g. to check if a 
 ! diagnostics exists at all. To get the values of a diagnostics, use routine
 ! Diagn\_Get.
+!
 ! !INTERFACE:
 !
   SUBROUTINE DiagnCont_Find ( cID,   ExtNr,    Cat,   Hier,   HcoID, &
@@ -2358,6 +2359,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
 !  25 Sep 2014 - C. Keller: Added Resume flag
+!  09 Apr 2015 - C. Keller: Can now search all collections
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2377,7 +2379,8 @@ CONTAINS
     FOUND  = .FALSE.
 
     ! Get collection number
-    CALL DiagnCollection_DefineID( PS, RC, COL=COL, InUse=InUse, ThisColl=ThisColl )
+    CALL DiagnCollection_DefineID( PS, RC, COL=COL, Def=-1, InUse=InUse, &
+                                   OkIfAll=.TRUE., ThisColl=ThisColl )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Leave if collection not in use
@@ -2404,51 +2407,76 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Now reset OutCnt. Will be defined again when diagnostics is found.
-    OutCnt => NULL()
+    ! Loop over all collections
+    DO
 
-    ! Loop over list until container found
-    DO WHILE ( ASSOCIATED ( CurrCnt ) )
+       ! Now reset OutCnt. Will be defined again when diagnostics is found.
+       OutCnt => NULL()
 
-       ! Check if this is the container of interest. If a valid 
-       ! container ID is given, use this attribute. Otherwise, check
-       ! for correct match of ExtNr, HcoID, Cat, and Hier attributes
-       ! if a valid HcoID is given. Otherwise, use the container name.
-       IsMatch = .FALSE.
-
-       ! Check AutoFill flag.
-       IF ( CurrCnt%AutoFill /= AutoFill .AND. AutoFill >= 0 ) THEN
+       ! Loop over list until container found
+       DO WHILE ( ASSOCIATED ( CurrCnt ) )
+   
+          ! Check if this is the container of interest. If a valid 
+          ! container ID is given, use this attribute. Otherwise, check
+          ! for correct match of ExtNr, HcoID, Cat, and Hier attributes
+          ! if a valid HcoID is given. Otherwise, use the container name.
+          IsMatch = .FALSE.
+   
+          ! Check AutoFill flag.
+          IF ( CurrCnt%AutoFill /= AutoFill .AND. AutoFill >= 0 ) THEN
+             CurrCnt => CurrCnt%NextCont
+             CYCLE
+          ENDIF
+   
+          ! For valid container ID:
+          IF ( cID > 0 ) THEN
+             IF ( CurrCnt%cID == cID ) IsMatch = .TRUE.
+        
+          ! For valid HcoID, check for correct match of HcoID, ExtNr, 
+          ! category, and hierarchy.
+          ELSEIF ( HcoID > 0 ) THEN
+             IF ( CurrCnt%HcoID == HcoID .AND. &
+                  CurrCnt%ExtNr == ExtNr .AND. &
+                  CurrCnt%Hier  == Hier  .AND. &
+                  CurrCnt%Cat   == Cat          ) IsMatch = .TRUE.
+   
+          ! Use container name otherwise:
+          ELSE
+             IF ( TRIM(CurrCnt%cName) == TRIM(cName) ) IsMatch = .TRUE.
+          ENDIF
+   
+          IF ( IsMatch ) THEN
+             OutCnt  => CurrCnt
+             FOUND   = .TRUE.
+             EXIT 
+          ENDIF
+   
+          ! Advance to next field otherwise
           CurrCnt => CurrCnt%NextCont
+       ENDDO
+  
+       ! Leave loop over all collections if container was found
+       IF ( FOUND ) EXIT
+
+       ! Advance to next collection
+       IF ( PS == -1 ) THEN
+       
+          ! Point to next collection
+          ThisColl => ThisColl%NextCollection
+
+          ! Leave if collection is empty
+          IF ( .NOT. ASSOCIATED(ThisColl) ) EXIT
+
+          ! Make working pointer point to first container in this collection,
+          ! then resume list search
+          CurrCnt => ThisColl%DiagnList
           CYCLE
        ENDIF
 
-       ! For valid container ID:
-       IF ( cID > 0 ) THEN
-          IF ( CurrCnt%cID == cID ) IsMatch = .TRUE.
-     
-       ! For valid HcoID, check for correct match of HcoID, ExtNr, 
-       ! category, and hierarchy.
-       ELSEIF ( HcoID > 0 ) THEN
-          IF ( CurrCnt%HcoID == HcoID .AND. &
-               CurrCnt%ExtNr == ExtNr .AND. &
-               CurrCnt%Hier  == Hier  .AND. &
-               CurrCnt%Cat   == Cat          ) IsMatch = .TRUE.
-
-       ! Use container name otherwise:
-       ELSE
-          IF ( TRIM(CurrCnt%cName) == TRIM(cName) ) IsMatch = .TRUE.
-       ENDIF
-
-       IF ( IsMatch ) THEN
-          OutCnt  => CurrCnt
-          FOUND   = .TRUE.
-          EXIT 
-       ENDIF
-
-       ! Advance to next field otherwise
-       CurrCnt => CurrCnt%NextCont
-    ENDDO
-
+       ! Leave collection loop if we get here 
+       EXIT
+    ENDDO ! Loop over all collections
+ 
     ! Cleanup
     CurrCnt  => NULL()
     ThisColl => NULL()
