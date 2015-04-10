@@ -321,9 +321,9 @@
 ! *********************************************************************
 !
 !--- Moved from chemdr.f (ccc, 12/9/09)
-#IF DEFINED ( USE_REAL8 )
+#if defined( USE_REAL8 )
           IF ( LKPP) NTT = NTTLOOP
-#ENDIF
+#endif
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( JLOOP,KLOOP,KBLK2,JNEW,JOLD)
@@ -371,11 +371,11 @@
 !    NSPEC(1) is the # of active species for urban chemistry.
 !    (ccc, 01/20/10)
           call CPU_TIME(start)
-#IF DEFINED ( USE_REAL8 )
+#if defined( USE_REAL8 )
           IF ( LKPP ) THEN
              CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP, NSPEC(1))
           ELSE
-#ENDIF
+#endif
              CALL SMVGEAR( am_I_Root, Input_Opt, RC )
 
 !
@@ -398,9 +398,9 @@
                       CSPEC(JLOOP,JOLD) = MAX(CNEW(KLOOP,JNEW),SMAL2)
  620            CONTINUE
              ENDIF
-#IF DEFINED ( USE_REAL8 )
+#if defined( USE_REAL8 )
           ENDIF
-#ENDIF
+#endif
           call CPU_TIME(finish)
 !
           
