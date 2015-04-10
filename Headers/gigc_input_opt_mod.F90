@@ -117,8 +117,6 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LCARB              
      LOGICAL                     :: LSOA               
      LOGICAL                     :: LSVPOA
-     REAL(fp)                    :: NAPEMISS
-     REAL(fp)                    :: POAEMISSSCALE
      LOGICAL                     :: LDUST              
      LOGICAL                     :: LDEAD              
      LOGICAL                     :: LSSALT             
@@ -127,7 +125,6 @@ MODULE GIGC_Input_Opt_Mod
      REAL(fp),           POINTER :: SALC_REDGE_um(:)   
      LOGICAL                     :: LGRAVSTRAT
      LOGICAL                     :: LSOLIDPSC
-     CHARACTER(LEN=255)          :: PSC_RST_FILE
      LOGICAL                     :: LHOMNUCNAT
      REAL(fp)                    :: T_NAT_SUPERCOOL
      REAL(fp)                    :: P_ICE_SUPERSAT
@@ -214,6 +211,15 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LACTIVEH2O
      LOGICAL                     :: LO3FJX
      INTEGER, POINTER            :: NTLOOPNCS(:)
+
+     !----------------------------------------
+     ! RADIATION MENU fields
+     !----------------------------------------
+     LOGICAL                     :: LRAD
+     LOGICAL                     :: LLWRAD
+     LOGICAL                     :: LSWRAD
+     LOGICAL, POINTER            :: LSKYRAD(:)
+     INTEGER                     :: TS_RAD
 
      !----------------------------------------
      ! TRANSPORT MENU fields
@@ -393,6 +399,11 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: ND69,             LD69
      CHARACTER(LEN=15)           :: ND69_OUTPUT_FREQ, ND69_OUTPUT_TYPE
      INTEGER                     :: ND70,             LD70
+     INTEGER                     :: ND71,             LD71
+     CHARACTER(LEN=15)           :: ND71_OUTPUT_FREQ, ND71_OUTPUT_TYPE
+     INTEGER                     :: ND72,             LD72
+     CHARACTER(LEN=15)           :: ND72_OUTPUT_FREQ, ND72_OUTPUT_TYPE
+
      INTEGER                     :: TS_DIAG
      LOGICAL                     :: LPRT
      INTEGER,            POINTER :: TINDEX(:,:)
@@ -689,7 +700,11 @@ MODULE GIGC_Input_Opt_Mod
 !  25 Jun 2014 - R. Yantosca - Now add Input_Opt%SIM_TYPE field
 !  29 Sep 2014 - R. Yantosca - Now add Input_Opt%N_DUST_BINS field
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
+!  03 Dec 2014 - M. Sulprizio- Add fields for Radiation Menu
 !  16 Dec 2014 - R. Yantosca - Removed JLOP, JLOP_PREV; these are in State_Chm
+!  09 Apr 2015 - M. Sulprizio- Removed fields for NAPEMISS, POAEMISSSCALE,
+!                              and PST_RST_FILE. These options are now handled
+!                              by HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -869,8 +884,6 @@ CONTAINS
     Input_Opt%LCARB                  = .FALSE.
     Input_Opt%LSOA                   = .FALSE.
     Input_Opt%LSVPOA                 = .FALSE.
-    Input_Opt%NAPEMISS               = 0e+0_fp
-    Input_Opt%POAEMISSSCALE          = 0e+0_fp
     Input_Opt%LDUST                  = .FALSE.
     Input_Opt%LDEAD                  = .FALSE.
     Input_Opt%LSSALT                 = .FALSE.
@@ -879,7 +892,6 @@ CONTAINS
     Input_Opt%SALC_REDGE_um          = 0e+0_fp
     Input_Opt%LGRAVSTRAT             = .FALSE.
     Input_Opt%LSOLIDPSC              = .FALSE.
-    Input_Opt%PSC_RST_FILE           = ''
     Input_Opt%LHOMNUCNAT             = .FALSE.
     Input_Opt%T_NAT_SUPERCOOL        = 0e+0_fp
     Input_Opt%P_ICE_SUPERSAT         = 0e+0_fp
@@ -964,6 +976,17 @@ CONTAINS
     Input_Opt%LCH4CHEM               = .FALSE.
     Input_Opt%LACTIVEH2O             = .FALSE.
     Input_Opt%LO3FJX                 = .FALSE.
+
+    !----------------------------------------
+    ! RADIATION MENU fields
+    !----------------------------------------
+    ALLOCATE( Input_Opt%LSKYRAD( 2 ), STAT=RC )
+
+    Input_Opt%LRAD                   = .FALSE.
+    Input_Opt%LLWRAD                 = .FALSE.
+    Input_Opt%LSWRAD                 = .FALSE.
+    Input_Opt%LSKYRAD                = .FALSE.
+    Input_Opt%TS_RAD                 = 0
 
     !----------------------------------------
     ! TRANSPORT MENU fields
@@ -1082,6 +1105,8 @@ CONTAINS
     Input_Opt%ND68                   = 0
     Input_Opt%ND69                   = 0
     Input_Opt%ND70                   = 0
+    Input_Opt%ND71                   = 0
+    Input_Opt%ND72                   = 0
     Input_Opt%LD01                   = 0
     Input_Opt%LD02                   = 0
     Input_Opt%LD03                   = 0
@@ -1152,6 +1177,8 @@ CONTAINS
     Input_Opt%LD68                   = 0
     Input_Opt%LD69                   = 0
     Input_Opt%LD70                   = 0
+    Input_Opt%LD71                   = 0
+    Input_Opt%LD72                   = 0
     Input_Opt%LPRT                   = .FALSE.
     Input_Opt%TINDEX(:,:)            = 0
     Input_Opt%TCOUNT(:)              = 0	  

@@ -70,6 +70,21 @@ MODULE HCO_RESTART_MOD
 #if defined(ESMF_)
   PRIVATE :: HCO_CopyFromIntnal_ESMF
 #endif
+
+  INTERFACE HCO_RestartDefine 
+     MODULE PROCEDURE HCO_RestartDefine_3D 
+     MODULE PROCEDURE HCO_RestartDefine_2D 
+  END INTERFACE HCO_RestartDefine 
+
+  INTERFACE HCO_RestartGet 
+     MODULE PROCEDURE HCO_RestartGet_3D 
+     MODULE PROCEDURE HCO_RestartGet_2D 
+  END INTERFACE HCO_RestartGet 
+
+  INTERFACE HCO_RestartWrite 
+     MODULE PROCEDURE HCO_RestartWrite_3D 
+     MODULE PROCEDURE HCO_RestartWrite_2D 
+  END INTERFACE HCO_RestartWrite 
 !
 ! !REVISION HISTORY:
 !  10 Mar 2015 - C. Keller   - Initial version
@@ -83,9 +98,80 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: HCO_RestartDefine
+! !ROUTINE: HCO_RestartDefine_3D
 !
-! !DESCRIPTION: Subroutine HCO\_RestartDefine defines a restart diagnostics.
+! !DESCRIPTION: Subroutine HCO\_RestartDefine\_3D defines a restart diagnostics.
+! This adds a diagnostics with output frequency 'End' to the HEMCO diagnostics 
+! list. Arr3D is the 3D field of interest. The diagnostics will not copy the
+! current content of Arr3D but establish a 'link' (e.g. pointer) to it. This
+! way, any updates to Arr3D will automatically be seen by the diagnostics
+! and there is no need to explicitly update the content of the diagnostics. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_RestartDefine_3D( am_I_Root, HcoState, Name, Arr3D, &
+                                   Unit,      RC                      )
+!
+! !USES:
+!
+    USE HCO_DIAGN_MOD,    ONLY : Diagn_Create
+    USE HCO_STATE_MOD,    ONLY : HCO_State
+!
+! !INPUT ARGUMENTS:
+!
+    LOGICAL,             INTENT(IN   )         :: am_I_Root ! Root CPU?
+    TYPE(HCO_State),     POINTER               :: HcoState  ! HEMCO state obj.
+    CHARACTER(LEN=*),    INTENT(IN   )         :: Name      ! Name of restart variable
+    ! Array with data of interest
+    REAL(sp),            INTENT(IN   ), TARGET :: Arr3D(HcoState%NX,HcoState%NY,HcoState%NZ)
+    CHARACTER(LEN=*),    INTENT(IN   )         :: Unit      ! Units of Arr3D
+!
+! !INPUT/OUTPUT ARGUMENTS:
+!
+    INTEGER,             INTENT(INOUT)         :: RC        ! Return code
+!
+! !REVISION HISTORY:
+!  11 Mar 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! ================================================================
+    ! HCO_RestartDefine_3D begins here
+    ! ================================================================
+
+    ! Define diagnostics array
+    CALL Diagn_Create ( am_I_Root,               & 
+                        HcoState   = HcoState,   &
+                        cName      = TRIM(Name), &
+                        ExtNr      = -1,         &
+                        Cat        = -1,         &
+                        Hier       = -1,         &
+                        HcoID      = -1,         &
+                        SpaceDim   =  3,         &
+                        OutUnit    = TRIM(Unit), &
+                        WriteFreq  = 'End',      &
+                        AutoFill   = 0,          &
+                        Trgt3D     = Arr3D,      &
+                        RC         = RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_RestartDefine_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HCO_RestartDefine_2D
+!
+! !DESCRIPTION: Subroutine HCO\_RestartDefine\_2D defines a restart diagnostics.
 ! This adds a diagnostics with output frequency 'End' to the HEMCO diagnostics 
 ! list. Arr2D is the 2D field of interest. The diagnostics will not copy the
 ! current content of Arr2D but establish a 'link' (e.g. pointer) to it. This
@@ -95,8 +181,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_RestartDefine( am_I_Root, HcoState, Name, Arr2D, &
-                                Unit,      RC                      )
+  SUBROUTINE HCO_RestartDefine_2D( am_I_Root, HcoState, Name, Arr2D, &
+                                   Unit,      RC                      )
 !
 ! !USES:
 !
@@ -117,7 +203,7 @@ CONTAINS
     INTEGER,             INTENT(INOUT)         :: RC        ! Return code
 !
 ! !REVISION HISTORY:
-!  29 Aug 2013 - C. Keller - Initial version
+!  11 Mar 2015 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -125,7 +211,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! ================================================================
-    ! HCO_RestartDefine begins here
+    ! HCO_RestartDefine_2D begins here
     ! ================================================================
 
     ! Define diagnostics array
@@ -147,16 +233,16 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_RestartDefine
+  END SUBROUTINE HCO_RestartDefine_2D
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: HCO_RestartGet
+! !ROUTINE: HCO_RestartGet_3D
 !
-! !DESCRIPTION: Subroutine HCO\_RestartGet attempts to read a restart field.
+! !DESCRIPTION: Subroutine HCO\_RestartGet\_3D attempts to read a restart field.
 ! In an ESMF environment, it first checks if the given field (name) is included
 ! in the internal state object, in which case the data object is filled with
 ! these values. If not found or if not in an ESMF environment, the HEMCO data
@@ -167,8 +253,144 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_RestartGet( am_I_Root, HcoState, Name,   Arr2D, &
-                             RC,        FOUND,    Def2D,  DefVal  )
+  SUBROUTINE HCO_RestartGet_3D( am_I_Root, HcoState, Name,   Arr3D, &
+                                RC,        FOUND,    Def3D,  DefVal  )
+!
+! !USES:
+!
+    USE HCO_STATE_MOD,    ONLY : HCO_State
+    USE HCO_EMISLIST_MOD, ONLY : HCO_GetPtr
+!
+! !INPUT ARGUMENTS:
+!
+    LOGICAL,             INTENT(IN   )           :: am_I_Root ! Root CPU?
+    TYPE(HCO_State),     POINTER                 :: HcoState  ! HEMCO state object
+    CHARACTER(LEN=*),    INTENT(IN   )           :: Name      ! Name of restart variable
+    ! Default value to be used if restart variable could not be found
+    REAL(sp),            INTENT(IN   ), OPTIONAL :: Def3D(HcoState%NX,HcoState%NY,HcoState%NZ)
+    ! Default uniform value to be used if restart variable could not be found and
+    ! Def2D is not defined.
+    REAL(sp),            INTENT(IN   ), OPTIONAL :: DefVal
+!
+! !OUTPUT ARGUMENTS:
+!
+    LOGICAL,             INTENT(  OUT), OPTIONAL :: FOUND     ! Was the restart variable found?
+!
+! !INPUT/OUTPUT ARGUMENTS:
+!
+    ! Data field with restart variable
+    REAL(sp),            INTENT(INOUT)           :: Arr3D(HcoState%NX,HcoState%NY,HcoState%NZ)
+    INTEGER,             INTENT(INOUT)           :: RC       ! Return code
+!
+! !REVISION HISTORY:
+!  11 Mar 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    REAL(sp), POINTER    :: Ptr3D(:,:,:) => NULL()
+    LOGICAL              :: FILLED
+    CHARACTER(LEN=255)   :: MSG
+
+    ! ================================================================
+    ! HCO_RestartGet begins here
+    ! ================================================================
+
+    ! Is the output array filled yet?
+    FILLED = .FALSE.
+
+    ! ------------------------------------------------------------------
+    ! Try to get from ESMF internal state 
+    ! ------------------------------------------------------------------
+#if defined(ESMF_)
+    CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name),   &
+                                  1,         FILLED,   RC, Arr3D=Arr3D )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+    ! Log output 
+    IF ( am_I_Root .AND. FILLED ) THEN
+       MSG = 'Obtained restart variable from ESMF internal state: '//TRIM(Name)
+       CALL HCO_MSG(MSG)
+    ENDIF
+#endif
+
+    ! ------------------------------------------------------------------
+    ! If not yet filled, try to get from HEMCO configuration
+    ! ------------------------------------------------------------------
+    IF ( .NOT. FILLED ) THEN
+
+       ! Try to get pointer from HEMCO configuration
+       CALL HCO_GetPtr( am_I_Root, TRIM(Name), Ptr3D, RC, FOUND=FILLED )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+      
+       ! Eventually pass data
+       IF ( FILLED ) THEN
+          Arr3D = Ptr3D
+
+          ! Log output 
+          IF ( am_I_Root ) THEN
+             MSG = 'Obtained restart variable from HEMCO config: '//TRIM(Name)
+             CALL HCO_MSG(MSG)
+          ENDIF
+       ENDIF
+
+       ! Cleanup
+       Ptr3D => NULL()
+    ENDIF
+
+    ! ------------------------------------------------------------------
+    ! If still not filled, assign default values 
+    ! ------------------------------------------------------------------
+    IF ( .NOT. FILLED ) THEN
+       IF ( PRESENT(Def3D) ) THEN
+          Arr3D = Def3D
+          IF ( am_I_Root ) THEN
+             MSG = 'Filled restart variable with default 3D field: '//TRIM(Name)
+             CALL HCO_MSG(MSG)
+          ENDIF
+       ELSEIF( PRESENT(DefVal) ) THEN
+          Arr3D = DefVal
+          IF ( am_I_Root ) THEN
+             MSG = 'Filled restart variable with default scalar: '//TRIM(Name)
+             CALL HCO_MSG(MSG)
+          ENDIF
+       ENDIF
+    ENDIF
+
+    ! ------------------------------------------------------------------
+    ! Leave 
+    ! ------------------------------------------------------------------
+    IF ( PRESENT(FOUND) ) THEN
+       FOUND = FILLED
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_RestartGet_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HCO_RestartGet_2D
+!
+! !DESCRIPTION: Subroutine HCO\_RestartGet\_2D attempts to read a restart field.
+! In an ESMF environment, it first checks if the given field (name) is included
+! in the internal state object, in which case the data object is filled with
+! these values. If not found or if not in an ESMF environment, the HEMCO data
+! list (specified in the HEMCO configuration file) is searched. A default value
+! can be specified in case that no field could be imported via ESMF and/or the
+! HEMCO interface. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_RestartGet_2D( am_I_Root, HcoState, Name,   Arr2D, &
+                                RC,        FOUND,    Def2D,  DefVal  )
 !
 ! !USES:
 !
@@ -197,7 +419,7 @@ CONTAINS
     INTEGER,             INTENT(INOUT)           :: RC       ! Return code
 !
 ! !REVISION HISTORY:
-!  29 Aug 2013 - C. Keller - Initial version
+!  11 Mar 2015 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -209,7 +431,7 @@ CONTAINS
     CHARACTER(LEN=255)   :: MSG
 
     ! ================================================================
-    ! HCO_RestartGet begins here
+    ! HCO_RestartGet_2D begins here
     ! ================================================================
 
     ! Is the output array filled yet?
@@ -220,7 +442,7 @@ CONTAINS
     ! ------------------------------------------------------------------
 #if defined(ESMF_)
     CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name),   &
-                                  Arr2D,     1,        FILLED,     RC )
+                                  1,        FILLED,    RC, Arr2D=Arr2D )
     IF ( RC /= HCO_SUCCESS ) RETURN
  
     ! Log output 
@@ -283,24 +505,92 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_RestartGet
+  END SUBROUTINE HCO_RestartGet_2D
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: HCO_RestartWrite
+! !ROUTINE: HCO_RestartWrite_3D
 !
-! !DESCRIPTION: Subroutine HCO\_RestartWrite writes a restart variable to the
-! ESMF internal state. This is only of relevance in an ESMF environment. The
-! 'regular' HEMCO diagnostics created in HCO\_RestartDefine becomes 
+! !DESCRIPTION: Subroutine HCO\_RestartWrite\_3D writes a restart variable to
+! the ESMF internal state. This is only of relevance in an ESMF environment. 
+! The 'regular' HEMCO diagnostics created in HCO\_RestartDefine becomes 
 ! automatically written to disk. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_RestartWrite( am_I_Root, HcoState, Name, Arr2D, RC, FOUND ) 
+  SUBROUTINE HCO_RestartWrite_3D( am_I_Root, HcoState, Name, Arr3D, RC, FOUND ) 
+!
+! !USES:
+!
+    USE HCO_STATE_MOD,    ONLY : HCO_State
+!
+! !INPUT ARGUMENTS:
+!
+    LOGICAL,             INTENT(IN   )           :: am_I_Root
+    TYPE(HCO_State),     POINTER                 :: HcoState
+    CHARACTER(LEN=*),    INTENT(IN   )           :: Name 
+!
+! !OUTPUT ARGUMENTS:
+!
+    LOGICAL,             INTENT(  OUT), OPTIONAL :: FOUND
+!
+! !INPUT/OUTPUT ARGUMENTS:
+!
+    REAL(sp),            INTENT(INOUT)           :: Arr3D(HcoState%NX,HcoState%NY,HcoState%NZ)
+    INTEGER,             INTENT(INOUT)           :: RC
+!
+! !REVISION HISTORY:
+!  11 Mar 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL   :: WRITTEN
+
+    ! ================================================================
+    ! HCO_RestartWrite_3D begins here
+    ! ================================================================
+
+    ! Data written to internal state?
+    WRITTEN = .FALSE.
+    
+#if defined(ESMF_)
+    CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name), &
+                                  -1,       WRITTEN,    RC, Arr3D=Arr3D ) 
+#endif
+
+    ! Pass to output
+    IF ( PRESENT(FOUND) ) THEN
+       FOUND = WRITTEN
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_RestartWrite_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HCO_RestartWrite_2D
+!
+! !DESCRIPTION: Subroutine HCO\_RestartWrite\_2D writes a restart variable to
+! the ESMF internal state. This is only of relevance in an ESMF environment. 
+! The 'regular' HEMCO diagnostics created in HCO\_RestartDefine becomes 
+! automatically written to disk. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_RestartWrite_2D( am_I_Root, HcoState, Name, Arr2D, RC, FOUND ) 
 !
 ! !USES:
 !
@@ -322,7 +612,7 @@ CONTAINS
     INTEGER,             INTENT(INOUT)           :: RC
 !
 ! !REVISION HISTORY:
-!  29 Aug 2013 - C. Keller - Initial version
+!  11 Mar 2015 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -332,7 +622,7 @@ CONTAINS
     LOGICAL   :: WRITTEN
 
     ! ================================================================
-    ! HCO_RestartWrite begins here
+    ! HCO_RestartWrite_2D begins here
     ! ================================================================
 
     ! Data written to internal state?
@@ -340,7 +630,7 @@ CONTAINS
     
 #if defined(ESMF_)
     CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name), &
-                                  Arr2D,     -1,       WRITTEN,    RC ) 
+                                  -1,       WRITTEN,    RC, Arr2D=Arr2D ) 
 #endif
 
     ! Pass to output
@@ -351,7 +641,7 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_RestartWrite
+  END SUBROUTINE HCO_RestartWrite_2D
 !EOC
 #if defined(ESMF_)
 !------------------------------------------------------------------------------
@@ -368,7 +658,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE HCO_CopyFromIntnal_ESMF ( am_I_Root, HcoState,  Name,    &
-                                    Arr2D,     Direction, Found, RC )
+                                       Direction, Found, RC, Arr2D, Arr3D )
 !
 ! !USES:
 !
@@ -379,13 +669,14 @@ CONTAINS
 !
 ! !ARGUMENTS:
 !
-    LOGICAL,             INTENT(IN   )   :: am_I_Root
-    TYPE(HCO_State),     POINTER         :: HcoState
-    CHARACTER(LEN=*),    INTENT(IN   )   :: Name
-    REAL(sp),            INTENT(INOUT)   :: Arr2D(HcoState%NX,HcoState%NY)
-    INTEGER,             INTENT(IN   )   :: Direction    ! 1: internal to Arr2D; -1: Arr2D to internal
-    LOGICAL,             INTENT(  OUT)   :: Found
-    INTEGER,             INTENT(INOUT)   :: RC
+    LOGICAL,             INTENT(IN   )           :: am_I_Root
+    TYPE(HCO_State),     POINTER                 :: HcoState
+    CHARACTER(LEN=*),    INTENT(IN   )           :: Name
+    INTEGER,             INTENT(IN   )           :: Direction    ! 1: internal to Arr2D; -1: Arr2D to internal
+    LOGICAL,             INTENT(  OUT)           :: Found
+    INTEGER,             INTENT(INOUT)           :: RC
+    REAL(sp),            INTENT(INOUT), OPTIONAL :: Arr2D(HcoState%NX,HcoState%NY)
+    REAL(sp),            INTENT(INOUT), OPTIONAL :: Arr3D(HcoState%NX,HcoState%NY,HcoState%NZ)
 !
 ! !REVISION HISTORY:
 !  10 Mar 2015 - C. Keller - Initial version
@@ -399,6 +690,7 @@ CONTAINS
     TYPE(MAPL_MetaComp), POINTER :: STATE
     TYPE(ESMF_STATE)             :: INTERNAL
     REAL,                POINTER :: Ptr2D(:,:)   => NULL()
+    REAL,                POINTER :: Ptr3D(:,:,:) => NULL()
 
     ! ================================================================
     ! HCO_CopyFromIntnal_ESMF begins here
@@ -412,32 +704,65 @@ CONTAINS
     CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTERNAL, __RC__ )
 
     ! Try to import field
-    CALL MAPL_GetPointer( INTERNAL, Ptr2D, TRIM(Name), &
-                          NotFoundOk=.TRUE., __RC__ ) 
+    IF ( PRESENT(Arr2D) ) THEN
+       CALL MAPL_GetPointer( INTERNAL, Ptr2D, TRIM(Name), &
+                             NotFoundOk=.TRUE., __RC__ ) 
    
-    ! Eventually copy data to or from output array 
-    IF ( ASSOCIATED(Ptr2D) ) THEN
+       ! Eventually copy data to or from output array 
+       IF ( ASSOCIATED(Ptr2D) ) THEN
     
-       ! Make sure we can copy the data
-       ASSERT_(SIZE(Arr2D,1)==SIZE(Ptr2D,1))   
-       ASSERT_(SIZE(Arr2D,2)==SIZE(Ptr2D,2))
+          ! Make sure we can copy the data
+          ASSERT_(SIZE(Arr2D,1)==SIZE(Ptr2D,1))   
+          ASSERT_(SIZE(Arr2D,2)==SIZE(Ptr2D,2))
     
-       ! transfer direction must be 1 or -1
-       ASSERT_(Direction==1 .OR. Direction==-1)
+          ! transfer direction must be 1 or -1
+          ASSERT_(Direction==1 .OR. Direction==-1)
  
-       ! Transfer data
-       IF ( Direction == 1 ) THEN
-          Arr2D = Ptr2D
-       ELSEIF ( Direction == -1 ) THEN
-          Ptr2D = Arr2D
+          ! Transfer data
+          IF ( Direction == 1 ) THEN
+             Arr2D = Ptr2D
+          ELSEIF ( Direction == -1 ) THEN
+             Ptr2D = Arr2D
+          ENDIF
+          Found = .TRUE.
+       ELSE
+          Found = .FALSE.
        ENDIF
-       Found = .TRUE.
-    ELSE
-       Found = .FALSE.
+
+       ! Cleanup
+       Ptr2D => NULL()
     ENDIF
 
-    ! Cleanup
-    Ptr2D => NULL()
+    ! Try to import field
+    IF ( PRESENT(Arr3D) ) THEN
+       CALL MAPL_GetPointer( INTERNAL, Ptr3D, TRIM(Name), &
+                             NotFoundOk=.TRUE., __RC__ ) 
+   
+       ! Eventually copy data to or from output array 
+       IF ( ASSOCIATED(Ptr3D) ) THEN
+    
+          ! Make sure we can copy the data
+          ASSERT_(SIZE(Arr3D,1)==SIZE(Ptr3D,1))   
+          ASSERT_(SIZE(Arr3D,2)==SIZE(Ptr3D,2))
+          ASSERT_(SIZE(Arr3D,3)==SIZE(Ptr3D,3))
+    
+          ! transfer direction must be 1 or -1
+          ASSERT_(Direction==1 .OR. Direction==-1)
+ 
+          ! Transfer data
+          IF ( Direction == 1 ) THEN
+             Arr3D = Ptr3D
+          ELSEIF ( Direction == -1 ) THEN
+             Ptr3D = Arr3D
+          ENDIF
+          Found = .TRUE.
+       ELSE
+          Found = .FALSE.
+       ENDIF
+
+       ! Cleanup
+       Ptr3D => NULL()
+    ENDIF
 
     ! Return success
     RC = HCO_SUCCESS 

@@ -203,7 +203,8 @@
          enddo
        enddo
        do j=1,jppj
-         zj(i,j)=VALJ(jind(j))*jfacta(j)*SOLF
+         ZJ(i,j)=VALJ(jind(j))*jfacta(j)*SOLF
+!         write(6,*) 'ZJ',IDAY,I,J,T(i),VALJ(jind(j)),jfacta(j),SOLF
        enddo
 cc       write(6,'(I5,1P,7E10.3/(5X,7E10.3))') I, (VALJ(J), J=1,NJVAL)
       enddo

@@ -39,6 +39,7 @@
       PRIVATE :: READ_EMISSIONS_MENU
       PRIVATE :: READ_FUTURE_MENU
       PRIVATE :: READ_CHEMISTRY_MENU
+      PRIVATE :: READ_RADIATION_MENU
       PRIVATE :: READ_TRANSPORT_MENU
       PRIVATE :: READ_CONVECTION_MENU
       PRIVATE :: READ_DEPOSITION_MENU
@@ -347,6 +348,9 @@
                                              
          ELSE IF ( INDEX( LINE, 'DEPOSITION MENU'  ) > 0 ) THEN
             CALL READ_DEPOSITION_MENU( am_I_Root, Input_Opt, RC )             
+
+         ELSE IF ( INDEX( LINE, 'RADIATION MENU'   ) > 0 ) THEN
+            CALL READ_RADIATION_MENU( am_I_Root, Input_Opt, RC )
 
          ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN
             CALL READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
@@ -845,13 +849,13 @@
 #elif defined( GRID05x0666 ) && defined( NESTED_SE )
       Input_Opt%RES_DIR = 'GEOS_0.5x0.666_SE/'
 #elif defined( GRID025x03125 ) && defined( NESTED_CH ) 
-      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_CH'
+      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_CH/'
 #elif defined( GRID025x03125 ) && defined( NESTED_EU ) 
-      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_EU'
+      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_EU/'
 #elif defined( GRID025x03125 ) && defined( NESTED_NA ) 
-      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_NA'
+      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_NA/'
 #elif defined( GRID025x03125 ) && defined( NESTED_SE ) 
-      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_SE'
+      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_SE/'
 #endif
 
       !-----------------------------------------------------------------
@@ -1759,6 +1763,10 @@
 !  16 Apr 2014 - M. Sulprizio- Now read path for PSC restart file
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  09 Apr 2015 - M. Sulprizio- Removed options for DEAD dust emissions, NAP
+!                              emissions, POA emissions scale, and the PSC
+!                              restart file. These options are now handled
+!                              by HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1767,12 +1775,12 @@
 !
       ! Scalars
       LOGICAL            :: LSULF,      LCARB,      LSOA
-      LOGICAL            :: LSVPOA,     LDUST,      LDEAD
+      LOGICAL            :: LSVPOA,     LDUST
       LOGICAL            :: LSSALT,     LCRYST,     LDICARB
       LOGICAL            :: LGRAVSTRAT, LHOMNUCNAT, LSOLIDPSC
       LOGICAL            :: LPSCCHEM,   LSTRATOD
       INTEGER            :: N,          T,          I 
-      CHARACTER(LEN=255) :: MSG,        LOCATION,   PSC_RST_FILE
+      CHARACTER(LEN=255) :: MSG,        LOCATION
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -1810,23 +1818,9 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:5' )
       READ( SUBSTRS(1:N), * ) LSVPOA
 
-      ! SOAupdate: Add NAP/IVOC surrogate emissions (hotp 8/9/09)
-      ! SOAupdate: set NAP emissions (in Tg/yr)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
-      READ( SUBSTRS(1:N), * ) Input_Opt%NAPEMISS
-
-      ! SOAupdate: Add scaling for POA emiss (hotp 9/21/09)
-      ! Fractional scaling, recommended value: 1.27
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
-      READ( SUBSTRS(1:N), * ) Input_Opt%POAEMISSSCALE
-
       ! Use online dust aerosols 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:8' )
       READ( SUBSTRS(1:N), * ) LDUST
-
-      ! Use DEAD dust mobilization (=T) or GINOUX (=F)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:9' )
-      READ( SUBSTRS(1:N), * ) LDEAD      
 
       ! Use online sea-salt aerosols?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
@@ -1856,10 +1850,6 @@
       ! Use solid polar stratospheric clouds (PSCs)?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15' )
       READ( SUBSTRS(1:N), * ) LSOLIDPSC   
-
-      ! PSC restart file name
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15b' )
-      READ( SUBSTRS(1:N), '(a)' ) PSC_RST_FILE
 
       ! Allow homogeneous nucleation of NAT?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:16' )
@@ -1903,7 +1893,6 @@
          LCARB  = .FALSE.
          LSOA   = .FALSE.
          LDUST  = .FALSE.
-         LDEAD  = .FALSE.
          LSSALT = .FALSE.
          LSVPOA = .FALSE.
       ENDIF
@@ -2115,12 +2104,10 @@
       Input_Opt%LSOA               = LSOA 
       Input_Opt%LSVPOA             = LSVPOA
       Input_Opt%LDUST              = LDUST 
-      Input_Opt%LDEAD              = LDEAD
       Input_Opt%LSSALT             = LSSALT
       Input_Opt%LDICARB            = LDICARB  
       Input_Opt%LGRAVSTRAT         = LGRAVSTRAT
       Input_Opt%LSOLIDPSC          = LSOLIDPSC
-      Input_Opt%PSC_RST_FILE       = PSC_RST_FILE
       Input_Opt%LHOMNUCNAT         = LHOMNUCNAT
       Input_Opt%T_NAT_SUPERCOOL    = T_NAT_SUPERCOOL
       Input_Opt%P_ICE_SUPERSAT     = P_ICE_SUPERSAT
@@ -2141,12 +2128,7 @@
          WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', LCARB
          WRITE( 6, 100     ) 'Online 2dy ORGANIC AEROSOLS?: ', LSOA
          WRITE( 6, 100     ) 'Semivolatile POA?           : ', LSVPOA
-         WRITE( 6, 105     ) 'Annual NAP emiss [TgC/yr]   : ',
-     &                        Input_Opt%NAPEMISS
-         WRITE( 6, 105     ) 'POA emission scale [dimless]: ', 
-     &                        Input_Opt%POAEMISSSCALE
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
-         WRITE( 6, 100     ) 'Use DEAD dust emissions?    : ', LDEAD
          WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
          WRITE( 6, 110     ) 'Accum  SEA SALT radii [um]  : ', 
      &                        Input_Opt%SALA_REDGE_um(1), 
@@ -2156,8 +2138,6 @@
      &                        Input_Opt%SALC_REDGE_um(2)
          WRITE( 6, 100     ) 'Settle strat. aerosols?     : ',LGRAVSTRAT
          WRITE( 6, 100     ) 'Online SOLID PSC aerosols?  : ',LSOLIDPSC
-         WRITE( 6, 130     ) 'PSC restart file name?      : ',
-     &                        TRIM( PSC_RST_FILE )
          WRITE( 6, 100     ) 'Allow hom. NAT nucleation?  : ',LHOMNUCNAT
          WRITE( 6, 120     ) 'NAT supercooling requirement: ',
      &                                                 T_NAT_SUPERCOOL
@@ -3497,6 +3477,192 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: read_radiation_menu
+!
+! !DESCRIPTION: Subroutine READ\_RADIATION\_MENU reads the RADIATION
+! MENU section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_RADIATION_MENU( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE CMN_FJX_MOD              ! Fast-JX flux diagnostics
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : SET_CT_RAD
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  18 Jun 2013 - D. Ridley   - Initial version
+!  03 Dec 2014 - M. Sulprizio- Now save fields to the Input_Opt object
+!  10 Dec 2014 - M. Sulprizio- Add error checks for RRTMG switches
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL            :: LRAD, LLWRAD, LSWRAD, LSKYRAD(2)
+      INTEGER            :: N
+      INTEGER            :: TS_RAD
+      CHARACTER(LEN=255) :: MSG, LOCATION
+
+      ! Arrays
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+
+      !=================================================================
+      ! READ_RADIATION_MENU begins here!
+      !=================================================================
+
+      ! Location for err msg
+      LOCATION = 'READ_RADIATION_MENU ("input_mod.f")'
+
+      ! Error check
+      IF ( CT1 /= 2 ) THEN
+         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         CALL ERROR_STOP( MSG, 'READ_RADIATION_MENU ("input_mod.f")' )
+      ENDIF
+
+      ! AOD wavelength selection?
+      CALL SPLIT_ONE_LINE( SUBSTRS, NWVSELECT,
+     &                     -1, 'read_radiation_menu:1' )
+      STRWVSELECT(1)=''
+      STRWVSELECT(2)=''
+      STRWVSELECT(3)=''
+
+      DO N = 1, NWVSELECT
+         READ( SUBSTRS(N), * ) WVSELECT(N)
+         ! save the string version also
+         STRWVSELECT(N) = TRIM(SUBSTRS(N))
+      ENDDO
+
+      ! Turn on RRTMG?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:2' )
+      READ( SUBSTRS(1:N), * ) LRAD
+
+      ! Turn on LW radiation calculation?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:3' )
+      READ( SUBSTRS(1:N), * ) LLWRAD
+
+      ! Turn on SW radiation calculation?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:4' )
+      READ( SUBSTRS(1:N), * ) LSWRAD
+
+      ! Calculate for clear-sky?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:5' )
+      READ( SUBSTRS(1:N), * ) LSKYRAD(1)
+
+      ! Calculate for all-sky?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:6' )
+      READ( SUBSTRS(1:N), * ) LSKYRAD(2)
+
+      ! Radiation timestep?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:7' )
+      READ( SUBSTRS(1:N), * ) TS_RAD
+
+      ! Selection of species flux changes
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, NSPECRADMENU,
+     &                     'read_radiation_menu:8' )
+      DO N = 1, NSPECRADMENU
+       READ( SUBSTRS(N), * ) LSPECRADMENU(N)
+      ENDDO
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:9' )
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:11' )
+
+      !=================================================================
+      ! Error check settings
+      !=================================================================       
+
+      ! Use of RRTMG necessitates recompilation 
+#if !defined( RRTMG )
+      IF ( LRAD ) THEN
+         MSG = 'LRAD=T but RRTMG not defined at compile time!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+#else
+      IF ( .not. LRAD ) THEN
+         MSG = 'LRAD=F but RRTMG defined at compile time!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+#endif
+
+      ! Make sure radiation switches are turned off if RRTMG is off
+      IF ( ( .not. LRAD ) .and. LLWRAD ) THEN
+         MSG = 'Cannot have LW fluxes turned on without RRTMG'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+      IF ( ( .not. LRAD ) .and. LSWRAD ) THEN
+         MSG = 'Cannot have SW fluxes turned on without RRTMG'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+      IF ( ( .not. LRAD ) .and. LSKYRAD(1) ) THEN
+         MSG = 'Cannot have clear-sky flux turned on without RRTMG'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+      IF ( ( .not. LRAD ) .and. LSKYRAD(2) ) THEN
+         MSG = 'Cannot have all-sky flux turned on without RRTMG'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LRAD       = LRAD
+      Input_Opt%LLWRAD     = LLWRAD
+      Input_Opt%LSWRAD     = LSWRAD
+      Input_Opt%LSKYRAD(1) = LSKYRAD(1)
+      Input_Opt%LSKYRAD(2) = LSKYRAD(2)
+      Input_Opt%TS_RAD     = TS_RAD
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      WRITE( 6, '(/,a)' ) 'RADIATION MENU'
+      WRITE( 6, '(  a)' ) '--------------'
+      DO N=1, NWVSELECT
+      WRITE( 6, 115     ) 'AOD output wavelength (nm)  : ', WVSELECT(N)
+      ENDDO
+      WRITE( 6, 100     ) 'Turn on radiation?          : ', LRAD
+      WRITE( 6, 100     ) 'Consider LW                 : ', LLWRAD
+      WRITE( 6, 100     ) 'Consider SW                 : ', LSWRAD
+      WRITE( 6, 125     ) 'Clear-sky/All-sky           : ',
+     &                    LSKYRAD(1),'/',LSKYRAD(2)
+      WRITE( 6, 110     ) 'Radiation timestep [min]    : ', TS_RAD
+      WRITE( 6, 120     ) 'Flux output selection       : ', LSPECRADMENU
+
+      ! FORMAT statements
+ 100  FORMAT( A, L5  )
+ 110  FORMAT( A, I5  )
+ 115  FORMAT( A, F7.1)
+ 120  FORMAT( A, 10I1 )
+ 125  FORMAT( A,L5,A,L5 )
+
+      END SUBROUTINE READ_RADIATION_MENU
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: read_transport_menu
 !
 ! !DESCRIPTION: Subroutine READ\_TRANSPORT\_MENU reads the TRANSPORT MENU 
@@ -4355,8 +4521,9 @@
 !  23 Jun 2014 - R. Yantosca - Now pass Input_Opt, RC to INIT_DIAG_OH
 !  24 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
-!  15 Jan 2015 - R. Yantosca - Now define Input_Opt%DIAG_COLLECTION
- 
+!  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND71 to ND72 to
+!                              avoid conflicts with hourly max ppbv diagnostic.
+!  15 Jan 2015 - R. Yantosca - Now define Input_Opt%DIAG_COLLECTION 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4904,8 +5071,26 @@
       CALL SET_TINDEX( am_I_Root, 
      &                 71, ND71, SUBSTRS(2:N), N-1, N_TRACERS )
 
+      !--------------------------
+      ! ND72: Radiation output
+      !--------------------------
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:70' )
+      READ( SUBSTRS(1), * ) ND72
+
+      !output fields are nspecies*nradfields but user can only specify
+      !rad fields (e.g. SW TOA ALL-SKY) so we set the max to the total
+      !divided by number of allowed species (PD72R)
+      CALL SET_TINDEX( am_I_Root, 72, ND72, SUBSTRS(2:N), N-1, PD72R )
+
+      !If LRAD is on then ND72 must be on (so the diagnostic is
+      !available to write into). Check for this
+      IF ( (Input_Opt%LRAD) .AND. (ND72.EQ.0) ) THEN
+       MSG = 'If LRAD is true then ND72 diagnostic must be switched on'
+       CALL ERROR_STOP( MSG, 'READ_DIAGNOSTIC_MENU ("input_mod.f")' )
+      ENDIF
+
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:70' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:71' )
 
       !=================================================================
       ! Call other setup routines
@@ -4979,6 +5164,8 @@
       Input_Opt%ND68               = ND68
       Input_Opt%ND69               = ND69
       Input_Opt%ND70               = ND70
+      Input_Opt%ND71               = ND71
+      Input_Opt%ND72               = ND72
       Input_Opt%LPRT               = ( ND70 > 0 )
 
       ! Loop over # of diagnostics
@@ -7271,14 +7458,10 @@
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN 
 
          ! Initialize Mercury simulation routines
-         CALL INIT_MERCURY     ( am_I_Root, Input_Opt, RC )
-         CALL INIT_LAND_MERCURY( am_I_Root, Input_Opt, RC )
-         CALL INIT_DEPO_MERCURY( am_I_Root, Input_Opt, RC )
-
-         ! Initialize "ocean_mercury_mod.f"
-         IF ( LDYNOCEAN ) THEN
-            CALL INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, RC )
-         ENDIF
+         CALL INIT_MERCURY      ( am_I_Root, Input_Opt, RC )
+         CALL INIT_LAND_MERCURY ( am_I_Root, Input_Opt, RC )
+         CALL INIT_DEPO_MERCURY ( am_I_Root, Input_Opt, RC )
+         CALL INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, RC )
 
       ENDIF
 
@@ -8055,7 +8238,7 @@
       LOGICAL :: LEMIS, LTRAN,       LTURB 
       INTEGER :: I,     J,           K 
       INTEGER :: L,     TS_SMALLEST, TS_DIAG
-      INTEGER :: TS_CHEM, TS_EMIS, TS_CONV, TS_DYN, TS_UNIT
+      INTEGER :: TS_CHEM, TS_EMIS, TS_CONV, TS_DYN, TS_UNIT, TS_RAD
 
       !=================================================================
       ! CHECK_TIME_STEPS begins here!
@@ -8073,6 +8256,7 @@
       TS_EMIS = Input_Opt%TS_EMIS
       TS_CONV = Input_Opt%TS_CONV
       TS_DYN  = Input_Opt%TS_DYN 
+      TS_RAD  = Input_Opt%TS_RAD
  
       ! NUNIT is time step in minutes for unit conversion
       TS_UNIT = -1
@@ -8195,7 +8379,8 @@
       CALL SET_TIMESTEPS( am_I_Root,
      &                    CHEMISTRY  = TS_CHEM, EMISSION  = TS_EMIS, 
      &                    DYNAMICS   = TS_DYN,  UNIT_CONV = TS_UNIT,
-     &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG)
+     &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG,
+     &                    RADIATION  = TS_RAD )
 
  100  FORMAT( A, ' time step must be a multiple of the smallest one:',
      &        i5, i5 )

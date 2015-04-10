@@ -32,7 +32,14 @@
       INTEGER, PARAMETER :: IND999  = 5
 
       ! Required size of aerosol arrays
-      INTEGER, PARAMETER :: NALLAER = (NRHAER*NRH)+NSTRATAER
+!------------------------------------------------------------------------------
+! Prior to 12/5/14:
+! Now we're storing RH indices references ODAER can be smaller (dar,mps,12/5/14)
+!      INTEGER, PARAMETER :: NALLAER = (NRHAER*NRH)+NSTRATAER
+! Now unnecessary - stored as A_ and NAER = NRHAER+NSTRATAER
+! (defined in CMN_SIZE_mod.F) All references in code removed. DAR 02/2015
+!      INTEGER, PARAMETER :: NALLAER = NRHAER+NSTRATAER
+!------------------------------------------------------------------------------
 
       INTEGER            :: L_             ! Number of CTM layers
 
@@ -236,10 +243,81 @@
       CHARACTER*20, DIMENSION(A_) :: TITLEAA
 
       ! Dust and aerosol optical depths
-      REAL(fp), ALLOCATABLE :: ODMDUST(:,:,:,:)
-      REAL(fp), ALLOCATABLE :: ODAER(:,:,:,:)
+      REAL(fp), ALLOCATABLE :: ODMDUST(:,:,:,:,:)
+      REAL(fp), ALLOCATABLE :: ODAER(:,:,:,:,:)
 
       INTEGER NJX,NW1,NW2
+
+      !-----------------------------------------------------------------------
+      !  Variables added for RRTMG (dar, mps, 12/5/14)
+      !-----------------------------------------------------------------------
+
+      INTEGER, PARAMETER :: NWVAA   = 41     !number of wavelengths in LUT
+      INTEGER, PARAMETER :: NWVAA0  = 11     !number of non-RRTMG wavelengths
+      INTEGER, PARAMETER :: NWVAART = NWVAA-NWVAA0 !number of RRTMG wvs
+      INTEGER, PARAMETER :: NRAA    = 7      !number of aer sizes in LUT
+#if defined( UCX )
+      INTEGER, PARAMETER :: NSPAA   = 8      !number of species in LUT
+      INTEGER, PARAMETER :: NASPECRAD = 16   !aerosol species in RT
+      INTEGER, PARAMETER :: NSPECRAD  = 18   !aerosol+gas species in RT
+      INTEGER, PARAMETER :: NSPECRADMENU = 11!number of choices for RT flux
+#else
+      INTEGER, PARAMETER :: NSPAA     = 6    !number of species in LUT
+      INTEGER, PARAMETER :: NASPECRAD = 14   !aerosol species in RT
+      INTEGER, PARAMETER :: NSPECRAD  = 16   !aerosol+gas species in RT
+      INTEGER, PARAMETER :: NSPECRADMENU = 10!number of choices for RT flux
+#endif
+      INTEGER, PARAMETER :: NALBD   = 2
+      INTEGER, PARAMETER :: NEMISS  = 16
+
+      ! New optical arrays
+      REAL*8  :: WVAA(NWVAA,NSPAA)
+      REAL*8  :: RHAA(NRAA,NSPAA)
+      REAL*8  :: NRLAA(NWVAA,NRAA,NSPAA)
+      REAL*8  :: NCMAA(NWVAA,NRAA,NSPAA)
+      REAL*8  :: RDAA(NRAA,NSPAA)
+      REAL*8  :: RWAA(NRAA,NSPAA)
+      REAL*8  :: SGAA(NRAA,NSPAA)
+      REAL*8  :: QQAA(NWVAA,NRAA,NSPAA)
+      REAL*8  :: ALPHAA(NWVAA,NRAA,NSPAA)
+      REAL*8  :: REAA(NRAA,NSPAA)
+      REAL*8  :: SSAA(NWVAA,NRAA,NSPAA)
+      REAL*8  :: ASYMAA(NWVAA,NRAA,NSPAA)
+      REAL*8  :: PHAA(NWVAA,NRAA,NSPAA,8)
+      REAL*8  :: WVSELECT(3)  !wavelengths requested by user
+      INTEGER :: IWVSELECT(2,3) !index of requested wavelengths
+      INTEGER :: IRTWVSELECT(2,3) !index of requested RT wavelengths
+
+      ! max of 3 but need 2 per wavelength if interpolating
+      INTEGER :: NWVSELECT !number of selected AOD output wavelengths
+                           !(max=3)
+      INTEGER :: NWVREQUIRED !number of wvs required for interpolation
+      INTEGER :: IWVREQUIRED(6) !index of wavelengths for interpo.
+      INTEGER :: NRTWVREQUIRED !number of wvs required for RT interpolation
+      INTEGER :: IRTWVREQUIRED(6) !index of wavelengths for RT interpo.
+      ! list of required wavelengths, up to max of 3 x 2
+
+      INTEGER :: IWV1000 !Store the wavelength index for 1000nm for Fast-J
+
+      !coefficients for interpolation of wavelength (and for RT too)
+      REAL*8      :: ACOEF_WV(3),BCOEF_WV(3),CCOEF_WV(3)
+      REAL*8      :: ACOEF_RTWV(3),BCOEF_RTWV(3),CCOEF_RTWV(3)
+      CHARACTER*5 :: STRWVSELECT(3) !String array of requested wavelengths
+      INTEGER     :: LSPECRADMENU(NSPECRADMENU) !indices for number of species on input menu 
+      INTEGER     :: SPECMASK(NSPECRAD) !list of binary switches for different 
+                                    !species flux output
+
+      ! RH indices 
+      INTEGER, ALLOCATABLE :: IRHARR(:,:,:)
+
+#if defined( RRTMG )
+      !to pass to RT code
+      !one for each hydrophilic/hydrophobic aerosol and optical dust bin
+      !and also sulfate, nitrate and ammonia are separate too
+      REAL*8, ALLOCATABLE :: RTODAER(:,:,:,:,:)
+      REAL*8, ALLOCATABLE :: RTSSAER(:,:,:,:,:)
+      REAL*8, ALLOCATABLE :: RTASYMAER(:,:,:,:,:)
+#endif
 
       CONTAINS
 !EOC
@@ -300,13 +378,36 @@
       IF ( RC /= GIGC_SUCCESS ) RETURN
       ZPJ = 0e+0_fp
 
-      ALLOCATE( ODMDUST( IIPAR, JJPAR, LLPAR, NDUST), STAT=RC )
+      ALLOCATE( ODMDUST( IIPAR, JJPAR, LLPAR, NWVAA, NDUST), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
       ODMDUST = 0e+0_fp
 
-      ALLOCATE( ODAER( IIPAR, JJPAR, LLPAR, NALLAER), STAT=RC )
+      ALLOCATE( ODAER( IIPAR, JJPAR, LLPAR, NWVAA, NAER), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
       ODAER = 0e+0_fp
+
+      !-----------------------------------------------------------------------
+      !  Variables added for RRTMG (dar, mps, 12/5/14)
+      !-----------------------------------------------------------------------
+
+      ALLOCATE( IRHARR(IIPAR,JJPAR,LLPAR), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) RETURN
+      IRHARR = 0d0
+
+#if defined( RRTMG )
+      ! +2 to split SNA into SU, NI and AM
+      ALLOCATE( RTODAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+2+NDUST), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) RETURN
+      RTODAER = 0d0
+
+      ALLOCATE( RTSSAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+2+NDUST), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) RETURN
+      RTSSAER = 0d0
+
+      ALLOCATE( RTASYMAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+2+NDUST),STAT=RC)
+      IF ( RC /= GIGC_SUCCESS ) RETURN
+      RTASYMAER = 0d0
+#endif
 
       ! Return w/ success
       RC = GIGC_SUCCESS
@@ -347,7 +448,15 @@
       !=================================================================
       ! CLEANUP_CMN_FJX begins here!
       !=================================================================
-      IF ( ALLOCATED( ZPJ    ) ) DEALLOCATE( ZPJ    )
+      IF ( ALLOCATED( ZPJ       ) ) DEALLOCATE( ZPJ       )
+      IF ( ALLOCATED( ODMDUST   ) ) DEALLOCATE( ODMDUST   )
+      IF ( ALLOCATED( ODAER     ) ) DEALLOCATE( ODAER     )
+      IF ( ALLOCATED( IRHARR    ) ) DEALLOCATE( IRHARR    )
+#if defined( RRTMG )
+      IF ( ALLOCATED( RTODAER   ) ) DEALLOCATE( RTODAER   )
+      IF ( ALLOCATED( RTSSAER   ) ) DEALLOCATE( RTSSAER   )
+      IF ( ALLOCATED( RTASYMAER ) ) DEALLOCATE( RTASYMAER )
+#endif
 
       ! Return successfully
       RC = GIGC_SUCCESS

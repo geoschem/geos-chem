@@ -119,6 +119,7 @@
       USE TRACERID_MOD,       ONLY : IDTDST1
 #if defined (UCX )
       USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
+      USE UCX_MOD,            ONLY : READ_PSC_FILE
 #endif
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
@@ -326,6 +327,16 @@
          !---------------------------------
          IF ( IT_IS_A_FULLCHEM_SIM ) THEN 
 
+#if defined( UCX )
+            ! We need to get the STATE_PSC from the HEMCO restart file.
+            ! NOTE: Do this before calling CHEMDR to avoid reading this
+            ! data from w/in an !$OMP PARALLEL region. (bmy, 4/8/15)
+            IF ( FIRST ) THEN
+               CALL READ_PSC_FILE( am_I_Root )
+               FIRST         = .FALSE.
+            ENDIF
+#endif
+            
             ! Call gas-phase chemistry
             CALL CHEMDR
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -395,17 +406,8 @@
             ENDIF
 #endif
 
-            ! ND44 drydep fluxes
-            ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 
-            ! PBL is used ( Lin, 03/31/09) 
-            ! Dry deposition diagnostics is now done in mixing_mod.F for 
-            ! cases where full-mixing is used (ckeller, 3/5/15).
-!            IF ( .not. LNLPBL ) THEN
-!               CALL DRYFLX( am_I_Root, Input_Opt, RC )
-!            ENDIF
-
             ! ND43 chemical production
-            CALL DIAGOH
+            CALL DIAGOH()
  
          !---------------------------------
          ! Offline aerosol simulation
@@ -438,9 +440,10 @@
             MONTH      = 0
             YEAR       = 0
             WAVELENGTH = 0
+            write(6,*) 'before RDAER, FJX'
             CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
      &                  MONTH,     YEAR,      WAVELENGTH      )
-
+            write(6,*) 'after RDAER'
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
             IF ( LSULF ) THEN
                IF ( LSSALT ) THEN
@@ -485,7 +488,7 @@
 
             !*** MINERAL DUST AEROSOLS ***
             IF ( LDUST ) THEN 
- 
+            write(6,*) 'before DUST'
                ! Do dust aerosol chemsitry
                CALL CHEMDUST
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -495,6 +498,7 @@
                CALL RDUST_ONLINE
      &             ( am_I_Root, Input_Opt,  State_Met, 
      &               SOILDUST,  WAVELENGTH, RC         )
+            write(6,*) 'after DUST'
             ENDIF
  
          !---------------------------------
@@ -624,7 +628,7 @@
 
       ! Free pointer
       NULLIFY( STT )
-
+    
       END SUBROUTINE DO_CHEMISTRY
 !EOC
 #if defined( USE_REAL8 )
@@ -1063,9 +1067,10 @@
 
                ! Calculate the AOD at the wavelength specified in jv_spec_aod
                WAVELENGTH = 1
+              write(6,*) 'before RDAER, AOD'
                CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
      &                     MONTH,     YEAR,      WAVELENGTH      )
-
+               write(6,*) 'after RDAER, AOD'
                !### Debug
                IF ( LPRT .and. am_I_Root ) THEN 
                   CALL DEBUG_MSG( '### RECOMPUTE_OD: after RDAER' )

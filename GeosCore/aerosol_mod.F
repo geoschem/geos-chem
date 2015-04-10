@@ -93,6 +93,7 @@
       REAL(fp), ALLOCATABLE :: SALA(:,:,:)
       REAL(fp), ALLOCATABLE :: SALC(:,:,:)
       REAL(fp), ALLOCATABLE :: SO4_NH4_NIT(:,:,:)
+      REAL(fp), ALLOCATABLE :: FRAC_SNA(:,:,:,:)
       REAL(fp), ALLOCATABLE :: SOILDUST(:,:,:,:)
       REAL(fp), ALLOCATABLE :: SLA(:,:,:)
       REAL(fp), ALLOCATABLE :: SPA(:,:,:)
@@ -165,6 +166,7 @@
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  02 Mar 2015 - E. Lundgren - Remove MAKE_AVGW call. State_Met%AVGW now
 !                              set in AIRQNT within dao_mod.F.
+!  01 Apr 2015 - R. Yantosca - Bug fix: BOXVL needs to be !$OMP PRIVATE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -275,7 +277,7 @@
       ! Loop over grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, JLOOP, TK, CONSEXP, VPRESH2O )
+!$OMP+PRIVATE( I, J, L, JLOOP, BOXVL, TK, CONSEXP, VPRESH2O )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, NVERT
       DO J = 1, NLAT
@@ -288,7 +290,6 @@
          ! Only process tropospheric boxes
          !----------------------------------
          IF ( JLOOP > 0 ) THEN
-
 
             ! Grid box volume [cm3]
             BOXVL          = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -346,7 +347,8 @@
       USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTDST1, IDTDST2
       USE TRACERID_MOD,       ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
       USE TRACERID_MOD,       ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
-      USE TRACERID_MOD,       ONLY : IDTSO4,   IDTSOAG, IDTSOAM
+      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTSOAG, IDTSOAM
+      USE TRACERID_MOD,       ONLY : IDTSO4s, IDTNITs 
       ! SOAupdate: update SOA tracers (hotp 7/25/10)
       USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOA2
       USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOA2
@@ -398,8 +400,8 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
-!  17 Jun 2014 - J. Pierce   - Now allow bulk dust in TOMAS simulatoins
-
+!  17 Jun 2014 - J. Pierce   - Now allow bulk dust in TOMAS simulations
+!  07 Apr 2015 - R. Yantosca - Add check to prevent div-by-zero errors
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -409,37 +411,37 @@
       ! We carry carbon mass only in OC and here need to multiply by
       ! 1.4 to account for the mass of the other chemical components
       ! (rjp, bmy, 7/15/04)
-      !REAL(fp),  PARAMETER :: OCF     = 2.1d0
+      !REAL(fp), PARAMETER :: OCF     = 2.1d0
       ! SOAupdate: semivolpoa: reduce OCF to 1.4 for POA (hotp 2/17/09)
-      REAL(fp),  PARAMETER :: OCF     = 1.4e+0_fp
+      REAL(fp), PARAMETER :: OCF     = 1.4e+0_fp
 
       ! SOAupdate: semivolpoa4opoa: add OPOA mass (hotp 3/17/09)
-      REAL(fp),  PARAMETER :: OCFOPOA = 2.1e+0_fp  ! = 1.4*1.5
+      REAL(fp), PARAMETER :: OCFOPOA = 2.1e+0_fp  ! = 1.4*1.5
 
       ! For SOAG, assume the total aerosol mass/glyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
-      REAL(fp),  PARAMETER :: OCFG = 1.e+0_fp
+      REAL(fp), PARAMETER :: OCFG = 1.e+0_fp
 
       ! For SOAM, assume the total aerosol mass/methylglyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
-      REAL(fp),  PARAMETER :: OCFM = 1.e+0_fp
+      REAL(fp), PARAMETER :: OCFM = 1.e+0_fp
 !
 ! !LOCAL VARIABLES:
 !
       ! SAVEd variables
-      LOGICAL, SAVE      :: FIRST = .TRUE. 
+      LOGICAL, SAVE       :: FIRST = .TRUE. 
 
       ! Non-SAVEd variables
-      INTEGER            :: I, J, L, N, K
-      LOGICAL            :: LCARB
-      LOGICAL            :: LDUST
-      LOGICAL            :: LSOA
-      LOGICAL            :: LSSALT
-      LOGICAL            :: LSULF
+      INTEGER             :: I, J, L, N, K
+      LOGICAL             :: LCARB
+      LOGICAL             :: LDUST
+      LOGICAL             :: LSOA
+      LOGICAL             :: LSSALT
+      LOGICAL             :: LSULF
 
       ! Pointers
-      REAL(fp), POINTER    :: STT(:,:,:,:)
-      REAL(fp), POINTER    :: AIRVOL(:,:,:)
+      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: AIRVOL(:,:,:)
 
       !=================================================================
       ! AEROSOL_CONC begins here!
@@ -494,9 +496,16 @@
             ! taken as sulfuric acid
             IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
                ! Tropospheric - keep as normal
-               SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4)   + 
-     &                                STT(I,J,L,IDTNH4)   +
-     &                                STT(I,J,L,IDTNIT) ) /
+               ! now including sulfate and nitrate associated with sea-salt
+               ! NOTE: these should be treated as having a sea-salt size
+               ! distribution but are currently simply treated in the same
+               ! way (size and optics) as all other sulfate aerosol (DAR
+               ! 2013)
+               SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4)    + 
+     &                                STT(I,J,L,IDTNH4)    +
+     &                                STT(I,J,L,IDTNIT)    +
+     &                                STT(I,J,L,IDTSO4s)   +
+     &                                STT(I,J,L,IDTNITs) ) /
      &                                AIRVOL(I,J,L)
                SLA(I,J,L) = 0e+0_fp
                SPA(I,J,L) = 0e+0_fp
@@ -508,11 +517,49 @@
             ENDIF
 #else
             ! Compute SO4 aerosol concentration [kg/m3]
-            SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4)     + 
-     &                             STT(I,J,L,IDTNH4)     +
-     &                             STT(I,J,L,IDTNIT) )   /
+            ! now including sulfate and nitrate associated with sea-salt
+            ! NOTE: these should be treated as having a sea-salt size
+            ! distribution but are currently simply treated in the same
+            ! way (size and optics) as all other sulfate aerosol (DAR
+            ! 2013)
+            SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4)    + 
+     &                             STT(I,J,L,IDTNH4)    +
+     &                             STT(I,J,L,IDTNIT)    +
+     &                             STT(I,J,L,IDTSO4s)   +
+     &                             STT(I,J,L,IDTNITs) ) /
      &                             AIRVOL(I,J,L)
 #endif
+            
+            ! Add error check for safe division (bmy, 4/7/15)
+            IF ( SO4_NH4_NIT(I,J,L) > 0e+0_fp ) THEN
+
+               ! Save these fractions for partitioning of optics
+               ! until later when these may be treated independently
+               FRAC_SNA(I,J,L,1) = ( ( STT(I,J,L,IDTSO4 ) 
+     &                           +     STT(I,J,L,IDTSO4s) )
+     &                           /   AIRVOL(I,J,L)          )
+     &                           / SO4_NH4_NIT(I,J,L)
+
+               FRAC_SNA(I,J,L,2) = ( ( STT(I,J,L,IDTNIT )
+     &                           +     STT(I,J,L,IDTNITs) )
+     &                           /   AIRVOL(I,J,L)          )
+     &                           / SO4_NH4_NIT(I,J,L)
+
+               FRAC_SNA(I,J,L,3) = ( STT(I,J,L,IDTNH4)
+     &                           /   AIRVOL(I,J,L)        ) 
+     &                           / SO4_NH4_NIT(I,J,L)
+               
+            ELSE
+               
+               ! If SO4_NH4_NIT(I,J,L) is zero, then avoid a div-by-zero
+               ! error.  Set all of these to zero because the division
+               ! cannot be done.
+               FRAC_SNA(I,J,L,1) = 0e+0_fp
+               FRAC_SNA(I,J,L,2) = 0e+0_fp
+               FRAC_SNA(I,J,L,3) = 0e+0_fp
+
+            ENDIF
+
          ENDIF
 
          !==============================================================
@@ -630,7 +677,7 @@
          ! Now splitting mass into bins in fractions derived from
          ! Highwood et al. (2003).  Data is from log-normal fit of
          ! PCASP measurements of Saharan dust (Solid line in Fig.4b)
-         ! (dar, 04/25/10)
+         ! (dar, 04/25/10) [see Ridley et al., 2012, JGR]
          !
          ! Updated for TOMAS (Jeffrey Pierce, 6/17/14)
          !===========================================================
@@ -767,13 +814,12 @@
 ! !INTERFACE:
 !
       SUBROUTINE RDAER( am_I_Root, Input_Opt, State_Met,  RC,
-     &                  MONTH,     YEAR,      WAVELENGTH      )
+     &                  MONTH,     YEAR,      ODSWITCH        )
 !
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE CMN_FJX_MOD,        ONLY : ODAER, IND999
-      USE CMN_FJX_MOD,        ONLY : QAA, RAA, QAA_AOD, RAA_AOD
+      USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE COMODE_LOOP_MOD
@@ -796,6 +842,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      USE TIME_MOD,           ONLY : SYSTEM_TIMESTAMP
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
       USE UCX_MOD,            ONLY : GET_STRAT_OPT
       USE UCX_MOD,            ONLY : NDENS_AER
@@ -808,12 +855,12 @@
       TYPE(MetState), INTENT(IN)  :: State_Met     ! Meteorology State
       INTEGER,        OPTIONAL    :: MONTH         ! # of current month
       INTEGER,        OPTIONAL    :: YEAR          ! 4-digit year
-      INTEGER,        OPTIONAL    :: WAVELENGTH    ! Logical indicator
+      INTEGER,        OPTIONAL    :: ODSWITCH      ! Logical indicator
                                                    !  = 0: AOD computed 
                                                    !       at 999 nm
                                                    !  = 1: AOD computed 
-                                                   !       at wavelength 
-                                                   !       in jv_spec_aod.dat
+                                                   !       at wavelength set 
+                                                   !       in Radiation Menu
       TYPE(OptInput), INTENT(IN)  :: Input_Opt     ! Input Options object
 !
 ! !OUTPUT PARAMETERS:                             
@@ -866,6 +913,9 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  05 Mar 2015 - R. Yantosca - Remove DO_READ_DATA option.  We can no longer
 !                              have binary punch input in HPC environments.
+!  31 Mar 2015 - R. Yantosca - Bug fix: Declare LINTERP as !$OMP PRIVATE
+!  07 Apr 2015 - R. Yantosca - Bug fix: Add error check to JLOOP do-loop
+!                              so that we cycle if JLOOP <= 0
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -881,7 +931,10 @@
 !      CHARACTER(LEN=255)  :: FILENAME
 !      INTEGER             :: THISMONTH, THISYEAR
 !-----------------------------------------------------------------------------
-      INTEGER             :: I, J, L, N, R, JLOOP, IRH, IRHN
+      LOGICAL             :: LINTERP
+      CHARACTER(LEN=16)   :: STAMP
+      INTEGER             :: I, J, L, N, R, JLOOP, IRH, W, IRHN
+      INTEGER             :: AA, IWV, IIWV, NWVS, IR, NRT
 !-----------------------------------------------------------------------------
 ! Prior to 3/5/15:
 ! Remove bpch input, which does not work in HPC environments (bmy, 3/5/15)
@@ -892,15 +945,28 @@
       REAL(fp)            :: MSDENS(NAER), DRYAREA
       REAL(f8)            :: XTAU
 
-      ! Effective radius at RH bins read in from "jv_spec.dat"
+      ! Variables for speed diagnostics
+      INTEGER             :: ITIMEVALS(8)
+      REAL*8              :: OLDSECS, NEWSECS
+      REAL*8              :: OLDSECST, NEWSECST
+
+      ! Effective radius at RH bins read in from "FJX_spec.dat"
       REAL(fp)		  :: RW(NRH)	
 
       ! Effective radius at RH after interpolation
       REAL(fp)		  :: REFF       
 
-      ! Q at different RH bins read in from "jv_spec.dat"
-      REAL(fp)		  :: QW(NRH)	
- 
+      ! Q at different RH bins read in from "FJX_spec.dat"
+      REAL(fp)            :: AW(NRH)
+      REAL(fp)            :: QW(NRH)	
+      REAL(fp)            :: SSW(NRH)
+      REAL(fp)            :: ASYW(NRH)	
+      REAL(fp)            :: AW0
+      REAL(fp)            :: QW0
+      REAL(fp)            :: SSW0
+      REAL(fp)            :: ASYW0
+      REAL(fp)            :: DENOM,NUMER
+
       ! Used to interpolate between sizes
       REAL(fp)		  :: FRAC       
  
@@ -910,21 +976,28 @@
       ! Change in Radius with RH
       REAL(fp)		  :: SCALER     
 
-      ! Chnge in Optical Depth vs RH
-      REAL(fp)		  :: SCALEOD(IIPAR,JJPAR,LLPAR,NRH) 
+      ! Change in SSA with RH
+      REAL(fp)            :: SCALESSA
+
+      ! Change in asym parameter with RH
+      REAL(fp)            :: SCALEASY
+
+      ! Chnge in Optical properties vs RH
+      REAL(fp)            :: SCALEA
+      REAL(fp)            :: SCALEOD 
 
       ! Change in Vol vs RH 
-      REAL(fp)		  :: SCALEVOL(IIPAR,JJPAR,LLPAR)  
+      REAL(fp)            :: SCALEVOL 
 
       ! Relative Humidities
-      REAL(fp),  SAVE       :: RH(NRH)   = (/0e+0_fp,0.5e+0_fp, 
+      REAL(fp),  SAVE     :: RH(NRH)   = (/0e+0_fp,0.5e+0_fp, 
      &   0.7e+0_fp,0.8e+0_fp,0.9e+0_fp/)
 
       ! Temporary varaibles
-      REAL(fp)              :: RAER, SADSTRAT, RHOSTRAT, XSASTRAT
+      REAL(fp)            :: RAER, SADSTRAT, RHOSTRAT, XSASTRAT
       INTEGER             :: ISTRAT
 
-      ! Index to aerosol types in jv_spec.dat
+      ! Index to aerosol types in FJX_spec.dat
       ! The following are ordered according to the mass densities below
 #if defined( UCX )
       INTEGER, SAVE       :: IND(NAER) = (/22, 29, 36, 43, 50, 4, 14/)
@@ -942,13 +1015,19 @@
       LOGICAL             :: LSSALT
       LOGICAL             :: LSULF
       LOGICAL             :: LSTRATOD
+      LOGICAL             :: LRAD
 
       ! Pointers
-      REAL(fp), POINTER     :: BXHEIGHT(:,:,:)
+      REAL(fp), POINTER   :: BXHEIGHT(:,:,:)
 
       !=================================================================
       ! RDAER begins here!
       !=================================================================
+!     speed diagnostic
+!            CALL DATE_AND_TIME( VALUES=ITIMEVALS )
+!            OLDSECS=real(ITIMEVALS(5))*3600.0+real(ITIMEVALS(6))*60.0+
+!     &              real(ITIMEVALS(7))+real(ITIMEVALS(8))/1000.0
+!
 
       ! Assume success
       RC                   = GIGC_SUCCESS
@@ -964,6 +1043,7 @@
       LSSALT               = Input_Opt%LSSALT
       LSULF                = Input_Opt%LSULF
       LSTRATOD             = Input_Opt%LSTRATOD
+      LRAD                 = Input_Opt%LRAD
 
       ! Initialize pointers
       BXHEIGHT            => State_Met%BXHEIGHT
@@ -1022,7 +1102,7 @@
          ! Use online aerosol concentrations
          !-----------------------------------
          IF ( FIRST ) THEN
-            IF ( am_I_Root ) WRITE( 6, 100 ) 
+            IF ( am_I_Root ) WRITE( 6, 100 )
  100        FORMAT( '     - RDAER: Using online SO4 NH4 NIT!' )
          ENDIF
 
@@ -1083,7 +1163,7 @@
          ! Use online aerosol concentrations
          !-----------------------------------
          IF ( FIRST ) THEN
-            IF ( am_I_Root ) WRITE( 6, 110 ) 
+            IF ( am_I_Root ) WRITE( 6, 110 )
  110        FORMAT( '     - RDAER: Using online BCPI OCPI BCPO OCPO!' )
          ENDIF
 
@@ -1185,7 +1265,7 @@
          ! Use online aerosol concentrations
          !-----------------------------------
          IF ( FIRST ) THEN
-            IF ( am_I_Root ) WRITE( 6, 120 ) 
+            IF ( am_I_Root ) WRITE( 6, 120 )
  120        FORMAT( '     - RDAER: Using online SALA SALC' )
          ENDIF
 
@@ -1284,11 +1364,7 @@
       ! Scaling is sufficient for the surface area calculation
       !=================================================================
       MSDENS(1) = 1700.0d0    !SO4
-#if   defined( APM )
-      MSDENS(2) = 1800.0d0    !BC 
-#else
-      MSDENS(2) = 1000.0d0    !BC 
-#endif
+      MSDENS(2) = 1800.0d0    !BC (updated to 1800 DAR 09/2013)
       MSDENS(3) = 1800.0d0    !OC 
       MSDENS(4) = 2200.0d0    !SS (accum)
       MSDENS(5) = 2200.0d0    !SS (coarse)
@@ -1298,12 +1374,76 @@
       MSDENS(NRHAER+2) = 1000.0d0! NAT/ice PSC
 #endif
 
-      ! Loop over types of aerosol with hygroscopic growth
-      DO N = 1, NRHAER
+      !set default values for RH index array
+      IRHARR(:,:,:)=1
 
-         ! Zero array
-         SCALEOD(:,:,:,:) = 0d0
-         
+      ! DAR 09/2013
+      ! There are two ways RDAER can be called:
+      ! (1) When Fast-J requires aerosol optics at 1000nm (ODSWITCH=0)
+      ! (2) Before diags are accumulated, from RECOMPUTE_AOD (ODSWITCH=1) 
+      ! for (1) we just need the optics stored at a single wavelength
+      !     not for all user specified wavelengths, hence NWVS=1, IWV=IWV1000
+      ! for (2) we need to determine if RRTMG is switched on
+      !     if LRAD=true, calculation is over total minus standard wavelengths 
+      !     in optics dat files (NWVAA-NWVAA0)
+      !     if LRAD=false, calculation is for the wavelengths required for
+      !     user-requested wavelength output. These are determined in CALC_AOD
+      !     within RD_AOD.F and stored in IWVREQUIRED. The coefficients to 
+      !     interpolate from the LUT wavelengths to the user-requested
+      !     waveelenths (in CALC_AOD) are used here.
+
+      ! Select number of wavelengths required to loop over
+      IF (ODSWITCH .EQ. 0) THEN !this is the call for Fast_JX at 1000nm
+         NWVS   = 1
+      ELSE
+         IF ( LRAD ) THEN       !Loop over all RT wavelengths (30)
+            ! plus any required for calculating the AOD
+            NWVS = NWVAA-NWVAA0+NWVREQUIRED
+         ELSE                   !Loop over wavelengths needed for 
+                                !interpolation to those requested in input.geos 
+                                !(determined in RD_AOD)
+            NWVS = NWVREQUIRED
+         ENDIF                 
+      ENDIF
+
+      DO IIWV = 1, NWVS
+         !now select the correct LUT wavelength
+         IF (ODSWITCH .EQ. 0) THEN
+            ! only doing for 1000nm (IWV1000 is set in RD_AOD)
+            ! N.B. NWVS is fixed to 1 above - only one wavelength
+            IWV=IWV1000
+         ELSE
+            IF ( LRAD ) THEN
+               ! RRTMG wavelengths begin after NWVAA0 standard wavelengths
+               ! but add on any others required 
+               IF (IIWV.LE.30) THEN
+                  !index of RRTMG wavelengths starts after the standard NWVAA0
+                  !(currently NWVAA0=11, set in CMN_FJX_mod based on the .dat LUT)
+                  IWV = IIWV+NWVAA0
+               ELSE
+                  !now we calculate at wvs for the requested AOD
+                  IWV = IWVREQUIRED(IIWV-30)
+               ENDIF
+            ELSE
+               ! IWVREQUIRED lists the index of requires standard wavelengths
+               IWV = IWVREQUIRED(IIWV)
+            ENDIF               
+         ENDIF
+
+      ! Loop over types of aerosol with hygroscopic growth
+      ! (this will include strat aerosol if UCX=yes)
+      DO N = 1, NAER 
+         !index for strat aerosol (only >0 for strat aero)
+         ISTRAT=N-NRHAER
+
+         !NRT is subscript for RT arrays that contain SNA separately
+         !so their optics can be treated separately in future
+         IF (N.GT.1) THEN
+            NRT=N+2
+         ELSE
+            NRT=N
+         ENDIF
+
          !==============================================================
          ! Determine aerosol growth rates from the relative 
          ! humidity in each box
@@ -1329,39 +1469,45 @@
          ! for SCALEOD(I,J,L,:), only one of the IRH bins will contain
          ! nonzero data, while the other IRH bins will all be zero.
          !==============================================================
- 
+         ! We loop over all selected wavelengths, referenced by IWV
+         ! if FAST_J is calling then IWV will be for 1000nm only
+         ! if RRTMG is on then IWV will be 30 wavelengths + AOD wavs,
+         ! otherwise IWV will be at user input specified wavelengths
+
          ! Loop over relative humidity bins
          DO R = 1, NRH
 
-            IF ( WAVELENGTH > 0 ) THEN
+            ! Wet radius in aerosol LUT files
+            RW(R) = REAA(R,N)
 
-               ! Now use the optical properties at the wavelength specified
-               !  in jv_spec_aod.dat (skim, 02/03/11)
-
-               ! Wet radius in "jv_spec_aod.dat"
-               RW(R) = RAA_AOD(IND(N)+R-1)
-               
-               ! Extinction efficiency for Q for each RH bin
-               QW(R) = QAA_AOD(IND(N)+R-1)
-
-            ELSE 
-
-               ! Wet radius in "jv_spec.dat"
-               RW(R) = RAA(IND999,IND(N)+R-1)	
-
-               ! Extinction efficiency Q for each RH bin
-               QW(R) = QAA(IND999,IND(N)+R-1)
-
-            ENDIF
+            ! Extinction efficiency for Q for each RH bin
+            QW(R)   = QQAA(IWV,R,N)
+            AW(R)   = ALPHAA(IWV,R,N)
+            SSW(R)  = SSAA(IWV,R,N)
+            ASYW(R) = ASYMAA(IWV,R,N)
 
          ENDDO
 
          ! Loop over SMVGEAR grid boxes
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IRH, JLOOP, SCALEQ, SCALER, REFF, FRAC )
+!$OMP PARALLEL DO
+!$OMP+PRIVATE( JLOOP,    I,       J,        L,        IRH       )
+!$OMP+PRIVATE( AW0,      QW0,     SSW0,     ASYW0,    REFF      )
+!$OMP+PRIVATE( SCALEA,   SCALEQ,  SCALESSA, SCALEASY, FRAC      )
+!$OMP+PRIVATE( SCALER,   SCALEOD, SCALEVOL, DRYAREA             )
+#if defined( RRTMG )
+!$OMP+PRIVATE( IR                                               )
+#endif
+#if defined( UCX )
+!$OMP+PRIVATE( RHOSTRAT, RAER,    SADSTRAT, XSASTRAT            )
+#endif
 !$OMP+SCHEDULE( DYNAMIC )
+
+         ! 1-D grid box index for SMVGEAR arrays
          DO JLOOP = 1, NTLOOP
+
+            ! Add error check to prevent out-of-bounds or
+            ! div-by-zero errors (bmy, 4/7/15)
+            IF ( JLOOP <= 0 ) CYCLE
 
             ! Get 3-D grid box indices
             I = IXSAVE(JLOOP)
@@ -1369,6 +1515,8 @@
             L = IZSAVE(JLOOP)
 
             ! Sort into relative humidity bins
+            ! Currently uses the 0, 50, 70, 80, 90% RH bins
+            ! (95 and 99% also stored in data files but not used)
             IF (      ABSHUM(JLOOP) <= RH(2) ) THEN   
                IRH = 1
             ELSE IF ( ABSHUM(JLOOP) <= RH(3) ) THEN
@@ -1381,27 +1529,117 @@
                IRH = 5
             ENDIF
 
+            ! save the index of the relative humidity into array that is
+            ! used by the photolysis to pull the right optics
+            ! information from the FJX_spec.dat
+            ! Previously the ODAER was organized by aerosol species and
+            ! each RH bin, but this leaves a lot of the array redundant
+            ! because only one RH bin is used at once
+            ! This becomes a waste of memory with multiple wavelengths
+            IRHARR(I,J,L) = IRH
+
             ! For the NRHth bin, we don't have to interpolate
             ! For the other bins, we have to interpolate 
+            ! Sometimes values can be zero, don't want to divide by 0...
+            IF (AW(1).EQ.0.0) THEN
+               AW0=1.0
+            ELSE
+               AW0=AW(1)
+            ENDIF
+            IF (QW(1).EQ.0.0) THEN
+               QW0=1.0
+            ELSE
+               QW0=QW(1)
+            ENDIF
+            IF (SSW(1).EQ.0.0) THEN
+               SSW0=1.0
+            ELSE
+               SSW0=SSW(1)
+            ENDIF
+            IF (ASYW(1).EQ.0.0) THEN
+               ASYW0=1.0
+            ELSE
+               ASYW0=ASYW(1)
+            ENDIF
+
             IF ( IRH == NRH ) THEN
-               SCALEQ = QW(NRH) / QW(1)  !QW(1) is dry extinction eff.
-               REFF   = RW(NRH) 
-
+               REFF     = RW(NRH)
+               SCALEA   = AW(NRH)   / AW0  !QW(1) is dry extinction eff.
+               SCALEQ   = QW(NRH)   / QW0 
+               SCALESSA = SSW(NRH)  / SSW0
+               SCALEASY = ASYW(NRH) / ASYW0
             ELSE                
-
                ! Interpolate between different RH
                FRAC = (ABSHUM(JLOOP)-RH(IRH)) / (RH(IRH+1)-RH(IRH))
                IF ( FRAC > 1.0d0 ) FRAC = 1.0d0
-               
-               SCALEQ = (FRAC*QW(IRH+1) + (1.d0-FRAC)*QW(IRH)) / QW(1)
-               REFF   = FRAC*RW(IRH+1)  + (1.d0-FRAC)*RW(IRH)
-
+               REFF    = FRAC*RW(IRH+1)  + (1.d0-FRAC)*RW(IRH)
+               SCALEA  =(FRAC*AW(IRH+1)  + (1.d0-FRAC)*AW(IRH))/AW0
+               SCALEQ  =(FRAC*QW(IRH+1)  + (1.d0-FRAC)*QW(IRH))/QW0
+               SCALESSA=(FRAC*SSW(IRH+1) + (1.d0-FRAC)*SSW(IRH))/SSW0
+               SCALEASY=(FRAC*ASYW(IRH+1)+ (1.d0-FRAC)*ASYW(IRH))/ASYW0
             ENDIF
 
-            SCALER                 = REFF / RW(1)
-            SCALEOD(I,J,L,IRH)     = SCALEQ * SCALER * SCALER
-            SCALEVOL(I,J,L)        = SCALER**3
-            ERADIUS(JLOOP,NDUST+N) = 1.0D-4 * REFF
+            SCALER  = REFF / RW(1)
+            SCALEOD = SCALEQ * SCALER * SCALER
+
+#if defined( UCX )
+            IF (N.LE.NRHAER) THEN
+#endif
+            !calculate optics for hyrdophillic aerosol here
+            !However MDENS in LUT was in g/cm3 not kg/m3 so x1e3
+            ODAER(I,J,L,IWV,N) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0 
+     &                         * WAERSL(I,J,L,N) * QQAA(IWV,1,N) / 
+     &                         ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+
+            IF ((N.eq.2).or.(N.eq.3)) THEN
+               !now combine with hydrophilic OD as before
+               ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) +
+     &                             0.75d0 * BXHEIGHT(I,J,L) *
+     &                             DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  /
+     &                             ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+            ENDIF
+
+#if defined( UCX )
+            ELSE           
+            ! Get aerosol effective radius
+            CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
+
+            ! SDE 2014-02-04
+            ! The calculation used for the aerosols above
+            ! is essentially a roundabout way of deriving
+            ! the cross-sectional area. For log-normally
+            ! distributed aerosols, this is much easier,
+            ! and a direct query prevents the possibility
+            ! of dividing a small mass by a small calculated
+            ! radius and blowing up
+
+            ! Aerosol optical depth
+            ODAER(I,J,L,IWV,N) = BXHEIGHT(I,J,L) * XSASTRAT
+     &                           * QQAA(IWV,1,N)
+            ENDIF
+
+#endif
+
+#if defined( RRTMG )            
+            !SNA currently treated as one with optics but considered
+            !separately for RT, so we split them by mass here
+            IF (N.EQ.1) THEN
+             DO IR=1,3
+              RTODAER(I,J,L,IWV,N+IR-1)= ODAER(I,J,L,IWV,N)*
+     &                                      FRAC_SNA(I,J,L,IR)
+              RTSSAER(I,J,L,IWV,N+IR-1)   = SCALESSA*SSAA(IWV,1,N)
+              RTASYMAER(I,J,L,IWV,N+IR-1) = SCALEASY*ASYMAA(IWV,1,N)
+             ENDDO
+            ELSE
+             !RT arrays now offset from NAER by 2 (NRT=N+2 for N>1) 
+             !If strat aerosol switched on (UCX) then this will
+             !automatically be added after the standard aerosol
+             !(NRHAER+1,2) but before dust
+             RTODAER(I,J,L,IWV,NRT)     = ODAER(I,J,L,IWV,N)
+             RTSSAER(I,J,L,IWV,NRT)     = SCALESSA*SSAA(IWV,1,N)
+             RTASYMAER(I,J,L,IWV,NRT)   = SCALEASY*ASYMAA(IWV,1,N)
+            ENDIF
+#endif
 
             !==============================================================
             ! ND21 Diagnostic: 
@@ -1414,215 +1652,86 @@
             ! #16 Hygroscopic growth of Sea Salt (accum)   [unitless]
             ! #19 Hygroscopic growth of Sea Salt (coarse)  [unitless]
             !==============================================================
-            IF ( ND21 > 0 .and. L <= LD21 .and. WAVELENGTH > 0 ) THEN
-               AD21(I,J,L,4+3*N) = AD21(I,J,L,4+3*N) +SCALEOD(I,J,L,IRH)
-            ENDIF
+            !only need to do hyg once, not for each wavelength             
+            IF (IIWV.EQ.1) THEN
 
-         ENDDO
+               !save increase in AOD resulting from water uptake
+               IF( ND21 > 0 .AND. L <= LD21 .AND.ODSWITCH.EQ.1) THEN
+                  AD21(I,J,L,7+3*(N-1)) = AD21(I,J,L,7+3*(N-1)) +
+     &                                    SCALEOD
+               ENDIF
+            
+               !now calulate the surface areas
+               !==============================================================
+               !  Calculate Aerosol Surface Area
+               !
+               !  Units ==> AERSL    [ kg aerosol m^-3 air ]
+               !            MSDENS   [ kg aerosol m^-3 aerosol ]
+               !            ERADIUS  [ cm      ]
+               !            TAREA    [ cm^2 dry aerosol/cm^3 air ]
+               !
+               !  Note: first find volume of aerosol (cm^3 arsl/cm^3 air), then
+               !        multiply by 3/radius to convert to surface area in cm^2
+               !
+               !  Wet Volume = AERSL * SCALER**3 / MSDENS
+               !  Wet Surface Area = 3 * (Wet Volume) / ERADIUS 
+               !
+               !  Effective radius for surface area and optical depths 
+               !  are identical.
+               !==============================================================
+               !========================================================
+               ! NOTES:          
+               !    WAERSL   [ kg dry mass of wet aerosol m^-3 air ]
+               !    ERADIUS  [ cm wet aerosol radius ]
+               !    MSDENS   [ kg dry mass of aerosol m^-3 dry volume of aerosol ]
+               !    TAREA    [ cm^2 wet sfc area of aerosol cm^-3 air ]   
+               !    WTAREA   : same as TAREA, but excludes dry dust, BCPO, OCPO 
+               !               use same units as TAREA    (tmf, 4/18/07) 
+               !    WERADIUS : same as ERADIUS, but excludes dry dust, BCPO,OCPO
+               !               use same units as ERADIUS  (tmf, 4/18/07)
+               ! Wet dust WTAREA and WERADIUS are archived in dust_mod.f.
+               !========================================================
+            
+               !get scaling for R and VOL
+               SCALER                 = REFF / RW(1)
+               SCALEVOL               = SCALER**3
+               ERADIUS(JLOOP,NDUST+N) = 1.0D-4 * REFF
+
+               ! Store aerosol surface areas in TAREA, and be sure
+               ! to list them following the dust surface areas
+               TAREA(JLOOP,N+NDUST) = 3.D0                     * 
+     &                                WAERSL(I,J,L,N)          *  
+     &                                SCALEVOL                 / 
+     &                                ( ERADIUS(JLOOP,NDUST+N) * 
+     &                                  MSDENS(N) )  
+
+               WTAREA(JLOOP, N)   = TAREA(JLOOP, N+NDUST)
+               WERADIUS(JLOOP, N) = ERADIUS(JLOOP, N+NDUST)             
+
+               !include hydrophobic BC and OC
+               !stored separate to hydrophillic in RT variables
+               IF ((N.eq.2).or.(N.eq.3)) THEN
+             
+                  ! Dry surface area
+                  DRYAREA = 3.D0 * DAERSL(I,J,L,N-1) / ( RW(1) *
+     &                      MSDENS(N) )  
+
+                  ! Add surface area to TAREA array
+                  TAREA(JLOOP,N+NDUST) = TAREA(JLOOP,N+NDUST) + DRYAREA
+
+                  ! Define a new effective radius that accounts 
+                  ! for the hydrophobic aerosol 
+                  ERADIUS(JLOOP,NDUST+N) = ( ERADIUS(JLOOP,NDUST+N) *
+     &                                       TAREA(JLOOP,N+NDUST)   +
+     &                                       RW(1) * DRYAREA )      / 
+     &                                     ( TAREA(JLOOP,N+NDUST)   +
+     &                                       DRYAREA )
+               ENDIF !Hydrophobic aerosol surface area
+            ENDIF    !Surface area calcs
+         ENDDO !JLOOP
 !$OMP END PARALLEL DO
-      
-         !==============================================================
-         ! Convert concentration [kg/m3] to optical depth [unitless].
-         !
-         ! ODAER = ( 0.75 * BXHEIGHT * AERSL * QAA ) / 
-         !         ( MSDENS * RAA * 1e-6 )
-         ! (see Tegen and Lacis, JGR, 1996, 19237-19244, eq. 1)
-         !
-         ! Units ==> AERSL    [ kg/m3    ]
-         !           MSDENS   [ kg/m3    ]
-         !           RAA      [ um       ]  
-         !           BXHEIGHT [ m        ]
-         !           QAA      [ unitless ]
-         !           ODAER    [ unitless ]
-         !
-         ! NOTES: 
-         ! (1 ) Do the calculation at QAA(IND999,:) (i.e. 999 nm).          
-         ! (2 ) RAA is the 'effective radius', Hansen and Travis, 1974
-         ! (3 ) Report at the more relevant QAA(2,:) (i.e. 400 nm)   
-         !       Although SCALEOD would be slightly different at 400nm 
-         !       than at 1000nm as done here, FAST-J does currently 
-         !       allow one to provide different input optical depths at 
-         !       different wavelengths.  Therefore the reported value at
-         !       determined with QAA(2,:) is as used in FAST-J. 
-         ! (4 ) Now use explicit indices in parallel DO-loops, since
-         !       some compilers may not like array masks in parallel
-         !       regions (bmy, 2/28/02)
-         !==============================================================
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, R, IRHN ) 
-!$OMP+SCHEDULE( DYNAMIC )
-         DO R = 1, NRH
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! Bin for aerosol type and relative humidity
-            IRHN = ( (N-1) * NRH ) + R
-
-            IF ( WAVELENGTH > 0 ) THEN
-
-            ! Save aerosol optical depth for each combination 
-            ! of aerosol type and relative humidity into ODAER, 
-            ! which will get passed to the FAST-J routines
-            ODAER(I,J,L,IRHN) = SCALEOD(I,J,L,R) * 0.75d0
-     &                        * BXHEIGHT(I,J,L) 
-     &                        * WAERSL(I,J,L,N)  * QAA_AOD(IND(N)) / 
-     &                        ( MSDENS(N) * RAA_AOD(IND(N)) * 1.0D-6 )
-
-            ELSE
-
-            ! Save aerosol optical depth for each combination 
-            ! of aerosol type and relative humidity into ODAER, 
-            ! which will get passed to the FAST-J routines
-            ODAER(I,J,L,IRHN) = SCALEOD(I,J,L,R) * 0.75d0 
-     &                        * BXHEIGHT(I,J,L) 
-     &                        * WAERSL(I,J,L,N)  * QAA(IND999,IND(N)) / 
-     &                        ( MSDENS(N) * RAA(IND999,IND(N)) *
-     &                        1.0D-6 )
-
-            ENDIF
-
-         ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-         !==============================================================
-         !  Calculate Aerosol Surface Area
-         !
-         !  Units ==> AERSL    [ kg aerosol m^-3 air ]
-         !            MSDENS   [ kg aerosol m^-3 aerosol ]
-         !            ERADIUS  [ cm      ]
-         !            TAREA    [ cm^2 dry aerosol/cm^3 air ]
-         !
-         !  Note: first find volume of aerosol (cm^3 arsl/cm^3 air), then
-         !        multiply by 3/radius to convert to surface area in cm^2
-         !
-         !  Wet Volume = AERSL * SCALER**3 / MSDENS
-         !  Wet Surface Area = 3 * (Wet Volume) / ERADIUS 
-         !
-         !  Effective radius for surface area and optical depths 
-         !  are identical.
-         !==============================================================
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, JLOOP ) 
-!$OMP+SCHEDULE( DYNAMIC )
-         DO JLOOP = 1, NTLOOP
-
-            ! Get 3-D grid box indices
-            I = IXSAVE(JLOOP)
-            J = IYSAVE(JLOOP)
-            L = IZSAVE(JLOOP)
-
-            !========================================================
-            ! NOTES:          
-            !    WAERSL   [ kg dry mass of wet aerosol m^-3 air ]
-            !    ERADIUS  [ cm wet aerosol radius ]
-            !    MSDENS   [ kg dry mass of aerosol m^-3 dry volume of aerosol ]
-            !    TAREA    [ cm^2 wet sfc area of aerosol cm^-3 air ]   
-            !    WTAREA   : same as TAREA, but excludes dry dust, BCPO and OCPO 
-            !               use same units as TAREA    (tmf, 4/18/07) 
-            !    WERADIUS : same as ERADIUS, but excludes dry dust, BCPO and OCPO
-            !               use same units as ERADIUS  (tmf, 4/18/07)
-            ! Wet dust WTAREA and WERADIUS are archived in dust_mod.f.
-            !========================================================
-          
-            ! Store aerosol surface areas in TAREA, and be sure
-            ! to list them following the dust surface areas
-            TAREA(JLOOP,N+NDUST) = 3.D0                     * 
-     &                             WAERSL(I,J,L,N)          *  
-     &                             SCALEVOL(I,J,L)          / 
-     &                             ( ERADIUS(JLOOP,NDUST+N) * 
-     &                               MSDENS(N) )  
-
-            WTAREA(JLOOP, N)   = TAREA(JLOOP, N+NDUST)
-            WERADIUS(JLOOP, N) = ERADIUS(JLOOP, N+NDUST)
-
-
-         ENDDO
-!$OMP END PARALLEL DO
-
-      ENDDO  !Loop over NRHAER
-
-      !==============================================================
-      ! Account for hydrophobic aerosols (BC and OC), N=2 and N=3
-      !==============================================================
-      DO N = 2, 3
-
-         ! Index for combination of aerosol type and RH
-         IRHN = ( (N-1) * NRH ) + 1
-
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L ) 
-!$OMP+SCHEDULE( DYNAMIC )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            IF ( WAVELENGTH > 0 ) THEN
-
-            ! Aerosol optical depth
-            ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 0.75d0 *
-     &                          BXHEIGHT(I,J,L)  * 
-     &                          DAERSL(I,J,L,N-1) * QAA_AOD(IND(N))   / 
-     &                          ( MSDENS(N) * RAA_AOD(IND(N)) * 1.0D-6 )
-
-            ELSE
-
-            ! Aerosol optical depth
-            ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 0.75d0 *
-     &                          BXHEIGHT(I,J,L)  * 
-     &                          DAERSL(I,J,L,N-1) * QAA(IND999,IND(N)) / 
-     &                          ( MSDENS(N) * RAA(IND999,IND(N)) * 
-     &                          1.0D-6 )
-
-            ENDIF
-
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-         ! Effective radius
-         IF ( WAVELENGTH > 0 ) THEN
-            REFF = 1.0D-4 * RAA_AOD(IND(N))
-         ELSE
-            REFF = 1.0D-4 * RAA(IND999,IND(N))
-         ENDIF
-
-         ! Loop over grid boxes
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, JLOOP, DRYAREA ) 
-!$OMP+SCHEDULE( DYNAMIC )
-         DO JLOOP = 1, NTLOOP
-
-            ! Get 3-D grid box indices
-            I = IXSAVE(JLOOP)
-            J = IYSAVE(JLOOP)
-            L = IZSAVE(JLOOP)
-
-            ! Dry surface area
-            DRYAREA = 3.D0 * DAERSL(I,J,L,N-1) / ( REFF * MSDENS(N) )  
-
-            ! Add surface area to TAREA array
-            TAREA(JLOOP,N+NDUST) = TAREA(JLOOP,N+NDUST) + DRYAREA
-
-            ! Define a new effective radius that accounts 
-            ! for the hydrophobic aerosol 
-            ERADIUS(JLOOP,NDUST+N) = ( ERADIUS(JLOOP,NDUST+N) * 
-     &                                  TAREA(JLOOP,N+NDUST)  +
-     &                                  REFF * DRYAREA)       / 
-     &                               ( TAREA(JLOOP,N+NDUST) + DRYAREA )
-
-         ENDDO
-!$OMP END PARALLEL DO
-
-      ENDDO
+      ENDDO !Loop over NAER
+      ENDDO !Loop over NWVSELECT
 
 #if defined( UCX )
       !==============================================================
@@ -1632,7 +1741,6 @@
 
          ! Index for combination of aerosol type and RH
          N = NRHAER + ISTRAT
-         IRHN = (NRHAER*NRH) + ISTRAT
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
@@ -1646,28 +1754,6 @@
             ! Get aerosol effective radius
             CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
 
-            ! SDE 2014-02-04
-            ! The calculation used for the aerosols above
-            ! is essentially a roundabout way of deriving 
-            ! the cross-sectional area. For log-normally
-            ! distributed aerosols, this is much easier,
-            ! and a direct query prevents the possibility 
-            ! of dividing a small mass by a small calculated
-            ! radius and blowing up
-
-            IF ( WAVELENGTH > 0 ) THEN
-
-            ! Aerosol optical depth
-            ODAER(I,J,L,IRHN) = BXHEIGHT(I,J,L) * XSASTRAT 
-     &                              * QAA_AOD(IND(N))
-
-            ELSE
-
-            ! Aerosol optical depth
-            ODAER(I,J,L,IRHN) = BXHEIGHT(I,J,L) * XSASTRAT 
-     &                              * QAA(IND999,IND(N))
-
-            ENDIF
             ! Moved this from a separate loop for clarity
             IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
                JLOOP = JLOP(I,J,L)
@@ -1737,36 +1823,76 @@
       ! NOTE: The cloud optical depths are actually recorded at
       !       1000 nm, but vary little with wavelength.
       !==============================================================
-      IF ( ND21 > 0 .and. WAVELENGTH > 0 ) THEN
+
+      IF ( ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
 
          ! Loop over aerosol types (dust handled in dust_mod.f)
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, IRHN, J, JLOOP, L, N, R ) 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, JLOOP, L, N, W, LINTERP, IOUT, ISTRAT )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO N = 1, NRHAER
-
+         DO N = 1, NAER 
+            ISTRAT = N - NRHAER
             !------------------------------------
             ! Aerosol Optical Depths [unitless]
-            ! Scale of optical depths w/ RH 
+            ! Scale of optical depths w/ RH
             !------------------------------------
-            DO R = 1, NRH
-            DO L = 1, LD21
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+            DO W = 1, NWVSELECT 
+               !no interpolation required if these are the same
+               IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
+                  LINTERP=.FALSE.
+               ELSE
+                  LINTERP=.TRUE.
+               ENDIF
 
-               ! Index for type of aerosol and RH value
-               IRHN = ( (N-1) * NRH ) + R
+               ! Determine subscript for ND21
+               ! Store first wavelength in usual position and any
+               ! subsequent wavelengths at end
+               SELECT CASE(W)
+                  CASE(1)
+                     IOUT=6+3*(N-1)
+                  CASE(2)
+                     IOUT=6+3*NAER+NDUST+(N-1)
+                  CASE(3)
+                     IOUT=6+4*NAER+2*NDUST+(N-1)
+                  CASE DEFAULT
+                     IOUT=6+3*(N-1)
+               END SELECT
 
-               ! Optical Depths (scaled to jv_spec_aod.dat wavelength, clh)
-               ! Scaling based on wavelength no long necessary (skim)
-               AD21(I,J,L,3+3*N) = AD21(I,J,L,3+3*N) + ODAER(I,J,L,IRHN)
+               DO L = 1, LD21
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+
+                  ! Optical Depths
+                  IF ( .not. LINTERP ) THEN
+                     AD21(I,J,L,IOUT) = AD21(I,J,L,IOUT) +
+     &                                  ODAER(I,J,L,IWVSELECT(1,W),N)
+                  ELSE
+                     ! Interpolated using angstrom exponent between
+                     ! Closest available wavelengths
+                     ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                     !catch any zero values before interpolation
+                     IF ((ODAER(I,J,L,IWVSELECT(2,W),N).GT.0).AND.
+     &                   (ODAER(I,J,L,IWVSELECT(1,W),N).GT.0)) THEN
+                        AD21(I,J,L,IOUT) = AD21(I,J,L,IOUT) +
+     &                   ODAER(I,J,L,IWVSELECT(2,W),N)*ACOEF_WV(W)**
+     &                   (BCOEF_WV(W)*LOG(ODAER(I,J,L,IWVSELECT(1,W),N)/
+     &                   ODAER(I,J,L,IWVSELECT(2,W),N)))
+                     ENDIF
+                  ENDIF
+#if defined( UCX )
+                 ! Output number density for stratospheric aerosol
+                 IF (ISTRAT.GT.0) THEN
+                  AD21(I,J,L,IOUT+2) = AD21(I,J,L,IOUT+2) +
+     &                                 NDENS_AER(I,J,L,ISTRAT)*1.d-6
+                 ENDIF
+#endif
+               ENDDO
+               ENDDO
+               ENDDO
 
             ENDDO
-            ENDDO
-            ENDDO
-            ENDDO
-
+         
             !------------------------------------
             ! Aerosol Surface Areas [cm2/cm3]
             !------------------------------------
@@ -1777,66 +1903,24 @@
                J = IYSAVE(JLOOP)
                L = IZSAVE(JLOOP)
 
-               ! Add aerosol surface areas 
+               ! Add aerosol surface areas
                IF ( L <= LD21 ) THEN
-                  AD21(I,J,L,5+3*N) = AD21(I,J,L,5+3*N) + 
-     &                                TAREA(JLOOP,N+NDUST)
-               ENDIF 
+                  AD21(I,J,L,8+3*(N-1)) = AD21(I,J,L,8+3*(N-1)) +
+     &                                    TAREA(JLOOP,N+NDUST)
+               ENDIF
             ENDDO
 
          ENDDO
 !$OMP END PARALLEL DO
-
-#if defined( UCX )
-         ! Add stratospheric aerosols      
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, IRHN, J, JLOOP, L, N, R, ISTRAT ) 
-!$OMP+SCHEDULE( DYNAMIC )
-         DO ISTRAT = 1,NSTRATAER
-         
-            ! Index for combination of aerosol type and RH
-            N    = NRHAER + ISTRAT
-            IRHN = (NRHAER*NRH) + (N-NRHAER)
-
-            DO L = 1, LD21
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               AD21(I,J,L,25+(3*ISTRAT)) = AD21(I,J,L,25+(3*ISTRAT)) + 
-     &                                     ODAER(I,J,L,IRHN)
-               AD21(I,J,L,27+(3*ISTRAT)) = AD21(I,J,L,27+(3*ISTRAT)) + 
-     &                                     NDENS_AER(I,J,L,ISTRAT)*1.d-6
-            ENDDO
-            ENDDO
-            ENDDO
-         
-            DO JLOOP = 1, NTLOOP
-               ! Get 3-D grid box indices
-               I = IXSAVE(JLOOP)
-               J = IYSAVE(JLOOP)
-               L = IZSAVE(JLOOP)
-         
-               ! Add aerosol surface areas 
-               IF ( L <= LD21 ) THEN
-                  AD21(I,J,L,26+(3*ISTRAT)) = AD21(I,J,L,26+(3*ISTRAT))+
-     &                                        TAREA(JLOOP,N+NDUST)
-               ENDIF 
-            ENDDO
-         
-         ENDDO
-!$OMP END PARALLEL DO
-#endif
-
+      
       ENDIF 
-
 #if defined( UCX )
       ! Turn off radiative effects of stratospheric aerosols?
       IF (.not.(LSTRATOD)) THEN
-         ODAER(:,:,:,NRHAER*NRH+1) = 0.d0
-         ODAER(:,:,:,NRHAER*NRH+2) = 0.d0
+         ODAER(:,:,:,:,NRH+1) = 0.d0
+         ODAER(:,:,:,:,NRH+2) = 0.d0
       ENDIF
 #endif
-
       !=================================================================
       ! To turn off the radiative effects of different aerososl
       ! uncomment the following lines
@@ -1949,6 +2033,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_NH4_NIT' )
       SO4_NH4_NIT = 0d0
 
+      ALLOCATE( FRAC_SNA( IIPAR, JJPAR, LLPAR, 3 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRAC_SNA' )
+      FRAC_SNA = 0d0
+
       ALLOCATE( SOILDUST( IIPAR, JJPAR, LLPAR, NDUST ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOILDUST' )
       SOILDUST = 0d0
@@ -2007,6 +2095,7 @@
       IF ( ALLOCATED( SALA        ) ) DEALLOCATE( SALA        )
       IF ( ALLOCATED( SALC        ) ) DEALLOCATE( SALC        )
       IF ( ALLOCATED( SO4_NH4_NIT ) ) DEALLOCATE( SO4_NH4_NIT )
+      IF ( ALLOCATED( FRAC_SNA    ) ) DEALLOCATE( FRAC_SNA    )
       IF ( ALLOCATED( SOILDUST    ) ) DEALLOCATE( SOILDUST    )
       IF ( ALLOCATED( SLA         ) ) DEALLOCATE( SLA         )
       IF ( ALLOCATED( SPA         ) ) DEALLOCATE( SPA         )
