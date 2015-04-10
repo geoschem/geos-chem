@@ -156,7 +156,8 @@
 #  09 Jan 2015 - M. Sulprizio- Now properly link to the RRTMG directory
 #  13 Jan 2015 - R. Yantosca - Add fix for GEOS-Chem-Libraries library path
 #  08 Apr 2015 - R. Yantosca - Bug fix: set RRTMG=yes if it passes the regexp
-#  09 Apr 2015 - R. Yantosca - Export RRTMG variable to be used elsewhere
+#  10 Apr 2015 - R. Yantosca - Export RRTMG_NEEDED var to be used elsewhere
+#  10 Apr 2015 - R. Yantosca - Bug fix: -l rad should be -lrad in link var
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -722,7 +723,7 @@ ifeq ($(GTMM_NEEDED),1)
   LINK               :=-L$(LIB) -lHg
 else
 ifeq ($(RRTMG_NEEDED),1)
-  LINK               :=-L$(LIB) -l rad
+  LINK               :=-L$(LIB) -lrad
 else
   LINK               :=-L$(LIB)
 endif
