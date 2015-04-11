@@ -11,12 +11,15 @@
 ! the PARANOX ship plume model in GEOS-Chem.
 !\\
 !\\
-! The production and loss rates computed by PARANOx are representative of
-! the entire tropospheric column. They are released here into the lowermost
-! (e.g. surface) level, assuming that the surface emissions become vertically
-! mixed lateron. To calculate dry deposition rates (1/s) from the negative 
-! fluxes provided by PARANOx (kg/m2/s), the species mass of the entire 
-! tropospheric column is used.
+! This module calculates production rates of NO, NO2, HNO3, and O3, as well
+! as loss rates of O3 and HNO3. All fluxes are in kg species/m2/s. The 
+! O3 and HNO3 loss fluxes are not converted to a deposition velocity, but 
+! rather saved out as mass fluxes (kg/m2/s) into diagnostics 
+! 'PARANOX\_O3\_DEPOSITION\_FLUX' and 'PARANOX\_HNO3\_DEPOSITION\_FLUX', 
+! respectively. In order to use them, they must be imported explicitly via 
+! routine Diagn\_Get (from module hco\_diagn\_mod.F90). This approach avoids
+! problems with uncrealistically high loss rates for loss ambient air
+! concentrations of O3 or HNO3. 
 !\\
 !\\
 ! The PARANOx look-up-table can be provided in netCDF or ASCII (txt) format.
@@ -125,6 +128,8 @@ MODULE HCOX_ParaNOx_MOD
 !                              using whole troposheric column mass).
 !  23 Feb 2015 - C. Keller   - Historic j-values can now be provided through
 !                              HEMCO configuration file.
+!  10 Apr 2015 - C. Keller   - Now exchange deposition fluxes via diagnostics.
+!                              Keep units of kg/m2/s for loss rates.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -148,6 +153,10 @@ MODULE HCOX_ParaNOx_MOD
 
   ! For SunCosMid 5hrs ago
   REAL(sp), ALLOCATABLE, TARGET :: SC5(:,:,:)
+
+  ! Deposition fluxes in kg/m2/s
+  REAL(sp), ALLOCATABLE, TARGET :: DEPO3  (:,:)
+  REAL(sp), ALLOCATABLE, TARGET :: DEPHNO3(:,:)
 
   ! Number of values for each variable in the look-up table
   INTEGER, PARAMETER ::  nT=4, nJ=4, nO3=4, nNOx=5, nSEA=12, nWS=5
@@ -346,8 +355,8 @@ CONTAINS
     REAL(hp), TARGET         :: FLUXNO2 (HcoState%NX,HcoState%NY)
     REAL(hp), TARGET         :: FLUXHNO3(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET         :: FLUXO3  (HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET         :: DEPO3   (HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET         :: DEPHNO3 (HcoState%NX,HcoState%NY)
+!    REAL(hp), TARGET         :: DEPO3   (HcoState%NX,HcoState%NY)
+!    REAL(hp), TARGET         :: DEPHNO3 (HcoState%NX,HcoState%NY)
 
     ! Pointers
     REAL(hp), POINTER        :: Arr2D(:,:) => NULL()
@@ -476,8 +485,10 @@ CONTAINS
     FLUXNO2  = 0.0_hp
     FLUXHNO3 = 0.0_hp
     FLUXO3   = 0.0_hp
-    DEPO3    = 0.0_hp
-    DEPHNO3  = 0.0_hp
+
+    ! Deposition fluxes
+    DEPO3    = 0.0_sp
+    DEPHNO3  = 0.0_sp
 
     ! Loop over all grid boxes
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -513,10 +524,17 @@ CONTAINS
 
        ! Split the ship NOx emission into NO and NO2
        ! following the ambient ratio
-       FNO_NOx = (ExtState%NO%Arr%Val(I,J,1)/MW_NO) / &
-               ( (ExtState%NO%Arr%Val(I,J,1)/MW_NO) + &
-                 (ExtState%NO2%Arr%Val(I,J,1)/MW_NO2) )
- 
+       ! Now check for zero ambient air concentrations. In this
+       ! case, arbitrarily emit everything as NO (ckeller, 04/10/15).
+       IF ( ExtState%NO%Arr%Val (I,J,1) > 0.0_hp .OR. &
+            ExtState%NO2%Arr%Val(I,J,1) > 0.0_hp       ) THEN
+          FNO_NOx = (ExtState%NO%Arr%Val(I,J,1)/MW_NO) / &
+                  ( (ExtState%NO%Arr%Val(I,J,1)/MW_NO) + &
+                    (ExtState%NO2%Arr%Val(I,J,1)/MW_NO2) )
+       ELSE
+          FNO_NOx = 1.0_hp
+       ENDIF 
+
        !---------------------------
        ! Calculate NO emissions
        !---------------------------
@@ -558,40 +576,44 @@ CONTAINS
        ! The calculated deposition flux is in kg/m2/s, which has to be 
        ! converted to 1/s. The species mass is either the species mass in 
        ! the first grid box or of the entire PBL column, depending on the
-       ! HEMCO setting 'PBL_DRYDEP'. 
+       ! HEMCO setting 'PBL_DRYDEP'.
+       !
+       ! As of 4/10/15, exchange loss rates in original units of kg/m2/s.
+       ! (ckeller) 
        !--------------------------------------------------------------------
        IF ( (IDTHNO3 > 0) .AND. (SHIP_DNOx > 0.0_dp) ) THEN 
 
           ! Deposition flux in kg/m2/s.
-          iFlx = ShipNoEmis(I,J,1) * SHIP_DNOx * ( MW_HNO3 / MW_NO )
-
-          ! Get mass of species. This can either be the total PBL
-          ! column mass or the first layer only, depending on the 
-          ! HEMCO setting.
-          iMass = ExtState%HNO3%Arr%Val(I,J,1) & 
-                * ExtState%FRAC_OF_PBL%Arr%Val(I,J,1) 
-          IF ( HcoState%Options%PBL_DRYDEP ) THEN 
-             DO L = 1, HcoState%NZ
-                IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) == 0.0_hp ) EXIT
-                iMass = iMass + ( ExtState%HNO3%Arr%Val(I,J,L) *       &
-                                  ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) )
-             ENDDO
-          ENDIF
-
-          ! Calculate deposition velocity (1/s) from flux
-          ! Now avoid div-zero error (ckeller, 11/10/2014).
-          IF ( iMass > TINY(1.0_hp) ) THEN
-             TMP = ABS(iFlx) * HcoState%Grid%AREA_M2%Val(I,J)
-
-             ! Check if it's safe to do division
-             IF ( (EXPONENT(TMP)-EXPONENT(iMass)) < MAXEXPONENT(TMP) ) THEN
-                DEPHNO3(I,J) = TMP / iMass
-             ENDIF
-
-             ! Check deposition velocity 
-             CALL HCO_CheckDepv( am_I_Root, HcoState, DEPHNO3(I,J), RC )
-          ENDIF
-
+          DEPHNO3(I,J) = ShipNoEmis(I,J,1) * SHIP_DNOx * ( MW_HNO3 / MW_NO )
+!          iFlx = ShipNoEmis(I,J,1) * SHIP_DNOx * ( MW_HNO3 / MW_NO )
+!
+!          ! Get mass of species. This can either be the total PBL
+!          ! column mass or the first layer only, depending on the 
+!          ! HEMCO setting.
+!          iMass = ExtState%HNO3%Arr%Val(I,J,1) & 
+!                * ExtState%FRAC_OF_PBL%Arr%Val(I,J,1) 
+!          IF ( HcoState%Options%PBL_DRYDEP ) THEN 
+!             DO L = 1, HcoState%NZ
+!                IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) == 0.0_hp ) EXIT
+!                iMass = iMass + ( ExtState%HNO3%Arr%Val(I,J,L) *       &
+!                                  ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) )
+!             ENDDO
+!          ENDIF
+!
+!          ! Calculate deposition velocity (1/s) from flux
+!          ! Now avoid div-zero error (ckeller, 11/10/2014).
+!          IF ( iMass > TINY(1.0_hp) ) THEN
+!             TMP = ABS(iFlx) * HcoState%Grid%AREA_M2%Val(I,J)
+!
+!             ! Check if it's safe to do division
+!             IF ( (EXPONENT(TMP)-EXPONENT(iMass)) < MAXEXPONENT(TMP) ) THEN
+!                DEPHNO3(I,J) = TMP / iMass
+!             ENDIF
+!
+!             ! Check deposition velocity 
+!             CALL HCO_CheckDepv( am_I_Root, HcoState, DEPHNO3(I,J), RC )
+!          ENDIF
+ 
        ENDIF
 
        !---------------------------
@@ -613,34 +635,39 @@ CONTAINS
           ! For negative fluxes, calculate deposition velocity based
           ! on current surface O3 concentration and pass to deposition
           ! array. See comment on dry dep calculation of HNO3 above.
+          ! As of 4/10/15, exchange loss rates in original units of kg/m2/s.
+          ! (ckeller) 
           ELSE
 
-             ! Get mass of species. This can either be the total PBL
-             ! column mass or the first layer only, depending on the 
-             ! HEMCO setting.
-             iMass = ExtState%O3%Arr%Val(I,J,1) &
-                   * ExtState%FRAC_OF_PBL%Arr%Val(I,J,1)
-             IF ( HcoState%Options%PBL_DRYDEP ) THEN 
-                DO L = 1, HcoState%NZ
-                   IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) == 0.0_hp ) EXIT
-                   iMass = iMass + ( ExtState%O3%Arr%Val(I,J,L) *       &
-                                     ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) )
-                ENDDO
-             ENDIF
-
-             ! Calculate deposition velocity (1/s) from flux
-             ! Now avoid div-zero error (ckeller, 11/10/2014).
-             IF ( iMass > TINY(1.0_hp) ) THEN
-                TMP = ABS(iFlx) * HcoState%Grid%AREA_M2%Val(I,J)
-
-                ! Check if it's safe to do division
-                IF ( (EXPONENT(TMP)-EXPONENT(iMass)) < MAXEXPONENT(TMP) ) THEN
-                   DEPO3(I,J) = TMP / iMass 
-                ENDIF
-
-                ! Check deposition velocity 
-                CALL HCO_CheckDepv( am_I_Root, HcoState, DEPO3(I,J), RC )
-             ENDIF
+             ! Deposition flux in kg/m2/s.
+             DEPO3(I,J) = iFlx
+ 
+!             ! Get mass of species. This can either be the total PBL
+!             ! column mass or the first layer only, depending on the 
+!             ! HEMCO setting.
+!             iMass = ExtState%O3%Arr%Val(I,J,1) &
+!                   * ExtState%FRAC_OF_PBL%Arr%Val(I,J,1)
+!             IF ( HcoState%Options%PBL_DRYDEP ) THEN 
+!                DO L = 1, HcoState%NZ
+!                   IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) == 0.0_hp ) EXIT
+!                   iMass = iMass + ( ExtState%O3%Arr%Val(I,J,L) *       &
+!                                     ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) )
+!                ENDDO
+!             ENDIF
+!
+!             ! Calculate deposition velocity (1/s) from flux
+!             ! Now avoid div-zero error (ckeller, 11/10/2014).
+!             IF ( iMass > TINY(1.0_hp) ) THEN
+!                TMP = ABS(iFlx) * HcoState%Grid%AREA_M2%Val(I,J)
+!
+!                ! Check if it's safe to do division
+!                IF ( (EXPONENT(TMP)-EXPONENT(iMass)) < MAXEXPONENT(TMP) ) THEN
+!                   DEPO3(I,J) = TMP / iMass 
+!                ENDIF
+!
+!                ! Check deposition velocity 
+!                CALL HCO_CheckDepv( am_I_Root, HcoState, DEPO3(I,J), RC )
+!             ENDIF
 
           ENDIF
        ENDIF
@@ -736,19 +763,20 @@ CONTAINS
           Arr2D => NULL() 
        ENDIF
 
-       ! Add flux to emission array (1/s)
-       CALL HCO_DepvAdd( HcoState, DEPHNO3, IDTHNO3, RC)
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-
-       ! TODO: Add deposition diagnostics
-       Arr2D => DEPHNO3
-       CALL Diagn_Update( am_I_Root,               &
-                          cName   = 'DEPVEL_HNO3', &
-                          Array2D = Arr2D,         &
-                          COL     = -1,            &
-                          RC      = RC              ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-       Arr2D => NULL()
+       ! As of 4/10/15, exchange loss rates in original units of
+       ! kg/m2/s (ckeller) 
+!       ! Add flux to emission array (1/s)
+!       CALL HCO_DepvAdd( HcoState, DEPHNO3, IDTHNO3, RC)
+!       IF ( RC /= HCO_SUCCESS ) RETURN 
+!
+!       Arr2D => DEPHNO3
+!       CALL Diagn_Update( am_I_Root,               &
+!                          cName   = 'DEPVEL_HNO3', &
+!                          Array2D = Arr2D,         &
+!                          COL     = -1,            &
+!                          RC      = RC              ) 
+!       IF ( RC /= HCO_SUCCESS ) RETURN 
+!       Arr2D => NULL()
     ENDIF
 
     ! O3 
@@ -771,16 +799,18 @@ CONTAINS
           Arr2D => NULL() 
        ENDIF
 
-       ! Add flux to emission array (1/s)
-       CALL HCO_DepvAdd( HcoState, DEPO3, IDTO3, RC)
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-
-       ! Eventually add to diagnostics
-       CALL Diagn_Update( am_I_Root,               &
-                          cName   = 'DEPVEL_O3',   &
-                          Array2D = Arr2D,         &
-                          COL     = -1,            &
-                          RC      = RC              ) 
+       ! As of 4/10/15, exchange loss rates in original units of
+       ! kg/m2/s (ckeller) 
+!       ! Add flux to emission array (1/s)
+!       CALL HCO_DepvAdd( HcoState, DEPO3, IDTO3, RC)
+!       IF ( RC /= HCO_SUCCESS ) RETURN 
+!
+!       ! Eventually add to diagnostics
+!       CALL Diagn_Update( am_I_Root,               &
+!                          cName   = 'DEPVEL_O3',   &
+!                          Array2D = Arr2D,         &
+!                          COL     = -1,            &
+!                          RC      = RC              ) 
     ENDIF
 
 
@@ -1145,6 +1175,14 @@ CONTAINS
       CALL HCO_ERROR ( 'DNOx_LUT18', RC ); RETURN
    ENDIF
    DNOx_LUT18 = 0.0_sp      
+
+   ALLOCATE(DEPO3  (HcoState%NX,HcoState%NY),        &
+            DEPHNO3(HcoState%NX,HcoState%NY), STAT=AS )
+   IF ( AS /= 0 ) THEN 
+      CALL HCO_ERROR ( 'Deposition arrays', RC ); RETURN
+   ENDIF
+   DEPO3   = 0.0_sp
+   DEPHNO3 = 0.0_sp
    
 !   ! O3 loss and HNO3 deposition
 !   ALLOCATE( SHIPO3LOSS( IIPAR, JJPAR ), STAT=AS )
@@ -1242,6 +1280,28 @@ CONTAINS
                                SC5(:,:,I+1), '1',   RC )
    ENDDO
 
+   !------------------------------------------------------------------------ 
+   ! Define PARANOX diagnostics for the O3 and HNO3 deposition fluxes (in
+   ! kg/m2/s). 
+   !------------------------------------------------------------------------
+   CALL Diagn_Create ( am_I_Root,                                 &
+                       cName    = 'PARANOX_O3_DEPOSITION_FLUX',   &
+                       Trgt2D   = DEPO3,                          &
+                       SpaceDim = 2,                              &
+                       OutUnit  = 'kg/m2/s',                      &
+                       COL      = HcoDiagnIDManual,               &
+                       RC       = RC                               )
+   IF ( RC /= HCO_SUCCESS ) RETURN
+
+   CALL Diagn_Create ( am_I_Root,                                 &
+                       cName    = 'PARANOX_HNO3_DEPOSITION_FLUX', &
+                       Trgt2D   = DEPHNO3,                        &
+                       SpaceDim = 2,                              &
+                       OutUnit  = 'kg/m2/s',                      &
+                       COL      = HcoDiagnIDManual,               &
+                       RC       = RC                               )
+   IF ( RC /= HCO_SUCCESS ) RETURN
+ 
    !------------------------------------------------------------------------ 
    ! Set HEMCO extension variables
    !------------------------------------------------------------------------ 
@@ -1361,6 +1421,9 @@ CONTAINS
    IF ( ALLOCATED( DNOx_LUT10    ) ) DEALLOCATE( DNOx_LUT10    )
    IF ( ALLOCATED( DNOx_LUT14    ) ) DEALLOCATE( DNOx_LUT14    )
    IF ( ALLOCATED( DNOx_LUT18    ) ) DEALLOCATE( DNOx_LUT18    )
+
+   IF ( ALLOCATED( DEPO3         ) ) DEALLOCATE( DEPO3         )
+   IF ( ALLOCATED( DEPHNO3       ) ) DEALLOCATE( DEPHNO3       )
 
    ! Return w/ success
    RC = HCO_SUCCESS

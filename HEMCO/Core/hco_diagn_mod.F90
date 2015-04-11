@@ -557,23 +557,17 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )           :: am_I_Root     ! Root CPU?
-    CHARACTER(LEN=*), INTENT(IN   )           :: cName         ! Diagnostics 
-                                                               !  name
-    INTEGER,          INTENT(IN   )           :: ExtNr         ! Extension #    
-    INTEGER,          INTENT(IN   )           :: Cat           ! Category 
-    INTEGER,          INTENT(IN   )           :: Hier          ! Hierarchy 
-    INTEGER,          INTENT(IN   )           :: HcoID         ! HEMCO species 
-                                                               !  ID # 
-    INTEGER,          INTENT(IN   )           :: SpaceDim      ! Spatial 
-                                                               !  dimension 
+    CHARACTER(LEN=*), INTENT(IN   )           :: cName         ! Diagnostics name 
+    INTEGER,          INTENT(IN   )           :: SpaceDim      ! Spatial dimension 
     CHARACTER(LEN=*), INTENT(IN   )           :: OutUnit       ! Output units
+    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr         ! Extension #    
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat           ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier          ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID         ! HEMCO species ID 
     TYPE(HCO_State),  POINTER,       OPTIONAL :: HcoState      ! HEMCO state obj.
-    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: OutOper       ! Output 
-                                                               !  operation 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: LevIdx        ! Level index 
-                                                               !  to use
-    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill      ! 1=do autofill
-                                                               ! 0=don't 
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: OutOper       ! Output operation 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: LevIdx        ! Level index to use 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill      ! 1=fill auto.;0=don't
     REAL(sp),         INTENT(IN   ), OPTIONAL :: Trgt2D(:,:)   ! 2D target data
     REAL(sp),         INTENT(IN   ), OPTIONAL :: Trgt3D(:,:,:) ! 3D target data
     REAL(hp),         INTENT(IN   ), OPTIONAL :: MW_g          ! species MW (g/mol) 
@@ -663,11 +657,32 @@ CONTAINS
     !----------------------------------------------------------------------
     ! Pass input variables
     !----------------------------------------------------------------------
-    ThisDiagn%cName    = cName
-    ThisDiagn%ExtNr    = ExtNr
-    ThisDiagn%Cat      = Cat
-    ThisDiagn%Hier     = Hier
-    ThisDiagn%HcoID    = HcoID
+    ThisDiagn%cName = cName
+
+    IF ( PRESENT(ExtNr) ) THEN
+       ThisDiagn%ExtNr = ExtNr
+    ELSE
+       ThisDiagn%ExtNr = -1 
+    ENDIF
+
+    IF ( PRESENT(Cat  ) ) THEN
+       ThisDiagn%Cat = Cat
+    ELSE
+       ThisDiagn%Cat = -1 
+    ENDIF
+
+    IF ( PRESENT(Hier ) ) THEN
+       ThisDiagn%Hier = Hier
+    ELSE
+       ThisDiagn%Hier = -1 
+    ENDIF
+
+    IF ( PRESENT(HcoID) ) THEN
+       ThisDiagn%HcoID = HcoID
+    ELSE
+       ThisDiagn%HcoID = -1 
+    ENDIF
+
     ThisDiagn%SpaceDim = SpaceDim
     ThisDiagn%OutUnit  = TRIM(OutUnit)
     IF ( PRESENT(LevIdx)   ) ThisDiagn%LevIdx   = LevIdx
@@ -742,8 +757,14 @@ CONTAINS
     ENDIF
 
     ! Unit conversion factors don't need be defined for pointers
-    IF ( .NOT. ThisDiagn%DtaIsPtr ) THEN
- 
+    IF ( ThisDiagn%DtaIsPtr ) THEN
+
+       ! Pointer diagnostics are always instantaneous
+       ThisDiagn%AvgName = 'Instantaneous' 
+
+    ! Unit conversion factors for containers that are not pointers 
+    ELSE
+
        ! Enforce specified output operator 
        IF ( PRESENT(OutOper) ) THEN
 
@@ -2002,7 +2023,7 @@ CONTAINS
     DgnCont%Scalar   =  0.0_sp
     DgnCont%Total    =  0.0_sp
     DgnCont%LevIdx   = -1
-    DgnCont%AutoFill =  1
+    DgnCont%AutoFill =  0
 
     ! Default values for unit conversion factors 
     DgnCont%MassScal  = 1.0_hp
@@ -2534,10 +2555,10 @@ CONTAINS
     ! Check if dimensions match. Also, containers with pointers must not
     ! be set to AutoFill
     IF ( DgnCont%AutoFill == 1 ) THEN
-       MSG = 'Cannot link AutoFill container - please set AutoFill flag to 0: ' &
+       MSG = 'Target diagnostics has AutoFill flag of 1 - reset to 0: ' & 
            // TRIM(DgnCont%cName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
+       CALL HCO_WARNING( MSG, RC, THISLOC=LOC, WARNLEV=2 )
+       DgnCont%AutoFill = 0
     ENDIF
     IF ( DgnCont%SpaceDim /= 2 ) THEN
        MSG = 'Diagnostics is not 2D: ' // TRIM(DgnCont%cName)
@@ -2625,6 +2646,12 @@ CONTAINS
        MSG = 'Cannot link AutoFill container: ' // TRIM(DgnCont%cName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
        RETURN
+    ENDIF
+    IF ( DgnCont%AutoFill == 1 ) THEN
+       MSG = 'Target diagnostics has autofill flag of 1 - reset to 0: ' & 
+           // TRIM(DgnCont%cName)
+       CALL HCO_WARNING( MSG, RC, THISLOC=LOC, WARNLEV=2 )
+       DgnCont%AutoFill = 0
     ENDIF
     IF ( DgnCont%SpaceDim /= 3 ) THEN
        MSG = 'Diagnostics is not 3D: ' // TRIM(DgnCont%cName)

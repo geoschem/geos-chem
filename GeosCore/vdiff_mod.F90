@@ -1828,7 +1828,7 @@ contains
     USE MERCURY_MOD,        ONLY : HG_EMIS
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
     ! HEMCO update
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID, GetHcoVal
+    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
 #if defined( DEVEL )
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
@@ -1893,6 +1893,8 @@ contains
 !  25 Jun 2014 - R. Yantosca - Now get N_MEMBERS from input_mod.F
 !  16 Oct 2014 - C. Keller   - Bug fix: now add deposition rates instead of
 !                              overwriting them.
+!  10 Apr 2015 - C. Keller   - Now exchange PARANOX loss fluxes via HEMCO 
+!                              diagnostics.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1962,7 +1964,7 @@ contains
     ! HEMCO update
     LOGICAL            :: FND
     REAL(fp)           :: TMPFLX, EMIS, DEP
-    INTEGER            :: TOPMIX
+    INTEGER            :: HCRC,   TOPMIX
 
     ! For HEMCO diagnostics
 #if defined( DEVEL )
@@ -1971,6 +1973,14 @@ contains
     REAL(fp)           :: Total
     INTEGER            :: cID, HCRC
 #endif
+
+    ! PARANOX loss fluxes (kg/m2/s), imported from 
+    ! HEMCO PARANOX extension module (ckeller, 4/15/2015)
+    REAL(f4), POINTER, SAVE :: PNOXLOSS_O3  (:,:) => NULL()
+    REAL(f4), POINTER, SAVE :: PNOXLOSS_HNO3(:,:) => NULL()
+
+    ! First call?
+    LOGICAL,           SAVE :: FIRST = .TRUE.
 
     !=================================================================
     ! vdiffdr begins here!
@@ -2019,6 +2029,20 @@ contains
     dtime = GET_TS_CONV()*60e+0_fp ! min -> second
     
     shflx = State_Met%EFLUX / latvap ! latent heat -> water vapor flux
+
+    ! On first call, get pointers to the PARANOX loss fluxes. These are
+    ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and 
+    ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers 
+    ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
+    ! respective diagnostics. The pointers will remain unassociated if
+    ! the diagnostics do not exist (ckeller, 4/10/2015). 
+    IF ( FIRST ) THEN
+       CALL GetHcoDiagn( am_I_Root, 'PARANOX_O3_DEPOSITION_FLUX'  , &
+                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_O3         ) 
+       CALL GetHcoDiagn( am_I_Root, 'PARANOX_HNO3_DEPOSITION_FLUX', &
+                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_HNO3       ) 
+       FIRST = .FALSE.
+    ENDIF
 
 ! (Turn off parallelization for now, skim 6/20/12)
     
@@ -2442,6 +2466,19 @@ contains
        ! alternate method to convert from s-1 to kg/m2/s
        dflx(I,J,:) = dflx(I,J,:) * State_Met%AD(I,J,1) / &
                      GET_AREA_M2( I, J, 1 ) 
+
+       ! Now that dflx is in kg/m2/s, add PARANOX loss to this term. The PARANOX
+       ! loss term is already in kg/m2/s. PARANOX loss (deposition) is calculated
+       ! for O3 and HNO3 by the PARANOX module, and data is exchanged via the 
+       ! HEMCO diagnostics. The data pointers PNOXLOSS_O3 and PNOXLOSS_HNO3 have
+       ! been linked to these diagnostics at the beginning of this routine
+       ! (ckeller, 4/10/15).
+       IF ( ASSOCIATED( PNOXLOSS_O3 ) .AND. IDTO3 > 0 ) THEN
+          dflx(I,J,IDTO3) = dflx(I,J,IDTO3) + PNOXLOSS_O3(I,J)
+       ENDIF
+       IF ( ASSOCIATED( PNOXLOSS_HNO3 ) .AND. IDTHNO3 > 0 ) THEN
+          dflx(I,J,IDTHNO3) = dflx(I,J,IDTHNO3) + PNOXLOSS_HNO3(I,J)
+       ENDIF
 
        ! surface flux = emissions - dry deposition
        sflx(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
