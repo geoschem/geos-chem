@@ -175,6 +175,8 @@
 !                              in the same manner that we do in fast_jx_mod.F.
 !                              Also moved and fixed calculation of O3_CTM.
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
+!  13 Apr 2015 - R. Yantosca - Fixed inefficient loop ordering (should be J,I)
+!  13 Apr 2015 - R. Yantosca - Add error check for JLOOP > 0 in a few places
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -533,8 +535,15 @@
 !OMP+PRIVATE( I, J, L, IJLOOP, JLOOP, AIR_TMP )
 !OMP+PRIVATE( YLAT, O3COL, O3_CTM, T_CTM, P_CTM )
 !OMP+SCHEDULE( DYNAMIC )
-      DO I = 1, IIPAR
+!-----------------------------------------------------------------------------
+! Prior to 4/13/15:
+! Optimal loop ordering should be J,I , not I,J. (bmy, 4/13/15)
+!      DO I = 1, IIPAR
+!      DO J = 1, JJPAR
+!-----------------------------------------------------------------------------
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
        ! 1-D INDEX
        IJLOOP         = (J-1)*IIPAR+I
        ALBVIS(IJLOOP)   = State_Met%ALBD(I,J)
@@ -568,7 +577,11 @@
        LCHEM           = GET_CHEMGRID_LEVEL(I,J,State_Met)
        DO L = 1, LCHEM
           JLOOP        = JLOP(I,J,L)
-          O3_CTM(L)    = CSPEC(JLOOP,IDO3)
+
+          ! Make sure JLOOP > 0 to avoid out-of-bounds errors  (bmy, 4/13/15)
+          IF ( JLOOP > 0 ) THEN
+             O3_CTM(L) = CSPEC(JLOOP,IDO3)
+          ENDIF
        ENDDO
        
       DO L = 1, LLPAR
