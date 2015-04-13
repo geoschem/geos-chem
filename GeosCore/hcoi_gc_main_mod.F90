@@ -2087,7 +2087,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetHcoDiagn ( am_I_Root, DiagnName, Force, RC, Ptr2D, Ptr3D, COL )
+  SUBROUTINE GetHcoDiagn ( am_I_Root, DiagnName, StopIfNotFound, RC, &
+                           Ptr2D,     Ptr3D,     COL                  )
 !
 ! !USES:
 !
@@ -2096,14 +2097,15 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)           :: am_I_Root  ! Are we on the root CPU?
-    CHARACTER(LEN=*), INTENT(IN)           :: DiagnName  ! Name of diagnostics
-    LOGICAL,          INTENT(IN)           :: Force      ! Force error if diagn. not found?
-    INTEGER,          INTENT(IN), OPTIONAL :: COL        ! Collection Nr. 
+    LOGICAL,          INTENT(IN)           :: am_I_Root      ! Are we on the root CPU?
+    CHARACTER(LEN=*), INTENT(IN)           :: DiagnName      ! Name of diagnostics
+    LOGICAL,          INTENT(IN)           :: StopIfNotFound ! Stop if diagnostics 
+                                                             ! does not exist?
+    INTEGER,          INTENT(IN), OPTIONAL :: COL            ! Collection Nr. 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)        :: RC         ! Error return code
+    INTEGER,          INTENT(INOUT)        :: RC             ! Error return code
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2146,7 +2148,7 @@ CONTAINS
        MSG = 'Error in getting diagnostics: ' // TRIM(DiagnName)
        CALL ERROR_STOP ( MSG, LOC )
     ENDIF
-    IF ( (FLAG /= HCO_SUCCESS) .AND. Force ) THEN
+    IF ( (FLAG /= HCO_SUCCESS) .AND. StopIfNotFound ) THEN
        MSG = 'Cannot get diagnostics for this time stamp: ' // TRIM(DiagnName)
        CALL ERROR_STOP ( MSG, LOC )
     ENDIF

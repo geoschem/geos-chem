@@ -1971,7 +1971,7 @@ contains
     REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
     REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
     REAL(fp)           :: Total
-    INTEGER            :: cID, HCRC
+    INTEGER            :: cID
 #endif
 
     ! PARANOX loss fluxes (kg/m2/s), imported from 

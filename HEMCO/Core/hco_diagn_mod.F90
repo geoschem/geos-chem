@@ -123,6 +123,7 @@ MODULE HCO_Diagn_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
+  PUBLIC  :: Diagn_DefineFromConfig
   PRIVATE :: DiagnList_Cleanup 
   PRIVATE :: DiagnCont_Init
   PRIVATE :: DiagnCont_PrepareOutput
@@ -363,8 +364,10 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  03 Apr 2015 - C. Keller   - Initial version 
+!  10 Apr 2015 - C. Keller   - Now create diagnostics based on entries 
+!                              in the HEMCO diagnostics definition file.
 !EOP
-!------------------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
@@ -470,11 +473,180 @@ CONTAINS
     ! Pass this collection ID to fixed variable for easy further 
     ! reference to this collection
     HcoDiagnIDManual  = CollectionID
-    
+
+    ! ------------------------------------------------------------------
+    ! Now that collections are defined, add diagnostics specified in the
+    ! HEMCO diagnostics definition file. The latter can be specified in 
+    ! the HEMCO configuration file. These diagnostics are all written
+    ! into the default HEMCO collection.
+    ! ------------------------------------------------------------------
+    CALL Diagn_DefineFromConfig( am_I_Root, HcoState, RC ) 
+ 
     ! Return w/ success
     RC = HCO_SUCCESS
     
   END SUBROUTINE HcoDiagn_Init
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Diagn_DefineFromConfig
+!
+! !DESCRIPTION: Subroutine Diagn\_DefineFromConfig defines HEMCO 
+! diagnostic containers as specified in the diagnostics input file.
+!\\
+!\\
+! This routine reads information from a HEMCO diagnostics definition 
+! file (specified in the main HEMCO configuration file) and creates
+! HEMCO diagnostic containers for each entry of the diagnostics
+! definition file. Each line of the diagnostics definition file 
+! represents a diagnostics container and is expected to consist of
+! 7 entries: container name (character), HEMCO species (character), 
+! extension number (integer), emission category (integer), emission 
+! hierarchy (integer), space dimension (2 or 3), output unit 
+! (character).
+!\\
+!\\
+! The HEMCO setting 'DiagnFile' can be used to specify a diagnostics
+! file. This setting should be placed in the settings section of the
+! HEMCO configuration file.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diagn_DefineFromConfig( am_I_Root, HcoState, RC ) 
+!
+! !USES:
+!
+    USE HCO_CharTools_Mod
+    USE CHARPAK_Mod,       ONLY : STRREPL, STRSPLIT
+    USE inquireMod,        ONLY : findFreeLUN
+    USE HCO_STATE_MOD,     ONLY : HCO_GetHcoID
+    USE HCO_STATE_MOD,     ONLY : HCO_State
+    USE HCO_ExtList_Mod,   ONLY : CoreNr, GetExtOpt
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object
+    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+!
+! !REVISION HISTORY: 
+!  10 Apr 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER             :: N, LUN, IOS
+    LOGICAL             :: FOUND,  EXISTS, EOF
+    CHARACTER(LEN=31)   :: cName,  OutUnit
+    INTEGER             :: HcoID,  ExtNr, Cat, Hier, SpaceDim
+    CHARACTER(LEN=255)  :: LINE,   DiagnFile
+    CHARACTER(LEN=255)  :: LOC,    MSG
+    CHARACTER(LEN=255)  :: SUBSTR(255) 
+
+    !=================================================================
+    ! Diagn_DefineFromConfig begins here!
+    !=================================================================
+    
+    ! Init 
+    LOC = 'Diagn_DefineFromConfig (hco_diagn_mod.F90)'
+
+    ! Try to get name of diagnostics file
+    CALL GetExtOpt ( CoreNr, 'DiagnFile', OptValChar=DiagnFile, &
+                     FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Read file and define diagnostics for each entry
+    IF ( FOUND ) THEN
+
+       ! Find free LUN
+       LUN = findFreeLUN()
+
+       INQUIRE( FILE=TRIM(DiagnFile), EXIST=EXISTS )
+       IF ( .NOT. EXISTS ) THEN
+          MSG = 'Cannot read file - it does not exist: ' // TRIM(DiagnFile)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! Open configuration file
+       OPEN ( LUN, FILE=TRIM( DiagnFile ), STATUS='OLD', IOSTAT=IOS )
+       IF ( IOS /= 0 ) THEN
+          MSG = 'Error opening ' // TRIM(DiagnFile)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF 
+
+       ! Do for every line
+       DO
+
+          ! Get next line
+          CALL GetNextLine( am_I_Root, LUN, LINE, EOF, RC ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! Leave here if end of file
+          IF ( EOF ) EXIT
+
+          ! Parse diagnostics information from line
+          CALL STRREPL( LINE, HCO_TAB(), HCO_SPC() )
+
+          ! Split into substrings
+          CALL STRSPLIT( LINE, HCO_SPC(), SUBSTR, N ) 
+
+          ! There must be at least 7 entries
+          IF ( N < 7 ) THEN 
+             MSG = 'Diagnostics entries must have 7 elements: '// TRIM(LINE)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+
+          ! Extract diagnostics properties
+          cName = TRIM(SUBSTR(1))
+
+          ! Get HEMCO species ID. Skip entry if HEMCO ID not
+          ! defined for this species
+          HcoID = HCO_GetHcoID( SUBSTR(2), HcoState ) 
+          IF ( HcoID <= 0 ) CYCLE
+
+          ! Extension number, category, hierarchy, space dimension
+          READ( SUBSTR(3), * ) ExtNr
+          READ( SUBSTR(4), * ) Cat 
+          READ( SUBSTR(5), * ) Hier
+          READ( SUBSTR(6), * ) SpaceDim
+
+          ! Read output unit
+          OutUnit = TRIM(SUBSTR(7))
+
+          ! Define diagnostics 
+          CALL Diagn_Create( am_I_Root,                     &
+                             HcoState  = HcoState,          &
+                             cName     = cName,             &
+                             HcoID     = HcoID,             &  
+                             ExtNr     = ExtNr,             &  
+                             Cat       = Cat,               &  
+                             Hier      = Hier,              &  
+                             SpaceDim  = SpaceDim,          &  
+                             OutUnit   = OutUnit,           &  
+                             AutoFill  = 1,                 &  
+                             COL       = HcoDiagnIDDefault, &
+                             RC        = RC                  )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ENDDO
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE Diagn_DefineFromConfig
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -558,8 +730,8 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )           :: am_I_Root     ! Root CPU?
     CHARACTER(LEN=*), INTENT(IN   )           :: cName         ! Diagnostics name 
-    INTEGER,          INTENT(IN   )           :: SpaceDim      ! Spatial dimension 
     CHARACTER(LEN=*), INTENT(IN   )           :: OutUnit       ! Output units
+    INTEGER,          INTENT(IN   ), OPTIONAL :: SpaceDim      ! Spatial dimension 
     INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr         ! Extension #    
     INTEGER,          INTENT(IN   ), OPTIONAL :: Cat           ! Category 
     INTEGER,          INTENT(IN   ), OPTIONAL :: Hier          ! Hierarchy 
@@ -657,36 +829,20 @@ CONTAINS
     !----------------------------------------------------------------------
     ! Pass input variables
     !----------------------------------------------------------------------
-    ThisDiagn%cName = cName
+    ThisDiagn%cName   = cName
+    ThisDiagn%OutUnit = TRIM(OutUnit)
 
-    IF ( PRESENT(ExtNr) ) THEN
-       ThisDiagn%ExtNr = ExtNr
-    ELSE
-       ThisDiagn%ExtNr = -1 
-    ENDIF
-
-    IF ( PRESENT(Cat  ) ) THEN
-       ThisDiagn%Cat = Cat
-    ELSE
-       ThisDiagn%Cat = -1 
-    ENDIF
-
-    IF ( PRESENT(Hier ) ) THEN
-       ThisDiagn%Hier = Hier
-    ELSE
-       ThisDiagn%Hier = -1 
-    ENDIF
-
-    IF ( PRESENT(HcoID) ) THEN
-       ThisDiagn%HcoID = HcoID
-    ELSE
-       ThisDiagn%HcoID = -1 
-    ENDIF
-
-    ThisDiagn%SpaceDim = SpaceDim
-    ThisDiagn%OutUnit  = TRIM(OutUnit)
+    ! Optional arguments. If not provided, use default values set in
+    ! DiagnCont_Init
+    IF ( PRESENT(ExtNr)    ) ThisDiagn%ExtNr    = ExtNr
+    IF ( PRESENT(Cat  )    ) ThisDiagn%Cat      = Cat
+    IF ( PRESENT(Hier )    ) ThisDiagn%Hier     = Hier
+    IF ( PRESENT(HcoID)    ) ThisDiagn%HcoID    = HcoID
+    IF ( PRESENT(SpaceDim) ) ThisDiagn%SpaceDim = SpaceDim
     IF ( PRESENT(LevIdx)   ) ThisDiagn%LevIdx   = LevIdx
     IF ( PRESENT(AutoFill) ) ThisDiagn%AutoFill = AutoFill 
+
+    ! long_name attribute. Defaults to container name
     IF ( PRESENT(long_name) ) THEN
        ThisDiagn%long_name = TRIM(long_name)
     ELSE
@@ -1521,30 +1677,33 @@ CONTAINS
 !
   SUBROUTINE Diagn_Get( am_I_Root, EndOfIntvOnly, DgnCont, &
                         FLAG,      RC,            cName,   &
-                        cID,       AutoFill,      COL       )
+                        cID,       AutoFill,      COL,     &
+                        SkipZeroCount                       )
 !
 ! !INPUT PARAMETERS::
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
-    LOGICAL,          INTENT(IN   )           :: EndOfIntvOnly  ! End of 
-                                                                ! interval 
-                                                                ! only? 
-    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! container name
-    INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! container ID
-    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 0=no; 1=yes; 
-                                                                ! -1=either
-    INTEGER,          INTENT(IN   ), OPTIONAL :: COL            ! Collection Nr. 
+    LOGICAL,          INTENT(IN   )           :: am_I_Root       ! Root CPU?
+    LOGICAL,          INTENT(IN   )           :: EndOfIntvOnly   ! End of 
+                                                                 ! interval 
+                                                                 ! only? 
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName           ! container name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID             ! container ID
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill        ! 0=no; 1=yes; 
+                                                                 ! -1=either
+    INTEGER,          INTENT(IN   ), OPTIONAL :: COL             ! Collection Nr. 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: SkipZeroCount   ! Skip if counter
+                                                                 ! is zero 
 !
 ! !OUTPUT PARAMETERS:
 !
 
-    TYPE(DiagnCont),  POINTER                 :: DgnCont        ! Return 
-                                                                ! container
+    TYPE(DiagnCont),  POINTER                 :: DgnCont         ! Return 
+                                                                 ! container
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)           :: FLAG           ! Return flag
-    INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
+    INTEGER,          INTENT(INOUT)           :: FLAG            ! Return flag
+    INTEGER,          INTENT(INOUT)           :: RC              ! Return code 
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
@@ -1558,6 +1717,7 @@ CONTAINS
     INTEGER                        :: MinResetFlag
     INTEGER                        :: PS, AF
     LOGICAL                        :: FOUND, CF
+    LOGICAL                        :: SKIPZERO 
 
     !======================================================================
     ! Diagn_Get begins here!
@@ -1575,6 +1735,10 @@ CONTAINS
     ! Set AutoFill flag
     AF = -1
     IF ( PRESENT(AutoFill  ) ) AF = AutoFill
+
+    ! Check if diagnostics with counter = 0 shall be skipped
+    SKIPZERO = .FALSE.
+    IF ( PRESENT(SkipZeroCount) ) SKIPZERO = SkipZeroCount
 
     ! Get minimum reset flag for current time. Set reset flag to -1 if
     ! EndOFIntvOnly flag is disabled. This will make sure that all 
@@ -1604,7 +1768,7 @@ CONTAINS
           DgnCont => NULL()
        ELSE
           ! Don't consider container if counter is zero. 
-          IF ( DgnCont%Counter == 0 ) THEN
+          IF ( SKIPZERO .AND. DgnCont%Counter == 0 ) THEN
              DgnCont => NULL()
           ENDIF
        ENDIF
@@ -1614,14 +1778,14 @@ CONTAINS
    
     ! If container id is given, search for diagnostics with 
     ! the given container ID.
-    IF ( PRESENT( cID ) ) THEN
+    IF ( PRESENT( cID ) .AND. .NOT. CF ) THEN
        CALL DiagnCont_Find( cID, -1, -1, -1, -1, '', &
                             AF, FOUND, DgnCont, COL=PS )
        IF ( .NOT. FOUND ) THEN
           DgnCont => NULL()
        ELSE
           ! Don't consider container if counter is zero. 
-          IF ( DgnCont%Counter == 0 ) THEN
+          IF ( SKIPZERO .AND. DgnCont%Counter == 0 ) THEN
              DgnCont => NULL()
           ENDIF
        ENDIF
@@ -1637,23 +1801,16 @@ CONTAINS
        ELSE
           DgnCont => DgnCont%NextCont
        ENDIF
-       DO WHILE ( ASSOCIATED ( DgnCont ) ) 
-          IF ( DgnCont%Counter > 0 ) EXIT 
-          DgnCont => DgnCont%NextCont
-       ENDDO
-  
-       ! If EndOfIntvOnly flag is enabled, make sure that the
-       ! selected container is at the end of its interval.
-       IF ( EndOfIntvOnly ) THEN
-          ! If MinResetFlag > 0, search for first container with a
-          ! ResetFlag equal or larger than MinResetFlag and where
-          ! updates since last output (counter) is not zero.
-          DO WHILE ( ASSOCIATED ( DgnCont ) ) 
-             IF ( DgnCont%Counter > 0 ) EXIT
+       DO WHILE ( ASSOCIATED ( DgnCont ) )
+          ! Skip zero counters
+          IF ( SKIPZERO .AND. DgnCont%Counter <= 0 ) THEN
              DgnCont => DgnCont%NextCont
-          ENDDO
-   
-       ENDIF ! EndOfIntvOnly
+             CYCLE
+          ENDIF
+
+          ! Exit if we reach this loop here
+          EXIT 
+       ENDDO
     ENDIF
 
     ! Before returning container, make sure its data is ready for output.
@@ -1908,7 +2065,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCollection_Get( COL, InUse, Prefix, WriteFreq, ResetFlag, RC )
+  SUBROUTINE DiagnCollection_Get( COL,       InUse,   Prefix, WriteFreq, &
+                                  ResetFlag, nnDiagn, RC                  )
 !
 ! !INPUT ARGUMENTS:
 !
@@ -1920,6 +2078,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(OUT), OPTIONAL :: Prefix
     CHARACTER(LEN=*), INTENT(OUT), OPTIONAL :: WriteFreq 
     INTEGER,          INTENT(OUT), OPTIONAL :: ResetFlag 
+    INTEGER,          INTENT(OUT), OPTIONAL :: nnDiagn 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1946,6 +2105,7 @@ CONTAINS
     IF ( PRESENT(WriteFreq) ) WriteFreq = ''
     IF ( PRESENT(ResetFlag) ) ResetFlag = -999
     IF ( PRESENT(InUse    ) ) InUse     = .FALSE. 
+    IF ( PRESENT(nnDiagn  ) ) nnDiagn   = 0 
 
     ! Get collection number
     CALL DiagnCollection_DefineID( PS, RC, COL=COL, InUse=FOUND, ThisColl=ThisColl )
@@ -1967,6 +2127,10 @@ CONTAINS
    
        IF ( PRESENT(ResetFlag) ) THEN
           ResetFlag = ThisColl%ResetFlag
+       ENDIF
+
+       IF ( PRESENT(nnDiagn) ) THEN
+          nnDiagn = ThisColl%nnDiagn
        ENDIF
     ENDIF
    
@@ -2024,6 +2188,7 @@ CONTAINS
     DgnCont%Total    =  0.0_sp
     DgnCont%LevIdx   = -1
     DgnCont%AutoFill =  0
+    DgnCont%SpaceDim =  2
 
     ! Default values for unit conversion factors 
     DgnCont%MassScal  = 1.0_hp
@@ -2045,6 +2210,12 @@ CONTAINS
     ! Default container ID and collection 
     DgnCont%cID          = -1
     DgnCont%CollectionID = -1
+
+    ! Initialize other varaibles
+    DgnCont%HcoID        = -1
+    DgnCont%ExtNr        = -1
+    DgnCont%Cat          = -1
+    DgnCont%Hier         = -1
 
     ! Pass to output container
     OutCont => DgnCont
@@ -2119,6 +2290,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_State_Mod, ONLY : HCO_State
+    USE HCO_Arr_Mod,   ONLY : HCO_ArrAssert
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2157,15 +2329,6 @@ CONTAINS
     IF ( DgnCont%DtaIsPtr    ) RETURN
 
     !-----------------------------------------------------------------------
-    ! Return w/ error if counter is still zero. This should not happen!
-    !-----------------------------------------------------------------------
-    IF ( DgnCont%Counter == 0 ) THEN
-       MSG = 'Counter is zero : ' // TRIM(DgnCont%cName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
     ! Get pointer to this collection
     !-----------------------------------------------------------------------
     CALL DiagnCollection_Find( DgnCont%CollectionID, FOUND, RC, ThisColl=ThisColl )
@@ -2178,6 +2341,36 @@ CONTAINS
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Return zero array if counter is still zero 
+    !-----------------------------------------------------------------------
+    IF ( DgnCont%Counter == 0 ) THEN
+      
+       ! Make sure array is defined and zero
+       IF ( DgnCont%SpaceDim == 2 ) THEN
+          CALL HCO_ArrAssert( DgnCont%Arr2D, ThisColl%NX, &
+                              ThisColl%NY,   RC            ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+
+          ! Make sure it's zero
+          DgnCont%Arr2D%Val = 0.0_sp
+
+       ELSEIF ( DgnCont%SpaceDim == 3 ) THEN
+          CALL HCO_ArrAssert( DgnCont%Arr3D, ThisColl%NX, &
+                              ThisColl%NY,   ThisColl%NZ, RC ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+
+          ! Make sure it's zero
+          DgnCont%Arr3D%Val = 0.0_sp
+       ENDIF
+
+       ! Prompt warning
+       MSG = 'Diagnostics counter is zero - return empty array: ' // &
+             TRIM(DgnCont%cName)
+       CALL HCO_WARNING( MSG, RC, THISLOC=LOC, WARNLEV=1 )    
+       RETURN
+    ENDIF 
 
     !-----------------------------------------------------------------------
     ! Output data is calculated as: 

@@ -1946,13 +1946,13 @@
 
          ! Sea salt density, fine mode
          CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_FINE', 
-     &                     FORCE=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
+     &          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
          IF ( RC /= HCO_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_FINE', LOC )
 
          ! Sea salt density, coarse mode 
          CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_COARSE', 
-     &                     FORCE=.FALSE., RC=RC, Ptr2D=NDENS_SALC )
+     &          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALC )
          IF ( RC /= HCO_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_COARSE', LOC )
          

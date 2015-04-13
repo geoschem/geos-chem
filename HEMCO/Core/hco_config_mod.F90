@@ -59,7 +59,6 @@ MODULE HCO_Config_Mod
   PRIVATE :: ReadSettings
   PRIVATE :: ExtSwitch2Buffer
   PRIVATE :: ConfigList_AddCont
-  PRIVATE :: Config_ReadLine
   PRIVATE :: Config_ReadCont
   PRIVATE :: RegisterPrepare
   PRIVATE :: Get_targetID 
@@ -252,7 +251,8 @@ CONTAINS
     DO
 
        ! Read a line from the file, exit if EOF
-       LINE = Config_ReadLine ( IU_HCO, EOF )
+       CALL HCO_ReadLine ( IU_HCO, LINE, EOF, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( EOF ) EXIT
 
        ! Replace tab characters in LINE (if any) w/ spaces
@@ -1360,7 +1360,8 @@ CONTAINS
     DO 
 
        ! Read line 
-       LINE = Config_ReadLine ( IU_HCO, EOF )
+       CALL HCO_ReadLine ( IU_HCO, LINE, EOF, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Return if EOF
        IF ( EOF ) RETURN 
@@ -1496,7 +1497,8 @@ CONTAINS
     DO 
 
        ! Read line 
-       LINE = Config_ReadLine ( IU_HCO, EOF )
+       CALL HCO_ReadLine ( IU_HCO, LINE, EOF, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Return if EOF
        IF ( EOF ) EXIT 
@@ -1552,70 +1554,6 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE ReadSettings
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Config_ReadLine 
-!
-! !DESCRIPTION: Subroutine ConfigRead\_Line reads a line from the
-! emissions configuration file. 
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION Config_ReadLine( IU_HCO, EOF ) RESULT( LINE )
-!
-! !INPUT PARAMETERS: 
-!
-    INTEGER, INTENT(IN)  :: IU_HCO   ! HEMCO configfile LUN
-!
-! !OUTPUT PARAMETERS:
-!
-    LOGICAL, INTENT(OUT) :: EOF      ! End of file?
-! 
-! !REVISION HISTORY: 
-!  18 Sep 2013 - C. Keller - Initial version (adapted from B. Yantosca's code) 
-!  15 Jul 2014 - R. Yantosca - Remove dependency on routine IOERROR
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER            :: IOS
-!    CHARACTER(LEN=255) :: LINE, MSG
-    CHARACTER(LEN=255)  :: MSG
-    CHARACTER(LEN=2047) :: LINE
-
-    !=================================================================
-    ! Config_ReadLine begins here!
-    !=================================================================
-
-    ! Initialize
-    EOF = .FALSE.
-
-    ! Read a line from the file
-    READ( IU_HCO, '(a)', IOSTAT=IOS ) LINE
-
-    ! IO Status < 0: EOF condition
-    IF ( IOS < 0 ) THEN
-       EOF = .TRUE.
-       RETURN
-    ENDIF
-
-    ! IO Status > 0: true I/O error condition
-    IF ( IOS > 0 ) THEN
-       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-       WRITE( 6, 100   ) IOS
-100    FORMAT( 'ERROR ', i5, ' in Config_Readline (hco_config_mod.F90)' )
-       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-       STOP
-    ENDIF
-
-  END FUNCTION Config_ReadLine
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -2597,7 +2535,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER               :: N, OPT, STRLEN
+    INTEGER               :: N, OPT, STRLEN, RC
     CHARACTER(LEN=255)    :: LINE
     CHARACTER(LEN=255)    :: SUBSTR(255) 
     LOGICAL               :: EOF
@@ -2615,7 +2553,16 @@ CONTAINS
     IF ( PRESENT(inLINE) ) THEN
        LINE = inLINE
     ELSE
-       LINE = Config_ReadLine ( IU_HCO, EOF )
+       ! Read line
+       CALL HCO_READLINE( IU_HCO, LINE, EOF, RC )
+
+       ! Return w/ error
+       IF ( RC /= HCO_SUCCESS ) THEN
+          STAT = 999
+          RETURN
+       ENDIF
+
+       ! End of file
        IF ( EOF ) THEN
           STAT = -999
           RETURN
