@@ -223,6 +223,8 @@
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  27 Aug 2014 - C. Keller   - Now interface with HEMCO.
+!  13 Apr 2015 - R. Nassar   - Some bug fixes for HEMCO implementation, 
+!                              e.g. unit fixes for aviation and chem source
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -384,19 +386,6 @@
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-
-      ! testing only
-      write(*,*) 'Before EMISSCO2: '
-      write(*,*) 'AD01 01: ', SUM(AD04(:,:,1))
-      write(*,*) 'AD01 02: ', SUM(AD04(:,:,2))
-      write(*,*) 'AD01 03: ', SUM(AD04(:,:,3))
-      write(*,*) 'AD01 04: ', SUM(AD04(:,:,4))
-      write(*,*) 'AD01 05: ', SUM(AD04(:,:,5))
-      write(*,*) 'AD01 06: ', SUM(AD04(:,:,6))
-      write(*,*) 'AD01 07: ', SUM(AD04(:,:,7))
-      write(*,*) 'AD01 08: ', SUM(AD04(:,:,8))
-      write(*,*) 'AD01 09: ', SUM(AD04(:,:,9))
-      write(*,*) 'AD01 10: ', SUM(AD04(:,:,10))
 
 
 !==============================================================================
@@ -806,7 +795,7 @@
          ENDIF
 	   
          !-------------------------------------------
-         ! #9: CO2 from aircraft emissions
+         ! #9: CO2 from aviation emissions
          !-------------------------------------------
          IF ( LPLANE ) THEN
 
@@ -815,7 +804,7 @@
 
             ! Check if emissions are defined
             IF ( .NOT. ASSOCIATED(HcoState%Spc(IDav)%Emis%Val) ) THEN
-               CALL ERROR_STOP('Aircraft emissions not defined',LOC)
+               CALL ERROR_STOP('Aviation emissions not defined',LOC)
             ENDIF
 
             DO L = 1, LLPAR
@@ -828,25 +817,29 @@
      &               / CM2PERM2 
      &               * XNUMOL_CO2
 
-               ! ND04 diag: Aircraft CO2 [molec/cm3/s] 
+!               ! ND04 diag: Aircraft CO2 [molec/cm3/s] 
+               ! ND04 diag: Aviation CO2 [molec/cm2/s]  !Unit change in v10 
                IF ( ND04 > 0 ) THEN
                   AD04_plane(I,J,L) = AD04_plane(I,J,L) + E_CO2
                ENDIF
 
-               ! Grid box volume in cm3
-               BOXVL = State_Met%AIRVOL(I,J,L) * CM3PERM3
-
-               ! Convert E_CO2 from [molec CO2/cm3/s] to [kg]
-               E_CO2 = E_CO2 * BOXVL * DTSRCE / XNUMOL_CO2
+!               ! Grid box volume in cm3
+!               BOXVL = State_Met%AIRVOL(I,J,L) * CM3PERM3
+!
+!               ! Convert E_CO2 from [molec CO2/cm3/s] to [kg]
+!               E_CO2 = E_CO2 * BOXVL * DTSRCE / XNUMOL_CO2
+!
+               ! Convert E_CO2 from [molec CO2/cm2/s] to [kg]   !Unit change in v10
+               E_CO2 = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
 
                ! Add to Tracer #1: Total CO2 [kg CO2]
                STT(I,J,L,1)   = STT(I,J,L,1) + E_CO2
 
-               ! Add to Tracer #9: Aircraft CO2 [kg CO2]
+               ! Add to Tracer #9: Aviation CO2 [kg CO2]
                IF ( N_TRACERS > 8 ) THEN
                   STT(I,J,L,9) = STT(I,J,L,9) + E_CO2
  
-              	  ! Tagged tracer for global ship emissions
+              	  ! Tagged tracer for global aviation emissions
                   IF ( LPLANETAG ) THEN
                      STT(I,J,L,54) = STT(I,J,L,54) + E_CO2
                   ENDIF
@@ -873,29 +866,35 @@
 
             ! Check if emissions are defined
             IF ( .NOT. ASSOCIATED(HcoState%Spc(IDch)%Conc%Val) ) THEN
-               CALL ERROR_STOP('CO2 production not defined',LOC)
+		   CALL ERROR_STOP('CO2 production not defined',LOC)
             ENDIF
 
             DO L = 1, LLPAR
          
 !               E_CO2 = CHEMSRC(I,J,L)
 
-               ! Production is in [kg/m3], convert to [molec/cm3/s]
-               E_CO2 = HcoState%Spc(IDch)%Emis%Val(I,J,L) 
-     &               / CM3PERM3 
+               ! Production is in [kg/m3], convert to [molec/cm2/s]
+!               E_CO2 = HcoState%Spc(IDch)%Emis%Val(I,J,L) 
+               E_CO2 = HcoState%Spc(IDch)%Conc%Val(I,J,L) 
+     &               / CM3PERM3
      &               * XNUMOL_CO2
      &               / DTSRCE
+     &               * 100 !per area (cm2) instead of per volume (cm3)
 
-               ! ND04 diag: CO2 chem source from CO loss (3-D) [molec/cm3/s] 
+		   ! ND04 diag: CO2 chem source from CO loss (3-D) [molec/cm3/s] 
+		   ! ND04 diag: CO2 chem source from CO loss (3-D) [molec/cm2/s] !Unit change in v10 
                IF ( ND04 > 0 ) THEN
                   AD04_chem(I,J,L) = AD04_chem(I,J,L) + E_CO2
                ENDIF
 
-               ! Grid box volume in cm3
-               BOXVL = State_Met%AIRVOL(I,J,L) * CM3PERM3
-
-               !  Convert from [molec/cm3/s] to [kg]
-               E_CO2  = E_CO2 * BOXVL * DTSRCE / XNUMOL_CO2
+!               ! Grid box volume in cm3
+!               BOXVL = State_Met%AIRVOL(I,J,L) * CM3PERM3
+!
+!               ! Convert E_CO2 from [molec CO2/cm3/s] to [kg]
+!               E_CO2 = E_CO2 * BOXVL * DTSRCE / XNUMOL_CO2
+!
+               ! Convert E_CO2 from [molec CO2/cm2/s] to [kg]   !Unit change in v10
+               E_CO2 = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
 
                ! Add to Tracer #1: Total CO2 [kg CO2]
                STT(I,J,L,1)   = STT(I,J,L,1) + E_CO2
@@ -922,7 +921,7 @@
             IF ( .NOT. ASSOCIATED(HcoState%Spc(IDcorr)%Emis%Val) ) THEN
                CALL ERROR_STOP('Surface correction not defined',LOC)
             ENDIF
-            E_CO2 = HcoState%Spc(IDcorr)%Emis%Val(I,J,L) 
+            E_CO2 = HcoState%Spc(IDcorr)%Emis%Val(I,J,1) 
      &            / CM2PERM2 
      &            * XNUMOL_CO2
 
@@ -957,18 +956,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! testing only
-      write(*,*) 'After EMISSCO2: '
-      write(*,*) 'AD01 01: ', SUM(AD04(:,:,1))
-      write(*,*) 'AD01 02: ', SUM(AD04(:,:,2))
-      write(*,*) 'AD01 03: ', SUM(AD04(:,:,3))
-      write(*,*) 'AD01 04: ', SUM(AD04(:,:,4))
-      write(*,*) 'AD01 05: ', SUM(AD04(:,:,5))
-      write(*,*) 'AD01 06: ', SUM(AD04(:,:,6))
-      write(*,*) 'AD01 07: ', SUM(AD04(:,:,7))
-      write(*,*) 'AD01 08: ', SUM(AD04(:,:,8))
-      write(*,*) 'AD01 09: ', SUM(AD04(:,:,9))
-      write(*,*) 'AD01 10: ', SUM(AD04(:,:,10))
 
       ! Free pointer
       NULLIFY( STT )
@@ -1011,6 +998,7 @@
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  13 Apr 2013 - R. Nassar - minor fixes to region boundary indices
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1079,7 +1067,7 @@
       DO I = 1, IIPAR
 !-----------------------------------------------------------------------
          ! Tracer #13 -- Canadian Tundra       
-         IF (LAND_REG(I,J) == 1 .and. I >= 5 .and. I <= 60) THEN
+         IF (LAND_REG(I,J) == 1 .and. I > 5 .and. I <= 60) THEN
             REGION(I,J) = 13
 !----------------------------------------------------------------------
          ! Tracer #14 -- NA Boreal Forest                 
@@ -1135,7 +1123,7 @@
             REGION(I,J) = 26
 !-----------------------------------------------------------------------      
          ! Tracer #27 -- Central Asian Desert
-         ELSE IF (LAND_REG(I,J) == 8 .and. I >100 .and. I <117) THEN
+         ELSE IF (LAND_REG(I,J) == 8 .and. I >100 .and. I <118) THEN
             REGION(I,J) = 27
 !-----------------------------------------------------------------------      
          ! Tracer #28 -- East Asia Mainland
@@ -1453,7 +1441,7 @@
       DO I = 1, IIPAR
 !-----------------------------------------------------------------------
          ! Tracer #13 -- Canadian Tundra       
-         IF (REG_CODE(I,J) == 1 .and. I >= 5 .and. I <= 60) THEN
+         IF (REG_CODE(I,J) == 1 .and. I > 5 .and. I <= 60) THEN
             REGION(I,J) = 13
 !-----------------------------------------------------------------------
          ! Tracer #14 -- NA Boreal Forest                 
@@ -1509,7 +1497,7 @@
             REGION(I,J) = 26
 !-----------------------------------------------------------------------      
          ! Tracer #27 -- Central Asian Desert
-         ELSE IF (REG_CODE(I,J) == 8 .and. I >100 .and. I <117) THEN
+         ELSE IF (REG_CODE(I,J) == 8 .and. I >100 .and. I <118) THEN
             REGION(I,J) = 27
 !-----------------------------------------------------------------------      
          ! Tracer #28 -- East Asia Mainland
