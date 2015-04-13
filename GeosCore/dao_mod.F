@@ -547,10 +547,10 @@
          Ev_g4update = State_Met%PMID(I,J,L) * AVGW_moist
          RH_g4update = ( Ev_g4update / Esat ) * 100e+0_fp
 
-         If (I == 25 .and. J == 25 .and. L == 1) THEN
+         If (I == 25 .and. J == 25 .and. L == 34) THEN
             PRINT *, " "
             PRINT *, "-------------------------------------"
-            PRINT *, "DAOMOD air quantities for grid box (25,25,1):"
+            PRINT *, "DAOMOD air quantities for grid box (25,25,34):"
             PRINT *, " "
             PRINT *, "  AVGW_moist = mol H2O / mol moist air"
             PRINT *, "    AVGW_moist (g4/gcap, from SPHU): ",
@@ -786,7 +786,7 @@
      &                         / State_Met%MAIRDEN(I,J,L)
 
          ! DEBUGGING (ewl, 3/27/2015)
-         If (I == 25 .and. J == 25 .and. L == 1) THEN
+         If (I == 25 .and. J == 25 .and. L == 34) THEN
 
             ! Calculate legacy values for print comparison
             AD_legacy = State_Met%DELP(I,J,L) 
@@ -892,8 +892,8 @@
 
             PRINT *, " "
             PRINT *, "  Moist air density [kg/m3]"
-            PRINT *, "    Legacy AD divided by legacy AIRVOL (used for "
-     &               "number density <-> "
+            PRINT *, "    Legacy AD divided by legacy AIRVOL "
+            PRINT *, "    (used for number density <-> "
             PRINT *, "    mass conversions in legacy code): ",
      &               ADleg_over_AIRVOLleg
             PRINT *, "    Updated moist air density (ideal gas law): ",
@@ -946,7 +946,7 @@
             perc = ( State_Met%AIRDEN(I,J,L) - ADup_over_AIRVOLleg ) 
      &               / ADup_over_AIRVOLleg
      &              * 1.0e+2_fp
-            PRINT *, "    Percent difference due to box height "
+            PRINT *, "    Percent difference due to box height ",
      &               "change: ", perc
 
 
