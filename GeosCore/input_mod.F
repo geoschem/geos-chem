@@ -3633,6 +3633,9 @@
       Input_Opt%LSKYRAD(2) = LSKYRAD(2)
       Input_Opt%TS_RAD     = TS_RAD
 
+      ! Return success
+      RC                   = GIGC_SUCCESS
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -3879,6 +3882,9 @@
       CALL SET_TRANSPORT( IORD, JORD, KORD )
 #endif
 
+      ! Return success
+      RC = GIGC_SUCCESS
+
       END SUBROUTINE READ_TRANSPORT_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -4012,6 +4018,7 @@
 #endif
 
       ! Return success
+    
       RC = GIGC_SUCCESS
 
       !=================================================================
@@ -4536,11 +4543,6 @@
       !=================================================================
       ! READ_DIAGNOSTIC_MENU begins here!
       !=================================================================
-
-      ! Define collection number for netCDF diagnostics
-      ! (this number can be between 2 and 5)
-      !%%% NOTE, hardwire this for now, but eventually read from file
-      Input_Opt%DIAG_COLLECTION = 2
 
       ! Get fields from Input_Opt
       N_TRACERS = Input_Opt%N_TRACERS

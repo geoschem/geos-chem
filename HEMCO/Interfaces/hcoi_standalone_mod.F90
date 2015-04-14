@@ -78,12 +78,17 @@ MODULE HCOI_StandAlone_Mod
   PRIVATE :: Set_Grid
   PRIVATE :: Get_nnMatch 
   PRIVATE :: Register_Species
+  PRIVATE :: Define_Diagnostics 
   PRIVATE :: Read_Time
+  PRIVATE :: ExtState_SetFields
+  PRIVATE :: ExtState_UpdateFields
 !
 ! !REVISION HISTORY:
 !  20 Aug 2013 - C. Keller   - Initial version. 
 !  14 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  14 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  09 Apr 2015 - C. Keller   - Now accept comments and empty lines in
+!                              all input files.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -133,10 +138,6 @@ MODULE HCOI_StandAlone_Mod
 !
 ! !MODULE INTERFACES:
 !
-  INTERFACE SetExtPtr
-     MODULE PROCEDURE SetExtPtr_2R
-     MODULE PROCEDURE SetExtPtr_3R
-  END INTERFACE SetExtPtr
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -156,7 +157,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=255), INTENT(IN)  :: ConfigFile
+    CHARACTER(LEN=*), INTENT(IN)  :: ConfigFile
 !
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller    - Initial version 
@@ -177,7 +178,7 @@ CONTAINS
     am_I_Root = .TRUE.
 
     ! Initialize the HEMCO standalone
-    CALL HCOI_Sa_Init( am_I_Root, ConfigFile, RC )
+    CALL HCOI_Sa_Init( am_I_Root, TRIM(ConfigFile), RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        WRITE(*,*) 'Error in HCOI_SA_INIT'
        RETURN
@@ -220,7 +221,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,            INTENT(IN   ) :: am_I_Root  ! root CPU?
-    CHARACTER(LEN=255), INTENT(IN   ) :: ConfigFile ! Configuration file
+    CHARACTER(LEN=*),   INTENT(IN   ) :: ConfigFile ! Configuration file
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -249,7 +250,7 @@ CONTAINS
     ! sets the HEMCO error properties (verbose mode? log file name, 
     ! etc.) based upon the specifications in the configuration file.
     !=================================================================
-    CALL Config_ReadFile( am_I_Root, ConfigFile, 0, RC )
+    CALL Config_ReadFile( am_I_Root, TRIM(ConfigFile), 0, RC )
     IF( RC /= HCO_SUCCESS) RETURN 
 
     !=================================================================
@@ -266,7 +267,7 @@ CONTAINS
 
     !-----------------------------------------------------------------
     ! Extract species to use in HEMCO 
-    CALL Get_nnMatch( nnMatch, RC )
+    CALL Get_nnMatch( am_I_Root, nnMatch, RC )
     IF(RC /= HCO_SUCCESS) RETURN 
 
     !-----------------------------------------------------------------
@@ -299,6 +300,9 @@ CONTAINS
     ! HEMCO configuration file
     HcoState%ConfigFile = ConfigFile
 
+    ! Let HEMCO schedule the diagnostics output
+    HcoState%Options%HcoWritesDiagn = .TRUE.
+
     !=================================================================
     ! Initialize HEMCO internal lists and variables. All data
     ! information is written into internal lists (ReadList) and 
@@ -316,11 +320,11 @@ CONTAINS
     CALL HCOX_Init( am_I_Root, HcoState, ExtState, RC )
     IF(RC /= HCO_SUCCESS) RETURN 
 
-    !-----------------------------------------------------------------
-    ! Set pointers to met fields. Also get pointer for pressure edges
-    !-----------------------------------------------------------------
-    CALL ExtOpt_SetPointers( am_I_Root, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    !=================================================================
+    ! Define diagnostics
+    !=================================================================
+    CALL Define_Diagnostics( am_I_Root, RC )
+    IF( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------
     ! Leave 
@@ -358,15 +362,13 @@ CONTAINS
   SUBROUTINE HCOI_SA_RUN( am_I_Root, RC )
 !
 ! !USES:
-    !
-    ! HEMCO routines 
+!
     USE HCO_FluxArr_Mod,       ONLY : HCO_FluxarrReset 
     USE HCO_Clock_Mod,         ONLY : HcoClock_Set
     USE HCO_Clock_Mod,         ONLY : HcoClock_Get
     USE HCO_Clock_Mod,         ONLY : HcoClock_Increase
     USE HCO_Driver_Mod,        ONLY : HCO_RUN
     USE HCOX_Driver_Mod,       ONLY : HCOX_RUN
-    USE HCOIO_Diagn_Mod,       ONLY : HCOIO_DIAGN_WRITEOUT
 !
 ! !INPUT PARAMETERS:
 !
@@ -437,13 +439,7 @@ CONTAINS
 100    FORMAT( 'Calculate emissions at ', i4,'-',i2.2,'-',i2.2,' ', &
                  i2.2,':',i2.2,':',i2.2 )
        CALL HCO_MSG(MSG)
-
-       !=================================================================
-       ! Output diagnostics 
-       !=================================================================
-       CALL HCOIO_Diagn_WriteOut ( am_I_Root, HcoState, .FALSE., RC )
-       IF ( RC /= HCO_SUCCESS) RETURN 
-    
+ 
        ! ================================================================
        ! Reset all emission and deposition values
        ! ================================================================
@@ -472,15 +468,19 @@ CONTAINS
        ! Emissions will be written into the corresponding flux arrays 
        ! in HcoState. 
        ! ================================================================
-       CALL HCO_Run( am_I_Root, HcoState, RC )
+       CALL HCO_Run( am_I_Root, HcoState, -1, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
    
        ! ================================================================
        ! Run HCO extensions
        ! ================================================================
    
-       ! Eventually update local variables.
-       CALL ExtState_Update ( am_I_Root, RC )
+       ! Set / update ExtState fields 
+       CALL ExtState_SetFields ( am_I_Root, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       CALL ExtState_UpdateFields( am_I_Root, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
  
        ! Execute all enabled emission extensions. Emissions will be 
        ! added to corresponding flux arrays in HcoState.
@@ -490,7 +490,7 @@ CONTAINS
        !=================================================================
        ! Update all autofill diagnostics 
        !=================================================================
-       CALL HCO_Diagn_AutoUpdate ( am_I_Root, HcoState, RC )
+       CALL HcoDiagn_AutoUpdate ( am_I_Root, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     ENDDO 
@@ -519,7 +519,6 @@ CONTAINS
     USE HCO_Driver_Mod,    ONLY : HCO_Final
     USE HCOX_Driver_Mod,   ONLY : HCOX_Final
     USE HCO_State_Mod,     ONLY : HcoState_Final
-    USE HCOIO_Diagn_Mod,   ONLY : HCOIO_Diagn_WriteOut
 !
 ! !INPUT PARAMETERS:
 !
@@ -543,19 +542,10 @@ CONTAINS
 
     ! Init
     LOC = 'HCOI_SA_FINAL (hco_standalone_mod.F90)'
-
-    ! Write out all diagnostics: first 'regular' diagnostics, then
-    ! also restart values.
-    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .FALSE., RC, &
-                                UsePrevTime=.TRUE. )
-    IF (RC /= HCO_SUCCESS) RETURN 
-
-    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .TRUE.,  RC, &
-                                UsePrevTime=.FALSE., PREFIX=RST )
-    IF (RC /= HCO_SUCCESS) RETURN 
  
     ! Cleanup HCO core
-    CALL HCO_FINAL()
+    CALL HCO_FINAL( am_I_Root, HcoState, RC )
+    IF (RC /= HCO_SUCCESS) RETURN 
 
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields. 
@@ -588,7 +578,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Model_GetSpecies( nModelSpec,     ModelSpecNames,     &
+  SUBROUTINE Model_GetSpecies( am_I_Root,                          &
+                               nModelSpec,     ModelSpecNames,     &
                                ModelSpecIDs,   ModelSpecMW,        &
                                ModelSpecEmMW,  ModelSpecMolecRatio,&
                                ModelSpecK0,    ModelSpecCR,        &
@@ -601,6 +592,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
+    LOGICAL,            INTENT(IN ) :: am_I_Root
     INTEGER,            INTENT(OUT) :: nModelSpec
     CHARACTER(LEN= 31), POINTER     :: ModelSpecNames(:)
     INTEGER,            POINTER     :: ModelSpecIDs  (:)
@@ -622,7 +614,7 @@ CONTAINS
 !
     INTEGER             :: I, N, LNG, LOW, UPP
     INTEGER             :: IU_FILE, IOS
-    LOGICAL             :: FOUND
+    LOGICAL             :: FOUND,   EOF
     CHARACTER(LEN=255)  :: MSG, LOC 
     CHARACTER(LEN=255)  :: MySpecFile 
     CHARACTER(LEN=2047) :: DUM
@@ -652,12 +644,14 @@ CONTAINS
     ENDIF
 
     ! Get number of species 
-    READ( IU_FILE, '(A)', IOSTAT=IOS ) DUM
-    IF ( IOS /= 0 ) THEN
+    ! Get next valid line
+    CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+    IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
        MSG = 'Error 2 reading ' // TRIM(SpecFile)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
+
     LNG = LEN(TRIM(DUM))
     LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
     IF ( LOW < 0 .OR. LOW == LNG ) THEN
@@ -667,7 +661,7 @@ CONTAINS
     ENDIF
     LOW = LOW + 1
     READ ( DUM(LOW:LNG), * ) nModelSpec
-      
+
     ! Allocate species arrays
     ALLOCATE(ModelSpecNames     (nModelSpec))
     ALLOCATE(ModelSpecIDs       (nModelSpec))
@@ -681,27 +675,26 @@ CONTAINS
     ! Assign variables to each species
     DO N = 1, nModelSpec
 
-       ! Read line
-       READ( IU_FILE, '(A)', IOSTAT=IOS ) DUM
-       IF ( IOS /= 0 ) THEN
+       CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+       IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
           WRITE(MSG,100) N, TRIM(SpecFile)
           CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
-       LNG = LEN(TRIM(DUM))
 
        ! Start reading line from beginning 
+       LNG = LEN(TRIM(DUM))
        LOW = 0
-
+   
        ! Read species ID, name, molecular weight, emitted molecular weight,
        ! molecular coefficient, and Henry coefficients K0, CR, pKa (in this
        ! order).
        DO I = 1, 8
-
+   
           ! Get lower and upper index of species ID (first entry in row).
           ! Skip all leading spaces.
           UPP = LOW
-
+   
           DO WHILE( UPP == LOW .AND. LOW /= LNG )
              LOW = LOW + 1
              IF ( LOW > LNG ) THEN
@@ -712,9 +705,9 @@ CONTAINS
              UPP = NextCharPos( TRIM(DUM), HCO_SPC(), LOW )
              IF ( UPP < 0 ) UPP = LNG
           ENDDO
-
+   
           UPP = UPP - 1 ! Don't read space
-
+   
           ! Read into vector
           SELECT CASE ( I ) 
              CASE ( 1 )
@@ -744,6 +737,9 @@ CONTAINS
 
        ENDDO !I
     ENDDO !N
+
+    ! Close file
+    CLOSE( IU_FILE )
 
     ! Return w/ success
     RC = HCO_SUCCESS
@@ -795,7 +791,7 @@ CONTAINS
     INTEGER               :: I, N, M, LNG, LOW, UPP
     INTEGER               :: SZ(3)
     INTEGER               :: IU_FILE, IOS
-    LOGICAL               :: FOUND
+    LOGICAL               :: FOUND,   EOF
     CHARACTER(LEN=255)    :: MSG, LOC 
     CHARACTER(LEN=255)    :: MyGridFile 
     CHARACTER(LEN=2047)   :: DUM
@@ -836,16 +832,18 @@ CONTAINS
     ENDIF
 
     ! Get grid size (x,y,z)
-    DO N = 1, 3
-       READ( IU_FILE, '(A)', IOSTAT=IOS ) DUM
-       IF ( IOS /= 0 ) THEN
+    DO N = 1,3
+
+       ! Get next valid line
+       CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+       IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
           MSG = 'Error 2 reading ' // TRIM(GridFile)
           CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
-       LNG = LEN(TRIM(DUM))
  
        ! Read integer after colon (this is the dimension size)
+       LNG = LEN(TRIM(DUM))
        LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
        IF ( LOW < 0 .OR. LOW == LNG ) THEN
           MSG = 'Cannot extract size information from ' // TRIM(DUM)
@@ -853,8 +851,9 @@ CONTAINS
           RETURN
        ENDIF
        LOW = LOW + 1
-       READ( DUM(LOW:LNG), * ) SZ(N) 
-    ENDDO
+       READ( DUM(LOW:LNG), * ) SZ(N)
+
+    ENDDO !N
 
     ! Grid dimensions
     NX = SZ(1)
@@ -891,15 +890,17 @@ CONTAINS
     ! specified for every grid point or as single value (applied
     ! to all grid boxes).
     DO N=1,2
-       READ( IU_FILE, '(A)', IOSTAT=IOS ) DUM
-       IF ( IOS /= 0 ) THEN
+
+       ! Get next valid line
+       CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+       IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
           MSG = 'Error 3 reading ' // TRIM(GridFile)
           CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
-       LNG = LEN(TRIM(DUM))
           
        ! Get position after colon
+       LNG = LEN(TRIM(DUM))
        LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
        IF ( LOW < 0 .OR. LOW == LNG ) THEN 
           MSG = 'Cannot extract grid space from ' // TRIM(DUM)
@@ -907,16 +908,16 @@ CONTAINS
           RETURN
        ENDIF
        LOW = LOW + 1
- 
+    
        ! Read data for each grid cell
        M = 1 ! Index in dlon/dlat
        DO
           ! Get index up to next space.
           UPP = NextCharPos ( TRIM(DUM), HCO_SPC(), LOW )
-
+   
           ! If no space found in word after index LOW, read until end of word.
           IF ( UPP < 0 ) UPP = LNG
-
+   
           ! Read value and pass to DLON / DLAT.
           ! Ignore if only space.
           IF ( DUM(LOW:UPP) /= HCO_SPC() ) THEN
@@ -928,12 +929,12 @@ CONTAINS
              ENDIF
              M = M+1 ! Advance index in DLON/DLAT
           ENDIF
-
+   
           ! Continue at next position
           LOW = UPP + 1
           IF ( LOW >= LNG ) EXIT
        ENDDO
-
+          
        ! Check if we have to fill up dlon
        IF ( M == 2 ) THEN
           IF ( N == 1 ) THEN
@@ -954,7 +955,7 @@ CONTAINS
           CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
-    ENDDO
+    ENDDO !N
 
     ! Close file
     CLOSE( IU_FILE )      
@@ -1004,7 +1005,7 @@ CONTAINS
     HcoState%Grid%YSIN%Val       => YSIN   (:,:,1)
     HcoState%Grid%AREA_M2%Val    => AREA_M2(:,:,1)
 
-    ! The pressure edges are obtained from an external file in ExtOpt_SetPointers.
+    ! The pressure edges are obtained from an external file in ExtState_SetFields
     HcoState%Grid%PEDGE%Val      => NULL()
 
     ! Cleanup variables that are not needed by HEMCO.
@@ -1028,7 +1029,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_nnMatch( nnMatch, RC ) 
+  SUBROUTINE Get_nnMatch( am_I_Root, nnMatch, RC ) 
 !
 ! !USES:
 !
@@ -1037,6 +1038,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
+    LOGICAL, INTENT(IN   )  :: am_I_Root ! Root CPU? 
     INTEGER, INTENT(  OUT)  :: nnMatch   ! Number of HEMCO species that are
                                          ! also species in the atm. model
 !
@@ -1069,7 +1071,8 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS) RETURN 
 
     ! Extract species to be used from input file
-    CALL Model_GetSpecies( nModelSpec,     ModelSpecNames,      &
+    CALL Model_GetSpecies( am_I_Root,                           &
+                           nModelSpec,     ModelSpecNames,      &
                            ModelSpecIDs,   ModelSpecMW,         &
                            ModelSpecEmMW,  ModelSpecMolecRatio, &
                            ModelSpecK0,    ModelSpecCR,         &
@@ -1164,22 +1167,6 @@ CONTAINS
        HcoState%Spc(cnt)%HenryCR  = ModelSpecCR(IDX)
        HcoState%Spc(cnt)%HenryPKA = ModelSpecPKA(IDX)
 
-       ! Register for output (through diagnostics)
-       CALL Diagn_Create ( am_I_Root,                         &
-                           HcoState  = HcoState,              &
-                           cName     = TRIM(HcoSpecNames(I)), &
-                           ExtNr     = -1,                    &
-                           Cat       = -1,                    &
-                           Hier      = -1,                    &
-                           HcoID     = CNT,                   &
-                           SpaceDim  = 2,                     &
-                           LevIDx    = -1,                    &
-                           OutUnit   = 'kg/m2/s',             &
-                           WriteFreq = 'Monthly',             &
-                           AutoFill  = 1,                     &
-                           RC        = RC                      )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
        ! Logfile I/O
        CALL HCO_SPEC2LOG( am_I_Root, HcoState, Cnt )
 
@@ -1190,6 +1177,90 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE Register_Species
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Define_Diagnostics 
+!
+! !DESCRIPTION: Subroutine Define\_Diagnostics defines all diagnostics to be
+!  used in this simulation. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Define_Diagnostics( am_I_Root, RC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(INOUT) :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  13 Sep 2013 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    INTEGER           :: I, N, HcoID
+    CHARACTER(LEN=31) :: DiagnName
+
+    !=================================================================
+    ! DEFINE_DIAGNOSTICS begins here
+    !=================================================================
+
+    ! Get number of diagnostics currently defined in the default
+    ! collection
+    CALL DiagnCollection_Get ( HcoDiagnIDDefault, nnDiagn=N, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! If there are no diagnostics defined yet, define some default
+    ! diagnostics below. These are simply the overall emissions 
+    ! (across all extensions, categories, hierarchies) for each
+    ! HEMCO species. 
+    IF ( N == 0 ) THEN
+
+       ! Loop over all HEMCO species
+       DO I = 1, HcoState%nSpc 
+   
+          ! Get HEMCO ID
+          HcoID = HcoState%Spc(I)%HcoID
+          IF ( HcoID <= 0 ) CYCLE
+   
+          ! Create diagnostics
+          DiagnName = 'EMIS_' // TRIM(HcoState%Spc(I)%SpcName) 
+          CALL Diagn_Create ( am_I_Root,                         &
+                              HcoState  = HcoState,              &
+                              cName     = DiagnName,             &
+                              ExtNr     = -1,                    &
+                              Cat       = -1,                    &
+                              Hier      = -1,                    &
+                              HcoID     = HcoID,                 &
+                              SpaceDim  = 2,                     &
+                              LevIDx    = -1,                    &
+                              OutUnit   = 'kg/m2/s',             &
+                              AutoFill  = 1,                     &
+                              COL       = HcoDiagnIDDefault,     &
+                              RC        = RC                      )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ENDDO !I
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE Define_Diagnostics 
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -1229,7 +1300,7 @@ CONTAINS
 !
     INTEGER             :: AS, IOS, IU_FILE
     INTEGER             :: I,  N,   LNG, LOW
-    LOGICAL             :: FOUND
+    LOGICAL             :: EOF, FOUND
     CHARACTER(LEN=255)  :: MSG, LOC, DUM
     CHARACTER(LEN=255)  :: MyTimeFile 
 
@@ -1259,14 +1330,14 @@ CONTAINS
  
     ! Read start and end of simulation
     DO N = 1,2
-   
-       READ( IU_FILE, '(A)', IOSTAT=IOS ) DUM
-       IF ( IOS /= 0 ) THEN
+
+       CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+       IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
           MSG = 'Error reading time in ' // TRIM(TimeFile)
           CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
-   
+     
        ! Remove 'BEGIN: ' or 'END: ' at the beginning 
        LNG = LEN(TRIM(DUM))
        LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
@@ -1278,7 +1349,7 @@ CONTAINS
        LOW = LOW + 1
        DUM = ADJUSTL(DUM(LOW:LNG))
        LNG = LEN(TRIM(DUM))
-   
+      
        ! Times have to be stored as:
        ! YYYY-MM-DD HH:MM:SS
        ! --> read year from position 1:4, month from 6:7, etc.
@@ -1293,19 +1364,20 @@ CONTAINS
        READ ( DUM( 9:10), * ) DYS(N) 
        READ ( DUM(12:13), * ) HRS(N) 
        READ ( DUM(15:16), * ) MNS(N) 
-       READ ( DUM(18:19), * ) SCS(N) 
-    ENDDO
+       READ ( DUM(18:19), * ) SCS(N)
+
+    ENDDO !I
 
     ! Get emission time step
-    READ( IU_FILE, '(A)', IOSTAT=IOS ) DUM
-    IF ( IOS /= 0 ) THEN
-       MSG = 'Error 2 reading ' // TRIM(TimeFile)
+    CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+    IF ( (RC /= HCO_SUCCESS) .OR. EOF ) THEN
+       MSG = 'Cannot read emission time step from ' // TRIM(TimeFile)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
-    LNG = LEN(TRIM(DUM))
 
     ! Get index after colon 
+    LNG = LEN(TRIM(DUM))
     LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
     IF ( LOW < 0 .OR. LOW == LNG ) THEN
        MSG = 'Cannot extract index after colon: ' // TRIM(DUM)
@@ -1313,7 +1385,7 @@ CONTAINS
        RETURN
     ENDIF
     LOW = LOW + 1
-    READ( DUM(LOW:LNG), * ) HcoState%TS_EMIS 
+    READ( DUM(LOW:LNG), * ) HcoState%TS_EMIS
 
     ! Set same chemical and dynamic time step
     HcoState%TS_CHEM = HcoState%TS_EMIS
@@ -1329,28 +1401,20 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ExtOpt_SetPointers 
+! !IROUTINE: ExtState_SetFields
 !
-! !DESCRIPTION: Subroutine ExtOpt\_SetPointers sets the extension object data
-! pointers. For the standalone model, all external data must be passed through
-! the configuration file. It is expected that the field names set in the
-! configuration file match the data names of the ExtState object.
+! !DESCRIPTION: Subroutine ExtState\_SetFields fills the ExtState data fields
+! with data read through the HEMCO configuration file.
 !\\
-! The following ExtState objects cannot be passed through the HEMCO 
-! configuration file: 
-! \begin{itemize}
-! \item DRYCOEFF: Baldocci drydep coeff. vector (used in 
-!       hcox\_soilnox\_mod.F90). This variable should be provided in section 
-!       soil NOx extension settings (DRYCOEFF: xx.x/xx.x/xx.x/...). It is
-!       read in hcox\_soilnox\_mod.F90.
-! \end{itemize}
+!\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtOpt_SetPointers ( am_I_Root, RC )
+  SUBROUTINE ExtState_SetFields ( am_I_Root, RC )
 !
 ! !USES:
 !
-    USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
+    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+    USE HCOX_STATE_MOD,     ONLY : ExtDat_Set
 !
 ! !INPUT PARAMETERS:
 !
@@ -1369,13 +1433,14 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER                       :: AS
-    LOGICAL                       :: FOUND
     REAL(sp), POINTER             :: Ptr3D(:,:,:) => NULL()
-    CHARACTER(LEN=255), PARAMETER :: LOC = 'ExtOpt_SetPointers (hcoi_standalone_mod.F90)'
+    CHARACTER(LEN=255)            :: MSG
+    LOGICAL                       :: FOUND
+    LOGICAL, SAVE                 :: FIRST = .TRUE.
+    CHARACTER(LEN=255), PARAMETER :: LOC = 'ExtState_SetFields (hcoi_standalone_mod.F90)'
 
     !=================================================================
-    ! ExtOpt_SetPointers begins here
+    ! ExtState_SetFields begins here
     !=================================================================
 
     ! Enter
@@ -1385,118 +1450,147 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Try to get pressure edges from external file.
     !-----------------------------------------------------------------
-
     CALL HCO_GetPtr( am_I_Root, 'PEDGE', Ptr3D, RC, FOUND=FOUND )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! If found, copy to pressure edge array
     IF ( FOUND ) THEN
        HcoState%Grid%PEDGE%Val = Ptr3D
        Ptr3D => NULL()
-    ENDIF
 
-    ! Set pointers for all used ext. state object.
+    ! If not found, prompt a warning on the first call.
+    ELSE
+       IF ( FIRST ) THEN
+          MSG = 'PEDGE is not a field in HEMCO configuration file '      // &
+                '- cannot fill pressure edges. This may cause problems ' // &
+                'in vertical interpolation and/or some of the extensions!'
+          CALL HCO_WARNING ( MSG, RC, WarnLev=1 )
+       ENDIF
+    ENDIF
 
     !-----------------------------------------------------------------
     ! 2D fields 
     !-----------------------------------------------------------------
 
-    CALL SetExtPtr ( am_I_Root, ExtState%U10M, 'U10M', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%U10M, 'U10M', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%V10M, 'V10M', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%V10M, 'V10M', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%ALBD, 'ALBD', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%ALBD, 'ALBD', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%WLI, 'WLI', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%WLI, 'WLI', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%T2M, 'T2M', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%T2M, 'T2M', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%TSKIN, 'TSKIN', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%TSKIN, 'TSKIN', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%GWETTOP, 'GWETTOP', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%GWETROOT, 'GWETROOT', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%SNOWHGT, 'SNOWHGT', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%GWETTOP, 'GWETTOP', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%USTAR, 'USTAR', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%SNOWHGT, 'SNOWHGT', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%Z0, 'Z0', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%SNODP, 'SNODP', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%TROPP, 'TROPP', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%USTAR, 'USTAR', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%SUNCOSmid, 'SUNCOSmid', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%Z0, 'Z0', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%SZAFACT, 'SZAFACT', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%TROPP, 'TROPP', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%PARDR, 'PARDR', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%SUNCOSmid, 'SUNCOSmid', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%PARDF, 'PARDF', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%SZAFACT, 'SZAFACT', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%RADSWG, 'RADSWG', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%PARDR, 'PARDR', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%FRCLND, 'FRCLND', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%PARDF, 'PARDF', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%CLDFRC, 'CLDFRC', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%RADSWG, 'RADSWG', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%GC_LAI, 'GC_LAI', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%FRCLND, 'FRCLND', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%JNO2, 'JNO2', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%CLDFRC, 'CLDFRC', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%JO1D, 'JO1D', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%GC_LAI, 'GC_LAI', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%JNO2, 'JNO2', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%JO1D, 'JO1D', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%FRLAND, 'FRLAND', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%FROCEAN, 'FROCEAN', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%FRLAKE, 'FRLAKE', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%FRLANDIC, 'FRLANDIC', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
     ! 3D fields 
     !-----------------------------------------------------------------
 
-    CALL SetExtPtr ( am_I_Root, ExtState%CNV_MFC, 'CNV_MFC', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%CNV_MFC, 'CNV_MFC', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%SPHU, 'SPHU', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%SPHU, 'SPHU', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%TK, 'TK', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%TK, 'TK', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%AIR, 'AIR', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%AIR, 'AIR', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%AIRVOL, 'AIRVOL', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%AIRVOL, 'AIRVOL', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%O3, 'O3', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%O3, 'O3', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%NO, 'NO', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%NO, 'NO', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%NO2, 'NO2', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%NO2, 'NO2', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%HNO3, 'HNO3', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%HNO3, 'HNO3', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%DRY_TOTN, 'DRY_TOTN', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%DRY_TOTN, 'DRY_TOTN', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%WET_TOTN, 'WET_TOTN', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%WET_TOTN, 'WET_TOTN', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%FRAC_OF_PBL, 'FRAC_OF_PBL', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
@@ -1504,143 +1598,34 @@ CONTAINS
     !     hcox_soilnox_mod.F90. 
     !-----------------------------------------------------------------
 
+    ! Not first call any more
+    FIRST = .FALSE.
+
     ! Leave w/ success
     CALL HCO_LEAVE( RC )
 
-  END SUBROUTINE ExtOpt_SetPointers
+  END SUBROUTINE ExtState_SetFields
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: SetExtPtr_2R
+! !IROUTINE: ExtState_UpdateFields 
 !
-! !DESCRIPTION: Subroutine SetExtPtr\_2R is the wrapper routine to pass a 2D
-! met. object read through the config. file to the ExtState object.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE SetExtPtr_2R ( am_I_Root, ExtDat, FldName, RC )
-!
-! !USES:
-!
-    USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
-    USE HCOX_State_Mod,    ONLY : ExtDat_2R
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
-    CHARACTER(LEN=*), INTENT(IN   ) :: FldName     ! Name of met field obj.
-!
-! !INPUT/OUTPUT PARAMETERS
-!
-    TYPE(ExtDat_2R),  POINTER       :: ExtDat      ! Ext data object
-    INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
-!
-! !REVISION HISTORY:
-!  28 Jul 2014 - C. Keller - Initial Version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! LOCAL VARIABLES:
-!
-    REAL(sp), POINTER             :: Ptr2D(:,:)   => NULL()
-
-    !=================================================================
-    ! SetExtPtr_2R begins here
-    !=================================================================
-
-    IF ( ExtDat%DoUse ) THEN
-       CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr2D, RC )
-       IF ( RC /= 0 ) RETURN
-       ExtDat%Arr%Val = Ptr2D
-       Ptr2D => NULL()
-    ENDIF
-
-    ! Return w/ success
-    RC = HCO_SUCCESS
-
-  END SUBROUTINE SetExtPtr_2R
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: SetExtPtr_3R
-!
-! !DESCRIPTION: Subroutine SetExtPtr\_3R is the wrapper routine to pass a 3D
-! met. object read through the config. file to the ExtState object.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE SetExtPtr_3R ( am_I_Root, ExtDat, FldName, RC )
-!
-! !USES:
-!
-    USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
-    USE HCOX_State_Mod,    ONLY : ExtDat_3R
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
-    CHARACTER(LEN=*), INTENT(IN   ) :: FldName     ! Name of met field obj.
-!
-! !INPUT/OUTPUT PARAMETERS
-!
-    TYPE(ExtDat_3R),  POINTER       :: ExtDat      ! Ext data object
-    INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
-!
-! !REVISION HISTORY:
-!  28 Jul 2014 - C. Keller - Initial Version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! LOCAL VARIABLES:
-!
-    REAL(sp), POINTER             :: Ptr3D(:,:,:)   => NULL()
-
-    !=================================================================
-    ! SetExtPtr_3R begins here
-    !=================================================================
-
-    IF ( ExtDat%DoUse ) THEN
-       CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr3D, RC )
-       IF ( RC /= 0 ) RETURN
-       ExtDat%Arr%Val = Ptr3D
-       Ptr3D => NULL()
-    ENDIF
-
-    ! Return w/ success
-    RC = HCO_SUCCESS
-
-  END SUBROUTINE SetExtPtr_3R
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: ExtState_Update 
-!
-! !DESCRIPTION: Subroutine ExtState\_Update makes sure that all local variables
-! that ExtState is pointing to are up to date. For the moment, this is just a 
-! placeholder routine. Content can be added to it if there are variables that
+! !DESCRIPTION: Subroutine ExtState\_UpdateFields makes sure that all local 
+! variables that ExtState is pointing to are up to date. For the moment, this 
+! is just a placeholder routine as none of the ExtState fields is filled by 
+! local module fields. Content can be added to it if there are variables that
 ! need to be updated manually, e.g. not through netCDF input data.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_Update ( am_I_Root, RC )
+  SUBROUTINE ExtState_UpdateFields ( am_I_Root, RC )
 !
 ! !USES:
 !
-    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
 !
 ! !INPUT PARAMETERS:
 !
@@ -1660,18 +1645,13 @@ CONTAINS
 !
 
     !=================================================================
-    ! ExtState_Update begins here
+    ! ExtState_UpdateFields begins here
     !=================================================================
-
-    ! Data is copied, so need to call ExtOpt_SetPointers every time
-    ! to make sure that all data is up-to-date.
-    CALL ExtOpt_SetPointers( am_I_Root, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE ExtState_Update 
+  END SUBROUTINE ExtState_UpdateFields
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

@@ -230,7 +230,8 @@
       ! For new diagnostics
       INTEGER                :: IT, cID, HCRC
       REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
-      REAL(fp), POINTER      :: TMP(:,:,:) => NULL()
+      REAL(fp), POINTER      :: TMP3D(:,:,:) => NULL()
+      REAL(fp), POINTER      :: TMP2D(:,:  ) => NULL()
       REAL(fp)               :: DTIME
 #endif
 
@@ -446,7 +447,7 @@
          DTIME = GET_TS_DYN() * 60e+0_fp
 
          ! Allocate temporary pointer
-         ALLOCATE(TMP(IIPAR,JJPAR,LLPAR))
+         ALLOCATE(TMP3D(IIPAR,JJPAR,LLPAR), TMP2D(IIPAR,JJPAR) )
         
          ! Loop over all tracers
          DO IT = 1, Input_Opt%N_TRACERS
@@ -455,19 +456,21 @@
             IF ( ANY( Input_Opt%TINDEX(38,:) == IT ) ) THEN
 
                ! Loss rate (v/v/s)
-               TMP = ( BEFORE(:,:,:,IT) - State_Chm%Tracers(:,:,:,IT) )
-     &             / DTIME 
+               TMP3D = ( BEFORE(:,:,:,IT) - State_Chm%Tracers(:,:,:,IT))
+     &               / DTIME 
 
                ! Convert to kg/s:
-               TMP = TMP * State_Met%AD / Input_Opt%TCVV(IT) 
+               TMP3D = TMP3D * State_Met%AD / Input_Opt%TCVV(IT) 
+               TMP2D = SUM(TMP3D,DIM=3) 
 
                ! Update diagnostics. Pass 3D array. Will be collapsed to
                ! column total in Diagn_Update.
                cID = 38000 + IT
                CALL Diagn_Update ( am_I_Root,
      &                             cID     = cID,
-     &                             Array3D = TMP,
+     &                             Array2D = TMP2D,
      &                             COL     = Input_Opt%DIAG_COLLECTION,
+     &                             PosOnly = .TRUE.,
      &                             RC      = HCRC )
                IF ( HCRC /= HCO_SUCCESS ) THEN
                   CALL ERROR_STOP ( 'Error updating conv loss diagn ' //
@@ -478,7 +481,7 @@
          ENDDO
 
          ! Cleanup
-         DEALLOCATE( BEFORE, TMP )
+         DEALLOCATE( BEFORE, TMP3D, TMP2D )
       ENDIF
 #endif
 

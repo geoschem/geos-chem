@@ -291,7 +291,8 @@
 #if   defined( DEVEL )
       INTEGER                :: N, cID, HCRC
       REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
-      REAL(fp), POINTER      :: TMP(:,:,:) => NULL()
+      REAL(fp), POINTER      :: TMP3D(:,:,:) => NULL()
+      REAL(fp), POINTER      :: TMP2D(:,:  ) => NULL()
       REAL(fp)               :: DT
 #endif
 
@@ -392,7 +393,7 @@
          DT = GET_TS_DYN() * 60e+0_fp
 
          ! Allocate temporary pointer
-         ALLOCATE(TMP(IIPAR,JJPAR,LLPAR))
+         ALLOCATE(TMP3D(IIPAR,JJPAR,LLPAR),TMP2D(IIPAR,JJPAR))
         
          ! Loop over all tracers
          DO N = 1, Input_Opt%N_TRACERS
@@ -401,15 +402,17 @@
             IF ( ANY( Input_Opt%TINDEX(39,:) == N ) ) THEN
 
                ! Loss rate (kg/s)
-               TMP = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N) ) 
+               TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N) ) 
      &             / DT 
+               TMP2D = SUM(TMP3D,DIM=3)
 
                ! Update diagnostics
                cID = 39000 + N
                CALL Diagn_Update ( am_I_Root,
      &                             cID     = cID,
-     &                             Array3D = TMP,
+     &                             Array2D = TMP2D,
      &                             COL     = Input_Opt%DIAG_COLLECTION,
+     &                             PosOnly = .TRUE., 
      &                             RC      = HCRC )
                IF ( HCRC /= HCO_SUCCESS ) THEN
                   CALL ERROR_STOP ( 'Error updating wetscav diagn ' // 
@@ -420,7 +423,7 @@
          ENDDO
 
          ! Cleanup
-         DEALLOCATE( BEFORE, TMP )
+         DEALLOCATE( BEFORE, TMP3D, TMP2D )
       ENDIF
 #endif
 

@@ -103,7 +103,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+  SUBROUTINE EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, EmisTime,  Phase,     RC ) 
 !
 ! !USES:
 !
@@ -132,10 +133,12 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
+    LOGICAL,          INTENT(IN   )  :: EmisTime   ! Emissions in this time step? 
+    INTEGER,          INTENT(IN   )  :: Phase      ! Run phase 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(MetState),   INTENT(INOUT)  :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state 
     TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
@@ -160,88 +163,88 @@ CONTAINS
     ! Assume success
     RC = GIGC_SUCCESS
 
-    ! Run HEMCO
-    CALL HCOI_GC_RUN( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+    ! Run HEMCO. Phase 1 will only update the HEMCO clock and the 
+    ! HEMCO data list, phase 2 will perform the emission calculations.
+    CALL HCOI_GC_RUN( am_I_Root, Input_Opt, State_Met, State_Chm, & 
+                      EmisTime,  Phase,     RC                     ) 
     IF ( RC /= GIGC_SUCCESS ) RETURN 
  
-!    ! PBL mixing is not applied to dust emissions. Instead, they become 
-!    ! directly added to the tracer arrays.
-!    CALL DUSTMIX( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!    IF ( RC /= GIGC_SUCCESS ) RETURN 
+    ! The following only needs to be done in phase 2
+    IF ( Phase /= 1 ) THEN 
 
-    ! Call carbon emissions module to make sure that sesquiterpene
-    ! emissions calculated in HEMCO (SESQ) are passed to the internal
-    ! species array in carbon, as well as to ensure that POA emissions
-    ! are correctly treated.
-    CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN 
-
-    ! For CO2 simulation, emissions are not added to Trac_Tend and hence
-    ! not passed to the Tracers array during PBL mixing. Thus, need to add 
-    ! emissions explicitly to the tracers array here.
-    IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
-       CALL EMISSCO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+       ! Call carbon emissions module to make sure that sesquiterpene
+       ! emissions calculated in HEMCO (SESQ) are passed to the internal
+       ! species array in carbon, as well as to ensure that POA emissions
+       ! are correctly treated.
+       CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN 
-    ENDIF
-
-    ! For CH4 simulation or if CH4 is defined, call EMISSCH4. 
-    ! This will get the individual CH4 emission terms (gas, coal, wetlands, 
-    ! ...) and write them into the individual emissions arrays defined in
-    ! global_ch4_mod (CH4_EMIS), from where the final emission array is
-    ! assembled and passed to STT or Trac_Tend.
-    ! This is a wrapper for backwards consistency, in particular for the
-    ! ND58 diagnostics.
-    IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
-       ( IDTCH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
-       CALL EMISSCH4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN 
-    ENDIF
-
-    ! For UCX, use Seb's routines for stratospheric species for now.
+   
+       ! For CO2 simulation, emissions are not added to STT in mixing_mod.F90 
+       ! because the HEMCO CO2 species are not GEOS-Chem tracers. The emissions
+       ! thus need to be added explicitly, which is done in EMISSCO2.
+       IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
+          CALL EMISSCO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+          IF ( RC /= GIGC_SUCCESS ) RETURN 
+       ENDIF
+   
+       ! For CH4 simulation or if CH4 is defined, call EMISSCH4. 
+       ! This will get the individual CH4 emission terms (gas, coal, wetlands, 
+       ! ...) and write them into the individual emissions arrays defined in
+       ! global_ch4_mod (CH4_EMIS). Emissions are all done in mixing_mod, the
+       ! call to EMISSCH4 is for backwards consistency, in particular for the
+       ! ND58 diagnostics.
+       IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
+          ( IDTCH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
+          CALL EMISSCH4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+          IF ( RC /= GIGC_SUCCESS ) RETURN 
+       ENDIF
+   
+       ! For UCX, use Seb's routines for stratospheric species for now.
 #if defined( UCX )
-    IF ( Input_Opt%LBASICEMIS ) THEN
-       CALL EMISS_BASIC( am_I_Root, Input_Opt, State_Met, State_Chm )
-    ENDIF
+       IF ( Input_Opt%LBASICEMIS ) THEN
+          CALL EMISS_BASIC( am_I_Root, Input_Opt, State_Met, State_Chm )
+       ENDIF
 #endif
 
-    ! For mercury, use old emissions code for now
-    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-       CALL EMISSMERCURY ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-    ENDIF
+       ! For mercury, use old emissions code for now
+       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+          CALL EMISSMERCURY ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+       ENDIF
 
-    ! Prescribe some concentrations if needed
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+       ! Prescribe some concentrations if needed
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
   
-       ! tracer array is in kg, not v/v
-       IsInVV = .FALSE.
+          ! tracer array is in kg, not v/v
+          IsInVV = .FALSE.
+    
+          !========================================================
+          !jpp, 2/12/08: putting a call to SET_CH3Br
+          !              which is in bromocarb_mod.f
+          !       ***** Fix CH3Br Concentration in PBL *****
+          ! Kludge: eventually I want to keep the concentration
+          !         entirely fixed! Ask around on how to...
+          !========================================================
+          IF ( Input_Opt%LEMIS .AND. ( IDTCH3Br > 0 ) ) THEN
+             CALL SET_CH3BR( am_I_Root, Input_Opt, State_Met, &
+                             IsInVV,    State_Chm, RC )
+          ENDIF
+   
+          ! ----------------------------------------------------
+          ! If selected in input.geos, then set the MBL
+          ! concentration of BrO equal to 1 pptv during daytime.
+          ! ----------------------------------------------------
+          IF ( Input_Opt%LEMIS .AND. ( IDTBrO > 0 ) ) THEN
+             CALL SET_BRO( am_I_Root, Input_Opt, State_Met, & 
+                           IsInVV,    State_Chm, RC          )
+          ENDIF
+   
+       ENDIF
+    ENDIF ! Phase/=1  
  
-       !========================================================
-       !jpp, 2/12/08: putting a call to SET_CH3Br
-       !              which is in bromocarb_mod.f
-       !       ***** Fix CH3Br Concentration in PBL *****
-       ! Kludge: eventually I want to keep the concentration
-       !         entirely fixed! Ask around on how to...
-       !========================================================
-       IF ( Input_Opt%LEMIS .AND. ( IDTCH3Br > 0 ) ) THEN
-          CALL SET_CH3BR( am_I_Root, Input_Opt, State_Met, &
-                          IsInVV,    State_Chm, RC )
-       ENDIF
-
-       ! ----------------------------------------------------
-       ! If selected in input.geos, then set the MBL
-       ! concentration of BrO equal to 1 pptv during daytime.
-       ! ----------------------------------------------------
-       IF ( Input_Opt%LEMIS .AND. ( IDTBrO > 0 ) ) THEN
-          CALL SET_BRO( am_I_Root, Input_Opt, State_Met, & 
-                        IsInVV,    State_Chm, RC          )
-       ENDIF
-
-    ENDIF
-
     ! Return w/ success
     RC = GIGC_SUCCESS
-
-  END SUBROUTINE EMISSIONS_RUN
+   
+   END SUBROUTINE EMISSIONS_RUN
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
