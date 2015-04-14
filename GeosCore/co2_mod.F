@@ -244,30 +244,19 @@
       REAL(fp), POINTER        :: STT(:,:,:,:) => NULL()
 
       ! For values from Input_Opt
-      LOGICAL                :: LGENFF
-      LOGICAL                :: LANNFF
-      LOGICAL                :: LMONFF
+      LOGICAL                :: LFOSSIL
       LOGICAL                :: LCHEMCO2
-!      LOGICAL                :: LSEASBB
-      LOGICAL                :: LBIODAILY
       LOGICAL                :: LBIODIURNAL
-      LOGICAL                :: LBIONETORIG
       LOGICAL                :: LBIONETCLIM
-      LOGICAL                :: LOCN1997
-      LOGICAL                :: LOCN2009ANN
-      LOGICAL                :: LOCN2009MON
-      LOGICAL                :: LSHIPEDG
-      LOGICAL                :: LSHIPICO
+      LOGICAL                :: LOCEAN
+      LOGICAL                :: LSHIP
       LOGICAL                :: LPLANE
       LOGICAL                :: LFFBKGRD
       LOGICAL                :: LBIOSPHTAG
       LOGICAL                :: LFOSSILTAG
       LOGICAL                :: LSHIPTAG
       LOGICAL                :: LPLANETAG
-!      LOGICAL                :: LBIOFUEL
-!      LOGICAL                :: LGFED2BB
-!      LOGICAL                :: LGFED3BB
-!      LOGICAL                :: L8DAYBB
+
       INTEGER                :: N_TRACERS
 
 !      ! External functions     
@@ -301,30 +290,18 @@
       RC          = GIGC_SUCCESS
 
       ! Copy values from Input_Opt
-      LGENFF      = Input_Opt%LGENFF
-      LANNFF      = Input_Opt%LANNFF
-      LMONFF      = Input_Opt%LMONFF
+      LFOSSIL    = Input_Opt%LFOSSIL
       LCHEMCO2    = Input_Opt%LCHEMCO2
-!      LSEASBB     = Input_Opt%LSEASBB
-!      LBIOFUEL    = Input_Opt%LBIOFUEL
-      LBIODAILY   = Input_Opt%LBIODAILY
       LBIODIURNAL = Input_Opt%LBIODIURNAL
-      LBIONETORIG = Input_Opt%LBIONETORIG
       LBIONETCLIM = Input_Opt%LBIONETCLIM
-      LOCN1997    = Input_Opt%LOCN1997
-      LOCN2009ANN = Input_Opt%LOCN2009ANN
-      LOCN2009MON = Input_Opt%LOCN2009MON
-      LSHIPEDG    = Input_Opt%LSHIPEDG
-      LSHIPICO    = Input_Opt%LSHIPICO
+      LOCEAN      = Input_Opt%LOCEAN
+      LSHIP       = Input_Opt%LSHIP
       LPLANE      = Input_Opt%LPLANE
       LFFBKGRD    = Input_Opt%LFFBKGRD
       LBIOSPHTAG  = Input_Opt%LBIOSPHTAG
       LFOSSILTAG  = Input_Opt%LFOSSILTAG
       LSHIPTAG    = Input_Opt%LSHIPTAG
       LPLANETAG   = Input_Opt%LPLANETAG
-!      LGFED2BB    = Input_Opt%LGFED2BB
-!      LGFED3BB    = Input_Opt%LGFED3BB
-!      L8DAYBB     = Input_Opt%L8DAYBB
       N_TRACERS   = Input_Opt%N_TRACERS
   
       ! Import emissions from HEMCO (through HEMCO state)
@@ -393,88 +370,6 @@
 ! (ckeller, 08/27/2014)
 !==============================================================================
 
-!------------------------------------------------------------------------------
-!      ! Read monthly-mean biomass burning emissions
-!      IF ( LBIOBRNCO2 .and. ITS_A_NEW_MONTH() ) THEN 
-!         CALL READ_MONTH_BIOBRN_CO2( MONTH, YEAR )
-!      ENDIF
-!  This requires a subroutine called READ_MONTH_BIOBRN_CO2 
-!  GFEDv2 biomass burning emissions are a better choice !Ray Nassar
-!
-!------------------------------------------------------------------------------
-!  At present, biomass burning emissions are dealt with in the following way:
-!
-!  1)  main.f calls do_emissions in emissions.f
-!  2)  do_emissions calls compute_biomass_emissions in biomass_mod.f
-!  3a) compute_biomass_emissions calls gfed2_compute_biomass 
-!      in gfed2_biomass_mod.f
-!               ** OR **
-!  3b) compute_biomass_emissions calls gfed3_compute_biomass 
-!      in gfed3_biomass_mod.f
-!               ** OR **
-!  3c) compute_biomass_emissions calls gc_read_biomass_co2 in gc_biomass_mod.f
-!------------------------------------------------------------------------------
-!
-!      ! Check if Balanced Biosphere emissions are required  
-!      IF ( LBIOCO2 ) THEN  
-!         ! If LUSECASANEP is TRUE ...
-!         IF ( LUSECASANEP ) THEN
-!
-!      !----------------------------------------------------------------
-!      ! Read in 3-hourly or daily balanced biosphere data
-!      !----------------------------------------------------------------
-!      IF ( LBIODIURNAL ) THEN
-!
-!         write(*,*) '*** USING DIURNAL CASA NEP ***'
-!
-!         ! ... then use 3-hourly NEP emissions for Bal Bio ...
-!         IF ( MOD( HOUR, 3 ) == 0 ) THEN
-!            CALL READ_BBIO_DIURNALCYCLE( MONTH, DAY, HOUR, DOY )
-!         ENDIF
-!         
-!      ELSEIF ( LBIODAILY ) THEN
-!
-!         ! ... otherwise use constant daily emissions of NEP for Bal Bio
-!         IF ( ITS_A_NEW_DAY() ) THEN
-!            CALL READ_BBIO_DAILYAVERAGE( MONTH, DAY, DOY ) 
-!         ENDIF
-!         
-!      ENDIF
-!
-!      !----------------------------------------------------------------
-!      ! Fluxes with "possible" monthly variability are called below
-!      ! In some cases the annual file is just called at the start 
-!      ! of the month
-!      !----------------------------------------------------------------
-!      IF ( ITS_A_NEW_MONTH() ) THEN 
-!	
-!         ! Fossil fuel emissions
-!         IF ( LMONFF .OR. LANNFF .OR. LGENFF ) THEN
-!            CALL READ_FOSSILCO2( am_I_Root, Input_Opt, RC )
-!         ENDIF
-!                               
-!         ! Oceanic exchange
-!         IF ( LOCN1997 .OR. LOCN2009ANN .OR. LOCN2009MON ) THEN
-!            CALL READ_OCEANCO2( am_I_Root, Input_Opt, RC )
-!         ENDIF
-!
-!         ! Ship emissions from EDGAR
-!         IF ( LSHIPEDG ) CALL READ_SHIPCO2_EDGAR
-!
-!         ! Ship emissions from ICOADS
-!         IF ( LSHIPICO ) CALL READ_SHIPCO2_ICOADS
-! 
-!         ! Aircraft CO2 emissions
-!         IF ( LPLANE   ) CALL READ_AVIATION_CO2( State_Met )
-!		
-!         ! Get chemical source   ! dbj
-!         IF ( LCHEMCO2 ) THEN
-!            CALL READ_CHEMCO2
-!            CALL CHEM_SURF( am_I_Root, Input_Opt, RC )
-!            CHEMSRC = CHEMCO2
-!         ENDIF
-!      ENDIF
-
       !=================================================================
       ! Process emissions and save diagnostics
       !=================================================================
@@ -491,7 +386,7 @@
          ! #1: Total CO2
          ! #2: CO2 from fossil fuel emissions 
          !-------------------------------------------
-         IF ( LGENFF .or. LANNFF .or. LMONFF ) THEN
+         IF ( LFOSSIL ) THEN
 
             IF ( IDff < 1 ) CALL ERROR_STOP('CO2ff not defined',LOC)
 
@@ -545,7 +440,7 @@
          !-------------------------------------------
          ! #3: CO2 from ocean exchange
          !-------------------------------------------
-         IF ( LOCN1997 .or. LOCN2009ANN .or. LOCN2009MON ) THEN
+         IF ( LOCEAN ) THEN
 
             ! Ocean CO2 emissions in [molec/cm2/s]
 !            E_CO2          = EMOCCO2(I,J)
@@ -586,7 +481,7 @@
          !-------------------------------------------
          ! #4: CO2 from balanced biosphere emissions
          !-------------------------------------------
-         IF ( LBIODAILY .OR. LBIODIURNAL ) THEN
+         IF ( LBIODIURNAL ) THEN
 
 !            ! Balanced biosphere CO2 [molec/cm2/s]
 !            E_CO2         = EMBIOCO2(I,J)
@@ -705,7 +600,7 @@
          !-------------------------------------------
          ! #7: CO2 from net terrestrial exchange
          !-------------------------------------------
-         IF ( LBIONETORIG .OR. LBIONETCLIM ) THEN
+         IF ( LBIONETCLIM ) THEN
 
 !            ! CO2 from net terrestrial exchange [molec/cm2/s]
 !            E_CO2          = EMBIONETCO2(I,J)
@@ -747,7 +642,7 @@
          !-------------------------------------------
          ! #8: CO2 from ship emissions
          !-------------------------------------------
-         IF ( LSHIPEDG .OR. LSHIPICO ) THEN
+         IF ( LSHIP ) THEN
 
 !            ! Ship CO2 emissions [molec/cm2/s]
 !            E_CO2          = EMSHIPCO2(I,J)
@@ -1608,16 +1503,16 @@
       INTEGER          :: AS
 
       ! For values from Input_Opt
-      LOGICAL          :: LGENFF,      LANNFF,      LMONFF
-      LOGICAL          :: LCHEMCO2,    LBIODAILY,   LBIODIURNAL
-      LOGICAL          :: LBIONETORIG, LBIONETCLIM, LOCN1997
-      LOGICAL          :: LOCN2009ANN, LOCN2009MON, LSHIPEDG
-      LOGICAL          :: LSHIPICO,    LPLANE,      LFFBKGRD
+      LOGICAL          :: LFOSSIL
+      LOGICAL          :: LCHEMCO2
+	LOGICAL          :: LBIODIURNAL
+      LOGICAL          :: LBIONETCLIM
+      LOGICAL          :: LOCEAN
+      LOGICAL          :: LSHIP
+      LOGICAL          :: LPLANE
+      LOGICAL          :: LFFBKGRD
       LOGICAL          :: LBIOSPHTAG,  LFOSSILTAG,  LSHIPTAG
       LOGICAL          :: LPLANETAG
-!      LOGICAL          :: LPLANETAG,   LSTREETS,    LSEASBB
-!      LOGICAL          :: LGFED2BB,    L8DAYBB,     LBIOFUEL
-!      LOGICAL          :: LGFED3BB
 !      INTEGER          :: N_TRACERS
 
       !=================================================================
@@ -1631,19 +1526,12 @@
       IF ( IS_INIT ) RETURN
 	
       ! Copy values from Input_Opt
-      LGENFF      = Input_Opt%LGENFF
-      LANNFF      = Input_Opt%LANNFF
-      LMONFF      = Input_Opt%LMONFF
+      LFOSSIL      = Input_Opt%LFOSSIL
       LCHEMCO2    = Input_Opt%LCHEMCO2
-      LBIODAILY   = Input_Opt%LBIODAILY
       LBIODIURNAL = Input_Opt%LBIODIURNAL
-      LBIONETORIG = Input_Opt%LBIONETORIG
       LBIONETCLIM = Input_Opt%LBIONETCLIM
-      LOCN1997    = Input_Opt%LOCN1997
-      LOCN2009ANN = Input_Opt%LOCN2009ANN
-      LOCN2009MON = Input_Opt%LOCN2009MON
-      LSHIPEDG    = Input_Opt%LSHIPEDG
-      LSHIPICO    = Input_Opt%LSHIPICO
+      LOCEAN      = Input_Opt%LOCEAN
+      LSHIP       = Input_Opt%LSHIP
       LPLANE      = Input_Opt%LPLANE
       LFFBKGRD    = Input_Opt%LFFBKGRD
       LBIOSPHTAG  = Input_Opt%LBIOSPHTAG

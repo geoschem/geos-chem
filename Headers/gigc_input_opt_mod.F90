@@ -223,20 +223,12 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      ! CO2 MENU fields
      !----------------------------------------
-     LOGICAL                     :: LGENFF
-     LOGICAL                     :: LANNFF
-     LOGICAL                     :: LMONFF
+     LOGICAL                     :: LFOSSIL
      LOGICAL                     :: LCHEMCO2
-     LOGICAL                     :: LSEASBB
-     LOGICAL                     :: LBIODAILY
      LOGICAL                     :: LBIODIURNAL
-     LOGICAL                     :: LBIONETORIG
      LOGICAL                     :: LBIONETCLIM
-     LOGICAL                     :: LOCN1997
-     LOGICAL                     :: LOCN2009ANN
-     LOGICAL                     :: LOCN2009MON
-     LOGICAL                     :: LSHIPEDG
-     LOGICAL                     :: LSHIPICO
+     LOGICAL                     :: LOCEAN
+     LOGICAL                     :: LSHIP
      LOGICAL                     :: LPLANE
      LOGICAL                     :: LFFBKGRD
      LOGICAL                     :: LBIOSPHTAG
@@ -943,21 +935,13 @@ CONTAINS
     !----------------------------------------
     ! CO2 MENU fields
     !----------------------------------------
-    Input_Opt%LGENFF                 = .FALSE.
-    Input_Opt%LANNFF                 = .FALSE.
-    Input_Opt%LMONFF                 = .FALSE.
+    Input_Opt%LFOSSIL                = .FALSE.
     Input_Opt%LCHEMCO2               = .FALSE.
-    Input_Opt%LSEASBB                = .FALSE.
     Input_Opt%LBIOFUEL               = .FALSE.
-    Input_Opt%LBIODAILY              = .FALSE.
     Input_Opt%LBIODIURNAL            = .FALSE.
-    Input_Opt%LBIONETORIG            = .FALSE.
     Input_Opt%LBIONETCLIM            = .FALSE.
-    Input_Opt%LOCN1997               = .FALSE.
-    Input_Opt%LOCN2009ANN            = .FALSE.
-    Input_Opt%LOCN2009MON            = .FALSE.
-    Input_Opt%LSHIPEDG               = .FALSE.
-    Input_Opt%LSHIPICO               = .FALSE.
+    Input_Opt%LOCEAN                 = .FALSE.
+    Input_Opt%LSHIP                  = .FALSE.
     Input_Opt%LPLANE                 = .FALSE.
     Input_Opt%LFFBKGRD               = .FALSE.
     Input_Opt%LBIOSPHTAG             = .FALSE.
