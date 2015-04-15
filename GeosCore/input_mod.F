@@ -54,12 +54,6 @@
       PRIVATE :: READ_PROD_LOSS_MENU 
       PRIVATE :: READ_UNIX_CMDS_MENU
       PRIVATE :: READ_NESTED_GRID_MENU
-!----------------------------------------------------------------------------
-! Prior to 3/13/15:
-! HEMCO has made these routines obsolete (bmy, 3/13/15)
-!      PRIVATE :: READ_ARCHIVED_OH_MENU
-!      PRIVATE :: READ_O3PL_MENU
-!----------------------------------------------------------------------------
       PRIVATE :: READ_BENCHMARK_MENU  
       PRIVATE :: READ_CH4_MENU
       PRIVATE :: VALIDATE_DIRECTORIES  
@@ -239,6 +233,8 @@
 !  04 Apr 2013 - R. Yantosca - Now pass objects to DO_GAMAP routine
 !  23 Jun 2014 - R. Yantosca - Now do not call INIT_INPUT, this is replaced
 !                              by the INIT_GIGC_INPUT_OPT routine
+!  15 Apr 2015 - R. Yantosca - Also define Input_Opt%ITS_A_NESTED_GRID here
+!                              so that we can pass it to INITIALIZE_GEOS_GRID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -903,9 +899,6 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
 
-
-      ! 
-
       !=================================================================
       ! Add safety checks for logical switches
       !=================================================================
@@ -968,6 +961,14 @@
       Input_Opt%LWAIT         = LWAIT
       Input_Opt%LVARTROP      = LVARTROP
 
+      !=================================================================
+      ! Determine if we are running a nested-grid simulation based on
+      ! the settings of the C-preprocessor switches.  We have to set
+      ! this here before the call to INITIALIZE_GEOS_GRID below.
+      !=================================================================
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_SE) || defined( SEAC4RS )
+      Input_Opt%ITS_A_NESTED_GRID = .TRUE.
+#endif
       ! Return success
       RC = GIGC_SUCCESS
 
@@ -1009,6 +1010,8 @@
          WRITE( 6, 120 ) 'Unzip met fields?           : ', LUNZIP
          WRITE( 6, 120 ) 'Wait for met fields?        : ', LWAIT
          WRITE( 6, 120 ) 'Use variable tropopause?    : ', LVARTROP
+         WRITE( 6, 120 ) 'Is this a nested-grid sim?  : ', 
+     &                    Input_Opt%ITS_A_NESTED_GRID
          WRITE( 6, 130 ) 'Global offsets I0, J0       : ', 
      &                    Input_Opt%NESTED_I0, 
      &                    Input_Opt%NESTED_J0
@@ -1161,11 +1164,11 @@
       !-----------------------------
       JSP           = 1                  ! Lat index of S Pole
       JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 5.0e+0_fp              ! Delta-longitude array [degrees]
-      DLAT          = 4.0e+0_fp              ! Delta-latitude array [degrees]
+      DLON          = 5.0e+0_fp          ! Delta-longitude array [degrees]
+      DLAT          = 4.0e+0_fp          ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-      DLAT(:,JSP,:) = 2.0e+0_fp              !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 2.0e+0_fp              !  Half-sized N Pole boxes
+      DLAT(:,JSP,:) = 2.0e+0_fp          !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 2.0e+0_fp          !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID2x25 )
@@ -1175,11 +1178,11 @@
       !-----------------------------
       JSP           = 1                  ! Lat index of S Pole
       JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 2.5e+0_fp              ! Delta-longitude array [degrees]
-      DLAT          = 2.0e+0_fp              ! Delta-latitude array [degrees]
+      DLON          = 2.5e+0_fp          ! Delta-longitude array [degrees]
+      DLAT          = 2.0e+0_fp          ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-      DLAT(:,JSP,:) = 1.0e+0_fp              !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 1.0e+0_fp              !  Half-sized N Pole boxes
+      DLAT(:,JSP,:) = 1.0e+0_fp          !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 1.0e+0_fp          !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID1x125 )
@@ -1189,11 +1192,11 @@
       !-----------------------------
       JSP           = 1                  ! Lat index of S Pole
       JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 1.25e+0_fp             ! Delta-longitude array [degrees]
-      DLAT          = 1.0e+0_fp              ! Delta-latitude array [degrees]
+      DLON          = 1.25e+0_fp         ! Delta-longitude array [degrees]
+      DLAT          = 1.0e+0_fp          ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-      DLAT(:,JSP,:) = 0.5e+0_fp              !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 0.5e+0_fp              !  Half-sized N Pole boxes
+      DLAT(:,JSP,:) = 0.5e+0_fp          !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 0.5e+0_fp          !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID1x1 )
@@ -1203,11 +1206,11 @@
       !-----------------------------
       JSP           = 1                  ! Lat index of S Pole
       JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 1.0e+0_fp              ! Delta-longitude array [degrees]
-      DLAT          = 1.0e+0_fp              ! Delta-latitude array [degrees]
+      DLON          = 1.0e+0_fp          ! Delta-longitude array [degrees]
+      DLAT          = 1.0e+0_fp          ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-      DLAT(:,JSP,:) = 0.5e+0_fp              !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 0.5e+0_fp              !  Half-sized N Pole boxes
+      DLAT(:,JSP,:) = 0.5e+0_fp          !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 0.5e+0_fp          !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID05x0666 )
@@ -1217,8 +1220,8 @@
       !-----------------------------
       JSP           = 0                  ! Lat index of S Pole
       JNP           = 0                  ! Lat index of N pole
-      DLON          = 2e+0_fp/3e+0_fp            ! Delta-longitude array [degrees]
-      DLAT          = 0.5e+0_fp              ! Delta-latitude array [degrees]
+      DLON          = 2e+0_fp/3e+0_fp    ! Delta-longitude array [degrees]
+      DLAT          = 0.5e+0_fp          ! Delta-latitude array [degrees]
 
 #elif defined( GRID025x03125 )
 
@@ -1227,8 +1230,8 @@
       !-----------------------------
       JSP           = 0                  ! Lat index of S Pole
       JNP           = 0                  ! Lat index of N pole
-      DLON          = 0.3125e+0_fp           ! Delta-longitude array [degrees]
-      DLAT          = 0.25e+0_fp             ! Delta-latitude array [degrees]
+      DLON          = 0.3125e+0_fp       ! Delta-longitude array [degrees]
+      DLAT          = 0.25e+0_fp         ! Delta-latitude array [degrees]
 
 #elif defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 
@@ -1250,6 +1253,7 @@
 
       ! Allocate module arrays in grid_mod.F90
       CALL Init_Grid   ( am_I_Root = am_I_Root,     ! Are we on the root CPU?
+     &                   Input_Opt = Input_Opt,     ! Input Options object
      &                   IM        = IIPAR,         ! # of lons on this CPU
      &                   JM        = JJPAR,         ! # of lats on this CPU
      &                   LM        = LLPAR,         ! # of levs on this CPU
@@ -6931,6 +6935,7 @@
       INTEGER            :: I0W,         J0W,         I1 
       INTEGER            :: I2,          J1,          J2
       INTEGER            :: N,           TS
+      INTEGER            :: I0E,         J0E
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -6999,9 +7004,16 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:15' )
       READ( SUBSTRS(1:N), * ) I2, J2
 
-      ! 1x1 transport region offsets 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:16' )
-      READ( SUBSTRS(1:N), * ) I0W, J0W     
+!-----------------------------------------------------------------------------
+! Prior to 4/1/15:
+!      ! 1x1 transport region offsets 
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:16' )
+!      READ( SUBSTRS(1:N), * ) I0W, J0W
+!-----------------------------------------------------------------------------
+
+      ! Nested grid transport offsets 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'read_nested_grid_menu:16' )
+      READ( SUBSTRS(1:N), * ) I0W, J0W, I0E, J0E
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:15' )
@@ -7009,20 +7021,22 @@
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
-      Input_Opt%LWINDO      = LWINDO
-      Input_Opt%LWINDO2x25  = LWINDO2x25
-      Input_Opt%LWINDO_NA   = LWINDO_NA
-      Input_Opt%LWINDO_EU   = LWINDO_EU
-      Input_Opt%LWINDO_CH   = LWINDO_CH
-      Input_Opt%LWINDO_SE   = LWINDO_SE
-      Input_Opt%LWINDO_CU   = LWINDO_CU
-      Input_Opt%NESTED_TS   = TS
-      Input_Opt%NESTED_I1   = I1
-      Input_Opt%NESTED_J1   = J1
-      Input_Opt%NESTED_I2   = I2
-      Input_Opt%NESTED_J2   = J2
-      Input_Opt%NESTED_I0W  = I0W
-      Input_Opt%NESTED_J0W  = J0W
+      Input_Opt%LWINDO     = LWINDO
+      Input_Opt%LWINDO2x25 = LWINDO2x25
+      Input_Opt%LWINDO_NA  = LWINDO_NA
+      Input_Opt%LWINDO_EU  = LWINDO_EU
+      Input_Opt%LWINDO_CH  = LWINDO_CH
+      Input_Opt%LWINDO_SE  = LWINDO_SE
+      Input_Opt%LWINDO_CU  = LWINDO_CU
+      Input_Opt%NESTED_TS  = TS
+      Input_Opt%NESTED_I1  = I1
+      Input_Opt%NESTED_J1  = J1
+      Input_Opt%NESTED_I2  = I2
+      Input_Opt%NESTED_J2  = J2
+      Input_Opt%NESTED_I0W = I0W
+      Input_Opt%NESTED_J0W = J0W
+      Input_Opt%NESTED_I0E = I0E
+      Input_Opt%NESTED_J0E = J0E
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -7039,20 +7053,22 @@
          WRITE( 6, 120 ) 'Timestep for 4x5 BC''s [min] : ', TS
          WRITE( 6, 120 ) 'Bot left  box of 4x5 BC area : ', I1,  J1
          WRITE( 6, 120 ) 'Top right box of 4x5 BC area : ', I2,  J2
-         WRITE( 6, 120 ) '1 x 1 window offsets         : ', I0W, J0W
+         WRITE( 6, 130 ) 'Nested grid window offsets   : ', I0W, J0W,
+     &                                                      I0E, J0E
       END IF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
  110  FORMAT( A, A   )
  120  FORMAT( A, 2I5 )
+ 130  FORMAT( A, 4I5 )
     
       !=================================================================
       ! Call setup routines from other F90 modules
       !=================================================================
 
       ! Pass values to "tpcore_bc_mod.f"
-      CALL INIT_TPCORE_BC( TS, I0W, J0W, I1, J1, I2, J2, Input_Opt )
+      CALL INIT_TPCORE_BC( am_I_Root, Input_Opt, RC )
 
       END SUBROUTINE READ_NESTED_GRID_MENU
 !EOC

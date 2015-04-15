@@ -646,7 +646,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GCKPP_DRIVER( KTLOOP, JLOOPLO, R_KPP, NSPEC_GC ) 
+      SUBROUTINE GCKPP_DRIVER( KTLOOP, JLOOPLO, R_KPP, NSPEC_GC,
+     &                         Input_Opt ) 
 !
 ! !USES:
 !
@@ -654,6 +655,7 @@
       USE COMODE_MOD,           ONLY : IXSAVE, IYSAVE,    IZSAVE
       USE GCKPP_COMODE_MOD,     ONLY : HSAVE_KPP 
       USE TIME_MOD,             ONLY : GET_TS_CHEM
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GCKPP_UTIL,           ONLY : SHUFFLE_KPP2USER
       USE GCKPP_INITIALIZE,     ONLY : INITIALIZE
       USE GCKPP_MODEL
@@ -663,15 +665,22 @@
       USE GCKPP_FUNCTION
       USE ERROR_MOD,            ONLY : ERROR_STOP
       USE GCKPP_INTEGRATOR,     ONLY : NHNEW, NHEXIT, INTEGRATE
+      USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: KTLOOP       ! Local loop index
-      INTEGER, INTENT(IN) :: JLOOPLO      ! JLOOPLO + KLOOP = JLOOP
-      REAL(fp),  INTENT(IN) :: R_KPP(:,:)   ! Array of reaction rates
-      INTEGER, INTENT(IN) :: NSPEC_GC     ! # of active chemical species
+      INTEGER,        INTENT(IN) :: KTLOOP       ! Local loop index
+      INTEGER,        INTENT(IN) :: JLOOPLO      ! JLOOPLO + KLOOP = JLOOP
+      REAL(fp),       INTENT(IN) :: R_KPP(:,:)   ! Array of reaction rates
+      INTEGER,        INTENT(IN) :: NSPEC_GC     ! # of active chemical species
+      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input Options object
 !
 ! !REMARKS:
+!  ############################################################################
+!  ###   NOTE: THIS ROUTINE WILL BE REPLACED WHEN FLEXCHEM IS ADDED TO    #####
+!  ###   GEOS-CHEM IN THE VERSION FOLLOWING GEOS-CHEM v10-01!             #####
+!  ############################################################################
+!
 !  Variables used to pass the last/first step size b/w call 
 !                                                                             .
 !  For Rosenbrock:
@@ -725,6 +734,7 @@
 !                              converge, we shall increase the tolerances
 !                              by a factor of 2 and try again.  This is often
 !                              needed to run GEOS-Chem in the GEOS-5 GCM.
+!  01 Apr 2015 - R. Yantosca - Skip chemistry in the nested-grid buffer zone
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -739,7 +749,7 @@
       REAL(kind=dp) :: RSTATE(20)
       LOGICAL, SAVE :: FIRST = .TRUE.
       CHARACTER(LEN=255) :: ERR_MSG
-      
+
       !=================================================================
 
       STEPMIN = 0.0e+0_fp
@@ -832,6 +842,14 @@
          I = IXSAVE(JLOOP)
          J = IYSAVE(JLOOP)
          L = IZSAVE(JLOOP)
+
+         ! Skipping buffer zone (lzh, 08/10/2014)
+         IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
+           IF ( J <=         Input_Opt%NESTED_J0W ) CYCLE
+           IF ( J >  JJPAR - Input_Opt%NESTED_J0E ) CYCLE
+           IF ( I <=         Input_Opt%NESTED_I0W ) CYCLE
+           IF ( I >  IIPAR - Input_Opt%NESTED_I0E ) CYCLE
+         ENDIF
 
          ! Pass tracer concentrations from CSPEC to KPP working vector V_CSPEC
          DO N =1, NVAR
