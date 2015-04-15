@@ -382,7 +382,7 @@ CONTAINS
           ! Lat centers (radians)
           YMDR(I,J,L)   = ( PI_180 * YMD(I,J,L)  )
 
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA )
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_SE )
 
           !----------------------------------------------------------------
           !              %%%%% FOR NESTED GRIDS ONLY %%%%%

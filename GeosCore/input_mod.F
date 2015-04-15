@@ -233,6 +233,8 @@
 !  04 Apr 2013 - R. Yantosca - Now pass objects to DO_GAMAP routine
 !  23 Jun 2014 - R. Yantosca - Now do not call INIT_INPUT, this is replaced
 !                              by the INIT_GIGC_INPUT_OPT routine
+!  15 Apr 2015 - R. Yantosca - Also define Input_Opt%ITS_A_NESTED_GRID here
+!                              so that we can pass it to INITIALIZE_GEOS_GRID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -897,9 +899,6 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
 
-
-      ! 
-
       !=================================================================
       ! Add safety checks for logical switches
       !=================================================================
@@ -962,6 +961,14 @@
       Input_Opt%LWAIT         = LWAIT
       Input_Opt%LVARTROP      = LVARTROP
 
+      !=================================================================
+      ! Determine if we are running a nested-grid simulation based on
+      ! the settings of the C-preprocessor switches.  We have to set
+      ! this here before the call to INITIALIZE_GEOS_GRID below.
+      !=================================================================
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_SE) || defined( SEAC4RS )
+      Input_Opt%ITS_A_NESTED_GRID = .TRUE.
+#endif
       ! Return success
       RC = GIGC_SUCCESS
 
@@ -1003,6 +1010,8 @@
          WRITE( 6, 120 ) 'Unzip met fields?           : ', LUNZIP
          WRITE( 6, 120 ) 'Wait for met fields?        : ', LWAIT
          WRITE( 6, 120 ) 'Use variable tropopause?    : ', LVARTROP
+         WRITE( 6, 120 ) 'Is this a nested-grid sim?  : ', 
+     &                    Input_Opt%ITS_A_NESTED_GRID
          WRITE( 6, 130 ) 'Global offsets I0, J0       : ', 
      &                    Input_Opt%NESTED_I0, 
      &                    Input_Opt%NESTED_J0
@@ -7028,10 +7037,6 @@
       Input_Opt%NESTED_J0W = J0W
       Input_Opt%NESTED_I0E = I0E
       Input_Opt%NESTED_J0E = J0E
-
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_SE) || defined( SEAC4RS )
-      Input_Opt%ITS_A_NESTED_GRID = .TRUE.
-#endif
 
       ! Return success
       RC = GIGC_SUCCESS
