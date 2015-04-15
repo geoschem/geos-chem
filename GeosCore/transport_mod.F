@@ -73,6 +73,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed "GEOS57" to "GEOSFP" in routine names
 !  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  15 Apr 2015 - R. Yantosca - Add TARGET spec to A_M2 array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -90,11 +91,11 @@
       ! (9 ) NG     (INTEGER) : For fvDAS TPCORE
       ! (10) N_ADJ  (INTEGER) : For fvDAS TPCORE
       !=================================================================
-      INTEGER             :: IORD,  JORD, KORD, JFIRST 
-      INTEGER             :: JLAST, NG,   MG,   N_ADJ
-      REAL(fp), ALLOCATABLE :: Ap(:)
-      REAL(fp), ALLOCATABLE :: A_M2(:)
-      REAL(fp), ALLOCATABLE :: Bp(:)
+      INTEGER                       :: IORD,  JORD, KORD, JFIRST 
+      INTEGER                       :: JLAST, NG,   MG,   N_ADJ
+      REAL(fp), ALLOCATABLE         :: Ap(:)
+      REAL(fp), ALLOCATABLE         :: Bp(:)
+      REAL(fp), ALLOCATABLE, TARGET :: A_M2(:)
 
       ! This seems to be obsolete ???
       !REAL(fp), ALLOCATABLE :: STT_BC2(:,:,:)
@@ -307,7 +308,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER          :: I, J, L, L2, N, N_DYN, N_TOT_TRC
+      INTEGER            :: I, J, L, L2, N, N_DYN, N_TOT_TRC
       REAL(fp)           :: A_DIFF, D_DYN, TR_DIFF
       REAL(fp)           :: AD_A(IIPAR,JJPAR,LLPAR)
       REAL(fp)           :: AD_B(IIPAR,JJPAR,LLPAR)
@@ -336,10 +337,10 @@
       REAL(fp)           :: SUMADA
 
       ! For fields from Input_Opt
-      LOGICAL          :: LFILL
-      LOGICAL          :: LPRT
-      LOGICAL          :: LWINDO
-      INTEGER          :: N_TRACERS
+      LOGICAL            :: LFILL
+      LOGICAL            :: LPRT
+      LOGICAL            :: LWINDO
+      INTEGER            :: N_TRACERS
       REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       !=================================================================
@@ -611,7 +612,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER          :: I, J, L, L2, N, N_DYN, N_TOT_TRC
+      INTEGER            :: I, J, L, L2, N, N_DYN, N_TOT_TRC
       REAL(fp)           :: A_DIFF, D_DYN, TR_DIFF
       REAL(fp)           :: AD_A(IIPAR,JJPAR,LLPAR)
       REAL(fp)           :: AD_B(IIPAR,JJPAR,LLPAR)
@@ -638,10 +639,10 @@
       REAL(fp),  POINTER :: p_STT  (:,:,:,:)
 
       ! For fields from Input_Opt
-      LOGICAL          :: LFILL
-      LOGICAL          :: LPRT
-      LOGICAL          :: LWINDO
-      INTEGER          :: N_TRACERS
+      LOGICAL            :: LFILL
+      LOGICAL            :: LPRT
+      LOGICAL            :: LWINDO
+      INTEGER            :: N_TRACERS
       REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! Variable to ensure mass conservation (ccc, 20/11/08)
@@ -924,8 +925,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER          :: I0,J0
-      INTEGER          :: I, J, L, L2, N, N_DYN, N_TOT_TRC
+      INTEGER            :: I0,J0
+      INTEGER            :: I, J, L, L2, N, N_DYN, N_TOT_TRC
       REAL(fp)           :: A_DIFF, D_DYN, TR_DIFF
       REAL(fp)           :: AD_A(IIPAR,JJPAR,LLPAR)
       REAL(fp)           :: AD_B(IIPAR,JJPAR,LLPAR)
@@ -951,10 +952,10 @@
       REAL(fp),  POINTER :: p_STT  (:,:,:,:)
 
       ! For fields from Input_Opt
-      LOGICAL          :: LFILL
-      LOGICAL          :: LPRT
-      LOGICAL          :: LWINDO
-      INTEGER          :: N_TRACERS
+      LOGICAL            :: LFILL
+      LOGICAL            :: LPRT
+      LOGICAL            :: LWINDO
+      INTEGER            :: N_TRACERS
       REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! Variable to ensure mass conservation (ccc, 20/11/08)
@@ -1177,6 +1178,7 @@
 !  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
 !  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !  01 Apr 2015 - L. Zhang    - Add updates to skip the window region
+!  15 Apr 2015 - R. Yantosca - Add more pointers to avoid array temporaries
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1189,9 +1191,9 @@
       REAL(fp)           :: A_DIFF, D_DYN, TR_DIFF
       REAL(fp)           :: AD_A(IIPAR,JJPAR,LLPAR)
       REAL(fp)           :: AD_B(IIPAR,JJPAR,LLPAR)
-      REAL(fp)           :: P_TP1(IIPAR,JJPAR)
-      REAL(fp)           :: P_TP2(IIPAR,JJPAR)
-      REAL(fp)           :: P_TEMP(IIPAR,JJPAR)
+      REAL(fp),  TARGET  :: P_TP1(IIPAR,JJPAR)
+      REAL(fp),  TARGET  :: P_TP2(IIPAR,JJPAR)
+      REAL(fp),  TARGET  :: P_TEMP(IIPAR,JJPAR)
       REAL(fp)           :: TR_A(IIPAR,JJPAR,LLPAR)
 #if   defined( APM )
       REAL(fp)           :: TR_B(IIPAR,JJPAR,LLPAR,
@@ -1204,11 +1206,18 @@
       REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR)
 
       ! Pointers
-      REAL(fp),  POINTER :: p_UWND (:,:,:  )
-      REAL(fp),  POINTER :: p_VWND (:,:,:  )
-      REAL(fp),  POINTER :: p_XMASS(:,:,:  )
-      REAL(fp),  POINTER :: p_YMASS(:,:,:  )
-      REAL(fp),  POINTER :: p_STT  (:,:,:,:)
+      REAL(fp),  POINTER :: p_A_M2  (  :    ) => NULL()
+      REAL(fp),  POINTER :: p_P_TP1 (:,:    ) => NULL()
+      REAL(fp),  POINTER :: p_P_TP2 (:,:    ) => NULL()
+      REAL(fp),  POINTER :: p_P_TEMP(:,:    ) => NULL()
+      REAL(fp),  POINTER :: p_UWND  (:,:,:  ) => NULL()
+      REAL(fp),  POINTER :: p_VWND  (:,:,:  ) => NULL()
+      REAL(fp),  POINTER :: p_XMASS (:,:,:  ) => NULL()
+      REAL(fp),  POINTER :: p_YMASS (:,:,:  ) => NULL()
+      REAL(fp),  POINTER :: p_MFLEW (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLNS (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLUP (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_STT   (:,:,:,:) => NULL()
 
       ! For fields from Input_Opt
       LOGICAL            :: LFILL
@@ -1334,13 +1343,6 @@
       CALL DO_WINDOW_TPCORE_BC( am_I_Root, Input_Opt, State_Chm, RC )
 
       ! Flip array indices in the vertical using pointer storage
-!-----------------------------------------------------------------------------
-!      p_UWND  => State_Met%U      (:,:,LLPAR:1:-1  )
-!      p_VWND  => State_Met%V      (:,:,LLPAR:1:-1  )
-!      p_STT   => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
-!      p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
-!      p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
-!-----------------------------------------------------------------------------
 
       ! Exclude the buffer zone (lzh, 4/1/2015)
       p_UWND  => State_Met%U(       I0_W1+1 : I0_W1+IM_W1,
@@ -1363,6 +1365,26 @@
      &                              J0_W1+1 : J0_W1+JM_W1,
      &                              LLPAR   : 1            : -1    )
 
+      p_P_TP1 => P_TP1(             I0_W1+1 : I0_W1+IM_W1, 
+     &                              J0_W1+1 : J0_W1+JM_W1          )
+
+      p_P_TP2 => P_TP2(             I0_W1+1 : I0_W1+IM_W1, 
+     &                              J0_W1+1 : J0_W1+JM_W1          )
+
+      p_P_TEMP => P_TEMP(           I0_W1+1 : I0_W1+IM_W1,
+     &                              J0_W1+1 : J0_W1+JM_W1          )
+
+      p_MFLEW => MASSFLEW(          I0_W1+1 : I0_W1+IM_W1,
+     &                              J0_W1+1 : J0_W1+JM_W1, :,    : )
+
+      p_MFLNS => MASSFLNS(          I0_W1+1 : I0_W1+IM_W1,
+     &                              J0_W1+1 : J0_W1+JM_W1, :,    : )
+
+      p_MFLUP => MASSFLUP(          I0_W1+1 : I0_W1+IM_W1,
+     &                              J0_W1+1 : J0_W1+JM_W1, :,    : )
+
+      p_A_M2  => A_M2(              J0_W1+1 : J0_W1+JM_W1          )
+
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -1370,8 +1392,8 @@
       ! (ccc, 3/8/10)
       ! Do the advection
 !------------------------------------------------------------------------------
-! Prior to 4/1/15:
-! Pass arguments that 
+! Prior to 4/15/15:
+! Now use pointers to avoid array temporaries (bmy, 4/15/15)
 !      CALL TPCORE_GEOSFP_WINDOW( D_DYN,    Re,        IIPAR,    JJPAR,
 !     &                           LLPAR,    JFIRST,    JLAST,    NG,
 !     &                           MG,       N_TOT_TRC, Ap,       Bp,
@@ -1383,25 +1405,18 @@
 !------------------------------------------------------------------------------
 
       CALL TPCORE_GEOSFP_WINDOW( 
-     &      D_DYN, Re, IM_W1, JM_W1, LLPAR, JFIRST,   JLAST,    NG,
-     &      MG,    N_TOT_TRC, Ap,    Bp,    p_UWND,   p_VWND,        
-     &
-     &      P_TP1 ( I0_W1+1:I0_W1+IM_W1, J0_W1+1:J0_W1+JM_W1 ),    
-     &      P_TP2 ( I0_W1+1:I0_W1+IM_W1, J0_W1+1:J0_W1+JM_W1 ),
-     &      P_TEMP( I0_W1+1:I0_W1+IM_W1, J0_W1+1:J0_W1+JM_W1 ),   
-     &
-     &      p_STT, IORD, JORD, KORD, N_ADJ, p_XMASS, p_YMASS,
-     &
-     &      MASSFLEW( I0_W1+1:I0_W1+IM_W1, J0_W1+1:J0_W1+JM_W1, :, :),
-     &      MASSFLNS( I0_W1+1:I0_W1+IM_W1, J0_W1+1:J0_W1+JM_W1, :, :),
-     &      MASSFLUP( I0_W1+1:I0_W1+IM_W1, J0_W1+1:J0_W1+JM_W1, :, :),
-     &      A_M2(J0_W1+1:J0_W1+JM_W1),
-     & 
-     &      TCVV, ND24, ND25, ND26  ) 
-
+     &      D_DYN,   Re,       IM_W1,   JM_W1,   LLPAR, 
+     &      JFIRST,  JLAST,    NG,      MG,      N_TOT_TRC, 
+     &      Ap,      Bp,       p_UWND,  p_VWND,  p_P_TP1, 
+     &      p_P_TP2, p_P_TEMP, p_STT,   IORD,    JORD, 
+     &      KORD,    N_ADJ,    p_XMASS, p_YMASS, p_MFLEW, 
+     &      p_MFLNS, p_MFLUP,  p_A_M2,  TCVV,    ND24,     
+     &      ND25,    ND26 ) 
 
       ! Free pointer memory
-      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
+      NULLIFY( p_UWND,  p_VWND,  p_STT,   p_XMASS  ) 
+      NULLIFY( p_YMASS, p_P_TP1, p_P_TP2, p_P_TEMP )
+      NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP, p_A_M2   )
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
