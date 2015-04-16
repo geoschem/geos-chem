@@ -459,6 +459,12 @@
       p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
 
+!      ! Convert tracer concentration from dry mixing ratio
+!      ! (mol tracer / mol dry air ) to moist mixing ratio 
+!      ! (mol tracer / mol moist air) before advection
+!      ! (ewl, 4/16/15) Need to put this in a subroutine containing a loop
+!      p_STT = p_STT * State_Met%DRYAIRVV
+
       ! Do the advection
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -473,6 +479,12 @@
      &                   LFILL,  MASSFLEW,  MASSFLNS, MASSFLUP,    
      &                   A_M2,   TCVV,      ND24,     ND25,     
      &                   ND26 )
+
+!      ! Convert tracer concentration back from moist mixing ratio
+!      ! (mol tracer / mol moist air ) to dry mixing ratio 
+!      ! (mol tracer / mol dry air) after advection
+!      ! (ewl, 4/16/15) Need to put this in a subroutine containing a loop
+!      p_STT = p_STT / State_Met%DRYAIRVV
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
@@ -777,6 +789,12 @@
       p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
 
+!      ! Convert tracer concentration from dry mixing ratio
+!      ! (mol tracer / mol dry air ) to moist mixing ratio 
+!      ! (mol tracer / mol moist air) before advection
+!      ! (ewl, 4/16/15) Need to put this in a subroutine containing a loop
+!      p_STT = p_STT * State_Met%DRYAIRVV
+
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
@@ -791,6 +809,12 @@
      &                   LFILL,   MASSFLEW,  MASSFLNS, MASSFLUP, 
      &                   A_M2,    TCVV,      ND24,     ND25,     
      &                   ND26 )
+
+!      ! Convert tracer concentration back from moist mixing ratio
+!      ! (mol tracer / mol moist air ) to dry mixing ratio 
+!      ! (mol tracer / mol dry air) after advection
+!      ! (ewl, 4/16/15) Need to put this in a subroutine containing a loop
+!      p_STT = p_STT / State_Met%DRYAIRVV
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
@@ -1445,7 +1469,7 @@
       P_BOT    = Ap(L2)   + ( Bp(L2)   * P_SURF )
       P_TOP    = Ap(L2-1) + ( Bp(L2-1) * P_SURF )
       AIR_MASS = ( P_BOT - P_TOP ) * G0_100 * A_M2(J)
-     &             * State_Met%AIRDEN(I,J,L) / State_Met%MAIRDEN(I,J,L)
+     &             * State_Met%DRYAIRMMR(I,J,L)
 
       END FUNCTION GET_AIR_MASS
 !EOC
