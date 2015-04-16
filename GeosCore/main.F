@@ -271,6 +271,7 @@
 !  22 Aug 2014 - R. Yantosca - Now save areas [m2] in State_Met%AREA_M2
 !  15 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  06 Jan 2015 - R. Yantosca - Added two-way coupled simulation options
+!  16 Apr 2015 - R. Yantosca - Remove call to INIT_DAO; it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -501,13 +502,6 @@
       
       ! Debug output
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
-
-      ! For offline simulations that use archived OH: initialize T_FULLGRID
-      ! and AIRDEN_FULLGRID arrays for regridding OH fields (bmy, 10/29/13)
-      IF ( ITS_A_SPECIALTY_SIM ) THEN
-         CALL INIT_DAO( am_I_Root, Input_Opt, RC )
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
-      ENDIF
 
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
