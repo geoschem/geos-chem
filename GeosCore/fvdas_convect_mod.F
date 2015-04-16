@@ -789,7 +789,10 @@
       ! References to F90 modules
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD, ADD_HgP_WD !eck/eds
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK !CDH
-      USE DIAG_MOD,           ONLY : AD38, CONVFLUP 
+#if !defined ( NO_BPCH )
+      USE DIAG_MOD,           ONLY : AD38
+#endif
+      USE DIAG_MOD,           ONLY : CONVFLUP 
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
@@ -1174,6 +1177,7 @@
 
                ! Only save to ND38 if it's turned on, if there are soluble 
                ! tracers, and if we are below the LD38 level limit
+#if !defined ( NO_BPCH )
                IF ( ( ND38 > 0 .or. Input_Opt%LGTMM ) .and. 
      &              NN > 0 ) THEN
 
@@ -1195,6 +1199,7 @@
      &                    TCVV(M)     / D_NSTEP
                   ENDIF
                ENDIF
+#endif
 
                !========================================================
                ! Pass the amount of Hg2 lost in wet scavenging [kg] 

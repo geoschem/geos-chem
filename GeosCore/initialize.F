@@ -186,11 +186,15 @@
          IF ( ND33 > 0 ) AD33     = 0e0
          IF ( ND35 > 0 ) AD35     = 0e0
          IF ( ND37 > 0 ) AD37     = 0e0
+#if !defined( NO_BPCH )
          IF ( ND38 > 0 ) AD38     = 0e0
          IF ( ND39 > 0 ) AD39     = 0e0
+#endif
          IF ( ND43 > 0 ) AD43     = 0e0
+#if !defined( NO_BPCH )
          IF ( ND44 > 0 ) AD44     = 0e0
          IF ( ND45 > 0 ) AD45     = 0e0
+#endif
          IF ( ND47 > 0 ) AD47     = 0e0
          IF ( ND52 > 0 ) AD52     = 0e0
          IF ( ND54 > 0 ) AD54     = 0e0
@@ -201,8 +205,11 @@
          IF ( ND64 > 0 ) AD64     = 0e0
          IF ( ND66 > 0 ) AD66     = 0e0
          IF ( ND67 > 0 ) AD67     = 0e0
+#if !defined( NO_BPCH )
          IF ( ND68 > 0 ) AD68     = 0e0
+#endif
          IF ( ND69 > 0 ) AD69     = 0e0
+         IF ( ND72 > 0 ) AD72     = 0e0
 
          ! Daily max mean hourly surface v/v
          IF ( ND71 > 0 ) THEN
@@ -248,17 +255,6 @@
             AD09_em  = 0e0
          ENDIF
  
-!----------------------------------------------------------------------------- 
-!%%% Prior to 8/18/14
-!%%% THE H2/HD SIMULATION IS OBSOLETE.  YOU CAN RESTORE IT IF YOU WANT. 
-!%%% UNTIL THEN WE WILL LEAVE THIS COMMENTED OUT.  (bmy, 8/18/14)
-!         ! For ND10 -- H2 & HD simulation (phs, 9/18/07)
-!         IF ( ND10 > 0 ) THEN 
-!            AD10    = 0e0
-!            AD10em  = 0e0
-!         ENDIF
-!----------------------------------------------------------------------------- 
-
          ! ND21 -- optical depths
          IF ( ND21 > 0 ) THEN
             AD21 = 0e0
@@ -329,6 +325,7 @@
          CALL SET_CT_A3(   RESET=.TRUE. )
          CALL SET_CT_A6(   RESET=.TRUE. )
          CALL SET_CT_CHEM( RESET=.TRUE. )
+         CALL SET_CT_RAD ( RESET=.TRUE. )
          CALL SET_CT_CONV( RESET=.TRUE. )
          CALL SET_CT_DYN(  RESET=.TRUE. )
          CALL SET_CT_EMIS( RESET=.TRUE. )
@@ -348,7 +345,9 @@
          IF ( ND43 >               0 ) CTOH       = 0
          IF ( ND43 >               0 ) CTO1D      = 0
          IF ( ND43 >               0 ) CTO3P      = 0
+#if !defined(NO_BPCH)
          IF ( ND45 >               0 ) CTOTH      = 0
+#endif
          IF ( ND47 > 0 .OR. ND65 > 0 ) CTO3_24h   = 0
          IF ( ND43 >               0 ) CTHO2      = 0
          ! update for arom (dkh, 06/21/07)  

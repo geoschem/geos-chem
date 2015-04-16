@@ -98,7 +98,7 @@
       USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
       USE TOMS_MOD,           ONLY : GET_OVERHEAD_O3
-      USE TRACERID_MOD,       ONLY : IDTO3
+      USE TRACERID_MOD,       ONLY : IDO3
 
       IMPLICIT NONE
 
@@ -202,10 +202,12 @@
 !  27 Mar 2013 - S.D. Eastham- Rolled in FAST_JX_MOD
 !  21 Feb 2014 - M. Sulprizio- Replaced all met field arrays with State_Met
 !                              derived type object
-!  28 Feb 2014 - M. Sulprizio- Now obtain O3_CTM directly from State_Chm%Tracers
+!  28 Feb 2014 - M. Sulprizio- Now obtain O3_CTM directly from CSPEC
 !  05 Mar 2014 - R. Yantosca - Cosmetic changes
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
+!  09 Apr 2015 - R. Yantosca - Bug fixes: Add missing vars to !$OMP+PRIVATE
+!                              clause and error check for JLOOP > 0
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -213,12 +215,13 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER, SAVE :: LASTMONTH = -1
-      INTEGER       :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L
-      REAL(fp)        :: CSZA, PRES, SFCA, YLAT,  O3_TOMS
-      REAL(fp)        :: O3_CTM(LLPAR+1)
-      REAL(fp)        :: T_CTM(LLPAR+1), OPTD(LLPAR)
-      REAL(fp)        :: OPTDUST(LLPAR,NDUST)
-      REAL(fp)        :: OPTAER(LLPAR,NALLAER)
+      INTEGER       :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L, N
+      INTEGER       :: IOPT, JLOOP, LCHEM
+      REAL(fp)      :: CSZA, PRES, SFCA, YLAT,  O3_TOMS
+      REAL(fp)      :: O3_CTM(LLPAR+1)
+      REAL(fp)      :: T_CTM(LLPAR+1), OPTD(LLPAR)
+      REAL(fp)      :: OPTDUST(LLPAR,NDUST)
+      REAL(fp)      :: OPTAER(LLPAR,A_)
 
       ! Local variables for cloud overlap (hyl, phs)
       INTEGER       :: NUMB, KK, I
@@ -227,12 +230,12 @@
       INTEGER       :: KBOT(LLPAR)
       INTEGER       :: KTOP(LLPAR)
       INTEGER       :: INDICATOR(LLPAR+2)
-      REAL(fp)        :: FMAX(LLPAR)     ! maximum cloud fraction 
+      REAL(fp)      :: FMAX(LLPAR)     ! maximum cloud fraction 
                                        !  in a block, size can be to 
                                        !  FIX(LLPAR)+1
-      REAL(fp)        :: CLDF1D(LLPAR)
-      REAL(fp)        :: ODNEW(LLPAR)
-      REAL(fp)        :: P_CTM(LLPAR+2)
+      REAL(fp)      :: CLDF1D(LLPAR)
+      REAL(fp)      :: ODNEW(LLPAR)
+      REAL(fp)      :: P_CTM(LLPAR+2)
 
       LOGICAL       :: AOD999
 
@@ -282,13 +285,13 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( NLAT,    NLON,   YLAT,      CSZA,   P_CTM   )
-!$OMP+PRIVATE( T_CTM,   SFCA,   O3_TOMS,   O3_CTM, OPTAER  )
-!$OMP+PRIVATE( OPTDUST, OPTD,   CLDF1D                     )
+!$OMP+PRIVATE( NLAT,    NLON,   YLAT,      CSZA,    L       )
+!$OMP+PRIVATE( P_CTM ,  T_CTM,  SFCA,      O3_TOMS, O3_CTM  )
+!$OMP+PRIVATE( LCHEM,   JLOOP,  OPTAER,    N,       IOPT    )
+!$OMP+PRIVATE( OPTDUST, OPTD,   CLDF1D                      )
 #if defined( USE_MAXIMUM_RANDOM_OVERLAP )
-!$OMP+PRIVATE( FMAX,    KK,     NUMB,      L       KBOT    )
-!$OMP+PRIVATE( KTOP     ODNEW,  INDICATOR, INDIC           )
-!$OMP+PRIVATE( O3_TOMS, P_CTM,  JLOOP                      ) 
+!$OMP+PRIVATE( FMAX,    KK,     NUMB,      KBOT             )
+!$OMP+PRIVATE( KTOP     ODNEW,  INDICATOR, INDIC            )
 #endif
 !$OMP+SCHEDULE( DYNAMIC )
 
@@ -333,14 +336,39 @@
             
             ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
             O3_CTM          = 0e+0_fp
-            L               = GET_CHEMGRID_LEVEL(NLON,NLAT,State_Met)
-            O3_CTM(1:L)     = State_Chm%Tracers(NLON,NLAT,1:L,IDTO3)
+            LCHEM           = GET_CHEMGRID_LEVEL(NLON,NLAT,State_Met)
+            DO L = 1, LCHEM
+               JLOOP        = JLOP(NLON,NLAT,L)
+               IF ( JLOOP > 0 ) THEN
+                  O3_CTM(L) = CSPEC(JLOOP,IDO3)
+               ENDIF
+            ENDDO
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
-            OPTAER          = ODAER(NLON,NLAT,:,:)
+!------------------------------------------------------------------------------
+! Prior to 12/5/14:
+! Updates for RRTMG (dar, mps, 12/5/14)
+!            OPTAER          = ODAER(NLON,NLAT,:,:)
+!------------------------------------------------------------------------------
+            ! and at 1000nm, IWV1000 (DAR)
+            !OPTAER wants NAER*NRH values but ODAER is now NAER
+            !use IRHARR to map to correct OPTAER bin (DAR 08/13)
+            OPTAER = 0.0e+0_fp
+            DO N = 1, NAER
+            DO L = 1, LLPAR
+               IOPT = ( (N-1) * NRH ) + IRHARR(NLON,NLAT,L)
+               OPTAER(L,IOPT) = ODAER(NLON,NLAT,L,IWV1000,N)
+            ENDDO
+            ENDDO
 
             ! Mineral dust OD profile [unitless] at (NLON,NLAT)
-            OPTDUST         = ODMDUST(NLON,NLAT,:,:)
+!------------------------------------------------------------------------------
+! Prior to 12/5/14:
+! Updates for RRTMG (dar, mps, 12/5/14)
+!            OPTDUST         = ODMDUST(NLON,NLAT,:,:)
+!------------------------------------------------------------------------------
+            ! and at 1000nm, IWV1000 (DAR)
+            OPTDUST         = ODMDUST(NLON,NLAT,:,IWV1000,:)
 
             ! Cloud OD profile [unitless] at (NLON,NLAT)
             OPTD            = State_Met%OPTD(NLON,NLAT,1:LLPAR)
@@ -549,7 +577,6 @@
 !$OMP END PARALLEL DO
 
       FIRST=.FALSE.
-
       !-----------------------------------------------------------
       ! END OF SUBROUTINE FAST-J
       !-----------------------------------------------------------
@@ -575,10 +602,10 @@
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) ::  ND
-      REAL(fp), INTENT(IN)  ::  POMEGA(M2_,N_,W_),FZ(N_,W_),ZTAU(N_,W_)
-     &                       ,PM(M_,M2_),PM0(M2_)
-     &                       ,RFL(W_),ZFLUX(W_)
+      INTEGER, INTENT(IN)   ::  ND
+      REAL(fp), INTENT(IN)  ::  POMEGA(M2_,N_,W_),FZ(N_,W_),ZTAU(N_,W_),
+     &                          PM(M_,M2_),PM0(M2_),
+     &                          RFL(W_),ZFLUX(W_)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -599,7 +626,7 @@
       REAL(fp), DIMENSION(M_,N_,W_)    ::  A,C,H,   RR
 
       REAL(fp), DIMENSION(M_,M_,N_,W_) ::  B,AA,CC,  DD
-      REAL(fp), DIMENSION(M_,M_) ::  E
+      REAL(fp), DIMENSION(M_,M_)       ::  E
       REAL(fp)  SUMB,SUMBX,SUMT
       INTEGER I, J, K, L
 
@@ -870,7 +897,7 @@ c---SUMBX = flux from Lambert reflected I+
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) ::  ND
+      INTEGER, INTENT(IN)   ::  ND
       REAL(fp), INTENT(IN)  ::  POMEGA(M2_,N_),PM(M_,M2_),PM0(M2_)
       REAL(fp), INTENT(IN)  ::  ZFLUX,RFL
       REAL(fp), INTENT(IN),DIMENSION(N_) :: FZ,ZTAU
@@ -878,7 +905,7 @@ c---SUMBX = flux from Lambert reflected I+
 ! !OUTPUT PARAMETERS:
 !
       REAL(fp), INTENT(OUT),DIMENSION(M_,M_,N_) ::  B,AA,CC
-      REAL(fp), INTENT(OUT),DIMENSION(M_,N_) ::  A,C,H
+      REAL(fp), INTENT(OUT),DIMENSION(M_,N_)    ::  A,C,H
 
 !
 ! !REVISION HISTORY: 
@@ -1135,7 +1162,7 @@ C------------lower boundary, 2nd-order, A-matrix is full (AA)
 !
 ! !INPUT PARAMETERS:
 !
-      integer, intent(in)   :: LCTM,LCHEM,NJXU
+      integer, intent(in)     :: LCTM,LCHEM,NJXU
       real(fp), intent(in)    ::  PPJ(JXL1_+1),TTJ(JXL1_+1)
       real(fp), intent(inout) ::  FFF(W_,LCTM)
 !
@@ -1256,12 +1283,12 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 !
 ! !INPUT PARAMETERS:
 !
-      REAL(fp), INTENT(IN)::  TINT,T1,T2,T3, X1,X2,X3
-      INTEGER,INTENT(IN)::  L123
+      REAL(fp), INTENT(IN)  ::  TINT,T1,T2,T3, X1,X2,X3
+      INTEGER,  INTENT(IN)  ::  L123
 !
 ! !OUTPUT VARIABLES:
 !
-      REAL(fp),INTENT(OUT)::  XINT
+      REAL(fp), INTENT(OUT) ::  XINT
 !
 ! !REMARKS:
 ! 
@@ -1316,7 +1343,7 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) ::   L1U, LJX1U
+      INTEGER, INTENT(IN)   ::   L1U, LJX1U
       REAL(fp), INTENT(IN)  ::   U0,ZHL(L1U+1)
 !
 ! !OUTPUT VARIABLES:
@@ -1353,6 +1380,7 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!  04 Dec 2014 - R. Yantosca   - Now use SQRT instead of DSQRT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1400,7 +1428,7 @@ c---calculate heights for edges of split CTM-layers
 
 c---shadow height for SZA > 90
       if (U0 .lt. 0.0e+0_fp)  then
-        SHADHT = RZ2(1)/dsqrt(1.0e+0_fp - U0**2)
+        SHADHT = RZ2(1)/sqrt(1.0e+0_fp - U0**2)
       else
         SHADHT = 0.e+0_fp
       endif
@@ -1416,7 +1444,7 @@ c  Air Mass Factors all zero if below the tangent height
 c  Ascend from layer J calculating AMF2s
         XMU1 = abs(U0)
         do I = J,2*L1U
-          XMU2     = dsqrt(1.0e+0_fp - RQ2(I)*(1.0e+0_fp-XMU1**2))
+          XMU2     = sqrt(1.0e+0_fp - RQ2(I)*(1.0e+0_fp-XMU1**2))
           XL       = RZ2(I+1)*XMU2 - RZ2(I)*XMU1
           AMF2(I,J) = XL / (RZ2(I+1)-RZ2(I))
           XMU1     = XMU2
@@ -1470,8 +1498,8 @@ c  Lowest level intersected by emergent beam
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) ::  L1X,L2X         !index of cloud/aerosol
-      integer, intent(in) ::  NX              !Mie scattering array size
+      INTEGER, INTENT(IN)   ::  L1X,L2X         !index of cloud/aerosol
+      integer, intent(in)   ::  NX              !Mie scattering array size
       real(fp),  intent(in) ::  DTAUX(L1X)      !cloud+3aerosol OD in each layer
 !
 ! !OUTPUT VARIABLES:
@@ -1712,20 +1740,26 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       call RD_MIE(JXUNIT,TRIM( FILENAME ), am_I_Root)
 
+!------------------------------------------------------------------------------
+! Prior to 3/30/15:
+! Now get AOD data from LUT files for each aerosol type (mps, 3/30/15)
+!      ! Read in AOD data
+!      FILENAME = 'jv_spec_aod.dat'
+!
+!#if defined( ESMF_ )
+!      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
+!      FILENAME = TRIM( FILENAME ) // '.rc'
+!#endif
+!
+!      ! Echo info
+!      IF ( am_I_Root ) THEN
+!         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
+!      ENDIF
+!
+!      call RD_AOD(JXUNIT,TRIM( FILENAME ), am_I_Root)
+!------------------------------------------------------------------------------
       ! Read in AOD data
-      FILENAME = 'jv_spec_aod.dat'
-
-#if defined( ESMF_ )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
-      ENDIF
-
-      call RD_AOD(JXUNIT,TRIM( FILENAME ), am_I_Root)
+      call RD_AOD(JXUNIT, am_I_Root)
 
       ! Set up MIEDX array to interpret between GC and FJX aerosol indexing
       call SET_AER(am_I_Root)
@@ -1849,8 +1883,10 @@ c----note that NQRD is not used any more, a read until 'endofJ' is performed
       read (NUN,101) NQRD,NWWW
          NW1 = 1
          NW2 = NWWW
-      write(6,'(1x,a)') TITLE0
-      write(6,'(i8)') NWWW
+      IF ( am_I_Root ) THEN
+         write(6,'(1x,a)') TITLE0
+         write(6,'(i8)') NWWW
+      ENDIF
 C----J-values:  1=O2, 2=O3P,3=O3D 4=readin Xsects
       read (NUN,102) (WL(IW),IW=1,NWWW)
       read (NUN,102) (FL(IW),IW=1,NWWW)
@@ -2140,7 +2176,11 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_AOD( NJ1, NAMFIL, am_I_Root )
+!------------------------------------------------------------------------------
+! Prior to 3/30/15:
+!      SUBROUTINE RD_AOD( NJ1, NAMFIL, am_I_Root )
+!------------------------------------------------------------------------------
+      SUBROUTINE RD_AOD( NJ1, am_I_Root )
 !
 ! !USES:
 !
@@ -2152,99 +2192,373 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! !INPUT PARAMETERS:
 !     
       INTEGER,          INTENT(IN) :: NJ1         ! Unit # of file to open
-      CHARACTER(LEN=*), INTENT(IN) :: NAMFIL      ! Name of file to open
+!------------------------------------------------------------------------------
+! Prior to 3/30/15:
+!      CHARACTER(LEN=*), INTENT(IN) :: NAMFIL      ! Name of file to open
+!------------------------------------------------------------------------------
       LOGICAL,          INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
 !
 ! !REMARKS:
-!  The jv_spec_aod.dat file contains the optical properties for aerosols 
-!  at a single wavelength to be used in the online calculation of the aerosol 
-!  optical depth diagnostics.  The default properties are provided at 550 nm. 
+!  The .dat files for each species contain the optical properties
+!  at multiple wavelengths to be used in the online calculation of the aerosol 
+!  optical depth diagnostics. 
 !  These properties have been calculated using the same size and optical 
-!  properties as the jv_spec.dat file used for the FAST-J photolysis 
-!  calculations.  The user can exchange this set of properties with those at 
-!  another wavelength.  We recommend that the wavelength used be included 
-!  in the first line of the header for traceability (this line is output to 
-!  the GEOS-Chem log file during run time). A complete set of optical 
-!  properties from 250-2000 nm for aerosols is available at:  
+!  properties as the FJX_spec.dat file used for the FAST-J photolysis 
+!  calculations (which is now redundant for aerosols, the values in the .dat 
+!  files here are now used). The file currently contains 11 wavelengths
+!  for Fast-J and other commonly used wavelengths for satellite and
+!  AERONET retrievals. 30 wavelengths follow that map onto RRTMG
+!  wavebands for radiaitive flux calculations (not used if RRTMG is off).  
+!  A complete set of optical properties from 250-2000 nm for aerosols is
+!  available at:  
 !  ftp://ftp.as.harvard.edu/geos-chem/data/aerosol_optics/hi_spectral_res
 !                                                                             .
 !     -- Colette L. Heald, 05/10/10)
-!
-!  Important variables:
-!                                                                             .
-!     NAMFIL       Name of spectral data file (jv_spec_aod.dat)
-!     NJ1          Channel number for reading data file
-!     NAA2         Number of categories for scattering phase functions
-!     QAA_AOD      Aerosol scattering phase functions
-!     WAA_AOD      Wavelengths for the NK supplied phase functions
-!     PAA_AOD      Phase function: first 8 terms of expansion
-!     RAA_AOD      Effective radius associated with aerosol type
-!     SAA_AOD      Single scattering albedo
+!     -- David A. Ridley, 05/10/13 (update for new optics files)
 !
 ! !REVISION HISTORY: 
-!  10 May 2010 - C. Heald    - Initial version
-!  06 Aug 2010 - C. Carouge  - Add an error check when opening the file
-!  01 Aug 2012 - R. Yantosca - Now restore NJ1 to INTENT(IN) status
+!  10 May 2010 - C. Heald      - Initial version
+!  06 Aug 2010 - C. Carouge    - Add an error check when opening the file
+!  01 Aug 2012 - R. Yantosca   - Now restore NJ1 to INTENT(IN) status
 !  31 Mar 2013 - S. D. Eastham - Added to Fast-JX v7.0 implementation
+!  30 Mar 2015 - M. Sulprizio  - Removed NAMFIL argument. Now specify filenames
+!                                for aerosol LUT files in this routine.
+!  02 Apr 2015 - C. Keller     - Append '.rc' to species files in ESMF mode.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES
 !
-      INTEGER :: I, J, K, NAA2
-      INTEGER :: IOS
+      INTEGER           :: I, J, K, N
+      INTEGER           :: IOS
+      CHARACTER*30      :: SPECFIL(8)
+      CHARACTER(LEN=30) :: THISFILE
+
       CHARACTER*78 TITLE0
-      CHARACTER*20 TITLEA(NAA)   ! TITLEAA: Title for scattering data
 
       !================================================================
       ! RD_AOD begins here!
       !================================================================
 
-      ! open file
-      OPEN( NJ1, FILE=TRIM( NAMFIL ), STATUS='OLD', IOSTAT=IOS )
+      ! aerosol_mod.F expects aerosol in this order now
+      ! extra two LUT dat files for strat H2SO4 and NAT particles
+      DATA SPECFIL /"so4.dat","soot.dat","org.dat","ssa.dat","ssc.dat",
+#if defined( UCX )
+      ! add in dummy optics LUT tables for now
+      ! needs to be H2SO4 and something ice-like for NAT (DAR 03/2015)
+     &              "so4.dat","so4.dat",
+#endif
+     &              "dust.dat"/
+      !array of filenames
+      DO k = 1, NSPAA
 
-      ! Error check
-      IF ( IOS /= 0 ) THEN
+       ! mirror file. Need to append '.rc' in ESMF environment. (ckeller, 4/1/15)
+       THISFILE = SPECFIL(k)
+#if defined( ESMF_ )
+       THISFILE = TRIM(THISFILE) // '.rc'
+#endif
+
+       ! open file
+       OPEN( NJ1, FILE=TRIM( THISFILE ), STATUS='OLD', IOSTAT=IOS )
+
+       ! Error check
+       IF ( IOS /= 0 ) THEN
          IF ( am_I_Root ) THEN
-            WRITE(6,100) trim(NAMFIL)
- 100        FORMAT('Error opening filename=', a )
-            CALL FLUSH(6)
+          WRITE(6,100) trim(THISFILE)
+ 100      FORMAT('Error opening filename=', a )
+          CALL FLUSH(6)
          ENDIF
          CALL IOERROR( IOS, NJ1, 'RD_AOD:1')
-      ENDIF
+       ENDIF
 
       
-      ! Read header lines
-      READ( NJ1,'(A)' ) TITLE0
-      IF  ( am_I_Root ) WRITE( 6, '(1X,A)' ) TITLE0
-      READ( NJ1,'(A)' ) TITLE0
+       ! Read header lines
+       READ(  NJ1,'(A)'    ) TITLE0
+       IF  ( am_I_Root ) WRITE( 6,  '(1X,A)' ) TITLE0
+       READ(  NJ1,'(A)'    ) TITLE0
+       !Second header line added for more info
+       IF  ( am_I_Root ) WRITE( 6,  '(1X,A)' ) TITLE0
+       READ(  NJ1,'(A)'    ) TITLE0
 
-      ! Read aerosol phase functions (one wavelength only):
-      READ( NJ1,'(A10,I5,/)' ) TITLE0,NAA2
-      DO J = 1, NAA
-         READ(NJ1,110) TITLEA(j)
- 110     FORMAT( 3x, a20 )
-         IF ( am_I_Root ) WRITE(6,*) TITLEA(j)
-         READ(NJ1,*) WAA_AOD(j),QAA_AOD(j),RAA_AOD(j),SAA_AOD(j),
-     &               (PAA_AOD(i,j),i=1,8)
+ 110     FORMAT( 3x, a20 ) 
+       DO i = 1, NRAA
+        DO j = 1, NWVAA
+         
+         READ(NJ1,*) WVAA(j,k),RHAA(i,k),NRLAA(j,i,k),NCMAA(j,i,k),
+     &               RDAA(i,k),RWAA(i,k),SGAA(i,k),QQAA(j,i,k),
+     &               ALPHAA(j,i,k),REAA(i,k),SSAA(j,i,k),
+     &               ASYMAA(j,i,k),(PHAA(j,i,k,n),n=1,8)
+         ! make note of where 1000nm is for FAST-J calcs
+         IF (WVAA(j,k).EQ.1000.0) IWV1000=J
+         
+        ENDDO
+       ENDDO
+       ! Echo info to stdout
+       IF ( am_I_Root ) THEN 
+       ENDIF
+       ! Close file
+       CLOSE( NJ1 )
       ENDDO
 
-      ! Echo info to stdout
       IF ( am_I_Root ) THEN
-         WRITE( 6, '(a)' ) 'Aerosol Qext for AOD calculations'
-         DO J=1,NAA
-            WRITE( 6, * ) TITLEA(J),J,'  Qext =',(QAA_AOD(J))
-         ENDDO
+         WRITE( 6, * ) 'Optics read for all wavelengths successfully'
       ENDIF
 
-      ! Close file
-      CLOSE( NJ1 )
+      !now calculate the required wavelengths in the LUT to calculate
+      !the requested AOD
+      CALL CALC_AOD( am_I_Root )
 
       END SUBROUTINE RD_AOD
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: calc_aod
+!
+! !DESCRIPTION: Subroutine CALC\_AOD works out the closest tie points
+! in the optics LUT wavelengths and the coefficients required to
+! calculate the angstrom exponent for interpolating optics to the requested
+! wavelength. If the wavelength requested matches a standard wavelength
+! in the LUT then we skip the interpolation (DAR 09/2013)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CALC_AOD( am_I_Root )
+!
+! !USES:
+!
+      USE CMN_FJX_MOD, ONLY : NWVAA, NWVAA0, WVAA
+      USE CMN_FJX_MOD, ONLY : WVSELECT, IWVSELECT, NWVSELECT
+      USE CMN_FJX_MOD, ONLY : IRTWVSELECT
+      USE CMN_FJX_MOD, ONLY : ACOEF_WV, BCOEF_WV, CCOEF_WV
+      USE CMN_FJX_MOD, ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV
+      USE CMN_FJX_MOD, ONLY : NWVREQUIRED, IWVREQUIRED
+      USE CMN_FJX_MOD, ONLY : NRTWVREQUIRED, IRTWVREQUIRED
+#if defined( RRTMG ) 
+      USE PARRRTM,     ONLY : NBNDLW
+#endif
+!
+! !INPUT PARAMETERS:
+!     
+      LOGICAL,          INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
+! !REMARKS:
+!  Now the user is able to select any 3 wavelengths for optics
+!  output in the input.geos file we need to be able to interpolate
+!  to those wavelengths based on what is available in the optics
+!  look-up table. 
+!                                                                             .
+!  The standard lookup table currently has values for
+!  11 common wavelengths followed by 30 that are required by RRTMG.
+!  Only those required to interpolate to user requested
+!  wavelengths are selected from the standard wavelengths. RRTMG
+!  wavelengths are not used in the interpolation for AOD output
+!  (DAR 10/2013)
+!                                                                             .
+!   UPDATE: because the RT optics output doesnt have access to the
+!   standard wavelengths we now calculate two sets of values: one
+!   for the ND21 and diag3 outputs that use the standard wavelengths
+!   and one for ND72 that interpolates the optics from RRTMG
+!   wavelengths. Perhaps a switch needs adding to switch off the RT
+!   optics output (and interpolation) if this ends up costing too
+!   much and is not used, but it is ideal to have an optics output
+!   that matches exactly what RRTMG uses to calculate the fluxes
+!
+! !REVISION HISTORY: 
+!  18 Jun 2013 - D. Ridley   - Initial version
+!  15 Dec 2014 - M. Sulprizio- Added ProTeX headers
+!  02 Apr 2015 - C. Keller   - Added am_I_Root argument
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+      INTEGER             :: MINWV, MAXWV, N, N0, N1, W, NSTEP
+      REAL(fp)            :: WVDIF
+
+      !================================================================
+      ! CALC_AOD begins here!
+      !================================================================
+
+      !cycle over standard wavelengths
+      N0=1
+      N1=NWVAA0
+      NSTEP=1
+      NWVREQUIRED=0
+      DO W=1,NWVSELECT
+       MINWV     = -999
+       MAXWV     =  999
+       DO N=N0,N1,NSTEP
+        WVDIF = WVAA(N,1)-WVSELECT(W)
+        IF ((WVDIF.LE.0).AND.(WVDIF.GT.MINWV)) THEN
+         MINWV = WVDIF
+         IWVSELECT(1,W)=N
+        ENDIF
+        IF ((WVDIF.GE.0).AND.(WVDIF.LT.MAXWV)) THEN
+         MAXWV = WVDIF
+         IWVSELECT(2,W)=N
+        ENDIF
+       ENDDO
+        IF (IWVSELECT(2,W).EQ.IWVSELECT(1,W)) THEN
+         !we have a match!
+         MINWV=0
+         MAXWV=0
+         !add this wavelength to those for output
+         NWVREQUIRED=NWVREQUIRED+1
+         IWVREQUIRED(NWVREQUIRED)=IWVSELECT(1,W)
+        ELSE
+         !we are going to have to interpolate to the requested wavelength
+         NWVREQUIRED=NWVREQUIRED+1
+         IWVREQUIRED(NWVREQUIRED)=IWVSELECT(1,W)
+         NWVREQUIRED=NWVREQUIRED+1
+         IWVREQUIRED(NWVREQUIRED)=IWVSELECT(2,W)
+        ENDIF
+       !ENDDO
+      
+
+      !Error check - ensure we have a match or requested wavelength
+      !falls within two LUT tie points
+      IF (MINWV.EQ.-999) THEN
+       ! requested wavelength is shorter than min wv in LUT
+       ! set to min
+       write(6,*) 'ERROR requested wavelength is too short!!'
+       write(6,*) 'Defaulting to LUT min: ',WVAA(1,1)
+       IWVSELECT(1,W)=1
+       IWVSELECT(2,W)=1 !300nm
+       NWVREQUIRED=NWVREQUIRED-1
+       IWVREQUIRED(NWVREQUIRED)=IWVSELECT(1,W)
+      ENDIF
+      IF (MAXWV.EQ.999) THEN
+       ! requested wavelength is longer than min wv in LUT
+       ! set to max
+       write(6,*) 'ERROR requested wavelength is too long!!'
+       write(6,*) 'Defaulting to LUT min: ',WVAA(NWVAA0,1)
+       IWVSELECT(1,W)=NWVAA0
+       IWVSELECT(2,W)=NWVAA0 !1020nm
+       NWVREQUIRED=NWVREQUIRED-1
+       IWVREQUIRED(NWVREQUIRED)=IWVSELECT(1,W)
+      ENDIF
+      
+      !now calcualte the angstrom exponent coefs for interpolation -
+      !this is done here to save time and repetition in aerosol_mod.F
+      IF (IWVSELECT(1,W).NE.IWVSELECT(2,W)) THEN
+       ACOEF_WV(W) = WVAA(IWVSELECT(2,W),1)/WVSELECT(W)
+       BCOEF_WV(W) =1.0d0/(LOG(WVAA(IWVSELECT(2,W),1)/
+     &                         WVAA(IWVSELECT(1,W),1)))
+       !relative location of selected wavelength between tie points
+       !for interpolating SSA and ASYM for output in aerosol_mod.F and
+       !dust_mod.F
+       CCOEF_WV(W) =(WVSELECT(W)-WVAA(IWVSELECT(1,W),1))/
+     &              (WVAA(IWVSELECT(2,W),1)-WVAA(IWVSELECT(1,W),1))
+      ENDIF
+      IF ( am_I_Root ) THEN
+         write(6,*) 'N WAVELENGTHS: ',NWVSELECT
+         write(6,*) 'WAVELENGTH REQUESTED:',WVSELECT(W)
+         write(6,*) 'WAVELENGTH REQUIRED:', NWVREQUIRED
+         !write(6,*) IWVSELECT(1,W),WVAA(IWVSELECT(1,W),1)
+         !write(6,*) IWVSELECT(2,W),WVAA(IWVSELECT(2,W),1)
+         !write(6,*) ACOEF_WV(W),BCOEF_WV(W),CCOEF_WV(W)
+         write(6,*) '*********************************'
+      ENDIF
+      ENDDO !NWVSELECT
+#if defined( RRTMG )
+      !repeat for RRTMG wavelengths to get the closest wavelength
+      !indices and the interpolation coefficients
+      !Indices are relative to all wavelengths in the LUT i.e. the RRTMG
+      !wavelengths start at NWVAA0+1
+      N0=NWVAA0+1
+      N1=NWVAA
+      NSTEP=1
+      NRTWVREQUIRED=0
+      DO W=1,NWVSELECT
+       MINWV     = -999
+       MAXWV     =  999
+       DO N=N0,N1,NSTEP
+        WVDIF = WVAA(N,1)-WVSELECT(W)
+        IF ((WVDIF.LE.0).AND.(WVDIF.GT.MINWV)) THEN
+         MINWV = WVDIF
+         IRTWVSELECT(1,W)=N
+        ENDIF
+        IF ((WVDIF.GE.0).AND.(WVDIF.LT.MAXWV)) THEN
+         MAXWV = WVDIF
+         IRTWVSELECT(2,W)=N
+        ENDIF
+       ENDDO
+        IF (IRTWVSELECT(2,W).EQ.IRTWVSELECT(1,W)) THEN
+         !we have a match!
+         MINWV=0
+         MAXWV=0
+         !add this wavelength to those for output
+         NRTWVREQUIRED=NRTWVREQUIRED+1
+         IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(1,W)
+        ELSE
+         !we are going to have to interpolate to the requested
+         !wavelength
+         NRTWVREQUIRED=NRTWVREQUIRED+1
+         IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(1,W)
+         NRTWVREQUIRED=NRTWVREQUIRED+1
+         IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(2,W)
+        ENDIF
+
+      !Error check - ensure we have a match or requested wavelength
+      !falls within two LUT tie points
+      IF (MINWV.EQ.-999) THEN
+       ! requested wavelength is shorter than min wv in LUT
+       ! set to min
+       write(6,*) 'ERROR requested wavelength is too short!!'
+       write(6,*) 'Defaulting to LUT min: ',WVAA(NWVAA-1,1)
+       IRTWVSELECT(1,W)=NWVAA-1
+       IRTWVSELECT(2,W)=NWVAA-1 
+       NRTWVREQUIRED=NRTWVREQUIRED-1
+       IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(1,W)
+      ENDIF
+      IF (MAXWV.EQ.999) THEN
+       ! requested wavelength is longer than min wv in LUT
+       ! set to max
+       write(6,*) 'ERROR requested wavelength is too long!!'
+       write(6,*) 'Defaulting to LUT min: ',WVAA(NWVAA0+1,1)
+       IRTWVSELECT(1,W)=NWVAA0+1
+       IRTWVSELECT(2,W)=NWVAA0+1
+       NRTWVREQUIRED=NRTWVREQUIRED-1
+       IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(1,W)
+      ENDIF
+
+      !now calcualte the angstrom exponent coefs for interpolation -
+      !this is done here to save time and repetition in aerosol_mod.F
+      IF (IRTWVSELECT(1,W).NE.IRTWVSELECT(2,W)) THEN
+       ACOEF_RTWV(W) = WVAA(IRTWVSELECT(2,W),1)/WVSELECT(W)
+       BCOEF_RTWV(W) =1.0d0/(LOG(WVAA(IRTWVSELECT(2,W),1)/
+     &                         WVAA(IRTWVSELECT(1,W),1)))
+       !relative location of selected wavelength between tie points
+       !for interpolating SSA and ASYM for output in aerosol_mod.F and
+       !dust_mod.F
+       CCOEF_RTWV(W) =(WVSELECT(W)-WVAA(IRTWVSELECT(1,W),1))/
+     &              (WVAA(IRTWVSELECT(2,W),1)-WVAA(IRTWVSELECT(1,W),1))
+      ENDIF
+      !convert wavelength index to that required by rrtmg_rad_transfer
+      !i.e. without the standard and LW wavelengths
+      IRTWVSELECT(1,W) = IRTWVSELECT(1,W) - NWVAA0 - NBNDLW
+      IRTWVSELECT(2,W) = IRTWVSELECT(2,W) - NWVAA0 - NBNDLW
+      IF ( am_I_Root ) THEN
+      write(6,*) 'N RT WAVELENGTHS: ',NWVSELECT
+      write(6,*) 'RT WAVELENGTH REQUESTED:',WVSELECT(W)
+      write(6,*) 'RT WAVELENGTH REQUIRED:', NRTWVREQUIRED
+      write(6,*) IRTWVSELECT(1,W),WVAA(IRTWVSELECT(1,W)+NWVAA0+NBNDLW,1)
+      write(6,*) IRTWVSELECT(2,W),WVAA(IRTWVSELECT(2,W)+NWVAA0+NBNDLW,1)
+      write(6,*) ACOEF_WV(W),BCOEF_WV(W),CCOEF_WV(W)
+      write(6,*) '*********************************'
+      ENDIF
+      ENDDO !NWVSELECT
+#endif
+      END SUBROUTINE CALC_AOD
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2347,7 +2661,9 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
        enddo
       enddo
 
-      write(6,'(a,i4,a)')' Photochemistry Scheme with',NRATJ,' J-values'
+      IF ( am_I_Root ) THEN
+       write(6,'(a,i4,a)')'Photochemistry Scheme with',NRATJ,' J-values'
+      ENDIF
       do K=1,NRATJ
          if (JMAP(K) .ne. '------' ) then
             J = JIND(K)
@@ -2457,15 +2773,15 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       INTEGER, INTENT(IN)                           :: ILON,ILAT
       INTEGER, INTENT(IN)                           :: DAY_OF_YR
       INTEGER, INTENT(IN)                           :: MONTH,DAY
-      REAL(fp),  INTENT(IN)                           :: YLAT
-      REAL(fp),  INTENT(IN)                           :: U0,REFLB
-      REAL(fp),  INTENT(IN),DIMENSION(L1_+1)          :: P_COL
-      REAL(fp),  INTENT(IN),DIMENSION(L1_)            :: T_COL
-      REAL(fp),  INTENT(IN),DIMENSION(L1_)            :: O3_COL
-      REAL(fp),  INTENT(IN)                           :: O3_TOMS
-      REAL(fp),  INTENT(IN),DIMENSION(L_,NALLAER)     :: ODAER_COL
-      REAL(fp),  INTENT(IN),DIMENSION(L_,NDUST)       :: ODMDUST_COL
-      REAL(fp),  INTENT(IN),DIMENSION(L_)             :: ODCLOUD_COL_IN
+      REAL(fp),  INTENT(IN)                         :: YLAT
+      REAL(fp),  INTENT(IN)                         :: U0,REFLB
+      REAL(fp),  INTENT(IN),DIMENSION(L1_+1)        :: P_COL
+      REAL(fp),  INTENT(IN),DIMENSION(L1_)          :: T_COL
+      REAL(fp),  INTENT(IN),DIMENSION(L1_)          :: O3_COL
+      REAL(fp),  INTENT(IN)                         :: O3_TOMS
+      REAL(fp),  INTENT(IN),DIMENSION(L_,A_)        :: ODAER_COL
+      REAL(fp),  INTENT(IN),DIMENSION(L_,NDUST)     :: ODMDUST_COL
+      REAL(fp),  INTENT(IN),DIMENSION(L_)           :: ODCLOUD_COL_IN
       LOGICAL, INTENT(IN)                           :: AOD999
       LOGICAL, INTENT(IN)                           :: am_I_Root
       TYPE(OptInput), INTENT(IN)                    :: Input_Opt
@@ -2486,7 +2802,7 @@ c---key LOCAL atmospheric data needed to solve plane-parallel J----
 c-----these are dimensioned JXL_, and must have JXL_ .ge. LLPAR
       real(fp), dimension(JXL1_)      :: DDJ,OOJ
       real(fp), dimension(JXL1_+1)    :: PPJ,ZZJ
-      integer,dimension(JXL2_+1)    :: JXTRA
+      integer,dimension(JXL2_+1)      :: JXTRA
       real(fp), dimension(W_)         :: FJTOP,FJBOT,FSBOT,FLXD0,RFL
       real(fp), dimension(JXL_, W_)   :: AVGF, FJFLX
       real(fp), dimension(JXL1_,W_)   :: DTAUX, FLXD
@@ -2502,26 +2818,34 @@ c------------key SCATTERING arrays for clouds+aerosols------------------
       real(fp) :: OD600(JXL1_)
 
 c------------key arrays AFTER solving for J's---------------------------
-      real(fp)   FFF(W_,JXL_),VALJ(X_)
-      real(fp)   VALJL(JXL_,X_) !2-D array of J_s returned by JRATET
+      real(fp) :: FFF(W_,JXL_),VALJ(X_)
+      real(fp) :: VALJL(JXL_,X_) !2-D array of J_s returned by JRATET
 
-      integer  L2EDGE, I,J,K,L,M,KMIE,IDXAER
-      real(fp)   XQO3,XQO2,WAVE, TTTX
+      integer  :: L2EDGE, I,J,K,L,M,KMIE,IDXAER,IM
+      INTEGER  :: KMIE2, IR
+      real(fp) :: XQO3,XQO2,WAVE, TTTX
 C-----------------------------------------------------------------------
       ! For compatibility with GEOS-Chem (SDE 03/30/13)
-      REAL(fp)   QSCALING,LOCALOD,LOCALSSA,SZA,SOLF
-      REAL(fp)   AERX_COL(A_,L1_) ! Accumulated aerosol array
-      REAL(fp)   ODCLOUD_COL(L_)
-      REAL(fp)   VALJXX(L_,JVN_)
+      REAL(fp) :: QSCALING,LOCALOD,LOCALSSA,SZA,SOLF
+      REAL(fp) :: AERX_COL(A_,L1_) ! Accumulated aerosol array
+      REAL(fp) :: ODCLOUD_COL(L_)
+      REAL(fp) :: VALJXX(L_,JVN_)
 
       ! T_CLIM: Climatology data temperature (K)
-      REAL(fp)   T_CLIM(JXL1_)
+      REAL(fp) :: T_CLIM(JXL1_)
 
       ! T_INPUT: Input temperature (K) with extra layer for compatibility
-      REAL(fp)   T_INPUT(JXL1_+1)
+      REAL(fp) :: T_INPUT(JXL1_+1)
 
       ! AD64 diagnostics
       REAL(fp), DIMENSION(JXL1_) :: FDIRECT, FDIFFUSE
+
+      !Maps the new LUT optics wavelengths on to 
+      !the 5 jv_spec_mie.dat wavelengths
+      ! N.B. currently 200nm and 300nm data is the same in
+      ! jv_spec_mie.dat, so we copy from new LUT 300nm for both
+      INTEGER :: LUTIDX(5) 
+      LUTIDX = (/1,1,2,6,10/)
 
       !=================================================================
       ! PHOTO_JX begins here!
@@ -2600,11 +2924,18 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
        enddo
       enddo
 
+       ! Clunky fix to accomodate RRTMG and UCX (DAR 01/2015)
+       ! Using a combination of old optics LUT format and
+       ! new optics format (greater spectral resolution and range
+       ! for RRTMG). Clouds, non-tracer aerosols and strat aerosols 
+       ! are not incorporated into the new LUT so must still use the
+       ! old LUT for these.
+
        ! Don't bother on extraneous level - leave as zero
        do L = 1,L_
           DO KMIE=1,5
-             ! Clouds, aerosols, mineral dust
-             DO M=1,AN_
+             ! Clouds and non-tracer aerosols
+             DO M=1,3
                 IF (AERX_COL(M,L).gt.0e+0_fp) THEN
                    IDXAER=MIEDX(M)
                    IF (IDXAER.lt.15) THEN
@@ -2615,7 +2946,8 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
                       QSCALING = QAA(KMIE,IDXAER)/QAA(IND999,IDXAER)
                    ELSE
                       ! Aerosol/dust (550 nm scaling)
-                      QSCALING = QAA(KMIE,IDXAER)/QAA_AOD(IDXAER)
+                      ! currently using 600nm as that's all we have
+                      QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
                    ENDIF
                    LOCALOD = QSCALING*AERX_COL(M,L)
                    LOCALSSA = SAA(KMIE,IDXAER)*LOCALOD
@@ -2626,6 +2958,91 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
      &                            (PAA(I,KMIE,IDXAER)*LOCALSSA)
                    ENDDO ! I (Phase function)
                 ENDIF
+             ENDDO ! M (Aerosol)
+             !transpose wavelength indices from the mie LUT
+             !to the new speciated LUT
+             KMIE2=LUTIDX(KMIE)
+
+#if defined( UCX )
+             ! Strat aerosols
+             IM=10+(NRHAER*NRH)+1
+             DO M=IM,IM+1
+                IDXAER=M-IM+7
+                IF (AERX_COL(M,L).gt.0d0) THEN
+                   
+                   IF (IDXAER.lt.15) THEN
+                      ! Cloud (600 nm scaling)
+                      QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
+                   ELSEIF (AOD999) THEN
+                      ! Aerosol/dust (999 nm scaling)
+                      QSCALING = QQAA(KMIE2,1,IDXAER)/
+     &                           QQAA(10,1,IDXAER)
+                   ELSE
+                      ! Aerosol/dust (550 nm scaling)
+                      QSCALING = QQAA(KMIE2,1,IDXAER)/
+     &                           QQAA(5,1,IDXAER)
+                   ENDIF
+                   LOCALOD = QSCALING*AERX_COL(M,L)
+                   LOCALSSA = SSAA(KMIE2,1,IDXAER)**LOCALOD
+                   OD(KMIE,L) = OD(KMIE,L) + LOCALOD
+                   SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
+                   DO I=1,8
+                      SLEG(I,KMIE,L) = SLEG(I,KMIE,L) +
+     &                            (PAA(I,KMIE,IDXAER)*LOCALSSA)
+                   ENDDO ! I (Phase function)
+                ENDIF
+             ENDDO ! M (Aerosol)
+
+#endif
+             
+             
+             ! Mineral dust (from new optics LUT)
+             DO M=4,10
+                IF (AERX_COL(M,L).gt.0d0) THEN
+                   IDXAER=6
+                   IR=M-3
+                   IF (AOD999) THEN
+                      QSCALING = QQAA(KMIE2,IR,IDXAER)/
+     &                           QQAA(10,IR,IDXAER) !1000nm in new .dat
+                   ELSE
+                      ! Aerosol/dust (550 nm scaling)
+                      QSCALING = QQAA(KMIE2,IR,IDXAER)/
+     &                           QQAA(5,IR,IDXAER)  !550nm in new .dat
+                   ENDIF
+                   LOCALOD = QSCALING*AERX_COL(M,L)
+                   LOCALSSA = SSAA(KMIE2,IR,IDXAER)*LOCALOD
+                   OD(KMIE,L) = OD(KMIE,L) + LOCALOD
+                   SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
+                   DO I=1,8
+                      SLEG(I,KMIE,L) = SLEG(I,KMIE,L) +
+     &                            (PHAA(KMIE2,IR,IDXAER,I)*LOCALSSA)
+                   ENDDO ! I (Phase function)
+                ENDIF
+             ENDDO ! M (Aerosol)
+
+             ! Other aerosol (from new optics LUT)
+             DO M=1,5
+                DO IR=1,5
+                  IDXAER=10+(M-1)*NRH+IR
+                  IF (AERX_COL(IDXAER,L).gt.0d0) THEN
+                   IF (AOD999) THEN
+                      QSCALING = QQAA(KMIE2,IR,M)/
+     &                           QQAA(10,IR,M) !1000nm in new .dat
+                   ELSE
+                      ! Aerosol/dust (550 nm scaling)
+                      QSCALING = QQAA(KMIE2,IR,M)/
+     &                           QQAA(5,IR,M)  !550nm in new .dat
+                   ENDIF
+                   LOCALOD = QSCALING*AERX_COL(IDXAER,L)
+                   LOCALSSA = SSAA(KMIE2,IR,M)*LOCALOD
+                   OD(KMIE,L) = OD(KMIE,L) + LOCALOD
+                   SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
+                   DO I=1,8
+                      SLEG(I,KMIE,L) = SLEG(I,KMIE,L) +
+     &                            (PHAA(KMIE2,IR,M,I)*LOCALSSA)
+                   ENDDO ! I (Phase function)
+                  ENDIF  
+                ENDDO    ! IR (RH bins)
              ENDDO ! M (Aerosol)
           ENDDO ! KMIE (Mie scattering wavelength bin)
 
@@ -3529,25 +3946,25 @@ C---Always does PL(2) = P[1]
 !
 ! !INPUT PARAMETERS:
 !
-      REAL(fp), INTENT(IN)         :: YLAT              ! Latitude (degrees)
-      INTEGER,INTENT(IN)         :: MONTH             ! Month
-      INTEGER,INTENT(IN)         :: DAY               ! Day *of month*
-      REAL(fp), INTENT(IN)         :: T_CTM(L1_)        ! CTM temperatures (K)
-      REAL(fp), INTENT(IN)         :: O3_TOMS           ! O3 column (DU)
-      REAL(fp), INTENT(IN)         :: P_CTM(L1_+1)      ! CTM edge pressures (hPa)
-      REAL(fp), INTENT(INOUT)      :: CLDOD(L_)         ! Cloud optical depth
-      REAL(fp), INTENT(IN)         :: DSTOD(L_,NDUST)   ! Mineral dust OD
-      REAL(fp), INTENT(IN)         :: AEROD(L_,NALLAER) ! Aerosol OD
-      REAL(fp), INTENT(IN)         :: O3_CTM(L1_)       ! CTM ozone (molec/cm3)
+      REAL(fp), INTENT(IN)       :: YLAT              ! Latitude (degrees)
+      INTEGER,  INTENT(IN)       :: MONTH             ! Month
+      INTEGER,  INTENT(IN)       :: DAY               ! Day *of month*
+      REAL(fp), INTENT(IN)       :: T_CTM(L1_)        ! CTM temperatures (K)
+      REAL(fp), INTENT(IN)       :: O3_TOMS           ! O3 column (DU)
+      REAL(fp), INTENT(IN)       :: P_CTM(L1_+1)      ! CTM edge pressures (hPa)
+      REAL(fp), INTENT(INOUT)    :: CLDOD(L_)         ! Cloud optical depth
+      REAL(fp), INTENT(IN)       :: DSTOD(L_,NDUST)   ! Mineral dust OD
+      REAL(fp), INTENT(IN)       :: AEROD(L_,A_)      ! Aerosol OD
+      REAL(fp), INTENT(IN)       :: O3_CTM(L1_)       ! CTM ozone (molec/cm3)
       TYPE(OptInput), INTENT(IN) :: Input_Opt         ! Input options
 !
 ! !OUTPUT VARIABLES:
 !
-      REAL(fp), INTENT(OUT)        :: AERCOL(A_,L1_)    ! Aerosol column
-      REAL(fp), INTENT(OUT)        :: T_CLIM(L1_)       ! Clim. temperatures (K)
-      REAL(fp), INTENT(OUT)        :: Z_CLIM(L1_+1)     ! Edge altitudes (cm)
-      REAL(fp), INTENT(OUT)        :: O3_CLIM(L1_)      ! O3 column depth (#/cm2)
-      REAL(fp), INTENT(OUT)        :: AIR_CLIM(L1_)     ! O3 column depth (#/cm2)
+      REAL(fp), INTENT(OUT)      :: AERCOL(A_,L1_)    ! Aerosol column
+      REAL(fp), INTENT(OUT)      :: T_CLIM(L1_)       ! Clim. temperatures (K)
+      REAL(fp), INTENT(OUT)      :: Z_CLIM(L1_+1)     ! Edge altitudes (cm)
+      REAL(fp), INTENT(OUT)      :: O3_CLIM(L1_)      ! O3 column depth (#/cm2)
+      REAL(fp), INTENT(OUT)      :: AIR_CLIM(L1_)     ! O3 column depth (#/cm2)
 !
 ! !REMARKS:
 ! 
@@ -3559,7 +3976,7 @@ C---Always does PL(2) = P[1]
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, K, L, M, N, LCTM
+      INTEGER                  :: I, K, L, M, N, LCTM
       REAL(fp)                 :: DLOGP,F0,T0,B0,PB,PC,XC,MASFAC,SCALEH
       REAL(fp)                 :: PSTD(52),OREF2(51),TREF2(51)
       REAL(fp)                 :: PROFCOL, ODSUM
@@ -3612,7 +4029,7 @@ C---Always does PL(2) = P[1]
       PSTD(52) = 0.e+0_fp
 
       ! Mass factor - delta-Pressure [hPa] to delta-Column [molec/cm2]
-      MASFAC = 100.e+0_fp * 6.022d+23 / 
+      MASFAC = 100.e+0_fp * 6.022e+23_fp / 
      &        ( 28.97e+0_fp * 9.8e+0_fp * 10.e+0_fp )
 
       ! Select appropriate monthly and latitudinal profiles
@@ -3681,13 +4098,13 @@ C---Always does PL(2) = P[1]
          ENDDO
         
          ! Also add in other aerosol optical depth columns (rvm, bmy, 2/27/02)
-         DO N = 1, NALLAER
+         DO N = 1, NAER
             AERCOL(3+N+NDUST,I) = AEROD(I,N)
          ENDDO
 
       ENDDO
 
-      DO K = 1,(3+NDUST+(NALLAER))
+      DO K = 1,(3+NDUST+(NAER))
          AERCOL(K,L1_    ) = 0.e+0_fp
       ENDDO
 
@@ -4125,6 +4542,7 @@ c  Ensure all 'AN_' types are valid selections
 !                              running with the traditional driver main.F
 !  10 Apr 2013 - S. D. Eastham - Adapted for Fast-JX v7.0
 !  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  13 Mar 2015 - R. Yantosca - Replace DATA_DIR_1x1 w/ CHEM_INPUTS_DIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4157,7 +4575,7 @@ c  Ensure all 'AN_' types are valid selections
       !=========================================================================
     
       ! Directory and file names
-      nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'FastJ_201204/'      
+      nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'FastJ_201204/'      
       nc_file = 'fastj.jv_atms_dat.nc'  
       nc_path = TRIM( nc_dir ) // TRIM( nc_file )
     

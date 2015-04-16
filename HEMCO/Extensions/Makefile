@@ -115,7 +115,7 @@ hcox_driver_mod.o           : hcox_driver_mod.F90             \
                               hcox_finn_mod.o                 \
                               hcox_gc_POPs_mod.o              \
                               hcox_gc_RnPbBe_mod.o            \
-                              hcox_gfed3_mod.o                \
+                              hcox_gfed_mod.o                 \
                               hcox_paranox_mod.o              \
                               hcox_lightnox_mod.o             \
                               hcox_megan_mod.o                \
@@ -136,11 +136,10 @@ hcox_gc_POPs_mod.o          : hcox_gc_POPs_mod.F90            \
                               hcox_state_mod.o		      
 
 hcox_gc_RnPbBe_mod.o        : hcox_gc_RnPbBe_mod.F90          \
-                              hcox_gc_RnPbBe_include.H        \
                               hcox_state_mod.o                
 
-hcox_gfed3_mod.o            : hcox_gfed3_mod.F90              \
-                              hcox_gfed3_include.H            \
+hcox_gfed_mod.o             : hcox_gfed_mod.F90               \
+                              hcox_gfed_include.H             \
                               hcox_state_mod.o		      
 
 hcox_finn_mod.o             : hcox_finn_mod.F90               \
@@ -148,16 +147,14 @@ hcox_finn_mod.o             : hcox_finn_mod.F90               \
                               hcox_state_mod.o		      
 
 hcox_lightnox_mod.o         : hcox_lightnox_mod.F90           \
-                              hcox_state_mod.o                \
-                              lightning_cdf_mod.o	      
+                              hcox_state_mod.o
 
 hcox_megan_mod.o            : hcox_megan_mod.F                \
                               hcox_state_mod.o                \
                               EF_MGN20_mod.o		      
 
 hcox_paranox_mod.o          : hcox_paranox_mod.F90            \
-                              hcox_state_mod.o                \
-                              paranox_util_mod.o	      
+                              hcox_state_mod.o
 
 hcox_seaflux_mod.o          : hcox_seaflux_mod.F90            \
                               hcox_state_mod.o                \
@@ -175,11 +172,6 @@ hcox_state_mod.o            : hcox_state_mod.F90
 hcox_tomas_seasalt_mod.o    : hcox_tomas_seasalt_mod.F90      \
                               hcox_state_mod.o
 
-lightning_cdf_mod.o         : lightning_cdf_mod.F90           \
-                              lightning_cdf_include.H
-
 ocean_toolbox_mod.o         : ocean_toolbox_mod.F90
-
-paranox_util_mod.o          : paranox_util_mod.F
 
 #EOC

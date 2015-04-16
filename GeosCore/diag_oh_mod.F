@@ -34,6 +34,7 @@
 !  (1 ) Remove code for obsolete CO-OH simulation (bmy, 6/24/05)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  12 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  19 Dec 2014 - R. Yantosca - Need to keep some variables as REAL*8
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -41,12 +42,12 @@
 ! !PRIVATE TYPES:
 ! 
       ! Scalars
-      LOGICAL             :: DO_SAVE_OH
+      LOGICAL               :: DO_SAVE_OH
 
       ! Arrays 
-      REAL(fp), ALLOCATABLE :: OH_MASS(:,:,:)
-      REAL(fp), ALLOCATABLE :: AIR_MASS(:,:,:)
-      REAL(fp), ALLOCATABLE :: OH_LOSS(:,:,:)
+      REAL(f8), ALLOCATABLE :: OH_MASS(:,:,:)
+      REAL(f8), ALLOCATABLE :: AIR_MASS(:,:,:)
+      REAL(f8), ALLOCATABLE :: OH_LOSS(:,:,:)
       REAL(fp), ALLOCATABLE :: OHCH4_LOSS(:,:,:)
       REAL(fp), ALLOCATABLE :: CH4_MASS(:,:,:)
       REAL(fp), ALLOCATABLE :: CH4_TROPMASS(:,:,:)
@@ -67,7 +68,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DIAG_OH
+      SUBROUTINE DO_DIAG_OH()
 !
 ! !USES:
 !
@@ -79,15 +80,18 @@
 ! !REVISION HISTORY:
 !  07 Jul 2004 - R. Yantosca - Initial version
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  19 Dec 2014 - R. Yantosca - Use REAL*8 variables to avoid precision loss
+!  19 Dec 2014 - R. Yantosca - Remove FIRST & XLOSS; they aren't used anymore
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: I,     J,       L,       JLOOP
-      REAL(fp)        :: XLOSS, XOHMASS, XAIRMASS
+      INTEGER  :: I,          J
+      INTEGER  :: L,          JLOOP
+      REAL(f8) :: AIRDENS_8,  VOLUME_8
+      REAL(f8) :: XOHMASS,    XAIRMASS
 
       !=================================================================
       ! DO_DIAG_OH begins here!
@@ -99,7 +103,7 @@
       ! Loop over boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, JLOOP, XAIRMASS, XOHMASS, XLOSS )
+!$OMP+PRIVATE( I, J, L, JLOOP, XAIRMASS, XOHMASS, AIRDENS_8, VOLUME_8 )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, NPVERT
       DO J = 1, NLAT
@@ -111,8 +115,12 @@
          ! Cycle if this isn't a valid SMVGEAR gridbox
          IF ( JLOOP > 0 ) THEN
          
+            ! Cast from REAL*8 to avoid underflow
+            AIRDENS_8       = AIRDENS(JLOOP)
+            VOLUME_8        = VOLUME(JLOOP)
+
             ! Sum air mass term into AIR_MASS array
-            XAIRMASS        = AIRDENS(JLOOP)    * VOLUME(JLOOP)
+            XAIRMASS        = AIRDENS_8         * VOLUME_8
             AIR_MASS(I,J,L) = AIR_MASS(I,J,L)   + XAIRMASS
 
             ! Sum OH mass term into OH_MASS array
@@ -149,16 +157,16 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I          ! Longitude index
-      INTEGER, INTENT(IN) :: J          ! Latitude index
-      INTEGER, INTENT(IN) :: L          ! Level index
-      REAL(fp),  INTENT(IN) :: XOHMASS    ! OH Mass  (from global_ch4_mod.f)
-      REAL(fp),  INTENT(IN) :: XAIRMASS   ! Air mass (from global_ch4_mod.f)
-      REAL(fp),  INTENT(IN) :: XLOSS      ! Loss of ch3ccl3 by OH
-      REAL(fp),  INTENT(IN) :: XCH4LOSS   ! Loss of ch4 by OH
-      REAL(fp),  INTENT(IN) :: XCH4MASS   ! CH4 Mass  (from global_ch4_mod.f)
-      REAL(fp),  INTENT(IN) :: XCH4TROPMASS   ! CH4 Mass  (from global_ch4_mod.f)
-      REAL(fp),  INTENT(IN) :: XCH4EMIS   ! CH4 emissions
+      INTEGER,  INTENT(IN) :: I             ! Longitude index
+      INTEGER,  INTENT(IN) :: J             ! Latitude index
+      INTEGER,  INTENT(IN) :: L             ! Level index
+      REAL(fp), INTENT(IN) :: XOHMASS       ! OH Mass  (from global_ch4_mod.f)
+      REAL(fp), INTENT(IN) :: XAIRMASS      ! Air mass (from global_ch4_mod.f)
+      REAL(fp), INTENT(IN) :: XLOSS         ! Loss of ch3ccl3 by OH
+      REAL(fp), INTENT(IN) :: XCH4LOSS      ! Loss of ch4 by OH
+      REAL(fp), INTENT(IN) :: XCH4MASS      ! CH4 Mass  (from global_ch4_mod.f)
+      REAL(fp), INTENT(IN) :: XCH4TROPMASS  ! CH4 Mass  (from global_ch4_mod.f)
+      REAL(fp), INTENT(IN) :: XCH4EMIS      ! CH4 emissions
 ! 
 ! !REVISION HISTORY:
 !  07 Jul 2004 - R. Yantosca - Initial version
@@ -215,19 +223,24 @@
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  25 Jun 2014 - R. Yantosca - Now remove references to tracer_mod.F
+!  08 Jan 2015 - M. Yannetti - Set variables to F8 as needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp) :: SUM_OHMASS, SUM_MASS, SUM_OHLOSS, OHCONC, LIFETIME
-      REAL(fp) :: SUM_OHCH4LOSS, SUM_CH4MASS
-      REAL(fp) :: SUM_CH4EMIS, SUM_CH4TROPMASS
-     
+      REAL(f8) :: SUM_OHMASS, SUM_MASS, SUM_OHLOSS
+      REAL(f8) :: SUM_OHCH4LOSS, SUM_CH4MASS
+      REAL(f8) :: SUM_CH4EMIS, SUM_CH4TROPMASS
+      REAL(fp) :: OHCONC, LIFETIME
+      
+      LOGICAL  :: LPRT
       !=================================================================
       ! PRINT_DIAG_OH begins here!
       !=================================================================
+
+      LPRT = ( Input_Opt%LPRT .and. am_I_Root )
 
       ! Assume success
       RC         = GIGC_SUCCESS
@@ -235,6 +248,11 @@
       ! Return if this diagnostic is turned off
       IF ( .not. DO_SAVE_OH ) RETURN
 
+
+      !IF ( LPRT ) THEN
+      ! PRINT*, "### OH_MASS: ", OH_MASS
+      ! FLUSH (6)
+      !END IF
       ! Total Mass-weighted OH [molec OH/cm3] * [molec air]
       SUM_OHMASS = SUM( OH_MASS )
 

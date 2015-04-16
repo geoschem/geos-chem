@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -25,7 +25,6 @@
 !         across all longitudes (based upon UTC time).
 ! \item Weekdaily: Seven time slices, representing the days of the  
 !         week: Sun, Mon, ..., Sat. Uses local time.
-! \item Weekdaily\_gridded: As weekdaily, but uses utc time.
 ! \item Monthly: 12 time slices, representing the months of the year: 
 !         Jan, ..., Dec. Uses local time. 
 ! \end{itemize}
@@ -41,7 +40,8 @@
 ! time is used at every grid box when picking the time slice at a given
 ! time. For gridded data, it's assumed that local-time effects are already 
 ! taken into account and UTC time is used at all locations to select the
-! currently valid time slice.
+! currently valid time slice. The exception is weekdaily data, which is
+! always assumed to be in local time.
 !\\
 !\\
 ! Structure AlltIDx organizes the indexing of the vector arrays. It
@@ -59,7 +59,7 @@ MODULE HCO_tIdx_Mod
 ! !USES:
 !
   USE HCO_Error_Mod
-  USE HCO_fileData_Mod,  ONLY : TimeIdx
+  USE HCO_FileData_Mod,  ONLY : TimeIdx
 
   IMPLICIT NONE
   PRIVATE
@@ -67,11 +67,10 @@ MODULE HCO_tIdx_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: tIDx_Assign
-  PUBLIC :: tIDx_Update
   PUBLIC :: tIDx_Init
   PUBLIC :: tIDx_GetIndx
-  PUBLIC :: tIDx_GetIndxVec
   PUBLIC :: tIDx_Cleanup
+  PUBLIC :: tIDx_IsInRange
   PUBLIC :: HCO_GetPrefTimeAttr
   PUBLIC :: HCO_ExtractTime
 !
@@ -80,10 +79,15 @@ MODULE HCO_tIdx_Mod
 !  i.e. local time does not change with latitude! 
 !
 ! !REVISION HISTORY:
-!  29 Dec 2012 - C. Keller - Initialization
-!  22 Aug 2013 - C. Keller - Some time slice updates. 
+!  29 Dec 2012 - C. Keller   - Initialization
+!  22 Aug 2013 - C. Keller   - Some time slice updates. 
 !  08 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  08 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
+!  03 Dec 2014 - C. Keller   - Major update: now calculate the time slice
+!                              indeces on the fly instead of storing them in
+!                              precalculated vectors.
+!  25 Feb 2015 - R. Yantosca - Comment out WEEKDAY_GRID, it is not used
+!                              anymore.  This avoids seg faults.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -91,14 +95,17 @@ MODULE HCO_tIdx_Mod
 ! !PRIVATE TYPES:
 !
   ! The TimeIdxCollection derived type contains the pointers with the
-  ! current valid vector indeces for all defined cycling intervals.
+  ! current valid vector indices for all defined cycling intervals.
   TYPE ::  TimeIdxCollection
-     INTEGER                :: nx           ! # of lons 
      TYPE(TimeIdx), POINTER :: CONSTANT
      TYPE(TimeIdx), POINTER :: HOURLY
      TYPE(TimeIdx), POINTER :: HOURLY_GRID 
      TYPE(TimeIdx), POINTER :: WEEKDAY
-     TYPE(TimeIdx), POINTER :: WEEKDAY_GRID
+!------------------------------------------------------------------------------
+! Prior to 2/25/15:
+! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
+!     TYPE(TimeIdx), POINTER :: WEEKDAY_GRID
+!------------------------------------------------------------------------------
      TYPE(TimeIdx), POINTER :: MONTHLY
   END TYPE TimeIdxCollection
 
@@ -108,7 +115,7 @@ MODULE HCO_tIdx_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -148,7 +155,6 @@ CONTAINS
 
     ! Allocate collection of time indeces 
     ALLOCATE ( AlltIDx ) 
-    AlltIDx%nx = HcoState%NX
 
     ! Initialize the vectors holding the currently valid time slice 
     ! indices for the various cycle intervals. Only create longitude- 
@@ -161,11 +167,6 @@ CONTAINS
     ALLOCATE ( AlltIDx%CONSTANT )
     AlltIDx%CONSTANT%TypeID       = 0 
     AlltIDx%CONSTANT%TempRes      = "Constant"
-    AlltIDx%CONSTANT%LonDependent = .FALSE.
-    
-    ALLOCATE( AlltIDx%CONSTANT%CurrIDx(1) )
-    AlltIDx%CONSTANT%CurrIDx(:) = 1
-
 
     ! ----------------------------------------------------------------
     ! "HOURLY" => changes every hour, longitude-dependent
@@ -173,10 +174,6 @@ CONTAINS
     ALLOCATE ( AlltIDx%HOURLY )
     AlltIDx%HOURLY%TypeID       = 24
     AlltIDx%HOURLY%TempRes      = "Hourly"
-    AlltIDx%HOURLY%LonDependent = .TRUE.
-
-    ALLOCATE( AlltIDx%HOURLY%CurrIDx(AlltIDx%NX) )
-    AlltIDx%HOURLY%CurrIDx(:)   = 1
 
     ! ----------------------------------------------------------------
     ! "HOURLY_GRID" => changes every hour, longitude-independent
@@ -184,10 +181,6 @@ CONTAINS
     ALLOCATE ( AlltIDx%HOURLY_GRID )
     AlltIDx%HOURLY_GRID%TypeID       = 241
     AlltIDx%HOURLY_GRID%TempRes      = "Hourly_Grid"
-    AlltIDx%HOURLY_GRID%LonDependent = .FALSE.
-
-    ALLOCATE( AlltIDx%HOURLY_GRID%CurrIDx(1) )
-    AlltIDx%HOURLY_GRID%CurrIDx(:)   = 1
 
     ! ----------------------------------------------------------------
     ! "WEEKDAY" => changes every weekday, longitude-dependent
@@ -195,21 +188,17 @@ CONTAINS
     ALLOCATE ( AlltIDx%WEEKDAY )
     AlltIDx%WEEKDAY%TypeID       = 7
     AlltIDx%WEEKDAY%TempRes      = "Weekday"
-    AlltIDx%WEEKDAY%LonDependent = .TRUE.
 
-    ALLOCATE( AlltIDx%WEEKDAY%CurrIDx(AlltIDx%NX) )
-    AlltIDx%WEEKDAY%CurrIDx(:)   = 1
-
-    ! ----------------------------------------------------------------
-    ! "WEEKDAY_GRID" => changes every weekday, longitude-independent
-    ! ----------------------------------------------------------------
-    ALLOCATE ( AlltIDx%WEEKDAY_GRID )
-    AlltIDx%WEEKDAY_GRID%TypeID       = 71
-    AlltIDx%WEEKDAY_GRID%TempRes      = "Weekday_Grid"
-    AlltIDx%WEEKDAY_GRID%LonDependent = .FALSE.
-
-    ALLOCATE( AlltIDx%WEEKDAY_GRID%CurrIDx(1) )
-    AlltIDx%WEEKDAY_GRID%CurrIDx(:)   = 1
+!------------------------------------------------------------------------------
+! Prior to 2/25/15:
+! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
+!    ! ----------------------------------------------------------------
+!    ! "WEEKDAY_GRID" => changes every weekday, longitude-independent
+!    ! ----------------------------------------------------------------
+!    ALLOCATE ( AlltIDx%WEEKDAY_GRID )
+!    AlltIDx%WEEKDAY_GRID%TypeID       = 71
+!    AlltIDx%WEEKDAY_GRID%TempRes      = "Weekday_Grid"
+!------------------------------------------------------------------------------
 
     ! ----------------------------------------------------------------
     ! "MONTHLY" => changes every month, longitude-dependent
@@ -217,10 +206,6 @@ CONTAINS
     ALLOCATE ( AlltIDx%MONTHLY )
     AlltIDx%MONTHLY%TypeID       = 12
     AlltIDx%MONTHLY%TempRes      = "Monthly"
-    AlltIDx%MONTHLY%LonDependent = .TRUE.
-
-    ALLOCATE( AlltIDx%MONTHLY%CurrIDx(AlltIDx%NX) )
-    AlltIDx%MONTHLY%CurrIDx(:)   = 1
 
     ! Return w/ success
     CALL HCO_LEAVE ( RC )
@@ -228,7 +213,7 @@ CONTAINS
   END SUBROUTINE tIDx_Init
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -281,8 +266,12 @@ CONTAINS
        CASE ( 7 )
           ctIDx => AlltIDx%WEEKDAY
 
-       CASE ( 71 )
-          ctIDx => AlltIDx%WEEKDAY_GRID
+!------------------------------------------------------------------------------
+! Prior to 2/25/15:
+! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
+!       CASE ( 71 )
+!          ctIDx => AlltIDx%WEEKDAY_GRID
+!------------------------------------------------------------------------------
 
        CASE ( 12 )
           ctIDx => AlltIDx%MONTHLY
@@ -295,7 +284,7 @@ CONTAINS
   END SUBROUTINE tIDx_Set
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -322,38 +311,30 @@ CONTAINS
     IF ( ASSOCIATED( AlltIDx ) ) THEN
        
        IF ( ASSOCIATED(AlltIDx%CONSTANT) ) THEN
-          IF(ASSOCIATED(AlltIDx%CONSTANT%CurrIDx)) &
-               DEALLOCATE(AlltIDx%CONSTANT%CurrIDx) 
           DEALLOCATE(AlltIDx%CONSTANT) 
        ENDIF
 
        IF ( ASSOCIATED(AlltIDx%HOURLY) ) THEN
-          IF(ASSOCIATED(AlltIDx%HOURLY%CurrIDx)) &
-               DEALLOCATE(AlltIDx%HOURLY%CurrIDx) 
           DEALLOCATE(AlltIDx%HOURLY) 
        ENDIF
 
        IF ( ASSOCIATED(AlltIDx%HOURLY_GRID) ) THEN
-          IF(ASSOCIATED(AlltIDx%HOURLY_GRID%CurrIDx)) &
-               DEALLOCATE(AlltIDx%HOURLY_GRID%CurrIDx) 
           DEALLOCATE(AlltIDx%HOURLY_GRID) 
        ENDIF
 
        IF ( ASSOCIATED(AlltIDx%WEEKDAY) ) THEN
-          IF(ASSOCIATED(AlltIDx%WEEKDAY%CurrIDx)) &
-               DEALLOCATE(AlltIDx%WEEKDAY%CurrIDx) 
           DEALLOCATE(AlltIDx%WEEKDAY) 
        ENDIF
 
-       IF ( ASSOCIATED(AlltIDx%WEEKDAY_GRID) ) THEN
-          IF(ASSOCIATED(AlltIDx%WEEKDAY_GRID%CurrIDx)) &
-               DEALLOCATE(AlltIDx%WEEKDAY_GRID%CurrIDx) 
-          DEALLOCATE(AlltIDx%WEEKDAY_GRID) 
-       ENDIF
+!------------------------------------------------------------------------------
+! Prior to 2/25/15:
+! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
+!       IF ( ASSOCIATED(AlltIDx%WEEKDAY_GRID) ) THEN
+!          DEALLOCATE(AlltIDx%WEEKDAY_GRID) 
+!       ENDIF
+!------------------------------------------------------------------------------
   
        IF ( ASSOCIATED(AlltIDx%MONTHLY) ) THEN
-          IF(ASSOCIATED(AlltIDx%MONTHLY%CurrIDx)) &
-               DEALLOCATE(AlltIDx%MONTHLY%CurrIDx) 
           DEALLOCATE(AlltIDx%MONTHLY) 
        ENDIF
   
@@ -365,242 +346,136 @@ CONTAINS
   END SUBROUTINE tIDx_Cleanup
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: tIDx_Update
+! !ROUTINE: tIDx_GetIndx
 !
-! !DESCRIPTION: Subroutine tIDx\_Update updates the current valid 
-! index values for every time slice type.
+! !DESCRIPTION: Subroutine tIDx\_GetIndx calculates the current valid 
+! index values for the given file data time slice type and longitude
+! location 
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE tIDx_Update( am_I_Root, RC )
+  FUNCTION tIDx_GetIndx ( HcoState, Dta, I, J ) RESULT ( Indx )
 !
 ! !USES:
 !
-    USE HCO_CLOCK_MOD, ONLY : HcoClock_Get, HcoClock_GetLocal
+    USE HCO_State_Mod,    ONLY : HCO_State
+    USE HCO_FileData_Mod, ONLY : FileData 
+    USE HCO_CLOCK_MOD,    ONLY : HcoClock_Get, HcoClock_GetLocal
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN   ) :: am_I_Root
+    TYPE(HCO_State), POINTER    :: HcoState  ! Hemco state 
+    TYPE(FileData),  POINTER    :: Dta       ! File data object 
+    INTEGER,         INTENT(IN) :: I         ! Longitude index of interest
+    INTEGER,         INTENT(IN) :: J         ! Latitude  index of interest
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(INOUT) :: RC 
+    INTEGER                     :: Indx      ! Index 
 !
 ! !REVISION HISTORY:
-!  29 Dec 2012 - C. Keller - Initialization
+!  02 Dec 2014 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, HH, WD, iMM, iWD
-    REAL(sp)           :: iHH
-    CHARACTER(LEN=255) :: MSG, LOC
-
-    ! testing only
-    LOGICAL, SAVE      :: FIRST = .TRUE.
+    INTEGER            :: HH, WD, MM, RC
+    REAL(hp)           :: LonHH
+    REAL(dp)           :: frac
 
     !======================================================================
-    ! tIDx_Update begins here!
+    ! tIDx_GetIndx begins here!
     !======================================================================
 
-    ! Enter
-    LOC = 'tIDx_Update (HCO_TIDX_MOD.F90)'
+    ! Default value (=> This will cause the code to crash!)
+    Indx = -1
 
     ! ----------------------------------------------------------------
-    ! Set longitude independent indeces
+    ! Calculate time slice index for the given time slice type 
     ! ----------------------------------------------------------------
+    SELECT CASE ( Dta%tIDx%TypeID )
 
-    ! Get current times
-    CALL HcoClock_Get( cH = HH, cWeekday = WD, RC=RC )
-    IF ( RC/= HCO_SUCCESS ) RETURN
+       ! Constant: there is only one time slice
+       CASE ( 1 ) 
+          Indx = 1
 
-    ! CONSTANT:
-    ! --> nothing to be done
+       ! Hourly data (local time)   
+       ! Indx returns the time slice representative for the LOCAL time
+       ! at longitude Lon.
+       CASE ( 24 )
+          CALL HcoClock_GetLocal( HcoState, I, J, cH=LonHH, RC=RC ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Indx = FLOOR(LonHH) + 1
 
-    ! HOURLY_GRID:
-    ! Gridded hourly data is assumed to be already adjusted for
-    ! local time effects, hence just point to the time slice
-    ! of current UTC time. Add one since hour starts at 0.
-    AlltIDx%HOURLY_GRID%CurrIDx(1) = HH + 1
+       ! Hourly data (already gridded)
+       ! Gridded hourly data is assumed to be already adjusted for
+       ! local time effects, hence just point to the time slice
+       ! of current UTC time. Add one since hour starts at 0.
+       CASE ( 241 )
+          CALL HcoClock_Get( cH = HH, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Indx = HH + 1
 
-    ! WEEKDAY_GRID:
-    ! For gridded weekday factors, just use the UTC slice. Add
-    ! one since weekday start at 0.
-    AlltIDx%WEEKDAY_GRID%CurrIDx(1) = WD + 1
+       ! Weekday data (local time)
+       ! Indx returns the time slice representative for the LOCAL
+       ! weekday at longitude Lon.
+       CASE ( 7 )
 
-    ! ----------------------------------------------------------------
-    ! Set longitude dependent time indeces 
-    ! ----------------------------------------------------------------
-    DO I = 1, AlltIDx%NX
+          CALL HcoClock_GetLocal( HcoState, I, J, cWeekday=WD, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Indx = WD + 1
 
-       ! Get local times
-       CALL HcoClock_GetLocal( I, cMM=iMM, cH=iHH, cWeekday=iWD, RC=RC ) 
-       IF ( RC/= HCO_SUCCESS ) RETURN
+       ! Weekday data (already gridded)
+       ! For gridded weekday factors, just use the UTC slice. Add
+       ! one since weekday start at 0.
+!       CASE ( 71 )
+!          CALL HcoClock_Get( cWeekday = WD, RC=RC )
+!          IF ( RC /= HCO_SUCCESS ) RETURN
+!          Indx = WD + 1
 
-       ! HOURLY:
-       ! These are the pointers to the hourly indices. Hourly points
-       ! to the hourly time slice representative for the LOCAL time at
-       ! longitude ii.
-       AlltIDx%HOURLY%CurrIDx(I) = FLOOR(iHH) + 1
+       ! Monthly data (local time)
+       ! Monthly data is always in local time.
+       ! For gridded monthly data, only the current valid time slice
+       ! is kept in memory (and updated whenever a new month is entered).
+       CASE ( 12 )
+          CALL HcoClock_GetLocal( HcoState, I, J, cMM = MM, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Indx = MM
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!          TEMPORARY FIX FOR CONSISTENCY W/ FORMER VERSION
-!
-       ! WEEKDAY:
-       ! For non-gridded factors, take into account local time:
-!       AlltIDx%WEEKDAY%CurrIDx(I) = iWD + 1
-       AlltIDx%WEEKDAY%CurrIDx(I) = WD + 1
-       AlltIDx%WEEKDAY%LonDependent = .FALSE.
-       IF ( FIRST .AND. I == 1 .AND. am_I_Root ) THEN
-          MSG =  'Constant weekday used, needs to be fixed!'
-          CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
-       ENDIF
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+       ! Default: assume it's constant
+       CASE DEFAULT
+          Indx = 1
 
-       ! MONTHLY data
-
-       ! Set month index accordingly
-       AlltIDx%MONTHLY%CurrIDx(I) = iMM 
-
-    ENDDO !I
-
-    ! Adjust first flag
-    FIRST = .FALSE. 
-
-    ! Leave w/ success
-    RC = HCO_SUCCESS 
-
-  END SUBROUTINE tIDx_Update
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: tIDx_GetIndx 
-!
-! !DESCRIPTION: Function tIDx\_GetIndx returns the current active time 
-! slice index for the given file data object and longitude (by index).
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION tIDx_GetIndx( Dta, LonIndx ) RESULT ( Indx )
-!
-! !USES:
-!
-    USE HCO_FileData_Mod, ONLY : FileData 
-!
-! !INPUT PARAMETERS: 
-!
-    TYPE(FileData), POINTER    :: Dta     ! File data object 
-    INTEGER,        INTENT(IN) :: LonIndx ! Longitude index 
-!
-! !RETURN VALUE:
-!
-    INTEGER                    :: Indx 
-!
-! !REVISION HISTORY: 
-!  13 Jan 2014 - C. Keller - Initial version 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL(dp)     :: frac
-
-    !-----------------------------------
-    ! tIDx_GetIndx begins here! 
-    !-----------------------------------
-
-    ! For longitude dependent time slices, point to time index
-    ! corresponding to the given longitude. 
-    IF ( Dta%tIDx%LonDependent ) THEN 
-       indx = Dta%tIDx%CurrIDx(LonIndx)
-
-    ! Time independent time slices: there is only one index.
-    ELSE
-       indx = Dta%tIDx%CurrIDx(1) 
-    ENDIF
+    END SELECT
 
     ! For hourly data with less than 24 time slices, i.e. time
     ! intervals of more than 1 hour, map 24 hour index onto the
     ! reduced time slice. 
     ! For example, for 3-hourly data (8 vector elements), this will 
     ! return index 1 for hours 0-2am, index 2 for 3-5am, etc.
+    ! Dta%DeltaT denotes the time difference between between two time
+    ! slices (in hours).
     IF ( Dta%DeltaT > 1 .AND. Dta%DeltaT < 24 ) THEN
-       frac = DBLE(indx) / DBLE(Dta%DeltaT) 
-       indx = CEILING( frac )
+       frac = DBLE(Indx) / DBLE(Dta%DeltaT) 
+       Indx = CEILING( frac )
+    ENDIF
+
+    ! Sanity check: index must not exceed time dimension
+    IF ( Indx > Dta%nt ) THEN
+       WRITE(*,*) 'Indx exceeds # of time slices! ', Indx, Dta%nt, TRIM(Dta%ncFile)
+       Indx = -1
     ENDIF
 
   END FUNCTION tIDx_GetIndx
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: tIDx_GetIndxVec 
-!
-! !DESCRIPTION: Function tIDx\_GetIndxVec returns a vector with the 
-! current active time slice indeces for every longitude. 
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION tIDx_GetIndxVec( Dta, nI ) RESULT ( IndxVec )
-!
-! !USES:
-!
-    USE HCO_FileData_Mod, ONLY : FileData
-!
-! !INPUT PARAMETERS: 
-!
-    TYPE(FileData), POINTER    :: Dta    ! List container 
-    INTEGER,        INTENT(IN) :: nI         ! # of lons 
-!
-! !RETURN VALUE:
- !
-    INTEGER                    :: IndxVec(nI)
-!
-! !REVISION HISTORY: 
-!  13 Jan 2014 - C. Keller - Initial version 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER :: I 
-
-    !-----------------------------------
-    ! tIDx_GetIndxVec begins here! 
-    !-----------------------------------
-
-    ! For longitude dependent time slices, get index for every longitude 
-    IF ( Dta%tIDx%LonDependent ) THEN 
-       DO I = 1, nI
-          IndxVec(I) = tIDx_GetIndx( Dta, I )
-       ENDDO
-
-    ! For longitude independent data: all indeces are the same, so just
-    ! use first one.
-    ELSE
-       I          = tIDx_GetIndx( Dta, 1 )
-       IndxVec(:) = I   
-    ENDIF
-
-  END FUNCTION tIDx_GetIndxVec
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -621,17 +496,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE tIDx_Assign( HcoState, Lct, RC ) 
+  SUBROUTINE tIDx_Assign( HcoState, Dct, RC ) 
 !
 ! !USES:
 !
     USE HCO_State_Mod,    ONLY : HCO_State
-    USE HCO_DataCont_MOD, ONLY : ListCont
+    USE HCO_DataCont_MOD, ONLY : DataCont
 !
 ! !INPUT PARAMETERS: 
 !
     TYPE(HCO_State), POINTER       :: HcoState  ! Hemco state 
-    TYPE(ListCont),  POINTER       :: Lct   ! List container
+    TYPE(DataCont),  POINTER       :: Dct   ! Data container
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -658,13 +533,13 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Check if already done
-    IF ( ASSOCIATED( Lct%Dct%Dta%tIDx ) ) THEN
+    IF ( ASSOCIATED( Dct%Dta%tIDx ) ) THEN
        CALL HCO_LEAVE( RC )
        RETURN
     ENDIF
 
     ! Get array dimensions
-    nt = Lct%Dct%Dta%nt
+    nt = Dct%Dta%nt
 
     ! Do the following only for defined data arrays
     IF ( nt > 0 ) THEN
@@ -673,13 +548,13 @@ CONTAINS
        ! Extract data array dimensions and delta t [h] between time 
        ! slices
        ! -------------------------------------------------------------
-       dt = Lct%Dct%Dta%DeltaT
-       IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
-          nx = SIZE(Lct%Dct%Dta%V2(1)%Val,1)
-          ny = SIZE(Lct%Dct%Dta%V2(1)%Val,2)
+       dt = Dct%Dta%DeltaT
+       IF ( Dct%Dta%SpaceDim <= 2 ) THEN
+          nx = SIZE(Dct%Dta%V2(1)%Val,1)
+          ny = SIZE(Dct%Dta%V2(1)%Val,2)
        ELSE
-          nx = SIZE(Lct%Dct%Dta%V3(1)%Val,1)
-          ny = SIZE(Lct%Dct%Dta%V3(1)%Val,2)
+          nx = SIZE(Dct%Dta%V3(1)%Val,1)
+          ny = SIZE(Dct%Dta%V3(1)%Val,2)
        ENDIF
 
        ! -------------------------------------------------------------
@@ -700,17 +575,26 @@ CONTAINS
           ! Sanity check if dt = 24 hours
           IF ( dt /= 24 ) THEN
              MSG = '7 time slices but delta t is not 24 hours!' // &
-                  TRIM(Lct%Dct%cName)
+                  TRIM(Dct%cName)
              CALL HCO_ERROR( MSG, RC )
              RETURN
           ENDIF
 
-          ! Check if data is gridded or not, set TempRes attribute
-          ! accordingly.
-          IF ( nx == 1 .AND. ny == 1 ) THEN
-             cTypeID = 7 
+          ! Check if data is in local time or not, set TempRes attribute
+          ! accordingly. Data will only be in local time if data is
+          ! spatially uniform or country-specific data. The IsLocTime
+          ! flag is set in hco_config_mod.F90 (for data read from other
+          ! sources than netCDF) or in hcoio_dataread_mod.F90 (for 
+          ! weekdaily data read from netCDF).
+          IF ( .NOT. Dct%Dta%IsLocTime ) THEN
+             MSG = 'Weekday data must be in local time!' // &
+                  TRIM(Dct%cName)
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+
           ELSE
-             cTypeID = 71 
+             cTypeID = 7 
+!             cTypeID = 71 
           ENDIF
 
        ! -------------------------------------------------------------
@@ -723,7 +607,7 @@ CONTAINS
              cTypeID = 12 
           ELSE
              MSG = 'Monthly data must not be gridded:' // &
-                  TRIM(Lct%Dct%cName)
+                  TRIM(Dct%cName)
              CALL HCO_ERROR( MSG, RC )
              RETURN
           ENDIF
@@ -740,7 +624,7 @@ CONTAINS
           ! Check if we can evenly split up data within a day 
           IF ( MOD(24,dt) /= 0 ) THEN
              MSG = 'Cannot properly split up hourly data!' // &
-                  TRIM(Lct%Dct%cName)
+                  TRIM(Dct%cName)
              CALL HCO_ERROR( MSG, RC )
              RETURN
           ENDIF
@@ -749,14 +633,16 @@ CONTAINS
           ntexp = 24/dt
           IF ( ntexp /= nt ) THEN
              MSG = 'Wrong delta t and/or number of time slices!' // &
-                  TRIM(Lct%Dct%cName)
+                  TRIM(Dct%cName)
              CALL HCO_ERROR( MSG, RC )
              RETURN
           ENDIF
 
-          ! Check if data is gridded or not, set TempRes attribute
-          ! accordingly.
-          IF ( nx == 1 .AND. ny == 1 ) THEN
+          ! Check if data is in local time or not, set TempRes attribute
+          ! accordingly. Data will only be in local time if data is
+          ! read from other sources than netCDF. The corresponding
+          ! IsLocTime flag is set in hco_config_mod.F90. 
+          IF ( Dct%Dta%IsLocTime ) THEN
              cTypeID = 24 
           ELSE
              cTypeID = 241 
@@ -767,7 +653,7 @@ CONTAINS
        ! -------------------------------------------------------------
        ELSE
           MSG = 'Invalid time slice for field ' // &
-               TRIM(Lct%Dct%cName)
+               TRIM(Dct%cName)
           CALL HCO_ERROR( MSG, RC )
           RETURN
        ENDIF
@@ -776,7 +662,7 @@ CONTAINS
        ! Establish the appropriate pointer for the
        ! 4th dimension (temporal resolution) of the field array
        ! -------------------------------------------------------------
-       CALL tIDx_Set( Lct%Dct%Dta%tIDx, cTypeID ) 
+       CALL tIDx_Set( Dct%Dta%tIDx, cTypeID ) 
      
     ENDIF
 
@@ -786,7 +672,78 @@ CONTAINS
   END SUBROUTINE tIDx_Assign
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: tIDx_IsInRange
+!
+! !DESCRIPTION: Subroutine tIDx\_IsInRange returns true if the passed datetime
+! is within the range of the date ranges of the data container.
+!\\
+! !INTERFACE:
+!
+  FUNCTION tIDx_IsInRange ( Lct, Yr, Mt, Dy, Hr ) RESULT ( InRange )
+!
+! !USES:
+!
+    USE HCO_DATACONT_MOD, ONLY : ListCont
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(ListCont),  POINTER    :: Lct       ! File data object 
+    INTEGER,         INTENT(IN) :: Yr
+    INTEGER,         INTENT(IN) :: Mt
+    INTEGER,         INTENT(IN) :: Dy
+    INTEGER,         INTENT(IN) :: Hr
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    LOGICAL                     :: InRange
+!
+! !REVISION HISTORY:
+!  04 Mar 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Init 
+    InRange = .TRUE.
+
+    IF ( Lct%Dct%Dta%ncYrs(1) /= Lct%Dct%Dta%ncYrs(2) ) THEN
+       IF ( Yr < Lct%Dct%Dta%ncYrs(1) .OR. &
+            Yr > Lct%Dct%Dta%ncYrs(2)       ) THEN 
+          InRange = .FALSE.
+       ENDIF
+    ENDIF
+
+    IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) ) THEN
+       IF ( Mt < Lct%Dct%Dta%ncMts(1) .OR. &
+            Mt > Lct%Dct%Dta%ncMts(2)       ) THEN 
+          InRange = .FALSE.
+       ENDIF
+    ENDIF
+
+    IF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) ) THEN
+       IF ( Dy < Lct%Dct%Dta%ncDys(1) .OR. &
+            Dy > Lct%Dct%Dta%ncDys(2)       ) THEN 
+          InRange = .FALSE.
+       ENDIF
+    ENDIF
+
+    IF ( Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2) ) THEN
+       IF ( Hr < Lct%Dct%Dta%ncHrs(1) .OR. &
+            Hr > Lct%Dct%Dta%ncHrs(2)       ) THEN 
+          InRange = .FALSE.
+       ENDIF
+    ENDIF
+
+  END FUNCTION tIDx_IsInRange
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -839,6 +796,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER   :: cYr, cMt, cDy, cHr 
+    LOGICAL   :: InRange
 
     !-----------------------------------
     ! HCO_GetPrefTimeAttr begins here! 
@@ -853,10 +811,40 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     ! ------------------------------------------------------------- 
-    ! If CycleFlag is set to 2 or 3, the preferred datetime is 
+    ! If CycleFlag is set to range, the preferred datetime is 
+    ! the current date if we are within the provided range, and 
+    ! invalid otherwise.
+    ! ------------------------------------------------------------- 
+    IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN
+
+       ! Are we in range?
+       InRange = tIDx_IsInRange ( Lct, cYr, cMt, cDy, cHr )
+
+       IF ( InRange ) THEN
+          readYr = cYr
+          readMt = cMt
+          readDy = cDy
+          IF ( Lct%Dct%Dta%ncHrs(1) == -1 ) THEN
+             readHr = -1
+          ELSE
+             readHr = cHr
+          ENDIF
+       ELSE
+          readYr = -1
+          readMt = -1
+          readDy = -1
+          readHr = -1
+       ENDIF
+
+       ! Don't need below
+       RETURN
+    ENDIF
+
+    ! ------------------------------------------------------------- 
+    ! If CycleFlag is set to exact, the preferred datetime is 
     ! always the current date.
     ! ------------------------------------------------------------- 
-    IF ( Lct%Dct%Dta%CycleFlag > 1 ) THEN
+    IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) THEN
        readYr = cYr
        readMt = cMt
        readDy = cDy
@@ -871,7 +859,7 @@ CONTAINS
     ENDIF
 
     ! ------------------------------------------------------------- 
-    ! If CycleFlag is set to 1, select the time attributes
+    ! If CycleFlag is anything else, select the time attributes
     ! as specified in the configuration file and closest to 
     ! current simulation date.
     ! ------------------------------------------------------------- 
@@ -908,18 +896,24 @@ CONTAINS
                          Lct%Dct%Dta%ncHrs(2)          )
     ENDIF
 
+    ! For weekday data, set day to 1. The seven day slices to be
+    ! read will be detected based upon the current year/month. 
+    IF ( Lct%Dct%Dta%ncDys(1) == -10 ) readDy = 1
+
     ! Don't allow invalid entries for years, months or days, i.e.
     ! force readYr, readMt and readDy to be positive!
     ! readHr can be negative, in which case all hourly fields will
     ! become read!
-    if ( readYr < 0 ) readYr = cYr 
-    if ( readMt < 0 ) readMt = cMt
-    if ( readDy < 0 ) readDy = cDy
+    IF ( readYr < 0 ) readYr = cYr 
+    IF ( readMt < 0 ) readMt = cMt
+    IF ( readDy < 0 ) readDy = cDy
+
+    ! RC already set to HCO_SUCCESS at the beginning
 
   END SUBROUTINE HCO_GetPrefTimeAttr
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -937,9 +931,10 @@ CONTAINS
 !  found in the data set.
 ! \item Time tokens: $YYYY, $MM, $DD, $HH. When reading the data, these values
 !  will be substituted by the current simulation date.
-! \item String 'WD'. Denotes that the data contains weekday data. Weekdaily data
-!  is always completely read into array (e.g. all seven data arrays) and it is
-!  expected that the first slice represents Sunday.
+! \item String 'WD'. Denotes that the data contains weekday data. It is 
+!  expected that the first slice represents Sunday. Weekday data can be used
+!  in combination with annual or monthly data. In that case, there need to be 
+!  seven entries for every year and/or month, respectively.
 ! \end{enumerate}
 !
 ! The extracted time stamp is written into the arrays ncYrs, ncMts,
@@ -1017,11 +1012,16 @@ CONTAINS
           TimeVec(I0:I1) = -999
 
        ! For the daily index, value 'WD' is also supported. This 
-       ! indicates weekdays (Sun-Sat). Weekday data is always read
-       ! entirely (e.g. all seven arrays) and we can set the time limits
-       ! to -1.
+       ! indicates weekdays (Sun, Mon, ..., Sat). Use a special
+       ! flag here to expliclity state that these are weekday data. 
        ELSEIF ( I==3 .AND. INDEX( TRIM(SUBSTR(I)), 'WD' ) > 0 ) THEN
-          TimeVec(I0:I1) = -1 
+          TimeVec(I0:I1) = -10
+
+       ! For the hourly index, value 'LH' is also supported. This 
+       ! indicates local hours. Use a special flag here to expliclity 
+       ! state that these data are local hours. 
+       ELSEIF ( I==4 .AND. INDEX( TRIM(SUBSTR(I)), 'LH' ) > 0 ) THEN
+          TimeVec(I0:I1) = -10
 
        ! Otherwise, check for date range and set lower and upper bound
        ! accordingly.
@@ -1043,13 +1043,27 @@ CONTAINS
              RETURN
           ENDIF
        ENDIF
-    ENDDO
+
+    ENDDO !I
 
     ! Pass to list container
     Dta%ncYrs = TimeVec(1:2)
     Dta%ncMts = TimeVec(3:4)
     Dta%ncDys = TimeVec(5:6)
     Dta%ncHrs = TimeVec(7:8)
+
+    ! Check for local times.
+    ! Hourly and daily data that is in local time shall be completely
+    ! read into memory. This will ensure that for every time zone, the 
+    ! correct values can be selected.
+    IF ( Dta%IsLocTime ) THEN
+       Dta%ncDys = -1
+       Dta%ncHrs = -1
+    ENDIF
+
+    ! Weekdaily data is always in local time. All seven time slices will
+    ! be read into memory.
+    IF ( Dta%ncDys(1) == -10 ) Dta%IsLocTime  = .TRUE.
 
     ! Leave w/ success
     RC = HCO_SUCCESS

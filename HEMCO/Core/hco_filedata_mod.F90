@@ -46,6 +46,10 @@
 ! \item IsConc: Set to true if data is concentration. Concentration 
 !       data will be added to the concentration array instead of the
 !       emission array.
+! \item IsLocTime: Set to true if data is in local time. Defaults to
+!       false and becomes only true if data is scalar (e.g. uniform
+!       diurnal scale factors), country-specific data (read from
+!       ASCII), or weekdaily data.
 ! \item V3: vector of 3D fields. For 3D-data, this vector will hold
 !       the 3D arrays of all time slices kept in memory (e.g. 24
 !       elements for hourly data).
@@ -62,9 +66,13 @@
 ! \item nt: time dimension. length of vector V3 or V2. For internal use 
 !       only.
 ! \item DeltaT: time interval between time slices. For internal use only.
-      ! ID i (e.g. cIDList(3) points to data-container w/ cID = 3). 
+!       ID i (e.g. cIDList(3) points to data-container w/ cID = 3). 
 ! \item DoShare: will be set to True if this file data object is shared
 !       by multiple data containers. For internal use only. 
+! \item IsInList: will be set to True if this file data object is part
+!       of the emissions list EmisList. For internal use only.
+! \item IsTouched: will be set to True as soon as the container becomes 
+!       touched for the first time. For internal use only.
 ! \end{itemize}
 !
 ! !INTERFACE: 
@@ -85,8 +93,8 @@ MODULE HCO_FileData_Mod
   PUBLIC  :: FileData_Cleanup 
   PUBLIC  :: FileData_ArrCheck
   PUBLIC  :: FileData_ArrIsDefined
+  PUBLIC  :: FileData_ArrIsTouched
   PUBLIC  :: FileData_ArrInit
-  PUBLIC  :: FileData_FileRead
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -98,6 +106,7 @@ MODULE HCO_FileData_Mod
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  21 Aug 2014 - C. Keller   - Added concentration
+!  23 Dec 2-14 - C. Keller   - Added argument IsInList
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -116,16 +125,19 @@ MODULE HCO_FileData_Mod
      INTEGER                     :: ncHrs(2)  ! hour range
      INTEGER                     :: CycleFlag ! cycle flag
      LOGICAL                     :: ncRead    ! read from source?
-     TYPE(Arr3D_HP),     POINTER :: V3(:)     ! vector of 3D fields
-     TYPE(Arr2D_HP),     POINTER :: V2(:)     ! vector of 2D fields
+     TYPE(Arr3D_SP),     POINTER :: V3(:)     ! vector of 3D fields
+     TYPE(Arr2D_SP),     POINTER :: V2(:)     ! vector of 2D fields
      TYPE(TimeIdx),      POINTER :: tIDx      ! for time slice indexing 
      CHARACTER(LEN= 31)          :: OrigUnit  ! original data units 
-     LOGICAL                     :: IsConc    ! concentration data?
      INTEGER                     :: Cover     ! data coverage
      INTEGER                     :: SpaceDim  ! space dimension: 1, 2 or 3 
      INTEGER                     :: nt        ! time dimension: length of Arr
      INTEGER                     :: DeltaT    ! temp. resolution of array [h]
+     LOGICAL                     :: IsLocTime ! local time? 
+     LOGICAL                     :: IsConc    ! concentration data?
      LOGICAL                     :: DoShare   ! shared object?
+     LOGICAL                     :: IsInList  ! is in emissions list? 
+     LOGICAL                     :: IsTouched ! Has container been touched yet? 
   END TYPE FileData
 
   !-------------------------------------------------------------------------
@@ -135,8 +147,6 @@ MODULE HCO_FileData_Mod
   TYPE, PUBLIC :: TimeIdx
      INTEGER                     :: TypeID
      CHARACTER(LEN=31)           :: TempRes
-     LOGICAL                     :: LonDependent
-     INTEGER,            POINTER :: CurrIDx(:)
   END TYPE TimeIdx
 !
 ! !INTERFACES:
@@ -154,7 +164,7 @@ MODULE HCO_FileData_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -200,15 +210,18 @@ CONTAINS
     NewFDta%ncMts(:)     = -999
     NewFDta%ncDys(:)     = -999
     NewFDta%ncHrs(:)     = -999
-    NewFDta%CycleFlag    = 1
+    NewFDta%CycleFlag    = HCO_CFLAG_CYCLE
     NewFDta%ncRead       = .TRUE.
     NewFDta%Cover        = -999 
     NewFDta%DeltaT       = 0
     NewFDta%nt           = 0
     NewFDta%SpaceDim     = -1
     NewFDta%OrigUnit     = ''
+    NewFDta%IsLocTime    = .FALSE.
     NewFDta%IsConc       = .FALSE.
     NewFDta%DoShare      = .FALSE.
+    NewFDta%IsInList     = .FALSE.
+    NewFDta%IsTouched    = .FALSE.
 
     ! Return
     FileDta => NewFDta
@@ -216,7 +229,7 @@ CONTAINS
   END SUBROUTINE FileData_Init
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -433,6 +446,9 @@ CONTAINS
     ! Init
     IsDefined = .FALSE.
 
+    ! Return here if passed FileDta object is not defined
+    IF ( .NOT. ASSOCIATED( FileDta ) ) RETURN
+
     ! nt must be larger than zero! 
     IF ( FileDta%nt <= 0 ) Return 
 
@@ -447,6 +463,54 @@ CONTAINS
     ENDIF
 
   END FUNCTION FileData_ArrIsDefined
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FileData_ArrIsTouched
+!
+! !DESCRIPTION: Function FileData\_ArrIsTouched returns true if the data 
+! array of the given file data object has already been touched, e.g. if 
+! the data has already been read (or at least attempted to being read). 
+! This information is mostly important for file data objects that are shared 
+! by multiple data containers. See ReadList\_Fill in hco\_readlist\_mod.F90
+! for more details. 
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION FileData_ArrIsTouched( FileDta ) RESULT( IsTouched )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(FileData), POINTER :: FileDta  ! Container
+!
+! !RETURN VALUE:
+!
+    LOGICAL                 :: IsTouched
+!
+! !REVISION HISTORY:
+!  17 Mar 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! ================================================================
+    ! FileData_ArrIsTouched begins here
+    ! ================================================================
+     
+    ! Init
+    IsTouched = .FALSE.
+
+    ! Return touched flag
+    IF ( ASSOCIATED( FileDta ) ) THEN
+       IsTouched = FileDta%IsTouched
+    ENDIF
+
+
+  END FUNCTION FileData_ArrIsTouched
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -566,191 +630,5 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE FileData_ArrInit3D
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: FileData_FileRead
-!
-! !DESCRIPTION: Subroutine FileData\_FileRead passes scalar scale factors
-! read from the configuration file (instead of the file path+name) to a 
-! data array.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE FileData_FileRead( am_I_Root, FileDta,    MW_g,    &
-                                EmMW_g,    MolecRatio, TS_EMIS, &
-                                IsFirst,   RC                    ) 
-!
-! !USES:
-!
-    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_CharSplit
-    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_WCD, HCO_SEP
-    USE HCO_UNIT_MOD,       ONLY : HCO_Unit_Change
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,         INTENT(IN   ) :: am_I_Root  ! Root CPU?
-    TYPE(FileData),  POINTER       :: FileDta    ! File data obj
-    REAL(hp),        INTENT(IN   ) :: MW_g       ! input data MW 
-    REAL(hp),        INTENT(IN   ) :: EmMW_g     ! emission data MW
-    REAL(hp),        INTENT(IN   ) :: MolecRatio ! molec. ratio
-    REAL(sp),        INTENT(IN   ) :: TS_EMIS    ! emission time step [s] 
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,       INTENT(  OUT) :: IsFirst   ! First read? 
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,       INTENT(INOUT) :: RC        ! Return code
-!
-! !REVISION HISTORY:
-!  10 Jan 2014 - C. Keller - Initialization (update)
-!  21 Aug 2014 - C. Keller - Added concentration
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER            :: I, N, AS
-    INTEGER            :: AreaFlag, TimeFlag, Check
-    CHARACTER(LEN=255) :: MSG, LOC
-    REAL(sp)           :: FileVals(24)
-    REAL(sp), POINTER  :: FileArr(:,:,:,:) => NULL()
-    LOGICAL            :: Verb, IsPerArea
-
-    !======================================================================
-    ! FileData_FileRead begins here
-    !======================================================================
-
-    ! Enter
-    LOC = 'FileData_FileRead (hco_filedata_mod.F90)'
-    Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
-
-    ! Don't read twice. Data file objects can belong to multiple 
-    ! containers, and this routine may hence be called multiple
-    ! times for the same data object. Make sure that we read the
-    ! data only on first call! The variable SpaceDim is initialized
-    ! to -1 but becomes set to one after reading, hence use this
-    ! variable to identify whether or not this is the first call
-    ! for this object.
-    IF ( FileDta%SpaceDim == 1 ) THEN 
-       IsFirst = 0
-       RC      = HCO_SUCCESS
-       RETURN
-    ENDIF
-
-    ! Verbose
-    IF ( Verb ) THEN
-       WRITE(MSG, *) 'Read from config file: ', TRIM(FileDta%ncFile)
-       CALL HCO_MSG(MSG)
-    ENDIF
-
-    ! Read data into array
-    CALL HCO_CharSplit ( FileDta%ncFile, HCO_SEP(), &
-                         HCO_WCD(), FileVals, N, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Return w/ error if no scale factor defined
-    IF ( N == 0 ) THEN
-       MSG = 'Cannot read data: ' // TRIM(FileDta%ncFile)
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC)
-       RETURN 
-    ENDIF
-
-    ! Convert data to HEMCO units 
-    ALLOCATE( FileArr(1,1,1,N), STAT=AS )
-    IF ( AS /= 0 ) THEN
-       MSG = 'Cannot allocate FileArr'
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
-    FileArr(1,1,1,:) = FileVals(:)
-    CALL HCO_Unit_Change( Array       = FileArr,                &
-                          Units       = TRIM(FileDta%OrigUnit), &
-                          MW_IN       = MW_g,                   &
-                          MW_OUT      = EmMW_g,                 &
-                          MOLEC_RATIO = MolecRatio,             &
-                          YYYY        = -999,                   &
-                          MM          = -999,                   &
-                          AreaFlag    = AreaFlag,               &
-                          TimeFlag    = TimeFlag,               &
-                          RC          = RC                       )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Data must be ... 
-    ! ... concentration ...
-    IF ( AreaFlag == 3 .AND. TimeFlag == 0 ) THEN
-       FileDta%IsConc = .TRUE.
-
-    ELSEIF ( AreaFlag == 3 .AND. TimeFlag == 1 ) THEN
-       FileDta%IsConc = .TRUE.
-       FileArr = FileArr * TS_EMIS
-       MSG = 'Data converted from kg/m3/s to kg/m3: ' // &
-             TRIM(FileDta%ncFile) // ': ' // TRIM(FileDta%OrigUnit)
-       CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
-
-    ! ... emissions or unitless ...
-    ELSEIF ( (AreaFlag == -1 .AND. TimeFlag == -1) .OR. &
-             (AreaFlag ==  2 .AND. TimeFlag ==  1)       ) THEN
-       FileDta%IsConc = .FALSE.
-
-    ! ... invalid otherwise:
-    ELSE
-       MSG = 'Unit must be unitless, emission or concentration ' // &
-             TRIM(FileDta%OrigUnit)
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
-
-    ! Copy data into array. Assume all data is temporal
-    ! dimension!
-    CALL FileData_ArrCheck2D( FileDta, 1, 1, N, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    DO I = 1, N
-       FileDta%V2(I)%Val(1,1) = FileArr(1,1,1,I)
-    ENDDO
-
-    ! Make sure that ncRead flag is turned off.
-    FileDta%ncRead   = .FALSE.
-
-    ! Data is always 1D.
-    FileDta%SpaceDim = 1
-
-    ! Auto-detect delta t [in hours] between time slices.
-    ! Scale factors can be:
-    ! length 1 : constant
-    ! length 7 : weekday factors: Sun, Mon, ..., Sat
-    ! length 12: monthly factors: Jan, Feb, ..., Dec
-    ! length 24: hourly  factors: 12am, 1am, ... 11pm
-    IF ( N == 1 ) THEN
-       FileDta%DeltaT = 0
-    ELSEIF ( N == 7 ) THEN
-       FileDta%DeltaT = 24
-    ELSEIF ( N == 12 ) THEN
-       FileDta%DeltaT = 720 
-    ELSEIF ( N == 24 ) THEN
-       FileDta%DeltaT = 1 
-    ELSE
-       MSG = 'Factor must be of length 1, 7, 12, or 24!' // &
-              TRIM(FileDta%ncFile)
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC)
-       RETURN 
-    ENDIF
-
-    ! Cleanup
-    IF ( ASSOCIATED(FileArr) ) DEALLOCATE(FileArr)
-    FileArr => NULL()
-
-    ! Return w/ success
-    IsFirst = 1
-    RC      = HCO_SUCCESS 
-
-  END SUBROUTINE FileData_FileRead
 !EOC
 END MODULE HCO_FileData_Mod

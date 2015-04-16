@@ -364,7 +364,6 @@
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
-
 !==============================================================================
 ! Now do all the emission reading and processing through HEMCO.
 ! (ckeller, 08/27/2014)
@@ -769,7 +768,6 @@
 !               E_CO2 = CHEMSRC(I,J,L)
 
                ! Production is in [kg/m3], convert to [molec/cm2/s]
-!               E_CO2 = HcoState%Spc(IDch)%Emis%Val(I,J,L) 
                E_CO2 = HcoState%Spc(IDch)%Conc%Val(I,J,L) 
      &               / CM3PERM3
      &               * XNUMOL_CO2
@@ -813,6 +811,7 @@
             IF ( IDcorr < 1 ) CALL ERROR_STOP('CO2corr not defined',LOC)
 
             ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
+            ! Emissions are only defined at surface, so set L=1.
             IF ( .NOT. ASSOCIATED(HcoState%Spc(IDcorr)%Emis%Val) ) THEN
                CALL ERROR_STOP('Surface correction not defined',LOC)
             ENDIF
@@ -850,7 +849,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
 
       ! Free pointer
       NULLIFY( STT )

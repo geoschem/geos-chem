@@ -56,8 +56,8 @@ GTMM    :=GTMM
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: all lib libkpp libnc libutil exe clean realclean doc docclean help
-.PHONY: tauclean
+.PHONY: all lib libcore libheaders libkpp libiso libnc librad libutil
+.PHONY: exe clean realclean doc docclean tauclean help
 
 all:
 	@$(MAKE) -C $(GEOSDIR) all
@@ -71,6 +71,9 @@ lib:
 libcore:
 	@$(MAKE) -C $(GEOSDIR) libcore
 
+libheaders:
+	@$(MAKE) -C $(GEOSDIR) libheaders
+
 libiso:
 	@$(MAKE) -C $(GEOSDIR) libiso
 
@@ -83,11 +86,11 @@ libnc:
 ncdfcheck:
 	@$(MAKE) -C $(GEOSDIR) ncdfcheck
 
+librad:
+	@$(MAKE) -C $(GEOSDIR) librad
+
 libutil:
 	@$(MAKE) -C $(GEOSDIR) libutil
-
-libheaders:
-	@$(MAKE) -C $(GEOSDIR) libheaders
 
 exe:
 	@$(MAKE) -C $(GEOSDIR) exe

@@ -91,13 +91,13 @@
       REAL(fp),  ALLOCATABLE :: DIAGCHLORO(:,:,:,:)
 
       ! For ND24 -- E/W transport mass flux diagnostic
-      REAL(fp),  ALLOCATABLE :: MASSFLEW(:,:,:,:)
+      REAL(fp),  ALLOCATABLE, TARGET :: MASSFLEW(:,:,:,:)
 
       ! For ND25 -- N/S transport mass flux diagnostic
-      REAL(fp),  ALLOCATABLE :: MASSFLNS(:,:,:,:)
+      REAL(fp),  ALLOCATABLE, TARGET :: MASSFLNS(:,:,:,:)
 
       ! For ND26 -- UP/DOWN transport mass flux diagnostic
-      REAL(fp),  ALLOCATABLE :: MASSFLUP(:,:,:,:)
+      REAL(fp),  ALLOCATABLE, TARGET :: MASSFLUP(:,:,:,:)
 
       ! For ND30 -- land / water / ice flags
       REAL*4,  ALLOCATABLE :: AD30(:,:)
@@ -114,11 +114,13 @@
       ! For ND37 -- Fraction of tracer scavenged in cloud updrafts
       REAL*4,  ALLOCATABLE :: AD37(:,:,:,:)      
 
+#if !defined(NO_BPCH)
       ! For ND38 -- Rainout in moist convection diagnostic
       REAL*4,  ALLOCATABLE :: AD38(:,:,:,:)      
 
       ! For ND39 -- Washout in aerosol wet deposition diagnostic
       REAL*4,  ALLOCATABLE :: AD39(:,:,:,:)      
+#endif
 
       ! For ND43 -- OH and HO2 chemical diagnostics
       REAL*4,  ALLOCATABLE :: AD43(:,:,:,:)      
@@ -145,6 +147,7 @@
       INTEGER, ALLOCATABLE :: LTLXRO2H(:,:)
       INTEGER, ALLOCATABLE :: LTLXRO2N(:,:)
 
+#if !defined( NO_BPCH )
       ! For ND44 -- Dry deposition fluxes & velocities
       REAL*4,  ALLOCATABLE :: AD44(:,:,:,:)
 
@@ -152,6 +155,7 @@
       REAL*4,  ALLOCATABLE :: AD45(:,:,:,:)      
       INTEGER, ALLOCATABLE :: LTOTH(:,:)
       INTEGER, ALLOCATABLE :: CTOTH(:,:)
+#endif
 
       ! For ND47 -- 24-h tracer concentration diagnostic
       REAL*4,  ALLOCATABLE :: AD47(:,:,:,:)      
@@ -213,7 +217,9 @@
       REAL*4,  ALLOCATABLE :: AD67(:,:,:)      
 
       ! For ND68 -- BXHEIGHT, AD, AVGW diagnostic
+#if !defined( NO_BPCH )
       REAL*4,  ALLOCATABLE :: AD68(:,:,:,:)      
+#endif
 
       ! For ND69 -- DXYP diagnostic
       REAL*4,  ALLOCATABLE :: AD69(:,:,:)      
@@ -227,6 +233,8 @@
       INTEGER, ALLOCATABLE :: AD71_LHR
       INTEGER, ALLOCATABLE :: AD71_LDAY
 
+      ! For ND72 -- Radiation output diagnostic
+      REAL*4,  ALLOCATABLE :: AD72(:,:,:)
 !
 ! !REVISION HISTORY:
 !  30 Nov 1999 - A. Fiore - Initial version
@@ -296,6 +304,8 @@
 !  15 Aug 2014 - R. Yantosca - Remove diagnostics now tracked by HEMCO
 !  21 Aug 2014 - R. Yantosca - AD01 is now only a 3-D array (for Pb emissions)
 !  12 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  20 Jan 2015 - R. Yantosca - Added DIAGINIT_TRACER_CONC routine
+!  15 Apr 2015 - R. Yantosca - Add TARGET spec to MASSFLEW, MASSFLNS, MASSFLUP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -366,11 +376,15 @@
       IF ( ALLOCATED( AD33        ) ) DEALLOCATE( AD33        )
       IF ( ALLOCATED( AD35        ) ) DEALLOCATE( AD35        )
       IF ( ALLOCATED( AD37        ) ) DEALLOCATE( AD37        )
+#if !defined( NO_BPCH )
       IF ( ALLOCATED( AD38        ) ) DEALLOCATE( AD38        )  
       IF ( ALLOCATED( AD39        ) ) DEALLOCATE( AD39        )
+#endif
       IF ( ALLOCATED( AD43        ) ) DEALLOCATE( AD43        )
+#if !defined( NO_BPCH )
       IF ( ALLOCATED( AD44        ) ) DEALLOCATE( AD44        )
       IF ( ALLOCATED( AD45        ) ) DEALLOCATE( AD45        )
+#endif
       IF ( ALLOCATED( AD47        ) ) DEALLOCATE( AD47        )
       IF ( ALLOCATED( AD52        ) ) DEALLOCATE( AD52        )
       IF ( ALLOCATED( AD54        ) ) DEALLOCATE( AD54        )
@@ -400,7 +414,9 @@
 #endif
       IF ( ALLOCATED( AD64        ) ) DEALLOCATE( AD64        )
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
+#if !defined( NO_BPCH )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
+#endif
       IF ( ALLOCATED( AD69        ) ) DEALLOCATE( AD69        )
       IF ( ALLOCATED( AD71        ) ) DEALLOCATE( AD71        )
       IF ( ALLOCATED( AD71_HR     ) ) DEALLOCATE( AD71_HR     )
@@ -409,6 +425,7 @@
       IF ( ALLOCATED( AD71_HRCT   ) ) DEALLOCATE( AD71_HRCT   )
       IF ( ALLOCATED( AD71_LDAY   ) ) DEALLOCATE( AD71_LDAY   )
       IF ( ALLOCATED( AD71_LHR    ) ) DEALLOCATE( AD71_LHR    )
+      IF ( ALLOCATED( AD72        ) ) DEALLOCATE( AD72        )
       IF ( ALLOCATED( CONVFLUP    ) ) DEALLOCATE( CONVFLUP    )
       IF ( ALLOCATED( CT16        ) ) DEALLOCATE( CT16        )
       IF ( ALLOCATED( CT17        ) ) DEALLOCATE( CT17        )
@@ -433,12 +450,14 @@
       IF ( ALLOCATED( CTO3P       ) ) DEALLOCATE( CTO3P       )
       IF ( ALLOCATED( LTO3P       ) ) DEALLOCATE( LTO3P       )
       IF ( ALLOCATED( CTHO2       ) ) DEALLOCATE( CTHO2       )
-      IF ( ALLOCATED( CTOTH       ) ) DEALLOCATE( CTOTH       )
       IF ( ALLOCATED( DIAGCHLORO  ) ) DEALLOCATE( DIAGCHLORO  )
       IF ( ALLOCATED( LTJV        ) ) DEALLOCATE( LTJV        )
       IF ( ALLOCATED( LTOH        ) ) DEALLOCATE( LTOH        )
       IF ( ALLOCATED( LTHO2       ) ) DEALLOCATE( LTHO2       )
+#if !defined( NO_BPCH )
+      IF ( ALLOCATED( CTOTH       ) ) DEALLOCATE( CTOTH       )
       IF ( ALLOCATED( LTOTH       ) ) DEALLOCATE( LTOTH       )
+#endif
       IF ( ALLOCATED( MASSFLEW    ) ) DEALLOCATE( MASSFLEW    )
       IF ( ALLOCATED( MASSFLNS    ) ) DEALLOCATE( MASSFLNS    )
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )

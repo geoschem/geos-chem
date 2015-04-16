@@ -15,6 +15,8 @@
 ! 
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -68,6 +70,7 @@
 !                                   compile & run GEOS-Chem
 !  21 Dec 2009 - R. Yantosca      - Updated comments
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -291,8 +294,8 @@
       CHARACTER(LEN=40), INTENT(IN) :: NDCATEGORY        ! Diagnostic category
       INTEGER,           INTENT(IN) :: NDTRACER          ! Tracer # for file
       CHARACTER(LEN=40), INTENT(IN) :: NDUNIT            ! Units of data
-      REAL*8,            INTENT(IN) :: TAU0              ! TAU at start & end
-      REAL*8,            INTENT(IN) :: TAU1              !  of diag interval
+      REAL(fp),            INTENT(IN) :: TAU0              ! TAU at start & end
+      REAL(fp),            INTENT(IN) :: TAU1              !  of diag interval
       CHARACTER(LEN=40), INTENT(IN) :: RESERVED          ! Descriptive string
       INTEGER,           INTENT(IN) :: NI                ! # of longitudes
       INTEGER,           INTENT(IN) :: NJ                ! # of latitudes
@@ -330,7 +333,7 @@
       INTEGER(SIZE_T)   :: attrlen           ! Length of the attribute string
       CHARACTER(LEN=20) :: aname             ! Attibute Name
       CHARACTER(LEN=40) :: attr_data         ! Attribute Data
-      REAL*8            :: attr_data_num     ! Attribute Data
+      REAL(fp)            :: attr_data_num     ! Attribute Data
 
       INTEGER           :: I, GAMAPI, GAMAPI2
 

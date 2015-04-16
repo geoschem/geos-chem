@@ -17,6 +17,9 @@
 !
       USE CMN_SIZE_MOD
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
+
       IMPLICIT NONE
       PUBLIC
 !
@@ -133,6 +136,7 @@
 !                              CLEANUP_COMODE_LOOP to allocate/free arrays
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -286,39 +290,39 @@
       !---------------------------------------------------------------
 
       ! Avogadro's #
-      REAL*8, PARAMETER :: AVG      = 6.02252d+23
+      REAL(fp), PARAMETER :: AVG      = 6.02252e+23_fp
 
       ! Boltzmann's constant [erg/K]
-      REAL*8, PARAMETER :: BK       = 1.38054d-16
-      REAL*8, PARAMETER :: BOLTG    = 1.38054d-16
+      REAL(fp), PARAMETER :: BK       = 1.38054e-16_fp
+      REAL(fp), PARAMETER :: BOLTG    = 1.38054e-16_fp
 
       ! Condensation vapor pressure ?????? 
-      REAL*8, PARAMETER :: CONSVAP  = 6.1078d+03 / BOLTG
+      REAL(fp), PARAMETER :: CONSVAP  = 6.1078e+03_fp / BOLTG
       
       ! PI (same value as in CMN_GCTM) and related quantities
-      REAL*8, PARAMETER :: ONEPI    = 3.14159265358979323d0 
-      REAL*8, PARAMETER :: EIGHTDPI = 8.d0 / ONEPI
+      REAL(fp), PARAMETER :: ONEPI    = 3.14159265358979323e+0_fp 
+      REAL(fp), PARAMETER :: EIGHTDPI = 8.e+0_fp / ONEPI
 
       ! Gas constant [erg/K/mole]
-      REAL*8, PARAMETER :: RGAS     = BOLTG * AVG
+      REAL(fp), PARAMETER :: RGAS     = BOLTG * AVG
       
       ! Universal gas constant [g/cm2/s2/mole/K]
-      REAL*8, PARAMETER :: RSTARG   = 8.31450d+07
+      REAL(fp), PARAMETER :: RSTARG   = 8.31450e+07_fp
 
       ! Seconds per day
-      REAL*8, PARAMETER :: SCDAY    = 86400.0d0
+      REAL(fp), PARAMETER :: SCDAY    = 86400.0e+0_fp
 
       ! Molecular weight of air 
-      REAL*8, PARAMETER :: WTAIR    = 28.966d0
+      REAL(fp), PARAMETER :: WTAIR    = 28.966e+0_fp
      
       !---------------------------------------------------------------
       ! Small number tolerances
       ! (now make these PARAMETERS instead of COMMON block variables)
       !---------------------------------------------------------------
       
-      REAL*8, PARAMETER :: SMAL1    = 1d-06 
-      REAL*8, PARAMETER :: SMAL2    = 1.0d-99
-      REAL*8, PARAMETER :: SMAL3    = 1d-50
+      REAL(fp), PARAMETER :: SMAL1    = 1e-06_fp
+      REAL(fp), PARAMETER :: SMAL2    = 1.0e-99_fp
+      REAL(fp), PARAMETER :: SMAL3    = 1e-50_fp
 
 
       INTEGER ::         NLAT,      NLONG,     NLAYER,    NVERT
@@ -351,8 +355,8 @@
       INTEGER ::         LXOUT,     LYOUT,     LLOOP,     LLOOP2
       INTEGER ::         LZOUT
 
-      REAL*8  ::         TINTERVAL,  CHEMINTV,  TIME,      OXYCONS
-      REAL*8  ::         HMAXNIT,    FRACDEC
+      REAL(fp)  ::         TINTERVAL,  CHEMINTV,  TIME,      OXYCONS
+      REAL(fp)  ::         HMAXNIT,    FRACDEC
 !
       INTEGER ::         IHOUR,       NCS,       NBLOCKS,   IRCHEM
       INTEGER ::         NCSGAS,      NCSURBAN,  NCSTROP,   NCSSTRAT
@@ -363,16 +367,16 @@
       ! since this can be declared local w/in "smvgear.f" (bmy, 7/16/03)
       INTEGER ::         NCSP,        KBLK
 
-      REAL*8  ::         HMIN,        PLOURB,    PLOTROP,   TSPMIDC     
+      REAL(fp)  ::         HMIN,        PLOURB,    PLOTROP,   TSPMIDC  
 
       ! /DGEAR2/ needs to be held THREADPRIVATE (hamid, bmy, 7/16/03)
-      REAL*8  ::         HMAX,        R1DELT,    DELT,      TIMREMAIN
-      REAL*8  ::         XELAPS,      TOLD,      RDELT,     XELAPLAST
-      REAL*8  ::         RMSERR
+      REAL(fp)  ::         HMAX,        R1DELT,    DELT,      TIMREMAIN
+      REAL(fp)  ::         XELAPS,      TOLD,      RDELT,     XELAPLAST
+      REAL(fp)  ::         RMSERR
 
       ! /DGEAR3/ doesn't need to be held THREADPRIVATE (hamid, bmy, 7/16/03)
-      REAL*8  ::         SUMAVGE,     SUMAVHI,   SUMRMSE,   SUMRMHI
-      REAL*8  ::         TOTSTEP,     TOTIT,     TELAPS
+      REAL(fp)  ::         SUMAVGE,     SUMAVHI,   SUMRMSE,   SUMRMHI
+      REAL(fp)  ::         TOTSTEP,     TOTIT,     TELAPS
 
       INTEGER ::         NSFTOT,      NPDTOT,    NSTTOT,    ISREORD
       INTEGER ::         IFREORD,     IFAILTOT,  LFAILTOT,  NFAILTOT  
@@ -435,7 +439,7 @@
       INTEGER ::         ICH4
 
       ! Added for interannually-varying Methane (bnd, bmy, 7/1/03)
-      REAL*8  ::         C3090S,      C0030S,    C0030N,   C3090N
+      REAL(fp)  ::         C3090S,      C0030S,    C0030N,   C3090N
 
       ! Added for tracking oxidation of ISOP by OH (dkh, bmy, 6/1/06)
       ! SOAupdate: Added for tracking oxidation of ISOP by NO3 (hotp 6/11/10)
@@ -485,25 +489,25 @@
       ! re-define some nkspec* arrays for harvard chem mechanism (bdf)
       INTEGER ::        NOLOSP(ICP),    NGNFRAC(ICP),    NOLOSRAT(ICP), 
      &                  IARRAY(ICP),    NALLRAT(ICP),    KZTLO(   ICP), 
-     &                  KZTHI( ICP),    IONER(  ICP),    NPLLO(   ICP),  
+     &                  KZTHI( ICP),    IONER(  ICP),    NPLLO(   ICP), 
      &                  NPLHI( ICP),    NFRLO(  ICP),    NFRHI(   ICP),
      &                  NPDLO( ICP),    NPDHI(  ICP),    IZLO (   ICP), 
      &                  JZLO ( ICP),    JLLO(   ICP),    JGLO(    ICP), 
      &                  IRMCT( ICP)
 
-      REAL*8  ::        ABTOL(6,ICS),   ABST2(ICS),  
-     &                  ERRMAX(ICS),    HMAXUSE(ICP),    TIMEINTV(ICS)    
+      REAL(fp)  ::        ABTOL(6,ICS),   ABST2(ICS),  
+     &                  ERRMAX(ICS),    HMAXUSE(ICP),    TIMEINTV(ICS)  
 
-      REAL*8  ::        WTGAS(IGAS),    GQSUMINI(IGAS), 
-     &                  BSUMCHEM(IGAS), GQSUM(   IGAS),  QBKGAS(IGAS)       
+      REAL(fp)  ::    WTGAS(IGAS),    GQSUMINI(IGAS), 
+     &                BSUMCHEM(IGAS), GQSUM(   IGAS),  QBKGAS(IGAS)     
 
-      REAL*8  ::        CPREV(MXGSAER), CMODEL(MXGSAER), APORL(MXGSAER)
+      REAL(fp)  ::      CPREV(MXGSAER), CMODEL(MXGSAER), APORL(MXGSAER)
 
       INTEGER ::        IFPRGAS(IGAS),  LGNUM(IGAS),     NGMIX(IGAS)
 
-      REAL*8  ::        DEFPRAT(MXRATE,ICS)
+      REAL(fp)  ::        DEFPRAT(MXRATE,ICS)
 
-      REAL*8  ::        ARRT(MXCOF),    BRRT( MXCOF),   
+      REAL(fp)  ::        ARRT(MXCOF),    BRRT( MXCOF),   
      &                  FCVT(MXCOF),    FCT1T(MXCOF),    FCT2T(MXCOF)
 
       INTEGER ::        KCRRT(MXCOF)
@@ -512,7 +516,7 @@
      &  NKARR(NMTRATE,ICS),  NKABR(NMTRATE,ICS), NKACR(NMTRATE,ICS), 
      &  NKABC(NMTRATE,ICS),  IRORD(NMTRATE,ICS)
 
-      REAL*8  ::
+      REAL(fp)  ::
      &  ARR(    NMTRATE, ICS),  BRR(    NMTRATE, ICS), 
      &  FCV(    NMTRATE, ICS),  FCTEMP1(NMTRATE, ICS),
      &  FCTEMP2(NMTRATE, ICS)  
@@ -529,12 +533,12 @@
      &  IUSED(  MXRATE,   ICS)
 
       ! For COMPAQ, put IRMA, IRMB in /INMTRATE2/ (Q. Liang, bmy, 10/17/05)
-      REAL*8  ::        
+      REAL(fp)  ::        
      & IRMA(   NMTRATE      ),  IRMB(    NMTRATE     )
 
       INTEGER :: NEWNK(MAXGL)
 
-      REAL*8  :: FRACP(MAXGL, ICS)
+      REAL(fp)  :: FRACP(MAXGL, ICS)
 
       INTEGER ::
      &  NREACOTH(MAXGL2,ICS), LGASBINO(MAXGL2,ICS),
@@ -549,7 +553,7 @@
       INTEGER :: MBCOMP(IMASBAL,2), MBTRACE(IMASBAL)
 
       ! /DKBLOOP2/ needs to be declared THREADPRIVATE
-      REAL*8 ::
+      REAL(fp) ::
      &  CNEW(   KBLOOP,  MXGSAER),  
      &  CEST(   KBLOOP,  MXGSAER),  
      &  GLOSS(  KBLOOP,  MXGSAER),  
@@ -566,7 +570,7 @@
      &  CORIG(  KBLOOP,  MXGSAER)
 
       ! /DKBLOOP0/ needs to be held THREADPRIVATE
-      REAL*8  :: CC2(KBLOOP,0:MXARRAY)  
+      REAL(f8)  :: CC2(KBLOOP,0:MXARRAY)  
 
       INTEGER, ALLOCATABLE :: MLOP(:,:), JLOP_SMV(:,:,:)
 
@@ -574,7 +578,7 @@
      &  NKPHOTRAT(IPHOT,ICS),      NPPHOTRAT(IPHOT,ICS),  
      &  NKNPHOTRT(IPHOT,ICS) 
 
-      REAL*8  :: FRACGAIN(MXGSAER,ICS), QBKCHEM( MXGSAER,ICS) 
+      REAL(fp)  :: FRACGAIN(MXGSAER,ICS), QBKCHEM( MXGSAER,ICS) 
 
       INTEGER ::
      &  NUMLOST( MXGSAER,    ICS), NUMGFRT( MXGSAER,        ICS),  
@@ -598,7 +602,7 @@
      &  IZLO1( MXGSAER,ICP),
      &  IZLO2( MXGSAER,ICP), IZHI0( MXGSAER,ICP), IZHI1( MXGSAER,ICP)
 
-      REAL*8 :: FRACNFR(MXCOUNT4), FRACPL(MXCOUNT2) 
+      REAL(fp) :: FRACNFR(MXCOUNT4), FRACPL(MXCOUNT2) 
 
       INTEGER :: 
      &  JZERO( MXCOUNT3),  KZERO(  MXCOUNT3),  MZERO(   MXCOUNT3),
@@ -635,28 +639,28 @@
      &  NPL4(  MXCOUNT4),  NPL3(  MXCOUNT4),  NPL2(  MXCOUNT4),
      &  NPL1(  MXCOUNT4)  
 
-      REAL*8  :: GEARCONC(MXGSAER,0:MXHOLD,ICS)
+      REAL(fp)  :: GEARCONC(MXGSAER,0:MXHOLD,ICS)
 
-      REAL*8  :: WTMB(IMASBAL,MXGSAER,2)
+      REAL(fp)  :: WTMB(IMASBAL,MXGSAER,2)
 
       INTEGER :: JMBCOMP(IMASBAL,MXGSAER,2) 
 
-      REAL*8     FKOEF(NMRPROD,NMTRATE,ICS), 
+      REAL(fp)     FKOEF(NMRPROD,NMTRATE,ICS), 
      &           FK2(  NMRPROD,NMTRATE,ICS)  
 
       INTEGER :: IRM( NMRPROD,NMTRATE,ICS), 
      &           IRM2(NMRPROD,NMTRATE,ICS) 
 
-      REAL*8 ::  ASET(10,8), PINP(IMISC), CVAR(15), O3DOBS(12)  
+      REAL(fp) ::  ASET(10,8), PINP(IMISC), CVAR(15), O3DOBS(12)  
 
-      REAL*8 ::  ENQQ2(MORDER), ENQQ3( MORDER), CONPST(MORDER),
+      REAL(fp) ::  ENQQ2(MORDER), ENQQ3( MORDER), CONPST(MORDER),
      &           ENQQ1(MORDER), CONP15(MORDER)
 
-      REAL*8 ::  PERTS2(MORDER,3), PERTST(MORDER,3)
+      REAL(fp) ::  PERTS2(MORDER,3), PERTST(MORDER,3)
 
       INTEGER, ALLOCATABLE :: JLLOW(:), KLHI(:)
 
-      REAL*8 ::  XGDFCF, ASTKCF, RUARSL, RH100
+      REAL(fp) ::  XGDFCF, ASTKCF, RUARSL, RH100
 
       INTEGER :: IARSFA, MWARSL, MNTHARS
 

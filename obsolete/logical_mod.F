@@ -114,6 +114,12 @@
       LOGICAL :: LACTIVEH2O      ! Allow active H2O?
       LOGICAL :: LO3FJX          ! Use online ozone for FAST-JX?
 
+      !%%%% Radiation %%%%
+      LOGICAL :: LRAD            ! Turn on RRTMG
+      LOGICAL :: LLWRAD          ! Calculate LW fluxes
+      LOGICAL :: LSWRAD          ! Calculate SW fluxes
+      LOGICAL :: LSKYRAD(2)       ! Clear-sky, All-sky
+
       !%%%% Cloud convection %%%%
       LOGICAL :: LCONV           ! Use cloud convection?
 
@@ -228,6 +234,7 @@
       !%%%% Met fields %%%%
       LOGICAL :: LUNZIP          ! Unzip met fields on-the-fly?
       LOGICAL :: LWAIT           ! Wait for met fields to be unzipped?
+      LOGICAL :: LSUBGRIDWINDS   ! Read in subgrid wind files (for dust, DAR)
 
       !%%%% PBL mixing %%%%
       LOGICAL :: LTURB           ! Use PBL mixing?

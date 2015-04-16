@@ -20,9 +20,8 @@
       USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
       USE inquireMod,    ONLY : findFreeLUN
 
-      USE HCO_ERROR_MOD       ! For real precisions (hp)
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE HCO_ERROR_MOD    ! For HEMCO error handling
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 
       IMPLICIT NONE
       PRIVATE
@@ -147,6 +146,8 @@
 !                                simulation from HEMCO 
 !  03 Nov 2014 - C. Keller     - Incorporated GET_ALK from seasalt_mod.F
 !  20 Nov 2014 - M. Yannetti   - Added PRECISION_MOD
+!  04 Mar 2015 - R. Yantosca   - Remove obsolete, commented-out code
+!  04 Mar 2015 - R. Yantosca   - Use REAL(f4) for pointer args to HCO_GetPtr
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -242,21 +243,12 @@
       REAL(fp),  ALLOCATABLE :: ESO2_nv(:,:,:)
       REAL(fp),  ALLOCATABLE :: ESO2_sh(:,:) 
       REAL(fp),  ALLOCATABLE :: ESO4_an(:,:,:) 
-! not used for now - comment it (phs, 6/29/09)      
-!      REAL(fp),  ALLOCATABLE :: LSO2_AQ(:,:,:)
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! These fields are now handled by HEMCO (mps, 9/18/14)
-!      REAL(fp),  ALLOCATABLE :: JH2O2(:,:,:)
-!      REAL(fp),  ALLOCATABLE :: O3m(:,:,:)
-!      REAL(fp),  ALLOCATABLE :: PH2O2m(:,:,:)
-!------------------------------------------------------------------------------
       REAL(fp),  ALLOCATABLE :: PMSA_DMS(:,:,:)
       REAL(fp),  ALLOCATABLE :: PSO2_DMS(:,:,:)
       REAL(fp),  ALLOCATABLE :: PSO4_SO2(:,:,:)
       REAL(fp),  ALLOCATABLE :: PSO4_SS(:,:,:)
       REAL(fp),  ALLOCATABLE :: PNITs(:,:,:)
-      REAL*4,  ALLOCATABLE :: SOx_SCALE(:,:)
+      REAL(f4),  ALLOCATABLE :: SOx_SCALE(:,:)
       REAL(fp),  ALLOCATABLE :: SSTEMP(:,:)
       REAL(fp),  ALLOCATABLE :: TCOSZ(:,:)
       REAL(fp),  ALLOCATABLE :: TTDAY(:,:)
@@ -270,55 +262,22 @@
       REAL(fp),  ALLOCATABLE :: PSO4_SO2AQ(:,:,:)
 #endif
 
-      ! Volcanic emissions parameters (ccc, 9/30/10)
-      INTEGER, PARAMETER   :: LVOLC=20            ! Volcano levels
-      INTEGER, PARAMETER   :: MNYEAR_VOLC = 1979  ! Min year of data
-      INTEGER, PARAMETER   :: MXYEAR_VOLC = 2009  ! Max year of data
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: This is for the SEAC4RS volcano emissions.  Leave code commented
-!%%% out here so that we can restore it later. (bmy, 9/25/13)
-!
-!      ! Additional variables for volcano emissions (jaf, skim, 1/11/13)
-!      !    Includes extra info for eruptive & noneruptive volcanos
-!      INTEGER              :: VOLCYEAR            ! Year of data to use
-!      INTEGER              :: N_ERUP, N_NONERUP   ! # of each volc events
-!      LOGICAL              :: DO_ERUPTIVE
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-      ! Eruptive volcanoes
-      REAL(fp),  ALLOCATABLE :: EEV(:,:,:)
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: This is for the SEAC4RS volcano emissions.  Leave code commented
-!%%% out here so that we can restore it later. (bmy, 9/25/13)
-!      REAL(fp),  ALLOCATABLE :: VEV_ELEV(:), VEV_CLOUDTOP(:), VEV_SO2(:)
-!      INTEGER, ALLOCATABLE :: VEV_DATE(:), VEV_II(:), VEV_JJ(:)
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-      ! Non-eruptive volcanoes 
-      REAL(fp),  ALLOCATABLE :: ENV(:,:,:)
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: This is for the SEAC4RS volcano emissions.  Leave code commented
-!%%% out here so that we can restore it later. (bmy, 9/25/13)
-!      REAL(fp),  ALLOCATABLE :: VNV_ELEV(:), VNV_SO2(:)
-!      INTEGER, ALLOCATABLE :: VNV_DATE(:), VNV_II(:), VNV_JJ(:)
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
       ! Pointers to drydep species w/in DEPSAV
-      INTEGER              :: DRYSO2,  DRYSO4,   DRYMSA,  DRYNH3  
-      INTEGER              :: DRYNH4,  DRYNIT,   DRYSO4s, DRYNITs
-      INTEGER              :: DRYH2O2, DRYSO4aq, DRYAS,   DRYAHS
-      INTEGER              :: DRYLET,  DRYNH4aq
+      INTEGER                :: DRYSO2,  DRYSO4,   DRYMSA,  DRYNH3  
+      INTEGER                :: DRYNH4,  DRYNIT,   DRYSO4s, DRYNITs
+      INTEGER                :: DRYH2O2, DRYSO4aq, DRYAS,   DRYAHS
+      INTEGER                :: DRYLET,  DRYNH4aq
 
-      ! HEMCO pointers
-      REAL(hp), POINTER    :: O3m(:,:,:)      => NULL()
-      REAL(hp), POINTER    :: PH2O2m(:,:,:)   => NULL()
-      REAL(hp), POINTER    :: JH2O2(:,:,:)    => NULL()
-      REAL(hp), POINTER    :: OH(:,:,:)       => NULL()
-      REAL(hp), POINTER    :: NO3(:,:,:)      => NULL()
-      REAL(hp), POINTER    :: HNO3(:,:,:)     => NULL()
-      REAL(hp), POINTER    :: NDENS_SALA(:,:) => NULL()
-      REAL(hp), POINTER    :: NDENS_SALC(:,:) => NULL()
+      ! These are pointers to fields in the HEMCO data structure.
+      ! Declare these with REAL(fp), aka REAL*4. (bmy, 3/4/15)
+      REAL(f4), POINTER      :: O3m(:,:,:)      => NULL()
+      REAL(f4), POINTER      :: PH2O2m(:,:,:)   => NULL()
+      REAL(f4), POINTER      :: JH2O2(:,:,:)    => NULL()
+      REAL(f4), POINTER      :: OH(:,:,:)       => NULL()
+      REAL(f4), POINTER      :: NO3(:,:,:)      => NULL()
+      REAL(f4), POINTER      :: HNO3(:,:,:)     => NULL()
+      REAL(f4), POINTER      :: NDENS_SALA(:,:) => NULL()
+      REAL(f4), POINTER      :: NDENS_SALC(:,:) => NULL()
 
       ! Emission timestep (imported from HEMCO)
       REAL(fp)               :: TS_EMIS
@@ -510,19 +469,13 @@
 !
       USE CMN_SIZE_MOD                   
       USE DAO_MOD,            ONLY : CONVERT_UNITS
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get OH and NO3 from HEMCO (mps, 9/18/14)
-!      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
-!      USE GLOBAL_NO3_MOD,     ONLY : GET_GLOBAL_NO3
-!------------------------------------------------------------------------------
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
@@ -611,12 +564,12 @@
       LOGICAL           :: LPRT
       LOGICAL           :: LGRAVSTRAT
       INTEGER           :: N_TRACERS
-      REAL(fp)            :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: STT(:,:,:,:)
 
       ! For getting fields from HEMCO 
       LOGICAL            :: aIR
@@ -655,18 +608,6 @@
 
       ! If it's an offline simulation ...
       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
-
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get global OH and NO3 fields from HEMCO (mps, 9/18/14)
-!         ! Then read monthly data files ...
-!         IF ( ITS_A_NEW_MONTH() ) THEN 
-!            CALL GET_GLOBAL_OH
-!     &           ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
-!            CALL GET_GLOBAL_NO3
-!     &           ( am_I_Root, Input_Opt,            MONTH, RC )
-!         ENDIF
-!------------------------------------------------------------------------------
 
          ! Get offline oxidant fields from HEMCO (mps, 9/18/14)
          IF ( FIRSTCHEM ) THEN
@@ -749,7 +690,8 @@
 #if defined( UCX )
       ! Stratospheric aerosol graviational settling
       IF ( LGRAVSTRAT ) THEN
-         CALL SETTLE_STRAT_AER( Input_Opt, State_Met, State_Chm )
+         CALL SETTLE_STRAT_AER( am_I_Root, Input_Opt, 
+     &                          State_Met, State_Chm, RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, STRAT' )
          ENDIF
@@ -819,18 +761,26 @@
       ENDIF
 
       ! NH3
-      CALL CHEM_NH3( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH3' )
-      ENDIF
+      ! CHEM_NH3 applies dry deposition only. Dry deposition is now done
+      ! in mixing_mod, so no need to call this routine any more 
+      ! (ckeller, 3/5/15).
+!      CALL CHEM_NH3( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!      IF ( prtDebug ) THEN
+!         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH3' )
+!      ENDIF
 
       ! NH4 (gas-phase)
-      CALL CHEM_NH4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4' )
-      ENDIF
+      ! CHEM_NH4 applies dry deposition only. Dry deposition is now done
+      ! in mixing_mod, so no need to call this routine any more 
+      ! (ckeller, 3/5/15).
+!      CALL CHEM_NH4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!      IF ( prtDebug ) THEN
+!         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4' )
+!      ENDIF
 
-      ! Sulfur Nitrate
+      ! Sulfur Nitrate.
+      ! CHEM_NIT includes a source term from sea salt aerosols, so keep
+      ! here.
       CALL CHEM_NIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
@@ -869,8 +819,10 @@
       USE CMN_GCTM_MOD        
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+#endif
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -911,6 +863,7 @@
 !  14 Nov 2012 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  06 Jan 2015 - M. Yannetti - Changed some variables to f8 as needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -929,7 +882,7 @@
       REAL(fp),  PARAMETER     :: A2   = -4.28e-5_fp
       REAL(fp),  PARAMETER     :: A3   =  2.52e-6_fp
       REAL(fp),  PARAMETER     :: A4   = -2.35e-8_fp
-      REAL(fp),  PARAMETER     :: EPSI = 1.0e-4_fp 
+      REAL(f8),  PARAMETER     :: EPSI = 1.0e-4_f8 
 !
 ! !LOCAL VARIABLES:
 !
@@ -939,13 +892,13 @@
       REAL(fp)                 :: CONST,  SLIP,  VISC,     FAC1
       REAL(fp)                 :: FAC2,   FLUX,  AREA_CM2, RHB
       ! replace RCM (radius in CM with RUM radius in microns) jaegle 5/11/11
-      REAL(fp)                 :: RUM,    RWET,  RATIO_R,  RHO 
+      REAL(fp)                 :: RUM,    RWET,  RATIO_R
       REAL(fp)                 :: TOT1,   TOT2
       REAL(fp)                 :: VTS(LLPAR)  
       REAL(fp)                 :: TC0(LLPAR)
       ! added variables for density calculation (jaegle, bec 5/11/11)
-      REAL(fp)                 :: RHO1, WTP
-      
+      REAL(f8)                 :: RHO1, WTP, RHO
+ 
       ! Arrays
       INTEGER                :: IDDEP(2)
       INTEGER                :: IDTRC(2)	
@@ -1054,25 +1007,25 @@
             ! (bec, jaegle 5/11/11)
             RATIO_R = ( REFF / RWET )
             ! Assume an initial density of 1000 kg/m3
-            RHO  = 1000.D0
-            RHO1 = 0.e+0_fp !initialize (bec, 6/21/10)
+            RHO  = 1000.e+0_f8
+            RHO1 = 0.e+0_f8 !initialize (bec, 6/21/10)
             DO WHILE ( ABS( RHO1-RHO ) .gt. EPSI )
                 ! First calculate weight percent of aerosol (kg_RH=0.8/kg_wet) 
-                WTP    = 100.e+0_fp * DEN/RHO * RATIO_R**3.e+0_fp
+                WTP    = 100.e+0_f8 * DEN/RHO * RATIO_R**3.e+0_f8
                 ! Then calculate density of wet aerosol using equation 5 
                 ! in Tang et al., 1997 [kg/m3]
-                RHO1   = ( 0.9971e+0_fp + (A1 * WTP) 
-     $          + (A2 * WTP**2.e+0_fp)
-     $          + (A3 * WTP**3.e+0_fp) 
-     $          + (A4 * WTP**4.e+0_fp) ) * 1000.e+0_fp
+                RHO1   = ( 0.9971e+0_f8 + (A1 * WTP) 
+     $          + (A2 * WTP**2.e+0_f8)
+     $          + (A3 * WTP**3.e+0_f8) 
+     $          + (A4 * WTP**4.e+0_f8) ) * 1000.e+0_f8
                 ! Now calculate new weight percent using above density
                 ! calculation
-                WTP    = 100.e+0_fp * DEN/RHO1 * RATIO_R**3.e+0_fp
+                WTP    = 100.e+0_f8 * DEN/RHO1 * RATIO_R**3.e+0_f8
                 ! Now recalculate new wet density [kg/m3]
-                RHO   = ( 0.9971e+0_fp + (A1 * WTP) 
-     $          + (A2 * WTP**2.e+0_fp)
-     $          + (A3 * WTP**3.e+0_fp) 
-     $          + (A4 * WTP**4.e+0_fp) ) * 1000.e+0_fp
+                RHO   = ( 0.9971e+0_f8 + (A1 * WTP) 
+     $          + (A2 * WTP**2.e+0_f8)
+     $          + (A3 * WTP**3.e+0_f8) 
+     $          + (A4 * WTP**4.e+0_f8) ) * 1000.e+0_f8
             ENDDO
 
             ! Dp = particle diameter [um]
@@ -1138,6 +1091,7 @@
      &                *  TC(I,J,L+1) )
          ENDDO
          
+#if !defined( NO_BPCH )
          !==============================================================
          ! ND44 diagnostic: sea salt loss [molec/cm2/s]
          !==============================================================
@@ -1163,6 +1117,7 @@
             ! Store in AD44 array
             AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
          ENDIF
+#endif
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1193,7 +1148,7 @@
       USE CMN_DIAG_MOD         
       USE CMN_SIZE_MOD         
       USE DIAG_MOD,           ONLY : AD05
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -1512,13 +1467,13 @@
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT
       USE BPCH2_MOD,          ONLY : GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0
-      USE BPCH2_MOD,          ONLY : READ_BPCH2
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE CMN_GCTM_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44 
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+#endif
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -1646,44 +1601,6 @@
       ENDIF
 
       !=================================================================
-      ! For offline run: read J(H2O2) from disk below
-      !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get J(H2O2) from HEMCO (mps, 9/18/14)
-!      IF ( ITS_A_NEW_MONTH() ) THEN
-!
-!         ! File name to read data 
-!         FILENAME = TRIM( Input_Opt%DATA_DIR )             // 
-!     &              'sulfate_sim_200508/offline/JH2O2.'    // 
-!     &              GET_NAME_EXT() // '.' // GET_RES_EXT()
-!           
-!         ! Print filename
-!         IF ( am_I_Root ) THEN
-!            WRITE( 6, 100 ) TRIM( FILENAME )
-!         ENDIF
-! 100     FORMAT( '     - CHEM_H2O2: Reading ', a )
-!
-!         ! Get TAU0 value for this month in "generic" year 1985
-!         XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
-!
-!         ! Read J(H2O2) [s-1]  from disk (only up to tropopause)
-!         ! limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
-!         ! tropopause. This is backward compatibility with 
-!         ! offline data set.
-!         CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 3,      
-!     &     XTAU,        IIPAR,                    JJPAR,      
-!     &     LLCHEM_FIX,  ARRAY(:,:,1:LLCHEM_FIX),  QUIET=.TRUE. )
-!
-!         ! Cast to REAL(fp) and resize if necessary
-!         CALL TRANSFER_3D_TROP( ARRAY, JH2O2 )
-!            
-!         ! Reset LASTMONTH
-!         !LASTMONTH = GET_MONTH()
-!      ENDIF
-!------------------------------------------------------------------------------
-
-      !=================================================================
       ! Loop over tropopsheric grid boxes and do chemistry
       !=================================================================
 !$OMP PARALLEL DO
@@ -1714,10 +1631,13 @@
 
          ! H2O2 drydep frequency [1/s].  Account for the fraction
          ! of grid box (I,J,L) that is located beneath the PBL top.
-         FREQ  = DEPSAV(I,J,DRYH2O2) * GET_FRAC_UNDER_PBLTOP( I, J, L ) 
+!         FREQ  = DEPSAV(I,J,DRYH2O2) * GET_FRAC_UNDER_PBLTOP( I, J, L ) 
 
          ! Add option for non-local PBL (Lin, 03/31/09)
-         IF ( LNLPBL ) FREQ = 0.e+0_fp
+!         IF ( LNLPBL ) FREQ = 0.e+0_fp
+
+         ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+         FREQ = 0.e+0_fp
 
          ! 1-D grid box index for SUNCOS
          JLOOP = ( (J-1) * IIPAR ) + I
@@ -1736,11 +1656,6 @@
          ALPHA = 1.e+0_fp + ( KOH + PHOTJ + FREQ ) * DT 
 
          ! Delta H2O2 [v/v]
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get PH2O2m [kg/m3] from HEMCO (mps, 9/18/14)
-!         DH2O2 = PH2O2m(I,J,L) * DT / ( ALPHA * M )
-!------------------------------------------------------------------------------
          ! PH2O2m is in kg/m3 (from HEMCO), convert to molec/cm3/s (mps,9/18/14)
          DH2O2 = ( PH2O2m(I,J,L) / TS_EMIS * XNUMOL_H2O2 / CM3PERM3 )
      &           * DT / ( ALPHA * M )
@@ -1752,42 +1667,46 @@
          ! Store final H2O2 in STT
          STT(I,J,L,IDTH2O2) = H2O2
 
+! Now done in mixing_mod.F90 (ckeller, 3/5/15) 
          !==============================================================
          ! ND44 diagnostics: H2O2 drydep loss [molec/cm2/s]
          !==============================================================
-         IF ( ND44 > 0 .AND. FREQ > 0e+0_fp ) THEN
-
-            ! Convert H2O2 from [v/v] to H2O2 [molec/cm2/s]
-            FLUX = H2O20 * FREQ * DT / ( 1.e+0_fp + FREQ * DT )
-            FLUX = FLUX * State_Met%AD(I,J,L) / TCVV(IDTH2O2)
-            FLUX = FLUX * XNUMOL(IDTH2O2) 
-     &            / ( GET_AREA_CM2( I, J, L ) * DT )
-
-            ! Save dryd flx in ND44_TMP as a placeholder
-            ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-         ENDIF
+!         IF ( ND44 > 0 .AND. FREQ > 0e+0_fp ) THEN
+!
+!            ! Convert H2O2 from [v/v] to H2O2 [molec/cm2/s]
+!            FLUX = H2O20 * FREQ * DT / ( 1.e+0_fp + FREQ * DT )
+!            FLUX = FLUX * State_Met%AD(I,J,L) / TCVV(IDTH2O2)
+!            FLUX = FLUX * XNUMOL(IDTH2O2) 
+!     &            / ( GET_AREA_CM2( I, J, L ) * DT )
+!
+!            ! Save dryd flx in ND44_TMP as a placeholder
+!            ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
+!         ENDIF
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-      
-      !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !===============================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DRYH2O2,1) = AD44(I,J,DRYH2O2,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
+
+! Now done in mixing_mod.F90 (ckeller, 3/5/15) 
+!#if !defined( NO_BPCH )
+!      !===============================================================
+!      ! ND44: Sum drydep fluxes by level into the AD44 array in
+!      ! order to ensure that  we get the same results w/ sp or mp 
+!      !===============================================================
+!      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!         DO L = 1, LLPAR
+!            AD44(I,J,DRYH2O2,1) = AD44(I,J,DRYH2O2,1) + ND44_TMP(I,J,L)
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!      ENDIF
+!#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -1818,8 +1737,10 @@
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_WATER
       USE DIAG_MOD,           ONLY : AD05
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+#endif
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ERROR_MOD,          ONLY : IS_SAFE_EXP
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE GIGC_ErrCode_Mod
@@ -1827,12 +1748,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get HNO3 from HEMCO (mps, 9/18/14)
-!      USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
-!      USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_VV
-!------------------------------------------------------------------------------
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
@@ -1843,10 +1758,9 @@
       USE TRACERID_MOD,       ONLY : IDTSO4,  IDTNH3,  IDTNH4,  IDTHNO3
       USE TRACERID_MOD,       ONLY : IDTNIT,  IDTDST1, IDTDST2, IDTDST3
       USE TRACERID_MOD,       ONLY : IDTDST4, IDTSALA, IDTSALC
-!      USE SEASALT_MOD,        ONLY : GET_ALK
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal, GetHcoDiagn
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoDiagn
 !
 ! !INPUT PARAMETERS:
 !
@@ -1939,6 +1853,7 @@
 !  18 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sim from HEMCO
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  12 Jan 2015 - C. Keller   - Now allow NDENS_SALA and NDENS_SALC to be empty.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2009,18 +1924,6 @@
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get HNO3 from HEMCO (mps 9/18/14)
-!      ! Read HNO3 for offline simulation
-!      IF ( IS_OFFLINE ) THEN
-!         IF ( ITS_A_NEW_MONTH() ) THEN
-!            CALL GET_GLOBAL_HNO3
-!     &           ( am_I_Root, Input_Opt, GET_MONTH(), RC )
-!         ENDIF
-!      ENDIF
-!------------------------------------------------------------------------------
-
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM   = GET_TS_CHEM() * 60e+0_fp
 
@@ -2034,18 +1937,22 @@
       ! These are the sea salt aerosol number densities for the fine
       ! and coarse mode, respectively. Values are in # / surface grid
       ! box. These values are needed in the GET_ALK call below.
-      ! (ckeller, 11/03/2014)
+      ! If the diagnostics are not being found, e.g. because the
+      ! sea salt emissions extension is turned off (or LEMIS is 
+      ! disabled), the passed pointers NDENS_SALA and NDENS_SALC
+      ! will stay nullified. Values of zero will be used in this
+      ! case! (ckeller, 01/12/2015)
       IF ( FIRST ) THEN
 
          ! Sea salt density, fine mode
          CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_FINE', 
-     &                     FORCE=.TRUE., RC=RC, Ptr2D=NDENS_SALA )
+     &          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
          IF ( RC /= HCO_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_FINE', LOC )
 
          ! Sea salt density, coarse mode 
          CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_COARSE', 
-     &                     FORCE=.TRUE., RC=RC, Ptr2D=NDENS_SALC )
+     &          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALC )
          IF ( RC /= HCO_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_COARSE', LOC )
          
@@ -2112,12 +2019,15 @@
 
          ENDIF
 
-         ! SO2 drydep frequency [1/s].  Also accounts for the fraction
-         ! of grid box (I,J,L) that is located beneath the PBL top.
-         RK2    = DEPSAV(I,J,DRYSO2) * GET_FRAC_UNDER_PBLTOP( I, J, L )
+!         ! SO2 drydep frequency [1/s].  Also accounts for the fraction
+!         ! of grid box (I,J,L) that is located beneath the PBL top.
+!         RK2    = DEPSAV(I,J,DRYSO2) * GET_FRAC_UNDER_PBLTOP( I, J, L )
 
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF ( LNLPBL ) RK2 = 0.e+0_fp
+!         ! Add option for non-local PBL (Lin, 03/31/09)
+!         IF ( LNLPBL ) RK2 = 0.e+0_fp
+
+         ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+         RK2  = 0.e+0_fp
 
          ! RK: total reaction rate [1/s]
          RK     = ( RK1 + RK2 )
@@ -2332,11 +2242,6 @@
 	       GNO3 = STT(I,J,L,IDTHNO3) !For Fahey & Pandis decision algorithm
             ELSE IF ( IS_OFFLINE ) THEN
                TANIT = STT(I,J,L,IDTNIT) !aerosol nitrate [v/v]
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get HNO3 from HEMCO (mps, 9/18/14)
-!	       GNO3  = GET_HNO3_VV(I,J,L) - TANIT ! gas-phase nitric acid [v/v]
-!------------------------------------------------------------------------------
 	       GNO3  = HNO3(I,J,L) - TANIT ! gas-phase nitric acid [v/v]
    	       ANIT  = TANIT * 0.7e+0_fp ! aerosol nitrate in the cloud drops [v/v]
 	       TNO3  = GNO3 + ANIT   ! total nitrate for cloud pH calculations
@@ -2683,23 +2588,26 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !===============================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DRYSO2,1) = AD44(I,J,DRYSO2,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
+! This is now done in mixing_mod.F90 (ckeller, 3/5/15) 
+!#if !defined( NO_BPCH )
+!      !===============================================================
+!      ! ND44: Sum drydep fluxes by level into the AD44 array in
+!      ! order to ensure that  we get the same results w/ sp or mp 
+!      !===============================================================
+!      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!         DO L = 1, LLPAR
+!            AD44(I,J,DRYSO2,1) = AD44(I,J,DRYSO2,1) + ND44_TMP(I,J,L)
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!      ENDIF
+!#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -2745,10 +2653,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-!      USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_UGM3
-!------------------------------------------------------------------------------
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_MONTH 
@@ -2891,20 +2795,6 @@
 
       ELSE
          
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get HNO3 from HEMCO (mps, 9/18/14)
-!         ! Get HNO3 in ug/m3, then multiply by volume in m3
-!         ! and 1e-6 kg/ug to get HNO3 in kg
-!         HNO3_kg = GET_HNO3_UGM3( I, J, L, State_Met ) *
-!     &             AIRVOL(I,J,L) * 1e-6
-!
-!	 ! Convert HNO3 [kg] first to [v/v] 
-!         HNO3_vv = HNO3_kg * ( 28.97e+0_fp / 63e+0_fp ) / AD(I,J,L)
-! 
-!         ! Then convert HNO3 [kg] to [equivalents]
-!         HNO3_eq = HNO3_kg / 63d-3
-!------------------------------------------------------------------------------
          ! HNO3 is in v/v (from HEMCO)
          HNO3_vv = HNO3(I,J,L)
 
@@ -3215,6 +3105,7 @@
 !            
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  06 Jan 2015 - M. Yannetti - Set some variables to f8 that required it
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3234,9 +3125,10 @@
       REAL(fp)                 :: kSO2p, kSO2p2
       REAL(fp)                 :: kHNO3p, kNH3p, kHClp
       INTEGER                :: count
-      REAL(fp)                 :: E, F, G, H, P, Q, R, A, B
-      REAL(fp)                 :: A2, A1, A0, X, Y
+      REAL(fp)                 :: E, F, G, H, P, Q, R
+      REAL(fp)                 :: X, Y
       REAL(fp)                 :: CRUTES( 3 ) ! Coeff and roots of cubic equation
+      REAL(f8)                 :: A, B, A1, A2, A0
       INTEGER                :: NR          ! Number of roots to cubic equation
 
       !=================================================================
@@ -3300,10 +3192,10 @@
 
 	 R = F/H
 
-	 A = (1.e+0_fp/3.e+0_fp)*((3.e+0_fp*Q)-(P*P))
+	 A = (1.e+0_f8/3.e+0_f8)*((3.e+0_f8*Q)-(P*P))
 
-  	 B = (1.e+0_fp/27.e+0_fp)*((2.0e+0_fp*P*P*P)
-     &        -(9.0e+0_fp*P*Q)+(27.0e+0_fp*R))
+  	 B = (1.e+0_f8/27.e+0_f8)*((2.0e+0_f8*P*P*P)
+     &        -(9.0e+0_f8*P*Q)+(27.0e+0_f8*R))
 
  	 A2 = 0.
  	 A1 = A
@@ -3813,7 +3705,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER           :: NR
-      REAL(fp)            :: A2, A1, A0
+      REAL(f8)            :: A2, A1, A0
       REAL(fp)            :: CRUTES(3)
 !
 ! !REMARKS:
@@ -3832,6 +3724,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  06 Jan 2015 - M. Yannetti - Manual changes of some variables to f8
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3844,29 +3737,31 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)            :: QQ,    RR,    A2SQ,  THETA, DUM1, DUM2
-      REAL(fp)            :: PART1, PART2, PART3, RRSQ,  PHI,  YY1
+      REAL(fp)            :: A2SQ,  THETA 
+      REAL(f8)            :: PART1, PART2, PART3, YY1
       REAL(fp)            :: YY2,   YY3,   COSTH, SINTH
+      REAL(f8)            :: PHI,   DUM1,  DUM2,  RRSQ
+      REAL(f8)            :: QQ,    RR
 
       !=================================================================
       ! CUBIC begins here!
       !=================================================================
       A2SQ = A2 * A2
-      QQ   = ( A2SQ - 3.e+0_fp*A1 ) / 9.e+0_fp
-      RR   = ( A2*( 2.e+0_fp*A2SQ - 9.e+0_fp*A1 ) + 27.e+0_fp*A0 ) 
-     &       / 54.e+0_fp
+      QQ   = ( A2SQ - 3.e+0_f8 * A1 ) / 9.e+0_f8
+      RR   = ( A2*( 2.e+0_f8*A2SQ - 9.e+0_f8*A1 ) + 27.e+0_f8*A0 ) 
+     &       / 54.e+0_f8
 
       ! CASE 1 THREE REAL ROOTS or  CASE 2 ONLY ONE REAL ROOT
       DUM1 = QQ * QQ * QQ
       RRSQ = RR * RR
       DUM2 = DUM1 - RRSQ
 
-      IF ( DUM2 .GE. 0.e+0_fp ) THEN
+      IF ( DUM2 .GE. 0.e+0_f8 ) THEN
 
          ! Now we have three real roots
          PHI = SQRT( DUM1 )
 
-         IF ( ABS( PHI ) .LT. 1.e-20_fp ) THEN
+         IF ( ABS( PHI ) .LT. 1.e-20_f8 ) THEN
             CRUTES(1) = 0.0e+0_fp
             CRUTES(2) = 0.0e+0_fp
             CRUTES(3) = 0.0e+0_fp
@@ -4359,8 +4254,10 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+#endif
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -4570,12 +4467,15 @@
          ! (CASE 2) SO4 production from SO2 with no SO4 loss by drydep
          !==============================================================
 
-         ! SO4 drydep frequency [1/s].  Also accounts for the fraction
-         ! of each vertical level that is located below the PBL top
-         RKT  = DEPSAV(I,J,DRYSO4)  * GET_FRAC_UNDER_PBLTOP( I, J, L )
+!         ! SO4 drydep frequency [1/s].  Also accounts for the fraction
+!         ! of each vertical level that is located below the PBL top
+!         RKT  = DEPSAV(I,J,DRYSO4)  * GET_FRAC_UNDER_PBLTOP( I, J, L )
 
-         ! Add option for non-local PBL (Lin, 03/31/09) 
-         IF ( LNLPBL ) RKT = 0.e+0_fp
+!         ! Add option for non-local PBL (Lin, 03/31/09) 
+!         IF ( LNLPBL ) RKT = 0.e+0_fp
+
+         ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+         RKT = 0.e+0_fp
 
          ! RKT > 0 denotes that we have SO4 drydep occurring
          IF ( RKT > 0e+0_fp ) THEN
@@ -4651,12 +4551,15 @@
          ! (CASE 4) SO4s prod from seasalt w/ no SO4s loss by drydep
          !==============================================================
 
-         ! SO4s drydep frequency [1/s].   Also accounts for the fraction
-         ! of each vertical level that is located below the PBL top
-         RKTs = DEPSAV(I,J,DRYSO4s) * GET_FRAC_UNDER_PBLTOP( I, J, L )
+!         ! SO4s drydep frequency [1/s].   Also accounts for the fraction
+!         ! of each vertical level that is located below the PBL top
+!         RKTs = DEPSAV(I,J,DRYSO4s) * GET_FRAC_UNDER_PBLTOP( I, J, L )
+!
+!         ! Add option for non-local PBL (Lin, 03/31/09)
+!         IF ( LNLPBL ) RKTs = 0.e+0_fp
 
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF ( LNLPBL ) RKTs = 0.e+0_fp
+         ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+         RKTs = 0.e+0_fp
         
          ! RKTs > 0 indicates that SO4s drydep occurs
          IF ( RKTs > 0e+0_fp ) THEN
@@ -4776,22 +4679,24 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that we get the same results w/ sp or mp 
-      !===============================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
 
-            ! Sum SO4, SO4s drydep fluxes in the vertical [molec/cm2/s]
-            AD44(I,J,DRYSO4, 1) = AD44(I,J,DRYSO4, 1) + T44(I,J,L,1)
-            AD44(I,J,DRYSO4s,1) = AD44(I,J,DRYSO4s,1) + T44(I,J,L,2)
-
+!#if !defined( NO_BPCH )
+!      !===============================================================
+!      ! ND44: Sum drydep fluxes by level into the AD44 array in
+!      ! order to ensure that we get the same results w/ sp or mp 
+!      !===============================================================
+!      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!         DO L = 1, LLPAR
+!
+!            ! Sum SO4, SO4s drydep fluxes in the vertical [molec/cm2/s]
+!            AD44(I,J,DRYSO4, 1) = AD44(I,J,DRYSO4, 1) + T44(I,J,L,1)
+!            AD44(I,J,DRYSO4s,1) = AD44(I,J,DRYSO4s,1) + T44(I,J,L,2)
+!
 !------------------------------------------------------------------------------
 !%%% Currently under development (rjp, bmy, 3/15/05)
 !%%%             ! Sum SO4aq, AS, AHS, LET drydep fluxes (if necessary)
@@ -4802,12 +4707,13 @@
 !%%%                AD44(I,J,DRYLET,  1) = AD44(I,J,DRYLET,  1)+T44(I,J,L,6)
 !%%%             ENDIF
 !------------------------------------------------------------------------------
-
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
+!
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!      ENDIF
+!#endif
 
       ! Free pointers
       NULLIFY( STT )
@@ -4974,8 +4880,10 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+#endif
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -5108,12 +5016,15 @@
          ! Initial MSA [v/v]
          MSA0 = STT(I,J,L,IDTMSA) 
 
-         ! MSA drydep frequency [1/s].  Also accounts for the fraction
-         ! of each grid box (I,J,L) that is located beneath the PBL top
-         RKT = DEPSAV(I,J,DRYMSA) * F_UNDER_TOP
+!         ! MSA drydep frequency [1/s].  Also accounts for the fraction
+!         ! of each grid box (I,J,L) that is located beneath the PBL top
+!         RKT = DEPSAV(I,J,DRYMSA) * F_UNDER_TOP
+!
+!         ! Add option for non-local PBL (Lin, 03/31/09)
+!         IF ( LNLPBL ) RKT = 0.e+0_fp
 
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF ( LNLPBL ) RKT = 0.e+0_fp
+         ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+         RKT = 0.e+0_fp
          
          ! RKT > 0 denotes that we have drydep occurring
          IF ( RKT > 0.e+0_fp ) THEN
@@ -5157,24 +5068,27 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-      
-      !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !===============================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
+
+! This is now done in mixing_mod.F90 (ckeller, 3/5/15) 
+!#if !defined( NO_BPCH )
+!      !===============================================================
+!      ! ND44: Sum drydep fluxes by level into the AD44 array in
+!      ! order to ensure that  we get the same results w/ sp or mp 
+!      !===============================================================
+!      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!         DO L = 1, LLPAR
+!            AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + ND44_TMP(I,J,L)
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!      ENDIF
+!#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -5201,8 +5115,10 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+#endif
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -5234,6 +5150,9 @@
 !                                                                             .
 !  If you are using the full TURBDAY PBL mixing scheme, then we have to 
 !  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
+!
+!  Dry deposition is now done in mixing_mod.F90, so we don't need this routine
+!  here altogether (ckeller, 3/5/15).
 !                                                                             .
 !  Reaction List:
 !  ============================================================================
@@ -5333,12 +5252,15 @@
          ! Only apply drydep to boxes w/in the PBL
          IF ( F_UNDER_TOP > 0e+0_fp ) THEN
 
-            ! NH3 drydep frequency [1/s].  Also accounts for the fraction
-            ! of each grid box (I,J,L) that is located beneath the PBL top
-            FREQ = DEPSAV(I,J,DRYNH3) * F_UNDER_TOP
+!            ! NH3 drydep frequency [1/s].  Also accounts for the fraction
+!            ! of each grid box (I,J,L) that is located beneath the PBL top
+!            FREQ = DEPSAV(I,J,DRYNH3) * F_UNDER_TOP
 
-            ! Add option for non-local PBL (Lin, 03/31/09)
-            IF ( LNLPBL ) FREQ = 0.e+0_fp
+!            ! Add option for non-local PBL (Lin, 03/31/09)
+!            IF ( LNLPBL ) FREQ = 0.e+0_fp
+
+            ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+            FREQ = 0.e+0_fp
 
             ! Only compute drydep loss if FREQ is nonzero
             IF ( FREQ > 0e+0_fp ) THEN
@@ -5378,45 +5300,48 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+!! This is now done in mixing_mod.F90 (ckeller, 3/5/15) 
       !===============================================================
       ! If we are not using the non-local PBL scheme, then:
       !===============================================================
-      IF ( .not. LNLPBL ) THEN 
-
-         !------------------------------------------------------------
-         ! (1) Call SOIL_DRYDEP to archive the NH3 drydep fluxes.
-         !------------------------------------------------------------
-         IF ( LSOILNOX ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IDTNH3 )
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               CALL SOIL_DRYDEP( I, J, L, IDTNH3, DRYD_FLX(I,J,L) )
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-
-         !------------------------------------------------------------
-         ! (2) Save archived NH3 drydep fluxes into the AD44 array
-         !------------------------------------------------------------
-         IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-            DO L = 1, LLPAR
-               AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + DRYD_FLX(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-      ENDIF
+!      IF ( .not. LNLPBL ) THEN 
+!
+!         !------------------------------------------------------------
+!         ! (1) Call SOIL_DRYDEP to archive the NH3 drydep fluxes.
+!         !------------------------------------------------------------
+!         IF ( LSOILNOX ) THEN
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, IDTNH3 )
+!            DO L = 1, LLPAR
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!               CALL SOIL_DRYDEP( I, J, L, IDTNH3, DRYD_FLX(I,J,L) )
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!         ENDIF
+!
+!#if !defined( NO_BPCH )
+!         !------------------------------------------------------------
+!         ! (2) Save archived NH3 drydep fluxes into the AD44 array
+!         !------------------------------------------------------------
+!         IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!            DO L = 1, LLPAR
+!               AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + DRYD_FLX(I,J,L)
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!         ENDIF
+!#endif
+!      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -5443,8 +5368,10 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+#endif
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -5476,6 +5403,9 @@
 !                                                                             .
 !  If you are using the full TURBDAY PBL mixing scheme, then we have to 
 !  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
+!                                                                             .
+!  Dry deposition is now done in mixing_mod.F90, so we don't need this routine
+!  here altogether (ckeller, 3/5/15).
 !                                                                             .
 !  Reaction List:
 !  ============================================================================
@@ -5575,12 +5505,15 @@
          ! Only apply drydep to boxes w/in the PBL
          IF ( F_UNDER_TOP > 0e+0_fp ) THEN
 
-            ! NH4 drydep frequency [1/s].  Also accounts for the fraction
-            ! of each grid box (I,J,L) that is located beneath the PBL top
-            FREQ = DEPSAV(I,J,DRYNH4) * F_UNDER_TOP
+!            ! NH4 drydep frequency [1/s].  Also accounts for the fraction
+!            ! of each grid box (I,J,L) that is located beneath the PBL top
+!            FREQ = DEPSAV(I,J,DRYNH4) * F_UNDER_TOP
 
-            ! Add option for non-local PBL (Lin, 03/31/09)
-            IF ( LNLPBL ) FREQ = 0.D0
+!            ! Add option for non-local PBL (Lin, 03/31/09)
+!            IF ( LNLPBL ) FREQ = 0.D0
+
+            ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+            FREQ = 0.e+0_fp
 
             ! Only apply drydep loss if FREQ is nonzero
             IF ( FREQ > 0e+0_fp ) THEN
@@ -5619,46 +5552,49 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      !===============================================================
-      ! If we are not using the non-local PBL scheme, then:
-      !===============================================================
-      IF ( .not. LNLPBL ) THEN 
-
-         !------------------------------------------------------------
-         ! (1) Call SOIL_DRYDEP to archive the NH4 drydep fluxes.
-         !------------------------------------------------------------
-         IF ( LSOILNOX ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IDTNH4 )
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               CALL SOIL_DRYDEP( I, J, L, IDTNH4, DRYD_FLX(I,J,L) )
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-
-         !------------------------------------------------------------
-         ! (2) Save archived NH4 drydep fluxes into the AD44 array
-         !------------------------------------------------------------
-         IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-            DO L = 1, LLPAR
-               AD44(I,J,DRYNH4,1) = 
-     &         AD44(I,J,DRYNH4,1) + DRYD_FLX(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-      ENDIF
+!! This is now done in mixing_mod.F90 (ckeller, 3/5/15) 
+!      !===============================================================
+!      ! If we are not using the non-local PBL scheme, then:
+!      !===============================================================
+!      IF ( .not. LNLPBL ) THEN 
+!
+!         !------------------------------------------------------------
+!         ! (1) Call SOIL_DRYDEP to archive the NH4 drydep fluxes.
+!         !------------------------------------------------------------
+!         IF ( LSOILNOX ) THEN
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, IDTNH4 )
+!            DO L = 1, LLPAR
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!               CALL SOIL_DRYDEP( I, J, L, IDTNH4, DRYD_FLX(I,J,L) )
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!         ENDIF
+!
+!#if !defined( NO_BPCH )
+!         !------------------------------------------------------------
+!         ! (2) Save archived NH4 drydep fluxes into the AD44 array
+!         !------------------------------------------------------------
+!         IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!            DO L = 1, LLPAR
+!               AD44(I,J,DRYNH4,1) = 
+!     &         AD44(I,J,DRYNH4,1) + DRYD_FLX(I,J,L)
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!         ENDIF
+!#endif
+!      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -5685,8 +5621,10 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+#endif
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -5842,12 +5780,15 @@
             ! NIT chemistry
             !===========================================================
 
-            ! NIT drydep frequency [1/s].  Also accounts for the fraction
-            ! of each vertical level that is located below the PBL top
-            FREQ  = DEPSAV(I,J,DRYNIT)  * F_UNDER_TOP
+!            ! NIT drydep frequency [1/s].  Also accounts for the fraction
+!            ! of each vertical level that is located below the PBL top
+!            FREQ  = DEPSAV(I,J,DRYNIT)  * F_UNDER_TOP
 
-            ! Add option for non-local PBL (Lin, 03/31/09)
-            IF ( LNLPBL ) FREQ = 0.e+0_fp
+!            ! Add option for non-local PBL (Lin, 03/31/09)
+!            IF ( LNLPBL ) FREQ = 0.e+0_fp
+
+            ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+            FREQ = 0.e+0_fp
 
             ! If there is drydep ...
             IF ( FREQ > 0e+0_fp ) THEN
@@ -5878,12 +5819,15 @@
             ! NITs chemistry
             !===========================================================
 
-            ! NITs drydep frequency [1/s].  Also accounts for the fraction
-            ! of each vertical level that is located below the PBL top
-            FREQs = DEPSAV(I,J,DRYNITs) * F_UNDER_TOP
+!            ! NITs drydep frequency [1/s].  Also accounts for the fraction
+!            ! of each vertical level that is located below the PBL top
+!            FREQs = DEPSAV(I,J,DRYNITs) * F_UNDER_TOP
                
-            ! Add option for non-local PBL (Lin, 03/31/09)
-            IF ( LNLPBL ) FREQs = 0.e+0_fp
+!            ! Add option for non-local PBL (Lin, 03/31/09)
+!            IF ( LNLPBL ) FREQs = 0.e+0_fp
+
+            ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+            FREQs = 0.e+0_fp
 
             ! If there is drydep ...
             IF ( FREQs > 0e+0_fp ) THEN
@@ -5953,50 +5897,53 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      !===============================================================
-      ! If we are not using the non-local PBL scheme, then:
-      !===============================================================
-      IF ( .not. LNLPBL ) THEN 
-
-         !------------------------------------------------------------
-         ! (1) Call SOIL_DRYDEP to archive NIT & NITs drydep fluxes
-         !------------------------------------------------------------
-         IF ( LSOILNOX ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IDTNIT, IDTNITs )
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               CALL SOIL_DRYDEP( I, J, L, IDTNIT,  DRYD_FLX(I,J,L,1) )
-               CALL SOIL_DRYDEP( I, J, L, IDTNITs, DRYD_FLX(I,J,L,2) )
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-
-         !------------------------------------------------------------
-         ! (2) Save archived NIT & NITs drydep fluxes into AD44 array
-         !------------------------------------------------------------
-         IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-            DO L = 1, LLPAR
-               AD44(I,J,DRYNIT, 1) = 
-     &         AD44(I,J,DRYNIT, 1) + DRYD_FLX(I,J,L,1)
-
-               AD44(I,J,DRYNITs,1) = 
-     &         AD44(I,J,DRYNITs,1) + DRYD_FLX(I,J,L,2)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF         
-      ENDIF
+!! This is now done in mixing_mod.F90 (ckeller, 3/5/15) 
+!      !===============================================================
+!      ! If we are not using the non-local PBL scheme, then:
+!      !===============================================================
+!      IF ( .not. LNLPBL ) THEN 
+!
+!         !------------------------------------------------------------
+!         ! (1) Call SOIL_DRYDEP to archive NIT & NITs drydep fluxes
+!         !------------------------------------------------------------
+!         IF ( LSOILNOX ) THEN
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, IDTNIT, IDTNITs )
+!            DO L = 1, LLPAR
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!               CALL SOIL_DRYDEP( I, J, L, IDTNIT,  DRYD_FLX(I,J,L,1) )
+!               CALL SOIL_DRYDEP( I, J, L, IDTNITs, DRYD_FLX(I,J,L,2) )
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!         ENDIF
+!
+!#if !defined( NO_BPCH )
+!         !------------------------------------------------------------
+!         ! (2) Save archived NIT & NITs drydep fluxes into AD44 array
+!         !------------------------------------------------------------
+!         IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!            DO L = 1, LLPAR
+!               AD44(I,J,DRYNIT, 1) = 
+!     &         AD44(I,J,DRYNIT, 1) + DRYD_FLX(I,J,L,1)
+!
+!               AD44(I,J,DRYNITs,1) = 
+!     &         AD44(I,J,DRYNITs,1) + DRYD_FLX(I,J,L,2)
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!         ENDIF         
+!#endif
+!      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -6115,11 +6062,6 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get OH from HEMCO (mps, 9/18/14)
-!      USE GLOBAL_OH_MOD,      ONLY : OH
-!------------------------------------------------------------------------------
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDOH
 !
@@ -6290,11 +6232,6 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get NO3 from HEMCO (mps, 9/18/14)
-!      USE GLOBAL_NO3_MOD,     ONLY : NO3
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IDNO3
 !
 ! !INPUT PARAMETERS: 
@@ -6563,1202 +6500,6 @@
 
       END FUNCTION GET_O3
 !EOC
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!%%% NOTE: This is for the SEAC4RS volcano emissions.  Leave code commented
-!!%%% out here so that we can restore it later. (bmy, 9/25/13)
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_volc
-!!
-!! !DESCRIPTION: Subroutine READ\_VOLC reads SO2 emissions from
-!!  volcanoes. (bmy, jaf, skim, 1/11/13)
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE READ_VOLC( INMONTH, INYEAR )
-!!
-!! !USES:
-!!
-!      ! Modules for netCDF read
-!      USE m_netcdf_io_open
-!      USE m_netcdf_io_get_dimlen
-!      USE m_netcdf_io_read
-!      USE m_netcdf_io_readattr
-!      USE m_netcdf_io_close
-!
-!      ! GEOS-Chem modules
-!      USE ERROR_MOD,     ONLY : ALLOC_ERR
-!      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
-!      USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET
-!      USE TIME_MOD,      ONLY : EXPAND_DATE
-!
-!      USE CMN_SIZE_MOD         ! Size parameters
-!
-!      IMPLICIT NONE
-!
-!#     include "netcdf.inc"
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      INTEGER, INTENT(IN)     :: INMONTH ! Current month number (1-12)
-!      INTEGER, INTENT(IN)     :: INYEAR  ! Current 4-digit year
-!!
-!! !REMARKS:
-!!  1. Assumes that you have a netCDF library (either v3 or v4) installed on 
-!!  your system.
-!!  2. Uses most recent year of non-eruptive emissions. Eruptive emissions 
-!!  are only used if simulation year is within year of available data 
-!!
-!! !REVISION HISTORY: 
-!!  16 Jun 2012 - J. Fisher   - Initial version (replaces READ_ERUP_VOLC
-!!                              and READ_NONERUP_VOLC)
-!!  11 Jan 2013 - S. Kim      - Remove unneeded for loops
-!!                              Minor bug fixes for reading netCDF files
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      !=================================================================
-!      ! Variable declarations
-!      !=================================================================
-!
-!      ! Data arrays
-!      INTEGER              :: NEVENTS
-!      INTEGER, ALLOCATABLE :: v_date(:)
-!      INTEGER, ALLOCATABLE :: v_elevation(:)
-!      INTEGER, ALLOCATABLE :: v_cloud_column_height(:)
-!      REAL*4,  ALLOCATABLE :: v_lon(:),v_lat(:)
-!      REAL*4,  ALLOCATABLE :: v_so2(:)
-!
-!      ! Character strings
-!      CHARACTER(LEN=255) :: nc_dir             ! netCDF directory name
-!      CHARACTER(LEN=255) :: nc_file            ! netCDF file name
-!      CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
-!      CHARACTER(LEN=255) :: a_name             ! netCDF attribute name
-!      CHARACTER(LEN=255) :: a_val              ! netCDF attribute value
-!
-!      ! Arrays for netCDF start and count values
-!      INTEGER            :: st1d(1), ct1d(1)   ! For 1D arrays    
-!      INTEGER            :: st2d(2), ct2d(2)   ! For 2D arrays 
-!      INTEGER            :: st3d(3), ct3d(3)   ! For 3D arrays 
-!      INTEGER            :: st4d(4), ct4d(4)   ! For 4D arrays 
-!      INTEGER            :: st5d(5), ct5d(5)   ! For 5D arrays 
-!      INTEGER            :: st6d(6), ct6d(6)   ! For 6D arrays 
-!
-!      ! Variables for reading, etc.
-!      INTEGER            :: YYYYMMDD
-!      INTEGER            :: I0, J0
-!      INTEGER            :: AS, fId, N, n_nv, n_ev, I, J
-!      REAL(fp)             :: XEDGE(IIPAR+1), YEDGE(JJPAR+1)
-!
-!      !=================================================================
-!      ! Open and read data from the netCDF file
-!      !=================================================================
-!
-!      ! Set reading date
-!      YYYYMMDD = 10000 * InYear + 100 * InMonth + 1
-!
-!      ! Replace time & date tokens in the directory name
-!      nc_dir  = TRIM( DATA_DIR_1x1 ) // 'volcano_SO2_201206/YYYY'
-!      CALL Expand_Date( nc_dir, YYYYMMDD, 000000 )
-!
-!      ! Replace time & date tokens in the file name
-!      nc_file = '/Volcano_SO2_YYYYMM.nc'
-!      CALL Expand_Date( nc_file, YYYYMMDD, 000000 )
-!
-!      ! Construct complete file path
-!      nc_file = TRIM( nc_dir ) // TRIM( nc_file )
-!
-!      ! Echo output
-!      WRITE( 6, 150 ) TRIM( nc_file )
-! 150  FORMAT( '     - READ_VOLC: Reading ', a )
-!
-!      ! Open netCDF file
-!      CALL NcOp_Rd( fId, TRIM( nc_file ) )
-!
-!      ! Read the dimensions from the netCDF file
-!      CALL NcGet_DimLen( fId, 'nevents', NEVENTS )
-!
-!      ! Allocate arrays for reading
-!      ALLOCATE( v_date ( NEVENTS ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'v_date' )
-!      v_date = 0e+0_fp
-!      
-!      ALLOCATE( v_elevation ( NEVENTS ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'v_elevation' )
-!      v_elevation = 0e+0_fp
-!      
-!      ALLOCATE( v_cloud_column_height ( NEVENTS ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'v_cloud_column_height' )
-!      v_cloud_column_height = 0e+0_fp
-!      
-!      ALLOCATE( v_lon ( NEVENTS ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'v_lon' )
-!      v_lon = 0e+0_fp
-!      
-!      ALLOCATE( v_lat ( NEVENTS ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'v_lat' )
-!      v_lat = 0e+0_fp
-!      
-!      ALLOCATE( v_so2 ( NEVENTS ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'v_so2' )
-!      v_so2 = 0e+0_fp
-!      
-!      !----------------------------------------
-!      ! VARIABLE: date
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "date"
-!
-!      ! Read date from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ NEVENTS /)
-!      CALL NcRd( v_date, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the date:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Echo info to stdout
-!      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
-!
-!      !----------------------------------------
-!      ! VARIABLE: elevation
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "elevation"
-!
-!      ! Read elevation from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ NEVENTS /)
-!      CALL NcRd( v_elevation, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the elevation:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the elevation:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Echo info to stdout
-!      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
-!
-!      !----------------------------------------
-!      ! VARIABLE: cloud_column_height
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "cloud_column_height"
-!
-!      ! Read cloud_column_height from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ NEVENTS /)
-!      CALL NcRd( v_cloud_column_height, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the cloud_column_height:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the cloud_column_height:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Echo info to stdout
-!      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
-!
-!      !----------------------------------------
-!      ! VARIABLE: lon
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "lon"
-!
-!      ! Read lon from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ NEVENTS /)
-!      CALL NcRd( v_lon, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the lon:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the lon:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Echo info to stdout
-!      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
-!
-!      !----------------------------------------
-!      ! VARIABLE: lat
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "lat"
-!
-!      ! Read lat from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ NEVENTS /)
-!      CALL NcRd( v_lat, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the lat:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the lat:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Echo info to stdout
-!      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
-!
-!      !----------------------------------------
-!      ! VARIABLE: so2
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "so2"
-!
-!      ! Read so2 from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ NEVENTS /)
-!      CALL NcRd( v_so2, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the so2:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the so2:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Echo info to stdout
-!      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
-!
-!      ! Close netCDF file
-!      CALL NcCl( fId )
-!
-!      ! Echo info to stdout
-!      WRITE( 6, 140 )
-!      WRITE( 6, 100 ) REPEAT( '%', 79 )
-!
-!      ! FORMAT statements
-! 100  FORMAT( a                                              )
-! 130  FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
-! 140  FORMAT( '%% Successfully closed file!'                 )
-!
-!      !=================================================================
-!      ! Separate eruptive and non-eruptive events
-!      !=================================================================
-!
-!      ! Count event types
-!      N_NONERUP = 0
-!      N_ERUP = 0
-!      DO N = 1, NEVENTS
-!         IF ( v_elevation(N) == v_cloud_column_height(N) ) THEN
-!            N_NONERUP = N_NONERUP + 1
-!         ELSE
-!            N_ERUP = N_ERUP + 1
-!         ENDIF
-!      ENDDO
-!
-!      ! If already allocated from a previous month
-!      !    deallocate to prevent allocation error
-!      !    (skim, 1/14/13)
-!      IF ( ALLOCATED( VEV_ELEV     ) ) DEALLOCATE( VEV_ELEV     )
-!      IF ( ALLOCATED( VEV_SO2      ) ) DEALLOCATE( VEV_SO2      )
-!      IF ( ALLOCATED( VEV_DATE     ) ) DEALLOCATE( VEV_DATE     )
-!      IF ( ALLOCATED( VEV_II       ) ) DEALLOCATE( VEV_II       )
-!      IF ( ALLOCATED( VEV_JJ       ) ) DEALLOCATE( VEV_JJ       )
-!      IF ( ALLOCATED( VEV_CLOUDTOP ) ) DEALLOCATE( VEV_CLOUDTOP )
-!      IF ( ALLOCATED( VNV_ELEV     ) ) DEALLOCATE( VNV_ELEV     )
-!      IF ( ALLOCATED( VNV_SO2      ) ) DEALLOCATE( VNV_SO2      )
-!      IF ( ALLOCATED( VNV_DATE     ) ) DEALLOCATE( VNV_DATE     )
-!      IF ( ALLOCATED( VNV_II       ) ) DEALLOCATE( VNV_II       )
-!      IF ( ALLOCATED( VNV_JJ       ) ) DEALLOCATE( VNV_JJ       )
-!
-!      ! Allocate arrays for eruptive events
-!      ALLOCATE( vev_date ( N_ERUP ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vev_date' )
-!      vev_date = 0e+0_fp
-!      ALLOCATE( vev_ii ( N_ERUP ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vev_ii' )
-!      vev_ii = 0
-!      ALLOCATE( vev_jj ( N_ERUP ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vev_jj' )
-!      vev_jj = 0
-!      ALLOCATE( vev_so2 ( N_ERUP ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vev_so2' )
-!      vev_so2 = 0e+0_fp
-!      ALLOCATE( vev_elev ( N_ERUP ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vev_elev' )
-!      vev_elev = 0e+0_fp
-!      ALLOCATE( vev_cloudtop ( N_ERUP ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vev_cloudtop' )
-!      vev_cloudtop = 0e+0_fp
-!      
-!      ! Allocate arrays for non-eruptive events
-!      ALLOCATE( vnv_date ( N_NONERUP ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vnv_date' )
-!      vnv_date = 0e+0_fp
-!      ALLOCATE( vnv_ii ( N_NONERUP ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vnv_ii' )
-!      vnv_ii = 0
-!      ALLOCATE( vnv_jj ( N_NONERUP ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vnv_jj' )
-!      vnv_jj = 0
-!      ALLOCATE( vnv_so2 ( N_NONERUP ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vnv_so2' )
-!      vnv_so2 = 0e+0_fp
-!      ALLOCATE( vnv_elev ( N_NONERUP ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'vnv_elev' )
-!      vnv_elev = 0e+0_fp
-!
-!      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-!      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
-!
-!      ! Re-assign values to eruptive or non-eruptive arrays
-!      ! Change the counters to start at zero (skim, 8/17/13)
-!      n_nv = 1
-!      n_ev = 1
-!      DO N = 1, NEVENTS
-!
-!         ! Determine which grid box to place the emissions
-!         I = INT( ( v_lon(N) + 180e+0_fp - (I0 * DISIZE) )/DISIZE + 1.5e+0_fp )
-!         J = INT( ( v_lat(N) +  90e+0_fp - (J0 * DJSIZE) )/DJSIZE + 1.5e+0_fp )
-!
-!         ! Only check for the date line for global simulations 
-!         ! (skim, 8/17/13)
-!#if defined( GRID4x5 ) || defined( GRID2x25 ) 
-!         ! Handle the date line correctly
-!         IF ( I > IIPAR ) I = I - IIPAR
-!#endif
-!
-!         ! Non-eruptive
-!         IF ( v_elevation(N) == v_cloud_column_height(N) ) THEN
-!            vnv_date(n_nv) = v_date(n)
-!            vnv_elev(n_nv) = v_elevation(n)
-!            vnv_so2(n_nv)  = v_so2(n)
-!            vnv_ii(n_nv)   = I
-!            vnv_jj(n_nv)   = J
-!            ! Augment non-eruptive counter
-!            n_nv = n_nv + 1
-!         ELSE
-!         ! Eruptive
-!         IF ( DO_ERUPTIVE ) THEN
-!            vev_date(n_ev)     = v_date(n)
-!            vev_elev(n_ev)     = v_elevation(n)
-!            vev_so2(n_ev)      = v_so2(n)
-!            vev_cloudtop(n_ev) = v_cloud_column_height(n)
-!            vev_ii(n_ev)       = I
-!            vev_jj(n_ev)       = J
-!            ! Augment eruptive counter
-!            n_ev = n_ev + 1
-!         ENDIF
-!         ENDIF
-!      ENDDO
-!
-!      !=================================================================
-!      ! Convert units (kt/event/day --> kg/event/s)
-!      !=================================================================
-!      IF ( DO_ERUPTIVE ) vev_so2 = vev_so2 * 1d6 / ( 24e+0_fp * 3600e+0_fp )
-!      vnv_so2 = vnv_so2 * 1d6 / ( 24e+0_fp * 3600e+0_fp )
-!
-!      END SUBROUTINE READ_VOLC
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: grid_volc
-!!
-!! !DESCRIPTION: Subroutine GRID\_VOLC grids SO2 emissions from
-!!  volcanoes. (jaf, 6/17/12)
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE GRID_VOLC( INDAY, INMONTH, INYEAR, State_Met )
-!!
-!! !USES:
-!!
-!      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, IS_SAFE_DIV
-!      USE GIGC_State_Met_Mod, ONLY : MetState
-!
-!      USE CMN_SIZE_MOD         ! Size parameters
-!
-!      IMPLICIT NONE
-!
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      INTEGER, INTENT(IN)        :: INDAY     ! Current day number (1-31)
-!      INTEGER, INTENT(IN)        :: INMONTH   ! Current month number (1-12)
-!      INTEGER, INTENT(IN)        :: INYEAR    ! Current 4-digit year
-!      TYPE(MetState), INTENT(IN) :: State_Met ! Meteorology state object
-!!
-!! !REVISION HISTORY: 
-!!  17 Jun 2012 - J. Fisher   - Initial version (replaces READ_ERUP_VOLC
-!!                              and READ_NONERUP_VOLC)
-!!  11 Jan 2013 - S. Kim      - Update to use GIGC conventions
-!!  26 Jul 2013 - R. Yantosca - Add trap for OOB errors
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER            :: YYYYMMDD, N, L, L_BOT, L_TOP
-!      REAL(fp)             :: BOX_BOT, BOX_TOP
-!      REAL(fp)             :: PLUME_BOT, PLUME_TOP, DTHICK(LLPAR)
-!      REAL(fp)             :: CHECKSUM_NV, CHECKSUM_EV, T_DIFF
-!
-!      !=================================================================
-!      ! Set-up
-!      !=================================================================
-!
-!      ! Reset emissions to zero each day
-!      ESO2_nv = 0e+0_fp
-!      ESO2_ev = 0e+0_fp
-!      CHECKSUM_NV = 0e+0_fp
-!      CHECKSUM_EV = 0e+0_fp
-!
-!      ! Set date
-!      YYYYMMDD = 10000 * InYear + 100 * InMonth + InDay
-!
-!      !=================================================================
-!      ! Loop over non-eruptive events
-!      !=================================================================
-!
-!      DO N = 1, N_NONERUP
-!         IF ( vnv_date(N) < YYYYMMDD ) CYCLE
-!         IF ( vnv_date(N) > YYYYMMDD ) EXIT
-!
-!         ! Extra check to avoid OOB errors (bmy, 7/26/13)
-!         IF ( vnv_ii(N) < 1 .or. vnv_ii(N) > IIPAR ) CYCLE
-!         IF ( vnv_jj(N) < 1 .or. vnv_jj(N) > JJPAR ) CYCLE
-!
-!         ! For consistency check
-!         CHECKSUM_NV = CHECKSUM_NV + vnv_so2(N)
-!
-!         ! Loops over levels (non-eruptive emissions at crater elevation)
-!         BOX_BOT = 0e+0_fp
-!         DO L = 1, LLPAR
-!            BOX_TOP = State_Met%BXHEIGHT(vnv_ii(N),vnv_jj(N),L) 
-!     &                  + BOX_BOT
-!            IF ( ( vnv_elev(N) >= BOX_BOT ) .and. 
-!     &           ( vnv_elev(N)  < BOX_TOP ) ) THEN
-!               ESO2_nv(vnv_ii(N),vnv_jj(N),L) = 
-!     &            ESO2_nv(vnv_ii(N),vnv_jj(N),L) + vnv_so2(N)
-!               EXIT
-!            ENDIF
-!            BOX_BOT = BOX_TOP
-!         ENDDO 
-!         ! Above model top layer
-!         IF ( vnv_elev(N) >= BOX_TOP ) 
-!     &      ESO2_nv(vnv_ii(N),vnv_jj(N),LLPAR) = 
-!     &         ESO2_nv(vnv_ii(N),vnv_jj(N),LLPAR) + vnv_so2(N)
-!
-!      ENDDO
-!
-!      !=================================================================
-!      ! Loop over eruptive events
-!      !=================================================================
-!
-!      IF ( DO_ERUPTIVE ) THEN 
-!      DO N = 1, N_ERUP
-!         IF ( vev_date(N) < YYYYMMDD ) CYCLE
-!         IF ( vev_date(N) > YYYYMMDD ) EXIT
-!
-!         ! Extra check to avoid OOB erros (bmy, 7/26/13)
-!         IF ( vev_ii(N) < 1 .or. vev_ii(N) > IIPAR ) CYCLE
-!         IF ( vev_jj(N) < 1 .or. vev_jj(N) > JJPAR ) CYCLE
-!
-!         ! For consistency check
-!         CHECKSUM_EV = CHECKSUM_EV + vev_so2(N)
-!
-!         ! Define plume edges (eruptive emissions in top 1/3 of cloud)
-!         PLUME_TOP = vev_cloudtop(N)
-!         PLUME_BOT = PLUME_TOP - (PLUME_TOP - vev_elev(N))/3e+0_fp
-!
-!         ! Loop over levels
-!         L_BOT = 0
-!         L_TOP = 0
-!         BOX_BOT = 0e+0_fp
-!         DO L = 1, LLPAR
-!
-!            ! New box top
-!            BOX_TOP = State_Met%BXHEIGHT(vev_ii(N),vev_jj(N),L) 
-!     &                   + BOX_BOT
-!
-!            ! Default thickness (used for plumes that extend over
-!            ! multiple levels)
-!            DTHICK(L) = State_Met%BXHEIGHT(vev_ii(N),vev_jj(N),L)
-!
-!            ! Case 1: If top edge of level < bottom of plume, go to next
-!            ! level
-!            IF ( BOX_TOP <= PLUME_BOT ) THEN
-!               BOX_BOT = BOX_TOP
-!               CYCLE
-!            ENDIF
-!
-!            ! Case 2: If the plume is only in the current level
-!            IF ( BOX_BOT <= PLUME_BOT .and. BOX_TOP >= PLUME_TOP ) THEN
-!               L_BOT = L
-!               L_TOP = L
-!               DTHICK(L) = PLUME_TOP - PLUME_BOT ! Entire plume
-!               EXIT
-!            ENDIF
-!
-!            ! Case 3: The plume extends more than one level. Find the
-!            ! lowest (L_BOT) highest (L_TOP), and the thickness (DTHICK)
-!            ! in each level.
-!            IF (BOX_BOT <= PLUME_BOT .and. BOX_TOP > PLUME_BOT) THEN
-!               L_BOT = L
-!               DTHICK(L) = BOX_TOP - PLUME_BOT
-!            ELSE IF (BOX_BOT<PLUME_TOP .and. BOX_TOP>=PLUME_TOP) THEN
-!               L_TOP = L
-!               DTHICK(L) = PLUME_TOP - BOX_BOT
-!               EXIT
-!            ENDIF
-!
-!            ! New box bottom
-!            BOX_BOT = BOX_TOP
-!
-!         ENDDO
-!
-!         ! Above top model layer
-!         IF ( L_TOP == 0 ) L_TOP = LLPAR
-!
-!         ! Inject SO2 emissions into correct levels, distributed evenly
-!         ! with altitude across the plume (dthick/plume_thickness)
-!         DO L = L_BOT, L_TOP
-!            ESO2_ev(vev_ii(N),vev_jj(N),L) = 
-!     &         ESO2_ev(vev_ii(N),vev_jj(N),L) + 
-!     &         vev_so2(N) * DTHICK(L) / (PLUME_TOP-PLUME_BOT)
-!         ENDDO
-!
-!      ENDDO
-!      ENDIF
-!
-!      !=================================================================
-!      ! Consistency check
-!      !=================================================================
-!
-!      ! Non-eruptive volcanoes
-!      T_DIFF = ABS( SUM( ESO2_nv ) - CHECKSUM_NV )         
-!      IF ( IS_SAFE_DIV( T_DIFF, CHECKSUM_NV ) ) THEN
-!         IF ( T_DIFF / CHECKSUM_NV > 1d-5 ) THEN
-!            PRINT*, 'Non-eruptive volcanic SO2 emissions before ' //
-!     &              'and after regridding are not equivalent!'
-!            CALL FLUSH(6)
-!            CALL GEOS_CHEM_STOP
-!         ENDIF
-!      ENDIF
-!      IF ( DO_ERUPTIVE ) THEN 
-!      ! Non-eruptive volcanoes
-!      T_DIFF = ABS( SUM( ESO2_ev ) - CHECKSUM_EV )         
-!      IF ( IS_SAFE_DIV( T_DIFF, CHECKSUM_EV ) ) THEN
-!         IF ( T_DIFF / CHECKSUM_EV > 1d-5 ) THEN
-!            PRINT*, 'Eruptive volcanic SO2 emissions before ' //
-!     &              'and after regridding are not equivalent!'
-!            CALL FLUSH(6)
-!            CALL GEOS_CHEM_STOP
-!         ENDIF
-!      ENDIF
-!      ENDIF
-!
-!      END SUBROUTINE GRID_VOLC
-!!EOC
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_nonerup_volc
-!!
-!! !DESCRIPTION: Subroutine READ\_NONERUP\_VOLC reads SO2 emissions from
-!!  non-eruptive volcanoes. (rjp, bdf, bmy, jaf, 9/19/02, 10/3/05, 10/15/09)
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE READ_NONERUP_VOLC( INDAY, INMONTH, INYEAR )
-!!
-!! !USES:
-!!
-!      USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
-!      USE CMN_SIZE_MOD
-!      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
-!      USE TIME_MOD,       ONLY : EXPAND_DATE
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      INTEGER, INTENT(IN)     :: INDAY   ! Current 2-digit day 
-!      INTEGER, INTENT(IN)     :: INMONTH ! Current month number (1-12)
-!      INTEGER, INTENT(IN)     :: INYEAR  ! Current 4-digit year
-!!
-!! !REVISION HISTORY: 
-!!  (1 ) Split off from old module routine "sulfate_readyr" (bmy, 9/19/02)
-!!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!!  (3 ) Now read files from "sulfate_sim_200508/" (bmy, 7/28/05)
-!!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!!  (5 ) Complete re-write as volcanic emissions are now monthly and
-!!	stored as BPCH files (jaf, bmy, 10/15/09)
-!!  (6 ) Now use MNYEAR_VOLC and MXYEAR_VOLC as 1st and last year of emissions.
-!!       (ccc, 9/30/10)
-!!  (7 ) Volcanic data have been updated. Use a new directory. (ccc, 9/30/10)
-!!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
-!!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
-!!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
-!!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      REAL*4               :: ARRAY_GEN(I1x1,J1x1-1,LVOLC)
-!      REAL(fp), TARGET       :: ARRAY_GEN8(I1x1,J1x1-1)
-!      REAL(fp), TARGET       :: ARRAY(IIPAR,JJPAR,LVOLC)
-!      REAL(fp)               :: XTAU
-!      INTEGER              :: THISYEAR, THISDAY, YYYYMMDD, L
-!      CHARACTER(LEN=255)   :: FILENAME
-!      CHARACTER(LEN=255)   :: LLFILENAME
-!      REAL(fp), POINTER      :: OUTGRID(:,:) => NULL()
-!      REAL(fp), POINTER      :: INGRID(:,:)  => NULL()
-!
-!      !=================================================================
-!      ! READ_NONERUP_VOLC begins here!
-!      !=================================================================
-!
-!      ! Set year based on availability of volcanic emission files
-!      THISYEAR = INYEAR
-!      THISYEAR = MAX( INYEAR, MNYEAR_VOLC )
-!      THISYEAR = MIN( INYEAR, MXYEAR_VOLC )
-!
-!      ! Need to deal with leap years for which there is no data (i.e.
-!      ! 2008). Assume emissions on Feb. 29th are identical to emissions
-!      ! on Feb. 28th (jaf, 10/15/09)
-!      THISDAY = INDAY
-!      IF ( (INMONTH == 2) .and. (INDAY == 29) ) THISDAY = 28
-!
-!      ! Set date
-!      YYYYMMDD = 10000 * THISYEAR + 100 * INMONTH + THISDAY
-!
-!      ! File name
-!      FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 )  //
-!     &           'volcano_SO2_201010/' //
-!     &           'YYYY/SO2_volc.nonerup.YYYYMM.generic.1x1'
-!
-!      ! Replace YYYY/MM in the file name
-!      CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
-!
-!      ! Echo output
-!      WRITE( 6, 100 ) TRIM( FILENAME )
-! 100  FORMAT( '     - READ_NONERUP_VOLC: Reading ', a )
-!
-!      ! TAU value (use this year)
-!      XTAU = GET_TAU0( INMONTH, THISDAY, THISYEAR )
-!
-!      ! Read non-eruptive emissions (kg/box/day)
-!      CALL READ_BPCH2( FILENAME, 'SO2-NV-$',        26,
-!     &                 XTAU,      I1x1,             J1x1-1,
-!     &                 LVOLC,     ARRAY_GEN(:,:,:), QUIET=.TRUE. )
-!
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1 ) //
-!     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
-!
-!      ! Array regridding has to be done level by level since the array
-!      ! has a different vertical dimension than expected
-!      DO L = 1, LVOLC
-!
-!         ! Cast from REAL*4 to REAL(fp)
-!         ARRAY_GEN8 = ARRAY_GEN(:,:,L)
-!
-!         ! Point to input & output arrays
-!         INGRID  => ARRAY_GEN8                     !Units kg 
-!         OUTGRID => ARRAY(:,:,L)
-!
-!         ! Regrid
-!         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                       INGRID,     OUTGRID, IS_MASS=1,
-!     &                       netCDF=.TRUE.                   )
-!
-!         ! Free pointers
-!         NULLIFY( INGRID, OUTGRID )
-!
-!      ENDDO
-!
-!      ! Unit conversion: [kg SO2/box/day] -> [kg SO2/box/s]
-!      ENV = ARRAY / ( 24.e+0_fp * 3600.e+0_fp )
-!
-!      END SUBROUTINE READ_NONERUP_VOLC
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_erup_volc
-!!
-!! !DESCRIPTION: Subroutine READ\_ERUP\_VOLC reads SO2 emissions from eruptive
-!!  volcanoes. (rjp, bdf, bmy, jaf, 9/19/02, 10/3/05, 10/15/09)
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE READ_ERUP_VOLC( INDAY, INMONTH, INYEAR )
-!!
-!! !USES:
-!!
-!      USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
-!      USE CMN_SIZE_MOD
-!      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-!      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
-!      USE TIME_MOD,       ONLY : EXPAND_DATE
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      INTEGER, INTENT(IN)     :: INDAY   ! Current 2-digit day
-!      INTEGER, INTENT(IN)     :: INMONTH ! Current month number (1-12)
-!      INTEGER, INTENT(IN)     :: INYEAR  ! Current 4-digit year
-!!
-!! !REVISION HISTORY: 
-!!  (1 ) Split off from old module routine "sulfate_readyr" (bmy, 9/19/02)
-!!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!!  (3 ) Now read files from "sulfate_sim_200508/" (bmy, 7/28/05)
-!!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!!  (5 ) Complete re-write as volcanic emissions are now monthly and
-!!	stored as BPCH files (jaf, bmy, 10/15/09)
-!!  (6 ) Now use MNYEAR_VOLC and MXYEAR_VOLC as 1st and last year of emissions.
-!!       (ccc, 9/30/10)
-!!  (7 ) Volcanic data have been updated. Use a new directory. (ccc, 9/30/10)
-!!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
-!!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
-!!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
-!!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      REAL*4               :: ARRAY_GEN(I1x1,J1x1-1,LVOLC)
-!      REAL(fp), TARGET       :: ARRAY_GEN8(I1x1,J1x1-1)
-!      REAL(fp), TARGET       :: ARRAY(IIPAR,JJPAR,LVOLC)
-!      REAL(fp)               :: XTAU
-!      INTEGER              :: YYYYMMDD, L
-!      CHARACTER(LEN=255)   :: FILENAME
-!      CHARACTER(LEN=255)   :: LLFILENAME
-!      REAL(fp), POINTER      :: OUTGRID(:,:) => NULL()
-!      REAL(fp), POINTER      :: INGRID (:,:) => NULL()
-!     
-!      !==================================================================
-!      ! READ_ERUP_VOLC begins here
-!      !==================================================================
-!
-!      ! If the current year falls within the range of available data,
-!      ! get eruptive volcanic emissions (jaf, 10/15/09)
-!      IF ( ( INYEAR .GE. MNYEAR_VOLC )  .AND. 
-!     &     ( INYEAR .LE. MXYEAR_VOLC ) ) THEN
-!
-!         ! Set date
-!         YYYYMMDD = 10000 * INYEAR + 100 * INMONTH + INDAY
-!
-!         ! File name
-!         FILENAME = TRIM( DATA_DIR_1x1 )  //
-!     &              'volcano_SO2_201010/' //
-!     &              'YYYY/SO2_volc.erup.YYYYMM.generic.1x1'
-!
-!         ! Replace YYYY/MM in the file name
-!         CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
-!
-!         ! TAU value (use this year)
-!         XTAU = GET_TAU0( INMONTH, INDAY, INYEAR )
-!
-!         ! Echo output
-!         WRITE( 6, 100 ) TRIM( FILENAME )
-! 100     FORMAT( '     - READ_ERUP_VOLC: Reading ', a )
-!
-!         ! Read eruptive emissions (kg/box/day)
-!         CALL READ_BPCH2( FILENAME, 'SO2-EV-$',        26,
-!     &                    XTAU,      I1x1,             J1x1-1,
-!     &                    LVOLC,     ARRAY_GEN(:,:,:), QUIET=.TRUE. )
-!
-!         ! File with lat/lon edges for regridding
-!         LLFILENAME = TRIM( DATA_DIR_1x1 )           //
-!     &                'MAP_A2A_Regrid_201203/'       // 
-!     &                'MAP_A2A_latlon_generic1x1.nc'
-!
-!         ! Array regridding has to be done level by level since the array
-!         ! has a different vertical dimension than expected
-!         DO L = 1, LVOLC
-!
-!            ! Cast from REAL*4 to REAL(fp)
-!            ARRAY_GEN8 = ARRAY_GEN(:,:,L)
-!
-!            ! Point to input & output arrays
-!            INGRID  => ARRAY_GEN8                      !Units kg 
-!            OUTGRID => ARRAY(:,:,L)
-!            
-!            ! Regrid
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     OUTGRID, IS_MASS=1,
-!     &                          netCDF=.TRUE.                   )
-!
-!            ! Free pointer
-!            NULLIFY( INGRID, OUTGRID )
-!
-!         ENDDO
-!
-!         ! Unit conversion: [kg SO2/box/day] -> [kg SO2/box/s]
-!         EEV = ARRAY / ( 24.e+0_fp * 3600.e+0_fp )
-!
-!      ! If no data are available for current year, set eruptive
-!      ! emissions to zero and print a warning message.
-!      ! Current data range is MNYEAR_VOLC - MXYEAR_VOLC (jaf, 10/15/09)
-!      ! Year parameters are defined at the beginning of the module.
-!      ! (ccc, 9/30/10)
-!      ELSE
-!
-!         WRITE(6, 110) MNYEAR_VOLC, MXYEAR_VOLC
-!         WRITE(6, *) 'Eruptive SO2 emissions are being set to zero!'
-!
-! 110     FORMAT( 'WARNING: Eruptive SO2 emissions only available for ', 
-!     &        i4,'-',i4,'. You are outside the window.')
-!
-!
-!         EEV = 0e+0_fp
-!
-!      ENDIF
-!
-!      END SUBROUTINE READ_ERUP_VOLC
-!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_ocean_dms
-!!
-!! !DESCRIPTION: Subroutine READ\_OCEAN\_DMS reads seawater concentrations of
-!!  DMS (nmol/L). (rjp, bdf, bmy, 9/20/02, 10/3/05)
-!!\\
-!!\\
-!! !INTERFACE:
-!! 
-!      SUBROUTINE READ_OCEAN_DMS( THISMONTH )
-!!
-!! !USES:
-!!
-!      USE CMN_SIZE_MOD
-!      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-!      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-!      USE DIRECTORY_MOD, ONLY : DATA_DIR
-!      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      INTEGER, INTENT(IN) :: THISMONTH ! Current month number (1-12)
-!!
-!! !REVISION HISTORY:
-!!  (1 ) Extracted from old module routine SULFATE_READMON (bmy, 9/18/02)
-!!  (2 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/27/03)
-!!  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!!  (4 ) Now read files from "sulfate_sim_200508/".  Now read data for both
-!!        GCAP and GEOS grids (bmy, 8/16/05) 
-!!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      REAL*4              :: ARRAY(IIPAR,JJPAR,1)
-!      REAL(fp)              :: XTAU
-!      CHARACTER(LEN=255)  :: FILENAME
-!
-!      !==================================================================
-!      ! READ_OCEAN_DMS begins here!
-!      !==================================================================
-!
-!      ! File name
-!      FILENAME = TRIM( DATA_DIR )                         // 
-!     &           'sulfate_sim_200508/DMS_seawater.'       //
-!     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
-!
-!      ! Echo output
-!      WRITE( 6, 100 ) TRIM( FILENAME )  
-! 100  FORMAT( '     - READ_OCEAN_DMS: Reading ', a ) 
-!
-!      ! TAU value (use generic year 1985)
-!      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
-!
-!      ! Read ocean DMS [nmol/L]
-!      CALL READ_BPCH2( FILENAME, 'BIOGSRCE',    25, 
-!     &                 XTAU,      IIPAR,        JJPAR,      
-!     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. ) 
-!
-!      ! Cast from REAL*4 to REAL(fp) 
-!      CALL TRANSFER_2D( ARRAY(:,:,1), DMSo )
-!      
-!      END SUBROUTINE READ_OCEAN_DMS
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_sst
-!!
-!! !DESCRIPTION: Subroutine READ\_SST reads monthly mean sea surface
-!!  temperatures. (rjp, bdf, bmy, 9/18/02, 7/13/09)
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE READ_SST( THISMONTH, THISYEAR, State_Met )
-!!
-!! !USES:
-!!
-!      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-!      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
-!      USE CMN_SIZE_MOD
-!      USE DIRECTORY_MOD,      ONLY : DATA_DIR,        DATA_DIR_1x1
-!      USE GIGC_State_Met_Mod, ONLY : MetState
-!      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
-!      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      INTEGER,        INTENT(IN)    :: THISMONTH ! Current month number (1-12)
-!      INTEGER,        INTENT(IN)    :: THISYEAR  ! Current 4-digit year
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!      TYPE(MetState), INTENT(INOUT) :: State_Met ! Meteorology State object
-!!
-!! !REVISION HISTORY:
-!!  (1 ) Extracted from old module routine SULFATE_READMON (bmy, 9/18/02)
-!!  (2 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/27/03)
-!!  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!!  (4 ) Now use interannual SST data from NOAA if present; otherwise use
-!!        climatological SST data.  Now read data for both GCAP and GEOS 
-!!        grids (bmy, 8/16/05) 
-!!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!!  (6 ) Now read int'annual SST data on the GEOS 1x1 grid (bmy, 11/17/05)
-!!  (7 ) Last year of data is now 2008 (bmy, 7/13/09)
-!!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
-!!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
-!!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
-!!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A 
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      REAL*4                  :: ARRAY(IIPAR,JJPAR,1)
-!      REAL*4                  :: ARRAY1(I1x1,J1x1,1)
-!      REAL(fp)                  :: XTAU
-!      CHARACTER(LEN=4)        :: SYEAR
-!      CHARACTER(LEN=255)      :: FILENAME
-!      CHARACTER(LEN=255)      :: LLFILENAME
-!      REAL(fp)                  :: INGRID(I1x1,J1x1)
-!
-!      !==================================================================
-!      ! READ_SST begins here!
-!      !==================================================================
-!
-!      IF ( THISYEAR >= 1985 .and. THISYEAR <= 2008 ) THEN 
-!         
-!         !------------------------------------
-!         ! Use interannual SST data from NOAA
-!         ! Data exists for 1985 - 2004,
-!         ! Add other years as necessary
-!         !------------------------------------
-!
-!         ! Make a string for THISYEAR
-!         WRITE( SYEAR, '(i4)' ) THISYEAR
-!
-!         ! File name
-!         FILENAME = TRIM( DATA_DIR_1x1 )       // 
-!     &              'SST_200508/SST.geos.1x1.' // SYEAR
-!
-!         ! Echo output
-!         WRITE( 6, 100 ) TRIM( FILENAME )  
-! 100     FORMAT( '     - READ_SST: Reading ', a ) 
-!
-!         ! TAU value (use this year)
-!         XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
-!
-!         ! Read sea surface temperature [K]
-!         CALL READ_BPCH2( FILENAME, 'GMAO-2D',      69, 
-!     &                    XTAU,      I1x1,          J1x1,     
-!     &                    1,         ARRAY1(:,:,1), QUIET=.TRUE. ) 
-!
-!         ! File with lat/lon edges for regridding
-!         LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &                'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
-!
-!         ! Regrid from 1x1 and cast to REAL(fp)
-!         INGRID = ARRAY1(:,:,1)
-!         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                       INGRID,     SSTEMP,  IS_MASS=0,
-!     &                       netCDF=.TRUE.                   )
-!
-!      ELSE
-!
-!         !-------------------------------
-!         ! Use climatological SST data 
-!         !-------------------------------
-!
-!         ! File name
-!         FILENAME = TRIM( DATA_DIR )          // 
-!     &              'sulfate_sim_200508/SST.' // GET_NAME_EXT_2D() //
-!     &              '.'                       // GET_RES_EXT()
-!
-!         ! Echo output
-!         WRITE( 6, 100 ) TRIM( FILENAME )  
-!
-!         ! TAU value (use generic year 1985)
-!         XTAU = GET_TAU0( THISMONTH, 1, 1985 )
-!
-!         ! Read sea surface temperature [K]
-!         CALL READ_BPCH2( FILENAME, 'DAO-FLDS',    5, 
-!     &                    XTAU,      IIPAR,        JJPAR,     
-!     &                    1,         ARRAY(:,:,1), QUIET=.TRUE. ) 
-!
-!         ! Cast from REAL*4 to REAL(fp) 
-!         CALL TRANSFER_2D( ARRAY(:,:,1), SSTEMP )
-!
-!      ENDIF
-!
-!      ! Copy met field to State_Met
-!      State_Met%SST = SSTEMP
-!
-!      END SUBROUTINE READ_SST
-!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_oxidant
-!!
-!! !DESCRIPTION: Subroutine READ\_OXIDANT reads in monthly mean H2O2 and O3
-!!  fields for the offline sulfate + aerosol simulation. (rjp, bdf, bmy, 
-!!  11/1/02, 10/3/05)
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE READ_OXIDANT( MONTH )
-!!
-!! !USES:
-!!
-!      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-!      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-!      USE CMN_SIZE_MOD
-!      USE DIRECTORY_MOD, ONLY : DATA_DIR
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      INTEGER, INTENT(IN)    :: MONTH ! Emission timestep in minutes
-!!
-!! !REVISION HISTORY: 
-!!  (1 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/27/03)
-!!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!!  (3 ) Now read files from "sulfate_sim_200508/offline/".  Now read data
-!!        for both GEOS and GCAP grids (bmy, 8/16/05)
-!!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER             :: I, J, L, K      
-!      REAL*4              :: ARRAY(IIPAR,JJPAR,LLCHEM)
-!      REAL(fp)              :: XTAU
-!      CHARACTER(LEN=255)  :: FILENAME
-!
-!      !=================================================================
-!      ! READ_OXIDANT begins here !
-!      !
-!      ! Oxidant fields were computed for 1998 using coupled aerosol
-!      ! and gas chemistry GEOS-CHEM by Brendan Field (bdf, 5/23/02).  
-!      ! Bob Yantosca has regridded these fields to all GEOS-CHEM grids.  
-!      ! Data is saved from the surface to the tropopause. 
-!      !=================================================================
-!
-!      ! Use generic year 1985
-!      XTAU = GET_TAU0( MONTH, 1, 1985 )
-!
-!      !=================================================================
-!      ! Read monthly mean PH2O2 (from HO2 + HO2 = H2O2) [molec/cm3/s]
-!      !=================================================================
-!      FILENAME = TRIM( DATA_DIR )                      // 
-!     &           'sulfate_sim_200508/offline/PH2O2.'   // 
-!     &           GET_NAME_EXT() //  '.' // GET_RES_EXT()
-!
-!      ! Echo filename
-!      WRITE( 6, 100 ) TRIM( FILENAME )
-! 100  FORMAT( '     - READ_OXIDANT: Reading ', a ) 
-!
-!      ! Read data
-!      ! limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
-!      ! tropopause. This is backward compatibility with 
-!      ! offline data set.
-!      CALL READ_BPCH2( FILENAME, 'PORL-L=$', 5,     
-!     &     XTAU,        IIPAR,                    JJPAR,      
-!     &     LLCHEM_FIX,  ARRAY(:,:,1:LLCHEM_FIX),  QUIET=.TRUE. )
-!
-!      ! Cast to REAL(fp) and resize if necessary
-!      PH2O2m(:,:,1:LLCHEM_FIX) = ARRAY(:,:,1:LLCHEM_FIX)      
-!      
-!      !=================================================================
-!      ! Read monthly mean O3 [v/v]
-!      !=================================================================
-!      FILENAME = TRIM( DATA_DIR )                      // 
-!     &           'sulfate_sim_200508/offline/O3.'      //
-!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-!
-!      ! Echo filename
-!      WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!      ! Read data
-!      ! limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
-!      ! tropopause. This is backward compatibility with 
-!      ! offline data set.
-!      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 51,     
-!     &     XTAU,        IIPAR,                    JJPAR,      
-!     &     LLCHEM_FIX,  ARRAY(:,:,1:LLCHEM_FIX),  QUIET=.TRUE. )
-!
-!      ! Cast to REAL(fp) and resize if necessary
-!      O3m(:,:,1:LLCHEM_FIX) = ARRAY(:,:,1:LLCHEM_FIX)      
-!
-!      END SUBROUTINE READ_OXIDANT
-!!EOC
-!------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -8062,10 +6803,14 @@
      &        * State_Met%AREA_M2(I,J,1) * TS_EMIS * FEMIS 
 
          ! Get number densities in # / cm3. Weight by fraction of PBL
-         N1 = NDENS_SALA(I,J) / State_Met%AIRVOL(I,J,L) 
-     &             * 1.e-6_fp * FEMIS
-         N2 = NDENS_SALC(I,J) / State_Met%AIRVOL(I,J,L) 
-     &             * 1.e-6_fp * FEMIS
+         IF ( ASSOCIATED(NDENS_SALA) ) THEN
+            N1 = NDENS_SALA(I,J) / State_Met%AIRVOL(I,J,L) 
+     &         * 1.e-6_fp        * FEMIS
+         ENDIF
+         IF ( ASSOCIATED(NDENS_SALC) ) THEN
+            N2 = NDENS_SALC(I,J) / State_Met%AIRVOL(I,J,L) 
+     &         * 1.e-6_fp        * FEMIS
+         ENDIF
 
       ENDIF
 
@@ -8267,14 +7012,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMSo' )
       DMSo = 0e+0_fp
 
-      ALLOCATE( EEV( IIPAR, JJPAR, LVOLC ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EEV' )
-      EEV = 0e+0_fp
-
-      ALLOCATE( ENV( IIPAR, JJPAR, LVOLC ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENV' )
-      ENV = 0e+0_fp
-
       ALLOCATE( ENH3_an( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENH3_an' )
       ENH3_an = 0e+0_fp
@@ -8366,22 +7103,6 @@
       ! Only initialize the following for offline aerosol simulations
       !=================================================================
       IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! These fields are now handled by HEMCO (mps, 9/18/14)
-!         ALLOCATE( PH2O2m( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PH2O2m' )
-!         PH2O2m = 0e+0_fp
-!
-!         ALLOCATE( O3m( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'O3m' )
-!         O3m = 0e+0_fp
-!
-!         ALLOCATE( JH2O2( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'JH2O' )
-!         JH2O2 = 0e+0_fp
-!------------------------------------------------------------------------------
 
          ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
@@ -8484,6 +7205,8 @@
 !  (8 ) Deallocate PSO4_SO2AQ (win, 1/25/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  30 May 2013 - S. Farina   - Deallocate PSO4_SO2AQ for TOMAS
+!  04 Mar 2015 - R. Yantosca - Remove EEV, NEV.  Volcano eruptions are now
+!                              handled via HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8493,8 +7216,6 @@
       ! CLEANUP_SULFATE begins here!
       !=================================================================
       IF ( ALLOCATED( DMSo       ) ) DEALLOCATE( DMSo       )
-      IF ( ALLOCATED( EEV        ) ) DEALLOCATE( EEV        )
-      IF ( ALLOCATED( ENV        ) ) DEALLOCATE( ENV        )
       IF ( ALLOCATED( ENH3_an    ) ) DEALLOCATE( ENH3_an    )
       IF ( ALLOCATED( ENH3_bb    ) ) DEALLOCATE( ENH3_bb    )
       IF ( ALLOCATED( ENH3_bf    ) ) DEALLOCATE( ENH3_bf    )
@@ -8507,13 +7228,6 @@
       IF ( ALLOCATED( ESO2_bf    ) ) DEALLOCATE( ESO2_bf    )
       IF ( ALLOCATED( ESO2_sh    ) ) DEALLOCATE( ESO2_sh    )
       IF ( ALLOCATED( ESO4_an    ) ) DEALLOCATE( ESO4_an    )
-!------------------------------------------------------------------------------
-! Prior to 9/18/14
-! These fields are now handled by HEMCO (mps, 9/18/14)
-!      IF ( ALLOCATED( JH2O2      ) ) DEALLOCATE( JH2O2      )
-!      IF ( ALLOCATED( O3m        ) ) DEALLOCATE( O3m        )
-!      IF ( ALLOCATED( PH2O2m     ) ) DEALLOCATE( PH2O2m     )
-!------------------------------------------------------------------------------
       IF ( ALLOCATED( PMSA_DMS   ) ) DEALLOCATE( PMSA_DMS   )
       IF ( ALLOCATED( PNITs      ) ) DEALLOCATE( PNITs      )
       IF ( ALLOCATED( PSO2_DMS   ) ) DEALLOCATE( PSO2_DMS   )
@@ -8528,20 +7242,6 @@
       IF ( ALLOCATED( TTDAY      ) ) DEALLOCATE( TTDAY      )          
       IF ( ALLOCATED( VCLDF      ) ) DEALLOCATE( VCLDF      )
       IF ( ALLOCATED( COSZM      ) ) DEALLOCATE( COSZM      )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: This is for the SEAC4RS volcano emissions.  Leave code commented
-!%%% out here so that we can restore it later. (bmy, 9/25/13)
-!      IF ( ALLOCATED( VEV_ELEV  ) ) DEALLOCATE( VEV_ELEV  )
-!      IF ( ALLOCATED( VEV_SO2   ) ) DEALLOCATE( VEV_SO2   )
-!      IF ( ALLOCATED( VEV_DATE  ) ) DEALLOCATE( VEV_DATE  )
-!      IF ( ALLOCATED( VEV_II    ) ) DEALLOCATE( VEV_II    )
-!      IF ( ALLOCATED( VEV_JJ    ) ) DEALLOCATE( VEV_JJ    )
-!      IF ( ALLOCATED( VNV_ELEV  ) ) DEALLOCATE( VNV_ELEV  )
-!      IF ( ALLOCATED( VNV_SO2   ) ) DEALLOCATE( VNV_SO2   )
-!      IF ( ALLOCATED( VNV_DATE  ) ) DEALLOCATE( VNV_DATE  )
-!      IF ( ALLOCATED( VNV_II    ) ) DEALLOCATE( VNV_II    )
-!      IF ( ALLOCATED( VNV_JJ    ) ) DEALLOCATE( VNV_JJ    )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Free pointers
       IF ( ASSOCIATED( O3m        ) ) O3m        => NULL()

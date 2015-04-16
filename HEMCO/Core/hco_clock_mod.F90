@@ -9,13 +9,36 @@
 ! to handle the HEMCO time and calendar settings through the HEMCO clock
 ! object. The HEMCO clock carries information of the current UTC/local
 ! time as well as the UTC times from the previous time step. These 
-! values should be updated on every time step (--> HcoClock\_Set).
+! values should be updated on every time step (--> HcoClock\_Set). It
+! also contains separate variables for the current and previous emission 
+! datetime (year, month, day, hour, min, sec). This allows us to keep
+! track of emission time steps even if the emission time steps are less 
+! frequent than the regular time step.
+!\\
+!\\
+! Subroutine HcoClock\_EmissionsDone indicates that emisisons have been
+! completely calculated for the current time step. Any calls to 
+! HcoClock\_Get will return IsEmisTime FALSE until the clock has been
+! advanced to the next emission time step (via HcoClock\_Set).
 !\\
 !\\
 ! The HEMCO clock object HcoClock is a private object and cannot be
 ! accessed directly from outside of this module. The HcoClock\_Get 
 ! routine should be used instead. There are also some wrapper routines
 ! for frequently used checks, i.e. if this is a new year, month, etc.
+!\\
+!\\
+! Local times are calculated for 26 time zones, ranging from UTC-12 hours
+! to UTC+13 hours. The time zone to be used at a given grid point is
+! based on its geographical position. By default, the time zone is picked
+! according to the longitude, with each time zone spanning 15 degrees.
+! More detailed time zones can be provided through an external input file, 
+! specified in the HEMCO configuration file. The field name must be
+! `TIMEZONES`, and the file must contain UTC offsets in hours. If such a
+! file is provided, the time zones are determined based on these values.
+! Minute offsets are ignored, e.g. UTC+9hr30min is treated as UTC+9hr. If
+! the input field contains any invalid values (e.g. outside the range of
+! UTC-12 - UTC+13 hours), the default algorithm is applied.
 !\\
 !\\
 ! !INTERFACE: 
@@ -34,6 +57,7 @@ MODULE HCO_Clock_Mod
 !
   ! HEMCO Clock object:
   PUBLIC :: HcoClock_Init
+  PUBLIC :: HcoClock_InitTzPtr
   PUBLIC :: HcoClock_Set
   PUBLIC :: HcoClock_Get
   PUBLIC :: HcoClock_GetLocal
@@ -46,6 +70,7 @@ MODULE HCO_Clock_Mod
   PUBLIC :: HcoClock_GetMinResetFlag
   PUBLIC :: HcoClock_CalcDOY
   PUBLIC :: HcoClock_Increase
+  PUBLIC :: HcoClock_EmissionsDone
 !
 ! !REMARKS:
 !  The current local time implementation assumes a regular grid,
@@ -56,6 +81,10 @@ MODULE HCO_Clock_Mod
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  08 Oct 2014 - C. Keller   - Added mid-month day calculation 
+!  03 Dec 2014 - C. Keller   - Now use fixed number of time zones (24)
+!  12 Jan 2015 - C. Keller   - Added emission time variables.
+!  02 Feb 2015 - C. Keller   - Added option to get time zones from file
+!  23 Feb 2015 - R. Yantosca - Added routine HcoClock_InitTzPtr
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -70,6 +99,7 @@ MODULE HCO_Clock_Mod
   INTEGER, PARAMETER, PUBLIC  :: ResetFlagMonthly  =  10
   INTEGER, PARAMETER, PUBLIC  :: ResetFlagDaily    =  100
   INTEGER, PARAMETER, PUBLIC  :: ResetFlagHourly   =  1000
+  INTEGER, PARAMETER, PUBLIC  :: ResetFlagAlways   =  10000
 !
 ! !PRIVATE TYPES:
 !
@@ -78,26 +108,26 @@ MODULE HCO_Clock_Mod
   !-------------------------------------------------------------------------
   TYPE HCO_Clock
 
-     ! Current emission time stamp (UTC)
-     INTEGER            :: ThisYear     ! year 
-     INTEGER            :: ThisMonth    ! month
-     INTEGER            :: ThisDay      ! day
-     INTEGER            :: ThisHour     ! hour
-     INTEGER            :: ThisMin      ! minute
-     INTEGER            :: ThisSec      ! second
-     INTEGER            :: ThisDOY      ! day of year
-     INTEGER            :: ThisWD       ! weekday (0=Sun,...,6=Sat)
-     INTEGER            :: MonthLastDay ! Last day of month: 28,29,30,31
+     ! Current time stamp (UTC)
+     INTEGER            :: ThisYear        ! year 
+     INTEGER            :: ThisMonth       ! month
+     INTEGER            :: ThisDay         ! day
+     INTEGER            :: ThisHour        ! hour
+     INTEGER            :: ThisMin         ! minute
+     INTEGER            :: ThisSec         ! second
+     INTEGER            :: ThisDOY         ! day of year
+     INTEGER            :: ThisWD          ! weekday (0=Sun,...,6=Sat)
+     INTEGER            :: MonthLastDay    ! Last day of month: 28,29,30,31
 
      ! Current local times
-     INTEGER            :: nx              ! vector length == # of lons
+     INTEGER            :: ntz             ! number of time zones 
      INTEGER,  POINTER  :: ThisLocYear(:)  ! local year 
      INTEGER,  POINTER  :: ThisLocMonth(:) ! local month 
      INTEGER,  POINTER  :: ThisLocDay(:)   ! local day
      INTEGER,  POINTER  :: ThisLocWD(:)    ! local weekday
      REAL(sp), POINTER  :: ThisLocHour(:)  ! local hour
 
-     ! Previous emission time stamp (UTC)
+     ! Previous time stamp (UTC)
      INTEGER            :: PrevYear 
      INTEGER            :: PrevMonth   
      INTEGER            :: PrevDay  
@@ -107,8 +137,28 @@ MODULE HCO_Clock_Mod
      INTEGER            :: PrevDOY 
      INTEGER            :: PrevWD
 
-     ! total number of emission time steps 
+     ! Current emission time stamp
+     INTEGER            :: ThisEYear
+     INTEGER            :: ThisEMonth
+     INTEGER            :: ThisEDay
+     INTEGER            :: ThisEHour
+     INTEGER            :: ThisEMin
+     INTEGER            :: ThisESec
+
+     ! Previous emission time stamp
+     INTEGER            :: PrevEYear
+     INTEGER            :: PrevEMonth
+     INTEGER            :: PrevEDay
+     INTEGER            :: PrevEHour
+     INTEGER            :: PrevEMin
+     INTEGER            :: PrevESec
+
+     ! total number of elapsed time steps and emission time steps
+     ! LastEStep denotes the last nEmisSteps values for which
+     ! emissions have been calculated.
      INTEGER            :: nSteps
+     INTEGER            :: nEmisSteps
+     INTEGER            :: LastEStep 
 
   END TYPE HCO_Clock
 !
@@ -121,14 +171,26 @@ MODULE HCO_Clock_Mod
   ! every time step. If we enter a new month, for instance, it will
   ! be set to ResetFlagMonthly, so that all diagnostics with a reset
   ! flag equal or higher than this value will be written to disk.
-  INTEGER                     :: CurrMinResetFlag  = ResetFlagHourly + 1
+  INTEGER                     :: CurrMinResetFlag  = ResetFlagAlways + 1
 
-  ! Midmonth days for year 2000 (from modis_lai_mod.F90)
-  ! These can be used to obtain the mid-month day of the current month,
-  ! as required for the MODIS LAI values.
+  ! Midmonth days for a regular year.
+  ! These can be used to obtain the mid-month day of the current month.
   INTEGER, PARAMETER   :: MidMon(13) = (/  15,  45,  74, 105,      &
                                           135, 166, 196, 227,      &
                                           258, 288, 319, 349, 380/)
+
+  ! Number of time zones. Time zone index 1 is UTC-12. Time zone index
+  ! 25 is UTC+12. Add one more to account for UTC+13. 
+  INTEGER, PARAMETER   :: nTimeZones = 26
+
+  ! Pointer to gridded time zones. Will only hold data if a field `TIMEZONES`
+  ! is provided in the HEMCO configuration file.
+  !
+  ! NOTE: This pointer is initialized by a call to HcoClock_InitTzPtr
+  ! from the HEMCO run routine (HCO_Run, in hco_driver_mod.F90).
+  ! This is necessary to avoid segmentation faults when running with
+  ! OpenMP turned on. (bmy, 2/23/15)
+  REAL(sp), POINTER    :: TIMEZONES(:,:) => NULL()
 
 CONTAINS
 !EOC
@@ -197,51 +259,131 @@ CONTAINS
        HcoClock%ThisWD       = -1
        HcoClock%MonthLastDay = -1
 
-       ! local time vectors
-       HcoClock%NX = HcoState%NX
+       HcoClock%ThisEYear    = -1
+       HcoClock%ThisEMonth   = -1
+       HcoClock%ThisEDay     = -1
+       HcoClock%ThisEHour    = -1
+       HcoClock%ThisEMin     = -1
+       HcoClock%ThisESec     = -1
 
-       ALLOCATE ( HcoClock%ThisLocYear(HcoClock%NX), STAT=AS )
+       HcoClock%PrevEYear    = -1
+       HcoClock%PrevEMonth   = -1
+       HcoClock%PrevEDay     = -1
+       HcoClock%PrevEHour    = -1
+       HcoClock%PrevEMin     = -1
+       HcoClock%PrevESec     = -1
+
+       ! local time vectors
+       HcoClock%ntz = nTimeZones 
+
+       ALLOCATE ( HcoClock%ThisLocYear(HcoClock%ntz), STAT=AS )
        IF ( AS /= 0 ) THEN
           CALL HCO_ERROR ( 'ThisLocYear', RC )
           RETURN
        ENDIF
        HcoClock%ThisLocYear(:) = -1
 
-       ALLOCATE ( HcoClock%ThisLocMonth(HcoClock%NX), STAT=AS )
+       ALLOCATE ( HcoClock%ThisLocMonth(HcoClock%ntz), STAT=AS )
        IF ( AS /= 0 ) THEN
           CALL HCO_ERROR ( 'ThisLocMonth', RC )
           RETURN
        ENDIF
        HcoClock%ThisLocMonth(:) = -1
 
-       ALLOCATE ( HcoClock%ThisLocDay(HcoClock%NX), STAT=AS )
+       ALLOCATE ( HcoClock%ThisLocDay(HcoClock%ntz), STAT=AS )
        IF ( AS /= 0 ) THEN
           CALL HCO_ERROR ( 'ThisLocDay', RC )
           RETURN
        ENDIF
        HcoClock%ThisLocDay(:) = -1
 
-       ALLOCATE ( HcoClock%ThisLocWD(HcoClock%NX), STAT=AS )
+       ALLOCATE ( HcoClock%ThisLocWD(HcoClock%ntz), STAT=AS )
        IF ( AS /= 0 ) THEN
           CALL HCO_ERROR ( 'ThisLocWD', RC )
           RETURN
        ENDIF
        HcoClock%ThisLocWD(:) = -1
 
-       ALLOCATE ( HcoClock%ThisLocHour(HcoClock%NX), STAT=AS )
+       ALLOCATE ( HcoClock%ThisLocHour(HcoClock%ntz), STAT=AS )
        IF ( AS /= 0 ) THEN
           CALL HCO_ERROR ( 'ThisLocHour', RC )
           RETURN
        ENDIF
        HcoClock%ThisLocHour(:) = -1.0_sp
 
-       HcoClock%nSteps = 0
+       HcoClock%nSteps     = 0
+       HcoClock%nEmisSteps = 0
+       HcoClock%LastEStep  = 0
+
     ENDIF
 
     ! Return w/ success
     CALL HCO_LEAVE ( RC )
 
   END SUBROUTINE HcoClock_Init
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HcoClock_InitTzPtr
+!
+! !DESCRIPTION: Subroutine HcoClock\_InitTzPtr initializes the TIMEZONES
+!  module variable.  TIMEZONES points to the timezones data (i.e. offsets
+!  from UTC in hours) as read from disk.  If the timezones data file is not
+!  being used, then the TIMEZONES pointer will be left unassociated.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HcoClock_InitTzPtr( am_I_Root, RC )
+!
+! !USES:
+!
+    USE HCO_EMISLIST_MOD, ONLY : HCO_GetPtr
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN   )  :: am_I_Root  ! Root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(INOUT)  :: RC         ! Success or failure?
+!
+! !REMARKS:
+!  This routine has to be called in the HCO_Run routine, immediately after
+!  the call to ReadList_Read.   The HEMCO configuration file has to be read 
+!  first in order to determine if we are getting our timezone information from
+!  a file, or if we are computing it just based on longitude in the default
+!  manner.
+!
+! !REVISION HISTORY:
+!  23 Feb 2015 - R. Yantosca - Initial version
+!  10 Mar 2015 - C. Keller   - Packed message into am_I_Root statement
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL :: FOUND
+
+    ! Look for the time zone pointer 
+    CALL HCO_GetPtr ( .FALSE., 'TIMEZONES', TIMEZONES, RC, FOUND=FOUND )
+
+    ! Print a message
+    IF ( am_I_Root ) THEN
+       IF ( FOUND ) THEN
+          CALL HCO_MSG( &
+           'TIMEZONES (i.e. OFFSETS FROM UTC) WERE READ FROM A FILE' )
+       ELSE
+          CALL HCO_MSG( &
+           'TIMEZONES (i.e. OFFSETS FROM UTC) WERE COMPUTED FROM LONGITUDE' )
+       ENDIF
+    ENDIF
+
+  END SUBROUTINE HcoClock_InitTzPtr
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -258,8 +400,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoClock_Set ( am_I_Root, HcoState, cYr,  cMt,  cDy, &
-                            cHr,       cMin,     cSec, cDOY, RC    )
+  SUBROUTINE HcoClock_Set ( am_I_Root, HcoState, cYr,  cMt,   cDy, cHr, &
+                            cMin,      cSec,     cDOY, IsEmisTime, RC    )
 !
 ! !USES:
 !
@@ -275,6 +417,7 @@ CONTAINS
     INTEGER,         INTENT(IN   )           :: cMin      ! Current minute 
     INTEGER,         INTENT(IN   )           :: cSec      ! Current second 
     INTEGER,         INTENT(IN   ), OPTIONAL :: cDoy      ! Current day of year 
+    LOGICAL,         INTENT(IN   ), OPTIONAL :: IsEmisTime! Is it time for emissions? 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -286,6 +429,7 @@ CONTAINS
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  08 Jul 2014 - C. Keller   - Now calculate DOY if not provided
+!  12 Jan 2015 - C. Keller   - Added IsEmisTime 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -295,7 +439,8 @@ CONTAINS
     REAL(sp)            :: UTC
     INTEGER             :: DOY
     CHARACTER(LEN=255)  :: MSG
-
+    LOGICAL             :: NewStep, EmisTime, WasEmisTime
+   
     !======================================================================
     ! HcoClock_Set begins here!
     !======================================================================
@@ -304,86 +449,148 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! ----------------------------------------------------------------
-    ! Don't update if this date is already in memory 
+    ! Is this a new time step comparted to the most current one in
+    ! memory? 
     ! ----------------------------------------------------------------
+    NewStep = .TRUE.
     IF ( HcoClock%ThisYear==cYr  .AND. HcoClock%ThisMonth==cMt .AND. &
          HcoClock%ThisDay ==cDy  .AND. HcoClock%ThisHour ==cHr .AND. &
          HcoClock%ThisMin ==cMin .AND. HcoClock%ThisSec  ==cSec ) THEN
-       RETURN
+       NewStep = .FALSE.
     ENDIF
 
     ! ----------------------------------------------------------------
     ! Update current and previous time stamps 
     ! ----------------------------------------------------------------
-    HcoClock%PrevYear   = HcoClock%ThisYear
-    HcoClock%PrevMonth  = HcoClock%ThisMonth
-    HcoClock%PrevDay    = HcoClock%ThisDay
-    HcoClock%PrevHour   = HcoClock%ThisHour
-    HcoClock%PrevMin    = HcoClock%ThisMin
-    HcoClock%PrevSec    = HcoClock%ThisSec
-    HcoClock%PrevDOY    = HcoClock%ThisDOY
-    HcoClock%PrevWD     = HcoClock%ThisWD
+    IF ( NewStep ) THEN
+       HcoClock%PrevYear   = HcoClock%ThisYear
+       HcoClock%PrevMonth  = HcoClock%ThisMonth
+       HcoClock%PrevDay    = HcoClock%ThisDay
+       HcoClock%PrevHour   = HcoClock%ThisHour
+       HcoClock%PrevMin    = HcoClock%ThisMin
+       HcoClock%PrevSec    = HcoClock%ThisSec
+       HcoClock%PrevDOY    = HcoClock%ThisDOY
+       HcoClock%PrevWD     = HcoClock%ThisWD
+   
+       ! Set day of year: calculate if not specified
+       IF ( PRESENT(cDOY) ) THEN
+          DOY = cDOY
+       ELSE
+          DOY = HcoClock_CalcDOY( cYr, cMt, cDy )
+       ENDIF
+   
+       HcoClock%ThisYear   = cYr 
+       HcoClock%ThisMonth  = cMt 
+       HcoClock%ThisDay    = cDy 
+       HcoClock%ThisHour   = cHr 
+       HcoClock%ThisMin    = cMin 
+       HcoClock%ThisSec    = cSec 
+       HcoClock%ThisDOY    = DOY 
+   
+       ! UTC decimal time
+       UTC = ( REAL( HcoClock%ThisHour, sp )             ) + &
+             ( REAL( HcoClock%ThisMin , sp ) / 60.0_sp   ) + &
+             ( REAL( HcoClock%ThisSec , sp ) / 3600.0_sp )
+       HcoClock%ThisWD = HCO_GetWeekday ( cYr, cMt, cDy, UTC ) 
+   
+       ! ----------------------------------------------------------------
+       ! Get last day of this month (only if month has changed)
+       ! ----------------------------------------------------------------
+       IF ( HcoClock%ThisMonth /= HcoClock%PrevMonth ) THEN 
+          HcoClock%MonthLastDay = &
+               Get_LastDayOfMonth( HcoClock%ThisMonth, HcoClock%ThisYear )
+       ENDIF
+   
+       ! ----------------------------------------------------------------
+       ! Set local times 
+       ! ----------------------------------------------------------------
+       CALL Set_LocalTime ( UTC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+   
+       ! ----------------------------------------------------------------
+       ! Update counter
+       ! ----------------------------------------------------------------
+       HcoClock%nSteps = HcoClock%nSteps + 1
 
-    ! Set day of year: calculate if not specified
-    IF ( PRESENT(cDOY) ) THEN
-       DOY = cDOY
-    ELSE
-       DOY = HcoClock_CalcDOY( cYr, cMt, cDy )
+       ! ----------------------------------------------------------------
+       ! Update diagnostics reset flag
+       ! Needs to be done after updating the counter 
+       ! ----------------------------------------------------------------
+       CurrMinResetFlag = HcoClock_SetMinResetFlag()
+
+    ENDIF !New time step
+ 
+    ! ----------------------------------------------------------------
+    ! Emission time steps 
+    ! ----------------------------------------------------------------
+    EmisTime = .FALSE.
+    IF ( PRESENT(IsEmisTime) ) EmisTime = IsEmisTime
+
+    ! If this is an emission time step, force current values to be in
+    ! sync with the other values.
+    IF ( EmisTime ) THEN
+      
+       ! Check if previous emission time step is different
+       IF ( ( HcoClock%ThisEYear   /= HcoClock%ThisYear   ) .OR. &
+            ( HcoClock%ThisEMonth  /= HcoClock%ThisMonth  ) .OR. &
+            ( HcoClock%ThisEDay    /= HcoClock%ThisDay    ) .OR. &
+            ( HcoClock%ThisEHour   /= HcoClock%ThisHour   ) .OR. &
+            ( HcoClock%ThisEMin    /= HcoClock%ThisMin    ) .OR. &
+            ( HcoClock%ThisESec    /= HcoClock%ThisSec    )       ) THEN 
+
+          ! Set previous values
+          HcoClock%PrevEYear  = HcoClock%ThisEYear
+          HcoClock%PrevEMonth = HcoClock%ThisEMonth
+          HcoClock%PrevEDay   = HcoClock%ThisEDay
+          HcoClock%PrevEHour  = HcoClock%ThisEHour
+          HcoClock%PrevEMin   = HcoClock%ThisEMin
+          HcoClock%PrevESec   = HcoClock%ThisESec
+
+          ! Update current values
+          HcoClock%ThisEYear  = HcoClock%ThisYear
+          HcoClock%ThisEMonth = HcoClock%ThisMonth
+          HcoClock%ThisEDay   = HcoClock%ThisDay
+          HcoClock%ThisEHour  = HcoClock%ThisHour
+          HcoClock%ThisEMin   = HcoClock%ThisMin
+          HcoClock%ThisESec   = HcoClock%ThisSec
+
+          ! Increase counter
+          HcoClock%nEmisSteps = HcoClock%nEmisSteps + 1
+
+       ! Set EmisTime to false to make sure that the verbose message
+       ! below won't be printed.
+       ELSE
+          EmisTime = .FALSE.
+       ENDIF
     ENDIF
-
-    HcoClock%ThisYear   = cYr 
-    HcoClock%ThisMonth  = cMt 
-    HcoClock%ThisDay    = cDy 
-    HcoClock%ThisHour   = cHr 
-    HcoClock%ThisMin    = cMin 
-    HcoClock%ThisSec    = cSec 
-    HcoClock%ThisDOY    = DOY 
-
-    ! UTC decimal time
-    UTC = ( REAL( HcoClock%ThisHour, sp )             ) + &
-          ( REAL( HcoClock%ThisMin , sp ) / 60.0_sp   ) + &
-          ( REAL( HcoClock%ThisSec , sp ) / 3600.0_sp )
-    HcoClock%ThisWD = HCO_GetWeekday ( cYr, cMt, cDy, UTC ) 
-
-    ! ----------------------------------------------------------------
-    ! Get last day of this month (only if month has changed)
-    ! ----------------------------------------------------------------
-    IF ( HcoClock%ThisMonth /= HcoClock%PrevMonth ) THEN 
-       HcoClock%MonthLastDay = &
-            Get_LastDayOfMonth( HcoClock%ThisMonth, HcoClock%ThisYear )
-    ENDIF
-
-    ! ----------------------------------------------------------------
-    ! Set local times 
-    ! ----------------------------------------------------------------
-    CALL Set_LocalTime ( HcoState, UTC, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! ----------------------------------------------------------------
-    ! Update diagnostics reset flag 
-    ! ----------------------------------------------------------------
-    CurrMinResetFlag = HcoClock_SetMinResetFlag()
 
     ! ----------------------------------------------------------------
     ! Verbose mode
     ! ----------------------------------------------------------------
-    IF ( am_I_Root .AND. HCO_VERBOSE_CHECK() ) THEN
-       WRITE(MSG,100) HcoClock%ThisYear, HcoClock%ThisMonth, &
-                      HcoClock%ThisDay,  HcoClock%ThisHour,  &
-                      HcoClock%ThisMin,  HcoClock%ThisSec
-       CALL HCO_MSG(MSG,SEP1=' ')
-       WRITE(MSG,110) HcoClock%ThisWD 
-       CALL HCO_MSG(MSG,SEP2=' ')
+    IF ( HCO_IsVerb( 1 ) ) THEN
+       IF ( NewStep ) THEN
+          WRITE(MSG,110) HcoClock%ThisYear, HcoClock%ThisMonth, &
+                         HcoClock%ThisDay,  HcoClock%ThisHour,  &
+                         HcoClock%ThisMin,  HcoClock%ThisSec
+          CALL HCO_MSG(MSG,SEP1=' ')
+          WRITE(MSG,120) HcoClock%ThisWD 
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,130) EmisTime
+          CALL HCO_MSG(MSG,SEP2=' ')
+       ELSEIF ( EmisTime ) THEN
+          WRITE(MSG,140) HcoClock%ThisYear, HcoClock%ThisMonth, &
+                         HcoClock%ThisDay,  HcoClock%ThisHour,  &
+                         HcoClock%ThisMin,  HcoClock%ThisSec
+          CALL HCO_MSG(MSG,SEP1=' ', SEP2=' ')
+       ENDIF
     ENDIF
 
-    ! ----------------------------------------------------------------
-    ! Update / reset counters
-    ! ----------------------------------------------------------------
-    HcoClock%nSteps = HcoClock%nSteps + 1
-
-100 FORMAT( 'Set HEMCO clock to ', i4,'-',i2.2,'-',i2.2,' ', &
+110 FORMAT( 'Set HEMCO clock to ', i4,'-',i2.2,'-',i2.2,' ', &
             i2.2,':',i2.2,':',i2.2 )
-110 FORMAT( 'The weekday is (0=Sun,...,6=Sat): ', i1.1 )
+120 FORMAT( 'The weekday is (0=Sun,...,6=Sat): ', i1.1 )
+130 FORMAT( 'Is this an emission time step   : ', L1   )
+140 FORMAT( 'Declared emission time: ', i4,'-',i2.2,'-',i2.2,' ', &
+            i2.2,':',i2.2,':',i2.2 )
 
   END SUBROUTINE HcoClock_Set
 !EOC
@@ -405,31 +612,32 @@ CONTAINS
                             pYYYY,   pMM, pDD,  pH,       &
                             pM,      pS,  pDOY, pWEEKDAY, &
                             LMD,     nSteps,    cMidMon,  &
-                            dslmm,   dbtwmm,    RC         ) 
+                            dslmm,   dbtwmm,    IsEmisTime, RC ) 
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(  OUT), OPTIONAL     :: cYYYY     ! Current year   
-    INTEGER, INTENT(  OUT), OPTIONAL     :: cMM       ! Current month 
-    INTEGER, INTENT(  OUT), OPTIONAL     :: cDD       ! Current day     
-    INTEGER, INTENT(  OUT), OPTIONAL     :: cH        ! Current hour   
-    INTEGER, INTENT(  OUT), OPTIONAL     :: cM        ! Current minute 
-    INTEGER, INTENT(  OUT), OPTIONAL     :: cS        ! Current second 
-    INTEGER, INTENT(  OUT), OPTIONAL     :: cDOY      ! Current day of year
-    INTEGER, INTENT(  OUT), OPTIONAL     :: cWEEKDAY  ! Current weekday
-    INTEGER, INTENT(  OUT), OPTIONAL     :: pYYYY     ! Previous year   
-    INTEGER, INTENT(  OUT), OPTIONAL     :: pMM       ! Previous month  
-    INTEGER, INTENT(  OUT), OPTIONAL     :: pDD       ! Previous day    
-    INTEGER, INTENT(  OUT), OPTIONAL     :: pH        ! Previous hour   
-    INTEGER, INTENT(  OUT), OPTIONAL     :: pM        ! Previous minute 
-    INTEGER, INTENT(  OUT), OPTIONAL     :: pS        ! Previous second 
-    INTEGER, INTENT(  OUT), OPTIONAL     :: pDOY      ! Previous day of year
-    INTEGER, INTENT(  OUT), OPTIONAL     :: pWEEKDAY  ! Previous weekday
-    INTEGER, INTENT(  OUT), OPTIONAL     :: LMD       ! Last day of month 
-    INTEGER, INTENT(  OUT), OPTIONAL     :: nSteps    ! # of passed steps 
-    INTEGER, INTENT(  OUT), OPTIONAL     :: cMidMon   ! Mid-month day of curr. month
-    INTEGER, INTENT(  OUT), OPTIONAL     :: dslmm     ! days since last mid-month
-    INTEGER, INTENT(  OUT), OPTIONAL     :: dbtwmm    ! days between mid-month
+    INTEGER, INTENT(  OUT), OPTIONAL     :: cYYYY      ! Current year   
+    INTEGER, INTENT(  OUT), OPTIONAL     :: cMM        ! Current month 
+    INTEGER, INTENT(  OUT), OPTIONAL     :: cDD        ! Current day     
+    INTEGER, INTENT(  OUT), OPTIONAL     :: cH         ! Current hour   
+    INTEGER, INTENT(  OUT), OPTIONAL     :: cM         ! Current minute 
+    INTEGER, INTENT(  OUT), OPTIONAL     :: cS         ! Current second 
+    INTEGER, INTENT(  OUT), OPTIONAL     :: cDOY       ! Current day of year
+    INTEGER, INTENT(  OUT), OPTIONAL     :: cWEEKDAY   ! Current weekday
+    INTEGER, INTENT(  OUT), OPTIONAL     :: pYYYY      ! Previous year   
+    INTEGER, INTENT(  OUT), OPTIONAL     :: pMM        ! Previous month  
+    INTEGER, INTENT(  OUT), OPTIONAL     :: pDD        ! Previous day    
+    INTEGER, INTENT(  OUT), OPTIONAL     :: pH         ! Previous hour   
+    INTEGER, INTENT(  OUT), OPTIONAL     :: pM         ! Previous minute 
+    INTEGER, INTENT(  OUT), OPTIONAL     :: pS         ! Previous second 
+    INTEGER, INTENT(  OUT), OPTIONAL     :: pDOY       ! Previous day of year
+    INTEGER, INTENT(  OUT), OPTIONAL     :: pWEEKDAY   ! Previous weekday
+    INTEGER, INTENT(  OUT), OPTIONAL     :: LMD        ! Last day of month 
+    INTEGER, INTENT(  OUT), OPTIONAL     :: nSteps     ! # of passed steps 
+    INTEGER, INTENT(  OUT), OPTIONAL     :: cMidMon    ! Mid-month day of curr. month
+    INTEGER, INTENT(  OUT), OPTIONAL     :: dslmm      ! days since last mid-month
+    INTEGER, INTENT(  OUT), OPTIONAL     :: dbtwmm     ! days between mid-month
+    LOGICAL, INTENT(  OUT), OPTIONAL     :: IsEmisTime ! days between mid-month
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -440,6 +648,7 @@ CONTAINS
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  08 Oct 2014 - C. Keller   - Added mid-month day arguments
+!  12 Jan 2015 - C. Keller   - Added IsEmisTime 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -448,30 +657,30 @@ CONTAINS
     ! HcoClock_Get begins here!
     !======================================================================
 
-    IF ( PRESENT(cYYYY   ) ) cYYYY    = HcoClock%ThisYear
-    IF ( PRESENT(cMM     ) ) cMM      = HcoClock%ThisMonth
-    IF ( PRESENT(cDD     ) ) cDD      = HcoClock%ThisDay 
-    IF ( PRESENT(cH      ) ) cH       = HcoClock%ThisHour
-    IF ( PRESENT(cM      ) ) cM       = HcoClock%ThisMin 
-    IF ( PRESENT(cS      ) ) cS       = HcoClock%ThisSec 
-    IF ( PRESENT(cDOY    ) ) cDOY     = HcoClock%ThisDOY
-    IF ( PRESENT(cWEEKDAY) ) cWEEKDAY = HcoClock%ThisWD
+    IF ( PRESENT(cYYYY     ) ) cYYYY      = HcoClock%ThisYear
+    IF ( PRESENT(cMM       ) ) cMM        = HcoClock%ThisMonth
+    IF ( PRESENT(cDD       ) ) cDD        = HcoClock%ThisDay 
+    IF ( PRESENT(cH        ) ) cH         = HcoClock%ThisHour
+    IF ( PRESENT(cM        ) ) cM         = HcoClock%ThisMin 
+    IF ( PRESENT(cS        ) ) cS         = HcoClock%ThisSec 
+    IF ( PRESENT(cDOY      ) ) cDOY       = HcoClock%ThisDOY
+    IF ( PRESENT(cWEEKDAY  ) ) cWEEKDAY   = HcoClock%ThisWD
 
-    IF ( PRESENT(pYYYY   ) ) pYYYY    = HcoClock%PrevYear
-    IF ( PRESENT(pMM     ) ) pMM      = HcoClock%PrevMonth
-    IF ( PRESENT(pDD     ) ) pDD      = HcoClock%PrevDay 
-    IF ( PRESENT(pH      ) ) pH       = HcoClock%PrevHour
-    IF ( PRESENT(pM      ) ) pM       = HcoClock%PrevMin 
-    IF ( PRESENT(pS      ) ) pS       = HcoClock%PrevSec 
-    IF ( PRESENT(pDOY    ) ) pDOY     = HcoClock%PrevDOY
-    IF ( PRESENT(pWEEKDAY) ) pWEEKDAY = HcoClock%PrevWD
+    IF ( PRESENT(pYYYY     ) ) pYYYY      = HcoClock%PrevYear
+    IF ( PRESENT(pMM       ) ) pMM        = HcoClock%PrevMonth
+    IF ( PRESENT(pDD       ) ) pDD        = HcoClock%PrevDay 
+    IF ( PRESENT(pH        ) ) pH         = HcoClock%PrevHour
+    IF ( PRESENT(pM        ) ) pM         = HcoClock%PrevMin 
+    IF ( PRESENT(pS        ) ) pS         = HcoClock%PrevSec 
+    IF ( PRESENT(pDOY      ) ) pDOY       = HcoClock%PrevDOY
+    IF ( PRESENT(pWEEKDAY  ) ) pWEEKDAY   = HcoClock%PrevWD
     
-    IF ( PRESENT(LMD     ) ) LMD      = HcoClock%MonthLastDay
+    IF ( PRESENT(LMD       ) ) LMD        = HcoClock%MonthLastDay
 
-    IF ( PRESENT(nSteps  ) ) nSteps   = HcoClock%nSteps
+    IF ( PRESENT(nSteps    ) ) nSteps     = HcoClock%nSteps
 
     ! Mid-month day related variables
-    IF ( PRESENT(cMidMon ) ) cMidMon  = MidMon(HcoClock%ThisMonth)
+    IF ( PRESENT(cMidMon   ) ) cMidMon    = MidMon(HcoClock%ThisMonth)
 
     ! Days since passing the most recent mid-month day. From modis_lai_mod.F90
     IF ( PRESENT(dslmm ) ) THEN
@@ -502,6 +711,20 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! Is it time for emissions?
+    IF ( PRESENT(IsEmisTime) ) THEN
+       IsEmisTime = .FALSE.
+       IF ( ( HcoClock%ThisEYear  == HcoClock%ThisYear   ) .AND. & 
+            ( HcoClock%ThisEMonth == HcoClock%ThisMonth  ) .AND. & 
+            ( HcoClock%ThisEDay   == HcoClock%ThisDay    ) .AND. & 
+            ( HcoClock%ThisEHour  == HcoClock%ThisHour   ) .AND. & 
+            ( HcoClock%ThisEMin   == HcoClock%ThisMin    ) .AND. & 
+            ( HcoClock%ThisESec   == HcoClock%ThisSec    ) .AND. &
+            ( HcoClock%LastEStep  /= HcoClock%nEmisSteps )        ) THEN
+          IsEmisTime = .TRUE.
+       ENDIF 
+    ENDIF
+
     ! Return w/ success
     RC = HCO_SUCCESS 
 
@@ -515,45 +738,129 @@ CONTAINS
 ! !IROUTINE: HcoClock_GetLocal
 !
 ! !DESCRIPTION: Subroutine HcoClock\_GetLocal returns the selected local
-! time variables from the HEMCO clock object. 
+! time variables from the HEMCO clock object for the given longitude and
+! latitude. At the moment, the time zone is selected purely on the given
+! longitude and the passed latitude is not evaluated.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoClock_GetLocal ( IX,  cYYYY, cMM,          &
-                                 cDD, cH,    CWEEKDAY, RC )
+  SUBROUTINE HcoClock_GetLocal ( HcoState,   I,     J, cYYYY, cMM, &
+                                 cDD, cH,    CWEEKDAY, RC           )
+!
+! !USES:
+!
+    USE HCO_STATE_MOD,    ONLY : HCO_State
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,  INTENT(IN   )           :: IX        ! Latitude index
+    TYPE(HCO_State), POINTER          :: HcoState  ! Hemco state
+    INTEGER,  INTENT(IN   )           :: I         ! Longitude index
+    INTEGER,  INTENT(IN   )           :: J         ! Latitude  index
 !
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,  INTENT(  OUT), OPTIONAL :: cYYYY     ! Current year   
     INTEGER,  INTENT(  OUT), OPTIONAL :: cMM       ! Current month 
     INTEGER,  INTENT(  OUT), OPTIONAL :: cDD       ! Current day     
-    REAL(sp), INTENT(  OUT), OPTIONAL :: cH        ! Current hour   
+    REAL(hp), INTENT(  OUT), OPTIONAL :: cH        ! Current hour   
     INTEGER,  INTENT(  OUT), OPTIONAL :: cWEEKDAY  ! Current weekday
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,  INTENT(INOUT)           :: RC        ! Success or failure?
 !
+! !REMARKS:
+!  Module variable TIMEZONES points to the timezone data (i.e. offsets in 
+!  hours from UTC) as read from disk.  The data file containing UTC offsets 
+!  is specified in the "NON-EMISSIONS DATA" section of the HEMCO configuraiton
+!  file, under the container name "TIMEZONES".
+!
+!  The TIMEZONES module variable is initialized by calling HcoClock_InitTzPtr.
+!  in the HEMCO run method HCO_Run (in module hco_driver_mod.F90).  The call
+!  to HcoClock_InitTzPtr immediately follows the call to ReadList_Read, and 
+!  is only done on the very first emissions timestep.  The reason we have to 
+!  initialize the TIMEZONES module variable in the run method (instead of in
+!  the init method) is because the HEMCO configuration file has to be read 
+!  before the timezones  data can be loaded into a HEMCO data container.
+!
+!  If we are not reading timezone data from a file, then the TIMEZONES 
+!  module variable will remain unassociated.
+!
+!  This fix was necessary in order to avoid segmentation faults when running 
+!  with OpenMP parallelization turned on.
+!
+!     -- Bob Yantosca (23 Feb 2015)
+!
 ! !REVISION HISTORY:
-!  29 Dec 2012 - C. Keller - Initialization
+!  29 Dec 2012 - C. Keller   - Initialization
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  23 Feb 2015 - R. Yantosca - Remove call to Hco_GetPtr: this was causing
+!                              errors on runs with OpenMP parallelization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+    ! Local variables
+    REAL(hp)      :: LON
+    INTEGER       :: IX, OFFSET
+    LOGICAL       :: FOUND
+    LOGICAL, SAVE :: FIRST = .TRUE.
 
     !======================================================================
     ! HcoClock_GetLocal begins here!
     !======================================================================
-      
-    ! Check passed index
-    IF ( IX > HcoClock%NX ) THEN
-       CALL HCO_ERROR ( 'longitude index too big!', RC )
+
+    ! Get longitude (degrees east) 
+    LON = HcoState%Grid%XMID%Val(I,J)
+
+    ! Longitude must be between -180 and +180
+    IF ( LON < -180_hp ) THEN
+       DO WHILE ( LON < 180_hp )
+          LON = LON + 360_hp
+       ENDDO
+    ENDIF    
+    IF ( LON > 180_hp ) THEN
+       DO WHILE ( LON > 180_hp )
+          LON = LON - 360_hp
+       ENDDO
+    ENDIF    
+
+    ! Get time zone index for the given position (longitude and latitude).
+    ! Use gridded time zones if available, and default 15 degrees time zone
+    ! bins otherwise. 
+
+    ! Init 
+    IX = -1
+
+    ! First try to get time zone index from gridded data
+    IF ( ASSOCIATED(TIMEZONES) ) THEN
+
+       ! Offset from UTC in hours
+       OFFSET = FLOOR(TIMEZONES(I,J))
+
+       ! Extract time zone index from offset. Index 13 is UTC=0.
+       ! Valid offset is between -12 and +13
+       IF ( OFFSET >= -12 .AND. OFFSET <= 13 ) THEN
+          IX = 13 + OFFSET 
+       ENDIF
+    ENDIF
+
+    ! Use default approach if (a) time zone file is not provided; (b) no valid
+    ! time zone was found for this grid box. 
+    IF ( IX < 0 ) THEN 
+       ! Get time zone index for the given longitude, i.e. see into which time
+       ! zone the given longitude falls.
+       LON = ( LON + 180_hp ) / 15_hp
+       IX  = FLOOR(LON) + 1
+
+       ! Avoid ix=25 if longitude is exactly 180
+       IF ( IX==25 ) IX = 1
+    ENDIF
+
+    ! Check time zone index
+    IF ( IX > HcoClock%ntz ) THEN
+       CALL HCO_ERROR ( 'time zone index too large!', RC )
        RETURN
     ENDIF
 
@@ -582,21 +889,30 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HcoClock_First() RESULT ( First )
+  FUNCTION HcoClock_First( EmisTime ) RESULT ( First )
+!
+! !INPUT ARGUMENTS:
+!
+    LOGICAL, INTENT(IN) :: EmisTime
 !
 ! !RETURN VALUE:
 !
     LOGICAL :: First
 !
 ! !REVISION HISTORY:
-!  29 Dec 2012 - C. Keller - Initialization
+!  29 Dec 2012 - C. Keller   - Initialization
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  06 Apr 2015 - C. Keller   - Now use nEmisSteps and nSteps instead of 
+!                              previous years.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-    First = ( HcoClock%PrevYear < 0 )      
+    IF ( EmisTime ) THEN
+       First = ( HcoClock%nEmisSteps == 1 )      
+    ELSE
+       First = ( HcoClock%nSteps     == 1 )
+    ENDIF
 
   END FUNCTION HcoClock_First
 !EOC
@@ -613,7 +929,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HcoClock_NewYear() RESULT ( NewYear )
+  FUNCTION HcoClock_NewYear( EmisTime ) RESULT ( NewYear )
+!
+! !INPUT ARGUMENTS:
+!
+    LOGICAL, INTENT(IN) :: EmisTime
 !
 ! !RETURN VALUE:
 !
@@ -627,7 +947,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    NewYear = ( HcoClock%ThisYear /= HcoClock%PrevYear )      
+    IF ( EmisTime ) THEN
+       NewYear = ( HcoClock%ThisEYear /= HcoClock%PrevEYear )      
+    ELSE
+       NewYear = ( HcoClock%ThisYear /= HcoClock%PrevYear )      
+    ENDIF
 
   END FUNCTION HcoClock_NewYear
 !EOC
@@ -644,7 +968,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HcoClock_NewMonth() RESULT ( NewMonth )
+  FUNCTION HcoClock_NewMonth( EmisTime ) RESULT ( NewMonth )
+!
+! !INPUT ARGUMENTS:
+!
+    LOGICAL, INTENT(IN) :: EmisTime
 !
 ! !RETURN VALUE:
 !
@@ -658,7 +986,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    NewMonth = ( HcoClock%ThisMonth /= HcoClock%PrevMonth )      
+    IF ( EmisTime ) THEN
+    NewMonth = ( HcoClock%ThisEMonth /= HcoClock%PrevEMonth )      
+    ELSE
+       NewMonth = ( HcoClock%ThisMonth /= HcoClock%PrevMonth )      
+    ENDIF
 
   END FUNCTION HcoClock_NewMonth
 !EOC
@@ -675,7 +1007,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HcoClock_NewDay() RESULT ( NewDay )
+  FUNCTION HcoClock_NewDay( EmisTime ) RESULT ( NewDay )
+!
+! !INPUT ARGUMENTS:
+!
+    LOGICAL, INTENT(IN) :: EmisTime
 !
 ! !RETURN VALUE:
 !
@@ -689,7 +1025,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    NewDay = ( HcoClock%ThisDay /= HcoClock%PrevDay )      
+    IF ( EmisTime ) THEN
+       NewDay = ( HcoClock%ThisEDay /= HcoClock%PrevEDay )      
+    ELSE
+       NewDay = ( HcoClock%ThisDay /= HcoClock%PrevDay )      
+    ENDIF
 
   END FUNCTION HcoClock_NewDay
 !EOC
@@ -706,7 +1046,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HcoClock_NewHour() RESULT ( NewHour )
+  FUNCTION HcoClock_NewHour( EmisTime ) RESULT ( NewHour )
+!
+! !INPUT ARGUMENTS:
+!
+    LOGICAL, INTENT(IN) :: EmisTime
 !
 ! !RETURN VALUE:
 !
@@ -720,7 +1064,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    NewHour = ( HcoClock%ThisHour /= HcoClock%PrevHour )      
+    IF ( EmisTime ) THEN
+       NewHour = ( HcoClock%ThisEHour /= HcoClock%PrevEHour )      
+    ELSE
+       NewHour = ( HcoClock%ThisHour /= HcoClock%PrevHour )      
+    ENDIF
 
   END FUNCTION HcoClock_NewHour
 !EOC
@@ -757,7 +1105,10 @@ CONTAINS
     HcoClock => NULL()
 
     ! Reset current minimum reset flag to default (initial) value
-    CurrMinResetFlag  = ResetFlagHourly + 1
+    CurrMinResetFlag  = ResetFlagAlways + 1
+
+    ! Make sure TIMEZONES array does not point to any content any more.
+    TIMEZONES => NULL()
 
   END SUBROUTINE HcoClock_Cleanup
 !EOC
@@ -912,7 +1263,7 @@ CONTAINS
     ! HCOCLOCK_SETMINRESETFLAG begins here! 
     !-----------------------------------
 
-    MinResetFlag = ResetFlagHourly + 1
+    MinResetFlag = ResetFlagAlways
 
     ! MinResetFlag is the smallest ResetFlag number that has to
     ! be considered for the current time stamp. ResetFlag increases
@@ -920,15 +1271,15 @@ CONTAINS
     ! if MinResetFlag is 2 (new month), all containers with 
     ! ResetFlag 2, 3, and 4 (monthly, daily, hourly) should be 
     ! considered.
-    IF ( HcoClock_First() ) THEN
+    IF ( HcoClock_First( .FALSE. ) ) THEN
        ! MinResetFlag should be default on first HEMCO call! 
-    ELSEIF ( HcoClock_NewYear() ) THEN
+    ELSEIF ( HcoClock_NewYear( .FALSE. ) ) THEN
        MinResetFlag = ResetFlagAnnually 
-    ELSEIF ( HcoClock_NewMonth() ) THEN
+    ELSEIF ( HcoClock_NewMonth( .FALSE. ) ) THEN
        MinResetFlag = ResetFlagMonthly
-    ELSEIF ( HcoClock_NewDay() ) THEN
+    ELSEIF ( HcoClock_NewDay( .FALSE. ) ) THEN
        MinResetFlag = ResetFlagDaily
-    ELSEIF ( HcoClock_NewHour() ) THEN
+    ELSEIF ( HcoClock_NewHour( .FALSE. ) ) THEN
        MinResetFlag = ResetFlagHourly
     ENDIF
 
@@ -977,16 +1328,16 @@ CONTAINS
 ! !IROUTINE: Set_LocalTime 
 !
 ! !DESCRIPTION: Subroutine Set\_LocalTime sets the local time vectors in 
-! the HEMCO clock object. 
+! the HEMCO clock object. Local time is calculated for each of the 24 
+! defined time zones.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_LocalTime ( HcoState, UTC, RC ) 
+  SUBROUTINE Set_LocalTime ( UTC, RC ) 
 !
 ! !USES:
 !
-    USE HCO_STATE_MOD, ONLY : HCO_State
 !
 ! !INPUT PARAMETERS: 
 !
@@ -994,13 +1345,13 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State), POINTER       :: HcoState  ! Hemco state
     INTEGER,         INTENT(INOUT) :: RC        ! Success or failure?
 !
 ! !REVISION HISTORY: 
-!  13 Jan 2014 - C. Keller - Initial version 
+!  13 Jan 2014 - C. Keller   - Initial version 
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  03 Dec 2014 - C. Keller   - Now use fixed number of time zones (24)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1008,7 +1359,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER  :: I,      MtLastDay
-    REAL(sp) :: DECloc
+    REAL(sp) :: LocDt, DECloc
     REAL(sp) :: ThisLocHour
     INTEGER  :: ThisLocYear, ThisLocMonth
     INTEGER  :: ThisLocDay,  ThisLocWD
@@ -1021,11 +1372,14 @@ CONTAINS
     CALL HCO_ENTER ( 'SET_LOCALTIME (HCO_CLOCK_MOD.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Loop over longitude to account for different local times.
-    DO I = 1, HcoState%NX
+    ! Loop over all time zones to account for different local times.
+    DO I = 1, HcoClock%ntz
+
+       ! local time shift relative to UTC 
+       LocDt = -12_sp + real(I-1,sp)
 
        ! local decimal time 
-       DECloc = UTC + ( HcoState%Grid%XMID%Val(I,1) / 15_sp )
+       DECloc = UTC + LocDt
 
        ! Extract local dates
          
@@ -1104,7 +1458,7 @@ CONTAINS
   END SUBROUTINE Set_LocalTime
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1170,7 +1524,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoClock_Increase ( am_I_Root, HcoState, TimeStep, RC ) 
+  SUBROUTINE HcoClock_Increase ( am_I_Root, HcoState, TimeStep, EmisTime, RC ) 
 !
 ! !USES:
 !
@@ -1181,6 +1535,7 @@ CONTAINS
     LOGICAL,         INTENT(IN   ) :: am_I_Root ! Root CPU 
     TYPE(HCO_State), POINTER       :: HcoState  ! Hemco state
     REAL(sp),        INTENT(IN   ) :: TimeStep  ! Time step increase [s]
+    LOGICAL,         INTENT(IN   ) :: EmisTime  ! Is new time step emission time? 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1224,13 +1579,53 @@ CONTAINS
     Sc = FLOOR ( MOD(   HHMMSS, 100      ) / 1.0e0_dp )
 
     ! Update HEMCO clock to new values
-    CALL HcoClock_Set ( am_I_Root, HcoState, Yr, Mt, Dy, Hr, Mn, Sc, RC=RC )
+    CALL HcoClock_Set ( am_I_Root, HcoState, Yr, Mt, Dy, Hr, Mn, Sc, &
+                        IsEmisTime=EmisTime, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
     RC = HCO_SUCCESS
 
   END SUBROUTINE HcoClock_Increase
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HcoClock_EmissionsDone
+!
+! !DESCRIPTION: Subroutine HcoClock\_EmissionsDone marks the current (emission)
+! time step as having emissions completed. This is useful if the HEMCO core 
+! routines are called multiple times on the same time step, e.g. if there are
+! two run phases. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HcoClock_EmissionsDone( am_I_Root, RC ) 
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,         INTENT(IN   ) :: am_I_Root ! Root CPU 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(INOUT) :: RC        ! Success or failure?
+!
+! !REVISION HISTORY: 
+!  13 Jan 2015 - C. Keller - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Update flag
+    HcoClock%LastEStep = HcoClock%nEmisSteps
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HcoClock_EmissionsDone
 !EOC
 END MODULE HCO_CLOCK_MOD
 !EOM

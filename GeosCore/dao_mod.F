@@ -27,29 +27,17 @@
 !
       PUBLIC  :: AVGPOLE
       PUBLIC  :: AIRQNT
-      PUBLIC  :: AIRQNT_FULLGRID
-      PUBLIC  :: CLEANUP_DAO
       PUBLIC  :: CONVERT_UNITS
       PUBLIC  :: COPY_I3_I6_FIELDS
       PUBLIC  :: GET_COSINE_SZA
       PUBLIC  :: GET_OBK
       PUBLIC  :: INTERP
-      PUBLIC  :: INIT_DAO
       PUBLIC  :: IS_LAND
       PUBLIC  :: IS_WATER
       PUBLIC  :: IS_ICE
       PUBLIC  :: IS_NEAR
       PUBLIC  :: MAKE_AVGW
       PUBLIC  :: MAKE_RH
-!
-! !PUBLIC DATA MEMBERS:
-!
-      ! Arrays AIRDEN_FULLGRID and T_FULLGRID are used to correct vertical
-      ! regridding of OH for offline simulations (mpayer, 3/14/13)
-      REAL(fp),  ALLOCATABLE, PUBLIC :: AIRDEN_FULLGRID(:,:,:)
-      REAL(fp),  ALLOCATABLE, PUBLIC :: T_FULLGRID     (:,:,:)
-      REAL(fp),  ALLOCATABLE, PUBLIC :: T_FULLGRID_1   (:,:,:)
-      REAL(fp),  ALLOCATABLE, PUBLIC :: T_FULLGRID_2   (:,:,:)
 !
 ! !REVISION HISTORY:
 !  26 Jun 2010 - R. Yantosca - Initial version
@@ -137,6 +125,10 @@
 !                              regridding of OH for offline simulations.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  16 Apr 2015 - R. Yantosca - Removed AIRQNT_FULLGRID, this was used to regrid
+!                              OH fields, but that is now done by HEMCO
+!  16 Apr 2015 - R. Yantosca - Also remove INIT_DAO and CLEANUP_DAO, since
+!                              these allocated/deallocated the FULLGRID arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -349,7 +341,7 @@
 
          ! Grid box surface area [m2]
 #if defined( ESMF_ )
-         AREA_M2                   = State_Met%AREA_M2(I,J,L)
+         AREA_M2                   = State_Met%AREA_M2(I,J,1)
 #else
          AREA_M2                   = GET_AREA_M2( I, J, L )
 #endif
@@ -423,151 +415,6 @@
 !$OMP END PARALLEL DO
 
       END SUBROUTINE AIRQNT
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: airqnt_fullgrid
-!
-! !DESCRIPTION: Subroutine AIRQNT\_FULLGRID calculates the same quantities as 
-!  AIRQNT, but for the full, unlumped vertical grid of the GEOS GCM.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE AIRQNT_FULLGRID( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE_FULLGRID
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  DAO met fields updated by AIRQNT_FULLGRID:
-!  ========================================================================
-!  (1 ) AIRDEN_FULLGRID (REAL(fp) ) : Density of air  in a grid box   [kg/m^3  ]
-!
-!  NOTES:
-!  (1 ) Modified from AIRQNT in DAO_MOD (cdh, 1/22/09)
-!  05 Sep 2013 - R. Yantosca - Prevent an out-of-bounds error in the call
-!                              to GET_AREA_CM2.
-!  23 Oct 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I,  J,  L
-      REAL(fp)  :: P1, P2, AREA_M2, DELP_TMP
-      REAL(fp)  :: BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP
-
-      !=================================================================
-      ! AIRQNT_FULLGRID begins here! 
-      !=================================================================
-
-      ! Assume success
-      RC = GIGC_SUCCESS
-
-      ! Exit if it's not a fullchem simulation
-      IF ( .not. Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
-         RC = GIGC_FAILURE
-         RETURN
-      ENDIF
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, AREA_M2, P1, P2 )
-!$OMP+PRIVATE( DELP_TMP, BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP )
-      DO L = 1, LGLOB
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Grid box surface area [m2]
-         ! NOTE: AREA_M2 is defined on the reduced grid, so L > LLPAR will 
-         ! cause an out-of-bounds error.  In the "traditional" GEOS-Chem, 
-         ! all of the grid box areas in a column are identical, so we can 
-         ! replace this with (I,J,1).  This bug was found by the GEOS-Chem 
-         ! unit tester. (bmy, 9/5/13)
-         AREA_M2     = GET_AREA_M2( I, J, 1 )
-               
-         ! Pressure at bottom edge of grid box [hPa]
-         P1          = GET_PEDGE_FULLGRID(I,J,L)
-
-         ! Pressure at top edge of grid box [hPa]
-         P2          = GET_PEDGE_FULLGRID(I,J,L+1)
-
-         ! Pressure difference between top & bottom edges [hPa]
-         DELP_TMP    = P1 - P2
-            
-         !===========================================================
-         ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
-         ! in meters. 
-         !
-         ! The formula for BXHEIGHT is just the hydrostatic eqn.  
-         ! Rd = 287 J/K/kg is the value for the ideal gas constant
-         ! R for air (M.W = 0.02897 kg/mol),  or 
-         ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
-         !===========================================================
-         BXHEIGHT_TMP = Rdg0 * T_FULLGRID(I,J,L) * LOG( P1 / P2 )
-
-         !===========================================================
-         ! AIRVOL is the volume of grid box (I,J,L) in meters^3
-         !
-         ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
-         ! boxes (I,J,L=1), that is, at the earth's surface.
-         !
-         ! Since the thickness of the atmosphere is much smaller 
-         ! than the radius of the earth, we can make the "thin 
-         ! atmosphere" approximation, namely:
-         !
-         !               (Rearth + h) ~ Rearth
-         !
-         ! Therefore, the Delta-X * Delta-Y surface area of grid
-         ! boxes that are above the earth's surface will be 
-         ! approx. the same as AREA_M2.  Thus we are justified 
-         ! in using AREA_M2 for grid boxes (I, J, L > 1)
-         !===========================================================
-         AIRVOL_TMP = BXHEIGHT_TMP * AREA_M2
-
-         !===========================================================
-         ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
-         ! given by:        
-         !
-         !  Mass    Pressure        100      1        Surface area 
-         !        = difference   *  ---  *  ---   *   of grid box 
-         !          in grid box      1       g          AREA_M2
-         !
-         !   kg         mb          Pa      s^2           m^2
-         !  ----  =    ----      * ----  * -----  *      -----
-         !    1          1          mb       m             1
-         !===========================================================
-         AD_TMP = DELP_TMP * G0_100 * AREA_M2
-
-         !===========================================================
-         ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
-         !===========================================================
-         AIRDEN_FULLGRID(I,J,L) = AD_TMP / AIRVOL_TMP
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE AIRQNT_FULLGRID
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -878,24 +725,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-      !-------------------------------------------------------
-      ! For offline simulations, we also need to interpolate
-      ! the T_FULLGRID field (temperature on full vertical
-      ! grid) from the values at time=T and time=T+3h.
-      ! (bmy, 10/29/13)
-      !-------------------------------------------------------
-      IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
-         DO L = 1, LGLOB
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            T_FULLGRID(I,J,L) =  T_FULLGRID_1(I,J,L)   +
-     &                         ( T_FULLGRID_2(I,J,L)   -
-     &                           T_FULLGRID_1(I,J,L) ) * TM
-         ENDDO
-         ENDDO
-         ENDDO
-      ENDIF
 
 #endif
 
@@ -1606,6 +1435,7 @@
 !  27 Nov 2012 - R. Yantosca - Now pass State_Met to COSSZA so that the
 !                              SUNCOS fields may be updated
 !  28 Nov 2012 - R. Yantosca - Removed references to 1-D SUNCOS arrays
+!  04 Dec 2014 - M. Yannetti - REAL*8 needs to stay *8 due to JULDAY
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1614,7 +1444,7 @@
 !
       ! Scalars
       INTEGER :: DOY,  DOY5, YEAR, MONTH,  DAY, HOUR, HOUR5, MINUTE
-      REAL(fp)  :: DDAY, JD,   JD5,  JDJan0, GMT, GMT5
+      REAL*8  :: DDAY, JD,   JD5,  JDJan0, GMT, GMT5
 
       !=================================================================
       ! Get cosine(SZA) at the current time (SUNCOS) and at the
@@ -1632,7 +1462,7 @@
       HOUR   = GET_HOUR()                              ! Current GMT hour
       MINUTE = GET_MINUTE()                            ! Current GMT minutes
       GMT    = GET_GMT()                               ! Current GMT
-      DDAY   = DAY + ( HOUR/24e+0_fp ) + ( MINUTE/1440e+0_fp ) ! Current decimal day
+      DDAY   = DAY + ( HOUR/24d0 ) + ( MINUTE/1440d0 ) ! Current decimal day
       JD     = JULDAY( YEAR, MONTH, DDAY )             ! Current Julian date
 
       ! Compute cosine(SZA) quantities for the current time
@@ -1644,10 +1474,10 @@
       !=================================================================
 
       ! Time 5h ago
-      JDJan0 = JULDAY( YEAR, 1, 0e+0_fp )                  ! Julian date on Jan 0
-      JD5    = JD  - ( 5e+0_fp / 24e+0_fp )                    ! Julian date 5h ago
+      JDJan0 = JULDAY( YEAR, 1, 0d0 )                  ! Julian date on Jan 0
+      JD5    = JD  - ( 5d0 / 24d0 )                    ! Julian date 5h ago
       DOY5   = JD5 - JDJan0                            ! Day of year 5h ago
-      GMT5   = GMT - 5e+0_fp                               ! GMT 5h ago
+      GMT5   = GMT - 5d0                               ! GMT 5h ago
       HOUR5  = INT( GMT5 )
 
       ! Compute cosine(SZA) quantities for 5h ago
@@ -1753,13 +1583,13 @@
 !
 ! !LOCAL VARIABLES:
 !      
-      INTEGER            :: I,        IJLOOP,   J
-      INTEGER            :: MINUTE,   TS_SUN,   FACTOR
-      REAL(fp)             :: AHR,      GMT_CUR,  GMT_MID 
+      INTEGER              :: I,        IJLOOP,   J
+      INTEGER              :: MINUTE,   TS_SUN,   FACTOR
       REAL(fp)             :: TIMLOC,   DEC,      C_DEC
       REAL(fp)             :: S_DEC,    R,        YMID_R
       REAL(fp)             :: C_YMID_R, S_YMID_R
-      REAL(fp)             :: SUNCOS,   SUNCOS_MID
+      REAL(fp)             :: AHR,      SUNCOS,   SUNCOS_MID
+      REAL(f8)             :: GMT_CUR,  GMT_MID 
 !
 ! !DEFINED PARAMETERS:
 !
@@ -2120,184 +1950,5 @@
 #endif
 
       END SUBROUTINE COPY_I3_I6_FIELDS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_dao
-!
-! !DESCRIPTION: Subroutine INIT\_DAO allocates memory for all allocatable 
-!  module arrays. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INIT_DAO( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!     
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!
-! !REVISION HISTORY: 
-!  26 Jun 2000 - R. Yantosca - Initial version
-!  (1 ) Now allocate AVGW for either NSRCX == 3 or NSRCX == 5 (bmy, 9/24/01)
-!  (2 ) Removed obsolete code from 9/01 (bmy, 10/23/01)
-!  (3 ) Add PSC2 array for TPCORE mixing ratio fix.   (bmy, 3/27/02)
-!  (4 ) Elimintated PS, PSC arrays for floating-pressure fix.
-!        (dsa, bdf, bmy, 8/20/02)
-!  (5 ) Added AD, BXHEIGHT, T to "dao_mod.f" as allocatable arrays, to remove
-!        historical baggage and centralize variables.  Also remove GEOS_2 
-!        flag from C-preprocessor statements.  Also allocate RH array
-!        but only if we are doing a sulfate simulation.  Now references
-!        ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
-!  (6 ) Now allocate PHIS array (bmy, 3/11/03)
-!  (7 ) Now allocate SUNCOSB array for SMVGEAR II.  Also removed KZZ array,
-!        that is now obsolete. (bdf, bmy, 4/28/03)
-!  (8 ) Now order all arrays in alphabetical order.  Also added new fields
-!        for GEOS-4/fvDAS: HKBETA, HKETA, ZMEU, ZMMD, ZMMU, TSKIN, PARDF,
-!        and PARDR. (bmy, 6/25/03)
-!  (9 ) Now allocate CLDFRC, RADLWG, RADSWG, SNOW arrays.  USTAR, CLDFRC,
-!        and Z0 and RADSWG are now 2-D arrays. (bmy, 12/9/03)
-!  (10) Allocate RADLWG and SNOW for both GEOS-3 & GEOS-4 (bmy, 4/2/04)
-!  (11) Now reference inquiry functions from "tracer_mod.f".  Now reference
-!        LWETD, LDRYD, LCHEM from "logical_mod.f".  Now allocate RH regardless
-!        of simulation. (bmy, 7/20/04)
-!  (12) Now also allocate AVGW for offline aerosol simulations (bmy, 9/27/04)
-!  (13) Now modified for GCAP met fields.  Removed references to CO-OH param 
-!        simulation.  Now allocate AVGW only for fullchem or offline aerosol
-!        simulations. (bmy, 6/24/05)
-!  (14) Now allocate SNOW and GWETTOP for GCAP (bmy, 8/17/05)
-!  (15) Now also add TSKIN for GEOS-3 (bmy, 10/20/05)
-!  (16) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (17) Reorganized for GEOS-5 met fields (bmy, 1/17/07)
-!  (18) Bug fix: should be CMFMC=0 after allocating CMFMC (jaf, bmy, 6/11/08)
-!  (19) Remove obsolete SUNCOSB array (bmy, 4/28/10)
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  18 Aug 2010 - R. Yantosca - Now allocate met fields for MERRA
-!  20 Aug 2010 - R. Yantosca - Bug fix, now allocate REEVAPCN
-!  14 Mar 2013 - M. Payer    - Now allocate AIRDEN_FULLGRID and T_FULLGRID
-!                              arrays used to correct vertical regridding of OH
-!                              for offline simulations (C. Holmes)
-!  23 Oct 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
-!  23 Oct 2013 - R. Yantosca - Now only allocate T_FULLGRID and AIRDEN_FULLGRID
-!                              if we are using an offline (non-fullchem) sim
-!  23 Oct 2013 - R. Yantosca - Also allocate T_FULLGRID_1 and T_FULLGRID_2
-!                              which are needed for GEOS-FP met only
-!   6 Nov 2014 - R. Yantosca - Now use AIRDEN_FULLGRID(I,J,L)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! INIT_DAO begins here!
-      !=================================================================
- 
-      ! Assume success 
-      RC = GIGC_SUCCESS
-
-      ! Only allocate arrays for non-fullchem simulations
-      IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN 
-
-         ! Number density of air on full vertical grid
-         ALLOCATE( AIRDEN_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=RC ) 
-         IF ( RC /= 0 ) CALL ALLOC_ERR( 'AIRDEN_FULLGRID' )
-         AIRDEN_FULLGRID = 0e+0_fp
-
-         ! Temperature on full vertical grid 
-         ALLOCATE( T_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=RC )
-         IF ( RC /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID' )
-         T_FULLGRID = 0e+0_fp
-
-#if defined( GEOS_FP )
-
-         !--------------------------------------------------------------
-         ! For GEOS-FP, temperature is an I3 field.  Therefore, we must
-         ! interpolate T_FULLGRID from the time=T and time=T+3hrs.
-         !--------------------------------------------------------------
-
-         ! Temperature on full vertical grid 
-         ALLOCATE( T_FULLGRID_1( IIPAR, JJPAR, LGLOB ), STAT=RC )
-         IF ( RC /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID_1' )
-         T_FULLGRID_1 = 0e+0_fp
-
-         ! Temperature on full vertical grid 
-         ALLOCATE( T_FULLGRID_2( IIPAR, JJPAR, LGLOB ), STAT=RC )
-         IF ( RC /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID_2' )
-         T_FULLGRID_2 = 0e+0_fp
-
-#endif
-
-      ENDIF
-
-      END SUBROUTINE INIT_DAO
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_dao
-!
-! !DESCRIPTION: Subroutine CLEANUP\_DAO deallocates all met field arrays. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CLEANUP_DAO
-! 
-! !REVISION HISTORY: 
-!  26 Jun 2000 - R. Yantosca - Initial version
-!  (1 ) Now deallocate SLP met field for GEOS-3 (bmy, 10/10/00)
-!  (2 ) Now deallocate OPTDEP met field for GEOS-3 (bmy, 8/15/01)
-!  (3 ) Now deallocate AVGW (bmy, 9/24/01)
-!  (4 ) Remove TAUCLD deallocation -- it's obsolete (bmy, 10/23/01)
-!  (5 ) Add call to deallocate PSC2 array (bmy, 3/27/02)
-!  (6 ) Elimintated PS, PSC arrays for floating-pressure fix.
-!        (dsa, bdf, bmy, 8/20/02)
-!  (7 ) Now deallocate AD, BXHEIGHT, and T arrays (bmy, 9/18/02)
-!  (8 ) Now deallocate PHIS array (bmy, 3/11/03)
-!  (9 ) Now deallocate SUNCOSB array.  Remove reference to KZZ, since
-!        that is now obsolete. (bmy, 4/28/03)
-!  (10) Now list all arrays in order.  Now also deallocate new arrays
-!        for GEOS-4/fvDAS. (bmy, 6/25/03)
-!  (11) Now deallocate CLDFRC, RADLWG, RADSWG, SNOW arrays (bmy, 12/9/03)
-!  (12) Now deallocate GCAP met fields (bmy, 5/25/05)
-!  (13) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (14) Deallocate additional arrays for GEOS-5 (bmy, 1/17/07)
-!  (15) Remove obsolete SUNCOSB (bmy, 4/28/10)
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  18 Aug 2010 - R. Yantosca - Now deallocate MERRA met field arrays
-!  05 Oct 2011 - R. Yantosca - Now deallocate SUNCOS_MID
-!  14 Mar 2013 - M. Payer    - Now deallocate AIRDEN_FULLGRID and T_FULLGRID
-!                              arrays used to correct vertical regridding of OH
-!                              for offline simulations (C. Holmes)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      !=================================================================
-      ! CLEANUP_DAO begins here!
-      !=================================================================
-
-      IF ( ALLOCATED( AIRDEN_FULLGRID ) ) DEALLOCATE( AIRDEN_FULLGRID )
-      IF ( ALLOCATED( T_FULLGRID      ) ) DEALLOCATE( T_FULLGRID      )
-      IF ( ALLOCATED( T_FULLGRID_1    ) ) DEALLOCATE( T_FULLGRID_1    )
-      IF ( ALLOCATED( T_FULLGRID_2    ) ) DEALLOCATE( T_FULLGRID_2    )
-
-      END SUBROUTINE CLEANUP_DAO
 !EOC
       END MODULE DAO_MOD

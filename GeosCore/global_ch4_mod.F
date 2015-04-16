@@ -15,9 +15,8 @@
 !
 ! !USES:
 !
-      USE HCO_ERROR_MOD   ! For real precisions (hp)
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE HCO_ERROR_MOD    ! For HEMCO error reporting
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 
       IMPLICIT NONE
       PRIVATE
@@ -100,6 +99,7 @@
 !  16 Sep 2014 - C. Keller   - Removed all references to Clarisa's OH clima-
 !                              tology (not used anywhere)
 !  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  04 Mar 2015 - R. Yantosca - Now use REAL(f4) for HCO_GetPtr pointer args
 !------------------------------------------------------------------------------
 !BOC
 !     
@@ -121,27 +121,28 @@
       !========================================================================
 
       ! Number of CH4 budget types 
-      INTEGER, PARAMETER   :: N_CH4    = 12
+      INTEGER,  PARAMETER    :: N_CH4     = 12
 
-      REAL(fp), PARAMETER    :: XNUMOL_OH  = 6.0221e+23_fp / 17e-3_fp  ! molec OH / kg OH
-      REAL(fp), PARAMETER    :: CM3PERM3   = 1.e+6_fp
+      REAL(fp), PARAMETER    :: XNUMOL_OH = 6.0221e+23_fp / 17e-3_fp  ! molec OH / kg OH
+      REAL(fp), PARAMETER    :: CM3PERM3  = 1.e+6_fp
 !
 ! !LOCAL VARIABLES:
 !
       ! Various arrays      
-      REAL(fp),  ALLOCATABLE         :: BAIRDENS(:,:,:)
-      REAL(fp),  ALLOCATABLE         :: PAVG(:,:,:)
-      REAL(fp),  ALLOCATABLE         :: TAVG(:,:,:)
+      REAL(fp), ALLOCATABLE :: BAIRDENS(:,:,:)
+      REAL(fp), ALLOCATABLE :: PAVG(:,:,:)
+      REAL(fp), ALLOCATABLE :: TAVG(:,:,:)
 
-      ! HEMCO pointers
-      REAL(hp), POINTER            :: BOH    (:,:,:) => NULL() ! Get from HEMCO
-      REAL(hp), POINTER            :: CH4LOSS(:,:,:) => NULL() ! Get from HEMCO
+      ! Pointers to fields in the HEMCO data structure.
+      ! These need to be declared as REAL(f4), aka REAL*4.
+      REAL(f4), POINTER     :: BOH    (:,:,:) => NULL()
+      REAL(f4), POINTER     :: CH4LOSS(:,:,:) => NULL()
 
       ! Online CH4 only
-      REAL(fp),  ALLOCATABLE         :: SUMANTHRO(:,:)
-      REAL(fp),  ALLOCATABLE         :: SUMBIOG(:,:)
+      REAL(fp), ALLOCATABLE :: SUMANTHRO(:,:)
+      REAL(fp), ALLOCATABLE :: SUMBIOG(:,:)
 
-      REAL(fp)                       :: TROPOCH4
+      REAL(fp)              :: TROPOCH4
 
       CONTAINS
 !EOC
@@ -397,24 +398,29 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, I0, IREF, J, J0, JREF, N
-      REAL(fp)              :: DTSRCE,       AREA_M2
-      REAL(fp),DIMENSION(7) :: DBGANTHRO
-      REAL(fp),DIMENSION(3) :: DBGBIO
+      ! Scalars
+      INTEGER                  :: I, I0, IREF, J, J0, JREF, N
+      INTEGER                  :: FLAG, ERR
+      REAL(fp)                 :: DTSRCE, AREA_M2
+
+      ! Arrays
+      REAL(fp), DIMENSION(7)   :: DBGANTHRO
+      REAL(fp), DIMENSION(3)   :: DBGBIO
+
+      ! Strings
+      CHARACTER(LEN= 63)       :: DgnName
+      CHARACTER(LEN=255)       :: MSG
+      CHARACTER(LEN=255)       :: LOC = 'EMISSCH4 (global_ch4_mod.F)'
 
       ! For fields from Input_Opt
-      LOGICAL             :: ITS_A_CH4_SIM
-      LOGICAL             :: ITS_A_FULLCHEM_SIM
-      INTEGER             :: N_TRACERS
-      INTEGER             :: ID_TRACER(Input_Opt%N_TRACERS)
+      LOGICAL                  :: ITS_A_CH4_SIM
+      LOGICAL                  :: ITS_A_FULLCHEM_SIM
+      INTEGER                  :: N_TRACERS
+      INTEGER                  :: ID_TRACER(Input_Opt%N_TRACERS)
 
-      INTEGER                   :: FLAG, ERR
-      CHARACTER(LEN= 63)        :: DgnName
-      TYPE(HCO_STATE), POINTER  :: HcoState   => NULL()
-      REAL(hp), POINTER         :: Ptr2D(:,:) => NULL()
-
-      CHARACTER(LEN=255)        :: MSG
-      CHARACTER(LEN=255)        :: LOC = 'EMISSCH4 (global_ch4_mod.F)'
+      ! Pointers
+      TYPE(HCO_State), POINTER :: HcoState   => NULL()
+      REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()
 
       !=================================================================
       ! EMISSCH4 begins here!
@@ -652,23 +658,24 @@
          ! Grid box surface area [m2]
          AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
 
-         ! Offline CH4 only
-         ! Convert kg/m2/s to kg.
-         IF ( ITS_A_CH4_SIM ) THEN
-
-            ! Pass directly to tracers array (surface level) if
-            ! non-local scheme is not used.
-            ! For the non-local PBL scheme, CH4_EMIS will
-            ! be used directly in vdiff_mod.F90
-            IF ( .NOT. Input_Opt%LNLPBL ) THEN
-               DO N = 1, N_TRACERS
-                  State_Chm%Tracers(IREF,JREF,1,N)
-     &            = State_Chm%Tracers(IREF,JREF,1,N)
-     &            + CH4_EMIS(IREF,JREF,ID_TRACER(N))
-     &            * DTSRCE * AREA_M2
-               ENDDO
-            ENDIF
-         ENDIF
+         ! The following is now done in mixing_mod.F90 (ckeller, 3/4/15)
+!         ! Offline CH4 only
+!         ! Convert kg/m2/s to kg.
+!         IF ( ITS_A_CH4_SIM ) THEN
+!
+!            ! Pass directly to tracers array (surface level) if
+!            ! non-local scheme is not used.
+!            ! For the non-local PBL scheme, CH4_EMIS will
+!            ! be used directly in vdiff_mod.F90
+!            IF ( .NOT. Input_Opt%LNLPBL ) THEN
+!               DO N = 1, N_TRACERS
+!                  State_Chm%Tracers(IREF,JREF,1,N)
+!     &            = State_Chm%Tracers(IREF,JREF,1,N)
+!     &            + CH4_EMIS(IREF,JREF,ID_TRACER(N))
+!     &            * DTSRCE * AREA_M2
+!               ENDDO
+!            ENDIF
+!         ENDIF
 
          ! Update diagnostics
          IF ( ND58 > 0 ) THEN

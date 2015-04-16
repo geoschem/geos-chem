@@ -18,6 +18,7 @@
 !
       USE CMN_SIZE_MOD
       USE CMN_FJX_MOD, ONLY : W_
+      USE PRECISION_MOD, ONLY : fpp => fp    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PUBLIC
@@ -76,6 +77,7 @@
       ! Added PD64 and set to W_ from FAST-JX (SDE 2013-10-25)
       ! Changed PD22 from 22 to 23 for ACET (mps, 4/25/14)
       ! Changed PD22 from 23 to 28 for ALD2, MVK, MACR, HAC, GLYC (mps, 5/27/14)
+      ! Changed PD21 to be dynamically related to NAER and NDUST (dar, 3/6/15)
       !=================================================================
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
@@ -96,7 +98,7 @@
       INTEGER, PARAMETER :: PD18=8
       INTEGER, PARAMETER :: PD19=0            
       INTEGER, PARAMETER :: PD20=0 
-      INTEGER, PARAMETER :: PD21=33
+      INTEGER, PARAMETER :: PD21=5+NAER*3+NDUST+2*(NDUST+NAER)
       INTEGER, PARAMETER :: PD22=28
       INTEGER, PARAMETER :: PD23=0           
       INTEGER, PARAMETER :: PD24=NNPAR        
@@ -119,7 +121,7 @@
       INTEGER, PARAMETER :: PD43=7  
       INTEGER, PARAMETER :: PD44=53      !jpp replaced 41
       INTEGER, PARAMETER :: PD45=NNPAR+1      
-      INTEGER, PARAMETER :: PD46=21
+      INTEGER, PARAMETER :: PD46=26
       INTEGER, PARAMETER :: PD47=NNPAR+1
       INTEGER, PARAMETER :: PD48=2            
       INTEGER, PARAMETER :: PD49=0                
@@ -133,7 +135,7 @@
       INTEGER, PARAMETER :: PD58=12
 #if   defined( TOMAS )
       ! Special settings for TOMAS aerosol microphysics (win, bmy, 1/22/10)
-      INTEGER, PARAMETER :: PD59=TOMASBIN*TOMASSPEC    
+      INTEGER, PARAMETER :: PD59=TOMASBIN*TOMASSPEC   
       INTEGER, PARAMETER :: PD60=TOMASBIN*TOMASSPEC    
       INTEGER, PARAMETER :: PD61=2 
 #else
@@ -153,11 +155,25 @@
       INTEGER, PARAMETER :: PD70=0
       INTEGER, PARAMETER :: PD71=NNPAR+1
 
+      !number of rad flux and optics output types
+      !8 flux and 3*3=9 optics
+      INTEGER, PARAMETER :: PD72R=17
+      !total number of possible rad outputs (types*specs)
+      !there are 11 possible flux output 'species' but
+      !only 8 possible optics output 'species'
+      !for simplicity we take the largest and put up with
+      !some redundancy (should be 88+72=160)
+      INTEGER, PARAMETER :: PD72=187 ! Radiation (Ridley 10/2012)
+
       !=================================================================
       ! Variables for printing out selected tracers in diagnostic output
       !=================================================================
+#if   defined( RRTMG )
+      INTEGER, PARAMETER :: MAX_DIAG   = 187
+#else
       ! SDE 2013-11-17: Increased to 80 for UCX
       INTEGER, PARAMETER :: MAX_DIAG   = 80
+#endif
 #if   defined( TOMAS )
       INTEGER, PARAMETER :: MAX_TRACER = NNPAR+1   ! For TOMAS (win, 1/25/10)
 #elif defined( APM ) 
@@ -215,8 +231,8 @@
       ! Move this here for now (bmy, 7/20/04)
       ! Removed HR1_NO and HR2_NO (mpayer, 11/8/13)
       !=================================================================
-      REAL*8  :: HR1_JV, HR2_JV
-      REAL*8  :: HR1_OH, HR2_OH, HR1_OTH, HR2_OTH
+      REAL(fpp)  :: HR1_JV, HR2_JV
+      REAL(fpp)  :: HR1_OH, HR2_OH, HR1_OTH, HR2_OTH
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -268,6 +284,9 @@
 !  08 Nov 2013 - M. Sulprizio- Remove HR1_NO and HR2_NO. They are no longer
 !                              needed for ND43 because NO, NO2, and NO3 are now
 !                              tracers.
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
+!  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND72 to ND72 to
+!                              avoid conflicts with hourly max ppbv diagnostic.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

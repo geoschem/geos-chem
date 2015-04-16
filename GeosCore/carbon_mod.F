@@ -17,8 +17,7 @@
 ! !USES:
 !
 !
-      USE HCO_ERROR_MOD       ! For real precisions (hp)
-      USE PRECISION_MOD       ! For GEOS-Chem Precisions (fp)
+      USE PRECISION_MOD   ! For GEOS-Chem Precisions (fp, f4, f8)
 
       IMPLICIT NONE
       PRIVATE
@@ -332,10 +331,11 @@
       INTEGER               :: NDAYS(12) = (/ 31, 28, 31, 30, 31, 30, 
      &                                        31, 31, 30, 31, 30, 31 /)
 
-      ! HEMCO pointers
-      REAL(hp), POINTER     :: O3(:,:,:)  => NULL()
-      REAL(hp), POINTER     :: OH(:,:,:)  => NULL()
-      REAL(hp), POINTER     :: NO3(:,:,:) => NULL()
+      ! Pointers to fields contained in the HEMCO data structure
+      ! These must all be declared as REAL(f4), aka REAL*4.
+      REAL(f4), POINTER     :: O3(:,:,:)  => NULL()
+      REAL(f4), POINTER     :: OH(:,:,:)  => NULL()
+      REAL(f4), POINTER     :: NO3(:,:,:) => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -757,7 +757,10 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE DIAG_MOD,           ONLY : AD44, AD07_BC 
+      USE DIAG_MOD,           ONLY : AD07_BC 
+#if !defined( NO_BPCH )
+      USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE GIGC_ErrCode_Mod
@@ -793,6 +796,7 @@
 !  26 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
+!  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -863,11 +867,14 @@
          ! Zero drydep freq
          FREQ = 0e+0_fp
 
-         ! Fraction of grid box underneath PBL top [unitless]
-         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
+!         ! Fraction of grid box underneath PBL top [unitless]
+!         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
+!
+!         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08)
+!         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
 
-         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08)
-         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
+         ! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
+         BL_FRAC = 0.0_fp
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0e+0_fp ) THEN
@@ -919,23 +926,26 @@
       ENDDO
 !$OMP END PARALLEL DO  
 
-      !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !===============================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DRYBCPO,1) = AD44(I,J,DRYBCPO,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF      
+! Drydep is now all done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
+!#if !defined( NO_BPCH )
+!      !===============================================================
+!      ! ND44: Sum drydep fluxes by level into the AD44 array in
+!      ! order to ensure that  we get the same results w/ sp or mp 
+!      !===============================================================
+!      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!         DO L = 1, LLPAR
+!            AD44(I,J,DRYBCPO,1) = AD44(I,J,DRYBCPO,1) + ND44_TMP(I,J,L)
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!      ENDIF      
+!#endif
 
       END SUBROUTINE CHEM_BCPO
 !EOC
@@ -958,7 +968,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44 
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -993,6 +1005,7 @@
 !  26 Nov 2012 - R. Yantosca - Added ProTeX Headers
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
+!  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1044,11 +1057,14 @@
          ! H-philic BC that used to be H-phobic BC [kg]
          CCV = BCCONV(I,J,L)
          
-         ! Fraction of grid box under the PBL top [unitless]
-         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L ) 
+!         ! Fraction of grid box under the PBL top [unitless]
+!         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L ) 
 
-         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08)
-         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
+!         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08)
+!         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
+
+         ! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
+         BL_FRAC = 0.0_fp
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0e+0_fp ) THEN
@@ -1110,23 +1126,26 @@
       !=================================================================
       BCCONV = 0e+0_fp
 
-      !=================================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !=================================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DRYBCPI,1) = AD44(I,J,DRYBCPI,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF      
+! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
+!#if !defined( NO_BPCH )
+!      !=================================================================
+!      ! ND44: Sum drydep fluxes by level into the AD44 array in
+!      ! order to ensure that  we get the same results w/ sp or mp 
+!      !=================================================================
+!      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!         DO L = 1, LLPAR
+!            AD44(I,J,DRYBCPI,1) = AD44(I,J,DRYBCPI,1) + ND44_TMP(I,J,L)
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!      ENDIF      
+!#endif
 
       END SUBROUTINE CHEM_BCPI
 !EOC
@@ -1149,7 +1168,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DIAG_MOD,           ONLY : AD07_OC 
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
@@ -1185,6 +1206,7 @@
 !  26 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
+!  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1254,11 +1276,14 @@
          ! Zero drydep freq 
          FREQ = 0e+0_fp
 
-         ! Fraction of grid box under the PBL top [unitless]
-         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
+!         ! Fraction of grid box under the PBL top [unitless]
+!         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
-         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
-         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
+!         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
+!         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
+
+         ! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
+         BL_FRAC = 0.0_fp
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0e+0_fp ) THEN
@@ -1311,23 +1336,26 @@
       ENDDO
 !$OMP END PARALLEL DO  
 
-      !=================================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !=================================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DRYOCPO,1) = AD44(I,J,DRYOCPO,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF   
+! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
+!#if !defined( NO_BPCH )
+!      !=================================================================
+!      ! ND44: Sum drydep fluxes by level into the AD44 array in
+!      ! order to ensure that  we get the same results w/ sp or mp 
+!      !=================================================================
+!      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!         DO L = 1, LLPAR
+!            AD44(I,J,DRYOCPO,1) = AD44(I,J,DRYOCPO,1) + ND44_TMP(I,J,L)
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!      ENDIF   
+!#endif
 
       END SUBROUTINE CHEM_OCPO
 !EOC
@@ -1350,7 +1378,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44 
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1387,6 +1417,7 @@
 !  26 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
+!  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1436,11 +1467,14 @@
          ! H-philic OC that used to be H-phobic OC [kg]
          CCV = OCCONV(I,J,L)
 
-         ! Fraction of box under the PBL top [unitless]
-         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
+!         ! Fraction of box under the PBL top [unitless]
+!         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
-         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
-         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
+!         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
+!         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
+
+         ! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
+         BL_FRAC = 0.0_fp
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0e+0_fp ) THEN
@@ -1502,23 +1536,26 @@
       !=================================================================
       OCCONV = 0e+0_fp
 
-      !=================================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !=================================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DRYOCPI,1) = AD44(I,J,DRYOCPI,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF    
+! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
+!#if !defined( NO_BPCH )
+!      !=================================================================
+!      ! ND44: Sum drydep fluxes by level into the AD44 array in
+!      ! order to ensure that  we get the same results w/ sp or mp 
+!      !=================================================================
+!      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!         DO L = 1, LLPAR
+!            AD44(I,J,DRYOCPI,1) = AD44(I,J,DRYOCPI,1) + ND44_TMP(I,J,L)
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!      ENDIF    
+!#endif
 
       END SUBROUTINE CHEM_OCPI
 !EOC
@@ -1829,7 +1866,8 @@
       !=================================================================       
       ! Calculate dry-deposition
       !=================================================================
-      CALL SOA_DEPO( STT(:,:,:,IDTSOAG), DRYSOAG, IDTSOAG, Input_Opt )
+      ! This is now done in mixing_mod
+!      CALL SOA_DEPO( STT(:,:,:,IDTSOAG), DRYSOAG, IDTSOAG, Input_Opt )
 
       ! Free pointer
       NULLIFY( STT )
@@ -2081,7 +2119,8 @@
       !=================================================================       
       ! Calculate dry-deposition
       !=================================================================
-      CALL SOA_DEPO( STT(:,:,:,IDTSOAM), DRYSOAM, IDTSOAM, Input_Opt )
+      ! This is now done in mixing_mod.F90 (ckeller, 3/5/15)
+      !CALL SOA_DEPO( STT(:,:,:,IDTSOAM), DRYSOAM, IDTSOAM, Input_Opt )
 
       ! Free pointer
       NULLIFY( STT )
@@ -2865,52 +2904,53 @@
       !=================================================================
       ! new mtp formulation (hotp 5/20/10)
       ! precursors
-      CALL SOA_DEPO(STT(:,:,:,IDTMTPA ), DRYMTPA,  IDTMTPA,  Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTLIMO ), DRYLIMO,  IDTLIMO,  Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTMTPO ), DRYMTPO,  IDTMTPO , Input_Opt)
+      ! This is now done in mixing_mod.F90 (ckeller, 3/5/15)
+!      CALL SOA_DEPO(STT(:,:,:,IDTMTPA ), DRYMTPA,  IDTMTPA,  Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTLIMO ), DRYLIMO,  IDTLIMO,  Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTMTPO ), DRYMTPO,  IDTMTPO , Input_Opt)
+!
+!      ! mono + sesq
+!      CALL SOA_DEPO(STT(:,:,:,IDTTSOA1), DRYTSOA1, IDTTSOA1, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTTSOA2), DRYTSOA2, IDTTSOA2, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTTSOA3), DRYTSOA3, IDTTSOA3, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTTSOA0), DRYTSOA0, IDTTSOA0, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTTSOG1), DRYTSOG1, IDTTSOG1, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTTSOG2), DRYTSOG2, IDTTSOG2, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTTSOG3), DRYTSOG3, IDTTSOG3, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTTSOG0), DRYTSOG0, IDTTSOG0, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTISOA1), DRYISOA1, IDTISOA1, Input_Opt)
+!
+!      ! isop
+!      CALL SOA_DEPO(STT(:,:,:,IDTISOA2), DRYISOA2, IDTISOA2, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTISOA3), DRYISOA3, IDTISOA3, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTISOG1), DRYISOG1, IDTISOG1, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTISOG2), DRYISOG2, IDTISOG2, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTISOG3), DRYISOG3, IDTISOG3, Input_Opt)
 
-      ! mono + sesq
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOA1), DRYTSOA1, IDTTSOA1, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOA2), DRYTSOA2, IDTTSOA2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOA3), DRYTSOA3, IDTTSOA3, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOA0), DRYTSOA0, IDTTSOA0, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOG1), DRYTSOG1, IDTTSOG1, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOG2), DRYTSOG2, IDTTSOG2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOG3), DRYTSOG3, IDTTSOG3, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOG0), DRYTSOG0, IDTTSOG0, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTISOA1), DRYISOA1, IDTISOA1, Input_Opt)
-
-      ! isop
-      CALL SOA_DEPO(STT(:,:,:,IDTISOA2), DRYISOA2, IDTISOA2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTISOA3), DRYISOA3, IDTISOA3, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTISOG1), DRYISOG1, IDTISOG1, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTISOG2), DRYISOG2, IDTISOG2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTISOG3), DRYISOG3, IDTISOG3, Input_Opt)
-
-      ! Now perform depo for lumped AROM (hotp 5/13/10)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOAN), DRYASOAN, IDTASOAN, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOA1), DRYASOA1, IDTASOA1, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOA2), DRYASOA2, IDTASOA2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOA3), DRYASOA3, IDTASOA3, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOG1), DRYASOG1, IDTASOG1, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOG2), DRYASOG2, IDTASOG2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOG3), DRYASOG3, IDTASOG3, Input_Opt)
-
-      ! semivolpoa: call SOA_DEPO for POA (hotp 2/26/09)
-      IF ( IDTPOA1 > 0 ) THEN
-       CALL SOA_DEPO(STT(:,:,:,IDTPOA1 ), DRYPOA1,  IDTPOA1, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTPOA2 ), DRYPOA2,  IDTPOA2, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTPOG1 ), DRYPOG1,  IDTPOG1, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTPOG2 ), DRYPOG2,  IDTPOG2, Input_Opt)
-      ENDIF
-
-      ! semivolpoa4opoa: call SOA_DEPO for OPOA, OPOG (hotp 3/18/09)
-      IF ( IDTOPOA1 > 0 ) THEN
-       CALL SOA_DEPO(STT(:,:,:,IDTOPOA1), DRYOPOA1, IDTOPOA1, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTOPOA2), DRYOPOA2, IDTOPOA2, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTOPOG1), DRYOPOG1, IDTOPOG1, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTOPOG2), DRYOPOG2, IDTOPOG2, Input_Opt)
-      ENDIF
+!      ! Now perform depo for lumped AROM (hotp 5/13/10)
+!      CALL SOA_DEPO(STT(:,:,:,IDTASOAN), DRYASOAN, IDTASOAN, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTASOA1), DRYASOA1, IDTASOA1, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTASOA2), DRYASOA2, IDTASOA2, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTASOA3), DRYASOA3, IDTASOA3, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTASOG1), DRYASOG1, IDTASOG1, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTASOG2), DRYASOG2, IDTASOG2, Input_Opt)
+!      CALL SOA_DEPO(STT(:,:,:,IDTASOG3), DRYASOG3, IDTASOG3, Input_Opt)
+!
+!      ! semivolpoa: call SOA_DEPO for POA (hotp 2/26/09)
+!      IF ( IDTPOA1 > 0 ) THEN
+!       CALL SOA_DEPO(STT(:,:,:,IDTPOA1 ), DRYPOA1,  IDTPOA1, Input_Opt)
+!       CALL SOA_DEPO(STT(:,:,:,IDTPOA2 ), DRYPOA2,  IDTPOA2, Input_Opt)
+!       CALL SOA_DEPO(STT(:,:,:,IDTPOG1 ), DRYPOG1,  IDTPOG1, Input_Opt)
+!       CALL SOA_DEPO(STT(:,:,:,IDTPOG2 ), DRYPOG2,  IDTPOG2, Input_Opt)
+!      ENDIF
+!
+!      ! semivolpoa4opoa: call SOA_DEPO for OPOA, OPOG (hotp 3/18/09)
+!      IF ( IDTOPOA1 > 0 ) THEN
+!       CALL SOA_DEPO(STT(:,:,:,IDTOPOA1), DRYOPOA1, IDTOPOA1, Input_Opt)
+!       CALL SOA_DEPO(STT(:,:,:,IDTOPOA2), DRYOPOA2, IDTOPOA2, Input_Opt)
+!       CALL SOA_DEPO(STT(:,:,:,IDTOPOG1), DRYOPOG1, IDTOPOG1, Input_Opt)
+!       CALL SOA_DEPO(STT(:,:,:,IDTOPOG2), DRYOPOG2, IDTOPOG2, Input_Opt)
+!      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -4076,6 +4116,7 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  12 Dec 2014 - M. Yannetti - Changed DEXP to EXP for compatability
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4179,7 +4220,7 @@
             RK          = KO3(JHC)*TTO3 + KOH(JHC)*OHMC
      &                  + KNO3(JHC)*TTNO3
             CHANGE(JHC) = NMVOC(JHC) * ( 1.e+0_fp - 
-     &                    DEXP( -RK * DTCHEM ) )
+     &                    EXP( -RK * DTCHEM ) ) !changed to EXP (myan, 12/14)
 
             ! In case that the biogenic hydrocarbon is the limiting reactant
             IF ( CHANGE(JHC) >= NMVOC(JHC) ) CHANGE(JHC) = NMVOC(JHC)
@@ -4357,7 +4398,7 @@
             DO NOX = 1, NNOX(JSV)
                ! compute loss of POG due to conversion to OPOG
                DOH = GM0(IPR,IDSV(PARENTPOA)) *
-     &                (1.e+0_fp - DEXP( -RK * DTCHEM) )
+     &                (1.e+0_fp - EXP( -RK * DTCHEM) )
                DOH = MAX( DOH, 1.e-32_fp )
 
                ! add OPOG mass and update GM0 (ALPHA=1)
@@ -5124,7 +5165,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44 
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_AREA_CM2
@@ -5210,11 +5253,14 @@
          ! Initial SOA [kg]
          TC0 = TC(I,J,L)
 
-         ! Fraction of box under the PBL top [unitless]
-         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
+!         ! Fraction of box under the PBL top [unitless]
+!         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
-         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
-         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
+!         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
+!         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
+
+         ! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
+         BL_FRAC = 0.0_fp
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0e+0_fp ) THEN
@@ -5260,6 +5306,7 @@
       ENDDO
 !$OMP END PARALLEL DO  
 
+#if !defined( NO_BPCH )
       !=================================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
@@ -5276,7 +5323,8 @@
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-      ENDIF    
+      ENDIF
+#endif  
 
       END SUBROUTINE SOA_DEPO
 !!EOC
@@ -5777,7 +5825,7 @@ ccc
 ! OC emissions. The same behavior can be achieved in HEMCO by assigning the desired
 ! POA tracer name to the given source type, e.g.:
 !
-!0 BOND_ANTH .../Bond_fossil.nc OC 2000/1-12/1/0 C xy kg/m2/s POA1 70/300 1 1
+!0 BOND\_ANTH .../Bond\_fossil.nc OC 2000/1-12/1/0 C xy kg/m2/s POA1 70/300 1 1
 !
 ! It is assumed here that emissions that shall go into array POAEMISS(:,:,:,1) 
 ! represent tracer POA1 and POAEMISS(:,:,:,2) represent tracer POG1.
@@ -5840,12 +5888,12 @@ ccc
       ! EMISSCARBON begins here!
       !=================================================================
 
-      ! Assume failure until successful return
-      RC       = GIGC_FAILURE
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! Reset POAEMISS
       POAEMISS = 0e+0_fp
- 
+
       ! Get pointer to HEMCO state object
       CALL GetHcoState ( HcoState )
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
@@ -5856,7 +5904,12 @@ ccc
       IF ( SESQID == -999 ) THEN
          SESQID = GetHcoID( 'SESQ' )
       ENDIF
-
+      IF ( SESQID > 0 ) THEN
+         IF ( .NOT. ASSOCIATED(HcoState%Spc(SESQID)%Emis%Val) ) THEN
+            SESQID = -1
+         ENDIF
+      ENDIF
+ 
       ! Get HEMCO ID of tracer POA1 and POG1
       HCOPOA1 = GetHcoID( TrcID=IDTPOA1 )
       HCOPOG1 = GetHcoID( TrcID=IDTPOG1 )
@@ -5873,6 +5926,9 @@ ccc
          ENDIF
       ENDIF
 
+      ! Nothing to do if none of the species is defined
+      IF ( SESQID <= 0 .AND. HCOPOA1 <= 0 .AND. HCOPOG1 <= 0 ) RETURN
+ 
       ! Maximum extent of PBL [model levels]
       PBL_MAX = GET_PBL_MAX_L()
 
@@ -5919,9 +5975,6 @@ ccc
       ! not double-counted (when doing PBL mixing) 
       IF ( HCOPOA1>0) HcoState%Spc(HCOPOA1)%Emis%Val = 0.0d0
       IF ( HCOPOG1>0) HcoState%Spc(HCOPOG1)%Emis%Val = 0.0d0
-
-      ! Return w/ success
-      RC = GIGC_SUCCESS
 
       END SUBROUTINE EMISSCARBON
 !EOC

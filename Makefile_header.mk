@@ -113,6 +113,7 @@
 #  09 May 2012 - R. Yantosca - Now try to get the proper linking sequence 
 #                              for netCDF etc w/ nf-config and nc-config.
 #  11 May 2012 - R. Yantosca - Now export NCL (netCDF linking sequence)
+#  17 Aug 2012 - R. Yantosca - Now add RRTMG=yes option for RRTMG rad transfer
 #  07 Sep 2012 - R. Yantosca - Now add OPT variable to set global opt levels
 #  07 Sep 2012 - R. Yantosca - Also set TRACEBACK for PGI compiler
 #  17 Apr 2013 - R. Yantosca - Add switch to set -DKPP_SOLVE_ALWAYS, which 
@@ -151,6 +152,12 @@
 #  14 Nov 2014 - R. Yantosca - Further updates for hpc compilation
 #  21 Nov 2014 - R. Yantosca - Add special compilation command for ISORROPIA
 #  21 Nov 2014 - R. Yantosca - Add cosmetic changes and indentation 
+#  06 Jan 2015 - R. Yantosca - Add two-way nesting options from Y. Y. Yan
+#  09 Jan 2015 - M. Sulprizio- Now properly link to the RRTMG directory
+#  13 Jan 2015 - R. Yantosca - Add fix for GEOS-Chem-Libraries library path
+#  08 Apr 2015 - R. Yantosca - Bug fix: set RRTMG=yes if it passes the regexp
+#  10 Apr 2015 - R. Yantosca - Export RRTMG_NEEDED var to be used elsewhere
+#  10 Apr 2015 - R. Yantosca - Bug fix: -l rad should be -lrad in link var
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -175,6 +182,16 @@ ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0
 
 # Error message for bad NEST input
 ERR_NEST             :="Select a nested grid: NEST=ch, NEST=eu, NEST=na NEST=se"
+
+# Error message for bad two-way coupled model input (yanyy,6/18/14)
+ERR_COUPLECH         :="Select a coupled grid for Asia         : COUPLECH=2x25ch, COUPLECH=4x5ch"
+ERR_COUPLENA         :="Select a coupled grid for North America: COUPLENA=2x25na, COUPLENA=4x5na"
+ERR_COUPLEEU         :="Select a coupled grid for Europe       : COUPLEEU=2x25eu, COUPLEEU=4x5eu"
+ERR_COUPLESE         :="Select a coupled grid for SE Asia      : COUPLESE=2x25se, COUPLEEU=4x5se"
+ERR_COUPLE           :="Select a coupled choice: COUPLE=yes"
+
+# Error message for bad GIGC config
+ERR_GIGC             :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
 
 # Error message for bad GIGC config
 ERR_GIGC             :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
@@ -246,7 +263,7 @@ ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
 endif
 
 #------------------------------------------------------------------------------
-# Grid-Independent GEOS-Chem settings
+# Grid-Independent GEOS-Chem (aka "Mega-Chem") settings
 #------------------------------------------------------------------------------
 
 # %%%%% DEVEL %%%%%
@@ -276,6 +293,12 @@ ifeq ($(shell [[ "$(EXTERNAL_FORCING)" =~ $(REGEXP) ]] && echo true),true)
   NO_GRID_NEEDED     :=1
 endif
 
+# %%%%% NO_BPCH (for disabling old diagnostic arrays) %%%%%
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(NO_BPCH)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DNO_BPCH
+endif
+
 #------------------------------------------------------------------------------
 # UCX stratospheric-tropospheric chemistry settings
 #------------------------------------------------------------------------------
@@ -286,6 +309,18 @@ ifeq ($(shell [[ "$(UCX)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DUCX
   NO_REDUCED         :=yes
   CHEM               :=UCX
+endif
+
+#------------------------------------------------------------------------------
+# RRTMG radiative transfer model settings
+#------------------------------------------------------------------------------
+
+# %%%%% RRTMG %%%%%
+RRTMG_NEEDED         :=0
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(RRTMG)" =~ $(REGEXP) ]] && echo true),true)
+  RRTMG_NEEDED       :=1
+  USER_DEFS          += -DRRTMG
 endif
 
 #------------------------------------------------------------------------------
@@ -478,6 +513,72 @@ ifndef NO_GRID_NEEDED
 endif  # NO_GRID_NEEDED
 
 #------------------------------------------------------------------------------
+# Coupled grid settings (yanyy,6/18/14)
+#------------------------------------------------------------------------------
+
+# %%%%% Couple %%%%%
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(COUPLE)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DEXCHANGE
+endif
+
+# %%%%% China (CH) and 4x5 %%%%%
+REGEXP               :=(^4.5[Cc][Hh]|^4\.0.5\.0[Cc][Hh])
+ifeq ($(shell [[ "$(COUPLECH)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DEXCHANGE -DEXCHANGE_4x5_CH
+endif
+
+# %%%%% Europe (EU) and 4x5 %%%%%
+REGEXP               :=(^4.5[Ee][Uu]|^4\.0.5\.0[Ee][Uu])
+ifeq ($(shell [[ "$(COUPLEEU)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DEXCHANGE -DEXCHANGE_4x5_EU
+endif
+
+# %%%%% North America (NA) and 4x5 %%%%%
+REGEXP               :=(^4.5[Nn][Aa]|^4\.0.5\.0[Nn][Aa])
+ifeq ($(shell [[ "$(COUPLENA)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DEXCHANGE -DEXCHANGE_4x5_NA
+endif
+
+# %%%%% SE Asia (SE) and 4x5 %%%%%
+REGEXP               :=(^4.5[Nn][Aa]|^4\.0.5\.0[Nn][Aa])
+ifeq ($(shell [[ "$(COUPLESE)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DEXCHANGE -DEXCHANGE_4x5_SE
+endif
+
+# %%%%% China (CH) and 2x2.5 %%%%%
+REGEXP               :=(^2.25[Cc][Hh]|^2.2\.5[Cc][Hh]|^2\.0.2\.5[Cc][Hh])
+ifeq ($(shell [[ "$(COUPLECH)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DEXCHANGE -DEXCHANGE_2x25_CH
+endif
+
+# %%%%% Europe (EU) and 2x2.5 %%%%%
+REGEXP               :=(^2.25[Ee][Uu]|^2.2\.5[Ee][Uu]|^2\.0.2\.5[Ee][Uu])
+ifeq ($(shell [[ "$(COUPLEEU)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DEXCHANGE -DEXCHANGE_2x25_EU
+endif
+
+# %%%%% North America (NA) and 2x2.5 %%%%%
+REGEXP               :=(^2.25[Nn][Aa]|^2.2\.5[Nn][Aa]|^2\.0.2\.5[Nn][Aa])
+ifeq ($(shell [[ "$(COUPLENA)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DEXCHANGE -DEXCHANGE_2x25_NA
+endif
+
+# %%%%% SE Asia (SE) and 2x2.5 %%%%%
+REGEXP               :=(^2.25[Nn][Aa]|^2.2\.5[Nn][Aa]|^2\.0.2\.5[Nn][Aa])
+ifeq ($(shell [[ "$(COUPLESE)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DEXCHANGE -DEXCHANGE_2x25_SE
+endif
+
+# %%%%% ERROR CHECK!  Make sure our NEST selection is valid! %%%%%
+ifdef COUPLE_NEEDED
+  REGEXP             :=((\-DEXCHANGE_)?CH|NA|EU)
+  ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
+    $(error $(ERR_COUPLE))
+  endif
+endif
+
+#------------------------------------------------------------------------------
 # Aerosol microphysics settings
 #------------------------------------------------------------------------------
 
@@ -590,12 +691,25 @@ else
 endif
 
 #=============================================================================
-#%%%%% KLUDGE FOR HARVARD ATMOSPHERIC CHEMISTRY MODELING GROUP MACHINES
-#%%%%% Manually prefix the library directory to the linker command.
-#%%%%% This corrects for an incomplete netCDF installation.
-NODENAME             :=$(shell uname -n)
-REGEXP               :=".as.harvard.edu"
-ifeq ($(shell [[ "$(NODENAME)" =~ $(REGEXP) ]] && echo true),true)
+#%%%%% FIX FOR USE WITH THE GEOS-Chem-Libraries (bmy, 1/13/15)
+#%%%%% 
+#%%%%% If your GEOS-Chem-Libraries netCDF/HDF5 package was built in one 
+#%%%%% directory and then moved somewhere else, then nf-config and nc-config 
+#%%%%% may not return the proper link directory path.  
+#%%%%% 
+#%%%%% To avoid this error, we shall test if the $GC_LIB environment variable 
+#%%%%% contains the text "GEOS-Chem-Libraries".  (Recall that $GC_LIB is 
+#%%%%% defined in either your .bashrc or .cshrc file depending on which Unix 
+#%%%%% shell you use.)  If we find the text "GEOS-Chem-Libraries" in $GC_LIB, 
+#%%%%% then we shall override the library path returned by nf-config and 
+#%%%%% nc-config with the path specified by $GC_LIB.  This will ensure that 
+#%%%%% we point to the location where the GEOS-Chem-Libraries are installed.
+#%%%%%
+#%%%%% NOTE: This fix should work for most users.  If it does not work, then
+#%%%%% contact the GEOS-Chem Support Team (geos-chem-support@as.harvard.edu).
+#%%%%%
+REGEXP               :="GEOS-Chem-Libraries"
+ifeq ($(shell [[ "$(GC_LIB)" =~ $(REGEXP) ]] && echo true),true)
   NC_LINK_CMD        := $(filter -l%,$(NC_LINK_CMD))
   NC_LINK_CMD        :=-L$(GC_LIB) $(NC_LINK_CMD)
 endif
@@ -608,7 +722,11 @@ NCL                  := $(NC_LINK_CMD)
 ifeq ($(GTMM_NEEDED),1)
   LINK               :=-L$(LIB) -lHg
 else
+ifeq ($(RRTMG_NEEDED),1)
+  LINK               :=-L$(LIB) -lrad
+else
   LINK               :=-L$(LIB)
+endif
 endif
 LINK                 :=$(LINK) -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp
 LINK                 :=$(LINK) -lHeaders -lNcUtils $(NC_LINK_CMD)
@@ -862,7 +980,7 @@ endif
 ###  Export global variables so that the main Makefile will see these       ###
 ###                                                                         ###
 ###############################################################################
-
+ 
 export CC
 export F90
 export F90ISO
@@ -874,6 +992,8 @@ export SHELL
 export NCL
 export NC_LINK_CMD
 export HPC
+export PRECISION
+export RRTMG_NEEDED
 
 #EOC
 
@@ -894,3 +1014,4 @@ export HPC
 #	@@echo "include : $(INCLUDE)"
 #	@@echo "link    : $(LINK)"
 #	@@echo "userdefs: $(USER_DEFS)"
+

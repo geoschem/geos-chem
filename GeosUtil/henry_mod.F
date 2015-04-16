@@ -22,9 +22,6 @@
 ! constant R = 8.314 JK-1mol-1.
 !\\
 !\\
-! Note that K0, CR and pKa are defined below.
-!\\
-!\\
 ! References:
 ! \begin{itemize}
 ! \item Sander, R: Compilation of Henry's law constant for inorganic and
@@ -38,6 +35,8 @@
 !
 ! !USES:
 ! 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -47,8 +46,9 @@
       PUBLIC :: CALC_HEFF
 !
 ! !REVISION HISTORY:
-!  16 Apr 2013 - C. Keller - Initial version
-!  08 Aug 2014 - C. Keller - Moved coefficients into separate module
+!  16 Apr 2013 - C. Keller   - Initial version
+!  08 Aug 2014 - C. Keller   - Moved coefficients into separate module
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -56,9 +56,9 @@
 ! !PRIVATE TYPES:
 !
       ! Parameter
-      REAL*8,  PARAMETER    :: TREF = 298.15d0    ![K]
-      REAL*8,  PARAMETER    :: R    = 8.3144621d0 ![JK-1mol-1]
-      REAL*8,  PARAMETER    :: ATM  = 101.325     ![mPa (!)]
+      REAL(fp),  PARAMETER    :: TREF = 298.15e+0_fp    ![K]
+      REAL(fp),  PARAMETER    :: R    = 8.3144621e+0_fp ![JK-1mol-1]
+      REAL(fp),  PARAMETER    :: ATM  = 101.325     ![mPa (!)]
 
       CONTAINS
 !EOC

@@ -109,6 +109,7 @@ hco_chartools_mod.o    : hco_chartools_mod.F90   \
                          hco_extlist_mod.o
 
 hco_clock_mod.o        : hco_clock_mod.F90       \
+                         hco_emislist_mod.o      \
                          hco_error_mod.o         \
                          hco_state_mod.o
 
@@ -148,15 +149,15 @@ hco_driver_mod.o       : hco_driver_mod.F90      \
                          hco_extlist_mod.o       \
                          hco_readlist_mod.o      \
                          hco_state_mod.o         \
-                         hco_tidx_mod.o
+                         hco_tidx_mod.o          \
+                         hcoio_diagn_mod.o
 
 hco_emislist_mod.o     : hco_emislist_mod.F90    \
                          hco_datacont_mod.o      \
                          hco_error_mod.o         \
                          hco_filedata_mod.o      \
                          hco_logfile_mod.o       \
-                         hco_state_mod.o         \
-                         hco_tidx_mod.o
+                         hco_state_mod.o
 
 hco_extlist_mod.o      : hco_extlist_mod.F90     \
                          hco_error_mod.o
@@ -177,6 +178,12 @@ hco_fluxarr_mod.o      : hco_fluxarr_mod.F90     \
 hco_geotools_mod.o     : hco_geotools_mod.F90    \
 	                 hco_error_mod.o
 
+hco_interp_mod.o       : hco_interp_mod.F90      \
+                         hco_datacont_mod.o      \
+                         hco_error_mod.o         \
+                         hco_filedata_mod.o      \
+                         hco_state_mod.o
+
 hco_logfile_mod.o      : hco_logfile_mod.F90     \
                          hco_datacont_mod.o      \
                          hco_error_mod.o         \
@@ -190,7 +197,14 @@ hco_readlist_mod.o     : hco_readlist_mod.F90    \
                          hco_filedata_mod.o      \
                          hco_logfile_mod.o       \
                          hco_state_mod.o         \
+                         hco_tidx_mod.o          \
                          hcoio_dataread_mod.o
+
+hco_restart_mod.o      : hco_restart_mod.F90     \
+                         hco_diagn_mod.o         \
+                         hco_emislist_mod.o      \
+                         hco_error_mod.o         \
+                         hco_state_mod.o
 
 hco_state_mod.o        : hco_state_mod.F90       \
 	                 hco_arr_mod.o           \
@@ -220,9 +234,11 @@ hcoio_diagn_mod.o      : hcoio_diagn_mod.F90     \
 hcoio_dataread_mod.o   : hcoio_dataread_mod.F90  \
                          hco_chartools_mod.o     \
                          hco_datacont_mod.o      \
+                         hco_emislist_mod.o      \
                          hco_error_mod.o         \
                          hco_filedata_mod.o      \
                          hco_geotools_mod.o      \
+                         hco_interp_mod.o        \
                          hco_state_mod.o         \
                          hco_tidx_mod.o          \
                          hco_unit_mod.o          \
@@ -232,6 +248,7 @@ hcoio_messy_mod.o      : hcoio_messy_mod.F90     \
                          hco_datacont_mod.o      \
                          hco_error_mod.o         \
                          hco_filedata_mod.o      \
+                         hco_interp_mod.o        \
                          hco_state_mod.o         \
                          hco_unit_mod.o          \
                          messy_ncregrid_base.o

@@ -292,6 +292,7 @@ cdbg      print *, dryd(:)
             ENDDO
 
 
+#if !defined( NO_BPCH ) 
             !========================================================      
             ! ND44: Dry deposition diagnostic [#/cm2/s]
             !========================================================
@@ -323,6 +324,7 @@ cdbg      print *, dryd(:)
                ENDIF
                  
             ENDIF
+#endif
 
          ENDDO ! JC-loop
  
@@ -390,6 +392,9 @@ c     &           'FLUX  AD44'
             X = 0d0
             ID = IDTNK1 - 1 + BIN + (( JC-1 )* IBINS)
 
+! ******************************************************************************
+! NOTE: I'm not sure if this is now covered by dry-deposition in mixing_mod.F90
+! (ckeller, 3/5/15)
             ! RKT is drydep frequency [1/s] -- PBLFRAC accounts for the 
             ! fraction of each vertical level that is located below the PBL top
             RKT = DEPSAV(I,J,DRYD(BIN))* GET_FRAC_UNDER_PBLTOP( I, J, L)
@@ -402,7 +407,9 @@ c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
             ELSE
                X = X0(BIN,JC)
             ENDIF
+! ******************************************************************************
                
+#if !defined( NO_BPCH )
             !==============================================================
             ! ND44 Diagnostic: Drydep flux of bin1,..,bin30 [molec/cm2/s]
             !==============================================================
@@ -437,6 +444,7 @@ c     &           bin==bb .and. JC==ICOMP)
 c     &          print *, L, STT(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
 c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
 !debug------
+#endif
 
 
             ! Swap X back into STT array
@@ -446,10 +454,15 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
          ENDDO
          ENDDO
          
+! ******************************************************************************
+! NOTE: I'm not sure if this is now covered by dry-deposition in mixing_mod.F90
+! (ckeller, 3/5/15)
          !Dry deposit H2SO4 gas (win, 5/24/06)
          Y0 = STT(I,J,L,IDTH2SO4)
          RKT = DEPSAV(I,J,H2SO4ID)* GET_FRAC_UNDER_PBLTOP( I, J, L)
          Y = Y0 * EXP(-RKT)
+! ******************************************************************************
+#if !defined( NO_BPCH )
          !==============================================================
          ! ND44 Diagnostic: Drydep flux of H2SO4 [molec/cm2/s]
          !==============================================================
@@ -465,10 +478,10 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
             AD44(I,J,H2SO4ID,1) = AD44(I,J,H2SO4ID,1) + FLUX   
 
          ENDIF
+#endif
 
          !Swap final H2SO4 back into STT array
-         STT(I,J,L,IDTH2SO4) = Y
-         
+         STT(I,J,L,IDTH2SO4) = Y         
 
       ENDDO
       ENDDO

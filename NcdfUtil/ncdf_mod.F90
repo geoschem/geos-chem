@@ -45,6 +45,7 @@ MODULE NCDF_MOD
   PUBLIC  :: NC_GET_GRID_EDGES
   PUBLIC  :: NC_GET_SIGMA_LEVELS
   PUBLIC  :: NC_WRITE
+  PUBLIC  :: NC_ISMODELLEVEL
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -60,6 +61,7 @@ MODULE NCDF_MOD
   PRIVATE :: NC_READ_VAR_DP
   PRIVATE :: NC_GET_GRID_EDGES_SP
   PRIVATE :: NC_GET_GRID_EDGES_DP
+  PRIVATE :: NC_GET_GRID_EDGES_C
   PRIVATE :: NC_GET_SIGMA_LEVELS_SP
   PRIVATE :: NC_GET_SIGMA_LEVELS_DP
   PRIVATE :: NC_GET_SIGMA_LEVELS_C
@@ -71,6 +73,7 @@ MODULE NCDF_MOD
 !  13 Jun 2014 - R. Yantosca - Now use F90 free-format indentation
 !  13 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  10 Jul 2014 - R. Yantosca - Add GET_TAU0 as a PRIVATE local routine
+!  12 Dec 2014 - C. Keller   - Added NC_ISMODELLEVEL 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -389,7 +392,8 @@ CONTAINS
     INTEGER,          INTENT(INOUT)            :: RC 
 ! 
 ! !REVISION HISTORY:
-!  04 Nov 2012 - C. Keller - Initial version
+!  04 Nov 2012 - C. Keller   - Initial version
+!  20 Feb 2015 - R. Yantosca - Need to add attType to Ncdoes_Attr_Exist
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -400,6 +404,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: v_name             ! netCDF variable name 
     CHARACTER(LEN=255)     :: a_name             ! netCDF attribute name
     CHARACTER(LEN=255)     :: a_val              ! netCDF attribute value
+    INTEGER                :: a_type             ! netCDF attribute type
     INTEGER                :: st1d(1), ct1d(1)   ! For 1D arrays    
 
     !=================================================================
@@ -439,10 +444,17 @@ CONTAINS
        CALL NcRd( VarVecDp, fID, TRIM(v_name), st1d, ct1d )
     ENDIF
 
-    ! Read units attribute
-    a_name = "units"
-    CALL NcGet_Var_Attributes( fID,          TRIM(v_name), &
-                               TRIM(a_name), varUnit     )
+    ! Read units attribute. If unit attribute does not exist, return
+    ! empty string (dimensionless vertical coordinates do not require
+    ! a units attribute).
+    a_name  = "units"
+    hasVar  = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), a_type )
+    IF ( .NOT. hasVar ) THEN
+       varUnit = ''
+    ELSE 
+       CALL NcGet_Var_Attributes( fID,          TRIM(v_name), &
+                                  TRIM(a_name), varUnit     )
+    ENDIF
 
   END SUBROUTINE NC_READ_VAR_CORE
 !EOC
@@ -456,7 +468,17 @@ CONTAINS
 ! (lon,lat,lev,time). Domain boundaries can be provided by input arguments
 ! lon1,lon2, lat1,lat2, lev1,lev2, and time1,time2. The level and time bounds
 ! are optional and can be set to zero (lev1=0 and/or time1=0) for data with
-! undefined level/time coordinates.
+! undefined level/time coordinates. 
+!\\
+!\\
+! The default behavior for time slices is to read all slices (time1:time2),
+! and pass all of them to the output array. It is also possible to assign 
+! specific weights (wgt1 and wgt2) to the two time slices time1 and time2, 
+! respectively. In this case, only those two slices will be read and merged
+! using the given weights. The output array will then contain only one time 
+! dimension. Negative weights are currently not supported and will be ignored,
+! e.g. providing negative weights has the same effect as providing no weights
+! at all.
 !\\
 !\\
 ! If the passed variable contains attribute names `offset` and/or 
@@ -464,11 +486,16 @@ CONTAINS
 ! before returning it.
 !\\
 !\\
+! Missing values in the netCDF file are replaced with value 'MissVal'
+! (default = 0). Currently, the routine identifies attributes 'missing_value'
+! and '_FillValue' as missing values.
+!\\
+!\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_READ_ARR( fID,   ncVar,   lon1, lon2,  lat1,  &
-                          lat2,  lev1,    lev2, time1, time2, & 
-                          ncArr, VarUnit, RC                   ) 
+  SUBROUTINE NC_READ_ARR( fID,   ncVar,   lon1,    lon2,  lat1,    &
+                          lat2,  lev1,    lev2,    time1, time2,   & 
+                          ncArr, VarUnit, MissVal, wgt1,  wgt2,  RC ) 
 !
 ! !USES:
 !
@@ -485,6 +512,9 @@ CONTAINS
     INTEGER,          INTENT(IN)            :: lat1,  lat2
     INTEGER,          INTENT(IN)            :: lev1,  lev2
     INTEGER,          INTENT(IN)            :: time1, time2
+    REAL*4,           INTENT(IN ), OPTIONAL :: MissVal
+    REAL*4,           INTENT(IN ), OPTIONAL :: wgt1 
+    REAL*4,           INTENT(IN ), OPTIONAL :: wgt2
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -504,6 +534,7 @@ CONTAINS
 !  18 Jan 2012 - C. Keller - Now reads 4D, 3D, and 2D arrays, with
 !                            optional dimensions level and time.
 !  18 Apr 2012 - C. Keller - Now also read & apply offset and scale factor
+!  27 Feb 2015 - C. Keller - Added weights.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -518,21 +549,33 @@ CONTAINS
     CHARACTER(LEN=255)     :: v_name    ! netCDF variable name 
     CHARACTER(LEN=255)     :: a_name    ! netCDF attribute name
     CHARACTER(LEN=255)     :: a_val     ! netCDF attribute value
+    INTEGER                :: a_type    ! netCDF attribute type
     REAL*8                 :: corr      ! netCDF attribute value 
 
     ! Arrays for netCDF start and count values
     INTEGER                :: nlon,  nlat, nlev, ntime
-    INTEGER                :: nclev, nctime 
+    INTEGER                :: nclev, nctime
     INTEGER                :: st2d(2), ct2d(2)   ! For 2D arrays 
     INTEGER                :: st3d(3), ct3d(3)   ! For 3D arrays 
     INTEGER                :: st4d(4), ct4d(4)   ! For 4D arrays 
 
     ! Temporary arrays
+    REAL*4, ALLOCATABLE    :: TMPARR_4D(:,:,:,:)
     REAL*4, ALLOCATABLE    :: TMPARR_3D(:,:,:)
     REAL*4, ALLOCATABLE    :: TMPARR_2D(:,:)
 
     ! Logicals
     LOGICAL                :: ReadAtt
+    LOGICAL                :: DONE 
+
+    ! Missing value
+    REAL*8                 :: miss8
+    REAL*4                 :: miss4
+    REAL*4                 :: MissValue
+
+    ! Weights
+    LOGICAL                :: ApplyWeights
+    REAL*4                 :: weight1, weight2 
 
     ! For error handling
     CHARACTER(LEN=255)     :: LOC, MSG
@@ -551,16 +594,35 @@ CONTAINS
     ! Eventually deallocate output array
     IF ( ASSOCIATED ( ncArr ) ) DEALLOCATE ( ncArr )
 
-    ! Extract dimensions to read 
+    ! weights to be applied to time1 and time2 (if any): 
+    weight1 = -999.0
+    weight2 = -999.0
+    IF(PRESENT(wgt1)) weight1 = wgt1 
+    IF(PRESENT(wgt2)) weight2 = wgt2 
+
+    ! apply weights?
+    IF ( time1 > 0 .AND. weight1 >= 0.0 ) THEN
+       ApplyWeights = .TRUE.
+    ELSE
+       ApplyWeights = .FALSE.
+    ENDIF
+
+    ! horizontal dimensions to read 
     nLon = lon2 - lon1 + 1
     nLat = lat2 - lat1 + 1
+
+    ! read multiple levels:
     IF ( lev1 > 0 ) THEN
        nLev = lev2 - lev1 + 1
+    ! no vertical levels:
     ELSE
        nLev = 0
     ENDIF
-    IF ( time1 > 0 ) THEN
+
+    ! read all time slices time1:time2:
+    IF ( time1 > 0 .AND. weight1 < 0.0 ) THEN
        ntime = time2 - time1 + 1
+    ! read only one time slice, or interpolate amongst two slices:
     ELSE
        ntime = 0
     ENDIF
@@ -569,48 +631,107 @@ CONTAINS
     ! --> must have at least dimension 1
     nclev  = max(nlev ,1)
     nctime = max(ntime,1)
-
+ 
     !----------------------------------------
     ! Read array
     !----------------------------------------
+
+    ! Are we done?
+    DONE = .FALSE.
 
     ! Variable name
     v_name = TRIM(ncVar)
    
     ! Allocate the array
     ALLOCATE ( ncArr( nLon, nLat, ncLev, ncTime ) )
-    ncArr = 0d0  
+    ncArr = 0.0
 
-    ! To read a 4D array:
+    ! Read 4D array:
+    ! ==> multiple time slices
     IF ( (nLev>0) .AND. (nTime>0) ) THEN
        st4d = (/ lon1, lat1, lev1, time1 /)
        ct4d = (/ nlon, nlat, nlev, ntime /)
        CALL NcRd( ncArr, fId, TRIM(v_name), st4d, ct4d )
-   
-    ! To read a 3D array:
-    ! ==> Level defined but not time:
-    ELSE IF ( nLev>0 ) THEN
+       DONE = .TRUE.
+    ENDIF 
+
+    ! ==> interpolate between two time slices (level defined)
+    IF ( .NOT. DONE .AND. (nLev>0) .AND. ApplyWeights ) THEN
+       ALLOCATE ( TMPARR_4D( nLon, nLat, nLev, 2 ) )
+
+       ! read first slice
+       st4d = (/ lon1, lat1, lev1, time1 /)
+       ct4d = (/ nlon, nlat, nlev, 1     /)
+       CALL NcRd( TMPARR_4D(:,:,:,1:1), fId, TRIM(v_name), st4d, ct4d )
+
+       ! read second slice
+       st4d = (/ lon1, lat1, lev1, time2 /)
+       ct4d = (/ nlon, nlat, nlev, 1     /)
+       CALL NcRd( TMPARR_4D(:,:,:,2:2), fId, TRIM(v_name), st4d, ct4d )
+
+       ! Pass to output array, apply weights
+       ncArr(:,:,:,1) = TMPARR_4D(:,:,:,1) * weight1 &
+                      + TMPARR_4D(:,:,:,2) * weight2
+
+       DEALLOCATE(TMPARR_4D)
+       DONE = .TRUE.
+    ENDIF
+    
+
+    ! Read 3D array:
+    ! ==> level defined but not time:
+    IF ( .NOT. DONE .AND. nLev>0 ) THEN
        ALLOCATE ( TMPARR_3D( nLon, nLat, nLev ) )
        st3d = (/ lon1, lat1, lev1 /)
        ct3d = (/ nlon, nlat, nlev /)
        CALL NcRd( TMPARR_3D, fId, TRIM(v_name), st3d, ct3d )
        ncArr(:,:,:,1) = TMPARR_3D(:,:,:)
+       DEALLOCATE(TMPARR_3D)
+       DONE = .TRUE.
+    ENDIF
 
-    ! ==> Time defined but not level:
-    ELSE IF ( nTime>0 ) THEN
+    ! ==> time defined but not level:
+    IF ( .NOT. DONE .AND. nTime>0 ) THEN
        ALLOCATE ( TMPARR_3D( nLon, nLat, nTime ) ) 
        st3d   = (/ lon1, lat1, time1 /)
        ct3d   = (/ nlon, nlat, ntime /)
        CALL NcRd( TMPARR_3D, fId, TRIM(v_name), st3d, ct3d )
        ncArr(:,:,1,:) = TMPARR_3D(:,:,:)
+       DEALLOCATE(TMPARR_3D)
+       DONE = .TRUE.
+    ENDIF
+
+    ! ==> interpolate between two time slices (no levels) 
+    IF ( .NOT. DONE .AND. ApplyWeights ) THEN
+       ALLOCATE ( TMPARR_3D( nLon, nLat, 2 ) )
+
+       ! read first slice
+       st3d = (/ lon1, lat1, time1 /)
+       ct3d = (/ nlon, nlat, 1     /)
+       CALL NcRd( TMPARR_3D(:,:,1:1), fId, TRIM(v_name), st3d, ct3d )
+
+       ! read second slice
+       st3d = (/ lon1, lat1, time2 /)
+       ct3d = (/ nlon, nlat, 1     /)
+       CALL NcRd( TMPARR_3D(:,:,2:2), fId, TRIM(v_name), st3d, ct3d )
+
+       ! Pass to output array, apply weights
+       ncArr(:,:,1,1) = TMPARR_3D(:,:,1) * weight1 &
+                      + TMPARR_3D(:,:,2) * weight2
+
+       DEALLOCATE(TMPARR_3D)
+       DONE = .TRUE.
+    ENDIF
 
     ! Otherwise, read a 2D array (lon and lat only):
-    ELSE
+    IF ( .NOT. DONE ) THEN 
        ALLOCATE ( TMPARR_2D( nLon, nLat ) )
        st2d   = (/ lon1, lat1 /)
        ct2d   = (/ nlon, nlat /)
        CALL NcRd( TMPARR_2D, fId, TRIM(v_name), st2d, ct2d )
        ncArr(:,:,1,1) = TMPARR_2D(:,:)
+       DEALLOCATE(TMPARR_2D)
+       DONE = .TRUE.
     ENDIF
 
     ! ------------------------------------------
@@ -619,7 +740,7 @@ CONTAINS
 
     ! Check for scale factor
     a_name  = "scale_factor"
-    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name) ) 
+    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), a_type ) 
 
     IF ( ReadAtt ) THEN
        CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),corr)
@@ -628,11 +749,59 @@ CONTAINS
 
     ! Check for offset factor
     a_name  = "add_offset"
-    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name) ) 
+    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), a_type ) 
 
     IF ( ReadAtt ) THEN
        CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),corr)
        ncArr(:,:,:,:) = ncArr(:,:,:,:) + corr
+    ENDIF
+
+    ! ------------------------------------------
+    ! Check for filling values
+    ! NOTE: Test for REAL*4 and REAL*8
+    ! ------------------------------------------
+
+    ! Define missing value
+    IF ( PRESENT(MissVal) ) THEN
+       MissValue = MissVal
+    ELSE
+       MissValue = 0.0
+    ENDIF
+
+    ! 1: 'missing_value' 
+    a_name  = "missing_value"
+    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), a_type ) 
+    IF ( ReadAtt ) THEN
+       IF ( a_type == NF_REAL ) THEN
+          CALL NcGet_Var_Attributes( fId, TRIM(v_name), TRIM(a_name), miss4 )
+          WHERE ( ncArr == miss4 )
+             ncArr = MissValue
+          END WHERE
+       ELSE IF ( a_type == NF_DOUBLE ) THEN
+          CALL NcGet_Var_Attributes( fId, TRIM(v_name), TRIM(a_name), miss8 )
+          miss4 = REAL( miss8 )
+          WHERE ( ncArr == miss4 )
+             ncArr = MissValue
+          END WHERE
+       ENDIF
+    ENDIF
+
+    ! 2: '_FillValue'
+    a_name  = "_FillValue"
+    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), a_type ) 
+    IF ( ReadAtt ) THEN
+       IF ( a_type == NF_REAL ) THEN
+          CALL NcGet_Var_Attributes( fId, TRIM(v_name), TRIM(a_name), miss4 )
+          WHERE ( ncArr == miss4 )
+             ncArr = MissValue
+          END WHERE
+       ELSE IF ( a_type == NF_DOUBLE ) THEN
+          CALL NcGet_Var_Attributes( fId, TRIM(v_name), TRIM(a_name), miss8 )
+          miss4 = REAL( miss8 )
+          WHERE ( ncArr == miss4 )
+             ncArr = MissValue
+          END WHERE
+       ENDIF
     ENDIF
 
     ! ----------------------------
@@ -649,10 +818,6 @@ CONTAINS
     !=================================================================
     ! Cleanup and quit
     !=================================================================
-
-    ! Deallocate internal variables
-    IF ( ALLOCATED ( TMPARR_3D ) ) DEALLOCATE ( TMPARR_3D )
-    IF ( ALLOCATED ( TMPARR_2D ) ) DEALLOCATE ( TMPARR_2D )
 
     ! Return w/ success
     RC = 0 
@@ -713,6 +878,11 @@ CONTAINS
     !=================================================================
     ! NC_READ_TIME_YYYYMMDDhh begins here 
     !=================================================================
+
+    ! Init values
+    RC = 0
+    IF ( PRESENT(TimeUnit) ) TimeUnit = ''
+    IF ( PRESENT(refYear ) ) refYear  = 0
 
     ! Read time vector
     CALL NC_READ_TIME ( fID, nTime, ncUnit, timeVec=tVec, RC=RC ) 
@@ -1337,8 +1507,6 @@ CONTAINS
 ! !USES:
 !
     IMPLICIT NONE
-
-#   include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 !
@@ -1358,85 +1526,13 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER              :: I, AS
-    CHARACTER(LEN=255)   :: ncVar, ThisUnit
 
     !======================================================================
     ! NC_GET_GRID_EDGES_SP begins here
     !======================================================================
 
-    ! Try to read edges from ncdf file
-    IF ( AXIS == 1 ) THEN
-       ncVar = 'lon_edge'
-    ELSEIF ( AXIS == 2 ) THEN
-       ncVar = 'lat_edge'
-    ELSE
-       PRINT *, 'AXIS must be 1 or 2: in NC_GET_LON_EDGES (ncdf_mod.F90)'
-       RC = -999; RETURN
-    ENDIF
-
-    CALL NC_READ_VAR( fID, TRIM(ncVar), nEdge, ThisUnit, Edge, RC )
-    IF ( RC /= 0 ) RETURN
-
-    ! Also try 'XXX_edges'
-    IF ( nEdge == 0 ) THEN
-       IF ( AXIS == 1 ) THEN
-          ncVar = 'lon_edges'
-       ELSEIF ( AXIS == 2 ) THEN
-          ncVar = 'lat_edges'
-       ENDIF
-       CALL NC_READ_VAR( fID, 'lon_edges', nEdge, ThisUnit, Edge, RC )
-       IF ( RC /= 0 ) RETURN
-    ENDIF
-
-    ! Sanity check if edges are read from files: dimension must be nlon + 1!
-    IF ( nEdge > 0 ) THEN
-       IF ( nEdge /= (nMid + 1) ) THEN
-          PRINT *, 'Edge has incorrect length!'
-          RC = -999; RETURN
-       ENDIF
-
-    ! If not read from file, calculate from provided lon midpoints.
-    ELSE
-
-       nEdge = nMid + 1
-       IF ( ASSOCIATED ( Edge ) ) DEALLOCATE( Edge )
-       ALLOCATE ( Edge(nEdge), STAT=AS )
-
-       IF ( AS /= 0 ) THEN 
-          PRINT *, 'Edge alloc. error in NC_GET_LON_EDGES (ncdf_mod.F90)'
-          RC = -999; RETURN
-       ENDIF
-       Edge = 0.0
-
-       ! Get leftmost edge by extrapolating from first two midpoints.
-       Edge(1) = Mid(1) - ( (Mid(2) - Mid(1) ) / 2.0 )
-      
-       ! Error trap: for latitude axis, first edge must not be below -90!
-       IF ( Edge(1) < -90.0 .AND. AXIS == 2 ) THEN
-          Edge(1) = -90.0
-       ENDIF
- 
-       ! Sequentially calculate the right edge from the previously 
-       ! calculated left edge.
-       DO I = 1, nMid
-          Edge(I+1) = Mid(I) + Mid(I) - Edge(I)
-       ENDDO
-
-       ! Error check: max. lat edge must not exceed +90!
-       IF ( Edge(nMId+1) > 90.01 .AND. AXIS == 2 ) THEN
-          PRINT *, 'Uppermost latitude edge above 90 deg north!'
-          PRINT *, Edge
-          RC = -999; RETURN
-       ENDIF
-
-    ENDIF
-
-    ! Return w/ success
-    RC = 0 
+    CALL NC_GET_GRID_EDGES_C( fID, AXIS, NMID, NEDGE, RC, &
+                              MID4=MID,  EDGE4=EDGE )
 
   END SUBROUTINE NC_GET_GRID_EDGES_SP 
 !EOC
@@ -1461,8 +1557,6 @@ CONTAINS
 ! !USES:
 !
     IMPLICIT NONE
-
-#   include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 !
@@ -1482,9 +1576,65 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
+    !======================================================================
+    ! NC_GET_GRID_EDGES_DP begins here
+    !======================================================================
+
+    CALL NC_GET_GRID_EDGES_C( fID, AXIS, NMID, NEDGE, RC, &
+                              MID8=MID,  EDGE8=EDGE )
+
+  END SUBROUTINE NC_GET_GRID_EDGES_DP 
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: nc_get_grid_edges_c 
+!
+! !DESCRIPTION: Routine to get the longitude or latitude edges. If the edge 
+! cannot be read from the netCDF file, they are calculated from the provided
+! grid midpoints. Use the axis input argument to discern between longitude
+! (axis 1) and latitude (axis 2).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_GET_GRID_EDGES_C( fID, AXIS, NMID, NEDGE, RC, &
+                                  MID4, MID8, EDGE4, EDGE8 )
+!
+! !USES:
+!
+    IMPLICIT NONE
+
+#   include "netcdf.inc"
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN   ) :: fID             ! Ncdf File ID 
+    INTEGER,          INTENT(IN   ) :: AXIS            ! 1=lon, 2=lat 
+    REAL*4, OPTIONAL, INTENT(IN   ) :: MID4(NMID)       ! midpoints
+    REAL*8, OPTIONAL, INTENT(IN   ) :: MID8(NMID)       ! midpoints
+    INTEGER,          INTENT(IN   ) :: NMID            ! # of midpoints
+!
+! !INPUT/OUTPUT PARAMETERS:
+!   
+    REAL*4, OPTIONAL, POINTER       :: EDGE4(:)         ! edges 
+    REAL*8, OPTIONAL, POINTER       :: EDGE8(:)         ! edges 
+    INTEGER,          INTENT(INOUT) :: NEDGE           ! # of edges
+    INTEGER,          INTENT(INOUT) :: RC              ! Return code
+!
+! !REVISION HISTORY:
+!  16 Jul 2014 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
+    LOGICAL              :: PoleMid
     INTEGER              :: I, AS
     CHARACTER(LEN=255)   :: ncVar, ThisUnit
 
@@ -1492,17 +1642,37 @@ CONTAINS
     ! NC_GET_GRID_EDGES_DP begins here
     !======================================================================
 
+    ! Error trap: edge and mid must be same kind
+    IF ( PRESENT(EDGE4) ) THEN
+       IF ( .NOT. PRESENT(MID4) ) THEN
+          PRINT *, 'If you provide EDGE4, you must also provide MID4'
+          RC = -999
+          RETURN
+       ENDIF
+    ELSEIF ( PRESENT(EDGE8) ) THEN
+       IF ( .NOT. PRESENT(MID8) ) THEN
+          PRINT *, 'If you provide EDGE8, you must also provide MID8'
+          RC = -999
+          RETURN
+       ENDIF
+    ELSE
+       PRINT *, 'EDGE4 or EDGE8 must be given'
+       RC = -999
+       RETURN
+    ENDIF
+
     ! Try to read edges from ncdf file
     IF ( AXIS == 1 ) THEN
        ncVar = 'lon_edge'
     ELSEIF ( AXIS == 2 ) THEN
        ncVar = 'lat_edge'
-    ELSE
-       PRINT *, 'AXIS must be 1 or 2: in NC_GET_LON_EDGES (ncdf_mod.F90)'
-       RC = -999; RETURN
     ENDIF
 
-    CALL NC_READ_VAR( fID, TRIM(ncVar), nEdge, ThisUnit, Edge, RC )
+    IF ( PRESENT(EDGE4) ) THEN
+       CALL NC_READ_VAR( fID, TRIM(ncVar), nEdge, ThisUnit, Edge4, RC )
+    ELSE
+       CALL NC_READ_VAR( fID, TRIM(ncVar), nEdge, ThisUnit, Edge8, RC )
+    ENDIF
     IF ( RC /= 0 ) RETURN
 
     ! Also try 'XXX_edges'
@@ -1512,7 +1682,11 @@ CONTAINS
        ELSEIF ( AXIS == 2 ) THEN
           ncVar = 'lat_edges'
        ENDIF
-       CALL NC_READ_VAR( fID, 'lon_edges', nEdge, ThisUnit, Edge, RC )
+       IF ( PRESENT(EDGE4) ) THEN
+          CALL NC_READ_VAR( fID, 'lon_edges', nEdge, ThisUnit, Edge4, RC )
+       ELSE
+          CALL NC_READ_VAR( fID, 'lon_edges', nEdge, ThisUnit, Edge8, RC )
+       ENDIF
        IF ( RC /= 0 ) RETURN
     ENDIF
 
@@ -1527,42 +1701,98 @@ CONTAINS
     ELSE
 
        nEdge = nMid + 1
-       IF ( ASSOCIATED ( Edge ) ) DEALLOCATE( Edge )
-       ALLOCATE ( Edge(nEdge), STAT=AS )
-
-       IF ( AS /= 0 ) THEN 
-          PRINT *, 'Edge alloc. error in NC_GET_LON_EDGES (ncdf_mod.F90)'
-          RC = -999; RETURN
+       IF ( PRESENT(EDGE4) ) THEN
+          IF ( ASSOCIATED ( Edge4 ) ) DEALLOCATE( Edge4 )
+          ALLOCATE ( Edge4(nEdge), STAT=AS )
+          IF ( AS /= 0 ) THEN 
+             PRINT *, 'Edge alloc. error in NC_GET_LON_EDGES (ncdf_mod.F90)'
+             RC = -999; RETURN
+          ENDIF
+          Edge4 = 0.0
+       ELSE
+          IF ( ASSOCIATED ( Edge8 ) ) DEALLOCATE( Edge8 )
+          ALLOCATE ( Edge8(nEdge), STAT=AS )
+          IF ( AS /= 0 ) THEN 
+             PRINT *, 'Edge alloc. error in NC_GET_LON_EDGES (ncdf_mod.F90)'
+             RC = -999; RETURN
+          ENDIF
+          Edge8 = 0.0d0
        ENDIF
-       Edge = 0.0
 
        ! Get leftmost edge by extrapolating from first two midpoints.
-       Edge(1) = Mid(1) - ( (Mid(2) - Mid(1) ) / 2.0d0 )
-      
        ! Error trap: for latitude axis, first edge must not be below -90!
-       IF ( Edge(1) < -90.0d0 .AND. AXIS == 2 ) THEN
-          Edge(1) = -90.0d0
-       ENDIF
- 
-       ! Sequentially calculate the right edge from the previously 
-       ! calculated left edge.
-       DO I = 1, nMid
-          Edge(I+1) = Mid(I) + Mid(I) - Edge(I)
-       ENDDO
+       IF ( PRESENT(EDGE4) ) THEN
+          Edge4(1) = Mid4(1) - ( (Mid4(2) - Mid4(1) ) / 2.0 )
+          IF ( Edge4(1) < -90.0 .AND. AXIS == 2 ) Edge4(1) = -90.0
+       ELSE
+          Edge8(1) = Mid8(1) - ( (Mid8(2) - Mid8(1) ) / 2.0d0 )
+          IF ( Edge8(1) < -90.0d0 .AND. AXIS == 2 ) Edge8(1) = -90.0d0
+       ENDIF      
 
-       ! Error check: max. lat edge must not exceed +90!
-       IF ( Edge(nMId+1) > 90.01d0 .AND. AXIS == 2 ) THEN
-          PRINT *, 'Uppermost latitude edge above 90 deg north!'
-          PRINT *, Edge
-          RC = -999; RETURN
-       ENDIF
+       ! Calculate second edge. We need to catch the case where the first 
+       ! latitude mid-point is -90 (this is the case for GEOS-5 generic 
+       ! grids...). In that case, the second edge is put in the middle of
+       ! the first two mid points (e.g. between -90 and -89). In all other
+       ! case, we calculate it from the previously calculated left edge.
+       IF ( PRESENT(EDGE4) ) THEN
+          IF ( Mid4(1) == Edge4(1) ) THEN
+             Edge4(2) = Mid4(1) + ( Mid4(2) - Mid4(1) ) / 2.0
+             PoleMid  = .TRUE.
+          ELSE
+             Edge4(2) = Mid4(1) + Mid4(1) - Edge4(1)
+             PoleMid  = .FALSE.
+          ENDIF
+   
+          ! Sequentially calculate the right edge from the previously 
+          ! calculated left edge.
+          DO I = 2, nMid
+             Edge4(I+1) = Mid4(I) + Mid4(I) - Edge4(I)
+          ENDDO
+   
+          ! Error check: max. lat edge must not exceed +90!
+          IF ( Edge4(nMId+1) > 90.01 .AND. AXIS == 2 ) THEN
+             IF ( PoleMid ) THEN
+                Edge4(nMid+1) = 90.0
+             ELSE
+                PRINT *, 'Uppermost latitude edge above 90 deg north!'
+                PRINT *, Edge4
+                RC = -999; RETURN
+             ENDIF
+          ENDIF
 
+       ! Real8
+       ELSE
+          IF ( Mid8(1) == Edge8(1) ) THEN
+             Edge8(2) = Mid8(1) + ( Mid8(2) - Mid8(1) ) / 2.0d0
+             PoleMid  = .TRUE.
+          ELSE
+             Edge8(2) = Mid8(1) + Mid8(1) - Edge8(1)
+             PoleMid  = .FALSE.
+          ENDIF
+   
+          ! Sequentially calculate the right edge from the previously 
+          ! calculated left edge.
+          DO I = 2, nMid
+             Edge8(I+1) = Mid8(I) + Mid8(I) - Edge8(I)
+          ENDDO
+   
+          ! Error check: max. lat edge must not exceed +90!
+          IF ( Edge8(nMId+1) > 90.01d0 .AND. AXIS == 2 ) THEN
+             IF ( PoleMid ) THEN
+                Edge8(nMid+1) = 90.0d0
+             ELSE
+                PRINT *, 'Uppermost latitude edge above 90 deg north!'
+                PRINT *, Edge8
+                RC = -999; RETURN
+             ENDIF
+          ENDIF
+       ENDIF
     ENDIF
 
     ! Return w/ success
     RC = 0 
 
-  END SUBROUTINE NC_GET_GRID_EDGES_DP 
+  END SUBROUTINE NC_GET_GRID_EDGES_C
 !EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
@@ -1728,6 +1958,7 @@ CONTAINS
 !
     CHARACTER(LEN=255)   :: stdname
     CHARACTER(LEN=255)   :: a_name    ! netCDF attribute name
+    INTEGER              :: a_type    ! netCDF attribute type
     LOGICAL              :: ok
 
     !======================================================================
@@ -1747,7 +1978,8 @@ CONTAINS
 
     ! Get standard name
     a_name = "standard_name"
-    IF ( .NOT. NcDoes_Attr_Exist ( fID, TRIM(levName), TRIM(a_Name) ) ) THEN
+    IF ( .NOT. NcDoes_Attr_Exist ( fID,          TRIM(levName),     &
+                                   TRIM(a_Name), a_type         ) ) THEN
        WRITE(*,*) 'Cannot find level attribute ', TRIM(a_name), ' in variable ', &
                   TRIM(levName), ' - File: ', TRIM(ncFile), '!'
        RC = -999
@@ -1890,6 +2122,7 @@ CONTAINS
     CHARACTER(LEN=255)   :: formula, ThisUnit
     CHARACTER(LEN=255)   :: aname, bname, psname, p0name
     CHARACTER(LEN=255)   :: a_name    ! netCDF attribute name
+    INTEGER              :: a_type    ! netCDF attribute type
 
     !======================================================================
     ! NC_GET_SIG_FROM_HYBRID begins here
@@ -1919,7 +2152,8 @@ CONTAINS
     
     ! Get formula 
     a_name = "formula_terms"
-    IF ( .NOT. NcDoes_Attr_Exist ( fID, TRIM(levName), TRIM(a_name) ) ) THEN
+    IF ( .NOT. NcDoes_Attr_Exist ( fID,          TRIM(levName),            &
+                                   TRIM(a_name), a_type         ) ) THEN
        WRITE(*,*) 'Cannot find attribute ', TRIM(a_name), ' in variable ', &
                   TRIM(levName)
        RC = -999
@@ -1988,7 +2222,7 @@ CONTAINS
     ! Read ps 
     !--------
     CALL NC_READ_ARR( fID, TRIM(psname), lon1, lon2, lat1, &
-                      lat2, 0, 0, time,  time, ps,   thisUnit, RC )
+                      lat2, 0, 0, time,  time, ps, VarUnit=thisUnit, RC=RC )
     IF ( RC /= 0 ) RETURN
 
     !------------------------------------------------------------------------
@@ -1998,7 +2232,7 @@ CONTAINS
     ! top of atmosphere). 
     !------------------------------------------------------------------------
     a_name = "positive"
-    IF ( NcDoes_Attr_Exist ( fID, TRIM(levName), TRIM(a_name) ) ) THEN
+    IF ( NcDoes_Attr_Exist( fID, TRIM(levName), TRIM(a_name), a_type ) ) THEN
        CALL NcGet_Var_Attributes( fID, TRIM(levName), TRIM(a_name), formula )
        IF ( TRIM(formula) == 'up' ) THEN
           dir = 1
@@ -3396,5 +3630,69 @@ CONTAINS
                 ( TMP_MIN   / 60d0 ) + ( TMP_SEC / 3600d0 )
 
   END FUNCTION GET_TAU0
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: nc_ismodellevels 
+!
+! !DESCRIPTION: Function NC\_ISMODELLEVELS returns true if (and only if) the 
+!  long name of the level variable name of the given file ID contains the 
+!  character "GEOS-Chem level". 
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION NC_ISMODELLEVEL( fID, lev_name ) RESULT ( IsModelLevel ) 
+!
+! !USES:
+!
+#   include "netcdf.inc"
+!
+! !INPUT PARAMETERS: 
+!
+    INTEGER,          INTENT(IN) :: fID        ! file ID 
+    CHARACTER(LEN=*), INTENT(IN) :: lev_name   ! level variable name
+!
+! !RETURN VALUE:
+!
+    LOGICAL                      :: IsModelLevel 
+!
+! !REVISION HISTORY:
+!  12 Dec 2014 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL                :: HasLngN
+    CHARACTER(LEN=255)     :: a_name, LngName
+    INTEGER                :: a_type
+
+    !=======================================================================
+    ! NC_ISMODELLEVEL begins here!
+    !=======================================================================
+
+    ! Init
+    IsModelLevel = .FALSE.
+
+    ! Check if there is a long_name attribute 
+    a_name = "long_name"
+    HasLngN = Ncdoes_Attr_Exist ( fId, TRIM(lev_name), TRIM(a_name), a_type )
+
+    ! Only if attribute exists...
+    IF ( HasLngN ) THEN
+       ! Read attribute
+       CALL NcGet_Var_Attributes( fID, TRIM(lev_name), TRIM(a_name), LngName )
+
+       ! See if this is a GEOS-Chem model level
+       IF ( INDEX(TRIM(LngName),"GEOS-Chem level") > 0 ) THEN
+          IsModelLevel = .TRUE.
+       ENDIF
+    ENDIF
+
+  END FUNCTION NC_ISMODELLEVEL 
 !EOC
 END MODULE NCDF_MOD

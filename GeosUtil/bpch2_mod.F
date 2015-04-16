@@ -18,8 +18,9 @@
       USE inquireMod, ONLY : findFreeLUN
       USE inquireMod, ONLY : I_Am_UnOPENed
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
-!#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -43,7 +44,13 @@
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: GET_TAU0_6A
-
+!
+! !REMARKS:
+!  ###########################################################################
+!  ##### BINARY PUNCH INPUT IS BEING PHASED OUT.  MOST INPUT IS NOW READ #####
+!  ##### FROM COARDS-COMPLIANT netCDF FILES VIA HEMCO (bmy, 4/1/15)      #####
+!  ###########################################################################
+!
 ! !REVISION HISTORY:
 !  (1 ) Added routine GET_TAU0 (bmy, 7/20/00)
 !  (2 ) Added years 1985-2001 for routine GET_TAU0 (bmy, 8/1/00)
@@ -87,6 +94,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  19 Jul 2012 - R. Yantosca - Bug fix in GET_NAME_EXT_2D
 !  03 Aug 2012 - R. Yantosca - Reference file LUN routines from inquireMod.F90
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -120,6 +128,12 @@
 ! !OUTPUT PARAMETERS:
 !
       CHARACTER(LEN=80), INTENT(OUT), OPTIONAL :: TITLE     ! File title string
+!
+! !REMARKS:
+!  ###########################################################################
+!  ##### BINARY PUNCH INPUT IS BEING PHASED OUT.  MOST INPUT IS NOW READ #####
+!  ##### FROM COARDS-COMPLIANT netCDF FILES VIA HEMCO (bmy, 4/1/15)      #####
+!  ###########################################################################
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now references ERROR_STOP from "error_mod.f" (bmy, 10/15/02)
@@ -217,6 +231,12 @@
 !
       CHARACTER(LEN=80), INTENT(OUT), OPTIONAL :: TITLE     ! File title string
 !
+! !REMARKS:
+!  ###########################################################################
+!  ##### BINARY PUNCH INPUT IS BEING PHASED OUT.  MOST INPUT IS NOW READ #####
+!  ##### FROM COARDS-COMPLIANT netCDF FILES VIA HEMCO (bmy, 4/1/15)      #####
+!  ###########################################################################
+!
 ! !REVISION HISTORY:
 !  30 Jul 2002 - R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
@@ -285,6 +305,12 @@
       INTEGER,           INTENT(IN) :: IUNIT   ! LUN for file I/O
       CHARACTER(LEN=80), INTENT(IN) :: TITLE   ! Top-of-file title string
 !
+! !REMARKS:
+!  ###########################################################################
+!  ##### BINARY PUNCH INPUT IS BEING PHASED OUT.  MOST INPUT IS NOW READ #####
+!  ##### FROM COARDS-COMPLIANT netCDF FILES VIA HEMCO (bmy, 4/1/15)      #####
+!  ###########################################################################
+!
 ! !REVISION HISTORY:
 !  (1 ) Added this routine to "bpch_mod.f" (bmy, 6/28/00)
 !  (2 ) Use IOS /= 0 criterion to also check for EOF condition (bmy, 9/12/00)
@@ -349,8 +375,8 @@
       CHARACTER(LEN=40), INTENT(IN) :: CATEGORY         ! Diag. category name
       INTEGER,           INTENT(IN) :: NTRACER          ! Tracer index #
       CHARACTER(LEN=40), INTENT(IN) :: UNIT             ! Unit string
-      REAL*8,            INTENT(IN) :: TAU0             ! TAU values @ start &
-      REAL*8,            INTENT(IN) :: TAU1             !  end of diag interval
+      REAL(f8),          INTENT(IN) :: TAU0             ! TAU values @ start &
+      REAL(f8),          INTENT(IN) :: TAU1             !  end of diag interval
       CHARACTER(LEN=40), INTENT(IN) :: RESERVED         ! Extra string
       INTEGER,           INTENT(IN) :: NI, NJ, NL       ! Dimensions of ARRAY
       INTEGER,           INTENT(IN) :: IFIRST           ! (I,J,L) indices of
@@ -358,12 +384,19 @@
       INTEGER,           INTENT(IN) :: LFIRST           !  in Fortran notation
       REAL*4,            INTENT(IN) :: ARRAY(NI,NJ,NL)  ! Data array
 !
+! !REMARKS:
+!  ############################################################################
+!  ##### BINARY PUNCH OUTPUT IS BEING PHASED OUT.  IT WILL BE COMPLETELY  #####
+!  ##### REMOVED IN THE VERISON FOLLOWING GEOS-Chem v10-01. (bmy, 4/1/15) #####
+!  ############################################################################
+!
 ! !REVISION HISTORY:
 !  (1 ) Added indices to IOERROR calls (e.g. "bpch2:1", "bpch2:2", etc.) 
 !        (bmy, 10/4/99)
 !  (2 ) Added this routine to "bpch_mod.f" (bmy, 6/28/00)
 !  (3 ) Use IOS /= 0 criterion to also check for EOF condition (bmy, 9/12/00)
 !  (4 ) Now reference IOERROR from "file_mod.f". (bmy, 6/26/02)
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -439,13 +472,19 @@
       CHARACTER(LEN=*),  INTENT(IN)  :: FILENAME         ! Bpch file to read
       CHARACTER(LEN=*),  INTENT(IN)  :: CATEGORY_IN      ! Diag. category name
       INTEGER,           INTENT(IN)  :: TRACER_IN        ! Tracer index #
-      REAL*8,            INTENT(IN)  :: TAU0_IN          ! TAU timestamp 
+      REAL(f8),          INTENT(IN)  :: TAU0_IN          ! TAU timestamp 
       INTEGER,           INTENT(IN)  :: IX, JX, LX       ! Dimensions of ARRAY
       LOGICAL, OPTIONAL, INTENT(IN)  :: QUIET            ! Don't print output
 !
 ! !OUTPUT PARAMETERS: 
 !
       REAL*4,            INTENT(OUT) :: ARRAY(IX,JX,LX)  ! Data array from file
+!
+! !REMARKS:
+!  ###########################################################################
+!  ##### BINARY PUNCH INPUT IS BEING PHASED OUT.  MOST INPUT IS NOW READ #####
+!  ##### FROM COARDS-COMPLIANT netCDF FILES VIA HEMCO (bmy, 4/1/15)      #####
+!  ###########################################################################
 !
 ! !REVISION HISTORY:
 !  (1 ) Assumes that we are reading in a global-size data block.
@@ -476,6 +515,8 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  01 Apr 2015 - R. Yantosca - Increase size of TEMPARRAY for nested-grid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -498,8 +539,19 @@
       ! Also use the same limits for GRID025x03125.  We do not need to set
       ! the global limits since we will never run the model at the full
       ! global resolution, due to memory restrictions. (bmy, 5/25/12)
-#if   defined( GRID05x0666 ) || defined( GRID025x03125 )
-      REAL*4             :: TEMPARRAY(540,361,73)   
+!------------------------------------------------------------------------------
+! Prior to 4/1/15:
+! Update for nested-grid (lzh, 4/1/15)
+!#if   defined( GRID05x0666 ) || defined( GRID025x03125 )
+!     REAL*4             :: TEMPARRAY(540,361,73)   
+!#else
+!      REAL*4             :: TEMPARRAY(360,181,73)   
+!#endif
+!------------------------------------------------------------------------------
+#if   defined( GRID05x0666 )
+      REAL*4             :: TEMPARRAY(540,361,73)  
+#elif defined( GRID025x03125 ) 
+      REAL*4             :: TEMPARRAY(1152,721,73)  
 #else
       REAL*4             :: TEMPARRAY(360,181,73)   
 #endif
@@ -510,7 +562,7 @@
       INTEGER            :: NI,        NJ,        NL
       INTEGER            :: IFIRST,    JFIRST,    LFIRST
       REAL*4             :: LONRES,    LATRES
-      REAL*8             :: ZTAU0,     ZTAU1
+      REAL(f8)           :: ZTAU0,     ZTAU1
       CHARACTER(LEN=20)  :: MODELNAME
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT     
@@ -972,7 +1024,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8                        :: THIS_TAU0   ! TAU0 timestamp
+      REAL(f8)                        :: THIS_TAU0   ! TAU0 timestamp
 !
 ! !REMARKS:
 !  TAU0 is hours elapsed since 00:00 GMT on 01 Jan 1985.
@@ -986,16 +1038,15 @@
 !  (5 ) Now references JULDAY from "julday_mod.f" (bmy, 11/20/01)
 !  (6 ) Now references ERROR_STOP from "error_mod.f"  (bmy, 10/15/02)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                       :: TMP_HOUR, TMP_MIN, TMP_SEC
-      REAL*8                        :: DAYS
-
-      ! Return value
+      INTEGER  :: TMP_HOUR, TMP_MIN, TMP_SEC
+      REAL(f8) :: DAYS
       
       !=================================================================
       ! GET_TAU0_6A begins here!
@@ -1033,12 +1084,12 @@
       ENDIF 
 
       ! Number of days since midnight on 1/1/1985
-      THIS_TAU0 = JULDAY( YEAR, MONTH, DBLE( DAY ) ) - 2446066.5d0
+      THIS_TAU0 = JULDAY( YEAR, MONTH, DBLE( DAY ) ) - 2446066.5e+0_f8
 
       ! Multiply by 24 to get hours since 1/1/1985
       ! Also add in the hours elapsed since midnight on this date
-      THIS_TAU0 = ( THIS_TAU0 * 24d0 ) + ( TMP_HOUR         ) + 
-     &            ( TMP_MIN   / 60d0 ) + ( TMP_SEC / 3600d0 )
+      THIS_TAU0 = ( THIS_TAU0 * 24e+0_f8 ) + ( TMP_HOUR             ) + 
+     &            ( TMP_MIN   / 60e+0_f8 ) + ( TMP_SEC / 3600e+0_f8 )
 
       ! Return to calling program
       END FUNCTION GET_TAU0_6A

@@ -102,7 +102,7 @@ MODULE HCOX_SoilNOx_Mod
 !                                  module. Now a HEMCO extension.
 !  28 Jul 2014 - C. Keller       - Now allow DRYCOEFF to be read through 
 !                                  configuration file (as setting)
-!
+!  11 Dec 2014 - M. Yannetti     - Changed REAL*8 to REAL(hp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -112,125 +112,131 @@ MODULE HCOX_SoilNOx_Mod
   INTEGER                       :: ExtNr          ! Extension number
   INTEGER                       :: IDTNO          ! NO tracer ID
   LOGICAL                       :: LFERTILIZERNOX ! Use fertilizer NOx?
-  REAL*8                        :: FERT_SCALE     ! fertilizer scale factor
+  REAL(hp)                      :: FERT_SCALE     ! fertilizer scale factor
 
   ! # of MODIS/Koppen biome types
   INTEGER, PARAMETER            :: NBIOM = 24 
 
   ! Dry period length (from restart)
-  REAL(hp), ALLOCATABLE, TARGET :: DRYPERIOD    (:,:  )
+  REAL(sp), ALLOCATABLE, TARGET :: DRYPERIOD    (:,:  )
 
   ! Pulse factors (from restart)
-  REAL(hp), ALLOCATABLE, TARGET :: PFACTOR      (:,:  )
-  REAL(hp), ALLOCATABLE, TARGET :: GWET_PREV    (:,:  )
+  REAL(sp), ALLOCATABLE, TARGET :: PFACTOR      (:,:  )
+  REAL(sp), ALLOCATABLE, TARGET :: GWET_PREV    (:,:  )
 
   ! Deposition reservoir (from restart)
-  REAL(hp), POINTER             :: DEP_RESERVOIR(:,:  ) => NULL()
+  REAL(sp), POINTER             :: DEP_RESERVOIR(:,:  ) => NULL()
 
-  ! Instantaneous soil NOx and fertilizer
-  REAL*8,  ALLOCATABLE          :: INST_SOIL    (:,:  )
-  REAL*8,  ALLOCATABLE          :: INST_FERT    (:,:  )
+!  ! Instantaneous soil NOx and fertilizer
+!  REAL(hp),  ALLOCATABLE        :: INST_SOIL    (:,:  )
+!  REAL(hp),  ALLOCATABLE        :: INST_FERT    (:,:  )
 
   ! NOx in the canopy
-  REAL*8,  ALLOCATABLE          :: CANOPYNOX        (:,:,:)
+  REAL(hp),  ALLOCATABLE        :: CANOPYNOX        (:,:,:)
 
   ! MODIS landtype
   TYPE MODL
-     REAL(hp), POINTER          :: VAL              (:,:)
+     REAL(sp), POINTER          :: VAL              (:,:)
   ENDTYPE MODL
   TYPE(MODL), POINTER           :: LANDTYPE         (:    ) => NULL()
 
   ! Soil fertilizer (kg/m3) 
-  REAL(hp), POINTER             :: SOILFERT         (:,:  ) => NULL()
+  REAL(sp), POINTER             :: SOILFERT         (:,:  ) => NULL()
 
   ! Fraction of arid and non-arid land
-  REAL(hp), POINTER             :: CLIMARID         (:,:  ) => NULL()
-  REAL(hp), POINTER             :: CLIMNARID        (:,:  ) => NULL()
+  REAL(sp), POINTER             :: CLIMARID         (:,:  ) => NULL()
+  REAL(sp), POINTER             :: CLIMNARID        (:,:  ) => NULL()
 
   ! DRYCOEFF (if read from settings in configuration file)
-  REAL(dp), ALLOCATABLE, TARGET :: DRYCOEFF(:)
-  ! Max. # of allowed drycoeff vars
-  INTEGER,  PARAMETER           :: MaxDryCoeff = 50 
+  REAL(hp), ALLOCATABLE, TARGET :: DRYCOEFF(:)
+
+  ! Diagnostics to write out the pulse (testing only)
+#if defined(DEVEL) 
+  REAL(sp), ALLOCATABLE, TARGET :: DGN_PULSE    (:,:  )
+#endif
 !
 ! !DEFINED PARAMETERS:
 !
+  ! Max. # of allowed drycoeff vars
+  INTEGER,  PARAMETER           :: MaxDryCoeff = 50 
+
   ! Canopy wind extinction coefficients
   ! (cf. Yienger & Levy [1995], Sec 5), now a function of the
   ! MODIS/KOPPEN biometype (J.D. Maasakkers)
-  REAL*8,  PARAMETER, PRIVATE :: SOILEXC(NBIOM) =               (/ & 
+  REAL(hp),  PARAMETER, PRIVATE :: SOILEXC(NBIOM) =                 (/ & 
         0.10, 0.50, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 1.00,    &
         1.00, 1.00, 1.00, 2.00, 4.00, 4.00, 4.00, 4.00, 4.00, 4.00,    &
         4.00, 2.00, 0.10, 2.00                                       /)
 
   ! Steinkamp and Lawrence, 2011 A values, wet biome coefficients
   ! for each of the 24 soil biomes [ng N/m2/s].
-  REAL*8,  PARAMETER, PRIVATE  :: A_BIOME(NBIOM) =              (/ &
+  REAL(hp),  PARAMETER, PRIVATE  :: A_BIOME(NBIOM) =                (/ &
         0.00, 0.00, 0.00, 0.00, 0.00, 0.06, 0.09, 0.09, 0.01, 0.84,    &
         0.84, 0.24, 0.42, 0.62, 0.03, 0.36, 0.36, 0.35, 1.66, 0.08,    &
         0.44, 0.57, 0.57, 0.57                                       /)
 
   ! "A" coefficients for converting surface temp to soil temp
   ! for each of the 24 soil biomes
-  REAL*8,  PARAMETER, PRIVATE :: SOILTA(NBIOM)  =               (/ &
+  REAL(hp),  PARAMETER, PRIVATE :: SOILTA(NBIOM)  =                 (/ &
         0.00, 0.92, 0.00, 0.66, 0.66, 0.66, 0.66, 0.66, 0.66, 0.66,    &
         0.66, 0.66, 0.66, 0.66, 0.84, 0.84, 0.84, 0.84, 0.84, 0.84,    &
         0.84, 1.03, 1.03, 1.03                                       /)
 
   ! "B" coefficients for converting surface temp to soil temp
   ! for each of the 24 soil biomes
-  REAL*8,  PARAMETER, PRIVATE :: SOILTB(NBIOM)  =               (/ &
+  REAL(hp),  PARAMETER, PRIVATE :: SOILTB(NBIOM)  =                 (/ &
         0.00, 4.40, 0.00, 8.80, 8.80, 8.80, 8.80, 8.80, 8.80, 8.80,    &
         8.80, 8.80, 8.80, 8.80, 3.60, 3.60, 3.60, 3.60, 3.60, 3.60,    &
         3.60, 2.90, 2.90, 2.90                                       /)
 
   ! MODIS/Koppen resistance values
-  INTEGER, PARAMETER, PRIVATE :: SNIMODIS(NBIOM) =              (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIMODIS(NBIOM) =                  (/ &
            1,    2,    3,    4,    5,    6,    7,    8,    9,   10,    &
           11,   12,   13,   14,   15,   16,   17,   18,   19,   20,    &
           21,   22,   23,   24                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRI(NBIOM) =                 (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRI(NBIOM) =                     (/ &
         9999,  200, 9999, 9999, 9999, 9999,  200,  200,  200,  200,    &
          200,  200,  200,  200,  200,  200,  200,  400,  400,  200,    &
          200,  200, 9999,  200                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRLU(NBIOM) =                (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRLU(NBIOM) =                    (/ &
         9999, 9000, 9999, 9999, 9999, 9999, 9000, 9000, 9000, 9000,    &
         9000, 9000, 9000, 9000, 9000, 1000, 9000, 9000, 9000, 9000,    &
         1000, 9000, 9999, 9000                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRAC(NBIOM) =                (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRAC(NBIOM) =                    (/ &
            0,  300,    0,    0,    0,    0,  100,  100,  100,  100,    &
          100,  100,  100,  100, 2000, 2000, 2000, 2000, 2000, 2000,    &
         2000,  200,  100,  200                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRGSS(NBIOM) =               (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRGSS(NBIOM) =                   (/ &
            0,    0,  100, 1000,  100, 1000,  350,  350,  350,  350,    &
          350,  350,  350,  350,  500,  200,  500,  500,  500,  500,    &
          200,  150,  400,  150                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRGSO(NBIOM) =               (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRGSO(NBIOM) =                   (/ &
         2000, 1000, 3500,  400, 3500,  400,  200,  200,  200,  200,    &
          200,  200,  200,  200,  200,  200,  200,  200,  200,  200,    &
          200,  150,  300,  150                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRCLS(NBIOM) =               (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRCLS(NBIOM) =                   (/ &
        9999, 2500, 9999, 9999, 9999, 9999, 2000, 2000, 2000, 2000,     &
        2000, 2000, 2000, 2000, 2000, 9999, 2000, 2000, 2000, 2000,     &
        9999, 2000, 9999, 2000                                        /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRCLO(NBIOM) =               (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRCLO(NBIOM) =                   (/ &
        9999, 1000, 1000, 9999, 1000, 9999, 1000, 1000, 1000, 1000,     & 
        1000, 1000, 1000, 1000, 1000, 9999, 1000, 1000, 1000, 1000,     &
        9999, 1000, 9999, 1000                                        /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIVSMAX(NBIOM) =              (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIVSMAX(NBIOM) =                  (/ &
          10,  100,  100,   10,  100,   10,  100,  100,  100,  100,     &
         100,  100,  100,  100,  100,  100,  100,  100,  100,  100,     &
         100,  100,  100,  100                                        /)
 
 !  ! Conversion factor from kg NO to ng N
-!  REAL*8,  PARAMETER, PRIVATE :: kgNO_to_ngN = 4.666d11 !(14/30 * 1e12)
+!  REAL(hp),  PARAMETER, PRIVATE :: kgNO_to_ngN = 4.666d11 !(14/30 * 1e12)
 
 CONTAINS
 !EOC
@@ -255,6 +261,7 @@ CONTAINS
     USE HCO_FLuxArr_Mod,    ONLY : HCO_EmisAdd
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE HCO_ExtList_Mod,    ONLY : GetExtOpt
+    USE HCO_Restart_Mod,    ONLY : HCO_RestartGet
 !
 ! !INPUT PARAMETERS:
 !
@@ -275,19 +282,18 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: I, J, N
-    REAL(hp), TARGET       :: FLUX_2D(HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET       :: DIAG   (HcoState%NX,HcoState%NY)
-    REAL*8                 :: FERTDIAG, DEP_FERT, SOILFRT
-    REAL*4                 :: TSEMIS
-    REAL*8                 :: UNITCONV, IJFLUX
-    REAL(dp), ALLOCATABLE  :: VecDp(:)
-    REAL(hp), POINTER      :: TmpArr(:,:) => NULL()
-    REAL(hp), POINTER      :: Arr2D (:,:) => NULL()
-    LOGICAL, SAVE          :: FIRST = .TRUE.
-    LOGICAL                :: aIR, FOUND
-    CHARACTER(LEN= 31)     :: DiagnName
-    CHARACTER(LEN=255)     :: MSG, DMY
+    INTEGER                  :: I, J, N
+    REAL(hp), TARGET         :: FLUX_2D(HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET         :: DIAG   (HcoState%NX,HcoState%NY)
+    REAL(hp)                 :: FERTDIAG, DEP_FERT, SOILFRT
+    REAL*4                   :: TSEMIS
+    REAL(hp)                 :: UNITCONV, IJFLUX
+    REAL(dp), ALLOCATABLE    :: VecDp(:)
+    REAL(hp), POINTER        :: Arr2D (:,:) => NULL()
+    LOGICAL, SAVE            :: FIRST = .TRUE.
+    LOGICAL                  :: aIR, FOUND
+    CHARACTER(LEN= 31)       :: DiagnName
+    CHARACTER(LEN=255)       :: MSG, DMY
 
     ! For manual diagnostics
     LOGICAL, SAVE            :: DoDiagn = .FALSE.
@@ -308,7 +314,7 @@ CONTAINS
     aIR   = am_I_Root
 
     ! Conversion factor from ng N to kg NO
-    UNITCONV = 1.0d-12 / 14.0d0 * HcoState%Spc(IDTNO)%EmMW_g
+    UNITCONV = 1.0e-12_hp / 14.0e+0_hp * HcoState%Spc(IDTNO)%EmMW_g
 
     !-----------------------------------------------------------------
     ! On first call, set pointers to all arrays needed by SoilNOx
@@ -371,39 +377,59 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
     
        !---------------------------------------------------------------
-       ! Also initialize variables obtained from the restart file specified 
-       ! in the configuration file. 
+       ! Fill restart variables. Restart variables can be specified 
+       ! in the HEMCO configuration file. In an ESMF environment, they
+       ! can also be defined as internal state fields. The internal 
+       ! state fields take precedence over fields read through the 
+       ! HEMCO interface. 
        !---------------------------------------------------------------
 
        ! DEP_RESERVOIR. Read in kg NO/m3.
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_DEPRES', TmpArr, RC )
+       CALL HCO_RestartGet( am_I_Root, HcoState, 'DEP_RESERVOIR', &
+                            DEP_RESERVOIR, RC,   FOUND=FOUND       )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       DEP_RESERVOIR(:,:) = TmpArr(:,:)
-       TmpArr => NULL()
-
+       IF ( .NOT. FOUND ) THEN
+          DEP_RESERVOIR = 1.0e-4_sp
+          IF ( am_I_Root ) THEN
+             MSG = 'Cannot find DEP_RESERVOIR restart variable - initialized to 1e-4!'
+             CALL HCO_WARNING(MSG,RC)
+          ENDIF
+       ENDIF
+    
        ! GWET_PREV [unitless]
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_GWET', TmpArr, RC )
+       CALL HCO_RestartGet( am_I_Root, HcoState, 'GWET_PREV', &
+                            GWET_PREV, RC,   FOUND=FOUND       )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       GWET_PREV(:,:) = TmpArr(:,:)
-       TmpArr => NULL()
-          
+       IF ( .NOT. FOUND ) THEN
+          GWET_PREV = 0.0_sp
+          IF ( am_I_Root ) THEN
+             MSG = 'Cannot find GWET_PREV restart variable - initialized to 0.0!'
+             CALL HCO_WARNING(MSG,RC)
+          ENDIF
+       ENDIF
+
        ! PFACTOR [unitless]
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_PFACT', TmpArr, RC )
+       CALL HCO_RestartGet( am_I_Root, HcoState, 'PFACTOR', &
+                            PFACTOR,   RC,   FOUND=FOUND     )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       PFACTOR(:,:) = TmpArr(:,:)
-       TmpArr => NULL()
+       IF ( .NOT. FOUND ) THEN
+          PFACTOR = 1.0_sp
+          IF ( am_I_Root ) THEN
+             MSG = 'Cannot find PFACTOR restart variable - initialized to 1.0!'
+             CALL HCO_WARNING(MSG,RC)
+          ENDIF
+       ENDIF
    
        ! DRYPERIOD [unitless]
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_DRYPER', TmpArr, RC )
+       CALL HCO_RestartGet( am_I_Root, HcoState, 'DRYPERIOD', &
+                            DRYPERIOD, RC,   FOUND=FOUND     )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       DRYPERIOD(:,:) = TmpArr(:,:)
-       TmpArr => NULL()
-
-       ! Print a warning
-       IF ( am_I_Root ) THEN
-          MSG = 'Restart variables obtained from restart file - ' // &
-                'I hope the correct time stamp is used!'
-          CALL HCO_WARNING( MSG, RC )
+       IF ( .NOT. FOUND ) THEN
+          DRYPERIOD = 0.0_sp
+          IF ( am_I_Root ) THEN
+             MSG = 'Cannot find DRYPERIOD restart variable - initialized to 0.0!'
+             CALL HCO_WARNING(MSG,RC)
+          ENDIF
        ENDIF
 
        ! Check if ExtState variables DRYCOEFF is defined. Otherwise, try to
@@ -439,8 +465,8 @@ CONTAINS
 
     ! Init
     TSEMIS  = HcoState%TS_EMIS
-    FLUX_2D = 0d0 
-    IF(DoDiagn) DIAG = 0d0 
+    FLUX_2D = 0e+0_hp 
+    IF(DoDiagn) DIAG = 0e+0_hp 
 
     ! Loop over each land grid-box, removed loop over landpoints
 !$OMP PARALLEL DO                                               &
@@ -465,7 +491,7 @@ CONTAINS
        IF ( LFERTILIZERNOX ) THEN
           SOILFRT =  SOILFERT( I, J )  
        ELSE
-          SOILFRT = 0d0
+          SOILFRT = 0e+0_hp
        ENDIF
 
        ! Convert to kg NO/m2/s
@@ -473,7 +499,7 @@ CONTAINS
 
        ! Put in constraint if dry period gt 1 yr, keep at 1yr to
        ! avoid unrealistic pulse
-       IF ( DRYPERIOD(I,J) > 8760d0 ) DRYPERIOD(I,J) = 8760d0
+       IF ( DRYPERIOD(I,J) > 8760e+0_sp ) DRYPERIOD(I,J) = 8760e+0_sp
  
        ! Return NO emissions from soils [kg NO/m2/s]
        CALL SOIL_NOX_EMISSION( ExtState,                       &
@@ -507,7 +533,7 @@ CONTAINS
     ! Eventually update diagnostics
     IF ( Diagn_AutoFillLevelDefined(2) ) THEN
        Arr2D => FLUX_2D
-       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                           Cat=-1, Hier=-1, HcoID=IDTNO,     &
                           AutoFill=1, Array2D=Arr2D, RC=RC   )
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -523,7 +549,7 @@ CONTAINS
     IF ( DoDiagn ) THEN
        Arr2D => DIAG
        DiagnName = 'FERTILIZER_NO'
-       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, & 
+       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, & 
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL()
@@ -554,6 +580,7 @@ CONTAINS
 !
     USE HCO_ExtList_Mod,        ONLY : GetExtNr, GetExtOpt
     USE HCO_STATE_MOD,          ONLY : HCO_GetExtHcoID
+    USE HCO_Restart_Mod,        ONLY : HCO_RestartDefine
 !
 ! !ARGUMENTS:
 !
@@ -659,17 +686,17 @@ CONTAINS
        RETURN
     ENDIF
 
-    ALLOCATE( INST_SOIL    ( I, J        ), STAT=AS )
-    IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR('INST_SOIL',     RC )
-       RETURN
-    ENDIF
-
-    ALLOCATE( INST_FERT    ( I, J        ), STAT=AS )
-    IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR('INST_FERT',     RC )
-       RETURN
-    ENDIF
+!    ALLOCATE( INST_SOIL    ( I, J        ), STAT=AS )
+!    IF ( AS /= 0 ) THEN
+!       CALL HCO_ERROR('INST_SOIL',     RC )
+!       RETURN
+!    ENDIF
+!
+!    ALLOCATE( INST_FERT    ( I, J        ), STAT=AS )
+!    IF ( AS /= 0 ) THEN
+!       CALL HCO_ERROR('INST_FERT',     RC )
+!       RETURN
+!    ENDIF
 
     ALLOCATE( DEP_RESERVOIR( I, J        ), STAT=AS )
     IF ( AS /= 0 ) THEN
@@ -694,83 +721,50 @@ CONTAINS
     ENDDO
 
     ! Zero arrays
-    DRYPERIOD     = 0.0_hp
-    PFACTOR       = 0.0_hp
-    GWET_PREV     = 0.0_hp
-    INST_SOIL     = 0d0
-    INST_FERT     = 0d0
-    CANOPYNOX         = 0d0
-    DEP_RESERVOIR = 0.0_hp
+    DRYPERIOD     = 0.0_sp
+    PFACTOR       = 0.0_sp
+    GWET_PREV     = 0.0_sp
+    DEP_RESERVOIR = 0.0_sp
+!    INST_SOIL     = 0e+0_hp
+!    INST_FERT     = 0e+0_hp
+    CANOPYNOX     = 0e+0_hp
+
+#if defined(DEVEL)
+    ALLOCATE( DGN_PULSE(I,J) )
+    DGN_PULSE = 0.0_sp
+#endif
 
     ! ---------------------------------------------------------------------- 
-    ! Set diagnostics 
-    ! ---------------------------------------------------------------------- 
-    CALL Diagn_Create ( am_I_Root, HcoState,      &    
-                        cName      = 'PFACTOR',   &
-                        ExtNr      = ExtNr,       &
-                        Cat        = -1,          &
-                        Hier       = -1,          &
-                        HcoID      = IDTNO,       &
-                        SpaceDim   = 2,           &
-                        OutUnit    = 'unitless',  &
-                        WriteFreq  = 'End',       &
-                        AutoFill   = 0,           &
-                        Trgt2D     = PFACTOR, &
-                        cID        = II,          &
-                        RC         = RC            )
+    ! Set diagnostics
+    ! ----------------------------------------------------------------------
+    CALL HCO_RestartDefine( am_I_Root, HcoState, 'PFACTOR', &
+                            PFACTOR,   '1',      RC          )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+    CALL HCO_RestartDefine( am_I_Root, HcoState, 'DRYPERIOD', &
+                            DRYPERIOD, '1',      RC          )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create ( am_I_Root, HcoState,        &    
-                        cName      = 'DRYPERIOD',   &
-                        ExtNr      = ExtNr,         &
-                        Cat        = -1,            &
-                        Hier       = -1,            &
-                        HcoID      = IDTNO,         &
-                        SpaceDim   = 2,             &
-                        OutUnit    = 'unitless',    &
-                        WriteFreq  = 'End',         &
-                        AutoFill   = 0,             &
-                        Trgt2D     = DRYPERIOD, &
-                        cID        = II,            &
-                        RC         = RC              )
+    CALL HCO_RestartDefine( am_I_Root, HcoState, 'GWET_PREV', &
+                            GWET_PREV, '1',      RC          )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create ( am_I_Root, HcoState,        &    
-                        cName      = 'GWET_PREV',   &
-                        ExtNr      = ExtNr,         &
-                        Cat        = -1,            &
-                        Hier       = -1,            &
-                        HcoID      = IDTNO,         &
-                        SpaceDim   = 2,             &
-                        OutUnit    = 'unitless',    &
-                        WriteFreq  = 'End',         &
-                        AutoFill   = 0,             &
-                        Trgt2D     = GWET_PREV, &
-                        cID        = II,            &
-                        RC         = RC              )
+    CALL HCO_RestartDefine( am_I_Root,     HcoState, 'DEP_RESERVOIR', &
+                            DEP_RESERVOIR, 'kg/m3',  RC                )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create ( am_I_Root, HcoState,            &    
-                        cName      = 'DEP_RESERVOIR',   &
-                        ExtNr      = ExtNr,             &
-                        Cat        = -1,                &
-                        Hier       = -1,                &
-                        HcoID      = IDTNO,             &
-                        SpaceDim   = 2,                 &
-                        OutUnit    = 'kg/m3',           &
-                        WriteFreq  = 'End',             &
-                        AutoFill   = 0,                 &
-                        Trgt2D     = DEP_RESERVOIR, &
-                        cID        = II,                &
-                        RC         = RC                  )
+#if defined(DEVEL)
+    CALL HCO_RestartDefine( am_I_Root, HcoState, 'SOILNO_PULSE', &
+                            DGN_PULSE, '1',      RC                )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
+#endif 
+ 
     ! ---------------------------------------------------------------------- 
     ! Set HEMCO extensions variables 
     ! ---------------------------------------------------------------------- 
 
     ! Activate required met fields
-    ExtState%TSURFK%DoUse    = .TRUE. 
+    ExtState%T2M%DoUse       = .TRUE. 
     ExtState%GWETTOP%DoUse   = .TRUE. 
     ExtState%SUNCOSmid%DoUse = .TRUE. 
     ExtState%U10M%DoUse      = .TRUE. 
@@ -807,7 +801,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_SoilNOx_Final()
+  SUBROUTINE HCOX_SoilNOx_Final( am_I_Root, HcoState, RC )
+!
+! !USES
+!
+    USE HCO_Restart_Mod,  ONLY : HCO_RestartWrite
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   )  :: am_I_Root     ! Root CPU?
+    TYPE(HCO_State), POINTER        :: HcoState      ! HEMCO State obj
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(INOUT)  :: RC 
 !
 ! !REVISION HISTORY:
 !  05 Nov 2013 - C. Keller - Initial Version
@@ -825,12 +832,43 @@ CONTAINS
     ! HCOX_SoilNOx_FINAL begins here!
     !=================================================================
 
+    ! ----------------------------------------------------------------
+    ! Eventually copy internal values to ESMF internal state object
+    ! ----------------------------------------------------------------
+
+    ! DEP_RESERVOIR [kg/m3]
+    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
+                          'DEP_RESERVOIR', DEP_RESERVOIR, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! GWET_PREV [unitless]
+    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
+                          'GWET_PREV', GWET_PREV, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+          
+    ! PFACTOR [unitless]
+    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
+                          'PFACTOR', PFACTOR, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+   
+    ! DRYPERIOD [unitless]
+    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
+                          'DRYPERIOD', DRYPERIOD, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+#if defined(DEVEL)
+    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
+                          'SOILNO_PULSE', DGN_PULSE, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( ALLOCATED(DGN_PULSE) ) DEALLOCATE(DGN_PULSE)
+#endif
+
     ! Deallocate arrays
     IF ( ALLOCATED (DRYPERIOD    ) ) DEALLOCATE ( DRYPERIOD     )
     IF ( ALLOCATED (PFACTOR      ) ) DEALLOCATE ( PFACTOR       )
     IF ( ALLOCATED (GWET_PREV    ) ) DEALLOCATE ( GWET_PREV     )
-    IF ( ALLOCATED (INST_SOIL    ) ) DEALLOCATE ( INST_SOIL     )
-    IF ( ALLOCATED (INST_FERT    ) ) DEALLOCATE ( INST_FERT     )
+!    IF ( ALLOCATED (INST_SOIL    ) ) DEALLOCATE ( INST_SOIL     )
+!    IF ( ALLOCATED (INST_FERT    ) ) DEALLOCATE ( INST_FERT     )
     IF ( ALLOCATED (CANOPYNOX        ) ) DEALLOCATE ( CANOPYNOX         )
     IF ( ASSOCIATED(DEP_RESERVOIR) ) DEALLOCATE ( DEP_RESERVOIR )
     IF ( ALLOCATED (DRYCOEFF         ) ) DEALLOCATE ( DRYCOEFF          )
@@ -867,7 +905,7 @@ CONTAINS
 !
 ! !ARGUMENTS:
 !
-    REAL*8 :: FERT_SCALE
+    REAL(hp) :: FERT_SCALE
 !
 ! !REVISION HISTORY:
 !  11 Dec 2013 - C. Keller - Initial version 
@@ -916,20 +954,20 @@ CONTAINS
     REAL*4,  INTENT(IN)  :: TS_EMIS          ! Emission timestep [s]
     INTEGER, INTENT(IN)  :: I                ! grid box lon index 
     INTEGER, INTENT(IN)  :: J                ! grid box lat index 
-    REAL*8,  INTENT(IN)  :: DEPN             ! Dry Dep Fert term [kg/m2]
-    REAL*8,  INTENT(IN)  :: SOILFRT          ! Fertilizer emissions [kg/m2]
-    REAL*8,  INTENT(IN)  :: UNITCONV         ! ng N to kg NO 
+    REAL(hp),  INTENT(IN)  :: DEPN             ! Dry Dep Fert term [kg/m2]
+    REAL(hp),  INTENT(IN)  :: SOILFRT          ! Fertilizer emissions [kg/m2]
+    REAL(hp),  INTENT(IN)  :: UNITCONV         ! ng N to kg NO 
 
     !Input parameters for the canopy reduction factor
-    REAL*8,  INTENT(IN)  :: R_CANOPY(:)      ! Resist. of canopy to NOx [1/s]
+    REAL(hp),  INTENT(IN)  :: R_CANOPY(:)      ! Resist. of canopy to NOx [1/s]
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*8,   INTENT(OUT) :: SOILNOx         ! Soil NOx emissions [kg/m2/s]
-    REAL(hp), INTENT(OUT) :: GWET_PREV       ! Soil Moisture Prev timestep
-    REAL(hp), INTENT(OUT) :: DRYPERIOD       ! Dry period length in hours
-    REAL(hp), INTENT(OUT) :: PFACTOR         ! Pulsing Factor
-    REAL*8,   INTENT(OUT) :: FERTDIAG        ! Fert emissions [kg/m2/s]
+    REAL(hp),   INTENT(OUT) :: SOILNOx         ! Soil NOx emissions [kg/m2/s]
+    REAL(sp), INTENT(OUT) :: GWET_PREV       ! Soil Moisture Prev timestep
+    REAL(sp), INTENT(OUT) :: DRYPERIOD       ! Dry period length in hours
+    REAL(sp), INTENT(OUT) :: PFACTOR         ! Pulsing Factor
+    REAL(hp),   INTENT(OUT) :: FERTDIAG        ! Fert emissions [kg/m2/s]
 !
 ! !REMARKS:
 !  R_CANOPY is computed in routine GET_CANOPY_NOX of "canopy_nox_mod.f". 
@@ -953,22 +991,22 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: K
-    REAL*8  :: BASE_TERM, CRF_TERM,  PULSE
-    REAL*8  :: TC,        TEMP_TERM, WINDSQR
-    REAL*8  :: WET_TERM,  A_FERT,    A_BIOM 
-    REAL*8  :: LAI,       SUNCOS,    GWET
-    REAL*8  :: ARID,      NARID
+    REAL(hp)  :: BASE_TERM, CRF_TERM,  PULSE
+    REAL(hp)  :: TC,        TEMP_TERM, WINDSQR
+    REAL(hp)  :: WET_TERM,  A_FERT,    A_BIOM 
+    REAL(hp)  :: LAI,       SUNCOS,    GWET
+    REAL(hp)  :: ARID,      NARID
 
     !=================================================================
     ! Initialize
     !=================================================================
 
     ! Initialize
-    SOILNOX        = 0d0
-    FERTDIAG       = 0d0
+    SOILNOX        = 0e+0_hp
+    FERTDIAG       = 0e+0_hp
 
     ! Surface temperature [C]
-    TC             = ExtState%TSURFK%Arr%Val(I,J) - 273.15d0
+    TC             = ExtState%T2M%Arr%Val(I,J) - 273.15e+0_hp
 
     ! Surface wind speed, squared
     WINDSQR        = ExtState%U10M%Arr%Val(I,J)**2 + &
@@ -990,6 +1028,10 @@ CONTAINS
     ! Cumulative multiplication factor (over baseline emissions) 
     ! that accounts for soil pulsing
     PULSE = PULSING( GWET, TS_EMIS, GWET_PREV, PFACTOR, DRYPERIOD )
+
+#if defined(DEVEL)
+    DGN_PULSE(I,J) = PULSE
+#endif
 
     ! ------Loop Over MODIS/Koppen  Landtypes
     DO K = 1, 24
@@ -1021,14 +1063,14 @@ CONTAINS
                  + ( A_BIOM + A_FERT )                 &
                  * ( TEMP_TERM * WET_TERM * PULSE )    &
                  * LANDTYPE(K)%VAL(I,J)                &
-                 * ( 1.d0 - CRF_TERM  )                 )
+                 * ( 1.e+0_hp - CRF_TERM  )                 )
 
        ! FERTDIAG, only used for the fertilizer diagnostic
        FERTDIAG  = (FERTDIAG                           &
                  + ( A_FERT )                          &
                  * ( TEMP_TERM * WET_TERM * PULSE )    &
                  * LANDTYPE(K)%VAL(I,J)                &
-                 * ( 1.d0 - CRF_TERM  )                 )
+                 * ( 1.e+0_hp - CRF_TERM  )                 )
 
     ENDDO
 
@@ -1077,6 +1119,7 @@ CONTAINS
 !                                   derived type object
 !  13 Dec 2012 - R. Yantosca     - Removed ref to obsolete CMN_DEP_mod.F
 !  28 Jul 2014 - C. Keller       - Added error trap for DRYCOEFF
+!  11 Dec 2014 - M. Yannetti     - Added BIO_RESULT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1084,39 +1127,40 @@ CONTAINS
 ! !DEFINED PARAMETERS:
 !
     ! Molecular weight of water [kg]
-    REAL*8, PARAMETER :: XMWH2O = 18d-3
+    REAL(hp), PARAMETER :: XMWH2O = 18e-3_hp
 
     ! Surface pressure??? [Pa]
-    REAL*8, PARAMETER :: PRESS  = 1.5d5
+    REAL(hp), PARAMETER :: PRESS  = 1.5e+5_hp
 !
 ! !LOCAL VARIABLES:
 !
     ! Scalars
     INTEGER          :: I,     J,     K,      KK
     INTEGER          :: DCSZ
-    REAL*8           :: F0,    HSTAR, XMW              
-    REAL*8           :: DTMP1, DTMP2, DTMP3,  DTMP4, GFACT, GFACI
-    REAL*8           :: RT,    RAD0,  RIX,    RIXX,  RDC,   RLUXX
-    REAL*8           :: RGSX,  RCLX,  TEMPK,  TEMPC
-    REAL*8           :: LAI,   SUNCOS, CLDFRC
+    REAL(hp)           :: F0,    HSTAR, XMW              
+    REAL(hp)           :: DTMP1, DTMP2, DTMP3,  DTMP4, GFACT, GFACI
+    REAL(hp)           :: RT,    RAD0,  RIX,    RIXX,  RDC,   RLUXX
+    REAL(hp)           :: RGSX,  RCLX,  TEMPK,  TEMPC
+    REAL(hp)           :: LAI,   SUNCOS, CLDFRC
+    REAL(hp)         :: BIO_RESULT
 
     ! Arrays
-    REAL*8           :: RI  (NBIOM) 
-    REAL*8           :: RLU (NBIOM)      
-    REAL*8           :: RAC (NBIOM)      
-    REAL*8           :: RGSS(NBIOM)     
-    REAL*8           :: RGSO(NBIOM)     
-    REAL*8           :: RCLS(NBIOM)     
-    REAL*8           :: RCLO(NBIOM)  
+    REAL(hp)           :: RI  (NBIOM) 
+    REAL(hp)           :: RLU (NBIOM)      
+    REAL(hp)           :: RAC (NBIOM)      
+    REAL(hp)           :: RGSS(NBIOM)     
+    REAL(hp)           :: RGSO(NBIOM)     
+    REAL(hp)           :: RCLS(NBIOM)     
+    REAL(hp)           :: RCLO(NBIOM)  
 
     !=================================================================
     ! GET_CANOPY_NOX begins here!
     !=================================================================
 
     ! Set physical parameters
-    HSTAR = 0.01d0              ! Henry's law constant
-    F0    = 0.1d0               ! Reactivity factor for biological oxidation 
-    XMW   = 46d-3               ! Molecular wt of NO2 (kg)
+    HSTAR = 0.01e+0_hp              ! Henry's law constant
+    F0    = 0.1e+0_hp               ! Reactivity factor for biological oxidation 
+    XMW   = 46e-3_hp               ! Molecular wt of NO2 (kg)
 
     ! Get size of DRYCOEFF (will be passed to routine BIOFIT)
     DCSZ = SIZE( ExtState%DRYCOEFF )
@@ -1126,14 +1170,14 @@ CONTAINS
     DO I = 1, HcoState%NX
 
        ! Surface temperature [K] and [C]
-       TEMPK = ExtState%TSURFK%Arr%Val(I,J)
-       TEMPC = ExtState%TSURFK%Arr%Val(I,J) - 273.15d0
+       TEMPK = ExtState%T2M%Arr%Val(I,J)
+       TEMPC = ExtState%T2M%Arr%Val(I,J) - 273.15e+0_hp
 
        ! Compute bulk surface resistance for gases.    
        !                                  
        !  Adjust external surface resistances for temperature; 
        !  from Wesely [1989], expression given in text on p. 1296.        
-       RT = 1000.0D0 * EXP( -TEMPC - 4.0d0 )
+       RT = 1000.0e+0_hp * EXP( -TEMPC - 4.0e+0_hp )
 
        !--------------------------------------------------------------
        ! Get surface resistances - loop over biome types K
@@ -1169,7 +1213,7 @@ CONTAINS
           ! a '9999' value means no deposition to stomata so we impose a 
           ! very large value for RI.
           RI(K) = DBLE( SNIRI(KK) )
-          IF ( RI(K) >= 9999.D0 ) RI(K)= 1.D12
+          IF ( RI(K) >= 9999.e+0_hp ) RI(K)= 1.e+12_hp
 
           ! Cuticular resistances IRLU read in from 'drydep.table'
           ! are per unit area of leaf; divide them by the leaf area index 
@@ -1177,8 +1221,8 @@ CONTAINS
           !'9999' it means there are no cuticular surfaces on which to 
           ! deposit so we impose a very large value for RLU.
           IF ( SNIRLU(KK) >= 9999 .OR. &
-               ExtState%GC_LAI%Arr%Val(I,J) <= 0d0 ) THEN
-             RLU(K)  = 1.D6
+               ExtState%GC_LAI%Arr%Val(I,J) <= 0e+0_hp ) THEN
+             RLU(K)  = 1.e+6_hp
           ELSE
              RLU(K)= DBLE(SNIRLU(KK)) / ExtState%GC_LAI%Arr%Val(I,J) + RT
           ENDIF
@@ -1186,17 +1230,17 @@ CONTAINS
           ! The following are the remaining resistances for the Wesely
           ! resistance-in-series model for a surface canopy
           ! (see Atmos. Environ. paper, Fig.1).  
-          RAC(K)  = MAX( DBLE( SNIRAC(KK)  ),      1d0 )
-          RGSS(K) = MAX( DBLE( SNIRGSS(KK) ) + RT, 1d0 )
-          RGSO(K) = MAX( DBLE( SNIRGSO(KK) ) + RT, 1d0 ) 
+          RAC(K)  = MAX( DBLE( SNIRAC(KK)  ),      1e+0_hp )
+          RGSS(K) = MAX( DBLE( SNIRGSS(KK) ) + RT, 1e+0_hp )
+          RGSO(K) = MAX( DBLE( SNIRGSO(KK) ) + RT, 1e+0_hp ) 
           RCLS(K) =      DBLE( SNIRCLS(KK) ) + RT           
           RCLO(K) =      DBLE( SNIRCLO(KK) ) + RT 
 
-          IF (  RAC(K) >= 9999.D0 ) RAC(K)  = 1d12
-          IF ( RGSS(K) >= 9999.D0 ) RGSS(K) = 1d12
-          IF ( RGSO(K) >= 9999.D0 ) RGSO(K) = 1d12
-          IF ( RCLS(K) >= 9999.D0 ) RCLS(K) = 1d12         
-          IF ( RCLO(K) >= 9999.D0 ) RCLO(K) = 1d12
+          IF (  RAC(K) >= 9999.e+0_hp ) RAC(K)  = 1e+12_hp
+          IF ( RGSS(K) >= 9999.e+0_hp ) RGSS(K) = 1e+12_hp
+          IF ( RGSO(K) >= 9999.e+0_hp ) RGSO(K) = 1e+12_hp
+          IF ( RCLS(K) >= 9999.e+0_hp ) RCLS(K) = 1e+12_hp         
+          IF ( RCLO(K) >= 9999.e+0_hp ) RCLO(K) = 1e+12_hp
 
           !-------------------------------------------------------------
           ! Adjust stomatal resistances for insolation and temperature:  
@@ -1236,27 +1280,25 @@ CONTAINS
           RIX  = RI(K)
 
           ! Skip the following block if the resistance RIX is high
-          IF ( RIX < 9999d0 ) THEN
-             GFACT = 100.0D0
+          IF ( RIX < 9999e+0_hp ) THEN
+             GFACT = 100.0e+0_hp
 
-             IF ( TEMPC > 0.D0 .AND. TEMPC < 40.D0) THEN
-                GFACT = 400.D0 / TEMPC / ( 40.0D0 - TEMPC )
+             IF ( TEMPC > 0.e+0_hp .AND. TEMPC < 40.e+0_hp) THEN
+                GFACT = 400.e+0_hp / TEMPC / ( 40.0e+0_hp - TEMPC )
              ENDIF
 
-             GFACI = 100.D0
+             GFACI = 100.e+0_hp
 
-             IF ( RAD0 > 0d0 .AND. ExtState%GC_LAI%Arr%Val(I,J) > 0d0 ) THEN
+             IF ( RAD0 > 0e+0_hp .AND. ExtState%GC_LAI%Arr%Val(I,J) > 0e+0_hp ) THEN
 
                 LAI    = ExtState%GC_LAI%Arr%Val(I,J)
                 SUNCOS = ExtState%SUNCOSmid%Arr%Val(I,J)
                 CLDFRC = ExtState%CLDFRC%Arr%Val(I,J)
+               
+                BIO_RESULT = BIOFIT( ExtState%DRYCOEFF, LAI, &
+                              SUNCOS, CLDFRC, SIZE(ExtState%DRYCOEFF) )
 
-                GFACI= 1d0 /                           & 
-                       BIOFIT( ExtState%DRYCOEFF,        & 
-                       LAI,                    &
-                       SUNCOS,                 &
-                       CLDFRC,                 &
-                       SIZE(ExtState%DRYCOEFF) )
+                GFACI= 1e+0_hp / BIO_RESULT
              ENDIF
             
              RIX = RIX * GFACT * GFACI
@@ -1265,7 +1307,7 @@ CONTAINS
           ! Compute aerodynamic resistance to lower elements in lower 
           ! part of the canopy or structure, assuming level terrain - 
           ! equation (5) of Wesely [1989].                     
-          RDC = 100.D0*(1.0D0+1000.0D0/(RAD0 + 10.D0))
+          RDC = 100.e+0_hp*(1.0e+0_hp+1000.0e+0_hp/(RAD0 + 10.e+0_hp))
 
           ! Loop over species; species-dependent corrections to resistances
           ! are from equations (6)-(9) of Wesely [1989].
@@ -1273,12 +1315,12 @@ CONTAINS
           ! NOTE: here we only consider NO2 (bmy, 6/22/09)
           RIXX   = RIX * DIFFG( TEMPK, PRESS, XMWH2O ) / &
                          DIFFG( TEMPK, PRESS, XMW    )   &
-                 + 1.D0 / ( HSTAR/3000.D0 + 100.D0*F0  )
+                 + 1.e+0_hp / ( HSTAR/3000.e+0_hp + 100.e+0_hp*F0  )
 
-          RLUXX  = 1.D12
+          RLUXX  = 1.e+12_hp
 
-          IF ( RLU(K) < 9999.D0 ) THEN
-             RLUXX = RLU(K) / ( HSTAR / 1.0D+05 + F0 )
+          IF ( RLU(K) < 9999.e+0_hp ) THEN
+             RLUXX = RLU(K) / ( HSTAR / 1.0e+05_hp + F0 )
           ENDIF
 
           ! To prevent virtually zero resistance to species with huge HSTAR, 
@@ -1288,16 +1330,16 @@ CONTAINS
           ! and Ustar in Munger et al.[1996]; Vd(HNO3) never exceeds 2 cm/s 
           ! in observations. The corresponding minimum resistance is 50 s/m.
           ! was introduced by J.Y. Liang on 7/9/95.
-          RGSX = 1d0 / ( HSTAR/1d5/RGSS(K) + F0/RGSO(K) )
-          RCLX = 1d0 / ( HSTAR/1d5/RCLS(K) + F0/RCLO(K) )
+          RGSX = 1e+0_hp / ( HSTAR/1e+5_hp/RGSS(K) + F0/RGSO(K) )
+          RCLX = 1e+0_hp / ( HSTAR/1e+5_hp/RCLS(K) + F0/RCLO(K) )
 
           ! Get the bulk surface resistance of the canopy
           ! from the network of resistances in parallel and in series 
           ! (Fig. 1 of Wesely [1989])
-          DTMP1 = 1.D0 / RIXX
-          DTMP2 = 1.D0 / RLUXX
-          DTMP3 = 1.D0 / ( RAC(K) + RGSX )
-          DTMP4 = 1.D0 / ( RDC      + RCLX )
+          DTMP1 = 1.e+0_hp / RIXX
+          DTMP2 = 1.e+0_hp / RLUXX
+          DTMP3 = 1.e+0_hp / ( RAC(K) + RGSX )
+          DTMP4 = 1.e+0_hp / ( RDC      + RCLX )
 
           ! Save the within canopy depvel of NOx, used in calculating 
           ! the canopy reduction factor for soil emissions [1/s]
@@ -1330,13 +1372,13 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    REAL*8, INTENT(IN) :: TK      ! Temperature [K]
-    REAL*8, INTENT(IN) :: PRESS   ! Pressure [hPa]
-    REAL*8, INTENT(IN) :: XM      ! Molecular weight of gas [kg]
+    REAL(hp), INTENT(IN) :: TK      ! Temperature [K]
+    REAL(hp), INTENT(IN) :: PRESS   ! Pressure [hPa]
+    REAL(hp), INTENT(IN) :: XM      ! Molecular weight of gas [kg]
 !
 ! !RETURN VALUE:
 !
-    REAL*8             :: DIFF_G  ! Molecular diffusivity [m2/s]
+    REAL(hp)             :: DIFF_G  ! Molecular diffusivity [m2/s]
 !
 ! !REMARKS:
 !  We specify the molecular weight of air (XMAIR) and the hard-sphere molecular
@@ -1355,16 +1397,16 @@ CONTAINS
 !
 ! !DEFINED PARAMETERS:
 !
-    REAL*8, PARAMETER  :: XMAIR  = 28.8d-3 
-    REAL*8, PARAMETER  :: RADAIR = 1.2d-10
-    REAL*8, PARAMETER  :: PI     = 3.1415926535897932d0
-    REAL*8, PARAMETER  :: RADX   = 1.5d-10
-    REAL*8, PARAMETER  :: RGAS   = 8.32d0
-    REAL*8, PARAMETER  :: AVOGAD = 6.023d23
+    REAL(hp), PARAMETER  :: XMAIR  = 28.8e-3_hp 
+    REAL(hp), PARAMETER  :: RADAIR = 1.2e-10_hp
+    REAL(hp), PARAMETER  :: PI     = 3.1415926535897932e+0_hp
+    REAL(hp), PARAMETER  :: RADX   = 1.5e-10_hp
+    REAL(hp), PARAMETER  :: RGAS   = 8.32e+0_hp
+    REAL(hp), PARAMETER  :: AVOGAD = 6.023e+23_hp
 !
 ! !LOCAL VARIABLES:
 !
-    REAL*8             :: AIRDEN, Z, DIAM, FRPATH, SPEED      
+    REAL(hp)             :: AIRDEN, Z, DIAM, FRPATH, SPEED      
 
     !=================================================================
     ! DIFFG begins here!
@@ -1379,14 +1421,14 @@ CONTAINS
     ! Calculate the mean free path for gas X in air: 
     ! eq. 8.5 of Seinfeld [1986];
     Z      = XM  / XMAIR
-    FRPATH = 1d0 /( PI * SQRT( 1d0 + Z ) * AIRDEN*( DIAM**2 ) )
+    FRPATH = 1e+0_hp /( PI * SQRT( 1e+0_hp + Z ) * AIRDEN*( DIAM**2 ) )
 
     ! Calculate average speed of gas X; eq. 15.47 of Levine [1988]
-    SPEED  = SQRT( 8d0 * RGAS * TK / ( PI * XM ) )
+    SPEED  = SQRT( 8e+0_hp * RGAS * TK / ( PI * XM ) )
 
     ! Calculate diffusion coefficient of gas X in air; 
     ! eq. 8.9 of Seinfeld [1986]
-    DIFF_G = ( 3d0 * PI / 32d0 ) * ( 1d0 + Z ) * FRPATH * SPEED
+    DIFF_G = ( 3e+0_hp * PI / 32e+0_hp ) * ( 1e+0_hp + Z ) * FRPATH * SPEED
 
   END FUNCTION DiffG
 !EOC
@@ -1416,7 +1458,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! Dep emitted as Fert [kgNO/m2]
-    REAL*8 ,  INTENT(INOUT) :: DEP_FERT  
+    REAL(hp) ,  INTENT(INOUT) :: DEP_FERT  
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
@@ -1426,21 +1468,21 @@ CONTAINS
 !
 ! !DEFINED PARAMETERS:
 !
-    REAL*8,  PARAMETER :: TAU_MONTHS   = 6. ! Decay rate of dep. N [months]
-    REAL*8,  PARAMETER :: SECPERDAY    = 86400.d0
-    REAL*8,  PARAMETER :: DAYSPERMONTH = 30.
+    REAL(hp),  PARAMETER :: TAU_MONTHS   = 6. ! Decay rate of dep. N [months]
+    REAL(hp),  PARAMETER :: SECPERDAY    = 86400.e+0_hp
+    REAL(hp),  PARAMETER :: DAYSPERMONTH = 30.
 !
 ! !LOCAL VARIABLES:
 !
-    REAL*8             :: DRYN  ! Dry dep. N since prev timestep
+    REAL(hp)             :: DRYN  ! Dry dep. N since prev timestep
                                   ! Units ng N/m2/s     
-    REAL*8             :: WETN  ! Wet dep. N since prev timestep 
-    REAL*8             :: DEPN  ! dep. N since prev timestep 
+    REAL(hp)             :: WETN  ! Wet dep. N since prev timestep 
+    REAL(hp)             :: DEPN  ! dep. N since prev timestep 
 
-    REAL*8             :: C1
-    REAL*8             :: C2 
-    REAL*8             :: TAU_SEC
-    REAL*8             :: TS_SEC  
+    REAL(hp)             :: C1
+    REAL(hp)             :: C2 
+    REAL(hp)             :: TAU_SEC
+    REAL(hp)             :: TS_SEC  
 
     !Total all N species & convert molec/cm2/s --> kg NO/m2/s
     DRYN = SOURCE_DRYN( I, J, ExtState, HcoState )
@@ -1461,7 +1503,7 @@ CONTAINS
     TAU_SEC = TAU_MONTHS * DAYSPERMONTH * SECPERDAY
 
     C1 = EXP( - TS_SEC / TAU_SEC)
-    C2 = 1.d0 - C1        
+    C2 = 1.e+0_hp - C1        
 
     ! kg NO/m2
     ! NOTE: DEP_RESERVOIR is stored in kg NO/m3, but we just assume
@@ -1470,7 +1512,7 @@ CONTAINS
                        + DEPN * TAU_SEC * C2
 
     ! 40% runoff. 
-    DEP_FERT = DEP_RESERVOIR(I,J) * 0.6d0 
+    DEP_FERT = DEP_RESERVOIR(I,J) * 0.6e+0_hp 
 
   END SUBROUTINE Get_Dep_N
 !EOC
@@ -1498,7 +1540,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8                      :: DRYN       ! Dry dep. N since prev timestep
+    REAL(hp)                      :: DRYN       ! Dry dep. N since prev timestep
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
@@ -1508,8 +1550,8 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL*8,  PARAMETER   :: CM2_PER_M2  = 1.d4
-    REAL*8               :: NTS
+    REAL(hp),  PARAMETER   :: CM2_PER_M2  = 1.e+4_hp
+    REAL(hp)               :: NTS
  
     ! Divide through by number of chemistry timesteps
     ! because DRY_TOTN is summed over chemistry timesteps
@@ -1518,7 +1560,7 @@ CONTAINS
     !Molecules/cm2/s --> kg NO/m2/s 
     NTS  = HcoState%TS_EMIS / HcoState%TS_CHEM
     DRYN = ExtState%DRY_TOTN%Arr%Val(I,J) * CM2_PER_M2 / NTS / &
-           HcoState%Phys%Avgdr * HcoState%Spc(IDTNO)%MW_g / 1000.0d0
+           HcoState%Phys%Avgdr * HcoState%Spc(IDTNO)%EmMW_g / 1000.0e+0_hp
 
   END FUNCTION Source_DryN
 !EOC
@@ -1546,7 +1588,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8                      :: WETN       ! Dry dep. N since prev timestep
+    REAL(hp)                      :: WETN       ! Dry dep. N since prev timestep
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
@@ -1556,7 +1598,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL*8               :: NTS,    AREA_M2     
+    REAL(hp)               :: NTS,    AREA_M2     
  
     ! Divide through by number of transport timesteps
     ! because WET_TOTN is summed over transport timesteps
@@ -1588,12 +1630,12 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     INTEGER, INTENT(IN) :: NN            ! Soil biome type 
-    REAL*8,  INTENT(IN) :: TC            ! Surface air temperature [C]
-    REAL*8,  INTENT(IN) :: GWET          ! Top soil moisture
+    REAL(hp),  INTENT(IN) :: TC            ! Surface air temperature [C]
+    REAL(hp),  INTENT(IN) :: GWET          ! Top soil moisture
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: SOIL_TEMP     ! Temperature-dependent term of
+    REAL(hp)              :: SOIL_TEMP     ! Temperature-dependent term of
                                          ! soil NOx emissions [unitless]
 !
 ! !REMARKS:
@@ -1634,7 +1676,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES
 !     
-    REAL*8  :: TMMP
+    REAL(hp)  :: TMMP
 
     !==============================================================
     ! 1) Convert from Surface Temp  --> Soil Temp 
@@ -1644,11 +1686,11 @@ CONTAINS
     TMMP   = TC
 
     ! DRY
-    IF ( GWET < 0.3d0 ) THEN 
+    IF ( GWET < 0.3e+0_hp ) THEN 
      
        ! Convert surface air temperature to model temperature
        ! by adding 5 degrees C to model temperature
-       TMMP = TMMP + 5d0
+       TMMP = TMMP + 5e+0_hp
 
     ! WET
     ELSE
@@ -1666,15 +1708,15 @@ CONTAINS
     ! We now assume that soil response is exponential 0-30C
     ! based on latest observations, caps at 30C
 
-    IF ( TMMP <= 0d0 ) THEN
+    IF ( TMMP <= 0e+0_hp ) THEN
 
        ! No soil emissions if temp below freezing
-       SOIL_TEMP = 0d0
+       SOIL_TEMP = 0e+0_hp
 
     ELSE 
 
        ! Caps temperature response at 30C
-       IF ( TMMP >= 30.d0 ) TMMP = 30.d0 
+       IF ( TMMP >= 30.e+0_hp ) TMMP = 30.e+0_hp 
       
        SOIL_TEMP =  EXP( 0.103 * TMMP )
 
@@ -1700,16 +1742,16 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     ! Top soil wetness [unitless]
-    REAL*8, INTENT(IN) :: GWET 
+    REAL(hp), INTENT(IN) :: GWET 
 
     ! Fraction of arid & non-arid soil in the gridbox          
-    REAL*8, INTENT(IN) :: ARID       
-    REAL*8, INTENT(IN) :: NONARID       
+    REAL(hp), INTENT(IN) :: ARID       
+    REAL(hp), INTENT(IN) :: NONARID       
 !
 ! !RETURN_VALUE:
 ! 
     ! A scaling term between 0-1 based on soil moisture
-    REAL*8             :: WETSCALE      
+    REAL(hp)             :: WETSCALE      
 !
 ! !REMARKS:
 !  Soil moisture and temperature and now decoupled, the temperature
@@ -1802,14 +1844,14 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     INTEGER, INTENT(IN) :: K          ! Soil biome type
-    REAL*8,  INTENT(IN) :: LAI        ! Leaf area index [cm2/cm2]
-    REAL*8,  INTENT(IN) :: CPYNOX     ! Bulk sfc resistance to NOx [1/s]
-    REAL*8,  INTENT(IN) :: WINDSQR    ! Square of sfc wind speed [m2/s2]
-    REAL*8,  INTENT(IN) :: SUNCOS     ! Cosine of solar zenith angle
+    REAL(hp),  INTENT(IN) :: LAI        ! Leaf area index [cm2/cm2]
+    REAL(hp),  INTENT(IN) :: CPYNOX     ! Bulk sfc resistance to NOx [1/s]
+    REAL(hp),  INTENT(IN) :: WINDSQR    ! Square of sfc wind speed [m2/s2]
+    REAL(hp),  INTENT(IN) :: SUNCOS     ! Cosine of solar zenith angle
 !
 ! !RETURN_VALUE:
 ! 
-    REAL*8              :: SOIL_CRF   ! Canopy reduction factor (see below)
+    REAL(hp)              :: SOIL_CRF   ! Canopy reduction factor (see below)
 !
 ! !REMARKS:
 !  Also note, CANOPYNOX (the bulk surface resistance to NOx) is computed
@@ -1825,15 +1867,15 @@ CONTAINS
 ! !DEFINED PARAMETERS:
 !
     ! Ventilation velocity for NOx, day & night values [m/s]
-    REAL*8,  PARAMETER :: VFDAY   = 1.0d-2
-    REAL*8,  PARAMETER :: VFNIGHT = 0.2d-2 
+    REAL(hp),  PARAMETER :: VFDAY   = 1.0e-2_hp
+    REAL(hp),  PARAMETER :: VFNIGHT = 0.2e-2_hp 
 !
 ! !LOCAL VARIABLES:
 !
-    REAL*8 :: VFNEW
+    REAL(hp) :: VFNEW
 
     ! Pick proper ventilation velocity for day or night
-    IF ( SUNCOS > 0d0 ) THEN
+    IF ( SUNCOS > 0e+0_hp ) THEN
        VFNEW = VFDAY              
     ELSE 
        VFNEW = VFNIGHT            
@@ -1841,12 +1883,12 @@ CONTAINS
 
     ! If the leaf area index and the bulk surface resistance
     ! of the canopy to NOx deposition are both nonzero ...
-    IF ( LAI > 0d0 .and. CPYNOX > 0d0 ) THEN
+    IF ( LAI > 0e+0_hp .and. CPYNOX > 0e+0_hp ) THEN
 
        ! Adjust the ventilation velocity.  
        ! NOTE: SOILEXC(21) is the canopy wind extinction 
        ! coefficient for the tropical rainforest biome.
-       VFNEW    = (VFNEW * SQRT( WINDSQR/9d0 * 7d0/LAI     ) * &
+       VFNEW    = (VFNEW * SQRT( WINDSQR/9e+0_hp * 7e+0_hp/LAI     ) * &
                   ( SOILEXC(21)  / SOILEXC(K) ))
 
        ! Soil canopy reduction factor
@@ -1855,7 +1897,7 @@ CONTAINS
     ELSE
      
        ! Otherwise set the soil canopy reduction factor to zero
-       SOIL_CRF = 0d0
+       SOIL_CRF = 0e+0_hp
 
     ENDIF
 
@@ -1877,14 +1919,14 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    REAL*8, INTENT(IN) :: DEPN      ! N emissions from deposition
-    REAL*8, INTENT(IN) :: SOILFRT   ! N emissions from fertilizers
+    REAL(hp), INTENT(IN) :: DEPN      ! N emissions from deposition
+    REAL(hp), INTENT(IN) :: SOILFRT   ! N emissions from fertilizers
                                     !  read in from disk and passed
                                     !  here as an argument [ng N/m2/s]
 !
 ! !RETURN_VALUE:
 ! 
-    REAL*8            :: FERT_ADD   ! Total Fert emissions
+    REAL(hp)            :: FERT_ADD   ! Total Fert emissions
 !
 ! !REMARKS:
 !  We use a new spatially explicit data set of chemical and manure fert
@@ -1934,7 +1976,7 @@ CONTAINS
 !BOC
 !
     ! Seconds per year
-    REAL*8, PARAMETER      :: SEC_PER_YEAR = 3.1536d7
+    REAL(hp), PARAMETER      :: SEC_PER_YEAR = 3.1536e+7_hp
 
 
     ! Soil fert and dep [ kg/m2 ], a measure of N avail. in soil
@@ -1971,18 +2013,18 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    REAL*8, INTENT(IN)    :: GWET        ! Soil Moisture 
+    REAL(hp), INTENT(IN)    :: GWET        ! Soil Moisture 
     REAL*4, INTENT(IN)    :: TS_EMIS     ! Emissions timestep [s]
 
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    REAL(hp), INTENT(INOUT) :: GWET_PREV   ! Soil Moisture Prev timestep
-    REAL(hp), INTENT(INOUT) :: PFACTOR     ! Pulsing Factor
-    REAL(hp), INTENT(INOUT) :: DRYPERIOD   ! Dry period length in hours
+    REAL(sp), INTENT(INOUT) :: GWET_PREV   ! Soil Moisture Prev timestep
+    REAL(sp), INTENT(INOUT) :: PFACTOR     ! Pulsing Factor
+    REAL(sp), INTENT(INOUT) :: DRYPERIOD   ! Dry period length in hours
 !  
 ! !RETURN VALUE:
 !
-    REAL*8                :: THE_PULSING ! Factor to multiply baseline 
+    REAL(hp)                :: THE_PULSING ! Factor to multiply baseline 
                                          ! emissions by to account for
                                          ! soil pulsing of all types
 !
@@ -1999,7 +2041,7 @@ CONTAINS
 ! 
 !  The pulse decays with 
 ! 
-!     PFACTOR = PFACTOR * EXP( -0.068d0 * DTSRCE )       
+!     PFACTOR = PFACTOR * EXP( -0.068e+0_hp * DTSRCE )       
 ! 
 !  References:
 !  ============================================================================
@@ -2020,17 +2062,17 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL*8  :: DTSRCE, GDIFF 
+    REAL(hp)  :: DTSRCE, GDIFF 
 
     !=================================================================
     ! PULSING begins here!
     !=================================================================
 
     ! Emission timestep [s --> hours]
-    DTSRCE = TS_EMIS / 3600d0
+    DTSRCE = TS_EMIS / 3600e+0_hp
 
     ! If soil moisture less than 0.3 and no pulse is taking place
-    IF ( GWET < 0.3D0 .and. PFACTOR == 1.D0) THEN
+    IF ( GWET < 0.3e+0_hp .and. PFACTOR == 1.e+0_hp) THEN
 
        ! Get change in soil moisture since previous timestep
        GDIFF = ( GWET - GWET_PREV )
@@ -2039,17 +2081,17 @@ CONTAINS
        IF ( GDIFF > 0.01 ) THEN
 
           ! Initialize new pulse factor (dry period hours)
-          IF ( DRYPERIOD > 0d0 ) THEN
-             PFACTOR = 13.01d0 * LOG( DRYPERIOD ) - 53.6d0
+          IF ( DRYPERIOD > 0e+0_hp ) THEN
+             PFACTOR = 13.01e+0_hp * LOG( DRYPERIOD ) - 53.6e+0_hp
           ELSE
-             PFACTOR = -53.6d0
+             PFACTOR = -53.6e+0_hp
           ENDIF
 
           ! If dry period < ~3 days then no pulse
           IF ( PFACTOR < 1.0 ) PFACTOR = 1.0
 
           ! Reinitialize dry period
-          DRYPERIOD = 0d0
+          DRYPERIOD = 0e+0_hp
 
        ! If no rain (i.e.,  change in soil moisture is < 0.01)
        ELSE
@@ -2060,16 +2102,16 @@ CONTAINS
        ENDIF
 
     ! If box is already pulsing , then decay pulse one timestep
-    ELSEIF ( PFACTOR /= 1.d0) THEN
+    ELSEIF ( PFACTOR /= 1.e+0_hp) THEN
 
        ! Decay pulse
-       PFACTOR   = PFACTOR * EXP( -0.068d0 * DTSRCE )
+       PFACTOR   = PFACTOR * EXP( -0.068e+0_hp * DTSRCE )
 
        ! Update dry period
-       IF ( GWET < 0.3D0 ) DRYPERIOD = DRYPERIOD + DTSRCE
+       IF ( GWET < 0.3e+0_hp ) DRYPERIOD = DRYPERIOD + DTSRCE
 
        ! If end of pulse
-       IF ( PFACTOR < 1.d0 ) PFACTOR = 1.d0
+       IF ( PFACTOR < 1.e+0_hp ) PFACTOR = 1.e+0_hp
       
     ENDIF
 

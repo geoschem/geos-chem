@@ -6,11 +6,11 @@
 ! !MODULE: hco_error_mod.F90
 !
 ! !DESCRIPTION: Module HCO\_Error\_Mod contains routines and variables 
-! for error handling in HEMCO. It also contains definitions of some 
-! globally used parameter, such as the single/double precision as well
-! as the HEMCO precision definitions. The HEMCO precision is used for 
-! almost all HEMCO internal data arrays and can be changed below if 
-! required.
+! for error handling and logfile messages in HEMCO. It also contains 
+! definitions of some globally used parameter, such as the single/double 
+! precision as well as the HEMCO precision definitions. The HEMCO precision 
+! is used for almost all HEMCO internal data arrays and can be changed below 
+! if required. 
 !\\
 !\\
 ! The error settings are specified in the HEMCO configuration file and
@@ -20,20 +20,28 @@
 ! \item HEMCO logfile: all HEMCO information is written into the specified
 !     logfile. The logfile can be set to the wildcard character, in which
 !     case the standard output will be used (this may be another opened
-!     logfile!).
-! \item Verbose: if true, this will run HEMCO in verbose mode. Note that
-!     this may significantly slow down the model!
-! \item Track: if true, this will print the current location in the code
-!     into the logfile. This is primarily for debugging.
-! (4) Show warnings: if TRUE, prompt all warnings to the HEMCO logfile.
+!     logfile).
+! \item Verbose: Number indicating the verbose level to be used. 
+!     0 = no verbose, 3 = very verbose. The verbose level can be set in
+!     the HEMCO configuration file. The default value is 0.
+! \item Show warnings: if TRUE, prompt all warnings to the HEMCO logfile.
 !     Otherwise, no warnings will be prompted but the total number of
 !     warnings occurred will still be shown at the end of the run.
-! (5) Only unitless scale factors: If set to TRUE, this will force all
-!     scale factors to be 'unitless', as specified in module 
-!     HCO\_UNIT\_MOD (code will return with error if scale factor is 
-!     not unitless).
 ! \end{enumerate}
-!
+! 
+! The error settings are set via subroutine HCO\_ERROR\_SET, called when
+! reading section 'settings' of the HEMCO configuration file (subroutine
+! Config\_ReadFile in hco\_config\_mod.F90). The currently active verbose
+! settings can be checked using subroutines HCO\_IsVerb and
+! HCO\_VERBOSE\_INQ. Messages can be written into the logfile using 
+! subroutine HCO\_MSG. Note that the logfile actively need to be opened 
+! (HCO\_LOGFILE\_OPEN) before writing to it.
+!\\
+!\\
+! The verbose and warning settings are all set to false if it's not the 
+! root CPU. 
+!\\
+!\\
 ! !INTERFACE: 
 !
 MODULE HCO_Error_Mod
@@ -52,8 +60,8 @@ MODULE HCO_Error_Mod
   PUBLIC           :: HCO_LEAVE
   PUBLIC           :: HCO_ERROR_SET
   PUBLIC           :: HCO_ERROR_FINAL
-  PUBLIC           :: HCO_VERBOSE_SET
-  PUBLIC           :: HCO_VERBOSE_CHECK
+  PUBLIC           :: HCO_IsVerb
+  PUBLIC           :: HCO_VERBOSE_INQ
   PUBLIC           :: HCO_LOGFILE_OPEN
   PUBLIC           :: HCO_LOGFILE_CLOSE
 !
@@ -74,13 +82,36 @@ MODULE HCO_Error_Mod
   INTEGER, PARAMETER, PUBLIC  :: HCO_SUCCESS = 0
   INTEGER, PARAMETER, PUBLIC  :: HCO_FAIL    = -999
 
-  ! Tiny value for math operations
-  REAL(hp), PARAMETER, PUBLIC :: HCO_TINY = 1.0e-32_hp
+  ! Tiny value for math operations: 
+  ! --> deprecated. Use TINY(1.0_hp) instead!
+  REAL(hp), PARAMETER, PUBLIC :: HCO_TINY    = 1.0e-32_hp
+
+  ! Missing value
+  ! Note: define missing value as single precision because all data arrays
+  ! are read/stored in single precision.
+  REAL(sp), PARAMETER, PUBLIC :: HCO_MISSVAL = -1.e-31_sp
+
+  ! Cycle flags. Used to determine the temporal behavior of data
+  ! fields. For example, data set to 'cycle' will be recycled if
+  ! the simulation date is outside of the datetime range of the
+  ! source data. See data reading routine (hcoio_dataread_mod.F90)
+  ! for more details. 
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_CYCLE = 1
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_RANGE = 2
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_EXACT = 3
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_INTER = 4
+
+  ! Data container types. These are used to distinguish between
+  ! base emissions, scale factors and masks.
+  INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_BASE = 1
+  INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_SCAL = 2
+  INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_MASK = 3
 !
 ! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
+!  23 Sep 2013 - C. Keller   - Initialization
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  03 Mar 2015 - C. Keller   - Added HCO_CFLAG_* and HCO_DCTTYPE_*
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -88,10 +119,10 @@ MODULE HCO_Error_Mod
 ! !PRIVATE VARIABLES:
 !
   TYPE :: HcoErr
-     LOGICAL                     :: Track
-     LOGICAL                     :: Verbose
+     LOGICAL                     :: IsRoot
      LOGICAL                     :: LogIsOpen
-     LOGICAL                     :: ShowWarnings 
+     INTEGER                     :: Warnings 
+     INTEGER                     :: Verbose
      INTEGER                     :: nWarnings
      INTEGER                     :: CurrLoc
      CHARACTER(LEN=255), POINTER :: Loc(:)
@@ -186,11 +217,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Warning( ErrMsg, RC, THISLOC )
+  SUBROUTINE HCO_Warning( ErrMsg, RC, WARNLEV, THISLOC )
 !
 ! !INPUT PARAMETERS"
 !
     CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg 
+    INTEGER         , INTENT(IN   ), OPTIONAL  :: WARNLEV 
     CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: THISLOC 
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -199,16 +231,24 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
+!  26 Mar 2015 - C. Keller - Added warning levels
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+    INTEGER            :: WLEV
     CHARACTER(LEN=255) :: MSG
 
     !======================================================================
     ! HCO_WARNING begins here 
     !======================================================================
 
-    IF ( Err%ShowWarnings ) THEN
+    IF ( PRESENT(WARNLEV) ) THEN
+       WLEV = WARNLEV
+    ELSE
+       WLEV = 3
+    ENDIF
+
+    IF ( Err%Warnings >= WLEV ) THEN
 
        ! Print warning
        MSG = 'HEMCO WARNING: ' // TRIM( ErrMsg )
@@ -222,10 +262,12 @@ CONTAINS
           MSG = '--> LOCATION: ' // TRIM(Err%Loc(Err%CurrLoc))
           CALL HCO_MSG ( MSG ) 
        ENDIF
+
+       ! Increase # of warnings
+       Err%nWarnings = Err%nWarnings + 1
     ENDIF
 
     ! Return w/ success
-    Err%nWarnings = Err%nWarnings + 1
     RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_Warning
@@ -235,23 +277,27 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_Msg
+! !IROUTINE: HCO_MSG
 !
-! !DESCRIPTION: Subroutine HCO\_Msg passes message msg to the HEMCO
+! !DESCRIPTION: Subroutine HCO\_MSG passes message msg to the HEMCO
 ! logfile (or to standard output if the logfile is not open).
 ! Sep1 and Sep2 denote line delimiters before and after the message,
 ! respectively.
+! The optional argument Verb denotes the minimum verbose level associated
+! with this message. The message will only be prompted if the verbose level
+! on this CPU (e.g. of this Err object) is at least as high as Verb.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Msg( Msg, Sep1, Sep2 )
+  SUBROUTINE HCO_MSG( Msg, Sep1, Sep2, Verb )
 !
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: Msg
     CHARACTER(LEN=1), INTENT(IN   ), OPTIONAL  :: Sep1
     CHARACTER(LEN=1), INTENT(IN   ), OPTIONAL  :: Sep2
+    INTEGER,          INTENT(IN   ), OPTIONAL  :: Verb
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
@@ -270,6 +316,15 @@ CONTAINS
        IsOpen = .FALSE.
     ELSE
        IsOpen = Err%LogIsOpen
+       
+       ! Don't print if this is not the root CPU
+       IF ( .NOT. Err%IsRoot ) RETURN
+
+       ! Don't print if verbose level is smaller than verbose level of this
+       ! CPU.
+       IF ( PRESENT( Verb ) ) THEN
+          IF ( Verb < Err%Verbose ) RETURN
+       ENDIF
     ENDIF
 
     ! Use standard output if file not open
@@ -366,7 +421,7 @@ CONTAINS
     Err%Loc(Err%CurrLoc) = thisLoc
 
     ! Track location if enabled 
-    IF ( Err%Track ) THEN
+    IF ( Err%Verbose >= 3 ) THEN
        WRITE(MSG,100) TRIM(thisLoc), Err%CurrLoc
        CALL HCO_Msg( MSG )
     ENDIF
@@ -416,7 +471,7 @@ CONTAINS
     IF ( .NOT. ASSOCIATED(Err) ) RETURN 
     
     ! Track location if enabled 
-    IF ( Err%Track ) THEN
+    IF ( Err%Verbose >= 3 ) THEN
        WRITE(MSG,110) TRIM(Err%Loc(Err%CurrLoc)), Err%CurrLoc
        CALL HCO_MSG( MSG )
     ENDIF
@@ -457,18 +512,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ERROR_SET( LogFile,      Verbose,   & 
-                            ShowWarnings, Track,   RC )
+  SUBROUTINE HCO_ERROR_SET( am_I_Root, LogFile,      & 
+                            Verbose,   WarningLevel, RC )
 !
 !  !INPUT PARAMETERS:
 !
+    LOGICAL,          INTENT(IN)     :: am_I_Root      ! Root CPU? 
     CHARACTER(LEN=*), INTENT(IN)     :: LogFile        ! logfile path+name
-    LOGICAL,          INTENT(IN)     :: Verbose        ! run in verbose mode?
-    LOGICAL,          INTENT(IN)     :: ShowWarnings   ! prompt warnings?
-    LOGICAL,          INTENT(IN)     :: Track          ! track code location?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    INTEGER,          INTENT(INOUT)  :: Verbose        ! verbose level 
+    INTEGER,          INTENT(INOUT)  :: WarningLevel   ! warning level 
     INTEGER,          INTENT(INOUT)  :: RC 
 !
 ! !REVISION HISTORY:
@@ -493,11 +548,18 @@ CONTAINS
     ALLOCATE(Err%Loc(MAXNEST))
     Err%Loc(:) = ''
 
+    ! Set verbose to -1 if this is not the root CPU. This will disable any
+    ! log-file messages 
+    IF ( .NOT. am_I_Root ) THEN
+       Verbose      = -1
+       WarningLevel =  0
+    ENDIF
+
     ! Pass values
+    Err%IsRoot       = am_I_Root
     Err%LogFile      = TRIM(LogFile)
     Err%Verbose      = Verbose
-    Err%Track        = Track
-    Err%ShowWarnings = ShowWarnings
+    Err%Warnings     = WarningLevel
 
     ! Init misc. values
     Err%LogIsOpen = .FALSE.
@@ -561,72 +623,77 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_Verbose_Set
+! !IROUTINE: HCO_Verbose_Inq
 !
-! !DESCRIPTION: Subroutine HCO\_Verbose\_Set sets the verbose flag. 
+! !DESCRIPTION: Function HCO\_Verbose\_Inq returns the HEMCO verbose number. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_VERBOSE_SET ( isVerbose )
+  FUNCTION HCO_VERBOSE_INQ ( ) RESULT ( VerbNr )
 !
-! !INPUT PARAMETERS:
-!
-    LOGICAL, INTENT(IN) :: isVerbose 
+! !OUTPUT PARAMETERS:
+!  
+    INTEGER :: VerbNr 
 !
 ! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
-!
+!  15 Mar 2015 - C. Keller - Initialization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     !======================================================================
-    ! HCO_VERBOSE_SET begins here 
+    ! HCO_VERBOSE_INQ begins here 
     !======================================================================
 
-    IF ( ASSOCIATED(Err) ) THEN
-       Err%Verbose = isVerbose 
+    IF ( .NOT. ASSOCIATED(Err) ) THEN
+       VerbNr = -1
+    ELSE
+       VerbNr = Err%Verbose
     ENDIF
 
-  END SUBROUTINE HCO_VErbose_Set
+  END FUNCTION HCO_VERBOSE_INQ
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_Verbose_Check
+! !IROUTINE: HCO_IsVerb
 !
-! !DESCRIPTION: Function HCO\_Verbose\_Check returns the verbose flag. 
+! !DESCRIPTION: Function HCO\_IsVerb returns true if the HEMCO verbose number
+!  is equal to or larger than the passed number. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_Verbose_Check() RESULT( isVerbose )
+  FUNCTION HCO_IsVerb ( VerbNr ) RESULT ( IsVerb )
 !
-! !RETURN VALUE:
+! !INPUT PARAMETERS:
 !
-    LOGICAL  :: isVerbose
+    INTEGER, INTENT(IN) :: VerbNr 
+!
+! !OUTPUT PARAMETERS:
+!  
+    LOGICAL             :: IsVerb
 !
 ! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
-!
+!  15 Mar 2015 - C. Keller - Initialization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     !======================================================================
-    ! HCO_VERBOSE_CHECK begins here 
+    ! HCO_IsVerb begins here 
     !======================================================================
 
-    IF ( ASSOCIATED(Err) ) THEN
-       isVerbose = Err%Verbose
+    IF ( .NOT. ASSOCIATED(Err) ) THEN
+       IsVerb = .FALSE. 
     ELSE
-       isVerbose = .FALSE.
+       IsVerb = ( Err%Verbose >= VerbNr ) 
     ENDIF
 
-  END FUNCTION HCO_Verbose_Check
+  END FUNCTION HCO_IsVerb
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -676,6 +743,9 @@ CONTAINS
        RC = HCO_FAIL
        RETURN
     ENDIF
+
+    ! Never open if we are not on the root CPU
+    IF ( .NOT. Err%IsRoot ) RETURN
 
     ! Don't do anything if we write into standard output!
     IF ( Err%LUN < 0 ) THEN
@@ -780,6 +850,7 @@ CONTAINS
     ! Check if object exists
     IF ( .NOT. ASSOCIATED(Err)) RETURN
     IF ( .NOT. Err%LogIsOpen  ) RETURN
+    IF ( .NOT. Err%IsRoot     ) RETURN
 
     ! Show summary?
     IF ( PRESENT(ShowSummary) ) THEN
@@ -794,8 +865,9 @@ CONTAINS
        CALL HCO_MSG ( MSG )
        MSG = 'HEMCO FINISHED'
        CALL HCO_MSG ( MSG, SEP1='-' )
-  
-       WRITE(MSG,'(A20,I6)') 'Number of warnings: ', Err%nWarnings 
+ 
+       WRITE(MSG,'(A16,I1,A12,I6)') &
+          'Warnings (level ', Err%Warnings, ' or lower): ', Err%nWarnings
        CALL HCO_MSG ( MSG, SEP2='-' )
     ENDIF
 

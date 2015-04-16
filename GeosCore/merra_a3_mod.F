@@ -260,7 +260,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DAO_MOD,            ONLY : T_FULLGRID
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
@@ -281,6 +280,7 @@
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_met
 !  23 Oct 2013 - R. Yantosca - Now accept Input_Opt as an argument
 !  23 Oct 2013 - R. Yantosca - Now read T_FULLGRID for specialty (offline) sims
+!  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -302,82 +302,37 @@
          RETURN
       ENDIF
 
-      !=================================================================      
-      ! Read data from disk
       !=================================================================
-      IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
-
-         !--------------------------------------------------------------
-         ! SPECIALTY SIMULATIONS: Make sure to read T_FULLGRID
-         !--------------------------------------------------------------
-         CALL READ_A3( NYMD       = NYMD,          
-     &                 NHMS       = NHMS, 
-     &                 Input_Opt  = Input_Opt,
-     &                 CLOUD      = State_Met%CLDF,          
-     &                 CLDTOPS    = State_Met%CLDTOPS, 
-     &                 CMFMC      = State_Met%CMFMC, 
-     &                 DQRCU      = State_Met%DQRCU, 
-     &                 DQRLSAN    = State_Met%DQRLSAN,       
-     &                 DQIDTMST   = State_Met%DQIDTMST, 
-     &                 DQLDTMST   = State_Met%DQLDTMST,  
-     &                 DQVDTMST   = State_Met%DQVDTMST,  
-     &                 DTRAIN     = State_Met%DTRAIN,     
-     &                 MOISTQ     = State_Met%MOISTQ,     
-     &                 OPTDEPTH   = State_Met%OPTDEP, 
-     &                 PFICU      = State_Met%PFICU,             
-     &                 PFILSAN    = State_Met%PFILSAN,             
-     &                 PFLCU      = State_Met%PFLCU,
-     &                 PFLLSAN    = State_Met%PFLLSAN,
-     &                 QI         = State_Met%QI,             
-     &                 QL         = State_Met%QL,             
-     &                 QV         = State_Met%SPHU,
-     &                 REEVAPCN   = State_Met%REEVAPCN,
-     &                 REEVAPLS   = State_Met%REEVAPLS,
-     &                 T          = State_Met%T,               
-     &                 TAUCLI     = State_Met%TAUCLI,     
-     &                 TAUCLW     = State_Met%TAUCLW,     
-     &                 U          = State_Met%U,            
-     &                 V          = State_Met%V,
-     &                 T_FULLGRID = T_FULLGRID         )  
-
-      ELSE
-
-         !--------------------------------------------------------------
-         ! FULL-CHEMISTRY SIMULATIONS: Do not read T_FULLGRID
-         !
-         ! NOTE: If you are running GEOS-Chem in an ESMF environment,
-         ! then we will avoid reading T_FULLGRID. (bmy, 10/28/13)
-         !--------------------------------------------------------------
-         CALL READ_A3( NYMD       = NYMD,          
-     &                 NHMS       = NHMS,   
-     &                 Input_Opt  = Input_Opt,    
-     &                 CLOUD      = State_Met%CLDF,          
-     &                 CLDTOPS    = State_Met%CLDTOPS, 
-     &                 CMFMC      = State_Met%CMFMC, 
-     &                 DQRCU      = State_Met%DQRCU, 
-     &                 DQRLSAN    = State_Met%DQRLSAN,       
-     &                 DQIDTMST   = State_Met%DQIDTMST, 
-     &                 DQLDTMST   = State_Met%DQLDTMST,  
-     &                 DQVDTMST   = State_Met%DQVDTMST,  
-     &                 DTRAIN     = State_Met%DTRAIN,     
-     &                 MOISTQ     = State_Met%MOISTQ,     
-     &                 OPTDEPTH   = State_Met%OPTDEP, 
-     &                 PFICU      = State_Met%PFICU,             
-     &                 PFILSAN    = State_Met%PFILSAN,             
-     &                 PFLCU      = State_Met%PFLCU,
-     &                 PFLLSAN    = State_Met%PFLLSAN,
-     &                 QI         = State_Met%QI,             
-     &                 QL         = State_Met%QL,             
-     &                 QV         = State_Met%SPHU,
-     &                 REEVAPCN   = State_Met%REEVAPCN,
-     &                 REEVAPLS   = State_Met%REEVAPLS,
-     &                 T          = State_Met%T,               
-     &                 TAUCLI     = State_Met%TAUCLI,     
-     &                 TAUCLW     = State_Met%TAUCLW,     
-     &                 U          = State_Met%U,            
-     &                 V          = State_Met%V        )   
-
-      ENDIF
+      ! Read MERRA met fields
+      !=================================================================
+      CALL READ_A3( NYMD       = NYMD,          
+     &              NHMS       = NHMS,   
+     &              Input_Opt  = Input_Opt,    
+     &              CLOUD      = State_Met%CLDF,          
+     &              CLDTOPS    = State_Met%CLDTOPS, 
+     &              CMFMC      = State_Met%CMFMC, 
+     &              DQRCU      = State_Met%DQRCU, 
+     &              DQRLSAN    = State_Met%DQRLSAN,       
+     &              DQIDTMST   = State_Met%DQIDTMST, 
+     &              DQLDTMST   = State_Met%DQLDTMST,  
+     &              DQVDTMST   = State_Met%DQVDTMST,  
+     &              DTRAIN     = State_Met%DTRAIN,     
+     &              MOISTQ     = State_Met%MOISTQ,     
+     &              OPTDEPTH   = State_Met%OPTDEP, 
+     &              PFICU      = State_Met%PFICU,             
+     &              PFILSAN    = State_Met%PFILSAN,             
+     &              PFLCU      = State_Met%PFLCU,
+     &              PFLLSAN    = State_Met%PFLLSAN,
+     &              QI         = State_Met%QI,             
+     &              QL         = State_Met%QL,             
+     &              QV         = State_Met%SPHU,
+     &              REEVAPCN   = State_Met%REEVAPCN,
+     &              REEVAPLS   = State_Met%REEVAPLS,
+     &              T          = State_Met%T,               
+     &              TAUCLI     = State_Met%TAUCLI,     
+     &              TAUCLW     = State_Met%TAUCLW,     
+     &              U          = State_Met%U,            
+     &              V          = State_Met%V        )   
 
       ! Save NYMD and NHMS for next call
       LASTNYMD = NYMD
@@ -405,7 +360,7 @@
      &                    PFILSAN,  PFLCU,     PFLLSAN,  QI,
      &                    QL,       QV,        REEVAPCN, REEVAPLS,
      &                    T,        TAUCLI,    TAUCLW,   U,
-     &                    V,        T_FULLGRID                     )
+     &                    V                                        )
 !
 ! !USES:
 !
@@ -457,9 +412,6 @@
       REAL(fp),  INTENT(OUT) :: CLOUD     (IIPAR,JJPAR,LLPAR  )
       REAL(fp),  INTENT(OUT) :: MOISTQ    (IIPAR,JJPAR,LLPAR  )
       REAL(fp),  INTENT(OUT) :: OPTDEPTH  (IIPAR,JJPAR,LLPAR  )
-
-      ! Optional arguments
-      REAL(fp),  OPTIONAL    :: T_FULLGRID(IIPAR,JJPAR,LGLOB  )
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
@@ -472,6 +424,7 @@
 !  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  06 Nov 2014 - R. Yantosca - All input arguments are declared as (I,J,L)
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_A6 with TRANSFER_3D
+!  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -761,12 +714,6 @@
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_3D( D, T )
                   NFOUND = NFOUND + 1 
-
-                  ! For specialty simulations, make sure to also archive
-                  ! temperature on the full vertical grid (bmy, 10/28/13)
-                  IF ( PRESENT( T_FULLGRID ) ) THEN
-                     T_FULLGRID = D
-                  ENDIF
                ENDIF
 
             !------------------------------------------------

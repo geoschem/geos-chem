@@ -98,7 +98,7 @@
       REAL(fp),  ALLOCATABLE :: ACIDPUR_SAV(:,:,:)
 
       ! HEMCO pointers
-      REAL(hp), POINTER    :: HNO3(:,:,:) => NULL()
+      REAL(sp), POINTER    :: HNO3(:,:,:) => NULL()
 
       CONTAINS
 !EOC
@@ -130,11 +130,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-!------------------------------------------------------------------------------
-! Prior to 9/23/14:
-! Now get HNO3 from HEMCO (mps, 9/23/14)
-!      USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
-!------------------------------------------------------------------------------
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
@@ -302,38 +297,6 @@
          ! Reset first-time flag
          FIRST = .FALSE. 
       ENDIF
-
-!------------------------------------------------------------------------------
-! Prior to 9/23/14:
-! Get global HNO3 from HEMCO (mps, 9/23/14)
-!      !=================================================================
-!      ! Check to see if we have to read in monthly mean HNO3
-!      !=================================================================
-!      IF ( IDTHNO3 == 0 ) THEN
-!
-!         IF ( IT_IS_A_FULLCHEM_SIM ) THEN
-!
-!            ! Coupled simulation: stop w/ error since we need HNO3
-!            CALL ERROR_STOP( 'IDTHNO3 is not defined!', X )
-! 
-!         ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
-!
-!            ! Offline simulation: read monthly mean HNO3
-!            IF ( ITS_A_NEW_MONTH() ) THEN
-!               CALL GET_GLOBAL_HNO3( GET_MONTH() )
-!            ENDIF
-!
-!            ! Initialize for each timestep (bec, bmy, 4/15/05)
-!            GAS_HNO3 = 0e+0_fp
-!
-!         ELSE
-!
-!            ! Otherwise stop w/ error
-!            CALL ERROR_STOP( 'Invalid simulation type!', X )
-!
-!         ENDIF
-!      ENDIF
-!------------------------------------------------------------------------------
 
       ! AEROPH: Initialize arrays all the way up to LLPAR for
       ! aeroph. Arrays go up to LLPAR due to ND42 use (hotp 8/11/09)
@@ -760,11 +723,6 @@
 !
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-!------------------------------------------------------------------------------
-! Prior to 9/23/14:
-! Now get HNO3 from HEMCO (mps, 9/23/14)
-!      USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_UGM3
-!------------------------------------------------------------------------------
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
 !
 ! !INPUT PARAMETERS: 
@@ -797,10 +755,6 @@
       ! Relax to monthly mean HNO3 concentrations every 3 hours
       ! Otherwise just return the concentration in HNO3_sav
       IF ( MOD( GET_ELAPSED_MIN(), 180 ) == 0 ) THEN
-!------------------------------------------------------------------------------
-! Prior to 9/23/14:
-!         HNO3_UGM3 = GET_HNO3_UGM3( I, J, L, State_Met )
-!------------------------------------------------------------------------------
          ! HNO3 is in v/v (from HEMCO), convert to ug/m3
          ! First convert HNO3 from [v/v] to [kg]
          HNO3_UGM3 = HNO3( I, J, L ) * State_Met%AD(I,J,L) /

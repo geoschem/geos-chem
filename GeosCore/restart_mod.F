@@ -119,7 +119,7 @@
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       INTEGER,        INTENT(IN)  :: YYYYMMDD    ! YYYY/MM/DD GMT date
       INTEGER,        INTENT(IN)  :: HHMMSS      ! hh:mm:ss GMT time
-      REAL(fp),         INTENT(IN)  :: TAU         ! TAU value (hrs from 1/1/1985)
+      REAL(f8),       INTENT(IN)  :: TAU         ! TAU value (hrs from 1/1/1985)
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
@@ -170,12 +170,12 @@
       ! Local Variables      
       INTEGER              :: I,    I0, IOS, J,  J0, L, N
       INTEGER              :: YYYY, MM, DD,  HH, SS
-      REAL*4               :: TRACER(IIPAR,JJPAR,LLPAR)
+      REAL(f4)             :: TRACER(IIPAR,JJPAR,LLPAR)
       CHARACTER(LEN=255)   :: FILENAME
 
       ! For binary punch file, version 2.0
       INTEGER              :: IU_RST
-      REAL*4               :: LONRES, LATRES
+      REAL(f4)             :: LONRES, LATRES
       INTEGER              :: HALFPOLAR
       INTEGER, PARAMETER   :: CENTER180 = 1
       
@@ -188,12 +188,12 @@
       ! For fields from Input_Opt
       LOGICAL              :: LPRT
       INTEGER              :: N_TRACERS
-      REAL(fp)               :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER      :: STT(:,:,:,:)
+      REAL(fp), POINTER    :: STT(:,:,:,:)
 
       !=================================================================
       ! MAKE_RESTART_FILE begins here!
@@ -363,6 +363,7 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm arguments
+!  16 Dec 2014 - M. Yannetti - Changed ZTAU0 and ZTAU1 to REAL*8
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -382,7 +383,7 @@
       INTEGER             :: NTRACER,   NSKIP
       INTEGER             :: HALFPOLAR, CENTER180
       REAL*4              :: LONRES,    LATRES
-      REAL(fp)              :: ZTAU0,     ZTAU1
+      REAL*8              :: ZTAU0,     ZTAU1
       CHARACTER(LEN=20)   :: MODELNAME
       CHARACTER(LEN=40)   :: CATEGORY
       CHARACTER(LEN=40)   :: UNIT     
@@ -1155,6 +1156,7 @@
 !  22 Aug 2013 - R. Yantosca - Add Input_Opt, RC arguments
 !  22 Aug 2013 - R. Yantosca - Now get species restart filename from Input_Opt
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
+!  16 Dec 2014 - M. Yannetti - Changed ZTAU0 and ZTAU1 to REAL*8
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1175,7 +1177,7 @@
       INTEGER             :: NTRACER,   NSKIP
       INTEGER             :: HALFPOLAR, CENTER180
       REAL*4              :: LONRES,    LATRES
-      REAL(fp)              :: ZTAU0,     ZTAU1
+      REAL*8              :: ZTAU0,     ZTAU1  ! has to be REAL*8
       CHARACTER(LEN=20)   :: MODELNAME
       CHARACTER(LEN=40)   :: CATEGORY
       CHARACTER(LEN=40)   :: UNIT     

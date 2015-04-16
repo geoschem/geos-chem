@@ -70,8 +70,8 @@ MODULE HCOX_SeaSalt_Mod
   REAL*8, ALLOCATABLE :: RRMID (:,:)
 
   ! Number densities
-  REAL(hp), POINTER   :: NDENS_SALA(:,:) => NULL()
-  REAL(hp), POINTER   :: NDENS_SALC(:,:) => NULL()
+  REAL(sp), POINTER   :: NDENS_SALA(:,:) => NULL()
+  REAL(sp), POINTER   :: NDENS_SALC(:,:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
@@ -180,7 +180,7 @@ CONTAINS
     REAL*8                 :: BR2_NR, SALT_NR 
 
     ! Error handling
-    LOGICAL                :: verbose, ERR
+    LOGICAL                :: ERR
 
     !=================================================================
     ! HCOX_SeaSalt_Run begins here!
@@ -192,9 +192,6 @@ CONTAINS
     ! Enter 
     CALL HCO_ENTER ( 'HCOX_SeaSalt_Run (hcox_seasalt_mod.F90)', RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Verbose?
-    verbose = am_I_Root .AND. HCO_VERBOSE_CHECK() 
 
     ! Exit status
     ERR = .FALSE.
@@ -375,7 +372,7 @@ CONTAINS
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => FLUXSALA
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              Cat=-1, Hier=-1, HcoID=IDTSALA,   &
                              AutoFill=1, Array2D=Arr2D, RC=RC   )
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -396,7 +393,7 @@ CONTAINS
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => FLUXSALC
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              Cat=-1, Hier=-1, HcoID=IDTSALC,   &
                              AutoFill=1, Array2D=Arr2D, RC=RC   )
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -417,7 +414,7 @@ CONTAINS
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => FLUXBr2
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              Cat=-1, Hier=-1, HcoID=IDTBr2,   &
                              AutoFill=1, Array2D=Arr2D, RC=RC   )
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -619,14 +616,14 @@ CONTAINS
        CALL HCO_ERROR( 'Cannot allocate NDENS_SALA', RC )
        RETURN
     ENDIF
-    NDENS_SALA = 0.0_hp
+    NDENS_SALA = 0.0_sp
 
     ALLOCATE ( NDENS_SALC( HcoState%NX, HcoState%NY), STAT=AS )
     IF ( AS/=0 ) THEN
        CALL HCO_ERROR( 'Cannot allocate NDENS_SALC', RC )
        RETURN
     ENDIF
-    NDENS_SALC = 0.0_hp
+    NDENS_SALC = 0.0_sp
 
     !=================================================================
     ! Define edges and midpoints of each incremental radius bin
@@ -735,7 +732,8 @@ CONTAINS
     ! to the respective density arrays filled by the run method of this
     ! module.
     !=======================================================================
-    CALL Diagn_Create ( am_I_Root, HcoState,                &    
+    CALL Diagn_Create ( am_I_Root,                          &
+                        HcoState   = HcoState,              & 
                         cName      = 'SEASALT_DENS_FINE',   &
                         ExtNr      = ExtNr,                 &
                         Cat        = -1,                    &
@@ -743,14 +741,14 @@ CONTAINS
                         HcoID      = IDTSALA,               &
                         SpaceDim   = 2,                     &
                         OutUnit    = 'number_dens',         &
-                        WriteFreq  = 'Manual',              &
                         AutoFill   = 0,                     &
                         Trgt2D     = NDENS_SALA,            &
-                        cID        = N,                     &
+                        COL        = HcoDiagnIDManual,      &
                         RC         = RC                      )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create ( am_I_Root, HcoState,                &    
+    CALL Diagn_Create ( am_I_Root,                          & 
+                        HcoState   = HcoState,              & 
                         cName      = 'SEASALT_DENS_COARSE', &
                         ExtNr      = ExtNr,                 &
                         Cat        = -1,                    &
@@ -758,10 +756,9 @@ CONTAINS
                         HcoID      = IDTSALC,               &
                         SpaceDim   = 2,                     &
                         OutUnit    = 'number_dens',         &
-                        WriteFreq  = 'Manual',              &
                         AutoFill   = 0,                     &
                         Trgt2D     = NDENS_SALC,            &
-                        cID        = N,                     &
+                        COL        = HcoDiagnIDManual,      &
                         RC         = RC                      )
     IF ( RC /= HCO_SUCCESS ) RETURN
 

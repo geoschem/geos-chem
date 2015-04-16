@@ -74,10 +74,11 @@ MODULE HCO_State_Mod
      LOGICAL                     :: isESMF     ! Are we using ESMF?
      TYPE(HcoOpt),       POINTER :: Options    ! HEMCO run options
 
-     !%%%%%  ESMF state objects
+     !%%%%%  ESMF objects
 #if defined(ESMF_)
-     TYPE(ESMF_State),   POINTER :: IMPORT
-     TYPE(ESMF_State),   POINTER :: EXPORT
+     TYPE(ESMF_GridComp), POINTER :: GridComp 
+     TYPE(ESMF_State),    POINTER :: IMPORT
+     TYPE(ESMF_State),    POINTER :: EXPORT
 #endif
   END TYPE HCO_State
 !
@@ -115,18 +116,28 @@ MODULE HCO_State_Mod
   ! HcoOpt: Derived type for HEMCO run options
   !=========================================================================
   TYPE :: HcoOpt
-     INTEGER :: ExtNr         ! ExtNr to be used 
-     INTEGER :: SpcMin        ! Smallest HEMCO species ID to be considered 
-     INTEGER :: SpcMax        ! Highest HEMCO species ID to be considered
-     INTEGER :: CatMin        ! Smallest category to be considered
-     INTEGER :: CatMax        ! Highest category to be considered
-     LOGICAL :: AutoFillDiagn ! Write into AutoFill diagnostics?
-     LOGICAL :: FillBuffer    ! Write calculated emissions into buffer
-                              ! instead of emission array? 
-     INTEGER :: NegFlag       ! Negative value flag (from configfile):
-                              ! 2 = allow negative values
-                              ! 1 = set neg. values to zero and prompt warning 
-                              ! 0 = return w/ error if neg. value
+     INTEGER  :: ExtNr          ! ExtNr to be used 
+     INTEGER  :: SpcMin         ! Smallest HEMCO species ID to be considered 
+     INTEGER  :: SpcMax         ! Highest HEMCO species ID to be considered
+     INTEGER  :: CatMin         ! Smallest category to be considered
+     INTEGER  :: CatMax         ! Highest category to be considered
+     LOGICAL  :: HcoWritesDiagn ! If set to .TRUE., HEMCO will schedule the
+                                ! output of the default HEMCO diagnostics 
+                                ! (in hco_driver_mod.F90).
+     LOGICAL  :: AutoFillDiagn  ! Write into AutoFill diagnostics?
+     LOGICAL  :: FillBuffer     ! Write calculated emissions into buffer
+                                ! instead of emission array? 
+     INTEGER  :: NegFlag        ! Negative value flag (from configfile):
+                                ! 2 = allow negative values
+                                ! 1 = set neg. values to zero and prompt warning 
+                                ! 0 = return w/ error if neg. value
+     LOGICAL  :: PBL_DRYDEP     ! If true, dry deposition frequencies will
+                                ! be calculated over the full PBL. If false, 
+                                ! they are calculated over the first layer only.
+     REAL(hp) :: MaxDepExp      ! Maximum value of deposition freq. x time step.
+     LOGICAL  :: MaskIsBinary   ! If TRUE, masks are treated as binary, e.g.  
+                                ! grid boxes are 100% inside or outside of a
+                                ! mask. 
   END TYPE HcoOpt
 
   !=========================================================================
@@ -176,6 +187,7 @@ MODULE HCO_State_Mod
 !                              gigc_state_chm_mod.F90
 !  07 Jul 2014 - R. Yantosca - Cosmetic changes
 !  30 Sep 2014 - R. Yantosca - Add HcoMicroPhys derived type to HcoState
+!  08 Apr 2015 - C. Keller   - Added MaskIsBinary to HcoState options.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -200,7 +212,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,    ONLY : GetExtOpt
+    USE HCO_EXTLIST_MOD,    ONLY : GetExtOpt, CoreNr
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -270,15 +282,12 @@ CONTAINS
        ! will just create a pointer to the data array (XX%Val). 
        ! Will specify the arrays in HEMCO-model interface routine 
        ! or when writing to them for the first time.
-!       HcoState%Spc(I)%Emis => NULL()
        CALL Hco_ArrInit( HcoState%Spc(I)%Emis, 0, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-!       HcoState%Spc(I)%Conc => NULL()
        CALL Hco_ArrInit( HcoState%Spc(I)%Conc, 0, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-!       HcoState%Spc(I)%Depv => NULL()
        CALL Hco_ArrInit( HcoState%Spc(I)%Depv, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDDO !I
@@ -361,22 +370,49 @@ CONTAINS
     ! Default HEMCO options
     ! ==> execute HEMCO core; use all species and categories
     ALLOCATE( HcoState%Options )
-    HcoState%Options%ExtNr         =  0
-    HcoState%Options%SpcMin        =  1
-    HcoState%Options%SpcMax        = -1
-    HcoState%Options%CatMin        =  1
-    HcoState%Options%CatMax        = -1
-    HcoState%Options%AutoFillDiagn = .TRUE.
-    HcoState%Options%FillBuffer    = .FALSE.
+    HcoState%Options%ExtNr          =  0
+    HcoState%Options%SpcMin         =  1
+    HcoState%Options%SpcMax         = -1
+    HcoState%Options%CatMin         =  1
+    HcoState%Options%CatMax         = -1
+    HcoState%Options%AutoFillDiagn  = .TRUE.
+    HcoState%Options%HcoWritesDiagn = .FALSE.
+    HcoState%Options%FillBuffer     = .FALSE.
 
     ! Get negative flag value from configuration file. If not found, set to 0. 
-    CALL GetExtOpt ( 0, 'Negative values', &
+    CALL GetExtOpt ( CoreNr, 'Negative values', &
                      OptValInt=HcoState%Options%NegFlag, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%NegFlag = 0
 
-    !-----------------------------------------------------------------
-    ! Initialize variables 
+    ! Get PBL_DRYDEP flag from configuration file. If not found, set to default
+    ! value of 0. 
+    CALL GetExtOpt ( CoreNr, 'PBL dry deposition', &
+                     OptValBool=HcoState%Options%PBL_DRYDEP, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. Found ) HcoState%Options%PBL_DRYDEP = .FALSE. 
+
+    ! Get MaxDepExp from configuration file. If not found, set to default
+    ! value of 20. 
+    CALL GetExtOpt ( CoreNr, 'Maximum dep x ts', &
+                     OptValHp=HcoState%Options%MaxDepExp, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. Found ) HcoState%Options%MaxDepExp = 20.0_hp 
+
+    ! Get binary mask flag from configuration file. If not found, set to default
+    ! value of TRUE. 
+    CALL GetExtOpt ( CoreNr, 'Binary mask', &
+                     OptValBool=HcoState%Options%MaskIsBinary, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. Found ) HcoState%Options%MaskIsBinary = .TRUE. 
+
+    ! Make sure ESMF pointers are not dangling around
+#if defined(ESMF_)
+    HcoState%GridComp => NULL()
+    HcoState%IMPORT   => NULL()
+    HcoState%EXPORT   => NULL()
+#endif
+
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
 
@@ -457,8 +493,9 @@ CONTAINS
     IF ( ASSOCIATED ( HcoState%Phys    ) ) DEALLOCATE ( HcoState%Phys    )
 
 #if defined(ESMF_)
-    HcoState%IMPORT => NULL()
-    HcoState%EXPORT => NULL()
+    HcoState%GridComp => NULL()
+    HcoState%IMPORT   => NULL()
+    HcoState%EXPORT   => NULL()
 #endif
 
   END SUBROUTINE HcoState_Final
@@ -577,7 +614,7 @@ CONTAINS
 
     ! Loop over all species names
     DO N = 1, HcoState%nSpc
-
+ 
        ! Return the index of the sought-for species
        IF( TRIM( name ) == TRIM( HcoState%Spc(N)%SpcName ) ) THEN
           Indx = N 
@@ -653,7 +690,7 @@ CONTAINS
     ! Split character into species string. 
     CALL STRSPLIT( SpcStr, HCO_SEP(), SUBSTR, nSpc )
 
-    ! Find extension of interest 
+    ! nothing to do if there are no species
     IF ( nSpc == 0 ) RETURN 
 
     ! Allocate arrays 

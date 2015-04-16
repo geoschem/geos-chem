@@ -14,6 +14,18 @@
 ! dimensionless air over water Henry constant.
 !\\
 !\\
+! This module calculates the source and sink terms separately. The source
+! is given as flux, the sink as deposition rate:
+! source = Kg * H * Cwater     [kg m-2 s-1]
+! sink   = Kg / DEPHEIGHT      [s-1]
+!
+! The deposition rate is obtained by dividing the exchange velocity Kg 
+! by the deposition height DEPHEIGHT, e.g. the height over which 
+! deposition occurs. This can be either the first grid box only, or the
+! entire planetary boundary layer. The HEMCO option 'PBL_DRYDEP' determines
+! which option is being used. 
+!\\
+!\\
 ! Kg is calculated following Johnson, 2010, which is largely based on
 ! the work of Nightingale et al., 2000a/b.
 ! The salinity and seawater pH are currently set to constant global values 
@@ -98,9 +110,9 @@ MODULE HCOX_SeaFlux_Mod
   END TYPE OcSpec
 
   ! Variables carrying information about ocean species 
-  INTEGER                     :: ExtNr
-  INTEGER                     :: nOcSpc            ! # of ocean species
-  TYPE(OcSpec), POINTER       :: OcSpecs(:)
+  INTEGER               :: ExtNr
+  INTEGER               :: nOcSpc            ! # of ocean species
+  TYPE(OcSpec), POINTER :: OcSpecs(:)
 
 CONTAINS
 !EOC
@@ -153,7 +165,7 @@ CONTAINS
 
     ! Pointers
     REAL(hp), POINTER  :: Arr2D(:,:)   => NULL() 
-    REAL(hp), POINTER  :: SeaConc(:,:) => NULL()
+    REAL(sp), POINTER  :: SeaConc(:,:) => NULL()
 
     !=================================================================
     ! HCOX_SeaFlux_Run begins here!
@@ -167,7 +179,7 @@ CONTAINS
     IF ( .NOT. ExtState%SeaFlux ) RETURN
 
     ! Verbose?
-    VERBOSE = am_I_Root .AND. HCO_VERBOSE_CHECK() 
+    verbose = HCO_IsVerb(1) 
 
     ! ---------------------------------------------------------------
     ! Calculate emissions
@@ -224,15 +236,28 @@ CONTAINS
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => SOURCE 
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
-                             Cat=-1, Hier=-1, HcoID=HcoID,     &
-                             AutoFill=1, Array2D=Arr2D, RC=RC   )
+          CALL Diagn_Update( am_I_Root,          &
+                             ExtNr      = ExtNr, &
+                             Cat        = -1,    &
+                             Hier       = -1,    &
+                             HcoID      = HcoID, &
+                             AutoFill   = 1,     &
+                             Array2D    = Arr2D, &
+                             COL        = -1,    &
+                             RC         = RC      )
           IF ( RC /= HCO_SUCCESS ) RETURN 
           Arr2D => NULL() 
        ENDIF
 
-       ! TODO: update depostion diagnostics
- 
+       ! Eventually add to dry deposition diagnostics
+       ContName = 'DEPVEL_' // TRIM(HcoState%Spc(HcoID)%SpcName)
+       Arr2D    => SINK
+       CALL Diagn_Update( am_I_Root,                &
+                          cName   = TRIM(ContName), &
+                          Array2D = Arr2D,          &
+                          COL     = -1,             &
+                          RC      = RC               ) 
+       Arr2D => NULL() 
     ENDDO !SpcID
 
     ! Leave w/ success
@@ -267,6 +292,7 @@ CONTAINS
 ! 
     USE Ocean_ToolBox_Mod,  ONLY : CALC_KG
     USE Henry_Mod,          ONLY : CALC_KH, CALC_HEFF
+    USE HCO_CALC_MOD,       ONLY : HCO_CheckDepv
 !
 ! !INPUT PARAMETERS:
 !
@@ -283,7 +309,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    REAL(hp),        INTENT(INOUT) :: SeaConc(HcoState%NX,HcoState%NY )
+    REAL(sp),        INTENT(INOUT) :: SeaConc(HcoState%NX,HcoState%NY )
     INTEGER,         INTENT(INOUT) :: RC                 ! Error stat 
 
 !
@@ -300,20 +326,24 @@ CONTAINS
 !  03 Oct 2014 - C. Keller - Added surface temperature limit of 45 degrees C
 !                            to avoid negative Schmidt numbers.
 !  07 Oct 2014 - C. Keller - Now use skin temperature instead of air temperature
+!  06 Mar 2015 - C. Keller - Now calculate deposition rate over entire PBL.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER             :: I, J, L
+    INTEGER             :: I, J, L, N
     REAL*8              :: IJSRC
     INTEGER             :: SCW
     REAL*8              :: P, V, VB, MW, KG
     REAL*8              :: K0, CR, PKA
     REAL*8              :: KH, HEFF
     REAL*8              :: TK, TC
-    LOGICAL             :: WARN
+    REAL(hp)            :: DEP_HEIGHT
+    INTEGER             :: OLDWARN
+    INTEGER             :: PBL_MAX
+    INTEGER, SAVE       :: WARN = 0
 
     ! For now, hardcode salinity
     REAL(dp), PARAMETER :: S = 35.0_dp
@@ -339,7 +369,6 @@ CONTAINS
     ! Init
     SOURCE(:,:) = 0d0
     SINK  (:,:) = 0d0
-    WARN        = .FALSE.
 
     ! Extract Henry coefficients
     K0  = HcoState%Spc(HcoID)%HenryK0
@@ -349,28 +378,31 @@ CONTAINS
     ! Model surface layer
     L = 1
 
+    ! Write out original warning status
+    OLDWARN = WARN
+
     ! Loop over all grid boxes. Only emit into lowest layer
 
 !$OMP PARALLEL DO                                                   &
 !$OMP DEFAULT( SHARED )                                             &
-!$OMP PRIVATE( I,           J,        TK                          ) &
+!$OMP PRIVATE( I,           J,        N,        TK                ) &
 !$OMP PRIVATE( TC,          P,        MW,       VB                ) &
 !$OMP PRIVATE( V,           KH,       RC,       HEFF,   SCW       ) &
-!$OMP PRIVATE( KG,          IJSRC                                 ) &
+!$OMP PRIVATE( KG,          IJSRC,    PBL_MAX,  DEP_HEIGHT        ) &
 !$OMP SCHEDULE( DYNAMIC )
 
     DO J = 1, HcoState%NY
     DO I = 1, HcoState%NX
       
        ! Make sure we have no negative seawater concentrations 
-       IF ( SeaConc(I,J) < 0d0 ) SeaConc(I,J) = 0d0
+       IF ( SeaConc(I,J) < 0.0_sp ) SeaConc(I,J) = 0.0_sp
 
        ! Assume no air-sea exchange over snow/ice (ALBEDO > 0.4)
-       IF ( ExtState%ALBD%Arr%Val(I,J) > 0.4d0 ) CYCLE
+       IF ( ExtState%ALBD%Arr%Val(I,J) > 0.4_hp ) CYCLE
 
        ! Do only over the ocean, i.e. if land fraction is less
        ! than 0.8
-       IF ( ExtState%FRCLND%Arr%Val(I,J) < 0.8 ) THEN
+       IF ( ExtState%FRCLND%Arr%Val(I,J) < 0.8_hp ) THEN
 
           !-----------------------------------------------------------
           ! Get grid box and species specific quantities
@@ -383,8 +415,7 @@ CONTAINS
           ! very high temperatures - hence cap temperature at specified
           ! limit
           IF ( TK > TMAX ) THEN
-             WRITE(MSG,*) 'Temperature limited to ', TMAX, 'K'
-             WARN = .TRUE. 
+             WARN = 1
              TK   = TMAX
           ENDIF
  
@@ -402,6 +433,10 @@ CONTAINS
           P = HcoState%Grid%PEDGE%Val(I,J,L)
 
           ! molecular weight [g/mol]
+          ! Use real species molecular weight and not the emitted 
+          ! molecular weight. The molecular weight is only needed to
+          ! calculate the air-side Schmidt number, which should be 
+          ! using the actual species MW.
           MW = HcoState%Spc(HcoID)%MW_g
 
           ! Liquid molar volume at boiling point [cm3/mol]
@@ -472,11 +507,29 @@ CONTAINS
           SOURCE(I,J) = IJSRC
 
           !-----------------------------------------------------------
-          ! Calculate deposition velocity to the ocean (s-1):
+          ! Calculate deposition rate to the ocean (s-1):
           !-----------------------------------------------------------
 
-          ! Pass to deposition array
-          SINK(I,J) = KG / HcoState%Grid%BXHEIGHT_M%Val(I,J,1)
+          ! Determine deposition height based on HEMCO option regarding
+          ! the deposition length scale. 
+          IF ( HcoState%Options%PBL_DRYDEP ) THEN
+             DO N = HcoState%NZ, 1, -1
+                IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,N) > 0.0_hp ) THEN
+                   PBL_MAX = N
+                   EXIT
+                ENDIF
+             ENDDO
+          ELSE
+             PBL_MAX = 1
+          ENDIF
+          DEP_HEIGHT = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:PBL_MAX))
+
+          ! Now calculate deposition rate from velocity and deposition
+          ! height: [s-1] = [m s-1] / [m].
+          SINK(I,J) = KG / DEP_HEIGHT 
+
+          ! Check validity of value
+          CALL HCO_CheckDepv( am_I_Root, HcoState, SINK(I,J), RC )
 
        ENDIF !Over ocean
     ENDDO !I
@@ -490,7 +543,8 @@ CONTAINS
     ENDIF
 
     ! Warning?
-    IF ( WARN ) THEN
+    IF ( WARN /= OLDWARN ) THEN
+       WRITE(MSG,*) 'Temperature limited to ', TMAX, 'K'
        CALL HCO_WARNING ( MSG, RC )
     ENDIF
 
@@ -722,11 +776,12 @@ CONTAINS
     ENDDO !I
 
     ! Set met fields
-    ExtState%U10M%DoUse   = .TRUE.
-    ExtState%V10M%DoUse   = .TRUE.
-    ExtState%TSKIN%DoUse  = .TRUE.
-    ExtState%ALBD%DoUse   = .TRUE.
-    ExtState%FRCLND%DoUse = .TRUE.
+    ExtState%U10M%DoUse        = .TRUE.
+    ExtState%V10M%DoUse        = .TRUE.
+    ExtState%TSKIN%DoUse       = .TRUE.
+    ExtState%ALBD%DoUse        = .TRUE.
+    ExtState%FRCLND%DoUse      = .TRUE.
+    ExtState%FRAC_OF_PBL%DoUse = .TRUE.
     
     ! Enable extensions
     ExtState%SeaFlux = .TRUE.

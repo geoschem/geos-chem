@@ -66,6 +66,10 @@
 !  181           : PAR diffuse                              [hPa        ]
 !  182           : Daily LAI                                [hPa        ]
 !  183           : Temperature at 2m                        [K          ]
+!  184           : Accumulated precip.                      [mm/day     ]
+!
+! The following diagnostics are currently commented out since they are now
+! handled by HEMCO (mps, 4/15/15)
 !  184           : Isoprene emissions                       [atomC/cm2/s]
 !  185           : Total Monoterpene emissions              [atomC/cm2/s]
 !  186           : Methyl Butanol emissions                 [atomC/cm2/s]
@@ -77,7 +81,7 @@
 !  192           : 3-Carene emissions                       [atomC/cm2/s]
 !  193           : Ocimene emissions                        [atomC/cm2/s]
 !  194           : Farnesene emissions                      [atomC/cm2/s]
-!  195           : Accumulated precip.                      [mm/day     ]
+!  195 (now 184) : Accumulated precip.                      [mm/day     ]
 !  196           : Soil NOx                                 [molec/cm2/s]
 !  197           : Fertilizer NOx                           [molec/cm2/s]
 !  198           : Dry Period                               [hours      ]
@@ -208,6 +212,7 @@
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
 
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
+      USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD	           ! SAVEOH
       USE CMN_GCTM_MOD             ! XTRA2
 !
@@ -263,6 +268,9 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  15 Apr 2015 - M. Sulprizio- Comment out emission diagnostics for now. These
+!                              are now handled by the HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -273,11 +281,14 @@
       LOGICAL, SAVE            :: IS_FULLCHEM
       LOGICAL, SAVE            :: IS_NOy,      IS_CLDTOPS, IS_OPTD
       LOGICAL, SAVE            :: IS_SEASALT,  IS_SLP
+      LOGICAL                  :: LINTERP
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
       INTEGER                  :: N,    R,     H,    W, X, Y
       INTEGER                  :: NHMS, TS_DIAG
-      REAL(fp)                   :: TAU, TMP,   SCALEAODnm
-      REAL(fp)                   :: Q( ND49_NI, ND49_NJ, ND49_NL )
+      INTEGER                  :: ISPC
+      REAL(f8)                 :: TAU
+      REAL(fp)                 :: TMP, SCALEAODnm
+      REAL(fp)                 :: Q( ND49_NI, ND49_NJ, ND49_NL )
       CHARACTER(LEN=16)        :: STAMP
       CHARACTER(LEN=40)        :: CATEGORY
       CHARACTER(LEN=40)        :: UNIT
@@ -290,11 +301,11 @@
       LOGICAL                  :: LSOILNOX
       LOGICAL                  :: DO_DIAG_WRITE
       INTEGER                  :: N_TRACERS
-      REAL(fp)                   :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)                 :: TCVV(Input_Opt%N_TRACERS)
  
       ! Pointers
-      REAL(fp), POINTER          :: STT(:,:,:,:)
-      REAL(fp), POINTER          :: AD(:,:,:)
+      REAL(fp), POINTER        :: STT(:,:,:,:)
+      REAL(fp), POINTER        :: AD(:,:,:)
 
       !=================================================================
       ! DIAG49 begins here!
@@ -373,6 +384,16 @@
 
       ! Time for BPCH file
       TAU  = GET_TAU()
+
+      !Determine if optical properties need interpolating
+      !The LUT wavelengths in IWVSELECT will match if no interpolation
+      !is needed. (output is only for the first requested wavelength)
+      !(DAR 10/2013)
+      IF(IWVSELECT(1,1).EQ.IWVSELECT(2,1)) THEN
+         LINTERP=.FALSE.
+      ELSE
+         LINTERP=.TRUE.
+      ENDIF
 
       ! Loop over tracers
       DO W = 1, ND49_N_TRACERS
@@ -852,20 +873,16 @@
          ELSE IF ( N == 167 ) THEN
 
             !--------------------------------------
-            ! SULFATE AOD @ jv_spec_aod.dat wavelength [unitless]
+            ! SULFATE AOD [unitless]
+            ! for wavelengths set in Radiation Menu
             !--------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMNL     = ND49_NL
             GMTRC    = 6
 
-            DO R = 1, NRH
-
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(1)+R-1) / QAA(IND999,IND(1)+R-1)
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0
-               
+            ISPC     = 1 !sulfate
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -875,34 +892,52 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,R) * SCALEAODnm )
+                  Q(X,Y,K) = Q(X,Y,K) +
+     $                       ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
-
-            ENDDO
+            ELSE
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+               DO K = 1, ND49_NL
+                  L = LOFF + K
+               DO Y = 1, ND49_NJ
+                  J = JOFF + Y
+               DO X = 1, ND49_NI
+                  I = GET_I( X )
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K) = Q(X,Y,K) + 
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                  ENDIF
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+            ENDIF
 
          ELSE IF ( N == 168 ) THEN
 
             !--------------------------------------
-            ! BLACK CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
+            ! BLACK CARBON AOD [unitless]
+            ! for wavelengths set in Radiation Menu
             !--------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMNL     = ND49_NL
             GMTRC    = 9
 
-            DO R = 1, NRH
-               
-               ! Index for ODAER
-               H          = NRH + R
-
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(IND999,IND(2)+R-1)
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0 
-
+            ISPC     = 2 !BC
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -912,33 +947,52 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALEAODnm )
+                  Q(X,Y,K) = Q(X,Y,K) +
+     $                       ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
-            ENDDO
+            ELSE
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+               DO K = 1, ND49_NL
+                  L = LOFF + K
+               DO Y = 1, ND49_NJ
+                  J = JOFF + Y
+               DO X = 1, ND49_NI
+                  I = GET_I( X )
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K) = Q(X,Y,K) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                  ENDIF
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+            ENDIF
 
          ELSE IF ( N == 169 ) THEN
 
             !--------------------------------------
-            ! ORGANIC CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
+            ! ORGANIC CARBON AOD [unitless]
+            ! for wavelengths set in Radiation Menu
             !--------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMNL     = ND49_NL
             GMTRC    = 12
 
-            DO R = 1, NRH
-
-               ! Index for ODAER
-               H          = 2*NRH + R
-
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(IND999,IND(3)+R-1)
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0
-
+            ISPC     = 3 !OC
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -948,33 +1002,52 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALEAODnm )
+                  Q(X,Y,K) = Q(X,Y,K) +
+     $                       ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
-            ENDDO
+            ELSE
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+               DO K = 1, ND49_NL
+                  L = LOFF + K
+               DO Y = 1, ND49_NJ
+                  J = JOFF + Y
+               DO X = 1, ND49_NI
+                  I = GET_I( X )
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K) = Q(X,Y,K) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                  ENDIF
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+            ENDIF
 
          ELSE IF ( N == 170 ) THEN
             
             !--------------------------------------
-            ! ACCUM SEASALT AOD @ jv_spec_aod.dat wavelength [unitless]
+            ! ACCUM SEASALT AOD [unitless]
+            ! for wavelengths set in Radiation Menu
             !--------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMNL     = ND49_NL
             GMTRC    = 15
 
-            DO R = 1, NRH
-
-               ! Index for ODAER
-               H          = 3*NRH + R
-  
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(IND999,IND(4)+R-1)
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0
-    
+            ISPC     = 4 !SSa
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -984,66 +1057,52 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALEAODnm )
+                  Q(X,Y,K) = Q(X,Y,K) +
+     $                       ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
-            ENDDO
+            ELSE
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+               DO K = 1, ND49_NL
+                  L = LOFF + K
+               DO Y = 1, ND49_NJ
+                  J = JOFF + Y
+               DO X = 1, ND49_NI
+                  I = GET_I( X )
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K) = Q(X,Y,K) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                  ENDIF
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+            ENDIF
 
          ELSE IF ( N == 171 ) THEN
 
             !--------------------------------------
-            ! COARSE SEASALT AOD @ jv_spec_aod.dat wavelength [unitless]
+            ! COARSE SEASALT AOD [unitless]
+            ! for wavelengths set in Radiation Menu
             !--------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMNL     = ND49_NL
             GMTRC    = 18
 
-            DO R = 1, NRH
-
-               ! Index for ODAER
-               H          = 4*NRH + R
-
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(IND999,IND(5)+R-1)
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, R, X, Y, K )
-               DO K = 1, ND49_NL
-                  L = LOFF + K
-               DO Y = 1, ND49_NJ
-                  J = JOFF + Y
-               DO X = 1, ND49_NI
-                  I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALEAODnm )
-               ENDDO
-               ENDDO
-               ENDDO
-!$OMP END PARALLEL DO
-            ENDDO
-
-         ELSE IF ( N == 172 ) THEN
-
-            !--------------------------------------
-            ! TOTAL DUST OPT DEPTH [unitless]
-            !--------------------------------------
-            CATEGORY  = 'OD-MAP-$'
-            UNIT      = 'unitless'
-            GMNL      = ND49_NL
-            GMTRC     = 4
-
-            DO R = 1, NDUST
-
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(IND999,IND(6)+R-1)    
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0  
-
+            ISPC     = 5 !SSc
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -1053,17 +1112,102 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ODMDUST(I,J,L,R) * SCALEAODnm
+                  Q(X,Y,K) = Q(X,Y,K) +
+     $                       ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
+            ELSE
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+               DO K = 1, ND49_NL
+                  L = LOFF + K
+               DO Y = 1, ND49_NJ
+                  J = JOFF + Y
+               DO X = 1, ND49_NI
+                  I = GET_I( X )
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K) = Q(X,Y,K) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                  ENDIF
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+            ENDIF
+
+         ELSE IF ( N == 172 ) THEN
+
+            !--------------------------------------
+            ! TOTAL DUST OPT DEPTH [unitless]
+            ! for wavelengths set in Radiation Menu
+            !--------------------------------------
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND49_NL
+            GMTRC     = 4
+
+            DO ISPC = 1, NDUST
+
+               IF ( .not. LINTERP ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+                  DO K = 1, ND49_NL
+                     L = LOFF + K
+                  DO Y = 1, ND49_NJ
+                     J = JOFF + Y
+                  DO X = 1, ND49_NI
+                     I = GET_I( X )
+                     Q(X,Y,K) = Q(X,Y,K) +
+     $                          ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)
+                  ENDDO
+                  ENDDO
+                  ENDDO
+!$OMP END PARALLEL DO
+               ELSE
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+                  DO K = 1, ND49_NL
+                     L = LOFF + K
+                  DO Y = 1, ND49_NJ
+                     J = JOFF + Y
+                  DO X = 1, ND49_NI
+                     I = GET_I( X )
+                   ! Interpolated using angstrom exponent between
+                   ! Closest available wavelengths
+                   ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                   !catch any zero values before interpolation
+                   IF ((ODMDUST(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                 (ODMDUST(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K) = Q(X,Y,K) +
+     &              (ODMDUST(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)/
+     &              ODMDUST(I,J,L,IWVSELECT(2,1),ISPC))))
+                   ENDIF
+                  ENDDO
+                  ENDDO
+                  ENDDO
+!$OMP END PARALLEL DO
+               ENDIF
             ENDDO
 
          ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
 
             !--------------------------------------
-            ! DUST OPTD BINS1-7 @ jv_spec_aod.dat wavelength[unitless]
+            ! DUST OPTD BINS1-7 [unitless]
+            ! for wavelengths set in Radiation Menu
+            !
             ! NOTE: Only archive at chem timestep
             !--------------------------------------
             CATEGORY  = 'OD-MAP-$'
@@ -1071,13 +1215,8 @@
             GMNL      = ND49_NL
             GMTRC     = 21+(N-173)
 
-            R = N - 172
-
-            ! Scaling factor for AOD wavelength (clh, 05/09)
-            ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(IND999,IND(6)+R-1)
-            ! We no longer need to scale by wavelength (skim, 02/03/11)
-            SCALEAODnm = 1.0
-
+            ISPC = N - 172
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -1087,11 +1226,38 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ODMDUST(I,J,L,R) * SCALEAODnm
+                  Q(X,Y,K) = Q(X,Y,K) +
+     $                       ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
+            ELSE
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+               DO K = 1, ND49_NL
+                  L = LOFF + K
+               DO Y = 1, ND49_NJ
+                  J = JOFF + Y
+               DO X = 1, ND49_NI
+                  I = GET_I( X )
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODMDUST(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                 (ODMDUST(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K) = Q(X,Y,K) +
+     &              (ODMDUST(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)/
+     &               ODMDUST(I,J,L,IWVSELECT(2,1),ISPC))))
+                  ENDIF
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+            ENDIF
 
          ELSE IF ( N == 180 ) THEN
 
@@ -1182,264 +1348,271 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 184 ) THEN
-            
-            !--------------------------------------
-            ! ISOPRENE EMISSIONS (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'    
-            GMNL     = ND49_NL
-            GMTRC    = 1
+!------------------------------------------------------------------------------
+! Prior to 4/15/15:
+! The biogenic emission diagnostics are now archived in HEMCO. Comment out
+! temporarily until we can restore these. (mps, 4/15/15)
+!        ELSE IF ( N == 184 ) THEN
+!           
+!           !--------------------------------------
+!           ! ISOPRENE EMISSIONS (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'    
+!           GMNL     = ND49_NL
+!           GMTRC    = 1
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 1 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 185 ) THEN
+!           
+!           !--------------------------------------
+!           ! TOTAL MONTERPENE EMISSIONS (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'       
+!           GMNL     = ND49_NL
+!           GMTRC    = 4
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 2 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 186 ) THEN
+!           
+!           !--------------------------------------
+!           ! MBO EMISSIONS  (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 5
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 3 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 187 ) THEN
+!           
+!           !--------------------------------------
+!           ! Alpha-Pinene EMISSIONS  (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 7
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 4 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 188 ) THEN
+!           
+!           !--------------------------------------
+!           ! Beta-Pinene EMISSIONS  (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 8
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 5 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 189 ) THEN
+!           
+!           !--------------------------------------
+!           ! Limonene EMISSIONS  (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 9
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 6 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 190 ) THEN
+!           
+!           !--------------------------------------
+!           ! Sabinene EMISSIONS  (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 10
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 7 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 191 ) THEN
+!           
+!           !--------------------------------------
+!           ! Myrcene EMISSIONS  (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 11
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 8 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 192 ) THEN
+!           
+!           !--------------------------------------
+!           ! 3-Carene EMISSIONS  (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 12
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 9 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 193 ) THEN
+!           
+!           !--------------------------------------
+!           ! Ocimene EMISSIONS  (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 13
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 10 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 194 ) THEN ! SOAupdate
+!           
+!           !--------------------------------------
+!           ! Farnesene EMISSIONS  (hotp 3/5/10)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 14
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 11 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!        !% SOAupdate: Can add BCARYO, OSQT, OMTP if desired (hotp 7/25/10) %
+!        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
+!        ELSE IF ( N == 195 ) THEN
+!------------------------------------------------------------------------------
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 1 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 185 ) THEN
-            
-            !--------------------------------------
-            ! TOTAL MONTERPENE EMISSIONS (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'       
-            GMNL     = ND49_NL
-            GMTRC    = 4
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 2 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 186 ) THEN
-            
-            !--------------------------------------
-            ! MBO EMISSIONS  (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 5
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 3 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 187 ) THEN
-            
-            !--------------------------------------
-            ! Alpha-Pinene EMISSIONS  (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 7
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 4 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 188 ) THEN
-            
-            !--------------------------------------
-            ! Beta-Pinene EMISSIONS  (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 8
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 5 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 189 ) THEN
-            
-            !--------------------------------------
-            ! Limonene EMISSIONS  (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 9
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 6 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 190 ) THEN
-            
-            !--------------------------------------
-            ! Sabinene EMISSIONS  (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 10
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 7 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 191 ) THEN
-            
-            !--------------------------------------
-            ! Myrcene EMISSIONS  (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 11
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 8 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 192 ) THEN
-            
-            !--------------------------------------
-            ! 3-Carene EMISSIONS  (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 12
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 9 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 193 ) THEN
-            
-            !--------------------------------------
-            ! Ocimene EMISSIONS  (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 13
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 10 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 194 ) THEN ! SOAupdate
-            
-            !--------------------------------------
-            ! Farnesene EMISSIONS  (hotp 3/5/10)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 14
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 11 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         !% SOAupdate: Can add BCARYO, OSQT, OMTP if desired (hotp 7/25/10) %
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-         ELSE IF ( N == 195 ) THEN
+        ELSE IF ( N == 184 ) THEN
 
             !--------------------------------------
             ! Accumulated Precip [mm/day]
@@ -1650,6 +1823,8 @@
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) The time is already updated to the next time step (ccc, 8/12/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  13 Mar 2015 - M. Sulprizio- Bug fix: Allow for temporal resolution finer
+!                              than 60 min (E. Marais)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1665,14 +1840,8 @@
       ! Current hour
       HR1      = GET_HOUR() + ( GET_MINUTE() / 60e+0_fp )
 
-!--- Previous to (ccc, 8/12/09)
-!      ! Hour at the next dynamic timestep
-!      HR2      = HR1        + ( ND49_FREQ / 60d0 )
-
-      ! If the next dyn step is the start of a new day, return TRUE
-!--- Previous to (ccc, 11/11/10)
-!       HR1 varies between 00 and 23:59. So compares to 00 not 24 anymore.
-!      ITS_TIME = ( INT( HR1 ) == 24 )
+      ! Allow for temporal resolution finer than 60 min
+      HR1      = HR1 * 1e+2_fp
 
       ITS_TIME = ( INT( HR1 ) == 00 )
 

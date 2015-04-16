@@ -1796,7 +1796,7 @@ contains
 !
 ! !INTERFACE:
 !
-  SUBROUTINE VDIFFDR( as2, Input_Opt, State_Met, State_Chm )
+  SUBROUTINE VDIFFDR( am_I_Root, as2, Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
 ! 
@@ -1804,7 +1804,9 @@ contains
     USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
+#if !defined( NO_BPCH )
     USE DIAG_MOD,           ONLY : AD44
+#endif
     USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP, NTRAIND, DEPSAV
 !                                   SHIPO3DEP
     USE DRYDEP_MOD,         ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
@@ -1826,12 +1828,18 @@ contains
     USE MERCURY_MOD,        ONLY : HG_EMIS
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
     ! HEMCO update
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
+    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
+#if defined( DEVEL )
+    USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+#endif
 
     implicit none
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+    ! is this the root CPU?
+    LOGICAL,        INTENT(IN)            :: am_I_Root
+
     ! Input options object
     TYPE(OptInput), INTENT(IN)            :: Input_Opt
     
@@ -1885,6 +1893,8 @@ contains
 !  25 Jun 2014 - R. Yantosca - Now get N_MEMBERS from input_mod.F
 !  16 Oct 2014 - C. Keller   - Bug fix: now add deposition rates instead of
 !                              overwriting them.
+!  10 Apr 2015 - C. Keller   - Now exchange PARANOX loss fluxes via HEMCO 
+!                              diagnostics.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1954,7 +1964,23 @@ contains
     ! HEMCO update
     LOGICAL            :: FND
     REAL(fp)           :: TMPFLX, EMIS, DEP
-    INTEGER            :: TOPMIX
+    INTEGER            :: HCRC,   TOPMIX
+
+    ! For HEMCO diagnostics
+#if defined( DEVEL )
+    REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+    REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
+    REAL(fp)           :: Total
+    INTEGER            :: cID
+#endif
+
+    ! PARANOX loss fluxes (kg/m2/s), imported from 
+    ! HEMCO PARANOX extension module (ckeller, 4/15/2015)
+    REAL(f4), POINTER, SAVE :: PNOXLOSS_O3  (:,:) => NULL()
+    REAL(f4), POINTER, SAVE :: PNOXLOSS_HNO3(:,:) => NULL()
+
+    ! First call?
+    LOGICAL,           SAVE :: FIRST = .TRUE.
 
     !=================================================================
     ! vdiffdr begins here!
@@ -2003,6 +2029,20 @@ contains
     dtime = GET_TS_CONV()*60e+0_fp ! min -> second
     
     shflx = State_Met%EFLUX / latvap ! latent heat -> water vapor flux
+
+    ! On first call, get pointers to the PARANOX loss fluxes. These are
+    ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and 
+    ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers 
+    ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
+    ! respective diagnostics. The pointers will remain unassociated if
+    ! the diagnostics do not exist (ckeller, 4/10/2015). 
+    IF ( FIRST ) THEN
+       CALL GetHcoDiagn( am_I_Root, 'PARANOX_O3_DEPOSITION_FLUX'  , &
+                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_O3         ) 
+       CALL GetHcoDiagn( am_I_Root, 'PARANOX_HNO3_DEPOSITION_FLUX', &
+                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_HNO3       ) 
+       FIRST = .FALSE.
+    ENDIF
 
 ! (Turn off parallelization for now, skim 6/20/12)
     
@@ -2093,6 +2133,12 @@ contains
        !----------------------------------------------------------------
        DO N = 1, N_TRACERS
 
+!          ! Exclude dust (ckeller 3/5/15)
+!          IF ( NN == IDTDST1 .OR. &
+!               NN == IDTDST2 .OR. &
+!               NN == IDTDST3 .OR. &
+!               NN == IDTDST4       ) CYCLE
+
           ! Add total emissions in the PBL to the EFLX array
           ! which tracks emission fluxes.  Units are [kg/m2/s].
           tmpflx = 0.0e+0_fp
@@ -2182,11 +2228,11 @@ contains
           NN   = NTRAIND(N)
           if (NN == 0) CYCLE
 
-          ! Now include sea salt dry deposition (jaegle 5/11/11)
-          IF ( NN == IDTDST1 .OR. &
-               NN == IDTDST2 .OR. &
-               NN == IDTDST3 .OR. &
-               NN == IDTDST4       ) CYCLE
+!          ! Now include sea salt dry deposition (jaegle 5/11/11)
+!          IF ( NN == IDTDST1 .OR. &
+!               NN == IDTDST2 .OR. &
+!               NN == IDTDST3 .OR. &
+!               NN == IDTDST4       ) CYCLE
 
 !          IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
 !              TRIM( DEPNAME(N) ) == 'DST2'.OR. &
@@ -2421,6 +2467,19 @@ contains
        dflx(I,J,:) = dflx(I,J,:) * State_Met%AD(I,J,1) / &
                      GET_AREA_M2( I, J, 1 ) 
 
+       ! Now that dflx is in kg/m2/s, add PARANOX loss to this term. The PARANOX
+       ! loss term is already in kg/m2/s. PARANOX loss (deposition) is calculated
+       ! for O3 and HNO3 by the PARANOX module, and data is exchanged via the 
+       ! HEMCO diagnostics. The data pointers PNOXLOSS_O3 and PNOXLOSS_HNO3 have
+       ! been linked to these diagnostics at the beginning of this routine
+       ! (ckeller, 4/10/15).
+       IF ( ASSOCIATED( PNOXLOSS_O3 ) .AND. IDTO3 > 0 ) THEN
+          dflx(I,J,IDTO3) = dflx(I,J,IDTO3) + PNOXLOSS_O3(I,J)
+       ENDIF
+       IF ( ASSOCIATED( PNOXLOSS_HNO3 ) .AND. IDTHNO3 > 0 ) THEN
+          dflx(I,J,IDTHNO3) = dflx(I,J,IDTHNO3) + PNOXLOSS_HNO3(I,J)
+       ENDIF
+
        ! surface flux = emissions - dry deposition
        sflx(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
 
@@ -2467,6 +2526,51 @@ contains
     enddo
 #endif
 
+    ! Write (surface) emissions into diagnostics
+#if defined( DEVEL )
+
+    ! Allocate temporary data array
+    ALLOCATE(Ptr3D(IIPAR,JJPAR,LLPAR))
+    Ptr3D = 0.0_fp
+
+    DO N = 1, N_TRACERS
+
+       ! Emission fluxes
+       IF ( ANY(eflx(:,:,N) > 0.0_fp ) ) THEN
+          Ptr3D(:,:,1) = eflx(:,:,N)
+          cID = GetHcoID ( TrcID=N )
+          IF ( cID > 0 ) THEN
+             cID = 10000 + cID
+             ! Total in kg
+             Total = SUM(Ptr3D(:,:,1) * State_Met%AREA_M2(:,:,1)) * dtime 
+             CALL Diagn_Update( am_I_Root,                           &
+                                cID     = cID,                       &
+                                Array3D = Ptr3D,                     &
+                                Total   = Total,                     &
+                                COL     = Input_Opt%DIAG_COLLECTION, &
+                                RC      = HCRC                        )
+             Ptr3D = 0.0_fp
+          ENDIF
+       ENDIF
+
+       ! Drydep fluxes
+       IF ( (ND44>0) .AND. (ANY(dflx(:,:,N) > 0.0_fp) ) ) THEN
+          Ptr2D => dflx(:,:,N)
+          cID = 44500 + N
+          CALL Diagn_Update( am_I_Root,                           &
+                             cID     = cID,                       &
+                             Array2D = Ptr2D,                     &
+                             COL     = Input_Opt%DIAG_COLLECTION, &
+                             RC      = HCRC                        )
+          Ptr2D => NULL()
+       ENDIF
+    ENDDO
+
+    DEALLOCATE(Ptr3D)
+
+#endif
+
+
     ! drydep fluxes diag. for SMVGEAR mechanism 
     ! for gases -- moved from DRYFLX in drydep_mod.f to here
     ! for aerosols -- 
@@ -2486,12 +2590,14 @@ contains
 
           ! Locate position of each tracer in DEPSAV
           NN = NTRAIND(N)
-          IF (NN == 0 .OR.       &
-              NN == IDTDST1 .OR. & 
-              NN == IDTDST2 .OR. &
-              NN == IDTDST3 .OR. &
-              NN == IDTDST4       ) CYCLE
+          IF ( NN == 0 ) CYCLE 
+!          IF (NN == 0 .OR.       &
+!              NN == IDTDST1 .OR. & 
+!              NN == IDTDST2 .OR. &
+!              NN == IDTDST3 .OR. &
+!              NN == IDTDST4       ) CYCLE
 
+#if !defined( NO_BPCH )
                 ! only for the lowest model layer
                 ! Convert : kg/m2/s -> molec/cm2/s
                 ! consider timestep difference between convection and emissions
@@ -2500,6 +2606,7 @@ contains
                        / TRACER_MW_KG(NN) * 6.022e+23_fp * 1.e-4_fp &
                        * GET_TS_CONV() / GET_TS_EMIS() 
 		ENDIF
+#endif
 
                 ! If Soil NOx is turned on, then call SOIL_DRYDEP to
                 ! archive dry deposition fluxes for nitrogen species
@@ -2524,12 +2631,14 @@ contains
        IF ( IS_TAGOX ) THEN
           ! The first species, Ox, has been done above
           do N = 2, N_TRACERS 
+#if !defined( NO_BPCH )
              ! Convert : kg/m2/s -> molec/cm2/s
              ! Consider timestep difference between convection and emissions
              AD44(:,:,N,1) = AD44(:,:,N,1) + dflx(:,:,N) &
                        / TRACER_MW_KG(1) * 6.022e+23_fp * 1.e-4_fp &
                        * GET_TS_CONV() / GET_TS_EMIS()
              AD44(:,:,N,2) = AD44(:,:,1,2) ! drydep velocity
+#endif
           enddo
        endif
 
@@ -2780,11 +2889,12 @@ contains
     ENDIF
 
     ! Compute PBL height and related quantities
-    CALL COMPUTE_PBL_HEIGHT( State_Met )
+    ! -> now done in main.F (ckeller, 3/5/15)
+!    CALL COMPUTE_PBL_HEIGHT( State_Met )
 
     ! Do mixing of tracers in the PBL (if necessary)
     IF ( DO_VDIFF ) THEN
-       CALL VDIFFDR( STT, Input_Opt, State_Met, State_Chm )
+       CALL VDIFFDR( am_I_Root, STT, Input_Opt, State_Met, State_Chm )
        IF( LPRT .and. am_I_Root ) THEN
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
        ENDIF

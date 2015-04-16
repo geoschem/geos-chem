@@ -440,7 +440,6 @@
 ! !USES:
 !
       USE BPCH2_MOD
-      USE DIAG_MOD,      ONLY : AD39, AD44, AD38
       USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE TRACERID_MOD,  ONLY : ID_Hg0, ID_Hg2, ID_Hg_tot
@@ -454,7 +453,7 @@
 !
       INTEGER,        INTENT(IN)   :: NYMD        ! Year-Month-Date
       INTEGER,        INTENT(IN)   :: NHMS        ! and Hour-Min-Sec
-      REAL(fp),         INTENT(IN)   :: TAU         ! TAU value: hrs since 1/1/85
+      REAL(f8),       INTENT(IN)   :: TAU         ! TAU value: hrs since 1/1/85
       LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
 !
@@ -476,8 +475,8 @@
       INTEGER               :: HALFPOLAR, CENTER180, IU_FILE
       INTEGER               :: IFIRST,    JFIRST,    LFIRST
       INTEGER               :: N,         NN
-      REAL(fp)                :: TS_DYN,    TS_CHEM
-      REAL*4                :: LONRES,    LATRES,   ARRAY(IIPAR,JJPAR,1)
+      REAL(f8)              :: TS_DYN,    TS_CHEM
+      REAL(f4)              :: LONRES,    LATRES,   ARRAY(IIPAR,JJPAR,1)
       CHARACTER(LEN=20)     :: MODELNAME
       CHARACTER(LEN=40)     :: CATEGORY,  UNIT,     RESERVED
       CHARACTER(LEN=255)    :: FILENAME
@@ -777,7 +776,10 @@
 ! 
 ! !USES:
 !
-      USE DIAG_MOD,     ONLY : AD38,   AD39,   AD44
+#if !defined( NO_BPCH )
+      USE DIAG_MOD,     ONLY : AD38,   AD39
+      USE DIAG_MOD,     ONLY : AD44
+#endif
       USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_CHEM 
       USE TRACERID_MOD, ONLY : IDTHg0, IDTHg2
 !
@@ -804,6 +806,7 @@
       SCALEDYN   = DBLE( GET_CT_DYN()  ) + 1e-32_fp
       SCALECHEM  = DBLE( GET_CT_CHEM() ) + 1e-32_fp
 
+#if !defined( NO_BPCH )
       ! Hg2 total wet deposition at the surface
       HG2mth_wd = HG2mth_wd + ( SUM(AD38(:,:,:,NN), DIM=3) + 
      &                          SUM(AD39(:,:,:,NN), DIM=3) )
@@ -816,6 +819,7 @@
       ! Hg2 total dry deposition at the surface
       N = IDTHg2
       HG2mth_dd = HG2mth_dd + AD44(:,:,N,1) / SCALECHEM
+#endif
 
       END SUBROUTINE UPDATE_DEP
 !EOC

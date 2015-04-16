@@ -24,7 +24,9 @@
 !
       PUBLIC :: INIT_CHEMISTRY
       PUBLIC :: DO_CHEMISTRY
+#if defined( USE_REAL8 )
       PUBLIC :: GCKPP_DRIVER
+#endif
       PUBLIC :: RECOMPUTE_OD
 !
 ! !REVISION HISTORY: 
@@ -55,6 +57,9 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm to several routines
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 May 2014 - C. Keller   - Added INIT_CHEMISTRY
+!  15 Dec 2014 - M. Yannetti - KPP code is commented out unless compiling KPP
+!  08 Jan 2015 - M. Sulprizio- Now restrict KPP to REAL*8 to allow for KPP code
+!                              to compile properly
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -84,16 +89,9 @@
       USE AEROSOL_MOD,        ONLY : SOILDUST
       USE C2H6_MOD,           ONLY : CHEMC2H6
       USE CARBON_MOD,         ONLY : CHEMCARBON
-!-----------------------------------------------------------------------------
-! These simulations are now obsolete.  You can can reactivate this if you want.
-!      USE CH3I_MOD,           ONLY : CHEMCH3I
-!      USE DRYDEP_MOD,         ONLY : DRYFLXH2HD
-!      USE H2_HD_MOD,          ONLY : CHEM_H2_HD
-!-----------------------------------------------------------------------------
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
       USE COMODE_LOOP_MOD     
-      USE DRYDEP_MOD,         ONLY : DRYFLX
       USE DRYDEP_MOD,         ONLY : DRYFLXRnPbBe
       USE DUST_MOD,           ONLY : CHEMDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
@@ -103,7 +101,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_CH4_MOD,     ONLY : CHEMCH4
-      USE HCN_CH3CN_MOD,      ONLY : CHEM_HCN_CH3CN
       USE ISOROPIAII_MOD,     ONLY : DO_ISOROPIAII
       USE MERCURY_MOD,        ONLY : CHEMMERCURY
       USE OPTDEPTH_MOD,       ONLY : OPTDEPTH
@@ -122,6 +119,7 @@
       USE TRACERID_MOD,       ONLY : IDTDST1
 #if defined (UCX )
       USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
+      USE UCX_MOD,            ONLY : READ_PSC_FILE
 #endif
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
@@ -329,6 +327,16 @@
          !---------------------------------
          IF ( IT_IS_A_FULLCHEM_SIM ) THEN 
 
+#if defined( UCX )
+            ! We need to get the STATE_PSC from the HEMCO restart file.
+            ! NOTE: Do this before calling CHEMDR to avoid reading this
+            ! data from w/in an !$OMP PARALLEL region. (bmy, 4/8/15)
+            IF ( FIRST ) THEN
+               CALL READ_PSC_FILE( am_I_Root )
+               FIRST         = .FALSE.
+            ENDIF
+#endif
+            
             ! Call gas-phase chemistry
             CALL CHEMDR
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -398,15 +406,8 @@
             ENDIF
 #endif
 
-            ! ND44 drydep fluxes
-            ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 
-            ! PBL is used ( Lin, 03/31/09) 
-            IF ( .not. LNLPBL ) THEN
-               CALL DRYFLX( am_I_Root, Input_Opt, RC )
-            ENDIF
-
             ! ND43 chemical production
-            CALL DIAGOH
+            CALL DIAGOH()
  
          !---------------------------------
          ! Offline aerosol simulation
@@ -439,9 +440,10 @@
             MONTH      = 0
             YEAR       = 0
             WAVELENGTH = 0
+            write(6,*) 'before RDAER, FJX'
             CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
      &                  MONTH,     YEAR,      WAVELENGTH      )
-
+            write(6,*) 'after RDAER'
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
             IF ( LSULF ) THEN
                IF ( LSSALT ) THEN
@@ -486,7 +488,7 @@
 
             !*** MINERAL DUST AEROSOLS ***
             IF ( LDUST ) THEN 
- 
+            write(6,*) 'before DUST'
                ! Do dust aerosol chemsitry
                CALL CHEMDUST
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -496,6 +498,7 @@
                CALL RDUST_ONLINE
      &             ( am_I_Root, Input_Opt,  State_Met, 
      &               SOILDUST,  WAVELENGTH, RC         )
+            write(6,*) 'after DUST'
             ENDIF
  
          !---------------------------------
@@ -505,28 +508,29 @@
             CALL CHEMRnPbBe 
      &         (  am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-            ! Modified for non-local PBL mixing (jintai, bmy, 8/1/13)
-            IF ( .not. Input_Opt%LNLPBL ) THEN
-               CALL DRYFLXRnPbBe
-     &            ( am_I_Root, Input_Opt, State_Chm, RC )
-            ENDIF
+!            ! Modified for non-local PBL mixing (jintai, bmy, 8/1/13)
+             ! This is now done in mixing_mod.F90 (ckeller, 3/5/15)
+!            IF ( .not. Input_Opt%LNLPBL ) THEN
+!               CALL DRYFLXRnPbBe
+!     &            ( am_I_Root, Input_Opt, State_Chm, RC )
+!            ENDIF
 
 !-----------------------------------------------------------------------------
-! This simulation is now obsolete.  You can reactivate it if you want.
+! These simulations are now obsolete.  You can reactivate them if you want.
 !         !---------------------------------
 !         ! CH3I
 !         !---------------------------------
 !         ELSE IF ( IT_IS_A_CH3I_SIM ) THEN
 !            CALL CHEMCH3I
 !     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+! 
+!         !---------------------------------            
+!         ! HCN
+!         !---------------------------------
+!         ELSE IF ( IT_IS_A_HCN_SIM ) THEN
+!            CALL CHEM_HCN_CH3CN
+!     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 !-----------------------------------------------------------------------------
- 
-         !---------------------------------            
-         ! HCN
-         !---------------------------------
-         ELSE IF ( IT_IS_A_HCN_SIM ) THEN
-            CALL CHEM_HCN_CH3CN
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
  
          !---------------------------------
          ! Tagged O3
@@ -625,9 +629,10 @@
 
       ! Free pointer
       NULLIFY( STT )
-
+    
       END SUBROUTINE DO_CHEMISTRY
 !EOC
+#if defined( USE_REAL8 )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -641,7 +646,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GCKPP_DRIVER( KTLOOP, JLOOPLO, R_KPP, NSPEC_GC ) 
+      SUBROUTINE GCKPP_DRIVER( KTLOOP, JLOOPLO, R_KPP, NSPEC_GC,
+     &                         Input_Opt ) 
 !
 ! !USES:
 !
@@ -649,6 +655,7 @@
       USE COMODE_MOD,           ONLY : IXSAVE, IYSAVE,    IZSAVE
       USE GCKPP_COMODE_MOD,     ONLY : HSAVE_KPP 
       USE TIME_MOD,             ONLY : GET_TS_CHEM
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GCKPP_UTIL,           ONLY : SHUFFLE_KPP2USER
       USE GCKPP_INITIALIZE,     ONLY : INITIALIZE
       USE GCKPP_MODEL
@@ -658,15 +665,22 @@
       USE GCKPP_FUNCTION
       USE ERROR_MOD,            ONLY : ERROR_STOP
       USE GCKPP_INTEGRATOR,     ONLY : NHNEW, NHEXIT, INTEGRATE
+      USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: KTLOOP       ! Local loop index
-      INTEGER, INTENT(IN) :: JLOOPLO      ! JLOOPLO + KLOOP = JLOOP
-      REAL(fp),  INTENT(IN) :: R_KPP(:,:)   ! Array of reaction rates
-      INTEGER, INTENT(IN) :: NSPEC_GC     ! # of active chemical species
+      INTEGER,        INTENT(IN) :: KTLOOP       ! Local loop index
+      INTEGER,        INTENT(IN) :: JLOOPLO      ! JLOOPLO + KLOOP = JLOOP
+      REAL(fp),       INTENT(IN) :: R_KPP(:,:)   ! Array of reaction rates
+      INTEGER,        INTENT(IN) :: NSPEC_GC     ! # of active chemical species
+      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input Options object
 !
 ! !REMARKS:
+!  ############################################################################
+!  ###   NOTE: THIS ROUTINE WILL BE REPLACED WHEN FLEXCHEM IS ADDED TO    #####
+!  ###   GEOS-CHEM IN THE VERSION FOLLOWING GEOS-CHEM v10-01!             #####
+!  ############################################################################
+!
 !  Variables used to pass the last/first step size b/w call 
 !                                                                             .
 !  For Rosenbrock:
@@ -720,6 +734,7 @@
 !                              converge, we shall increase the tolerances
 !                              by a factor of 2 and try again.  This is often
 !                              needed to run GEOS-Chem in the GEOS-5 GCM.
+!  01 Apr 2015 - R. Yantosca - Skip chemistry in the nested-grid buffer zone
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -734,7 +749,7 @@
       REAL(kind=dp) :: RSTATE(20)
       LOGICAL, SAVE :: FIRST = .TRUE.
       CHARACTER(LEN=255) :: ERR_MSG
-      
+
       !=================================================================
 
       STEPMIN = 0.0e+0_fp
@@ -828,6 +843,14 @@
          J = IYSAVE(JLOOP)
          L = IZSAVE(JLOOP)
 
+         ! Skipping buffer zone (lzh, 08/10/2014)
+         IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
+           IF ( J <=         Input_Opt%NESTED_J0W ) CYCLE
+           IF ( J >  JJPAR - Input_Opt%NESTED_J0E ) CYCLE
+           IF ( I <=         Input_Opt%NESTED_I0W ) CYCLE
+           IF ( I >  IIPAR - Input_Opt%NESTED_I0E ) CYCLE
+         ENDIF
+
          ! Pass tracer concentrations from CSPEC to KPP working vector V_CSPEC
          DO N =1, NVAR
             V_CSPEC(N) = CSPEC(JLOOP,N)
@@ -856,7 +879,7 @@
          
          ! Try another time if it failed
          IF ( IERR < 0 ) THEN
-#if defined( DEVEL ) || defined( KPP_SOLVE_ALWAYS )
+#if defined( KPP_SOLVE_ALWAYS )
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%% For KPP tolerance fix (mlong, 4/12/13) %%%
             !%%% Re-entry point for non-convergence     %%%
@@ -881,7 +904,7 @@
             ! 1D grid box index on the global grid
             JLOOP = JLOOPLO+KLOOP
 
-#if defined( DEVEL ) || defined( KPP_SOLVE_ALWAYS )
+#if defined( KPP_SOLVE_ALWAYS )
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%% FOR KPP TOLERANCE FIX (mlong, 4/13/12) %%%
             !%%% Increase tolerances by factor of 2     %%%
@@ -893,7 +916,7 @@
             call Integrate( TIN,    TOUT,    ICNTRL, 
      &                      RCNTRL, ISTATUS, RSTATE, IERR )
             IF ( IERR < 0 ) THEN 
-#if defined( DEVEL ) || defined( KPP_SOLVE_ALWAYS )
+#if defined( KPP_SOLVE_ALWAYS )
                !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                !%%% FOR KPP TOLERANCE FIX (mlong, 4/13/12) %%%
                !%%% Try to solve again; don't quit the run %%%
@@ -954,6 +977,7 @@
 
       ! Return to calling program
       END SUBROUTINE GCKPP_DRIVER
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1062,9 +1086,10 @@
 
                ! Calculate the AOD at the wavelength specified in jv_spec_aod
                WAVELENGTH = 1
+              write(6,*) 'before RDAER, AOD'
                CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
      &                     MONTH,     YEAR,      WAVELENGTH      )
-
+               write(6,*) 'after RDAER, AOD'
                !### Debug
                IF ( LPRT .and. am_I_Root ) THEN 
                   CALL DEBUG_MSG( '### RECOMPUTE_OD: after RDAER' )
@@ -1104,7 +1129,7 @@
       END SUBROUTINE RECOMPUTE_OD
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

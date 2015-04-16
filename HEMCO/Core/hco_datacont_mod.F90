@@ -35,7 +35,7 @@
 !       1 will be added to container 5 if it has a target ID of 5). 
 !       Internal use only.  
 ! \item DctType: container type. 1 for base emissions, 2 for scale
-!       factors, 3 for masks.
+!       factors, 3 for masks (set parameter in HCO_ERROR_MOD)
 ! \item SpcName: Species name associated with this data container, as
 !       read from the configuration file. Only relevant for base 
 !       emission arrays.
@@ -112,6 +112,21 @@ MODULE HCO_DataCont_Mod
 !
   ! Maximum number of scale factor fields per base field
   INTEGER, PARAMETER,     PUBLIC :: SclMax = 10
+
+  ! Maximum number of emission categories that can be assigned to a
+  ! base field. If multiple emission categories are assigned to one
+  ! field, a 'shadow' container is created for every additional
+  ! emission category. A dummy scale factor of zero is applied to 
+  ! this shadow container, making sure that no additional emissions
+  ! are created by the shadow container. 
+  INTEGER, PARAMETER,     PUBLIC :: CatMax = 3
+
+  ! Fixed scale factor ID for 'dummy' scale factor of zero. 
+  ! Internally used to let an emission field cover multiple
+  ! emission categories at once. The scale factor here must not
+  ! be used in the HEMCO configuration file, otherwise HEMCO will
+  ! exit with an error.
+  INTEGER, PARAMETER,     PUBLIC :: ZeroScalID = 65123
 !
 ! !PRIVATE TYPES:
 !
@@ -175,7 +190,7 @@ MODULE HCO_DataCont_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -296,6 +311,7 @@ CONTAINS
           IF(ASSOCIATED(Dct%Scal_cID)) DEALLOCATE(Dct%Scal_cID)
           DEALLOCATE ( Dct )
        ENDIF
+
     ENDIF
 
   END SUBROUTINE DataCont_Cleanup
@@ -442,7 +458,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set verbose flag
-    verbose = HCO_VERBOSE_CHECK() .AND. am_I_Root
+    verbose = HCO_IsVerb ( 3 ) 
 
     ! Eventually cleanup the list
     IF ( ASSOCIATED ( cIDList ) ) THEN

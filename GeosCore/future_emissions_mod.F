@@ -372,6 +372,7 @@
 !  NOTES:
 !  20 Jun 2014 - R. Yantosca - Now accept Input_Opt via the argument list
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !******************************************************************************
 !
 ! !USES:
@@ -384,19 +385,19 @@
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(OptInput),   INTENT(IN)  :: Input_Opt   ! Input Options object
       INTEGER,          INTENT(IN)  :: TRACER
       CHARACTER(LEN=*), INTENT(IN)  :: SPECIES
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),           INTENT(OUT) :: GRFACTORS(IIPAR,JJPAR)
+      REAL(fp),         INTENT(OUT) :: GRFACTORS(IIPAR,JJPAR)
 !
 ! !LOCAL VARIABLES:
 !
       INTEGER                       :: IOS, IUNIT
-      REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
-      REAL(fp)                        :: TAU0
+      REAL(f4)                      :: ARRAY(IIPAR,JJPAR,1)
+      REAL(f8)                      :: TAU0
       CHARACTER(LEN=4)              :: YSTR
       CHARACTER(LEN=255)            :: FILENAME
 

@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 
       IMPLICIT NONE
       PRIVATE
@@ -37,8 +37,6 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
-      ! Remove obsolete routine
-      !PUBLIC :: GET_GLOBAL_Br_NEW   
       PUBLIC :: GET_GLOBAL_Br   
       PUBLIC :: INIT_GLOBAL_Br
       PUBLIC :: CLEANUP_GLOBAL_Br
@@ -58,9 +56,23 @@
 !  19 Apr 2012 - E.S. Corbitt - Added LGCBROMINE to use GEOS-Chem bromine.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  12 Mar 2015 - R. Yantosca - Remove bpch input
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+!
+      ! Pointers to fields in the HEMCO data structure.
+      ! These need to be declared REAL(f4), aka REAL*4.
+      REAL(f4), POINTER :: Br_GC     (:,:,:) => NULL()
+      REAL(f4), POINTER :: BrO_GC    (:,:,:) => NULL()
+      REAL(f4), POINTER :: Br_GMI    (:,:,:) => NULL()
+      REAL(f4), POINTER :: BrO_GMI   (:,:,:) => NULL()
+      REAL(f4), POINTER :: Br_TOMCAT (:,:,:) => NULL()
+      REAL(f4), POINTER :: BrO_TOMCAT(:,:,:) => NULL()
+      REAL(f4), POINTER :: JBrO      (:,:,:) => NULL()
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -82,16 +94,13 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT
-      USE BPCH2_MOD,          ONLY : GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0
-      USE BPCH2_MOD,          ONLY : READ_BPCH2
       USE CMN_SIZE_MOD
       USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE OCEAN_MERCURY_MOD,  ONLY : LGCBROMINE     !eds 4/19/12
 !
 ! !INPUT PARAMETERS: 
@@ -109,7 +118,11 @@
 !  THIS IS A NEW VERSION OF THIS SUBROUTINE WHICH COMBINES Br CONCENTRATIONS
 !  FROM MULTIPLE DATA SOURCES
 !                                                                             .
-!  NOTE: The bpch file input will eventually be replaced by netCDF input.
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
 ! 
 ! !REVISION HISTORY: 
 !  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"
@@ -119,25 +132,22 @@
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_3D_TROP with direct casts
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!  12 Mar 2015 - R. Yantosca - Retire bpch input
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                      :: I, J, L
-      REAL*4                       :: ARRAY(IIPAR,JJPAR,LGLOB)
-      REAL*4                       :: ARRAY2(IIPAR,JJPAR,LLCHEM)
-      REAL(fp)                       :: XTAU
-!      REAL*4                       :: TPAUSE(IIPAR,JJPAR)
-      CHARACTER(LEN=255)           :: FILENAME
-      INTEGER                      :: TPL
- 
-      ! Location of archived Br
-      CHARACTER(LEN=255)           :: BR_DIR
+      ! Scalars
+      INTEGER            :: I, J, L
+      INTEGER            :: TPL
+      LOGICAL, SAVE      :: FIRST = .TRUE. 
 
-      ! First time flag
-      LOGICAL, SAVE                :: FIRST = .TRUE. 
+      ! Strings
+      CHARACTER(LEN=255) :: LOC = 'GET_GLOBAL_Br (global_br_mod.F)'
 
       !=================================================================
       ! GET_GLOBAL_BR begins here!
@@ -148,63 +158,37 @@
 
       ! Allocate BR array, if this is the first call
       IF ( FIRST ) THEN
-         CALL INIT_GLOBAL_BR
+         CALL INIT_GLOBAL_BR()
          FIRST = .FALSE.
       ENDIF
-
-      ! EDS NOTE (4/19/12): need to move Br to directory, note the years used,
-      ! and regrid for other resolutions
-      BR_DIR = TRIM( Input_Opt%DATA_DIR ) // 'mercury_201007/'
 
       IF ( LGCBROMINE ) THEN
 
          !-----------------------------------------------------------------
          ! Read Br from GEOS-Chem
          !-----------------------------------------------------------------
-         
-         ! Filename
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-         ! Need to read emission file at nested-resolution
-         FILENAME = TRIM( Input_Opt%DATA_DIR )   // 
-     &              'mercury_201203/BrOx.GC.'    //
-     &              GET_NAME_EXT()               // '.' // GET_RES_EXT()
-#else
-         FILENAME = TRIM( BR_DIR ) // 'BrOx.GC.' //
-     &              GET_NAME_EXT() // '.'        // GET_RES_EXT()
-#endif
-   
-         ! Get the TAU0 value for the start of the given month
-         XTAU = GET_TAU0( THISMONTH, 1, 2007 ) 
-   
-         ! Echo some information to the standard output
-         IF ( am_I_Root ) THEN
-            WRITE( 6, 120 ) TRIM( FILENAME )
- 120        FORMAT( '     - GET_GLOBAL_BR: Reading BR from: ', a )
-         ENDIF
-            
-         CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 45,
-     &                    XTAU,	    IIPAR,      JJPAR,
-     &                    LGLOB,    ARRAY,      QUIET=.FALSE. )
-   
-         ! Assign data from ARRAY to the module variable BR
-         CALL TRANSFER_3D( ARRAY, BR_TROP )
 
-         ! Convert	ppbv ->	pptv
-         BR_TROP  = BR_TROP * 1e+3_fp                         
+         ! Get a pointer to the the GEOS-Chem Br from HEMCO (bmy, 3/11/15)
+         CALL HCO_GetPtr( am_I_Root, 'Br_GC', Br_GC,  RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to Br_GC', LOC )
+         ENDIF
+
+         ! Convert ppbv -> pptv
+         Br_TROP  = Br_GC * 1e+3_fp                         
    
          !-----------------------------------------------------------------
          ! Read BrO from GEOS-Chem
          !-----------------------------------------------------------------
-   
-         CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 46,
-     &                    XTAU,	    IIPAR,      JJPAR,
-     &                    LGLOB,    ARRAY,      QUIET=.TRUE. )
-   
-         ! Assign data from ARRAY to the module variable BRO
-         CALL TRANSFER_3D( ARRAY, BRO_TROP )
-       
+
+         ! Get a pointer to the GEOS-Chem BrO from HEMCO (bmy, 3/11/15)
+         CALL HCO_GetPtr( am_I_Root, 'BrO_GC', BrO_GC, RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to BrO_GC', LOC )
+         ENDIF
+
          ! Convert ppbv -> pptv
-         BRO_TROP  = BRO_TROP * 1e+3_fp 
+         BrO_TROP  = BrO_GC * 1e+3_fp      
 
       ELSE
 
@@ -212,44 +196,27 @@
          ! Read Br from pTOMCAT biogenic bromocarbons
          !-----------------------------------------------------------------
 
-         ! Filename
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( Input_Opt%DATA_DIR )             //
-     &              'mercury_201203/BrOx.TOMCAT_org.'      //
-     &              GET_NAME_EXT() // '.' // GET_RES_EXT()
-#else
-         FILENAME = TRIM( BR_DIR ) // 'BrOx.TOMCAT_org.'   //
-     &              GET_NAME_EXT() // '.' // GET_RES_EXT() 
-#endif
-         
-         ! Get the TAU0 value for the start of the given month
-         XTAU = GET_TAU0( THISMONTH, 1, 1985 ) 
-         
-         ! Echo some information to the standard output
-         IF ( am_I_Root ) THEN
-            WRITE( 6, 130 ) TRIM( FILENAME )
- 130        FORMAT( '     - GET_GLOBAL_BR: Reading BR from: ', a )
+         ! Get a pointer to the TOMCAT Br from HEMCO (bmy, 3/11/15)
+         CALL HCO_GetPtr( am_I_Root, 'Br_TOMCAT', Br_TOMCAT, RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to Br_TOMCAT', LOC )
          ENDIF
 
-         ! Read BR data from the binary punch file
-         CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 6,     
-     &                    XTAU,      IIPAR,     JJPAR,      
-     &                    LGLOB,     ARRAY,     QUIET=.TRUE. )
-         
-         ! Assign data from ARRAY to the module variable BR
-         CALL TRANSFER_3D( ARRAY, BR_TROP )
-         
+         ! Store in Br_TROP array [pptv]
+         Br_TROP = BR_TOMCAT
+
          !-----------------------------------------------------------------
          ! Read BrO from pTOMCAT biogenic bromocarbons
          !-----------------------------------------------------------------
-         
-         ! Read BRO data from the binary punch file
-         CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 7,     
-     &                    XTAU,      IIPAR,     JJPAR,      
-     &                    LGLOB,     ARRAY,     QUIET=.TRUE. )
-         
-         ! Assign data from ARRAY to the module variable BRO
-         CALL TRANSFER_3D( ARRAY, BRO_TROP )
+
+         ! Get a pointer to the TOMCAT Br from HEMCO (bmy, 3/11/15)
+         CALL HCO_GetPtr( am_I_Root, 'BrO_TOMCAT', BrO_TOMCAT, RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to Br_TOMCAT', LOC )
+         ENDIF
+
+         ! Store in BrO_TROP array [pptv]
+         BrO_TROP = BRO_TOMCAT
 
       ENDIF
 
@@ -257,43 +224,27 @@
       ! Read Br from GMI for stratosphere
       !-----------------------------------------------------------------
 
-      ! Filename
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      FILENAME = TRIM( Input_Opt%DATA_DIR )    //
-     &           'mercury_201203/BrOx.GMI.'    //
-     &           GET_NAME_EXT() // '.'         // GET_RES_EXT()
-#else
-      FILENAME = TRIM( BR_DIR ) // 'BrOx.GMI.' //
-     &           GET_NAME_EXT() // '.'         // GET_RES_EXT()
-#endif
-
-      ! Get the TAU0 value for the start of the given month
-      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
-
-      ! Echo some information to the standard output
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 120 ) TRIM( FILENAME )
+      ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
+      CALL HCO_GetPtr( am_I_Root, 'Br_GMI', Br_GMI, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to Br_GMI', LOC )
       ENDIF
 
-      ! Read BR data from the binary punch file
-      CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 6,     
-     &                 XTAU,      IIPAR,     JJPAR,      
-     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
-
-      ! Assign data from ARRAY to the module variable BR
-      CALL TRANSFER_3D( ARRAY, BR_STRAT )
+      ! Store in BrO_TROP array [pptv]
+      Br_STRAT = Br_GMI
 
       !-----------------------------------------------------------------
       ! Read BrO from GMI for stratosphere
       !-----------------------------------------------------------------
 
-      ! Read BR data from the binary punch file
-      CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 7,     
-     &                 XTAU,      IIPAR,     JJPAR,      
-     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
+      ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
+      CALL HCO_GetPtr( am_I_Root, 'BrO_GMI', BrO_GMI, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to BrO_GMI', LOC )
+      ENDIF
 
-      ! Assign data from ARRAY to the module variable BRO
-      CALL TRANSFER_3D( ARRAY, BRO_STRAT )
+      ! Store in BrO_TROP array [pptv]
+      BrO_STRAT = BrO_GMI
 
       !-----------------------------------------------------------------
       ! Use pTOMCAT or GEOS-Chem exclusively in the troposphere.
@@ -309,8 +260,10 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, TPL )
-      DO I=1, IIPAR
+!      DO I=1, IIPAR
+!      DO J=1, JJPAR      
       DO J=1, JJPAR      
+      DO I=1, IIPAR
          
          ! First layer in the stratosphere
          TPL = GET_TPAUSE_LEVEL( I, J, State_Met )
@@ -329,86 +282,14 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      !----------------------------------------------------------------
-      ! OLD VERSION (cdh, 3/4/09)
-      ! Previously switched at the tropopause, but pTOMCAT includes
-      ! short-lived source gases that continue to dominate Br-x in 
-      ! the lower stratosphere. So we want to use pTOMCAT in the lower
-      ! strat
-      !----------------------------------------------------------------
-      !!-----------------------------------------------------------------
-      !! Switch between COMBO and pTOMCAT at either the instantaneous
-      !! tropopause or at the monthly-mean tropopause
-      !!-----------------------------------------------------------------
-      !
-      !IF ( .NOT. LVARTROP ) THEN
-      !   
-      !   ! Read the monthly mean tropopause level
-      !   ! Filename
-      !   FILENAME = TRIM( BR_DIR ) // 'TPause.' // GET_NAME_EXT() // 
-      ! &        '.'           // GET_RES_EXT()
-      !
-      !   ! Echo some information to the standard output
-      !   WRITE( 6, 120 ) TRIM( FILENAME )
-      !
-      !
-      !   ! Read BR data from the binary punch file
-      !   CALL READ_BPCH2( FILENAME, 'TR-PAUSE', 1,     
-      ! &        XTAU,      IIPAR,     JJPAR,      
-      ! &        1,         TPAUSE,    QUIET=.TRUE. )
-      !
-      !
-      !   ! Merge GMI above the tropopause with TOMCAT below it
-      !   BR_MERGE = BR_TROP
-      !   
-      !   DO I=1, IIPAR
-      !   DO J=1, JJPAR
-      !
-      !      ! First layer in the stratosphere
-      !      TPL = INT( CEILING( TPAUSE(I,J) ) )
-      !
-      !      BR_MERGE( I, J, TPL:LLPAR ) = BR_STRAT( I, J, TPL:LLPAR )
-      !
-      !   ENDDO
-      !   ENDDO
-      !   
-      !ENDIF
-      !
-      !----------------------------------------------------------------
-
-      !-----------------------------------------------------------------
-      ! Read J-BrO 
-      ! Originally archived from GEOS-Chem Br-y simulation (prelim version)
-      ! without Br-y wet deposition, using GEOS4 2002 meteorology.
-      ! J-values are saved only for the troposphere. Values are daytime 
-      ! averages.
-      !-----------------------------------------------------------------
-
-      ! Get the TAU0 value for the start of the given month
-      XTAU = GET_TAU0( THISMONTH, 1, 2002 )
-
-      ! Filename
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      FILENAME = TRIM( Input_Opt%DATA_DIR )             //
-     &           'mercury_201203/jBrO.daytime.'         //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-#else
-      FILENAME = TRIM( BR_DIR ) // 'jBrO.daytime.'      //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT() 
-#endif
-
-      ! Echo some information to the standard output
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 120 ) TRIM( FILENAME )
+      ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
+      CALL HCO_GetPtr( am_I_Root, 'JBrO', JBrO, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to JBrO', LOC )
       ENDIF
 
-      ! Read BR data from the binary punch file
-      CALL READ_BPCH2( FILENAME, 'LIFE-T=$', 19,     
-     &                 XTAU,      IIPAR,     JJPAR,      
-     &                 LLCHEM,    ARRAY2,    QUIET=.TRUE. )
-
       ! Assign data from ARRAY2 to the module variable BR
-      J_BrO(:,:,1:LLCHEM_FIX) = ARRAY2(:,:,1:LLCHEM_FIX)
+      J_BrO(:,:,1:LLCHEM_FIX) = JBrO(:,:,1:LLCHEM_FIX)
 
       END SUBROUTINE GET_GLOBAL_Br
 !EOC
@@ -524,6 +405,15 @@
       IF ( ALLOCATED( BrO_TROP  ) ) DEALLOCATE( BrO_TROP  ) 
       IF ( ALLOCATED( BrO_STRAT ) ) DEALLOCATE( BrO_STRAT )      
       IF ( ALLOCATED( BrO_MERGE ) ) DEALLOCATE( BrO_MERGE ) 
+
+      ! Free pointers
+      Br_GC      => NULL()
+      BrO_GC     => NULL()
+      Br_GMI     => NULL()
+      BrO_GMI    => NULL()
+      Br_TOMCAT  => NULL()
+      BrO_TOMCAT => NULL()
+      JBrO       => NULL()
 
       END SUBROUTINE CLEANUP_GLOBAL_Br
 !EOC

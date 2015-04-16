@@ -28,11 +28,11 @@
       INTEGER,           PUBLIC              :: TAGO3_PL_YEAR
 
       ! Arrays
-      REAL*4,            PUBLIC, ALLOCATABLE :: AD65  (:,:,:,:)
-      REAL(fp),            PUBLIC, ALLOCATABLE :: FAM_PL(:,:,:,:)
+      REAL(f4),          PUBLIC, ALLOCATABLE :: AD65  (:,:,:,:)
+      REAL(fp),          PUBLIC, ALLOCATABLE :: FAM_PL(:,:,:,:)
       CHARACTER(LEN=14), PUBLIC, ALLOCATABLE :: FAM_NAME(:)
 #if   defined( TOMAS )
-      REAL(fp),            PUBLIC, ALLOCATABLE :: H2SO4RATE(:,:,:) 
+      REAL(fp),          PUBLIC, ALLOCATABLE :: H2SO4RATE(:,:,:) 
 #endif
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -70,6 +70,7 @@
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  06 Aug 2012 - R. Yantosca - Make IU_ND20 a local module variable
 !  12 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -81,13 +82,13 @@
       INTEGER                        :: IU_ND20
       INTEGER                        :: NFAM
       INTEGER                        :: YYYYMMDD
-      REAL(fp)                         :: TAUb, TAUe, TAU0, TAU1
+      REAL(f8)                       :: TAUb, TAUe, TAU0, TAU1
       CHARACTER(LEN=255)             :: FILENAME
 
       ! Arrays
       INTEGER,           ALLOCATABLE :: FAM_NMEM(:), COUNT(:,:,:)
-      REAL(fp),            ALLOCATABLE :: FAM_COEF(:,:)
-      REAL(fp),            ALLOCATABLE :: PL24H(:,:,:,:)
+      REAL(fp),          ALLOCATABLE :: FAM_COEF(:,:)
+      REAL(fp),          ALLOCATABLE :: PL24H(:,:,:,:)
       CHARACTER(LEN=14), ALLOCATABLE :: FAM_TYPE(:)
       CHARACTER(LEN=14), ALLOCATABLE :: FAM_MEMB(:,:)
 
@@ -774,6 +775,12 @@
 ! !REMARKS:
 !  DIAG20 assumes that ND65 (P-L diagnostics) have been turned on.
 !
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+!
 ! !REVISION HISTORY:
 !  09 Jun 1999 - I. Bey      - Initial version
 !  (1 ) Now bundled into "diag20_mod.f" (bmy, 7/20/04)
@@ -805,7 +812,7 @@
       LOGICAL, SAVE     :: FIRST = .TRUE.
       LOGICAL           :: DO_WRITE
       INTEGER           :: I, J, L, N, JLOOP
-      REAL(fp)            :: P_Ox, L_Ox
+      REAL(fp)          :: P_Ox, L_Ox
       CHARACTER(LEN=16) :: STAMP 
 
       ! Pointers
@@ -932,8 +939,14 @@
          FILENAME = 'rate.YYYYMMDD'
          CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 
-         ! Then prefix FILENAME w/ the data directory name
-         FILENAME = TRIM( Input_Opt%O3PL_DIR ) // FILENAME
+!-----------------------------------------------------------------------------
+! Prior to 3/13/15:
+! Now remove reference to Input_Opt%O3PL_DIR.  BPCH output is going to
+! be removed very shortly anyway. (bmy, 3/13/15)
+!         ! Then prefix FILENAME w/ the data directory name
+!         FILENAME = TRIM( Input_Opt%O3PL_DIR ) // FILENAME
+!-----------------------------------------------------------------------------
+
 
          ! Echo info
          IF ( am_I_Root ) WRITE( 6, 110 ) TRIM( FILENAME )
@@ -996,8 +1009,8 @@
       INTEGER            :: IFIRST, JFIRST, LFIRST
       INTEGER            :: HALFPOLAR 
       INTEGER, PARAMETER :: CENTER180 = 1 
-      REAL*4             :: LONRES, LATRES
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LLCHEM)
+      REAL(f4)           :: LONRES, LATRES
+      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LLCHEM)
       CHARACTER(LEN=20)  :: MODELNAME
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT
@@ -1108,15 +1121,16 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp),  INTENT(OUT) :: TAU_W      ! TAU value @ time of writing to disk
+      REAL(f8), INTENT(OUT) :: TAU_W      ! TAU value @ time of writing to disk
 !
 ! !RETURN VALUE:
 !
-      LOGICAL              :: ITS_TIME   ! =T if its time to write to disk
+      LOGICAL               :: ITS_TIME   ! =T if its time to write to disk
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC

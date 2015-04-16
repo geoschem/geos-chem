@@ -15,7 +15,8 @@
 !
 ! !USES:
 !
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE PRECISION_MOD                ! For GEOS-Chem Precision (fp, f4, f8)
+      USE ERROR_MOD, ONLY : DEBUG_MSG  ! Routine for debug output
 
       IMPLICIT NONE
       PRIVATE
@@ -222,7 +223,7 @@
 !
 ! !INPUT PARAMETERS:
 !
-      REAL(fp),         INTENT(IN)    :: DTCHEM      ! Time step [seconds]
+      REAL(fp),       INTENT(IN)    :: DTCHEM      ! Time step [seconds]
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
@@ -266,26 +267,33 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER :: IM,      JM,         LM,   N_TRACERS
-      INTEGER :: I,       J,          L,    N
-      INTEGER :: K,       M,          LBOT, L_OVERWRLD
-      INTEGER :: NTRACER, NUM_TRACER, LPOS, ITRC
-      REAL(fp)  :: CLIMO3,  CLIMPML,    DCO3, DERO3, DERTMP
-      REAL(fp)  :: DERCO3,  DMASS,      DTMP, SSO3
+      INTEGER  :: IM,      JM,         LM,   N_TRACERS
+      INTEGER  :: I,       J,          L,    N
+      INTEGER  :: K,       M,          LBOT, L_OVERWRLD
+      INTEGER  :: NTRACER, NUM_TRACER, LPOS, ITRC
+      REAL(fp) :: CLIMO3,  CLIMPML,    DCO3, DERO3, DERTMP
+      REAL(fp) :: DERCO3,  DMASS,      DTMP, SSO3
 
       ! Arrays
-      REAL(fp)  :: DCOLO3  (IIPAR,JJPAR,LLPAR                    )
-      REAL(fp)  :: COLO3   (IIPAR,JJPAR,LLPAR                    )
-      REAL(fp)  :: OUT_DATA(IIPAR,JJPAR,LLPAR                    )
-      REAL(fp)  :: TCVV    (                  Input_Opt%N_TRACERS)
+      REAL(fp) :: DCOLO3  (IIPAR,JJPAR,LLPAR                    )
+      REAL(fp) :: COLO3   (IIPAR,JJPAR,LLPAR                    )
+      REAL(fp) :: OUT_DATA(IIPAR,JJPAR,LLPAR                    )
+      REAL(fp) :: TCVV    (                  Input_Opt%N_TRACERS)
 
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: STT(:,:,:,:)
+
+      ! From Input_Opt
+      LOGICAL      :: LPRT
       
       !=================================================================
       ! LINOZ_CHEM3 begins here!
       !=================================================================
+
+      ! From Input_Opt
+      LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
+
 
       ! Assume success
       RC         = GIGC_SUCCESS
@@ -369,7 +377,11 @@
 
          ! Start at top layer and continue to lowest layer for strat. chem
          OUT_DATA = 0e+0_fp
-
+         !IF ( LPRT ) THEN
+         ! PRINT*, '### NUM_TRACER: ', NUM_TRACER
+         ! PRINT*, '### ITRC: ', ITRC, 'JM: ', JM , 'IM', IM
+         ! CALL FLUSH(6) 
+         !END IF
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,       J,     LBOT,   LPOS,   L    )
@@ -377,12 +389,20 @@
 !$OMP+PRIVATE( DERTMP,  DTMP,  SSO3,   DMASS        )
          DO J = 1, JM
          DO I = 1, IM
+
+            !IF ( LPRT ) THEN
+            ! PRINT*, '### I: ', I, 'J: ', J
+            ! CALL FLUSH(6) 
+            !END IF
+
             LBOT = GET_CHEMGRID_LEVEL( I, J, State_Met )+1
             LPOS = 1
-            DO WHILE (GET_PEDGE(I,J,LPOS+1) .GE. 0.3e+0_fp)
+            DO WHILE (GET_PEDGE(I,J,LPOS+1) .GE. 0.3e+0_f8)
                LPOS = LPOS +1
             ENDDO
             LPOS = LPOS-1
+
+          !  IF (LPRT) CALL DEBUG_MSG('DONE GET_PEDGE')
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             !-----------------------------------------------------------
@@ -411,11 +431,18 @@
      &                STT(I,J,(L_OVERWRLD+1):LLPAR,1)
             ENDIF
 #endif
+           ! IF ( LPRT ) CALL DEBUG_MSG( '### LINOZ_CHEM3: at LM, LBOT')
+          ! IF (LPRT) CALL DEBUG_MSG('DONE TAGOX')
 
             ! Loop over levels
             DO L = LM, LBOT, -1
+            ! IF ( LPRT ) THEN
+            !   PRINT*, '### STT: ', STT(I,J,L,NTRACER)
+            !   CALL FLUSH(6) 
+            ! ENDIF
 
                ! Skip if tracer is negative
+               
                IF ( STT(I,J,L,NTRACER) .LE. 0.e+0_fp ) CYCLE
 
                ! calculate ozone column above box (and save)
@@ -469,7 +496,7 @@
                ! LINOX valid only up to 58 km, so do not use above 0.3 hPa
                ! dbj: impose exponential fall off of mixing ratio 
                ! between 0.3 and 0.01 hPa (with fall off of a scale height)
-               IF (GET_PEDGE(I,J,L) .LE. 0.3e+0_fp) THEN
+               IF (GET_PEDGE(I,J,L) .LE. 0.3e+0_f8) THEN
                   STT(I,J,L,NTRACER) = 
      &                (GET_PCENTER(I,J,L)/GET_PCENTER(I,J,LPOS-1)) * 
      &                STT(I,J,LPOS-1,NTRACER)
@@ -488,7 +515,7 @@
       !write(6,*) 'max of columns= ',maxval(out_data)
 
       ENDDO
-
+      IF (LPRT) CALL DEBUG_MSG('DONE LINOZ_CHEM3')
       ! Free pointer
       NULLIFY( STT )
 
@@ -1064,6 +1091,7 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  15 Mar 2013 - R. Yantosca - Now call INIT_LINOZ from GIGC_Init_Extra
+!   5 Mar 2015 - R. Yantosca - Now read data relative to ExtData/CHEM_INPUTS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1073,7 +1101,7 @@
       ! Scalars
       INTEGER            :: IU_FILE, K,     J
       INTEGER            :: M,       NTBLS, IOS
-      REAL(fp)             :: TMAX,    TMIN
+      REAL(fp)           :: TMAX,    TMIN
 
       ! Dimension sizes
       INTEGER            :: NFIELDS_LINOZ
@@ -1100,7 +1128,7 @@
       NMONTHS_LINOZ  = Input_Opt%LINOZ_NMONTHS
 
       ! Filename
-      FILENAME       = TRIM( Input_Opt%DATA_DIR_1x1 ) //
+      FILENAME       = TRIM( Input_Opt%CHEM_INPUTS_DIR ) //
      &                 'Linoz_200910/Linoz_March2007.dat'
 
       ! Echo info

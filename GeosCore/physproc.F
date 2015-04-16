@@ -28,8 +28,10 @@
       USE COMODE_MOD,         ONLY : IYSAVE
       USE COMODE_MOD,         ONLY : T3
       USE COMODE_LOOP_MOD
+#IF DEFINED( USE_REAL8 )
       USE CHEMISTRY_MOD,      ONLY : GCKPP_DRIVER
       USE GCKPP_GLOBAL,       ONLY : NTT
+#ENDIF
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -113,6 +115,9 @@
 !  01 Mar 2013 - R. Yantosca - Now set RC to GIGC_SUCCESS for default
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  15 Dec 2014 - M. Yannetti - Added filtering for KPP
+!  08 Jan 2015 - M. Sulprizio- Now restrict KPP to REAL*8 to allow for KPP code
+!                              to compile properly
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -316,8 +321,9 @@
 ! *********************************************************************
 !
 !--- Moved from chemdr.f (ccc, 12/9/09)
+#if defined( USE_REAL8 )
           IF ( LKPP) NTT = NTTLOOP
-
+#endif
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( JLOOP,KLOOP,KBLK2,JNEW,JOLD)
@@ -365,9 +371,17 @@
 !    NSPEC(1) is the # of active species for urban chemistry.
 !    (ccc, 01/20/10)
           call CPU_TIME(start)
+#if defined( USE_REAL8 )
           IF ( LKPP ) THEN
-             CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP, NSPEC(1))
+!-----------------------------------------------------------------------------
+! Prior to 4/1/15:
+! Now pass Input_Opt To GCKPP_DRIVER (bmy, 4/1/15)
+!             CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP, NSPEC(1))
+!-----------------------------------------------------------------------------
+             CALL GCKPP_DRIVER( KTLOOP, JLOOPLO, RRATE_FOR_KPP, 
+     &                          NSPEC(1), Input_Opt )
           ELSE
+#endif
              CALL SMVGEAR( am_I_Root, Input_Opt, RC )
 
 !
@@ -390,7 +404,9 @@
                       CSPEC(JLOOP,JOLD) = MAX(CNEW(KLOOP,JNEW),SMAL2)
  620            CONTINUE
              ENDIF
+#if defined( USE_REAL8 )
           ENDIF
+#endif
           call CPU_TIME(finish)
 !
           
