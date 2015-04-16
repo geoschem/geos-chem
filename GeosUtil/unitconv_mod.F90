@@ -8,8 +8,8 @@
 ! !DESCRIPTION: Module UNITCONV\_MOD contains routines which are used to 
 !  convert the units of tracer concentrations between mass mixing ratio 
 !  [kg/kg], mass per grid box [kg], molar mixing ratio [vol/vol], and molecular 
-!  number density [molecules/cm3]. All mixing ratios are per quantity of
-!  dry air.
+!  number density [molecules/cm3]. All mixing ratios are assumed per quantity 
+!  of dry air except in the conversion between dry and moist mixing ratios.
 !\\  
 !\\
 ! !INTERFACE: 
@@ -31,12 +31,14 @@ MODULE UnitConv_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: Convert_MMR_to_VR     ! kg / kg       -> vol / vol
-  PUBLIC  :: Convert_VR_to_MMR     ! vol / vol     -> kg / kg
-  PUBLIC  :: Convert_MMR_to_KG     ! kg / kg       -> kg / grid box
-  PUBLIC  :: Convert_KG_to_MMR     ! kg / grid box -> kg / kg
-  PUBLIC  :: Convert_MMR_to_MND    ! kg / kg       -> molec / cm3
-  PUBLIC  :: Convert_MND_to_MMR    ! molec / cm3   -> kg / kg
+  PUBLIC  :: Convert_DryMMR_to_MoistMMR ! kg / kg dry air -> kg / kg moist air
+  PUBLIC  :: Convert_MoistMMR_to_DryMMR ! kg / kg moist air -> kg / kg dry air
+  PUBLIC  :: Convert_MMR_to_VR          ! kg / kg       -> vol / vol
+  PUBLIC  :: Convert_VR_to_MMR          ! vol / vol     -> kg / kg
+  PUBLIC  :: Convert_MMR_to_KG          ! kg / kg       -> kg / grid box
+  PUBLIC  :: Convert_KG_to_MMR          ! kg / grid box -> kg / kg
+  PUBLIC  :: Convert_MMR_to_MND         ! kg / kg       -> molec / cm3
+  PUBLIC  :: Convert_MND_to_MMR         ! molec / cm3   -> kg / kg
 !
 ! !REMARKS:
 !  The routines in this module are used to convert the units of tracer 
@@ -52,10 +54,145 @@ MODULE UnitConv_Mod
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - E. Lundgren - Initial version
+!  16 Apr 2015 - E. Lundgren - Add dry <-> moist mixing ratio conversions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: convert_drymmr_to_moistmmr
+!
+! !DESCRIPTION: Subroutine Convert\_DryMMR\_to\_MoistMMR converts the units of 
+!  tracer mass mixing ratio from tracer mass per dry air mass [kg tracer/
+!  kg dry air] to tracer mass per moist air mass [kg tracer/kg moist air]. 
+!\\
+!\\
+! !INTERFACE:
+!
+    SUBROUTINE Convert_DryMMR_to_MoistMMR( N_TRACERS, STT, State_Met ) 
+!
+! !USES:
+!
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS: 
+!
+    ! Number of tracers
+    INTEGER, INTENT(IN)        :: N_TRACERS 
+
+    ! Object containing meteorological state variables
+    TYPE(MetState), INTENT(IN) :: State_Met 
+!
+! !OUTPUT PARAMETERS:
+!
+    ! Array containing tracer concentration [kg/kg]
+    REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+!
+! !REMARKS
+!
+! !REVISION HISTORY: 
+!  16 Apr 2015 - E. Lundgren - Initial version
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: I, J, L, N
+
+    !=================================================================
+    ! Convert_MoistMMR_to_DryMMR begins here!
+    !=================================================================
+
+      !$OMP PARALLEL DO           &
+      !$OMP DEFAULT( SHARED     ) &
+      !$OMP PRIVATE( I, J, L, N ) 
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+        STT(I,J,L,N) = STT(I,J,L,N) * State_Met%DRYAIRVV(I,J,L)
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+      !$OMP END PARALLEL DO
+
+    ! Return to calling program
+    END SUBROUTINE Convert_DryMMR_to_MoistMMR
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: convert_moistmmr_to_drymmr
+!
+! !DESCRIPTION: Subroutine Convert\_MoistMMR\_to\_DryMMR converts the units of 
+!  tracer mass mixing ratio from tracer mass per moist air mass [kg tracer/
+!  kg moist air] to tracer mass per dry air mass [kg tracer/kg dry air]. 
+!\\
+!\\
+! !INTERFACE:
+!
+    SUBROUTINE Convert_MoistMMR_to_DryMMR( N_TRACERS, STT, State_Met ) 
+!
+! !USES:
+!
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS: 
+!
+    ! Number of tracers
+    INTEGER, INTENT(IN)        :: N_TRACERS 
+
+    ! Object containing meteorological state variables
+    TYPE(MetState), INTENT(IN) :: State_Met 
+!
+! !OUTPUT PARAMETERS:
+!
+    ! Array containing tracer concentration [kg/kg]
+    REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+!
+! !REMARKS
+!
+! !REVISION HISTORY: 
+!  16 Apr 2015 - E. Lundgren - Initial version
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: I, J, L, N
+
+    !=================================================================
+    ! Convert_MoistMMR_to_DryMMR begins here!
+    !=================================================================
+
+      !$OMP PARALLEL DO           &
+      !$OMP DEFAULT( SHARED     ) &
+      !$OMP PRIVATE( I, J, L, N ) 
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+        STT(I,J,L,N) = STT(I,J,L,N) / State_Met%DRYAIRVV(I,J,L)
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+      !$OMP END PARALLEL DO
+
+    ! Return to calling program
+    END SUBROUTINE Convert_MoistMMR_to_DryMMR
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -235,186 +372,6 @@ CONTAINS
 
     ! Return to calling program
     END SUBROUTINE Convert_VR_to_MMR
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: convert_mmr_to_kg
-!
-! !DESCRIPTION: Subroutine Convert\_MMR\_to\_KG converts the units of 
-!  tracer concentrations from mass mixing ratio (MMR) 
-!  [kg tracer/kg dry air] to tracer mass per grid box [kg]. 
-!
-!  NOTE: This will go away in the future.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Convert_MMR_to_KG( N_TRACERS, AIRMASS, STT ) 
-!
-! !INPUT PARAMETERS: 
-!
-    ! Number of tracers
-    INTEGER, INTENT(IN)      :: N_TRACERS 
-
-    ! Array containing grid box dry air mass [kg]
-    REAL(fp),  INTENT(IN)    :: AIRMASS(IIPAR,JJPAR,LLPAR)
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Array containing tracer concentration [kg]
-    REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
-!
-! !REMARKS
-!
-! !REVISION HISTORY: 
-!  08 Jan 2015 - E. Lundgren - Initial version
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER :: I, J, L, N
-
-    !=================================================================
-    ! Convert_MMR_to_KG begins here!
-    !=================================================================
-
-         !==============================================================
-         !
-         !  The conversion is as follows:
-         !
-         !   kg tracer(N)            
-         !   -----------  *  kg dry air       
-         !   kg dry air                   
-         !
-         !   = mass mixing ratio * dry air mass  
-         !   
-         !   = kg tracer(N)
-         !
-         ! Therefore, with:
-         !
-         !  AIRMASS(I,J,L)   = grid box dry air mass [kg]
-         !     
-         ! the conversion is:
-         ! 
-         !  STT(I,J,L,N) [kg]
-         !
-         !    = STT(I,J,L,N) [kg/kg] * AIRMASS(I,J,L)
-         !                   
-         !==============================================================
-
-      !$OMP PARALLEL DO           &
-      !$OMP DEFAULT( SHARED     ) &
-      !$OMP PRIVATE( I, J, L, N ) 
-      DO N = 1, N_TRACERS
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-        STT(I,J,L,N) = STT(I,J,L,N) * AIRMASS(I,J,L)
-      ENDDO
-      ENDDO
-      ENDDO
-      ENDDO
-      !$OMP END PARALLEL DO
-
-    ! Return to calling program
-    END SUBROUTINE Convert_MMR_to_KG
-!EOC
-
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: convert_kg_to_mmr
-!
-! !DESCRIPTION: Subroutine Convert\_KG\_to\_MMR converts the units of 
-!  tracer concentrations from tracer mass per grid box [kg] to mass 
-!  mixing ratio (MMR) [kg tracer/kg air]. 
-!  
-!  This will go away in the future with grid-independence.
-!\\
-!\\
-! !INTERFACE:
-!
-    SUBROUTINE Convert_KG_to_MMR( N_TRACERS, AIRMASS, STT ) 
-!
-! !INPUT PARAMETERS: 
-!
-    ! Number of tracers
-    INTEGER, INTENT(IN)      :: N_TRACERS 
-
-    ! Array containing grid box dry air mass [kg]
-    REAL(fp),  INTENT(IN)    :: AIRMASS(IIPAR,JJPAR,LLPAR)
-
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Array containing tracer concentration [kg/kg]
-    REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
-!
-! !REMARKS
-!
-! !REVISION HISTORY: 
-!  08 Jan 2015 - E. Lundgren - Initial version
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER :: I, J, L, N
-
-    !=================================================================
-    ! Convert_KG_to_MMR begins here!
-    !=================================================================
-
-         !==============================================================
-         !
-         !  The conversion is as follows:
-         !
-         !                         1          
-         !   kg tracer(N)  * --------------      
-         !                      kg dry air              
-         !
-         !   = kg tracer(N) / dry air mass
-         !   
-         !   = mass mixing ratio
-         !
-         ! Therefore, with:
-         !
-         !  AIRMASS(I,J,L)    = grid box air mass [kg]
-         !     
-         ! the conversion is:
-         ! 
-         !  STT(I,J,L,N) [kg/kg]
-         !
-         !    = STT(I,J,L,N) [kg] / AIRMASS(I,J,L) 
-         !                   
-         !==============================================================
-
-      !$OMP PARALLEL DO           &
-      !$OMP DEFAULT( SHARED     ) &
-      !$OMP PRIVATE( I, J, L, N ) 
-      DO N = 1, N_TRACERS
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-        STT(I,J,L,N) = STT(I,J,L,N) / AIRMASS(I,J,L)
-      ENDDO
-      ENDDO
-      ENDDO
-      ENDDO
-      !$OMP END PARALLEL DO
-
-    ! Return to calling program
-    END SUBROUTINE Convert_KG_to_MMR
 !EOC
 
 !------------------------------------------------------------------------------
@@ -601,4 +558,186 @@ CONTAINS
     ! Return to calling program
     END SUBROUTINE Convert_MND_to_MMR
 !EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: convert_mmr_to_kg
+!
+! !DESCRIPTION: Subroutine Convert\_MMR\_to\_KG converts the units of 
+!  tracer concentrations from mass mixing ratio (MMR) 
+!  [kg tracer/kg dry air] to tracer mass per grid box [kg]. 
+!
+!  NOTE: This will go away in the future.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Convert_MMR_to_KG( N_TRACERS, AIRMASS, STT ) 
+!
+! !INPUT PARAMETERS: 
+!
+    ! Number of tracers
+    INTEGER, INTENT(IN)      :: N_TRACERS 
+
+    ! Array containing grid box dry air mass [kg]
+    REAL(fp),  INTENT(IN)    :: AIRMASS(IIPAR,JJPAR,LLPAR)
+!
+! !OUTPUT PARAMETERS:
+!
+    ! Array containing tracer concentration [kg]
+    REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+!
+! !REMARKS
+!
+! !REVISION HISTORY: 
+!  08 Jan 2015 - E. Lundgren - Initial version
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: I, J, L, N
+
+    !=================================================================
+    ! Convert_MMR_to_KG begins here!
+    !=================================================================
+
+         !==============================================================
+         !
+         !  The conversion is as follows:
+         !
+         !   kg tracer(N)            
+         !   -----------  *  kg dry air       
+         !   kg dry air                   
+         !
+         !   = mass mixing ratio * dry air mass  
+         !   
+         !   = kg tracer(N)
+         !
+         ! Therefore, with:
+         !
+         !  AIRMASS(I,J,L)   = grid box dry air mass [kg]
+         !     
+         ! the conversion is:
+         ! 
+         !  STT(I,J,L,N) [kg]
+         !
+         !    = STT(I,J,L,N) [kg/kg] * AIRMASS(I,J,L)
+         !                   
+         !==============================================================
+
+      !$OMP PARALLEL DO           &
+      !$OMP DEFAULT( SHARED     ) &
+      !$OMP PRIVATE( I, J, L, N ) 
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+        STT(I,J,L,N) = STT(I,J,L,N) * AIRMASS(I,J,L)
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+      !$OMP END PARALLEL DO
+
+    ! Return to calling program
+    END SUBROUTINE Convert_MMR_to_KG
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: convert_kg_to_mmr
+!
+! !DESCRIPTION: Subroutine Convert\_KG\_to\_MMR converts the units of 
+!  tracer concentrations from tracer mass per grid box [kg] to mass 
+!  mixing ratio (MMR) [kg tracer/kg air]. 
+!  
+!  This will go away in the future with grid-independence.
+!\\
+!\\
+! !INTERFACE:
+!
+    SUBROUTINE Convert_KG_to_MMR( N_TRACERS, AIRMASS, STT ) 
+!
+! !INPUT PARAMETERS: 
+!
+    ! Number of tracers
+    INTEGER, INTENT(IN)      :: N_TRACERS 
+
+    ! Array containing grid box dry air mass [kg]
+    REAL(fp),  INTENT(IN)    :: AIRMASS(IIPAR,JJPAR,LLPAR)
+
+!
+! !OUTPUT PARAMETERS:
+!
+    ! Array containing tracer concentration [kg/kg]
+    REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+!
+! !REMARKS
+!
+! !REVISION HISTORY: 
+!  08 Jan 2015 - E. Lundgren - Initial version
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: I, J, L, N
+
+    !=================================================================
+    ! Convert_KG_to_MMR begins here!
+    !=================================================================
+
+         !==============================================================
+         !
+         !  The conversion is as follows:
+         !
+         !                         1          
+         !   kg tracer(N)  * --------------      
+         !                      kg dry air              
+         !
+         !   = kg tracer(N) / dry air mass
+         !   
+         !   = mass mixing ratio
+         !
+         ! Therefore, with:
+         !
+         !  AIRMASS(I,J,L)    = grid box air mass [kg]
+         !     
+         ! the conversion is:
+         ! 
+         !  STT(I,J,L,N) [kg/kg]
+         !
+         !    = STT(I,J,L,N) [kg] / AIRMASS(I,J,L) 
+         !                   
+         !==============================================================
+
+      !$OMP PARALLEL DO           &
+      !$OMP DEFAULT( SHARED     ) &
+      !$OMP PRIVATE( I, J, L, N ) 
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+        STT(I,J,L,N) = STT(I,J,L,N) / AIRMASS(I,J,L)
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+      !$OMP END PARALLEL DO
+
+    ! Return to calling program
+    END SUBROUTINE Convert_KG_to_MMR
+!EOC
+
 END MODULE UnitConv_Mod
