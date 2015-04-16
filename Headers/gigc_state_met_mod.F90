@@ -120,18 +120,10 @@ MODULE GIGC_State_Met_Mod
      !----------------------------------------------------------------------
      ! 3-D Fields                  
      !----------------------------------------------------------------------
-     REAL(fp), POINTER :: AD        (:,:,:) ! Air mass [kg] (dry air)
-     REAL(fp), POINTER :: AIRVOL    (:,:,:) ! Grid box volume [m3] (dry air)
      REAL(fp), POINTER :: AREA_M2   (:,:,:) ! Grid box surface area [cm2]
      REAL(fp), POINTER :: AIRDEN    (:,:,:) ! Dry air density [kg/m3]
-     REAL(fp), POINTER :: MAIRDEN   (:,:,:) ! Moist air density [kg/m3]
-     REAL(fp), POINTER :: AVGW      (:,:,:) ! Water vapor volume mixing ratio
-                                            ! [vol H2O / vol dry air]
-     REAL(fp), POINTER :: BXHEIGHT  (:,:,:) ! Grid box height [m] (dry air)
      REAL(fp), POINTER :: CLDF      (:,:,:) ! 3-D cloud fraction [1]
      REAL(fp), POINTER :: CMFMC     (:,:,:) ! Cloud mass flux [kg/m2/s]
-     REAL(fp), POINTER :: DELP      (:,:,:) ! Delta-P extent of grid box [hPa]
-                                            ! (wet air)
      REAL(fp), POINTER :: DETRAINE  (:,:,:) ! Detrainment (entrain plume)[Pa/s]
      REAL(fp), POINTER :: DETRAINN  (:,:,:) ! Detrainment (non-entr plume)[Pa/s]
      REAL(fp), POINTER :: DNDE      (:,:,:) ! Downdraft (entr plume) [Pa/s]
@@ -148,14 +140,8 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: MOISTQ    (:,:,:) ! Tendency in sp. humidity [kg/kg/s]
      REAL(fp), POINTER :: OPTD      (:,:,:) ! Visible optical depth [1]
      REAL(fp), POINTER :: OPTDEP    (:,:,:) ! Visible optical depth [1]
-     REAL(fp), POINTER :: PEDGE     (:,:,:) ! Pressure @ level edges [hPa]
-                                            ! (wet air)
-     REAL(fp), POINTER :: PEDGE_DRY (:,:,:) ! Pressure @ level edges [hPa]
-                                            ! (dry air partial pressure)
-     REAL(fp), POINTER :: PMID      (:,:,:) ! Pressure @ level centers [hPa]
-                                            ! (wet air)
-     REAL(fp), POINTER :: PMID_DRY  (:,:,:) ! Pressure @ level center [hPa]
-                                            ! (dry air partial pressure)
+     REAL(fp), POINTER :: PEDGE     (:,:,:) ! Wet air pressure [hPa] @ level 
+                                            ! edges [hPa]
      REAL(fp), POINTER :: PFICU     (:,:,:) ! Dwn flux ice prec:conv [kg/m2/s]
      REAL(fp), POINTER :: PFILSAN   (:,:,:) ! Dwn flux ice prec:LS+anv [kg/m2/s]
      REAL(fp), POINTER :: PFLCU     (:,:,:) ! Dwn flux liq prec:conv [kg/m2/s]
@@ -174,7 +160,6 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: SPHU1     (:,:,:) ! Spec hum at timestep start [g/kg]
      REAL(fp), POINTER :: SPHU2     (:,:,:) ! Spec hum at timestep end [g/kg]
      REAL(fp), POINTER :: T         (:,:,:) ! Temperature [K]
-     REAL(fp), POINTER :: TV        (:,:,:) ! Virtual temperature [K]
      REAL(fp), POINTER :: TAUCLI    (:,:,:) ! Opt depth of ice clouds [1]
      REAL(fp), POINTER :: TAUCLW    (:,:,:) ! Opt depth of H2O clouds [1]
      REAL(fp), POINTER :: TMPU1     (:,:,:) ! Temperature at timestep start [K]
@@ -187,6 +172,41 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: ZMEU      (:,:,:) ! Z/M updraft entrainment [Pa/s]
      REAL(fp), POINTER :: ZMMD      (:,:,:) ! Z/M downdraft mass flux [Pa/s]
      REAL(fp), POINTER :: ZMMU      (:,:,:) ! Z/M updraft   mass flux [Pa/s]
+
+     !----------------------------------------------------------------------
+     ! Air quantities assigned in AIRQNT
+     !----------------------------------------------------------------------
+     ! Note on pressures: PMID and PMEAN are calculated from PEDGE, 
+     ! and dry air partial pressures assume constant RH and T across grid box
+     REAL(fp), POINTER :: PEDGE_DRY (:,:,:) ! Dry air partial pressure [hPa] 
+                                            ! @ level edges [hPa]
+     REAL(fp), POINTER :: PMID      (:,:,:) ! Average wet air pressure [hPa]
+                                            ! defined as arithmetic
+                                            ! average of edge pressures
+     REAL(fp), POINTER :: PMID_DRY  (:,:,:) ! Dry air partial pressure [hPa]
+                                            ! defined as arithmetic average
+                                            ! of edge pressures 
+     REAL(fp), POINTER :: PMEAN     (:,:,:) ! Grid box mean wet air pressure 
+                                            ! [hPa] calculated as P
+                                            ! integrated over z
+     REAL(fp), POINTER :: PMEAN_DRY (:,:,:) ! Grid box mean dry air partial 
+                                            ! pressure calculated using water 
+                                            ! vapor partial pressure derived
+                                            ! from PMEAN
+     REAL(fp), POINTER :: DRYAIRMMR (:,:,:) ! Dry air mass mixing ratio [1]
+     REAL(fp), POINTER :: DRYAIRVV  (:,:,:) ! Dry air mass mixing ratio [1]
+     REAL(fp), POINTER :: MOISTMW   (:,:,:) ! Moist air molec weight [g/mol]
+                                            ! at the grid box altitude-weighted
+                                            ! pressure level (temporary)        
+     REAL(fp), POINTER :: TV        (:,:,:) ! Virtual temperature [K]
+     REAL(fp), POINTER :: MAIRDEN   (:,:,:) ! Moist air density [kg/m3]
+     REAL(fp), POINTER :: AVGW      (:,:,:) ! Water vapor volume mixing ratio
+                                            ! [vol H2O / vol dry air]
+     REAL(fp), POINTER :: BXHEIGHT  (:,:,:) ! Grid box height [m] (dry air)
+     REAL(fp), POINTER :: DELP      (:,:,:) ! Delta-P extent of grid box [hPa]
+                                            ! (wet air)
+     REAL(fp), POINTER :: AD        (:,:,:) ! Air mass [kg] (dry air)
+     REAL(fp), POINTER :: AIRVOL    (:,:,:) ! Grid box volume [m3] (dry air)
 
      !----------------------------------------------------------------------
      ! Land type and leaf area index (LAI) fields for dry deposition
@@ -216,6 +236,10 @@ MODULE GIGC_State_Met_Mod
 !  12 Feb 2015 - C. Keller   - Added UPDVVEL (for use in wet scavenging).
 !  24 Feb 2015 - E. Lundgren - Add PEDGE_DRY, PMID_DRY, and MAIRDEN
 !  03 Mar 2015 - E. Lundgren - Add TV (virtual temperature)
+!  16 Apr 2015 - E. Lundgren - Add mean pressures PMEAN and PMEAN_DRY. Clarify
+!                              definition of PMID as arithmetic average P. 
+!                              Add DRYAIRMMR, DRYAIRVV, and MOISTMW for
+!                              conversion between dry and wet air quantities. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -671,6 +695,18 @@ CONTAINS
     ALLOCATE( State_Met%DTRAIN    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%DTRAIN   = 0.0_fp
+
+    ALLOCATE( State_Met%DRYAIRMMR ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%DRYAIRMMR = 0.0_fp
+
+    ALLOCATE( State_Met%DRYAIRVV ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%DRYAIRVV = 0.0_fp
+
+    ALLOCATE( State_Met%MOISTMW ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%MOISTMW = 0.0_fp
                                                
     ALLOCATE( State_Met%MOISTQ    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
@@ -699,6 +735,14 @@ CONTAINS
     ALLOCATE( State_Met%PMID_DRY   ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%PMID_DRY  = 0.0_fp
+
+    ALLOCATE( State_Met%PMEAN      ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%PMEAN     = 0.0_fp
+
+    ALLOCATE( State_Met%PMEAN_DRY   ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%PMEAN_DRY  = 0.0_fp
 
     ALLOCATE( State_Met%PV        ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -1010,6 +1054,9 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%DQIDTMST   )) DEALLOCATE( State_Met%DQIDTMST   )
     IF ( ASSOCIATED( State_Met%DQLDTMST   )) DEALLOCATE( State_Met%DQLDTMST   )
     IF ( ASSOCIATED( State_Met%DQVDTMST   )) DEALLOCATE( State_Met%DQVDTMST   )
+    IF ( ASSOCIATED( State_Met%DRYAIRMMR  )) DEALLOCATE( State_Met%DRYAIRMMR  )
+    IF ( ASSOCIATED( State_Met%DRYAIRVV   )) DEALLOCATE( State_Met%DRYAIRVV   )
+    IF ( ASSOCIATED( State_Met%MOISTMW    )) DEALLOCATE( State_Met%MOISTMW    )
     IF ( ASSOCIATED( State_Met%DTRAIN     )) DEALLOCATE( State_Met%DTRAIN     )
     IF ( ASSOCIATED( State_Met%MOISTQ     )) DEALLOCATE( State_Met%MOISTQ     )
     IF ( ASSOCIATED( State_Met%OPTD       )) DEALLOCATE( State_Met%OPTD       )
@@ -1018,6 +1065,8 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%PEDGE_DRY  )) DEALLOCATE( State_Met%PEDGE_DRY  )
     IF ( ASSOCIATED( State_Met%PMID       )) DEALLOCATE( State_Met%PMID       )
     IF ( ASSOCIATED( State_Met%PMID_DRY   )) DEALLOCATE( State_Met%PMID_DRY   )
+    IF ( ASSOCIATED( State_Met%PMEAN      )) DEALLOCATE( State_Met%PMEAN      )
+    IF ( ASSOCIATED( State_Met%PMEAN_DRY  )) DEALLOCATE( State_Met%PMEAN_DRY  )
     IF ( ASSOCIATED( State_Met%PV         )) DEALLOCATE( State_Met%PV         )
     IF ( ASSOCIATED( State_Met%QI         )) DEALLOCATE( State_Met%QI         )
     IF ( ASSOCIATED( State_Met%QL         )) DEALLOCATE( State_Met%QL         )
