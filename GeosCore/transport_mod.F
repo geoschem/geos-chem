@@ -267,6 +267,7 @@
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_BC_MOD,      ONLY : SAVE_GLOBAL_TPCORE_BC
       USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
+      USE UNITCONV_MOD
 #if   defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
@@ -307,6 +308,7 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !  26 Mar 2015 - E. Lundgren - Pass State_Met to get_air_mass for dry mass calc
 !  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
+!  16 Apr 2015 - E. Lundgren - Convert mixing ratio to moist before advection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -459,11 +461,10 @@
       p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
 
-!      ! Convert tracer concentration from dry mixing ratio
-!      ! (mol tracer / mol dry air ) to moist mixing ratio 
-!      ! (mol tracer / mol moist air) before advection
-!      ! (ewl, 4/16/15) Need to put this in a subroutine containing a loop
-!      p_STT = p_STT * State_Met%DRYAIRVV
+      ! Convert tracer concentration from dry mixing ratio
+      ! (mol/mol dry air ) to moist mixing ratio (mol/mol moist air) 
+      ! before advection (ewl, 4/16/15)
+      CALL Convert_MoistMMR_to_DryMMR( N_TRACERS, p_STT, State_Met ) 
 
       ! Do the advection
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
@@ -480,11 +481,10 @@
      &                   A_M2,   TCVV,      ND24,     ND25,     
      &                   ND26 )
 
-!      ! Convert tracer concentration back from moist mixing ratio
-!      ! (mol tracer / mol moist air ) to dry mixing ratio 
-!      ! (mol tracer / mol dry air) after advection
-!      ! (ewl, 4/16/15) Need to put this in a subroutine containing a loop
-!      p_STT = p_STT / State_Met%DRYAIRVV
+      ! Convert tracer concentration from moist mixing ratio
+      ! (mol/mol moist air ) to dry mixing ratio (mol/mol dry air) 
+      ! after advection (ewl, 4/16/15)
+      CALL Convert_MoistMMR_to_DryMMR( N_TRACERS, p_STT, State_Met ) 
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
@@ -592,6 +592,7 @@
       USE DAO_MOD,            ONLY : AIRQNT
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
+      USE UNITCONV_MOD
 #if   defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
@@ -789,11 +790,10 @@
       p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
 
-!      ! Convert tracer concentration from dry mixing ratio
-!      ! (mol tracer / mol dry air ) to moist mixing ratio 
-!      ! (mol tracer / mol moist air) before advection
-!      ! (ewl, 4/16/15) Need to put this in a subroutine containing a loop
-!      p_STT = p_STT * State_Met%DRYAIRVV
+      ! Convert tracer concentration from dry mixing ratio (mol/mol dry air) 
+      ! to moist mixing ratio (mol/mol moist air) before advection
+      ! (ewl, 4/16/15)
+      CALL Convert_DryMMR_to_MoistMMR( N_TRACERS, p_STT, State_Met )
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -810,11 +810,10 @@
      &                   A_M2,    TCVV,      ND24,     ND25,     
      &                   ND26 )
 
-!      ! Convert tracer concentration back from moist mixing ratio
-!      ! (mol tracer / mol moist air ) to dry mixing ratio 
-!      ! (mol tracer / mol dry air) after advection
-!      ! (ewl, 4/16/15) Need to put this in a subroutine containing a loop
-!      p_STT = p_STT / State_Met%DRYAIRVV
+      ! Convert tracer concentration from moist mixing ratio
+      ! (mol/mol moist air ) to dry mixing ratio (mol/ mol dry air) 
+      ! after advection (ewl, 4/16/15)
+      CALL Convert_MoistMMR_to_DryMMR( N_TRACERS, p_STT, State_Met )
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
