@@ -867,8 +867,8 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     ! ----------------------------------------------------------------
-    ! HCO_SZAFACT aren't defined as 3D arrays in Met_State.  Hence 
-    ! need to construct here so that we can point to them.
+    ! HCO_SZAFACT is not defined in Met_State.  Hence need to 
+    ! define here so that we can point to them.
     !
     ! Now include HCO_FRAC_OF_PBL and HCO_PBL_MAX for POPs specialty
     ! simulation (mps, 8/20/14)
@@ -1107,10 +1107,14 @@ CONTAINS
             'SNODP', HCRC,      FIRST,    State_Met%SNOW   )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #else
+
+    ! SNOWHGT is is mm H2O, which is the same as kg H2O/m2.
+    ! This is the unit of SNOMAS.
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNOWHGT, &
           'SNOWHGT', HCRC,      FIRST,    State_Met%SNOMAS   )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
+    ! SNOWDP is in m
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNODP, &
             'SNODP', HCRC,      FIRST,    State_Met%SNODP  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
@@ -1539,6 +1543,12 @@ CONTAINS
  
        ! Assign species variables
        IF ( PHASE == 2 ) THEN
+
+          ! Verbose
+          IF ( am_I_Root ) THEN
+             MSG = 'Registering HEMCO species:'
+             CALL HCO_MSG(MSG)
+          ENDIF
 
           ! Sanity check: number of input species should agree with nSpc
           IF ( nSpec /= nSpc ) THEN

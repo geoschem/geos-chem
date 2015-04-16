@@ -87,11 +87,11 @@ MODULE HCO_Calc_Mod
 !
   ! Mask threshold. All mask values below this value will be evaluated 
   ! as zero (= outside of mask), and all values including and above this 
-  ! value as inside the mask. This is only of relevance if the MaskIsBinary
-  ! option is used. If MaskIsBinary is false, the fractional mask values are 
-  ! being considered, e.g. a grid box can contribute 40%, etc. 
-  ! The MaskIsBinary toggle can be set in the settings section of the HEMCO 
-  ! configuration file (Binary mask: true/false). It defaults to true.
+  ! value as inside the mask. This is only of relevance if the MaskFractions
+  ! option is false. If MaskFractions is true, the fractional mask values are 
+  ! considered, e.g. a grid box can contribute 40% to a mask region, etc. 
+  ! The MaskFractions toggle can be set in the settings section of the HEMCO 
+  ! configuration file (Use mask fractions: true/false). It defaults to false.
   REAL(sp), PARAMETER  :: MASK_THRESHOLD = 0.5_sp
 !
 ! ============================================================================
@@ -519,20 +519,11 @@ CONTAINS
 
           ! Only over masked area
           CatFlx = CatFlx + ( Mask * TmpFlx )
-          !WHERE ( Mask == 1 )
-          !   CatFlx = CatFlx + TmpFlx
-          !END WHERE
  
        ! If hierarchy is larger than those of the previously used
        ! fields, overwrite CatFlx w/ new values. 
        ELSEIF ( ThisHir > PrevHir ) THEN
-
           CatFlx = ( (1.0_hp - Mask) * CatFlx ) + ( Mask * TmpFlx )
-       
-          !! Only over masked area
-          !WHERE ( Mask == 1 )
-          !   CatFlx = TmpFlx
-          !END WHERE
 
        ELSE
           MSG = 'Hierarchy error in calc_emis: ' // TRIM(Dct%cName)
@@ -770,7 +761,7 @@ CONTAINS
     INTEGER                 :: ERROR
     CHARACTER(LEN=255)      :: MSG, LOC
     LOGICAL                 :: NegScalExist
-    LOGICAL                 :: MaskIsBinary 
+    LOGICAL                 :: MaskFractions
  
     ! testing only
     INTEGER                 :: IX, IY
@@ -796,7 +787,7 @@ CONTAINS
 
     ! Initialize mask. By default, assume that we use all grid boxes.
     MASK(:,:,:)  = 1.0_hp
-    MaskIsBinary = HcoState%Options%MaskIsBinary
+    MaskFractions = HcoState%Options%MaskFractions
 
     ! Verbose 
     IF ( HCO_IsVerb(3) ) THEN
@@ -966,7 +957,7 @@ CONTAINS
           ! If there is a mask applied to this scale factor ...
           IF ( ASSOCIATED(MaskDct) ) THEN
              CALL GetMaskVal ( am_I_Root, MaskDct, I, J, &
-                               MaskScale, MaskIsBinary, RC )
+                               MaskScale, MaskFractions, RC )
              IF ( RC /= HCO_SUCCESS ) THEN
                 ERROR = 4 
                 EXIT
@@ -996,7 +987,7 @@ CONTAINS
 
              ! Get mask value
              CALL GetMaskVal ( am_I_Root, ScalDct, I, J, &
-                               TMPVAL,    MaskIsBinary, RC )
+                               TMPVAL,    MaskFractions, RC )
              IF ( RC /= HCO_SUCCESS ) THEN
                 ERROR = 4 
                 EXIT
@@ -1148,20 +1139,6 @@ CONTAINS
 
     ENDDO ! N
 
-!    ! ----------------------------
-!    ! Masks 
-!    ! ----------------------------
-!
-!    ! Apply mask. Make sure that emissions become negative
-!    ! outside the mask region. This is to make sure that these 
-!    ! grid boxes will be ignored when calculating the final  
-!    ! emissions. 
-!    DO L = 1, BaseLL
-!       WHERE ( MASK(:,:,L) == 0 )
-!          OUTARR_3D(:,:,L) = 0.0_hp
-!       ENDWHERE
-!    ENDDO
-
     ! Cleanup and leave w/ success
     ScalDct => NULL()
     CALL HCO_LEAVE ( RC )
@@ -1236,7 +1213,7 @@ CONTAINS
     INTEGER                 :: IJFILLED
     INTEGER                 :: ERROR
     CHARACTER(LEN=255)      :: MSG, LOC
-    LOGICAL                 :: MaskIsBinary 
+    LOGICAL                 :: MaskFractions
  
     ! testing only
     INTEGER                 :: IX, IY
@@ -1270,7 +1247,7 @@ CONTAINS
 
     ! Initialize mask values
     MASK(:,:,:)  = 1.0_hp
-    MaskIsBinary = HcoState%Options%MaskIsBinary
+    MaskFractions = HcoState%Options%MaskFractions
 
     ! Initialize ERROR. Will be set to 1 if error occurs below
     ERROR = 0
@@ -1404,7 +1381,7 @@ CONTAINS
 
              ! Get mask value
              CALL GetMaskVal ( am_I_Root, ScalDct, I, J, &
-                               TMPVAL,    MaskIsBinary, RC )
+                               TMPVAL,    MaskFractions, RC )
              IF ( RC /= HCO_SUCCESS ) THEN
                 ERROR = 6 
                 EXIT
@@ -1439,7 +1416,7 @@ CONTAINS
 
              ! Get mask value
              CALL GetMaskVal ( am_I_Root, ScalDct, I, J, &
-                               TMPVAL,    MaskIsBinary, RC )
+                               TMPVAL,    MaskFractions, RC )
              IF ( RC /= HCO_SUCCESS ) THEN
                 ERROR = 6 
                 EXIT
@@ -1595,7 +1572,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetMaskVal ( am_I_Root, Dct, I, J, MaskVal, Binary, RC )
+  SUBROUTINE GetMaskVal ( am_I_Root, Dct, I, J, MaskVal, Fractions, RC )
 !
 ! !USES:
 !
@@ -1605,7 +1582,7 @@ CONTAINS
     LOGICAL,         INTENT(IN   ) :: am_I_Root           ! Root CPU?
     INTEGER,         INTENT(IN   ) :: I                   ! # of lons
     INTEGER,         INTENT(IN   ) :: J                   ! # of lats
-    LOGICAL,         INTENT(IN   ) :: Binary              ! Binary values?
+    LOGICAL,         INTENT(IN   ) :: Fractions           ! Use fractions?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1642,7 +1619,7 @@ CONTAINS
     ENDIF
 
     ! Treat as binary?
-    IF ( BINARY ) THEN
+    IF ( .NOT. Fractions ) THEN
        IF ( MaskVal < MASK_THRESHOLD ) THEN
           MaskVal = 0.0_sp
        ELSE

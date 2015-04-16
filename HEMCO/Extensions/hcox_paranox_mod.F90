@@ -522,6 +522,16 @@ CONTAINS
           ERR = .TRUE.; EXIT
        ENDIF
 
+!       ! for debugging only
+!       if(I==3.and.J==35)then
+!          write(*,*) 'PARANOX ship emissions @',I,J
+!          write(*,*) 'Emis [kg/m2/s]: ', ShipNoEmis(I,J,1)
+!          write(*,*) 'SHIP_FNOx: ', SHIP_FNOx
+!          write(*,*) 'SHIP_DNOx: ', SHIP_DNOx
+!          write(*,*) 'SHIP_OPE : ', SHIP_OPE
+!          write(*,*) 'SHIP_MOE : ', SHIP_MOE
+!       endif
+ 
        ! Split the ship NOx emission into NO and NO2
        ! following the ambient ratio
        ! Now check for zero ambient air concentrations. In this
@@ -2357,7 +2367,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-!      INTEGER                    :: NK, JLOOP
    INTEGER                    :: I1,I2,I3,I4,I5,I6,I7,I8
    REAL(sp)                   :: FNOX_TMP, DNOX_TMP, OPE_TMP, MOE_TMP
    REAL(sp)                   :: WEIGHT
@@ -2365,8 +2374,6 @@ CONTAINS
    REAL(sp)                   :: H2O
    REAL(sp)                   :: AIR
    REAL*8                     :: MOE
-!      CHARACTER*8                :: SPECNAME
-!      REAL*8, EXTERNAL           :: FJFUNC
 
    ! Interpolation variables, indices, and weights
    REAL(sp), DIMENSION(8)     :: VARS
@@ -2381,21 +2388,14 @@ CONTAINS
 
    REAL(sp), PARAMETER        :: MWH2O = 18.0_sp
 
-!      LOGICAL, SAVE              :: FIRST=.TRUE.
-!      INTEGER, SAVE              :: Ind_JNO2, Ind_JO1D
-
    !=================================================================
    ! PARANOX_LUT begins here!
    !=================================================================
-
-!      ! Index for CSPEC and AIRDENS arrays
-!      JLOOP   = JLOP(I,J,1)
 
    ! Air mass, kg
    AIR  = ExtState%AIR%Arr%Val(I,J,1)
 
    ! Air density, molec/cm3
-   !DENS = State_Met%AIRDEN(1,I,J) / 28.97d-3 * 6.02d23 / 1d6
    DENS = AIR                            * 1.e3_sp             &
         / ExtState%AIRVOL%Arr%Val(I,J,1) / HcoState%Phys%AIRMW &
         * HcoState%Phys%Avgdr            / 1.e6_sp
@@ -2403,55 +2403,26 @@ CONTAINS
    ! Air temperature, K
    Tair = ExtState%T2M%Arr%Val(I,J)
 
-!      !----------------------------------
-!      ! Get J-Values for J(NO2) and J(OH)
-!      !----------------------------------
-!
-!      IF (FIRST) THEN
-!
-!         ! Loop over photolysis reactions to find NO2, O3 photolysis reactions
-!         ! Note: This assumes that the reaction numbers
-!         ! do not change during a simulation
-!         DO I1 = 1, JPHOTRAT(NCS)
-!                        
-!            ! Reaction number
-!            NK  = NRATES(NCS) + I1
-!                        
-!            ! Name of species being photolyzed
-!            SPECNAME = NAMEGAS(IRM(1,NK,NCS))
-!
-!            ! Check if this is NO2 or O3, 
-!            ! store their index numbers
-!            SELECT CASE ( TRIM( SPECNAME ) )
-!            CASE ( 'NO2' )
-!               Ind_JNO2 = I1
-!            CASE ( 'O3' )
-!               Ind_JO1D = I1
-!            CASE DEFAULT
-!            END SELECT
-!                        
-!         ENDDO
-!
-!         FIRST = .FALSE.
-!
-!      ENDIF
+!   ! for debugging only
+!   if(I==3.and.J==35)then
+!      write(*,*) 'Call PARANOX_LUT @ ',I,J
+!      write(*,*) 'DENS: ', DENS
+!      write(*,*) 'Tair: ', Tair
+!      write(*,*) 'SUNCOSmid: ', ExtState%SUNCOSmid%Arr%Val(I,J)
+!   endif
 
    ! Check if sun is up
    IF ( ExtState%SUNCOSmid%Arr%Val(I,J) > 0.0_hp ) THEN
 
       ! J(NO2), 1/s
-      !JNO2 = FJFUNC(I,J,1,Ind_JNO2,1,SPECNAME)
       JNO2 = ExtState%JNO2%Arr%Val(I,J)
 
       ! J(O1D), 1/s
-      !JO1D = FJFUNC(I,J,1,Ind_JO1D,1,SPECNAME)
       JO1D = ExtState%JO1D%Arr%Val(I,J)
 
-      ! H2O, molec/cm3. Get from specific humidity, which is in kg/kg.
-      ! H2O = CSPEC(JLOOP,IH2O)
-      H2O = ExtState%SPHU%Arr%Val(I,J,1) * 1.e3_sp &
-          * ExtState%AIR%Arr%Val(I,J,1)  / MWH2O   &
-          * HcoState%Phys%Avgdr          / 1e6_sp
+      ! H2O, molec/cm3. Get from specific humidity, which is in g/kg.
+      H2O = ExtState%SPHU%Arr%Val(I,J,1) / 1.0e3_sp * DENS &
+          * HcoState%Phys%AIRMW / MWH2O 
          
       ! Calculate J(OH), the effective rate for O3+hv -> OH+OH,
       ! assuming steady state for O(1D).
@@ -2470,8 +2441,16 @@ CONTAINS
       JNO2 = 0e0_sp
       JO1D = 0e0_sp
       JOH  = 0e0_sp
-
+ 
    ENDIF
+
+!   ! for debugging only
+!   if(I==3.and.J==35)then
+!      write(*,*) 'JNO2: ', JNO2
+!      write(*,*) 'JO1D: ', JO1D
+!      write(*,*) 'JOH : ', JOH
+!      write(*,*) 'H2O : ', H2O
+!   endif
 
    !========================================================================
    ! Load all variables into a single array
@@ -2487,31 +2466,26 @@ CONTAINS
    VARS(3) = ExtState%O3%Arr%Val(I,J,1) / AIR   &
            * HcoState%Phys%AIRMW        / MW_O3 &
            * 1.e9_sp
-!  VARS(3) = CSPEC(JLOOP,IDO3) / DENS * 1.E9
 
    ! Solar elevation angle, degree
    ! SEA0 = SEA when emitted from ship, 5-h before current model time
    ! SEA5 = SEA at current model time, 5-h after emission from ship
    ! Note: Since SEA = 90 - SZA, then cos(SZA) = sin(SEA) and 
    ! thus SEA = arcsin( cos( SZA ) )
-!   VARS(4) = ASIND( State_Met%SUNCOSmid5(I,J) )
-!   VARS(5) = ASIND( State_Met%SUNCOSmid(I,J)  )
    VARS(4) = ASIND( SC5(I,J,6) )
    VARS(5) = ASIND( ExtState%SUNCOSmid%Arr%Val(I,J) )
 
    ! J(OH)/J(NO2), unitless
    ! Note J(OH) is the loss rate (1/s) of O3 to OH, which accounts for 
    ! the temperature, pressure and water vapor dependence of these reactions
-   !VARS(6) = SAFE_DIV( JOH, JNO2, 0D0 )
    VARS(6) = 0.0_sp
-   IF ( JOH /= 0.0_sp ) THEN
+   IF ( JNO2 /= 0.0_sp ) THEN
       IF ( (EXPONENT(JOH)-EXPONENT(JNO2)) < MAXEXPONENT(JOH) ) THEN
          VARS(6) = JOH / JNO2
       ENDIF
    ENDIF
 
    ! NOx concetration in ambient air, ppt
-!   VARS(7) = ( CSPEC(JLOOP,IDNO) + CSPEC(JLOOP,IDNO2) ) /DENS * 1.E12
    VARS(7) = ( ( ExtState%NO%Arr%Val(I,J,1)  / AIR        &
            *     HcoState%Phys%AIRMW         / MW_NO  )   &
            +   ( ExtState%NO2%Arr%Val(I,J,1) / AIR        &
@@ -2519,10 +2493,28 @@ CONTAINS
            * 1.e12_sp
 
       ! Wind speed, m/s
-!   VARS(8) = SQRT( State_Met%U(I,J,1)**2 + State_Met%V(I,J,1)**2 )         
    VARS(8) = SQRT( ExtState%U10M%Arr%Val(I,J)**2 & 
            +       ExtState%V10M%Arr%Val(I,J)**2 )
 
+!   ! for debugging only
+!   if(I==3.and.J==35)then
+!      write(*,*) 'VARS(1): ', VARS(1)
+!      write(*,*) 'VARS(2): ', VARS(2)
+!      write(*,*) 'VARS(3): ', VARS(3)
+!      write(*,*) 'VARS(4): ', VARS(4)
+!      write(*,*) 'VARS(5): ', VARS(5)
+!      write(*,*) 'VARS(6): ', VARS(6)
+!      write(*,*) 'VARS(7): ', VARS(7)
+!      write(*,*) 'VARS(8): ', VARS(8)
+!      write(*,*) 'AIR    : ', AIR 
+!      write(*,*) 'AIRMW  : ', HcoState%Phys%AIRMW
+!      write(*,*) 'MWNO, NO2, O3: ', MW_NO, MW_NO2, MW_O3
+!      write(*,*) 'O3conc: ', ExtState%O3%Arr%Val(I,J,1) 
+!      write(*,*) 'SUNCOSmid5: ', SC5(I,J,6)
+!      write(*,*) 'NO,NO2 conc: ',ExtState%NO%Arr%Val(I,J,1), ExtState%NO2%Arr%Val(I,J,1)
+!      write(*,*) 'U, V: ', ExtState%U10M%Arr%Val(I,J),ExtState%V10M%Arr%Val(I,J)
+!   endif
+ 
       !*****************************************************
       ! Restoring the following lines reproduces the behavior of 
       ! GEOS-Chem v9-01-03 through v9-02

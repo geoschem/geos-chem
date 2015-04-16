@@ -135,7 +135,7 @@ MODULE HCO_State_Mod
                                 ! be calculated over the full PBL. If false, 
                                 ! they are calculated over the first layer only.
      REAL(hp) :: MaxDepExp      ! Maximum value of deposition freq. x time step.
-     LOGICAL  :: MaskIsBinary   ! If TRUE, masks are treated as binary, e.g.  
+     LOGICAL  :: MaskFractions  ! If TRUE, masks are treated as binary, e.g.  
                                 ! grid boxes are 100% inside or outside of a
                                 ! mask. 
   END TYPE HcoOpt
@@ -187,7 +187,7 @@ MODULE HCO_State_Mod
 !                              gigc_state_chm_mod.F90
 !  07 Jul 2014 - R. Yantosca - Cosmetic changes
 !  30 Sep 2014 - R. Yantosca - Add HcoMicroPhys derived type to HcoState
-!  08 Apr 2015 - C. Keller   - Added MaskIsBinary to HcoState options.
+!  08 Apr 2015 - C. Keller   - Added MaskFractions to HcoState options.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -213,6 +213,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_EXTLIST_MOD,    ONLY : GetExtOpt, CoreNr
+    USE HCO_UNIT_MOD,       ONLY : HCO_UnitTolerance
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -232,8 +233,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: I, AS
-    LOGICAL :: FOUND
+    INTEGER            :: I, AS
+    INTEGER            :: UnitTolerance 
+    LOGICAL            :: FOUND
+    CHARACTER(LEN=255) :: MSG
 
     !=====================================================================
     ! HcoState_Init begins here!
@@ -386,7 +389,7 @@ CONTAINS
     IF ( .NOT. Found ) HcoState%Options%NegFlag = 0
 
     ! Get PBL_DRYDEP flag from configuration file. If not found, set to default
-    ! value of 0. 
+    ! value of false. 
     CALL GetExtOpt ( CoreNr, 'PBL dry deposition', &
                      OptValBool=HcoState%Options%PBL_DRYDEP, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -401,17 +404,36 @@ CONTAINS
 
     ! Get binary mask flag from configuration file. If not found, set to default
     ! value of TRUE. 
-    CALL GetExtOpt ( CoreNr, 'Binary mask', &
-                     OptValBool=HcoState%Options%MaskIsBinary, Found=Found, RC=RC )
+    CALL GetExtOpt ( CoreNr, 'Use mask fractions', &
+                     OptValBool=HcoState%Options%MaskFractions, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( .NOT. Found ) HcoState%Options%MaskIsBinary = .TRUE. 
+    IF ( .NOT. Found ) HcoState%Options%MaskFractions = .FALSE.
 
-    ! Make sure ESMF pointers are not dangling around
+    ! Make sure ESMF pointers are not dangling 
 #if defined(ESMF_)
     HcoState%GridComp => NULL()
     HcoState%IMPORT   => NULL()
     HcoState%EXPORT   => NULL()
 #endif
+
+    ! Read unit tolerance
+    UnitTolerance = HCO_UnitTolerance()
+
+    ! Verbose mode 
+    IF ( HCO_IsVerb(1) ) THEN
+       WRITE(MSG,'(A68)') 'Initialized HEMCO state. Will use the following settings:'
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,'(A33,I2)') 'Unit tolerance                 : ', UnitTolerance 
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,'(A33,I2)') 'Negative values                : ', HcoState%Options%NegFlag 
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,'(A33,L2)') 'Use mask fractions             : ', HcoState%Options%MaskFractions
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,'(A33,L2)') 'Do drydep over entire PBL      : ', HcoState%Options%PBL_DRYDEP
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,'(A33,F6.2)') 'Upper limit for deposition x ts: ', HcoState%Options%MaxDepExp
+       CALL HCO_MSG(MSG,SEP2='-')
+    ENDIF
 
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
