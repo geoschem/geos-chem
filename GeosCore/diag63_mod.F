@@ -280,7 +280,7 @@
          DiagnCnt => NULL()
          CALL Diagn_Get( am_I_Root, .FALSE., DiagnCnt,
      &                   FLAG,  RC, cName=TRIM(DiagnName),
-     &                   AutoFill=AF, InclManual=.TRUE. )
+     &                   AutoFill=AF, COL=HcoDiagnIDManual )
          IF ( RC /= HCO_SUCCESS ) THEN
             MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
             CALL ERROR_STOP ( MSG, LOC )

@@ -741,9 +741,9 @@ CONTAINS
                         HcoID      = IDTSALA,               &
                         SpaceDim   = 2,                     &
                         OutUnit    = 'number_dens',         &
-                        WriteFreq  = 'Manual',              &
                         AutoFill   = 0,                     &
                         Trgt2D     = NDENS_SALA,            &
+                        COL        = HcoDiagnIDManual,      &
                         RC         = RC                      )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -756,9 +756,9 @@ CONTAINS
                         HcoID      = IDTSALC,               &
                         SpaceDim   = 2,                     &
                         OutUnit    = 'number_dens',         &
-                        WriteFreq  = 'Manual',              &
                         AutoFill   = 0,                     &
                         Trgt2D     = NDENS_SALC,            &
+                        COL        = HcoDiagnIDManual,      &
                         RC         = RC                      )
     IF ( RC /= HCO_SUCCESS ) RETURN
 

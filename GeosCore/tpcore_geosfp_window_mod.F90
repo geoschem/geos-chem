@@ -802,12 +802,23 @@ CONTAINS
        MASSFLNS(:,:,K,IQ) = MFLNS
     ENDIF
 
-    !do j=jfirst,jlast
-    do j=max(jfirst,jord+1),min(jlast,jm-jord+1)   ! Lin_20140518
-       do i=1,im
-          q(i,j,k,iq) = q2(i,j)
-       enddo
-    enddo
+!------------------------------------------------------------------------------
+! Prior to 4/1/15:
+! Preserve original code here.  Lin Zhang submitted the fix below.
+!    !do j=jfirst,jlast
+!    do j=max(jfirst,jord+1),min(jlast,jm-jord+1)   ! Lin_20140518
+!       do i=1,im
+!          q(i,j,k,iq) = q2(i,j)
+!       enddo
+!    enddo
+!------------------------------------------------------------------------------
+    ! NOTE: This fix was submitted by Lin Zhang.  Not sure if it supersedes 
+    ! the previous code but we'll put it here for now. (bmy, 4/1/15)
+    do j=jfirst+2,jlast-2             ! (lzh, 05/10/2014)
+       do i=3,im-2
+           q(i,j,k,iq) = q2(i,j)
+        enddo
+     enddo
 
 ! enddo Vertical_OMP
 ! enddo Multi_Tracer
@@ -1294,15 +1305,24 @@ CONTAINS
              iord, jord, ng, mg, fx, fy, ffsl(jfirst-ng),          &
              xfx, yfx, 1, jfirst, jlast)
 
-   do j=js2g0,jn2g0
-      do i=1,im-1
-         h(i,j) = h(i,j)*dp(i,j) + fx(i,j)-fx(i+1,j)+(fy(i,j)-fy(i,j+1))*rgw(j)
-      enddo
-   enddo
-
-   do j=js2g0,jn2g0
-      h(im,j) = h(im,j)*dp(im,j) + fx(im,j)-fx(1,j)+(fy(im,j)-fy(im,j+1))*rgw(j)
-   enddo
+!------------------------------------------------------------------------------
+! Prior to 4/1/15:
+! Don't treat edges (Lin Zhang, 4/1/15)
+!   do j=js2g0,jn2g0
+!     do i=1,im-1
+!         h(i,j) = h(i,j)*dp(i,j) + fx(i,j)-fx(i+1,j)+(fy(i,j)-fy(i,j+1))*rgw(j)
+!      enddo
+!   enddo
+!
+!   do j=js2g0,jn2g0
+!      h(im,j) = h(im,j)*dp(im,j) + fx(im,j)-fx(1,j)+(fy(im,j)-fy(im,j+1))*rgw(j)
+!   enddo
+!------------------------------------------------------------------------------
+    do j=js2g0,jn2g0
+      do i=2,im-1
+          h(i,j) = h(i,j)*dp(i,j) + fx(i,j)-fx(i+1,j)+(fy(i,j)-fy(i,j+1))*rgw(j)
+       enddo
+    enddo
 
 ! Poles
    if ( jfirst == 1 ) then

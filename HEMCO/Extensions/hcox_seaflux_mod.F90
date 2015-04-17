@@ -236,9 +236,15 @@ CONTAINS
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => SOURCE 
-          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                             Cat=-1, Hier=-1, HcoID=HcoID,     &
-                             AutoFill=1, Array2D=Arr2D, RC=RC   )
+          CALL Diagn_Update( am_I_Root,          &
+                             ExtNr      = ExtNr, &
+                             Cat        = -1,    &
+                             Hier       = -1,    &
+                             HcoID      = HcoID, &
+                             AutoFill   = 1,     &
+                             Array2D    = Arr2D, &
+                             COL        = -1,    &
+                             RC         = RC      )
           IF ( RC /= HCO_SUCCESS ) RETURN 
           Arr2D => NULL() 
        ENDIF

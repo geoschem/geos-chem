@@ -1879,8 +1879,10 @@ c----note that NQRD is not used any more, a read until 'endofJ' is performed
       read (NUN,101) NQRD,NWWW
          NW1 = 1
          NW2 = NWWW
-      write(6,'(1x,a)') TITLE0
-      write(6,'(i8)') NWWW
+      IF ( am_I_Root ) THEN
+         write(6,'(1x,a)') TITLE0
+         write(6,'(i8)') NWWW
+      ENDIF
 C----J-values:  1=O2, 2=O3P,3=O3D 4=readin Xsects
       read (NUN,102) (WL(IW),IW=1,NWWW)
       read (NUN,102) (FL(IW),IW=1,NWWW)
@@ -2220,15 +2222,17 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !  31 Mar 2013 - S. D. Eastham - Added to Fast-JX v7.0 implementation
 !  30 Mar 2015 - M. Sulprizio  - Removed NAMFIL argument. Now specify filenames
 !                                for aerosol LUT files in this routine.
+!  02 Apr 2015 - C. Keller     - Append '.rc' to species files in ESMF mode.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES
 !
-      INTEGER      :: I, J, K, N
-      INTEGER      :: IOS
-      CHARACTER*30 :: SPECFIL(8)
+      INTEGER           :: I, J, K, N
+      INTEGER           :: IOS
+      CHARACTER*30      :: SPECFIL(8)
+      CHARACTER(LEN=30) :: THISFILE
 
       CHARACTER*78 TITLE0
 
@@ -2248,13 +2252,19 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       !array of filenames
       DO k = 1, NSPAA
 
+       ! mirror file. Need to append '.rc' in ESMF environment. (ckeller, 4/1/15)
+       THISFILE = SPECFIL(k)
+#if defined( ESMF_ )
+       THISFILE = TRIM(THISFILE) // '.rc'
+#endif
+
        ! open file
-       OPEN( NJ1, FILE=TRIM( SPECFIL(k) ), STATUS='OLD', IOSTAT=IOS )
+       OPEN( NJ1, FILE=TRIM( THISFILE ), STATUS='OLD', IOSTAT=IOS )
 
        ! Error check
        IF ( IOS /= 0 ) THEN
          IF ( am_I_Root ) THEN
-          WRITE(6,100) trim(SPECFIL(k))
+          WRITE(6,100) trim(THISFILE)
  100      FORMAT('Error opening filename=', a )
           CALL FLUSH(6)
          ENDIF
@@ -2289,11 +2299,14 @@ c---TROP-QUICK  (must scale solar flux for W=5)
        ! Close file
        CLOSE( NJ1 )
       ENDDO
-      WRITE( 6, * ) 'Optics read for all wavelengths successfully'
+
+      IF ( am_I_Root ) THEN
+         WRITE( 6, * ) 'Optics read for all wavelengths successfully'
+      ENDIF
 
       !now calculate the required wavelengths in the LUT to calculate
       !the requested AOD
-      CALL CALC_AOD()
+      CALL CALC_AOD( am_I_Root )
 
       END SUBROUTINE RD_AOD
 !EOC
@@ -2313,7 +2326,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_AOD()
+      SUBROUTINE CALC_AOD( am_I_Root )
 !
 ! !USES:
 !
@@ -2327,6 +2340,10 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 #if defined( RRTMG ) 
       USE PARRRTM,     ONLY : NBNDLW
 #endif
+!
+! !INPUT PARAMETERS:
+!     
+      LOGICAL,          INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REMARKS:
 !  Now the user is able to select any 3 wavelengths for optics
@@ -2353,6 +2370,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! !REVISION HISTORY: 
 !  18 Jun 2013 - D. Ridley   - Initial version
 !  15 Dec 2014 - M. Sulprizio- Added ProTeX headers
+!  02 Apr 2015 - C. Keller   - Added am_I_Root argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2437,13 +2455,15 @@ c---TROP-QUICK  (must scale solar flux for W=5)
        CCOEF_WV(W) =(WVSELECT(W)-WVAA(IWVSELECT(1,W),1))/
      &              (WVAA(IWVSELECT(2,W),1)-WVAA(IWVSELECT(1,W),1))
       ENDIF
-      write(6,*) 'N WAVELENGTHS: ',NWVSELECT
-      write(6,*) 'WAVELENGTH REQUESTED:',WVSELECT(W)
-      write(6,*) 'WAVELENGTH REQUIRED:', NWVREQUIRED
-      !write(6,*) IWVSELECT(1,W),WVAA(IWVSELECT(1,W),1)
-      !write(6,*) IWVSELECT(2,W),WVAA(IWVSELECT(2,W),1)
-      !write(6,*) ACOEF_WV(W),BCOEF_WV(W),CCOEF_WV(W)
-      write(6,*) '*********************************'
+      IF ( am_I_Root ) THEN
+         write(6,*) 'N WAVELENGTHS: ',NWVSELECT
+         write(6,*) 'WAVELENGTH REQUESTED:',WVSELECT(W)
+         write(6,*) 'WAVELENGTH REQUIRED:', NWVREQUIRED
+         !write(6,*) IWVSELECT(1,W),WVAA(IWVSELECT(1,W),1)
+         !write(6,*) IWVSELECT(2,W),WVAA(IWVSELECT(2,W),1)
+         !write(6,*) ACOEF_WV(W),BCOEF_WV(W),CCOEF_WV(W)
+         write(6,*) '*********************************'
+      ENDIF
       ENDDO !NWVSELECT
 #if defined( RRTMG )
       !repeat for RRTMG wavelengths to get the closest wavelength
@@ -2523,6 +2543,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       !i.e. without the standard and LW wavelengths
       IRTWVSELECT(1,W) = IRTWVSELECT(1,W) - NWVAA0 - NBNDLW
       IRTWVSELECT(2,W) = IRTWVSELECT(2,W) - NWVAA0 - NBNDLW
+      IF ( am_I_Root ) THEN
       write(6,*) 'N RT WAVELENGTHS: ',NWVSELECT
       write(6,*) 'RT WAVELENGTH REQUESTED:',WVSELECT(W)
       write(6,*) 'RT WAVELENGTH REQUIRED:', NRTWVREQUIRED
@@ -2530,6 +2551,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       write(6,*) IRTWVSELECT(2,W),WVAA(IRTWVSELECT(2,W)+NWVAA0+NBNDLW,1)
       write(6,*) ACOEF_WV(W),BCOEF_WV(W),CCOEF_WV(W)
       write(6,*) '*********************************'
+      ENDIF
       ENDDO !NWVSELECT
 #endif
       END SUBROUTINE CALC_AOD
@@ -2635,7 +2657,9 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
        enddo
       enddo
 
-      write(6,'(a,i4,a)')' Photochemistry Scheme with',NRATJ,' J-values'
+      IF ( am_I_Root ) THEN
+       write(6,'(a,i4,a)')'Photochemistry Scheme with',NRATJ,' J-values'
+      ENDIF
       do K=1,NRATJ
          if (JMAP(K) .ne. '------' ) then
             J = JIND(K)

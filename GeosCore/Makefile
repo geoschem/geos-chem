@@ -237,7 +237,7 @@ lib:                                               # Build all G-C libraries
 	@$(MAKE) libkpp             		  
 	@$(MAKE) libutil 
 	@$(MAKE) libhemco
-	@$(MAKE) libiso 			  
+	@$(MAKE) libiso
 	@$(MAKE) librad
 	@$(MAKE) libcore			  
 
@@ -257,7 +257,7 @@ libiso:                                            # Build code in ISOROPIA/
 	@$(MAKE) -C $(ISO)			  
 
 librad:                                            # Build code in GeosRad/
-ifeq ($(RRTMG),yes)
+ifeq ($(RRTMG_NEEDED),1)
 	@$(MAKE) -C $(RAD)			  
 endif
 

@@ -66,6 +66,10 @@
 !  181           : PAR diffuse                              [hPa        ]
 !  182           : Daily LAI                                [hPa        ]
 !  183           : Temperature at 2m                        [K          ]
+!  184           : Accumulated precip.                      [mm/day     ]
+!
+! The following diagnostics are currently commented out since they are now
+! handled by HEMCO (mps, 4/15/15)
 !  184           : Isoprene emissions                       [atomC/cm2/s]
 !  185           : Total Monoterpene emissions              [atomC/cm2/s]
 !  186           : Methyl Butanol emissions                 [atomC/cm2/s]
@@ -77,7 +81,7 @@
 !  192           : 3-Carene emissions                       [atomC/cm2/s]
 !  193           : Ocimene emissions                        [atomC/cm2/s]
 !  194           : Farnesene emissions                      [atomC/cm2/s]
-!  195           : Accumulated precip.                      [mm/day     ]
+!  195 (now 184) : Accumulated precip.                      [mm/day     ]
 !  196           : Soil NOx                                 [molec/cm2/s]
 !  197           : Fertilizer NOx                           [molec/cm2/s]
 !  198           : Dry Period                               [hours      ]
@@ -266,6 +270,8 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod.
+!  15 Apr 2015 - M. Sulprizio- Comment out emission diagnostics for now. These
+!                              are now handled by the HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1343,264 +1349,271 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 184 ) THEN
-            
-            !--------------------------------------
-            ! ISOPRENE EMISSIONS (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'    
-            GMNL     = ND49_NL
-            GMTRC    = 1
+!------------------------------------------------------------------------------
+! Prior to 4/15/15:
+! The biogenic emission diagnostics are now archived in HEMCO. Comment out
+! temporarily until we can restore these. (mps, 4/15/15)
+!        ELSE IF ( N == 184 ) THEN
+!           
+!           !--------------------------------------
+!           ! ISOPRENE EMISSIONS (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'    
+!           GMNL     = ND49_NL
+!           GMTRC    = 1
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 1 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 185 ) THEN
+!           
+!           !--------------------------------------
+!           ! TOTAL MONTERPENE EMISSIONS (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'       
+!           GMNL     = ND49_NL
+!           GMTRC    = 4
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 2 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 186 ) THEN
+!           
+!           !--------------------------------------
+!           ! MBO EMISSIONS  (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 5
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 3 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 187 ) THEN
+!           
+!           !--------------------------------------
+!           ! Alpha-Pinene EMISSIONS  (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 7
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 4 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 188 ) THEN
+!           
+!           !--------------------------------------
+!           ! Beta-Pinene EMISSIONS  (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 8
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 5 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 189 ) THEN
+!           
+!           !--------------------------------------
+!           ! Limonene EMISSIONS  (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 9
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 6 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 190 ) THEN
+!           
+!           !--------------------------------------
+!           ! Sabinene EMISSIONS  (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 10
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 7 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 191 ) THEN
+!           
+!           !--------------------------------------
+!           ! Myrcene EMISSIONS  (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 11
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 8 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 192 ) THEN
+!           
+!           !--------------------------------------
+!           ! 3-Carene EMISSIONS  (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 12
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 9 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 193 ) THEN
+!           
+!           !--------------------------------------
+!           ! Ocimene EMISSIONS  (mpb,2008)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 13
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 10 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        ELSE IF ( N == 194 ) THEN ! SOAupdate
+!           
+!           !--------------------------------------
+!           ! Farnesene EMISSIONS  (hotp 3/5/10)
+!           ! [atom C/cm2/s]
+!           !--------------------------------------
+!           CATEGORY = 'BIOGSRCE'
+!           UNIT     = 'atomC/cm2/s'     
+!           GMNL     = ND49_NL
+!           GMTRC    = 14
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!           DO Y = 1, ND49_NJ
+!              J = JOFF + Y
+!           DO X = 1, ND49_NI
+!              I = GET_I( X )
+!              Q(X,Y,1) = EMISS_BVOC( I , J , 11 )
+!           ENDDO
+!           ENDDO
+!!$OMP END PARALLEL DO
+!
+!        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!        !% SOAupdate: Can add BCARYO, OSQT, OMTP if desired (hotp 7/25/10) %
+!        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
+!        ELSE IF ( N == 195 ) THEN
+!------------------------------------------------------------------------------
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 1 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 185 ) THEN
-            
-            !--------------------------------------
-            ! TOTAL MONTERPENE EMISSIONS (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'       
-            GMNL     = ND49_NL
-            GMTRC    = 4
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 2 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 186 ) THEN
-            
-            !--------------------------------------
-            ! MBO EMISSIONS  (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 5
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 3 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 187 ) THEN
-            
-            !--------------------------------------
-            ! Alpha-Pinene EMISSIONS  (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 7
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 4 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 188 ) THEN
-            
-            !--------------------------------------
-            ! Beta-Pinene EMISSIONS  (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 8
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 5 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 189 ) THEN
-            
-            !--------------------------------------
-            ! Limonene EMISSIONS  (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 9
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 6 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 190 ) THEN
-            
-            !--------------------------------------
-            ! Sabinene EMISSIONS  (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 10
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 7 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 191 ) THEN
-            
-            !--------------------------------------
-            ! Myrcene EMISSIONS  (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 11
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 8 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 192 ) THEN
-            
-            !--------------------------------------
-            ! 3-Carene EMISSIONS  (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 12
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 9 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 193 ) THEN
-            
-            !--------------------------------------
-            ! Ocimene EMISSIONS  (mpb,2008)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 13
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 10 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 194 ) THEN ! SOAupdate
-            
-            !--------------------------------------
-            ! Farnesene EMISSIONS  (hotp 3/5/10)
-            ! [atom C/cm2/s]
-            !--------------------------------------
-            CATEGORY = 'BIOGSRCE'
-            UNIT     = 'atomC/cm2/s'     
-            GMNL     = ND49_NL
-            GMTRC    = 14
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 11 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         !% SOAupdate: Can add BCARYO, OSQT, OMTP if desired (hotp 7/25/10) %
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-         ELSE IF ( N == 195 ) THEN
+        ELSE IF ( N == 184 ) THEN
 
             !--------------------------------------
             ! Accumulated Precip [mm/day]

@@ -83,9 +83,7 @@
       USE DIAG63_MOD            ! For ND63  (PARANOX timeseries  ) diag
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
-#if defined( DEVEL )
       USE DIAGNOSTICS_MOD       ! New diagnostics module (C. Keller)
-#endif
 
       !-----------------------------------------------------------------
       ! GEOS-Chem dynamics modules
@@ -277,6 +275,7 @@
 !  17 Feb 2015 - E. Lundgren - Remove STT and TCVV pointers.\
 !  25 Feb 2015 - E. Lundgren - Remove MAKE_RH call since now in AIRQNT.
 !  31 Mar 2015 - E. Lundgren - Move post-transport AIRQNT call to transport_mod 
+!  16 Apr 2015 - R. Yantosca - Remove call to INIT_DAO; it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -501,13 +500,6 @@
       ! Debug output
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
 
-      ! For offline simulations that use archived OH: initialize T_FULLGRID
-      ! and AIRDEN_FULLGRID arrays for regridding OH fields (bmy, 10/29/13)
-      IF ( ITS_A_SPECIALTY_SIM ) THEN
-         CALL INIT_DAO( am_I_Root, Input_Opt, RC )
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
-      ENDIF
-
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !
@@ -673,6 +665,9 @@
       ! non-emission data such as stratospheric Bry fields. If LEMIS
       ! is set to FALSE, the emissions driver routines will make sure
       ! that HEMCO does not calculate any emissions (ckeller, 1/12/15).
+      ! 
+      ! This call will also initialize the three built-in HEMCO 
+      ! diagnostics (default, manual, restart).
       CALL EMISSIONS_INIT( am_I_Root, Input_Opt,
      &                     State_Met, State_Chm, RC )
 
@@ -751,7 +746,8 @@
       !=================================================================      
 
 #if defined( DEVEL )
-      ! Initialize all diagnostics (ckeller, 1/13/15).
+      ! Initialize diagnostics other than the default HEMCO diagnostics
+      ! initialized above (ckeller, 1/13/15).
       CALL Diagnostics_Init( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
 #endif 
@@ -820,8 +816,27 @@
          ENDIf
 
          !==============================================================
+         !       ***** R U N   H E M C O   P H A S E   1 *****
+         ! 
+         !    Phase 1 updates the HEMCO clock and the content of the 
+         !    HEMCO data list. This should be done before writing the
+         !    diagnostics organized in the HEMCO diagnostics structure,
+         !    and before using any of the HEMCO data list fields.
+         !    (ckeller, 4/1/15)
+         !==============================================================
+         CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, 
+     &                       State_Chm, ITS_TIME_FOR_EMIS(), 1, RC )
+
+         !==============================================================
          !   ***** W R I T E   D I A G N O S T I C   F I L E S *****
          !==============================================================
+
+         ! Write HEMCO diagnostics as well as new GEOS-Chem diagnostics
+         ! (the latter is currently only defined in development mode)
+         ! (ckeller, 4/1/15). 
+         CALL Diagnostics_Write( am_I_Root, Input_Opt, .FALSE., RC)
+
+         ! Original diagnostics
          IF ( ITS_TIME_FOR_BPCH() ) THEN
             
             ! Set time at end of diagnostic timestep
@@ -861,6 +876,10 @@
                   CALL MAKE_CSPEC_FILE( am_I_Root, Input_Opt, NYMD, 
      &                                  NHMS,      State_Chm, RC    )
                ENDIF 
+
+               ! Force the output of a HEMCO restart file. 
+               ! (ckeller, 4/1/15)
+               CALL Diagnostics_Write( am_I_Root, Input_Opt, .TRUE., RC)
 
                !### Debug
                IF ( prtDebug ) THEN
@@ -1087,6 +1106,45 @@
          ! (ccc, 12/9/08)
          CALL DIAG_2PM( State_Met )
 
+         !----------------------------------------------------------
+         ! %%% GET SOME NON-EMISSIONS DATA FIELDS VIA HEMCO %%%
+         !
+         ! HEMCO can track non-emission data fields for chemistry
+         ! simulations.  Put these subroutine calls after the 
+         ! call to EMISSIONS_RUN, so that the HEMCO data structure
+         ! will be initialized. (bmy, 3/20/15)
+         !
+         ! HEMCO data list is now updated further above, so can
+         ! take these calls out of the emissions sequence.
+         ! (ckeller, 4/01/15) 
+         !----------------------------------------------------------
+         IF ( LCHEM .and. ITS_A_NEW_MONTH() ) THEN
+ 
+            ! The following only apply when photolysis is used,
+            ! that is for fullchem or aerosol simulations.
+            IF ( ITS_A_FULLCHEM_SIM  .or. ITS_AN_AEROSOL_SIM ) THEN
+
+               ! Copy UV Albedo data (for photolysis) into the
+               ! State_Met%UVALBEDO field. (bmy, 3/20/15)
+               CALL GET_UVALBEDO(am_I_Root, Input_Opt, State_Met, RC)
+
+               ! Get TOMS overhead O3 columns for photolysis from
+               ! the HEMCO data structure (bmy, 3/20/15)
+               CALL READ_TOMS( am_I_Root, Input_Opt, RC )
+
+            ENDIF
+
+            ! Read data required for Hg2 gas-particle partitioning 
+            ! (H Amos, 25 Oct 2011)
+            IF ( ITS_A_MERCURY_SIM ) THEN 
+               CALL READ_Hg2_PARTITIONING
+     &            ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
+               IF ( prtDebug ) THEN
+                 CALL DEBUG_MSG( '### MAIN: a READ_HG2_PARTITIONING')
+               ENDIF
+            ENDIF
+         ENDIF
+
          !==============================================================
          !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
          !==============================================================
@@ -1206,53 +1264,18 @@
             ! http://wiki-geos-chem.org/Distributing_emissions_in_the_PBL
             !===========================================================
 
-            ! Always call the HEMCO driver, even if emissions are turned
-            ! off in the input.geos file (i.e. LEMIS=F).  This is to make 
-            ! sure that HEMCO can still be used to read non-emission data 
-            ! such as stratospheric Bry fields. (ckeller, 1/12/15).
-            CALL EMISSIONS_RUN( am_I_Root, Input_Opt, 
-     &                          State_Met, State_Chm, RC )
+            ! EMISSIONS_RUN will call HEMCO run phase 2. HEMCO run phase
+            ! only calculates emissions. All data has been read to disk
+            ! in phase 1 at the beginning of the time step. 
+            ! (ckeller, 4/1/15)
+            CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, 
+     &                          State_Chm, ITS_TIME_FOR_EMIS(), 2, RC )
 
             ! Stop the run if the HEMCO run sequence dies w/ an error
             IF ( RC /= GIGC_SUCCESS ) THEN
                CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
             ENDIF
-
-            !----------------------------------------------------------
-            ! %%% GET SOME NON-EMISSIONS DATA FIELDS VIA HEMCO %%%
-            !
-            ! HEMCO can track non-emission data fields for chemistry
-            ! simulations.  Put these subroutine calls after the 
-            ! call to EMISSIONS_RUN, so that the HEMCO data structure
-            ! will be initialized. (bmy, 3/20/15)
-            !----------------------------------------------------------
-            IF ( LCHEM .and. ITS_A_NEW_MONTH() ) THEN
  
-               ! The following only apply when photolysis is used,
-               ! that is for fullchem or aerosol simulations.
-               IF ( ITS_A_FULLCHEM_SIM  .or. ITS_AN_AEROSOL_SIM ) THEN
-
-                  ! Copy UV Albedo data (for photolysis) into the
-                  ! State_Met%UVALBEDO field. (bmy, 3/20/15)
-                  CALL GET_UVALBEDO(am_I_Root, Input_Opt, State_Met, RC)
-
-                  ! Get TOMS overhead O3 columns for photolysis from
-                  ! the HEMCO data structure (bmy, 3/20/15)
-                  CALL READ_TOMS( am_I_Root, Input_Opt, RC )
-
-               ENDIF
-
-               ! Read data required for Hg2 gas-particle partitioning 
-               ! (H Amos, 25 Oct 2011)
-               IF ( ITS_A_MERCURY_SIM ) THEN 
-                  CALL READ_Hg2_PARTITIONING
-     &               ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
-                  IF ( prtDebug ) THEN
-                    CALL DEBUG_MSG( '### MAIN: a READ_HG2_PARTITIONING')
-                  ENDIF
-               ENDIF
-            ENDIF
-            
             ! Unit conversion
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRACERS, Input_Opt%TCVV, 
@@ -1560,13 +1583,12 @@
          !   IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a ND52' )
          !ENDIF
 
-#if defined( DEVEL )
-         ! Write diagnostic data to the GEOS-Chem diagnostics netCDF file.
-         ! Each diagnostic has a specified averaging period specified 
-         ! in Input_Opt. (ckeller, bmy, 1/15/15)
-         CALL Diagnostics_Write( am_I_Root, Input_Opt, .FALSE., RC )
-
-#endif
+!#if dfined( DEVEL )
+!         ! Write diagnostic data to the GEOS-Chem diagnostics netCDF file.
+!         ! Each diagnostic has a specified averaging period specified 
+!         ! in Input_Opt. (ckeller, bmy, 1/15/15)
+!         CALL Diagnostics_Write( am_I_Root, Input_Opt, .FALSE., RC )
+!#endif
 
          !### After diagnostics
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after TIMESERIES' )
@@ -1634,12 +1656,12 @@
       ! Print the mass-weighted mean OH concentration (if applicable)
       CALL PRINT_DIAG_OH( am_I_Root, Input_Opt, RC )
 
-#if defined( DEVEL )
-      ! Write diagnostic data to the GEOS-Chem restart netCDF file.
-      ! Each diagnostic has a specified averaging period specified 
-      ! in Input_Opt. (ckeller, bmy, 1/15/15)
-      CALL Diagnostics_Write( am_I_Root, Input_Opt, .TRUE., RC )
-#endif
+!#if defined( DEVEL )
+!      ! Write diagnostic data to the GEOS-Chem restart netCDF file.
+!      ! Each diagnostic has a specified averaging period specified 
+!      ! in Input_Opt. (ckeller, bmy, 1/15/15)
+!      CALL Diagnostics_Write( am_I_Root, Input_Opt, .TRUE., RC )
+!#endif
 
       ! For model benchmarking, save final masses of 
       ! Rn,Pb,Be or Ox to a binary punch file 
