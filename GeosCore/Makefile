@@ -665,7 +665,7 @@ input_mod.o                 : input_mod.F                                    \
                               diag_pl_mod.o           drydep_mod.o           \
                               dust_mod.o              pops_mod.o             \
                               future_emissions_mod.o  gamap_mod.o            \
-                              land_mercury_mod.o                             \
+                              land_mercury_mod.o      co2_mod.o              \
                               linoz_mod.o             vdiff_pre_mod.o        \
                               mercury_mod.o           modis_lai_mod.o        \
                               ocean_mercury_mod.o     planeflight_mod.o      \

@@ -8391,6 +8391,7 @@
 !
       USE Aerosol_Mod,        ONLY : Init_Aerosol
       USE Carbon_Mod,         ONLY : Init_Carbon
+      USE CO2_Mod,            ONLY : Init_CO2
       USE C2H6_Mod,           ONLY : Init_C2H6
       USE Chemgrid_Mod,       ONLY : Init_Chemgrid
       USE Drydep_Mod,         ONLY : Init_Drydep
@@ -8529,6 +8530,11 @@
       ! Hg modules are initialized in READ_MERCURY_MENU
       ! POPS modules are initialized in READ_POPS_MENU
       !-----------------------------------------------------------------
+
+      ! Initialize "co2_mod.F"
+      IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
+         CALL Init_CO2( am_I_Root, Input_Opt, RC )
+      ENDIF
 
       ! Initialize "c2h6_mod.F"
       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. 
