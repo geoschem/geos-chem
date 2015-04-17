@@ -1151,7 +1151,8 @@ CONTAINS
     ! 3D fields 
     ! ----------------------------------------------------------------
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%CNV_MFC, &
-          'CNV_MFC', HCRC,      FIRST,    State_Met%CMFMC  )
+          'CNV_MFC', HCRC,      FIRST,    State_Met%CMFMC,  &
+          OnLevEdge=.TRUE. )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SPHU, &

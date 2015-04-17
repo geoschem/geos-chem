@@ -973,7 +973,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
     INTEGER,          INTENT(INOUT)                   :: RC     
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
-    REAL(hp),         INTENT(INOUT), OPTIONAL, TARGET :: Trgt(HcoState%NX,HcoState%NY)
+    REAL(hp),         INTENT(INOUT), OPTIONAL, TARGET :: Trgt(:,:)
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
@@ -983,6 +983,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER            :: NX, NY
     REAL(sp), POINTER  :: Ptr2D(:,:) => NULL() 
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'ExtDat_Set_2R (hcox_state_mod.F90)'
@@ -1020,7 +1021,23 @@ CONTAINS
           ! If read from list
           IF ( FOUND ) THEN
              ExtDat%FromList = .TRUE.
-   
+  
+             ! Pointer dimensions 
+             NX = SIZE(Ptr2D,1)
+             NY = SIZE(Ptr2D,2)
+
+             ! Must cover the horizontal grid 
+             IF ( ( (NX /= 1) .AND. (NX /= HcoState%NX) ) .OR. &
+                  ( (NY /= 1) .AND. (NY /= HcoState%NY) )       ) THEN
+                WRITE(MSG,*) 'Horizontal dimensions of input data do not ', &
+                   'correspond to simulation grid (and is not 1, either): ', &
+                   'Expected dimensions: ', HcoState%NX, HcoState%NY, &
+                   '; encountered dimensions: ', NX, NY, '. Error occured ', &
+                   'for field ', TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+
              ! Make sure array is allocated
              CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1040,7 +1057,22 @@ CONTAINS
                 CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
-   
+  
+             ! Make sure dimensions agree
+             NX = SIZE(Trgt,1)
+             NY = SIZE(Trgt,2)
+ 
+             ! Must cover the horizontal grid 
+             IF ( (NX/=HcoState%NX) .OR. (NY/=HcoState%NY) ) THEN
+                WRITE(MSG,*) 'Horizontal dimensions of target data do not ', &
+                   'correspond to simulation grid: ', &
+                   'Expected dimensions: ', HcoState%NX, HcoState%NY, &
+                   '; encountered dimensions: ', NX, NY, '. Error occured ', &
+                   'for field ', TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+
              ! Link data to target
              ExtDat%Arr%Val => Trgt
    
@@ -1116,7 +1148,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
     INTEGER,          INTENT(INOUT)                   :: RC     
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
-    REAL(sp),         INTENT(INOUT), OPTIONAL, TARGET :: Trgt(HcoState%NX,HcoState%NY)
+    REAL(sp),         INTENT(INOUT), OPTIONAL, TARGET :: Trgt(:,:)
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
@@ -1126,6 +1158,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER            :: NX, NY
     REAL(sp), POINTER  :: Ptr2D(:,:) => NULL() 
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'ExtDat_Set_2S (hcox_state_mod.F90)'
@@ -1162,13 +1195,28 @@ CONTAINS
    
           ! If read from list
           IF ( FOUND ) THEN
-   
+ 
+             ! Pointer dimensions 
+             NX = SIZE(Ptr2D,1)
+             NY = SIZE(Ptr2D,2)
+     
+             ! Must cover the horizontal grid 
+             IF ( ( (NX /= 1) .AND. (NX /= HcoState%NX) ) .OR. &
+                  ( (NY /= 1) .AND. (NY /= HcoState%NY) )       ) THEN
+                WRITE(MSG,*) 'Horizontal dimensions of input data do not ', &
+                   'correspond to simulation grid (and is not 1, either): ', &
+                   'Expected dimensions: ', HcoState%NX, HcoState%NY, &
+                   '; encountered dimensions: ', NX, NY, '. Error occured ', &
+                   'for field ', TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+ 
              ! Check if input data is of same size. In this case, we can set
              ! a pointer
-             IF ( SIZE(Ptr2D,1) == HcoState%NX .AND. &
-                  SIZE(Ptr2D,2) == HcoState%NY        ) THEN
+             IF ( (NX == HcoState%NX) .AND. (NY == HcoState%NY) ) THEN
    
-                ExtDat%Arr%Val => Ptr2D
+                ExtDat%Arr%Val  => Ptr2D
                 ExtDat%FromList = .FALSE.
    
                 ! Verbose
@@ -1200,7 +1248,22 @@ CONTAINS
                 CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
-   
+  
+             ! Make sure dimensions agree
+             NX = SIZE(Trgt,1)
+             NY = SIZE(Trgt,2)
+ 
+             ! Must cover the horizontal grid 
+             IF ( (NX/=HcoState%NX) .OR. (NY/=HcoState%NY) ) THEN
+                WRITE(MSG,*) 'Horizontal dimensions of target data do not ', &
+                   'correspond to simulation grid: ', &
+                   'Expected dimensions: ', HcoState%NX, HcoState%NY, &
+                   '; encountered dimensions: ', NX, NY, '. Error occured ', &
+                   'for field ', TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+ 
              ! Link data to target
              ExtDat%Arr%Val => Trgt
    
@@ -1277,7 +1340,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
     INTEGER,          INTENT(INOUT)                   :: RC     
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
-    INTEGER,          INTENT(INOUT), OPTIONAL, TARGET :: Trgt(HcoState%NX,HcoState%NY)
+    INTEGER,          INTENT(INOUT), OPTIONAL, TARGET :: Trgt(:,:)
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
@@ -1287,6 +1350,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER            :: NX, NY
     REAL(sp), POINTER  :: Ptr2D(:,:) => NULL() 
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'ExtDat_Set_2I (hcox_state_mod.F90)'
@@ -1324,7 +1388,23 @@ CONTAINS
           ! If read from list
           IF ( FOUND ) THEN
              ExtDat%FromList = .TRUE.
-   
+  
+             ! Pointer dimensions 
+             NX = SIZE(Ptr2D,1)
+             NY = SIZE(Ptr2D,2)
+
+             ! Must cover the horizontal grid 
+             IF ( ( (NX /= 1) .AND. (NX /= HcoState%NX) ) .OR. &
+                  ( (NY /= 1) .AND. (NY /= HcoState%NY) )       ) THEN
+                WRITE(MSG,*) 'Horizontal dimensions of input data do not ', &
+                   'correspond to simulation grid (and is not 1, either): ', &
+                   'Expected dimensions: ', HcoState%NX, HcoState%NY, &
+                   '; encountered dimensions: ', NX, NY, '. Error occured ', &
+                   'for field ', TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+ 
              ! Make sure array is allocated
              CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1345,6 +1425,21 @@ CONTAINS
                 RETURN
              ENDIF
    
+             ! Make sure dimensions agree
+             NX = SIZE(Trgt,1)
+             NY = SIZE(Trgt,2)
+ 
+             ! Must cover the horizontal grid 
+             IF ( (NX /= HcoState%NX) .OR. (NY /= HcoState%NY) ) THEN
+                WRITE(MSG,*) 'Horizontal dimensions of target data do not ', &
+                   'correspond to simulation grid: ', &
+                   'Expected dimensions: ', HcoState%NX, HcoState%NY, &
+                   '; encountered dimensions: ', NX, NY, '. Error occured ', &
+                   'for field ', TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+ 
              ! Link data to target
              ExtDat%Arr%Val => Trgt
    
@@ -1404,8 +1499,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Set_3R ( am_I_Root, HcoState, ExtDat, &
-                             FldName,   RC,       First,  Trgt ) 
+  SUBROUTINE ExtDat_Set_3R ( am_I_Root, HcoState, ExtDat, FldName, & 
+                             RC,        First,    Trgt,   OnLevEdge ) 
 !
 ! !USES:
 !
@@ -1421,7 +1516,8 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
     INTEGER,          INTENT(INOUT)                   :: RC     
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
-    REAL(hp),         INTENT(INOUT), OPTIONAL, TARGET :: Trgt(HcoState%NX,HcoState%NY,HcoState%NZ)
+    REAL(hp),         INTENT(INOUT), OPTIONAL, TARGET :: Trgt(:,:,:)
+    LOGICAL,          INTENT(IN   ), OPTIONAL         :: OnLevEdge 
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
@@ -1431,6 +1527,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER            :: NX, NY, NZ, NZ_EXPECTED
     INTEGER            :: L
     LOGICAL            :: FRST
     LOGICAL            :: FOUND 
@@ -1456,6 +1553,14 @@ CONTAINS
        FRST = .FALSE.
     ENDIF
 
+    ! Expected number of vertical levels: NZ if not on edge, NZ+1 if on edge
+    NZ_EXPECTED = HcoState%NZ
+    IF ( PRESENT(OnLevEdge) ) THEN
+       IF ( OnLevEdge ) THEN
+          NZ_EXPECTED = HcoState%NZ + 1
+       ENDIF
+    ENDIF
+
     ! On first call or if data is flagged as being read from list, get data
     ! from emissions list 
     IF ( FRST .OR. ExtDat%FromList ) THEN
@@ -1476,9 +1581,48 @@ CONTAINS
           ! If read from list
           IF ( FOUND ) THEN
              ExtDat%FromList = .TRUE.
+
+             ! Dimensions of data pointer
+             IF ( ASSOCIATED(Ptr3D) ) THEN
+                NX = SIZE(Ptr3D,1)
+                NY = SIZE(Ptr3D,2)
+                NZ = SIZE(Ptr3D,3)
+             ELSEIF ( ASSOCIATED(Ptr2D) ) THEN 
+                NX = SIZE(Ptr2D,1)
+                NY = SIZE(Ptr2D,2)
+                NZ = 1
+             ! will cause error:
+             ELSE
+                NX = 0
+                NY = 0
+                NZ = 0
+             ENDIF
+
+             ! Must cover the horizontal grid 
+             IF ( ( (NX /= 1) .AND. (NX /= HcoState%NX) ) .OR. &
+                  ( (NY /= 1) .AND. (NY /= HcoState%NY) )       ) THEN
+                WRITE(MSG,*) 'Horizontal dimensions of input data do not ', &
+                   'correspond to simulation grid (and is not 1, either): ', &
+                   'Expected dimensions: ', HcoState%NX, HcoState%NY, &
+                   '; encountered dimensions: ', NX, NY, '. Error occured ', &
+                   'for field ', TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
    
+             ! Must also cover vertical extension
+             IF ( (NZ /= 1) .AND. (NZ /= NZ_EXPECTED) ) THEN
+                WRITE(MSG,*) 'Vertical dimension of input data does not ', &
+                   'correspond to simulation grid (and is not 1, either): ', &
+                   'Expected dimension: ', NZ_EXPECTED, &
+                   '; encountered dimensions: ', NZ, '. Error occured ', &
+                   'for field ', TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+ 
              ! Make sure array is allocated
-             CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, HcoState%NZ, RC )
+             CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, NZ_EXPECTED, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
    
              ! Verbose
@@ -1496,7 +1640,23 @@ CONTAINS
                 CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
-   
+  
+             ! Make sure dimensions agree
+             NX = SIZE(Trgt,1)
+             NY = SIZE(Trgt,2)
+             NZ = SIZE(Trgt,3)
+ 
+             ! Must cover the horizontal grid 
+             IF ( (NX/=HcoState%NX) .OR. (NY/=HcoState%NY) .OR. (NZ/=NZ_EXPECTED) ) THEN
+                WRITE(MSG,*) 'Dimensions of target data do not ', &
+                   'correspond to simulation grid: ', &
+                   'Expected dimensions: ', HcoState%NX, HcoState%NY, NZ_EXPECTED, &
+                   '; encountered dimensions: ', NX, NY, NZ, '. Error occured ', &
+                   'for field ', TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+ 
              ! Link data to target
              ExtDat%Arr%Val => Trgt
    
@@ -1532,7 +1692,7 @@ CONTAINS
              IF ( SIZE(Ptr2D,1) == 1 ) THEN
                 ExtDat%Arr%Val(:,:,:) = Ptr2D(1,1)
              ELSE
-                DO L = 1, HcoState%NZ
+                DO L = 1, NZ_EXPECTED 
                    ExtDat%Arr%Val(:,:,L) = Ptr2D(:,:)
                 ENDDO
              ENDIF
@@ -1564,8 +1724,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Set_3S ( am_I_Root, HcoState, ExtDat, &
-                             FldName,   RC,       First,  Trgt ) 
+  SUBROUTINE ExtDat_Set_3S ( am_I_Root, HcoState, ExtDat, FldName, &
+                             RC,        First,    Trgt,   OnLevEdge ) 
 !
 ! !USES:
 !
@@ -1581,7 +1741,8 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
     INTEGER,          INTENT(INOUT)                   :: RC     
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
-    REAL(sp),         INTENT(INOUT), OPTIONAL, TARGET :: Trgt(HcoState%NX,HcoState%NY,HcoState%NZ)
+    REAL(sp),         INTENT(INOUT), OPTIONAL, TARGET :: Trgt(:,:,:)
+    LOGICAL,          INTENT(IN   ), OPTIONAL         :: OnLevEdge 
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
@@ -1591,6 +1752,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER            :: NX, NY, NZ, NZ_EXPECTED
     INTEGER            :: L
     LOGICAL            :: FRST
     LOGICAL            :: FOUND 
@@ -1616,6 +1778,14 @@ CONTAINS
        FRST = .FALSE.
     ENDIF
 
+    ! Expected number of vertical levels: NZ if not on edge, NZ+1 if on edge
+    NZ_EXPECTED = HcoState%NZ
+    IF ( PRESENT(OnLevEdge) ) THEN
+       IF ( OnLevEdge ) THEN
+          NZ_EXPECTED = HcoState%NZ + 1
+       ENDIF
+    ENDIF
+
     ! On first call or if data is flagged as being read from list, get data
     ! from emissions list 
     IF ( FRST .OR. ExtDat%FromList ) THEN
@@ -1635,9 +1805,48 @@ CONTAINS
    
           ! If read from list
           IF ( FOUND ) THEN
-   
-             ! Set pointer to 3D field
+  
+             ! Dimensions of data pointer
              IF ( ASSOCIATED(Ptr3D) ) THEN
+                NX = SIZE(Ptr3D,1)
+                NY = SIZE(Ptr3D,2)
+                NZ = SIZE(Ptr3D,3)
+             ELSEIF ( ASSOCIATED(Ptr2D) ) THEN 
+                NX = SIZE(Ptr2D,1)
+                NY = SIZE(Ptr2D,2)
+                NZ = 1
+             ! will cause error:
+             ELSE
+                NX = 0
+                NY = 0
+                NZ = 0
+             ENDIF
+
+             ! Must cover the horizontal grid 
+             IF ( ( (NX /= 1) .AND. (NX /= HcoState%NX) ) .OR. &
+                  ( (NY /= 1) .AND. (NY /= HcoState%NY) )       ) THEN
+                WRITE(MSG,*) 'Horizontal dimensions of input data do not ', &
+                   'correspond to simulation grid (and is not 1, either): ', &
+                   'Expected dimensions: ', HcoState%NX, HcoState%NY, &
+                   '; encountered dimensions: ', NX, NY, '. Error occured ', &
+                   'for field ', TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+   
+             ! Must also cover vertical extension
+             IF ( (NZ /= 1) .AND. (NZ /= NZ_EXPECTED) ) THEN
+                WRITE(MSG,*) 'Vertical dimension of input data does not ', &
+                   'correspond to simulation grid (and is not 1, either): ', &
+                   'Expected dimension: ', NZ_EXPECTED, &
+                   '; encountered dimensions: ', NZ, '. Error occured ', &
+                   'for field ', TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+ 
+             ! Set pointer to 3D field
+             IF ( ASSOCIATED(Ptr3D) .AND. (NX==HcoState%NX) ) THEN
                 ExtDat%Arr%Val  => Ptr3D
                 ExtDat%FromList = .FALSE.
    
@@ -1651,7 +1860,7 @@ CONTAINS
                 ExtDat%FromList = .TRUE.
    
                 ! Make sure array is allocated
-                CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, HcoState%NZ, RC )
+                CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, NZ_EXPECTED, RC )
                 IF ( RC /= HCO_SUCCESS ) RETURN
    
                 ! Verbose
@@ -1670,7 +1879,23 @@ CONTAINS
                 CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
-   
+  
+             ! Make sure dimensions agree
+             NX = SIZE(Trgt,1)
+             NY = SIZE(Trgt,2)
+             NZ = SIZE(Trgt,3)
+ 
+             ! Must cover the horizontal grid 
+             IF ( (NX/=HcoState%NX) .OR. (NY/=HcoState%NY) .OR. (NZ/=NZ_EXPECTED) ) THEN
+                WRITE(MSG,*) 'Dimensions of target data do not ', &
+                   'correspond to simulation grid: ', &
+                   'Expected dimensions: ', HcoState%NX, HcoState%NY, NZ_EXPECTED, &
+                   '; encountered dimensions: ', NX, NY, NZ, '. Error occured ', &
+                   'for field ', TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+ 
              ! Link data to target
              ExtDat%Arr%Val => Trgt
    
@@ -1705,7 +1930,7 @@ CONTAINS
              IF ( SIZE(Ptr2D,1) == 1 ) THEN
                 ExtDat%Arr%Val(:,:,:) = Ptr2D(1,1)
              ELSE
-                DO L = 1, HcoState%NZ
+                DO L = 1, NZ_EXPECTED
                    ExtDat%Arr%Val(:,:,L) = Ptr2D(:,:)
                 ENDDO
              ENDIF
