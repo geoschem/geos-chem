@@ -404,7 +404,7 @@ CONTAINS
 
     ! Get binary mask flag from configuration file. If not found, set to default
     ! value of TRUE. 
-    CALL GetExtOpt ( CoreNr, 'Use mask fractions', &
+    CALL GetExtOpt ( CoreNr, 'Mask fractions', &
                      OptValBool=HcoState%Options%MaskFractions, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%MaskFractions = .FALSE.
@@ -427,7 +427,7 @@ CONTAINS
        CALL HCO_MSG(MSG)
        WRITE(MSG,'(A33,I2)') 'Negative values                : ', HcoState%Options%NegFlag 
        CALL HCO_MSG(MSG)
-       WRITE(MSG,'(A33,L2)') 'Use mask fractions             : ', HcoState%Options%MaskFractions
+       WRITE(MSG,'(A33,L2)') 'Mask fractions                 : ', HcoState%Options%MaskFractions
        CALL HCO_MSG(MSG)
        WRITE(MSG,'(A33,L2)') 'Do drydep over entire PBL      : ', HcoState%Options%PBL_DRYDEP
        CALL HCO_MSG(MSG)

@@ -2084,7 +2084,7 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN 
    
           ! %%%%%% Fertilizer NO %%%%%%
-          CALL GetExtOpt( ExtNr, 'Use fertilizer', OptValBool=YesOrNo, RC=RC )
+          CALL GetExtOpt( ExtNr, 'Use fertilizer NOx', OptValBool=YesOrNo, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
    
           IF ( YesOrNo == .FALSE. ) THEN

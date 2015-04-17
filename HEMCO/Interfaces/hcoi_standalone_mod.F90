@@ -1005,8 +1005,10 @@ CONTAINS
     HcoState%Grid%YSIN%Val       => YSIN   (:,:,1)
     HcoState%Grid%AREA_M2%Val    => AREA_M2(:,:,1)
 
-    ! The pressure edges are obtained from an external file in ExtState_SetFields
+    ! The pressure edges and grid box heights are obtained from 
+    ! an external file in ExtState_SetFields
     HcoState%Grid%PEDGE%Val      => NULL()
+    HcoState%Grid%BXHEIGHT_M%Val => NULL()
 
     ! Cleanup variables that are not needed by HEMCO.
     DEALLOCATE( YMID_R, YEDGE_R, YMID_R_W, YEDGE_R_W )
@@ -1434,10 +1436,12 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
+    INTEGER                       :: I,  J,  L 
     INTEGER                       :: NX, NY, NZ
     REAL(sp), POINTER             :: Ptr3D(:,:,:) => NULL()
+    REAL(hp)                      :: P1, P2
     CHARACTER(LEN=255)            :: MSG
-    LOGICAL                       :: FOUND
+    LOGICAL                       :: ERR, FOUND
     LOGICAL, SAVE                 :: FIRST = .TRUE.
     CHARACTER(LEN=255), PARAMETER :: LOC = 'ExtState_SetFields (hcoi_standalone_mod.F90)'
 
@@ -1469,9 +1473,9 @@ CONTAINS
           IF ( ( NX /=  HcoState%NX    ) .OR. &
                ( NY /=  HcoState%NY    ) .OR. &
                ( NZ /= (HcoState%NZ+1) )       ) THEN
-             WRITE(MSG,*) 'PEDGE field read from data does not correspond ', &
+             WRITE(MSG,*) 'Dimensions of field PEDGE do not correspond ', &
                           'to simulation grid: Expected dimensions: ',       &
-                          HcoState%NX, HcoState%NY, HcoState%NZ,             &
+                          HcoState%NX, HcoState%NY, HcoState%NZ+1,           &
                           '; dimensions of PEDGE: ', NX, NY, NZ
              CALL HCO_ERROR( MSG, RC )
              RETURN     
@@ -1623,6 +1627,100 @@ CONTAINS
     ! ==> DRYCOEFF will be read from the configuration file in module
     !     hcox_soilnox_mod.F90. 
     !-----------------------------------------------------------------
+
+    !-----------------------------------------------------------------
+    ! Grid box heights in meters. First try to get them from an 
+    ! external file. If not defined in there, try to calculate them
+    ! from grid box pressure edges and temperature via the hydrostatic
+    ! equation.
+    !-----------------------------------------------------------------
+    CALL HCO_GetPtr( am_I_Root, 'BXHEIGHT_M', Ptr3D, RC, FOUND=FOUND )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! If found, copy to pressure edge array
+    IF ( FOUND ) THEN
+
+       ! On first call, check array size dimensions. These are 
+       ! expected to correspond to the HEMCO grid (NX, NY, NZ).
+       IF ( FIRST ) THEN
+          NX = SIZE(Ptr3D,1)
+          NY = SIZE(Ptr3D,2)
+          NZ = SIZE(Ptr3D,3)
+
+          ! Make sure size dimensions are correct
+          IF ( ( NX /=  HcoState%NX  ) .OR. &
+               ( NY /=  HcoState%NY  ) .OR. &
+               ( NZ /= (HcoState%NZ) )       ) THEN
+             WRITE(MSG,*) 'Dimensions of field BXHEIGHT_M do not correspond ', &
+                          'to simulation grid: Expected dimensions: ',         &
+                          HcoState%NX, HcoState%NY, HcoState%NZ,               &
+                          '; dimensions of BXHEIGHT_M: ', NX, NY, NZ
+             CALL HCO_ERROR( MSG, RC )
+             RETURN     
+          ENDIF
+
+          CALL HCO_ArrAssert( HcoState%Grid%BXHEIGHT_M, NX, NY, NZ, RC ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF 
+       HcoState%Grid%BXHEIGHT_M%Val = Ptr3D
+       Ptr3D => NULL()
+
+    ! If not found, check if we can calculate it from pressure edges and temperature
+    ELSEIF ( ExtState%TK%DoUse .AND. ASSOCIATED(HcoState%Grid%PEDGE%Val) ) THEN
+
+       ! Make sure array is defined
+       CALL HCO_ArrAssert( HcoState%Grid%BXHEIGHT_M, HcoState%NX,   &
+                           HcoState%NY,              HcoState%NZ, RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Assume no error until otherwise
+       ERR = .FALSE.
+
+       ! Calculate box heights
+!$OMP PARALLEL DO                                                      &
+!$OMP DEFAULT( SHARED )                                                &
+!$OMP PRIVATE( I, J, L, P1, P2 )                                       & 
+!$OMP SCHEDULE( DYNAMIC )
+       DO L = 1, HcoState%NZ
+       DO J = 1, HcoState%NY
+       DO I = 1, HcoState%NX
+       
+          ! Pressure at bottom and top edge [hPa]
+          P1 = HcoState%Grid%PEDGE%Val(I,J,L)
+          P2 = HcoState%Grid%PEDGE%Val(I,J,L+1)
+
+          ! Box height
+          IF ( P2 == 0.0_hp ) THEN
+             ERR = .TRUE.
+          ELSE
+             HcoState%Grid%BXHEIGHT_M%Val(I,J,L) = HcoState%Phys%Rdg0 &
+                                                 * ExtState%TK%Arr%Val(I,J,L) &
+                                                 * LOG( P1 / P2 )
+          ENDIF
+       ENDDO !I
+       ENDDO !J
+       ENDDO !L
+!$OMP END PARALLEL DO
+
+       ! Error check
+       IF ( ERR ) THEN
+          MSG = 'Cannot calculate grid box heights - at least one pressure edge ' // &
+                'value is zero! You can either provide an updated pressure edge ' // &
+                'field (PEDGE) or add a field with the grid box heigths to your ' // &
+                'configuration file (BXHEIGHT_M)'
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+    ! Otherwise, prompt a warning on the first call 
+    ELSE
+       IF ( FIRST ) THEN
+          MSG = 'BXHEIGHT_M is not a field in HEMCO configuration file '   // &
+                '- cannot fill grid box heights. This may cause problems ' // &
+                'in some of the extensions!'
+          CALL HCO_WARNING ( MSG, RC, WarnLev=1 )
+       ENDIF
+    ENDIF
 
     ! Not first call any more
     FIRST = .FALSE.
