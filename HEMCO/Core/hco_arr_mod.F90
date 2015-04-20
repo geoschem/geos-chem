@@ -142,6 +142,7 @@ MODULE HCO_Arr_Mod
      MODULE PROCEDURE HCO_ArrAssert_3D_Hp
      MODULE PROCEDURE HCO_ArrAssert_2D_Sp
      MODULE PROCEDURE HCO_ArrAssert_3D_Sp
+     MODULE PROCEDURE HCO_ArrAssert_2D_I
   END INTERFACE HCO_ArrAssert
 
   INTERFACE HCO_ArrCleanup
@@ -1160,6 +1161,57 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_ArrAssert_2D_Sp
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_ArrAssert_2D_I
+!
+! !DESCRIPTION: Routine HCO\_ArrAssert\_2D\_I makes sure that the passed 
+! 2D array is allocated. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ArrAssert_2D_I( ThisArr2D, I, J, RC )
+!
+! !INPUT PARAMETERS:
+! 
+    TYPE(Arr2D_I),   POINTER         :: ThisArr2D ! 2D array
+    INTEGER,         INTENT(IN   )   :: I, J      ! Array dims 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(INOUT)   :: RC        ! Return code
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  01 May 2013 - C. Keller - Initial version
+!  01 Oct 2014 - C. Keller - Added Alloc flag
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !=====================================================================
+    ! HCO_ArrAssert_2D_I begins here!
+    !=====================================================================
+  
+    ! Check flux array
+    IF ( .NOT. ASSOCIATED ( ThisArr2D ) ) THEN
+       CALL HCO_ArrInit( ThisArr2D, I, J, RC )
+       IF ( RC/= HCO_SUCCESS ) RETURN
+    ELSEIF ( .NOT. ASSOCIATED ( ThisArr2D%Val ) ) THEN
+       CALL HCO_ValInit ( ThisArr2D%Val, I, J, ThisArr2D%Alloc, RC )
+       IF ( RC/= HCO_SUCCESS ) RETURN
+    ENDIF
+  
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_ArrAssert_2D_I
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

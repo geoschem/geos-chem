@@ -1763,7 +1763,7 @@
       USE TRACERID_MOD,       ONLY : IDTDST4, IDTSALA, IDTSALC
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal, GetHcoDiagn
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoDiagn
 !
 ! !INPUT PARAMETERS:
 !
@@ -1951,13 +1951,13 @@
 
          ! Sea salt density, fine mode
          CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_FINE', 
-     &                     FORCE=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
+     &          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
          IF ( RC /= HCO_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_FINE', LOC )
 
          ! Sea salt density, coarse mode 
          CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_COARSE', 
-     &                     FORCE=.FALSE., RC=RC, Ptr2D=NDENS_SALC )
+     &          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALC )
          IF ( RC /= HCO_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_COARSE', LOC )
          

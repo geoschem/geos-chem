@@ -44,7 +44,13 @@
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: GET_TAU0_6A
-
+!
+! !REMARKS:
+!  ###########################################################################
+!  ##### BINARY PUNCH INPUT IS BEING PHASED OUT.  MOST INPUT IS NOW READ #####
+!  ##### FROM COARDS-COMPLIANT netCDF FILES VIA HEMCO (bmy, 4/1/15)      #####
+!  ###########################################################################
+!
 ! !REVISION HISTORY:
 !  (1 ) Added routine GET_TAU0 (bmy, 7/20/00)
 !  (2 ) Added years 1985-2001 for routine GET_TAU0 (bmy, 8/1/00)
@@ -122,6 +128,12 @@
 ! !OUTPUT PARAMETERS:
 !
       CHARACTER(LEN=80), INTENT(OUT), OPTIONAL :: TITLE     ! File title string
+!
+! !REMARKS:
+!  ###########################################################################
+!  ##### BINARY PUNCH INPUT IS BEING PHASED OUT.  MOST INPUT IS NOW READ #####
+!  ##### FROM COARDS-COMPLIANT netCDF FILES VIA HEMCO (bmy, 4/1/15)      #####
+!  ###########################################################################
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now references ERROR_STOP from "error_mod.f" (bmy, 10/15/02)
@@ -219,6 +231,12 @@
 !
       CHARACTER(LEN=80), INTENT(OUT), OPTIONAL :: TITLE     ! File title string
 !
+! !REMARKS:
+!  ###########################################################################
+!  ##### BINARY PUNCH INPUT IS BEING PHASED OUT.  MOST INPUT IS NOW READ #####
+!  ##### FROM COARDS-COMPLIANT netCDF FILES VIA HEMCO (bmy, 4/1/15)      #####
+!  ###########################################################################
+!
 ! !REVISION HISTORY:
 !  30 Jul 2002 - R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
@@ -286,6 +304,12 @@
 !
       INTEGER,           INTENT(IN) :: IUNIT   ! LUN for file I/O
       CHARACTER(LEN=80), INTENT(IN) :: TITLE   ! Top-of-file title string
+!
+! !REMARKS:
+!  ###########################################################################
+!  ##### BINARY PUNCH INPUT IS BEING PHASED OUT.  MOST INPUT IS NOW READ #####
+!  ##### FROM COARDS-COMPLIANT netCDF FILES VIA HEMCO (bmy, 4/1/15)      #####
+!  ###########################################################################
 !
 ! !REVISION HISTORY:
 !  (1 ) Added this routine to "bpch_mod.f" (bmy, 6/28/00)
@@ -359,6 +383,12 @@
       INTEGER,           INTENT(IN) :: JFIRST           !  the first grid box
       INTEGER,           INTENT(IN) :: LFIRST           !  in Fortran notation
       REAL*4,            INTENT(IN) :: ARRAY(NI,NJ,NL)  ! Data array
+!
+! !REMARKS:
+!  ############################################################################
+!  ##### BINARY PUNCH OUTPUT IS BEING PHASED OUT.  IT WILL BE COMPLETELY  #####
+!  ##### REMOVED IN THE VERISON FOLLOWING GEOS-Chem v10-01. (bmy, 4/1/15) #####
+!  ############################################################################
 !
 ! !REVISION HISTORY:
 !  (1 ) Added indices to IOERROR calls (e.g. "bpch2:1", "bpch2:2", etc.) 
@@ -450,6 +480,12 @@
 !
       REAL*4,            INTENT(OUT) :: ARRAY(IX,JX,LX)  ! Data array from file
 !
+! !REMARKS:
+!  ###########################################################################
+!  ##### BINARY PUNCH INPUT IS BEING PHASED OUT.  MOST INPUT IS NOW READ #####
+!  ##### FROM COARDS-COMPLIANT netCDF FILES VIA HEMCO (bmy, 4/1/15)      #####
+!  ###########################################################################
+!
 ! !REVISION HISTORY:
 !  (1 ) Assumes that we are reading in a global-size data block.
 !  (2 ) Trap all I/O errors with subroutine IOERROR.F.
@@ -480,6 +516,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  01 Apr 2015 - R. Yantosca - Increase size of TEMPARRAY for nested-grid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -502,8 +539,19 @@
       ! Also use the same limits for GRID025x03125.  We do not need to set
       ! the global limits since we will never run the model at the full
       ! global resolution, due to memory restrictions. (bmy, 5/25/12)
-#if   defined( GRID05x0666 ) || defined( GRID025x03125 )
-      REAL*4             :: TEMPARRAY(540,361,73)   
+!------------------------------------------------------------------------------
+! Prior to 4/1/15:
+! Update for nested-grid (lzh, 4/1/15)
+!#if   defined( GRID05x0666 ) || defined( GRID025x03125 )
+!     REAL*4             :: TEMPARRAY(540,361,73)   
+!#else
+!      REAL*4             :: TEMPARRAY(360,181,73)   
+!#endif
+!------------------------------------------------------------------------------
+#if   defined( GRID05x0666 )
+      REAL*4             :: TEMPARRAY(540,361,73)  
+#elif defined( GRID025x03125 ) 
+      REAL*4             :: TEMPARRAY(1152,721,73)  
 #else
       REAL*4             :: TEMPARRAY(360,181,73)   
 #endif

@@ -1,4 +1,3 @@
-#if defined( DEVEL )
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -29,8 +28,11 @@ MODULE Diagnostics_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+  PUBLIC :: Diagnostics_Write
+
+  ! All of the following is currently only active in development mode:
+#if defined( DEVEL )
   PUBLIC  :: Diagnostics_Init
-  PUBLIC  :: Diagnostics_Write
   PUBLIC  :: Diagnostics_Final
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -53,10 +55,12 @@ MODULE Diagnostics_Mod
 !
 ! !REVISION HISTORY:
 !  09 Jan 2015 - C. Keller   - Initial version. 
+#endif
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
+#if defined( DEVEL )
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -102,8 +106,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER            :: CollectionID
     REAL(sp)           :: TS
     REAL(fp), POINTER  :: AM2(:,:) => NULL()
+    CHARACTER(LEN=15)  :: WriteFreq
     CHARACTER(LEN=255) :: LOC = 'Diagnostics_Init (diagnostics_mod.F90)'
 
     !=======================================================================
@@ -118,22 +124,35 @@ CONTAINS
     ! Create diagnostics collection for GEOS-Chem.  This will keep the
     ! GEOS-Chem diagostics separate from the HEMCO diagnostics.
     !-----------------------------------------------------------------------
-    CALL DiagnCollection_Create( am_I_Root,                             &
-                                 NX        = IIPAR,                     &
-                                 NY        = JJPAR,                     &
-                                 NZ        = LLPAR,                     &
-                                 TS        = TS,                        &
-                                 AM2       = AM2,                       &
-                                 PREFIX    = DGN,                       &
-                                 COL       = Input_Opt%DIAG_COLLECTION, &
-                                 OVERWRITE = .FALSE.,                   & 
+
+    ! Define output write frequency. In ESMF environment, make sure 
+    ! diagnostics is always passed to MAPL history!
+#if defined(ESMF_)
+    WriteFreq = 'Always' 
+#else
+    WriteFreq = 'Hourly' 
+#endif
+
+    CALL DiagnCollection_Create( am_I_Root,                   &
+                                 NX        = IIPAR,           &
+                                 NY        = JJPAR,           &
+                                 NZ        = LLPAR,           &
+                                 TS        = TS,              &
+                                 AM2       = AM2,             &
+                                 PREFIX    = DGN,             &
+                                 WriteFreq = TRIM(WriteFreq), &
+                                 COL       = CollectionID,    &
                                  RC        = RC         )
     IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'Cannot overwrite collection', LOC ) 
+       CALL ERROR_STOP( 'Error in creating diagnostics collection '//TRIM(DGN), LOC ) 
     ENDIF
 
     ! Cleanup
     AM2 => NULL()
+
+    ! Save collection ID in Input_Opt%DIAG_COLLECTION for easy future 
+    ! reference
+    Input_Opt%DIAG_COLLECTION = CollectionID
 
     !-----------------------------------------------------------------------
     ! Add diagnostics to collection 
@@ -201,118 +220,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Diagnostics_Write
-!
-! !DESCRIPTION: Subroutine Diagnostics\_Write writes the GEOS-Chem diagnostics
-! to disk. If the variable RESTART is set to true, all GEOS-Chem diagnostics
-! are passed to the restart file.
-!\\
-!\\
-! The Diagnostics\_Write routine is called from main.F, at the end of the time
-! loop and during cleanup (to write the restart file).
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Diagnostics_Write ( am_I_Root, Input_Opt, RESTART, RC ) 
-!
-! !USES:
-!
-    USE HCO_STATE_MOD,      ONLY : HCO_STATE
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState, SetHcoTime
-    USE HCOIO_Diagn_Mod,    ONLY : HCOIO_Diagn_WriteOut
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
-    LOGICAL,          INTENT(IN   )  :: RESTART    ! Write restart file? 
-    TYPE(OptInput),   INTENT(IN )    :: Input_Opt  ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT) :: RC         ! Failure or success
-!
-! !REVISION HISTORY: 
-!  09 Jan 2015 - C. Keller   - Initial version
-!  15 Jan 2015 - R. Yantosca - Now accept Input_Opt via the arg list
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    TYPE(HCO_STATE), POINTER :: HcoState => NULL()
-    CHARACTER(LEN=255)       :: LOC = 'Diagnostics_Write (diagnostics_mod.F90)'
-
-    !=======================================================================
-    ! Diagnostics_Write begins here 
-    !=======================================================================
-
-    ! Make sure HEMCO time is in sync
-    CALL SetHcoTime( am_I_Root, .FALSE., RC )
-    IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Cannot update HEMCO time', LOC ) 
-
-    ! Get pointer to HEMCO state object.
-    CALL GetHcoState( HcoState )
-    IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-       CALL ERROR_STOP( 'Cannot get HEMCO state object', LOC )
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Eventually write out emission totals to GEOS-Chem logfile
-    !-----------------------------------------------------------------------
-    CALL TotalsToLogfile( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN 
-       CALL ERROR_STOP ('Error in TotalsToLogfile', LOC ) 
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! RESTART: write out all diagnostics. Use current time stamp and save into
-    ! restart file.
-    !-----------------------------------------------------------------------
-    IF ( RESTART ) THEN
-       CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                &
-                                  HcoState,                                 &
-                                  WriteAll    = .TRUE.,                     &
-                                  UsePrevTime = .FALSE.,                    & 
-                                  PREFIX      = RST,                        &
-                                  COL         = Input_Opt%DIAG_COLLECTION,  &
-                                  OnlyIfFirst = .TRUE.,                     &
-                                  RC          = RC                         )
-   
-       IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'Diagnostics restart write error', LOC ) 
-       ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Not restart: write out regular diagnostics. Use current time stamp.
-    !-----------------------------------------------------------------------
-    ELSE
-       CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                & 
-                                  HcoState,                                 &
-                                  WriteAll    = .FALSE.,                    &
-                                  UsePrevTime = .FALSE.,                    &
-                                  COL         = Input_Opt%DIAG_COLLECTION,  &
-                                  RC          = RC                         )
-       IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'Diagnostics write error', LOC ) 
-       ENDIF
-
-    ENDIF
-
-    ! Free pointer
-    HcoState => NULL()
-
-    ! Leave w/ success
-    RC = GIGC_SUCCESS
-
-  END SUBROUTINE Diagnostics_Write
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Diagnostics_Final
 !
 ! !DESCRIPTION: Subroutine Diagnostics\_Final finalizes the GEOS-Chem 
@@ -342,8 +249,8 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    ! Finalize diagnostics
-    CALL DiagnCollection_Cleanup( COL = Input_Opt%DIAG_COLLECTION )
+!    ! Finalize diagnostics
+!    CALL DiagnCollection_Cleanup( COL = Input_Opt%DIAG_COLLECTION )
 
     ! Return with success
     RC = GIGC_SUCCESS
@@ -387,7 +294,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: cID,      Collection, D, N
-    CHARACTER(LEN=15)  :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)  :: OutOper
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGINIT_DRYDEP (diagnostics_mod.F)' 
@@ -405,7 +312,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND44_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND44_OUTPUT_FREQ
       
     ! Loop over # of depositing species
     DO D = 1, Input_Opt%NUMDEP
@@ -439,7 +345,6 @@ CONTAINS
                              LevIDx    = -1,                &
                              OutUnit   = 's-1',             &
                              OutOper   = TRIM( OutOper   ), &
-                             WriteFreq = TRIM( WriteFreq ), &
                              OkIfExist = .TRUE.,            &
                              RC        = RC )
 
@@ -470,7 +375,6 @@ CONTAINS
                              LevIDx    = -1,                &
                              OutUnit   = 'kg m-2 s-1',      &
                              OutOper   = TRIM( OutOper   ), &
-                             WriteFreq = TRIM( WriteFreq ), &
                              OkIfExist = .TRUE.,            &
                              RC        = RC )
 
@@ -519,7 +423,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: cId,      Collection, N
-    CHARACTER(LEN=15)  :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)  :: OutOper
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGINIT_TRACER_CONC (diagnostics_mod.F90)' 
@@ -537,7 +441,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND45_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND45_OUTPUT_FREQ
       
     ! Loop over # of depositing species
     DO N = 1, Input_Opt%N_TRACERS
@@ -566,7 +469,6 @@ CONTAINS
                              LevIDx    = -1,                &
                              OutUnit   = 'v/v',             &
                              OutOper   = TRIM( OutOper   ), &
-                             WriteFreq = TRIM( WriteFreq ), &
                              RC        = RC )
 
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -625,7 +527,7 @@ CONTAINS
 !
     INTEGER            :: cId, Collection, N
     REAL(hp)           :: ScaleFact
-    CHARACTER(LEN=31)  :: OutOper, OutUnit, WriteFreq
+    CHARACTER(LEN=31)  :: OutOper, OutUnit
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGINIT_GRIDBOX (diagnostics_mod.F90)' 
@@ -643,7 +545,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND68_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND68_OUTPUT_FREQ
       
     ! There are four diagnostics 
     DO N = 1, 4 
@@ -685,7 +586,6 @@ CONTAINS
                           LevIDx    = -1,                &
                           OutUnit   = TRIM( OutUnit   ), &
                           OutOper   = TRIM( OutOper   ), &
-                          WriteFreq = TRIM( WriteFreq ), &
                           ScaleFact = ScaleFact,         &
                           RC        = RC )
 
@@ -739,7 +639,7 @@ CONTAINS
 !
     INTEGER            :: ID
     INTEGER            :: cId,      Collection, N
-    CHARACTER(LEN=15)  :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)  :: OutOper
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGINIT_TRACER_EMIS (diagnostics_mod.F90)' 
@@ -755,7 +655,6 @@ CONTAINS
     ! Use same output frequency and operations as for tracer concentrations.
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND45_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND45_OUTPUT_FREQ
  
     ! Loop over # of species 
     DO N = 1, Input_Opt%N_TRACERS
@@ -778,7 +677,7 @@ CONTAINS
             N /= IDTDST4  .AND. N /= IDTSALA   .AND. &
             N /= IDTSALC  .AND. N /= IDTBr2    .AND. &
             N /= IDTBrO   .AND. N /= IDTCH2Br2 .AND. &
-            N /= IDTCH3Br                              ) THEN
+            N /= IDTCH3Br .AND. N /= IDTO3             ) THEN
           ID = -1
        ENDIF
  
@@ -809,7 +708,6 @@ CONTAINS
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/s',            &
                              OutOper   = TRIM( OutOper   ), &
-                             WriteFreq = TRIM( WriteFreq ), &
                              RC        = RC                  )
 
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -862,7 +760,7 @@ CONTAINS
 !
     INTEGER            :: N, NN, M
     INTEGER            :: cId, Collection
-    CHARACTER(LEN=15)  :: OutOper, OutUnit, WriteFreq
+    CHARACTER(LEN=15)  :: OutOper, OutUnit
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGINIT_CONV_LOSS (diagnostics_mod.F90)' 
@@ -881,7 +779,6 @@ CONTAINS
     ! Use same output frequency and operations as for tracer concentrations.
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND38_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND38_OUTPUT_FREQ
 
     ! Get number of soluble species
     M = GET_WETDEP_NSOL()
@@ -919,7 +816,6 @@ CONTAINS
                              LevIDx    = -1,                & ! sum over all vert. levels
                              OutUnit   = 'kg/m2/s',         &
                              OutOper   = TRIM( OutOper   ), &
-                             WriteFreq = TRIM( WriteFreq ), &
                              RC        = RC                  )
 
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -970,7 +866,7 @@ CONTAINS
 !
     INTEGER            :: N, NN, M
     INTEGER            :: cId, Collection
-    CHARACTER(LEN=15)  :: OutOper, OutUnit, WriteFreq
+    CHARACTER(LEN=15)  :: OutOper, OutUnit
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGINIT_WETDEP_LOSS (diagnostics_mod.F90)' 
@@ -989,7 +885,6 @@ CONTAINS
     ! Use same output frequency and operations as for tracer concentrations.
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND39_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND39_OUTPUT_FREQ
 
     ! Get number of soluble species
     M = GET_WETDEP_NSOL()
@@ -1027,7 +922,6 @@ CONTAINS
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
                              OutOper   = TRIM( OutOper   ), &
-                             WriteFreq = TRIM( WriteFreq ), &
                              RC        = RC                  )
 
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -1153,5 +1047,122 @@ CONTAINS
 
   END SUBROUTINE TotalsToLogfile 
 !EOC
-END MODULE Diagnostics_Mod
 #endif
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Diagnostics_Write
+!
+! !DESCRIPTION: Subroutine Diagnostics\_Write writes the GEOS-Chem diagnostics
+! to disk. If the variable RESTART is set to true, all GEOS-Chem diagnostics
+! are passed to the restart file.
+!\\
+!\\
+! The Diagnostics\_Write routine is called from main.F, at the end of the time
+! loop and during cleanup (to write the restart file).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diagnostics_Write ( am_I_Root, Input_Opt, RESTART, RC ) 
+!
+! !USES:
+!
+    USE HCO_STATE_MOD,      ONLY : HCO_STATE
+    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+    USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_WriteDiagn 
+    USE HCOIO_Diagn_Mod,    ONLY : HCOIO_Diagn_WriteOut
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
+    LOGICAL,          INTENT(IN   )  :: RESTART    ! Write restart file? 
+    TYPE(OptInput),   INTENT(IN )    :: Input_Opt  ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT) :: RC         ! Failure or success
+!
+! !REVISION HISTORY: 
+!  09 Jan 2015 - C. Keller   - Initial version
+!  15 Jan 2015 - R. Yantosca - Now accept Input_Opt via the arg list
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    TYPE(HCO_STATE), POINTER :: HcoState => NULL()
+    CHARACTER(LEN=255)       :: LOC = 'Diagnostics_Write (diagnostics_mod.F90)'
+
+    !=======================================================================
+    ! Diagnostics_Write begins here 
+    !=======================================================================
+
+    ! Write HEMCO diagnostics
+    CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, RESTART, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    ! Write new GEOS-Chem diagnostics
+#if defined( DEVEL )
+    ! Get pointer to HEMCO state object.
+    CALL GetHcoState( HcoState )
+    IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+       CALL ERROR_STOP( 'Cannot get HEMCO state object', LOC )
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Eventually write out emission totals to GEOS-Chem logfile
+    !-----------------------------------------------------------------------
+    CALL TotalsToLogfile( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN 
+       CALL ERROR_STOP ('Error in TotalsToLogfile', LOC ) 
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! RESTART: write out all diagnostics. Use current time stamp and save into
+    ! restart file.
+    ! GEOS-Chem restart file is currently not defined ...
+    !-----------------------------------------------------------------------
+    IF ( RESTART ) THEN
+!       CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                &
+!                                  HcoState,                                 &
+!                                  ForceWrite  = .TRUE.,                     &
+!                                  UsePrevTime = .FALSE.,                    & 
+!                                  PREFIX      = RST,                        &
+!                                  COL         = Input_Opt%DIAG_COLLECTION,  &
+!                                  OnlyIfFirst = .TRUE.,                     &
+!                                  RC          = RC                         )
+!   
+!       IF ( RC /= HCO_SUCCESS ) THEN
+!          CALL ERROR_STOP( 'Diagnostics restart write error', LOC ) 
+!       ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Not restart: write out regular diagnostics. Use current time stamp.
+    !-----------------------------------------------------------------------
+    ELSE
+       CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                & 
+                                  HcoState,                                 &
+                                  ForceWrite  = .FALSE.,                    &
+                                  UsePrevTime = .FALSE.,                    &
+                                  COL         = Input_Opt%DIAG_COLLECTION,  &
+                                  RC          = RC                         )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Diagnostics write error', LOC ) 
+       ENDIF
+
+    ENDIF
+
+    ! Free pointer
+    HcoState => NULL()
+#endif
+
+    ! Leave w/ success
+    RC = GIGC_SUCCESS
+
+  END SUBROUTINE Diagnostics_Write
+!EOC
+END MODULE Diagnostics_Mod

@@ -156,7 +156,8 @@
 #  09 Jan 2015 - M. Sulprizio- Now properly link to the RRTMG directory
 #  13 Jan 2015 - R. Yantosca - Add fix for GEOS-Chem-Libraries library path
 #  08 Apr 2015 - R. Yantosca - Bug fix: set RRTMG=yes if it passes the regexp
-#  09 Apr 2015 - R. Yantosca - Export RRTMG variable to be used elsewhere
+#  10 Apr 2015 - R. Yantosca - Export RRTMG_NEEDED var to be used elsewhere
+#  10 Apr 2015 - R. Yantosca - Bug fix: -l rad should be -lrad in link var
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -319,7 +320,6 @@ RRTMG_NEEDED         :=0
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(RRTMG)" =~ $(REGEXP) ]] && echo true),true)
   RRTMG_NEEDED       :=1
-  RRTMG              :=yes
   USER_DEFS          += -DRRTMG
 endif
 
@@ -993,7 +993,7 @@ export NCL
 export NC_LINK_CMD
 export HPC
 export PRECISION
-export RRTMG
+export RRTMG_NEEDED
 
 #EOC
 
@@ -1014,3 +1014,4 @@ export RRTMG
 #	@@echo "include : $(INCLUDE)"
 #	@@echo "link    : $(LINK)"
 #	@@echo "userdefs: $(USER_DEFS)"
+

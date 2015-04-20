@@ -175,6 +175,8 @@
 !                              in the same manner that we do in fast_jx_mod.F.
 !                              Also moved and fixed calculation of O3_CTM.
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
+!  13 Apr 2015 - R. Yantosca - Fixed inefficient loop ordering (should be J,I)
+!  13 Apr 2015 - R. Yantosca - Add error check for JLOOP > 0 in a few places
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -533,8 +535,15 @@
 !OMP+PRIVATE( I, J, L, IJLOOP, JLOOP, AIR_TMP )
 !OMP+PRIVATE( YLAT, O3COL, O3_CTM, T_CTM, P_CTM )
 !OMP+SCHEDULE( DYNAMIC )
-      DO I = 1, IIPAR
+!-----------------------------------------------------------------------------
+! Prior to 4/13/15:
+! Optimal loop ordering should be J,I , not I,J. (bmy, 4/13/15)
+!      DO I = 1, IIPAR
+!      DO J = 1, JJPAR
+!-----------------------------------------------------------------------------
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
        ! 1-D INDEX
        IJLOOP         = (J-1)*IIPAR+I
        ALBVIS(IJLOOP)   = State_Met%ALBD(I,J)
@@ -568,7 +577,11 @@
        LCHEM           = GET_CHEMGRID_LEVEL(I,J,State_Met)
        DO L = 1, LCHEM
           JLOOP        = JLOP(I,J,L)
-          O3_CTM(L)    = CSPEC(JLOOP,IDO3)
+
+          ! Make sure JLOOP > 0 to avoid out-of-bounds errors  (bmy, 4/13/15)
+          IF ( JLOOP > 0 ) THEN
+             O3_CTM(L) = CSPEC(JLOOP,IDO3)
+          ENDIF
        ENDDO
        
       DO L = 1, LLPAR
@@ -1376,9 +1389,17 @@
       TYPE(OptInput), INTENT(IN)           :: Input_Opt ! Input options
       LOGICAL,        INTENT(IN), OPTIONAL :: FORCEREAD ! Reset first-time flag?
 ! 
+! !REMARKS:
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+!
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
+!  10 Apr 2015 - R. Yantosca - Read from ExtData/CHEM_INPUTS/modis_surf_201210
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1445,13 +1466,18 @@
 
 
       ! FILENAME AND TIME
-      FILENAME  = TRIM( Input_Opt%DATA_DIR ) //
-     &            'modis_surf_201210/'       //
+!-----------------------------------------------------------------------------
+!      FILENAME  = TRIM( Input_Opt%DATA_DIR ) //
+!     &            'modis_surf_201210/'       //
+!-----------------------------------------------------------------------------
+      FILENAME  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) //
+     &            'modis_surf_201210/'              //
+     &            GET_RES_EXT()                     //
 ! the 02-07 file contains our regridded and filled emissivity
 ! and albedo climatology for 2002-2007 direct from MODIS products
 ! N.B. this is raw MODIS data so contains snow cover but may have more
 ! filled missing value data.
-     &            'modis_surf_02-07_'       //
+     &            '/modis_surf_02-07_'       //
 
 ! the 01-04 file contains our regridded and filled emissivity
 ! for 2002-2007 and eco-type filled albedo produced by MODIS averaged over
@@ -1459,7 +1485,7 @@
 ! N.B. this does NOT contain snow cover so gives flux in absence of snow
 ! Needs combining with the FRSNO met field! (DAR 03/2014)
 
-!     &            'modis_surf_01-04_' //
+!     &            '/modis_surf_01-04_' //
 
      &            STHISDOFY//'.'// GET_RES_EXT()
 
@@ -1571,11 +1597,18 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
-
 ! 
+! !REMARKS:
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (10 Apr 2015)                            #####
+!  ##########################################################################
+!
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
+!  10 Apr 2015 - R. Yantosca - Now read from ExtData/CHEM_INPUTS/RRTMG_201104/
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1591,18 +1624,19 @@
       ! READ_STRAT_CHEM begins here!
       !=================================================================
 
-      ! FILENAME AND TIME
-      FILENAME  = TRIM( Input_Opt%DATA_DIR ) //
-     &            'RRTMG_201411/'            //
-     &            'species_clim_profiles'    //
-     &            '.'// GET_RES_EXT()
+      ! Filename
+      FILENAME = TRIM( Input_Opt%CHEM_INPUTS_DIR ) //
+     &            'RRTMG_201411/'                  //
+     &            'species_clim_profiles.'         //
+     &            GET_RES_EXT()
 
       ! ECHO INFO
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - GET_TES_STRAT_CLIM: READING ', A )
 
+      ! TAU value corresponding to 2000/01/01
       XTAU      = GET_TAU0( 1, 1, 2000 )
-      !WRITE(6,*) XTAU,LLPAR
+
       !-----------------------
       ! N2O
       !-----------------------

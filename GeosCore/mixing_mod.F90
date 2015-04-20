@@ -231,11 +231,11 @@ CONTAINS
     USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR,   LLPAR
     USE TRACERID_MOD,       ONLY : IDTMACR, IDTRCHO, IDTACET, IDTALD2
     USE TRACERID_MOD,       ONLY : IDTALK4, IDTC2H6, IDTC3H8, IDTCH2O
-    USE TRACERID_MOD,       ONLY : IDTPRPE
+    USE TRACERID_MOD,       ONLY : IDTPRPE, IDTO3,   IDTHNO3
     USE TRACERID_MOD,       ONLY : IDTBrO,  IDTBr2,  IDTBr,   IDTHOBr
     USE TRACERID_MOD,       ONLY : IDTHBr,  IDTBrNO3 
     USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
+    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal, GetHcoDiagn
     USE TIME_MOD,           ONLY : GET_TS_DYN
     USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
     USE DRYDEP_MOD,         ONLY : NTRAIND, DEPSAV
@@ -270,6 +270,8 @@ CONTAINS
 !                              tracer number to index the AD44 drydep array
 !  09 Mar 2015 - R. Yantosca - Bug fix: Remove an IF ( L1 == 1 ) block where
 !                              we define DRYDEPID.  This isn't needed here.
+!  10 Apr 2015 - C. Keller   - Now exchange PARANOX loss fluxes via HEMCO 
+!                              diagnostics.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -278,6 +280,7 @@ CONTAINS
 !
     INTEGER            :: I, J, L, L1, L2, N, NN
     INTEGER            :: DRYDEPID
+    INTEGER            :: HCRC
     INTEGER            :: PBL_TOP, DRYD_TOP, EMIS_TOP
     REAL(fp)           :: TS, TMP, FRQ, RKT, FRAC, FLUX, AREA_M2
     REAL(fp)           :: MWkg 
@@ -288,13 +291,23 @@ CONTAINS
 
     ! For diagnostics
 #if defined( DEVEL )
-    INTEGER            :: cID, HCRC
+    INTEGER            :: cID
     REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
     REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
     REAL(fp), TARGET   :: EMIS(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) 
     REAL(fp), TARGET   :: DEP (IIPAR,JJPAR,      Input_Opt%N_TRACERS) 
     REAL(fp)           :: TOTFLUX(Input_Opt%N_TRACERS)
+    REAL(fp)           :: TOTDEP (Input_Opt%N_TRACERS)
 #endif
+
+    ! PARANOX loss fluxes (kg/m2/s). These are obtained from the 
+    ! HEMCO PARANOX extension via the diagnostics module.
+    REAL(fp)                :: PNOXLOSS
+    REAL(f4), POINTER, SAVE :: PNOXLOSS_O3  (:,:) => NULL()
+    REAL(f4), POINTER, SAVE :: PNOXLOSS_HNO3(:,:) => NULL()
+
+    ! First call?
+    LOGICAL,           SAVE :: FIRST = .TRUE.
 
     !=================================================================
     ! DO_TEND begins here!
@@ -319,11 +332,31 @@ CONTAINS
        TS = GET_TS_DYN() * 60.0_fp
     ENDIF
 
+    ! On first call, get pointers to the PARANOX loss fluxes. These are
+    ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and 
+    ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers 
+    ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
+    ! respective diagnostics. The pointers will remain unassociated if
+    ! the diagnostics do not exist.
+    ! This is only needed if non-local PBL scheme is not being used. 
+    ! Otherwise, PARANOX fluxes are applied in vdiff_mod.F.
+    !  (ckeller, 4/10/2015) 
+    IF ( FIRST ) THEN
+       IF ( .NOT. Input_Opt%LNLPBL ) THEN
+          CALL GetHcoDiagn( am_I_Root, 'PARANOX_O3_DEPOSITION_FLUX'  , &
+                            .FALSE.,   HCRC, Ptr2D = PNOXLOSS_O3         ) 
+          CALL GetHcoDiagn( am_I_Root, 'PARANOX_HNO3_DEPOSITION_FLUX', &
+                            .FALSE.,   HCRC, Ptr2D = PNOXLOSS_HNO3       ) 
+       ENDIF
+       FIRST = .FALSE.
+    ENDIF
+
     ! Init diagnostics
 #if defined( DEVEL )
     DEP     = 0.0_fp
     EMIS    = 0.0_fp
     TOTFLUX = 0.0_fp
+    TOTDEP  = 0.0_fp
 #endif
 
     ! Do for every tracer and grid box
@@ -331,7 +364,7 @@ CONTAINS
 !$OMP DEFAULT ( SHARED )                                               &
 !$OMP PRIVATE( I, J, L, L1, L2, N, NN, PBL_TOP, FND, TMP, DRYDEPID   ) &
 !$OMP PRIVATE( FRQ, RKT, FRAC, FLUX, AREA_M2,   MWkg, ChemGridOnly   ) & 
-!$OMP PRIVATE( DryDepSpec, EmisSpec, DRYD_TOP,  EMIS_TOP             )
+!$OMP PRIVATE( DryDepSpec, EmisSpec, DRYD_TOP,  EMIS_TOP, PNOXLOSS   )
     DO N = 1, Input_Opt%N_TRACERS
 
        !----------------------------------------------------------------
@@ -360,10 +393,14 @@ CONTAINS
           IF ( .NOT. DryDepSpec ) THEN
              CALL GetHcoVal ( N, 1, 1, 1, DryDepSpec, dep = TMP )
           ENDIF
+
+          ! Special case for O3 or HNO3: include PARANOX loss
+          IF ( N == IDTO3   .AND. ASSOCIATED(PNOXLOSS_O3  ) ) DryDepSpec = .TRUE. 
+          IF ( N == IDTHNO3 .AND. ASSOCIATED(PNOXLOSS_HNO3) ) DryDepSpec = .TRUE. 
        ENDIF
 
        !----------------------------------------------------------------
-       ! Check if we need to do emisisons for this species 
+       ! Check if we need to do emissions for this species 
        !----------------------------------------------------------------
        IF ( LEMIS ) THEN
           CALL GetHcoVal ( N, 1, 1, 1, EmisSpec, emis = TMP )
@@ -479,8 +516,20 @@ CONTAINS
                 ! Add to dry dep frequency from drydep_mod.F
                 IF ( FND ) FRQ = FRQ + TMP
 
+                ! Get PARANOX deposition loss. Apply to surface level only.
+                ! PNOXLOSS is in kg/m2/s. (ckeller, 4/10/15)
+                PNOXLOSS = 0.0_fp
+                IF ( L == 1 ) THEN
+                   IF ( N == IDTO3 .AND. ASSOCIATED(PNOXLOSS_O3) ) THEN
+                      PNOXLOSS = PNOXLOSS_O3(I,J)
+                   ENDIF
+                   IF ( N == IDTHNO3 .AND. ASSOCIATED(PNOXLOSS_HNO3) ) THEN
+                      PNOXLOSS = PNOXLOSS_HNO3(I,J)
+                   ENDIF
+                ENDIF
+
                 ! Apply dry deposition
-                IF ( FRQ > 0.0_fp ) THEN
+                IF ( FRQ > 0.0_fp .OR. PNOXLOSS > 0.0_fp ) THEN
 
                    ! Compute exponential loss term
                    RKT  = FRQ * TS
@@ -492,9 +541,16 @@ CONTAINS
                    ! Loss in kg
                    FLUX = ( 1.0_fp - FRAC ) * State_Chm%Tracers(I,J,L,N) 
 
+                   ! Eventually add PARANOX loss. PNOXLOSS is in kg/m2/s. 
+                   ! Convert to kg.
+                   IF ( PNOXLOSS > 0 ) THEN
+                      FLUX = FLUX + ( PNOXLOSS * AREA_M2 * TS )
+                   ENDIF 
+
 #if defined( DEVEL )
                    ! Archive deposition flux in kg/m2/s
                    DEP(I,J,N) = DEP(I,J,N) + ( FLUX / AREA_M2 / TS )
+                   TOTDEP(N)  = TOTDEP(N) + FLUX
 #endif
 
                    ! Loss in [molec/cm2/s]
@@ -558,6 +614,9 @@ CONTAINS
     ! but in the future this will replace the bpch diagnostics!
     !-------------------------------------------------------------------
     DO N = 1, Input_Opt%N_TRACERS
+ 
+       ! Skip if there are no emissions
+       IF ( TOTFLUX(N) == 0.0_fp ) CYCLE
 
        ! Only if HEMCO tracer is defined
        cID = GetHcoID( TrcID=N )
@@ -589,7 +648,7 @@ CONTAINS
        ENDIF
 
        ! Drydep fluxes
-       IF ( ND44>0 ) THEN
+       IF ( Input_Opt%ND44 > 0 .AND. ( TOTDEP(N) > 0.0_fp ) ) THEN
           Ptr2D => DEP(:,:,N)
           cID = 44500 + N
           CALL Diagn_Update( am_I_Root,                           &

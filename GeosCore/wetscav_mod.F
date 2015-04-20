@@ -292,7 +292,8 @@
 #if   defined( DEVEL )
       INTEGER                :: N, cID, HCRC
       REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
-      REAL(fp), POINTER      :: TMP(:,:,:) => NULL()
+      REAL(fp), POINTER      :: TMP3D(:,:,:) => NULL()
+      REAL(fp), POINTER      :: TMP2D(:,:  ) => NULL()
       REAL(fp)               :: DT
 #endif
 
@@ -393,7 +394,7 @@
          DT = GET_TS_DYN() * 60e+0_fp
 
          ! Allocate temporary pointer
-         ALLOCATE(TMP(IIPAR,JJPAR,LLPAR))
+         ALLOCATE(TMP3D(IIPAR,JJPAR,LLPAR),TMP2D(IIPAR,JJPAR))
         
          ! Loop over all tracers
          DO N = 1, Input_Opt%N_TRACERS
@@ -401,16 +402,18 @@
             ! Is this a tracer selected for diagnostics?
             IF ( ANY( Input_Opt%TINDEX(39,:) == N ) ) THEN
 
-               ! Loss rate (kg/kg/s)
-               TMP = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N) ) 
+               ! Loss rate (kg/s)
+               TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N) ) 
      &             / DT 
+               TMP2D = SUM(TMP3D,DIM=3)
 
                ! Update diagnostics
                cID = 39000 + N
                CALL Diagn_Update ( am_I_Root,
      &                             cID     = cID,
-     &                             Array3D = TMP,
+     &                             Array2D = TMP2D,
      &                             COL     = Input_Opt%DIAG_COLLECTION,
+     &                             PosOnly = .TRUE., 
      &                             RC      = HCRC )
                IF ( HCRC /= HCO_SUCCESS ) THEN
                   CALL ERROR_STOP ( 'Error updating wetscav diagn ' // 
@@ -421,7 +424,7 @@
          ENDDO
 
          ! Cleanup
-         DEALLOCATE( BEFORE, TMP )
+         DEALLOCATE( BEFORE, TMP3D, TMP2D )
       ENDIF
 #endif
 
@@ -5609,30 +5612,30 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       LOGICAL, SAVE      :: FIRST = .TRUE.
       LOGICAL            :: IS_Hg
       LOGICAL            :: KIN
-                         
       INTEGER            :: I, IDX, J, L, N, NN
-                         
-      REAL(fp)             :: Q,     QDOWN,  DT,        DT_OVER_TAU
-      REAL(fp)             :: K,     K_MIN,  K_RAIN,    RAINFRAC
-      REAL(fp)             :: F,     FTOP,   F_PRIME,   WASHFRAC
-      REAL(fp)             :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
-      REAL(fp)             :: ALPHA, ALPHA2, WETLOSS,   TMP
-      REAL(fp)             :: F_RAINOUT,     F_WASHOUT
+      REAL(fp)           :: Q,     QDOWN,  DT,        DT_OVER_TAU
+      REAL(fp)           :: K,     K_MIN,  K_RAIN,    RAINFRAC
+      REAL(fp)           :: F,     FTOP,   F_PRIME,   WASHFRAC
+      REAL(fp)           :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
+      REAL(fp)           :: ALPHA, ALPHA2, WETLOSS,   TMP
+      REAL(fp)           :: F_RAINOUT,     F_WASHOUT
 
+      ! Arrays
       ! DSTT is the accumulator array of rained-out 
       ! soluble tracer for a given (I,J) column
-      REAL(fp)             :: DSTT(NSOL,LLPAR,IIPAR,JJPAR)
+      REAL(fp)           :: DSTT(NSOL,LLPAR,IIPAR,JJPAR)
 
- 
+      ! Strings
       CHARACTER(LEN=255) :: ERRMSG
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: STT(:,:,:,:)
 
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
@@ -6182,6 +6185,7 @@
 !  31-Dec-2010 - H. Amos     - Added comments
 !  27 May 2011 - R. Yantosca - Now pass F_RAINOUT to DO_WASHOUT_ONLY
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
+!  01 Apr 2015 - L. Zhang    - Don't do wetdep in nested-grid buffer zone
 !  02 Apr 2015 - E. Lundgren - Move tracer unit conversion from kg/kg to kg
 !                              to within this routine
 !EOP
@@ -6190,30 +6194,31 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       LOGICAL, SAVE      :: FIRST = .TRUE.
       LOGICAL            :: IS_Hg
       LOGICAL            :: KIN
       LOGICAL            :: IS_RAINOUT, IS_WASHOUT, IS_BOTH
-                         
       INTEGER            :: I, IDX, J, L, N, NN
-                         
-      REAL(fp)             :: Q,     QDOWN,  DT,        DT_OVER_TAU
-      REAL(fp)             :: K,     K_MIN,  K_RAIN,    RAINFRAC
-      REAL(fp)             :: F,     FTOP,   F_PRIME,   WASHFRAC
-      REAL(fp)             :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
-      REAL(fp)             :: ALPHA, ALPHA2, WETLOSS,   TMP
-      REAL(fp)             :: F_RAINOUT,     F_WASHOUT 
+      REAL(fp)           :: Q,     QDOWN,  DT,        DT_OVER_TAU
+      REAL(fp)           :: K,     K_MIN,  K_RAIN,    RAINFRAC
+      REAL(fp)           :: F,     FTOP,   F_PRIME,   WASHFRAC
+      REAL(fp)           :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
+      REAL(fp)           :: ALPHA, ALPHA2, WETLOSS,   TMP
+      REAL(fp)           :: F_RAINOUT,     F_WASHOUT 
 
+      ! Arrays
       ! DSTT is the accumulator array of rained-out 
       ! soluble tracer for a given (I,J) column
-      REAL(fp)             :: DSTT(NSOL,LLPAR,IIPAR,JJPAR)
+      REAL(fp)           :: DSTT(NSOL,LLPAR,IIPAR,JJPAR)
  
+      ! Strings
       CHARACTER(LEN=255) :: ERRMSG
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: STT(:,:,:,:)
 
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
@@ -6256,6 +6261,14 @@
 !$OMP+SCHEDULE( DYNAMIC )   
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+         ! Don't do wetdep in nested-grid buffer zone (lzh, 4/1/15)
+         IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
+           IF ( J <=          Input_Opt%NESTED_J0W ) CYCLE
+           IF ( J >   JJPAR - Input_Opt%NESTED_J0E ) CYCLE
+           IF ( I <=          Input_Opt%NESTED_I0W ) CYCLE
+           IF ( I >   IIPAR - Input_Opt%NESTED_I0E ) CYCLE
+        ENDIF
 
          ! Zero FTOP
          FTOP = 0e+0_fp

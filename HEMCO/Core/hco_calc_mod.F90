@@ -81,12 +81,17 @@ MODULE HCO_Calc_Mod
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: GET_CURRENT_EMISSIONS
+  PRIVATE :: GetMaskVal 
 !
 ! !PARAMETER
 !
   ! Mask threshold. All mask values below this value will be evaluated 
   ! as zero (= outside of mask), and all values including and above this 
-  ! value as inside the mask.
+  ! value as inside the mask. This is only of relevance if the MaskIsBinary
+  ! option is used. If MaskIsBinary is false, the fractional mask values are 
+  ! being considered, e.g. a grid box can contribute 40%, etc. 
+  ! The MaskIsBinary toggle can be set in the settings section of the HEMCO 
+  ! configuration file (Binary mask: true/false). It defaults to true.
   REAL(sp), PARAMETER  :: MASK_THRESHOLD = 0.5_sp
 !
 ! ============================================================================
@@ -97,6 +102,7 @@ MODULE HCO_Calc_Mod
 !  08 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  29 Dec 2014 - C. Keller   - Added MASK_THRESHOLD parameter. Added option to
 !                              apply scale factors only over masked area.
+!  08 Apr 2015 - C. Keller   - Added option for fractional masks.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -163,7 +169,7 @@ CONTAINS
     REAL(hp), TARGET        :: TmpFlx( HcoState%NX, &
                                        HcoState%NY, &
                                        HcoState%NZ   )
-    INTEGER                 :: Mask  ( HcoState%NX, &
+    REAL(hp)                :: Mask  ( HcoState%NX, &
                                        HcoState%NY, &
                                        HcoState%NZ   )
 
@@ -180,7 +186,6 @@ CONTAINS
     LOGICAL             :: Found, DoDiagn
 
     ! For error handling & verbose mode
-    LOGICAL             :: verb
     CHARACTER(LEN=255)  :: MSG
 
     ! testing / debugging
@@ -197,9 +202,6 @@ CONTAINS
     ! Enter routine 
     CALL HCO_ENTER ('HCO_CalcEmis (HCO_CALC_MOD.F90)', RC )
     IF(RC /= HCO_SUCCESS) RETURN
-
-    ! verb mode? 
-    verb = HCO_IsVerb( 1 )
 
     !-----------------------------------------------------------------
     ! Initialize variables 
@@ -227,7 +229,7 @@ CONTAINS
     DoDiagn = HcoState%Options%AutoFillDiagn !Write AutoFill diagnostics?
 
     ! Verbose mode 
-    IF ( verb ) THEN
+    IF ( HCO_IsVerb(2) ) THEN
        WRITE (MSG, *) 'Run HEMCO calculation w/ following options:'
        CALL HCO_MSG ( MSG )
        WRITE (MSG, "(A20,I5)")    'Extension number:', ExtNr 
@@ -235,6 +237,8 @@ CONTAINS
        WRITE (MSG, "(A20,I5,I5)") 'Tracer range:', SpcMin, SpcMax
        CALL HCO_MSG ( MSG )
        WRITE (MSG, "(A20,I5,I5)") 'Category range:', CatMin, CatMax
+       CALL HCO_MSG ( MSG )
+       WRITE (MSG, *) 'Auto diagnostics: ', DoDiagn
        CALL HCO_MSG ( MSG )
     ENDIF
 
@@ -326,19 +330,8 @@ CONTAINS
           ! the species array SpcFlx.
           SpcFlx(:,:,:) = SpcFlx(:,:,:) + CatFlx(:,:,:)
 
-          ! Add category emissions to diagnostics at category level
-          ! (only if defined in the diagnostics list).
-          IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN 
-             Diag3D => CatFlx
-             CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr,             &
-                                Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &
-                                AutoFill=1,  Array3D=Diag3D, RC=RC     ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN
-             Diag3D => NULL() 
-          ENDIF
-
           ! verbose 
-          IF ( verb ) THEN
+          IF ( HCO_IsVerb(3) ) THEN
              WRITE(MSG,*) 'Added category emissions to species array: '
              CALL HCO_MSG(MSG)
              WRITE(MSG,*) 'Species       : ', PrevSpc
@@ -349,6 +342,17 @@ CONTAINS
              CALL HCO_MSG(MSG)
              WRITE(MSG,*) 'Spc. emissions: ', SUM(SpcFlx) 
              CALL HCO_MSG(MSG)
+          ENDIF
+
+          ! Add category emissions to diagnostics at category level
+          ! (only if defined in the diagnostics list).
+          IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN 
+             Diag3D => CatFlx
+             CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr,             &
+                                Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &
+                                AutoFill=1,  Array3D=Diag3D, COL=-1, RC=RC ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN
+             Diag3D => NULL() 
           ENDIF
 
           ! Reset CatFlx array and the previously used hierarchy 
@@ -376,7 +380,7 @@ CONTAINS
              OutArr(:,:,:) = OutArr(:,:,:) + SpcFlx(:,:,:)
 
              ! testing only
-             IF ( verb ) THEN
+             IF ( HCO_IsVerb(3) ) THEN
                 WRITE(MSG,*) 'Added total emissions to output array: '
                 CALL HCO_MSG(MSG)
                 WRITE(MSG,*) 'Species: ', PrevSpc
@@ -394,7 +398,7 @@ CONTAINS
                 Diag3D => SpcFlx
                 CALL Diagn_Update(am_I_Root, ExtNr=ExtNr,             &
                                   Cat=-1,    Hier=-1,  HcoID=PrevSpc, &
-                                  AutoFill=1,Array3D=Diag3D, RC=RC     ) 
+                                  AutoFill=1,Array3D=Diag3D, COL=-1, RC=RC ) 
                 IF ( RC /= HCO_SUCCESS ) RETURN
                 Diag3D => NULL()
              ENDIF
@@ -459,8 +463,8 @@ CONTAINS
           ENDIF
 
           ! verbose mode
-          IF ( verb ) THEN
-             write(MSG,*) 'Now calculating emissions for species ', &
+          IF ( HCO_IsVerb(2) ) THEN
+             WRITE(MSG,*) 'Calculating emissions for species ', &
                            TRIM(HcoState%Spc(ThisSpc)%SpcName)
              CALL HCO_MSG( MSG, SEP1='-', SEP2='-' )
           ENDIF
@@ -514,18 +518,21 @@ CONTAINS
        IF ( ThisHir == PrevHir ) THEN
 
           ! Only over masked area
-          WHERE ( Mask == 1 )
-             CatFlx = CatFlx + TmpFlx
-          END WHERE
+          CatFlx = CatFlx + ( Mask * TmpFlx )
+          !WHERE ( Mask == 1 )
+          !   CatFlx = CatFlx + TmpFlx
+          !END WHERE
  
        ! If hierarchy is larger than those of the previously used
        ! fields, overwrite CatFlx w/ new values. 
        ELSEIF ( ThisHir > PrevHir ) THEN
+
+          CatFlx = ( (1.0_hp - Mask) * CatFlx ) + ( Mask * TmpFlx )
        
-          ! Only over masked area
-          WHERE ( Mask == 1 )
-             CatFlx = TmpFlx
-          END WHERE
+          !! Only over masked area
+          !WHERE ( Mask == 1 )
+          !   CatFlx = TmpFlx
+          !END WHERE
 
        ELSE
           MSG = 'Hierarchy error in calc_emis: ' // TRIM(Dct%cName)
@@ -543,7 +550,7 @@ CONTAINS
           CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                   &
                              Cat=ThisCat,Hier=ThisHir,   HcoID=ThisSpc, &
                              AutoFill=1, Array3D=Diag3D, PosOnly=.TRUE.,&
-                             RC=RC ) 
+                             COL=-1, RC=RC ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
           Diag3D => NULL()
        ENDIF
@@ -566,7 +573,7 @@ CONTAINS
        OutArr(:,:,:) = OutArr(:,:,:) + SpcFlx(:,:,:)
 
        ! verbose mode 
-       IF ( verb ) THEN
+       IF ( HCO_IsVerb(3) ) THEN
           WRITE(MSG,*) 'Added category emissions to species array: '
           CALL HCO_MSG(MSG)
           WRITE(MSG,*) 'Species       : ', PrevSpc
@@ -580,11 +587,11 @@ CONTAINS
        ENDIF
 
        ! Diagnostics at category level
-       IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN 
+       IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN
           Diag3D => CatFlx
           CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr,             &
                              Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &
-                             AutoFill=1,  Array3D=Diag3D, RC = RC   ) 
+                             AutoFill=1,  Array3D=Diag3D, COL=-1, RC=RC ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
           Diag3D => NULL() 
        ENDIF
@@ -594,13 +601,13 @@ CONTAINS
           Diag3D => SpcFlx
           CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                   &
                              Cat=-1,     Hier=-1,        HcoID=PrevSpc, &
-                             AutoFill=1, Array3D=Diag3D, RC=RC           )
+                             AutoFill=1, Array3D=Diag3D, COL=-1, RC=RC   )
           IF ( RC /= HCO_SUCCESS ) RETURN
           Diag3D => NULL()
        ENDIF
 
-       ! testing only
-       IF ( verb ) THEN
+       ! Verbose mode 
+       IF ( Hco_IsVerb(3) ) THEN
           WRITE(MSG,*) 'Added total emissions to output array: '
           CALL HCO_MSG(MSG)
           WRITE(MSG,*) 'Species: ', PrevSpc
@@ -619,7 +626,7 @@ CONTAINS
     OutArr => NULL()
 
     ! verbose
-    IF ( verb ) THEN
+    IF ( HCO_IsVerb(1) ) THEN
        WRITE (MSG, *) 'HEMCO emissions successfully calculated!'
        CALL HCO_MSG ( MSG )
     ENDIF
@@ -722,7 +729,7 @@ CONTAINS
     TYPE(DataCont),  POINTER       :: BaseDct             ! base emission 
                                                           !  container
     REAL(hp),        INTENT(INOUT) :: OUTARR_3D(nI,nJ,nL) ! output array
-    INTEGER,         INTENT(INOUT) :: MASK     (nI,nJ,nL) ! mask array 
+    REAL(hp),        INTENT(INOUT) :: MASK     (nI,nJ,nL) ! mask array 
     INTEGER,         INTENT(INOUT) :: RC
 !
 ! !REMARKS: 
@@ -756,17 +763,17 @@ CONTAINS
     TYPE(DataCont), POINTER :: MaskDct => NULL()
 
     ! Scalars
-    REAL(sp)                :: TMPVAL
+    REAL(sp)                :: TMPVAL, MaskScale
     INTEGER                 :: tIDx, IDX
     INTEGER                 :: I, J, L, N
     INTEGER                 :: BaseLL, ScalLL, TmpLL
     INTEGER                 :: ERROR
     CHARACTER(LEN=255)      :: MSG, LOC
     LOGICAL                 :: NegScalExist
+    LOGICAL                 :: MaskIsBinary 
  
     ! testing only
     INTEGER                 :: IX, IY
-    LOGICAL                 :: verb
 
     !=================================================================
     ! GET_CURRENT_EMISSIONS begins here
@@ -775,9 +782,6 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER('GET_CURRENT_EMISSIONS', RC )
     IF(RC /= HCO_SUCCESS) RETURN
-
-    ! Verbose mode 
-    verb = HCO_IsVerb( 1 ) 
 
     ! testing only:
     IX = 25 !-1 
@@ -791,10 +795,11 @@ CONTAINS
     ENDIF
 
     ! Initialize mask. By default, assume that we use all grid boxes.
-    MASK(:,:,:) = 1
+    MASK(:,:,:)  = 1.0_hp
+    MaskIsBinary = HcoState%Options%MaskIsBinary
 
     ! Verbose 
-    IF ( verb ) THEN
+    IF ( HCO_IsVerb(3) ) THEN
        write(MSG,*) '--> GET EMISSIONS FOR ', TRIM(BaseDct%cName)
        CALL HCO_MSG(MSG)
     ENDIF
@@ -849,7 +854,7 @@ CONTAINS
           ! If it's a missing value, mask box as unused and set value to 
           ! zero 
           IF ( TMPVAL == HCO_MISSVAL ) THEN
-             MASK(I,J,:)      = 0
+             MASK(I,J,:)      = 0.0_hp
              OUTARR_3D(I,J,L) = 0.0_hp
 
           ! Pass base value to output array
@@ -902,7 +907,7 @@ CONTAINS
        ! if scale factors are only defined for a given time range and
        ! the simulation datetime is outside of this range.
        IF ( .NOT. FileData_ArrIsDefined(ScalDct%Dta) ) THEN
-          IF ( verb ) THEN
+          IF ( HCO_IsVerb(2) ) THEN
              MSG = 'Skip scale factor '//TRIM(ScalDct%cName)// &
                    ' because it is not defined for this datetime.'
              CALL HCO_MSG( MSG )
@@ -941,16 +946,35 @@ CONTAINS
        ! Loop over all latitudes and longitudes
 !$OMP PARALLEL DO                                                      &
 !$OMP DEFAULT( SHARED )                                                &
-!$OMP PRIVATE( I, J, tIdx, TMPVAL, L, tmpLL                          ) & 
+!$OMP PRIVATE( I, J, tIdx, TMPVAL, L, tmpLL, MaskScale               ) & 
 !$OMP SCHEDULE( DYNAMIC )
        DO J = 1, nJ
        DO I = 1, nI
 
-          ! Check for mask region
+          ! ------------------------------------------------------------
+          ! If there is a mask associated with this scale factors, check
+          ! if this grid box is within or outside of the mask region. 
+          ! Values that partially fall into the mask region are either
+          ! treated as binary (100% inside or outside), or partially
+          ! (using the real grid area fractions), depending on the 
+          ! HEMCO options.
+          ! ------------------------------------------------------------
+
+          ! Default mask scaling is 1.0 (no mask applied)
+          MaskScale = 1.0_sp
+
+          ! If there is a mask applied to this scale factor ...
           IF ( ASSOCIATED(MaskDct) ) THEN
-             IF ( (MaskDct%Dta%V2(1)%Val(I,J) <  MASK_THRESHOLD) .OR. &
-                  (MaskDct%Dta%V2(1)%Val(I,J) == HCO_MISSVAL   )       ) CYCLE
+             CALL GetMaskVal ( am_I_Root, MaskDct, I, J, &
+                               MaskScale, MaskIsBinary, RC )
+             IF ( RC /= HCO_SUCCESS ) THEN
+                ERROR = 4 
+                EXIT
+             ENDIF 
           ENDIF
+
+          ! We can skip this grid box if mask is completely zero 
+          IF ( MaskScale <= 0.0_sp ) CYCLE
 
           ! Get current time index for this container and at this location
           tIDx = tIDx_GetIndx( HcoState, ScalDct%Dta, I, J )
@@ -970,27 +994,19 @@ CONTAINS
           ! ------------------------------------------------------------ 
           IF ( ScalDct%DctType == HCO_DCTTYPE_MASK ) THEN  
 
-             ! Mask value over this grid box
-             TMPVAL = ScalDct%Dta%V2(1)%Val(I,J)
- 
-             ! Negative mask values are treated as zero (exclude). 
-             IF ( (TMPVAL <= 0.0_sp) .OR. (TMPVAL == HCO_MISSVAL) ) THEN
-                TMPVAL = 0.0_sp
-             ELSE
-                TMPVAL = 1.0_sp
-             ENDIF
+             ! Get mask value
+             CALL GetMaskVal ( am_I_Root, ScalDct, I, J, &
+                               TMPVAL,    MaskIsBinary, RC )
+             IF ( RC /= HCO_SUCCESS ) THEN
+                ERROR = 4 
+                EXIT
+             ENDIF 
 
-             ! For operator set to 3, mirror value
-             IF ( ScalDct%Oper == 3 ) THEN
-                TMPVAL = 1.0_sp - TMPVAL 
-             ENDIF
-
-             ! Set mask to zero over this grid box if this mask value is
-             ! below the defined mask threshold.
-             IF ( TMPVAL < MASK_THRESHOLD ) MASK(I,J,:) = 0
+             ! Pass to output mask
+             MASK(I,J,:) = MASK(I,J,:) * TMPVAL
 
              ! testing only
-             IF ( verb .AND. I==1 .AND. J==1 ) THEN
+             IF ( HCO_IsVerb(2) .AND. I==1 .AND. J==1 ) THEN
                 write(MSG,*) 'Mask field ', TRIM(ScalDct%cName),   &
                      ' found and added to temporary mask.'
                 CALL HCO_MSG( MSG ) 
@@ -1031,6 +1047,11 @@ CONTAINS
 
              ! Set missing value to one
              IF ( TMPVAL == HCO_MISSVAL ) TMPVAL = 1.0_sp
+
+             ! Eventually apply mask scaling
+             IF ( MaskScale /= 1.0_sp ) THEN
+                TMPVAL = TMPVAL * MaskScale
+             ENDIF
 
              ! For negative scale factor, proceed according to the
              ! negative value setting specified in the configuration
@@ -1079,8 +1100,8 @@ CONTAINS
 
           ENDDO !LL
 
-          ! testing only
-          if ( verb .and. i == ix .and. j == iy ) then
+          ! Verbose mode
+          if ( HCO_IsVerb(3) .and. i == ix .and. j == iy ) then
              write(MSG,*) 'Scale field ', TRIM(ScalDct%cName)
              CALL HCO_MSG( MSG )
              write(MSG,*) 'Time slice: ', tIdx
@@ -1106,6 +1127,8 @@ CONTAINS
              MSG = 'Illegal mathematical operator for scale factor: ' // TRIM(ScalDct%cName)
           ELSEIF ( ERROR == 3 ) THEN
              MSG = 'Encountered negative time index for scale factor: ' // TRIM(ScalDct%cName)
+          ELSEIF ( ERROR == 3 ) THEN
+             MSG = 'Mask error in ' // TRIM(ScalDct%cName)
           ELSE
              MSG = 'Error when applying scale factor: ' // TRIM(ScalDct%cName)
           ENDIF
@@ -1125,19 +1148,19 @@ CONTAINS
 
     ENDDO ! N
 
-    ! ----------------------------
-    ! Masks 
-    ! ----------------------------
-
-    ! Apply mask. Make sure that emissions become negative
-    ! outside the mask region. This is to make sure that these 
-    ! grid boxes will be ignored when calculating the final  
-    ! emissions. 
-    DO L = 1, BaseLL
-       WHERE ( MASK(:,:,L) == 0 )
-          OUTARR_3D(:,:,L) = 0.0_hp
-       ENDWHERE
-    ENDDO
+!    ! ----------------------------
+!    ! Masks 
+!    ! ----------------------------
+!
+!    ! Apply mask. Make sure that emissions become negative
+!    ! outside the mask region. This is to make sure that these 
+!    ! grid boxes will be ignored when calculating the final  
+!    ! emissions. 
+!    DO L = 1, BaseLL
+!       WHERE ( MASK(:,:,L) == 0 )
+!          OUTARR_3D(:,:,L) = 0.0_hp
+!       ENDWHERE
+!    ENDDO
 
     ! Cleanup and leave w/ success
     ScalDct => NULL()
@@ -1185,7 +1208,7 @@ CONTAINS
     TYPE(DataCont),  POINTER       :: BaseDct             ! base emission 
                                                           !  container
     REAL(hp),        INTENT(INOUT) :: OUTARR_3D(nI,nJ,nL) ! output array
-    INTEGER,         INTENT(INOUT) :: MASK     (nI,nJ,nL) ! mask array 
+    REAL(hp),        INTENT(INOUT) :: MASK     (nI,nJ,nL) ! mask array 
     INTEGER,         INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY:
@@ -1206,13 +1229,14 @@ CONTAINS
     ! Pointers
     TYPE(DataCont), POINTER :: ScalDct => NULL()
     TYPE(DataCont), POINTER :: MaskDct => NULL()
-    REAL(sp)                :: TMPVAL
+    REAL(sp)                :: TMPVAL, MaskScale
     INTEGER                 :: tIdx, IDX
     INTEGER                 :: I, J, L, N
     INTEGER                 :: BaseLL, ScalLL, TmpLL
     INTEGER                 :: IJFILLED
     INTEGER                 :: ERROR
     CHARACTER(LEN=255)      :: MSG, LOC
+    LOGICAL                 :: MaskIsBinary 
  
     ! testing only
     INTEGER                 :: IX, IY
@@ -1245,7 +1269,8 @@ CONTAINS
     ENDIF
 
     ! Initialize mask values
-    MASK(:,:,:) = 1
+    MASK(:,:,:)  = 1.0_hp
+    MaskIsBinary = HcoState%Options%MaskIsBinary
 
     ! Initialize ERROR. Will be set to 1 if error occurs below
     ERROR = 0
@@ -1254,7 +1279,7 @@ CONTAINS
 !$OMP PARALLEL DO                                                      &
 !$OMP DEFAULT( SHARED )                                                &
 !$OMP PRIVATE( I, J, BaseLL, tIdx, IJFILLED, L                       ) & 
-!$OMP PRIVATE( TMPVAL, N, IDX, ScalDct, ScalLL, tmpLL                ) & 
+!$OMP PRIVATE( TMPVAL, N, IDX, ScalDct, ScalLL, tmpLL, MaskScale     ) & 
 !$OMP SCHEDULE( DYNAMIC )
     DO J = 1, nJ
     DO I = 1, nI
@@ -1303,15 +1328,10 @@ CONTAINS
              TMPVAL = BaseDct%Dta%V3(tIDx)%Val(I,J,L)
           ENDIF
 
-          ! Advance to next grid box if base value is negative, 
-          ! indicating that this inventory is not defined over 
-          ! this grid box.
-!          IF ( TMPVAL < 0.0_hp ) CYCLE 
-
           ! Check for missing value
           IF ( TMPVAL == HCO_MISSVAL ) THEN
              OUTARR_3D(I,J,L) = 0.0_hp
-             MASK(I,J,:)      = 0
+             MASK(I,J,:)      = 0.0_hp
 
           ! Pass base value to output array
           ELSE
@@ -1322,17 +1342,6 @@ CONTAINS
           IJFILLED = IJFILLED + 1
 
        ENDDO !L
-
-       ! If emissions are defined for at least one level, make 
-       ! sure that emissions in all other levels are set to zero.
-       ! This is to make sure that higher hierarchy emissions entirely
-       ! overwrite lower hierarchy emissions (emissions are only over-
-       ! written where updated emissions are zero or higher).
-!       IF ( IJFILLED > 0 ) THEN
-!          WHERE ( OUTARR_3D(I,J,:) < 0.0_hp ) 
-!             OUTARR_3D(I,J,:) = 0.0_hp
-!          ENDWHERE
-!       ENDIF
 
        ! -------------------------------------------------------------
        ! Apply scale factors
@@ -1393,9 +1402,14 @@ CONTAINS
                 EXIT
              ENDIF
 
-             ! Check if we are within mask region
-             IF ( MaskDct%Dta%V2(1)%Val(I,J) <  MASK_THRESHOLD .OR. &
-                  MaskDct%Dta%V2(1)%Val(I,J) == HCO_MISSVAL          ) CYCLE 
+             ! Get mask value
+             CALL GetMaskVal ( am_I_Root, ScalDct, I, J, &
+                               TMPVAL,    MaskIsBinary, RC )
+             IF ( RC /= HCO_SUCCESS ) THEN
+                ERROR = 6 
+                EXIT
+             ENDIF
+
           ENDIF
 
           ! Get vertical extension of this scale factor array.
@@ -1423,22 +1437,16 @@ CONTAINS
           ! ------------------------------------------------------------ 
           IF ( ScalDct%DctType == HCO_DCTTYPE_MASK ) THEN  
 
-             TMPVAL = ScalDct%Dta%V2(1)%Val(I,J)
-
-             ! Mask values are restricted to 0 or 1
-             IF ( TMPVAL <= 0.0_hp ) THEN
-                TMPVAL = 0.0_hp
-             ELSE
-                TMPVAL = 1.0_hp
+             ! Get mask value
+             CALL GetMaskVal ( am_I_Root, ScalDct, I, J, &
+                               TMPVAL,    MaskIsBinary, RC )
+             IF ( RC /= HCO_SUCCESS ) THEN
+                ERROR = 6 
+                EXIT
              ENDIF
 
-             ! For operator set to 3, mirror value
-             IF ( ScalDct%Oper == 3 ) THEN
-                TMPVAL = 1.0_hp - TMPVAL 
-             ENDIF
-
-             ! Add to mask and set mask flag to TRUE
-             IF ( TMPVAL < MASK_THRESHOLD ) MASK(I,J,:) = 0
+             ! Pass to mask 
+             MASK(I,J,:) = MASK(I,J,:) * TMPVAL
 
              ! testing only
              if ( verb .and. i == ix .and. j == iy ) then
@@ -1573,5 +1581,78 @@ CONTAINS
     CALL HCO_LEAVE( RC )
 
   END SUBROUTINE Get_Current_Emissions_B
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetMaskVal
+!
+! !DESCRIPTION: Subroutine GetMaskVal is a helper routine to get the mask
+!  value at a given location.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetMaskVal ( am_I_Root, Dct, I, J, MaskVal, Binary, RC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   ) :: am_I_Root           ! Root CPU?
+    INTEGER,         INTENT(IN   ) :: I                   ! # of lons
+    INTEGER,         INTENT(IN   ) :: J                   ! # of lats
+    LOGICAL,         INTENT(IN   ) :: Binary              ! Binary values?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DataCont),  POINTER       :: Dct                 ! Mask container 
+    REAL(sp),        INTENT(INOUT) :: MaskVal 
+    INTEGER,         INTENT(INOUT) :: RC
+!
+! !REVISION HISTORY:
+!  09 Apr 2015 - C. Keller   - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+
+    !=================================================================
+    ! GetMaskVal begins here
+    !=================================================================
+
+    ! Mask value over this grid box
+    MaskVal = Dct%Dta%V2(1)%Val(I,J)
+ 
+    ! Negative mask values are treated as zero (exclude). 
+    IF ( (MaskVal <= 0.0_sp) .OR. (MaskVal == HCO_MISSVAL) ) THEN
+       MaskVal = 0.0_sp
+    ELSEIF ( MaskVal > 1.0_sp ) THEN
+       MaskVal = 1.0_sp
+    ENDIF
+
+    ! For operator set to 3, mirror value
+    IF ( Dct%Oper == 3 ) THEN
+       MaskVal = 1.0_sp - MaskVal 
+    ENDIF
+
+    ! Treat as binary?
+    IF ( BINARY ) THEN
+       IF ( MaskVal < MASK_THRESHOLD ) THEN
+          MaskVal = 0.0_sp
+       ELSE
+          MaskVal = 1.0_sp
+       ENDIF
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE GetMaskVal
 !EOC
 END MODULE HCO_Calc_Mod

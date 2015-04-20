@@ -54,12 +54,6 @@
       PRIVATE :: READ_PROD_LOSS_MENU 
       PRIVATE :: READ_UNIX_CMDS_MENU
       PRIVATE :: READ_NESTED_GRID_MENU
-!----------------------------------------------------------------------------
-! Prior to 3/13/15:
-! HEMCO has made these routines obsolete (bmy, 3/13/15)
-!      PRIVATE :: READ_ARCHIVED_OH_MENU
-!      PRIVATE :: READ_O3PL_MENU
-!----------------------------------------------------------------------------
       PRIVATE :: READ_BENCHMARK_MENU  
       PRIVATE :: READ_CH4_MENU
       PRIVATE :: VALIDATE_DIRECTORIES  
@@ -239,6 +233,8 @@
 !  04 Apr 2013 - R. Yantosca - Now pass objects to DO_GAMAP routine
 !  23 Jun 2014 - R. Yantosca - Now do not call INIT_INPUT, this is replaced
 !                              by the INIT_GIGC_INPUT_OPT routine
+!  15 Apr 2015 - R. Yantosca - Also define Input_Opt%ITS_A_NESTED_GRID here
+!                              so that we can pass it to INITIALIZE_GEOS_GRID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -903,9 +899,6 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
 
-
-      ! 
-
       !=================================================================
       ! Add safety checks for logical switches
       !=================================================================
@@ -968,6 +961,14 @@
       Input_Opt%LWAIT         = LWAIT
       Input_Opt%LVARTROP      = LVARTROP
 
+      !=================================================================
+      ! Determine if we are running a nested-grid simulation based on
+      ! the settings of the C-preprocessor switches.  We have to set
+      ! this here before the call to INITIALIZE_GEOS_GRID below.
+      !=================================================================
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_SE) || defined( SEAC4RS )
+      Input_Opt%ITS_A_NESTED_GRID = .TRUE.
+#endif
       ! Return success
       RC = GIGC_SUCCESS
 
@@ -1009,6 +1010,8 @@
          WRITE( 6, 120 ) 'Unzip met fields?           : ', LUNZIP
          WRITE( 6, 120 ) 'Wait for met fields?        : ', LWAIT
          WRITE( 6, 120 ) 'Use variable tropopause?    : ', LVARTROP
+         WRITE( 6, 120 ) 'Is this a nested-grid sim?  : ', 
+     &                    Input_Opt%ITS_A_NESTED_GRID
          WRITE( 6, 130 ) 'Global offsets I0, J0       : ', 
      &                    Input_Opt%NESTED_I0, 
      &                    Input_Opt%NESTED_J0
@@ -1161,11 +1164,11 @@
       !-----------------------------
       JSP           = 1                  ! Lat index of S Pole
       JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 5.0e+0_fp              ! Delta-longitude array [degrees]
-      DLAT          = 4.0e+0_fp              ! Delta-latitude array [degrees]
+      DLON          = 5.0e+0_fp          ! Delta-longitude array [degrees]
+      DLAT          = 4.0e+0_fp          ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-      DLAT(:,JSP,:) = 2.0e+0_fp              !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 2.0e+0_fp              !  Half-sized N Pole boxes
+      DLAT(:,JSP,:) = 2.0e+0_fp          !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 2.0e+0_fp          !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID2x25 )
@@ -1175,11 +1178,11 @@
       !-----------------------------
       JSP           = 1                  ! Lat index of S Pole
       JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 2.5e+0_fp              ! Delta-longitude array [degrees]
-      DLAT          = 2.0e+0_fp              ! Delta-latitude array [degrees]
+      DLON          = 2.5e+0_fp          ! Delta-longitude array [degrees]
+      DLAT          = 2.0e+0_fp          ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-      DLAT(:,JSP,:) = 1.0e+0_fp              !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 1.0e+0_fp              !  Half-sized N Pole boxes
+      DLAT(:,JSP,:) = 1.0e+0_fp          !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 1.0e+0_fp          !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID1x125 )
@@ -1189,11 +1192,11 @@
       !-----------------------------
       JSP           = 1                  ! Lat index of S Pole
       JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 1.25e+0_fp             ! Delta-longitude array [degrees]
-      DLAT          = 1.0e+0_fp              ! Delta-latitude array [degrees]
+      DLON          = 1.25e+0_fp         ! Delta-longitude array [degrees]
+      DLAT          = 1.0e+0_fp          ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-      DLAT(:,JSP,:) = 0.5e+0_fp              !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 0.5e+0_fp              !  Half-sized N Pole boxes
+      DLAT(:,JSP,:) = 0.5e+0_fp          !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 0.5e+0_fp          !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID1x1 )
@@ -1203,11 +1206,11 @@
       !-----------------------------
       JSP           = 1                  ! Lat index of S Pole
       JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 1.0e+0_fp              ! Delta-longitude array [degrees]
-      DLAT          = 1.0e+0_fp              ! Delta-latitude array [degrees]
+      DLON          = 1.0e+0_fp          ! Delta-longitude array [degrees]
+      DLAT          = 1.0e+0_fp          ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-      DLAT(:,JSP,:) = 0.5e+0_fp              !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 0.5e+0_fp              !  Half-sized N Pole boxes
+      DLAT(:,JSP,:) = 0.5e+0_fp          !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 0.5e+0_fp          !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID05x0666 )
@@ -1217,8 +1220,8 @@
       !-----------------------------
       JSP           = 0                  ! Lat index of S Pole
       JNP           = 0                  ! Lat index of N pole
-      DLON          = 2e+0_fp/3e+0_fp            ! Delta-longitude array [degrees]
-      DLAT          = 0.5e+0_fp              ! Delta-latitude array [degrees]
+      DLON          = 2e+0_fp/3e+0_fp    ! Delta-longitude array [degrees]
+      DLAT          = 0.5e+0_fp          ! Delta-latitude array [degrees]
 
 #elif defined( GRID025x03125 )
 
@@ -1227,8 +1230,8 @@
       !-----------------------------
       JSP           = 0                  ! Lat index of S Pole
       JNP           = 0                  ! Lat index of N pole
-      DLON          = 0.3125e+0_fp           ! Delta-longitude array [degrees]
-      DLAT          = 0.25e+0_fp             ! Delta-latitude array [degrees]
+      DLON          = 0.3125e+0_fp       ! Delta-longitude array [degrees]
+      DLAT          = 0.25e+0_fp         ! Delta-latitude array [degrees]
 
 #elif defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 
@@ -1250,6 +1253,7 @@
 
       ! Allocate module arrays in grid_mod.F90
       CALL Init_Grid   ( am_I_Root = am_I_Root,     ! Are we on the root CPU?
+     &                   Input_Opt = Input_Opt,     ! Input Options object
      &                   IM        = IIPAR,         ! # of lons on this CPU
      &                   JM        = JJPAR,         ! # of lats on this CPU
      &                   LM        = LLPAR,         ! # of levs on this CPU
@@ -2840,6 +2844,7 @@
 !  03 Jun 2014 - R. Yantosca - Now specify biomass, biofuel options in HEMCO
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  13 Apr 2015 - R. Nassar - Simplified CO2 menu since options are now in HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2847,14 +2852,22 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LGENFF,      LANNFF,      LMONFF
-      LOGICAL            :: LCHEMCO2,    LBIODAILY,   LBIODIURNAL
-      LOGICAL            :: LBIONETORIG, LBIONETCLIM, LOCN1997
-      LOGICAL            :: LOCN2009ANN, LOCN2009MON, LSHIPEDG
-      LOGICAL            :: LSHIPICO,    LPLANE,      LFFBKGRD
+      LOGICAL          :: LFOSSIL
+      LOGICAL          :: LCHEMCO2
+	LOGICAL          :: LBIODIURNAL
+      LOGICAL          :: LBIONETCLIM
+      LOGICAL          :: LOCEAN
+      LOGICAL          :: LSHIP
+      LOGICAL          :: LPLANE
+	LOGICAL          :: LFFBKGRD
+!      LOGICAL            :: LGENFF,      LANNFF,      LMONFF
+!      LOGICAL            :: LCHEMCO2,    LBIODAILY,   LBIODIURNAL
+!      LOGICAL            :: LBIONETORIG, LBIONETCLIM, LOCN1997
+!      LOGICAL            :: LOCN2009ANN, LOCN2009MON, LSHIPEDG
+!      LOGICAL            :: LSHIPICO,    LPLANE,      LFFBKGRD
       LOGICAL            :: LBIOSPHTAG,  LFOSSILTAG,  LSHIPTAG
       LOGICAL            :: LPLANETAG
-      INTEGER            :: N
+	INTEGER            :: N
       CHARACTER(LEN=255) :: MSG, LOC
 
       ! Arrays
@@ -2873,170 +2886,69 @@
          CALL ERROR_STOP( MSG, LOC )
       ENDIF
 
-      !---------------------------------------------------------------
-      ! Fossil Fuel Emissions
-      !---------------------------------------------------------------
-      ! Separator line
+      !=================================================================
+
+	! Use Fossil Fuel emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:1' )
+      READ( SUBSTRS(1:N), * ) LFOSSIL
 
-      ! Use Generic Fossil Fuel emissions?
+      ! Use Ocean Exchange?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:2' )
-      READ( SUBSTRS(1:N), * ) LGENFF
+      READ( SUBSTRS(1:N), * ) LOCEAN
 
-      ! Use annual Fossil Fuel emissions?
+       ! Turn on (balanced) biosphere with diurnal cycle?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:3' )
-      READ( SUBSTRS(1:N), * ) LANNFF
-
-      ! Use monthly Fossil Fuel emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:4' )
-      READ( SUBSTRS(1:N), * ) LMONFF
-
-      !---------------------------------------------------------------
-      ! Chemical source of CO2 from oxidation of fossil fuel CO, CH4 etc.
-      !---------------------------------------------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:5' )
-
-      ! Chemical source of CO2 from oxidation of CO, CH4 and organics?
-      READ( SUBSTRS(1:N), * ) LCHEMCO2
-
-      !---------------------------------------------------------------
-      ! Terrestrial Exchange
-      !---------------------------------------------------------------
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:13' )
-
-      ! Turn on CASA biosphere daily average?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:14' )
-      READ( SUBSTRS(1:N), * ) LBIODAILY
-
-      ! Turn on CASA biosphere with diurnal cycle?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:15' )
       READ( SUBSTRS(1:N), * ) LBIODIURNAL
 
-      ! Use original Net Terrestrial Exchange?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:16' )
-      READ( SUBSTRS(1:N), * ) LBIONETORIG
-
       ! Use Net Terrestrial Exchange Climatology?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:4' )
       READ( SUBSTRS(1:N), * ) LBIONETCLIM
 
-      !---------------------------------------------------------------
-      ! Ocean Exchange
-      !---------------------------------------------------------------
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:18' )
+      ! Turn on Ship emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:5' )
+      READ( SUBSTRS(1:N), * ) LSHIP
 
-      ! Use Ocean Exchange from Takahashi 1997?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:19' )
-      READ( SUBSTRS(1:N), * ) LOCN1997
-
-      ! Use annual Ocean Exchange from Takahashi 2009?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:20' )
-      READ( SUBSTRS(1:N), * ) LOCN2009ANN
-
-      ! Use monthly Ocean Exchange from Takahashi 2009?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:21' )
-      READ( SUBSTRS(1:N), * ) LOCN2009MON
-
-      !---------------------------------------------------------------
-      ! Ship and Aircraft CO2 Emissions
-      !---------------------------------------------------------------
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:22' )
-
-      ! Turn on EDGAR ship emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:23' )
-      READ( SUBSTRS(1:N), * ) LSHIPEDG
-
-      ! Turn on ICOADS ship emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:24' )
-      READ( SUBSTRS(1:N), * ) LSHIPICO
-
-      ! Turn on Aircraft emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:25' )
+      ! Turn on Aviation emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:6' )
       READ( SUBSTRS(1:N), * ) LPLANE
 
-      !---------------------------------------------------------------
-      ! Tagged CO2
-      !---------------------------------------------------------------
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:26' )
+      ! Turn on CO2 3D chemical source and surface correction?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:7' )
+      READ( SUBSTRS(1:N), * ) LCHEMCO2
+
+      ! Tagged CO2 Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu' )
 
       !Background CO2 (no emissions or exchange) for Tagged-CO2 runs
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:27' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:8' )
       READ( SUBSTRS(1:N), * ) LFFBKGRD
 
       ! Turn on biosphere and ocean exchange region tagged tracers?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:28' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:9' )
       READ( SUBSTRS(1:N), * ) LBIOSPHTAG
 
       ! Turn on fossil fuel emission region tagged tracers?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:27' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:10' )
       READ( SUBSTRS(1:N), * ) LFOSSILTAG
 
       ! Turn on global ship emissions tagged tracer?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:29' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:11' )
       READ( SUBSTRS(1:N), * ) LSHIPTAG
 
       ! Turn on global aircraft emissions tagged tracer?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:30' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:12' )
       READ( SUBSTRS(1:N), * ) LPLANETAG
-
-      !=================================================================
-      ! Resolve conflicting selections by assuming the 'best' choice
-      !=================================================================
-
-	!--- Fossil Fuel ----------------
-	IF (LMONFF) THEN
-           LGENFF = .FALSE.
-           LANNFF = .FALSE.
-	ENDIF
-	IF (LANNFF) THEN
-           LGENFF = .FALSE.
-	ENDIF
-
-	!--- CASA Biosphere -------------
-	IF (LBIODIURNAL) THEN
-           LBIODAILY = .FALSE.
-	ENDIF
-
-	!--- Net Terrestrial Exchange ---
-	IF (LBIONETCLIM) THEN
-           LBIONETORIG = .FALSE.
-	ENDIF
-	
-	!--- Ocean Exchange -------------
-	IF (LOCN2009MON) THEN
-           LOCN2009ANN = .FALSE.
-           LOCN1997 = .FALSE.
-	ENDIF
-	IF (LOCN2009ANN) THEN
-		LOCN1997 = .FALSE.
-	ENDIF
-
-	!--- Ship Emissions -------------
-	IF (LSHIPICO) THEN
-           LSHIPEDG = .FALSE.
-	ENDIF
 
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
-      Input_Opt%LGENFF      = LGENFF
-      Input_Opt%LANNFF      = LANNFF
-      Input_Opt%LMONFF      = LMONFF
-      Input_Opt%LCHEMCO2    = LCHEMCO2
-      Input_Opt%LBIODAILY   = LBIODAILY
+	Input_Opt%LFOSSIL     = LFOSSIL
+	Input_Opt%LOCEAN      = LOCEAN
       Input_Opt%LBIODIURNAL = LBIODIURNAL
-      Input_Opt%LBIONETORIG = LBIONETORIG
       Input_Opt%LBIONETCLIM = LBIONETCLIM
-      Input_Opt%LOCN1997    = LOCN1997
-      Input_Opt%LOCN2009ANN = LOCN2009ANN
-      Input_Opt%LOCN2009MON = LOCN2009MON
-      Input_Opt%LSHIPEDG    = LSHIPEDG
-      Input_Opt%LSHIPICO    = LSHIPICO
+	Input_Opt%LSHIP       = LSHIP
       Input_Opt%LPLANE      = LPLANE
+      Input_Opt%LCHEMCO2    = LCHEMCO2
       Input_Opt%LFFBKGRD    = LFFBKGRD
       Input_Opt%LBIOSPHTAG  = LBIOSPHTAG
       Input_Opt%LFOSSILTAG  = LFOSSILTAG
@@ -3053,24 +2965,13 @@
          WRITE(6,'(/,a)') 'CO2 SIMULATION MENU ' //
      &        '(overwrites any other settings related to CO2)'
          WRITE(6,'(  a)') '-------------------------------------'
-         WRITE(6, 90    ) 'Fossil Fuel emissions'
-         WRITE(6,100    ) '  Generic FF emissions        :', LGENFF
-         WRITE(6,100    ) '  Annual FF emissions         :', LANNFF
-         WRITE(6,100    ) '  Monthly FF emissions        :', LMONFF
+         WRITE(6,100    ) 'National Fossil Fuel Emission :', LFOSSIL
+         WRITE(6,100    ) 'Ocean CO2 Uptake/Emission     :', LOCEAN
+         WRITE(6,100    ) 'Biosphere seas/diurnal cycle  :', LBIODIURNAL
+         WRITE(6,100    ) 'Net Terr Exch - Climatology   :', LBIONETCLIM
+         WRITE(6,100    ) 'Intl/Domestic Ship emissions  :', LSHIP 
+         WRITE(6,100    ) 'Intl/Domestic Aviation emiss  :', LPLANE 
          WRITE(6,100    ) 'CO2 from oxidation (CO,CH4,..):', LCHEMCO2
-         WRITE(6, 90    ) 'Terrestrial Exchange'
-         WRITE(6,100    ) '  CASA Biosphere daily average:', LBIODAILY
-         WRITE(6,100    ) '  CASA Biosphere diurnal cycle:', LBIODIURNAL
-         WRITE(6,100    ) '  Net Terr Exch - Original    :', LBIONETORIG
-         WRITE(6,100    ) '  Net Terr Exch - Climatology :', LBIONETCLIM
-         WRITE(6,90     ) 'Ocean Exchange' 
-         WRITE(6,100    ) '  Takahashi 1997              :', LOCN1997 
-         WRITE(6,100    ) '  Takahashi 2009 annual       :', LOCN2009ANN 
-         WRITE(6,100    ) '  Takahashi 2009 monthly      :', LOCN2009MON
-         WRITE(6,90     ) 'Ship and Plane Emissions' 
-         WRITE(6,100    ) '  EDGAR ship emissions        :', LSHIPEDG 
-         WRITE(6,100    ) '  ICOADS ship emissions       :', LSHIPICO 
-         WRITE(6,100    ) '  Aviation emissions          :', LPLANE 
          WRITE(6, 90    ) 'Tagged CO2 settings'
          WRITE(6,100    ) '  Save Fossil CO2 in Bckgrnd  :', LFFBKGRD 
          WRITE(6,100    ) '  Tag Biosphere/Ocean CO2     :', LBIOSPHTAG 
@@ -3638,6 +3539,9 @@
       Input_Opt%LSKYRAD(2) = LSKYRAD(2)
       Input_Opt%TS_RAD     = TS_RAD
 
+      ! Return success
+      RC                   = GIGC_SUCCESS
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -3884,6 +3788,9 @@
       CALL SET_TRANSPORT( IORD, JORD, KORD )
 #endif
 
+      ! Return success
+      RC = GIGC_SUCCESS
+
       END SUBROUTINE READ_TRANSPORT_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -4017,6 +3924,7 @@
 #endif
 
       ! Return success
+    
       RC = GIGC_SUCCESS
 
       !=================================================================
@@ -4541,11 +4449,6 @@
       !=================================================================
       ! READ_DIAGNOSTIC_MENU begins here!
       !=================================================================
-
-      ! Define collection number for netCDF diagnostics
-      ! (this number can be between 2 and 5)
-      !%%% NOTE, hardwire this for now, but eventually read from file
-      Input_Opt%DIAG_COLLECTION = 2
 
       ! Get fields from Input_Opt
       N_TRACERS = Input_Opt%N_TRACERS
@@ -6934,6 +6837,7 @@
       INTEGER            :: I0W,         J0W,         I1 
       INTEGER            :: I2,          J1,          J2
       INTEGER            :: N,           TS
+      INTEGER            :: I0E,         J0E
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -7002,9 +6906,16 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:15' )
       READ( SUBSTRS(1:N), * ) I2, J2
 
-      ! 1x1 transport region offsets 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:16' )
-      READ( SUBSTRS(1:N), * ) I0W, J0W     
+!-----------------------------------------------------------------------------
+! Prior to 4/1/15:
+!      ! 1x1 transport region offsets 
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:16' )
+!      READ( SUBSTRS(1:N), * ) I0W, J0W
+!-----------------------------------------------------------------------------
+
+      ! Nested grid transport offsets 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'read_nested_grid_menu:16' )
+      READ( SUBSTRS(1:N), * ) I0W, J0W, I0E, J0E
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:15' )
@@ -7012,20 +6923,22 @@
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
-      Input_Opt%LWINDO      = LWINDO
-      Input_Opt%LWINDO2x25  = LWINDO2x25
-      Input_Opt%LWINDO_NA   = LWINDO_NA
-      Input_Opt%LWINDO_EU   = LWINDO_EU
-      Input_Opt%LWINDO_CH   = LWINDO_CH
-      Input_Opt%LWINDO_SE   = LWINDO_SE
-      Input_Opt%LWINDO_CU   = LWINDO_CU
-      Input_Opt%NESTED_TS   = TS
-      Input_Opt%NESTED_I1   = I1
-      Input_Opt%NESTED_J1   = J1
-      Input_Opt%NESTED_I2   = I2
-      Input_Opt%NESTED_J2   = J2
-      Input_Opt%NESTED_I0W  = I0W
-      Input_Opt%NESTED_J0W  = J0W
+      Input_Opt%LWINDO     = LWINDO
+      Input_Opt%LWINDO2x25 = LWINDO2x25
+      Input_Opt%LWINDO_NA  = LWINDO_NA
+      Input_Opt%LWINDO_EU  = LWINDO_EU
+      Input_Opt%LWINDO_CH  = LWINDO_CH
+      Input_Opt%LWINDO_SE  = LWINDO_SE
+      Input_Opt%LWINDO_CU  = LWINDO_CU
+      Input_Opt%NESTED_TS  = TS
+      Input_Opt%NESTED_I1  = I1
+      Input_Opt%NESTED_J1  = J1
+      Input_Opt%NESTED_I2  = I2
+      Input_Opt%NESTED_J2  = J2
+      Input_Opt%NESTED_I0W = I0W
+      Input_Opt%NESTED_J0W = J0W
+      Input_Opt%NESTED_I0E = I0E
+      Input_Opt%NESTED_J0E = J0E
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -7042,20 +6955,22 @@
          WRITE( 6, 120 ) 'Timestep for 4x5 BC''s [min] : ', TS
          WRITE( 6, 120 ) 'Bot left  box of 4x5 BC area : ', I1,  J1
          WRITE( 6, 120 ) 'Top right box of 4x5 BC area : ', I2,  J2
-         WRITE( 6, 120 ) '1 x 1 window offsets         : ', I0W, J0W
+         WRITE( 6, 130 ) 'Nested grid window offsets   : ', I0W, J0W,
+     &                                                      I0E, J0E
       END IF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
  110  FORMAT( A, A   )
  120  FORMAT( A, 2I5 )
+ 130  FORMAT( A, 4I5 )
     
       !=================================================================
       ! Call setup routines from other F90 modules
       !=================================================================
 
       ! Pass values to "tpcore_bc_mod.f"
-      CALL INIT_TPCORE_BC( TS, I0W, J0W, I1, J1, I2, J2, Input_Opt )
+      CALL INIT_TPCORE_BC( am_I_Root, Input_Opt, RC )
 
       END SUBROUTINE READ_NESTED_GRID_MENU
 !EOC
@@ -8481,6 +8396,7 @@
 !
       USE Aerosol_Mod,        ONLY : Init_Aerosol
       USE Carbon_Mod,         ONLY : Init_Carbon
+      USE CO2_Mod,            ONLY : Init_CO2
       USE C2H6_Mod,           ONLY : Init_C2H6
       USE Chemgrid_Mod,       ONLY : Init_Chemgrid
       USE Drydep_Mod,         ONLY : Init_Drydep
@@ -8619,6 +8535,11 @@
       ! Hg modules are initialized in READ_MERCURY_MENU
       ! POPS modules are initialized in READ_POPS_MENU
       !-----------------------------------------------------------------
+
+      ! Initialize "co2_mod.F"
+      IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
+         CALL Init_CO2( am_I_Root, Input_Opt, RC )
+      ENDIF
 
       ! Initialize "c2h6_mod.F"
       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. 
