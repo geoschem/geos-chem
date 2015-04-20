@@ -133,7 +133,7 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: SNODP       ! Snow depth [m ] 
      TYPE(ExtDat_2R),  POINTER :: USTAR       ! Friction velocity [m/s] 
      TYPE(ExtDat_2R),  POINTER :: Z0          ! Sfc roughness height [m]
-     TYPE(ExtDat_2R),  POINTER :: TROPP       ! Tropopause pressure [hPa] 
+     TYPE(ExtDat_2R),  POINTER :: TROPP       ! Tropopause pressure [Pa] 
      TYPE(ExtDat_2R),  POINTER :: SUNCOSmid   ! COS (SZA) 
      TYPE(ExtDat_2R),  POINTER :: SZAFACT     ! current SZA/total daily SZA
      TYPE(ExtDat_2R),  POINTER :: PARDR       ! direct photsyn radiation [W/m2]

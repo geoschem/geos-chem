@@ -475,7 +475,7 @@ CONTAINS
        ENDIF
 
        ! Tropopause pressure. Convert to Pa
-       TROPP = ExtState%TROPP%Arr%Val(I,J) * 100.0_hp
+       TROPP = ExtState%TROPP%Arr%Val(I,J) !* 100.0_hp
 
        ! Initialize
        LBOTTOM       = 0 
