@@ -231,22 +231,12 @@ CONTAINS
     CH4wtl = CH4wtl + CH4rce 
 
     ! Set flux in HEMCO object [kg/m2/s]
-    CALL HCO_EmisAdd ( HcoState, CH4wtl, IDTtot, RC )
+    CALL HCO_EmisAdd ( am_I_Root, HcoState, CH4wtl, IDTtot, RC, ExtNr=ExtNr )
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL HCO_ERROR( 'HCO_EmisAdd error: CH4wtl', RC )
        RETURN 
     ENDIF
-      
-    ! Eventually update diagnostics
-    IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-       Arr2D => CH4wtl
-       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                          Cat=-1, Hier=-1, HcoID=IDTtot,     &
-                          AutoFill=1, Array2D=Arr2D, RC=RC   )
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-       Arr2D => NULL() 
-    ENDIF
-
+ 
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
 

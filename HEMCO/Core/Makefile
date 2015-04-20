@@ -172,6 +172,7 @@ hco_filedata_mod.o     : hco_filedata_mod.F90    \
 
 hco_fluxarr_mod.o      : hco_fluxarr_mod.F90     \
                          hco_arr_mod.o           \
+                         hco_diagn_mod.o         \
                          hco_error_mod.o         \
                          hco_state_mod.o
 
