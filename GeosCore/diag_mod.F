@@ -91,13 +91,13 @@
       REAL(fp),  ALLOCATABLE :: DIAGCHLORO(:,:,:,:)
 
       ! For ND24 -- E/W transport mass flux diagnostic
-      REAL(fp),  ALLOCATABLE :: MASSFLEW(:,:,:,:)
+      REAL(fp),  ALLOCATABLE, TARGET :: MASSFLEW(:,:,:,:)
 
       ! For ND25 -- N/S transport mass flux diagnostic
-      REAL(fp),  ALLOCATABLE :: MASSFLNS(:,:,:,:)
+      REAL(fp),  ALLOCATABLE, TARGET :: MASSFLNS(:,:,:,:)
 
       ! For ND26 -- UP/DOWN transport mass flux diagnostic
-      REAL(fp),  ALLOCATABLE :: MASSFLUP(:,:,:,:)
+      REAL(fp),  ALLOCATABLE, TARGET :: MASSFLUP(:,:,:,:)
 
       ! For ND30 -- land / water / ice flags
       REAL*4,  ALLOCATABLE :: AD30(:,:)
@@ -305,7 +305,7 @@
 !  21 Aug 2014 - R. Yantosca - AD01 is now only a 3-D array (for Pb emissions)
 !  12 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  20 Jan 2015 - R. Yantosca - Added DIAGINIT_TRACER_CONC routine
-
+!  15 Apr 2015 - R. Yantosca - Add TARGET spec to MASSFLEW, MASSFLNS, MASSFLUP
 !EOP
 !------------------------------------------------------------------------------
 !BOC

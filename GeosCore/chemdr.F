@@ -751,11 +751,11 @@
       ! therefore not needed anymore. It will just set REMIS to zero.
       !=================================================================
       CALL SETEMIS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!      
-!      !### Debug
-!      IF ( prtDebug ) THEN
-!         CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
-!      ENDIf
+      
+      !### Debug
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
+      ENDIf
 
       !================================================================
       ! Call chemistry routines

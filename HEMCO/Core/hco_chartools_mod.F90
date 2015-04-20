@@ -32,6 +32,7 @@ MODULE HCO_CharTools_Mod
   PUBLIC :: HCO_GetBase
   PUBLIC :: IsInWord
   PUBLIC :: NextCharPos
+  PUBLIC :: GetNextLine
   PUBLIC :: HCO_WCD
   PUBLIC :: HCO_SPC
   PUBLIC :: HCO_SEP
@@ -41,6 +42,7 @@ MODULE HCO_CharTools_Mod
   PUBLIC :: HCO_ROOTTOKEN
   PUBLIC :: HCO_METTOKEN
   PUBLIC :: HCO_RESTOKEN
+  PUBLIC :: HCO_READLINE
 !
 ! !REVISION HISTORY:
 !  18 Dec 2013 - C. Keller   - Initialization
@@ -1212,5 +1214,138 @@ CONTAINS
     TAB = DEF_TAB
 
   END FUNCTION HCO_TAB
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetNextLine 
+!
+! !DESCRIPTION: Subroutine GetNextLine returns the next line. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetNextLine( am_I_Root, LUN, LINE, EOF, RC ) 
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+    INTEGER,          INTENT(IN   ) :: LUN         ! Stream to read from
+!
+! !OUTPUT PARAMETERS
+!
+    CHARACTER(LEN=*), INTENT(  OUT) :: LINE        ! Next (valid) line in stream
+!
+! !INPUT/OUTPUT PARAMETERS
+!
+    LOGICAL,          INTENT(INOUT) :: EOF         ! End of file encountered? 
+    INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!  10 Apr 2015 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    INTEGER             :: IOS
+    CHARACTER(LEN=255)  :: DUM
+
+    !=================================================================
+    ! GetNextLine begins here
+    !=================================================================
+
+    ! Init
+    RC = HCO_SUCCESS
+
+    ! Repeat until valid line is encountered
+    DO
+       CALL HCO_ReadLine( LUN, DUM, EOF, RC )
+       IF ( EOF .OR. RC /= HCO_SUCCESS ) RETURN
+
+       ! Skip if empty or commented line 
+       IF ( TRIM(DUM) == ''        ) CYCLE
+       IF ( DUM(1:1)  == HCO_CMT() ) CYCLE
+
+       ! If we get here, exit loop
+       LINE = DUM
+       EXIT
+    ENDDO
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE GetNextLine 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_ReadLine 
+!
+! !DESCRIPTION: Subroutine HCO\_Line reads a line from the provided stream.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ReadLine( LUN, LINE, EOF, RC )
+!
+! !INPUT PARAMETERS: 
+!
+    INTEGER,          INTENT(IN   ) :: LUN      ! Stream LUN 
+!
+! !OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(INOUT) :: LINE     ! Line
+    LOGICAL,          INTENT(INOUT) :: EOF      ! End of file?
+    INTEGER,          INTENT(INOUT) :: RC       ! Return code 
+! 
+! !REVISION HISTORY: 
+!  18 Sep 2013 - C. Keller - Initial version (adapted from B. Yantosca's code) 
+!  15 Jul 2014 - R. Yantosca - Remove dependency on routine IOERROR
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER             :: IOS
+    CHARACTER(LEN=255)  :: MSG
+
+    !=================================================================
+    ! HCO_ReadLine begins here!
+    !=================================================================
+
+    ! Initialize
+    EOF = .FALSE.
+    RC  = HCO_SUCCESS
+
+    ! Read a line from the file
+    READ( LUN, '(a)', IOSTAT=IOS ) LINE
+
+    ! IO Status < 0: EOF condition
+    IF ( IOS < 0 ) THEN
+       EOF = .TRUE.
+       RETURN
+    ENDIF
+
+    ! IO Status > 0: true I/O error condition
+    IF ( IOS > 0 ) THEN
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+       WRITE( 6, 100   ) IOS
+100    FORMAT( 'ERROR ', i5, ' in HCO_Readline (hco_chartools_mod.F90)' )
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+       RC = HCO_FAIL
+       RETURN 
+    ENDIF
+
+  END SUBROUTINE HCO_ReadLine
 !EOC
 END MODULE HCO_CharTools_Mod

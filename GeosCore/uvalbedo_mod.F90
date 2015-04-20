@@ -125,7 +125,7 @@ CONTAINS
 
       ! Stop with error message
     IF ( RC /= GIGC_SUCCESS .or. ( .not. FND ) ) THEN
-       CALL ERROR_STOP ( 'Could not find UVALBEDO in HEMCO data list!', & 
+       CALL ERROR_STOP ( 'Could not find UV_ALBEDO in HEMCO data list!', & 
                          'READ_UVALBEDO (uvalbedo_mod.F90)' )
     ENDIF
 

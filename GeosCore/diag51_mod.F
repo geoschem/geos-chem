@@ -70,6 +70,9 @@
 !  181           : PAR diffuse                              [hPa        ]
 !  182           : Daily LAI                                [hPa        ]
 !  183           : Temperature at 2m                        [K          ]
+!
+! The following diagnostics are currently commented out since they are now
+! handled by HEMCO (mps, 4/15/15)
 !  184           : Isoprene emissions                       [atomC/cm2/s]
 !  185           : Total Monoterpene emissions              [atomC/cm2/s]
 !  186           : Methyl Butanol emissions                 [atomC/cm2/s]
@@ -120,6 +123,8 @@
 !  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  15 Apr 2015 - M. Sulprizio- Comment out emission diagnostics for now. These
+!                              are now handled by the HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1086,158 +1091,161 @@
 
                ENDIF
 
-            ELSE IF ( N == 184 ) THEN
-
-               !--------------------------------------
-               ! ISOPRENE EMISSIONS [atom C/cm2/s]
-               ! (mpb,2008)
-               !--------------------------------------
-
-               IF ( K == 1 ) THEN
-              
-                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                         ( EMISS_BVOC(I,J,1) * GOOD_EMIS(I) ) 
-
-               ENDIF
-
-            ELSE IF ( N == 185 ) THEN
-
-               !--------------------------------------
-               ! MONOTERPENE EMISSIONS [atomC/cm2/s]
-               ! (mpb,2008)
-               !--------------------------------------
-
-               IF ( K == 1 ) THEN
-              
-                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,2) * GOOD_EMIS(I) ) 
-               ENDIF
-
-            ELSE IF ( N == 186 ) THEN
-
-               !--------------------------------------
-               ! MBO EMISSIONS [atom C/cm2/s]
-               ! (mpb,2008)
-               !--------------------------------------
-
-               IF ( K == 1 ) THEN
-              
-                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,3) * GOOD_EMIS(I) ) 
-               ENDIF
-
-            ELSE IF ( N == 187 ) THEN
-
-               !--------------------------------------
-               ! A-PINENE EMISSIONS [atom C/cm2/s]
-               ! (mpb,2009)
-               !--------------------------------------
-
-               IF ( K == 1 ) THEN
-              
-                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,4) * GOOD_EMIS(I) ) 
-               ENDIF
-
-            ELSE IF ( N == 188 ) THEN
-
-               !--------------------------------------
-               ! B-PINENE EMISSIONS [atom C/cm2/s]
-               ! (mpb,2009)
-               !--------------------------------------
-
-               IF ( K == 1 ) THEN
-              
-                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,5) * GOOD_EMIS(I) ) 
-               ENDIF
-
-
-            ELSE IF ( N == 189 ) THEN
-
-               !--------------------------------------
-               ! LIMONENE EMISSIONS [atom C/cm2/s]
-               ! (mpb,2009)
-               !--------------------------------------
-
-               IF ( K == 1 ) THEN
-              
-                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,6) * GOOD_EMIS(I) ) 
-               ENDIF
-
-
-            ELSE IF ( N == 190 ) THEN
-
-               !--------------------------------------
-               ! SABINE EMISSIONS [atom C/cm2/s]
-               ! (mpb,2009)
-               !--------------------------------------
-
-               IF ( K == 1 ) THEN
-              
-                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,7) * GOOD_EMIS(I) ) 
-               ENDIF
-
-            ELSE IF ( N == 191 ) THEN
-
-               !--------------------------------------
-               ! MYRCENE EMISSIONS [atom C/cm2/s]
-               ! (mpb,2009)
-               !--------------------------------------
-
-               IF ( K == 1 ) THEN
-              
-                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,8) * GOOD_EMIS(I) ) 
-               ENDIF
-
-            ELSE IF ( N == 192 ) THEN
-
-               !--------------------------------------
-               ! 3-CARENE EMISSIONS [atom C/cm2/s]
-               ! (mpb,2009)
-               !--------------------------------------
-
-               IF ( K == 1 ) THEN
-              
-                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,9) * GOOD_EMIS(I) ) 
-               ENDIF
-
-            ELSE IF ( N == 193 ) THEN
-
-               !--------------------------------------
-               ! OCIMENE EMISSIONS [atom C/cm2/s]
-               ! (mpb,2009)
-               !--------------------------------------
-
-               IF ( K == 1 ) THEN
-              
-                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,10) * GOOD_EMIS(I) ) 
-               ENDIF
-
-            ELSE IF ( N == 194 ) THEN
-
-               !--------------------------------------
-               ! FARNESENE EMISSIONS [atom C/cm2/s]
-               ! (hotp 3/5/10)
-               !--------------------------------------
-
-               IF ( K == 1 ) THEN
-              
-                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( EMISS_BVOC(I,J,11) * GOOD_EMIS(I) ) 
-               ENDIF
-
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            !% SOAupdate: Can add BCARYO, OSQT, OMTP if desired  %
-            !% (hotp 7/25/10)                                    %
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-! ================================================================
+!------------------------------------------------------------------------------
+! Prior to 4/15/15:
+! The biogenic emission diagnostics are now archived in HEMCO. Comment out
+! temporarily until we can restore these. (mps, 4/15/15)
+!            ELSE IF ( N == 184 ) THEN
+!
+!               !--------------------------------------
+!               ! ISOPRENE EMISSIONS [atom C/cm2/s]
+!               ! (mpb,2008)
+!               !--------------------------------------
+!
+!               IF ( K == 1 ) THEN
+!              
+!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+!     &                         ( EMISS_BVOC(I,J,1) * GOOD_EMIS(I) ) 
+!
+!               ENDIF
+!
+!            ELSE IF ( N == 185 ) THEN
+!
+!               !--------------------------------------
+!               ! MONOTERPENE EMISSIONS [atomC/cm2/s]
+!               ! (mpb,2008)
+!               !--------------------------------------
+!
+!               IF ( K == 1 ) THEN
+!              
+!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+!     &                     ( EMISS_BVOC(I,J,2) * GOOD_EMIS(I) ) 
+!               ENDIF
+!
+!            ELSE IF ( N == 186 ) THEN
+!
+!               !--------------------------------------
+!               ! MBO EMISSIONS [atom C/cm2/s]
+!               ! (mpb,2008)
+!               !--------------------------------------
+!
+!               IF ( K == 1 ) THEN
+!              
+!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+!     &                     ( EMISS_BVOC(I,J,3) * GOOD_EMIS(I) ) 
+!               ENDIF
+!
+!            ELSE IF ( N == 187 ) THEN
+!
+!               !--------------------------------------
+!               ! A-PINENE EMISSIONS [atom C/cm2/s]
+!               ! (mpb,2009)
+!               !--------------------------------------
+!
+!               IF ( K == 1 ) THEN
+!              
+!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+!     &                     ( EMISS_BVOC(I,J,4) * GOOD_EMIS(I) ) 
+!               ENDIF
+!
+!            ELSE IF ( N == 188 ) THEN
+!
+!               !--------------------------------------
+!               ! B-PINENE EMISSIONS [atom C/cm2/s]
+!               ! (mpb,2009)
+!               !--------------------------------------
+!
+!               IF ( K == 1 ) THEN
+!              
+!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+!     &                     ( EMISS_BVOC(I,J,5) * GOOD_EMIS(I) ) 
+!               ENDIF
+!
+!
+!            ELSE IF ( N == 189 ) THEN
+!
+!               !--------------------------------------
+!               ! LIMONENE EMISSIONS [atom C/cm2/s]
+!               ! (mpb,2009)
+!               !--------------------------------------
+!
+!               IF ( K == 1 ) THEN
+!              
+!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+!     &                     ( EMISS_BVOC(I,J,6) * GOOD_EMIS(I) ) 
+!               ENDIF
+!
+!
+!            ELSE IF ( N == 190 ) THEN
+!
+!               !--------------------------------------
+!               ! SABINE EMISSIONS [atom C/cm2/s]
+!               ! (mpb,2009)
+!               !--------------------------------------
+!
+!               IF ( K == 1 ) THEN
+!              
+!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+!     &                     ( EMISS_BVOC(I,J,7) * GOOD_EMIS(I) ) 
+!               ENDIF
+!
+!            ELSE IF ( N == 191 ) THEN
+!
+!               !--------------------------------------
+!               ! MYRCENE EMISSIONS [atom C/cm2/s]
+!               ! (mpb,2009)
+!               !--------------------------------------
+!
+!               IF ( K == 1 ) THEN
+!              
+!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+!     &                     ( EMISS_BVOC(I,J,8) * GOOD_EMIS(I) ) 
+!               ENDIF
+!
+!            ELSE IF ( N == 192 ) THEN
+!
+!               !--------------------------------------
+!               ! 3-CARENE EMISSIONS [atom C/cm2/s]
+!               ! (mpb,2009)
+!               !--------------------------------------
+!
+!               IF ( K == 1 ) THEN
+!              
+!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+!     &                     ( EMISS_BVOC(I,J,9) * GOOD_EMIS(I) ) 
+!               ENDIF
+!
+!            ELSE IF ( N == 193 ) THEN
+!
+!               !--------------------------------------
+!               ! OCIMENE EMISSIONS [atom C/cm2/s]
+!               ! (mpb,2009)
+!               !--------------------------------------
+!
+!               IF ( K == 1 ) THEN
+!              
+!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+!     &                     ( EMISS_BVOC(I,J,10) * GOOD_EMIS(I) ) 
+!               ENDIF
+!
+!            ELSE IF ( N == 194 ) THEN
+!
+!               !--------------------------------------
+!               ! FARNESENE EMISSIONS [atom C/cm2/s]
+!               ! (hotp 3/5/10)
+!               !--------------------------------------
+!
+!               IF ( K == 1 ) THEN
+!              
+!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+!     &                     ( EMISS_BVOC(I,J,11) * GOOD_EMIS(I) ) 
+!               ENDIF
+!
+!            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!            !% SOAupdate: Can add BCARYO, OSQT, OMTP if desired  %
+!            !% (hotp 7/25/10)                                    %
+!            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!------------------------------------------------------------------------------
 
             ELSE
 

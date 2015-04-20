@@ -22,7 +22,6 @@
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
       USE COMODE_MOD,              ONLY : CLEANUP_COMODE
       USE GCKPP_COMODE_MOD,        ONLY : CLEANUP_GCKPP_COMODE
-      USE DAO_MOD,                 ONLY : CLEANUP_DAO
       USE DIAG_MOD,                ONLY : CLEANUP_DIAG
       USE DIAG03_MOD,              ONLY : CLEANUP_DIAG03
       USE DIAG04_MOD,              ONLY : CLEANUP_DIAG04
@@ -242,6 +241,7 @@
 !  11 Mar 2015 - R. Yantosca - Remove call to CLEANUP_GLOBAL_NOX
 !  16 Mar 2015 - R. Yantosca - Remove call to CLEANUP_HCN_CH3CN
 !  25 Mar 2015 - C. Keller   - Now cleanup UCX before emissisions.
+!  16 Apr 2015 - R. Yantosca - Remove call to CLEANUP_DAO; it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -276,7 +276,6 @@
       CALL CLEANUP_CO2()
       CALL CLEANUP_COMODE()
       CALL CLEANUP_GCKPP_COMODE()
-      CALL CLEANUP_DAO()
       CALL CLEANUP_DIAG()
       CALL CLEANUP_DIAG03()
       CALL CLEANUP_DIAG04()

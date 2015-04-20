@@ -22,9 +22,6 @@
 ! constant R = 8.314 JK-1mol-1.
 !\\
 !\\
-! Note that K0, CR and pKa are defined below.
-!\\
-!\\
 ! References:
 ! \begin{itemize}
 ! \item Sander, R: Compilation of Henry's law constant for inorganic and

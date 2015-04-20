@@ -115,7 +115,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_DIAGN_MOD,    ONLY : Diagn_Create
+    USE HCO_DIAGN_MOD,    ONLY : Diagn_Create, HcoDiagnIDRestart
     USE HCO_STATE_MOD,    ONLY : HCO_State
 !
 ! !INPUT ARGUMENTS:
@@ -144,18 +144,18 @@ CONTAINS
     ! ================================================================
 
     ! Define diagnostics array
-    CALL Diagn_Create ( am_I_Root,               & 
-                        HcoState   = HcoState,   &
-                        cName      = TRIM(Name), &
-                        ExtNr      = -1,         &
-                        Cat        = -1,         &
-                        Hier       = -1,         &
-                        HcoID      = -1,         &
-                        SpaceDim   =  3,         &
-                        OutUnit    = TRIM(Unit), &
-                        WriteFreq  = 'End',      &
-                        AutoFill   = 0,          &
-                        Trgt3D     = Arr3D,      &
+    CALL Diagn_Create ( am_I_Root,                      &
+                        HcoState   = HcoState,          &
+                        cName      = TRIM(Name),        &
+                        ExtNr      = -1,                &
+                        Cat        = -1,                &
+                        Hier       = -1,                &
+                        HcoID      = -1,                &
+                        SpaceDim   =  3,                &
+                        OutUnit    = TRIM(Unit),        &
+                        COL        = HcoDiagnIDRestart, &
+                        AutoFill   = 0,                 &
+                        Trgt3D     = Arr3D,             &
                         RC         = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -186,7 +186,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_DIAGN_MOD,    ONLY : Diagn_Create
+    USE HCO_DIAGN_MOD,    ONLY : Diagn_Create, HcoDiagnIDRestart
     USE HCO_STATE_MOD,    ONLY : HCO_State
 !
 ! !INPUT ARGUMENTS:
@@ -215,19 +215,19 @@ CONTAINS
     ! ================================================================
 
     ! Define diagnostics array
-    CALL Diagn_Create ( am_I_Root,               & 
-                        HcoState   = HcoState,   &
-                        cName      = TRIM(Name), &
-                        ExtNr      = -1,         &
-                        Cat        = -1,         &
-                        Hier       = -1,         &
-                        HcoID      = -1,         &
-                        SpaceDim   =  2,         &
-                        OutUnit    = TRIM(Unit), &
-                        WriteFreq  = 'End',      &
-                        AutoFill   = 0,          &
-                        Trgt2D     = Arr2D,      &
-                        RC         = RC )
+    CALL Diagn_Create ( am_I_Root,                      & 
+                        HcoState   = HcoState,          &
+                        cName      = TRIM(Name),        &
+                        ExtNr      = -1,                &
+                        Cat        = -1,                &
+                        Hier       = -1,                &
+                        HcoID      = -1,                &
+                        SpaceDim   =  2,                &
+                        OutUnit    = TRIM(Unit),        &
+                        COL        = HcoDiagnIDRestart, &
+                        AutoFill   = 0,                 &
+                        Trgt2D     = Arr2D,             &
+                        RC         = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
