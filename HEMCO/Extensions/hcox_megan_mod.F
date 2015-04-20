@@ -2848,6 +2848,10 @@
 !  (1 ) Created by dbm (6/2012). We are not currently using a soil moisture
 !       effect for isoprene. For all compounds other than acetaldehyde and
 !       ethanol, gamma_sm =1 presently.
+!  16 Apr 2015 - C. Keller   - Now restrict GWETROOT to values between 0.0 and
+!                              1.0. This only seems to be a problem within the
+!                              GEOS-5 ESM, where GWETROOT values over the ocean
+!                              become 1e+15 (= missing value). 
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -2865,7 +2869,9 @@
       ! GWETROOT is only defined for GEOS-5
 #if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
 
-      GWETROOT = ExtState%GWETROOT%Arr%Val(I,J)
+      !GWETROOT = ExtState%GWETROOT%Arr%Val(I,J)
+      ! Error trap: GWETROOT must be between 0.0 and 1.0 (ckeller, 4/16/15)
+      GWETROOT = MIN(MAX(ExtState%GWETROOT%Arr%Val(I,J),0.0_hp),1.0_hp)
 
       IF ( TRIM( CMPD ) == 'ALD2' .OR. TRIM ( CMPD ) == 'ETOH' ) THEN
          
@@ -4434,9 +4440,13 @@
       ExtState%SUNCOSmid%DoUse = .TRUE.
       ExtState%PARDR%DoUse     = .TRUE.
       ExtState%PARDF%DoUse     = .TRUE.
-      ExtState%SZAFACT%DoUse   = .TRUE.
       ExtState%GC_LAI%DoUse    = .TRUE.
       ExtState%GWETROOT%DoUse  = .TRUE.
+
+      ! SZAFACT field is only used for SOA simulation
+      IF ( ExtNrSoa > 0 ) THEN
+         ExtState%SZAFACT%DoUse = .TRUE.
+      ENDIF
 
       ! Enable module 
       ExtState%Megan = .TRUE.

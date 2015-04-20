@@ -1647,24 +1647,17 @@
       INTEGER, INTENT(INOUT)   :: RC
 
       ! Local variables
-      INTEGER                  :: I
+      INTEGER                  :: I, TMP
       CHARACTER(LEN=255)       :: MSG
 
       !=================================================================
       ! SFC_TYP_GET begins here!
       !=================================================================
       DO I = 1, HcoState%NX
-         SFC_TYP_OUT(I) = INT(SFC_TYP(I,J))
-         
-         ! SFC_TYP_OUT must not exceed highest surface type number
-         ! (ckeller, 2014/07/24)
-         IF ( SFC_TYP_OUT(I) > NN_SFCTYP ) THEN
-            MSG = 'Surface type is too high. Please check regridding' 
-     &            // ' of DEAD_SFC_TYPE!'
-            CALL HCO_ERROR ( MSG, RC, 
-     &              THISLOC='SFC_TYP_GET (hcox_dustdead_mod.F90)' )
-            RETURN
-         ENDIF
+         TMP = INT(SFC_TYP(I,J))
+
+         ! Make sure value is within valid range (1 - NN_SFCTYP).
+         SFC_TYP_OUT(I) = MAX( MIN(TMP,NN_SFCTYP), 0 )         
       ENDDO
 
       ! Return with success

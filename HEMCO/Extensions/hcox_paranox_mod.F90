@@ -918,6 +918,7 @@ CONTAINS
 !                              after displaying text about PARANOX extension
 !  16 Oct 2014 - C. Keller   - Added error check after READ_PARANOX_LUT
 !  17 Oct 2014 - C. Keller   - Now parse input files via HCO_CharParse
+!  17 Apr 2015 - C. Keller   - Now assign PARANOX_SUNCOS1 to SC5(:,:,1), etc.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1285,9 +1286,18 @@ CONTAINS
       WRITE(CHAR1,'(I1)') I
       DiagnName = 'PARANOX_SUNCOS'//TRIM(CHAR1)
 
-      ! Define as restart variable
+      ! Define restart variable.
+      ! IMPORTANT NOTE: PARANOX_SUNCOS1 refers to the SZA from one hour
+      ! ago, PARANOX_SUNCOS2 is the SZA 2 hours ago, etc. At any given
+      ! simulation time, SC5(:,:,1) holds the current SZA, SC5(:,:,2) 
+      ! holds SZA -1 hour, etc. Since SC5 is not updated any more on 
+      ! the final time step, assign SC5(:,:,1) to PARANOX_SUNCOS1, 
+      ! SC5(:,:,2) to PARANOX_SUNCOS2, etc.
+      ! For example, if the simulation ends on Aug 1, 00:00, SC5(:,:,1)
+      ! is last updated on Jul 31, 23:00, and this value needs be stored
+      ! in PARANOX_SUNCOS1 (ckeller, 4/17/2015).
       CALL HCO_RestartDefine ( am_I_Root, HcoState, TRIM(DiagnName), &
-                               SC5(:,:,I+1), '1',   RC )
+                               SC5(:,:,I), '1',   RC )
    ENDDO
 
    !------------------------------------------------------------------------ 
@@ -2659,6 +2669,7 @@ CONTAINS
 
             MSG = 'LUT error: Fracnox should be between 0 and 1!'
             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+            RETURN
          ENDIF
 
          !-----------------------------------

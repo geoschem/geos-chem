@@ -866,8 +866,8 @@ CONTAINS
 
        ! Verbose mode
        IF ( HCO_IsVerb(2) ) THEN
-          WRITE(MSG,*) 'Based on srcUnit attribute, no unit conversion is ', &
-                       'performed: ', TRIM(Lct%Dct%Dta%OrigUnit)
+          WRITE(MSG,*) 'Based on srcUnit attribute (', TRIM(Lct%Dct%Dta%OrigUnit), &
+                       '), no unit conversion is performed.'
           CALL HCO_MSG(MSG)
        ENDIF
 

@@ -608,22 +608,18 @@ CONTAINS
        ENDIF
 
        ! -------------------------------------------------------------
-       ! Check for emission shortcuts. Base emissions can be bracketed
-       ! into 'collections'. 
+       ! Check for emission shortcuts. Fields can be bracketed into 
+       ! 'collections'. 
        ! -------------------------------------------------------------
-       IF ( DctType == HCO_DCTTYPE_BASE ) THEN
-
-          CALL BracketCheck( am_I_Root, STAT, LINE, SKIP, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL BracketCheck( am_I_Root, STAT, LINE, SKIP, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
  
-          ! Skip if needed
-          IF ( SKIP ) CYCLE
+       ! Skip if needed
+       IF ( SKIP ) CYCLE
 
-          ! Can advance to next line if this was a bracket line: nothing
-          ! else to do with this line.
-          IF ( STAT == 5 .OR. STAT == 6 ) CYCLE
-
-       ENDIF
+       ! Can advance to next line if this was a bracket line: nothing
+       ! else to do with this line.
+       IF ( STAT == 5 .OR. STAT == 6 ) CYCLE
 
        ! Read include file. Configuration files can be 'nested', e.g. 
        ! configuration files can be included into the 'main' configuration
@@ -1012,9 +1008,6 @@ CONTAINS
 
           ! If bracket name not found in options, skip content.
           IF ( .NOT. FOUND ) THEN
-!             MSG = 'This data collection is not defined - skip: '// &
-!                   TRIM(CheckBracket)
-!             CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
              SKIP = .TRUE.
           ! Use value defined in HEMCO configuration file.
           ELSE

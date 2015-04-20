@@ -624,7 +624,7 @@ CONTAINS
     ! Read settings specified in configuration file
     ! Note: the specified strings have to match those in 
     !       the config. file!
-    CALL GetExtOpt ( ExtNr, 'fertilizer NO', &
+    CALL GetExtOpt ( ExtNr, 'Use fertilizer NOx', &
                      OptValBool=LFERTILIZERNOX, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
  
