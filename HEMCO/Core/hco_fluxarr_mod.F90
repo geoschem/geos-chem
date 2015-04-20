@@ -928,13 +928,13 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
     TYPE(HCO_State), INTENT(INOUT)                   :: HcoState
-    REAL(hp),        INTENT(INOUT), OPTIONAL, TARGET :: Arr3D(   HcoState%NX, &
+    REAL(dp),        INTENT(INOUT), OPTIONAL, TARGET :: Arr3D(   HcoState%NX, &
                                                                  HcoState%NY, &
                                                                  HcoState%NZ )
     REAL(sp),        INTENT(INOUT), OPTIONAL, TARGET :: Arr3Dsp( HcoState%NX, &
                                                                  HcoState%NY, &
                                                                  HcoState%NZ )
-    REAL(hp),        INTENT(INOUT), OPTIONAL, TARGET :: Arr2D(   HcoState%NX, &
+    REAL(dp),        INTENT(INOUT), OPTIONAL, TARGET :: Arr2D(   HcoState%NX, &
                                                                  HcoState%NY ) 
     REAL(sp),        INTENT(INOUT), OPTIONAL, TARGET :: Arr2Dsp( HcoState%NX, &
                                                                  HcoState%NY )
@@ -950,9 +950,9 @@ CONTAINS
 !
     INTEGER :: AFL, XT, CT, HR
 
-    REAL(hp), POINTER :: Ptr3D  (:,:,:) => NULL()
+    REAL(dp), POINTER :: Ptr3D  (:,:,:) => NULL()
     REAL(sp), POINTER :: Ptr3Dsp(:,:,:) => NULL()
-    REAL(hp), POINTER :: Ptr2D  (:,:)   => NULL()
+    REAL(dp), POINTER :: Ptr2D  (:,:)   => NULL()
     REAL(sp), POINTER :: Ptr2Dsp(:,:)   => NULL()
 
     !=====================================================================
@@ -1004,7 +1004,7 @@ CONTAINS
        IF ( PRESENT(Arr3Dsp) ) THEN
           Ptr3Dsp => Arr3Dsp
           CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
-                             HcoID=HcoID, AutoFill=1, Array3D_SP=Ptr3Dsp, RC=RC )
+                             HcoID=HcoID, AutoFill=1, Array3D=Ptr3Dsp, RC=RC )
           Ptr3Dsp => NULL() 
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF
@@ -1022,7 +1022,7 @@ CONTAINS
        IF ( PRESENT(Arr2Dsp) ) THEN
           Ptr2Dsp => Arr2Dsp
           CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
-                             HcoID=HcoID, AutoFill=1, Array2D_SP=Ptr2Dsp, RC=RC )
+                             HcoID=HcoID, AutoFill=1, Array2D=Ptr2Dsp, RC=RC )
           Ptr2Dsp => NULL() 
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF

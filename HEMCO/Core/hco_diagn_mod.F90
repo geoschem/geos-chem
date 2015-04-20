@@ -116,6 +116,7 @@ MODULE HCO_Diagn_Mod
   PUBLIC  :: Diagn_TotalGet
   PUBLIC  :: Diagn_AutoFillLevelDefined
   PUBLIC  :: Diagn_Print
+  PUBLIC  :: Diagn_DefineFromConfig
   PUBLIC  :: DiagnCont_Find
   PUBLIC  :: DiagnCollection_Create
   PUBLIC  :: DiagnCollection_Cleanup
@@ -123,7 +124,6 @@ MODULE HCO_Diagn_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PUBLIC  :: Diagn_DefineFromConfig
   PRIVATE :: DiagnList_Cleanup 
   PRIVATE :: DiagnCont_Init
   PRIVATE :: DiagnCont_PrepareOutput
@@ -132,6 +132,12 @@ MODULE HCO_Diagn_Mod
   PRIVATE :: DiagnCont_Cleanup
   PRIVATE :: DiagnCollection_DefineID 
   PRIVATE :: DiagnCollection_Find
+  PRIVATE :: Diagn_UpdateDriver
+
+  INTERFACE Diagn_Update
+     MODULE PROCEDURE Diagn_UpdateSP 
+     MODULE PROCEDURE Diagn_UpdateDP 
+  END INTERFACE
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller   - Initialization
@@ -1112,13 +1118,153 @@ CONTAINS
   END SUBROUTINE Diagn_Create
 !EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: Diagn_UpdateSp
+!
+! !DESCRIPTION: Subroutine Diagn\_UpdateSp is the wrapper routine to update 
+! the diagnostics for single precision arrays. It invokes the main diagnostics
+! update routine with the appropriate arguments. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diagn_UpdateSP( am_I_Root, cID,      cName,                  &
+                           ExtNr,     Cat,        Hier,       HcoID,      &
+                           AutoFill,  Scalar,     Array2D,    Array3D,    &
+                           Total,     PosOnly,    COL,        RC           )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root         ! Root CPU?
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID               ! Assigned 
+                                                                   !  container ID
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName             ! Diagnostics 
+                                                                   !  name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr             ! Extension #
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat               ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier              ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID             ! HEMCO species
+                                                                   !  ID number 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill          ! 1=yes; 0=no; 
+                                                                   ! -1=either 
+    REAL(sp),         INTENT(IN   ), OPTIONAL :: Scalar            ! 1D scalar 
+    REAL(sp),         POINTER,       OPTIONAL :: Array2D   (:,:)   ! 2D array 
+    REAL(sp),         POINTER,       OPTIONAL :: Array3D   (:,:,:) ! 3D array 
+    REAL(sp),         INTENT(IN   ), OPTIONAL :: Total             ! Total 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly           ! Use only vals
+                                                                   !  >= 0?
+    INTEGER,          INTENT(IN   ), OPTIONAL :: COL               ! Collection Nr.
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: RC                ! Return code 
+!
+! !REVISION HISTORY:
+!  20 Apr 2015 - C. Keller - Initialization
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Call down to driver routine
+    CALL Diagn_UpdateDriver( am_I_Root, & 
+                       cID = cID, & 
+                       cName = cName, & 
+                       ExtNr = ExtNr, & 
+                       Cat = Cat, & 
+                       Hier = Hier, & 
+                       HcoID = HcoID, & 
+                       AutoFill = AutoFill, & 
+                       Scalar_SP = Scalar, & 
+                       Array2D_SP = Array2D, & 
+                       Array3D_SP = Array3D, & 
+                       Total_SP   = Total,   & 
+                       PosOnly = PosOnly, & 
+                       COL = COL, & 
+                       RC = RC )
+
+  END SUBROUTINE Diagn_UpdateSp
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: Diagn_UpdateDp
+!
+! !DESCRIPTION: Subroutine Diagn\_UpdateDp is the wrapper routine to update 
+! the diagnostics for double precision arrays. It invokes the main diagnostics
+! update routine with the appropriate arguments. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diagn_UpdateDP( am_I_Root, cID,      cName,                  &
+                           ExtNr,     Cat,        Hier,       HcoID,      &
+                           AutoFill,  Scalar,     Array2D,    Array3D,    &
+                           Total,     PosOnly,    COL,        RC           )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root         ! Root CPU?
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID               ! Assigned 
+                                                                   !  container ID
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName             ! Diagnostics 
+                                                                   !  name
+    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr             ! Extension #
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat               ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier              ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID             ! HEMCO species
+                                                                   !  ID number 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill          ! 1=yes; 0=no; 
+                                                                   ! -1=either 
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Scalar            ! 1D scalar 
+    REAL(dp),         POINTER,       OPTIONAL :: Array2D   (:,:)   ! 2D array 
+    REAL(dp),         POINTER,       OPTIONAL :: Array3D   (:,:,:) ! 3D array 
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Total             ! Total 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly           ! Use only vals
+                                                                   !  >= 0?
+    INTEGER,          INTENT(IN   ), OPTIONAL :: COL               ! Collection Nr.
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: RC                ! Return code 
+!
+! !REVISION HISTORY:
+!  20 Apr 2015 - C. Keller - Initialization
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Call down to driver routine
+    CALL Diagn_UpdateDriver( am_I_Root, & 
+                       cID = cID, & 
+                       cName = cName, & 
+                       ExtNr = ExtNr, & 
+                       Cat = Cat, & 
+                       Hier = Hier, & 
+                       HcoID = HcoID, & 
+                       AutoFill = AutoFill, & 
+                       Scalar = Scalar, & 
+                       Array2D = Array2D, & 
+                       Array3D = Array3D, & 
+                       Total   = Total,   & 
+                       PosOnly = PosOnly, & 
+                       COL = COL, & 
+                       RC = RC )
+
+  END SUBROUTINE Diagn_UpdateDp
+!EOC
+!------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: Diagn_Update
+! !ROUTINE: Diagn_UpdateDriver
 !
-! !DESCRIPTION: Subroutine Diagn\_Update updates the content of a 
+! !DESCRIPTION: Subroutine Diagn\_UpdateDriver updates the content of a 
 ! diagnostics container. The container to be updated is determined
 ! from the passed variables. If a valid (i.e. positive) container 
 ! ID is provided, this container is used. Otherwise, if a valid 
@@ -1151,11 +1297,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_Update( am_I_Root, cID,        cName,                  &
-                           ExtNr,     Cat,        Hier,       HcoID,      &
-                           AutoFill,  Scalar,     Array2D,    Array3D,    &
-                           Total,     Scalar_SP,  Array2D_SP, Array3D_SP, &
-                           Total_SP,  PosOnly,    COL,        RC           )
+  SUBROUTINE Diagn_UpdateDriver( am_I_Root, cID,        cName,                  &
+                                 ExtNr,     Cat,        Hier,       HcoID,      &
+                                 AutoFill,  Scalar,     Array2D,    Array3D,    &
+                                 Total,     Scalar_SP,  Array2D_SP, Array3D_SP, &
+                                 Total_SP,  PosOnly,    COL,        RC           )
 !
 ! !USES:
 !
@@ -1176,10 +1322,10 @@ CONTAINS
                                                                    !  ID number 
     INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill          ! 1=yes; 0=no; 
                                                                    ! -1=either 
-    REAL(hp),         INTENT(IN   ), OPTIONAL :: Scalar            ! 1D scalar 
-    REAL(hp),         POINTER,       OPTIONAL :: Array2D   (:,:)   ! 2D array 
-    REAL(hp),         POINTER,       OPTIONAL :: Array3D   (:,:,:) ! 3D array 
-    REAL(hp),         INTENT(IN   ), OPTIONAL :: Total             ! Total 
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Scalar            ! 1D scalar 
+    REAL(dp),         POINTER,       OPTIONAL :: Array2D   (:,:)   ! 2D array 
+    REAL(dp),         POINTER,       OPTIONAL :: Array3D   (:,:,:) ! 3D array 
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Total             ! Total 
     REAL(sp),         INTENT(IN   ), OPTIONAL :: Scalar_SP         ! 1D scalar 
     REAL(sp),         POINTER,       OPTIONAL :: Array2D_SP(:,:)   ! 2D array 
     REAL(sp),         POINTER,       OPTIONAL :: Array3D_SP(:,:,:) ! 3D array 
@@ -1226,11 +1372,11 @@ CONTAINS
     LOGICAL                        :: InUse, SearchAll
 
     !======================================================================
-    ! Diagn_Update begins here!
+    ! Diagn_UpdateDriver begins here!
     !======================================================================
 
     ! Init
-    LOC = 'Diagn_Update (hco_diagn_mod.F90)'
+    LOC = 'Diagn_UpdateDriver (hco_diagn_mod.F90)'
     RC  = HCO_SUCCESS
 
     ! Get collection number. 
@@ -1451,7 +1597,6 @@ CONTAINS
      
              IF ( PRESENT(Array3D_SP) .OR. PRESENT(Array3D) .OR. & 
                   PRESENT(Array2D_SP) .OR. PRESENT(Array2D)       ) THEN
-         
  
                 ! Make sure dimensions agree and diagnostics array is allocated
                 CALL HCO_ArrAssert( ThisDiagn%Arr2D, ThisColl%NX, &
@@ -1636,7 +1781,7 @@ CONTAINS
     ThisColl  => NULL()
     RC        =  HCO_SUCCESS
 
-  END SUBROUTINE Diagn_Update
+  END SUBROUTINE Diagn_UpdateDriver
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
