@@ -3940,7 +3940,6 @@
 
          ! Diagnostic category and units for BPCH output
          CATEGORY = 'BIOGSRCE'
-         UNIT     = 'atoms C/cm2/s'
 
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          !%%% NOTE: FACTOR is the multiplication factor that converts
@@ -3955,6 +3954,7 @@
          !-----------------------------------------------------------
          IF ( IDTISOP > 0 ) THEN
             DiagnName = 'BIOGENIC_ISOP'
+            UNIT      = 'atoms C/cm2/s'
             N         = 1         
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTISOP) / CM2PERM2
@@ -3968,6 +3968,7 @@
          !%%%%% ACETONE %%%%%
          !-----------------------------------------------------------
          IF ( IDTACET > 0 ) THEN
+            UNIT   = 'atoms C/cm2/s'
             N      = 2
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR = Input_Opt%XNUMOL(IDTACET) / CM2PERM2 
@@ -4035,6 +4036,7 @@
          !-----------------------------------------------------------
          IF ( IDTPRPE > 0 ) THEN
             DiagnName = 'BIOGENIC_PRPE'
+            UNIT      = 'atoms C/cm2/s'
             N         = 3
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTPRPE) / CM2PERM2
@@ -4050,6 +4052,7 @@
          ! APIN + BPIN + LIMO + SABI + MYRC + CARE + OCIM + OMON
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_MONX'
+         UNIT      = 'atoms C/cm2/s'
          N         = 4
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4062,6 +4065,7 @@
          !%%%%% METHYL BUTENOL %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_MBOX'
+         UNIT      = 'atoms C/cm2/s'
          N         = 5
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 5e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4075,6 +4079,7 @@
          !-----------------------------------------------------------
          IF ( IDTC2H4 > 0 ) THEN
             DiagnName = 'BIOGENIC_C2H4'
+            UNIT      = 'atoms C/cm2/s'
             N         = 6
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTC2H4) / CM2PERM2
@@ -4088,6 +4093,7 @@
          !%%%%% ALPHA-PINENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_APIN'
+         UNIT      = 'atoms C/cm2/s'
          N         = 7
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4100,6 +4106,7 @@
          !%%%%% BETA-PINENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_BPIN'
+         UNIT      = 'atoms C/cm2/s'
          N         = 8
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4112,6 +4119,7 @@
          !%%%%% LIMONENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_LIMO'
+         UNIT      = 'atoms C/cm2/s'
          N         = 9
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4124,6 +4132,7 @@
          !%%%%% SABINENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_SABI'
+         UNIT      = 'atoms C/cm2/s'
          N         = 10
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4136,6 +4145,7 @@
          !%%%%% MYRCENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_MYRC'
+         UNIT      = 'atoms C/cm2/s'
          N         = 11
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4148,6 +4158,7 @@
          !%%%%% 3-CARENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_CARE'
+         UNIT      = 'atoms C/cm2/s'
          N         = 12
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4160,6 +4171,7 @@
          !%%%%% OCIMENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_OCIM'
+         UNIT      = 'atoms C/cm2/s'
          N         = 13
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4172,6 +4184,7 @@
          !%%%%% FORMIC ACID %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_FAXX'
+         UNIT      = 'molec/cm2/s'
          N         = 14
          ! Conversion factor from kg/m2/s to molec/cm2/s
          FACTOR    = ( HcoState%Phys%Avgdr / 46.025e+0_hp ) / CM2PERM2
@@ -4183,6 +4196,7 @@
          !%%%%% ACETIC ACID %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_AAXX'
+         UNIT      = 'molec/cm2/s'
          N         = 15
          ! Conversion factor from kg/m2/s to molec/cm2/s
          FACTOR    = ( HcoState%Phys%Avgdr / 60.052e+0_hp ) / CM2PERM2
@@ -4195,6 +4209,7 @@
          !-----------------------------------------------------------
          IF ( IDTALD2 > 0 ) THEN
             DiagnName = 'BIOGENIC_ALD2'
+            UNIT      = 'atoms C/cm2/s'
             N         = 16
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTALD2) / CM2PERM2
@@ -4208,6 +4223,7 @@
          !%%%%% OTHER MONOTERPENES %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_OMON'
+         UNIT      = 'atoms C/cm2/s'
          N         = 17
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4220,6 +4236,7 @@
          !%%%%% METHANOL %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_MOHX'
+         UNIT      = 'molec/cm2/s'
          N         = 18
          ! Conversion factor from kg/m2/s to molec/cm2/s
          FACTOR    =  ( HcoState%Phys%Avgdr / 32.042e+0_hp )/ CM2PERM2
@@ -4231,6 +4248,7 @@
          !%%%%% ETHANOL %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_ETOH'
+         UNIT      = 'atoms C/cm2/s'
          N         = 19
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 2e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4243,6 +4261,7 @@
          !%%%%% FARNESENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_FARN'
+         UNIT      = 'atoms C/cm2/s'
          N         = 20
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 15e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4255,6 +4274,7 @@
          !%%%%% B-CARYOPHYLLENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_BCAR'
+         UNIT      = 'atoms C/cm2/s'
          N         = 21
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 15e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4267,6 +4287,7 @@
          !%%%%% OTHER SESQUITERPENES %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_OSQT'
+         UNIT      = 'atoms C/cm2/s'
          N         = 22
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 15e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4280,6 +4301,7 @@
          !-----------------------------------------------------------
          IF ( IDTCHBr3 > 0 ) THEN
             DiagnName = 'BIOGENIC_CHBR3'
+            UNIT      = 'kg/m2/s'
             N         = 23
             FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -4292,6 +4314,7 @@
          !-----------------------------------------------------------
          IF ( IDTCH2Br2 > 0 ) THEN
             DiagnName = 'BIOGENIC_CH2BR2'
+            UNIT      = 'kg/m2/s'
             N         = 24
             FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -4304,6 +4327,7 @@
          !-----------------------------------------------------------
          IF ( IDTBr2 > 0 ) THEN
             DiagnName = 'SEASALT_BR2'
+            UNIT      = 'kg/m2/s'
             N         = 25
             FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -4317,6 +4341,7 @@
          ! Total biogenic CH4 = wetlands + other natural - soil absorb
          !-----------------------------------------------------------
          IF ( IDTCH4 > 0 ) THEN
+            UNIT      = 'molec/cm2/s'
             N         = 26
             ! Conversion factor from kg/m2/s to molec/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTCH4) / CM2PERM2
