@@ -2354,8 +2354,8 @@ CONTAINS
       ! J(O1D), 1/s
       JO1D = ExtState%JO1D%Arr%Val(I,J)
 
-      ! H2O, molec/cm3. Get from specific humidity, which is in g/kg.
-      H2O = ExtState%SPHU%Arr%Val(I,J,1) / 1.0e3_sp * DENS &
+      ! H2O, molec/cm3. Get from specific humidity, which is in kg/kg.
+      H2O = ExtState%SPHU%Arr%Val(I,J,1) * DENS &
           * HcoState%Phys%AIRMW / MWH2O 
          
       ! Calculate J(OH), the effective rate for O3+hv -> OH+OH,

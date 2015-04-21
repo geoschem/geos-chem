@@ -922,6 +922,15 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! SPHU: GEOS-Chem SPHU is in g/kg, while HEMCO uses kg/kg.
+    ! NOTE: HEMCO only uses SPHU surface values.
+    IF ( ExtState%SPHU%DoUse ) THEN
+       CALL HCO_ArrAssert( ExtState%SPHU%Arr, IIPAR, JJPAR, 1, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Allocate ExtState%SPHU', LOC )
+       ENDIF
+    ENDIF
+
     ! Leave with success
     RC = GIGC_SUCCESS
 
@@ -1169,10 +1178,6 @@ CONTAINS
           OnLevEdge=.TRUE. )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SPHU, &
-             'SPHU', HCRC,      FIRST,    State_Met%SPHU  )
-    IF ( HCRC /= HCO_SUCCESS ) RETURN
-
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%TK, &
                'TK', HCRC,      FIRST,    State_Met%T   )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
@@ -1328,6 +1333,11 @@ CONTAINS
     ! TROPP: convert from hPa to Pa
     IF ( ExtState%TROPP%DoUse ) THEN
        ExtState%TROPP%Arr%Val = State_Met%TROPP * 100.0_hp
+    ENDIF
+
+    ! SPHU: convert from g/kg to kg/kg. Only need surface value. 
+    IF ( ExtState%SPHU%DoUse ) THEN
+       ExtState%SPHU%Arr%Val(:,:,1) = State_Met%SPHU(:,:,1) / 1000.0_hp
     ENDIF
 
     ! If we need to use the SZAFACT scale factor (i.e. to put a diurnal
@@ -2539,53 +2549,6 @@ CONTAINS
        ENDIF
 
     ENDIF 
-
-    !-----------------------------------------------------------------
-    ! Make sure that the SHIPNO_BASE toggle is disabled if PARANOx is
-    ! being used. This is to avoid double-counting of ship NO 
-    ! emissions. Search through all extensions (--> ExtNr = -999).
-    !-----------------------------------------------------------------
-    CALL GetExtOpt( -999, 'SHIPNO_BASE', OptValBool=LTMP, &
-                    FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'GetExtOpt SHIPNO_BASE', LOC )
-    ENDIF
-    ExtNr = GetExtNr( 'ParaNOx' )
-
-    ! It is not recommended to set +SHIPNO+ explicitly in the HEMCO
-    ! configuration file!
-    IF ( FOUND ) THEN
-       IF ( ExtNr > 0 .AND. LTMP ) THEN
-          MSG = 'Cannot use SHIPNO_BASE together with PARANOx:' // &
-          'This would double-count NO ship emissions!'
-          CALL ERROR_STOP( MSG, LOC )
-       ENDIF
-    ENDIF
-
-    !-----------------------------------------------------------------
-    ! Make sure that BOND_BIOMASS toggle is disabled if GFED or FINN
-    ! are being used. This is to avoid double-counting of biomass
-    ! burning emissions. Search through all extensions (--> ExtNr = 
-    ! -999).
-    !-----------------------------------------------------------------
-    CALL GetExtOpt( -999, 'BOND_BIOMASS', OptValBool=LTMP, &
-                    FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'GetExtOpt BOND_BIOMASS', LOC )
-    ENDIF
-    ExtNr = GetExtNr( 'FINN' )
-    IF ( ExtNr <= 0 ) THEN
-       ExtNr = GetExtNr( 'GFED' )
-    ENDIF
-
-    ! Error check
-    IF ( FOUND ) THEN
-       IF ( ExtNr > 0 .AND. LTMP ) THEN
-          MSG = 'Cannot use BOND_BIOMASS together with GFED or FINN:' // &
-          'This would double-count biomass burning emissions!'
-          CALL ERROR_STOP( MSG, LOC ) 
-       ENDIF
-    ENDIF
 
     ! Return w/ success
     RC = HCO_SUCCESS

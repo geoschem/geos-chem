@@ -1042,7 +1042,7 @@ CONTAINS
           CALL HCO_ERROR ( MSG, RC )
           RETURN
        ENDIF
-    ENDIF
+    ENDIF ! Unit conversion
 
     !-----------------------------------------------------------------
     ! Get horizontal grid edges 

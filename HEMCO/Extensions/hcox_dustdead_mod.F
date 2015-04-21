@@ -387,12 +387,14 @@
             BHT2(I)        = HcoState%Grid%BXHEIGHT_M%Val(I,J,1) / 2.d0
 
             ! Specific humidity at midpoint of surface layer [kg H2O/kg air]
-            Q_H2O(I)       = ExtState%SPHU%Arr%Val(I,J,1) / 1000.d0
+            Q_H2O(I)       = ExtState%SPHU%Arr%Val(I,J,1)
 
             ! Orography at surface
             ! Ocean is 0; land is 1; ice is 2
             ORO(I)         = REAL(OROGRAPHY(I,J),KIND=8)
 
+            ! Snow [m H2O]. SNOWHGT is in kg H2O/m2, which is equivalent to
+            ! mm H2O. Convert to m H2O here.
             SNW_HGT_LQD(I) = ExtState%SNOWHGT%Arr%Val(I,J) / 1000.d0
 
             ! Dust tracer and increments
