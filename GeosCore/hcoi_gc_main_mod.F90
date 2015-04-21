@@ -2540,53 +2540,6 @@ CONTAINS
 
     ENDIF 
 
-    !-----------------------------------------------------------------
-    ! Make sure that the SHIPNO_BASE toggle is disabled if PARANOx is
-    ! being used. This is to avoid double-counting of ship NO 
-    ! emissions. Search through all extensions (--> ExtNr = -999).
-    !-----------------------------------------------------------------
-    CALL GetExtOpt( -999, 'SHIPNO_BASE', OptValBool=LTMP, &
-                    FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'GetExtOpt SHIPNO_BASE', LOC )
-    ENDIF
-    ExtNr = GetExtNr( 'ParaNOx' )
-
-    ! It is not recommended to set +SHIPNO+ explicitly in the HEMCO
-    ! configuration file!
-    IF ( FOUND ) THEN
-       IF ( ExtNr > 0 .AND. LTMP ) THEN
-          MSG = 'Cannot use SHIPNO_BASE together with PARANOx:' // &
-          'This would double-count NO ship emissions!'
-          CALL ERROR_STOP( MSG, LOC )
-       ENDIF
-    ENDIF
-
-    !-----------------------------------------------------------------
-    ! Make sure that BOND_BIOMASS toggle is disabled if GFED or FINN
-    ! are being used. This is to avoid double-counting of biomass
-    ! burning emissions. Search through all extensions (--> ExtNr = 
-    ! -999).
-    !-----------------------------------------------------------------
-    CALL GetExtOpt( -999, 'BOND_BIOMASS', OptValBool=LTMP, &
-                    FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'GetExtOpt BOND_BIOMASS', LOC )
-    ENDIF
-    ExtNr = GetExtNr( 'FINN' )
-    IF ( ExtNr <= 0 ) THEN
-       ExtNr = GetExtNr( 'GFED' )
-    ENDIF
-
-    ! Error check
-    IF ( FOUND ) THEN
-       IF ( ExtNr > 0 .AND. LTMP ) THEN
-          MSG = 'Cannot use BOND_BIOMASS together with GFED or FINN:' // &
-          'This would double-count biomass burning emissions!'
-          CALL ERROR_STOP( MSG, LOC ) 
-       ENDIF
-    ENDIF
-
     ! Return w/ success
     RC = HCO_SUCCESS
 
