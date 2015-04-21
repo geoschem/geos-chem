@@ -1197,6 +1197,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE HCO_EXTLIST_MOD,   ONLY : GetExtNr
 !
 ! !INPUT PARAMETERS:
 !
@@ -1214,7 +1215,7 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER           :: I, N, HcoID
+    INTEGER           :: I, N, ExtNr, HcoID
     CHARACTER(LEN=31) :: DiagnName
 
     !=================================================================
@@ -1258,6 +1259,75 @@ CONTAINS
 
        ENDDO !I
     ENDIF
+
+    !--------------------------------------------------------------------------
+    ! Define some additional diagnostics
+    !--------------------------------------------------------------------------
+    ExtNr = GetExtNr ( 'LightNOx' )
+    IF ( ExtNr > 0 ) THEN
+
+       ! Loop over lighthing flash quantities
+       DO I = 1, 3
+
+          ! Pick the proper diagnostic name
+          SELECT CASE( I )
+             CASE( 1 )
+                DiagnName = 'LIGHTNING_TOTAL_FLASHRATE'
+             CASE( 2 )
+                DiagnName = 'LIGHTNING_INTRACLOUD_FLASHRATE'
+             CASE( 3 )
+                DiagnName = 'LIGHTNING_CLOUDGROUND_FLASHRATE'
+          END SELECT
+
+          ! Define diagnostics ID
+          N = 56000 + I
+
+          ! Create diagnostic container
+          CALL Diagn_Create( am_I_Root,                     & 
+                             HcoState  = HcoState,          &
+                             cName     = TRIM( DiagnName ), &
+                             cID       = N,                 &
+                             ExtNr     = ExtNr,             &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  = 2,                 &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'flashes/min/km2', &
+                             OutOper   = 'Mean',            &
+                             COL       = HcoDiagnIDDefault, &
+                             AutoFill  = 0,                 &
+                             RC        = RC                  ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDDO
+ 
+       ! ---------------------------------------------------------- 
+       ! Diagnostics for convective cloud top height.
+       ! ---------------------------------------------------------- 
+
+       ! Define diagnostics name and ID
+       DiagnName = 'LIGHTNING_CLOUD_TOP'
+       N         = 56004
+
+       ! Create diagnostic container
+       CALL Diagn_Create( am_I_Root,                     &
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          cID       = N,                 &
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = '1',               &
+                          OutOper   = 'Mean',            &
+                          COL       = HcoDiagnIDDefault, &
+                          AutoFill  = 0,                 &
+                          RC        = RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ENDIF ! Lightning NOx
 
     ! Return w/ success
     RC = HCO_SUCCESS
@@ -1624,7 +1694,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
-    ! ==> DRYCOEFF will be read from the configuration file in module
+    ! ==> DRYCOEFF must be read from the configuration file in module
     !     hcox_soilnox_mod.F90. 
     !-----------------------------------------------------------------
 
@@ -1664,6 +1734,12 @@ CONTAINS
        ENDIF 
        HcoState%Grid%BXHEIGHT_M%Val = Ptr3D
        Ptr3D => NULL()
+
+       ! Verbose
+       IF ( FIRST .AND. Hco_IsVerb(1) ) THEN
+          MSG = 'Grid box heights read from field BXHEIGHT_M'
+          CALL HCO_MSG(MSG,SEP1=' ',SEP2=' ')
+       ENDIF
 
     ! If not found, check if we can calculate it from pressure edges and temperature
     ELSEIF ( ExtState%TK%DoUse .AND. ASSOCIATED(HcoState%Grid%PEDGE%Val) ) THEN
@@ -1710,6 +1786,12 @@ CONTAINS
                 'configuration file (BXHEIGHT_M)'
           CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
           RETURN
+       ENDIF
+
+       ! Verbose
+       IF ( FIRST .AND. Hco_IsVerb(1) ) THEN
+          MSG = 'Grid box heights approximated from hydrostatic equation'
+          CALL HCO_MSG(MSG,SEP1=' ',SEP2=' ')
        ENDIF
 
     ! Otherwise, prompt a warning on the first call 

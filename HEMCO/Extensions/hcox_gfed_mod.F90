@@ -202,7 +202,6 @@ CONTAINS
 !
     LOGICAL, SAVE       :: FIRST = .TRUE.
     INTEGER             :: N, M
-    REAL(hp), POINTER   :: Arr2D (:,:) => NULL()
     REAL(sp), POINTER   :: TMPPTR(:,:) => NULL()
     CHARACTER(LEN=63)   :: MSG
 
@@ -355,28 +354,17 @@ CONTAINS
        END SELECT
 
        ! Add flux to HEMCO emission array
-       CALL HCO_EmisAdd( HcoState, SpcArr, HcoIDs(N), RC ) 
+       CALL HCO_EmisAdd( am_I_Root, HcoState, SpcArr, HcoIDs(N), RC, ExtNr=ExtNr ) 
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'HCO_EmisAdd error: ' // TRIM(HcoState%Spc(HcoIDs(N))%SpcName)
           CALL HCO_ERROR( MSG, RC )
           RETURN 
        ENDIF
 
-       ! Eventually update diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => SpcArr
-          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                             Cat=-1, Hier=-1, HcoID=HcoIDs(N), &
-                             AutoFill=1, Array2D=Arr2D, RC=RC   )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          Arr2D => NULL()
-       ENDIF
-
     ENDDO !N
 
     ! Nullify pointers for safety's sake
     TmpPtr  => NULL()
-    Arr2D   => NULL()
 
     ! Leave w/ success
     CALL HCO_LEAVE ( RC )

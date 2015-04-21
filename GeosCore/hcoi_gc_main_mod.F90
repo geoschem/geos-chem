@@ -831,8 +831,8 @@ CONTAINS
 !
     USE GIGC_ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
-
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
+    USE HCO_ARR_MOD,        ONLY : HCO_ArrAssert
 !
 ! !INPUT PARAMETERS:
 !
@@ -909,6 +909,19 @@ CONTAINS
        JO1D = 0.0e0_hp
     ENDIF
 
+    ! ----------------------------------------------------------------
+    ! Arrays to be copied physically because HEMCO units are not the
+    ! same as in GEOS-Chem
+    ! ----------------------------------------------------------------
+
+    ! TROPP: GEOS-Chem TROPP is in hPa, while HEMCO uses Pa.
+    IF ( ExtState%TROPP%DoUse ) THEN
+       CALL HCO_ArrAssert( ExtState%TROPP%Arr, IIPAR, JJPAR, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Allocate ExtState%TROPP', LOC )
+       ENDIF
+    ENDIF
+
     ! Leave with success
     RC = GIGC_SUCCESS
 
@@ -971,6 +984,11 @@ CONTAINS
 #if !defined(ESMF_)
     USE MODIS_LAI_MOD,         ONLY : GC_LAI
 #endif
+
+#if defined(ESMF_)
+    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
+#endif
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -1068,10 +1086,6 @@ CONTAINS
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%Z0, &
                'Z0', HCRC,      FIRST,    State_Met%Z0  )
-    IF ( HCRC /= HCO_SUCCESS ) RETURN
-
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%TROPP, &
-            'TROPP', HCRC,      FIRST,    State_Met%TROPP  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SUNCOSmid, &
@@ -1227,7 +1241,7 @@ CONTAINS
     IF ( FIRST ) THEN
        CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP ( 'Error in HCO_SetExtState!', LOC )
+          CALL ERROR_STOP ( 'Error in HCO_SetExtState_ESMF!', LOC )
        ENDIF
     ENDIF
 #endif
@@ -1310,6 +1324,11 @@ CONTAINS
 
     ! Init
     RC = GIGC_SUCCESS
+
+    ! TROPP: convert from hPa to Pa
+    IF ( ExtState%TROPP%DoUse ) THEN
+       ExtState%TROPP%Arr%Val = State_Met%TROPP * 100.0_hp
+    ENDIF
 
     ! If we need to use the SZAFACT scale factor (i.e. to put a diurnal
     ! variation on monthly mean OH concentrations), then call CALC_SUMCOSZA
@@ -2520,53 +2539,6 @@ CONTAINS
        ENDIF
 
     ENDIF 
-
-    !-----------------------------------------------------------------
-    ! Make sure that the SHIPNO_BASE toggle is disabled if PARANOx is
-    ! being used. This is to avoid double-counting of ship NO 
-    ! emissions. Search through all extensions (--> ExtNr = -999).
-    !-----------------------------------------------------------------
-    CALL GetExtOpt( -999, 'SHIPNO_BASE', OptValBool=LTMP, &
-                    FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'GetExtOpt SHIPNO_BASE', LOC )
-    ENDIF
-    ExtNr = GetExtNr( 'ParaNOx' )
-
-    ! It is not recommended to set +SHIPNO+ explicitly in the HEMCO
-    ! configuration file!
-    IF ( FOUND ) THEN
-       IF ( ExtNr > 0 .AND. LTMP ) THEN
-          MSG = 'Cannot use SHIPNO_BASE together with PARANOx:' // &
-          'This would double-count NO ship emissions!'
-          CALL ERROR_STOP( MSG, LOC )
-       ENDIF
-    ENDIF
-
-    !-----------------------------------------------------------------
-    ! Make sure that BOND_BIOMASS toggle is disabled if GFED or FINN
-    ! are being used. This is to avoid double-counting of biomass
-    ! burning emissions. Search through all extensions (--> ExtNr = 
-    ! -999).
-    !-----------------------------------------------------------------
-    CALL GetExtOpt( -999, 'BOND_BIOMASS', OptValBool=LTMP, &
-                    FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'GetExtOpt BOND_BIOMASS', LOC )
-    ENDIF
-    ExtNr = GetExtNr( 'FINN' )
-    IF ( ExtNr <= 0 ) THEN
-       ExtNr = GetExtNr( 'GFED' )
-    ENDIF
-
-    ! Error check
-    IF ( FOUND ) THEN
-       IF ( ExtNr > 0 .AND. LTMP ) THEN
-          MSG = 'Cannot use BOND_BIOMASS together with GFED or FINN:' // &
-          'This would double-count biomass burning emissions!'
-          CALL ERROR_STOP( MSG, LOC ) 
-       ENDIF
-    ENDIF
 
     ! Return w/ success
     RC = HCO_SUCCESS

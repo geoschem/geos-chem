@@ -229,7 +229,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    REAL(hp), POINTER   :: Arr3D(:,:,:) => NULL()
     INTEGER             :: Yr, Mt
     LOGICAL             :: FOUND
 
@@ -254,21 +253,12 @@ CONTAINS
     IF ( IDTNO > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( HcoState, SLBASE, IDTNO, RC)
+       CALL HCO_EmisAdd( am_I_Root, HcoState, SLBASE, IDTNO, RC, ExtNr=ExtNr)
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( 'HCO_EmisAdd error: SLBASE', RC )
           RETURN 
        ENDIF
 
-       ! Eventually update diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr3D => SLBASE
-          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                             Cat=-1, Hier=-1, HcoID=IDTNO,     &
-                             AutoFill=1, Array3D=Arr3D, RC=RC   )
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-          Arr3D => NULL() 
-       ENDIF
     ENDIF
 
     ! Return w/ success
@@ -485,7 +475,7 @@ CONTAINS
        ENDIF
 
        ! Tropopause pressure. Convert to Pa
-       TROPP = ExtState%TROPP%Arr%Val(I,J) * 100.0_hp
+       TROPP = ExtState%TROPP%Arr%Val(I,J) !* 100.0_hp
 
        ! Initialize
        LBOTTOM       = 0 
