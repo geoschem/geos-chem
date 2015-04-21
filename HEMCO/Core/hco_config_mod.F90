@@ -1384,6 +1384,9 @@ CONTAINS
 !  17 Sep 2013 - C. Keller   - Initialization (update)
 !  30 Sep 2014 - R. Yantosca - Declare SUBSTR and SPECS w/ 2047 characters,
 !                              which lets us handle extra-long species lists
+!  21 Apr 2015 - R. Yantosca - Bug fix: now look for END_SECTION before
+!                              testing if the line is a comment.  This will
+!                              allow for tags labeled "### END SECTION".
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1416,11 +1419,12 @@ CONTAINS
        ! Return if EOF
        IF ( EOF ) RETURN 
 
+       ! Exit here if end of section encountered.  Place this before the 
+       ! test for comment to allow for "### END SECTION" tags (bmy, 4/21/15)
+       IF ( INDEX ( LINE, 'END SECTION' ) > 0 ) RETURN 
+
        ! Jump to next line if line is commented out
        IF ( LINE(1:1) == HCO_CMT() ) CYCLE
-
-       ! Exit here if end of section encountered 
-       IF ( INDEX ( LINE, 'END SECTION' ) > 0 ) RETURN 
 
        ! Check if these are options
        IF ( INDEX(LINE,'-->') > 0 ) THEN
@@ -1513,7 +1517,10 @@ CONTAINS
     INTEGER, INTENT(INOUT) :: RC          ! Success/failure
 !
 ! !REVISION HISTORY:
-!  17 Sep 2013 - C. Keller: Initialization (update)
+!  17 Sep 2013 - C. Keller   - Initialization (update)
+!  21 Apr 2015 - R. Yantosca - Bug fix: now look for END_SECTION before
+!                              testing if the line is a comment.  This will
+!                              allow for tags labeled "### END SECTION".
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1553,11 +1560,11 @@ CONTAINS
        ! Return if EOF
        IF ( EOF ) EXIT 
 
-       ! Jump to next line if line is commented out
-       IF ( LINE(1:1) == HCO_CMT() ) CYCLE
-
        ! Exit here if end of section encountered 
        IF ( INDEX ( LINE, 'END SECTION' ) > 0 ) EXIT 
+
+       ! Jump to next line if line is commented out
+       IF ( LINE(1:1) == HCO_CMT() ) CYCLE
 
        ! Ignore empty lines
        IF ( TRIM(LINE) == '' ) CYCLE
