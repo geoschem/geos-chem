@@ -409,7 +409,9 @@ CONTAINS
 !  15 Dec 2013 - C. Keller     - Now a HEMCO extension 
 !  08 Aug 2014 - R. Yantosca   - Now include hcox_gfed_include.H, which defines
 !                                GFED_SPEC_NAME and GFED_EMFAC arrays
-!  11 Nov 2014 - C. Keller     - Now get hydrophilic fractions through config file
+!  11 Nov 2014 - C. Keller     - Now get hydrophilic fractions via config file
+!  22 Apr 2015 - R. Yantosca   - Now explicitly test for "POA scale factor"
+!                                and "NAP scale factor" to avoid search errors
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -640,7 +642,7 @@ CONTAINS
        ! configuration file. This is the factor by which OC emissions will
        ! be scaled.
        IF ( TRIM(SpcNames(N)) == 'POA1' ) THEN
-          CALL GetExtOpt ( ExtNr, 'POA scale', &
+          CALL GetExtOpt ( ExtNr, 'POA scale factor', &
                            OptValSp=ValSp, FOUND=FOUND, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( .NOT. FOUND ) THEN
@@ -655,7 +657,7 @@ CONTAINS
        ! configuration file. This is the factor by which CO emissions will
        ! be scaled.
        IF ( TRIM(SpcNames(N)) == 'NAP' ) THEN
-          CALL GetExtOpt ( ExtNr, 'NAP scale', &
+          CALL GetExtOpt ( ExtNr, 'NAP scale factor', &
                            OptValSp=ValSp, FOUND=FOUND, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( .NOT. FOUND ) THEN
