@@ -253,6 +253,10 @@
 !  02 Apr 2015 - M. Sulprizio- Now write out LIGHTNING_CLOUD_TOP diagnostic from
 !                              HEMCO to the ctm.bpch file. Otherwise, if will
 !                              save out to the HEMCO restart file.
+!  22 Apr 2015 - M. Sulprizio- Remove the use of TRACER_COEFF to convert
+!                              emissions of hydrocarbon species to atomsC/cm2/s.
+!                              HEMCO now carries emissions for these species
+!                              entirely in kgC/m2/s.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1324,7 +1328,7 @@
          UNIT     = 'atoms C/cm2/s'
 
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR   = 3e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+         FACTOR   = GPERKG / MWC * HcoState%Phys%Avgdr / 
      &              CM2PERM2
 
          ! Loop over all four emission sources
@@ -2266,9 +2270,7 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          !%%% NOTE: FACTOR is the multiplication factor that converts
          !%%% kg/m2/s (as tracked by HEMCO) to either molec/cm2/s.        
-         !%%% For tracers that are carried in equivalent C atoms, FACTOR
-         !%%% is further multiplied by the # of C atoms per molecule,
-         !%%% which is stored in Input_Opt%TRACER_COEFF. (bmy, 8/14/14)
+         !%%% (bmy, 8/14/14)
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          
          !%%%%% NO %%%%%
@@ -2299,7 +2301,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTALK4
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2311,7 +2312,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTACET
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2323,7 +2323,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTMEK
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2335,7 +2334,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTALD2
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2347,7 +2345,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTPRPE
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2359,7 +2356,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTC3H8
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2382,7 +2378,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTC2H6
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2887,10 +2882,7 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          !%%% NOTE: FACTOR is the multiplication factor that converts
          !%%% kg/m2/s (as tracked by HEMCO) to either molec/cm2/s. 
-         !%%%
-         !%%% For tracers that are carried in equivalent C atoms, FACTOR
-         !%%% is further multiplied by the # of C atoms per molecule,
-         !%%% which is stored in Input_Opt%TRACER_COEFF. (bmy, 8/14/14)
+         !%%% (bmy, 8/14/14)
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          
          !%%%%% NO %%%%%
@@ -2921,7 +2913,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTALK4
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2933,7 +2924,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTACET
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2945,7 +2935,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTMEK
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2957,7 +2946,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTALD2
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2969,7 +2957,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTPRPE
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2981,7 +2968,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTC3H8
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3004,7 +2990,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTC2H6
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3111,10 +3096,6 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          !%%% NOTE: FACTOR is the multiplication factor that converts
          !%%% kg/m2/s (as tracked by HEMCO) to either molec/cm2/s.        
-         !%%%
-         !%%% For tracers that are carried in equivalent C atoms, 
-         !%%% FACTOR is further multiplied by the # of C atoms per 
-         !%%% molecule, which is stored in Input_Opt%TRACER_COEFF. 
          !%%% (bmy, 8/14/14)
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -3143,42 +3124,36 @@
                UNIT      = 'atoms C/cm2/s'
                N         = IDTALK4
                FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
           
             ELSE IF ( I == IDTACET ) THEN
                DiagnName = 'ANTHROPOGENIC_ACET'
                UNIT      = 'atoms C/cm2/s'
                N         = IDTACET
                FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
                       
             ELSE IF ( I == IDTMEK ) THEN
                DiagnName = 'ANTHROPOGENIC_MEK'
                UNIT      = 'atoms C/cm2/s'
                N         = IDTMEK
                FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
    
             ELSE IF ( I == IDTALD2 ) THEN
                DiagnName = 'ANTHROPOGENIC_ALD2'
                UNIT      = 'atoms C/cm2/s'
                N         = IDTALD2
                FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
    
             ELSE IF ( I == IDTPRPE ) THEN
                DiagnName = 'ANTHROPOGENIC_PRPE'
                UNIT      = 'atoms C/cm2/s'
                N         = IDTPRPE
                FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
    
             ELSE IF ( I == IDTC3H8 ) THEN
                DiagnName = 'ANTHROPOGENIC_C3H8'
                UNIT      = 'atoms C/cm2/s'
                N         = IDTC3H8
                FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
    
             ELSE IF ( I == IDTCH2O ) THEN
                DiagnName = 'ANTHROPOGENIC_CH2O'
@@ -3191,7 +3166,6 @@
                UNIT      = 'atoms C/cm2/s'
                N         = IDTC2H6 
                FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
             ELSE IF ( I == IDTCH4 ) THEN
                DiagnName = 'ANTHROPOGENIC_CH4'
@@ -3932,8 +3906,6 @@
 !  (5) Added C2H4 as tracer #6. (tmf, 1/20/09)
 !  13 Feb 2015 - M. Sulprizio- Add updates for MEGAN2.1 from D. Millet,
 !                              based on Guenther et al. 2012
-!  19 Feb 2015 - M. Sulprizio- Bug fix: Now multiply acetone emissions by
-!                              TRACER_COEFF to get correct number of C atoms
 !******************************************************************************
 !
       IF ( ND46 > 0 ) THEN
@@ -3944,9 +3916,7 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          !%%% NOTE: FACTOR is the multiplication factor that converts
          !%%% kg/m2/s (as tracked by HEMCO) to either molec/cm2/s.        
-         !%%% For tracers that are carried in equivalent C atoms, FACTOR
-         !%%% is further multiplied by the # of C atoms per molecule,
-         !%%% which is stored in Input_Opt%TRACER_COEFF. (bmy, 8/14/14)
+         !%%% (bmy, 8/14/14)
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          !-----------------------------------------------------------
@@ -3958,7 +3928,6 @@
             N         = 1         
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTISOP) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(IDTISOP,1)
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3972,7 +3941,6 @@
             N      = 2
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR = Input_Opt%XNUMOL(IDTACET) / CM2PERM2 
-            FACTOR = FACTOR * Input_Opt%TRACER_COEFF(IDTACET,1)
 
             ! (1) BIOGENIC ACET 
             DiagnName = 'BIOGENIC_ACET'
@@ -4040,7 +4008,6 @@
             N         = 3
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTPRPE) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(IDTPRPE,1)
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4083,7 +4050,6 @@
             N         = 6
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTC2H4) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(IDTC2H4,1)
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4213,7 +4179,6 @@
             N         = 16
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTALD2) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(IDTALD2,1)
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
