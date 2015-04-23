@@ -475,10 +475,13 @@
       CH4VMR(:,:)        = 0.0
       NBNDS              = NBNDLW+NBNDSW
 
-!OMP PARALLEL DO
-!OMP+DEFAULT( SHARED )
-!OMP+PRIVATE( I, J, IJLOOP, IB, IB_SW)
-!OMP+SCHEDULE( DYNAMIC )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP PARALLEL DO
+!%%%!$OMP+DEFAULT( SHARED )
+!%%%!$OMP+PRIVATE( I, J, IJLOOP, IB, IB_SW)
+!%%%!$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -516,6 +519,10 @@
 
       ENDDO
       ENDDO
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP END PARALLEL DO
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !GET PCENTER, PEDGE AND DETERMINE IF IN TROP
       DO I = 1, IIPAR
@@ -533,11 +540,14 @@
       ENDDO
       ENDDO
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,    L,     IJLOOP, JLOOP        )
-!$OMP+PRIVATE( AIR_TMP, YLAT, O3COL, O3_CTM, T_CTM, P_CTM )
-!$OMP+SCHEDULE( DYNAMIC )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP PARALLEL DO
+!%%%!$OMP+DEFAULT( SHARED )
+!%%%!$OMP+PRIVATE( I,       J,    L,     IJLOOP, JLOOP        )
+!%%%!$OMP+PRIVATE( AIR_TMP, YLAT, O3COL, O3_CTM, T_CTM, P_CTM )
+!%%%!$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -741,8 +751,10 @@
       ENDDO
       ENDDO
       ENDDO
-
-!$OMP END PARALLEL DO
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP END PARALLEL DO
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       IF (DOAERAD) THEN
        DO IB = 1,NBNDS
@@ -763,10 +775,13 @@
          !(2) THE CURRENT SPECIES FOR OUTPUT TO THE RT DIAGNOSTICS
          ! ALSO, WE MUST MERGE AEROSOL PROPERTIES FOR THE SPECIES TO BE OUTPUT
          ! (I.E. COMBINE HYDROPHILIC/PHOBIC AND MULTIPLE SIZES) 
-!OMP PARALLEL DO
-!OMP+DEFAULT( SHARED )
-!OMP+PRIVATE( I, J, L, IJLOOP)
-!OMP+SCHEDULE( DYNAMIC )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP PARALLEL DO
+!%%%!$OMP+DEFAULT( SHARED )
+!%%%!$OMP+PRIVATE( I, J, L, IJLOOP)
+!%%%!$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -821,7 +836,10 @@
          ENDDO
          ENDDO
          ENDDO
-!OMP END PARALLEL DO 
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP END PARALLEL DO 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         ENDDO !SPECIES
         !NOW AEROSOL HAVE BEEN SUMMED AND WEIGHTED BY AOD AND SSA
         !DIVIDE THROUGH BY TOTAL AOD (FOR SSA) AND AOD*SSA (FOR ASYM)
@@ -830,10 +848,13 @@
 !SWITCHING THIS OMP ON HALVES THE OPTICS VALUES FOR SOME UNKNOWN REASON.
 !THE BENEFIT OF HAVING IT SWITCHED ON IS ~1% REDUCTION IN PROCESSING
 !TIME SO CURRENTLY DOING WITHOUT PARALLELIZING THIS. DAR 02/2013
-!OMP PARALLEL DO
-!OMP+DEFAULT( SHARED )
-!OMP+PRIVATE( I, J, L, IJLOOP )
-!OMP+SCHEDULE( DYNAMIC )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP PARALLEL DO
+!%%%!$OMP+DEFAULT( SHARED )
+!%%%!$OMP+PRIVATE( I, J, L, IJLOOP )
+!%%%!$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -873,15 +894,22 @@
          ENDDO
          ENDDO
          ENDDO
-!OMP END PARALLEL DO
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP END PARALLEL DO
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
         ENDIF
        ENDDO !BAND
       ELSE
        !NO AEROSOL, SET ALL TO SAFE VALUES
-!OMP PARALLEL DO
-!OMP+DEFAULT( SHARED )
-!OMP+PRIVATE( I, J, L, IB, IJLOOP, IB_SW)
-!OMP+SCHEDULE( DYNAMIC )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP PARALLEL DO
+!%%%!$OMP+DEFAULT( SHARED )
+!%%%!$OMP+PRIVATE( I, J, L, IB, IJLOOP, IB_SW)
+!%%%!$OMP+SCHEDULE( DYNAMIC )
        DO IB= 1, NBNDS
         IB_SW = IB-NBNDLW
         DO L = 1, LLPAR
@@ -912,7 +940,11 @@
         ENDDO
         ENDDO
        ENDDO
-!OMP END PARALLEL DO 
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP END PARALLEL DO 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       ENDIF
 
 ! checking values
@@ -1021,17 +1053,20 @@
        SEEDLW=ISEED+NGPTSW+1
        SEEDSW=SEEDLW+NGPTLW+1
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( IL, OMPID )
-!$OMP+PRIVATE( PCENTER0, CLDFR0, CLIQWP0, CICEWP0)
-!$OMP+PRIVATE( REICE0, RELIQ0, TAUCLD_SW0)
-!$OMP+PRIVATE( SSACLD0, ASMCLD0, FSFCLD0)
-!$OMP+PRIVATE( CLDFMCL_LW0, CIWPMCL_LW0, CLWPMCL_LW0)
-!$OMP+PRIVATE( REICMCL0, RELQMCL0, TAUCMCL_LW0)
-!$OMP+PRIVATE( CLDFMCL_SW0, CIWPMCL_SW0, CLWPMCL_SW0)
-!$OMP+PRIVATE( TAUCMCL_SW0, SSACMCL0,ASMCMCL0, FSFCMCL0)
-!$OMP+SCHEDULE( DYNAMIC )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP PARALLEL DO
+!%%%!$OMP+DEFAULT( SHARED )
+!%%%!$OMP+PRIVATE( IL, OMPID )
+!%%%!$OMP+PRIVATE( PCENTER0, CLDFR0, CLIQWP0, CICEWP0)
+!%%%!$OMP+PRIVATE( REICE0, RELIQ0, TAUCLD_SW0)
+!%%%!$OMP+PRIVATE( SSACLD0, ASMCLD0, FSFCLD0)
+!%%%!$OMP+PRIVATE( CLDFMCL_LW0, CIWPMCL_LW0, CLWPMCL_LW0)
+!%%%!$OMP+PRIVATE( REICMCL0, RELQMCL0, TAUCMCL_LW0)
+!%%%!$OMP+PRIVATE( CLDFMCL_SW0, CIWPMCL_SW0, CLWPMCL_SW0)
+!%%%!$OMP+PRIVATE( TAUCMCL_SW0, SSACMCL0,ASMCMCL0, FSFCMCL0)
+!%%%!$OMP+SCHEDULE( DYNAMIC )
        DO IL=1, NCOL
         IF (Input_Opt%LLWRAD) THEN
          CALL MCICA_SUBCOL_LW(ONECOL,LLPAR,ICLDMCL,
@@ -1069,14 +1104,21 @@
         REICMCL(IL,:) = REICMCL0(1,:)
         RELQMCL(IL,:) = RELQMCL0(1,:)
        ENDDO
-!$OMP END PARALLEL DO
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP END PARALLEL DO
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       ENDIF !DO MCICA CLOUDS
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( IL,OMPID )
-!$OMP+PRIVATE( UFLX,DFLX,HR,UFLXC,DFLXC,HRC,DUFLX_DT,DUFLXC_DT)
-!$OMP+PRIVATE( ECAER,SWUFLX,SWDFLX,SWHR,SWUFLXC,SWDFLXC,SWHRC)
-!$OMP+SCHEDULE( DYNAMIC ) 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP PARALLEL DO
+!%%%!$OMP+DEFAULT( SHARED )
+!%%%!$OMP+PRIVATE( IL,OMPID )
+!%%%!$OMP+PRIVATE( UFLX,DFLX,HR,UFLXC,DFLXC,HRC,DUFLX_DT,DUFLXC_DT)
+!%%%!$OMP+PRIVATE( ECAER,SWUFLX,SWDFLX,SWHR,SWUFLXC,SWDFLXC,SWHRC)
+!%%%!$OMP+SCHEDULE( DYNAMIC ) 
       DO IL=1, NCOL
  
       IF (Input_Opt%LLWRAD) THEN
@@ -1129,7 +1171,9 @@
         SW_DFLUXC(IL,:) = SWDFLXC(1,:)
       ENDIF !SW
       ENDDO !NCOL
-!$OMP END PARALLEL DO
+!%%%!$OMP END PARALLEL DO
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       
       ! OUTPUT RADIATION VARIABLES TO DIAGNOSTIC
       ! IF CALC WITH AEROSOLS AND GASES COMPLETED
@@ -1150,12 +1194,15 @@
        ENDIF
       ENDIF
 
-!OMP PARALLEL DO
-!OMP+DEFAULT( SHARED )
-!OMP+PRIVATE( I, J, LL, W, IJLOOP )
-!OMP+PRIVATE( AODTMP, SSATMP, ASYMTMP)
-!OMP+PRIVATE( AODOUT, SSAOUT, ASYMOUT)
-!OMP+SCHEDULE( DYNAMIC )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP PARALLEL DO
+!%%%!$OMP+DEFAULT( SHARED )
+!%%%!$OMP+PRIVATE( I, J, LL, W, IJLOOP )
+!%%%!$OMP+PRIVATE( AODTMP, SSATMP, ASYMTMP)
+!%%%!$OMP+PRIVATE( AODOUT, SSAOUT, ASYMOUT)
+!%%%!$OMP+SCHEDULE( DYNAMIC )
       DO J=1,JJPAR
       DO I=1,IIPAR
        IJLOOP   = (J-1)*IIPAR+I
@@ -1238,7 +1285,11 @@
        ENDIF
       ENDDO 
       ENDDO
-!OMP END PARALLEL DO
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP END PARALLEL DO
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 !EOC
       END SUBROUTINE DO_RRTMG_RAD_TRANSFER
 !EOC
@@ -1476,10 +1527,6 @@
 
 
       ! FILENAME AND TIME
-!-----------------------------------------------------------------------------
-!      FILENAME  = TRIM( Input_Opt%DATA_DIR ) //
-!     &            'modis_surf_201210/'       //
-!-----------------------------------------------------------------------------
       FILENAME  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) //
      &            'modis_surf_201210/'              //
      &            GET_RES_EXT()                     //
