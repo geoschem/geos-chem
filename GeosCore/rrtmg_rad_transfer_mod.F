@@ -1,4 +1,4 @@
-#IF   DEFINED( RRTMG )
+#if defined( RRTMG )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -175,6 +175,11 @@
 !                              in the same manner that we do in fast_jx_mod.F.
 !                              Also moved and fixed calculation of O3_CTM.
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
+!  13 Apr 2015 - R. Yantosca - Fixed inefficient loop ordering (should be J,I)
+!  13 Apr 2015 - R. Yantosca - Add error check for JLOOP > 0 in a few places
+!  23 Apr 2015 - R. Yantosca - Bug fix: YLAT was undefined; now corrected
+!  23 Apr 2015 - R. Yantosca - Bug fix: all members of State_Met now use
+!                              (I,J,L) ordering.  This is for the NASA GCM.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -470,10 +475,13 @@
       CH4VMR(:,:)        = 0.0
       NBNDS              = NBNDLW+NBNDSW
 
-!OMP PARALLEL DO
-!OMP+DEFAULT( SHARED )
-!OMP+PRIVATE( I, J, IJLOOP, IB, IB_SW)
-!OMP+SCHEDULE( DYNAMIC )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP PARALLEL DO
+!%%%!$OMP+DEFAULT( SHARED )
+!%%%!$OMP+PRIVATE( I, J, IJLOOP, IB, IB_SW)
+!%%%!$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -511,6 +519,10 @@
 
       ENDDO
       ENDDO
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP END PARALLEL DO
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !GET PCENTER, PEDGE AND DETERMINE IF IN TROP
       DO I = 1, IIPAR
@@ -528,16 +540,23 @@
       ENDDO
       ENDDO
 
-!OMP PARALLEL DO
-!OMP+DEFAULT( SHARED )
-!OMP+PRIVATE( I, J, L, IJLOOP, JLOOP, AIR_TMP )
-!OMP+PRIVATE( YLAT, O3COL, O3_CTM, T_CTM, P_CTM )
-!OMP+SCHEDULE( DYNAMIC )
-      DO I = 1, IIPAR
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP PARALLEL DO
+!%%%!$OMP+DEFAULT( SHARED )
+!%%%!$OMP+PRIVATE( I,       J,    L,     IJLOOP, JLOOP        )
+!%%%!$OMP+PRIVATE( AIR_TMP, YLAT, O3COL, O3_CTM, T_CTM, P_CTM )
+!%%%!$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
        ! 1-D INDEX
        IJLOOP         = (J-1)*IIPAR+I
        ALBVIS(IJLOOP)   = State_Met%ALBD(I,J)
+
+       ! Grid box latitude [degrees]
+       YLAT            = GET_YMID( I, J, 1 )
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
        ! Define the P array here, using GCM pressures
@@ -568,7 +587,11 @@
        LCHEM           = GET_CHEMGRID_LEVEL(I,J,State_Met)
        DO L = 1, LCHEM
           JLOOP        = JLOP(I,J,L)
-          O3_CTM(L)    = CSPEC(JLOOP,IDO3)
+
+          ! Make sure JLOOP > 0 to avoid out-of-bounds errors  (bmy, 4/13/15)
+          IF ( JLOOP > 0 ) THEN
+             O3_CTM(L) = CSPEC(JLOOP,IDO3)
+          ENDIF
        ENDDO
        
       DO L = 1, LLPAR
@@ -589,7 +612,12 @@
      &                          RHOICE*REI_DEF
              REICE(IJLOOP,L) = REI_DEF
              !TAUCLD DERIVED IN MCICA SUB, NOT NEEDED
-             CLDFR(IJLOOP,L)   = State_Met%CLDF(L,I,J)
+!------------------------------------------------------------------------------
+! Prior to 4/23/15:
+! All members of State_Met now use (I,J,L) ordering (bmy, 4/23/15)
+!             CLDFR(IJLOOP,L)   = State_Met%CLDF(L,I,J)
+!------------------------------------------------------------------------------
+             CLDFR(IJLOOP,L)   = State_Met%CLDF(I,J,L)
             ENDIF !CLOUDS
 
        IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN 
@@ -684,7 +712,12 @@
             !N.B. STRAT O3  NOT CURRENTLY INCLUDED IN THE DRE OF O3
 
             !! DENSITY OF AIR IN G/CM2
-            AIR_TMP = State_Met%AIRDEN(L,I,J)*
+!-----------------------------------------------------------------------------
+! Prior to 4/23/15:
+! All members of State_Met now use (I,J,L) ordering (bmy, 4/23/15)
+!            AIR_TMP = State_Met%AIRDEN(L,I,J)*
+!-----------------------------------------------------------------------------
+            AIR_TMP = State_Met%AIRDEN(I,J,L)*
      &                State_Met%BXHEIGHT(I,J,L)*1.0E-1
             !! DENSITY OF AIR IN MOLEC/CM2
             AIR_TMP = AVG*AIR_TMP/WTAIR
@@ -718,8 +751,10 @@
       ENDDO
       ENDDO
       ENDDO
-
-!OMP END PARALLEL DO
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP END PARALLEL DO
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       IF (DOAERAD) THEN
        DO IB = 1,NBNDS
@@ -740,10 +775,13 @@
          !(2) THE CURRENT SPECIES FOR OUTPUT TO THE RT DIAGNOSTICS
          ! ALSO, WE MUST MERGE AEROSOL PROPERTIES FOR THE SPECIES TO BE OUTPUT
          ! (I.E. COMBINE HYDROPHILIC/PHOBIC AND MULTIPLE SIZES) 
-!OMP PARALLEL DO
-!OMP+DEFAULT( SHARED )
-!OMP+PRIVATE( I, J, L, IJLOOP)
-!OMP+SCHEDULE( DYNAMIC )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP PARALLEL DO
+!%%%!$OMP+DEFAULT( SHARED )
+!%%%!$OMP+PRIVATE( I, J, L, IJLOOP)
+!%%%!$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -798,7 +836,10 @@
          ENDDO
          ENDDO
          ENDDO
-!OMP END PARALLEL DO 
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP END PARALLEL DO 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         ENDDO !SPECIES
         !NOW AEROSOL HAVE BEEN SUMMED AND WEIGHTED BY AOD AND SSA
         !DIVIDE THROUGH BY TOTAL AOD (FOR SSA) AND AOD*SSA (FOR ASYM)
@@ -807,10 +848,13 @@
 !SWITCHING THIS OMP ON HALVES THE OPTICS VALUES FOR SOME UNKNOWN REASON.
 !THE BENEFIT OF HAVING IT SWITCHED ON IS ~1% REDUCTION IN PROCESSING
 !TIME SO CURRENTLY DOING WITHOUT PARALLELIZING THIS. DAR 02/2013
-!OMP PARALLEL DO
-!OMP+DEFAULT( SHARED )
-!OMP+PRIVATE( I, J, L, IJLOOP )
-!OMP+SCHEDULE( DYNAMIC )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP PARALLEL DO
+!%%%!$OMP+DEFAULT( SHARED )
+!%%%!$OMP+PRIVATE( I, J, L, IJLOOP )
+!%%%!$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -850,15 +894,22 @@
          ENDDO
          ENDDO
          ENDDO
-!OMP END PARALLEL DO
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP END PARALLEL DO
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
         ENDIF
        ENDDO !BAND
       ELSE
        !NO AEROSOL, SET ALL TO SAFE VALUES
-!OMP PARALLEL DO
-!OMP+DEFAULT( SHARED )
-!OMP+PRIVATE( I, J, L, IB, IJLOOP, IB_SW)
-!OMP+SCHEDULE( DYNAMIC )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP PARALLEL DO
+!%%%!$OMP+DEFAULT( SHARED )
+!%%%!$OMP+PRIVATE( I, J, L, IB, IJLOOP, IB_SW)
+!%%%!$OMP+SCHEDULE( DYNAMIC )
        DO IB= 1, NBNDS
         IB_SW = IB-NBNDLW
         DO L = 1, LLPAR
@@ -889,7 +940,11 @@
         ENDDO
         ENDDO
        ENDDO
-!OMP END PARALLEL DO 
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP END PARALLEL DO 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       ENDIF
 
 ! checking values
@@ -998,17 +1053,20 @@
        SEEDLW=ISEED+NGPTSW+1
        SEEDSW=SEEDLW+NGPTLW+1
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( IL, OMPID )
-!$OMP+PRIVATE( PCENTER0, CLDFR0, CLIQWP0, CICEWP0)
-!$OMP+PRIVATE( REICE0, RELIQ0, TAUCLD_SW0)
-!$OMP+PRIVATE( SSACLD0, ASMCLD0, FSFCLD0)
-!$OMP+PRIVATE( CLDFMCL_LW0, CIWPMCL_LW0, CLWPMCL_LW0)
-!$OMP+PRIVATE( REICMCL0, RELQMCL0, TAUCMCL_LW0)
-!$OMP+PRIVATE( CLDFMCL_SW0, CIWPMCL_SW0, CLWPMCL_SW0)
-!$OMP+PRIVATE( TAUCMCL_SW0, SSACMCL0,ASMCMCL0, FSFCMCL0)
-!$OMP+SCHEDULE( DYNAMIC )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP PARALLEL DO
+!%%%!$OMP+DEFAULT( SHARED )
+!%%%!$OMP+PRIVATE( IL, OMPID )
+!%%%!$OMP+PRIVATE( PCENTER0, CLDFR0, CLIQWP0, CICEWP0)
+!%%%!$OMP+PRIVATE( REICE0, RELIQ0, TAUCLD_SW0)
+!%%%!$OMP+PRIVATE( SSACLD0, ASMCLD0, FSFCLD0)
+!%%%!$OMP+PRIVATE( CLDFMCL_LW0, CIWPMCL_LW0, CLWPMCL_LW0)
+!%%%!$OMP+PRIVATE( REICMCL0, RELQMCL0, TAUCMCL_LW0)
+!%%%!$OMP+PRIVATE( CLDFMCL_SW0, CIWPMCL_SW0, CLWPMCL_SW0)
+!%%%!$OMP+PRIVATE( TAUCMCL_SW0, SSACMCL0,ASMCMCL0, FSFCMCL0)
+!%%%!$OMP+SCHEDULE( DYNAMIC )
        DO IL=1, NCOL
         IF (Input_Opt%LLWRAD) THEN
          CALL MCICA_SUBCOL_LW(ONECOL,LLPAR,ICLDMCL,
@@ -1046,14 +1104,21 @@
         REICMCL(IL,:) = REICMCL0(1,:)
         RELQMCL(IL,:) = RELQMCL0(1,:)
        ENDDO
-!$OMP END PARALLEL DO
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP END PARALLEL DO
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       ENDIF !DO MCICA CLOUDS
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( IL,OMPID )
-!$OMP+PRIVATE( UFLX,DFLX,HR,UFLXC,DFLXC,HRC,DUFLX_DT,DUFLXC_DT)
-!$OMP+PRIVATE( ECAER,SWUFLX,SWDFLX,SWHR,SWUFLXC,SWDFLXC,SWHRC)
-!$OMP+SCHEDULE( DYNAMIC ) 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP PARALLEL DO
+!%%%!$OMP+DEFAULT( SHARED )
+!%%%!$OMP+PRIVATE( IL,OMPID )
+!%%%!$OMP+PRIVATE( UFLX,DFLX,HR,UFLXC,DFLXC,HRC,DUFLX_DT,DUFLXC_DT)
+!%%%!$OMP+PRIVATE( ECAER,SWUFLX,SWDFLX,SWHR,SWUFLXC,SWDFLXC,SWHRC)
+!%%%!$OMP+SCHEDULE( DYNAMIC ) 
       DO IL=1, NCOL
  
       IF (Input_Opt%LLWRAD) THEN
@@ -1106,7 +1171,9 @@
         SW_DFLUXC(IL,:) = SWDFLXC(1,:)
       ENDIF !SW
       ENDDO !NCOL
-!$OMP END PARALLEL DO
+!%%%!$OMP END PARALLEL DO
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       
       ! OUTPUT RADIATION VARIABLES TO DIAGNOSTIC
       ! IF CALC WITH AEROSOLS AND GASES COMPLETED
@@ -1127,12 +1194,15 @@
        ENDIF
       ENDIF
 
-!OMP PARALLEL DO
-!OMP+DEFAULT( SHARED )
-!OMP+PRIVATE( I, J, LL, W, IJLOOP )
-!OMP+PRIVATE( AODTMP, SSATMP, ASYMTMP)
-!OMP+PRIVATE( AODOUT, SSAOUT, ASYMOUT)
-!OMP+SCHEDULE( DYNAMIC )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP PARALLEL DO
+!%%%!$OMP+DEFAULT( SHARED )
+!%%%!$OMP+PRIVATE( I, J, LL, W, IJLOOP )
+!%%%!$OMP+PRIVATE( AODTMP, SSATMP, ASYMTMP)
+!%%%!$OMP+PRIVATE( AODOUT, SSAOUT, ASYMOUT)
+!%%%!$OMP+SCHEDULE( DYNAMIC )
       DO J=1,JJPAR
       DO I=1,IIPAR
        IJLOOP   = (J-1)*IIPAR+I
@@ -1215,7 +1285,11 @@
        ENDIF
       ENDDO 
       ENDDO
-!OMP END PARALLEL DO
+!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
+!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
+!%%%!$OMP END PARALLEL DO
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 !EOC
       END SUBROUTINE DO_RRTMG_RAD_TRANSFER
 !EOC
@@ -1376,9 +1450,17 @@
       TYPE(OptInput), INTENT(IN)           :: Input_Opt ! Input options
       LOGICAL,        INTENT(IN), OPTIONAL :: FORCEREAD ! Reset first-time flag?
 ! 
+! !REMARKS:
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+!
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
+!  10 Apr 2015 - R. Yantosca - Read from ExtData/CHEM_INPUTS/modis_surf_201210
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1445,13 +1527,14 @@
 
 
       ! FILENAME AND TIME
-      FILENAME  = TRIM( Input_Opt%DATA_DIR ) //
-     &            'modis_surf_201210/'       //
+      FILENAME  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) //
+     &            'modis_surf_201210/'              //
+     &            GET_RES_EXT()                     //
 ! the 02-07 file contains our regridded and filled emissivity
 ! and albedo climatology for 2002-2007 direct from MODIS products
 ! N.B. this is raw MODIS data so contains snow cover but may have more
 ! filled missing value data.
-     &            'modis_surf_02-07_'       //
+     &            '/modis_surf_02-07_'       //
 
 ! the 01-04 file contains our regridded and filled emissivity
 ! for 2002-2007 and eco-type filled albedo produced by MODIS averaged over
@@ -1459,7 +1542,7 @@
 ! N.B. this does NOT contain snow cover so gives flux in absence of snow
 ! Needs combining with the FRSNO met field! (DAR 03/2014)
 
-!     &            'modis_surf_01-04_' //
+!     &            '/modis_surf_01-04_' //
 
      &            STHISDOFY//'.'// GET_RES_EXT()
 
@@ -1571,11 +1654,18 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
-
 ! 
+! !REMARKS:
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (10 Apr 2015)                            #####
+!  ##########################################################################
+!
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
+!  10 Apr 2015 - R. Yantosca - Now read from ExtData/CHEM_INPUTS/RRTMG_201104/
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1591,18 +1681,19 @@
       ! READ_STRAT_CHEM begins here!
       !=================================================================
 
-      ! FILENAME AND TIME
-      FILENAME  = TRIM( Input_Opt%DATA_DIR ) //
-     &            'RRTMG_201411/'            //
-     &            'species_clim_profiles'    //
-     &            '.'// GET_RES_EXT()
+      ! Filename
+      FILENAME = TRIM( Input_Opt%CHEM_INPUTS_DIR ) //
+     &            'RRTMG_201411/'                  //
+     &            'species_clim_profiles.'         //
+     &            GET_RES_EXT()
 
       ! ECHO INFO
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - GET_TES_STRAT_CLIM: READING ', A )
 
+      ! TAU value corresponding to 2000/01/01
       XTAU      = GET_TAU0( 1, 1, 2000 )
-      !WRITE(6,*) XTAU,LLPAR
+
       !-----------------------
       ! N2O
       !-----------------------
@@ -2015,4 +2106,4 @@
       END SUBROUTINE CLEANUP_MCICA_CLOUDS
 !EOC
       END MODULE RRTMG_RAD_TRANSFER_MOD
-#ENDIF
+#endif

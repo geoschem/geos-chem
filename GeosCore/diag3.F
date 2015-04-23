@@ -253,6 +253,10 @@
 !  02 Apr 2015 - M. Sulprizio- Now write out LIGHTNING_CLOUD_TOP diagnostic from
 !                              HEMCO to the ctm.bpch file. Otherwise, if will
 !                              save out to the HEMCO restart file.
+!  22 Apr 2015 - M. Sulprizio- Remove the use of TRACER_COEFF to convert
+!                              emissions of hydrocarbon species to atomsC/cm2/s.
+!                              HEMCO now carries emissions for these species
+!                              entirely in kgC/m2/s.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -684,7 +688,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -718,7 +723,8 @@
                DiagnCnt  => NULL()
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -821,7 +827,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -845,7 +852,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -869,7 +877,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -893,7 +902,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -945,7 +955,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -969,7 +980,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -993,7 +1005,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -1032,7 +1045,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -1056,7 +1070,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -1080,7 +1095,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -1312,7 +1328,7 @@
          UNIT     = 'atoms C/cm2/s'
 
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR   = 3e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+         FACTOR   = GPERKG / MWC * HcoState%Phys%Avgdr / 
      &              CM2PERM2
 
          ! Loop over all four emission sources
@@ -2254,9 +2270,7 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          !%%% NOTE: FACTOR is the multiplication factor that converts
          !%%% kg/m2/s (as tracked by HEMCO) to either molec/cm2/s.        
-         !%%% For tracers that are carried in equivalent C atoms, FACTOR
-         !%%% is further multiplied by the # of C atoms per molecule,
-         !%%% which is stored in Input_Opt%TRACER_COEFF. (bmy, 8/14/14)
+         !%%% (bmy, 8/14/14)
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          
          !%%%%% NO %%%%%
@@ -2287,7 +2301,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTALK4
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2299,7 +2312,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTACET
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2311,7 +2323,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTMEK
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2323,7 +2334,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTALD2
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2335,7 +2345,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTPRPE
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2347,7 +2356,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTC3H8
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2370,7 +2378,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTC2H6
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2409,7 +2416,8 @@
          DiagnName = 'BIOMASS_BCPI'
          CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                   FLAG, RC,   cName=TRIM(DiagnName), 
-     &                   AutoFill=1, InclManual=.TRUE. )
+     &                   AutoFill=1, 
+     &                   COL=HcoDiagnIDManual )
          IF ( RC /= HCO_SUCCESS ) THEN
             MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
             CALL ERROR_STOP ( MSG, LOC ) 
@@ -2430,7 +2438,8 @@
          DiagnCnt  => NULL()
          CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=1, InclManual=.TRUE. )
+     &                      AutoFill=1, 
+     &                      COL=HcoDiagnIDManual )
          IF ( RC /= HCO_SUCCESS ) THEN
             MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
             CALL ERROR_STOP ( MSG, LOC ) 
@@ -2478,7 +2487,8 @@
             DiagnName = 'BIOMASS_OCPI'
             CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=1, InclManual=.TRUE. )
+     &                      AutoFill=1, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -2499,7 +2509,8 @@
             DiagnCnt  => NULL()
             CALL Diagn_Get( am_I_Root,   .FALSE., DiagnCnt, 
      &                         FLAG, RC, cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -2710,7 +2721,8 @@
          ! Get diagnostics from HEMCO
          CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                   FLAG, RC,   cName=TRIM(DiagnName), 
-     &                   AutoFill=1, InclManual=.TRUE. )
+     &                   AutoFill=1, 
+     &                   COL=HcoDiagnIDManual )
          IF ( RC /= HCO_SUCCESS ) THEN
             MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
             CALL ERROR_STOP ( MSG, LOC ) 
@@ -2732,7 +2744,8 @@
          ! Get diagnostics from HEMCO
          CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                   FLAG, RC,   cName=TRIM(DiagnName), 
-     &                   AutoFill=1, InclManual=.TRUE. )
+     &                   AutoFill=1, 
+     &                   COL=HcoDiagnIDManual )
          IF ( RC /= HCO_SUCCESS ) THEN
             MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
             CALL ERROR_STOP ( MSG, LOC ) 
@@ -2869,10 +2882,7 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          !%%% NOTE: FACTOR is the multiplication factor that converts
          !%%% kg/m2/s (as tracked by HEMCO) to either molec/cm2/s. 
-         !%%%
-         !%%% For tracers that are carried in equivalent C atoms, FACTOR
-         !%%% is further multiplied by the # of C atoms per molecule,
-         !%%% which is stored in Input_Opt%TRACER_COEFF. (bmy, 8/14/14)
+         !%%% (bmy, 8/14/14)
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          
          !%%%%% NO %%%%%
@@ -2903,7 +2913,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTALK4
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2915,7 +2924,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTACET
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2927,7 +2935,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTMEK
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2939,7 +2946,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTALD2
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2951,7 +2957,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTPRPE
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2963,7 +2968,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTC3H8
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2986,7 +2990,6 @@
             UNIT      = 'atoms C/cm2/s'
             N         = IDTC2H6
             FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
-            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3093,10 +3096,6 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          !%%% NOTE: FACTOR is the multiplication factor that converts
          !%%% kg/m2/s (as tracked by HEMCO) to either molec/cm2/s.        
-         !%%%
-         !%%% For tracers that are carried in equivalent C atoms, 
-         !%%% FACTOR is further multiplied by the # of C atoms per 
-         !%%% molecule, which is stored in Input_Opt%TRACER_COEFF. 
          !%%% (bmy, 8/14/14)
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -3125,42 +3124,36 @@
                UNIT      = 'atoms C/cm2/s'
                N         = IDTALK4
                FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
           
             ELSE IF ( I == IDTACET ) THEN
                DiagnName = 'ANTHROPOGENIC_ACET'
                UNIT      = 'atoms C/cm2/s'
                N         = IDTACET
                FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
                       
             ELSE IF ( I == IDTMEK ) THEN
                DiagnName = 'ANTHROPOGENIC_MEK'
                UNIT      = 'atoms C/cm2/s'
                N         = IDTMEK
                FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
    
             ELSE IF ( I == IDTALD2 ) THEN
                DiagnName = 'ANTHROPOGENIC_ALD2'
                UNIT      = 'atoms C/cm2/s'
                N         = IDTALD2
                FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
    
             ELSE IF ( I == IDTPRPE ) THEN
                DiagnName = 'ANTHROPOGENIC_PRPE'
                UNIT      = 'atoms C/cm2/s'
                N         = IDTPRPE
                FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
    
             ELSE IF ( I == IDTC3H8 ) THEN
                DiagnName = 'ANTHROPOGENIC_C3H8'
                UNIT      = 'atoms C/cm2/s'
                N         = IDTC3H8
                FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
    
             ELSE IF ( I == IDTCH2O ) THEN
                DiagnName = 'ANTHROPOGENIC_CH2O'
@@ -3173,7 +3166,6 @@
                UNIT      = 'atoms C/cm2/s'
                N         = IDTC2H6 
                FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
             ELSE IF ( I == IDTCH4 ) THEN
                DiagnName = 'ANTHROPOGENIC_CH4'
@@ -3914,22 +3906,17 @@
 !  (5) Added C2H4 as tracer #6. (tmf, 1/20/09)
 !  13 Feb 2015 - M. Sulprizio- Add updates for MEGAN2.1 from D. Millet,
 !                              based on Guenther et al. 2012
-!  19 Feb 2015 - M. Sulprizio- Bug fix: Now multiply acetone emissions by
-!                              TRACER_COEFF to get correct number of C atoms
 !******************************************************************************
 !
       IF ( ND46 > 0 ) THEN
 
          ! Diagnostic category and units for BPCH output
          CATEGORY = 'BIOGSRCE'
-         UNIT     = 'atoms C/cm2/s'
 
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          !%%% NOTE: FACTOR is the multiplication factor that converts
          !%%% kg/m2/s (as tracked by HEMCO) to either molec/cm2/s.        
-         !%%% For tracers that are carried in equivalent C atoms, FACTOR
-         !%%% is further multiplied by the # of C atoms per molecule,
-         !%%% which is stored in Input_Opt%TRACER_COEFF. (bmy, 8/14/14)
+         !%%% (bmy, 8/14/14)
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          !-----------------------------------------------------------
@@ -3937,10 +3924,10 @@
          !-----------------------------------------------------------
          IF ( IDTISOP > 0 ) THEN
             DiagnName = 'BIOGENIC_ISOP'
+            UNIT      = 'atoms C/cm2/s'
             N         = 1         
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTISOP) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(IDTISOP,1)
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3950,10 +3937,10 @@
          !%%%%% ACETONE %%%%%
          !-----------------------------------------------------------
          IF ( IDTACET > 0 ) THEN
+            UNIT   = 'atoms C/cm2/s'
             N      = 2
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR = Input_Opt%XNUMOL(IDTACET) / CM2PERM2 
-            FACTOR = FACTOR * Input_Opt%TRACER_COEFF(IDTACET,1)
 
             ! (1) BIOGENIC ACET 
             DiagnName = 'BIOGENIC_ACET'
@@ -3962,7 +3949,8 @@
             ! Get diagnostics from HEMCO
             CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=1, InclManual=.TRUE. )
+     &                      AutoFill=1, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -3985,7 +3973,8 @@
             ! Get diagnostics from HEMCO
             CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=1, InclManual=.TRUE. )
+     &                      AutoFill=1, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -4015,10 +4004,10 @@
          !-----------------------------------------------------------
          IF ( IDTPRPE > 0 ) THEN
             DiagnName = 'BIOGENIC_PRPE'
+            UNIT      = 'atoms C/cm2/s'
             N         = 3
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTPRPE) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(IDTPRPE,1)
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4030,6 +4019,7 @@
          ! APIN + BPIN + LIMO + SABI + MYRC + CARE + OCIM + OMON
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_MONX'
+         UNIT      = 'atoms C/cm2/s'
          N         = 4
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4042,6 +4032,7 @@
          !%%%%% METHYL BUTENOL %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_MBOX'
+         UNIT      = 'atoms C/cm2/s'
          N         = 5
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 5e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4055,10 +4046,10 @@
          !-----------------------------------------------------------
          IF ( IDTC2H4 > 0 ) THEN
             DiagnName = 'BIOGENIC_C2H4'
+            UNIT      = 'atoms C/cm2/s'
             N         = 6
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTC2H4) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(IDTC2H4,1)
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4068,6 +4059,7 @@
          !%%%%% ALPHA-PINENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_APIN'
+         UNIT      = 'atoms C/cm2/s'
          N         = 7
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4080,6 +4072,7 @@
          !%%%%% BETA-PINENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_BPIN'
+         UNIT      = 'atoms C/cm2/s'
          N         = 8
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4092,6 +4085,7 @@
          !%%%%% LIMONENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_LIMO'
+         UNIT      = 'atoms C/cm2/s'
          N         = 9
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4104,6 +4098,7 @@
          !%%%%% SABINENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_SABI'
+         UNIT      = 'atoms C/cm2/s'
          N         = 10
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4116,6 +4111,7 @@
          !%%%%% MYRCENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_MYRC'
+         UNIT      = 'atoms C/cm2/s'
          N         = 11
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4128,6 +4124,7 @@
          !%%%%% 3-CARENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_CARE'
+         UNIT      = 'atoms C/cm2/s'
          N         = 12
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4140,6 +4137,7 @@
          !%%%%% OCIMENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_OCIM'
+         UNIT      = 'atoms C/cm2/s'
          N         = 13
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4152,6 +4150,7 @@
          !%%%%% FORMIC ACID %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_FAXX'
+         UNIT      = 'molec/cm2/s'
          N         = 14
          ! Conversion factor from kg/m2/s to molec/cm2/s
          FACTOR    = ( HcoState%Phys%Avgdr / 46.025e+0_hp ) / CM2PERM2
@@ -4163,6 +4162,7 @@
          !%%%%% ACETIC ACID %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_AAXX'
+         UNIT      = 'molec/cm2/s'
          N         = 15
          ! Conversion factor from kg/m2/s to molec/cm2/s
          FACTOR    = ( HcoState%Phys%Avgdr / 60.052e+0_hp ) / CM2PERM2
@@ -4175,10 +4175,10 @@
          !-----------------------------------------------------------
          IF ( IDTALD2 > 0 ) THEN
             DiagnName = 'BIOGENIC_ALD2'
+            UNIT      = 'atoms C/cm2/s'
             N         = 16
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTALD2) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(IDTALD2,1)
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4188,6 +4188,7 @@
          !%%%%% OTHER MONOTERPENES %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_OMON'
+         UNIT      = 'atoms C/cm2/s'
          N         = 17
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4200,6 +4201,7 @@
          !%%%%% METHANOL %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_MOHX'
+         UNIT      = 'molec/cm2/s'
          N         = 18
          ! Conversion factor from kg/m2/s to molec/cm2/s
          FACTOR    =  ( HcoState%Phys%Avgdr / 32.042e+0_hp )/ CM2PERM2
@@ -4211,6 +4213,7 @@
          !%%%%% ETHANOL %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_ETOH'
+         UNIT      = 'atoms C/cm2/s'
          N         = 19
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 2e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4223,6 +4226,7 @@
          !%%%%% FARNESENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_FARN'
+         UNIT      = 'atoms C/cm2/s'
          N         = 20
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 15e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4235,6 +4239,7 @@
          !%%%%% B-CARYOPHYLLENE %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_BCAR'
+         UNIT      = 'atoms C/cm2/s'
          N         = 21
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 15e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4247,6 +4252,7 @@
          !%%%%% OTHER SESQUITERPENES %%%%%
          !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_OSQT'
+         UNIT      = 'atoms C/cm2/s'
          N         = 22
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 15e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
@@ -4260,6 +4266,7 @@
          !-----------------------------------------------------------
          IF ( IDTCHBr3 > 0 ) THEN
             DiagnName = 'BIOGENIC_CHBR3'
+            UNIT      = 'kg/m2/s'
             N         = 23
             FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -4272,6 +4279,7 @@
          !-----------------------------------------------------------
          IF ( IDTCH2Br2 > 0 ) THEN
             DiagnName = 'BIOGENIC_CH2BR2'
+            UNIT      = 'kg/m2/s'
             N         = 24
             FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -4284,6 +4292,7 @@
          !-----------------------------------------------------------
          IF ( IDTBr2 > 0 ) THEN
             DiagnName = 'SEASALT_BR2'
+            UNIT      = 'kg/m2/s'
             N         = 25
             FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -4297,6 +4306,7 @@
          ! Total biogenic CH4 = wetlands + other natural - soil absorb
          !-----------------------------------------------------------
          IF ( IDTCH4 > 0 ) THEN
+            UNIT      = 'molec/cm2/s'
             N         = 26
             ! Conversion factor from kg/m2/s to molec/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTCH4) / CM2PERM2
@@ -4308,7 +4318,8 @@
             ! Get diagnostics from HEMCO
             CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=0, InclManual=.TRUE. )
+     &                      AutoFill=0, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -4331,7 +4342,8 @@
             ! Get diagnostics from HEMCO
             CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=0, InclManual=.TRUE. )
+     &                      AutoFill=0, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -4354,7 +4366,8 @@
             ! Get diagnostics from HEMCO
             CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=0, InclManual=.TRUE. )
+     &                      AutoFill=0, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -4490,7 +4503,8 @@
             ! Get diagnostics from HEMCO
             CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=1, InclManual=.TRUE. )
+     &                      AutoFill=1, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -4514,7 +4528,8 @@
             ! Get diagnostics from HEMCO
             CALL Diagn_Get( am_I_Root, .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=1, InclManual=.TRUE. )
+     &                      AutoFill=1, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -4538,7 +4553,8 @@
             ! Get diagnostics from HEMCO
             CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=1, InclManual=.TRUE. )
+     &                      AutoFill=1, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -5956,7 +5972,7 @@
       DgnCont => NULL()
       CALL Diagn_Get( air,   .FALSE., DgnCont, 
      &                FLG,   ERR,     cName=TRIM(dname), 
-     &                AutoFill=dAF,   InclManual=.TRUE. )
+     &                AutoFill=dAF,   COL=HcoDiagnIDManual )
 
       ! If diagnostic not found, write error message
       IF ( ERR /= HCO_SUCCESS ) THEN

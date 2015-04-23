@@ -117,8 +117,8 @@
       USE TRACERID_MOD,       ONLY : IDTPb
       USE TRACERID_MOD,       ONLY : IDTBe7    
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
-      USE HCO_Error_Mod
+!      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
+!      USE HCO_Error_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -185,9 +185,9 @@
       ! To calculate decay rate
       REAL(fp)            :: Decay
 
-      ! To get HEMCO values
-      REAL(hp)              :: Emis
-      LOGICAL             :: FOUND
+!      ! To get HEMCO values
+!      REAL(hp)              :: Emis
+!      LOGICAL             :: FOUND
 !
 ! !DEFINED PARAMETERS
 !
@@ -237,49 +237,45 @@
 
       ENDIF
 
-      !=================================================================
-      ! Add emissions above the PBL to the tracer array. 
-      ! For more information about emissions and PBL mixing, see:
-      ! http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, Emis, FOUND )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO N = 1, N_TRACERS
-
-         ! Skip Pb210, it's source is from Rn decay
-         IF ( N == IDTPb ) CYCLE
-
-         ! Loop over all grid boxes
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! If we are using the non-local PBL mixing scheme, then
-            ! only add emissions above the PBL top.  All wmissions within
-            ! the PBL are handled in routine VDIFFDR in vdiff_mod.F90.
-            ! Skip if we have PBL mixing completely turned off, or if
-            ! we are using the TURBDAY full-mixing scheme.
-            IF ( Input_Opt%LNLPBL ) THEN
-               IF ( L < State_Met%PBL_TOP_L(I,J) + 1 ) CYCLE
-            ENDIF
-
-            ! Add emissions into the tracer array
-            ! Convert from [kg/m2/s] to [kg]
-            ! Now use GetHcoVal (ckeller, 10/21/2014)
-            CALL GetHcoVal( N, I, J, L, FOUND, Emis=Emis )
-            IF ( .NOT. FOUND ) CYCLE
-            State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)
-     &                                 + ( Emis
-     &                                 *   State_Met%AREA_M2  (I,J,1  )
-     &                                 *   DTCHEM                      )
-
-         ENDDO
-         ENDDO
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+       ! This is now all done in MIXING_MOD.F90 (ckeller, 3/4/15)
+!      !=================================================================
+!      ! Add emissions above the PBL to the tracer array. 
+!      ! For more information about emissions and PBL mixing, see:
+!      ! http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
+!      !=================================================================
+!      DO N = 1, N_TRACERS
+!
+!         ! Skip Pb210, it's source is from Rn decay
+!         IF ( N == IDTPb ) CYCLE
+!
+!         ! Loop over all grid boxes
+!         DO L = 1, LLPAR
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!
+!            ! If we are using the non-local PBL mixing scheme, then
+!            ! only add emissions above the PBL top.  All wmissions within
+!            ! the PBL are handled in routine VDIFFDR in vdiff_mod.F90.
+!            ! Skip if we have PBL mixing completely turned off, or if
+!            ! we are using the TURBDAY full-mixing scheme.
+!            IF ( Input_Opt%LNLPBL ) THEN
+!               IF ( L < State_Met%PBL_TOP_L(I,J) + 1 ) CYCLE
+!            ENDIF
+!
+!            ! Add emissions into the tracer array
+!            ! Convert from [kg/m2/s] to [kg]
+!            ! Now use GetHcoVal (ckeller, 10/21/2014)
+!            CALL GetHcoVal( N, I, J, L, FOUND, Emis=Emis )
+!            IF ( .NOT. FOUND ) CYCLE
+!            State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)
+!     &                                 + ( Emis
+!     &                                 *   State_Met%AREA_M2  (I,J,1  )
+!     &                                 *   DTCHEM                      )
+!
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!      ENDDO
 
       !=================================================================
       ! Radioactive decay of Rn222

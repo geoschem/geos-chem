@@ -190,7 +190,10 @@ CONTAINS
     INTEGER,         INTENT(INOUT)  :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  15 Dec 2013 - C. Keller   - Now a HEMCO extension 
+!  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
+!  15 Dec 2013 - C. Keller     - Now a HEMCO extension 
+!  03 Apr 2015 - C. Keller     - Humid tropical forest mask is not binary 
+!                                any more but fraction (0.0 - 1.0).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -199,7 +202,6 @@ CONTAINS
 !
     LOGICAL, SAVE       :: FIRST = .TRUE.
     INTEGER             :: N, M
-    REAL(hp), POINTER   :: Arr2D (:,:) => NULL()
     REAL(sp), POINTER   :: TMPPTR(:,:) => NULL()
     CHARACTER(LEN=63)   :: MSG
 
@@ -235,6 +237,11 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
        CALL HCO_GetPtr ( am_I_Root, 'GFED_HUMTROP', HUMTROP, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Make sure HUMTROP does not exceed one
+       WHERE ( HUMTROP > 1.0_sp ) 
+          HUMTROP = 1.0_sp
+       END WHERE
 
        ! Also point to scale factors if needed
        IF ( DoDay ) THEN
@@ -291,14 +298,20 @@ CONTAINS
           ! per type are in kgDM/m2/s, and the GFED_EMFAC scale factors
           ! are in kg/kgDM (or kgC/kgDM for VOCs). This gives us TypArr
           ! in kg/m2/s.
-          TypArr = TmpPtr * GFED_EMFAC(GfedIDs(N),M)
-
           ! Use woodland emission factors for 'deforestation' outside
-          ! humid tropical forest
+          ! humid tropical forest.
+          ! Deforestation emissions now use the weighted sum of 
+          ! deforestation and woodland scale factors, based on the value
+          ! of the humid tropical forest mask. This makes the calculation
+          ! less dependent on model resolution. (ckeller, 4/3/15) 
           IF ( M == 2 ) THEN
-             WHERE ( HUMTROP == 0.0_hp ) 
-                TypArr = TmpPtr * GFED_EMFAC(GfedIDs(N),6)
-             END WHERE
+!             WHERE ( HUMTROP == 0.0_hp ) 
+!                TypArr = TmpPtr * GFED_EMFAC(GfedIDs(N),6)
+!             END WHERE
+             TypArr = TmpPtr *         HUMTROP  * GFED_EMFAC(GfedIDs(N),M) &
+                    + TmpPtr * (1.0_sp-HUMTROP) * GFED_EMFAC(GfedIDs(N),6)
+          ELSE
+             TypArr = TmpPtr * GFED_EMFAC(GfedIDs(N),M)
           ENDIF
 
           ! Eventually add daily / 3-hourly scale factors. These scale
@@ -341,28 +354,17 @@ CONTAINS
        END SELECT
 
        ! Add flux to HEMCO emission array
-       CALL HCO_EmisAdd( HcoState, SpcArr, HcoIDs(N), RC ) 
+       CALL HCO_EmisAdd( am_I_Root, HcoState, SpcArr, HcoIDs(N), RC, ExtNr=ExtNr ) 
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'HCO_EmisAdd error: ' // TRIM(HcoState%Spc(HcoIDs(N))%SpcName)
           CALL HCO_ERROR( MSG, RC )
           RETURN 
        ENDIF
 
-       ! Eventually update diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => SpcArr
-          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                             Cat=-1, Hier=-1, HcoID=HcoIDs(N), &
-                             AutoFill=1, Array2D=Arr2D, RC=RC   )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          Arr2D => NULL()
-       ENDIF
-
     ENDDO !N
 
     ! Nullify pointers for safety's sake
     TmpPtr  => NULL()
-    Arr2D   => NULL()
 
     ! Leave w/ success
     CALL HCO_LEAVE ( RC )
@@ -403,10 +405,13 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC          ! Return status
 !
 ! !REVISION HISTORY:
-!  15 Dec 2013 - C. Keller   - Initial version
-!  08 Aug 2014 - R. Yantosca - Now include hcox_gfed_include.H, which defines
-!                              GFED_SPEC_NAME and GFED_EMFAC arrays
-!  11 Nov 2014 - C. Keller   - Now get hydrophilic fractions through config file
+!  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
+!  15 Dec 2013 - C. Keller     - Now a HEMCO extension 
+!  08 Aug 2014 - R. Yantosca   - Now include hcox_gfed_include.H, which defines
+!                                GFED_SPEC_NAME and GFED_EMFAC arrays
+!  11 Nov 2014 - C. Keller     - Now get hydrophilic fractions via config file
+!  22 Apr 2015 - R. Yantosca   - Now explicitly test for "POA scale factor"
+!                                and "NAP scale factor" to avoid search errors
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -637,7 +642,7 @@ CONTAINS
        ! configuration file. This is the factor by which OC emissions will
        ! be scaled.
        IF ( TRIM(SpcNames(N)) == 'POA1' ) THEN
-          CALL GetExtOpt ( ExtNr, 'POA scale', &
+          CALL GetExtOpt ( ExtNr, 'POA scale factor', &
                            OptValSp=ValSp, FOUND=FOUND, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( .NOT. FOUND ) THEN
@@ -652,7 +657,7 @@ CONTAINS
        ! configuration file. This is the factor by which CO emissions will
        ! be scaled.
        IF ( TRIM(SpcNames(N)) == 'NAP' ) THEN
-          CALL GetExtOpt ( ExtNr, 'NAP scale', &
+          CALL GetExtOpt ( ExtNr, 'NAP scale factor', &
                            OptValSp=ValSp, FOUND=FOUND, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( .NOT. FOUND ) THEN
@@ -689,7 +694,8 @@ CONTAINS
   SUBROUTINE HCOX_GFED_Final
 !
 ! !REVISION HISTORY:
-!  15 Dec 2013 - C. Keller - Initial version
+!  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
+!  15 Dec 2013 - C. Keller     - Now a HEMCO extension 
 !EOP
 !------------------------------------------------------------------------------
 !BOC

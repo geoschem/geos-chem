@@ -174,7 +174,7 @@ MOD   :=$(ROOT)/mod
 NCDF  :=$(ROOT)/NcdfUtil
 RAD   :=$(ROOT)/GeosRad
 UTIL  :=$(ROOT)/GeosUtil
-DYN   := $(GIGC)/FVdycoreCubed_GridComp
+DYN   :=$(GIGC)/FVdycoreCubed_GridComp
 
 # Executables
 EXE   :=geos
@@ -237,7 +237,7 @@ lib:                                               # Build all G-C libraries
 	@$(MAKE) libkpp             		  
 	@$(MAKE) libutil 
 	@$(MAKE) libhemco
-	@$(MAKE) libiso 			  
+	@$(MAKE) libiso
 	@$(MAKE) librad
 	@$(MAKE) libcore			  
 
@@ -257,7 +257,7 @@ libiso:                                            # Build code in ISOROPIA/
 	@$(MAKE) -C $(ISO)			  
 
 librad:                                            # Build code in GeosRad/
-ifeq ($(RRTMG),yes)
+ifeq ($(RRTMG_NEEDED),1)
 	@$(MAKE) -C $(RAD)			  
 endif
 
@@ -665,7 +665,7 @@ input_mod.o                 : input_mod.F                                    \
                               diag_pl_mod.o           drydep_mod.o           \
                               dust_mod.o              pops_mod.o             \
                               future_emissions_mod.o  gamap_mod.o            \
-                              land_mercury_mod.o                             \
+                              land_mercury_mod.o      co2_mod.o              \
                               linoz_mod.o             vdiff_pre_mod.o        \
                               mercury_mod.o           modis_lai_mod.o        \
                               ocean_mercury_mod.o     planeflight_mod.o      \

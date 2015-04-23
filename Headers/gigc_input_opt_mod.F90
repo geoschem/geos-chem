@@ -117,8 +117,6 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LCARB              
      LOGICAL                     :: LSOA               
      LOGICAL                     :: LSVPOA
-     REAL(fp)                    :: NAPEMISS
-     REAL(fp)                    :: POAEMISSSCALE
      LOGICAL                     :: LDUST              
      LOGICAL                     :: LDEAD              
      LOGICAL                     :: LSSALT             
@@ -127,7 +125,6 @@ MODULE GIGC_Input_Opt_Mod
      REAL(fp),           POINTER :: SALC_REDGE_um(:)   
      LOGICAL                     :: LGRAVSTRAT
      LOGICAL                     :: LSOLIDPSC
-     CHARACTER(LEN=255)          :: PSC_RST_FILE
      LOGICAL                     :: LHOMNUCNAT
      REAL(fp)                    :: T_NAT_SUPERCOOL
      REAL(fp)                    :: P_ICE_SUPERSAT
@@ -170,20 +167,12 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      ! CO2 MENU fields
      !----------------------------------------
-     LOGICAL                     :: LGENFF
-     LOGICAL                     :: LANNFF
-     LOGICAL                     :: LMONFF
+     LOGICAL                     :: LFOSSIL
      LOGICAL                     :: LCHEMCO2
-     LOGICAL                     :: LSEASBB
-     LOGICAL                     :: LBIODAILY
      LOGICAL                     :: LBIODIURNAL
-     LOGICAL                     :: LBIONETORIG
      LOGICAL                     :: LBIONETCLIM
-     LOGICAL                     :: LOCN1997
-     LOGICAL                     :: LOCN2009ANN
-     LOGICAL                     :: LOCN2009MON
-     LOGICAL                     :: LSHIPEDG
-     LOGICAL                     :: LSHIPICO
+     LOGICAL                     :: LOCEAN
+     LOGICAL                     :: LSHIP
      LOGICAL                     :: LPLANE
      LOGICAL                     :: LFFBKGRD
      LOGICAL                     :: LBIOSPHTAG
@@ -536,6 +525,7 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      ! NESTED GRID MENU fields
      !----------------------------------------
+     LOGICAL                     :: ITS_A_NESTED_GRID
      LOGICAL                     :: LWINDO
      LOGICAL                     :: LWINDO2x25
      LOGICAL                     :: LWINDO_NA
@@ -555,6 +545,8 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: NESTED_J2
      INTEGER                     :: NESTED_I0W
      INTEGER                     :: NESTED_J0W
+     INTEGER                     :: NESTED_I0E
+     INTEGER                     :: NESTED_J0E
 
      !----------------------------------------
      ! BENCHMARK MENU fields
@@ -562,20 +554,6 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LSTDRUN
      CHARACTER(LEN=255)          :: STDRUN_INIT_FILE
      CHARACTER(LEN=255)          :: STDRUN_FINAL_FILE
-
-!------------------------------------------------------------------------------
-! Prior to 3/13/15:
-! HEMCO has made these directories obsolete (bmy, 3/13/15)
-!     !----------------------------------------
-!     ! ARCHIVED OH MENU fields
-!     !----------------------------------------
-!     CHARACTER(LEN=255)          :: OH_DIR
-!
-!     !----------------------------------------
-!     ! O3PL MENU fields
-!     !----------------------------------------
-!     CHARACTER(LEN=255)          :: O3PL_DIR
-!------------------------------------------------------------------------------
 
      !----------------------------------------
      ! MERCURY MENU fields
@@ -705,6 +683,10 @@ MODULE GIGC_Input_Opt_Mod
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  03 Dec 2014 - M. Sulprizio- Add fields for Radiation Menu
 !  16 Dec 2014 - R. Yantosca - Removed JLOP, JLOP_PREV; these are in State_Chm
+!  01 Apr 2015 - R. Yantosca - Add extra nested-grid fields
+!  09 Apr 2015 - M. Sulprizio- Removed fields for NAPEMISS, POAEMISSSCALE,
+!                              and PST_RST_FILE. These options are now handled
+!                              by HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -780,6 +762,7 @@ CONTAINS
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  05 Mar 2015 - R. Yantosca - Added RES_DIR, CHEM_INPUTS_DIR fields
 !  06 Mar 2015 - R. Yantosca - Now initialize directory names with './'
+!  01 Apr 2015 - R. Yantosca - Now initialize extra nested-grid fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -884,8 +867,6 @@ CONTAINS
     Input_Opt%LCARB                  = .FALSE.
     Input_Opt%LSOA                   = .FALSE.
     Input_Opt%LSVPOA                 = .FALSE.
-    Input_Opt%NAPEMISS               = 0e+0_fp
-    Input_Opt%POAEMISSSCALE          = 0e+0_fp
     Input_Opt%LDUST                  = .FALSE.
     Input_Opt%LDEAD                  = .FALSE.
     Input_Opt%LSSALT                 = .FALSE.
@@ -894,7 +875,6 @@ CONTAINS
     Input_Opt%SALC_REDGE_um          = 0e+0_fp
     Input_Opt%LGRAVSTRAT             = .FALSE.
     Input_Opt%LSOLIDPSC              = .FALSE.
-    Input_Opt%PSC_RST_FILE           = ''
     Input_Opt%LHOMNUCNAT             = .FALSE.
     Input_Opt%T_NAT_SUPERCOOL        = 0e+0_fp
     Input_Opt%P_ICE_SUPERSAT         = 0e+0_fp
@@ -935,21 +915,13 @@ CONTAINS
     !----------------------------------------
     ! CO2 MENU fields
     !----------------------------------------
-    Input_Opt%LGENFF                 = .FALSE.
-    Input_Opt%LANNFF                 = .FALSE.
-    Input_Opt%LMONFF                 = .FALSE.
+    Input_Opt%LFOSSIL                = .FALSE.
     Input_Opt%LCHEMCO2               = .FALSE.
-    Input_Opt%LSEASBB                = .FALSE.
     Input_Opt%LBIOFUEL               = .FALSE.
-    Input_Opt%LBIODAILY              = .FALSE.
     Input_Opt%LBIODIURNAL            = .FALSE.
-    Input_Opt%LBIONETORIG            = .FALSE.
     Input_Opt%LBIONETCLIM            = .FALSE.
-    Input_Opt%LOCN1997               = .FALSE.
-    Input_Opt%LOCN2009ANN            = .FALSE.
-    Input_Opt%LOCN2009MON            = .FALSE.
-    Input_Opt%LSHIPEDG               = .FALSE.
-    Input_Opt%LSHIPICO               = .FALSE.
+    Input_Opt%LOCEAN                 = .FALSE.
+    Input_Opt%LSHIP                  = .FALSE.
     Input_Opt%LPLANE                 = .FALSE.
     Input_Opt%LFFBKGRD               = .FALSE.
     Input_Opt%LBIOSPHTAG             = .FALSE.
@@ -1033,6 +1005,7 @@ CONTAINS
     !----------------------------------------
     ! DIAGNOSTIC MENU fields
     !----------------------------------------
+    Input_Opt%DIAG_COLLECTION        = -999
     Input_Opt%TS_DIAG                = 0
     ALLOCATE( Input_Opt%TINDEX( MAX_DIAG, MAX_TRCS ), STAT=RC )
     ALLOCATE( Input_Opt%TCOUNT( MAX_DIAG           ), STAT=RC )
@@ -1335,6 +1308,7 @@ CONTAINS
     !----------------------------------------
     ! NESTED GRID MENU fields
     !----------------------------------------
+    Input_Opt%ITS_A_NESTED_GRID      = .FALSE.
     Input_Opt%LWINDO                 = .FALSE.
     Input_Opt%LWINDO2x25             = .FALSE.
     Input_Opt%LWINDO_NA              = .FALSE.
@@ -1354,6 +1328,8 @@ CONTAINS
     Input_Opt%NESTED_J2              = 0
     Input_Opt%NESTED_I0W             = 0
     Input_Opt%NESTED_J0W             = 0 
+    Input_Opt%NESTED_I0E             = 0
+    Input_Opt%NESTED_J0E             = 0 
 
     !----------------------------------------
     ! BENCHMARK MENU fields
@@ -1361,20 +1337,6 @@ CONTAINS
     Input_Opt%LSTDRUN                = .FALSE.
     Input_Opt%STDRUN_INIT_FILE       = ''
     Input_Opt%STDRUN_FINAL_FILE      =''
-
-!------------------------------------------------------------------------------
-! Prior to 3/13/15:
-! HEMCO has now made these directories obsolete (bmy, 3/13/15)
-!    !----------------------------------------
-!    ! ARCHIVED OH MENU fields
-!    !----------------------------------------
-!    Input_Opt%OH_DIR                 = './'
-!
-!    !----------------------------------------
-!    ! O3PL MENU fields
-!    !----------------------------------------
-!    Input_Opt%O3PL_DIR               = './'
-!------------------------------------------------------------------------------
 
     !----------------------------------------
     ! MERCURY MENU fields

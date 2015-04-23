@@ -149,7 +149,8 @@ hco_driver_mod.o       : hco_driver_mod.F90      \
                          hco_extlist_mod.o       \
                          hco_readlist_mod.o      \
                          hco_state_mod.o         \
-                         hco_tidx_mod.o
+                         hco_tidx_mod.o          \
+                         hcoio_diagn_mod.o
 
 hco_emislist_mod.o     : hco_emislist_mod.F90    \
                          hco_datacont_mod.o      \
@@ -171,6 +172,7 @@ hco_filedata_mod.o     : hco_filedata_mod.F90    \
 
 hco_fluxarr_mod.o      : hco_fluxarr_mod.F90     \
                          hco_arr_mod.o           \
+                         hco_diagn_mod.o         \
                          hco_error_mod.o         \
                          hco_state_mod.o
 
@@ -209,7 +211,8 @@ hco_state_mod.o        : hco_state_mod.F90       \
 	                 hco_arr_mod.o           \
                          hco_chartools_mod.o     \
                          hco_error_mod.o         \
-                         hco_extlist_mod.o
+                         hco_extlist_mod.o       \
+                         hco_unit_mod.o
 
 hco_tidx_mod.o         : hco_tidx_mod.F90        \
                          hco_chartools_mod.o     \

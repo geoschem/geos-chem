@@ -172,7 +172,6 @@ CONTAINS
     REAL(hp), TARGET       :: FLUXSALA(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET       :: FLUXSALC(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET       :: FLUXBr2 (HcoState%NX,HcoState%NY)
-    REAL(hp), POINTER      :: Arr2D(:,:) => NULL()
 
     ! New variables (jaegle 5/11/11)
     REAL*8                 :: SST, SCALE
@@ -363,20 +362,11 @@ CONTAINS
     IF ( IDTSALA > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( HcoState, FLUXSALA, IDTSALA, RC)
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALA, IDTSALA, &
+                         RC,        ExtNr=ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSALA', RC )
           RETURN 
-       ENDIF
-
-       ! Eventually update diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => FLUXSALA
-          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                             Cat=-1, Hier=-1, HcoID=IDTSALA,   &
-                             AutoFill=1, Array2D=Arr2D, RC=RC   )
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-          Arr2D => NULL() 
        ENDIF
     ENDIF
 
@@ -384,42 +374,26 @@ CONTAINS
     IF ( IDTSALC > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( HcoState, FLUXSALC, IDTSALC, RC)
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALC, IDTSALC, & 
+                         RC,        ExtNr=ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSALC', RC )
           RETURN 
        ENDIF
 
-       ! Eventually update diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => FLUXSALC
-          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                             Cat=-1, Hier=-1, HcoID=IDTSALC,   &
-                             AutoFill=1, Array2D=Arr2D, RC=RC   )
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-          Arr2D => NULL() 
-       ENDIF
     ENDIF
 
     ! BR2 
     IF ( CalcBr2 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( HcoState, FLUXBr2, IDTBr2, RC)
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXBr2, IDTBr2, & 
+                         RC,        ExtNr=ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXBr2', RC )
           RETURN 
        ENDIF
 
-       ! Eventually update diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => FLUXBr2
-          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                             Cat=-1, Hier=-1, HcoID=IDTBr2,   &
-                             AutoFill=1, Array2D=Arr2D, RC=RC   )
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-          Arr2D => NULL() 
-       ENDIF
     ENDIF
       
     ! Leave w/ success
@@ -741,9 +715,9 @@ CONTAINS
                         HcoID      = IDTSALA,               &
                         SpaceDim   = 2,                     &
                         OutUnit    = 'number_dens',         &
-                        WriteFreq  = 'Manual',              &
                         AutoFill   = 0,                     &
                         Trgt2D     = NDENS_SALA,            &
+                        COL        = HcoDiagnIDManual,      &
                         RC         = RC                      )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -756,9 +730,9 @@ CONTAINS
                         HcoID      = IDTSALC,               &
                         SpaceDim   = 2,                     &
                         OutUnit    = 'number_dens',         &
-                        WriteFreq  = 'Manual',              &
                         AutoFill   = 0,                     &
                         Trgt2D     = NDENS_SALC,            &
+                        COL        = HcoDiagnIDManual,      &
                         RC         = RC                      )
     IF ( RC /= HCO_SUCCESS ) RETURN
 

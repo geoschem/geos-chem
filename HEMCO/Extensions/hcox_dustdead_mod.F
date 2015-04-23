@@ -250,8 +250,6 @@
       REAL*8                 :: DSRC(HcoState%NX,NBINS)    ! dust mixing ratio incr.
       REAL(hp), TARGET       :: FLUX(HcoState%NX,HcoState%NY,NBINS) ! Flux array [kg/m2/s]   
       LOGICAL,  SAVE         :: FIRST = .TRUE.
-      ! For diagnostics
-      REAL(hp), POINTER      :: Arr2D(:,:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
@@ -449,22 +447,14 @@
          IF ( HcoIDs(N) > 0 ) THEN
 
             ! Add to emissions array
-            CALL HCO_EmisAdd( HcoState, FLUX(:,:,N), HcoIDs(N), RC)
+            CALL HCO_EmisAdd( am_I_Root, HcoState, FLUX(:,:,N), 
+     &                        HcoIDs(N), RC, ExtNr=ExtNr )
             IF ( RC /= HCO_SUCCESS ) THEN
                WRITE(MSG,*) 'HCO_EmisAdd error: dust bin ', N
                CALL HCO_ERROR( MSG, RC )
                RETURN 
             ENDIF
 
-            ! Eventually update diagnostics
-            IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-               Arr2D => FLUX(:,:,N)
-               CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
-     &                            Cat=-1, Hier=-1, HcoID=HcoIDs(N),
-     &                            AutoFill=1, Array2D=Arr2D, RC=RC   )
-               IF ( RC /= HCO_SUCCESS ) RETURN 
-               Arr2D => NULL() 
-            ENDIF
          ENDIF
       ENDDO !N
 
@@ -1646,24 +1636,17 @@
       INTEGER, INTENT(INOUT)   :: RC
 
       ! Local variables
-      INTEGER                  :: I
+      INTEGER                  :: I, TMP
       CHARACTER(LEN=255)       :: MSG
 
       !=================================================================
       ! SFC_TYP_GET begins here!
       !=================================================================
       DO I = 1, HcoState%NX
-         SFC_TYP_OUT(I) = INT(SFC_TYP(I,J))
-         
-         ! SFC_TYP_OUT must not exceed highest surface type number
-         ! (ckeller, 2014/07/24)
-         IF ( SFC_TYP_OUT(I) > NN_SFCTYP ) THEN
-            MSG = 'Surface type is too high. Please check regridding' 
-     &            // ' of DEAD_SFC_TYPE!'
-            CALL HCO_ERROR ( MSG, RC, 
-     &              THISLOC='SFC_TYP_GET (hcox_dustdead_mod.F90)' )
-            RETURN
-         ENDIF
+         TMP = INT(SFC_TYP(I,J))
+
+         ! Make sure value is within valid range (1 - NN_SFCTYP).
+         SFC_TYP_OUT(I) = MAX( MIN(TMP,NN_SFCTYP), 0 )         
       ENDDO
 
       ! Return with success

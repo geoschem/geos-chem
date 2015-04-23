@@ -262,10 +262,12 @@ CONTAINS
           MSG = '--> LOCATION: ' // TRIM(Err%Loc(Err%CurrLoc))
           CALL HCO_MSG ( MSG ) 
        ENDIF
+
+       ! Increase # of warnings
+       Err%nWarnings = Err%nWarnings + 1
     ENDIF
 
     ! Return w/ success
-    Err%nWarnings = Err%nWarnings + 1
     RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_Warning
@@ -795,12 +797,12 @@ CONTAINS
     IF ( FIRST ) THEN
        IF ( Err%LUN < 0 ) THEN
           WRITE(*,'(a)') REPEAT( '-', 79) 
-          WRITE(*,*    ) 'Using HEMCO v1.0'
+          WRITE(*,*    ) 'Using HEMCO v1.1'
           WRITE(*,'(a)') REPEAT( '-', 79) 
        ELSE
           LUN = Err%LUN
           WRITE(LUN,'(a)') REPEAT( '-', 79) 
-          WRITE(LUN,*    ) 'Using HEMCO v1.0'
+          WRITE(LUN,*    ) 'Using HEMCO v1.1'
           WRITE(LUN,'(a)') REPEAT( '-', 79) 
        ENDIF
 
@@ -863,8 +865,9 @@ CONTAINS
        CALL HCO_MSG ( MSG )
        MSG = 'HEMCO FINISHED'
        CALL HCO_MSG ( MSG, SEP1='-' )
-  
-       WRITE(MSG,'(A20,I6)') 'Number of warnings: ', Err%nWarnings 
+ 
+       WRITE(MSG,'(A16,I1,A12,I6)') &
+          'Warnings (level ', Err%Warnings, ' or lower): ', Err%nWarnings
        CALL HCO_MSG ( MSG, SEP2='-' )
     ENDIF
 

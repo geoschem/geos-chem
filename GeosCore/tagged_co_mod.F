@@ -182,7 +182,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
+!      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
       USE GRID_MOD,           ONLY : GET_YMID
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
@@ -399,43 +399,40 @@
      &                        A0030N, A3090N, am_I_Root, Input_Opt )
       ENDIF
 
+      ! The following is now done in mixing_mod.F90 (ckeller, 3/4/15)
       !=================================================================
       ! Add emissions above the PBL to the tracer array. 
       ! For more information about emissions and PBL mixing, see:
       ! http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
       !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, FOUND, Emis )
-      DO N = 1, N_TRACERS
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! If we are using the non-local PBL mixing scheme, then
-         ! only add emissions above the PBL top.  All emissions within
-         ! the PBL are handled in routine VDIFFDR in vdiff_mod.F90.
-         ! Skip if we have PBL mixing completely turned off, or if
-         ! we are using the TURBDAY full-mixing scheme.
-         IF ( Input_Opt%LNLPBL ) THEN
-            IF ( L < State_Met%PBL_TOP_L(I,J) + 1 ) CYCLE
-         ENDIF
-
-         ! Add emissions into the tracer array
-         ! Convert from [kg/m2/s] to [kg]
-         ! Now use GetHcoVal (ckeller, 10/21/2014)
-         CALL GetHcoVal( N, I, J, L, FOUND, Emis=Emis )
-         IF ( .NOT. FOUND ) CYCLE
-         State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
-     &                              + ( Emis
-     &                              *   State_Met%AREA_M2(I,J,1)
-     &                              *   DTCHEM                  )
-
-      ENDDO
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+!      DO N = 1, N_TRACERS
+!      DO L = 1, LLPAR
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!         ! If we are using the non-local PBL mixing scheme, then
+!         ! only add emissions above the PBL top.  All emissions within
+!         ! the PBL are handled in routine VDIFFDR in vdiff_mod.F90.
+!         ! Skip if we have PBL mixing completely turned off, or if
+!         ! we are using the TURBDAY full-mixing scheme.
+!         IF ( Input_Opt%LNLPBL ) THEN
+!            IF ( L < State_Met%PBL_TOP_L(I,J) + 1 ) CYCLE
+!         ENDIF
+!
+!         ! Add emissions into the tracer array
+!         ! Convert from [kg/m2/s] to [kg]
+!         ! Now use GetHcoVal (ckeller, 10/21/2014)
+!         CALL GetHcoVal( N, I, J, L, FOUND, Emis=Emis )
+!         IF ( .NOT. FOUND ) CYCLE
+!         State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
+!     &                              + ( Emis
+!     &                              *   State_Met%AREA_M2(I,J,1)
+!     &                              *   DTCHEM                  )
+!
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!      ENDDO
 
       !=================================================================
       ! Do tagged CO chemistry -- Put everything within a large 

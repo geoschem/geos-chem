@@ -58,7 +58,6 @@ MODULE HCOX_Driver_Mod
 
   ! Variables for diagnostics: diagnostics toggle and output frequency.
   LOGICAL, PARAMETER            :: DoDiagn   = .FALSE.
-  CHARACTER(LEN=31), PARAMETER  :: WriteFreq = 'Hourly'
 
   ! Arrays needed for diagnostics. Diagnostics are defined / filled via
   ! subroutines HCOX_DiagnDefine and HCOX_DiagnFill, respectively.
@@ -618,6 +617,9 @@ CONTAINS
     IF ( ALLOCATED( DGN_ALBD     ) ) DEALLOCATE( DGN_ALBD     )
     IF ( ALLOCATED( DGN_WLI      ) ) DEALLOCATE( DGN_WLI      )
     IF ( ALLOCATED( DGN_TROPP    ) ) DEALLOCATE( DGN_TROPP    )
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
  
   END SUBROUTINE HCOX_Final
 !EOC
@@ -773,6 +775,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_DIAGN_MOD, ONLY : Diagn_Create 
+    USE HCO_DIAGN_MOD, ONLY : HcoDiagnIDDefault 
 !
 ! !INPUT PARAMETERS:
 !
@@ -799,9 +802,9 @@ CONTAINS
                         HcoID      = -1,                &
                         SpaceDim   = 2,                 &
                         OutUnit    = '1',               &
-                        WriteFreq  = TRIM(WriteFreq),   &
                         AutoFill   = 0,                 &
                         Trgt2D     = Trgt2D,            &
+                        COL        = HcoDiagnIDDefault, &
                         RC         = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
 

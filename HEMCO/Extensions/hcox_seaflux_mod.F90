@@ -164,8 +164,8 @@ CONTAINS
     LOGICAL            :: VERBOSE
 
     ! Pointers
-    REAL(hp), POINTER  :: Arr2D(:,:)   => NULL() 
     REAL(sp), POINTER  :: SeaConc(:,:) => NULL()
+    REAL(hp), POINTER  :: Arr2D  (:,:) => NULL()
 
     !=================================================================
     ! HCOX_SeaFlux_Run begins here!
@@ -218,7 +218,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Set flux in HEMCO object [kg/m2/s]
-       CALL HCO_EmisAdd ( HcoState, SOURCE, HcoID, RC )
+       CALL HCO_EmisAdd ( am_I_Root, HcoState, SOURCE, HcoID, RC, ExtNr=ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'HCO_EmisAdd error: ' // TRIM(OcSpecs(OcID)%OcSpcName)
           CALL HCO_ERROR( MSG, RC )
@@ -232,16 +232,6 @@ CONTAINS
       
        ! Free pointers
        SeaConc => NULL()
-
-       ! Eventually update diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => SOURCE 
-          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                             Cat=-1, Hier=-1, HcoID=HcoID,     &
-                             AutoFill=1, Array2D=Arr2D, RC=RC   )
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-          Arr2D => NULL() 
-       ENDIF
 
        ! Eventually add to dry deposition diagnostics
        ContName = 'DEPVEL_' // TRIM(HcoState%Spc(HcoID)%SpcName)

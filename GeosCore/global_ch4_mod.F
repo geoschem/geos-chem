@@ -658,23 +658,24 @@
          ! Grid box surface area [m2]
          AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
 
-         ! Offline CH4 only
-         ! Convert kg/m2/s to kg.
-         IF ( ITS_A_CH4_SIM ) THEN
-
-            ! Pass directly to tracers array (surface level) if
-            ! non-local scheme is not used.
-            ! For the non-local PBL scheme, CH4_EMIS will
-            ! be used directly in vdiff_mod.F90
-            IF ( .NOT. Input_Opt%LNLPBL ) THEN
-               DO N = 1, N_TRACERS
-                  State_Chm%Tracers(IREF,JREF,1,N)
-     &            = State_Chm%Tracers(IREF,JREF,1,N)
-     &            + CH4_EMIS(IREF,JREF,ID_TRACER(N))
-     &            * DTSRCE * AREA_M2
-               ENDDO
-            ENDIF
-         ENDIF
+         ! The following is now done in mixing_mod.F90 (ckeller, 3/4/15)
+!         ! Offline CH4 only
+!         ! Convert kg/m2/s to kg.
+!         IF ( ITS_A_CH4_SIM ) THEN
+!
+!            ! Pass directly to tracers array (surface level) if
+!            ! non-local scheme is not used.
+!            ! For the non-local PBL scheme, CH4_EMIS will
+!            ! be used directly in vdiff_mod.F90
+!            IF ( .NOT. Input_Opt%LNLPBL ) THEN
+!               DO N = 1, N_TRACERS
+!                  State_Chm%Tracers(IREF,JREF,1,N)
+!     &            = State_Chm%Tracers(IREF,JREF,1,N)
+!     &            + CH4_EMIS(IREF,JREF,ID_TRACER(N))
+!     &            * DTSRCE * AREA_M2
+!               ENDDO
+!            ENDIF
+!         ENDIF
 
          ! Update diagnostics
          IF ( ND58 > 0 ) THEN

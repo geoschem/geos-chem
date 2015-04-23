@@ -406,6 +406,9 @@ CONTAINS
 !  24 Mar 2015 - C. Keller   - Added arguments LUN and CloseFile.
 !  27 Mar 2015 - R. Yantosca - Now use a FORMAT statement when printing the
 !                              filename to the Unix stdout.
+!  08 Apr 2015 - R. Yantosca - Bug fix: set KeepSpec=.TRUE. if there is no
+!                              species in the container.  This prevents
+!                              diffs in output in sp vs mp runs.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -496,7 +499,7 @@ CONTAINS
        ! Verbose mode
        IF ( HCO_IsVerb(2) ) THEN
           WRITE(MSG,*) '- Reading from existing stream: ', TRIM(srcFile)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(MSG,SEP1='-')
        ENDIF
 
     ELSE
@@ -505,15 +508,10 @@ CONTAINS
        ! Verbose mode
        IF ( HCO_IsVerb(1) ) THEN
           WRITE(MSG,*) '- Opening file: ', TRIM(srcFile)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(MSG,SEP1='-')
        ENDIF
 
        ! Also write to standard output
-!-----------------------------------------------------------------------------
-! Prior to 3/27/15:
-! Now use a FORMAT statement for better formatted output (bmy, 3/27/15)
-!       WRITE(*,*) 'HEMCO: Opening ', TRIM(srcFile)
-!-----------------------------------------------------------------------------
        WRITE( 6, 100 ) TRIM( srcFile )
  100   FORMAT( 'HEMCO: Opening ', a )
 
@@ -868,8 +866,8 @@ CONTAINS
 
        ! Verbose mode
        IF ( HCO_IsVerb(2) ) THEN
-          WRITE(MSG,*) 'Based on srcUnit attribute, no unit conversion is ', &
-                       'performed: ', TRIM(Lct%Dct%Dta%OrigUnit)
+          WRITE(MSG,*) 'Based on srcUnit attribute (', TRIM(Lct%Dct%Dta%OrigUnit), &
+                       '), no unit conversion is performed.'
           CALL HCO_MSG(MSG)
        ENDIF
 
@@ -918,6 +916,7 @@ CONTAINS
        ! This will cause an error if the input data is not in 
        ! units of kg already!
        ELSE
+          KeepSpec   = .TRUE.
           MW_g       = -999.0_hp
           EmMW_g     = -999.0_hp
           MolecRatio = -999.0_hp

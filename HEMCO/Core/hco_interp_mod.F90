@@ -11,8 +11,8 @@
 ! vertical interpolation amongst GEOS model levels (full <--> reduced).
 !\\
 !\\
-! Horizontal regridding is supported for concentration quantities (default)
-! and index-based values. For the latter, the values in the regridded grid 
+! Regridding is supported for concentration quantities (default) and 
+! index-based values. For the latter, the values in the regridded grid 
 ! boxes correspond to the value of the original grid that contrbutes most
 ! to the given box.
 !\\
@@ -431,10 +431,13 @@ CONTAINS
 ! arbitrary number of model levels onto the vertical levels of the simulation
 ! grid. Since the input data is already on model levels, this is only to
 ! inflate/collapse fields between native/reduced vertical levels, e.g. from
-! 72 native GEOS-5 levels onto the reduced 47 levels.
+! 72 native GEOS-5 levels onto the reduced 47 levels. The vertical
+! interpolation scheme depends on compiler switches. If none of the compiler
+! switches listed below is used, no vertical interpolation is performed, 
+! e.g. the vertical levels of the input grid are retained.
 !\\
 !\\
-! The input data (REGR\_4D) is expected to be already horizontally regridded.
+! The input data (REGR\_4D) is expected to be already regridded horizontally. 
 ! The 4th dimension of REGR\_4D denotes time.
 !\\
 !\\
@@ -553,10 +556,10 @@ CONTAINS
           Lct%Dct%Dta%V3(T)%Val(:,:,:) = REGR_4D(:,:,:,T)
        ENDDO
 
-       ! Leave
-       CALL HCO_LEAVE( RC )
-       RETURN
-    ENDIF
+    !===================================================================
+    ! Do vertical regridding:
+    !===================================================================
+    ELSE
 
     !===================================================================
     ! GEOS-4 mapping
@@ -877,7 +880,38 @@ CONTAINS
           ENDDO ! T
 
        ENDIF
+
+    !===================================================================
+    ! For all other cases, do not do any vertical regridding 
+    !===================================================================
+#else
+
+       CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, nlev, nt, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       DO T = 1, nt
+          Lct%Dct%Dta%V3(T)%Val(:,:,:) = REGR_4D(:,:,:,T)
+       ENDDO
 #endif
+    ENDIF ! Vertical regridding required
+
+    !===================================================================
+    ! Error check / verbose mode
+    !===================================================================
+    IF ( ASSOCIATED(Lct%Dct%Dta%V3(1)%Val) ) THEN
+      IF ( HCO_IsVerb(2) ) THEN
+          WRITE(MSG,*) 'Did vertical regridding for ',TRIM(Lct%Dct%cName),':'
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'Number of original levels: ', nlev 
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'Number of output levels: ', SIZE(Lct%Dct%Dta%V3(1)%Val) 
+          CALL HCO_MSG(MSG,SEP2='-')
+       ENDIF
+    ELSE
+       WRITE(MSG,*) 'Vertical regridding failed: ',TRIM(Lct%Dct%cName)
+       CALL HCO_ERROR( MSG, RC )
+       RETURN
+    ENDIF
 
     ! Return w/ success
     CALL HCO_LEAVE ( RC )

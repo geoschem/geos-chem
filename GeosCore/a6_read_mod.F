@@ -493,7 +493,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DAO_MOD,            ONLY : T_FULLGRID
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
@@ -531,6 +530,7 @@
 !  02 Jul 2013 - R. Yantosca - Now use State_Met%U and State_Met%V to hold
 !                              the GEOS-4 U and V wind fields
 !  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -553,181 +553,89 @@
       ENDIF
 
       !=================================================================
-      ! SPECIALTY SIMULATIONS: Make sure to read T_FULLGRID
+      ! Read met fields
       !=================================================================
-      IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
 
 #if   defined( GEOS_4 )
 
-         !--------------------------------------------------------------
-         ! Read fields for GEOS-4 meteorology
-         !--------------------------------------------------------------
-         CALL READ_A6( NYMD       = NYMD,     
-     &                 NHMS       = NHMS,       
-     &                 Input_Opt  = Input_Opt,
-     &                 CLDTOPS    = State_Met%CLDTOPS,
-     &                 CLDF       = State_Met%CLDF,     
-     &                 HKBETA     = State_Met%HKBETA,   
-     &                 HKETA      = State_Met%HKETA,   
-     &                 MOISTQ     = State_Met%MOISTQ, 
-     &                 OPTDEPTH   = State_Met%OPTDEP, 
-     &                 Q          = State_Met%SPHU,        
-     &                 T          = State_Met%T,           
-     &                 U          = State_Met%U,
-     &                 V          = State_Met%V,
-     &                 ZMEU       = State_Met%ZMEU,     
-     &                 ZMMD       = State_Met%ZMMD,       
-     &                 ZMMU       = State_Met%ZMMU,
-     &                 T_FULLGRID = T_FULLGRID ) 
+      !-----------------------------------------------------------------
+      ! Read fields for GEOS-4 meteorology
+      !-----------------------------------------------------------------
+      CALL READ_A6( NYMD       = NYMD,     
+     &              NHMS       = NHMS,  
+     &              Input_Opt  = Input_Opt,    
+     &              CLDTOPS    = State_Met%CLDTOPS,
+     &              CLDF       = State_Met%CLDF,     
+     &              HKBETA     = State_Met%HKBETA,   
+     &              HKETA      = State_Met%HKETA,   
+     &              MOISTQ     = State_Met%MOISTQ, 
+     &              OPTDEPTH   = State_Met%OPTDEP, 
+     &              Q          = State_Met%SPHU,        
+     &              T          = State_Met%T,           
+     &              U          = State_Met%U,          
+     &              V          = State_Met%V,        
+     &              ZMEU       = State_Met%ZMEU,     
+     &              ZMMD       = State_Met%ZMMD,       
+     &              ZMMU       = State_Met%ZMMU )
 
 #elif defined( GEOS_5 )
 
-         !--------------------------------------------------------------
-         ! Read fields for GEOS-5 meteorology
-         !--------------------------------------------------------------
-         CALL READ_A6( NYMD       = NYMD,          
-     &                 NHMS       = NHMS,       
-     &                 Input_Opt  = Input_Opt,
-     &                 CLDF       = State_Met%CLDF,          
-     &                 CLDTOPS    = State_Met%CLDTOPS, 
-     &                 CMFMC      = State_Met%CMFMC,        
-     &                 DQIDTMST   = State_Met%DQIDTMST, 
-     &                 DQLDTMST   = State_Met%DQLDTMST,  
-     &                 DQRCON     = State_Met%DQRCU, 
-     &                 DQRLSC     = State_Met%DQRLSAN,      
-     &                 DQVDTMST   = State_Met%DQVDTMST,
-     &                 DTRAIN     = State_Met%DTRAIN,     
-     &                 MOISTQ     = State_Met%MOISTQ,      
-     &                 OPTDEPTH   = State_Met%OPTDEP, 
-     &                 PV         = State_Met%PV,              
-     &                 RH         = State_Met%RH,             
-     &                 Q          = State_Met%SPHU,             
-     &                 QL         = State_Met%QL,             
-     &                 QI         = State_Met%QI,              
-     &                 T          = State_Met%T,               
-     &                 TAUCLI     = State_Met%TAUCLI,      
-     &                 TAUCLW     = State_Met%TAUCLW,     
-     &                 U          = State_Met%U,             
-     &                 V          = State_Met%V,
-     &                 T_FULLGRID = T_FULLGRID ) 
+      !-----------------------------------------------------------------
+      ! Read fields for GEOS-5 meteorology
+      !-----------------------------------------------------------------
+      CALL READ_A6( NYMD       = NYMD,          
+     &              NHMS       = NHMS, 
+     &              Input_Opt  = Input_Opt,      
+     &              CLDF       = State_Met%CLDF,          
+     &              CLDTOPS    = State_Met%CLDTOPS, 
+     &              CMFMC      = State_Met%CMFMC,        
+     &              DQIDTMST   = State_Met%DQIDTMST, 
+     &              DQLDTMST   = State_Met%DQLDTMST,  
+     &              DQRCON     = State_Met%DQRCU, 
+     &              DQRLSC     = State_Met%DQRLSAN,      
+     &              DQVDTMST   = State_Met%DQVDTMST,
+     &              DTRAIN     = State_Met%DTRAIN,     
+     &              MOISTQ     = State_Met%MOISTQ,      
+     &              OPTDEPTH   = State_Met%OPTDEP, 
+     &              PV         = State_Met%PV,              
+     &              RH         = State_Met%RH,             
+     &              Q          = State_Met%SPHU,             
+     &              QL         = State_Met%QL,             
+     &              QI         = State_Met%QI,              
+     &              T          = State_Met%T,               
+     &              TAUCLI     = State_Met%TAUCLI,      
+     &              TAUCLW     = State_Met%TAUCLW,     
+     &              U          = State_Met%U,             
+     &              V          = State_Met%V )
 
 #elif defined( GCAP ) 
 
-         !--------------------------------------------------------------
-         ! Read fields for GCAP meteorology
-         !--------------------------------------------------------------
-         CALL READ_A6( NYMD       = NYMD,          
-     &                 NHMS       = NHMS,   
-     &                 Input_Opt  = Input_Opt,     
-     &                 CLDF       = State_Met%CLDF,          
-     &                 CLDTOPS    = State_Met%CLDTOPS, 
-     &                 DETRAINE   = State_Met%DETRAINE,  
-     &                 DETRAINN   = State_Met%DETRAINN, 
-     &                 DNDE       = State_Met%DNDE,          
-     &                 DNDN       = State_Met%DNDN,         
-     &                 ENTRAIN    = State_Met%ENTRAIN,    
-     &                 MOISTQ     = State_Met%MOISTQ,
-     &                 OPTDEPTH   = State_Met%OPTDEP,    
-     &                 Q          = State_Met%SPHU,            
-     &                 T          = State_Met%T,                
-     &                 U          = State_Met%U,            
-     &                 UPDE       = State_Met%UPDE,          
-     &                 UPDN       = State_Met%UPDN,  
-     &                 V          = State_Met%V,
-     &                 T_FULLGRID = T_FULLGRID ) 
-
-         ! Create 2-D CLDFRC field from 3-D CLDF field
-         CALL MAKE_GCAP_CLDFRC( State_Met%CLDF, State_Met%CLDFRC )
-      
-#endif
-
-      !=================================================================
-      ! FULL-CHEMISTRY SIMULATIONS: Do not read T_FULLGRID
-      !=================================================================
-      ELSE
-
-#if   defined( GEOS_4 )
-
-         !--------------------------------------------------------------
-         ! Read fields for GEOS-4 meteorology
-         !--------------------------------------------------------------
-         CALL READ_A6( NYMD       = NYMD,     
-     &                 NHMS       = NHMS,  
-     &                 Input_Opt  = Input_Opt,    
-     &                 CLDTOPS    = State_Met%CLDTOPS,
-     &                 CLDF       = State_Met%CLDF,     
-     &                 HKBETA     = State_Met%HKBETA,   
-     &                 HKETA      = State_Met%HKETA,   
-     &                 MOISTQ     = State_Met%MOISTQ, 
-     &                 OPTDEPTH   = State_Met%OPTDEP, 
-     &                 Q          = State_Met%SPHU,        
-     &                 T          = State_Met%T,           
-     &                 U          = State_Met%U,          
-     &                 V          = State_Met%V,        
-     &                 ZMEU       = State_Met%ZMEU,     
-     &                 ZMMD       = State_Met%ZMMD,       
-     &                 ZMMU       = State_Met%ZMMU )
-
-#elif defined( GEOS_5 )
-
-         !--------------------------------------------------------------
-         ! Read fields for GEOS-5 meteorology
-         !--------------------------------------------------------------
-         CALL READ_A6( NYMD       = NYMD,          
-     &                 NHMS       = NHMS, 
-     &                 Input_Opt  = Input_Opt,      
-     &                 CLDF       = State_Met%CLDF,          
-     &                 CLDTOPS    = State_Met%CLDTOPS, 
-     &                 CMFMC      = State_Met%CMFMC,        
-     &                 DQIDTMST   = State_Met%DQIDTMST, 
-     &                 DQLDTMST   = State_Met%DQLDTMST,  
-     &                 DQRCON     = State_Met%DQRCU, 
-     &                 DQRLSC     = State_Met%DQRLSAN,      
-     &                 DQVDTMST   = State_Met%DQVDTMST,
-     &                 DTRAIN     = State_Met%DTRAIN,     
-     &                 MOISTQ     = State_Met%MOISTQ,      
-     &                 OPTDEPTH   = State_Met%OPTDEP, 
-     &                 PV         = State_Met%PV,              
-     &                 RH         = State_Met%RH,             
-     &                 Q          = State_Met%SPHU,             
-     &                 QL         = State_Met%QL,             
-     &                 QI         = State_Met%QI,              
-     &                 T          = State_Met%T,               
-     &                 TAUCLI     = State_Met%TAUCLI,      
-     &                 TAUCLW     = State_Met%TAUCLW,     
-     &                 U          = State_Met%U,             
-     &                 V          = State_Met%V )
-
-#elif defined( GCAP ) 
-
-         !--------------------------------------------------------------
-         ! Read fields for GCAP meteorology
-         !--------------------------------------------------------------
-         CALL READ_A6( NYMD       = NYMD,          
-     &                 NHMS       = NHMS, 
-     &                 Input_Opt  = Input_Opt,       
-     &                 CLDF       = State_Met%CLDF,          
-     &                 CLDTOPS    = State_Met%CLDTOPS, 
-     &                 DETRAINE   = State_Met%DETRAINE,  
-     &                 DETRAINN   = State_Met%DETRAINN, 
-     &                 DNDE       = State_Met%DNDE,          
-     &                 DNDN       = State_Met%DNDN,         
-     &                 ENTRAIN    = State_Met%ENTRAIN,    
-     &                 MOISTQ     = State_Met%MOISTQ,
-     &                 OPTDEPTH   = State_Met%OPTDEP,    
-     &                 Q          = State_Met%SPHU,            
-     &                 T          = State_Met%T,                
-     &                 U          = State_Met%U,
-     &                 UPDE       = State_Met%UPDE,          
-     &                 UPDN       = State_Met%UPDN,  
-     &                 V          = State_Met%V )
+      !-----------------------------------------------------------------
+      ! Read fields for GCAP meteorology
+      !-----------------------------------------------------------------
+      CALL READ_A6( NYMD       = NYMD,          
+     &              NHMS       = NHMS, 
+     &              Input_Opt  = Input_Opt,       
+     &              CLDF       = State_Met%CLDF,          
+     &              CLDTOPS    = State_Met%CLDTOPS, 
+     &              DETRAINE   = State_Met%DETRAINE,  
+     &              DETRAINN   = State_Met%DETRAINN, 
+     &              DNDE       = State_Met%DNDE,          
+     &              DNDN       = State_Met%DNDN,         
+     &              ENTRAIN    = State_Met%ENTRAIN,    
+     &              MOISTQ     = State_Met%MOISTQ,
+     &              OPTDEPTH   = State_Met%OPTDEP,    
+     &              Q          = State_Met%SPHU,            
+     &              T          = State_Met%T,                
+     &              U          = State_Met%U,
+     &              UPDE       = State_Met%UPDE,          
+     &              UPDN       = State_Met%UPDN,  
+     &              V          = State_Met%V )
      
-         ! Create 2-D CLDFRC field from 3-D CLDF field
-         CALL MAKE_GCAP_CLDFRC( State_Met%CLDF, State_Met%CLDFRC )
+      ! Create 2-D CLDFRC field from 3-D CLDF field
+      CALL MAKE_GCAP_CLDFRC( State_Met%CLDF, State_Met%CLDFRC )
       
 #endif
-
-      ENDIF
 
       ! Save NYMD and NHMS for next call
       LASTNYMD = NYMD
@@ -930,7 +838,7 @@
      &                    Q,         QI,        QL,        RH,        
      &                    T,         TAUCLI,    TAUCLW,    U,         
      &                    UPDE,      UPDN,      V,         ZMEU,      
-     &                    ZMMD,      ZMMU,      T_FULLGRID )
+     &                    ZMMD,      ZMMU )
 !
 ! !USES:
 !
@@ -993,7 +901,6 @@
       REAL(fp), INTENT(OUT), OPTIONAL :: ZMEU(IIPAR,JJPAR,LLPAR)
       REAL(fp), INTENT(OUT), OPTIONAL :: ZMMD(IIPAR,JJPAR,LLPAR)
       REAL(fp), INTENT(OUT), OPTIONAL :: ZMMU(IIPAR,JJPAR,LLPAR)
-      REAL(fp), INTENT(OUT), OPTIONAL :: T_FULLGRID(IIPAR,JJPAR,LGLOB)
 !
 ! !REMARKS:
 !  (3 ) CLDF     : (3-D) Total cloud fractions                 [unitless]
@@ -1067,6 +974,7 @@
 !  05 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp)
 !  06 Nov 2014 - R. Yantosca - All input arguments are now declared as (I,J,L) 
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_A6 with TRANSFER_3D
+!  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1484,12 +1392,6 @@
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( T ) ) CALL TRANSFER_3D( D, T )
                   NFOUND = NFOUND + 1 
-
-                  ! Also make sure to archive temperature on the full vertical
-                  ! grid for offline "specialty" simulations (bmy, 10/28/13)
-                  IF ( PRESENT( T_FULLGRID ) ) THEN
-                     T_FULLGRID = D
-                  ENDIF
                ENDIF
 
             !--------------------------------------
