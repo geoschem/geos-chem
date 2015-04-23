@@ -348,6 +348,7 @@
 !  03 Mar 2015 - E. Lundgren - Set State_Met%TV (virtual temperature)
 !  16 Apr 2015 - E. Lundgren - Add new State_Met variables PMEAN, PMEAN_DRY, 
 !                              DRYAIRMMR, DRYAIRVV, and MOISTMW.
+!  20 Apr 2015 - E. Lundgren - Add new State_Met variable ADMOIST.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -580,8 +581,8 @@
 
          !===========================================================
          ! Set mass dry air / mass moist air 
-         ! Since we assume constant moisture and temperature across
-         ! the grid box, this quantity is constant within the box  
+         ! Since we assume constant moisture and T across the grid box
+         ! this quantity is constant within the layer
          !===========================================================
          State_Met%DRYAIRMMR(I,J,L) = State_Met%PEDGE_DRY(I,J,L) * AIRMW
      &                                / ( State_Met%PEDGE_DRY(I,J,L) 
@@ -589,8 +590,8 @@
 
          !===========================================================
          ! Set grid box moist air molecular weight [g/mol]
-         ! Since we assume constant moisture and temperature across
-         ! the grid box, this quantity is constant within the box  
+         ! Since we assume constant moisture and T across the grid box
+         ! this quantity is constant within the box  
          !===========================================================
          State_Met%MOISTMW(I,J,L) = ( State_Met%PEDGE_DRY(I,J,L) 
      &                              * AIRMW + Ev_edge * H2OMW )
@@ -598,11 +599,12 @@
 
          !===========================================================
          ! Set mol dry air / mol moist air 
-         ! Since we assume constant moisture and temperature across
-         ! the grid box, this quantity is constant within the box  
+         ! Since we assume constant moisture and T across the grid box
+         ! this quantity is constant within the box  
          !===========================================================
-         State_Met%DRYAIRVV(I,J,L) = State_Met%DRYAIRMMR(I,J,L) 
-     &                               * State_Met%MOISTMW(I,J,L) / AIRMW
+         State_Met%DRYAIRVV(I,J,L) = State_Met%PEDGE_DRY(I,J,L)
+     &                               / State_Met%PEDGE(I,J,L)
+
 
          !=============================================================
          ! Set grid box height [m] 
@@ -703,6 +705,9 @@
          !==============================================================
          State_Met%AD(I,J,L) = State_Met%DELP(I,J,L) * G0_100 * AREA_M2
      &                         * State_Met%DRYAIRMMR(I,J,L) 
+
+         State_Met%ADMOIST(I,J,L) = State_Met%DELP(I,J,L) * G0_100 
+     &                              * AREA_M2 
 
       ENDDO
       ENDDO

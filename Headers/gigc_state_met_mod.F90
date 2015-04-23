@@ -205,7 +205,8 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: BXHEIGHT  (:,:,:) ! Grid box height [m] (dry air)
      REAL(fp), POINTER :: DELP      (:,:,:) ! Delta-P extent of grid box [hPa]
                                             ! (wet air)
-     REAL(fp), POINTER :: AD        (:,:,:) ! Air mass [kg] (dry air)
+     REAL(fp), POINTER :: AD        (:,:,:) ! Dry air mass [kg] in grid box
+     REAL(fp), POINTER :: ADMOIST   (:,:,:) ! Moist air mass [kg] in grid box
      REAL(fp), POINTER :: AIRVOL    (:,:,:) ! Grid box volume [m3] (dry air)
 
      !----------------------------------------------------------------------
@@ -634,6 +635,10 @@ CONTAINS
     ALLOCATE( State_Met%AD        ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%AD       = 0.0_fp
+
+    ALLOCATE( State_Met%ADMOIST   ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%ADMOIST  = 0.0_fp
                                                
     ALLOCATE( State_Met%AIRDEN    ( IM, JM, LM   ), STAT=RC )  
     IF ( RC /= GIGC_SUCCESS ) RETURN           
@@ -1040,6 +1045,7 @@ CONTAINS
 
     ! 3-D fields
     IF ( ASSOCIATED( State_Met%AD         )) DEALLOCATE( State_Met%AD         )
+    IF ( ASSOCIATED( State_Met%ADMOIST    )) DEALLOCATE( State_Met%ADMOIST    )
     IF ( ASSOCIATED( State_Met%AIRDEN     )) DEALLOCATE( State_Met%AIRDEN     )
     IF ( ASSOCIATED( State_Met%MAIRDEN    )) DEALLOCATE( State_Met%MAIRDEN    )
     IF ( ASSOCIATED( State_Met%AIRVOL     )) DEALLOCATE( State_Met%AIRVOL     )
