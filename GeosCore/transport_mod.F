@@ -310,6 +310,7 @@
 !  26 Mar 2015 - E. Lundgren - Pass State_Met to get_air_mass for dry mass calc
 !  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
 !  16 Apr 2015 - E. Lundgren - Convert mixing ratio to moist before advection
+!                              and back to dry afterwards
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -335,11 +336,12 @@
       REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR) 
 
       ! Pointers
-      REAL(fp),  POINTER :: p_UWND (:,:,:  )
-      REAL(fp),  POINTER :: p_VWND (:,:,:  )
-      REAL(fp),  POINTER :: p_XMASS(:,:,:  )
-      REAL(fp),  POINTER :: p_YMASS(:,:,:  )
-      REAL(fp),  POINTER :: p_STT  (:,:,:,:)
+      REAL(fp),  POINTER :: p_UWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_VWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
+      REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
+      REAL(fp),  POINTER :: p_MOISTMW(:,:,:  )
+      REAL(fp),  POINTER :: p_STT    (:,:,:,:)
 
       ! Variable to ensure mass conservation (ccc, 2/17/09)
       REAL(fp)           :: SUMADA
@@ -408,7 +410,7 @@
       ! Get the air and tracer mass before advection
       !=================================================================
 
-      ! Airmass [kg] before transport
+      ! Dry airmass [kg] before transport
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -456,16 +458,17 @@
       !=================================================================
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => State_Met%U      (:,:,LLPAR:1:-1  )
-      p_VWND  => State_Met%V      (:,:,LLPAR:1:-1  )
-      p_STT   => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
-      p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
-      p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
+      p_UWND    => State_Met%U      (:,:,LLPAR:1:-1  )
+      p_VWND    => State_Met%V      (:,:,LLPAR:1:-1  )
+      p_STT     => State_Chm%Tracers(:,:,LLPAR:1:-1,:) ! v/v
+      p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
+      p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
+      p_MOISTMW => State_Met%MOISTMW(:,:,LLPAR:1:-1  )
 
-      ! Convert tracer concentration from dry mixing ratio
-      ! (mol/mol dry air ) to moist mixing ratio (mol/mol moist air) 
-      ! before advection (ewl, 4/16/15)
-      CALL Convert_MoistMMR_to_DryMMR( N_TRACERS, p_STT, State_Met ) 
+      ! Convert tracer concentration from mol/mol dry air to 
+      ! mol/mol moist air before advection (ewl, 4/16/15)
+      CALL Convert_DryVV_to_MoistVV( N_TRACERS, State_Met, 
+     &                               State_Chm )
 
       ! Do the advection
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
@@ -480,15 +483,15 @@
      &                   KORD,   N_ADJ,     p_XMASS,  p_YMASS,         
      &                   LFILL,  MASSFLEW,  MASSFLNS, MASSFLUP,    
      &                   A_M2,   TCVV,      ND24,     ND25,     
-     &                   ND26 )
+     &                   ND26,   p_MOISTMW )
 
-      ! Convert tracer concentration from moist mixing ratio
-      ! (mol/mol moist air ) to dry mixing ratio (mol/mol dry air) 
-      ! after advection (ewl, 4/16/15)
-      CALL Convert_MoistMMR_to_DryMMR( N_TRACERS, p_STT, State_Met ) 
+      ! Convert tracer concentration from mol/mol moist air
+      ! mol/mol dry air after advection (ewl, 4/16/15)
+      CALL Convert_MoistVV_to_DryVV( N_TRACERS, State_Met, 
+     &                               State_Chm ) 
 
       ! Free pointer memory
-      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
+      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS, p_MOISTMW )
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -517,7 +520,7 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            ! Air mass [kg] after transport
+            ! Dry air mass [kg] after transport
             AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J), State_Met )
          
             ! Tracer mass [kg] after transport
@@ -634,6 +637,8 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !  26 Mar 2015 - E. Lundgren - Pass State_Met to get_air_mass for dry mass calc
 !  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
+!  16 Apr 2015 - E. Lundgren - Convert mixing ratio to moist before advection
+!                              and back to dry afterwards
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -660,11 +665,12 @@
       REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR) 
 
       ! Pointers
-      REAL(fp),  POINTER :: p_UWND (:,:,:  )
-      REAL(fp),  POINTER :: p_VWND (:,:,:  )
-      REAL(fp),  POINTER :: p_XMASS(:,:,:  )
-      REAL(fp),  POINTER :: p_YMASS(:,:,:  )
-      REAL(fp),  POINTER :: p_STT  (:,:,:,:)
+      REAL(fp),  POINTER :: p_UWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_VWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
+      REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
+      REAL(fp),  POINTER :: p_MOISTMW(:,:,:  )
+      REAL(fp),  POINTER :: p_STT    (:,:,:,:) ! v/v
 
       ! For fields from Input_Opt
       LOGICAL            :: LFILL
@@ -738,7 +744,7 @@
       ! Get the air & tracer mass before advection
       !==============================================================
 
-      ! Airmass [kg] before transport
+      ! Dry airmass [kg] before transport
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -785,16 +791,17 @@
       !=================================================================
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => State_Met%U      (:,:,LLPAR:1:-1  )
-      p_VWND  => State_Met%V      (:,:,LLPAR:1:-1  )
-      p_STT   => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
-      p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
-      p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
+      p_UWND    => State_Met%U      (:,:,LLPAR:1:-1  )
+      p_VWND    => State_Met%V      (:,:,LLPAR:1:-1  )
+      p_STT     => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
+      p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
+      p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
+      p_MOISTMW => State_Met%MOISTMW(:,:,LLPAR:1:-1  )
 
-      ! Convert tracer concentration from dry mixing ratio (mol/mol dry air) 
-      ! to moist mixing ratio (mol/mol moist air) before advection
-      ! (ewl, 4/16/15)
-      CALL Convert_DryMMR_to_MoistMMR( N_TRACERS, p_STT, State_Met )
+      ! Convert tracer concentration from mol/mol dry air to 
+      ! mol/mol moist air before advection (ewl, 4/16/15)
+      CALL Convert_DryVV_to_MoistVV( N_TRACERS, State_Met, 
+     &                               State_Chm )
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -809,15 +816,15 @@
      &                   KORD,    N_ADJ,     p_XMASS,  p_YMASS,
      &                   LFILL,   MASSFLEW,  MASSFLNS, MASSFLUP, 
      &                   A_M2,    TCVV,      ND24,     ND25,     
-     &                   ND26 )
+     &                   ND26,    p_MOISTMW )
 
-      ! Convert tracer concentration from moist mixing ratio
-      ! (mol/mol moist air ) to dry mixing ratio (mol/ mol dry air) 
-      ! after advection (ewl, 4/16/15)
-      CALL Convert_MoistMMR_to_DryMMR( N_TRACERS, p_STT, State_Met )
+      ! Convert tracer concentration from mol/mol moist air to 
+      ! mol/mol dry air after advection (ewl, 4/16/15)      
+      CALL Convert_MoistVV_to_DryVV( N_TRACERS, State_Met, 
+     &                               State_Chm ) 
 
       ! Free pointer memory
-      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
+      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS, p_MOISTMW )
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -846,7 +853,7 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            ! Air mass [kg] after transport
+            ! Dry air mass [kg] after transport
             AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J), State_Met )
          
             ! Tracer mass [kg] after transport
@@ -928,6 +935,7 @@
       USE TPCORE_BC_MOD,             ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
       USE TPCORE_BC_MOD,             ONLY : DO_WINDOW_TPCORE_BC
       USE TPCORE_GEOS5_WINDOW_MOD,   ONLY : TPCORE_GEOS5_WINDOW
+      USE UNITCONV_MOD
 #if   defined( APM )
       USE TRACER_MOD,                ONLY : N_APMTRA
 #endif
@@ -964,6 +972,8 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !  26 Mar 2015 - E. Lundgren - Pass State_Met to get_air_mass for dry mass calc
 !  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
+!  16 Apr 2015 - E. Lundgren - Convert mixing ratio to moist before advection
+!                              and back to dry afterwards
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -990,11 +1000,12 @@
       REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR)
 
       ! Pointers
-      REAL(fp),  POINTER :: p_UWND (:,:,:  )
-      REAL(fp),  POINTER :: p_VWND (:,:,:  )
-      REAL(fp),  POINTER :: p_XMASS(:,:,:  )
-      REAL(fp),  POINTER :: p_YMASS(:,:,:  )
-      REAL(fp),  POINTER :: p_STT  (:,:,:,:)
+      REAL(fp),  POINTER :: p_UWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_VWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
+      REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
+      REAL(fp),  POINTER :: p_MOISTMW(:,:,:  )
+      REAL(fp),  POINTER :: p_STT    (:,:,:,:)
 
       ! For fields from Input_Opt
       LOGICAL            :: LFILL
@@ -1067,7 +1078,7 @@
       ! Get the air and tracer mass before advection
       !=================================================================
 
-      ! Airmass [kg] before transport
+      ! Dry airmass [kg] before transport
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -1120,13 +1131,19 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a DO_WIN_TP_BC' )
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => State_Met%U      (:,:,LLPAR:1:-1  )
-      p_VWND  => State_Met%V      (:,:,LLPAR:1:-1  )
-      p_STT   => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
-      p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
-      p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
+      p_UWND  => State_Met%U        (:,:,LLPAR:1:-1  )
+      p_VWND  => State_Met%V        (:,:,LLPAR:1:-1  )
+      p_STT   => State_Chm%Tracers  (:,:,LLPAR:1:-1,:)
+      p_XMASS => XMASS              (:,:,LLPAR:1:-1  )
+      p_YMASS => YMASS              (:,:,LLPAR:1:-1  )
+      p_MOISTMW => State_Met%MOISTMW(:,:,LLPAR:1:-1  )
 
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a array flip' )
+
+      ! Convert tracer concentration from mol/mol moist air to 
+      ! mol/mol dry air after advection (ewl, 4/16/15)
+      CALL Convert_DryVV_to_MoistVV( N_TRACERS, State_Met, 
+     &                               State_Chm )
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -1140,10 +1157,16 @@
      &                          P_TEMP,   p_STT,     IORD,     JORD,
      &                          KORD,     N_ADJ,     p_XMASS,  p_YMASS,
      &                          MASSFLEW, MASSFLNS,  MASSFLUP, A_M2,
-     &                          TCVV,     ND24,      ND25,     ND26 )
+     &                          TCVV,     ND24,      ND25,     ND26,  
+     &                          p_MOISTMW )
+
+      ! Convert tracer concentration from mol/mol moist air to 
+      ! mol/mol dry air after advection (ewl, 4/16/15)
+      CALL Convert_MoistVV_to_DryVV( N_TRACERS, State_Met, 
+     &                               State_Chm ) 
 
       ! Free pointer memory
-      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS ) 
+      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS, p_MOISTMW ) 
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -1195,6 +1218,7 @@
       USE TPCORE_BC_MOD,             ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
       USE TPCORE_BC_MOD,             ONLY : DO_WINDOW_TPCORE_BC 
       USE TPCORE_GEOSFP_WINDOW_MOD,  ONLY : TPCORE_GEOSFP_WINDOW
+      USE UNITCONV_MOD
 #if   defined( APM )
       USE TRACER_MOD,                ONLY : N_APMTRA
 #endif
@@ -1229,6 +1253,8 @@
 !  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
 !  01 Apr 2015 - L. Zhang    - Add updates to skip the window region
 !  15 Apr 2015 - R. Yantosca - Add more pointers to avoid array temporaries
+!  16 Apr 2015 - E. Lundgren - Convert mixing ratio to moist before advection
+!                              and back to dry afterwards
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1264,6 +1290,7 @@
       REAL(fp),  POINTER :: p_VWND  (:,:,:  ) => NULL()
       REAL(fp),  POINTER :: p_XMASS (:,:,:  ) => NULL()
       REAL(fp),  POINTER :: p_YMASS (:,:,:  ) => NULL()
+      REAL(fp),  POINTER :: p_MOISTMW(:,:,: ) => NULL()
       REAL(fp),  POINTER :: p_MFLEW (:,:,:,:) => NULL()
       REAL(fp),  POINTER :: p_MFLNS (:,:,:,:) => NULL()
       REAL(fp),  POINTER :: p_MFLUP (:,:,:,:) => NULL()
@@ -1344,7 +1371,7 @@
       ! Get the air and tracer mass before advection
       !=================================================================
 
-      ! Airmass [kg] before transport
+      ! Dry airmass [kg] before transport
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -1415,6 +1442,11 @@
      &                              J0_W1+1 : J0_W1+JM_W1,
      &                              LLPAR   : 1            : -1    )
 
+      p_MOISTMW => State_Met%MOISTMW( I0_W1+1 : I0_W1+IM_W1, 
+     &                                J0_W1+1 : J0_W1+JM_W1,
+     &                                LLPAR   : 1            : -1  )
+
+
       p_P_TP1 => P_TP1(             I0_W1+1 : I0_W1+IM_W1, 
      &                              J0_W1+1 : J0_W1+JM_W1          )
 
@@ -1435,6 +1467,11 @@
 
       p_A_M2  => A_M2(              J0_W1+1 : J0_W1+JM_W1          )
 
+
+      ! Convert tracer concentration from mol/mol moist air to 
+      ! mol/mol dry air after advection (ewl, 4/16/15)
+      CALL Convert_DryVV_to_MoistVV( N_TRACERS, State_Met, 
+     &                               State_Chm )
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -1461,10 +1498,15 @@
      &      p_P_TP2, p_P_TEMP, p_STT,   IORD,    JORD, 
      &      KORD,    N_ADJ,    p_XMASS, p_YMASS, p_MFLEW, 
      &      p_MFLNS, p_MFLUP,  p_A_M2,  TCVV,    ND24,     
-     &      ND25,    ND26 ) 
+     &      ND25,    ND26,     p_MOISTMW ) 
+
+      ! Convert tracer concentration from mol/mol moist air to 
+      ! mol/mol dry air after advection (ewl, 4/16/15)
+      CALL Convert_MoistVV_to_DryVV( N_TRACERS, State_Met, 
+     &                               State_Chm ) 
 
       ! Free pointer memory
-      NULLIFY( p_UWND,  p_VWND,  p_STT,   p_XMASS  ) 
+      NULLIFY( p_UWND,  p_VWND,  p_STT,   p_XMASS, p_MOISTMW ) 
       NULLIFY( p_YMASS, p_P_TP1, p_P_TP2, p_P_TEMP )
       NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP, p_A_M2   )
 
@@ -1490,7 +1532,7 @@
 !
 ! !IROUTINE: get_air_mass
 !
-! !DESCRIPTION: Function GET\_AIR\_MASS returns the air mass based on the 
+! !DESCRIPTION: Function GET\_AIR\_MASS returns the dry air mass based on the 
 !  pressures returned before and after the call to the GEOS-4/fvDAS TPCORE 
 !  code. (bmy, 6/24/03)
 !\\
@@ -1534,7 +1576,8 @@
       ! since the Ap's and Bp's have been flipped for TPCORE
       L2       = ( LLPAR + 1 ) - L + 1
                
-      ! Hybrid-grid formulation for air mass
+      ! Hybrid-grid formulation for air mass. DRYAIRMMR is defined
+      ! as mass dry air per mass moist air.
       P_BOT    = Ap(L2)   + ( Bp(L2)   * P_SURF )
       P_TOP    = Ap(L2-1) + ( Bp(L2-1) * P_SURF )
       AIR_MASS = ( P_BOT - P_TOP ) * G0_100 * A_M2(J)
