@@ -22,6 +22,8 @@ MODULE UnitConv_Mod
   USE CMN_SIZE_MOD          ! Size parameters
   USE ERROR_MOD             ! Error-handling routines
   USE PRECISION_MOD         ! GEOS-Chem Flexible Precision (fp)
+  USE GIGC_State_Met_Mod, ONLY : MetState
+  USE GIGC_State_Chm_Mod, ONLY : ChmState
                     
   IMPLICIT NONE
   PRIVATE
@@ -31,14 +33,16 @@ MODULE UnitConv_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: Convert_DryMMR_to_MoistMMR ! kg / kg dry air -> kg / kg moist air
-  PUBLIC  :: Convert_MoistMMR_to_DryMMR ! kg / kg moist air -> kg / kg dry air
-  PUBLIC  :: Convert_MMR_to_VR          ! kg / kg       -> vol / vol
-  PUBLIC  :: Convert_VR_to_MMR          ! vol / vol     -> kg / kg
-  PUBLIC  :: Convert_MMR_to_KG          ! kg / kg       -> kg / grid box
-  PUBLIC  :: Convert_KG_to_MMR          ! kg / grid box -> kg / kg
-  PUBLIC  :: Convert_MMR_to_MND         ! kg / kg       -> molec / cm3
-  PUBLIC  :: Convert_MND_to_MMR         ! molec / cm3   -> kg / kg
+  PUBLIC  :: Convert_DryMMR_to_MoistMMR ! kg/kg dry air   -> kg/kg moist air
+  PUBLIC  :: Convert_MoistMMR_to_DryMMR ! kg/kg moist air -> kg/kg dry air
+  PUBLIC  :: Convert_DryVV_to_MoistVV   ! v/v dry air     -> v/v moist air
+  PUBLIC  :: Convert_MoistVV_to_DryVV   ! v/v moist air   -> v/v dry air
+  PUBLIC  :: Convert_MMR_to_VR          ! kg/kg           -> v/v
+  PUBLIC  :: Convert_VR_to_MMR          ! v/v             -> kg/kg
+  PUBLIC  :: Convert_MMR_to_KG          ! kg/kg           -> kg/grid box
+  PUBLIC  :: Convert_KG_to_MMR          ! kg/grid box     -> kg/kg
+  PUBLIC  :: Convert_MMR_to_MND         ! kg/kg           -> molec/cm3
+  PUBLIC  :: Convert_MND_to_MMR         ! molec/cm3       -> kg/kg
 !
 ! !REMARKS:
 !  The routines in this module are used to convert the units of tracer 
@@ -73,11 +77,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Convert_DryMMR_to_MoistMMR( N_TRACERS, STT, State_Met ) 
+    SUBROUTINE Convert_DryMMR_to_MoistMMR( N_TRACERS, State_Met, State_Chm ) 
 !
 ! !USES:
-!
-      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -89,8 +91,9 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    ! Array containing tracer concentration [kg/kg]
-    REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+    ! Object containing tracer concentration [kg/kg]
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm  
+
 !
 ! !REMARKS
 !
@@ -106,7 +109,30 @@ CONTAINS
     INTEGER :: I, J, L, N
 
     !=================================================================
-    ! Convert_MoistMMR_to_DryMMR begins here!
+    ! Convert_DryMMR_to_MoistMMR begins here!
+
+         !==============================================================
+         !
+         !  The conversion is as follows:
+         !
+         !   kg tracer(N)     kg dry air     
+         !   ------------  *  ------------    
+         !   kg dry air       kg moist air            
+         !
+         !   = kg tracer(N) / kg moist air
+         !
+         ! Therefore, with dry air mass mixing ratio defined in dao_mod as:
+         !
+         !  DRYAIRMMR = P_DRY * AIRMW / ( P_DRY * AIRMW + Ev * H2OMW ) 
+         !     
+         ! the conversion is:
+         ! 
+         !  STT(I,J,L,N) [kg/kg moist]
+         !
+         !    = STT(I,J,L,N) [kg/kg dry] * DRYAIRMMR
+         !                   
+         !==============================================================
+
     !=================================================================
 
       !$OMP PARALLEL DO           &
@@ -116,7 +142,8 @@ CONTAINS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-        STT(I,J,L,N) = STT(I,J,L,N) * State_Met%DRYAIRVV(I,J,L)
+        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) &
+                                     * State_Met%DRYAIRMMR(I,J,L)
       ENDDO
       ENDDO
       ENDDO
@@ -141,11 +168,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Convert_MoistMMR_to_DryMMR( N_TRACERS, STT, State_Met ) 
+    SUBROUTINE Convert_MoistMMR_to_DryMMR( N_TRACERS, State_Met, State_Chm ) 
 !
 ! !USES:
-!
-      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -157,8 +182,8 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    ! Array containing tracer concentration [kg/kg]
-    REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+    ! Object containing tracer concentration [v/v]
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm  
 !
 ! !REMARKS
 !
@@ -175,6 +200,29 @@ CONTAINS
 
     !=================================================================
     ! Convert_MoistMMR_to_DryMMR begins here!
+
+         !==============================================================
+         !
+         !  The conversion is as follows:
+         !
+         !   kg tracer(N)     kg moist air     
+         !   ------------  *  ------------    
+         !   kg moist air     kg dry air            
+         !
+         !   = kg tracer(N) / kg dry air
+         !
+         ! Therefore, with dry air mass mixing ratio defined in dao_mod as:
+         !
+         !  DRYAIRMMR = P_DRY * AIRMW / ( P_DRY * AIRMW + Ev * H2OMW ) 
+         !     
+         ! the conversion is:
+         ! 
+         !  STT(I,J,L,N) [kg/kg dry]
+         !
+         !    = STT(I,J,L,N) [kg/kg moist] / DRYAIRMMR
+         !                   
+         !==============================================================
+
     !=================================================================
 
       !$OMP PARALLEL DO           &
@@ -184,7 +232,8 @@ CONTAINS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-        STT(I,J,L,N) = STT(I,J,L,N) / State_Met%DRYAIRVV(I,J,L)
+        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) &
+                                     / State_Met%DRYAIRMMR(I,J,L)
       ENDDO
       ENDDO
       ENDDO
@@ -193,6 +242,184 @@ CONTAINS
 
     ! Return to calling program
     END SUBROUTINE Convert_MoistMMR_to_DryMMR
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: convert_dryvv_to_moistvv
+!
+! !DESCRIPTION: Subroutine Convert\_DryVV\_to\_MoistVV converts the units of 
+!  tracer volume mixing ratio from vol tracer per vol dry air [mol tracer/
+!  mol dry air] to vol tracer per vol moist air [mol tracer/mol moist air]. 
+!\\
+!\\
+! !INTERFACE:
+!
+    SUBROUTINE Convert_DryVV_to_MoistVV( N_TRACERS, State_Met, State_Chm ) 
+!
+! !USES:
+!
+! !INPUT PARAMETERS: 
+!
+    ! Number of tracers
+    INTEGER, INTENT(IN)        :: N_TRACERS 
+
+    ! Object containing meteorological state variables
+    TYPE(MetState), INTENT(IN) :: State_Met 
+!
+! !OUTPUT PARAMETERS:
+!
+    ! Object containing tracer concentration [v/v]
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm  
+!
+! !REMARKS
+!
+! !REVISION HISTORY: 
+!  16 Apr 2015 - E. Lundgren - Initial version
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: I, J, L, N
+
+    !=================================================================
+    ! Convert_DryVV_to_MoistVV begins here!
+
+         !==============================================================
+         !
+         !  The conversion is as follows:
+         !
+         !   mol tracer(N)     mol dry air     
+         !   ------------  *  ------------    
+         !   mol dry air       mol moist air            
+         !
+         !   = mol tracer(N) / mol moist air
+         !
+         ! Therefore, with dry air volume mixing ratio defined in dao_mod as:
+         !
+         !  DRYAIRVV = P_DRY * AIRMW / ( P_DRY * AIRMW + Ev * H2OMW ) 
+         !     
+         ! the conversion is:
+         ! 
+         !  STT(I,J,L,N) [v/v moist]
+         !
+         !    = STT(I,J,L,N) [v/v dry] * DRYAIRVV
+         !                   
+         !==============================================================
+
+    !=================================================================
+
+      !$OMP PARALLEL DO           &
+      !$OMP DEFAULT( SHARED     ) &
+      !$OMP PRIVATE( I, J, L, N ) 
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) &
+                                     * State_Met%DRYAIRVV(I,J,L)
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+      !$OMP END PARALLEL DO
+
+    ! Return to calling program
+    END SUBROUTINE Convert_DryVV_to_MoistVV
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: convert_moistvv_to_dryvv
+!
+! !DESCRIPTION: Subroutine Convert\_MoistVV\_to\_DryVV converts the units of 
+!  tracer volume mixing ratio from vol tracer per vol moist air [mol tracer/
+!  mol moist air] to mol tracer per mol dry air [mol tracer/mol dry air]. 
+!\\
+!\\
+! !INTERFACE:
+!
+    SUBROUTINE Convert_MoistVV_to_DryVV( N_TRACERS, State_Met, State_Chm ) 
+!
+! !USES:
+!
+! !INPUT PARAMETERS: 
+!
+    ! Number of tracers
+    INTEGER, INTENT(IN)        :: N_TRACERS 
+
+    ! Object containing meteorological state variables
+    TYPE(MetState), INTENT(IN) :: State_Met 
+
+! !OUTPUT PARAMETERS:
+!
+    ! Object containing tracer concentration [v/v]
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm  
+!
+! !REMARKS
+!
+! !REVISION HISTORY: 
+!  16 Apr 2015 - E. Lundgren - Initial version
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: I, J, L, N
+
+    !=================================================================
+    ! Convert_MoistVV_to_DryVV begins here!
+
+         !==============================================================
+         !
+         !  The conversion is as follows:
+         !
+         !   mol tracer(N)     mol moist air     
+         !   ------------  *  ------------    
+         !   mol moist air     mol dry air            
+         !
+         !   = mol tracer(N) / mol dry air
+         !
+         ! Therefore, with dry air volume mixing ratio defined in dao_mod as:
+         !
+         !  DRYAIRVV = P_DRY * AIRMW / ( P_DRY * AIRMW + Ev * H2OMW ) 
+         !     
+         ! the conversion is:
+         ! 
+         !  STT(I,J,L,N) [v/v dry]
+         !
+         !    = STT(I,J,L,N) [v/v moist] / DRYAIRMMR
+         !                   
+         !==============================================================
+
+    !=================================================================
+
+      !$OMP PARALLEL DO           &
+      !$OMP DEFAULT( SHARED     ) &
+      !$OMP PRIVATE( I, J, L, N ) 
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) &
+                                     / State_Met%DRYAIRVV(I,J,L)
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+      !$OMP END PARALLEL DO
+
+    ! Return to calling program
+    END SUBROUTINE Convert_MoistVV_to_DryVV
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
