@@ -177,6 +177,7 @@
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
 !  13 Apr 2015 - R. Yantosca - Fixed inefficient loop ordering (should be J,I)
 !  13 Apr 2015 - R. Yantosca - Add error check for JLOOP > 0 in a few places
+!  23 Apr 2015 - R. Yantosca - Bug fix: YLAT was undefined; now corrected
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -530,23 +531,20 @@
       ENDDO
       ENDDO
 
-!OMP PARALLEL DO
-!OMP+DEFAULT( SHARED )
-!OMP+PRIVATE( I, J, L, IJLOOP, JLOOP, AIR_TMP )
-!OMP+PRIVATE( YLAT, O3COL, O3_CTM, T_CTM, P_CTM )
-!OMP+SCHEDULE( DYNAMIC )
-!-----------------------------------------------------------------------------
-! Prior to 4/13/15:
-! Optimal loop ordering should be J,I , not I,J. (bmy, 4/13/15)
-!      DO I = 1, IIPAR
-!      DO J = 1, JJPAR
-!-----------------------------------------------------------------------------
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I,       J,    L,     IJLOOP, JLOOP        )
+!$OMP+PRIVATE( AIR_TMP, YLAT, O3COL, O3_CTM, T_CTM, P_CTM )
+!$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
        ! 1-D INDEX
        IJLOOP         = (J-1)*IIPAR+I
        ALBVIS(IJLOOP)   = State_Met%ALBD(I,J)
+
+       ! Grid box latitude [degrees]
+       YLAT            = GET_YMID( I, J, 1 )
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
        ! Define the P array here, using GCM pressures
@@ -732,7 +730,7 @@
       ENDDO
       ENDDO
 
-!OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
       IF (DOAERAD) THEN
        DO IB = 1,NBNDS
