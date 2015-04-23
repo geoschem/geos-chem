@@ -178,6 +178,8 @@
 !  13 Apr 2015 - R. Yantosca - Fixed inefficient loop ordering (should be J,I)
 !  13 Apr 2015 - R. Yantosca - Add error check for JLOOP > 0 in a few places
 !  23 Apr 2015 - R. Yantosca - Bug fix: YLAT was undefined; now corrected
+!  23 Apr 2015 - R. Yantosca - Bug fix: all members of State_Met now use
+!                              (I,J,L) ordering.  This is for the NASA GCM.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -600,7 +602,12 @@
      &                          RHOICE*REI_DEF
              REICE(IJLOOP,L) = REI_DEF
              !TAUCLD DERIVED IN MCICA SUB, NOT NEEDED
-             CLDFR(IJLOOP,L)   = State_Met%CLDF(L,I,J)
+!------------------------------------------------------------------------------
+! Prior to 4/23/15:
+! All members of State_Met now use (I,J,L) ordering (bmy, 4/23/15)
+!             CLDFR(IJLOOP,L)   = State_Met%CLDF(L,I,J)
+!------------------------------------------------------------------------------
+             CLDFR(IJLOOP,L)   = State_Met%CLDF(I,J,L)
             ENDIF !CLOUDS
 
        IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN 
@@ -695,7 +702,12 @@
             !N.B. STRAT O3  NOT CURRENTLY INCLUDED IN THE DRE OF O3
 
             !! DENSITY OF AIR IN G/CM2
-            AIR_TMP = State_Met%AIRDEN(L,I,J)*
+!-----------------------------------------------------------------------------
+! Prior to 4/23/15:
+! All members of State_Met now use (I,J,L) ordering (bmy, 4/23/15)
+!            AIR_TMP = State_Met%AIRDEN(L,I,J)*
+!-----------------------------------------------------------------------------
+            AIR_TMP = State_Met%AIRDEN(I,J,L)*
      &                State_Met%BXHEIGHT(I,J,L)*1.0E-1
             !! DENSITY OF AIR IN MOLEC/CM2
             AIR_TMP = AVG*AIR_TMP/WTAIR
