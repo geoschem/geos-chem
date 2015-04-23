@@ -1423,7 +1423,7 @@
                   WRITE( 6, '(a)' ) REPEAT( '#', 79 )
                   WRITE( 6, 500 )     
      &              'R R T M G : Radiative Transfer Model (by AER)'
- 500              FORMAT( '#####', 9x, a, 9x, '#####' )
+ 500              FORMAT( '#####', 12x, a, 12x, '#####' )
                   WRITE( 6, '(a)' ) REPEAT( '#', 79 )
                   FIRST_RT = .FALSE.
                ENDIF
