@@ -549,7 +549,7 @@
          !===========================================================
          ! Set grid box wet air density [kg/m3] using the ideal gas law.
          ! For now we will be consistent with legacy definition of
-         ! density as mass over volume and so must use the 
+         ! density as total grid box mass over volume and so must use the 
          ! altitude-weighted mean pressure (PMEAN) rather than the 
          ! arithmetic mean pressure (PMID) or the edge pressure.
          ! The density here is therefore the mean grid box density
@@ -579,32 +579,25 @@
      &                             * PCONV * MCONV
      &                             / RSTARG / State_Met%T(I,J,L)
 
-         !===========================================================
-         ! Set mass dry air / mass moist air 
-         ! Since we assume constant moisture and T across the grid box
-         ! this quantity is constant within the layer
-         !===========================================================
-         State_Met%DRYAIRMMR(I,J,L) = State_Met%PEDGE_DRY(I,J,L) * AIRMW
-     &                                / ( State_Met%PEDGE_DRY(I,J,L) 
-     &                                * AIRMW + Ev_edge * H2OMW )
+         !=============================================================
+         ! Set grid box moist molecular weight and mixing ratios
+         ! These are useful for moist <-> dry conversions.
+         ! Since we assume constant moisture and T across the grid box,
+         ! these quantities are constant within the box. 
+         !=============================================================  
 
-         !===========================================================
-         ! Set grid box moist air molecular weight [g/mol]
-         ! Since we assume constant moisture and T across the grid box
-         ! this quantity is constant within the box  
-         !===========================================================
+         ! Grid box moist air molecular weight [g/mol]
          State_Met%MOISTMW(I,J,L) = ( State_Met%PEDGE_DRY(I,J,L) 
      &                              * AIRMW + Ev_edge * H2OMW )
      &                              / State_Met%PEDGE(I,J,L) 
 
-         !===========================================================
-         ! Set mol dry air / mol moist air 
-         ! Since we assume constant moisture and T across the grid box
-         ! this quantity is constant within the box  
-         !===========================================================
+         ! Mol dry air / mol moist air [v/v] 
          State_Met%DRYAIRVV(I,J,L) = State_Met%PEDGE_DRY(I,J,L)
      &                               / State_Met%PEDGE(I,J,L)
 
+         ! Mass dry air / mass moist air [kg/kg] 
+         State_Met%DRYAIRMMR(I,J,L) = State_Met%AIRDEN(I,J,L)
+     &                                / State_Met%MAIRDEN(I,J,L)  
 
          !=============================================================
          ! Set grid box height [m] 
