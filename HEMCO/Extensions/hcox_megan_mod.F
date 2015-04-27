@@ -1486,6 +1486,15 @@
          Arr2D => NULL() 
 
          ! -------------------------------------------------------------
+         ! Total monoterpenes
+         Arr2D => FLUXMONO
+         DiagnName =  'BIOGENIC_MONX'
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
+     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN 
+         Arr2D => NULL()
+
+         ! -------------------------------------------------------------
          ! a-Farnesene
          Arr2D => FLUXFARN
          DiagnName =  'BIOGENIC_FARN'

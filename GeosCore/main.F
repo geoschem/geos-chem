@@ -271,6 +271,7 @@
 !  22 Aug 2014 - R. Yantosca - Now save areas [m2] in State_Met%AREA_M2
 !  15 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  06 Jan 2015 - R. Yantosca - Added two-way coupled simulation options
+!  16 Apr 2015 - R. Yantosca - Remove call to INIT_DAO; it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -278,7 +279,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL                  :: FIRST = .TRUE.
+      LOGICAL                  :: FIRST_RT = .TRUE.
       LOGICAL                  :: wasModisRead
       LOGICAL                  :: prtDebug
       INTEGER                  :: I,             IOS,         J
@@ -501,13 +502,6 @@
       
       ! Debug output
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
-
-      ! For offline simulations that use archived OH: initialize T_FULLGRID
-      ! and AIRDEN_FULLGRID arrays for regridding OH fields (bmy, 10/29/13)
-      IF ( ITS_A_SPECIALTY_SIM ) THEN
-         CALL INIT_DAO( am_I_Root, Input_Opt, RC )
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
-      ENDIF
 
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
@@ -1417,13 +1411,23 @@
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
          ENDIF
 
-#if   defined( RRTMG )
+#if defined( RRTMG )
          !==============================================================
          !  ***** R R T M G   R A D I A T I V E   T R A N S F E R *****
          !==============================================================
          IF ( Input_opt%LRAD ) THEN 
             IF ( ITS_TIME_FOR_RT() ) THEN
-               WRITE(6,*) 'CALLING RRTMG...'
+               
+               ! Splash page
+               IF ( am_I_Root .and. FIRST_RT ) THEN
+                  WRITE( 6, '(a)' ) REPEAT( '#', 79 )
+                  WRITE( 6, 500 )     
+     &              'R R T M G : Radiative Transfer Model (by AER)'
+ 500              FORMAT( '#####', 12x, a, 12x, '#####' )
+                  WRITE( 6, '(a)' ) REPEAT( '#', 79 )
+                  FIRST_RT = .FALSE.
+               ENDIF
+
                iseed=iseed+15
 
                !clear-sky is output with all-sky, so we just need to run once 
@@ -1498,6 +1502,17 @@
             CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_MIN' )
          ENDIF
 
+         ! Plane following diagnostic, moved here to be consistent
+         ! with species array and not be biased by emissions, kyu 30
+         ! jan 2015
+         IF ( ND40 > 0 ) THEN 
+            ! Archive data along the flight track
+            CALL PLANEFLIGHT
+     &           ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         ENDIF
+
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG40' )
+
          !==============================================================
          !       ***** A R C H I V E   D I A G N O S T I C S *****
          !==============================================================
@@ -1531,16 +1546,7 @@
             ! Increment diagnostic timestep counter. (ccc, 5/13/09)
             CALL SET_CT_DIAG( INCREMENT=.TRUE. )
 
-            ! Plane following diagnostic
-            IF ( ND40 > 0 ) THEN 
-               
-               print*, 'Call planeflight'
-               ! Archive data along the flight track
-               CALL PLANEFLIGHT
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-            ENDIF
-            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG40' )
-
+            ! Planeflight diagnostic moved to be after chemistry, kyu
             !### Debug
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
          ENDIF

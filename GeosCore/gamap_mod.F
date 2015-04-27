@@ -6456,7 +6456,7 @@
 
             !jpp, 9/6/07: preventing these default quantities
             !             from overwriting CHBr3's info.
-            IF ( T < 24 .and. T /= 14 .and. T /= 15 .and. T /= 18 ) THEN
+            IF ( T < 23 .and. T /= 14 .and. T /= 15 .and. T /= 18 ) THEN
                ! Define the rest of the quantities
                INDEX(T,46) = T + ( SPACING * 21 )
                FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'
@@ -6693,7 +6693,7 @@
       IF ( ND56 > 0 ) THEN 
 
          ! Number of tracers
-         NTRAC(56) = 3
+         NTRAC(56) = 4
 
          ! Loop over tracers
          DO T = 1, NTRAC(56)
@@ -6703,18 +6703,24 @@
                CASE( 1 )
                   NAME (T,56) = 'L-RATE'
                   FNAME(T,56) = 'Total lightning flash rate'
+                  UNIT (T,56) = 'flashes/min/km2'
                CASE( 2 )
                   NAME (T,56) = 'IC-RATE'
                   FNAME(T,56) = 'Intra-cloud flash rate'
+                  UNIT (T,56) = 'flashes/min/km2'
                CASE( 3 )
                   NAME (T,56) = 'CG-RATE'
                   FNAME(T,56) = 'Cloud-ground flash rate'
+                  UNIT (T,56) = 'flashes/min/km2'
+               CASE( 4 )
+                  NAME (T,56) = 'L-TOP'
+                  FNAME(T,56) = 'Lightning cloud top height'
+                  UNIT (T,56) = 'level'
                CASE DEFAULT
                   ! Nothing
             END SELECT
 
             ! Define the rest of the quantities
-            UNIT (T,56) = 'flashes/min/km2'
             INDEX(T,56) = T + ( SPACING * 42 )
             MOLC (T,56) = 1
             MWT  (T,56) = 0e0

@@ -36,6 +36,7 @@
       ! Please also see the diagram in the REMARKS section.
       !------------------------------------------------------------
       INTEGER, PUBLIC :: I0_W, J0_W  
+      INTEGER, PUBLIC :: I0_E, J0_E
       INTEGER, PUBLIC :: I1_W, J1_W   
       INTEGER, PUBLIC :: I2_W, J2_W
       INTEGER, PUBLIC :: IM_W, JM_W
@@ -151,6 +152,7 @@
 !  07 Sep 2012 - R. Yantosca - Minor fixes for numerical stability
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  01 Apr 2015 - R. Yantosca - Now add I0_E and J0_E
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -851,7 +853,11 @@
               ENDDO
 
               ! East BC
-              DO I = IIPAR-I0_W+1, IIPAR
+!-----------------------------------------------------------------------------
+! Prior to 4/1/15:
+!              DO I = IIPAR-I0_W+1, IIPAR
+!-----------------------------------------------------------------------------
+              DO I = IIPAR-I0_E+1, IIPAR
                  STT(I,J,L,N) = GET_4x5_BC(I,J,L,N)
               ENDDO
            ENDDO
@@ -865,7 +871,11 @@
               ENDDO
 
               ! North BC
-              DO J = JJPAR-J0_W+1, JJPAR
+!-----------------------------------------------------------------------------
+! Prior to 4/1/15:
+!              DO J = JJPAR-J0_W+1, JJPAR
+!-----------------------------------------------------------------------------
+              DO J = JJPAR-J0_E+1, JJPAR
                  STT(I,J,L,N) = GET_4x5_BC(I,J,L,N)
               ENDDO
            ENDDO
@@ -895,7 +905,11 @@
               ENDDO
 
               ! East BC
-              DO I = IIPAR-I0_W+1, IIPAR
+!-----------------------------------------------------------------------------
+! Prior to 4/1/15:
+!              DO I = IIPAR-I0_W+1, IIPAR
+!-----------------------------------------------------------------------------
+              DO I = IIPAR-I0_E+1, IIPAR
                  STT(I,J,L,N) = GET_2x25_BC(I,J,L,N)
               ENDDO
            ENDDO
@@ -909,7 +923,11 @@
               ENDDO
 
               ! North BC
-              DO J = JJPAR-J0_W+1, JJPAR
+!-----------------------------------------------------------------------------
+! Prior to 4/1/15:
+!              DO J = JJPAR-J0_W+1, JJPAR
+!-----------------------------------------------------------------------------
+              DO J = JJPAR-J0_E+1, JJPAR
                  STT(I,J,L,N) = GET_2x25_BC(I,J,L,N)
               ENDDO
            ENDDO
@@ -1499,7 +1517,12 @@
 
             ! If the 1x1 center lon lies w/in the 2x25 lon edges
             ! then we have found the proper 2x25 box!
-            IF ( X > XE2x25(II) .and. X < XE2x25(II+1) ) THEN
+!-----------------------------------------------------------------------------
+! Prior to 4/1/15:
+! Bug fix: (lzh, 4/1/15)
+!            IF ( X > XE2x25(II) .and. X < XE2x25(II+1) ) THEN
+!-----------------------------------------------------------------------------
+            IF ( X >= XE2x25(II) .and. X < XE2x25(II+1) ) THEN
                MAP1x1(I,J,1) = II
                MAP1x1(I,J,2) = 0
                EXIT
@@ -1691,24 +1714,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TPCORE_BC( TS, I0W, J0W, I1, 
-     &                           J1, I2,  J2,  Input_Opt )
+      SUBROUTINE INIT_TPCORE_BC( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
       USE GRID_MOD,           ONLY : ITS_A_NESTED_GRID
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN) :: TS          ! Timestep for BC data
-      INTEGER,        INTENT(IN) :: I0W, J0W    ! Transport region offsets
-      INTEGER,        INTENT(IN) :: I1,  J1     ! Lon, lat indices @ LL corner 
-      INTEGER,        INTENT(IN) :: I2,  J2     ! Lon, lat indices @ UR corner
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  10 Feb 2003 - R. Yantosca - Initial version
@@ -1725,6 +1749,8 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  01 Apr 2015 - L. Zhang    - IM_W, JM_W are no longer symmetric, but are
+!                              computed from I0_E and J0_E
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1749,31 +1775,44 @@
       LWINDO_CU  = Input_Opt%LWINDO_CU
       LWINDO_EU  = Input_Opt%LWINDO_EU
       LWINDO_CH  = Input_Opt%LWINDO_CH
+      LWINDO_SE  = Input_Opt%LWINDO_SE
       LWINDO2x25 = Input_Opt%LWINDO2x25
       N_TRACERS  = Input_Opt%N_TRACERS
 
       ! Timestep for BC's [min]
-      TS_BC = TS
+      TS_BC      = Input_Opt%NESTED_TS
 
       !-----------------------------------------------------------------
       !       ****** NESTED GRID TPCORE TRANSPORT REGION ******
       !-----------------------------------------------------------------
 
       ! TPCORE transport region offsets
-      I0_W = I0W
-      J0_W = J0W
+      I0_W = Input_Opt%NESTED_I0W
+      J0_W = Input_Opt%NESTED_J0W
+      I0_E = Input_Opt%NESTED_I0E
+      J0_E = Input_Opt%NESTED_J0E
 
       ! Extent of TPCORE transport region
-      IM_W = IIPAR - ( 2 * I0_W )
-      JM_W = JJPAR - ( 2 * J0_W )
+!-----------------------------------------------------------------------------
+! Prior to 4/1/15:
+!      IM_W = IIPAR - ( 2 * I0_W )
+!      JM_W = JJPAR - ( 2 * J0_W )
+!-----------------------------------------------------------------------------
+      IM_W = IIPAR - I0_W - I0_E
+      JM_W = JJPAR - J0_W - J0_E
 
       ! I and J at lower-left corner of TPCORE transport region
       I1_W = GET_XOFFSET( GLOBAL=.TRUE. ) + I0_W + 1
       J1_W = GET_YOFFSET( GLOBAL=.TRUE. ) + J0_W + 1
 
       ! I and J at upper-right corner of TPCORE transport region
-      I2_W = GET_XOFFSET( GLOBAL=.TRUE. ) + IIPAR - I0_W
-      J2_W = GET_YOFFSET( GLOBAL=.TRUE. ) + JJPAR - J0_W
+!-----------------------------------------------------------------------------
+! Prior to 4/1/15:
+!      I2_W = GET_XOFFSET( GLOBAL=.TRUE. ) + IIPAR - I0_W
+!      J2_W = GET_YOFFSET( GLOBAL=.TRUE. ) + JJPAR - J0_W
+!-----------------------------------------------------------------------------
+      I2_W = GET_XOFFSET( GLOBAL=.TRUE. ) + IIPAR - I0_E
+      J2_W = GET_YOFFSET( GLOBAL=.TRUE. ) + JJPAR - J0_E
 
       ! IGZD = ?
       IGZD = I0_W - 1
@@ -1783,10 +1822,10 @@
       !-----------------------------------------------------------------
 
       ! BC window region on the coarse grid
-      I1_BC = I1                             ! Lon index, LL corner
-      J1_BC = J1                             ! Lat index, LL corner
-      I2_BC = I2                             ! Lon index, UR corner
-      J2_BC = J2                             ! Lat index, UR corner
+      I1_BC = Input_Opt%NESTED_I1            ! Lon index, LL corner
+      J1_BC = Input_Opt%NESTED_J1            ! Lat index, LL corner
+      I2_BC = Input_Opt%NESTED_I2            ! Lon index, UR corner
+      J2_BC = Input_Opt%NESTED_J2            ! Lat index, UR corner
 
       ! Extent of coarse-grid BC REGION
       IM_BC = I2_BC - I1_BC + 1
@@ -2039,6 +2078,9 @@
       ALLOCATE( MAP1x1( IIPAR, JJPAR, 4 ) , STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MAP1x1' )
       MAP1x1 = 0
+
+      ! Return 
+      RC = GIGC_SUCCESS
 
       END SUBROUTINE INIT_TPCORE_BC
 !EOC

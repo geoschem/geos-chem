@@ -165,6 +165,7 @@
 !  08 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  01 Apr 2015 - R. Yantosca - Bug fix: BOXVL needs to be !$OMP PRIVATE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -278,7 +279,7 @@
       ! Loop over grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, JLOOP, TK, CONSEXP, VPRESH2O )
+!$OMP+PRIVATE( I, J, L, JLOOP, BOXVL, TK, CONSEXP, VPRESH2O )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, NVERT
       DO J = 1, NLAT
@@ -291,7 +292,6 @@
          ! Only process tropospheric boxes
          !----------------------------------
          IF ( JLOOP > 0 ) THEN
-
 
             ! Grid box volume [cm3]
             BOXVL          = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -402,8 +402,8 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
-!  17 Jun 2014 - J. Pierce   - Now allow bulk dust in TOMAS simulatoins
-
+!  17 Jun 2014 - J. Pierce   - Now allow bulk dust in TOMAS simulations
+!  07 Apr 2015 - R. Yantosca - Add check to prevent div-by-zero errors
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -413,37 +413,37 @@
       ! We carry carbon mass only in OC and here need to multiply by
       ! 1.4 to account for the mass of the other chemical components
       ! (rjp, bmy, 7/15/04)
-      !REAL(fp),  PARAMETER :: OCF     = 2.1d0
+      !REAL(fp), PARAMETER :: OCF     = 2.1d0
       ! SOAupdate: semivolpoa: reduce OCF to 1.4 for POA (hotp 2/17/09)
-      REAL(fp),  PARAMETER :: OCF     = 1.4e+0_fp
+      REAL(fp), PARAMETER :: OCF     = 1.4e+0_fp
 
       ! SOAupdate: semivolpoa4opoa: add OPOA mass (hotp 3/17/09)
-      REAL(fp),  PARAMETER :: OCFOPOA = 2.1e+0_fp  ! = 1.4*1.5
+      REAL(fp), PARAMETER :: OCFOPOA = 2.1e+0_fp  ! = 1.4*1.5
 
       ! For SOAG, assume the total aerosol mass/glyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
-      REAL(fp),  PARAMETER :: OCFG = 1.e+0_fp
+      REAL(fp), PARAMETER :: OCFG = 1.e+0_fp
 
       ! For SOAM, assume the total aerosol mass/methylglyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
-      REAL(fp),  PARAMETER :: OCFM = 1.e+0_fp
+      REAL(fp), PARAMETER :: OCFM = 1.e+0_fp
 !
 ! !LOCAL VARIABLES:
 !
       ! SAVEd variables
-      LOGICAL, SAVE      :: FIRST = .TRUE. 
+      LOGICAL, SAVE       :: FIRST = .TRUE. 
 
       ! Non-SAVEd variables
-      INTEGER            :: I, J, L, N, K
-      LOGICAL            :: LCARB
-      LOGICAL            :: LDUST
-      LOGICAL            :: LSOA
-      LOGICAL            :: LSSALT
-      LOGICAL            :: LSULF
+      INTEGER             :: I, J, L, N, K
+      LOGICAL             :: LCARB
+      LOGICAL             :: LDUST
+      LOGICAL             :: LSOA
+      LOGICAL             :: LSSALT
+      LOGICAL             :: LSULF
 
       ! Pointers
-      REAL(fp), POINTER    :: STT(:,:,:,:)
-      REAL(fp), POINTER    :: AIRVOL(:,:,:)
+      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: AIRVOL(:,:,:)
 
       !=================================================================
       ! AEROSOL_CONC begins here!
@@ -531,15 +531,36 @@
      &                             STT(I,J,L,IDTNITs) ) /
      &                             AIRVOL(I,J,L)
 #endif
+            
+            ! Add error check for safe division (bmy, 4/7/15)
+            IF ( SO4_NH4_NIT(I,J,L) > 0e+0_fp ) THEN
 
-            ! Save these fractions for partitioning of optics
-            ! until later when these may be treated independently
-            FRAC_SNA(I,J,L,1) = ((STT(I,J,L,IDTSO4)+STT(I,J,L,IDTSO4s))
-     &                           / AIRVOL(I,J,L))/SO4_NH4_NIT(I,J,L)
-            FRAC_SNA(I,J,L,2) = ((STT(I,J,L,IDTNIT)+STT(I,J,L,IDTNITs))
-     &                           / AIRVOL(I,J,L))/SO4_NH4_NIT(I,J,L)
-            FRAC_SNA(I,J,L,3) = (STT(I,J,L,IDTNH4)/AIRVOL(I,J,L))/
-     &                           SO4_NH4_NIT(I,J,L)
+               ! Save these fractions for partitioning of optics
+               ! until later when these may be treated independently
+               FRAC_SNA(I,J,L,1) = ( ( STT(I,J,L,IDTSO4 ) 
+     &                           +     STT(I,J,L,IDTSO4s) )
+     &                           /   AIRVOL(I,J,L)          )
+     &                           / SO4_NH4_NIT(I,J,L)
+
+               FRAC_SNA(I,J,L,2) = ( ( STT(I,J,L,IDTNIT )
+     &                           +     STT(I,J,L,IDTNITs) )
+     &                           /   AIRVOL(I,J,L)          )
+     &                           / SO4_NH4_NIT(I,J,L)
+
+               FRAC_SNA(I,J,L,3) = ( STT(I,J,L,IDTNH4)
+     &                           /   AIRVOL(I,J,L)        ) 
+     &                           / SO4_NH4_NIT(I,J,L)
+               
+            ELSE
+               
+               ! If SO4_NH4_NIT(I,J,L) is zero, then avoid a div-by-zero
+               ! error.  Set all of these to zero because the division
+               ! cannot be done.
+               FRAC_SNA(I,J,L,1) = 0e+0_fp
+               FRAC_SNA(I,J,L,2) = 0e+0_fp
+               FRAC_SNA(I,J,L,3) = 0e+0_fp
+
+            ENDIF
 
          ENDIF
 
@@ -895,6 +916,8 @@
 !  05 Mar 2015 - R. Yantosca - Remove DO_READ_DATA option.  We can no longer
 !                              have binary punch input in HPC environments.
 !  31 Mar 2015 - R. Yantosca - Bug fix: Declare LINTERP as !$OMP PRIVATE
+!  07 Apr 2015 - R. Yantosca - Bug fix: Add error check to JLOOP do-loop
+!                              so that we cycle if JLOOP <= 0
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1468,15 +1491,25 @@
          ENDDO
 
          ! Loop over SMVGEAR grid boxes
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IRH, JLOOP, SCALEQ, SCALER, REFF, FRAC )
-!$OMP+PRIVATE( SCALEOD, SCALESSA, SCALEASY, SCALEVOL, DRYAREA )
+!$OMP PARALLEL DO
+!$OMP+PRIVATE( JLOOP,    I,       J,        L,        IRH       )
+!$OMP+PRIVATE( AW0,      QW0,     SSW0,     ASYW0,    REFF      )
+!$OMP+PRIVATE( SCALEA,   SCALEQ,  SCALESSA, SCALEASY, FRAC      )
+!$OMP+PRIVATE( SCALER,   SCALEOD, SCALEVOL, DRYAREA             )
+#if defined( RRTMG )
+!$OMP+PRIVATE( IR                                               )
+#endif
 #if defined( UCX )
-!$OMP+PRIVATE( RHOSTRAT, RAER, SADSTRAT, XSASTRAT )
+!$OMP+PRIVATE( RHOSTRAT, RAER,    SADSTRAT, XSASTRAT            )
 #endif
 !$OMP+SCHEDULE( DYNAMIC )
+
+         ! 1-D grid box index for SMVGEAR arrays
          DO JLOOP = 1, NTLOOP
+
+            ! Add error check to prevent out-of-bounds or
+            ! div-by-zero errors (bmy, 4/7/15)
+            IF ( JLOOP <= 0 ) CYCLE
 
             ! Get 3-D grid box indices
             I = IXSAVE(JLOOP)

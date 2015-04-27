@@ -406,6 +406,9 @@ CONTAINS
 !  24 Mar 2015 - C. Keller   - Added arguments LUN and CloseFile.
 !  27 Mar 2015 - R. Yantosca - Now use a FORMAT statement when printing the
 !                              filename to the Unix stdout.
+!  08 Apr 2015 - R. Yantosca - Bug fix: set KeepSpec=.TRUE. if there is no
+!                              species in the container.  This prevents
+!                              diffs in output in sp vs mp runs.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -509,11 +512,6 @@ CONTAINS
        ENDIF
 
        ! Also write to standard output
-!-----------------------------------------------------------------------------
-! Prior to 3/27/15:
-! Now use a FORMAT statement for better formatted output (bmy, 3/27/15)
-!       WRITE(*,*) 'HEMCO: Opening ', TRIM(srcFile)
-!-----------------------------------------------------------------------------
        WRITE( 6, 100 ) TRIM( srcFile )
  100   FORMAT( 'HEMCO: Opening ', a )
 

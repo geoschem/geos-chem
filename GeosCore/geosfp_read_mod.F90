@@ -1599,8 +1599,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE DAO_MOD,            ONLY : T_FULLGRID
-    USE DAO_MOD,            ONLY : T_FULLGRID_1
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
@@ -1638,6 +1636,7 @@ CONTAINS
 !  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_I3_1
 !  29 Oct 2013 - R. Yantosca - Now read T_FULLGRID_1 for offline simulations
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1748,12 +1747,6 @@ CONTAINS
     CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
     CALL Transfer_3d( Q3, State_Met%TMPU1 )
 
-    ! Also archive T_FULLGRID_1 for offline "specialty" simulations
-    IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
-       T_FULLGRID_1 = Q3
-       T_FULLGRID   = Q3   ! Also need to initialize T_FULLGRID
-    ENDIF
-
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
     WRITE( 6, 10 ) stamp
@@ -1815,7 +1808,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE DAO_MOD,            ONLY : T_FULLGRID_2
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
@@ -1959,11 +1951,6 @@ CONTAINS
     v_name = "T"
     CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
     CALL Transfer_3d( Q3, State_Met%TMPU2 )
-
-    ! Also archive T_FULLGRID_1 for offline "specialty" simulations
-    IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
-       T_FULLGRID_2 = Q3
-    ENDIF
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )

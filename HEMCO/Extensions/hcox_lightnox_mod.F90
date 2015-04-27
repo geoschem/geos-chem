@@ -1522,6 +1522,8 @@ CONTAINS
 !  04 Nov 2014 - Y. X. Wang  - Define BETA, ANN_AVG_FLASHRATE for the
 !                              GEOS-FP 025x03125 NESTED_CH grid
 !  14 Jan 2015 - L. Murray   - Updated GEOS-FP files through Oct 2014
+!  01 Apr 2015 - R. Yantosca - Cosmetic changes
+!  01 Apr 2015 - R. Yantosca - Bug fix: GRID025x0325 should be GRID025x03125
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1537,20 +1539,27 @@ CONTAINS
     ! from May 1995 through Dec 2005.  Slight difference when
     ! averaging over different resolutions. (ltm, 09/24/07, 11/14/08)
     !=================================================================
-#if   defined( GRID2x25 ) 
+#if   defined( GRID2x25     ) 
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.8650d0
-#elif defined( GRID4x5  )
+
+#elif defined( GRID4x5       )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.8658d0
-#elif defined( GRID1x125 )
+
+#elif defined( GRID1x125     )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.8655d0
-#elif defined( GRID05x0666 ) && defined( NESTED_CH )
+
+#elif defined( GRID05x0666   ) && defined( NESTED_CH )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 8.7549280d0
-#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+
+#elif defined( GRID05x0666   ) && defined( NESTED_NA )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.9685368d0
+
 #elif defined( GRID025x03125 ) && defined( NESTED_CH )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 4.6591586d0
+
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
-      REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7167603d0
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7167603d0
+
 #endif
 
     ! Are we using GEOS 5.2.0 or GEOS 5.1.0?
@@ -1631,7 +1640,7 @@ CONTAINS
        BETA = ANN_AVG_FLASHRATE / 260.40253d0
     ENDIF
 
-#elif defined( GEOS_FP ) && defined( GRID025x0325 ) && defined( NESTED_CH )
+#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_CH )
 
     !---------------------------------------
     ! GEOS-FP: Nested China simulation

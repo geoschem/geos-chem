@@ -93,7 +93,7 @@
       INTEGER            :: IDPAN,   IDGLPAN,  IDGPAN,  IDPMN,   IDPPN
       INTEGER            :: IDHNO3,  IDOH,     IDHO2,   IDH2O2,  IDACET
       INTEGER            :: IDMEK,   IDALD2,   IDRCHO,  IDMVK,   IDMACR
-      INTEGER            :: IDISN2,  IDR4N2,   IDCH2O,  IDC2H6,  IDMP
+      INTEGER            :: IDISN1,  IDR4N2,   IDCH2O,  IDC2H6,  IDMP
       INTEGER            :: IDDMS,   IDSO2,    IDSO4,   IDMSA
       INTEGER            :: IDDRYO3, IDDRYPAN, IDDRYNO2, IDSO4s         
       ! IDs of aromatics not use (hotp 8/1/09)
@@ -138,7 +138,7 @@
       INTEGER            :: IDTPAN,  IDTCO,    IDTALK4
       INTEGER            :: IDTISOP, IDTHNO3,  IDTH2O2, IDTACET, IDTMEK
       INTEGER            :: IDTALD2, IDTRCHO,  IDTMVK,  IDTMACR, IDTPMN
-      INTEGER            :: IDTPPN,  IDTISN2,  IDTR4N2, IDTPRPE, IDTC3H8
+      INTEGER            :: IDTPPN,  IDTISN1,  IDTR4N2, IDTPRPE, IDTC3H8
       INTEGER            :: IDTCH2O, IDTMP,    IDTN2O5, IDTHNO4, IDTC2H6
       INTEGER            :: IDTDMS,  IDTSO2,   IDTSO4,  IDTMSA,  IDTNH3
       INTEGER            :: IDTNH4,  IDTNIT,   IDTRN,   IDTPB,   IDTBE7
@@ -2717,7 +2717,7 @@
          IF ( NAMEGAS(I) == 'RCHO'   ) IDRCHO   = I
          IF ( NAMEGAS(I) == 'MVK'    ) IDMVK    = I
          IF ( NAMEGAS(I) == 'MACR'   ) IDMACR   = I
-         IF ( NAMEGAS(I) == 'ISN2'   ) IDISN2   = I
+         IF ( NAMEGAS(I) == 'ISN1'   ) IDISN1   = I
          IF ( NAMEGAS(I) == 'R4N2'   ) IDR4N2   = I
          IF ( NAMEGAS(I) == 'CH2O'   ) IDCH2O   = I
          IF ( NAMEGAS(I) == 'C2H6'   ) IDC2H6   = I
@@ -3801,7 +3801,7 @@
       IDRCHO    = 0 
       IDMVK     = 0
       IDMACR    = 0
-      IDISN2    = 0
+      IDISN1    = 0
       IDR4N2    = 0
       IDCH2O    = 0
       IDC2H6    = 0
@@ -3903,7 +3903,7 @@
       IDTMACR   = 0
       IDTPMN    = 0
       IDTPPN    = 0
-      IDTISN2   = 0
+      IDTISN1   = 0
       IDTR4N2   = 0
       IDTPRPE   = 0
       IDTC3H8   = 0

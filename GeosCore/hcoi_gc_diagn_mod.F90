@@ -76,6 +76,7 @@ MODULE HCOI_GC_Diagn_Mod
 !  26 Aug 2014 - M. Sulprizio- Add modifications for POPs emissions diagnostics
 !  23 Sep 2014 - C. Keller   - Added Hg diagnostics
 !  11 Nov 2014 - C. Keller   - Added call to ESMF diagnostics.
+!  22 Apr 2015 - M. Sulprizio- Now save out hydrocarbons in units kgC/m2/s
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -136,6 +137,7 @@ CONTAINS
 !                              the HEMCO ID # for each species name
 !  29 Aug 2014 - R. Yantosca - Now exit if any of the subroutines come
 !                              back with RC = HCO_FAIL
+!  22 Apr 2015 - M. Sulprizio- Now save out hydrocarbons in units kgC/m2/s
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -145,8 +147,7 @@ CONTAINS
     LOGICAL            :: YesOrNo
     INTEGER            :: I, J,  HcoID, N,    AS
     INTEGER            :: ExtNr, Cat, Hier
-    CHARACTER(LEN=15)  :: SpcName
-    CHARACTER(LEN=31)  :: DiagnName
+    CHARACTER(LEN=31)  :: SpcName, DiagnName, Unit
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'HCOI_GC_DIAGN_INIT (hcoi_gc_diagn_mod.F90)'
  
@@ -248,82 +249,121 @@ CONTAINS
              SELECT CASE ( I )
                 CASE ( 1 )
                    SpcName = 'NO'
+                   Unit    = 'kg/m2/s'
                 CASE ( 2 )
                    SpcName = 'CO'
+                   Unit    = 'kg/m2/s'
                 CASE ( 3 )
                    SpcName = 'NH3'
+                   Unit    = 'kg/m2/s'
                 CASE ( 4 )
                    SpcName = 'SO2'
+                   Unit    = 'kg/m2/s'
                 CASE ( 5 )
                    SpcName = 'SO4'
+                   Unit    = 'kg/m2/s'
                 CASE ( 6 )
                    SpcName = 'GLYX'
+                   Unit    = 'kg/m2/s'
                 CASE ( 7 )
                    SpcName = 'MGLY'
+                   Unit    = 'kg/m2/s'
                 CASE ( 8 )
                    SpcName = 'C2H6'
+                   Unit    = 'kgC/m2/s'
                 CASE ( 9 )
                    SpcName = 'ALK4'
+                   Unit    = 'kgC/m2/s'
                 CASE ( 10 )
                    SpcName = 'ACET'
+                   Unit    = 'kgC/m2/s'
                 CASE ( 11 )
                    SpcName = 'MEK'
+                   Unit    = 'kgC/m2/s'
                 CASE ( 12 )
                    SpcName = 'ALD2'
+                   Unit    = 'kgC/m2/s'
                 CASE ( 13 )
                    SpcName = 'PRPE'
+                   Unit    = 'kgC/m2/s'
                 CASE ( 14 )
                    SpcName = 'C3H8'
+                   Unit    = 'kgC/m2/s'
                 CASE ( 15 )
                    SpcName = 'CH2O'
+                   Unit    = 'kg/m2/s'
                 CASE ( 16 )
                    SpcName = 'BENZ'
+                   Unit    = 'kgC/m2/s'
                 CASE ( 17 )
                    SpcName = 'TOLU'
+                   Unit    = 'kgC/m2/s'
                 CASE ( 18 )
                    SpcName = 'XYLE'
+                   Unit    = 'kgC/m2/s'
                 CASE ( 19 )
                    SpcName = 'C2H4'
+                   Unit    = 'kgC/m2/s'
                 CASE ( 20 )
                    SpcName = 'C2H2'
+                   Unit    = 'kgC/m2/s'
                 CASE ( 21 )
                    SpcName = 'CHBr3'
+                   Unit    = 'kg/m2/s'
                 CASE ( 22 )
                    SpcName = 'CH2Br2'
+                   Unit    = 'kg/m2/s'
                 CASE ( 23 )
                    SpcName = 'BCPI'
+                   Unit    = 'kg/m2/s'
                 CASE ( 24 )
                    SpcName = 'BCPO'
+                   Unit    = 'kg/m2/s'
                 CASE ( 25 )
                    SpcName = 'OCPI'
+                   Unit    = 'kg/m2/s'
                 CASE ( 26 )
                    SpcName = 'OCPO'
+                   Unit    = 'kg/m2/s'
                 CASE ( 27 )
                    SpcName = 'RCHO'
+                   Unit    = 'kg/m2/s'
                 CASE ( 28 )
                    SpcName = 'MACR'
+                   Unit    = 'kg/m2/s'
                 CASE ( 29 )
                    SpcName = 'DMS'
+                   Unit    = 'kg/m2/s'
                 CASE ( 30 )
                    SpcName = 'DST1'
+                   Unit    = 'kg/m2/s'
                 CASE ( 31 )
                    SpcName = 'DST2'
+                   Unit    = 'kg/m2/s'
                 CASE ( 32 )
                    SpcName = 'DST3'
+                   Unit    = 'kg/m2/s'
                 CASE ( 33 )
                    SpcName = 'DST4'
+                   Unit    = 'kg/m2/s'
                 CASE ( 34 )
                    SpcName = 'SALA'
+                   Unit    = 'kg/m2/s'
                 CASE ( 35 )
                    SpcName = 'SALC'
+                   Unit    = 'kg/m2/s'
                 CASE ( 36 )
                    SpcName = 'Br2'
+                   Unit    = 'kg/m2/s'
                 CASE ( 37 )
                    SpcName = 'ISOP'
+                   Unit    = 'kgC/m2/s'
                 CASE ( 38 )
                    SpcName = 'Rn'
+                   Unit    = 'kg/m2/s'
                 CASE ( 39 )
                    SpcName = 'O3'
+                   Unit    = 'kg/m2/s'
                 CASE DEFAULT
                    SpcName = 'DUMMY'
              END SELECT
@@ -339,7 +379,7 @@ CONTAINS
                                     HcoID     = HcoID,                  &
                                     SpaceDim  = 2,                      &
                                     LevIDx    = -1,                     &
-                                    OutUnit   = 'kg/m2/s',              &
+                                    OutUnit   = TRIM(Unit),             &
                                     AutoFill  = 1,                      &
                                     COL       = HcoDiagnIDDefault,      &
                                     RC        = RC                       ) 
@@ -1002,7 +1042,7 @@ CONTAINS
                               HcoID     = HcoID,             &
                               SpaceDim  = 2,                 &
                               LevIDx    = -1,                &
-                              OutUnit   = 'kg/m2/s',         &
+                              OutUnit   = 'kgC/m2/s',         &
                               COL       = HcoDiagnIDManual,  &
                               AutoFill  = 1,                 &
                               RC        = RC                  ) 
@@ -1448,7 +1488,7 @@ CONTAINS
                              HcoID     = HcoID,             &
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
+                             OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
@@ -1474,7 +1514,7 @@ CONTAINS
                              HcoID     = HcoID,             &
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
+                             OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
@@ -1500,7 +1540,7 @@ CONTAINS
                              HcoID     = HcoID,             &
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
+                             OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
@@ -1526,7 +1566,7 @@ CONTAINS
                              HcoID     = HcoID,             &
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
+                             OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
@@ -1552,7 +1592,7 @@ CONTAINS
                              HcoID     = HcoID,             &
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
+                             OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
@@ -1578,7 +1618,7 @@ CONTAINS
                              HcoID     = HcoID,             &
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
+                             OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
@@ -1629,7 +1669,7 @@ CONTAINS
                              HcoID     = HcoID,             &
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
+                             OutUnit   = 'kgC/m2/s',        &
                              COL       = HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
@@ -2158,6 +2198,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use biofuels
+!  22 Apr 2015 - M. Sulprizio- Now save out hydrocarbons in units kgC/m2/s
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2165,7 +2206,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: ExtNr, HcoID, N, I
-    CHARACTER(LEN=31)  :: DiagnName, SpcName
+    CHARACTER(LEN=31)  :: DiagnName, SpcName, Unit
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_BIOFUEL (hcoi_gc_diagn_mod.F90)'
 
@@ -2195,25 +2236,34 @@ CONTAINS
           SELECT CASE ( I ) 
              CASE ( 1 )
                 SpcName = 'SO2'
+                Unit    = 'kg/m2/s'
              CASE ( 2 )
                 SpcName = 'NH3'
+                Unit    = 'kg/m2/s'
              CASE ( 3 )
                 SpcName = 'ALK4'
+                Unit    = 'kgC/m2/s'
              CASE ( 4 )
                 SpcName = 'ALD2'
+                Unit    = 'kgC/m2/s'
              CASE ( 5 )
                 SpcName = 'ACET'
+                Unit    = 'kgC/m2/s'
              CASE ( 6 )
                 SpcName = 'MEK'
+                Unit    = 'kgC/m2/s'
              CASE ( 7 )
                 SpcName = 'PRPE'
+                Unit    = 'kgC/m2/s'
              CASE ( 8 )
                 SpcName = 'C2H6'
+                Unit    = 'kgC/m2/s'
              CASE ( 9 )
                 SpcName = 'C3H8'
+                Unit    = 'kgC/m2/s'
              CASE ( 10)
                 SpcName = 'CH2O'
-
+                Unit    = 'kg/m2/s'
              CASE DEFAULT
                 SpcName = 'DUMMY'
           END SELECT
@@ -2232,7 +2282,7 @@ CONTAINS
                                 HcoID     = HcoID,             &
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
-                                OutUnit   = 'kg/m2/s',         &
+                                OutUnit   = TRIM(Unit),        &
                                 COL       = HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
@@ -2351,6 +2401,7 @@ CONTAINS
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use anthro
 !  28 Aug 2014 - R. Yantosca - Add IF statements to prevent defining diags
 !                              for species that aren't present in a given sim
+!  22 Apr 2015 - M. Sulprizio- Now save out hydrocarbons in units kgC/m2/s
 !EOC
 !------------------------------------------------------------------------------
 !BOC
@@ -2405,7 +2456,7 @@ CONTAINS
                           HcoID     = HcoID,             &
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
+                          OutUnit   = 'kgC/m2/s',        &
                           COL       = HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
@@ -2430,7 +2481,7 @@ CONTAINS
                           HcoID     = HcoID,             &
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
+                          OutUnit   = 'kgC/m2/s',        &
                           COL       = HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
@@ -2455,7 +2506,7 @@ CONTAINS
                           HcoID     = HcoID,             &
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
+                          OutUnit   = 'kgC/m2/s',        &
                           COL       = HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
@@ -2480,7 +2531,7 @@ CONTAINS
                           HcoID     = HcoID,             &
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
+                          OutUnit   = 'kgC/m2/s',        &
                           COL       = HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
@@ -2505,7 +2556,7 @@ CONTAINS
                           HcoID     = HcoID,             &
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
+                          OutUnit   = 'kgC/m2/s',        &
                           COL       = HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
@@ -2530,7 +2581,7 @@ CONTAINS
                           HcoID     = HcoID,             &
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
+                          OutUnit   = 'kgC/m2/s',        &
                           COL       = HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
@@ -2580,7 +2631,7 @@ CONTAINS
                           HcoID     = HcoID,             &
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
+                          OutUnit   = 'kgC/m2/s',        &
                           COL       = HcoDiagnIDManual,  &
                           AutoFill  = 1,                 &
                           RC        = RC                  ) 
@@ -2705,6 +2756,7 @@ CONTAINS
 !                              species (MBOX, APIN, BPIN, etc.)
 !  10 Mar 2015 - R. Yantosca - Remove double-definition of BIOGENIC_LIMO
 !  30 Mar 2015 - R. Yantosca - Bug fix: Now test if Br2 is a HEMCO species
+!  22 Apr 2015 - M. Sulprizio- Now save out hydrocarbons in units kgC/m2/s
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2769,7 +2821,7 @@ CONTAINS
                                  HcoID     = HcoID,             &
                                  SpaceDim  = 2,                 &
                                  LevIDx    = -1,                &
-                                 OutUnit   = 'kg/m2/s',         &
+                                 OutUnit   = 'kgC/m2/s',        &
                                  COL       = HcoDiagnIDManual,  &
                                  AutoFill  = 1,                 &
                                  RC        = RC                  ) 
@@ -2795,7 +2847,7 @@ CONTAINS
                                 HcoID     = HcoID,             &
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
-                                OutUnit   = 'kg/m2/s',         &
+                                OutUnit   = 'kgC/m2/s',        &
                                 COL       = HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
@@ -2821,7 +2873,7 @@ CONTAINS
                                 HcoID     = HcoID,             &
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
-                                OutUnit   = 'kg/m2/s',         &
+                                OutUnit   = 'kgC/m2/s',        &
                                 COL       = HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
@@ -2847,7 +2899,7 @@ CONTAINS
                                 HcoID     = HcoID,             &
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
-                                OutUnit   = 'kg/m2/s',         &
+                                OutUnit   = 'kgC/m2/s',        &
                                 COL       = HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
@@ -2974,7 +3026,7 @@ CONTAINS
                                 HcoID     = HcoID,             &
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
-                                OutUnit   = 'kg/m2/s',         &
+                                OutUnit   = 'kgC/m2/s',        &
                                 COL       = HcoDiagnIDManual,  &
                                 AutoFill  = 1,                 &
                                 RC        = RC                  ) 
@@ -3012,7 +3064,7 @@ CONTAINS
                                    HcoID     = HcoID,             &
                                    SpaceDim  = 2,                 &
                                    LevIDx    = -1,                &
-                                   OutUnit   = 'kg/m2/s',         &
+                                   OutUnit   = 'kgC/m2/s',        &
                                    COL       = HcoDiagnIDManual,  &
                                    AutoFill  = 0,                 &
                                    RC        = RC                  ) 
