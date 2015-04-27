@@ -465,9 +465,11 @@
       IF ( FIRST ) THEN
          ! Generate annual emission factors for MEGAN inventory
          CALL CALC_AEF( am_I_Root, HcoState, ExtState, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
 
          ! Calculate normalization factor (dbm, 11/2012)
          CALL CALC_NORM_FAC( am_I_Root, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
       ENDIF
 
       ! On first call, fill previous day LAI with current LAI since we
@@ -3787,15 +3789,21 @@
          ! Multiply arrays by FACTOR and ratio [g C/g compound]
          ! NOTE: AEFs for ISOP, MBOX, BPIN, CARE, LIMO, OCIM, SABI 
          ! are read from file in [kgC/m2/s], so no need to convert here
-         AEF_APIN(I,J) = AEF_APIN(I,J) * FACTOR * 120.0_hp / 136.234_hp
-         AEF_MYRC(I,J) = AEF_MYRC(I,J) * FACTOR * 120.0_hp / 136.234_hp
-         AEF_OMON(I,J) = AEF_OMON(I,J) * FACTOR * 120.0_hp / 136.234_hp
+         IF ( ExtNrMono > 0 ) THEN
+            AEF_APIN(I,J) = AEF_APIN(I,J) 
+     &                    * FACTOR * 120.0_hp / 136.234_hp
+            AEF_MYRC(I,J) = AEF_MYRC(I,J) 
+     &                    * FACTOR * 120.0_hp / 136.234_hp
+            AEF_OMON(I,J) = AEF_OMON(I,J) 
+     &                    * FACTOR * 120.0_hp / 136.234_hp
+         ENDIF
+
          AEF_ACET(I,J) = AEF_ACET(I,J) * FACTOR *  36.0_hp /  58.079_hp 
          AEF_ETOH(I,J) = AEF_ETOH(I,J) * FACTOR *  24.0_hp /  46.068_hp 
          AEF_ALD2(I,J) = AEF_ALD2(I,J) * FACTOR *  24.0_hp /  44.053_hp 
-         AEF_C2H4(I,J) = AEF_C2H4(I,J) * FACTOR *  24.0_hp /  28.053_hp  
+         AEF_C2H4(I,J) = AEF_C2H4(I,J) * FACTOR *  24.0_hp /  28.053_hp
          AEF_TOLU(I,J) = AEF_TOLU(I,J) * FACTOR *  84.0_hp /  92.138_hp 
-         AEF_PRPE(I,J) = AEF_PRPE(I,J) * FACTOR *  36.0_hp /  42.080_hp  
+         AEF_PRPE(I,J) = AEF_PRPE(I,J) * FACTOR *  36.0_hp /  42.080_hp
 
          ! Methanol, formaldehyde, formic acid, acetic acid, HCN are
          ! carried in kg, not kg C

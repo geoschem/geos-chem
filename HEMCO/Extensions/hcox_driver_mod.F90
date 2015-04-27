@@ -57,7 +57,7 @@ MODULE HCOX_Driver_Mod
 !
 
   ! Variables for diagnostics: diagnostics toggle and output frequency.
-  LOGICAL, PARAMETER            :: DoDiagn   = .TRUE.
+  LOGICAL, PARAMETER            :: DoDiagn   = .FALSE.
 
   ! Arrays needed for diagnostics. Diagnostics are defined / filled via
   ! subroutines HCOX_DiagnDefine and HCOX_DiagnFill, respectively.
