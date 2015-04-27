@@ -1384,7 +1384,7 @@ CONTAINS
          ENDDO
 
          DTC = FX(IM,J) * AREA_M2(J) * g0_100 * AIRMW         &
-                / ( TCVV * MOISTMW(I,J) * DT )
+                / ( TCVV * MOISTMW(IM,J) * DT )
          MFLEW(IM,J) = MFLEW(I,J) + DTC
       ENDDO
    ENDIF
@@ -1409,7 +1409,7 @@ CONTAINS
       IF ( JFIRST == 1 ) THEN
          DO I = 1, IM
             DTC = -FY(I,2) * RGW_25(1) * AREA_M2(1) * g0_100              &
-                  * AIRMW / ( TCVV * MOISTMW(I,J) * DT )
+                  * AIRMW / ( TCVV * MOISTMW(I,2) * DT )
             MFLNS(I,1) = MFLNS(I,1) + DTC
          ENDDO
       ENDIF
@@ -1418,7 +1418,7 @@ CONTAINS
       IF ( JLAST == JM ) THEN
          DO I = 1, IM
             DTC = FY(I,JM) * RGW_25(JM) * AREA_M2(JM) * g0_100            &
-                  * AIRMW / ( TCVV * MOISTMW(I,J) * DT )
+                  * AIRMW / ( TCVV * MOISTMW(I,JM) * DT )
             MFLNS(I,JM) = MFLNS(I,JM) + DTC
          ENDDO
       ENDIF
