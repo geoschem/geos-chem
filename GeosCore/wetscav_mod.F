@@ -8893,6 +8893,7 @@
 !                              derived type object
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
+!  28 Apr 2015 - E. Lundgren - Change PMID_DRY to PMID for Dalton's Law.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9009,7 +9010,7 @@
          
             ! Compute Temp [K] and Pressure [hPa]
             TK = State_Met%T(I,J,L)
-            PL = State_Met%PMID_DRY(I,J,L)
+            PL = State_Met%PMID(I,J,L)
          
             !==============================================================
             ! Compute Vud -- 5 m/s over oceans, 10 m/s over land (or ice?)
