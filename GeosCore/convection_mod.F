@@ -2728,7 +2728,7 @@
                      ! Define ALPHA, the fraction of raindrops that 
                      ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
                      !
-                     ! Now use DELP*100/g instead of AD/area ro
+                     ! Now use DELP*100/g instead of AD/area to
                      ! remove area dependency (ewl, 4/28/15)
                      ALPHA   = REEVAPCN(K) * DELP(K) * G0_100
      &                           / ( PDOWN(K+1) * 10e+0_fp )

@@ -690,7 +690,7 @@
       ENDIF
 
 #if defined( UCX )
-      ! Stratospheric aerosol graviational settling
+      ! Stratospheric aerosol gravitational settling
       IF ( LGRAVSTRAT ) THEN
          CALL SETTLE_STRAT_AER( am_I_Root, Input_Opt, 
      &                          State_Met, State_Chm, RC )
