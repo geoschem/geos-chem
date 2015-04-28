@@ -66,6 +66,10 @@
 !  22 Oct 2012 - R. Yantosca - Now reference Headers/gigc_errcode_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  20 Apr 2015 - E. Lundgren - Convert mixing ratio to v/v moist air before 
+!                              convection and back to v/v dry afterwards.
+!  20 Apr 2015 - E. Lundgren - Add modifications to use moist mixing ratio
+!                              (e.g. MOISTMW with TCVV)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -92,6 +96,7 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : CONVFLUP
+      USE UNITCONV_MOD
 #if   !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD38
 #endif
@@ -174,7 +179,11 @@
 !                              call to DO_MERRA_CONVECTION (MERRA & GEOS-FP)
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
-!                              Remove dependency on pressure_mod.
+!                              Remove dependency on pressure_mod
+!  20 Apr 2015 - E. Lundgren - Convert mixing ratio to v/v moist air before 
+!                              convection and back to v/v dry afterwards.
+!  28 Apr 2015 - E. Lundgren - Consolidate NFCLDMX arguments to remove 
+!                              passing State_Met array slice
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -196,25 +205,24 @@
       ! MERRA or GEOS-FP met fields definitions
       !=================================================================
 #if defined( MERRA ) || defined( GEOS_FP )
-
       
       ! Scalars          
-      INTEGER         :: I, J, L, N, NN, TS_DYN
+      INTEGER           :: I, J, L, N, NN, TS_DYN
       REAL(fp)          :: AREA_M2, DT
-      LOGICAL         :: DO_ND14
-      LOGICAL         :: DO_ND38
+      LOGICAL           :: DO_ND14
+      LOGICAL           :: DO_ND38
       
       ! Arrays        
       REAL(fp)          :: PEDGE  (LLPAR+1)
 #if defined( APM )
-      INTEGER         :: ISOL   (      Input_Opt%N_TRACERS+N_APMTRA)
+      INTEGER           :: ISOL   (      Input_Opt%N_TRACERS+N_APMTRA)
       REAL(fp)          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
       REAL(fp)          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
       REAL(fp)          :: F      (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
       REAL(fp), TARGET  :: FSOL   ( IIPAR, JJPAR, LLPAR,   
      &                                 Input_Opt%N_TRACERS+N_APMTRA)
 #else
-      INTEGER         :: ISOL   (      Input_Opt%N_TRACERS )
+      INTEGER           :: ISOL   (      Input_Opt%N_TRACERS )
       REAL(fp)          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS )
       REAL(fp)          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS )
       REAL(fp)          :: F      (LLPAR,Input_Opt%N_TRACERS )
@@ -238,6 +246,13 @@
       !=================================================================
       ! DO_CONVECT begins here!
       !=================================================================
+
+      !=================================================================
+      ! Convert State_Chm%Tracers from dry mixing ratio [v/v] to 
+      ! moist mixing ratio [v/v] prior to convection (ewl, 4/20/15)
+      !=================================================================
+      CALL Convert_DryVV_to_MoistVV( N_TRACERS, State_Met, 
+     &                               State_Chm )
 
       ! For new diagnostics, archive old species concentration. At the 
       ! moment, the new ND38 diagnostics only returns the total column 
@@ -303,13 +318,8 @@
 #endif
 
       ! Call the S-J Lin convection routine for GEOS-5
-      CALL NFCLDMX( am_I_Root, 
-     &              Input_Opt, 
-     &              State_Met%CMFMC(:,:,2:LLPAR+1),
-     &              State_Met%DTRAIN,
-     &              State_Met, 
-     &              State_Chm, 
-     &              RC                               )
+      CALL NFCLDMX( am_I_Root, Input_Opt, State_Met, 
+                    State_Chm, RC )
 
 #elif defined( MERRA ) || defined( GEOS_FP )
 
@@ -438,7 +448,6 @@
 
 #endif
 
-
       !-----------------------------------------------------------------
       ! New diagnostics (ND38)
       ! Write out the column mass difference before and after 
@@ -464,11 +473,17 @@
             IF ( ANY( Input_Opt%TINDEX(38,:) == IT ) ) THEN
 
                ! Loss rate (v/v/s)
+               ! Note that BEFORE and State_Chm%Tracers are both 
+               ! moist mixing ratios for convection
                TMP3D = ( BEFORE(:,:,:,IT) - State_Chm%Tracers(:,:,:,IT))
      &               / DTIME 
 
                ! Convert to kg/s:
-               TMP3D = TMP3D * State_Met%AD / Input_Opt%TCVV(IT) 
+               ! NOTE: Now use ADMOIST (moist air mass) instead of AD
+               ! (dry air mass) and use MOISTMW (moist air molec wt)
+               ! with TCVV since tracer conc is moist mixing ratio
+               TMP3D = TMP3D * State_Met%ADMOIST * AIRMW
+     &                 / ( Input_Opt%TCVV(IT) * State_Met%MOISTMW ) 
                TMP2D = SUM(TMP3D,DIM=3) 
 
                ! Update diagnostics. Pass 3D array. Will be collapsed to
@@ -492,6 +507,13 @@
          DEALLOCATE( BEFORE, TMP3D, TMP2D )
       ENDIF
 #endif
+
+      !=================================================================
+      ! Convert State_Chm%Tracers from moist mixing ratio [v/v] to 
+      ! dry mixing ratio [v/v] following convection (ewl, 4/20/15)
+      !=================================================================
+      CALL Convert_MoistVV_to_DryVV( N_TRACERS, State_Met, 
+     &                               State_Chm ) 
 
       END SUBROUTINE DO_CONVECTION
 !EOC
@@ -561,46 +583,49 @@
 !  23 Jun 2014 - R. Yantosca - Now pass Input_Opt to CONVTRAN
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE differences with 
-!                              State_Met%DELP.Remove dependency on 
-!                              pressure_mod.
+!                              State_Met%DELP. Remove dependency on 
+!                              pressure_mod
+!  20 Apr 2015 - E. Lundgren - Now pass moist air MW to FVDAS_CONVECT to use
+!                              TCVV with moist mixing ratio
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE   :: FIRST = .TRUE.
-      INTEGER         :: I, ISOL, J, L, L2, N, NSTEP
-      INTEGER         :: CONVDT
-      REAL(fp)          :: RPDEL(IIPAR,JJPAR,LLPAR)
-      REAL(fp)          :: DP(IIPAR,JJPAR,LLPAR)
+      LOGICAL, SAVE     :: FIRST = .TRUE.
+      INTEGER           :: I, ISOL, J, L, L2, N, NSTEP
+      INTEGER           :: CONVDT
+      REAL(fp)          :: RPDEL( IIPAR, JJPAR, LLPAR )
+      REAL(fp)          :: DP( IIPAR, JJPAR, LLPAR )
       REAL(fp)          :: P1, P2, TDT
-      INTEGER         :: N_TOT_TRC
+      INTEGER           :: N_TOT_TRC
 #if   defined( APM )  
-      INTEGER         :: INDEXSOL(Input_Opt%N_TRACERS+N_APMTRA)
-      REAL(fp), TARGET  :: F       (IIPAR,JJPAR,LLPAR,
-     &                            Input_Opt%N_TRACERS+N_APMTRA)
+      INTEGER           :: INDEXSOL( Input_Opt%N_TRACERS + N_APMTRA )
+      REAL(fp), TARGET  :: F( IIPAR, JJPAR, LLPAR,
+     &                            Input_Opt%N_TRACERS + N_APMTRA )
 #else                 
-      INTEGER         :: INDEXSOL(Input_Opt%N_TRACERS)
-      REAL(fp), TARGET  :: F       (IIPAR,JJPAR,LLPAR,
-     &                            Input_Opt%N_TRACERS)
+      INTEGER           :: INDEXSOL( Input_Opt%N_TRACERS )
+      REAL(fp), TARGET  :: F( IIPAR, JJPAR, LLPAR,
+     &                            Input_Opt%N_TRACERS )
 #endif
 
       ! For fields from Input_Opt
-      LOGICAL         :: LPRT
-      INTEGER         :: N_TRACERS
-      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
+      LOGICAL           :: LPRT
+      INTEGER           :: N_TRACERS
+      REAL(fp)          :: TCVV( Input_Opt%N_TRACER S)
 
       ! Pointers
-      REAL(fp), POINTER :: STT     (:,:,:,:)   ! Ptr to State_Chm%TRACERS
-      REAL(fp), POINTER :: p_HKETA (:,:,:  )   ! Ptr to HKETA  (flipped in vert)
-      REAL(fp), POINTER :: p_HKBETA(:,:,:  )   ! Ptr to HKBETA (flipped in vert)
-      REAL(fp), POINTER :: p_ZMMU  (:,:,:  )   ! Ptr to ZMMU   (flipped in vert)
-      REAL(fp), POINTER :: p_ZMMD  (:,:,:  )   ! Ptr to ZMMD   (flipped in vert)
-      REAL(fp), POINTER :: p_ZMEU  (:,:,:  )   ! Ptr to ZMEU   (flipped in vert)
-      REAL(fp), POINTER :: p_STT   (:,:,:,:)   ! Ptr to STT    (flipped in vert)
-      REAL(fp), POINTER :: p_F     (:,:,:,:)   ! Ptr to F      (flipped in vert)
-      REAL(fp), POINTER :: p_FSOL  (:,:,:  )   ! Ptr to F      (for COMPUTE_F)
+      REAL(fp), POINTER :: STT     (:,:,:,:) ! Ptr to State_Chm%TRACERS
+      REAL(fp), POINTER :: p_HKETA (:,:,:  ) ! Ptr to HKETA  (flipped in vert)
+      REAL(fp), POINTER :: p_HKBETA(:,:,:  ) ! Ptr to HKBETA (flipped in vert)
+      REAL(fp), POINTER :: p_ZMMU  (:,:,:  ) ! Ptr to ZMMU   (flipped in vert)
+      REAL(fp), POINTER :: p_ZMMD  (:,:,:  ) ! Ptr to ZMMD   (flipped in vert)
+      REAL(fp), POINTER :: p_ZMEU  (:,:,:  ) ! Ptr to ZMEU   (flipped in vert)
+      REAL(fp), POINTER :: p_MOISTMW(:,:,: ) ! Ptr to MOISTMW(flipped in vert)
+      REAL(fp), POINTER :: p_STT   (:,:,:,:) ! Ptr to STT    (flipped in vert)
+      REAL(fp), POINTER :: p_F     (:,:,:,:) ! Ptr to F      (flipped in vert)
+      REAL(fp), POINTER :: p_FSOL  (:,:,:  ) ! Ptr to F      (for COMPUTE_F)
 
       !=================================================================
       ! DO_GEOS4_CONVECT begins here!
@@ -723,7 +748,7 @@
       ! Flip arrays in the vertical and call FVDAS_CONVECT
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT      => State_Chm%Tracers
 
@@ -734,6 +759,7 @@
       p_ZMMU   => State_Met%ZMMU   (:,:,LLPAR:1:-1  )
       p_ZMMD   => State_Met%ZMMD   (:,:,LLPAR:1:-1  )
       p_ZMEU   => State_Met%ZMEU   (:,:,LLPAR:1:-1  )
+      p_MOISTMW=> State_Met%MOISTMW(:,:,LLPAR:1:-1  )
       p_STT    => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
       p_F      => F                (:,:,LLPAR:1:-1,:)
 
@@ -753,7 +779,8 @@
      &                    TCVV,   
      &                    INDEXSOL,
      &                    Input_Opt,
-     &                    State_Met )
+     &                    State_Met,
+     &                    p_MOISTMW )
 
       ! Add a check to set negative values in STT to TINY
       ! (ccc, 4/15/09)
@@ -773,7 +800,7 @@
 
       ! Free pointers
       NULLIFY( STT,     p_STT,    p_F                    )
-      NULLIFY( p_HKETA, p_HKBETA, p_ZMMU, p_ZMMD, p_ZMEU )
+      NULLIFY( p_HKETA, p_HKBETA, p_ZMMU, p_ZMMD, p_ZMEU, p_MOISTMW )
 
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_G4_CONV: a FVDAS_CONVECT' )
@@ -849,46 +876,49 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
 !                              Replace PEDGE difference with State_Met%DELP.
 !                              Remove dependency on pressure_mod.
+!  20 Apr 2015 - E. Lundgren - Now pass moist air MW to GCAP_CONVECT to enable
+!                              using TCVV with moist mixing ratio
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE    :: FIRST = .TRUE.
-      INTEGER          :: I, ISOL, J, L, L2, N, NSTEP  
-      INTEGER          :: CONVDT    
-      REAL(fp)           :: DP(IIPAR,JJPAR,LLPAR)
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      INTEGER            :: I, ISOL, J, L, L2, N, NSTEP  
+      INTEGER            :: CONVDT    
+      REAL(fp)           :: DP( IIPAR, JJPAR, LLPAR )
       REAL(fp)           :: P1, P2, TDT   
       REAL(fp)           :: GAINMASS
-      INTEGER          :: N_TOT_TRC      
+      INTEGER            :: N_TOT_TRC      
 #if   defined( APM )
-      INTEGER          :: INDEXSOL(Input_Opt%N_TRACERS+N_APMTRA) 
-      REAL(fp),  TARGET  :: F       (IIPAR,JJPAR,LLPAR,
-     &                            Input_Opt%N_TRACERS+N_APMTRA)
+      INTEGER            :: INDEXSOL( Input_Opt%N_TRACERS + N_APMTRA ) 
+      REAL(fp),  TARGET  :: F( IIPAR, JJPAR, LLPAR,
+     &                            Input_Opt%N_TRACERS + N_APMTRA )
 #else
-      INTEGER          :: INDEXSOL(Input_Opt%N_TRACERS) 
-      REAL(fp),  TARGET  :: F       (IIPAR,JJPAR,LLPAR,
-     &                            Input_Opt%N_TRACERS)
+      INTEGER            :: INDEXSOL( Input_Opt%N_TRACERS ) 
+      REAL(fp),  TARGET  :: F( IIPAR, JJPAR, LLPAR,
+     &                            Input_Opt%N_TRACERS )
 #endif
 
       ! For fields from Input_Opt
-      LOGICAL          :: LPRT
-      INTEGER          :: N_TRACERS
-      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
+      LOGICAL            :: LPRT
+      INTEGER            :: N_TRACERS
+      REAL(fp)           :: TCVV( Input_Opt%N_TRACERS )
 
       ! Pointers
-      REAL(fp),  POINTER :: STT        (:,:,:,:)   ! Ptr to Tracer concentrations
-      REAL(fp),  POINTER :: p_UPDE     (:,:,:  )   ! Ptr to UPDE     met field
-      REAL(fp),  POINTER :: p_DNDE     (:,:,:  )   ! Ptr to DNDE     met field
-      REAL(fp),  POINTER :: p_ENTRAIN  (:,:,:  )   ! Ptr to ENTRAIN  met field
-      REAL(fp),  POINTER :: p_DETRAINE (:,:,:  )   ! Ptr to DETRAINE met field
-      REAL(fp),  POINTER :: p_UPDN     (:,:,:  )   ! Ptr to UPDN     met field
-      REAL(fp),  POINTER :: p_DNDN     (:,:,:  )   ! Ptr to DNDN     met field
-      REAL(fp),  POINTER :: p_DETRAINN (:,:,:  )   ! Ptr to DETRAINN met field
-      REAL(fp),  POINTER :: p_STT      (:,:,:,:)   ! Ptr to STT (flipped)
-      REAL(fp),  POINTER :: p_F        (:,:,:,:)   ! Ptr to F   (flipped)
-      REAL(fp),  POINTER :: p_FSOL     (:,:,:  )   ! Ptr to F   (for COMPUTE_F)
+      REAL(fp),  POINTER :: STT        (:,:,:,:) ! Ptr to Tracer concentrations
+      REAL(fp),  POINTER :: p_UPDE     (:,:,:  ) ! Ptr to UPDE     met field
+      REAL(fp),  POINTER :: p_DNDE     (:,:,:  ) ! Ptr to DNDE     met field
+      REAL(fp),  POINTER :: p_ENTRAIN  (:,:,:  ) ! Ptr to ENTRAIN  met field
+      REAL(fp),  POINTER :: p_DETRAINE (:,:,:  ) ! Ptr to DETRAINE met field
+      REAL(fp),  POINTER :: p_UPDN     (:,:,:  ) ! Ptr to UPDN     met field
+      REAL(fp),  POINTER :: p_DNDN     (:,:,:  ) ! Ptr to DNDN     met field
+      REAL(fp),  POINTER :: p_DETRAINN (:,:,:  ) ! Ptr to DETRAINN met field
+      REAL(fp),  POINTER :: p_MOISTMW  (:,:,:  ) ! Ptr to MOISTMW  met field
+      REAL(fp),  POINTER :: p_STT      (:,:,:,:) ! Ptr to STT (flipped)
+      REAL(fp),  POINTER :: p_F        (:,:,:,:) ! Ptr to F   (flipped)
+      REAL(fp),  POINTER :: p_FSOL     (:,:,:  ) ! Ptr to F   (for COMPUTE_F)
 
       !=================================================================
       ! DO_GCAP_CONVECT begins here!
@@ -1007,10 +1037,10 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_GCAP_CONV: a DP, RPDEL' )
    
       !=================================================================
-      ! Flip arrays in the vertical and call FVDAS_CONVECT
+      ! Flip arrays in the vertical and call GCAP_CONVECT
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT        => State_Chm%Tracers
 
@@ -1022,6 +1052,7 @@
       p_UPDN     => State_Met%UPDN     (:,:,LLPAR:1:-1  )
       p_DNDN     => State_Met%DNDN     (:,:,LLPAR:1:-1  )
       p_DETRAINN => State_Met%DETRAINN (:,:,LLPAR:1:-1  )
+      p_MOISTMW  => State_Met%MOISTMW  (:,:,LLPAR:1:-1  )
       p_STT      => State_Chm%Tracers  (:,:,LLPAR:1:-1,:)
       p_F        => F                  (:,:,LLPAR:1:-1,:)
 
@@ -1040,7 +1071,8 @@
      &                   p_DETRAINE,
      &                   p_UPDN,
      &                   p_DNDN,
-     &                   p_DETRAINN )
+     &                   p_DETRAINN,
+     &                   p_MOISTMW )
 
       ! Add a check to set negative values in STT to TINY
       ! (ccc, 4/15/09)
@@ -1059,9 +1091,9 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT,    p_STT,  p_F                   )
-      NULLIFY( p_UPDE, p_DNDE, p_ENTRAIN, p_DETRAINE )
-      NULLIFY( p_UPDN, p_DNDN, p_DETRAINN            )
+      NULLIFY( STT,    p_STT,  p_F                    )
+      NULLIFY( p_UPDE, p_DNDE, p_ENTRAIN,  p_DETRAINE )
+      NULLIFY( p_UPDN, p_DNDN, p_DETRAINN, p_MOISTMW  )
 
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_GCAP_CONV: a GCAP_CONVECT' )
@@ -1087,8 +1119,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE NFCLDMX( am_I_Root, Input_Opt, CLDMAS, 
-     &                    DTRN,      State_Met, State_Chm, RC )
+      SUBROUTINE NFCLDMX( am_I_Root, Input_Opt, State_Met, 
+     &                    State_Chm, RC )
 !
 ! !USES:
 !
@@ -1121,12 +1153,6 @@
 !
       ! Are we on the root CPU
       LOGICAL,        INTENT(IN)    :: am_I_Root
-
-      ! CLDMAS : Cloud mass flux (at upper edges of each level) [kg/m2/s]
-      REAL(fp),         INTENT(IN)    :: CLDMAS(IIPAR,JJPAR,LLPAR)
-
-      ! Detrainment mass flux [kg/m2/s]
-      REAL(fp),         INTENT(IN)    :: DTRN(IIPAR,JJPAR,LLPAR)
 
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
@@ -1289,36 +1315,41 @@
 !  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
 !                              F array to subroutine COMPUTE_F
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE differences with
-!                              State_Met%DELP.Remove dependency on 
-!                              pressure_mod.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE differences with DELP and
+!                              remove dependency on pressure_mod
+!  20 Apr 2015 - E. Lundgren - Use DELP*100/g instead of AD/area for BMASS
+!                              to keep definition as grid box moist mass/area
+!  20 Apr 2015 - E. Lundgren - Now use State_Met%MOISTMW to correctly use
+!                              TCVV with moist mixing ratio 
+!  28 Apr 2015 - E. Lundgren - Remove CLDMAS and DTRM as arguments since 
+!                              now included in State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE          :: FIRST = .TRUE.
-      LOGICAL, SAVE          :: IS_Hg = .TRUE.
-      INTEGER                :: I, J, K, KTOP, L, N, NDT
-      INTEGER                :: IC, ISTEP, JUMP, JS, JN, NS
-      INTEGER                :: IMR, JNP, NLAY, AS
+      LOGICAL, SAVE            :: FIRST = .TRUE.
+      LOGICAL, SAVE            :: IS_Hg = .TRUE.
+      INTEGER                  :: I, J, K, KTOP, L, N, NDT
+      INTEGER                  :: IC, ISTEP, JUMP, JS, JN, NS
+      INTEGER                  :: IMR, JNP, NLAY, AS
       REAL(fp)                 :: SDT, CMOUT, ENTRN, DQ, AREA_M2
       REAL(fp)                 :: T0, T1, T2, T3, T4, TSUM, DELQ
-      REAL(fp)                 :: DTCSUM(IIPAR,JJPAR,LLPAR,
-     &                          Input_Opt%N_TRACERS)
+      REAL(fp)                 :: DTCSUM( IIPAR, JJPAR, LLPAR,
+     &                                    Input_Opt%N_TRACERS )
 
       REAL(fp), ALLOCATABLE, SAVE :: DSIG(:)
 
       ! F is the fraction of tracer lost to wet scavenging in updrafts
-      REAL(fp), TARGET         :: F(IIPAR,JJPAR,LLPAR,
-     &                            Input_Opt%N_TRACERS)
+      REAL(fp), TARGET         :: F( IIPAR, JJPAR, LLPAR,
+     &                               Input_Opt%N_TRACERS )
 
       ! Local Work arrays
-      REAL(fp)                 :: BMASS(IIPAR,JJPAR,LLPAR)
-      REAL(fp)                 :: QB(IIPAR,JJPAR)
-      REAL(fp)                 :: MB(IIPAR,JJPAR)
-      REAL(fp)                 :: QC(IIPAR,JJPAR) 
+      REAL(fp)                 :: BMASS( IIPAR, JJPAR, LLPAR )
+      REAL(fp)                 :: QB( IIPAR, JJPAR )
+      REAL(fp)                 :: MB( IIPAR, JJPAR )
+      REAL(fp)                 :: QC( IIPAR, JJPAR ) 
 
       ! TINY = a very small number
 #if defined( TOMAS )
@@ -1329,8 +1360,8 @@
       REAL(fp), PARAMETER      :: TINY2 = 1e-30_fp 
 
       ! ISOL is an index for the diagnostic arrays
-      INTEGER                :: ISOL
-      INTEGER                :: ISOL_SAVE(Input_Opt%N_TRACERS)
+      INTEGER                  :: ISOL
+      INTEGER                  :: ISOL_SAVE( Input_Opt%N_TRACERS )
 
       ! QC_PRES and QC_SCAV are the amounts of tracer 
       ! preserved against and lost to wet scavenging
@@ -1344,17 +1375,20 @@
       REAL(fp)                 :: WET_HgP 
 
       ! For fields from Input_Opt
-      LOGICAL                :: ITS_A_MERCURY_SIM
-      LOGICAL                :: LDYNOCEAN
-      LOGICAL                :: LGTMM
-      INTEGER                :: NC
-      REAL(fp)                 :: TCVV(Input_Opt%N_TRACERS)
+      LOGICAL                  :: ITS_A_MERCURY_SIM
+      LOGICAL                  :: LDYNOCEAN
+      LOGICAL                  :: LGTMM
+      INTEGER                  :: NC
+      REAL(fp)                 :: TCVV( Input_Opt%N_TRACERS )
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER        :: Q     (:,:,:,:)
-      REAL(fp), POINTER        :: p_FSOL(:,:,:  ) 
+      ! from the Chemistry State (State_Chm) object (mpayer, 12/6/12)
+      ! and the Meteorology State (State_Met) Object
+      REAL(fp), POINTER        :: Q        (:,:,:,:)
+      REAL(fp), POINTER        :: CLDMAS   (:,:,:  ) 
+      REAL(fp), POINTER        :: DTRN     (:,:,:  ) 
+      REAL(fp), POINTER        :: p_FSOL   (:,:,:  ) 
       
       !=================================================================
       ! NFCLDMX begins here!
@@ -1370,9 +1404,17 @@
       NC                = Input_Opt%N_TRACERS
       TCVV              = Input_Opt%TCVV(1:NC)
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v] from Chemistry State object
       ! (mpayer, 12/6/12)
       Q                 => State_Chm%Tracers
+
+      ! Initialize cloud mass flux at upper edge of each level [kg/m2/s]
+      ! from Meteorology State object (ewl, 4/28/15)
+      CLDMAS            => State_Met%CMFMC(:,:,2:LLPAR+1)
+
+      ! Initialize detrainment mass flux [kg/m2/s] from Meterology State
+      ! object (ewl, 4/28/15)
+      DTRN              => State_Met%DTRAIN
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -1422,7 +1464,7 @@
       !
       ! We initialize the ND14 diagnostic each time we start a new 
       ! time step loop.  Only initialize DTCSUM array if the ND14 
-      ! diagnostic is turned on.  This saves a quite a bit of time. 
+      ! diagnostic is turned on.  This saves quite a bit of time. 
       ! (bmy, 12/15/99)       
       !=================================================================
       IF ( ND14 > 0 ) DTCSUM = 0e+0_fp
@@ -1455,6 +1497,12 @@
 !
 !  Now use routine GET_AREA_M2 from "grid_mod.f" to get surface area of
 !  grid boxes in m2. (bmy, 2/4/03)
+!
+!  Now using delta pressure * 100 / g for BMASS calculation. Removed
+!  area dependent AD / AREA_M2. Note that BMASS is the moist air kg/m2 and 
+!  the change of AD from moist to dry in AIRQNT precludes its legacy usage 
+!  here (ewl, 4/28/15)
+!
 !=============================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1463,8 +1511,7 @@
       DO K = 1, NLAY
       DO J = 1, JJPAR
       DO I = 1, IMR
-         AREA_M2      = GET_AREA_M2( I, J, K )
-         BMASS(I,J,K) = State_Met%AD(I,J,K) / AREA_M2
+         BMASS(I,J,K) = State_Met%DELP(I,J,K) * G0_100
       ENDDO
       ENDDO
       ENDDO
@@ -1774,11 +1821,16 @@
                      ! DTCSUM(I,J,K,IC) is the flux (kg/box/sec) in 
                      ! the box (I,J), for the tracer IC going out of 
                      ! the top of the layer K to the layer above (K+1) 
-                     ! (bey, 11/10/99).                     
+                     ! (bey, 11/10/99).      
+                     !
+                     ! Now adjust 1/TCVV by factor AIRMW/MOISTMW to
+                     ! use with moist mixing ratio (ewl, 4/28/15)
                      !==================================================
                      IF ( ND14 > 0 ) THEN
-                        DTCSUM(I,J,K,IC) = DTCSUM(I,J,K,IC) +  
-     &                       (-T2-T3) * AREA_M2 / TCVV(IC)  
+                        DTCSUM(I,J,K,IC) = DTCSUM(I,J,K,IC) + (-T2-T3)  
+     &                                     * AREA_M2 * AIRMW 
+     &                                     / ( TCVV(IC) 
+     &                                     * State_Met%MOISTMW(I,J,K) )  
                      ENDIF
 
 #if !defined(NO_BPCH)
@@ -1786,6 +1838,9 @@
                      ! ND38 Diagnostic: loss of soluble tracer to wet
                      ! scavenging in cloud updrafts [kg/s].  We must 
                      ! divide by DNS, the # of internal timesteps.
+                     !
+                     ! Now adjust 1/TCVV by factor AIRMW/MOISTMW to
+                     ! use with moist mixing ratio (ewl, 4/28/15)
                      !==================================================
                      IF ( ( ND38 > 0 .or. LGTMM )
      &                    .and. ISOL > 0 .and. K <= LD38 ) THEN
@@ -1794,8 +1849,10 @@
 !                           print *, I, J, K, IC, ISOL, TCVV(IC)
 !                        endif
 !#endif
-                        AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) +
-     &                       ( T0 * AREA_M2 / ( TCVV(IC) * DNS ) )
+                        AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) 
+     &                                     + T0 * AREA_M2 * AIRMW 
+     &                                     / ( TCVV(IC) * DNS * 
+     &                                     * State_Met%MOISTMW(I,J,K) )
                      ENDIF
 #endif
   
@@ -1805,11 +1862,16 @@
                      ! ADD_Hg2_WET and ADD_HgP_WET. We must also divide 
                      ! by DNS, the # of internal timesteps. 
                      ! (sas, bmy, eck, eds, 1/19/05, 1/6/06, 7/30/08)
+                     !
+                     ! Now adjust 1/TCVV by factor AIRMW/MOISTMW to
+                     ! use with moist mixing ratio (ewl, 4/28/15)
                      !=================================================
                      IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
                         ! Wet scavenged Hg(II) in [kg/s]
-                        WET_Hg2 = ( T0 * AREA_M2 ) / ( TCVV(IC) * DNS )
+                        WET_Hg2 = T0 * AREA_M2 * AIRMW 
+     &                            / ( TCVV(IC) * DNS
+     &                            * State_Met%MOISTMW(I,J,K) )
 
                         ! Convert [kg/s] to [kg]
                         WET_Hg2 = WET_Hg2 * NDT 
@@ -1823,7 +1885,9 @@
                      IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
 
                         ! Wet scavenged Hg(P) in [kg/s]
-                        WET_HgP = ( T0 * AREA_M2 ) / ( TCVV(IC) * DNS )
+                        WET_HgP = T0 * AREA_M2 * AIRMW  
+     &                            / ( TCVV(IC) * DNS 
+     &                            * State_Met%MOISTMW(I,J,K) )
 
                         ! Convert [kg/s] to [kg]
                         WET_HgP = WET_HgP * NDT 
@@ -1923,7 +1987,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer memory
-      NULLIFY( Q )
+      NULLIFY( Q, CLDMAS, DTRN )
 
       END SUBROUTINE NFCLDMX
 !EOC
@@ -1961,6 +2025,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE CMN_GCTM_MOD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
@@ -1980,29 +2045,29 @@
 !
 ! !INPUT PARAMETERS:
 !  
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      INTEGER,        INTENT(IN)    :: I, J        ! Lon & lat indices
-      INTEGER,        INTENT(IN)    :: N_TRACERS   ! # of convected tracers
-      REAL(fp),         INTENT(IN)    :: AREA_M2     ! Surface area [m2]
-      REAL(fp),         INTENT(IN)    :: F(:,:)      ! Fraction of soluble tracer
-                                                   !  for updraft scavenging 
-                                                   !  [unitless].  Computed by
-                                                   !  routine  COMPUTE_F.
-      REAL(fp),         INTENT(IN)    :: PEDGE(:)    ! P @ level box edges [hPa]
-      REAL(fp),         INTENT(IN)    :: TS_DYN      ! Dynamic timestep [min]
-      LOGICAL,        INTENT(IN)    :: USE_DIAG14  ! Archive DIAG14?
-      LOGICAL,        INTENT(IN)    :: USE_DIAG38  ! Archive DIAG38?
+      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
+      INTEGER,        INTENT(IN)    :: I, J       ! Lon & lat indices
+      INTEGER,        INTENT(IN)    :: N_TRACERS  ! # of convected tracers
+      REAL(fp),       INTENT(IN)    :: AREA_M2    ! Surface area [m2]
+      REAL(fp),       INTENT(IN)    :: F(:,:)     ! Fraction of soluble tracer
+                                                  !  for updraft scavenging 
+                                                  !  [unitless].  Computed by
+                                                  !  routine  COMPUTE_F.
+      REAL(fp),       INTENT(IN)    :: PEDGE(:)   ! P @ level box edges [hPa]
+      REAL(fp),       INTENT(IN)    :: TS_DYN     ! Dynamic timestep [min]
+      LOGICAL,        INTENT(IN)    :: USE_DIAG14 ! Archive DIAG14?
+      LOGICAL,        INTENT(IN)    :: USE_DIAG38 ! Archive DIAG38?
 !                                                  
 ! !INPUT/OUTPUT PARAMETERS:                        
 !        
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
 !                                                  
 ! !OUTPUT PARAMETERS:                              
 !                     
-      REAL(fp),         INTENT(OUT)   :: DIAG14(:,:) ! Array for ND14 diagnostic
-      REAL(fp),         INTENT(OUT)   :: DIAG38(:,:) ! Array for ND38 diagnostic
+      REAL(fp),       INTENT(OUT)   :: DIAG14(:,:) ! Array for ND14 diagnostic
+      REAL(fp),       INTENT(OUT)   :: DIAG38(:,:) ! Array for ND38 diagnostic
       INTEGER,        INTENT(OUT)   :: RC          ! Return code
 !
 ! !REMARKS:
@@ -2061,6 +2126,11 @@
 !  18 Apr 2014 - R. Yantosca - Remove code that we don't need anymore
 !  04 Feb 2015 - M. Sulprizio- Fix calculation of WETLOSS for non-aerosol 
 !                              tracers below the cloud base (C. Friedman)
+!  20 Apr 2015 - E. Lundgren - Use DELP*100/g instead of AD/area as grid box
+!                              moist mass per area and remove AD from routine
+!  20 Apr 2015 - E. Lundgren - Use MOISTMW with TCVV for moist air MW /
+!                              TCVV with moist mixing ratio 
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2072,10 +2142,10 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL           :: AER,         IS_Hg 
-      INTEGER           :: IC,          ISTEP,    K,       KTOP
-      INTEGER           :: NC,          NDT,      NLAY,    NS    
-      INTEGER           :: CLDBASE
+      LOGICAL             :: AER,         IS_Hg 
+      INTEGER             :: IC,          ISTEP,    K,       KTOP
+      INTEGER             :: NC,          NDT,      NLAY,    NS    
+      INTEGER             :: CLDBASE
       REAL(fp)            :: CMFMC_BELOW, ALPHA,    ALPHA2
       REAL(fp)            :: CMOUT,       DELQ,     DQ,      DNS
       REAL(fp)            :: ENTRN,       QC,       QC_PRES, QC_SCAV 
@@ -2088,39 +2158,42 @@
       REAL(fp)            :: MB,          QB
 
       ! Arrays
-      REAL(fp)            :: BMASS    (LLPAR        )    
-      REAL(fp)            :: PDOWN    (LLPAR        )
-      REAL(fp)            :: QB_NUM   (N_TRACERS    )
+      REAL(fp)            :: BMASS    (LLPAR    )    
+      REAL(fp)            :: PDOWN    (LLPAR    )
+      REAL(fp)            :: QB_NUM   (N_TRACERS)
 
       ! Pointers
-      REAL(fp),  POINTER  :: AD       (:            )
-      REAL(fp),  POINTER  :: BXHEIGHT (:            )
-      REAL(fp),  POINTER  :: CMFMC    (:            )
-      REAL(fp),  POINTER  :: DQRCU    (:            )
-      REAL(fp),  POINTER  :: DTRAIN   (:            )
-      REAL(fp),  POINTER  :: PFICU    (:            )
-      REAL(fp),  POINTER  :: PFLCU    (:            )
-      REAL(fp),  POINTER  :: REEVAPCN (:            )
-      REAL(fp),  POINTER  :: T        (:            )
-      REAL(fp),  POINTER  :: H2O2s    (:            )
-      REAL(fp),  POINTER  :: SO2s     (:            )
-      REAL(fp),  POINTER  :: Q        (:,:          )
+      REAL(fp),  POINTER  :: BXHEIGHT (:        )
+      REAL(fp),  POINTER  :: CMFMC    (:        )
+      REAL(fp),  POINTER  :: DQRCU    (:        )
+      REAL(fp),  POINTER  :: DTRAIN   (:        )
+      REAL(fp),  POINTER  :: PFICU    (:        )
+      REAL(fp),  POINTER  :: PFLCU    (:        )
+      REAL(fp),  POINTER  :: REEVAPCN (:        )
+      REAL(fp),  POINTER  :: MOISTMW  (:        )
+      REAL(fp),  POINTER  :: DELP     (:        )
+      REAL(fp),  POINTER  :: T        (:        )
+      REAL(fp),  POINTER  :: H2O2s    (:        )
+      REAL(fp),  POINTER  :: SO2s     (:        )
+      REAL(fp),  POINTER  :: Q        (:,:      )
 
       !========================================================================
       ! (0)  I n i t i a l i z a t i o n
       !========================================================================
       
       ! Point to columns of derived-type object fields
-      AD       => State_Met%AD      (I,J,:        ) ! Air mass [kg]    
       BXHEIGHT => State_Met%BXHEIGHT(I,J,:        ) ! Box height [m]
       CMFMC    => State_Met%CMFMC   (I,J,2:LLPAR+1) ! Cloud mass flux [kg/m2/s] 
       DQRCU    => State_Met%DQRCU   (I,J,:        ) ! Precip production rate:
       DTRAIN   => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
       REEVAPCN => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
+      MOISTMW  => State_Met%MOISTMW (I,J,:        ) ! Moist air molec wt [g/mol]
+      DELP     => State_Met%DELP    (I,J,:        ) ! Edge pressure diff [hPa]
       T        => State_Met%T       (I,J,:        ) ! Air temperature [K]
       H2O2s    => H2O2s_3D          (I,J,:        ) ! H2O2s from sulfate_mod
       SO2s     => SO2s_3D           (I,J,:        ) ! SO2s from sulfate_mod
-      Q        => State_Chm%TRACERS (I,J,:,:      ) ! Tracer conc. [mol/mol] 
+      Q        => State_Chm%TRACERS (I,J,:,:      ) ! Tracer concentration
+                                                    ! [mol/mol moist air] 
 
 #if   defined( GEOS_FP )
 
@@ -2182,9 +2255,9 @@
          PDOWN(K) = ( ( PFLCU(K) / 1000e+0_fp ) 
      &            +   ( PFICU(K) /  917e+0_fp ) ) * 100e+0_fp
 
-         ! BMASS has units of kg/m^2 and is equivalent to AD(K) / AREA_M2
+         ! BMASS has units of kg/m^2 and is equivalent to deltaP * 100 / g
          ! This is done to keep BMASS in the same units as CMFMC * SDT
-         BMASS(K) = AD(K)    / AREA_M2
+         BMASS(K) = DELP(K) * G0_100
 
       ENDDO
 
@@ -2218,10 +2291,10 @@
       DO IC = 1, NC
 
          ! Initialize
-         DIAG14(:,IC) = 0e+0_fp                            ! ND14 diag array      
-         DIAG38(:,IC) = 0e+0_fp                            ! ND38 diag array
-         TCVV         = Input_Opt%TCVV(IC)             ! Air MW/tracer MW
-         TCVV_DNS     = TCVV * DNS                     ! TCVV * DNS
+         DIAG14(:,IC) = 0e+0_fp                    ! ND14 diag array      
+         DIAG38(:,IC) = 0e+0_fp                    ! ND38 diag array
+         TCVV         = Input_Opt%TCVV(IC)         ! Dry air MW/tracer MW
+         TCVV_DNS     = TCVV * DNS                 ! TCVV * DNS
 
          !=====================================================================
          ! (2)  I n t e r n a l   T i m e   S t e p   L o o p
@@ -2374,8 +2447,11 @@
                            ! Define ALPHA, the fraction of raindrops that 
                            ! re-evaporate when falling from grid box
                            ! (I,J,L+1) to (I,J,L)
-                           ALPHA = ( REEVAPCN(K) * AD(K)           )
-     &                           / ( PDOWN(K+1)  * AREA_M2 * 10e+0_fp  )
+                           !
+                           ! Now use DELP*100/g instead of AD/area ro
+                           ! remove area dependency (ewl, 4/28/15)
+                           ALPHA = REEVAPCN(K) * DELP(K) * G0_100 
+     &                             / ( PDOWN(K+1)  * 10e+0_fp )
 
                            ! Restrict ALPHA to be less than 1 
                            ! (>1 is unphysical)  (hma, 24-Dec-2010)  
@@ -2526,10 +2602,14 @@
                   ! DTCSUM(K,IC) is the flux [kg/sec] in the box (I,J), 
                   ! for the tracer IC going out of the top of the layer K 
                   ! to the layer above (K+1)  (bey, 11/10/99). 
+                  !
+                  ! Now adjust 1/TCVV by factor AIRMW/MOISTMW to
+                  ! use with moist mixing ratio (ewl, 4/28/15)
                   !------------------------------------------------------------
                   IF ( USE_DIAG14 ) THEN
-                     DIAG14(K,IC) = DIAG14(K,IC) 
-     &                            + ( ( -T2-T3 ) * AREA_M2 / TCVV_DNS )
+                     DIAG14(K,IC) = DIAG14(K,IC) + ( -T2-T3 ) 
+     &                              * AREA_M2 * AIRMW 
+     &                              / ( TCVV_DNS * MOISTMW(K) )
                   ENDIF
 
                   !------------------------------------------------------------
@@ -2538,10 +2618,13 @@
                   ! Archive the loss of soluble tracer to wet scavenging in 
                   ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
                   ! internal timesteps.
+                  !
+                  ! Now adjust 1/TCVV by factor AIRMW/MOISTMW to
+                  ! use with moist mixing ratio (ewl, 4/28/15)
                   !------------------------------------------------------------
                   IF ( USE_DIAG38 .and. F(K,IC) > 0e+0_fp ) THEN
-                     DIAG38(K,IC) = DIAG38(K,IC)
-     &                            + ( T0 * AREA_M2 / TCVV_DNS )
+                     DIAG38(K,IC) = DIAG38(K,IC) + T0 * AREA_M2 * AIRMW 
+     &                              / ( TCVV_DNS * MOISTMW(K) ) 
 
                      ! check for infinity (added by hma, 20101117)
                      IF ( .not. IT_IS_FINITE( DIAG38(K,IC) ) ) THEN
@@ -2644,8 +2727,11 @@
 
                      ! Define ALPHA, the fraction of raindrops that 
                      ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
-                     ALPHA   = ( REEVAPCN(K) * AD(K)          )
-     &                       / ( PDOWN(K+1)  * AREA_M2 * 10e+0_fp )
+                     !
+                     ! Now use DELP*100/g instead of AD/area ro
+                     ! remove area dependency (ewl, 4/28/15)
+                     ALPHA   = REEVAPCN(K) * DELP(K) * G0_100
+     &                           / ( PDOWN(K+1) * 10e+0_fp )
 
                      ! ALPHA2 is the fraction of the rained-out aerosols
                      ! that gets resuspended in grid box (I,J,L)
@@ -2717,10 +2803,14 @@
                   ! DTCSUM(K,IC) is the flux [kg/sec] in the box (I,J), 
                   ! for the tracer IC going out of the top of the layer K 
                   ! to the layer above (K+1)  (bey, 11/10/99). 
+                  !
+                  ! Now adjust 1/TCVV by factor AIRMW/MOISTMW to
+                  ! use with moist mixing ratio (ewl, 4/28/15)
                   !------------------------------------------------------------
                   IF ( USE_DIAG14 ) THEN
                      DIAG14(K,IC) = DIAG14(K,IC) 
-     &                            + ( ( -T2-T3 ) * AREA_M2 / TCVV_DNS )
+     &                              + ( -T2-T3 ) * AREA_M2 * AIRMW 
+     &                              / ( TCVV_DNS * MOISTMW(K) )
                   ENDIF
 
                   !------------------------------------------------------------
@@ -2729,10 +2819,14 @@
                   ! Archive the loss of soluble tracer to wet scavenging in 
                   ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
                   ! internal timesteps.
+                  !
+                  ! Now adjust 1/TCVV by factor AIRMW/MOISTMW to
+                  ! use with moist mixing ratio (ewl, 4/28/15)
                   !------------------------------------------------------------
                   IF ( USE_DIAG38 .and. F(K,IC) > 0e+0_fp ) THEN
-                     DIAG38(K,IC) = DIAG38(K,IC)
-     &                            + ( WETLOSS * AREA_M2 / TCVV_DNS )
+                     DIAG38(K,IC) = DIAG38(K,IC) 
+     &                              + WETLOSS * AREA_M2 * AIRMW 
+     &                              / ( TCVV_DNS * MOISTMW(K) )
                   ENDIF
                 
                   ! CHECK for infinity (added by hma, 20101117)
@@ -2750,6 +2844,9 @@
             ! "ocean_mercury_mod.f" via ADD_Hg2_WET and ADD_HgP_WET.   We must 
             ! also divide  by DNS, the # of internal timesteps. 
             ! (sas, bmy, eck, eds, 1/19/05, 1/6/06, 7/30/08)
+            !
+            ! Now adjust 1/TCVV by factor AIRMW/MOISTMW to
+            ! use with moist mixing ratio (ewl, 4/28/15)
             !==================================================================
  
             !--------------------------------------
@@ -2758,7 +2855,8 @@
             IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
                ! Wet scavenged Hg(II) in [kg/s]
-               WET_Hg2 = ( T0_SUM * AREA_M2 / TCVV_DNS )
+               WET_Hg2 = T0_SUM * AREA_M2 * AIRMW 
+     &                   / ( TCVV_DNS * MOISTMW(K) ) 
                
                ! Convert [kg/s] to [kg]
                WET_Hg2 = WET_Hg2 * NDT 
@@ -2774,7 +2872,8 @@
             IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
 
                ! Wet scavenged Hg(P) in [kg/s]
-               WET_HgP = ( T0_SUM * AREA_M2 / TCVV_DNS )
+               WET_HgP = T0_SUM * AREA_M2 * AIRMW 
+     &                   / ( TCVV_DNS * MOISTMW(K) )
 
                ! Convert [kg/s] to [kg]
                WET_HgP = WET_HgP * NDT 
@@ -2792,7 +2891,6 @@
       !================================================================
       
       ! Nullify pointers
-      NULLIFY( AD       )
       NULLIFY( BXHEIGHT )
       NULLIFY( CMFMC    )
       NULLIFY( DQRCU    )
@@ -2800,6 +2898,8 @@
       NULLIFY( PFICU    )
       NULLIFY( PFLCU    )
       NULLIFY( REEVAPCN )
+      NULLIFY( MOISTMW  )
+      NULLIFY( DELP     )
       NULLIFY( T        )
       NULLIFY( H2O2s    )
       NULLIFY( SO2s     )
