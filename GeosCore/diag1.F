@@ -450,18 +450,18 @@
       !       2:  AD           - dry air mass [kg]
       !       3:  AVGW         - mol H2O / mol dry air [v/v]
       !       4:  N_DRYAIR     - dry air number density [molecules/m3]
-      !       5:  N_MOISTAIR   - moist air number density [molecules/m3]
+      !       5:  MAIRDEN      - moist air mass density [kg/m3]
       !       6:  T            - temperature [K]
       !       7:  TV           - virtual temperature [K]
       !       8:  PMID         - arithmetic mean pressure [hPa]
       !       9:  PMEAN        - altitude-weighted mean pressure [hPa]
       !       10: PEDGE        - level pressure (bottom edge) [hPa]
-      !       10: RH           - relative humidity [%]
-      !       11: DRYAIRMMR    - mass dry air / mass moist air [kg/kg]
-      !       12: DRYAIRVV     - mol dry air / mol moist air [v/v]
-      !       13: PMID_DRY     - dry air partial pressure at PMID [hPa]
-      !       14: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
-      !       15: PEDGE_DRY    - dry air partial pressure at PEDGE [hPa]
+      !       11: RH           - relative humidity [%]
+      !       12: DRYAIRMMR    - mass dry air / mass moist air [kg/kg]
+      !       13: DRYAIRVV     - mol dry air / mol moist air [v/v]
+      !       14: PMID_DRY     - dry air partial pressure at PMID [hPa]
+      !       15: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
+      !       16: PEDGE_DRY    - dry air partial pressure at PEDGE [hPa]
       !================================================================= 
       IF ( ND68 > 0 ) THEN
 
@@ -475,6 +475,7 @@
             AD68(I,J,L,2)  = AD68(I,J,L,2)  + State_Met%AD(I,J,L)
             AD68(I,J,L,3)  = AD68(I,J,L,3)  + State_Met%AVGW(I,J,L)
             AD68(I,J,L,4)  = AD68(I,J,L,4)  + State_Met%AIRDEN(I,J,L) 
+     &                                        * XNUMOLAIR
             AD68(I,J,L,5)  = AD68(I,J,L,5)  + State_Met%MAIRDEN(I,J,L) 
             AD68(I,J,L,6)  = AD68(I,J,L,6)  + State_Met%T(I,J,L)
             AD68(I,J,L,7)  = AD68(I,J,L,7)  + State_Met%TV(I,J,L)
@@ -607,25 +608,26 @@
       ! ND68: 1:  BXHEIGHT     - box height [m] 
       !       2:  AD           - dry air mass [kg]
       !       3:  AVGW         - mol H2O / mol dry air [v/v]
-      !       4:  AIRDEN       - dry air number density [kg/m3]
-      !       5:  MAIRDEN      - moist air number density [kg/m3]
+      !       4:  AIRDEN       - dry air number mass density [kg/m3]
+      !                          (Note this is different units than bpch)
+      !       5:  MAIRDEN      - moist air mass density [kg/m3]
       !       6:  T            - temperature [K]
       !       7:  TV           - virtual temperature [K]
       !       8:  PMID         - arithmetic mean pressure [hPa]
       !       9:  PMEAN        - altitude-weighted mean pressure [hPa]
       !       10: PEDGE        - level pressure (bottom edge) [hPa]
-      !       10: RH           - relative humidity [%]
-      !       11: DRYAIRMMR    - mass dry air / mass moist air [kg/kg]
-      !       12: DRYAIRVV     - mol dry air / mol moist air [v/v]
-      !       13: PMID_DRY     - dry air partial pressure at PMID [hPa]
-      !       14: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
-      !       15: PEDGE_DRY    - dry air partial pressure at PEDGE [hPa]
+      !       11: RH           - relative humidity [%]
+      !       12: DRYAIRMMR    - mass dry air / mass moist air [kg/kg]
+      !       13: DRYAIRVV     - mol dry air / mol moist air [v/v]
+      !       14: PMID_DRY     - dry air partial pressure at PMID [hPa]
+      !       15: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
+      !       16: PEDGE_DRY    - dry air partial pressure at PEDGE [hPa]
       !================================================================= 
 
       IF ( ND68 > 0 ) THEN
 
-         ! There are 15 diagnostics
-         DO I = 1,15
+         ! There are 16 diagnostics
+         DO I = 1,16
 
             ! Construct diagnostic name and get proper array
             SELECT CASE ( I ) 
