@@ -495,7 +495,7 @@
 !$OMP+PRIVATE( EMIS_AAXX, EMIS_ACET, EMIS_PRPE, EMIS_C2H4              )
 !$OMP+PRIVATE( EMIS_FARN, EMIS_BCAR, EMIS_OSQT, EMIS_ALD2              )
 !$OMP+PRIVATE( MONO_MOL,  TMP,       MBOX_MOL                          )
-!$OMP+PRIVATE( DIURFACT, DIURORVC, BIOG_ALPH                           ) 
+!$OMP+PRIVATE( DIURFACT,  DIURORVC,  BIOG_ALPH                         ) 
 !$OMP+PRIVATE( BIOG_LIMO, BIOG_ALCO, X, Y, RC                          )
 
       !-----------------------------------------------------------------
@@ -1302,6 +1302,14 @@
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXCO', RC )
             RETURN 
          ENDIF
+
+         ! Also archive the BIOGENIC_CO diagnostic (bmy, 4/29/15)
+         Arr2D => FLUXCO
+         DiagnName =  'BIOGENIC_CO'
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono,
+     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN
+         Arr2D => NULL()
       ENDIF
 
       ! ----------------------------------------------------------------
