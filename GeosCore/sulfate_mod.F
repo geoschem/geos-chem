@@ -690,7 +690,7 @@
       ENDIF
 
 #if defined( UCX )
-      ! Stratospheric aerosol graviational settling
+      ! Stratospheric aerosol gravitational settling
       IF ( LGRAVSTRAT ) THEN
          CALL SETTLE_STRAT_AER( am_I_Root, Input_Opt, 
      &                          State_Met, State_Chm, RC )
@@ -1857,7 +1857,7 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  12 Jan 2015 - C. Keller   - Now allow NDENS_SALA and NDENS_SALC to be empty.
-!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
@@ -1995,7 +1995,8 @@
          O3     = GET_O3( I, J, L, Input_Opt, State_Met )
 
          ! PATM  : Atmospheric pressure in atm
-         PATM   = State_Met%PMID( I, J, L ) / 1013.25e+0_fp
+         ! Now use dry air partial pressure (ewl, 4/28/15)
+         PATM   = State_Met%PMID_DRY( I, J, L ) / 1013.25e+0_fp
 
          ! TK : Temperature [K]
          TK     = State_Met%T(I,J,L)
@@ -3087,7 +3088,7 @@
       REAL(fp),  INTENT(IN)    :: TNH3   ! NH3 mixing ratio [v/v]
       REAL(fp),  INTENT(IN)    :: SO2    ! SO2 mixing ratio [v/v] 
       REAL(fp),  INTENT(IN)    :: T      ! Temperature [K]
-      REAL(fp),  INTENT(IN)    :: PRES   ! Pressure [atm]
+      REAL(fp),  INTENT(IN)    :: PRES   ! Dry air partial ressure [atm]
       REAL(fp),  INTENT(IN)    :: LWC    ! Cloud liquid water content [m3/m3]
       REAL(fp),  INTENT(IN)    :: iHPLUS ! Initial [H+] [M]
 !
@@ -3112,6 +3113,7 @@
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
 !  06 Jan 2015 - M. Yannetti - Set some variables to f8 that required it
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3277,6 +3279,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3342,6 +3345,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3408,6 +3412,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3472,6 +3477,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3537,6 +3543,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3596,6 +3603,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3655,6 +3663,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3833,7 +3842,7 @@
 !
       REAL(fp), INTENT(IN)  :: LWC     ! Liq water content [m3/m3]=1.E-6*L [g/m3]
       REAL(fp), INTENT(IN)  :: T       ! Temperature [K]
-      REAL(fp), INTENT(IN)  :: P       ! Pressure [atm]
+      REAL(fp), INTENT(IN)  :: P       ! Dry air partial pressure [atm]
       REAL(fp), INTENT(IN)  :: SO2     ! SO2  mixing ratio [v/v]
       REAL(fp), INTENT(IN)  :: H2O2    ! H2O2 mixing ratio [v/v]
       REAL(fp), INTENT(IN)  :: O3      ! O3   mixing ratio [v/v]
@@ -3890,6 +3899,7 @@
 ! !REVISION HISTORY:
 !  (1 ) Updated by Rokjin Park (rjp, bmy, 12/12/02)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC

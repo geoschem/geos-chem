@@ -510,9 +510,10 @@
 !                                                                             .
 !  (2) Compute QQ, the rate of formation of precipitation 
 !      [cm3 H2O/cm3 air/s].  From MOISTQ [kg H2O/kg air/s], 
-!      the unit conversion is: 
+!      defined as the tendency in specific humidity, the unit conversion 
+!      is: 
 !                                                                             .
-!      kg H2O   |   m^3 H2O   | AIRDEN kg air         m^3 H2O
+!      kg H2O   |   m^3 H2O   | MAIRDEN kg air         m^3 H2O
 !   ------------+-------------+--------------- ==> -------------   
 !    kg air * s | 1000 kg H2O |    m^3 air          m^3 air * s
 !                                                                             .
@@ -527,7 +528,7 @@
 ! 
 !  Therefore, the equation for QQ is:
 ! 
-!    QQ(L,I,J) = FRAC * MOISTQ(I,J,L) * AIRDEN(I,J,L) / 1000.0
+!    QQ(L,I,J) = FRAC * MOISTQ(I,J,L) * MAIRDEN(I,J,L) / 1000.0
 !      
 !  (3) Compute PDOWN, the column precipitation 
 !      [cm3 H2O/cm2 air/s], by multiplying QQ(L,I,J) by 
@@ -569,6 +570,9 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%MOISTQ(I,J,L)
+!  29 Apr 2015 - E. Lundgren - Now use State_Met%MAIRDEN instead of AIRDEN
+!                              since AIRDEN is now dry air density and MAIRDEN
+!                              is moist air density, needed for use with MOISTQ
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -685,7 +689,7 @@
             ! Compute QQ and PDOWN.  Keep PTEMP for the next level
             QQ(L,I,J)    = FRAC                      *
      &                     State_Met%MOISTQ(I,J,L)   *
-     &                     State_Met%AIRDEN(I,J,L)   / 1e+3_fp
+     &                     State_Met%MAIRDEN(I,J,L)   / 1e+3_fp
             PTEMP        = QQ(L,I,J)                 *
      &                     State_Met%BXHEIGHT(I,J,L) * 1e+2_fp
             PDOWN(L,I,J) = PTEMP
@@ -699,7 +703,7 @@
                ! Compute QQ and PDOWN.  Keep PTEMP for the next level.
                QQ(L,I,J)    = FRAC                      *
      &                        State_Met%MOISTQ(I,J,L)   *
-     &                        State_Met%AIRDEN(I,J,L)   / 1e+3_fp
+     &                        State_Met%MAIRDEN(I,J,L)   / 1e+3_fp
                PDOWN(L,I,J) = PTEMP                     + QQ(L,I,J) *
      &                        State_Met%BXHEIGHT(I,J,L) * 1e+2_fp  
                PTEMP        = PDOWN(L,I,J)
@@ -733,7 +737,7 @@
             ! Compute QQ and PDOWN.  Keep PTEMP for the next level
             QQ(L,I,J)    = FRAC                      *
      &                     State_Met%MOISTQ(I,J,L)   *
-     &                     State_Met%AIRDEN(I,J,L)   / 1e+3_fp
+     &                     State_Met%MAIRDEN(I,J,L)   / 1e+3_fp
             PTEMP        = QQ(L,I,J)                 *
      &                     State_Met%BXHEIGHT(I,J,L) * 1e+2_fp
             PDOWN(L,I,J) = PTEMP
@@ -747,7 +751,7 @@
                ! Compute QQ and PDOWN.  Keep PTEMP for the next level
                QQ(L,I,J)    = FRAC                      *
      &                        State_Met%MOISTQ(I,J,L)   *
-     &                        State_Met%AIRDEN(I,J,L)   / 1e+3_fp
+     &                        State_Met%MAIRDEN(I,J,L)   / 1e+3_fp
                PDOWN(L,I,J) = PTEMP                     + QQ(L,I,J) *
      &                        State_Met%BXHEIGHT(I,J,L) * 1e+2_fp 
                PTEMP        = PDOWN(L,I,J)
@@ -8928,6 +8932,7 @@
 !                              derived type object
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
+!  28 Apr 2015 - E. Lundgren - Change PMID_DRY to PMID for Dalton's Law.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9044,7 +9049,7 @@
          
             ! Compute Temp [K] and Pressure [hPa]
             TK = State_Met%T(I,J,L)
-            PL = State_Met%PMID_DRY(I,J,L)
+            PL = State_Met%PMID(I,J,L)
          
             !==============================================================
             ! Compute Vud -- 5 m/s over oceans, 10 m/s over land (or ice?)

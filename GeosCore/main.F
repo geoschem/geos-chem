@@ -1113,8 +1113,9 @@
 
          ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
          IF (IDTH2O.ne.0) THEN
-            CALL SET_H2O_TRAC( (( .not. LUCX ) .or. LSETH2O ),
-     &                         Input_Opt, State_Met, State_Chm )
+            CALL SET_H2O_TRAC( am_I_Root, 
+     &                         ( ( .not. LUCX ) .or. LSETH2O ),
+     &                         Input_Opt, State_Met, State_Chm, RC )
             ! Only force strat once if using UCX
             IF (LSETH2O) LSETH2O = .FALSE.
          ENDIF
@@ -1466,8 +1467,8 @@
 
             ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
             IF (IDTH2O.ne.0) THEN
-               CALL SET_H2O_TRAC( (.not. LUCX), Input_Opt ,
-     &                            State_Met,    State_Chm )
+               CALL SET_H2O_TRAC( am_I_Root, (.not. LUCX), Input_Opt ,
+     &                            State_Met, State_Chm, RC )
             ENDIF
 
 

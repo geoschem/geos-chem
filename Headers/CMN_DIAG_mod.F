@@ -78,6 +78,7 @@
       ! Changed PD22 from 22 to 23 for ACET (mps, 4/25/14)
       ! Changed PD22 from 23 to 28 for ALD2, MVK, MACR, HAC, GLYC (mps, 5/27/14)
       ! Changed PD21 to be dynamically related to NAER and NDUST (dar, 3/6/15)
+      ! Change PD68 from 4 to 13 to include new State_Met AirQnts (ewl, 4/30/15)
       !=================================================================
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
@@ -150,7 +151,7 @@
       INTEGER            :: PD65
       INTEGER, PARAMETER :: PD66=6           
       INTEGER, PARAMETER :: PD67=23 ! (Lin, 31/03/09)
-      INTEGER, PARAMETER :: PD68=4            
+      INTEGER, PARAMETER :: PD68=13     
       INTEGER, PARAMETER :: PD69=1
       INTEGER, PARAMETER :: PD70=0
       INTEGER, PARAMETER :: PD71=NNPAR+1

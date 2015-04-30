@@ -384,11 +384,11 @@ CONTAINS
                            ps2,      ps,       q,        iord,    jord,     &
                            kord,     n_adj,    XMASS,    YMASS,   FILL,     &
                            MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV,     &
-                           ND24,     ND25,     ND26 )
+                           ND24,     ND25,     ND26,     MOISTMW )
 !
 ! !USES:
 !
-    ! Include file w/ physical constants
+    ! Include files w/ physical constants and met values
     USE CMN_GCTM_MOD
 !
 ! !INPUT PARAMETERS: 
@@ -445,13 +445,16 @@ CONTAINS
     ! Grid box surface area for mass flux diag [m2]
     REAL(fp),  INTENT(IN)    :: AREA_M2(JM)        
 
-    ! Tracer masses for flux diag
+    ! Dry air MW / tracer MW
     REAL(fp),  INTENT(IN)    :: TCVV(NQ)              
 
     ! Diagnostic flags
     INTEGER, INTENT(IN)    :: ND24    ! Turns on E/W     flux diagnostic
     INTEGER, INTENT(IN)    :: ND25    ! Turns on N/S     flux diagnostic
     INTEGER, INTENT(IN)    :: ND26    ! Turns on up/down flux diagnostic 
+
+    ! Moist air molecular weight [g/mol]
+    REAL(fp)  , INTENT(IN) :: MOISTMW(:,:,:)
 
     LOGICAL, INTENT(IN)    :: FILL    ! Fill negatives ?
 !
@@ -466,7 +469,7 @@ CONTAINS
     ! surface pressure at future time=t+dt
     REAL(fp),  INTENT(INOUT) :: ps2(IM, JFIRST:JLAST)  
 
-    ! Tracer "mixing ratios" [v/v]
+    ! Tracer "mixing ratios" [v tracer/moist air v]
     REAL(fp),  INTENT(INOUT), TARGET :: q(:,:,:,:)
 
     ! E/W, N/S, and up/down diagnostic mass fluxes
@@ -506,6 +509,9 @@ CONTAINS
 !                              reduce the creation of array temporaries,
 !                              which will reduce memory.
 !   5 Jun 2013 - R. Yantosca - Avoid array temporary in call to FZPPM
+!  17 Apr 2015 - E. Lundgren - Now pass State_Met%MOISTMW to get 
+!                              mol moist air / mol tracer, and pass
+!                              tracer concentration as moist mixing ratio
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -944,13 +950,17 @@ CONTAINS
        !
        !  The unit conversion is:
        !
-       !  Mass    P diff     100      1       area of     kg tracer     1
-       ! ------ = in grid *  ---  *  ---   *  grid box * ----------- * ---
-       !  time    box         1       g       AREA_M2      kg air       s
+       !  Mass    P diff     100      1       area of     kg tracer      1
+       ! ------ = in grid *  ---  *  ---   *  grid box * ------------ * ---
+       !  time    box         1       g       AREA_M2    kg moist air    s
        !
-       !   kg       hPa       Pa     s^2        m^2          1          1 
-       !  ----  =  -----  * ----- * -----  *   -----   *   ------  * --------
-       !   s         1       hPa      m          1          TCVV      DeltaT
+       !   kg      hPa     Pa     s^2    m^2     1      AIRMW        1 
+       !  ----  = ----- * ----- * ---- * ---- * ---- * -------  * --------
+       !   s        1      hPa     m      1     TCVV   MOISTMW     DeltaT
+       !
+       !  where TCVV    = dry air molecular wt / tracer molecular wt 
+       !        AIRMW   = dry air molecular wt   [g/mol]
+       !        MOISTMW = moist air molecular wt [g/mol]
        !======================================================================
        IF ( ND24 > 0 ) THEN
 
@@ -965,8 +975,8 @@ CONTAINS
           DO I = 1,     IM
 
              ! Compute mass flux
-             DTC(I,J,K)         = ( FX(I,J,K,IQ)  * AREA_M2(J)  * 100.e+0_fp ) / &
-                                  ( TCVV(IQ)   * DT          * 9.8e+0_fp  )
+             DTC(I,J,K) = FX(I,J,K,IQ) * AREA_M2(J) * g0_100           &
+                          * AIRMW / ( MOISTMW(I,J,K) * TCVV(IQ) * DT )
 
              ! Save into MASSFLEW diagnostic array
              MASSFLEW(I,J,K,IQ) = MASSFLEW(I,J,K,IQ) + DTC(I,J,K)
@@ -1001,8 +1011,8 @@ CONTAINS
           DO I = 1, IM 
 
              ! Compute mass flux
-             DTC(I,J,K)    = ( FY(I,J,K,IQ) * AREA_M2(J) * 1e+2_fp ) / & 
-                             ( TCVV(IQ)  * DT         * 9.8e+0_fp           ) 
+             DTC(I,J,K) = FY(I,J,K,IQ) * AREA_M2(J) * g0_100          & 
+                          * AIRMW / ( MOISTMW(I,J,K) *TCVV(IQ) * DT ) 
 
              ! Save into MASSFLNS diagnostic array
              MASSFLNS(I,J,K,IQ) = MASSFLNS(I,J,K,IQ) + DTC(I,J,K) 
@@ -1048,9 +1058,10 @@ CONTAINS
           DO I  = 1, IM
 
              ! Compute mass flux
-             DTC(I,J,K)         = ( Q(I,J,K,IQ)  * DELP1(I,J,K)   -   &
-                                    QTEMP(I,J,K,IQ) * DELP2(I,J,K)  ) *  &
-                                  (100e+0_fp) * AREA_M2(J) / ( 9.8e+0_fp * TCVV(IQ) )
+             DTC(I,J,K) = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
+                            - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
+                            * g0_100 * AREA_M2(J) * AIRMW          &
+                            / ( MOISTMW(I,J,K) * TCVV(IQ) ) 
                 
              ! top layer should have no residual.  the small residual is 
              ! from a non-pressure fixed flux diag.  The z direction may 
@@ -1075,10 +1086,10 @@ CONTAINS
              DO I  = 1, IM
 
                 ! Compute tracer difference
-                TRACE_DIFF         = ( Q(I,J,K,IQ)     * DELP1(I,J,K)  -  &
-                                       QTEMP(I,J,K,IQ) * DELP2(I,J,K) ) *  &
-                                       (100e+0_fp) * AREA_M2(J) /           &
-                                       ( 9.8e+0_fp* TCVV(IQ) )
+                TRACE_DIFF = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
+                               - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
+                               * AREA_M2(J) * g0_100 * AIRMW          &
+                               / ( MOISTMW(I,J,K) * TCVV(IQ) )
                 
                 ! Compute mass flux
                 DTC(I,J,K)         = DTC(I,J,K-1) + TRACE_DIFF
@@ -1093,6 +1104,7 @@ CONTAINS
           ENDDO
        ENDIF
     ENDDO      
+
   END SUBROUTINE Tpcore_FvDas
 !EOC  
 !------------------------------------------------------------------------------

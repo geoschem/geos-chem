@@ -164,7 +164,8 @@
 !  08 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
-!  02 Mar 2015 - E. Lundgren - Remove MAKE_AVGW call. State_Met%AVGW now
+!  02 Mar 2015 - E. Lundgren - Remove MAKE_AVGW call since State_Met%AVGW is
+!                              now set in AIRQNT within dao_mod.F
 !  01 Apr 2015 - R. Yantosca - Bug fix: BOXVL needs to be !$OMP PRIVATE
 !EOP
 !------------------------------------------------------------------------------
@@ -175,8 +176,8 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER, SAVE :: N_CHEM_BOXES
       INTEGER       :: I, J, L, JLOOP
-      REAL(fp)        :: CONSEXP, TK, VPRESH2O
-      REAL(fp)        :: BOXVL
+      REAL(fp)      :: CONSEXP, TK, VPRESH2O
+      REAL(fp)      :: BOXVL
       
       !=================================================================
       ! AEROSOL_RURALBOX begins here!
