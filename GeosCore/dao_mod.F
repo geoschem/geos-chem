@@ -247,9 +247,8 @@
 !
 ! !IROUTINE: airqnt
 !
-! !DESCRIPTION: Subroutine AIRQNT sets several members of State_Met (derived 
-!  type MetState), including PEDGE, DELP, PMID, PMID_DRY,MAIRDEN, AIRDEN, 
-!  AD (grid box mass), BXHEIGHT, and AIRVOL. 
+! !DESCRIPTION: Subroutine AIRQNT sets several members of State_Met, the
+!  meteorology object of derived type MetState. 
 !\\
 !\\
 ! !INTERFACE:
@@ -278,19 +277,25 @@
 ! !REMARKS:
 !  DAO met fields updated by AIRQNT:
 !  ========================================================================
-!  (1)  PEDGE     (REAL(fp)) : Moist air pressure at grid box bottom   [hPa]
-!  (2)  PEDGE_DRY (REAL(fp)) : Dry air partial pressure at box bottom  [hPa]
-!  (3)  PMID      (REAL(fp)) : Moist air pressure at grid box center   [hPa]
-!  (4)  PMID_DRY  (REAL(fp)) : Dry air partial pressure at box center  [hPa]
-!  (5)  DELP      (REAL(fp)) : Delta-P extent of grid box              [hPa]
+!  (1)  PEDGE     (REAL(fp)) : Moist air pressure at grid box bottom      [hPa]
+!  (2)  PEDGE_DRY (REAL(fp)) : Dry air partial pressure at box bottom     [hPa]
+!  (3)  PMID      (REAL(fp)) : Moist air pressure at grid box centroid    [hPa]
+!  (4)  PMID_DRY  (REAL(fp)) : Dry air partial pressure at box centroid   [hPa]
+!  (5)  PMEAN     (REAL(fp)) : Altitude-weighted mean moist air pressure  [hPa]
+!  (6)  PMEAN_DRY (REAL(fp)) : Alt-weighted mean dry air partial pressure [hPa]
+!  (7)  DELP      (REAL(fp)) : Delta-P extent of grid box                 [hPa]
 !                              (Same for both moist and dry air since we
 !                              assume constant water vapor pressure 
-!                              across grid box)
-!  (6)  AIRDEN    (REAL(fp)) : Density of dry air in grid box       [kg/m^3]
-!  (7)  MAIRDEN   (REAL(fp)) : Density of moist dry air in grid box [kg/m^3]
-!  (8)  AD        (REAL(fp)) : Mass of dry air in grid box              [kg]
-!  (9)  BXHEIGHT  (REAL(fp)) : Vertical height of grid box               [m]   
-!  (10) AIRVOL    (REAL(fp)) : Volume of grid box                      [m^3]
+!                              across box) 
+!  (8)  AIRDEN    (REAL(fp)) : Mean grid box dry air density            [kg/m^3]
+!                              (defined as total dry air mass/box vol)
+!  (9)  MAIRDEN   (REAL(fp)) : Mean grid box moist air density          [kg/m^3]
+!                              (defined as total moist air mass/box vol)
+!  (10) AD        (REAL(fp)) : Total dry air mass in grid box             [kg]
+!  (11) ADMOIST   (REAL(fp)) : Total moist air mass in grid box           [kg]
+!  (12) BXHEIGHT  (REAL(fp)) : Vertical height of grid box                [m]   
+!  (13) AIRVOL    (REAL(fp)) : Volume of grid box                         [m^3]
+!  (14) MOISTMW   (REAL(fp)) : Molecular weight of moist air in box     [g/mol]
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) AIRQNT is written in Fixed-Form Fortran 90.  Use F90 syntax
@@ -347,8 +352,7 @@
 !                              formulate for H20 saturation pressure.
 !  03 Mar 2015 - E. Lundgren - Set State_Met%TV (virtual temperature)
 !  16 Apr 2015 - E. Lundgren - Add new State_Met variables PMEAN, PMEAN_DRY, 
-!                              DRYAIRMMR, DRYAIRVV, and MOISTMW.
-!  20 Apr 2015 - E. Lundgren - Add new State_Met variable ADMOIST.
+!                              MOISTMW, and ADMOIST
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -357,7 +361,7 @@
 !
       INTEGER :: I,  J,  L
       REAL(fp)  :: PEdge_Top, Esat, Ev_mid, Ev_edge, Ev_mean  
-      REAL(fp)  :: EsatA, EsatB, EsatC, EsatD, EsatE 
+      REAL(fp)  :: EsatA, EsatB, EsatC, EsatD
       REAL(fp)  :: AREA_M2, SPHU_kgkg, AVGW_moist
 
       ! Conversion factors
@@ -393,7 +397,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
 !$OMP+PRIVATE( PEdge_Top, Esat, Ev_mid, Ev_edge, Ev_mean )
-!$OMP+PRIVATE( EsatA, EsatB, EsatC, EsatD, EsatE )
+!$OMP+PRIVATE( EsatA, EsatB, EsatC, EsatD )
 !$OMP+PRIVATE( AREA_M2, SPHU_kgkg, AVGW_moist )
 
       DO L = 1, LLPAR
@@ -438,17 +442,17 @@
          ! from temperature
          !=============================================================  
 
-         EsatA = ESATP1
-         EsatB = ESATP2 * log10( State_Met%T(I,J,L) ) 
-         EsatC = ESATP3 * 10**( ESATP4 + ESATP5 / State_Met%T(I,J,L) )
-         EsatD = ESATP6 * 10**( ESATP7 + ESATP8 * State_Met%T(I,J,L) )
-         EsatE = ESATP9 / State_Met%T(I,J,L)
+         EsatA = ESATP1 + ESATP2 * log10( State_Met%T(I,J,L) ) 
+         EsatB = ESATP3 * 10**( ESATP4 + ESATP5 / State_Met%T(I,J,L) )
+         EsatC = ESATP6 * 10**( ESATP7 + ESATP8 * State_Met%T(I,J,L) )
+         EsatD = ESATP9 / State_Met%T(I,J,L)
 
          ! Saturation water vapor pressure [mb]
-         Esat = 10**( EsatA + EsatB + EsatD + EsatC + EsatE ) 
+         Esat = 10**( EsatA + EsatB + EsatC + EsatD ) 
 
          !=============================================================
-         ! Set water vapor mixing ratio [vol H2O / vol dry air]
+         ! Set AVGW, the water vapor volume mixing ratio 
+         ! [mol H2O / mol dry air]
          !=============================================================  
          !
          ! vol H2O       dry air    H2O         kg H2O      kg wet air
@@ -462,9 +466,9 @@
          !
          SPHU_kgkg = State_Met%SPHU(I,J,L) * MCONV      
 
-         ! Water vapor volume mixing ratio [vol H2O vapor / vol dry air]
+         ! Water vapor volume mixing ratio [v/v dry air]
          State_Met%AVGW(I,J,L) = AIRMW * SPHU_kgkg 
-     &                           / ( H2OMW * (1 - SPHU_kgkg ) )
+     &                           / ( H2OMW * (1.0e+0_fp - SPHU_kgkg ) )
 
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
          !=============================================================
@@ -490,13 +494,15 @@
          !           H2O saturation pressure
          !
 
-         ! Mol water vapor volume per mol moist air 
-         AVGW_moist = SPHU_kgkg * AIRMW 
-     &        / ( SPHU_kgkg * AIRMW + ( 1 - SPHU_kgkg ) * H2OMW )
+         ! Mol water vapor per mol moist air from specific humidity
+         ! (this formulation is derived from the ideal gas law
+         !  and the definition of specific humidity)
+         AVGW_moist = AIRMW * SPHU_kgkg / ( AIRMW * SPHU_kgkg 
+     &                      + H2OMW * ( 1.0e+0_fp - SPHU_kgkg ) )
 
-         ! Water vapor partial pressure at grid box bottom edge [hPa]
-         Ev_edge = State_Met%PEDGE(I,J,L) * AVGW_moist
- 
+         ! Water vapor partial pressure at grid box centroid [hPa]
+         Ev_mid = State_Met%PMID(I,J,L) * AVGW_moist
+
          ! Relative humidity [%]
          State_Met%RH(I,J,L) = ( Ev_mid / Esat ) * 100e+0_fp 
 
@@ -505,38 +511,36 @@
          ! Calculate water vapor partial pressures [hPa] from relative
          ! humidity if using GEOS-5, MERRA, or GEOS-FP. 
          !============================================================= 
-         Ev_edge = State_Met%RH( I,J,L ) * RHCONV * Esat
+         Ev_mid = State_Met%RH( I,J,L ) * RHCONV * Esat
 #endif
 
          !=============================================================
          ! Set grid box dry air partial pressures [hPa]
-         ! at grid box edges
+         ! at grid box centroid (arithmetic mean pressure level)
          !=============================================================  
 
-         ! Partial pressure of dry air at bottom edge of grid box [hPa]
-         State_Met%PEDGE_DRY( I,J,L ) = State_Met%PEDGE(I,J,L) - Ev_edge
-
-         ! Set dry air partial pressure for level LLPAR+1 lower edge
-         IF ( L == LLPAR ) THEN            
-            State_Met%PEDGE_DRY( I,J,L+1 ) = State_Met%PEDGE(I,J,L+1) 
-     &                                       - Ev_edge
-         ENDIF
-
-         !=============================================================
-         ! Set grid box dry air partial pressures [hPa]
-         ! at grid box centroid (arithmetic mean pressure level).
-         ! Assume constant humidity across grid box.
-         !=============================================================  
-
-         Ev_mid = State_Met%PMID(I,J,L) * Ev_edge 
-     &             / State_Met%PEDGE(I,J,L)
-
-         ! Partial pressure of dry air at centroid of grid box [hPa]
+         ! Partial pressure of dry air at box centroid [hPa]
          State_Met%PMID_DRY( I,J,L ) = State_Met%PMID(I,J,L) - Ev_mid
 
          !=============================================================
-         ! Set grid box dry air partial pressures [hPa]
-         ! at grid box altitude-weighted mean pressure.
+         ! Set grid box dry air partial pressures at grid box edges [hPa]
+         ! Assume constant humidity across grid box.
+         !=============================================================  
+
+         Ev_edge = State_Met%PMID(I,J,L) * Ev_edge
+     &             / State_Met%PEDGE(I,J,L)
+
+         ! Partial pressure of dry air at lower edge of grid box [hPa]
+         State_Met%PEDGE_DRY( I,J,L ) = State_Met%PEDGE(I,J,L) - Ev_edge
+
+         ! Set dry air partial pressure for level LLPAR+1 lower edge
+         IF ( L == LLPAR ) THEN     
+            State_Met%PEDGE_DRY( I,J,L+1 ) = Pedge_Top - Ev_edge
+         ENDIF
+
+         !=============================================================
+         ! Set grid box dry air partial pressures at grid box 
+         ! altitude-weighted mean pressure [hPa]
          ! Assume constant humidity across grid box.
          !=============================================================  
 
@@ -547,13 +551,14 @@
          State_Met%PMEAN_DRY( I,J,L ) = State_Met%PMEAN(I,J,L) - Ev_mean
 
          !===========================================================
-         ! Set grid box wet air density [kg/m3] using the ideal gas law.
-         ! For now we will be consistent with legacy definition of
+         ! Set grid box densities [kg/m3] using the ideal gas law.
+         !
+         ! For now we will be consistent with the legacy definition of
          ! density as total grid box mass over volume and so must use the 
          ! altitude-weighted mean pressure (PMEAN) rather than the 
-         ! arithmetic mean pressure (PMID) or the edge pressure.
-         ! The density here is therefore the mean grid box density
-         ! rather than the local density at the level pressure PEDGE
+         ! arithmetic mean pressure (PMID). The density here is therefore 
+         ! the altitude-weighted mean grid box density rather than the 
+         ! local density at pressure level PMID.
          !==========================================================
          !
          !  MAIRDEN = density of moist air [kg/m^3],
@@ -572,32 +577,22 @@
      &                                * PCONV * MCONV
      &                                / RSTARG / State_Met%T(I,J,L)
 
-         !===========================================================
-         ! Set grid box dry air density [kg/m3] (see note above)
-         !==========================================================
+         ! Set grid box dry air density [kg/m3]
          State_Met%AIRDEN(I,J,L) = State_Met%PMEAN_DRY(I,J,L) * AIRMW 
      &                             * PCONV * MCONV
      &                             / RSTARG / State_Met%T(I,J,L)
 
          !=============================================================
-         ! Set grid box moist molecular weight and mixing ratios
-         ! These are useful for moist <-> dry conversions.
+         ! Set grid box moist molecular weight [g/mol]
+         ! This quantity is useful if using TCVV with moist mixing ratio.
          ! Since we assume constant moisture and T across the grid box,
-         ! these quantities are constant within the box. 
+         ! MOISTMW is constant within the box. 
          !=============================================================  
 
          ! Grid box moist air molecular weight [g/mol]
-         State_Met%MOISTMW(I,J,L) = ( State_Met%PEDGE_DRY(I,J,L) 
-     &                              * AIRMW + Ev_edge * H2OMW )
-     &                              / State_Met%PEDGE(I,J,L) 
-
-         ! Mol dry air / mol moist air [v/v] 
-         State_Met%DRYAIRVV(I,J,L) = State_Met%PEDGE_DRY(I,J,L)
-     &                               / State_Met%PEDGE(I,J,L)
-
-         ! Mass dry air / mass moist air [kg/kg] 
-         State_Met%DRYAIRMMR(I,J,L) = State_Met%AIRDEN(I,J,L)
-     &                                / State_Met%MAIRDEN(I,J,L)  
+         State_Met%MOISTMW(I,J,L) = ( State_Met%PMID_DRY(I,J,L) 
+     &                              * AIRMW + Ev_mid * H2OMW )
+     &                              / State_Met%PMID(I,J,L) 
 
          !=============================================================
          ! Set grid box height [m] 
@@ -639,6 +634,8 @@
 
          !=============================================================
          ! Set grid box surface area [m2]
+         ! NOTE: We intend to gradually remove area dependency by
+         ! changing tracer units to mixing ratio
          !=============================================================
 
 #if defined( ESMF_ )
@@ -696,11 +693,12 @@
          !    (2) Specific humidity in GEOS-Chem (SPHU) is stored in [g/kg]
          !
          !==============================================================
-         State_Met%AD(I,J,L) = State_Met%DELP(I,J,L) * G0_100 * AREA_M2
-     &                         * State_Met%DRYAIRMMR(I,J,L) 
-
          State_Met%ADMOIST(I,J,L) = State_Met%DELP(I,J,L) * G0_100 
      &                              * AREA_M2 
+
+         State_Met%AD(I,J,L) = State_Met%ADMOIST(I,J,L)
+     &                         * ( 1.0e+0_fp - State_Met%SPHU(I,J,L) ) 
+
 
       ENDDO
       ENDDO
