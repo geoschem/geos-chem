@@ -48,7 +48,7 @@
 ! Diagnostic collections are written to disk using the routines in
 ! module hcoio\_diagn\_mod.F90. Routine HcoDiagn\_Write will write
 ! out the three built-in HEMCO collections. Other collections need 
-! be written out explicitly using routine HCOIO\_Diagn_WriteOut.
+! be written out explicitly using routine HCOIO\_Diagn\_WriteOut.
 ! The HEMCO option 'HcoWritesDiagn' determines if the three HEMCO
 ! collections are automatically written out by the HEMCO driver 
 ! routines (hco\_driver\_mod.F90). If HcoWritesDiagn is set to 
@@ -666,7 +666,7 @@ CONTAINS
 !\begin{itemize} 
 !\item am\_I\_Root: is this the root CPU?
 !\item cName: distinct diagnostics (container) name. 
-!\item long_name: long_name attribute used for netCDF output. 
+!\item long\_name: long\_name attribute used for netCDF output. 
 !\item ExtNr: emissions extension number. 
 !\item Cat: emissions category. 
 !\item Hier: emissions  hierarchy.
@@ -693,11 +693,11 @@ CONTAINS
 !      unit conversions, etc., and the data will be written to disk
 !      as is.
 !\item Trgt3D: as Trgt2D, but for 3D data. 
-!\item MW_g: species molecular weight. Used to determine unit
+!\item MW\_g: species molecular weight. Used to determine unit
 !      conversion factors. Not needed for target containers or if
 !      argument OutOper is specified. Can be omitted if HcoState is
 !      given.
-!\item EmMW_g: Molecular weight of emitted species. Used to determine
+!\item EmMW\_g: Molecular weight of emitted species. Used to determine
 !      unit conversion factors. Not needed for target containers or if
 !      argument OutOper is specified. Can be omitted if HcoState is
 !      given.
@@ -1750,8 +1750,6 @@ CONTAINS
              CALL HCO_MSG ( MSG )
           ENDIF
 
-          ! Exit this loop
-          EXIT
        ENDDO ! loop over containers in collection
    
        ! Advance to next collection

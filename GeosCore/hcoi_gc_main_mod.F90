@@ -8,13 +8,13 @@
 ! !DESCRIPTION: Module hcoi\_gc\_main\_mod.F90 is the HEMCO-to-GEOS-Chem
 ! interface module, providing the link between GEOS-Chem and HEMCO. It 
 ! contains wrapper routines to initialize, execute and finalize HEMCO from
-! within GEOS-Chem. These routines are called from emissions_mod.F90.
+! within GEOS-Chem. These routines are called from emissions\_mod.F90.
 !\\
 !\\
 ! Notes:
 ! \begin{itemize}
 ! \item HEMCO is used to calculate all emission fields. The emission tendencies
-!  are passed to GEOS-Chem in module mixing_mod.F90. 
+!  are passed to GEOS-Chem in module mixing\_mod.F90. 
 ! \item Most meteorological fields needed by the HEMCO extensions are provided
 !  through the GEOS-Chem meteorological state object Met\_State. Few fields 
 !  such as the pressure edges or J-values are defined and updated explicitly 
@@ -945,7 +945,7 @@ CONTAINS
 !
 ! !DESCRIPTION: SUBROUTINE ExtState\_SetFields connects the ExtState fields 
 ! of the HEMCO ExtState object to its target data. This can be a field in
-! State_Met, State_Chm, or any other 2D/3D field defined within GEOS-Chem or
+! State\_Met, State\_Chm, or any other 2D/3D field defined within GEOS-Chem or
 ! even explicitly calculated in this module. All these fields are expected 
 ! to be of the same type as the corresponding ExtState object, and a pointer 
 ! link is established between the two fields on the first call.
@@ -958,10 +958,10 @@ CONTAINS
 ! passed to ExtState\_Set. 
 !\\
 !\\
-! Fields from the HEMCO data list are given priority over the target fields
-! from Met_State, Chm_State, etc. For example, if the HEMCO data list contains 
+! Fields from the HEMCO data list are given priority over the target fields from
+! Met\_State, Chm\_State, etc. For example, if the HEMCO data list contains 
 ! a field named 'U10M', this field will be used in ExtState%U10M in lieu of
-! State_Met%U10M. 
+! State\_Met%U10M. 
 !\\  
 !\\
 ! Note that for now, this explicitly assumes that the HEMCO emissions grid is 
