@@ -1760,7 +1760,7 @@
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
 !  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
-!                                air pressure, with State_Met%PMID_DRY and
+!                                air pressure, with State_Met%PMID and
 !                                remove dependency on PRESSURE_MOD.
 !EOP
 !------------------------------------------------------------------------------
@@ -1922,8 +1922,7 @@
                   SET_CELL = .TRUE.
                ENDIF
                ! Pressure at center of cell
-               ! Now using dry air partial pressure (ewl, 3/2/15)
-               PCENTER = State_Met%PMID_DRY(I,J,L)
+               PCENTER = State_Met%PMID(I,J,L)
                FOUNDLEV = (PCENTER.gt.UCX_PLEVS(VERTCOUNT))
                DO WHILE (.not. FOUNDLEV)
                   IF (VERTCOUNT.eq.1) THEN
