@@ -6456,7 +6456,7 @@
 
             !jpp, 9/6/07: preventing these default quantities
             !             from overwriting CHBr3's info.
-            IF ( T < 24 .and. T /= 14 .and. T /= 15 .and. T /= 18 ) THEN
+            IF ( T < 23 .and. T /= 14 .and. T /= 15 .and. T /= 18 ) THEN
                ! Define the rest of the quantities
                INDEX(T,46) = T + ( SPACING * 21 )
                FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'

@@ -715,112 +715,36 @@ CONTAINS
     IF ( IDTNO > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( HcoState, FLUXNO, IDTNO, RC)
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXNO, IDTNO, &
+                         RC,        ExtNr=ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXNO', RC )
           RETURN 
        ENDIF
-
-       ! Eventually update diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => FLUXNO
-          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                             Cat=-1, Hier=-1, HcoID=IDTNO,     &
-                             AutoFill=1, Array2D=Arr2D, RC=RC   )
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-          Arr2D => NULL() 
-       ENDIF
     ENDIF
-
+ 
     ! NO2
     IF ( IDTNO2 > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( HcoState, FLUXNO2, IDTNO2, RC)
-       IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXNO2', RC )
-          RETURN 
-       ENDIF
-
-       ! Eventually update diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => FLUXNO2
-          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                             Cat=-1, Hier=-1, HcoID=IDTNO2,     &
-                             AutoFill=1, Array2D=Arr2D, RC=RC   )
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-          Arr2D => NULL() 
-       ENDIF
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXNO2, IDTNO2, &
+                         RC,        ExtNr=ExtNr )
     ENDIF
 
     ! HNO3 
     IF ( IDTHNO3 > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( HcoState, FLUXHNO3, IDTHNO3, RC)
-       IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXHNO3', RC )
-          RETURN 
-       ENDIF
-
-       ! Eventually update diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => FLUXHNO3
-          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                             Cat=-1, Hier=-1, HcoID=IDTHNO3,   &
-                             AutoFill=1, Array2D=Arr2D, RC=RC   )
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-          Arr2D => NULL() 
-       ENDIF
-
-       ! As of 4/10/15, exchange loss rates in original units of
-       ! kg/m2/s (ckeller) 
-!       ! Add flux to emission array (1/s)
-!       CALL HCO_DepvAdd( HcoState, DEPHNO3, IDTHNO3, RC)
-!       IF ( RC /= HCO_SUCCESS ) RETURN 
-!
-!       Arr2D => DEPHNO3
-!       CALL Diagn_Update( am_I_Root,               &
-!                          cName   = 'DEPVEL_HNO3', &
-!                          Array2D = Arr2D,         &
-!                          COL     = -1,            &
-!                          RC      = RC              ) 
-!       IF ( RC /= HCO_SUCCESS ) RETURN 
-!       Arr2D => NULL()
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXHNO3, IDTHNO3, &
+                         RC,        ExtNr=ExtNr )
     ENDIF
 
     ! O3 
     IF ( IDTO3 > 0 ) THEN
 
        ! Add flux to emission array (kg/m2/s)
-       CALL HCO_EmisAdd( HcoState, FLUXO3, IDTO3, RC)
-       IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXO3', RC )
-          RETURN 
-       ENDIF
-
-       ! Eventually update diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => FLUXO3
-          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                             Cat=-1, Hier=-1, HcoID=IDTO3,   &
-                             AutoFill=1, Array2D=Arr2D, RC=RC   )
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-          Arr2D => NULL() 
-       ENDIF
-
-       ! As of 4/10/15, exchange loss rates in original units of
-       ! kg/m2/s (ckeller) 
-!       ! Add flux to emission array (1/s)
-!       CALL HCO_DepvAdd( HcoState, DEPO3, IDTO3, RC)
-!       IF ( RC /= HCO_SUCCESS ) RETURN 
-!
-!       ! Eventually add to diagnostics
-!       CALL Diagn_Update( am_I_Root,               &
-!                          cName   = 'DEPVEL_O3',   &
-!                          Array2D = Arr2D,         &
-!                          COL     = -1,            &
-!                          RC      = RC              ) 
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXO3, IDTO3, &
+                         RC,        ExtNr=ExtNr )
     ENDIF
 
 
@@ -918,6 +842,7 @@ CONTAINS
 !                              after displaying text about PARANOX extension
 !  16 Oct 2014 - C. Keller   - Added error check after READ_PARANOX_LUT
 !  17 Oct 2014 - C. Keller   - Now parse input files via HCO_CharParse
+!  17 Apr 2015 - C. Keller   - Now assign PARANOX_SUNCOS1 to SC5(:,:,1), etc.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1285,9 +1210,18 @@ CONTAINS
       WRITE(CHAR1,'(I1)') I
       DiagnName = 'PARANOX_SUNCOS'//TRIM(CHAR1)
 
-      ! Define as restart variable
+      ! Define restart variable.
+      ! IMPORTANT NOTE: PARANOX_SUNCOS1 refers to the SZA from one hour
+      ! ago, PARANOX_SUNCOS2 is the SZA 2 hours ago, etc. At any given
+      ! simulation time, SC5(:,:,1) holds the current SZA, SC5(:,:,2) 
+      ! holds SZA -1 hour, etc. Since SC5 is not updated any more on 
+      ! the final time step, assign SC5(:,:,1) to PARANOX_SUNCOS1, 
+      ! SC5(:,:,2) to PARANOX_SUNCOS2, etc.
+      ! For example, if the simulation ends on Aug 1, 00:00, SC5(:,:,1)
+      ! is last updated on Jul 31, 23:00, and this value needs be stored
+      ! in PARANOX_SUNCOS1 (ckeller, 4/17/2015).
       CALL HCO_RestartDefine ( am_I_Root, HcoState, TRIM(DiagnName), &
-                               SC5(:,:,I+1), '1',   RC )
+                               SC5(:,:,I), '1',   RC )
    ENDDO
 
    !------------------------------------------------------------------------ 
@@ -2420,8 +2354,8 @@ CONTAINS
       ! J(O1D), 1/s
       JO1D = ExtState%JO1D%Arr%Val(I,J)
 
-      ! H2O, molec/cm3. Get from specific humidity, which is in g/kg.
-      H2O = ExtState%SPHU%Arr%Val(I,J,1) / 1.0e3_sp * DENS &
+      ! H2O, molec/cm3. Get from specific humidity, which is in kg/kg.
+      H2O = ExtState%SPHU%Arr%Val(I,J,1) * DENS &
           * HcoState%Phys%AIRMW / MWH2O 
          
       ! Calculate J(OH), the effective rate for O3+hv -> OH+OH,
@@ -2659,6 +2593,7 @@ CONTAINS
 
             MSG = 'LUT error: Fracnox should be between 0 and 1!'
             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+            RETURN
          ENDIF
 
          !-----------------------------------

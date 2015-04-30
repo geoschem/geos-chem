@@ -61,19 +61,21 @@ MODULE HCOX_Driver_Mod
 
   ! Arrays needed for diagnostics. Diagnostics are defined / filled via
   ! subroutines HCOX_DiagnDefine and HCOX_DiagnFill, respectively.
-  REAL(sp), ALLOCATABLE, TARGET :: DGN_LAI      (:,:  )
-  REAL(sp), ALLOCATABLE, TARGET :: DGN_T2M      (:,:  )
   REAL(sp), ALLOCATABLE, TARGET :: DGN_SUNCOS   (:,:  )
-  REAL(sp), ALLOCATABLE, TARGET :: DGN_GWET     (:,:  )
-  REAL(sp), ALLOCATABLE, TARGET :: DGN_U10M     (:,:  )
-  REAL(sp), ALLOCATABLE, TARGET :: DGN_V10M     (:,:  )
-  REAL(sp), ALLOCATABLE, TARGET :: DGN_PARDR    (:,:  )
-  REAL(sp), ALLOCATABLE, TARGET :: DGN_PARDF    (:,:  )
-  REAL(sp), ALLOCATABLE, TARGET :: DGN_SZAFACT  (:,:  )
-  REAL(sp), ALLOCATABLE, TARGET :: DGN_CLDFRC   (:,:  )
-  REAL(sp), ALLOCATABLE, TARGET :: DGN_ALBD     (:,:  )
-  REAL(sp), ALLOCATABLE, TARGET :: DGN_WLI      (:,:  )
-  REAL(sp), ALLOCATABLE, TARGET :: DGN_TROPP    (:,:  )
+  REAL(sp), ALLOCATABLE, TARGET :: DGN_DRYTOTN  (:,:  )
+  REAL(sp), ALLOCATABLE, TARGET :: DGN_WETTOTN  (:,:  )
+!  REAL(sp), ALLOCATABLE, TARGET :: DGN_LAI      (:,:  )
+!  REAL(sp), ALLOCATABLE, TARGET :: DGN_T2M      (:,:  )
+!  REAL(sp), ALLOCATABLE, TARGET :: DGN_GWET     (:,:  )
+!  REAL(sp), ALLOCATABLE, TARGET :: DGN_U10M     (:,:  )
+!  REAL(sp), ALLOCATABLE, TARGET :: DGN_V10M     (:,:  )
+!  REAL(sp), ALLOCATABLE, TARGET :: DGN_PARDR    (:,:  )
+!  REAL(sp), ALLOCATABLE, TARGET :: DGN_PARDF    (:,:  )
+!  REAL(sp), ALLOCATABLE, TARGET :: DGN_SZAFACT  (:,:  )
+!  REAL(sp), ALLOCATABLE, TARGET :: DGN_CLDFRC   (:,:  )
+!  REAL(sp), ALLOCATABLE, TARGET :: DGN_ALBD     (:,:  )
+!  REAL(sp), ALLOCATABLE, TARGET :: DGN_WLI      (:,:  )
+!  REAL(sp), ALLOCATABLE, TARGET :: DGN_TROPP    (:,:  )
 
 CONTAINS
 !EOC
@@ -604,19 +606,21 @@ CONTAINS
     ENDIF
 
     ! Eventually deallocate diagnostics array
-    IF ( ALLOCATED( DGN_LAI      ) ) DEALLOCATE( DGN_LAI      )
-    IF ( ALLOCATED( DGN_T2M      ) ) DEALLOCATE( DGN_T2M      )
+!    IF ( ALLOCATED( DGN_LAI      ) ) DEALLOCATE( DGN_LAI      )
+!    IF ( ALLOCATED( DGN_T2M      ) ) DEALLOCATE( DGN_T2M      )
+!    IF ( ALLOCATED( DGN_GWET     ) ) DEALLOCATE( DGN_GWET     )
+!    IF ( ALLOCATED( DGN_U10M     ) ) DEALLOCATE( DGN_U10M     )
+!    IF ( ALLOCATED( DGN_V10M     ) ) DEALLOCATE( DGN_V10M     )
+!    IF ( ALLOCATED( DGN_PARDR    ) ) DEALLOCATE( DGN_PARDR    )
+!    IF ( ALLOCATED( DGN_PARDF    ) ) DEALLOCATE( DGN_PARDF    )
+!    IF ( ALLOCATED( DGN_SZAFACT  ) ) DEALLOCATE( DGN_SZAFACT  )
+!    IF ( ALLOCATED( DGN_CLDFRC   ) ) DEALLOCATE( DGN_CLDFRC   )
+!    IF ( ALLOCATED( DGN_ALBD     ) ) DEALLOCATE( DGN_ALBD     )
+!    IF ( ALLOCATED( DGN_WLI      ) ) DEALLOCATE( DGN_WLI      )
+!    IF ( ALLOCATED( DGN_TROPP    ) ) DEALLOCATE( DGN_TROPP    )
     IF ( ALLOCATED( DGN_SUNCOS   ) ) DEALLOCATE( DGN_SUNCOS   )
-    IF ( ALLOCATED( DGN_GWET     ) ) DEALLOCATE( DGN_GWET     )
-    IF ( ALLOCATED( DGN_U10M     ) ) DEALLOCATE( DGN_U10M     )
-    IF ( ALLOCATED( DGN_V10M     ) ) DEALLOCATE( DGN_V10M     )
-    IF ( ALLOCATED( DGN_PARDR    ) ) DEALLOCATE( DGN_PARDR    )
-    IF ( ALLOCATED( DGN_PARDF    ) ) DEALLOCATE( DGN_PARDF    )
-    IF ( ALLOCATED( DGN_SZAFACT  ) ) DEALLOCATE( DGN_SZAFACT  )
-    IF ( ALLOCATED( DGN_CLDFRC   ) ) DEALLOCATE( DGN_CLDFRC   )
-    IF ( ALLOCATED( DGN_ALBD     ) ) DEALLOCATE( DGN_ALBD     )
-    IF ( ALLOCATED( DGN_WLI      ) ) DEALLOCATE( DGN_WLI      )
-    IF ( ALLOCATED( DGN_TROPP    ) ) DEALLOCATE( DGN_TROPP    )
+    IF ( ALLOCATED( DGN_DRYTOTN  ) ) DEALLOCATE( DGN_DRYTOTN  )
+    IF ( ALLOCATED( DGN_WETTOTN  ) ) DEALLOCATE( DGN_WETTOTN  )
 
     ! Return w/ success
     RC = HCO_SUCCESS
@@ -672,85 +676,99 @@ CONTAINS
 
     IF ( DoDiagn ) THEN
 
-       ALLOCATE( DGN_LAI(I,J), DGN_SUNCOS(I,J), DGN_GWET(I,J), STAT=AS )
+!       ALLOCATE( DGN_LAI(I,J), DGN_GWET(I,J), STAT=AS )
+!       IF ( AS /= 0 ) THEN
+!          CALL HCO_ERROR( 'Diagnostics allocation error 1', RC, THISLOC=LOC )
+!          RETURN
+!       ENDIF
+!       ALLOCATE( DGN_T2M(I,J), DGN_V10M(I,J), DGN_U10M(I,J), STAT=AS )
+!       IF ( AS /= 0 ) THEN
+!          CALL HCO_ERROR( 'Diagnostics allocation error 2', RC, THISLOC=LOC )
+!          RETURN
+!       ENDIF
+!       ALLOCATE( DGN_PARDR(I,J), DGN_PARDF(I,J), DGN_SZAFACT(I,J), STAT=AS )
+!       IF ( AS /= 0 ) THEN
+!          CALL HCO_ERROR( 'Diagnostics allocation error 3', RC, THISLOC=LOC )
+!          RETURN
+!       ENDIF
+!       ALLOCATE( DGN_CLDFRC(I,J), DGN_ALBD(I,J), DGN_WLI(I,J), STAT=AS )
+!       IF ( AS /= 0 ) THEN
+!          CALL HCO_ERROR( 'Diagnostics allocation error 4', RC, THISLOC=LOC )
+!          RETURN
+!       ENDIF
+!       ALLOCATE( DGN_TROPP(I,J), STAT=AS )
+!       IF ( AS /= 0 ) THEN
+!          CALL HCO_ERROR( 'Diagnostics allocation error 5', RC, THISLOC=LOC )
+!          RETURN
+!       ENDIF
+
+       ALLOCATE( DGN_SUNCOS(I,J), DGN_DRYTOTN(I,J), DGN_WETTOTN(I,J), STAT=AS )
        IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR( 'Diagnostics allocation error 1', RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-       ALLOCATE( DGN_T2M(I,J), DGN_V10M(I,J), DGN_U10M(I,J), STAT=AS )
-       IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR( 'Diagnostics allocation error 2', RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-       ALLOCATE( DGN_PARDR(I,J), DGN_PARDF(I,J), DGN_SZAFACT(I,J), STAT=AS )
-       IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR( 'Diagnostics allocation error 3', RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-       ALLOCATE( DGN_CLDFRC(I,J), DGN_ALBD(I,J), DGN_WLI(I,J), STAT=AS )
-       IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR( 'Diagnostics allocation error 4', RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-       ALLOCATE( DGN_TROPP(I,J), STAT=AS )
-       IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR( 'Diagnostics allocation error 1', RC, THISLOC=LOC )
+          CALL HCO_ERROR( 'Diagnostics allocation error 6', RC, THISLOC=LOC )
           RETURN
        ENDIF
 
-       DGN_LAI     = 0.0_sp
-       DGN_T2M     = 0.0_sp
+!       DGN_LAI     = 0.0_sp
+!       DGN_T2M     = 0.0_sp
+!       DGN_GWET    = 0.0_sp
+!       DGN_V10M    = 0.0_sp
+!       DGN_U10M    = 0.0_sp
+!       DGN_PARDR   = 0.0_sp
+!       DGN_PARDF   = 0.0_sp
+!       DGN_SZAFACT = 0.0_sp
+!       DGN_CLDFRC  = 0.0_sp
+!       DGN_ALBD    = 0.0_sp
+!       DGN_WLI     = 0.0_sp
+!       DGN_TROPP   = 0.0_sp
        DGN_SUNCOS  = 0.0_sp
-       DGN_GWET    = 0.0_sp
-       DGN_V10M    = 0.0_sp
-       DGN_U10M    = 0.0_sp
-       DGN_PARDR   = 0.0_sp
-       DGN_PARDF   = 0.0_sp
-       DGN_SZAFACT = 0.0_sp
-       DGN_CLDFRC  = 0.0_sp
-       DGN_ALBD    = 0.0_sp
-       DGN_WLI     = 0.0_sp
-       DGN_TROPP   = 0.0_sp
+       DGN_DRYTOTN = 0.0_sp
+       DGN_WETTOTN = 0.0_sp
 
-       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_T2M', DGN_T2M, RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_GWET', DGN_GWET, RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
+!       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_T2M', DGN_T2M, RC ) 
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_GWET', DGN_GWET, RC ) 
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_LAI', DGN_LAI, RC ) 
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!   
+!       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_U10M', DGN_U10M, RC ) 
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!   
+!       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_V10M', DGN_V10M, RC ) 
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!   
+!       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_PARDR', DGN_PARDR, RC ) 
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!   
+!       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_PARDF', DGN_PARDF, RC ) 
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!   
+!       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_SZAFACT', DGN_SZAFACT, RC ) 
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!   
+!       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_CLDFRC', DGN_CLDFRC, RC ) 
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!   
+!       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_ALBD', DGN_ALBD, RC ) 
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!   
+!       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_WLI', DGN_WLI, RC ) 
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!   
+!       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_TROPP', DGN_TROPP, RC ) 
+!       IF ( RC /= HCO_SUCCESS ) RETURN
 
        CALL DgnDefine ( am_I_Root, HcoState, 'HCO_SUNCOS', DGN_SUNCOS, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
    
-       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_LAI', DGN_LAI, RC ) 
+       CALL DgnDefine ( am_I_Root, HcoState, 'DRY_TOTN', DGN_DRYTOTN, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
    
-       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_U10M', DGN_U10M, RC ) 
+       CALL DgnDefine ( am_I_Root, HcoState, 'WET_TOTN', DGN_WETTOTN, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
    
-       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_V10M', DGN_V10M, RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-   
-       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_PARDR', DGN_PARDR, RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-   
-       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_PARDF', DGN_PARDF, RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-   
-       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_SZAFACT', DGN_SZAFACT, RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-   
-       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_CLDFRC', DGN_CLDFRC, RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-   
-       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_ALBD', DGN_ALBD, RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-   
-       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_WLI', DGN_WLI, RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-   
-       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_TROPP', DGN_TROPP, RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
     ENDIF
 
     ! Return w/ success
@@ -846,19 +864,21 @@ CONTAINS
 !------------------------------------------------------------------------------
 
     IF ( DoDiagn ) THEN
-       DGN_LAI     = ExtState%GC_LAI%Arr%Val
-       DGN_T2M     = ExtState%T2M%Arr%Val
+!       DGN_LAI     = ExtState%GC_LAI%Arr%Val
+!       DGN_T2M     = ExtState%T2M%Arr%Val
+!       DGN_GWET    = ExtState%GWETTOP%Arr%Val
+!       DGN_U10M    = ExtState%U10M%Arr%Val
+!       DGN_V10M    = ExtState%V10M%Arr%Val
+!       DGN_PARDR   = ExtState%PARDR%Arr%Val
+!       DGN_PARDF   = ExtState%PARDF%Arr%Val
+!       DGN_SZAFACT = ExtState%SZAFACT%Arr%Val
+!       DGN_CLDFRC  = ExtState%CLDFRC%Arr%Val
+!       DGN_ALBD    = ExtState%ALBD%Arr%Val
+!       DGN_WLI     = ExtState%WLI%Arr%Val
+!       DGN_TROPP   = ExtState%TROPP%Arr%Val
        DGN_SUNCOS  = ExtState%SUNCOSmid%Arr%Val
-       DGN_GWET    = ExtState%GWETTOP%Arr%Val
-       DGN_U10M    = ExtState%U10M%Arr%Val
-       DGN_V10M    = ExtState%V10M%Arr%Val
-       DGN_PARDR   = ExtState%PARDR%Arr%Val
-       DGN_PARDF   = ExtState%PARDF%Arr%Val
-       DGN_SZAFACT = ExtState%SZAFACT%Arr%Val
-       DGN_CLDFRC  = ExtState%CLDFRC%Arr%Val
-       DGN_ALBD    = ExtState%ALBD%Arr%Val
-       DGN_WLI     = ExtState%WLI%Arr%Val
-       DGN_TROPP   = ExtState%TROPP%Arr%Val
+       DGN_DRYTOTN = ExtState%DRY_TOTN%Arr%Val
+       DGN_WETTOTN = ExtState%WET_TOTN%Arr%Val
     ENDIF
    
     ! Return w/ success

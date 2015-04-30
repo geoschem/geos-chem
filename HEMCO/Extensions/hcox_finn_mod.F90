@@ -215,8 +215,6 @@ CONTAINS
 
     ! Pointers
     REAL(sp), POINTER   :: THISTYP(:,:) => NULL()
-    REAL(hp), POINTER   :: Arr2D  (:,:) => NULL()
-
 
     !=======================================================================
     ! HCOX_FINN_Run begins here!
@@ -361,7 +359,8 @@ CONTAINS
        END SELECT
 
        ! Add flux to HEMCO emission array
-       CALL HCO_EmisAdd( HcoState, SpcArr, HcoID, RC ) 
+       CALL HCO_EmisAdd( am_I_Root, HcoState,    SpcArr, HcoID, &
+                         RC,        ExtNr=ExtNr, Cat=-1, Hier=-1 ) 
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'HCO_EmisAdd error: ' // TRIM(HcoState%Spc(HcoID)%SpcName)
           CALL HCO_ERROR( MSG, RC )
@@ -388,22 +387,11 @@ CONTAINS
              ENDIF
           ENDIF
        ENDIF
-
-       ! Eventually update diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => SpcArr
-          CALL Diagn_Update(am_I_Root, ExtNr=ExtNr,               &
-                            Cat=-1,    Hier=-1,      HcoID=HcoID, &
-                            AutoFill=1,Array2D=Arr2D,RC=RC         )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          Arr2D => NULL()
-       ENDIF
   
     ENDDO !N
 
     ! Nullify pointers
     THISTYP   => NULL()
-    Arr2D     => NULL()
 
     ! Leave w/ success
     CALL HCO_LEAVE ( RC )

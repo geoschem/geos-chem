@@ -608,22 +608,18 @@ CONTAINS
        ENDIF
 
        ! -------------------------------------------------------------
-       ! Check for emission shortcuts. Base emissions can be bracketed
-       ! into 'collections'. 
+       ! Check for emission shortcuts. Fields can be bracketed into 
+       ! 'collections'. 
        ! -------------------------------------------------------------
-       IF ( DctType == HCO_DCTTYPE_BASE ) THEN
-
-          CALL BracketCheck( am_I_Root, STAT, LINE, SKIP, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL BracketCheck( am_I_Root, STAT, LINE, SKIP, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
  
-          ! Skip if needed
-          IF ( SKIP ) CYCLE
+       ! Skip if needed
+       IF ( SKIP ) CYCLE
 
-          ! Can advance to next line if this was a bracket line: nothing
-          ! else to do with this line.
-          IF ( STAT == 5 .OR. STAT == 6 ) CYCLE
-
-       ENDIF
+       ! Can advance to next line if this was a bracket line: nothing
+       ! else to do with this line.
+       IF ( STAT == 5 .OR. STAT == 6 ) CYCLE
 
        ! Read include file. Configuration files can be 'nested', e.g. 
        ! configuration files can be included into the 'main' configuration
@@ -909,8 +905,10 @@ CONTAINS
 !\\
 !\\
 ! It is also possible to use 'opposite' brackets, e.g. to use a collection 
-! only if the given setting is *disabled*. This can be achieved by appending
-! '--' to the collection name, e.g. '(((--TEST' and ')))--TEST'.
+! only if the given setting is *disabled*. This can be achieved by precede
+! the collection word with '.not.', e.g. '(((.not.TEST' and '))).not.TEST'.
+! Similarly, multiple collections can be combined to be evaluated together,
+! e.g. NAME1.or.NAME2. 
 !\\
 !\\
 ! !INTERFACE:
@@ -919,7 +917,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
+    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, GetExtNr
 !
 ! !INPUT PARAMETERS:
 !
@@ -943,15 +941,16 @@ CONTAINS
 !
     ! Maximum number of nested brackets
     INTEGER, PARAMETER            :: MAXBRACKNEST = 5
-    INTEGER                       :: STRLEN
+    INTEGER                       :: IDX, STRLEN, ExtNr
     LOGICAL                       :: FOUND
-    LOGICAL                       :: UseBracket
+    LOGICAL                       :: UseBracket, UseThis
     LOGICAL                       :: verb
     LOGICAL                       :: REV
     INTEGER, SAVE                 :: NEST      = 0
     INTEGER, SAVE                 :: SKIPLEVEL = 0
     CHARACTER(LEN=255), SAVE      :: AllBrackets(MAXBRACKNEST) = ''
-    CHARACTER(LEN=255)            :: MSG, TmpBracket, CheckBracket
+    CHARACTER(LEN=255)            :: TmpBracket, CheckBracket, ThisBracket
+    CHARACTER(LEN=255)            :: MSG
 
     CHARACTER(LEN=255), PARAMETER :: LOC = 'BracketCheck (hco_config_mod.F90)'
 
@@ -998,28 +997,79 @@ CONTAINS
           REV          = .FALSE.
           IF ( STRLEN > 5 ) THEN
              IF ( TmpBracket(1:5) == '.not.' ) THEN
-                STRLEN = LEN(TmpBracket)
+                STRLEN       = LEN(TmpBracket)
                 CheckBracket = TmpBracket(6:STRLEN)
                 REV          = .TRUE.
              ENDIF
           ENDIF
 
-          ! Check if this bracket has been registered as being used.
-          ! Scan all extensions, including the core one.
-          CALL GetExtOpt( -999, TRIM(CheckBracket), &
-             OptValBool=UseBracket, FOUND=FOUND, RC=RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Check if the evaluation of CheckBracket returns true, i.e.
+          ! if any of the elements of CheckBracket is enabled. These 
+          ! can be multiple settings separated by '.or.'.
+          ! By default, don't use the content of the bracket
+          UseBracket = .FALSE.
 
-          ! If bracket name not found in options, skip content.
-          IF ( .NOT. FOUND ) THEN
-!             MSG = 'This data collection is not defined - skip: '// &
-!                   TRIM(CheckBracket)
-!             CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
-             SKIP = .TRUE.
-          ! Use value defined in HEMCO configuration file.
-          ELSE
-            SKIP = .NOT. UseBracket
-          ENDIF
+          ! Make sure variable ThisBracket is initialized. Needed in the
+          ! DO loop below
+          ThisBracket = ''
+
+          ! Pack the following into a DO loop to check for multiple 
+          ! flags separated by '.or.'.
+          DO
+
+             ! Leave do loop if ThisBracket is equal to CheckBracket. 
+             ! In this case, the entire bracket has already been 
+             ! evaluated.
+             IF ( TRIM(CheckBracket) == TRIM(ThisBracket) ) EXIT 
+
+             ! Evaluate bracket for '.or.':
+             IDX = INDEX(TRIM(CheckBracket),'.or.')
+
+             ! If '.or.' is a substring of the whole bracket, get
+             ! substring up to the first '.or.' and write it into variable
+             ! ThisBracket, which will be evaluated below. The tail
+             ! (everything after the first '.or.') is written into 
+             ! CheckBracket.
+             IF ( IDX > 0 ) THEN
+                ThisBracket  = CheckBracket(1:(IDX-1))
+                STRLEN       = LEN(CheckBracket)
+                CheckBracket = CheckBracket((IDX+4):STRLEN)
+
+             ! If there is no '.or.' in the bracket, simply evaluate the
+             ! whole bracket. 
+             ELSE
+                ThisBracket = CheckBracket
+             ENDIF
+
+             ! Check if this bracket has been registered as being used.
+             ! Scan all extensions, including the core one.
+             CALL GetExtOpt( -999, TRIM(ThisBracket), &
+                OptValBool=UseThis, FOUND=FOUND, RC=RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+   
+             ! If bracket name was found in options, update the UseBracket
+             ! variable accordingly.
+             IF ( FOUND ) THEN
+                UseBracket = UseThis
+ 
+             ! If bracket name was not found, check if this is an extension
+             ! name 
+             ELSE
+                ExtNr = GetExtNr( TRIM(ThisBracket) )
+                IF ( ExtNr > 0 ) THEN
+                   UseBracket = .TRUE.
+                ENDIF
+ 
+             ENDIF
+
+             ! As soon as UseBracket is true, we don't need to evaluate 
+             ! further
+             IF ( UseBracket ) EXIT
+
+          ENDDO 
+
+          ! We need to skip the content of this bracket?
+          SKIP = .NOT. UseBracket
 
           ! Eventually reverse the skip flag 
           IF ( REV ) THEN
@@ -1334,6 +1384,9 @@ CONTAINS
 !  17 Sep 2013 - C. Keller   - Initialization (update)
 !  30 Sep 2014 - R. Yantosca - Declare SUBSTR and SPECS w/ 2047 characters,
 !                              which lets us handle extra-long species lists
+!  21 Apr 2015 - R. Yantosca - Bug fix: now look for END_SECTION before
+!                              testing if the line is a comment.  This will
+!                              allow for tags labeled "### END SECTION".
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1366,11 +1419,12 @@ CONTAINS
        ! Return if EOF
        IF ( EOF ) RETURN 
 
+       ! Exit here if end of section encountered.  Place this before the 
+       ! test for comment to allow for "### END SECTION" tags (bmy, 4/21/15)
+       IF ( INDEX ( LINE, 'END SECTION' ) > 0 ) RETURN 
+
        ! Jump to next line if line is commented out
        IF ( LINE(1:1) == HCO_CMT() ) CYCLE
-
-       ! Exit here if end of section encountered 
-       IF ( INDEX ( LINE, 'END SECTION' ) > 0 ) RETURN 
 
        ! Check if these are options
        IF ( INDEX(LINE,'-->') > 0 ) THEN
@@ -1463,7 +1517,10 @@ CONTAINS
     INTEGER, INTENT(INOUT) :: RC          ! Success/failure
 !
 ! !REVISION HISTORY:
-!  17 Sep 2013 - C. Keller: Initialization (update)
+!  17 Sep 2013 - C. Keller   - Initialization (update)
+!  21 Apr 2015 - R. Yantosca - Bug fix: now look for END_SECTION before
+!                              testing if the line is a comment.  This will
+!                              allow for tags labeled "### END SECTION".
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1503,11 +1560,11 @@ CONTAINS
        ! Return if EOF
        IF ( EOF ) EXIT 
 
-       ! Jump to next line if line is commented out
-       IF ( LINE(1:1) == HCO_CMT() ) CYCLE
-
        ! Exit here if end of section encountered 
        IF ( INDEX ( LINE, 'END SECTION' ) > 0 ) EXIT 
+
+       ! Jump to next line if line is commented out
+       IF ( LINE(1:1) == HCO_CMT() ) CYCLE
 
        ! Ignore empty lines
        IF ( TRIM(LINE) == '' ) CYCLE

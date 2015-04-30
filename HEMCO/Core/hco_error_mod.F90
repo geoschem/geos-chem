@@ -797,12 +797,12 @@ CONTAINS
     IF ( FIRST ) THEN
        IF ( Err%LUN < 0 ) THEN
           WRITE(*,'(a)') REPEAT( '-', 79) 
-          WRITE(*,*    ) 'Using HEMCO v1.0'
+          WRITE(*,*    ) 'Using HEMCO v1.1'
           WRITE(*,'(a)') REPEAT( '-', 79) 
        ELSE
           LUN = Err%LUN
           WRITE(LUN,'(a)') REPEAT( '-', 79) 
-          WRITE(LUN,*    ) 'Using HEMCO v1.0'
+          WRITE(LUN,*    ) 'Using HEMCO v1.1'
           WRITE(LUN,'(a)') REPEAT( '-', 79) 
        ENDIF
 

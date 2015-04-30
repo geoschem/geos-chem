@@ -278,6 +278,8 @@ CONTAINS
 !  03 Oct 2013 - C. Keller   - Initial version
 !  13 Jan 2015 - R. Yantosca - Add optional variable of flex precision (hp)
 !  14 Feb 2015 - C. Keller   - Add option to search all extensions (ExtNr=-999).
+!  17 Apr 2015 - C. Keller   - Passed option OptName must now exactly match the
+!                              stored option name to avoid ambiguity.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -286,9 +288,10 @@ CONTAINS
 !
     TYPE(Ext), POINTER    :: ThisExt => NULL()
     CHARACTER(LEN=255)    :: MSG, LOC, DMY, SUBSTR(255)
+    CHARACTER(LEN=255)    :: THISOPT, TRIMOPT
     CHARACTER(LEN=1023)   :: STR
-    INTEGER               :: N, cnt
-    INTEGER               :: BGN, FIN, STRLEN, I
+    INTEGER               :: IDX, N, cnt
+    INTEGER               :: BGN, FIN, STRLEN, OPTLEN, I
     LOGICAL               :: ExtFound, OptFound
 
     !======================================================================
@@ -335,12 +338,15 @@ CONTAINS
           IF ( I > 0 ) THEN
              FIN = BGN + I - 1
           ENDIF
-    
+   
           ! Extract value if this is the option of interest
           ! --> Assume here that options are separated by colon sign (:)
           !     and that the option value is in the second column.
           IF ( INDEX( ThisExt%Opts(BGN:FIN), TRIM(OptName) ) > 0 ) THEN
-             CALL STRSPLIT( ThisExt%Opts(BGN:FIN), ':', SUBSTR, N )
+
+             ! Separate by colon: SUBSTR(1) is then the option name, 
+             ! SUBSTR(2) is the option value
+             CALL STRSPLIT( TRIM(ThisExt%Opts(BGN:FIN)), ':', SUBSTR, N )
              IF ( N < 2 ) THEN
                 MSG = 'Option has too few elements: ' // &
                      TRIM(ThisExt%Opts(BGN:FIN)) 
@@ -348,33 +354,49 @@ CONTAINS
                 RETURN
              ENDIF
    
-             ! Pass option value to output
-             IF ( PRESENT(OptValSp) ) THEN
-                READ( SUBSTR(2), * ) OptValSp
-             ELSEIF ( PRESENT(OptValDp) ) THEN
-                READ( SUBSTR(2), * ) OptValDp
-             ELSEIF ( PRESENT(OptValHp) ) THEN
-                READ( SUBSTR(2), * ) OptValHp
-             ELSEIF ( PRESENT(OptValInt) ) THEN
-                READ( SUBSTR(2), * ) OptValInt
-             ELSEIF ( PRESENT(OptValBool) ) THEN
-                CALL TRANLC( TRIM(SUBSTR(2)) )
-                IF ( INDEX( TRIM(SUBSTR(2)), 'true' ) > 0 ) THEN
-                   OptValBool = .TRUE.
-                ELSE
-                   OptValBool = .FALSE.
-                ENDIF
-             ELSEIF ( PRESENT(OptValChar) ) THEN
-                OptValChar = ADJUSTL( TRIM(SUBSTR(2)) )
+             ! Options typically start with '-->', so remove all these
+             THISOPT = TRIM(SUBSTR(1))
+             OPTLEN  = LEN(THISOPT)
+             IDX = INDEX( TRIM(THISOPT), '-->' )
+             IF ( IDX > 0 ) THEN
+                TRIMOPT = THISOPT(IDX+3:OPTLEN)
              ELSE
-                MSG = 'Invalid option output element: ' // TRIM(OptName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-                RETURN
+                TRIMOPT = THISOPT
              ENDIF
+
+             ! Extract option value only if this option name EXACTLY matches
+             ! the option currently looked at. This is to avoid ambiguity
+             ! (ckeller, 4/17/2015). 
+             IF ( TRIM(ADJUSTL(TRIMOPT)) == TRIM(ADJUSTL(OptName)) ) THEN
+
+                ! Pass option value to output
+                IF ( PRESENT(OptValSp) ) THEN
+                   READ( SUBSTR(2), * ) OptValSp
+                ELSEIF ( PRESENT(OptValDp) ) THEN
+                   READ( SUBSTR(2), * ) OptValDp
+                ELSEIF ( PRESENT(OptValHp) ) THEN
+                   READ( SUBSTR(2), * ) OptValHp
+                ELSEIF ( PRESENT(OptValInt) ) THEN
+                   READ( SUBSTR(2), * ) OptValInt
+                ELSEIF ( PRESENT(OptValBool) ) THEN
+                   CALL TRANLC( TRIM(SUBSTR(2)) )
+                   IF ( INDEX( TRIM(SUBSTR(2)), 'true' ) > 0 ) THEN
+                      OptValBool = .TRUE.
+                   ELSE
+                      OptValBool = .FALSE.
+                   ENDIF
+                ELSEIF ( PRESENT(OptValChar) ) THEN
+                   OptValChar = ADJUSTL( TRIM(SUBSTR(2)) )
+                ELSE
+                   MSG = 'Invalid option output element: ' // TRIM(OptName)
+                   CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                   RETURN
+                ENDIF
    
-             ! Leave loop here
-             OptFound = .TRUE.
-             EXIT
+                ! Leave loop here
+                OptFound = .TRUE.
+                EXIT
+             ENDIF
           ENDIF
 
           ! Update valid string range. The new chunk now starts at end+3
