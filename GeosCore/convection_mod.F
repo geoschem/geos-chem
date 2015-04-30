@@ -251,8 +251,8 @@
       ! Convert State_Chm%Tracers from dry mixing ratio [v/v] to 
       ! moist mixing ratio [v/v] prior to convection (ewl, 4/20/15)
       !=================================================================
-      CALL Convert_DryVV_to_MoistVV( N_TRACERS, State_Met, 
-     &                               State_Chm )
+      CALL Convert_DryVV_to_MoistVV( am_I_Root, N_TRACERS, State_Met, 
+     &                               State_Chm, RC )
 
       ! For new diagnostics, archive old species concentration. At the 
       ! moment, the new ND38 diagnostics only returns the total column 
@@ -512,8 +512,8 @@
       ! Convert State_Chm%Tracers from moist mixing ratio [v/v] to 
       ! dry mixing ratio [v/v] following convection (ewl, 4/20/15)
       !=================================================================
-      CALL Convert_MoistVV_to_DryVV( N_TRACERS, State_Met, 
-     &                               State_Chm ) 
+      CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, State_Met, 
+     &                               State_Chm, RC ) 
 
       END SUBROUTINE DO_CONVECTION
 !EOC

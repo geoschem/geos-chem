@@ -20,10 +20,8 @@ MODULE UnitConv_Mod
 !
   ! GEOS-Chem Modules
   USE CMN_SIZE_MOD          ! Size parameters
-  USE ERROR_MOD             ! Error-handling routines
   USE PRECISION_MOD         ! GEOS-Chem Flexible Precision (fp)
-  USE GIGC_State_Met_Mod, ONLY : MetState
-  USE GIGC_State_Chm_Mod, ONLY : ChmState
+  USE GIGC_ErrCode_Mod
                     
   IMPLICIT NONE
   PRIVATE
@@ -77,23 +75,33 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Convert_DryMMR_to_MoistMMR( N_TRACERS, State_Met, State_Chm ) 
+    SUBROUTINE Convert_DryMMR_to_MoistMMR( am_I_Root, N_TRACERS, &
+                                           State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
+  USE GIGC_State_Met_Mod, ONLY : MetState
+  USE GIGC_State_Chm_Mod, ONLY : ChmState
+!
 ! !INPUT PARAMETERS: 
 !
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+
+
     ! Number of tracers
-    INTEGER, INTENT(IN)        :: N_TRACERS 
+    INTEGER,        INTENT(IN)    :: N_TRACERS 
 
     ! Object containing meteorological state variables
-    TYPE(MetState), INTENT(IN) :: State_Met 
+    TYPE(MetState), INTENT(IN)    :: State_Met 
 !
-! !OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS:
 !
     ! Object containing tracer concentration [kg/kg]
     TYPE(ChmState), INTENT(INOUT) :: State_Chm  
-
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)    :: RC          ! Success or failure?
 !
 ! !REMARKS
 !
@@ -121,15 +129,13 @@ CONTAINS
          !
          !   = kg tracer(N) / kg moist air
          !
-         ! Therefore, with dry air mass mixing ratio defined in dao_mod as:
-         !
-         !  DRYAIRMMR = P_DRY * AIRMW / ( P_DRY * AIRMW + Ev * H2OMW ) 
-         !     
-         ! the conversion is:
+         ! Therefore, with kg dry air / kg moist air defined as the
+         !  complement of specific humidity (kg water vapor / kg moist air),
+         !  the conversion is:
          ! 
-         !  STT(I,J,L,N) [kg/kg moist]
+         ! STT(I,J,L,N) [kg/kg moist]
          !
-         !    = STT(I,J,L,N) [kg/kg dry] * DRYAIRMMR
+         !    = STT(I,J,L,N) [kg/kg dry] * ( 1 - SPHU(I,J,L) )
          !                   
          !==============================================================
 
@@ -143,7 +149,7 @@ CONTAINS
       DO J = 1, JJPAR
       DO I = 1, IIPAR
         State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) &
-                                     * State_Met%DRYAIRMMR(I,J,L)
+                                 * ( 1.0e+0_fp - State_Met%SPHU(I,J,L) )
       ENDDO
       ENDDO
       ENDDO
@@ -168,22 +174,33 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Convert_MoistMMR_to_DryMMR( N_TRACERS, State_Met, State_Chm ) 
+    SUBROUTINE Convert_MoistMMR_to_DryMMR( am_I_Root, N_TRACERS, &
+                                           State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
+  USE GIGC_State_Met_Mod, ONLY : MetState
+  USE GIGC_State_Chm_Mod, ONLY : ChmState
+  USE GIGC_ErrCode_Mod
+!
 ! !INPUT PARAMETERS: 
 !
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+
     ! Number of tracers
-    INTEGER, INTENT(IN)        :: N_TRACERS 
+    INTEGER,        INTENT(IN)    :: N_TRACERS 
 
     ! Object containing meteorological state variables
-    TYPE(MetState), INTENT(IN) :: State_Met 
+    TYPE(MetState), INTENT(IN)    :: State_Met 
 !
-! !OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS:
 !
     ! Object containing tracer concentration [v/v]
     TYPE(ChmState), INTENT(INOUT) :: State_Chm  
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS
 !
@@ -211,15 +228,13 @@ CONTAINS
          !
          !   = kg tracer(N) / kg dry air
          !
-         ! Therefore, with dry air mass mixing ratio defined in dao_mod as:
-         !
-         !  DRYAIRMMR = P_DRY * AIRMW / ( P_DRY * AIRMW + Ev * H2OMW ) 
-         !     
-         ! the conversion is:
+         ! Therefore, with kg dry air / kg moist air defined as the
+         !  complement of specific humidity (kg water vapor / kg moist air),
+         !  the conversion is:
          ! 
-         !  STT(I,J,L,N) [kg/kg dry]
+         ! STT(I,J,L,N) [kg/kg dry]
          !
-         !    = STT(I,J,L,N) [kg/kg moist] / DRYAIRMMR
+         !    = STT(I,J,L,N) [kg/kg moist] / ( 1 - SPHU(I,J,L) )
          !                   
          !==============================================================
 
@@ -233,7 +248,7 @@ CONTAINS
       DO J = 1, JJPAR
       DO I = 1, IIPAR
         State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) &
-                                     / State_Met%DRYAIRMMR(I,J,L)
+                                  / ( 1.0e+0_fp - State_Met%SPHU(I,J,L) )
       ENDDO
       ENDDO
       ENDDO
@@ -256,22 +271,33 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Convert_DryVV_to_MoistVV( N_TRACERS, State_Met, State_Chm ) 
+    SUBROUTINE Convert_DryVV_to_MoistVV( am_I_Root, N_TRACERS, &
+                                         State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
+  USE GIGC_State_Met_Mod, ONLY : MetState
+  USE GIGC_State_Chm_Mod, ONLY : ChmState
+  USE GIGC_ErrCode_Mod
+!
 ! !INPUT PARAMETERS: 
 !
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+
     ! Number of tracers
-    INTEGER, INTENT(IN)        :: N_TRACERS 
+    INTEGER,        INTENT(IN)    :: N_TRACERS 
 
     ! Object containing meteorological state variables
-    TYPE(MetState), INTENT(IN) :: State_Met 
+    TYPE(MetState), INTENT(IN)    :: State_Met 
 !
-! !OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS:
 !
     ! Object containing tracer concentration [v/v]
     TYPE(ChmState), INTENT(INOUT) :: State_Chm  
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS
 !
@@ -299,15 +325,13 @@ CONTAINS
          !
          !   = mol tracer(N) / mol moist air
          !
-         ! Therefore, with dry air volume mixing ratio defined in dao_mod as:
-         !
-         !  DRYAIRVV = P_DRY * AIRMW / ( P_DRY * AIRMW + Ev * H2OMW ) 
-         !     
-         ! the conversion is:
+         ! Therefore, with mol dry air / mol moist air defined as the ratio
+         !  of dry partial pressure to moist pressure, the conversion is:
          ! 
          !  STT(I,J,L,N) [v/v moist]
          !
-         !    = STT(I,J,L,N) [v/v dry] * DRYAIRVV
+         !    = STT(I,J,L,N) [v/v dry] * State_Met%PMID_DRY(I,J,L) &   
+         !                              / State_Met%PMID(I,J,L)
          !                   
          !==============================================================
 
@@ -320,8 +344,9 @@ CONTAINS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) &
-                                     * State_Met%DRYAIRVV(I,J,L)
+        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)     &
+                                       * State_Met%PMID_DRY(I,J,L)  &
+                                       / State_Met%PMID(I,J,L)
       ENDDO
       ENDDO
       ENDDO
@@ -346,22 +371,33 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Convert_MoistVV_to_DryVV( N_TRACERS, State_Met, State_Chm ) 
+    SUBROUTINE Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, &
+                                         State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
+  USE GIGC_State_Met_Mod, ONLY : MetState
+  USE GIGC_State_Chm_Mod, ONLY : ChmState
+  USE GIGC_ErrCode_Mod
+!
 ! !INPUT PARAMETERS: 
 !
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+
     ! Number of tracers
-    INTEGER, INTENT(IN)        :: N_TRACERS 
+    INTEGER,        INTENT(IN)    :: N_TRACERS 
 
     ! Object containing meteorological state variables
-    TYPE(MetState), INTENT(IN) :: State_Met 
+    TYPE(MetState), INTENT(IN)    :: State_Met 
 
-! !OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS:
 !
     ! Object containing tracer concentration [v/v]
     TYPE(ChmState), INTENT(INOUT) :: State_Chm  
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS
 !
@@ -389,15 +425,13 @@ CONTAINS
          !
          !   = mol tracer(N) / mol dry air
          !
-         ! Therefore, with dry air volume mixing ratio defined in dao_mod as:
-         !
-         !  DRYAIRVV = P_DRY * AIRMW / ( P_DRY * AIRMW + Ev * H2OMW ) 
-         !     
-         ! the conversion is:
+         ! Therefore, with mol moist air / mol dry air defined as the ratio
+         !  of moist pressure to dry air partial pressure, the conversion is:
          ! 
          !  STT(I,J,L,N) [v/v dry]
          !
-         !    = STT(I,J,L,N) [v/v moist] / DRYAIRMMR
+         !    = STT(I,J,L,N) [v/v moist] * State_Met%PMID(I,J,L)
+         !                               / State_Met%PMID_DRY(I,J,L)
          !                   
          !==============================================================
 
@@ -411,7 +445,8 @@ CONTAINS
       DO J = 1, JJPAR
       DO I = 1, IIPAR
         State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) &
-                                     / State_Met%DRYAIRVV(I,J,L)
+                                       * State_Met%PMID(I,J,L)  &
+                                       / State_Met%PMID_DRY(I,J,L)
       ENDDO
       ENDDO
       ENDDO
