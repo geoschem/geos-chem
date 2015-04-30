@@ -5446,20 +5446,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_H2O_TRAC ( SETSTRAT, Input_Opt, State_Met,
-     &                          State_Chm )
+      SUBROUTINE SET_H2O_TRAC ( am_I_Root, SETSTRAT, Input_Opt, 
+     &                          State_Met, State_Chm, RC )
 !
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CMN_SIZE_MOD
+      USE CMN_GCTM_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE DAO_MOD,            ONLY : AIRQNT
       USE TRACERID_MOD,       ONLY : IDTH2O
+      USE GIGC_ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
-!
+!      
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       LOGICAL,        INTENT(IN)    :: SETSTRAT    ! Set strat H2O?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
 !
@@ -5468,6 +5472,10 @@
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Initial version
 !  14 Feb 2014 - R. Yantosca   - Reordered DO loop for efficiency
@@ -5475,6 +5483,12 @@
 !                                objects via the arg list
 !  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER with State_Met%PMID and
 !                                remove dependency on PRESSURE_MOD.
+!  29 Apr 2015 - E. Lundgren   - Now pass am_I_Root and RC to SET_H2O_TRAC
+!  29 Apr 2015 - E. Lundgren   - Now use grid box moist air mass ADMOIST 
+!                                with SPHU since AD is now dry air mass
+!  29 Apr 2015 - E. Lundgren   - Replace RH calculation method with Nordquist,
+!                                1973 and call AirQnt if moisture vars
+!                                are updated using H2O tracer concentration
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5483,15 +5497,32 @@
 !
       INTEGER           :: I,J,L
 
-      REAL(fp)            :: ESAT, SHMB, PRES, TEMP
-      REAL(fp), PARAMETER :: A =  23.5518e+0_fp
-      REAL(fp), PARAMETER :: B =  2937.4e+0_fp
-      REAL(fp), PARAMETER :: C = -4.9283e+0_fp
-
       LOGICAL           :: READ_SPHU
+      LOGICAL           :: RESET_MOISTURE = .FALSE.
+      REAL(fp)          :: SPHU, H2OVV_moist, Ev_mid
+      REAL(fp)          :: Esat, EsatA, EsatB, EsatC, EsatD
 
       ! Local variables for quantities from Input_Opt
       LOGICAL           :: LACTIVEH2O
+
+      ! Empirical parameters for water vapor saturation pressure
+      ! (Source: Nordquist, 1973. "Numerical Approximiations of
+      !  Selected Meteorological Parameters Related to Cloud Physics"
+      !  Text quality clarifications from Stipanuk, 1973. "Algorithms
+      !  for Generating a Skew-T, Log P Diagram and Computing Selected
+      !  Meteorological Quantities") 
+      REAL(fp), PARAMETER   :: ESATP1  = 2.3832241e+1_fp   
+      REAL(fp), PARAMETER   :: ESATP2  = -5.02808e+0_fp       
+      REAL(fp), PARAMETER   :: ESATP3  = 8.1328e-3_fp    
+      REAL(fp), PARAMETER   :: ESATP4  = 3.49149e+0_fp     
+      REAL(fp), PARAMETER   :: ESATP5  = -1.3028844e+3_fp
+      REAL(fp), PARAMETER   :: ESATP6  = -1.3816e-7_fp
+      REAL(fp), PARAMETER   :: ESATP7  = 1.1344e+1_fp
+      REAL(fp), PARAMETER   :: ESATP8  = -3.03998e-2_fp
+      REAL(fp), PARAMETER   :: ESATP9  = -2.949076e+3_fp
+      
+      ! Conversion factors
+      REAL(fp), PARAMETER   :: MCONV   = 1.00e-3_fp ! g -> kg
 
       ! Pointers
       REAL(fp), POINTER   :: STT(:,:,:,:)
@@ -5508,7 +5539,9 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, PRES, TEMP, ESAT, SHMB, READ_SPHU )
+!$OMP+PRIVATE( I, J, L, READ_SPHU)
+!$OMP+PRIVATE( SPHU, H2OVV_moist, Ev_mid )
+!$OMP+PRIVATE( Esat, EsatA, EsatB, EsatC, EsatD )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -5517,32 +5550,55 @@
 
          IF ( READ_SPHU ) THEN
             STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
-     &                          State_Met%AD(I,J,L)
+     &                          State_Met%ADMOIST(I,J,L)
          ELSE
-            ! Set specific humidity to transported H2O
-            State_Met%SPHU(I,J,L) = STT(I,J,L,IDTH2O) * 1.e+3_fp /
-     &                              State_Met%AD(I,J,L)
 
-            ! Pressure at midpoint of box (I,J,L)
-            PRES = State_Met%PMID(I,J,L)
+            ! Calculate specific humidity [g/kg] from transported H2O
+            ! Use moist air mass for calculating specific humidity
+            SPHU = STT(I,J,L,IDTH2O) * 1.e+3_fp 
+     &               / State_Met%ADMOIST(I,J,L)
 
-            ! Temperature at grid box (I,J,L)
-            TEMP = State_Met%T(I,J,L)
+            ! Set State_Met specific humidity [g/kg]
+            State_Met%SPHU(I,J,L) = SPHU
+            
+            ! Calculate water vapor saturation pressure [hPa] from T
+            ! (see local variables above for method reference)
+            EsatA = ESATP1 + ESATP2 * log10( State_Met%T(I,J,L) ) 
+            EsatB = ESATP3 * 10**( ESATP4 + ESATP5/State_Met%T(I,J,L) )
+            EsatC = ESATP6 * 10**( ESATP7 + ESATP8*State_Met%T(I,J,L) )
+            EsatD = ESATP9 / State_Met%T(I,J,L)
+            Esat = 10**( EsatA + EsatB + EsatC + EsatD ) 
 
-            ! Saturation water vapor pressure in mbar 
-            ! (from NASA GTE PEM-Tropics handbook)
-            ESAT = ( 10e+0_fp**( A - ( B / TEMP ) ) ) * ( TEMP**C )
-               
-            ! Specific humidity in mb
-            SHMB = State_Met%SPHU(I,J,L) * 1.6072e-3_fp * PRES
-               
-            ! Relative humidity as a percentage
-            State_Met%RH(I,J,L) = ( SHMB / ESAT ) * 100e+0_fp 
+            ! Calculate mol water vapor per mol moist air from SPHU
+            H2OVV_moist = SPHU * MCONV * AIRMW 
+     &                   / ( SPHU * MCONV * AIRMW 
+     &                       + ( 1 - SPHU * MCONV ) * H2OMW )
+   
+            ! Calculate water vapor partial pressure at grid box center [hPa]
+            ! Note that grid box center is defined as the arithmetic average
+            ! of the grid box pressure edges not the vertical mid-point.
+            Ev_mid = State_Met%PMID(I,J,L) * H2OVV_MOIST
+    
+            ! Set State_Met relative humidity [%]
+            State_Met%RH(I,J,L) = ( Ev_mid / Esat ) * 100e+0_fp 
+
+            ! Set RESET_MOISTURE flag to indicate SPHU and RH were updated
+            IF ( .not. RESET_MOISTURE ) THEN
+               RESET_MOISTURE = .TRUE.
+            ENDIF
+
          ENDIF
       ENDDO ! L
       ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
+
+      ! If at moisture values were updated for at least one grid box,
+      ! call AIRQNT to update all moist-dependent air quantities
+      ! with the new moisture content (ewl, 4/29/15) 
+      IF ( RESET_MOISTURE ) THEN
+         CALL AIRQNT( am_I_Root, State_Met, RC )
+      ENDIF
 
       ! Free pointer
       NULLIFY( STT )

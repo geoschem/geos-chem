@@ -272,7 +272,7 @@
 !  22 Aug 2014 - R. Yantosca - Now save areas [m2] in State_Met%AREA_M2
 !  15 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  06 Jan 2015 - R. Yantosca - Added two-way coupled simulation options
-!  17 Feb 2015 - E. Lundgren - Remove STT and TCVV pointers.\
+!  17 Feb 2015 - E. Lundgren - Remove STT and TCVV pointers.
 !  25 Feb 2015 - E. Lundgren - Remove MAKE_RH call since now in AIRQNT.
 !  31 Mar 2015 - E. Lundgren - Move post-transport AIRQNT call to transport_mod 
 !  16 Apr 2015 - R. Yantosca - Remove call to INIT_DAO; it's obsolete
@@ -1079,8 +1079,9 @@
 
          ! SDE 05/28/13: Set H2O to tracer if relevant
          IF (IDTH2O.ne.0) THEN
-            CALL SET_H2O_TRAC( (( .not. LUCX ) .or. LSETH2O ),
-     &                         Input_Opt, State_Met, State_Chm )
+            CALL SET_H2O_TRAC( am_I_Root, 
+     &                         ( ( .not. LUCX ) .or. LSETH2O ),
+     &                         Input_Opt, State_Met, State_Chm, RC )
             ! Only force strat once if using UCX
             IF (LSETH2O) LSETH2O = .FALSE.
          ENDIF
@@ -1361,8 +1362,8 @@
 
             ! SDE 05/28/13: Set H2O to tracer if relevant
             IF (IDTH2O.ne.0) THEN
-               CALL SET_H2O_TRAC( (.not. LUCX), Input_Opt ,
-     &                            State_Met,    State_Chm )
+               CALL SET_H2O_TRAC( am_I_Root, (.not. LUCX), Input_Opt ,
+     &                            State_Met, State_Chm, RC )
             ENDIF
 
             ! Do GEOS-Chem chemistry
