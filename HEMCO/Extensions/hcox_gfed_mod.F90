@@ -202,7 +202,6 @@ CONTAINS
 !
     LOGICAL, SAVE       :: FIRST = .TRUE.
     INTEGER             :: N, M
-    REAL(hp), POINTER   :: Arr2D (:,:) => NULL()
     REAL(sp), POINTER   :: TMPPTR(:,:) => NULL()
     CHARACTER(LEN=63)   :: MSG
 
@@ -355,28 +354,17 @@ CONTAINS
        END SELECT
 
        ! Add flux to HEMCO emission array
-       CALL HCO_EmisAdd( HcoState, SpcArr, HcoIDs(N), RC ) 
+       CALL HCO_EmisAdd( am_I_Root, HcoState, SpcArr, HcoIDs(N), RC, ExtNr=ExtNr ) 
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'HCO_EmisAdd error: ' // TRIM(HcoState%Spc(HcoIDs(N))%SpcName)
           CALL HCO_ERROR( MSG, RC )
           RETURN 
        ENDIF
 
-       ! Eventually update diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => SpcArr
-          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                             Cat=-1, Hier=-1, HcoID=HcoIDs(N), &
-                             AutoFill=1, Array2D=Arr2D, RC=RC   )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          Arr2D => NULL()
-       ENDIF
-
     ENDDO !N
 
     ! Nullify pointers for safety's sake
     TmpPtr  => NULL()
-    Arr2D   => NULL()
 
     ! Leave w/ success
     CALL HCO_LEAVE ( RC )
@@ -421,7 +409,9 @@ CONTAINS
 !  15 Dec 2013 - C. Keller     - Now a HEMCO extension 
 !  08 Aug 2014 - R. Yantosca   - Now include hcox_gfed_include.H, which defines
 !                                GFED_SPEC_NAME and GFED_EMFAC arrays
-!  11 Nov 2014 - C. Keller     - Now get hydrophilic fractions through config file
+!  11 Nov 2014 - C. Keller     - Now get hydrophilic fractions via config file
+!  22 Apr 2015 - R. Yantosca   - Now explicitly test for "POA scale factor"
+!                                and "NAP scale factor" to avoid search errors
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -652,7 +642,7 @@ CONTAINS
        ! configuration file. This is the factor by which OC emissions will
        ! be scaled.
        IF ( TRIM(SpcNames(N)) == 'POA1' ) THEN
-          CALL GetExtOpt ( ExtNr, 'POA scale', &
+          CALL GetExtOpt ( ExtNr, 'POA scale factor', &
                            OptValSp=ValSp, FOUND=FOUND, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( .NOT. FOUND ) THEN
@@ -667,7 +657,7 @@ CONTAINS
        ! configuration file. This is the factor by which CO emissions will
        ! be scaled.
        IF ( TRIM(SpcNames(N)) == 'NAP' ) THEN
-          CALL GetExtOpt ( ExtNr, 'NAP scale', &
+          CALL GetExtOpt ( ExtNr, 'NAP scale factor', &
                            OptValSp=ValSp, FOUND=FOUND, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( .NOT. FOUND ) THEN

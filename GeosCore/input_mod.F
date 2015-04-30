@@ -3562,7 +3562,11 @@
  100  FORMAT( A, L5  )
  110  FORMAT( A, I5  )
  115  FORMAT( A, F7.1)
+#if defined( UCX )
+ 120  FORMAT( A, 11I1 )
+#else
  120  FORMAT( A, 10I1 )
+#endif
  125  FORMAT( A,L5,A,L5 )
 
       END SUBROUTINE READ_RADIATION_MENU

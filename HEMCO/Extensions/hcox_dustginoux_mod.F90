@@ -348,22 +348,14 @@ CONTAINS
        IF ( HcoIDs(N) > 0 ) THEN
 
           ! Add flux to emission array
-          CALL HCO_EmisAdd( HcoState, FLUX(:,:,N), HcoIDs(N), RC)
+          CALL HCO_EmisAdd( am_I_Root, HcoState, FLUX(:,:,N), & 
+                            HcoIDs(N), RC,       ExtNr=ExtNr   )
           IF ( RC /= HCO_SUCCESS ) THEN
              WRITE(MSG,*) 'HCO_EmisAdd error: dust bin ', N
              CALL HCO_ERROR( MSG, RC )
              RETURN 
           ENDIF
 
-          ! Eventually update diagnostics
-          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-             Arr2D => FLUX(:,:,N)
-             CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                                Cat=-1, Hier=-1, HcoID=HcoIDs(N), &
-                                AutoFill=1, Array2D=Arr2D, RC=RC   )
-             IF ( RC /= HCO_SUCCESS ) RETURN 
-             Arr2D => NULL() 
-          ENDIF
        ENDIF
     ENDDO
 

@@ -1940,6 +1940,13 @@
       LTRAN     = Input_Opt%LTRAN
       N_TRACERS = Input_Opt%N_TRACERS
 
+      ! Cast N_DYN to flexible precision
+#if defined( USE_REAL8 )
+      REAL_N_DYN = DBLE( N_DYN )
+#else
+      REAL_N_DYN = FLOAT( N_DYN )
+#endif
+
       !=================================================================
       ! Allocate arrays for TPCORE vertical coordinates
       ! GEOS-5 nested grid simulation only!!!
@@ -2018,7 +2025,13 @@
      &                         JLAST, 
      &                         NG,       
      &                         MG,    
-     &                         DBLE( N_DYN ), 
+!------------------------------------------------------------------------------
+! Prior to 4/23/15:
+! Now use REAL_N_DYN instead of DBLE( N_DYN ), which causes problems
+! when compiling with PRECISION=4 (bmy, 4/23/15)
+!     &                         DBLE( N_DYN ), 
+!------------------------------------------------------------------------------
+     &                         REAL_N_DYN,
      &                         Re,  
      &                         YMID_R_W( J0_W1:(J0_W1+JM_W1+1) ) )
       END SUBROUTINE INIT_GEOSFP_WINDOW_TRANSPORT

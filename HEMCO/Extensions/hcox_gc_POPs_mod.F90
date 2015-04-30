@@ -209,7 +209,6 @@ CONTAINS
     REAL*8            :: KBC_298
 
     ! Pointers for diagnostics
-    REAL(hp), POINTER :: Arr2D(:,:  ) => NULL()
     REAL(hp), POINTER :: Arr3D(:,:,:) => NULL()
 
     !=======================================================================
@@ -406,21 +405,11 @@ CONTAINS
 
        ! Add flux to emissions array
        Arr3D => EPOP_OC(:,:,:)
-       CALL HCO_EmisAdd( HcoState, Arr3D, IDTPOPPOC, RC )
+       CALL HCO_EmisAdd( am_I_Root, HcoState, Arr3D, IDTPOPPOC, RC, ExtNr=ExtNr )
        Arr3D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( 'HCO_EmisAdd error: EPOP_OC', RC )
           RETURN 
-       ENDIF
-
-       ! Update diagnostic
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => SUM_OC_EM(:,:)
-          CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                    &
-                             Cat=-1,     Hier=-1,       HcoID=IDTPOPPOC, &
-                             AutoFill=1, Array2D=Arr2D, RC=RC   )
-          Arr2D => NULL() 
-          IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF
     ENDIF
 
@@ -431,21 +420,11 @@ CONTAINS
 
        ! Add flux to emissions array
        Arr3D => EPOP_BC(:,:,:)
-       CALL HCO_EmisAdd( HcoState, Arr3D, IDTPOPPBC, RC )
+       CALL HCO_EmisAdd( am_I_Root, HcoState, Arr3D, IDTPOPPBC, RC, ExtNr=ExtNr )
        Arr3D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( 'HCO_EmisAdd error: EPOP_BC', RC )
           RETURN 
-       ENDIF
-
-       ! Update diagnostic
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => SUM_BC_EM(:,:)
-          CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                    &
-                             Cat=-1,     Hier=-1,       HcoID=IDTPOPPBC, &
-                             AutoFill=1, Array2D=Arr2D, RC=RC   )
-          Arr2D => NULL() 
-          IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF
     ENDIF
 
@@ -456,22 +435,13 @@ CONTAINS
 
        ! Add flux to emissions array
        Arr3D => EPOP_G(:,:,:)
-       CALL HCO_EmisAdd( HcoState, Arr3D, IDTPOPG, RC )
+       CALL HCO_EmisAdd( am_I_Root, HcoState, Arr3D, IDTPOPG, RC, ExtNr=ExtNr )
        Arr3D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( 'HCO_EmisAdd error: EPOP_G', RC )
           RETURN 
        ENDIF
 
-       ! Update diagnostic
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => SUM_G_EM(:,:)
-          CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                  &
-                             Cat=-1,     Hier=-1,       HcoID=IDTPOPG, &
-                             AutoFill=1, Array2D=Arr2D, RC=RC   )
-          Arr2D => NULL() 
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-       ENDIF
     ENDIF
 
     !=======================================================================

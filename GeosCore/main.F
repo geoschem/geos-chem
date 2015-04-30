@@ -285,7 +285,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL                  :: FIRST = .TRUE.
+      LOGICAL                  :: FIRST_RT = .TRUE.
       LOGICAL                  :: wasModisRead
       LOGICAL                  :: prtDebug
       INTEGER                  :: I,             IOS,         J
@@ -1527,13 +1527,23 @@
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
          ENDIF
 
-#if   defined( RRTMG )
+#if defined( RRTMG )
          !==============================================================
          !  ***** R R T M G   R A D I A T I V E   T R A N S F E R *****
          !==============================================================
          IF ( Input_opt%LRAD ) THEN 
             IF ( ITS_TIME_FOR_RT() ) THEN
-               WRITE(6,*) 'CALLING RRTMG...'
+               
+               ! Splash page
+               IF ( am_I_Root .and. FIRST_RT ) THEN
+                  WRITE( 6, '(a)' ) REPEAT( '#', 79 )
+                  WRITE( 6, 500 )     
+     &              'R R T M G : Radiative Transfer Model (by AER)'
+ 500              FORMAT( '#####', 12x, a, 12x, '#####' )
+                  WRITE( 6, '(a)' ) REPEAT( '#', 79 )
+                  FIRST_RT = .FALSE.
+               ENDIF
+
                iseed=iseed+15
 
                !clear-sky is output with all-sky, so we just need to run once 
@@ -1624,8 +1634,6 @@
          ENDIF
 
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG40' )
-
-
 
          !==============================================================
          !       ***** A R C H I V E   D I A G N O S T I C S *****

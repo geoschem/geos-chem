@@ -465,9 +465,11 @@
       IF ( FIRST ) THEN
          ! Generate annual emission factors for MEGAN inventory
          CALL CALC_AEF( am_I_Root, HcoState, ExtState, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
 
          ! Calculate normalization factor (dbm, 11/2012)
          CALL CALC_NORM_FAC( am_I_Root, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
       ENDIF
 
       ! On first call, fill previous day LAI with current LAI since we
@@ -493,7 +495,7 @@
 !$OMP+PRIVATE( EMIS_AAXX, EMIS_ACET, EMIS_PRPE, EMIS_C2H4              )
 !$OMP+PRIVATE( EMIS_FARN, EMIS_BCAR, EMIS_OSQT, EMIS_ALD2              )
 !$OMP+PRIVATE( MONO_MOL,  TMP,       MBOX_MOL                          )
-!$OMP+PRIVATE( DIURFACT, DIURORVC, BIOG_ALPH                           ) 
+!$OMP+PRIVATE( DIURFACT,  DIURORVC,  BIOG_ALPH                         ) 
 !$OMP+PRIVATE( BIOG_LIMO, BIOG_ALCO, X, Y, RC                          )
 
       !-----------------------------------------------------------------
@@ -1218,20 +1220,11 @@
       IF ( IDTISOP > 0 ) THEN
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXISOP, IDTISOP, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXISOP, IDTISOP, RC,
+     &                     ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXISOP', RC )
             RETURN 
-         ENDIF
-
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXISOP
-            CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
-     &                         Cat=-1, Hier=-1, HcoID=IDTISOP,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
          ENDIF
       ENDIF
 
@@ -1241,21 +1234,13 @@
 
          IF ( IDTMONX > 0 ) THEN
             ! Add flux to emission array
-            CALL HCO_EmisAdd( HcoState, FLUXMONO, IDTMONX, RC)
+            CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMONO, IDTMONX, 
+     &                        RC,        ExtNr=ExtNr )
             IF ( RC /= HCO_SUCCESS ) THEN
                CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMONO', RC )
                RETURN 
             ENDIF
          ENDIF
-
-         ! Update diagnostic even if MONX is not a tracer (mps, 2/23/15)
-         Arr2D => FLUXMONO
-         DiagnName =  'BIOGENIC_MONX'
-         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr2D => NULL() 
-
       ENDIF
 
       ! ----------------------------------------------------------------
@@ -1263,20 +1248,11 @@
       IF ( IDTALD2 > 0 ) THEN
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXALD2, IDTALD2, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXALD2, IDTALD2, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXALD2', RC )
             RETURN 
-         ENDIF
-
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXALD2
-            CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
-     &                         Cat=-1, Hier=-1, HcoID=IDTALD2,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
          ENDIF
       ENDIF
 
@@ -1307,20 +1283,11 @@
 
          ! Add flux to emission array
          FLUXACETbg = FLUXACETbg + FLUXACETmo + FLUXACETmb
-         CALL HCO_EmisAdd( HcoState, FLUXACETbg, IDTACET, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXACETbg, IDTACET, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXACETbg', RC )
             RETURN 
-         ENDIF
-
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXACETbg
-            CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
-     &                         Cat=-1, Hier=-1, HcoID=IDTACET,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
          ENDIF
       ENDIF
 
@@ -1329,21 +1296,20 @@
       IF ( ( ExtNrMono > 0 ) .AND. ( IDTCO > 0 ) ) THEN
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXCO, IDTCO, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXCO, IDTCO, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXCO', RC )
             RETURN 
          ENDIF
 
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXCO
-            CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono,
-     &                         Cat=-1, Hier=-1, HcoID=IDTCO,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
-         ENDIF
+         ! Also archive the BIOGENIC_CO diagnostic (bmy, 4/29/15)
+         Arr2D => FLUXCO
+         DiagnName =  'BIOGENIC_CO'
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono,
+     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN
+         Arr2D => NULL()
       ENDIF
 
       ! ----------------------------------------------------------------
@@ -1351,20 +1317,11 @@
       IF ( IDTPRPE > 0 ) THEN
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXPRPE, IDTPRPE, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXPRPE, IDTPRPE, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXPRPE', RC )
             RETURN 
-         ENDIF
-
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXPRPE
-            CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
-     &                         Cat=-1, Hier=-1, HcoID=IDTPRPE,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
          ENDIF
       ENDIF
 
@@ -1373,20 +1330,11 @@
       IF ( IDTC2H4 > 0 ) THEN
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXC2H4, IDTC2H4, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXC2H4, IDTC2H4, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXC2H4', RC )
             RETURN 
-         ENDIF
-
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXC2H4
-            CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
-     &                         Cat=-1, Hier=-1, HcoID=IDTC2H4,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
          ENDIF
       ENDIF
 
@@ -1397,20 +1345,11 @@
       IF ( IDTOCPI > 0 ) THEN 
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXOCPI, IDTOCPI, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXOCPI, IDTOCPI, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXOCPI', RC )
             RETURN 
-         ENDIF
-
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXOCPI
-            CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono,
-     &                         Cat=-1, Hier=-1, HcoID=IDTOCPI,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
          ENDIF
       ENDIF
 
@@ -1419,7 +1358,8 @@
       IF ( ( ExtNrSoa > 0 ) .AND. ( IDTMTPA > 0 ) ) THEN 
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXMTPA, IDTMTPA, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMTPA, IDTMTPA, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMTPA', RC )
             RETURN 
@@ -1432,7 +1372,8 @@
       IF ( ( ExtNrSoa > 0 ) .AND. ( IDTMTPO > 0 ) ) THEN 
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXMTPO, IDTMTPO, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMTPO, IDTMTPO, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMTPO', RC )
             RETURN 
@@ -1445,7 +1386,8 @@
       IF ( ( ExtNrSoa > 0 ) .AND. ( IDTLIMO > 0 ) ) THEN
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXLIMO, IDTLIMO, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXLIMO, IDTLIMO, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXLIMO', RC )
             RETURN 
@@ -1458,7 +1400,8 @@
       IF ( (ExtNrSoa>0) .AND. (IDTSESQ>0) ) THEN
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXSESQ, IDTSESQ, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSESQ, IDTSESQ, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSESQ', RC )
             RETURN 
@@ -1551,6 +1494,15 @@
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
+
+         ! -------------------------------------------------------------
+         ! Total monoterpenes
+         Arr2D => FLUXMONO
+         DiagnName =  'BIOGENIC_MONX'
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
+     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN 
+         Arr2D => NULL()
 
          ! -------------------------------------------------------------
          ! a-Farnesene
@@ -2848,6 +2800,10 @@
 !  (1 ) Created by dbm (6/2012). We are not currently using a soil moisture
 !       effect for isoprene. For all compounds other than acetaldehyde and
 !       ethanol, gamma_sm =1 presently.
+!  16 Apr 2015 - C. Keller   - Now restrict GWETROOT to values between 0.0 and
+!                              1.0. This only seems to be a problem within the
+!                              GEOS-5 ESM, where GWETROOT values over the ocean
+!                              become 1e+15 (= missing value). 
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -2865,7 +2821,9 @@
       ! GWETROOT is only defined for GEOS-5
 #if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
 
-      GWETROOT = ExtState%GWETROOT%Arr%Val(I,J)
+      !GWETROOT = ExtState%GWETROOT%Arr%Val(I,J)
+      ! Error trap: GWETROOT must be between 0.0 and 1.0 (ckeller, 4/16/15)
+      GWETROOT = MIN(MAX(ExtState%GWETROOT%Arr%Val(I,J),0.0_hp),1.0_hp)
 
       IF ( TRIM( CMPD ) == 'ALD2' .OR. TRIM ( CMPD ) == 'ETOH' ) THEN
          
@@ -3360,7 +3318,6 @@
 ! !USES:
 !
       ! References to F90 modules
-      USE HCO_FLUXARR_MOD,     ONLY : HCO_EmisAdd 
       USE HCO_EMISLIST_MOD,    ONLY : HCO_GetPtr
 !
 ! !INPUT PARAMETERS: 
@@ -3840,15 +3797,21 @@
          ! Multiply arrays by FACTOR and ratio [g C/g compound]
          ! NOTE: AEFs for ISOP, MBOX, BPIN, CARE, LIMO, OCIM, SABI 
          ! are read from file in [kgC/m2/s], so no need to convert here
-         AEF_APIN(I,J) = AEF_APIN(I,J) * FACTOR * 120.0_hp / 136.234_hp
-         AEF_MYRC(I,J) = AEF_MYRC(I,J) * FACTOR * 120.0_hp / 136.234_hp
-         AEF_OMON(I,J) = AEF_OMON(I,J) * FACTOR * 120.0_hp / 136.234_hp
+         IF ( ExtNrMono > 0 ) THEN
+            AEF_APIN(I,J) = AEF_APIN(I,J) 
+     &                    * FACTOR * 120.0_hp / 136.234_hp
+            AEF_MYRC(I,J) = AEF_MYRC(I,J) 
+     &                    * FACTOR * 120.0_hp / 136.234_hp
+            AEF_OMON(I,J) = AEF_OMON(I,J) 
+     &                    * FACTOR * 120.0_hp / 136.234_hp
+         ENDIF
+
          AEF_ACET(I,J) = AEF_ACET(I,J) * FACTOR *  36.0_hp /  58.079_hp 
          AEF_ETOH(I,J) = AEF_ETOH(I,J) * FACTOR *  24.0_hp /  46.068_hp 
          AEF_ALD2(I,J) = AEF_ALD2(I,J) * FACTOR *  24.0_hp /  44.053_hp 
-         AEF_C2H4(I,J) = AEF_C2H4(I,J) * FACTOR *  24.0_hp /  28.053_hp  
+         AEF_C2H4(I,J) = AEF_C2H4(I,J) * FACTOR *  24.0_hp /  28.053_hp
          AEF_TOLU(I,J) = AEF_TOLU(I,J) * FACTOR *  84.0_hp /  92.138_hp 
-         AEF_PRPE(I,J) = AEF_PRPE(I,J) * FACTOR *  36.0_hp /  42.080_hp  
+         AEF_PRPE(I,J) = AEF_PRPE(I,J) * FACTOR *  36.0_hp /  42.080_hp
 
          ! Methanol, formaldehyde, formic acid, acetic acid, HCN are
          ! carried in kg, not kg C
@@ -4434,9 +4397,13 @@
       ExtState%SUNCOSmid%DoUse = .TRUE.
       ExtState%PARDR%DoUse     = .TRUE.
       ExtState%PARDF%DoUse     = .TRUE.
-      ExtState%SZAFACT%DoUse   = .TRUE.
       ExtState%GC_LAI%DoUse    = .TRUE.
       ExtState%GWETROOT%DoUse  = .TRUE.
+
+      ! SZAFACT field is only used for SOA simulation
+      IF ( ExtNrSoa > 0 ) THEN
+         ExtState%SZAFACT%DoUse = .TRUE.
+      ENDIF
 
       ! Enable module 
       ExtState%Megan = .TRUE.
