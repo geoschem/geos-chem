@@ -314,23 +314,13 @@ CONTAINS
    
        ! Add emissions
        Arr2D => EmissRn(:,:)
-       CALL HCO_EmisAdd( HcoState, Arr2D, IDTRn, RC )
+       CALL HCO_EmisAdd( am_I_Root, HcoState, Arr2D, IDTRn, RC, ExtNr=ExtNr )
        Arr2D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( 'HCO_EmisAdd error: EmisRn', RC )
           RETURN 
        ENDIF
    
-       ! Add diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => EmissRn(:,:)
-          CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                 &
-                             Cat=-1,     Hier=-1,       HcoID=IDTRn,  &
-                             AutoFill=1, Array2D=Arr2D, RC=RC        )
-          Arr2D => NULL()
-          IF ( RC /= HCO_SUCCESS ) RETURN
-   
-       ENDIF
     ENDIF ! IDTRn > 0
 
     !=======================================================================
@@ -393,22 +383,13 @@ CONTAINS
    
        ! Add emissions
        Arr3D => EmissBe7(:,:,:)
-       CALL HCO_EmisAdd( HcoState, Arr3D, IDTBe7, RC )
+       CALL HCO_EmisAdd( am_I_Root, HcoState, Arr3D, IDTBe7, RC, ExtNr=ExtNr )
        Arr3D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( 'HCO_EmisAdd error: EmisBe7', RC )
           RETURN 
        ENDIF
    
-       ! Add diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr3D => EmissBe7(:,:,:)
-          CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                 &
-                             Cat=-1,     Hier=-1,       HcoID=IDTBe7, &
-                             AutoFill=1, Array3D=Arr3D, RC=RC        )
-          Arr3D => NULL()
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF
     ENDIF !IDTBe7 > 0
 
     !=======================================================================

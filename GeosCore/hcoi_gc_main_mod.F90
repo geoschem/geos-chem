@@ -831,8 +831,8 @@ CONTAINS
 !
     USE GIGC_ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
-
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
+    USE HCO_ARR_MOD,        ONLY : HCO_ArrAssert
 !
 ! !INPUT PARAMETERS:
 !
@@ -867,8 +867,8 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     ! ----------------------------------------------------------------
-    ! HCO_SZAFACT aren't defined as 3D arrays in Met_State.  Hence 
-    ! need to construct here so that we can point to them.
+    ! HCO_SZAFACT is not defined in Met_State.  Hence need to 
+    ! define here so that we can point to them.
     !
     ! Now include HCO_FRAC_OF_PBL and HCO_PBL_MAX for POPs specialty
     ! simulation (mps, 8/20/14)
@@ -907,6 +907,28 @@ CONTAINS
        ALLOCATE( JO1D(IIPAR,JJPAR),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'JO1D', LOC )
        JO1D = 0.0e0_hp
+    ENDIF
+
+    ! ----------------------------------------------------------------
+    ! Arrays to be copied physically because HEMCO units are not the
+    ! same as in GEOS-Chem
+    ! ----------------------------------------------------------------
+
+    ! TROPP: GEOS-Chem TROPP is in hPa, while HEMCO uses Pa.
+    IF ( ExtState%TROPP%DoUse ) THEN
+       CALL HCO_ArrAssert( ExtState%TROPP%Arr, IIPAR, JJPAR, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Allocate ExtState%TROPP', LOC )
+       ENDIF
+    ENDIF
+
+    ! SPHU: GEOS-Chem SPHU is in g/kg, while HEMCO uses kg/kg.
+    ! NOTE: HEMCO only uses SPHU surface values.
+    IF ( ExtState%SPHU%DoUse ) THEN
+       CALL HCO_ArrAssert( ExtState%SPHU%Arr, IIPAR, JJPAR, 1, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Allocate ExtState%SPHU', LOC )
+       ENDIF
     ENDIF
 
     ! Leave with success
@@ -971,6 +993,11 @@ CONTAINS
 #if !defined(ESMF_)
     USE MODIS_LAI_MOD,         ONLY : GC_LAI
 #endif
+
+#if defined(ESMF_)
+    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
+#endif
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -1070,10 +1097,6 @@ CONTAINS
                'Z0', HCRC,      FIRST,    State_Met%Z0  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%TROPP, &
-            'TROPP', HCRC,      FIRST,    State_Met%TROPP  )
-    IF ( HCRC /= HCO_SUCCESS ) RETURN
-
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SUNCOSmid, &
         'SUNCOSmid', HCRC,      FIRST,    State_Met%SUNCOSmid  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
@@ -1107,10 +1130,14 @@ CONTAINS
             'SNODP', HCRC,      FIRST,    State_Met%SNOW   )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #else
+
+    ! SNOWHGT is is mm H2O, which is the same as kg H2O/m2.
+    ! This is the unit of SNOMAS.
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNOWHGT, &
           'SNOWHGT', HCRC,      FIRST,    State_Met%SNOMAS   )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
+    ! SNOWDP is in m
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNODP, &
             'SNODP', HCRC,      FIRST,    State_Met%SNODP  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
@@ -1147,11 +1174,8 @@ CONTAINS
     ! 3D fields 
     ! ----------------------------------------------------------------
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%CNV_MFC, &
-          'CNV_MFC', HCRC,      FIRST,    State_Met%CMFMC  )
-    IF ( HCRC /= HCO_SUCCESS ) RETURN
-
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SPHU, &
-             'SPHU', HCRC,      FIRST,    State_Met%SPHU  )
+          'CNV_MFC', HCRC,      FIRST,    State_Met%CMFMC,  &
+          OnLevEdge=.TRUE. )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%TK, &
@@ -1222,7 +1246,7 @@ CONTAINS
     IF ( FIRST ) THEN
        CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP ( 'Error in HCO_SetExtState!', LOC )
+          CALL ERROR_STOP ( 'Error in HCO_SetExtState_ESMF!', LOC )
        ENDIF
     ENDIF
 #endif
@@ -1305,6 +1329,16 @@ CONTAINS
 
     ! Init
     RC = GIGC_SUCCESS
+
+    ! TROPP: convert from hPa to Pa
+    IF ( ExtState%TROPP%DoUse ) THEN
+       ExtState%TROPP%Arr%Val = State_Met%TROPP * 100.0_hp
+    ENDIF
+
+    ! SPHU: convert from g/kg to kg/kg. Only need surface value. 
+    IF ( ExtState%SPHU%DoUse ) THEN
+       ExtState%SPHU%Arr%Val(:,:,1) = State_Met%SPHU(:,:,1) / 1000.0_hp
+    ENDIF
 
     ! If we need to use the SZAFACT scale factor (i.e. to put a diurnal
     ! variation on monthly mean OH concentrations), then call CALC_SUMCOSZA
@@ -1539,6 +1573,12 @@ CONTAINS
  
        ! Assign species variables
        IF ( PHASE == 2 ) THEN
+
+          ! Verbose
+          IF ( am_I_Root ) THEN
+             MSG = 'Registering HEMCO species:'
+             CALL HCO_MSG(MSG)
+          ENDIF
 
           ! Sanity check: number of input species should agree with nSpc
           IF ( nSpec /= nSpc ) THEN
@@ -2509,53 +2549,6 @@ CONTAINS
        ENDIF
 
     ENDIF 
-
-    !-----------------------------------------------------------------
-    ! Make sure that the SHIPNO_BASE toggle is disabled if PARANOx is
-    ! being used. This is to avoid double-counting of ship NO 
-    ! emissions. Search through all extensions (--> ExtNr = -999).
-    !-----------------------------------------------------------------
-    CALL GetExtOpt( -999, 'SHIPNO_BASE', OptValBool=LTMP, &
-                    FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'GetExtOpt SHIPNO_BASE', LOC )
-    ENDIF
-    ExtNr = GetExtNr( 'ParaNOx' )
-
-    ! It is not recommended to set +SHIPNO+ explicitly in the HEMCO
-    ! configuration file!
-    IF ( FOUND ) THEN
-       IF ( ExtNr > 0 .AND. LTMP ) THEN
-          MSG = 'Cannot use SHIPNO_BASE together with PARANOx:' // &
-          'This would double-count NO ship emissions!'
-          CALL ERROR_STOP( MSG, LOC )
-       ENDIF
-    ENDIF
-
-    !-----------------------------------------------------------------
-    ! Make sure that BOND_BIOMASS toggle is disabled if GFED or FINN
-    ! are being used. This is to avoid double-counting of biomass
-    ! burning emissions. Search through all extensions (--> ExtNr = 
-    ! -999).
-    !-----------------------------------------------------------------
-    CALL GetExtOpt( -999, 'BOND_BIOMASS', OptValBool=LTMP, &
-                    FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'GetExtOpt BOND_BIOMASS', LOC )
-    ENDIF
-    ExtNr = GetExtNr( 'FINN' )
-    IF ( ExtNr <= 0 ) THEN
-       ExtNr = GetExtNr( 'GFED' )
-    ENDIF
-
-    ! Error check
-    IF ( FOUND ) THEN
-       IF ( ExtNr > 0 .AND. LTMP ) THEN
-          MSG = 'Cannot use BOND_BIOMASS together with GFED or FINN:' // &
-          'This would double-count biomass burning emissions!'
-          CALL ERROR_STOP( MSG, LOC ) 
-       ENDIF
-    ENDIF
 
     ! Return w/ success
     RC = HCO_SUCCESS

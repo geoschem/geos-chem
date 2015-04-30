@@ -524,20 +524,11 @@ CONTAINS
     !-----------------------------------------------------------------
 
     ! Add flux to emission array
-    CALL HCO_EmisAdd( HcoState, FLUX_2D, IDTNO, RC)
+    CALL HCO_EmisAdd( am_I_Root, HcoState, FLUX_2D, IDTNO, &
+                      RC,        ExtNr=ExtNr )
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL HCO_ERROR( 'HCO_EmisAdd error', RC )
        RETURN 
-    ENDIF
-
-    ! Eventually update diagnostics
-    IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-       Arr2D => FLUX_2D
-       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                          Cat=-1, Hier=-1, HcoID=IDTNO,     &
-                          AutoFill=1, Array2D=Arr2D, RC=RC   )
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-       Arr2D => NULL() 
     ENDIF
 
     ! Eventually add individual diagnostics. These are hardcoded
@@ -624,7 +615,7 @@ CONTAINS
     ! Read settings specified in configuration file
     ! Note: the specified strings have to match those in 
     !       the config. file!
-    CALL GetExtOpt ( ExtNr, 'fertilizer NO', &
+    CALL GetExtOpt ( ExtNr, 'Use fertilizer NOx', &
                      OptValBool=LFERTILIZERNOX, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
  

@@ -130,7 +130,7 @@ CONTAINS
 #if defined(ESMF_)
     WriteFreq = 'Always' 
 #else
-    WriteFreq = 'Hourly' 
+    WriteFreq = 'Daily' 
 #endif
 
     CALL DiagnCollection_Create( am_I_Root,                   &
