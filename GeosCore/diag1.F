@@ -478,9 +478,10 @@
             AD68(I,J,L,7)  = AD68(I,J,L,7)  + State_Met%TV(I,J,L)
             AD68(I,J,L,8)  = AD68(I,J,L,8)  + State_Met%PMID(I,J,L)
             AD68(I,J,L,9)  = AD68(I,J,L,9)  + State_Met%PMEAN(I,J,L)
-            AD68(I,J,L,10) = AD68(I,J,L,10) + State_Met%RH(I,J,L)
-            AD68(I,J,L,12) = AD68(I,J,L,13) + State_Met%PMID_DRY(I,J,L)
-            AD68(I,J,L,13) = AD68(I,J,L,14) + State_Met%PMEAN_DRY(I,J,L)
+            AD68(I,J,L,10) = AD68(I,J,L,10) + State_Met%PEDGE(I,J,L)
+            AD68(I,J,L,11) = AD68(I,J,L,11) + State_Met%RH(I,J,L)
+            AD68(I,J,L,12) = AD68(I,J,L,12) + State_Met%PMID_DRY(I,J,L)
+            AD68(I,J,L,13) = AD68(I,J,L,13) + State_Met%PMEAN_DRY(I,J,L)
          ENDDO
          ENDDO
          ENDDO
