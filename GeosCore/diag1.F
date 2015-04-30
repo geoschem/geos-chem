@@ -457,11 +457,9 @@
       !       9:  PMEAN        - altitude-weighted mean pressure [hPa]
       !       10: PEDGE        - level pressure (bottom edge) [hPa]
       !       11: RH           - relative humidity [%]
-      !       12: DRYAIRMMR    - mass dry air / mass moist air [kg/kg]
-      !       13: DRYAIRVV     - mol dry air / mol moist air [v/v]
-      !       14: PMID_DRY     - dry air partial pressure at PMID [hPa]
-      !       15: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
-      !       16: PEDGE_DRY    - dry air partial pressure at PEDGE [hPa]
+      !       12: PMID_DRY     - dry air partial pressure at PMID [hPa]
+      !       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
+      !       14: PEDGE_DRY    - dry air partial pressure at PEDGE [hPa]
       !================================================================= 
       IF ( ND68 > 0 ) THEN
 
@@ -482,11 +480,9 @@
             AD68(I,J,L,8)  = AD68(I,J,L,8)  + State_Met%PMID(I,J,L)
             AD68(I,J,L,9)  = AD68(I,J,L,9)  + State_Met%PMEAN(I,J,L)
             AD68(I,J,L,10) = AD68(I,J,L,10) + State_Met%RH(I,J,L)
-            AD68(I,J,L,11) = AD68(I,J,L,11) + State_Met%DRYAIRMMR(I,J,L)
-            AD68(I,J,L,12) = AD68(I,J,L,12) + State_Met%DRYAIRVV(I,J,L)
-            AD68(I,J,L,13) = AD68(I,J,L,13) + State_Met%PMID_DRY(I,J,L)
-            AD68(I,J,L,14) = AD68(I,J,L,14) + State_Met%PMEAN_DRY(I,J,L)
-            AD68(I,J,L,15) = AD68(I,J,L,15) + State_Met%PEDGE_DRY(I,J,L)
+            AD68(I,J,L,12) = AD68(I,J,L,13) + State_Met%PMID_DRY(I,J,L)
+            AD68(I,J,L,13) = AD68(I,J,L,14) + State_Met%PMEAN_DRY(I,J,L)
+            AD68(I,J,L,14) = AD68(I,J,L,15) + State_Met%PEDGE_DRY(I,J,L)
          ENDDO
          ENDDO
          ENDDO
@@ -617,11 +613,9 @@
       !       9:  PMEAN        - altitude-weighted mean pressure [hPa]
       !       10: PEDGE        - level pressure (bottom edge) [hPa]
       !       11: RH           - relative humidity [%]
-      !       12: DRYAIRMMR    - mass dry air / mass moist air [kg/kg]
-      !       13: DRYAIRVV     - mol dry air / mol moist air [v/v]
-      !       14: PMID_DRY     - dry air partial pressure at PMID [hPa]
-      !       15: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
-      !       16: PEDGE_DRY    - dry air partial pressure at PEDGE [hPa]
+      !       12: PMID_DRY     - dry air partial pressure at PMID [hPa]
+      !       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
+      !       14: PEDGE_DRY    - dry air partial pressure at PEDGE [hPa]
       !================================================================= 
 
       IF ( ND68 > 0 ) THEN
@@ -664,19 +658,13 @@
                CASE ( 11 ) 
                   DiagnName = 'RH'
                   Ptr3D => State_Met%RH
-               CASE ( 12 ) 
-                  DiagnName = 'DRYAIRMMR'
-                  Ptr3D => State_Met%DRYAIRMMR
-               CASE ( 13 ) 
-                  DiagnName = 'DRYAIRVV'
-                  Ptr3D => State_Met%DRYAIRVV
-               CASE ( 14 ) 
+                CASE ( 12 ) 
                   DiagnName = 'PMID_DRY'
                   Ptr3D => State_Met%PMID_DRY
-               CASE ( 15 ) 
+               CASE ( 13 ) 
                   DiagnName = 'PMEAN_DRY'
                   Ptr3D => State_Met%PMEAN_DRY
-               CASE ( 16 ) 
+               CASE ( 14 ) 
                   DiagnName = 'PEDGE_DRY'
                   Ptr3D => State_Met%PEDGE_DRY
             END SELECT

@@ -129,15 +129,21 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: DNDE      (:,:,:) ! Downdraft (entr plume) [Pa/s]
      REAL(fp), POINTER :: DNDN      (:,:,:) ! Downdraft (non-entr plume) [Pa/s]
      REAL(fp), POINTER :: DQRCU     (:,:,:) ! Conv precip prod rate [kg/kg/s]
+                                            ! (assume per dry air)
      REAL(fp), POINTER :: DQRLSAN   (:,:,:) ! LS precip prod rate [kg/kg/s]
+                                            ! (assume per dry air)
      REAL(fp), POINTER :: DQIDTMST  (:,:,:) ! Ice tendency, mst proc [kg/kg/s]
+                                            ! (assume per moist air)
      REAL(fp), POINTER :: DQLDTMST  (:,:,:) ! H2O tendency, mst proc [kg/kg/s]
+                                            ! (assume per moist air)
      REAL(fp), POINTER :: DQVDTMST  (:,:,:) ! Vapor tendency, mst proc [kg/kg/s]
+                                            ! (assume per moist air)
      REAL(fp), POINTER :: DTRAIN    (:,:,:) ! Detrainment flux [kg/m2/s]
      REAL(fp), POINTER :: ENTRAIN   (:,:,:) ! GCAP entrainment [Pa/s]
      REAL(fp), POINTER :: HKBETA    (:,:,:) ! Hack overshoot parameter [1]
      REAL(fp), POINTER :: HKETA     (:,:,:) ! Hack conv mass flux [kg/m2/s]
-     REAL(fp), POINTER :: MOISTQ    (:,:,:) ! Tendency in sp. humidity [kg/kg/s]
+     REAL(fp), POINTER :: MOISTQ    (:,:,:) ! Tendency in sp. humidity 
+                                            ! [kg/kg moist air/s]
      REAL(fp), POINTER :: OPTD      (:,:,:) ! Visible optical depth [1]
      REAL(fp), POINTER :: OPTDEP    (:,:,:) ! Visible optical depth [1]
      REAL(fp), POINTER :: PEDGE     (:,:,:) ! Wet air pressure [hPa] @ level 
@@ -147,18 +153,19 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: PFLCU     (:,:,:) ! Dwn flux liq prec:conv [kg/m2/s]
      REAL(fp), POINTER :: PFLLSAN   (:,:,:) ! Dwn flux ice prec:LS+anv [kg/m2/s]
      REAL(fp), POINTER :: PV        (:,:,:) ! Potential vort [kg*m2/kg/s]
-     REAL(fp), POINTER :: QI        (:,:,:) ! Ice mixing ratio [kg/kg]
-     REAL(fp), POINTER :: QL        (:,:,:) ! Water mixing ratio 
-                                            ! [kg H2O / kg dry air]
+     REAL(fp), POINTER :: QI        (:,:,:) ! Ice mixing ratio [kg/kg dry air]
+     REAL(fp), POINTER :: QL        (:,:,:) ! Water mixing ratio [kg/kg dry air]
      REAL(fp), POINTER :: REEVAPCN  (:,:,:) ! Evap of precip conv [kg/kg/s]
+                                            ! (assume per dry air)
      REAL(fp), POINTER :: REEVAPLS  (:,:,:) ! Evap of precip LS+anvil [kg/kg/s]
+                                            ! (assume per dry air)
      REAL(fp), POINTER :: RH        (:,:,:) ! Relative humidity [%]
      REAL(fp), POINTER :: RH1       (:,:,:) ! RH at timestep start [%]
      REAL(fp), POINTER :: RH2       (:,:,:) ! RH at timestep end [%]
      REAL(fp), POINTER :: SPHU      (:,:,:) ! Specific humidity 
-                                            ! [g H2O /kg moist air]
+                                            ! [g water vapor / kg moist air]
      REAL(fp), POINTER :: SPHU1     (:,:,:) ! Spec hum at timestep start [g/kg]
-     REAL(fp), POINTER :: SPHU2     (:,:,:) ! Spec hum at timestep end [g/kg]
+     REAL(fp), POINTER :: SPHU2     (:,:,:) ! Spec hum at timestep end [g/kg] 
      REAL(fp), POINTER :: T         (:,:,:) ! Temperature [K]
      REAL(fp), POINTER :: TAUCLI    (:,:,:) ! Opt depth of ice clouds [1]
      REAL(fp), POINTER :: TAUCLW    (:,:,:) ! Opt depth of H2O clouds [1]
@@ -193,8 +200,6 @@ MODULE GIGC_State_Met_Mod
                                             ! pressure calculated using water 
                                             ! vapor partial pressure derived
                                             ! from PMEAN
-     REAL(fp), POINTER :: DRYAIRMMR (:,:,:) ! Dry air mass mixing ratio [1]
-     REAL(fp), POINTER :: DRYAIRVV  (:,:,:) ! Dry air mass mixing ratio [1]
      REAL(fp), POINTER :: MOISTMW   (:,:,:) ! Moist air molec weight [g/mol]
                                             ! at the grid box altitude-weighted
                                             ! pressure level (temporary)        
@@ -239,8 +244,7 @@ MODULE GIGC_State_Met_Mod
 !  03 Mar 2015 - E. Lundgren - Add TV (virtual temperature)
 !  16 Apr 2015 - E. Lundgren - Add mean pressures PMEAN and PMEAN_DRY. Clarify
 !                              definition of PMID as arithmetic average P. 
-!                              Add DRYAIRMMR, DRYAIRVV, and MOISTMW for
-!                              conversion between dry and wet air quantities. 
+!                              Add MOISTMW to use TCVV with moist mixing ratio. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -701,14 +705,6 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%DTRAIN   = 0.0_fp
 
-    ALLOCATE( State_Met%DRYAIRMMR ( IM, JM, LM   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN           
-    State_Met%DRYAIRMMR = 0.0_fp
-
-    ALLOCATE( State_Met%DRYAIRVV ( IM, JM, LM   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN           
-    State_Met%DRYAIRVV = 0.0_fp
-
     ALLOCATE( State_Met%MOISTMW ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%MOISTMW = 0.0_fp
@@ -1060,8 +1056,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%DQIDTMST   )) DEALLOCATE( State_Met%DQIDTMST   )
     IF ( ASSOCIATED( State_Met%DQLDTMST   )) DEALLOCATE( State_Met%DQLDTMST   )
     IF ( ASSOCIATED( State_Met%DQVDTMST   )) DEALLOCATE( State_Met%DQVDTMST   )
-    IF ( ASSOCIATED( State_Met%DRYAIRMMR  )) DEALLOCATE( State_Met%DRYAIRMMR  )
-    IF ( ASSOCIATED( State_Met%DRYAIRVV   )) DEALLOCATE( State_Met%DRYAIRVV   )
     IF ( ASSOCIATED( State_Met%MOISTMW    )) DEALLOCATE( State_Met%MOISTMW    )
     IF ( ASSOCIATED( State_Met%DTRAIN     )) DEALLOCATE( State_Met%DTRAIN     )
     IF ( ASSOCIATED( State_Met%MOISTQ     )) DEALLOCATE( State_Met%MOISTQ     )
