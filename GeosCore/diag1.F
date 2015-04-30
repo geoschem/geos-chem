@@ -459,7 +459,6 @@
       !       11: RH           - relative humidity [%]
       !       12: PMID_DRY     - dry air partial pressure at PMID [hPa]
       !       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
-      !       14: PEDGE_DRY    - dry air partial pressure at PEDGE [hPa]
       !================================================================= 
       IF ( ND68 > 0 ) THEN
 
@@ -482,7 +481,6 @@
             AD68(I,J,L,10) = AD68(I,J,L,10) + State_Met%RH(I,J,L)
             AD68(I,J,L,12) = AD68(I,J,L,13) + State_Met%PMID_DRY(I,J,L)
             AD68(I,J,L,13) = AD68(I,J,L,14) + State_Met%PMEAN_DRY(I,J,L)
-            AD68(I,J,L,14) = AD68(I,J,L,15) + State_Met%PEDGE_DRY(I,J,L)
          ENDDO
          ENDDO
          ENDDO
@@ -615,7 +613,6 @@
       !       11: RH           - relative humidity [%]
       !       12: PMID_DRY     - dry air partial pressure at PMID [hPa]
       !       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
-      !       14: PEDGE_DRY    - dry air partial pressure at PEDGE [hPa]
       !================================================================= 
 
       IF ( ND68 > 0 ) THEN
@@ -664,9 +661,6 @@
                CASE ( 13 ) 
                   DiagnName = 'PMEAN_DRY'
                   Ptr3D => State_Met%PMEAN_DRY
-               CASE ( 14 ) 
-                  DiagnName = 'PEDGE_DRY'
-                  Ptr3D => State_Met%PEDGE_DRY
             END SELECT
  
             ! Update diagnostics
