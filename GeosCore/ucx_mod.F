@@ -5569,6 +5569,8 @@
             Esat = 10**( EsatA + EsatB + EsatC + EsatD ) 
 
             ! Calculate mol water vapor per mol moist air from SPHU
+            ! Note that SPHU must be converted to [kg/kg] to use 1-SPHU
+            ! as mass dry air / mass moist air
             H2OVV_moist = SPHU * MCONV * AIRMW 
      &                   / ( SPHU * MCONV * AIRMW 
      &                       + ( 1 - SPHU * MCONV ) * H2OMW )
