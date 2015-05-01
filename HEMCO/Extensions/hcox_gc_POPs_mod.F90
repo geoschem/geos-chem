@@ -486,6 +486,7 @@ CONTAINS
 
 ! !REVISION HISTORY:
 !  19 Aug 2014 - M. Sulprizio- Initial version
+!  01 May 2015 - R. Yantosca - Bug fix: need to zero arrays after allocating
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -581,44 +582,49 @@ CONTAINS
        CALL HCO_ERROR ( 'Cannot allocate EPOP_G', RC )
        RETURN
     ENDIF 
+    EPOP_G = 0.0e0_hp
 
     ALLOCATE( EPOP_OC( HcoState%NX, HcoState%NY, HcoState%NZ ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( 'Cannot allocate EPOP_OC', RC )
        RETURN
     ENDIF 
-    IF ( RC /= 0 ) RETURN
+    EPOP_OC = 0.0e0_hp
 
     ALLOCATE( EPOP_BC( HcoState%NX, HcoState%NY, HcoState%NZ ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( 'Cannot allocate EPOP_BC', RC )
        RETURN
     ENDIF 
-    IF ( RC /= 0 ) RETURN
+    EPOP_BC = 0.0e0_hp
 
     ALLOCATE( SUM_OC_EM( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( 'Cannot allocate SUM_OC_EM', RC )
        RETURN
     ENDIF 
+    SUM_OC_EM = 0.0e0_hp
 
     ALLOCATE( SUM_BC_EM( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( 'Cannot allocate SUM_BC_EM', RC )
        RETURN
     ENDIF 
+    SUM_BC_EM = 0.0e0_hp
 
     ALLOCATE( SUM_G_EM( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( 'Cannot allocate SUM_G_EM', RC )
        RETURN
     ENDIF     
+    SUM_G_EM = 0.0e0_hp
 
     ALLOCATE( SUM_OF_ALL( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( 'Cannot allocate SUM_OF_ALL', RC )
        RETURN
     ENDIF 
+    SUM_OF_ALL = 0.0e0_hp
 
     !=======================================================================
     ! Leave w/ success
