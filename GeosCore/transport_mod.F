@@ -1596,10 +1596,11 @@
       ! Hybrid-grid formulation for air mass. 
       ! SPHU is defined as mass water vapor / mass moist air, and 
       ! therefore (1-SPHU) is mass dry air / mass moist air.
+      ! Note that State_Met%SPHU is in [g/kg].
       P_BOT    = Ap(L2)   + ( Bp(L2)   * P_SURF )
       P_TOP    = Ap(L2-1) + ( Bp(L2-1) * P_SURF )
       AIR_MASS = ( P_BOT - P_TOP ) * G0_100 * A_M2(J)
-     &             * ( 1.0e+0_fp - State_Met%SPHU(I,J,L) )
+     &             * ( 1.0e+0_fp - State_Met%SPHU(I,J,L) * 1.e-3_fp )
 
       END FUNCTION GET_AIR_MASS
 !EOC

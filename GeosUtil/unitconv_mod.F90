@@ -139,6 +139,9 @@ CONTAINS
          ! STT(I,J,L,N) [kg/kg moist]
          !
          !    = STT(I,J,L,N) [kg/kg dry] * ( 1 - SPHU(I,J,L) )
+         !
+         ! Note that State_Met%SPHU is in units of [g/kg] and so must
+         ! be converted to [kg/kg]. 
          !                   
          !==============================================================
 
@@ -151,8 +154,9 @@ CONTAINS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) &
-                                 * ( 1.0e+0_fp - State_Met%SPHU(I,J,L) )
+        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)        &
+                                 * ( 1.0e+0_fp - State_Met%SPHU(I,J,L) &
+                                 * 1.e-3_fp )
       ENDDO
       ENDDO
       ENDDO
@@ -238,7 +242,10 @@ CONTAINS
          ! STT(I,J,L,N) [kg/kg dry]
          !
          !    = STT(I,J,L,N) [kg/kg moist] / ( 1 - SPHU(I,J,L) )
-         !                   
+         !      
+         ! Note that State_Met%SPHU is in units of [g/kg] and so must
+         ! be converted to [kg/kg]. 
+         !                                
          !==============================================================
 
     !=================================================================
@@ -250,8 +257,9 @@ CONTAINS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) &
-                                  / ( 1.0e+0_fp - State_Met%SPHU(I,J,L) )
+        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)         &
+                                  / ( 1.0e+0_fp - State_Met%SPHU(I,J,L) &
+                                  * 1.e-3_fp )
       ENDDO
       ENDDO
       ENDDO
