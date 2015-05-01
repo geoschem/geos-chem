@@ -862,7 +862,9 @@
          WRITE( 6, 100 ) 
  100     FORMAT( 'ERROR reading in Hg restart file', /
      &           'Wrong number of longitudes encountered', /
-     &           'STOP in CHECK_DIMENSIONS ("ocean_mercury_mod.f")' )
+     &           'STOP in CHECK_DIMENSIONS ("depo_mercury_mod.f")' )
+         PRINT*, "NI: ", NI
+         PRINT*, "IIPAR: ", IIPAR
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          CALL GEOS_CHEM_STOP
       ENDIF
@@ -871,8 +873,8 @@
       IF ( NJ /= JJPAR ) THEN
          WRITE( 6, 110 ) 
  110     FORMAT( 'ERROR reading in Hg restart file', /
-     &           'Wrong number of longitudes encountered', /
-     &           'STOP in CHECK_DIMENSIONS ("ocean_mercury_mod.f")' )
+     &           'Wrong number of latitudes encountered', /
+     &           'STOP in CHECK_DIMENSIONS ("depo_mercury_mod.f")' )
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          CALL GEOS_CHEM_STOP
       ENDIF
@@ -881,8 +883,8 @@
       IF ( NL /= 1 ) THEN
          WRITE( 6, 120 ) 
  120     FORMAT( 'ERROR reading in Hg restart file', /
-     &           'Wrong number of longitudes encountered', /
-     &           'STOP in CHECK_DIMENSIONS ("ocean_mercury_mod.f")' )
+     &           'Wrong number of vertical encountered', /
+     &           'STOP in CHECK_DIMENSIONS ("depo_mercury_mod.f")' )
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          CALL GEOS_CHEM_STOP
       ENDIF

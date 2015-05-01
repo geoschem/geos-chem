@@ -227,7 +227,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE ERROR_MOD,          ONLY : ERROR_STOP, SAFE_DIV
     USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR,   LLPAR
     USE TRACERID_MOD,       ONLY : IDTMACR, IDTRCHO, IDTACET, IDTALD2
     USE TRACERID_MOD,       ONLY : IDTALK4, IDTC2H6, IDTC3H8, IDTCH2O
@@ -552,9 +552,18 @@ CONTAINS
                    DEP(I,J,N) = DEP(I,J,N) + ( FLUX / AREA_M2 / TS )
                    TOTDEP(N)  = TOTDEP(N) + FLUX
 #endif
+!                   IF (AREA_M2 .eq. 0.0_fp) THEN
+!                     PRINT*, "FLUX: ", FLUX
+!                     PRINT*, "MWkg: ", MWkg
+!                     PRINT*, "AVO: ", AVO
+!                     PRINT*, "TS: ", TS
+!                     PRINT*, "AREA_M2: ", AREA_M2
+!                     CALL FLUSH(6)
+!                   ENDIF
 
                    ! Loss in [molec/cm2/s]
-                   FLUX = FLUX / MWkg * AVO / TS / ( AREA_M2 * 1.0e4_fp ) 
+                   ! Added a safe_div due to small parallelization error (mdy, 5/15)
+                   FLUX = SAFE_DIV(FLUX, (MWkg * AVO / TS / ( AREA_M2 * 1.0e4_fp )),0.0e+0_fp) 
 
                    ! Diagnostics. These are the same as DRYFLX.
                    ! Diagnostics are in molec/cm2/s.
