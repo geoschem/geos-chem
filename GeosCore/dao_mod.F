@@ -1188,11 +1188,12 @@
 !      PRINT *, "  this dyn step (TC2 in INTERP): ", TC2
 !      ! END DEBUGGING
 
-      ! For I3 fields, need to reset fraction after 3 hours (ewl, 5/1/2015)
-      IF ( TM > 1.0e+0_fp ) THEN
-         TM  = TM  - 1.0e+0_fp
-         TC2 = TC2 - 1.0e+0_fp
-      ENDIF
+!      ! For I3 fields, need to reset fraction after 3 hours (ewl, 5/1/2015)
+!      ! ( keep this bug fix commented out for initial AirQntFixes testing )
+!      IF ( TM > 1.0e+0_fp ) THEN
+!         TM  = TM  - 1.0e+0_fp
+!         TC2 = TC2 - 1.0e+0_fp
+!      ENDIF
 
 !      ! DEBUGGING (ewl, 5/1/2015)
 !      PRINT *, "New fraction timestep elapsed at mid-point of "
