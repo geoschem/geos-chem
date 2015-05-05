@@ -319,7 +319,7 @@
 
       ! Call the S-J Lin convection routine for GEOS-5
       CALL NFCLDMX( am_I_Root, Input_Opt, State_Met, 
-                    State_Chm, RC )
+     &              State_Chm, RC )
 
 #elif defined( MERRA ) || defined( GEOS_FP )
 
