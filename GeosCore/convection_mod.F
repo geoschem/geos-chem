@@ -68,8 +68,8 @@
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  20 Apr 2015 - E. Lundgren - Convert mixing ratio to v/v moist air before 
 !                              convection and back to v/v dry afterwards.
-!  20 Apr 2015 - E. Lundgren - Add modifications to use moist mixing ratio
-!                              (e.g. MOISTMW with TCVV)
+!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
+!                              for consistency with moist mixing ratio units
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -193,7 +193,7 @@
       ! Scalars
       INTEGER           :: N_TOT_TRC             ! # of tracers to convect
       INTEGER           :: N_TRACERS
-      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)          :: TRACER_MW_G(Input_Opt%N_TRACERS)
       REAL(fp)          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
 
       ! Pointers
@@ -482,8 +482,8 @@
                ! NOTE: Now use ADMOIST (moist air mass) instead of AD
                ! (dry air mass) and use MOISTMW (moist air molec wt)
                ! with TCVV since tracer conc is moist mixing ratio
-               TMP3D = TMP3D * State_Met%ADMOIST * AIRMW
-     &                 / ( Input_Opt%TCVV(IT) * State_Met%MOISTMW ) 
+               TMP3D = TMP3D * State_Met%ADMOIST 
+     &                 * Input_Opt%TRACER_MW_G(IT) / State_Met%MOISTMW  
                TMP2D = SUM(TMP3D,DIM=3) 
 
                ! Update diagnostics. Pass 3D array. Will be collapsed to
@@ -585,8 +585,11 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE differences with 
 !                              State_Met%DELP. Remove dependency on 
 !                              pressure_mod
-!  20 Apr 2015 - E. Lundgren - Now pass moist air MW to FVDAS_CONVECT to use
-!                              TCVV with moist mixing ratio
+!  20 Apr 2015 - E. Lundgren - Now pass moist air MW to FVDAS_CONVECT
+!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
+!                              for consistency with moist mixing ratio units
+!  08 May 2015 - E. Lundgren - Pass tracer molec wts as pointer not array to
+!                              fvdas_convect routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -613,7 +616,7 @@
       ! For fields from Input_Opt
       LOGICAL           :: LPRT
       INTEGER           :: N_TRACERS
-      REAL(fp)          :: TCVV( Input_Opt%N_TRACER S)
+      REAL(fp)          :: TRACER_MW_G( Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER :: STT     (:,:,:,:) ! Ptr to State_Chm%TRACERS
@@ -626,6 +629,7 @@
       REAL(fp), POINTER :: p_STT   (:,:,:,:) ! Ptr to STT    (flipped in vert)
       REAL(fp), POINTER :: p_F     (:,:,:,:) ! Ptr to F      (flipped in vert)
       REAL(fp), POINTER :: p_FSOL  (:,:,:  ) ! Ptr to F      (for COMPUTE_F)
+      REAL(fp), POINTER :: p_TRACER_MW_G(: ) ! Ptr to tracer molec wts
 
       !=================================================================
       ! DO_GEOS4_CONVECT begins here!
@@ -637,7 +641,7 @@
       ! Copy values from Input_Opt
       LPRT      = Input_Opt%LPRT
       N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+      TRACER_MW_G = Input_Opt%TRACER_MW_G(1:N_TRACERS)
 
       ! Pick the proper # of tracers for convection
 #if   defined( APM )
@@ -762,6 +766,7 @@
       p_MOISTMW=> State_Met%MOISTMW(:,:,LLPAR:1:-1  )
       p_STT    => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
       p_F      => F                (:,:,LLPAR:1:-1,:)
+      p_TRACER_MW_G => Input_Opt%TRACER_MW_G(1:N_TRACERS)
 
       ! Call the fvDAS convection routines (originally from NCAR!)
       CALL FVDAS_CONVECT( TDT,   
@@ -776,7 +781,7 @@
      &                    DP,     
      &                    NSTEP,    
      &                    p_F,
-     &                    TCVV,   
+     &                    p_TRACER_MW_G,   
      &                    INDEXSOL,
      &                    Input_Opt,
      &                    State_Met,
@@ -800,7 +805,8 @@
 
       ! Free pointers
       NULLIFY( STT,     p_STT,    p_F                    )
-      NULLIFY( p_HKETA, p_HKBETA, p_ZMMU, p_ZMMD, p_ZMEU, p_MOISTMW )
+      NULLIFY( p_HKETA, p_HKBETA, p_ZMMU, p_ZMMD, p_ZMEU )
+      NULLIFY( p_MOISTMW, p_TRACER_MW_G )
 
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_G4_CONV: a FVDAS_CONVECT' )
@@ -876,8 +882,9 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
 !                              Replace PEDGE difference with State_Met%DELP.
 !                              Remove dependency on pressure_mod.
-!  20 Apr 2015 - E. Lundgren - Now pass moist air MW to GCAP_CONVECT to enable
-!                              using TCVV with moist mixing ratio
+!  20 Apr 2015 - E. Lundgren - Now pass moist air MW to GCAP_CONVECT
+!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
+!                              for consistency with moist mixing ratio units
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -904,7 +911,7 @@
       ! For fields from Input_Opt
       LOGICAL            :: LPRT
       INTEGER            :: N_TRACERS
-      REAL(fp)           :: TCVV( Input_Opt%N_TRACERS )
+      REAL(fp)           :: TRACER_MW_G( Input_Opt%N_TRACERS )
 
       ! Pointers
       REAL(fp),  POINTER :: STT        (:,:,:,:) ! Ptr to Tracer concentrations
@@ -930,7 +937,7 @@
       ! Copy values from Input_Opt
       LPRT      = Input_Opt%LPRT
       N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+      TRACER_MW_G      = Input_Opt%TRACER_MW_G(1:N_TRACERS)
 
       ! Pick the proper # of tracers for convection
 #if   defined( APM )
@@ -1063,7 +1070,7 @@
      &                   DP, ! I think this is the correct way (bmy, 5/25/05)
      &                   NSTEP, 
      &                   p_F,
-     &                   TCVV,   
+     &                   TRACER_MW_G,   
      &                   INDEXSOL, 
      &                   p_UPDE,
      &                   p_DNDE,
@@ -1320,9 +1327,11 @@
 !  20 Apr 2015 - E. Lundgren - Use DELP*100/g instead of AD/area for BMASS
 !                              to keep definition as grid box moist mass/area
 !  20 Apr 2015 - E. Lundgren - Now use State_Met%MOISTMW to correctly use
-!                              TCVV with moist mixing ratio 
+!                              TCVV with moist mixing ratio
 !  28 Apr 2015 - E. Lundgren - Remove CLDMAS and DTRM as arguments since 
 !                              now included in State_Met
+!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
+!                              for consistency with moist mixing ratio units
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1379,7 +1388,7 @@
       LOGICAL                  :: LDYNOCEAN
       LOGICAL                  :: LGTMM
       INTEGER                  :: NC
-      REAL(fp)                 :: TCVV( Input_Opt%N_TRACERS )
+      REAL(fp)                 :: TRACER_MW_G( Input_Opt%N_TRACERS )
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -1402,7 +1411,7 @@
       LDYNOCEAN         = Input_Opt%LDYNOCEAN
       LGTMM             = Input_Opt%LGTMM
       NC                = Input_Opt%N_TRACERS
-      TCVV              = Input_Opt%TCVV(1:NC)
+      TRACER_MW_G              = Input_Opt%TRACER_MW_G(1:NC)
 
       ! Initialize GEOS-Chem tracer array [v/v] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -1828,9 +1837,9 @@
                      !==================================================
                      IF ( ND14 > 0 ) THEN
                         DTCSUM(I,J,K,IC) = DTCSUM(I,J,K,IC) + (-T2-T3)  
-     &                                     * AREA_M2 * AIRMW 
-     &                                     / ( TCVV(IC) 
-     &                                     * State_Met%MOISTMW(I,J,K) )  
+     &                                     * AREA_M2 
+     &                                     * Input_Opt%TRACER_MW_G(IC) 
+     &                                     / State_Met%MOISTMW(I,J,K)  
                      ENDIF
 
 #if !defined(NO_BPCH)
@@ -1850,9 +1859,9 @@
 !                        endif
 !#endif
                         AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) 
-     &                                     + T0 * AREA_M2 * AIRMW 
-     &                                     / ( TCVV(IC) * DNS * 
-     &                                     * State_Met%MOISTMW(I,J,K) )
+     &                              + T0 * AREA_M2 
+     &                              * Input_Opt%TRACER_MW_G(IC) 
+     &                              / ( State_Met%MOISTMW(I,J,K) * DNS )  
                      ENDIF
 #endif
   
@@ -1862,16 +1871,13 @@
                      ! ADD_Hg2_WET and ADD_HgP_WET. We must also divide 
                      ! by DNS, the # of internal timesteps. 
                      ! (sas, bmy, eck, eds, 1/19/05, 1/6/06, 7/30/08)
-                     !
-                     ! Now adjust 1/TCVV by factor AIRMW/MOISTMW to
-                     ! use with moist mixing ratio (ewl, 4/28/15)
                      !=================================================
                      IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
                         ! Wet scavenged Hg(II) in [kg/s]
-                        WET_Hg2 = T0 * AREA_M2 * AIRMW 
-     &                            / ( TCVV(IC) * DNS
-     &                            * State_Met%MOISTMW(I,J,K) )
+                        WET_Hg2 = T0 * AREA_M2
+     &                            * Input_Opt%TRACER_MW_G(IC) 
+     &                            / ( State_Met%MOISTMW(I,J,K) * DNS )  
 
                         ! Convert [kg/s] to [kg]
                         WET_Hg2 = WET_Hg2 * NDT 
@@ -1885,9 +1891,9 @@
                      IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
 
                         ! Wet scavenged Hg(P) in [kg/s]
-                        WET_HgP = T0 * AREA_M2 * AIRMW  
-     &                            / ( TCVV(IC) * DNS 
-     &                            * State_Met%MOISTMW(I,J,K) )
+                        WET_HgP = T0 * AREA_M2
+     &                            * Input_Opt%TRACER_MW_G(IC) 
+     &                            / ( State_Met%MOISTMW(I,J,K) * DNS )  
 
                         ! Convert [kg/s] to [kg]
                         WET_HgP = WET_HgP * NDT 
@@ -2128,9 +2134,8 @@
 !                              tracers below the cloud base (C. Friedman)
 !  20 Apr 2015 - E. Lundgren - Use DELP*100/g instead of AD/area as grid box
 !                              moist mass per area and remove AD from routine
-!  20 Apr 2015 - E. Lundgren - Use MOISTMW with TCVV for moist air MW /
-!                              TCVV with moist mixing ratio 
-
+!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
+!                              for consistency with moist mixing ratio units
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2150,8 +2155,8 @@
       REAL(fp)            :: CMOUT,       DELQ,     DQ,      DNS
       REAL(fp)            :: ENTRN,       QC,       QC_PRES, QC_SCAV 
       REAL(fp)            :: SDT,         T0,       T0_SUM,  T1    
-      REAL(fp)            :: T2,          T3,       T4,      TCVV   
-      REAL(fp)            :: TCVV_DNS,    TSUM,     DT_DNS
+      REAL(fp)            :: T2,          T3,       T4,      TRACER_MW_G   
+      REAL(fp)            :: TSUM,     DT_DNS
       REAL(fp)            :: LOST,        GAINED,   WETLOSS, MASS_WASH
       REAL(fp)            :: MASS_NOWASH, QDOWN,    DT,      F_WASHOUT
       REAL(fp)            :: K_RAIN,      WASHFRAC, WET_Hg2, WET_HgP 
@@ -2293,8 +2298,7 @@
          ! Initialize
          DIAG14(:,IC) = 0e+0_fp                    ! ND14 diag array      
          DIAG38(:,IC) = 0e+0_fp                    ! ND38 diag array
-         TCVV         = Input_Opt%TCVV(IC)         ! Dry air MW/tracer MW
-         TCVV_DNS     = TCVV * DNS                 ! TCVV * DNS
+         TRACER_MW_G  = Input_Opt%TRACER_MW_G(IC)  ! Dry air MW/tracer MW
 
          !=====================================================================
          ! (2)  I n t e r n a l   T i m e   S t e p   L o o p
@@ -2602,14 +2606,10 @@
                   ! DTCSUM(K,IC) is the flux [kg/sec] in the box (I,J), 
                   ! for the tracer IC going out of the top of the layer K 
                   ! to the layer above (K+1)  (bey, 11/10/99). 
-                  !
-                  ! Now adjust 1/TCVV by factor AIRMW/MOISTMW to
-                  ! use with moist mixing ratio (ewl, 4/28/15)
                   !------------------------------------------------------------
                   IF ( USE_DIAG14 ) THEN
-                     DIAG14(K,IC) = DIAG14(K,IC) + ( -T2-T3 ) 
-     &                              * AREA_M2 * AIRMW 
-     &                              / ( TCVV_DNS * MOISTMW(K) )
+                     DIAG14(K,IC) = DIAG14(K,IC) + ( -T2-T3 ) * AREA_M2 
+     &                              * TRACER_MW_G / ( MOISTMW(K) * DNS )  
                   ENDIF
 
                   !------------------------------------------------------------
@@ -2618,13 +2618,10 @@
                   ! Archive the loss of soluble tracer to wet scavenging in 
                   ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
                   ! internal timesteps.
-                  !
-                  ! Now adjust 1/TCVV by factor AIRMW/MOISTMW to
-                  ! use with moist mixing ratio (ewl, 4/28/15)
                   !------------------------------------------------------------
                   IF ( USE_DIAG38 .and. F(K,IC) > 0e+0_fp ) THEN
-                     DIAG38(K,IC) = DIAG38(K,IC) + T0 * AREA_M2 * AIRMW 
-     &                              / ( TCVV_DNS * MOISTMW(K) ) 
+                     DIAG38(K,IC) = DIAG38(K,IC) + T0 * AREA_M2 
+     &                              * TRACER_MW_G / ( MOISTMW(K) * DNS ) 
 
                      ! check for infinity (added by hma, 20101117)
                      IF ( .not. IT_IS_FINITE( DIAG38(K,IC) ) ) THEN
@@ -2803,14 +2800,11 @@
                   ! DTCSUM(K,IC) is the flux [kg/sec] in the box (I,J), 
                   ! for the tracer IC going out of the top of the layer K 
                   ! to the layer above (K+1)  (bey, 11/10/99). 
-                  !
-                  ! Now adjust 1/TCVV by factor AIRMW/MOISTMW to
-                  ! use with moist mixing ratio (ewl, 4/28/15)
                   !------------------------------------------------------------
                   IF ( USE_DIAG14 ) THEN
                      DIAG14(K,IC) = DIAG14(K,IC) 
-     &                              + ( -T2-T3 ) * AREA_M2 * AIRMW 
-     &                              / ( TCVV_DNS * MOISTMW(K) )
+     &                              + ( -T2-T3 ) * AREA_M2
+     &                              * TRACER_MW_G / ( MOISTMW(K) * DNS )
                   ENDIF
 
                   !------------------------------------------------------------
@@ -2819,14 +2813,11 @@
                   ! Archive the loss of soluble tracer to wet scavenging in 
                   ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
                   ! internal timesteps.
-                  !
-                  ! Now adjust 1/TCVV by factor AIRMW/MOISTMW to
-                  ! use with moist mixing ratio (ewl, 4/28/15)
                   !------------------------------------------------------------
                   IF ( USE_DIAG38 .and. F(K,IC) > 0e+0_fp ) THEN
                      DIAG38(K,IC) = DIAG38(K,IC) 
-     &                              + WETLOSS * AREA_M2 * AIRMW 
-     &                              / ( TCVV_DNS * MOISTMW(K) )
+     &                              + WETLOSS * AREA_M2
+     &                              * TRACER_MW_G / ( MOISTMW(K) * DNS ) 
                   ENDIF
                 
                   ! CHECK for infinity (added by hma, 20101117)
@@ -2844,9 +2835,6 @@
             ! "ocean_mercury_mod.f" via ADD_Hg2_WET and ADD_HgP_WET.   We must 
             ! also divide  by DNS, the # of internal timesteps. 
             ! (sas, bmy, eck, eds, 1/19/05, 1/6/06, 7/30/08)
-            !
-            ! Now adjust 1/TCVV by factor AIRMW/MOISTMW to
-            ! use with moist mixing ratio (ewl, 4/28/15)
             !==================================================================
  
             !--------------------------------------
@@ -2855,8 +2843,10 @@
             IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
                ! Wet scavenged Hg(II) in [kg/s]
-               WET_Hg2 = T0_SUM * AREA_M2 * AIRMW 
-     &                   / ( TCVV_DNS * MOISTMW(K) ) 
+               ! (ewl, 5/4/15 - removed moisture conversion
+               ! (AIRMW / MOISTMW(K) since no level. Reassess. )
+               WET_Hg2 = T0_SUM * AREA_M2 * TRACER_MW_G 
+     &                   / ( AIRMW * DNS )
                
                ! Convert [kg/s] to [kg]
                WET_Hg2 = WET_Hg2 * NDT 
@@ -2872,8 +2862,10 @@
             IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
 
                ! Wet scavenged Hg(P) in [kg/s]
-               WET_HgP = T0_SUM * AREA_M2 * AIRMW 
-     &                   / ( TCVV_DNS * MOISTMW(K) )
+               ! (ewl, 5/4/15 - removed moisture conversion
+               ! (AIRMW / MOISTMW(K) since no level). Reassess. )
+               WET_HgP = T0_SUM * AREA_M2 * TRACER_MW_G
+     &                   / ( AIRMW * DNS )
 
                ! Convert [kg/s] to [kg]
                WET_HgP = WET_HgP * NDT 
