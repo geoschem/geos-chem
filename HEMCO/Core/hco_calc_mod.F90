@@ -790,9 +790,9 @@ CONTAINS
     MaskFractions = HcoState%Options%MaskFractions
 
     ! Verbose 
-    IF ( HCO_IsVerb(3) ) THEN
-       write(MSG,*) '--> GET EMISSIONS FOR ', TRIM(BaseDct%cName)
-       CALL HCO_MSG(MSG)
+    IF ( HCO_IsVerb(2) ) THEN
+       write(MSG,*) 'Calculate emissions for ', TRIM(BaseDct%cName)
+       CALL HCO_MSG(MSG,SEP1=' ')
     ENDIF
 
     ! ----------------------------------------------------------------
@@ -904,6 +904,12 @@ CONTAINS
              CALL HCO_MSG( MSG )
           ENDIF
           CYCLE
+       ENDIF
+
+       ! Verbose mode
+       IF ( HCO_IsVerb(2) ) THEN
+          MSG = 'Applying scale factor ' // TRIM(ScalDct%cName)
+          CALL HCO_MSG( MSG )
        ENDIF
 
        ! Get vertical extension of this scale factor array.

@@ -30,7 +30,6 @@ MODULE HCOI_ESMF_MOD
   ! ESMF environment only:
   PUBLIC :: HCO_SetServices 
   PUBLIC :: HCO_SetExtState_ESMF
-  !PUBLIC :: HCOI_ESMF_DIAGNCREATE
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !      
