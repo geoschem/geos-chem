@@ -120,6 +120,7 @@
 #if defined (UCX )
       USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
       USE UCX_MOD,            ONLY : READ_PSC_FILE
+      USE UCX_MOD,            ONLY : DIAG_STATE_PSC
 #endif
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
@@ -218,6 +219,7 @@
 !  19 May 2014 - C. Keller   - Removed call for acetone ocean sink - now done
 !                              in HEMCO.
 !  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  08 May 2015 - C. Keller   - Added WRITE_STATE_PSC.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -331,10 +333,10 @@
             ! We need to get the STATE_PSC from the HEMCO restart file.
             ! NOTE: Do this before calling CHEMDR to avoid reading this
             ! data from w/in an !$OMP PARALLEL region. (bmy, 4/8/15)
-            IF ( FIRST ) THEN
-               CALL READ_PSC_FILE( am_I_Root )
-               FIRST         = .FALSE.
-            ENDIF
+            ! Now call READ_PSC_FILE on every time step to accomodate 
+            ! replay simulations in GEOS-5 (ckeller, 5/8/15)
+            CALL READ_PSC_FILE( am_I_Root, RC )
+            IF ( RC /= GIGC_SUCCESS ) RETURN
 #endif
             
             ! Call gas-phase chemistry
@@ -408,6 +410,15 @@
 
             ! ND43 chemical production
             CALL DIAGOH()
+
+            ! Write STATE_PSC to diagnostics. This is only of relevance in
+            ! an ESMF environment, where the restart variables (STATE_PSC)
+            ! need to be written to the internal state object on every time
+            ! step (ckeller, 5/8/15). 
+#if defined( UCX )
+            CALL WRITE_STATE_PSC( am_I_Root, RC )
+            IF ( RC /= GIGC_SUCCESS ) RETURN
+#endif
  
          !---------------------------------
          ! Offline aerosol simulation

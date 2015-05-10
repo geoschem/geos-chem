@@ -202,6 +202,7 @@ hco_readlist_mod.o     : hco_readlist_mod.F90    \
                          hcoio_dataread_mod.o
 
 hco_restart_mod.o      : hco_restart_mod.F90     \
+                         hco_clock_mod.o         \
                          hco_diagn_mod.o         \
                          hco_emislist_mod.o      \
                          hco_error_mod.o         \

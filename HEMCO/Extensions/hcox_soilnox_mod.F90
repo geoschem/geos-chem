@@ -258,10 +258,13 @@ CONTAINS
 !
 ! !USES:
 !
+    USE HCO_CLOCK_MOD,      ONLY : HcoClock_First 
+    USE HCO_CLOCK_MOD,      ONLY : HcoClock_Rewind
     USE HCO_FLuxArr_Mod,    ONLY : HCO_EmisAdd
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE HCO_ExtList_Mod,    ONLY : GetExtOpt
     USE HCO_Restart_Mod,    ONLY : HCO_RestartGet
+    USE HCO_Restart_Mod,    ONLY : HCO_RestartWrite
 !
 ! !INPUT PARAMETERS:
 !
@@ -276,6 +279,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  05 Nov 2013 - C. Keller - Initial Version
+!  08 May 2015 - C. Keller - Now read/write restart variables from here to
+!                            accomodate replay runs in GEOS-5.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -290,7 +295,7 @@ CONTAINS
     REAL(hp)                 :: UNITCONV, IJFLUX
     REAL(dp), ALLOCATABLE    :: VecDp(:)
     REAL(hp), POINTER        :: Arr2D (:,:) => NULL()
-    LOGICAL, SAVE            :: FIRST = .TRUE.
+    LOGICAL                  :: FIRST
     LOGICAL                  :: aIR, FOUND
     CHARACTER(LEN= 31)       :: DiagnName
     CHARACTER(LEN=255)       :: MSG, DMY
@@ -319,6 +324,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! On first call, set pointers to all arrays needed by SoilNOx
     !-----------------------------------------------------------------
+    FIRST = HcoClock_First ( .TRUE. )
 
     IF ( FIRST ) THEN
        CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK1',  LANDTYPE(1)%VAL,  RC )
@@ -375,14 +381,41 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
        CALL HCO_GetPtr ( aIR, 'SOILNOX_NONARID', CLIMNARID,        RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-    
-       !---------------------------------------------------------------
-       ! Fill restart variables. Restart variables can be specified 
-       ! in the HEMCO configuration file. In an ESMF environment, they
-       ! can also be defined as internal state fields. The internal 
-       ! state fields take precedence over fields read through the 
-       ! HEMCO interface. 
-       !---------------------------------------------------------------
+   
+       ! Check if ExtState variables DRYCOEFF is defined. Otherwise, try to
+       ! read it from settings.
+       IF ( .NOT. ASSOCIATED(ExtState%DRYCOEFF) ) THEN
+          CALL GetExtOpt ( ExtNr, 'DRYCOEFF', OptValChar=DMY, FOUND=FOUND, RC=RC )
+          IF ( .NOT. FOUND ) THEN
+             CALL HCO_ERROR( 'DRYCOEFF not defined', RC ) 
+             RETURN
+          ENDIF
+          ALLOCATE(VecDp(MaxDryCoeff))
+          CALL HCO_CharSplit( DMY, HCO_SEP(), HCO_WCD(), VecDp, N, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          ALLOCATE(DRYCOEFF(N))
+          DRYCOEFF(1:N) = VecDp(1:N)
+          ExtState%DRYCOEFF => DRYCOEFF
+          DEALLOCATE(VecDp)
+       ENDIF
+
+       ! Check if we need to write manual fertilizer NO diagnostics
+       DiagnName = 'FERTILIZER_NO'
+       CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+       TmpCnt => NULL()
+    ENDIF
+
+    !---------------------------------------------------------------
+    ! Fill restart variables. Restart variables can be specified 
+    ! in the HEMCO configuration file. In an ESMF environment, they
+    ! can also be defined as internal state fields. The internal 
+    ! state fields take precedence over fields read through the 
+    ! HEMCO interface.
+    ! The restart variables must be read on the first time step or
+    ! after the rewinding the clock. 
+    !---------------------------------------------------------------
+
+    IF ( FIRST .OR. HcoClock_Rewind( .TRUE. ) ) THEN
 
        ! DEP_RESERVOIR. Read in kg NO/m3.
        CALL HCO_RestartGet( am_I_Root, HcoState, 'DEP_RESERVOIR', &
@@ -407,7 +440,7 @@ CONTAINS
              CALL HCO_WARNING(MSG,RC)
           ENDIF
        ENDIF
-
+   
        ! PFACTOR [unitless]
        CALL HCO_RestartGet( am_I_Root, HcoState, 'PFACTOR', &
                             PFACTOR,   RC,   FOUND=FOUND     )
@@ -419,7 +452,7 @@ CONTAINS
              CALL HCO_WARNING(MSG,RC)
           ENDIF
        ENDIF
-   
+      
        ! DRYPERIOD [unitless]
        CALL HCO_RestartGet( am_I_Root, HcoState, 'DRYPERIOD', &
                             DRYPERIOD, RC,   FOUND=FOUND     )
@@ -431,32 +464,10 @@ CONTAINS
              CALL HCO_WARNING(MSG,RC)
           ENDIF
        ENDIF
-
-       ! Check if ExtState variables DRYCOEFF is defined. Otherwise, try to
-       ! read it from settings.
-       IF ( .NOT. ASSOCIATED(ExtState%DRYCOEFF) ) THEN
-          CALL GetExtOpt ( ExtNr, 'DRYCOEFF', OptValChar=DMY, FOUND=FOUND, RC=RC )
-          IF ( .NOT. FOUND ) THEN
-             CALL HCO_ERROR( 'DRYCOEFF not defined', RC ) 
-             RETURN
-          ENDIF
-          ALLOCATE(VecDp(MaxDryCoeff))
-          CALL HCO_CharSplit( DMY, HCO_SEP(), HCO_WCD(), VecDp, N, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          ALLOCATE(DRYCOEFF(N))
-          DRYCOEFF(1:N) = VecDp(1:N)
-          ExtState%DRYCOEFF => DRYCOEFF
-          DEALLOCATE(VecDp)
-       ENDIF
-
-       ! Check if we need to write manual fertilizer NO diagnostics
-       DiagnName = 'FERTILIZER_NO'
-       CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
-       TmpCnt => NULL()
-
-       FIRST = .FALSE.
+       
     ENDIF
-
+   
+    !---------------------------------------------------------------
     ! Now need to call GET_CANOPY_NOX to break ugly dependency between
     ! drydep and soil NOx emissions. (bmy, 6/22/09) 
     ! Now a function of the new MODIS/Koppen biome map (J.D. Maasakkers)
@@ -482,10 +493,6 @@ CONTAINS
        ! Get Deposited Fertilizer DEP_FERT [kg NO/m2]
        CALL GET_DEP_N( I, J, ExtState, HcoState, DEP_FERT )
 
-!       ! Convert to [kg NO/m2] 
-!       DEP_FERT = DEP_FERT / sec_per_year
-!       CALL FLUSH(6)
-
        ! Get N fertilizer reservoir associated with chemical and
        ! manure fertilizer [kg NO/m2]
        IF ( LFERTILIZERNOX ) THEN
@@ -493,9 +500,6 @@ CONTAINS
        ELSE
           SOILFRT = 0e+0_hp
        ENDIF
-
-       ! Convert to kg NO/m2/s
-       !SOILFRT  = SOILFRT / sec_per_year
 
        ! Put in constraint if dry period gt 1 yr, keep at 1yr to
        ! avoid unrealistic pulse
@@ -510,7 +514,7 @@ CONTAINS
                                DEP_FERT,       FERTDIAG,       &
                                UNITCONV,                       &
                                CANOPYNOX(I,J,:)                 )
-     
+
        ! Write out
        FLUX_2D(I,J) = MAX(IJFLUX,0.0_hp)
        IF (DoDiagn) DIAG(I,J) = FERTDIAG
@@ -545,6 +549,36 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL()
     ENDIF
+
+    ! ----------------------------------------------------------------
+    ! Eventually copy internal values to ESMF internal state object
+    ! ----------------------------------------------------------------
+
+    ! DEP_RESERVOIR [kg/m3]
+    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
+                          'DEP_RESERVOIR', DEP_RESERVOIR, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! GWET_PREV [unitless]
+    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
+                          'GWET_PREV', GWET_PREV, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+          
+    ! PFACTOR [unitless]
+    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
+                          'PFACTOR', PFACTOR, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+   
+    ! DRYPERIOD [unitless]
+    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
+                          'DRYPERIOD', DRYPERIOD, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+#if defined(DEVEL)
+    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
+                          'SOILNO_PULSE', DGN_PULSE, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+#endif
 
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
@@ -796,7 +830,6 @@ CONTAINS
 !
 ! !USES
 !
-    USE HCO_Restart_Mod,  ONLY : HCO_RestartWrite
 !
 ! !INPUT PARAMETERS:
 !
@@ -823,37 +856,6 @@ CONTAINS
     ! HCOX_SoilNOx_FINAL begins here!
     !=================================================================
 
-    ! ----------------------------------------------------------------
-    ! Eventually copy internal values to ESMF internal state object
-    ! ----------------------------------------------------------------
-
-    ! DEP_RESERVOIR [kg/m3]
-    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
-                          'DEP_RESERVOIR', DEP_RESERVOIR, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! GWET_PREV [unitless]
-    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
-                          'GWET_PREV', GWET_PREV, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-          
-    ! PFACTOR [unitless]
-    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
-                          'PFACTOR', PFACTOR, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-   
-    ! DRYPERIOD [unitless]
-    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
-                          'DRYPERIOD', DRYPERIOD, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-#if defined(DEVEL)
-    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
-                          'SOILNO_PULSE', DGN_PULSE, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( ALLOCATED(DGN_PULSE) ) DEALLOCATE(DGN_PULSE)
-#endif
-
     ! Deallocate arrays
     IF ( ALLOCATED (DRYPERIOD    ) ) DEALLOCATE ( DRYPERIOD     )
     IF ( ALLOCATED (PFACTOR      ) ) DEALLOCATE ( PFACTOR       )
@@ -863,6 +865,9 @@ CONTAINS
     IF ( ALLOCATED (CANOPYNOX        ) ) DEALLOCATE ( CANOPYNOX         )
     IF ( ASSOCIATED(DEP_RESERVOIR) ) DEALLOCATE ( DEP_RESERVOIR )
     IF ( ALLOCATED (DRYCOEFF         ) ) DEALLOCATE ( DRYCOEFF          )
+#if defined(DEVEL)
+    IF ( ALLOCATED(DGN_PULSE) ) DEALLOCATE(DGN_PULSE)
+#endif
 
     ! Deallocate LANDTYPE vector 
     IF ( ASSOCIATED(LANDTYPE) ) THEN

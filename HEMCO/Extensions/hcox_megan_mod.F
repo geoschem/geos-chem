@@ -319,8 +319,10 @@
 !
       USE HCO_FLUXARR_MOD,     ONLY : HCO_EmisAdd 
       USE HCO_CLOCK_MOD,       ONLY : HcoClock_First 
+      USE HCO_CLOCK_MOD,       ONLY : HcoClock_Rewind
       USE HCO_CLOCK_MOD,       ONLY : HcoClock_NewHour 
       USE HCO_CLOCK_MOD,       ONLY : HcoClock_NewDay
+      USE HCO_Restart_Mod,     ONLY : HCO_RestartWrite
 !
 ! !INPUT PARAMETERS: 
 !
@@ -333,12 +335,15 @@
       INTEGER,         INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY: 
-!  05 Aug 2013 - C. Keller - Initial version 
-!  08 Oct 2014 - C. Keller - Now use HEMCO clock to get days between months
-!  09 Oct 2014 - C. Keller - Now use only GC_LAI. This makes days between months
-!                            obsolete
-!  16 Oct 2014 - C. Keller - Initialize flux arrays to avoid float invalid
+!  05 Aug 2013 - C. Keller   - Initial version 
+!  08 Oct 2014 - C. Keller   - Now use HEMCO clock to get days between months
+!  09 Oct 2014 - C. Keller   - Now use only GC_LAI. This makes days between months
+!                              obsolete
+!  16 Oct 2014 - C. Keller   - Initialize flux arrays to avoid float invalid
 !   9 Mar 2015 - R. Yantosca - Bug fix: add EMIS_ALD2 to $OMP PRIVATE clause
+!  08 May 2015 - C. Keller   - Now read/write restart variables from here to
+!                              accomodate replay runs in GEOS-5.
+
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -472,9 +477,9 @@
          IF ( RC /= HCO_SUCCESS ) RETURN
       ENDIF
 
-      ! On first call, fill previous day LAI with current LAI since we
-      ! don't know the previous day values yet... 
-      IF ( FIRST ) THEN
+      ! Fill restart variables. This has to be done on the first call
+      ! or after rewinding the clock (in replay simulations). 
+      IF ( FIRST .OR. HcoClock_Rewind( .TRUE. ) ) THEN
          CALL FILL_RESTART_VARS( am_I_Root, HcoState, ExtState, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1572,6 +1577,35 @@
      &                   cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
       IF ( RC /= HCO_SUCCESS ) RETURN 
       Arr2D => NULL() 
+
+      ! ----------------------------------------------------------------
+      ! Eventually copy internal values to ESMF internal state object
+      ! ----------------------------------------------------------------
+
+      ! LAI_PREVDAY
+      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+     &                       'LAI_PREVDAY', LAI_PREVDAY, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! T_DAVG
+      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+     &                       'T_DAVG', HCOT_15_AVG, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! T_PREVDAY
+      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+     &                       'T_PREVDAY', HCOT_15(:,:,1), RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! PARDR_DAVG
+      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+     &                       'PARDR_DAVG', HCOPARDR_15_AVG, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! PARDF_DAVG
+      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+     &                       'PARDF_DAVG', HCOPARDF_15_AVG, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
 
       !=================================================================
       ! ALL DONE! 
@@ -4424,7 +4458,6 @@
 !
 ! !USES
 !
-      USE HCO_Restart_Mod,  ONLY : HCO_RestartWrite
 !
 ! !INPUT PARAMETERS:
 !
@@ -4446,41 +4479,10 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL            :: FOUND
-      REAL(sp), POINTER  :: Ptr2D(:,:) => NULL()
 
       !=================================================================
       ! HCOX_MEGAN_FINAL begins here!
       !=================================================================
-
-      ! ----------------------------------------------------------------
-      ! Eventually copy internal values to ESMF internal state object
-      ! ----------------------------------------------------------------
-
-      ! LAI_PREVDAY
-      CALL HCO_RestartWrite( am_I_Root, HcoState, 
-     &                       'LAI_PREVDAY', LAI_PREVDAY, RC ) 
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      ! T_DAVG
-      CALL HCO_RestartWrite( am_I_Root, HcoState, 
-     &                       'T_DAVG', HCOT_15_AVG, RC ) 
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      ! T_PREVDAY
-      CALL HCO_RestartWrite( am_I_Root, HcoState, 
-     &                       'T_PREVDAY', HCOT_15(:,:,1), RC ) 
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      ! PARDR_DAVG
-      CALL HCO_RestartWrite( am_I_Root, HcoState, 
-     &                       'PARDR_DAVG', HCOPARDR_15_AVG, RC ) 
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      ! PARDF_DAVG
-      CALL HCO_RestartWrite( am_I_Root, HcoState, 
-     &                       'PARDF_DAVG', HCOPARDF_15_AVG, RC ) 
-      IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! Nullify pointers
       GEIA_ORVC => NULL()

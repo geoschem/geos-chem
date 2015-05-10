@@ -10,41 +10,48 @@
 !\\
 !\\
 ! Restart variables are required by some of the HEMCO extensions. The
-! HEMCO restart variables are organized through the HEMCO diagnostics module: 
-! At the end of a simulation, a HEMCO restart file is written that contains 
-! all diagnostics that have not been written out yet. In particular, all 
-! diagnostic fields with an assigned output frequency 'End' are added to the 
-! HEMCO restart file. 
-! All fields in a restart file can be easily read into HEMCO via the HEMCO
-! I/O infrastructure, i.e. by listing it in the HEMCO configuration file and
-! by fetching the field within the desired module via routine HCO\_GetPtr.
-! An example of this approach can be found in several extensions, e.g. the
-! soil NOx extension (hcox\_soilnox\_mod.F90). 
+! HEMCO restart variables can be organized through the HEMCO restart 
+! diagnostics collection. At the end of a simulation, all diagnostic fields
+! ('containers') of the restart collection are written to the HEMCO restart 
+! file.
+!\\
+!\\ 
+! All fields from the HEMCO restart file can be easily read back into HEMCO 
+! via the HEMCO I/O infrastructure, i.e. by listing them in the HEMCO 
+! configuration file. 
 !\\
 !\\
-! In an ESMF/MAPL environment, another option to organize restart fields is
-! via the ESMF internal state object. In this case, the fields are obtained
-! from / written to the ESMF internal state rather than the HEMCO restart 
-! file. This can be very handy given that the writeout of HEMCO diagnostics
-! files is not entirely automated (as in a 'standard' environment) but 
-! occurs via the HISTORY component, e.g. each desired HEMCO diagnostics 
-! needs to be listed as an export variable of its gridded component and
-! also needs to be added to HISTORY.rc
+! In an ESMF/MAPL environment, restart variables should be organized through 
+! the ESMF internal state object. This is particularly important for 
+! simulation that rely on checkpoint files (e.g. replay simulations).
+! In this cases, the restart variables are obtained from / written to the
+! ESMF internal state object, rather than the HEMCO restart file.
 !\\
 !\\
 ! This module contains wrapper routines to define, obtain and write restart
-! fields for the two aforementioned restart types. In an ESMF environment, the
-! first check is always performed within the internal state, e.g. it is first
+! fields for the two aforementioned restart types. The routines work both for
+! 'traditional' and ESMF restart variables. In an ESMF application, the first 
+! check is always performed within the internal state, e.g. it is first 
 ! checked if the given field variable exists in the internal state of the
 ! gridded component that HEMCO sits in. If so, the field is obtained from /
 ! written to the internal state. If no internal state object exist, an
 ! attempt is made to obtain the field through the HEMCO data list, i.e. it
 ! is checked if the restart variable is specified in the HEMCO configuration
 ! file.
+! A HEMCO diagnostics container is created in the diagnostics restart 
+! collection in both the traditional and the ESMF environment. 
 !\\
 !\\
-! At the moment, the restart module only works on 2D fields, but it can be
-! easily expanded to cover 3D fields as well.
+! Routine HCO\_RestartDefine should be called during the initialization stage.
+! Routine HCO\_RestartGet should be called on the first run call and after
+! each rewinding of the clock. HEMCO routines HcoClock\_First and 
+! HcoClock\_Rewind can be used to determine if it's time to read/update the
+! restart variable. 
+! HCO\_RestartWrite should be called *on every time step*. This is important 
+! in ESMF applications that rely on checkpoint files (e.g. replay simulations)
+! that are written out by ESMF/MAPL throughout the simulation. In a non-ESMF
+! environment, the HCO\_RestartWrite call is basically void but it should be
+! called nevertheless. 
 !\\
 !\\
 ! !INTERFACE: 
@@ -498,9 +505,7 @@ CONTAINS
     ! ------------------------------------------------------------------
     ! Leave 
     ! ------------------------------------------------------------------
-    IF ( PRESENT(FOUND) ) THEN
-       FOUND = FILLED
-    ENDIF
+    IF ( PRESENT(FOUND) ) FOUND = FILLED
 
     ! Return w/ success
     RC = HCO_SUCCESS
@@ -563,6 +568,10 @@ CONTAINS
 #if defined(ESMF_)
     CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name), &
                                   -1,       WRITTEN,    RC, Arr3D=Arr3D ) 
+
+    ! testing only
+    if(am_I_Root.and.written) write(*,*) 'restart written to internal state: ', TRIM(Name)
+
 #endif
 
     ! Pass to output
@@ -631,6 +640,10 @@ CONTAINS
 #if defined(ESMF_)
     CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name), &
                                   -1,       WRITTEN,    RC, Arr2D=Arr2D ) 
+
+    ! testing only
+    if(am_I_Root.and.written) write(*,*) 'restart written to internal state: ', TRIM(Name)
+
 #endif
 
     ! Pass to output
