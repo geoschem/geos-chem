@@ -7247,9 +7247,9 @@
 
             ! Define quantities
             INDEX(T,72) = T + ( SPACING * 72 )
-            MOLC (T,21) = 1
-            MWT  (T,21) = 0e0
-            SCALE(T,21) = 1e0
+            MOLC (T,72) = 1
+            MWT  (T,72) = 0e0
+            SCALE(T,72) = 1e0
             !get number of current flux type
             T0 = ((T-1)/(NSPECRADMENU+1))+1
             SELECT CASE( T0 )
