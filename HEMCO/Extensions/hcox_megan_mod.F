@@ -54,7 +54,7 @@
 !  \item Guenther, A., et al., \emph{The Model of Emissions of Gases and
 !        Aerosols from Nature version 2.1 (MEGAN2.1): an extended and updated
 !        framework for modeling biogenic emissions}, \underline{Geosci. Model
-!        Dev/}, \testbf{5}, 1471-1792, 2012.
+!        Dev.}, \textbf{5}, 1471-1792, 2012.
 !  \item Guenther, A., et al., \emph{A global model of natural volatile 
 !        organic compound emissions}, \underline{J.Geophys. Res.}, 
 !        \textbf{100}, 8873-8892, 1995.
@@ -2401,8 +2401,8 @@
 !
 ! !IROUTINE: Get_Gamma_T_LI
 !
-! !DESCRIPTION: Function Get\_Gamma\_T\_LI computes the temperature 
-!  activity factor (GAMMA\_T_LI) for the light-independent fraction of emissions
+! !DESCRIPTION: Function Get\_Gamma\_T\_LI computes the temperature activity
+!  factor (GAMMA\_T\_LI) for the light-independent fraction of emissions
 !\\
 !\\
 ! !INTERFACE:
