@@ -22,7 +22,7 @@
 ! The deposition rate is obtained by dividing the exchange velocity Kg 
 ! by the deposition height DEPHEIGHT, e.g. the height over which 
 ! deposition occurs. This can be either the first grid box only, or the
-! entire planetary boundary layer. The HEMCO option 'PBL_DRYDEP' determines
+! entire planetary boundary layer. The HEMCO option 'PBL\_DRYDEP' determines
 ! which option is being used. 
 !\\
 !\\
