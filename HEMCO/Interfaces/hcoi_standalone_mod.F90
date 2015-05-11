@@ -756,8 +756,11 @@ CONTAINS
 !
 ! !IROUTINE: Set_Grid 
 !
-! !DESCRIPTION: SUBROUTINE SET\_GRID sets the grid when running HEMCO
-!  in standalone mode. 
+! !DESCRIPTION: SUBROUTINE SET\_GRID reads the grid information from the 
+!  HEMCO standalone grid file and sets all HEMCO grid arrays accordingly.
+!  The grid file is expected to contain information on the grid edge lon/lat 
+!  range, as well as the number of grid cells in longitude and latitude 
+!  direction.
 !\\
 !\\
 ! !INTERFACE:
@@ -766,7 +769,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Grid_Mod,        ONLY : DoGridComputation
+!    USE Grid_Mod,        ONLY : DoGridComputation
     USE inquireMod,      ONLY : findFreeLUN
     USE HCO_ExtList_Mod, ONLY : GetExtOpt, CoreNr
 !
@@ -780,6 +783,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Sep 2013 - C. Keller - Initial Version
+!  11 May 2015 - C. Keller - Now provide lon/lat edges instead of assuming
+!                            global grid. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -787,23 +792,20 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER               :: NX, NY, NZ, JSP, JNP
-    INTEGER               :: I, N, M, LNG, LOW, UPP
+    INTEGER               :: NX, NY, NZ
+    INTEGER               :: I, J, N, LNG, LOW, UPP
     INTEGER               :: SZ(3)
     INTEGER               :: IU_FILE, IOS
+    REAL(hp)              :: RG(4)
+    REAL(hp)              :: XMIN, XMAX
+    REAL(hp)              :: YMIN, YMAX
+    REAL(hp)              :: DVAL
+    REAL(hp)              :: DLON, DLAT
+    REAL(hp)              :: PI_180, YDGR, YSN, SIN_DELTA, AM2 
     LOGICAL               :: FOUND,   EOF
     CHARACTER(LEN=255)    :: MSG, LOC 
     CHARACTER(LEN=255)    :: MyGridFile 
     CHARACTER(LEN=2047)   :: DUM
-
-    ! Arrays
-    REAL(hp)              :: DVAL
-    REAL(hp), ALLOCATABLE :: DLON(:,:,:)
-    REAL(hp), ALLOCATABLE :: DLAT(:,:,:)
-    REAL(hp), ALLOCATABLE :: YMID_R(:,:,:)
-    REAL(hp), ALLOCATABLE :: YEDGE_R(:,:,:)
-    REAL(hp), ALLOCATABLE :: YMID_R_W(:,:,:)
-    REAL(hp), ALLOCATABLE :: YEDGE_R_W(:,:,:)
 
     !=================================================================
     ! SET_GRID begins here
@@ -812,13 +814,18 @@ CONTAINS
     ! For error handling
     LOC = 'SET_GRID (hco_standalone_mod.F90)'
 
+    ! Set PI_180
+    PI_180 = HcoState%Phys%PI / 180.0_hp
+
     ! Try to get GridFile from configuration file (in settings)
     CALL GetExtOpt ( CoreNr, 'GridFile', OptValChar=MyGridFile, &
                      Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) GridFile = MyGridFile
 
-    ! Read grid information from file
+    ! ------------------------------------------------------------------
+    ! Open grid file
+    ! ------------------------------------------------------------------
 
     ! Find a free file LUN
     IU_FILE = findFreeLUN()
@@ -831,13 +838,90 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Get grid size (x,y,z)
-    DO N = 1,3
+    ! ------------------------------------------------------------------
+    ! Extract grid range
+    ! The lon/lat grid ranges are expected to be provided first, with
+    ! each range provided in a separate line:
+    ! XMIN: -180.0
+    ! XMAX:  180.0
+    ! YMIN:  -90.0
+    ! YMAX:   90.0
+    ! ------------------------------------------------------------------
+    DO N = 1,4
 
        ! Get next valid line
        CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
        IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
           MSG = 'Error 2 reading ' // TRIM(GridFile)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! Read integer after colon (this is the dimension size)
+       LNG = LEN(TRIM(DUM))
+       LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
+       IF ( LOW < 0 .OR. LOW == LNG ) THEN
+          MSG = 'Cannot extract size information from ' // TRIM(DUM)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+       LOW = LOW + 1
+       READ( DUM(LOW:LNG), * ) RG(N)
+
+    ENDDO
+
+    ! Pass to scalars
+    XMIN = RG(1)
+    XMAX = RG(2)
+    YMIN = RG(3)
+    YMAX = RG(4)
+
+    ! Make sure values are in valid range
+    IF ( XMIN >= XMAX ) THEN
+       WRITE(MSG,*) 'Lower lon must be smaller than upper lon: ', XMIN, XMAX
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+    IF ( YMIN >= YMAX ) THEN
+       WRITE(MSG,*) 'Lower lat must be smaller than upper lat: ', YMIN, YMAX
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+
+    IF ( XMIN < -180.0_hp ) THEN
+       WRITE(MSG,*) 'Lower longitude must be between -180 and 180 degE: ', XMIN
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF   
+    IF ( XMAX > 180.0_hp ) THEN
+       WRITE(MSG,*) 'Upper longitude must be between -180 and 180 degE: ', XMAX
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF   
+    IF ( YMIN < -90.0_hp ) THEN
+       WRITE(MSG,*) 'Lower latitude must be between -90 and 90 degN: ', YMIN
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF   
+    IF ( YMAX > 90.0_hp ) THEN
+       WRITE(MSG,*) 'Upper latitude must be between -90 and 90 degN: ', YMAX
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF   
+
+    ! ------------------------------------------------------------------
+    ! Extract grid size (x,y,z) 
+    ! The grid sizes are expected to be provided in three separte lines: 
+    ! NX: 360
+    ! NY: 180
+    ! NZ: 1 
+    ! ------------------------------------------------------------------
+    DO N = 1,3
+
+       ! Get next valid line
+       CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+       IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
+          MSG = 'Error 3 reading ' // TRIM(GridFile)
           CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
@@ -860,142 +944,81 @@ CONTAINS
     NY = SZ(2)
     NZ = SZ(3)
 
+    ! Close file
+    CLOSE( IU_FILE )      
+
+    ! ------------------------------------------------------------------
     ! Now that sizes are known, allocate all arrays
-    ALLOCATE ( DLON     (NX,  NY,  NZ) )
-    ALLOCATE ( DLAT     (NX,  NY,  NZ) )
-    ALLOCATE ( XMID     (NX,  NY,  NZ) )
-    ALLOCATE ( YMID     (NX,  NY,  NZ) )
-    ALLOCATE ( XEDGE    (NX+1,NY,  NZ) )
-    ALLOCATE ( YEDGE    (NX,  NY+1,NZ) )
-    ALLOCATE ( YSIN     (NX,  NY+1,NZ) )
-    ALLOCATE ( YMID_R   (NX,  NY,  NZ) )
-    ALLOCATE ( YEDGE_R  (NX,  NY+1,NZ) )
-    ALLOCATE ( AREA_M2  (NX,  NY,  NZ) )
-    ALLOCATE ( YMID_R_W (NX,  NY,  NZ) )
-    ALLOCATE ( YEDGE_R_W(NX,  NY+1,NZ) )
-    DLON      = 0.0_hp
-    DLAT      = 0.0_hp
+    ! ------------------------------------------------------------------
+    ALLOCATE ( XMID     (NX,  NY,  1) )
+    ALLOCATE ( YMID     (NX,  NY,  1) )
+    ALLOCATE ( XEDGE    (NX+1,NY,  1) )
+    ALLOCATE ( YEDGE    (NX,  NY+1,1) )
+    ALLOCATE ( YSIN     (NX,  NY+1,1) )
+    ALLOCATE ( AREA_M2  (NX,  NY,  1) )
     XMID      = 0.0_hp
     YMID      = 0.0_hp
     XEDGE     = 0.0_hp
     YEDGE     = 0.0_hp
     YSIN      = 0.0_hp
-    YMID_R    = 0.0_hp
-    YEDGE_R   = 0.0_hp
     AREA_M2   = 0.0_hp
-    YMID_R_W  = 0.0_hp
-    YEDGE_R_W = 0.0_hp
 
-    ! Read delta lon (dx) or lat (dy) from file. This can be
-    ! specified for every grid point or as single value (applied
-    ! to all grid boxes).
-    DO N=1,2
+    ! ------------------------------------------------------------------
+    ! Fill grid box values
+    ! ------------------------------------------------------------------
+    DLON = ( XMAX - XMIN ) / NX
+    DLAT = ( YMAX - YMIN ) / NY
 
-       ! Get next valid line
-       CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
-       IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
-          MSG = 'Error 3 reading ' // TRIM(GridFile)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-          
-       ! Get position after colon
-       LNG = LEN(TRIM(DUM))
-       LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
-       IF ( LOW < 0 .OR. LOW == LNG ) THEN 
-          MSG = 'Cannot extract grid space from ' // TRIM(DUM)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-       LOW = LOW + 1
-    
-       ! Read data for each grid cell
-       M = 1 ! Index in dlon/dlat
-       DO
-          ! Get index up to next space.
-          UPP = NextCharPos ( TRIM(DUM), HCO_SPC(), LOW )
-   
-          ! If no space found in word after index LOW, read until end of word.
-          IF ( UPP < 0 ) UPP = LNG
-   
-          ! Read value and pass to DLON / DLAT.
-          ! Ignore if only space.
-          IF ( DUM(LOW:UPP) /= HCO_SPC() ) THEN
-             READ( DUM(LOW:UPP), * ) DVAL
-             IF ( N == 1 ) THEN
-                DLON(M,:,:) = DVAL
-             ELSE
-                DLAT(:,M,:) = DVAL
-             ENDIF
-             M = M+1 ! Advance index in DLON/DLAT
-          ENDIF
-   
-          ! Continue at next position
-          LOW = UPP + 1
-          IF ( LOW >= LNG ) EXIT
-       ENDDO
-          
-       ! Check if we have to fill up dlon
-       IF ( M == 2 ) THEN
-          IF ( N == 1 ) THEN
-             DLON(:,:,:) = DVAL
-          ELSE
-             DLAT(:,:,:) = DVAL
-          ENDIF
-       ELSEIF ( M == 1 ) THEN
-          MSG = 'no grid space(s) found: ' // TRIM(DUM)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-          RETURN
-       ELSEIF ( N == 1 .AND. M /= (NX+1) ) THEN
-          MSG = 'lon grid space error: ' // TRIM(DUM)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-          RETURN
-       ELSEIF ( N == 2 .AND. M /= (NY+1) ) THEN
-          MSG = 'lat grid space error: ' // TRIM(DUM)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-    ENDDO !N
+    ! Now fill values
+    DO J = 1, NY
+    DO I = 1, NX
 
-    ! Close file
-    CLOSE( IU_FILE )      
+       ! Set longitude and latitude edge values
+       XEDGE(I,J,1) = XMIN + ( (I-1) * DLON )
+       YEDGE(I,J,1) = YMIN + ( (J-1) * DLAT )
+
+       ! Set mid values
+       XMID(I,J,1) = XEDGE(I,J,1) + ( DLON / 2.0_hp )
+       YMID(I,J,1) = YEDGE(I,J,1) + ( DLAT / 2.0_hp )
+
+       ! Get sine of latitude edges
+       YDGR        = PI_180 * YEDGE(I,J,1)  ! radians       
+       YSN         = SIN( YDGR )            ! sine
+       YSIN(I,J,1) = YSN
+
+       ! Eventually set uppermost edge
+       IF ( I == NX ) THEN
+          XEDGE(I+1,J,1) = XMIN + I * DLON
+       ENDIF
+       IF ( J == NY ) THEN
+          YEDGE(I,J+1,1) = YMIN + J * DLAT
+          YDGR           = PI_180 * YEDGE(I,J+1,1)  ! radians       
+          YSN            = SIN( YDGR )              ! sine
+          YSIN(I,J+1,1)  = YSN
+       ENDIF
+
+    ENDDO
+    ENDDO
+
+    ! Calculate grid box areas. Follow calculation from grid_mod.F90
+    ! of GEOS-Chem.
+    DO J = 1, NY
+
+       ! delta latitude
+       SIN_DELTA = YSIN(I,J+1,1) - YSIN(I,J,1)
+
+       ! Grid box area. 
+       AM2 = DLON * PI_180 * HcoState%Phys%Re**2 * SIN_DELTA
+
+       ! Pass to array
+       AREA_M2(:,J,1) = AM2
+
+    ENDDO
 
     ! Set grid dimensions
     HcoState%NX = NX
     HcoState%NY = NY
     HcoState%NZ = NZ 
-
-    ! Assume global grid with south pole at index 1 and north 
-    ! pole at last index position
-    JSP = 1
-    JNP = NY
-
-    Call DoGridComputation( am_I_Root = am_I_Root, &
-                            I1        = 1,         &
-                            I2        = NX,        & 
-                            J1        = 1,         &
-                            J2        = NY,        & 
-                            JSP       = JSP,       &
-                            JNP       = JNP,       &
-                            L1        = 1,         &
-                            L2        = NZ,        &
-                            DLON      = DLON,      &
-                            DLAT      = DLAT,      &
-                            I_LO      = 1,         &
-                            J_LO      = 1,         &
-                            IOFF      = 0,         &
-                            JOFF      = 0,         &
-                            XMD       = XMID,      &
-                            XDG       = XEDGE,     &
-                            YMD       = YMID,      &
-                            YDG       = YEDGE,     &
-                            YSN       = YSIN,      &
-                            YMDR      = YMID_R,    &
-                            YDGR      = YEDGE_R,   &
-                            YMDRW     = YMID_R_W,  &
-                            YDGRW     = YEDGE_R_W, &
-                            AM2       = AREA_M2,   &
-                            RC        = RC          )
 
     ! Set pointers to grid variables
     HcoState%Grid%XMID%Val       => XMID   (:,:,1)
@@ -1010,8 +1033,24 @@ CONTAINS
     HcoState%Grid%PEDGE%Val      => NULL()
     HcoState%Grid%BXHEIGHT_M%Val => NULL()
 
-    ! Cleanup variables that are not needed by HEMCO.
-    DEALLOCATE( YMID_R, YEDGE_R, YMID_R_W, YEDGE_R_W )
+    ! Write grid information to log-file
+    WRITE(MSG,*) 'HEMCO grid definitions:'
+    CALL HCO_MSG(MSG)
+
+    WRITE(MSG,*) ' --> Number of longitude cells: ', NX
+    CALL HCO_MSG(MSG)
+    WRITE(MSG,*) ' --> Number of latitude cells : ', NY
+    CALL HCO_MSG(MSG)
+    WRITE(MSG,*) ' --> Number of levels         : ', NZ
+    CALL HCO_MSG(MSG)
+    WRITE(MSG,*) ' --> Lon min, max [deg E]     : ', XMIN, XMAX
+    CALL HCO_MSG(MSG)
+    WRITE(MSG,*) ' --> Lon delta    [deg E]     : ', DLON
+    CALL HCO_MSG(MSG)
+    WRITE(MSG,*) ' --> Lat min, max [deg N]     : ', YMIN, YMAX
+    CALL HCO_MSG(MSG)
+    WRITE(MSG,*) ' --> Lat delta    [deg N]     : ', DLAT
+    CALL HCO_MSG(MSG,SEP2="-")
 
     ! Return w/ success
     RC = HCO_SUCCESS

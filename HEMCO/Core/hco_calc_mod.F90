@@ -67,7 +67,7 @@ MODULE HCO_Calc_Mod
 !
   USE HCO_Diagn_Mod
   USE HCO_Error_Mod
-  USE HCO_DataCont_Mod, ONLY : DataCont, ListCont, SclMax
+  USE HCO_DataCont_Mod, ONLY : DataCont, ListCont
   USE HCO_DataCont_Mod, ONLY : Pnt2DataCont
 
   IMPLICIT NONE
@@ -870,18 +870,13 @@ CONTAINS
     ! container are stored in vector Scal_cID.
     ! ----------------------------------------------------------------
 
-    ! Loop over maximum number of scale factors 
-    DO N = 1, SclMax
+    ! Loop over scale factors
+    IF ( BaseDct%nScalID > 0 ) THEN 
+
+    DO N = 1, BaseDct%nScalID
 
        ! Get the scale factor container ID for the current slot
        IDX = BaseDct%Scal_cID(N)
-
-       ! Leave if container ID is not defined. The container IDs
-       ! were filled from left, i.e. beginning with the first element
-       ! of Scal_cID. 
-       IF ( IDX <= 0 ) THEN
-          EXIT
-       ENDIF
 
        ! Point to data container with the given container ID
        CALL Pnt2DataCont( IDX, ScalDct, RC )
@@ -1144,6 +1139,7 @@ CONTAINS
        MaskDct => NULL()
 
     ENDDO ! N
+    ENDIF ! N > 0 
 
     ! Cleanup and leave w/ success
     ScalDct => NULL()
@@ -1332,16 +1328,12 @@ CONTAINS
        ! container are stored in vector Scal_cID.
        ! -------------------------------------------------------------
    
-       ! Loop over maximum number of scale factors 
-       DO N = 1, SclMax
+       ! Loop over maximum number of scale factors
+       IF ( BaseDct%nScalID > 0 ) THEN 
+       DO N = 1, BaseDct%nScalID 
    
           ! Get the scale factor container ID for the current slot
           IDX = BaseDct%Scal_cID(N)
-   
-          ! Leave if field ID is not defined
-          IF ( IDX <= 0 ) THEN
-             EXIT
-          ENDIF
    
           ! Point to emission container with the given container ID
           CALL Pnt2DataCont( IDX, ScalDct, RC )
@@ -1520,6 +1512,7 @@ CONTAINS
              ENDIF
           ENDDO !LL
        ENDDO ! N
+       ENDIF ! N > 0
 
        ! ----------------------------
        ! Masks 
