@@ -30,9 +30,9 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod (not used)
-!  20 Apr 2015 - E. Lundgren - Now pass moist air MW to GCAP_CONVECT to
-!                              correctly use TCVV with moist mixing ratio
-!                              for ND14 and ND38 diags
+!  20 Apr 2015 - E. Lundgren - Now pass moist air MW to GCAP_CONVECT
+!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
+!                              for consistency with moist mixing ratio units
 !******************************************************************************
 !  
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -67,7 +67,7 @@
 !------------------------------------------------------------------------------
 
       SUBROUTINE GCAP_CONVECT( TDT,    Q,      NTRACE,   DP,   
-     &                         NSTEP,  FRACIS, TCVV,     INDEXSOL, 
+     &                         NSTEP,  FRACIS, TRACER_MW_G, INDEXSOL, 
      &                         UPDE,   DNDE,   ENTRAIN,  DETRAINE, 
      &                         UPDN,   DNDN,   DETRAINN, MOISTMW ) 
 !
@@ -115,8 +115,9 @@
 !  04 Nov 2013 - M. Sulprizio- Eliminate array temporaries by accepting
 !                              pointer-valued arguments via assumed-shape dummy
 !                              arguments
-!  20 Apr 2015 - E. Lundgren - Now receive MOISTMW as input arg and pass it to 
-!                              CONVTRAN to use TCVV with moist mixing ratio
+!  20 Apr 2015 - E. Lundgren - Now input and pass MOISTMW to CONVTRAN
+!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
+!                              for consistency with moist mixing ratio units
 !******************************************************************************
 !
 
@@ -129,7 +130,7 @@
       REAL(fp),  INTENT(IN)    :: DP(IIPAR,JJPAR,LLPAR)     
       INTEGER,   INTENT(IN)    :: NSTEP
       REAL(fp),  INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
-      REAL(fp),  INTENT(IN)    :: TCVV(NTRACE)
+      REAL(fp),  INTENT(IN)    :: TRACER_MW_G(NTRACE)
       REAL(fp),  INTENT(IN)    :: MOISTMW(:,:,:)
       INTEGER,   INTENT(IN)    :: INDEXSOL(NTRACE) 
       REAL(fp),  INTENT(IN)    :: UPDE(:,:,:)
@@ -199,8 +200,8 @@
      &                    UPDEG,      DNDEG,  DETRAINEG, ENTRAING,  
      &                    TOTALDNDEG, DPG,    JT,        MX,        
      &                    IDEEP,      1,      LENGATH,   NSTEP,     
-     &                    0.5e+0_fp*TDT,  FRACIS, TCVV,  INDEXSOL,
-     &                    MOISTMW ) 
+     &                    0.5e+0_fp*TDT,  FRACIS, TRACER_MW_G, 
+     &                    INDEXSOL, MOISTMW ) 
             ENDIF
 
          ENDDO 
@@ -225,8 +226,8 @@
      &                    UPDNG,      DNDNG,  DETRAINNG, ENTRAINNG, 
      &                    TOTALDNDNG, DPG,    JT,        MX,         
      &                    IDEEP,      1,      LENGATH,   NSTEP, 
-     &                    0.5e+0_fp*TDT,  FRACIS, TCVV,  INDEXSOL,
-     &                    MOISTMW ) 
+     &                    0.5e+0_fp*TDT,  FRACIS, TRACER_MW_G,  
+     &                    INDEXSOL, MOISTMW ) 
             ENDIF
 
          ENDDO
@@ -287,8 +288,8 @@
       USE CMN_SIZE_MOD    ! Size parameters
       
       ! Arguments
-      INTEGER, INTENT(IN)  :: J
-      INTEGER, INTENT(IN)  :: NSTEP
+      INTEGER,   INTENT(IN)  :: J
+      INTEGER,   INTENT(IN)  :: NSTEP
       REAL(fp),  INTENT(IN)  :: DP(IIPAR,JJPAR,LLPAR) 
       REAL(fp),  INTENT(IN)  :: MU(:,:,:)
       REAL(fp),  INTENT(IN)  :: MD(:,:,:)
@@ -300,14 +301,14 @@
       REAL(fp),  INTENT(OUT) :: EUG(IIPAR,LLPAR)
       REAL(fp),  INTENT(OUT) :: TOTALMDG(IIPAR,LLPAR)
       REAL(fp),  INTENT(OUT) :: DPG(IIPAR,LLPAR)
-      INTEGER, INTENT(OUT) :: JTG(IIPAR)
-      INTEGER, INTENT(OUT) :: JBG(IIPAR)
-      INTEGER, INTENT(OUT) :: IDEEP(IIPAR)
-      INTEGER, INTENT(OUT) :: LENGATH
+      INTEGER,   INTENT(OUT) :: JTG(IIPAR)
+      INTEGER,   INTENT(OUT) :: JBG(IIPAR)
+      INTEGER,   INTENT(OUT) :: IDEEP(IIPAR)
+      INTEGER,   INTENT(OUT) :: LENGATH
 
       ! Local variables
-      INTEGER              :: I, K, LENPOS 
-      INTEGER              :: INDEX(IIPAR)
+      INTEGER                :: I, K, LENPOS 
+      INTEGER                :: INDEX(IIPAR)
       REAL(fp)               :: SUM(IIPAR)
       REAL(fp)               :: RDPG(IIPAR,LLPAR)      
       REAL(fp)               :: TOTALMD(IIPAR,LLPAR)
@@ -377,15 +378,17 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CONVTRAN( J,    NTRACE, Q,       MU,       MD,       
-     &                     DU,   EU,     TOTALMD, DP,       JT,   
-     &                     MX,   IDEEP,  IL1G,    IL2G,     NSTEP,        
-     &                     DELT, FRACIS, TCVV,    INDEXSOL, MOISTMW ) 
+      SUBROUTINE CONVTRAN( J,    NTRACE, Q,           MU,       MD,       
+     &                     DU,   EU,     TOTALMD,     DP,       JT,   
+     &                     MX,   IDEEP,  IL1G,        IL2G,     NSTEP,        
+     &                     DELT, FRACIS, TRACER_MW_G, INDEXSOL, MOISTMW) 
 !
 !******************************************************************************
 !  Subroutine CONVTRAN applies the convective transport of trace species
 !  (assuming moist mixing ratio) using the ZHANG/MCFARLANE convection scheme. 
 !  (swu, bmy, 6/9/05, 12/19/06)
+!
+!  NOTE: Incoming mixing ratio is now moist mixing ratio (ewl, 5/8/15)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -407,7 +410,7 @@
 !  (16) NSTEP    (INTEGER)   : Time step index
 !  (17) DELT     (REAL(fp) ) : Time step
 !  (18) FRACIS   (REAL(fp) ) : Fraction of tracer that is insoluble
-!  (19) TCVV     (REAL(fp) ) : Ratio of air mass / tracer mass 
+!  (19) TRACER_MW_G(REAL(fp) ) : Tracer molecular wt                  [g/mol   ]
 !  (20) INDEXSOL (INTEGER)   : Index array of soluble tracer numbers
 !  (21) MOISTMW  (REAL(fp) ) : Molecular wet of moist air (3D array)  [g/mol]
 !
@@ -437,8 +440,10 @@
 !        latitude index LATI_INDEX to J.  Added comments. (bmy, 12/13/05)
 !  (2 ) Bug fix: avoid div by zero in formula for CHAT (bmy, 12/19/06)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
-!  27 Apr 2015 - E. Lundgren - Pass MOISTMW to use TCVV w/ moist mixing ratio
+!  27 Apr 2015 - E. Lundgren - Now use MOISTMW with moist mixing ratio
 !  27 Apr 2015 - E. Lundgren - Replace GRAV with global param g0 
+!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
+!                              for consistency with moist mixing ratio units
 !******************************************************************************
 !
       ! References to F90 modules
@@ -470,7 +475,7 @@
       INTEGER, INTENT(IN)      :: NSTEP               
       REAL(fp),  INTENT(IN)    :: DELT                
       REAL(fp),  INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
-      REAL(fp),  INTENT(IN)    :: TCVV(NTRACE)
+      REAL(fp),  INTENT(IN)    :: TRACER_MW_G(NTRACE)
       REAL(fp),  INTENT(IN)    :: MOISTMW(IIPAR,JJPAR,LLPAR)
       INTEGER, INTENT(IN)      :: INDEXSOL(NTRACE)
 
@@ -737,22 +742,11 @@
                   AREA_M2 = GET_AREA_M2( II, JJ, LL ) 
 
                   ! Save into AD38 array [kg/s]
-                  ! NOTE: Since using moist mixing ratio, must convert TCVV
-                  ! to MW moist air / MW tracer by multiplying by
-                  ! MOISTMW and dividing by AIRMW (ewl, 4/27/15)
                   AD38(II,JJ,LL,NN) = AD38(II,JJ,LL,NN) 
-
-                       ! Term 1
-     &               + MU(I,KP1) * CONU(I,KP1)
-     &                           * ( 1 - FISG(I,K) ) 
-     &                           * AREA_M2 * AIRMW / ( g0 * TCVV(M) 
-     &                           * MOISTMW(II,JJ,LL) * FLOAT(NSTEP) )
-
-                       ! Term 2
-     &               - TOTALMD(I,K) * CMIX(I,KP1)  
-     &                              * ( 1 - FISG(I,K) ) 
-     &                              * AREA_M2 * AIRMW / ( g0 * TCVV(M) 
-     &                              * MOISTMW(II,JJ,LL) * FLOAT(NSTEP) )
+     &               + ( MU(I,KP1) * CONU(I,KP1)
+     &                   - TOTALMD(I,K) * CMIX(I,KP1) )
+     &               * ( 1 - FISG(I,K) ) * AREA_M2 * TRACER_MW_G(M) 
+     &               / ( g0 * MOISTMW(II,JJ,LL) * FLOAT(NSTEP) )
                ENDIF
 #endif
 
@@ -765,17 +759,11 @@
                   AREA_M2 = GET_AREA_M2( II, JJ, LL ) 
 
                   CONVFLUP(II,JJ,LL,M) = CONVFLUP(II,JJ,LL,M) 
+     &              + ( MU(I,K) * ( CONU(I,K) - CMIX(I,KM1) )
+     &                  - TOTALMD(I,KM1) * ( CMIX(I,K) - COND(I,KM1) ) )  
+     &              * AREA_M2 * TRACER_MW_G(M)  
+     &              / ( g0 * MOISTMW(II,JJ,LL) * FLOAT(NSTEP) )
 
-                          ! Terms 1 and 2
-     &                  + MU(I,K) * ( CONU(I,K) - CMIX(I,KM1) )
-     &                            * AREA_M2 * AIRMW / ( g0 * TCVV(M) 
-     &                            * MOISTMW(II,JJ,LL) * FLOAT(NSTEP) )
-
-
-                          ! Terms 3 and 4
-     &                  - TOTALMD(I,KM1) * ( CMIX(I,K) - COND(I,KM1) )  
-     &                            * AREA_M2 * AIRMW / ( g0 * TCVV(M) 
-     &                            * MOISTMW(II,JJ,LL) * FLOAT(NSTEP) )
                ENDIF 
 
                NETFLUX = FLUXIN - FLUXOUT

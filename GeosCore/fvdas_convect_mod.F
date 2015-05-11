@@ -52,8 +52,9 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod.
 !  27 Apr 2015 - E. Lundgren - Now pass moist air MW to FVDAS_CONVECT (with
-!                              vertical indices flipped) to
-!                              correctly use TCVV with moist mixing ratio
+!                              vertical indices flipped)
+!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
+!                              for consistency with moist mixing ratio units
 !******************************************************************************
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -170,7 +171,7 @@
 
       SUBROUTINE FVDAS_CONVECT( TDT,   NTRACE, Q,     RPDEL, ETA, 
      &                          BETA,  MU,     MD,    EU,    DP,    
-     &                          NSTEP, FRACIS, TCVV,  INDEXSOL,
+     &                          NSTEP, FRACIS, TRACER_MW_G,  INDEXSOL,
      &                          Input_Opt, State_Met, MOISTMW )
 !
 !******************************************************************************
@@ -192,7 +193,7 @@
 !  (10) DP      (REAL(fp) ) : Delta-pressure between level edges   [Pa]
 !  (11) NSTEP   (INTEGER  ) : Time step index                      [unitless]
 !  (12) FRACIS  (REAL(fp) ) : Fraction of tracer that is insoluble [unitless]
-!  (13) TCVV    (REAL(fp) ) : Molwt(dry air)/molwt(Tracer)         [unitless]
+!  (13) TRACER_MW_G(REAL(fp) ) : Tracer molecular wt               [g/mol]
 !  (14) INDEXSOL(INTEGER  ) : Index array of soluble tracers       [unitless]
 !  (15) Input_opt(OPTINPUT) : Input options object
 !  (16) State_Met(METSTATE) : Meteorological state object
@@ -233,8 +234,9 @@
 !                              routine via assumed-shape dummy arguments.
 !                              This will eliminate array temporaries.
 !  27 Apr 2015 - E. Lundgren - Now pass moist air MW (with vertical array
-!                              flipped) to FVDAS_CONVECT to correctly use 
-!                              TCVV with moist mixing ratio
+!                              flipped) to FVDAS_CONVECT 
+!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
+!                              for consistency with moist mixing ratio units
 !******************************************************************************
 !
 ! !USES
@@ -256,7 +258,7 @@
       REAL(fp),       INTENT(IN)    :: EU  (:,:,:)
       REAL(fp),       INTENT(IN)    :: DP(IIPAR,JJPAR,LLPAR)     
       REAL(fp),       INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
-      REAL(fp),       INTENT(IN)    :: TCVV(NTRACE)
+      REAL(fp),       INTENT(IN)    :: TRACER_MW_G(NTRACE)
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       REAL(fp),       INTENT(IN)    :: MOISTMW(IIPAR,JJPAR,LLPAR)
@@ -312,8 +314,8 @@
                CALL CONVTRAN( J,     NTRACE,    Q,      MUG,  MDG,      
      &                    DUG,   EUG,       EDG,    DPG,  DSUBCLD,  
      &                    JT,    MX,        IDEEP,  1,    LENGATH, 
-     &                    NSTEP, 0.5e+0_fp*TDT, FRACIS, TCVV, INDEXSOL,
-     &                    Input_Opt, State_Met, MOISTMW )
+     &                    NSTEP, 0.5e+0_fp*TDT, FRACIS, TRACER_MW_G, 
+     &                    INDEXSOL, Input_Opt, State_Met, MOISTMW )
             ENDIF
 
             !-----------------------------------
@@ -715,7 +717,7 @@
       SUBROUTINE CONVTRAN( J,     NTRACE, Q,      MU,   MD,       
      &                     DU,    EU,     ED,     DP,   DSUBCLD,  
      &                     JT,    MX,     IDEEP,  IL1G, IL2G,     
-     &                     NSTEP, DELT,   FRACIS, TCVV, INDEXSOL,
+     &                     NSTEP, DELT,   FRACIS, TRACER_MW_G, INDEXSOL,
      &                     Input_Opt, State_Met, MOISTMW )
 !
 !******************************************************************************
@@ -743,11 +745,11 @@
 !  (16) NSTEP    (INTEGER)   : Time step index
 !  (17) DELT     (REAL(fp) ) : Time step
 !  (18) FRACIS   (REAL(fp) ) : Fraction of tracer that is insoluble
-!  (19) TCVV     (REAL(fp) ) : Ratio of air mass / tracer mass 
+!  (19) TRACER_MW_G(REAL(fp) ) : Tracer molecular wt                 [g/mol 
 !  (20) INDEXSOL (INTEGER)   : Index array of soluble tracer numbers
 !  (21) Input_opt(OPTINPUT) : Input options object
 !  (22) State_Met(METSTATE) : Meteorological state object
-!  (23) MOISTMW (REAL(fp) ) : Moist air molecular weight           [g/mol]
+!  (23) MOISTMW (REAL(fp) ) : Moist air molecular weight             [g/mol]
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -795,8 +797,10 @@
 !  23 Jun 2014 - R. Yantosca - Now accept Input_Opt
 !  23 Jun 2014 - R. Yantosca - Now remove references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
-!  27 Apr 2015 - E. Lundgren - Now pass MOISTMW for TCVV w/ moist mixing ratio
+!  27 Apr 2015 - E. Lundgren - Now pass MOISTMW for use with moist mixing ratio
 !  27 Apr 2015 - E. Lundgren - Replace 100/GRAV with global param g0_100
+!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
+!                              for consistency with moist mixing ratio units
 !******************************************************************************
 !
       ! References to F90 modules
@@ -834,7 +838,7 @@
       INTEGER,        INTENT(IN)     :: NSTEP               
       REAL(fp),       INTENT(IN)     :: DELT                
       REAL(fp),       INTENT(IN)     :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
-      REAL(fp),       INTENT(IN)     :: TCVV(NTRACE)
+      REAL(fp),       INTENT(IN)     :: TRACER_MW_G(NTRACE)
       INTEGER,        INTENT(IN)     :: INDEXSOL(NTRACE)
       TYPE(OptInput), INTENT(IN)     :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)     :: State_Met   ! Meteorology State object
@@ -1110,16 +1114,20 @@
                ! AIRFLUX:  MU(I,K) * AREA_M2 * 100 / GRAV  
                !            = air mass (upward) flux in kg/s
                !
-               ! T1:      +AIRFLUX * CONU(I,K)   * TCVV(M) 
+               ! T1:      +AIRFLUX * CONU(I,K) * TRACER_MW_G(M) 
+               !                               / MOISTMW(II,JJ,LL) 
                !            = tracer mass upward flux [kg/s]
                !
-               ! T2:      -AIRFLUX * CMIX(I,K-1) * TCVV(M) 
+               ! T2:      -AIRFLUX * CMIX(I,K-1) * TRACER_MW_G(M) 
+               !                                 / MOISTMW(II,JJ,LL)
                !            = subsidence of tracer [kg/s]
                !
-               ! T3:      -AIRFLUX * CMIX(I,K)   * TCVV(M)
+               ! T3:      -AIRFLUX * CMIX(I,K) * TRACER_MW_G(M) 
+               !                               / MOISTMW(II,JJ,LL)
                !            = downdraft flux of tracer [kg/s]
                !
-               ! T4:      +AIRFLUX * COND(I,K-1) * TCVV(M)
+               ! T4:      +AIRFLUX * COND(I,K-1) * TRACER_MW_G(M) 
+               !                                 / MOISTMW(II,JJ,LL)
                !            = compensatory upward tracer flux [kg/s] 
                !
                ! Where:
@@ -1130,18 +1138,13 @@
                ! COND     = Mixing ratio in downdraft     [v/v     ]
                ! CMIX     = Gathered tracer array         [v/v     ]
                ! GRAV     = Acceleration due to gravity   [m/s2    ]
-               ! TCVV     = Ratio: MW dry air / MW tracer [unitless]
+               ! TRACER_MW_G = Tracer molecular wt        [g/mol   ]
+               ! MOISTMW  = Moist air molecular wt        [g/mol   ]
                ! D_NSTEP  = # of convection timesteps     [unitless]
                !
                ! Dividing by the number of time steps within each 
                ! convection step is simply accounting for the scale 
                ! factors (SCALECONV) in diag3.f.
-               !
-               ! Since using moist mixing ratio, must convert TCVV
-               ! to MW moist air / MW tracer by multiplying by MOISTMW
-               ! (grid box dependent) and dividing by AIRMW (constant)
-               ! (ewl, 4/27/15)
-               !
                !========================================================
 
                ! Only save ND14 if it's turned on
@@ -1160,18 +1163,11 @@
 
                      ! Net upward convective flux [kg/s]
                      CONVFLUP(II,JJ,LL,M) = CONVFLUP(II,JJ,LL,M)  
+     &                + (   MU(I,K)   * ( CONU(I,K) - CMIX(I,KM1) )       
+     &                    - MD(I,KM1) * ( CMIX(I,K) - COND(I,KM1) ) )      
+     &                  * AREA_M2 * g0_100 * TRACER_MW_G(M)
+     &                  / ( MOISTMW(II,JJ,LL) * D_NSTEP )
 
-                        ! Terms T1 + T2
-     &                + MU(I,K)   * ( CONU(I,K) - CMIX(I,KM1)     )       
-     &                            *   AREA_M2   * AIRMW * g0_100  
-     &                            / ( MOISTMW(II,JJ,LL)      
-     &                            *   TCVV(M)   * D_NSTEP         )
-
-                        ! Terms T3 + T4
-     &                - MD(I,KM1) * ( CMIX(I,K) - COND(I,KM1)     )      
-     &                            *   AREA_M2   * AIRMW * g0_100   
-     &                            / ( MOISTMW(II,JJ,LL) 
-     &                            *   TCVV(M)   * D_NSTEP         )
                   ENDIF
                ENDIF 
 
@@ -1185,7 +1181,8 @@
                !      = Air mass (upward) flux from level K+1 -> K
                !        (Note that vertical levels are reversed)
                !
-               ! * CONU(I,K+1) * TCVV(M) * ( 1 - FISG(I,K ) 
+               ! * CONU(I,K+1) * TRACER_MW_G(M) / MOISTMW(II,JJ,LL)
+               !               * ( 1 - FISG(I,K) 
                !      = Tracer mass upward from level K+1 -> K [kg/s]
                !
                ! Where:
@@ -1193,11 +1190,6 @@
                ! CONU(I,K+1)   = Tracer in mass flux from K+1 -> K
                ! 1 - FISG(I,K) = Fraction of tracer lost in convective
                !                  updraft going from level K+1 -> K
-               !
-               ! Since using moist mixing ratio, must convert TCVV
-               ! to MW moist air / MW tracer by multiplying by MOISTMW
-               ! (grid box dependent) and dividing by AIRMW (constant)
-               ! (ewl, 4/27/15)
                !
                !========================================================
 
@@ -1223,11 +1215,11 @@
 
                      ! Save loss in [kg/s]
                      AD38(II,JJ,LL,NN) = AD38(II,JJ,LL,NN) +
-     &                               +  MU(I,KP1) *  CONU(I,KP1) 
-     &                               * ( 1e+0_fp - FISG(I,K) )
-     &                               * AREA_M2 * g0_100 * AIRMW
-     &                               / ( MOISTMW(II,JJ,LL) 
-     &                                   * TCVV(M) * D_NSTEP ) 
+     &                              +  MU(I,KP1) *  CONU(I,KP1) 
+     &                                 * ( 1e+0_fp - FISG(I,K) )
+     &                                 * AREA_M2 * g0_100
+     &                                 * TRACER_MW_G(M)
+     &                                 / ( MOISTMW(II,JJ,LL) * D_NSTEP ) 
 
                   ENDIF
                ENDIF
@@ -1245,11 +1237,6 @@
                ! using the online dynamic ocean (i.e. if LDYNOCEAN=F).
                ! (bmy, 2/27/06)
                !               
-               ! Since using moist mixing ratio, must convert TCVV
-               ! to MW moist air / MW tracer by multiplying by MOISTMW
-               ! (grid box dependent) and dividing by AIRMW (constant)
-               ! (ewl, 4/27/15)
-               !
                !========================================================
 
                ! If this is a Hg simulation ...
@@ -1269,9 +1256,9 @@
                      ! Hg2 wet-scavenged out of the column [kg]
                      WET_Hg2 = MU(I,KP1) * CONU(I,KP1)
      &                          * ( 1e+0_fp - FISG(I,K) ) 
-     &                          * AREA_M2 * g0_100 * AIRMW 
-     &                          / ( MOISTMW(II,JJ,LL) 
-     &                              * TCVV(M) )    * DELT 
+     &                          * AREA_M2 * g0_100 
+     &                          * TRACER_MW_G(M) 
+     &                          / ( MOISTMW(II,JJ,LL) * DELT )
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_Hg2_WD( II, J, M, WET_Hg2 )
@@ -1292,9 +1279,9 @@
                      ! Hg2 wet-scavenged out of the column [kg]
                      WET_HgP = MU(I,KP1) * CONU(I,KP1)
      &                         * ( 1e+0_fp - FISG(I,K) )
-     &                         * AREA_M2 * g0_100 * AIRMW    
-     &                         / ( MOISTMW(II,JJ,LL)
-     &                             * TCVV(M) )    * DELT 
+     &                          * AREA_M2 * g0_100 
+     &                          * TRACER_MW_G(M) 
+     &                          / ( MOISTMW(II,JJ,LL) * DELT )
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_HgP_WD( II, J, M, WET_HgP )
