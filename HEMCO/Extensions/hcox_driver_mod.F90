@@ -57,7 +57,7 @@ MODULE HCOX_Driver_Mod
 !
 
   ! Variables for diagnostics: diagnostics toggle and output frequency.
-  LOGICAL, PARAMETER            :: DoDiagn   = .TRUE.
+  LOGICAL, PARAMETER            :: DoDiagn   = .FALSE.
 
   ! Arrays needed for diagnostics. Diagnostics are defined / filled via
   ! subroutines HCOX_DiagnDefine and HCOX_DiagnFill, respectively.
@@ -869,7 +869,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 
     IF ( DoDiagn ) THEN
-       DGN_LAI     = ExtState%GC_LAI%Arr%Val
+       DGN_LAI     = ExtState%LAI%Arr%Val
 !       DGN_T2M     = ExtState%T2M%Arr%Val
 !       DGN_GWET    = ExtState%GWETTOP%Arr%Val
 !       DGN_U10M    = ExtState%U10M%Arr%Val

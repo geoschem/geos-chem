@@ -1005,7 +1005,7 @@ CONTAINS
     DO J = 1, NY
 
        ! delta latitude
-       SIN_DELTA = YSIN(I,J+1,1) - YSIN(I,J,1)
+       SIN_DELTA = YSIN(1,J+1,1) - YSIN(1,J,1)
 
        ! Grid box area. 
        AM2 = DLON * PI_180 * HcoState%Phys%Re**2 * SIN_DELTA
@@ -1670,7 +1670,7 @@ CONTAINS
     CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%CLDFRC, 'CLDFRC', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%GC_LAI, 'GC_LAI', RC, FIRST )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%LAI, 'LAI', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%JNO2, 'JNO2', RC, FIRST )

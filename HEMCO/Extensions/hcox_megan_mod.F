@@ -1624,7 +1624,7 @@
 !      write(*,*) ''
 
       ! Keep LAI in memory (ckeller, 10/9/2014)
-      LAI_PREVSTEP = ExtState%GC_LAI%Arr%Val
+      LAI_PREVSTEP = ExtState%LAI%Arr%Val
 
       ! Return w/ success
       CALL HCO_LEAVE ( RC )
@@ -1733,8 +1733,8 @@
       ! Number of days between MISOLAI and PMISOLAI
       D_BTW_M  = DBLE( DAYS_BTW_M )
 
-      ! Pass met variables. Now use only GC_LAI (ckeller, 10/9/2014)
-      ISOLAI   = ExtState%GC_LAI%Arr%Val(I,J)
+      ! Pass met variables. Now use only LAI (ckeller, 10/9/2014)
+      ISOLAI   = ExtState%LAI%Arr%Val(I,J)
       PMISOLAI = LAI_PREVDAY(I,J)
       MISOLAI  = ISOLAI
       TS       = ExtState%T2M%Arr%Val(I,J)
@@ -3083,7 +3083,7 @@
 
       ! Default value
       IF ( .NOT. FND ) THEN
-         LAI_PREVDAY = ExtState%GC_LAI%Arr%Val
+         LAI_PREVDAY = ExtState%LAI%Arr%Val
       ENDIF
 
       !-----------------------------------------------------------------
@@ -4423,7 +4423,7 @@
       ExtState%SUNCOSmid%DoUse = .TRUE.
       ExtState%PARDR%DoUse     = .TRUE.
       ExtState%PARDF%DoUse     = .TRUE.
-      ExtState%GC_LAI%DoUse    = .TRUE.
+      ExtState%LAI%DoUse       = .TRUE.
       ExtState%GWETROOT%DoUse  = .TRUE.
 
       ! SZAFACT field is only used for SOA simulation

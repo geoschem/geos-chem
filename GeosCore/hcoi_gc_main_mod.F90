@@ -1161,12 +1161,12 @@ CONTAINS
 
     ! Use 'offline' LAI in standard GEOS-Chem
 #if defined(ESMF_)
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%GC_LAI, &
-           'GC_LAI', HCRC,      FIRST,    State_Met%LAI     )
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%LAI, &
+              'LAI', HCRC,      FIRST,    State_Met%LAI  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #else
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%GC_LAI, &
-           'GC_LAI', HCRC,      FIRST,    GC_LAI            )
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%LAI, &
+              'LAI', HCRC,      FIRST,    GC_LAI         )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #endif
 

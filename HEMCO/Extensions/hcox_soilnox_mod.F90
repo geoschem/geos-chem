@@ -794,7 +794,7 @@ CONTAINS
     ExtState%SUNCOSmid%DoUse = .TRUE. 
     ExtState%U10M%DoUse      = .TRUE. 
     ExtState%V10M%DoUse      = .TRUE. 
-    ExtState%GC_LAI%DoUse    = .TRUE. 
+    ExtState%LAI%DoUse       = .TRUE. 
     ExtState%ALBD%DoUse      = .TRUE. 
     ExtState%RADSWG%DoUse    = .TRUE. 
     ExtState%CLDFRC%DoUse    = .TRUE. 
@@ -1009,7 +1009,7 @@ CONTAINS
                      ExtState%V10M%Arr%Val(I,J)**2
 
     ! Leaf area index
-    LAI = ExtState%GC_LAI%Arr%Val(I,J)
+    LAI = ExtState%LAI%Arr%Val(I,J)
 
     ! Cosine of Solar Zenit Angle
     SUNCOS = ExtState%SUNCOSmid%Arr%Val(I,J)
@@ -1217,10 +1217,10 @@ CONTAINS
           !'9999' it means there are no cuticular surfaces on which to 
           ! deposit so we impose a very large value for RLU.
           IF ( SNIRLU(KK) >= 9999 .OR. &
-               ExtState%GC_LAI%Arr%Val(I,J) <= 0e+0_hp ) THEN
+               ExtState%LAI%Arr%Val(I,J) <= 0e+0_hp ) THEN
              RLU(K)  = 1.e+6_hp
           ELSE
-             RLU(K)= DBLE(SNIRLU(KK)) / ExtState%GC_LAI%Arr%Val(I,J) + RT
+             RLU(K)= DBLE(SNIRLU(KK)) / ExtState%LAI%Arr%Val(I,J) + RT
           ENDIF
 
           ! The following are the remaining resistances for the Wesely
@@ -1285,9 +1285,9 @@ CONTAINS
 
              GFACI = 100.e+0_hp
 
-             IF ( RAD0 > 0e+0_hp .AND. ExtState%GC_LAI%Arr%Val(I,J) > 0e+0_hp ) THEN
+             IF ( RAD0 > 0e+0_hp .AND. ExtState%LAI%Arr%Val(I,J) > 0e+0_hp ) THEN
 
-                LAI    = ExtState%GC_LAI%Arr%Val(I,J)
+                LAI    = ExtState%LAI%Arr%Val(I,J)
                 SUNCOS = ExtState%SUNCOSmid%Arr%Val(I,J)
                 CLDFRC = ExtState%CLDFRC%Arr%Val(I,J)
                

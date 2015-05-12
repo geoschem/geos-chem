@@ -147,7 +147,7 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: CLDFRC      ! cloud fraction [-]
      TYPE(ExtDat_2R),  POINTER :: JNO2        ! J-Value for NO2 [1/s] 
      TYPE(ExtDat_2R),  POINTER :: JO1D        ! J-Value for O3  [1/s]
-     TYPE(ExtDat_2R),  POINTER :: GC_LAI      ! daily leaf area index [cm2/cm2] 
+     TYPE(ExtDat_2R),  POINTER :: LAI         ! daily leaf area index [cm2/cm2] 
      INTEGER,          POINTER :: PBL_MAX     ! Max height of PBL [level]
      TYPE(ExtDat_3R),  POINTER :: CNV_MFC     ! Convective cloud mass flux [kg/m2/s] 
      TYPE(ExtDat_3R),  POINTER :: FRAC_OF_PBL ! Fraction of grid box in PBL
@@ -385,7 +385,7 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%CLDFRC, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%GC_LAI, RC ) 
+    CALL ExtDat_Init ( ExtState%LAI, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Init ( ExtState%JNO2, RC ) 
@@ -504,7 +504,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%FRLAKE     )
        CALL ExtDat_Cleanup( ExtState%FRLANDIC   )
        CALL ExtDat_Cleanup( ExtState%CLDFRC     )
-       CALL ExtDat_Cleanup( ExtState%GC_LAI     )
+       CALL ExtDat_Cleanup( ExtState%LAI        )
        CALL ExtDat_Cleanup( ExtState%JNO2       )
        CALL ExtDat_Cleanup( ExtState%JO1D       )
        CALL ExtDat_Cleanup( ExtState%CNV_MFC    )
@@ -963,7 +963,7 @@ CONTAINS
 !
     USE HCO_ARR_MOD,        ONLY : HCO_ArrAssert
     USE HCO_STATE_MOD,      ONLY : HCO_State
-    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+    USE HCO_CALC_MOD,       ONLY : HCO_EvalFld
 !
 ! !INPUT PARAMETERS:
 !
@@ -977,18 +977,21 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
+!  11 May 2015 - C. Keller - Now use HCO_EvalFld instead of HCO_GetPtr. This
+!                            allows the application of scale factors to
+!                            ExtState fields read through the HEMCO interface. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: NX, NY
-    REAL(sp), POINTER  :: Ptr2D(:,:) => NULL() 
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'ExtDat_Set_2R (hcox_state_mod.F90)'
-    LOGICAL            :: FRST
-    LOGICAL            :: FOUND 
+    INTEGER                :: AS, NX, NY
+    REAL(hp), ALLOCATABLE  :: Arr2D(:,:)
+    CHARACTER(LEN=255)     :: MSG
+    CHARACTER(LEN=255)     :: LOC = 'ExtDat_Set_2R (hcox_state_mod.F90)'
+    LOGICAL                :: FRST
+    LOGICAL                :: FOUND 
 
     ! ================================================================
     ! ExtDat_Set_2R begins here
@@ -1011,8 +1014,15 @@ CONTAINS
     ! from emissions list 
     IF ( FRST .OR. ExtDat%FromList ) THEN
 
+       ! Allocate temporary array
+       ALLOCATE(Arr2D(HcoState%NX,HcoState%NY),STAT=AS)
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR ( "Arr2D allocation error", RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
        ! Try to get data from list
-       CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr2D, RC, FOUND=FOUND )
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FldName), Arr2D, RC, FOUND=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN     
 
        ! On first call, need to make additional checks
@@ -1022,22 +1032,6 @@ CONTAINS
           IF ( FOUND ) THEN
              ExtDat%FromList = .TRUE.
   
-             ! Pointer dimensions 
-             NX = SIZE(Ptr2D,1)
-             NY = SIZE(Ptr2D,2)
-
-             ! Must cover the horizontal grid 
-             IF ( ( (NX /= 1) .AND. (NX /= HcoState%NX) ) .OR. &
-                  ( (NY /= 1) .AND. (NY /= HcoState%NY) )       ) THEN
-                WRITE(MSG,*) 'Horizontal dimensions of input data do not ', &
-                   'correspond to simulation grid (and is not 1, either): ', &
-                   'Expected dimensions: ', HcoState%NX, HcoState%NY, &
-                   '; encountered dimensions: ', NX, NY, '. Error occured ', &
-                   'for field ', TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
-
              ! Make sure array is allocated
              CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1099,11 +1093,7 @@ CONTAINS
           ENDIF
    
           ! Copy values
-          IF ( SIZE(Ptr2D,1) == 1 ) THEN
-             ExtDat%Arr%Val(:,:) = Ptr2D(1,1)
-          ELSE
-             ExtDat%Arr%Val(:,:) = Ptr2D(:,:)
-          ENDIF
+          ExtDat%Arr%Val(:,:) = Arr2D(:,:)
        ENDIF ! FromList
     ENDIF  
 
@@ -1112,6 +1102,9 @@ CONTAINS
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
     ENDIF
+
+    ! Cleanup
+    IF ( ALLOCATED(Arr2D) ) DEALLOCATE(Arr2D)
  
     ! Return w/ success
     RC = HCO_SUCCESS  
@@ -1138,7 +1131,7 @@ CONTAINS
 !
     USE HCO_ARR_MOD,        ONLY : HCO_ArrAssert
     USE HCO_STATE_MOD,      ONLY : HCO_State
-    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+    USE HCO_CALC_MOD,       ONLY : HCO_EvalFld
 !
 ! !INPUT PARAMETERS:
 !
@@ -1152,18 +1145,21 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
+!  11 May 2015 - C. Keller - Now use HCO_EvalFld instead of HCO_GetPtr. This
+!                            allows the application of scale factors to
+!                            ExtState fields read through the HEMCO interface. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: NX, NY
-    REAL(sp), POINTER  :: Ptr2D(:,:) => NULL() 
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'ExtDat_Set_2S (hcox_state_mod.F90)'
-    LOGICAL            :: FRST
-    LOGICAL            :: FOUND 
+    INTEGER                :: AS, NX, NY
+    REAL(hp), ALLOCATABLE  :: Arr2D(:,:)
+    CHARACTER(LEN=255)     :: MSG
+    CHARACTER(LEN=255)     :: LOC = 'ExtDat_Set_2S (hcox_state_mod.F90)'
+    LOGICAL                :: FRST
+    LOGICAL                :: FOUND 
 
     ! ================================================================
     ! ExtDat_Set_2S begins here
@@ -1186,8 +1182,15 @@ CONTAINS
     ! from emissions list 
     IF ( FRST .OR. ExtDat%FromList ) THEN
 
+       ! Allocate temporary array
+       ALLOCATE(Arr2D(HcoState%NX,HcoState%NY),STAT=AS)
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR ( "Arr2D allocation error", RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
        ! Try to get data from list
-       CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr2D, RC, FOUND=FOUND )
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FldName), Arr2D, RC, FOUND=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN     
 
        ! On first call, need to make additional checks
@@ -1195,48 +1198,16 @@ CONTAINS
    
           ! If read from list
           IF ( FOUND ) THEN
- 
-             ! Pointer dimensions 
-             NX = SIZE(Ptr2D,1)
-             NY = SIZE(Ptr2D,2)
-     
-             ! Must cover the horizontal grid 
-             IF ( ( (NX /= 1) .AND. (NX /= HcoState%NX) ) .OR. &
-                  ( (NY /= 1) .AND. (NY /= HcoState%NY) )       ) THEN
-                WRITE(MSG,*) 'Horizontal dimensions of input data do not ', &
-                   'correspond to simulation grid (and is not 1, either): ', &
-                   'Expected dimensions: ', HcoState%NX, HcoState%NY, &
-                   '; encountered dimensions: ', NX, NY, '. Error occured ', &
-                   'for field ', TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
- 
-             ! Check if input data is of same size. In this case, we can set
-             ! a pointer
-             IF ( (NX == HcoState%NX) .AND. (NY == HcoState%NY) ) THEN
+             ExtDat%FromList = .TRUE.
+  
+             ! Make sure array is allocated
+             CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
    
-                ExtDat%Arr%Val  => Ptr2D
-                ExtDat%FromList = .FALSE.
-   
-                ! Verbose
-                IF ( HCO_IsVerb(2) ) THEN
-                   MSG = 'Set extension field pointer to HEMCO data list field ' // TRIM(FldName)
-                   CALL HCO_MSG(MSG)
-                ENDIF
-   
-             ELSE
-                ExtDat%FromList = .TRUE.
-   
-                ! Make sure array is allocated
-                CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, RC )
-                IF ( RC /= HCO_SUCCESS ) RETURN
-   
-                ! Verbose
-                IF ( HCO_IsVerb(2) ) THEN
-                   MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
-                   CALL HCO_MSG(MSG)
-                ENDIF
+             ! Verbose
+             IF ( HCO_IsVerb(2) ) THEN
+                MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
+                CALL HCO_MSG(MSG)
              ENDIF
    
           ! Target to data
@@ -1263,7 +1234,7 @@ CONTAINS
                 CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
- 
+
              ! Link data to target
              ExtDat%Arr%Val => Trgt
    
@@ -1276,7 +1247,6 @@ CONTAINS
                 CALL HCO_MSG(MSG)
              ENDIF
           ENDIF
-    
        ENDIF ! FIRST
    
        ! Eventually copy field from HEMCO list to ExtState. We need to
@@ -1291,19 +1261,18 @@ CONTAINS
           ENDIF
    
           ! Copy values
-          IF ( SIZE(Ptr2D,1) == 1 ) THEN
-             ExtDat%Arr%Val(:,:) = Ptr2D(1,1)
-          ELSE
-             ExtDat%Arr%Val(:,:) = Ptr2D(:,:)
-          ENDIF
-       ENDIF !FromList
-    ENDIF
+          ExtDat%Arr%Val(:,:) = Arr2D(:,:)
+       ENDIF ! FromList
+    ENDIF  
 
     ! Make sure array exists
     IF ( .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
     ENDIF
+
+    ! Cleanup
+    IF ( ALLOCATED(Arr2D) ) DEALLOCATE(Arr2D)
  
     ! Return w/ success
     RC = HCO_SUCCESS  
@@ -1330,7 +1299,7 @@ CONTAINS
 !
     USE HCO_ARR_MOD,        ONLY : HCO_ArrAssert
     USE HCO_STATE_MOD,      ONLY : HCO_State
-    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+    USE HCO_CALC_MOD,       ONLY : HCO_EvalFld
 !
 ! !INPUT PARAMETERS:
 !
@@ -1344,18 +1313,21 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
+!  11 May 2015 - C. Keller - Now use HCO_EvalFld instead of HCO_GetPtr. This
+!                            allows the application of scale factors to
+!                            ExtState fields read through the HEMCO interface. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: NX, NY
-    REAL(sp), POINTER  :: Ptr2D(:,:) => NULL() 
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'ExtDat_Set_2I (hcox_state_mod.F90)'
-    LOGICAL            :: FRST
-    LOGICAL            :: FOUND 
+    INTEGER                :: AS, NX, NY
+    REAL(hp), ALLOCATABLE  :: Arr2D(:,:)
+    CHARACTER(LEN=255)     :: MSG
+    CHARACTER(LEN=255)     :: LOC = 'ExtDat_Set_2I (hcox_state_mod.F90)'
+    LOGICAL                :: FRST
+    LOGICAL                :: FOUND 
 
     ! ================================================================
     ! ExtDat_Set_2I begins here
@@ -1378,8 +1350,15 @@ CONTAINS
     ! from emissions list 
     IF ( FRST .OR. ExtDat%FromList ) THEN
 
+       ! Allocate temporary array
+       ALLOCATE(Arr2D(HcoState%NX,HcoState%NY),STAT=AS)
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR ( "Arr2D allocation error", RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
        ! Try to get data from list
-       CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr2D, RC, FOUND=FOUND )
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FldName), Arr2D, RC, FOUND=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN     
 
        ! On first call, need to make additional checks
@@ -1389,22 +1368,6 @@ CONTAINS
           IF ( FOUND ) THEN
              ExtDat%FromList = .TRUE.
   
-             ! Pointer dimensions 
-             NX = SIZE(Ptr2D,1)
-             NY = SIZE(Ptr2D,2)
-
-             ! Must cover the horizontal grid 
-             IF ( ( (NX /= 1) .AND. (NX /= HcoState%NX) ) .OR. &
-                  ( (NY /= 1) .AND. (NY /= HcoState%NY) )       ) THEN
-                WRITE(MSG,*) 'Horizontal dimensions of input data do not ', &
-                   'correspond to simulation grid (and is not 1, either): ', &
-                   'Expected dimensions: ', HcoState%NX, HcoState%NY, &
-                   '; encountered dimensions: ', NX, NY, '. Error occured ', &
-                   'for field ', TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
- 
              ! Make sure array is allocated
              CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1467,11 +1430,7 @@ CONTAINS
           ENDIF
    
           ! Copy values
-          IF ( SIZE(Ptr2D,1) == 1 ) THEN
-             ExtDat%Arr%Val(:,:) = Ptr2D(1,1)
-          ELSE
-             ExtDat%Arr%Val(:,:) = Ptr2D(:,:)
-          ENDIF
+          ExtDat%Arr%Val(:,:) = Arr2D(:,:)
        ENDIF !FromList
     ENDIF 
    
@@ -1480,6 +1439,9 @@ CONTAINS
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
     ENDIF
+ 
+    ! Cleanup
+    IF ( ALLOCATED(Arr2D) ) DEALLOCATE(Arr2D)
  
     ! Return w/ success
     RC = HCO_SUCCESS  
@@ -1506,7 +1468,7 @@ CONTAINS
 !
     USE HCO_ARR_MOD,        ONLY : HCO_ArrAssert
     USE HCO_STATE_MOD,      ONLY : HCO_State
-    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+    USE HCO_CALC_MOD,       ONLY : HCO_EvalFld
 !
 ! !INPUT PARAMETERS:
 !
@@ -1521,20 +1483,22 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
+!  11 May 2015 - C. Keller - Now use HCO_EvalFld instead of HCO_GetPtr. This
+!                            allows the application of scale factors to
+!                            ExtState fields read through the HEMCO interface. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: NX, NY, NZ, NZ_EXPECTED
-    INTEGER            :: L
-    LOGICAL            :: FRST
-    LOGICAL            :: FOUND 
-    REAL(sp), POINTER  :: Ptr2D(:,:)   => NULL() 
-    REAL(sp), POINTER  :: Ptr3D(:,:,:) => NULL() 
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'ExtDat_Set_3R (hcox_state_mod.F90)'
+    INTEGER                :: AS, NX, NY, NZ, NZ_EXPECTED
+    INTEGER                :: L
+    LOGICAL                :: FRST
+    LOGICAL                :: FOUND 
+    REAL(hp), ALLOCATABLE  :: Arr3D(:,:,:) 
+    CHARACTER(LEN=255)     :: MSG
+    CHARACTER(LEN=255)     :: LOC = 'ExtDat_Set_3R (hcox_state_mod.F90)'
 
     ! ================================================================
     ! ExtDat_Set_3R begins here
@@ -1565,15 +1529,16 @@ CONTAINS
     ! from emissions list 
     IF ( FRST .OR. ExtDat%FromList ) THEN
 
-       ! Try to get data from list
-       CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr3D, RC, FOUND=FOUND )
-       IF ( RC /= HCO_SUCCESS ) RETURN     
+       ! Allocate temporary array
+       ALLOCATE(Arr3D(HcoState%NX,HcoState%NY,NZ_EXPECTED),STAT=AS)
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR ( "Arr3D allocation error", RC, THISLOC=LOC )
+          RETURN
+       ENDIF
 
-       ! Also try to read 2D if not found 
-       IF ( .NOT. FOUND ) THEN
-          CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr2D, RC, FOUND=FOUND )
-          IF ( RC /= HCO_SUCCESS ) RETURN     
-       ENDIF 
+       ! Try to get data from list
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FldName), Arr3D, RC, FOUND=FOUND )
+       IF ( RC /= HCO_SUCCESS ) RETURN     
 
        ! On first call, need to make additional checks
        IF ( FRST ) THEN
@@ -1582,45 +1547,6 @@ CONTAINS
           IF ( FOUND ) THEN
              ExtDat%FromList = .TRUE.
 
-             ! Dimensions of data pointer
-             IF ( ASSOCIATED(Ptr3D) ) THEN
-                NX = SIZE(Ptr3D,1)
-                NY = SIZE(Ptr3D,2)
-                NZ = SIZE(Ptr3D,3)
-             ELSEIF ( ASSOCIATED(Ptr2D) ) THEN 
-                NX = SIZE(Ptr2D,1)
-                NY = SIZE(Ptr2D,2)
-                NZ = 1
-             ! will cause error:
-             ELSE
-                NX = 0
-                NY = 0
-                NZ = 0
-             ENDIF
-
-             ! Must cover the horizontal grid 
-             IF ( ( (NX /= 1) .AND. (NX /= HcoState%NX) ) .OR. &
-                  ( (NY /= 1) .AND. (NY /= HcoState%NY) )       ) THEN
-                WRITE(MSG,*) 'Horizontal dimensions of input data do not ', &
-                   'correspond to simulation grid (and is not 1, either): ', &
-                   'Expected dimensions: ', HcoState%NX, HcoState%NY, &
-                   '; encountered dimensions: ', NX, NY, '. Error occured ', &
-                   'for field ', TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
-   
-             ! Must also cover vertical extension
-             IF ( (NZ /= 1) .AND. (NZ /= NZ_EXPECTED) ) THEN
-                WRITE(MSG,*) 'Vertical dimension of input data does not ', &
-                   'correspond to simulation grid (and is not 1, either): ', &
-                   'Expected dimension: ', NZ_EXPECTED, &
-                   '; encountered dimensions: ', NZ, '. Error occured ', &
-                   'for field ', TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
- 
              ! Make sure array is allocated
              CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, NZ_EXPECTED, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1682,21 +1608,10 @@ CONTAINS
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
+  
+          ! Copy data 
+          ExtDat%Arr%Val(:,:,:) = Arr3D(:,:,:)
    
-          ! If it's a 3D array...
-          IF ( ASSOCIATED(Ptr3D) ) THEN
-             ExtDat%Arr%Val(:,:,:) = Ptr3D(:,:,:)
-   
-          ! If it's a 2D array...
-          ELSEIF ( ASSOCIATED(Ptr2D) ) THEN
-             IF ( SIZE(Ptr2D,1) == 1 ) THEN
-                ExtDat%Arr%Val(:,:,:) = Ptr2D(1,1)
-             ELSE
-                DO L = 1, NZ_EXPECTED 
-                   ExtDat%Arr%Val(:,:,L) = Ptr2D(:,:)
-                ENDDO
-             ENDIF
-          ENDIF
        ENDIF !FromList
     ENDIF 
 
@@ -1705,6 +1620,9 @@ CONTAINS
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
     ENDIF
+ 
+    ! Cleanup
+    IF ( ALLOCATED(Arr3D) ) DEALLOCATE(Arr3D)
  
     ! Return w/ success
     RC = HCO_SUCCESS  
@@ -1724,14 +1642,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Set_3S ( am_I_Root, HcoState, ExtDat, FldName, &
+  SUBROUTINE ExtDat_Set_3S ( am_I_Root, HcoState, ExtDat, FldName, & 
                              RC,        First,    Trgt,   OnLevEdge ) 
 !
 ! !USES:
 !
     USE HCO_ARR_MOD,        ONLY : HCO_ArrAssert
     USE HCO_STATE_MOD,      ONLY : HCO_State
-    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+    USE HCO_CALC_MOD,       ONLY : HCO_EvalFld
 !
 ! !INPUT PARAMETERS:
 !
@@ -1746,20 +1664,22 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
+!  11 May 2015 - C. Keller - Now use HCO_EvalFld instead of HCO_GetPtr. This
+!                            allows the application of scale factors to
+!                            ExtState fields read through the HEMCO interface. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: NX, NY, NZ, NZ_EXPECTED
-    INTEGER            :: L
-    LOGICAL            :: FRST
-    LOGICAL            :: FOUND 
-    REAL(sp), POINTER  :: Ptr2D(:,:)   => NULL() 
-    REAL(sp), POINTER  :: Ptr3D(:,:,:) => NULL() 
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'ExtDat_Set_3S (hcox_state_mod.F90)'
+    INTEGER                :: AS, NX, NY, NZ, NZ_EXPECTED
+    INTEGER                :: L
+    LOGICAL                :: FRST
+    LOGICAL                :: FOUND 
+    REAL(hp), ALLOCATABLE  :: Arr3D(:,:,:) 
+    CHARACTER(LEN=255)     :: MSG
+    CHARACTER(LEN=255)     :: LOC = 'ExtDat_Set_3S (hcox_state_mod.F90)'
 
     ! ================================================================
     ! ExtDat_Set_3S begins here
@@ -1790,84 +1710,32 @@ CONTAINS
     ! from emissions list 
     IF ( FRST .OR. ExtDat%FromList ) THEN
 
-       ! Try to get data from list
-       CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr3D, RC, FOUND=FOUND )
-       IF ( RC /= HCO_SUCCESS ) RETURN     
+       ! Allocate temporary array
+       ALLOCATE(Arr3D(HcoState%NX,HcoState%NY,NZ_EXPECTED),STAT=AS)
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR ( "Arr3D allocation error", RC, THISLOC=LOC )
+          RETURN
+       ENDIF
 
-       ! Also try to read 2D if not found 
-       IF ( .NOT. FOUND ) THEN
-          CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr2D, RC, FOUND=FOUND )
-          IF ( RC /= HCO_SUCCESS ) RETURN     
-       ENDIF 
+       ! Try to get data from list
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FldName), Arr3D, RC, FOUND=FOUND )
+       IF ( RC /= HCO_SUCCESS ) RETURN     
 
        ! On first call, need to make additional checks
        IF ( FRST ) THEN
    
           ! If read from list
           IF ( FOUND ) THEN
-  
-             ! Dimensions of data pointer
-             IF ( ASSOCIATED(Ptr3D) ) THEN
-                NX = SIZE(Ptr3D,1)
-                NY = SIZE(Ptr3D,2)
-                NZ = SIZE(Ptr3D,3)
-             ELSEIF ( ASSOCIATED(Ptr2D) ) THEN 
-                NX = SIZE(Ptr2D,1)
-                NY = SIZE(Ptr2D,2)
-                NZ = 1
-             ! will cause error:
-             ELSE
-                NX = 0
-                NY = 0
-                NZ = 0
-             ENDIF
+             ExtDat%FromList = .TRUE.
 
-             ! Must cover the horizontal grid 
-             IF ( ( (NX /= 1) .AND. (NX /= HcoState%NX) ) .OR. &
-                  ( (NY /= 1) .AND. (NY /= HcoState%NY) )       ) THEN
-                WRITE(MSG,*) 'Horizontal dimensions of input data do not ', &
-                   'correspond to simulation grid (and is not 1, either): ', &
-                   'Expected dimensions: ', HcoState%NX, HcoState%NY, &
-                   '; encountered dimensions: ', NX, NY, '. Error occured ', &
-                   'for field ', TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
+             ! Make sure array is allocated
+             CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, NZ_EXPECTED, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
    
-             ! Must also cover vertical extension
-             IF ( (NZ /= 1) .AND. (NZ /= NZ_EXPECTED) ) THEN
-                WRITE(MSG,*) 'Vertical dimension of input data does not ', &
-                   'correspond to simulation grid (and is not 1, either): ', &
-                   'Expected dimension: ', NZ_EXPECTED, &
-                   '; encountered dimensions: ', NZ, '. Error occured ', &
-                   'for field ', TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
- 
-             ! Set pointer to 3D field
-             IF ( ASSOCIATED(Ptr3D) .AND. (NX==HcoState%NX) ) THEN
-                ExtDat%Arr%Val  => Ptr3D
-                ExtDat%FromList = .FALSE.
-   
-                ! Verbose
-                IF ( HCO_IsVerb(2) ) THEN
-                   MSG = 'Set extension field pointer to HEMCO data list field ' // TRIM(FldName)
-                   CALL HCO_MSG(MSG)
-                ENDIF
-   
-             ELSE
-                ExtDat%FromList = .TRUE.
-   
-                ! Make sure array is allocated
-                CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, NZ_EXPECTED, RC )
-                IF ( RC /= HCO_SUCCESS ) RETURN
-   
-                ! Verbose
-                IF ( HCO_IsVerb(2) ) THEN
-                   MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
-                   CALL HCO_MSG(MSG)
-                ENDIF
+             ! Verbose
+             IF ( HCO_IsVerb(2) ) THEN
+                MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
+                CALL HCO_MSG(MSG)
              ENDIF
    
           ! Target to data
@@ -1907,7 +1775,8 @@ CONTAINS
                 MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
                 CALL HCO_MSG(MSG)
              ENDIF
-          ENDIF 
+          ENDIF
+    
        ENDIF ! FIRST
    
        ! Eventually copy field from HEMCO list to ExtState. We need to
@@ -1920,29 +1789,21 @@ CONTAINS
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
+  
+          ! Copy data 
+          ExtDat%Arr%Val(:,:,:) = Arr3D(:,:,:)
    
-          ! If it's a 3D array...
-          IF ( ASSOCIATED(Ptr3D) ) THEN
-             ExtDat%Arr%Val(:,:,:) = Ptr3D(:,:,:)
-   
-          ! If it's a 2D array...
-          ELSEIF ( ASSOCIATED(Ptr2D) ) THEN
-             IF ( SIZE(Ptr2D,1) == 1 ) THEN
-                ExtDat%Arr%Val(:,:,:) = Ptr2D(1,1)
-             ELSE
-                DO L = 1, NZ_EXPECTED
-                   ExtDat%Arr%Val(:,:,L) = Ptr2D(:,:)
-                ENDDO
-             ENDIF
-          ENDIF
-       ENDIF ! FromList
-    ENDIF  
- 
+       ENDIF !FromList
+    ENDIF 
+
     ! Make sure array exists
     IF ( .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
     ENDIF
+ 
+    ! Cleanup
+    IF ( ALLOCATED(Arr3D) ) DEALLOCATE(Arr3D)
  
     ! Return w/ success
     RC = HCO_SUCCESS  
