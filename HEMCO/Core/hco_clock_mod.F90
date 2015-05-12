@@ -1245,16 +1245,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HcoClock_SetMinResetFlag RESULT ( MinResetFlag ) 
+  FUNCTION HcoClock_SetMinResetFlag() RESULT ( MinResetFlag ) 
 !
 ! !RETURN VALUE:
 !
     INTEGER :: MinResetFlag 
 !
 ! !REVISION HISTORY: 
-!  13 Jan 2014 - C. Keller - Initial version 
+!  13 Jan 2014 - C. Keller   - Initial version 
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  12 May 2015 - R. Yantosca - Bug fix: PGI expects routine name to end w/ ()
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1298,16 +1299,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HcoClock_GetMinResetFlag RESULT ( MinResetFlag ) 
+  FUNCTION HcoClock_GetMinResetFlag() RESULT ( MinResetFlag ) 
 !
 ! !RETURN VALUE:
 !
     INTEGER :: MinResetFlag 
 !
 ! !REVISION HISTORY: 
-!  13 Jan 2014 - C. Keller - Initial version 
+!  13 Jan 2014 - C. Keller   - Initial version 
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  12 May 2015 - R. Yantosca - Bug fix: PGI expects routine name to end w/ ()
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC

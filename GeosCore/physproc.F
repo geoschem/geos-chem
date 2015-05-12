@@ -28,10 +28,10 @@
       USE COMODE_MOD,         ONLY : IYSAVE
       USE COMODE_MOD,         ONLY : T3
       USE COMODE_LOOP_MOD
-#IF DEFINED( USE_REAL8 )
+#if defined( USE_REAL8 )
       USE CHEMISTRY_MOD,      ONLY : GCKPP_DRIVER
       USE GCKPP_GLOBAL,       ONLY : NTT
-#ENDIF
+#endif
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -118,6 +118,7 @@
 !  15 Dec 2014 - M. Yannetti - Added filtering for KPP
 !  08 Jan 2015 - M. Sulprizio- Now restrict KPP to REAL*8 to allow for KPP code
 !                              to compile properly
+!  12 May 2015 - R. Yantosca - Bug fix: PGI expects #ifdefs to be lower-case
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -373,11 +374,6 @@
           call CPU_TIME(start)
 #if defined( USE_REAL8 )
           IF ( LKPP ) THEN
-!-----------------------------------------------------------------------------
-! Prior to 4/1/15:
-! Now pass Input_Opt To GCKPP_DRIVER (bmy, 4/1/15)
-!             CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP, NSPEC(1))
-!-----------------------------------------------------------------------------
              CALL GCKPP_DRIVER( KTLOOP, JLOOPLO, RRATE_FOR_KPP, 
      &                          NSPEC(1), Input_Opt )
           ELSE
