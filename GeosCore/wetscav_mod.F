@@ -915,6 +915,7 @@
 #if defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS
       USE TOMAS_MOD,          ONLY : GETFRACTION
+      USE DAO_MOD,            ONLY : CONVERT_UNITS
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -1000,6 +1001,8 @@
 !  19 Dec 2014 - M. Sulprizio- Add bug fixes for CONV_H2O2 and CONV_NH3 from
 !                              Duncan Fairlie. The square root term should be
 !                              inverted to be consistent with Mari et al (2000).
+!  12 May 2015 - E. Lundgren - Change tracer units from v/v -> kg for TOMAS if
+!                              not already in kg (ie. called from convection)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1014,6 +1017,8 @@
       ! Scavenging fraction of TOMAS aerosols (win, 7/16/09)
       REAL(fp)           :: TOM_SC_FRACTION(IIPAR, JJPAR, LLPAR, IBINS)
       REAL(fp)           :: SOLFRAC, XFRAC
+      REAL(fp)           :: MEAN_SFC_STT         ! use to determine STT units 
+      LOGICAL            :: UNITCHANGE = .FALSE. ! STT unit conversion indicator
 #endif
 
       ! Pointers
@@ -2168,6 +2173,18 @@
          ISOL = GET_ISOL( N, N_TRACERS )
 #if defined( TOMAS )
 
+      ! Convert State_Chm%Tracers units to [kg] if currently in [v/v]
+      ! Use average surface level concentration of tracer 1 as an indicator
+      ! NOTE: units are [v/v] if called from convection (ewl, 5/12/15)
+      MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
+     &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
+      IF ( mean level 1 ozone < 0.e-1_fp ) THEN
+         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, 
+     &                             State_Met%AD, STT ) ! v/v -> kg
+         UNITCHANGE = .TRUE.
+      ENDIF
+
+
       ! Added for size-resolved aerosol (win, 7/16/09)
       !-------------------------------
       ! H2SO4 (treat as aerosol)
@@ -2260,6 +2277,7 @@
          CALL F_AEROSOL( KC, N, F, State_Met )
          DO L = 2, LLPAR
          DO J = 1, JJPAR
+
          DO I = 1, IIPAR
 !            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTOCIL1+1) * F(I,J,L)
             CALL GETFRACTION( I, J, L, N, .FALSE., 
@@ -2307,6 +2325,13 @@
          ISOL = GET_ISOL( N, N_TRACERS )
          
       !(end part) Added for size-resolved aerosol (win, 7/16/09)
+
+      ! Convert State_Chm%Tracers units back to v/v if converted to kg
+      ! (ewl, 5/12/15)
+      IF ( UNITCHANGE ) THEN
+         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
+     &                             State_Met%AD, STT ) ! kg -> v/v
+      ENDIF
 
 #endif
 
@@ -4316,6 +4341,8 @@
       USE TRACERID_MOD, ONLY : IDTH2SO4, IDTNK1,   IDTSF1,  IDTSS1
       USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1,IDTDUST1
       USE TOMAS_MOD,    ONLY : IBINS,    ICOMP
+      USE DAO_MOD,      ONLY : CONVERT_UNITS
+
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -4406,13 +4433,19 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
+!  12 May 2015 - E. Lundgren - Change tracer units from v/v -> kg for TOMAS if
+!                              not already in kg (ie. called from convection)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)            :: L2G, DZ, SO2LOSS
+      REAL(fp)          :: L2G, DZ, SO2LOSS
+#if defined( TOMAS )
+      REAL(fp)          :: MEAN_SFC_STT         ! use to determine STT units 
+      LOGICAL           :: UNITCHANGE = .FALSE. ! STT unit conversion indicator
+#endif
 
       !=================================================================
       ! WASHOUT begins here!
@@ -4799,6 +4832,18 @@
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
 #if defined( TOMAS )
+
+      ! Convert State_Chm%Tracers units to [kg] if currently in [v/v]
+      ! Use average surface level concentration of tracer 1 as an indicator
+      ! NOTE: units are [v/v] if called from convection (ewl, 5/12/15)
+      MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
+     &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
+      IF ( mean level 1 ozone < 1.0e-1_fp ) THEN
+         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, 
+     &                             State_Met%AD, STT ) ! v/v -> kg
+         UNITCHANGE = .TRUE.
+      ENDIF
+
       !=================================================================
       ! FOR TOMAS MICROPHYSICS
       !=================================================================
@@ -4876,6 +4921,14 @@
      &                                     State_Met, State_Chm )
 
       ! (end part) Added for size-resolved aerosol (win, 7/16/09)
+
+      ! Convert State_Chm%Tracers units back to v/v if converted to kg
+      ! (ewl, 5/12/15)
+      IF ( UNITCHANGE ) THEN
+         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
+     &                             State_Met%AD, STT ) ! kg -> v/v
+      ENDIF
+
 #endif
 
       !------------------------------
