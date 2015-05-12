@@ -501,7 +501,8 @@ diag3.o                     : diag3.F                                        \
                               diag_pl_mod.o           depo_mercury_mod.o     \
                               drydep_mod.o            logical_mod.o          \
                               tracer_mod.o            tracerid_mod.o         \
-                              wetscav_mod.o           tomas_mod.o
+                              wetscav_mod.o           tomas_mod.o            \
+                              diag53_mod.o
 
 diag41_mod.o                : diag41_mod.F            pbl_mix_mod.o    
 
@@ -797,7 +798,8 @@ input_mod.o                 : input_mod.F                                    \
                               get_popsinfo_mod.o      pops_mod.o             \
                               tomas_mod.o             carbon_mod.o           \
                               dust_mod.o              seasalt_mod.o          \
-                              sulfate_mod.o           aerosol_mod.o
+                              sulfate_mod.o           aerosol_mod.o          \
+                              diag_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               dao_mod.o               global_hno3_mod.o      \
