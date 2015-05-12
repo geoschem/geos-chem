@@ -1160,8 +1160,8 @@
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  29 Oct 2013 - R. Yantosca - Now interpolate T_FULLGRID field for GEOS-FP met
-!  01 May 2015 - E. Lundgren - Fix bug where TM and TC2 range is 0-2 over 6 hrs
-!                              instead of 0-1 over hrs 0-3 and then 3-6
+!  12 May 2015 - E. Lundgren - Fix I3 interpolation bug where time fraction
+!                              spans from 1 to 2, not 0 to 1, for hrs 3 to 6
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1200,14 +1200,15 @@
 !      PRINT *, "Old fraction timestep elapsed t end of "
 !      PRINT *, "  this dyn step (TC2 in INTERP): ", TC2
 !      ! END DEBUGGING
-
-!      ! For I3 fields, need to reset fraction after 3 hours (ewl, 5/1/2015)
-!      ! ( keep this bug fix commented out for initial AirQntFixes testing )
+!
+!#if   defined( GEOS_FP )
+!      ! For I3 fields, need to reset fraction after 3 hours (ewl, 5/12/2015)
 !      IF ( TM > 1.0e+0_fp ) THEN
 !         TM  = TM  - 1.0e+0_fp
 !         TC2 = TC2 - 1.0e+0_fp
 !      ENDIF
-
+!#endif
+!
 !      ! DEBUGGING (ewl, 5/1/2015)
 !      PRINT *, "New fraction timestep elapsed at mid-point of "
 !      PRINT *, "  this dyn step  (TM in INTERP): ", TM
