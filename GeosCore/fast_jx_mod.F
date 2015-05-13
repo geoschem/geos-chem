@@ -360,6 +360,11 @@
                OPTAER(L,IOPT) = ODAER(NLON,NLAT,L,IWV1000,N)
             ENDDO
             ENDDO
+            DO N = 1, NDUST
+            DO L = 1, LLPAR
+              OPTDUST(L,N) = ODMDUST(NLON,NLAT,L,IWV1000,N)
+            ENDDO
+            ENDDO
 
             ! Mineral dust OD profile [unitless] at (NLON,NLAT)
 !------------------------------------------------------------------------------
@@ -368,7 +373,7 @@
 !            OPTDUST         = ODMDUST(NLON,NLAT,:,:)
 !------------------------------------------------------------------------------
             ! and at 1000nm, IWV1000 (DAR)
-            OPTDUST         = ODMDUST(NLON,NLAT,:,IWV1000,:)
+!            OPTDUST         = ODMDUST(NLON,NLAT,:,IWV1000,:)
 
             ! Cloud OD profile [unitless] at (NLON,NLAT)
             OPTD            = State_Met%OPTD(NLON,NLAT,1:LLPAR)
@@ -2938,17 +2943,17 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
              DO M=1,3
                 IF (AERX_COL(M,L).gt.0e+0_fp) THEN
                    IDXAER=MIEDX(M)
-                   IF (IDXAER.lt.15) THEN
+                   !IF (IDXAER.lt.15) THEN !always true now
                       ! Cloud (600 nm scaling)
                       QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
-                   ELSEIF (AOD999) THEN
-                      ! Aerosol/dust (999 nm scaling)
-                      QSCALING = QAA(KMIE,IDXAER)/QAA(IND999,IDXAER)
-                   ELSE
-                      ! Aerosol/dust (550 nm scaling)
-                      ! currently using 600nm as that's all we have
-                      QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
-                   ENDIF
+                   !ELSEIF (AOD999) THEN
+                   !   ! Aerosol/dust (999 nm scaling)
+                   !   QSCALING = QAA(KMIE,IDXAER)/QAA(IND999,IDXAER)
+                   !ELSE
+                   !   ! Aerosol/dust (550 nm scaling)
+                   !   ! currently using 600nm as that's all we have
+                   !   QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
+                   !ENDIF
                    LOCALOD = QSCALING*AERX_COL(M,L)
                    LOCALSSA = SAA(KMIE,IDXAER)*LOCALOD
                    OD(KMIE,L) = OD(KMIE,L) + LOCALOD
@@ -2967,13 +2972,11 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
              ! Strat aerosols
              IM=10+(NRHAER*NRH)+1
              DO M=IM,IM+1
-                IDXAER=M-IM+7
+                IDXAER=M-IM+6 !6-STS, 7-NAT
+              
                 IF (AERX_COL(M,L).gt.0d0) THEN
                    
-                   IF (IDXAER.lt.15) THEN
-                      ! Cloud (600 nm scaling)
-                      QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
-                   ELSEIF (AOD999) THEN
+                   IF (AOD999) THEN
                       ! Aerosol/dust (999 nm scaling)
                       QSCALING = QQAA(KMIE2,1,IDXAER)/
      &                           QQAA(10,1,IDXAER)
@@ -2983,7 +2986,7 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
      &                           QQAA(5,1,IDXAER)
                    ENDIF
                    LOCALOD = QSCALING*AERX_COL(M,L)
-                   LOCALSSA = SSAA(KMIE2,1,IDXAER)**LOCALOD
+                   LOCALSSA = SSAA(KMIE2,1,IDXAER)*LOCALOD
                    OD(KMIE,L) = OD(KMIE,L) + LOCALOD
                    SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
                    DO I=1,8
@@ -2999,7 +3002,7 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
              ! Mineral dust (from new optics LUT)
              DO M=4,10
                 IF (AERX_COL(M,L).gt.0d0) THEN
-                   IDXAER=6
+                   IDXAER=NSPAA !dust is last in LUT (6, or 8 if UCX=y)
                    IR=M-3
                    IF (AOD999) THEN
                       QSCALING = QQAA(KMIE2,IR,IDXAER)/

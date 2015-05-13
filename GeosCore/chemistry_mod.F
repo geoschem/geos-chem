@@ -440,10 +440,8 @@
             MONTH      = 0
             YEAR       = 0
             WAVELENGTH = 0
-            write(6,*) 'before RDAER, FJX'
             CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
      &                  MONTH,     YEAR,      WAVELENGTH      )
-            write(6,*) 'after RDAER'
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
             IF ( LSULF ) THEN
                IF ( LSSALT ) THEN
@@ -488,7 +486,6 @@
 
             !*** MINERAL DUST AEROSOLS ***
             IF ( LDUST ) THEN 
-            write(6,*) 'before DUST'
                ! Do dust aerosol chemsitry
                CALL CHEMDUST
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -498,7 +495,6 @@
                CALL RDUST_ONLINE
      &             ( am_I_Root, Input_Opt,  State_Met, 
      &               SOILDUST,  WAVELENGTH, RC         )
-            write(6,*) 'after DUST'
             ENDIF
  
          !---------------------------------
