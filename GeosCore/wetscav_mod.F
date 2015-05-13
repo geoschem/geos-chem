@@ -2178,7 +2178,7 @@
       ! NOTE: units are [v/v] if called from convection (ewl, 5/12/15)
       MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
      &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
-      IF ( mean level 1 ozone < 0.e-1_fp ) THEN
+      IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
          CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, 
      &                             State_Met%AD, STT ) ! v/v -> kg
          UNITCHANGE = .TRUE.
@@ -4838,7 +4838,7 @@
       ! NOTE: units are [v/v] if called from convection (ewl, 5/12/15)
       MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
      &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
-      IF ( mean level 1 ozone < 1.0e-1_fp ) THEN
+      IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
          CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, 
      &                             State_Met%AD, STT ) ! v/v -> kg
          UNITCHANGE = .TRUE.
