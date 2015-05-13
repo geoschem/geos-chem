@@ -35,7 +35,7 @@
 !       1 will be added to container 5 if it has a target ID of 5). 
 !       Internal use only.  
 ! \item DctType: container type. 1 for base emissions, 2 for scale
-!       factors, 3 for masks (set parameter in HCO_ERROR_MOD)
+!       factors, 3 for masks (set parameter in HCO\_ERROR\_MOD)
 ! \item SpcName: Species name associated with this data container, as
 !       read from the configuration file. Only relevant for base 
 !       emission arrays.

@@ -900,7 +900,7 @@ CONTAINS
 ! closing bracket after the last entry of the collection: '))))TEST'. 
 ! Brackets can be enabled / disabled in the EXTENSION SWITCH section of the
 ! HEMCO configuration file:
-! # ExtNr ExtName           on/off  Species 
+! \# ExtNr ExtName           on/off  Species 
 ! 0       Base              : on    *
 !     --> TEST              :       true
 !\\

@@ -158,6 +158,12 @@
 #  08 Apr 2015 - R. Yantosca - Bug fix: set RRTMG=yes if it passes the regexp
 #  10 Apr 2015 - R. Yantosca - Export RRTMG_NEEDED var to be used elsewhere
 #  10 Apr 2015 - R. Yantosca - Bug fix: -l rad should be -lrad in link var
+#  12 May 2015 - R. Yantosca - Bug fix for PGI compiler: remove extra "-"
+#                              in front of $(NC_INC_CMD) in the PGI section
+#  12 May 2015 - R. Yantosca - Now use GC_BIN, GC_INCLUDE to point to the
+#                              netCDF library paths and GC_F_BIN, GC_F_INCLUDE
+#                              to point to netCDF-Fortran library paths.
+#                              (In some cases, these are the same).
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -653,7 +659,7 @@ endif
 ###############################################################################
 
 # Library include path
-NC_INC_CMD           := -I$(GC_INCLUDE)
+NC_INC_CMD           := -I$(GC_INCLUDE) -I$(GC_F_INCLUDE)
 
 # Get the version number (e.g. "4130"=netCDF 4.1.3; "4200"=netCDF 4.2, etc.)
 NC_VERSION           :=$(shell $(GC_BIN)/nc-config --version)
@@ -676,7 +682,7 @@ ifeq ($(AT_LEAST_NC_4200),1)
   # netCDF 4.2 and higher:
   # Use "nf-config --flibs" and "nc-config --libs"
   #-------------------------------------------------------------------------
-  NC_LINK_CMD        := $(shell $(GC_BIN)/nf-config --flibs)
+  NC_LINK_CMD        := $(shell $(GC_F_BIN)/nf-config --flibs)
   NC_LINK_CMD        += $(shell $(GC_BIN)/nc-config --libs)
 
 else
@@ -936,7 +942,7 @@ ifeq ($(COMPILER),pgi)
   FFLAGS             += $(USER_DEFS)
 
   # Include options (i.e. for finding *.h, *.mod files)
-  INCLUDE            := -module $(MOD) -$(NC_INC_CMD)
+  INCLUDE            := -module $(MOD) $(NC_INC_CMD)
 
   # Do not append the ESMF/MAPL/FVDYCORE includes for ISORROPIA, because it 
   # will not compile.  ISORROPIA is slated for removal shortly. (bmy, 11/21/14)
