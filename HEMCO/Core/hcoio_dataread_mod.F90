@@ -47,8 +47,7 @@
 !   except that they are applied to all grid boxes with the given 
 !   country ID. 
 ! \end{itemize}
-!\\
-!\\
+!
 ! Outside of an ESMF environment, the GEOS-Chem netCDF reading utilities
 ! are used to read netCDF data from disk. The selection of the time slice
 ! to be read depends on the current simulation time and the datetime 
@@ -1040,7 +1039,7 @@ CONTAINS
           CALL HCO_ERROR ( MSG, RC )
           RETURN
        ENDIF
-    ENDIF
+    ENDIF ! Unit conversion
 
     !-----------------------------------------------------------------
     ! Get horizontal grid edges 
@@ -2044,7 +2043,7 @@ CONTAINS
 !
 ! !IROUTINE: GetIndex2Interp 
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: GetIndex2Interp 
 !\\
 !\\
 ! !INTERFACE:

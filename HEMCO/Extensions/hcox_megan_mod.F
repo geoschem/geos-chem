@@ -54,7 +54,7 @@
 !  \item Guenther, A., et al., \emph{The Model of Emissions of Gases and
 !        Aerosols from Nature version 2.1 (MEGAN2.1): an extended and updated
 !        framework for modeling biogenic emissions}, \underline{Geosci. Model
-!        Dev/}, \testbf{5}, 1471-1792, 2012.
+!        Dev.}, \textbf{5}, 1471-1792, 2012.
 !  \item Guenther, A., et al., \emph{A global model of natural volatile 
 !        organic compound emissions}, \underline{J.Geophys. Res.}, 
 !        \textbf{100}, 8873-8892, 1995.
@@ -465,9 +465,11 @@
       IF ( FIRST ) THEN
          ! Generate annual emission factors for MEGAN inventory
          CALL CALC_AEF( am_I_Root, HcoState, ExtState, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
 
          ! Calculate normalization factor (dbm, 11/2012)
          CALL CALC_NORM_FAC( am_I_Root, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
       ENDIF
 
       ! On first call, fill previous day LAI with current LAI since we
@@ -493,7 +495,7 @@
 !$OMP+PRIVATE( EMIS_AAXX, EMIS_ACET, EMIS_PRPE, EMIS_C2H4              )
 !$OMP+PRIVATE( EMIS_FARN, EMIS_BCAR, EMIS_OSQT, EMIS_ALD2              )
 !$OMP+PRIVATE( MONO_MOL,  TMP,       MBOX_MOL                          )
-!$OMP+PRIVATE( DIURFACT, DIURORVC, BIOG_ALPH                           ) 
+!$OMP+PRIVATE( DIURFACT,  DIURORVC,  BIOG_ALPH                         ) 
 !$OMP+PRIVATE( BIOG_LIMO, BIOG_ALCO, X, Y, RC                          )
 
       !-----------------------------------------------------------------
@@ -1300,6 +1302,14 @@
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXCO', RC )
             RETURN 
          ENDIF
+
+         ! Also archive the BIOGENIC_CO diagnostic (bmy, 4/29/15)
+         Arr2D => FLUXCO
+         DiagnName =  'BIOGENIC_CO'
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono,
+     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN
+         Arr2D => NULL()
       ENDIF
 
       ! ----------------------------------------------------------------
@@ -2391,8 +2401,8 @@
 !
 ! !IROUTINE: Get_Gamma_T_LI
 !
-! !DESCRIPTION: Function Get\_Gamma\_T\_LI computes the temperature 
-!  activity factor (GAMMA\_T_LI) for the light-independent fraction of emissions
+! !DESCRIPTION: Function Get\_Gamma\_T\_LI computes the temperature activity
+!  factor (GAMMA\_T\_LI) for the light-independent fraction of emissions
 !\\
 !\\
 ! !INTERFACE:
@@ -3787,15 +3797,21 @@
          ! Multiply arrays by FACTOR and ratio [g C/g compound]
          ! NOTE: AEFs for ISOP, MBOX, BPIN, CARE, LIMO, OCIM, SABI 
          ! are read from file in [kgC/m2/s], so no need to convert here
-         AEF_APIN(I,J) = AEF_APIN(I,J) * FACTOR * 120.0_hp / 136.234_hp
-         AEF_MYRC(I,J) = AEF_MYRC(I,J) * FACTOR * 120.0_hp / 136.234_hp
-         AEF_OMON(I,J) = AEF_OMON(I,J) * FACTOR * 120.0_hp / 136.234_hp
+         IF ( ExtNrMono > 0 ) THEN
+            AEF_APIN(I,J) = AEF_APIN(I,J) 
+     &                    * FACTOR * 120.0_hp / 136.234_hp
+            AEF_MYRC(I,J) = AEF_MYRC(I,J) 
+     &                    * FACTOR * 120.0_hp / 136.234_hp
+            AEF_OMON(I,J) = AEF_OMON(I,J) 
+     &                    * FACTOR * 120.0_hp / 136.234_hp
+         ENDIF
+
          AEF_ACET(I,J) = AEF_ACET(I,J) * FACTOR *  36.0_hp /  58.079_hp 
          AEF_ETOH(I,J) = AEF_ETOH(I,J) * FACTOR *  24.0_hp /  46.068_hp 
          AEF_ALD2(I,J) = AEF_ALD2(I,J) * FACTOR *  24.0_hp /  44.053_hp 
-         AEF_C2H4(I,J) = AEF_C2H4(I,J) * FACTOR *  24.0_hp /  28.053_hp  
+         AEF_C2H4(I,J) = AEF_C2H4(I,J) * FACTOR *  24.0_hp /  28.053_hp
          AEF_TOLU(I,J) = AEF_TOLU(I,J) * FACTOR *  84.0_hp /  92.138_hp 
-         AEF_PRPE(I,J) = AEF_PRPE(I,J) * FACTOR *  36.0_hp /  42.080_hp  
+         AEF_PRPE(I,J) = AEF_PRPE(I,J) * FACTOR *  36.0_hp /  42.080_hp
 
          ! Methanol, formaldehyde, formic acid, acetic acid, HCN are
          ! carried in kg, not kg C

@@ -67,12 +67,12 @@
 ! to be used at the beginning of a simulation can be provided as restart 
 ! variables in the HEMCO configuration file. They must be listed in section
 ! base emissions, for example:
-! # --- PARANOx restart variables 
-!102 PARANOX_SUNCOS1 HEMCO_Restart.$YYYY$MM$DD$HH00.nc PARANOX_SUNCOS1 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1
-!102 PARANOX_SUNCOS2 HEMCO_Restart.$YYYY$MM$DD$HH00.nc PARANOX_SUNCOS2 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1
-!102 PARANOX_SUNCOS3 HEMCO_Restart.$YYYY$MM$DD$HH00.nc PARANOX_SUNCOS3 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1
-!102 PARANOX_SUNCOS4 HEMCO_Restart.$YYYY$MM$DD$HH00.nc PARANOX_SUNCOS4 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1
-!102 PARANOX_SUNCOS5 HEMCO_Restart.$YYYY$MM$DD$HH00.nc PARANOX_SUNCOS5 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1 
+! \# --- PARANOx restart variables 
+!102 PARANOX\_SUNCOS1 HEMCO\_Restart.$YYYY$MM$DD$HH00.nc PARANOX\_SUNCOS1 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1
+!102 PARANOX\_SUNCOS2 HEMCO\_Restart.$YYYY$MM$DD$HH00.nc PARANOX\_SUNCOS2 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1
+!102 PARANOX\_SUNCOS3 HEMCO\_Restart.$YYYY$MM$DD$HH00.nc PARANOX\_SUNCOS3 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1
+!102 PARANOX\_SUNCOS4 HEMCO\_Restart.$YYYY$MM$DD$HH00.nc PARANOX\_SUNCOS4 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1
+!102 PARANOX\_SUNCOS5 HEMCO\_Restart.$YYYY$MM$DD$HH00.nc PARANOX\_SUNCOS5 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1 
 ! If any of these variables is not found in the configuration file, the corresponding 
 ! SC5 slice is filled with the current suncos value, which may result in erroneous results
 ! for the first 5 simulation hours. The above listed parameters are automatically written
@@ -1976,7 +1976,7 @@ CONTAINS
 !
 ! !IROUTINE: write_lut_txtfile 
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: write\_lut\_txtfile 
 !\\
 !\\
 ! !INTERFACE:
@@ -2151,7 +2151,7 @@ CONTAINS
 !      given in NODES, then its interpolated value at the point VALUESIN will be
 !      Y(VALUEIN) =  Y(INDICES(1)) * WEIGHTS(1) + 
 !                    Y(INDICES(2)) * WEIGHTS(2)
-!  
+!                                                                             
 !      This subroutine finds indices of consecutive nodes that bracket VALUEIN and
 !      weights such that
 !      VALUEIN = NODES(INDICES(1))   * WEIGHTS(1)     + 
@@ -2161,7 +2161,6 @@ CONTAINS
 !      arrays, where
 !          INDICES(2) = INDICES(1)+1 and
 !          WEIGHTS(2) = 1 - WEIGHTS(1)
-!     
 !\\
 !\\
 ! !INTERFACE:
@@ -2250,7 +2249,7 @@ CONTAINS
 ! were not included (wind speed set at 6 m/s). The JRatio also used J(O1D) rather 
 ! than J(OH); this has only a small effect on interpolated values.
 ! To reproduce the behavior of these earlier versions, modify code below marked 
-! with ******* and call READ_PARANOX_LUT_v913 in emissions_mod.F
+! with ******* and call READ\_PARANOX\_LUT\_v913 in emissions\_mod.F
 !\\
 !\\
 ! !INTERFACE:
@@ -2354,8 +2353,8 @@ CONTAINS
       ! J(O1D), 1/s
       JO1D = ExtState%JO1D%Arr%Val(I,J)
 
-      ! H2O, molec/cm3. Get from specific humidity, which is in g/kg.
-      H2O = ExtState%SPHU%Arr%Val(I,J,1) / 1.0e3_sp * DENS &
+      ! H2O, molec/cm3. Get from specific humidity, which is in kg/kg.
+      H2O = ExtState%SPHU%Arr%Val(I,J,1) * DENS &
           * HcoState%Phys%AIRMW / MWH2O 
          
       ! Calculate J(OH), the effective rate for O3+hv -> OH+OH,

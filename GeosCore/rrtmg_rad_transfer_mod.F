@@ -1425,7 +1425,7 @@
 !  Albedo is direct (black sky) and diffuse (white sky) and interpolated
 !  to the first 21 wavelengths of GADS, used in the RRTMG code.
 !  Emissivity has been interpolated to last 40 wavelengths of GADS.!
-!  This routine is called from main.F when ITS_TIME_FOR_SURFACE_RAD() is
+!  This routine is called from main.F when ITS\_TIME\_FOR\_SURFACE\_RAD() is
 !  true (every 8 days) DAR (10/2012)
 !\\
 !\\
