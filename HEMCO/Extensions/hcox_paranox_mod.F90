@@ -1163,7 +1163,7 @@ CONTAINS
    ! Call HEMCO parser to replace tokens such as $ROOT, $MET, or $RES.
    ! There shouldn't be any date token in there ($YYYY, etc.), so just
    ! provide some dummy variables here
-   CALL HCO_CharParse( LutDir, -999, -1, -1, -1, RC )
+   CALL HCO_CharParse( LutDir, -999, -1, -1, -1, -1, RC )
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    ! Data format: ncdf (default) or txt 

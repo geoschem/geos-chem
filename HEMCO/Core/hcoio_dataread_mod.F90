@@ -1288,7 +1288,7 @@ CONTAINS
     CHARACTER(LEN=1023)   :: MSG_LONG
     INTEGER               :: tidx1a
     INTEGER               :: nTime,  T, CNT, NCRC 
-    INTEGER               :: prefYr, prefMt, prefDy, prefHr
+    INTEGER               :: prefYr, prefMt, prefDy, prefHr, prefMn
     INTEGER               :: refYear
     INTEGER               :: origYMDh, prefYMDh
     INTEGER, POINTER      :: availYMDh(:) => NULL() 
@@ -1354,7 +1354,7 @@ CONTAINS
     ! simulation date is outside of the data range given in the 
     ! configuration file.
     ! ---------------------------------------------------------------- 
-    CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
+    CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, prefMn, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Check if we are outside of provided range
@@ -2846,7 +2846,7 @@ CONTAINS
     INTEGER            :: I, N, NUSE, AS
     INTEGER            :: IDX1, IDX2
     INTEGER            :: AreaFlag, TimeFlag, Check
-    INTEGER            :: prefYr, prefMt, prefDy, prefHr
+    INTEGER            :: prefYr, prefMt, prefDy, prefHr, prefMn
     REAL(hp)           :: UnitFactor 
     REAL(hp)           :: FileVals(100)
     REAL(hp), POINTER  :: FileArr(:,:,:,:) => NULL()
@@ -2920,7 +2920,7 @@ CONTAINS
 
        ! Get the preferred times, i.e. the preferred year, month, day, 
        ! or hour (as specified in the configuration file).
-       CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
+       CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, prefMn, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
        ! Currently, data read directly from the configuration file can only
@@ -3366,7 +3366,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: INC,     CNT,    TYPCNT, TYP,   NEWTYP
-    INTEGER :: prefYr,  prefMt, prefDy, prefHr
+    INTEGER :: prefYr,  prefMt, prefDy, prefHr, prefMn
     INTEGER :: origYr,  origMt, origDy, origHr
     LOGICAL :: hasFile, hasYr,  hasMt,  hasDy, hasHr
     LOGICAL :: nextTyp
@@ -3381,8 +3381,8 @@ CONTAINS
     ! Initialize to input string
     srcFile = Lct%Dct%Dta%ncFile
 
-    ! Get preferred dates (to be passed to parser
-    CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
+    ! Get preferred dates (to be passed to parser)
+    CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, prefMn, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Make sure dates are not negative 
@@ -3404,7 +3404,7 @@ CONTAINS
     ENDIF 
 
     ! Call the parser
-    CALL HCO_CharParse ( srcFile, prefYr, prefMt, prefDy, prefHr, RC )
+    CALL HCO_CharParse ( srcFile, prefYr, prefMt, prefDy, prefHr, prefMn, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Check if file exists
@@ -3575,7 +3575,7 @@ CONTAINS
              srcFile = Lct%Dct%Dta%ncFile
 
              ! Call the parser with adjusted values
-             CALL HCO_CharParse ( srcFile, prefYr, prefMt, prefDy, prefHr, RC )
+             CALL HCO_CharParse ( srcFile, prefYr, prefMt, prefDy, prefHr, prefMn, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
 
              ! Check if this file exists

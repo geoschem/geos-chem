@@ -101,6 +101,12 @@ MODULE HCO_Error_Mod
   INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_EXACT = 3
   INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_INTER = 4
 
+  ! Data container update flags. At the moment, those only indicate
+  ! if a container gets updated every time step or based upon the 
+  ! details specifications ('srcTime') in the HEMCO configuration file.
+  INTEGER, PARAMETER, PUBLIC  :: HCO_UFLAG_FROMFILE = 1
+  INTEGER, PARAMETER, PUBLIC  :: HCO_UFLAG_ALWAYS   = 2
+
   ! Data container types. These are used to distinguish between
   ! base emissions, scale factors and masks.
   INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_BASE = 1

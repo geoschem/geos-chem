@@ -38,6 +38,10 @@
 !       model time is outside of the source file range. If CycleFlag is
 !       set to 3, an error is returned if none of the file time slices
 !       matches the model time. 
+! \item UpdtFlag: determines the update frequency of the data. This is
+!       currently only used to distinguish containers that are updated
+!       on every time step (always) or according to the frequency 
+!       provided in the HEMCO configuration file via attribute 'srcTime'. 
 ! \item ncRead: logical denoting whether or not we need to read this
 !       data container. ncRead is set to false for containers whose
 !       data is directly specified in the configuration file. For
@@ -124,6 +128,7 @@ MODULE HCO_FileData_Mod
      INTEGER                     :: ncDys(2)  ! day range
      INTEGER                     :: ncHrs(2)  ! hour range
      INTEGER                     :: CycleFlag ! cycle flag
+     INTEGER                     :: UpdtFlag  ! update flag 
      LOGICAL                     :: ncRead    ! read from source?
      TYPE(Arr3D_SP),     POINTER :: V3(:)     ! vector of 3D fields
      TYPE(Arr2D_SP),     POINTER :: V2(:)     ! vector of 2D fields
@@ -211,6 +216,7 @@ CONTAINS
     NewFDta%ncDys(:)     = -999
     NewFDta%ncHrs(:)     = -999
     NewFDta%CycleFlag    = HCO_CFLAG_CYCLE
+    NewFDta%UpdtFlag     = HCO_UFLAG_FROMFILE
     NewFDta%ncRead       = .TRUE.
     NewFDta%Cover        = -999 
     NewFDta%DeltaT       = 0
