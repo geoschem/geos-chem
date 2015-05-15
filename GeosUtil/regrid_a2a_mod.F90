@@ -1510,6 +1510,10 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
+!  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
+!                                to valid range n1:(n2-1). Do not initialize q2
+!                                to zero after pointer assignment. This seems to
+!                                cause problems with some compilers. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1570,9 +1574,8 @@ CONTAINS
     enddo
     in = n2 - n1
     lon2 => ilon2(n1:n2)
-    q2   => iq2(n1:n2,:)
-    q2   =  0.0d0
-    
+    q2   => iq2(n1:(n2-1),:)
+ 
     !===================================================================
     ! check to see if ghosting is necessary
     ! Western edge:
@@ -1622,7 +1625,8 @@ CONTAINS
        !=================================================================
        ! Area preserving mapping
        !================================================================
-       
+      
+       qtmp(:) = 0.0d0 
        qtmp(0)=q1(im,j)
        do i=1,im
           qtmp(i)=q1(i,j)
@@ -1753,6 +1757,10 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
+!  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
+!                                to valid range n1:(n2-1). Do not initialize q2
+!                                to zero after pointer assignment. This seems to
+!                                cause problems with some compilers. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1813,8 +1821,7 @@ CONTAINS
     enddo
     in = n2 - n1
     lon2 => ilon2(n1:n2)
-    q2   => iq2(n1:n2,:)
-    q2   =  0.0
+    q2   => iq2(n1:(n2-1),:)
 
     ! shadow variables to selected range
  
@@ -1868,6 +1875,7 @@ CONTAINS
        ! Area preserving mapping
        !================================================================
        
+       qtmp(:) = 0.0
        qtmp(0)=q1(im,j)
        do i=1,im
           qtmp(i)=q1(i,j)
@@ -1998,6 +2006,10 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
+!  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
+!                                to valid range n1:(n2-1). Do not initialize q2
+!                                to zero after pointer assignment. This seems to
+!                                cause problems with some compilers. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2058,8 +2070,7 @@ CONTAINS
     enddo
     in = n2 - n1
     lon2 => ilon2(n1:n2)
-    q2   => iq2(n1:n2,:)
-    q2   =  0.0d0
+    q2   => iq2(n1:(n2-1),:)
     
     !===================================================================
     ! check to see if ghosting is necessary
@@ -2111,6 +2122,7 @@ CONTAINS
        ! Area preserving mapping
        !================================================================
        
+       qtmp(:) = 0.0d0
        qtmp(0)=q1(im,j)
        do i=1,im
           qtmp(i)=q1(i,j)
@@ -2241,6 +2253,10 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
+!  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
+!                                to valid range n1:(n2-1). Do not initialize q2
+!                                to zero after pointer assignment. This seems to
+!                                cause problems with some compilers. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2301,8 +2317,7 @@ CONTAINS
     enddo
     in = n2 - n1
     lon2 => ilon2(n1:n2)
-    q2   => iq2(n1:n2,:)
-    q2   =  0.0
+    q2   => iq2(n1:(n2-1),:)
     
     !===================================================================
     ! check to see if ghosting is necessary
@@ -2353,7 +2368,8 @@ CONTAINS
        !=================================================================
        ! Area preserving mapping
        !================================================================
-       
+      
+       qtmp(:) = 0.0
        qtmp(0)=q1(im,j)
        do i=1,im
           qtmp(i)=q1(i,j)
