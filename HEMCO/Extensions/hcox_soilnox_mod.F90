@@ -290,7 +290,6 @@ CONTAINS
     REAL*4                   :: TSEMIS
     REAL(hp)                 :: UNITCONV, IJFLUX
     REAL(dp), ALLOCATABLE    :: VecDp(:)
-    REAL(hp), POINTER        :: Arr2D (:,:) => NULL()
     LOGICAL                  :: FIRST
     LOGICAL                  :: aIR, FOUND
     CHARACTER(LEN= 31)       :: DiagnName
@@ -538,12 +537,10 @@ CONTAINS
     ! pointer (i.e. not associated) is passed to Diagn_Update,
     ! diagnostics are treated as zeros!
     IF ( DoDiagn ) THEN
-       Arr2D => DIAG
        DiagnName = 'FERTILIZER_NO'
        CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, & 
-                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+                          cName=TRIM(DiagnName), Array2D=DIAG, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
-       Arr2D => NULL()
     ENDIF
 
     ! ----------------------------------------------------------------

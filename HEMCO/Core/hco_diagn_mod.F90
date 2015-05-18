@@ -1151,8 +1151,8 @@ CONTAINS
     INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill          ! 1=yes; 0=no; 
                                                                    ! -1=either 
     REAL(sp),         INTENT(IN   ), OPTIONAL :: Scalar            ! 1D scalar 
-    REAL(sp),         POINTER,       OPTIONAL :: Array2D   (:,:)   ! 2D array 
-    REAL(sp),         POINTER,       OPTIONAL :: Array3D   (:,:,:) ! 3D array 
+    REAL(sp),         INTENT(IN   ), OPTIONAL :: Array2D   (:,:)   ! 2D array 
+    REAL(sp),         INTENT(IN   ), OPTIONAL :: Array3D   (:,:,:) ! 3D array 
     REAL(sp),         INTENT(IN   ), OPTIONAL :: Total             ! Total 
     LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly           ! Use only vals
                                                                    !  >= 0?
@@ -1221,8 +1221,8 @@ CONTAINS
     INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill          ! 1=yes; 0=no; 
                                                                    ! -1=either 
     REAL(dp),         INTENT(IN   ), OPTIONAL :: Scalar            ! 1D scalar 
-    REAL(dp),         POINTER,       OPTIONAL :: Array2D   (:,:)   ! 2D array 
-    REAL(dp),         POINTER,       OPTIONAL :: Array3D   (:,:,:) ! 3D array 
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Array2D   (:,:)   ! 2D array 
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Array3D   (:,:,:) ! 3D array 
     REAL(dp),         INTENT(IN   ), OPTIONAL :: Total             ! Total 
     LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly           ! Use only vals
                                                                    !  >= 0?
@@ -1310,33 +1310,30 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root         ! Root CPU?
-    INTEGER,          INTENT(IN   ), OPTIONAL :: cID               ! Assigned 
-                                                                   !  container ID
-    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName             ! Diagnostics 
-                                                                   !  name
-    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr             ! Extension #
-    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat               ! Category 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier              ! Hierarchy 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID             ! HEMCO species
-                                                                   !  ID number 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill          ! 1=yes; 0=no; 
-                                                                   ! -1=either 
-    REAL(dp),         INTENT(IN   ), OPTIONAL :: Scalar            ! 1D scalar 
-    REAL(dp),         POINTER,       OPTIONAL :: Array2D   (:,:)   ! 2D array 
-    REAL(dp),         POINTER,       OPTIONAL :: Array3D   (:,:,:) ! 3D array 
-    REAL(dp),         INTENT(IN   ), OPTIONAL :: Total             ! Total 
-    REAL(sp),         INTENT(IN   ), OPTIONAL :: Scalar_SP         ! 1D scalar 
-    REAL(sp),         POINTER,       OPTIONAL :: Array2D_SP(:,:)   ! 2D array 
-    REAL(sp),         POINTER,       OPTIONAL :: Array3D_SP(:,:,:) ! 3D array 
-    REAL(sp),         INTENT(IN   ), OPTIONAL :: Total_SP          ! Total 
-    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly           ! Use only vals
-                                                                   !  >= 0?
-    INTEGER,          INTENT(IN   ), OPTIONAL :: COL               ! Collection Nr.
+    LOGICAL,          INTENT(IN   )                   :: am_I_Root         ! Root CPU?
+    INTEGER,          INTENT(IN   ), OPTIONAL         :: cID               ! container ID 
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL         :: cName             ! Dgn name
+    INTEGER,          INTENT(IN   ), OPTIONAL         :: ExtNr             ! Extension #
+    INTEGER,          INTENT(IN   ), OPTIONAL         :: Cat               ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL         :: Hier              ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL         :: HcoID             ! HEMCO species ID
+    INTEGER,          INTENT(IN   ), OPTIONAL         :: AutoFill          ! 1=yes; 0=no; 
+                                                                           ! -1=either 
+    REAL(dp),         INTENT(IN   ), OPTIONAL         :: Scalar            ! 1D scalar 
+    REAL(dp),         INTENT(IN   ), OPTIONAL, TARGET :: Array2D   (:,:)   ! 2D array 
+    REAL(dp),         INTENT(IN   ), OPTIONAL, TARGET :: Array3D   (:,:,:) ! 3D array 
+    REAL(dp),         INTENT(IN   ), OPTIONAL         :: Total             ! Total 
+    REAL(sp),         INTENT(IN   ), OPTIONAL         :: Scalar_SP         ! 1D scalar 
+    REAL(sp),         INTENT(IN   ), OPTIONAL, TARGET :: Array2D_SP(:,:)   ! 2D array 
+    REAL(sp),         INTENT(IN   ), OPTIONAL, TARGET :: Array3D_SP(:,:,:) ! 3D array 
+    REAL(sp),         INTENT(IN   ), OPTIONAL         :: Total_SP          ! Total 
+    LOGICAL,          INTENT(IN   ), OPTIONAL         :: PosOnly           ! Use only vals
+                                                                           ! >= 0?
+    INTEGER,          INTENT(IN   ), OPTIONAL         :: COL               ! Collection Nr.
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)           :: RC                ! Return code 
+    INTEGER,          INTENT(INOUT)                   :: RC                ! Return code 
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller - Initialization
@@ -1522,28 +1519,24 @@ CONTAINS
              IF ( PRESENT(Array3D_SP) ) THEN
                 Arr3D => Array3D_SP
              ELSEIF( PRESENT(Array3D) ) THEN
-                IF ( ASSOCIATED(Array3D) ) THEN
-                   ALLOCATE( Arr3D(ThisColl%NX,ThisColl%NY,ThisColl%NZ),STAT=AS)
-                   IF ( AS /= 0 ) THEN
-                      CALL HCO_ERROR( 'Allocation error Arr3D', RC, THISLOC=LOC )
-                      RETURN
-                   ENDIF
-                   Arr3D = Array3D
+                ALLOCATE( Arr3D(ThisColl%NX,ThisColl%NY,ThisColl%NZ),STAT=AS)
+                IF ( AS /= 0 ) THEN
+                   CALL HCO_ERROR( 'Allocation error Arr3D', RC, THISLOC=LOC )
+                   RETURN
                 ENDIF
+                Arr3D = Array3D
              ENDIF
      
              ! 2D array 
              IF ( PRESENT(Array2D_SP) ) THEN
                 Arr2D => Array2D_SP
              ELSEIF( PRESENT(Array2D) ) THEN
-                IF ( ASSOCIATED(Array2D) ) THEN
-                   ALLOCATE( Arr2D(ThisColl%NX,ThisColl%NY),STAT=AS)
-                   IF ( AS /= 0 ) THEN
-                      CALL HCO_ERROR( 'Allocation error Arr2D', RC, THISLOC=LOC )
-                      RETURN
-                   ENDIF
-                   Arr2D = Array2D
+                ALLOCATE( Arr2D(ThisColl%NX,ThisColl%NY),STAT=AS)
+                IF ( AS /= 0 ) THEN
+                   CALL HCO_ERROR( 'Allocation error Arr2D', RC, THISLOC=LOC )
+                   RETURN
                 ENDIF
+                Arr2D = Array2D
              ENDIF
      
              ! Scalar
