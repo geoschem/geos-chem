@@ -1749,7 +1749,6 @@ CONTAINS
                 TRIM(ThisDiagn%cName), ' (counter:', ThisDiagn%Counter, ')'
              CALL HCO_MSG ( MSG )
           ENDIF
-
        ENDDO ! loop over containers in collection
    
        ! Advance to next collection

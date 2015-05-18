@@ -38,7 +38,7 @@ MODULE HCO_Config_Mod
   USE HCO_DIAGN_MOD
   USE HCO_CHARTOOLS_MOD
   USE HCO_FILEDATA_MOD,       ONLY : FileData
-  USE HCO_DATACONT_MOD,       ONLY : DataCont, ListCont, SclMax 
+  USE HCO_DATACONT_MOD,       ONLY : DataCont, ListCont
   USE HCO_STATE_MOD,          ONLY : HCO_State
 
   IMPLICIT NONE
@@ -520,7 +520,7 @@ CONTAINS
     CHARACTER(LEN=255)        :: LINE
 
     ! Arrays
-    INTEGER                   :: SplitInts(SclMax)
+    INTEGER                   :: SplitInts(255)
 
     ! Pointers
     TYPE(ListCont), POINTER   :: Lct => NULL()
@@ -690,13 +690,14 @@ CONTAINS
 
           ! Set scale factor IDs into Scal_cID. These values will be
           ! replaced lateron with the container IDs (in register_base)!
-          ! Note: SplitInts is of same lenghth SclMax as Scal_cID.
-          ALLOCATE ( Lct%Dct%Scal_cID(SclMax) )
-          Lct%Dct%Scal_cID(:) = -999
           CALL HCO_CharSplit( Char1, HCO_SEP(), HCO_WCD(), &
                               SplitInts, nScl, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          Lct%Dct%Scal_cID(1:nScl) = SplitInts(1:nScl)
+          IF ( nScl > 0 ) THEN
+             ALLOCATE ( Lct%Dct%Scal_cID(nScl) )
+             Lct%Dct%Scal_cID(1:nScl) = SplitInts(1:nScl)
+             Lct%Dct%nScalID          = nScl                
+          ENDIF
 
           ! Register species name. A list of all species names can be
           ! returned to the atmospheric model to match HEMCO species 
@@ -822,9 +823,9 @@ CONTAINS
           ! vector. This value will be set to the container ID of the
           ! corresponding mask field lateron.
           IF ( DctType == HCO_DCTTYPE_SCAL .AND. Int3 > 0 ) THEN
-             ALLOCATE ( Lct%Dct%Scal_cID(SclMax) )
-             Lct%Dct%Scal_cID(:) = -999
+             ALLOCATE ( Lct%Dct%Scal_cID(1) )
              Lct%Dct%Scal_cID(1) = Int3
+             Lct%Dct%nScalID     = 1
           ENDIF 
 
           ! For masks: extract grid box edges. These will be used later 
@@ -1189,20 +1190,24 @@ CONTAINS
     ! Init
     verb = HCO_IsVerb( 1 )  
 
-    ! Get number of currently used scale factors
-    N = 0
-    DO I = 1, SclMax 
-       IF ( Lct%Dct%Scal_cID(I) < 0 ) EXIT
-       N = N + 1
-    ENDDO
+!    ! Get number of currently used scale factors
+!    N = 0
+!    DO I = 1, SclMax 
+!       IF ( Lct%Dct%Scal_cID(I) < 0 ) EXIT
+!       N = N + 1
+!    ENDDO
+!
+!    ! There has to be space for scale factor zero.
+!    IF ( N >= SclMax ) THEN
+!       MSG = 'Cannot add shadow scale factor (zeros) - : ' // &
+!             'All scale factors already used: ' // TRIM(Lct%Dct%cName)
+!       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+!       RETURN
+!    ENDIF
 
-    ! There has to be space for scale factor zero.
-    IF ( N >= SclMax ) THEN
-       MSG = 'Cannot add shadow scale factor (zeros) - : ' // &
-             'All scale factors already used: ' // TRIM(Lct%Dct%cName)
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
+    ! Get number of scale factor IDs. Will add one more scale factor of
+    ! zero to this list.
+    N = Lct%Dct%nScalID
 
     ! Create 'shadow' container for every additional category.
     ! Add scale factor zero to it, so that emissions will all be zero.
@@ -1223,12 +1228,12 @@ CONTAINS
        Shd%Dct%Cat           = Cats(I)
 
        ! Pass scale factors, add scale factor of zero to it
-       ALLOCATE ( Shd%Dct%Scal_cID(SclMax) )
-       Shd%Dct%Scal_cID(:) = -999
+       ALLOCATE ( Shd%Dct%Scal_cID(N+1) )
        IF ( N > 0 ) THEN
           Shd%Dct%Scal_cID(1:N) = Lct%Dct%Scal_cID(1:N)
        ENDIF       
        Shd%Dct%Scal_cID(N+1) = ZeroScalID
+       Shd%Dct%nScalID       = N + 1
 
        ! Connect to data from main container. Make sure the new container
        ! is not identified as the home container (only points to the file
@@ -1888,18 +1893,17 @@ CONTAINS
        ! contains the scale factor IDs, hence need to convert to 
        ! container IDs. Beforehand, add scale factor IDs to internal 
        ! list of used scale factors (UnqScalIDs).
-       CALL ScalID_Register ( Lct%Dct%Scal_cID, RC )
+       CALL ScalID_Register ( Lct%Dct, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       DO N = 1,SclMax
-          IF ( Lct%Dct%Scal_cID(N) <= 0 ) CYCLE 
-          CALL Get_cID ( Lct%Dct%Scal_cID(N), cID, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          Lct%Dct%Scal_cID(N) = cID
-
-          ! Vector Scal_cID of this container now points to cIDs
-          Lct%Dct%Scal_cID_Set = .TRUE.
-       ENDDO
+!       DO N = 1,Lct%Dct%nScalID
+!          CALL Get_cID ( Lct%Dct%Scal_cID(N), cID, RC )
+!          IF ( RC /= HCO_SUCCESS ) RETURN
+!          Lct%Dct%Scal_cID(N) = cID
+!
+!          ! Vector Scal_cID of this container now points to cIDs
+!          Lct%Dct%Scal_cID_Set = .TRUE.
+!       ENDDO
 
        ! Get target ID of this container. The targetID corresponds
        ! to the container ID cID into which emissions data of the
@@ -2061,19 +2065,19 @@ CONTAINS
        ! We can do this while evaluating ScalIDList due to the dynamic 
        ! structure of the linked list with new containers simply being
        ! added to the end of the list.
-       IF ( ASSOCIATED(Lct%Dct%Scal_cID) ) THEN
+       IF ( Lct%Dct%nScalID > 0 ) THEN
 
-          CALL ScalID_Register ( Lct%Dct%Scal_cID, RC )
+          CALL ScalID_Register ( Lct%Dct, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
-          ! Get container ID of mask and update cID value of the data
-          ! container accordingly.
-          CALL Get_cID ( Lct%Dct%Scal_cID(1), cID, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          Lct%Dct%Scal_cID(1) = cID
-
-          ! Vector Scal_cID of this container now points to cIDs
-          Lct%Dct%Scal_cID_Set = .TRUE.
+!          ! Get container ID of mask and update cID value of the data
+!          ! container accordingly.
+!          CALL Get_cID ( Lct%Dct%Scal_cID(1), cID, RC )
+!          IF ( RC /= HCO_SUCCESS ) RETURN
+!          Lct%Dct%Scal_cID(1) = cID
+!
+!          ! Vector Scal_cID of this container now points to cIDs
+!          Lct%Dct%Scal_cID_Set = .TRUE.
 
        ENDIF
 
@@ -2210,7 +2214,7 @@ CONTAINS
     ! of them is a mask that has no valid entries over the domain of 
     ! this CPU. In this case we don't have to consider this field at 
     ! all!
-    DO I = 1, SclMax
+    DO I = 1, Lct%Dct%nScalID
 
        ! Check if it's a valid scale factor
        IF ( Lct%Dct%Scal_cID(I) < 0 ) CYCLE
@@ -2302,7 +2306,7 @@ CONTAINS
 
        ! Check all scale factors of tmpLct to see if this base 
        ! field has full coverage over this CPU domain or not. 
-       DO I = 1, SclMax
+       DO I = 1, tmpLct%Dct%nScalID
 
           ! Check if it's a valid scale factor
           IF ( tmpLct%Dct%Scal_cID(I) < 0 ) CYCLE
@@ -2378,7 +2382,7 @@ CONTAINS
           sameCont = .TRUE.
 
           ! Check for same scale factors
-          DO I = 1, SclMax
+          DO I = 1, tmpLct%Dct%nScalID
              IF (  tmpLct%Dct%Scal_cID(I) /= &
                   Lct%Dct%Scal_cID(I)     ) THEN
                 sameCont = .FALSE.
@@ -3158,15 +3162,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ScalID_Register( ScalIDs, RC ) 
+  SUBROUTINE ScalID_Register( Dct, RC ) 
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN   ) :: ScalIDs(SclMax)
+    TYPE(DataCont), POINTER :: Dct 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(INOUT) :: RC 
+    INTEGER, INTENT(INOUT)  :: RC 
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
@@ -3184,7 +3188,7 @@ CONTAINS
     TYPE(ScalIDCont), POINTER  :: PrvScalIDCont => NULL() 
 
     ! Scalars
-    INTEGER                    :: N
+    INTEGER                    :: N, cID
     LOGICAL                    :: IsInList
       
     !======================================================================
@@ -3193,15 +3197,15 @@ CONTAINS
 
     ! Check for every element of ScalIDs, if this scale factor ID is
     ! already a member of ScalIDList. If not, add to it. 
-    DO N = 1, SclMax
-       IF ( ScalIDs(N) < 0 ) CYCLE
+    DO N = 1, Dct%nScalID 
+       IF ( Dct%Scal_cID(N) < 0 ) CYCLE
      
        ! Check if already in list 
        IsInList = .FALSE.
        TmpScalIDCont => ScalIDList
        PrvScalIDCont => TmpScalIDCont
        DO WHILE ( ASSOCIATED(TmpScalIDCont) ) 
-          IF ( TmpScalIDCont%ScalID == ScalIDs(N) ) THEN
+          IF ( TmpScalIDCont%ScalID == Dct%Scal_cID(N) ) THEN
              IsInList = .TRUE.
              EXIT
           ENDIF
@@ -3212,7 +3216,7 @@ CONTAINS
        ! Add new container w/ this scal ID to (end of) list 
        IF ( .NOT. IsInList ) THEN
           ALLOCATE ( NewScalIDCont ) 
-          NewScalIDCont%ScalID =  ScalIDs(N)
+          NewScalIDCont%ScalID =  Dct%Scal_cID(N)
           NewScalIDCont%NEXT   => NULL()
           IF ( .NOT. ASSOCIATED(PrvScalIDCont) ) THEN
              ScalIDList => NewScalIDCont
@@ -3223,9 +3227,19 @@ CONTAINS
 !          ScalIDList           => NewScalIDCont
 !          NewScalIDCont        => NULL()
        ENDIF
-  
+    
+       ! Cleanup
        TmpScalIDCont => NULL()
+
+       ! Replace scale factor ID with container ID.
+       CALL Get_cID ( Dct%Scal_cID(N), cID, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       Dct%Scal_cID(N) = cID
+
     ENDDO
+
+    ! Vector Scal_cID of this container now points to cIDs
+    Dct%Scal_cID_Set = .TRUE.
 
     ! Leave w/ success
     RC = HCO_SUCCESS

@@ -106,6 +106,9 @@ MODULE HCO_Error_Mod
   INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_BASE = 1
   INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_SCAL = 2
   INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_MASK = 3
+
+  ! HEMCO version number. Only increase after significant changes
+  REAL(hp), PARAMETER, PUBLIC :: HCO_VERSION = 1.2_hp
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller   - Initialization
@@ -759,7 +762,9 @@ CONTAINS
    
        ! Inquire if file is already open
        INQUIRE( FILE=TRIM(Err%LogFile), OPENED=isOpen, EXIST=exists, NUMBER=LUN )
-   
+  
+       
+ 
        ! File exists and is opened ==> nothing to do
        IF ( exists .AND. isOpen ) THEN
           Err%LUN       = LUN
@@ -767,14 +772,29 @@ CONTAINS
    
        ! File exists but not opened ==> reopen
        ELSEIF (exists .AND. .NOT. isOpen ) THEN
-          OPEN ( UNIT=FREELUN,   FILE=TRIM(Err%LogFile), STATUS='OLD',     &
-                 ACTION='WRITE', ACCESS='APPEND',        FORM='FORMATTED', &
-                 IOSTAT=IOS   )
-          IF ( IOS /= 0 ) THEN
-             PRINT *, 'Cannot reopen logfile: ' // TRIM(Err%LogFile)
-             RC = HCO_FAIL
-             RETURN
+
+          ! Replace existing file on first call
+          IF ( FIRST ) THEN
+             OPEN ( UNIT=FREELUN,   FILE=TRIM(Err%LogFile), STATUS='REPLACE', &
+                    ACTION='WRITE', FORM='FORMATTED',       IOSTAT=IOS         )
+             IF ( IOS /= 0 ) THEN
+                PRINT *, 'Cannot create logfile: ' // TRIM(Err%LogFile)
+                RC = HCO_FAIL
+                RETURN
+             ENDIF
+
+          ! Reopen otherwise
+          ELSE
+             OPEN ( UNIT=FREELUN,   FILE=TRIM(Err%LogFile), STATUS='OLD',     &
+                    ACTION='WRITE', ACCESS='APPEND',        FORM='FORMATTED', &
+                    IOSTAT=IOS   )
+             IF ( IOS /= 0 ) THEN
+                PRINT *, 'Cannot reopen logfile: ' // TRIM(Err%LogFile)
+                RC = HCO_FAIL
+                RETURN
+             ENDIF
           ENDIF
+
           Err%LUN       = FREELUN
           Err%LogIsOpen = .TRUE.
 
@@ -797,12 +817,12 @@ CONTAINS
     IF ( FIRST ) THEN
        IF ( Err%LUN < 0 ) THEN
           WRITE(*,'(a)') REPEAT( '-', 79) 
-          WRITE(*,*    ) 'Using HEMCO v1.1'
+          WRITE(*,'(A12,F5.2)') 'Using HEMCO', HCO_VERSION
           WRITE(*,'(a)') REPEAT( '-', 79) 
        ELSE
           LUN = Err%LUN
           WRITE(LUN,'(a)') REPEAT( '-', 79) 
-          WRITE(LUN,*    ) 'Using HEMCO v1.1'
+          WRITE(LUN,'(A12,F5.2)') 'Using HEMCO', HCO_VERSION
           WRITE(LUN,'(a)') REPEAT( '-', 79) 
        ENDIF
 

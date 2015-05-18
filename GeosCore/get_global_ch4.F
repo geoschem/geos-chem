@@ -1,25 +1,53 @@
-! $Id: get_global_ch4.f,v 1.1 2009/09/16 14:06:26 bmy Exp $
-      SUBROUTINE GET_GLOBAL_CH4( THISYEAR, VARIABLE_CH4, 
-     &                           A3090S, A0030S, A0030N, A3090N,
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_global_ch4
+!
+! !DESCRIPTION: Subroutine GET_GLOBAL_CH4 computes the latitudinal gradient 
+!  in CH4 corresponding to year.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_GLOBAL_CH4( THISYEAR,  VARIABLE_CH4, 
+     &                           A3090S,    A0030S, 
+     &                           A0030N,    A3090N,
      &                           am_I_Root, Input_Opt )
 !
-!******************************************************************************
-!  Subroutine GET_GLOBAL_CH4 computes the latitudinal gradient in CH4
-!  corresponding to year (jsw, bnd, bmy, 1/3/01, 1/25/08)
+! !USES:
 !
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) THISYEAR     (INTEGER) : Current month number (1-12)
-!  (2 ) VARIABLE_CH4 (LOGICAL) : Flag for selecting variable or constant CH4
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCENARIO
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE PRECISION_MOD 
+
+      IMPLICIT NONE
 !
-!  Arguments as Output:
-!  ===========================================================================
-!  (3 ) A3090S      (REAL(fp) ) : CH4 concentration [ppbv], 90S - 30S lat
-!  (4 ) A0030S      (REAL(fp) ) : CH4 concentration [ppbv], 30S - 00  lat
-!  (5 ) A0030N      (REAL(fp) ) : CH4 concentration [ppbv], 00  - 30N lat
-!  (6 ) A3090N      (REAL(fp) ) : CH4 concentration [ppbv], 30N - 90N lat
+! !INPUT PARAMETERS:
 !
-!  NOTES:
+      INTEGER,        INTENT(IN)  :: THISYEAR      ! Current year
+      LOGICAL,        INTENT(IN)  :: VARIABLE_CH4  ! =T: Use time-varying CH4
+                                                   ! =F: Use constant CH4
+      LOGICAL,        INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt     ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL(fp),       INTENT(OUT) :: A3090S        ! CH4 [ppbv], 90S - 30S lat
+      REAL(fp),       INTENT(OUT) :: A0030S        ! CH4 [ppbv], 30S - 00  lat
+      REAL(fp),       INTENT(OUT) :: A0030N        ! CH4 [ppbv], 00  - 30N lat
+      REAL(fp),       INTENT(OUT) :: A3090N        ! CH4 [ppbv], 30N - 90N lat
+!
+! !REMARKS:
+!  (1) 2007 was the prior default year for CH4 emissions.  This has now been 
+!       changed to 2013.
+!  (2) The FUTURE_SCENARIO option is probably now obsolete, as most scale
+!       factors are now handled by HEMCO.  But we shall leave this intact 
+!       until further notice.
+!
+! !REVISION HISTORY:
+!  03 Jan 2001 - J. Wang     - Initial version
 !  (1 ) GET_GLOBAL_CH4 only has to be called at the start of the new year,
 !        as long as A3090S, A0030S, A0030N, A3090N are saved in the
 !        calling program (bmy, 1/3/01)
@@ -45,38 +73,25 @@
 !                              from logical_mod.F
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!******************************************************************************
-!
-! !USES:
-!
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCENARIO
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-
-      IMPLICIT NONE
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER,        INTENT(IN)  :: THISYEAR
-      LOGICAL,        INTENT(IN)  :: VARIABLE_CH4
-      LOGICAL,        INTENT(IN)  :: am_I_Root
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL(fp),         INTENT(OUT) :: A3090S, A0030S, A0030N, A3090N
+!  06 Jan 2015 - R. Yantosca - Initial version
+!  12 May 2015 - K. Travis   - Updated CH4 values with Version: 2014-06-24 
+!                              for 2008-2013.
+!  12 May 2015 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
-      CHARACTER(LEN=2)            :: FUTURE_SCENARIO
+      CHARACTER(LEN=2) :: FUTURE_SCENARIO
 
       !=================================================================
       ! GET_GLOBAL_CH4 begins here!
       !
       ! New methane data from 1983-2007 (mje, bmy, 7/7/03, jaf 4/15/09)
       ! version is 2008-07-02
-      !
+      ! Added data from 2008-2013  (krt, 7/7/14) Version: 2014-06-24 
+      ! 
       ! Methane measurements are from CMDL website:
       ! ftp://140.172.192.211/ccg/ch4/flask/month
       ! 
@@ -261,12 +276,48 @@
                A0030N = 1801.38e+0_fp
                A3090N = 1855.55e+0_fp
 
+            CASE( 2008 )
+               A3090S = 1740.54e+0_fp
+               A0030S = 1748.16e+0_fp
+               A0030N = 1807.91e+0_fp
+               A3090N = 1868.26e+0_fp 
+
+            CASE( 2009 )
+               A3090S = 1743.97e+0_fp
+               A0030S = 1753.06e+0_fp 
+               A0030N = 1816.44e+0_fp
+               A3090N = 1872.97e+0_fp
+
+            CASE( 2010 )
+               A3090S = 1750.15e+0_fp
+               A0030S = 1759.71e+0_fp 
+               A0030N = 1820.60e+0_fp
+               A3090N = 1878.29e+0_fp
+
+            CASE( 2011 )
+               A3090S = 1757.30e+0_fp
+               A0030S = 1763.98e+0_fp
+               A0030N = 1822.17e+0_fp
+               A3090N = 1880.56e+0_fp
+
+            CASE( 2012 )
+               A3090S = 1761.27e+0_fp
+               A0030S = 1767.83e+0_fp 
+               A0030N = 1824.79e+0_fp
+               A3090N = 1885.32e+0_fp
+
+            CASE( 2013 )
+               A3090S = 1765.66e+0_fp
+               A0030S = 1773.37e+0_fp 
+               A0030N = 1830.84e+0_fp
+               A3090N = 1893.50e+0_fp 
+               
             ! Future year 2030
             CASE( 2025:2035 )
             
                ! Pick the IPCC scenario.  If LFUTURE=F and FUTURE_SCENARIO
                ! are undefined, then we are running 2030 meteorology with 
-               ! present-day emissions.  In this case, default to 2007 CH4 
+               ! present-day emissions.  In this case, default to 2013 CH4 
                ! concentrations. (havala, 1/25/08)
                SELECT CASE( FUTURE_SCENARIO )
                   CASE( 'A1' )
@@ -284,11 +335,11 @@
                   CASE( 'B2' )
                      ! Not defined yet
                   CASE DEFAULT
-                     ! 2007 is the default
-                     A3090S = 1732.52e+0_fp
-                     A0030S = 1741.68e+0_fp
-                     A0030N = 1801.38e+0_fp
-                     A3090N = 1855.55e+0_fp
+                     ! 2013 is the default
+                     A3090S = 1765.66e+0_fp
+                     A0030S = 1773.37e+0_fp 
+                     A0030N = 1830.84e+0_fp
+                     A3090N = 1893.50e+0_fp 
                END SELECT
 
             ! Future year 2050
@@ -320,21 +371,20 @@
                      A0030N = 2363.0e+0_fp
                      A3090N = 2363.0e+0_fp
                   CASE DEFAULT
-                     ! 2007 is the default
-                     A3090S = 1732.52e+0_fp
-                     A0030S = 1741.68e+0_fp
-                     A0030N = 1801.38e+0_fp
-                     A3090N = 1855.55e+0_fp
+                     ! 2013 is the default
+                     A3090S = 1765.66e+0_fp
+                     A0030S = 1773.37e+0_fp 
+                     A0030N = 1830.84e+0_fp
+                     A3090N = 1893.50e+0_fp 
                END SELECT
 
-            ! Default is to use 2007 data for other years
-            ! for which we do not yet have data (jaf, 4/15/09)
+            ! Default is to use 2013 data for other years
+            ! for which we do not yet have data (krt, 7/7/14)
             CASE DEFAULT
-               A3090S = 1732.52e+0_fp
-               A0030S = 1741.68e+0_fp
-               A0030N = 1801.38e+0_fp
-               A3090N = 1855.55e+0_fp
-
+               A3090S = 1765.66e+0_fp
+               A0030S = 1773.37e+0_fp 
+               A0030N = 1830.84e+0_fp
+               A3090N = 1893.50e+0_fp 
          END SELECT
 
       ELSE
@@ -363,12 +413,12 @@
      &           'CH4 (30S - 90S) : ', f7.1, ' [ppbv]' )
 
          ! Indicate to the log file if we are using CH4 gradient data
-         ! from 2007 as a proxy for years past 2007 (mje, bmy, 7/7/03,
-         ! jaf, 4/15/09)
-         IF ( THISYEAR > 2007 ) THEN
+         ! from 2013 as a proxy for years past 2013 (mje, bmy, 7/7/03,
+         ! jaf, 4/15/09, krt, 7/7/14)
+         IF ( THISYEAR > 2013 ) THEN
             WRITE( 6, 115 ) 
- 115        FORMAT( /, 'Using CH4 gradient data from 2007 as a proxy',
-     &           /, 'since 2007 is the last year with reported data!' )
+ 115        FORMAT( /, 'Using CH4 gradient data from 2013 as a proxy',
+     &           /, 'since 2013 is the last year with reported data!' )
          ENDIF
 
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -377,3 +427,4 @@
 
       ! Return to calling program
       END SUBROUTINE GET_GLOBAL_CH4
+!EOC

@@ -67,7 +67,7 @@ MODULE HCO_Calc_Mod
 !
   USE HCO_Diagn_Mod
   USE HCO_Error_Mod
-  USE HCO_DataCont_Mod, ONLY : DataCont, ListCont, SclMax
+  USE HCO_DataCont_Mod, ONLY : DataCont, ListCont
   USE HCO_DataCont_Mod, ONLY : Pnt2DataCont
 
   IMPLICIT NONE
@@ -77,6 +77,7 @@ MODULE HCO_Calc_Mod
 !
   PUBLIC  :: HCO_CalcEmis
   PUBLIC  :: HCO_CheckDepv
+  PUBLIC  :: HCO_EvalFld
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -103,9 +104,15 @@ MODULE HCO_Calc_Mod
 !  29 Dec 2014 - C. Keller   - Added MASK_THRESHOLD parameter. Added option to
 !                              apply scale factors only over masked area.
 !  08 Apr 2015 - C. Keller   - Added option for fractional masks.
+!  11 May 2015 - C. Keller   - Added HCO_EvalFld interface.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+  INTERFACE HCO_EvalFld
+     MODULE PROCEDURE HCO_EvalFld_2D
+     MODULE PROCEDURE HCO_EvalFld_3D
+  END INTERFACE HCO_EvalFld
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -698,7 +705,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Get_Current_Emissions( am_I_Root, HcoState,   BaseDct,   &
-                                    nI, nJ, nL, OUTARR_3D, MASK,    RC )
+                                    nI, nJ, nL, OUTARR_3D, MASK,    RC, UseLL )
 !
 ! !USES:
 !
@@ -722,6 +729,10 @@ CONTAINS
     REAL(hp),        INTENT(INOUT) :: OUTARR_3D(nI,nJ,nL) ! output array
     REAL(hp),        INTENT(INOUT) :: MASK     (nI,nJ,nL) ! mask array 
     INTEGER,         INTENT(INOUT) :: RC
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(  OUT), OPTIONAL :: UseLL 
 !
 ! !REMARKS: 
 !  This routine uses multiple loops over all grid boxes (base emissions 
@@ -790,9 +801,9 @@ CONTAINS
     MaskFractions = HcoState%Options%MaskFractions
 
     ! Verbose 
-    IF ( HCO_IsVerb(3) ) THEN
-       write(MSG,*) '--> GET EMISSIONS FOR ', TRIM(BaseDct%cName)
-       CALL HCO_MSG(MSG)
+    IF ( HCO_IsVerb(2) ) THEN
+       write(MSG,*) 'Calculate emissions for ', TRIM(BaseDct%cName)
+       CALL HCO_MSG(MSG,SEP1=' ')
     ENDIF
 
     ! ----------------------------------------------------------------
@@ -870,18 +881,13 @@ CONTAINS
     ! container are stored in vector Scal_cID.
     ! ----------------------------------------------------------------
 
-    ! Loop over maximum number of scale factors 
-    DO N = 1, SclMax
+    ! Loop over scale factors
+    IF ( BaseDct%nScalID > 0 ) THEN 
+
+    DO N = 1, BaseDct%nScalID
 
        ! Get the scale factor container ID for the current slot
        IDX = BaseDct%Scal_cID(N)
-
-       ! Leave if container ID is not defined. The container IDs
-       ! were filled from left, i.e. beginning with the first element
-       ! of Scal_cID. 
-       IF ( IDX <= 0 ) THEN
-          EXIT
-       ENDIF
 
        ! Point to data container with the given container ID
        CALL Pnt2DataCont( IDX, ScalDct, RC )
@@ -904,6 +910,12 @@ CONTAINS
              CALL HCO_MSG( MSG )
           ENDIF
           CYCLE
+       ENDIF
+
+       ! Verbose mode
+       IF ( HCO_IsVerb(2) ) THEN
+          MSG = 'Applying scale factor ' // TRIM(ScalDct%cName)
+          CALL HCO_MSG( MSG )
        ENDIF
 
        ! Get vertical extension of this scale factor array.
@@ -1138,6 +1150,10 @@ CONTAINS
        MaskDct => NULL()
 
     ENDDO ! N
+    ENDIF ! N > 0 
+
+    ! Update optional variables
+    IF ( PRESENT(UseLL) ) UseLL = BaseLL
 
     ! Cleanup and leave w/ success
     ScalDct => NULL()
@@ -1326,16 +1342,12 @@ CONTAINS
        ! container are stored in vector Scal_cID.
        ! -------------------------------------------------------------
    
-       ! Loop over maximum number of scale factors 
-       DO N = 1, SclMax
+       ! Loop over maximum number of scale factors
+       IF ( BaseDct%nScalID > 0 ) THEN 
+       DO N = 1, BaseDct%nScalID 
    
           ! Get the scale factor container ID for the current slot
           IDX = BaseDct%Scal_cID(N)
-   
-          ! Leave if field ID is not defined
-          IF ( IDX <= 0 ) THEN
-             EXIT
-          ENDIF
    
           ! Point to emission container with the given container ID
           CALL Pnt2DataCont( IDX, ScalDct, RC )
@@ -1514,6 +1526,7 @@ CONTAINS
              ENDIF
           ENDDO !LL
        ENDDO ! N
+       ENDIF ! N > 0
 
        ! ----------------------------
        ! Masks 
@@ -1558,6 +1571,269 @@ CONTAINS
     CALL HCO_LEAVE( RC )
 
   END SUBROUTINE Get_Current_Emissions_B
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_EvalFld_3D
+!
+! !DESCRIPTION: Subroutine HCO\_EvalFld\_3D returns the 3D data field belonging 
+!  to the emissions list data container with field name 'cName'. The returned 
+!  data field is the completely evaluated field, e.g. the base field multiplied 
+!  by all scale factors and with all masking being applied (as specified in the 
+!  HEMCO configuration file). This distinguished this routine from HCO\_GetPtr
+!  in hco\_emislist\_mod.F90, which returns a reference to the unevaluated data 
+!  field.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_EvalFld_3D( am_I_Root, HcoState, cName, Arr3D, RC, FOUND )
+!
+! !USES:
+!
+    USE HCO_STATE_MOD,    ONLY : HCO_State
+    USE HCO_EMISLIST_MOD, ONLY : EmisList_NextCont
+    USE HCO_DATACONT_MOD, ONLY : ListCont_Find
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root    ! Root CPU?
+    CHARACTER(LEN=*), INTENT(IN   )  :: cName
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HCO_State),  POINTER        :: HcoState     ! HEMCO state object
+    REAL(hp),         INTENT(INOUT)  :: Arr3D(:,:,:) ! 3D array
+    INTEGER,          INTENT(INOUT)  :: RC           ! Return code
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(  OUT), OPTIONAL  :: FOUND 
+!
+! !REVISION HISTORY:
+!  11 May 2015 - C. Keller   - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL                 :: FND
+    INTEGER                 :: AS, nI, nJ, nL, FLAG
+
+    ! Arrays
+    REAL(hp), ALLOCATABLE   :: Mask(:,:,:)
+
+    ! Working pointers: list and data container 
+    TYPE(ListCont), POINTER :: EmisList => NULL() 
+    TYPE(ListCont), POINTER :: Lct      => NULL()
+
+    ! For error handling & verbose mode
+    CHARACTER(LEN=255)  :: MSG
+    CHARACTER(LEN=255)  :: LOC = "HCO_EvalFld_3d (HCO_calc_mod.F90)"
+
+    !=================================================================
+    ! HCO_EvalFld_3D begins here!
+    !=================================================================
+
+    ! Init 
+    RC    = HCO_SUCCESS
+    Arr3D = 0.0_hp
+    IF ( PRESENT(FOUND) ) FOUND = .FALSE.
+
+    ! Pointer to head of emissions list
+    EmisList => NULL()
+    CALL EmisList_NextCont ( EmisList, FLAG ) 
+    IF ( FLAG /= HCO_SUCCESS ) RETURN
+
+    ! Search for base container 
+    CALL ListCont_Find ( EmisList, TRIM(cName), FND, Lct )
+    IF ( PRESENT(FOUND) ) FOUND = FND
+    EmisList => NULL()    
+
+    ! If not found, return here
+    IF ( .NOT. FND ) THEN
+       IF ( PRESENT(FOUND) ) THEN
+          RETURN
+       ELSE
+          MSG = 'Cannot find in EmisList: ' // TRIM(cName)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! Define output dimensions
+    nI = SIZE(Arr3D,1)
+    nJ = SIZE(Arr3D,2) 
+    nL = SIZE(Arr3D,3)
+
+    ! Sanity check: horizontal grid dimensions are expected to be on HEMCO grid
+    IF ( nI /= HcoState%NX .OR. nJ /= HcoState%nY ) THEN
+       WRITE(MSG,*) "Horizontal dimension error: ", TRIM(cName), nI, nJ
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+
+    ! Make sure mask array is defined 
+    ALLOCATE(MASK(nI,nJ,nL),STAT=AS)
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR( 'Cannot allocate MASK', RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+
+    ! Calculate emissions for base container
+    CALL GET_CURRENT_EMISSIONS( am_I_Root,  HcoState, Lct%Dct, & 
+                                nI, nJ, nL, Arr3D,    Mask, RC  )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! All done
+    IF (ALLOCATED(MASK) ) DEALLOCATE(MASK)
+    Lct => NULL()
+
+  END SUBROUTINE HCO_EvalFld_3D 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_EvalFld_2D
+!
+! !DESCRIPTION: Subroutine HCO\_EvalFld\_2D returns the 2D data field belonging 
+!  to the emissions list data container with field name 'cName'. The returned 
+!  data field is the completely evaluated field, e.g. the base field multiplied 
+!  by all scale factors and with all masking being applied (as specified in the 
+!  HEMCO configuration file). This distinguished this routine from HCO\_GetPtr
+!  in hco\_emislist\_mod.F90, which returns a reference to the unevaluated data 
+!  field.
+!\\
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_EvalFld_2D( am_I_Root, HcoState, cName, Arr2D, RC, FOUND )
+!
+! !USES:
+!
+    USE HCO_STATE_MOD,    ONLY : HCO_State
+    USE HCO_EMISLIST_MOD, ONLY : EmisList_NextCont
+    USE HCO_DATACONT_MOD, ONLY : ListCont_Find
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root    ! Root CPU?
+    CHARACTER(LEN=*), INTENT(IN   )  :: cName
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HCO_State),  POINTER        :: HcoState     ! HEMCO state object
+    REAL(hp),         INTENT(INOUT)  :: Arr2D(:,:)   ! 2D array
+    INTEGER,          INTENT(INOUT)  :: RC           ! Return code
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(  OUT), OPTIONAL  :: FOUND 
+!
+! !REVISION HISTORY:
+!  11 May 2015 - C. Keller   - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL                 :: FND
+    INTEGER                 :: AS, nI, nJ, nL, UseLL, FLAG
+
+    ! Arrays
+    REAL(hp), ALLOCATABLE   :: Mask (:,:,:)
+    REAL(hp), ALLOCATABLE   :: Arr3D(:,:,:)
+
+    ! Working pointers: list and data container 
+    TYPE(ListCont), POINTER :: EmisList => NULL() 
+    TYPE(ListCont), POINTER :: Lct      => NULL()
+
+    ! For error handling & verbose mode
+    CHARACTER(LEN=255)  :: MSG
+    CHARACTER(LEN=255)  :: LOC = "HCO_EvalFld_3d (HCO_calc_mod.F90)"
+
+    !=================================================================
+    ! HCO_EvalFld_2D begins here!
+    !=================================================================
+
+    ! Init 
+    RC    = HCO_SUCCESS
+    Arr2D = 0.0_hp
+    IF ( PRESENT(FOUND) ) FOUND = .FALSE.
+
+    ! Pointer to head of emissions list
+    EmisList => NULL()
+    CALL EmisList_NextCont ( EmisList, FLAG ) 
+    IF ( FLAG /= HCO_SUCCESS ) RETURN
+
+    ! Search for base container 
+    CALL ListCont_Find ( EmisList, TRIM(cName), FND, Lct )
+    IF ( PRESENT(FOUND) ) FOUND = FND
+    EmisList => NULL()    
+
+    ! If not found, return here
+    IF ( .NOT. FND ) THEN
+       IF ( PRESENT(FOUND) ) THEN
+          RETURN
+       ELSE
+          MSG = 'Cannot find in EmisList: ' // TRIM(cName)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! Define output dimensions
+    nI = SIZE(Arr2D,1)
+    nJ = SIZE(Arr2D,2) 
+    nL = 1 
+
+    ! Sanity check: horizontal grid dimensions are expected to be on HEMCO grid
+    IF ( nI /= HcoState%NX .OR. nJ /= HcoState%nY ) THEN
+       WRITE(MSG,*) "Horizontal dimension error: ", TRIM(cName), nI, nJ
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+
+    ! Make sure mask array is defined 
+    ALLOCATE(MASK(nI,nJ,nL),Arr3D(nI,nJ,nL),STAT=AS)
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR( 'Cannot allocate MASK', RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+    Arr3D = 0.0_hp
+    Mask  = 0.0_hp
+
+    ! Calculate emissions for base container
+    CALL GET_CURRENT_EMISSIONS( am_I_Root,  HcoState, Lct%Dct, & 
+                                nI, nJ, nL, Arr3D,    Mask, RC, UseLL=UseLL )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! For 2D data, we expect UseLL to be 1
+    IF ( UseLL /= 1 ) THEN
+       WRITE(MSG,*) "Data is not 2D: " , TRIM(cName), UseLL
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+
+    ! Pass 3D data to 2D array
+    Arr2D(:,:) = Arr3D(:,:,1)
+
+    ! All done
+    IF (ALLOCATED(MASK ) ) DEALLOCATE(MASK )
+    IF (ALLOCATED(Arr3D) ) DEALLOCATE(Arr3D)
+    Lct => NULL()
+
+  END SUBROUTINE HCO_EvalFld_2D 
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

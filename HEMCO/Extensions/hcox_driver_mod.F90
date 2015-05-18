@@ -64,7 +64,7 @@ MODULE HCOX_Driver_Mod
   REAL(sp), ALLOCATABLE, TARGET :: DGN_SUNCOS   (:,:  )
   REAL(sp), ALLOCATABLE, TARGET :: DGN_DRYTOTN  (:,:  )
   REAL(sp), ALLOCATABLE, TARGET :: DGN_WETTOTN  (:,:  )
-!  REAL(sp), ALLOCATABLE, TARGET :: DGN_LAI      (:,:  )
+  REAL(sp), ALLOCATABLE, TARGET :: DGN_LAI      (:,:  )
 !  REAL(sp), ALLOCATABLE, TARGET :: DGN_T2M      (:,:  )
 !  REAL(sp), ALLOCATABLE, TARGET :: DGN_GWET     (:,:  )
 !  REAL(sp), ALLOCATABLE, TARGET :: DGN_U10M     (:,:  )
@@ -606,7 +606,7 @@ CONTAINS
     ENDIF
 
     ! Eventually deallocate diagnostics array
-!    IF ( ALLOCATED( DGN_LAI      ) ) DEALLOCATE( DGN_LAI      )
+    IF ( ALLOCATED( DGN_LAI      ) ) DEALLOCATE( DGN_LAI      )
 !    IF ( ALLOCATED( DGN_T2M      ) ) DEALLOCATE( DGN_T2M      )
 !    IF ( ALLOCATED( DGN_GWET     ) ) DEALLOCATE( DGN_GWET     )
 !    IF ( ALLOCATED( DGN_U10M     ) ) DEALLOCATE( DGN_U10M     )
@@ -676,7 +676,12 @@ CONTAINS
 
     IF ( DoDiagn ) THEN
 
-!       ALLOCATE( DGN_LAI(I,J), DGN_GWET(I,J), STAT=AS )
+       ALLOCATE( DGN_LAI(I,J), STAT=AS )
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR( 'Diagnostics allocation error 1', RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+!       ALLOCATE( DGN_GWET(I,J), STAT=AS )
 !       IF ( AS /= 0 ) THEN
 !          CALL HCO_ERROR( 'Diagnostics allocation error 1', RC, THISLOC=LOC )
 !          RETURN
@@ -708,7 +713,7 @@ CONTAINS
           RETURN
        ENDIF
 
-!       DGN_LAI     = 0.0_sp
+       DGN_LAI     = 0.0_sp
 !       DGN_T2M     = 0.0_sp
 !       DGN_GWET    = 0.0_sp
 !       DGN_V10M    = 0.0_sp
@@ -730,9 +735,9 @@ CONTAINS
 !       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_GWET', DGN_GWET, RC ) 
 !       IF ( RC /= HCO_SUCCESS ) RETURN
 !
-!       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_LAI', DGN_LAI, RC ) 
-!       IF ( RC /= HCO_SUCCESS ) RETURN
-!   
+       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_LAI', DGN_LAI, RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+   
 !       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_U10M', DGN_U10M, RC ) 
 !       IF ( RC /= HCO_SUCCESS ) RETURN
 !   
@@ -864,7 +869,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 
     IF ( DoDiagn ) THEN
-!       DGN_LAI     = ExtState%GC_LAI%Arr%Val
+       DGN_LAI     = ExtState%LAI%Arr%Val
 !       DGN_T2M     = ExtState%T2M%Arr%Val
 !       DGN_GWET    = ExtState%GWETTOP%Arr%Val
 !       DGN_U10M    = ExtState%U10M%Arr%Val

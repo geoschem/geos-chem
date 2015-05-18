@@ -2223,6 +2223,9 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !  30 Mar 2015 - M. Sulprizio  - Removed NAMFIL argument. Now specify filenames
 !                                for aerosol LUT files in this routine.
 !  02 Apr 2015 - C. Keller     - Append '.rc' to species files in ESMF mode.
+!  12 May 2015 - R. Yantosca   - Bug fix: For PGI compiler, you need to have
+!                                exactly as many elements in the DATA statement
+!                                as there are elements in the SPECFIL array.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2231,7 +2234,11 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
       INTEGER           :: I, J, K, N
       INTEGER           :: IOS
+#if defined( UCX )
       CHARACTER*30      :: SPECFIL(8)
+#else
+      CHARACTER*30      :: SPECFIL(6)
+#endif
       CHARACTER(LEN=30) :: THISFILE
 
       CHARACTER*78 TITLE0
@@ -2249,6 +2256,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
      &              "so4.dat","so4.dat",
 #endif
      &              "dust.dat"/
+
       !array of filenames
       DO k = 1, NSPAA
 

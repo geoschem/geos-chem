@@ -67,6 +67,7 @@ MODULE HCO_Clock_Mod
   PUBLIC :: HcoClock_NewDay
   PUBLIC :: HcoClock_NewHour
   PUBLIC :: HcoClock_First
+  PUBLIC :: HcoClock_Rewind
   PUBLIC :: HcoClock_GetMinResetFlag
   PUBLIC :: HcoClock_CalcDOY
   PUBLIC :: HcoClock_Increase
@@ -921,6 +922,83 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: HcoClock_Rewind
+!
+! !DESCRIPTION: Function HcoClock\_Rewind returns TRUE if the last archived
+! HEMCO time step is not in the past. 
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION HcoClock_Rewind( EmisTime ) RESULT ( Rwnd )
+!
+! !INPUT ARGUMENTS:
+!
+    LOGICAL, INTENT(IN) :: EmisTime
+!
+! !RETURN VALUE:
+!
+    LOGICAL :: Rwnd
+!
+! !REVISION HISTORY:
+!  08 May 2015 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    INTEGER :: YYYYMMDD,  HHMMSS
+    INTEGER :: pYYYYMMDD, pHHMMSS
+
+    ! Init
+    Rwnd = .FALSE.
+
+    ! Get current and previous date & time 
+    IF ( EmisTime ) THEN
+       YYYYMMDD  = HcoClock%ThisEYear  * 10000 + &
+                   HcoClock%ThisEMonth * 100   + &
+                   HcoClock%ThisEDay
+       HHMMSS    = HcoClock%ThisEHour  * 10000 + &
+                   HcoClock%ThisEMin   * 100   + &
+                   HcoClock%ThisESec
+
+       pYYYYMMDD = HcoClock%PrevEYear  * 10000 + &
+                   HcoClock%PrevEMonth * 100   + &
+                   HcoClock%PrevEDay
+       pHHMMSS   = HcoClock%PrevEHour  * 10000 + &
+                   HcoClock%PrevEMin   * 100   + &
+                   HcoClock%PrevESec
+
+    ELSE
+       YYYYMMDD  = HcoClock%ThisYear  * 10000 + &
+                   HcoClock%ThisMonth * 100   + &
+                   HcoClock%ThisDay
+       HHMMSS    = HcoClock%ThisHour  * 10000 + &
+                   HcoClock%ThisMin   * 100   + &
+                   HcoClock%ThisSec
+
+       pYYYYMMDD = HcoClock%PrevYear  * 10000 + &
+                   HcoClock%PrevMonth * 100   + &
+                   HcoClock%PrevDay
+       pHHMMSS   = HcoClock%PrevHour  * 10000 + &
+                   HcoClock%PrevMin   * 100   + &
+                   HcoClock%PrevSec
+    ENDIF
+
+    ! Check if current date & time is in future
+    IF ( ( pHHMMSS   >  HHMMSS ) .AND. &
+         ( pYYYYMMDD >= YYYYMMDD )      ) THEN
+       Rwnd = .TRUE.
+    ELSEIF ( pYYYYMMDD > YYYYMMDD ) THEN
+       Rwnd = .TRUE.
+    ENDIF
+
+  END FUNCTION HcoClock_Rewind
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: HcoClock_NewYear
 !
 ! !DESCRIPTION: Function HcoClock\_NewYear returns TRUE if this is a new 
@@ -1245,16 +1323,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HcoClock_SetMinResetFlag RESULT ( MinResetFlag ) 
+  FUNCTION HcoClock_SetMinResetFlag() RESULT ( MinResetFlag ) 
 !
 ! !RETURN VALUE:
 !
     INTEGER :: MinResetFlag 
 !
 ! !REVISION HISTORY: 
-!  13 Jan 2014 - C. Keller - Initial version 
+!  13 Jan 2014 - C. Keller   - Initial version 
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  12 May 2015 - R. Yantosca - Bug fix: PGI expects routine name to end w/ ()
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1298,16 +1377,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HcoClock_GetMinResetFlag RESULT ( MinResetFlag ) 
+  FUNCTION HcoClock_GetMinResetFlag() RESULT ( MinResetFlag ) 
 !
 ! !RETURN VALUE:
 !
     INTEGER :: MinResetFlag 
 !
 ! !REVISION HISTORY: 
-!  13 Jan 2014 - C. Keller - Initial version 
+!  13 Jan 2014 - C. Keller   - Initial version 
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  12 May 2015 - R. Yantosca - Bug fix: PGI expects routine name to end w/ ()
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
