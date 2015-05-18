@@ -120,7 +120,6 @@
 #if defined (UCX )
       USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
       USE UCX_MOD,            ONLY : READ_PSC_FILE
-      USE UCX_MOD,            ONLY : DIAG_STATE_PSC
 #endif
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
@@ -220,6 +219,7 @@
 !                              in HEMCO.
 !  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  08 May 2015 - C. Keller   - Added WRITE_STATE_PSC.
+!  18 May 2015 - R. Yantosca - Remove DIAG_STATE_PSC, that is not used anymore
 !EOP
 !------------------------------------------------------------------------------
 !BOC
