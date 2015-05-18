@@ -114,12 +114,12 @@
       USE TAGGED_OX_MOD,      ONLY : CHEM_TAGGED_OX
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-!      USE TRACERID_MOD,       ONLY : IDTACET
       USE TRACERID_MOD,       ONLY : IDTISOP
       USE TRACERID_MOD,       ONLY : IDTDST1
 #if defined (UCX )
       USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
       USE UCX_MOD,            ONLY : READ_PSC_FILE
+      USE UCX_MOD,            ONLY : WRITE_STATE_PSC
 #endif
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
