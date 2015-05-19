@@ -623,7 +623,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_Final( am_I_Root )
+  SUBROUTINE HCOI_GC_Final( am_I_Root, ERROR )
 !
 ! !USES:
 !
@@ -638,6 +638,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     LOGICAL, INTENT(IN)              :: am_I_Root
+    LOGICAL, INTENT(IN)              :: ERROR
 !
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller   - Initial version 
@@ -659,7 +660,7 @@ CONTAINS
     LOC = 'HCOI_GC_Final (hcoi_gc_main_mod.F90)'
 
     ! Cleanup HCO core. 
-    CALL HCO_FINAL( am_I_Root, HcoState, HMRC )
+    CALL HCO_FINAL( am_I_Root, HcoState, ERROR, HMRC )
 
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields. 

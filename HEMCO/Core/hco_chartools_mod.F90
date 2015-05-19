@@ -473,10 +473,11 @@ CONTAINS
 ! source time settings set in the configuration file.
 !\item \$HH: will be replaced by the (2-digit) hour according to the
 ! source time settings set in the configuration file.
+!\item \$MN: will be replaced by the (2-digit) minute.
 !\end{itemize}
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_CharParse ( str, yyyy, mm, dd, hh, RC )
+  SUBROUTINE HCO_CharParse ( str, yyyy, mm, dd, hh, mn, RC )
 !
 ! !USES:
 !
@@ -487,6 +488,7 @@ CONTAINS
     INTEGER,          INTENT(IN   )  :: mm    ! replace $MM with this value 
     INTEGER,          INTENT(IN   )  :: dd    ! replace $DD with this value
     INTEGER,          INTENT(IN   )  :: hh    ! replace $HH with this value
+    INTEGER,          INTENT(IN   )  :: mn    ! replace $MN with this value
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -607,6 +609,26 @@ CONTAINS
        AFTER = str((IDX+OFF):LN)
 
        WRITE(str2,'(i2.2)') hh 
+
+       ! Updated string
+       str = TRIM(BEFORE) // TRIM(str2) // TRIM(AFTER)
+    ENDDO
+
+    ! Check for minute token
+    !-------------------------------------------------------------------
+    DO
+       IDX = INDEX( str, '$MN' )
+       IF ( IDX <= 0 ) EXIT 
+       LN = LEN(str)
+       IF ( IDX > 1 ) THEN
+          BEFORE = str(1:(IDX-1))
+       ELSE
+          BEFORE = ''
+       ENDIF
+       OFF   = 3
+       AFTER = str((IDX+OFF):LN)
+
+       WRITE(str2,'(i2.2)') mn
 
        ! Updated string
        str = TRIM(BEFORE) // TRIM(str2) // TRIM(AFTER)

@@ -630,7 +630,7 @@ CONTAINS
           ! Call the parser. This is to make sure that any $ROOT statements
           ! will be evaluated properly. The configuration file must not 
           ! contain any data tokens ($YR, $MM, etc.).
-          CALL HCO_CharParse ( LINE, 0, 0, 0, 0, RC )
+          CALL HCO_CharParse ( LINE, 0, 0, 0, 0, 0, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           CALL Config_ReadFile( am_I_Root, LINE, 0, RC, IsNest=.TRUE. )

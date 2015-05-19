@@ -165,7 +165,6 @@ CONTAINS
     TYPE(DataCont), POINTER :: Dct => NULL()
 
     ! Temporary emission arrays
-    REAL(hp), POINTER       :: Diag3D(:,:,:) => NULL()
     REAL(hp), POINTER       :: OutArr(:,:,:) => NULL()
     REAL(hp), TARGET        :: SpcFlx( HcoState%NX, &
                                        HcoState%NY, &
@@ -354,12 +353,10 @@ CONTAINS
           ! Add category emissions to diagnostics at category level
           ! (only if defined in the diagnostics list).
           IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN 
-             Diag3D => CatFlx
              CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr,             &
                                 Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &
-                                AutoFill=1,  Array3D=Diag3D, COL=-1, RC=RC ) 
+                                AutoFill=1,  Array3D=CatFlx, COL=-1, RC=RC ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
-             Diag3D => NULL() 
           ENDIF
 
           ! Reset CatFlx array and the previously used hierarchy 
@@ -402,12 +399,10 @@ CONTAINS
              ! The same diagnostics may be updated multiple times during 
              ! the same time step, continuously adding emissions to it.
              IF ( Diagn_AutoFillLevelDefined(2) .AND. DoDiagn ) THEN 
-                Diag3D => SpcFlx
                 CALL Diagn_Update(am_I_Root, ExtNr=ExtNr,             &
                                   Cat=-1,    Hier=-1,  HcoID=PrevSpc, &
-                                  AutoFill=1,Array3D=Diag3D, COL=-1, RC=RC ) 
+                                  AutoFill=1,Array3D=SpcFlx, COL=-1, RC=RC ) 
                 IF ( RC /= HCO_SUCCESS ) RETURN
-                Diag3D => NULL()
              ENDIF
 
              ! Reset arrays and previous hierarchy. 
@@ -544,13 +539,11 @@ CONTAINS
        ! during the same time step, continuously adding
        ! emissions to it. 
        IF ( Diagn_AutoFillLevelDefined(4) .AND. DoDiagn ) THEN 
-          Diag3D => TmpFlx
           CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                   &
                              Cat=ThisCat,Hier=ThisHir,   HcoID=ThisSpc, &
-                             AutoFill=1, Array3D=Diag3D, PosOnly=.TRUE.,&
+                             AutoFill=1, Array3D=TmpFlx, PosOnly=.TRUE.,&
                              COL=-1, RC=RC ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
-          Diag3D => NULL()
        ENDIF
 
        ! Update previously used species, category and hierarchy
@@ -586,22 +579,18 @@ CONTAINS
 
        ! Diagnostics at category level
        IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN
-          Diag3D => CatFlx
           CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr,             &
                              Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &
-                             AutoFill=1,  Array3D=Diag3D, COL=-1, RC=RC ) 
+                             AutoFill=1,  Array3D=CatFlx, COL=-1, RC=RC ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
-          Diag3D => NULL() 
        ENDIF
 
        ! Diagnostics at extension number level
        IF ( Diagn_AutoFillLevelDefined(2) .AND. DoDiagn ) THEN 
-          Diag3D => SpcFlx
           CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                   &
                              Cat=-1,     Hier=-1,        HcoID=PrevSpc, &
-                             AutoFill=1, Array3D=Diag3D, COL=-1, RC=RC   )
+                             AutoFill=1, Array3D=SpcFlx, COL=-1, RC=RC   )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          Diag3D => NULL()
        ENDIF
 
        ! Verbose mode 

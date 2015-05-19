@@ -348,7 +348,7 @@ CONTAINS
 !
     INTEGER                  :: I, J, L
     LOGICAL                  :: ERR
-    LOGICAL                  :: FOUND 
+    LOGICAL                  :: FILLED 
     LOGICAL                  :: FIRST
     REAL(hp)                 :: iFlx, TMP
     CHARACTER(LEN=255)       :: MSG
@@ -455,10 +455,10 @@ CONTAINS
           ! Get restart value
           CALL HCO_RestartGet( am_I_Root,       HcoState,         & 
                                TRIM(DiagnName), SC5(:,:,I+1), RC, &
-                               FOUND=FOUND ) 
+                               FILLED=FILLED ) 
           IF ( RC /= HCO_SUCCESS ) RETURN   
 
-          IF ( .NOT. FOUND ) THEN
+          IF ( .NOT. FILLED ) THEN
              SC5(:,:,I+1) = ExtState%SUNCOSmid%Arr%Val
           ENDIF
        ENDDO !I
@@ -1163,7 +1163,7 @@ CONTAINS
    ! Call HEMCO parser to replace tokens such as $ROOT, $MET, or $RES.
    ! There shouldn't be any date token in there ($YYYY, etc.), so just
    ! provide some dummy variables here
-   CALL HCO_CharParse( LutDir, -999, -1, -1, -1, RC )
+   CALL HCO_CharParse( LutDir, -999, -1, -1, -1, -1, RC )
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    ! Data format: ncdf (default) or txt 

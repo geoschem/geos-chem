@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP( am_I_Root, Input_Opt, RC )
+      SUBROUTINE CLEANUP( am_I_Root, Input_Opt, ERROR, RC )
 !
 ! !USES:
 !
@@ -100,6 +100,7 @@
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input Options object 
+      LOGICAL,        INTENT(IN)  :: ERROR        ! Cleanup after error? 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -265,7 +266,7 @@
 
       ! Cleanup HEMCO
       IF ( Input_Opt%LEMIS ) THEN
-         CALL EMISSIONS_FINAL ( am_I_Root )
+         CALL EMISSIONS_FINAL ( am_I_Root, ERROR )
       ENDIF
 
       ! Call cleanup routines from individual F90 modules

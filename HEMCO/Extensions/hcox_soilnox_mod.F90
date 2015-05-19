@@ -290,7 +290,6 @@ CONTAINS
     REAL*4                   :: TSEMIS
     REAL(hp)                 :: UNITCONV, IJFLUX
     REAL(dp), ALLOCATABLE    :: VecDp(:)
-    REAL(hp), POINTER        :: Arr2D (:,:) => NULL()
     LOGICAL                  :: FIRST
     LOGICAL                  :: aIR, FOUND
     CHARACTER(LEN= 31)       :: DiagnName
@@ -415,7 +414,7 @@ CONTAINS
 
        ! DEP_RESERVOIR. Read in kg NO/m3.
        CALL HCO_RestartGet( am_I_Root, HcoState, 'DEP_RESERVOIR', &
-                            DEP_RESERVOIR, RC,   FOUND=FOUND       )
+                            DEP_RESERVOIR, RC,    FILLED=FOUND     )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           DEP_RESERVOIR = 1.0e-4_sp
@@ -427,7 +426,7 @@ CONTAINS
     
        ! GWET_PREV [unitless]
        CALL HCO_RestartGet( am_I_Root, HcoState, 'GWET_PREV', &
-                            GWET_PREV, RC,   FOUND=FOUND       )
+                            GWET_PREV, RC,        FILLED=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           GWET_PREV = 0.0_sp
@@ -439,7 +438,7 @@ CONTAINS
    
        ! PFACTOR [unitless]
        CALL HCO_RestartGet( am_I_Root, HcoState, 'PFACTOR', &
-                            PFACTOR,   RC,   FOUND=FOUND     )
+                            PFACTOR,   RC,        FILLED=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           PFACTOR = 1.0_sp
@@ -451,7 +450,7 @@ CONTAINS
       
        ! DRYPERIOD [unitless]
        CALL HCO_RestartGet( am_I_Root, HcoState, 'DRYPERIOD', &
-                            DRYPERIOD, RC,   FOUND=FOUND     )
+                            DRYPERIOD, RC,        FILLED=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           DRYPERIOD = 0.0_sp
@@ -538,12 +537,10 @@ CONTAINS
     ! pointer (i.e. not associated) is passed to Diagn_Update,
     ! diagnostics are treated as zeros!
     IF ( DoDiagn ) THEN
-       Arr2D => DIAG
        DiagnName = 'FERTILIZER_NO'
        CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, & 
-                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+                          cName=TRIM(DiagnName), Array2D=DIAG, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
-       Arr2D => NULL()
     ENDIF
 
     ! ----------------------------------------------------------------
