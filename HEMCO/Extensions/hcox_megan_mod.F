@@ -3046,7 +3046,7 @@
       ! LAI
       !-----------------------------------------------------------------
       CALL HCO_RestartGet( am_I_Root,     HcoState, 
-     &                     'LAI_PREVDAY', LAI_PREVDAY, RC, FOUND=FND )
+     &                     'LAI_PREVDAY', LAI_PREVDAY, RC, FILLED=FND )
 
       ! Default value
       IF ( .NOT. FND ) THEN
@@ -3057,7 +3057,7 @@
       ! TEMPERATURE
       !-----------------------------------------------------------------
       CALL HCO_RestartGet( am_I_Root, HcoState, 
-     &                     'T_DAVG',  HCOT_15_AVG, RC, FOUND=FND )
+     &                    'T_DAVG',  HCOT_15_AVG, RC, FILLED=FND )
 
       ! Default value
       IF ( .NOT. FND ) THEN
@@ -3073,7 +3073,7 @@
       ! Check for most recent daily average. This will overwrite the
       ! first slice of HCOT_15.
       CALL HCO_RestartGet( am_I_Root,   HcoState, 
-     &                     'T_PREVDAY', HCOT_15(:,:,1), RC, FOUND=FND )
+     &                    'T_PREVDAY', HCOT_15(:,:,1), RC, FILLED=FND )
 
       ! Default value
       IF ( .NOT. FND ) THEN
@@ -3089,7 +3089,7 @@
       ! DIRECT RADIATION ( PARDR )
       !-----------------------------------------------------------------
       CALL HCO_RestartGet( am_I_Root,    HcoState, 
-     &                     'PARDR_DAVG', HCOPARDR_15_AVG, RC, FOUND=FND)
+     &                    'PARDR_DAVG', HCOPARDR_15_AVG, RC, FILLED=FND)
 
       ! Default value
       IF ( .NOT. FND ) THEN
@@ -3110,7 +3110,7 @@
       ! DIFFUSE RADIATION ( PARDF )
       !-----------------------------------------------------------------
       CALL HCO_RestartGet( am_I_Root,    HcoState, 
-     &                     'PARDF_DAVG', HCOPARDF_15_AVG, RC, FOUND=FND)
+     &                    'PARDF_DAVG', HCOPARDF_15_AVG, RC, FILLED=FND)
 
       ! Default value
       IF ( .NOT. FND ) THEN

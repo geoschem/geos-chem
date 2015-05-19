@@ -475,7 +475,8 @@ CONTAINS
     ! If file not found, return w/ error. No error if cycling attribute is 
     ! select to range. In that case, just make sure that array is empty.
     IF ( .NOT. FOUND ) THEN 
-       IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN
+       IF ( ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) .OR.      & 
+            ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT )     ) THEN
           CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE. )
           MSG = 'No valid file found for current simulation time - data '// &
                 'will be ignored - ' // TRIM(Lct%Dct%cName) 
@@ -546,15 +547,12 @@ CONTAINS
     ! with error!
     !-----------------------------------------------------------------
     IF ( tidx1 < 0 ) THEN
-       IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) THEN
-          MSG = 'Exact time not found in ' // TRIM(srcFile) 
-          CALL HCO_ERROR( MSG, RC )
-          RETURN
-       ELSEIF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_CYCLE ) THEN
+       IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_CYCLE ) THEN
           MSG = 'Invalid time index: ' // TRIM(srcFile)
           CALL HCO_ERROR( MSG, RC )
           RETURN
-       ELSEIF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN
+       ELSEIF ( ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) .OR.      & 
+                ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT )     ) THEN
           CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE.)
           MSG = 'Simulation time is outside of time range provided for '//&
                TRIM(Lct%Dct%cName) // ' - data is ignored!'
@@ -1760,7 +1758,6 @@ CONTAINS
        ! Check if next time slice is in the future, in which case the
        ! current slice is selected. Don't do this for a CycleFlag of
        ! 3 (==> exact match).
-!       IF ( availYMDh(I+1) > prefYMDh ) THEN 
        IF ( (availYMDh(I+1)        >  prefYMDh       ) .AND. &
             (Lct%Dct%Dta%CycleFlag /= HCO_CFLAG_EXACT) ) THEN
           tidx1 = I
@@ -3281,11 +3278,8 @@ CONTAINS
     ! index to -1. This will force the scale factors to be set to
     ! zero!
     IF ( prefDt < lowDt .OR. prefDt > uppDt ) THEN
-       IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) THEN ! Exact match
-          MSG = 'Data is not on exact date: ' // TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN 
-       ELSEIF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN ! w/in range
+       IF ( ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) .OR.      &
+            ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE )     ) THEN 
           IDX = -1
           RETURN
        ELSE

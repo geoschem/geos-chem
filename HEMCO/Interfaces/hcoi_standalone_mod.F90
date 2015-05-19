@@ -544,7 +544,7 @@ CONTAINS
     LOC = 'HCOI_SA_FINAL (hco_standalone_mod.F90)'
  
     ! Cleanup HCO core
-    CALL HCO_FINAL( am_I_Root, HcoState, RC )
+    CALL HCO_FINAL( am_I_Root, HcoState, .FALSE., RC )
     IF (RC /= HCO_SUCCESS) RETURN 
 
     ! Cleanup extensions and ExtState object

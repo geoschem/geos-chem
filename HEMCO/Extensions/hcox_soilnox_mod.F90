@@ -414,7 +414,7 @@ CONTAINS
 
        ! DEP_RESERVOIR. Read in kg NO/m3.
        CALL HCO_RestartGet( am_I_Root, HcoState, 'DEP_RESERVOIR', &
-                            DEP_RESERVOIR, RC,   FOUND=FOUND       )
+                            DEP_RESERVOIR, RC,    FILLED=FOUND     )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           DEP_RESERVOIR = 1.0e-4_sp
@@ -426,7 +426,7 @@ CONTAINS
     
        ! GWET_PREV [unitless]
        CALL HCO_RestartGet( am_I_Root, HcoState, 'GWET_PREV', &
-                            GWET_PREV, RC,   FOUND=FOUND       )
+                            GWET_PREV, RC,        FILLED=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           GWET_PREV = 0.0_sp
@@ -438,7 +438,7 @@ CONTAINS
    
        ! PFACTOR [unitless]
        CALL HCO_RestartGet( am_I_Root, HcoState, 'PFACTOR', &
-                            PFACTOR,   RC,   FOUND=FOUND     )
+                            PFACTOR,   RC,        FILLED=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           PFACTOR = 1.0_sp
@@ -450,7 +450,7 @@ CONTAINS
       
        ! DRYPERIOD [unitless]
        CALL HCO_RestartGet( am_I_Root, HcoState, 'DRYPERIOD', &
-                            DRYPERIOD, RC,   FOUND=FOUND     )
+                            DRYPERIOD, RC,        FILLED=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           DRYPERIOD = 0.0_sp

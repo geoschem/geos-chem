@@ -5310,7 +5310,7 @@
 
       ! Get restart variable
       CALL HCO_RestartGet( am_I_Root, HcoState, 'STATE_PSC',  
-     &                     STATE_PSC, RC, FOUND=IT_EXISTS ) 
+     &                     STATE_PSC, RC, FILLED=IT_EXISTS ) 
       IF ( RC /= HCO_SUCCESS ) THEN
          MSG = 'Cannot get PSC restart variable'
          CALL ERROR_STOP ( MSG, 'READ_PSC_FILE (ucx_mod.F)' )
