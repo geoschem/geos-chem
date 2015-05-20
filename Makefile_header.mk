@@ -164,6 +164,8 @@
 #                              netCDF library paths and GC_F_BIN, GC_F_INCLUDE
 #                              to point to netCDF-Fortran library paths.
 #                              (In some cases, these are the same).
+#  20 May 2015 - R. Yantosca - Test if GC_F_BIN and GC_F_INCLUDE are defined
+#                              as env variables before trying to use them.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -658,8 +660,13 @@ endif
 ###                                                                         ###
 ###############################################################################
 
-# Library include path
-NC_INC_CMD           := -I$(GC_INCLUDE) -I$(GC_F_INCLUDE)
+# netCDF Library include path.  
+# Test if a separate netcdf-fortran library is specified.
+ifdef GC_F_INCLUDE
+  NC_INC_CMD         := -I$(GC_INCLUDE) -I$(GC_F_INCLUDE)
+else
+  NC_INC_CMD         := -I$(GC_INCLUDE)
+endif
 
 # Get the version number (e.g. "4130"=netCDF 4.1.3; "4200"=netCDF 4.2, etc.)
 NC_VERSION           :=$(shell $(GC_BIN)/nc-config --version)
@@ -681,8 +688,13 @@ ifeq ($(AT_LEAST_NC_4200),1)
   #-------------------------------------------------------------------------
   # netCDF 4.2 and higher:
   # Use "nf-config --flibs" and "nc-config --libs"
+  # Test if a separate netcdf-fortran path is specified
   #-------------------------------------------------------------------------
-  NC_LINK_CMD        := $(shell $(GC_F_BIN)/nf-config --flibs)
+  ifdef GC_F_BIN 
+    NC_LINK_CMD      := $(shell $(GC_F_BIN)/nf-config --flibs)
+  else
+    NC_LINK_CMD      := $(shell $(GC_BIN)/nf-config --flibs)
+  endif
   NC_LINK_CMD        += $(shell $(GC_BIN)/nc-config --libs)
 
 else
@@ -1012,12 +1024,13 @@ export RRTMG_NEEDED
 
 #headerinfo:
 #	@@echo '####### in Makefile_header.mk ########' 
-#	@@echo "compiler: $(COMPILER)"
-#	@@echo "debug   : $(DEBUG)"
-#	@@echo "bounds  : $(BOUNDS)"
-#	@@echo "f90     : $(F90)"
-#	@@echo "cc      : $(CC)"
-#	@@echo "include : $(INCLUDE)"
-#	@@echo "link    : $(LINK)"
-#	@@echo "userdefs: $(USER_DEFS)"
-
+#	@@echo "COMPILER    : $(COMPILER)"
+#	@@echo "DEBUG       : $(DEBUG)"
+#	@@echo "BOUNDS      : $(BOUNDS)"
+#	@@echo "F90         : $(F90)"
+#	@@echo "CC          : $(CC)"
+#	@@echo "INCLUDE     : $(INCLUDE)"
+#	@@echo "LINK        : $(LINK)"
+#	@@echo "USERDEFS    : $(USER_DEFS)"
+#	@@echo "NC_INC_CMD  : $(NC_INC_CMD)"
+#	@@echo "NC_LINK_CMD : $(NC_LINK_CMD)"
