@@ -473,7 +473,6 @@ CONTAINS
 !
     USE HCO_DATACONT_MOD, ONLY : ListCont_Find
     USE HCO_FILEDATA_MOD, ONLY : FileData_ArrCheck
-!    USE HCO_DATACONT_MOD, ONLY : DataCont_Cleanup
 !
 ! !INPUT PARAMETERS:
 !
@@ -729,6 +728,11 @@ CONTAINS
 ! argument FOUND, in which case only this argument will be set to FALSE.
 !\\
 !\\
+! This routine returns the unevaluated data field, e.g. no scale factors
+! or masking is applied to the data. Use routine HCO\_EvalFld in 
+! hco\_calc\_mod.F90 to get evaluated fields.
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE HCO_GetPtr_3D( am_I_Root, DctName, Ptr3D, RC, TIDX, FOUND )
@@ -839,6 +843,12 @@ CONTAINS
 ! Ptr2D of EmisList that is associated with data container DctName. 
 !\\
 !\\
+! This routine returns the unevaluated data field, e.g. no scale factors
+! or masking is applied to the data. Use routine HCO\_EvalFld in 
+! hco\_calc\_mod.F90 to get evaluated fields.
+!\\
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE HCO_GetPtr_2D( am_I_Root, DctName, Ptr2D, RC, TIDX, FOUND )
@@ -876,7 +886,7 @@ CONTAINS
     CHARACTER(LEN=255)         :: MSG, LOC
 
     ! Pointers
-    TYPE(ListCont), POINTER    :: Lct => NULL()
+    TYPE(ListCont), POINTER    :: Lct     => NULL()
 
     !=================================================================
     ! HCO_GetPtr_2D BEGINS HERE
@@ -934,7 +944,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Leave w/ success
+    ! Return w/ success
     RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_GetPtr_2D

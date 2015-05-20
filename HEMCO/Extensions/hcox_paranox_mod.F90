@@ -309,7 +309,10 @@ CONTAINS
     USE HCO_FluxArr_mod,  ONLY : HCO_EmisAdd
     USE HCO_FluxArr_mod,  ONLY : HCO_DepvAdd
     USE HCO_Clock_Mod,    ONLY : HcoClock_Get
+    USE HCO_Clock_Mod,    ONLY : HcoClock_First
+    USE HCO_Clock_Mod,    ONLY : HcoClock_Rewind
     USE HCO_Restart_Mod,  ONLY : HCO_RestartGet
+    USE HCO_Restart_Mod,  ONLY : HCO_RestartWrite
     USE HCO_Calc_Mod,     ONLY : HCO_CheckDepv
 !
 ! !INPUT PARAMETERS:
@@ -335,6 +338,8 @@ CONTAINS
 !  25 Nov 2014 - C. Keller   - Now convert NO fluxes to HNO3 and O3 using 
 !                              corresponding molecular weight ratios. Safe 
 !                              division check for O3 deposition calculation. 
+!  08 May 2015 - C. Keller   - Now read/write restart variables from here to
+!                              accomodate replay runs in GEOS-5.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -344,10 +349,9 @@ CONTAINS
     INTEGER                  :: I, J, L
     LOGICAL                  :: ERR
     LOGICAL                  :: FOUND 
-    LOGICAL, SAVE            :: FIRST = .TRUE.
+    LOGICAL                  :: FIRST
     REAL(hp)                 :: iFlx, TMP
     CHARACTER(LEN=255)       :: MSG
-    CHARACTER(LEN=255)       :: DgnName 
     CHARACTER(LEN=1)         :: CHAR1
 
     ! Arrays
@@ -407,6 +411,8 @@ CONTAINS
     ! ------------------------------------------------------------------
     ! First call: check for diagnostics to write and fill restart values
     ! ------------------------------------------------------------------
+    FIRST = HcoClock_First( .TRUE. )
+
     IF ( FIRST ) THEN
        ! See if we have to write out manual diagnostics
        IF ( .NOT. DoDiagn ) THEN
@@ -434,6 +440,11 @@ CONTAINS
           CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
           TmpCnt => NULL()
        ENDIF  
+    ENDIF
+    IF ( DoDiagn ) DIAGN(:,:,:) = 0.0_hp
+
+    ! On first call or after rewinding the clock, get restart values
+    IF ( FIRST .OR. HcoClock_Rewind( .TRUE. ) ) THEN
 
        ! Get SUNCOS restart values
        DO I=1,5
@@ -456,7 +467,6 @@ CONTAINS
        SC5(:,:,1) = ExtState%SUNCOSmid%Arr%Val(:,:)
 
     ENDIF
-    IF ( DoDiagn ) DIAGN(:,:,:) = 0.0_hp
 
     ! ------------------------------------------------------------------
     ! Update SC5
@@ -786,11 +796,21 @@ CONTAINS
        Arr2D => NULL()       
     ENDIF
 
+    ! Eventually copy internal values to internal state object.
+    ! This is only of relevance in an ESMF environment. 
+    DO I=1,5
+       ! Diagnostics name
+       WRITE(CHAR1,'(I1)') I
+       DiagnName = 'PARANOX_SUNCOS'//TRIM(CHAR1)
+  
+       ! Write diagnostics
+       CALL HCO_RestartWrite( am_I_Root,       HcoState,       &
+                              TRIM(DiagnName), SC5(:,:,I), RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDDO
+
     ! Update last hour to current one for next call.
     lastHH = HH
-
-    ! Not first call any more
-    FIRST = .FALSE.  
 
     ! Return w/ success
     CALL HCO_LEAVE ( RC )
@@ -1297,7 +1317,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_Restart_Mod,    ONLY : HCO_RestartWrite
 !
 ! !INPUT PARAMETERS:
 !
@@ -1318,26 +1337,10 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-   INTEGER            :: I
-   CHARACTER(LEN=255) :: DiagnName
-   CHARACTER(LEN=  1) :: CHAR1
 
    !=================================================================
    ! HCOX_PARANOX_FINAL begins here!
    !=================================================================
-
-   ! Eventually copy internal values to internal state object.
-   ! This is only of relevance in an ESMF environment. 
-   DO I=1,5
-      ! Diagnostics name
-      WRITE(CHAR1,'(I1)') I
-      DiagnName = 'PARANOX_SUNCOS'//TRIM(CHAR1)
-  
-      ! Write diagnostics
-      CALL HCO_RestartWrite( am_I_Root,       HcoState,       &
-                             TRIM(DiagnName), SC5(:,:,I+1), RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-   ENDDO
 
    IF ( ALLOCATED(ShipNO) ) DEALLOCATE ( ShipNO )
    IF ( ALLOCATED(SC5   ) ) DEALLOCATE ( SC5    )

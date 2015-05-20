@@ -1966,8 +1966,8 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IS_Hg2
       USE TRACERID_MOD,       ONLY : IS_HgP
-      USE WETSCAV_MOD,        ONLY : H2O2s_3D => H2O2s
-      USE WETSCAV_MOD,        ONLY : SO2s_3D  => SO2s
+      USE WETSCAV_MOD,        ONLY : H2O2s_3D => H2O2s ! [v/v]
+      USE WETSCAV_MOD,        ONLY : SO2s_3D  => SO2s  ! [v/v]
       USE WETSCAV_MOD,        ONLY : WASHOUT
       USE WETSCAV_MOD,        ONLY : LS_K_RAIN
       USE WETSCAV_MOD,        ONLY : LS_F_PRIME
@@ -2112,8 +2112,8 @@
       DTRAIN   => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
       REEVAPCN => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
       T        => State_Met%T       (I,J,:        ) ! Air temperature [K]
-      H2O2s    => H2O2s_3D          (I,J,:        ) ! H2O2s from sulfate_mod
-      SO2s     => SO2s_3D           (I,J,:        ) ! SO2s from sulfate_mod
+      H2O2s    => H2O2s_3D          (I,J,:      ) ! H2O2s from wetscav_mod [v/v]
+      SO2s     => SO2s_3D           (I,J,:      ) ! SO2s from wetscav_mod [v/v]
       Q        => State_Chm%TRACERS (I,J,:,:      ) ! Tracer conc. [mol/mol] 
 
 #if   defined( GEOS_FP )
@@ -2619,7 +2619,7 @@
                   ! leaving grid box (K+1). 
                   K_RAIN   = LS_K_RAIN( QDOWN )
                   F_WASHOUT= LS_F_PRIME( QDOWN, K_RAIN ) 
-                  
+
                   ! Call WASHOUT to compute the fraction of tracer lost
                   ! to washout in grid box (I,J,K)
                   CALL WASHOUT( I, J, K,   IC,       BXHEIGHT(K), 

@@ -70,6 +70,7 @@
       PUBLIC  :: DIAGINIT_UCX
       PUBLIC  :: CLEANUP_UCX
       PUBLIC  :: READ_PSC_FILE
+      PUBLIC  :: WRITE_STATE_PSC
 !
 ! PRIVATE MEMBER FUNCTIONS:
 !
@@ -101,6 +102,7 @@
 !                                4x5 or 2x25.
 !  14 Jan 2014 - C. Keller     - Now read and diagnose STATE_PSC through HEMCO.
 !  08 Apr 2015 - R. Yantosca   - Now make READ_PSC_FILE a PUBLIC routine
+!  08 May 2015 - C. Keller     - Added WRITE_STATE_PSC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -241,7 +243,6 @@
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: RHO_AER
       !INTEGER,DIMENSION(:,:,:),ALLOCATABLE  :: STATE_PSC
       REAL(f4),DIMENSION(:,:,:),POINTER       :: STATE_PSC => NULL()
-      LOGICAL                                 :: GOT_STATE_PSC = .FALSE.
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: KHETI_SLA
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: AERFRAC
       INTEGER,DIMENSION(:),ALLOCATABLE      :: AERFRACIND
@@ -5259,20 +5260,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PSC_FILE( am_I_Root )
+      SUBROUTINE READ_PSC_FILE( am_I_Root, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD
       USE HCO_RESTART_MOD,    ONLY : HCO_RestartGet
       USE HCO_STATE_MOD,      ONLY : HCO_State
+      USE HCO_CLOCK_MOD,      ONLY : HcoClock_First 
+      USE HCO_CLOCK_MOD,      ONLY : HcoClock_Rewind
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(INOUT) :: RC
 ! 
 ! !REVISION HISTORY: 
 !  28 Apr 2013 - S. D. Eastham - Initial version, based on READ_CSPEC_FILE
@@ -5290,7 +5297,6 @@
 !     
       ! Scalars
       LOGICAL            :: IT_EXISTS 
-      INTEGER            :: RC
 
       ! Strings
       CHARACTER(LEN=255) :: MSG
@@ -5302,16 +5308,30 @@
       ! READ_PSC_FILE begins here!
       !=================================================================
 
+      ! Assume success until otherwise 
+      RC = GIGC_SUCCESS 
+ 
+      ! Only read on first call or after rewind
+      IF ( .NOT. HcoClock_First ( .FALSE. ) .AND. 
+     &     .NOT. HcoClock_Rewind( .FALSE. )      ) THEN
+         RETURN
+      ENDIF
+ 
       ! Get HEMCO state obj.
       CALL GetHcoState( HcoState )
 
       ! Get restart variable
-      CALL HCO_RestartGet( am_I_Root, HcoState, 
-     &                     'STATE_PSC', STATE_PSC, RC, FOUND=IT_EXISTS )
+      CALL HCO_RestartGet( am_I_Root, HcoState, 'STATE_PSC',  
+     &                     STATE_PSC, RC, FOUND=IT_EXISTS ) 
       IF ( RC /= HCO_SUCCESS ) THEN
          MSG = 'Cannot get PSC restart variable'
          CALL ERROR_STOP ( MSG, 'READ_PSC_FILE (ucx_mod.F)' )
       ENDIF
+
+      ! Cleanup
+      HcoState => NULL()
+
+      ! On first call, prompt some messages
 
       ! If restart exists, point to this field. Eventually deallocate
       ! pointer first.
@@ -5322,15 +5342,9 @@
       ELSE
          IF (am_I_Root ) THEN
          WRITE(6,*) 
-     &     '    - UCX: PSC restart not found, initialize PSC-free'
+     &      '    - UCX: PSC restart not found, initialize PSC-free'
          ENDIF
       ENDIF
-
-      ! Cleanup
-      HcoState => NULL()
-
-      ! Update flag
-      GOT_STATE_PSC = .TRUE.
 
       END SUBROUTINE READ_PSC_FILE
 !EOC
@@ -6925,6 +6939,69 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: write_state_psc
+!
+! !DESCRIPTION: Subroutine WRITE\_STATE\_PSC saves the STATE\_PSC array into
+! diagnostics. This is only of relevance in an ESMF environment, where 
+! STATE\_PSC is not automatically written into the HEMCO restart diagnostics
+! but needs to be passed explicitly to the internal state. This should be
+! done on every time step to make sure that replay simulations will always
+! have the most current STATE\_PSC values in the internal state (important
+! for checkpointing!).
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE WRITE_STATE_PSC ( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE HCO_ERROR_MOD
+      USE HCO_RESTART_MOD,  ONLY : HCO_RestartWrite
+      USE HCO_STATE_MOD,    ONLY : HCO_STATE
+      USE HCOI_GC_MAIN_MOD, ONLY : GetHcoState
+! 
+! !INPUT ARGUMENTS:
+!
+      LOGICAL, INTENT(IN)     :: am_I_Root
+! 
+! !INPUT/OUTPUT ARGUMENTS:
+!
+      INTEGER, INTENT(INOUT)  :: RC
+!
+! !REVISION HISTORY: 
+!  08 May 2015 - C. Keller     - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      TYPE(HCO_STATE), POINTER  :: HcoState => NULL()
+
+      !=================================================================
+      ! WRITE_STATE_PSC begins here!
+      !=================================================================
+
+      ! Eventually write PSC_STATE to restart. 
+      CALL GetHcoState ( HcoState )
+
+      CALL HCO_RestartWrite( am_I_Root,   HcoState, 
+     &                       'STATE_PSC', STATE_PSC, RC )
+      HcoState => NULL()
+      IF ( RC /= HCO_SUCCESS ) THEN
+         RC = GIGC_FAILURE
+         RETURN
+      ENDIF
+
+      ! Return w/ success
+      RC = GIGC_SUCCESS
+
+      END SUBROUTINE WRITE_STATE_PSC 
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: cleanup_ucx
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_UCX deallocates module variables.
@@ -6933,12 +7010,6 @@
 ! !INTERFACE:
 !
       SUBROUTINE CLEANUP_UCX ( am_I_Root )
-!
-! !USES:
-!
-      USE HCO_RESTART_MOD,  ONLY : HCO_RestartWrite
-      USE HCO_STATE_MOD,    ONLY : HCO_STATE
-      USE HCOI_GC_MAIN_MOD, ONLY : GetHcoState
 ! 
 ! !INPUT ARGUMENTS:
 !
@@ -6947,25 +7018,14 @@
 ! !REVISION HISTORY: 
 !  04 Apr 2013 - S. D. Eastham - Initial version
 !  13 Apr 2013 - S. D. Eastham - Added PSC arrays
-!  25 Mar 2015 - C. Keller     - Now call HCO_RestartWrite. This is only 
-!                                of relevance in an ESMF environment.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      TYPE(HCO_STATE), POINTER  :: HcoState => NULL()
-      INTEGER                   :: RC, N
-      integer :: i,j,l
+      INTEGER :: N
 
       !=================================================================
       ! CLEANUP_UCX begins here!
       !=================================================================
-
-      ! Eventually write PSC_STATE to restart. 
-      CALL GetHcoState ( HcoState )
-
-      CALL HCO_RestartWrite( am_I_Root, HcoState, 
-     &                       'STATE_PSC', STATE_PSC, RC )
-      HcoState => NULL()
 
       IF ( ALLOCATED( GRID_EMIT  ) ) DEALLOCATE( GRID_EMIT  )
       IF ( ALLOCATED( RAD_AER    ) ) DEALLOCATE( RAD_AER    )
