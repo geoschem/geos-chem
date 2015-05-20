@@ -478,8 +478,10 @@ CONTAINS
     IF ( am_I_Root .and. FIRST ) THEN 
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
        WRITE( 6, 100   ) 'HEMCO: Harvard-NASA Emissions Component'
+       WRITE( 6, 101   ) 'You are using HEMCO version ', TRIM(HCO_VERSION)
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
- 100   FORMAT( '%%%%%', 15x, a, 15x, '%%%%%' )
+ 100   FORMAT( '%%%%%', 15x, a,    15x, '%%%%%' )
+ 101   FORMAT( '%%%%%', 15x, a, a, 15x, '%%%%%' )
        FIRST = .FALSE.
     ENDIF
 
