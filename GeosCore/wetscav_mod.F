@@ -7112,6 +7112,8 @@
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !  04 Feb 2015 - M. Sulprizio- Fix calculation of WETLOSS for non-aerosol 
 !                              tracers (C. Friedman)
+!  20 May 2015 - M. Sulprizio- Remove WASHFRAC < 1D-3 error trap for MERRA
+!                              following recommendation by Viral Shah
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7189,8 +7191,18 @@
          ! DSTT < 0 and SAFETY trips.  (Helen Amos, 20100928)
          IF ( IT_IS_NAN( WASHFRAC ) ) THEN
             CYCLE
-         ELSEIF ( WASHFRAC < 1e-3_fp ) THEN
-            CYCLE
+!------------------------------------------------------------------------------
+! Prior to 5/20/15:
+! Viral Shah wrote:
+!  The condition requiring that the WASHFRAC>1D-3 or any number greater than 0
+!  for washout to occur, prevents the partial resuspension of the dissolved
+!  mass falling from above, and leads to an overestimate in the wet deposited
+!  mass... I recommend that the condition on WASHFRAC should be removed. If
+!  this leads to negative values of DSTT, we should add a few lines to restrict
+!  DSTT to a minimum of 0. (mps, 5/20/15)
+!         ELSEIF ( WASHFRAC < 1e-3_fp ) THEN
+!            CYCLE
+!------------------------------------------------------------------------------
          ENDIF
 #endif
 
