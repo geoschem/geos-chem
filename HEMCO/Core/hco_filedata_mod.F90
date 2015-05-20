@@ -67,6 +67,8 @@
 !       specified in the configuration file. 
 ! \item SpaceDim: spatial dimension of data array: 1 = spatially uniform
 !       (x=y=z=1); 2 = 2D data (x,y); 3 = 3D data (x,y,z).
+! \item Levels: handling of vertical levels (3D data only). For internal
+!       use only. 
 ! \item nt: time dimension. length of vector V3 or V2. For internal use 
 !       only.
 ! \item DeltaT: time interval between time slices. For internal use only.
@@ -136,6 +138,7 @@ MODULE HCO_FileData_Mod
      CHARACTER(LEN= 31)          :: OrigUnit  ! original data units 
      INTEGER                     :: Cover     ! data coverage
      INTEGER                     :: SpaceDim  ! space dimension: 1, 2 or 3 
+     INTEGER                     :: Levels    ! vertical level handling 
      INTEGER                     :: nt        ! time dimension: length of Arr
      INTEGER                     :: DeltaT    ! temp. resolution of array [h]
      LOGICAL                     :: IsLocTime ! local time? 
@@ -222,6 +225,7 @@ CONTAINS
     NewFDta%DeltaT       = 0
     NewFDta%nt           = 0
     NewFDta%SpaceDim     = -1
+    NewFDta%Levels       = 0
     NewFDta%OrigUnit     = ''
     NewFDta%IsLocTime    = .FALSE.
     NewFDta%IsConc       = .FALSE.
