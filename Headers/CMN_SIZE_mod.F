@@ -378,6 +378,30 @@
 #endif
       REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
+      !Anna Prot added the following sizes for nesting EU, 7 May 2015
+#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_EU)
+
+      !-----------------------------------------------------------------
+      ! GEOS-FP Nested EU Grid
+      !-----------------------------------------------------------------
+      INTEGER            :: IGLOB      = 177
+      INTEGER            :: JGLOB      = 115
+      INTEGER            :: LGLOB      = 72
+      INTEGER            :: IIPAR
+      INTEGER            :: JJPAR
+#if   defined( GRIDREDUCED )
+      INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER, PARAMETER :: LLTROP     = 38
+      INTEGER, PARAMETER :: LLSTRAT    = 44
+#else
+      INTEGER            :: LLPAR                  ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER, PARAMETER :: LLTROP     = 40
+      INTEGER, PARAMETER :: LLSTRAT    = 59
+#endif
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
+
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
 
       !-----------------------------------------------------------------
