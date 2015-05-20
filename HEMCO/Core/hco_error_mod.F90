@@ -309,7 +309,9 @@ CONTAINS
     INTEGER,          INTENT(IN   ), OPTIONAL  :: Verb
 !
 ! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
+!  23 Sep 2013 - C. Keller   - Initialization
+!  20 May 2015 - R. Yantosca - Minor formatting fix: use '(a)' instead of *
+!                              to avoid line wrapping around at 80 columns.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -349,7 +351,8 @@ CONTAINS
              WRITE(LUN,'(a)') REPEAT( SEP1, 79) 
           ENDIF
           IF ( PRESENT(MSG) ) THEN
-             WRITE(LUN,*) TRIM(MSG)
+!             WRITE(LUN,*) TRIM(MSG)
+             WRITE(LUN,'(a)') TRIM(MSG)
           ENDIF
           IF ( PRESENT(SEP2) ) THEN
              WRITE(LUN,'(a)') REPEAT( SEP2, 79) 
@@ -359,7 +362,8 @@ CONTAINS
              WRITE(*,'(a)') REPEAT( SEP1, 79) 
           ENDIF
           IF ( PRESENT(MSG) ) THEN
-             WRITE(*,*) TRIM(MSG)
+!             WRITE(*,*) TRIM(MSG)
+             WRITE(*,'(a)') TRIM(MSG)
           ENDIF
           IF ( PRESENT(SEP2) ) THEN
              WRITE(*,'(a)') REPEAT( SEP2, 79) 
