@@ -114,7 +114,7 @@ MODULE HCO_Error_Mod
   INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_MASK = 3
 
   ! HEMCO version number. Only increase after significant changes
-  REAL(hp), PARAMETER, PUBLIC :: HCO_VERSION = 1.2_hp
+  CHARACTER(LEN=12), PARAMETER, PUBLIC :: HCO_VERSION = 'v1.1.004'
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller   - Initialization
@@ -827,12 +827,12 @@ CONTAINS
     IF ( FIRST ) THEN
        IF ( Err%LUN < 0 ) THEN
           WRITE(*,'(a)') REPEAT( '-', 79) 
-          WRITE(*,'(A12,F5.2)') 'Using HEMCO', HCO_VERSION
+          WRITE(*,'(A12,A12)') 'Using HEMCO ', HCO_VERSION
           WRITE(*,'(a)') REPEAT( '-', 79) 
        ELSE
           LUN = Err%LUN
           WRITE(LUN,'(a)') REPEAT( '-', 79) 
-          WRITE(LUN,'(A12,F5.2)') 'Using HEMCO', HCO_VERSION
+          WRITE(LUN,'(A12,A12)') 'Using HEMCO ', HCO_VERSION
           WRITE(LUN,'(a)') REPEAT( '-', 79) 
        ENDIF
 
@@ -893,7 +893,7 @@ CONTAINS
     IF ( Summary ) THEN
        MSG = ' '
        CALL HCO_MSG ( MSG )
-       MSG = 'HEMCO FINISHED'
+       MSG = 'HEMCO ' // TRIM(HCO_VERSION) // ' FINISHED.'
        CALL HCO_MSG ( MSG, SEP1='-' )
  
        WRITE(MSG,'(A16,I1,A12,I6)') &

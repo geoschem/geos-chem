@@ -972,13 +972,17 @@ CONTAINS
 
        ! Consider category only within extension ...
        IF ( PRESENT(Cat) ) THEN
-          CT  = Cat
-          AFL = 3
+          IF ( Cat > 0 ) THEN
+             CT  = Cat
+             AFL = 3
+          ENDIF
 
           ! Consider hierarchy only within category ...
-          IF ( PRESENT(Hier) ) THEN
-             HR  = Hier
-             AFL = 4
+          IF ( AFL==3 .AND. PRESENT(Hier) ) THEN
+             IF ( Hier > 0 ) THEN
+                HR  = Hier
+                AFL = 4
+             ENDIF
           ENDIF
        ENDIF
     ENDIF

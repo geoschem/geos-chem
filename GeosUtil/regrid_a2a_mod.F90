@@ -1565,6 +1565,9 @@ CONTAINS
        enddo
     endif    
 
+    ! maxlon must represent the easter edge of the grid:
+    maxlon = maxlon + ( lon1(im+1)-lon1(im) )
+
     ! Reduce input grid
     n1 = 1
     n2 = iin+1
@@ -1811,6 +1814,9 @@ CONTAINS
           maxlon = maxval(lon1s)
        enddo
     endif    
+
+    ! maxlon must represent the easter edge of the grid:
+    maxlon = maxlon + ( lon1(im+1)-lon1(im) )
 
     ! Reduce output grid
     n1 = 1
@@ -2061,6 +2067,9 @@ CONTAINS
        enddo
     endif    
 
+    ! maxlon must represent the easter edge of the grid:
+    maxlon = maxlon + ( lon1(im+1)-lon1(im) )
+
     ! Reduce input grid
     n1 = 1
     n2 = iin+1
@@ -2307,6 +2316,9 @@ CONTAINS
           maxlon = maxval(lon1s)
        enddo
     endif    
+
+    ! maxlon must represent the easter edge of the grid:
+    maxlon = maxlon + ( lon1(im+1)-lon1(im) )
 
     ! Reduce input grid
     n1 = 1

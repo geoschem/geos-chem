@@ -628,22 +628,56 @@ CONTAINS
        ENDIF
 
        ! Are these model levels? This will only return true if the long
-       ! name of the level variable contains "GEOS-Chem level".
-       IsModelLevel = NC_ISMODELLEVEL( ncLun, LevName )
+       ! name of the level variable contains "GEOS-Chem level". 
+       ! For now, we assume levels are already on model levels if the 
+       ! number of levels to be read is explicitly set in the configuration
+       ! file (ckeller, 5/20/15).
+       IF ( Lct%Dct%Dta%Levels == 0 ) THEN
+          IsModelLevel = NC_ISMODELLEVEL( ncLun, LevName )
 
-       ! Set level indeces to be read
-       ! NOTE: for now, always read all existing levels. Edit here to
-       ! read only particular levels.
-       lev1 = 1
-       lev2 = nlev
+          ! Set level indeces to be read
+          lev1 = 1
+          lev2 = nlev
 
-       ! If # of levels are exactly # of simulation levels, assume that 
-       ! they are on model levels. 
-       ! This should probably be removed eventually, as it's better to 
-       ! explicitly state model levels via the level long name 
-       ! "GEOS-Chem level" (see above)!
-       ! (ckeller, 12/12/14).
-       IF ( nlev == HcoState%NZ ) IsModelLevel = .TRUE.
+          ! If # of levels are exactly # of simulation levels, assume that 
+          ! they are on model levels. 
+          ! This should probably be removed eventually, as it's better to 
+          ! explicitly state model levels via the level long name 
+          ! "GEOS-Chem level" (see above)!
+          ! (ckeller, 12/12/14).
+          IF ( nlev == HcoState%NZ ) IsModelLevel = .TRUE.
+
+       ! If levels are explicitly given:
+       ELSE
+          IsModelLevel = .TRUE.
+     
+          ! Number of levels to be read must be smaller or equal to total
+          ! number of available levels
+          IF ( ABS(Lct%Dct%Dta%Levels) > nlev ) THEN
+             WRITE(MSG,*) Lct%Dct%Dta%Levels, ' levels requested but file ', &
+                'has only ', nlev, ' levels: ', TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF
+
+          ! Set levels to be read
+          IF ( Lct%Dct%Dta%Levels > 0 ) THEN
+             lev1 = 1
+             lev2 = Lct%Dct%Dta%Levels
+
+          ! Reverse axis!
+          ELSE
+             lev1 = nlev
+             lev2 = nlev + Lct%Dct%Dta%Levels + 1
+          ENDIF
+
+       ENDIF
+
+       ! Verbose 
+       IF ( HCO_IsVerb(2) ) THEN
+          WRITE(MSG,*) 'Will read vertical levels ', lev1, ' to ', lev2 
+          CALL HCO_MSG(MSG)
+       ENDIF
 
     ! For 2D data, set lev1 and lev2 to zero. This will ignore
     ! the level dimension in the netCDF reading call that follows.

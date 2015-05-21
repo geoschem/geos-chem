@@ -2586,7 +2586,7 @@ CONTAINS
          !IF ENCOUNTER -999 IN THE LUT PRINT ERROR!!       
          IF ( ( FNOX_TMP < 0. ) .or. ( FNOX_TMP > 1. ) ) THEN
             
-            PRINT*, 'PARANOX_LUT: fracnox = ,', fnox
+            PRINT*, 'PARANOX_LUT: fracnox = ,', FNOX_TMP
          
             print*, I1, I2, I3, I4, I5, I6, I7, I8
             print*, INDX(1,I1), INDX(2,I2), INDX(3,I3),  INDX(4,I4), & 

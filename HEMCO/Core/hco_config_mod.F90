@@ -812,11 +812,13 @@ CONTAINS
           ! Set space dimension. This will determine the dimension of the
           ! data array vector, i.e. 3D or 2D. Different time slices will
           ! be stored as different vector elements.
-          IF ( TRIM(srcDim) == 'xy' ) THEN
-             Dta%SpaceDim = 2
-          ELSEIF ( TRIM(srcDim) == 'xyz' ) THEN
-             Dta%SpaceDim = 3
-          ENDIF
+          ! For 3D data, it is now possible to explicitly set the number 
+          ! of vertical levels to be used, as well as the 'reading 
+          ! direction' (up or down). These information is also extracted
+          ! from srcDim and will be stored in variable Dta%Levels.
+          ! (ckeller, 5/20/15)
+          CALL ExtractSrcDim( am_I_Root, srcDim, Dta, RC ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! For scale factors: check if a mask is assigned to this scale
           ! factor. In this case, pass mask ID to first slot of Scal_cID
@@ -3719,5 +3721,94 @@ CONTAINS
     ENDIF
 
   END FUNCTION Check_ContNames
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ExtractSrcDim 
+!
+! !DESCRIPTION: Subroutine ExtractSrcDim extracts the source dimension
+! attribute. Specifically, it checks if the field is expected to be 2D 
+! (xy) or 3D. Default 3D data is xyz, but it is also possible to explicitly
+! define the number of vertical levels to be read, as well as the reading
+! direction (up or down). For example, 'xy1' will be interpreted as reading
+! only the first level, and 'xy27' will only read the first 27 levels. To
+! reverse the vertical axis, use e.g. 'xy-1' to read only the top level, 
+! or 'xy-27' to read the top 27 levels, with the topmost level being put
+! into the surface level.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ExtractSrcDim( am_I_Root, SrcDim, Dta, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )   :: am_I_Root
+    CHARACTER(LEN=*), INTENT(IN   )   :: SrcDim
+    TYPE(FileData),   POINTER         :: Dta
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC 
+!
+! !REVISION HISTORY:
+!  20 May 2015 - C. Keller: Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: strLen
+    CHARACTER(LEN=255) :: MSG    
+    CHARACTER(LEN=255) :: LOC = 'ExtractSrcDim (hco_config_mod.F90)' 
+
+    !======================================================================
+    ! ExtractSrcDim begins here
+    !======================================================================
+
+    MSG = 'Illegal source dimension ' // TRIM(srcDim) // &
+          ' for file ' // TRIM(Dta%ncFile) // &
+          '. Valid entries are e.g. xy or xyz.'
+
+    ! 2D data:
+    IF ( TRIM(srcDim) == 'xy' .OR. TRIM(srcDim) == '-' ) THEN
+       Dta%SpaceDim = 2
+
+    ! All other cases
+    ELSE
+       ! Character length
+       strLen = LEN(TRIM(srcDim))
+
+       ! There must be at least 3 characters (e.g. xyz)
+       IF ( strLen < 3 ) THEN
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! First two entries must be xy
+       IF ( srcDim(1:2) /= 'xy' ) THEN
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! If we get to here, it's 3D data 
+       Dta%SpaceDim = 3
+
+       ! The third entry determines the vertical dimension. 
+       ! This can be 'z' (standard) or a number to explicitly define
+       ! the vertical extension and direction.
+       IF ( srcDim(3:3) /= 'z' ) THEN
+          READ(srcDim(3:strLen),*) Dta%Levels
+       ENDIF
+    ENDIF
+
+    ! Leave w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE ExtractSrcDim 
 !EOC
 END MODULE HCO_Config_Mod
