@@ -257,6 +257,9 @@
 !                              emissions of hydrocarbon species to atomsC/cm2/s.
 !                              HEMCO now carries emissions for these species
 !                              entirely in kgC/m2/s.
+!  21 May 2015 - R. Yantosca - Bug fix: The bpch unit string for BIOMASS_NH3 
+!                              should be molec/cm2/s instead of atoms C/cm2/2.
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2397,7 +2400,7 @@
          !%%%%% NH3 %%%%%
          IF ( IDTNH3 > 0 ) THEN
             DiagnName = 'BIOMASS_NH3'
-            UNIT      = 'atoms C/cm2/s'
+            UNIT      = 'molec/cm2/s'
             N         = IDTNH3
             FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
