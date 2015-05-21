@@ -1010,7 +1010,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER             :: I, J, L, NN, N_TRACERS
+      INTEGER            :: I, J, L, NN, N_TRACERS
       !REAL(fp)           :: L2G, I2G, C_TOT, F_L, F_I, K, TMP, SO2LOSS
       REAL(fp)           :: L2G, I2G, C_TOT, F_L, F_I, K, SO2LOSS
 #if defined( TOMAS )
@@ -1019,11 +1019,15 @@
       REAL(fp)           :: SOLFRAC, XFRAC
       REAL(fp)           :: MEAN_SFC_STT         ! use to determine STT units 
       LOGICAL            :: UNITCHANGE = .FALSE. ! STT unit conversion indicator
+
+      ! For unit conversion
+      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp), POINTER  :: STT(:,:,:,:) => NULL()
 #endif
 
       ! Pointers
-!      REAL(fp), POINTER     :: BXHEIGHT(:,:,:)
-      REAL(fp), POINTER     :: T       (:,:,:)
+!      REAL(fp), POINTER  :: BXHEIGHT(:,:,:)
+      REAL(fp), POINTER  :: T       (:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -2173,14 +2177,17 @@
          ISOL = GET_ISOL( N, N_TRACERS )
 #if defined( TOMAS )
 
+      ! For use below
+      STT       => State_Chm%TRACERS
+      TCVV      =  Input_Opt%TCVV(1:N_TRACERS)
+
       ! Convert State_Chm%Tracers units to [kg] if currently in [v/v]
       ! Use average surface level concentration of tracer 1 as an indicator
       ! NOTE: units are [v/v] if called from convection (ewl, 5/12/15)
       MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
      &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
       IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
-         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, 
-     &                             State_Met%AD, STT ) ! v/v -> kg
+         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) ! v/v->kg
          UNITCHANGE = .TRUE.
       ENDIF
 
@@ -2329,10 +2336,11 @@
       ! Convert State_Chm%Tracers units back to v/v if converted to kg
       ! (ewl, 5/12/15)
       IF ( UNITCHANGE ) THEN
-         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
-     &                             State_Met%AD, STT ) ! kg -> v/v
+         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg->v/v
       ENDIF
 
+      ! Free pointer
+      STT => NULL()
 #endif
 
       !-------------------------------
@@ -4445,6 +4453,9 @@
 #if defined( TOMAS )
       REAL(fp)          :: MEAN_SFC_STT         ! use to determine STT units 
       LOGICAL           :: UNITCHANGE = .FALSE. ! STT unit conversion indicator
+      INTEGER           :: N_TRACERS
+      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp), POINTER :: STT(:,:,:,:) => NULL()
 #endif
 
       !=================================================================
@@ -4833,14 +4844,18 @@
 
 #if defined( TOMAS )
 
+      ! Define fields for use below
+      STT       => State_Chm%TRACERS
+      N_TRACERS =  Input_Opt%N_TRACERS
+      TCVV      =  Input_Opt%TCVV(1:N_TRACERS)
+
       ! Convert State_Chm%Tracers units to [kg] if currently in [v/v]
       ! Use average surface level concentration of tracer 1 as an indicator
       ! NOTE: units are [v/v] if called from convection (ewl, 5/12/15)
       MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
      &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
       IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
-         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, 
-     &                             State_Met%AD, STT ) ! v/v -> kg
+         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) ! v/v->kg
          UNITCHANGE = .TRUE.
       ENDIF
 
@@ -4925,10 +4940,11 @@
       ! Convert State_Chm%Tracers units back to v/v if converted to kg
       ! (ewl, 5/12/15)
       IF ( UNITCHANGE ) THEN
-         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
-     &                             State_Met%AD, STT ) ! kg -> v/v
+         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg->v/v
       ENDIF
 
+      ! Free pointers
+      STT => NULL()
 #endif
 
       !------------------------------
