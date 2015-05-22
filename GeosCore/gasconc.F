@@ -612,7 +612,8 @@
 !
           IF (QACC.EQ.0.AND.QNEW.NE.0.) THEN
              IF ( am_I_Root ) THEN
-                WRITE(6,465) NAMEGAS(JOLD)             ENDIF
+                WRITE(6,465) NAMEGAS(JOLD)             
+             ENDIF
            STOP 
           ENDIF 
 !
