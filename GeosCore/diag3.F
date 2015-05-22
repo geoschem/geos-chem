@@ -260,6 +260,7 @@
 !  21 May 2015 - R. Yantosca - Bug fix: The bpch unit string for BIOMASS_NH3 
 !                              should be molec/cm2/s instead of atoms C/cm2/2.
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
+!  22 May 2015 - R. Yantosca - Replace NOXEXTENT with 2 in TOMAS #if blocks
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2670,7 +2671,7 @@
 !  Levels        : Field                  : Units       : Scale Factor
 !  -------------------------------------------------------------------------
 !  1 - LLCHEM    : Aircraft NOx           : molec/cm2/s : SCALESRCE
-!  1 - NOXEXTENT : Anthropogenic NOx      : molec/cm2/s : SCALESRCE
+!  1 - ?         : Anthropogenic NOx      : molec/cm2/s : SCALESRCE
 !  Surface       : Biomass Burning NOx    : molec/cm2/s : SCALESRCE
 !  Surface       : Biofuel Burning NOx    : molec/cm2/s : SCALESRCE
 !  Surface       : Fertilizer NOx         : molec/cm2/s : SCALESRCE
@@ -4842,15 +4843,15 @@
          CATEGORY     = 'NK-EMISS'
          DO NBIN =1,IBINS
             N        = IDTNK1 + NBIN - 1
-            DO L = 1, NOXEXTENT 
+            DO L = 1, 2
                ARRAY(:,:,L) = AD59_NUMB(:,:,L,NBIN)
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
 
@@ -4861,15 +4862,15 @@
          CATEGORY     = 'SF-EMISS'
          DO NBIN =1,IBINS
             N        = IDTSF1 + NBIN - 1
-            DO L = 1, NOXEXTENT 
+            DO L = 1, 2
                ARRAY(:,:,L) = AD59_SULF(:,:,L,NBIN)
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
 
@@ -4880,15 +4881,15 @@
          CATEGORY     = 'SS-EMISS'
          DO NBIN =1,IBINS
             N        = IDTSS1 + NBIN - 1
-            DO L = 1, NOXEXTENT 
+            DO L = 1, 2
                ARRAY(:,:,L) = AD59_SALT(:,:,L,NBIN)
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
 
@@ -4899,15 +4900,15 @@
          CATEGORY     = 'ECIL-SRC'
          DO NBIN =1,IBINS
             N        = IDTECIL1 - 1 + NBIN
-            DO L = 1, NOXEXTENT 
+            DO L = 1, 2
                ARRAY(:,:,L) = AD59_ECIL(:,:,L,NBIN)
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
 
@@ -4918,15 +4919,15 @@
          CATEGORY     = 'ECOB-SRC'
          DO NBIN =1,IBINS
             N        = IDTECOB1 - 1 + NBIN
-            DO L = 1, NOXEXTENT 
+            DO L = 1, 2
                ARRAY(:,:,L) = AD59_ECOB(:,:,L,NBIN)
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
 
@@ -4937,15 +4938,15 @@
          CATEGORY     = 'OCIL-SRC'
          DO NBIN =1,IBINS
             N        = IDTOCIL1 - 1 + NBIN
-            DO L = 1, NOXEXTENT 
+            DO L = 1, 2
                ARRAY(:,:,L) = AD59_OCIL(:,:,L,NBIN)
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
 
@@ -4956,15 +4957,15 @@
          CATEGORY     = 'OCOB-SRC'
          DO NBIN =1,IBINS
             N        = IDTOCOB1 - 1 + NBIN
-            DO L = 1, NOXEXTENT 
+            DO L = 1, 2
                ARRAY(:,:,L) = AD59_OCOB(:,:,L,NBIN)
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
 
@@ -4975,15 +4976,15 @@
          CATEGORY     = 'DUST-SRC'
          DO NBIN =1,IBINS
             N        = IDTDUST1 - 1 + NBIN
-            DO L = 1, NOXEXTENT 
+            DO L = 1, 2
                ARRAY(:,:,L) = AD59_DUST(:,:,L,NBIN)
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
 
