@@ -31,7 +31,11 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PLANEFLIGHT_MOD,    ONLY : SETUP_PLANEFLIGHT
-      USE TRACERID_MOD,       ONLY : NEMANTHRO
+!------------------------------------------------------------------------------
+! Prior to 5/22/15:
+! HEMCO made this obsolete, so remove it (bmy, 5/22/15)
+!      USE TRACERID_MOD,       ONLY : NEMANTHRO
+!------------------------------------------------------------------------------
       USE WETSCAV_MOD,        ONLY : GET_WETDEP_NMAX
 
 #if   defined( TOMAS )
@@ -207,6 +211,7 @@
 !                              because O3 is now a tracer.
 !  15 Aug 2014 - R. Yantosca - Removed reference to biofuel_mod.F
 !  15 Aug 2014 - R. Yantosca - Now reference all arrays in diag_mod.F
+!  22 May 2015 - R. Yantosca - Removed variables made obsolete by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC

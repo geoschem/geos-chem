@@ -390,16 +390,6 @@
          ELSE IF ( INDEX( LINE, 'NESTED GRID MENU' ) > 0 ) THEN 
             CALL READ_NESTED_GRID_MENU( am_I_Root, Input_Opt, RC )
 
-!------------------------------------------------------------------------------
-! Prior to 3/13/15:
-! HEMCO has made these menus obsolete (bmy, 3/13/15)
-!         ELSE IF ( INDEX( LINE, 'ARCHIVED OH MENU' ) > 0 ) THEN 
-!            CALL READ_ARCHIVED_OH_MENU( am_I_Root, Input_Opt, RC  )
-!
-!         ELSE IF ( INDEX( LINE, 'O3 P/L MENU'      ) > 0 ) THEN 
-!            CALL READ_O3PL_MENU( am_I_Root, Input_Opt, RC  )
-!------------------------------------------------------------------------------
-
          ELSE IF ( INDEX( LINE, 'BENCHMARK MENU'   ) > 0 ) THEN 
             CALL READ_BENCHMARK_MENU( am_I_Root, Input_Opt, RC  )
          
@@ -426,7 +416,7 @@
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! Do not initialize diagnostics when we are connecting to
       ! the GEOS-5 GCM via ESMF. (bmy, 11/2/12)
@@ -434,7 +424,7 @@
 #else
 
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! We only need to initialize GEOS-5 diagnostics if we are not
       ! using ESMF.  The GEOS-5 GCM has its own History component
@@ -912,7 +902,7 @@
       !=================================================================
 #if defined( ESMF_ ) 
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! If we are connecting to the ESMF interface, we need to take
       ! the start & end dates as defined in the ESMF resource file.
@@ -943,7 +933,7 @@
       NHMSe                   = Input_Opt%NHMSe
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Current practice in the standard GEOS-Chem is to initialize 
       ! the fields Input_Opt%NYMDb, Input_Opt%NYMDe, Input_Opt%NHMSb, 
@@ -1029,7 +1019,7 @@
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! If we are connecting to the GEOS-5 GCM via ESMF, then pass the
       ! values for the start & end times of the simulation directly to
@@ -1048,7 +1038,7 @@
 
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! If we are not using ESMF, then call the traditional GEOS-Chem
       ! timing routines (from GeosUtil/time_mod.F) to set the start &
@@ -1374,7 +1364,7 @@
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! Set Input_Opt%ITS_A_SPECIALTY_SIM to FALSE, which will skip
       ! reading/allocating T_FULLGRID and AIRDEN_FULLGRID arrays.
@@ -1384,7 +1374,7 @@
       Input_Opt%ITS_A_SPECIALTY_SIM    = .FALSE.
 #else
       !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Set Input_Opt%ITS_A_SPECIALTY_SIM to TRUE if we are performing
       ! any of the offline (non-full-chemistry) simulations that use
@@ -3281,7 +3271,7 @@
       !=================================================================
 #if defined( ESMF_ ) && defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! If we are connecting to the ESMF interface, we need to take
       ! the chemistry timestep as defined in the ESMF resource file.
@@ -3318,7 +3308,7 @@
       TS_CHEM                 = Input_Opt%TS_CHEM
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Current practice in the standard GEOS-Chem is to initialize 
       ! the field Input_OPt%TS_CHEM with the value read in from 
@@ -3704,7 +3694,7 @@
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! If we are connecting to the ESMF interface, we need to take
       ! the dynamic timestep as defined in the ESMF resource file.
@@ -3741,7 +3731,7 @@
       TS_DYN                = Input_Opt%TS_DYN
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Current practice in the standard GEOS-Chem is to initialize 
       ! the field Input_Optt%TS_DYN with the value read in from 
@@ -3910,7 +3900,8 @@
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
+      !
       ! In an ESMF environment, all time steps must become defined 
       ! externally previous to the READ_INPUT_FILE call!
       ! (ckeller, 11/24/14)
@@ -4320,7 +4311,7 @@
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! When we connect to the GEOS-5 GCM via ESMF, we let the GCM
       ! handle all timing and diagnostic output via the GEOS-5 History
@@ -4330,7 +4321,7 @@
       !-----------------------------------------------------------------
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Current practice in the std GEOS-Chem is to not let the run
       ! proceed unless the user has scheduled output for the last day.
@@ -4373,7 +4364,11 @@
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE FILE_MOD,     ONLY : IU_BPCH
       USE TIME_MOD,     ONLY : GET_NYMDb, GET_NHMSb, EXPAND_DATE
-      USE TRACERID_MOD, ONLY : NEMANTHRO
+!-----------------------------------------------------------------------------
+! Prior to 5/22/15:
+! HEMCO made this obsolete, so remove it (bmy, 5/22/15)
+!      USE TRACERID_MOD, ONLY : NEMANTHRO
+!-----------------------------------------------------------------------------
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -4436,6 +4431,7 @@
 !  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND71 to ND72 to
 !                              avoid conflicts with hourly max ppbv diagnostic.
 !  15 Jan 2015 - R. Yantosca - Now define Input_Opt%DIAG_COLLECTION 
+!  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4732,7 +4728,12 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:37' )
       READ( SUBSTRS(1), * ) ND36
       CALL SET_TINDEX( am_I_Root, 
-     &                 36, ND36, SUBSTRS(2:N), N-1, NEMANTHRO )      
+!-----------------------------------------------------------------------------
+! Prior to 5/22/15:
+! NEMANTHRO is obsolete, so remove it (bmy, 5/22/15)
+!     &                 36, ND36, SUBSTRS(2:N), N-1, NEMANTHRO )      
+!-----------------------------------------------------------------------------
+     &                 36, ND36, SUBSTRS(2:N), N-1, N_TRACERS )      
 
       !--------------------------
       ! ND37: Updraft scav frac
