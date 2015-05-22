@@ -20,7 +20,7 @@
       USE CMN_O3_MOD                         ! FMOL, XNUMOL
       USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays
       USE CMN_FJX_MOD                        ! Fast-JX flux diagnostics
-      USE COMODE_LOOP_MOD                    ! IDEMS
+      USE COMODE_LOOP_MOD                    ! NFAMILIES
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -259,7 +259,7 @@
 !                              entirely in kgC/m2/s.
 !  21 May 2015 - R. Yantosca - Bug fix: The bpch unit string for BIOMASS_NH3 
 !                              should be molec/cm2/s instead of atoms C/cm2/2.
-
+!  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC

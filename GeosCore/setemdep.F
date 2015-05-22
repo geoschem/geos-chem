@@ -16,7 +16,12 @@
 !
 ! !USES:
 !
-      USE TRACERID_MOD, ONLY : IDEMIS, IDTRMB, NEMANTHRO, NEMBIOG
+!-----------------------------------------------------------------------------
+! Prior to 5/22/15:
+! HEMCO made these obsolete, so remove them (bmy, 5/22/15)
+!      USE TRACERID_MOD, ONLY : IDEMIS, IDTRMB, NEMANTHRO, NEMBIOG
+!-----------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDEMIS, IDTRMB
       USE CMN_SIZE_MOD                   ! Size parameters
       USE COMODE_LOOP_MOD                ! SMVGEAR II arrays
       USE GIGC_ErrCode_Mod
@@ -48,6 +53,7 @@
 !  13 Nov 2012 - R. Yantosca - Now pass Input_Opt and RC as arguments for GIGC
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%NUMDEP and Input_Opt%DEPNAME
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  22 May 2015 - R. Yantosca - Removed variables made obsolete by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -118,9 +124,13 @@
 
          ENDDO
 
-         ! The total # of emission species will be NEMANTHRO [anthro] + 
-         ! NEMBIOG [bio], so reset NEMIS accordingly
-         NEMIS(NCS) = NEMANTHRO + NEMBIOG
+!-----------------------------------------------------------------------------
+! Prior to 5/22/15:
+! HEMCO made this obsolete, so remove it (bmy, 5/22/15)
+!         ! The total # of emission species will be NEMANTHRO [anthro] + 
+!         ! NEMBIOG [bio], so reset NEMIS accordingly
+!         NEMIS(NCS) = NEMANTHRO + NEMBIOG
+!-----------------------------------------------------------------------------
 
          ! Echo output to stdout
          IF ( am_I_Root ) WRITE( 6, 110 ) NEMIS(NCS)

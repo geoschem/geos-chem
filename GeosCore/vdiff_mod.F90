@@ -1823,8 +1823,13 @@ contains
     USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
     USE TRACERID_MOD
-    USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND44, &
-                                   NDRYDEP, emis_save
+!------------------------------------------------------------------------------
+! Prior to 5/22/15:
+! Remove variables made obsolete by HEMCO (bmy, 5/22/15)
+!    USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, IDEMS, NEMIS NCS, ND44, &
+!                                   NDRYDEP, emis_save
+!------------------------------------------------------------------------------
+    USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, NCS, ND44, NDRYDEP
     USE MERCURY_MOD,        ONLY : HG_EMIS
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
     ! HEMCO update
@@ -2159,36 +2164,6 @@ contains
           ENDIF
        ENDDO
        
-!       !----------------------------------------------------------------
-!       ! Add emissions for offline aerosol simulation
-!       !----------------------------------------------------------------
-!       IF ( IS_AEROSOL ) THEN
-!
-!          ! add surface emis of aerosols 
-!          ! (after converting kg/box/timestep to kg/m2/s)
-!          ! Should NOT use ID_EMITTED here, since it is only for gases 
-!          ! for SMVGEAR. (Lin, 06/10/08)
-!          do N = 1, N_TRACERS
-!             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)       &
-!                                       / GET_AREA_M2( I, J, 1 ) &
-!                                       / GET_TS_EMIS() / 60.e+0_fp
-!          enddo
-!
-!       ENDIF
-!
-!       !----------------------------------------------------------------
-!       ! Zero emissions for tagged CO simulation
-!       !
-!       ! CO emis are considered in tagged_co_mod.f.  This over-
-!       ! simplified treatment may be inconsistent with the full 
-!       ! chemistry simulation. Hopefully this simplification wouldn't 
-!       ! cause too much problem, since the std. tagged_co simulation 
-!       ! is also approximate, anyway. (Lin, 06/20/09) 
-!       !----------------------------------------------------------------
-!       IF ( IS_TAGCO ) THEN
-!          eflx(I,J,:) = 0e+0_fp 
-!       ENDIF
-!
        !----------------------------------------------------------------
        ! Overwrite emissions for offline CH4 simulation.
        ! CH4 emissions become stored in CH4_EMIS in global_ch4_mod.F.
