@@ -43,18 +43,22 @@ MODULE HCOX_TOMAS_SeaSalt_Mod
 !
 ! !REVISION HISTORY:
 !  01 Oct 2014 - R. Yantosca - Initial version, based on TOMAS code
+!  20 May 2015 - J. Kodros   - Added fixes to integrate TOMAS with HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !
 ! !PRIVATE TYPES:
 !
   ! Scalars
-  INTEGER             :: ExtNr
-  REAL*8              :: TOMAS_COEF
+  INTEGER               :: ExtNr                  ! HEMCO extension #   
+  REAL(dp)              :: TOMAS_COEF             ! Seasalt emiss coeff.
 
   ! Arrays
-  REAL*8, ALLOCATABLE :: TOMAS_DBIN(:)
-  REAL*8, ALLOCATABLE :: TOMAS_A   (:)
+  INTEGER,  ALLOCATABLE :: HcoIDs    (:      )    ! HEMCO species ID's
+  REAL(dp), ALLOCATABLE :: TOMAS_DBIN(:      )    ! TOMAS bin width
+  REAL(dp), ALLOCATABLE :: TOMAS_A   (:      )    ! TOMAS area? 
+  REAL(dp), ALLOCATABLE :: TC1       (:,:,:,:)    ! Aerosol mass
+  REAL(dp), ALLOCATABLE :: TC2       (:,:,:,:)    ! Aerosol number
 
 CONTAINS
 !EOC
@@ -77,37 +81,55 @@ CONTAINS
 ! !USES:
 !
     USE HCO_GeoTools_Mod, ONLY : HCO_LandType
+    USE HCO_FluxArr_mod,  ONLY : HCO_EmisAdd
+    USE HCO_State_Mod,    ONLY : HCO_GetHcoID
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root   ! root CPU?
-    TYPE(Ext_State),  POINTER        :: ExtState    ! Extension Options object
-    TYPE(HCO_State),  POINTER        :: HcoState    ! HEMCO state object 
+    LOGICAL,          INTENT(IN)    :: am_I_Root   ! root CPU?
+    TYPE(Ext_State),  POINTER       :: ExtState    ! Extension Options object
+    TYPE(HCO_State),  POINTER       :: HcoState    ! HEMCO state object 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)  :: RC          ! Success or failure?
+    INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
+!  
 ! 
 ! !REVISION HISTORY:
 !  01 Oct 2014 - R. Yantosca - Initial version, based on TOMAS SRCSALT30 code
+!  20 May 2015 - J. Kodros   - Add seasalt number & mass to HEMCO state
+!  20 May 2015 - R. Yantosca - Pass am_I_Root to HCO_EMISADD routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: I,      J,    L,      K
-    REAL*4  :: FOCEAN, W10M, DTEMIS
-    REAL*8  :: F100,   W,    NUMBER, A_M2, FEMIS, MASS
+    ! Scalars
+    INTEGER           :: I,      J,    L,      K, HcoID
+    REAL(sp)          :: FOCEAN, W10M, DTEMIS
+    REAL(dp)          :: F100,   W, A_M2, FEMIS, NUMBER, MASS, NUMBER_TOT
+
+    ! Strings
+    CHARACTER(LEN=31) :: SpcName
        
+    ! Pointers
+    REAL(dp), POINTER :: ptr3D(:,:,:) => NULL()
+
+    ! For debugging
+    !INTEGER            :: ii=50, jj=10
+
     !=================================================================
     ! SRCSALT30 begins here!
     !=================================================================
 
     ! Depending on the grid resolution. 4x5 (default) doesn't need 
     ! adjusting coeff
+
+    !### Debug
+    !print*, 'JACK IN HCOX TOMAS SEASALT'
 
     ! Emission timestep [s]
     DTEMIS = HcoState%TS_EMIS
@@ -117,7 +139,7 @@ CONTAINS
     DO I = 1, HcoState%NX
 
        ! Grid box surface area [m2]
-       A_M2  = HcoState%Grid%AREA_M2( I, J )
+       A_M2  = HcoState%Grid%AREA_M2%Val(I,J)
          
        ! Get the fraction of the box that is over water
        IF ( HCO_LandType( ExtState%WLI%Arr%Val(I,J),              &
@@ -145,7 +167,9 @@ CONTAINS
                
              ! Sea salt number
              F100   = TOMAS_A(K)
-             NUMBER = F100 * W * A_M2 * FOCEAN * DTEMIS * TOMAS_COEF
+
+             ! JKODROS get number as flux
+             NUMBER_TOT = F100 * W * FOCEAN * TOMAS_COEF
 
              ! Loop thru the boundary layer
              DO L = 1, HcoState%Nz
@@ -157,41 +181,70 @@ CONTAINS
                 IF ( FEMIS > 0d0 ) THEN
 
                    ! Number
-                   NUMBER = NUMBER * FEMIS
+                   NUMBER = NUMBER_TOT * FEMIS
 
                    ! Mass
                    MASS   = NUMBER                                      &
                           * SQRT( HcoState%MicroPhys%BinBound(K  ) *    &
-                                  HcoState%MicroPhys%BinBound(K+1)   ) 
-                                  
-                ENDIF
+                                  HcoState%MicroPhys%BinBound(K+1)   )
+                   
+                   ! Store number & mass
+                   TC1(I,J,L,K) = NUMBER
+                   TC2(I,J,L,K) = MASS
 
-!------------------------------------------------------------------------------
-! NEED TO ADD EMISSIONS TO THE HCOSTATE HERE!!!
-!                  !========================================================
-!                  ! Add sea-salt number to the tracer array
-!                  !========================================================
-!
-!                  TC1(I,J,L,K) = TC1(I,J,L,K) + ( NUM * FEMIS )
-!                  TC2(I,J,L,K) = TC2(I,J,L,K) + 
-!     &                           NUM * SQRT( Xk(K) * Xk(K+1)) * FEMIS
-!
-!
-!                  !=========================================================
-!                  ! ND59 Diagnostic: Sea salt emission in [kg/box/timestep]    
-!                  !=========================================================
-!                  IF ( ND59 > 0) THEN
-!                     AD59_NUMB(I,J,1,k) = AD59_NUMB(I,J,1,k) + NUM
-!                     AD59_SALT(I,J,1,k) = AD59_SALT(I,J,1,k) + 
-!     &                                    NUM*sqrt(xk(k)*xk(k+1))
-!                  ENDIF
-!------------------------------------------------------------------------------
+                ENDIF
              ENDDO
           ENDDO
        ENDIF
     ENDDO
     ENDDO
 
+    !### Debug
+    !print*, 'JACK SEASALT EMISSIONS AT 50, 10,7: ', TC2(ii,jj,1,7)
+    !print*, 'BINS: ', HcoState%MicroPhys%nBins
+
+    ! Loop over # of microphysics bins
+    DO K = 1, HcoState%MicroPhys%nBins
+
+       ! Add mass to the HEMCO data structure (jkodros)
+       CALL HCO_EmisAdd( am_I_Root, HcoState, TC2(:,:,:,K), HcoIDs(K), RC)
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSALT', RC )
+          RETURN
+       ENDIF
+
+       ! Get the proper species name
+       IF ( K==1 ) SpcName = 'NK1'
+       IF ( K==2 ) SpcName = 'NK2'
+       IF ( K==3 ) SpcName = 'NK3'
+       IF ( K==4 ) SpcName = 'NK4'
+       IF ( K==5 ) SpcName = 'NK5'
+       IF ( K==6 ) SpcName = 'NK6'
+       IF ( K==7 ) SpcName = 'NK7'
+       IF ( K==8 ) SpcName = 'NK8'
+       IF ( K==9 ) SpcName = 'NK9'
+       IF ( K==10) SpcName = 'NK10'
+       IF ( K==11) SpcName = 'NK11'
+       IF ( K==12) SpcName = 'NK12'
+       IF ( K==13) SpcName = 'NK13'
+       IF ( K==14) SpcName = 'NK14'
+       IF ( K==15) SpcName = 'NK15'
+
+       ! HEMCO species ID
+       HcoID = HCO_GetHcoID( TRIM(SpcName), HcoState ) 
+        
+       !### Debug
+       !print*, 'JACK SEASALT EMISSIONS AT 50, 10,: ', TC1(ii,jj,1,k)
+       !print*, 'JACK HCO ID: ', HcoID
+    
+       ! Add number to the HEMCO data structure
+       CALL HCO_EmisAdd( am_I_Root, HcoState, TC1(:,:,:,K), HcoID, RC)
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSALT', RC )
+          RETURN
+       ENDIF
+    ENDDO
+                
   END SUBROUTINE HCOX_TOMAS_SeaSalt_Run
 !EOC
 !------------------------------------------------------------------------------
@@ -244,7 +297,7 @@ CONTAINS
     CHARACTER(LEN=255)             :: MSG
 
     ! Arrays
-    INTEGER,           ALLOCATABLE :: HcoIDs(:)
+!    INTEGER,           ALLOCATABLE :: HcoIDs(:)
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
 
     !=================================================================
@@ -288,18 +341,40 @@ CONTAINS
        RETURN
     ENDIF
 
+   ! JKODROS - ALLOCATE TC1 and TC2
+    ALLOCATE ( TC1( HcoState%NX, HcoState%NY,& 
+           HcoState%NZ, HcoState%MicroPhys%nBins ), STAT=RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'Cannot allocate TC1 array (hcox_tomas_seasalt_mod.F90)'
+       CALL HCO_ERROR( MSG, RC )
+       RETURN
+    ELSE
+ TC1 = 0d0
+    ENDIF
+
+   ! JKODROS - ALLOCATE TC1 and TC2
+    ALLOCATE ( TC2( HcoState%NX, HcoState%NY,& 
+           HcoState%NZ, HcoState%MicroPhys%nBins ), STAT=RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'Cannot allocate TC2 array (hcox_tomas_seasalt_mod.F90)'
+       CALL HCO_ERROR( MSG, RC )
+       RETURN
+    ELSE
+ TC2 = 0d0
+    ENDIF
+
 #if defined( TOMAS12 ) 
 
     !-----------------------------------------------------------------------
     ! TOMAS simulation w/ 12 size-resolved bins
     !-----------------------------------------------------------------------
 
-    TOMAS_DBIN = (/ 
+    TOMAS_DBIN = (/                                                     &
           9.68859d-09,   1.53797d-08,    2.44137d-08,    3.87544d-08,   &
           6.15187d-08,   9.76549d-08,    1.55017d-07,    2.46075d-07,   &
           3.90620d-07,   6.20070d-07,    9.84300d-07,    3.12500d-06  /)
 
-    TOMAS_A   = (/  
+    TOMAS_A   = (/                                                      &
         4607513.229d0, 9309031.200d0, 12961629.010d0, 13602132.943d0,   & 
        11441451.509d0, 9387934.311d0,  8559624.313d0,  7165322.549d0,   &
         4648135.263d0, 2447035.933d0,  3885009.997d0,  1006980.679d0  /)
@@ -419,11 +494,13 @@ CONTAINS
     ExtState%FRAC_OF_PBL%DoUse = .TRUE.
     ExtState%FRCLND%DoUse      = .TRUE.
 
+!    print*, 'ENABLE MODULE'
     ! Enable module
     ExtState%TOMAS_SeaSalt     = .TRUE.
+    
 
     ! Return w/ success
-    IF ( ALLOCATED( HcoIDs   ) ) DEALLOCATE( HcoIDs   )
+!    IF ( ALLOCATED( HcoIDs   ) ) DEALLOCATE( HcoIDs   )
     IF ( ALLOCATED( SpcNames ) ) DEALLOCATE( SpcNames )
     CALL HCO_LEAVE ( RC ) 
  
@@ -445,7 +522,8 @@ CONTAINS
   SUBROUTINE HCOX_TOMAS_SeaSalt_Final
 !
 ! !REVISION HISTORY:
-!  15 Dec 2013 - C. Keller - Initial version
+!  15 Dec 2013 - C. Keller   - Initial version
+!  20 May 2015 - J. Kodros   - Deallocate HcoIDs, TC1, TC2 arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -455,6 +533,9 @@ CONTAINS
     !=================================================================
     IF ( ALLOCATED( TOMAS_DBIN ) ) DEALLOCATE( TOMAS_DBIN )
     IF ( ALLOCATED( TOMAS_A    ) ) DEALLOCATE( TOMAS_A    )
+    IF ( ALLOCATED( HcoIDs     ) ) DEALLOCATE( HcoIDs     )
+    IF ( ALLOCATED( TC1        ) ) DEALLOCATE( TC1        )
+    IF ( ALLOCATED( TC2        ) ) DEALLOCATE( TC2        )
 
   END SUBROUTINE HCOX_TOMAS_SeaSalt_Final
 !EOC

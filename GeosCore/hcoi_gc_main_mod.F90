@@ -478,8 +478,10 @@ CONTAINS
     IF ( am_I_Root .and. FIRST ) THEN 
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
        WRITE( 6, 100   ) 'HEMCO: Harvard-NASA Emissions Component'
+       WRITE( 6, 101   ) 'You are using HEMCO version ', TRIM(HCO_VERSION)
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
- 100   FORMAT( '%%%%%', 15x, a, 15x, '%%%%%' )
+ 100   FORMAT( '%%%%%', 15x, a,    15x, '%%%%%' )
+ 101   FORMAT( '%%%%%', 15x, a, a, 15x, '%%%%%' )
        FIRST = .FALSE.
     ENDIF
 
@@ -623,7 +625,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_Final( am_I_Root )
+  SUBROUTINE HCOI_GC_Final( am_I_Root, ERROR )
 !
 ! !USES:
 !
@@ -638,6 +640,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     LOGICAL, INTENT(IN)              :: am_I_Root
+    LOGICAL, INTENT(IN)              :: ERROR
 !
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller   - Initial version 
@@ -659,7 +662,7 @@ CONTAINS
     LOC = 'HCOI_GC_Final (hcoi_gc_main_mod.F90)'
 
     ! Cleanup HCO core. 
-    CALL HCO_FINAL( am_I_Root, HcoState, HMRC )
+    CALL HCO_FINAL( am_I_Root, HcoState, ERROR, HMRC )
 
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields. 

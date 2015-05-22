@@ -502,6 +502,7 @@ CONTAINS
     INTEGER                 :: minlev, nlev, nout
     INTEGER                 :: L, T, NL
     LOGICAL                 :: verb, infl, clps
+    LOGICAL                 :: DONE
     CHARACTER(LEN=255)      :: MSG
 
     !=================================================================
@@ -542,6 +543,9 @@ CONTAINS
     nlev = SIZE(REGR_4D,3)
     nt   = SIZE(REGR_4D,4)
 
+    ! Vertical interpolation done?
+    DONE = .FALSE.
+ 
     !===================================================================
     ! If no vertical interpolation is needed, then (1) save the 4D
     ! input data array to to the HEMCO list container object and
@@ -556,10 +560,20 @@ CONTAINS
           Lct%Dct%Dta%V3(T)%Val(:,:,:) = REGR_4D(:,:,:,T)
        ENDDO
 
+       ! Verbose
+       IF ( HCO_IsVerb(3) ) THEN
+          MSG = '# of input levels = # of output levels - passed as is.'
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+       ! Done!
+       DONE = .TRUE.
+    ENDIF
+
     !===================================================================
     ! Do vertical regridding:
     !===================================================================
-    ELSE
+    IF ( .NOT. DONE ) THEN
 
     !===================================================================
     ! GEOS-4 mapping
@@ -670,6 +684,15 @@ CONTAINS
 
           ENDDO !T
 
+          ! Verbose
+          IF ( HCO_IsVerb(3) ) THEN
+             WRITE(MSG,*) 'Mapped ', nlev, ' levels onto native GEOS-4 levels.'
+             CALL HCO_MSG(MSG)
+          ENDIF
+
+          ! Done!
+          DONE = .TRUE.
+
        !----------------------------------------------------------------
        ! Reduced GEOS-4
        !----------------------------------------------------------------
@@ -773,6 +796,15 @@ CONTAINS
              ENDIF
           ENDDO ! T
 
+          ! Verbose
+          IF ( HCO_IsVerb(3) ) THEN
+             WRITE(MSG,*) 'Mapped ', nlev, ' levels onto reduced GEOS-4 levels.'
+             CALL HCO_MSG(MSG)
+          ENDIF
+
+          ! Done!
+          DONE = .TRUE.
+
        ENDIF
 
     !===================================================================
@@ -828,6 +860,15 @@ CONTAINS
 
           ENDDO ! T
 
+          ! Verbose
+          IF ( HCO_IsVerb(3) ) THEN
+             WRITE(MSG,*) 'Mapped ', nlev, ' levels onto native GEOS-5 levels.'
+             CALL HCO_MSG(MSG)
+          ENDIF
+
+          ! Done!
+          DONE = .TRUE.
+
        !----------------------------------------------------------------
        ! Reduced GEOS-5
        !----------------------------------------------------------------
@@ -879,32 +920,50 @@ CONTAINS
              ENDIF
           ENDDO ! T
 
+          ! Verbose
+          IF ( HCO_IsVerb(3) ) THEN
+             WRITE(MSG,*) 'Mapped ', nlev, ' levels onto reduced GEOS-5 levels.'
+             CALL HCO_MSG(MSG)
+          ENDIF
+
+          ! Done!
+          DONE = .TRUE.
        ENDIF
+#endif
+    ENDIF ! Vertical regridding required
 
     !===================================================================
     ! For all other cases, do not do any vertical regridding 
     !===================================================================
-#else
-
+    IF ( .NOT. DONE ) THEN
        CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, nlev, nt, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        DO T = 1, nt
           Lct%Dct%Dta%V3(T)%Val(:,:,:) = REGR_4D(:,:,:,T)
        ENDDO
-#endif
-    ENDIF ! Vertical regridding required
+
+       ! Verbose
+       IF ( HCO_IsVerb(3) ) THEN
+          WRITE(MSG,*) 'Could not find vertical interpolation key - ', &
+                       'kept the original ', nlev, ' levels.'
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+       ! Done!
+       DONE = .TRUE.
+    ENDIF
 
     !===================================================================
     ! Error check / verbose mode
     !===================================================================
-    IF ( ASSOCIATED(Lct%Dct%Dta%V3(1)%Val) ) THEN
+    IF ( DONE ) THEN
       IF ( HCO_IsVerb(2) ) THEN
           WRITE(MSG,*) 'Did vertical regridding for ',TRIM(Lct%Dct%cName),':'
           CALL HCO_MSG(MSG)
           WRITE(MSG,*) 'Number of original levels: ', nlev 
           CALL HCO_MSG(MSG)
-          WRITE(MSG,*) 'Number of output levels: ', SIZE(Lct%Dct%Dta%V3(1)%Val) 
+          WRITE(MSG,*) 'Number of output levels: ', SIZE(Lct%Dct%Dta%V3(1)%Val,3) 
           CALL HCO_MSG(MSG,SEP2='-')
        ENDIF
     ELSE

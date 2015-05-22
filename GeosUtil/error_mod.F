@@ -751,7 +751,7 @@
 !$OMP CRITICAL
 
       ! Deallocate all module arrays
-      CALL CLEANUP( SHADOW_am_I_Root, SHADOW_Input_Opt, RC )
+      CALL CLEANUP( SHADOW_am_I_Root, SHADOW_Input_Opt, .TRUE., RC )
 
       ! Flush all files and stop
       CALL EXIT( 99999 )

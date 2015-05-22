@@ -101,6 +101,12 @@ MODULE HCO_Error_Mod
   INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_EXACT = 3
   INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_INTER = 4
 
+  ! Data container update flags. At the moment, those only indicate
+  ! if a container gets updated every time step or based upon the 
+  ! details specifications ('srcTime') in the HEMCO configuration file.
+  INTEGER, PARAMETER, PUBLIC  :: HCO_UFLAG_FROMFILE = 1
+  INTEGER, PARAMETER, PUBLIC  :: HCO_UFLAG_ALWAYS   = 2
+
   ! Data container types. These are used to distinguish between
   ! base emissions, scale factors and masks.
   INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_BASE = 1
@@ -108,7 +114,7 @@ MODULE HCO_Error_Mod
   INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_MASK = 3
 
   ! HEMCO version number. Only increase after significant changes
-  REAL(hp), PARAMETER, PUBLIC :: HCO_VERSION = 1.2_hp
+  CHARACTER(LEN=12), PARAMETER, PUBLIC :: HCO_VERSION = 'v1.1.004'
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller   - Initialization
@@ -303,7 +309,9 @@ CONTAINS
     INTEGER,          INTENT(IN   ), OPTIONAL  :: Verb
 !
 ! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
+!  23 Sep 2013 - C. Keller   - Initialization
+!  20 May 2015 - R. Yantosca - Minor formatting fix: use '(a)' instead of *
+!                              to avoid line wrapping around at 80 columns.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -343,7 +351,8 @@ CONTAINS
              WRITE(LUN,'(a)') REPEAT( SEP1, 79) 
           ENDIF
           IF ( PRESENT(MSG) ) THEN
-             WRITE(LUN,*) TRIM(MSG)
+!             WRITE(LUN,*) TRIM(MSG)
+             WRITE(LUN,'(a)') TRIM(MSG)
           ENDIF
           IF ( PRESENT(SEP2) ) THEN
              WRITE(LUN,'(a)') REPEAT( SEP2, 79) 
@@ -353,7 +362,8 @@ CONTAINS
              WRITE(*,'(a)') REPEAT( SEP1, 79) 
           ENDIF
           IF ( PRESENT(MSG) ) THEN
-             WRITE(*,*) TRIM(MSG)
+!             WRITE(*,*) TRIM(MSG)
+             WRITE(*,'(a)') TRIM(MSG)
           ENDIF
           IF ( PRESENT(SEP2) ) THEN
              WRITE(*,'(a)') REPEAT( SEP2, 79) 
@@ -817,12 +827,12 @@ CONTAINS
     IF ( FIRST ) THEN
        IF ( Err%LUN < 0 ) THEN
           WRITE(*,'(a)') REPEAT( '-', 79) 
-          WRITE(*,'(A12,F5.2)') 'Using HEMCO', HCO_VERSION
+          WRITE(*,'(A12,A12)') 'Using HEMCO ', HCO_VERSION
           WRITE(*,'(a)') REPEAT( '-', 79) 
        ELSE
           LUN = Err%LUN
           WRITE(LUN,'(a)') REPEAT( '-', 79) 
-          WRITE(LUN,'(A12,F5.2)') 'Using HEMCO', HCO_VERSION
+          WRITE(LUN,'(A12,A12)') 'Using HEMCO ', HCO_VERSION
           WRITE(LUN,'(a)') REPEAT( '-', 79) 
        ENDIF
 
@@ -883,7 +893,7 @@ CONTAINS
     IF ( Summary ) THEN
        MSG = ' '
        CALL HCO_MSG ( MSG )
-       MSG = 'HEMCO FINISHED'
+       MSG = 'HEMCO ' // TRIM(HCO_VERSION) // ' FINISHED.'
        CALL HCO_MSG ( MSG, SEP1='-' )
  
        WRITE(MSG,'(A16,I1,A12,I6)') &

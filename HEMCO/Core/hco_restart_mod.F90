@@ -261,7 +261,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE HCO_RestartGet_3D( am_I_Root, HcoState, Name,   Arr3D, &
-                                RC,        FOUND,    Def3D,  DefVal  )
+                                RC,        FILLED,   Def3D,  DefVal  )
 !
 ! !USES:
 !
@@ -281,7 +281,7 @@ CONTAINS
 !
 ! !OUTPUT ARGUMENTS:
 !
-    LOGICAL,             INTENT(  OUT), OPTIONAL :: FOUND     ! Was the restart variable found?
+    LOGICAL,             INTENT(  OUT), OPTIONAL :: FILLED    ! Was the restart variable found?
 !
 ! !INPUT/OUTPUT ARGUMENTS:
 !
@@ -298,7 +298,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     REAL(sp), POINTER    :: Ptr3D(:,:,:) => NULL()
-    LOGICAL              :: FILLED
+    LOGICAL              :: FLD
     CHARACTER(LEN=255)   :: MSG
 
     ! ================================================================
@@ -306,18 +306,18 @@ CONTAINS
     ! ================================================================
 
     ! Is the output array filled yet?
-    FILLED = .FALSE.
+    FLD = .FALSE.
 
     ! ------------------------------------------------------------------
     ! Try to get from ESMF internal state 
     ! ------------------------------------------------------------------
 #if defined(ESMF_)
     CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name),   &
-                                  1,         FILLED,   RC, Arr3D=Arr3D )
+                                  1,         FLD,      RC, Arr3D=Arr3D )
     IF ( RC /= HCO_SUCCESS ) RETURN
  
     ! Log output 
-    IF ( am_I_Root .AND. FILLED ) THEN
+    IF ( am_I_Root .AND. FLD ) THEN
        MSG = 'Obtained restart variable from ESMF internal state: '//TRIM(Name)
        CALL HCO_MSG(MSG)
     ENDIF
@@ -326,14 +326,14 @@ CONTAINS
     ! ------------------------------------------------------------------
     ! If not yet filled, try to get from HEMCO configuration
     ! ------------------------------------------------------------------
-    IF ( .NOT. FILLED ) THEN
+    IF ( .NOT. FLD ) THEN
 
        ! Try to get pointer from HEMCO configuration
-       CALL HCO_GetPtr( am_I_Root, TRIM(Name), Ptr3D, RC, FOUND=FILLED )
+       CALL HCO_GetPtr( am_I_Root, TRIM(Name), Ptr3D, RC, FILLED=FLD )
        IF ( RC /= HCO_SUCCESS ) RETURN
       
        ! Eventually pass data
-       IF ( FILLED ) THEN
+       IF ( FLD ) THEN
           Arr3D = Ptr3D
 
           ! Log output 
@@ -350,15 +350,17 @@ CONTAINS
     ! ------------------------------------------------------------------
     ! If still not filled, assign default values 
     ! ------------------------------------------------------------------
-    IF ( .NOT. FILLED ) THEN
+    IF ( .NOT. FLD ) THEN
        IF ( PRESENT(Def3D) ) THEN
           Arr3D = Def3D
+          FLD   = .TRUE.
           IF ( am_I_Root ) THEN
              MSG = 'Filled restart variable with default 3D field: '//TRIM(Name)
              CALL HCO_MSG(MSG)
           ENDIF
        ELSEIF( PRESENT(DefVal) ) THEN
           Arr3D = DefVal
+          FLD   = .TRUE.
           IF ( am_I_Root ) THEN
              MSG = 'Filled restart variable with default scalar: '//TRIM(Name)
              CALL HCO_MSG(MSG)
@@ -369,8 +371,8 @@ CONTAINS
     ! ------------------------------------------------------------------
     ! Leave 
     ! ------------------------------------------------------------------
-    IF ( PRESENT(FOUND) ) THEN
-       FOUND = FILLED
+    IF ( PRESENT(FILLED) ) THEN
+       FILLED = FLD
     ENDIF
 
     ! Return w/ success
@@ -397,7 +399,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE HCO_RestartGet_2D( am_I_Root, HcoState, Name,   Arr2D, &
-                                RC,        FOUND,    Def2D,  DefVal  )
+                                RC,        FILLED,   Def2D,  DefVal  )
 !
 ! !USES:
 !
@@ -417,7 +419,7 @@ CONTAINS
 !
 ! !OUTPUT ARGUMENTS:
 !
-    LOGICAL,             INTENT(  OUT), OPTIONAL :: FOUND     ! Was the restart variable found?
+    LOGICAL,             INTENT(  OUT), OPTIONAL :: FILLED    ! Was the restart variable found?
 !
 ! !INPUT/OUTPUT ARGUMENTS:
 !
@@ -434,7 +436,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     REAL(sp), POINTER    :: Ptr2D(:,:) => NULL()
-    LOGICAL              :: FILLED
+    LOGICAL              :: FLD
     CHARACTER(LEN=255)   :: MSG
 
     ! ================================================================
@@ -442,40 +444,42 @@ CONTAINS
     ! ================================================================
 
     ! Is the output array filled yet?
-    FILLED = .FALSE.
+    FLD = .FALSE.
 
     ! ------------------------------------------------------------------
     ! Try to get from ESMF internal state 
     ! ------------------------------------------------------------------
 #if defined(ESMF_)
     CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name),   &
-                                  1,        FILLED,    RC, Arr2D=Arr2D )
+                                  1,         FLD,      RC, Arr2D=Arr2D )
     IF ( RC /= HCO_SUCCESS ) RETURN
  
     ! Log output 
-    IF ( am_I_Root .AND. FILLED ) THEN
+    IF ( am_I_Root .AND. FLD ) THEN
        MSG = 'Obtained restart variable from ESMF internal state: '//TRIM(Name)
        CALL HCO_MSG(MSG)
+       WRITE(*,*) TRIM(MSG)
     ENDIF
 #endif
 
     ! ------------------------------------------------------------------
     ! If not yet filled, try to get from HEMCO configuration
     ! ------------------------------------------------------------------
-    IF ( .NOT. FILLED ) THEN
+    IF ( .NOT. FLD ) THEN
 
        ! Try to get pointer from HEMCO configuration
-       CALL HCO_GetPtr( am_I_Root, TRIM(Name), Ptr2D, RC, FOUND=FILLED )
+       CALL HCO_GetPtr( am_I_Root, TRIM(Name), Ptr2D, RC, FOUND=FLD )
        IF ( RC /= HCO_SUCCESS ) RETURN
       
        ! Eventually pass data
-       IF ( FILLED ) THEN
+       IF ( FLD ) THEN
           Arr2D = Ptr2D
 
           ! Log output 
           IF ( am_I_Root ) THEN
              MSG = 'Obtained restart variable from HEMCO config: '//TRIM(Name)
              CALL HCO_MSG(MSG)
+             WRITE(*,*) TRIM(MSG)
           ENDIF
        ENDIF
 
@@ -486,18 +490,22 @@ CONTAINS
     ! ------------------------------------------------------------------
     ! If still not filled, assign default values 
     ! ------------------------------------------------------------------
-    IF ( .NOT. FILLED ) THEN
+    IF ( .NOT. FLD ) THEN
        IF ( PRESENT(Def2D) ) THEN
           Arr2D = Def2D
+          FLD   = .TRUE.
           IF ( am_I_Root ) THEN
              MSG = 'Filled restart variable with default 2D field: '//TRIM(Name)
              CALL HCO_MSG(MSG)
+             WRITE(*,*) TRIM(MSG)
           ENDIF
        ELSEIF( PRESENT(DefVal) ) THEN
           Arr2D = DefVal
+          FLD   = .TRUE.
           IF ( am_I_Root ) THEN
              MSG = 'Filled restart variable with default scalar: '//TRIM(Name)
              CALL HCO_MSG(MSG)
+             WRITE(*,*) TRIM(MSG)
           ENDIF
        ENDIF
     ENDIF
@@ -505,7 +513,14 @@ CONTAINS
     ! ------------------------------------------------------------------
     ! Leave 
     ! ------------------------------------------------------------------
-    IF ( PRESENT(FOUND) ) FOUND = FILLED
+    IF ( PRESENT(FILLED) ) FILLED = FLD
+
+    ! Verbose
+    IF ( am_I_Root .AND. .NOT. FLD ) THEN
+       MSG = 'No restart field found: '//TRIM(Name)
+       CALL HCO_MSG(MSG)
+       WRITE(*,*) TRIM(MSG)
+    ENDIF
 
     ! Return w/ success
     RC = HCO_SUCCESS

@@ -475,7 +475,8 @@ CONTAINS
     ! If file not found, return w/ error. No error if cycling attribute is 
     ! select to range. In that case, just make sure that array is empty.
     IF ( .NOT. FOUND ) THEN 
-       IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN
+       IF ( ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) .OR.      & 
+            ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT )     ) THEN
           CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE. )
           MSG = 'No valid file found for current simulation time - data '// &
                 'will be ignored - ' // TRIM(Lct%Dct%cName) 
@@ -546,15 +547,12 @@ CONTAINS
     ! with error!
     !-----------------------------------------------------------------
     IF ( tidx1 < 0 ) THEN
-       IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) THEN
-          MSG = 'Exact time not found in ' // TRIM(srcFile) 
-          CALL HCO_ERROR( MSG, RC )
-          RETURN
-       ELSEIF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_CYCLE ) THEN
+       IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_CYCLE ) THEN
           MSG = 'Invalid time index: ' // TRIM(srcFile)
           CALL HCO_ERROR( MSG, RC )
           RETURN
-       ELSEIF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN
+       ELSEIF ( ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) .OR.      & 
+                ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT )     ) THEN
           CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE.)
           MSG = 'Simulation time is outside of time range provided for '//&
                TRIM(Lct%Dct%cName) // ' - data is ignored!'
@@ -630,22 +628,56 @@ CONTAINS
        ENDIF
 
        ! Are these model levels? This will only return true if the long
-       ! name of the level variable contains "GEOS-Chem level".
-       IsModelLevel = NC_ISMODELLEVEL( ncLun, LevName )
+       ! name of the level variable contains "GEOS-Chem level". 
+       ! For now, we assume levels are already on model levels if the 
+       ! number of levels to be read is explicitly set in the configuration
+       ! file (ckeller, 5/20/15).
+       IF ( Lct%Dct%Dta%Levels == 0 ) THEN
+          IsModelLevel = NC_ISMODELLEVEL( ncLun, LevName )
 
-       ! Set level indeces to be read
-       ! NOTE: for now, always read all existing levels. Edit here to
-       ! read only particular levels.
-       lev1 = 1
-       lev2 = nlev
+          ! Set level indeces to be read
+          lev1 = 1
+          lev2 = nlev
 
-       ! If # of levels are exactly # of simulation levels, assume that 
-       ! they are on model levels. 
-       ! This should probably be removed eventually, as it's better to 
-       ! explicitly state model levels via the level long name 
-       ! "GEOS-Chem level" (see above)!
-       ! (ckeller, 12/12/14).
-       IF ( nlev == HcoState%NZ ) IsModelLevel = .TRUE.
+          ! If # of levels are exactly # of simulation levels, assume that 
+          ! they are on model levels. 
+          ! This should probably be removed eventually, as it's better to 
+          ! explicitly state model levels via the level long name 
+          ! "GEOS-Chem level" (see above)!
+          ! (ckeller, 12/12/14).
+          IF ( nlev == HcoState%NZ ) IsModelLevel = .TRUE.
+
+       ! If levels are explicitly given:
+       ELSE
+          IsModelLevel = .TRUE.
+     
+          ! Number of levels to be read must be smaller or equal to total
+          ! number of available levels
+          IF ( ABS(Lct%Dct%Dta%Levels) > nlev ) THEN
+             WRITE(MSG,*) Lct%Dct%Dta%Levels, ' levels requested but file ', &
+                'has only ', nlev, ' levels: ', TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF
+
+          ! Set levels to be read
+          IF ( Lct%Dct%Dta%Levels > 0 ) THEN
+             lev1 = 1
+             lev2 = Lct%Dct%Dta%Levels
+
+          ! Reverse axis!
+          ELSE
+             lev1 = nlev
+             lev2 = nlev + Lct%Dct%Dta%Levels + 1
+          ENDIF
+
+       ENDIF
+
+       ! Verbose 
+       IF ( HCO_IsVerb(2) ) THEN
+          WRITE(MSG,*) 'Will read vertical levels ', lev1, ' to ', lev2 
+          CALL HCO_MSG(MSG)
+       ENDIF
 
     ! For 2D data, set lev1 and lev2 to zero. This will ignore
     ! the level dimension in the netCDF reading call that follows.
@@ -1288,7 +1320,7 @@ CONTAINS
     CHARACTER(LEN=1023)   :: MSG_LONG
     INTEGER               :: tidx1a
     INTEGER               :: nTime,  T, CNT, NCRC 
-    INTEGER               :: prefYr, prefMt, prefDy, prefHr
+    INTEGER               :: prefYr, prefMt, prefDy, prefHr, prefMn
     INTEGER               :: refYear
     INTEGER               :: origYMDh, prefYMDh
     INTEGER, POINTER      :: availYMDh(:) => NULL() 
@@ -1354,7 +1386,7 @@ CONTAINS
     ! simulation date is outside of the data range given in the 
     ! configuration file.
     ! ---------------------------------------------------------------- 
-    CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
+    CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, prefMn, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Check if we are outside of provided range
@@ -1760,7 +1792,6 @@ CONTAINS
        ! Check if next time slice is in the future, in which case the
        ! current slice is selected. Don't do this for a CycleFlag of
        ! 3 (==> exact match).
-!       IF ( availYMDh(I+1) > prefYMDh ) THEN 
        IF ( (availYMDh(I+1)        >  prefYMDh       ) .AND. &
             (Lct%Dct%Dta%CycleFlag /= HCO_CFLAG_EXACT) ) THEN
           tidx1 = I
@@ -2846,7 +2877,7 @@ CONTAINS
     INTEGER            :: I, N, NUSE, AS
     INTEGER            :: IDX1, IDX2
     INTEGER            :: AreaFlag, TimeFlag, Check
-    INTEGER            :: prefYr, prefMt, prefDy, prefHr
+    INTEGER            :: prefYr, prefMt, prefDy, prefHr, prefMn
     REAL(hp)           :: UnitFactor 
     REAL(hp)           :: FileVals(100)
     REAL(hp), POINTER  :: FileArr(:,:,:,:) => NULL()
@@ -2920,7 +2951,7 @@ CONTAINS
 
        ! Get the preferred times, i.e. the preferred year, month, day, 
        ! or hour (as specified in the configuration file).
-       CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
+       CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, prefMn, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
        ! Currently, data read directly from the configuration file can only
@@ -3281,11 +3312,8 @@ CONTAINS
     ! index to -1. This will force the scale factors to be set to
     ! zero!
     IF ( prefDt < lowDt .OR. prefDt > uppDt ) THEN
-       IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) THEN ! Exact match
-          MSG = 'Data is not on exact date: ' // TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN 
-       ELSEIF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN ! w/in range
+       IF ( ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) .OR.      &
+            ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE )     ) THEN 
           IDX = -1
           RETURN
        ELSE
@@ -3366,7 +3394,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: INC,     CNT,    TYPCNT, TYP,   NEWTYP
-    INTEGER :: prefYr,  prefMt, prefDy, prefHr
+    INTEGER :: prefYr,  prefMt, prefDy, prefHr, prefMn
     INTEGER :: origYr,  origMt, origDy, origHr
     LOGICAL :: hasFile, hasYr,  hasMt,  hasDy, hasHr
     LOGICAL :: nextTyp
@@ -3381,8 +3409,8 @@ CONTAINS
     ! Initialize to input string
     srcFile = Lct%Dct%Dta%ncFile
 
-    ! Get preferred dates (to be passed to parser
-    CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
+    ! Get preferred dates (to be passed to parser)
+    CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, prefMn, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Make sure dates are not negative 
@@ -3404,7 +3432,7 @@ CONTAINS
     ENDIF 
 
     ! Call the parser
-    CALL HCO_CharParse ( srcFile, prefYr, prefMt, prefDy, prefHr, RC )
+    CALL HCO_CharParse ( srcFile, prefYr, prefMt, prefDy, prefHr, prefMn, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Check if file exists
@@ -3575,7 +3603,7 @@ CONTAINS
              srcFile = Lct%Dct%Dta%ncFile
 
              ! Call the parser with adjusted values
-             CALL HCO_CharParse ( srcFile, prefYr, prefMt, prefDy, prefHr, RC )
+             CALL HCO_CharParse ( srcFile, prefYr, prefMt, prefDy, prefHr, prefMn, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
 
              ! Check if this file exists

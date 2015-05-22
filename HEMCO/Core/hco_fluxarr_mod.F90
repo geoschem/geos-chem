@@ -919,26 +919,26 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 ! 
-    LOGICAL,         INTENT(IN   )                   :: am_I_Root
-    INTEGER,         INTENT(IN   )                   :: HcoID 
-    INTEGER,         INTENT(IN   ), OPTIONAL         :: ExtNr 
-    INTEGER,         INTENT(IN   ), OPTIONAL         :: Cat
-    INTEGER,         INTENT(IN   ), OPTIONAL         :: Hier
+    LOGICAL,         INTENT(IN   )           :: am_I_Root
+    INTEGER,         INTENT(IN   )           :: HcoID 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
+    INTEGER,         INTENT(IN   ), OPTIONAL :: Hier
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT)                   :: HcoState
-    REAL(dp),        INTENT(INOUT), OPTIONAL, TARGET :: Arr3D(   HcoState%NX, &
-                                                                 HcoState%NY, &
-                                                                 HcoState%NZ )
-    REAL(sp),        INTENT(INOUT), OPTIONAL, TARGET :: Arr3Dsp( HcoState%NX, &
-                                                                 HcoState%NY, &
-                                                                 HcoState%NZ )
-    REAL(dp),        INTENT(INOUT), OPTIONAL, TARGET :: Arr2D(   HcoState%NX, &
-                                                                 HcoState%NY ) 
-    REAL(sp),        INTENT(INOUT), OPTIONAL, TARGET :: Arr2Dsp( HcoState%NX, &
-                                                                 HcoState%NY )
-    INTEGER,         INTENT(INOUT)                   :: RC 
+    TYPE(HCO_State), INTENT(INOUT)           :: HcoState
+    REAL(dp),        INTENT(INOUT), OPTIONAL :: Arr3D(   HcoState%NX, &
+                                                         HcoState%NY, &
+                                                         HcoState%NZ )
+    REAL(sp),        INTENT(INOUT), OPTIONAL :: Arr3Dsp( HcoState%NX, &
+                                                         HcoState%NY, &
+                                                         HcoState%NZ )
+    REAL(dp),        INTENT(INOUT), OPTIONAL :: Arr2D(   HcoState%NX, &
+                                                         HcoState%NY ) 
+    REAL(sp),        INTENT(INOUT), OPTIONAL :: Arr2Dsp( HcoState%NX, &
+                                                         HcoState%NY )
+    INTEGER,         INTENT(INOUT)           :: RC 
 !
 ! !REVISION HISTORY: 
 !  20 Apr 2015 - C. Keller - Initial version
@@ -949,11 +949,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: AFL, XT, CT, HR
-
-    REAL(dp), POINTER :: Ptr3D  (:,:,:) => NULL()
-    REAL(sp), POINTER :: Ptr3Dsp(:,:,:) => NULL()
-    REAL(dp), POINTER :: Ptr2D  (:,:)   => NULL()
-    REAL(sp), POINTER :: Ptr2Dsp(:,:)   => NULL()
 
     !=====================================================================
     ! DiagnCheck begins here!
@@ -977,13 +972,17 @@ CONTAINS
 
        ! Consider category only within extension ...
        IF ( PRESENT(Cat) ) THEN
-          CT  = Cat
-          AFL = 3
+          IF ( Cat > 0 ) THEN
+             CT  = Cat
+             AFL = 3
+          ENDIF
 
           ! Consider hierarchy only within category ...
-          IF ( PRESENT(Hier) ) THEN
-             HR  = Hier
-             AFL = 4
+          IF ( AFL==3 .AND. PRESENT(Hier) ) THEN
+             IF ( Hier > 0 ) THEN
+                HR  = Hier
+                AFL = 4
+             ENDIF
           ENDIF
        ENDIF
     ENDIF
@@ -993,37 +992,29 @@ CONTAINS
    
        ! 3D HP array
        IF ( PRESENT(Arr3D) ) THEN
-          Ptr3D => Arr3D
           CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
-                             HcoID=HcoID, AutoFill=1, Array3D=Ptr3D, RC=RC )
-          Ptr3D => NULL() 
+                             HcoID=HcoID, AutoFill=1, Array3D=Arr3D, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF
 
        ! 3D SP array
        IF ( PRESENT(Arr3Dsp) ) THEN
-          Ptr3Dsp => Arr3Dsp
           CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
-                             HcoID=HcoID, AutoFill=1, Array3D=Ptr3Dsp, RC=RC )
-          Ptr3Dsp => NULL() 
+                             HcoID=HcoID, AutoFill=1, Array3D=Arr3Dsp, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF
 
        ! 2D HP array
        IF ( PRESENT(Arr2D) ) THEN
-          Ptr2D => Arr2D
           CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
-                             HcoID=HcoID, AutoFill=1, Array2D=Ptr2D, RC=RC )
-          Ptr2D => NULL() 
+                             HcoID=HcoID, AutoFill=1, Array2D=Arr2D, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF
 
        ! 2D SP array
        IF ( PRESENT(Arr2Dsp) ) THEN
-          Ptr2Dsp => Arr2Dsp
           CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
-                             HcoID=HcoID, AutoFill=1, Array2D=Ptr2Dsp, RC=RC )
-          Ptr2Dsp => NULL() 
+                             HcoID=HcoID, AutoFill=1, Array2D=Arr2Dsp, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF
 

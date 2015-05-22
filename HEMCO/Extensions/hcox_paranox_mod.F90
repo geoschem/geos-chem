@@ -348,7 +348,7 @@ CONTAINS
 !
     INTEGER                  :: I, J, L
     LOGICAL                  :: ERR
-    LOGICAL                  :: FOUND 
+    LOGICAL                  :: FILLED 
     LOGICAL                  :: FIRST
     REAL(hp)                 :: iFlx, TMP
     CHARACTER(LEN=255)       :: MSG
@@ -455,10 +455,10 @@ CONTAINS
           ! Get restart value
           CALL HCO_RestartGet( am_I_Root,       HcoState,         & 
                                TRIM(DiagnName), SC5(:,:,I+1), RC, &
-                               FOUND=FOUND ) 
+                               FILLED=FILLED ) 
           IF ( RC /= HCO_SUCCESS ) RETURN   
 
-          IF ( .NOT. FOUND ) THEN
+          IF ( .NOT. FILLED ) THEN
              SC5(:,:,I+1) = ExtState%SUNCOSmid%Arr%Val
           ENDIF
        ENDDO !I
@@ -1163,7 +1163,7 @@ CONTAINS
    ! Call HEMCO parser to replace tokens such as $ROOT, $MET, or $RES.
    ! There shouldn't be any date token in there ($YYYY, etc.), so just
    ! provide some dummy variables here
-   CALL HCO_CharParse( LutDir, -999, -1, -1, -1, RC )
+   CALL HCO_CharParse( LutDir, -999, -1, -1, -1, -1, RC )
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    ! Data format: ncdf (default) or txt 
@@ -2586,7 +2586,7 @@ CONTAINS
          !IF ENCOUNTER -999 IN THE LUT PRINT ERROR!!       
          IF ( ( FNOX_TMP < 0. ) .or. ( FNOX_TMP > 1. ) ) THEN
             
-            PRINT*, 'PARANOX_LUT: fracnox = ,', fnox
+            PRINT*, 'PARANOX_LUT: fracnox = ,', FNOX_TMP
          
             print*, I1, I2, I3, I4, I5, I6, I7, I8
             print*, INDX(1,I1), INDX(2,I2), INDX(3,I3),  INDX(4,I4), & 
