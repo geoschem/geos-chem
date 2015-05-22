@@ -2349,6 +2349,7 @@ CONTAINS
 
    ! Check if sun is up
    IF ( ExtState%SUNCOSmid%Arr%Val(I,J) > 0.0_hp ) THEN
+   !IF ( SC5(I,J,1) > 0.0_hp ) THEN
 
       ! J(NO2), 1/s
       JNO2 = ExtState%JNO2%Arr%Val(I,J)
@@ -2409,6 +2410,7 @@ CONTAINS
    ! Note: Since SEA = 90 - SZA, then cos(SZA) = sin(SEA) and 
    ! thus SEA = arcsin( cos( SZA ) )
    VARS(4) = ASIND( SC5(I,J,6) )
+   !VARS(5) = ASIND( SC5(I,J,1) )
    VARS(5) = ASIND( ExtState%SUNCOSmid%Arr%Val(I,J) )
 
    ! J(OH)/J(NO2), unitless
@@ -2586,13 +2588,22 @@ CONTAINS
          !IF ENCOUNTER -999 IN THE LUT PRINT ERROR!!       
          IF ( ( FNOX_TMP < 0. ) .or. ( FNOX_TMP > 1. ) ) THEN
             
-            PRINT*, 'PARANOX_LUT: fracnox = ,', FNOX_TMP
-         
-            print*, I1, I2, I3, I4, I5, I6, I7, I8
-            print*, INDX(1,I1), INDX(2,I2), INDX(3,I3),  INDX(4,I4), & 
-                    INDX(5,I5), INDX(6,I6), INDX(7,I7), INDX(8,I8)
-            print*, VARS
-
+            PRINT*, 'PARANOX_LUT: fracnox = ', FNOX_TMP
+            PRINT*, 'This occured at grid box ', I, J
+            PRINT*, 'Lon/Lat: ', HcoState%Grid%XMID%Val(I,J), HcoState%Grid%YMID%Val(I,J)
+            PRINT*, 'SZA 5 hours ago : ', VARS(4) 
+            PRINT*, 'SZA at this time: ', VARS(5) 
+            PRINT*, 'The two SZAs should not be more than 75 deg apart!'        
+            PRINT*, 'If they are, your restart SZA might be wrong.'
+            PRINT*, 'You can try to coldstart PARANOx by commenting'
+            PRINT*, 'all PARANOX_SUNCOS entries in your HEMCO'
+            PRINT*, 'configuration file.'
+ 
+            !print*, I1, I2, I3, I4, I5, I6, I7, I8
+            !print*, INDX(1,I1), INDX(2,I2), INDX(3,I3),  INDX(4,I4), & 
+            !        INDX(5,I5), INDX(6,I6), INDX(7,I7), INDX(8,I8)
+            !print*, VARS
+ 
             MSG = 'LUT error: Fracnox should be between 0 and 1!'
             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
             RETURN
