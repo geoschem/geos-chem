@@ -345,11 +345,6 @@
             ENDDO
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
-!------------------------------------------------------------------------------
-! Prior to 12/5/14:
-! Updates for RRTMG (dar, mps, 12/5/14)
-!            OPTAER          = ODAER(NLON,NLAT,:,:)
-!------------------------------------------------------------------------------
             ! and at 1000nm, IWV1000 (DAR)
             !OPTAER wants NAER*NRH values but ODAER is now NAER
             !use IRHARR to map to correct OPTAER bin (DAR 08/13)
@@ -362,11 +357,6 @@
             ENDDO
 
             ! Mineral dust OD profile [unitless] at (NLON,NLAT)
-!------------------------------------------------------------------------------
-! Prior to 12/5/14:
-! Updates for RRTMG (dar, mps, 12/5/14)
-!            OPTDUST         = ODMDUST(NLON,NLAT,:,:)
-!------------------------------------------------------------------------------
             ! and at 1000nm, IWV1000 (DAR)
             OPTDUST         = ODMDUST(NLON,NLAT,:,IWV1000,:)
 
@@ -1740,24 +1730,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       call RD_MIE(JXUNIT,TRIM( FILENAME ), am_I_Root)
 
-!------------------------------------------------------------------------------
-! Prior to 3/30/15:
-! Now get AOD data from LUT files for each aerosol type (mps, 3/30/15)
-!      ! Read in AOD data
-!      FILENAME = 'jv_spec_aod.dat'
-!
-!#if defined( ESMF_ )
-!      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-!      FILENAME = TRIM( FILENAME ) // '.rc'
-!#endif
-!
-!      ! Echo info
-!      IF ( am_I_Root ) THEN
-!         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
-!      ENDIF
-!
-!      call RD_AOD(JXUNIT,TRIM( FILENAME ), am_I_Root)
-!------------------------------------------------------------------------------
       ! Read in AOD data
       call RD_AOD(JXUNIT, am_I_Root)
 
@@ -2176,10 +2148,6 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !\\
 ! !INTERFACE:
 !
-!------------------------------------------------------------------------------
-! Prior to 3/30/15:
-!      SUBROUTINE RD_AOD( NJ1, NAMFIL, am_I_Root )
-!------------------------------------------------------------------------------
       SUBROUTINE RD_AOD( NJ1, am_I_Root )
 !
 ! !USES:
@@ -2192,10 +2160,6 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! !INPUT PARAMETERS:
 !     
       INTEGER,          INTENT(IN) :: NJ1         ! Unit # of file to open
-!------------------------------------------------------------------------------
-! Prior to 3/30/15:
-!      CHARACTER(LEN=*), INTENT(IN) :: NAMFIL      ! Name of file to open
-!------------------------------------------------------------------------------
       LOGICAL,          INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:

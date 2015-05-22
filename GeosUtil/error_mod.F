@@ -705,7 +705,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 #if defined( ESMF_ )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! Use GEOS-5 style error reporting when connecting to the GEOS-5
       ! GCM via the ESMF interface (bmy, 3/12/13)
@@ -732,7 +732,7 @@
 #if defined( ESMF_ )
 
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! Use GEOS-5 style error reporting when connecting to the GEOS-5
       ! GCM via the ESMF interface (bmy, 3/12/13)
@@ -743,7 +743,7 @@
 
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Current practice in the std GEOS-Chem is to call CLEANUP to 
       ! deallocate module arrays and then exit (bmy, 3/12/13)

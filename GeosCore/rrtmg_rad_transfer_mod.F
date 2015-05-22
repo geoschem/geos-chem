@@ -612,11 +612,6 @@
      &                          RHOICE*REI_DEF
              REICE(IJLOOP,L) = REI_DEF
              !TAUCLD DERIVED IN MCICA SUB, NOT NEEDED
-!------------------------------------------------------------------------------
-! Prior to 4/23/15:
-! All members of State_Met now use (I,J,L) ordering (bmy, 4/23/15)
-!             CLDFR(IJLOOP,L)   = State_Met%CLDF(L,I,J)
-!------------------------------------------------------------------------------
              CLDFR(IJLOOP,L)   = State_Met%CLDF(I,J,L)
             ENDIF !CLOUDS
 
@@ -712,11 +707,6 @@
             !N.B. STRAT O3  NOT CURRENTLY INCLUDED IN THE DRE OF O3
 
             !! DENSITY OF AIR IN G/CM2
-!-----------------------------------------------------------------------------
-! Prior to 4/23/15:
-! All members of State_Met now use (I,J,L) ordering (bmy, 4/23/15)
-!            AIR_TMP = State_Met%AIRDEN(L,I,J)*
-!-----------------------------------------------------------------------------
             AIR_TMP = State_Met%AIRDEN(I,J,L)*
      &                State_Met%BXHEIGHT(I,J,L)*1.0E-1
             !! DENSITY OF AIR IN MOLEC/CM2

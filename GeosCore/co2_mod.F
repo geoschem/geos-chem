@@ -741,11 +741,6 @@
             DO L = 1, LLPAR
          
                ! Production is in [kg/m3], convert to [molec/cm2/s]
-!----------------------------------------------------------------------------
-! Prior to 4/17/15:
-! We now get the CO2 production as a non-emissions data (bmy, 4/17/15)
-!               E_CO2 = HcoState%Spc(IDch)%Conc%Val(I,J,L) 
-!----------------------------------------------------------------------------
                E_CO2 = CO2_COPROD(I,J,L)
      &               / CM3PERM3
      &               * XNUMOL_CO2

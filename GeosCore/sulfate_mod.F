@@ -17,12 +17,6 @@
 !
 ! !USES:
 !
-!------------------------------------------------------------------------------
-! Prior to 5/22/15:
-! HEMCO made these obsolete, so remove them (bmy, 5/22/15)
-!      USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
-!      USE inquireMod,    ONLY : findFreeLUN
-!------------------------------------------------------------------------------
       USE HCO_ERROR_MOD    ! For HEMCO error handling
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 
@@ -239,22 +233,6 @@
 
       ! Allocatable arrays
       REAL(fp),  ALLOCATABLE :: DMSo(:,:) 
-!------------------------------------------------------------------------------
-! Prior to 5/22/15:
-! HEMCO made these obsolete, so remvoe them (bmy, 5/22/15)
-!      REAL(fp),  ALLOCATABLE :: ENH3_an(:,:)
-!      REAL(fp),  ALLOCATABLE :: ENH3_bb(:,:)
-!      REAL(fp),  ALLOCATABLE :: ENH3_bf(:,:)
-!      REAL(fp),  ALLOCATABLE :: ENH3_na(:,:)
-!      REAL(fp),  ALLOCATABLE :: ESO2_ac(:,:,:) 
-!      REAL(fp),  ALLOCATABLE :: ESO2_an(:,:,:)
-!      REAL(fp),  ALLOCATABLE :: ESO2_bb(:,:)     
-!      REAL(fp),  ALLOCATABLE :: ESO2_bf(:,:)
-!      REAL(fp),  ALLOCATABLE :: ESO2_ev(:,:,:)
-!      REAL(fp),  ALLOCATABLE :: ESO2_nv(:,:,:)
-!      REAL(fp),  ALLOCATABLE :: ESO2_sh(:,:) 
-!      REAL(fp),  ALLOCATABLE :: ESO4_an(:,:,:) 
-!------------------------------------------------------------------------------
       REAL(fp),  ALLOCATABLE :: PMSA_DMS(:,:,:)
       REAL(fp),  ALLOCATABLE :: PSO2_DMS(:,:,:)
       REAL(fp),  ALLOCATABLE :: PSO4_SO2(:,:,:)
@@ -7025,58 +7003,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMSo' )
       DMSo = 0e+0_fp
 
-!------------------------------------------------------------------------------
-! Prior to 5/22/15:
-! HEMCO made these obsolete, so remove them (bmy, 5/22/15)
-!      ALLOCATE( ENH3_an( IIPAR, JJPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENH3_an' )
-!      ENH3_an = 0e+0_fp
-!
-!      ALLOCATE( ENH3_bb( IIPAR, JJPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENH3_bb' )
-!      ENH3_bb = 0e+0_fp
-!
-!      ALLOCATE( ENH3_bf( IIPAR, JJPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENH3_bf' )
-!      ENH3_bf = 0e+0_fp
-!
-!      ALLOCATE( ENH3_na( IIPAR, JJPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENH3_na' )
-!      ENH3_na = 0e+0_fp
-!
-!      ALLOCATE( ESO2_ac( IIPAR, JJPAR, LLPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_ac' )
-!      ESO2_ac = 0e+0_fp
-!
-!      ALLOCATE( ESO2_an( IIPAR, JJPAR, NOXLEVELS ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_an' )
-!      ESO2_an = 0e+0_fp
-!
-!      ALLOCATE( ESO2_bb( IIPAR, JJPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_bb' )
-!      ESO2_bb = 0e+0_fp
-!
-!      ALLOCATE( ESO2_bf( IIPAR, JJPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_bf' )
-!      ESO2_bf = 0e+0_fp
-!
-!      ALLOCATE( ESO2_ev( IIPAR, JJPAR, LLPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_ev' )
-!      ESO2_ev = 0e+0_fp
-!
-!      ALLOCATE( ESO2_nv( IIPAR, JJPAR, LLPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_nv' )
-!      ESO2_nv = 0e+0_fp
-!
-!      ALLOCATE( ESO2_sh( IIPAR, JJPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_sh' )
-!      ESO2_sh = 0e+0_fp
-!
-!      ALLOCATE( ESO4_an( IIPAR, JJPAR, NOXLEVELS ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO4_an' )
-!      ESO4_an = 0e+0_fp
-!------------------------------------------------------------------------------
-
       ALLOCATE( PMSA_DMS( IIPAR, JJPAR, LLCHEM ), STAT=AS ) 
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PMSA_DMS' )
       PMSA_DMS = 0e+0_fp
@@ -7234,22 +7160,6 @@
       ! CLEANUP_SULFATE begins here!
       !=================================================================
       IF ( ALLOCATED( DMSo       ) ) DEALLOCATE( DMSo       )
-!------------------------------------------------------------------------------
-! Prior to 5/22/15:
-! HEMCO made these obsolete, so remove them (bmy, 5/22/15)
-!      IF ( ALLOCATED( ENH3_an    ) ) DEALLOCATE( ENH3_an    )
-!      IF ( ALLOCATED( ENH3_bb    ) ) DEALLOCATE( ENH3_bb    )
-!      IF ( ALLOCATED( ENH3_bf    ) ) DEALLOCATE( ENH3_bf    )
-!      IF ( ALLOCATED( ENH3_na    ) ) DEALLOCATE( ENH3_na    )
-!      IF ( ALLOCATED( ESO2_ac    ) ) DEALLOCATE( ESO2_ac    )
-!      IF ( ALLOCATED( ESO2_an    ) ) DEALLOCATE( ESO2_an    )
-!      IF ( ALLOCATED( ESO2_nv    ) ) DEALLOCATE( ESO2_nv    )
-!      IF ( ALLOCATED( ESO2_ev    ) ) DEALLOCATE( ESO2_ev    )
-!      IF ( ALLOCATED( ESO2_bb    ) ) DEALLOCATE( ESO2_bb    )
-!      IF ( ALLOCATED( ESO2_bf    ) ) DEALLOCATE( ESO2_bf    )
-!      IF ( ALLOCATED( ESO2_sh    ) ) DEALLOCATE( ESO2_sh    )
-!      IF ( ALLOCATED( ESO4_an    ) ) DEALLOCATE( ESO4_an    )
-!------------------------------------------------------------------------------
       IF ( ALLOCATED( PMSA_DMS   ) ) DEALLOCATE( PMSA_DMS   )
       IF ( ALLOCATED( PNITs      ) ) DEALLOCATE( PNITs      )
       IF ( ALLOCATED( PSO2_DMS   ) ) DEALLOCATE( PSO2_DMS   )

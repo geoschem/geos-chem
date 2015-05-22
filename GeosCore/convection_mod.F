@@ -1613,20 +1613,6 @@
                   ! Subtract DQ from Q(*,*,K=1,*) and from Q(*,*,K=2,*), 
                   ! but do not make Q(*,*,K=1,*) or Q(*,*,K=2,*) < 0.
                   !=====================================================
-!-----------------------------------------------------------------------------
-!  Prior to 1/4/00:
-!  This ensures additivity when using tagged CO tracers (bey, bmy, 1/4/00)
-!                  DQ = QB(I,J) - QC(I,J)
-!                  
-!                  IF ( DQ .GT. Q(I,J,1,IC)   .OR. 
-!     &                 DQ .GT. Q(I,J,2,IC) ) THEN
-!                     Q(I,J,2,IC) = QC(I,J)
-!                     Q(I,J,1,IC) = QC(I,J)
-!                  ELSE
-!                     Q(I,J,2,IC) = Q(I,J,2,IC) - DQ
-!                     Q(I,J,1,IC) = Q(I,J,1,IC) - DQ
-!                  ENDIF
-!-----------------------------------------------------------------------------
                   Q(I,J,2,IC) = QC(I,J)
                   Q(I,J,1,IC) = QC(I,J)
 
@@ -2516,12 +2502,6 @@
                      RETURN
                   ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 5/20/15:
-! Apply bug fixes from Viral Shah (mps, 5/20/15)
-!                  ! Archive T0 for use in the next section
-!                  T0_SUM  = T0_SUM + T0
-!------------------------------------------------------------------------------
                   ! Pass T0_SUM in units of kg tracer/m2/timestep
                   T0_SUM = T0_SUM + T0 / TCVV * SDT
  
@@ -2545,11 +2525,6 @@
                   ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
                   ! internal timesteps.
                   !------------------------------------------------------------
-!------------------------------------------------------------------------------
-! Prior to 5/20/15:
-! Apply bug fixes provided by Viral Shah (mps, 5/20/15)
-!                  IF ( USE_DIAG38 .and. F(K,IC) > 0e+0_fp ) THEN
-!------------------------------------------------------------------------------
                   IF ( USE_DIAG38 ) THEN
                      DIAG38(K,IC) = DIAG38(K,IC)
      &                            + ( T0 * AREA_M2 / TCVV_DNS )
@@ -2668,11 +2643,6 @@
                      GAINED  = T0_SUM * ALPHA2
 
                      ! Amount of aerosol lost to washout in grid box
-!------------------------------------------------------------------------------
-! Prior to 5/20/15:
-! Apply bug fixes from Viral Shah (mps, 5/20/15)
-!                     WETLOSS = Q(K,IC) * WASHFRAC - GAINED
-!------------------------------------------------------------------------------
                      WETLOSS = Q(K,IC) * BMASS(K) / TCVV * WASHFRAC -
      &                         GAINED
 
@@ -2706,11 +2676,6 @@
                      ! part of box (I,J,L), plus the previously rained-out
                      ! tracer coming down from grid box (I,J,L+1).
                      ! (Eq. 15, Jacob et al, 2000).
-!------------------------------------------------------------------------------
-! Prior to 5/20/15:
-! Apply bug fixes from Viral Shah (mps, 5/20/15)
-!                     MASS_WASH   = ( F_WASHOUT * Q(K,IC) ) + T0_SUM
-!------------------------------------------------------------------------------
                      MASS_WASH = ( F_WASHOUT * Q(K,IC) ) * BMASS(K) /
      &                           TCVV + T0_SUM
 
@@ -2722,11 +2687,6 @@
                      ! The tracer left in grid box (I,J,L) is what was
                      ! in originally in the non-precipitating fraction 
                      ! of the box, plus MASS_WASH, less WETLOSS. 
-!------------------------------------------------------------------------------
-! Prior to 5/20/15:
-! Apply bug fixes from Viral Shah (mps, 5/20/15)
-!                     Q(K,IC)     = Q(K,IC) - WETLOSS
-!------------------------------------------------------------------------------
                      Q(K,IC) = Q(K,IC) - WETLOSS * TCVV / BMASS(K)
                      
                      ! Updated T0_SUM, the total scavenged tracer
@@ -2756,12 +2716,6 @@
                   ! internal timesteps.
                   !------------------------------------------------------------
                   IF ( USE_DIAG38 .and. F(K,IC) > 0e+0_fp ) THEN
-!------------------------------------------------------------------------------
-! Prior to 5/20/15:
-! Apply bug fixes from Viral Shah (mps, 5/20/15)
-!                     DIAG38(K,IC) = DIAG38(K,IC)
-!     &                            + ( WETLOSS * AREA_M2 / TCVV_DNS )
-!------------------------------------------------------------------------------
                      DIAG38(K,IC) = DIAG38(K,IC) +
      &                              ( WETLOSS * AREA_M2 / NDT )
                   ENDIF
@@ -2788,15 +2742,6 @@
             !--------------------------------------
             IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
-!------------------------------------------------------------------------------
-! Prior to 5/20/15:
-! Apply bug fixes from Viral Shah (mps, 5/20/15)
-!               ! Wet scavenged Hg(II) in [kg/s]
-!               WET_Hg2 = ( T0_SUM * AREA_M2 / TCVV_DNS )
-!               
-!               ! Convert [kg/s] to [kg]
-!               WET_Hg2 = WET_Hg2 * NDT 
-!------------------------------------------------------------------------------
                ! Wet scavenged Hg(II) in [kg]
                WET_Hg2 = ( T0_SUM * AREA_M2 )
 
@@ -2810,15 +2755,6 @@
             !--------------------------------------
             IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
 
-!------------------------------------------------------------------------------
-! Prior to 5/20/15:
-! Apply bug fixes from Viral Shah (mps, 5/20/15)
-!               ! Wet scavenged Hg(P) in [kg/s]
-!               WET_HgP = ( T0_SUM * AREA_M2 / TCVV_DNS )
-!
-!               ! Convert [kg/s] to [kg]
-!               WET_HgP = WET_HgP * NDT 
-!------------------------------------------------------------------------------
                ! Wet scavenged Hg(P) in [kg]
                WET_HgP = ( T0_SUM * AREA_M2 )
 

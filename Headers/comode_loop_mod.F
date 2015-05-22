@@ -199,17 +199,7 @@
       INTEGER            :: ILAYER
       INTEGER            :: ILTLOOP
       INTEGER            :: MXBLOCK
-!------------------------------------------------------------------------------
-! Prior to 5/22/15:
-! HEMCO made these obsolete, so remove them (bmy, 5/22/15)
-!!
-!! ************************* TRACER PARAMETERS ****************************
-!! IDEMS    = EMISSION ID NUMBER (WHICH SPECIES)
-!      INTEGER IDEMS(NEMPARA+NEMPARB)
-!      ! NEMPARA = max no. of anthropogenic emissions
-!      ! NEMPARB = max no. of biogenic emissions
-!!
-!------------------------------------------------------------------------------
+!
 ! ************************* GAS-PHASE PARAMETERS **********************
 !
 ! IGAS    = MAXIMUM NUMBER OF GASES, ACTIVE + INACTIVE 
