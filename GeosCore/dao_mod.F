@@ -1468,20 +1468,23 @@
       ! Compute cosine(SZA) quantities for the current time
       CALL COSSZA( DOY, HOUR,  .FALSE., State_Met )
 
-      !=================================================================
-      ! Get cosine (SZA) at 5 hours behind the current time (SUNCOS_5hr)
-      ! and at the midpt of the chemistry timestep 5h ago (SUNCOS_MID_5hr)
-      !=================================================================
-
-      ! Time 5h ago
-      JDJan0 = JULDAY( YEAR, 1, 0d0 )                  ! Julian date on Jan 0
-      JD5    = JD  - ( 5d0 / 24d0 )                    ! Julian date 5h ago
-      DOY5   = JD5 - JDJan0                            ! Day of year 5h ago
-      GMT5   = GMT - 5d0                               ! GMT 5h ago
-      HOUR5  = INT( GMT5 )
-
-      ! Compute cosine(SZA) quantities for 5h ago
-      CALL COSSZA( DOY5, HOUR5, .TRUE., State_Met )
+! The following is now obsolete. SZA 5 hours ago is calculated in HEMCO
+! PARANOx extension (ckeller, 5/22/15).
+!
+!      !=================================================================
+!      ! Get cosine (SZA) at 5 hours behind the current time (SUNCOS_5hr)
+!      ! and at the midpt of the chemistry timestep 5h ago (SUNCOS_MID_5hr)
+!      !=================================================================
+!
+!      ! Time 5h ago
+!      JDJan0 = JULDAY( YEAR, 1, 0d0 )                  ! Julian date on Jan 0
+!      JD5    = JD  - ( 5d0 / 24d0 )                    ! Julian date 5h ago
+!      DOY5   = JD5 - JDJan0                            ! Day of year 5h ago
+!      GMT5   = GMT - 5d0                               ! GMT 5h ago
+!      HOUR5  = INT( GMT5 )
+!
+!      ! Compute cosine(SZA) quantities for 5h ago
+!      CALL COSSZA( DOY5, HOUR5, .TRUE., State_Met )
 
       END SUBROUTINE GET_COSINE_SZA
 !EOC
@@ -1623,7 +1626,7 @@
       R        = ( 2e+0_fp * PI / 365e+0_fp ) * DBLE( DOY - 1 ) 
 
       ! Solar declination angle (low precision formula) [radians]
-      DEC      = A0 - A1*COS(     R ) + B1*SIN(     R )
+      DEC      = A0 - A1*COS(         R ) + B1*SIN(         R )
      &              - A2*COS( 2e+0_fp*R ) + B2*SIN( 2e+0_fp*R )
      &              - A3*COS( 3e+0_fp*R ) + B3*SIN( 3e+0_fp*R )
 

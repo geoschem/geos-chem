@@ -881,7 +881,7 @@ CONTAINS
 !       DGN_ALBD    = ExtState%ALBD%Arr%Val
 !       DGN_WLI     = ExtState%WLI%Arr%Val
 !       DGN_TROPP   = ExtState%TROPP%Arr%Val
-       DGN_SUNCOS  = ExtState%SUNCOSmid%Arr%Val
+       DGN_SUNCOS  = ExtState%SUNCOS%Arr%Val
        DGN_DRYTOTN = ExtState%DRY_TOTN%Arr%Val
        DGN_WETTOTN = ExtState%WET_TOTN%Arr%Val
     ENDIF

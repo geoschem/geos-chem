@@ -134,7 +134,7 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: USTAR       ! Friction velocity [m/s] 
      TYPE(ExtDat_2R),  POINTER :: Z0          ! Sfc roughness height [m]
      TYPE(ExtDat_2R),  POINTER :: TROPP       ! Tropopause pressure [Pa] 
-     TYPE(ExtDat_2R),  POINTER :: SUNCOSmid   ! COS (SZA) 
+     TYPE(ExtDat_2R),  POINTER :: SUNCOS      ! COS (SZA) 
      TYPE(ExtDat_2R),  POINTER :: SZAFACT     ! current SZA/total daily SZA
      TYPE(ExtDat_2R),  POINTER :: PARDR       ! direct photsyn radiation [W/m2]
      TYPE(ExtDat_2R),  POINTER :: PARDF       ! diffuse photsyn radiation [W/m2]
@@ -352,7 +352,7 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%TROPP, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%SUNCOSmid, RC ) 
+    CALL ExtDat_Init ( ExtState%SUNCOS, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Init ( ExtState%SZAFACT, RC ) 
@@ -493,7 +493,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%USTAR      )
        CALL ExtDat_Cleanup( ExtState%Z0         )
        CALL ExtDat_Cleanup( ExtState%TROPP      )
-       CALL ExtDat_Cleanup( ExtState%SUNCOSmid  )
+       CALL ExtDat_Cleanup( ExtState%SUNCOS     )
        CALL ExtDat_Cleanup( ExtState%SZAFACT    )
        CALL ExtDat_Cleanup( ExtState%PARDR      )
        CALL ExtDat_Cleanup( ExtState%PARDF      )
@@ -956,8 +956,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Set_2R ( am_I_Root, HcoState, ExtDat, &
-                             FldName,   RC,       First,  Trgt ) 
+  SUBROUTINE ExtDat_Set_2R ( am_I_Root, HcoState, ExtDat,  &
+                             FldName,   RC,       First,   &
+                             Trgt,      Filled,   NotFillOk ) 
 !
 ! !USES:
 !
@@ -974,6 +975,8 @@ CONTAINS
     INTEGER,          INTENT(INOUT)                   :: RC     
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
     REAL(hp),         INTENT(INOUT), OPTIONAL, TARGET :: Trgt(:,:)
+    LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
+    LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
@@ -992,16 +995,25 @@ CONTAINS
     CHARACTER(LEN=255)     :: LOC = 'ExtDat_Set_2R (hcox_state_mod.F90)'
     LOGICAL                :: FRST
     LOGICAL                :: FOUND 
+    LOGICAL                :: FailIfNotFilled 
 
     ! ================================================================
     ! ExtDat_Set_2R begins here
     ! ================================================================
 
-    ! Leave
+    ! Initialize 
     RC = HCO_SUCCESS
+    IF ( PRESENT(Filled) ) Filled = .FALSE.
 
     ! Nothing to do if this ExtDat field is not in use
     IF ( .NOT. ExtDat%DoUse ) RETURN
+
+    ! Check for fill requirement
+    IF ( PRESENT(NotFillOk) ) THEN
+       FailIfNotFilled = .NOT. NotFillOk
+    ELSE
+       FailIfNotFilled = .TRUE.
+    ENDIF
 
     ! First time
     IF ( PRESENT(FIRST) ) THEN
@@ -1043,15 +1055,8 @@ CONTAINS
              ENDIF
    
           ! Target to data
-          ELSE
+          ELSEIF ( PRESENT(Trgt) ) THEN
    
-             ! Target array must be present
-             IF ( .NOT. PRESENT(Trgt) ) THEN
-                MSG = 'Cannot fill extension field ' // TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
-  
              ! Make sure dimensions agree
              NX = SIZE(Trgt,1)
              NY = SIZE(Trgt,2)
@@ -1073,11 +1078,20 @@ CONTAINS
              ! Make sure it's not from list
              ExtDat%FromList = .FALSE.
    
+             ! This array is now filled
+             IF ( PRESENT(Filled) ) Filled = .TRUE.
+
              ! Verbose
              IF ( HCO_IsVerb(2) ) THEN
                 MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
                 CALL HCO_MSG(MSG)
              ENDIF
+
+          ! Field not found and no target defined 
+          ELSEIF ( FailIfNotFilled ) THEN
+             MSG = 'Cannot fill extension field ' // TRIM(FldName)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
           ENDIF
        ENDIF ! FIRST
    
@@ -1086,19 +1100,20 @@ CONTAINS
        ! are in HEMCO precision but the EmisList fields are in single 
        ! precisions.
        IF ( ExtDat%FromList ) THEN
-          IF ( .NOT. FOUND ) THEN
+          IF ( FOUND ) THEN
+             ! Copy values and mark array as filled
+             ExtDat%Arr%Val(:,:) = Arr2D(:,:)
+             IF ( PRESENT(Filled) ) Filled = .TRUE.
+          ELSEIF ( FailIfNotFilled ) Then
              MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
-   
-          ! Copy values
-          ExtDat%Arr%Val(:,:) = Arr2D(:,:)
        ENDIF ! FromList
     ENDIF  
 
     ! Make sure array exists
-    IF ( .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
+    IF ( FailIfNotFilled .AND. .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
     ENDIF
@@ -1124,8 +1139,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Set_2S ( am_I_Root, HcoState, ExtDat, &
-                             FldName,   RC,       First,  Trgt ) 
+  SUBROUTINE ExtDat_Set_2S ( am_I_Root, HcoState, ExtDat,  &
+                             FldName,   RC,       First,   &
+                             Trgt,      Filled,   NotFillOk ) 
 !
 ! !USES:
 !
@@ -1142,6 +1158,8 @@ CONTAINS
     INTEGER,          INTENT(INOUT)                   :: RC     
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
     REAL(sp),         INTENT(INOUT), OPTIONAL, TARGET :: Trgt(:,:)
+    LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
+    LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
@@ -1160,16 +1178,25 @@ CONTAINS
     CHARACTER(LEN=255)     :: LOC = 'ExtDat_Set_2S (hcox_state_mod.F90)'
     LOGICAL                :: FRST
     LOGICAL                :: FOUND 
+    LOGICAL                :: FailIfNotFilled 
 
     ! ================================================================
     ! ExtDat_Set_2S begins here
     ! ================================================================
 
-    ! Leave
+    ! Init 
     RC = HCO_SUCCESS
+    IF ( PRESENT(Filled) ) Filled = .FALSE.
 
     ! Nothing to do if this ExtDat field is not in use
     IF ( .NOT. ExtDat%DoUse ) RETURN
+
+    ! Check for fill requirement
+    IF ( PRESENT(NotFillOk) ) THEN
+       FailIfNotFilled = .NOT. NotFillOk
+    ELSE
+       FailIfNotFilled = .TRUE.
+    ENDIF
 
     ! First time
     IF ( PRESENT(FIRST) ) THEN
@@ -1211,14 +1238,7 @@ CONTAINS
              ENDIF
    
           ! Target to data
-          ELSE
-   
-             ! Target array must be present
-             IF ( .NOT. PRESENT(Trgt) ) THEN
-                MSG = 'Cannot fill extension field ' // TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
+          ELSEIF ( PRESENT(Trgt) ) THEN
   
              ! Make sure dimensions agree
              NX = SIZE(Trgt,1)
@@ -1240,12 +1260,21 @@ CONTAINS
    
              ! Make sure it's not from list
              ExtDat%FromList = .FALSE.
-   
+  
+             ! Mark as filled 
+             IF ( PRESENT(Filled) ) Filled = .TRUE.
+
              ! Verbose
              IF ( HCO_IsVerb(2) ) THEN
                 MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
                 CALL HCO_MSG(MSG)
              ENDIF
+
+          ! Field not found and no target defined 
+          ELSEIF ( FailIfNotFilled ) THEN
+             MSG = 'Cannot fill extension field ' // TRIM(FldName)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
           ENDIF
        ENDIF ! FIRST
    
@@ -1254,19 +1283,20 @@ CONTAINS
        ! are in HEMCO precision but the EmisList fields are in single 
        ! precisions.
        IF ( ExtDat%FromList ) THEN
-          IF ( .NOT. FOUND ) THEN
+          IF ( FOUND ) THEN
+             ! Copy values and mark as filled
+             ExtDat%Arr%Val(:,:) = Arr2D(:,:)
+             IF ( PRESENT(Filled) ) Filled = .TRUE.
+          ELSEIF ( FailIfNotFilled ) THEN
              MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
              RETURN
-          ENDIF
-   
-          ! Copy values
-          ExtDat%Arr%Val(:,:) = Arr2D(:,:)
+          ENDIF 
        ENDIF ! FromList
     ENDIF  
 
     ! Make sure array exists
-    IF ( .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
+    IF ( FailIfNotFilled .AND. .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
     ENDIF
@@ -1293,7 +1323,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE ExtDat_Set_2I ( am_I_Root, HcoState, ExtDat, &
-                             FldName,   RC,       First,  Trgt ) 
+                             FldName,   RC,       First,  &
+                             Trgt,      Filled,   NotFillOk ) 
 !
 ! !USES:
 !
@@ -1310,6 +1341,8 @@ CONTAINS
     INTEGER,          INTENT(INOUT)                   :: RC     
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
     INTEGER,          INTENT(INOUT), OPTIONAL, TARGET :: Trgt(:,:)
+    LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
+    LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
@@ -1328,13 +1361,15 @@ CONTAINS
     CHARACTER(LEN=255)     :: LOC = 'ExtDat_Set_2I (hcox_state_mod.F90)'
     LOGICAL                :: FRST
     LOGICAL                :: FOUND 
+    LOGICAL                :: FailIfNotFilled 
 
     ! ================================================================
     ! ExtDat_Set_2I begins here
     ! ================================================================
 
-    ! Leave
+    ! Init 
     RC = HCO_SUCCESS
+    IF ( PRESENT(Filled) ) Filled = .FALSE.
 
     ! Nothing to do if this ExtDat field is not in use
     IF ( .NOT. ExtDat%DoUse ) RETURN
@@ -1344,6 +1379,13 @@ CONTAINS
        FRST = FIRST
     ELSE
        FRST = .FALSE.
+    ENDIF
+
+    ! Check for fill requirement
+    IF ( PRESENT(NotFillOk) ) THEN
+       FailIfNotFilled = .NOT. NotFillOk
+    ELSE
+       FailIfNotFilled = .TRUE.
     ENDIF
 
     ! On first call or if data is flagged as being read from list, get data
@@ -1379,14 +1421,7 @@ CONTAINS
              ENDIF
    
           ! Target to data
-          ELSE
-   
-             ! Target array must be present
-             IF ( .NOT. PRESENT(Trgt) ) THEN
-                MSG = 'Cannot fill extension field ' // TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
+          ELSEIF ( PRESENT(Trgt) ) THEN
    
              ! Make sure dimensions agree
              NX = SIZE(Trgt,1)
@@ -1409,11 +1444,20 @@ CONTAINS
              ! Make sure it's not from list
              ExtDat%FromList = .FALSE.
    
+             ! Mark as filled
+             IF ( PRESENT(Filled) ) Filled = .TRUE.
+
              ! Verbose
              IF ( HCO_IsVerb(2) ) THEN
                 MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
                 CALL HCO_MSG(MSG)
              ENDIF
+
+          ! Not found in list and no target defined 
+          ELSEIF ( FailIfNotFilled ) THEN
+             MSG = 'Cannot fill extension field ' // TRIM(FldName)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
           ENDIF
     
        ENDIF ! FIRST
@@ -1423,19 +1467,23 @@ CONTAINS
        ! are in HEMCO precision but the EmisList fields are in single 
        ! precisions.
        IF ( ExtDat%FromList ) THEN
-          IF ( .NOT. FOUND ) THEN
+          IF ( FOUND ) THEN
+
+             ! Copy values and mark as filled
+             ExtDat%Arr%Val(:,:) = Arr2D(:,:)
+             IF ( PRESENT(Filled) ) Filled = .TRUE.
+
+          ELSEIF ( FailIfNotFilled ) THEN
              MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
    
-          ! Copy values
-          ExtDat%Arr%Val(:,:) = Arr2D(:,:)
        ENDIF !FromList
     ENDIF 
    
     ! Make sure array exists
-    IF ( .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
+    IF ( FailIfNotFilled .AND. .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
     ENDIF
@@ -1461,8 +1509,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Set_3R ( am_I_Root, HcoState, ExtDat, FldName, & 
-                             RC,        First,    Trgt,   OnLevEdge ) 
+  SUBROUTINE ExtDat_Set_3R ( am_I_Root, HcoState, ExtDat, FldName,   & 
+                             RC,        First,    Trgt,   OnLevEdge, & 
+                             Filled,    NotFillOk                     ) 
 !
 ! !USES:
 !
@@ -1480,6 +1529,8 @@ CONTAINS
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
     REAL(hp),         INTENT(INOUT), OPTIONAL, TARGET :: Trgt(:,:,:)
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: OnLevEdge 
+    LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
+    LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
@@ -1496,6 +1547,7 @@ CONTAINS
     INTEGER                :: L
     LOGICAL                :: FRST
     LOGICAL                :: FOUND 
+    LOGICAL                :: FailIfNotFilled 
     REAL(hp), ALLOCATABLE  :: Arr3D(:,:,:) 
     CHARACTER(LEN=255)     :: MSG
     CHARACTER(LEN=255)     :: LOC = 'ExtDat_Set_3R (hcox_state_mod.F90)'
@@ -1504,8 +1556,9 @@ CONTAINS
     ! ExtDat_Set_3R begins here
     ! ================================================================
 
-    ! Leave
+    ! Init 
     RC = HCO_SUCCESS
+    IF ( PRESENT(Filled) ) Filled = .FALSE.
 
     ! Nothing to do if this ExtDat field is not in use
     IF ( .NOT. ExtDat%DoUse ) RETURN
@@ -1515,6 +1568,13 @@ CONTAINS
        FRST = FIRST
     ELSE
        FRST = .FALSE.
+    ENDIF
+
+    ! Check for fill requirement
+    IF ( PRESENT(NotFillOk) ) THEN
+       FailIfNotFilled = .NOT. NotFillOk
+    ELSE
+       FailIfNotFilled = .TRUE.
     ENDIF
 
     ! Expected number of vertical levels: NZ if not on edge, NZ+1 if on edge
@@ -1558,15 +1618,8 @@ CONTAINS
              ENDIF
    
           ! Target to data
-          ELSE
-   
-             ! Target array must be present
-             IF ( .NOT. PRESENT(Trgt) ) THEN
-                MSG = 'Cannot fill extension field ' // TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
-  
+          ELSEIF ( PRESENT(Trgt) ) THEN
+    
              ! Make sure dimensions agree
              NX = SIZE(Trgt,1)
              NY = SIZE(Trgt,2)
@@ -1589,10 +1642,22 @@ CONTAINS
              ! Make sure it's not from list
              ExtDat%FromList = .FALSE.
    
+             ! Mark as filled
+             IF ( PRESENT(Filled) ) Filled = .TRUE.
+
              ! Verbose
              IF ( HCO_IsVerb(2) ) THEN
                 MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
                 CALL HCO_MSG(MSG)
+             ENDIF
+          
+          ! Not found in list and no target defined 
+          ELSEIF ( FailIfNotFilled ) THEN
+             ! Target array must be present
+             IF ( .NOT. PRESENT(Trgt) ) THEN
+                MSG = 'Cannot fill extension field ' // TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
              ENDIF
           ENDIF
     
@@ -1603,20 +1668,23 @@ CONTAINS
        ! are in HEMCO precision but the EmisList fields are in single 
        ! precisions.
        IF ( ExtDat%FromList ) THEN
-          IF ( .NOT. FOUND ) THEN
+          IF ( FOUND ) THEN
+
+             ! Copy data and mark as filled 
+             ExtDat%Arr%Val(:,:,:) = Arr3D(:,:,:)
+             IF ( PRESENT(Filled) ) Filled = .TRUE.
+
+          ELSEIF ( FailIfNotFilled ) THEN
              MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
              RETURN
-          ENDIF
-  
-          ! Copy data 
-          ExtDat%Arr%Val(:,:,:) = Arr3D(:,:,:)
-   
+
+          ENDIF 
        ENDIF !FromList
     ENDIF 
 
     ! Make sure array exists
-    IF ( .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
+    IF ( FailIfNotFilled .AND. .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
     ENDIF
@@ -1642,8 +1710,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Set_3S ( am_I_Root, HcoState, ExtDat, FldName, & 
-                             RC,        First,    Trgt,   OnLevEdge ) 
+  SUBROUTINE ExtDat_Set_3S ( am_I_Root, HcoState, ExtDat, FldName,   & 
+                             RC,        First,    Trgt,   OnLevEdge, &
+                             Filled,    NotFillOk                     ) 
 !
 ! !USES:
 !
@@ -1661,6 +1730,8 @@ CONTAINS
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: First
     REAL(sp),         INTENT(INOUT), OPTIONAL, TARGET :: Trgt(:,:,:)
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: OnLevEdge 
+    LOGICAL,          INTENT(  OUT), OPTIONAL         :: Filled
+    LOGICAL,          INTENT(IN   ), OPTIONAL         :: NotFillOk 
 !
 ! !REVISION HISTORY:
 !  03 Apr 2015 - C. Keller - Initial version
@@ -1677,6 +1748,7 @@ CONTAINS
     INTEGER                :: L
     LOGICAL                :: FRST
     LOGICAL                :: FOUND 
+    LOGICAL                :: FailIfNotFilled 
     REAL(hp), ALLOCATABLE  :: Arr3D(:,:,:) 
     CHARACTER(LEN=255)     :: MSG
     CHARACTER(LEN=255)     :: LOC = 'ExtDat_Set_3S (hcox_state_mod.F90)'
@@ -1685,8 +1757,9 @@ CONTAINS
     ! ExtDat_Set_3S begins here
     ! ================================================================
 
-    ! Leave
+    ! Init 
     RC = HCO_SUCCESS
+    IF ( PRESENT(Filled) ) Filled = .FALSE.
 
     ! Nothing to do if this ExtDat field is not in use
     IF ( .NOT. ExtDat%DoUse ) RETURN
@@ -1696,6 +1769,13 @@ CONTAINS
        FRST = FIRST
     ELSE
        FRST = .FALSE.
+    ENDIF
+
+    ! Check for fill requirement
+    IF ( PRESENT(NotFillOk) ) THEN
+       FailIfNotFilled = .NOT. NotFillOk
+    ELSE
+       FailIfNotFilled = .TRUE.
     ENDIF
 
     ! Expected number of vertical levels: NZ if not on edge, NZ+1 if on edge
@@ -1739,15 +1819,8 @@ CONTAINS
              ENDIF
    
           ! Target to data
-          ELSE
+          ELSEIF ( PRESENT(Trgt) ) THEN
    
-             ! Target array must be present
-             IF ( .NOT. PRESENT(Trgt) ) THEN
-                MSG = 'Cannot fill extension field ' // TRIM(FldName)
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
-  
              ! Make sure dimensions agree
              NX = SIZE(Trgt,1)
              NY = SIZE(Trgt,2)
@@ -1770,10 +1843,22 @@ CONTAINS
              ! Make sure it's not from list
              ExtDat%FromList = .FALSE.
    
+             ! Mark as filled
+             IF ( PRESENT(Filled) ) Filled = .TRUE.
+
              ! Verbose
              IF ( HCO_IsVerb(2) ) THEN
                 MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
                 CALL HCO_MSG(MSG)
+             ENDIF
+   
+          ! Not found in list and no target defined 
+          ELSEIF ( FailIfNotFilled ) THEN
+             ! Target array must be present
+             IF ( .NOT. PRESENT(Trgt) ) THEN
+                MSG = 'Cannot fill extension field ' // TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
              ENDIF
           ENDIF
     
@@ -1784,20 +1869,20 @@ CONTAINS
        ! are in HEMCO precision but the EmisList fields are in single 
        ! precisions.
        IF ( ExtDat%FromList ) THEN
-          IF ( .NOT. FOUND ) THEN
+          IF ( FOUND ) THEN
+             ! Copy data and mark as filled 
+             ExtDat%Arr%Val(:,:,:) = Arr3D(:,:,:)
+             IF ( PRESENT(Filled) ) Filled = .TRUE.
+          ELSEIF ( FailIfNotFilled ) THEN
              MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
              RETURN
-          ENDIF
-  
-          ! Copy data 
-          ExtDat%Arr%Val(:,:,:) = Arr3D(:,:,:)
-   
+          ENDIF 
        ENDIF !FromList
     ENDIF 
 
     ! Make sure array exists
-    IF ( .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
+    IF ( FailIfNotFilled .AND. .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
        MSG = 'ExtState array not filled: ' // TRIM(FldName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
     ENDIF

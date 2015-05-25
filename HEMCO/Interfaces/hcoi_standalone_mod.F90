@@ -1526,6 +1526,7 @@ CONTAINS
 !
     USE HCO_ARR_MOD,        ONLY : HCO_ArrAssert
     USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+    USE HCO_GEOTOOLS_MOD,   ONLY : HCO_GetSUNCOS
     USE HCOX_STATE_MOD,     ONLY : ExtDat_Set
 !
 ! !INPUT PARAMETERS:
@@ -1649,9 +1650,6 @@ CONTAINS
     CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%TROPP, 'TROPP', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%SUNCOSmid, 'SUNCOSmid', RC, FIRST )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%SZAFACT, 'SZAFACT', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1736,6 +1734,19 @@ CONTAINS
     ! ==> DRYCOEFF must be read from the configuration file in module
     !     hcox_soilnox_mod.F90. 
     !-----------------------------------------------------------------
+
+    !-----------------------------------------------------------------
+    ! If needed, calculate SUNCOS values
+    !-----------------------------------------------------------------
+    IF ( ExtState%SUNCOS%DoUse ) THEN
+       IF ( FIRST ) THEN
+          CALL HCO_ArrAssert( ExtState%SUNCOS%Arr, HcoState%NX, HcoState%NY, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       CALL HCO_GetSUNCOS( am_I_Root, HcoState, ExtState%SUNCOS%Arr%Val, 0, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
 
     !-----------------------------------------------------------------
     ! Grid box heights in meters. First try to get them from an 

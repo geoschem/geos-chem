@@ -166,6 +166,7 @@ MODULE HCO_State_Mod
   TYPE :: HcoPhys
      REAL(dp) :: Avgdr   ! Avogadro number (mol-1)
      REAL(dp) :: PI      ! Pi
+     REAL(dp) :: PI_180  ! Pi / 180
      REAL(dp) :: Re      ! Earth radius [m] 
      REAL(dp) :: AIRMW   ! Molecular weight of air (g/mol)
      REAL(dp) :: g0      ! Gravity at surface of earth (m/s2)
@@ -340,13 +341,14 @@ CONTAINS
        CALL HCO_ERROR( 'HEMCO physical constants', RC )
        RETURN
     ENDIF
-    HcoState%Phys%Avgdr = 6.022e23_dp
-    HcoState%Phys%PI    = 3.14159265358979323_dp
-    HcoState%Phys%Re    = 6.375e6_dp
-    HcoState%Phys%AIRMW = 28.97_dp
-    HcoState%Phys%g0    = 9.8_dp
-    HcoState%Phys%Rd    = 287.0_dp
-    HcoState%Phys%Rdg0  = HcoState%Phys%Rd / HcoState%Phys%g0
+    HcoState%Phys%Avgdr  = 6.022e23_dp
+    HcoState%Phys%PI     = 3.14159265358979323_dp
+    HcoState%Phys%PI_180 = HcoState%Phys%PI / 180.0_dp 
+    HcoState%Phys%Re     = 6.375e6_dp
+    HcoState%Phys%AIRMW  = 28.97_dp
+    HcoState%Phys%g0     = 9.8_dp
+    HcoState%Phys%Rd     = 287.0_dp
+    HcoState%Phys%Rdg0   = HcoState%Phys%Rd / HcoState%Phys%g0
 
     ! Timesteps
     HcoState%TS_EMIS = 0.0_sp 

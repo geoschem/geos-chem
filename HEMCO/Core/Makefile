@@ -177,7 +177,9 @@ hco_fluxarr_mod.o      : hco_fluxarr_mod.F90     \
                          hco_state_mod.o
 
 hco_geotools_mod.o     : hco_geotools_mod.F90    \
-	                 hco_error_mod.o
+	                 hco_clock_mod.o         \
+	                 hco_error_mod.o         \
+	                 hco_state_mod.o
 
 hco_interp_mod.o       : hco_interp_mod.F90      \
                          hco_datacont_mod.o      \

@@ -771,7 +771,7 @@ CONTAINS
     ! Activate required met fields
     ExtState%T2M%DoUse       = .TRUE. 
     ExtState%GWETTOP%DoUse   = .TRUE. 
-    ExtState%SUNCOSmid%DoUse = .TRUE. 
+    ExtState%SUNCOS%DoUse    = .TRUE. 
     ExtState%U10M%DoUse      = .TRUE. 
     ExtState%V10M%DoUse      = .TRUE. 
     ExtState%LAI%DoUse       = .TRUE. 
@@ -992,7 +992,7 @@ CONTAINS
     LAI = ExtState%LAI%Arr%Val(I,J)
 
     ! Cosine of Solar Zenit Angle
-    SUNCOS = ExtState%SUNCOSmid%Arr%Val(I,J)
+    SUNCOS = ExtState%SUNCOS%Arr%Val(I,J)
 
     ! Top soil wetness [unitless]
     GWET = ExtState%GWETTOP%Arr%Val(I,J)
@@ -1269,7 +1269,7 @@ CONTAINS
              IF ( RAD0 > 0e+0_hp .AND. ExtState%LAI%Arr%Val(I,J) > 0e+0_hp ) THEN
 
                 LAI    = ExtState%LAI%Arr%Val(I,J)
-                SUNCOS = ExtState%SUNCOSmid%Arr%Val(I,J)
+                SUNCOS = ExtState%SUNCOS%Arr%Val(I,J)
                 CLDFRC = ExtState%CLDFRC%Arr%Val(I,J)
                
                 BIO_RESULT = BIOFIT( ExtState%DRYCOEFF, LAI, &
