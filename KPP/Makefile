@@ -61,6 +61,7 @@
 #  16 Oct 2013 - M. Sulprizio- Remove isoprene directory from realclean target.
 #                              This directory has been removed because it is
 #                              obsolete.
+#  26 May 2015 - R. Yantosca - Bug fix, now point CHEM=benchmark by default
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -82,25 +83,11 @@ MOD  := $(ROOT)/mod
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOT)/Makefile_header.mk
 
-# Make the standard 43-tracer simulation the default
+# Make the standard benchmark simulation if CHEM is not passed
+# NOTE: In v10-01+, CHEM should always be passed from Makefile_header.mk!
 ifndef CHEM
- CHEM :=standard
+ CHEM :=benchmark
 endif
-
-# Check if NTRAC option is used
-#%%% NOTE: THE # oF TRACERS USED IS NOW OUT OF DATE (bmy, 7/21/14)
-ifdef NTRAC 
-
-ifeq ($(NTRAC),43)
- CHEM :=standard
-endif
-
-ifeq ($(NTRAC),54)
- CHEM :=SOA 
-endif
-
-endif
-
 
 # Make rosenbrock the default solver
 ifndef KPPSOLVER
@@ -135,9 +122,10 @@ clean:
 	@$(MAKE) -C $(CHEM) clean
 
 realclean:
-	@$(MAKE) -C standard clean
-	@$(MAKE) -C SOA clean
-	@$(MAKE) -C UCX clean
+	@$(MAKE) -C benchmark    clean
+	@$(MAKE) -C SOA          clean
+	@$(MAKE) -C UCX          clean
+	@$(MAKE) -C NOx_Ox_HC_Br clean
 
 help:
 	@$(MAKE) -C $(HELP) 
