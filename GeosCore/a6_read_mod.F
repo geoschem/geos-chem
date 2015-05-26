@@ -667,12 +667,12 @@
 ! !INPUT PARAMETERS: 
 !
       ! GCAP 3-D cloud fraction field [unitless]
-      REAL*8, INTENT(IN)  :: CLDF(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(IN)  :: CLDF(IIPAR,JJPAR,LLPAR)
 !
 ! !OUTPUT PARAMETERS: 
 !
       ! GCAP column cloud fraction field [unitless]
-      REAL*8, INTENT(OUT) :: CLDFRC(IIPAR,JJPAR)
+      REAL(fp), INTENT(OUT) :: CLDFRC(IIPAR,JJPAR)
 ! 
 ! !REVISION HISTORY: 
 !  25 May 2005 - R. Yantosca - Initial version

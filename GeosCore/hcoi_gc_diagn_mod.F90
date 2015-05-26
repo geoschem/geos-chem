@@ -1988,6 +1988,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use NO
+!  22 Jan 2015 - M. Yannetti - Corrected typo in LOC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3320,7 +3321,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
-!  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use lightning
+!  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use lightning=
 !  19 Feb 2015 - C. Keller   - Added entry for MTYPE
 !EOP
 !------------------------------------------------------------------------------
@@ -3341,6 +3342,9 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+    ! Exit if we are doing a specialty simulation w/o lightning
+    IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
 
     ! Define diagnostics
     IF ( Input_Opt%ND56 > 0 ) THEN

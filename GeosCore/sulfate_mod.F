@@ -3115,10 +3115,10 @@
       REAL(fp)                 :: kSO2p, kSO2p2
       REAL(fp)                 :: kHNO3p, kNH3p, kHClp
       INTEGER                :: count
-      REAL(fp)                 :: E, F, G, H, P, Q, R
+      REAL(fp)                 :: E, F, G, H, Q, R
       REAL(fp)                 :: X, Y
       REAL(fp)                 :: CRUTES( 3 ) ! Coeff and roots of cubic equation
-      REAL(f8)                 :: A, B, A1, A2, A0
+      REAL(f8)                 :: A, B, A1, A2, A0, P
       INTEGER                :: NR          ! Number of roots to cubic equation
 
       !=================================================================

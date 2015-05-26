@@ -4357,6 +4357,7 @@
 
       ! Temporary - for debug
       USE ERROR_MOD,     ONLY : IT_IS_NAN,ERROR_STOP     ! Test for NaN
+      USE ERROR_MOD,     ONLY : SAFE_EXP,SAFE_DIV, DEBUG_MSG
 !
 ! !INPUT PARAMETERS:
 !
@@ -4389,6 +4390,7 @@
 !
 ! !REVISION HISTORY: 
 !  19 Apr 2013 - S. D. Eastham - Initial version
+!  16 Apr 2015 - M. Yannetti   - Changed EXP to SAFE_EXP in H_HCL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4584,10 +4586,13 @@
 
          PVAP_HNO3=M_HNO3/(H_HNO3_BIN*M_HNO3/(M_HNO3+
      &      M_H2SO4)+H_H2SO4_BIN*M_H2SO4/(M_HNO3+M_H2SO4))
-         W_HNO3 = M_HNO3*0.063012e+0_fp/(1.0e+0_fp+M_H2SO4*
+         W_HNO3 = (M_HNO3*0.063012e+0_fp)/(1.0e+0_fp+M_H2SO4*
      &      0.098076e+0_fp+M_HNO3*0.063012e+0_fp)
+
          HNO3GASFRAC=(1.0e+0_fp-(PATMHNO3-PVAP_HNO3)/PATMHNO3)
          M_HNO3=MAX(M_HNO3,0.0e+0_fp)
+         W_HNO3=MAX(W_HNO3,0.0e+0_fp) ! needed for small underflow (mdy 04/15)
+
       ELSE
          ! Solution is pure H2SO4/H2O
          M_H2SO4 = M_H2SO4_BIN
@@ -4598,7 +4603,6 @@
          PVAP_HNO3 = 0.0e+0_fp
          HNO3GASFRAC=1.0e+0_fp
       ENDIF
-
       ! Handle HCl (Luo et al., Vapor pressures of
       ! H2SO4/HNO3/HCl/HBr/H2O solutions to low stratospheric
       ! temperatures, 1995)
@@ -4875,69 +4879,70 @@
 !
 ! !REVISION HISTORY: 
 !  10 Oct 2012 - S. D. Eastham - Initial version
+!  15 Apr 2015 - M. Yannetti   - Adjustment to f8 from fp due to overflow concerns
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)               :: WT      ! Weight percentage H2SO4 (100*kg/kg)
-      REAL(fp)               :: H2OPP   ! Partial pressure of H2O (hPa)
-      REAL(fp)               :: HClPP   ! Partial pressure of HCl (atm)
-      REAL(fp)               :: HBrPP   ! Partial pressure of HBr (atm)
-      REAL(fp)               :: HOBrPP  ! Partial pressure of HOBr (atm)
-      REAL(fp)               :: ClNO3PP ! Partial p. of ClONO2 (atm)
-      REAL(fp)               :: BrNO3PP ! Partial p. of BrONO2 (atm)
-      REAL(fp)               :: PSATH2O ! Water vapor sat. pressure (hPa)
-      REAL(fp)               :: ACTH2O  ! Activity of water
-      REAL(fp)               :: MOLAL   ! Molality of H2SO4 (mol H2SO4/kg solvent)
-      REAL(fp), DIMENSION(3) :: Z       ! Parameters for H2SO4 sol'n
-      REAL(fp)               :: M_H2SO4 ! Mass of H2SO4
+      REAL(f8)               :: WT      ! Weight percentage H2SO4 (100*kg/kg)
+      REAL(f8)               :: H2OPP   ! Partial pressure of H2O (hPa)
+      REAL(f8)               :: HClPP   ! Partial pressure of HCl (atm)
+      REAL(f8)               :: HBrPP   ! Partial pressure of HBr (atm)
+      REAL(f8)               :: HOBrPP  ! Partial pressure of HOBr (atm)
+      REAL(f8)               :: ClNO3PP ! Partial p. of ClONO2 (atm)
+      REAL(f8)               :: BrNO3PP ! Partial p. of BrONO2 (atm)
+      REAL(f8)               :: PSATH2O ! Water vapor sat. pressure (hPa)
+      REAL(f8)               :: ACTH2O  ! Activity of water
+      REAL(f8)               :: MOLAL   ! Molality of H2SO4 (mol H2SO4/kg solvent)
+      REAL(f8), DIMENSION(3) :: Z       ! Parameters for H2SO4 sol'n
+      REAL(f8)               :: M_H2SO4 ! Mass of H2SO4
 
       ! HOBr parameters
-      REAL(fp)               :: c_HOBr
-      REAL(fp)               :: SHOBr
-      REAL(fp)               :: HHOBr
-      REAL(fp)               :: DHOBr
-      REAL(fp)               :: kHOBr_HCl
-      REAL(fp)               :: GHOBrrxn
-      REAL(fp)               :: lHOBr
-      REAL(fp)               :: fHOBr
-      REAL(fp)               :: gHOBr_HCl
+      REAL(f8)               :: c_HOBr
+      REAL(f8)               :: SHOBr
+      REAL(f8)               :: HHOBr
+      REAL(f8)               :: DHOBr
+      REAL(f8)               :: kHOBr_HCl
+      REAL(f8)               :: GHOBrrxn
+      REAL(f8)               :: lHOBr
+      REAL(f8)               :: fHOBr
+      REAL(f8)               :: gHOBr_HCl
 
       ! HOCl parameters
-      REAL(fp)               :: c_HOCl
-      REAL(fp)               :: SHOCl
-      REAL(fp)               :: HHOCl
-      REAL(fp)               :: DHOCl
-      REAL(fp)               :: kHOCl_HCl
-      REAL(fp)               :: GHOClrxn
-      REAL(fp)               :: lHOCl
-      REAL(fp)               :: fHOCl
-      REAL(fp)               :: gHOCl_HCl
+      REAL(f8)               :: c_HOCl
+      REAL(f8)               :: SHOCl
+      REAL(f8)               :: HHOCl
+      REAL(f8)               :: DHOCl
+      REAL(f8)               :: kHOCl_HCl
+      REAL(f8)               :: GHOClrxn
+      REAL(f8)               :: lHOCl
+      REAL(f8)               :: fHOCl
+      REAL(f8)               :: gHOCl_HCl
 
       ! ClNO3 parameters
-      REAL(fp)               :: c_ClNO3
-      REAL(fp)               :: SClNO3
-      REAL(fp)               :: HClNO3
-      REAL(fp)               :: DClNO3
-      REAL(fp)               :: GClNO3rxn
-      REAL(fp)               :: lClNO3
-      REAL(fp)               :: fClNO3
-      REAL(fp)               :: gClNO3
-      REAL(fp)               :: gClNO3_HCl
-      REAL(fp)               :: gClNO3_H2O
+      REAL(f8)               :: c_ClNO3
+      REAL(f8)               :: SClNO3
+      REAL(f8)               :: HClNO3
+      REAL(f8)               :: DClNO3
+      REAL(f8)               :: GClNO3rxn
+      REAL(f8)               :: lClNO3
+      REAL(f8)               :: fClNO3
+      REAL(f8)               :: gClNO3
+      REAL(f8)               :: gClNO3_HCl
+      REAL(f8)               :: gClNO3_H2O
  
       ! N2O5 parameters
-      REAL(fp), DIMENSION(3) :: AK
+      REAL(f8), DIMENSION(3) :: AK
 
       ! Other parameters
-      REAL(fp) :: kH2O,kH,khdr,GbH2O,HHCl,MHCl,kHCl,GbHCl,Gs,FHCl,Gsp
-      REAL(fp) :: GbHClp, Gb, khydr, kII, k_dl
+      REAL(f8) :: kH2O,kH,khdr,GbH2O,HHCl,MHCl,kHCl,GbHCl,Gs,FHCl,Gsp
+      REAL(f8) :: GbHClp, Gb, khydr, kII, k_dl
 
       ! Interim variables
-      REAL(fp)               :: X,A,H,T_THRESHOLD,aH
-      REAL(fp), PARAMETER    :: MAX_T_DIFF = 6.0e+0_fp
+      REAL(f8)               :: X,A,H,T_THRESHOLD,aH
+      REAL(f8), PARAMETER    :: MAX_T_DIFF = 6.0e+0_fp
 
       ! Control whether to run calculations
       LOGICAL              :: HClOK, HOBrOK
@@ -4949,16 +4954,16 @@
       ! CALC_SLA_GAMMA begins here!
       !=================================================================
 
-      PSATH2O = EXP(18.452406985e+0_fp-3505.1578807e+0_fp
-     &     /T-330918.55082e+0_fp/(T*T)
-     &     +12725068.262e+0_fp/(T*T*T))       ! Saturation pressure of H2O
+      PSATH2O = EXP(18.452406985e+0_f8-3505.1578807e+0_f8
+     &     /T-330918.55082e+0_f8/(T*T)
+     &     +12725068.262e+0_f8/(T*T*T))       ! Saturation pressure of H2O
       H2OPP = H2OSUM * P                  ! Partial pressure of H2O
-      ACTH2O = MAX((H2OPP/PSATH2O),1.0e+0_fp) ! Water activity
+      ACTH2O = MAX((H2OPP/PSATH2O),1.0e+0_f8) ! Water activity
 
       ! Calculate molality of solution
       !WT = MIN(100.0e+0_fp,100.0e+0_fp*WT_FRC) ! Convert from fraction to %
-      WT = 100.0e+0_fp*WT_FRC ! Convert from fraction to %
-      MOLAL = 1000.0e+0_fp * (WT/98.0e+0_fp/(100.0-WT))
+      WT = 100.0e+0_f8*WT_FRC ! Convert from fraction to %
+      MOLAL = 1000.0e+0_f8 * (WT/98.0e+0_f8/(100.0-WT))
 
       ! Parameters for H2SO4 solution
       !----------------------------------------------------------
@@ -4976,71 +4981,71 @@
       !----------------------------------------------------------
       M_H2SO4 =   RHO*WT/9.8 ! Molality (mol H2SO4/kg solvent)
       X    =   WT/(WT+(100.-WT)*98./18.)
-      A    =   169.5+5.18*WT-0.0825*WT*WT+3.27e-3_fp*WT*WT*WT
-      T_THRESHOLD = 144.11+0.166*WT-0.015*WT*WT+2.18e-4_fp*WT*WT*WT
+      A    =   169.5+5.18*WT-0.0825*WT*WT+3.27e-3_f8*WT*WT*WT
+      T_THRESHOLD = 144.11+0.166*WT-0.015*WT*WT+2.18e-4_f8*WT*WT*WT
       IF ((T-T_THRESHOLD).gt.MAX_T_DIFF) THEN
          H = A*T**(-1.43)*EXP(448./(T-T_THRESHOLD))
       ELSE
          H = A*T**(-1.43)*EXP(448./MAX_T_DIFF)
       ENDIF
 
-      aH   =   EXP(60.51-0.095*WT+0.0077*WT*WT-1.61e-5*WT*WT*WT
-     &     -(1.76+2.52e-4_fp*WT*WT)*SQRT(T) +
+      aH   =   EXP(60.51-0.095*WT+0.0077*WT*WT-1.61e-5_f8*WT*WT*WT
+     &     -(1.76+2.52e-4_f8*WT*WT)*SQRT(T) +
      &     (-805.89+253.05*WT**0.076)/SQRT(T))
 
-      HClPP = HClSUM*P/1013.25e+0_fp ! Note atm, not hPa
-      ClNO3PP = ClNO3SUM*P/1013.25e+0_fp
-      BrNO3PP = BrNO3SUM*P/1013.25e+0_fp
+      HClPP = HClSUM*P/1013.25e+0_f8 ! Note atm, not hPa
+      ClNO3PP = ClNO3SUM*P/1013.25e+0_f8
+      BrNO3PP = BrNO3SUM*P/1013.25e+0_f8
       HOBrPP = HOBrSUM*P/1013.25 ! Note atm, not hPa
  
       ! Should we bother running calculations?
-      HClOK = (HClPP .gt. 1.e-30_fp)
-      HOBrOK = (HOBrPP .gt. 1.e-30_fp)
+      HClOK = (HClPP .gt. 1.e-30_f8)
+      HOBrOK = (HOBrPP .gt. 1.e-30_f8)
 
       ! Reaction 1. N2O5 + H2O (hydrolysis of N2O5)
-      AK(1)=-25.5265-0.133188*WT+0.0093084*WT**2-9.0194E-5*WT**3
+      AK(1)=-25.5265-0.133188*WT+0.0093084*WT**2-9.0194E-5_f8*WT**3
       AK(2)=9283.76+115.345*WT-5.19258*WT**2+0.0483464*WT**3
       AK(3)=-851801-22191.2*WT+766.916*WT**2-6.85427*WT**3
       RXNGAMMA(1)=exp(AK(1)+AK(2)/T+AK(3)/T**2)
       
       ! Reaction 2. N2O5 + HCl
       ! JPL 10-06 suggests near-zero gamma
-      RXNGAMMA(2) = TINY(1e+0_fp)
+      RXNGAMMA(2) = TINY(1e+0_f8)
 
       ! Reactions 3/4. ClNO3 + H2O/HCl
       ! Now od only if HCl concentrations are large enough
       ! (to avoid div-by-zero errors), ckeller, 2/10/15.
       IF (HClOK) THEN
-         c_ClNO3     =  1474.e+0_fp*SQRT(T)
-         SClNO3      =  0.306e+0_fp+24.e+0_fp/T
-         HClNO3      =  1.6e-6_fp*EXP(4710.e+0_fp/T)
+         c_ClNO3     =  1474.e+0_f8*SQRT(T)
+         SClNO3      =  0.306e+0_f8+24.e+0_f8/T
+         HClNO3      =  1.6e-6_f8*EXP(4710.e+0_f8/T)
      &               *  EXP(-SClNO3*M_H2SO4)
-         DClNO3      =  5e-8_fp*T/h
-         kH2O        =  1.95e+10_fp*EXP(-2800.e+0_fp/T)
-         kH          =  1.22e+12_fp*EXP(-6200.e+0_fp/T)
+         DClNO3      =  5e-8_f8*T/h
+         kH2O        =  1.95e+10_f8*EXP(-2800.e+0_f8/T)
+         kH          =  1.22e+12_f8*EXP(-6200.e+0_f8/T)
          khydr       =  kH2O*ACTH2O + kH*aH*ACTH2O
-         GbH2O       =  4_fp*HClNO3*0.082_fp*T*SQRT(DClNO3*khydr)
+         GbH2O       =  4*HClNO3*0.082*T*SQRT(DClNO3*khydr)
      &               /  c_ClNO3
-         HHCl        =  (0.094e+0_fp-0.61e+0_fp*X+1.2e+0_fp*X*X)
-     &               *  EXP(-8.68_fp+(8515_fp-10718_fp*X**0.7)/T)
+         HHCl        =  (0.094e+0_f8-0.61e+0_f8*X+1.2e+0_f8*X*X)
+     &               *  EXP(-8.68+(8515-10718*X**0.7)/T)
          MHCl        =  HHCl *HClPP
-         kHCl        =  7.9e+11_fp*aH*DClNO3*MHCl
+         kHCl        =  7.9e+11_f8*aH*DClNO3*MHCl
          lClNO3      =  SQRT(DClNO3/(khydr+kHCl))
-         if (lClNO3.gt.(1.e+5_fp*arad)) then
+         if (lClNO3.gt.(1.e+5_f8*arad)) then
             ! Limiting rate
-            fClNO3   =  arad/(3.e+0_fp*lClNO3)
+            fClNO3   =  arad/(3.e+0_f8*lClNO3)
          else
-            fClNO3   =  1.e+0_fp/tanh(arad/lClNO3)- lClNO3/arad
+            fClNO3   =  1.e+0_f8/tanh(arad/lClNO3)- lClNO3/arad
          endif
-         GClNO3rxn   =  fClNO3*GbH2O *SQRT(1.e+0_fp+kHCl/khydr)
+         GClNO3rxn   =  fClNO3*GbH2O *SQRT(1.e+0_f8+kHCl/khydr)
          GbHCl       =  GClNO3rxn* kHCl/(kHCl+ khydr)
-         Gs          =  66.12e+0_fp*EXP(-1374.e+0_fp/T)*HClNO3*MHCl
-         FHCl        =  1.e+0_fp/(1.e+0_fp+0.612e+0_fp*(Gs+GbHCl)*
+         Gs          =  66.12e+0_f8*EXP(-1374.e+0_f8/T)*HClNO3*MHCl
+         FHCl        =  1.e+0_f8/(1.e+0_f8+0.612e+0_f8*(Gs+GbHCl)*
      &                ClNO3PP/ HClPP)
          Gsp         =  FHCl*Gs
          GbHClp      =  FHCl*GbHCl
          Gb          =  GbHClp  + GClNO3rxn* khydr/( kHCl+ khydr)
-         gClNO3      =  1.e+0_fp/(1.e+0_fp+1.e+0_fp/(Gsp + Gb))
+         gClNO3      =  1.e+0_f8/(1.e+0_f8+1.e+0_f8/(Gsp + Gb))
          gClNO3_HCl  =  gClNO3 *(Gsp + GbHClp)/(Gsp + Gb)
          gClNO3_H2O  =  gClNO3 - gClNO3_HCl
    
@@ -5048,46 +5053,46 @@
          RXNGAMMA(3) =  gClNO3_H2O
          RXNGAMMA(4) =  gClNO3_HCl
       ELSE
-         RXNGAMMA(3) = TINY(1e+0_fp)
-         RXNGAMMA(4) = TINY(1e+0_fp)
+         RXNGAMMA(3) = TINY(1e+0_f8)
+         RXNGAMMA(4) = TINY(1e+0_f8)
       ENDIF
 
       ! Reaction 5. ClNO3 + HBr
       ! Not present in JPL 10-06 for H2SO4
-      RXNGAMMA(5) = TINY(1e+0_fp)
+      RXNGAMMA(5) = TINY(1e+0_f8)
 
       ! Reaction 6. BrNO3 + H2O
 !      RXNGAMMA(6) = 1.0/(1.0/0.88+exp(-17.832+0.245*WT))
-      RXNGAMMA(6) = 1.e+0_fp/(1.e+0_fp/0.80e+0_fp+1.e+0_fp/
-     &             (exp(29.2e+0_fp-0.4e+0_fp*WT )+0.11))
+      RXNGAMMA(6) = 1.e+0_f8/(1.e+0_f8/0.80e+0_f8+1.e+0_f8/
+     &             (exp(29.2e+0_f8-0.4e+0_f8*WT )+0.11))
       
       ! Reaction 7. BrNO3 + HCl
-      RXNGAMMA(7) = 0.9e+0_fp ! JPL 10-06
+      RXNGAMMA(7) = 0.9e+0_f8 ! JPL 10-06
 
       ! Reaction 8. HOCl + HCl
       IF (HClOK) THEN
-         c_HOCl    =  MOLEC_SPEED(T,52.46e+0_fp)
-         SHOCl     =  0.0776e+0_fp+59.18e+0_fp/T
-         HHOCl     =  1.91e-6_fp*EXP(5862.4e+0_fp/T)*EXP(-SHOCl*M_H2SO4)
-         DHOCl     =  6.4e-8_fp*T/H
-         kHOCl_HCl =  1.25e+9_fp*aH*DHOCl*MHCl
+         c_HOCl    =  MOLEC_SPEED(T,52.46e+0_fp) ! input variable, fp
+         SHOCl     =  0.0776e+0_f8+59.18e+0_f8/T
+         HHOCl     =  1.91e-6_f8*EXP(5862.4e+0_f8/T)*EXP(-SHOCl*M_H2SO4)
+         DHOCl     =  6.4e-8_f8*T/H
+         kHOCl_HCl =  1.25e+9_f8*aH*DHOCl*MHCl
          lHOCl     =  SQRT(DHOCl/kHOCl_HCl)
-         if (lHOCl.gt.(1.e+5_fp*arad)) then
+         if (lHOCl.gt.(1.e+5_f8*arad)) then
             ! Limiting rate
-            fHOCl = arad/(3.e+0_fp*lHOCl)
+            fHOCl = arad/(3.e+0_f8*lHOCl)
          else
-            fHOCl     =  1.e+0_fp/tanh(arad/lHOCl)- lHOCl/arad
+            fHOCl     =  1.e+0_f8/tanh(arad/lHOCl)- lHOCl/arad
          endif
-         GHOClrxn  =  4.e+0_fp*HHOCl*0.082e+0_fp*T*
+         GHOClrxn  =  4.e+0_f8*HHOCl*0.082e+0_f8*T*
      &                sqrt(DHOCl*kHOCl_HCl)/c_HOCl
          IF (fHOCl.eq.0.) THEN
-            gHOCl_HCl =  TINY(1e+0_fp)
+            gHOCl_HCl =  TINY(1e+0_f8)
          ELSE
-            gHOCl_HCl =  1.e+0_fp/(1.e+0_fp+1.e+0_fp/
+            gHOCl_HCl =  1.e+0_f8/(1.e+0_f8+1.e+0_f8/
      &                 (fHOCl*GHOClrxn*FHCl))
          ENDIF
       ELSE
-         gHOCl_HCl = TINY(1e+0_fp)
+         gHOCl_HCl = TINY(1e+0_f8)
       ENDIF
    
       RXNGAMMA(8) = gHOCl_HCl
@@ -5096,38 +5101,45 @@
       ! Not yet implemented for STS; JPL 10-06 suggests complex
       ! relationship, not yet sufficiently well understood or
       ! parameterized for the purposes of simulation. Ignore for now
-      RXNGAMMA(9) = TINY(1e+0_fp)
+      RXNGAMMA(9) = TINY(1e+0_f8)
 
       ! Reaction 10. HOBr + HCl
       IF ((HClOK).and.(HOBrOK)) THEN
-         c_HOBr    =  MOLEC_SPEED(T,96.91e+0_fp)
-         SHOBr     =  0.0776e+0_fp+59.18e+0_fp/T
+         c_HOBr    =  MOLEC_SPEED(T,96.91e+0_fp) ! input variable, fp
+         SHOBr     =  0.0776e+0_f8+59.18e+0_f8/T
 !         HHOBr     =  30.D0
-         HHOBR     = exp(-9.86e+0_fp+5427.e+0_fp/T)
-         DHOBr     =  1.E-8
-         kII       = exp(154.e+0_fp-1.63e+0_fp*WT)*exp(-(3.85e+4_fp-
-     &               478.e+0_fp*WT)/T)
-         k_dl      = 7.5e+14_fp*(DHOBr*arad*1.e7)
+         HHOBR     = exp(-9.86e+0_f8+5427.e+0_f8/T)
+         DHOBr     =  1.E-8_f8
+         kII       = exp(154.e+0_f8-1.63e+0_f8*WT)*exp(-(3.85e+4_f8-
+     &               478.e+0_f8*WT)/T)
+         k_dl      = 7.5e+14_f8*(DHOBr*arad*1.e7_f8)
          IF (kII.gt.k_dl) kII=k_dl
          kHOBr_HCl =  kII*HHOBr*HOBrPP
-         GHOBrrxn  =  4.e+0_fp*HHCl*0.082e+0_fp*T*sqrt(DHOBr*kHOBr_HCl)/
+!         IF (kHOBr_HCl.eq.0.) THEN   ! catch for zero (mdy, 04/15)
+!           kHOBr_HCl = TINY(1e+0_fp)
+!         ENDIF
+         GHOBrrxn  =  4.e+0_f8*HHCl*0.082e+0_f8*T*sqrt(DHOBr*kHOBr_HCl)/
      &              c_HOBr
          lHOBr     =  sqrt(DHOBr/kHOBr_HCl)
-         if (lHOBr.gt.(1.e+3_fp*arad)) then
+         if (lHOBr.gt.(1.e+3_f8*arad)) then
             ! Limiting rate
-            fHOBr = arad/(3.e+0_fp*lHOBr)
+            fHOBr = arad/(3.e+0_f8*lHOBr)
          else
-            fHOBr     =  1.e+0_fp/tanh(arad/lHOBr)- lHOBr/arad
+            fHOBr     =  1.e+0_f8/tanh(arad/lHOBr)- lHOBr/arad
          endif
-         gHOBr_HCl =  1.e+0_fp/(1.e+0_fp+1.e+0_fp/(fHOBr*GHOBrrxn))
+!         IF ((fHOBr*GHOBrrxn).eq.0.) THEN
+!           gHOBr_HCl =  1.e+0_fp/(1.e+0_fp+1.e+0_fp/TINY(1e+0_fp))
+!         ELSE
+           gHOBr_HCl =  1.e+0_f8/(1.e+0_f8+1.e+0_f8/(fHOBr*GHOBrrxn))
+!         ENDIF
          RXNGAMMA(10) = gHOBr_HCl
       ELSE
-         RXNGAMMA(10) = TINY(1e+0_fp)
+         RXNGAMMA(10) = TINY(1e+0_f8)
       ENDIF
 
       ! Reaction 11. HOBr + HBr
       ! Data from JPL limited; ignore for now
-      RXNGAMMA(11) = TINY(1e+0_fp)
+      RXNGAMMA(11) = TINY(1e+0_f8)
 
       ! SDE 2013-10-18: DEBUG
       DO I=1,11

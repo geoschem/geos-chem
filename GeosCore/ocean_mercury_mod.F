@@ -2565,7 +2565,7 @@
       INTEGER             :: NTRACER,   NSKIP
       INTEGER             :: HALFPOLAR, CENTER180
       REAL*4              :: LONRES,    LATRES
-      REAL(fpp)              :: ZTAU0,     ZTAU1
+      REAL(f8)              :: ZTAU0,     ZTAU1
       CHARACTER(LEN=20)   :: MODELNAME
       CHARACTER(LEN=40)   :: CATEGORY
       CHARACTER(LEN=40)   :: UNIT     

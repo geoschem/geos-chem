@@ -565,7 +565,7 @@
 !  (1)  DUST     : Soil dust (4 different classes) : kg         : 1
 !******************************************************************************
 !
-      IF ( ND06 > 0 .and. Input_Opt%LDUST ) THEN
+      IF ( ND06 > 0 .and. Input_Opt%LDUST .and. Input_Opt%LEMIS ) THEN
 
          ! Category & unit string
          UNIT     = 'kg'
@@ -1214,7 +1214,7 @@
 !  (2)  SALC     : Coarse mode seasalt             : kg         : 1
 !******************************************************************************
 !
-      IF ( ND08 > 0 .and. Input_Opt%LSSALT ) THEN
+      IF ( ND08 > 0 .and. Input_Opt%LSSALT .and. Input_Opt%LEMIS ) THEN
 
          ! Category & unit string
          UNIT     = 'kg'
@@ -1327,7 +1327,7 @@
 !       explicitly calculates the Acetone ocean sink. (ckeller, 08/04/14) 
 !******************************************************************************
 !
-      IF ( ND11 > 0 ) THEN
+      IF ( ND11 > 0 .and. Input_Opt%LEMIS ) THEN
          CATEGORY = 'ACETSRCE'
          UNIT     = 'atoms C/cm2/s'
 
@@ -1404,7 +1404,7 @@
 !  (1) ND13 diagnostics are now tracked by HEMCO. (bmy, 8/18/14)
 !******************************************************************************
 !
-      IF ( ND13 > 0 .and. 
+      IF ( ND13 > 0 .and. Input_Opt%LEMIS .and. 
      &   ( Input_Opt%ITS_A_FULLCHEM_SIM .or. 
      &     Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
          UNIT = 'kg S'
