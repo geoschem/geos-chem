@@ -2378,7 +2378,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     REAL(hp)              :: DLAT, AREA
-    REAL(dp)              :: PI_180
     INTEGER               :: NLAT, J
     CHARACTER(LEN=255)    :: MSG, LOC
 
@@ -2388,7 +2387,6 @@ CONTAINS
 
     ! Initialize
     LOC    = 'NORMALIZE_AREA (hcoio_dataread_mod.F90 )'
-    PI_180 = HcoState%Phys%PI / 180.0_dp
 
     ! Check array size
     NLAT = SIZE(LatEdge,1) - 1
@@ -2408,7 +2406,7 @@ CONTAINS
     DO J = 1, NLAT
        ! get grid box area in m2 for grid box with lower and upper latitude llat/ulat:
        ! Area = 2 * PI * Re^2 * DLAT / nlon, where DLAT = abs( sin(ulat) - sin(llat) ) 
-       DLAT = ABS( SIN(LatEdge(J+1)*PI_180) - SIN(LatEdge(J)*PI_180) )
+       DLAT = ABS( SIN(LatEdge(J+1)*HcoState%Phys%PI_180) - SIN(LatEdge(J)*HcoState%Phys%PI_180) )
        AREA = ( 2_hp * HcoState%Phys%PI * DLAT * HcoState%Phys%Re**2 ) / REAL(nlon,hp)
 
        ! convert array data to m-2

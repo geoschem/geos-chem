@@ -1705,7 +1705,7 @@
       PMISOLAI = LAI_PREVDAY(I,J)
       MISOLAI  = ISOLAI
       TS       = ExtState%T2M%Arr%Val(I,J)
-      SUNCOS   = ExtState%SUNCOSmid%Arr%Val(I,J)
+      SUNCOS   = ExtState%SUNCOS%Arr%Val(I,J)
 
       ! Convert Q_DIR and Q_DIFF from (W/m2) to (micromol/m2/s)
       Q_DIR_2  = ExtState%PARDR%Arr%Val(I,J) * WM2_TO_UMOLM2S
@@ -4387,7 +4387,7 @@
 
       ! Enable met. fields
       ExtState%T2M%DoUse       = .TRUE.
-      ExtState%SUNCOSmid%DoUse = .TRUE.
+      ExtState%SUNCOS%DoUse    = .TRUE.
       ExtState%PARDR%DoUse     = .TRUE.
       ExtState%PARDF%DoUse     = .TRUE.
       ExtState%LAI%DoUse       = .TRUE.

@@ -934,6 +934,15 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! SUNCOS: HEMCO now calculates SUNCOS values based on its own
+    ! subroutine 
+    IF ( ExtState%SUNCOS%DoUse ) THEN
+       CALL HCO_ArrAssert( ExtState%SUNCOS%Arr, IIPAR, JJPAR, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Allocate ExtState%SUNCOS', LOC )
+       ENDIF
+    ENDIF
+
     ! Leave with success
     RC = GIGC_SUCCESS
 
@@ -1098,10 +1107,6 @@ CONTAINS
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%Z0, &
                'Z0', HCRC,      FIRST,    State_Met%Z0  )
-    IF ( HCRC /= HCO_SUCCESS ) RETURN
-
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SUNCOSmid, &
-        'SUNCOSmid', HCRC,      FIRST,    State_Met%SUNCOSmid  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%PARDR, &
@@ -1292,6 +1297,7 @@ CONTAINS
     USE COMODE_LOOP_MOD,       ONLY : NCS, JPHOTRAT, NRATES
     USE COMODE_LOOP_MOD,       ONLY : NAMEGAS, IRM
 
+    USE HCO_GeoTools_Mod,      ONLY : HCO_GetSUNCOS
 #if defined(ESMF_) 
     USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
 #endif
@@ -1343,6 +1349,14 @@ CONTAINS
        ExtState%SPHU%Arr%Val(:,:,1) = State_Met%SPHU(:,:,1) / 1000.0_hp
     ENDIF
 
+    ! SUNCOS
+    IF ( ExtState%SUNCOS%DoUse ) THEN
+       CALL HCO_GetSUNCOS( am_I_Root, HcoState, ExtState%SUNCOS%Arr%Val, 0, RC ) 
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Error in HCO_GetSUNCOS', LOC )
+       ENDIF
+    ENDIF
+
     ! If we need to use the SZAFACT scale factor (i.e. to put a diurnal
     ! variation on monthly mean OH concentrations), then call CALC_SUMCOSZA
     ! here.  CALC_SUMCOSZA computes the sum of cosine of the solar zenith
@@ -1382,7 +1396,7 @@ CONTAINS
             (ExtState%JNO2%DoUse .OR. ExtState%JO1D%DoUse) ) THEN
 
           ! Check if sun is up
-          IF ( State_Met%SUNCOSmid(I,J) == 0d0 ) THEN
+          IF ( State_Met%SUNCOS(I,J) == 0d0 ) THEN
              IF ( ExtState%JNO2%DoUse ) JNO2 = 0.0_hp
              IF ( ExtState%JO1D%DoUse ) JO1D = 0.0_hp
           ELSE
@@ -2605,12 +2619,12 @@ CONTAINS
     !=======================================================================
 
     ! Test for sunlight...
-    IF ( State_Met%SUNCOSmid(I,J) > 0e+0_fp  .AND. & 
-         SUMCOSZA(I,J)            > 0e+0_fp ) THEN
+    IF ( State_Met%SUNCOS(I,J) > 0e+0_fp  .AND. & 
+         SUMCOSZA(I,J)         > 0e+0_fp ) THEN
 
        ! Impose a diurnal variation on OH during the day
-       FACT = ( State_Met%SUNCOSmid(I,J) / SUMCOSZA(I,J) ) &
-            *  ( 1440e+0_fp              / GET_TS_CHEM() )
+       FACT = ( State_Met%SUNCOS(I,J) / SUMCOSZA(I,J) ) &
+            *  ( 1440e+0_fp           / GET_TS_CHEM() )
 
     ELSE
 

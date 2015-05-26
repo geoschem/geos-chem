@@ -154,7 +154,6 @@ CONTAINS
     REAL(sp), ALLOCATABLE   :: LatEdgeI(:)
     REAL(sp)                :: LonEdgeO(HcoState%NX+1)
     REAL(sp)                :: LatEdgeO(HcoState%NY+1)
-    REAL(dp)                :: PI_180
 
     REAL(sp), POINTER       :: ORIG_2D(:,:)     => NULL()
     REAL(sp), POINTER       :: REGR_2D(:,:)     => NULL()
@@ -179,9 +178,6 @@ CONTAINS
     ! Check for verbose mode
     verb = HCO_IsVerb( 3 )
 
-    ! To convert from deg to rad
-    PI_180 = HcoState%Phys%PI / 180.0_dp
-
     ! get longitude / latitude sizes
     nLonEdge = SIZE(LonE,1)
     nLatEdge = SIZE(LatE,1)
@@ -195,7 +191,7 @@ CONTAINS
        RETURN
     ENDIF
     LonEdgeI(:) = LonE
-    LatEdgeI(:) = SIN( LatE * PI_180 )
+    LatEdgeI(:) = SIN( LatE * HcoState%Phys%PI_180 )
    
     ! Get output grid edges from HEMCO state
     LonEdgeO(:) = HcoState%Grid%XEDGE%Val(:,1)
