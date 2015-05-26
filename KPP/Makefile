@@ -122,10 +122,10 @@ clean:
 	@$(MAKE) -C $(CHEM) clean
 
 realclean:
-	@$(MAKE) -C benchmark    clean
-	@$(MAKE) -C SOA          clean
-	@$(MAKE) -C UCX          clean
-	@$(MAKE) -C NOx_Ox_HC_Br clean
+	@$(MAKE) -C benchmark        clean
+	@$(MAKE) -C SOA              clean
+	@$(MAKE) -C UCX              clean
+	@$(MAKE) -C NOx_Ox_HC_Aer_Br clean
 
 help:
 	@$(MAKE) -C $(HELP) 

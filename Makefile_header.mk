@@ -329,10 +329,10 @@ ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   CHEM               :=SOA
 endif
 
-# %%%%% Test if CHEM=NOx_Ox_HC_Br %%%%%
+# %%%%% Test if CHEM=NOx_Ox_HC_Aer_Br %%%%%
 REGEXP               :=(^[Nn][Oo][Xx]_[Oo][Xx]_[Hh][Cc]_[Bb][Rr])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  CHEM               :=NOx_Ox_HC_Br
+  CHEM               :=NOx_Ox_HC_Aer_Br
   IS_CHEM_SET        :=1
 endif
 
