@@ -308,6 +308,42 @@ ifeq ($(shell [[ "$(NO_BPCH)" =~ $(REGEXP) ]] && echo true),true)
 endif
 
 #------------------------------------------------------------------------------
+# KPP settings chemistry solver settings
+# %%%%% NOTE: These will probably be obsolete when FLEXCHEM is added. %%%%%
+#------------------------------------------------------------------------------
+
+# Test if the CHEM value is set
+IS_CHEM_SET          :=0
+
+# %%%%% Test if CHEM=UCX (will also turn on UCX) %%%%%
+REGEXP               :=(^[Uu][Cc][Xx])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  UCX                :=y
+  CHEM               :=UCX
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=SOA %%%%%
+REGEXP               :=(^[Ss][Oo][Aa])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  CHEM               :=SOA
+endif
+
+# %%%%% Test if CHEM=NOx_Ox_HC_Br %%%%%
+REGEXP               :=(^[Nn][Oo][Xx]_[Oo][Xx]_[Hh][Cc]_[Bb][Rr])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  CHEM               :=NOx_Ox_HC_Br
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%%  Default setting: CHEM=benchmark (will also turn on UCX) %%%%%
+ifeq ($(IS_CHEM_SET),0)
+  UCX                :=y
+  CHEM               :=benchmark
+  IS_CHEM_SET        :=1
+endif
+
+#------------------------------------------------------------------------------
 # UCX stratospheric-tropospheric chemistry settings
 #------------------------------------------------------------------------------
 
@@ -1011,6 +1047,7 @@ export NC_LINK_CMD
 export HPC
 export PRECISION
 export RRTMG_NEEDED
+export CHEM
 
 #EOC
 
