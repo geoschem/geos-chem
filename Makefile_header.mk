@@ -316,7 +316,6 @@ REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(UCX)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DUCX
   NO_REDUCED         :=yes
-  CHEM               :=UCX
 endif
 
 #------------------------------------------------------------------------------

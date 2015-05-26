@@ -297,7 +297,7 @@
       IT_IS_NOT_COPARAM_OR_CH4 = Input_Opt%ITS_NOT_COPARAM_OR_CH4
 
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! NOTE: State_Chm%TRACERS needs to enter this routine with
       ! units of [kg].  If we are calling this routine from the 
@@ -626,7 +626,7 @@
       ENDIF
       
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! ALSO NOTE: State_Chm%TRACERS needs to leave this routine with
       ! units of [kg].  If we are calling this routine from the 

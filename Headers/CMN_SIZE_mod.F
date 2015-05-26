@@ -92,7 +92,7 @@
 
 #if defined ( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( ESMF_ )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! We need to make all of these be variables rather than 
       ! parameters, so that they can be defined directly from the
@@ -109,6 +109,13 @@
       INTEGER               :: LLSTRAT
       REAL*8,     PARAMETER :: PTOP       = 0.01d0
 #else
+
+      !-----------------------------------------------------------------
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
+      !
+      ! For GEOS-Chem "Classic", we can preset the values of IGLOB,
+      ! JGLOB, LGLOB, LLTROP, LLTROP_FIX, LLSTRAT, (bmy, 5/22/15)
+      !-----------------------------------------------------------------
 #if   defined( GCAP ) && defined( GRID4x5 )
 
       !-----------------------------------------------------------------
@@ -504,21 +511,6 @@
       INTEGER,    PARAMETER :: NNPAR   = 125   ! For non-TOMAS simulations
 #endif
 
-!------------------------------------------------------------------------------
-! Prior to 5/22/15:
-! HEMCO made NEMPARA, NEMPARB obsolete (bmy, 5/22/15)
-!      ! Nempara increased to 26. (fpp, 2/8/10)
-!      ! new emissions HNO3 and O3 (phs)
-!      !  Add non-biogenic emission species:
-!      !  BENZ, TOLU, XYLE, C2H2, C2H4, GLYX, MGLY, GLYC, HAC. (tmf, 1/7/09)
-!      !INTEGER, PARAMETER :: NEMPARA = 21 
-!      !  Add RCHO, HCOOH, ACTA
-!      !INTEGER, PARAMETER :: NEMPARA = 26 
-!      ! SDE 03/25/13: Added CH4
-!      INTEGER,    PARAMETER :: NEMPARA = 30
-!      INTEGER,    PARAMETER :: NEMPARB = 21
-!------------------------------------------------------------------------------
-
       !=================================================================
       ! OTHER PARAMETERS 
       !=================================================================
@@ -556,16 +548,6 @@
       ! LLCONVM - Max number of layers for convection
       INTEGER               :: LLCONVM
 
-!------------------------------------------------------------------------------
-! Prior to 5/22/15:
-! HEMCO made NOXLEVELS, NOXEXTENT obsolete (bmy, 5/22/15)
-!      ! NOXLEVELS = Number of levels of anthro NOx emission 
-!      !             (e.g. surface and 100m)
-!      ! NOXEXTENT = Highest sigma level that receives anthro NOx emission 
-!      INTEGER,    PARAMETER :: NOXLEVELS = 2
-!      INTEGER,    PARAMETER :: NOXEXTENT = 2 
-!
-!------------------------------------------------------------------------------
       ! MAXFAM -- Max number of families for prod and loss output
       INTEGER,    PARAMETER :: MAXFAM = 40
 

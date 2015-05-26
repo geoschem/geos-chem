@@ -939,15 +939,6 @@
          FILENAME = 'rate.YYYYMMDD'
          CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 
-!-----------------------------------------------------------------------------
-! Prior to 3/13/15:
-! Now remove reference to Input_Opt%O3PL_DIR.  BPCH output is going to
-! be removed very shortly anyway. (bmy, 3/13/15)
-!         ! Then prefix FILENAME w/ the data directory name
-!         FILENAME = TRIM( Input_Opt%O3PL_DIR ) // FILENAME
-!-----------------------------------------------------------------------------
-
-
          ! Echo info
          IF ( am_I_Root ) WRITE( 6, 110 ) TRIM( FILENAME )
  110     FORMAT( '     - DIAG20: Writing ', a )

@@ -5719,43 +5719,6 @@
          SCALE(T,31) = 1e0
       ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 8/18/14:
-! The CH3I simulation is obsolete, so comment out for now (bmy, 8/25/14)
-!      !-------------------------------------      
-!      ! CH3I emissions sources (ND36)
-!      !-------------------------------------      
-!      IF ( ND36 > 0 .and. Input_Opt%ITS_A_CH3I_SIM ) THEN
-!
-!         ! Number of tracers
-!         NTRAC(36) = NEMANTHRO
-!
-!         ! The first few are tracers
-!         DO T = 1, NTRAC(36)
-!            IF ( T <= Input_Opt%N_TRACERS ) THEN
-!               NAME (T,36) = Input_Opt%TRACER_NAME(T)
-!               FNAME(T,36) = TRIM( NAME(T,36) ) // ' tracer'
-!            ELSE IF ( T == 6 ) THEN
-!               NAME (T,36) = 'CH3Iof'
-!               FNAME(T,36) = 'CH3I ocean flux??'
-!            ELSE IF ( T == 7 ) THEN
-!               NAME (T,36) = 'CH3Igf'
-!               FNAME(T,36) = 'CH3I gas flux??'
-!            ELSE IF ( T == 8 ) THEN
-!               NAME (T,36) = 'CH3Itf'
-!               FNAME(T,36) = 'CH3I total flux??'
-!            ENDIF
-!
-!            ! Define other quantities
-!            MOLC (T,36) = 1
-!            SCALE(T,36) = 1e0
-!            INDEX(T,36) = T + ( SPACING * 44 )
-!            MWT  (T,36) = 141.9e-3
-!            UNIT (T,36) = 'ng/m2/s'
-!         ENDDO
-!      ENDIF
-!------------------------------------------------------------------------------
-
       !-------------------------------------      
       ! Afternoon-average boundary 
       ! layer heights (ND41) + timeseries

@@ -31,11 +31,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PLANEFLIGHT_MOD,    ONLY : SETUP_PLANEFLIGHT
-!------------------------------------------------------------------------------
-! Prior to 5/22/15:
-! HEMCO made this obsolete, so remove it (bmy, 5/22/15)
-!      USE TRACERID_MOD,       ONLY : NEMANTHRO
-!------------------------------------------------------------------------------
       USE WETSCAV_MOD,        ONLY : GET_WETDEP_NMAX
 
 #if   defined( TOMAS )

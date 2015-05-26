@@ -444,71 +444,8 @@
       ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
       ! (jaf, eds, 4/1/11)
       !IF (LGCAPEMIS) THEN
-!------------------------------------------------------------------------------
-! Prior to 3/16/15:
-! LVEGEMIS=.FALSE. is the default setting (bmy, 3/16/15)
-!      IF (.NOT. LVEGEMIS) THEN
-!------------------------------------------------------------------------------
 
          EHg0_vg = 0e+0_fp
-
-!------------------------------------------------------------------------------
-! Prior to 3/16/15:
-! LVEGEMIS=.FALSE. is the default setting.  In the README file to directory
-! GEOS_4x5/mercury_201007/ it says:
-!
-!   Monthly mean climatological evapotranspiration fields [Mintz and Walker, 
-!   1993]. These were used in Selin et al., 2008 to scale vegetation mercury
-!   emissions. This process is not included in more recent versions of the 
-!   model and these files may be obsolete.
-!
-! Therefore, we will remove this code from GEOS-Chem.  This will save us
-! the hassle of converting the NASA evapotranspiration files from bpch
-! to netCDF. (bmy, 3/16/15).
-!
-!      ELSE
-!
-!         ! read GISS TRANSP monthly average
-!         IF ( ITS_A_NEW_MONTH() ) THEN 
-!            CALL READ_NASA_TRANSP( am_I_Root, Input_Opt, RC )
-!         ENDIF 
-!
-!         ! loop over I,J
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, SOILWATER_HG, DRYSOIL_HG, VEG_EMIS, AREA_M2 ) 
-!         DO J=1, JJPAR
-!         DO I=1, IIPAR
-!        
-!            IF (IS_LAND( I, J, State_Met )) THEN
-!
-!               ! Dry soil Hg concentration, ng Hg /g soil
-!               DRYSOIL_HG = DRYSOIL_PREIND_HG * EHg0_dist(I,J)
-!
-!               ! Hg concentration in soil water, ng /m3
-!               SOILWATER_HG =  DRYSOIL_HG / Kd
-!
-!               ! Emission from vegetation, ng /m2
-!               VEG_EMIS = SOILWATER_HG * TRANSP(I,J)
-!
-!               ! convert from ng /m2 /s -> kg/gridbox/s
-!               ! Grid box surface area [m2]
-!               AREA_M2      = GET_AREA_M2( I, J, 1 )
-!               EHg0_vg(I,J) = VEG_EMIS * AREA_M2 * 1e-12_fp
-!
-!            ELSE
-!
-!               ! No emissions from water and ice
-!               EHg0_vg(I,J) = 0e+0_fp
-!
-!            ENDIF
-!
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!
-!      ENDIF
-!------------------------------------------------------------------------------
 
       END SUBROUTINE VEGEMIS
 !EOC

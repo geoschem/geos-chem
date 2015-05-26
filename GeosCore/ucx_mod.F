@@ -2617,17 +2617,6 @@
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
 
-!------------------------------------------------------------------------------
-! Prior to 4/8/15:
-! Now call READ_PSC_FILE from chemistry_mod.F (before CHEMDR).  This will
-! avoid any issues with READ_PSC_FILE being called from within a parallel
-! loop (bmy, 4/8/15)
-!      ! Eventually get STATE_PSC
-!      IF ( .NOT. GOT_STATE_PSC ) THEN
-!         CALL READ_PSC_FILE( am_I_Root )
-!      ENDIF
-!------------------------------------------------------------------------------
- 
       ! For debugging
       MAXLOSS= 0e+0_fp
       D_XHNO3= 0e+0_fp
@@ -3544,17 +3533,6 @@
          CALL DEBUG_MSG( '### UCX: start CALC_STRAT_AER' )
       ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 4/8/15:
-! Now call READ_PSC_FILE from chemistry_mod.F (before CHEMDR).  This will
-! avoid any issues with READ_PSC_FILE being called from within a parallel
-! loop (bmy, 4/8/15)
-!      ! Read in PSC state
-!      IF ( .NOT. GOT_STATE_PSC ) THEN
-!         CALL READ_PSC_FILE( am_I_Root )
-!      ENDIF
-!------------------------------------------------------------------------------
-
       ! Partition H2SO4 before proceeding
       CALL CALC_H2SO4_GAS( Input_Opt, State_Met, State_Chm )
 
@@ -4339,16 +4317,6 @@
       !=================================================================
       ! CHECK_NAT begins here!
       !=================================================================
-
-!------------------------------------------------------------------------------
-! Prior to 4/8/15:
-! Now call READ_PSC_FILE from chemistry_mod.F (before CHEMDR).  This will
-! avoid any issues with READ_PSC_FILE being called from within a parallel
-! loop (bmy, 4/8/15)
-!      IF ( .NOT. GOT_STATE_PSC ) THEN
-!         CALL READ_PSC_FILE( am_I_Root )
-!      ENDIF
-!------------------------------------------------------------------------------
 
       IS_STRAT = ITS_IN_THE_STRAT(I,J,L,State_Met)
 
