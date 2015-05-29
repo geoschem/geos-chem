@@ -166,6 +166,8 @@
 #                              (In some cases, these are the same).
 #  20 May 2015 - R. Yantosca - Test if GC_F_BIN and GC_F_INCLUDE are defined
 #                              as env variables before trying to use them.
+#  29 May 2015 - R. Yantosca - Now set KPP_CHEM for KPP.  We can't redefine
+#                              the CHEM variable because it is an env var.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -308,7 +310,8 @@ ifeq ($(shell [[ "$(NO_BPCH)" =~ $(REGEXP) ]] && echo true),true)
 endif
 
 #------------------------------------------------------------------------------
-# KPP settings chemistry solver settings
+# KPP settings chemistry solver settings.  NOTE: We can't redefine CHEM 
+# (since it is an environent variable), so define a shadow variable KPP_CHEM.
 # %%%%% NOTE: These will probably be obsolete when FLEXCHEM is added. %%%%%
 #------------------------------------------------------------------------------
 
@@ -319,7 +322,7 @@ IS_CHEM_SET          :=0
 REGEXP               :=(^[Uu][Cc][Xx])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   UCX                :=y
-  CHEM               :=UCX
+  KPP_CHEM           :=UCX
   IS_CHEM_SET        :=1
 endif
 
@@ -327,15 +330,15 @@ endif
 REGEXP               :=(^[Ss][Oo][Aa])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   UCX                :=n
-  CHEM               :=SOA
+  KPP_CHEM           :=SOA
   IS_CHEM_SET        :=1
 endif
 
 # %%%%% Test if CHEM=NOx_Ox_HC_Aer_Br %%%%%
-REGEXP               :=(^[Nn][Oo][Xx]_[Oo][Xx]_[Hh][Cc]_[Bb][Rr])
+REGEXP               :=(^[Nn][Oo][Xx]_[Oo][Xx]_[Hh][Cc]_[Aa][Ee][Rr]_[Bb][Rr])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   UCX                :=n
-  CHEM               :=NOx_Ox_HC_Aer_Br
+  KPP_CHEM           :=NOx_Ox_HC_Aer_Br
   IS_CHEM_SET        :=1
 endif
 
@@ -343,15 +346,14 @@ endif
 REGEXP               :=(^[Tt][Rr][Oo][Pp][Cc][Hh][Ee][Mm])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   UCX                :=n
-  CHEM               :=NOx_Ox_HC_Aer_Br
+  KPP_CHEM           :=NOx_Ox_HC_Aer_Br
   IS_CHEM_SET        :=1
 endif
-
 
 # %%%%%  Default setting: CHEM=benchmark (will also turn on UCX) %%%%%
 ifeq ($(IS_CHEM_SET),0)
   UCX                :=y
-  CHEM               :=benchmark
+  KPP_CHEM           :=benchmark
   IS_CHEM_SET        :=1
 endif
 
@@ -1059,7 +1061,7 @@ export NC_LINK_CMD
 export HPC
 export PRECISION
 export RRTMG_NEEDED
-export CHEM
+export KPP_CHEM
 
 #EOC
 

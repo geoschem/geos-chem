@@ -62,6 +62,9 @@
 #                              This directory has been removed because it is
 #                              obsolete.
 #  26 May 2015 - R. Yantosca - Bug fix, now point CHEM=benchmark by default
+#  29 May 2015 - R. Yantosca - Add tropchem as a synonym for NOX_Ox_HC_Aer_Br
+#  29 May 2015 - R. Yantosca - Now use KPP_CHEM instead of CHEM.  CHEM is an
+#                              environment variable and can't be reset.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -85,8 +88,8 @@ include $(ROOT)/Makefile_header.mk
 
 # Make the standard benchmark simulation if CHEM is not passed
 # NOTE: In v10-01+, CHEM should always be passed from Makefile_header.mk!
-ifndef CHEM
- CHEM :=benchmark
+ifndef KPP_CHEM
+ KPP_CHEM :=benchmark
 endif
 
 # Make rosenbrock the default solver
@@ -96,7 +99,7 @@ endif
 
 # solver (S=Source, T=Target)
 SOLVER_SFILE :=./int/gckpp_Integrator_$(KPPSOLVER).F90
-SOLVER_TFILE :=./$(CHEM)/gckpp_Integrator.F90
+SOLVER_TFILE :=./$(KPP_CHEM)/gckpp_Integrator.F90
 
 ###############################################################################
 ###                                                                         ###
@@ -109,7 +112,7 @@ SOLVER_TFILE :=./$(CHEM)/gckpp_Integrator.F90
 all: lib
 
 lib: kppintegrator
-	@$(MAKE) -C $(CHEM)
+	@$(MAKE) -C $(KPP_CHEM)
 
 kppintegrator:
 	@diff $(SOLVER_SFILE) $(SOLVER_TFILE) ;\
@@ -119,7 +122,7 @@ kppintegrator:
 	fi
 
 clean:
-	@$(MAKE) -C $(CHEM) clean
+	@$(MAKE) -C $(KPP_CHEM) clean
 
 realclean:
 	@$(MAKE) -C benchmark        clean
@@ -129,5 +132,4 @@ realclean:
 
 help:
 	@$(MAKE) -C $(HELP) 
-
 #EOC	
