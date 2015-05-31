@@ -383,7 +383,7 @@
             !### or cloud OD, then uncomment the following lines:
             !OPTAER  = 0d0
             !OPTDUST = 0d0
-            !OPTD    = 0d0
+            !OPTD(:)    = 0d0
             !-----------------------------------------------------------
 
 #if defined( USE_LINEAR_OVERLAP )
@@ -2253,9 +2253,14 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! extra two LUT dat files for strat H2SO4 and NAT particles
       DATA SPECFIL /"so4.dat","soot.dat","org.dat","ssa.dat","ssc.dat",
 #if defined( UCX )
-      ! add in dummy optics LUT tables for now
-      ! needs to be H2SO4 and something ice-like for NAT (DAR 03/2015)
-     &              "so4.dat","so4.dat",
+      ! Treating strat sulfate with GADS data but modified to match
+      ! the old Fast-J values size (r=0.09um, sg=0.6) - I think there's
+      ! evidence that this is too smale and narrow e.g. Deshler et al. 2003
+      ! NAT should really be associated with something like cirrus cloud
+      ! but for now we are just treating the NAT like the sulfate... limited
+      ! info but ref index is similar e.g. Scarchilli et al. (2005)
+      !(DAR 05/2015)
+     &              "h2so4.dat","h2so4.dat",
 #endif
      &              "dust.dat"/
       !array of filenames
@@ -2943,17 +2948,8 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
              DO M=1,3
                 IF (AERX_COL(M,L).gt.0e+0_fp) THEN
                    IDXAER=MIEDX(M)
-                   !IF (IDXAER.lt.15) THEN !always true now
-                      ! Cloud (600 nm scaling)
-                      QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
-                   !ELSEIF (AOD999) THEN
-                   !   ! Aerosol/dust (999 nm scaling)
-                   !   QSCALING = QAA(KMIE,IDXAER)/QAA(IND999,IDXAER)
-                   !ELSE
-                   !   ! Aerosol/dust (550 nm scaling)
-                   !   ! currently using 600nm as that's all we have
-                   !   QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
-                   !ENDIF
+                   ! Cloud (600 nm scaling)
+                   QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
                    LOCALOD = QSCALING*AERX_COL(M,L)
                    LOCALSSA = SAA(KMIE,IDXAER)*LOCALOD
                    OD(KMIE,L) = OD(KMIE,L) + LOCALOD
@@ -2978,6 +2974,7 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
                    
                    IF (AOD999) THEN
                       ! Aerosol/dust (999 nm scaling)
+                      ! Fixed to dry radius
                       QSCALING = QQAA(KMIE2,1,IDXAER)/
      &                           QQAA(10,1,IDXAER)
                    ELSE
@@ -4101,7 +4098,7 @@ C---Always does PL(2) = P[1]
          ENDDO
         
          ! Also add in other aerosol optical depth columns (rvm, bmy, 2/27/02)
-         DO N = 1, NAER
+         DO N = 1, NAER*NRH
             AERCOL(3+N+NDUST,I) = AEROD(I,N)
          ENDDO
 
