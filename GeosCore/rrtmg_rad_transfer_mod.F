@@ -443,6 +443,7 @@
         IDIAGOUT = MAX(IDIAGOUT,SPECMASK(N))
        ENDIF
       ENDDO
+!      write(6,*) 'SPECMASK:',SPECMASK
       
       TAUCLD(:,:)        = 0.0
       CLDFR(:,:)         = 0.0
@@ -455,8 +456,8 @@
       SSAAER(:,:,:)      = 0.0
       ASMAER(:,:,:)      = 0.0
       TAUAERDIAG(:,:,:)  = 0.0D0
-      SSAAERDIAG(:,:,:)  = 1.0D0
-      ASMAERDIAG(:,:,:)  = 0.2D0
+      SSAAERDIAG(:,:,:)  = 0.0D0
+      ASMAERDIAG(:,:,:)  = 0.0D0
       UFLX(:,:)          = 0.0
       DFLX(:,:)          = 0.0
       HR(:,:)            = 0.0
@@ -805,11 +806,7 @@
               ASMAER(IJLOOP,L,IB_SW) = ASMAER(IJLOOP,L,IB_SW) +
      &                                 RTASYMAER(I,J,L,IBX,IS) *
      &                      RTODAER(I,J,L,IBX,IS)*RTSSAER(I,J,L,IBX,IS)
-              IF ((IS.EQ.8).AND.(L.GT.30).AND.
-     &           (RTODAER(I,J,L,IBX,IS).GT.0.0d0)) THEN
-!               write(6,*) 'STS',I,J,L,IBX,IS,RTODAER(I,J,L,IBX,IS)
-              ENDIF
-             ENDIF 
+             ENDIF
              IF (SPECMASK(IS).GT.1) THEN
               TAUAERDIAG(IJLOOP,L,IB_SW)=TAUAERDIAG(IJLOOP,L,IB_SW)+
      &                        RTODAER(I,J,L,IBX,IS)
@@ -818,7 +815,12 @@
               ASMAERDIAG(IJLOOP,L,IB_SW) = ASMAERDIAG(IJLOOP,L,IB_SW) +
      &                      RTASYMAER(I,J,L,IBX,IS) *
      &                      RTODAER(I,J,L,IBX,IS)*RTSSAER(I,J,L,IBX,IS)
-!              write(6,*) 'SSA0',I,J,L,IBX,IS,RTSSAER(I,J,L,IBX,IS)
+!              IF ((IS.EQ.9).AND.(L.GT.30).AND.(IB_SW.EQ.10).AND.
+!     &           (RTODAER(I,J,L,IBX,IS).GT.0.0d0)) THEN
+!               write(6,*) 'STS',I,J,L,IBX,IS,RTODAER(I,J,L,IBX,IS),
+!     &                    RTSSAER(I,J,L,IBX,IS)
+!              ENDIF
+
              ENDIF
             ENDIF
            ENDIF 
@@ -878,7 +880,6 @@
               !DIVIDE SUM(SSA*OD) BY SUM(OD) TO GET OD WEIGHTED SSA
               SSAAERDIAG(IJLOOP,L,IB_SW) = SSAAERDIAG(IJLOOP,L,IB_SW) /
      &                                     TAUAERDIAG(IJLOOP,L,IB_SW)
-!            write(6,*) 'SSA',SSAAERDIAG(IJLOOP,L,IB_SW)
            ENDIF
           ENDIF
          ENDDO
@@ -920,7 +921,7 @@
           ELSE
            TAUAER_SW(IJLOOP,L,IB_SW) = 0.0D0
            SSAAER(IJLOOP,L,IB_SW)    = 0.99D0
-           ASMAER(IJLOOP,L,IB_SW)    = 0.02D0
+           ASMAER(IJLOOP,L,IB_SW)    = 0.2D0
            TAUAERDIAG(IJLOOP,L,IB_SW) = 0.0D0
            SSAAERDIAG(IJLOOP,L,IB_SW) = 0.99D0
            ASMAERDIAG(IJLOOP,L,IB_SW) = 0.2D0
@@ -1260,9 +1261,10 @@
           ENDIF
          ENDDO !LLPAR
          !WE ARE SAVING COLUMN AVERAGED VALUES FOR EACH SPECIES
-         !DIVIDE THROUGH BY NUMBER OF GRIDBOXES AND AOD*SSA
+         !DIVIDE THROUGH BY AOD*SSA (AOD-SSA WEIGHTING ACCOUNTS FOR
+         !GRIDBOXES)
          ASYMOUT=ASYMOUT/SSAOUT
-         !DIVIDE THROUGH BY NUMBER OF GRIDBOXES AND AOD
+         !DIVIDE THROUGH BY AOD
          SSAOUT=SSAOUT/AODOUT
          !offsetting output depending on wavelength
          AD72(I,J,OUTIDX+(8+3*(W-1))*NAD72) = 
