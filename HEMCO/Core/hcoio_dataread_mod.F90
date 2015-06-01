@@ -955,8 +955,10 @@ CONTAINS
 
        ! Now convert to HEMCO units. This attempts to convert mass, 
        ! area/volume and time to HEMCO standards (kg, m2/m3, s).
-       ncYr  = FLOOR( MOD(oYMDh1,10000000000) / 1.0d6 )
-       ncMt  = FLOOR( MOD(oYMDh1,1000000)     / 1.0d4 )
+       !GanLuo+ncYr  = FLOOR( MOD(oYMDh1,10000000000) / 1.0d6 )
+       !GanLuo+ncMt  = FLOOR( MOD(oYMDh1,1000000)     / 1.0d4 )
+       ncYr  = FLOOR( MOD(oYMDh1*1.d0,10000000000.d0) / 1.0d6 )
+       ncMt  = FLOOR( MOD(oYMDh1*1.d0,1000000.d0)     / 1.0d4 )
        IF ( ncYr == 0 ) CALL HcoClock_Get( cYYYY = ncYr, RC=RC ) 
        IF ( ncMt == 0 ) CALL HcoClock_Get( cMM   = ncMt, RC=RC ) 
 
@@ -1849,10 +1851,14 @@ CONTAINS
     !=================================================================
 
     ! Get original Yr, Mt, Dy and Hr
-    origYr = FLOOR( MOD(prefYMDh, 10000000000) / 1.0d6 )
-    origMt = FLOOR( MOD(prefYMDh, 1000000    ) / 1.0d4 )
-    origDy = FLOOR( MOD(prefYMDh, 10000      ) / 1.0d2 )
-    origHr = FLOOR( MOD(prefYMDh, 100        ) / 1.0d0 )
+    !GanLuo+origYr = FLOOR( MOD(prefYMDh, 10000000000) / 1.0d6 )
+    !GanLuo+origMt = FLOOR( MOD(prefYMDh, 1000000    ) / 1.0d4 )
+    !GanLuo+origDy = FLOOR( MOD(prefYMDh, 10000      ) / 1.0d2 )
+    !GanLuo+origHr = FLOOR( MOD(prefYMDh, 100        ) / 1.0d0 )
+    origYr = FLOOR( MOD(prefYMDh*1.d0, 10000000000.d0) / 1.0d6 )
+    origMt = FLOOR( MOD(prefYMDh*1.d0, 1000000.d0    ) / 1.0d4 )
+    origDy = FLOOR( MOD(prefYMDh*1.d0, 10000.d0      ) / 1.0d2 )
+    origHr = FLOOR( MOD(prefYMDh*1.d0, 100.d0        ) / 1.0d0 )
 
     ! Extract new attribute from availYMDh and insert into prefYMDh. Pick
     ! closest available value.
@@ -2335,10 +2341,14 @@ CONTAINS
     ! YMDh2hrs begins here! 
     !=================================================================
 
-    hrs = FLOOR( MOD(YMDh, 10000000000) / 1.0d6 ) * 8760 + &
-          FLOOR( MOD(YMDh, 1000000    ) / 1.0d4 ) * 720  + &
-          FLOOR( MOD(YMDh, 10000      ) / 1.0d2 ) * 24   + &
-          FLOOR( MOD(YMDh, 100        ) / 1.0d0 )
+    !GanLuo+hrs = FLOOR( MOD(YMDh, 10000000000) / 1.0d6 ) * 8760 + &
+    !GanLuo+      FLOOR( MOD(YMDh, 1000000    ) / 1.0d4 ) * 720  + &
+    !GanLuo+      FLOOR( MOD(YMDh, 10000      ) / 1.0d2 ) * 24   + &
+    !GanLuo+      FLOOR( MOD(YMDh, 100        ) / 1.0d0 )
+    hrs = FLOOR( MOD(YMDh*1.d0, 10000000000.d0) / 1.0d6 ) * 8760 + &
+          FLOOR( MOD(YMDh*1.d0, 1000000.d0    ) / 1.0d4 ) * 720  + &
+          FLOOR( MOD(YMDh*1.d0, 10000.d0      ) / 1.0d2 ) * 24   + &
+          FLOOR( MOD(YMDh*1.d0, 100.d0        ) / 1.0d0 )
 
   END FUNCTION YMDh2hrs 
 !EOC
