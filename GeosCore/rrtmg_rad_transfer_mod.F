@@ -409,13 +409,22 @@
       ! POINTERS to avoid array temporaries (bmy, 6/2/15)
       !-----------------------------------------------------------------
 
-      ! For RRTMG_LW
+      ! For MCICA_SUBCOL_LW: don't use pointers (it segfaults)
+      REAL(KIND=RB)          :: p_TAUCLD_LW(NBNDLW,1,LLPAR)
+
+      ! For MCICA_SUBCOL_LW: don't use pointers (it segfaults)
+      REAL(KIND=RB)          :: p_TAUCLD_SW(NBNDSW,1,LLPAR)
+      REAL(KIND=RB)          :: p_SSACLD   (NBNDSW,1,LLPAR)
+      REAL(KIND=RB)          :: p_ASMCLD   (NBNDSW,1,LLPAR)
+      REAL(KIND=RB)          :: p_FSFCLD   (NBNDSW,1,LLPAR)
+
+      ! For RRTMG_LW: use pointers
       REAL(KIND=RB), POINTER :: p_CLDFMCL_LW(:,:) => NULL()
       REAL(KIND=RB), POINTER :: p_TAUCMCL_LW(:,:) => NULL()
       REAL(KIND=RB), POINTER :: p_CIWPMCL_LW(:,:) => NULL()
       REAL(KIND=RB), POINTER :: p_CLWPMCL_LW(:,:) => NULL()
         
-      ! For RRTMG_SW
+      ! For RRTMG_SW: use pointers
       REAL(KIND=RB), POINTER :: p_CLDFMCL_SW(:,:) => NULL()
       REAL(KIND=RB), POINTER :: p_TAUCMCL_SW(:,:) => NULL()
       REAL(KIND=RB), POINTER :: p_SSACMCL   (:,:) => NULL()
@@ -1062,54 +1071,123 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%%  This parallel loop gives identical results w/r/t to a RRTMG           %%%
 !%%%  simulation compiled with OpenMP turned off. (bmy, 6/2/15)             %%%
+!%%%  Also now avoid array temporaries (bmy, 6/2/15)                        %%%
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( IL, OMPID )
-!$OMP+PRIVATE( PCENTER0, CLDFR0, CLIQWP0, CICEWP0)
-!$OMP+PRIVATE( REICE0, RELIQ0, TAUCLD_SW0)
-!$OMP+PRIVATE( SSACLD0, ASMCLD0, FSFCLD0)
-!$OMP+PRIVATE( CLDFMCL_LW0, CIWPMCL_LW0, CLWPMCL_LW0)
-!$OMP+PRIVATE( REICMCL0, RELQMCL0, TAUCMCL_LW0)
-!$OMP+PRIVATE( CLDFMCL_SW0, CIWPMCL_SW0, CLWPMCL_SW0)
-!$OMP+PRIVATE( TAUCMCL_SW0, SSACMCL0,ASMCMCL0, FSFCMCL0)
+!$OMP+PRIVATE( IL,          PCENTER0,    CLDFR0                   )
+!$OMP+PRIVATE( CLIQWP0,     CICEWP0,     REICE0,      RELIQ0      )
+!$OMP+PRIVATE( TAUCLD_SW0,  SSACLD0,     ASMCLD0,     FSFCLD0     )
+!$OMP+PRIVATE( CLDFMCL_LW0, CIWPMCL_LW0, CLWPMCL_LW0, REICMCL0    )
+!$OMP+PRIVATE( RELQMCL0,    TAUCMCL_LW0, CLDFMCL_SW0, CIWPMCL_SW0 )
+!$OMP+PRIVATE( CLWPMCL_SW0, TAUCMCL_SW0, SSACMCL0,    ASMCMCL0    )
+!$OMP+PRIVATE( FSFCMCL0,    p_TAUCLD_LW, p_TAUCLD_SW, p_SSACLD    )
+!$OMP+PRIVATE( p_ASMCLD,    p_FSFCLD                              )
 !$OMP+SCHEDULE( DYNAMIC )
        DO IL=1, NCOL
-        IF (Input_Opt%LLWRAD) THEN
-         CALL MCICA_SUBCOL_LW(ONECOL,LLPAR,ICLDMCL,
-     &        SEEDLW,IRNG,PCENTER(IL,:),
-     &        CLDFR(IL,:),CICEWP(IL,:),CLIQWP(IL,:),
-     &        REICE(IL,:),RELIQ(IL,:),TAUCLD_LW(:,IL,:),
-     &        CLDFMCL_LW0, CIWPMCL_LW0, CLWPMCL_LW0,
-     &        REICMCL0, RELQMCL0, TAUCMCL_LW0)
 
-         CLDFMCL_LW(:,IL,:)   = CLDFMCL_LW0(:,1,:)
-         CIWPMCL_LW(:,IL,:)   = CIWPMCL_LW0(:,1,:)
-         CLWPMCL_LW(:,IL,:)   = CLWPMCL_LW0(:,1,:)
-         TAUCMCL_LW(:,IL,:)   = TAUCMCL_LW0(:,1,:)
-        ENDIF
-        IF (Input_Opt%LSWRAD) THEN
-         CALL MCICA_SUBCOL_SW(ONECOL, LLPAR, ICLDMCL,
-     &        SEEDSW, IRNG,PCENTER(IL,:),
-     &        CLDFR(IL,:), CICEWP(IL,:), CLIQWP(IL,:),
-     &        REICE(IL,:), RELIQ(IL,:),
-     &        TAUCLD_SW(:,IL,:),SSACLD(:,IL,:),
-     &        ASMCLD(:,IL,:),FSFCLD(:,IL,:),
-     &        CLDFMCL_SW0, CIWPMCL_SW0, CLWPMCL_SW0,
-     &        REICMCL0, RELQMCL0, TAUCMCL_SW0, SSACMCL0,
-     &        ASMCMCL0, FSFCMCL0)
-         CLDFMCL_SW(:,IL,:)   = CLDFMCL_SW0(:,1,:)
-         CIWPMCL_SW(:,IL,:)   = CIWPMCL_SW0(:,1,:)
-         CLWPMCL_SW(:,IL,:)   = CLWPMCL_SW0(:,1,:)
-         TAUCMCL_SW(:,IL,:)   = TAUCMCL_SW0(:,1,:)
-         SSACMCL(:,IL,:)    = SSACMCL0(:,1,:)
-         ASMCMCL(:,IL,:)    = ASMCMCL0(:,1,:)
-         FSFCMCL(:,IL,:)    = FSFCMCL0(:,1,:)
-        ENDIF
-        ! these should be independent of LW and SW
-        ! simply rearranged by the MCICA routine
-        REICMCL(IL,:) = REICMCL0(1,:)
-        RELQMCL(IL,:) = RELQMCL0(1,:)
+          !-------------------------------------------------------------
+          ! Long-wave radiation
+          !-------------------------------------------------------------
+          IF (Input_Opt%LLWRAD) THEN
+
+             ! Copy to temp array in order to avoid array temporaries, which 
+             ! are caused by passing non-contiguous array slices. (bmy, 6/2/15)
+             p_TAUCLD_LW(:,1,:) = TAUCLD_LW(:,IL,:)
+
+             CALL MCICA_SUBCOL_LW( ONECOL,
+     &                             LLPAR,
+     &                             ICLDMCL,
+     &                             SEEDLW,
+     &                             IRNG,
+     &                             PCENTER(IL,:),
+     &                             CLDFR(IL,:),
+     &                             CICEWP(IL,:),
+     &                             CLIQWP(IL,:),
+     &                             REICE(IL,:),
+     &                             RELIQ(IL,:),
+!------------------------------------------------------------------------------
+! Prior to 6/2/15:
+! Do not pass non-contiguous array slices, use temp arrays instead.
+! This avoids creating array temporaries. (bmy, 6/2/15)
+!     &                             TAUCLD_LW(:,IL,:),
+!------------------------------------------------------------------------------
+     &                             p_TAUCLD_LW,
+     &                             CLDFMCL_LW0, 
+     &                             CIWPMCL_LW0, 
+     &                             CLWPMCL_LW0,
+     &                             REICMCL0, 
+     &                             RELQMCL0, 
+     &                             TAUCMCL_LW0 )
+
+             ! Copy back into 1-D arrays
+             CLDFMCL_LW(:,IL,:) = CLDFMCL_LW0(:,1,:)
+             CIWPMCL_LW(:,IL,:) = CIWPMCL_LW0(:,1,:)
+             CLWPMCL_LW(:,IL,:) = CLWPMCL_LW0(:,1,:)
+             TAUCMCL_LW(:,IL,:) = TAUCMCL_LW0(:,1,:)
+
+          ENDIF
+
+          !-------------------------------------------------------------
+          ! Short-wave radiation
+          !-------------------------------------------------------------
+          IF (Input_Opt%LSWRAD) THEN
+
+             ! Copy to temp array in order to avoid array temporaries, which 
+             ! are caused by passing non-contiguous array slices. (bmy, 6/2/15)
+             p_TAUCLD_SW(:,1,:) = TAUCLD_SW(:,IL,:)
+             p_SSACLD   (:,1,:) = SSACLD   (:,IL,:)
+             p_ASMCLD   (:,1,:) = ASMCLD   (:,IL,:)
+             p_FSFCLD   (:,1,:) = FSFCLD   (:,IL,:)
+
+             CALL MCICA_SUBCOL_SW( ONECOL, 
+     &                             LLPAR, 
+     &                             ICLDMCL,
+     &                             SEEDSW, 
+     &                             IRNG,
+     &                             PCENTER(IL,:),
+     &                             CLDFR(IL,:), 
+     &                             CICEWP(IL,:), 
+     &                             CLIQWP(IL,:),
+     &                             REICE(IL,:), 
+     &                             RELIQ(IL,:),
+!------------------------------------------------------------------------------
+! Prior to 6/2/15:
+! Do not pass non-contiguous array slices, use temp arrays instead.
+! This avoids creating array temporaries. (bmy, 6/2/15)
+!     &                             TAUCLD_SW(:,IL,:),
+!     &                             SSACLD(:,IL,:),
+!     &                             ASMCLD(:,IL,:),
+!     &                             FSFCLD(:,IL,:),
+!------------------------------------------------------------------------------
+     &                             p_TAUCLD_SW,
+     &                             p_SSACLD,
+     &                             p_ASMCLD,
+     &                             p_FSFCLD,
+     &                             CLDFMCL_SW0, 
+     &                             CIWPMCL_SW0, 
+     &                             CLWPMCL_SW0,
+     &                             REICMCL0, 
+     &                             RELQMCL0, 
+     &                             TAUCMCL_SW0, 
+     &                             SSACMCL0,
+     &                             ASMCMCL0, 
+     &                             FSFCMCL0  )
+
+             ! Copy back into 3-D arrays
+             CLDFMCL_SW(:,IL,:) = CLDFMCL_SW0(:,1,:)
+             CIWPMCL_SW(:,IL,:) = CIWPMCL_SW0(:,1,:)
+             CLWPMCL_SW(:,IL,:) = CLWPMCL_SW0(:,1,:)
+             TAUCMCL_SW(:,IL,:) = TAUCMCL_SW0(:,1,:)
+             SSACMCL   (:,IL,:) = SSACMCL0   (:,1,:)
+             ASMCMCL   (:,IL,:) = ASMCMCL0   (:,1,:)
+             FSFCMCL   (:,IL,:) = FSFCMCL0   (:,1,:)
+          ENDIF
+
+          ! these should be independent of LW and SW
+          ! simply rearranged by the MCICA routine
+          REICMCL(IL,:) = REICMCL0(1,:)
+          RELQMCL(IL,:) = RELQMCL0(1,:)
        ENDDO
 !$OMP END PARALLEL DO
 
@@ -1117,7 +1195,6 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%%  This parallel loop gives identical results w/r/t to a RRTMG           %%%
 !%%%  simulation compiled with OpenMP turned off. (bmy, 6/2/15)             %%%
-!%%%                                                                        %%%
 !%%%  Also added pointers to avoid array temporaries (bmy, 6/2/15)          %%%
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
@@ -1193,8 +1270,9 @@
      &                  DUFLX_DT,
      &                  DUFLXC_DT )
 
-         LW_UFLUX(IL,:) = UFLX(1,:)
-         LW_DFLUX(IL,:) = DFLX(1,:)
+         ! Copy back into 3-D arrays
+         LW_UFLUX (IL,:) = UFLX (1,:)
+         LW_DFLUX (IL,:) = DFLX (1,:)
          LW_UFLUXC(IL,:) = UFLXC(1,:)
          LW_DFLUXC(IL,:) = DFLXC(1,:)
 
@@ -1223,9 +1301,9 @@
         ! caused by passing non-contiguous array slices. (bmy, 6/2/15)
         p_CLDFMCL_SW => CLDFMCL_SW(:,IL,:)
         p_TAUCMCL_SW => TAUCMCL_SW(:,IL,:)
-        p_SSACMCL    => SSACMCL(:,IL,:)
-        p_ASMCMCL    => ASMCMCL(:,IL,:)
-        p_FSFCMCL    => FSFCMCL(:,IL,:) 
+        p_SSACMCL    => SSACMCL   (:,IL,:)
+        p_ASMCMCL    => ASMCMCL   (:,IL,:)
+        p_FSFCMCL    => FSFCMCL   (:,IL,:) 
         p_CIWPMCL_SW => CIWPMCL_SW(:,IL,:)
         p_CLWPMCL_SW => CLWPMCL_SW(:,IL,:)
 
@@ -1286,8 +1364,10 @@
      &                 SWUFLXC,
      &                 SWDFLXC,
      &                 SWHRC    )
-        SW_UFLUX(IL,:) = SWUFLX(1,:)
-        SW_DFLUX(IL,:) = SWDFLX(1,:)
+
+        ! Copy back into 3-D arrays
+        SW_UFLUX (IL,:) = SWUFLX (1,:)
+        SW_DFLUX (IL,:) = SWDFLX (1,:)
         SW_UFLUXC(IL,:) = SWUFLXC(1,:)
         SW_DFLUXC(IL,:) = SWDFLXC(1,:)
 
