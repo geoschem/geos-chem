@@ -180,6 +180,8 @@
 !  23 Apr 2015 - R. Yantosca - Bug fix: YLAT was undefined; now corrected
 !  23 Apr 2015 - R. Yantosca - Bug fix: all members of State_Met now use
 !                              (I,J,L) ordering.  This is for the NASA GCM.
+!  02 Jun 2015 - R. Yantosca - Bug fix: Add missing variables to OMP PRIVATE
+!  02 Jun 2015 - R. Yantosca - Now use pointers to avoid array temporaries
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -402,6 +404,26 @@
       REAL(KIND=RB)       :: SSACLD0(NBNDSW,1,LLPAR)
       REAL(KIND=RB)       :: ASMCLD0(NBNDSW,1,LLPAR)
       REAL(KIND=RB)       :: FSFCLD0(NBNDSW,1,LLPAR)
+
+      !-----------------------------------------------------------------
+      ! POINTERS to avoid array temporaries (bmy, 6/2/15)
+      !-----------------------------------------------------------------
+
+      ! For RRTMG_LW
+      REAL(KIND=RB), POINTER :: p_CLDFMCL_LW(:,:) => NULL()
+      REAL(KIND=RB), POINTER :: p_TAUCMCL_LW(:,:) => NULL()
+      REAL(KIND=RB), POINTER :: p_CIWPMCL_LW(:,:) => NULL()
+      REAL(KIND=RB), POINTER :: p_CLWPMCL_LW(:,:) => NULL()
+        
+      ! For RRTMG_SW
+      REAL(KIND=RB), POINTER :: p_CLDFMCL_SW(:,:) => NULL()
+      REAL(KIND=RB), POINTER :: p_TAUCMCL_SW(:,:) => NULL()
+      REAL(KIND=RB), POINTER :: p_SSACMCL   (:,:) => NULL()
+      REAL(KIND=RB), POINTER :: p_ASMCMCL   (:,:) => NULL()
+      REAL(KIND=RB), POINTER :: p_FSFCMCL   (:,:) => NULL()
+      REAL(KIND=RB), POINTER :: p_CIWPMCL_SW(:,:) => NULL()
+      REAL(KIND=RB), POINTER :: p_CLWPMCL_SW(:,:) => NULL()
+
 
       !=================================================================
       ! DO_RRTMG_RAD_TRANSFER begins here!
@@ -1095,63 +1117,189 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%%  This parallel loop gives identical results w/r/t to a RRTMG           %%%
 !%%%  simulation compiled with OpenMP turned off. (bmy, 6/2/15)             %%%
+!%%%                                                                        %%%
+!%%%  Also added pointers to avoid array temporaries (bmy, 6/2/15)          %%%
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( IL,OMPID )
-!$OMP+PRIVATE( UFLX,DFLX,HR,UFLXC,DFLXC,HRC,DUFLX_DT,DUFLXC_DT)
-!$OMP+PRIVATE( ECAER,SWUFLX,SWDFLX,SWHR,SWUFLXC,SWDFLXC,SWHRC)
+!$OMP+PRIVATE( IL,           OMPID,        UFLX,         DFLX         )
+!$OMP+PRIVATE( HR,           UFLXC,        DFLXC,        HRC          )
+!$OMP+PRIVATE( DUFLX_DT,     DUFLXC_DT,    ECAER,        SWUFLX       )
+!$OMP+PRIVATE( SWDFLX,       SWHR,         SWUFLXC,      SWDFLXC      )
+!$OMP+PRIVATE( SWHRC,        p_CLDFMCL_LW, p_TAUCMCL_LW, p_CIWPMCL_LW )
+!$OMP+PRIVATE( p_CLWPMCL_LW, p_CLDFMCL_SW, p_TAUCMCL_SW, p_SSACMCL    )
+!$OMP+PRIVATE( p_ASMCMCL,    p_FSFCMCL,    p_CIWPMCL_SW, p_CLWPMCL_SW )
 !$OMP+SCHEDULE( DYNAMIC ) 
       DO IL=1, NCOL
  
+      !-----------------------------------------------------------------
+      ! RRTMG - Longwave radiation
+      !-----------------------------------------------------------------
       IF (Input_Opt%LLWRAD) THEN
-        CALL RRTMG_LW 
-     &       (ONECOL,LLPAR,ICLDMCL,IDRV, 
-     &        PCENTER(IL,:) ,PLEV(IL,:) ,TLAY(IL,:)    ,TLEV(IL,:) ,
-     &        TSFC(IL), 
-     &        H2OVMR(IL,:)  ,O3VMR(IL,:),CO2VMR(IL,:)  ,CH4VMR(IL,:),
-     &        N2OVMR(IL,:)  ,O2VMR(IL,:), 
-     &        CFC11VMR(IL,:),CFC12VMR(IL,:),CFC22VMR(IL,:),
-     &        CCL4VMR(IL,:) ,RTEMISS(IL,:) , 
-     &        INFLGLW ,ICEFLGLW,LIQFLGLW,
-     &        CLDFMCL_LW(:,IL,:),TAUCMCL_LW(:,IL,:),CIWPMCL_LW(:,IL,:),
-     &        CLWPMCL_LW(:,IL,:),REICMCL(IL,:),RELQMCL(IL,:), 
-     &        TAUAER_LW(IL,:,:),UFLX,DFLX,HR,UFLXC,DFLXC,HRC, 
-     &        DUFLX_DT,DUFLXC_DT)
+       
+         ! Create pointers in order to avoid array temporaries, which are 
+         ! caused by passing non-contiguous array slices. (bmy, 6/2/15)
+         p_CLDFMCL_LW => CLDFMCL_LW(:,IL,:)
+         p_TAUCMCL_LW => TAUCMCL_LW(:,IL,:)
+         p_CIWPMCL_LW => CIWPMCL_LW(:,IL,:)
+         p_CLWPMCL_LW => CLWPMCL_LW(:,IL,:)
+        
+         ! Call RRTMG for longwave radiation
+         CALL RRTMG_LW( ONECOL,
+     &                  LLPAR,
+     &                  ICLDMCL,
+     &                  IDRV, 
+     &                  PCENTER(IL,:),
+     &                  PLEV(IL,:),
+     &                  TLAY(IL,:),
+     &                  TLEV(IL,:),
+     &                  TSFC(IL), 
+     &                  H2OVMR(IL,:),
+     &                  O3VMR(IL,:),
+     &                  CO2VMR(IL,:),
+     &                  CH4VMR(IL,:),
+     &                  N2OVMR(IL,:),
+     &                  O2VMR(IL,:), 
+     &                  CFC11VMR(IL,:),
+     &                  CFC12VMR(IL,:),
+     &                  CFC22VMR(IL,:),
+     &                  CCL4VMR(IL,:),
+     &                  RTEMISS(IL,:), 
+     &                  INFLGLW,
+     &                  ICEFLGLW,
+     &                  LIQFLGLW,
+!------------------------------------------------------------------------------
+! Prior to 6/2/15:
+! Do not pass non-contiguous array slices, use pointers instead.
+! This avoids creating array temporaries. (bmy, 6/2/15)
+!     &                  CLDFMCL_LW(:,IL,:),  ! Causes array temporary
+!     &                  TAUCMCL_LW(:,IL,:),  ! Causes array temporary
+!     &                  CIWPMCL_LW(:,IL,:),  ! Causes array temporary
+!     &                  CLWPMCL_LW(:,IL,:),  ! Causes array temporary
+!------------------------------------------------------------------------------
+     &                  p_CLDFMCL_LW,        ! Avoids array temporary
+     &                  p_TAUCMCL_LW,        ! Avoids array temporary
+     &                  p_CIWPMCL_LW,        ! Avoids array temporary
+     &                  p_CLWPMCL_LW,        ! Avoids array temporary
+     &                  REICMCL(IL,:),
+     &                  RELQMCL(IL,:), 
+     &                  TAUAER_LW(IL,:,:),
+     &                  UFLX,
+     &                  DFLX,
+     &                  HR,
+     &                  UFLXC,
+     &                  DFLXC,
+     &                  HRC, 
+     &                  DUFLX_DT,
+     &                  DUFLXC_DT )
 
-        LW_UFLUX(IL,:) = UFLX(1,:)
-        LW_DFLUX(IL,:) = DFLX(1,:)
-        LW_UFLUXC(IL,:) = UFLXC(1,:)
-        LW_DFLUXC(IL,:) = DFLXC(1,:)
+         LW_UFLUX(IL,:) = UFLX(1,:)
+         LW_DFLUX(IL,:) = DFLX(1,:)
+         LW_UFLUXC(IL,:) = UFLXC(1,:)
+         LW_DFLUXC(IL,:) = DFLXC(1,:)
+
+         ! Nullify pointers
+         p_CLDFMCL_LW => NULL()
+         p_TAUCMCL_LW => NULL()
+         p_CIWPMCL_LW => NULL()
+         p_CLWPMCL_LW => NULL()
       ENDIF !LW
+
+      !-----------------------------------------------------------------
+      ! RRTMG - Longwave radiation
+      !-----------------------------------------------------------------
       IF (Input_Opt%LSWRAD) THEN
+
         ! 1-D INDEX
-        IJLOOP         = (J-1)*IIPAR+I
-        I = IL - (J-1)*IIPAR
-        I = MOD(IL,IIPAR)
+        IJLOOP = (J-1)*IIPAR+I
+        I      = IL - (J-1)*IIPAR
+        I      = MOD(IL,IIPAR)
+
+!### Debug output
 !        write(6,*) 'SWSHIZ',TAUAER_SW(IL,1,5),SWUFLX(1,1),SWDFLX(1,1),
 !     &         SWUFLXC(1,1),SWDFLXC(1,1)
 
-        CALL RRTMG_SW 
-     &       (ONECOL    ,LLPAR    ,ICLDMCL , 
-     &        PCENTER(IL,:)    ,PLEV(IL,:),TLAY(IL,:),TLEV(IL,:),
-     &        TSFC(IL), 
-     &        H2OVMR(IL,:)  ,O3VMR(IL,:)   ,CO2VMR(IL,:)  ,
-     &        CH4VMR(IL,:)  ,N2OVMR(IL,:)  ,O2VMR(IL,:), 
-     &        ALBDIRVIS(IL) ,ALBDIFVIS(IL) ,
-     &        ALBDIRNIR(IL) ,ALBDIFNIR(IL) , 
-     &        SUNCOS(IL,:) ,ADJES   ,DOY  ,SCON    , 
-     &        INFLGSW ,ICEFLGSW,LIQFLGSW,
-     &        CLDFMCL_SW(:,IL,:),TAUCMCL_SW(:,IL,:),
-     &        SSACMCL(:,IL,:),ASMCMCL(:,IL,:),FSFCMCL(:,IL,:), 
-     &        CIWPMCL_SW(:,IL,:),CLWPMCL_SW(:,IL,:),
-     &        REICMCL(IL,:),RELQMCL(IL,:), 
-     &        TAUAER_SW(IL,:,:)  ,SSAAER(IL,:,:)  ,ASMAER(IL,:,:)  ,
-     &        ECAER ,SWUFLX  ,SWDFLX  ,SWHR  ,SWUFLXC ,SWDFLXC ,SWHRC)
+        ! Create pointers in order to avoid array temporaries, which are 
+        ! caused by passing non-contiguous array slices. (bmy, 6/2/15)
+        p_CLDFMCL_SW => CLDFMCL_SW(:,IL,:)
+        p_TAUCMCL_SW => TAUCMCL_SW(:,IL,:)
+        p_SSACMCL    => SSACMCL(:,IL,:)
+        p_ASMCMCL    => ASMCMCL(:,IL,:)
+        p_FSFCMCL    => FSFCMCL(:,IL,:) 
+        p_CIWPMCL_SW => CIWPMCL_SW(:,IL,:)
+        p_CLWPMCL_SW => CLWPMCL_SW(:,IL,:)
+
+        ! Call RRTMG for shortwave radiation
+        CALL RRTMG_SW( ONECOL,
+     &                 LLPAR,
+     &                 ICLDMCL, 
+     &                 PCENTER(IL,:),
+     &                 PLEV(IL,:),
+     &                 TLAY(IL,:),
+     &                 TLEV(IL,:),
+     &                 TSFC(IL), 
+     &                 H2OVMR(IL,:),
+     &                 O3VMR(IL,:),
+     &                 CO2VMR(IL,:),
+     &                 CH4VMR(IL,:),
+     &                 N2OVMR(IL,:),
+     &                 O2VMR(IL,:), 
+     &                 ALBDIRVIS(IL),
+     &                 ALBDIFVIS(IL),
+     &                 ALBDIRNIR(IL),
+     &                 ALBDIFNIR(IL), 
+     &                 SUNCOS(IL,:),
+     &                 ADJES,
+     &                 DOY,
+     &                 SCON, 
+     &                 INFLGSW,
+     &                 ICEFLGSW,
+     &                 LIQFLGSW,
+!------------------------------------------------------------------------------
+! Prior to 6/2/15:
+! Do not pass non-contiguous array slices, use pointers instead.
+! This avoids creating array temporaries. (bmy, 6/2/15)
+!     &                 CLDFMCL_SW(:,IL,:),    ! Causes array temporary
+!     &                 TAUCMCL_SW(:,IL,:),    ! Causes array temporary
+!     &                 SSACMCL(:,IL,:),       ! Causes array temporary
+!     &                 ASMCMCL(:,IL,:),       ! Causes array temporary
+!     &                 FSFCMCL(:,IL,:),       ! Causes array temporary
+!     &                 CIWPMCL_SW(:,IL,:),    ! Causes array temporary
+!     &                 CLWPMCL_SW(:,IL,:),    ! Causes array temporary
+!------------------------------------------------------------------------------
+     &                 p_CLDFMCL_SW,          ! Avoids array temporary
+     &                 p_TAUCMCL_SW,          ! Avoids array temporary
+     &                 p_SSACMCL,             ! Avoids array temporary
+     &                 p_ASMCMCL,             ! Avoids array temporary
+     &                 p_FSFCMCL,             ! Avoids array temporary
+     &                 p_CIWPMCL_SW,          ! Avoids array temporary
+     &                 p_CLWPMCL_SW,          ! Avoids array temporary
+     &                 REICMCL(IL,:),
+     &                 RELQMCL(IL,:), 
+     &                 TAUAER_SW(IL,:,:),
+     &                 SSAAER(IL,:,:),
+     &                 ASMAER(IL,:,:),
+     &                 ECAER, 
+     &                 SWUFLX,
+     &                 SWDFLX,
+     &                 SWHR,
+     &                 SWUFLXC,
+     &                 SWDFLXC,
+     &                 SWHRC    )
         SW_UFLUX(IL,:) = SWUFLX(1,:)
         SW_DFLUX(IL,:) = SWDFLX(1,:)
         SW_UFLUXC(IL,:) = SWUFLXC(1,:)
         SW_DFLUXC(IL,:) = SWDFLXC(1,:)
+
+        ! Nullify pointers
+        p_CLDFMCL_SW => NULL()
+        p_TAUCMCL_SW => NULL()
+        p_SSACMCL    => NULL()
+        p_ASMCMCL    => NULL()
+        p_FSFCMCL    => NULL()
+        p_CIWPMCL_SW => NULL()
+        p_CLWPMCL_SW => NULL()
+
       ENDIF !SW
       ENDDO !NCOL
 !$OMP END PARALLEL DO
