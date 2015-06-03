@@ -21,20 +21,20 @@
       USE ERROR_MOD,  ONLY : DEBUG_MSG
       USE CMN_SIZE_MOD
 
-#if !defined(ESMF_)
+!#if !defined(ESMF_)
       ! NcdfUtil modules for netCDF I/O
       USE m_netcdf_io_open                    ! netCDF open
       USE m_netcdf_io_get_dimlen              ! netCDF dimension queries
       USE m_netcdf_io_read                    ! netCDF data reads
       USE m_netcdf_io_close                   ! netCDF close
-#endif
+!#endif
 
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
-#if !defined(ESMF_)
+!#if !defined(ESMF_)
 #     include "netcdf.inc"
-#endif
+!#endif
 
       PRIVATE
 
