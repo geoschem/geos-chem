@@ -181,258 +181,283 @@
 !  23 Apr 2015 - R. Yantosca - Bug fix: all members of State_Met now use
 !                              (I,J,L) ordering.  This is for the NASA GCM.
 !  02 Jun 2015 - R. Yantosca - Bug fix: Add missing variables to OMP PRIVATE
-!  02 Jun 2015 - R. Yantosca - Now use pointers to avoid array temporaries
+!  03 Jun 2015 - R. Yantosca - Now use pointers to avoid array temporaries
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS
 !
-      INTEGER, PARAMETER  :: NWV=37
+      INTEGER, PARAMETER     :: NWV=37
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL             :: DOAERAD      ! INCLUDE AEROSOL DETERMINED FROM
-                                          ! SPECMASK
-      LOGICAL             :: LOUTPUTAERO  ! OUTPUT AEROSOL DIAGNOSTICS?
-      INTEGER             :: NAD72        ! NUMBER OF OUTPUTS PER FIELD
-      INTEGER             :: ITIMEVALS(8)
-      INTEGER             :: IDIAGOUT     ! INDEX OF SPECIES OPTICS FOR OUTPUT
-      REAL*8              :: OLDSECS, NEWSECS
+      LOGICAL                :: DOAERAD      ! INCLUDE AEROSOL DETERMINED FROM
+                                             ! SPECMASK
+      LOGICAL                :: LOUTPUTAERO  ! OUTPUT AEROSOL DIAGNOSTICS?
+      INTEGER                :: NAD72        ! NUMBER OF OUTPUTS PER FIELD
+      INTEGER                :: ITIMEVALS(8)
+      INTEGER                :: IDIAGOUT     ! INDEX OF SPECIES OPTICS FOR OUTPUT
+      REAL*8                 :: OLDSECS, NEWSECS
 
       !-----------------------------------------------------------------
       ! TEMPORARY AEROSOL VARIABLES
       !-----------------------------------------------------------------
-      REAL*8              :: LAMBDA(NWV)
+      REAL*8                 :: LAMBDA(NWV)
 
       !-----------------------------------------------------------------
       ! SCALARS
       !-----------------------------------------------------------------
-      INTEGER             :: I, J ,L, LL, N, NCOL, JLOOP, IJLOOP, W
-      INTEGER             :: IL, OMPID, LCHEM
-      INTEGER             :: OUTIDX,IOUTWV
-      INTEGER             :: IB,IBX,IB_SW,IS,NBNDS,NSPEC
-      INTEGER             :: IS_ON,NASPECRAD_ON
-      INTEGER             :: IASPECRAD_ON(NASPECRAD)
-      REAL*8              :: RHOICE=0.9167, RHOLIQ=1.    ! G/CM3
+      INTEGER                :: I, J ,L, LL, N, NCOL, JLOOP, IJLOOP, W
+      INTEGER                :: IL, OMPID, LCHEM
+      INTEGER                :: OUTIDX,IOUTWV
+      INTEGER                :: IB,IBX,IB_SW,IS,NBNDS,NSPEC
+      INTEGER                :: IS_ON,NASPECRAD_ON
+      INTEGER                :: IASPECRAD_ON(NASPECRAD)
+      REAL*8                 :: RHOICE=0.9167, RHOLIQ=1.    ! G/CM3
 
       !-----------------------------------------------------------------
       ! REL AND REI FROM PERSONAL COMMUNICATION FROM LAZAROS OREOPOULOS
       ! (GSFC) 12/12/12
       !-----------------------------------------------------------------
-      REAL*8              :: REL_DEF = 14.2, REI_DEF=24.8    ! MICRONS
-      INTEGER             :: DOY
+      REAL*8                 :: REL_DEF = 14.2, REI_DEF=24.8    ! MICRONS
+      INTEGER                :: DOY
 
-      INTEGER             :: IHR
-      CHARACTER(LEN=2)    :: CHR
+      INTEGER                :: IHR
+      CHARACTER(LEN=2)       :: CHR
 
       !-----------------------------------------------------------------
       ! ARRAYS FROM GC
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: PCENTER(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: PEDGE  (IIPAR*JJPAR,LLPAR)
-      LOGICAL             :: INTROP (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: PCENTER(IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: PEDGE  (IIPAR*JJPAR,LLPAR)
+      LOGICAL                :: INTROP (IIPAR*JJPAR,LLPAR)
 
       !-----------------------------------------------------------------
       !ARRAYS FOR RRTMG
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: O3VMR (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: CH4VMR(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: N2OVMR(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: CFC11VMR(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: CFC12VMR(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: CFC22VMR(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: CCL4VMR(IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: O3VMR (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CH4VMR(IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: N2OVMR(IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CFC11VMR(IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CFC12VMR(IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CFC22VMR(IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CCL4VMR(IIPAR*JJPAR,LLPAR)
 
-      REAL(KIND=RB)       :: TAUCLD(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: CLDFR (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: RELIQ (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: REICE (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: CLIQWP (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: CICEWP (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: ALBVIS (IIPAR*JJPAR)
+      REAL(KIND=RB)          :: TAUCLD(IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CLDFR (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: RELIQ (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: REICE (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CLIQWP (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CICEWP (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: ALBVIS (IIPAR*JJPAR)
 
-      REAL(KIND=RB)       :: TAUAER_LW (IIPAR*JJPAR,LLPAR,NBNDLW)
-      REAL(KIND=RB)       :: TAUAER_SW (IIPAR*JJPAR,LLPAR,NBNDSW)
-      REAL(KIND=RB)       :: SSAAER (IIPAR*JJPAR,LLPAR,NBNDSW)
-      REAL(KIND=RB)       :: ASMAER (IIPAR*JJPAR,LLPAR,NBNDSW)
+      REAL(KIND=RB)          :: TAUAER_LW (IIPAR*JJPAR,LLPAR,NBNDLW)
+      REAL(KIND=RB)          :: TAUAER_SW (IIPAR*JJPAR,LLPAR,NBNDSW)
+      REAL(KIND=RB)          :: SSAAER (IIPAR*JJPAR,LLPAR,NBNDSW)
+      REAL(KIND=RB)          :: ASMAER (IIPAR*JJPAR,LLPAR,NBNDSW)
 
       !-----------------------------------------------------------------
       !TO STORE THE OPTICS FOR THE AEROSOLS WE ARE INTERESTED IN
       !-----------------------------------------------------------------
-      REAL*8              :: TAUAERDIAG (IIPAR*JJPAR,LLPAR,NBNDSW)
-      REAL*8              :: SSAAERDIAG (IIPAR*JJPAR,LLPAR,NBNDSW)
-      REAL*8              :: ASMAERDIAG (IIPAR*JJPAR,LLPAR,NBNDSW)
+      REAL*8                 :: TAUAERDIAG (IIPAR*JJPAR,LLPAR,NBNDSW)
+      REAL*8                 :: SSAAERDIAG (IIPAR*JJPAR,LLPAR,NBNDSW)
+      REAL*8                 :: ASMAERDIAG (IIPAR*JJPAR,LLPAR,NBNDSW)
 
-      REAL(KIND=RB)       :: H2OVMR   (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: TLAY     (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: PLAY     (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: SUNCOS   (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: TSFC     (IIPAR*JJPAR)
+      REAL(KIND=RB)          :: H2OVMR   (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: TLAY     (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: PLAY     (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: SUNCOS   (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: TSFC     (IIPAR*JJPAR)
 
       !-----------------------------------------------------------------
       !VARIABLES FOR OBTAINING STRATOSPHERIC VARIABLES
       !-----------------------------------------------------------------
-      REAL*8              :: O3COL, YLAT, AIR_TMP
+      REAL*8                 :: O3COL, YLAT, AIR_TMP
 
       !-----------------------------------------------------------------
       !SURFACE
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: ALBDIRVIS (IIPAR*JJPAR)
-      REAL(KIND=RB)       :: ALBDIFVIS (IIPAR*JJPAR)
-      REAL(KIND=RB)       :: ALBDIRNIR (IIPAR*JJPAR)
-      REAL(KIND=RB)       :: ALBDIFNIR (IIPAR*JJPAR)
-      REAL(KIND=RB)       :: RTEMISS   (IIPAR*JJPAR,NBNDLW)
+      REAL(KIND=RB)          :: ALBDIRVIS (IIPAR*JJPAR)
+      REAL(KIND=RB)          :: ALBDIFVIS (IIPAR*JJPAR)
+      REAL(KIND=RB)          :: ALBDIRNIR (IIPAR*JJPAR)
+      REAL(KIND=RB)          :: ALBDIFNIR (IIPAR*JJPAR)
+      REAL(KIND=RB)          :: RTEMISS   (IIPAR*JJPAR,NBNDLW)
 
-      REAL*8              :: NUMER,DENOM
-      REAL*4              :: AODTMP,AODOUT,SSATMP,SSAOUT
-      REAL*4              :: ASYMTMP,ASYMOUT
-      INTEGER             :: FLG_FIRST_STRAT(IIPAR*JJPAR)
-      INTEGER             :: ONECOL
-      REAL*4              :: CH4SCL(IIPAR*JJPAR)
+      REAL*8                 :: NUMER,DENOM
+      REAL*4                 :: AODTMP,AODOUT,SSATMP,SSAOUT
+      REAL*4                 :: ASYMTMP,ASYMOUT
+      INTEGER                :: FLG_FIRST_STRAT(IIPAR*JJPAR)
+      INTEGER                :: ONECOL
+      REAL*4                 :: CH4SCL(IIPAR*JJPAR)
 
       !-----------------------------------------------------------------
       ! FROM RAD_DRIVER... TO BE MERGED
       ! FLAGS AND DIMENSIONS
       !-----------------------------------------------------------------
-      INTEGER (KIND=IM)   :: IDRV
-      INTEGER (KIND=IM)   :: INFLGLW, ICEFLGLW,LIQFLGLW
-      INTEGER (KIND=IM)   :: INFLGSW, ICEFLGSW,LIQFLGSW
+      INTEGER (KIND=IM)      :: IDRV
+      INTEGER (KIND=IM)      :: INFLGLW, ICEFLGLW,LIQFLGLW
+      INTEGER (KIND=IM)      :: INFLGSW, ICEFLGSW,LIQFLGSW
 
       !-----------------------------------------------------------------
       ! PROFILE VARIABLES
       !-----------------------------------------------------------------
-      REAL (KIND=RB)      :: PLEV(IIPAR*JJPAR,LLPAR+1)
-      REAL (KIND=RB)      :: TLEV(IIPAR*JJPAR,LLPAR+1)
-      REAL (KIND=RB)      :: CO2VMR(IIPAR*JJPAR,LLPAR)
-      REAL (KIND=RB)      :: O2VMR(IIPAR*JJPAR,LLPAR)
-      REAL (KIND=RB)      :: T_CTM(LLPAR+1)
-      REAL (KIND=RB)      :: P_CTM(LLPAR+2)
-      REAL (KIND=RB)      :: O3_CTM(LLPAR+1)
-      REAL (KIND=RB)      :: T_CLIM(LLPAR+1)
-      REAL (KIND=RB)      :: O3_CLIM(LLPAR+1)
-      REAL (KIND=RB)      :: Z_CLIM(LLPAR+2)
-      REAL (KIND=RB)      :: AIR_CLIM(LLPAR+1)
-      INTEGER             :: N_TRACERS
-      REAL*8              :: XNUMOL(Input_Opt%N_TRACERS)
-      REAL*8              :: TRACER_MW_G(Input_Opt%N_TRACERS)
+      REAL (KIND=RB)         :: PLEV(IIPAR*JJPAR,LLPAR+1)
+      REAL (KIND=RB)         :: TLEV(IIPAR*JJPAR,LLPAR+1)
+      REAL (KIND=RB)         :: CO2VMR(IIPAR*JJPAR,LLPAR)
+      REAL (KIND=RB)         :: O2VMR(IIPAR*JJPAR,LLPAR)
+      REAL (KIND=RB)         :: T_CTM(LLPAR+1)
+      REAL (KIND=RB)         :: P_CTM(LLPAR+2)
+      REAL (KIND=RB)         :: O3_CTM(LLPAR+1)
+      REAL (KIND=RB)         :: T_CLIM(LLPAR+1)
+      REAL (KIND=RB)         :: O3_CLIM(LLPAR+1)
+      REAL (KIND=RB)         :: Z_CLIM(LLPAR+2)
+      REAL (KIND=RB)         :: AIR_CLIM(LLPAR+1)
+      INTEGER                :: N_TRACERS
+      REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL*8                 :: TRACER_MW_G(Input_Opt%N_TRACERS)
 
       !-----------------------------------------------------------------
       ! SW SOLAR VARIABLES
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: ADJES=1.0     ! FLUX ADJUSTMENT FOR EARTH/SUN DIST
-      REAL(KIND=RB)       :: SCON=1368.22  ! SOLAR CONSTANT (W/M2)
+      REAL(KIND=RB)          :: ADJES=1.0     ! FLUX ADJUSTMENT FOR EARTH/SUN DIST
+      REAL(KIND=RB)          :: SCON=1368.22  ! SOLAR CONSTANT (W/M2)
 
       !-----------------------------------------------------------------
       ! SW CLOUD VARIABLES
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: TAUCLD_SW(NBNDSW,IIPAR*JJPAR,LLPAR) ! IN-CLOUD OPTICAL DEPTH
-      REAL(KIND=RB)       :: TAUCLD_LW(NBNDLW,IIPAR*JJPAR,LLPAR) ! NOT USED BUT PASSED TO MCICA_LW
-      REAL(KIND=RB)       :: SSACLD(NBNDSW,IIPAR*JJPAR,LLPAR)    ! IN-CLOUD SINGLE SCATTERING ALBEDO
-      REAL(KIND=RB)       :: ASMCLD(NBNDSW,IIPAR*JJPAR,LLPAR)    ! IN-CLOUD ASYMMETRY PARAMETER
-      REAL(KIND=RB)       :: FSFCLD(NBNDSW,IIPAR*JJPAR,LLPAR)    ! IN-CLOUD FORWARD SCATTERING FRACTION
-      REAL(KIND=RB)       :: ECAER(1,LLPAR,NAEREC)               ! AEROSOL OPTICAL DEPTH AT 0.55UM (IAER=6 ONLY)
+      REAL(KIND=RB)          :: TAUCLD_SW(NBNDSW,IIPAR*JJPAR,LLPAR) ! IN-CLOUD OPTICAL DEPTH
+      REAL(KIND=RB)          :: TAUCLD_LW(NBNDLW,IIPAR*JJPAR,LLPAR) ! NOT USED BUT PASSED TO MCICA_LW
+      REAL(KIND=RB)          :: SSACLD(NBNDSW,IIPAR*JJPAR,LLPAR)    ! IN-CLOUD SINGLE SCATTERING ALBEDO
+      REAL(KIND=RB)          :: ASMCLD(NBNDSW,IIPAR*JJPAR,LLPAR)    ! IN-CLOUD ASYMMETRY PARAMETER
+      REAL(KIND=RB)          :: FSFCLD(NBNDSW,IIPAR*JJPAR,LLPAR)    ! IN-CLOUD FORWARD SCATTERING FRACTION
+      REAL(KIND=RB)          :: ECAER(1,LLPAR,NAEREC)               ! AEROSOL OPTICAL DEPTH AT 0.55UM (IAER=6 ONLY)
 
       !-----------------------------------------------------------------
       ! LONGWAVE FLUX VARIABLES
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: UFLX(1,LLPAR+1)  ! TOTAL SKY LONGWAVE UPWARD FLUX (W/M2)
-      REAL(KIND=RB)       :: DFLX(1,LLPAR+1)  ! TOTAL SKY LONGWAVE DOWNWARD FLUX (W/M2)
-      REAL(KIND=RB)       :: HR(1,LLPAR)      ! TOTAL SKY LONGWAVE RADIATIVE HEATING RATE (K/D)
-      REAL(KIND=RB)       :: UFLXC(1,LLPAR+1) ! CLEAR SKY LONGWAVE UPWARD FLUX (W/M2)
-      REAL(KIND=RB)       :: DFLXC(1,LLPAR+1) ! CLEAR SKY LONGWAVE DOWNWARD FLUX (W/M2)
-      REAL(KIND=RB)       :: HRC(1,LLPAR)     ! CLEAR SKY LONGWAVE RADIATIVE HEATING RATE (K/D)
+      REAL(KIND=RB)          :: UFLX(1,LLPAR+1)  ! TOTAL SKY LONGWAVE UPWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: DFLX(1,LLPAR+1)  ! TOTAL SKY LONGWAVE DOWNWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: HR(1,LLPAR)      ! TOTAL SKY LONGWAVE RADIATIVE HEATING RATE (K/D)
+      REAL(KIND=RB)          :: UFLXC(1,LLPAR+1) ! CLEAR SKY LONGWAVE UPWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: DFLXC(1,LLPAR+1) ! CLEAR SKY LONGWAVE DOWNWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: HRC(1,LLPAR)     ! CLEAR SKY LONGWAVE RADIATIVE HEATING RATE (K/D)
 
       !-----------------------------------------------------------------
       !- OPTIONAL OUTPUT
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: DUFLX_DT(1,LLPAR) ! CHANGE IN UPWARD LONGWAVE FLUX (W/M2/K)
-      REAL(KIND=RB)       :: DUFLXC_DT(1,LLPAR)! CHANGE IN CLEAR SKY UPWARD LONGWAVE FLUX (W/M2/K)
+      REAL(KIND=RB)          :: DUFLX_DT(1,LLPAR) ! CHANGE IN UPWARD LONGWAVE FLUX (W/M2/K)
+      REAL(KIND=RB)          :: DUFLXC_DT(1,LLPAR)! CHANGE IN CLEAR SKY UPWARD LONGWAVE FLUX (W/M2/K)
 
       !-----------------------------------------------------------------
       ! SHORTWAVE FLUX VARIABLES
       !-----------------------------------------------------------------
       ! ----- OUTPUT -----
-      REAL(KIND=RB)       :: SWUFLX(1,LLPAR+1)  ! TOTAL SKY SHORTWAVE UPWARD FLUX (W/M2)
-      REAL(KIND=RB)       :: SWDFLX(1,LLPAR+1)  ! TOTAL SKY SHORTWAVE DOWNWARD FLUX (W/M2)
-      REAL(KIND=RB)       :: SWHR(1,LLPAR)      ! TOTAL SKY SHORTWAVE RADIATIVE HEATING RATE (K/D)
-      REAL(KIND=RB)       :: SWUFLXC(1,LLPAR+1) ! CLEAR SKY SHORTWAVE UPWARD FLUX (W/M2)
-      REAL(KIND=RB)       :: SWDFLXC(1,LLPAR+1) ! CLEAR SKY SHORTWAVE DOWNWARD FLUX (W/M2)
-      REAL(KIND=RB)       :: SWHRC(1,LLPAR)     ! CLEAR SKY SHORTWAVE RADIATIVE HEATING RATE (K/D)
+      REAL(KIND=RB)          :: SWUFLX(1,LLPAR+1)  ! TOTAL SKY SHORTWAVE UPWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: SWDFLX(1,LLPAR+1)  ! TOTAL SKY SHORTWAVE DOWNWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: SWHR(1,LLPAR)      ! TOTAL SKY SHORTWAVE RADIATIVE HEATING RATE (K/D)
+      REAL(KIND=RB)          :: SWUFLXC(1,LLPAR+1) ! CLEAR SKY SHORTWAVE UPWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: SWDFLXC(1,LLPAR+1) ! CLEAR SKY SHORTWAVE DOWNWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: SWHRC(1,LLPAR)     ! CLEAR SKY SHORTWAVE RADIATIVE HEATING RATE (K/D)
 
       !-----------------------------------------------------------------
       ! LOCAL VARIABLES
       !-----------------------------------------------------------------
-      REAL*8              :: GCAIR
-      REAL*8              :: RHOA, RHOB, RHOSUM
-      REAL*8              :: HR_TEMP
+      REAL*8                 :: GCAIR
+      REAL*8                 :: RHOA, RHOB, RHOSUM
+      REAL*8                 :: HR_TEMP
 
       !-----------------------------------------------------------------
       ! MCICA VARIABLES
       !-----------------------------------------------------------------
-      INTEGER(KIND=IM)    :: SEEDSW, SEEDLW
-      INTEGER(KIND=IM)    :: IRNG=1  ! MERSENNE TWISTER RANDOM NUMBER GENERATOR
-      INTEGER(KIND=IM)    :: ICLDMCL
-      REAL(KIND=RB)       :: RELQMCL0(1,LLPAR)
-      REAL(KIND=RB)       :: REICMCL0(1,LLPAR)
+      INTEGER(KIND=IM)       :: SEEDSW, SEEDLW
+      INTEGER(KIND=IM)       :: IRNG=1  ! MERSENNE TWISTER RANDOM NUMBER GENERATOR
+      INTEGER(KIND=IM)       :: ICLDMCL
+      REAL(KIND=RB)          :: RELQMCL0(1,LLPAR)
+      REAL(KIND=RB)          :: REICMCL0(1,LLPAR)
 
       !-----------------------------------------------------------------
       ! MCICA LW SPECIFIC
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: CLDFMCL_LW0(NGPTLW,1,LLPAR)
-      REAL(KIND=RB)       :: CIWPMCL_LW0(NGPTLW,1,LLPAR)
-      REAL(KIND=RB)       :: CLWPMCL_LW0(NGPTLW,1,LLPAR)
-      REAL(KIND=RB)       :: TAUCMCL_LW0(NGPTLW,1,LLPAR)
+      REAL(KIND=RB)          :: CLDFMCL_LW0(NGPTLW,1,LLPAR)
+      REAL(KIND=RB)          :: CIWPMCL_LW0(NGPTLW,1,LLPAR)
+      REAL(KIND=RB)          :: CLWPMCL_LW0(NGPTLW,1,LLPAR)
+      REAL(KIND=RB)          :: TAUCMCL_LW0(NGPTLW,1,LLPAR)
 
       !-----------------------------------------------------------------
       ! MCICA SW SPECIFIC
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: CLDFMCL_SW0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)       :: CIWPMCL_SW0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)       :: CLWPMCL_SW0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)       :: TAUCMCL_SW0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)       :: SSACMCL0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)       :: ASMCMCL0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)       :: FSFCMCL0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)       :: PCENTER0(1,LLPAR)
-      REAL(KIND=RB)       :: CLDFR0(1,LLPAR)
-      REAL(KIND=RB)       :: CICEWP0(1,LLPAR)
-      REAL(KIND=RB)       :: CLIQWP0(1,LLPAR)
-      REAL(KIND=RB)       :: REICE0(1,LLPAR)
-      REAL(KIND=RB)       :: RELIQ0(1,LLPAR)
-      REAL(KIND=RB)       :: TAUCLD_SW0(NBNDSW,1,LLPAR)
-      REAL(KIND=RB)       :: SSACLD0(NBNDSW,1,LLPAR)
-      REAL(KIND=RB)       :: ASMCLD0(NBNDSW,1,LLPAR)
-      REAL(KIND=RB)       :: FSFCLD0(NBNDSW,1,LLPAR)
+      REAL(KIND=RB)          :: CLDFMCL_SW0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)          :: CIWPMCL_SW0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)          :: CLWPMCL_SW0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)          :: TAUCMCL_SW0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)          :: SSACMCL0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)          :: ASMCMCL0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)          :: FSFCMCL0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)          :: PCENTER0(1,LLPAR)
+      REAL(KIND=RB)          :: CLDFR0(1,LLPAR)
+      REAL(KIND=RB)          :: CICEWP0(1,LLPAR)
+      REAL(KIND=RB)          :: CLIQWP0(1,LLPAR)
+      REAL(KIND=RB)          :: REICE0(1,LLPAR)
+      REAL(KIND=RB)          :: RELIQ0(1,LLPAR)
+      REAL(KIND=RB)          :: TAUCLD_SW0(NBNDSW,1,LLPAR)
+      REAL(KIND=RB)          :: SSACLD0(NBNDSW,1,LLPAR)
+      REAL(KIND=RB)          :: ASMCLD0(NBNDSW,1,LLPAR)
+      REAL(KIND=RB)          :: FSFCLD0(NBNDSW,1,LLPAR)
 
       !-----------------------------------------------------------------
-      ! POINTERS to avoid array temporaries (bmy, 6/2/15)
+      ! Variables used to avoid array temporaries (bmy, 6/3/15)
+      !
+      ! NOTE: Use temporary arrays instead of pointers.  For unknown
+      ! reasons the pointer references incur segfaults. (bmy, 6/3/15)
       !-----------------------------------------------------------------
 
-      ! For MCICA_SUBCOL_LW: don't use pointers (it segfaults)
-      REAL(KIND=RB)          :: p_TAUCLD_LW(NBNDLW,1,LLPAR)
+      ! For MCICA_SUBCOL_LW and MCICA_SUBCOL_LW
+      REAL(KIND=RB)          :: p_PCENTER   (         LLPAR  )
+      REAL(KIND=RB)          :: p_CLDFR     (         LLPAR  )
+      REAL(KIND=RB)          :: p_CICEWP    (         LLPAR  )
+      REAL(KIND=RB)          :: p_CLIQWP    (         LLPAR  )
+      REAL(KIND=RB)          :: p_REICE     (         LLPAR  )
+      REAL(KIND=RB)          :: p_RELIQ     (         LLPAR  )
+      REAL(KIND=RB)          :: p_TAUCLD_LW ( NBNDLW, LLPAR  )
+      REAL(KIND=RB)          :: p_TAUCLD_SW ( NBNDSW, LLPAR  )
+      REAL(KIND=RB)          :: p_SSACLD    ( NBNDSW, LLPAR  ) 
+      REAL(KIND=RB)          :: p_ASMCLD    ( NBNDSW, LLPAR  )
+      REAL(KIND=RB)          :: p_FSFCLD    ( NBNDSW, LLPAR  )
 
-      ! For MCICA_SUBCOL_LW: don't use pointers (it segfaults)
-      REAL(KIND=RB)          :: p_TAUCLD_SW(NBNDSW,1,LLPAR)
-      REAL(KIND=RB)          :: p_SSACLD   (NBNDSW,1,LLPAR)
-      REAL(KIND=RB)          :: p_ASMCLD   (NBNDSW,1,LLPAR)
-      REAL(KIND=RB)          :: p_FSFCLD   (NBNDSW,1,LLPAR)
-
-      ! For RRTMG_LW: use pointers
-      REAL(KIND=RB), POINTER :: p_CLDFMCL_LW(:,:) => NULL()
-      REAL(KIND=RB), POINTER :: p_TAUCMCL_LW(:,:) => NULL()
-      REAL(KIND=RB), POINTER :: p_CIWPMCL_LW(:,:) => NULL()
-      REAL(KIND=RB), POINTER :: p_CLWPMCL_LW(:,:) => NULL()
-        
-      ! For RRTMG_SW: use pointers
-      REAL(KIND=RB), POINTER :: p_CLDFMCL_SW(:,:) => NULL()
-      REAL(KIND=RB), POINTER :: p_TAUCMCL_SW(:,:) => NULL()
-      REAL(KIND=RB), POINTER :: p_SSACMCL   (:,:) => NULL()
-      REAL(KIND=RB), POINTER :: p_ASMCMCL   (:,:) => NULL()
-      REAL(KIND=RB), POINTER :: p_FSFCMCL   (:,:) => NULL()
-      REAL(KIND=RB), POINTER :: p_CIWPMCL_SW(:,:) => NULL()
-      REAL(KIND=RB), POINTER :: p_CLWPMCL_SW(:,:) => NULL()
-
+      ! For RRTMG_LW and RRTMG_SW
+      REAL(KIND=RB)          :: p_PLEV      (         LLPAR+1)
+      REAL(KIND=RB)          :: p_TLAY      (         LLPAR  )
+      REAL(KIND=RB)          :: p_TLEV      (         LLPAR+1)
+      REAL(KIND=RB)          :: p_H2OVMR    (         LLPAR  )
+      REAL(KIND=RB)          :: p_O3VMR     (         LLPAR  )
+      REAL(KIND=RB)          :: p_CO2VMR    (         LLPAR  )
+      REAL(KIND=RB)          :: p_CH4VMR    (         LLPAR  )
+      REAL(KIND=RB)          :: p_N2OVMR    (         LLPAR  ) 
+      REAL(KIND=RB)          :: p_O2VMR     (         LLPAR  )
+      REAL(KIND=RB)          :: p_CFC11VMR  (         LLPAR  )
+      REAL(KIND=RB)          :: p_CFC12VMR  (         LLPAR  )
+      REAL(KIND=RB)          :: p_CFC22VMR  (         LLPAR  )
+      REAL(KIND=RB)          :: p_CCL4VMR   (         LLPAR  )
+      REAL(KIND=RB)          :: p_REICMCL   (         LLPAR  )
+      REAL(KIND=RB)          :: p_RELQMCL   (         LLPAR  ) 
+      REAL(KIND=RB)          :: p_SUNCOS    (         LLPAR  )
+      REAL(KIND=RB)          :: p_CLDFMCL_LW( NGPTLW, LLPAR  )
+      REAL(KIND=RB)          :: p_TAUCMCL_LW( NGPTLW, LLPAR  )
+      REAL(KIND=RB)          :: p_CIWPMCL_LW( NGPTLW, LLPAR  )
+      REAL(KIND=RB)          :: p_CLWPMCL_LW( NGPTLW, LLPAR  )
+      REAL(KIND=RB)          :: p_CLDFMCL_SW( NGPTSW, LLPAR  )
+      REAL(KIND=RB)          :: p_TAUCMCL_SW( NGPTSW, LLPAR  )
+      REAL(KIND=RB)          :: p_SSACMCL   ( NGPTSW, LLPAR  )
+      REAL(KIND=RB)          :: p_ASMCMCL   ( NGPTSW, LLPAR  )
+      REAL(KIND=RB)          :: p_FSFCMCL   ( NGPTSW, LLPAR  )
+      REAL(KIND=RB)          :: p_CIWPMCL_SW( NGPTSW, LLPAR  )
+      REAL(KIND=RB)          :: p_CLWPMCL_SW( NGPTSW, LLPAR  )
+      REAL(KIND=RB)          :: p_RTEMISS   (         NBNDLW )
+      REAL(KIND=RB)          :: p_TAUAER_LW ( LLPAR,  NBNDLW )
+      REAL(KIND=RB)          :: p_TAUAER_SW ( LLPAR,  NBNDSW )
+      REAL(KIND=RB)          :: p_SSAAER    ( LLPAR,  NBNDSW )
+      REAL(KIND=RB)          :: p_ASMAER    ( LLPAR,  NBNDSW )
 
       !=================================================================
       ! DO_RRTMG_RAD_TRANSFER begins here!
@@ -926,7 +951,7 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IB, IJLOOP, IB_SW)
+!$OMP+PRIVATE( I, J, L, IB, IJLOOP, IB_SW )
 !$OMP+SCHEDULE( DYNAMIC )
        DO IB= 1, NBNDS
         IB_SW = IB-NBNDLW
@@ -1070,8 +1095,12 @@
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%%  This parallel loop gives identical results w/r/t to a RRTMG           %%%
-!%%%  simulation compiled with OpenMP turned off. (bmy, 6/2/15)             %%%
-!%%%  Also now avoid array temporaries (bmy, 6/2/15)                        %%%
+!%%%  simulation compiled with OpenMP turned off.  Also now save            %%%
+!%%%  inputs to scratch arrays to avoid creating array temporaries          %%%
+!%%%  in the subroutine calls.  These can adversely affect performance.     %%%
+!%%%                                                                        %%%
+!%%%  ALSO NOTE: Using pointers causes segfaults in this routine, so        %%%
+!%%%  we will just simply use temporary arrays. (bmy 6/3/15)                %%%
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1081,38 +1110,48 @@
 !$OMP+PRIVATE( CLDFMCL_LW0, CIWPMCL_LW0, CLWPMCL_LW0, REICMCL0    )
 !$OMP+PRIVATE( RELQMCL0,    TAUCMCL_LW0, CLDFMCL_SW0, CIWPMCL_SW0 )
 !$OMP+PRIVATE( CLWPMCL_SW0, TAUCMCL_SW0, SSACMCL0,    ASMCMCL0    )
-!$OMP+PRIVATE( FSFCMCL0,    p_TAUCLD_LW, p_TAUCLD_SW, p_SSACLD    )
-!$OMP+PRIVATE( p_ASMCLD,    p_FSFCLD                              )
+!$OMP+PRIVATE( FSFCMCL0,    p_PCENTER,   p_CLDFR,     p_CICEWP    )
+!$OMP+PRIVATE( p_CLIQWP,    p_REICE,     p_RELIQ,     p_TAUCLD_LW )
+!$OMP+PRIVATE( p_TAUCLD_SW, p_SSACLD,    p_ASMCLD,    p_FSFCLD    )
 !$OMP+SCHEDULE( DYNAMIC )
        DO IL=1, NCOL
+
+          ! Avoid array temporaries in the subroutine call (bmy, 6/3/15)
+          ! These arrays are used by both MCICA_SUBCOL_LW and MCICA_SUBCOL_SW
+          p_PCENTER = PCENTER(IL,:)
+          p_CLDFR   = CLDFR  (IL,:)
+          p_CICEWP  = CICEWP (IL,:)
+          p_CLIQWP  = CLIQWP (IL,:)
+          p_REICE   = REICE  (IL,:)
+          p_RELIQ   = RELIQ  (IL,:)
 
           !-------------------------------------------------------------
           ! Long-wave radiation
           !-------------------------------------------------------------
           IF (Input_Opt%LLWRAD) THEN
 
-             ! Copy to temp array in order to avoid array temporaries, which 
-             ! are caused by passing non-contiguous array slices. (bmy, 6/2/15)
-             p_TAUCLD_LW(:,1,:) = TAUCLD_LW(:,IL,:)
+             ! Avoid array temporaries in the subroutine call (bmy, 6/3/15)
+             ! These arrays are only used in MCICA_SUBCOL_LW
+             p_TAUCLD_LW = TAUCLD_LW(:,IL,:)
 
-             CALL MCICA_SUBCOL_LW( ONECOL,
+             ! Call MCICA longwave
+             CALL MCICA_SUBCOL_LW( 
+                !-------------------------------------
+                ! Inputs
+     &                             ONECOL,
      &                             LLPAR,
      &                             ICLDMCL,
      &                             SEEDLW,
      &                             IRNG,
-     &                             PCENTER(IL,:),
-     &                             CLDFR(IL,:),
-     &                             CICEWP(IL,:),
-     &                             CLIQWP(IL,:),
-     &                             REICE(IL,:),
-     &                             RELIQ(IL,:),
-!------------------------------------------------------------------------------
-! Prior to 6/2/15:
-! Do not pass non-contiguous array slices, use temp arrays instead.
-! This avoids creating array temporaries. (bmy, 6/2/15)
-!     &                             TAUCLD_LW(:,IL,:),
-!------------------------------------------------------------------------------
+     &                             p_PCENTER,
+     &                             p_CLDFR,
+     &                             p_CICEWP,
+     &                             p_CLIQWP,
+     &                             p_REICE,
+     &                             p_RELIQ,
      &                             p_TAUCLD_LW,
+                !-------------------------------------
+                ! Outputs
      &                             CLDFMCL_LW0, 
      &                             CIWPMCL_LW0, 
      &                             CLWPMCL_LW0,
@@ -1120,7 +1159,7 @@
      &                             RELQMCL0, 
      &                             TAUCMCL_LW0 )
 
-             ! Copy back into 1-D arrays
+             ! Copy back into 3-D arrays
              CLDFMCL_LW(:,IL,:) = CLDFMCL_LW0(:,1,:)
              CIWPMCL_LW(:,IL,:) = CIWPMCL_LW0(:,1,:)
              CLWPMCL_LW(:,IL,:) = CLWPMCL_LW0(:,1,:)
@@ -1133,37 +1172,34 @@
           !-------------------------------------------------------------
           IF (Input_Opt%LSWRAD) THEN
 
-             ! Copy to temp array in order to avoid array temporaries, which 
-             ! are caused by passing non-contiguous array slices. (bmy, 6/2/15)
-             p_TAUCLD_SW(:,1,:) = TAUCLD_SW(:,IL,:)
-             p_SSACLD   (:,1,:) = SSACLD   (:,IL,:)
-             p_ASMCLD   (:,1,:) = ASMCLD   (:,IL,:)
-             p_FSFCLD   (:,1,:) = FSFCLD   (:,IL,:)
+             ! Avoid array temporaries in the subroutine call (bmy, 6/3/15)
+             ! These arrays are only used in MCICA_SUBCOL_SW
+             p_TAUCLD_SW = TAUCLD_SW(:,IL,:)
+             p_SSACLD    = SSACLD   (:,IL,:)
+             p_ASMCLD    = ASMCLD   (:,IL,:)
+             p_FSFCLD    = FSFCLD   (:,IL,:)
 
-             CALL MCICA_SUBCOL_SW( ONECOL, 
+             ! Call MCICA shortwave
+             CALL MCICA_SUBCOL_SW( 
+                !-------------------------------------
+                ! Inputs
+     &                             ONECOL, 
      &                             LLPAR, 
      &                             ICLDMCL,
      &                             SEEDSW, 
      &                             IRNG,
-     &                             PCENTER(IL,:),
-     &                             CLDFR(IL,:), 
-     &                             CICEWP(IL,:), 
-     &                             CLIQWP(IL,:),
-     &                             REICE(IL,:), 
-     &                             RELIQ(IL,:),
-!------------------------------------------------------------------------------
-! Prior to 6/2/15:
-! Do not pass non-contiguous array slices, use temp arrays instead.
-! This avoids creating array temporaries. (bmy, 6/2/15)
-!     &                             TAUCLD_SW(:,IL,:),
-!     &                             SSACLD(:,IL,:),
-!     &                             ASMCLD(:,IL,:),
-!     &                             FSFCLD(:,IL,:),
-!------------------------------------------------------------------------------
+     &                             p_PCENTER,
+     &                             p_CLDFR, 
+     &                             p_CICEWP, 
+     &                             p_CLIQWP,
+     &                             p_REICE, 
+     &                             p_RELIQ,
      &                             p_TAUCLD_SW,
      &                             p_SSACLD,
      &                             p_ASMCLD,
      &                             p_FSFCLD,
+                !-------------------------------------
+                ! Outputs
      &                             CLDFMCL_SW0, 
      &                             CIWPMCL_SW0, 
      &                             CLWPMCL_SW0,
@@ -1182,6 +1218,7 @@
              SSACMCL   (:,IL,:) = SSACMCL0   (:,1,:)
              ASMCMCL   (:,IL,:) = ASMCMCL0   (:,1,:)
              FSFCMCL   (:,IL,:) = FSFCMCL0   (:,1,:)
+
           ENDIF
 
           ! these should be independent of LW and SW
@@ -1194,193 +1231,203 @@
       ENDIF !DO MCICA CLOUDS
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%%  This parallel loop gives identical results w/r/t to a RRTMG           %%%
-!%%%  simulation compiled with OpenMP turned off. (bmy, 6/2/15)             %%%
-!%%%  Also added pointers to avoid array temporaries (bmy, 6/2/15)          %%%
+!%%%  simulation compiled with OpenMP turned off.  Also now save            %%%
+!%%%  inputs to scratch arrays to avoid creating array temporaries          %%%
+!%%%  in the subroutine calls.  These can adversely affect performance.     %%%
+!%%%                                                                        %%%
+!%%%  ALSO NOTE: Using pointers causes segfaults in this routine, so        %%%
+!%%%  we will just simply use temporary arrays. (bmy 6/3/15)                %%%
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( IL,           OMPID,        UFLX,         DFLX         )
-!$OMP+PRIVATE( HR,           UFLXC,        DFLXC,        HRC          )
-!$OMP+PRIVATE( DUFLX_DT,     DUFLXC_DT,    ECAER,        SWUFLX       )
-!$OMP+PRIVATE( SWDFLX,       SWHR,         SWUFLXC,      SWDFLXC      )
-!$OMP+PRIVATE( SWHRC,        p_CLDFMCL_LW, p_TAUCMCL_LW, p_CIWPMCL_LW )
-!$OMP+PRIVATE( p_CLWPMCL_LW, p_CLDFMCL_SW, p_TAUCMCL_SW, p_SSACMCL    )
-!$OMP+PRIVATE( p_ASMCMCL,    p_FSFCMCL,    p_CIWPMCL_SW, p_CLWPMCL_SW )
+!$OMP+PRIVATE( IL,           UFLX,         DFLX,         HR           )
+!$OMP+PRIVATE( UFLXC,        DFLXC,        HRC,          DUFLX_DT     )
+!$OMP+PRIVATE( DUFLXC_DT,    ECAER,        SWUFLX,       SWDFLX       )
+!$OMP+PRIVATE( SWHR,         SWUFLXC,      SWDFLXC,      SWHRC        )
+!$OMP+PRIVATE( p_PCENTER,    p_PLEV,       p_TLAY,       p_TLEV       )
+!$OMP+PRIVATE( p_H2OVMR,     p_O3VMR,      p_CO2VMR,     p_CH4VMR     )
+!$OMP+PRIVATE( p_N2OVMR,     p_O2VMR,      p_CFC11VMR,   p_CFC12VMR   )
+!$OMP+PRIVATE( p_CFC22VMR,   p_CCL4VMR,    p_RTEMISS,    p_REICMCL    )
+!$OMP+PRIVATE( p_RELQMCL,    p_CLDFMCL_LW, p_TAUCMCL_LW, p_CIWPMCL_LW )
+!$OMP+PRIVATE( p_CLWPMCL_LW, p_TAUAER_LW,  p_CLDFMCL_SW, p_TAUCMCL_SW )
+!$OMP+PRIVATE( p_SSACMCL,    p_ASMCMCL,    p_FSFCMCL,    p_CIWPMCL_SW )
+!$OMP+PRIVATE( p_CLWPMCL_SW, p_TAUAER_SW,  p_SSAAER,     p_ASMAER     )
+!$OMP+PRIVATE( p_SUNCOS                                               )
 !$OMP+SCHEDULE( DYNAMIC ) 
       DO IL=1, NCOL
  
-      !-----------------------------------------------------------------
-      ! RRTMG - Longwave radiation
-      !-----------------------------------------------------------------
-      IF (Input_Opt%LLWRAD) THEN
+         ! Avoid arrray temporaries in subroutines (bmy, 6/3/15)
+         ! These variables are used in both RRTMG_LW and RRTMG_SW
+         p_PCENTER  = PCENTER (IL,:)
+         p_PLEV     = PLEV    (IL,:)
+         p_TLAY     = TLAY    (IL,:)
+         p_TLEV     = TLEV    (IL,:)
+         p_H2OVMR   = H2OVMR  (IL,:)
+         p_O3VMR    = O3VMR   (IL,:)
+         p_CO2VMR   = CO2VMR  (IL,:)
+         p_CH4VMR   = CH4VMR  (IL,:)
+         p_N2OVMR   = N2OVMR  (IL,:)
+         p_O2VMR    = O2VMR   (IL,:) 
+         p_CFC11VMR = CFC11VMR(IL,:)
+         p_CFC12VMR = CFC12VMR(IL,:)
+         p_CFC22VMR = CFC22VMR(IL,:)
+         p_CCL4VMR  = CCL4VMR (IL,:)
+         p_RTEMISS  = RTEMISS (IL,:) 
+         p_REICMCL  = REICMCL (IL,:)
+         p_RELQMCL  = RELQMCL (IL,:)
+
+         !--------------------------------------------------------------
+         ! RRTMG - Longwave radiation
+         !--------------------------------------------------------------
+         IF (Input_Opt%LLWRAD) THEN
        
-         ! Create pointers in order to avoid array temporaries, which are 
-         ! caused by passing non-contiguous array slices. (bmy, 6/2/15)
-         p_CLDFMCL_LW => CLDFMCL_LW(:,IL,:)
-         p_TAUCMCL_LW => TAUCMCL_LW(:,IL,:)
-         p_CIWPMCL_LW => CIWPMCL_LW(:,IL,:)
-         p_CLWPMCL_LW => CLWPMCL_LW(:,IL,:)
-        
-         ! Call RRTMG for longwave radiation
-         CALL RRTMG_LW( ONECOL,
-     &                  LLPAR,
-     &                  ICLDMCL,
-     &                  IDRV, 
-     &                  PCENTER(IL,:),
-     &                  PLEV(IL,:),
-     &                  TLAY(IL,:),
-     &                  TLEV(IL,:),
-     &                  TSFC(IL), 
-     &                  H2OVMR(IL,:),
-     &                  O3VMR(IL,:),
-     &                  CO2VMR(IL,:),
-     &                  CH4VMR(IL,:),
-     &                  N2OVMR(IL,:),
-     &                  O2VMR(IL,:), 
-     &                  CFC11VMR(IL,:),
-     &                  CFC12VMR(IL,:),
-     &                  CFC22VMR(IL,:),
-     &                  CCL4VMR(IL,:),
-     &                  RTEMISS(IL,:), 
-     &                  INFLGLW,
-     &                  ICEFLGLW,
-     &                  LIQFLGLW,
-!------------------------------------------------------------------------------
-! Prior to 6/2/15:
-! Do not pass non-contiguous array slices, use pointers instead.
-! This avoids creating array temporaries. (bmy, 6/2/15)
-!     &                  CLDFMCL_LW(:,IL,:),  ! Causes array temporary
-!     &                  TAUCMCL_LW(:,IL,:),  ! Causes array temporary
-!     &                  CIWPMCL_LW(:,IL,:),  ! Causes array temporary
-!     &                  CLWPMCL_LW(:,IL,:),  ! Causes array temporary
-!------------------------------------------------------------------------------
-     &                  p_CLDFMCL_LW,        ! Avoids array temporary
-     &                  p_TAUCMCL_LW,        ! Avoids array temporary
-     &                  p_CIWPMCL_LW,        ! Avoids array temporary
-     &                  p_CLWPMCL_LW,        ! Avoids array temporary
-     &                  REICMCL(IL,:),
-     &                  RELQMCL(IL,:), 
-     &                  TAUAER_LW(IL,:,:),
-     &                  UFLX,
-     &                  DFLX,
-     &                  HR,
-     &                  UFLXC,
-     &                  DFLXC,
-     &                  HRC, 
-     &                  DUFLX_DT,
-     &                  DUFLXC_DT )
+            ! Avoid array temporaries in subroutine calls (bmy, 6/3/15)
+            ! These arrays are only used in RRTMG_LW
+            p_CLDFMCL_LW = CLDFMCL_LW(:,IL,:  )
+            p_TAUCMCL_LW = TAUCMCL_LW(:,IL,:  )
+            p_CIWPMCL_LW = CIWPMCL_LW(:,IL,:  )
+            p_CLWPMCL_LW = CLWPMCL_LW(:,IL,:  )
+            p_TAUAER_LW  = TAUAER_LW (  IL,:,:)
 
-         ! Copy back into 3-D arrays
-         LW_UFLUX (IL,:) = UFLX (1,:)
-         LW_DFLUX (IL,:) = DFLX (1,:)
-         LW_UFLUXC(IL,:) = UFLXC(1,:)
-         LW_DFLUXC(IL,:) = DFLXC(1,:)
+            ! Call RRTMG for longwave radiation
+            CALL RRTMG_LW( 
+                !-------------------------------------
+                ! Inputs
+     &                     ONECOL,
+     &                     LLPAR,
+     &                     ICLDMCL,
+     &                     IDRV, 
+     &                     p_PCENTER,
+     &                     p_PLEV,
+     &                     p_TLAY,
+     &                     p_TLEV,
+     &                     TSFC(IL), 
+     &                     p_H2OVMR,
+     &                     p_O3VMR,
+     &                     p_CO2VMR,
+     &                     p_CH4VMR,
+     &                     p_N2OVMR,
+     &                     p_O2VMR, 
+     &                     p_CFC11VMR,
+     &                     p_CFC12VMR,
+     &                     p_CFC22VMR,
+     &                     p_CCL4VMR,
+     &                     p_RTEMISS, 
+     &                     INFLGLW,
+     &                     ICEFLGLW,
+     &                     LIQFLGLW,
+     &                     p_CLDFMCL_LW,
+     &                     p_TAUCMCL_LW,
+     &                     p_CIWPMCL_LW,
+     &                     p_CLWPMCL_LW,
+     &                     p_REICMCL,
+     &                     p_RELQMCL, 
+     &                     p_TAUAER_LW,
+                !-------------------------------------
+                ! Outputs
+     &                     UFLX,
+     &                     DFLX,
+     &                     HR,
+     &                     UFLXC,
+     &                     DFLXC,
+     &                     HRC, 
+     &                     DUFLX_DT,
+     &                     DUFLXC_DT )
 
-         ! Nullify pointers
-         p_CLDFMCL_LW => NULL()
-         p_TAUCMCL_LW => NULL()
-         p_CIWPMCL_LW => NULL()
-         p_CLWPMCL_LW => NULL()
-      ENDIF !LW
+            ! Copy back into 3-D arrays
+            LW_UFLUX (IL,:) = UFLX (1,:)
+            LW_DFLUX (IL,:) = DFLX (1,:)
+            LW_UFLUXC(IL,:) = UFLXC(1,:)
+            LW_DFLUXC(IL,:) = DFLXC(1,:)
+            
+         ENDIF                  !LW
 
-      !-----------------------------------------------------------------
-      ! RRTMG - Longwave radiation
-      !-----------------------------------------------------------------
-      IF (Input_Opt%LSWRAD) THEN
+         !--------------------------------------------------------------
+         ! RRTMG - Shortwave radiation
+         !--------------------------------------------------------------
+         IF (Input_Opt%LSWRAD) THEN
 
-        ! 1-D INDEX
-        IJLOOP = (J-1)*IIPAR+I
-        I      = IL - (J-1)*IIPAR
-        I      = MOD(IL,IIPAR)
+            ! 1-D INDEX
+            IJLOOP = (J-1)*IIPAR+I
+            I      = IL - (J-1)*IIPAR
+            I      = MOD(IL,IIPAR)
 
 !### Debug output
 !        write(6,*) 'SWSHIZ',TAUAER_SW(IL,1,5),SWUFLX(1,1),SWDFLX(1,1),
 !     &         SWUFLXC(1,1),SWDFLXC(1,1)
 
-        ! Create pointers in order to avoid array temporaries, which are 
-        ! caused by passing non-contiguous array slices. (bmy, 6/2/15)
-        p_CLDFMCL_SW => CLDFMCL_SW(:,IL,:)
-        p_TAUCMCL_SW => TAUCMCL_SW(:,IL,:)
-        p_SSACMCL    => SSACMCL   (:,IL,:)
-        p_ASMCMCL    => ASMCMCL   (:,IL,:)
-        p_FSFCMCL    => FSFCMCL   (:,IL,:) 
-        p_CIWPMCL_SW => CIWPMCL_SW(:,IL,:)
-        p_CLWPMCL_SW => CLWPMCL_SW(:,IL,:)
+            ! Avoid array temporaries in subroutine calls (bmy, 6/3/15)
+            ! These arrays are only used in RRTMG_SW
+            p_SUNCOS     = SUNCOS    (  IL,:  )
+            p_CLDFMCL_SW = CLDFMCL_SW(:,IL,:  )
+            p_TAUCMCL_SW = TAUCMCL_SW(:,IL,:  )
+            p_SSACMCL    = SSACMCL   (:,IL,:  )
+            p_ASMCMCL    = ASMCMCL   (:,IL,:  )
+            p_FSFCMCL    = FSFCMCL   (:,IL,:  ) 
+            p_CIWPMCL_SW = CIWPMCL_SW(:,IL,:  )
+            p_CLWPMCL_SW = CLWPMCL_SW(:,IL,:  )
+            p_TAUAER_SW  = TAUAER_SW (  IL,:,:)
+            p_SSAAER     = TAUAER_LW (  IL,:,:)
+            p_ASMAER     = ASMAER    (  IL,:,:)
 
-        ! Call RRTMG for shortwave radiation
-        CALL RRTMG_SW( ONECOL,
-     &                 LLPAR,
-     &                 ICLDMCL, 
-     &                 PCENTER(IL,:),
-     &                 PLEV(IL,:),
-     &                 TLAY(IL,:),
-     &                 TLEV(IL,:),
-     &                 TSFC(IL), 
-     &                 H2OVMR(IL,:),
-     &                 O3VMR(IL,:),
-     &                 CO2VMR(IL,:),
-     &                 CH4VMR(IL,:),
-     &                 N2OVMR(IL,:),
-     &                 O2VMR(IL,:), 
-     &                 ALBDIRVIS(IL),
-     &                 ALBDIFVIS(IL),
-     &                 ALBDIRNIR(IL),
-     &                 ALBDIFNIR(IL), 
-     &                 SUNCOS(IL,:),
-     &                 ADJES,
-     &                 DOY,
-     &                 SCON, 
-     &                 INFLGSW,
-     &                 ICEFLGSW,
-     &                 LIQFLGSW,
-!------------------------------------------------------------------------------
-! Prior to 6/2/15:
-! Do not pass non-contiguous array slices, use pointers instead.
-! This avoids creating array temporaries. (bmy, 6/2/15)
-!     &                 CLDFMCL_SW(:,IL,:),    ! Causes array temporary
-!     &                 TAUCMCL_SW(:,IL,:),    ! Causes array temporary
-!     &                 SSACMCL(:,IL,:),       ! Causes array temporary
-!     &                 ASMCMCL(:,IL,:),       ! Causes array temporary
-!     &                 FSFCMCL(:,IL,:),       ! Causes array temporary
-!     &                 CIWPMCL_SW(:,IL,:),    ! Causes array temporary
-!     &                 CLWPMCL_SW(:,IL,:),    ! Causes array temporary
-!------------------------------------------------------------------------------
-     &                 p_CLDFMCL_SW,          ! Avoids array temporary
-     &                 p_TAUCMCL_SW,          ! Avoids array temporary
-     &                 p_SSACMCL,             ! Avoids array temporary
-     &                 p_ASMCMCL,             ! Avoids array temporary
-     &                 p_FSFCMCL,             ! Avoids array temporary
-     &                 p_CIWPMCL_SW,          ! Avoids array temporary
-     &                 p_CLWPMCL_SW,          ! Avoids array temporary
-     &                 REICMCL(IL,:),
-     &                 RELQMCL(IL,:), 
-     &                 TAUAER_SW(IL,:,:),
-     &                 SSAAER(IL,:,:),
-     &                 ASMAER(IL,:,:),
-     &                 ECAER, 
-     &                 SWUFLX,
-     &                 SWDFLX,
-     &                 SWHR,
-     &                 SWUFLXC,
-     &                 SWDFLXC,
-     &                 SWHRC    )
+            ! Call RRTMG for shortwave radiation
+            CALL RRTMG_SW( 
+                !-------------------------------------
+                ! Inputs
+     &                     ONECOL,
+     &                     LLPAR,
+     &                     ICLDMCL, 
+     &                     p_PCENTER,
+     &                     p_PLEV,
+     &                     p_TLAY,
+     &                     p_TLEV,
+     &                     TSFC(IL), 
+     &                     p_H2OVMR,
+     &                     p_O3VMR,
+     &                     p_CO2VMR,
+     &                     p_CH4VMR,
+     &                     p_N2OVMR,
+     &                     p_O2VMR, 
+     &                     ALBDIRVIS(IL),
+     &                     ALBDIFVIS(IL),
+     &                     ALBDIRNIR(IL),
+     &                     ALBDIFNIR(IL), 
+     &                     p_SUNCOS,
+     &                     ADJES,
+     &                     DOY,
+     &                     SCON, 
+     &                     INFLGSW,
+     &                     ICEFLGSW,
+     &                     LIQFLGSW,
+     &                     p_CLDFMCL_SW,
+     &                     p_TAUCMCL_SW,
+     &                     p_SSACMCL,
+     &                     p_ASMCMCL,
+     &                     p_FSFCMCL,
+     &                     p_CIWPMCL_SW,
+     &                     p_CLWPMCL_SW,
+     &                     p_REICMCL,
+     &                     p_RELQMCL, 
+     &                     p_TAUAER_SW,
+     &                     p_SSAAER,
+     &                     p_ASMAER,
+                !-------------------------------------
+                ! Outputs
+     &                     ECAER, 
+     &                     SWUFLX,
+     &                     SWDFLX,
+     &                     SWHR,
+     &                     SWUFLXC,
+     &                     SWDFLXC,
+     &                     SWHRC    )
 
-        ! Copy back into 3-D arrays
-        SW_UFLUX (IL,:) = SWUFLX (1,:)
-        SW_DFLUX (IL,:) = SWDFLX (1,:)
-        SW_UFLUXC(IL,:) = SWUFLXC(1,:)
-        SW_DFLUXC(IL,:) = SWDFLXC(1,:)
+            ! Copy back into 3-D arrays
+            SW_UFLUX (IL,:) = SWUFLX (1,:)
+            SW_DFLUX (IL,:) = SWDFLX (1,:)
+            SW_UFLUXC(IL,:) = SWUFLXC(1,:)
+            SW_DFLUXC(IL,:) = SWDFLXC(1,:)
 
-        ! Nullify pointers
-        p_CLDFMCL_SW => NULL()
-        p_TAUCMCL_SW => NULL()
-        p_SSACMCL    => NULL()
-        p_ASMCMCL    => NULL()
-        p_FSFCMCL    => NULL()
-        p_CIWPMCL_SW => NULL()
-        p_CLWPMCL_SW => NULL()
-
-      ENDIF !SW
+         ENDIF !SW
       ENDDO !NCOL
 !$OMP END PARALLEL DO
 
