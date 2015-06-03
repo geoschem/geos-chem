@@ -1685,9 +1685,9 @@
          !==============================================================
          IF ( DO_5hr_AGO ) THEN
 
-            ! COS(SZA) at midpt of chemistry timestep that was 5h ago
-            ! This is needed for the PARANOX ship plume model
-            State_Met%SUNCOSmid5(I,J) = SUNCOS_MID
+!            ! COS(SZA) at midpt of chemistry timestep that was 5h ago
+!            ! This is needed for the PARANOX ship plume model
+!            State_Met%SUNCOSmid5(I,J) = SUNCOS_MID
 
          ELSE
 
