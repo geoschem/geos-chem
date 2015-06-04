@@ -25,6 +25,7 @@
 #  20 Aug 2014 - M. Sulprizio- Add hcox_gc_POPs_mod.F90
 #  01 Oct 2014 - R. Yantosca - Add hcox_tomas_seasalt_mod.F90
 #  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
+#  04 Jun 2015 - R. Yantosca - Remove EF_MGN20.F, this isn't used anymore
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -37,7 +38,6 @@
 
 # Directories
 ROOT    :=../..
-BIN     :=$(ROOT)/bin
 LIB     :=$(ROOT)/lib
 MOD     :=$(ROOT)/mod
 
@@ -46,17 +46,19 @@ MOD     :=$(ROOT)/mod
 include $(ROOT)/Makefile_header.mk
 
 # List of source files to compile (everything ending in .F and .F90)
-SRC     :=$(wildcard *.F) $(wildcard *.F90)
+SOURCES :=$(wildcard *.F) $(wildcard *.F90)
 
 # For now, skip commsoil_mod.F90 till we figure out what to do with it
-SRC     :=$(filter-out commsoil_mod.F90,$(SRC))
+SOURCES :=$(filter-out commsoil_mod.F90,$(SOURCES))
 
 # List of object files (replace .f and .f90 extensions with *.o)
-TMP     :=$(SRC:.F=.o)
+TMP     :=$(SOURCES:.F=.o)
 OBJECTS :=$(TMP:.F90=.o)
 
-# List of module files (absolute path)
-MODULES :=$(foreach I,$(OBJECTS:.o=.mod),$(MOD)/$(I))
+# List of module files.  Convert to lowercase, then prefix directory name.
+MODULES :=$(OBJECTS:.o=.mod)
+MODULES :=$(shell echo $(MODULES) | tr A-Z a-z)
+MODULES :=$(foreach I,$(MODULES),$(MOD)/$(I))
 
 # Library file
 LIBRARY :=libHCOX.a
@@ -76,12 +78,12 @@ lib: $(OBJECTS)
 	mv $(LIBRARY) $(LIB)
 
 clean:
-	rm -f *$(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
+	@echo "===> Making clean in directory: HEMCO/Extensions <==="
+	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 debug:
 	@echo "Targets : $(MAKECMDGOALS)"
 	@echo "ROOT    : $(ROOT)"
-	@echo "BIN     : $(BIN)"
 	@echo "LIB     : $(LIB)"
 	@echo "MOD     : $(MOD)"
 	@echo "F90     : $(F90)"
@@ -108,8 +110,6 @@ debug:
 ###############################################################################
 
 drydep_toolbox_mod.o        : drydep_toolbox_mod.F90
-
-EF_MGN20_mod.o              : EF_MGN20_mod.F
 
 hcox_ch4wetland_mod.o       : hcox_ch4wetland_mod.F90         \
                               hcox_state_mod.o		      
@@ -160,8 +160,7 @@ hcox_lightnox_mod.o         : hcox_lightnox_mod.F90           \
                               hcox_state_mod.o
 
 hcox_megan_mod.o            : hcox_megan_mod.F                \
-                              hcox_state_mod.o                \
-                              EF_MGN20_mod.o		      
+                              hcox_state_mod.o
 
 hcox_paranox_mod.o          : hcox_paranox_mod.F90            \
                               hcox_state_mod.o

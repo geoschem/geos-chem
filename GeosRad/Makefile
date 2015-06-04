@@ -39,67 +39,89 @@
 #  08 Aug 2012 - K. Cady-Pereira - Initial version
 #  22 Aug 2012 - R. Yantosca     - Fixed typo in depend list for rrsw_kg24.o
 #  22 Aug 2012 - R. Yantosca     - Added white space for readability
+#  04 Jun 2015 - R. Yantosca     - Cosmetic changes
+#  04 Jun 2015 - R. Yantosca     - Remove *.mod, *.a files with "make clean"
+#  04 Jun 2015 - R. Yantosca     - Update debug target, remove help
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
-# Define variables 
-SHELL   = /bin/sh
-ROOTDIR = ..
-HDR     = $(ROOTDIR)/Headers
-HELP    = $(ROOTDIR)/help
-LIB     = $(ROOTDIR)/lib
-MOD     = $(ROOTDIR)/mod
-GEOSDIR = $(ROOTDIR)/GeosCore
+###############################################################################
+###                                                                         ###
+###  Initialization section                                                 ###
+###                                                                         ###
+###############################################################################
+
+# Directories
+ROOT    := ..
+LIB     := $(ROOT)/lib
+MOD     := $(ROOT)/mod
 
 # Sometimes we may need to compile RRTMG with a lower optimization setting,
 # so use the OPT variable if necessary
-OPT     = -O1 -override-limits
+OPT     := -O1 -override-limits
 
 # Include header file.  This returns variables CC, F90, FREEFORM, LD, R8,
 # as well as the default Makefile compilation rules for source code files.
-include $(ROOTDIR)/Makefile_header.mk
-
-#=============================================================================
-# List of files to compile (the order is important!).  We specify these as
-# a list of object files (*.o).  For each object file, the "make" utility
-# will find the corresponding source code file (*.F) and compile it. 
-#=============================================================================
+include $(ROOT)/Makefile_header.mk
 
 # List of source files
-SRC = $(wildcard *.F90)
+SOURCES := $(wildcard *.F90)
 
-# Replace .F and .F90 extensions with *.o
-OBJ = $(SRC:.F90=.o)
+# List of object files (replace .F90 extensions with *.o)
+OBJECTS := $(SOURCES:.F90=.o)
 
-#=============================================================================
-# Makefile targets: type "make help" for a complete listing!
-#=============================================================================
+# List of module files.  Convert to lowercase, then prefix directory name.
+MODULES :=$(OBJECTS:.o=.mod)
+MODULES :=$(shell echo $(MODULES) | tr A-Z a-z)
+MODULES :=$(foreach I,$(MODULES),$(MOD)/$(I))
 
-.PHONY: clean help
+# Library file
+LIBRARY :=librad.a
 
-lib: $(OBJ)
-	$(AR) crs librad.a $(OBJ)
-	mv librad.a $(LIB)
+###############################################################################
+###                                                                         ###
+###  Makefile targets: type "make help" for a complete listing!             ###
+###                                                                         ###
+###############################################################################
+
+.PHONY: clean debug
+
+lib: $(OBJECTS)
+	$(AR) crs $(LIBRARY) $(OBJECTS)
+	mv $(LIBRARY) $(LIB)
 
 clean:
-	rm -f *.o *.mod
-
-help:
-	@$(MAKE) -c $(HELP)
+	@echo "===> Making clean in directory: GeosRad <==="
+	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 debug:
-	@echo "Obj:    $(OBJ)"
-	@echo "Mod:    $(MOD)"
-	@echo "FFLAGS: $(FFLAGS)"
-	@echo "F90     $(F90)"
+	@echo "Targets : $(MAKECMDGOALS)"
+	@echo "ROOT    : $(ROOT)"
+	@echo "LIB     : $(LIB)"
+	@echo "MOD     : $(MOD)"
+	@echo "F90     : $(F90)"
+	@echo "OBJECTS : $(OBJECTS)"
+	@echo "MODULES : $(MODULES)"
+	@echo "LIBRARY : $(LIBRARY)"
 
-#=============================================================================
-# Dependencies listing (grep "USE " to get the list of module references!)
-#
-# From this list of dependencies, the "make" utility will figure out the
-# correct order of compilation (so we don't have to do that ourselves!)
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Dependencies listing                                                   ###
+###  (grep "USE " to get the list of module references!)                    ###
+###                                                                         ###
+###  From this list of dependencies, the "make" utility will figure out     ###
+###  correct order of compilation (so we don't have to do that ourselves).  ###
+###  This also allows us to compile on multiple processors with "make -j".  ###
+###                                                                         ###
+###  NOTES:                                                                 ###
+###  (1) Only specify object-file dependencies that are within this         ###
+###       directory.  Object files in other directories will be referenced  ### 
+###       at link-time.                                                     ###
+###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
+###       in this directory must have a listed dependency.                  ###
+###                                                                         ###
+###############################################################################
 
 mcica_random_numbers.o   : mcica_random_numbers.F90                          \
                            parkind.o

@@ -31,8 +31,6 @@
 
 # Directories
 ROOT    :=../..
-BIN     :=$(ROOT)/bin
-DOC     :=$(ROOT)/doc
 LIB     :=$(ROOT)/lib
 MOD     :=$(ROOT)/mod
 
@@ -41,14 +39,16 @@ MOD     :=$(ROOT)/mod
 include $(ROOT)/Makefile_header.mk
 
 # List of source files to compile
-SRC     :=$(wildcard *.F) $(wildcard *.F90)
+SOURCES :=$(wildcard *.F) $(wildcard *.F90)
 
 # Replace .f and .f90 extensions with *.o
-TMP     :=$(SRC:.F=.o)
+TMP     :=$(SOURCES:.F=.o)
 OBJECTS :=$(TMP:.F90=.o)
 
-# List of module files (absolute path)
-MODULES :=$(foreach I,$(OBJECTS:.o=.mod),$(MOD)/$(I))
+# List of module files.  Convert to lowercase, then prefix directory name.
+MODULES :=$(OBJECTS:.o=.mod)
+MODULES :=$(shell echo $(MODULES) | tr A-Z a-z)
+MODULES :=$(foreach I,$(MODULES),$(MOD)/$(I))
 
 # Library file
 LIBRARY :=libHCOI.a
@@ -66,13 +66,14 @@ all: lib
 lib: $(OBJECTS)
 	$(AR) crs $(LIBRARY) $(OBJECTS)
 	mv $(LIBRARY) $(LIB)
+
 clean:
-	rm -f *$(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
+	@echo "===> Making clean in directory: HEMCO/Interfaces <==="
+	@rm -f *$(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 debug:
 	@echo "Targets : $(MAKECMDGOALS)"
 	@echo "ROOT    : $(ROOT)"
-	@echo "BIN     : $(BIN)"
 	@echo "LIB     : $(LIB)"
 	@echo "MOD     : $(MOD)"
 	@echo "F90     : $(F90)"
