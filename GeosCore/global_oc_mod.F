@@ -157,6 +157,7 @@
       REAL*4               :: ARRAY(IGLOB,JGLOB,LGLOB)
       REAL*8               :: XTAU
       CHARACTER(LEN=255)   :: FILENAME
+      CHARACTER(LEN=255)   :: DIAG
 
       ! First time flag
       LOGICAL, SAVE        :: FIRST = .TRUE. 
@@ -172,41 +173,26 @@
          FIRST = .FALSE.
       ENDIF
 
-! Default: GEOS-5 @ 4x5 reduced vertical layers (H. Amos, 15Mar2013)
-      FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004' //
-     &           '/4x5/CLF_fullchem/OCPO_FC_4x5.bpch'
 
       ! If GCAP:
 #if defined( GCAP )
-
-!      IF ( LFUTURE ) THEN
-
-!      WRITE(6,*) 'LFUTURE=', LFUTURE
 
          ! Friedman GCAP OC/BC aerosol simulations w/future anthropogenic emissions:
          FILENAME = '/net/fs03/d0/geosdata/data/GCAP_4x5/PAHs_2004/' //
      &              'GCAP_OCBC/PCPE_OCPO.bpch'
 
-!      ELSE
-
-         ! Friedman GCAP OC/BC aerosol simulations w/o future anthropogenic emissions:
-!          FILENAME = '/net/fs03/d0/geosdata/data/GCAP_4x5/PAHs_2004/' //
-!     &               'GCAP_OCBC/presem_OCPO_GCAP.bpch'
-
-!       ENDIF
+         DIAG = 'IJ-AVG-$'
 
 
 #elif defined ( GRIDREDUCED ) && defined( GEOS_5 )
-!      LFUTURE = .FALSE.
-      ! My full-chem OC/BC aerosol simulations:
-      FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004/' //
+   
+         FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004/' //
      &           '4x5/CLF_fullchem/OCPO_FC_4x5.bpch'
+
+         DIAG = 'IJ-24H-$'
 
 #endif
 
-!      If we want to read in from the input file:
-!      FILENAME = TRIM( OC_DIR ) // 'OC_3Dglobal.' // GET_NAME_EXT() // 
-!     &                              '.'           // GET_RES_EXT()
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )
@@ -217,12 +203,11 @@
       XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
 
       ! From Qiaoqiao's or CLF's run:
-      CALL READ_BPCH2( FILENAME, 'IJ-24H-$', 14,     
+      CALL READ_BPCH2( FILENAME,  DIAG,      14,     
      &                 XTAU,      IGLOB,     JGLOB,      
      &                 LGLOB,     ARRAY,     QUIET=.FALSE. )
 
-      ! Assign data from ARRAY to the module variable OCPHOB
-!      CALL TRANSFER_3D( ARRAY, OCPHOB )
+      ! Assign data from ARRAY to the module variable OC
       CALL TRANSFER_3D( ARRAY, OC )
 
       ! Return to calling program
@@ -253,9 +238,9 @@
 
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
-      USE CMN_SIZE_MOD        ! Size parameters ! H. Amos, 7 Mar 2013
+      USE CMN_SIZE_MOD        
 
-!#     include "CMN_SIZE" 
+
 !
 !
 ! !REVISION HISTORY: 
@@ -288,16 +273,10 @@
       ALLOCATE( OC( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OC' )
 
-!      ALLOCATE( OCPHIL( IIPAR, JJPAR, LLPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPHIL' )
-
-!      ALLOCATE( OCHPOB( IIPAR, JJPAR, LLPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPHOB' )
 
       ! Zero OC arrays
       OC = 0d0
-!      OCPHIL = 0d0
-!      OCPHOB = 0d0
+
 
       ! Return to calling program
       END SUBROUTINE INIT_GLOBAL_OC    
@@ -330,7 +309,6 @@
 !  19 January 2011 - C.L. Friedman - Initial Version
 !
 ! !REMARKS:
-! Under construction
 !
 !EOP
 !------------------------------------------------------------------------------
@@ -348,8 +326,7 @@
       ! CLEANUP_GLOBAL_OC begins here!
       !=================================================================
       IF ( ALLOCATED( OC ) ) DEALLOCATE( OC ) 
-!      IF ( ALLOCATED( OCPHIL ) ) DEALLOCATE( OCPHIL ) 
-!      IF ( ALLOCATED( OCPHOB ) ) DEALLOCATE( OCPHOB ) 
+
      
       ! Return to calling program
       END SUBROUTINE CLEANUP_GLOBAL_OC

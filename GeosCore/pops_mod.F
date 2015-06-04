@@ -709,7 +709,6 @@
 
          ! Get monthly mean O3 concentrations (molec/cm3)
          C_O3        = GET_O3( I, J, L )
-!         WRITE (6,*) 'C_O3=', C_O3
 
          ! Get monthly mean NO3 concentration (molec/cm3)
 ! ----> this is causing a segfault because it's looking for 
@@ -961,20 +960,6 @@
 
                CALL RXN_OX_NODEP( MPOP_BCPI, K_OX_P, 
      &              E_KOX_T_BC, NEW_POPP_BCPI, GROSS_OX_BCPI)
-
-            ! NO3:
-!               CALL RXN_OX_NODEP( MPOP_OCPO, K_NO3_BC, 
-!     &              E_KOX_NO3_T_BC, NEW_POPP_OCPO, GROSS_OX_OCPO)
-
-!               CALL RXN_OX_NODEP( MPOP_OCPI, K_O3_BC, 
-!     &              E_KOX_T_BC, NEW_POPP_OCPI, GROSS_OX_OCPI)
-
-!               CALL RXN_OX_NODEP( MPOP_BCPO, K_O3_BC, 
-!     &              E_KOX_T_BC, NEW_POPP_BCPO, GROSS_OX_BCPO)
-
-!              CALL RXN_OX_NODEP( MPOP_BCPI, K_O3_BC, 
-!     &              E_KOX_T_BC, NEW_POPP_BCPI, GROSS_OX_BCPI)
-
 
                ! No deposition occurs [kg]
                DEP_POPG = 0D0
@@ -1930,139 +1915,13 @@
       ! First draft, CLF, 28 Aug 2012
       !=================================================================
 
-      ! Loop over surface grid boxes
-      ! Now do looping in secondary emissions routines
+       CALL SOILEMISPOP( POP_SURF, F_OC_SOIL, EPOP_SOIL)
+       CALL LAKEEMISPOP( POP_SURF, EPOP_LAKE )
+       CALL VEGEMISPOP(  POP_SURF, EPOP_VEG )
 
-         ! DON'T NEED TO DO THIS HERE - DO LOOPING AND SETTING OF LOGICALS
-         ! WITHIN EACH SEC EMISSIONS SUBROUTINE
-         ! ***************************************************
-         ! Set logicals
-         ! Is grid box covered by land/ice or by water? (IS_LAND_OR_ICE)
-         ! IS_LAND will return non-ocean boxes but may still contain lakes
-         ! If land, is it covered by snow/ice? (IS_SNOW_OR_ICE)
-!         IS_LAND_OR_ICE = ( (IS_LAND(I,J)) .OR. (IS_ICE(I,J)) ) 
-!         IS_SNOW_OR_ICE = 
-!     &      ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOMAS(I,J)>10d0) )
+       EPOP_SNOW = 0d0
+       EPOP_OCEAN = 0d0
 
-         ! Make entire land box either snow-covered or not
-         ! Start with no snow cover
-!         IF ((IS_LAND_OR_ICE) .AND. .NOT. ( IS_SNOW_OR_ICE )) THEN
-!            FRAC_SNOW_OR_ICE = 0d0
-!            FRAC_SNOWFREE_LAND = 1d0
-
-            ! Begin revolatilization from different snow-free land types
-
-            ! Divide each grid box into fractions of leaf cover, lake, and soil
-
-            ! Get fraction of grid box covered by leaf surface area
-            ! Do not consider different vegetation types for now
-!            WRITE (6,*) 'ISOLAI(I,J) = ', ISOLAI(I,J)
-!         FRAC_LEAF = ISOLAI(I,J)
-
-!            WRITE (6,*) 'and here?'
-
-            ! Get fraction of grid box covered by leaf surface area
-!         FRAC_LAKE = FRLAKE(I,J)
-
-            ! Get fraction of land remaining
-            ! Assume the remaining land is soil and get OC content. If remaining land is not
-            ! soil (e.g., desert), there should be a characteristically low OC content
-!         FRAC_SOIL = MAX(1d0 - FRAC_LEAF - FRAC_LAKE, 0d0)
-
-            ! Calculate air-surface chemical gradients and corresponding flux
-
-            !IF (LPAH) THEN
-
-!               IF (FRAC_LEAF > 0d0) THEN
-!                  CALL VEGEMISPOP(LSECEMISPOP, POP_VEG, EPOP_VEG)
-!                  EPOP_VEG = 0d0 ! for testing
-                  
-
-                  ! Multiply emissions by fraction of grid box containing veg
-!                  EPOP_VEG = FRAC_LEAF * EPOP_VEG
-
-!               ENDIF
-
-!               IF (FRAC_LAKE > 0d0) THEN
-!                  CALL LAKEEMISPOP(LSECEMISPOP, POP_LAKE, EPOP_LAKE)
-!                  EPOP_LAKE = 0d0 ! for testing
-
-                  ! Multiply emissions by fraction of grid box containing lake
-!                  EPOP_LAKE = FRAC_LAKE * EPOP_LAKE
-
-!               ENDIF
-
-!               IF (FRAC_SOIL > 0d0) THEN
-                  CALL SOILEMISPOP( POP_SURF, F_OC_SOIL, EPOP_SOIL)
-                  CALL LAKEEMISPOP( POP_SURF, EPOP_LAKE )
-                  CALL VEGEMISPOP(  POP_SURF, EPOP_VEG )
-
-
-!               ENDIF
-
-            ! ELSE IF (LPCB) THEN
-
-            ! ELSE IF (LPFAS) THEN
-
-            !ENDIF
-
-!         ELSE IF ((IS_LAND_OR_ICE) .AND. ( IS_SNOW_OR_ICE )) THEN
-         ! If a land box then entirely covered with snow, or if not land 
-         ! then entirely covered with ice
-!            FRAC_SNOW_OR_ICE = 1d0
-!            FRAC_SNOWFREE_LAND = 0d0
-
-!            EPOP_VEG = 0d0
-            EPOP_SNOW = 0d0
-!            EPOP_SOIL = 0d0
-            EPOP_OCEAN = 0d0
-
-            !IF (LPAH) THEN
-
-            ! Flux from snow/ice greater than from soils (no OC/BC)
-            ! but still temp/solar influx dependent
-
-!            CALL SNOWEMISPOP(LSECEMISPOP, POP_SNOW, EPOP_SNOW)
-
-            ! ELSE IF (LPCB) THEN
-
-               ! Flux from snow for PCBs
-
-            ! ELSE IF (LPFAS) THEN
-
-               ! Flux from snow for PFAS
-
-            !ENDIF 
-
-!         ELSE
-         ! Grid box covers the open ocean
-         
-            !IF (LPAH) THEN
-               
-               ! No flux from ocean for PAHs
-!            EPOP_VEG = 0d0
-!            EPOP_SNOW = 0d0
-!            EPOP_LAKE = 0d0
-!            EPOP_OCEAN = 0d0
-!            EPOP_SOIL = 0d0
-
-            ! ELSE IF (LPCB) THEN
-
-               ! Some kind of flux from ocean for PCBs (Lohmann, Dachs, Nizzetto?)
-               ! CALL OCEANEMISPOP ( input, output )
-
-            ! ELSE IF (LPFAS) THEN
-
-               ! No idea on this one - probably not much out of water vs. into?
-            
-            !ENDIF
-
-!         ENDIF
-            
-         ! Does that cover all grid boxes??
-
-         ! For testing purposes, set all secondary emissions arrays
-         ! except from soil to zero
 
       ! Loop over grid boxes
       DO J = 1, JJPAR
@@ -2078,7 +1937,7 @@
          T_POP = POP_TOT_EM(I,J)
 
          ! Now add revolatilization (secondary) emissions to primary [kg/s]
-         T_POP = T_POP !+ EPOP_VEG(I,J) + EPOP_LAKE(I,J) + EPOP_SOIL(I,J) 
+         T_POP = T_POP + EPOP_VEG(I,J) + EPOP_LAKE(I,J) + EPOP_SOIL(I,J) 
 !     &         +  EPOP_SNOW(I,J) + EPOP_OCEAN(I,J)
 
          !==============================================================
@@ -2116,8 +1975,6 @@
            
             ! Convert C_OC and C_BC units to volume per box 
             ! [m^3 OC or BC/box]
-            !C_OC(I,J,L)        = GET_OC(I,J,L) / DENS_OCT
-            !C_BC(I,J,L)        = GET_BC(I,J,L) / DENS_BC
             C_OC2        = C_OC1 / DENS_OCT
             C_BC2        = C_BC1 / DENS_BC
 
@@ -2623,7 +2480,7 @@
       REAL*8               :: XTAU, MAX_A, MIN_A
       REAL*8               :: MAX_B, MIN_B
       REAL*8, PARAMETER    :: SEC_PER_YR = 365.35d0 * 86400d0  
-      CHARACTER(LEN=255)   :: FILENAME 
+      CHARACTER(LEN=225)   :: FILENAME 
       INTEGER              :: NYMD
 
       !=================================================================
@@ -2637,37 +2494,21 @@
       ! annual average deposition rates [kg]
       ! Filename for PAHs:
 !Default: GEOS 5 @ 4x5
-      FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004/' //
-     &           '4x5/soil_conc/pyr_soil_conc_ann.bpch'
+!      FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004/' //
+!     &           '4x5/soil_conc/pyr_soil_conc_ann.bpch'
 
 #if defined ( GEOS_5 ) && defined ( GRID4x5 )
       FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004' //
      &           '4x5/soil_conc/pyr_soil_conc_ann.bpch'
-#elif defined ( GEOS_5 ) && defined ( GRID2x25 )
-      FILENAME = 'empty ' ! not available yet (H. Amos, 14Mar2013)
+
 #elif defined ( GCAP ) && defined ( GRID4X5 )
       FILENAME = '/net/fs03/d0/geosdata/data/GCAP_4x5/PAHs_2004' //
      &           '/soil_conc/pyr_soil_conc_ann_GCAP.bpch'
-#elif defined ( GCAP ) && defined ( GRID2x25 )
-      FILENAME = 'empty ' ! not available yet (H. Amos, 14Mar2013)
+
 #endif
-
-!!#if defined ( GCAP )
-!         FILENAME = '/net/fs03/d0/geosdata/data/GCAP_4x5/PAHs_2004' //
-!     &              '/soil_conc/pyr_soil_conc_ann_GCAP.bpch'
-
-!!#elif defined ( GEOS_5 )
-!Point to local copy of .bpch file (H. Amos, 11 Mar 2013)
-!         FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004' //
-!     &              '/4x5/soil_conc/pyr_soil_conc_ann.bpch'
-c$$$!         FILENAME = '/home/hamos/GC/input_files/POPs/soil' //
-c$$$!     &              '/pyr_soil_conc_ann.bpch'
-c$$$                  FILENAME='test'
-c$$$
-!!#endif
      
          ! Timestamp for emissions
-         ! All PAH soil conc are for the year 2009 (change to 2004 for consistency?)
+         ! All PAH soil conc are for the year 2009
          XTAU = GET_TAU0( 1, 1, 2009) 
 
          ! Echo info
@@ -2683,9 +2524,6 @@ c$$$
            ! Cast to REAL*8 and resize       
            CALL TRANSFER_2D( ARRAY(:,:,1), POP_SURF )
 
-!           POP_SURF = ARRAY
-
-        !ENDIF
       
       ! Return to calling program
       END SUBROUTINE POPS_READSURFCONC
@@ -2793,12 +2631,10 @@ c$$$
       DO I=1, IIPAR
 
          ! Assume most of carbon mass extends to 5 cm and calculate concentration in g/g
-         F_OC_SOIL(I,J) = F_OC_SOIL(I,J) / 30d-2 / 13d2 / 1d3
-!         WRITE (6,*) 'F_OC_SOIL(I,J) =', F_OC_SOIL(I,J)
-
          ! For now, assume a mean soil bulk density of 1300 kg/m3 similar to McLachlan 2002
          ! to calculate a dry weight fraction
-!         F_OC_SOIL = F_OC_SOIL / 13d2
+         F_OC_SOIL(I,J) = F_OC_SOIL(I,J) / 30d-2 / 13d2 / 1d3
+
 
       ENDDO
       ENDDO

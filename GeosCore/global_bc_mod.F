@@ -73,8 +73,6 @@
 
       ! Array to store global monthly mean BC field
       REAL*8, ALLOCATABLE :: BC(:,:,:)
-!      REAL*8, ALLOCATABLE :: BCPHIL(:,:,:)
-!      REAL*8, ALLOCATABLE :: BCPHOB(:,:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -161,6 +159,7 @@
       REAL*4               :: ARRAY(IGLOB,JGLOB,LGLOB)
       REAL*8               :: XTAU
       CHARACTER(LEN=255)   :: FILENAME
+      CHARACTER(LEN=255)   :: DIAG
 
       ! First time flag
       LOGICAL, SAVE        :: FIRST = .TRUE. 
@@ -176,40 +175,23 @@
          FIRST = .FALSE.
       ENDIF
 
-! Default: GEOS-5 @ 4x5 reduced vertical layers (H. Amos, 15Mar2013)
-      FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004' //
-     &           '/4x5/CLF_fullchem/BCPO_FC_4x5.bpch'
 
       ! If GCAP:
 #if defined( GCAP)
-
-!      IF ( LFUTURE ) THEN
-
-!      WRITE(6,*) 'LFUTURE=', LFUTURE
 
          ! Friedman GCAP OC/BC aerosol simulations w/future anthropogenic emissions:
          FILENAME = '/net/fs03/d0/geosdata/data/GCAP_4x5/PAHs_2004/' //
      &              'GCAP_OCBC/PCPE_BCPO.bpch'
 
-!      ELSE
-
-         ! Friedman full-chem OC/BC aerosol simulations:
-!         FILENAME = '/net/fs03/d0/geosdata/data/GCAP_4x5/PAHs_2004/' //
-!     &              'GCAP_OCBC/presem_BCPO_GCAP.bpch'
-
-!      ENDIF
+         DIAG = 'IJ-AVG-$'
 
 
 #elif defined ( GRIDREDUCED ) && defined( GEOS_5 )
-      ! My full-chem OC/BC aerosol simulations:
-!      LFUTURE = .FALSE.
 
       FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004/' //
      &           '4x5/CLF_fullchem/BCPO_FC_4x5.bpch'
 
-!      If we want to read in from the input file:
-!      FILENAME = TRIM( BC_DIR ) // 'BC_3Dglobal.' // GET_NAME_EXT() // 
-!     &                              '.'           // GET_RES_EXT()
+         DIAG = 'IJ-24H-$'
 
 #endif
 
@@ -221,8 +203,7 @@
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
       XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
 
-      ! From Qiaoqiao's or CLF's run:
-      CALL READ_BPCH2( FILENAME, 'IJ-24H-$', 13,     
+      CALL READ_BPCH2( FILENAME,  DIAG,       13,     
      &                 XTAU,      IGLOB,     JGLOB,      
      &                 LGLOB,     ARRAY,     QUIET=.FALSE. )
 
@@ -292,16 +273,10 @@
       ALLOCATE( BC( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC' )
 
-!      ALLOCATE( BCPHIL( IIPAR, JJPAR, LLPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPHIL' )
-
-!      ALLOCATE( BCHPOB( IIPAR, JJPAR, LLPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPHOB' )
 
       ! Zero BC array
       BC = 0d0
-!      BCPHIL = 0d0
-!      BCPHOB = 0d0
+
 
       ! Return to calling program
       END SUBROUTINE INIT_GLOBAL_BC    
@@ -352,8 +327,6 @@
       ! CLEANUP_GLOBAL_BC begins here!
       !=================================================================
       IF ( ALLOCATED( BC ) ) DEALLOCATE( BC ) 
-!      IF ( ALLOCATED( BCPHIL ) ) DEALLOCATE( BCPHIL ) 
-!      IF ( ALLOCATED( BCPHOB ) ) DEALLOCATE( BCPHOB )
      
       ! Return to calling program
       END SUBROUTINE CLEANUP_GLOBAL_BC

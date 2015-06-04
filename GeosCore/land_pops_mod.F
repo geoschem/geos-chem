@@ -23,9 +23,6 @@
       PUBLIC :: VEGEMISPOP
       PUBLIC :: LAKEEMISPOP
       PUBLIC :: SOILEMISPOP
-!      PUBLIC :: SNOWEMISPOP
-!      PUBLIC :: INIT_LAND_POPS
-!      PUBLIC :: CLEANUP_LAND_POPS
 !
 ! !REVISION HISTORY:
 !  21 Aug 2012 - C.L. Friedman - Initial version based on LAND_MERCURY_MOD
@@ -37,7 +34,6 @@
 ! !PRIVATE TYPES:
 !
       ! Plant transpiration rate [m/s]
-!      REAL*8,  ALLOCATABLE :: TRANSP(:,:)
       REAL*8,  PARAMETER   :: SMALLNUM = 1D-20
 
 
@@ -196,58 +192,34 @@
          ! Is grid box covered by land/ice or by water? (IS_LAND_OR_ICE)
          ! IS_LAND will return non-ocean boxes but may still contain lakes
          ! If land, is it covered by snow/ice? (IS_SNOW_OR_ICE)
+#if defined ( GEOS_5 )
          IS_LAND_OR_ICE = ( (IS_LAND(I,J)) .OR. (IS_ICE(I,J)) ) 
          IS_SNOW_OR_ICE = 
      &      ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOMAS(I,J)>10d0) )
+
+#elif defined ( GCAP )
+         ! GCAP uses different snow variable 
+         IS_LAND_OR_ICE = ( (IS_LAND(I,J)) .OR. (IS_ICE(I,J)) )    
+         IS_SNOW_OR_ICE = 
+     &      ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J)  .AND. SNOW(I,J)>10d0) )
+#endif
          
-!THIS IF-STATEMENT ISN'T WORKING. NEVER TRUE. DEBUG! (H. Amos, 16 May 2013)
-c$$$#if defined ( GEOS_5 )
-c$$$         ! Set logicals
-c$$$         ! Is grid box covered by land/ice or by water? (IS_LAND_OR_ICE)
-c$$$         ! IS_LAND will return non-ocean boxes but may still contain lakes
-c$$$         ! If land, is it covered by snow/ice? (IS_SNOW_OR_ICE)
-c$$$         IS_LAND_OR_ICE = ( (IS_LAND(I,J)) .OR. (IS_ICE(I,J)) ) 
-c$$$         IS_SNOW_OR_ICE = 
-c$$$     &      ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOMAS(I,J)>10d0) )
-c$$$         IF (I .EQ. 10 .AND. J .EQ. 10 ) PRINT*,'ICELAND Success!' ! hma debug
-c$$$         
-c$$$#elif defined ( GCAP )
-c$$$         ! GCAP uses different snow variable 
-c$$$         IS_LAND_OR_ICE = ( (IS_LAND(I,J)) .OR. (IS_ICE(I,J)) )    
-c$$$         IS_SNOW_OR_ICE = 
-c$$$     &      ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J)  .AND. SNOW(I,J)>10d0) )
-c$$$#endif
 
          ! Do soils routine only if we are on land that is not covered with
          ! snow or ice
          IF ((IS_LAND_OR_ICE) .AND. .NOT. ( IS_SNOW_OR_ICE )) THEN
-!         IF( IS_LAND(I,J) ) THEN !hma debugging   
-!            PRINT*,'Made it inside loop' !hma debug
 
-            ! Get fraction of grid box covered by leaf surface area
-            ! Do not consider different vegetation types for now
-!            FRAC_LEAF = ISOLAI(I,J)
-            ! DON'T DO THIS NOW B/C FRAC_LEAF CAN BE GREATER THAN 1D0
-            ! PRESUMABLY CONSIDERING SURFACE AREA IN 3 DIMENSIONS
-
+#if defined ( GEOS_5 ) 
             ! Get fraction of grid box covered by lake surface area
             FRAC_LAKE = FRLAKE(I,J)
+            FRAC_SOIL = MAX(1d0 - FRAC_LAKE, 0d0)
 
-!THIS IF-STATEMENT ISN'T WORKING. NEVER TRUE. DEBUG! (H. Amos, 16 May 2013)
-c$$$
-c$$$#if defined ( GEOS_5 )
-c$$$            ! Get fraction of grid box covered by leaf surface area
-c$$$            ! Do not consider different vegetation types for now
-c$$$!            FRAC_LEAF = ISOLAI(I,J)
-c$$$            ! DON'T DO THIS NOW B/C FRAC_LEAF CAN BE GREATER THAN 1D0
-c$$$            ! PRESUMABLY CONSIDERING SURFACE AREA IN 3 DIMENSIONS
-c$$$
-c$$$            ! Get fraction of grid box covered by lake surface area
-c$$$            FRAC_LAKE = FRLAKE(I,J)
-c$$$#elif defined ( GCAP )
-c$$$            ! Lake surface is not defined for GCAP
-c$$$            FRAC_LAKE = 0d0
-c$$$#endif
+#elif defined ( GCAP )
+            ! Lake surface is not defined for GCAP
+            FRAC_LAKE = 0d0
+            FRAC_SOIL = MAX(1d0 - FRAC_LAKE, 0d0)
+#endif      
+
             ! Get fraction of land remaining
             ! Assume the remaining land is soil and get OC content. If remaining land is not
             ! soil (e.g., desert), there should be a characteristically low OC content
@@ -255,16 +227,12 @@ c$$$#endif
             ! ONLY SUBTRACT FRAC LAKE NOW
             FRAC_SOIL = MAX(1d0 - FRAC_LAKE, 0d0)
 
+#if defined ( GEOS_5 )
             ! Get surface skin temp [K]
             TK_SURF = TSKIN(I,J)
-
-!THIS IF-STATEMENT ISN'T WORKING. NEVER TRUE. DEBUG! (H. Amos, 16 May 2013)
-c$$$#if defined ( GEOS_5 )
-c$$$            ! Get surface skin temp [K]
-c$$$            TK_SURF = TSKIN(I,J)
-c$$$#elif defined ( GCAP )
-c$$$            TK_SURF = TS(I,J)
-c$$$#endif
+#elif defined ( GCAP )
+            TK_SURF = TS(I,J)
+#endif
 
             ! Get air temp [K]
             TK = T(I,J,1)
@@ -280,14 +248,10 @@ c$$$#endif
             ! 10 years for PYR, and 9.4 years for BaP
             ! Convert to mol/m3      
             ! 2.6 yrs * kg deposited to soil in 1 yr * / 0.178 kg/mol
-            ! / area grid box (m2) / 0.05 m 
-!Bug fix (H. Amos, 8 Mar 2013)
-!            SOIL_CONC = 10d0 * POP_SURF(I,J) / MW / GET_AREA_M2( J ) /
-!     &                  5d-2! mol/m3   
+            ! / area grid box (m2) / 0.05 m  
             SOIL_CONC = 10d0 * POP_SURF(I,J) / MW / GET_AREA_M2(I,J,1) /
      &                  5d-2! mol/m3   
 
-            !WRITE(6,*) 'SOIL_CONC (mol/m3) =', SOIL_CONC
 
             ! Get rid of mass due to degradation
             ! Use rate constant for BaP from Mackay and Paterson 1991: 3.5*10^-5 /h
@@ -324,7 +288,6 @@ c$$$#endif
             ! If the gradient is negative, fair is larger and the POP will diffuse from air to soil
             ! If the gradient is positive, fsoil is larger and POP will diffuse from soil to air
             DIFF = FSOIL - FAIR
-!            WRITE (6,*) 'DIFF (mol/m3)=', NEWSOIL/KSA_T - POPG
             FUG_R = FSOIL/FAIR
 
             ! Calculate "Z" values from fugacities. 
@@ -366,17 +329,12 @@ c$$$#endif
             ! Kludge soil emissions from poles for now
             ! Bug somewhere that allows GCAP versions to think some high polar boxes during 
             ! some months are land rather than ice - results in extremely high fluxes
-!Bug fix (H. Amos, 8 Mar 2013)
-!            IF  (GET_YMID(J) >  60  .OR. GET_YMID(J) < -60 ) THEN
             IF (GET_YMID(I,J,1) >  60  .OR. GET_YMID(I,J,1) < -60 ) THEN
                FLUX = 0d0
                DIFF = 0d0
             ENDIF
 
             ! Convert to an emission rate in kg/s for returning to pops_mod.f
-!Bug fix (H. Amos, 8 Mar 2013)
-!            EPOP_SOIL(I,J) = MAX(FLUX * GET_AREA_M2( J ) / 24d0 / 3600d0 
-!     &                         / 1d12, 0d0 )
             EPOP_SOIL(I,J) = MAX(FLUX * GET_AREA_M2(I,J,1) / 24d0  
      &                         / 3600d0 / 1d12, 0d0 )
 
@@ -448,8 +406,7 @@ c$$$#endif
       USE TIME_MOD, ONLY      : GET_TS_EMIS, GET_TS_CHEM
       USE DAO_MOD, ONLY       : IS_ICE, IS_LAND, IS_WATER
       USE DAO_MOD, ONLY       : FRLAKE
-      USE MODIS_LAI_MOD, ONLY : GC_LAI, GC_LAI_CM, GC_LAI_PM ! hma, 7Mar2013
-!      USE LAI_MOD, ONLY       : ISOLAI, MISOLAI, PMISOLAI
+      USE MODIS_LAI_MOD, ONLY : GC_LAI, GC_LAI_CM, GC_LAI_PM 
       USE DAO_MOD, ONLY       : TSKIN, AIRVOL, T
       USE DAO_MOD, ONLY       : IS_ICE, IS_LAND, SNOMAS
       USE DAO_MOD, ONLY       : PSC2
@@ -464,13 +421,10 @@ c$$$#endif
       ! Replace include statements (H. Amos, 7Mar2013)
       USE CMN_SIZE_MOD   ! Size parameters
       USE CMN_DIAG_MOD   ! Diagnostic arrays & switches
-!#     include "CMN_SIZE"     ! Size parameters
-!#     include "CMN_DIAG"     ! Diagnostic arrays & switches
 
 !
 ! !INPUT PARAMETERS:
 !
-!      LOGICAL,                INTENT(IN) :: LSECEMISPOP
       REAL*8, DIMENSION(:,:), INTENT(IN) :: POP_SURF
 
 !
@@ -626,164 +580,158 @@ c$$$#endif
 
             ! Get fraction of grid box covered by lake surface area
             FRAC_LAKE = FRLAKE(I,J)
-!            WRITE(6,*) 'FRLAKE =', FRLAKE(I,J)
 
             IF ( FRAC_LAKE > 0d0 ) THEN
 
-            ! Get surface skin temp [K]
-            TK_SURF = TSKIN(I,J)
+               ! Get surface skin temp [K]
+               TK_SURF = TSKIN(I,J)
 
-            ! Get air temp [K]
-            TK = T(I,J,1)
+               ! Get air temp [K]
+               TK = T(I,J,1)
 
-            ! Get surface pressure at end of dynamic time step [hPa]
-            PRESS = PSC2(I,J)
+               ! Get surface pressure at end of dynamic time step [hPa]
+               PRESS = PSC2(I,J)
 
-            ! Convert to units of atm 
-            PRESS = PRESS / 1013.25d0
+               ! Convert to units of atm 
+               PRESS = PRESS / 1013.25d0
 
-            ! Get gas phase air POP concentration at surface in mol/m3
-            POPG = MAX( STT(I,J,1,IDTPOPG), SMALLNUM ) ![kg in gridbox]
-            ! kg / (kg/mol) /m3 in gridbox
-            POPG = POPG / MWPOP / AIRVOL(I,J,1) ! mol/m3
+               ! Get gas phase air POP concentration at surface in mol/m3
+               POPG = MAX( STT(I,J,1,IDTPOPG), SMALLNUM ) ![kg in gridbox]
+               ! kg / (kg/mol) /m3 in gridbox
+               POPG = POPG / MWPOP / AIRVOL(I,J,1) ! mol/m3
 
-            ! Get the dissolved POP concentration at lake surface in mol/m3
-            ! Distribute the total deposited mass to a volume that best matches
-            ! observed dissolved concentrations
-            ! Future versions should consider aqueous particle concentrations
-            ! and sinking rates and photolytic/microbial degradation
+               ! Get the dissolved POP concentration at lake surface in mol/m3
+               ! Distribute the total deposited mass to a volume that best matches
+               ! observed dissolved concentrations
+               ! Future versions should consider aqueous particle concentrations
+               ! and sinking rates and photolytic/microbial degradation
 
-            ! Start with 1 m - scale by 100
-!Bug fix (H. Amos, 8 Mar 2013)
-!            C_DISS = POP_SURF(I,J) / MWPOP / GET_AREA_M2( J ) / 100d0
-            C_DISS = POP_SURF(I,J) / MWPOP / GET_AREA_M2(I,J,1) / 100d0
-            !WRITE(6,*) 'CDISS (mol/m3) =', C_DISS
+               ! Start with 1 m - scale by 100
+               C_DISS = POP_SURF(I,J) / MWPOP /GET_AREA_M2(I,J,1)/ 100d0
 
-            ! Get the wind speed at 10 m squared
-            U10M = SQRT( SFCWINDSQR(I,J) ) ! m/s
+               ! Get the wind speed at 10 m squared
+               U10M = SQRT( SFCWINDSQR(I,J) ) ! m/s
 
-            ! Need to calculate water-side and air-side mass transfer coefficients
-            ! Start with air-side
-            ! Relate air-side MTC of POP to that of H2O
-            ! First, calculate air-side MTC for water following Schwarzenbach, 
-            ! Gschwend, Imboden 2003
-            KA_H2O = 0.2d0 * U10M + 0.3d0   ! cm/s
+               ! Need to calculate water-side and air-side mass transfer coefficients
+               ! Start with air-side
+               ! Relate air-side MTC of POP to that of H2O
+               ! First, calculate air-side MTC for water following Schwarzenbach, 
+               ! Gschwend, Imboden 2003
+               KA_H2O = 0.2d0 * U10M + 0.3d0   ! cm/s
 
-            ! Relate air-side MTC for water to that of POP via diffusivities
-            ! following Schwarzenbach et al 2003
-            ! Calculate temperature-dependent diffusivities in air first
-            ! folling Fuller et al. 1966 (summarized by Schwarzenbach et al. 2003)
-            DA_POP = 1d-3 * TK**1.75d0 * ( (1d0 / MWAIR ) + 
+               ! Relate air-side MTC for water to that of POP via diffusivities
+               ! following Schwarzenbach et al 2003
+               ! Calculate temperature-dependent diffusivities in air first
+               ! folling Fuller et al. 1966 (summarized by Schwarzenbach et al. 2003)
+               DA_POP = 1d-3 * TK**1.75d0 * ( (1d0 / MWAIR ) + 
      &               (1d0 / (MWPOP*1d3) ) )**0.5d0 / ( PRESS * 
      &               ( V_AIR**(1d0/3d0) + V_POP**(1d0/3d0))**2d0 )  ! cm2/s
 
-            DA_H2O = 1d-3 * TK**1.75d0 * ( (1d0 / MWAIR ) + 
+               DA_H2O = 1d-3 * TK**1.75d0 * ( (1d0 / MWAIR ) + 
      &               (1d0 / MWH2O ) )**0.5d0 / ( PRESS * 
      &               ( V_AIR**(1d0/3d0) + V_H2O**(1d0/3d0))**2d0 )  ! cm2/s
 
-            ! Relate POP and H2O air-side MTCs
-            KA_POP = KA_H2O * ( DA_POP / DA_H2O )**( 0.67d0 ) ! cm/s
+               ! Relate POP and H2O air-side MTCs
+               KA_POP = KA_H2O * ( DA_POP / DA_H2O )**( 0.67d0 ) ! cm/s
  
-            ! Now calculate water-side MTCs
-            ! Start with calculating the water side MTC of CO2
-            ! This depends on wind speed (Schwarzenbach et al 2003)
-            ! Three different scenarios for the water surface under different wind speeds 
-            ! are considered:
-            ! Smooth Surface Regime (SSR): u10 <= 4.2 m/s
-            ! Rough Surface Regime (RSR):  4.2 m/s < u10 <= 13 m/s
-            ! Breaking Wave Regime (BWR):  u10 > 13 m/s
-            ! Alpha, the exponent in the relationship for the water side MTC,
-            ! also depends on the wind speed. Set this as well
+               ! Now calculate water-side MTCs
+               ! Start with calculating the water side MTC of CO2
+               ! This depends on wind speed (Schwarzenbach et al 2003)
+               ! Three different scenarios for the water surface under different wind speeds 
+               ! are considered:
+               ! Smooth Surface Regime (SSR): u10 <= 4.2 m/s
+               ! Rough Surface Regime (RSR):  4.2 m/s < u10 <= 13 m/s
+               ! Breaking Wave Regime (BWR):  u10 > 13 m/s
+               ! Alpha, the exponent in the relationship for the water side MTC,
+               ! also depends on the wind speed. Set this as well
 
-            IF (U10M <= 4.2d0) THEN
-               KW_CO2 = 0.65d-3       ! cm/s
-               ALPHA  = 0.67d0
-            ELSE IF (U10M > 4.2d0 .AND. U10M <= 13d0) THEN
-               KW_CO2 = ( 0.79d0 * U10M - 2.68d0 ) * 1d-3
-               ALPHA  = 0.5d0
-            ELSE IF (U10M > 13d0) THEN 
-               KW_CO2 = ( 1.64d0 * U10M - 13.69d0 ) * 1d-3
-               ALPHA  = 0.50d0
-            ENDIF
+               IF (U10M <= 4.2d0) THEN
+                  KW_CO2 = 0.65d-3       ! cm/s
+                  ALPHA  = 0.67d0
+               ELSE IF (U10M > 4.2d0 .AND. U10M <= 13d0) THEN
+                  KW_CO2 = ( 0.79d0 * U10M - 2.68d0 ) * 1d-3
+                  ALPHA  = 0.5d0
+               ELSE IF (U10M > 13d0) THEN 
+                  KW_CO2 = ( 1.64d0 * U10M - 13.69d0 ) * 1d-3
+                  ALPHA  = 0.50d0
+               ENDIF
 
-            ! Get the temperature-dependent kinematic viscosity of water
-            IF (TK_SURF <= 273.15 ) THEN
-               VISC_H2O = 1.787d-2      ! [cm2/s]
-            ELSE IF (TK_SURF > 273.15 .AND. TK_SURF <= 278.15 ) THEN
-               VISC_H2O = 1.518d-2
-            ELSE IF (TK_SURF > 258.15 .AND. TK_SURF <= 283.15 ) THEN
-               VISC_H2O = 1.307d-2
-            ELSE IF (TK_SURF > 283.15 .AND. TK_SURF <= 287.15 ) THEN
-               VISC_H2O = 1.139d-2
-            ELSE IF (TK_SURF > 287.15 .AND. TK_SURF <= 293.15 ) THEN
-               VISC_H2O = 1.002d-2
-            ELSE IF (TK_SURF > 293.15 .AND. TK_SURF <= 298.15 ) THEN
-               VISC_H2O = 0.89d-2
-            ELSE IF (TK_SURF > 298.15 ) THEN
-               VISC_H2O = 0.797d-2 
+               ! Get the temperature-dependent kinematic viscosity of water
+               IF (TK_SURF <= 273.15 ) THEN
+                  VISC_H2O = 1.787d-2      ! [cm2/s]
+               ELSE IF (TK_SURF > 273.15 .AND. TK_SURF <= 278.15 ) THEN
+                  VISC_H2O = 1.518d-2
+               ELSE IF (TK_SURF > 258.15 .AND. TK_SURF <= 283.15 ) THEN
+                  VISC_H2O = 1.307d-2
+               ELSE IF (TK_SURF > 283.15 .AND. TK_SURF <= 287.15 ) THEN
+                  VISC_H2O = 1.139d-2
+               ELSE IF (TK_SURF > 287.15 .AND. TK_SURF <= 293.15 ) THEN
+                  VISC_H2O = 1.002d-2
+               ELSE IF (TK_SURF > 293.15 .AND. TK_SURF <= 298.15 ) THEN
+                  VISC_H2O = 0.89d-2
+               ELSE IF (TK_SURF > 298.15 ) THEN
+                  VISC_H2O = 0.797d-2 
+               ENDIF
 
-            ! Calculate the diffusivites of CO2 and POP in water
-            DW_CO2 = ( 13.26 * 1d-5 ) / (( VISC_H2O*1d2 )**1.14d0 *
+               ! Calculate the diffusivites of CO2 and POP in water
+               DW_CO2 = ( 13.26 * 1d-5 ) / (( VISC_H2O*1d2 )**1.14d0 *
      &               (V_CO2)**0.589d0 )   ! [cm2/s]
 
-            DW_POP = ( 13.26 * 1d-5 ) / (( VISC_H2O*1d2 )**1.14d0 *
+               DW_POP = ( 13.26 * 1d-5 ) / (( VISC_H2O*1d2 )**1.14d0 *
      &               (V_POP)**0.589d0 )   ! [cm2/s]
  
-            ! Calculate the Schmidt numbers for CO2 and POP
-            SCH_CO2 = VISC_H2O / DW_CO2    ! [unitless]
-            SCH_POP = VISC_H2O / DW_POP    ! [unitless]
+               ! Calculate the Schmidt numbers for CO2 and POP
+               SCH_CO2 = VISC_H2O / DW_CO2    ! [unitless]
+               SCH_POP = VISC_H2O / DW_POP    ! [unitless]
 
-            ! Calculate the water-side MTC for POP
-            KW_POP = KW_CO2 * ( SCH_POP / SCH_CO2 ) ** (-ALPHA) ! [cm/s]
+               ! Calculate the water-side MTC for POP
+               KW_POP = KW_CO2 * ( SCH_POP / SCH_CO2 ) ** (-ALPHA) ! [cm/s]
 
-            ! Calculate the temperature-dependent dimensionless Henry's Law constant
-            KAW_T = KAW_298 * EXP((-DEL_HW/R) * ((1d0/TK_SURF) - 
+               ! Calculate the temperature-dependent dimensionless Henry's Law constant
+               KAW_T = KAW_298 * EXP((-DEL_HW/R) * ((1d0/TK_SURF) - 
      &                  (1d0/298d0)))       ! [unitless]
 
-            ! Now calculate the overall air-water MTC
-            KOL_T = 1d0 / ( 1d0/KW_POP + 1d0/(KA_POP*KAW_T) ) ! [cm/s]
+               ! Now calculate the overall air-water MTC
+               KOL_T = 1d0 / ( 1d0/KW_POP + 1d0/(KA_POP*KAW_T) ) ! [cm/s]
 
-            ! Calculate Flux in ng/m2/day ! 
-            FLUX = KOL_T * 3600d0 * 24d0 * ( C_DISS - POPG/KAW_T ) *
+               ! Calculate Flux in ng/m2/day ! 
+               FLUX = KOL_T * 3600d0 * 24d0 * ( C_DISS - POPG/KAW_T ) *
      &             MWPOP * 1d12 / 100d0
 
-            ! Convert to an emission rate in kg/s for returning to pops_mod.f
-            ! Only return it if it's positive
-!Bug fix (H. Amos, 8 Mar 2013)
-!            EPOP_LAKE(I,J) = MAX(FLUX * GET_AREA_M2( J ) / 24d0 / 3600d0 
-!     &                         / 1d12, 0d0 )
-            EPOP_LAKE(I,J) = MAX(FLUX * GET_AREA_M2(I,J,1) / 24d0  
+               ! Convert to an emission rate in kg/s for returning to pops_mod.f
+               ! Only return it if it's positive
+               EPOP_LAKE(I,J) = MAX(FLUX * GET_AREA_M2(I,J,1) / 24d0  
      &                         / 3600d0 / 1d12, 0d0 )
 
-            ! Multiply the mass emitted by the fraction of land that is water
-            EPOP_LAKE(I,J) = FRAC_LAKE * EPOP_LAKE(I,J)
+               ! Multiply the mass emitted by the fraction of land that is water
+               EPOP_LAKE(I,J) = FRAC_LAKE * EPOP_LAKE(I,J)
          
-            ! If the flux is positive, then the direction will be from the soil to the air. 
-            ! Store this in a diagnostic array. 
-            ! If the flux is zero or negative, store it in a separate array.
+               ! If the flux is positive, then the direction will be from the soil to the air. 
+               ! Store this in a diagnostic array. 
+               ! If the flux is zero or negative, store it in a separate array.
 
-            IF (ND53 > 0) THEN
-               IF (FLUX > 0d0) THEN 
-                  ! Store total mass emitted from soil [kg] in ND53 diagnostic.
-                  ! (We don't care about the mass in the other direction right now)
-                  AD53(I,J,6) = AD53(I,J,6) + (EPOP_LAKE(I,J) * DTSRCE)  
-                  ! Store positive flux
-                  AD53(I,J,10) = AD53(I,J,10) + FLUX
-                  ! Make sure negative flux diagnostic has nothing added to it
-                  AD53(I,J,11) = AD53(I,J,11) + 0d0
-                  ! Store the soil/air fugacity ratio
-                  AD53(I,J,15) = AD53(I,J,15) + (C_DISS / (POPG/KAW_T))
+               IF (ND53 > 0) THEN
+                  IF (FLUX > 0d0) THEN 
+                     ! Store total mass emitted from soil [kg] in ND53 diagnostic.
+                     ! (We don't care about the mass in the other direction right now)
+                     AD53(I,J,6) = AD53(I,J,6 + (EPOP_LAKE(I,J * DTSRCE)  
+                     ! Store positive flux
+                     AD53(I,J,10) = AD53(I,J,10) + FLUX
+                     ! Make sure negative flux diagnostic has nothing added to it
+                     AD53(I,J,11) = AD53(I,J,11) + 0d0
+                     ! Store the soil/air fugacity ratio
+                     AD53(I,J,15) = AD53(I,J,15) + (C_DISS / (POPG/KAW_T))
              
-               ELSE IF (FLUX <= 0d0) THEN
-                  ! Store the negative flux
-                  AD53(I,J,11) = AD53(I,J,11) + FLUX
-                  ! Add nothing to positive flux or mass diagnostics
-                  AD53(I,J,6) = AD53(I,J,6) + 0d0
-                  AD53(I,J,10) = AD53(I,J,10) + 0d0
-                  ! Continue to store the fugacity ratio
-                  AD53(I,J,15) = AD53(I,J,15) + (C_DISS / (POPG/KAW_T))
+                  ELSE IF (FLUX <= 0d0) THEN
+                     ! Store the negative flux
+                     AD53(I,J,11) = AD53(I,J,11) + FLUX
+                     ! Add nothing to positive flux or mass diagnostics
+                     AD53(I,J,6) = AD53(I,J,6) + 0d0
+                     AD53(I,J,10) = AD53(I,J,10) + 0d0
+                     ! Continue to store the fugacity ratio
+                     AD53(I,J,15) = AD53(I,J,15) + (C_DISS / (POPG/KAW_T))
+                  ENDIF
                ENDIF
-            ENDIF
             ENDIF
 
             ELSE 
@@ -825,29 +773,27 @@ c$$$#endif
       USE TIME_MOD, ONLY      : GET_TS_EMIS, GET_TS_CHEM
       USE DAO_MOD, ONLY       : IS_ICE, IS_LAND, IS_WATER
       USE DAO_MOD, ONLY       : FRLAKE
-      USE MODIS_LAI_MOD, ONLY : GC_LAI, GC_LAI_CM, GC_LAI_PM ! hma, 7Mar2013
-!      USE LAI_MOD, ONLY       : ISOLAI, MISOLAI, PMISOLAI
+      USE MODIS_LAI_MOD, ONLY : GC_LAI, GC_LAI_CM, GC_LAI_PM 
       USE DAO_MOD, ONLY       : TSKIN, AIRVOL, T, TS, SNOW
       USE DAO_MOD, ONLY       : IS_ICE, IS_LAND, SNOMAS
       USE GRID_MOD, ONLY      : GET_AREA_CM2
       USE GRID_MOD, ONLY      : GET_AREA_M2
       USE TRACER_MOD, ONLY    : STT
       USE TRACERID_MOD, ONLY  : IDTPOPG
-      USE DIAG53_MOD, ONLY    : AD53 !ND53,  LD53,  AD53
+      USE DIAG53_MOD, ONLY    : AD53 
       USE GET_POPSINFO_MOD, ONLY    : GET_POP_XMW, GET_POP_HSTAR
       USE GET_POPSINFO_MOD, ONLY    : GET_POP_DEL_Hw, GET_POP_DEL_H
       USE GET_POPSINFO_MOD, ONLY    : GET_POP_KOA
 
-      ! Replace include statements (H. Amos, 7Mar2013)
+  
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_DIAG_MOD  ! Diagnostic arrays & switches
-!#     include "CMN_SIZE"     ! Size parameters
-!#     include "CMN_DIAG"     ! Diagnostic arrays & switches
+
 
 !
 ! !INPUT PARAMETERS:
 !
-!      LOGICAL,                INTENT(IN) :: LSECEMISPOP
+
       REAL*8, DIMENSION(:,:), INTENT(IN) :: POP_SURF
 
 !
@@ -869,7 +815,7 @@ c$$$#endif
 !     
 
       INTEGER                :: I, J, L
-      REAL*8                 :: POPG, POPG_GL!, SUNCOSVALUE
+      REAL*8                 :: POPG, POPG_GL
       REAL*8                 :: FRAC_SNOWFREE_LAND, TK_SURF 
       REAL*8                 :: KLA_T, FLUX, K_MT
       REAL*8                 :: LEAF_CONC, DTSRCE, KOA_T
@@ -964,11 +910,6 @@ c$$$#endif
       KAW_298 = GET_POP_HSTAR(DUM)
       MW = GET_POP_XMW(DUM)
 
-!      IF (.NOT. LSECEMISPOP) THEN
-
-!         EPOP_VEG = 0D0
-
-!      ELSE
 
       ! Emission timestep [s]
       DTSRCE  = GET_TS_EMIS() * 60d0
@@ -1000,9 +941,7 @@ c$$$#endif
 
             ! Get fraction of grid box covered by leaf surface area
             ! Do not consider different vegetation types for now
-            LAI = GC_LAI(I,J) !hma, 7Mar2013
-!            LAI = ISOLAI(I,J)
-!            WRITE(6,*) 'ISOLAI=', ISOLAI(I,J)
+            LAI = GC_LAI(I,J) 
 
             IF ( LAI > 0d0 ) THEN
 
@@ -1030,10 +969,7 @@ c$$$#endif
             ! Get leaf concentration 
             ! Convert to mol/m3      
             ! kg deposited to leaf in 1 yr * / 0.178 kg/mol
-            ! / area grid box (m2) / surface thickness m 
-!Bug fix (H. Amos, 8 Mar 2013)
-!            LEAF_CONC = POP_SURF(I,J) / MW / GET_AREA_M2( J ) /
-!     &                  SURF_THICK! mol/m3   
+            ! / area grid box (m2) / surface thickness m    
             LEAF_CONC = POP_SURF(I,J) / MW / GET_AREA_M2(I,J,1) /
      &                  SURF_THICK! mol/m3   
 
@@ -1041,9 +977,8 @@ c$$$#endif
             ! (1 g/cm3)
 
             ! No degradation/metabolism for now. Just scale leaf concentrations
-            ! to match flux observations (are there any??)
+            ! to match flux observations 
             NEWLEAF = LEAF_CONC/1d4  !SCALING FACTOR
-            !WRITE (6,*) 'Leaf conc pg/g=', NEWLEAF*MW*1d15/100**3
 
             ! Define temperature-dependent KOA:
             KOA_T = KOA_298 * EXP((-DEL_H/R) * ((1d0/TK_SURF) - 
@@ -1132,9 +1067,6 @@ c$$$#endif
 
             ! Convert to an emission rate in kg/s for returning to pops_mod.f
             ! Only want to add rates that are positive
-!Bug fix (H. Amos, 8 Mar 2013)
-!            EPOP_VEG(I,J) = MAX(FLUX * GET_AREA_M2( J ) * LAI / 24d0 / 
-!     &                         3600d0 / 1d12, 0d0)
             EPOP_VEG(I,J) = MAX(FLUX * GET_AREA_M2(I,J,1) * LAI / 24d0 / 
      &                         3600d0 / 1d12, 0d0)
 
@@ -1183,74 +1115,4 @@ c$$$#endif
       END SUBROUTINE VEGEMISPOP
 !EOC
 
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_land_pops
-!
-! !DESCRIPTION: Subroutine INIT\_LAND\_POPS allocates and zeroes all 
-!  module arrays.
-!\\
-!\\
-! !INTERFACE: 
-!
-!      SUBROUTINE INIT_LAND_POPS
-! 
-! !USES:
-!
-!      USE ERROR_MOD,    ONLY : ALLOC_ERR
-
-!      USE CMN_SIZE_MOD     ! Size parameters
-! 
-! !REVISION HISTORY:
-!  28 Aug 2012 - C. Friedman  - Initial version based on INIT_LAND_MERCURY
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-!      INTEGER              :: AS
-!      LOGICAL, SAVE :: IS_INIT = .FALSE. 
-
-      !=================================================================
-      ! INIT_LAND_POPS begins here!
-      !=================================================================
-
-      ! Allocate arrays
-c$$$      ALLOCATE( TRANSP( IIPAR, JJPAR ), STAT=AS )
-c$$$      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRANSP' )
-c$$$      TRANSP = 0d0
-
-!      END SUBROUTINE INIT_LAND_POPS
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-
-! !IROUTINE: cleanup_land_pops
-!
-! !DESCRIPTION: Subroutine CLEANUP\_LAND\_POPS deallocates all module 
-!  arrays. 
-!\\
-!\\
-! !INTERFACE: 
-!
-!      SUBROUTINE CLEANUP_LAND_POPS
-! 
-! !REVISION HISTORY:
-!  28 Aug 2012 - C. Friedman  - Initial version based on INIT_LAND_MERCURY
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-      ! Deallocate arrays
-!      IF ( ALLOCATED( TRANSP      ) ) DEALLOCATE( TRANSP      )
-
-!      END SUBROUTINE CLEANUP_LAND_POPS
-!EOC
       END MODULE LAND_POPS_MOD
