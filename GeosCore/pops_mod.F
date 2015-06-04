@@ -2504,7 +2504,7 @@
 
 #elif defined ( GCAP ) && defined ( GRID4X5 )
       FILENAME = '/net/fs03/d0/geosdata/data/GCAP_4x5/PAHs_2004' //
-     &soil_conc/pyr_soil_conc_ann_GCAP.bpch'
+     &           'soil_conc/pyr_soil_conc_ann_GCAP.bpch'
 
 #endif
      
