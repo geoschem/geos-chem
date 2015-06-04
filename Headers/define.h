@@ -137,8 +137,8 @@
 !----- Model types -----
 !#define GCAP             'GCAP'
 !#define GEOS_4           'GEOS_4'
-!#define GEOS_5           'GEOS_5'
-#define MERRA            'MERRA'
+#define GEOS_5           'GEOS_5'
+!#define MERRA            'MERRA'
 !#define GEOS_57          'GEOS_57'
 
 !----- Grid sizes -----

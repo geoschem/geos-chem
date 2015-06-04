@@ -2474,6 +2474,7 @@
 !BOC
       USE CMN_SIZE_MOD             ! Size parameters ! hma 7Mar2013
 !#     include "CMN_SIZE"       ! Size parameters
+#     include "define.h"
 
       ! Local variables
       REAL*4               :: ARRAY(IGLOB,JGLOB,1) 
@@ -2503,7 +2504,7 @@
 
 #elif defined ( GCAP ) && defined ( GRID4X5 )
       FILENAME = '/net/fs03/d0/geosdata/data/GCAP_4x5/PAHs_2004' //
-     &           '/soil_conc/pyr_soil_conc_ann_GCAP.bpch'
+     &soil_conc/pyr_soil_conc_ann_GCAP.bpch'
 
 #endif
      
