@@ -564,7 +564,7 @@
       ! Set of Hg/Br rate constants to use
       ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB
       ! DonohoueYBBalabanov used by Holmes et al. 2010
-      CHARACTER(LEN=*), PARAMETER  :: METHOD='GoodsiteUpdate' \
+      CHARACTER(LEN=*), PARAMETER  :: METHOD='GoodsiteUpdate'
 
       !================================================================
       ! CHEMMERCURY begins here!

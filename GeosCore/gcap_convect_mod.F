@@ -56,7 +56,7 @@
 
       ! Constants
       REAL(fp),  PARAMETER :: GRAV     = 9.8e+0_fp
-      REAL(fp),  PARAMETER :: SMALLEST = 1e-60_fp
+      REAL(fp),  PARAMETER :: SMALLEST = TINY(1.0e+0_fp)
       REAL(fp),  PARAMETER :: TINYNUM  = 2*SMALLEST
 
       !=================================================================

@@ -32,15 +32,6 @@
       INTEGER, PARAMETER :: IND999  = 5
 
       ! Required size of aerosol arrays
-!------------------------------------------------------------------------------
-! Prior to 12/5/14:
-! Now we're storing RH indices references ODAER can be smaller (dar,mps,12/5/14)
-!      INTEGER, PARAMETER :: NALLAER = (NRHAER*NRH)+NSTRATAER
-! Now unnecessary - stored as A_ and NAER = NRHAER+NSTRATAER
-! (defined in CMN_SIZE_mod.F) All references in code removed. DAR 02/2015
-!      INTEGER, PARAMETER :: NALLAER = NRHAER+NSTRATAER
-!------------------------------------------------------------------------------
-
       INTEGER            :: L_             ! Number of CTM layers
 
       INTEGER            :: L1_            ! Number of CTM layer edges

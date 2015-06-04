@@ -341,11 +341,6 @@
             ENDDO
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
-!------------------------------------------------------------------------------
-! Prior to 12/5/14:
-! Updates for RRTMG (dar, mps, 12/5/14)
-!            OPTAER          = ODAER(NLON,NLAT,:,:)
-!------------------------------------------------------------------------------
             ! and at 1000nm, IWV1000 (DAR)
             !OPTAER wants NAER*NRH values but ODAER is now NAER
             !use IRHARR to map to correct OPTAER bin (DAR 08/13)
@@ -356,15 +351,15 @@
                OPTAER(L,IOPT) = ODAER(NLON,NLAT,L,IWV1000,N)
             ENDDO
             ENDDO
+            DO N = 1, NDUST
+            DO L = 1, LLPAR
+              OPTDUST(L,N) = ODMDUST(NLON,NLAT,L,IWV1000,N)
+            ENDDO
+            ENDDO
 
             ! Mineral dust OD profile [unitless] at (NLON,NLAT)
-!------------------------------------------------------------------------------
-! Prior to 12/5/14:
-! Updates for RRTMG (dar, mps, 12/5/14)
-!            OPTDUST         = ODMDUST(NLON,NLAT,:,:)
-!------------------------------------------------------------------------------
             ! and at 1000nm, IWV1000 (DAR)
-            OPTDUST         = ODMDUST(NLON,NLAT,:,IWV1000,:)
+!            OPTDUST         = ODMDUST(NLON,NLAT,:,IWV1000,:)
 
             ! Cloud OD profile [unitless] at (NLON,NLAT)
             OPTD            = State_Met%OPTD(NLON,NLAT,1:LLPAR)
@@ -374,7 +369,7 @@
             !### or cloud OD, then uncomment the following lines:
             !OPTAER  = 0d0
             !OPTDUST = 0d0
-            !OPTD    = 0d0
+            !OPTD(:)    = 0d0
             !-----------------------------------------------------------
 
 #if defined( USE_LINEAR_OVERLAP )
@@ -1736,24 +1731,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       call RD_MIE(JXUNIT,TRIM( FILENAME ), am_I_Root)
 
-!------------------------------------------------------------------------------
-! Prior to 3/30/15:
-! Now get AOD data from LUT files for each aerosol type (mps, 3/30/15)
-!      ! Read in AOD data
-!      FILENAME = 'jv_spec_aod.dat'
-!
-!#if defined( ESMF_ )
-!      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-!      FILENAME = TRIM( FILENAME ) // '.rc'
-!#endif
-!
-!      ! Echo info
-!      IF ( am_I_Root ) THEN
-!         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
-!      ENDIF
-!
-!      call RD_AOD(JXUNIT,TRIM( FILENAME ), am_I_Root)
-!------------------------------------------------------------------------------
       ! Read in AOD data
       call RD_AOD(JXUNIT, am_I_Root)
 
@@ -2172,10 +2149,6 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !\\
 ! !INTERFACE:
 !
-!------------------------------------------------------------------------------
-! Prior to 3/30/15:
-!      SUBROUTINE RD_AOD( NJ1, NAMFIL, am_I_Root )
-!------------------------------------------------------------------------------
       SUBROUTINE RD_AOD( NJ1, am_I_Root )
 !
 ! !USES:
@@ -2188,10 +2161,6 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! !INPUT PARAMETERS:
 !     
       INTEGER,          INTENT(IN) :: NJ1         ! Unit # of file to open
-!------------------------------------------------------------------------------
-! Prior to 3/30/15:
-!      CHARACTER(LEN=*), INTENT(IN) :: NAMFIL      ! Name of file to open
-!------------------------------------------------------------------------------
       LOGICAL,          INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -2251,9 +2220,14 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! extra two LUT dat files for strat H2SO4 and NAT particles
       DATA SPECFIL /"so4.dat","soot.dat","org.dat","ssa.dat","ssc.dat",
 #if defined( UCX )
-      ! add in dummy optics LUT tables for now
-      ! needs to be H2SO4 and something ice-like for NAT (DAR 03/2015)
-     &              "so4.dat","so4.dat",
+      ! Treating strat sulfate with GADS data but modified to match
+      ! the old Fast-J values size (r=0.09um, sg=0.6) - I think there's
+      ! evidence that this is too smale and narrow e.g. Deshler et al. 2003
+      ! NAT should really be associated with something like cirrus cloud
+      ! but for now we are just treating the NAT like the sulfate... limited
+      ! info but ref index is similar e.g. Scarchilli et al. (2005)
+      !(DAR 05/2015)
+     &              "h2so4.dat","h2so4.dat",
 #endif
      &              "dust.dat"/
 
@@ -2942,17 +2916,8 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
              DO M=1,3
                 IF (AERX_COL(M,L).gt.0e+0_fp) THEN
                    IDXAER=MIEDX(M)
-                   IF (IDXAER.lt.15) THEN
-                      ! Cloud (600 nm scaling)
-                      QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
-                   ELSEIF (AOD999) THEN
-                      ! Aerosol/dust (999 nm scaling)
-                      QSCALING = QAA(KMIE,IDXAER)/QAA(IND999,IDXAER)
-                   ELSE
-                      ! Aerosol/dust (550 nm scaling)
-                      ! currently using 600nm as that's all we have
-                      QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
-                   ENDIF
+                   ! Cloud (600 nm scaling)
+                   QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
                    LOCALOD = QSCALING*AERX_COL(M,L)
                    LOCALSSA = SAA(KMIE,IDXAER)*LOCALOD
                    OD(KMIE,L) = OD(KMIE,L) + LOCALOD
@@ -2971,14 +2936,13 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
              ! Strat aerosols
              IM=10+(NRHAER*NRH)+1
              DO M=IM,IM+1
-                IDXAER=M-IM+7
+                IDXAER=M-IM+6 !6-STS, 7-NAT
+              
                 IF (AERX_COL(M,L).gt.0d0) THEN
                    
-                   IF (IDXAER.lt.15) THEN
-                      ! Cloud (600 nm scaling)
-                      QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
-                   ELSEIF (AOD999) THEN
+                   IF (AOD999) THEN
                       ! Aerosol/dust (999 nm scaling)
+                      ! Fixed to dry radius
                       QSCALING = QQAA(KMIE2,1,IDXAER)/
      &                           QQAA(10,1,IDXAER)
                    ELSE
@@ -2987,7 +2951,7 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
      &                           QQAA(5,1,IDXAER)
                    ENDIF
                    LOCALOD = QSCALING*AERX_COL(M,L)
-                   LOCALSSA = SSAA(KMIE2,1,IDXAER)**LOCALOD
+                   LOCALSSA = SSAA(KMIE2,1,IDXAER)*LOCALOD
                    OD(KMIE,L) = OD(KMIE,L) + LOCALOD
                    SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
                    DO I=1,8
@@ -3003,7 +2967,7 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
              ! Mineral dust (from new optics LUT)
              DO M=4,10
                 IF (AERX_COL(M,L).gt.0d0) THEN
-                   IDXAER=6
+                   IDXAER=NSPAA !dust is last in LUT (6, or 8 if UCX=y)
                    IR=M-3
                    IF (AOD999) THEN
                       QSCALING = QQAA(KMIE2,IR,IDXAER)/
@@ -4103,7 +4067,7 @@ C---Always does PL(2) = P[1]
          ENDDO
         
          ! Also add in other aerosol optical depth columns (rvm, bmy, 2/27/02)
-         DO N = 1, NAER
+         DO N = 1, NAER*NRH
             AERCOL(3+N+NDUST,I) = AEROD(I,N)
          ENDDO
 

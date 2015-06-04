@@ -1477,19 +1477,6 @@
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
       ! Do the advection
-!------------------------------------------------------------------------------
-! Prior to 4/15/15:
-! Now use pointers to avoid array temporaries (bmy, 4/15/15)
-!      CALL TPCORE_GEOSFP_WINDOW( D_DYN,    Re,        IIPAR,    JJPAR,
-!     &                           LLPAR,    JFIRST,    JLAST,    NG,
-!     &                           MG,       N_TOT_TRC, Ap,       Bp,
-!     &                           p_UWND,   p_VWND,    P_TP1,    P_TP2,
-!     &                           P_TEMP,   p_STT,     IORD,     JORD,      
-!     &                           KORD,     N_ADJ,     p_XMASS,  p_YMASS,
-!     &                           MASSFLEW, MASSFLNS,  MASSFLUP, A_M2,
-!     &                           TCVV,     ND24,      ND25,     ND26 )
-!------------------------------------------------------------------------------
-
       CALL TPCORE_GEOSFP_WINDOW( 
      &      D_DYN,   Re,       IM_W1,   JM_W1,   LLPAR, 
      &      JFIRST,  JLAST,    NG,      MG,      N_TOT_TRC, 
@@ -2067,12 +2054,6 @@
 
       ! Call INIT routine from "tpcore_geosfp_fvdas_window_mod.f"
       ! subroutine "init_geosfp_windows" is in "tpcore_geosfp_window_mod.F90"
-!------------------------------------------------------------------------------
-! Prior to 4/1/15:
-!      CALL INIT_GEOSFP_WINDOW( IIPAR, JJPAR,    LLPAR, JFIRST, 
-!     &                         JLAST, NG,       MG,    REAL_N_DYN ,
-!     &                         Re,    YMID_R_W )
-!------------------------------------------------------------------------------
       CALL INIT_GEOSFP_WINDOW( IM_W1, 
      &                         JM_W1,    
      &                         LLPAR, 
@@ -2080,15 +2061,10 @@
      &                         JLAST, 
      &                         NG,       
      &                         MG,    
-!------------------------------------------------------------------------------
-! Prior to 4/23/15:
-! Now use REAL_N_DYN instead of DBLE( N_DYN ), which causes problems
-! when compiling with PRECISION=4 (bmy, 4/23/15)
-!     &                         DBLE( N_DYN ), 
-!------------------------------------------------------------------------------
      &                         REAL_N_DYN,
      &                         Re,  
      &                         YMID_R_W( J0_W1:(J0_W1+JM_W1+1) ) )
+
       END SUBROUTINE INIT_GEOSFP_WINDOW_TRANSPORT
 !EOC
 !------------------------------------------------------------------------------

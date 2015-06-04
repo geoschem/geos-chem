@@ -17,9 +17,6 @@
 !
 ! !USES:
 !
-      USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
-      USE inquireMod,    ONLY : findFreeLUN
-
       USE HCO_ERROR_MOD    ! For HEMCO error handling
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 
@@ -148,6 +145,7 @@
 !  20 Nov 2014 - M. Yannetti   - Added PRECISION_MOD
 !  04 Mar 2015 - R. Yantosca   - Remove obsolete, commented-out code
 !  04 Mar 2015 - R. Yantosca   - Use REAL(f4) for pointer args to HCO_GetPtr
+!  22 May 2015 - R. Yantosca   - Remove variables made obsolete by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -197,18 +195,22 @@
       ! DRYAHS     : Pointer to AHS   in DEPVEL array [unitless]
       ! DRYLET     : Pointer to LET   in DEPVEL array [unitless]
       ! DRYNH4aq   : Pointer to NH4aq in DEPVEL array [unitless]
-      ! ENH3_an    : NH3 anthropogenic emissions      [kg NH3/box/s]
-      ! ENH3_bb    : NH3 biomass emissions            [kg NH3/box/s]
-      ! ENH3_bf    : NH3 biofuel emissions            [kg NH3/box/s]
-      ! ENH3_na    : NH73 natural source emissions    [kg NH3/box/s]
-      ! ESO2_ac    : SO2 aircraft emissions           [kg SO2/box/s]
-      ! ESO2_an    : SO2 anthropogenic emissions      [kg SO2/box/s]
-      ! ESO2_ev    : SO2 eruptive volcanic em.        [kg SO2/box/s]
-      ! ESO2_nv    : SO2 non-eruptive volcanic em.    [kg SO2/box/s]
-      ! ESO2_bb    : SO2 biomass burning emissions    [kg SO2/box/s]
-      ! ESO2_bf    : SO2 biofuel burning emissions    [kg SO2/box/s]
-      ! ESO2_sh    : SO2 ship emissions               [kg SO2/box/s]
-      ! ESO4_an    : SO4 anthropogenic emissions      [kg SO4/box/s]
+      !
+      !%%% NOTE: THESE ARE NOW OBTAINED VIA HEMCO (bmy, 5/22/15) %%%%%%%%%%%
+      !% ENH3_an    : NH3 anthropogenic emissions      [kg NH3/box/s]
+      !% ENH3_bb    : NH3 biomass emissions            [kg NH3/box/s]
+      !% ENH3_bf    : NH3 biofuel emissions            [kg NH3/box/s]
+      !% ENH3_na    : NH73 natural source emissions    [kg NH3/box/s]
+      !% ESO2_ac    : SO2 aircraft emissions           [kg SO2/box/s]
+      !% ESO2_an    : SO2 anthropogenic emissions      [kg SO2/box/s]
+      !% ESO2_ev    : SO2 eruptive volcanic em.        [kg SO2/box/s]
+      !% ESO2_nv    : SO2 non-eruptive volcanic em.    [kg SO2/box/s]
+      !% ESO2_bb    : SO2 biomass burning emissions    [kg SO2/box/s]
+      !% ESO2_bf    : SO2 biofuel burning emissions    [kg SO2/box/s]
+      !% ESO2_sh    : SO2 ship emissions               [kg SO2/box/s]
+      !% ESO4_an    : SO4 anthropogenic emissions      [kg SO4/box/s]
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !
       ! JH2O2      : Monthly mean J(H2O2) values      [s-1]
       ! O3m        : Monthly mean O3 concentration    [v/v]
       ! PH2O2m     : Monthly mean P(H2O2)             [molec/cm3/s]
@@ -231,18 +233,6 @@
 
       ! Allocatable arrays
       REAL(fp),  ALLOCATABLE :: DMSo(:,:) 
-      REAL(fp),  ALLOCATABLE :: ENH3_an(:,:)
-      REAL(fp),  ALLOCATABLE :: ENH3_bb(:,:)
-      REAL(fp),  ALLOCATABLE :: ENH3_bf(:,:)
-      REAL(fp),  ALLOCATABLE :: ENH3_na(:,:)
-      REAL(fp),  ALLOCATABLE :: ESO2_ac(:,:,:) 
-      REAL(fp),  ALLOCATABLE :: ESO2_an(:,:,:)
-      REAL(fp),  ALLOCATABLE :: ESO2_bb(:,:)     
-      REAL(fp),  ALLOCATABLE :: ESO2_bf(:,:)
-      REAL(fp),  ALLOCATABLE :: ESO2_ev(:,:,:)
-      REAL(fp),  ALLOCATABLE :: ESO2_nv(:,:,:)
-      REAL(fp),  ALLOCATABLE :: ESO2_sh(:,:) 
-      REAL(fp),  ALLOCATABLE :: ESO4_an(:,:,:) 
       REAL(fp),  ALLOCATABLE :: PMSA_DMS(:,:,:)
       REAL(fp),  ALLOCATABLE :: PSO2_DMS(:,:,:)
       REAL(fp),  ALLOCATABLE :: PSO4_SO2(:,:,:)
@@ -3132,10 +3122,10 @@
       REAL(fp)                 :: kSO2p, kSO2p2
       REAL(fp)                 :: kHNO3p, kNH3p, kHClp
       INTEGER                :: count
-      REAL(fp)                 :: E, F, G, H, P, Q, R
+      REAL(fp)                 :: E, F, G, H, Q, R
       REAL(fp)                 :: X, Y
       REAL(fp)                 :: CRUTES( 3 ) ! Coeff and roots of cubic equation
-      REAL(f8)                 :: A, B, A1, A2, A0
+      REAL(f8)                 :: A, B, A1, A2, A0, P
       INTEGER                :: NR          ! Number of roots to cubic equation
 
       !=================================================================
@@ -7003,6 +6993,7 @@
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%ITS_AN_AEROSOL_SIM
 !  30 May 2013 - S. Farina   - Allocate PSO4_SO2AQ for TOMAS
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7026,54 +7017,6 @@
       ALLOCATE( DMSo( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMSo' )
       DMSo = 0e+0_fp
-
-      ALLOCATE( ENH3_an( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENH3_an' )
-      ENH3_an = 0e+0_fp
-
-      ALLOCATE( ENH3_bb( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENH3_bb' )
-      ENH3_bb = 0e+0_fp
-
-      ALLOCATE( ENH3_bf( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENH3_bf' )
-      ENH3_bf = 0e+0_fp
-
-      ALLOCATE( ENH3_na( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENH3_na' )
-      ENH3_na = 0e+0_fp
-
-      ALLOCATE( ESO2_ac( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_ac' )
-      ESO2_ac = 0e+0_fp
-
-      ALLOCATE( ESO2_an( IIPAR, JJPAR, NOXLEVELS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_an' )
-      ESO2_an = 0e+0_fp
-
-      ALLOCATE( ESO2_bb( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_bb' )
-      ESO2_bb = 0e+0_fp
-
-      ALLOCATE( ESO2_bf( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_bf' )
-      ESO2_bf = 0e+0_fp
-
-      ALLOCATE( ESO2_ev( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_ev' )
-      ESO2_ev = 0e+0_fp
-
-      ALLOCATE( ESO2_nv( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_nv' )
-      ESO2_nv = 0e+0_fp
-
-      ALLOCATE( ESO2_sh( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_sh' )
-      ESO2_sh = 0e+0_fp
-
-      ALLOCATE( ESO4_an( IIPAR, JJPAR, NOXLEVELS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO4_an' )
-      ESO4_an = 0e+0_fp
 
       ALLOCATE( PMSA_DMS( IIPAR, JJPAR, LLCHEM ), STAT=AS ) 
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PMSA_DMS' )
@@ -7206,7 +7149,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_SULFATE  
+      SUBROUTINE CLEANUP_SULFATE()  
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Now also deallocates IJSURF. (bmy, 11/12/02)
@@ -7222,6 +7165,7 @@
 !  30 May 2013 - S. Farina   - Deallocate PSO4_SO2AQ for TOMAS
 !  04 Mar 2015 - R. Yantosca - Remove EEV, NEV.  Volcano eruptions are now
 !                              handled via HEMCO.
+!  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7231,18 +7175,6 @@
       ! CLEANUP_SULFATE begins here!
       !=================================================================
       IF ( ALLOCATED( DMSo       ) ) DEALLOCATE( DMSo       )
-      IF ( ALLOCATED( ENH3_an    ) ) DEALLOCATE( ENH3_an    )
-      IF ( ALLOCATED( ENH3_bb    ) ) DEALLOCATE( ENH3_bb    )
-      IF ( ALLOCATED( ENH3_bf    ) ) DEALLOCATE( ENH3_bf    )
-      IF ( ALLOCATED( ENH3_na    ) ) DEALLOCATE( ENH3_na    )
-      IF ( ALLOCATED( ESO2_ac    ) ) DEALLOCATE( ESO2_ac    )
-      IF ( ALLOCATED( ESO2_an    ) ) DEALLOCATE( ESO2_an    )
-      IF ( ALLOCATED( ESO2_nv    ) ) DEALLOCATE( ESO2_nv    )
-      IF ( ALLOCATED( ESO2_ev    ) ) DEALLOCATE( ESO2_ev    )
-      IF ( ALLOCATED( ESO2_bb    ) ) DEALLOCATE( ESO2_bb    )
-      IF ( ALLOCATED( ESO2_bf    ) ) DEALLOCATE( ESO2_bf    )
-      IF ( ALLOCATED( ESO2_sh    ) ) DEALLOCATE( ESO2_sh    )
-      IF ( ALLOCATED( ESO4_an    ) ) DEALLOCATE( ESO4_an    )
       IF ( ALLOCATED( PMSA_DMS   ) ) DEALLOCATE( PMSA_DMS   )
       IF ( ALLOCATED( PNITs      ) ) DEALLOCATE( PNITs      )
       IF ( ALLOCATED( PSO2_DMS   ) ) DEALLOCATE( PSO2_DMS   )

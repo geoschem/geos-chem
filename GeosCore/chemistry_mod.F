@@ -297,7 +297,7 @@
       IT_IS_NOT_COPARAM_OR_CH4 = Input_Opt%ITS_NOT_COPARAM_OR_CH4
 
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! NOTE: State_Chm%TRACERS needs to enter this routine with
       ! units of [kg].  If we are calling this routine from the 
@@ -451,10 +451,8 @@
             MONTH      = 0
             YEAR       = 0
             WAVELENGTH = 0
-            write(6,*) 'before RDAER, FJX'
             CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
      &                  MONTH,     YEAR,      WAVELENGTH      )
-            write(6,*) 'after RDAER'
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
             IF ( LSULF ) THEN
                IF ( LSSALT ) THEN
@@ -499,7 +497,6 @@
 
             !*** MINERAL DUST AEROSOLS ***
             IF ( LDUST ) THEN 
-            write(6,*) 'before DUST'
                ! Do dust aerosol chemsitry
                CALL CHEMDUST
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -509,7 +506,6 @@
                CALL RDUST_ONLINE
      &             ( am_I_Root, Input_Opt,  State_Met, 
      &               SOILDUST,  WAVELENGTH, RC         )
-            write(6,*) 'after DUST'
             ENDIF
  
          !---------------------------------
@@ -626,7 +622,7 @@
       ENDIF
       
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! ALSO NOTE: State_Chm%TRACERS needs to leave this routine with
       ! units of [kg].  If we are calling this routine from the 

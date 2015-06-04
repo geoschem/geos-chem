@@ -335,14 +335,14 @@
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! Do nothing, since we will call READER etc. from the init 
       ! method of the ESMF interface (bmy, 10/24/12)
       !-----------------------------------------------------------------
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Call READER to read chemistry options from mglob.dat.  This is
       ! current practice in the std GEOS-Chem (bmy, 10/24/12)
@@ -412,14 +412,14 @@
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! Do nothing, since we will call these setup routines from the 
       ! init method of the ESMF interface (bmy, 10/24/12)
       !-----------------------------------------------------------------
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Call the following chemistry setup routines only on the very
       ! first chemistry timestep.  This is current practice in the
@@ -489,28 +489,6 @@
          ENDIF
 
          !-------------------------------
-         ! Initialize FAST-JX photolysis
-         ! Now done in INIT_CHEMISTRY (ckeller, 05/19/14)
-         !-------------------------------
-!         CALL INIT_FJX(am_I_Root) 
-!         
-!         !### Debug
-!         IF ( prtDebug ) THEN
-!            CALL DEBUG_MSG( '### CHEMDR: after INIT_FJX' )        
-!         ENDIF
-
-         !-------------------------------
-         ! Flag certain chemical species
-         ! Now done in INIT_CHEMISTRY (ckeller, 05/19/14)
-         !-------------------------------
-!         CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
-
-!         !### Debug
-!         IF ( prtDebug ) THEN
-!            CALL DEBUG_MSG( '### CHEMDR: after SETTRACE' )
-!         ENDIF
-
-         !-------------------------------
          ! Flag emission & drydep rxns
          !-------------------------------
          CALL SETEMDEP( am_I_Root, Input_Opt, RC )
@@ -530,14 +508,14 @@
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! Do not call SETUP_PLANEFLIGHT, since we will not use this
       ! diagnostic with the ESMF interface. (bmy, 10/24/12)
       !-----------------------------------------------------------------
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! If this is the first chem timestep of a new day, then we need 
       ! to call SETUP_PLANEFLIGHT.  If chemistry is turned on, then 
@@ -589,7 +567,7 @@
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! Call GASCONC with FIRSTCHEM = .FALSE. and IS_EXISTS = .FALSE.
       ! Within GASCONC, we will call COPY_FULL_CHEMGRID to make sure that
@@ -600,7 +578,7 @@
      &               Input_Opt, State_Met, State_Chm, RC )
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! On the first chemistry timestep:
       !
@@ -819,14 +797,14 @@
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! Do not call DO_DIAG_PL, since we will not use this diagnostic
       ! with the ESMF interface. (bmy, 10/24/12)
       !-----------------------------------------------------------------
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Call DO_DIAG_PL to compute the family prod/loss diagnostics.
       ! This is current practice in the std GEOS-Chem. (bmy, 10/24/12)
@@ -852,7 +830,7 @@
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! When we connect to the ESMF interface, the CSPEC_FULL array
       ! is defined from the values in the Chemistry State.  We need
@@ -869,7 +847,7 @@
 
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! Preserve current practice in the std GEOS-Chem: (bmy, 10/24/12)
       ! 

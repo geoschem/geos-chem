@@ -53,6 +53,7 @@
 !                              Remove dependency on pressure_mod.
 !  27 Apr 2015 - E. Lundgren - Now pass moist air MW to FVDAS_CONVECT (with
 !                              vertical indices flipped)
+!  27 Apr 2015 - M. Yannetti - Fixed SMALLEST
 !  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
 !                              for consistency with moist mixing ratio units
 !******************************************************************************
@@ -85,7 +86,7 @@
       REAL(fp),  PARAMETER :: CMFTAU   = 3600.e+0_fp
       REAL(fp),  PARAMETER :: EPS      = 1.0e-13_fp   
       REAL(fp),  PARAMETER :: GRAV     = 9.8e+0_fp
-      REAL(fp),  PARAMETER :: SMALLEST = 1.0e-60_fp
+      REAL(fp),  PARAMETER :: SMALLEST = TINY(1.0e+0_fp)
       REAL(fp),  PARAMETER :: TINYALT  = 1.0e-36_fp       
       REAL(fp),  PARAMETER :: TINYNUM  = 2*SMALLEST
 
@@ -933,7 +934,7 @@
                   CBEL = MAX( CMIX(I,K),   MAXC*TINYNUM, SMALLEST )
 
                   ! If CABV-CBEL is zero then set CHAT=SMALLEST
-                  ! so that we avoid div by zero (bmy, 12/19/06) 
+                  ! so that we avoid div by zero (bmy, 12/19/06)
                   IF ( ABS( CABV - CBEL ) > 0e+0_fp ) THEN
                      CHAT(I,K) = LOG( CABV / CBEL )
      &                         /    ( CABV - CBEL )

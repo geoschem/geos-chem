@@ -853,10 +853,6 @@
               ENDDO
 
               ! East BC
-!-----------------------------------------------------------------------------
-! Prior to 4/1/15:
-!              DO I = IIPAR-I0_W+1, IIPAR
-!-----------------------------------------------------------------------------
               DO I = IIPAR-I0_E+1, IIPAR
                  STT(I,J,L,N) = GET_4x5_BC(I,J,L,N)
               ENDDO
@@ -871,10 +867,6 @@
               ENDDO
 
               ! North BC
-!-----------------------------------------------------------------------------
-! Prior to 4/1/15:
-!              DO J = JJPAR-J0_W+1, JJPAR
-!-----------------------------------------------------------------------------
               DO J = JJPAR-J0_E+1, JJPAR
                  STT(I,J,L,N) = GET_4x5_BC(I,J,L,N)
               ENDDO
@@ -905,10 +897,6 @@
               ENDDO
 
               ! East BC
-!-----------------------------------------------------------------------------
-! Prior to 4/1/15:
-!              DO I = IIPAR-I0_W+1, IIPAR
-!-----------------------------------------------------------------------------
               DO I = IIPAR-I0_E+1, IIPAR
                  STT(I,J,L,N) = GET_2x25_BC(I,J,L,N)
               ENDDO
@@ -923,10 +911,6 @@
               ENDDO
 
               ! North BC
-!-----------------------------------------------------------------------------
-! Prior to 4/1/15:
-!              DO J = JJPAR-J0_W+1, JJPAR
-!-----------------------------------------------------------------------------
               DO J = JJPAR-J0_E+1, JJPAR
                  STT(I,J,L,N) = GET_2x25_BC(I,J,L,N)
               ENDDO
@@ -1517,11 +1501,6 @@
 
             ! If the 1x1 center lon lies w/in the 2x25 lon edges
             ! then we have found the proper 2x25 box!
-!-----------------------------------------------------------------------------
-! Prior to 4/1/15:
-! Bug fix: (lzh, 4/1/15)
-!            IF ( X > XE2x25(II) .and. X < XE2x25(II+1) ) THEN
-!-----------------------------------------------------------------------------
             IF ( X >= XE2x25(II) .and. X < XE2x25(II+1) ) THEN
                MAP1x1(I,J,1) = II
                MAP1x1(I,J,2) = 0
@@ -1793,11 +1772,6 @@
       J0_E = Input_Opt%NESTED_J0E
 
       ! Extent of TPCORE transport region
-!-----------------------------------------------------------------------------
-! Prior to 4/1/15:
-!      IM_W = IIPAR - ( 2 * I0_W )
-!      JM_W = JJPAR - ( 2 * J0_W )
-!-----------------------------------------------------------------------------
       IM_W = IIPAR - I0_W - I0_E
       JM_W = JJPAR - J0_W - J0_E
 
@@ -1806,11 +1780,6 @@
       J1_W = GET_YOFFSET( GLOBAL=.TRUE. ) + J0_W + 1
 
       ! I and J at upper-right corner of TPCORE transport region
-!-----------------------------------------------------------------------------
-! Prior to 4/1/15:
-!      I2_W = GET_XOFFSET( GLOBAL=.TRUE. ) + IIPAR - I0_W
-!      J2_W = GET_YOFFSET( GLOBAL=.TRUE. ) + JJPAR - J0_W
-!-----------------------------------------------------------------------------
       I2_W = GET_XOFFSET( GLOBAL=.TRUE. ) + IIPAR - I0_E
       J2_W = GET_YOFFSET( GLOBAL=.TRUE. ) + JJPAR - J0_E
 
@@ -1930,7 +1899,8 @@
 
 #if   defined( GEOS_FP )
 
-         !%%%%% 4x5 BC REGION FOR NESTED CHINA GRID (GEOS-FP only) %%%%%
+         !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
+         !%%%%% NESTED CHINA GRID (GEOS-FP only)       %%%%%
          I1_BC_CH = 51                       ! 4x5 lon index, LL corner
          J1_BC_CH = 27                       ! 4x5 lat index, LL corner
          I2_BC_CH = 65                       ! 4x5 lon index, UR corner
@@ -1938,7 +1908,8 @@
 
 #else
 
-         !%%%%% 4x5 BC REGION FOR TRADITIONAL GEOS-5 CHINA NESTED GRID %%%%%
+         !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
+         !%%%%% GEOS-5 CHINA NESTED GRID (GEOS-5 only) %%%%%
          I1_BC_CH = 51                       ! 4x5 lon index, LL corner
          J1_BC_CH = 21                       ! 4x5 lat index, LL corner
          I2_BC_CH = 67                       ! 4x5 lon index, UR corner
@@ -1954,7 +1925,8 @@
 
 #if   defined( GEOS_FP )
 
-         !%%%%% 2x25 BC REGION FOR NESTED CHINA GRID (GEOS-FP only) %%%%%
+         !%%%%% 2x25 BC REGION FOR "GEOS-Chem CLASSIC" %%%%%
+         !%%%%% NESTED CHINA GRID (GEOS-FP only)       %%%%%
          I1_BC_CH = 101                      ! 2x25 lon index, LL corner
          J1_BC_CH = 53                       ! 2x25 lat index, LL corner
          I2_BC_CH = 129                      ! 2x25 lon index, UR corner
@@ -1962,7 +1934,8 @@
 
 #else
 
-         !%%%%% 2x25 BC REGION FOR TRADITIONAL GEOS-5 CHINA NESTED GRID %%%%%
+         !%%%%% 2x25 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
+         !%%%%% GEOS-5 CHINA NESTED GRID (GEOS_5 only)  %%%%%
          I1_BC_CH = 101                      ! 2x25 lon index, LL corner
          J1_BC_CH = 40                       ! 2x25 lat index, LL corner
          I2_BC_CH = 133                      ! 2x25 lon index, UR corner

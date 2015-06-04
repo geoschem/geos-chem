@@ -1600,7 +1600,7 @@ CONTAINS
 #elif   defined( NESTED_NA )
       INTEGER, PARAMETER   :: J30S = 1,  J30N = 41
 #elif   defined( NESTED_EU )
-      INTEGER, PARAMETER   :: J30S = 1,  J30N = 1         ! add later
+      INTEGER, PARAMETER   :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
 #endif
 
 #elif defined( GRID025x03125 )
@@ -1608,12 +1608,15 @@ CONTAINS
 #if defined( NESTED_CH )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 #elif defined( NESTED_NA )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = 161
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 161 !I think it should be 202/Anna Prot
+!Anna Prot added 8 May 2015
+#elif defined( NESTED_EU )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 115
 #endif
 
 #elif defined( GRID1x1 ) 
 
-#if   defined( NESTED_CH ) || defined( NESTED_NA )
+#if defined( NESTED_CH ) || defined( NESTED_NA ) || defined(NESTED_EU)
     INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
 #else  
     INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
@@ -1965,7 +1968,7 @@ CONTAINS
 !
 !#elif defined( GRID1x1 ) 
 !
-!#if   defined( NESTED_CH ) || defined( NESTED_NA )
+!#if defined( NESTED_CH ) || defined( NESTED_NA ) || defined(NESTED_EU)
 !    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
 !#else  
 !    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid

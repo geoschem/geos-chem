@@ -292,7 +292,7 @@ CONTAINS
 
  pi = 4. * atan(1.)
 
- dlon = 2.*pi / float(540)       !(dan)
+ dlon = 2.*pi / real(540)       !(dan)
 
     ! dan for window
     !elat(1) = -0.5*pi         ! S. Pole
@@ -1669,7 +1669,7 @@ CONTAINS
 
       if(iord == 1 .or. cosa < cos_upw) then
          do i=1,im
-            iu = float(i) - c(i)
+            iu = real(i) - c(i)
             fx(i) = mfx(i)*qtmp(iu)
          enddo
       else
@@ -1687,7 +1687,7 @@ CONTAINS
 
          if( abs(iord) ==2 .or. cosa < cos_van ) then
             do i=1,im
-               iu = float(i) - c(i)
+               iu = real(i) - c(i)
                fx(i) =  mfx(i)*(qtmp(iu)+dm(iu)*(sign(1.,c(i))-c(i)))
             enddo
          else
@@ -2041,7 +2041,7 @@ CONTAINS
    if(jord == 1) then
         do j=js2g0,jn1g1
           do i=1,im
-            jt = float(j) - c(i,j)
+            jt = real(j) - c(i,j)
             fy(i,j) = q(i,jt)
           enddo
         enddo
@@ -2062,7 +2062,7 @@ CONTAINS
 !
           do j=js2g0,jn1g1
             do i=1,im
-              jt = float(j) - c(i,j)
+              jt = real(j) - c(i,j)
               fy(i,j) = q(i,jt) + (sign(1.,c(i,j))-c(i,j))*dm(i,jt)
             enddo
           enddo

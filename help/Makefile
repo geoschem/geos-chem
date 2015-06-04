@@ -36,6 +36,7 @@
 #  26 Aug 2011 - R. Yantosca - Add info about the PRECISE=no option
 #  11 May 2012 - R. Yantosca - Updated to include info about new make options
 #  08 Apr 2015 - M. Sulprizio- Updated to include make options added in v10-01
+#  29 May 2015 - R. Yantosca - Updated help screen for v10-01 CHEM options
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -113,7 +114,8 @@ help:
 	@echo ''	       
 	@echo 'KPP chemistry solver flags:'
 	@echo 'CHEM=___        Specifies which chemistry mechanism is used'
-	@echo '                --> Options: standard SOA UCX (default is standard)'
+	@echo '                --> Options: benchmark SOA UCX NOx_Ox_HC_Aer_Br (aka tropchem)'
+	@echo '                    (default is benchmark)'
 	@echo 'KPPSOLVER=___   Specifies the integrator used with KPP'
 	@echo '                --> Options: lsodes radau5 rosenbrock runge_kutta (default is rosenbrock)'
 	@echo ''	       

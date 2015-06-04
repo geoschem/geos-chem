@@ -334,7 +334,8 @@
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
-      CALL WETDEP_MERRA( Input_Opt, State_Met, State_Chm, LS=.TRUE. )
+      CALL WETDEP_MERRA( am_I_Root, Input_Opt, State_Met, 
+     &                   State_Chm, LS=.TRUE., RC )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
 #elif defined( GEOS_5 )
@@ -348,7 +349,8 @@
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
-      CALL WETDEP( Input_Opt, State_Met, State_Chm, LS=.TRUE. )
+      CALL WETDEP( am_I_Root, Input_Opt, State_Met, 
+     &             State_Chm, LS=.TRUE., RC )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
 #else
@@ -366,7 +368,8 @@
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
-      CALL WETDEP( Input_Opt, State_Met, State_Chm, LS=.TRUE. )
+      CALL WETDEP( am_I_Root, Input_Opt, State_Met, 
+     &             State_Chm, LS=.TRUE., RC )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
       !---------------------
@@ -378,7 +381,8 @@
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before conv wetdep' )
 
       !  Do wet deposition
-      CALL WETDEP( Input_opt, State_Met, State_Chm, LS=.FALSE. )
+      CALL WETDEP( am_I_Root, Input_opt, State_Met, 
+     &             State_Chm, LS=.FALSE. )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
 
 #endif
@@ -906,12 +910,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COMPUTE_F( N,         F,         ISOL, 
-     &                      Input_Opt, State_Met, State_Chm )
+      SUBROUTINE COMPUTE_F( am_I_Root, N, F, ISOL, 
+     &                      Input_Opt, State_Met, State_Chm, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -920,10 +925,12 @@
       USE TOMAS_MOD,          ONLY : IBINS
       USE TOMAS_MOD,          ONLY : GETFRACTION
       USE DAO_MOD,            ONLY : CONVERT_UNITS
+      USE UNITCONV_MOD
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       INTEGER,        INTENT(IN)    :: N          ! Tracer number
       TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met  ! Met State object
@@ -935,7 +942,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: ISOL       ! Index for ND38 diag
-      REAL(fp),         INTENT(OUT)   :: F(:,:,:)   ! Soluble fraction of tracer
+      REAL(fp),       INTENT(OUT)   :: F(:,:,:)   ! Soluble fraction of tracer
+      INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  23 Feb 2000 - H. Liu, R. Yantosca - Initial version
@@ -1007,6 +1015,10 @@
 !                              inverted to be consistent with Mari et al (2000).
 !  12 May 2015 - E. Lundgren - Change tracer units from v/v -> kg for TOMAS if
 !                              not already in kg (ie. called from convection)
+!  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
+!  04 Jun 2015 - E. Lundgren - Adjust 5/12/15 TOMAS bug fix to also
+!                              convert v/v total air <-> v/v dry air for
+!                              accurate v/v <-> kg conversion during convection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1014,7 +1026,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER             :: I, J, L, NN, N_TRACERS
+      INTEGER            :: I, J, L, NN, N_TRACERS
       !REAL(fp)           :: L2G, I2G, C_TOT, F_L, F_I, K, TMP, SO2LOSS
       REAL(fp)           :: L2G, I2G, C_TOT, F_L, F_I, K, SO2LOSS
 #if defined( TOMAS )
@@ -1023,11 +1035,15 @@
       REAL(fp)           :: SOLFRAC, XFRAC
       REAL(fp)           :: MEAN_SFC_STT         ! use to determine STT units 
       LOGICAL            :: UNITCHANGE = .FALSE. ! STT unit conversion indicator
+
+      ! For unit conversion
+      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp), POINTER  :: STT(:,:,:,:) => NULL()
 #endif
 
       ! Pointers
-!      REAL(fp), POINTER     :: BXHEIGHT(:,:,:)
-      REAL(fp), POINTER     :: T       (:,:,:)
+!      REAL(fp), POINTER  :: BXHEIGHT(:,:,:)
+      REAL(fp), POINTER  :: T       (:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1050,6 +1066,9 @@
       ! For aerosol tracers, compute F with internal routine F_AEROSOL.
       ! ISOL = tracer index for the ND38 diagnostic.
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
 
       ! Initialize
 !      BXHEIGHT  => State_Met%BXHEIGHT
@@ -2175,17 +2194,37 @@
 
          CALL F_AEROSOL( KC, N, F, State_Met ) 
          ISOL = GET_ISOL( N, N_TRACERS )
+
 #if defined( TOMAS )
 
-      ! Convert State_Chm%Tracers units to [kg] if currently in [v/v]
-      ! Use average surface level concentration of tracer 1 as an indicator
-      ! NOTE: units are [v/v] if called from convection (ewl, 5/12/15)
+      ! For use below
+      STT       => State_Chm%TRACERS
+      TCVV      =  Input_Opt%TCVV(1:N_TRACERS)
+
+      ! Tracer concentration units are in [v/v total air] if COMPUTE_F
+      ! is called from within convection. TOMAS subroutine GETFRACTION
+      ! expected kg tracer. Therefore, convert State_Chm%Tracers to [kg] 
+      ! if currently in [v/v]. Use the average surface level concentration 
+      ! of tracer 1 to determine current units (ewl, 6/4/15)
+
+      ! Mean surface concentration of tracer 1
       MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
      &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
+
+      ! Convert units [v/v] -> [kg] if mean conc less than 0.1
+      ! (this threshold may need to change)
       IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
-         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, 
-     &                             State_Met%AD, STT ) ! v/v -> kg
+
+         ! Convert v/v moist air to v/v dry air
+         CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, 
+     &                                  State_Met, State_Chm, RC )
+
+         ! Convert v/v dry air to kg tracer
+         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) ! v/v->kg
+
+         ! Set flag indicating conversion change occurred
          UNITCHANGE = .TRUE.
+
       ENDIF
 
 
@@ -2330,13 +2369,21 @@
          
       !(end part) Added for size-resolved aerosol (win, 7/16/09)
 
-      ! Convert State_Chm%Tracers units back to v/v if converted to kg
+      ! Convert State_Chm%Tracers units back to v/v if converted to kg above
       ! (ewl, 5/12/15)
       IF ( UNITCHANGE ) THEN
-         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
-     &                             State_Met%AD, STT ) ! kg -> v/v
+
+         ! Convert [kg] -> [v/v dry air]
+         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg->v/v
+         
+         ! Convert [v/v dry air] -> [v/v total air]
+         CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, 
+     &                                  State_Met, State_Chm, RC )
+
       ENDIF
 
+      ! Free pointer
+      STT => NULL()
 #endif
 
       !-------------------------------
@@ -4296,13 +4343,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WASHOUT( I, J, L,  N,  BXHEIGHT, TK,   PP, 
+      SUBROUTINE WASHOUT( am_I_Root, I, J, L,  N,  BXHEIGHT, TK,   PP, 
      &                    DT, F, H2O2s, SO2s, WASHFRAC, KIN,
-     &                    Input_Opt, State_Met, State_Chm )
+     &                    Input_Opt, State_Met, State_Chm, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE TRACERID_MOD, ONLY : IDTPB,    IDTBE7,   IDTHNO3, IDTH2O2 
       USE TRACERID_MOD, ONLY : IDTCH2O,  IDTMP,    IDTSO2,  IDTSO4  
@@ -4351,16 +4399,17 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)    :: I          ! Longitude index
-      INTEGER, INTENT(IN)    :: J          ! Latitude index
-      INTEGER, INTENT(IN)    :: L          ! Level index
-      INTEGER, INTENT(IN)    :: N          ! Tracer number
+      LOGICAL,   INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
+      INTEGER,   INTENT(IN)    :: I          ! Longitude index
+      INTEGER,   INTENT(IN)    :: J          ! Latitude index
+      INTEGER,   INTENT(IN)    :: L          ! Level index
+      INTEGER,   INTENT(IN)    :: N          ! Tracer number
       REAL(fp),  INTENT(IN)    :: BXHEIGHT   ! Grid box height [m]
       REAL(fp),  INTENT(IN)    :: TK         ! Temperature [K]
       REAL(fp),  INTENT(IN)    :: PP         ! Precip rate thru  bottom of grid
                                            !  box (I,J,L)  [cm3 H2O/cm2 air/s]
-      REAL(fp),  INTENT(IN)    :: DT         ! Timestep for rainout event [s]
-      REAL(fp),  INTENT(IN)    :: F          ! Fraction of grid box that is 
+      REAL(fp),  INTENT(IN)    :: DT       ! Timestep for rainout event [s]
+      REAL(fp),  INTENT(IN)    :: F        ! Fraction of grid box that is 
                                            !   precipitating [unitless]
 
       TYPE(OptInput), INTENT(IN) :: Input_Opt ! Input options
@@ -4377,10 +4426,11 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),  INTENT(OUT)   :: WASHFRAC   ! Fraction of tracer lost to 
+      REAL(fp),  INTENT(OUT) :: WASHFRAC   ! Fraction of tracer lost to 
                                            !  washout [unitless]
-      LOGICAL, INTENT(OUT)   :: KIN        ! =T washout is a kinetic process
-                                           ! =F washout is an equilibrium process
+      LOGICAL,   INTENT(OUT) :: KIN  ! =T washout is a kinetic process
+                                     ! =F washout is an equilibrium process
+      INTEGER,   INTENT(OUT) :: RC   ! Success or failure?       
 !
 ! !REVISION HISTORY: 
 !  28 Feb 2000 - R. Yantosca - Initial version
@@ -4439,6 +4489,10 @@
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !  12 May 2015 - E. Lundgren - Change tracer units from v/v -> kg for TOMAS if
 !                              not already in kg (ie. called from convection)
+!  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
+!  04 Jun 2015 - E. Lundgren - Adjust 5/12/15 TOMAS bug fix to also
+!                              convert v/v total air <-> v/v dry air for
+!                              accurate v/v <-> kg conversion during convection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4449,6 +4503,9 @@
 #if defined( TOMAS )
       REAL(fp)          :: MEAN_SFC_STT         ! use to determine STT units 
       LOGICAL           :: UNITCHANGE = .FALSE. ! STT unit conversion indicator
+      INTEGER           :: N_TRACERS
+      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp), POINTER :: STT(:,:,:,:) => NULL()
 #endif
 
       !=================================================================
@@ -4458,6 +4515,9 @@
       ! or WASHFRAC_LIQ_GAS to compute the fraction of tracer lost to 
       ! washout according to Jacob et al 2000
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
 
       ! DZ is the height of the grid box in cm
       DZ = BXHEIGHT * 1e+2_fp
@@ -4837,15 +4897,35 @@
 
 #if defined( TOMAS )
 
-      ! Convert State_Chm%Tracers units to [kg] if currently in [v/v]
-      ! Use average surface level concentration of tracer 1 as an indicator
-      ! NOTE: units are [v/v] if called from convection (ewl, 5/12/15)
+      ! Define fields for use below
+      STT       => State_Chm%TRACERS
+      N_TRACERS =  Input_Opt%N_TRACERS
+      TCVV      =  Input_Opt%TCVV(1:N_TRACERS)
+
+      ! Tracer concentration units are in [v/v total air] if COMPUTE_F
+      ! is called from within convection. TOMAS subroutine GETFRACTION
+      ! expected kg tracer. Therefore, convert State_Chm%Tracers to [kg] 
+      ! if currently in [v/v]. Use the average surface level concentration 
+      ! of tracer 1 to determine current units (ewl, 6/4/15)
+
+      ! Mean surface concentration of tracer 1
       MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
      &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
+
+      ! Convert units [v/v] -> [kg] if mean conc less than 0.1
+      ! (this threshold may need to change)
       IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
-         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, 
-     &                             State_Met%AD, STT ) ! v/v -> kg
+
+         ! Convert v/v moist air to v/v dry air
+         CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, 
+     &                                  State_Met, State_Chm, RC )
+
+         ! Convert v/v dry air to kg tracer
+         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) ! v/v->kg
+
+         ! Set flag indicating conversion change occurred
          UNITCHANGE = .TRUE.
+
       ENDIF
 
       !=================================================================
@@ -4926,13 +5006,22 @@
 
       ! (end part) Added for size-resolved aerosol (win, 7/16/09)
 
-      ! Convert State_Chm%Tracers units back to v/v if converted to kg
+
+      ! Convert State_Chm%Tracers units back to v/v if converted to kg above
       ! (ewl, 5/12/15)
       IF ( UNITCHANGE ) THEN
-         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
-     &                             State_Met%AD, STT ) ! kg -> v/v
+
+         ! Convert [kg] -> [v/v dry air]
+         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg->v/v
+         
+         ! Convert [v/v dry air] -> [v/v total air]
+         CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, 
+     &                                  State_Met, State_Chm, RC )
+
       ENDIF
 
+      ! Free pointers
+      STT => NULL()
 #endif
 
       !------------------------------
@@ -5465,12 +5554,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WETDEP( Input_Opt, State_Met, State_Chm, LS )
+      SUBROUTINE WETDEP( am_I_Root, Input_Opt, State_Met, State_Chm, 
+     &                   LS, RC )
 !
 ! !USES:
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
@@ -5486,6 +5577,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       LOGICAL,        INTENT(IN)    :: LS         ! =T for large-scale precip
                                                   ! =F for convective precip
       TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input options
@@ -5494,6 +5586,10 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)     :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Precipitation fields:
@@ -5659,6 +5755,7 @@
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  27 May 2011 - R. Yantosca - Now pass F_RAINOUT to DO_WASHOUT_ONLY
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
+!  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5693,6 +5790,9 @@
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
 
       ! Is this a mercury simulation with dynamic online ocean?
       IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
@@ -5939,12 +6039,12 @@
                ERRMSG = 'WASHOUT: Middle levels'
 
                ! Do the washout
-               CALL DO_WASHOUT_ONLY( LS,        I,    J,     
+               CALL DO_WASHOUT_ONLY( am_I_Root, LS,        I,    J,     
      &                               L,         IDX,  ERRMSG, 
      &                               QDOWN,     Q,    F_WASHOUT, 
      &                               F_RAINOUT, DT,   PDOWN,     
      &                               STT,       DSTT, Input_Opt,
-     &                               State_Met, State_Chm )
+     &                               State_Met, State_Chm, RC )
             ENDIF
 
             !===========================================================
@@ -6009,10 +6109,10 @@
 
             ! Only compute washout if F > 0.
             IF ( F > 0e+0_fp ) THEN
-               CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
+               CALL DO_WASHOUT_AT_SFC( am_I_Root, LS,  I,      J,    L,         
      &                                 IDX, ERRMSG, QDOWN, F,   
      &                                 DT,  STT,    DSTT,  Input_Opt,
-     &                                 State_Met,   State_Chm         )
+     &                                 State_Met,   State_Chm, RC     )
             ENDIF    
          ENDIF
 
@@ -6080,12 +6180,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WETDEP_MERRA( Input_Opt, State_Met, State_Chm, LS )
+      SUBROUTINE WETDEP_MERRA( am_I_Root, Input_Opt, State_Met, 
+     &                         State_Chm, LS, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE GIGC_ErrCode_Mod
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
@@ -6100,6 +6202,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
+      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
       LOGICAL,        INTENT(IN)    :: LS         ! =T for large-scale precip
                                                   ! =F for convective precip
       TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input options
@@ -6108,6 +6211,10 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Precipitation fields:
@@ -6224,6 +6331,7 @@
 !  27 May 2011 - R. Yantosca - Now pass F_RAINOUT to DO_WASHOUT_ONLY
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !  01 Apr 2015 - L. Zhang    - Don't do wetdep in nested-grid buffer zone
+!  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6259,6 +6367,9 @@
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
 
       ! Is this a mercury simulation with dynamic online ocean?
       IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
@@ -6466,12 +6577,12 @@
                ERRMSG = 'WASHOUT'
 
                ! Do the washout
-               CALL DO_WASHOUT_ONLY( LS,        I,    J,     
+               CALL DO_WASHOUT_ONLY( am_I_Root, LS,        I,    J,     
      &                               L,         IDX,  ERRMSG,   
      &                               QDOWN,     Q,    F_WASHOUT, 
      &                               F_RAINOUT, DT,   PDOWN,     
      &                               STT,       DSTT, Input_Opt,
-     &                               State_Met, State_Chm )
+     &                               State_Met, State_Chm, RC )
 
             ENDIF
 
@@ -6536,10 +6647,10 @@
 
             ! Only compute washout if F > 0.
             IF ( F > 0e+0_fp ) THEN
-               CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
+               CALL DO_WASHOUT_AT_SFC( am_I_Root, LS,  I,      J,   L,         
      &                                 IDX, ERRMSG, QDOWN, F,   
      &                                 DT,  STT,    DSTT,  Input_Opt,
-     &                                 State_Met,   State_Chm         )
+     &                                 State_Met,   State_Chm, RC    )
 
             ENDIF    
          ENDIF
@@ -6978,16 +7089,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_WASHOUT_ONLY( LS,        I,         J,      L,
+      SUBROUTINE DO_WASHOUT_ONLY( am_I_Root, LS,        I,    J,  L,
      &                            IDX,       ERRMSG,    QDOWN,  Q,
      &                            F_WASHOUT, F_RAINOUT, DT,     PDOWN,
      &                            STT,       DSTT,      Input_Opt,
-     &                            State_Met, State_Chm, REEVAP     )
+     &                            State_Met, State_Chm, REEVAP,   RC )
 !
 ! !USES:
 !
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
       USE CMN_SIZE_MOD                                 ! Size parameters
+      USE GIGC_ErrCode_Mod
       USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
       USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
       USE DIAG_MOD,           ONLY : AD18              ! ND18 diag array
@@ -7014,32 +7126,37 @@
 #endif
 !
 ! !INPUT PARAMETERS: 
-!     
-      LOGICAL,OPTIONAL, INTENT(IN)    :: REEVAP        ! Do re-evaporation?
-      LOGICAL,          INTENT(IN)    :: LS            ! =T denotes LS precip
-      INTEGER,          INTENT(IN)    :: I             ! Longitude index
-      INTEGER,          INTENT(IN)    :: J             ! Latitude index
-      INTEGER,          INTENT(IN)    :: L             ! Level index
-      INTEGER,          INTENT(IN)    :: IDX           ! ND38 index
-      CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
-      REAL(fp),           INTENT(IN)    :: QDOWN         ! Precip leaving thru
-                                                       !  bottom of box (I,J,L)
-      REAL(fp),           INTENT(IN)    :: Q             ! New precip forming
-                                                       !  in box (I,J,L)
-      REAL(fp),           INTENT(IN)    :: F_WASHOUT     ! Fraction of grid box 
-                                                       !  undergoing washout
-      REAL(fp),           INTENT(IN)    :: F_RAINOUT     ! Fraction of grid box 
-                                                       !  undergoing rainout
-      REAL(fp),           INTENT(IN)    :: DT            ! Rainout timestep [s]
-      REAL(fp),           INTENT(IN)    :: PDOWN(:,:,:)  ! Precip 
-      TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
-      TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
+!
+      LOGICAL,          INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?  
+      LOGICAL,OPTIONAL, INTENT(IN)    :: REEVAP       ! Do re-evaporation?
+      LOGICAL,          INTENT(IN)    :: LS           ! =T denotes LS precip
+      INTEGER,          INTENT(IN)    :: I            ! Longitude index
+      INTEGER,          INTENT(IN)    :: J            ! Latitude index
+      INTEGER,          INTENT(IN)    :: L            ! Level index
+      INTEGER,          INTENT(IN)    :: IDX          ! ND38 index
+      CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG       ! Error message
+      REAL(fp),         INTENT(IN)    :: QDOWN        ! Precip leaving thru
+                                                      !  bottom of box (I,J,L)
+      REAL(fp),         INTENT(IN)    :: Q            ! New precip forming
+                                                      !  in box (I,J,L)
+      REAL(fp),         INTENT(IN)    :: F_WASHOUT    ! Fraction of grid box 
+                                                      !  undergoing washout
+      REAL(fp),         INTENT(IN)    :: F_RAINOUT    ! Fraction of grid box 
+                                                      !  undergoing rainout
+      REAL(fp),         INTENT(IN)    :: DT           ! Rainout timestep [s]
+      REAL(fp),         INTENT(IN)    :: PDOWN(:,:,:) ! Precip 
+      TYPE(OptInput),   INTENT(IN)    :: Input_Opt    ! Input options
+      TYPE(MetState),   INTENT(IN)    :: State_Met    ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp),           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
-      REAL(fp),           INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
+      REAL(fp),         INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
+      REAL(fp),         INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  A fraction ALPHA of the raindrops falling down from grid 
@@ -7116,6 +7233,9 @@
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !  04 Feb 2015 - M. Sulprizio- Fix calculation of WETLOSS for non-aerosol 
 !                              tracers (C. Friedman)
+!  20 May 2015 - M. Sulprizio- Remove WASHFRAC < 1D-3 error trap for MERRA
+!                              following recommendation by Viral Shah
+!  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7136,6 +7256,9 @@
       !=================================================================
       ! DO_WASHOUT_ONLY begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
 
       ! ND16 diagnostic...save F (fraction of grid box raining)
       IF ( ND16 > 0e+0_fp .and. L <= LD16 ) THEN
@@ -7174,12 +7297,12 @@
 
          ! Call WASHOUT to compute the fraction of 
          ! tracer lost to washout in grid box (I,J,L)
-         CALL WASHOUT( I, J, L, N,
+         CALL WASHOUT( am_I_Root, I, J, L, N,
      &                 State_Met%BXHEIGHT(I,J,L), 
      &                 TK,        QDOWN,        DT,   
      &                 TF,        H2O2s(I,J,L), SO2s(I,J,L), 
      &                 WASHFRAC,  KIN,          Input_Opt,
-     &                 State_Met, State_Chm )
+     &                 State_Met, State_Chm, RC )
 
 #if    defined( MERRA ) || defined( GEOS_FP )
          !%%% BUG FIX: Only apply this section of when running
@@ -7193,8 +7316,18 @@
          ! DSTT < 0 and SAFETY trips.  (Helen Amos, 20100928)
          IF ( IT_IS_NAN( WASHFRAC ) ) THEN
             CYCLE
-         ELSEIF ( WASHFRAC < 1e-3_fp ) THEN
-            CYCLE
+!------------------------------------------------------------------------------
+! Prior to 5/20/15:
+! Viral Shah wrote:
+!  The condition requiring that the WASHFRAC>1D-3 or any number greater than 0
+!  for washout to occur, prevents the partial resuspension of the dissolved
+!  mass falling from above, and leads to an overestimate in the wet deposited
+!  mass... I recommend that the condition on WASHFRAC should be removed. If
+!  this leads to negative values of DSTT, we should add a few lines to restrict
+!  DSTT to a minimum of 0. (mps, 5/20/15)
+!         ELSEIF ( WASHFRAC < 1e-3_fp ) THEN
+!            CYCLE
+!------------------------------------------------------------------------------
          ENDIF
 #endif
 
@@ -7589,15 +7722,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
+      SUBROUTINE DO_WASHOUT_AT_SFC( am_I_Root, LS,  I,      J,     L,         
      &                              IDX, ERRMSG, QDOWN, F,   
      &                              DT,  STT,    DSTT,  Input_Opt,
-     &                              State_Met,   State_Chm         )
+     &                              State_Met,   State_Chm, RC      )
 !
 ! !USES:
 !
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
       USE CMN_SIZE_MOD                                 ! Size parameters
+      USE GIGC_ErrCode_Mod
       USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
       USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
       USE DIAG_MOD,           ONLY : AD18              ! ND18 diag array
@@ -7617,26 +7751,31 @@
 !
 ! !INPUT PARAMETERS: 
 !     
+      LOGICAL,          INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
       LOGICAL,          INTENT(IN)    :: LS            ! =T denotes LS precip
       INTEGER,          INTENT(IN)    :: I             ! Longitude index
       INTEGER,          INTENT(IN)    :: J             ! Latitude index
       INTEGER,          INTENT(IN)    :: L             ! Level index
       INTEGER,          INTENT(IN)    :: IDX           ! ND38 index
       CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
-      REAL(fp),           INTENT(IN)    :: QDOWN         ! Precip leaving thru
+      REAL(fp),         INTENT(IN)    :: QDOWN         ! Precip leaving thru
                                                        !  bottom of box (I,J,L)
-      REAL(fp),           INTENT(IN)    :: F             ! Fraction of grid box 
+      REAL(fp),         INTENT(IN)    :: F             ! Fraction of grid box 
                                                        !  undergoing precip
-      REAL(fp),           INTENT(IN)    :: DT            ! Rainout timestep [s]
+      REAL(fp),         INTENT(IN)    :: DT            ! Rainout timestep [s]
       TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
       TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp),           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
-      REAL(fp),           INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
+      REAL(fp),         INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
+      REAL(fp),         INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
 ! 
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! !REMARKS:
 !  Assume all of the tracer precipitating down from grid box (I,J,L=2) to 
 !  grid box (I,J,L=1) gets washed out in grid box (I,J,L=1).
@@ -7650,6 +7789,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
+!  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7664,6 +7804,9 @@
       !=================================================================
       ! DO_WASHOUT_AT_SFC begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
 
       ! ND16 diagnostic...save F 
       IF ( ND16 > 0 .and. L <= LD16 ) THEN
@@ -7689,12 +7832,12 @@
 
          ! Call WASHOUT to compute the fraction of tracer 
          ! in grid box (I,J,L) that is lost to washout.  
-         CALL WASHOUT( I, J, L, N,
+         CALL WASHOUT( am_I_Root, I, J, L, N,
      &                 State_Met%BXHEIGHT(I,J,L), 
      &                 TK ,       QDOWN,        DT,   
      &                 F,         H2O2s(I,J,L), SO2s(I,J,L), 
      &                 WASHFRAC,  KIN,          Input_Opt,
-     &                 State_Met, State_Chm )
+     &                 State_Met, State_Chm, RC )
 
          ! NOTE: for HNO3 and aerosols, there is an F factor
          ! already present in WASHFRAC.  For other soluble
@@ -7984,6 +8127,9 @@
       !=================================================================
       ! WETDEPID begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
 
       ! Zero NSOL
       NSOL = 0
@@ -9032,7 +9178,7 @@
 
 !#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! Skip computation of Vud, CLDICE, CLDLIQ, C_H2O.  These would 
       ! have to be computed at a higher level and passed through the
@@ -9044,7 +9190,7 @@
       !-----------------------------------------------------------------
 !#else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Compute Vud, CLDICE, CLDLIQ, C_H2O.  This is current practice 
       ! in the standard GEOS-Chem model.  (bmy, 10/31/12)

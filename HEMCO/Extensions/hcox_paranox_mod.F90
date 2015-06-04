@@ -62,21 +62,9 @@
 !               Defined as MOE = L(CH4) / E(NOx).
 !\\
 !\\
-! The historic solar elevation angles are internally stored in array SC5. The
-! values become automatically updated as simulation time progresses. The values
-! to be used at the beginning of a simulation can be provided as restart 
-! variables in the HEMCO configuration file. They must be listed in section
-! base emissions, for example:
-! \# --- PARANOx restart variables 
-!102 PARANOX\_SUNCOS1 HEMCO\_Restart.$YYYY$MM$DD$HH00.nc PARANOX\_SUNCOS1 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1
-!102 PARANOX\_SUNCOS2 HEMCO\_Restart.$YYYY$MM$DD$HH00.nc PARANOX\_SUNCOS2 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1
-!102 PARANOX\_SUNCOS3 HEMCO\_Restart.$YYYY$MM$DD$HH00.nc PARANOX\_SUNCOS3 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1
-!102 PARANOX\_SUNCOS4 HEMCO\_Restart.$YYYY$MM$DD$HH00.nc PARANOX\_SUNCOS4 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1
-!102 PARANOX\_SUNCOS5 HEMCO\_Restart.$YYYY$MM$DD$HH00.nc PARANOX\_SUNCOS5 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1 
-! If any of these variables is not found in the configuration file, the corresponding 
-! SC5 slice is filled with the current suncos value, which may result in erroneous results
-! for the first 5 simulation hours. The above listed parameters are automatically written
-! into the HEMCO restart file, allowing for a 'warm' restart from the simulation end date.
+! The solar elevation angles 5 hours ago are calculated using HEMCO subroutine
+! HCO\_GetSUNCOS. This is the same routine that is used to calculate the solar
+! zenith angles for the current time. 
 !\\
 !\\
 ! !INTERFACE:
@@ -152,7 +140,7 @@ MODULE HCOX_ParaNOx_MOD
   REAL(hp), ALLOCATABLE, TARGET :: ShipNO(:,:,:)
 
   ! For SunCosMid 5hrs ago
-  REAL(sp), ALLOCATABLE, TARGET :: SC5(:,:,:)
+  REAL(hp), ALLOCATABLE         :: SC5(:,:)
 
   ! Deposition fluxes in kg/m2/s
   REAL(sp), ALLOCATABLE, TARGET :: DEPO3  (:,:)
@@ -314,6 +302,7 @@ CONTAINS
     USE HCO_Restart_Mod,  ONLY : HCO_RestartGet
     USE HCO_Restart_Mod,  ONLY : HCO_RestartWrite
     USE HCO_Calc_Mod,     ONLY : HCO_CheckDepv
+    USE HCO_GeoTools_Mod, ONLY : HCO_GetSUNCOS
 !
 ! !INPUT PARAMETERS:
 !
@@ -340,6 +329,7 @@ CONTAINS
 !                              division check for O3 deposition calculation. 
 !  08 May 2015 - C. Keller   - Now read/write restart variables from here to
 !                              accomodate replay runs in GEOS-5.
+!  25 May 2015 - C. Keller   - Now calculate SC5 via HCO_GetSUNCOS 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -348,7 +338,7 @@ CONTAINS
 !
     INTEGER                  :: I, J, L
     LOGICAL                  :: ERR
-    LOGICAL                  :: FOUND 
+    LOGICAL                  :: FILLED 
     LOGICAL                  :: FIRST
     REAL(hp)                 :: iFlx, TMP
     CHARACTER(LEN=255)       :: MSG
@@ -370,10 +360,6 @@ CONTAINS
     LOGICAL, SAVE            :: DODIAGN = .FALSE.
     CHARACTER(LEN=31)        :: DiagnName
     TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
-
-    ! For internal SC5 array
-    INTEGER                  :: HH
-    INTEGER, SAVE            :: lastHH = -1
 
     ! Paranox update
     REAL(dp)                 :: SHIP_FNOx, SHIP_DNOx, SHIP_OPE, SHIP_MOE
@@ -403,10 +389,6 @@ CONTAINS
        RC = HCO_SUCCESS 
        RETURN
     ENDIF
-
-    ! Get simulation month
-    CALL HcoClock_Get( cH=HH, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ------------------------------------------------------------------
     ! First call: check for diagnostics to write and fill restart values
@@ -443,49 +425,12 @@ CONTAINS
     ENDIF
     IF ( DoDiagn ) DIAGN(:,:,:) = 0.0_hp
 
-    ! On first call or after rewinding the clock, get restart values
-    IF ( FIRST .OR. HcoClock_Rewind( .TRUE. ) ) THEN
-
-       ! Get SUNCOS restart values
-       DO I=1,5
-          ! Get diagnostics name
-          WRITE(CHAR1,'(I1)') I
-          DiagnName = 'PARANOX_SUNCOS'//TRIM(CHAR1)
-
-          ! Get restart value
-          CALL HCO_RestartGet( am_I_Root,       HcoState,         & 
-                               TRIM(DiagnName), SC5(:,:,I+1), RC, &
-                               FOUND=FOUND ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN   
-
-          IF ( .NOT. FOUND ) THEN
-             SC5(:,:,I+1) = ExtState%SUNCOSmid%Arr%Val
-          ENDIF
-       ENDDO !I
-
-       ! First slice is always current one
-       SC5(:,:,1) = ExtState%SUNCOSmid%Arr%Val(:,:)
-
-    ENDIF
-
     ! ------------------------------------------------------------------
     ! Update SC5
     ! ------------------------------------------------------------------
-    ! SC5 holds the SUNCOSmid values of the past 5 hours. Slice 1 helds 
-    ! current hour (CH), slice 2 CH-1, ... slice 6 CH-5.
-    IF ( HH /= lastHH .AND. .NOT. FIRST ) THEN
-   
-       ! Move all slices down by one
-       SC5(:,:,6) = SC5(:,:,5)
-       SC5(:,:,5) = SC5(:,:,4)
-       SC5(:,:,4) = SC5(:,:,3)
-       SC5(:,:,3) = SC5(:,:,2)
-       SC5(:,:,2) = SC5(:,:,1)
-
-       ! Archive current SUNCOSmid for future.
-       SC5(:,:,1) = ExtState%SUNCOSmid%Arr%Val(:,:)
-
-    ENDIF       
+    ! SC5 holds the SUNCOS values of 5 hours ago. 
+    CALL HCO_getSUNCOS( am_I_Root, HcoState, SC5, -5, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Error check
     ERR = .FALSE.
@@ -796,22 +741,6 @@ CONTAINS
        Arr2D => NULL()       
     ENDIF
 
-    ! Eventually copy internal values to internal state object.
-    ! This is only of relevance in an ESMF environment. 
-    DO I=1,5
-       ! Diagnostics name
-       WRITE(CHAR1,'(I1)') I
-       DiagnName = 'PARANOX_SUNCOS'//TRIM(CHAR1)
-  
-       ! Write diagnostics
-       CALL HCO_RestartWrite( am_I_Root,       HcoState,       &
-                              TRIM(DiagnName), SC5(:,:,I), RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDDO
-
-    ! Update last hour to current one for next call.
-    lastHH = HH
-
     ! Return w/ success
     CALL HCO_LEAVE ( RC )
 
@@ -863,6 +792,7 @@ CONTAINS
 !  16 Oct 2014 - C. Keller   - Added error check after READ_PARANOX_LUT
 !  17 Oct 2014 - C. Keller   - Now parse input files via HCO_CharParse
 !  17 Apr 2015 - C. Keller   - Now assign PARANOX_SUNCOS1 to SC5(:,:,1), etc.
+!  25 May 2015 - C. Keller   - Now calculate SC5 via HCO_GetSUNCOS 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1163,7 +1093,7 @@ CONTAINS
    ! Call HEMCO parser to replace tokens such as $ROOT, $MET, or $RES.
    ! There shouldn't be any date token in there ($YYYY, etc.), so just
    ! provide some dummy variables here
-   CALL HCO_CharParse( LutDir, -999, -1, -1, -1, RC )
+   CALL HCO_CharParse( LutDir, -999, -1, -1, -1, -1, RC )
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    ! Data format: ncdf (default) or txt 
@@ -1192,24 +1122,18 @@ CONTAINS
    ENDIF
    ShipNO = 0.0_hp
 
-   ! Allocate variables for SunCosMid from 5 hours ago. We internally store 
-   ! the SunCosMid values from the past 5 hours in array SC5. Slice 1 holds
-   ! the current suncos values, slice 2 current hour -1, ..., slice 6 current
-   ! hour -5.  
-   ! We assume explicitly that the chemistry time step is not larger that 60 
-   ! mins, i.e. that PARANOX is called at least once per hour. If that's not
-   ! the case, the SC5 array will hold values from further back!
-   ALLOCATE ( SC5(HcoState%NX,HcoState%NY,6), STAT=AS )
+   ! Allocate variables for SunCosMid from 5 hours ago. 
+   ALLOCATE ( SC5(HcoState%NX,HcoState%NY), STAT=AS )
    IF ( AS /= 0 ) THEN
       CALL HCO_ERROR ( 'SC5', RC )
       RETURN
    ENDIF
-   SC5 = 0.0_sp
+   SC5 = 0.0_hp
 
    ! Prompt warning if chemistry time step is more than 60 mins
    IF ( HcoState%TS_CHEM > 3600.0_hp ) THEN
       IF ( am_I_Root ) THEN
-         MSG = '    Cannot properly store SUNCOSmid values ' // &
+         MSG = '    Cannot properly store SUNCOS values ' // &
                ' because chemistry time step is more than 60 mins!'
          CALL HCO_WARNING ( MSG, RC )
       ENDIF
@@ -1217,32 +1141,6 @@ CONTAINS
 
    ! Molecular weight of AIR
    MW_AIR = HcoState%Phys%AIRMW
-
-   !------------------------------------------------------------------------
-   ! Define restart variables. These will be written to disk automatically
-   ! and can then be used for a 'warm' restart. 
-   !------------------------------------------------------------------------ 
-
-   ! Do for the last 5 hours:
-   DO I = 1, 5
-
-      ! Construct name
-      WRITE(CHAR1,'(I1)') I
-      DiagnName = 'PARANOX_SUNCOS'//TRIM(CHAR1)
-
-      ! Define restart variable.
-      ! IMPORTANT NOTE: PARANOX_SUNCOS1 refers to the SZA from one hour
-      ! ago, PARANOX_SUNCOS2 is the SZA 2 hours ago, etc. At any given
-      ! simulation time, SC5(:,:,1) holds the current SZA, SC5(:,:,2) 
-      ! holds SZA -1 hour, etc. Since SC5 is not updated any more on 
-      ! the final time step, assign SC5(:,:,1) to PARANOX_SUNCOS1, 
-      ! SC5(:,:,2) to PARANOX_SUNCOS2, etc.
-      ! For example, if the simulation ends on Aug 1, 00:00, SC5(:,:,1)
-      ! is last updated on Jul 31, 23:00, and this value needs be stored
-      ! in PARANOX_SUNCOS1 (ckeller, 4/17/2015).
-      CALL HCO_RestartDefine ( am_I_Root, HcoState, TRIM(DiagnName), &
-                               SC5(:,:,I), '1',   RC )
-   ENDDO
 
    !------------------------------------------------------------------------ 
    ! Define PARANOX diagnostics for the O3 and HNO3 deposition fluxes (in
@@ -1277,7 +1175,7 @@ CONTAINS
    ExtState%AIR%DoUse         = .TRUE.
    ExtState%AIRVOL%DoUse      = .TRUE.
    ExtState%SPHU%DoUse        = .TRUE.
-   ExtState%SUNCOSmid%DoUse   = .TRUE.
+   ExtState%SUNCOS%DoUse      = .TRUE.
    ExtState%T2M%DoUse         = .TRUE.
    ExtState%U10M%DoUse        = .TRUE.
    ExtState%V10M%DoUse        = .TRUE.
@@ -2202,7 +2100,8 @@ CONTAINS
    VALUE = MIN( VALUEIN, MAXVAL( NODES ) )
 
    ! If smaller, assign smallest level value
-   VALUE = MAX( VALUE,   MINVAL( NODES ) )
+   !GanLuo+VALUE = MAX( VALUE,   MINVAL( NODES ) )
+   VALUE = MAX( VALUE,   MINVAL( NODES )*1.d0 )
 
    ! Initialize
    INDICES = (/ 1, 1 /)
@@ -2348,7 +2247,7 @@ CONTAINS
 !   endif
 
    ! Check if sun is up
-   IF ( ExtState%SUNCOSmid%Arr%Val(I,J) > 0.0_hp ) THEN
+   IF ( ExtState%SUNCOS%Arr%Val(I,J) > 0.0_hp ) THEN
 
       ! J(NO2), 1/s
       JNO2 = ExtState%JNO2%Arr%Val(I,J)
@@ -2408,8 +2307,8 @@ CONTAINS
    ! SEA5 = SEA at current model time, 5-h after emission from ship
    ! Note: Since SEA = 90 - SZA, then cos(SZA) = sin(SEA) and 
    ! thus SEA = arcsin( cos( SZA ) )
-   VARS(4) = ASIND( SC5(I,J,6) )
-   VARS(5) = ASIND( ExtState%SUNCOSmid%Arr%Val(I,J) )
+   VARS(4) = ASIND( SC5(I,J) )
+   VARS(5) = ASIND( ExtState%SUNCOS%Arr%Val(I,J) )
 
    ! J(OH)/J(NO2), unitless
    ! Note J(OH) is the loss rate (1/s) of O3 to OH, which accounts for 
@@ -2446,7 +2345,7 @@ CONTAINS
 !      write(*,*) 'AIRMW  : ', HcoState%Phys%AIRMW
 !      write(*,*) 'MWNO, NO2, O3: ', MW_NO, MW_NO2, MW_O3
 !      write(*,*) 'O3conc: ', ExtState%O3%Arr%Val(I,J,1) 
-!      write(*,*) 'SUNCOSmid5: ', SC5(I,J,6)
+!      write(*,*) 'SUNCOSmid5: ', SC5(I,J)
 !      write(*,*) 'NO,NO2 conc: ',ExtState%NO%Arr%Val(I,J,1), ExtState%NO2%Arr%Val(I,J,1)
 !      write(*,*) 'U, V: ', ExtState%U10M%Arr%Val(I,J),ExtState%V10M%Arr%Val(I,J)
 !   endif
@@ -2586,13 +2485,22 @@ CONTAINS
          !IF ENCOUNTER -999 IN THE LUT PRINT ERROR!!       
          IF ( ( FNOX_TMP < 0. ) .or. ( FNOX_TMP > 1. ) ) THEN
             
-            PRINT*, 'PARANOX_LUT: fracnox = ,', fnox
-         
-            print*, I1, I2, I3, I4, I5, I6, I7, I8
-            print*, INDX(1,I1), INDX(2,I2), INDX(3,I3),  INDX(4,I4), & 
-                    INDX(5,I5), INDX(6,I6), INDX(7,I7), INDX(8,I8)
-            print*, VARS
-
+            PRINT*, 'PARANOX_LUT: fracnox = ', FNOX_TMP
+            PRINT*, 'This occured at grid box ', I, J
+            PRINT*, 'Lon/Lat: ', HcoState%Grid%XMID%Val(I,J), HcoState%Grid%YMID%Val(I,J)
+            PRINT*, 'SZA 5 hours ago : ', VARS(4) 
+            PRINT*, 'SZA at this time: ', VARS(5) 
+            PRINT*, 'The two SZAs should not be more than 75 deg apart!'        
+            PRINT*, 'If they are, your restart SZA might be wrong.'
+            PRINT*, 'You can try to coldstart PARANOx by commenting'
+            PRINT*, 'all PARANOX_SUNCOS entries in your HEMCO'
+            PRINT*, 'configuration file.'
+ 
+            !print*, I1, I2, I3, I4, I5, I6, I7, I8
+            !print*, INDX(1,I1), INDX(2,I2), INDX(3,I3),  INDX(4,I4), & 
+            !        INDX(5,I5), INDX(6,I6), INDX(7,I7), INDX(8,I8)
+            !print*, VARS
+ 
             MSG = 'LUT error: Fracnox should be between 0 and 1!'
             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
             RETURN

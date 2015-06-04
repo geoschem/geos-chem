@@ -259,7 +259,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EMISSIONS_FINAL( am_I_Root )
+  SUBROUTINE EMISSIONS_FINAL( am_I_Root, ERROR )
 !
 ! !USES:
 !
@@ -268,6 +268,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
+    LOGICAL,          INTENT(IN   )  :: ERROR      ! Cleanup after crash? 
 !
 ! !REVISION HISTORY: 
 !  27 Aug 2014 - C. Keller    - Initial version 
@@ -279,7 +280,7 @@ CONTAINS
     ! EMISSIONS_FINAL begins here!
     !=================================================================
 
-    CALL HCOI_GC_Final( am_I_Root )
+    CALL HCOI_GC_Final( am_I_Root, ERROR )
 
   END SUBROUTINE EMISSIONS_FINAL
 !EOC

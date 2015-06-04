@@ -705,7 +705,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 #if defined( ESMF_ )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! Use GEOS-5 style error reporting when connecting to the GEOS-5
       ! GCM via the ESMF interface (bmy, 3/12/13)
@@ -732,7 +732,7 @@
 #if defined( ESMF_ )
 
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! Use GEOS-5 style error reporting when connecting to the GEOS-5
       ! GCM via the ESMF interface (bmy, 3/12/13)
@@ -743,7 +743,7 @@
 
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Current practice in the std GEOS-Chem is to call CLEANUP to 
       ! deallocate module arrays and then exit (bmy, 3/12/13)
@@ -751,7 +751,7 @@
 !$OMP CRITICAL
 
       ! Deallocate all module arrays
-      CALL CLEANUP( SHADOW_am_I_Root, SHADOW_Input_Opt, RC )
+      CALL CLEANUP( SHADOW_am_I_Root, SHADOW_Input_Opt, .TRUE., RC )
 
       ! Flush all files and stop
       CALL EXIT( 99999 )
@@ -1183,13 +1183,19 @@
 !
 ! !REVISION HISTORY:
 !  04 Jan 2010 - R. Yantosca - Initial version
+!  06 Feb 2015 - M. Yannetti - Needed to make the CUTOFF smaller for
+!                              REAL*4.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
+#IF DEFINED( USE_REAL8 )
       REAL(fp), PARAMETER :: CUTOFF = 600e+0_fp
+#ELSE
+      REAL(fp), PARAMETER :: CUTOFF = 75e+0_fp
+#ENDIF
 
       ! If -CUTOFF < x < CUTOFF, then it is safe to take EXP( x )
       F = ( ABS( X ) < CUTOFF )

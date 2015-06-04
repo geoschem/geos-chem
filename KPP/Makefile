@@ -61,6 +61,10 @@
 #  16 Oct 2013 - M. Sulprizio- Remove isoprene directory from realclean target.
 #                              This directory has been removed because it is
 #                              obsolete.
+#  26 May 2015 - R. Yantosca - Bug fix, now point CHEM=benchmark by default
+#  29 May 2015 - R. Yantosca - Add tropchem as a synonym for NOX_Ox_HC_Aer_Br
+#  29 May 2015 - R. Yantosca - Now use KPP_CHEM instead of CHEM.  CHEM is an
+#                              environment variable and can't be reset.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -82,25 +86,11 @@ MOD  := $(ROOT)/mod
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOT)/Makefile_header.mk
 
-# Make the standard 43-tracer simulation the default
-ifndef CHEM
- CHEM :=standard
+# Make the standard benchmark simulation if CHEM is not passed
+# NOTE: In v10-01+, CHEM should always be passed from Makefile_header.mk!
+ifndef KPP_CHEM
+ KPP_CHEM :=benchmark
 endif
-
-# Check if NTRAC option is used
-#%%% NOTE: THE # oF TRACERS USED IS NOW OUT OF DATE (bmy, 7/21/14)
-ifdef NTRAC 
-
-ifeq ($(NTRAC),43)
- CHEM :=standard
-endif
-
-ifeq ($(NTRAC),54)
- CHEM :=SOA 
-endif
-
-endif
-
 
 # Make rosenbrock the default solver
 ifndef KPPSOLVER
@@ -109,7 +99,7 @@ endif
 
 # solver (S=Source, T=Target)
 SOLVER_SFILE :=./int/gckpp_Integrator_$(KPPSOLVER).F90
-SOLVER_TFILE :=./$(CHEM)/gckpp_Integrator.F90
+SOLVER_TFILE :=./$(KPP_CHEM)/gckpp_Integrator.F90
 
 ###############################################################################
 ###                                                                         ###
@@ -122,7 +112,7 @@ SOLVER_TFILE :=./$(CHEM)/gckpp_Integrator.F90
 all: lib
 
 lib: kppintegrator
-	@$(MAKE) -C $(CHEM)
+	@$(MAKE) -C $(KPP_CHEM)
 
 kppintegrator:
 	@diff $(SOLVER_SFILE) $(SOLVER_TFILE) ;\
@@ -132,14 +122,14 @@ kppintegrator:
 	fi
 
 clean:
-	@$(MAKE) -C $(CHEM) clean
+	@$(MAKE) -C $(KPP_CHEM) clean
 
 realclean:
-	@$(MAKE) -C standard clean
-	@$(MAKE) -C SOA clean
-	@$(MAKE) -C UCX clean
+	@$(MAKE) -C benchmark        clean
+	@$(MAKE) -C SOA              clean
+	@$(MAKE) -C UCX              clean
+	@$(MAKE) -C NOx_Ox_HC_Aer_Br clean
 
 help:
 	@$(MAKE) -C $(HELP) 
-
 #EOC	

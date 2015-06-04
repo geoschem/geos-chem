@@ -137,6 +137,8 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
+!  22 May 2015 - R. Yantosca -  
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -148,7 +150,7 @@
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%      
       !
       ! KBLOOP is the # of boxes that SMVGEAR will process per CPU.
       ! Set KBLOOP=1 for connecting to an external GCM
@@ -178,7 +180,7 @@
       INTEGER, PARAMETER :: KBLOOP  = 1
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! KBLOOP is the # of boxes that SMVGEAR will process per CPU.
       ! For "traditional" G-C simulations, leave KBLOOP = 24
@@ -197,12 +199,6 @@
       INTEGER            :: ILAYER
       INTEGER            :: ILTLOOP
       INTEGER            :: MXBLOCK
-!
-! ************************* TRACER PARAMETERS ****************************
-! IDEMS    = EMISSION ID NUMBER (WHICH SPECIES)
-      INTEGER IDEMS(NEMPARA+NEMPARB)
-      ! NEMPARA = max no. of anthropogenic emissions
-      ! NEMPARB = max no. of biogenic emissions
 !
 ! ************************* GAS-PHASE PARAMETERS **********************
 !

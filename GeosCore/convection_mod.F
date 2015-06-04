@@ -349,8 +349,8 @@
          p_FSOL => FSOL(:,:,:,N)
 
          ! Fraction of soluble tracer
-         CALL COMPUTE_F( N,         p_FSOL,    ISOL(N), 
-     &                   Input_Opt, State_Met, State_Chm ) 
+         CALL COMPUTE_F( am_I_Root, N, p_FSOL, ISOL(N), 
+     &                   Input_Opt, State_Met, State_Chm, RC ) 
 
          ! Free pointer memory
          NULLIFY( p_FSOL )
@@ -686,8 +686,8 @@
 
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
-         CALL COMPUTE_F( N,         p_FSOL,    ISOL, 
-     &                   Input_Opt, State_Met, State_Chm ) 
+         CALL COMPUTE_F( am_I_Root, N, p_FSOL, ISOL, 
+     &                   Input_Opt, State_Met, State_Chm, RC ) 
          
          ! Free pointer memory
          NULLIFY( p_FSOL )
@@ -979,8 +979,8 @@
 
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
-         CALL COMPUTE_F( N,         p_FSOL,    ISOL, 
-     &                   Input_Opt, State_Met, State_Chm ) 
+         CALL COMPUTE_F( am_I_Root, N, p_FSOL, ISOL, 
+     &                   Input_Opt, State_Met, State_Chm, RC ) 
          
          ! Free pointer memory
          NULLIFY( p_FSOL )
@@ -1556,8 +1556,8 @@
          p_FSOL => F(:,:,:,IC)
 
          ! Compute the fraction of tracer IC scavenged in updrafts
-         CALL COMPUTE_F( IC,        p_FSOL,    ISOL, 
-     &                   Input_Opt, State_Met, State_Chm ) 
+         CALL COMPUTE_F( am_I_Root, IC, p_FSOL, ISOL, 
+     &                   Input_Opt, State_Met, State_Chm, RC ) 
 
          ! Free pointer memory
          NULLIFY( p_FSOL )
@@ -1675,20 +1675,6 @@
                   ! Subtract DQ from Q(*,*,K=1,*) and from Q(*,*,K=2,*), 
                   ! but do not make Q(*,*,K=1,*) or Q(*,*,K=2,*) < 0.
                   !=====================================================
-!-----------------------------------------------------------------------------
-!  Prior to 1/4/00:
-!  This ensures additivity when using tagged CO tracers (bey, bmy, 1/4/00)
-!                  DQ = QB(I,J) - QC(I,J)
-!                  
-!                  IF ( DQ .GT. Q(I,J,1,IC)   .OR. 
-!     &                 DQ .GT. Q(I,J,2,IC) ) THEN
-!                     Q(I,J,2,IC) = QC(I,J)
-!                     Q(I,J,1,IC) = QC(I,J)
-!                  ELSE
-!                     Q(I,J,2,IC) = Q(I,J,2,IC) - DQ
-!                     Q(I,J,1,IC) = Q(I,J,1,IC) - DQ
-!                  ENDIF
-!-----------------------------------------------------------------------------
                   Q(I,J,2,IC) = QC(I,J)
                   Q(I,J,1,IC) = QC(I,J)
 
@@ -2136,6 +2122,13 @@
 !                              moist mass per area and remove AD from routine
 !  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
 !                              for consistency with moist mixing ratio units
+!  20 May 2015 - M. Sulprizio- Apply bug fixes provided by Viral Shah:
+!                              -- Remove F(K,IC) > 0 condition that prevents
+!                                 archiving of deposited mass in DIAG38
+!                              -- Add statement that subtracts the wet deposited
+!                                 amount from the atmospheric mass
+!                              -- Fix inconsistency in units when T0_SUM is used
+!  04 Jun 2015 - E. Lundgren - Adapt Viral Shah bug fixes to moist mixing ratio
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2156,7 +2149,7 @@
       REAL(fp)            :: ENTRN,       QC,       QC_PRES, QC_SCAV 
       REAL(fp)            :: SDT,         T0,       T0_SUM,  T1    
       REAL(fp)            :: T2,          T3,       T4,      TRACER_MW_G   
-      REAL(fp)            :: TSUM,     DT_DNS
+      REAL(fp)            :: TSUM
       REAL(fp)            :: LOST,        GAINED,   WETLOSS, MASS_WASH
       REAL(fp)            :: MASS_NOWASH, QDOWN,    DT,      F_WASHOUT
       REAL(fp)            :: K_RAIN,      WASHFRAC, WET_Hg2, WET_HgP 
@@ -2198,7 +2191,7 @@
       H2O2s    => H2O2s_3D          (I,J,:        ) ! H2O2s from sulfate_mod
       SO2s     => SO2s_3D           (I,J,:        ) ! SO2s from sulfate_mod
       Q        => State_Chm%TRACERS (I,J,:,:      ) ! Tracer concentration
-                                                    ! [mol/mol moist air] 
+                                                    ! [mol/mol total air] 
 #if   defined( GEOS_FP )
 
       !%%%%% FOR GEOS-FP, PFICU and PFLCU are on level edges %%%%%
@@ -2226,11 +2219,10 @@
 
       ! Internal time step for convective mixing is 300 sec.
       ! Doug Rotman (LLNL) says that 450 sec works just as well.       
-      NS       = NDT / 300
-      NS       = MAX( NS, 1 )
-      SDT      = DBLE( NDT ) / DBLE( NS )
-      DNS      = DBLE( NS )
-      DT_DNS   = NDT * DNS
+      NS       = NDT / 300                ! Num internal timesteps (int)
+      NS       = MAX( NS, 1 )             ! Set lower bound to 1
+      DNS      = DBLE( NS )               ! Num internal timesteps (real)
+      SDT      = DBLE( NDT ) / DBLE( NS ) ! seconds in internal timestep
       
       !-----------------------------------------------------------------
       ! Determine location of the cloud base, which is the level where
@@ -2254,35 +2246,44 @@
       DO K = 1, NLAY
 
          ! PDOWN is the convective precipitation leaving each
-         ! box [cm3 H2O/cm2 air/s].This accounts for the 
-         ! contribution from both liquid & ice precip
+         ! box [cm3 H2O/cm2 air/s]. This accounts for the 
+         ! contribution from both liquid & ice precip.
+         ! PFLCU and PFICU are converted from kg/m2/s to m3/m2/s
+         ! using water and ice densities, respectively.
+         ! m3/m2/s becomes cm3/cm2/s using a factor of 100.
          PDOWN(K) = ( ( PFLCU(K) / 1000e+0_fp ) 
      &            +   ( PFICU(K) /  917e+0_fp ) ) * 100e+0_fp
 
-         ! BMASS has units of kg/m^2 and is equivalent to deltaP * 100 / g
+         ! BMASS is the total air mass per unit area for the grid box
+         ! bounded by level K and K+1 [kg/m2] 
+         ! BMASS is equivalent to deltaP * 100 / g
          ! This is done to keep BMASS in the same units as CMFMC * SDT
          BMASS(K) = DELP(K) * G0_100
 
       ENDDO
 
       !-----------------------------------------------------------------
-      ! Compute MB (the total mass of air below the cloud base)
-      ! and QB_NUM (the numerator of QB, the weighted avg mixing ratio
-      ! below the cloud base)   
+      ! Compute MB (the total mass per unit area of air below the 
+      ! cloud base) and QB_NUM [hPa mol/mol] (the numerator of QB, 
+      ! the weighted avg mixing ratio below the cloud base)   
       !-----------------------------------------------------------------
 
       ! Zero variables
-      MB      = 0e+0_fp
-      QB_NUM  = 0e+0_fp
+      MB      = 0e+0_fp  ! [kg/m2]
+      QB_NUM  = 0e+0_fp  ! [mol/mol] 
 
       ! Loop over up to just below the cloud base
       DO K  = 1, CLDBASE-1
          
-         ! Total mass of air below the cloud base
+         ! Total mass of air below the cloud base [kg/m2]
          MB        = MB + BMASS(K)
 
-         ! numerator of QB
-         QB_NUM(:) = QB_NUM(:) + Q(K,:) * ( PEDGE(K) - PEDGE(K+1) )
+         ! Numerator for calculation of QB, the weighted avg mixing
+         ! ratio below the cloud base.
+         ! QB_NUM is equal to the grid box tracer concentrations 
+         ! [mol/mol] weighted by the adjacent level pressure differences
+         ! and summed over all levels up to just below the cloud base.
+         QB_NUM(:) = QB_NUM(:) + Q(K,:) * DELP(K)
 
       ENDDO
 
@@ -2312,10 +2313,11 @@
             ! B e l o w   C l o u d   B a s e   (K < CLDBASE) 
             !
             ! QB is the "weighted avg" mixing ratio below the cloud
-            ! base. QB is used to compute QC, which is the mixing 
-            ! ratio of the air that moved in cumulus transport up to
-            ! the next level. MB is the total mass of air below the
-            ! the cloud base
+            ! base [mol/mol].
+            ! QC is the mixing ratio of the air that moved in cumulus 
+            ! transport up to the next level [mol/mol]. 
+            ! MB is the total mass of air below the cloud base per 
+            ! unit area [kg/m2] (see calculation before loop).
             !-----------------------------------------------------------
 
             ! We need to make this a nested IF statement so that we don't
@@ -2328,10 +2330,13 @@
                   ! %%% Non-negligible Cloud mass flux %%% 
                   !-----------------------------------------------------
 
-                  ! Compute the weighted avg mixing ratio below
-                  ! the cloud base
+                  ! Compute QB, the weighted avg mixing ratio below
+                  ! the cloud base [mol/mol]
                   QB = QB_NUM(IC) / ( PEDGE(1) - PEDGE(CLDBASE) )
 
+                  ! Compute QC, the mixing ratio of the air that moved
+                  ! in cumulus transport up to the next level [mol/mol]
+                  !
                   !        Total mass of tracer below cloud base  +   
                   !        Subsidence into cloud base from above  
                   ! QC =  --------------------------------------------
@@ -2341,9 +2346,8 @@
      &                           Q(CLDBASE,IC)    * SDT  ) /
      &                 ( MB    + CMFMC(CLDBASE-1) * SDT  ) 
 
-
                   ! Copy QC to all levels of the tracer array Q
-                  ! that are below the cloud base level
+                  ! that are below the cloud base level [mol/mol]
                   Q(1:CLDBASE-1,IC) = QC
 
                ELSE                  
@@ -2352,8 +2356,8 @@
                   ! %%% Negligible cloud mass flux %%% 
                   !-----------------------------------------------------
 
-                  ! When CMFMC is negligible, then set to the tracer
-                  ! concentration at the cloud base level
+                  ! When CMFMC is negligible, then set QC to the tracer
+                  ! concentration at the cloud base level [mol/mol]
                   QC = Q(CLDBASE,IC)
    
                ENDIF
@@ -2362,7 +2366,8 @@
                
                !-----------------------------------------------------
                ! If the cloud base happens at level 1, then just
-               ! set QC to the tracer at the surface level
+               ! set QC to the tracer concentration at the surface 
+               ! level [mol/mol]
                !-----------------------------------------------------
                QC = Q(CLDBASE,IC) 
 
@@ -2416,16 +2421,16 @@
                   ! point exception.
                   !------------------------------------------------------------
 
-                  ! Air mass flowing out of cloud at grid box (K)
+                  ! Air mass flowing out of cloud at grid box (K) [kg/m2/s]
                   CMOUT   = CMFMC(K) + DTRAIN(K)
 
-                  ! Air mass flowing into cloud at grid box (K)
+                  ! Air mass flowing into cloud at grid box (K) [kg/m2/s]
                   ENTRN   = CMOUT - CMFMC_BELOW
 
-                  ! Amount of QC preserved against scavenging
+                  ! Amount of QC preserved against scavenging [mol/mol]
                   QC_PRES = QC * ( 1e+0_fp - F(K,IC) )
 
-                  ! Amount of QC lost to scavenging
+                  ! Amount of QC lost to scavenging [mol/mol]
                   ! QC_SCAV = 0 for non-soluble tracer
                   QC_SCAV = QC * F(K,IC)
 
@@ -2449,11 +2454,15 @@
 
                            ! Define ALPHA, the fraction of raindrops that 
                            ! re-evaporate when falling from grid box
-                           ! (I,J,L+1) to (I,J,L)
-                           !
-                           ! Now use DELP*100/g instead of AD/area ro
-                           ! remove area dependency (ewl, 4/28/15)
-                           ALPHA = REEVAPCN(K) * DELP(K) * G0_100 
+                           ! (I,J,L+1) to (I,J,L):
+                           ! NOTE:
+                           !   REEVAPCN is in units of [kg/kg/s]
+                           !   Now use BMASS [kg/m2] instead of AD/area to
+                           !   remove area dependency
+                           !   PDOWN is in units of [cm3/cm2/s]
+                           !   Factor of 10 in denom for unit conversion
+                           !     1000 kg/m3 * 0.01 m/cm = 10 kg/m2/cm
+                           ALPHA = REEVAPCN(K) * BMASS(K) 
      &                             / ( PDOWN(K+1)  * 10e+0_fp )
 
                            ! Restrict ALPHA to be less than 1 
@@ -2480,7 +2489,7 @@
                      ENDIF
                     
                      ! The resuspension takes 1/2 the amount of the scavenged
-                     ! aerosol (QC_SCAV) and adds that back to QC_PRES ...
+                     ! aerosol (QC_SCAV) and adds that back to QC_PRES
                      QC_PRES  = QC_PRES + ( ALPHA2 * QC_SCAV )
                     
                      ! ... then we decrement QC_SCAV accordingly
@@ -2489,7 +2498,7 @@
                   ENDIF
                   !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-                  ! Update QC taking entrainment into account
+                  ! Update QC taking entrainment into account [mol/mol]
                   ! Prevent div by zero condition
                   IF ( ENTRN >= 0e+0_fp .and. CMOUT > 0e+0_fp ) THEN
                      QC   = ( CMFMC_BELOW * QC_PRES   + 
@@ -2511,11 +2520,11 @@
                   ! For convenience we denote:
                   !
                   !  QC_SCAV = Amount of tracer wet-scavenged in updrafts
-                  !          = QC_k-1 * F(k,IC)
+                  !          = QC_k-1 * F(k,IC)    [mol/mol]
                   !
                   !  QC_PRES = Amount of tracer preserved against
-                  !            wet-scavenging in updrafts
-                  !          = QC_k-1 * ( 1 - F(k,IC) )
+                  !            wet-scavenging in updrafts [mol/mol]
+                  !          = QC_k-1 * ( 1 - F(k,IC) )   
                   !
                   ! Where F(k,IC) is the fraction of tracer IC in level k
                   ! that is available for wet-scavenging by cloud updrafts.
@@ -2562,15 +2571,15 @@
                   ! The term T0 is the amount of tracer that is scavenged 
                   ! out of the box.
                   !------------------------------------------------------------
-                  T0      =  CMFMC_BELOW * QC_SCAV   
+                  T0      =  CMFMC_BELOW * QC_SCAV       ! [kg/m2/s]
                   T1      =  CMFMC_BELOW * QC_PRES
                   T2      = -CMFMC(K  )  * QC
                   T3      =  CMFMC(K  )  * Q(K+1,IC)
                   T4      = -CMFMC_BELOW * Q(K,  IC)
                  
-                  TSUM    = T1 + T2 + T3 + T4 
+                  TSUM    = T1 + T2 + T3 + T4            ! [kg/m2/s]
                   
-                  DELQ    = ( SDT / BMASS(K) ) * TSUM
+                  DELQ    = ( SDT / BMASS(K) ) * TSUM    ! change in [mol/mol]
 
                   ! If DELQ > Q then do not make Q negative!!!
                   IF ( Q(K,IC) + DELQ < 0 ) THEN
@@ -2595,9 +2604,30 @@
                      RETURN
                   ENDIF
 
-                  ! Archive T0 for use in the next section
-                  T0_SUM  = T0_SUM + T0
- 
+!__________ewl 6/4/15_______________________________________________________
+! LEGACY     
+!                  ! Archive T0 for use in the next section
+!                  T0_SUM  = T0_SUM + T0 
+! VS UPDATE
+!                  ! Pass T0_SUM in units of kg tracer/m2/timestep
+!                  T0_SUM = T0_SUM + T0 / TCVV * SDT
+! EWL SUGGESTED - (1) In converting kg air -> kg tracer, include mole ratio Q 
+!                     to cancel mole ratio in ratio of molecular wts?
+!                 (2) Replace dry air molec wt with total air molec wt 
+!
+                  ! Pass T0_SUM in units of kg tracer/m2/timestep
+                  T0_SUM = T0_SUM + T0 * Q(K,IC) * TRACER_G_MW(IC) * SDT 
+     &                                 / MOISTMW(K)
+! END
+!__________________________________________________________________
+
+
+!__________ewl 6/4/15_______________________________________________________
+
+! EWL COMMENT - Do these conversions look right to you? It seems to me that
+! [kg air/m2/s] (units for T)/T2/T3, correct?) to [kg tracer/s] needs the mass
+! ratio of air and tracer, not molecular wt ratio or number of timesteps.
+
                   !------------------------------------------------------------
                   ! (3.3)  N D 1 4   D i a g n o s t i c
                   !
@@ -2618,9 +2648,12 @@
                   ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
                   ! internal timesteps.
                   !------------------------------------------------------------
-                  IF ( USE_DIAG38 .and. F(K,IC) > 0e+0_fp ) THEN
+                  IF ( USE_DIAG38 ) THEN
                      DIAG38(K,IC) = DIAG38(K,IC) + T0 * AREA_M2 
      &                              * TRACER_MW_G / ( MOISTMW(K) * DNS ) 
+
+!________________________________________________________________
+
 
                      ! check for infinity (added by hma, 20101117)
                      IF ( .not. IT_IS_FINITE( DIAG38(K,IC) ) ) THEN
@@ -2635,8 +2668,8 @@
                   ! (3.5)  N o   C l o u d   M a s s   F l u x   B e l o w 
                   !------------------------------------------------------------
 
-                  ! If there is no cloud mass flux coming from below
-                  ! just set QC to the tracer concentration at this level
+                  ! If there is no cloud mass flux coming from below, set
+                  ! QC to the tracer concentration at this level [v/v]
                   QC = Q(K,IC)
                   
                   ! Bug fix for the cloud base layer, which is not necessarily
@@ -2646,13 +2679,13 @@
                   ! in the above section.  (swu, 08/13/2007)
                   IF ( CMFMC(K) > TINYNUM ) THEN 
 
-                     ! Tracer convected from K -> K+1 
+                     ! Tracer convected from K -> K+1 [kg/m2/s]
                      T2   = -CMFMC(K) * QC
 
-                     ! Tracer subsiding from K+1 -> K 
+                     ! Tracer subsiding from K+1 -> K [kg/m2/s]
                      T3   =  CMFMC(K) * Q(K+1,IC)
 
-                     ! Change in tracer concentration
+                     ! Change in tracer concentration [v/v]
                      DELQ = ( SDT / BMASS(K) ) * (T2 + T3)
 
                      ! If DELQ > Q then do not make Q negative!!!
@@ -2660,12 +2693,12 @@
                         DELQ = -Q(K,IC)
                      ENDIF
   
-                     ! Add change in tracer to Q array
+                     ! Add change in tracer to Q array [v/v]
                      Q(K,IC) = Q(K,IC) + DELQ
 
                   ENDIF
                ENDIF
-            ENDDO 
+            ENDDO     ! End of loop over levels above cloud base
             
             !==================================================================
             ! (4)  B e l o w   C l o u d   B a s e
@@ -2694,10 +2727,10 @@
      &              T0_SUM      > 0        ) THEN
 
                   ! Compute F_WASHOUT, the fraction of grid box (I,J,L)
-                  ! experiencing washout 
-               
-                  ! Convert PDOWN the downward flux of precip leaving grid
-                  ! box (K+1) from [cm3 H20/cm2 area/s] to [cm3 H20/cm3 air/s]
+                  ! experiencing washout. First, convert units of PDOWN, 
+                  ! the downward flux of precip leaving grid box (K+1) 
+                  ! from [cm3 H20/cm2 area/s] to [cm3 H20/cm3 air/s]
+                  ! by dividing by box height in cm
                   QDOWN = PDOWN(K+1) / ( BXHEIGHT(K+1) * 100e+0_fp  )
 
                   ! Compute K_RAIN and F_WASHOUT based on the flux of precip 
@@ -2707,11 +2740,11 @@
 
                   ! Call WASHOUT to compute the fraction of tracer lost
                   ! to washout in grid box (I,J,K)
-                  CALL WASHOUT( I, J, K,   IC,       BXHEIGHT(K), 
+                  CALL WASHOUT( am_I_Root, I, J, K, IC, BXHEIGHT(K), 
      &                          T(K),      QDOWN,    SDT,   
      &                          F_WASHOUT, H2O2s(K), SO2s(K), 
      &                          WASHFRAC,  AER,      Input_Opt,
-     &                          State_Met, State_Chm            )
+     &                          State_Met, State_Chm, RC         )
 
                   ! Check if the tracer is an aerosol or not
                   IF ( AER == .TRUE. ) THEN
@@ -2723,10 +2756,14 @@
 
                      ! Define ALPHA, the fraction of raindrops that 
                      ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
-                     !
-                     ! Now use DELP*100/g instead of AD/area to
-                     ! remove area dependency (ewl, 4/28/15)
-                     ALPHA   = REEVAPCN(K) * DELP(K) * G0_100
+                     ! NOTE:
+                     !   REEVAPCN is in units of [kg/kg/s]
+                     !   Now use BMASS [kg/m2] instead of AD/area to
+                     !   remove area dependency
+                     !   PDOWN is in units of [cm3/cm2/s]
+                     !   Factor of 10 in denom for unit conversion
+                     !     1000 kg/m3 * 0.01 m/cm = 10 kg/m2/cm
+                     ALPHA   = REEVAPCN(K) * BMASS(K)
      &                           / ( PDOWN(K+1) * 10e+0_fp )
 
                      ! ALPHA2 is the fraction of the rained-out aerosols
@@ -2735,21 +2772,48 @@
 
                      ! GAINED is the rained out aerosol coming down from 
                      ! grid box (I,J,L+1) that will evaporate and re-enter 
-                     ! the atmosphere in the gas phase in grid box (I,J,L).
+                     ! the atmosphere in the gas phase in grid box (I,J,L)
+                     ! [kg tracer/m2/timestep]
                      GAINED  = T0_SUM * ALPHA2
 
+!__________ewl 6/4/15_____________________________________________________
+! LEGACY
+!                    WETLOSS = Q(K,IC) * WASHFRAC - GAINED 
+! VS UPDATE
+!                    ! Amount of aerosol lost to washout in grid box
+!                    WETLOSS = Q(K,IC) * BMASS(K) / TCVV * WASHFRAC -
+!     &                        GAINED
+! EWL UPDATE - Replace dry air molec wt with total air molec wt
                      ! Amount of aerosol lost to washout in grid box
-                     WETLOSS = Q(K,IC) * WASHFRAC - GAINED
+                     ! [kg tracer/m2/timestep]
+                     WETLOSS = Q(K,IC) * BMASS(K) * TRACER_G_MW(IC)  
+     &                                 / MOISTMW(K) * WASHFRAC - GAINED
+! END
+!_________________________________________________________________
 
                      ! LOST is the rained out aerosol coming down from
                      ! grid box (I,J,L+1) that will remain in the liquid
-                     ! phase in grid box (I,J,L) and will NOT re-evaporate.
+                     ! phase in grid box (I,J,L) and will NOT re-evaporate
+ 1                   ! [kg/m2/timestep]
                      LOST    = T0_SUM - GAINED
+
+!___________ewl 6/4/15_____________________________________________________
+! VS ADDITION
+!                     ! Update tracer concentration (V. Shah, mps, 5/20/15)
+!                     Q(K,IC) = Q(K,IC) - WETLOSS * TCVV / BMASS(K)
+! EWL UPDATE - Replace dry air molec wt with total air molect wt
+                     ! Update tracer concentration (V. Shah, mps, 5/20/15)
+                     ! [mol/mol]
+                     Q(K,IC) = Q(K,IC) - WETLOSS * MOISTMW(K)   
+     &                                 / ( TRACER_G_MW(IC) * BMASS(K) )
+! END
+!__________________________________________________________________
+
 
                      ! Update T0_SUM, the total amount of scavenged
                      ! tracer that will be passed to the grid box below
+                     ! [kg/m2/timestep]
                      T0_SUM = T0_SUM + WETLOSS  
-
 
                   ELSE
 
@@ -2760,6 +2824,7 @@
 
                      ! MASS_NOWASH is the amount of non-aerosol tracer in 
                      ! grid box (I,J,L) that is NOT available for washout.
+                     ! Calculate in units of [mol/mol]
                      MASS_NOWASH = ( 1e+0_fp - F_WASHOUT ) * Q(K,IC)
                
                      ! MASS_WASH is the total amount of non-aerosol tracer
@@ -2767,28 +2832,64 @@
                      ! It consists of the mass in the precipitating
                      ! part of box (I,J,L), plus the previously rained-out
                      ! tracer coming down from grid box (I,J,L+1).
-                     ! (Eq. 15, Jacob et al, 2000).
-                     MASS_WASH   = ( F_WASHOUT * Q(K,IC) ) + T0_SUM
+                     ! (Eq. 15, Jacob et al, 2000)
+                     ! Units are [kg tracer/m2/timestep]
+
+!___________ewl 6/4/15____________________________________________________
+! LEGACY
+!                    MASS_WASH   = ( F_WASHOUT * Q(K,IC) ) + T0_SUM
+! VS UPDATE
+!                    MASS_WASH = ( F_WASHOUT * Q(K,IC) ) * BMASS(K) /
+!     &                           TCVV + T0_SUM
+! EWL UPDATE - Replace dry air molec wt with total air molec wt
+                     MASS_WASH = ( F_WASHOUT * Q(K,IC) ) * BMASS(K)
+     &                           * TRACER_G_MW(IC) / MOISTMW(K) + T0_SUM
+! END
+!__________________________________________________________________
 
                      ! WETLOSS is the amount of tracer mass in 
                      ! grid box (I,J,L) that is lost to washout.
                      ! (Eq. 16, Jacob et al, 2000)
-!------------------------------------------------------------------------------
-! Prior to 2/4/15:
-! Bug fix: Make sure mass of scavenged tracer passed to depo_mercury_mod.F
-! is the same as mass archived in ND38 (clf, mps, 2/4/15)
+                     ! [kg tracer/m2/timestep]
+
+!___________ewl 6/4/15_____________________________________________________
+! LEGACY
+!   !-------------------------------------------------------------------------
+!   ! Prior to 2/4/15:
+!   ! Bug fix: Make sure mass of scavenged tracer passed to depo_mercury_mod.F
+!   ! is the same as mass archived in ND38 (clf, mps, 2/4/15)
 !                     WETLOSS     = MASS_WASH * WASHFRAC - T0_SUM
 !------------------------------------------------------------------------------
-                     WETLOSS     = ( MASS_WASH - T0_SUM ) * WASHFRAC
+!                     WETLOSS     = ( MASS_WASH - T0_SUM ) * WASHFRAC
+! VS UPDATE
+                     WETLOSS     = MASS_WASH * WASHFRAC - T0_SUM
+! EWL COMMENT - this change reverts to what was described as a bug. Could
+!               you provide a reason for the change to include in comments?
+! END
+!__________________________________________________________________
+
                      
                      ! The tracer left in grid box (I,J,L) is what was
-                     ! in originally in the non-precipitating fraction 
+                     ! originally in the non-precipitating fraction 
                      ! of the box, plus MASS_WASH, less WETLOSS. 
-                     Q(K,IC)     = Q(K,IC) - WETLOSS
+                     ! [mol/mol]
+!_________ewl 6/4/15______________________________________________________
+! LEGACY
+!                     Q(K,IC)     = Q(K,IC) - WETLOSS
+! VS UPDATE
+!                     Q(K,IC) = Q(K,IC) - WETLOSS * TCVV / BMASS(K)
+! EWL UPDATE - Replace dry air molec wt with total air molec wt
+                     Q(K,IC) = Q(K,IC) - WETLOSS * MOISTMW(K) 
+     &                                  / ( TRACER_G_MW(IC) * BMASS(K) )
+! END
                      
-                     ! Updated T0_SUM, the total scavenged tracer
+                     ! Update T0_SUM, the total scavenged tracer
                      ! that will be passed to the grid box below
-                     T0_SUM      = T0_SUM + WETLOSS 
+                     ! [kg tracer/m2/timestep]
+                     T0_SUM      = T0_SUM + WETLOSS
+! EWL COMMENT: Replace rhs with "MASS_WASH * WASHFRAC" for clarity?
+!__________________________________________________________________
+
 
                   ENDIF
 
@@ -2800,11 +2901,21 @@
                   ! for the tracer IC going out of the top of the layer K 
                   ! to the layer above (K+1)  (bey, 11/10/99). 
                   !------------------------------------------------------------
+!_________ewl 6/4/15________________________________________________________
+! LEGACY
+!                  IF ( USE_DIAG14 ) THEN
+!                     DIAG14(K,IC) = DIAG14(K,IC) 
+!     &                            + ( ( -T2-T3 ) * AREA_M2 / TCVV_DNS )
+!                  ENDIF
+! EWL UPDATE - (1) Replace dry air molec wt with total air molec wt
                   IF ( USE_DIAG14 ) THEN
                      DIAG14(K,IC) = DIAG14(K,IC) 
      &                              + ( -T2-T3 ) * AREA_M2
-     &                              * TRACER_MW_G / ( MOISTMW(K) * DNS )
+     &                              * TRACER_MW_G(IC) 
+     &                              / ( MOISTMW(K) * DNS )
                   ENDIF
+! END                  
+!__________________________________________________________________
 
                   !------------------------------------------------------------
                   !  N D 3 8   D i a g n o s t i c
@@ -2814,9 +2925,21 @@
                   ! internal timesteps.
                   !------------------------------------------------------------
                   IF ( USE_DIAG38 .and. F(K,IC) > 0e+0_fp ) THEN
-                     DIAG38(K,IC) = DIAG38(K,IC) 
-     &                              + WETLOSS * AREA_M2
-     &                              * TRACER_MW_G / ( MOISTMW(K) * DNS ) 
+!_________ewl 6/4/15______________________________________________________
+! LEGACY
+!                     DIAG38(K,IC) = DIAG38(K,IC)
+!     &                            + ( WETLOSS * AREA_M2 / TCVV_DNS )
+! VS UPDATE
+!                     DIAG38(K,IC) = DIAG38(K,IC) +
+!     &                              ( WETLOSS * AREA_M2 / NDT )
+! EWL SUGGESTION - Divide by # seconds in internal timestep rather
+!                  than number of internal timesteps to convert 
+!                  kg/timestep to kg/s?
+                     DIAG38(K,IC) = DIAG38(K,IC) +
+     &                              ( WETLOSS * AREA_M2 / SDT )
+! END
+!__________________________________________________________________
+
                   ENDIF
                 
                   ! CHECK for infinity (added by hma, 20101117)
@@ -2825,7 +2948,7 @@
                      CALL GEOS_CHEM_STOP
                   ENDIF
                ENDIF
-            ENDDO  
+            ENDDO     ! End of loop over levels below cloud base  
 
             !==================================================================
             ! (5)  M e r c u r y   O c e a n   M o d e l   A r c h i v a l
@@ -2841,14 +2964,21 @@
             !--------------------------------------
             IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
-               ! Wet scavenged Hg(II) in [kg/s]
-               ! (ewl, 5/4/15 - removed moisture conversion
-               ! (AIRMW / MOISTMW(K) since no level. Reassess. )
-               WET_Hg2 = T0_SUM * AREA_M2 * TRACER_MW_G 
-     &                   / ( AIRMW * DNS )
-               
-               ! Convert [kg/s] to [kg]
-               WET_Hg2 = WET_Hg2 * NDT 
+!__________ewl 6/4/15_____________________________________________________
+! LEGACY
+!               ! Wet scavenged Hg(II) in [kg/s]
+!               WET_Hg2 = T0_SUM * AREA_M2 * TRACER_MW_G 
+!     &                   / ( AIRMW * DNS )
+!               
+!               ! Convert [kg/s] to [kg]
+!               WET_Hg2 = WET_Hg2 * NDT 
+! VS UPDATE
+               ! Wet scavenged Hg(II) in [kg]
+               WET_Hg2 = ( T0_SUM * AREA_M2 )
+! EWL COMMENT - The heading above says we must divide by DNS. Could you
+!               provide comments explaining why this is no longer necessary?
+! END
+!__________________________________________________________________
 
                ! Pass to "ocean_mercury_mod.f"
                CALL ADD_Hg2_WD      ( I, J, IC, WET_Hg2 )
@@ -2860,14 +2990,21 @@
             !--------------------------------------
             IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
 
-               ! Wet scavenged Hg(P) in [kg/s]
-               ! (ewl, 5/4/15 - removed moisture conversion
-               ! (AIRMW / MOISTMW(K) since no level). Reassess. )
-               WET_HgP = T0_SUM * AREA_M2 * TRACER_MW_G
-     &                   / ( AIRMW * DNS )
-
-               ! Convert [kg/s] to [kg]
-               WET_HgP = WET_HgP * NDT 
+!_________ewl 6/4/15________________________________________________________
+! LEGACY
+!               ! Wet scavenged Hg(P) in [kg/s]
+!               WET_HgP = T0_SUM * AREA_M2 * TRACER_MW_G
+!     &                   / ( AIRMW * DNS )
+!
+!               ! Convert [kg/s] to [kg]
+!               WET_HgP = WET_HgP * NDT 
+! VS UPDATE
+               ! Wet scavenged Hg(P) in [kg]
+               WET_HgP = ( T0_SUM * AREA_M2 )
+! EWL COMMENT - The heading above says we must divide by DNS. Could you
+!               provide comments explaining why this is no longer necessary?
+! END 
+!__________________________________________________________________
 
                ! Pass to "ocean_mercury_mod.f"
                CALL ADD_HgP_WD      ( I, J, IC, WET_HgP )
