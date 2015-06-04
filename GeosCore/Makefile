@@ -146,6 +146,8 @@
 #                              HEMCO makes these obsolete.
 #  23 Sep 2014 - M. Sulprizio- Removed global_hno3_mod.F and global_no3_mod.F.
 #                              HEMCO makes these obsolete.
+#  04 Jun 2015 - R. Yantosca - Add wipeout target to remove any leftover
+#                              library, module, or executable files
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -157,39 +159,47 @@
 ###############################################################################
 
 # Directories
-ROOT  :=..
-APM   :=$(ROOT)/GeosApm
-BIN   :=$(ROOT)/bin
-BPCH  :=$(ROOT)/GeosBpch
-DOC   :=$(ROOT)/doc
-GIGC  :=$(ROOT)/GIGC
-GTMM  :=$(ROOT)/GTMM
-HEMCO :=$(ROOT)/HEMCO
-HDR   :=$(ROOT)/Headers
-HELP  :=$(ROOT)/help
-ISO   :=$(ROOT)/ISOROPIA
-LIB   :=$(ROOT)/lib
-KPP   :=$(ROOT)/KPP
-MOD   :=$(ROOT)/mod
-NCDF  :=$(ROOT)/NcdfUtil
-RAD   :=$(ROOT)/GeosRad
-UTIL  :=$(ROOT)/GeosUtil
-DYN   :=$(GIGC)/FVdycoreCubed_GridComp
+ROOT    :=..
+APM     :=$(ROOT)/GeosApm
+BIN     :=$(ROOT)/bin
+BPCH    :=$(ROOT)/GeosBpch
+DOC     :=$(ROOT)/doc
+GIGC    :=$(ROOT)/GIGC
+GTMM    :=$(ROOT)/GTMM
+HEMCO   :=$(ROOT)/HEMCO
+HDR     :=$(ROOT)/Headers
+HELP    :=$(ROOT)/help
+ISO     :=$(ROOT)/ISOROPIA
+LIB     :=$(ROOT)/lib
+KPP     :=$(ROOT)/KPP
+MOD     :=$(ROOT)/mod
+NCDF    :=$(ROOT)/NcdfUtil
+RAD     :=$(ROOT)/GeosRad
+UTIL    :=$(ROOT)/GeosUtil
+DYN     :=$(GIGC)/FVdycoreCubed_GridComp
 
 # Executables
-EXE   :=geos
-TOM   :=geostomas
+EXE     :=geos
+TOM     :=geostomas
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOT)/Makefile_header.mk
 
 # List of source files: everything ending in .F or .F90
-SRC   :=$(wildcard *.F) $(wildcard *.F90)
+SOURCES :=$(wildcard *.F) $(wildcard *.F90)
 
-# Replace .f and .f90 extensions with *.o
-TMP   :=$(SRC:.F=.o)
-OBJ   :=$(TMP:.F90=.o)
+# List of object files (replace .F and .F90 with .o)
+TMP     :=$(SOURCES:.F=.o)
+OBJECTS :=$(TMP:.F90=.o)
+
+# List of module files.  Convert to lowercase, then prefix directory name.
+MODULES :=$(OBJECTS:.o=.mod)
+MODULES :=$(shell echo $(MODULES) | tr A-Z a-z)
+MODULES :=$(foreach I,$(MODULES),$(MOD)/$(I))
+
+# Library file
+LIBRARY :=libcore.a
 
 ###############################################################################
 ###                                                                         ###
@@ -197,7 +207,7 @@ OBJ   :=$(TMP:.F90=.o)
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean realclean doc docclean help distclean tauclean
+.PHONY: clean realclean doc docclean help distclean tauclean wipeout
 
 all:                                               # Build libraries
 	@$(MAKE) lib                               #  and the executable
@@ -241,7 +251,7 @@ lib:                                               # Build all G-C libraries
 	@$(MAKE) librad
 	@$(MAKE) libcore			  
 
-libcore: $(OBJ)                                    # Build code in GeosCore/
+libcore: $(OBJECTS)                                # Build code in GeosCore/
 
 libgigc:
 	@$(MAKE) -C $(DYN) install
@@ -278,15 +288,18 @@ ncdfcheck:                                         # Check netCDF library
 	@$(MAKE) -C $(NCDF) ncdfcheck
 
 exe:                                               # Build executable
-	$(LD) $(OBJ) $(LINK) -o $(EXE)
+	$(LD) $(OBJECTS) $(LINK) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
 tomexe:                                            # Build executable
-	$(LD) $(OBJ) $(LINK) -o $(TOM)
+	$(LD) $(OBJECTS) $(LINK) -o $(TOM)
 	cp -f $(TOM) $(BIN)
 
 clean:                                             # Remove files here
-	rm -f *.o *.mod geos geosapm
+	@echo "===> Making clean in directory: GeosCore <==="
+	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
+	@rm -f $(EXE) $(BIN)/$(EXE)
+	@rm -f $(TOM) $(BIN)/$(TOM)
 
 distclean:                                         # Synonym for "realclean"
 	@$(MAKE) realclean
@@ -300,12 +313,16 @@ realclean:                                         # Remove files everywhere
 	@$(MAKE) -C $(ISO)   clean
 	@$(MAKE) -C $(KPP)   realclean
 	@$(MAKE) -C $(NCDF)  clean
+ifeq ($(RRTMG_CLEAN),1)
 	@$(MAKE) -C $(RAD)   clean
+endif
 	@$(MAKE) -C $(UTIL)  clean
 	@$(MAKE) docclean
 ifeq ($(HPC),yes)
 	@$(MAKE) -C $(GIGC) clean
 endif
+
+wipeout:
 	rm -f $(LIB)/*.a
 	rm -f $(MOD)/*.mod
 	rm -f $(BIN)/geos*
@@ -320,7 +337,14 @@ help:                                              # Show help screen
 	@$(MAKE) -C $(HELP) help
 
 debug:
-	@@echo "targets: $(MAKECMDGOALS)"
+	@echo "Targets : $(MAKECMDGOALS)"
+	@echo "ROOT    : $(ROOT)"
+	@echo "LIB     : $(LIB)"
+	@echo "MOD     : $(MOD)"
+	@echo "F90     : $(F90)"
+	@echo "OBJECTS : $(OBJECTS)"
+	@echo "MODULES : $(MODULES)"
+	@echo "LIBRARY : $(LIBRARY)"
 
 ###############################################################################
 ###                                                                         ###
@@ -340,7 +364,7 @@ libgtmm:                                           # Compile GTMM model code
 	@$(MAKE) -C $(GTMM) GTMM_Hg=yes
 
 exehg:                                             # Create Hg/GTMM exec file
-	$(LD) $(OBJ) $(LINK) -o $(EXE)
+	$(LD) $(OBJECTS) $(LINK) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
 ###############################################################################

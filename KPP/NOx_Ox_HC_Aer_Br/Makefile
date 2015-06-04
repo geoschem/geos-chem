@@ -3,7 +3,7 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: Makefile (in the KPP/43t subdirectory)
+# !MODULE: Makefile (in the KPP/NOx_Ox_HC_Aer_Br subdirectory)
 #
 # !DESCRIPTION: This makefile compiles the KPP solver code for the GEOS-Chem
 #  43 tracer simulation (i.e. without secondary organic aerosol tracers).  
@@ -43,54 +43,86 @@
 #  23 Nov 2009 - R. Yantosca - Now don't copy module files; they will be
 #                              automatically written to the mod directory
 #  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
+#  04 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
+#  04 Jun 2015 - R. Yantosca - Add debug target, remove help
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
+###############################################################################
+###                                                                         ###
+###  Initialization section                                                 ###
+###                                                                         ###
+###############################################################################
+
 # Define variables
-ROOTDIR = ../..
-HDR     = $(ROOTDIR)/Headers
-HELP    = $(ROOTDIR)/help
-LIB     = $(ROOTDIR)/lib
-MOD     = $(ROOTDIR)/mod
+ROOT    := ../..
+HDR     := $(ROOT)/Headers
+HELP    := $(ROOT)/help
+LIB     := $(ROOT)/lib
+MOD     := $(ROOT)/mod
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
-include $(ROOTDIR)/Makefile_header.mk
+include $(ROOT)/Makefile_header.mk
 
-#=============================================================================
-# List of files to compile.  Here the order is not important,
-# as we will explicity define the dependencies listing below.
-#=============================================================================
+# List of source code files
+SOURCES := $(wildcard gckpp*.F90)
 
-# Source code files
-SRC  = $(wildcard gckpp*.F90)
+# List of object files (replace .F and .F90 extensions with *.o)
+OBJECTS := $(SOURCES:.F90=.o)
 
-# Object files
-OBJ  = $(SRC:.F90=.o)
+# List of module files.  Convert to lowercase, then prefix directory name.
+MODULES :=$(OBJECTS:.o=.mod)
+MODULES :=$(shell echo $(MODULES) | tr A-Z a-z)
+MODULES :=$(foreach I,$(MODULES),$(MOD)/$(I))
 
-#=============================================================================
-# Makefile targets: type "make help" for a complete listing!
-#=============================================================================
+# Library file
+LIBRARY :=libKpp.a
 
-.PHONY: clean help
+###############################################################################
+###                                                                         ###
+###  Makefile targets: type "make help" for a complete listing!             ###
+###                                                                         ###
+###############################################################################
 
-lib: $(OBJ)
-	$(AR) crs libKpp.a $(OBJ)
-	mv libKpp.a $(LIB)
+.PHONY: clean debug
+
+lib: $(OBJECTS)
+	$(AR) crs $(LIBRARY) $(OBJECTS)
+	mv $(LIBRARY) $(LIB)
 
 clean:
-	rm -f *.o *.mod geos
+	@echo "===> Making clean in directory: KPP/NOx_Ox_HC_Aer_Br <==="
+	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
-help:
-	@$(MAKE) -C $(HELP)
+debug:
+	@echo "Targets : $(MAKECMDGOALS)"
+	@echo "ROOT    : $(ROOT)"
+	@echo "LIB     : $(LIB)"
+	@echo "MOD     : $(MOD)"
+	@echo "F90     : $(F90)"
+	@echo "OBJECTS : $(OBJECTS)"
+	@echo "MODULES : $(MODULES)"
+	@echo "LIBRARY : $(LIBRARY)"
 
-#=============================================================================
-# Dependencies listing (grep "USE " to get the list of module references!)
-#
-# From this list of dependencies, the "make" utility will figure out the
-# correct order of compilation (so we don't have to do that ourselves!)
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Dependencies listing                                                   ###
+###  (grep "USE " to get the list of module references!)                    ###
+###                                                                         ###
+###  From this list of dependencies, the "make" utility will figure out     ###
+###  correct order of compilation (so we don't have to do that ourselves).  ###
+###  This also allows us to compile on multiple processors with "make -j".  ###
+###                                                                         ###
+###  NOTES:                                                                 ###
+###  (1) Only specify object-file dependencies that are within this         ###
+###       directory.  Object files in other directories will be referenced  ### 
+###       at link-time.                                                     ###
+###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
+###       in this directory must have a listed dependency.                  ###
+###                                                                         ###
+###############################################################################
 
 gckpp_Function.o      : gckpp_Parameters.o
 

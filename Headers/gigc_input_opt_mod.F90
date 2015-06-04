@@ -36,7 +36,6 @@ MODULE GIGC_Input_Opt_Mod
      ! General Runtime & Distributed Comp Info
      !----------------------------------------
      INTEGER                     :: NPES      ! Number of MPI procs
-     INTEGER                     :: myPet     ! Handle for local PET
 
      !----------------------------------------
      ! SIZE PARAMETER fields
@@ -614,6 +613,7 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER,            POINTER :: NDVZIND(:)
      INTEGER,            POINTER :: NTRAIND(:)
      INTEGER,            POINTER :: IDDEP(:)
+     INTEGER,            POINTER :: IDEP(:)
      REAL(fp),           POINTER :: DUSTREFF(:)
      REAL(fp),           POINTER :: DUSTDEN(:)
      CHARACTER(LEN=14),  POINTER :: DEPNAME(:)
@@ -1393,6 +1393,7 @@ CONTAINS
     !----------------------------------------
     ALLOCATE( Input_Opt%NDVZIND ( MAX_DEP ), STAT=RC ) ! Drydep
     ALLOCATE( Input_Opt%DEPNAME ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%IDEP    ( MAX_DEP ), STAT=RC ) ! Drydep
     ALLOCATE( Input_Opt%IDDEP   ( NDSTBIN ), STAT=RC ) ! Dust_mod
     ALLOCATE( Input_Opt%DUSTREFF( NDSTBIN ), STAT=RC ) ! Dust_mod
     ALLOCATE( Input_Opt%DUSTDEN ( NDSTBIN ), STAT=RC ) ! Dust_mod
@@ -1620,6 +1621,10 @@ CONTAINS
     
     IF ( ASSOCIATED( Input_Opt%DEPNAME ) ) THEN
        DEALLOCATE( Input_Opt%DEPNAME )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%IDEP ) ) THEN
+       DEALLOCATE( Input_Opt%IDEP )
     ENDIF
 
     IF ( ASSOCIATED( Input_Opt%IDDEP ) ) THEN

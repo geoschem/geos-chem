@@ -168,6 +168,8 @@
 #                              as env variables before trying to use them.
 #  29 May 2015 - R. Yantosca - Now set KPP_CHEM for KPP.  We can't redefine
 #                              the CHEM variable because it is an env var.
+#  04 Jun 2015 - R. Yantosca - Now use RRTMG_NO_CLEAN=y or RRTMG_NOCLEAN=y to 
+#                              removing RRTMG objects, modules, and libraries.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -380,6 +382,19 @@ ifeq ($(shell [[ "$(RRTMG)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DRRTMG
 endif
 
+# %%%%% Give users the option to make realclean except for RRTMG   %%%%%
+# %%%%% if they set variables  RRTMG_NOCLEAN=y or RRTMG_NO_CLEAN=y %%%%%
+# %%%%% This should help reduce the amount of time to recompile.   %%%%%
+RRTMG_CLEAN          :=1
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(RRTMG_NO_CLEAN)" =~ $(REGEXP) ]] && echo true),true)
+  RRTMG_CLEAN        :=0
+endif
+ifeq ($(shell [[ "$(RRTMG_NOCLEAN)" =~ $(REGEXP) ]] && echo true),true)
+  RRTMG_CLEAN        :=0
+endif
+
+
 #------------------------------------------------------------------------------
 # Met field settings
 #------------------------------------------------------------------------------
@@ -457,7 +472,7 @@ endif  # NO_MET_NEEDED
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of GRID.
 ifndef NO_GRID_NEEDED
   ifndef GRID
-    REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout.|baselib.)
+    REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout.|baselib.|^wipeout)
     ifeq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
       NO_GRID_NEEDED :=1
     else
@@ -1061,6 +1076,8 @@ export NC_LINK_CMD
 export HPC
 export PRECISION
 export RRTMG_NEEDED
+export RRTMG_CLEAN
+export RRTMG_NO_CLEAN
 export KPP_CHEM
 
 #EOC

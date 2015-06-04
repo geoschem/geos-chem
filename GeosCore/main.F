@@ -552,15 +552,15 @@
       ! Initialize surface rad fields
       ! from rrtmg_rad_transfer_mod.F
       !WRITE(6,*) 'Calling INIT_SURFACE_RAD'
-      CALL INIT_SURFACE_RAD
+      CALL INIT_SURFACE_RAD()
       !WRITE(6,*) 'Calling INIT_STRAT_CLIM'
-      CALL INIT_STRAT_CLIM
+      CALL INIT_STRAT_CLIM()
       CALL READ_STRAT_CLIM( Input_Opt )
-      CALL INIT_MCICA_CLOUDS
+      CALL INIT_MCICA_CLOUDS()
 
       ! Initialization
-       CALL RRTMG_LW_INI
-       CALL RRTMG_SW_INI
+       CALL RRTMG_LW_INI()
+       CALL RRTMG_SW_INI()
 
 #endif
 
