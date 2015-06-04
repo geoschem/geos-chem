@@ -42,6 +42,7 @@
 #  04 Jun 2015 - R. Yantosca     - Cosmetic changes
 #  04 Jun 2015 - R. Yantosca     - Remove *.mod, *.a files with "make clean"
 #  04 Jun 2015 - R. Yantosca     - Update debug target, remove help
+#  04 Jun 2015 - R. Yantosca     - Manually remove mersennetwister.mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -76,6 +77,11 @@ MODULES :=$(OBJECTS:.o=.mod)
 MODULES :=$(shell echo $(MODULES) | tr A-Z a-z)
 MODULES :=$(foreach I,$(MODULES),$(MOD)/$(I))
 
+# Bug fix for RRTMG: the file mcica_random_numbers.F90 contains a module 
+# named MersenneTwister.  Make sure to also remove this module as well,
+# by manually appending it to the modules list.
+MODULES += $(MOD)/mersennetwister.mod
+
 # Library file
 LIBRARY :=librad.a
 
@@ -93,7 +99,7 @@ lib: $(OBJECTS)
 
 clean:
 	@echo "===> Making clean in directory: GeosRad <==="
-	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
+	rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 debug:
 	@echo "Targets : $(MAKECMDGOALS)"
