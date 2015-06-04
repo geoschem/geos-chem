@@ -18,6 +18,7 @@
 #
 # !REVISION HISTORY: 
 #  15 Jul 2014 - R. Yantosca - Initial version
+#  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -29,22 +30,28 @@
 ###############################################################################
 
 # Directories
-ROOT :=../..
-BIN  :=$(ROOT)/bin
-DOC  :=$(ROOT)/doc
-LIB  :=$(ROOT)/lib
-MOD  :=$(ROOT)/mod
+ROOT    :=../..
+BIN     :=$(ROOT)/bin
+DOC     :=$(ROOT)/doc
+LIB     :=$(ROOT)/lib
+MOD     :=$(ROOT)/mod
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOT)/Makefile_header.mk
 
 # List of source files to compile
-SRC  := $(wildcard *.F) $(wildcard *.F90)
+SRC     :=$(wildcard *.F) $(wildcard *.F90)
 
 # Replace .f and .f90 extensions with *.o
-TMP  := $(SRC:.F=.o)
-OBJ  := $(TMP:.F90=.o)
+TMP     :=$(SRC:.F=.o)
+OBJECTS :=$(TMP:.F90=.o)
+
+# List of module files (absolute path)
+MODULES :=$(foreach I,$(OBJECTS:.o=.mod),$(MOD)/$(I))
+
+# Library file
+LIBRARY :=libHCOI.a
 
 ###############################################################################
 ###                                                                         ###
@@ -56,11 +63,11 @@ OBJ  := $(TMP:.F90=.o)
 
 all: lib
 
-lib: $(OBJ)
-	$(AR) crs libHCOI.a $(OBJ)
-	mv libHCOI.a $(LIB)
+lib: $(OBJECTS)
+	$(AR) crs $(LIBRARY) $(OBJECTS)
+	mv $(LIBRARY) $(LIB)
 clean:
-	rm -f *.o *.mod *.a *.x
+	rm -f *$(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 debug:
 	@echo "Targets : $(MAKECMDGOALS)"
@@ -69,7 +76,9 @@ debug:
 	@echo "LIB     : $(LIB)"
 	@echo "MOD     : $(MOD)"
 	@echo "F90     : $(F90)"
-	@echo "LINK    : $(LINK)"
+	@echo "OBJECTS : $(OBJECTS)"
+	@echo "MODULES : $(MODULES)"
+	@echo "LIBRARY : $(LIBRARY)"
 
 ###############################################################################
 ###                                                                         ###

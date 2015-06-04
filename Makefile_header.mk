@@ -168,6 +168,8 @@
 #                              as env variables before trying to use them.
 #  29 May 2015 - R. Yantosca - Now set KPP_CHEM for KPP.  We can't redefine
 #                              the CHEM variable because it is an env var.
+#  02 Jun 2015 - R. Yantosca - Now use RRTMG_NO_CLEAN to avoid making realclean
+#                              in the RRTMG directory.  This can save time.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -379,6 +381,15 @@ ifeq ($(shell [[ "$(RRTMG)" =~ $(REGEXP) ]] && echo true),true)
   RRTMG_NEEDED       :=1
   USER_DEFS          += -DRRTMG
 endif
+
+# %%%%% Don't make realclean for RRTMG -- saves on having to recompile %%%%%
+RRTMG_CLEAN          :=1
+ifeq ($(RRTMG_NEEDED),1)
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(RRTMG_NO_CLEAN)" =~ $(REGEXP) ]] && echo true),true)
+    RRTMG_CLEAN      :=0
+  endif
+endif   
 
 #------------------------------------------------------------------------------
 # Met field settings
@@ -1061,6 +1072,7 @@ export NC_LINK_CMD
 export HPC
 export PRECISION
 export RRTMG_NEEDED
+export RRTMG_CLEAN
 export KPP_CHEM
 
 #EOC

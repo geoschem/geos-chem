@@ -300,7 +300,9 @@ realclean:                                         # Remove files everywhere
 	@$(MAKE) -C $(ISO)   clean
 	@$(MAKE) -C $(KPP)   realclean
 	@$(MAKE) -C $(NCDF)  clean
+ifeq ($(RRTMG_CLEAN),1)
 	@$(MAKE) -C $(RAD)   clean
+endif
 	@$(MAKE) -C $(UTIL)  clean
 	@$(MAKE) docclean
 ifeq ($(HPC),yes)

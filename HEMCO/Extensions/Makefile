@@ -24,6 +24,7 @@
 #                              emissions data. This facilitates I/O for ESMF.
 #  20 Aug 2014 - M. Sulprizio- Add hcox_gc_POPs_mod.F90
 #  01 Oct 2014 - R. Yantosca - Add hcox_tomas_seasalt_mod.F90
+#  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -34,25 +35,31 @@
 ###                                                                         ###
 ###############################################################################
 
-# Define variables
-ROOT :=../..
-BIN  :=$(ROOT)/bin
-LIB  :=$(ROOT)/lib
-MOD  :=$(ROOT)/mod
+# Directories
+ROOT    :=../..
+BIN     :=$(ROOT)/bin
+LIB     :=$(ROOT)/lib
+MOD     :=$(ROOT)/mod
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOT)/Makefile_header.mk
 
 # List of source files to compile (everything ending in .F and .F90)
-SRC  :=$(wildcard *.F) $(wildcard *.F90)
+SRC     :=$(wildcard *.F) $(wildcard *.F90)
 
 # For now, skip commsoil_mod.F90 till we figure out what to do with it
-SRC  :=$(filter-out commsoil_mod.F90,$(SRC))
+SRC     :=$(filter-out commsoil_mod.F90,$(SRC))
 
-# Replace .f and .f90 extensions with *.o
-TMP  :=$(SRC:.F=.o)
-OBJ  :=$(TMP:.F90=.o)
+# List of object files (replace .f and .f90 extensions with *.o)
+TMP     :=$(SRC:.F=.o)
+OBJECTS :=$(TMP:.F90=.o)
+
+# List of module files (absolute path)
+MODULES :=$(foreach I,$(OBJECTS:.o=.mod),$(MOD)/$(I))
+
+# Library file
+LIBRARY :=libHCOX.a
 
 ###############################################################################
 ###                                                                         ###
@@ -64,12 +71,12 @@ OBJ  :=$(TMP:.F90=.o)
 
 all: lib
 
-lib: $(OBJ)
-	$(AR) crs libHCOX.a $(OBJ)
-	mv libHCOX.a $(LIB)
+lib: $(OBJECTS)
+	$(AR) crs $(LIBRARY) $(OBJECTS)
+	mv $(LIBRARY) $(LIB)
 
 clean:
-	rm -f *.o *.mod *.a *.x
+	rm -f *$(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 debug:
 	@echo "Targets : $(MAKECMDGOALS)"
@@ -78,6 +85,9 @@ debug:
 	@echo "LIB     : $(LIB)"
 	@echo "MOD     : $(MOD)"
 	@echo "F90     : $(F90)"
+	@echo "OBJECTS : $(OBJECTS)"
+	@echo "MODULES : $(MODULES)"
+	@echo "LIBRARY : $(LIBRARY)"
 
 ###############################################################################
 ###                                                                         ###
