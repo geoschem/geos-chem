@@ -335,7 +335,7 @@
 
       ! Do wet deposition
       CALL WETDEP_MERRA( am_I_Root, Input_Opt, State_Met, 
-     &                   State_Chm, LS=.TRUE., RC )
+     &                   State_Chm, RC, LS=.TRUE. )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
 #elif defined( GEOS_5 )
@@ -6181,7 +6181,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE WETDEP_MERRA( am_I_Root, Input_Opt, State_Met, 
-     &                         State_Chm, LS, RC )
+     &                         State_Chm, RC, LS )
 !
 ! !USES:
 !

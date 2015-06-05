@@ -2156,9 +2156,9 @@
       REAL(fp)            :: MB,          QB
 
       ! Arrays
-      REAL(fp)            :: BMASS    (LLPAR    )    
-      REAL(fp)            :: PDOWN    (LLPAR    )
-      REAL(fp)            :: QB_NUM   (N_TRACERS)
+      REAL(fp)            :: BMASS       (LLPAR    )    
+      REAL(fp)            :: PDOWN       (LLPAR    )
+      REAL(fp)            :: QB_NUM      (N_TRACERS)
 
       ! Pointers
       REAL(fp),  POINTER  :: BXHEIGHT (:        )
@@ -2192,6 +2192,7 @@
       SO2s     => SO2s_3D           (I,J,:        ) ! SO2s from sulfate_mod
       Q        => State_Chm%TRACERS (I,J,:,:      ) ! Tracer concentration
                                                     ! [mol/mol total air] 
+                                                
 #if   defined( GEOS_FP )
 
       !%%%%% FOR GEOS-FP, PFICU and PFLCU are on level edges %%%%%
@@ -2611,19 +2612,18 @@
                   ! Converting kg total air to kg tracer requires use
                   ! of the molecular weight of air including moisture
                   ! (ewl, 6/5/15)
-                  T0_SUM = T0_SUM + T0 * SDT * TRACER_G_MW(IC) 
+                  T0_SUM = T0_SUM + T0 * SDT * TRACER_MW_G 
      &                                 / MOISTMW(K)
 
                   !------------------------------------------------------------
                   ! (3.3)  N D 1 4   D i a g n o s t i c
                   !
-                  ! Archive upward mass flux due to wet convection.  
-                  ! DTCSUM(K,IC) is the flux [kg/sec] in the box (I,J), 
-                  ! for the tracer IC going out of the top of the layer K 
-                  ! to the layer above (K+1)  (bey, 11/10/99). We must 
-                  ! divide by DNS, the # of internal timesteps so that the 
-                  ! sum represents the average loss rate across all internal 
-                  ! timesteps.
+                  ! Archive upward mass flux due to wet convection  
+                  ! [kg/sec] in the box (I,J), for the tracer IC going out 
+                  ! of the top of the layer K to the layer above (K+1)  
+                  ! (bey, 11/10/99). We must divide by DNS, the # of internal 
+                  ! timesteps so that the sum represents the average loss rate 
+                  ! across all internal timesteps.
                   !------------------------------------------------------------
                   IF ( USE_DIAG14 ) THEN
                      DIAG14(K,IC) = DIAG14(K,IC) + ( -T2-T3 ) * AREA_M2 
@@ -2767,19 +2767,19 @@
 
                      ! Amount of aerosol lost to washout in grid box
                      ! [kg tracer/m2/timestep]
-                     WETLOSS = Q(K,IC) * BMASS(K) * TRACER_G_MW(IC)  
+                     WETLOSS = Q(K,IC) * BMASS(K) * TRACER_MW_G  
      &                                 / MOISTMW(K) * WASHFRAC - GAINED
 
                      ! LOST is the rained out aerosol coming down from
                      ! grid box (I,J,L+1) that will remain in the liquid
                      ! phase in grid box (I,J,L) and will NOT re-evaporate
- 1                   ! [kg/m2/timestep]
-                     LOST    = T0_SUM - GAINED
+                     ! [kg/m2/timestep]
+ 1                   LOST    = T0_SUM - GAINED
 
                      ! Update tracer concentration (V. Shah, mps, 5/20/15)
                      ! [mol/mol]
                      Q(K,IC) = Q(K,IC) - WETLOSS * MOISTMW(K)   
-     &                                 / ( TRACER_G_MW(IC) * BMASS(K) )
+     &                                 / ( TRACER_MW_G * BMASS(K) )
 
 
                      ! Update T0_SUM, the total amount of scavenged
@@ -2807,7 +2807,7 @@
                      ! (Eq. 15, Jacob et al, 2000)
                      ! Units are [kg tracer/m2/timestep]
                      MASS_WASH = ( F_WASHOUT * Q(K,IC) ) * BMASS(K)
-     &                           * TRACER_G_MW(IC) / MOISTMW(K) + T0_SUM
+     &                           * TRACER_MW_G / MOISTMW(K) + T0_SUM
 
                      ! WETLOSS is the amount of tracer mass in 
                      ! grid box (I,J,L) that is lost to washout.
@@ -2820,7 +2820,7 @@
                      ! of the box, plus MASS_WASH, less WETLOSS. 
                      ! [mol/mol]
                      Q(K,IC) = Q(K,IC) - WETLOSS * MOISTMW(K) 
-     &                                  / ( TRACER_G_MW(IC) * BMASS(K) )
+     &                                  / ( TRACER_MW_G * BMASS(K) )
                      
                      ! Update T0_SUM, the total scavenged tracer
                      ! that will be passed to the grid box below
@@ -2833,17 +2833,16 @@
                   ! N D 1 4   D i a g n o s t i c
                   !
                   ! Archive upward mass flux due to wet convection.  
-                  ! DTCSUM(K,IC) is the flux [kg/sec] in the box (I,J), 
-                  ! for the tracer IC going out of the top of the layer K 
-                  ! to the layer above (K+1)  (bey, 11/10/99). We must 
-                  ! divide by DNS, the # of internal timesteps so that the 
-                  ! sum represents the average loss rate across all internal 
-                  ! timesteps.
+                  ! [kg/sec] in the box (I,J), for the tracer IC going 
+                  ! out of the top of the layer K to the layer above (K+1)  
+                  ! (bey, 11/10/99). We must divide by DNS, the # of internal 
+                  ! timesteps so that the sum represents the average loss 
+                  ! rate across all internal timesteps.
                   !------------------------------------------------------------
                   IF ( USE_DIAG14 ) THEN
                      DIAG14(K,IC) = DIAG14(K,IC) 
      &                              + ( -T2-T3 ) * AREA_M2
-     &                              * TRACER_MW_G(IC) 
+     &                              * TRACER_MW_G 
      &                              / ( MOISTMW(K) * DNS )
                   ENDIF
 
