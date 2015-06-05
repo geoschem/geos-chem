@@ -2306,8 +2306,8 @@
          DO ISTEP = 1, NS
 
             ! Initialize
-            QC     = 0e+0_fp                      
-            T0_SUM = 0e+0_fp  
+            QC     = 0e+0_fp    ! [mol tracer/mol total air]                  
+            T0_SUM = 0e+0_fp    ! [kg tracer/m2/timestep]
 
             !----------------------------------------------------------
             ! B e l o w   C l o u d   B a s e   (K < CLDBASE) 
@@ -2570,14 +2570,17 @@
                   !
                   ! The term T0 is the amount of tracer that is scavenged 
                   ! out of the box.
+                  !
+                  ! Units of T0, T1, T2, T3, T4, and TSUM are
+                  ! [kg/m2/s * mol tracer / mol total air]
                   !------------------------------------------------------------
-                  T0      =  CMFMC_BELOW * QC_SCAV       ! [kg/m2/s]
-                  T1      =  CMFMC_BELOW * QC_PRES
+                  T0      =  CMFMC_BELOW * QC_SCAV      
+                  T1      =  CMFMC_BELOW * QC_PRES       
                   T2      = -CMFMC(K  )  * QC
                   T3      =  CMFMC(K  )  * Q(K+1,IC)
                   T4      = -CMFMC_BELOW * Q(K,  IC)
                  
-                  TSUM    = T1 + T2 + T3 + T4            ! [kg/m2/s]
+                  TSUM    = T1 + T2 + T3 + T4          
                   
                   DELQ    = ( SDT / BMASS(K) ) * TSUM    ! change in [mol/mol]
 
@@ -2604,29 +2607,12 @@
                      RETURN
                   ENDIF
 
-!__________ewl 6/4/15_______________________________________________________
-! LEGACY     
-!                  ! Archive T0 for use in the next section
-!                  T0_SUM  = T0_SUM + T0 
-! VS UPDATE
-!                  ! Pass T0_SUM in units of kg tracer/m2/timestep
-!                  T0_SUM = T0_SUM + T0 / TCVV * SDT
-! EWL SUGGESTED - (1) In converting kg air -> kg tracer, include mole ratio Q 
-!                     to cancel mole ratio in ratio of molecular wts?
-!                 (2) Replace dry air molec wt with total air molec wt 
-!
-                  ! Pass T0_SUM in units of kg tracer/m2/timestep
-                  T0_SUM = T0_SUM + T0 * Q(K,IC) * TRACER_G_MW(IC) * SDT 
+                  ! Pass T0_SUM in units of [kg tracer/m2/timestep].
+                  ! Converting kg total air to kg tracer requires use
+                  ! of the molecular weight of air including moisture
+                  ! (ewl, 6/5/15)
+                  T0_SUM = T0_SUM + T0 * SDT * TRACER_G_MW(IC) 
      &                                 / MOISTMW(K)
-! END
-!__________________________________________________________________
-
-
-!__________ewl 6/4/15_______________________________________________________
-
-! EWL COMMENT - Do these conversions look right to you? It seems to me that
-! [kg air/m2/s] (units for T)/T2/T3, correct?) to [kg tracer/s] needs the mass
-! ratio of air and tracer, not molecular wt ratio or number of timesteps.
 
                   !------------------------------------------------------------
                   ! (3.3)  N D 1 4   D i a g n o s t i c
@@ -2634,7 +2620,10 @@
                   ! Archive upward mass flux due to wet convection.  
                   ! DTCSUM(K,IC) is the flux [kg/sec] in the box (I,J), 
                   ! for the tracer IC going out of the top of the layer K 
-                  ! to the layer above (K+1)  (bey, 11/10/99). 
+                  ! to the layer above (K+1)  (bey, 11/10/99). We must 
+                  ! divide by DNS, the # of internal timesteps so that the 
+                  ! sum represents the average loss rate across all internal 
+                  ! timesteps.
                   !------------------------------------------------------------
                   IF ( USE_DIAG14 ) THEN
                      DIAG14(K,IC) = DIAG14(K,IC) + ( -T2-T3 ) * AREA_M2 
@@ -2646,14 +2635,12 @@
                   !
                   ! Archive the loss of soluble tracer to wet scavenging in 
                   ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
-                  ! internal timesteps.
+                  ! internal timesteps so that the sum represents the
+                  ! average loss rate across all internal timesteps.
                   !------------------------------------------------------------
                   IF ( USE_DIAG38 ) THEN
                      DIAG38(K,IC) = DIAG38(K,IC) + T0 * AREA_M2 
      &                              * TRACER_MW_G / ( MOISTMW(K) * DNS ) 
-
-!________________________________________________________________
-
 
                      ! check for infinity (added by hma, 20101117)
                      IF ( .not. IT_IS_FINITE( DIAG38(K,IC) ) ) THEN
@@ -2679,10 +2666,12 @@
                   ! in the above section.  (swu, 08/13/2007)
                   IF ( CMFMC(K) > TINYNUM ) THEN 
 
-                     ! Tracer convected from K -> K+1 [kg/m2/s]
+                     ! Tracer convected from K -> K+1 
+                     ! [kg/m2/s * mol tracer/mol total air]
                      T2   = -CMFMC(K) * QC
 
                      ! Tracer subsiding from K+1 -> K [kg/m2/s]
+                     ! [kg/m2/s * mol tracer/mol total air]
                      T3   =  CMFMC(K) * Q(K+1,IC)
 
                      ! Change in tracer concentration [v/v]
@@ -2776,20 +2765,10 @@
                      ! [kg tracer/m2/timestep]
                      GAINED  = T0_SUM * ALPHA2
 
-!__________ewl 6/4/15_____________________________________________________
-! LEGACY
-!                    WETLOSS = Q(K,IC) * WASHFRAC - GAINED 
-! VS UPDATE
-!                    ! Amount of aerosol lost to washout in grid box
-!                    WETLOSS = Q(K,IC) * BMASS(K) / TCVV * WASHFRAC -
-!     &                        GAINED
-! EWL UPDATE - Replace dry air molec wt with total air molec wt
                      ! Amount of aerosol lost to washout in grid box
                      ! [kg tracer/m2/timestep]
                      WETLOSS = Q(K,IC) * BMASS(K) * TRACER_G_MW(IC)  
      &                                 / MOISTMW(K) * WASHFRAC - GAINED
-! END
-!_________________________________________________________________
 
                      ! LOST is the rained out aerosol coming down from
                      ! grid box (I,J,L+1) that will remain in the liquid
@@ -2797,17 +2776,10 @@
  1                   ! [kg/m2/timestep]
                      LOST    = T0_SUM - GAINED
 
-!___________ewl 6/4/15_____________________________________________________
-! VS ADDITION
-!                     ! Update tracer concentration (V. Shah, mps, 5/20/15)
-!                     Q(K,IC) = Q(K,IC) - WETLOSS * TCVV / BMASS(K)
-! EWL UPDATE - Replace dry air molec wt with total air molect wt
                      ! Update tracer concentration (V. Shah, mps, 5/20/15)
                      ! [mol/mol]
                      Q(K,IC) = Q(K,IC) - WETLOSS * MOISTMW(K)   
      &                                 / ( TRACER_G_MW(IC) * BMASS(K) )
-! END
-!__________________________________________________________________
 
 
                      ! Update T0_SUM, the total amount of scavenged
@@ -2834,62 +2806,26 @@
                      ! tracer coming down from grid box (I,J,L+1).
                      ! (Eq. 15, Jacob et al, 2000)
                      ! Units are [kg tracer/m2/timestep]
-
-!___________ewl 6/4/15____________________________________________________
-! LEGACY
-!                    MASS_WASH   = ( F_WASHOUT * Q(K,IC) ) + T0_SUM
-! VS UPDATE
-!                    MASS_WASH = ( F_WASHOUT * Q(K,IC) ) * BMASS(K) /
-!     &                           TCVV + T0_SUM
-! EWL UPDATE - Replace dry air molec wt with total air molec wt
                      MASS_WASH = ( F_WASHOUT * Q(K,IC) ) * BMASS(K)
      &                           * TRACER_G_MW(IC) / MOISTMW(K) + T0_SUM
-! END
-!__________________________________________________________________
 
                      ! WETLOSS is the amount of tracer mass in 
                      ! grid box (I,J,L) that is lost to washout.
                      ! (Eq. 16, Jacob et al, 2000)
                      ! [kg tracer/m2/timestep]
-
-!___________ewl 6/4/15_____________________________________________________
-! LEGACY
-!   !-------------------------------------------------------------------------
-!   ! Prior to 2/4/15:
-!   ! Bug fix: Make sure mass of scavenged tracer passed to depo_mercury_mod.F
-!   ! is the same as mass archived in ND38 (clf, mps, 2/4/15)
-!                     WETLOSS     = MASS_WASH * WASHFRAC - T0_SUM
-!------------------------------------------------------------------------------
-!                     WETLOSS     = ( MASS_WASH - T0_SUM ) * WASHFRAC
-! VS UPDATE
                      WETLOSS     = MASS_WASH * WASHFRAC - T0_SUM
-! EWL COMMENT - this change reverts to what was described as a bug. Could
-!               you provide a reason for the change to include in comments?
-! END
-!__________________________________________________________________
-
                      
                      ! The tracer left in grid box (I,J,L) is what was
                      ! originally in the non-precipitating fraction 
                      ! of the box, plus MASS_WASH, less WETLOSS. 
                      ! [mol/mol]
-!_________ewl 6/4/15______________________________________________________
-! LEGACY
-!                     Q(K,IC)     = Q(K,IC) - WETLOSS
-! VS UPDATE
-!                     Q(K,IC) = Q(K,IC) - WETLOSS * TCVV / BMASS(K)
-! EWL UPDATE - Replace dry air molec wt with total air molec wt
                      Q(K,IC) = Q(K,IC) - WETLOSS * MOISTMW(K) 
      &                                  / ( TRACER_G_MW(IC) * BMASS(K) )
-! END
                      
                      ! Update T0_SUM, the total scavenged tracer
                      ! that will be passed to the grid box below
                      ! [kg tracer/m2/timestep]
                      T0_SUM      = T0_SUM + WETLOSS
-! EWL COMMENT: Replace rhs with "MASS_WASH * WASHFRAC" for clarity?
-!__________________________________________________________________
-
 
                   ENDIF
 
@@ -2899,47 +2835,31 @@
                   ! Archive upward mass flux due to wet convection.  
                   ! DTCSUM(K,IC) is the flux [kg/sec] in the box (I,J), 
                   ! for the tracer IC going out of the top of the layer K 
-                  ! to the layer above (K+1)  (bey, 11/10/99). 
+                  ! to the layer above (K+1)  (bey, 11/10/99). We must 
+                  ! divide by DNS, the # of internal timesteps so that the 
+                  ! sum represents the average loss rate across all internal 
+                  ! timesteps.
                   !------------------------------------------------------------
-!_________ewl 6/4/15________________________________________________________
-! LEGACY
-!                  IF ( USE_DIAG14 ) THEN
-!                     DIAG14(K,IC) = DIAG14(K,IC) 
-!     &                            + ( ( -T2-T3 ) * AREA_M2 / TCVV_DNS )
-!                  ENDIF
-! EWL UPDATE - (1) Replace dry air molec wt with total air molec wt
                   IF ( USE_DIAG14 ) THEN
                      DIAG14(K,IC) = DIAG14(K,IC) 
      &                              + ( -T2-T3 ) * AREA_M2
      &                              * TRACER_MW_G(IC) 
      &                              / ( MOISTMW(K) * DNS )
                   ENDIF
-! END                  
-!__________________________________________________________________
 
                   !------------------------------------------------------------
                   !  N D 3 8   D i a g n o s t i c
                   !
                   ! Archive the loss of soluble tracer to wet scavenging in 
-                  ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
-                  ! internal timesteps.
+                  ! cloud updrafts [kg/s].  We must divide by NDT, the # of 
+                  ! seconds in the convective timestep, equal to DNS * SDT, 
+                  ! in order to make diag38 represent the average loss rate 
+                  ! across all internal timesteps. Note that the units of
+                  ! WETLOSS are [kg/m2/timestep].
                   !------------------------------------------------------------
                   IF ( USE_DIAG38 .and. F(K,IC) > 0e+0_fp ) THEN
-!_________ewl 6/4/15______________________________________________________
-! LEGACY
-!                     DIAG38(K,IC) = DIAG38(K,IC)
-!     &                            + ( WETLOSS * AREA_M2 / TCVV_DNS )
-! VS UPDATE
-!                     DIAG38(K,IC) = DIAG38(K,IC) +
-!     &                              ( WETLOSS * AREA_M2 / NDT )
-! EWL SUGGESTION - Divide by # seconds in internal timestep rather
-!                  than number of internal timesteps to convert 
-!                  kg/timestep to kg/s?
                      DIAG38(K,IC) = DIAG38(K,IC) +
-     &                              ( WETLOSS * AREA_M2 / SDT )
-! END
-!__________________________________________________________________
-
+     &                              ( WETLOSS * AREA_M2 / NDT )
                   ENDIF
                 
                   ! CHECK for infinity (added by hma, 20101117)
@@ -2964,21 +2884,8 @@
             !--------------------------------------
             IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
-!__________ewl 6/4/15_____________________________________________________
-! LEGACY
-!               ! Wet scavenged Hg(II) in [kg/s]
-!               WET_Hg2 = T0_SUM * AREA_M2 * TRACER_MW_G 
-!     &                   / ( AIRMW * DNS )
-!               
-!               ! Convert [kg/s] to [kg]
-!               WET_Hg2 = WET_Hg2 * NDT 
-! VS UPDATE
                ! Wet scavenged Hg(II) in [kg]
                WET_Hg2 = ( T0_SUM * AREA_M2 )
-! EWL COMMENT - The heading above says we must divide by DNS. Could you
-!               provide comments explaining why this is no longer necessary?
-! END
-!__________________________________________________________________
 
                ! Pass to "ocean_mercury_mod.f"
                CALL ADD_Hg2_WD      ( I, J, IC, WET_Hg2 )
@@ -2990,21 +2897,8 @@
             !--------------------------------------
             IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
 
-!_________ewl 6/4/15________________________________________________________
-! LEGACY
-!               ! Wet scavenged Hg(P) in [kg/s]
-!               WET_HgP = T0_SUM * AREA_M2 * TRACER_MW_G
-!     &                   / ( AIRMW * DNS )
-!
-!               ! Convert [kg/s] to [kg]
-!               WET_HgP = WET_HgP * NDT 
-! VS UPDATE
                ! Wet scavenged Hg(P) in [kg]
                WET_HgP = ( T0_SUM * AREA_M2 )
-! EWL COMMENT - The heading above says we must divide by DNS. Could you
-!               provide comments explaining why this is no longer necessary?
-! END 
-!__________________________________________________________________
 
                ! Pass to "ocean_mercury_mod.f"
                CALL ADD_HgP_WD      ( I, J, IC, WET_HgP )
