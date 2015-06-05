@@ -382,7 +382,7 @@
 
       !  Do wet deposition
       CALL WETDEP( am_I_Root, Input_opt, State_Met, 
-     &             State_Chm, LS=.FALSE. )
+     &             State_Chm, LS=.FALSE., RC )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
 
 #endif
@@ -5589,7 +5589,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)     :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Precipitation fields:
@@ -7093,7 +7093,7 @@
      &                            IDX,       ERRMSG,    QDOWN,  Q,
      &                            F_WASHOUT, F_RAINOUT, DT,     PDOWN,
      &                            STT,       DSTT,      Input_Opt,
-     &                            State_Met, State_Chm, REEVAP,   RC )
+     &                            State_Met, State_Chm, RC, REEVAP )
 !
 ! !USES:
 !
