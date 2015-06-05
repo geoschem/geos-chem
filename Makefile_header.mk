@@ -170,6 +170,7 @@
 #                              the CHEM variable because it is an env var.
 #  04 Jun 2015 - R. Yantosca - Now use RRTMG_NO_CLEAN=y or RRTMG_NOCLEAN=y to 
 #                              removing RRTMG objects, modules, and libraries.
+#  04 Jun 2015 - R. Yantosca - Bug fix: don't turn on UCX except for CHEM=UCX
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -331,7 +332,6 @@ endif
 # %%%%% Test if CHEM=SOA %%%%%
 REGEXP               :=(^[Ss][Oo][Aa])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  UCX                :=n
   KPP_CHEM           :=SOA
   IS_CHEM_SET        :=1
 endif
@@ -339,7 +339,6 @@ endif
 # %%%%% Test if CHEM=NOx_Ox_HC_Aer_Br %%%%%
 REGEXP               :=(^[Nn][Oo][Xx]_[Oo][Xx]_[Hh][Cc]_[Aa][Ee][Rr]_[Bb][Rr])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  UCX                :=n
   KPP_CHEM           :=NOx_Ox_HC_Aer_Br
   IS_CHEM_SET        :=1
 endif
@@ -347,14 +346,12 @@ endif
 # %%%%% Test if CHEM=tropchem (synonym for NOx_Ox_HC_Aer_Br) %%%%%
 REGEXP               :=(^[Tt][Rr][Oo][Pp][Cc][Hh][Ee][Mm])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  UCX                :=n
   KPP_CHEM           :=NOx_Ox_HC_Aer_Br
   IS_CHEM_SET        :=1
 endif
 
-# %%%%%  Default setting: CHEM=benchmark (will also turn on UCX) %%%%%
+# %%%%%  Default setting: CHEM=benchmark %%%%%
 ifeq ($(IS_CHEM_SET),0)
-  UCX                :=y
   KPP_CHEM           :=benchmark
   IS_CHEM_SET        :=1
 endif
