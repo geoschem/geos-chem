@@ -6,8 +6,8 @@
 !
 ! !IROUTINE: hcox_gfed_include.H
 !
-! !DESCRIPTION: Include file with GFED emission factor data that was 
-!  originally contained in file GFED_emission_factors.txt.  We have now
+! !DESCRIPTION: Include file with GFED4 emission factor data that was 
+!  originally contained in file GFED4_emission_factors.txt.  We have now
 !  transformed this file into hardwired F90 commands in order to avoid reading
 !  an ASCII file in the ESMF environment.
 !
@@ -267,4 +267,13 @@ GFED4_EMFAC(25,3)=4.81E-03_hp
 GFED4_EMFAC(25,4)=2.08E-02_hp
 GFED4_EMFAC(25,5)=2.20E-03_hp
 GFED4_EMFAC(25,6)=4.81E-03_hp
+
+! Hg0
+GFED4_SPEC_NAME(26)="Hg0"
+GFED4_EMFAC(26,1)=6.60E-08_hp
+GFED4_EMFAC(26,2)=7.23E-08_hp
+GFED4_EMFAC(26,3)=7.56E-08_hp
+GFED4_EMFAC(26,4)=1.51E-07_hp
+GFED4_EMFAC(26,5)=4.46E-08_hp
+GFED4_EMFAC(26,6)=7.56E-08_hp
 !EOC
