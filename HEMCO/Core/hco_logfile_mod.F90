@@ -292,7 +292,11 @@ CONTAINS
             write(MSG,*) '   -->Category        : ', Dct%Cat
             CALL HCO_MSG(MSG)
             write(MSG,*) '   -->Hierarchy       : ', Dct%Hier
-         CALL HCO_MSG(MSG)
+            CALL HCO_MSG(MSG)
+            IF ( nz == 0 ) THEN
+               write(MSG,*) '   -->2D emitted into : ', Dct%Dta%Lev2D
+               CALL HCO_MSG(MSG)
+            ENDIF
 
          ! For scale factors
          ELSE

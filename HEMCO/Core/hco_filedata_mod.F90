@@ -139,6 +139,7 @@ MODULE HCO_FileData_Mod
      INTEGER                     :: Cover     ! data coverage
      INTEGER                     :: SpaceDim  ! space dimension: 1, 2 or 3 
      INTEGER                     :: Levels    ! vertical level handling 
+     INTEGER                     :: Lev2D     ! level to use for 2D data 
      INTEGER                     :: nt        ! time dimension: length of Arr
      INTEGER                     :: DeltaT    ! temp. resolution of array [h]
      LOGICAL                     :: IsLocTime ! local time? 
@@ -226,6 +227,7 @@ CONTAINS
     NewFDta%nt           = 0
     NewFDta%SpaceDim     = -1
     NewFDta%Levels       = 0
+    NewFDta%Lev2D        = 1
     NewFDta%OrigUnit     = ''
     NewFDta%IsLocTime    = .FALSE.
     NewFDta%IsConc       = .FALSE.
