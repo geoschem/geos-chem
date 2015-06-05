@@ -73,6 +73,7 @@
       USE BPCH2_MOD,     ONLY : READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
+      USE TRACER_MOD,    ONLY : ITS_A_POPS_SIM
 
       USE CMN_SIZE_MOD                  ! Size parameters
 !
@@ -116,17 +117,19 @@
          FIRST = .FALSE.
       ENDIF
 
+      IF ( ITS_A_POPS_SIM() ) THEN
 
-#if defined ( MERRA )
-      FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/'   //
-     &           'sulfate_sim_200508/offline/NO3.geos5.4x5'
-#elif
+         FILENAME = '/net/fs03/d1/clf/GEOS_PAH_files/GEOS5/4x5/4x5/' //
+     &              'sulfate_sim_200508_CLFNO3/offline/NO3.geos5.4x5'
+
+      ELSE
   
-!      ! File name
+      ! File name
       FILENAME = TRIM( DATA_DIR )                       // 
      &           'sulfate_sim_200508/offline/NO3.'      //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-!      !kludge until I can't NO3 for GEOS-5 (H. Amos, 25Mar2013)
+      !kludge until I can't NO3 for GEOS-5 (H. Amos, 25Mar2013)
+
 !      FILENAME = '/as/data/geos/GEOS_4x5/sulfate_sim_200508' // 
 !     &           '/offline/NO3.geos4.4x5'
       ! GEOS-5 4x5 file from Carey Friedman (H. Amos, 10Apr2013)
@@ -134,7 +137,9 @@
 !     &           '/PAHs_2004_GEOS/4x5/CLF_fullchem' //
 !     &           '/NO3.geos5.4x5.bpch'
 
-#endif
+!#endif
+
+      ENDIF
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )

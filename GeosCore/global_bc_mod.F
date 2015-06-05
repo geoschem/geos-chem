@@ -17,7 +17,7 @@
 ! !USES:
 !
       IMPLICIT NONE
-
+#     include "define.h"
 !
 ! !PUBLIC TYPES:
 !
