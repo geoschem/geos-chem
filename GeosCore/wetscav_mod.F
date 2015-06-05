@@ -350,7 +350,7 @@
 
       ! Do wet deposition
       CALL WETDEP( am_I_Root, Input_Opt, State_Met, 
-     &             State_Chm, LS=.TRUE., RC )
+     &             State_Chm, RC, LS=.TRUE. )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
 #else
@@ -369,7 +369,7 @@
 
       ! Do wet deposition
       CALL WETDEP( am_I_Root, Input_Opt, State_Met, 
-     &             State_Chm, LS=.TRUE., RC )
+     &             State_Chm, RC, LS=.TRUE. )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
       !---------------------
@@ -382,7 +382,7 @@
 
       !  Do wet deposition
       CALL WETDEP( am_I_Root, Input_opt, State_Met, 
-     &             State_Chm, LS=.FALSE., RC )
+     &             State_Chm, RC, LS=.FALSE. )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
 
 #endif
@@ -5555,7 +5555,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE WETDEP( am_I_Root, Input_Opt, State_Met, State_Chm, 
-     &                   LS, RC )
+     &                   RC, LS )
 !
 ! !USES:
 !
