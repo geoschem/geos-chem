@@ -1962,7 +1962,8 @@ CONTAINS
     HcoState%Grid%YEDGE%Val      => YEDGE  (:,:,1)
     HcoState%Grid%YSIN%Val       => YSIN   (:,:,1)
     HcoState%Grid%AREA_M2%Val    => AREA_M2(:,:,1)
-    HcoState%Grid%BXHEIGHT_M%Val => State_Met%BXHEIGHT
+    HcoState%Grid%ZSFC%Val       => State_Met%PHIS      ! Surface geopotential height
+    HcoState%Grid%BXHEIGHT_M%Val => State_Met%BXHEIGHT  ! Grid box heights
 
     ! Allocate PEDGE. Will be updated every time step!
     CALL HCO_ArrInit( HcoState%Grid%PEDGE, HcoState%NX, HcoState%NY, HcoState%NZ+1, RC )

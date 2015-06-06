@@ -1032,6 +1032,7 @@ CONTAINS
     ! an external file in ExtState_SetFields
     HcoState%Grid%PEDGE%Val      => NULL()
     HcoState%Grid%BXHEIGHT_M%Val => NULL()
+    HcoState%Grid%ZSFC%Val       => NULL()
 
     ! Write grid information to log-file
     WRITE(MSG,*) 'HEMCO grid definitions:'
@@ -1549,6 +1550,7 @@ CONTAINS
     INTEGER                       :: I,  J,  L 
     INTEGER                       :: NX, NY, NZ
     REAL(sp), POINTER             :: Ptr3D(:,:,:) => NULL()
+    REAL(sp), POINTER             :: Ptr2D(:,:  ) => NULL()
     REAL(hp)                      :: P1, P2
     CHARACTER(LEN=255)            :: MSG
     LOGICAL                       :: ERR, FOUND
@@ -1849,10 +1851,112 @@ CONTAINS
        IF ( FIRST ) THEN
           MSG = 'BXHEIGHT_M is not a field in HEMCO configuration file '   // &
                 '- cannot fill grid box heights. This may cause problems ' // &
-                'in some of the extensions!'
+                'in some of the extensions (if so, they will crash)!'
           CALL HCO_WARNING ( MSG, RC, WarnLev=1 )
        ENDIF
     ENDIF
+
+    !-----------------------------------------------------------------
+    ! Surface geopotential height 
+    !-----------------------------------------------------------------
+    CALL HCO_GetPtr( am_I_Root, 'ZSFC', Ptr2D, RC, FOUND=FOUND )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! If found, copy to pressure edge array
+    IF ( FOUND ) THEN
+
+       ! On first call, check array size dimensions. These are 
+       ! expected to correspond to the HEMCO grid (NX, NY, NZ).
+       IF ( FIRST ) THEN
+          NX = SIZE(Ptr2D,1)
+          NY = SIZE(Ptr2D,2)
+
+          ! Make sure size dimensions are correct
+          IF ( ( NX /=  HcoState%NX  ) .OR. &
+               ( NY /=  HcoState%NY  )       ) THEN
+             WRITE(MSG,*) 'Dimensions of field ZSFC do not correspond ', &
+                          'to simulation grid: Expected dimensions: ',         &
+                          HcoState%NX, HcoState%NY,                            &
+                          '; dimensions of ZSFC: ', NX, NY
+             CALL HCO_ERROR( MSG, RC )
+             RETURN     
+          ENDIF
+
+          CALL HCO_ArrAssert( HcoState%Grid%ZSFC, NX, NY, RC ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF 
+       HcoState%Grid%ZSFC%Val = Ptr2D
+       Ptr2D => NULL()
+
+       ! Verbose
+       IF ( FIRST .AND. Hco_IsVerb(1) ) THEN
+          MSG = 'Surface geopotential heights read from field ZSFC'
+          CALL HCO_MSG(MSG,SEP1=' ',SEP2=' ')
+       ENDIF
+
+    ! If not found, check if we can calculate it from pressure edges and temperature
+    ELSEIF ( ExtState%TK%DoUse .AND. ASSOCIATED(HcoState%Grid%PEDGE%Val) ) THEN
+
+       ! Make sure array is defined
+       CALL HCO_ArrAssert( HcoState%Grid%ZSFC, HcoState%NX, HcoState%NY, RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Assume no error until otherwise
+       ERR = .FALSE.
+
+       ! Approximate geopotential heights
+!$OMP PARALLEL DO                                                      &
+!$OMP DEFAULT( SHARED )                                                &
+!$OMP PRIVATE( I, J, P1, P2 )                                       & 
+!$OMP SCHEDULE( DYNAMIC )
+       DO J = 1, HcoState%NY
+       DO I = 1, HcoState%NX
+       
+          ! Pressure at bottom and top edge [Pa]
+          P1 = 101325.0
+          P2 = HcoState%Grid%PEDGE%Val(I,J,1)
+
+          ! Box height
+          IF ( P2 == 0.0_hp ) THEN
+             ERR = .TRUE.
+          ELSE
+             HcoState%Grid%ZSFC%Val(I,J) = HcoState%Phys%Rdg0 &
+                                         * ExtState%TK%Arr%Val(I,J,1) &
+                                         * LOG( P1 / P2 )
+          ENDIF
+       ENDDO !I
+       ENDDO !J
+!$OMP END PARALLEL DO
+
+       ! Error check
+       IF ( ERR ) THEN
+          MSG = 'Cannot calculate surface geopotential heights - at least one ' // &
+                'surface pressure value is zero! You can either provide an '    // &
+                'updated pressure edge field (PEDGE) or add a field with the '  // &
+                'surface geopotential height to your configuration file (ZSFC)'
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! Verbose
+       IF ( FIRST .AND. Hco_IsVerb(1) ) THEN
+          MSG = 'Geopotential heights approximated from hydrostatic equation'
+          CALL HCO_MSG(MSG,SEP1=' ',SEP2=' ')
+       ENDIF
+
+    ! Otherwise, prompt a warning on the first call 
+    ELSE
+       IF ( FIRST ) THEN
+          MSG = 'ZSFC is not a field in HEMCO configuration file '   // &
+                '- cannot define surface geopotential height. This may cause ' // &
+                'problems in some of the extensions (if so, they will crash)!'
+          CALL HCO_WARNING ( MSG, RC, WarnLev=1 )
+       ENDIF
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! All done 
+    !-----------------------------------------------------------------
 
     ! Not first call any more
     FIRST = .FALSE.

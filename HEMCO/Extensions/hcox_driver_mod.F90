@@ -110,6 +110,7 @@ CONTAINS
     USE HCOX_GC_RnPbBe_Mod,     ONLY : HCOX_GC_RnPbBe_Init
     USE HCOX_GC_POPs_Mod,       ONLY : HCOX_GC_POPs_Init
     USE HCOX_CH4WetLand_MOD,    ONLY : HCOX_CH4WETLAND_Init
+    USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Init
 #if defined( TOMAS )
     USE HCOX_TOMAS_SeaSalt_Mod, ONLY : HCOX_TOMAS_SeaSalt_Init
 #endif
@@ -248,6 +249,13 @@ CONTAINS
                                          ExtState,  RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
+    !-----------------------------------------------------------------------
+    ! AeroCom volcano emissions 
+    !-----------------------------------------------------------------------
+    CALL HCOX_AeroCom_Init( amIRoot,  HcoState, 'AeroCom_Volcano', &
+                            ExtState,  RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+
 #if defined( TOMAS )
     !-----------------------------------------------------------------------
     ! TOMAS sectional sea salt aerosol emissions
@@ -319,6 +327,7 @@ CONTAINS
     USE HCOX_GC_RnPbBe_Mod,     ONLY : HCOX_GC_RnPbBe_Run
     USE HCOX_GC_POPs_Mod,       ONLY : HCOX_GC_POPs_Run
     USE HCOX_CH4WetLand_mod,    ONLY : HCOX_CH4Wetland_Run
+    USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Run
 #if defined( TOMAS )
     USE HCOX_TOMAS_SeaSalt_Mod, ONLY : HCOX_TOMAS_SeaSalt_Run
 #endif
@@ -493,6 +502,14 @@ CONTAINS
     ENDIF
 #endif
 
+    !-----------------------------------------------------------------------
+    ! AeroCom volcano emissions 
+    !-----------------------------------------------------------------------
+    IF ( ExtState%AeroCom ) THEN
+       CALL HCOX_AeroCom_Run( amIRoot, ExtState, HcoState, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF
+
     !-----------------------------------------------------------------
     ! Add extensions here ...
     !-----------------------------------------------------------------
@@ -544,6 +561,7 @@ CONTAINS
     USE HCOX_GC_RnPbBe_Mod,     ONLY : HCOX_GC_RnPbBe_Final
     USE HCOX_GC_POPs_Mod,       ONLY : HCOX_GC_POPs_Final
     USE HCOX_CH4WetLand_Mod,    ONLY : HCOX_CH4Wetland_Final
+    USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Final
 #if defined( TOMAS )
     USE HCOX_TOMAS_SeaSalt_Mod, ONLY : HCOX_TOMAS_SeaSalt_Final
 #endif
@@ -596,6 +614,7 @@ CONTAINS
        IF ( ExtState%GC_RnPbBe     ) CALL HCOX_GC_RnPbBe_Final()
        IF ( ExtState%GC_POPs       ) CALL HCOX_GC_POPs_Final()
        IF ( ExtState%Wetland_CH4   ) CALL HCOX_CH4Wetland_Final()
+       IF ( ExtState%AeroCom       ) CALL HCOX_AeroCom_Final()
 #if defined( TOMAS )
        IF ( ExtState%TOMAS_SeaSalt ) CALL HCOX_TOMAS_SeaSalt_Final()
 #endif       

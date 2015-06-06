@@ -192,7 +192,8 @@ CONTAINS
     Reals(:) = -999_dp
 
     ! Extract strings to be translated into integers 
-    CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Reals,1) ) THEN
        CALL HCO_ERROR( 'Too many substrings!', RC, THISLOC=LOC )
        RETURN
@@ -275,7 +276,8 @@ CONTAINS
     Reals(:) = -999_sp
 
     ! Extract strings to be translated into integers 
-    CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Reals,1) ) THEN
        CALL HCO_ERROR( 'Too many substrings!', RC, THISLOC=LOC )
        RETURN
@@ -365,7 +367,8 @@ CONTAINS
     ENDIF
 
     ! Extract strings to be translated into integers 
-    CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Ints,1) ) THEN
        CALL HCO_ERROR( 'Too many substrings!', RC, THISLOC=LOC )
        RETURN

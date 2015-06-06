@@ -108,7 +108,7 @@ CONTAINS
       ! HCO_SetServices begins here
       ! ================================================================
 
-      ! For MAPL/ESMF error handling (defined Iam and STATUS)
+      ! For MAPL/ESMF error handling (defines Iam and STATUS)
       __Iam__('HCO_SetServices (HCOI_ESMF_MOD.F90)')
 
       ! ---------------------------------------------------------------------

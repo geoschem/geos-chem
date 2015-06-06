@@ -26,6 +26,7 @@ MODULE HCO_GeoTools_Mod
   PUBLIC :: HCO_LandType
   PUBLIC :: HCO_ValidateLon
   PUBLIC :: HCO_GetSUNCOS
+  PUBLIC :: HCO_GetHorzIJIndex
 
   INTERFACE HCO_LandType
      MODULE PROCEDURE HCO_LandType_Dp
@@ -480,5 +481,200 @@ CONTAINS
 
   END SUBROUTINE HCO_GetSUNCOS
 !EOC
+#if defined(ESMF_)
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !SUBROUTINE: HCO_GetHorzIJIndex
+!
+! !DESCRIPTION: Function HCO\_GetHorzIJIndex returns the grid box index for 
+!  the given longitude (deg E, -180...180), and latitude (deg N, -90...90).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_GetHorzIJIndex( am_I_Root, HcoState, N, Lon, Lat, idx, jdx, RC ) 
+!
+! !USES
+!
+#include "MAPL_Generic.h"
+    USE ESMF
+    USE MAPL_Mod
+    USE HCO_STATE_MOD,   ONLY : HCO_STATE
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU? 
+    TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
+    INTEGER,         INTENT(IN   )  :: N           
+    REAL(hp),        INTENT(IN   )  :: Lon(N)
+    REAL(hp),        INTENT(IN   )  :: Lat(N)
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(INOUT)  :: RC
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(  OUT)  :: IDX(N), JDX(N)
+! 
+! !REVISION HISTORY:
+!  04 Jun 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    REAL             :: LonR(N), LatR(N)
+    REAL, PARAMETER  :: radToDeg = 57.2957795
+    TYPE(ESMF_Grid)  :: Grid
+
+    ! Defined Iam and STATUS
+    __Iam__("HCO_GetHorzIJIndex (hco_geotools_mod.F90)")
+
+    !-------------------------------
+    ! HCO_GetHorzIJIndex begins here
+    !-------------------------------
+
+    ! Get grid
+    ASSERT_(ASSOCIATED(HcoState%GridComp))
+    CALL ESMF_GridCompGet( HcoState%GridComp, Grid=Grid, __RC__ ) 
+
+    ! Shadow variables
+    LonR(:) = Lon / radToDeg 
+    LatR(:) = Lat / radToDeg 
+
+    ! Get indeces
+    CALL MAPL_GetHorzIJIndex(LonR,LatR,N,Grid,idx,jdx,__RC__)
+
+    ! Return w/ success
+    RC =  HCO_SUCCESS
+
+  END SUBROUTINE HCO_GetHorzIJIndex 
+!EOC
+#else
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !SUBROUTINE: HCO_GetHorzIJIndex
+!
+! !DESCRIPTION: Function HCO\_GetHorzIJIndex returns the grid box index for 
+!  the given longitude (deg E, -180...180), and latitude (deg N, -90...90).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_GetHorzIJIndex( am_I_Root, HcoState, N, Lon, Lat, idx, jdx, RC ) 
+!
+! !USES
+!
+    USE HCO_STATE_MOD,   ONLY : HCO_STATE
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU? 
+    TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
+    INTEGER,         INTENT(IN   )  :: N           
+    REAL(hp),        INTENT(IN   )  :: Lon(N)
+    REAL(hp),        INTENT(IN   )  :: Lat(N)
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(INOUT)  :: RC
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(  OUT)  :: IDX(N), JDX(N)
+! 
+! !REVISION HISTORY:
+!  04 Jun 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: I, J, L, FOUND 
+    REAL(hp) :: iLon1, iLon2
+    REAL(hp) :: iLat1, iLat2
+    REAL(hp) :: delta
+
+    !-------------------------------
+    ! HCO_GetHorzIJIndex begins here
+    !-------------------------------
+
+    ! Initialize
+    IDX(:) = -1
+    JDX(:) = -1
+    FOUND  =  0
+
+    ! do for every grid box 
+    DO J = 1, HcoState%NY 
+    DO I = 1, HcoState%NX 
+
+       ! Get grid edges for this box
+ 
+       ! Longitude edges 
+       IF ( ASSOCIATED(HcoState%Grid%XEDGE%Val) ) THEN 
+          iLon1 = HcoState%Grid%XEDGE%Val(I,  J)
+          iLon2 = HcoState%Grid%XEDGE%Val(I+1,J)
+
+       ! Approximate from mid points
+       ELSE
+          iLon1 = HcoState%Grid%XMID%Val(I,J)
+          IF ( I < HcoState%NX ) THEN
+             delta = HcoState%Grid%XMID%Val(I+1,J)-iLon1
+          ELSE
+             delta = iLon1 - HcoState%Grid%XMID%Val(I-1,J)
+          ENDIF
+          iLon2 = iLon1 + (delta / 2.0_hp)
+          iLon1 = iLon1 - (delta / 2.0_hp)
+       ENDIF
+
+       ! Latitude edges
+       IF ( ASSOCIATED(HcoState%Grid%YEDGE%Val) ) THEN 
+          iLat1 = HcoState%Grid%YEDGE%Val(I,J)
+          iLat2 = HcoState%Grid%YEDGE%Val(I,J+1)
+
+       ! Approximate from mid points
+       ELSE
+          iLat1 = HcoState%Grid%YMID%Val(I,J)
+          IF ( J < HcoState%NY ) THEN
+             delta = HcoState%Grid%YMID%Val(I,J+1)-iLat1
+          ELSE
+             delta = iLat1 - HcoState%Grid%YMID%Val(I,J-1)
+          ENDIF
+          iLat2 = iLat1 + (delta / 2.0_hp)
+          iLat1 = iLat1 - (delta / 2.0_hp)
+       ENDIF
+
+       ! Check if it's within this box
+       DO L = 1, N
+          IF ( IDX(L) > 0 ) CYCLE 
+
+          IF ( Lon(L) >= HcoState%Grid%XEDGE%Val(I,  J  ) .AND. &
+               Lon(L) <= HcoState%Grid%XEDGE%Val(I+1,J  ) .AND. &
+               Lat(L) >= HcoState%Grid%YEDGE%Val(I  ,J  ) .AND. &
+               Lat(L) <= HcoState%Grid%YEDGE%Val(I  ,J+1)        ) THEN
+             IDX(L) = I
+             JDX(L) = J
+             FOUND  = FOUND + 1
+             IF ( FOUND == N ) EXIT
+          ENDIF
+       ENDDO 
+    ENDDO 
+    ENDDO 
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_GetHorzIJIndex 
+!EOC
+#endif
 END MODULE HCO_GeoTools_Mod
 !EOM

@@ -157,6 +157,7 @@ MODULE HCO_State_Mod
      TYPE(Arr3D_Hp), POINTER :: PEDGE      ! pressure edges (Pa) 
      TYPE(Arr2D_Hp), POINTER :: YSIN       ! sin of y-direction grid edges*
      TYPE(Arr2D_Hp), POINTER :: AREA_M2    ! grid box areas (m2)
+     TYPE(Arr2D_Hp), POINTER :: ZSFC       ! surface geopotential height (m)**
      TYPE(Arr3D_Hp), POINTER :: BXHEIGHT_M ! grid box heights (m)** 
   END TYPE HcoGrid
 
@@ -324,6 +325,8 @@ CONTAINS
     CALL HCO_ArrInit ( HcoState%Grid%YSIN,       0, 0,    RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     CALL HCO_ArrInit ( HcoState%Grid%AREA_M2,    0, 0,    RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL HCO_ArrInit ( HcoState%Grid%ZSFC,       0, 0,    RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     CALL HCO_ArrInit ( HcoState%Grid%BXHEIGHT_M, 0, 0, 0, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -498,6 +501,7 @@ CONTAINS
        CALL HCO_ArrCleanup( HcoState%Grid%PEDGE      )
        CALL HCO_ArrCleanup( HcoState%Grid%YSIN       )
        CALL HCO_ArrCleanup( HcoState%Grid%AREA_M2    )
+       CALL HCO_ArrCleanup( HcoState%Grid%ZSFC       )
        CALL HCO_ArrCleanup( HcoState%Grid%BXHEIGHT_M )
        DEALLOCATE(HcoState%Grid)
     ENDIF
