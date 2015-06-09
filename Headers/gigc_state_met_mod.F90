@@ -100,8 +100,8 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: SST       (:,:  ) ! Sea surface temperature [K]
      REAL(fp), POINTER :: SUNCOS    (:,:  ) ! COS(SZA), current time
      REAL(fp), POINTER :: SUNCOSmid (:,:  ) ! COS(SZA), midpt of chem timestep
-     REAL(fp), POINTER :: SUNCOSmid5(:,:  ) ! COS(SZA), midpt of chem timestep
-                                            !  5 hrs ago (for PARANOX)
+!     REAL(fp), POINTER :: SUNCOSmid5(:,:  ) ! COS(SZA), midpt of chem timestep
+!                                            !  5 hrs ago (for PARANOX)
      REAL(fp), POINTER :: TO3       (:,:  ) ! Total overhead O3 column [DU]
      REAL(fp), POINTER :: TO31      (:,:  ) ! Total O3 at timestep start [DU]
      REAL(fp), POINTER :: TO32      (:,:  ) ! Total O3 at timestep end [DU]
@@ -245,6 +245,7 @@ MODULE GIGC_State_Met_Mod
 !  16 Apr 2015 - E. Lundgren - Add mean pressures PMEAN and PMEAN_DRY. Clarify
 !                              definition of PMID as arithmetic average P. 
 !                              Add MOISTMW to use TCVV with moist mixing ratio. 
+!  25 May 2015 - C. Keller   - Removed SUNCOSmid5 (now calculated by HEMCO).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -463,9 +464,9 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%SUNCOSmid = 0.0_fp
 
-    ALLOCATE( State_Met%SUNCOSmid5( IM, JM ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Met%SUNCOSmid5 = 0.0_fp
+!    ALLOCATE( State_Met%SUNCOSmid5( IM, JM ), STAT=RC )
+!    IF ( RC /= GIGC_SUCCESS ) RETURN
+!    State_Met%SUNCOSmid5 = 0.0_fp
 
     ALLOCATE( State_Met%TO3       ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -1028,7 +1029,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%SST        )) DEALLOCATE( State_Met%SST        )
     IF ( ASSOCIATED( State_Met%SUNCOS     )) DEALLOCATE( State_Met%SUNCOS     )
     IF ( ASSOCIATED( State_Met%SUNCOSmid  )) DEALLOCATE( State_Met%SUNCOSmid  )
-    IF ( ASSOCIATED( State_Met%SUNCOSmid5 )) DEALLOCATE( State_Met%SUNCOSmid5 )
+!    IF ( ASSOCIATED( State_Met%SUNCOSmid5 )) DEALLOCATE( State_Met%SUNCOSmid5 )
     IF ( ASSOCIATED( State_Met%TROPP      )) DEALLOCATE( State_Met%TROPP      )
     IF ( ASSOCIATED( State_Met%TS         )) DEALLOCATE( State_Met%TS         )
     IF ( ASSOCIATED( State_Met%TSKIN      )) DEALLOCATE( State_Met%TSKIN      )

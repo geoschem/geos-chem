@@ -817,6 +817,7 @@ CONTAINS
           ! direction' (up or down). These information is also extracted
           ! from srcDim and will be stored in variable Dta%Levels.
           ! (ckeller, 5/20/15)
+
           CALL ExtractSrcDim( am_I_Root, srcDim, Dta, RC ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -2216,45 +2217,47 @@ CONTAINS
     ! of them is a mask that has no valid entries over the domain of 
     ! this CPU. In this case we don't have to consider this field at 
     ! all!
-    DO I = 1, Lct%Dct%nScalID
-
-       ! Check if it's a valid scale factor
-       IF ( Lct%Dct%Scal_cID(I) < 0 ) CYCLE
-
-       ! Find container with this container ID
-       ! Note: this should always look up the container ID, but make
-       ! check for safety's sake. 
-       tmpID = Lct%Dct%Scal_cID(I)
-       IF ( .NOT. Lct%Dct%Scal_cID_set ) THEN
-          CALL ListCont_Find ( ConfigList, tmpID, 1, FOUND, mskLct )
-       ELSE
-          CALL ListCont_Find ( ConfigList, tmpID, 0, FOUND, mskLct )
-       ENDIF
-
-       ! Error if scale factor not found
-       IF ( .NOT. FOUND ) THEN
-          WRITE ( strID, * ) Lct%Dct%Scal_cID(I) 
-          MSG = 'No scale factor with cID: ' // TRIM(strID) 
-          CALL HCO_ERROR ( MSG, RC)
-          RETURN
-       ENDIF
-
-       ! Check if this is a mask with zero coverage over this CPU, in
-       ! which case we don't need to consider the base field at all! 
-       IF ( (mskLct%Dct%DctType  == HCO_DCTTYPE_MASK ) .AND. &
-            (mskLct%Dct%Dta%Cover == 0 )        ) THEN 
-          targetID = -999 
-          IF ( HCO_IsVerb(1) ) THEN 
-             WRITE(MSG,*) 'Data not defined over this CPU, skip ' // &
-                  TRIM(Lct%Dct%cName)
-             CALL HCO_MSG(MSG)
+    IF ( Lct%Dct%nScalID > 0 ) THEN
+       DO I = 1, Lct%Dct%nScalID
+   
+          ! Check if it's a valid scale factor
+          IF ( Lct%Dct%Scal_cID(I) < 0 ) CYCLE
+   
+          ! Find container with this container ID
+          ! Note: this should always look up the container ID, but make
+          ! check for safety's sake. 
+          tmpID = Lct%Dct%Scal_cID(I)
+          IF ( .NOT. Lct%Dct%Scal_cID_set ) THEN
+             CALL ListCont_Find ( ConfigList, tmpID, 1, FOUND, mskLct )
+          ELSE
+             CALL ListCont_Find ( ConfigList, tmpID, 0, FOUND, mskLct )
           ENDIF
+   
+          ! Error if scale factor not found
+          IF ( .NOT. FOUND ) THEN
+             WRITE ( strID, * ) Lct%Dct%Scal_cID(I) 
+             MSG = 'No scale factor with cID: ' // TRIM(strID) 
+             CALL HCO_ERROR ( MSG, RC)
+             RETURN
+          ENDIF
+   
+          ! Check if this is a mask with zero coverage over this CPU, in
+          ! which case we don't need to consider the base field at all! 
+          IF ( (mskLct%Dct%DctType  == HCO_DCTTYPE_MASK ) .AND. &
+               (mskLct%Dct%Dta%Cover == 0 )        ) THEN 
+             targetID = -999 
+             IF ( HCO_IsVerb(1) ) THEN 
+                WRITE(MSG,*) 'Data not defined over this CPU, skip ' // &
+                     TRIM(Lct%Dct%cName)
+                CALL HCO_MSG(MSG)
+             ENDIF
 
-          ! Return
-          CALL HCO_LEAVE ( RC )
-          RETURN 
-       ENDIF
-    ENDDO ! I 
+             ! Return
+             CALL HCO_LEAVE ( RC )
+             RETURN 
+          ENDIF
+       ENDDO ! I 
+    ENDIF 
       
     ! Now find out if there is another base field for the same species, 
     ! emission category and extension number, but higher hierarchy.
@@ -2308,38 +2311,40 @@ CONTAINS
 
        ! Check all scale factors of tmpLct to see if this base 
        ! field has full coverage over this CPU domain or not. 
-       DO I = 1, tmpLct%Dct%nScalID
-
-          ! Check if it's a valid scale factor
-          IF ( tmpLct%Dct%Scal_cID(I) < 0 ) CYCLE
-
-          tmpID = tmpLct%Dct%Scal_cID(I)
-          IF ( .NOT. tmpLct%Dct%Scal_cID_set ) THEN
-             CALL ListCont_Find ( ConfigList, tmpID, 1, FOUND, mskLct )
-          ELSE
-             CALL ListCont_Find ( ConfigList, tmpID, 0, FOUND, mskLct )
-          ENDIF
-
-          ! Error if container not found
-          IF ( .NOT. FOUND ) THEN
-             WRITE(MSG,*) 'No scale factor with ID: ', tmpID
-             CALL HCO_ERROR ( MSG, RC)
-             RETURN
-          ENDIF
-
-          ! Write out coverage.
-          ! Note: If one mask has only partial coverage, retain that
-          ! value! If we encounter a mask with no coverage, set coverage
-          ! to zero and leave immediately. 
-          IF ( (mskLct%Dct%DctType == HCO_DCTTYPE_MASK) ) THEN
-             IF ( mskLct%Dct%Dta%Cover == -1 ) THEN
-                tmpCov = -1
-             ELSEIF ( mskLct%Dct%Dta%Cover == 0 ) THEN
-                tmpCov = 0
-                EXIT
+       IF ( tmpLct%Dct%nScalID > 0 ) THEN
+          DO I = 1, tmpLct%Dct%nScalID
+   
+             ! Check if it's a valid scale factor
+             IF ( tmpLct%Dct%Scal_cID(I) < 0 ) CYCLE
+   
+             tmpID = tmpLct%Dct%Scal_cID(I)
+             IF ( .NOT. tmpLct%Dct%Scal_cID_set ) THEN
+                CALL ListCont_Find ( ConfigList, tmpID, 1, FOUND, mskLct )
+             ELSE
+                CALL ListCont_Find ( ConfigList, tmpID, 0, FOUND, mskLct )
              ENDIF
-          ENDIF
-       ENDDO ! I 
+   
+             ! Error if container not found
+             IF ( .NOT. FOUND ) THEN
+                WRITE(MSG,*) 'No scale factor with ID: ', tmpID
+                CALL HCO_ERROR ( MSG, RC)
+                RETURN
+             ENDIF
+   
+             ! Write out coverage.
+             ! Note: If one mask has only partial coverage, retain that
+             ! value! If we encounter a mask with no coverage, set coverage
+             ! to zero and leave immediately. 
+             IF ( (mskLct%Dct%DctType == HCO_DCTTYPE_MASK) ) THEN
+                IF ( mskLct%Dct%Dta%Cover == -1 ) THEN
+                   tmpCov = -1
+                ELSEIF ( mskLct%Dct%Dta%Cover == 0 ) THEN
+                   tmpCov = 0
+                   EXIT
+                ENDIF
+             ENDIF
+          ENDDO ! I
+       ENDIF
 
        ! If tmpLct has no coverage, we can ignore this tmpLct as 
        ! it will never overwrite data of currCont
@@ -2384,13 +2389,17 @@ CONTAINS
           sameCont = .TRUE.
 
           ! Check for same scale factors
-          DO I = 1, tmpLct%Dct%nScalID
-             IF (  tmpLct%Dct%Scal_cID(I) /= &
-                  Lct%Dct%Scal_cID(I)     ) THEN
-                sameCont = .FALSE.
-                EXIT
-             ENDIF
-          ENDDO
+          IF ( tmpLct%Dct%nScalID /= Lct%Dct%nScalID ) THEN
+             sameCont = .FALSE.
+          ELSE
+             DO I = 1, tmpLct%Dct%nScalID
+                IF (  tmpLct%Dct%Scal_cID(I) /= &
+                     Lct%Dct%Scal_cID(I)     ) THEN
+                   sameCont = .FALSE.
+                   EXIT
+                ENDIF
+             ENDDO
+          ENDIF
 
           ! Check for same update frequencies
           IF ( sameCont ) THEN
@@ -2413,9 +2422,20 @@ CONTAINS
              ENDIF
           ENDIF
 
+          ! Check for same emitted level
+          IF ( sameCont ) THEN
+             IF ( ( tmpLct%Dct%Dta%SpaceDim /= Lct%Dct%Dta%SpaceDim ) .OR. &
+                  ( tmpLct%Dct%Dta%Levels   /= Lct%Dct%Dta%Levels   ) .OR. &
+                  ( tmpLct%Dct%Dta%Lev2D    /= Lct%Dct%Dta%Lev2D    )       ) THEN 
+                sameCont = .FALSE.
+             ENDIF
+          ENDIF
+
           ! Finally, check for "same" container names. This checks the 
-          ! container names ignoring the name 'tags'. 
-          sameCont = Check_ContNames( tmpLct, Lct )
+          ! container names ignoring the name 'tags'.
+          IF ( sameCont ) THEN 
+             sameCont = Check_ContNames( tmpLct, Lct )
+          ENDIF
 
           ! If "same" containers, set target ID to container ID of 
           ! tmpLct if this value is lower than current target ID. 
@@ -3795,14 +3815,27 @@ CONTAINS
           RETURN
        ENDIF
 
-       ! If we get to here, it's 3D data 
-       Dta%SpaceDim = 3
+       ! If third entry is 'L', this means we have 2D data that shall be put
+       ! into a particular level, e.g. xyL4 will cause the 2D data to be 
+       ! emitted into level 4.
+       IF ( srcDim(3:3) == 'L' .OR. srcDim(3:3) == 'l' ) THEN
+          IF ( strLen < 4 ) THEN
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF       
+          Dta%SpaceDim = 2
+          READ(srcDim(4:strLen),*) Dta%Lev2D
+       ELSE
 
-       ! The third entry determines the vertical dimension. 
-       ! This can be 'z' (standard) or a number to explicitly define
-       ! the vertical extension and direction.
-       IF ( srcDim(3:3) /= 'z' ) THEN
-          READ(srcDim(3:strLen),*) Dta%Levels
+          ! If we get to here, it's 3D data 
+          Dta%SpaceDim = 3
+
+          ! The third entry determines the vertical dimension. 
+          ! This can be 'z' (standard) or a number to explicitly define
+          ! the vertical extension and direction.
+          IF ( srcDim(3:3) /= 'z' ) THEN
+             READ(srcDim(3:strLen),*) Dta%Levels
+          ENDIF
        ENDIF
     ENDIF
 

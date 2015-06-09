@@ -757,7 +757,7 @@ CONTAINS
     REAL(sp)                :: TMPVAL, MaskScale
     INTEGER                 :: tIDx, IDX
     INTEGER                 :: I, J, L, N
-    INTEGER                 :: BaseLL, ScalLL, TmpLL
+    INTEGER                 :: LowLL, UppLL, ScalLL, TmpLL
     INTEGER                 :: ERROR
     CHARACTER(LEN=255)      :: MSG, LOC
     LOGICAL                 :: NegScalExist
@@ -805,9 +805,11 @@ CONTAINS
     ! the effectively filled vertical levels. For most inventories, 
     ! this is only the first model level.
     IF ( BaseDct%Dta%SpaceDim==3 ) THEN 
-       BaseLL = SIZE(BaseDct%Dta%V3(1)%Val,3)
+       LowLL = 1
+       UppLL = SIZE(BaseDct%Dta%V3(1)%Val,3)
     ELSE
-       BaseLL = 1
+       LowLL = BaseDct%Dta%Lev2D 
+       UppLL = BaseDct%Dta%Lev2D
     ENDIF
 
     ! Initialize ERROR. Will be set to 1 if error occurs below
@@ -831,7 +833,7 @@ CONTAINS
        ENDIF
 
        ! Loop over all levels
-       DO L = 1, BaseLL
+       DO L = LowLL, UppLL
 
           ! Get base value. Use uniform value if scalar field.
           IF ( BaseDct%Dta%SpaceDim == 1 ) THEN
@@ -1017,7 +1019,7 @@ CONTAINS
           ! ------------------------------------------------------------ 
 
           ! Loop over all vertical levels of the base field
-          DO L = 1,BaseLL
+          DO L = LowLL,UppLL
              ! If the vertical level exceeds the number of available 
              ! scale factor levels, use the highest available level.
              IF ( L > ScalLL ) THEN 
@@ -1142,7 +1144,7 @@ CONTAINS
     ENDIF ! N > 0 
 
     ! Update optional variables
-    IF ( PRESENT(UseLL) ) UseLL = BaseLL
+    IF ( PRESENT(UseLL) ) UseLL = UppLL
 
     ! Cleanup and leave w/ success
     ScalDct => NULL()
@@ -1214,7 +1216,7 @@ CONTAINS
     REAL(sp)                :: TMPVAL, MaskScale
     INTEGER                 :: tIdx, IDX
     INTEGER                 :: I, J, L, N
-    INTEGER                 :: BaseLL, ScalLL, TmpLL
+    INTEGER                 :: LowLL, UppLL, ScalLL, TmpLL
     INTEGER                 :: IJFILLED
     INTEGER                 :: ERROR
     CHARACTER(LEN=255)      :: MSG, LOC
@@ -1260,7 +1262,7 @@ CONTAINS
     ! Loop over all grid boxes
 !$OMP PARALLEL DO                                                      &
 !$OMP DEFAULT( SHARED )                                                &
-!$OMP PRIVATE( I, J, BaseLL, tIdx, IJFILLED, L                       ) & 
+!$OMP PRIVATE( I, J, LowLL, UppLL, tIdx, IJFILLED, L                 ) & 
 !$OMP PRIVATE( TMPVAL, N, IDX, ScalDct, ScalLL, tmpLL, MaskScale     ) & 
 !$OMP SCHEDULE( DYNAMIC )
     DO J = 1, nJ
@@ -1276,9 +1278,13 @@ CONTAINS
        ! the effectively filled vertical levels. For most inventories, 
        ! this is only the first model level.
        IF ( BaseDct%Dta%SpaceDim==3 ) THEN 
-          BaseLL = SIZE(BaseDct%Dta%V3(1)%Val,3) 
+          LowLL = 1
+          UppLL = SIZE(BaseDct%Dta%V3(1)%Val,3) 
        ELSE
-          BaseLL = 1
+          !LowLL = BaseDct%Dta%Lev2D
+          !UppLL = BaseDct%Dta%Lev2D
+          LowLL = 1
+          UppLL = 1
        ENDIF
 
        ! Precalculate timeslice index. The data containers can 
@@ -1299,7 +1305,7 @@ CONTAINS
        IJFILLED = 0
 
        ! Loop over all levels
-       DO L = 1, BaseLL
+       DO L = LowLL, UppLL
 
           ! Get base value. Use uniform value if scalar field.
           IF ( BaseDct%Dta%SpaceDim == 1 ) THEN
@@ -1445,7 +1451,7 @@ CONTAINS
           ! ------------------------------------------------------------ 
 
           ! Loop over all vertical levels of the base field
-          DO L = 1,BaseLL
+          DO L = LowLL,UppLL
              ! If the vertical level exceeds the number of available 
              ! scale factor levels, use the highest available level.
              IF ( L > ScalLL ) THEN 
