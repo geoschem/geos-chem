@@ -75,8 +75,10 @@
       ! Replace include statements (H. Amos, 7Mar2013)
       USE CMN_SIZE_MOD   ! Size parameters
       USE CMN_DIAG_MOD   ! Diagnostic arrays & switches
-!#     include "CMN_SIZE"     ! Size parameters
-!#     include "CMN_DIAG"     ! Diagnostic arrays & switches
+
+
+      IMPLICIT NONE
+#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -422,6 +424,9 @@
       USE CMN_SIZE_MOD   ! Size parameters
       USE CMN_DIAG_MOD   ! Diagnostic arrays & switches
 
+
+      IMPLICIT NONE
+#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -553,7 +558,8 @@
       ! Return to calling program
       RETURN
 
-#elif defined ( GEOS_5 )
+#endif
+!#elif defined ( GEOS_5 )
       
       ! Do lake emissions routine:
 
@@ -714,13 +720,13 @@
                   IF (FLUX > 0d0) THEN 
                      ! Store total mass emitted from soil [kg] in ND53 diagnostic.
                      ! (We don't care about the mass in the other direction right now)
-                     AD53(I,J,6) = AD53(I,J,6 + (EPOP_LAKE(I,J * DTSRCE)  
+                     AD53(I,J,6) = AD53(I,J,6)+(EPOP_LAKE(I,J) * DTSRCE)
                      ! Store positive flux
                      AD53(I,J,10) = AD53(I,J,10) + FLUX
                      ! Make sure negative flux diagnostic has nothing added to it
                      AD53(I,J,11) = AD53(I,J,11) + 0d0
                      ! Store the soil/air fugacity ratio
-                     AD53(I,J,15) = AD53(I,J,15) + (C_DISS / (POPG/KAW_T))
+                     AD53(I,J,15) = AD53(I,J,15)+(C_DISS / (POPG/KAW_T))
              
                   ELSE IF (FLUX <= 0d0) THEN
                      ! Store the negative flux
@@ -729,7 +735,7 @@
                      AD53(I,J,6) = AD53(I,J,6) + 0d0
                      AD53(I,J,10) = AD53(I,J,10) + 0d0
                      ! Continue to store the fugacity ratio
-                     AD53(I,J,15) = AD53(I,J,15) + (C_DISS / (POPG/KAW_T))
+                     AD53(I,J,15) = AD53(I,J,15)+(C_DISS / (POPG/KAW_T))
                   ENDIF
                ENDIF
             ENDIF
@@ -744,12 +750,12 @@
                AD53(I,J,11) = 0d0
                AD53(I,J,15) = 0d0
             ENDIF
-         ENDIF
+!         ENDIF
         
       ENDDO
       ENDDO
 
-#endif
+!#endif
 
       END SUBROUTINE LAKEEMISPOP
 !EOC
@@ -790,6 +796,8 @@
       USE CMN_DIAG_MOD  ! Diagnostic arrays & switches
 
 
+      IMPLICIT NONE
+#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
