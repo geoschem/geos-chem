@@ -266,7 +266,6 @@
       USE PRESSURE_MOD,       ONLY : SET_FLOATING_PRESSURE
       USE DAO_MOD,            ONLY : AIRQNT
       USE TIME_MOD,           ONLY : GET_TS_DYN
-      USE TPCORE_BC_MOD,      ONLY : SAVE_GLOBAL_TPCORE_BC
       USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
       USE UNITCONV_MOD
 #if   defined( APM )
@@ -311,6 +310,7 @@
 !  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
 !  16 Apr 2015 - E. Lundgren - Convert mixing ratio to moist before advection
 !                              and back to dry afterwards
+!  09 Jun 2015 - E. Lundgren - Remove dependency on tpcore_bc_mod since not used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
