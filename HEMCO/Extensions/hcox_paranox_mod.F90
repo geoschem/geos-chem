@@ -2100,7 +2100,8 @@ CONTAINS
    VALUE = MIN( VALUEIN, MAXVAL( NODES ) )
 
    ! If smaller, assign smallest level value
-   VALUE = MAX( VALUE,   MINVAL( NODES ) )
+   !GanLuo+VALUE = MAX( VALUE,   MINVAL( NODES ) )
+   VALUE = MAX( VALUE,   MINVAL( NODES )*1.d0 )
 
    ! Initialize
    INDICES = (/ 1, 1 /)

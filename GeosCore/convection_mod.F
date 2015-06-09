@@ -1613,20 +1613,6 @@
                   ! Subtract DQ from Q(*,*,K=1,*) and from Q(*,*,K=2,*), 
                   ! but do not make Q(*,*,K=1,*) or Q(*,*,K=2,*) < 0.
                   !=====================================================
-!-----------------------------------------------------------------------------
-!  Prior to 1/4/00:
-!  This ensures additivity when using tagged CO tracers (bey, bmy, 1/4/00)
-!                  DQ = QB(I,J) - QC(I,J)
-!                  
-!                  IF ( DQ .GT. Q(I,J,1,IC)   .OR. 
-!     &                 DQ .GT. Q(I,J,2,IC) ) THEN
-!                     Q(I,J,2,IC) = QC(I,J)
-!                     Q(I,J,1,IC) = QC(I,J)
-!                  ELSE
-!                     Q(I,J,2,IC) = Q(I,J,2,IC) - DQ
-!                     Q(I,J,1,IC) = Q(I,J,1,IC) - DQ
-!                  ENDIF
-!-----------------------------------------------------------------------------
                   Q(I,J,2,IC) = QC(I,J)
                   Q(I,J,1,IC) = QC(I,J)
 
@@ -1966,8 +1952,8 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IS_Hg2
       USE TRACERID_MOD,       ONLY : IS_HgP
-      USE WETSCAV_MOD,        ONLY : H2O2s_3D => H2O2s
-      USE WETSCAV_MOD,        ONLY : SO2s_3D  => SO2s
+      USE WETSCAV_MOD,        ONLY : H2O2s_3D => H2O2s ! [v/v]
+      USE WETSCAV_MOD,        ONLY : SO2s_3D  => SO2s  ! [v/v]
       USE WETSCAV_MOD,        ONLY : WASHOUT
       USE WETSCAV_MOD,        ONLY : LS_K_RAIN
       USE WETSCAV_MOD,        ONLY : LS_F_PRIME
@@ -2055,6 +2041,12 @@
 !  18 Apr 2014 - R. Yantosca - Remove code that we don't need anymore
 !  04 Feb 2015 - M. Sulprizio- Fix calculation of WETLOSS for non-aerosol 
 !                              tracers below the cloud base (C. Friedman)
+!  20 May 2015 - M. Sulprizio- Apply bug fixes provided by Viral Shah:
+!                              -- Remove F(K,IC) > 0 condition that prevents
+!                                 archiving of deposited mass in DIAG38
+!                              -- Add statement that subtracts the wet deposited
+!                                 amount from the atomspheric mass
+!                              -- Fix inconsistency in units when T0_SUM is used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2112,8 +2104,8 @@
       DTRAIN   => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
       REEVAPCN => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
       T        => State_Met%T       (I,J,:        ) ! Air temperature [K]
-      H2O2s    => H2O2s_3D          (I,J,:        ) ! H2O2s from sulfate_mod
-      SO2s     => SO2s_3D           (I,J,:        ) ! SO2s from sulfate_mod
+      H2O2s    => H2O2s_3D          (I,J,:      ) ! H2O2s from wetscav_mod [v/v]
+      SO2s     => SO2s_3D           (I,J,:      ) ! SO2s from wetscav_mod [v/v]
       Q        => State_Chm%TRACERS (I,J,:,:      ) ! Tracer conc. [mol/mol] 
 
 #if   defined( GEOS_FP )
@@ -2510,8 +2502,8 @@
                      RETURN
                   ENDIF
 
-                  ! Archive T0 for use in the next section
-                  T0_SUM  = T0_SUM + T0
+                  ! Pass T0_SUM in units of kg tracer/m2/timestep
+                  T0_SUM = T0_SUM + T0 / TCVV * SDT
  
                   !------------------------------------------------------------
                   ! (3.3)  N D 1 4   D i a g n o s t i c
@@ -2533,7 +2525,7 @@
                   ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
                   ! internal timesteps.
                   !------------------------------------------------------------
-                  IF ( USE_DIAG38 .and. F(K,IC) > 0e+0_fp ) THEN
+                  IF ( USE_DIAG38 ) THEN
                      DIAG38(K,IC) = DIAG38(K,IC)
      &                            + ( T0 * AREA_M2 / TCVV_DNS )
 
@@ -2619,7 +2611,7 @@
                   ! leaving grid box (K+1). 
                   K_RAIN   = LS_K_RAIN( QDOWN )
                   F_WASHOUT= LS_F_PRIME( QDOWN, K_RAIN ) 
-                  
+
                   ! Call WASHOUT to compute the fraction of tracer lost
                   ! to washout in grid box (I,J,K)
                   CALL WASHOUT( I, J, K,   IC,       BXHEIGHT(K), 
@@ -2651,12 +2643,16 @@
                      GAINED  = T0_SUM * ALPHA2
 
                      ! Amount of aerosol lost to washout in grid box
-                     WETLOSS = Q(K,IC) * WASHFRAC - GAINED
+                     WETLOSS = Q(K,IC) * BMASS(K) / TCVV * WASHFRAC -
+     &                         GAINED
 
                      ! LOST is the rained out aerosol coming down from
                      ! grid box (I,J,L+1) that will remain in the liquid
                      ! phase in grid box (I,J,L) and will NOT re-evaporate.
                      LOST    = T0_SUM - GAINED
+
+                     ! Update tracer concentration (V. Shah, mps, 5/20/15)
+                     Q(K,IC) = Q(K,IC) - WETLOSS * TCVV / BMASS(K)
 
                      ! Update T0_SUM, the total amount of scavenged
                      ! tracer that will be passed to the grid box below
@@ -2680,23 +2676,18 @@
                      ! part of box (I,J,L), plus the previously rained-out
                      ! tracer coming down from grid box (I,J,L+1).
                      ! (Eq. 15, Jacob et al, 2000).
-                     MASS_WASH   = ( F_WASHOUT * Q(K,IC) ) + T0_SUM
+                     MASS_WASH = ( F_WASHOUT * Q(K,IC) ) * BMASS(K) /
+     &                           TCVV + T0_SUM
 
                      ! WETLOSS is the amount of tracer mass in 
                      ! grid box (I,J,L) that is lost to washout.
                      ! (Eq. 16, Jacob et al, 2000)
-!------------------------------------------------------------------------------
-! Prior to 2/4/15:
-! Bug fix: Make sure mass of scavenged tracer passed to depo_mercury_mod.F
-! is the same as mass archived in ND38 (clf, mps, 2/4/15)
-!                     WETLOSS     = MASS_WASH * WASHFRAC - T0_SUM
-!------------------------------------------------------------------------------
-                     WETLOSS     = ( MASS_WASH - T0_SUM ) * WASHFRAC
+                     WETLOSS     = MASS_WASH * WASHFRAC - T0_SUM
                      
                      ! The tracer left in grid box (I,J,L) is what was
                      ! in originally in the non-precipitating fraction 
                      ! of the box, plus MASS_WASH, less WETLOSS. 
-                     Q(K,IC)     = Q(K,IC) - WETLOSS
+                     Q(K,IC) = Q(K,IC) - WETLOSS * TCVV / BMASS(K)
                      
                      ! Updated T0_SUM, the total scavenged tracer
                      ! that will be passed to the grid box below
@@ -2725,8 +2716,8 @@
                   ! internal timesteps.
                   !------------------------------------------------------------
                   IF ( USE_DIAG38 .and. F(K,IC) > 0e+0_fp ) THEN
-                     DIAG38(K,IC) = DIAG38(K,IC)
-     &                            + ( WETLOSS * AREA_M2 / TCVV_DNS )
+                     DIAG38(K,IC) = DIAG38(K,IC) +
+     &                              ( WETLOSS * AREA_M2 / NDT )
                   ENDIF
                 
                   ! CHECK for infinity (added by hma, 20101117)
@@ -2751,11 +2742,8 @@
             !--------------------------------------
             IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
-               ! Wet scavenged Hg(II) in [kg/s]
-               WET_Hg2 = ( T0_SUM * AREA_M2 / TCVV_DNS )
-               
-               ! Convert [kg/s] to [kg]
-               WET_Hg2 = WET_Hg2 * NDT 
+               ! Wet scavenged Hg(II) in [kg]
+               WET_Hg2 = ( T0_SUM * AREA_M2 )
 
                ! Pass to "ocean_mercury_mod.f"
                CALL ADD_Hg2_WD      ( I, J, IC, WET_Hg2 )
@@ -2767,11 +2755,8 @@
             !--------------------------------------
             IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
 
-               ! Wet scavenged Hg(P) in [kg/s]
-               WET_HgP = ( T0_SUM * AREA_M2 / TCVV_DNS )
-
-               ! Convert [kg/s] to [kg]
-               WET_HgP = WET_HgP * NDT 
+               ! Wet scavenged Hg(P) in [kg]
+               WET_HgP = ( T0_SUM * AREA_M2 )
 
                ! Pass to "ocean_mercury_mod.f"
                CALL ADD_HgP_WD      ( I, J, IC, WET_HgP )

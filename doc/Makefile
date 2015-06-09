@@ -76,7 +76,8 @@ include $(ROOT)/Makefile_header.mk
 doc: srcdoc utildoc gtmmdoc makedoc hemcodoc
 
 clean:
-	rm -f *.tex *.ps *.pdf *.aux *.dvi *.log *.toc
+	@echo "===> Making clean in directory: doc <==="
+	@rm -f *.tex *.ps *.pdf *.aux *.dvi *.log *.toc
 
 help:
 	@$(MAKE) -C $(HELP)

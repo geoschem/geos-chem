@@ -65,6 +65,7 @@
 #                              files in GeosUtil
 #  21 Jul 2014 - R. Yantosca - Removed regrid_1x1_mod.F; it's obsolete
 #  23 Jul 2014 - R. Yantosca - Removed global_grid_mod.F90; it's obsolete
+#  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -76,31 +77,39 @@
 ###############################################################################
 
 # Define variables
-ROOT := ..
-HELP := $(ROOT)/help
-LIB  := $(ROOT)/lib
-MOD  := $(ROOT)/mod
+ROOT      :=..
+HELP      :=$(ROOT)/help
+LIB       :=$(ROOT)/lib
+MOD       :=$(ROOT)/mod
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOT)/Makefile_header.mk
 
 # List of source files: everything ending in .F and .F90
-SRC  := $(wildcard *.F) $(wildcard *.F90)
+SOURCES   :=$(wildcard *.F) $(wildcard *.F90)
 
 # Replace .f and .f90 extensions with *.o
-TMP  := $(SRC:.F=.o)
-OBJ  := $(TMP:.F90=.o)
+TMP       :=$(SOURCES:.F=.o)
+OBJECTS   :=$(TMP:.F90=.o)
 
 # Special files just for IFORT
 ifeq ($(COMPILER),ifort) 
-OBJ  += ifort_errmsg.o
+  OBJECTS += ifort_errmsg.o
 endif
 
 # Special files just for PGI
 ifeq ($(COMPILER),pgi) 
-OBJ  += linux_err.o
+  OBJECTS += linux_err.o
 endif
+
+# List of module files.  Convert to lowercase, then prefix directory name.
+MODULES   :=$(OBJECTS:.o=.mod)
+MODULES   :=$(shell echo $(MODULES) | tr A-Z a-z)
+MODULES   :=$(foreach I,$(MODULES),$(MOD)/$(I))
+
+# Library file
+LIBRARY   :=libGeosUtil.a
 
 ###############################################################################
 ###                                                                         ###
@@ -108,17 +117,28 @@ endif
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean help
+.PHONY: clean help debug
 
-lib: $(OBJ)
-	$(AR) crs libGeosUtil.a $(OBJ)
-	mv libGeosUtil.a $(LIB)
+lib: $(OBJECTS)
+	$(AR) crs $(LIBRARY) $(OBJECTS)
+	mv $(LIBRARY) $(LIB)
 
 clean:
-	rm -f *.o *.mod
+	@echo "===> Making clean in directory: GeosUtil <==="
+	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 help:
 	@$(MAKE) -C $(HELP)
+
+debug:
+	@echo "Targets : $(MAKECMDGOALS)"
+	@echo "ROOT    : $(ROOT)"
+	@echo "LIB     : $(LIB)"
+	@echo "MOD     : $(MOD)"
+	@echo "F90     : $(F90)"
+	@echo "OBJECTS : $(OBJECTS)"
+	@echo "MODULES : $(MODULES)"
+	@echo "LIBRARY : $(LIBRARY)"
 
 ###############################################################################
 ###                                                                         ###

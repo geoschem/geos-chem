@@ -164,6 +164,13 @@
 #                              netCDF library paths and GC_F_BIN, GC_F_INCLUDE
 #                              to point to netCDF-Fortran library paths.
 #                              (In some cases, these are the same).
+#  20 May 2015 - R. Yantosca - Test if GC_F_BIN and GC_F_INCLUDE are defined
+#                              as env variables before trying to use them.
+#  29 May 2015 - R. Yantosca - Now set KPP_CHEM for KPP.  We can't redefine
+#                              the CHEM variable because it is an env var.
+#  04 Jun 2015 - R. Yantosca - Now use RRTMG_NO_CLEAN=y or RRTMG_NOCLEAN=y to 
+#                              removing RRTMG objects, modules, and libraries.
+#  04 Jun 2015 - R. Yantosca - Bug fix: don't turn on UCX except for CHEM=UCX
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -306,6 +313,50 @@ ifeq ($(shell [[ "$(NO_BPCH)" =~ $(REGEXP) ]] && echo true),true)
 endif
 
 #------------------------------------------------------------------------------
+# KPP settings chemistry solver settings.  NOTE: We can't redefine CHEM 
+# (since it is an environent variable), so define a shadow variable KPP_CHEM.
+# %%%%% NOTE: These will probably be obsolete when FLEXCHEM is added. %%%%%
+#------------------------------------------------------------------------------
+
+# Test if the CHEM value is set
+IS_CHEM_SET          :=0
+
+# %%%%% Test if CHEM=UCX (will also turn on UCX) %%%%%
+REGEXP               :=(^[Uu][Cc][Xx])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  UCX                :=y
+  KPP_CHEM           :=UCX
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=SOA %%%%%
+REGEXP               :=(^[Ss][Oo][Aa])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=SOA
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=NOx_Ox_HC_Aer_Br %%%%%
+REGEXP               :=(^[Nn][Oo][Xx]_[Oo][Xx]_[Hh][Cc]_[Aa][Ee][Rr]_[Bb][Rr])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=NOx_Ox_HC_Aer_Br
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=tropchem (synonym for NOx_Ox_HC_Aer_Br) %%%%%
+REGEXP               :=(^[Tt][Rr][Oo][Pp][Cc][Hh][Ee][Mm])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=NOx_Ox_HC_Aer_Br
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%%  Default setting: CHEM=benchmark %%%%%
+ifeq ($(IS_CHEM_SET),0)
+  KPP_CHEM           :=benchmark
+  IS_CHEM_SET        :=1
+endif
+
+#------------------------------------------------------------------------------
 # UCX stratospheric-tropospheric chemistry settings
 #------------------------------------------------------------------------------
 
@@ -314,7 +365,6 @@ REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(UCX)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DUCX
   NO_REDUCED         :=yes
-  CHEM               :=UCX
 endif
 
 #------------------------------------------------------------------------------
@@ -328,6 +378,19 @@ ifeq ($(shell [[ "$(RRTMG)" =~ $(REGEXP) ]] && echo true),true)
   RRTMG_NEEDED       :=1
   USER_DEFS          += -DRRTMG
 endif
+
+# %%%%% Give users the option to make realclean except for RRTMG   %%%%%
+# %%%%% if they set variables  RRTMG_NOCLEAN=y or RRTMG_NO_CLEAN=y %%%%%
+# %%%%% This should help reduce the amount of time to recompile.   %%%%%
+RRTMG_CLEAN          :=1
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(RRTMG_NO_CLEAN)" =~ $(REGEXP) ]] && echo true),true)
+  RRTMG_CLEAN        :=0
+endif
+ifeq ($(shell [[ "$(RRTMG_NOCLEAN)" =~ $(REGEXP) ]] && echo true),true)
+  RRTMG_CLEAN        :=0
+endif
+
 
 #------------------------------------------------------------------------------
 # Met field settings
@@ -406,7 +469,7 @@ endif  # NO_MET_NEEDED
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of GRID.
 ifndef NO_GRID_NEEDED
   ifndef GRID
-    REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout.|baselib.)
+    REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout.|baselib.|^wipeout)
     ifeq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
       NO_GRID_NEEDED :=1
     else
@@ -658,8 +721,13 @@ endif
 ###                                                                         ###
 ###############################################################################
 
-# Library include path
-NC_INC_CMD           := -I$(GC_INCLUDE) -I$(GC_F_INCLUDE)
+# netCDF Library include path.  
+# Test if a separate netcdf-fortran library is specified.
+ifdef GC_F_INCLUDE
+  NC_INC_CMD         := -I$(GC_INCLUDE) -I$(GC_F_INCLUDE)
+else
+  NC_INC_CMD         := -I$(GC_INCLUDE)
+endif
 
 # Get the version number (e.g. "4130"=netCDF 4.1.3; "4200"=netCDF 4.2, etc.)
 NC_VERSION           :=$(shell $(GC_BIN)/nc-config --version)
@@ -681,8 +749,13 @@ ifeq ($(AT_LEAST_NC_4200),1)
   #-------------------------------------------------------------------------
   # netCDF 4.2 and higher:
   # Use "nf-config --flibs" and "nc-config --libs"
+  # Test if a separate netcdf-fortran path is specified
   #-------------------------------------------------------------------------
-  NC_LINK_CMD        := $(shell $(GC_F_BIN)/nf-config --flibs)
+  ifdef GC_F_BIN 
+    NC_LINK_CMD      := $(shell $(GC_F_BIN)/nf-config --flibs)
+  else
+    NC_LINK_CMD      := $(shell $(GC_BIN)/nf-config --flibs)
+  endif
   NC_LINK_CMD        += $(shell $(GC_BIN)/nc-config --libs)
 
 else
@@ -1000,6 +1073,9 @@ export NC_LINK_CMD
 export HPC
 export PRECISION
 export RRTMG_NEEDED
+export RRTMG_CLEAN
+export RRTMG_NO_CLEAN
+export KPP_CHEM
 
 #EOC
 
@@ -1012,12 +1088,13 @@ export RRTMG_NEEDED
 
 #headerinfo:
 #	@@echo '####### in Makefile_header.mk ########' 
-#	@@echo "compiler: $(COMPILER)"
-#	@@echo "debug   : $(DEBUG)"
-#	@@echo "bounds  : $(BOUNDS)"
-#	@@echo "f90     : $(F90)"
-#	@@echo "cc      : $(CC)"
-#	@@echo "include : $(INCLUDE)"
-#	@@echo "link    : $(LINK)"
-#	@@echo "userdefs: $(USER_DEFS)"
-
+#	@@echo "COMPILER    : $(COMPILER)"
+#	@@echo "DEBUG       : $(DEBUG)"
+#	@@echo "BOUNDS      : $(BOUNDS)"
+#	@@echo "F90         : $(F90)"
+#	@@echo "CC          : $(CC)"
+#	@@echo "INCLUDE     : $(INCLUDE)"
+#	@@echo "LINK        : $(LINK)"
+#	@@echo "USERDEFS    : $(USER_DEFS)"
+#	@@echo "NC_INC_CMD  : $(NC_INC_CMD)"
+#	@@echo "NC_LINK_CMD : $(NC_LINK_CMD)"

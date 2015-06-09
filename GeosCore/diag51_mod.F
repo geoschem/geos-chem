@@ -40,6 +40,41 @@
       PRIVATE :: WRITE_DIAG51             
 !
 ! !REMARKS:
+!  NOTE by Melissa Sulprizio, 26 May 2015
+!  ----------------------------------------------------------------------------
+!  The emission options in the timeseries diagnostics were removed 
+!  from v10-01 since HEMCO now handles the emission diagnostics. To 
+!  utilize the diagnostics capability from HEMCO and output hourly 
+!  isoprene emissions, you can follow these steps:
+!
+!    1. At the top of your HEMCO_Config.rc file, set DiagnFreq to Hourly 
+!       and add a line for DiagnFile:
+!
+!          DiagnPrefix: HEMCO_Diagnostics
+!          DiagnFreq: Hourly
+!          DiagnFile: DiagnFile.rc
+!
+!    2.  Create a new text file in your run directory named DiagnFile.rc 
+!        and list the emission fields that you would like to be saved out. 
+!        For example:
+!
+!          # Name        Spec ExtNr Cat Hier Dim OutUnit
+!          ISOP_BIOG     ISOP 108    1   1   2   kg/m2/s
+!
+!        NOTE: The ExtNr, Cat, Hier, and Dim values listed above were 
+!        obtained from the MEGAN entries in the HEMCO_Config.rc file.
+!
+!    3. You can then run GEOS-Chem as usual. HEMCO will write out the 
+!       specified diagnostics in a netCDF file named 
+!       HEMCO_Diagnostics.YYYYMMDDHHmm.nc. I recommend running a short 
+!       1-day simulation to make sure the diagnostic output is what 
+!       you expect.
+!
+!  For more details on the HEMCO diagnostics, please see this post 
+!  in the HEMCO User’s Guide:
+!
+!       http://wiki.geos-chem.org/The_HEMCO_User%27s_Guide#Diagnostics
+!
 !  ND51 tracer numbers:
 !  ============================================================================
 !  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v        ]
@@ -70,20 +105,6 @@
 !  181           : PAR diffuse                              [hPa        ]
 !  182           : Daily LAI                                [hPa        ]
 !  183           : Temperature at 2m                        [K          ]
-!
-! The following diagnostics are currently commented out since they are now
-! handled by HEMCO (mps, 4/15/15)
-!  184           : Isoprene emissions                       [atomC/cm2/s]
-!  185           : Total Monoterpene emissions              [atomC/cm2/s]
-!  186           : Methyl Butanol emissions                 [atomC/cm2/s]
-!  187           : Alpha-Pinene emissions                   [atomC/cm2/s]
-!  188           : Beta-Pinene emissions                    [atomC/cm2/s]
-!  189           : Limonene emissions                       [atomC/cm2/s]
-!  190           : Sabinene emissions                       [atomC/cm2/s]
-!  191           : Myrcene emissions                        [atomC/cm2/s]
-!  192           : 3-Carene emissions                       [atomC/cm2/s]
-!  193           : Ocimene emissions                        [atomC/cm2/s]
-!  194           : Farnesene emissions                      [atomC/cm2/s]
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1091,161 +1112,12 @@
 
                ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 4/15/15:
-! The biogenic emission diagnostics are now archived in HEMCO. Comment out
-! temporarily until we can restore these. (mps, 4/15/15)
-!            ELSE IF ( N == 184 ) THEN
-!
-!               !--------------------------------------
-!               ! ISOPRENE EMISSIONS [atom C/cm2/s]
-!               ! (mpb,2008)
-!               !--------------------------------------
-!
-!               IF ( K == 1 ) THEN
-!              
-!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-!     &                         ( EMISS_BVOC(I,J,1) * GOOD_EMIS(I) ) 
-!
-!               ENDIF
-!
-!            ELSE IF ( N == 185 ) THEN
-!
-!               !--------------------------------------
-!               ! MONOTERPENE EMISSIONS [atomC/cm2/s]
-!               ! (mpb,2008)
-!               !--------------------------------------
-!
-!               IF ( K == 1 ) THEN
-!              
-!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-!     &                     ( EMISS_BVOC(I,J,2) * GOOD_EMIS(I) ) 
-!               ENDIF
-!
-!            ELSE IF ( N == 186 ) THEN
-!
-!               !--------------------------------------
-!               ! MBO EMISSIONS [atom C/cm2/s]
-!               ! (mpb,2008)
-!               !--------------------------------------
-!
-!               IF ( K == 1 ) THEN
-!              
-!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-!     &                     ( EMISS_BVOC(I,J,3) * GOOD_EMIS(I) ) 
-!               ENDIF
-!
-!            ELSE IF ( N == 187 ) THEN
-!
-!               !--------------------------------------
-!               ! A-PINENE EMISSIONS [atom C/cm2/s]
-!               ! (mpb,2009)
-!               !--------------------------------------
-!
-!               IF ( K == 1 ) THEN
-!              
-!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-!     &                     ( EMISS_BVOC(I,J,4) * GOOD_EMIS(I) ) 
-!               ENDIF
-!
-!            ELSE IF ( N == 188 ) THEN
-!
-!               !--------------------------------------
-!               ! B-PINENE EMISSIONS [atom C/cm2/s]
-!               ! (mpb,2009)
-!               !--------------------------------------
-!
-!               IF ( K == 1 ) THEN
-!              
-!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-!     &                     ( EMISS_BVOC(I,J,5) * GOOD_EMIS(I) ) 
-!               ENDIF
-!
-!
-!            ELSE IF ( N == 189 ) THEN
-!
-!               !--------------------------------------
-!               ! LIMONENE EMISSIONS [atom C/cm2/s]
-!               ! (mpb,2009)
-!               !--------------------------------------
-!
-!               IF ( K == 1 ) THEN
-!              
-!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-!     &                     ( EMISS_BVOC(I,J,6) * GOOD_EMIS(I) ) 
-!               ENDIF
-!
-!
-!            ELSE IF ( N == 190 ) THEN
-!
-!               !--------------------------------------
-!               ! SABINE EMISSIONS [atom C/cm2/s]
-!               ! (mpb,2009)
-!               !--------------------------------------
-!
-!               IF ( K == 1 ) THEN
-!              
-!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-!     &                     ( EMISS_BVOC(I,J,7) * GOOD_EMIS(I) ) 
-!               ENDIF
-!
-!            ELSE IF ( N == 191 ) THEN
-!
-!               !--------------------------------------
-!               ! MYRCENE EMISSIONS [atom C/cm2/s]
-!               ! (mpb,2009)
-!               !--------------------------------------
-!
-!               IF ( K == 1 ) THEN
-!              
-!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-!     &                     ( EMISS_BVOC(I,J,8) * GOOD_EMIS(I) ) 
-!               ENDIF
-!
-!            ELSE IF ( N == 192 ) THEN
-!
-!               !--------------------------------------
-!               ! 3-CARENE EMISSIONS [atom C/cm2/s]
-!               ! (mpb,2009)
-!               !--------------------------------------
-!
-!               IF ( K == 1 ) THEN
-!              
-!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-!     &                     ( EMISS_BVOC(I,J,9) * GOOD_EMIS(I) ) 
-!               ENDIF
-!
-!            ELSE IF ( N == 193 ) THEN
-!
-!               !--------------------------------------
-!               ! OCIMENE EMISSIONS [atom C/cm2/s]
-!               ! (mpb,2009)
-!               !--------------------------------------
-!
-!               IF ( K == 1 ) THEN
-!              
-!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-!     &                     ( EMISS_BVOC(I,J,10) * GOOD_EMIS(I) ) 
-!               ENDIF
-!
-!            ELSE IF ( N == 194 ) THEN
-!
-!               !--------------------------------------
-!               ! FARNESENE EMISSIONS [atom C/cm2/s]
-!               ! (hotp 3/5/10)
-!               !--------------------------------------
-!
-!               IF ( K == 1 ) THEN
-!              
-!                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-!     &                     ( EMISS_BVOC(I,J,11) * GOOD_EMIS(I) ) 
-!               ENDIF
-!
-!            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!            !% SOAupdate: Can add BCARYO, OSQT, OMTP if desired  %
-!            !% (hotp 7/25/10)                                    %
-!            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!------------------------------------------------------------------------------
+!##############################################################################
+!###  HEMCO NOW ARCHIVES THE BIOGENIC EMISSION TIMESERIES DIAGNOSTICS,      ###
+!###  AS WELL AS THE SOIL NOx TIMESERIES DIAGNOSTICS.                       ###
+!###  SEE THE NOTE ABOVE FOR INSTRUCTIONS ON HOW TO SAVE THE EQUIVALENT     ###
+!###  OUTPUTS TO A netCDF FILE. (bmy, mps, 5/26/15)                         ###
+!##############################################################################
 
             ELSE
 

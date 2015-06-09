@@ -338,7 +338,7 @@ CONTAINS
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
           !----------------------------------------------------------------
-          !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+          !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
           !
           ! Do not define half-sized polar boxes (bmy, 3/21/13)
           !----------------------------------------------------------------
@@ -347,7 +347,7 @@ CONTAINS
 # if defined( GCAP )
 
           !----------------------------------------------------------------
-          !             %%%%% TRADITIONAL GEOS-Chem %%%%%
+          !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
           !
           ! For the GCAP model, there are no half-size polar boxes.
           ! Compute the latitude centers accordingly.  (bmy, 7/2/13)
@@ -359,7 +359,7 @@ CONTAINS
 #else
 
           !----------------------------------------------------------------
-          !             %%%%% TRADITIONAL GEOS-Chem %%%%%
+          !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
           !
           ! Current practice in the standard GEOS-Chem is to make
           ! the polar grid boxes (for non-GCAP global grids only) be
@@ -409,13 +409,13 @@ CONTAINS
             
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
           !----------------------------------------------------------------
-          !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-          !
+          !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
+    
           ! Do not define half-sized polar boxes (bmy, 3/21/13)
           !----------------------------------------------------------------
 #else
           !----------------------------------------------------------------
-          !            %%%%% TRADITIONAL GEOS-Chem %%%%%
+          !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
           !
           ! Current practice in the standard GEOS-Chem is to force
           ! the northern edge of grid boxes along the SOUTH POLE to
@@ -455,14 +455,14 @@ CONTAINS
        DO I = I1, I2
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
           !----------------------------------------------------------------
-          !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+          !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
           !
           ! Do not define half-sized polar boxes (bmy, 3/21/13)
           !----------------------------------------------------------------
           YDG  (I,J2+1,L)  = YDG(I,J2,L)   + DLAT(I,J2,L)
 #else
           !----------------------------------------------------------------
-          !            %%%%% TRADITIONAL GEOS-Chem %%%%%
+          !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
           !
           ! Current practice in the standard GEOS-Chem is to force
           ! the northern edge of grid boxes along the NORTH POLE to
@@ -601,7 +601,7 @@ CONTAINS
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
           !-------------------------------------------------------------
-          !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+          !      %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
           !
           ! The GEOS-5 GCM is a grid-point model, with the polar
           ! boxes (+90 & -90 degrees latitude) being grid box

@@ -259,7 +259,7 @@
 
       ! Arrays that hold information for each of the 74 Olson land types
       INTEGER               :: INDOLSON(NVEGTYPE )
-      INTEGER               :: IDEP    (NVEGTYPE )
+      INTEGER, POINTER      :: IDEP    (:        )
       INTEGER               :: IZO     (NVEGTYPE )
       INTEGER               :: IWATER  (NVEGTYPE )
 
@@ -1540,6 +1540,7 @@
       ILAND => State_Met%ILAND
       IUSE  => State_Met%IUSE
       XLAI  => State_Met%XLAI
+      IDEP  => Input_Opt%IDEP
 
       ! Is this a POPs simmulation?
       IS_POPS = Input_Opt%ITS_A_POPS_SIM  ! clf, 1/3/2011
@@ -6235,7 +6236,7 @@
       ! Save Olson indices in INDOLSON array, in order to avoid
       ! confusion w/ previously-assinged variable name IOLSON
       CALL READ_DRYDEP_INPUTS( am_I_Root, Input_Opt, 
-     &                         DRYCOEFF,  INDOLSON, IDEP,    
+     &                         DRYCOEFF,  INDOLSON, Input_Opt%IDEP,    
      &                         IWATER,    NWATER,   IZO,      
      &                         IDRYDEP,   IRI,      IRLU,     
      &                         IRAC,      IRGSS,    IRGSO, 

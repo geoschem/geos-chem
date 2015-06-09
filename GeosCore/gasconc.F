@@ -306,7 +306,7 @@
       
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! When we connect to the ESMF interface, the CSPEC_FULL array
       ! is defined from the values in the Chemistry State.  We need
@@ -318,7 +318,7 @@
 
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Preserve current practice in the std GEOS-Chem: (bmy, 10/24/12)
       !
@@ -612,7 +612,7 @@
 !
           IF (QACC.EQ.0.AND.QNEW.NE.0.) THEN
              IF ( am_I_Root ) THEN
-                WRITE(6,465) NAMEGAS(JOLD) 
+                WRITE(6,465) NAMEGAS(JOLD)             
              ENDIF
            STOP 
           ENDIF 

@@ -503,6 +503,8 @@
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  29 Oct 2013 - R. Yantosca - Now interpolate T_FULLGRID field for GEOS-FP met
+!  12 May 2015 - E. Lundgren - Fix I3 interpolation bug where time fraction
+!                              spans from 1 to 2, not 0 to 1, for hrs 3 to 6
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -534,6 +536,14 @@
       
       ! Fraction of 6h timestep elapsed at the end of this dyn timestep
       TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
+
+#if   defined( GEOS_FP )
+      ! For I3 fields, need to reset fraction after 3 hours (ewl, 5/12/2015)
+      IF ( TM > 1.0e+0_fp ) THEN
+         TM  = TM  - 1.0e+0_fp
+         TC2 = TC2 - 1.0e+0_fp
+      ENDIF
+#endif
 
 #if   defined( GEOS_4 ) || defined( GCAP )
 

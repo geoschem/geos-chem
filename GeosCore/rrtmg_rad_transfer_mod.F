@@ -180,228 +180,284 @@
 !  23 Apr 2015 - R. Yantosca - Bug fix: YLAT was undefined; now corrected
 !  23 Apr 2015 - R. Yantosca - Bug fix: all members of State_Met now use
 !                              (I,J,L) ordering.  This is for the NASA GCM.
+!  02 Jun 2015 - R. Yantosca - Bug fix: Add missing variables to OMP PRIVATE
+!  03 Jun 2015 - R. Yantosca - Now use pointers to avoid array temporaries
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS
 !
-      INTEGER, PARAMETER  :: NWV=37
+      INTEGER, PARAMETER     :: NWV=37
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL             :: DOAERAD      ! INCLUDE AEROSOL DETERMINED FROM
-                                          ! SPECMASK
-      LOGICAL             :: LOUTPUTAERO  ! OUTPUT AEROSOL DIAGNOSTICS?
-      INTEGER             :: NAD72        ! NUMBER OF OUTPUTS PER FIELD
-      INTEGER             :: ITIMEVALS(8)
-      INTEGER             :: IDIAGOUT     ! INDEX OF SPECIES OPTICS FOR OUTPUT
-      REAL*8              :: OLDSECS, NEWSECS
+      LOGICAL                :: DOAERAD      ! INCLUDE AEROSOL DETERMINED FROM
+                                             ! SPECMASK
+      LOGICAL                :: LOUTPUTAERO  ! OUTPUT AEROSOL DIAGNOSTICS?
+      INTEGER                :: NAD72        ! NUMBER OF OUTPUTS PER FIELD
+      INTEGER                :: ITIMEVALS(8)
+      INTEGER                :: IDIAGOUT     ! INDEX OF SPECIES OPTICS FOR OUTPUT
+      REAL*8                 :: OLDSECS, NEWSECS
 
       !-----------------------------------------------------------------
       ! TEMPORARY AEROSOL VARIABLES
       !-----------------------------------------------------------------
-      REAL*8              :: LAMBDA(NWV)
+      REAL*8                 :: LAMBDA(NWV)
 
       !-----------------------------------------------------------------
       ! SCALARS
       !-----------------------------------------------------------------
-      INTEGER             :: I, J ,L, LL, N, NCOL, JLOOP, IJLOOP, W
-      INTEGER             :: IL, OMPID, LCHEM
-      INTEGER             :: OUTIDX,IOUTWV
-      INTEGER             :: IB,IBX,IB_SW,IS,NBNDS,NSPEC
-      INTEGER             :: IS_ON,NASPECRAD_ON
-      INTEGER             :: IASPECRAD_ON(NASPECRAD)
-      REAL*8              :: RHOICE=0.9167, RHOLIQ=1.    ! G/CM3
+      INTEGER                :: I, J ,L, LL, N, NCOL, JLOOP, IJLOOP, W
+      INTEGER                :: IL, OMPID, LCHEM
+      INTEGER                :: OUTIDX,IOUTWV
+      INTEGER                :: IB,IBX,IB_SW,IS,NBNDS,NSPEC
+      INTEGER                :: IS_ON,NASPECRAD_ON
+      INTEGER                :: IASPECRAD_ON(NASPECRAD)
+      REAL*8                 :: RHOICE=0.9167, RHOLIQ=1.    ! G/CM3
 
       !-----------------------------------------------------------------
       ! REL AND REI FROM PERSONAL COMMUNICATION FROM LAZAROS OREOPOULOS
       ! (GSFC) 12/12/12
       !-----------------------------------------------------------------
-      REAL*8              :: REL_DEF = 14.2, REI_DEF=24.8    ! MICRONS
-      INTEGER             :: DOY
+      REAL*8                 :: REL_DEF = 14.2, REI_DEF=24.8    ! MICRONS
+      INTEGER                :: DOY
 
-      INTEGER             :: IHR
-      CHARACTER(LEN=2)    :: CHR
+      INTEGER                :: IHR
+      CHARACTER(LEN=2)       :: CHR
 
       !-----------------------------------------------------------------
       ! ARRAYS FROM GC
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: PCENTER(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: PEDGE  (IIPAR*JJPAR,LLPAR)
-      LOGICAL             :: INTROP (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: PCENTER(IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: PEDGE  (IIPAR*JJPAR,LLPAR)
+      LOGICAL                :: INTROP (IIPAR*JJPAR,LLPAR)
 
       !-----------------------------------------------------------------
       !ARRAYS FOR RRTMG
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: O3VMR (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: CH4VMR(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: N2OVMR(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: CFC11VMR(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: CFC12VMR(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: CFC22VMR(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: CCL4VMR(IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: O3VMR (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CH4VMR(IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: N2OVMR(IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CFC11VMR(IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CFC12VMR(IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CFC22VMR(IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CCL4VMR(IIPAR*JJPAR,LLPAR)
 
-      REAL(KIND=RB)       :: TAUCLD(IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: CLDFR (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: RELIQ (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: REICE (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: CLIQWP (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: CICEWP (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: ALBVIS (IIPAR*JJPAR)
+      REAL(KIND=RB)          :: TAUCLD(IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CLDFR (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: RELIQ (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: REICE (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CLIQWP (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: CICEWP (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: ALBVIS (IIPAR*JJPAR)
 
-      REAL(KIND=RB)       :: TAUAER_LW (IIPAR*JJPAR,LLPAR,NBNDLW)
-      REAL(KIND=RB)       :: TAUAER_SW (IIPAR*JJPAR,LLPAR,NBNDSW)
-      REAL(KIND=RB)       :: SSAAER (IIPAR*JJPAR,LLPAR,NBNDSW)
-      REAL(KIND=RB)       :: ASMAER (IIPAR*JJPAR,LLPAR,NBNDSW)
+      REAL(KIND=RB)          :: TAUAER_LW (IIPAR*JJPAR,LLPAR,NBNDLW)
+      REAL(KIND=RB)          :: TAUAER_SW (IIPAR*JJPAR,LLPAR,NBNDSW)
+      REAL(KIND=RB)          :: SSAAER (IIPAR*JJPAR,LLPAR,NBNDSW)
+      REAL(KIND=RB)          :: ASMAER (IIPAR*JJPAR,LLPAR,NBNDSW)
 
       !-----------------------------------------------------------------
       !TO STORE THE OPTICS FOR THE AEROSOLS WE ARE INTERESTED IN
       !-----------------------------------------------------------------
-      REAL*8              :: TAUAERDIAG (IIPAR*JJPAR,LLPAR,NBNDSW)
-      REAL*8              :: SSAAERDIAG (IIPAR*JJPAR,LLPAR,NBNDSW)
-      REAL*8              :: ASMAERDIAG (IIPAR*JJPAR,LLPAR,NBNDSW)
+      REAL*8                 :: TAUAERDIAG (IIPAR*JJPAR,LLPAR,NBNDSW)
+      REAL*8                 :: SSAAERDIAG (IIPAR*JJPAR,LLPAR,NBNDSW)
+      REAL*8                 :: ASMAERDIAG (IIPAR*JJPAR,LLPAR,NBNDSW)
 
-      REAL(KIND=RB)       :: H2OVMR   (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: TLAY     (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: PLAY     (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: SUNCOS   (IIPAR*JJPAR,LLPAR)
-      REAL(KIND=RB)       :: TSFC     (IIPAR*JJPAR)
+      REAL(KIND=RB)          :: H2OVMR   (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: TLAY     (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: PLAY     (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: SUNCOS   (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB)          :: TSFC     (IIPAR*JJPAR)
 
       !-----------------------------------------------------------------
       !VARIABLES FOR OBTAINING STRATOSPHERIC VARIABLES
       !-----------------------------------------------------------------
-      REAL*8              :: O3COL, YLAT, AIR_TMP
+      REAL*8                 :: O3COL, YLAT, AIR_TMP
 
       !-----------------------------------------------------------------
       !SURFACE
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: ALBDIRVIS (IIPAR*JJPAR)
-      REAL(KIND=RB)       :: ALBDIFVIS (IIPAR*JJPAR)
-      REAL(KIND=RB)       :: ALBDIRNIR (IIPAR*JJPAR)
-      REAL(KIND=RB)       :: ALBDIFNIR (IIPAR*JJPAR)
-      REAL(KIND=RB)       :: RTEMISS   (IIPAR*JJPAR,NBNDLW)
+      REAL(KIND=RB)          :: ALBDIRVIS (IIPAR*JJPAR)
+      REAL(KIND=RB)          :: ALBDIFVIS (IIPAR*JJPAR)
+      REAL(KIND=RB)          :: ALBDIRNIR (IIPAR*JJPAR)
+      REAL(KIND=RB)          :: ALBDIFNIR (IIPAR*JJPAR)
+      REAL(KIND=RB)          :: RTEMISS   (IIPAR*JJPAR,NBNDLW)
 
-      REAL*8              :: NUMER,DENOM
-      REAL*4              :: AODTMP,AODOUT,SSATMP,SSAOUT
-      REAL*4              :: ASYMTMP,ASYMOUT
-      INTEGER             :: FLG_FIRST_STRAT(IIPAR*JJPAR)
-      INTEGER             :: ONECOL
-      REAL*4              :: CH4SCL(IIPAR*JJPAR)
+      REAL*8                 :: NUMER,DENOM
+      REAL*4                 :: AODTMP,AODOUT,SSATMP,SSAOUT
+      REAL*4                 :: ASYMTMP,ASYMOUT
+      INTEGER                :: FLG_FIRST_STRAT(IIPAR*JJPAR)
+      INTEGER                :: ONECOL
+      REAL*4                 :: CH4SCL(IIPAR*JJPAR)
 
       !-----------------------------------------------------------------
       ! FROM RAD_DRIVER... TO BE MERGED
       ! FLAGS AND DIMENSIONS
       !-----------------------------------------------------------------
-      INTEGER (KIND=IM)   :: IDRV
-      INTEGER (KIND=IM)   :: INFLGLW, ICEFLGLW,LIQFLGLW
-      INTEGER (KIND=IM)   :: INFLGSW, ICEFLGSW,LIQFLGSW
+      INTEGER (KIND=IM)      :: IDRV
+      INTEGER (KIND=IM)      :: INFLGLW, ICEFLGLW,LIQFLGLW
+      INTEGER (KIND=IM)      :: INFLGSW, ICEFLGSW,LIQFLGSW
 
       !-----------------------------------------------------------------
       ! PROFILE VARIABLES
       !-----------------------------------------------------------------
-      REAL (KIND=RB)      :: PLEV(IIPAR*JJPAR,LLPAR+1)
-      REAL (KIND=RB)      :: TLEV(IIPAR*JJPAR,LLPAR+1)
-      REAL (KIND=RB)      :: CO2VMR(IIPAR*JJPAR,LLPAR)
-      REAL (KIND=RB)      :: O2VMR(IIPAR*JJPAR,LLPAR)
-      REAL (KIND=RB)      :: T_CTM(LLPAR+1)
-      REAL (KIND=RB)      :: P_CTM(LLPAR+2)
-      REAL (KIND=RB)      :: O3_CTM(LLPAR+1)
-      REAL (KIND=RB)      :: T_CLIM(LLPAR+1)
-      REAL (KIND=RB)      :: O3_CLIM(LLPAR+1)
-      REAL (KIND=RB)      :: Z_CLIM(LLPAR+2)
-      REAL (KIND=RB)      :: AIR_CLIM(LLPAR+1)
-      INTEGER             :: N_TRACERS
-      REAL*8              :: XNUMOL(Input_Opt%N_TRACERS)
-      REAL*8              :: TRACER_MW_G(Input_Opt%N_TRACERS)
+      REAL (KIND=RB)         :: PLEV(IIPAR*JJPAR,LLPAR+1)
+      REAL (KIND=RB)         :: TLEV(IIPAR*JJPAR,LLPAR+1)
+      REAL (KIND=RB)         :: CO2VMR(IIPAR*JJPAR,LLPAR)
+      REAL (KIND=RB)         :: O2VMR(IIPAR*JJPAR,LLPAR)
+      REAL (KIND=RB)         :: T_CTM(LLPAR+1)
+      REAL (KIND=RB)         :: P_CTM(LLPAR+2)
+      REAL (KIND=RB)         :: O3_CTM(LLPAR+1)
+      REAL (KIND=RB)         :: T_CLIM(LLPAR+1)
+      REAL (KIND=RB)         :: O3_CLIM(LLPAR+1)
+      REAL (KIND=RB)         :: Z_CLIM(LLPAR+2)
+      REAL (KIND=RB)         :: AIR_CLIM(LLPAR+1)
+      INTEGER                :: N_TRACERS
+      REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL*8                 :: TRACER_MW_G(Input_Opt%N_TRACERS)
 
       !-----------------------------------------------------------------
       ! SW SOLAR VARIABLES
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: ADJES=1.0     ! FLUX ADJUSTMENT FOR EARTH/SUN DIST
-      REAL(KIND=RB)       :: SCON=1368.22  ! SOLAR CONSTANT (W/M2)
+      REAL(KIND=RB)          :: ADJES=1.0     ! FLUX ADJUSTMENT FOR EARTH/SUN DIST
+      REAL(KIND=RB)          :: SCON=1368.22  ! SOLAR CONSTANT (W/M2)
 
       !-----------------------------------------------------------------
       ! SW CLOUD VARIABLES
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: TAUCLD_SW(NBNDSW,IIPAR*JJPAR,LLPAR) ! IN-CLOUD OPTICAL DEPTH
-      REAL(KIND=RB)       :: TAUCLD_LW(NBNDLW,IIPAR*JJPAR,LLPAR) ! NOT USED BUT PASSED TO MCICA_LW
-      REAL(KIND=RB)       :: SSACLD(NBNDSW,IIPAR*JJPAR,LLPAR)    ! IN-CLOUD SINGLE SCATTERING ALBEDO
-      REAL(KIND=RB)       :: ASMCLD(NBNDSW,IIPAR*JJPAR,LLPAR)    ! IN-CLOUD ASYMMETRY PARAMETER
-      REAL(KIND=RB)       :: FSFCLD(NBNDSW,IIPAR*JJPAR,LLPAR)    ! IN-CLOUD FORWARD SCATTERING FRACTION
-      REAL(KIND=RB)       :: ECAER(1,LLPAR,NAEREC)               ! AEROSOL OPTICAL DEPTH AT 0.55UM (IAER=6 ONLY)
+      REAL(KIND=RB)          :: TAUCLD_SW(NBNDSW,IIPAR*JJPAR,LLPAR) ! IN-CLOUD OPTICAL DEPTH
+      REAL(KIND=RB)          :: TAUCLD_LW(NBNDLW,IIPAR*JJPAR,LLPAR) ! NOT USED BUT PASSED TO MCICA_LW
+      REAL(KIND=RB)          :: SSACLD(NBNDSW,IIPAR*JJPAR,LLPAR)    ! IN-CLOUD SINGLE SCATTERING ALBEDO
+      REAL(KIND=RB)          :: ASMCLD(NBNDSW,IIPAR*JJPAR,LLPAR)    ! IN-CLOUD ASYMMETRY PARAMETER
+      REAL(KIND=RB)          :: FSFCLD(NBNDSW,IIPAR*JJPAR,LLPAR)    ! IN-CLOUD FORWARD SCATTERING FRACTION
+      REAL(KIND=RB)          :: ECAER(1,LLPAR,NAEREC)               ! AEROSOL OPTICAL DEPTH AT 0.55UM (IAER=6 ONLY)
 
       !-----------------------------------------------------------------
       ! LONGWAVE FLUX VARIABLES
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: UFLX(1,LLPAR+1)  ! TOTAL SKY LONGWAVE UPWARD FLUX (W/M2)
-      REAL(KIND=RB)       :: DFLX(1,LLPAR+1)  ! TOTAL SKY LONGWAVE DOWNWARD FLUX (W/M2)
-      REAL(KIND=RB)       :: HR(1,LLPAR)      ! TOTAL SKY LONGWAVE RADIATIVE HEATING RATE (K/D)
-      REAL(KIND=RB)       :: UFLXC(1,LLPAR+1) ! CLEAR SKY LONGWAVE UPWARD FLUX (W/M2)
-      REAL(KIND=RB)       :: DFLXC(1,LLPAR+1) ! CLEAR SKY LONGWAVE DOWNWARD FLUX (W/M2)
-      REAL(KIND=RB)       :: HRC(1,LLPAR)     ! CLEAR SKY LONGWAVE RADIATIVE HEATING RATE (K/D)
+      REAL(KIND=RB)          :: UFLX(1,LLPAR+1)  ! TOTAL SKY LONGWAVE UPWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: DFLX(1,LLPAR+1)  ! TOTAL SKY LONGWAVE DOWNWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: HR(1,LLPAR)      ! TOTAL SKY LONGWAVE RADIATIVE HEATING RATE (K/D)
+      REAL(KIND=RB)          :: UFLXC(1,LLPAR+1) ! CLEAR SKY LONGWAVE UPWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: DFLXC(1,LLPAR+1) ! CLEAR SKY LONGWAVE DOWNWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: HRC(1,LLPAR)     ! CLEAR SKY LONGWAVE RADIATIVE HEATING RATE (K/D)
 
       !-----------------------------------------------------------------
       !- OPTIONAL OUTPUT
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: DUFLX_DT(1,LLPAR) ! CHANGE IN UPWARD LONGWAVE FLUX (W/M2/K)
-      REAL(KIND=RB)       :: DUFLXC_DT(1,LLPAR)! CHANGE IN CLEAR SKY UPWARD LONGWAVE FLUX (W/M2/K)
+      REAL(KIND=RB)          :: DUFLX_DT(1,LLPAR) ! CHANGE IN UPWARD LONGWAVE FLUX (W/M2/K)
+      REAL(KIND=RB)          :: DUFLXC_DT(1,LLPAR)! CHANGE IN CLEAR SKY UPWARD LONGWAVE FLUX (W/M2/K)
 
       !-----------------------------------------------------------------
       ! SHORTWAVE FLUX VARIABLES
       !-----------------------------------------------------------------
       ! ----- OUTPUT -----
-      REAL(KIND=RB)       :: SWUFLX(1,LLPAR+1)  ! TOTAL SKY SHORTWAVE UPWARD FLUX (W/M2)
-      REAL(KIND=RB)       :: SWDFLX(1,LLPAR+1)  ! TOTAL SKY SHORTWAVE DOWNWARD FLUX (W/M2)
-      REAL(KIND=RB)       :: SWHR(1,LLPAR)      ! TOTAL SKY SHORTWAVE RADIATIVE HEATING RATE (K/D)
-      REAL(KIND=RB)       :: SWUFLXC(1,LLPAR+1) ! CLEAR SKY SHORTWAVE UPWARD FLUX (W/M2)
-      REAL(KIND=RB)       :: SWDFLXC(1,LLPAR+1) ! CLEAR SKY SHORTWAVE DOWNWARD FLUX (W/M2)
-      REAL(KIND=RB)       :: SWHRC(1,LLPAR)     ! CLEAR SKY SHORTWAVE RADIATIVE HEATING RATE (K/D)
+      REAL(KIND=RB)          :: SWUFLX(1,LLPAR+1)  ! TOTAL SKY SHORTWAVE UPWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: SWDFLX(1,LLPAR+1)  ! TOTAL SKY SHORTWAVE DOWNWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: SWHR(1,LLPAR)      ! TOTAL SKY SHORTWAVE RADIATIVE HEATING RATE (K/D)
+      REAL(KIND=RB)          :: SWUFLXC(1,LLPAR+1) ! CLEAR SKY SHORTWAVE UPWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: SWDFLXC(1,LLPAR+1) ! CLEAR SKY SHORTWAVE DOWNWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: SWHRC(1,LLPAR)     ! CLEAR SKY SHORTWAVE RADIATIVE HEATING RATE (K/D)
 
       !-----------------------------------------------------------------
       ! LOCAL VARIABLES
       !-----------------------------------------------------------------
-      REAL*8              :: GCAIR
-      REAL*8              :: RHOA, RHOB, RHOSUM
-      REAL*8              :: HR_TEMP
+      REAL*8                 :: GCAIR
+      REAL*8                 :: RHOA, RHOB, RHOSUM
+      REAL*8                 :: HR_TEMP
 
       !-----------------------------------------------------------------
       ! MCICA VARIABLES
       !-----------------------------------------------------------------
-      INTEGER(KIND=IM)    :: SEEDSW, SEEDLW
-      INTEGER(KIND=IM)    :: IRNG=1  ! MERSENNE TWISTER RANDOM NUMBER GENERATOR
-      INTEGER(KIND=IM)    :: ICLDMCL
-      REAL(KIND=RB)       :: RELQMCL0(1,LLPAR)
-      REAL(KIND=RB)       :: REICMCL0(1,LLPAR)
+      INTEGER(KIND=IM)       :: SEEDSW, SEEDLW
+      INTEGER(KIND=IM)       :: IRNG=1  ! MERSENNE TWISTER RANDOM NUMBER GENERATOR
+      INTEGER(KIND=IM)       :: ICLDMCL
+      REAL(KIND=RB)          :: RELQMCL0(1,LLPAR)
+      REAL(KIND=RB)          :: REICMCL0(1,LLPAR)
 
       !-----------------------------------------------------------------
       ! MCICA LW SPECIFIC
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: CLDFMCL_LW0(NGPTLW,1,LLPAR)
-      REAL(KIND=RB)       :: CIWPMCL_LW0(NGPTLW,1,LLPAR)
-      REAL(KIND=RB)       :: CLWPMCL_LW0(NGPTLW,1,LLPAR)
-      REAL(KIND=RB)       :: TAUCMCL_LW0(NGPTLW,1,LLPAR)
+      REAL(KIND=RB)          :: CLDFMCL_LW0(NGPTLW,1,LLPAR)
+      REAL(KIND=RB)          :: CIWPMCL_LW0(NGPTLW,1,LLPAR)
+      REAL(KIND=RB)          :: CLWPMCL_LW0(NGPTLW,1,LLPAR)
+      REAL(KIND=RB)          :: TAUCMCL_LW0(NGPTLW,1,LLPAR)
 
       !-----------------------------------------------------------------
       ! MCICA SW SPECIFIC
       !-----------------------------------------------------------------
-      REAL(KIND=RB)       :: CLDFMCL_SW0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)       :: CIWPMCL_SW0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)       :: CLWPMCL_SW0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)       :: TAUCMCL_SW0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)       :: SSACMCL0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)       :: ASMCMCL0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)       :: FSFCMCL0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)       :: PCENTER0(1,LLPAR)
-      REAL(KIND=RB)       :: CLDFR0(1,LLPAR)
-      REAL(KIND=RB)       :: CICEWP0(1,LLPAR)
-      REAL(KIND=RB)       :: CLIQWP0(1,LLPAR)
-      REAL(KIND=RB)       :: REICE0(1,LLPAR)
-      REAL(KIND=RB)       :: RELIQ0(1,LLPAR)
-      REAL(KIND=RB)       :: TAUCLD_SW0(NBNDSW,1,LLPAR)
-      REAL(KIND=RB)       :: SSACLD0(NBNDSW,1,LLPAR)
-      REAL(KIND=RB)       :: ASMCLD0(NBNDSW,1,LLPAR)
-      REAL(KIND=RB)       :: FSFCLD0(NBNDSW,1,LLPAR)
+      REAL(KIND=RB)          :: CLDFMCL_SW0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)          :: CIWPMCL_SW0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)          :: CLWPMCL_SW0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)          :: TAUCMCL_SW0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)          :: SSACMCL0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)          :: ASMCMCL0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)          :: FSFCMCL0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)          :: PCENTER0(1,LLPAR)
+      REAL(KIND=RB)          :: CLDFR0(1,LLPAR)
+      REAL(KIND=RB)          :: CICEWP0(1,LLPAR)
+      REAL(KIND=RB)          :: CLIQWP0(1,LLPAR)
+      REAL(KIND=RB)          :: REICE0(1,LLPAR)
+      REAL(KIND=RB)          :: RELIQ0(1,LLPAR)
+      REAL(KIND=RB)          :: TAUCLD_SW0(NBNDSW,1,LLPAR)
+      REAL(KIND=RB)          :: SSACLD0(NBNDSW,1,LLPAR)
+      REAL(KIND=RB)          :: ASMCLD0(NBNDSW,1,LLPAR)
+      REAL(KIND=RB)          :: FSFCLD0(NBNDSW,1,LLPAR)
+
+      !-----------------------------------------------------------------
+      ! Variables used to avoid array temporaries (bmy, 6/3/15)
+      !
+      ! NOTE: Use temporary arrays instead of pointers.  For unknown
+      ! reasons the pointer references incur segfaults. (bmy, 6/3/15)
+      !-----------------------------------------------------------------
+
+      ! For MCICA_SUBCOL_LW and MCICA_SUBCOL_LW
+      REAL(KIND=RB)          :: p_PCENTER   (         LLPAR  )
+      REAL(KIND=RB)          :: p_CLDFR     (         LLPAR  )
+      REAL(KIND=RB)          :: p_CICEWP    (         LLPAR  )
+      REAL(KIND=RB)          :: p_CLIQWP    (         LLPAR  )
+      REAL(KIND=RB)          :: p_REICE     (         LLPAR  )
+      REAL(KIND=RB)          :: p_RELIQ     (         LLPAR  )
+      REAL(KIND=RB)          :: p_TAUCLD_LW ( NBNDLW, LLPAR  )
+      REAL(KIND=RB)          :: p_TAUCLD_SW ( NBNDSW, LLPAR  )
+      REAL(KIND=RB)          :: p_SSACLD    ( NBNDSW, LLPAR  ) 
+      REAL(KIND=RB)          :: p_ASMCLD    ( NBNDSW, LLPAR  )
+      REAL(KIND=RB)          :: p_FSFCLD    ( NBNDSW, LLPAR  )
+
+      ! For RRTMG_LW and RRTMG_SW
+      REAL(KIND=RB)          :: p_PLEV      (         LLPAR+1)
+      REAL(KIND=RB)          :: p_TLAY      (         LLPAR  )
+      REAL(KIND=RB)          :: p_TLEV      (         LLPAR+1)
+      REAL(KIND=RB)          :: p_H2OVMR    (         LLPAR  )
+      REAL(KIND=RB)          :: p_O3VMR     (         LLPAR  )
+      REAL(KIND=RB)          :: p_CO2VMR    (         LLPAR  )
+      REAL(KIND=RB)          :: p_CH4VMR    (         LLPAR  )
+      REAL(KIND=RB)          :: p_N2OVMR    (         LLPAR  ) 
+      REAL(KIND=RB)          :: p_O2VMR     (         LLPAR  )
+      REAL(KIND=RB)          :: p_CFC11VMR  (         LLPAR  )
+      REAL(KIND=RB)          :: p_CFC12VMR  (         LLPAR  )
+      REAL(KIND=RB)          :: p_CFC22VMR  (         LLPAR  )
+      REAL(KIND=RB)          :: p_CCL4VMR   (         LLPAR  )
+      REAL(KIND=RB)          :: p_REICMCL   (         LLPAR  )
+      REAL(KIND=RB)          :: p_RELQMCL   (         LLPAR  ) 
+      REAL(KIND=RB)          :: p_SUNCOS    (         LLPAR  )
+      REAL(KIND=RB)          :: p_CLDFMCL_LW( NGPTLW, LLPAR  )
+      REAL(KIND=RB)          :: p_TAUCMCL_LW( NGPTLW, LLPAR  )
+      REAL(KIND=RB)          :: p_CIWPMCL_LW( NGPTLW, LLPAR  )
+      REAL(KIND=RB)          :: p_CLWPMCL_LW( NGPTLW, LLPAR  )
+      REAL(KIND=RB)          :: p_CLDFMCL_SW( NGPTSW, LLPAR  )
+      REAL(KIND=RB)          :: p_TAUCMCL_SW( NGPTSW, LLPAR  )
+      REAL(KIND=RB)          :: p_SSACMCL   ( NGPTSW, LLPAR  )
+      REAL(KIND=RB)          :: p_ASMCMCL   ( NGPTSW, LLPAR  )
+      REAL(KIND=RB)          :: p_FSFCMCL   ( NGPTSW, LLPAR  )
+      REAL(KIND=RB)          :: p_CIWPMCL_SW( NGPTSW, LLPAR  )
+      REAL(KIND=RB)          :: p_CLWPMCL_SW( NGPTSW, LLPAR  )
+      REAL(KIND=RB)          :: p_RTEMISS   (         NBNDLW )
+      REAL(KIND=RB)          :: p_TAUAER_LW ( LLPAR,  NBNDLW )
+      REAL(KIND=RB)          :: p_TAUAER_SW ( LLPAR,  NBNDSW )
+      REAL(KIND=RB)          :: p_SSAAER    ( LLPAR,  NBNDSW )
+      REAL(KIND=RB)          :: p_ASMAER    ( LLPAR,  NBNDSW )
 
       !=================================================================
       ! DO_RRTMG_RAD_TRANSFER begins here!
@@ -443,6 +499,7 @@
         IDIAGOUT = MAX(IDIAGOUT,SPECMASK(N))
        ENDIF
       ENDDO
+!      write(6,*) 'SPECMASK:',SPECMASK
       
       TAUCLD(:,:)        = 0.0
       CLDFR(:,:)         = 0.0
@@ -455,8 +512,8 @@
       SSAAER(:,:,:)      = 0.0
       ASMAER(:,:,:)      = 0.0
       TAUAERDIAG(:,:,:)  = 0.0D0
-      SSAAERDIAG(:,:,:)  = 1.0D0
-      ASMAERDIAG(:,:,:)  = 0.2D0
+      SSAAERDIAG(:,:,:)  = 0.0D0
+      ASMAERDIAG(:,:,:)  = 0.0D0
       UFLX(:,:)          = 0.0
       DFLX(:,:)          = 0.0
       HR(:,:)            = 0.0
@@ -476,12 +533,13 @@
       NBNDS              = NBNDLW+NBNDSW
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
-!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
-!%%%!$OMP PARALLEL DO
-!%%%!$OMP+DEFAULT( SHARED )
-!%%%!$OMP+PRIVATE( I, J, IJLOOP, IB, IB_SW)
-!%%%!$OMP+SCHEDULE( DYNAMIC )
+!%%%  This parallel loop gives identical results w/r/t to a RRTMG           %%%
+!%%%  simulation compiled with OpenMP turned off. (bmy, 6/2/15)             %%%
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, IJLOOP, IB, IB_SW )
+!$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -519,10 +577,7 @@
 
       ENDDO
       ENDDO
-!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
-!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
-!%%%!$OMP END PARALLEL DO
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$OMP END PARALLEL DO
 
       !GET PCENTER, PEDGE AND DETERMINE IF IN TROP
       DO I = 1, IIPAR
@@ -541,13 +596,17 @@
       ENDDO
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
-!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
-!%%%!$OMP PARALLEL DO
-!%%%!$OMP+DEFAULT( SHARED )
-!%%%!$OMP+PRIVATE( I,       J,    L,     IJLOOP, JLOOP        )
-!%%%!$OMP+PRIVATE( AIR_TMP, YLAT, O3COL, O3_CTM, T_CTM, P_CTM )
-!%%%!$OMP+SCHEDULE( DYNAMIC )
+!%%%  NOTE: Bob Y. added T_CLIM, Z_CLIM, O3_CLIM, and AIR_CLIM to the       %%%
+!%%%  !$OMP+PRIVATE declaration.  These had been omitted.  Having done so,  %%%
+!%%%  this parallel loop now gives identical results w/r/t to a RRTMG       %%%
+!%%%  simulation compiled with OpenMP turned off. (bmy, 6/2/15)             %%%
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I,       J,      L,      IJLOOP,  JLOOP    )
+!$OMP+PRIVATE( AIR_TMP, YLAT,   O3COL,  O3_CTM,  T_CTM    )
+!$OMP+PRIVATE( P_CTM,   T_CLIM, Z_CLIM, O3_CLIM, AIR_CLIM )
+!$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -612,11 +671,6 @@
      &                          RHOICE*REI_DEF
              REICE(IJLOOP,L) = REI_DEF
              !TAUCLD DERIVED IN MCICA SUB, NOT NEEDED
-!------------------------------------------------------------------------------
-! Prior to 4/23/15:
-! All members of State_Met now use (I,J,L) ordering (bmy, 4/23/15)
-!             CLDFR(IJLOOP,L)   = State_Met%CLDF(L,I,J)
-!------------------------------------------------------------------------------
              CLDFR(IJLOOP,L)   = State_Met%CLDF(I,J,L)
             ENDIF !CLOUDS
 
@@ -712,11 +766,6 @@
             !N.B. STRAT O3  NOT CURRENTLY INCLUDED IN THE DRE OF O3
 
             !! DENSITY OF AIR IN G/CM2
-!-----------------------------------------------------------------------------
-! Prior to 4/23/15:
-! All members of State_Met now use (I,J,L) ordering (bmy, 4/23/15)
-!            AIR_TMP = State_Met%AIRDEN(L,I,J)*
-!-----------------------------------------------------------------------------
             AIR_TMP = State_Met%AIRDEN(I,J,L)*
      &                State_Met%BXHEIGHT(I,J,L)*1.0E-1
             !! DENSITY OF AIR IN MOLEC/CM2
@@ -751,10 +800,7 @@
       ENDDO
       ENDDO
       ENDDO
-!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
-!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
-!%%%!$OMP END PARALLEL DO
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$OMP END PARALLEL DO
 
       IF (DOAERAD) THEN
        DO IB = 1,NBNDS
@@ -775,13 +821,15 @@
          !(2) THE CURRENT SPECIES FOR OUTPUT TO THE RT DIAGNOSTICS
          ! ALSO, WE MUST MERGE AEROSOL PROPERTIES FOR THE SPECIES TO BE OUTPUT
          ! (I.E. COMBINE HYDROPHILIC/PHOBIC AND MULTIPLE SIZES) 
+
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
-!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
-!%%%!$OMP PARALLEL DO
-!%%%!$OMP+DEFAULT( SHARED )
-!%%%!$OMP+PRIVATE( I, J, L, IJLOOP)
-!%%%!$OMP+SCHEDULE( DYNAMIC )
+!%%%  This parallel loop gives identical results w/r/t to a RRTMG           %%%
+!%%%  simulation compiled with OpenMP turned off. (bmy, 6/2/15)             %%%
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, IJLOOP )
+!$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -815,11 +863,7 @@
               ASMAER(IJLOOP,L,IB_SW) = ASMAER(IJLOOP,L,IB_SW) +
      &                                 RTASYMAER(I,J,L,IBX,IS) *
      &                      RTODAER(I,J,L,IBX,IS)*RTSSAER(I,J,L,IBX,IS)
-              IF ((IS.EQ.8).AND.(L.GT.30).AND.
-     &           (RTODAER(I,J,L,IBX,IS).GT.0.0d0)) THEN
-!               write(6,*) 'STS',I,J,L,IBX,IS,RTODAER(I,J,L,IBX,IS)
-              ENDIF
-             ENDIF 
+             ENDIF
              IF (SPECMASK(IS).GT.1) THEN
               TAUAERDIAG(IJLOOP,L,IB_SW)=TAUAERDIAG(IJLOOP,L,IB_SW)+
      &                        RTODAER(I,J,L,IBX,IS)
@@ -828,7 +872,12 @@
               ASMAERDIAG(IJLOOP,L,IB_SW) = ASMAERDIAG(IJLOOP,L,IB_SW) +
      &                      RTASYMAER(I,J,L,IBX,IS) *
      &                      RTODAER(I,J,L,IBX,IS)*RTSSAER(I,J,L,IBX,IS)
-!              write(6,*) 'SSA0',I,J,L,IBX,IS,RTSSAER(I,J,L,IBX,IS)
+!              IF ((IS.EQ.9).AND.(L.GT.30).AND.(IB_SW.EQ.10).AND.
+!     &           (RTODAER(I,J,L,IBX,IS).GT.0.0d0)) THEN
+!               write(6,*) 'STS',I,J,L,IBX,IS,RTODAER(I,J,L,IBX,IS),
+!     &                    RTSSAER(I,J,L,IBX,IS)
+!              ENDIF
+
              ENDIF
             ENDIF
            ENDIF 
@@ -836,25 +885,21 @@
          ENDDO
          ENDDO
          ENDDO
-!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
-!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
-!%%%!$OMP END PARALLEL DO 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$OMP END PARALLEL DO 
         ENDDO !SPECIES
+
         !NOW AEROSOL HAVE BEEN SUMMED AND WEIGHTED BY AOD AND SSA
         !DIVIDE THROUGH BY TOTAL AOD (FOR SSA) AND AOD*SSA (FOR ASYM)
         IF (IB.GT.16) THEN !SW
 
-!SWITCHING THIS OMP ON HALVES THE OPTICS VALUES FOR SOME UNKNOWN REASON.
-!THE BENEFIT OF HAVING IT SWITCHED ON IS ~1% REDUCTION IN PROCESSING
-!TIME SO CURRENTLY DOING WITHOUT PARALLELIZING THIS. DAR 02/2013
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
-!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
-!%%%!$OMP PARALLEL DO
-!%%%!$OMP+DEFAULT( SHARED )
-!%%%!$OMP+PRIVATE( I, J, L, IJLOOP )
-!%%%!$OMP+SCHEDULE( DYNAMIC )
+!%%%  This parallel loop gives identical results w/r/t to a RRTMG           %%%
+!%%%  simulation compiled with OpenMP turned off. (bmy, 6/2/15)             %%%
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, IJLOOP )
+!$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -888,28 +933,26 @@
               !DIVIDE SUM(SSA*OD) BY SUM(OD) TO GET OD WEIGHTED SSA
               SSAAERDIAG(IJLOOP,L,IB_SW) = SSAAERDIAG(IJLOOP,L,IB_SW) /
      &                                     TAUAERDIAG(IJLOOP,L,IB_SW)
-!            write(6,*) 'SSA',SSAAERDIAG(IJLOOP,L,IB_SW)
            ENDIF
           ENDIF
          ENDDO
          ENDDO
          ENDDO
-!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
-!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
-!%%%!$OMP END PARALLEL DO
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$OMP END PARALLEL DO
 
         ENDIF
        ENDDO !BAND
       ELSE
        !NO AEROSOL, SET ALL TO SAFE VALUES
+
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
-!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
-!%%%!$OMP PARALLEL DO
-!%%%!$OMP+DEFAULT( SHARED )
-!%%%!$OMP+PRIVATE( I, J, L, IB, IJLOOP, IB_SW)
-!%%%!$OMP+SCHEDULE( DYNAMIC )
+!%%%  This parallel loop gives identical results w/r/t to a RRTMG           %%%
+!%%%  simulation compiled with OpenMP turned off. (bmy, 6/2/15)             %%%
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, IB, IJLOOP, IB_SW )
+!$OMP+SCHEDULE( DYNAMIC )
        DO IB= 1, NBNDS
         IB_SW = IB-NBNDLW
         DO L = 1, LLPAR
@@ -930,7 +973,7 @@
           ELSE
            TAUAER_SW(IJLOOP,L,IB_SW) = 0.0D0
            SSAAER(IJLOOP,L,IB_SW)    = 0.99D0
-           ASMAER(IJLOOP,L,IB_SW)    = 0.02D0
+           ASMAER(IJLOOP,L,IB_SW)    = 0.2D0
            TAUAERDIAG(IJLOOP,L,IB_SW) = 0.0D0
            SSAAERDIAG(IJLOOP,L,IB_SW) = 0.99D0
            ASMAERDIAG(IJLOOP,L,IB_SW) = 0.2D0
@@ -940,10 +983,7 @@
         ENDDO
         ENDDO
        ENDDO
-!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
-!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
-!%%%!$OMP END PARALLEL DO 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$OMP END PARALLEL DO 
 
       ENDIF
 
@@ -1054,125 +1094,342 @@
        SEEDSW=SEEDLW+NGPTLW+1
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
-!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
-!%%%!$OMP PARALLEL DO
-!%%%!$OMP+DEFAULT( SHARED )
-!%%%!$OMP+PRIVATE( IL, OMPID )
-!%%%!$OMP+PRIVATE( PCENTER0, CLDFR0, CLIQWP0, CICEWP0)
-!%%%!$OMP+PRIVATE( REICE0, RELIQ0, TAUCLD_SW0)
-!%%%!$OMP+PRIVATE( SSACLD0, ASMCLD0, FSFCLD0)
-!%%%!$OMP+PRIVATE( CLDFMCL_LW0, CIWPMCL_LW0, CLWPMCL_LW0)
-!%%%!$OMP+PRIVATE( REICMCL0, RELQMCL0, TAUCMCL_LW0)
-!%%%!$OMP+PRIVATE( CLDFMCL_SW0, CIWPMCL_SW0, CLWPMCL_SW0)
-!%%%!$OMP+PRIVATE( TAUCMCL_SW0, SSACMCL0,ASMCMCL0, FSFCMCL0)
-!%%%!$OMP+SCHEDULE( DYNAMIC )
-       DO IL=1, NCOL
-        IF (Input_Opt%LLWRAD) THEN
-         CALL MCICA_SUBCOL_LW(ONECOL,LLPAR,ICLDMCL,
-     &        SEEDLW,IRNG,PCENTER(IL,:),
-     &        CLDFR(IL,:),CICEWP(IL,:),CLIQWP(IL,:),
-     &        REICE(IL,:),RELIQ(IL,:),TAUCLD_LW(:,IL,:),
-     &        CLDFMCL_LW0, CIWPMCL_LW0, CLWPMCL_LW0,
-     &        REICMCL0, RELQMCL0, TAUCMCL_LW0)
-
-         CLDFMCL_LW(:,IL,:)   = CLDFMCL_LW0(:,1,:)
-         CIWPMCL_LW(:,IL,:)   = CIWPMCL_LW0(:,1,:)
-         CLWPMCL_LW(:,IL,:)   = CLWPMCL_LW0(:,1,:)
-         TAUCMCL_LW(:,IL,:)   = TAUCMCL_LW0(:,1,:)
-        ENDIF
-        IF (Input_Opt%LSWRAD) THEN
-         CALL MCICA_SUBCOL_SW(ONECOL, LLPAR, ICLDMCL,
-     &        SEEDSW, IRNG,PCENTER(IL,:),
-     &        CLDFR(IL,:), CICEWP(IL,:), CLIQWP(IL,:),
-     &        REICE(IL,:), RELIQ(IL,:),
-     &        TAUCLD_SW(:,IL,:),SSACLD(:,IL,:),
-     &        ASMCLD(:,IL,:),FSFCLD(:,IL,:),
-     &        CLDFMCL_SW0, CIWPMCL_SW0, CLWPMCL_SW0,
-     &        REICMCL0, RELQMCL0, TAUCMCL_SW0, SSACMCL0,
-     &        ASMCMCL0, FSFCMCL0)
-         CLDFMCL_SW(:,IL,:)   = CLDFMCL_SW0(:,1,:)
-         CIWPMCL_SW(:,IL,:)   = CIWPMCL_SW0(:,1,:)
-         CLWPMCL_SW(:,IL,:)   = CLWPMCL_SW0(:,1,:)
-         TAUCMCL_SW(:,IL,:)   = TAUCMCL_SW0(:,1,:)
-         SSACMCL(:,IL,:)    = SSACMCL0(:,1,:)
-         ASMCMCL(:,IL,:)    = ASMCMCL0(:,1,:)
-         FSFCMCL(:,IL,:)    = FSFCMCL0(:,1,:)
-        ENDIF
-        ! these should be independent of LW and SW
-        ! simply rearranged by the MCICA routine
-        REICMCL(IL,:) = REICMCL0(1,:)
-        RELQMCL(IL,:) = RELQMCL0(1,:)
-       ENDDO
-!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
-!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
-!%%%!$OMP END PARALLEL DO
+!%%%  This parallel loop gives identical results w/r/t to a RRTMG           %%%
+!%%%  simulation compiled with OpenMP turned off.  Also now save            %%%
+!%%%  inputs to scratch arrays to avoid creating array temporaries          %%%
+!%%%  in the subroutine calls.  These can adversely affect performance.     %%%
+!%%%                                                                        %%%
+!%%%  ALSO NOTE: Using pointers causes segfaults in this routine, so        %%%
+!%%%  we will just simply use temporary arrays. (bmy 6/3/15)                %%%
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( IL,          PCENTER0,    CLDFR0                   )
+!$OMP+PRIVATE( CLIQWP0,     CICEWP0,     REICE0,      RELIQ0      )
+!$OMP+PRIVATE( TAUCLD_SW0,  SSACLD0,     ASMCLD0,     FSFCLD0     )
+!$OMP+PRIVATE( CLDFMCL_LW0, CIWPMCL_LW0, CLWPMCL_LW0, REICMCL0    )
+!$OMP+PRIVATE( RELQMCL0,    TAUCMCL_LW0, CLDFMCL_SW0, CIWPMCL_SW0 )
+!$OMP+PRIVATE( CLWPMCL_SW0, TAUCMCL_SW0, SSACMCL0,    ASMCMCL0    )
+!$OMP+PRIVATE( FSFCMCL0,    p_PCENTER,   p_CLDFR,     p_CICEWP    )
+!$OMP+PRIVATE( p_CLIQWP,    p_REICE,     p_RELIQ,     p_TAUCLD_LW )
+!$OMP+PRIVATE( p_TAUCLD_SW, p_SSACLD,    p_ASMCLD,    p_FSFCLD    )
+!$OMP+SCHEDULE( DYNAMIC )
+       DO IL=1, NCOL
+
+          ! Avoid array temporaries in the subroutine call (bmy, 6/3/15)
+          ! These arrays are used by both MCICA_SUBCOL_LW and MCICA_SUBCOL_SW
+          p_PCENTER = PCENTER(IL,:)
+          p_CLDFR   = CLDFR  (IL,:)
+          p_CICEWP  = CICEWP (IL,:)
+          p_CLIQWP  = CLIQWP (IL,:)
+          p_REICE   = REICE  (IL,:)
+          p_RELIQ   = RELIQ  (IL,:)
+
+          !-------------------------------------------------------------
+          ! Long-wave radiation
+          !-------------------------------------------------------------
+          IF (Input_Opt%LLWRAD) THEN
+
+             ! Avoid array temporaries in the subroutine call (bmy, 6/3/15)
+             ! These arrays are only used in MCICA_SUBCOL_LW
+             p_TAUCLD_LW = TAUCLD_LW(:,IL,:)
+
+             ! Call MCICA longwave
+             CALL MCICA_SUBCOL_LW( 
+                !-------------------------------------
+                ! Inputs
+     &                             ONECOL,
+     &                             LLPAR,
+     &                             ICLDMCL,
+     &                             SEEDLW,
+     &                             IRNG,
+     &                             p_PCENTER,
+     &                             p_CLDFR,
+     &                             p_CICEWP,
+     &                             p_CLIQWP,
+     &                             p_REICE,
+     &                             p_RELIQ,
+     &                             p_TAUCLD_LW,
+                !-------------------------------------
+                ! Outputs
+     &                             CLDFMCL_LW0, 
+     &                             CIWPMCL_LW0, 
+     &                             CLWPMCL_LW0,
+     &                             REICMCL0, 
+     &                             RELQMCL0, 
+     &                             TAUCMCL_LW0 )
+
+             ! Copy back into 3-D arrays
+             CLDFMCL_LW(:,IL,:) = CLDFMCL_LW0(:,1,:)
+             CIWPMCL_LW(:,IL,:) = CIWPMCL_LW0(:,1,:)
+             CLWPMCL_LW(:,IL,:) = CLWPMCL_LW0(:,1,:)
+             TAUCMCL_LW(:,IL,:) = TAUCMCL_LW0(:,1,:)
+
+          ENDIF
+
+          !-------------------------------------------------------------
+          ! Short-wave radiation
+          !-------------------------------------------------------------
+          IF (Input_Opt%LSWRAD) THEN
+
+             ! Avoid array temporaries in the subroutine call (bmy, 6/3/15)
+             ! These arrays are only used in MCICA_SUBCOL_SW
+             p_TAUCLD_SW = TAUCLD_SW(:,IL,:)
+             p_SSACLD    = SSACLD   (:,IL,:)
+             p_ASMCLD    = ASMCLD   (:,IL,:)
+             p_FSFCLD    = FSFCLD   (:,IL,:)
+
+             ! Call MCICA shortwave
+             CALL MCICA_SUBCOL_SW( 
+                !-------------------------------------
+                ! Inputs
+     &                             ONECOL, 
+     &                             LLPAR, 
+     &                             ICLDMCL,
+     &                             SEEDSW, 
+     &                             IRNG,
+     &                             p_PCENTER,
+     &                             p_CLDFR, 
+     &                             p_CICEWP, 
+     &                             p_CLIQWP,
+     &                             p_REICE, 
+     &                             p_RELIQ,
+     &                             p_TAUCLD_SW,
+     &                             p_SSACLD,
+     &                             p_ASMCLD,
+     &                             p_FSFCLD,
+                !-------------------------------------
+                ! Outputs
+     &                             CLDFMCL_SW0, 
+     &                             CIWPMCL_SW0, 
+     &                             CLWPMCL_SW0,
+     &                             REICMCL0, 
+     &                             RELQMCL0, 
+     &                             TAUCMCL_SW0, 
+     &                             SSACMCL0,
+     &                             ASMCMCL0, 
+     &                             FSFCMCL0  )
+
+             ! Copy back into 3-D arrays
+             CLDFMCL_SW(:,IL,:) = CLDFMCL_SW0(:,1,:)
+             CIWPMCL_SW(:,IL,:) = CIWPMCL_SW0(:,1,:)
+             CLWPMCL_SW(:,IL,:) = CLWPMCL_SW0(:,1,:)
+             TAUCMCL_SW(:,IL,:) = TAUCMCL_SW0(:,1,:)
+             SSACMCL   (:,IL,:) = SSACMCL0   (:,1,:)
+             ASMCMCL   (:,IL,:) = ASMCMCL0   (:,1,:)
+             FSFCMCL   (:,IL,:) = FSFCMCL0   (:,1,:)
+
+          ENDIF
+
+          ! these should be independent of LW and SW
+          ! simply rearranged by the MCICA routine
+          REICMCL(IL,:) = REICMCL0(1,:)
+          RELQMCL(IL,:) = RELQMCL0(1,:)
+       ENDDO
+!$OMP END PARALLEL DO
 
       ENDIF !DO MCICA CLOUDS
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
-!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
-!%%%!$OMP PARALLEL DO
-!%%%!$OMP+DEFAULT( SHARED )
-!%%%!$OMP+PRIVATE( IL,OMPID )
-!%%%!$OMP+PRIVATE( UFLX,DFLX,HR,UFLXC,DFLXC,HRC,DUFLX_DT,DUFLXC_DT)
-!%%%!$OMP+PRIVATE( ECAER,SWUFLX,SWDFLX,SWHR,SWUFLXC,SWDFLXC,SWHRC)
-!%%%!$OMP+SCHEDULE( DYNAMIC ) 
+!%%%  This parallel loop gives identical results w/r/t to a RRTMG           %%%
+!%%%  simulation compiled with OpenMP turned off.  Also now save            %%%
+!%%%  inputs to scratch arrays to avoid creating array temporaries          %%%
+!%%%  in the subroutine calls.  These can adversely affect performance.     %%%
+!%%%                                                                        %%%
+!%%%  ALSO NOTE: Using pointers causes segfaults in this routine, so        %%%
+!%%%  we will just simply use temporary arrays. (bmy 6/3/15)                %%%
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( IL,           UFLX,         DFLX,         HR           )
+!$OMP+PRIVATE( UFLXC,        DFLXC,        HRC,          DUFLX_DT     )
+!$OMP+PRIVATE( DUFLXC_DT,    ECAER,        SWUFLX,       SWDFLX       )
+!$OMP+PRIVATE( SWHR,         SWUFLXC,      SWDFLXC,      SWHRC        )
+!$OMP+PRIVATE( p_PCENTER,    p_PLEV,       p_TLAY,       p_TLEV       )
+!$OMP+PRIVATE( p_H2OVMR,     p_O3VMR,      p_CO2VMR,     p_CH4VMR     )
+!$OMP+PRIVATE( p_N2OVMR,     p_O2VMR,      p_CFC11VMR,   p_CFC12VMR   )
+!$OMP+PRIVATE( p_CFC22VMR,   p_CCL4VMR,    p_RTEMISS,    p_REICMCL    )
+!$OMP+PRIVATE( p_RELQMCL,    p_CLDFMCL_LW, p_TAUCMCL_LW, p_CIWPMCL_LW )
+!$OMP+PRIVATE( p_CLWPMCL_LW, p_TAUAER_LW,  p_CLDFMCL_SW, p_TAUCMCL_SW )
+!$OMP+PRIVATE( p_SSACMCL,    p_ASMCMCL,    p_FSFCMCL,    p_CIWPMCL_SW )
+!$OMP+PRIVATE( p_CLWPMCL_SW, p_TAUAER_SW,  p_SSAAER,     p_ASMAER     )
+!$OMP+PRIVATE( p_SUNCOS                                               )
+!$OMP+SCHEDULE( DYNAMIC ) 
       DO IL=1, NCOL
  
-      IF (Input_Opt%LLWRAD) THEN
-        CALL RRTMG_LW 
-     &       (ONECOL,LLPAR,ICLDMCL,IDRV, 
-     &        PCENTER(IL,:) ,PLEV(IL,:) ,TLAY(IL,:)    ,TLEV(IL,:) ,
-     &        TSFC(IL), 
-     &        H2OVMR(IL,:)  ,O3VMR(IL,:),CO2VMR(IL,:)  ,CH4VMR(IL,:),
-     &        N2OVMR(IL,:)  ,O2VMR(IL,:), 
-     &        CFC11VMR(IL,:),CFC12VMR(IL,:),CFC22VMR(IL,:),
-     &        CCL4VMR(IL,:) ,RTEMISS(IL,:) , 
-     &        INFLGLW ,ICEFLGLW,LIQFLGLW,
-     &        CLDFMCL_LW(:,IL,:),TAUCMCL_LW(:,IL,:),CIWPMCL_LW(:,IL,:),
-     &        CLWPMCL_LW(:,IL,:),REICMCL(IL,:),RELQMCL(IL,:), 
-     &        TAUAER_LW(IL,:,:),UFLX,DFLX,HR,UFLXC,DFLXC,HRC, 
-     &        DUFLX_DT,DUFLXC_DT)
+         ! Avoid arrray temporaries in subroutines (bmy, 6/3/15)
+         ! These variables are used in both RRTMG_LW and RRTMG_SW
+         p_PCENTER  = PCENTER (IL,:)
+         p_PLEV     = PLEV    (IL,:)
+         p_TLAY     = TLAY    (IL,:)
+         p_TLEV     = TLEV    (IL,:)
+         p_H2OVMR   = H2OVMR  (IL,:)
+         p_O3VMR    = O3VMR   (IL,:)
+         p_CO2VMR   = CO2VMR  (IL,:)
+         p_CH4VMR   = CH4VMR  (IL,:)
+         p_N2OVMR   = N2OVMR  (IL,:)
+         p_O2VMR    = O2VMR   (IL,:) 
+         p_CFC11VMR = CFC11VMR(IL,:)
+         p_CFC12VMR = CFC12VMR(IL,:)
+         p_CFC22VMR = CFC22VMR(IL,:)
+         p_CCL4VMR  = CCL4VMR (IL,:)
+         p_RTEMISS  = RTEMISS (IL,:) 
+         p_REICMCL  = REICMCL (IL,:)
+         p_RELQMCL  = RELQMCL (IL,:)
 
-        LW_UFLUX(IL,:) = UFLX(1,:)
-        LW_DFLUX(IL,:) = DFLX(1,:)
-        LW_UFLUXC(IL,:) = UFLXC(1,:)
-        LW_DFLUXC(IL,:) = DFLXC(1,:)
-      ENDIF !LW
-      IF (Input_Opt%LSWRAD) THEN
-        ! 1-D INDEX
-        IJLOOP         = (J-1)*IIPAR+I
-        I = IL - (J-1)*IIPAR
-        I = MOD(IL,IIPAR)
+         !--------------------------------------------------------------
+         ! RRTMG - Longwave radiation
+         !--------------------------------------------------------------
+         IF (Input_Opt%LLWRAD) THEN
+       
+            ! Avoid array temporaries in subroutine calls (bmy, 6/3/15)
+            ! These arrays are only used in RRTMG_LW
+            p_CLDFMCL_LW = CLDFMCL_LW(:,IL,:  )
+            p_TAUCMCL_LW = TAUCMCL_LW(:,IL,:  )
+            p_CIWPMCL_LW = CIWPMCL_LW(:,IL,:  )
+            p_CLWPMCL_LW = CLWPMCL_LW(:,IL,:  )
+            p_TAUAER_LW  = TAUAER_LW (  IL,:,:)
+
+            ! Call RRTMG for longwave radiation
+            CALL RRTMG_LW( 
+                !-------------------------------------
+                ! Inputs
+     &                     ONECOL,
+     &                     LLPAR,
+     &                     ICLDMCL,
+     &                     IDRV, 
+     &                     p_PCENTER,
+     &                     p_PLEV,
+     &                     p_TLAY,
+     &                     p_TLEV,
+     &                     TSFC(IL), 
+     &                     p_H2OVMR,
+     &                     p_O3VMR,
+     &                     p_CO2VMR,
+     &                     p_CH4VMR,
+     &                     p_N2OVMR,
+     &                     p_O2VMR, 
+     &                     p_CFC11VMR,
+     &                     p_CFC12VMR,
+     &                     p_CFC22VMR,
+     &                     p_CCL4VMR,
+     &                     p_RTEMISS, 
+     &                     INFLGLW,
+     &                     ICEFLGLW,
+     &                     LIQFLGLW,
+     &                     p_CLDFMCL_LW,
+     &                     p_TAUCMCL_LW,
+     &                     p_CIWPMCL_LW,
+     &                     p_CLWPMCL_LW,
+     &                     p_REICMCL,
+     &                     p_RELQMCL, 
+     &                     p_TAUAER_LW,
+                !-------------------------------------
+                ! Outputs
+     &                     UFLX,
+     &                     DFLX,
+     &                     HR,
+     &                     UFLXC,
+     &                     DFLXC,
+     &                     HRC, 
+     &                     DUFLX_DT,
+     &                     DUFLXC_DT )
+
+            ! Copy back into 3-D arrays
+            LW_UFLUX (IL,:) = UFLX (1,:)
+            LW_DFLUX (IL,:) = DFLX (1,:)
+            LW_UFLUXC(IL,:) = UFLXC(1,:)
+            LW_DFLUXC(IL,:) = DFLXC(1,:)
+            
+         ENDIF                  !LW
+
+         !--------------------------------------------------------------
+         ! RRTMG - Shortwave radiation
+         !--------------------------------------------------------------
+         IF (Input_Opt%LSWRAD) THEN
+
+            ! 1-D INDEX
+            IJLOOP = (J-1)*IIPAR+I
+            I      = IL - (J-1)*IIPAR
+            I      = MOD(IL,IIPAR)
+
+!### Debug output
 !        write(6,*) 'SWSHIZ',TAUAER_SW(IL,1,5),SWUFLX(1,1),SWDFLX(1,1),
 !     &         SWUFLXC(1,1),SWDFLXC(1,1)
 
-        CALL RRTMG_SW 
-     &       (ONECOL    ,LLPAR    ,ICLDMCL , 
-     &        PCENTER(IL,:)    ,PLEV(IL,:),TLAY(IL,:),TLEV(IL,:),
-     &        TSFC(IL), 
-     &        H2OVMR(IL,:)  ,O3VMR(IL,:)   ,CO2VMR(IL,:)  ,
-     &        CH4VMR(IL,:)  ,N2OVMR(IL,:)  ,O2VMR(IL,:), 
-     &        ALBDIRVIS(IL) ,ALBDIFVIS(IL) ,
-     &        ALBDIRNIR(IL) ,ALBDIFNIR(IL) , 
-     &        SUNCOS(IL,:) ,ADJES   ,DOY  ,SCON    , 
-     &        INFLGSW ,ICEFLGSW,LIQFLGSW,
-     &        CLDFMCL_SW(:,IL,:),TAUCMCL_SW(:,IL,:),
-     &        SSACMCL(:,IL,:),ASMCMCL(:,IL,:),FSFCMCL(:,IL,:), 
-     &        CIWPMCL_SW(:,IL,:),CLWPMCL_SW(:,IL,:),
-     &        REICMCL(IL,:),RELQMCL(IL,:), 
-     &        TAUAER_SW(IL,:,:)  ,SSAAER(IL,:,:)  ,ASMAER(IL,:,:)  ,
-     &        ECAER ,SWUFLX  ,SWDFLX  ,SWHR  ,SWUFLXC ,SWDFLXC ,SWHRC)
-        SW_UFLUX(IL,:) = SWUFLX(1,:)
-        SW_DFLUX(IL,:) = SWDFLX(1,:)
-        SW_UFLUXC(IL,:) = SWUFLXC(1,:)
-        SW_DFLUXC(IL,:) = SWDFLXC(1,:)
-      ENDIF !SW
+            ! Avoid array temporaries in subroutine calls (bmy, 6/3/15)
+            ! These arrays are only used in RRTMG_SW
+            p_SUNCOS     = SUNCOS    (  IL,:  )
+            p_CLDFMCL_SW = CLDFMCL_SW(:,IL,:  )
+            p_TAUCMCL_SW = TAUCMCL_SW(:,IL,:  )
+            p_SSACMCL    = SSACMCL   (:,IL,:  )
+            p_ASMCMCL    = ASMCMCL   (:,IL,:  )
+            p_FSFCMCL    = FSFCMCL   (:,IL,:  ) 
+            p_CIWPMCL_SW = CIWPMCL_SW(:,IL,:  )
+            p_CLWPMCL_SW = CLWPMCL_SW(:,IL,:  )
+            p_TAUAER_SW  = TAUAER_SW (  IL,:,:)
+            p_SSAAER     = TAUAER_LW (  IL,:,:)
+            p_ASMAER     = ASMAER    (  IL,:,:)
+
+            ! Call RRTMG for shortwave radiation
+            CALL RRTMG_SW( 
+                !-------------------------------------
+                ! Inputs
+     &                     ONECOL,
+     &                     LLPAR,
+     &                     ICLDMCL, 
+     &                     p_PCENTER,
+     &                     p_PLEV,
+     &                     p_TLAY,
+     &                     p_TLEV,
+     &                     TSFC(IL), 
+     &                     p_H2OVMR,
+     &                     p_O3VMR,
+     &                     p_CO2VMR,
+     &                     p_CH4VMR,
+     &                     p_N2OVMR,
+     &                     p_O2VMR, 
+     &                     ALBDIRVIS(IL),
+     &                     ALBDIFVIS(IL),
+     &                     ALBDIRNIR(IL),
+     &                     ALBDIFNIR(IL), 
+     &                     p_SUNCOS,
+     &                     ADJES,
+     &                     DOY,
+     &                     SCON, 
+     &                     INFLGSW,
+     &                     ICEFLGSW,
+     &                     LIQFLGSW,
+     &                     p_CLDFMCL_SW,
+     &                     p_TAUCMCL_SW,
+     &                     p_SSACMCL,
+     &                     p_ASMCMCL,
+     &                     p_FSFCMCL,
+     &                     p_CIWPMCL_SW,
+     &                     p_CLWPMCL_SW,
+     &                     p_REICMCL,
+     &                     p_RELQMCL, 
+     &                     p_TAUAER_SW,
+     &                     p_SSAAER,
+     &                     p_ASMAER,
+                !-------------------------------------
+                ! Outputs
+     &                     ECAER, 
+     &                     SWUFLX,
+     &                     SWDFLX,
+     &                     SWHR,
+     &                     SWUFLXC,
+     &                     SWDFLXC,
+     &                     SWHRC    )
+
+            ! Copy back into 3-D arrays
+            SW_UFLUX (IL,:) = SWUFLX (1,:)
+            SW_DFLUX (IL,:) = SWDFLX (1,:)
+            SW_UFLUXC(IL,:) = SWUFLXC(1,:)
+            SW_DFLUXC(IL,:) = SWDFLXC(1,:)
+
+         ENDIF !SW
       ENDDO !NCOL
-!%%%!$OMP END PARALLEL DO
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$OMP END PARALLEL DO
 
       
       ! OUTPUT RADIATION VARIABLES TO DIAGNOSTIC
@@ -1195,14 +1452,15 @@
       ENDIF
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
-!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
-!%%%!$OMP PARALLEL DO
-!%%%!$OMP+DEFAULT( SHARED )
-!%%%!$OMP+PRIVATE( I, J, LL, W, IJLOOP )
-!%%%!$OMP+PRIVATE( AODTMP, SSATMP, ASYMTMP)
-!%%%!$OMP+PRIVATE( AODOUT, SSAOUT, ASYMOUT)
-!%%%!$OMP+SCHEDULE( DYNAMIC )
+!%%%  This parallel loop gives identical results w/r/t to a RRTMG           %%%
+!%%%  simulation compiled with OpenMP turned off. (bmy, 6/2/15)             %%%
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, LL, W, IJLOOP )
+!$OMP+PRIVATE( AODTMP, SSATMP, ASYMTMP)
+!$OMP+PRIVATE( AODOUT, SSAOUT, ASYMOUT)
+!$OMP+SCHEDULE( DYNAMIC )
       DO J=1,JJPAR
       DO I=1,IIPAR
        IJLOOP   = (J-1)*IIPAR+I
@@ -1270,9 +1528,10 @@
           ENDIF
          ENDDO !LLPAR
          !WE ARE SAVING COLUMN AVERAGED VALUES FOR EACH SPECIES
-         !DIVIDE THROUGH BY NUMBER OF GRIDBOXES AND AOD*SSA
+         !DIVIDE THROUGH BY AOD*SSA (AOD-SSA WEIGHTING ACCOUNTS FOR
+         !GRIDBOXES)
          ASYMOUT=ASYMOUT/SSAOUT
-         !DIVIDE THROUGH BY NUMBER OF GRIDBOXES AND AOD
+         !DIVIDE THROUGH BY AOD
          SSAOUT=SSAOUT/AODOUT
          !offsetting output depending on wavelength
          AD72(I,J,OUTIDX+(8+3*(W-1))*NAD72) = 
@@ -1285,10 +1544,7 @@
        ENDIF
       ENDDO 
       ENDDO
-!%%% NOTE: TRY DISABLING PARALLEL LOOPS IN ORDER TO GET
-!%%% IDENTICAL RESULTS BETWEEN SP AND MP OUTPUT (bmy, 4/24/15)
-!%%%!$OMP END PARALLEL DO
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$OMP END PARALLEL DO
 
 !EOC
       END SUBROUTINE DO_RRTMG_RAD_TRANSFER
