@@ -305,7 +305,7 @@ CONTAINS
        ENDDO
        WRITE(MSG,*) ' - Emit eruptive emissions as category ', CatErupt
        CALL HCO_MSG( MSG )
-       WRITE(MSG,*) ' - Emit degassing emissions as category ', CatErupt
+       WRITE(MSG,*) ' - Emit degassing emissions as category ', CatDegas
        CALL HCO_MSG( MSG )
     ENDIF
 
@@ -422,7 +422,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
  
        ! Verbose
-       IF ( HCO_IsVerb(1) ) THEN
+       IF ( am_I_Root ) THEN
           MSG = 'AeroCom: reading ' // TRIM(ThisFile)
           CALL HCO_MSG(MSG)
        ENDIF
