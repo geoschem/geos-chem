@@ -680,7 +680,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),         INTENT(OUT) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)  ! Hg0 flux
+      REAL(fp),       INTENT(OUT) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)  ! Hg0 flux
                                                                   !  [kg/s]
 !
 ! !REMARKS:
@@ -717,52 +717,71 @@
       FLUX = 0e+0_fp
 
       ! Return to calling program if snowpack model is disabled
-      IF (.NOT. LHGSNOW) RETURN
+      IF ( .NOT. LHGSNOW ) RETURN
 
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60e+0_fp      
 
-      ! Emit Hg(0) at a steady rate, based on 180 d residence
-      ! time in snowpack, based on cycle observed at Alert 
-      ! (e.g. Steffen et al. 2008)
-      K_EMIT = 6e-8_fp
+!-----------------------------------------------------------------------------
+! Prior to 6/9/15:
+! Bug fix: K_EMIT is defined as a PRIVATE variable in parallel loop,
+! so it should really be defined within the loop. (bmy, 6/9/15)
+!      ! Emit Hg(0) at a steady rate, based on 180 d residence
+!      ! time in snowpack, based on cycle observed at Alert 
+!      ! (e.g. Steffen et al. 2008)
+!      K_EMIT = 6e-8_fp
+!-----------------------------------------------------------------------------
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, NN, SNOW_HG_NEW, K_EMIT )
-      DO J  = 1, JJPAR
-      DO I  = 1, IIPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Zero for safety's sake
+         K_EMIT      = 0.0e+0+fp
+         SNOW_HG_NEW = 0.0e+0_fp
 
          ! If the sun is set, then no emissions, go to next box
          IF ( State_Met%SUNCOS(I,J) < 0e+0_fp ) CYCLE 
 
-            ! Decrease residence time to 1 week when T > -3C
-            ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+         ! Decrease residence time to 1 week when T > -3C
+         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+         ! Emit Hg(0) at a steady rate, based on 180 d residence
+         ! time in snowpack, based on cycle observed at Alert 
+         ! (e.g. Steffen et al. 2008)
+         IF ( State_Met%T(I,J,1) > 270e+0_fp) THEN
+
+            ! NOW USE 3 weeks for broader summer peak
+            !K_EMIT = 1.6D-6
+            K_EMIT = 5e-7_fp
+
+         ELSE
+
             ! Emit Hg(0) at a steady rate, based on 180 d residence
             ! time in snowpack, based on cycle observed at Alert 
             ! (e.g. Steffen et al. 2008)
-            IF ( State_Met%T(I,J,1) > 270e+0_fp) THEN
-               ! NOW USE 3 weeks for broader summer peak
-               !K_EMIT = 1.6D-6
-               K_EMIT = 5e-7_fp
-            ELSE
-               K_EMIT = 6e-8_fp
-            ENDIF
+            K_EMIT = 6e-8_fp
 
+         ENDIF
+
+         ! Loop over # of categories 
          DO NN = 1, N_Hg_CATS
 
             ! Check if there is Hg that could be emitted
-            IF (SNOW_HG(I,J,NN)>0e+0_fp) THEN
+            IF ( SNOW_HG(I,J,NN) > 0e+0_fp ) THEN
 
                ! New mass of snow in Hg
-               SNOW_HG_NEW = SNOW_HG(I,J,NN) * EXP( - K_EMIT * DTSRCE )
+               SNOW_HG_NEW = SNOW_HG(I,J,NN) * EXP( -K_EMIT * DTSRCE )
 
+               ! Not less than zero
                FLUX(I,J,NN) = MAX( SNOW_HG(I,J,NN) - SNOW_HG_NEW,
-     &                        0e+0_fp )
+     &                             0e+0_fp )
 
                ! Convert mass -> flux
                FLUX(I,J,NN) = FLUX(I,J,NN) / DTSRCE
 
+               ! Save back into array
                SNOW_HG(I,J,NN) = SNOW_HG_NEW
 
             ENDIF

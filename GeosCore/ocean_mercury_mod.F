@@ -2760,7 +2760,15 @@
       PRINT*, 'N_oc', N_oc
 
       ! Check for missing or duplicate data blocks
-      CALL CHECK_DATA_BLOCKS( N_oc, NCOUNT )    
+      CALL CHECK_DATA_BLOCKS( N_oc, NCOUNT )
+
+!##############################################################################
+!### DEBUG: SET OCEAN RESTART VALUES TO ZERO FOR TESTING (uncomment if needed)
+!###      Hg0aq   = 0.0e+0_fpp
+!###      Hg2aq   = 0.0e+0_fpp
+!###      HgPaq   = 0.0e+0_fpp
+!###      SNOW_Hg = 0.0e+0_fpp
+!##############################################################################
 
       !=================================================================
       ! Print totals
