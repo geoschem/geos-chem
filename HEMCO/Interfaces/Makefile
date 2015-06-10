@@ -19,6 +19,7 @@
 # !REVISION HISTORY: 
 #  15 Jul 2014 - R. Yantosca - Initial version
 #  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
+#  10 Jun 2015 - R. Yantosca - Also place a copy of the executable in bin
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -83,6 +84,7 @@ clean:
 exe: 
 	@echo "LINK: $(LINK_HCO)"
 	$(LD) $(OBJECTS) $(LINK_HCO) -o $(EXE)
+	cp -f $(EXE) $(BIN)
 
 debug:
 	@echo "Targets : $(MAKECMDGOALS)"
