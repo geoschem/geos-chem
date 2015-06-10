@@ -99,7 +99,7 @@ lib: $(OBJECTS)
 
 clean:
 	@echo "===> Making clean in directory: GeosRad <==="
-	rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
+	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 debug:
 	@echo "Targets : $(MAKECMDGOALS)"
