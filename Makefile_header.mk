@@ -807,6 +807,8 @@ else
   LINK               :=-L$(LIB)
 endif
 endif
+LINK_HCO             :=$(LINK) -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders
+LINK_HCO             :=$(LINK_HCO) -lNcUtils $(NC_LINK_CMD)
 LINK                 :=$(LINK) -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp
 LINK                 :=$(LINK) -lHeaders -lNcUtils $(NC_LINK_CMD)
 
@@ -1066,6 +1068,7 @@ export F90ISO
 export FREEFORM
 export LD
 export LINK
+export LINK_HCO
 export R8
 export SHELL
 export NCL

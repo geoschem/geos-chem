@@ -439,6 +439,7 @@ CONTAINS
 100    FORMAT( 'Calculate emissions at ', i4,'-',i2.2,'-',i2.2,' ', &
                  i2.2,':',i2.2,':',i2.2 )
        CALL HCO_MSG(MSG)
+       WRITE(*,*) TRIM(MSG)
  
        ! ================================================================
        ! Reset all emission and deposition values
@@ -643,24 +644,43 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Get number of species 
-    ! Get next valid line
-    CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
-    IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
-       MSG = 'Error 2 reading ' // TRIM(SpecFile)
+    ! Get number of species
+    nModelSpec = 0 
+    DO 
+       CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( EOF ) EXIT
+       nModelSpec = nModelSpec + 1
+    ENDDO
+
+    ! Make sure we have one species
+    IF ( nModelSpec == 0 ) THEN
+       MSG = 'Species file ' // TRIM(SpecFile)      // &
+             ' does not seem to have any content. ' // &
+             'You must define at least one species.'
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
     ENDIF
 
-    LNG = LEN(TRIM(DUM))
-    LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
-    IF ( LOW < 0 .OR. LOW == LNG ) THEN
-       MSG = 'Cannot extract index after colon: ' // TRIM(DUM)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
-    LOW = LOW + 1
-    READ ( DUM(LOW:LNG), * ) nModelSpec
+    ! Go back to line one
+    REWIND( IU_FILE )
+
+    ! Get next valid line
+!    CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+!    IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
+!       MSG = 'Error 2 reading ' // TRIM(SpecFile)
+!       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+!       RETURN
+!    ENDIF
+!
+!    LNG = LEN(TRIM(DUM))
+!    LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
+!    IF ( LOW < 0 .OR. LOW == LNG ) THEN
+!       MSG = 'Cannot extract index after colon: ' // TRIM(DUM)
+!       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+!       RETURN
+!    ENDIF
+!    LOW = LOW + 1
+!    READ ( DUM(LOW:LNG), * ) nModelSpec
 
     ! Allocate species arrays
     ALLOCATE(ModelSpecNames     (nModelSpec))

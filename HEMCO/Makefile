@@ -52,6 +52,7 @@ include $(ROOT)/Makefile_header.mk
 ###############################################################################
 
 .PHONY: all check clean distclean debug test
+.PHONY: exe
 
 #-----------------------------------------
 # Targets for building code
@@ -60,15 +61,21 @@ include $(ROOT)/Makefile_header.mk
 all:
 	@$(MAKE) lib
 
+check:  
+	@$(MAKE) -C $(HCOI) all
+
 clean:
 	@$(MAKE) -C $(HCO)  clean
 	@$(MAKE) -C $(HCOI) clean
 	@$(MAKE) -C $(HCOX) clean
 
+exe: check
+
 lib:
 	@$(MAKE) libHCO
 	@$(MAKE) libHCOX
 	@$(MAKE) libHCOI
+	@$(MAKE) exe
 
 libHCO:
 	@$(MAKE) -C $(HCO) lib

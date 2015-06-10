@@ -3204,7 +3204,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: I, J
-    INTEGER            :: LON1, LON2, LAT1, LAT2
+    REAL(hp)           :: LON1, LON2, LAT1, LAT2
+    REAL(hp)           :: ILON, ILAT 
     CHARACTER(LEN=255) :: LOC = 'FillMaskBox (HCOIO_DataRead_Mod.F90)'
 
     !=================================================================
@@ -3219,18 +3220,22 @@ CONTAINS
 
     ! Check for every grid box if mid point is within mask region. 
     ! Set to 1.0 if this is the case.
-!$OMP PARALLEL DO        &
-!$OMP DEFAULT( SHARED )  &
-!$OMP PRIVATE( I, J )    &
+!$OMP PARALLEL DO                  &
+!$OMP DEFAULT( SHARED           )  &
+!$OMP PRIVATE( I, J, ILON, ILAT )  &
 !$OMP SCHEDULE( DYNAMIC )
     DO J = 1, HcoState%NY
     DO I = 1, HcoState%NX
-    
-       IF ( HcoState%Grid%XMID%Val(I,J) >= LON1 .AND. &
-            HcoState%Grid%XMID%Val(I,J) <= LON2 .AND. &
-            HcoState%Grid%YMID%Val(I,J) >= LAT1 .AND. &
-            HcoState%Grid%YMID%Val(I,J) <= LAT2        ) THEN
 
+       ! Get longitude and latitude at this grid box
+       ILON = HcoState%Grid%XMID%Val(I,J)
+       IF ( ILON >= 180.0_hp ) ILON = ILON - 360.0_hp
+
+       ILAT = HcoState%Grid%YMID%Val(I,J)
+
+       ! Check if mid point is within mask region    
+       IF ( ILON >= LON1 .AND. ILON <= LON2 .AND. &
+            ILAT >= LAT1 .AND. ILAT <= LAT2        ) THEN 
           Lct%Dct%Dta%V2(1)%Val(I,J) = 1.0_sp
        ENDIF 
 

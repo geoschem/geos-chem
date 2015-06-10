@@ -858,6 +858,7 @@
       
             ! Lon and lat of grid box (I,J) in degrees
             X = HcoState%Grid%XMID%Val( I, J )
+            IF ( X >= 180.0_hp ) X = X - 360.0_hp
             Y = HcoState%Grid%YMID%Val( I, J )
       
             ! Methyl butenol is emitted only in North America, where

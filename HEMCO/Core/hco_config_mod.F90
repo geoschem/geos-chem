@@ -1691,6 +1691,10 @@ CONTAINS
     cpuy1 = CEILING(MINVAL(HcoState%Grid%YMID%Val))
     cpuy2 = CEILING(MAXVAL(HcoState%Grid%YMID%Val))
 
+    ! Make sure values are within -180.0 to 180.0
+    IF ( cpux1 >= 180 ) cpux1 = cpux1 - 360
+    IF ( cpux2 >= 180 ) cpux2 = cpux2 - 360
+
     ! verbose
     IF ( HCO_IsVerb(1) ) THEN
        WRITE(MSG,*) 'Start to prepare fields for registering!'

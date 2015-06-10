@@ -770,7 +770,8 @@ CONTAINS
        ! Mid points: get directly from passed value
        XMID(I,J,L)      = RoundOff( lonCtr(I,J) / PI_180, 4 )
        YMID(I,J,L)      = RoundOff( latCtr(I,J) / PI_180, 4 )
-       YMID_R(I,J,L)    = latCtr(I,J)
+       YMID_R(I,J,L)    = YMID(I,J,L) * PI_180 
+
        IF ( ALLOCATED(YMID_R_W) ) THEN
           YMID_R_W(I,J,L)  = YMID_R(I,J,L)
        ENDIF
@@ -994,11 +995,15 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
+!  09 Jun 2015 - C. Keller   - Now ensure that -180.0 <= x < +180.0.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     X = XMID(I,J,1)
+
+    ! Make sure value is between -180 and +180
+    IF ( X >= 180.0_fp ) X = X - 360.0_fp
 
   END FUNCTION Get_xMid
 !EOC
@@ -1029,11 +1034,15 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
+!  09 Jun 2015 - C. Keller   - Now ensure that -180.0 <= x < +180.0.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     X = XEDGE(I,J,1)
+
+    ! Make sure value is between -180 and +180
+    IF ( X >= 180.0_fp ) X = X - 360.0_fp
 
   END FUNCTION Get_xEdge
 !EOC
