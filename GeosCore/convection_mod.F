@@ -1289,6 +1289,8 @@
 !  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
 !                              F array to subroutine COMPUTE_F
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
+!  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
+!                              whether the dynamic ocean is used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1396,7 +1398,12 @@
 #endif
 
          ! Flag to denote if this is a mercury simulation (sas, bmy, 1/19/05)
-         IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
+!-------------------------------------------------------------------------------
+! Prior to 6/9/15:
+! Deposit Hg2, HgP to snowpack regardless of LDYNOCEAN setting (bmy, 6/9/15)
+!         IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
+!-------------------------------------------------------------------------------
+         IS_Hg = ITS_A_MERCURY_SIM
 
          ! Reset first time flag
          FIRST = .FALSE.
@@ -2047,6 +2054,8 @@
 !                              -- Add statement that subtracts the wet deposited
 !                                 amount from the atomspheric mass
 !                              -- Fix inconsistency in units when T0_SUM is used
+!  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
+!                              whether the dynamic ocean is used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2196,7 +2205,12 @@
       ENDDO
 
       ! Is this a Hg simulation?
-      IS_Hg = ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LDYNOCEAN )
+!------------------------------------------------------------------------------
+! Prior to 6/9/15:
+! Now deposit snow Hg2, HgP regardless of the LDYNOCEAN setting (bmy, 6/9/15)
+!      IS_Hg = ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LDYNOCEAN )
+!------------------------------------------------------------------------------
+      IS_Hg = Input_Opt%ITS_A_MERCURY_SIM
 
       !========================================================================
       ! (1)  T r a c e r   L o o p 
