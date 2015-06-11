@@ -17,6 +17,7 @@
 ! !USES:
 !
 !
+      USE HCO_ERROR_MOD    ! For HEMCO error reporting
       USE PRECISION_MOD   ! For GEOS-Chem Precisions (fp, f4, f8)
 
       IMPLICIT NONE
@@ -28,6 +29,9 @@
       PUBLIC :: EMISSCARBON
       PUBLIC :: CLEANUP_CARBON
       PUBLIC :: INIT_CARBON
+#if defined ( TOMAS )
+      PUBLIC :: EMISSCARBONTOMAS
+#endif
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -300,6 +304,24 @@
 
       REAL(fp), ALLOCATABLE :: GLOB_DARO2(:,:,:,:,:) ! Diagnostic (dkh, 11/10/06) 
 
+#if defined( TOMAS )
+      REAL(fp), ALLOCATABLE :: BCPI_ANTH_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: BCPO_ANTH_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: BCPI_BIOF_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: BCPO_BIOF_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: BCPI_BIOB_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: BCPO_BIOB_BULK(:,:)
+
+      REAL(fp), ALLOCATABLE :: OCPI_ANTH_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: OCPO_ANTH_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: OCPI_BIOF_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: OCPO_BIOF_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: OCPI_BIOB_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: OCPO_BIOB_BULK(:,:)
+
+      REAL(fp), ALLOCATABLE :: TERP_ORGC(:,:)
+      REAL(fp), ALLOCATABLE :: CO_ANTH(:,:)
+#endif 
       ! Cloud fraction - for cloud droplet uptake of dicarbonyls 
       ! (tmf, 12/07/07) 
       REAL(fp), ALLOCATABLE :: VCLDF(:,:,:)
@@ -5984,6 +6006,381 @@ ccc
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: emisscarbontomas
+!
+! !DESCRIPTION: Subroutine emisscarbontomas scales BULK HEMCO emissions into 
+! TOMAS arrays. Only use for TOMAS simulations. This is essential a re-write of
+! the TOMAS portions of the v9 emisscarbon (JKodros 6/2/15)
+!\\
+!\\
+      SUBROUTINE EMISSCARBONTOMAS( am_I_Root, Input_Opt,
+     &                     State_Met, State_Chm, RC )
+!
+! !USES:
+!
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+! TOMAS DIAGNs:
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TOMAS_MOD,          ONLY : IBINS,     AVGMASS, SOACOND
+      USE TOMAS_MOD,          ONLY : ICOMP,     IDIAG, xSOA
+      USE TRACERID_MOD,       ONLY : IDTECIL1,  IDTECOB1, IDTNK1
+      USE TRACERID_MOD,       ONLY : IDTOCIL1,  IDTOCOB1
+
+      ! HEMCO update
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState, GetHcoDiagn
+      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER                  :: I, I0, IREF, J, J0, JREF, N
+      INTEGER                  :: FLAG, ERR
+      REAL(fp)                 :: DTSRCE, AREA_M2
+
+      ! Arrays
+      REAL(fp), DIMENSION(7)   :: DBGANTHRO
+      REAL(fp), DIMENSION(3)   :: DBGBIO
+      REAL(fp)                 :: BCFF(IIPAR, JJPAR, IBINS, 2)
+      REAL(fp)                 :: OCFF(IIPAR, JJPAR, IBINS, 2)
+      REAL(fp)                 :: BCBF(IIPAR, JJPAR, IBINS, 2)
+      REAL(fp)                 :: OCBF(IIPAR, JJPAR, IBINS, 2)
+      REAL(fp)                 :: BCBB(IIPAR, JJPAR, IBINS, 2)
+      REAL(fp)                 :: OCBB(IIPAR, JJPAR, IBINS, 2)
+
+      REAL(fp)                 :: XTRA_ORG_A(IIPAR, JJPAR)
+      REAL(fp)                 :: CO_ANTH_TOTAL
+
+      REAL(fp)                 :: BCSRC(IIPAR, JJPAR, IBINS, 2)
+      REAL(fp)                 :: OCSRC(IIPAR, JJPAR, IBINS, 2)
+      REAL(fp)                 :: NUMBSRC(IIPAR, JJPAR, IBINS)
+      REAL(fp)                 :: AREA(IIPAR, JJPAR)
+      REAL*4               :: BOXVOL  ! calculated from State_Met
+      REAL*4               :: TEMPTMS ! calculated from State_Met
+      REAL*4               :: PRES    ! calculated from State_Met
+
+      REAL(fp)                 :: TMP_MASS(IIPAR, JJPAR, IBINS)
+
+      REAL(fp)                 :: OC2OM = 1.8d0
+
+      LOGICAL                  :: SGCOAG = .True.
+      !LOGICAL                  :: XSOA = .True.  !add SDD antrho SOA?
+
+      INTEGER                  :: K
+
+      INTEGER                  :: ii=53, jj=29
+
+      ! Strings
+      CHARACTER(LEN= 63)       :: DgnName
+      CHARACTER(LEN=255)       :: MSG
+      CHARACTER(LEN=255)       :: LOC='EMISSCARBONTOMAS (carbon_mod.F)'
+      LOGICAL                  :: LPRT
+
+      ! For fields from Input_Opt
+      INTEGER                  :: N_TRACERS
+      INTEGER                  :: ID_TRACER(Input_Opt%N_TRACERS)
+      ! Pointers
+      TYPE(HCO_State), POINTER :: HcoState   => NULL()
+      REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()
+      !=================================================================
+      ! EMISSCARBONTOMAS begins here!
+      !=================================================================
+
+      ! Assume success
+      RC                  = GIGC_SUCCESS
+
+      ! Get nested-grid offsets
+      I0                  = GET_XOFFSET()
+      J0                  = GET_YOFFSET()
+
+      ! Copy values from Input_Opt
+      N_TRACERS           = Input_Opt%N_TRACERS
+      ID_TRACER           = Input_Opt%ID_TRACER(1:N_TRACERS)
+
+      ! Import emissions from HEMCO (through HEMCO state)
+      CALL GetHcoState( HcoState )
+      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+         CALL ERROR_STOP ( 'HcoState not defined!', LOC )
+      ENDIF
+
+      ! Emission timestep [seconds]
+      DTSRCE = HcoState%TS_EMIS
+
+      ! Grid box aarea
+      AREA = HcoState%Grid%AREA_M2%Val(:,:)
+
+      ! ---------BC---------------------------------------------------
+      DgnName = 'BCPI_ANTH'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
+     &  Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         BCPI_ANTH_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'BCPO_ANTH'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         BCPO_ANTH_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'BCPI_BF'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         BCPI_BIOF_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'BCPO_BF'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         BCPO_BIOF_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+
+      DgnName = 'BCPI_BB'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         BCPI_BIOB_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'BCPO_BB'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         BCPO_BIOB_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      ! ----- OC -----------------------------------------------------
+      DgnName = 'OCPI_ANTH'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         OCPI_ANTH_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'OCPO_ANTH'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         OCPO_ANTH_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'OCPI_BF'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+            IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         OCPI_BIOF_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'OCPO_BF'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
+     & Ptr2D=Ptr2D )
+            IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         OCPO_BIOF_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'OCPI_BB'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
+     & Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         OCPI_BIOB_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'OCPO_BB'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
+     & Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+      OCPO_BIOB_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      ! [kg/box/time step]
+      BCPI_ANTH_BULK = BCPI_ANTH_BULK(:,:) * AREA(:,:) * DTSRCE
+      BCPO_ANTH_BULK = BCPO_ANTH_BULK(:,:) * AREA(:,:) * DTSRCE
+      BCPI_BIOF_BULK = BCPI_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
+      BCPO_BIOF_BULK = BCPO_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
+      BCPI_BIOB_BULK = BCPI_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
+      BCPO_BIOB_BULK = BCPO_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
+
+      OCPI_ANTH_BULK = OCPI_ANTH_BULK(:,:) * AREA(:,:) * DTSRCE
+      OCPO_ANTH_BULK = OCPO_ANTH_BULK(:,:) * AREA(:,:) * DTSRCE
+      OCPI_BIOF_BULK = OCPI_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
+      OCPO_BIOF_BULK = OCPO_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
+      OCPI_BIOB_BULK = OCPI_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
+      OCPO_BIOB_BULK = OCPO_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
+
+      ! ---- SCALE INTO TOMAS BINS ---------------------------
+      IF ( IDTNK1 > 0 .AND. IDTECIL1 > 0 .AND.
+     &     IDTECOB1 > 0 .AND. IDTOCIL1 > 0 .AND. IDTOCOB1 > 1 ) THEN
+
+         BCFF(:,:,:,1) = SCALECARB( BCPI_ANTH_BULK(:,:), 1, 1 )
+         BCBF(:,:,:,1) = SCALECARB( BCPI_BIOF_BULK(:,:), 2, 1 ) 
+         BCBB(:,:,:,1) = SCALECARB( BCPI_BIOB_BULK(:,:), 3, 1 )
+
+         BCFF(:,:,:,2) = SCALECARB( BCPO_ANTH_BULK(:,:), 1, 1 )
+         BCBF(:,:,:,2) = SCALECARB( BCPO_BIOF_BULK(:,:), 2, 1 ) 
+         BCBB(:,:,:,2) = SCALECARB( BCPO_BIOB_BULK(:,:), 3, 1 )
+
+         OCFF(:,:,:,1) = OC2OM * SCALECARB( OCPI_ANTH_BULK(:,:), 1, 2 )
+         OCBF(:,:,:,1) =OC2OM*SCALECARB( OCPI_BIOF_BULK(:,:), 2, 2 ) 
+         OCBB(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOB_BULK(:,:), 3, 2 )
+
+         OCFF(:,:,:,2) = OC2OM * SCALECARB( OCPO_ANTH_BULK(:,:), 1, 2 )
+         OCBF(:,:,:,2) =OC2OM*SCALECARB( OCPO_BIOF_BULK(:,:), 2, 2 )
+         OCBB(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOB_BULK(:,:), 3, 2 )
+
+         ! Add into BCSRC and OCSRC
+         BCSRC(:,:,:,1) = BCFF(:,:,:,1) + BCBF(:,:,:,1) +
+     &        BCBB(:,:,:,1)
+
+         BCSRC(:,:,:,2) = BCFF(:,:,:,2) + BCBF(:,:,:,2) +
+     &        BCBB(:,:,:,2)
+
+         OCSRC(:,:,:,1) = OCFF(:,:,:,1) + OCBF(:,:,:,1) +
+     &        OCBB(:,:,:,1)
+
+         OCSRC(:,:,:,2) = OCFF(:,:,:,2) + OCBF(:,:,:,2) +
+     &        OCBB(:,:,:,2)
+
+      IF ( SGCOAG ) THEN
+
+         ! SUM mass terms into TEMP_MASS and pass to EMITSFC
+         TMP_MASS = BCSRC(:,:,:,1) + BCSRC(:,:,:,2)
+         CALL EMITSGC( TMP_MASS, 1, Input_Opt, State_Met, State_Chm )
+
+         TMP_MASS = OCSRC(:,:,:,1) + OCSRC(:,:,:,2)
+         CALL EMITSGC( TMP_MASS, 2, Input_Opt, State_Met, State_Chm )
+      ELSE
+           !-----------------------------------------
+           ! Add emission w/o sub-grid coagulation
+           !-----------------------------------------
+
+           ! Convert the total mass emission to number emisison [No.]
+           DO K = 1, IBINS
+              NUMBSRC(:,:,K) = ( BCSRC(:,:,K,1) + BCSRC(:,:,K,2) +
+     &                          OCSRC(:,:,K,1) + OCSRC(:,:,K,2) )/
+     &                          AVGMASS(K)
+           ENDDO
+
+           CALL EMITHIGH2( BCSRC, OCSRC, NUMBSRC,
+     &                     Input_Opt, State_Chm )
+
+      ENDIF  !sgcoag
+
+      ! READ IN BIOGENIC SOA
+      DgnName = 'BIOGENIC_MONX'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+!         print*, 'NOT ASSOCIATED TERP_ORGC'
+      ENDIF
+      TERP_ORGC = Ptr2D(:,:)
+      Ptr2D => NULL()
+
+      ! READ IN ANTRHO CO and SCALE TO ANTRHO SOA
+      DgnName = 'CO_ANTH'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+         print*, 'NOT ASSOCIATED CO ANTH'
+      ENDIF
+      CO_ANTH = Ptr2D(:,:)
+      Ptr2D => NULL()
+
+      ! Convert to kg/box/timestpe
+      CO_ANTH = CO_ANTH(:,:) * AREA(:,:) * DTSRCE
+      CO_ANTH_TOTAL = sum(CO_ANTH)
+      !print*, 'CO_ANTH_TOTAL: ', CO_ANTH_TOTAL
+
+      ! Multiply by 10% and convert to [kg/box/time step]
+      TERP_ORGC = TERP_ORGC(:,:) * 0.1 * AREA(:,:) * DTSRCE
+
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         ! Scale CO into SOA - 100 Tg/yr,
+         XTRA_ORG_A(I,J) = 100.d9 * CO_ANTH(I,J)/CO_ANTH_TOTAL /
+     &        (60*60*24*365/DTSRCE)
+
+         !print*, 'XTRA_ORG_A: ', XTRA_ORG_A(ii,jj)
+         BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6 !convert from m3 -> cm3
+         TEMPTMS = State_Met%T(I,J,1)
+         PRES    = GET_PCENTER(i,j,1)*100.0 ! in Pa
+         IF ( TERP_ORGC(I,J) > 0.d0 )
+     &        CALL SOACOND( OC2OM * TERP_ORGC(I,J), I, J, 1,
+     &               BOXVOL, TEMPTMS, PRES, State_Chm )
+            IF ( xSOA == 1) Then  !JKodros, switch from tomas_mod (6/15)
+               IF ( XTRA_ORG_A(I,J) > 0.d0 )  ! (SDD, 01/14)
+     &            CALL SOACOND( XTRA_ORG_A(I,J), I, J, 1,
+     &               BOXVOL, TEMPTMS, PRES, State_Chm )
+
+            ENDIF
+      ENDDO
+      ENDDO
+      IF ( LPRT )
+     &    CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
+
+      ENDIF  ! size resolved > 0
+
+      END SUBROUTINE EMISSCARBONTOMAS
+#endif
+!EOC
+#if defined( TOMAS )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: emithigh2
 !
 ! !DESCRIPTION: Subroutine EMITHIGH2 mixes tracer completely from the surface
@@ -9085,6 +9482,68 @@ ccc
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'POAEMISS' )
       POAEMISS = 0e+0_fp
 
+      ! JKODROS
+#if defined( TOMAS )
+      ! BC 
+      ALLOCATE( BCPI_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI_ANTH_BULK' )
+      BCPI_ANTH_BULK = 0e+0_fp
+
+      ALLOCATE( BCPO_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPO_ANTH_BULK' )
+      BCPO_ANTH_BULK = 0e+0_fp
+
+      ALLOCATE( BCPI_BIOF_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI_BIOF_BULK' )
+      BCPI_BIOF_BULK = 0e+0_fp
+
+      ALLOCATE( BCPO_BIOF_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPO_BIOF_BULK' )
+      BCPO_BIOF_BULK = 0e+0_fp
+
+      ALLOCATE( BCPI_BIOB_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI_BIOB_BULK' )
+      BCPI_BIOB_BULK = 0e+0_fp
+
+      ALLOCATE( BCPO_BIOB_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPO_BIOB_BULK' )
+      BCPO_BIOB_BULK = 0e+0_fp
+
+      ! OC ----------------
+      ALLOCATE( OCPI_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPI_ANTH_BULK' )
+      OCPI_ANTH_BULK = 0e+0_fp
+
+      ALLOCATE( OCPO_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPO_ANTH_BULK' )
+      OCPO_ANTH_BULK = 0e+0_fp
+
+      ALLOCATE( OCPI_BIOF_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPI_BIOF_BULK' )
+      OCPI_BIOF_BULK = 0e+0_fp
+
+      ALLOCATE( OCPO_BIOF_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPO_BIOF_BULK' )
+      OCPO_BIOF_BULK = 0e+0_fp
+
+      ALLOCATE( OCPI_BIOB_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPI_BIOB_BULK' )
+      OCPI_BIOB_BULK = 0e+0_fp
+
+      ALLOCATE( OCPO_BIOB_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPO_BIOB_BULK' )
+      OCPO_BIOB_BULK = 0e+0_fp
+      
+      !biogenic
+      ALLOCATE( TERP_ORGC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TERP_ORGC' )
+      TERP_ORGC = 0e+0_fp
+
+      ! CO anth for scaling xtraSOA
+      ALLOCATE( CO_ANTH( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_ANTH' )
+      CO_ANTH = 0e+0_fp
+#endif
       !=================================================================
       ! SOA arrays only have to be allocated if LSOA = T
       !=================================================================
@@ -9389,6 +9848,23 @@ ccc
       IF ( ALLOCATED( BETANOSAVE    ) ) DEALLOCATE( BETANOSAVE    )
       IF ( ALLOCATED( SPECSOAPROD   ) ) DEALLOCATE( SPECSOAPROD   )
       IF ( ALLOCATED( SPECSOAEVAP   ) ) DEALLOCATE( SPECSOAEVAP   )
+
+#if defined ( TOMAS )
+      IF ( ALLOCATED( BCPI_ANTH_BULK )) DEALLOCATE( BCPI_ANTH_BULK)
+      IF ( ALLOCATED( BCPO_ANTH_BULK )) DEALLOCATE( BCPO_ANTH_BULK)
+      IF ( ALLOCATED( BCPI_BIOF_BULK )) DEALLOCATE( BCPI_BIOF_BULK)
+      IF ( ALLOCATED( BCPO_BIOF_BULK )) DEALLOCATE( BCPO_BIOF_BULK)
+      IF ( ALLOCATED( BCPI_BIOB_BULK )) DEALLOCATE( BCPI_BIOB_BULK)
+      IF ( ALLOCATED( BCPO_BIOB_BULK )) DEALLOCATE( BCPO_BIOB_BULK)
+      IF ( ALLOCATED( OCPI_ANTH_BULK )) DEALLOCATE( OCPI_ANTH_BULK)
+      IF ( ALLOCATED( OCPO_ANTH_BULK )) DEALLOCATE( OCPO_ANTH_BULK)
+      IF ( ALLOCATED( OCPI_BIOF_BULK )) DEALLOCATE( OCPI_BIOF_BULK)
+      IF ( ALLOCATED( OCPO_BIOF_BULK )) DEALLOCATE( OCPO_BIOF_BULK)
+      IF ( ALLOCATED( OCPI_BIOB_BULK )) DEALLOCATE( OCPI_BIOB_BULK)
+      IF ( ALLOCATED( OCPO_BIOB_BULK )) DEALLOCATE( OCPO_BIOB_BULK)
+      IF ( ALLOCATED( TERP_ORGC      )) DEALLOCATE( TERP_ORGC     )
+      IF ( ALLOCATED( CO_ANTH        )) DEALLOCATE( CO_ANTH       )
+#endif
 
       END SUBROUTINE CLEANUP_CARBON
 !EOC

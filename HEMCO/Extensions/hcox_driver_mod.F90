@@ -112,6 +112,7 @@ CONTAINS
     USE HCOX_CH4WetLand_MOD,    ONLY : HCOX_CH4WETLAND_Init
 #if defined( TOMAS )
     USE HCOX_TOMAS_SeaSalt_Mod, ONLY : HCOX_TOMAS_SeaSalt_Init
+    USE HCOX_TOMAS_DustDead_Mod, ONLY : HCOX_TOMAS_DustDead_Init  
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -195,7 +196,11 @@ CONTAINS
     !-----------------------------------------------------------------------
     CALL HCOX_DustDead_Init( amIRoot, HcoState, 'DustDead', ExtState,  RC )
     IF ( RC /= HCO_SUCCESS ) RETURN 
-
+#if defined( TOMAS )
+    CALL HCOX_TOMAS_DustDead_Init( amIRoot, HcoState, 'TOMAS_DustDead', &
+    	 		     	      ExtState,  RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+#endif 
     !-----------------------------------------------------------------------
     ! Dust Ginoux emissions 
     !-----------------------------------------------------------------------
@@ -321,6 +326,7 @@ CONTAINS
     USE HCOX_CH4WetLand_mod,    ONLY : HCOX_CH4Wetland_Run
 #if defined( TOMAS )
     USE HCOX_TOMAS_SeaSalt_Mod, ONLY : HCOX_TOMAS_SeaSalt_Run
+    USE HCOX_TOMAS_DustDead_Mod, ONLY : HCOX_TOMAS_DustDead_Run
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -415,9 +421,19 @@ CONTAINS
     ! Dust emissions (DEAD model) 
     !-----------------------------------------------------------------------
     IF ( ExtState%DustDead ) THEN
+       print*, 'JACK ABOUT TO DO DUST DEAD'
        CALL HCOX_DustDead_Run( amIRoot, ExtState, HcoState, RC )
+       print*, 'JACK AFTER DUSTDEAD'
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
+
+#if defined( TOMAS )
+    IF ( ExtState%TOMAS_DustDead ) THEN
+       !print*, 'JACK TOMAS_DustDead is on'
+       CALL HCOX_TOMAS_DustDead_Run( amIRoot, ExtState, HcoState, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF
+#endif 
 
     !-----------------------------------------------------------------------
     ! Dust emissions (Ginoux)
@@ -546,6 +562,7 @@ CONTAINS
     USE HCOX_CH4WetLand_Mod,    ONLY : HCOX_CH4Wetland_Final
 #if defined( TOMAS )
     USE HCOX_TOMAS_SeaSalt_Mod, ONLY : HCOX_TOMAS_SeaSalt_Final
+    USE HCOX_TOMAS_DustDead_Mod, ONLY : HCOX_TOMAS_DustDead_Final
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -587,6 +604,9 @@ CONTAINS
        IF ( ExtState%ParaNOx       ) CALL HCOX_PARANOX_Final(am_I_Root,HcoState,RC)
        IF ( ExtState%LightNOx      ) CALL HCOX_LIGHTNOX_Final()
        IF ( ExtState%DustDead      ) CALL HCOX_DustDead_Final()
+#if defined( TOMAS)
+       IF ( ExtState%TOMAS_DustDead )  CALL HCOX_TOMAS_DustDead_Final()
+#endif
        IF ( ExtState%DustGinoux    ) CALL HCOX_DustGinoux_Final()
        IF ( ExtState%SeaSalt       ) CALL HCOX_SeaSalt_Final()
        IF ( ExtState%Megan         ) CALL HCOX_Megan_Final(am_I_Root,HcoState,RC)
