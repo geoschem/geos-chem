@@ -3351,7 +3351,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                 :: I, J, P, ARR_IND
-      REAL(hp)                :: FACTOR
+      REAL(hp)                :: FACTOR, SPECIES2CARBON
       REAL(hp)                :: ARRAY_16(HcoState%NX,HcoState%NY,16)
       REAL(hp)                :: PFT_EF_OMON(15), PFT_EF_MOHX(15)
       REAL(hp)                :: PFT_EF_ACET(15), PFT_EF_BIDR(15)
