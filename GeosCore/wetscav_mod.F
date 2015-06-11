@@ -5756,6 +5756,8 @@
 !  27 May 2011 - R. Yantosca - Now pass F_RAINOUT to DO_WASHOUT_ONLY
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
+!  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
+!                              whether the dynamic ocean is used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5794,8 +5796,14 @@
       ! Assume success
       RC        =  GIGC_SUCCESS
 
-      ! Is this a mercury simulation with dynamic online ocean?
-      IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
+!------------------------------------------------------------------------------
+! Prior to 6/9/15:
+! Deposit Hg2, HgP to snowpack regardless of LDYNOCEAN setting (bmy, 6/9/15)
+!      ! Is this a mercury simulation with dynamic online ocean?
+!      IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
+!------------------------------------------------------------------------------
+      ! Is this a mercury simulation?
+      IS_Hg = ( ITS_A_MERCURY_SIM )
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -6332,6 +6340,8 @@
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !  01 Apr 2015 - L. Zhang    - Don't do wetdep in nested-grid buffer zone
 !  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
+!  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
+!                              whether the dynamic ocean is used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6371,8 +6381,14 @@
       ! Assume success
       RC        =  GIGC_SUCCESS
 
-      ! Is this a mercury simulation with dynamic online ocean?
-      IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
+!------------------------------------------------------------------------------
+! Prior to 6/9/15:
+! Deposit Hg2, HgP to the snowpack regardless of LDYNOCEAN setting (bmy, 6/9/15)
+!      ! Is this a mercury simulation with dynamic online ocean?
+!      IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
+!------------------------------------------------------------------------------
+      ! Is this a mercury simulation?
+      IS_Hg = ITS_A_MERCURY_SIM
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)

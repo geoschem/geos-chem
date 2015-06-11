@@ -112,6 +112,7 @@ MODULE HCOX_STATE_MOD
      LOGICAL                   :: GC_POPs        ! GEOS-Chem POPs simulation
      LOGICAL                   :: Wetland_CH4    ! Methane emissions from wetlands
      LOGICAL                   :: TOMAS_SeaSalt  ! TOMAS sectional sea salt
+     LOGICAL                   :: AeroCom        ! AeroCom volcano 
 
      !----------------------------------------------------------------------
      ! Data directory
@@ -299,6 +300,7 @@ CONTAINS
     ExtState%GC_POPs       = .FALSE.
     ExtState%Wetland_CH4   = .FALSE.
     ExtState%TOMAS_SeaSalt = .FALSE.
+    ExtState%AeroCom       = .FALSE.
 
     !-----------------------------------------------------------------------
     ! Initialize constants for POPs emissions module

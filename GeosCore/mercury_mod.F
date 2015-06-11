@@ -1844,7 +1844,15 @@
             T_Hg_An = 0e+0_fp
 
             ! No biomass burning emissions
-            EHg0_bb = 0e+0_fp
+!-----------------------------------------------------------------------------
+! Prior to 6/9/15:
+! Because we are in a do loop, we should only zero out (I,J) elements
+! instead of the whole array. (bmy, 6/9/15)
+!            !EHg0_bb = 0e+0_fp
+!            !EHg0_bb = 0e+0_fp
+!-----------------------------------------------------------------------------
+            EHg0_bb(I,J) = 0e+0_fp
+            EHg0_bb(I,J) = 0e+0_fp
 
          ELSE
 
@@ -1853,19 +1861,33 @@
 
             IF ( LAnthroHgOnly ) THEN
                ! No other emissions
-               EHg0_bb = 0e+0_fp
-               EHg0_oc = 0e+0_fp
-!- eds 8/31/10 ---------------------------------------------------------------
-!               EHg0_nt = 0e+0_fp
-               EHg0_geo = 0e+0_fp
 !-----------------------------------------------------------------------------
-               EHg0_snow = 0e+0_fp
+! Prior to 6/9/15:
+! Because we are in a do loop, we should only zero out (I,J) elements
+! instead of the whole array. (bmy, 6/9/15)
+!               EHg0_bb = 0e+0_fp
+!               EHg0_oc = 0e+0_fp
+!!- eds 8/31/10 ---------------------------------------------------------------
+!!               EHg0_nt = 0e+0_fp
+!               EHg0_geo = 0e+0_fp
+!!-----------------------------------------------------------------------------
+!               EHg0_snow = 0e+0_fp
+!               IF ( LGTMM ) THEN
+!                  EHg0_gtm = 0e+0_fp
+!               ELSE
+!                  EHg0_ln = 0e+0_fp
+!                  EHg0_vg = 0e+0_fp
+!                  EHg0_so = 0e+0_fp
+!-----------------------------------------------------------------------------
+               EHg0_bb(I,J)      = 0e+0_fp
+               EHg0_oc(I,J,:)    = 0e+0_fp
+               EHg0_snow(I,J,:)  = 0e+0_fp
                IF ( LGTMM ) THEN
-                  EHg0_gtm = 0e+0_fp
+                  EHg0_gtm(I,J) = 0e+0_fp
                ELSE
-                  EHg0_ln = 0e+0_fp
-                  EHg0_vg = 0e+0_fp
-                  EHg0_so = 0e+0_fp
+                  EHg0_ln(I,J,:) = 0e+0_fp
+                  EHg0_vg(I,J)   = 0e+0_fp
+                  EHg0_so(I,J)   = 0e+0_fp
                ENDIF
             ENDIF
             

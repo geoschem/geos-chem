@@ -19,6 +19,7 @@
 # !REVISION HISTORY: 
 #  15 Jul 2014 - R. Yantosca - Initial version
 #  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
+#  10 Jun 2015 - R. Yantosca - Also place a copy of the executable in bin
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -33,6 +34,7 @@
 ROOT    :=../..
 LIB     :=$(ROOT)/lib
 MOD     :=$(ROOT)/mod
+BIN     :=$(ROOT)/bin
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
@@ -53,15 +55,23 @@ MODULES :=$(foreach I,$(MODULES),$(MOD)/$(I))
 # Library file
 LIBRARY :=libHCOI.a
 
+# Executable file
+EXE     :=hemco_standalone.x
+
 ###############################################################################
 ###                                                                         ###
 ###  Makefile targets: type "make help" for a complete listing!             ###
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean debug
+.PHONY: clean debug check
 
-all: lib
+all: 
+	@${MAKE} lib
+	@${MAKE} exe
+
+check:
+	@${MAKE} exe
 
 lib: $(OBJECTS)
 	$(AR) crs $(LIBRARY) $(OBJECTS)
@@ -69,7 +79,12 @@ lib: $(OBJECTS)
 
 clean:
 	@echo "===> Making clean in directory: HEMCO/Interfaces <==="
-	@rm -f *$(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
+	@rm -f *.x *$(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
+
+exe: 
+	@echo "LINK: $(LINK_HCO)"
+	$(LD) $(OBJECTS) $(LINK_HCO) -o $(EXE)
+	cp -f $(EXE) $(BIN)
 
 debug:
 	@echo "Targets : $(MAKECMDGOALS)"
@@ -102,5 +117,8 @@ debug:
 hcoi_esmf_mod.o : hcoi_esmf_mod.F90
 
 hcoi_standalone_mod.o : hcoi_standalone_mod.F90
+
+hemco_standalone.o : hemco_standalone.F90 \
+                     hcoi_standalone_mod.o
 
 #EOC

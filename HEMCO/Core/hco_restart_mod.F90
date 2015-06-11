@@ -583,10 +583,6 @@ CONTAINS
 #if defined(ESMF_)
     CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name), &
                                   -1,       WRITTEN,    RC, Arr3D=Arr3D ) 
-
-    ! testing only
-    if(am_I_Root.and.written) write(*,*) 'restart written to internal state: ', TRIM(Name)
-
 #endif
 
     ! Pass to output
@@ -655,10 +651,6 @@ CONTAINS
 #if defined(ESMF_)
     CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name), &
                                   -1,       WRITTEN,    RC, Arr2D=Arr2D ) 
-
-    ! testing only
-    if(am_I_Root.and.written) write(*,*) 'restart written to internal state: ', TRIM(Name)
-
 #endif
 
     ! Pass to output

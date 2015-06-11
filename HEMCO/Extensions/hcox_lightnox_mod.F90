@@ -460,6 +460,9 @@ CONTAINS
        YMID     = HcoState%Grid%YMID%Val( I, J )
        XMID     = HcoState%Grid%XMID%Val( I, J )
 
+       ! Make sure xmid is between -180 and +180
+       IF ( XMID >= 180.0d0 ) XMID = XMID - 360.0d0
+
        ! Get surface type. Note that these types are different than 
        ! the types used elsewhere: 0 = land, 1=water, 2=ice!
        LNDTYPE = HCO_LANDTYPE( ExtState%WLI%Arr%Val(I,J),  & 
