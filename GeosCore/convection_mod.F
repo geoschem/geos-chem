@@ -247,6 +247,9 @@
       ! DO_CONVECT begins here!
       !=================================================================
 
+      ! Copy values from Input_Opt
+      N_TRACERS         = Input_Opt%N_TRACERS
+
       !=================================================================
       ! Convert State_Chm%Tracers from dry mixing ratio [v/v] to 
       ! moist mixing ratio [v/v] prior to convection (ewl, 4/20/15)
@@ -305,9 +308,6 @@
 
       ! Assume success
       RC                =  GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      N_TRACERS         = Input_Opt%N_TRACERS
 
       ! Pick the proper # of tracers
 #if   defined( APM )  
