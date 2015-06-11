@@ -200,6 +200,7 @@ CONTAINS
 !
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_ExtList_Mod,    ONLY : GetExtOpt
+    USE HCO_ExtList_Mod,    ONLY : GetExtSpcVal
     USE HCO_STATE_MOD,      ONLY : HCO_GetExtHcoID
 !
 ! !INPUT PARAMETERS:
@@ -252,21 +253,13 @@ CONTAINS
     ! Determine scale factor to be applied to each species. This is 1.00 
     ! by default, but can be set in the HEMCO configuration file via setting
     ! Scaling_<SpcName>. 
-    ALLOCATE ( SpcScl(nSpc) ) 
-    DO N = 1, nSpc
-       CALL GetExtOpt( ExtNr, 'Scaling_'//TRIM(SpcNames(N)), OptValSp=ValSp, &
-                       FOUND=FOUND, RC=RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       IF ( FOUND ) THEN
-          SpcScl(N) = ValSp
-       ELSE
-          SpcScl(N) = 1.0_sp
-       ENDIF
+    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'Scaling', 1.0_sp, SpcScl, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-       ! Add conversion factor from kg S to kg of emitted species
+    ! Add conversion factor from kg S to kg of emitted species
+    DO N = 1, nSpc
        SpcScl(N) = SpcScl(N) * HcoState%Spc(SpcIDs(N))%EmMW_g &
                  * HcoState%Spc(SpcIDs(N))%MolecRatio / MW_S
-
     ENDDO
 
     ! Get location of volcano table. This must be provided.

@@ -974,7 +974,7 @@ CONTAINS
 ! !IROUTINE: EmisList_NextCont
 !
 ! !DESCRIPTION: Subroutine EmisList\_NextCont is a simple wrapper routine 
-! to get the next/first pointer of the ConfigList. See ListCont\_NextCont 
+! to get the next/first pointer of EmisList. See ListCont\_NextCont 
 ! for more details. 
 !\\
 !\\

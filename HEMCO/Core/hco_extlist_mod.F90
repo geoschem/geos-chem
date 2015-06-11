@@ -42,6 +42,7 @@ MODULE HCO_ExtList_Mod
   PUBLIC :: GetExtOpt
   PUBLIC :: GetExtNr 
   PUBLIC :: GetExtSpcStr
+  PUBLIC :: GetExtSpcVal
   PUBLIC :: SetExtNr
   PUBLIC :: ExtNrInUse
   PUBLIC :: ExtFinal
@@ -75,6 +76,12 @@ MODULE HCO_ExtList_Mod
 
   ! Private linked list carrying information of all enabled extensions 
   TYPE(Ext), POINTER     :: ExtList => NULL()
+
+  INTERFACE GetExtSpcVal 
+     MODULE PROCEDURE GetExtSpcVal_Char
+     MODULE PROCEDURE GetExtSpcVal_Int
+     MODULE PROCEDURE GetExtSpcVal_Sp 
+  END INTERFACE GetExtSpcVal
 
 CONTAINS
 !EOC
@@ -588,6 +595,247 @@ CONTAINS
     RC = HCO_SUCCESS 
 
     END SUBROUTINE GetExtSpcStr
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: GetExtSpcVal_Sp
+!
+! !DESCRIPTION: Subroutine GetExtSpcVal\_Sp returns single precision values 
+! associated with the species for a given extension. Specifically, this routine 
+! searches for extension setting '<Prefix>\_SpecName' for every species passed 
+! through input argument SpcNames and writes those into output argument SpcScal.
+! The default value DefValue is assigned to all elements of SpcScal with no
+! corresponding extension setting. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetExtSpcVal_Sp( ExtNr, NSPC, SpcNames, Prefix, DefValue, SpcScal, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,               INTENT(IN   ) :: ExtNr          ! Extension Nr. 
+    INTEGER,               INTENT(IN   ) :: NSPC           ! # of species 
+    CHARACTER(LEN=*),      INTENT(IN   ) :: SpcNames(NSPC) ! Species string
+    CHARACTER(LEN=*),      INTENT(IN   ) :: Prefix         ! search prefix 
+    REAL(sp),              INTENT(IN   ) :: DefValue       ! default value
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(sp), ALLOCATABLE, INTENT(INOUT) :: SpcScal(:)     ! Species scale factors 
+    INTEGER,               INTENT(INOUT) :: RC             ! Success or failure?
+!
+! !REVISION HISTORY:
+!  10 Jun 2015 - C. Keller: Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !======================================================================
+    ! GetExtSpcVal_Sp begins here
+    !======================================================================
+
+    CALL GetExtSpcVal_Dr ( ExtNr, NSPC, SpcNames, Prefix, RC, &
+                           DefVal_SP=DefValue, SpcScal_SP=SpcScal )
+
+    END SUBROUTINE GetExtSpcVal_sp
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: GetExtSpcVal_Int
+!
+! !DESCRIPTION: Subroutine GetExtSpcVal\_Int returns integer values 
+! associated with the species for a given extension. Specifically, this routine 
+! searches for extension setting '<Prefix>\_SpecName' for every species passed 
+! through input argument SpcNames and writes those into output argument SpcScal.
+! The default value DefValue is assigned to all elements of SpcScal with no
+! corresponding extension setting. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetExtSpcVal_Int( ExtNr, NSPC, SpcNames, Prefix, DefValue, SpcScal, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,               INTENT(IN   ) :: ExtNr          ! Extension Nr. 
+    INTEGER,               INTENT(IN   ) :: NSPC           ! # of species 
+    CHARACTER(LEN=*),      INTENT(IN   ) :: SpcNames(NSPC) ! Species string
+    CHARACTER(LEN=*),      INTENT(IN   ) :: Prefix         ! search prefix 
+    INTEGER,               INTENT(IN   ) :: DefValue       ! default value
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,  ALLOCATABLE, INTENT(INOUT) :: SpcScal(:)     ! Species scale factors 
+    INTEGER,               INTENT(INOUT) :: RC             ! Success or failure?
+!
+! !REVISION HISTORY:
+!  10 Jun 2015 - C. Keller: Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !======================================================================
+    ! GetExtSpcVal_Int begins here
+    !======================================================================
+
+    CALL GetExtSpcVal_Dr ( ExtNr, NSPC, SpcNames, Prefix, RC, &
+                           DefVal_IN=DefValue, SpcScal_IN=SpcScal )
+
+    END SUBROUTINE GetExtSpcVal_Int
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: GetExtSpcVal_Char
+!
+! !DESCRIPTION: Subroutine GetExtSpcVal\_Char returns character values 
+! associated with the species for a given extension. Specifically, this routine 
+! searches for extension setting '<Prefix>\_SpecName' for every species passed 
+! through input argument SpcNames and writes those into output argument SpcScal.
+! The default value DefValue is assigned to all elements of SpcScal with no
+! corresponding extension setting. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetExtSpcVal_Char( ExtNr, NSPC, SpcNames, Prefix, DefValue, SpcScal, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,                       INTENT(IN   ) :: ExtNr          ! Extension Nr. 
+    INTEGER,                       INTENT(IN   ) :: NSPC           ! # of species 
+    CHARACTER(LEN=*),              INTENT(IN   ) :: SpcNames(NSPC) ! Species string
+    CHARACTER(LEN=*),              INTENT(IN   ) :: Prefix         ! search prefix 
+    CHARACTER(LEN=*),              INTENT(IN   ) :: DefValue       ! default value
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), ALLOCATABLE, INTENT(INOUT) :: SpcScal(:)     ! Species scale factors 
+    INTEGER,                       INTENT(INOUT) :: RC             ! Success or failure?
+!
+! !REVISION HISTORY:
+!  10 Jun 2015 - C. Keller: Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !======================================================================
+    ! GetExtSpcVal_Char begins here
+    !======================================================================
+
+    CALL GetExtSpcVal_Dr ( ExtNr, NSPC, SpcNames, Prefix, RC, &
+                           DefVal_Char=DefValue, SpcScal_Char=SpcScal )
+
+    END SUBROUTINE GetExtSpcVal_char
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: GetExtSpcVal_Dr
+!
+! !DESCRIPTION: Subroutine GetExtSpcVal\_Dr is the GetExtSpcVal driver routine. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetExtSpcVal_Dr( ExtNr, NSPC, SpcNames, Prefix, RC, &
+                              DefVal_SP, SpcScal_SP,             &
+                              DefVal_Char, SpcScal_Char,         &
+                              DefVal_IN, SpcScal_IN               )
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,                       INTENT(IN   )           :: ExtNr          ! Extension Nr. 
+    INTEGER,                       INTENT(IN   )           :: NSPC           ! # of species 
+    CHARACTER(LEN=*),              INTENT(IN   )           :: SpcNames(NSPC) ! Species string
+    CHARACTER(LEN=*),              INTENT(IN   )           :: Prefix         ! search prefix 
+    REAL(sp),                      INTENT(IN   ), OPTIONAL :: DefVal_SP      ! default value
+    INTEGER,                       INTENT(IN   ), OPTIONAL :: DefVal_IN      ! default value
+    CHARACTER(LEN=*),              INTENT(IN   ), OPTIONAL :: DefVal_Char    ! default value
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL(sp),         ALLOCATABLE, INTENT(  OUT), OPTIONAL :: SpcScal_SP(:)   ! Species values 
+    INTEGER,          ALLOCATABLE, INTENT(  OUT), OPTIONAL :: SpcScal_IN(:)   ! Species values 
+    CHARACTER(LEN=*), ALLOCATABLE, INTENT(  OUT), OPTIONAL :: SpcScal_Char(:) ! Species values 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,               INTENT(INOUT)           :: RC       ! Success or failure?
+!
+! !REVISION HISTORY:
+!  10 Jun 2015 - C. Keller: Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL ARGUMENTS:
+!
+    INTEGER              :: I
+    LOGICAL              :: FND
+    REAL(sp)             :: iScal_sp
+    INTEGER              :: iScal_in
+    CHARACTER(LEN=255)   :: iScal_char
+    CHARACTER(LEN= 61)   :: ThisOpt
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'GetExtSpcVal_Dr (hco_extlist_mod.F90)'
+
+    !======================================================================
+    ! GetExtSpcVal_Dr begins here
+    !======================================================================
+
+    ! Initialize
+    IF ( PRESENT(SpcScal_sp) ) THEN
+       IF ( ALLOCATED(SpcScal_sp) ) DEALLOCATE(SpcScal_sp)
+       ALLOCATE(SpcScal_sp(NSPC))
+       SpcScal_sp = DefVal_sp 
+    ENDIF
+    IF ( PRESENT(SpcScal_in) ) THEN
+       IF ( ALLOCATED(SpcScal_in) ) DEALLOCATE(SpcScal_in)
+       ALLOCATE(SpcScal_in(NSPC))
+       SpcScal_in = DefVal_in 
+    ENDIF
+    IF ( PRESENT(SpcScal_char) ) THEN
+       IF ( ALLOCATED(SpcScal_char) ) DEALLOCATE(SpcScal_char)
+       ALLOCATE(SpcScal_char(NSPC))
+       SpcScal_char = DefVal_char 
+    ENDIF
+
+    ! Do for every species
+    DO I = 1, NSPC
+       ThisOpt = TRIM(Prefix)//'_'//TRIM(SpcNames(I))
+       IF ( PRESENT(SpcScal_sp) ) THEN
+          CALL GetExtOpt ( ExtNr, ThisOpt, OptValSp=iScal_sp, FOUND=FND, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          IF ( FND ) SpcScal_sp(I) = iScal_sp
+       ENDIF
+       IF ( PRESENT(SpcScal_in) ) THEN
+          CALL GetExtOpt ( ExtNr, ThisOpt, OptValInt=iScal_in, FOUND=FND, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          IF ( FND ) SpcScal_in(I) = iScal_in
+       ENDIF
+       IF ( PRESENT(SpcScal_char) ) THEN
+          CALL GetExtOpt ( ExtNr, ThisOpt, OptValChar=iScal_char, FOUND=FND, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          IF ( FND ) SpcScal_char(I) = iScal_char
+       ENDIF
+    ENDDO
+
+    ! Return w/ success
+    RC = HCO_SUCCESS 
+
+    END SUBROUTINE GetExtSpcVal_Dr
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

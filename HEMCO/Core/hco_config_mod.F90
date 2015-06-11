@@ -575,10 +575,10 @@ CONTAINS
                                    srcTime,   5,      TmCycle,  6,  &
                                    srcDim,    7,      srcUnit,  8,  &
                                    SpcName,  -1,      Char1,   10,  &
-                                   Char2,    -1,                    &
+                                   Char2,    11,                    &
                                    Int1,      1,      Int2,     9,  &
                                    Int3,     -1,      STAT,         &
-                                   OutLine=LINE                      )
+                                   optcl=11,          OutLine=LINE   )
        ENDIF
 
        !--------------------------------------------------------------
@@ -853,6 +853,12 @@ CONTAINS
              Dta%ncYrs(2) = SplitInts(2)
              Dta%ncMts(1) = SplitInts(3)
              Dta%ncMts(2) = SplitInts(4)
+
+             ! Make sure that masks are always being read if specified so.
+             IF ( Char2(1:1) == 'y' .OR. Char2(1:1) == 'Y' ) THEN
+                CALL ScalID2List( Lct%Dct%ScalID, RC )
+                IF ( RC /= HCO_SUCCESS ) RETURN 
+             ENDIF
           ENDIF
        ENDIF
 
@@ -1903,15 +1909,6 @@ CONTAINS
        CALL ScalID_Register ( Lct%Dct, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-!       DO N = 1,Lct%Dct%nScalID
-!          CALL Get_cID ( Lct%Dct%Scal_cID(N), cID, RC )
-!          IF ( RC /= HCO_SUCCESS ) RETURN
-!          Lct%Dct%Scal_cID(N) = cID
-!
-!          ! Vector Scal_cID of this container now points to cIDs
-!          Lct%Dct%Scal_cID_Set = .TRUE.
-!       ENDDO
-
        ! Get target ID of this container. The targetID corresponds
        ! to the container ID cID into which emissions data of the
        ! current container (Lct) will be added to. Typically, 
@@ -2076,16 +2073,6 @@ CONTAINS
 
           CALL ScalID_Register ( Lct%Dct, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-
-!          ! Get container ID of mask and update cID value of the data
-!          ! container accordingly.
-!          CALL Get_cID ( Lct%Dct%Scal_cID(1), cID, RC )
-!          IF ( RC /= HCO_SUCCESS ) RETURN
-!          Lct%Dct%Scal_cID(1) = cID
-!
-!          ! Vector Scal_cID of this container now points to cIDs
-!          Lct%Dct%Scal_cID_Set = .TRUE.
-
        ENDIF
 
        ! Register container in ReadList. Containers will be listed 
@@ -3208,55 +3195,21 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Pointers
-    TYPE(ScalIDCont), POINTER  :: NewScalIDCont => NULL()
-    TYPE(ScalIDCont), POINTER  :: TmpScalIDCont => NULL() 
-    TYPE(ScalIDCont), POINTER  :: PrvScalIDCont => NULL() 
-
     ! Scalars
     INTEGER                    :: N, cID
-    LOGICAL                    :: IsInList
       
     !======================================================================
     ! ScalID_Register begins here
     !======================================================================
 
     ! Check for every element of ScalIDs, if this scale factor ID is
-    ! already a member of ScalIDList. If not, add to it. 
+    ! already a member of ScalIDList. If not, add it. 
     DO N = 1, Dct%nScalID 
        IF ( Dct%Scal_cID(N) < 0 ) CYCLE
-     
-       ! Check if already in list 
-       IsInList = .FALSE.
-       TmpScalIDCont => ScalIDList
-       PrvScalIDCont => TmpScalIDCont
-       DO WHILE ( ASSOCIATED(TmpScalIDCont) ) 
-          IF ( TmpScalIDCont%ScalID == Dct%Scal_cID(N) ) THEN
-             IsInList = .TRUE.
-             EXIT
-          ENDIF
-          PrvScalIDCont => TmpScalIDCont
-          TmpScalIDCont => TmpScalIDCont%NEXT
-       ENDDO
-
-       ! Add new container w/ this scal ID to (end of) list 
-       IF ( .NOT. IsInList ) THEN
-          ALLOCATE ( NewScalIDCont ) 
-          NewScalIDCont%ScalID =  Dct%Scal_cID(N)
-          NewScalIDCont%NEXT   => NULL()
-          IF ( .NOT. ASSOCIATED(PrvScalIDCont) ) THEN
-             ScalIDList => NewScalIDCont
-          ELSE
-             PrvScalIDCont%NEXT => NewScalIDCont
-          ENDIF
-!          NewScalIDCont%NEXT   => ScalIDList
-!          ScalIDList           => NewScalIDCont
-!          NewScalIDCont        => NULL()
-       ENDIF
     
-       ! Cleanup
-       TmpScalIDCont => NULL()
-
+       CALL ScalID2List( Dct%Scal_cID(N), RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+ 
        ! Replace scale factor ID with container ID.
        CALL Get_cID ( Dct%Scal_cID(N), cID, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3271,6 +3224,90 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE ScalID_Register
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ScalID2List
+!
+! !DESCRIPTION: Subroutine ScalID2List adds the scale factor IDs ScalIDs
+! to the list of scale factor IDs. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ScalID2List( ID, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER, INTENT(IN   )  :: ID
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(INOUT)  :: RC 
+!
+! !REVISION HISTORY:
+!  10 Jan 2014 - C. Keller: Initialization (update)
+!  29 Dec 2014 - C. Keller: Now add new container to end of list to allow
+!                           list being updated while calling Register_Scal.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Pointers
+    TYPE(ScalIDCont), POINTER  :: NewScalIDCont => NULL()
+    TYPE(ScalIDCont), POINTER  :: TmpScalIDCont => NULL() 
+    TYPE(ScalIDCont), POINTER  :: PrvScalIDCont => NULL() 
+
+    ! Scalars
+    LOGICAL                    :: IsInList
+      
+    !======================================================================
+    ! ScalID_Register begins here
+    !======================================================================
+
+    ! Check for every element of ScalIDs, if this scale factor ID is
+    ! already a member of ScalIDList. If not, add it. 
+     
+    ! Check if already in list 
+    IsInList = .FALSE.
+    TmpScalIDCont => ScalIDList
+    PrvScalIDCont => TmpScalIDCont
+    DO WHILE ( ASSOCIATED(TmpScalIDCont) ) 
+       IF ( TmpScalIDCont%ScalID == ID ) THEN
+          IsInList = .TRUE.
+          EXIT
+       ENDIF
+       PrvScalIDCont => TmpScalIDCont
+       TmpScalIDCont => TmpScalIDCont%NEXT
+    ENDDO
+
+    ! Add new container w/ this scal ID to (end of) list 
+    IF ( .NOT. IsInList ) THEN
+       ALLOCATE ( NewScalIDCont ) 
+       NewScalIDCont%ScalID =  ID
+       NewScalIDCont%NEXT   => NULL()
+       IF ( .NOT. ASSOCIATED(PrvScalIDCont) ) THEN
+          ScalIDList => NewScalIDCont
+       ELSE
+          PrvScalIDCont%NEXT => NewScalIDCont
+       ENDIF
+!       NewScalIDCont%NEXT   => ScalIDList
+!       ScalIDList           => NewScalIDCont
+!       NewScalIDCont        => NULL()
+    ENDIF
+    
+    ! Cleanup
+    TmpScalIDCont => NULL()
+
+    ! Leave w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE ScalID2List
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

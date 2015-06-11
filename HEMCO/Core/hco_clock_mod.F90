@@ -41,6 +41,15 @@
 ! UTC-12 - UTC+13 hours), the default algorithm is applied.
 !\\
 !\\
+! The HEMCO clock object also controls cases where the emission dates shall
+! be held constant, e.g. for simulations where emission year 2000 shall be
+! used irrespective of the simulation date. Fixed simulation dates can be
+! set in the settings section of the HEMCO configuration file via settings
+! `Emission year`, `Emission month`, `Emission day`, and `Emission hour`.
+! Only a subset of those settings can be provided, in which case all other
+! time attributes will be taken from the simulation datetime.
+!\\
+!\\
 ! !INTERFACE: 
 !
 MODULE HCO_Clock_Mod
@@ -86,6 +95,8 @@ MODULE HCO_Clock_Mod
 !  12 Jan 2015 - C. Keller   - Added emission time variables.
 !  02 Feb 2015 - C. Keller   - Added option to get time zones from file
 !  23 Feb 2015 - R. Yantosca - Added routine HcoClock_InitTzPtr
+!  11 Jun 2015 - C. Keller   - Added simulation times and option to fix 
+!                              emission year, month, day, and/or hour. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -154,6 +165,16 @@ MODULE HCO_Clock_Mod
      INTEGER            :: PrevEMin
      INTEGER            :: PrevESec
 
+     ! Simulation year, month, day, hour, minute, second. Will only
+     ! be different from current time stamp in special cases, e.g. 
+     ! if emission year shall be fixed.
+     INTEGER            :: SimYear        ! year 
+     INTEGER            :: SimMonth       ! month
+     INTEGER            :: SimDay         ! day
+     INTEGER            :: SimHour        ! hour
+     INTEGER            :: SimMin         ! minute
+     INTEGER            :: SimSec         ! second
+
      ! total number of elapsed time steps and emission time steps
      ! LastEStep denotes the last nEmisSteps values for which
      ! emissions have been calculated.
@@ -192,6 +213,12 @@ MODULE HCO_Clock_Mod
   ! This is necessary to avoid segmentation faults when running with
   ! OpenMP turned on. (bmy, 2/23/15)
   REAL(sp), POINTER    :: TIMEZONES(:,:) => NULL()
+
+  ! Fixed dates to be used for simulation dates
+  INTEGER              :: FixYY    = -1
+  INTEGER              :: FixMM    = -1
+  INTEGER              :: Fixdd    = -1
+  INTEGER              :: Fixhh    = -1
 
 CONTAINS
 !EOC
@@ -273,6 +300,13 @@ CONTAINS
        HcoClock%PrevEHour    = -1
        HcoClock%PrevEMin     = -1
        HcoClock%PrevESec     = -1
+
+       HcoClock%SimYear      = -1
+       HcoClock%SimMonth     = -1
+       HcoClock%SimDay       = -1
+       HcoClock%SimHour      = -1
+       HcoClock%SimMin       = -1
+       HcoClock%SimSec       = -1
 
        ! local time vectors
        HcoClock%ntz = nTimeZones 
@@ -406,7 +440,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_STATE_MOD, ONLY : HCO_State
+    USE HCO_STATE_MOD,   ONLY : HCO_State
+    USE HCO_EXTLIST_MOD, ONLY : GetExtOpt, CoreNr
 !
 ! !INPUT PARAMETERS:
 !
@@ -438,9 +473,11 @@ CONTAINS
 ! !LOCAL ARGUMENTS:
 !
     REAL(sp)            :: UTC
-    INTEGER             :: DOY
+    INTEGER             :: DUM, DOY
+    INTEGER             :: UseYr, UseMt, UseDy, UseHr
     CHARACTER(LEN=255)  :: MSG
-    LOGICAL             :: NewStep, EmisTime, WasEmisTime
+    LOGICAL             :: FND, NewStep, EmisTime, WasEmisTime
+    LOGICAL, SAVE       :: FIRST = .TRUE.
    
     !======================================================================
     ! HcoClock_Set begins here!
@@ -450,13 +487,57 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! ----------------------------------------------------------------
+    ! On first call, check if fixed emission dates are to be used.
+    ! Those can be set in the HEMCO configuration file. 
+    ! ----------------------------------------------------------------
+    IF ( FIRST ) THEN
+       CALL GetExtOpt( CoreNr, 'Emission year', OptValInt=DUM, &
+                       FOUND=FND, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( FND ) THEN
+          FixYY = DUM
+          WRITE(MSG,*) 'Emission year will be fixed to day ', FixYY
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+       CALL GetExtOpt( CoreNr, 'Emission month', OptValInt=DUM, &
+                       FOUND=FND, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( FND ) THEN
+          FixMM = DUM
+          WRITE(MSG,*) 'Emission month will be fixed to day ', FixMM
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+       CALL GetExtOpt( CoreNr, 'Emission day', OptValInt=DUM, &
+                       FOUND=FND, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( FND ) THEN
+          Fixdd = DUM
+          WRITE(MSG,*) 'Emission day will be fixed to day ', Fixdd
+          CALL HCO_MSG(MSG)
+       ENDIF
+ 
+       CALL GetExtOpt( CoreNr, 'Emission hour', OptValInt=DUM, &
+                       FOUND=FND, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( FND ) THEN
+          Fixhh = DUM
+          WRITE(MSG,*) 'Emission hour will be fixed to day ', Fixhh
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+       FIRST = .FALSE.
+    ENDIF
+
+    ! ----------------------------------------------------------------
     ! Is this a new time step comparted to the most current one in
     ! memory? 
     ! ----------------------------------------------------------------
     NewStep = .TRUE.
-    IF ( HcoClock%ThisYear==cYr  .AND. HcoClock%ThisMonth==cMt .AND. &
-         HcoClock%ThisDay ==cDy  .AND. HcoClock%ThisHour ==cHr .AND. &
-         HcoClock%ThisMin ==cMin .AND. HcoClock%ThisSec  ==cSec ) THEN
+    IF ( HcoClock%SimYear==cYr  .AND. HcoClock%SimMonth==cMt .AND. &
+         HcoClock%SimDay ==cDy  .AND. HcoClock%SimHour ==cHr .AND. &
+         HcoClock%SimMin ==cMin .AND. HcoClock%SimSec  ==cSec ) THEN
        NewStep = .FALSE.
     ENDIF
 
@@ -472,18 +553,36 @@ CONTAINS
        HcoClock%PrevSec    = HcoClock%ThisSec
        HcoClock%PrevDOY    = HcoClock%ThisDOY
        HcoClock%PrevWD     = HcoClock%ThisWD
-   
+
+       ! Set simulation date
+       HcoClock%SimYear    = cYr 
+       HcoClock%SimMonth   = cMt 
+       HcoClock%SimDay     = cDy 
+       HcoClock%SimHour    = cHr 
+       HcoClock%SimMin     = cMin 
+       HcoClock%SimSec     = cSec 
+
+       ! Check for fixed dates
+       UseYr = cYr
+       UseMt = cMt
+       UseDy = cDy
+       UseHr = cHr
+       IF ( FixYY > 0 ) UseYr = FixYY 
+       IF ( FixMM > 0 ) UseMt = FixMM 
+       IF ( Fixdd > 0 ) UseDy = Fixdd 
+       IF ( Fixhh > 0 ) UseHr = Fixhh 
+ 
        ! Set day of year: calculate if not specified
-       IF ( PRESENT(cDOY) ) THEN
+       IF ( PRESENT(cDOY) .AND. FixYY<0 .AND. FixMM<0 .AND. Fixdd<0 ) THEN
           DOY = cDOY
        ELSE
-          DOY = HcoClock_CalcDOY( cYr, cMt, cDy )
+          DOY = HcoClock_CalcDOY( UseYr, UseMt, UseDy )
        ENDIF
    
-       HcoClock%ThisYear   = cYr 
-       HcoClock%ThisMonth  = cMt 
-       HcoClock%ThisDay    = cDy 
-       HcoClock%ThisHour   = cHr 
+       HcoClock%ThisYear   = UseYr 
+       HcoClock%ThisMonth  = UseMt 
+       HcoClock%ThisDay    = UseDy 
+       HcoClock%ThisHour   = UseHr 
        HcoClock%ThisMin    = cMin 
        HcoClock%ThisSec    = cSec 
        HcoClock%ThisDOY    = DOY 
@@ -492,7 +591,7 @@ CONTAINS
        UTC = ( REAL( HcoClock%ThisHour, sp )             ) + &
              ( REAL( HcoClock%ThisMin , sp ) / 60.0_sp   ) + &
              ( REAL( HcoClock%ThisSec , sp ) / 3600.0_sp )
-       HcoClock%ThisWD = HCO_GetWeekday ( cYr, cMt, cDy, UTC ) 
+       HcoClock%ThisWD = HCO_GetWeekday ( UseYr, UseMt, UseDy, UTC ) 
    
        ! ----------------------------------------------------------------
        ! Get last day of this month (only if month has changed)
@@ -612,6 +711,8 @@ CONTAINS
                             cM,      cS,  cDOY, cWEEKDAY, &
                             pYYYY,   pMM, pDD,  pH,       &
                             pM,      pS,  pDOY, pWEEKDAY, &
+                            sYYYY,   sMM, sDD,  sH,       &
+                            sM,      sS,                  &
                             LMD,     nSteps,    cMidMon,  &
                             dslmm,   dbtwmm,    IsEmisTime, RC ) 
 !
@@ -631,6 +732,12 @@ CONTAINS
     INTEGER, INTENT(  OUT), OPTIONAL     :: pH         ! Previous hour   
     INTEGER, INTENT(  OUT), OPTIONAL     :: pM         ! Previous minute 
     INTEGER, INTENT(  OUT), OPTIONAL     :: pS         ! Previous second 
+    INTEGER, INTENT(  OUT), OPTIONAL     :: sYYYY      ! Simulation year   
+    INTEGER, INTENT(  OUT), OPTIONAL     :: sMM        ! Simulation month 
+    INTEGER, INTENT(  OUT), OPTIONAL     :: sDD        ! Simulation day     
+    INTEGER, INTENT(  OUT), OPTIONAL     :: sH         ! Simulation hour   
+    INTEGER, INTENT(  OUT), OPTIONAL     :: sM         ! Simulation minute 
+    INTEGER, INTENT(  OUT), OPTIONAL     :: sS         ! Simulation second 
     INTEGER, INTENT(  OUT), OPTIONAL     :: pDOY       ! Previous day of year
     INTEGER, INTENT(  OUT), OPTIONAL     :: pWEEKDAY   ! Previous weekday
     INTEGER, INTENT(  OUT), OPTIONAL     :: LMD        ! Last day of month 
@@ -675,7 +782,14 @@ CONTAINS
     IF ( PRESENT(pS        ) ) pS         = HcoClock%PrevSec 
     IF ( PRESENT(pDOY      ) ) pDOY       = HcoClock%PrevDOY
     IF ( PRESENT(pWEEKDAY  ) ) pWEEKDAY   = HcoClock%PrevWD
-    
+   
+    IF ( PRESENT(sYYYY     ) ) sYYYY      = HcoClock%SimYear
+    IF ( PRESENT(sMM       ) ) sMM        = HcoClock%SimMonth
+    IF ( PRESENT(sDD       ) ) sDD        = HcoClock%SimDay 
+    IF ( PRESENT(sH        ) ) sH         = HcoClock%SimHour
+    IF ( PRESENT(sM        ) ) sM         = HcoClock%SimMin 
+    IF ( PRESENT(sS        ) ) sS         = HcoClock%SimSec 
+ 
     IF ( PRESENT(LMD       ) ) LMD        = HcoClock%MonthLastDay
 
     IF ( PRESENT(nSteps    ) ) nSteps     = HcoClock%nSteps
