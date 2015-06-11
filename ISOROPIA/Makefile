@@ -126,6 +126,11 @@ debug:
 ###############################################################################
 
 isoropiaIIcode.o:  isoropiaIIcode.F  isrpia.inc
+ifeq ($(PRECISION),8)
 	$(F90ISO) $(R8) -c $<
+endif
+ifeq ($(PRECISION),4)
+	$(F90ISO) $(R8) -c $<
+endif
 #EOC
 
