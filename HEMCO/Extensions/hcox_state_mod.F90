@@ -112,6 +112,7 @@ MODULE HCOX_STATE_MOD
      LOGICAL                   :: GC_POPs        ! GEOS-Chem POPs simulation
      LOGICAL                   :: Wetland_CH4    ! Methane emissions from wetlands
      LOGICAL                   :: TOMAS_SeaSalt  ! TOMAS sectional sea salt
+     LOGICAL                   :: TOMAS_DustDead ! TOMAS sectional Dead Dust
      LOGICAL                   :: AeroCom        ! AeroCom volcano 
 
      !----------------------------------------------------------------------
@@ -285,29 +286,30 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Set all switches to FALSE
     !-----------------------------------------------------------------------
-    ExtState%Custom        = .FALSE.
-    ExtState%DustDead      = .FALSE.
-    ExtState%DustGinoux    = .FALSE.
-    ExtState%LightNOx      = .FALSE.
-    ExtState%ParaNOx       = .FALSE.
-    ExtState%SoilNOx       = .FALSE.
-    ExtState%Megan         = .FALSE.
-    ExtState%SeaFlux       = .FALSE.
-    ExtState%SeaSalt       = .FALSE.
-    ExtState%GFED          = .FALSE.
-    ExtState%FINN          = .FALSE.
-    ExtState%GC_RnPbBe     = .FALSE.
-    ExtState%GC_POPs       = .FALSE.
-    ExtState%Wetland_CH4   = .FALSE.
-    ExtState%TOMAS_SeaSalt = .FALSE.
-    ExtState%AeroCom       = .FALSE.
+    ExtState%Custom         = .FALSE.
+    ExtState%DustDead       = .FALSE.
+    ExtState%DustGinoux     = .FALSE.
+    ExtState%LightNOx       = .FALSE.
+    ExtState%ParaNOx        = .FALSE.
+    ExtState%SoilNOx        = .FALSE.
+    ExtState%Megan          = .FALSE.
+    ExtState%SeaFlux        = .FALSE.
+    ExtState%SeaSalt        = .FALSE.
+    ExtState%GFED           = .FALSE.
+    ExtState%FINN           = .FALSE.
+    ExtState%GC_RnPbBe      = .FALSE.
+    ExtState%GC_POPs        = .FALSE.
+    ExtState%Wetland_CH4    = .FALSE.
+    ExtState%TOMAS_SeaSalt  = .FALSE.
+    ExtState%TOMAS_DustDead = .FALSE.
+    ExtState%AeroCom        = .FALSE.
 
     !-----------------------------------------------------------------------
     ! Initialize constants for POPs emissions module
     !-----------------------------------------------------------------------
-    ExtState%POP_DEL_H   = 0d0
-    ExtState%POP_KOA     = 0d0
-    ExtState%POP_KBC     = 0d0
+    ExtState%POP_DEL_H      = 0d0
+    ExtState%POP_KOA        = 0d0
+    ExtState%POP_KBC        = 0d0
 
     !-----------------------------------------------------------------------
     ! Initialize all met arrays.

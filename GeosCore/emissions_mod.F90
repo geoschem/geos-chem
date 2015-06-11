@@ -115,6 +115,10 @@ CONTAINS
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
     USE CARBON_MOD,         ONLY : EMISSCARBON
+#if defined ( TOMAS )
+    USE CARBON_MOD,         ONLY : EMISSCARBONTOMAS !jkodros
+    USE SULFATE_MOD,        ONLY : EMISSSULFATETOMAS !jkodros
+#endif
     USE CO2_MOD,            ONLY : EMISSCO2
     USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
     USE TRACERID_MOD,       ONLY : IDTCH4
@@ -178,6 +182,14 @@ CONTAINS
        ! are correctly treated.
        CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN 
+
+    ! Call TOMAS emission routines (JKodros 6/2/15)
+#if defined ( TOMAS )
+       CALL EMISSCARBONTOMAS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+    
+       CALL EMISSSULFATETOMAS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+#endif
+
    
        ! For CO2 simulation, emissions are not added to STT in mixing_mod.F90 
        ! because the HEMCO CO2 species are not GEOS-Chem tracers. The emissions
