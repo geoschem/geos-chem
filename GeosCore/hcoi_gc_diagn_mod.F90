@@ -225,8 +225,10 @@ CONTAINS
     CALL Diagn_Hg      ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_TOMAS      ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+#if defined( TOMAS )
+    CALL Diagn_TOMAS   ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+#endif
 
     !=======================================================================
     ! Define automatic diagnostics (AutoFill)
@@ -4419,6 +4421,7 @@ CONTAINS
 
   END SUBROUTINE Diagn_Hg
 !EOC
+#if defined( TOMAS )
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -4432,8 +4435,7 @@ CONTAINS
 !\\
 !\\
   SUBROUTINE Diagn_TOMAS( am_I_Root, Input_Opt, HcoState, ExtState, RC )
-
-      !
+!
 ! !USES:
 !
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -4844,7 +4846,8 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
   End  SUBROUTINE Diagn_TOMAS
-
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
