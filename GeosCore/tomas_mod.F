@@ -180,8 +180,8 @@
 !     &  1.4829d-15, 2.9658d-15, 5.9316d-15, 1.1863d-14, 2.3727d-14,
 !     &  4.7453d-14, 9.4906d-14, 1.8981d-13, 3.7963d-13, 7.5925d-13 /
 
-      INTEGER                        :: bin_nuc = 1, tern_nuc = 0  !Switches for nucleation type.
-      INTEGER                        :: act_nuc = 1 ! in BL
+      INTEGER                        :: bin_nuc = 1, tern_nuc = 1  !Switches for nucleation type.
+      INTEGER                        :: act_nuc = 0 ! in BL
       INTEGER                        :: ion_nuc = 0 ! 1 for modgil, 2 for Yu
       INTEGER                        :: absall  = 1 ! 1 for soa absorb to all spec
 !napari nucleation tuned by factor of 1.0D-5
@@ -189,6 +189,10 @@
       REAL(fp)                         :: soaareafrac=1.0e+0_fp ! fraction of SOA that goes
                                                           ! to SA rather than into mass
       
+      INTEGER                        :: xSOA = 1  !Switch for xSOA. If set to one, emit 100 Tg/yr 
+                                                  !SOA correlated with antrho CO (JKodros 6/3/15)
+
+      INTEGER                        :: lowRH = 1 !This is to match AW more with AERONET (JKODROS 6/15)
 
       CONTAINS
 
@@ -3629,7 +3633,7 @@ Cjrp      endif
       REAL(fp)                 :: CS, sinkfrac(IBINS)
       REAL(fp)                 :: partfrac(IBINS),avgfrac(IBINS)
       INTEGER                :: K, MPNUM, JC, TRACNUM
-      LOGICAL                :: PDBG
+      LOGICAL                :: PDBG, negvalue  ! negvalue added for xSOA (JKodros, 6/2/15)
       PARAMETER   (PI = 3.141592654e+0_fp)
 
 !sfarina
@@ -3786,6 +3790,15 @@ Cjrp      endif
       ENDDO
 !debug      if(i==24.and.j==13)       pdbg = .true.
       CALL TMCOND( OCTAU, XK, Mko, Nko, Mkf, Nkf, SRTOCIL, PDBG, MABS )
+
+! ----------- JRP ADD MNFIX...This is for xSOA (JKodros 6/2/15) -----------
+      if (pdbg) negvalue=.true. !signal received to printdebug (win, 4/8/06)
+      call mnfix(Nkf,Mkf,negvalue) !<step5.1> bug fix call argument
+      !(win, 4/15/06) !<step4.2> Add call argument to carry tell where mnfix
+      !found
+      if(negvalue==.true.)STOP 'MNFIX terminate' !(win, 9/12/05)
+                               ! the negative value (win, 9/12/05)
+!---------------------------------------------------------------------------
 
       IF( PDBG ) THEN
 !         print 12, I,J,L
@@ -6425,7 +6438,11 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       !========================================================================
       
       rhe=100.e+0_fp*rhtomas
-      if (rhe .gt. 99.e+0_fp) rhe=99.e+0_fp
+      if (lowRH == 1) THEN !JKodros RH switch
+         if (rhe .gt. 90.e+0_fp) rhe=90.e+0_fp
+      ELSE
+         if (rhe .gt. 99.e+0_fp) rhe=99.e+0_fp
+      END IF !JKodros RH switch
       if (rhe .lt. 1.e+0_fp) rhe=1.e+0_fp
 
       do k=1,ibins
@@ -6997,7 +7014,7 @@ C     &      call debugprint( NK, MK, i,j,l,LOCATION)
       PRT = .FALSE.
       PRT = ERRORSWITCH !just carrying a signal to print out value at the observed box - since mnfix does not have any information about I,J,L location. (Win, 9/27/05)
       ERRORSWITCH = .FALSE.
-
+      PRT = .FALSE.             !TO AVOID THE HUGE AMOUNT OF PRINTING (JKodros 6/2/15)
 !      xk(1)=xk(2)/2.e+0_fp  ! jrp for some reason xk(1) is changing?!
       save1=xk(1)
 

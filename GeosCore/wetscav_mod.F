@@ -7413,9 +7413,27 @@
             ! size-resolved sulfate by AQOXID (win, 7/16/09)
             IF ( GAINED > 0e+0_fp ) THEN 
                IF ( LS ) THEN
-                  KMIN = 10
+! JKodros (6/2/15 - allow for different TOMAS bin lengths)
+# if  defined( TOMAS12)
+                  KMIN = 5
+# elif  defined( TOMAS15)
+                  KMIN = 8
+# elif  defined( TOMAS30)
+                  KIMIN = 10
+# else
+                  KMIN = 20
+# endif
+
                ELSE
+# if  defined( TOMAS12)
+                  KMIN = 3
+# elif  defined( TOMAS15)
                   KMIN = 6
+# elif  defined( TOMAS30)
+                  KIMIN = 6
+# else
+                  KMIN = 16
+# endif
                ENDIF
 
                REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp
@@ -7659,9 +7677,27 @@
                      ! size-resolved sulfate by AQOXID (win, 7/16/09)
                      IF ( ABS(WETLOSS) > 0e+0_fp ) THEN 
                         IF ( LS ) THEN
-                           KMIN = 10
+! JKodros (6/2/15) - Allow for different TOMAS bin lengths
+# if  defined( TOMAS12)
+                           KMIN = 5
+# elif  defined( TOMAS15)
+                           KMIN = 8
+# elif  defined( TOMAS30)
+                           KIMIN = 10
+# else
+                           KMIN = 20
+# endif
+
                         ELSE
+# if  defined( TOMAS12)
+                           KMIN = 3
+# elif  defined( TOMAS15)
                            KMIN = 6
+# elif  defined( TOMAS30)
+                           KIMIN = 6
+# else
+                           KMIN = 16
+# endif
                         ENDIF
                         REEVAPSO2 =  - ( WETLOSS * 96e+0_fp / 64e+0_fp )
                         CALL AQOXID( REEVAPSO2, KMIN, I, J, L,

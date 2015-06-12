@@ -225,6 +225,11 @@ CONTAINS
     CALL Diagn_Hg      ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+#if defined( TOMAS )
+    CALL Diagn_TOMAS   ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+#endif
+
     !=======================================================================
     ! Define automatic diagnostics (AutoFill)
     !=======================================================================
@@ -4416,6 +4421,433 @@ CONTAINS
 
   END SUBROUTINE Diagn_Hg
 !EOC
+#if defined( TOMAS )
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Diagn_TOMAS
+!
+! !DESCRIPTION: This creates diagnostics for bulk emissions that will be called
+! to scale into TOMAS bins. May not even be necessary. (JKodros 6/2/15)
+!
+!\\
+!\\
+  SUBROUTINE Diagn_TOMAS( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+!
+! !USES:
+!
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_State_Mod,      ONLY : HCO_State
+    USE HCO_State_Mod,      ONLY : HCO_GetHcoID
+    USE HCOX_State_Mod,     ONLY : Ext_State
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
+    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object
+    TYPE(EXT_State),  POINTER        :: ExtState   ! Extensions state object
+    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: ExtNr, Cat, HcoID, N
+    INTEGER            :: IDBCPI, IDBCPO, IDOCPI, IDOCPO
+    INTEGER            :: IDSO4
+    INTEGER            :: IDCO
+    CHARACTER(LEN=31)  :: DiagnName
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DIAGN_TOMAS (hcoi_gc_diagn_mod.F90)'
+    !=======================================================================
+    ! Define ND?? diagnostics (TOMAS-related emissions)
+    !=======================================================================
+
+    ! Assume success
+    RC = HCO_SUCCESS
+
+    ! Exit if the CH4 simulation is not selected
+    !IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. IDTCH4 > 0 ) ) RETURN
+    ! SOME SORT OF IF DEFINED TOMAS HERE
+
+    ! Get default HEMCO species ID for BC/OC
+    IDBCPI = HCO_GetHcoID( 'BCPI', HcoState )
+    IDBCPO = HCO_GetHcoID( 'BCPO', HcoState )
+    IDOCPI = HCO_GetHcoID( 'OCPI', HcoState )
+    IDOCPO = HCO_GetHcoID( 'OCPO', HcoState )
+
+    ! Extension number is zero (HEMCO core) until defined otherwise
+    ExtNr = 0
+    !-----------------------------------------------------------------
+    ! %%%%% BCPI from anthro (Category 1 or species BCPI_ANTH)  %%%%%
+    !-----------------------------------------------------------------
+
+       Cat = CATEGORY_ANTHRO
+       HcoID = IDBCPI
+       ! Create diagnostic container
+       DiagnName = 'BCPI_ANTH'
+       CALL Diagn_Create( am_I_Root,                     &
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = Cat,               &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+			  COL       = HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
+    ! %%%%% BCPO from anthro (Category 1 or species BCPO_ANTH)  %%%%%
+    !-----------------------------------------------------------------
+
+       Cat = CATEGORY_ANTHRO
+       HcoID = IDBCPO
+       ! Create diagnostic container
+       DiagnName = 'BCPO_ANTH'
+       CALL Diagn_Create( am_I_Root,                     &
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = Cat,               &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+			  COL       = HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
+    ! %%%%% OCPI from anthro (Category 1 or species OCPI_ANTH)  %%%%%
+    !-----------------------------------------------------------------
+
+       Cat = CATEGORY_ANTHRO
+       HcoID = IDOCPI
+       ! Create diagnostic container
+       DiagnName = 'OCPI_ANTH'
+       CALL Diagn_Create( am_I_Root,                     &
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = Cat,               &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+			  COL       = HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
+    ! %%%%% OCPO from anthro (Category 1 or species OCPO_ANTH)  %%%%%
+    !-----------------------------------------------------------------
+
+       Cat = CATEGORY_ANTHRO
+       HcoID = IDOCPO
+       ! Create diagnostic container
+       DiagnName = 'OCPO_ANTH'
+       CALL Diagn_Create( am_I_Root,                     &
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = Cat,               &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+			  COL       = HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
+    ! %%%%% BCPI from BIOFUEL (Category 1 or species BCPI_BF)  %%%%%
+    !-----------------------------------------------------------------
+
+       Cat = CATEGORY_BIOFUEL
+       HcoID = IDBCPI
+       ! Create diagnostic container
+       DiagnName = 'BCPI_BF'
+       CALL Diagn_Create( am_I_Root,                     &
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = Cat,               &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+			  COL       = HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
+    ! %%%%% BCPO from BIOFUEL (Category 2 or species BCPO_BF)  %%%%%
+    !-----------------------------------------------------------------
+
+       Cat = CATEGORY_BIOFUEL
+       HcoID = IDBCPO
+       ! Create diagnostic container
+       DiagnName = 'BCPO_BF'
+       CALL Diagn_Create( am_I_Root,                     &
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = Cat,               &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+			  COL       = HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
+    ! %%%%% OCPI from BIOFUEL (Category 1 or species OCPI_BF)  %%%%%
+    !-----------------------------------------------------------------
+
+       Cat = CATEGORY_BIOFUEL
+       HcoID = IDOCPI
+       ! Create diagnostic container
+       DiagnName = 'OCPI_BF'
+       CALL Diagn_Create( am_I_Root,                     &
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = Cat,               &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+			  COL       = HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
+    ! %%%%% OCPO from BIOFUEL (Category 2 or species OCPO_BF)  %%%%%
+    !-----------------------------------------------------------------
+
+       Cat = CATEGORY_BIOFUEL
+       HcoID = IDOCPO
+       ! Create diagnostic container
+       DiagnName = 'OCPO_BF'
+       CALL Diagn_Create( am_I_Root,                     &
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = Cat,               &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+			  COL       = HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! ------------ NOW DEAL WITH BIOMASS BURNING --------------------
+    ! First test if GFED is used.  If not, then test if FINN is used.
+    ! If not, then use extension # 0 and the default biomass category.
+      Cat   = -1
+      ExtNr = GetExtNr( 'GFED' )
+      IF ( ExtNr <= 0 ) ExtNr = GetExtNr( 'FINN' )
+      IF ( ExtNr <= 0 ) THEN
+         ExtNr = 0
+         Cat   = CATEGORY_BIOMASS
+      ENDIF
+
+    !-----------------------------------------------------------------
+    ! %%%%% BPCI from BIOB (Category ? or species BCPI_bb)  %%%%%
+    !-----------------------------------------------------------------
+
+       HcoID = IDBCPI
+       ! Create diagnostic container
+       DiagnName = 'BCPI_BB'
+       CALL Diagn_Create( am_I_Root,                     &
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = Cat,               &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+			  COL       = HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
+    ! %%%%% BPCO from BIOB (Category ? or species BCPO_bb)  %%%%%
+    !-----------------------------------------------------------------
+
+       HcoID = IDBCPO
+       ! Create diagnostic container
+       DiagnName = 'BCPO_BB'
+       CALL Diagn_Create( am_I_Root,                     &
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = Cat,               &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+			  COL       = HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
+    ! %%%%% OCPI from BIOB (Category ? or species OCPI_bb)  %%%%%
+    !-----------------------------------------------------------------
+
+       HcoID = IDOCPI
+       ! Create diagnostic container
+       DiagnName = 'OCPI_BB'
+       CALL Diagn_Create( am_I_Root,                     &
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = Cat,               &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+			  COL       = HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
+    ! %%%%% OCPO from BIOB (Category ? or species OCPI_bb)  %%%%%
+    !-----------------------------------------------------------------
+
+
+       HcoID = IDOCPO
+       ! Create diagnostic container
+       DiagnName = 'OCPO_BB'
+       CALL Diagn_Create( am_I_Root,                     &
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = Cat,               &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+			  COL       = HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
+    ! %%%%% SO4 from ANTRHO (Category ? or species SO4_ANTH)  %%%%%
+    !-----------------------------------------------------------------
+    ! ID for SO4
+    IDSO4 = HCO_GetHcoID( 'SO4', HcoState )
+
+    ! Extension number is zero (HEMCO core) until defined otherwise
+    ExtNr = 0
+
+    Cat = CATEGORY_ANTHRO
+    HcoID = IDSO4
+    ! Create diagnostic container
+    DiagnName = 'SO4_ANTH'
+    CALL Diagn_Create( am_I_Root,                     &
+                       HcoState  = HcoState,          &
+                       cName     = TRIM( DiagnName ), &
+                       ExtNr     = ExtNr,             &
+		       Cat       = Cat,               &
+                       Hier      = -1,                &
+                       HcoID     = HcoID,             &
+                       SpaceDim  = 3,                 &
+                       LevIDx    = -1,                &
+                       OutUnit   = 'kg/m2/s',         &
+		       COL       = HcoDiagnIDManual,  &
+                       AutoFill  = 1,                 &
+                       RC        = RC                  )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    Cat = CATEGORY_BIOFUEL
+    HcoID = IDSO4
+    ! Create diagnostic container
+    DiagnName = 'SO4_BIOF'
+    CALL Diagn_Create( am_I_Root,                     &
+                       HcoState  = HcoState,          &
+                       cName     = TRIM( DiagnName ), &
+                       ExtNr     = ExtNr,             &
+		       Cat       = Cat,               &
+                       Hier      = -1,                &
+                       HcoID     = HcoID,             &
+                       SpaceDim  = 2,                 &
+                       LevIDx    = -1,                &
+                       OutUnit   = 'kg/m2/s',         &
+		       COL       = HcoDiagnIDManual,  &
+                       AutoFill  = 1,                 &
+                       RC        = RC                  )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+
+    !-----------------------------------------------------------------
+    ! %%%%% CO from ANTRHO (Category ? or species CO_ANTH)  %%%%%
+    !-----------------------------------------------------------------
+    ! ID for CO
+    IDCO = HCO_GetHcoID( 'CO', HcoState )
+
+    ! Extension number is zero (HEMCO core) until defined otherwise
+    ExtNr = 0
+
+    Cat = CATEGORY_ANTHRO
+    HcoID = IDCO
+    ! Create diagnostic container
+    DiagnName = 'CO_ANTH'
+    CALL Diagn_Create( am_I_Root,                     &
+                       HcoState  = HcoState,          &
+                       cName     = TRIM( DiagnName ), &
+                       ExtNr     = ExtNr,             &
+		       Cat       = Cat,               &
+                       Hier      = -1,                &
+                       HcoID     = HcoID,             &
+                       SpaceDim  = 2,                 &
+                       LevIDx    = -1,                &
+                       OutUnit   = 'kg/m2/s',         &
+		       COL       = HcoDiagnIDManual,  &
+                       AutoFill  = 1,                 &
+                       RC        = RC                  )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+  End  SUBROUTINE Diagn_TOMAS
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------

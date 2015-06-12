@@ -2048,16 +2048,13 @@
       !---------------------------------
       ! Error check DUST AEROSOLS
       !---------------------------------
+! JKODROS - Uncomment this if the dust fixes are back working. 
 #if defined( TOMAS )
-
       ! For TOMAS only: If DUST1 is present, the other dust tracers are too
       I = IDTDUST1
-
 #else
-
       ! Non-TOMAS simulations: Need all DST1-DST4 tracers
       I = IDTDST1 + IDTDST2 + IDTDST3 + IDTDST4
-
 #endif
 
       IF ( LDUST ) THEN
@@ -4531,6 +4528,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:11' )
       READ( SUBSTRS(1), * ) ND09
+      ND09 = 0
       CALL SET_TINDEX( am_I_Root, 
      &     09, ND09, SUBSTRS(2:N), N-1, N_TRACERS+PD09 )
 
