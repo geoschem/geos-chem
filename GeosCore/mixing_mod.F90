@@ -272,6 +272,8 @@ CONTAINS
 !                              we define DRYDEPID.  This isn't needed here.
 !  10 Apr 2015 - C. Keller   - Now exchange PARANOX loss fluxes via HEMCO 
 !                              diagnostics.
+!  12 Jun 2015 - R. Yantosca - Bug fix in SAFE_DIV: the denominator was
+!                              arranged wrongly.  Now corrected.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -569,7 +571,11 @@ CONTAINS
 ! Split SAFE_DIV up onto 2 lines, for clarity (bmy, 6/12/15)
 !                   FLUX = SAFE_DIV(FLUX, (MWkg * AVO / TS / ( AREA_M2 * 1.0e4_fp )),0.0e+0_fp) 
 !-------------------------------------------------------------------------------
-                   DENOM = MWkg * AVO / TS / ( AREA_M2 * 1.0e4_fp )
+                   ! NOTE: The original computation was:
+                   !   FLUX = FLUX / MWkg * AVO / TS / ( AREA_M2 * 1.0e4_fp ) ]
+                   ! so we the denominator as we had it was wrong.
+                   ! Now corrected (elundgren, bmy, 6/12/15)
+                   DENOM = ( MWkg * TS * AREA_M2 * 1.0e+4_fp ) / AVO
                    FLUX  = SAFE_DIV( FLUX, DENOM, 0.0e+0_fp ) 
 
                    ! Diagnostics. These are the same as DRYFLX.
