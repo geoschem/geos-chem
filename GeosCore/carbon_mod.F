@@ -6026,6 +6026,7 @@ ccc
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
 ! TOMAS DIAGNs:
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TOMAS_MOD,          ONLY : IBINS,     AVGMASS, SOACOND
@@ -6050,6 +6051,12 @@ ccc
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY:
+!  12 Jun 2015 - J. Kodros   - Initial version
+!  12 Jun 2015 - R. Yantosca - Bug fix: also add reference to DEBUG_MSG
+!EOP
+!------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
