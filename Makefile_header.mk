@@ -171,6 +171,8 @@
 #  04 Jun 2015 - R. Yantosca - Now use RRTMG_NO_CLEAN=y or RRTMG_NOCLEAN=y to 
 #                              removing RRTMG objects, modules, and libraries.
 #  04 Jun 2015 - R. Yantosca - Bug fix: don't turn on UCX except for CHEM=UCX
+#  15 Jun 2015 - R. Yantosca - Now define the HEMCO standalone link command
+#                              separately from the GEOS-Chem link command
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -797,20 +799,34 @@ endif
 # Save for backwards compatibility
 NCL                  := $(NC_LINK_CMD)
 
-# Command to link to local library files
+#----------------------------
+# For GEOS-Chem 
+#----------------------------
+
+# Base linker command: specify the library directory
+LINK                 :=-L$(LIB)
+
+# Append library for GTMM, if necessary
 ifeq ($(GTMM_NEEDED),1)
-  LINK               :=-L$(LIB) -lHg
-else
+  LINK               :=$(LINK) -lHg
+endif
+
+# Append library for RRTMG, if necessary
 ifeq ($(RRTMG_NEEDED),1)
-  LINK               :=-L$(LIB) -lrad
-else
-  LINK               :=-L$(LIB)
+  LINK               :=$(LINK) -lrad
 endif
-endif
-LINK_HCO             :=$(LINK) -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders
-LINK_HCO             :=$(LINK_HCO) -lNcUtils $(NC_LINK_CMD)
+
+# Create linker command to create the GEOS-Chem executable
 LINK                 :=$(LINK) -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp
 LINK                 :=$(LINK) -lHeaders -lNcUtils $(NC_LINK_CMD)
+
+#----------------------------
+# For the HEMCO standalone
+#----------------------------
+
+# Create linker command to create the HEMCO standalone executable
+LINK_HCO             :=-L$(LIB) -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders
+LINK_HCO             :=$(LINK_HCO) -lNcUtils $(NC_LINK_CMD)
 
 ###############################################################################
 ###                                                                         ###

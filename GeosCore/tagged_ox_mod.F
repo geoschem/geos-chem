@@ -272,13 +272,13 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL :: ITS_IN_TROP, ITS_IN_PBL, ITS_IN_MT
-      LOGICAL :: ITS_IN_UT,   ITS_IN_NH,  ITS_IN_ATL
-      LOGICAL :: ITS_IN_PAC,  ITS_IN_AS,  ITS_IN_EUR
-      LOGICAL :: ITS_IN_NAM,  ITS_IN_NAF, ITS_IN_USA
-      INTEGER :: PBLTOP,      MTTOP
-      REAL(fp)  :: PPROD,       X,          Y
-      REAL(fp)  :: BOXVL
+      LOGICAL  :: ITS_IN_TROP, ITS_IN_PBL, ITS_IN_MT
+      LOGICAL  :: ITS_IN_UT,   ITS_IN_NH,  ITS_IN_ATL
+      LOGICAL  :: ITS_IN_PAC,  ITS_IN_AS,  ITS_IN_EUR
+      LOGICAL  :: ITS_IN_NAM,  ITS_IN_NAF, ITS_IN_USA
+      INTEGER  :: PBLTOP,      MTTOP
+      REAL(fp) :: PPROD,       X,          Y
+      REAL(fp) :: BOXVL
 
       !=================================================================
       ! Initialization
@@ -470,7 +470,9 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMAKRS:
-!  Dry deposition is now applied in mixing_mod.F90.
+!  Dry deposition is now applied in mixing_mod.F90.  We have the application
+!  of Ox dry deposition from this routine, as well as the archival of the
+!  ND44 drydep diagnostic. (bmy, 6/15/15)
 !
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Hudman   - Initial version
@@ -504,6 +506,8 @@
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  17 Sep 2014 - C. Keller   - Now use HEMCO for prod. and loss arrays
 !  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
+!  15 Jun 2015 - R. Yantosca - Bug fix: PP doesn't have to be held PRIVATE
+!  15 Jun 2015 - R. Yantosca - Updated comments for removal of drydep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -521,12 +525,9 @@
       ! Arrays
       REAL(fp)                 :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
 
-
       ! Pointers
-      REAL(fp),        POINTER :: STT(:,:,:,:)
-
-      ! To get emission timestep
-      TYPE(HCO_STATE), POINTER :: HcoState => NULL()
+      REAL(fp),        POINTER :: STT(:,:,:,:) => NULL()
+      TYPE(HCO_STATE), POINTER :: HcoState     => NULL()
 
       ! Strings
       CHARACTER(LEN=255) :: LOC = 'CHEM_TAGGED_OX (tagged_ox_mod.F)'
@@ -550,15 +551,16 @@
       ! Chemistry timestep [s]
       DTCHEM    = GET_TS_CHEM() * 60e+0_fp
 
-      ! ----------------------------------------------------------
+      !=================================================================
       ! Get production and loss frequencies from HEMCO. The target
       ! will be updated automatically by HEMCO. 
+      !
       ! Important: the file data are converted by HEMCO to HEMCO
       ! concentration units, e.g. the imported data is in kg/m3
       ! (production) and 1/m3 (loss), e.g. the original data in
       ! units of kg/m3/s multiplied by the emission timestep.
       !                                     (ckeller, 9/17/2014)
-      ! ----------------------------------------------------------
+      !=================================================================
       IF ( FIRST ) THEN
 
          ! Get pointer to O3 production
@@ -576,7 +578,9 @@
          IF ( .NOT. ASSOCIATED(HcoState) ) 
      &      CALL ERROR_STOP ( 'Cannot get HcoState', LOC )
          TS_EMIS = HcoState%TS_EMIS
-
+         
+         ! Free the pointer and reset first-time variable
+         ! so that this won't be executed again
          HcoState => NULL()
          FIRST    = .FALSE.
       ENDIF
@@ -590,22 +594,21 @@
       !=================================================================
       ! Tagged Ox chemistry contains the following terms:
       !
-      !   New Ox = Old Ox - Drydep(Ox) + ( P(Ox,region) - L(Ox) )
+      !   New Ox = Old Ox + ( P(Ox,region) - L(Ox) )
       !
       ! P(Ox) and L(Ox) are archived from a previous fullchem run using
       ! the ND20 diagnostic.  P(Ox,region) is the P(Ox) for a specific
       ! tagged Ox tracer, as computed by routine GET_REGIONAL_POX.
       !
-      ! Tagged Ox tracers are defined by both geographic location and
-      ! altitude, as listed below:
-      !
-      ! EXTENDED SIMUATION: Modification for quicker spinup
+      ! Tagged O3 tracers are defined by both geographic location and
+      ! altitude, as defined in GET_REGIONAL_POX.  If you are running
+      ! the
       !=================================================================
       DO N = 1, N_TRACERS
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, BOXVL, PP, LL, PL )
+!$OMP+PRIVATE( I, J, L, BOXVL, LL, PL )
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLTROP
          DO J = 1, JJPAR
@@ -615,15 +618,16 @@
             BOXVL = State_Met%AIRVOL(I,J,L) !* 1d6
 
             !===========================================================
-            ! Get P(Ox) and L(Ox) for each tagged tracer in [kg]
+            ! Get P(Ox) and L(Ox) for each tagged tracer in [kg/m3/s]
             !===========================================================
 
             ! P(Ox) is a function of geographic & altitude location
             ! NOTE: We call this only when N==1 for optimal looping
-            IF ( N == 1 ) CALL GET_REGIONAL_POX( I, J, L, PP,
-     &                                           State_Met   )
+            ! ALSO NOTE: PP is 4-D so it doesn't have to be PRIVATE.
+            IF ( N == 1 ) THEN 
+               CALL GET_REGIONAL_POX( I, J, L, PP, State_Met )
+            ENDIF
             
-            ! L(Ox) is originally in [1/cm3/s]; convert to [kg]
             ! L(Ox) is now in [1/m3] (ckeller, 9/17/2014)
             IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
                LL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL * DT
@@ -650,8 +654,7 @@
             ENDIF
 
             !===========================================================
-            ! After removing Ox lost to dry deposition, apply 
-            ! chemical P(Ox) - L(Ox) to each tagged tracer
+            ! Apply chemical P(Ox) - L(Ox) to each tagged tracer
             !===========================================================
             STT(I,J,L,N) = STT(I,J,L,N) + PP(I,J,L,N) - LL
          ENDDO
@@ -744,7 +747,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_TAGGED_OX
+      SUBROUTINE CLEANUP_TAGGED_OX()
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Yantosca - Initial version
