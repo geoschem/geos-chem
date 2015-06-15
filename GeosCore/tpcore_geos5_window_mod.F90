@@ -880,10 +880,21 @@ CONTAINS
     DO IQ = 1, NQ
     DO I  = 1, IM
     DO J  = 1, JM
+
+!=====================================================================
+! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
+!
+! Previous: 
+!       DTC(I,J,K,IQ) = ( Q(I,J,K,IQ)     * DELP1(I,J,K)   -          &
+!                         QTEMP(I,J,K,IQ) * DELP(I,J,K)  ) *          &
+!                         AREA_M2(J) * g0_100 * AIRMW                 &
+!                         / ( MOISTMW(I,J,K) * TCVV(IQ) )
+!
+! New:
        DTC(I,J,K,IQ) = ( Q(I,J,K,IQ)     * DELP1(I,J,K)   -          &
                          QTEMP(I,J,K,IQ) * DELP(I,J,K)  ) *          &
-                         AREA_M2(J) * g0_100 * AIRMW                 &
-                         / ( MOISTMW(I,J,K) * TCVV(IQ) )
+                         AREA_M2(J) * g0_100
+!=====================================================================
 
        ! top layer should have no residual.  the small residual is from 
        ! a non-pressure fixed flux diag.  The z direction may be off by 
@@ -904,10 +915,21 @@ CONTAINS
     DO IQ = 1, NQ
     DO I  = 1, IM
     DO J  = 1, JM
+
+!=====================================================================
+! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
+!
+! Previous: 
+!       TRACE_DIFF         = ( Q(I,J,K,IQ)     * DELP1(I,J,K)  -     &
+!                              QTEMP(I,J,K,IQ) * DELP(I,J,K) ) *     &
+!                              AREA_M2(J) * g0_100 * AIRMW           &
+!                              / ( MOISTMW(I,J,K) * TCVV(IQ) )
+!
+! New:
        TRACE_DIFF         = ( Q(I,J,K,IQ)     * DELP1(I,J,K)  -     &
                               QTEMP(I,J,K,IQ) * DELP(I,J,K) ) *     &
-                              AREA_M2(J) * g0_100 * AIRMW           &
-                              / ( MOISTMW(I,J,K) * TCVV(IQ) )
+                              AREA_M2(J) * g0_100       
+!=====================================================================
 
        DTC(I,J,K,IQ)      = DTC(I,J,K-1,IQ) + TRACE_DIFF
 
@@ -1378,13 +1400,32 @@ CONTAINS
       DO J = JS2G0, JN2G0
 
          DO I = 1, IM-1
-            DTC = FX(I,J) * AREA_M2(J) * g0_100 * AIRMW       &
-                  / ( TCVV * MOISTMW(I,J) * DT )
+
+!=====================================================================
+! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
+!
+! Previous: 
+!            DTC = FX(I,J) * AREA_M2(J) * g0_100 * AIRMW       &
+!                  / ( TCVV * MOISTMW(I,J) * DT )
+!
+! New:
+            DTC = FX(I,J) * AREA_M2(J) * g0_100 / DT 
+!=====================================================================
+
             MFLEW(I,J) = MFLEW(I,J) + DTC
          ENDDO
 
-         DTC = FX(IM,J) * AREA_M2(J) * g0_100 * AIRMW         &
-                / ( TCVV * MOISTMW(IM,J) * DT )
+!=====================================================================
+! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
+!
+! Previous: 
+!         DTC = FX(IM,J) * AREA_M2(J) * g0_100 * AIRMW         &
+!                / ( TCVV * MOISTMW(IM,J) * DT )
+!
+! New:
+         DTC = FX(IM,J) * AREA_M2(J) * g0_100 / DT 
+!=====================================================================
+
          MFLEW(IM,J) = MFLEW(I,J) + DTC
       ENDDO
    ENDIF
@@ -1399,8 +1440,19 @@ CONTAINS
    IF ( ND25 > 0 ) THEN
       DO J = JS2G0, JN2G0
       DO I = 1,     IM
-         DTC = FY(I,J) * RGW_25(J) * AREA_M2(J) * g0_100 * AIRMW   &
-                      / ( TCVV * MOISTMW(I,J) * DT )
+
+!=====================================================================
+! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
+!
+! Previous: 
+!         DTC = FY(I,J) * RGW_25(J) * AREA_M2(J) * g0_100 * AIRMW   &
+!                      / ( TCVV * MOISTMW(I,J) * DT )
+!
+! New:
+         DTC = FY(I,J) * RGW_25(J) * AREA_M2(J) * g0_100 / DT 
+!=====================================================================
+
+
          MFLNS(I,J) = MFLNS(I,J) + DTC
       ENDDO
       ENDDO
@@ -1408,8 +1460,18 @@ CONTAINS
       ! South Pole
       IF ( JFIRST == 1 ) THEN
          DO I = 1, IM
-            DTC = -FY(I,2) * RGW_25(1) * AREA_M2(1) * g0_100              &
-                  * AIRMW / ( TCVV * MOISTMW(I,2) * DT )
+
+!=====================================================================
+! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
+!
+! Previous: 
+!            DTC = -FY(I,2) * RGW_25(1) * AREA_M2(1) * g0_100              &
+!                  * AIRMW / ( TCVV * MOISTMW(I,2) * DT )
+!
+! New:
+            DTC = -FY(I,2) * RGW_25(1) * AREA_M2(1) * g0_100 / DT 
+!=====================================================================
+
             MFLNS(I,1) = MFLNS(I,1) + DTC
          ENDDO
       ENDIF
@@ -1417,8 +1479,18 @@ CONTAINS
       ! North Pole
       IF ( JLAST == JM ) THEN
          DO I = 1, IM
-            DTC = FY(I,JM) * RGW_25(JM) * AREA_M2(JM) * g0_100            &
-                  * AIRMW / ( TCVV * MOISTMW(I,JM) * DT )
+
+!=====================================================================
+! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
+!
+! Previous: 
+!            DTC = FY(I,JM) * RGW_25(JM) * AREA_M2(JM) * g0_100            &
+!                  * AIRMW / ( TCVV * MOISTMW(I,JM) * DT )
+!
+! New:
+            DTC = FY(I,JM) * RGW_25(JM) * AREA_M2(JM) * g0_100 / DT
+!=====================================================================
+
             MFLNS(I,JM) = MFLNS(I,JM) + DTC
          ENDDO
       ENDIF

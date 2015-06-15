@@ -512,6 +512,8 @@ CONTAINS
 !  17 Apr 2015 - E. Lundgren - Now pass State_Met%MOISTMW to get 
 !                              mol moist air / mol tracer, and pass
 !                              tracer concentration as moist mixing ratio
+!  15 Jun 2015 - E. Lundgren - Tracer units in convection are now kg/kg wet air
+!                              (previously v/v wet air)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -975,8 +977,16 @@ CONTAINS
           DO I = 1,     IM
 
              ! Compute mass flux
-             DTC(I,J,K) = FX(I,J,K,IQ) * AREA_M2(J) * g0_100           &
-                          * AIRMW / ( MOISTMW(I,J,K) * TCVV(IQ) * DT )
+!=====================================================================
+! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
+!
+! Previous: 
+!             DTC(I,J,K) = FX(I,J,K,IQ) * AREA_M2(J) * g0_100           &
+!                          * AIRMW / ( MOISTMW(I,J,K) * TCVV(IQ) * DT )
+!
+! New:
+             DTC(I,J,K) = FX(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT 
+!=====================================================================
 
              ! Save into MASSFLEW diagnostic array
              MASSFLEW(I,J,K,IQ) = MASSFLEW(I,J,K,IQ) + DTC(I,J,K)
@@ -1011,8 +1021,17 @@ CONTAINS
           DO I = 1, IM 
 
              ! Compute mass flux
-             DTC(I,J,K) = FY(I,J,K,IQ) * AREA_M2(J) * g0_100          & 
-                          * AIRMW / ( MOISTMW(I,J,K) *TCVV(IQ) * DT ) 
+!=====================================================================
+! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
+!
+! Previous: 
+!             DTC(I,J,K) = FY(I,J,K,IQ) * AREA_M2(J) * g0_100          & 
+!                          * AIRMW / ( MOISTMW(I,J,K) *TCVV(IQ) * DT ) 
+!
+! New:
+             DTC(I,J,K) = FY(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT 
+!=====================================================================
+
 
              ! Save into MASSFLNS diagnostic array
              MASSFLNS(I,J,K,IQ) = MASSFLNS(I,J,K,IQ) + DTC(I,J,K) 
@@ -1058,10 +1077,21 @@ CONTAINS
           DO I  = 1, IM
 
              ! Compute mass flux
+!=====================================================================
+! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
+!
+! Previous: 
+!             DTC(I,J,K) = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
+!                            - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
+!                            * g0_100 * AREA_M2(J) * AIRMW          &
+!                            / ( MOISTMW(I,J,K) * TCVV(IQ) )
+!
+! New:
              DTC(I,J,K) = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
                             - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
-                            * g0_100 * AREA_M2(J) * AIRMW          &
-                            / ( MOISTMW(I,J,K) * TCVV(IQ) ) 
+                            * g0_100 * AREA_M2(J) 
+!=====================================================================
+ 
                 
              ! top layer should have no residual.  the small residual is 
              ! from a non-pressure fixed flux diag.  The z direction may 
@@ -1086,10 +1116,20 @@ CONTAINS
              DO I  = 1, IM
 
                 ! Compute tracer difference
+!=====================================================================
+! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
+!
+! Previous: 
+!                TRACE_DIFF = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
+!                               - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
+!                               * AREA_M2(J) * g0_100 * AIRMW          &
+!                               / ( MOISTMW(I,J,K) * TCVV(IQ) )
+!
+! New:
                 TRACE_DIFF = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
                                - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
-                               * AREA_M2(J) * g0_100 * AIRMW          &
-                               / ( MOISTMW(I,J,K) * TCVV(IQ) )
+                               * AREA_M2(J) * g0_100  
+!=====================================================================
                 
                 ! Compute mass flux
                 DTC(I,J,K)         = DTC(I,J,K-1) + TRACE_DIFF
