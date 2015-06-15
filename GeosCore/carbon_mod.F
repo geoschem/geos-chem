@@ -16,7 +16,6 @@
 !
 ! !USES:
 !
-!
       USE HCO_ERROR_MOD    ! For HEMCO error reporting
       USE PRECISION_MOD   ! For GEOS-Chem Precisions (fp, f4, f8)
 
@@ -780,16 +779,10 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_BC 
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TRACERID_MOD,       ONLY : IDTBCPO
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACERID_MOD,       ONLY : IDTBCPO
 !
 ! !INPUT PARAMETERS:
 !
@@ -805,6 +798,7 @@
       INTEGER,        INTENT(OUT)   :: RC                    ! Success?
 !
 ! !REMARKS:
+!  Drydep is now applied in mixing_mod.F90.
 ! 
 ! !REVISION HISTORY:
 !  01 Apr 2004 - R. Park - Initial version
@@ -819,6 +813,9 @@
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
+!  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
+!  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
+!                              so we can greatly collapse this code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -826,14 +823,8 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL             :: LNLPBL
-      INTEGER             :: I,       J,   L,   N_TRACERS
-      REAL(fp)            :: DTCHEM, FLUX, KBC, FREQ
-      REAL(fp)            :: TC0,    CNEW, RKT, AREA_CM2, BL_FRAC
-
-      ! Arrays
-      REAL(fp)            :: ND44_TMP(IIPAR,JJPAR,LLPAR)     
-      REAL(fp)            :: XNUMOL(Input_Opt%N_TRACERS)
+      INTEGER             :: I,      J,   L
+      REAL(fp)            :: DTCHEM, KBC, FREQ, TC0, CNEW, RKT
 !
 ! !DEFINED PARAMETERS:
 !
@@ -849,18 +840,10 @@
       ! Assume success
       RC        = GIGC_SUCCESS
 
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-      LNLPBL    = Input_Opt%LNLPBL
-
       ! Initialize
       KBC       = 1.e+0_fp / ( 86400e+0_fp * BC_LIFE )
       DTCHEM    = GET_TS_CHEM() * 60e+0_fp
       BCCONV    = 0e+0_fp
-
-      ! Initialize for drydep diagnostic
-      IF ( ND44 > 0 ) ND44_TMP = 0e+0_fp
 
       !=================================================================
       ! For tracers with dry deposition, the loss rate of dry dep is 
@@ -877,7 +860,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, TC0, FREQ, BL_FRAC, RKT, CNEW, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I, J, L, TC0, FREQ, RKT, CNEW )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -887,25 +870,25 @@
          TC0  = TC(I,J,L)
 
          ! Zero drydep freq
+         ! ### NOTE: Remove this later, but need to make
+         ! ### sure we don't incur numerical diffs (bmy, 6/12/15)
          FREQ = 0e+0_fp
 
-!         ! Fraction of grid box underneath PBL top [unitless]
-!         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
+!------------------------------------------------------------------------------
+! Prior to 6/12/15:
+! This code never gets executed, so shunt it (bmy, 6/12/15)
+!         ! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
+!         BL_FRAC = 0.0_fp
 !
-!         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08)
-!         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
-
-         ! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
-         BL_FRAC = 0.0_fp
-
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( BL_FRAC > 0e+0_fp ) THEN
-
-            ! BC drydep frequency [1/s] -- BL_FRAC accounts for the fraction
-            ! of each grid box (I,J,L) that is located beneath the PBL top
-            FREQ = DEPSAV(I,J,DRYBCPO) * BL_FRAC
-
-         ENDIF
+!         ! Only apply drydep to boxes w/in the PBL
+!         IF ( BL_FRAC > 0e+0_fp ) THEN
+!
+!            ! BC drydep frequency [1/s] -- BL_FRAC accounts for the fraction
+!            ! of each grid box (I,J,L) that is located beneath the PBL top
+!            FREQ = DEPSAV(I,J,DRYBCPO) * BL_FRAC
+!
+!         ENDIF
+!------------------------------------------------------------------------------
 
          ! Amount of BCPO left after chemistry and drydep [kg]
          RKT  = ( KBC + FREQ ) * DTCHEM
@@ -916,23 +899,6 @@
 
          ! Amount of BCPO converted to BCPI [kg/timestep]
          BCCONV(I,J,L) = ( TC0 - CNEW ) * KBC / ( KBC + FREQ )
-
-         !==============================================================
-         ! ND44 diagnostic: drydep loss [atoms C/cm2/s]
-         !==============================================================
-         IF ( ND44 > 0 .AND. FREQ > 0e+0_fp ) THEN
-
-             ! Surface area [cm2]
-             AREA_CM2 = GET_AREA_CM2( I, J, L )
-
-             ! Convert drydep loss from [kg/timestep] to [atoms C/cm2/s]  
-             ! XNUMOL is the ratio [molec tracer/kg tracer]   
-             FLUX     = TC0 - CNEW - BCCONV(I,J,L) 
-             FLUX     = FLUX * XNUMOL(IDTBCPO) / ( DTCHEM * AREA_CM2 )
-
-             ! Store in ND44_TMP as a placeholder
-             ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-         ENDIF
 
          !==============================================================
          ! ND07 diagnostic: H-philic BC from H_phobic BC [kg/timestep]
@@ -947,27 +913,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO  
-
-! Drydep is now all done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
-!#if !defined( NO_BPCH )
-!      !===============================================================
-!      ! ND44: Sum drydep fluxes by level into the AD44 array in
-!      ! order to ensure that  we get the same results w/ sp or mp 
-!      !===============================================================
-!      IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!         DO L = 1, LLPAR
-!            AD44(I,J,DRYBCPO,1) = AD44(I,J,DRYBCPO,1) + ND44_TMP(I,J,L)
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!      ENDIF      
-!#endif
 
       END SUBROUTINE CHEM_BCPO
 !EOC
@@ -990,16 +935,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44 
-#endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TRACERID_MOD,       ONLY : IDTBCPI
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -1015,6 +953,7 @@
       INTEGER,        INTENT(OUT)   :: RC                    ! Success?
 !
 ! !REMARKS:
+!  Drydep is now applied in mixing_mod.F90.
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Park - Initial version
@@ -1027,7 +966,10 @@
 !  26 Nov 2012 - R. Yantosca - Added ProTeX Headers
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
-!  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
+!  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90
+!  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
+!  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
+!                              so we can greatly collapse this code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1035,14 +977,8 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL  :: LNLPBL
-      INTEGER  :: I,      J,    L,       N_TRACERS
-      REAL(fp) :: DTCHEM, FLUX, BL_FRAC, AREA_CM2
-      REAL(fp) :: TC0,    CNEW, CCV,     FREQ
-
-      ! Arrays
-      REAL(fp) :: ND44_TMP(IIPAR,JJPAR,LLPAR)
-      REAL(fp) :: XNUMOL(Input_Opt%N_TRACERS)
+      INTEGER  :: I,      J,      L
+      REAL(fp) :: L_FRAC, TC0, CNEW, CCV
 
       !=================================================================
       ! CHEM_BCPI begins here!
@@ -1054,20 +990,9 @@
       ! Assume success
       RC        = GIGC_SUCCESS
 
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-      LNLPBL    = Input_Opt%LNLPBL
-
-      ! Chemistry timestep [s]
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
-
-      ! Initialize for ND44 diagnostic
-      IF ( ND44 > 0 ) ND44_TMP = 0e+0_fp
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, TC0, CCV, FREQ, BL_FRAC, CNEW, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I, J, L, TC0, CCV, CNEW )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -1079,58 +1004,8 @@
          ! H-philic BC that used to be H-phobic BC [kg]
          CCV = BCCONV(I,J,L)
          
-!         ! Fraction of grid box under the PBL top [unitless]
-!         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L ) 
-
-!         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08)
-!         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
-
-         ! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
-         BL_FRAC = 0.0_fp
-
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( BL_FRAC > 0e+0_fp ) THEN
-
-            ! Drydep frequency
-            FREQ = DEPSAV(I,J,DRYBCPI) * BL_FRAC
-            
-            !===========================================================
-            ! Note, This is an analytical solution of first order 
-            ! partial differential equations (w/ 2 solutions):
-            !
-            ! #1) CNEW = Cphi * exp(-RKT) + Cconv/RKT * (1.-exp(-RKT)) 
-            ! #2) CNEW = ( Cphi + Cconv ) * exp(-RKT)
-            !===========================================================
-
-            ! Comment out for now
-            !CNEW = TC0 * EXP( -FREQ * DTCHEM ) 
-            !     + CCV / FREQ * ( 1.e+0_fp - EXP( -FREQ * DTCHEM ) )
-
-            ! Amount of BCPI left after drydep [kg]
-            CNEW = ( TC0 + CCV ) * EXP( -FREQ * DTCHEM )
-
-            !===========================================================
-            ! ND44 diagnostic: drydep flux [atoms C/cm2/s]
-            !===========================================================
-            IF ( ND44 > 0 .and. FREQ > 0e+0_fp ) THEN
-  
-               ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( I, J, L )
-
-               ! Convert drydep loss from [kg/timestep] to [molec/cm2/s]
-               FLUX = ( TC0 + CCV - CNEW ) 
-               FLUX = FLUX * XNUMOL(IDTBCPI) / ( AREA_CM2 * DTCHEM )
-             
-               ! Store in ND44_TMP as a placeholder
-               ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-            ENDIF
-
-         ELSE
-
-            ! Otherwise, omit the exponential to save on clock cycles
-            CNEW = TC0 + CCV
-
-         ENDIF
+         ! Add the amount of converted BCPO to BCPI
+         CNEW = TC0 + CCV
       
          ! Prevent underflow condition
          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
@@ -1147,27 +1022,6 @@
       ! Zero out the BCCONV array for the next iteration
       !=================================================================
       BCCONV = 0e+0_fp
-
-! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
-!#if !defined( NO_BPCH )
-!      !=================================================================
-!      ! ND44: Sum drydep fluxes by level into the AD44 array in
-!      ! order to ensure that  we get the same results w/ sp or mp 
-!      !=================================================================
-!      IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!         DO L = 1, LLPAR
-!            AD44(I,J,DRYBCPI,1) = AD44(I,J,DRYBCPI,1) + ND44_TMP(I,J,L)
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!      ENDIF      
-!#endif
 
       END SUBROUTINE CHEM_BCPI
 !EOC
@@ -1190,15 +1044,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
       USE DIAG_MOD,           ONLY : AD07_OC 
-      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TRACERID_MOD,       ONLY : IDTOCPO
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
@@ -1229,6 +1077,7 @@
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
+!  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1236,14 +1085,8 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL              :: LNLPBL
-      INTEGER              :: I,      J,    L,    N_TRACERS
-      REAL(fp)             :: DTCHEM, FLUX, KOC,  BL_FRAC
-      REAL(fp)             :: TC0,    FREQ, CNEW, RKT, AREA_CM2
-
-      ! Arrays
-      REAL(fp)             :: ND44_TMP(IIPAR,JJPAR,LLPAR)
-      REAL(fp)             :: XNUMOL(Input_Opt%N_TRACERS)
+      INTEGER              :: I,      J,   L
+      REAL(fp)             :: DTCHEM, KOC, TC0, CNEW, RKT, FREQ
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1259,18 +1102,10 @@
       ! Assume success
       RC        = GIGC_SUCCESS
 
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-      LNLPBL    = Input_Opt%LNLPBL
-
       ! Initialize
       KOC       = 1.e+0_fp / ( 86400e+0_fp * OC_LIFE )
       DTCHEM    = GET_TS_CHEM() * 60e+0_fp
       OCCONV    = 0e+0_fp
-
-      ! Initialize for drydep diagnostic
-      IF ( ND44 > 0 ) ND44_TMP = 0e+0_fp
 
       !=================================================================
       ! For tracers with dry deposition, the loss rate of dry dep is 
@@ -1286,7 +1121,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, TC0, FREQ, BL_FRAC, RKT, CNEW, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I, J, L, TC0, FREQ, RKT, CNEW )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -1295,26 +1130,10 @@
          ! Initial OC [kg]
          TC0  = TC(I,J,L)
 
-         ! Zero drydep freq 
+         ! Zero drydep freq
+         ! ### NOTE: Remove this later, but need to make
+         ! ### sure we don't incur numerical diffs (bmy, 6/12/15)
          FREQ = 0e+0_fp
-
-!         ! Fraction of grid box under the PBL top [unitless]
-!         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
-
-!         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
-!         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
-
-         ! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
-         BL_FRAC = 0.0_fp
-
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( BL_FRAC > 0e+0_fp ) THEN
-
-            ! OC drydep frequency [1/s] -- BL_FRAC accounts for the fraction
-            ! of each grid box (I,J,L) that is located beneath the PBL top
-            FREQ = DEPSAV(I,J,DRYOCPO) * BL_FRAC
-
-         ENDIF
 
          ! Amount of OCPO left after chemistry and drydep [kg]
          RKT  = ( KOC + FREQ ) * DTCHEM
@@ -1325,23 +1144,6 @@
 
          ! Amount of OCPO converted to OCPI [kg/timestep]
          OCCONV(I,J,L) = ( TC0 - CNEW ) * KOC / ( KOC + FREQ )
-
-         !==============================================================
-         ! ND44 diagnostic: drydep loss [atoms C/cm2/s]
-         !==============================================================
-         IF ( ND44 > 0 .AND. FREQ > 0e+0_fp ) THEN
-
-             ! Surface area [cm2]
-             AREA_CM2 = GET_AREA_CM2( I, J, L )
-
-             ! Convert drydep loss from [kg/timestep] to [atoms C/cm2/s]
-             ! XNUMOL is the ratio [molec tracer/kg tracer]     
-             FLUX     = TC0 - CNEW - OCCONV(I,J,L)
-             FLUX     = FLUX * XNUMOL(IDTOCPO) / ( DTCHEM * AREA_CM2 )
-
-             ! Store in ND44_TMP as a placeholder
-             ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-         ENDIF
 
          !==============================================================
          ! ND07 diagnostic: H-Philic OC from H-phobic [kg/timestep]
@@ -1357,27 +1159,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO  
-
-! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
-!#if !defined( NO_BPCH )
-!      !=================================================================
-!      ! ND44: Sum drydep fluxes by level into the AD44 array in
-!      ! order to ensure that  we get the same results w/ sp or mp 
-!      !=================================================================
-!      IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!         DO L = 1, LLPAR
-!            AD44(I,J,DRYOCPO,1) = AD44(I,J,DRYOCPO,1) + ND44_TMP(I,J,L)
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!      ENDIF   
-!#endif
 
       END SUBROUTINE CHEM_OCPO
 !EOC
@@ -1400,14 +1181,8 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44 
-#endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TRACERID_MOD,       ONLY : IDTOCPI
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
@@ -1440,6 +1215,7 @@
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
+!  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1447,14 +1223,8 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL  :: LNLPBL
-      INTEGER  :: I,      J,    L,       N_TRACERS 
-      REAL(fp) :: DTCHEM, FLUX, BL_FRAC
-      REAL(fp) :: TC0,    CNEW, CCV,     FREQ,      AREA_CM2
-
-      ! Arrays
-      REAL(fp) :: ND44_TMP(IIPAR,JJPAR,LLPAR)
-      REAL(fp) :: XNUMOL(Input_Opt%N_TRACERS)
+      INTEGER  :: I,   J,     L
+      REAL(fp) :: TC0, CNEW, CCV
 
       !=================================================================
       ! CHEM_OCPI begins here!
@@ -1464,20 +1234,9 @@
       ! Assume success
       RC        = GIGC_SUCCESS
 
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL
-      LNLPBL    = Input_Opt%LNLPBL
-
-      ! Chemistry timestep [s]
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
-
-      ! Initialize for drydep diagnostic
-      IF ( ND44 > 0 ) ND44_TMP = 0e+0_fp
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, TC0, CCV, BL_FRAC, FREQ, CNEW, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I, J, L, TC0, CCV, CNEW )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -1489,59 +1248,9 @@
          ! H-philic OC that used to be H-phobic OC [kg]
          CCV = OCCONV(I,J,L)
 
-!         ! Fraction of box under the PBL top [unitless]
-!         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
+         ! Add the amount of converted OCPO to OCPI
+         CNEW = TC0 + CCV
 
-!         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
-!         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
-
-         ! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
-         BL_FRAC = 0.0_fp
-
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( BL_FRAC > 0e+0_fp ) THEN
-
-            ! Drydep frequency [1/s]
-            FREQ = DEPSAV(I,J,DRYOCPI) * BL_FRAC
-
-            !===========================================================
-            ! Note, This is an analytical solution of first order 
-            ! partial differential equations (w/ 2 solutions):
-            !
-            ! #1) CNEW = Cphi * exp(-RKT) + Cconv/RKT * (1.-exp(-RKT))
-            ! #2) CNEW = ( Cphi + Cconv ) * exp(-RKT)
-            !===========================================================
-
-            ! CNEW = TC0 * EXP( -FREQ * DTCHEM ) 
-            !       + CCV / FREQ * ( 1.e+0_fp - EXP( -FREQ * DTCHEM ) )
-
-            ! Amount of BCPI left after drydep [kg]
-            CNEW = ( TC0 + CCV ) * EXP( -FREQ * DTCHEM )
-
-            !===========================================================
-            ! ND44 diagnostic: drydep loss [atoms C/cm2/s]
-            !===========================================================
-            IF ( ND44 > 0 ) THEN
-
-               ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( I, J, L )
-
-               ! Convert drydep loss from [kg/timestep] to [atoms C/cm2/s]
-               FLUX = ( TC0 + CCV - CNEW ) 
-               FLUX = FLUX * XNUMOL(IDTOCPI) / ( AREA_CM2 * DTCHEM )
-             
-               ! Store in ND44_TMP as a placeholder
-               ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-            ENDIF
-
-         ELSE
-
-            ! Otherwise, avoid doing the exponential
-            ! to preserve precision and clock cycles
-            CNEW = TC0 + CCV
-
-         ENDIF
-      
          ! Prevent underflow condition
          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
 
@@ -1557,27 +1266,6 @@
       ! Zero OCCONV array for next timestep
       !=================================================================
       OCCONV = 0e+0_fp
-
-! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
-!#if !defined( NO_BPCH )
-!      !=================================================================
-!      ! ND44: Sum drydep fluxes by level into the AD44 array in
-!      ! order to ensure that  we get the same results w/ sp or mp 
-!      !=================================================================
-!      IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!         DO L = 1, LLPAR
-!            AD44(I,J,DRYOCPI,1) = AD44(I,J,DRYOCPI,1) + ND44_TMP(I,J,L)
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!      ENDIF    
-!#endif
 
       END SUBROUTINE CHEM_OCPI
 !EOC
@@ -1885,12 +1573,6 @@
       ENDDO
       ENDDO
 
-      !=================================================================       
-      ! Calculate dry-deposition
-      !=================================================================
-      ! This is now done in mixing_mod
-!      CALL SOA_DEPO( STT(:,:,:,IDTSOAG), DRYSOAG, IDTSOAG, Input_Opt )
-
       ! Free pointer
       NULLIFY( STT )
 
@@ -2138,12 +1820,6 @@
       ENDDO
       ENDDO
 
-      !=================================================================       
-      ! Calculate dry-deposition
-      !=================================================================
-      ! This is now done in mixing_mod.F90 (ckeller, 3/5/15)
-      !CALL SOA_DEPO( STT(:,:,:,IDTSOAM), DRYSOAM, IDTSOAM, Input_Opt )
-
       ! Free pointer
       NULLIFY( STT )
 
@@ -2361,6 +2037,7 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  12 Jun 2015 - R. Yantosca - Removed SOA_DEPO; ND44 is now done in mixing_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2920,59 +2597,6 @@
 
       ENDIF
       !------------------------------------------------------------------------
-
-      !=================================================================       
-      ! Calculate dry-deposition
-      !=================================================================
-      ! new mtp formulation (hotp 5/20/10)
-      ! precursors
-      ! This is now done in mixing_mod.F90 (ckeller, 3/5/15)
-!      CALL SOA_DEPO(STT(:,:,:,IDTMTPA ), DRYMTPA,  IDTMTPA,  Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTLIMO ), DRYLIMO,  IDTLIMO,  Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTMTPO ), DRYMTPO,  IDTMTPO , Input_Opt)
-!
-!      ! mono + sesq
-!      CALL SOA_DEPO(STT(:,:,:,IDTTSOA1), DRYTSOA1, IDTTSOA1, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTTSOA2), DRYTSOA2, IDTTSOA2, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTTSOA3), DRYTSOA3, IDTTSOA3, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTTSOA0), DRYTSOA0, IDTTSOA0, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTTSOG1), DRYTSOG1, IDTTSOG1, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTTSOG2), DRYTSOG2, IDTTSOG2, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTTSOG3), DRYTSOG3, IDTTSOG3, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTTSOG0), DRYTSOG0, IDTTSOG0, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTISOA1), DRYISOA1, IDTISOA1, Input_Opt)
-!
-!      ! isop
-!      CALL SOA_DEPO(STT(:,:,:,IDTISOA2), DRYISOA2, IDTISOA2, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTISOA3), DRYISOA3, IDTISOA3, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTISOG1), DRYISOG1, IDTISOG1, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTISOG2), DRYISOG2, IDTISOG2, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTISOG3), DRYISOG3, IDTISOG3, Input_Opt)
-
-!      ! Now perform depo for lumped AROM (hotp 5/13/10)
-!      CALL SOA_DEPO(STT(:,:,:,IDTASOAN), DRYASOAN, IDTASOAN, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTASOA1), DRYASOA1, IDTASOA1, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTASOA2), DRYASOA2, IDTASOA2, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTASOA3), DRYASOA3, IDTASOA3, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTASOG1), DRYASOG1, IDTASOG1, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTASOG2), DRYASOG2, IDTASOG2, Input_Opt)
-!      CALL SOA_DEPO(STT(:,:,:,IDTASOG3), DRYASOG3, IDTASOG3, Input_Opt)
-!
-!      ! semivolpoa: call SOA_DEPO for POA (hotp 2/26/09)
-!      IF ( IDTPOA1 > 0 ) THEN
-!       CALL SOA_DEPO(STT(:,:,:,IDTPOA1 ), DRYPOA1,  IDTPOA1, Input_Opt)
-!       CALL SOA_DEPO(STT(:,:,:,IDTPOA2 ), DRYPOA2,  IDTPOA2, Input_Opt)
-!       CALL SOA_DEPO(STT(:,:,:,IDTPOG1 ), DRYPOG1,  IDTPOG1, Input_Opt)
-!       CALL SOA_DEPO(STT(:,:,:,IDTPOG2 ), DRYPOG2,  IDTPOG2, Input_Opt)
-!      ENDIF
-!
-!      ! semivolpoa4opoa: call SOA_DEPO for OPOA, OPOG (hotp 3/18/09)
-!      IF ( IDTOPOA1 > 0 ) THEN
-!       CALL SOA_DEPO(STT(:,:,:,IDTOPOA1), DRYOPOA1, IDTOPOA1, Input_Opt)
-!       CALL SOA_DEPO(STT(:,:,:,IDTOPOA2), DRYOPOA2, IDTOPOA2, Input_Opt)
-!       CALL SOA_DEPO(STT(:,:,:,IDTOPOG1), DRYOPOG1, IDTOPOG1, Input_Opt)
-!       CALL SOA_DEPO(STT(:,:,:,IDTOPOG2), DRYOPOG2, IDTOPOG2, Input_Opt)
-!      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -5168,188 +4792,6 @@
 
       END SUBROUTINE SOA_LUMP
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: soa_depo
-!
-! !DESCRIPTION: Subroutine SOA\_DEPO computes dry-deposition of a particular
-!  SOA species. (rjp, bmy, 7/8/04, 10/25/05)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SOA_DEPO( TC, DEPID, TRID, Input_Opt )
-!
-! !USES:
-!
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44 
-#endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-!
-! !INPUT PARAMTERS:
-!
-      INTEGER,        INTENT(IN)    :: DEPID                 ! Drydep ID #
-      INTEGER,        INTENT(IN)    :: TRID                  ! Tracer ID #
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Tracer [kg]
-! 
-! !REVISION HISTORY:
-!  (1 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
-!  (2 ) Replace PBLFRAC from "drydep_mod.f" with  GET_FRAC_UNDER_PBLTOP from 
-!        "pbl_mix_mod.f" (bmy, 2/17/05)
-!  (3 ) Bug fix: Add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
-!  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  (5 ) Add non-local PBL scheme option for dry deposition (lin, 06/09/08)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
-!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL   :: LNLPBL
-      INTEGER   :: I, J, L
-      REAL(fp)  :: DTCHEM, FLUX, BL_FRAC
-      REAL(fp)  :: TC0, CNEW, FREQ, AREA_CM2
-      REAL(fp)  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
-
-      ! For fields in Input_Opt
-      INTEGER   :: N_TRACERS
-      REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
-
-      !=================================================================
-      ! SOA_DEPO begins here!
-      !=================================================================
-
-      ! Copy values from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS )
-
-      ! Return if tracer ID or tracer ID is undefined
-      IF ( TRID == 0 .OR. DEPID == 0 ) RETURN
-
-      ! Use fields from Input_Opt
-      LNLPBL = Input_Opt%LNLPBL
-
-      ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
-
-      ! Initialize for drydep diagnostic
-      IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            ND44_TMP(I,J,L) = 0e+0_fp
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, TC0, BL_FRAC, FREQ, CNEW, AREA_CM2, FLUX )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Initial SOA [kg]
-         TC0 = TC(I,J,L)
-
-!         ! Fraction of box under the PBL top [unitless]
-!         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
-
-!         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
-!         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
-
-         ! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
-         BL_FRAC = 0.0_fp
-
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( BL_FRAC > 0e+0_fp ) THEN
-
-            ! Drydep frequency [1/s]
-            FREQ = DEPSAV(I,J,DEPID) * BL_FRAC
-
-            ! Amount of SOA[G] left after drydep [kg]
-            CNEW = TC0 * EXP( -FREQ * DTCHEM )
-
-            !===========================================================
-            ! ND44 diagnostic: drydep loss [atoms C/cm2/s]
-            !===========================================================
-            IF ( ND44 > 0 ) THEN
-
-               ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( I, J, L )
-
-               ! Convert drydep loss from [kg/timestep] to [atoms C/cm2/s]
-               FLUX = ( TC0 - CNEW ) 
-               FLUX = FLUX * XNUMOL(TRID) / ( AREA_CM2 * DTCHEM )
-             
-               ! Store in ND44_TMP as a placeholder
-               ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-            ENDIF
-
-         ELSE
-
-            ! Otherwise, avoid doing the exponential
-            ! to preserve precision and clock cycles
-            CNEW = TC0
-
-         ENDIF
-      
-         ! Prevent underflow condition
-         IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
-
-         ! Store modified concentration back in tracer array [kg]
-         TC(I,J,L) = CNEW
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO  
-
-#if !defined( NO_BPCH )
-      !=================================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !=================================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DEPID,1) = AD44(I,J,DEPID,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-#endif  
-
-      END SUBROUTINE SOA_DEPO
-!!EOC
 #if   defined( TOMAS )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -6027,6 +5469,7 @@ ccc
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
 ! TOMAS DIAGNs:
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TOMAS_MOD,          ONLY : IBINS,     AVGMASS, SOACOND
@@ -6051,6 +5494,12 @@ ccc
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY:
+!  12 Jun 2015 - J. Kodros   - Initial version
+!  12 Jun 2015 - R. Yantosca - Bug fix: also add reference to DEBUG_MSG
+!EOP
+!------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:

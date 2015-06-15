@@ -149,6 +149,9 @@
 !  04 Mar 2015 - R. Yantosca   - Remove obsolete, commented-out code
 !  04 Mar 2015 - R. Yantosca   - Use REAL(f4) for pointer args to HCO_GetPtr
 !  22 May 2015 - R. Yantosca   - Remove variables made obsolete by HEMCO
+!  12 Jun 2015 - R. Yantosca   - Now remove orphaned ND44 variables
+!  12 Jun 2015 - R. Yantosca   - Remove CHEM_NH3 and CHEM_NH4 routines
+!                                because drydep is now done in mixing_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -466,7 +469,6 @@
 !
       USE CMN_SIZE_MOD                   
       USE DAO_MOD,            ONLY : CONVERT_UNITS
-!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
@@ -756,24 +758,6 @@
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_MSA' )
       ENDIF
-
-      ! NH3
-      ! CHEM_NH3 applies dry deposition only. Dry deposition is now done
-      ! in mixing_mod, so no need to call this routine any more 
-      ! (ckeller, 3/5/15).
-!      CALL CHEM_NH3( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!      IF ( prtDebug ) THEN
-!         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH3' )
-!      ENDIF
-
-      ! NH4 (gas-phase)
-      ! CHEM_NH4 applies dry deposition only. Dry deposition is now done
-      ! in mixing_mod, so no need to call this routine any more 
-      ! (ckeller, 3/5/15).
-!      CALL CHEM_NH4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!      IF ( prtDebug ) THEN
-!         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4' )
-!      ENDIF
 
       ! Sulfur Nitrate.
       ! CHEM_NIT includes a source term from sea salt aerosols, so keep
@@ -1701,7 +1685,6 @@
       USE CMN_DIAG_MOD         
       USE CMN_SIZE_MOD         
       USE DIAG_MOD,           ONLY : AD05
-!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -2031,7 +2014,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -2094,6 +2076,7 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  18 Sep 2014 - M. Sulprizio- Now get J(H2O2) and PH2O2m from HEMCO
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2105,19 +2088,17 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LNLPBL
       LOGICAL            :: FIRST     = .TRUE.
       INTEGER, SAVE      :: LASTMONTH = -99
       INTEGER            :: I, J, L, JLOOP, N_TRACERS
-      REAL(fp)             :: DT,    Koh,  DH2O2, M,    F ,   XTAU   
-      REAL(fp)             :: H2O20, H2O2, ALPHA, FLUX, FREQ, PHOTJ
+      REAL(fp)           :: DT,    Koh,  DH2O2, M,    F ,   XTAU   
+      REAL(fp)           :: H2O20, H2O2, ALPHA, FREQ, PHOTJ
       CHARACTER(LEN=255) :: FILENAME
 
       ! Arrays
       REAL*4             :: ARRAY(IIPAR,JJPAR,LLCHEM)
-      REAL(fp)             :: TCVV  (Input_Opt%N_TRACERS)
-      REAL(fp)             :: XNUMOL(Input_Opt%N_TRACERS)
-      REAL(fp)             :: ND44_TMP(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: TCVV  (Input_Opt%N_TRACERS)
+      REAL(fp)           :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -2136,7 +2117,6 @@
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-      LNLPBL    = Input_Opt%LNLPBL
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -2148,17 +2128,12 @@
       ! Factor to convert AIRDEN from kgair/m3 to molecules/cm3:
       F         = 1000.e+0_fp / AIRMW * 6.022d23 * 1.e-6_fp
       
-      ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) THEN
-         ND44_TMP = 0e+0_fp
-      ENDIF
-
       !=================================================================
       ! Loop over tropopsheric grid boxes and do chemistry
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2, FLUX )
+!$OMP+PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2 )
 !$OMP+PRIVATE( JLOOP, PHOTJ )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L  = 1, LLPAR
@@ -2166,7 +2141,6 @@
       DO I  = 1, IIPAR
 
          ! Initialize for safety's sake 
-         FLUX = 0e+0_fp
          FREQ = 0e+0_fp
 
          ! Skip non-chemistry boxes
@@ -2181,13 +2155,6 @@
          ! Loss frequenty due to OH oxidation [s-1]
          KOH   = A * EXP( -160.e+0_fp / State_Met%T(I,J,L) ) * 
      &           GET_OH( I, J, L, Input_Opt, State_Met )
-
-         ! H2O2 drydep frequency [1/s].  Account for the fraction
-         ! of grid box (I,J,L) that is located beneath the PBL top.
-!         FREQ  = DEPSAV(I,J,DRYH2O2) * GET_FRAC_UNDER_PBLTOP( I, J, L ) 
-
-         ! Add option for non-local PBL (Lin, 03/31/09)
-!         IF ( LNLPBL ) FREQ = 0.e+0_fp
 
          ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
          FREQ = 0.e+0_fp
@@ -2220,46 +2187,10 @@
          ! Store final H2O2 in STT
          STT(I,J,L,IDTH2O2) = H2O2
 
-! Now done in mixing_mod.F90 (ckeller, 3/5/15) 
-         !==============================================================
-         ! ND44 diagnostics: H2O2 drydep loss [molec/cm2/s]
-         !==============================================================
-!         IF ( ND44 > 0 .AND. FREQ > 0e+0_fp ) THEN
-!
-!            ! Convert H2O2 from [v/v] to H2O2 [molec/cm2/s]
-!            FLUX = H2O20 * FREQ * DT / ( 1.e+0_fp + FREQ * DT )
-!            FLUX = FLUX * State_Met%AD(I,J,L) / TCVV(IDTH2O2)
-!            FLUX = FLUX * XNUMOL(IDTH2O2) 
-!     &            / ( GET_AREA_CM2( I, J, L ) * DT )
-!
-!            ! Save dryd flx in ND44_TMP as a placeholder
-!            ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-!         ENDIF
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-! Now done in mixing_mod.F90 (ckeller, 3/5/15) 
-!#if !defined( NO_BPCH )
-!      !===============================================================
-!      ! ND44: Sum drydep fluxes by level into the AD44 array in
-!      ! order to ensure that  we get the same results w/ sp or mp 
-!      !===============================================================
-!      IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!         DO L = 1, LLPAR
-!            AD44(I,J,DRYH2O2,1) = AD44(I,J,DRYH2O2,1) + ND44_TMP(I,J,L)
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!      ENDIF
-!#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -2290,10 +2221,6 @@
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_WATER
       USE DIAG_MOD,           ONLY : AD05
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
-!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ERROR_MOD,          ONLY : IS_SAFE_EXP
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE GIGC_ErrCode_Mod
@@ -2303,6 +2230,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE TRACERID_MOD,       ONLY : IDTH2O2
@@ -2422,7 +2350,6 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL               :: LNLPBL
       LOGICAL               :: IS_OFFLINE
       LOGICAL               :: IS_FULLCHEM
       INTEGER               :: I,      J,       L       !,      I1,   I2
@@ -2433,17 +2360,16 @@
       REAL(fp)              :: RK,     RKT,     DTCHEM, DT_T, TK
       REAL(fp)              :: F1,     RK1,     RK2,    RK3,  SO20
       REAL(fp)              :: SO2_cd, H2O20,   O3,     L2S,  L3S
-      REAL(fp)              :: LWC,    KaqH2O2, KaqO3,  PATM, FLUX
+      REAL(fp)              :: LWC,    KaqH2O2, KaqO3,  PATM
       REAL(fp)              :: ALK,    ALK1,    ALK2,    SO2_ss
       REAL(fp)              :: Kt1,    Kt2,     AREASS1, AREASS2
       REAL(fp)              :: PSO4E,  PSO4F,   Kt1N,    Kt2N
-      REAL(fp)              :: XX,     AREA_CM2
+      REAL(fp)              :: XX
       REAL(fp)              :: HPLUS,  SO4nss, TNH3,   TNO3,  GNO3, ANIT
       REAL(fp)              :: LSTOT,  ALKdst, ALKss,  ALKds, NH3
       REAL(fp)              :: SSCvv,  aSO4,   SO2_sr, SR,    TANIT
 
       ! Arrays
-      REAL(fp)              :: ND44_TMP(IIPAR,JJPAR,LLPAR)
       REAL(fp)              :: TCVV  (Input_Opt%N_TRACERS)
       REAL(fp)              :: XNUMOL(Input_Opt%N_TRACERS)
 
@@ -2472,7 +2398,6 @@
       N_TRACERS   = Input_Opt%N_TRACERS
       TCVV        = Input_Opt%TCVV  (1:N_TRACERS)
       XNUMOL      = Input_Opt%XNUMOL(1:N_TRACERS)
-      LNLPBL      = Input_Opt%LNLPBL
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -2483,9 +2408,6 @@
 
       ! Factor to convert AIRDEN from [kg air/m3] to [molec air/cm3]
       F        = 1000.e+0_fp / AIRMW * 6.022e+23_fp * 1.e-6_fp
-
-      ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) ND44_TMP = 0e+0_fp
 
       ! On first call, get pointers to HEMCO diagnostics arrays.
       ! These are the sea salt aerosol number densities for the fine
@@ -2519,7 +2441,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, SO20, H2O20, O3, PATM, TK, K0, M, KK, F1, RK1  )
 !$OMP+PRIVATE( RK2, RK, RKT, SO2_cd, L1, Ld, L2, L2S, L3, L3S, FC, LWC )
-!$OMP+PRIVATE( KaqH2O2, KaqO3, AREA_CM2, FLUX, ALK, ALK1, ALK2         )
+!$OMP+PRIVATE( KaqH2O2, KaqO3, ALK, ALK1, ALK2                         )
 !$OMP+PRIVATE( Kt1, Kt2, AREASS1, AREASS2, SO2_ss, Kt1N, Kt2N          )
 !$OMP+PRIVATE( PSO4E, PSO4F, XX                                        )
 !$OMP+PRIVATE( HPLUS, SO4nss, TNH3, TNO3,  GNO3, ANIT,   LSTOT, ALKdst )
@@ -2531,8 +2453,6 @@
       DO I = 1, IIPAR
 
          ! Initialize for safety's sake 
-         AREA_CM2 = 0e+0_fp
-         FLUX     = 0e+0_fp
          Ld       = 0e+0_fp
 
          ! Skip non-chemistry boxes
@@ -2573,13 +2493,6 @@
             RK1 = 0.e+0_fp
 
          ENDIF
-
-!         ! SO2 drydep frequency [1/s].  Also accounts for the fraction
-!         ! of grid box (I,J,L) that is located beneath the PBL top.
-!         RK2    = DEPSAV(I,J,DRYSO2) * GET_FRAC_UNDER_PBLTOP( I, J, L )
-
-!         ! Add option for non-local PBL (Lin, 03/31/09)
-!         IF ( LNLPBL ) RK2 = 0.e+0_fp
 
          ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
          RK2  = 0.e+0_fp
@@ -3122,47 +3035,10 @@
      &                      TCVV_S )
 
          ENDIF
-
-         !=================================================================
-         ! ND44 Diagnostic: Drydep flux of SO2 [molec/cm2/s]
-         !=================================================================
-         IF ( ND44 > 0 .AND. Ld > 0e+0_fp ) THEN
-
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, L )
-
-            ! Convert [v/v/timestep] to [molec/cm2/s]
-            FLUX = Ld   * State_Met%AD(I,J,L)      / TCVV(IDTSO2)
-            FLUX = FLUX * XNUMOL(IDTSO2) / AREA_CM2 / DTCHEM
-            
-            ! Store dryd flx in ND44_TMP as a placeholder
-            ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-         ENDIF
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-! This is now done in mixing_mod.F90 (ckeller, 3/5/15) 
-!#if !defined( NO_BPCH )
-!      !===============================================================
-!      ! ND44: Sum drydep fluxes by level into the AD44 array in
-!      ! order to ensure that  we get the same results w/ sp or mp 
-!      !===============================================================
-!      IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!         DO L = 1, LLPAR
-!            AD44(I,J,DRYSO2,1) = AD44(I,J,DRYSO2,1) + ND44_TMP(I,J,L)
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!      ENDIF
-!#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -4818,16 +4694,10 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
-!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTSO4
       USE TRACERID_MOD,       ONLY : IDTSO4s
@@ -4852,13 +4722,9 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !                                                                           
 ! !REMARKS:
-!  Reaction List (by Mian Chin, chin@rondo.gsfc.nasa.gov)                  
-!  ============================================================================
-!  The Only production is from SO2 oxidation (save in CHEM_SO2), and the only  
-!  loss is dry depsition here.  Wet deposition will be treated in "wetdep.f".
-!                                                                             .
-!  SO4 = SO4_0 * exp(-kt) + PSO4_SO2/kt * (1.-exp(-kt))                    
-!    where k = dry deposition.                                             
+!  The only production is from SO2 oxidation (save in CHEM_SO2).  Dry
+!  deposition is now handled in mixing_mod.F90, so we can must add the
+!  production from SO2 into the SO4 tracers.
 !                                                                             .
 ! !REVISION HISTORY:
 !  (1 ) Now reference AD from "dao_mod.f".  Added parallel DO-loops.  
@@ -4894,28 +4760,20 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
 !                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
+!  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
+!                              so we can greatly collapse this code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL               :: LNLPBL, LCRYST, LSSALT
-      INTEGER               :: N_TRACERS
-      INTEGER               :: I,      J,      L,        N,     N_ND44
-      REAL(fp)                :: AS,     AS0,    AHS,      AHS0,  LET   
-      REAL(fp)                :: LET0,   SO4,    SO40,     SO4aq, SO4aq0
-      REAL(fp)                :: SO4s,   SO40s,  RKT,      RKTs,  E_RKT
-      REAL(fp)                :: E_RKTs, DTCHEM, AREA_CM2, FLUX
-
-      ! Arrays
-      REAL(fp)                :: TCVV  (Input_Opt%N_TRACERS)
-      REAL(fp)                :: XNUMOL(Input_Opt%N_TRACERS)
-      REAL(fp)                :: T44(IIPAR,JJPAR,LLPAR,6) 
+      INTEGER           :: I,   J,    L,    N
+      REAL(fp)          :: SO4, SO40, SO4s, SO40s
 
       ! Pointers
-      REAL(fp), POINTER       :: STT(:,:,:,:)
-      REAL(fp), POINTER       :: AD(:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHEM_SO4 begins here!
@@ -4928,75 +4786,21 @@
       ! Assume success
       RC        = GIGC_SUCCESS
 
-      ! Copy fields from INPUT_OPT to local variables for use below
-      LCRYST    = Input_Opt%LCRYST
-      LNLPBL    = Input_Opt%LNLPBL
-      LSSALT    = Input_Opt%LSSALT
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV  (1:N_TRACERS) 
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-
       ! Initialize pointers
       STT      => State_Chm%Tracers
-      AD       => State_Met%AD
-
-      ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
-
-      ! Number of drydep tracers to save
-      N_ND44    = 2
-
-!------------------------------------------------------------------------------
-!%%% Currently under development (rjp, bmy, 4/13/05)
-!%%%       ! Number of drydep tracers to save
-!%%%       IF ( LCRYST ) THEN 
-!%%%          N_ND44 = 6
-!%%%       ELSE
-!%%%          N_ND44 = 2
-!%%%       ENDIF
-!------------------------------------------------------------------------------
-
-      ! Zero T44 array
-      IF ( ND44 > 0 ) THEN
-         T44 = 0e+0_fp
-      ENDIF
 
       ! Loop over chemistry grid boxes
-!------------------------------------------------------------------------------
-!%%% Currently under development (rjp, bmy, 3/15/05)
-!%%% $OMP PARALLEL DO
-!%%% $OMP+DEFAULT( SHARED )
-!%%% $OMP+PRIVATE( I,     J,      L,    AREA_CM2, RKT,   RKTs   )
-!%%% $OMP+PRIVATE( E_RKT, E_RKTs, FLUX, SO4,      SO4s,  SO4aq  )
-!%%% $OMP+PRIVATE( AS,    AHS,    LET,  SO40,     SO40s, SO4aq0 )
-!%%% $OMP+PRIVATE( AS0,   AHS0,   LET0                          )
-!%%% $OMP+SCHEDULE( DYNAMIC ) 
-!------------------------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,      J,    L,   AREA_CM2, RKT,   RKTs, E_RKT )
-!$OMP+PRIVATE( E_RKTs, FLUX, SO4, SO4s,     SO40,  SO40s       )
+!$OMP+PRIVATE( I, J, L, SO4, SO4s, SO40, SO40s )
 !$OMP+SCHEDULE( DYNAMIC ) 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Initialize for safety's sake
-         AREA_CM2 = 0e+0_fp
-         RKT      = 0e+0_fp
-         RKTs     = 0e+0_fp
-         E_RKT    = 0e+0_fp
-         E_RKTs   = 0e+0_fp
-         FLUX     = 0e+0_fp
-         SO4      = 0e+0_fp
-         SO4s     = 0e+0_fp
-!------------------------------------------------------------------------------
-!%%% Currently under development (rjp, bmy, 3/15/05)
-!%%%         SO4aq    = 0e+0_fp
-!%%%         AS       = 0e+0_fp
-!%%%         AHS      = 0e+0_fp
-!%%%         LET      = 0e+0_fp
-!------------------------------------------------------------------------------
+         SO4  = 0e+0_fp
+         SO4s = 0e+0_fp
 
          ! Skip non-chemistry boxes
          IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
@@ -5011,147 +4815,19 @@
          ! SO4 within coarse seasalt aerosol [v/v]
          SO40s = STT(I,J,L,IDTSO4s)
 
-!------------------------------------------------------------------------------
-!%%% Currently under development (rjp, bmy, 3/15/05)
-!%%%          ! SO4aq, AS, LET, AHS (if necessary) [v/v]
-!%%%          IF ( LCRYST ) THEN
-!%%%             SO4aq0 = STT(I,J,L,IDTSO4aq)
-!%%%             AS0    = STT(I,J,L,IDTAS)
-!%%%             AHS0   = STT(I,J,L,IDTAHS)
-!%%%             LET0   = STT(I,J,L,IDTLET)          
-!%%%          ENDIF
-!------------------------------------------------------------------------------
-
          !==============================================================
-         ! SO4 chemistry: 
-         !
-         ! (CASE 1) SO4 production from SO2 and loss by drydep
-         !          --> see equation in header notes above
-         !
-         ! (CASE 2) SO4 production from SO2 with no SO4 loss by drydep
+         ! SO4 chemistry
          !==============================================================
 
-!         ! SO4 drydep frequency [1/s].  Also accounts for the fraction
-!         ! of each vertical level that is located below the PBL top
-!         RKT  = DEPSAV(I,J,DRYSO4)  * GET_FRAC_UNDER_PBLTOP( I, J, L )
-
-!         ! Add option for non-local PBL (Lin, 03/31/09) 
-!         IF ( LNLPBL ) RKT = 0.e+0_fp
-
-         ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
-         RKT = 0.e+0_fp
-
-         ! RKT > 0 denotes that we have SO4 drydep occurring
-         IF ( RKT > 0e+0_fp ) THEN
-            
-            !-----------------------------------------------------------
-            ! CASE 1: SO4 production from SO2 and SO4 loss by drydep
-            !-----------------------------------------------------------
-
-            ! Fraction of SO4 lost to drydep [unitless]
-            RKT   = RKT * DTCHEM
-            
-            ! Pre-compute exponential term for use below
-            E_RKT = EXP( -RKT ) 
-
-            ! Updated SO4 (gas phase) [v/v]
-            SO4   = ( SO40                *          E_RKT ) + 
-     &              ( PSO4_SO2(I,J,L)/RKT * ( 1.e+0_fp - E_RKT ) )
-
-!------------------------------------------------------------------------------
-!%%% Currently under development (rjp, bmy, 3/15/05)
-!%%%             IF ( LCRYST ) THEN
-!%%% 
-!%%%                ! Updated SO4 (aqueous phase) [v/v]
-!%%%                SO4aq = ( SO4aq0              *          E_RKT   ) + 
-!%%%      &                 ( PSO4_SO2(I,J,L)/RKT * ( 1.e+0_fp - E_RKT ) ) 
-!%%% 
-!%%%                ! Updated AS, AHS, LET [v/v] 
-!%%%                AS    = AS0  * E_RKT
-!%%%                AHS   = AHS0 * E_RKT
-!%%%                LET   = LET0 * E_RKT
-!%%% 
-!%%%             ENDIF
-!------------------------------------------------------------------------------
-
-         ELSE
-
-            !-----------------------------------------------------------
-            ! CASE 2: Production of SO4 from SO2; no SO4 drydep loss
-            !-----------------------------------------------------------
-
-!-----------------------------------------------------------------------------
-!%%% Currently under development (rjp, bmy, 3/15/05)
-!%%%            IF ( LCRYST ) THEN
-!%%%
-!%%%               ! SO4 production from SO2 (both gas-phase & aqueous)
-!%%%               SO4   = SO40   + ( 2e+0_fp * PSO4_SO2(I,J,L) )
-!%%%               SO4aq = SO4aq0 + ( 2e+0_fp * PSO4_SO2(I,J,L) )
-!%%%
-!%%%               ! No production from AS, AHS, LET
-!%%%               AS    = AS0
-!%%%               AHS   = AHS0
-!%%%               LET   = LET0
-!%%%
-!%%%            ELSE
-!%%%
-!%%%               ! SO4 production from SO2 [v/v/timestep]
-!%%%               SO4 = SO40 + PSO4_SO2(I,J,L)
-!%%%
-!%%%            ENDIF
-!-----------------------------------------------------------------------------
-
-               ! SO4 production from SO2 [v/v/timestep]
-               SO4 = SO40 + PSO4_SO2(I,J,L)
-
-         ENDIF
+         ! SO4 production from SO2 [v/v/timestep]
+         SO4 = SO40 + PSO4_SO2(I,J,L)
 
          !==============================================================
          ! SO4s (SO4 w/in seasalt aerosol) chemistry: 
-         !
-         ! (CASE 3) SO4s production from seasalt and loss by drydep
-         !          --> see equation in header notes above
-         !
-         ! (CASE 4) SO4s prod from seasalt w/ no SO4s loss by drydep
          !==============================================================
 
-!         ! SO4s drydep frequency [1/s].   Also accounts for the fraction
-!         ! of each vertical level that is located below the PBL top
-!         RKTs = DEPSAV(I,J,DRYSO4s) * GET_FRAC_UNDER_PBLTOP( I, J, L )
-!
-!         ! Add option for non-local PBL (Lin, 03/31/09)
-!         IF ( LNLPBL ) RKTs = 0.e+0_fp
-
-         ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
-         RKTs = 0.e+0_fp
-        
-         ! RKTs > 0 indicates that SO4s drydep occurs
-         IF ( RKTs > 0e+0_fp ) THEN
-            
-            !-----------------------------------------------------------
-            ! CASE 3: SO4s prod from seasalt SO4s loss by drydep
-            !-----------------------------------------------------------
-
-            ! Fraction of SO4s lost to drydep [unitless]
-            RKTs   = RKTs * DTCHEM
-            
-            ! Pre-compute exponential term for use below
-            E_RKTs = EXP( -RKTs ) 
-               
-            ! Updated SO4 (gas phase) [v/v]
-            SO4s   = ( SO40s               *          E_RKTs ) + 
-     &               ( PSO4_ss(I,J,L)/RKTs * ( 1.e+0_fp - E_RKTs ) )
-
-         ELSE
-
-            !--------------------------------------------------------
-            ! CASE 4: Prod of SO4s from seasalt; no SO4s drydep loss
-            !--------------------------------------------------------
-
-            ! SO4 production from SO2 [v/v/timestep]
-            SO4s = SO40s + PSO4_ss(I,J,L)
-
-         ENDIF
+         ! SO4 production from SO2 [v/v/timestep]
+         SO4s = SO40s + PSO4_ss(I,J,L)
 
          !==============================================================
          ! Final concentrations after chemistry
@@ -5165,123 +4841,13 @@
          STT(I,J,L,IDTSO4)  = SO4
          STT(I,J,L,IDTSO4s) = SO4s
 
-!-----------------------------------------------------------------------------
-!%%% Currently under development (bmy, 3/15/05)
-!%%%          ! SO4aq, AS, AHS, LET (if necessary)
-!%%%          IF ( LCRYST ) THEN
-!%%% 
-!%%%             ! Error check
-!%%%             IF ( SO4aq < SMALLNUM ) SO4aq = 0e+0_fp
-!%%%             IF ( AS    < SMALLNUM ) AS    = 0e+0_fp
-!%%%             IF ( AHS   < SMALLNUM ) AHS   = 0e+0_fp
-!%%%             IF ( LET   < SMALLNUM ) LET   = 0e+0_fp
-!%%% 
-!%%%             ! Final SO4aq, AS, AHS, LET [v/v]
-!%%%             STT(I,J,L,IDTSO4aq) = SO4aq
-!%%%             STT(I,J,L,IDTAS)    = AS
-!%%%             STT(I,J,L,IDTAHS)   = AHS
-!%%%             STT(I,J,L,IDTLET)   = LET
-!%%% 
-!%%%          ENDIF
-!-----------------------------------------------------------------------------
-
-         !==============================================================
-         ! ND44 Diagnostic: Drydep flux of SO4 and the crystalline & 
-         ! aqueous tracers (AS, AHS, LET, SO4aq) in [molec/cm2/s]
-         !==============================================================
-         IF ( ND44 > 0 ) THEN
-
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, L )
-
-            ! SO4 drydep flux [molec/cm2/s]
-            FLUX = SO40  - SO4 + PSO4_SO2(I,J,L) 
-            FLUX = FLUX  * AD(I,J,L) / TCVV(IDTSO4)
-            FLUX = FLUX  * XNUMOL(IDTSO4)      / AREA_CM2 / DTCHEM
-            T44(I,J,L,1) = T44(I,J,L,1) + FLUX
-
-            ! SO4s drydep flux [molec/cm2/s]
-            FLUX = SO40s - SO4s + PSO4_ss(I,J,L) 
-            FLUX = FLUX  * AD(I,J,L) / TCVV(IDTSO4s)
-            FLUX = FLUX  * XNUMOL(IDTSO4s)     / AREA_CM2 / DTCHEM
-            T44(I,J,L,2) = T44(I,J,L,2) + FLUX
-
-!------------------------------------------------------------------------------
-!%%% Currently under development (rjp, bmy, 3/15/05)
-!%%%             ! SO4aq, AS, AHS, LET drydep fluxes (if necessary)
-!%%%             IF ( LCRYST ) THEN
-!%%% 
-!%%%                ! SO4aq drydep flux [molec/cm2/s]
-!%%%                FLUX = SO4aq0 - SO4aq + PSO4_SO2(I,J,L)     
-!%%%                FLUX = FLUX  * AD(I,J,L) / TCVV(IDTSO4aq)
-!%%%                FLUX = FLUX  * XNUMOL(IDTSO4aq)    / AREA_CM2 / DTCHEM
-!%%%                T44(I,J,L,3) = T44(I,J,L,3) + FLUX
-!%%% 
-!%%%                ! AS drydep flux [molec/cm2/s]
-!%%%                FLUX = AS0   - AS
-!%%%                FLUX = FLUX  * AD(I,J,L) / TCVV(IDTAS)
-!%%%                FLUX = FLUX  * XNUMOL(IDTAS)       / AREA_CM2 / DTCHEM
-!%%%                T44(I,J,L,4) = T44(I,J,L,4) + FLUX
-!%%% 
-!%%%                ! AHS drydep flux [molec/cm2/s]
-!%%%                FLUX = AHS0  - AHS
-!%%%                FLUX = FLUX  * AD(I,J,L) / TCVV(IDTAHS)
-!%%%                FLUX = FLUX  * XNUMOL(IDTAHS)      / AREA_CM2 / DTCHEM
-!%%%                T44(I,J,L,5) = T44(I,J,L,5) + FLUX
-!%%% 
-!%%%                ! LET drydep flux [molec/cm2/s]
-!%%%                FLUX = LET0  - LET
-!%%%                FLUX = FLUX  * AD(I,J,L) / TCVV(IDTLET)
-!%%%                FLUX = FLUX  * XNUMOL(IDTLET)      / AREA_CM2 / DTCHEM
-!%%%                T44(I,J,L,6) = T44(I,J,L,6) + FLUX
-!%%% 
-!%%%             ENDIF
-!------------------------------------------------------------------------------
-         ENDIF
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
-
-!#if !defined( NO_BPCH )
-!      !===============================================================
-!      ! ND44: Sum drydep fluxes by level into the AD44 array in
-!      ! order to ensure that we get the same results w/ sp or mp 
-!      !===============================================================
-!      IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!         DO L = 1, LLPAR
-!
-!            ! Sum SO4, SO4s drydep fluxes in the vertical [molec/cm2/s]
-!            AD44(I,J,DRYSO4, 1) = AD44(I,J,DRYSO4, 1) + T44(I,J,L,1)
-!            AD44(I,J,DRYSO4s,1) = AD44(I,J,DRYSO4s,1) + T44(I,J,L,2)
-!
-!------------------------------------------------------------------------------
-!%%% Currently under development (rjp, bmy, 3/15/05)
-!%%%             ! Sum SO4aq, AS, AHS, LET drydep fluxes (if necessary)
-!%%%             IF ( LCRYST ) THEN
-!%%%                AD44(I,J,DRYSO4aq,1) = AD44(I,J,DRYSO4aq,1)+T44(I,J,L,3)
-!%%%                AD44(I,J,DRYAS,   1) = AD44(I,J,DRYAS,   1)+T44(I,J,L,4)
-!%%%                AD44(I,J,DRYAHS,  1) = AD44(I,J,DRYAHS,  1)+T44(I,J,L,5)
-!%%%                AD44(I,J,DRYLET,  1) = AD44(I,J,DRYLET,  1)+T44(I,J,L,6)
-!%%%             ENDIF
-!------------------------------------------------------------------------------
-!
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!      ENDIF
-!#endif
-
       ! Free pointers
       NULLIFY( STT )
-      NULLIFY( AD  )
 
       END SUBROUTINE CHEM_SO4
 !EOC
@@ -5312,7 +4878,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptINput 
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN
 ! JKodros (6/2/15 - Allow for different TOMAS bin lengths)
 # if   defined( TOMAS12 )
@@ -5360,15 +4925,15 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L
-      integer :: k, binact1, binact2
-      INTEGER :: KMIN
-      REAL(fp)  :: SO4OXID
+      INTEGER           :: I, J, L
+      integer           :: k, binact1, binact2
+      INTEGER           :: KMIN
+      REAL(fp)          :: SO4OXID
 
       ! For values from Input_Opt
-      INTEGER :: N_TRACERS
-      REAL(fp)  :: TCVV(Input_Opt%N_TRACERS)
-      REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
+      INTEGER           :: N_TRACERS
+      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER :: AD(:,:,:)
@@ -5471,17 +5036,10 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
-!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTMSA
 !
@@ -5500,13 +5058,8 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  Reaction List (by Mian Chin, chin@rondo.gsfc.nasa.gov)                  
-!  ============================================================================
-!  The Only production is from DMS oxidation (saved in CHEM_DMS), and the only
-!  loss is dry depsition here.  Wet deposition will be treated in "wetdep.f".
-!                                                                             .
-!  MSA = MSA_0 * exp(-dt) + PMSA_DMS/kt * (1.-exp(-kt))                    
-!    where k = dry deposition.                                             
+!  The only production is from DMS oxidation (saved in CHEM_DMS).
+!  Dry deposition is now treaded in mixing_mod.F90.
 !        
 ! !REVISION HISTORY:
 !  (1 ) Now reference AD from "dao_mod.f".  Added parallel DO-loops.  
@@ -5540,6 +5093,9 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
 !                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
+!  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
+!                              so we can greatly collapse this code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5547,20 +5103,10 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL               :: LNLPBL
-      INTEGER               :: N_TRACERS
-      INTEGER               :: I,      J,    L,        PBL_MAX
-      REAL(fp)                :: DTCHEM, MSA0, MSA,      RK       
-      REAL(fp)                :: RKT,    FLUX, AREA_CM2, F_UNDER_TOP
-
-      ! Arrays
-      REAL(fp)                :: ND44_TMP(IIPAR,JJPAR,LLPAR)
-      REAL(fp)                :: TCVV  (Input_Opt%N_TRACERS)
-      REAL(fp)                :: XNUMOL(Input_Opt%N_TRACERS)
+      INTEGER           :: I,    J,    L
+      REAL(fp)          :: MSA0, MSA
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
@@ -5569,30 +5115,16 @@
       IF ( IDTMSA == 0 .or. DRYMSA == 0 ) RETURN
 
       ! Assume success
-      RC        = GIGC_SUCCESS
-
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-      LNLPBL    = Input_Opt%LNLPBL
+      RC  = GIGC_SUCCESS
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
-      ! DTCHEM is the chemistry interval in seconds
-      DTCHEM  = GET_TS_CHEM() * 60e+0_fp 
-
-      ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) THEN
-         ND44_TMP = 0e+0_fp
-      ENDIF
-
       ! Loop over chemistry grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, F_UNDER_TOP, MSA0, RKT, MSA, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I, J, L, MSA0, MSA )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -5601,596 +5133,25 @@
          ! Skip non-chemistry boxes
          IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE      
 
-         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
-         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
-
          ! Initial MSA [v/v]
          MSA0 = STT(I,J,L,IDTMSA) 
 
-!         ! MSA drydep frequency [1/s].  Also accounts for the fraction
-!         ! of each grid box (I,J,L) that is located beneath the PBL top
-!         RKT = DEPSAV(I,J,DRYMSA) * F_UNDER_TOP
-!
-!         ! Add option for non-local PBL (Lin, 03/31/09)
-!         IF ( LNLPBL ) RKT = 0.e+0_fp
-
-         ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
-         RKT = 0.e+0_fp
-         
-         ! RKT > 0 denotes that we have drydep occurring
-         IF ( RKT > 0.e+0_fp ) THEN
-
-            ! Fraction of MSA lost to drydep [unitless]
-            RKT = RKT * DTCHEM
-            
-            ! Modified MSA concentration 
-            MSA = ( MSA0 * EXP( -RKT )                        ) +
-     &            ( PMSA_DMS(I,J,L)/RKT * ( 1e+0_fp - EXP( -RKT ) ) )
-
-         ELSE
-            
-            ! MSA production from DMS [v/v/timestep]
-            MSA = MSA0 + PMSA_DMS(I,J,L)
-
-         ENDIF
+         ! MSA production from DMS [v/v/timestep]
+         MSA = MSA0 + PMSA_DMS(I,J,L)
 
          ! Final MSA [v/v]
          IF ( MSA < SMALLNUM ) MSA = 0e+0_fp
          STT(I,J,L,IDTMSA) = MSA
 
-         !===========================================================
-         ! ND44 Diagnostic: Drydep flux of MSA [molec/cm2/s]
-         !===========================================================
-         IF ( ND44 > 0 .and. RKT > 0e+0_fp ) THEN
-                     
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, L )
-
-            ! Convert [v/v/timestep] to [molec/cm2/s]
-            FLUX = MSA0 - MSA + PMSA_DMS(I,J,L)                    
-            FLUX = FLUX * State_Met%AD(I,J,L) / TCVV(IDTMSA)            
-            FLUX = FLUX * XNUMOL(IDTMSA) / AREA_CM2 / DTCHEM    
-
-            ! Store dryd flux in ND44_TMP as a placeholder
-            ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-         ENDIF
-      
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-! This is now done in mixing_mod.F90 (ckeller, 3/5/15) 
-!#if !defined( NO_BPCH )
-!      !===============================================================
-!      ! ND44: Sum drydep fluxes by level into the AD44 array in
-!      ! order to ensure that  we get the same results w/ sp or mp 
-!      !===============================================================
-!      IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!         DO L = 1, LLPAR
-!            AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + ND44_TMP(I,J,L)
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!      ENDIF
-!#endif
 
       ! Free pointer
       NULLIFY( STT )
 
       END SUBROUTINE CHEM_MSA
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: chem_nh3
-!
-! !DESCRIPTION:  Subroutine CHEM\_NH3 removes NH3 from the surface via dry
-!  deposition. (rjp, bdf, bmy, 1/2/02, 10/25/05)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CHEM_NH3( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, RC )
-!
-! !USES:
-!
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
-!      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTNH3
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!                                                                          
-! !REMARKS:
-!  If you are using the non-local PBL mixing scheme (VDIFF), then routine
-!  SOIL_DRYDEP and the ND44 diagnostic updating will be done there.  
-!                                                                             .
-!  If you are using the full TURBDAY PBL mixing scheme, then we have to 
-!  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
-!
-!  Dry deposition is now done in mixing_mod.F90, so we don't need this routine
-!  here altogether (ckeller, 3/5/15).
-!                                                                             .
-!  Reaction List:
-!  ============================================================================
-!  (1 ) NH3 = NH3_0 * EXP( -dt )  where d = dry deposition rate [s-1]
-!        
-! !REVISION HISTORY:
-!  (1 ) Now reference AD from "dao_mod.f".  Added parallel DO-loops.  
-!        Updated comments, cosmetic changes. (rjp, bmy, bdf, 9/16/02)
-!  (2 ) Now replace DXYP(J+J0)*1d4 with routine GET_AREA_CM2 from "grid_mod.f"
-!        Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
-!  (3 ) Now reference PBLFRAC from "drydep_mod.f".  Now apply dry deposition
-!        to the entire PBL.  Added L and FREQ variables.  Recode to avoid 
-!        underflow from the EXP() function. (rjp, bmy, 8/1/03) 
-!  (4 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
-!        sum into AD44 array.  This preents numerical differences when using
-!        multiple processors. (bmy, 3/24/04)    
-!  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
-!  (6 ) Now references STT & TCVV from "tracer_mod.f" Also remove reference to
-!        CMN, it's not needed(bmy, 7/20/04)
-!  (7 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
-!        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
-!        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
-!  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
-!  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
-!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
-!  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
-!  13 Mar 2013 - R. Yantosca - Bug fix: make sure we pass values to the
-!                              SOIL_DRYDEP routine even when ND44 is off
-!                              (this happens when LNLPBL = F)
-!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
-!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
-!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      LOGICAL :: LNLPBL, LSOILNOX
-      INTEGER :: I,      J,        L,    N_TRACERS
-      REAL(fp)  :: DTCHEM, NH30,     NH3
-      REAL(fp)  :: FREQ,   AREA_CM2, FLUX, F_UNDER_TOP
-
-      ! Arrays
-      REAL(fp)  :: DRYD_FLX(IIPAR,JJPAR,LLPAR)
-      REAL(fp)  :: TCVV  (Input_Opt%N_TRACERS)
-      REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
-
-      !=================================================================
-      ! CHEM_NH3 begins here!
-      !=================================================================
-      IF ( IDTNH3 == 0 .or. DRYNH3 == 0 ) RETURN
-
-      ! Assume success
-      RC        = GIGC_SUCCESS
-
-      ! Copy fields from INPUT_OPT to local variables for use below
-      LNLPBL    = Input_Opt%LNLPBL
-      LSOILNOX  = Input_Opt%LSOILNOX
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
-
-      ! DTCHEM is the chemistry interval in seconds
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
-
-      ! Zero DRYD_FLX array.  This will store drydep values even if 
-      ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
-      DRYD_FLX  = 0e+0_fp
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, F_UNDER_TOP, FREQ, NH30, NH3, AREA_CM2, FLUX )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
-         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
-         
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( F_UNDER_TOP > 0e+0_fp ) THEN
-
-!            ! NH3 drydep frequency [1/s].  Also accounts for the fraction
-!            ! of each grid box (I,J,L) that is located beneath the PBL top
-!            FREQ = DEPSAV(I,J,DRYNH3) * F_UNDER_TOP
-
-!            ! Add option for non-local PBL (Lin, 03/31/09)
-!            IF ( LNLPBL ) FREQ = 0.e+0_fp
-
-            ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
-            FREQ = 0.e+0_fp
-
-            ! Only compute drydep loss if FREQ is nonzero
-            IF ( FREQ > 0e+0_fp ) THEN
-
-               ! Initial NH3 [v/v]
-               NH30 = STT(I,J,L,IDTNH3)
-            
-               ! Amount of NH3 lost to drydep [v/v]
-               NH3 = NH30 * ( 1e+0_fp - EXP( -FREQ * DTCHEM ) )
-
-               ! Prevent underflow condition
-               IF ( NH3 < SMALLNUM ) NH3 = 0e+0_fp
-
-               ! Subtract NH3 lost to drydep from initial NH3 [v/v]
-               STT(I,J,L,IDTNH3) = NH30 - NH3
-
-               !========================================================
-               ! Archive drydep flux of NH3 [molec/cm2/s]
-               ! This is needed for SOIL_DRYDEP and the ND44 diagnostic
-               !========================================================
-               IF ( NH3 > 0e+0_fp ) THEN
-
-                  ! Surface area [cm2]
-                  AREA_CM2 = GET_AREA_CM2( I, J, L )
-                  
-                  ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
-                  FLUX = NH3  * State_Met%AD(I,J,L) / TCVV(IDTNH3)
-                  FLUX = FLUX * XNUMOL(IDTNH3) / AREA_CM2 / DTCHEM
-
-                  ! Store dryd flx in DRYD_TMP for use below                  
-                  DRYD_FLX(I,J,L) = DRYD_FLX(I,J,L) + FLUX
-               ENDIF
-            ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-!! This is now done in mixing_mod.F90 (ckeller, 3/5/15) 
-      !===============================================================
-      ! If we are not using the non-local PBL scheme, then:
-      !===============================================================
-!      IF ( .not. LNLPBL ) THEN 
-!
-!         !------------------------------------------------------------
-!         ! (1) Call SOIL_DRYDEP to archive the NH3 drydep fluxes.
-!         !------------------------------------------------------------
-!         IF ( LSOILNOX ) THEN
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, IDTNH3 )
-!            DO L = 1, LLPAR
-!            DO J = 1, JJPAR
-!            DO I = 1, IIPAR
-!               CALL SOIL_DRYDEP( I, J, L, IDTNH3, DRYD_FLX(I,J,L) )
-!            ENDDO
-!            ENDDO
-!            ENDDO
-!!$OMP END PARALLEL DO
-!         ENDIF
-!
-!#if !defined( NO_BPCH )
-!         !------------------------------------------------------------
-!         ! (2) Save archived NH3 drydep fluxes into the AD44 array
-!         !------------------------------------------------------------
-!         IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!            DO J = 1, JJPAR
-!            DO I = 1, IIPAR
-!            DO L = 1, LLPAR
-!               AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + DRYD_FLX(I,J,L)
-!            ENDDO
-!            ENDDO
-!            ENDDO
-!!$OMP END PARALLEL DO
-!         ENDIF
-!#endif
-!      ENDIF
-
-      ! Free pointer
-      NULLIFY( STT )
-
-      END SUBROUTINE CHEM_NH3
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: chem_nh4
-!
-! !DESCRIPTION: Subroutine CHEM\_NH4 removes NH4 from the surface via dry
-!  deposition. (rjp, bdf, bmy, 1/2/02, 10/25/05) 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CHEM_NH4( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, RC )
-!
-! !USES:
-!
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
-!      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTNH4
-      USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!   
-! !REMARKS:
-!  If you are using the non-local PBL mixing scheme (VDIFF), then routine
-!  SOIL_DRYDEP and the ND44 diagnostic updating will be done there.  
-!                                                                             .
-!  If you are using the full TURBDAY PBL mixing scheme, then we have to 
-!  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
-!                                                                             .
-!  Dry deposition is now done in mixing_mod.F90, so we don't need this routine
-!  here altogether (ckeller, 3/5/15).
-!                                                                             .
-!  Reaction List:
-!  ============================================================================
-!  (1 ) NH4 = NH4_0 * EXP( -dt )  where d = dry deposition rate [s-1]
-!        
-! !REVISION HISTORY:
-!  (1 ) Now reference AD from "dao_mod.f".  Added parallel DO-loops.  
-!        Updated comments, cosmetic changes. (rjp, bmy, bdf, 9/16/02)
-!  (2 ) Now replace DXYP(JREF)*1d4 with routine GET_AREA_CM2 of "grid_mod.f".
-!        Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
-!  (3 ) Now reference PBLFRAC from "drydep_mod.f".  Now apply dry deposition
-!        to the entire PBL.  Added L and FREQ variables.  Recode to avoid 
-!        underflow from EXP(). (rjp, bmy, 8/1/03) 
-!  (4 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
-!        sum into AD44 array.  This preents numerical differences when using
-!        multiple processors. (bmy, 3/24/04)    
-!  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
-!  (6 ) Now reference STT & TCVV from "tracer_mod.f".   Also remove reference 
-!        to CMN, it's not needed (bmy, 7/20/04)
-!  (7 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
-!        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
-!        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
-!  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
-!  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
-!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
-!  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
-!  13 Mar 2013 - R. Yantosca - Bug fix: make sure we pass values to the
-!                              SOIL_DRYDEP routine even when ND44 is off
-!                              (this happens when LNLPBL = F)
-!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
-!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
-!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      LOGICAL :: LNLPBL, LSOILNOX
-      INTEGER :: I,      J,    L,        N_TRACERS
-      REAL(fp)  :: DTCHEM, NH4,  NH40
-      REAL(fp)  :: FREQ,   FLUX, AREA_CM2, F_UNDER_TOP
-
-      ! Arrays
-      REAL(fp)  :: DRYD_FLX(IIPAR,JJPAR,LLPAR)
-      REAL(fp)  :: TCVV  (Input_Opt%N_TRACERS)
-      REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
-
-      !=================================================================
-      ! CHEM_NH4 begins here!
-      !=================================================================
-      IF ( IDTNH4 == 0 .or. DRYNH4 == 0 ) RETURN
-
-      ! Assume success
-      RC        = GIGC_SUCCESS
-
-      ! Copy fields from INPUT_OPT to local variables for use below
-      LNLPBL    = Input_Opt%LNLPBL
-      LSOILNOX  = Input_Opt%LSOILNOX
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
-
-      ! DTCHEM is the chemistry interval in seconds
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp 
-
-      ! Zero DRYD_FLX array.  This will store drydep values even if 
-      ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
-      DRYD_FLX = 0e+0_fp
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, F_UNDER_TOP, FREQ, NH40, NH4, AREA_CM2, FLUX )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
-         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )       
-
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( F_UNDER_TOP > 0e+0_fp ) THEN
-
-!            ! NH4 drydep frequency [1/s].  Also accounts for the fraction
-!            ! of each grid box (I,J,L) that is located beneath the PBL top
-!            FREQ = DEPSAV(I,J,DRYNH4) * F_UNDER_TOP
-
-!            ! Add option for non-local PBL (Lin, 03/31/09)
-!            IF ( LNLPBL ) FREQ = 0.D0
-
-            ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
-            FREQ = 0.e+0_fp
-
-            ! Only apply drydep loss if FREQ is nonzero
-            IF ( FREQ > 0e+0_fp ) THEN
-
-               ! Initial NH4 [v/v]
-               NH40 = STT(I,J,L,IDTNH4)
-         
-               ! Amount of NH4 lost to drydep [v/v]
-               NH4 = NH40 * ( 1e+0_fp - EXP( -FREQ * DTCHEM ) )
-
-               ! Prevent underflow condition
-               IF ( NH4 < SMALLNUM ) NH4 = 0e+0_fp
-
-               ! Subtract NH4 lost to drydep from initial NH4 [v/v]
-               STT(I,J,L,IDTNH4) = NH40 - NH4
-
-               !========================================================
-               ! Archive drydep flux of NH4 [molec/cm2/s]
-               !========================================================
-               IF ( NH4 > 0e+0_fp ) THEN
-         
-                  ! Surface area [cm2]
-                  AREA_CM2 = GET_AREA_CM2( I, J, L )
-                  
-                  ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
-                  FLUX = NH4  * State_Met%AD(I,J,L) / TCVV(IDTNH4)
-                  FLUX = FLUX * XNUMOL(IDTNH4) / AREA_CM2 / DTCHEM
-
-                  ! Store dryd flx in DRYD_FLX as a placeholder
-                  DRYD_FLX(I,J,L) = DRYD_FLX(I,J,L) + FLUX
-               ENDIF
-            ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-!! This is now done in mixing_mod.F90 (ckeller, 3/5/15) 
-!      !===============================================================
-!      ! If we are not using the non-local PBL scheme, then:
-!      !===============================================================
-!      IF ( .not. LNLPBL ) THEN 
-!
-!         !------------------------------------------------------------
-!         ! (1) Call SOIL_DRYDEP to archive the NH4 drydep fluxes.
-!         !------------------------------------------------------------
-!         IF ( LSOILNOX ) THEN
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, IDTNH4 )
-!            DO L = 1, LLPAR
-!            DO J = 1, JJPAR
-!            DO I = 1, IIPAR
-!               CALL SOIL_DRYDEP( I, J, L, IDTNH4, DRYD_FLX(I,J,L) )
-!            ENDDO
-!            ENDDO
-!            ENDDO
-!!$OMP END PARALLEL DO
-!         ENDIF
-!
-!#if !defined( NO_BPCH )
-!         !------------------------------------------------------------
-!         ! (2) Save archived NH4 drydep fluxes into the AD44 array
-!         !------------------------------------------------------------
-!         IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!            DO J = 1, JJPAR
-!            DO I = 1, IIPAR
-!            DO L = 1, LLPAR
-!               AD44(I,J,DRYNH4,1) = 
-!     &         AD44(I,J,DRYNH4,1) + DRYD_FLX(I,J,L)
-!            ENDDO
-!            ENDDO
-!            ENDDO
-!!$OMP END PARALLEL DO
-!         ENDIF
-!#endif
-!      ENDIF
-
-      ! Free pointer
-      NULLIFY( STT )
-
-      END SUBROUTINE CHEM_NH4
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -6212,19 +5173,11 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
-!      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTNIT
       USE TRACERID_MOD,       ONLY : IDTNITs
 !
@@ -6241,13 +5194,10 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!#endif
-!  
-!  If you are using the non-local PBL mixing scheme (VDIFF), then routine
-!  SOIL_DRYDEP and the ND44 diagnostic updating will be done there.  
-!                                                                             .
-!  If you are using the full TURBDAY PBL mixing scheme, then we have to 
-!  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
+
+!
+! !REMARKS:
+!  Dry deposition is now applied in mixing_mod.F90.  Therefore we can 
 !                                                                             .
 ! !REMARKS:
 !  Reaction List:
@@ -6286,6 +5236,9 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
 !                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
+!  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
+!                              so we can greatly collapse this code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6293,20 +5246,10 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL :: LNLPBL,   LSOILNOX,     LSSALT
-      INTEGER :: I,        J,      L,    N,     N_TRACERS
-      REAL(fp)  :: DTCHEM,   NIT,    NITs, NIT0,  NIT0s,  E_RKT
-      REAL(fp)  :: E_RKTs,   FLUX,   FREQ, FREQs, RKT,    RKTs   
-      REAL(fp)  :: AREA_CM2, F_UNDER_TOP
-
-      ! Arrays
-      REAL(fp)  :: DRYD_FLX(IIPAR,JJPAR,LLPAR,2)
-      REAL(fp)  :: TCVV  (Input_Opt%N_TRACERS)
-      REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
+      INTEGER           :: I,   J,    L,    N
+      REAL(fp)          :: NIT, NITs, NIT0, NIT0s, F_UNDER_TOP
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
@@ -6318,32 +5261,15 @@
       IF ( DRYNIT == 0 .or. DRYNITs == 0 ) RETURN
 
       ! Assume success
-      RC        = GIGC_SUCCESS
-
-      ! Copy fields from INPUT_OPT to local variables for use below
-      LNLPBL    = Input_Opt%LNLPBL
-      LSOILNOX  = Input_Opt%LSOILNOX
-      LSSALT    = Input_Opt%LSSALT
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+      RC  = GIGC_SUCCESS
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
-      ! DTCHEM is the chemistry interval in seconds
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp 
-
-      ! Zero DRYD_FLX array.  This will store drydep values even if 
-      ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
-      DRYD_FLX  = 0e+0_fp
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,    J,      L,        NIT0,        NIT0s, NIT   )
-!$OMP+PRIVATE( NITs, FREQ,   FREQs,    F_UNDER_TOP, RKT,   E_RKT ) 
-!$OMP+PRIVATE( RKTs, E_RKTs, AREA_CM2, FLUX                      )
+!$OMP+PRIVATE( I, J, L, NIT0, NIT0s, NIT, NITs, F_UNDER_TOP )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -6358,8 +5284,6 @@
          ! Initialize variables
          NIT   = 0e+0_fp
          NITs  = 0e+0_fp
-         FREQ  = 0e+0_fp
-         FREQs = 0e+0_fp
 
          ! Fraction of box (I,J,L) underneath the PBL top [unitless]
          F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )     
@@ -6368,173 +5292,20 @@
          IF ( F_UNDER_TOP > 0e+0_fp ) THEN 
 
             !===========================================================
-            ! NIT chemistry
-            !===========================================================
-
-!            ! NIT drydep frequency [1/s].  Also accounts for the fraction
-!            ! of each vertical level that is located below the PBL top
-!            FREQ  = DEPSAV(I,J,DRYNIT)  * F_UNDER_TOP
-
-!            ! Add option for non-local PBL (Lin, 03/31/09)
-!            IF ( LNLPBL ) FREQ = 0.e+0_fp
-
-            ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
-            FREQ = 0.e+0_fp
-
-            ! If there is drydep ...
-            IF ( FREQ > 0e+0_fp ) THEN
-
-               ! Fraction of NIT lost to drydep [unitless] (bec, 12/15/04)
-               RKT  = FREQ  * DTCHEM
-
-               ! Pre-compute the exponential term
-               E_RKT = EXP( -RKT )
-
-               ! Amount of NITRATE lost to drydep [v/v]
-               NIT = NIT0 * ( 1e+0_fp - E_RKT )
-
-               ! Prevent underflow condition
-               IF ( NIT < SMALLNUM ) NIT = 0e+0_fp
-
-               ! Subtract NITRATE lost to drydep from initial NITRATE [v/v]
-               STT(I,J,L,IDTNIT) = NIT0 - NIT
-
-            ELSE
-	
-               ! No deposition occurs
-               NIT = 0e+0_fp
-
-            ENDIF
-
-            !===========================================================
             ! NITs chemistry
             !===========================================================
 
-!            ! NITs drydep frequency [1/s].  Also accounts for the fraction
-!            ! of each vertical level that is located below the PBL top
-!            FREQs = DEPSAV(I,J,DRYNITs) * F_UNDER_TOP
-               
-!            ! Add option for non-local PBL (Lin, 03/31/09)
-!            IF ( LNLPBL ) FREQs = 0.e+0_fp
+            ! NIT prod from HNO3 uptake on fine sea-salt [v/v/timestep]
+            NITs = NIT0s + PNITs(I,J,L)
 
-            ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
-            FREQs = 0.e+0_fp
-
-            ! If there is drydep ...
-            IF ( FREQs > 0e+0_fp ) THEN
-
-               ! Fraction of NIT lost to drydep [unitless] (bec, 12/15/04)
-               RKTs   = FREQs * DTCHEM
-
-               ! Pre-compute the exponential term
-               E_RKTs = EXP( -RKTs )
-
-               ! Compute new NIT concentration [v/v],
-               ! updated for seasalt chemistry
-               NITs   = ( NIT0s             *          E_RKTs ) + 
-     &                  ( PNITs(I,J,L)/RKTs * ( 1.e+0_fp - E_RKTs ) )
-
-            ELSE
-
-               ! NIT prod from HNO3 uptake on fine sea-salt [v/v/timestep]
-               NITs = NIT0s + PNITs(I,J,L)
-
-            ENDIF
-            
             ! Store final concentration in STT [v/v]
             STT(I,J,L,IDTNITs) = NITs
             
-            !========================================================
-            ! Archive drydep flux of NIT and NITs [molec/cm2/s]
-            !========================================================
-         
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, L )
-            
-            !-------------------
-            ! NIT drydep flux
-            !-------------------
-             
-            ! If NIT drydep occurs ...
-            IF ( FREQ > 0e+0_fp ) THEN
-
-               ! Convert from [v/v/timestep] to [molec/cm2/s]
-               FLUX = NIT * State_Met%AD(I,J,L) / TCVV(IDTNIT)
-               FLUX = FLUX * XNUMOL(IDTNIT) / AREA_CM2 / DTCHEM
- 
-               ! Store NITs drydep flx [molec/cm2/s] for use below
-               DRYD_FLX(I,J,L,1) = DRYD_FLX(I,J,L,1) + FLUX
-
-            ENDIF
-                  
-            !-------------------
-            ! NITs drydep flux
-            !-------------------
-            
-            ! NOTE: if drydep doesn't occur then we still have
-            ! production from seasalt (bec, bmy, 4/13/05)
-
-            ! Convert from [v/v/timestep] to [molec/cm2/s]
-            FLUX = NIT0s - NITs + PNITs(I,J,L) 
-            FLUX = FLUX * State_Met%AD(I,J,L) / TCVV(IDTNITs)
-            FLUX = FLUX * XNUMOL(IDTNITs) / AREA_CM2 / DTCHEM
-
-            ! Store NITs drydep flx [molec/cm2/s] for use below
-            DRYD_FLX(I,J,L,2) = DRYD_FLX(I,J,L,2) + FLUX
-
          ENDIF
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-!! This is now done in mixing_mod.F90 (ckeller, 3/5/15) 
-!      !===============================================================
-!      ! If we are not using the non-local PBL scheme, then:
-!      !===============================================================
-!      IF ( .not. LNLPBL ) THEN 
-!
-!         !------------------------------------------------------------
-!         ! (1) Call SOIL_DRYDEP to archive NIT & NITs drydep fluxes
-!         !------------------------------------------------------------
-!         IF ( LSOILNOX ) THEN
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, IDTNIT, IDTNITs )
-!            DO L = 1, LLPAR
-!            DO J = 1, JJPAR
-!            DO I = 1, IIPAR
-!               CALL SOIL_DRYDEP( I, J, L, IDTNIT,  DRYD_FLX(I,J,L,1) )
-!               CALL SOIL_DRYDEP( I, J, L, IDTNITs, DRYD_FLX(I,J,L,2) )
-!            ENDDO
-!            ENDDO
-!            ENDDO
-!!$OMP END PARALLEL DO
-!         ENDIF
-!
-!#if !defined( NO_BPCH )
-!         !------------------------------------------------------------
-!         ! (2) Save archived NIT & NITs drydep fluxes into AD44 array
-!         !------------------------------------------------------------
-!         IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!            DO J = 1, JJPAR
-!            DO I = 1, IIPAR
-!            DO L = 1, LLPAR
-!               AD44(I,J,DRYNIT, 1) = 
-!     &         AD44(I,J,DRYNIT, 1) + DRYD_FLX(I,J,L,1)
-!
-!               AD44(I,J,DRYNITs,1) = 
-!     &         AD44(I,J,DRYNITs,1) + DRYD_FLX(I,J,L,2)
-!            ENDDO
-!            ENDDO
-!            ENDDO
-!!$OMP END PARALLEL DO
-!         ENDIF         
-!#endif
-!      ENDIF
 
       ! Free pointer
       NULLIFY( STT )

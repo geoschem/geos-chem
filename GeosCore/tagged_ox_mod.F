@@ -440,19 +440,12 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
       USE DIAG_PL_MOD,        ONLY : AD65
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-      USE DRYDEP_MOD,         ONLY : DEPSAV      
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTO3
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
@@ -476,6 +469,9 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
+! !REMAKRS:
+!  Dry deposition is now applied in mixing_mod.F90.
+!
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Hudman   - Initial version
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
@@ -507,39 +503,34 @@
 !  11 Apr 2014 - R. Yantosca - Remove call to INIT_TAGGED_OX
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  17 Sep 2014 - C. Keller   - Now use HEMCO for prod. and loss arrays
+!  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE     :: FIRST   = .TRUE.
-      INTEGER, SAVE     :: LASTDAY = -1
-      INTEGER           :: I, J, L, N
-      REAL(fp)            :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
-      REAL(fp)            :: ND44_TMP(IIPAR,JJPAR,LLTROP)
-      REAL(fp)            :: DTCHEM,  DT,      FREQ,    FLUX
-      REAL(fp)            :: LL,      PL,      Ox_0
-      REAL(fp)            :: Ox_LOST, PBL_MAX, F_UNDER_TOP
-      REAL(fp)            :: BOXVL
-      CHARACTER(LEN=16) :: STAMP
+      ! Scalars
+      LOGICAL, SAVE            :: FIRST   = .TRUE.
+      LOGICAL                  :: LSPLIT
+      INTEGER                  :: I,     J,       L,  N
+      INTEGER                  :: N_TRACERS
+      REAL(fp)                 :: BOXVL, DTCHEM,  DT, LL, PL
 
-      ! For fields from Input_Opt
-      LOGICAL           :: LDRYD
-      LOGICAL           :: LNLPBL
-      LOGICAL           :: LSPLIT
-      INTEGER           :: N_TRACERS
-      REAL(fp)            :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Arrays
+      REAL(fp)                 :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
+
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp),        POINTER :: STT(:,:,:,:)
 
       ! To get emission timestep
       TYPE(HCO_STATE), POINTER :: HcoState => NULL()
 
+      ! Strings
       CHARACTER(LEN=255) :: LOC = 'CHEM_TAGGED_OX (tagged_ox_mod.F)'
+      CHARACTER(LEN=16)  :: STAMP
 
       !=================================================================
       ! CHEM_TAGGED_OX begins here!
@@ -549,11 +540,8 @@
       RC        = GIGC_SUCCESS
 
       ! Get fields from Input_Opt
-      LDRYD     = Input_Opt%LDRYD
-      LNLPBL    = Input_Opt%LNLPBL
       LSPLIT    = Input_Opt%LSPLIT
       N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -561,7 +549,6 @@
 
       ! Chemistry timestep [s]
       DTCHEM    = GET_TS_CHEM() * 60e+0_fp
-
 
       ! ----------------------------------------------------------
       ! Get production and loss frequencies from HEMCO. The target
@@ -594,9 +581,6 @@
          FIRST    = .FALSE.
       ENDIF
 
-      ! Maximum extent of the PBL [model layers]
-      PBL_MAX = GET_PBL_MAX_L()
-
       ! DT is the ratio of the chemistry and emission time step.
       ! Use this value to convert from kg/m3 or 1/m3 per emission
       ! time step to kg/m3 or 1/m3 per chemistry time step.
@@ -619,13 +603,9 @@
       !=================================================================
       DO N = 1, N_TRACERS
 
-         ! Zero ND44_TMP array
-         IF ( ND44 > 0 ) ND44_TMP = 0e+0_fp
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,    J,       L,    LL,          PL,   FREQ )
-!$OMP+PRIVATE( Ox_0, Ox_LOST, FLUX, F_UNDER_TOP, BOXVL      )
+!$OMP+PRIVATE( I, J, L, BOXVL, PP, LL, PL )
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLTROP
          DO J = 1, JJPAR
@@ -670,57 +650,6 @@
             ENDIF
 
             !===========================================================
-            ! Apply drydep of Ox to each tagged tracer.  We need 
-            ! to do this using before P(Ox) - L(Ox) is applied.
-            !===========================================================
-            IF ( LDRYD ) THEN
-
-               ! Fraction of box underneath the PBL top [unitless]
-               F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
-
-               IF ( F_UNDER_TOP > 0e+0_fp ) THEN
-               
-                  ! Ox Drydep frequency [1/s]
-                  !FREQ = DEPSAV(I,J,1) * F_UNDER_TOP
-
-                  ! Add option for non-local PBL (Lin, 03/31/09)  
-                  !IF (LNLPBL) FREQ = 0.e+0_fp
-
-                  ! Dry-dep is now done in mixing_mod.F90 (ckeller, 3/5/15)
-                  FREQ = 0.0_fp
-
-                  ! Only proceed if drydep frequency is nonzero
-                  IF ( FREQ > 0e+0_fp ) THEN
-
-                     ! Initial Ox [kg]
-                     Ox_0    = STT(I,J,L,N)
-
-                     ! Amount of Ox LOST to drydep [kg]
-                     Ox_LOST = Ox_0 * ( 1e+0_fp - EXP(-FREQ * DTCHEM) )
-                  
-                     ! Prevent underflow condition
-                     IF ( Ox_LOST < 1e-20_fp ) Ox_LOST = 0e+0_fp
-                       
-                     ! Subtract Ox lost [kg] 
-                     STT(I,J,L,N) = Ox_0 - Ox_LOST 
-                  
-                     !==================================================
-                     ! ND44 diagnostic: Ox lost to drydep [molec/cm2/s]
-                     !==================================================
-                     IF ( ND44 > 0 .and. Ox_LOST > 0e+0_fp ) THEN
-
-                        ! Convert from [kg] to [molec/cm2/s]
-                        FLUX = Ox_LOST             * XNUMOL(IDTO3) / 
-     &                         GET_AREA_CM2(I,J,L) / DTCHEM 
-                     
-                        ! Store dryd flx in ND44_TMP as a placeholder
-                        ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-                     ENDIF
-                  ENDIF
-               ENDIF
-            ENDIF
-               
-            !===========================================================
             ! After removing Ox lost to dry deposition, apply 
             ! chemical P(Ox) - L(Ox) to each tagged tracer
             !===========================================================
@@ -729,28 +658,6 @@
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-
-! Now always done in mixing_mod.F90 (ckeller, 3/5/15) 
-!#if !defined( NO_BPCH )
-!         !==============================================================
-!         ! ND44: Sum drydep fluxes by level into the AD44 array in
-!         ! order to ensure that  we get the same results w/ sp or mp 
-!         !==============================================================
-!         IF ( ND44 > 0 ) THEN 
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!            DO J = 1, JJPAR
-!            DO I = 1, IIPAR
-!            DO L = 1, PBL_MAX
-!               AD44(I,J,N,1) = AD44(I,J,N,1) + ND44_TMP(I,J,L)
-!            ENDDO
-!            ENDDO
-!            ENDDO
-!!$OMP END PARALLEL DO
-!         ENDIF
-!#endif
-
       ENDDO
 
       ! Free pointer

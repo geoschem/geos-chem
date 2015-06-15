@@ -272,6 +272,8 @@ CONTAINS
 !                              we define DRYDEPID.  This isn't needed here.
 !  10 Apr 2015 - C. Keller   - Now exchange PARANOX loss fluxes via HEMCO 
 !                              diagnostics.
+!  12 Jun 2015 - R. Yantosca - Bug fix in SAFE_DIV: the denominator was
+!                              arranged wrongly.  Now corrected.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -283,7 +285,7 @@ CONTAINS
     INTEGER            :: HCRC
     INTEGER            :: PBL_TOP, DRYD_TOP, EMIS_TOP
     REAL(fp)           :: TS, TMP, FRQ, RKT, FRAC, FLUX, AREA_M2
-    REAL(fp)           :: MWkg 
+    REAL(fp)           :: MWkg, DENOM
     LOGICAL            :: FND
     LOGICAL            :: PBL_DRYDEP, LSCHEM, ChemGridOnly
     LOGICAL            :: LEMIS,      LDRYD
@@ -360,11 +362,12 @@ CONTAINS
 #endif
 
     ! Do for every tracer and grid box
-!$OMP PARALLEL DO                                                      &
-!$OMP DEFAULT ( SHARED )                                               &
-!$OMP PRIVATE( I, J, L, L1, L2, N, NN, PBL_TOP, FND, TMP, DRYDEPID   ) &
-!$OMP PRIVATE( FRQ, RKT, FRAC, FLUX, AREA_M2,   MWkg, ChemGridOnly   ) & 
-!$OMP PRIVATE( DryDepSpec, EmisSpec, DRYD_TOP,  EMIS_TOP, PNOXLOSS   )
+!$OMP PARALLEL DO                                                    &
+!$OMP DEFAULT ( SHARED )                                             &
+!$OMP PRIVATE( I, J, L, L1, L2, N, NN, PBL_TOP, FND, TMP, DRYDEPID ) &
+!$OMP PRIVATE( FRQ, RKT, FRAC, FLUX, AREA_M2,   MWkg, ChemGridOnly ) & 
+!$OMP PRIVATE( DryDepSpec, EmisSpec, DRYD_TOP,  EMIS_TOP, PNOXLOSS ) &
+!$OMP PRIVATE( DENOM                                               )
     DO N = 1, Input_Opt%N_TRACERS
 
        !----------------------------------------------------------------
@@ -563,7 +566,17 @@ CONTAINS
 
                    ! Loss in [molec/cm2/s]
                    ! Added a safe_div due to small parallelization error (mdy, 5/15)
-                   FLUX = SAFE_DIV(FLUX, (MWkg * AVO / TS / ( AREA_M2 * 1.0e4_fp )),0.0e+0_fp) 
+!-------------------------------------------------------------------------------
+! Prior to 6/12/15:
+! Split SAFE_DIV up onto 2 lines, for clarity (bmy, 6/12/15)
+!                   FLUX = SAFE_DIV(FLUX, (MWkg * AVO / TS / ( AREA_M2 * 1.0e4_fp )),0.0e+0_fp) 
+!-------------------------------------------------------------------------------
+                   ! NOTE: The original computation was:
+                   !   FLUX = FLUX / MWkg * AVO / TS / ( AREA_M2 * 1.0e4_fp ) ]
+                   ! so we the denominator as we had it was wrong.
+                   ! Now corrected (elundgren, bmy, 6/12/15)
+                   DENOM = ( MWkg * TS * AREA_M2 * 1.0e+4_fp ) / AVO
+                   FLUX  = SAFE_DIV( FLUX, DENOM, 0.0e+0_fp ) 
 
                    ! Diagnostics. These are the same as DRYFLX.
                    ! Diagnostics are in molec/cm2/s.

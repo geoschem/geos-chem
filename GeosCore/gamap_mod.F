@@ -6257,12 +6257,18 @@
                      INDEX(N,44)   = T + ( SPACING * 36 )
                      NTRAC(44)     = NTRAC(44) + 1
 
-                     ! For the Rn simulation, unit is kg/s (bmy, 2/22/08)
-                     IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
-                        UNIT(N,44) = 'kg/s'
-                     ELSE
-                        UNIT(N,44) = 'molec/cm2/s'
-                     ENDIF
+!-------------------------------------------------------------------------------
+! Prior to 6/12/15:
+! ND44 diagnostic is now archived in mixing_mod.F90, and is now always
+! in molec/cm2/s (bmy, 6/12/15)
+!!                     ! For the Rn simulation, unit is kg/s (bmy, 2/22/08)
+!                     IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
+!                        !UNIT(N,44) = 'kg/s'
+!                     ELSE
+!                        UNIT(N,44) = 'molec/cm2/s'
+!                     ENDIF
+!-------------------------------------------------------------------------------
+                     UNIT(N,44) = 'molec/cm2/s'
 
                      !--------------------------------------------------
                      ! Drydep velocity all other G-C tracers

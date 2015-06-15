@@ -3526,6 +3526,7 @@
 !  (9 ) Add code for H2/HD simulation (phs, 5/8/07)
 !  29 Jan 2014 - R. Yantosca - Now save DEPNAME(N) into DRYDEP_NAME, which
 !                              helps avoid ambiguity for TOMAS simulations
+!  12 Jun 2015 - R. Yantosca - ND44 is now always in molec/cm2/s
 !******************************************************************************
 !
       IF ( ND44 > 0 ) THEN
@@ -3572,7 +3573,13 @@
      &           Input_Opt%ITS_A_H2HD_SIM ) THEN
 
                ! Radon or H2/HD
-               UNIT = 'kg/s'       
+               !------------------------------------------------------------
+               ! Prior to 6/12/15:
+               ! Drydep is now archived in molec/cm2/s, in the
+               ! mixing_mod.F90 module (bmy, 6/12/15)
+               !UNIT = 'kg/s'       
+               !------------------------------------------------------------
+               UNIT = 'molec/cm2/s'
                NN   = NTRAIND(N)
  
             ELSE IF ( Input_Opt%ITS_A_TAGOX_SIM .or. 
