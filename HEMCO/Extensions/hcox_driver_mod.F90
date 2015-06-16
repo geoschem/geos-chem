@@ -430,9 +430,7 @@ CONTAINS
     ! Dust emissions (DEAD model) 
     !-----------------------------------------------------------------------
     IF ( ExtState%DustDead ) THEN
-       print*, 'JACK ABOUT TO DO DUST DEAD'
        CALL HCOX_DustDead_Run( amIRoot, ExtState, HcoState, RC )
-       print*, 'JACK AFTER DUSTDEAD'
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
