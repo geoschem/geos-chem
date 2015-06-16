@@ -722,16 +722,6 @@
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60e+0_fp      
 
-!-----------------------------------------------------------------------------
-! Prior to 6/9/15:
-! Bug fix: K_EMIT is defined as a PRIVATE variable in parallel loop,
-! so it should really be defined within the loop. (bmy, 6/9/15)
-!      ! Emit Hg(0) at a steady rate, based on 180 d residence
-!      ! time in snowpack, based on cycle observed at Alert 
-!      ! (e.g. Steffen et al. 2008)
-!      K_EMIT = 6e-8_fp
-!-----------------------------------------------------------------------------
-
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, NN, SNOW_HG_NEW, K_EMIT )

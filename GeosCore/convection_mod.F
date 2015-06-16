@@ -1398,11 +1398,6 @@
 #endif
 
          ! Flag to denote if this is a mercury simulation (sas, bmy, 1/19/05)
-!-------------------------------------------------------------------------------
-! Prior to 6/9/15:
-! Deposit Hg2, HgP to snowpack regardless of LDYNOCEAN setting (bmy, 6/9/15)
-!         IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
-!-------------------------------------------------------------------------------
          IS_Hg = ITS_A_MERCURY_SIM
 
          ! Reset first time flag
@@ -2205,11 +2200,6 @@
       ENDDO
 
       ! Is this a Hg simulation?
-!------------------------------------------------------------------------------
-! Prior to 6/9/15:
-! Now deposit snow Hg2, HgP regardless of the LDYNOCEAN setting (bmy, 6/9/15)
-!      IS_Hg = ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LDYNOCEAN )
-!------------------------------------------------------------------------------
       IS_Hg = Input_Opt%ITS_A_MERCURY_SIM
 
       !========================================================================

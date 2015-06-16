@@ -5708,12 +5708,6 @@
       ! (1)  I n i t i a l i z e   V a r i a b l e s
       !=================================================================
 
-!------------------------------------------------------------------------------
-! Prior to 6/9/15:
-! Deposit Hg2, HgP to snowpack regardless of LDYNOCEAN setting (bmy, 6/9/15)
-!      ! Is this a mercury simulation with dynamic online ocean?
-!      IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
-!------------------------------------------------------------------------------
       ! Is this a mercury simulation?
       IS_Hg = ( ITS_A_MERCURY_SIM )
 
@@ -6282,12 +6276,6 @@
       ! (1)  I n i t i a l i z e   V a r i a b l e s
       !=================================================================
 
-!------------------------------------------------------------------------------
-! Prior to 6/9/15:
-! Deposit Hg2, HgP to the snowpack regardless of LDYNOCEAN setting (bmy, 6/9/15)
-!      ! Is this a mercury simulation with dynamic online ocean?
-!      IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
-!------------------------------------------------------------------------------
       ! Is this a mercury simulation?
       IS_Hg = ITS_A_MERCURY_SIM
 

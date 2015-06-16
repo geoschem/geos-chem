@@ -3572,13 +3572,9 @@
             IF ( Input_Opt%ITS_A_RnPbBe_SIM .or. 
      &           Input_Opt%ITS_A_H2HD_SIM ) THEN
 
+               ! NOTE: ND44 is now archived in molec/cm2/s for all 
+               ! simulations, including Rn-Pb-Be. (bmy, 6/16/15)
                ! Radon or H2/HD
-               !------------------------------------------------------------
-               ! Prior to 6/12/15:
-               ! Drydep is now archived in molec/cm2/s, in the
-               ! mixing_mod.F90 module (bmy, 6/12/15)
-               !UNIT = 'kg/s'       
-               !------------------------------------------------------------
                UNIT = 'molec/cm2/s'
                NN   = NTRAIND(N)
  

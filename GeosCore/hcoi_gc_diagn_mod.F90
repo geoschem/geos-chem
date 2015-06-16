@@ -3234,17 +3234,6 @@ CONTAINS
 
        ! Only save out SeaSalt Br2 diagnostic if the Br2 option is enabled
        IF ( YesOrNo ) THEN 
-!----------------------------------------------------------------------------  
-! Prior to 3/30/15:
-! Do not stop the run if seasalt Br2 is not enabled.  Also move the
-! call to Diagn_Create inside this IF statement so that it won't be called
-! if seasalt Br2 is turned off.  This will prevent errors in the aerosol-only
-! simulations. (bmy, 3/30/15)
-!       IF ( YesOrNo == .FALSE. ) THEN
-!          CALL HCO_Error ( 'SeaSalt Br2 not enabled', RC, THISLOC=LOC )
-!          RETURN      
-!       ENDIF
-!----------------------------------------------------------------------------  
 
           !----------------------------------------
           ! %%%%% Biogenic Br2 %%%%%
