@@ -565,12 +565,9 @@ CONTAINS
 !                   ENDIF
 
                    ! Loss in [molec/cm2/s]
-                   ! Added a safe_div due to small parallelization error (mdy, 5/15)
-!-------------------------------------------------------------------------------
-! Prior to 6/12/15:
-! Split SAFE_DIV up onto 2 lines, for clarity (bmy, 6/12/15)
-!                   FLUX = SAFE_DIV(FLUX, (MWkg * AVO / TS / ( AREA_M2 * 1.0e4_fp )),0.0e+0_fp) 
-!-------------------------------------------------------------------------------
+                   ! Added a safe_div due to small parallelization error 
+                   ! (mdy, 5/15)
+                   !
                    ! NOTE: The original computation was:
                    !   FLUX = FLUX / MWkg * AVO / TS / ( AREA_M2 * 1.0e4_fp ) ]
                    ! so we the denominator as we had it was wrong.

@@ -801,7 +801,7 @@ CONTAINS
     ! return an error if container not found but only pass the FOUND
     ! argument to the caller routine. Otherwise, exit with error. 
     IF ( .NOT. FND ) THEN
-       IF ( PRESENT(FOUND) ) THEN
+       IF ( PRESENT(FOUND) .OR. PRESENT(FILLED) ) THEN
           Ptr3D => NULL()
           RC    = HCO_SUCCESS
           RETURN

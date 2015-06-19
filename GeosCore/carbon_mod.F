@@ -874,22 +874,6 @@
          ! ### sure we don't incur numerical diffs (bmy, 6/12/15)
          FREQ = 0e+0_fp
 
-!------------------------------------------------------------------------------
-! Prior to 6/12/15:
-! This code never gets executed, so shunt it (bmy, 6/12/15)
-!         ! Dry dep is now done in vdiff_mod.F or mixing_mod.F90 (ckeller, 3/5/15)
-!         BL_FRAC = 0.0_fp
-!
-!         ! Only apply drydep to boxes w/in the PBL
-!         IF ( BL_FRAC > 0e+0_fp ) THEN
-!
-!            ! BC drydep frequency [1/s] -- BL_FRAC accounts for the fraction
-!            ! of each grid box (I,J,L) that is located beneath the PBL top
-!            FREQ = DEPSAV(I,J,DRYBCPO) * BL_FRAC
-!
-!         ENDIF
-!------------------------------------------------------------------------------
-
          ! Amount of BCPO left after chemistry and drydep [kg]
          RKT  = ( KBC + FREQ ) * DTCHEM
          CNEW = TC0 * EXP( -RKT )

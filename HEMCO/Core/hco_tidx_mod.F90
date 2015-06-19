@@ -101,11 +101,6 @@ MODULE HCO_tIdx_Mod
      TYPE(TimeIdx), POINTER :: HOURLY
      TYPE(TimeIdx), POINTER :: HOURLY_GRID 
      TYPE(TimeIdx), POINTER :: WEEKDAY
-!------------------------------------------------------------------------------
-! Prior to 2/25/15:
-! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
-!     TYPE(TimeIdx), POINTER :: WEEKDAY_GRID
-!------------------------------------------------------------------------------
      TYPE(TimeIdx), POINTER :: MONTHLY
   END TYPE TimeIdxCollection
 
@@ -189,17 +184,6 @@ CONTAINS
     AlltIDx%WEEKDAY%TypeID       = 7
     AlltIDx%WEEKDAY%TempRes      = "Weekday"
 
-!------------------------------------------------------------------------------
-! Prior to 2/25/15:
-! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
-!    ! ----------------------------------------------------------------
-!    ! "WEEKDAY_GRID" => changes every weekday, longitude-independent
-!    ! ----------------------------------------------------------------
-!    ALLOCATE ( AlltIDx%WEEKDAY_GRID )
-!    AlltIDx%WEEKDAY_GRID%TypeID       = 71
-!    AlltIDx%WEEKDAY_GRID%TempRes      = "Weekday_Grid"
-!------------------------------------------------------------------------------
-
     ! ----------------------------------------------------------------
     ! "MONTHLY" => changes every month, longitude-dependent
     ! ----------------------------------------------------------------
@@ -266,13 +250,6 @@ CONTAINS
        CASE ( 7 )
           ctIDx => AlltIDx%WEEKDAY
 
-!------------------------------------------------------------------------------
-! Prior to 2/25/15:
-! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
-!       CASE ( 71 )
-!          ctIDx => AlltIDx%WEEKDAY_GRID
-!------------------------------------------------------------------------------
-
        CASE ( 12 )
           ctIDx => AlltIDx%MONTHLY
 
@@ -326,14 +303,6 @@ CONTAINS
           DEALLOCATE(AlltIDx%WEEKDAY) 
        ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 2/25/15:
-! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
-!       IF ( ASSOCIATED(AlltIDx%WEEKDAY_GRID) ) THEN
-!          DEALLOCATE(AlltIDx%WEEKDAY_GRID) 
-!       ENDIF
-!------------------------------------------------------------------------------
-  
        IF ( ASSOCIATED(AlltIDx%MONTHLY) ) THEN
           DEALLOCATE(AlltIDx%MONTHLY) 
        ENDIF
