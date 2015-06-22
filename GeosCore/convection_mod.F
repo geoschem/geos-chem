@@ -2214,7 +2214,8 @@
 !  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
 !                              whether the dynamic ocean is used
 !  15 Jun 2015 - E. Lundgren - Initial work to change tracer conc units to
-!                              kg/kg from v/v. Not all comments updated.
+!                              kg/kg from v/v. Not all comments updated
+!  22 Jun 2015 - E. Lundgren - Move QB_NUM calculation to within timestep loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2239,12 +2240,11 @@
       REAL(fp)            :: LOST,        GAINED,   WETLOSS, MASS_WASH
       REAL(fp)            :: MASS_NOWASH, QDOWN,    DT,      F_WASHOUT
       REAL(fp)            :: K_RAIN,      WASHFRAC, WET_Hg2, WET_HgP 
-      REAL(fp)            :: MB,          QB
+      REAL(fp)            :: MB,          QB,       QB_NUM
 
       ! Arrays
       REAL(fp)            :: BMASS       (LLPAR    )    
       REAL(fp)            :: PDOWN       (LLPAR    )
-      REAL(fp)            :: QB_NUM      (N_TRACERS)
 
       ! Pointers
       REAL(fp),  POINTER  :: BXHEIGHT (:        )
@@ -2350,28 +2350,13 @@
       ENDDO
 
       !-----------------------------------------------------------------
-      ! Compute MB (the total mass per unit area of air below the 
-      ! cloud base) and QB_NUM [hPa mol/mol] (the numerator of QB, 
-      ! the weighted avg mixing ratio below the cloud base)   
+      ! Compute MB, the mass per unit area of total air below the cloud
+      ! base [kg/m2]. Calculate MB by looping over levels below the 
+      ! cloud base.
       !-----------------------------------------------------------------
-
-      ! Zero variables
-      MB      = 0e+0_fp  ! [kg/m2]
-      QB_NUM  = 0e+0_fp  ! [mol/mol] 
-
-      ! Loop over up to just below the cloud base
+      MB      = 0e+0_fp 
       DO K  = 1, CLDBASE-1
-         
-         ! Total mass of air below the cloud base [kg/m2]
          MB        = MB + BMASS(K)
-
-         ! Numerator for calculation of QB, the weighted avg mixing
-         ! ratio below the cloud base.
-         ! QB_NUM is equal to the grid box tracer concentrations 
-         ! [mol/mol] weighted by the adjacent level pressure differences
-         ! and summed over all levels up to just below the cloud base.
-         QB_NUM(:) = QB_NUM(:) + Q(K,:) * DELP(K)
-
       ENDDO
 
       ! Is this a Hg simulation?
@@ -2390,7 +2375,6 @@
          ! Initialize
          DIAG14(:,IC) = 0e+0_fp                    ! ND14 diag array      
          DIAG38(:,IC) = 0e+0_fp                    ! ND38 diag array
-         TRACER_MW_G  = Input_Opt%TRACER_MW_G(IC)  ! Dry air MW/tracer MW
 
          !=====================================================================
          ! (2)  I n t e r n a l   T i m e   S t e p   L o o p
@@ -2398,7 +2382,7 @@
          DO ISTEP = 1, NS
 
             ! Initialize
-            QC     = 0e+0_fp    ! [mol tracer/mol total air]                  
+            QC     = 0e+0_fp    ! [kg tracer/kg total air]                  
             T0_SUM = 0e+0_fp    ! [kg tracer/m2/timestep]
 
             !----------------------------------------------------------
@@ -2422,9 +2406,21 @@
                   ! %%% Non-negligible Cloud mass flux %%% 
                   !-----------------------------------------------------
 
+                  ! CAlculate QB_NUM, the numerator for QB. QB is the 
+                  ! weighted average mixing ratio below the cloud base.
+                  !
+                  ! QB_NUM is equal to the grid box tracer concentrations 
+                  ! [kg/kg total air] weighted by the adjacent level pressure 
+                  ! differences and summed over all levels up to just 
+                  ! below the cloud base (ewl, 6/22/15)           
+                  QB_NUM  = 0e+0_fp  ! [hPa kg/kg total air]
+                  DO K  = 1, CLDBASE-1
+                     QB_NUM = QB_NUM + Q(K,IC) * DELP(K)
+                  ENDDO
+
                   ! Compute QB, the weighted avg mixing ratio below
-                  ! the cloud base [mol/mol]
-                  QB = QB_NUM(IC) / ( PEDGE(1) - PEDGE(CLDBASE) )
+                  ! the cloud base [kg/kg total air]
+                  QB = QB_NUM / ( PEDGE(1) - PEDGE(CLDBASE) )
 
                   ! Compute QC, the mixing ratio of the air that moved
                   ! in cumulus transport up to the next level [mol/mol]
