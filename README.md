@@ -10,7 +10,7 @@ The GEOS-Chem Bleeding Edge repo is also mirrored at:
 
 So you can use this link if you have trouble downloading from BitBucket.
 
-## Publicly-released GEOS-Chem version ## 
+## Publicly-released GEOS-Chem version
 
 If you would like to obtain the latest stable, publicly-released GEOS-Chem version (instead of the Bleeding Edge repo), you can obtain this from one of these links:
 
