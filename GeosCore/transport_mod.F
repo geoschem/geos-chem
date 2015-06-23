@@ -311,6 +311,10 @@
 !  16 Apr 2015 - E. Lundgren - Convert mixing ratio to moist before advection
 !                              and back to dry afterwards
 !  09 Jun 2015 - E. Lundgren - Remove dependency on tpcore_bc_mod since not used
+!  15 Jun 2015 - E. Lundgren - Tracer units in advection are now kg/kg wet air
+!                              (previously v/v wet air)
+!  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
+!                              concentration following advection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -406,40 +410,44 @@
       ENDDO
 !$OMP END PARALLEL DO
       
-      !=================================================================
-      ! Get the air and tracer mass before advection
-      !=================================================================
-
-      ! Dry airmass [kg] before transport
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J), State_Met )
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Tracer mass [kg] before transport
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, N_TOT_TRC
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
-     &                 * AD_B(I,J,L)
-     &                 / TCVV(N)
-      ENDDO
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+!======================================================================
+! Before and after mass no longer needed if using kg/kg (ewl, 6/15/15)
+!
+!      !=================================================================
+!      ! Get the air and tracer mass before advection
+!      !=================================================================
+!
+!      ! Dry airmass [kg] before transport
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!      DO L = 1, LLPAR
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J), State_Met )
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!      ! Tracer mass [kg] before transport
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, N )
+!      DO N = 1, N_TOT_TRC
+!      DO L = 1, LLPAR
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
+!     &                 * AD_B(I,J,L)
+!     &                 / TCVV(N)
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!======================================================================
 
       !=================================================================
       ! Call the PJC/LLNL pressure fixer to get the adjusted air 
@@ -465,10 +473,22 @@
       p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
       p_MOISTMW => State_Met%MOISTMW(:,:,LLPAR:1:-1  )
 
+!=========================================================================
+! Change units from mol/mol to kg/kg for advection (ewl, 6/15/15)
+!
+! Previous:
+!      ! Convert tracer concentration from mol/mol dry air to 
+!      ! mol/mol moist air before advection (ewl, 4/16/15)
+!      CALL Convert_DryVV_to_MoistVV( am_I_Root, N_TRACERS, State_Met, 
+!     &                               State_Chm, RC )
+! New:
       ! Convert tracer concentration from mol/mol dry air to 
-      ! mol/mol moist air before advection (ewl, 4/16/15)
-      CALL Convert_DryVV_to_MoistVV( am_I_Root, N_TRACERS, State_Met, 
-     &                               State_Chm, RC )
+      ! kg/kg moist air before advection (ewl, 6/15/15)
+      CALL Convert_VR_to_MMR( am_I_Root, N_TRACERS, Input_Opt,
+     &                        State_Chm, RC)
+      CALL Convert_DryMMR_to_MoistMMR( am_I_Root, N_TRACERS, State_Met, 
+     &                                 State_Chm, RC )
+!=========================================================================
 
       ! Do the advection
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
@@ -485,10 +505,23 @@
      &                   A_M2,   TCVV,      ND24,     ND25,     
      &                   ND26,   p_MOISTMW )
 
-      ! Convert tracer concentration from mol/mol moist air
-      ! mol/mol dry air after advection (ewl, 4/16/15)
-      CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, State_Met, 
+
+!=========================================================================
+! Edits related to changing units from mol/mol to kg/kg (ewl, 6/15/15)
+!
+! Previous:
+!      ! Convert tracer concentration from mol/mol moist air
+!      ! mol/mol dry air after advection (ewl, 4/16/15)
+!      CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, State_Met, 
+!     &                               State_Chm, RC ) 
+! New:
+      ! Convert tracer concentration from kg/kg wet air to 
+      ! mol/mol dry air after advection (ewl, 6/15/15)
+      CALL Convert_MoistMMR_to_DryMMR( am_I_Root, N_TRACERS, State_Met, 
      &                               State_Chm, RC ) 
+      CALL Convert_MMR_to_VR( am_I_Root, N_TRACERS, Input_Opt,
+     &                        State_Chm, RC)
+!=========================================================================
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS, p_MOISTMW )
@@ -505,62 +538,66 @@
       ! tracer concentrations (ewl, 3/31/15)
       CALL AIRQNT( am_I_Root, State_Met, RC )
 
-      ! Adjust tracer to correct residual non-conservation of mass
-      ! This was changed to be applied only for cells with tracer 
-      ! concentration. (ccc, 11/20/08) 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, SUMADA, AD_A, TR_A, TR_DIFF )
-      DO N = 1, N_TOT_TRC
-
-         ! Zero summing variable
-         SUMADA = 0.e+0_fp
-
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! Dry air mass [kg] after transport
-            AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J), State_Met )
-         
-            ! Tracer mass [kg] after transport
-            TR_A(I,J,L) = State_Chm%Tracers(I,J,L,N)
-     &                  * AD_A(I,J,L)
-     &                  / TCVV(N)
-
-            IF ( State_Chm%Tracers(I,J,L,N) > 0.e+0_fp   .or.
-     &           State_Chm%Tracers(I,J,L,N) < 0.e+0_fp ) THEN
-               SUMADA = SUMADA + AD_A(I,J,L)
-            ENDIF
-         ENDDO
-         ENDDO
-         ENDDO
-
-         ! Residual mass difference [kg]: before - after
-         TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
-
-         ! Convert from [kg] to [v/v]
-         TR_DIFF = SAFE_DIV( TR_DIFF, SUMADA, 0.e+0_fp ) * TCVV(N)
-
-         ! Add mass difference [v/v] back to STT
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            IF ( State_Chm%Tracers(I,J,L,N) > 0.e+0_fp   .or.
-     &           State_Chm%Tracers(I,J,L,N) < 0.e+0_fp ) THEN
-               State_Chm%Tracers(I,J,L,N) =
-     &         State_Chm%Tracers(I,J,L,N) + TR_DIFF
-            ENDIF
-
-            State_Chm%Tracers(I,J,L,N) =
-     &           MAX( State_Chm%Tracers(I,J,L,N), 0e+0_fp )
-
-         ENDDO
-         ENDDO
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+!======================================================================
+! Remove mass residual adjustment (ewl, 6/15/15)
+!
+!      ! Adjust tracer to correct residual non-conservation of mass
+!      ! This was changed to be applied only for cells with tracer 
+!      ! concentration. (ccc, 11/20/08) 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, N, SUMADA, AD_A, TR_A, TR_DIFF )
+!      DO N = 1, N_TOT_TRC
+!
+!         ! Zero summing variable
+!         SUMADA = 0.e+0_fp
+!
+!         DO L = 1, LLPAR
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!
+!            ! Dry air mass [kg] after transport
+!            AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J), State_Met )
+!         
+!            ! Tracer mass [kg] after transport
+!            TR_A(I,J,L) = State_Chm%Tracers(I,J,L,N)
+!     &                  * AD_A(I,J,L)
+!     &                  / TCVV(N)
+!
+!            IF ( State_Chm%Tracers(I,J,L,N) > 0.e+0_fp   .or.
+!     &           State_Chm%Tracers(I,J,L,N) < 0.e+0_fp ) THEN
+!               SUMADA = SUMADA + AD_A(I,J,L)
+!            ENDIF
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!
+!         ! Residual mass difference [kg]: before - after
+!         TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
+!
+!         ! Convert from [kg] to [v/v]
+!         TR_DIFF = SAFE_DIV( TR_DIFF, SUMADA, 0.e+0_fp ) * TCVV(N)
+!
+!         ! Add mass difference [v/v] back to STT
+!         DO L = 1, LLPAR
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!
+!            IF ( State_Chm%Tracers(I,J,L,N) > 0.e+0_fp   .or.
+!     &           State_Chm%Tracers(I,J,L,N) < 0.e+0_fp ) THEN
+!               State_Chm%Tracers(I,J,L,N) =
+!     &         State_Chm%Tracers(I,J,L,N) + TR_DIFF
+!            ENDIF
+!
+!            State_Chm%Tracers(I,J,L,N) =
+!     &           MAX( State_Chm%Tracers(I,J,L,N), 0e+0_fp )
+!
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!==================================================================
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
@@ -639,6 +676,10 @@
 !  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
 !  16 Apr 2015 - E. Lundgren - Convert mixing ratio to moist before advection
 !                              and back to dry afterwards
+!  15 Jun 2015 - E. Lundgren - Tracer units in advection are now kg/kg wet air
+!                              (previously v/v wet air)
+!  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
+!                              concentration following advection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -740,39 +781,43 @@
       ENDDO
 !$OMP END PARALLEL DO
       
-      !==============================================================
-      ! Get the air & tracer mass before advection
-      !==============================================================
-
-      ! Dry airmass [kg] before transport
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J), State_Met )
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Tracer mass [kg] before transport
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, N_TOT_TRC
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
-     &                 * AD_B(I,J,L)
-     &                 / TCVV(N)
-      ENDDO
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+!=====================================================================
+! Before and after mass no longer needed if using kg/kg (ewl, 6/15/15)
+!
+!      !==============================================================
+!      ! Get the air & tracer mass before advection
+!      !==============================================================
+!
+!      ! Dry airmass [kg] before transport
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!      DO L = 1, LLPAR
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J), State_Met )
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!      ! Tracer mass [kg] before transport
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, N )
+!      DO N = 1, N_TOT_TRC
+!      DO L = 1, LLPAR
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
+!     &                 * AD_B(I,J,L)
+!     &                 / TCVV(N)
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!=====================================================================
 
       !=================================================================
       ! Call the PJC/LLNL pressure fixer to get the adjusted air 
@@ -798,10 +843,22 @@
       p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
       p_MOISTMW => State_Met%MOISTMW(:,:,LLPAR:1:-1  )
 
+!=========================================================================
+! Change units from mol/mol to kg/kg for advection (ewl, 6/15/15)
+!
+! Previous:
+!      ! Convert tracer concentration from mol/mol dry air to 
+!      ! mol/mol moist air before advection (ewl, 4/16/15)
+!      CALL Convert_DryVV_to_MoistVV( am_I_Root, N_TRACERS, State_Met, 
+!     &                               State_Chm, RC )
+! New:
       ! Convert tracer concentration from mol/mol dry air to 
-      ! mol/mol moist air before advection (ewl, 4/16/15)
-      CALL Convert_DryVV_to_MoistVV( am_I_Root, N_TRACERS, State_Met, 
-     &                               State_Chm, RC )
+      ! kg/kg moist air before advection (ewl, 6/15/15)
+      CALL Convert_VR_to_MMR( am_I_Root, N_TRACERS, Input_Opt,
+     &                        State_Chm, RC)
+      CALL Convert_DryMMR_to_MoistMMR( am_I_Root, N_TRACERS, State_Met, 
+     &                                 State_Chm, RC )
+!=========================================================================
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -818,10 +875,22 @@
      &                   A_M2,    TCVV,      ND24,     ND25,     
      &                   ND26,    p_MOISTMW )
 
-      ! Convert tracer concentration from mol/mol moist air to 
-      ! mol/mol dry air after advection (ewl, 4/16/15)      
-      CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, State_Met, 
+!=========================================================================
+! Edits related to changing units from mol/mol to kg/kg (ewl, 6/15/15)
+!
+! Previous:
+!      ! Convert tracer concentration from mol/mol moist air
+!      ! mol/mol dry air after advection (ewl, 4/16/15)
+!      CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, State_Met, 
+!     &                               State_Chm, RC ) 
+! New:
+      ! Convert tracer concentration from kg/kg wet air to 
+      ! mol/mol dry air after advection (ewl, 6/15/15)
+      CALL Convert_MoistMMR_to_DryMMR( am_I_Root, N_TRACERS, State_Met, 
      &                               State_Chm, RC ) 
+      CALL Convert_MMR_to_VR( am_I_Root, N_TRACERS, Input_Opt,
+     &                        State_Chm, RC)
+!=========================================================================
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS, p_MOISTMW )
@@ -838,63 +907,67 @@
       ! tracer concentrations (ewl, 3/31/15)
       CALL AIRQNT( am_I_Root, State_Met, RC )
 
-      ! Adjust tracer to correct residual non-conservation of mass
-      ! This was changed to be applied only for cells with tracer 
-      ! concentration. (ccc, 11/20/08) 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, SUMADA, AD_A, TR_A, TR_DIFF )
-      DO N = 1, N_TOT_TRC
-
-         ! Zero summing variable
-         SUMADA = 0.e+0_fp
-
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! Dry air mass [kg] after transport
-            AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J), State_Met )
-         
-            ! Tracer mass [kg] after transport
-            TR_A(I,J,L) = State_Chm%Tracers(I,J,L,N)
-     &                  * AD_A(I,J,L)
-     &                  / TCVV(N)
-
-            ! We apply mass conservation only on cells with 
-            ! nonzero tracer. (ccc, 11/20/08)
-            IF ( State_Chm%Tracers(I,J,L,N) > 0.e+0_fp   .or.
-     &           State_Chm%Tracers(I,J,L,N) < 0.e+0_fp ) THEN
-               SUMADA = SUMADA + AD_A(I,J,L)
-            ENDIF
-         ENDDO
-         ENDDO
-         ENDDO
-
-         ! Residual mass difference [kg]: before - after
-         TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
-
-         ! Convert from [kg] to [v/v]
-         TR_DIFF = SAFE_DIV( TR_DIFF, SUMADA, 0.e+0_fp ) * TCVV(N)
-
-         ! Add mass difference [v/v] back to STT
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            IF ( State_Chm%Tracers(I,J,L,N) > 0.e+0_fp   .or. 
-     &           State_Chm%Tracers(I,J,L,N) < 0.e+0_fp ) THEN
-               State_Chm%Tracers(I,J,L,N) =
-     &         State_Chm%Tracers(I,J,L,N) + TR_DIFF
-            ENDIF
-
-            State_Chm%Tracers(I,J,L,N) =
-     &           MAX( State_Chm%Tracers(I,J,L,N), 0e+0_fp )
-         ENDDO
-         ENDDO
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+!======================================================================
+! Remove mass residual adjustment (ewl, 6/15/15)
+!
+!      ! Adjust tracer to correct residual non-conservation of mass
+!      ! This was changed to be applied only for cells with tracer 
+!      ! concentration. (ccc, 11/20/08) 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, N, SUMADA, AD_A, TR_A, TR_DIFF )
+!      DO N = 1, N_TOT_TRC
+!
+!         ! Zero summing variable
+!         SUMADA = 0.e+0_fp
+!
+!         DO L = 1, LLPAR
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!
+!            ! Dry air mass [kg] after transport
+!            AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J), State_Met )
+!         
+!            ! Tracer mass [kg] after transport
+!            TR_A(I,J,L) = State_Chm%Tracers(I,J,L,N)
+!     &                  * AD_A(I,J,L)
+!     &                  / TCVV(N)
+!
+!            ! We apply mass conservation only on cells with 
+!            ! nonzero tracer. (ccc, 11/20/08)
+!            IF ( State_Chm%Tracers(I,J,L,N) > 0.e+0_fp   .or.
+!     &           State_Chm%Tracers(I,J,L,N) < 0.e+0_fp ) THEN
+!               SUMADA = SUMADA + AD_A(I,J,L)
+!            ENDIF
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!
+!         ! Residual mass difference [kg]: before - after
+!         TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
+!
+!         ! Convert from [kg] to [v/v]
+!         TR_DIFF = SAFE_DIV( TR_DIFF, SUMADA, 0.e+0_fp ) * TCVV(N)
+!
+!         ! Add mass difference [v/v] back to STT
+!         DO L = 1, LLPAR
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!
+!            IF ( State_Chm%Tracers(I,J,L,N) > 0.e+0_fp   .or. 
+!     &           State_Chm%Tracers(I,J,L,N) < 0.e+0_fp ) THEN
+!               State_Chm%Tracers(I,J,L,N) =
+!     &         State_Chm%Tracers(I,J,L,N) + TR_DIFF
+!            ENDIF
+!
+!            State_Chm%Tracers(I,J,L,N) =
+!     &           MAX( State_Chm%Tracers(I,J,L,N), 0e+0_fp )
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!=====================================================================
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### GCAP_GLOB_ADV: a TPCORE' ) 
@@ -974,6 +1047,10 @@
 !  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
 !  16 Apr 2015 - E. Lundgren - Convert mixing ratio to moist before advection
 !                              and back to dry afterwards
+!  15 Jun 2015 - E. Lundgren - Tracer units in advection are now kg/kg wet air
+!                              (previously v/v wet air)
+!  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
+!                              concentration prior to advection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1074,39 +1151,43 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      !=================================================================
-      ! Get the air and tracer mass before advection
-      !=================================================================
-
-      ! Dry airmass [kg] before transport
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J), State_Met )
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Tracer mass [kg] before transport
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, N_TOT_TRC
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
-     &                 * AD_B(I,J,L)
-     &                 / TCVV(N)
-      ENDDO
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+!================================================================
+! Air and tracer mass not used - remove (ewl, 6/15/15)
+!
+!     !=================================================================
+!     ! Get the air and tracer mass before advection
+!     !=================================================================
+!
+!     ! Dry airmass [kg] before transport
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!     DO L = 1, LLPAR
+!     DO J = 1, JJPAR
+!     DO I = 1, IIPAR
+!        AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J), State_Met )
+!     ENDDO
+!     ENDDO
+!     ENDDO
+!!$OMP END PARALLEL DO
+!
+!     ! Tracer mass [kg] before transport
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, N )
+!     DO N = 1, N_TOT_TRC
+!     DO L = 1, LLPAR
+!     DO J = 1, JJPAR
+!     DO I = 1, IIPAR
+!        TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
+!    &                 * AD_B(I,J,L)
+!    &                 / TCVV(N)
+!     ENDDO
+!     ENDDO
+!     ENDDO
+!     ENDDO
+!!$OMP END PARALLEL DO
+!=======================================================================
 
       !=================================================================
       ! Call the PJC/LLNL pressure fixer to get the adjusted air
@@ -1140,10 +1221,22 @@
 
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a array flip' )
 
-      ! Convert tracer concentration from mol/mol moist air to 
-      ! mol/mol dry air after advection (ewl, 4/16/15)
-      CALL Convert_DryVV_to_MoistVV( am_I_Root, N_TRACERS, State_Met, 
-     &                               State_Chm, RC )
+!=========================================================================
+! Change units from mol/mol to kg/kg for advection (ewl, 6/15/15)
+!
+! Previous:
+!      ! Convert tracer concentration from mol/mol dry air to 
+!      ! mol/mol moist air before advection (ewl, 4/16/15)
+!      CALL Convert_DryVV_to_MoistVV( am_I_Root, N_TRACERS, State_Met, 
+!     &                               State_Chm, RC )
+! New:
+      ! Convert tracer concentration from mol/mol dry air to 
+      ! kg/kg moist air before advection (ewl, 6/15/15)
+      CALL Convert_VR_to_MMR( am_I_Root, N_TRACERS, Input_Opt,
+     &                        State_Chm, RC)
+      CALL Convert_DryMMR_to_MoistMMR( am_I_Root, N_TRACERS, State_Met, 
+     &                                 State_Chm, RC )
+!=========================================================================
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -1160,10 +1253,22 @@
      &                          TCVV,     ND24,      ND25,     ND26,  
      &                          p_MOISTMW )
 
-      ! Convert tracer concentration from mol/mol moist air to 
-      ! mol/mol dry air after advection (ewl, 4/16/15)
-      CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, State_Met, 
+!=========================================================================
+! Edits related to changing units from mol/mol to kg/kg (ewl, 6/15/15)
+!
+! Previous:
+!      ! Convert tracer concentration from mol/mol moist air
+!      ! mol/mol dry air after advection (ewl, 4/16/15)
+!      CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, State_Met, 
+!     &                               State_Chm, RC ) 
+! New:
+      ! Convert tracer concentration from kg/kg wet air to 
+      ! mol/mol dry air after advection (ewl, 6/15/15)
+      CALL Convert_MoistMMR_to_DryMMR( am_I_Root, N_TRACERS, State_Met, 
      &                               State_Chm, RC ) 
+      CALL Convert_MMR_to_VR( am_I_Root, N_TRACERS, Input_Opt,
+     &                        State_Chm, RC)
+!=========================================================================
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS, p_MOISTMW ) 
@@ -1255,6 +1360,10 @@
 !  15 Apr 2015 - R. Yantosca - Add more pointers to avoid array temporaries
 !  16 Apr 2015 - E. Lundgren - Convert mixing ratio to moist before advection
 !                              and back to dry afterwards
+!  15 Jun 2015 - E. Lundgren - Tracer units in advection are now kg/kg wet air
+!                              (previously v/v wet air)
+!  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
+!                              concentration prior to advection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1367,39 +1476,43 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      !=================================================================
-      ! Get the air and tracer mass before advection
-      !=================================================================
-
-      ! Dry airmass [kg] before transport
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J), State_Met )
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Tracer mass [kg] before transport
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, N_TOT_TRC
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
-     &                 * AD_B(I,J,L)
-     &                 / TCVV(N)
-      ENDDO
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+!================================================================
+! Air and tracer mass not used - remove (ewl, 6/15/15)
+!
+!      !=================================================================
+!      ! Get the air and tracer mass before advection
+!      !=================================================================
+!
+!      ! Dry airmass [kg] before transport
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!      DO L = 1, LLPAR
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J), State_Met )
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!      ! Tracer mass [kg] before transport
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, N )
+!      DO N = 1, N_TOT_TRC
+!      DO L = 1, LLPAR
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
+!     &                 * AD_B(I,J,L)
+!     &                 / TCVV(N)
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!===================================================================
 
       !=================================================================
       ! Call the PJC/LLNL pressure fixer to get the adjusted air
@@ -1466,11 +1579,22 @@
 
       p_A_M2  => A_M2(              J0_W1+1 : J0_W1+JM_W1          )
 
-
-      ! Convert tracer concentration from mol/mol moist air to 
-      ! mol/mol dry air after advection (ewl, 4/16/15)
-      CALL Convert_DryVV_to_MoistVV( am_I_Root, N_TRACERS, State_Met, 
-     &                               State_Chm, RC )
+!=========================================================================
+! Change units from mol/mol to kg/kg for advection (ewl, 6/15/15)
+!
+! Previous:
+!      ! Convert tracer concentration from mol/mol dry air to 
+!      ! mol/mol moist air before advection (ewl, 4/16/15)
+!      CALL Convert_DryVV_to_MoistVV( am_I_Root, N_TRACERS, State_Met, 
+!     &                               State_Chm, RC )
+! New:
+      ! Convert tracer concentration from mol/mol dry air to 
+      ! kg/kg moist air before advection (ewl, 6/15/15)
+      CALL Convert_VR_to_MMR( am_I_Root, N_TRACERS, Input_Opt,
+     &                        State_Chm, RC)
+      CALL Convert_DryMMR_to_MoistMMR( am_I_Root, N_TRACERS, State_Met, 
+     &                                 State_Chm, RC )
+!=========================================================================
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -1486,10 +1610,22 @@
      &      p_MFLNS, p_MFLUP,  p_A_M2,  TCVV,    ND24,     
      &      ND25,    ND26,     p_MOISTMW ) 
 
-      ! Convert tracer concentration from mol/mol moist air to 
-      ! mol/mol dry air after advection (ewl, 4/16/15)
-      CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, State_Met, 
+!=========================================================================
+! Edits related to changing units from mol/mol to kg/kg (ewl, 6/15/15)
+!
+! Previous:
+!      ! Convert tracer concentration from mol/mol moist air
+!      ! mol/mol dry air after advection (ewl, 4/16/15)
+!      CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, State_Met, 
+!     &                               State_Chm, RC ) 
+! New:
+      ! Convert tracer concentration from kg/kg wet air to 
+      ! mol/mol dry air after advection (ewl, 6/15/15)
+      CALL Convert_MoistMMR_to_DryMMR( am_I_Root, N_TRACERS, State_Met, 
      &                               State_Chm, RC ) 
+      CALL Convert_MMR_to_VR( am_I_Root, N_TRACERS, Input_Opt,
+     &                        State_Chm, RC)
+!=========================================================================
 
       ! Free pointer memory
       NULLIFY( p_UWND,  p_VWND,  p_STT,   p_XMASS, p_MOISTMW ) 

@@ -802,6 +802,8 @@
 !  27 Apr 2015 - E. Lundgren - Replace 100/GRAV with global param g0_100
 !  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
 !                              for consistency with moist mixing ratio units
+!  15 Jun 2015 - E. Lundgren - Tracer units in convection are now kg/kg wet air
+!                              (previously v/v wet air)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1162,12 +1164,24 @@
                   ! Only save from levels 1..LD14 
                   IF ( LL < LD14 ) THEN
 
+!=====================================================================
+! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
+!
+! Previous: 
+!                    ! Net upward convective flux [kg/s]
+!                    CONVFLUP(II,JJ,LL,M) = CONVFLUP(II,JJ,LL,M)  
+!    &                + (   MU(I,K)   * ( CONU(I,K) - CMIX(I,KM1) )       
+!    &                    - MD(I,KM1) * ( CMIX(I,K) - COND(I,KM1) ) )      
+!    &                  * AREA_M2 * g0_100 * TRACER_MW_G(M)
+!    &                  / ( MOISTMW(II,JJ,LL) * D_NSTEP )
+!
+! New:
                      ! Net upward convective flux [kg/s]
                      CONVFLUP(II,JJ,LL,M) = CONVFLUP(II,JJ,LL,M)  
      &                + (   MU(I,K)   * ( CONU(I,K) - CMIX(I,KM1) )       
      &                    - MD(I,KM1) * ( CMIX(I,K) - COND(I,KM1) ) )      
-     &                  * AREA_M2 * g0_100 * TRACER_MW_G(M)
-     &                  / ( MOISTMW(II,JJ,LL) * D_NSTEP )
+     &                  * AREA_M2 * g0_100 / D_NSTEP
+!=====================================================================
 
                   ENDIF
                ENDIF 
@@ -1214,13 +1228,25 @@
                      ! Grid box surface area [m2] 
                      AREA_M2 = GET_AREA_M2( II, JJ, LL )  
 
+!=====================================================================
+! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
+!
+! Previous: 
+!                     ! Save loss in [kg/s]
+!                     AD38(II,JJ,LL,NN) = AD38(II,JJ,LL,NN) +
+!     &                              +  MU(I,KP1) *  CONU(I,KP1) 
+!     &                                 * ( 1e+0_fp - FISG(I,K) )
+!     &                                 * AREA_M2 * g0_100
+!     &                                 * TRACER_MW_G(M)
+!     &                                 / ( MOISTMW(II,JJ,LL) * D_NSTEP ) 
+!
+! New:
                      ! Save loss in [kg/s]
                      AD38(II,JJ,LL,NN) = AD38(II,JJ,LL,NN) +
      &                              +  MU(I,KP1) *  CONU(I,KP1) 
      &                                 * ( 1e+0_fp - FISG(I,K) )
-     &                                 * AREA_M2 * g0_100
-     &                                 * TRACER_MW_G(M)
-     &                                 / ( MOISTMW(II,JJ,LL) * D_NSTEP ) 
+     &                                 * AREA_M2 * g0_100 / D_NSTEP  
+!=====================================================================
 
                   ENDIF
                ENDIF
@@ -1254,12 +1280,23 @@
                      ! Grid box surface area [m2] 
                      AREA_M2 = GET_AREA_M2( II, JJ, 1 )
 
+!=====================================================================
+! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
+!
+! Previous: 
+!                     ! Hg2 wet-scavenged out of the column [kg]
+!                     WET_Hg2 = MU(I,KP1) * CONU(I,KP1)
+!     &                          * ( 1e+0_fp - FISG(I,K) ) 
+!     &                          * AREA_M2 * g0_100 
+!     &                          * TRACER_MW_G(M) 
+!     &                          / ( MOISTMW(II,JJ,LL) * DELT )
+!
+! New:
                      ! Hg2 wet-scavenged out of the column [kg]
                      WET_Hg2 = MU(I,KP1) * CONU(I,KP1)
      &                          * ( 1e+0_fp - FISG(I,K) ) 
-     &                          * AREA_M2 * g0_100 
-     &                          * TRACER_MW_G(M) 
-     &                          / ( MOISTMW(II,JJ,LL) * DELT )
+     &                          * AREA_M2 * g0_100 / DELT 
+!=====================================================================
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_Hg2_WD( II, J, M, WET_Hg2 )
@@ -1277,12 +1314,24 @@
                      ! Grid box surface area [m2] 
                      AREA_M2 = GET_AREA_M2( II, JJ, 1 )
 
+!=====================================================================
+! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
+!
+! Previous: 
+!                     ! Hg2 wet-scavenged out of the column [kg]
+!                     WET_HgP = MU(I,KP1) * CONU(I,KP1)
+!     &                         * ( 1e+0_fp - FISG(I,K) )
+!     &                          * AREA_M2 * g0_100 
+!     &                          * TRACER_MW_G(M) 
+!     &                          / ( MOISTMW(II,JJ,LL) * DELT )
+!
+! New:
                      ! Hg2 wet-scavenged out of the column [kg]
                      WET_HgP = MU(I,KP1) * CONU(I,KP1)
      &                         * ( 1e+0_fp - FISG(I,K) )
-     &                          * AREA_M2 * g0_100 
-     &                          * TRACER_MW_G(M) 
-     &                          / ( MOISTMW(II,JJ,LL) * DELT )
+     &                          * AREA_M2 * g0_100 / DELT 
+
+!=====================================================================
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_HgP_WD( II, J, M, WET_HgP )

@@ -486,24 +486,29 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Convert_MMR_to_VR( N_TRACERS, TCVV, STT ) 
+    SUBROUTINE Convert_MMR_to_VR( am_I_Root, N_TRACERS, Input_Opt, &
+                                  State_Chm, RC ) 
+!
+! USES: 
+!
+  USE GIGC_Input_Opt_Mod, ONLY : OptInput
+  USE GIGC_State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
-    ! Number of tracers
-    INTEGER, INTENT(IN)      :: N_TRACERS 
-
-    ! Array containing ratio of air to tracer molecular weights
-    REAL(fp),  INTENT(IN)    :: TCVV(N_TRACERS)
-
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
 ! !OUTPUT PARAMETERS:
 !
-    ! Array containing tracer concentration [vol/vol]
-    REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+    INTEGER,        INTENT(OUT)    :: RC         ! Success or failure?
 !
-! !REMARKS (edit this)
-!  The volume ratio is the same as the molar ratio [mol/mol] under the 
-!  same temperature and pressure conditions.  
+! !REMARKS
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
@@ -520,13 +525,16 @@ CONTAINS
     ! Convert_MMR_to_VR begins here!
     !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
          !==============================================================
          !
          !  The conversion is as follows:
          !
-         !   kg tracer(N)    g air      mol tracer(N)    
-         !   -----------  * -------  *  -------------  
-         !     kg air       mol air      g tracer(N)          
+         !   kg tracer(N)    g dry air      mol tracer(N)    
+         !   -----------  * ----------  *  -------------  
+         !     kg air       mol air         g tracer(N)          
          !
          !   = mass mixing ratio * ratio of air to tracer molecular weights  
          !   
@@ -534,13 +542,13 @@ CONTAINS
          !
          ! Therefore, with:
          !
-         !  TCVV(N) = air molecular wt / tracer molecular wt 
+         !  TCVV(N) = dry air molecular wt / tracer molecular wt 
          !     
          ! the conversion is:
          ! 
-         !  STT(I,J,L,N) [vol/vol]
+         !  Tracers(I,J,L,N) [vol/vol]
          !
-         !    = STT(I,J,L,N) [kg/kg] * TCVV(N)
+         !    = Tracers(I,J,L,N) [kg/kg] * TCVV(N)
          !                   
          !==============================================================
  
@@ -551,7 +559,8 @@ CONTAINS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-        STT(I,J,L,N) = STT(I,J,L,N) * TCVV(N)
+        State_Chm%Tracers(I,J,L,N) = State_Chm%Tracers(I,J,L,N)  &
+                                      * Input_Opt%TCVV(N)
       ENDDO
       ENDDO
       ENDDO
@@ -576,24 +585,29 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Convert_VR_to_MMR( N_TRACERS, TCVV, STT ) 
+    SUBROUTINE Convert_VR_to_MMR( am_I_Root, N_TRACERS, Input_Opt,   &
+                                  State_Chm, RC ) 
+!
+! USES: 
+!
+  USE GIGC_Input_Opt_Mod, ONLY : OptInput
+  USE GIGC_State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
-    ! Number of tracers
-    INTEGER, INTENT(IN)      :: N_TRACERS 
-
-    ! Array containing ratio of air to tracer molecular weights
-    REAL(fp),  INTENT(IN)    :: TCVV(N_TRACERS)
-
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
 ! !OUTPUT PARAMETERS:
 !
-    ! Array containing tracer concentration [kg/kg]
-    REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+    INTEGER,        INTENT(OUT)    :: RC         ! Success or failure?
 !
-! !REMARKS (edit this)
-!  The volume ratio is the same as the molar ratio [mol/mol] under the 
-!  same temperature and pressure conditions.  
+! !REMARKS
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
@@ -610,6 +624,9 @@ CONTAINS
     ! Convert_VR_to_MMR begins here!
     !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
          !==============================================================
          !
          !  The conversion is as follows:
@@ -624,13 +641,13 @@ CONTAINS
          !
          ! Therefore, with:
          !
-         !  TCVV(N) = air molecular wt / tracer molecular wt 
+         !  TCVV(N) = dry air molecular wt / tracer molecular wt 
          !     
          ! the conversion is:
          ! 
-         !  STT(I,J,L,N) [vol/vol]
+         !  Tracers(I,J,L,N) [vol/vol]
          !
-         !    = STT(I,J,L,N) [kg/kg] / TCVV(N)
+         !    = Tracers(I,J,L,N) [kg/kg] / TCVV(N)
          !                   
          !==============================================================
 
@@ -641,7 +658,8 @@ CONTAINS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-        STT(I,J,L,N) = STT(I,J,L,N) / TCVV(N)
+        State_Chm%Tracers(I,J,L,N) = State_Chm%Tracers(I,J,L,N)   &
+                                        / Input_Opt%TCVV(N)
       ENDDO
       ENDDO
       ENDDO

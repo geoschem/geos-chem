@@ -444,6 +444,8 @@
 !  27 Apr 2015 - E. Lundgren - Replace GRAV with global param g0 
 !  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
 !                              for consistency with moist mixing ratio units
+!  15 Jun 2015 - E. Lundgren - Tracer units in convection are now kg/kg wet air
+!                              (previously v/v wet air)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -741,12 +743,26 @@
                   ! Grid box surface area [m2] 
                   AREA_M2 = GET_AREA_M2( II, JJ, LL ) 
 
+!=====================================================================
+! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
+!
+! Previous: 
+!                  ! Save into AD38 array [kg/s]
+!                  AD38(II,JJ,LL,NN) = AD38(II,JJ,LL,NN) 
+!     &               + ( MU(I,KP1) * CONU(I,KP1)
+!     &                   - TOTALMD(I,K) * CMIX(I,KP1) )
+!     &               * ( 1 - FISG(I,K) ) * AREA_M2 * TRACER_MW_G(M) 
+!     &               / ( g0 * MOISTMW(II,JJ,LL) * FLOAT(NSTEP) )
+!
+! New:
                   ! Save into AD38 array [kg/s]
                   AD38(II,JJ,LL,NN) = AD38(II,JJ,LL,NN) 
      &               + ( MU(I,KP1) * CONU(I,KP1)
      &                   - TOTALMD(I,K) * CMIX(I,KP1) )
-     &               * ( 1 - FISG(I,K) ) * AREA_M2 * TRACER_MW_G(M) 
-     &               / ( g0 * MOISTMW(II,JJ,LL) * FLOAT(NSTEP) )
+     &               * ( 1 - FISG(I,K) ) * AREA_M2 
+     &               / ( g0 * FLOAT(NSTEP) )
+!=====================================================================
+
                ENDIF
 #endif
 
@@ -758,12 +774,22 @@
                   ! Grid box surface area [m2]
                   AREA_M2 = GET_AREA_M2( II, JJ, LL ) 
 
+!=====================================================================
+! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
+!
+! Previous: 
+!                  CONVFLUP(II,JJ,LL,M) = CONVFLUP(II,JJ,LL,M) 
+!     &              + ( MU(I,K) * ( CONU(I,K) - CMIX(I,KM1) )
+!     &                  - TOTALMD(I,KM1) * ( CMIX(I,K) - COND(I,KM1) ) )  
+!     &              * AREA_M2 * TRACER_MW_G(M)  
+!     &              / ( g0 * MOISTMW(II,JJ,LL) * FLOAT(NSTEP) )
+!
+! New:
                   CONVFLUP(II,JJ,LL,M) = CONVFLUP(II,JJ,LL,M) 
      &              + ( MU(I,K) * ( CONU(I,K) - CMIX(I,KM1) )
      &                  - TOTALMD(I,KM1) * ( CMIX(I,K) - COND(I,KM1) ) )  
-     &              * AREA_M2 * TRACER_MW_G(M)  
-     &              / ( g0 * MOISTMW(II,JJ,LL) * FLOAT(NSTEP) )
-
+     &              * AREA_M2 / ( g0 * FLOAT(NSTEP) )
+!=====================================================================
                ENDIF 
 
                NETFLUX = FLUXIN - FLUXOUT
