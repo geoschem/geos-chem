@@ -152,6 +152,8 @@
 !                              the traditional GEOS-Chem, the updraft velocity
 !                              is still calculated in the old manner (5 m/s 
 !                              over land/ice, 10 m/s over water).
+!  23 Jun 2015 - M. Sulprizio- Add impaction scavenging for hydrophobic BC and
+!                              homogeneous IN removal from Qiaoqiao Wang
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1003,6 +1005,9 @@
 !                              inverted to be consistent with Mari et al (2000).
 !  12 May 2015 - E. Lundgren - Change tracer units from v/v -> kg for TOMAS if
 !                              not already in kg (ie. called from convection)
+!  23 Jun 2015 - M. Sulprizio- Add impaction scavenging for hydrophobic BC and
+!                              homogeneous IN removal from Qiaoqiao Wang
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1769,24 +1774,20 @@
       !-------------------------------
       ! BC HYDROPHILIC (aerosol) or
       ! BC HYDROPHOBIC (aerosol) or
-      ! OC HYDROPHILIC (aerosol)
+      ! OC HYDROPHILIC (aerosol) or
+      ! OC HYDROPHOBIC (aerosol) or
       !-------------------------------
       ELSE IF ( N == IDTBCPI .or. N == IDTOCPI .or.
-     &          N == IDTBCPO ) THEN
+     &          N == IDTBCPO .or. N == IDTOCPO ) THEN
          CALL F_AEROSOL( KC, N, F, State_Met ) 
          ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
-      !
-      ! OC HYDROPHOBIC (aerosol)
-      !-------------------------------
       ! SOAupdate (hotp 6/15/09)
       ! treat POA as hydrophobic
-      ELSE IF ( N == IDTOCPO .or. 
-     &          N == IDTPOA1 .or. N == IDTPOA2  ) THEN
-
-         ! Force not to be lost in convective updraft for now
-         F    = 0e+0_fp
+      !-------------------------------
+      ELSE IF ( N == IDTPOA1 .or. N == IDTPOA2  ) THEN
+         CALL F_AEROSOL( KC, N, F, State_Met )
          ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
@@ -2407,18 +2408,14 @@
       ! POPPOC (treat like hydrophobic OC aerosol)
       !-------------------------------
       ELSE IF (N == IDTPOPPOC ) THEN
-
-         ! Force not to be lost in convective updraft for now
-         F    = 0e+0_fp
+         CALL F_AEROSOL( KC, N, F, State_Met )
          ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! POPPBC (treat like hydrophobic BC aerosol)
       !-------------------------------
       ELSE IF (N == IDTPOPPBC ) THEN
-
-         ! Force not to be lost in convective updraft for now
-         F    = 0e+0_fp
+         CALL F_AEROSOL( KC, N, F, State_Met )
          ISOL = GET_ISOL( N, N_TRACERS )
 
       ! Additional tracers for isoprene
@@ -2800,13 +2797,15 @@
 !
       USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTBCPO,  IDTDST1,  IDTHNO3 
-      USE TRACERID_MOD,       ONLY : IDTDST2,  IDTDST3,  IDTDST4
+      USE TRACERID_MOD,       ONLY : IDTBCPO,   IDTDST1,  IDTHNO3 
+      USE TRACERID_MOD,       ONLY : IDTDST2,   IDTDST3,  IDTDST4
+      USE TRACERID_MOD,       ONLY : IDTOCPO,   IDTPOA1,  IDTPOA2
+      USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC
 !
 ! !INPUT PARAMETERS: 
 !
       ! Conversion rate from cloud condensate to precip [1/s]
-      REAL(fp),         INTENT(IN)  :: KC
+      REAL(fp),       INTENT(IN)  :: KC
 
       !Add N to idendify tracers (qq,10/11/2011)
       INTEGER,        INTENT(IN)  :: N
@@ -2817,7 +2816,7 @@
 ! !OUTPUT PARAMETERS:
 !
       ! Fraction of aerosol scavenged in updrafts [unitless]
-      REAL(fp),         INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR)
+      REAL(fp),       INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR)
 ! 
 ! !REVISION HISTORY: 
 !  07 Nov 2002 - R. Yantosca - Initial version
@@ -2826,6 +2825,8 @@
 !                              derived type object
 !  29 May 2013 - R. Yantosca - Segregate TOMAS-specific code with #ifdefs
 !  10 Nov 2014 - C. Keller   - Now also apply TINY check in ESMF environment.
+!  23 Jun 2015 - M. Sulprizio- Add impaction scavenging for hydrophobic BC and
+!                              homogeneous IN removal from Qiaoqiao Wang
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2833,7 +2834,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: I, J, L
-      REAL(fp)              :: TMP
+      REAL(fp)            :: TMP, FF
 
       !=================================================================
       ! F_AEROSOL begins here!
@@ -2850,19 +2851,36 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
                 
-         ! (Eq. 2, Jacob et al, 2000, with K = Kc)
-         F(I,J,L) = GET_F( State_Met, I, J, L, KC )
-
          ! snow vs rain (qq, 10/11/2011)
-         IF ( State_Met%T(I,J,L) >= 258e+0_fp .and. N == IDTBCPO) THEN
-            F(I,J,L) = 0e+0_fp
+         IF ( State_Met%T(I,J,L) >= 258d0) THEN
+             IF (N == IDTBCPO   .or. N == IDTOCPO  .or.
+     &           N == IDTPOA1   .or. N == IDTPOA2  .or.
+     &           N == IDTPOPPOC .or. N == IDTPOPPBC ) THEN
+                FF=0.5d0
+             ELSE
+                FF=1d0
+             ENDIF
+
+         ELSE IF ( State_Met%T(I,J,L) < 237d0) THEN
+             IF (N == IDTOCPO   .or. N == IDTPOPPOC .or.
+     &           N == IDTPOA1   .or. N == IDTPOA2  ) THEN
+                FF=0.5d0
+             ELSE
+                FF=1d0
+             ENDIF
+
+         ELSE   
+            IF ( N == IDTBCPO   .or. N == IDTHNO3 .or.
+     &           N == IDTDST1   .or. N == IDTDST2 .or.
+     &           N == IDTDST3   .or. N == IDTDST4 ) THEN
+               FF=1d0
+            ELSE 
+               FF=0.5d0
+            ENDIF       
          ENDIF
-         IF ( State_Met%T(I,J,L)  < 258e+0_fp       .and.
-     &        N /= IDTBCPO  .and. N /= IDTHNO3  .and.
-     &        N /= IDTDST1  .and. N /= IDTDST2  .and.
-     &        N /= IDTDST3  .and. N /= IDTDST4) THEN
-            F(I,J,L) = 0e+0_fp
-         ENDIF
+
+         ! (Eq. 2, Jacob et al, 2000, with K = Kc)
+         F(I,J,L) = GET_F( State_Met, I, J, L, KC, FF )
             
       ENDDO
       ENDDO
@@ -3079,6 +3097,8 @@
 !  19 Dec 2014 - M. Sulprizio- Add bug fixes for CONV_H2O2 and CONV_NH3 from
 !                              Duncan Fairlie. The square root term should be
 !                              inverted to be consistent with Mari et al (2000).
+!  23 Jun 2015 - M. Sulprizio- Add impaction scavenging for hydrophobic BC and
+!                              homogeneous IN removal from Qiaoqiao Wang
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3904,6 +3924,47 @@
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT )
         
+      !------------------------------
+      ! Hg2 (liquid phase only)
+      !------------------------------
+      ELSE IF ( IS_Hg2( N ) ) THEN 
+
+         ! Compute liquid to gas ratio for HgCl2, using
+         ! the appropriate parameters for Henry's law
+         ! (Refs: INSERT HERE)
+         !
+         ! hma, 10-Jan-2011, Henry's law constant for 
+         ! HgCl2 = 1.4d+6 M/atm for HgCl2 (Lindqvist and Rodhe, 1985)
+         CALL COMPUTE_L2G( 1.4e+6_fp, -8.4e+3_fp, TK, 
+     &                     CLDLIQ(I,J,L), L2G )
+         
+         ! Fraction of HgCl2 in liquid phase
+         ! Assume no HgCl2 in the ice phase
+         C_TOT = 1e+0_fp + L2G
+         F_L   = L2G / C_TOT
+
+         ! Compute the rate constant K.  Assume the retention factor  
+         ! for liquid HgCl2 is 0 for T < 268 K, and 
+         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+         IF ( TK >= 248e+0_fp ) THEN
+            K = K_RAIN * F_L  
+         ELSE
+            K = 0e+0_fp               
+         ENDIF
+  
+         ! Compute RAINFRAC, the fraction of rained-out HgCl2
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
+
+      !------------------------------
+      ! HgP (treat like aerosol)
+      !------------------------------
+      ELSE IF ( IS_HgP( N ) ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+         ! CDH 9/28/2009
+!         IF ( TK < 248e+0_fp ) RAINFRAC = 0e+0_fp
+
       ELSE
 
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
@@ -3914,11 +3975,15 @@
          ! Allow scavenging at cold temperatures for Hg simulation.
          ! (cdh, 4/16/09, 5/20/09)
          !------------------------------------------------------------------- 
-! CDH 8/7/2009, 10/27/2009. All temperature dependence for Hg handled below
-         IF ( TK < 258e+0_fp .AND. (.NOT. ITS_A_MERCURY_SIM ) ) THEN
-            ! allow Dust and BCPO to be IN (qq,10/11/2011)
+! CDH 8/7/2009, 10/27/2009. All temperature dependence for Hg handled above
+         IF ( TK < 237d0 .AND. (N == IDTBCPO .or. N == IDTPOPPBC)) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+            RETURN
+         ENDIF
+         IF (TK < 258d0 .AND. TK >= 237d0) THEN
             IF ( N == IDTBCPO .or. N == IDTDST1 .or. N == IDTDST2 .or.
-     &           N == IDTDST3 .or. N == IDTDST4 .or.N == IDTHNO3) THEN
+     &           N == IDTDST3 .or. N == IDTDST4 .or. N == IDTHNO3 .or.
+     &           N == IDTPOPPBC ) THEN
                RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
             ELSE 
                RAINFRAC = 0e+0_fp
@@ -4066,48 +4131,6 @@
          ELSE IF ( N == IDTSOAG .OR. N == IDTSOAM ) THEN
             RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
             RAINFRAC = RAINFRAC * 0.8e+0_fp
-  
-         !------------------------------
-         ! Hg2 (liquid phase only)
-         !------------------------------
-         ELSE IF ( IS_Hg2( N ) ) THEN 
-
-            ! Compute liquid to gas ratio for HgCl2, using
-            ! the appropriate parameters for Henry's law
-            ! (Refs: INSERT HERE)
-            !
-            ! hma, 10-Jan-2011, Henry's law constant for 
-            ! HgCl2 = 1.4d+6 M/atm for HgCl2 (Lindqvist and Rodhe, 1985)
-            CALL COMPUTE_L2G(1.4e+6_fp, -8.4e+3_fp, TK, 
-     &              CLDLIQ(I,J,L), L2G )
-         
-            ! Fraction of HgCl2 in liquid phase
-            ! Assume no HgCl2 in the ice phase
-            C_TOT = 1e+0_fp + L2G
-            F_L   = L2G / C_TOT
-
-            ! Compute the rate constant K.  Assume the retention factor  
-            ! for liquid HgCl2 is 0 for T < 268 K, and 
-            ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( TK >= 248e+0_fp ) THEN
-               K = K_RAIN * F_L  
-            ELSE
-               K = 0e+0_fp               
-            ENDIF
-  
-            ! Compute RAINFRAC, the fraction of rained-out HgCl2
-            ! (Eq. 10, Jacob et al, 2000)
-            RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-
-         !------------------------------
-         ! HgP (treat like aerosol)
-         !------------------------------
-         ELSE IF ( IS_HgP( N ) ) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-            ! CDH 9/28/2009
-!            IF ( TK < 248e+0_fp ) RAINFRAC = 0e+0_fp
-
 
 #if defined( TOMAS )
       ! Added for size-resolved aerosol (win, 7/16/09)
@@ -8893,7 +8916,7 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_F( State_Met, I, J, L, K ) RESULT( F )
+      FUNCTION GET_F( State_Met, I, J, L, K, FF ) RESULT( F )
 !
 ! !USES:
 !
@@ -8903,16 +8926,18 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      INTEGER,        INTENT(IN)    :: I, J, L     ! Location
-      REAL(fp),       INTENT(IN)    :: K           ! rate constant
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      INTEGER,        INTENT(IN)  :: I, J, L     ! Location
+      REAL(fp),       INTENT(IN)  :: K           ! Rate constant
+      REAL(fp),       INTENT(IN)  :: FF          ! Rate constant factor
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                      :: F           ! Vertical updraft velocity in m/s. 
+      REAL(fp)                    :: F           ! Vertical updraft velocity in m/s. 
 ! 
 ! !REVISION HISTORY:
 !  12 Feb 2015 - C. Keller   - Initial version 
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8934,7 +8959,7 @@
       IF ( Vud <= TINY_FP) THEN
          F = 0.0_fp
       ELSE
-         F = 1e+0_fp - EXP( -K * TMP / Vud )
+         F = 1e+0_fp - EXP( -FF*K * TMP / Vud(I,J) )
       ENDIF
 
       END FUNCTION GET_F
