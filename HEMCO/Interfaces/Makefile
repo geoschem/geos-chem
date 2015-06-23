@@ -20,6 +20,7 @@
 #  15 Jul 2014 - R. Yantosca - Initial version
 #  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
 #  10 Jun 2015 - R. Yantosca - Also place a copy of the executable in bin
+#  23 Jun 2015 - M. Sulprizio- Remove executable from bin with "make clean"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -80,6 +81,7 @@ lib: $(OBJECTS)
 clean:
 	@echo "===> Making clean in directory: HEMCO/Interfaces <==="
 	@rm -f *.x *$(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
+	@rm -f $(BIN)/$(EXE)
 
 exe: 
 	@echo "LINK: $(LINK_HCO)"
