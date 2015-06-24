@@ -66,10 +66,8 @@
 !  22 Oct 2012 - R. Yantosca - Now reference Headers/gigc_errcode_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  20 Apr 2015 - E. Lundgren - Convert mixing ratio to v/v moist air before 
-!                              convection and back to v/v dry afterwards.
-!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
-!                              for consistency with moist mixing ratio units
+!  23 Jun 2015 - E. Lundgren - Convert tracer units from v/v dry air to
+!                              kg/kg total air for convection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -180,12 +178,10 @@
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod
-!  20 Apr 2015 - E. Lundgren - Convert mixing ratio to v/v moist air before 
-!                              convection and back to v/v dry afterwards.
 !  28 Apr 2015 - E. Lundgren - Consolidate NFCLDMX arguments to remove 
 !                              passing State_Met array slice
-!  15 Jun 2015 - E. Lundgren - Tracer units in convection are now kg/kg wet air
-!                              (previously v/v wet air)
+!  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
+!                              (previously v/v)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -195,12 +191,12 @@
       ! Scalars
       INTEGER           :: N_TOT_TRC             ! # of tracers to convect
       INTEGER           :: N_TRACERS
-      REAL(fp)          :: TRACER_MW_G(Input_Opt%N_TRACERS)
-      REAL(fp)          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      ! Define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. Units are 
+      ! initially v/v dry air but will be converted to
+      ! kg/kg total air for convection (ewl, 23/15)
       REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
@@ -249,23 +245,18 @@
       ! DO_CONVECT begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
       ! Copy values from Input_Opt
       N_TRACERS         = Input_Opt%N_TRACERS
 
-! Change units from mol/mol to kg/kg for convection (ewl, 6/15/15)
-!      !=================================================================
-!      ! Convert State_Chm%Tracers from dry mixing ratio [v/v] to 
-!      ! moist mixing ratio [v/v] prior to convection (ewl, 4/20/15)
-!      !=================================================================
-!      CALL Convert_DryVV_to_MoistVV( am_I_Root, N_TRACERS, State_Met, 
-!     &                               State_Chm, RC )
-      ! Convert tracer concentration from mol/mol dry air to 
-      ! kg/kg moist air before convection (ewl, 6/15/15)
-      CALL Convert_VR_to_MMR( am_I_Root, N_TRACERS, Input_Opt,
-     &                        State_Chm, RC)
-      CALL Convert_DryMMR_to_MoistMMR( am_I_Root, N_TRACERS, State_Met, 
-     &                                 State_Chm, RC )
-
+      ! Convert State_Chm%Tracers from [v/v dry air] to 
+      ! [kg/kg total air] prior to convection (ewl, 6/23/15)
+      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
+     &                               Input_Opt, State_Chm, RC)
+      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
+     &                                   State_Met, State_Chm, RC )
 
       ! For new diagnostics, archive old species concentration. At the 
       ! moment, the new ND38 diagnostics only returns the total column 
@@ -343,7 +334,7 @@
       DO_ND38   = ( Input_Opt%ND38 > 0 )          ! Should we use ND38 diag?
       TS_DYN    = GET_TS_DYN()                    ! Dynamic timestep [min]
       DT        = DBLE( TS_DYN )                  ! Dynamic timestep [min]
-      FSOL      = 0e+0_fp                             ! Zero the FSOL array
+      FSOL      = 0e+0_fp                         ! Zero the FSOL array
 
       ! Pick the proper # of tracers
 #if   defined( APM )  
@@ -482,29 +473,13 @@
             ! Is this a tracer selected for diagnostics?
             IF ( ANY( Input_Opt%TINDEX(38,:) == IT ) ) THEN
 
-               ! Loss rate (v/v/s)
-               ! Note that BEFORE and State_Chm%Tracers are both 
-               ! moist mixing ratios for convection
+               ! Loss rate (kg/kg total air/s)
                TMP3D = ( BEFORE(:,:,:,IT) - State_Chm%Tracers(:,:,:,IT))
      &               / DTIME 
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous:
-!               ! Convert to kg/s:
-!               ! NOTE: Now use ADMOIST (moist air mass) instead of AD
-!               ! (dry air mass) and use MOISTMW (moist air molec wt)
-!               ! with TCVV since tracer conc is moist mixing ratio
-!               TMP3D = TMP3D * State_Met%ADMOIST 
-!     &                 * Input_Opt%TRACER_MW_G(IT) / State_Met%MOISTMW  
-!
-! New:
-               ! Convert to kg/s:
-               ! NOTE: Now use ADMOIST (moist air mass) instead of AD
-               ! (dry air mass)
+               ! Convert to kg/s
+               ! Now use moist air mass rather than dry air mass (ewl, 6/23/15)
                TMP3D = TMP3D * State_Met%ADMOIST  
-!=====================================================================
 
                TMP2D = SUM(TMP3D,DIM=3) 
 
@@ -530,21 +505,12 @@
       ENDIF
 #endif
 
-!=========================================================================
-! Edits related to changing units from mol/mol to kg/kg (ewl, 6/15/15)
-!      !=================================================================
-!      ! Convert State_Chm%Tracers from moist mixing ratio [v/v] to 
-!      ! dry mixing ratio [v/v] following convection (ewl, 4/20/15)
-!      !=================================================================
-!      CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, State_Met, 
-!     &                               State_Chm, RC ) 
-      ! Convert tracer concentration from kg/kg wet air to 
-      ! mol/mol dry air after advection (ewl, 6/15/15)
-      CALL Convert_MoistMMR_to_DryMMR( am_I_Root, N_TRACERS, State_Met, 
-     &                               State_Chm, RC ) 
-      CALL Convert_MMR_to_VR( am_I_Root, N_TRACERS, Input_Opt,
-     &                        State_Chm, RC)
-!=========================================================================
+      ! Convert tracer concentration from kg/kg total air to 
+      ! mol/mol dry air after convection (ewl, 6/23/15)
+      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
+     &                                   State_Met, State_Chm, RC ) 
+      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
+     &                               Input_Opt, State_Chm, RC)
 
       END SUBROUTINE DO_CONVECTION
 !EOC
@@ -616,11 +582,8 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE differences with 
 !                              State_Met%DELP. Remove dependency on 
 !                              pressure_mod
-!  20 Apr 2015 - E. Lundgren - Now pass moist air MW to FVDAS_CONVECT
-!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
-!                              for consistency with moist mixing ratio units
-!  08 May 2015 - E. Lundgren - Pass tracer molec wts as pointer not array to
-!                              fvdas_convect routine
+!  23 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
+!                              (previously v/v)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -647,7 +610,6 @@
       ! For fields from Input_Opt
       LOGICAL           :: LPRT
       INTEGER           :: N_TRACERS
-      REAL(fp)          :: TRACER_MW_G( Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER :: STT     (:,:,:,:) ! Ptr to State_Chm%TRACERS
@@ -656,11 +618,9 @@
       REAL(fp), POINTER :: p_ZMMU  (:,:,:  ) ! Ptr to ZMMU   (flipped in vert)
       REAL(fp), POINTER :: p_ZMMD  (:,:,:  ) ! Ptr to ZMMD   (flipped in vert)
       REAL(fp), POINTER :: p_ZMEU  (:,:,:  ) ! Ptr to ZMEU   (flipped in vert)
-      REAL(fp), POINTER :: p_MOISTMW(:,:,: ) ! Ptr to MOISTMW(flipped in vert)
       REAL(fp), POINTER :: p_STT   (:,:,:,:) ! Ptr to STT    (flipped in vert)
       REAL(fp), POINTER :: p_F     (:,:,:,:) ! Ptr to F      (flipped in vert)
       REAL(fp), POINTER :: p_FSOL  (:,:,:  ) ! Ptr to F      (for COMPUTE_F)
-      REAL(fp), POINTER :: p_TRACER_MW_G(: ) ! Ptr to tracer molec wts
 
       !=================================================================
       ! DO_GEOS4_CONVECT begins here!
@@ -672,7 +632,6 @@
       ! Copy values from Input_Opt
       LPRT      = Input_Opt%LPRT
       N_TRACERS = Input_Opt%N_TRACERS
-      TRACER_MW_G = Input_Opt%TRACER_MW_G(1:N_TRACERS)
 
       ! Pick the proper # of tracers for convection
 #if   defined( APM )
@@ -783,8 +742,8 @@
       ! Flip arrays in the vertical and call FVDAS_CONVECT
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [v/v] from Chemistry State object
-      ! (mpayer, 12/6/12)
+      ! Initialize GEOS-Chem tracer array from Chemistry State object
+      ! [kg/kg total air] (ewl, 6/23/15)
       STT      => State_Chm%Tracers
 
       ! Point to various fields and flip in vertical.  This avoids 
@@ -794,10 +753,8 @@
       p_ZMMU   => State_Met%ZMMU   (:,:,LLPAR:1:-1  )
       p_ZMMD   => State_Met%ZMMD   (:,:,LLPAR:1:-1  )
       p_ZMEU   => State_Met%ZMEU   (:,:,LLPAR:1:-1  )
-      p_MOISTMW=> State_Met%MOISTMW(:,:,LLPAR:1:-1  )
       p_STT    => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
       p_F      => F                (:,:,LLPAR:1:-1,:)
-      p_TRACER_MW_G => Input_Opt%TRACER_MW_G(1:N_TRACERS)
 
       ! Call the fvDAS convection routines (originally from NCAR!)
       CALL FVDAS_CONVECT( TDT,   
@@ -812,11 +769,9 @@
      &                    DP,     
      &                    NSTEP,    
      &                    p_F,
-     &                    p_TRACER_MW_G,   
      &                    INDEXSOL,
      &                    Input_Opt,
-     &                    State_Met,
-     &                    p_MOISTMW )
+     &                    State_Met )
 
       ! Add a check to set negative values in STT to TINY
       ! (ccc, 4/15/09)
@@ -837,7 +792,6 @@
       ! Free pointers
       NULLIFY( STT,     p_STT,    p_F                    )
       NULLIFY( p_HKETA, p_HKBETA, p_ZMMU, p_ZMMD, p_ZMEU )
-      NULLIFY( p_MOISTMW, p_TRACER_MW_G )
 
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_G4_CONV: a FVDAS_CONVECT' )
@@ -913,9 +867,8 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
 !                              Replace PEDGE difference with State_Met%DELP.
 !                              Remove dependency on pressure_mod.
-!  20 Apr 2015 - E. Lundgren - Now pass moist air MW to GCAP_CONVECT
-!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
-!                              for consistency with moist mixing ratio units
+!  23 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
+!                              (previously v/v)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -942,7 +895,6 @@
       ! For fields from Input_Opt
       LOGICAL            :: LPRT
       INTEGER            :: N_TRACERS
-      REAL(fp)           :: TRACER_MW_G( Input_Opt%N_TRACERS )
 
       ! Pointers
       REAL(fp),  POINTER :: STT        (:,:,:,:) ! Ptr to Tracer concentrations
@@ -953,7 +905,6 @@
       REAL(fp),  POINTER :: p_UPDN     (:,:,:  ) ! Ptr to UPDN     met field
       REAL(fp),  POINTER :: p_DNDN     (:,:,:  ) ! Ptr to DNDN     met field
       REAL(fp),  POINTER :: p_DETRAINN (:,:,:  ) ! Ptr to DETRAINN met field
-      REAL(fp),  POINTER :: p_MOISTMW  (:,:,:  ) ! Ptr to MOISTMW  met field
       REAL(fp),  POINTER :: p_STT      (:,:,:,:) ! Ptr to STT (flipped)
       REAL(fp),  POINTER :: p_F        (:,:,:,:) ! Ptr to F   (flipped)
       REAL(fp),  POINTER :: p_FSOL     (:,:,:  ) ! Ptr to F   (for COMPUTE_F)
@@ -968,7 +919,6 @@
       ! Copy values from Input_Opt
       LPRT      = Input_Opt%LPRT
       N_TRACERS = Input_Opt%N_TRACERS
-      TRACER_MW_G      = Input_Opt%TRACER_MW_G(1:N_TRACERS)
 
       ! Pick the proper # of tracers for convection
 #if   defined( APM )
@@ -1078,8 +1028,8 @@
       ! Flip arrays in the vertical and call GCAP_CONVECT
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [v/v] from Chemistry State object
-      ! (mpayer, 12/6/12)
+      ! Initialize GEOS-Chem tracer array from Chemistry State object
+      ! [kg/kg total air]
       STT        => State_Chm%Tracers
 
       ! Point to met fields and flip in vertical
@@ -1090,7 +1040,6 @@
       p_UPDN     => State_Met%UPDN     (:,:,LLPAR:1:-1  )
       p_DNDN     => State_Met%DNDN     (:,:,LLPAR:1:-1  )
       p_DETRAINN => State_Met%DETRAINN (:,:,LLPAR:1:-1  )
-      p_MOISTMW  => State_Met%MOISTMW  (:,:,LLPAR:1:-1  )
       p_STT      => State_Chm%Tracers  (:,:,LLPAR:1:-1,:)
       p_F        => F                  (:,:,LLPAR:1:-1,:)
 
@@ -1101,7 +1050,6 @@
      &                   DP, ! I think this is the correct way (bmy, 5/25/05)
      &                   NSTEP, 
      &                   p_F,
-     &                   TRACER_MW_G,   
      &                   INDEXSOL, 
      &                   p_UPDE,
      &                   p_DNDE,
@@ -1109,8 +1057,7 @@
      &                   p_DETRAINE,
      &                   p_UPDN,
      &                   p_DNDN,
-     &                   p_DETRAINN,
-     &                   p_MOISTMW )
+     &                   p_DETRAINN )
 
       ! Add a check to set negative values in STT to TINY
       ! (ccc, 4/15/09)
@@ -1131,7 +1078,7 @@
       ! Free pointer
       NULLIFY( STT,    p_STT,  p_F                    )
       NULLIFY( p_UPDE, p_DNDE, p_ENTRAIN,  p_DETRAINE )
-      NULLIFY( p_UPDN, p_DNDN, p_DETRAINN, p_MOISTMW  )
+      NULLIFY( p_UPDN, p_DNDN, p_DETRAINN )
 
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_GCAP_CONV: a GCAP_CONVECT' )
@@ -1357,16 +1304,12 @@
 !                              remove dependency on pressure_mod
 !  20 Apr 2015 - E. Lundgren - Use DELP*100/g instead of AD/area for BMASS
 !                              to keep definition as grid box moist mass/area
-!  20 Apr 2015 - E. Lundgren - Now use State_Met%MOISTMW to correctly use
-!                              TCVV with moist mixing ratio
 !  28 Apr 2015 - E. Lundgren - Remove CLDMAS and DTRM as arguments since 
 !                              now included in State_Met
-!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
-!                              for consistency with moist mixing ratio units
 !  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
 !                              whether the dynamic ocean is used
-!  15 Jun 2015 - E. Lundgren - Initial work to change tracer conc units to
-!                              kg/kg from v/v. Not all comments updated.
+!  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
+!                              (previously v/v)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1397,9 +1340,9 @@
 
       ! TINY = a very small number
 #if defined( TOMAS )
-      REAL(fp), PARAMETER      :: TINY  = 1e-60_fp   ! Set to 1d-60 for TOMAS code
+      REAL(fp), PARAMETER      :: TINY  = 1e-60_fp ! Set to 1d-60 for TOMAS code
 #else
-      REAL(fp), PARAMETER      :: TINY  = 1e-14_fp   ! Leave as 1d-14 for std GEOS-Chem
+      REAL(fp), PARAMETER      :: TINY  = 1e-14_fp ! Leave as 1d-14 for std G-C
 #endif
       REAL(fp), PARAMETER      :: TINY2 = 1e-30_fp 
 
@@ -1423,7 +1366,6 @@
       LOGICAL                  :: LDYNOCEAN
       LOGICAL                  :: LGTMM
       INTEGER                  :: NC
-      REAL(fp)                 :: TRACER_MW_G( Input_Opt%N_TRACERS )
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -1446,10 +1388,9 @@
       LDYNOCEAN         = Input_Opt%LDYNOCEAN
       LGTMM             = Input_Opt%LGTMM
       NC                = Input_Opt%N_TRACERS
-      TRACER_MW_G              = Input_Opt%TRACER_MW_G(1:NC)
 
-      ! Initialize GEOS-Chem tracer array [v/v] from Chemistry State object
-      ! (mpayer, 12/6/12)
+      ! Initialize GEOS-Chem tracer array from Chemistry State object
+      ! [kg/kg total air]
       Q                 => State_Chm%Tracers
 
       ! Initialize cloud mass flux at upper edge of each level [kg/m2/s]
@@ -1543,7 +1484,7 @@
 !  grid boxes in m2. (bmy, 2/4/03)
 !
 !  Now using delta pressure * 100 / g for BMASS calculation. Removed
-!  area dependent AD / AREA_M2. Note that BMASS is the moist air kg/m2 and 
+!  area-dependent AD / AREA_M2. Note that BMASS is the moist air kg/m2 and 
 !  the change of AD from moist to dry in AIRQNT precludes its legacy usage 
 !  here (ewl, 4/28/15)
 !
@@ -1852,26 +1793,11 @@
                      ! the box (I,J), for the tracer IC going out of 
                      ! the top of the layer K to the layer above (K+1) 
                      ! (bey, 11/10/99).      
-                     !
-                     ! Now adjust 1/TCVV by factor AIRMW/MOISTMW to
-                     ! use with moist mixing ratio (ewl, 4/28/15)
                      !==================================================
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous:
-!                     IF ( ND14 > 0 ) THEN
-!                        DTCSUM(I,J,K,IC) = DTCSUM(I,J,K,IC) + (-T2-T3)  
-!     &                                     * AREA_M2 
-!     &                                     * Input_Opt%TRACER_MW_G(IC) 
-!     &                                     / State_Met%MOISTMW(I,J,K)  
-!
-! New:
                      IF ( ND14 > 0 ) THEN
                         DTCSUM(I,J,K,IC) = DTCSUM(I,J,K,IC) + (-T2-T3)  
      &                                     * AREA_M2 
-!=====================================================================
                      ENDIF
 
 #if !defined(NO_BPCH)
@@ -1879,9 +1805,6 @@
                      ! ND38 Diagnostic: loss of soluble tracer to wet
                      ! scavenging in cloud updrafts [kg/s].  We must 
                      ! divide by DNS, the # of internal timesteps.
-                     !
-                     ! Now adjust 1/TCVV by factor AIRMW/MOISTMW to
-                     ! use with moist mixing ratio (ewl, 4/28/15)
                      !==================================================
                      IF ( ( ND38 > 0 .or. LGTMM )
      &                    .and. ISOL > 0 .and. K <= LD38 ) THEN
@@ -1891,19 +1814,8 @@
 !                        endif
 !#endif
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!                        AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) 
-!     &                              + T0 * AREA_M2 
-!     &                              * Input_Opt%TRACER_MW_G(IC) 
-!     &                              / ( State_Met%MOISTMW(I,J,K) * DNS )  
-!
-! New:
                         AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) 
      &                              + T0 * AREA_M2 / DNS  
-!=====================================================================
 
                      ENDIF
 #endif
@@ -1917,21 +1829,8 @@
                      !=================================================
                      IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
-
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!                        ! Wet scavenged Hg(II) in [kg/s]
-!                        WET_Hg2 = T0 * AREA_M2
-!     &                            * Input_Opt%TRACER_MW_G(IC) 
-!     &                            / ( State_Met%MOISTMW(I,J,K) * DNS )  
-!
-! New:
                         ! Wet scavenged Hg(II) in [kg/s]
                         WET_Hg2 = T0 * AREA_M2 / DNS   
-!=====================================================================
-
 
                         ! Convert [kg/s] to [kg]
                         WET_Hg2 = WET_Hg2 * NDT 
@@ -1944,19 +1843,8 @@
 
                      IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!                        ! Wet scavenged Hg(P) in [kg/s]
-!                        WET_HgP = T0 * AREA_M2
-!     &                            * Input_Opt%TRACER_MW_G(IC) 
-!     &                            / ( State_Met%MOISTMW(I,J,K) * DNS )  
-!
-! New:
                         ! Wet scavenged Hg(P) in [kg/s]
                         WET_HgP = T0 * AREA_M2 / DNS
-!=====================================================================
 
                         ! Convert [kg/s] to [kg]
                         WET_HgP = WET_HgP * NDT 
@@ -2197,8 +2085,6 @@
 !                              tracers below the cloud base (C. Friedman)
 !  20 Apr 2015 - E. Lundgren - Use DELP*100/g instead of AD/area as grid box
 !                              moist mass per area and remove AD from routine
-!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
-!                              for consistency with moist mixing ratio units
 !  20 May 2015 - M. Sulprizio- Apply bug fixes provided by Viral Shah:
 !                              -- Remove F(K,IC) > 0 condition that prevents
 !                                 archiving of deposited mass in DIAG38
@@ -2208,8 +2094,8 @@
 !  04 Jun 2015 - E. Lundgren - Adapt Viral Shah bug fixes to moist mixing ratio
 !  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
 !                              whether the dynamic ocean is used
-!  15 Jun 2015 - E. Lundgren - Initial work to change tracer conc units to
-!                              kg/kg from v/v. Not all comments updated
+!  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
+!                              (previously v/v)
 !  22 Jun 2015 - E. Lundgren - Move QB_NUM calculation to within timestep loop
 !EOP
 !------------------------------------------------------------------------------
@@ -2230,7 +2116,7 @@
       REAL(fp)            :: CMOUT,       DELQ,     DQ,      DNS
       REAL(fp)            :: ENTRN,       QC,       QC_PRES, QC_SCAV 
       REAL(fp)            :: SDT,         T0,       T0_SUM,  T1    
-      REAL(fp)            :: T2,          T3,       T4,      TRACER_MW_G   
+      REAL(fp)            :: T2,          T3,       T4 
       REAL(fp)            :: TSUM
       REAL(fp)            :: LOST,        GAINED,   WETLOSS, MASS_WASH
       REAL(fp)            :: MASS_NOWASH, QDOWN,    DT,      F_WASHOUT
@@ -2249,7 +2135,6 @@
       REAL(fp),  POINTER  :: PFICU    (:        )
       REAL(fp),  POINTER  :: PFLCU    (:        )
       REAL(fp),  POINTER  :: REEVAPCN (:        )
-      REAL(fp),  POINTER  :: MOISTMW  (:        )
       REAL(fp),  POINTER  :: DELP     (:        )
       REAL(fp),  POINTER  :: T        (:        )
       REAL(fp),  POINTER  :: H2O2s    (:        )
@@ -2266,7 +2151,6 @@
       DQRCU    => State_Met%DQRCU   (I,J,:        ) ! Precip production rate:
       DTRAIN   => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
       REEVAPCN => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
-      MOISTMW  => State_Met%MOISTMW (I,J,:        ) ! Moist air molec wt [g/mol]
       DELP     => State_Met%DELP    (I,J,:        ) ! Edge pressure diff [hPa]
       T        => State_Met%T       (I,J,:        ) ! Air temperature [K]
       H2O2s    => H2O2s_3D          (I,J,:        ) ! H2O2s from sulfate_mod
@@ -2349,9 +2233,9 @@
       ! base [kg/m2]. Calculate MB by looping over levels below the 
       ! cloud base.
       !-----------------------------------------------------------------
-      MB      = 0e+0_fp 
-      DO K  = 1, CLDBASE-1
-         MB        = MB + BMASS(K)
+      MB = 0e+0_fp 
+      DO K = 1, CLDBASE-1
+         MB = MB + BMASS(K)
       ENDDO
 
       ! Is this a Hg simulation?
@@ -2379,9 +2263,9 @@
             ! B e l o w   C l o u d   B a s e   (K < CLDBASE) 
             !
             ! QB is the "weighted avg" mixing ratio below the cloud
-            ! base [mol/mol].
+            ! base [kg/kg total air].
             ! QC is the mixing ratio of the air that moved in cumulus 
-            ! transport up to the next level [mol/mol]. 
+            ! transport up to the next level [kg/kg total air]. 
             ! MB is the total mass of air below the cloud base per 
             ! unit area [kg/m2] (see calculation before loop).
             !-----------------------------------------------------------
@@ -2396,14 +2280,13 @@
                   ! %%% Non-negligible Cloud mass flux %%% 
                   !-----------------------------------------------------
 
-                  ! CAlculate QB_NUM, the numerator for QB. QB is the 
+                  ! Calculate QB_NUM, the numerator for QB. QB is the 
                   ! weighted average mixing ratio below the cloud base.
-                  !
                   ! QB_NUM is equal to the grid box tracer concentrations 
                   ! [kg/kg total air] weighted by the adjacent level pressure 
                   ! differences and summed over all levels up to just 
                   ! below the cloud base (ewl, 6/22/15)           
-                  QB_NUM  = 0e+0_fp  ! [hPa kg/kg total air]
+                  QB_NUM  = 0e+0_fp  
                   DO K  = 1, CLDBASE-1
                      QB_NUM = QB_NUM + Q(K,IC) * DELP(K)
                   ENDDO
@@ -2413,7 +2296,7 @@
                   QB = QB_NUM / ( PEDGE(1) - PEDGE(CLDBASE) )
 
                   ! Compute QC, the mixing ratio of the air that moved
-                  ! in cumulus transport up to the next level [mol/mol]
+                  ! in cumulus transport up to the next level [kg/kg]
                   !
                   !        Total mass of tracer below cloud base  +   
                   !        Subsidence into cloud base from above  
@@ -2425,7 +2308,7 @@
      &                 ( MB    + CMFMC(CLDBASE-1) * SDT  ) 
 
                   ! Copy QC to all levels of the tracer array Q
-                  ! that are below the cloud base level [mol/mol]
+                  ! that are below the cloud base level [kg/kg]
                   Q(1:CLDBASE-1,IC) = QC
 
                ELSE                  
@@ -2435,7 +2318,7 @@
                   !-----------------------------------------------------
 
                   ! When CMFMC is negligible, then set QC to the tracer
-                  ! concentration at the cloud base level [mol/mol]
+                  ! concentration at the cloud base level [kg/kg]
                   QC = Q(CLDBASE,IC)
    
                ENDIF
@@ -2445,7 +2328,7 @@
                !-----------------------------------------------------
                ! If the cloud base happens at level 1, then just
                ! set QC to the tracer concentration at the surface 
-               ! level [mol/mol]
+               ! level [kg/kg]
                !-----------------------------------------------------
                QC = Q(CLDBASE,IC) 
 
@@ -2505,10 +2388,10 @@
                   ! Air mass flowing into cloud at grid box (K) [kg/m2/s]
                   ENTRN   = CMOUT - CMFMC_BELOW
 
-                  ! Amount of QC preserved against scavenging [mol/mol]
+                  ! Amount of QC preserved against scavenging [kg/kg]
                   QC_PRES = QC * ( 1e+0_fp - F(K,IC) )
 
-                  ! Amount of QC lost to scavenging [mol/mol]
+                  ! Amount of QC lost to scavenging [kg/kg]
                   ! QC_SCAV = 0 for non-soluble tracer
                   QC_SCAV = QC * F(K,IC)
 
@@ -2576,7 +2459,7 @@
                   ENDIF
                   !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-                  ! Update QC taking entrainment into account [mol/mol]
+                  ! Update QC taking entrainment into account [kg/kg]
                   ! Prevent div by zero condition
                   IF ( ENTRN >= 0e+0_fp .and. CMOUT > 0e+0_fp ) THEN
                      QC   = ( CMFMC_BELOW * QC_PRES   + 
@@ -2598,10 +2481,10 @@
                   ! For convenience we denote:
                   !
                   !  QC_SCAV = Amount of tracer wet-scavenged in updrafts
-                  !          = QC_k-1 * F(k,IC)    [mol/mol]
+                  !          = QC_k-1 * F(k,IC)    [kg/kg]
                   !
                   !  QC_PRES = Amount of tracer preserved against
-                  !            wet-scavenging in updrafts [mol/mol]
+                  !            wet-scavenging in updrafts [kg/kg]
                   !          = QC_k-1 * ( 1 - F(k,IC) )   
                   !
                   ! Where F(k,IC) is the fraction of tracer IC in level k
@@ -2650,7 +2533,7 @@
                   ! out of the box.
                   !
                   ! Units of T0, T1, T2, T3, T4, and TSUM are
-                  ! [kg/m2/s * mol tracer / mol total air]
+                  ! [kg/m2/s * kg tracer / kg total air]
                   !------------------------------------------------------------
                   T0      =  CMFMC_BELOW * QC_SCAV      
                   T1      =  CMFMC_BELOW * QC_PRES       
@@ -2660,14 +2543,14 @@
                  
                   TSUM    = T1 + T2 + T3 + T4          
                   
-                  DELQ    = ( SDT / BMASS(K) ) * TSUM    ! change in [mol/mol]
+                  DELQ    = ( SDT / BMASS(K) ) * TSUM    ! change in [kg/kg]
 
                   ! If DELQ > Q then do not make Q negative!!!
                   IF ( Q(K,IC) + DELQ < 0 ) THEN
                      DELQ = -Q(K,IC)
                   ENDIF
 
-                  ! Increment the tracer array [v/v]
+                  ! Increment the tracer array [kg/kg]
                   Q(K,IC) = Q(K,IC) + DELQ
 
                   ! check for infinity
@@ -2685,25 +2568,11 @@
                      RETURN
                   ENDIF
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!                  ! Pass T0_SUM in units of [kg tracer/m2/timestep].
-!                  ! Converting kg total air to kg tracer requires use
-!                  ! of the molecular weight of air including moisture
-!                  ! (ewl, 6/5/15)
-!                  T0_SUM = T0_SUM + T0 * SDT * TRACER_MW_G 
-!     &                                 / MOISTMW(K)
-!
-! New:
                   ! Pass T0_SUM in units of [kg tracer/m2/timestep].
                   ! Converting kg total air to kg tracer requires use
                   ! of the molecular weight of air including moisture
                   ! (ewl, 6/5/15)
                   T0_SUM = T0_SUM + T0 * SDT
-!=====================================================================
-
 
                   !------------------------------------------------------------
                   ! (3.3)  N D 1 4   D i a g n o s t i c
@@ -2717,18 +2586,8 @@
                   !------------------------------------------------------------
                   IF ( USE_DIAG14 ) THEN
  
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!                    DIAG14(K,IC) = DIAG14(K,IC) + ( -T2-T3 ) * AREA_M2 
-!     &                              * TRACER_MW_G / ( MOISTMW(K) * DNS )  
-!
-! New:
                     DIAG14(K,IC) = DIAG14(K,IC) + ( -T2-T3 ) * AREA_M2 
      &                              / DNS   
-!=====================================================================
-
 
                   ENDIF
 
@@ -2742,17 +2601,7 @@
                   !------------------------------------------------------------
                   IF ( USE_DIAG38 ) THEN
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!                     DIAG38(K,IC) = DIAG38(K,IC) + T0 * AREA_M2 
-!     &                              * TRACER_MW_G / ( MOISTMW(K) * DNS ) 
-!
-! New:
                      DIAG38(K,IC) = DIAG38(K,IC) + T0 * AREA_M2 / DNS  
-!=====================================================================
-
 
                      ! check for infinity (added by hma, 20101117)
                      IF ( .not. IT_IS_FINITE( DIAG38(K,IC) ) ) THEN
@@ -2768,7 +2617,7 @@
                   !------------------------------------------------------------
 
                   ! If there is no cloud mass flux coming from below, set
-                  ! QC to the tracer concentration at this level [v/v]
+                  ! QC to the tracer concentration at this level [kg/kg]
                   QC = Q(K,IC)
                   
                   ! Bug fix for the cloud base layer, which is not necessarily
@@ -2779,14 +2628,14 @@
                   IF ( CMFMC(K) > TINYNUM ) THEN 
 
                      ! Tracer convected from K -> K+1 
-                     ! [kg/m2/s * mol tracer/mol total air]
+                     ! [kg/m2/s * kg tracer/kg total air]
                      T2   = -CMFMC(K) * QC
 
                      ! Tracer subsiding from K+1 -> K [kg/m2/s]
-                     ! [kg/m2/s * mol tracer/mol total air]
+                     ! [kg/m2/s * kg tracer/kg total air]
                      T3   =  CMFMC(K) * Q(K+1,IC)
 
-                     ! Change in tracer concentration [v/v]
+                     ! Change in tracer concentration [kg/kg]
                      DELQ = ( SDT / BMASS(K) ) * (T2 + T3)
 
                      ! If DELQ > Q then do not make Q negative!!!
@@ -2794,7 +2643,7 @@
                         DELQ = -Q(K,IC)
                      ENDIF
   
-                     ! Add change in tracer to Q array [v/v]
+                     ! Add change in tracer to Q array [kg/kg]
                      Q(K,IC) = Q(K,IC) + DELQ
 
                   ENDIF
@@ -2877,40 +2726,17 @@
                      ! [kg tracer/m2/timestep]
                      GAINED  = T0_SUM * ALPHA2
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!                     ! Amount of aerosol lost to washout in grid box
-!                     ! [kg tracer/m2/timestep]
-!                     WETLOSS = Q(K,IC) * BMASS(K) * TRACER_MW_G  
-!     &                                 / MOISTMW(K) * WASHFRAC - GAINED
-!
-! New:
-                     ! Amount of aerosol lost to washout in grid box
-                     ! [kg tracer/m2/timestep]
                      WETLOSS = Q(K,IC) * BMASS(K) * WASHFRAC - GAINED
-!=====================================================================
+
                      ! LOST is the rained out aerosol coming down from
                      ! grid box (I,J,L+1) that will remain in the liquid
                      ! phase in grid box (I,J,L) and will NOT re-evaporate
                      ! [kg/m2/timestep]
  1                   LOST    = T0_SUM - GAINED
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!                     ! Update tracer concentration (V. Shah, mps, 5/20/15)
-!                     ! [mol/mol]
-!                     Q(K,IC) = Q(K,IC) - WETLOSS * MOISTMW(K)   
-!     &                                 / ( TRACER_MW_G * BMASS(K) )
-!
-! New:
                      ! Update tracer concentration (V. Shah, mps, 5/20/15)
-                     ! [mol/mol]
+                     ! [kg/kg]
                      Q(K,IC) = Q(K,IC) - WETLOSS / BMASS(K) 
-!=====================================================================
 
                      ! Update T0_SUM, the total amount of scavenged
                      ! tracer that will be passed to the grid box below
@@ -2926,7 +2752,7 @@
 
                      ! MASS_NOWASH is the amount of non-aerosol tracer in 
                      ! grid box (I,J,L) that is NOT available for washout.
-                     ! Calculate in units of [mol/mol]
+                     ! Calculate in units of [kg/kg]
                      MASS_NOWASH = ( 1e+0_fp - F_WASHOUT ) * Q(K,IC)
 
                      ! MASS_WASH is the total amount of non-aerosol tracer
@@ -2936,19 +2762,8 @@
                      ! tracer coming down from grid box (I,J,L+1).
                      ! (Eq. 15, Jacob et al, 2000)
                      ! Units are [kg tracer/m2/timestep]
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous:              
-!                     MASS_WASH = ( F_WASHOUT * Q(K,IC) ) * BMASS(K)
-!     &                           * TRACER_MW_G / MOISTMW(K) + T0_SUM
-!
-! New:
                      MASS_WASH = ( F_WASHOUT * Q(K,IC) ) * BMASS(K)
      &                            + T0_SUM
-!=====================================================================
-
-
 
                      ! WETLOSS is the amount of tracer mass in 
                      ! grid box (I,J,L) that is lost to washout.
@@ -2956,25 +2771,11 @@
                      ! [kg tracer/m2/timestep]
                      WETLOSS     = MASS_WASH * WASHFRAC - T0_SUM
                      
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!                     ! The tracer left in grid box (I,J,L) is what was
-!                     ! originally in the non-precipitating fraction 
-!                     ! of the box, plus MASS_WASH, less WETLOSS. 
-!                     ! [mol/mol]
-!                     Q(K,IC) = Q(K,IC) - WETLOSS * MOISTMW(K) 
-!     &                                  / ( TRACER_MW_G * BMASS(K) )
-!
-! New:
                      ! The tracer left in grid box (I,J,L) is what was
                      ! originally in the non-precipitating fraction 
                      ! of the box, plus MASS_WASH, less WETLOSS. 
                      ! [kg/kg]
                      Q(K,IC) = Q(K,IC) - WETLOSS / BMASS(K) 
-!=====================================================================
-
                      
                      ! Update T0_SUM, the total scavenged tracer
                      ! that will be passed to the grid box below
@@ -2995,21 +2796,8 @@
                   !------------------------------------------------------------
                   IF ( USE_DIAG14 ) THEN
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!                     DIAG14(K,IC) = DIAG14(K,IC) 
-!     &                              + ( -T2-T3 ) * AREA_M2
-!     &                              * TRACER_MW_G 
-!     &                              / ( MOISTMW(K) * DNS )
-!
-! New:
                      DIAG14(K,IC) = DIAG14(K,IC) 
      &                              + ( -T2-T3 ) * AREA_M2 / DNS 
-!=====================================================================
-
-
 
                   ENDIF
 
@@ -3071,8 +2859,8 @@
                CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP, State_Met )
             ENDIF
 
-         ENDDO 
-      ENDDO      
+         ENDDO      ! End internal timestep loop
+      ENDDO      ! End loop over tracers
 
       !================================================================
       ! Succesful return!
@@ -3086,7 +2874,6 @@
       NULLIFY( PFICU    )
       NULLIFY( PFLCU    )
       NULLIFY( REEVAPCN )
-      NULLIFY( MOISTMW  )
       NULLIFY( DELP     )
       NULLIFY( T        )
       NULLIFY( H2O2s    )
