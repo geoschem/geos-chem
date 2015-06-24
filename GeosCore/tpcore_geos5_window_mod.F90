@@ -440,14 +440,10 @@ CONTAINS
  !%%% Added MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV, ND24, ND25, and 
  !%%% ND26 to arg list of TPCORE_FVDAS for GEOS-CHEM mass-flux diagnostics 
  !%%% (bdf, bmy, 9/28/04). 
- !%%%
- !%%% Added MOISTMW for use with moist mixing ratio and now pass
- !%%% tracer concentration as moist mixing ratio for advection
- !%%% (ewl, 4/20/15)
+ !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%%
                          MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2,     &
-                         TCVV,     ND24,     ND25,     ND26,        &
-                         MOISTMW )
+                         ND24,     ND25,     ND26  )
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 !----------------------------------------------------------------------------
 
@@ -562,13 +558,12 @@ CONTAINS
  !%%%
  !%%% Added MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV, ND24, ND25, ND26
  !%%% for mass-flux diagnostics (bdf, bmy, 9/28/04)
+ !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%%
  REAL,    INTENT(INOUT) :: MASSFLEW(:,:,:,:) ! east/west mass flux
  REAL,    INTENT(INOUT) :: MASSFLNS(:,:,:,:) ! north/south mass flux
  REAL,    INTENT(INOUT) :: MASSFLUP(:,:,:,:) ! up/down vertical mass flux
  REAL,    INTENT(IN)    :: AREA_M2(JM)       ! box area for mass flux diag
- REAL,    INTENT(IN)    :: TCVV(NQ)          ! dry air MW / tracer MW
- REAL,    INTENT(IN)    :: MOISTMW(:,:,:)    ! moist air molecular wt [g/mol]
  INTEGER, INTENT(IN)    :: ND24              ! E/W flux diag switch
  INTEGER, INTENT(IN)    :: ND25              ! N/S flux diag switch
  INTEGER, INTENT(IN)    :: ND26              ! up/down flux diag switch
@@ -809,13 +804,9 @@ CONTAINS
  !%%% Now pass MASSFLEW, MASSFLNS, AREA_M2, TCVV, ND24, ND25, DT as 
  !%%% arguments to routine TP2G for GEOS-CHEM mass flux diagnostics 
  !%%% (bdf, bmy, 9/28/04). 
+ !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%%
- !%%% Now pass MOISTMW for use with moist mixing ratio and now pass
- !%%% tracer concentration as moist mixing ratio for advection
- !%%% (ewl, 4/20/15)
- !%%%
-               MFLEW, MFLNS,      &
-               AREA_M2, TCVV(IQ), MOISTMW(:,:,k), ND24, ND25, DT )
+               MFLEW, MFLNS, AREA_M2, ND24, ND25, DT )
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ! Save mass flux diagnostics (clb, 7/2/12)
@@ -881,20 +872,9 @@ CONTAINS
     DO I  = 1, IM
     DO J  = 1, JM
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!       DTC(I,J,K,IQ) = ( Q(I,J,K,IQ)     * DELP1(I,J,K)   -          &
-!                         QTEMP(I,J,K,IQ) * DELP(I,J,K)  ) *          &
-!                         AREA_M2(J) * g0_100 * AIRMW                 &
-!                         / ( MOISTMW(I,J,K) * TCVV(IQ) )
-!
-! New:
        DTC(I,J,K,IQ) = ( Q(I,J,K,IQ)     * DELP1(I,J,K)   -          &
                          QTEMP(I,J,K,IQ) * DELP(I,J,K)  ) *          &
                          AREA_M2(J) * g0_100
-!=====================================================================
 
        ! top layer should have no residual.  the small residual is from 
        ! a non-pressure fixed flux diag.  The z direction may be off by 
@@ -916,20 +896,9 @@ CONTAINS
     DO I  = 1, IM
     DO J  = 1, JM
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!       TRACE_DIFF         = ( Q(I,J,K,IQ)     * DELP1(I,J,K)  -     &
-!                              QTEMP(I,J,K,IQ) * DELP(I,J,K) ) *     &
-!                              AREA_M2(J) * g0_100 * AIRMW           &
-!                              / ( MOISTMW(I,J,K) * TCVV(IQ) )
-!
-! New:
        TRACE_DIFF         = ( Q(I,J,K,IQ)     * DELP1(I,J,K)  -     &
                               QTEMP(I,J,K,IQ) * DELP(I,J,K) ) *     &
                               AREA_M2(J) * g0_100       
-!=====================================================================
 
        DTC(I,J,K,IQ)      = DTC(I,J,K-1,IQ) + TRACE_DIFF
 
@@ -939,7 +908,6 @@ CONTAINS
     ENDDO
 !$OMP END PARALLEL DO
     ENDDO
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
     ENDIF
 
@@ -1294,16 +1262,13 @@ CONTAINS
  !%%% 
  !%%% Add MFLEW, MFLNS, AREA_M2, TCVV, ND24, ND25, DT as arguments
  !%%% to subroutine TP2G for mass-flux diagnostics (bmy, 9/28/04)
+ !%%% Removed TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%%
- !%%% Now pass MOISTMW for use with moist mixing ratio
- !%%% (ewl, 4/20/15)
- !%%%
-                MFLEW, MFLNS, AREA_M2,                 & 
-                TCVV,   MOISTMW, ND24,  ND25,   DT )
+                MFLEW, MFLNS, AREA_M2, ND24,  ND25,   DT )
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ! Uses:
-    USE CMN_GCTM_MOD   ! Physical constants g0_100 and AIRMW
+    USE CMN_GCTM_MOD   ! Physical constants g0_100
 
  implicit none
 
@@ -1332,15 +1297,11 @@ CONTAINS
  !%%%  
  !%%% Declare MFLEW, MFLNS, AREA_M2, TCVV, ND24, ND25, DT for the
  !%%% GEOS-CHEM mass-flux diagnostics (bdf, bmy, 9/28/04)
- !%%% 
- !%%% Declare MOISTMW for use in calculating the mass-flux diagnostics
- !%%% (ewl, 4/20/15)
+ !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%% 
    REAL,    INTENT(INOUT) :: MFLEW(IM,JM)   ! E/W mass flux array
    REAL,    INTENT(INOUT) :: MFLNS(IM,JM)   ! N/S mass flux array
    REAL,    INTENT(IN)    :: AREA_M2(JM)    ! Grid bos surface area [m2]
-   REAL,    INTENT(IN)    :: TCVV           ! dry air MW / tracer MW
-   REAL,    INTENT(IN)    :: MOISTMW(IM,JM) ! moist air MW
    INTEGER, INTENT(IN)    :: ND24           ! flux diag
    INTEGER, INTENT(IN)    :: ND25           ! flux diag
    REAL,    INTENT(IN)    :: DT             ! time step for flux diagnostic
@@ -1401,30 +1362,12 @@ CONTAINS
 
          DO I = 1, IM-1
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!            DTC = FX(I,J) * AREA_M2(J) * g0_100 * AIRMW       &
-!                  / ( TCVV * MOISTMW(I,J) * DT )
-!
-! New:
             DTC = FX(I,J) * AREA_M2(J) * g0_100 / DT 
-!=====================================================================
 
             MFLEW(I,J) = MFLEW(I,J) + DTC
          ENDDO
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!         DTC = FX(IM,J) * AREA_M2(J) * g0_100 * AIRMW         &
-!                / ( TCVV * MOISTMW(IM,J) * DT )
-!
-! New:
          DTC = FX(IM,J) * AREA_M2(J) * g0_100 / DT 
-!=====================================================================
 
          MFLEW(IM,J) = MFLEW(I,J) + DTC
       ENDDO
@@ -1441,17 +1384,7 @@ CONTAINS
       DO J = JS2G0, JN2G0
       DO I = 1,     IM
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!         DTC = FY(I,J) * RGW_25(J) * AREA_M2(J) * g0_100 * AIRMW   &
-!                      / ( TCVV * MOISTMW(I,J) * DT )
-!
-! New:
          DTC = FY(I,J) * RGW_25(J) * AREA_M2(J) * g0_100 / DT 
-!=====================================================================
-
 
          MFLNS(I,J) = MFLNS(I,J) + DTC
       ENDDO
@@ -1461,16 +1394,7 @@ CONTAINS
       IF ( JFIRST == 1 ) THEN
          DO I = 1, IM
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!            DTC = -FY(I,2) * RGW_25(1) * AREA_M2(1) * g0_100              &
-!                  * AIRMW / ( TCVV * MOISTMW(I,2) * DT )
-!
-! New:
             DTC = -FY(I,2) * RGW_25(1) * AREA_M2(1) * g0_100 / DT 
-!=====================================================================
 
             MFLNS(I,1) = MFLNS(I,1) + DTC
          ENDDO
@@ -1480,16 +1404,7 @@ CONTAINS
       IF ( JLAST == JM ) THEN
          DO I = 1, IM
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!            DTC = FY(I,JM) * RGW_25(JM) * AREA_M2(JM) * g0_100            &
-!                  * AIRMW / ( TCVV * MOISTMW(I,JM) * DT )
-!
-! New:
             DTC = FY(I,JM) * RGW_25(JM) * AREA_M2(JM) * g0_100 / DT
-!=====================================================================
 
             MFLNS(I,JM) = MFLNS(I,JM) + DTC
          ENDDO

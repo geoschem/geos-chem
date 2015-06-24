@@ -51,11 +51,9 @@
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod.
-!  27 Apr 2015 - E. Lundgren - Now pass moist air MW to FVDAS_CONVECT (with
-!                              vertical indices flipped)
 !  27 Apr 2015 - M. Yannetti - Fixed SMALLEST
-!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
-!                              for consistency with moist mixing ratio units
+!  23 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
+!                              (previously v/v)
 !******************************************************************************
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -120,7 +118,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: I, J, L, L2
-      REAL(fp)              :: HYPI(LLPAR+1)
+      REAL(fp)            :: HYPI(LLPAR+1)
 
       !=================================================================
       ! INIT_FVDAS_CONVECT begins here!
@@ -172,8 +170,8 @@
 
       SUBROUTINE FVDAS_CONVECT( TDT,   NTRACE, Q,     RPDEL, ETA, 
      &                          BETA,  MU,     MD,    EU,    DP,    
-     &                          NSTEP, FRACIS, TRACER_MW_G,  INDEXSOL,
-     &                          Input_Opt, State_Met, MOISTMW )
+     &                          NSTEP, FRACIS, INDEXSOL,
+     &                          Input_Opt, State_Met )
 !
 !******************************************************************************
 !  Subroutine FVDAS_CONVECT is the convection driver routine for GEOS-4/fvDAS
@@ -184,7 +182,7 @@
 !  ============================================================================
 !  (1 ) TDT     (REAL(fp) ) : 2 * delta-T                          [s]
 !  (2 ) NTRACE  (INTEGER  ) : Number of tracers to transport       [unitless]
-!  (3 ) Q       (REAL(fp) ) : Array of transported tracers         [v/v]
+!  (3 ) Q       (REAL(fp) ) : Array of transported tracers  [kg/kg total air]
 !  (4 ) RPDEL   (REAL(fp) ) : 1 / DP                               [1/hPa]
 !  (5 ) ETA     (REAL(fp) ) : GMAO Hack convective mass flux       [kg/m2/s]
 !  (6 ) BETA    (REAL(fp) ) : GMAO Hack overshoot parameter        [unitless]
@@ -194,15 +192,13 @@
 !  (10) DP      (REAL(fp) ) : Delta-pressure between level edges   [Pa]
 !  (11) NSTEP   (INTEGER  ) : Time step index                      [unitless]
 !  (12) FRACIS  (REAL(fp) ) : Fraction of tracer that is insoluble [unitless]
-!  (13) TRACER_MW_G(REAL(fp) ) : Tracer molecular wt               [g/mol]
-!  (14) INDEXSOL(INTEGER  ) : Index array of soluble tracers       [unitless]
-!  (15) Input_opt(OPTINPUT) : Input options object
-!  (16) State_Met(METSTATE) : Meteorological state object
-!  (17) MOISTMW (REAL(fp) ) : Moist air molecular weight           [g/mol]
+!  (13) INDEXSOL(INTEGER  ) : Index array of soluble tracers       [unitless]
+!  (14) Input_opt(OPTINPUT) : Input options object
+!  (15) State_Met(METSTATE) : Meteorological state object
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (3 ) Q       (REAL(fp) ) : Modified tracer array                [v/v]
+!  (3 ) Q       (REAL(fp) ) : Modified tracer array          [kg/kg total air]
 ! 
 !  Important Local Variables:
 !  ============================================================================
@@ -214,9 +210,9 @@
 !  (6 ) DU      (REAL(fp) ) : Mass detraining from updraft (lon-alt array)
 !  (7 ) ED      (REAL(fp) ) : Mass entraining from downdraft (lon-alt array)
 !  (8 ) DPG     (REAL(fp) ) : gathered .01*dp (lon-alt array)
-!  (8 ) EUG     (REAL(fp) ) : gathered eu (lon-alt array) 
-!  (9 ) MUG     (REAL(fp) ) : gathered mu (lon-alt array)   
-!  (10) MDG     (REAL(fp) ) : gathered md (lon-alt array)
+!  (9 ) EUG     (REAL(fp) ) : gathered eu (lon-alt array) 
+!  (10) MUG     (REAL(fp) ) : gathered mu (lon-alt array)   
+!  (11) MDG     (REAL(fp) ) : gathered md (lon-alt array)
 !
 !  NOTES:
 !  (1 ) Added TCVV and INDEXSOL to the arg list and in the call to CONVTRAN.  
@@ -234,10 +230,8 @@
 !  28 Oct 2013 - R. Yantosca - Now accept pointer-valued arguments into this
 !                              routine via assumed-shape dummy arguments.
 !                              This will eliminate array temporaries.
-!  27 Apr 2015 - E. Lundgren - Now pass moist air MW (with vertical array
-!                              flipped) to FVDAS_CONVECT 
-!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
-!                              for consistency with moist mixing ratio units
+!  23 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
+!                              (previously v/v)
 !******************************************************************************
 !
 ! !USES
@@ -259,14 +253,12 @@
       REAL(fp),       INTENT(IN)    :: EU  (:,:,:)
       REAL(fp),       INTENT(IN)    :: DP(IIPAR,JJPAR,LLPAR)     
       REAL(fp),       INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
-      REAL(fp),       INTENT(IN)    :: TRACER_MW_G(NTRACE)
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      REAL(fp),       INTENT(IN)    :: MOISTMW(IIPAR,JJPAR,LLPAR)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL(fp),         INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)
+      REAL(fp),       INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)
 !
 ! !LOCAL VARIABLES:
 !
@@ -315,8 +307,8 @@
                CALL CONVTRAN( J,     NTRACE,    Q,      MUG,  MDG,      
      &                    DUG,   EUG,       EDG,    DPG,  DSUBCLD,  
      &                    JT,    MX,        IDEEP,  1,    LENGATH, 
-     &                    NSTEP, 0.5e+0_fp*TDT, FRACIS, TRACER_MW_G, 
-     &                    INDEXSOL, Input_Opt, State_Met, MOISTMW )
+     &                    NSTEP, 0.5e+0_fp*TDT, FRACIS, 
+     &                    INDEXSOL, Input_Opt, State_Met )
             ENDIF
 
             !-----------------------------------
@@ -343,17 +335,17 @@
 ! 
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) J      (INTEGER) : GEOS-CHEM Latitude index               [unitless]
+!  (1 ) J      (INTEGER)   : GEOS-CHEM Latitude index               [unitless]
 !  (2 ) TDT    (REAL(fp) ) : 2 delta-t                              [s       ]
 !  (3 ) RPDEL  (REAL(fp) ) : Reciprocal of pressure-thickness array [1/hPa   ]
 !  (4 ) ETA    (REAL(fp) ) : GMAO Hack convective mass flux (HKETA) [kg/m2/s ]
 !  (5 ) BETA   (REAL(fp) ) : GMAO Hack overshoot parameter (HKBETA) [unitless]
-!  (6 ) NTRACE (INTEGER) : Number of tracers in the Q array       [unitless]
-!  (7 ) Q      (REAL(fp) ) : Tracer concentrations                  [v/v     ]   
+!  (6 ) NTRACE (INTEGER)   : Number of tracers in the Q array       [unitless]
+!  (7 ) Q      (REAL(fp) ) : Tracer concentrations           [kg/kg total air]
 !  
 !  Arguments as Output:
 !  ============================================================================
-!  (7 ) Q      (REAL(fp) ) : Modified tracer concentrations         [v/v     ]
+!  (7 ) Q      (REAL(fp) ) : Modified tracer concentrations  [kg/kg total air]
 !
 !  Important Local Variables:
 !  ============================================================================
@@ -547,7 +539,7 @@
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) J       (INTEGER) : GEOS-CHEM latitude index          [unitless]
+!  (1 ) J       (INTEGER)   : GEOS-CHEM latitude index          [unitless]
 !  (2 ) DP      (REAL(fp) ) : Delta pressure between interfaces [Pa      ]      
 !  (3 ) MU      (REAL(fp) ) : Mass flux up                      [kg/m2/s ] 
 !  (4 ) MD      (REAL(fp) ) : Mass flux down                    [kg/m2/s ] 
@@ -561,11 +553,12 @@
 !  (9 ) EUG     (REAL(fp) ) : Gathered eu (lon-alt array)
 !  (10) EDG     (REAL(fp) ) : Mass entraining from downdraft (lon-alt array)
 !  (11) DPG     (REAL(fp) ) : Gathered .01*dp (lon-alt array)
-!  (12) DSUBCLD (REAL(fp) ) : Delta pressure from cloud base to sfc (lon-alt arr)
-!  (13) JTG     (INTEGER) : Cloud top layer for columns undergoing conv.
-!  (14) JBG     (INTEGER) : Cloud bottom layer for columns undergoing conv.
-!  (15) IDEEP   (INTEGER) : Index of longitudes where deep conv. happens
-!  (16) LENGATH (INTEGER) : Length of gathered arrays
+!  (12) DSUBCLD (REAL(fp) ) : Delta pressure from cloud base to sfc
+!                              (lon-alt arr)
+!  (13) JTG     (INTEGER)   : Cloud top layer for columns undergoing conv.
+!  (14) JBG     (INTEGER)   : Cloud bottom layer for columns undergoing conv.
+!  (15) IDEEP   (INTEGER)   : Index of longitudes where deep conv. happens
+!  (16) LENGATH (INTEGER)   : Length of gathered arrays
 ! 
 !  NOTES:
 !  (1 ) Removed NSTEP from arg list; it's not used.  Also zero arrays in order
@@ -582,7 +575,7 @@
       USE CMN_SIZE_MOD    ! Size parameters
       
       ! Arguments
-      INTEGER, INTENT(IN)  :: J 
+      INTEGER,   INTENT(IN)  :: J 
       REAL(fp),  INTENT(IN)  :: DP(IIPAR,JJPAR,LLPAR) 
       REAL(fp),  INTENT(IN)  :: MU (:,:,:)
       REAL(fp),  INTENT(IN)  :: MD (:,:,:)
@@ -594,14 +587,14 @@
       REAL(fp),  INTENT(OUT) :: EDG(IIPAR,LLPAR)
       REAL(fp),  INTENT(OUT) :: DPG(IIPAR,LLPAR)
       REAL(fp),  INTENT(OUT) :: DSUBCLD(IIPAR)   
-      INTEGER, INTENT(OUT) :: JTG(IIPAR)
-      INTEGER, INTENT(OUT) :: JBG(IIPAR)
-      INTEGER, INTENT(OUT) :: IDEEP(IIPAR)
-      INTEGER, INTENT(OUT) :: LENGATH
+      INTEGER,   INTENT(OUT) :: JTG(IIPAR)
+      INTEGER,   INTENT(OUT) :: JBG(IIPAR)
+      INTEGER,   INTENT(OUT) :: IDEEP(IIPAR)
+      INTEGER,   INTENT(OUT) :: LENGATH
 
       ! Local variables
-      INTEGER              :: I, K, LENPOS 
-      INTEGER              :: INDEX(IIPAR)
+      INTEGER                :: I, K, LENPOS 
+      INTEGER                :: INDEX(IIPAR)
       REAL(fp)               :: SUM(IIPAR)
       REAL(fp)               :: RDPG(IIPAR,LLPAR)      
 
@@ -718,8 +711,8 @@
       SUBROUTINE CONVTRAN( J,     NTRACE, Q,      MU,   MD,       
      &                     DU,    EU,     ED,     DP,   DSUBCLD,  
      &                     JT,    MX,     IDEEP,  IL1G, IL2G,     
-     &                     NSTEP, DELT,   FRACIS, TRACER_MW_G, INDEXSOL,
-     &                     Input_Opt, State_Met, MOISTMW )
+     &                     NSTEP, DELT,   FRACIS, INDEXSOL,
+     &                     Input_Opt, State_Met )
 !
 !******************************************************************************
 !  Subroutine CONVTRAN applies the convective transport of trace species
@@ -730,7 +723,7 @@
 !  ============================================================================
 !  (1 ) J        (INTEGER)   : GEOS-CHEM latitude index              [unitless]
 !  (2 ) NTRACE   (INTEGER)   : Number of tracers to transport        [unitless]
-!  (3 ) Q        (REAL(fp) ) : Tracer conc. including moisture       [v/v     ]
+!  (3 ) Q        (REAL(fp) ) : Tracer conc. including moisture [kg/kg total air]
 !  (4 ) MU       (REAL(fp) ) : Mass flux up                          [hPa/s   ]
 !  (5 ) MD       (REAL(fp) ) : Mass flux down                        [hPa/s   ]
 !  (6 ) DU       (REAL(fp) ) : Mass detraining from updraft          [1/s     ]
@@ -746,16 +739,14 @@
 !  (16) NSTEP    (INTEGER)   : Time step index
 !  (17) DELT     (REAL(fp) ) : Time step
 !  (18) FRACIS   (REAL(fp) ) : Fraction of tracer that is insoluble
-!  (19) TRACER_MW_G(REAL(fp) ) : Tracer molecular wt                 [g/mol 
-!  (20) INDEXSOL (INTEGER)   : Index array of soluble tracer numbers
-!  (21) Input_opt(OPTINPUT) : Input options object
-!  (22) State_Met(METSTATE) : Meteorological state object
-!  (23) MOISTMW (REAL(fp) ) : Moist air molecular weight             [g/mol]
+!  (19) INDEXSOL (INTEGER)   : Index array of soluble tracer numbers
+!  (20) Input_opt(OPTINPUT)  : Input options object
+!  (21) State_Met(METSTATE)  : Meteorological state object
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (3 ) Q       (REAL(fp) )  : Contains modified tracer mixing ratios [v/v]
-!
+!  (3 ) Q       (REAL(fp) )  : Contains modified tracer mixing ratios 
+!                              [kg/kg total air] 
 !  Important Local Variables:
 !  ============================================================================
 !  (1 ) CABV    (REAL(fp) )  : Mixing ratio of constituent above
@@ -798,12 +789,9 @@
 !  23 Jun 2014 - R. Yantosca - Now accept Input_Opt
 !  23 Jun 2014 - R. Yantosca - Now remove references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
-!  27 Apr 2015 - E. Lundgren - Now pass MOISTMW for use with moist mixing ratio
 !  27 Apr 2015 - E. Lundgren - Replace 100/GRAV with global param g0_100
-!  08 May 2015 - E. Lundgren - Exchange TCVV with MOISTMW / tracer molec wt
-!                              for consistency with moist mixing ratio units
-!  15 Jun 2015 - E. Lundgren - Tracer units in convection are now kg/kg wet air
-!                              (previously v/v wet air)
+!  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
+!                              (previously v/v)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -841,11 +829,9 @@
       INTEGER,        INTENT(IN)     :: NSTEP               
       REAL(fp),       INTENT(IN)     :: DELT                
       REAL(fp),       INTENT(IN)     :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
-      REAL(fp),       INTENT(IN)     :: TRACER_MW_G(NTRACE)
       INTEGER,        INTENT(IN)     :: INDEXSOL(NTRACE)
       TYPE(OptInput), INTENT(IN)     :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)     :: State_Met   ! Meteorology State object
-      REAL(fp),       INTENT(IN)     :: MOISTMW(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
       LOGICAL                      :: IS_Hg
@@ -1117,32 +1103,26 @@
                ! AIRFLUX:  MU(I,K) * AREA_M2 * 100 / GRAV  
                !            = air mass (upward) flux in kg/s
                !
-               ! T1:      +AIRFLUX * CONU(I,K) * TRACER_MW_G(M) 
-               !                               / MOISTMW(II,JJ,LL) 
+               ! T1:      +AIRFLUX * CONU(I,K) 
                !            = tracer mass upward flux [kg/s]
                !
-               ! T2:      -AIRFLUX * CMIX(I,K-1) * TRACER_MW_G(M) 
-               !                                 / MOISTMW(II,JJ,LL)
+               ! T2:      -AIRFLUX * CMIX(I,K-1)
                !            = subsidence of tracer [kg/s]
                !
-               ! T3:      -AIRFLUX * CMIX(I,K) * TRACER_MW_G(M) 
-               !                               / MOISTMW(II,JJ,LL)
+               ! T3:      -AIRFLUX * CMIX(I,K)
                !            = downdraft flux of tracer [kg/s]
                !
-               ! T4:      +AIRFLUX * COND(I,K-1) * TRACER_MW_G(M) 
-               !                                 / MOISTMW(II,JJ,LL)
+               ! T4:      +AIRFLUX * COND(I,K-1)
                !            = compensatory upward tracer flux [kg/s] 
                !
                ! Where:
                !
                ! MU       = Grid box surface area         [hPa/s   ] 
                ! AREA_M2  = Mixing ratio in updraft       [m2      ]
-               ! CONU     = Mixing ratio in updraft       [v/v     ]
-               ! COND     = Mixing ratio in downdraft     [v/v     ]
-               ! CMIX     = Gathered tracer array         [v/v     ]
+               ! CONU     = Mixing ratio in updraft       [kg/kg   ]
+               ! COND     = Mixing ratio in downdraft     [kg/kg   ]
+               ! CMIX     = Gathered tracer array         [kg/kg   ]
                ! GRAV     = Acceleration due to gravity   [m/s2    ]
-               ! TRACER_MW_G = Tracer molecular wt        [g/mol   ]
-               ! MOISTMW  = Moist air molecular wt        [g/mol   ]
                ! D_NSTEP  = # of convection timesteps     [unitless]
                !
                ! Dividing by the number of time steps within each 
@@ -1164,24 +1144,11 @@
                   ! Only save from levels 1..LD14 
                   IF ( LL < LD14 ) THEN
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!                    ! Net upward convective flux [kg/s]
-!                    CONVFLUP(II,JJ,LL,M) = CONVFLUP(II,JJ,LL,M)  
-!    &                + (   MU(I,K)   * ( CONU(I,K) - CMIX(I,KM1) )       
-!    &                    - MD(I,KM1) * ( CMIX(I,K) - COND(I,KM1) ) )      
-!    &                  * AREA_M2 * g0_100 * TRACER_MW_G(M)
-!    &                  / ( MOISTMW(II,JJ,LL) * D_NSTEP )
-!
-! New:
                      ! Net upward convective flux [kg/s]
                      CONVFLUP(II,JJ,LL,M) = CONVFLUP(II,JJ,LL,M)  
      &                + (   MU(I,K)   * ( CONU(I,K) - CMIX(I,KM1) )       
      &                    - MD(I,KM1) * ( CMIX(I,K) - COND(I,KM1) ) )      
      &                  * AREA_M2 * g0_100 / D_NSTEP
-!=====================================================================
 
                   ENDIF
                ENDIF 
@@ -1196,8 +1163,7 @@
                !      = Air mass (upward) flux from level K+1 -> K
                !        (Note that vertical levels are reversed)
                !
-               ! * CONU(I,K+1) * TRACER_MW_G(M) / MOISTMW(II,JJ,LL)
-               !               * ( 1 - FISG(I,K) 
+               ! * CONU(I,K+1) * ( 1 - FISG(I,K) )
                !      = Tracer mass upward from level K+1 -> K [kg/s]
                !
                ! Where:
@@ -1228,25 +1194,11 @@
                      ! Grid box surface area [m2] 
                      AREA_M2 = GET_AREA_M2( II, JJ, LL )  
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!                     ! Save loss in [kg/s]
-!                     AD38(II,JJ,LL,NN) = AD38(II,JJ,LL,NN) +
-!     &                              +  MU(I,KP1) *  CONU(I,KP1) 
-!     &                                 * ( 1e+0_fp - FISG(I,K) )
-!     &                                 * AREA_M2 * g0_100
-!     &                                 * TRACER_MW_G(M)
-!     &                                 / ( MOISTMW(II,JJ,LL) * D_NSTEP ) 
-!
-! New:
                      ! Save loss in [kg/s]
                      AD38(II,JJ,LL,NN) = AD38(II,JJ,LL,NN) +
      &                              +  MU(I,KP1) *  CONU(I,KP1) 
      &                                 * ( 1e+0_fp - FISG(I,K) )
      &                                 * AREA_M2 * g0_100 / D_NSTEP  
-!=====================================================================
 
                   ENDIF
                ENDIF
@@ -1275,28 +1227,14 @@
                      ! GEOS-CHEM lon & lat indices
                      II      = IDEEP(I)
                      JJ      = J
-                     LL      = LLPAR - K + 1 ! alt index (ewl, 4/27/15)
 
                      ! Grid box surface area [m2] 
                      AREA_M2 = GET_AREA_M2( II, JJ, 1 )
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!                     ! Hg2 wet-scavenged out of the column [kg]
-!                     WET_Hg2 = MU(I,KP1) * CONU(I,KP1)
-!     &                          * ( 1e+0_fp - FISG(I,K) ) 
-!     &                          * AREA_M2 * g0_100 
-!     &                          * TRACER_MW_G(M) 
-!     &                          / ( MOISTMW(II,JJ,LL) * DELT )
-!
-! New:
                      ! Hg2 wet-scavenged out of the column [kg]
                      WET_Hg2 = MU(I,KP1) * CONU(I,KP1)
      &                          * ( 1e+0_fp - FISG(I,K) ) 
      &                          * AREA_M2 * g0_100 / DELT 
-!=====================================================================
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_Hg2_WD( II, J, M, WET_Hg2 )
@@ -1309,29 +1247,14 @@
                      ! GEOS-CHEM lon & lat indices
                      II      = IDEEP(I)
                      JJ      = J
-                     LL      = LLPAR - K + 1 ! alt index (ewl, 4/27/15)
 
                      ! Grid box surface area [m2] 
                      AREA_M2 = GET_AREA_M2( II, JJ, 1 )
 
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!                     ! Hg2 wet-scavenged out of the column [kg]
-!                     WET_HgP = MU(I,KP1) * CONU(I,KP1)
-!     &                         * ( 1e+0_fp - FISG(I,K) )
-!     &                          * AREA_M2 * g0_100 
-!     &                          * TRACER_MW_G(M) 
-!     &                          / ( MOISTMW(II,JJ,LL) * DELT )
-!
-! New:
                      ! Hg2 wet-scavenged out of the column [kg]
                      WET_HgP = MU(I,KP1) * CONU(I,KP1)
      &                         * ( 1e+0_fp - FISG(I,K) )
      &                          * AREA_M2 * g0_100 / DELT 
-
-!=====================================================================
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_HgP_WD( II, J, M, WET_HgP )
@@ -1423,9 +1346,9 @@
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) N      (INTEGER) : Number of elements in ARRAY
+!  (1 ) N      (INTEGER)   : Number of elements in ARRAY
 !  (2 ) ARRAY  (REAL(fp) ) : 1-D vector to be examined
-!  (3 ) INC    (INTEGER) : Increment for stepping thru ARRAY
+!  (3 ) INC    (INTEGER)   : Increment for stepping thru ARRAY
 !  (4 ) TARGET (REAL(fp) ) : Value that ARRAY will be tested against
 !
 !  Arguments as Output:

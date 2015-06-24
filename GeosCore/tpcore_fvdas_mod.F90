@@ -197,8 +197,8 @@ MODULE Tpcore_FvDas_Mod
 !                             loops over vertical levels outside the 
 !                             horizontal transport routines for reducing
 !                             processing time.
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+! 20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+! 21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -225,11 +225,11 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    INTEGER, INTENT(IN)  :: IM        ! Global E-W dimension
-    INTEGER, INTENT(IN)  :: JM        ! Global N-S dimension
-    INTEGER, INTENT(IN)  :: KM        ! Vertical dimension
-    INTEGER, INTENT(IN)  :: NG        ! large ghost width
-    INTEGER, INTENT(IN)  :: MG        ! small ghost width
+    INTEGER,   INTENT(IN)  :: IM        ! Global E-W dimension
+    INTEGER,   INTENT(IN)  :: JM        ! Global N-S dimension
+    INTEGER,   INTENT(IN)  :: KM        ! Vertical dimension
+    INTEGER,   INTENT(IN)  :: NG        ! large ghost width
+    INTEGER,   INTENT(IN)  :: MG        ! small ghost width
     REAL(fp),  INTENT(IN)  :: dt        ! Time step in seconds
     REAL(fp),  INTENT(IN)  :: ae        ! Earth's radius (m)
     REAL(fp),  INTENT(IN)  :: clat(JM)  ! latitude in radian
@@ -383,8 +383,8 @@ CONTAINS
                            ak,       bk,       u,        v,       ps1,      &
                            ps2,      ps,       q,        iord,    jord,     &
                            kord,     n_adj,    XMASS,    YMASS,   FILL,     &
-                           MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV,     &
-                           ND24,     ND25,     ND26,     MOISTMW )
+                           MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, ND24,     &
+                           ND25,     ND26 )
 !
 ! !USES:
 !
@@ -394,10 +394,10 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     ! Transport time step [s]
-    REAL(fp),  INTENT(IN)    :: dt                    
+    REAL(fp),  INTENT(IN)  :: dt                    
 
     ! Earth's radius [m]
-    REAL(fp),  INTENT(IN)    :: ae                    
+    REAL(fp),  INTENT(IN)  :: ae                    
 
     ! Global E-W, N-S, and vertical dimensions
     INTEGER, INTENT(IN)    :: IM         
@@ -431,30 +431,24 @@ CONTAINS
     
     ! Ak and Bk coordinates to specify the hybrid grid
     ! (see the REMARKS section below)
-    REAL(fp),  INTENT(IN)    :: ak(KM+1)              
-    REAL(fp),  INTENT(IN)    :: bk(KM+1)              
+    REAL(fp),  INTENT(IN)  :: ak(KM+1)              
+    REAL(fp),  INTENT(IN)  :: bk(KM+1)              
 
     ! u-wind (m/s) at mid-time-level (t=t+dt/2)
-    REAL(fp),  INTENT(IN)    :: u(:,:,:)
+    REAL(fp),  INTENT(IN)  :: u(:,:,:)
 
     ! E/W and N/S mass fluxes [kg/s]
     ! (These are computed by the pressure fixer, and passed into TPCORE)
-    REAL(fp),  INTENT(IN)    :: XMASS(:,:,:)
-    REAL(fp),  INTENT(IN)    :: YMASS(:,:,:)
+    REAL(fp),  INTENT(IN)  :: XMASS(:,:,:)
+    REAL(fp),  INTENT(IN)  :: YMASS(:,:,:)
 
     ! Grid box surface area for mass flux diag [m2]
-    REAL(fp),  INTENT(IN)    :: AREA_M2(JM)        
-
-    ! Dry air MW / tracer MW
-    REAL(fp),  INTENT(IN)    :: TCVV(NQ)              
+    REAL(fp),  INTENT(IN)  :: AREA_M2(JM)        
 
     ! Diagnostic flags
     INTEGER, INTENT(IN)    :: ND24    ! Turns on E/W     flux diagnostic
     INTEGER, INTENT(IN)    :: ND25    ! Turns on N/S     flux diagnostic
     INTEGER, INTENT(IN)    :: ND26    ! Turns on up/down flux diagnostic 
-
-    ! Moist air molecular weight [g/mol]
-    REAL(fp)  , INTENT(IN) :: MOISTMW(:,:,:)
 
     LOGICAL, INTENT(IN)    :: FILL    ! Fill negatives ?
 !
@@ -469,7 +463,7 @@ CONTAINS
     ! surface pressure at future time=t+dt
     REAL(fp),  INTENT(INOUT) :: ps2(IM, JFIRST:JLAST)  
 
-    ! Tracer "mixing ratios" [v tracer/moist air v]
+    ! Tracer "mixing ratios" [kg tracer/moist air v]
     REAL(fp),  INTENT(INOUT), TARGET :: q(:,:,:,:)
 
     ! E/W, N/S, and up/down diagnostic mass fluxes
@@ -509,11 +503,8 @@ CONTAINS
 !                              reduce the creation of array temporaries,
 !                              which will reduce memory.
 !   5 Jun 2013 - R. Yantosca - Avoid array temporary in call to FZPPM
-!  17 Apr 2015 - E. Lundgren - Now pass State_Met%MOISTMW to get 
-!                              mol moist air / mol tracer, and pass
-!                              tracer concentration as moist mixing ratio
-!  15 Jun 2015 - E. Lundgren - Tracer units in convection are now kg/kg wet air
-!                              (previously v/v wet air)
+!  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
+!                              (previously v/v)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -532,42 +523,42 @@ CONTAINS
     INTEGER            :: il, ij, ik, iq, k, j, i
     INTEGER            :: num, k2m1
                        
-    REAL(fp)             :: dap   (km)
-    REAL(fp)             :: dbk   (km)
-    REAL(fp)             :: cx(im,jfirst-ng:jlast+ng,km)  ! E-W CFL # on C-grid
-    REAL(fp)             :: cy(im,jfirst:jlast+mg,km)     ! N-S CFL # on C-grid
-    REAL(fp)             :: delp1(im, jm, km)  
-    REAL(fp)             :: delp2(im, jm, km)  
-    REAL(fp)             :: delpm(im, jm, km)
-    REAL(fp)             :: pu   (im, jm, km)
-    REAL(fp)             :: dpi(im, jm, km)
-    REAL(fp)             :: geofac  (jm)     ! geometrical factor for meridional
-                                           ! advection; geofac uses correct 
-                                           ! spherical geometry, and replaces 
-                                           ! RGW_25. (ccc, 4/1/09)
-    REAL(fp)             :: geofac_pc        ! geometrical gactor for poles.
-    REAL(fp)             :: dp
-    REAL(fp)             :: dps_ctm(im,jm)
-    REAL(fp)             :: ua (im, jm, km)
-    REAL(fp)             :: va (im, jm, km)
-    REAL(fp)             :: wz(im, jm, km)
-    REAL(fp)             :: dq1(im,jfirst-ng:jlast+ng,km)
+    REAL(fp)           :: dap   (km)
+    REAL(fp)           :: dbk   (km)
+    REAL(fp)           :: cx(im,jfirst-ng:jlast+ng,km)  ! E-W CFL # on C-grid
+    REAL(fp)           :: cy(im,jfirst:jlast+mg,km)     ! N-S CFL # on C-grid
+    REAL(fp)           :: delp1(im, jm, km)  
+    REAL(fp)           :: delp2(im, jm, km)  
+    REAL(fp)           :: delpm(im, jm, km)
+    REAL(fp)           :: pu   (im, jm, km)
+    REAL(fp)           :: dpi(im, jm, km)
+    REAL(fp)           :: geofac  (jm)     ! geometrical factor for meridional
+                                         ! advection; geofac uses correct 
+                                         ! spherical geometry, and replaces 
+                                         ! RGW_25. (ccc, 4/1/09)
+    REAL(fp)           :: geofac_pc        ! geometrical gactor for poles.
+    REAL(fp)           :: dp
+    REAL(fp)           :: dps_ctm(im,jm)
+    REAL(fp)           :: ua (im, jm, km)
+    REAL(fp)           :: va (im, jm, km)
+    REAL(fp)           :: wz(im, jm, km)
+    REAL(fp)           :: dq1(im,jfirst-ng:jlast+ng,km)
     
     ! qqu, qqv, adx and ady are now 2d arrays for parallelization purposes.
     !(ccc, 4/1/08)  
-    REAL(fp)             :: qqu(im, jm)
-    REAL(fp)             :: qqv(im, jm)
-    REAL(fp)             :: adx(im, jm)
-    REAL(fp)             :: ady(im, jm)
+    REAL(fp)           :: qqu(im, jm)
+    REAL(fp)           :: qqv(im, jm)
+    REAL(fp)           :: adx(im, jm)
+    REAL(fp)           :: ady(im, jm)
 
-    ! fx, fy, fz and qtemp are now 4D arrays for parallelization purposes.
+    ! fx, fy, fz and qtp are now 4D arrays for parallelization purposes.
     ! (ccc, 4/1/09) 
-    REAL(fp)             :: fx    (im, jm,   km, nq)
-    REAL(fp)             :: fy    (im, jm+1, km, nq)    ! one more for edges
-    REAL(fp)             :: fz    (im, jm,   km, nq)
-    REAL(fp)             :: qtemp (im, jm,   km, nq)
-    REAL(fp)             :: DTC   (IM, JM,   KM    )    ! up/down flux temp array
-    REAL(fp)             :: TRACE_DIFF                  ! up/down flux variable
+    REAL(fp)           :: fx    (im, jm,   km, nq)
+    REAL(fp)           :: fy    (im, jm+1, km, nq)    ! one more for edges
+    REAL(fp)           :: fz    (im, jm,   km, nq)
+    REAL(fp)           :: qtemp (im, jm,   km, nq)
+    REAL(fp)           :: DTC   (IM, JM,   KM    )    ! up/down flux temp array
+    REAL(fp)           :: TRACE_DIFF                  ! up/down flux variable
                        
     LOGICAL, SAVE      :: first = .true.
     
@@ -956,13 +947,10 @@ CONTAINS
        ! ------ = in grid *  ---  *  ---   *  grid box * ------------ * ---
        !  time    box         1       g       AREA_M2    kg moist air    s
        !
-       !   kg      hPa     Pa     s^2    m^2     1      AIRMW        1 
-       !  ----  = ----- * ----- * ---- * ---- * ---- * -------  * --------
-       !   s        1      hPa     m      1     TCVV   MOISTMW     DeltaT
+       !   kg      hPa     Pa     s^2    m^2        1 
+       !  ----  = ----- * ----- * ---- * ---- * --------
+       !   s        1      hPa     m      1       DeltaT
        !
-       !  where TCVV    = dry air molecular wt / tracer molecular wt 
-       !        AIRMW   = dry air molecular wt   [g/mol]
-       !        MOISTMW = moist air molecular wt [g/mol]
        !======================================================================
        IF ( ND24 > 0 ) THEN
 
@@ -977,16 +965,7 @@ CONTAINS
           DO I = 1,     IM
 
              ! Compute mass flux
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!             DTC(I,J,K) = FX(I,J,K,IQ) * AREA_M2(J) * g0_100           &
-!                          * AIRMW / ( MOISTMW(I,J,K) * TCVV(IQ) * DT )
-!
-! New:
              DTC(I,J,K) = FX(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT 
-!=====================================================================
 
              ! Save into MASSFLEW diagnostic array
              MASSFLEW(I,J,K,IQ) = MASSFLEW(I,J,K,IQ) + DTC(I,J,K)
@@ -1021,17 +1000,7 @@ CONTAINS
           DO I = 1, IM 
 
              ! Compute mass flux
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!             DTC(I,J,K) = FY(I,J,K,IQ) * AREA_M2(J) * g0_100          & 
-!                          * AIRMW / ( MOISTMW(I,J,K) *TCVV(IQ) * DT ) 
-!
-! New:
              DTC(I,J,K) = FY(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT 
-!=====================================================================
-
 
              ! Save into MASSFLNS diagnostic array
              MASSFLNS(I,J,K,IQ) = MASSFLNS(I,J,K,IQ) + DTC(I,J,K) 
@@ -1077,21 +1046,9 @@ CONTAINS
           DO I  = 1, IM
 
              ! Compute mass flux
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!             DTC(I,J,K) = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
-!                            - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
-!                            * g0_100 * AREA_M2(J) * AIRMW          &
-!                            / ( MOISTMW(I,J,K) * TCVV(IQ) )
-!
-! New:
              DTC(I,J,K) = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
                             - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
                             * g0_100 * AREA_M2(J) 
-!=====================================================================
- 
                 
              ! top layer should have no residual.  the small residual is 
              ! from a non-pressure fixed flux diag.  The z direction may 
@@ -1116,20 +1073,9 @@ CONTAINS
              DO I  = 1, IM
 
                 ! Compute tracer difference
-!=====================================================================
-! Change from tracer conc in v/v to kg/kg (ewl, 6/15/15)
-!
-! Previous: 
-!                TRACE_DIFF = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
-!                               - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
-!                               * AREA_M2(J) * g0_100 * AIRMW          &
-!                               / ( MOISTMW(I,J,K) * TCVV(IQ) )
-!
-! New:
                 TRACE_DIFF = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
                                - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
                                * AREA_M2(J) * g0_100  
-!=====================================================================
                 
                 ! Compute mass flux
                 DTC(I,J,K)         = DTC(I,J,K-1) + TRACE_DIFF
