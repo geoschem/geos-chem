@@ -7144,7 +7144,7 @@
       IF ( ND68 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
-         NTRAC(68) = 4
+         NTRAC(68) = 13
 
          ! Loop over tracers
          DO T = 1, NTRAC(68)
@@ -7167,6 +7167,45 @@
                   NAME (T,68) = 'N(AIR)'
                   FNAME(T,68) = 'Number density of air'
                   UNIT (T,68) = 'molec/m3'
+               CASE( 5 )
+                  NAME (T,68) = 'MAIRDEN'
+                  FNAME(T,68) = ''
+                  UNIT (T,68) = ''
+               CASE( 6 )
+                  NAME (T,68) = 'T'
+                  FNAME(T,68) = 'Temperature'
+                  UNIT (T,68) = 'K'
+               CASE( 7 )
+                  NAME (T,68) = 'TV'
+                  FNAME(T,68) = 'Virtual temperature'
+                  UNIT (T,68) = 'K'
+               CASE( 8 )
+                  NAME (T,68) = 'PMID'
+                  FNAME(T,68) = 'Pressure at level arithmetic average P'
+                  UNIT (T,68) = 'hPa'
+               CASE( 9 )
+                  NAME (T,68) = 'PMEAN'
+                  FNAME(T,68) = 'Pressure at level '
+     &                          'vertically-weighted mean P'
+                  UNIT (T,68) = 'hPa'
+               CASE( 10 )
+                  NAME (T,68) = 'PEDGE'
+                  FNAME(T,68) = 'Pressure at grid box lower edge'
+                  UNIT (T,68) = 'hPa'
+               CASE( 11 )
+                  NAME (T,68) = 'RH'
+                  FNAME(T,68) = 'Relative humidity'
+                  UNIT (T,68) = 'percent'
+               CASE( 12 )
+                  NAME (T,68) = 'PMID_DRY'
+                  FNAME(T,68) = 'Dry partial pressure at level '
+     &                          'arithmetic average P'
+                  UNIT (T,68) = 'hPa'
+               CASE( 13 )
+                  NAME (T,68) = 'PMEAN_DRY'
+                  FNAME(T,68) = 'Dry partial pressure at level '
+     &                          'vertically-weighted mean P'
+                  UNIT (T,68) = 'hPa'
                CASE DEFAULT
                   ! Nothing
             END SELECT
