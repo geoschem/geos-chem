@@ -507,7 +507,7 @@
 
             ! Print info that we are opening the file 
             WRITE( 6, 300 ) TRIM( Input_Opt%ND49_FILE ), IU_TRCR
- 300        FORMAT( 'DIAG49_MOD: Opening', a ', on unit', i4 )
+ 300        FORMAT( 'DIAG49_MOD: Opening ', a ', on unit', i4 )
 
             ! Open the output file in append mode
             OPEN( IU_TRCR, FILE   = TRIM( Input_Opt%ND49_FILE ),
