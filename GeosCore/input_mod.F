@@ -2412,6 +2412,7 @@
 !  25 Jun 2014 - R. Yantosca - Move call to INIT_MODIS_LAIT to GIGC_INIT_EXTRA
 !  04 Sep 2014 - R. Yantosca - Bug fix: Now use Input_Opt%OTDLOC since we have
 !                              now removed logical_mod.F
+!  24 Jun 2015 - R. Yantosca - Now always turn off emissions for mass cons test
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2696,6 +2697,28 @@
          CALL ERROR_STOP( MSG, LOC )
        ENDIF
 
+#endif
+
+#if defined( MASSCONS )
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%  MASS CONSERVATION TEST:                                  %%%
+      !%%%  Always turn off emissions for the mass conservation      %%%
+      !%%%  test.  (ewl, 6/24/15)                                    %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+      ! Reset quantities
+      LEMIS      = .FALSE.
+
+      ! Print info to stdout stating that rint results
+      WRITE( 6, '(a)' )
+      WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+      WRITE( 6, 200   ) 
+      WRITE( 6, 205   )
+      WRITE( 6, 210   )
+      WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+ 200  FORMAT( '%%% MASS CONSERVATION TEST'                             )
+ 205  FORMAT( '%%% Automatically reset these EMISSIONS MENU settings:' )
+ 210  FORMAT( '%%% LEMIS is now FALSE'                                 )
 #endif
 
       !=================================================================
@@ -5663,6 +5686,34 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd49_menu:8' )
+
+#if defined( MASSCONS )
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%  MASS CONSERVATION TEST:                                  %%%
+      !%%%  Always turn on ND49 for the mass conservation test.      %%%
+      !%%%  Also specify a single tracer for ND49 (in this case,     %%%
+      !%%%  it will be total CO2). (ewl, 6/24/15)                    %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+      ! Reset quantities: Turn on ND49 but with 1 tracer
+      DO_ND49    = .TRUE.
+      N_ND49     = 1
+      TRACERS    = 0
+      TRACERS(1) = 1
+
+      ! Print info to stdout stating that we have changed some quantities
+      WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+      WRITE( 6, 200   ) 
+      WRITE( 6, 205   )
+      WRITE( 6, 210   )
+      WRITE( 6, 215   )
+      WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+ 200  FORMAT( '%%% MASS CONSERVATION TEST'                         )
+ 205  FORMAT( '%%% Automatically reset these ND49 MENU settings: ' )
+ 210  FORMAT( '%%% DO_ND49 is now TRUE'                            )
+ 215  FORMAT( '%%% TRACERS is now 1 (i.e. Total CO2 only)'         )
+#endif
+
 
       !=================================================================
       ! Set fields of Input Options object
