@@ -1016,9 +1016,8 @@
 !  12 May 2015 - E. Lundgren - Change tracer units from v/v -> kg for TOMAS if
 !                              not already in kg (ie. called from convection)
 !  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
-!  04 Jun 2015 - E. Lundgren - Adjust 5/12/15 TOMAS bug fix to also
-!                              convert v/v total air <-> v/v dry air for
-!                              accurate v/v <-> kg conversion during convection
+!  23 Jun 2015 - E. Lundgren - Adjust 5/12/15 TOMAS bug fix to convert
+!                              kg/kg total air <-> kg for new convection units
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1037,7 +1036,6 @@
       LOGICAL            :: UNITCHANGE = .FALSE. ! STT unit conversion indicator
 
       ! For unit conversion
-      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
       REAL(fp), POINTER  :: STT(:,:,:,:) => NULL()
 #endif
 
@@ -2199,34 +2197,31 @@
 
       ! For use below
       STT       => State_Chm%TRACERS
-      TCVV      =  Input_Opt%TCVV(1:N_TRACERS)
 
-      ! Tracer concentration units are in [v/v total air] if COMPUTE_F
-      ! is called from within convection. TOMAS subroutine GETFRACTION
-      ! expected kg tracer. Therefore, convert State_Chm%Tracers to [kg] 
-      ! if currently in [v/v]. Use the average surface level concentration 
-      ! of tracer 1 to determine current units (ewl, 6/4/15)
+      ! Tracer concentration units are in [kg/kg total air] if COMPUTE_F
+      ! is called during convection. TOMAS subroutine GETFRACTION
+      ! expects units in kg tracer. Therefore, convert State_Chm%Tracers 
+      ! to [kg] if currently in [kg/kg]. Use the average surface level 
+      ! concentration of tracer 1 to determine current units (ewl, 6/4/15)
 
       ! Mean surface concentration of tracer 1
       MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
      &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
 
-      ! Convert units [v/v] -> [kg] if mean conc less than 0.1
-      ! (this threshold may need to change)
+      ! Convert units [kg/kg total air] -> [kg] if mean conc less than 0.1
+      ! NOTE: this threshold may need to change
       IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
 
-         ! Convert v/v moist air to v/v dry air
-         CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, 
+      ! Convert units [kg/kg total air] -> [kg] if mean conc less than 0.1
+      ! (NOTE: this threshold may need to change)
+      IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
+         CALL Convert_MoistKgKg_to_Kg( am_I_Root, N_TRACERS, 
      &                                  State_Met, State_Chm, RC )
-
-         ! Convert v/v dry air to kg tracer
-         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) ! v/v->kg
 
          ! Set flag indicating conversion change occurred
          UNITCHANGE = .TRUE.
 
       ENDIF
-
 
       ! Added for size-resolved aerosol (win, 7/16/09)
       !-------------------------------
@@ -2369,17 +2364,11 @@
          
       !(end part) Added for size-resolved aerosol (win, 7/16/09)
 
-      ! Convert State_Chm%Tracers units back to v/v if converted to kg above
-      ! (ewl, 5/12/15)
+      ! Convert State_Chm%Tracers units back to kg/kg total air 
+      ! if conversion occurred at start of TOMAS block (ewl, 6/23/15)
       IF ( UNITCHANGE ) THEN
-
-         ! Convert [kg] -> [v/v dry air]
-         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg->v/v
-         
-         ! Convert [v/v dry air] -> [v/v total air]
-         CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, 
+         CALL Convert_Kg_to_MoistKgKg( am_I_Root, N_TRACERS, 
      &                                  State_Met, State_Chm, RC )
-
       ENDIF
 
       ! Free pointer
@@ -4490,9 +4479,8 @@
 !  12 May 2015 - E. Lundgren - Change tracer units from v/v -> kg for TOMAS if
 !                              not already in kg (ie. called from convection)
 !  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
-!  04 Jun 2015 - E. Lundgren - Adjust 5/12/15 TOMAS bug fix to also
-!                              convert v/v total air <-> v/v dry air for
-!                              accurate v/v <-> kg conversion during convection
+!  23 Jun 2015 - E. Lundgren - Adjust 5/12/15 TOMAS bug fix to convert
+!                              kg/kg total air <-> kg for new convection units
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4900,30 +4888,25 @@
       ! Define fields for use below
       STT       => State_Chm%TRACERS
       N_TRACERS =  Input_Opt%N_TRACERS
-      TCVV      =  Input_Opt%TCVV(1:N_TRACERS)
 
-      ! Tracer concentration units are in [v/v total air] if COMPUTE_F
-      ! is called from within convection. TOMAS subroutine GETFRACTION
-      ! expected kg tracer. Therefore, convert State_Chm%Tracers to [kg] 
-      ! if currently in [v/v]. Use the average surface level concentration 
-      ! of tracer 1 to determine current units (ewl, 6/4/15)
+      ! Tracer concentration units are in [kg/kg total air] if WASHOUT
+      ! is called during convection. TOMAS subroutine GETFRACTION
+      ! expects units in kg tracer. Therefore, convert State_Chm%Tracers 
+      ! to [kg] if currently in [kg/kg]. Use the average surface level 
+      ! concentration of tracer 1 to determine current units (ewl, 6/23/15)
 
       ! Mean surface concentration of tracer 1
       MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
      &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
 
-      ! Convert units [v/v] -> [kg] if mean conc less than 0.1
-      ! (this threshold may need to change)
+      ! Convert units [kg/kg total air] -> [kg] if mean conc less than 0.1
+      ! (NOTE: this threshold may need to change)
       IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
-
-         ! Convert v/v moist air to v/v dry air
-         CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, 
+         CALL Convert_MoistKgKg_to_Kg( am_I_Root, N_TRACERS, 
      &                                  State_Met, State_Chm, RC )
 
-         ! Convert v/v dry air to kg tracer
-         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) ! v/v->kg
-
-         ! Set flag indicating conversion change occurred
+         ! Set flag indicating unit conversion occurred so that reverse
+         ! unit conversion happens at end
          UNITCHANGE = .TRUE.
 
       ENDIF
@@ -5006,18 +4989,11 @@
 
       ! (end part) Added for size-resolved aerosol (win, 7/16/09)
 
-
-      ! Convert State_Chm%Tracers units back to v/v if converted to kg above
-      ! (ewl, 5/12/15)
+      ! Convert State_Chm%Tracers units back to kg/kg total air 
+      ! if conversion occurred at start of TOMAS block (ewl, 5/12/15)
       IF ( UNITCHANGE ) THEN
-
-         ! Convert [kg] -> [v/v dry air]
-         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg->v/v
-         
-         ! Convert [v/v dry air] -> [v/v total air]
-         CALL Convert_MoistVV_to_DryVV( am_I_Root, N_TRACERS, 
+         CALL Convert_Kg_to_MoistKgKg( am_I_Root, N_TRACERS, 
      &                                  State_Met, State_Chm, RC )
-
       ENDIF
 
       ! Free pointers
