@@ -4129,7 +4129,7 @@ CONTAINS
     ! %%%%% CH4 from biomass burning (automatically filled in extension)  %%%%%
     !--------------------------------------------------------------------------
 
-    ! HEMCO extension # for wetland ch4 
+    ! HEMCO extension # for biomass ch4 
     ExtNr = GetExtNr( 'GFED' )
     IF ( ExtNr <= 0 ) ExtNr = GetExtNr( 'FINN' )
     IF ( ExtNr <= 0 ) THEN

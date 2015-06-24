@@ -161,7 +161,8 @@ hcox_gfed_mod.o             : hcox_gfed_mod.F90               \
 
 hcox_finn_mod.o             : hcox_finn_mod.F90               \
                               hcox_finn_include.H             \
-                              hcox_state_mod.o		      
+                              hcox_state_mod.o		      \
+                              hcox_tools_mod.o
 
 hcox_lightnox_mod.o         : hcox_lightnox_mod.F90           \
                               hcox_state_mod.o

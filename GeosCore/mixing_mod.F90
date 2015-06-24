@@ -272,6 +272,8 @@ CONTAINS
 !                              we define DRYDEPID.  This isn't needed here.
 !  10 Apr 2015 - C. Keller   - Now exchange PARANOX loss fluxes via HEMCO 
 !                              diagnostics.
+!  18 Jun 2015 - C. Keller   - Now restrict all emissions to chemistry grid
+!                              if UCX=false.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -474,6 +476,10 @@ CONTAINS
                 ChemGridOnly = .TRUE.
              ENDIF
           ENDIF
+
+          ! For non-UCX runs, never emit above the chemistry grid.
+          ! (ckeller, 6/18/15)
+          IF ( .NOT. Input_Opt%LUCX ) ChemGridOnly = .TRUE.
 
           ! Restrict to chemistry grid
           IF ( ChemGridOnly ) THEN

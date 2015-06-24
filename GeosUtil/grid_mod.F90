@@ -723,8 +723,8 @@ CONTAINS
     LOGICAL,  INTENT(IN)   :: am_I_Root      ! Root CPU?
     INTEGER,  INTENT(IN)   :: NX             ! # of lons
     INTEGER,  INTENT(IN)   :: NY             ! # of lats
-    REAL(f4), INTENT(IN)   :: lonCtr(NX,NY)  ! Lon ctrs [deg]
-    REAL(f4), INTENT(IN)   :: latCtr(NX,NY)  ! Lat ctrs [deg]
+    REAL(f4), INTENT(IN)   :: lonCtr(NX,NY)  ! Lon ctrs [rad]
+    REAL(f4), INTENT(IN)   :: latCtr(NX,NY)  ! Lat ctrs [rad]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !

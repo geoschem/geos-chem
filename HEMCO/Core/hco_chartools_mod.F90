@@ -93,7 +93,7 @@ MODULE HCO_CharTools_Mod
   !---------------------------------------------------------------------------
 
   ! Default root directory
-  CHARACTER(LEN=1023), PARAMETER :: DEF_ROOT = '/path/do/dir'
+  CHARACTER(LEN=1023), PARAMETER :: DEF_ROOT = '/please/provide/root/path'
 
   ! Default met field token
 #if defined( GEOS_FP )
