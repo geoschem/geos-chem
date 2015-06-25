@@ -7169,8 +7169,8 @@
                   UNIT (T,68) = 'molec/m3'
                CASE( 5 )
                   NAME (T,68) = 'MAIRDEN'
-                  FNAME(T,68) = ''
-                  UNIT (T,68) = ''
+                  FNAME(T,68) = 'Moist air mass density'
+                  UNIT (T,68) = 'kg/m3'
                CASE( 6 )
                   NAME (T,68) = 'T'
                   FNAME(T,68) = 'Temperature'
@@ -7181,12 +7181,11 @@
                   UNIT (T,68) = 'K'
                CASE( 8 )
                   NAME (T,68) = 'PMID'
-                  FNAME(T,68) = 'Pressure at level arithmetic average P'
+                  FNAME(T,68) = 'Pressure at L = average P'
                   UNIT (T,68) = 'hPa'
                CASE( 9 )
                   NAME (T,68) = 'PMEAN'
-                  FNAME(T,68) = 'Pressure at level '
-     &                          'vertically-weighted mean P'
+                  FNAME(T,68) = 'Pressure at L = wghted-mean P'
                   UNIT (T,68) = 'hPa'
                CASE( 10 )
                   NAME (T,68) = 'PEDGE'
@@ -7198,13 +7197,11 @@
                   UNIT (T,68) = 'percent'
                CASE( 12 )
                   NAME (T,68) = 'PMID_DRY'
-                  FNAME(T,68) = 'Dry partial pressure at level '
-     &                          'arithmetic average P'
+                  FNAME(T,68) = 'Dry pressure at average P level'
                   UNIT (T,68) = 'hPa'
                CASE( 13 )
                   NAME (T,68) = 'PMEAN_DRY'
-                  FNAME(T,68) = 'Dry partial pressure at level '
-     &                          'vertically-weighted mean P'
+                  FNAME(T,68) = 'Dry pressure at wghted-mean P level'
                   UNIT (T,68) = 'hPa'
                CASE DEFAULT
                   ! Nothing
