@@ -399,9 +399,6 @@
 !$OMP+PRIVATE( PEdge_Top, Esat, Ev_mid, Ev_edge, Ev_mean )
 !$OMP+PRIVATE( EsatA, EsatB, EsatC, EsatD )
 !$OMP+PRIVATE( AREA_M2, SPHU_kgkg, AVGW_moist )
-!$OMP+PRIVATE( Ev_g4legacy, Esat_g4legacy, Ev_g4update )
-!$OMP+PRIVATE( AD_legacy, bxheight_legacy, airden_legacy )
-!$OMP+PRIVATE( perc, temp, temp2, airvol_legacy )
 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
