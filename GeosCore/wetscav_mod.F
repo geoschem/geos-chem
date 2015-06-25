@@ -9016,18 +9016,20 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-      INTEGER,        INTENT(IN)  :: I, J, L     ! Location
-      REAL(fp),       INTENT(IN)  :: K           ! Rate constant
-      REAL(fp),       INTENT(IN)  :: FF          ! Rate constant factor
+      TYPE(MetState),     INTENT(IN) :: State_Met   ! Meteorology State object
+      INTEGER,            INTENT(IN) :: I, J, L     ! Location
+      REAL(fp),           INTENT(IN) :: K           ! Rate constant
+      REAL(fp), OPTIONAL, INTENT(IN) :: FF          ! Rate constant factor
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                    :: F           ! Vertical updraft velocity in m/s. 
+      REAL(fp)                       :: F           ! Vertical updraft velocity
+                                                    ! in m/s. 
 ! 
 ! !REVISION HISTORY:
 !  12 Feb 2015 - C. Keller   - Initial version 
 !  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod since not used.
+!  25 Jun 2015 - M. Sulprizio- Now pass FF as an optional argument for aerosols
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9049,7 +9051,11 @@
       IF ( Vud <= TINY_FP) THEN
          F = 0.0_fp
       ELSE
-         F = 1e+0_fp - EXP( -FF*K * TMP / Vud(I,J) )
+         IF ( PRESENT ( FF ) ) THEN
+            F = 1e+0_fp - EXP( -FF*K * TMP / Vud )
+         ELSE
+            F = 1e+0_fp - EXP( -K * TMP / Vud )
+         ENDIF
       ENDIF
 
       END FUNCTION GET_F

@@ -1637,7 +1637,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_FJX( am_I_Root, Input_Opt, RC, LBRC )
+      SUBROUTINE INIT_FJX( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -1665,7 +1665,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL   :: LBRC
       INTEGER                     :: JXUNIT,J
       CHARACTER(LEN=255)          :: FILENAME
       INTEGER                     :: NJXX
@@ -1675,7 +1674,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       !=================================================================
       ! INIT_FJX begins here!
       !=================================================================
-      LBRC = Input_Opt%LBRC
+
       ! Assume success
       RC = GIGC_SUCCESS
 
@@ -1731,10 +1730,10 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
          WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
       ENDIF
 
-      call RD_MIE(JXUNIT,TRIM( FILENAME ), am_I_Root, Input_Opt, LBRC)
+      call RD_MIE(JXUNIT,TRIM( FILENAME ), am_I_Root, Input_Opt )
 
       ! Read in AOD data
-      call RD_AOD(JXUNIT, am_I_Root, Input_Opt, LBRC)
+      call RD_AOD(JXUNIT, am_I_Root, Input_Opt )
 
       ! Set up MIEDX array to interpret between GC and FJX aerosol indexing
       call SET_AER(am_I_Root)
@@ -2061,19 +2060,19 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_MIE(NUN,NAMFIL,am_I_Root, Input_Opt, LBRC)
+      SUBROUTINE RD_MIE(NUN,NAMFIL,am_I_Root, Input_Opt )
 !
 ! !USES:
 !
-      USE FILE_MOD,   ONLY : IOERROR
+      USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,      INTENT(IN) :: NUN
-      CHARACTER(*), INTENT(IN) :: NAMFIL
-      LOGICAL,      INTENT(IN) :: am_I_Root
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN) :: NUN
+      CHARACTER(*),   INTENT(IN) :: NAMFIL
+      LOGICAL,        INTENT(IN) :: am_I_Root
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
       
 !
 ! !OUTPUT VARIABLES:
@@ -2093,6 +2092,8 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Adapted from GEOS-Chem v9-1-3
+!  25 Jun 2015 - M. Sulprizio  - Add brown carbon optical properties from 
+!                                M. Hammer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2101,21 +2102,22 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
       INTEGER  I, J, K, NK
       CHARACTER*78 TITLE0
-      LOGICAL   :: LBRC
-      CHARACTER*20, DIMENSION(7) :: TITLEAAt
-      REAL(fp)             :: QAAt(5,63)
-      REAL(fp)             :: WAAt(5,63)
-      REAL(fp)             :: PAAt(8,5,63)
-      REAL(fp)             :: RAAt(5,63)
-      REAL(fp)             :: SAAt(5,63)
-      INTEGER              :: NAAt
-
-
+      LOGICAL      :: LBRC
+      CHARACTER*20 :: TITLEAAt(7)
+      REAL(fp)     :: QAAt(5,63)
+      REAL(fp)     :: WAAt(5,63)
+      REAL(fp)     :: PAAt(8,5,63)
+      REAL(fp)     :: RAAt(5,63)
+      REAL(fp)     :: SAAt(5,63)
+      INTEGER      :: NAAt
 
       !=================================================================
       ! RD_MIE begins here!
       !=================================================================
-       LBRC = Input_Opt%LBRC
+
+      ! Copy fields from Input_Opt
+      LBRC = Input_Opt%LBRC
+
       open (NUN,FILE=NAMFIL,status='old',form='formatted')
 
       ! Read header lines
@@ -2128,35 +2130,35 @@ c---TROP-QUICK  (must scale solar flux for W=5)
      
       read(NUN,'(A10,I5,/)') TITLE0,NAA
  
-        NK=5
-        do j=1,NAA
-           read(NUN,110) TITLEAA(j)
+      NK=5
+      do j=1,NAA
+         read(NUN,110) TITLEAA(j)
          do k=1,NK
             read(NUN,*) WAA(k,j),QAA(k,j),RAA(k,j),SAA(k,j),
      &                                             (PAA(i,k,j),i=1,8)
        
-          enddo
-        enddo
+         enddo
+      enddo
 
       IF (LBRC) THEN
-          NAAt=63 
-          do j= 57, NAAt
-           read(NUN,110) TITLEAAt(j)
-          do k=1,NK
+         NAAt=63 
+         do j= 57, NAAt
+            read(NUN,110) TITLEAAt(j)
+            do k=1,NK
              read(NUN,*) WAAt(k,j),QAAt(k,j),RAAt(k,j),SAAt(k,j),
-     &                                             (PAAt(i,k,j),i=1,8)
+     &              (PAAt(i,k,j),i=1,8)
        
-           enddo
+            enddo
          enddo
        
-        do j= 36, 42
-         TITLEAA(j) = TITLEAAt(j+21)
-         WAA(:,j) = WAAt(:,j+21)
-         QAA(:,j) = QAAt(:,j+21)
-         RAA(:,j) = RAAt(:,j+21)
-         SAA(:,j) = SAAt(:,j+21)
-         PAA(:,:,j) = PAAt(:,:,j+21)
-        enddo
+         do j= 36, 42
+            TITLEAA(j) = TITLEAAt(j+21)
+            WAA(:,j) = WAAt(:,j+21)
+            QAA(:,j) = QAAt(:,j+21)
+            RAA(:,j) = RAAt(:,j+21)
+            SAA(:,j) = SAAt(:,j+21)
+            PAA(:,:,j) = PAAt(:,:,j+21)
+         enddo
       ENDIF  
       
       close(NUN)
@@ -2189,11 +2191,11 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_AOD( NJ1, am_I_Root, Input_Opt, LBRC )
+      SUBROUTINE RD_AOD( NJ1, am_I_Root, Input_Opt )
 !
 ! !USES:
 !
-      USE FILE_MOD,   ONLY : IOERROR
+      USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       IMPLICIT NONE
 
@@ -2201,7 +2203,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! !INPUT PARAMETERS:
 !     
       INTEGER,          INTENT(IN) :: NJ1         ! Unit # of file to open
-      TYPE(OptInput),  INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(OptInput),   INTENT(IN) :: Input_Opt   ! Input Options object
       LOGICAL,          INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -2236,6 +2238,8 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !  12 May 2015 - R. Yantosca   - Bug fix: For PGI compiler, you need to have
 !                                exactly as many elements in the DATA statement
 !                                as there are elements in the SPECFIL array.
+!  25 Jun 2015 - M. Sulprizio  - Add brown carbon optical properties from 
+!                                M. Hammer 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2251,14 +2255,15 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 #endif
       CHARACTER(LEN=30) :: THISFILE
            
-      LOGICAL   :: LBRC
+      LOGICAL           :: LBRC
 
       CHARACTER*78 TITLE0
 
       !================================================================
       ! RD_AOD begins here!
       !================================================================
-      
+
+      ! Copy fields from Input_Opt
       LBRC = Input_Opt%LBRC
             
       ! aerosol_mod.F expects aerosol in this order now
@@ -2282,7 +2287,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 
        ! mirror file. Need to append '.rc' in ESMF environment. (ckeller, 4/1/15)
        IF (LBRC) THEN
-       SPECFIL(3) = "brc.dat"
+          SPECFIL(3) = "brc.dat"
        ENDIF
 
        THISFILE = SPECFIL(k)
