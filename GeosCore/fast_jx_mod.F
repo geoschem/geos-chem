@@ -2103,7 +2103,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       INTEGER  I, J, K, NK
       CHARACTER*78 TITLE0
       LOGICAL      :: LBRC
-      CHARACTER*20 :: TITLEAAt(7)
+      CHARACTER*20, DIMENSION(7) :: TITLEAAt
       REAL(fp)     :: QAAt(5,63)
       REAL(fp)     :: WAAt(5,63)
       REAL(fp)     :: PAAt(8,5,63)
