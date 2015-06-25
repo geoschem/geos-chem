@@ -278,7 +278,7 @@ ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
 endif
 
 #------------------------------------------------------------------------------
-# Grid-Independent GEOS-Chem (aka "Mega-Chem") settings
+# GEOS-Chem HP settings
 #------------------------------------------------------------------------------
 
 # %%%%% DEVEL %%%%%
@@ -715,6 +715,14 @@ ifeq ($(COMPILER),ifort)
   ifeq ($(shell [[ "$(TAU_PROF)" =~ $(REGEXP) ]] && echo true),true)
     COMPILE_CMD      :=tau_f90.sh
   endif
+endif
+
+#------------------------------------------------------------------------------
+# Add test for mass conservation
+#------------------------------------------------------------------------------
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(MASSCONS)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DMASSCONS
 endif
 
 ###############################################################################
