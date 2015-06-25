@@ -354,6 +354,7 @@
       LOGICAL                  :: ITS_A_MERCURY_SIM  
       LOGICAL                  :: ITS_A_TAGCO_SIM
       LOGICAL                  :: ITS_AN_AEROSOL_SIM 
+      LOGICAL                  :: LBRC
       LOGICAL                  :: ITS_A_CH3I_SIM
       LOGICAL                  :: ITS_A_SPECIALTY_SIM
       LOGICAL                  :: DO_DIAG_WRITE
@@ -620,6 +621,7 @@
       !=================================================================
       !        ***** I N I T I A L I Z A T I O N  continued *****
       !=================================================================
+      LBRC = Input_Opt%LBRC
 
       ! Read the initial met fields from disk
       CALL READ_INITIAL_MET_FIELDS()
@@ -661,7 +663,8 @@
       ! of the variables are used for non-local PBL mixing BEFORE 
       ! the first call of the chemistry routines (ckeller, 05/19/14).
       IF ( ITS_A_FULLCHEM_SIM .OR. ITS_AN_AEROSOL_SIM ) THEN
-         CALL INIT_CHEMISTRY ( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL INIT_CHEMISTRY ( am_I_Root, Input_Opt, State_Chm, RC, 
+     &                       LBRC)
       ENDIF
 
       ! Initialize HEMCO. This reads the HEMCO configuration file
