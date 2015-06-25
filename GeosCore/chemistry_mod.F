@@ -1106,8 +1106,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_CHEMISTRY( am_I_Root, Input_Opt, State_Chm, RC, 
-     &                          LBRC)
+      SUBROUTINE INIT_CHEMISTRY( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -1141,14 +1140,12 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE   :: FIRST = .TRUE.
-      LOGICAL   :: LBRC
 
       !=================================================================
       ! INIT_CHEMISTRY begins here!
       !=================================================================
 
       ! Assume success
-      LBRC = Input_Opt%LBRC
       RC                   = GIGC_SUCCESS
 
       IF ( FIRST ) THEN
@@ -1156,7 +1153,7 @@
          ! Init chem mechanism and photolysis
          CALL READER  ( FIRST, am_I_Root                           )
          CALL READCHEM(        am_I_Root, Input_Opt,            RC )
-         CALL INIT_FJX(        am_I_Root, Input_Opt,  RC,      LBRC)
+         CALL INIT_FJX(        am_I_Root, Input_Opt,  RC           )
          CALL SETTRACE(        am_I_Root, Input_Opt, State_Chm, RC )
 
          ! Reset NCS with NCSURBAN
