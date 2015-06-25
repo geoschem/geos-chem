@@ -305,8 +305,6 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 !
 ! !INPUT PARAMETERS:
 !
@@ -328,6 +326,10 @@
 !  14 Nov 2012 - R. Yantosca - Added am_I_Root, RC arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER and GET_PEDGE with 
+!                              State_Met%PMID and State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -360,10 +362,10 @@
       DO I = 1, IIPAR
 	
          ! Surface pressure
-         PSFC = GET_PEDGE(I,J,1)
+         PSFC = State_Met%PEDGE(I,J,1)
 
          ! Pressure at the center of the grid box
-         PRES = GET_PCENTER(I,J,L)
+         PRES = State_Met%PMID(I,J,L)
 
          ! RH (from "dao_mod.f") is relative humidity [%]
          ! Convert to fraction and store in RH2
@@ -685,7 +687,7 @@
       ENDIF
 
 #if defined( UCX )
-      ! Stratospheric aerosol graviational settling
+      ! Stratospheric aerosol gravitational settling
       IF ( LGRAVSTRAT ) THEN
          CALL SETTLE_STRAT_AER( am_I_Root, Input_Opt, 
      &                          State_Met, State_Chm, RC )
@@ -904,7 +906,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
 
       USE TOMAS_MOD,          ONLY : IBINS, AVGMASS, ICOMP
       USE TOMAS_MOD,          ONLY : Xk,  SUBGRIDCOAG, MNFIX
@@ -1201,7 +1202,7 @@
             !TSCALE = 10.*3600.
             BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
             TEMP    = State_Met%T(I,J,L)
-            PRES    = GET_PCENTER(i,j,l)*100.0 ! in Pa
+            PRES    = State_Met%PMID(i,j,l)*100.0 ! in Pa
 
 !            print *, 'Now doing subgrid coag with timescale ',
 !     &           TSCALE/3600.,'hr'
@@ -1360,7 +1361,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TRACERID_MOD,       ONLY : IDTSO4s
       USE TRACERID_MOD,       ONLY : IDTNITs
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
@@ -1397,6 +1397,8 @@
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  06 Jan 2015 - M. Yannetti - Changed some variables to f8 as needed
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
+!                              remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1502,7 +1504,8 @@
          DO L = 1, LLPAR
 
             ! Pressure at center of the level [kPa]
-            P       = GET_PCENTER(I,J,L) * 0.1e+0_fp
+            ! Use moist air pressure for mean free path (ewl, 3/2/15)
+            P       = State_Met%PMID(I,J,L) * 0.1e+0_fp
 
             ! Temperature [K]
             TEMP    = State_Met%T(I,J,L)
@@ -2328,6 +2331,8 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  12 Jan 2015 - C. Keller   - Now allow NDENS_SALA and NDENS_SALC to be empty.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2456,7 +2461,8 @@
          O3     = GET_O3( I, J, L, Input_Opt, State_Met )
 
          ! PATM  : Atmospheric pressure in atm
-         PATM   = GET_PCENTER( I, J, L ) / 1013.25e+0_fp
+         ! Now use dry air partial pressure (ewl, 4/28/15)
+         PATM   = State_Met%PMID_DRY( I, J, L ) / 1013.25e+0_fp
 
          ! TK : Temperature [K]
          TK     = State_Met%T(I,J,L)
@@ -3503,7 +3509,7 @@
       REAL(fp),  INTENT(IN)    :: TNH3   ! NH3 mixing ratio [v/v]
       REAL(fp),  INTENT(IN)    :: SO2    ! SO2 mixing ratio [v/v] 
       REAL(fp),  INTENT(IN)    :: T      ! Temperature [K]
-      REAL(fp),  INTENT(IN)    :: PRES   ! Pressure [atm]
+      REAL(fp),  INTENT(IN)    :: PRES   ! Dry air partial ressure [atm]
       REAL(fp),  INTENT(IN)    :: LWC    ! Cloud liquid water content [m3/m3]
       REAL(fp),  INTENT(IN)    :: iHPLUS ! Initial [H+] [M]
 !
@@ -3528,6 +3534,7 @@
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
 !  06 Jan 2015 - M. Yannetti - Set some variables to f8 that required it
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3693,6 +3700,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3758,6 +3766,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3824,6 +3833,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3888,6 +3898,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3953,6 +3964,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4012,6 +4024,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4071,6 +4084,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4249,7 +4263,7 @@
 !
       REAL(fp), INTENT(IN)  :: LWC     ! Liq water content [m3/m3]=1.E-6*L [g/m3]
       REAL(fp), INTENT(IN)  :: T       ! Temperature [K]
-      REAL(fp), INTENT(IN)  :: P       ! Pressure [atm]
+      REAL(fp), INTENT(IN)  :: P       ! Dry air partial pressure [atm]
       REAL(fp), INTENT(IN)  :: SO2     ! SO2  mixing ratio [v/v]
       REAL(fp), INTENT(IN)  :: H2O2    ! H2O2 mixing ratio [v/v]
       REAL(fp), INTENT(IN)  :: O3      ! O3   mixing ratio [v/v]
@@ -4306,6 +4320,7 @@
 ! !REVISION HISTORY:
 !  (1 ) Updated by Rokjin Park (rjp, bmy, 12/12/02)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC

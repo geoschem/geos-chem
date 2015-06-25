@@ -19,6 +19,7 @@
 # \item Platform-specific error handling
 # \item Manipulating string variables
 # \item Regridding data (horizontally) from fine to coarse resolution
+# \item Converting gas concentration units
 # \end{itemize}
 #
 # !REMARKS:
@@ -65,6 +66,7 @@
 #                              files in GeosUtil
 #  21 Jul 2014 - R. Yantosca - Removed regrid_1x1_mod.F; it's obsolete
 #  23 Jul 2014 - R. Yantosca - Removed global_grid_mod.F90; it's obsolete
+#  08 Jan 2015 - E. Lundgren - Add module for unit conversion
 #  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
 #EOP
 #------------------------------------------------------------------------------
@@ -198,6 +200,9 @@ time_mod.o        : time_mod.F            \
                     julday_mod.o 
 
 transfer_mod.o    : transfer_mod.F        \
+                    error_mod.o
+
+unitconv_mod.o	  : unitconv_mod.F90      \
                     error_mod.o
 
 #%%% NOTE: THIS IS NOW OBSOLETE, WE SHOULD REMOVE IT %%% 

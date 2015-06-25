@@ -1471,7 +1471,7 @@
          ! Save tracer molecular wt [kg/mole]
          Input_Opt%TRACER_MW_KG(T) = Input_Opt%TRACER_MW_G(T) * 1e-3_fp
 
-         ! Ratio of MW air / MW tracer 
+         ! Ratio of MW dry air / MW tracer 
          Input_Opt%TCVV(T) = 28.97e+0_fp / Input_Opt%TRACER_MW_G(T)
 
          ! Molecules tracer / kg tracer

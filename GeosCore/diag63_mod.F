@@ -123,7 +123,6 @@
       USE TIME_MOD,     ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
       USE TIME_MOD,     ONLY : GET_TAUb
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
       USE ERROR_MOD,    ONLY : SAFE_DIV, ERROR_STOP
 
       USE CMN_O3_MOD	     ! Pure O3, SAVENO2
@@ -151,6 +150,7 @@
 !  11 Apr 2012 - R. Yantosca - Remove reference to lai_mod.F, it's not needed
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  26 Feb 2015 - E. Lundgren - Remove pressure_mod from use list (not used)
 !EOP
 !------------------------------------------------------------------------------
 !BOC

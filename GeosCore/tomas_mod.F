@@ -281,6 +281,8 @@
 !  28 Jan 2014 - R. Yantosca - Avoid array temporaries in call to CHECK_VALUE
 !  29 Jan 2014 - R. Yantosca - Avoid array temporaries in call to NH4BULKTOBIN
 !  30 Jan 2014 - R. Yantosca - Add missing variables to !$OMP+PRIVATE statement
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
+!                              remove dependency on pressure_mod.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -292,7 +294,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TRACERID_MOD,       ONLY : IDTNK1, IDTH2SO4
       USE TRACERID_MOD,       ONLY : IDTAW1, IDTSF1,  IDTSO4
       USE TRACERID_MOD,       ONLY : IDTNH3, IDTNH4
@@ -483,7 +484,7 @@ cvbn         write(890,89)I,J,L,STT(i,j,l,IDTH2SO4)
  
          ! Get info on this grid box
          ADT     = 3600.
-         PRES    = GET_PCENTER(i,j,l)*100.0 ! in Pa       
+         PRES    = State_Met%PMID(i,j,l)*100.0 ! in Pa       
          TEMPTMS = State_Met%T(I,J,L)
          BOXMASS = State_Met%AD(I,J,L)
          RHTOMAS = State_Met%RH(I,J,L)/ 1.e2 

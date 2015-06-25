@@ -249,7 +249,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L, GET_PBL_TOP_m
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
       USE TRACER_MOD,         ONLY : XNUMOLAIR
@@ -313,6 +312,8 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
+!  26 Feb 2014 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -552,7 +553,7 @@
                !--------------------------------------
                IF ( K == 1 ) THEN
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                         GET_PEDGE( I, J, State_Met%CLDTOPS(I,J) )
+     &                       State_Met%PEDGE(I,J,State_Met%CLDTOPS(I,J))
                ENDIF
               
             ELSE IF ( N == 157 ) THEN
@@ -603,7 +604,7 @@
                !--------------------------------------
                ! PEDGE-$ [hPa]
                !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PEDGE( I, J, K )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%PEDGE( I, J, K )
 
             ELSE IF ( N == 163 .and. IS_SLP ) THEN
 

@@ -87,7 +87,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TRACERID_MOD,       ONLY : IDTOCPI, IDTOCPO
       USE TRACERID_MOD,       ONLY : IDTSOAG, IDTSOAM
       USE TRACERID_MOD,       ONLY : IDTSO4,  IDTNIT, IDTNH4
@@ -130,6 +129,7 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod (not used)
 !EOP
 !------------------------------------------------------------------------------
 !BOC

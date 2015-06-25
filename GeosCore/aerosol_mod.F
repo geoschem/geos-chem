@@ -131,7 +131,6 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, IXSAVE   
       USE COMODE_MOD,         ONLY : IYSAVE, IZSAVE,  JLOP       
-      USE DAO_MOD,            ONLY : MAKE_AVGW
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
 
@@ -165,6 +164,8 @@
 !  08 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  02 Mar 2015 - E. Lundgren - Remove MAKE_AVGW call. State_Met%AVGW now
+!                              set in AIRQNT within dao_mod.F.
 !  01 Apr 2015 - R. Yantosca - Bug fix: BOXVL needs to be !$OMP PRIVATE
 !EOP
 !------------------------------------------------------------------------------
@@ -187,9 +188,6 @@
       NLAT   = JJPAR
       NVERT  = IVERT
       NPVERT = NVERT
-
-      ! Create AVGW field -- mixing ratio of water [v/v]
-      CALL MAKE_AVGW( State_Met )
 
       !=================================================================
       ! Pre-save SMVGEAR loop indices on the first call

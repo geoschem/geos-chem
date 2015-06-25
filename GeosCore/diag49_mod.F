@@ -221,7 +221,6 @@
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE TRACER_MOD,         ONLY : XNUMOLAIR
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
@@ -284,6 +283,8 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
 !  15 Apr 2015 - M. Sulprizio- Comment out emission diagnostics for now. These
 !                              are now handled by the HEMCO.
 !EOP
@@ -637,7 +638,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = GET_PEDGE( I, J, State_Met%CLDTOPS(I,J) )
+               Q(X,Y,K) = State_Met%PEDGE(I,J,State_Met%CLDTOPS(I,J))
             ENDDO
             ENDDO
             ENDDO
@@ -782,7 +783,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = GET_PEDGE(I,J,K)
+               Q(X,Y,K) = State_Met%PEDGE(I,J,K)
             ENDDO
             ENDDO
             ENDDO

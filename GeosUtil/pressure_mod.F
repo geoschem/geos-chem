@@ -24,14 +24,15 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: CLEANUP_PRESSURE
+      PUBLIC  :: INIT_PRESSURE
       PUBLIC  :: GET_AP
       PUBLIC  :: GET_BP
-      PUBLIC  :: GET_PCENTER
-      PUBLIC  :: GET_PEDGE
-      PUBLIC  :: GET_PEDGE_FULLGRID
-      PUBLIC  :: INIT_PRESSURE
+      PUBLIC  :: GET_PCENTER              ! wet air P at grid center
+      PUBLIC  :: GET_PEDGE                ! wet air P at lower grid edge
+      PUBLIC  :: GET_PEDGE_FULLGRID       ! wet air P at lower grid edge
       PUBLIC  :: SET_FLOATING_PRESSURE
+      PUBLIC  :: CLEANUP_PRESSURE
+
 #if defined( ESMF_ )
       PUBLIC  :: Accept_External_Pedge
 #endif
@@ -118,7 +119,7 @@
       REAL(fp), ALLOCATABLE :: BP_FULLGRID(:)         ! "B" term for full grid
 #if defined( ESMF_ )
       REAL(fp), ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)  ! Pressure edges from 
-                                                    !  external grid
+                                                      !  external grid
 #endif
       CONTAINS
 !EOC

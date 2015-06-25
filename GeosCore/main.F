@@ -42,6 +42,7 @@
       USE TRACERID_MOD          ! Flags for G-C tracers & chemical species
       USE TRACER_MOD            ! For error-checking the tracer array
       USE REGRID_A2A_MOD        ! For horizontal regridding
+      USE UNITCONV_MOD          ! For gas concentration unit conversion
       
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
@@ -271,6 +272,9 @@
 !  22 Aug 2014 - R. Yantosca - Now save areas [m2] in State_Met%AREA_M2
 !  15 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  06 Jan 2015 - R. Yantosca - Added two-way coupled simulation options
+!  17 Feb 2015 - E. Lundgren - Remove STT and TCVV pointers.
+!  25 Feb 2015 - E. Lundgren - Remove MAKE_RH call since now in AIRQNT.
+!  31 Mar 2015 - E. Lundgren - Move post-transport AIRQNT call to transport_mod 
 !  16 Apr 2015 - R. Yantosca - Remove call to INIT_DAO; it's obsolete
 !EOP
 !------------------------------------------------------------------------------
@@ -343,11 +347,6 @@
       !
       LOGICAL, PARAMETER       :: am_I_Root = .TRUE. 
       !
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      !
-      REAL(fpp),  POINTER       :: STT(:,:,:,:)
-      !
       ! Define shadow variables for fields in Input_Opt (bmy, 6/25/14)
       LOGICAL                  :: ITS_A_FULLCHEM_SIM 
       LOGICAL                  :: ITS_A_CH4_SIM
@@ -383,7 +382,6 @@
       LOGICAL                  :: LWINDO
       LOGICAL                  :: USE_OLSON_2001
       INTEGER                  :: N_TRACERS 
-      REAL(fpp),  POINTER       :: TCVV(:)
       !-----------------------------------------------------------------
 
       !=================================================================
@@ -496,7 +494,6 @@
       LWINDO              =  Input_Opt%LWINDO
       USE_OLSON_2001      =  Input_Opt%USE_OLSON_2001
       N_TRACERS           =  Input_Opt%N_TRACERS  
-      TCVV                => Input_Opt%TCVV
 
       ! Set a flag to denote if we should print ND70 debug output
       prtDebug            = ( LPRT .and. am_I_Root )
@@ -543,18 +540,13 @@
       ! N_TRACERS, which is obtained by reading the input.geos file.
       !
       CALL Fill_Chem_State_Name_IDs( am_I_Root, Input_Opt, State_Chm )
-      !
-      ! Define STT array from Chemistry State object.  This
-      ! allows us to keep existing code intact. (mpayer, 12/6/12)
-      !
-      STT               => State_Chm%Tracers
-      !
+
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field.  This will let us convert
       ! HEMCO emissions [kg/m2/s] to [kg] in various routines 
       ! without the overhead of many function calls. (bmy, 8/22/14)
       State_Met%AREA_M2 =  AREA_M2
-      !
+
       !-----------------------------------------------------------------
 
 #if   defined( RRTMG )
@@ -630,11 +622,11 @@
       CALL AVGPOLE( State_Met%PS1 )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a AVGPOLE' )
 
-      ! Call AIRQNT to compute air mass quantities from PS1
       CALL SET_FLOATING_PRESSURE( State_Met%PS1 )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
 
-      CALL AIRQNT( State_Met )
+      ! Call AIRQNT to compute air mass quantities
+      CALL AIRQNT( am_I_Root, State_Met, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
 
       ! Initialize the derived type object containing
@@ -691,7 +683,7 @@
       !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
 
-      ! Read initial tracer conditions
+      ! Read initial tracer conditions.
       CALL READ_RESTART_FILE( NYMDb,     NHMSb, 
      &                        Input_Opt, State_Met, State_Chm )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
@@ -749,6 +741,7 @@
 
 # endif
 #endif
+
 !-----------------------------------------------------------------------------
 
       !=================================================================
@@ -761,7 +754,7 @@
       CALL Diagnostics_Init( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
 #endif 
- 
+
       !=================================================================
       !      ***** 6 - H O U R   T I M E S T E P   L O O P  *****
       !=================================================================      
@@ -859,6 +852,7 @@
                ! Flush file units
                CALL CTM_FLUSH
             ENDIF
+
             !===========================================================
             !    *****  W R I T E   R E S T A R T   F I L E S  *****
             !===========================================================
@@ -894,6 +888,7 @@
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### MAIN: a MAKE_RESTART_FILE' )
                ENDIF
+
             ENDIF
 
             ! Set time at beginning of next diagnostic timestep
@@ -903,7 +898,9 @@
             !        ***** Z E R O   D I A G N O S T I C S *****
             !===========================================================
             CALL INITIALIZE( am_I_Root, Input_Opt, 2, RC )  ! Zero diag arrays
+
             CALL INITIALIZE( am_I_Root, Input_Opt, 3, RC )  ! Zero counters
+
          ENDIF
 
          !=============================================================
@@ -1081,12 +1078,13 @@
          IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( State_Met%PSC2 )
 
          ! Compute airmass quantities at each grid box 
-         CALL AIRQNT( State_Met )
+         CALL AIRQNT( am_I_Root, State_Met, RC )
 
-         ! SDE 05/28/13: Set H2O to STT if relevant
+         ! SDE 05/28/13: Set H2O to tracer if relevant
          IF (IDTH2O.ne.0) THEN
-            CALL SET_H2O_TRAC( (( .not. LUCX ) .or. LSETH2O ),
-     &                         Input_Opt, State_Met, State_Chm )
+            CALL SET_H2O_TRAC( am_I_Root, 
+     &                         ( ( .not. LUCX ) .or. LSETH2O ),
+     &                         Input_Opt, State_Met, State_Chm, RC )
             ! Only force strat once if using UCX
             IF (LSETH2O) LSETH2O = .FALSE.
          ENDIF
@@ -1155,7 +1153,8 @@
          !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
          !==============================================================
          IF ( ITS_TIME_FOR_UNIT() ) THEN
-            CALL CONVERT_UNITS( 1,  N_TRACERS, TCVV, State_Met%AD, STT )
+            CALL CONVERT_UNITS( 1,  N_TRACERS, Input_Opt%TCVV, 
+     &                          State_Met%AD, State_Chm%TRACERS )
 
             !### Debug
             IF ( prtDebug ) THEN 
@@ -1187,7 +1186,7 @@
                CALL EXCHANGE_GLOBAL_POST
      &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
-            
+
 # elif defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( NESTED_SE )
 
             ! Exchange the position of POST (nested-grid simulations)
@@ -1195,24 +1194,16 @@
                CALL EXCHANGE_NESTED_POST
      &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
+
 # endif
 #endif
 !-----------------------------------------------------------------------------
 
-            ! Call the appropritate version of TPCORE
+            ! Call the appropriate version of TPCORE
             IF ( LTRAN ) THEN 
                CALL DO_TRANSPORT
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
-
-            ! Reset air mass quantities
-            CALL AIRQNT( State_Met )
-
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
-            ! Get relative humidity (after recomputing pressures)
-            ! NOTE: for GEOS-5 we'll read this from disk instead
-            CALL MAKE_RH( State_Met )
-#endif
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
@@ -1220,6 +1211,7 @@
             ! ... TOMAS microphysics: Always call INIT_WETSCAV ...
             CALL INIT_WETSCAV
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
 #else 
             ! ... Standard GEOS-Chem: Call INIT_WETSCAV if   ...
             ! ... convection or wet scavenging or chemistry are turned on ...
@@ -1227,6 +1219,7 @@
                CALL INIT_WETSCAV
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
+
 #endif
          ENDIF
 
@@ -1250,9 +1243,9 @@
          !--------------------------------------------------------------
          IF ( ITS_TIME_FOR_EMIS() ) THEN
 
-            IF ( ITS_TIME_FOR_UNIT() )
-     &         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV,
-     &                             State_Met%AD, STT ) ! v/v -> kg
+            IF ( ITS_TIME_FOR_UNIT() )  ! v/v -> kg
+     &         CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV,
+     &                             State_Met%AD, State_Chm%TRACERS )
 
             ! Increment emission counter
             CALL SET_CT_EMIS( INCREMENT=.TRUE. )
@@ -1289,8 +1282,8 @@
  
             ! Unit conversion
             IF ( ITS_TIME_FOR_UNIT() )
-     &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
-     &                             State_Met%AD, STT ) ! kg -> v/v
+     &         CALL CONVERT_UNITS( 1, N_TRACERS, Input_Opt%TCVV, 
+     &                             State_Met%AD, State_Chm%TRACERS )! kg->v/v
          ENDIF
 
          !-------------------------------
@@ -1338,12 +1331,13 @@
             ENDIF 
          ENDIF 
 
-
          !==============================================================
          !    ***** U N I T   C O N V E R S I O N  ( v/v -> kg ) *****
          !==============================================================
+
          IF ( ITS_TIME_FOR_UNIT() ) THEN 
-            CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT )
+            CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV, 
+     &                          State_Met%AD, State_Chm%TRACERS )
 
             !### Debug
             IF ( prtDebug ) THEN 
@@ -1436,10 +1430,10 @@
             ! Increment chemistry timestep counter
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
 
-            ! SDE 05/28/13: Set H2O to STT if relevant
+            ! SDE 05/28/13: Set H2O to tracer if relevant
             IF (IDTH2O.ne.0) THEN
-               CALL SET_H2O_TRAC( (.not. LUCX), Input_Opt ,
-     &                            State_Met,    State_Chm )
+               CALL SET_H2O_TRAC( am_I_Root, (.not. LUCX), Input_Opt ,
+     &                            State_Met, State_Chm, RC )
             ENDIF
 
             ! Do GEOS-Chem chemistry
@@ -1448,7 +1442,7 @@
 
          ENDIF 
 
-         ! Check STT (yxw)   
+         ! Check STT (tracers) (yxw)   
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
          CALL CHECK_STT_05x0666( State_Chm, 
      &                           'end of chem section, before wetdep' )
@@ -1456,7 +1450,6 @@
 #if   defined( GEOS_FP) && defined( GRID025x03125)
          CALL CHECK_STT_025x03125( State_Chm, 'after chemistry' )
 #endif 
-
 
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
@@ -1466,7 +1459,7 @@
             ! Do wet deposition
             CALL DO_WETDEP
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-            
+
          ENDIF
 
          !==============================================================
@@ -1683,11 +1676,11 @@
          !  ***** E N D   O F   D Y N A M I C   T I M E S T E P *****
          !==============================================================
 
-         ! Check for NaN, Negatives, Infinities in STT each time diag are
+         ! Check for NaN, Negatives, Infinities in tracers each time diag are
          ! saved. (ccc, 5/13/09)
          IF ( ITS_TIME_FOR_DIAG() ) THEN
 
-         ! Sometimes STT in the stratosphere can be negative at 
+         ! Sometimes tracers in the stratosphere can be negative at 
          ! the nested-grid domain edges. Force them to be zero before
          ! CHECK_STT (yxw)
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
@@ -1758,9 +1751,6 @@
       ! Close all files
       CALL CLOSE_FILES
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
-
-      ! Free pointers (mpayer, 12/6/12)
-      NULLIFY( STT, TCVV )
 
       ! Deallocate fields of the Input Options object
       CALL Cleanup_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )

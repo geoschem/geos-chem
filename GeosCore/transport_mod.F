@@ -36,7 +36,6 @@
       PRIVATE :: GCAP_GLOBAL_ADV             
       PRIVATE :: DO_GEOS5_WINDOW_TRANSPORT
       PRIVATE :: DO_GEOSFP_WINDOW_TRANSPORT      
-      PRIVATE :: GET_AIR_MASS                
 !
 ! !REVISION HISTORY:
 !  10 Mar 2003 - Y. Wang, R. Yantosca - Initial version
@@ -74,6 +73,11 @@
 !  26 Sep 2013 - R. Yantosca - Renamed "GEOS57" to "GEOSFP" in routine names
 !  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  15 Apr 2015 - R. Yantosca - Add TARGET spec to A_M2 array
+!  24 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
+!                              (previously v/v) for advection
+!  24 Jun 2015 - E. Lundgren - Remove post-advection residual mass correction
+!                              and GET_AIR_MASS function since no longer needed
+!                              when using kg/kg total air in advection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -86,10 +90,10 @@
       ! (4 ) IORD   (REAL(fp) ) : TPCORE E/W option flag
       ! (5 ) JORD   (REAL(fp) ) : TPCORE N/S option flag
       ! (6 ) KORD   (REAL(fp) ) : TPCORE vertical option flag
-      ! (7 ) JLAST  (INTEGER) : For fvDAS TPCORE
-      ! (8 ) MG     (INTEGER) : For fvDAS TPCORE
-      ! (9 ) NG     (INTEGER) : For fvDAS TPCORE
-      ! (10) N_ADJ  (INTEGER) : For fvDAS TPCORE
+      ! (7 ) JLAST  (INTEGER)   : For fvDAS TPCORE
+      ! (8 ) MG     (INTEGER)   : For fvDAS TPCORE
+      ! (9 ) NG     (INTEGER)   : For fvDAS TPCORE
+      ! (10) N_ADJ  (INTEGER)   : For fvDAS TPCORE
       !=================================================================
       INTEGER                       :: IORD,  JORD, KORD, JFIRST 
       INTEGER                       :: JLAST, NG,   MG,   N_ADJ
@@ -132,11 +136,11 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -156,6 +160,7 @@
 !  28 Feb 2012 - R. Yantosca - Treat GEOS-5.7 in the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  31 Mar 2015 - E. Lundgren - Make State_Met INTENT(INOUT) for AIRQNT calls
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -261,10 +266,11 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PJC_PFIX_MOD,       ONLY : DO_PJC_PFIX
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
+      USE PRESSURE_MOD,       ONLY : SET_FLOATING_PRESSURE
+      USE DAO_MOD,            ONLY : AIRQNT
       USE TIME_MOD,           ONLY : GET_TS_DYN
-      USE TPCORE_BC_MOD,      ONLY : SAVE_GLOBAL_TPCORE_BC
       USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
+      USE UNITCONV_MOD
 #if   defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
@@ -277,11 +283,11 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -302,6 +308,13 @@
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
+!  09 Jun 2015 - E. Lundgren - Remove dependency on tpcore_bc_mod since not used
+!  15 Jun 2015 - E. Lundgren - Tracer units in advection are now kg/kg total air
+!                              (previously v/v)
+!  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
+!                              concentration following advection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -309,39 +322,26 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: I, J, L, L2, N, N_DYN, N_TOT_TRC
-      REAL(fp)           :: A_DIFF, D_DYN, TR_DIFF
-      REAL(fp)           :: AD_A(IIPAR,JJPAR,LLPAR)
-      REAL(fp)           :: AD_B(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: D_DYN
       REAL(fp)           :: P_TP1(IIPAR,JJPAR)
       REAL(fp)           :: P_TP2(IIPAR,JJPAR)
       REAL(fp)           :: P_TEMP(IIPAR,JJPAR)
-      REAL(fp)           :: TR_A(IIPAR,JJPAR,LLPAR)
-#if   defined( APM )
-      REAL(fp)           :: TR_B(IIPAR,JJPAR,LLPAR,
-     &                         Input_Opt%N_TRACERS+N_APMTRA)  ! With APM
-#else
-      REAL(fp)           :: TR_B(IIPAR,JJPAR,LLPAR,
-     &                         Input_Opt%N_TRACERS)           ! W/o APM
-#endif
       REAL(fp),  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR) 
       REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR) 
 
       ! Pointers
-      REAL(fp),  POINTER :: p_UWND (:,:,:  )
-      REAL(fp),  POINTER :: p_VWND (:,:,:  )
-      REAL(fp),  POINTER :: p_XMASS(:,:,:  )
-      REAL(fp),  POINTER :: p_YMASS(:,:,:  )
-      REAL(fp),  POINTER :: p_STT  (:,:,:,:)
-
-      ! Variable to ensure mass conservation (ccc, 2/17/09)
-      REAL(fp)           :: SUMADA
+      REAL(fp),  POINTER :: p_UWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_VWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
+      REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
+      REAL(fp),  POINTER :: p_MOISTMW(:,:,:  )
+      REAL(fp),  POINTER :: p_STT    (:,:,:,:)
 
       ! For fields from Input_Opt
       LOGICAL            :: LFILL
       LOGICAL            :: LPRT
       LOGICAL            :: LWINDO
       INTEGER            :: N_TRACERS
-      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! GEOS4_GEOS5_GLOBAL_ADV begins here!
@@ -355,7 +355,6 @@
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Pick the proper # of tracers
 #if   defined( APM )
@@ -387,7 +386,7 @@
       DO I = 1, IIPAR
 
          ! True surface pressure at midpoint of dynamic timestep [hPa]
-         P_TP1(I,J) = GET_PEDGE(I,J,1)
+         P_TP1(I,J) = State_Met%PEDGE(I,J,1)
 
          ! True surface pressure at end of dynamic timestep [hPa]
          P_TP2(I,J) = State_Met%PSC2(I,J)    
@@ -396,40 +395,6 @@
       ENDDO
 !$OMP END PARALLEL DO
       
-      !=================================================================
-      ! Get the air and tracer mass before advection
-      !=================================================================
-
-      ! Airmass [kg] before transport
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Tracer mass [kg] before transport
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, N_TOT_TRC
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
-     &                 * AD_B(I,J,L)
-     &                 / TCVV(N)
-      ENDDO
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
       !=================================================================
       ! Call the PJC/LLNL pressure fixer to get the adjusted air 
       ! masses XMASS and YMASS.  XMASS and YMASS need to be passed to 
@@ -447,11 +412,19 @@
       !=================================================================
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => State_Met%U      (:,:,LLPAR:1:-1  )
-      p_VWND  => State_Met%V      (:,:,LLPAR:1:-1  )
-      p_STT   => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
-      p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
-      p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
+      p_UWND    => State_Met%U      (:,:,LLPAR:1:-1  )
+      p_VWND    => State_Met%V      (:,:,LLPAR:1:-1  )
+      p_STT     => State_Chm%Tracers(:,:,LLPAR:1:-1,:) ! v/v
+      p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
+      p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
+!      p_MOISTMW => State_Met%MOISTMW(:,:,LLPAR:1:-1  )
+
+      ! Convert tracer concentration from mol/mol dry air to 
+      ! kg/kg total  air before advection (ewl, 6/15/15)
+      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
+     &                               Input_Opt, State_Chm, RC)
+      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS, 
+     &                                   State_Met, State_Chm, RC )
 
       ! Do the advection
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
@@ -465,8 +438,14 @@
      &                   P_TEMP, p_STT,     IORD,     JORD,      
      &                   KORD,   N_ADJ,     p_XMASS,  p_YMASS,         
      &                   LFILL,  MASSFLEW,  MASSFLNS, MASSFLUP,    
-     &                   A_M2,   TCVV,      ND24,     ND25,     
-     &                   ND26 )
+     &                   A_M2,   ND24,      ND25,     ND26 )
+
+      ! Convert tracer concentration from kg/kg wet air to 
+      ! mol/mol dry air after advection (ewl, 6/15/15)
+      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS, 
+     &                                   State_Met, State_Chm, RC ) 
+      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
+     &                               Input_Opt, State_Chm, RC)
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
@@ -479,62 +458,8 @@
       ! surface pressure at the end of the dynamic timestep.
       CALL SET_FLOATING_PRESSURE( P_TP2 )
 
-      ! Adjust tracer to correct residual non-conservation of mass
-      ! This was changed to be applied only for cells with tracer 
-      ! concentration. (ccc, 11/20/08) 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, SUMADA, AD_A, TR_A, TR_DIFF )
-      DO N = 1, N_TOT_TRC
-
-         ! Zero summing variable
-         SUMADA = 0.e+0_fp
-
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! Air mass [kg] after transport
-            AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
-         
-            ! Tracer mass [kg] after transport
-            TR_A(I,J,L) = State_Chm%Tracers(I,J,L,N)
-     &                  * AD_A(I,J,L)
-     &                  / TCVV(N)
-
-            IF ( State_Chm%Tracers(I,J,L,N) > 0.e+0_fp   .or.
-     &           State_Chm%Tracers(I,J,L,N) < 0.e+0_fp ) THEN
-               SUMADA = SUMADA + AD_A(I,J,L)
-            ENDIF
-         ENDDO
-         ENDDO
-         ENDDO
-
-         ! Residual mass difference [kg]: before - after
-         TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
-
-         ! Convert from [kg] to [v/v]
-         TR_DIFF = SAFE_DIV( TR_DIFF, SUMADA, 0.e+0_fp ) * TCVV(N)
-
-         ! Add mass difference [v/v] back to STT
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            IF ( State_Chm%Tracers(I,J,L,N) > 0.e+0_fp   .or.
-     &           State_Chm%Tracers(I,J,L,N) < 0.e+0_fp ) THEN
-               State_Chm%Tracers(I,J,L,N) =
-     &         State_Chm%Tracers(I,J,L,N) + TR_DIFF
-            ENDIF
-
-            State_Chm%Tracers(I,J,L,N) =
-     &           MAX( State_Chm%Tracers(I,J,L,N), 0e+0_fp )
-
-         ENDDO
-         ENDDO
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+      ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
+      CALL AIRQNT( am_I_Root, State_Met, RC )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
@@ -566,9 +491,11 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PJC_PFIX_MOD,       ONLY : DO_PJC_PFIX
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
+      USE PRESSURE_MOD,       ONLY : SET_FLOATING_PRESSURE
+      USE DAO_MOD,            ONLY : AIRQNT
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
+      USE UNITCONV_MOD
 #if   defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
@@ -581,11 +508,11 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -606,6 +533,13 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !  04 Sep 2014 - R. Yantosca - Avoid div-by-zero errors in division w/ SUMADA
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
+!  09 Jun 2015 - E. Lundgren - Remove dependency on tpcore_bc_mod since not used
+!  15 Jun 2015 - E. Lundgren - Tracer units in advection are now kg/kg total air
+!                              (previously v/v)
+!  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
+!                              concentration following advection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -613,40 +547,26 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: I, J, L, L2, N, N_DYN, N_TOT_TRC
-      REAL(fp)           :: A_DIFF, D_DYN, TR_DIFF
-      REAL(fp)           :: AD_A(IIPAR,JJPAR,LLPAR)
-      REAL(fp)           :: AD_B(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: D_DYN
       REAL(fp)           :: P_TP1(IIPAR,JJPAR)
       REAL(fp)           :: P_TP2(IIPAR,JJPAR)
       REAL(fp)           :: P_TEMP(IIPAR,JJPAR)
-      REAL(fp)           :: TR_A(IIPAR,JJPAR,LLPAR)
-#if   defined( APM )
-      REAL(fp)           :: TR_B(IIPAR,JJPAR,LLPAR,
-     &                         Input_Opt%N_TRACERS+N_APMTRA)
-#else                  
-      REAL(fp)           :: TR_B(IIPAR,JJPAR,LLPAR,
-     &                         Input_Opt%N_TRACERS)
-#endif
       REAL(fp)           :: VTMP(IIPAR,JJPAR,LLPAR)
       REAL(fp),  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR) 
       REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR) 
 
       ! Pointers
-      REAL(fp),  POINTER :: p_UWND (:,:,:  )
-      REAL(fp),  POINTER :: p_VWND (:,:,:  )
-      REAL(fp),  POINTER :: p_XMASS(:,:,:  )
-      REAL(fp),  POINTER :: p_YMASS(:,:,:  )
-      REAL(fp),  POINTER :: p_STT  (:,:,:,:)
+      REAL(fp),  POINTER :: p_UWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_VWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
+      REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
+      REAL(fp),  POINTER :: p_STT    (:,:,:,:) ! v/v
 
       ! For fields from Input_Opt
       LOGICAL            :: LFILL
       LOGICAL            :: LPRT
       LOGICAL            :: LWINDO
       INTEGER            :: N_TRACERS
-      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
-
-      ! Variable to ensure mass conservation (ccc, 20/11/08)
-      REAL(fp)           :: SUMADA
 
       !=================================================================
       ! GCAP_GLOBAL_ADV begins here!
@@ -660,7 +580,6 @@
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Pick the proper # of tracers
 #if   defined( APM )
@@ -697,7 +616,7 @@
       DO I = 1, IIPAR
 
          ! Psurface - PTOP at midpoint of dynamic timestep [hPa]
-         P_TP1(I,J) = GET_PEDGE(I,J,1) - PTOP
+         P_TP1(I,J) = State_Met%PEDGE(I,J,1) - PTOP
 
          ! Psurface - PTOP at end of dynamic timestep [hPa]
          P_TP2(I,J) = State_Met%PSC2(I,J) - PTOP
@@ -706,40 +625,6 @@
       ENDDO
 !$OMP END PARALLEL DO
       
-      !==============================================================
-      ! Get the air & tracer mass before advection
-      !==============================================================
-
-      ! Airmass [kg] before transport
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Tracer mass [kg] before transport
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, N_TOT_TRC
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
-     &                 * AD_B(I,J,L)
-     &                 / TCVV(N)
-      ENDDO
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
       !=================================================================
       ! Call the PJC/LLNL pressure fixer to get the adjusted air 
       ! masses XMASS and YMASS.  XMASS and YMASS need to be passed to 
@@ -757,11 +642,18 @@
       !=================================================================
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => State_Met%U      (:,:,LLPAR:1:-1  )
-      p_VWND  => State_Met%V      (:,:,LLPAR:1:-1  )
-      p_STT   => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
-      p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
-      p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
+      p_UWND    => State_Met%U      (:,:,LLPAR:1:-1  )
+      p_VWND    => State_Met%V      (:,:,LLPAR:1:-1  )
+      p_STT     => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
+      p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
+      p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
+
+      ! Convert tracer concentration from mol/mol dry air to 
+      ! kg/kg total air before advection (ewl, 6/15/15)
+      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
+     &                                Input_Opt, State_Chm, RC)
+      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
+     &                                    State_Met, State_Chm, RC )
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -775,8 +667,14 @@
      &                   P_TEMP,  p_STT,     IORD,     JORD,      
      &                   KORD,    N_ADJ,     p_XMASS,  p_YMASS,
      &                   LFILL,   MASSFLEW,  MASSFLNS, MASSFLUP, 
-     &                   A_M2,    TCVV,      ND24,     ND25,     
-     &                   ND26 )
+     &                   A_M2,    ND24,      ND25,     ND26 )
+
+      ! Convert tracer concentration from kg/kg total air to 
+      ! mol/mol dry air after advection (ewl, 6/15/15)
+      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
+     &                                    State_Met, State_Chm, RC ) 
+      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
+     &                                Input_Opt, State_Chm, RC)
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
@@ -789,63 +687,8 @@
       ! surface pressure at the end of the dynamic timestep.
       CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
 
-      ! Adjust tracer to correct residual non-conservation of mass
-      ! This was changed to be applied only for cells with tracer 
-      ! concentration. (ccc, 11/20/08) 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, SUMADA, AD_A, TR_A, TR_DIFF )
-      DO N = 1, N_TOT_TRC
-
-         ! Zero summing variable
-         SUMADA = 0.e+0_fp
-
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! Air mass [kg] after transport
-            AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
-         
-            ! Tracer mass [kg] after transport
-            TR_A(I,J,L) = State_Chm%Tracers(I,J,L,N)
-     &                  * AD_A(I,J,L)
-     &                  / TCVV(N)
-
-            ! We apply mass conservation only on cells with 
-            ! nonzero tracer. (ccc, 11/20/08)
-            IF ( State_Chm%Tracers(I,J,L,N) > 0.e+0_fp   .or.
-     &           State_Chm%Tracers(I,J,L,N) < 0.e+0_fp ) THEN
-               SUMADA = SUMADA + AD_A(I,J,L)
-            ENDIF
-         ENDDO
-         ENDDO
-         ENDDO
-
-         ! Residual mass difference [kg]: before - after
-         TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
-
-         ! Convert from [kg] to [v/v]
-         TR_DIFF = SAFE_DIV( TR_DIFF, SUMADA, 0.e+0_fp ) * TCVV(N)
-
-         ! Add mass difference [v/v] back to STT
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            IF ( State_Chm%Tracers(I,J,L,N) > 0.e+0_fp   .or. 
-     &           State_Chm%Tracers(I,J,L,N) < 0.e+0_fp ) THEN
-               State_Chm%Tracers(I,J,L,N) =
-     &         State_Chm%Tracers(I,J,L,N) + TR_DIFF
-            ENDIF
-
-            State_Chm%Tracers(I,J,L,N) =
-     &           MAX( State_Chm%Tracers(I,J,L,N), 0e+0_fp )
-         ENDDO
-         ENDDO
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+      ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
+      CALL AIRQNT( am_I_Root, State_Met, RC )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### GCAP_GLOB_ADV: a TPCORE' ) 
@@ -879,13 +722,14 @@
       USE GIGC_State_Met_Mod,        ONLY : MetState
       USE GRID_MOD,                  ONLY : GET_XOFFSET,   GET_YOFFSET 
       USE PJC_PFIX_GEOS5_WINDOW_MOD, ONLY : DO_PJC_PFIX_GEOS5_WINDOW
-      USE PRESSURE_MOD,              ONLY : GET_PEDGE
       USE PRESSURE_MOD,              ONLY : SET_FLOATING_PRESSURE
+      USE DAO_MOD,                   ONLY : AIRQNT
       USE TIME_MOD,                  ONLY : GET_TS_DYN
       USE TPCORE_BC_MOD,             ONLY : I0_W, J0_W, I1_W, J1_W
       USE TPCORE_BC_MOD,             ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
       USE TPCORE_BC_MOD,             ONLY : DO_WINDOW_TPCORE_BC
       USE TPCORE_GEOS5_WINDOW_MOD,   ONLY : TPCORE_GEOS5_WINDOW
+      USE UNITCONV_MOD
 #if   defined( APM )
       USE TRACER_MOD,                ONLY : N_APMTRA
 #endif
@@ -898,11 +742,11 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -919,6 +763,13 @@
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!  26 Mar 2015 - E. Lundgren - Pass State_Met to get_air_mass for dry mass calc
+!  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
+!  15 Jun 2015 - E. Lundgren - Tracer units in advection are now kg/kg total air
+!                              (previously v/v)
+!  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
+!                              concentration prior to advection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -927,39 +778,25 @@
 !
       INTEGER            :: I0,J0
       INTEGER            :: I, J, L, L2, N, N_DYN, N_TOT_TRC
-      REAL(fp)           :: A_DIFF, D_DYN, TR_DIFF
-      REAL(fp)           :: AD_A(IIPAR,JJPAR,LLPAR)
-      REAL(fp)           :: AD_B(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: D_DYN
       REAL(fp)           :: P_TP1(IIPAR,JJPAR)
       REAL(fp)           :: P_TP2(IIPAR,JJPAR)
       REAL(fp)           :: P_TEMP(IIPAR,JJPAR)
-      REAL(fp)           :: TR_A(IIPAR,JJPAR,LLPAR)
-#if   defined( APM )
-      REAL(fp)           :: TR_B(IIPAR,JJPAR,LLPAR,
-     &                         Input_Opt%N_TRACERS+N_APMTRA) 
-#else
-      REAL(fp)           :: TR_B(IIPAR,JJPAR,LLPAR,
-     &                         Input_Opt%N_TRACERS)
-#endif
       REAL(fp),  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR)
       REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR)
 
       ! Pointers
-      REAL(fp),  POINTER :: p_UWND (:,:,:  )
-      REAL(fp),  POINTER :: p_VWND (:,:,:  )
-      REAL(fp),  POINTER :: p_XMASS(:,:,:  )
-      REAL(fp),  POINTER :: p_YMASS(:,:,:  )
-      REAL(fp),  POINTER :: p_STT  (:,:,:,:)
+      REAL(fp),  POINTER :: p_UWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_VWND   (:,:,:  )
+      REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
+      REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
+      REAL(fp),  POINTER :: p_STT    (:,:,:,:)
 
       ! For fields from Input_Opt
       LOGICAL            :: LFILL
       LOGICAL            :: LPRT
       LOGICAL            :: LWINDO
       INTEGER            :: N_TRACERS
-      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
-
-      ! Variable to ensure mass conservation (ccc, 20/11/08)
-      REAL(fp)           :: SUMADA
 
       !=================================================================
       ! DO_GEOS5_WINDOW_TRANSPORT begins here!
@@ -973,7 +810,6 @@
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Pick the proper # of tracers
 #if   defined( APM )
@@ -1009,45 +845,11 @@
       DO I = 1, IIPAR
 
          ! True surface pressure at midpoint of dynamic timestep [hPa]
-         P_TP1(I,J) = GET_PEDGE(I,J,1)
+         P_TP1(I,J) = State_Met%PEDGE(I,J,1)
 
          ! True surface pressure at end of dynamic timestep [hPa]
          P_TP2(I,J) = State_Met%PSC2(I,J)
   
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      !=================================================================
-      ! Get the air and tracer mass before advection
-      !=================================================================
-
-      ! Airmass [kg] before transport
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Tracer mass [kg] before transport
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, N_TOT_TRC
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
-     &                 * AD_B(I,J,L)
-     &                 / TCVV(N)
-      ENDDO
-      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1075,13 +877,20 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a DO_WIN_TP_BC' )
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => State_Met%U      (:,:,LLPAR:1:-1  )
-      p_VWND  => State_Met%V      (:,:,LLPAR:1:-1  )
-      p_STT   => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
-      p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
-      p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
+      p_UWND  => State_Met%U        (:,:,LLPAR:1:-1  )
+      p_VWND  => State_Met%V        (:,:,LLPAR:1:-1  )
+      p_STT   => State_Chm%Tracers  (:,:,LLPAR:1:-1,:)
+      p_XMASS => XMASS              (:,:,LLPAR:1:-1  )
+      p_YMASS => YMASS              (:,:,LLPAR:1:-1  )
 
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a array flip' )
+
+      ! Convert tracer concentration from mol/mol dry air to 
+      ! kg/kg moist air before advection (ewl, 6/15/15)
+      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
+     &                                Input_Opt, State_Chm, RC)
+      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
+     &                                   State_Met, State_Chm, RC )
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -1095,7 +904,14 @@
      &                          P_TEMP,   p_STT,     IORD,     JORD,
      &                          KORD,     N_ADJ,     p_XMASS,  p_YMASS,
      &                          MASSFLEW, MASSFLNS,  MASSFLUP, A_M2,
-     &                          TCVV,     ND24,      ND25,     ND26 )
+     &                          ND24,      ND25,     ND26 )
+
+      ! Convert tracer concentration from kg/kg wet air to 
+      ! mol/mol dry air after advection (ewl, 6/15/15)
+      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
+     &                                    State_Met, State_Chm, RC ) 
+      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
+     &                                Input_Opt, State_Chm, RC)
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS ) 
@@ -1107,6 +923,9 @@
       ! Reset the floating surface pressure with P_TP2, the "true"
       ! surface pressure at the end of the dynamic timestep.
       CALL SET_FLOATING_PRESSURE( P_TP2 )
+
+      ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
+      CALL AIRQNT( am_I_Root, State_Met, RC )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G5_NESTED_ADV: a TPCORE' )
@@ -1140,13 +959,14 @@
       USE GIGC_State_Chm_Mod,        ONLY : ChmState
       USE GIGC_State_Met_Mod,        ONLY : MetState
       USE PJC_PFIX_GEOSFP_WINDOW_MOD,ONLY : DO_PJC_PFIX_GEOSFP_WINDOW
-      USE PRESSURE_MOD,              ONLY : GET_PEDGE
       USE PRESSURE_MOD,              ONLY : SET_FLOATING_PRESSURE
+      USE DAO_MOD,                   ONLY : AIRQNT
       USE TIME_MOD,                  ONLY : GET_TS_DYN
       USE TPCORE_BC_MOD,             ONLY : I0_W, J0_W, I1_W, J1_W
       USE TPCORE_BC_MOD,             ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
       USE TPCORE_BC_MOD,             ONLY : DO_WINDOW_TPCORE_BC 
       USE TPCORE_GEOSFP_WINDOW_MOD,  ONLY : TPCORE_GEOSFP_WINDOW
+      USE UNITCONV_MOD
 #if   defined( APM )
       USE TRACER_MOD,                ONLY : N_APMTRA
 #endif
@@ -1159,11 +979,11 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1177,8 +997,14 @@
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
 !  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
 !  01 Apr 2015 - L. Zhang    - Add updates to skip the window region
 !  15 Apr 2015 - R. Yantosca - Add more pointers to avoid array temporaries
+!  15 Jun 2015 - E. Lundgren - Tracer units in advection are now kg/kg total air
+!                              (previously v/v)
+!  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
+!                              concentration prior to advection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1188,20 +1014,10 @@
       INTEGER            :: I0,    J0
       INTEGER            :: IM_W1, JM_W1, I0_W1, J0_W1, BUFF_SIZE
       INTEGER            :: I, J, L, L2, N, N_DYN, N_TOT_TRC
-      REAL(fp)           :: A_DIFF, D_DYN, TR_DIFF
-      REAL(fp)           :: AD_A(IIPAR,JJPAR,LLPAR)
-      REAL(fp)           :: AD_B(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: D_DYN
       REAL(fp),  TARGET  :: P_TP1(IIPAR,JJPAR)
       REAL(fp),  TARGET  :: P_TP2(IIPAR,JJPAR)
       REAL(fp),  TARGET  :: P_TEMP(IIPAR,JJPAR)
-      REAL(fp)           :: TR_A(IIPAR,JJPAR,LLPAR)
-#if   defined( APM )
-      REAL(fp)           :: TR_B(IIPAR,JJPAR,LLPAR,
-     &                      Input_Opt%N_TRACERS+N_APMTRA)
-#else
-      REAL(fp)           :: TR_B(IIPAR,JJPAR,LLPAR,
-     &                           Input_Opt%N_TRACERS)
-#endif
       REAL(fp),  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR)
       REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR)
 
@@ -1224,7 +1040,6 @@
       LOGICAL            :: LPRT
       LOGICAL            :: LWINDO
       INTEGER            :: N_TRACERS
-      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! DO_GEOSFP_FVDAS_WINDOW_TRANSPORT begins here!
@@ -1238,7 +1053,6 @@
       LPRT      = Input_Opt%LPRT
       LWINDO    = Input_Opt%LWINDO
       N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Pick the proper # of tracers
 #if   defined( APM )
@@ -1281,45 +1095,11 @@
       DO I = 1, IIPAR
 
          ! True surface pressure at midpoint of dynamic timestep [hPa]
-         P_TP1(I,J) = GET_PEDGE(I,J,1)
+         P_TP1(I,J) = State_Met%PEDGE(I,J,1)
 
          ! True surface pressure at end of dynamic timestep [hPa]
          P_TP2(I,J) = State_Met%PSC2(I,J)
 
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      !=================================================================
-      ! Get the air and tracer mass before advection
-      !=================================================================
-
-      ! Airmass [kg] before transport
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Tracer mass [kg] before transport
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, N_TOT_TRC
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
-     &                 * AD_B(I,J,L)
-     &                 / TCVV(N)
-      ENDDO
-      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1345,46 +1125,55 @@
       ! Flip array indices in the vertical using pointer storage
 
       ! Exclude the buffer zone (lzh, 4/1/2015)
-      p_UWND  => State_Met%U(       I0_W1+1 : I0_W1+IM_W1,
-     &                              J0_W1+1 : J0_W1+JM_W1,
-     &                              LLPAR   : 1            : -1    )
-
+      p_UWND  => State_Met%U(       I0_W1+1 : I0_W1+IM_W1, 
+     &                              J0_W1+1 : J0_W1+JM_W1, 
+     &                              LLPAR:1:-1                   )
+                                    
       p_VWND  => State_Met%V(       I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1, 
-     &                              LLPAR   : 1            : -1    )
+     &                              LLPAR:1:-1                   )
 
       p_STT   => State_Chm%Tracers( I0_W1+1 : I0_W1+IM_W1,
-     &                              J0_W1+1 : J0_W1+JM_W1,
-     &                              LLPAR   : 1            : -1, : )
+     &                              J0_W1+1 : J0_W1+JM_W1, 
+     &                              LLPAR:1:-1,                : )             
 
       p_XMASS => XMASS(             I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1,
-     &                              LLPAR   : 1            : -1    )
+     &                              LLPAR:1:-1                   )
 
       p_YMASS => YMASS(             I0_W1+1 : I0_W1+IM_W1, 
      &                              J0_W1+1 : J0_W1+JM_W1,
-     &                              LLPAR   : 1            : -1    )
-
+     &                              LLPAR:1:-1                   )
+                                    
       p_P_TP1 => P_TP1(             I0_W1+1 : I0_W1+IM_W1, 
-     &                              J0_W1+1 : J0_W1+JM_W1          )
-
+     &                              J0_W1+1 : J0_W1+JM_W1        )
+                                    
       p_P_TP2 => P_TP2(             I0_W1+1 : I0_W1+IM_W1, 
-     &                              J0_W1+1 : J0_W1+JM_W1          )
+     &                              J0_W1+1 : J0_W1+JM_W1        )
 
       p_P_TEMP => P_TEMP(           I0_W1+1 : I0_W1+IM_W1,
-     &                              J0_W1+1 : J0_W1+JM_W1          )
-
+     &                              J0_W1+1 : J0_W1+JM_W1        )
+                                   
       p_MFLEW => MASSFLEW(          I0_W1+1 : I0_W1+IM_W1,
-     &                              J0_W1+1 : J0_W1+JM_W1, :,    : )
-
+     &                              J0_W1+1 : J0_W1+JM_W1,  
+     &                              :,                         : )
+                                   
       p_MFLNS => MASSFLNS(          I0_W1+1 : I0_W1+IM_W1,
-     &                              J0_W1+1 : J0_W1+JM_W1, :,    : )
-
+     &                              J0_W1+1 : J0_W1+JM_W1,  
+     &                              :,                         : )
+                                   
       p_MFLUP => MASSFLUP(          I0_W1+1 : I0_W1+IM_W1,
-     &                              J0_W1+1 : J0_W1+JM_W1, :,    : )
+     &                              J0_W1+1 : J0_W1+JM_W1,  
+     &                              :,                         : )
 
-      p_A_M2  => A_M2(              J0_W1+1 : J0_W1+JM_W1          )
+      p_A_M2  => A_M2( J0_W1+1 : J0_W1+JM_W1                     )
 
+      ! Convert tracer concentration from mol/mol dry air to 
+      ! kg/kg moist air before advection (ewl, 6/15/15)
+      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
+     &                                Input_Opt, State_Chm, RC)
+      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
+     &                                   State_Met, State_Chm, RC )
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -1397,8 +1186,16 @@
      &      Ap,      Bp,       p_UWND,  p_VWND,  p_P_TP1, 
      &      p_P_TP2, p_P_TEMP, p_STT,   IORD,    JORD, 
      &      KORD,    N_ADJ,    p_XMASS, p_YMASS, p_MFLEW, 
-     &      p_MFLNS, p_MFLUP,  p_A_M2,  TCVV,    ND24,     
-     &      ND25,    ND26 ) 
+     &      p_MFLNS, p_MFLUP,  p_A_M2,  ND24,    ND25,    
+     &      ND26 ) 
+
+      ! Convert tracer concentration from kg/kg wet air to 
+      ! mol/mol dry air after advection (ewl, 6/15/15)
+      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
+     &                                    State_Met, State_Chm, RC ) 
+      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
+     &                                 Input_Opt, State_Chm, RC)
+!=========================================================================
 
       ! Free pointer memory
       NULLIFY( p_UWND,  p_VWND,  p_STT,   p_XMASS  ) 
@@ -1412,64 +1209,13 @@
       ! surface pressure at the end of the dynamic timestep.
       CALL SET_FLOATING_PRESSURE( P_TP2 )
 
+      ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
+      CALL AIRQNT( am_I_Root, State_Met, RC )
+
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G5_NESTED_ADV: a TPCORE' )
 
       END SUBROUTINE DO_GEOSFP_WINDOW_TRANSPORT
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_air_mass
-!
-! !DESCRIPTION: Function GET\_AIR\_MASS returns the air mass based on the 
-!  pressures returned before and after the call to the GEOS-4/fvDAS TPCORE 
-!  code. (bmy, 6/24/03)
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_AIR_MASS( I, J, L, P_SURF ) RESULT( AIR_MASS )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD               ! Size parameters
-      USE CMN_GCTM_MOD               ! g0_100
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER, INTENT(IN) :: I, J, L   ! GEOS-Chem lon, lat, level indices
-      REAL(fp),  INTENT(IN) :: P_SURF    ! Surface pressure [hPa] at (I,J,L=1)
-
-! 
-! !REVISION HISTORY: 
-!  24 Jun 2003 - R. Yantosca - Initial version
-!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: L2
-      REAL(fp)  :: P_BOT, P_TOP, AIR_MASS
-      
-      !=================================================================
-      ! GET_AIR_MASS begins here!
-      !=================================================================
-      
-      ! Index for Ap, Bp from atmosphere top down to surface
-      ! since the Ap's and Bp's have been flipped for TPCORE
-      L2       = ( LLPAR + 1 ) - L + 1
-               
-      ! Hybrid-grid formulation for air mass
-      P_BOT    = Ap(L2)   + ( Bp(L2)   * P_SURF )
-      P_TOP    = Ap(L2-1) + ( Bp(L2-1) * P_SURF )
-      AIR_MASS = ( P_BOT - P_TOP ) * G0_100 * A_M2(J)
-
-      END FUNCTION GET_AIR_MASS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

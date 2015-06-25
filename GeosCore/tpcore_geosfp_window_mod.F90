@@ -436,12 +436,16 @@ CONTAINS
  !%%%
  !%%% Added MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV, ND24, ND25, and 
  !%%% ND26 to arg list of TPCORE_FVDAS for GEOS-CHEM mass-flux diagnostics 
- !%%% (bdf, bmy, 9/28/04)
+ !%%% (bdf, bmy, 9/28/04). 
+ !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%%
                          MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2,     &
-                         TCVV,     ND24,     ND25,     ND26 )
+                         ND24,     ND25,     ND26   )
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 !----------------------------------------------------------------------------
+
+! Uses:    
+    USE CMN_GCTM_MOD   ! Physical constants g0_100 and AIRMW
 
  implicit none
 
@@ -550,18 +554,15 @@ CONTAINS
  !%%%
  !%%% Added MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV, ND24, ND25, ND26
  !%%% for mass-flux diagnostics (bdf, bmy, 9/28/04)
+ !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%%
-! REAL,    INTENT(INOUT) :: MASSFLEW(IM,JM,KM,NQ) ! east/west mass flux
-! REAL,    INTENT(INOUT) :: MASSFLNS(IM,JM,KM,NQ) ! north/south mass flux
-! REAL,    INTENT(INOUT) :: MASSFLUP(IM,JM,KM,NQ) ! up/down vertical mass flux
  REAL,    INTENT(INOUT) :: MASSFLEW(:,:,:,:) ! east/west mass flux
  REAL,    INTENT(INOUT) :: MASSFLNS(:,:,:,:) ! north/south mass flux
  REAL,    INTENT(INOUT) :: MASSFLUP(:,:,:,:) ! up/down vertical mass flux
- REAL,    INTENT(IN)    :: AREA_M2(JM)           ! box area for mass flux diag
- REAL,    INTENT(IN)    :: TCVV(NQ)              ! tracer masses for flux diag
- INTEGER, INTENT(IN)    :: ND24                  ! E/W flux diag switch
- INTEGER, INTENT(IN)    :: ND25                  ! N/S flux diag switch
- INTEGER, INTENT(IN)    :: ND26                  ! up/down flux diag switch
+ REAL,    INTENT(IN)    :: AREA_M2(JM)       ! box area for mass flux diag
+ INTEGER, INTENT(IN)    :: ND24              ! E/W flux diag switch
+ INTEGER, INTENT(IN)    :: ND25              ! N/S flux diag switch
+ INTEGER, INTENT(IN)    :: ND26              ! up/down flux diag switch
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !-----------------------
@@ -787,10 +788,10 @@ CONTAINS
  !%%%
  !%%% Now pass MASSFLEW, MASSFLNS, AREA_M2, TCVV, ND24, ND25, DT as 
  !%%% arguments to routine TP2G for GEOS-CHEM mass flux diagnostics 
- !%%% (bdf, bmy, 9/28/04)
+ !%%% (bdf, bmy, 9/28/04). 
+ !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%%
-               MFLEW, MFLNS,      &
-               AREA_M2, TCVV(IQ), ND24, ND25, DT )
+               MFLEW, MFLNS, AREA_M2, ND24, ND25, DT )
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ! Save mass flux diagnostics (clb, 7/2/12)
@@ -864,9 +865,10 @@ CONTAINS
     DO IQ = 1, NQ
     DO I  = 1, IM
     DO J  = 1, JM
+
        DTC(I,J,K,IQ) = ( Q(I,J,K,IQ)     * DELP1(I,J,K)   -          &
                          QTEMP(I,J,K,IQ) * DELP(I,J,K)  ) *          &
-                       (100d0) * AREA_M2(J) / ( 9.8d0 * TCVV(IQ) )
+                         AREA_M2(J) * g0_100            
 
        ! top layer should have no residual.  the small residual is from 
        ! a non-pressure fixed flux diag.  The z direction may be off by 
@@ -887,9 +889,10 @@ CONTAINS
     DO IQ = 1, NQ
     DO I  = 1, IM
     DO J  = 1, JM
-       TRACE_DIFF         = ( Q(I,J,K,IQ)     * DELP1(I,J,K)  -  &
-                              QTEMP(I,J,K,IQ) * DELP(I,J,K) ) *  &
-                            (100D0) * AREA_M2(J) / ( 9.8D0* TCVV(IQ) )
+
+       TRACE_DIFF         = ( Q(I,J,K,IQ)     * DELP1(I,J,K)  -    &
+                              QTEMP(I,J,K,IQ) * DELP(I,J,K) ) *    &
+                              AREA_M2(J) * g0_100     
 
        DTC(I,J,K,IQ)      = DTC(I,J,K-1,IQ) + TRACE_DIFF
 
@@ -899,7 +902,7 @@ CONTAINS
     ENDDO
 !$OMP END PARALLEL DO
     ENDDO
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
     ENDIF
  END subroutine TPCORE_GEOSFP_WINDOW
 
@@ -1248,14 +1251,18 @@ CONTAINS
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
  !%%% 
- !%%% Add MFLEW, MFLNS, AREA_M2, TCV, ND24, ND25, DT as arguments
+ !%%% Add MFLEW, MFLNS, AREA_M2, TCVV, ND24, ND25, DT as arguments
  !%%% to subroutine TP2G for mass-flux diagnostics (bmy, 9/28/04)
+ !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%%
-                MFLEW, MFLNS, AREA_M2,                 & 
-                TCV,   ND24,  ND25,   DT )
+                MFLEW, MFLNS,   AREA_M2, ND24, ND25, DT )
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- implicit none
 
+! Uses:
+    USE CMN_GCTM_MOD   ! Physical constants g0_100
+
+ implicit none
+    
 ! !INPUT PARAMETERS:
    integer, intent(in):: im, jm             ! Dimensions
    integer, intent(in):: jfirst, jlast      ! Latitude strip
@@ -1279,16 +1286,16 @@ CONTAINS
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
  !%%%  
- !%%% Declare MFLEW, MFLNS, AREA_M2, TCV, ND24, ND25, DT for the
+ !%%% Declare MFLEW, MFLNS, AREA_M2, TCVV, ND24, ND25, DT for the
  !%%% GEOS-CHEM mass-flux diagnostics (bdf, bmy, 9/28/04)
+ !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%% 
-   REAL,    INTENT(INOUT) :: MFLEW(IM,JM)  ! E/W mass flux array
-   REAL,    INTENT(INOUT) :: MFLNS(IM,JM)  ! N/S mass flux array
-   REAL,    INTENT(IN)    :: AREA_M2(JM)   ! Grid bos surface area [m2]
-   REAL,    INTENT(IN)    :: TCV           ! Mass ratio
-   INTEGER, INTENT(IN)    :: ND24          ! flux diag
-   INTEGER, INTENT(IN)    :: ND25          ! flux diag
-   REAL,    INTENT(IN)    :: DT            ! time step for flux diagnostic
+   REAL,    INTENT(INOUT) :: MFLEW(IM,JM)   ! E/W mass flux array
+   REAL,    INTENT(INOUT) :: MFLNS(IM,JM)   ! N/S mass flux array
+   REAL,    INTENT(IN)    :: AREA_M2(JM)    ! Grid bos surface area [m2]
+   INTEGER, INTENT(IN)    :: ND24           ! flux diag
+   INTEGER, INTENT(IN)    :: ND25           ! flux diag
+   REAL,    INTENT(IN)    :: DT             ! time step for flux diagnostic
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ! Local
@@ -1353,11 +1360,14 @@ CONTAINS
       DO J = JS2G0, JN2G0
 
          DO I = 1, IM-1
-            DTC        = FX(I,J)*AREA_M2(J)*100.d0 / (TCV*DT*9.8d0)
+
+            DTC = FX(I,J) * AREA_M2(J) * g0_100 / DT 
+
             MFLEW(I,J) = MFLEW(I,J) + DTC
          ENDDO
 
-         DTC         = FX(IM,J)*AREA_M2(J)*100.d0 / (TCV*DT*9.8d0)
+         DTC = FX(IM,J) * AREA_M2(J) * g0_100 / DT 
+
          MFLEW(IM,J) = MFLEW(I,J) + DTC
       ENDDO
    ENDIF
@@ -1372,7 +1382,9 @@ CONTAINS
    IF ( ND25 > 0 ) THEN
       DO J = JS2G0, JN2G0
       DO I = 1,     IM
-         DTC        = FY(I,J)*RGW_25(J)*AREA_M2(J)*100./ (TCV*DT*9.8)
+
+         DTC = FY(I,J) * RGW_25(J) * AREA_M2(J) * g0_100 / DT 
+
          MFLNS(I,J) = MFLNS(I,J) + DTC
       ENDDO
       ENDDO
@@ -1380,7 +1392,9 @@ CONTAINS
       ! South Pole
       IF ( JFIRST == 1 ) THEN
          DO I = 1, IM
-            DTC        = -FY(I,2)*RGW_25(1)*AREA_M2(1)*100./(TCV*DT*9.8)
+
+            DTC = -FY(I,2) * RGW_25(1) * AREA_M2(1) * g0_100 / DT 
+
             MFLNS(I,1) = MFLNS(I,1) + DTC
          ENDDO
       ENDIF
@@ -1388,7 +1402,9 @@ CONTAINS
       ! North Pole
       IF ( JLAST == JM ) THEN
          DO I = 1, IM
-            DTC     = FY(I,JM)*RGW_25(JM)*AREA_M2(JM)*100./(TCV*DT*9.8)
+
+            DTC = FY(I,JM) * RGW_25(JM) * AREA_M2(JM) * g0_100 / DT 
+
             MFLNS(I,JM) = MFLNS(I,JM) + DTC
          ENDDO
       ENDIF

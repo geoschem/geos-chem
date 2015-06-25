@@ -591,7 +591,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTDST1
 !
@@ -620,6 +619,8 @@
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
+!                              remove dependency on pressure_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -711,7 +712,8 @@
                DO L = 1, LLPAR
 
                   ! Get P [kPa], T [K], and P*DP
-                  P    = GET_PCENTER(I,J,L) * 0.1e+0_fp
+                  ! Use moist air pressure for mean free path (ewl, 3/2/15)
+                  P    = State_Met%PMID(I,J,L) * 0.1e+0_fp
                   TEMP = State_Met%T(I,J,L)
                   PDP  = P * DP
 

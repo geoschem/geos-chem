@@ -34,8 +34,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
       USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTO3
@@ -140,6 +138,9 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  20 Jan 2015 - R. Yantosca - Added new netCDF diagnostics
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE and
+!                              GET_PCENTER with State_Met%PMID.
+!  16 Apr 2015 - E. Lundgren - Add new State_Met variables to ND68
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -282,7 +283,7 @@
          DO L = 1, LD31
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            AD31(I,J,L) = AD31(I,J,L) + GET_PEDGE( I, J, L ) 
+            AD31(I,J,L) = AD31(I,J,L) + State_Met%PEDGE( I, J, L ) 
          ENDDO
          ENDDO
          ENDDO
@@ -415,10 +416,10 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            P0          = GET_PEDGE(I,J,1)
+            P0          = State_Met%PEDGE(I,J,1)
 
             AD57(I,J,L) = AD57(I,J,L) + State_Met%T(I,J,L) *
-     &                  ( P0 / GET_PCENTER( I, J, L ) )**0.286
+     &                    ( P0 / State_Met%PMID( I, J, L ) )**0.286
 
          ENDDO
          ENDDO
@@ -435,8 +436,9 @@
 
             ! PBL is in [m], use hydrostatic law to get [hPa]
             AD67(I,J,13) = AD67(I,J,13) + 
-     &                   ( GET_PEDGE(I,J,1) * EXP( -State_Met%PBLH(I,J)
-     &                   / SCALE_HEIGHT ) )
+     &                     ( State_Met%PEDGE(I,J,1) 
+     &                     * EXP( -State_Met%PBLH(I,J)
+     &                     / SCALE_HEIGHT ) )
 
          ENDDO
          ENDDO
@@ -444,17 +446,21 @@
 
 #if !defined( NO_BPCH )
       !================================================================= 
-      ! ND68: Quantity 1: BXHEIGHT(I,J,L) in meters 
-      !       Quantity 2: AD(I,J,L)       in kg
-      !       Quantity 3: AVGW(I,J,L)     in v/v
-      !       Quantity 4: N_AIR(I,J,L)    in molecules air / m3
-      !
-      ! NOTE: AVGW is now an allocatable array from "dao_mod.f"
+      ! ND68: 1:  BXHEIGHT     - box height [m] 
+      !       2:  AD           - dry air mass [kg]
+      !       3:  AVGW         - mol H2O / mol dry air [v/v]
+      !       4:  N_DRYAIR     - dry air number density [molecules/m3]
+      !       5:  MAIRDEN      - moist air mass density [kg/m3]
+      !       6:  T            - temperature [K]
+      !       7:  TV           - virtual temperature [K]
+      !       8:  PMID         - arithmetic mean pressure [hPa]
+      !       9:  PMEAN        - altitude-weighted mean pressure [hPa]
+      !       10: PEDGE        - level pressure (bottom edge) [hPa]
+      !       11: RH           - relative humidity [%]
+      !       12: PMID_DRY     - dry air partial pressure at PMID [hPa]
+      !       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
       !================================================================= 
       IF ( ND68 > 0 ) THEN
-
-         ! Set a flag for whether AVGW is allocated or not
-         AVGW_ALLOCATED = ASSOCIATED( State_Met%AVGW )
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -462,15 +468,20 @@
          DO L = 1, LD68
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            AD68(I,J,L,1) = AD68(I,J,L,1) + State_Met%BXHEIGHT(I,J,L)
-            AD68(I,J,L,2) = AD68(I,J,L,2) + State_Met%AD(I,J,L)
-            AD68(I,J,L,4) = AD68(I,J,L,4) + State_Met%AIRDEN(I,J,L) *
-     &                      XNUMOLAIR
-
-            ! Make sure AVGW is now allocated (bmy, 9/25/01)
-            IF ( AVGW_ALLOCATED ) THEN
-               AD68(I,J,L,3) = AD68(I,J,L,3) + State_Met%AVGW(I,J,L)
-            ENDIF
+            AD68(I,J,L,1)  = AD68(I,J,L,1)  + State_Met%BXHEIGHT(I,J,L)
+            AD68(I,J,L,2)  = AD68(I,J,L,2)  + State_Met%AD(I,J,L)
+            AD68(I,J,L,3)  = AD68(I,J,L,3)  + State_Met%AVGW(I,J,L)
+            AD68(I,J,L,4)  = AD68(I,J,L,4)  + State_Met%AIRDEN(I,J,L) 
+     &                                        * XNUMOLAIR
+            AD68(I,J,L,5)  = AD68(I,J,L,5)  + State_Met%MAIRDEN(I,J,L) 
+            AD68(I,J,L,6)  = AD68(I,J,L,6)  + State_Met%T(I,J,L)
+            AD68(I,J,L,7)  = AD68(I,J,L,7)  + State_Met%TV(I,J,L)
+            AD68(I,J,L,8)  = AD68(I,J,L,8)  + State_Met%PMID(I,J,L)
+            AD68(I,J,L,9)  = AD68(I,J,L,9)  + State_Met%PMEAN(I,J,L)
+            AD68(I,J,L,10) = AD68(I,J,L,10) + State_Met%PEDGE(I,J,L)
+            AD68(I,J,L,11) = AD68(I,J,L,11) + State_Met%RH(I,J,L)
+            AD68(I,J,L,12) = AD68(I,J,L,12) + State_Met%PMID_DRY(I,J,L)
+            AD68(I,J,L,13) = AD68(I,J,L,13) + State_Met%PMEAN_DRY(I,J,L)
          ENDDO
          ENDDO
          ENDDO
@@ -589,17 +600,26 @@
       ENDIF
 
       !================================================================= 
-      ! ND68: Quantity 1: BXHEIGHT(I,J,L) in meters 
-      !       Quantity 2: AD(I,J,L)       in kg
-      !       Quantity 3: AVGW(I,J,L)     in v/v
-      !       Quantity 4: N_AIR(I,J,L)    in molecules air / m3
-      !
-      ! NOTE: AVGW is now an allocatable array from "dao_mod.f"
+      ! ND68: 1:  BXHEIGHT     - box height [m] 
+      !       2:  AD           - dry air mass [kg]
+      !       3:  AVGW         - mol H2O / mol dry air [v/v]
+      !       4:  AIRDEN       - dry air number mass density [kg/m3]
+      !                          (Note this is different units than bpch)
+      !       5:  MAIRDEN      - moist air mass density [kg/m3]
+      !       6:  T            - temperature [K]
+      !       7:  TV           - virtual temperature [K]
+      !       8:  PMID         - arithmetic mean pressure [hPa]
+      !       9:  PMEAN        - altitude-weighted mean pressure [hPa]
+      !       10: PEDGE        - level pressure (bottom edge) [hPa]
+      !       11: RH           - relative humidity [%]
+      !       12: PMID_DRY     - dry air partial pressure at PMID [hPa]
+      !       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
       !================================================================= 
+
       IF ( ND68 > 0 ) THEN
 
-         ! There are four diagnostics
-         DO I = 1,4
+         ! There are 16 diagnostics
+         DO I = 1,16
 
             ! Construct diagnostic name and get proper array
             SELECT CASE ( I ) 
@@ -610,12 +630,38 @@
                   DiagnName = 'AIRMASS'
                   Ptr3D => State_Met%AD
                CASE ( 3 ) 
-                  DiagnName = 'AIRDENS'
-                  Ptr3D => State_Met%AIRDEN
-               CASE ( 4 ) 
-                  IF ( .NOT. ASSOCIATED(State_Met%AVGW) ) CYCLE 
                   DiagnName = 'AVGW'
-                  Ptr3D => State_Met%BXHEIGHT
+                  Ptr3D => State_Met%AVGW
+               CASE ( 4 ) 
+                  DiagnName = 'AIRDEN'
+                  Ptr3D => State_Met%AIRDEN
+               CASE ( 5 ) 
+                  DiagnName = 'MAIRDEN'
+                  Ptr3D => State_Met%MAIRDEN
+               CASE ( 6 ) 
+                  DiagnName = 'T'
+                  Ptr3D => State_Met%T
+               CASE ( 7 ) 
+                  DiagnName = 'TV'
+                  Ptr3D => State_Met%TV
+               CASE ( 8 ) 
+                  DiagnName = 'PMID'
+                  Ptr3D => State_Met%PMID
+               CASE ( 9 ) 
+                  DiagnName = 'PMEAN'
+                  Ptr3D => State_Met%PMEAN
+               CASE ( 10 ) 
+                  DiagnName = 'PEDGE'
+                  Ptr3D => State_Met%PEDGE
+               CASE ( 11 ) 
+                  DiagnName = 'RH'
+                  Ptr3D => State_Met%RH
+                CASE ( 12 ) 
+                  DiagnName = 'PMID_DRY'
+                  Ptr3D => State_Met%PMID_DRY
+               CASE ( 13 ) 
+                  DiagnName = 'PMEAN_DRY'
+                  Ptr3D => State_Met%PMEAN_DRY
             END SELECT
  
             ! Update diagnostics

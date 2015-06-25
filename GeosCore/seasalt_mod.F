@@ -279,7 +279,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TRACERID_MOD,       ONLY : IDTSALA
       USE TRACERID_MOD,       ONLY : IDTSALC
       USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -323,6 +322,8 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !  12 Jun 2013 - R. Yantosca - Bug fix: SALT_MASS needs to be !OMP PRIVATE
 !  12 Jun 2013 - R. Yantosca - Reformatted some comments for clarity
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -508,7 +509,7 @@
          DO L = 1, LLPAR
 
             ! Pressure at center of the level [kPa]
-            P       = GET_PCENTER(I,J,L) * 0.1e+0_fp
+            P       = State_Met%PMID(I,J,L) * 0.1e+0_fp
 
             ! Temperature [K]
             TEMP    = State_Met%T(I,J,L)

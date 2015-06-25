@@ -37,7 +37,7 @@ MODULE VDIFF_MOD
   
 
   integer :: plevp
-  
+
   real(fp), parameter ::          &
        rearth = 6.37122e+6_fp,      & ! radius earth (m)
        cpwv   = 1.81e+3_fp,         &
@@ -401,7 +401,7 @@ contains
     qpert  = qpert_arg(:,lat)
     cgs    = cgs_arg(:,lat,:)
     pblh   = pblh_arg(:,lat)
-        
+
     IF (PRESENT(taux_arg )) taux  = taux_arg(:,lat)
     IF (PRESENT(tauy_arg )) tauy  = tauy_arg(:,lat)
     IF (PRESENT(ustar_arg)) ustar = ustar_arg(:,lat)
@@ -508,6 +508,7 @@ contains
 !           the perturbation temperature and moisture (tpert and qpert)
 !           the free atmosphere kv is returned above the boundary layer top.
 !-----------------------------------------------------------------------
+
     ! ustar must always be inputted 
 !ccc    if (present(taux) .and. present(tauy)) then
     if (present(taux_arg) .and. present(tauy_arg)) then
@@ -516,7 +517,7 @@ contains
                     kvm, kvh, &
                     cgh, cgq, cgs, pblh, tpert, qpert, &
                     wvflx, cgsh, plonl, & 
-                    taux=taux, tauy=tauy, ustar=ustar)
+                    taux=taux, tauy=tauy, ustar=ustar )     
     else
        call pbldif( thp, shp1, zm, um1, vm1, &
                     tm1, pmidm1, kvf, cflx, shflx, &
@@ -524,7 +525,7 @@ contains
                     cgh, cgq, cgs, pblh, tpert, qpert, &
                     wvflx, cgsh, plonl, ustar=ustar )
     endif
-    
+
     !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: after pbldif' )
@@ -646,6 +647,7 @@ contains
 !           combination of ca and cc; they are not explicitly provided to the 
 !           solver
 !-----------------------------------------------------------------------
+
     gorsq = (gravit/rair)**2
     do k = ntopfl,plev-1
        do i = 1,plonl
@@ -656,6 +658,7 @@ contains
           ccm(i,k+1) = kvm(i,k+1)*tmp2*rpdel(i,k+1)
        end do
     end do
+
 !-----------------------------------------------------------------------
 ! 	... the last element of the upper diagonal is zero.
 !-----------------------------------------------------------------------
@@ -663,6 +666,7 @@ contains
        cah(i,plev) = 0.e+0_fp
        cam(i,plev) = 0.e+0_fp
     end do
+
 !-----------------------------------------------------------------------
 ! 	... calculate e(k) for heat & momentum vertical diffusion.  this term is 
 !           required in solution of tridiagonal matrix defined by implicit diffusion eqn.
@@ -683,7 +687,7 @@ contains
           zem(i,k)   = cam(i,k)*termm(i,k)
        end do
     end do
-    
+
     !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: starting diffusion' )
@@ -691,6 +695,7 @@ contains
 !-----------------------------------------------------------------------
 ! 	... diffuse constituents
 !-----------------------------------------------------------------------
+
     call qvdiff( pcnst, qmx, dqbot, cch, zeh, &
 	         termh, qp1, plonl )
 
@@ -706,8 +711,9 @@ contains
 !-----------------------------------------------------------------------
 ! 	... diffuse sh
 !-----------------------------------------------------------------------
+
     call qvdiff( 1, shmx, dshbot, cch, zeh, &
-	         termh, shp1, plonl )
+	         termh, shp1, plonl ) 
 
 !-----------------------------------------------------------------------
 ! 	... correct sh
@@ -734,7 +740,7 @@ contains
     qpert_arg(:,lat) = qpert  
     cgs_arg(:,lat,:)   = cgs    
     pblh_arg(:,lat)  = pblh   
-        
+
     IF (PRESENT(taux_arg )) taux_arg(:,lat)  = taux   
     IF (PRESENT(tauy_arg )) tauy_arg(:,lat)  = tauy   
     IF (PRESENT(ustar_arg)) ustar_arg(:,lat) = ustar  
@@ -801,7 +807,7 @@ contains
                      kvm     ,kvh, &
                      cgh     ,cgq     ,cgs     ,pblh    ,tpert, &
                      qpert   ,wvflx   ,cgsh    ,plonl, &
-                     taux    ,tauy    ,ustar)
+                     taux    ,tauy    ,ustar )
 !
 ! !USES:
 ! 
@@ -954,7 +960,7 @@ contains
        obklen(i) = -thvsrf(i)*ustar(i)**3 &
                    /(g*vk*(heatv(i) + sign( 1.d-10,heatv(i) )))
     end do
-    
+
     if (pblh_ar) then  ! use archived PBLH
        
        do i = 1,plonl
@@ -1008,7 +1014,7 @@ contains
              end if
           end do
        end do
-       
+
 !------------------------------------------------------------------------
 ! 	... set pbl height to maximum value where computation exceeds number of
 !           layers allowed
@@ -1098,7 +1104,6 @@ contains
        
     endif ! if pblh_ar
 
-
 !------------------------------------------------------------------------
 ! 	... pblh is now available; do preparation for diffusivity calculation:
 !------------------------------------------------------------------------
@@ -1159,6 +1164,7 @@ contains
              end if
           end if
        end do
+
 !------------------------------------------------------------------------
 ! 	... stable and neutral points; set diffusivities; counter-gradient
 !           terms zero for stable case:
@@ -1174,6 +1180,7 @@ contains
              kvh(i,k) = kvm(i,k)
           end if
        end do
+
 !------------------------------------------------------------------------
 ! 	... unssrf, unstable within surface layer of pbl
 !           unsout, unstable within outer   layer of pbl
@@ -1189,6 +1196,7 @@ contains
              end if
           end if
        end do
+
 !------------------------------------------------------------------------
 ! 	... unstable for surface layer; counter-gradient terms zero
 !------------------------------------------------------------------------
@@ -1199,6 +1207,7 @@ contains
              pr(i)   = term/sqrt(1.e+0_fp - betah*zl(i))
           end if
        end do
+
 !------------------------------------------------------------------------
 ! 	... unstable for outer layer; counter-gradient terms non-zero:
 !------------------------------------------------------------------------
@@ -1218,6 +1227,7 @@ contains
              end if
           end do
        end do
+
 !------------------------------------------------------------------------
 ! 	... for all unstable layers, set diffusivities
 !------------------------------------------------------------------------
@@ -1229,7 +1239,7 @@ contains
        end do
 
     end do
-    
+
   end subroutine pbldif
 !EOC
 !------------------------------------------------------------------------------
@@ -1297,6 +1307,7 @@ contains
     !=================================================================
     ! qvdiff begins here!
     !=================================================================
+
 !-----------------------------------------------------------------------
 ! 	... calculate fq(k).  terms fq(k) and e(k) are required in solution of 
 !           tridiagonal matrix defined by implicit diffusion eqn.
@@ -1310,6 +1321,7 @@ contains
        do k = ntopfl+1,plev-1
           do i = 1,plonl
              zfq(i,k,m) = (qm1(i,k,m) + cc(i,k)*zfq(i,k-1,m))*term(i,k)
+             
           end do
        end do
     end do
@@ -1820,7 +1832,6 @@ contains
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
     USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_m, COMPUTE_PBL_HEIGHT, &
                                    GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
-    USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
     USE TRACERID_MOD
 !------------------------------------------------------------------------------
@@ -1898,6 +1909,10 @@ contains
 !  25 Jun 2014 - R. Yantosca - Now get N_MEMBERS from input_mod.F
 !  16 Oct 2014 - C. Keller   - Bug fix: now add deposition rates instead of
 !                              overwriting them.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
+!                              State_Met%PEDGE and State_Met%PMID.
+!                              Remove dependency on pressure_mod.
+!                              Use virtual temperature in hypsometric eqn.
 !  10 Apr 2015 - C. Keller   - Now exchange PARANOX loss fluxes via HEMCO 
 !                              diagnostics.
 !EOP
@@ -2057,13 +2072,13 @@ contains
 
     ! calculate variables related to pressure
     do L = 1, LLPAR
-       pmid(I,J,L) = GET_PCENTER(I,J,L)*100.e+0_fp ! hPa -> Pa
-       pint(I,J,L) = GET_PEDGE(I,J,L)*100.e+0_fp   ! hPa -> Pa
+       pmid(I,J,L) = State_Met%PMID(I,J,L)*100.e+0_fp ! hPa -> Pa
+       pint(I,J,L) = State_Met%PEDGE(I,J,L)*100.e+0_fp   ! hPa -> Pa
        ! calculate potential temperature
        thp(I,J,L) = State_Met%T(I,J,L)*(p0/pmid(I,J,L))**cappa
     enddo
-    pint(I,J,LLPAR+1) = GET_PEDGE(I,J,LLPAR+1)
-    
+    pint(I,J,LLPAR+1) = State_Met%PEDGE(I,J,LLPAR+1)
+
     enddo
     enddo
 !$OMP END PARALLEL DO
@@ -2072,13 +2087,14 @@ contains
     do J = 1, JJPAR
     do I = 1, IIPAR
     do L = 1, LLPAR
-    ! Corrected calculation of zm.
-    ! Use temperature instead of virtual temperature to be consistent with 
-    ! the calculation of BXHEIGHT. (lin, 06/02/08)
-    !zm(I,J,L) = sum(BXHEIGHT(I,J,1:L))
+       ! Corrected calculation of zm.
+       ! Box height calculation now uses virtual temperature.
+       ! Therefore, use virtual temperature in hypsometric equation.
+       ! (ewl, 3/3/15)
        zm(I,J,L) = sum( State_Met%BXHEIGHT(I,J,1:L)) &
                  - log( pmid(I,J,L)/pint(I,J,L+1) )  &
-                 * r_g * State_Met%T(I,J,L)
+                 * r_g * State_Met%TV(I,J,L)
+
     enddo
     enddo
     enddo
