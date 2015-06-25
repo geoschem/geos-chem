@@ -1778,7 +1778,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LSULF,      LCARB,      LSOA
+      LOGICAL            :: LSULF,      LCARB,    LBRC,  LSOA
       LOGICAL            :: LSVPOA,     LDUST
       LOGICAL            :: LSSALT,     LCRYST,     LDICARB
       LOGICAL            :: LGRAVSTRAT, LHOMNUCNAT, LSOLIDPSC
@@ -1813,70 +1813,74 @@
       ! Use online carbon aerosols 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:3' )
       READ( SUBSTRS(1:N), * ) LCARB
+      
+      ! Use brown carbon aerosols 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:4' )
+      READ( SUBSTRS(1:N), * ) LBRC
 
       ! Use secondary organic aerosols?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:5' )
       READ( SUBSTRS(1:N), * ) LSOA
 
       ! SOAupdate: Add Semi-volatile POA switch (hotp 8/9/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
       READ( SUBSTRS(1:N), * ) LSVPOA
 
       ! Use online dust aerosols 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:9' )
       READ( SUBSTRS(1:N), * ) LDUST
 
       ! Use online sea-salt aerosols?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:11' )
       READ( SUBSTRS(1:N), * ) LSSALT      
 
       ! Accum mode seasalt radii bin edges [um]
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:11' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:12' )
       DO T = 1, N
          READ( SUBSTRS(T), * ) Input_Opt%SALA_REDGE_um(T)
       ENDDO
 
       ! Coarse mode seasalt radii bin edges [um]
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:13' )
       DO T = 1, N
          READ( SUBSTRS(T), * ) Input_Opt%SALC_REDGE_um(T)
       ENDDO
 
       ! Switch to comment the SOG condensation in carbon_mod.f (ccc, 3/10/09)
       ! Use online dicarbonyl chemistry 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:14' )
       READ( SUBSTRS(1:N), * ) LDICARB
 
       ! Apply gravitational settling in stratosphere?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15' )
       READ( SUBSTRS(1:N), * ) LGRAVSTRAT  
 
       ! Use solid polar stratospheric clouds (PSCs)?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:16' )
       READ( SUBSTRS(1:N), * ) LSOLIDPSC   
 
       ! Allow homogeneous nucleation of NAT?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:17' )
       READ( SUBSTRS(1:N), * ) LHOMNUCNAT 
 
       ! NAT supercooling requirement (K)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:18' )
       READ( SUBSTRS(1:N), * ) T_NAT_SUPERCOOL
 
       ! Ice supersaturation ratio requirement
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:19' )
       READ( SUBSTRS(1:N), * ) P_ICE_SUPERSAT
 
       ! Perform PSC-related heterogeneous chemistry?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:20' )
       READ( SUBSTRS(1:N), * ) LPSCCHEM 
 
       ! Include stratospheric aerosols optical depths?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:21' )
       READ( SUBSTRS(1:N), * ) LSTRATOD
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:21' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:22' )
 
       !=================================================================
       ! Error checks
@@ -1895,6 +1899,7 @@
          LSULF  = .FALSE.
          LCRYST = .FALSE.
          LCARB  = .FALSE.
+         LBRC   = .FALSE.
          LSOA   = .FALSE.
          LDUST  = .FALSE.
          LSSALT = .FALSE.
@@ -2105,6 +2110,7 @@
       Input_Opt%LSULF              = LSULF  
       Input_Opt%LCRYST             = LCRYST
       Input_Opt%LCARB              = LCARB
+      Input_Opt%LBRC               = LBRC
       Input_Opt%LSOA               = LSOA 
       Input_Opt%LSVPOA             = LSVPOA
       Input_Opt%LDUST              = LDUST 
@@ -2130,6 +2136,7 @@
          WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ', LSULF
          WRITE( 6, 100     ) 'Online CRYST & AQ AEROSOLS? : ', LCRYST
          WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', LCARB
+         WRITE( 6, 100     ) 'Brown Carbon Aerosol?       : ', LBRC
          WRITE( 6, 100     ) 'Online 2dy ORGANIC AEROSOLS?: ', LSOA
          WRITE( 6, 100     ) 'Semivolatile POA?           : ', LSVPOA
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
@@ -8508,7 +8515,7 @@
 
       ! Initialize "aerosol_mod.F"
       IF ( Input_Opt%LSULF .or. Input_Opt%LCARB   .or. 
-     &     Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
+     &     Input_Opt%LDUST .or. Input_Opt%LSSALT) THEN
          CALL Init_Aerosol( am_I_Root, Input_Opt, RC )
          IF ( RC /= GIGC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_AEROSOL' )

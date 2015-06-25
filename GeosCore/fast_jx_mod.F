@@ -1646,7 +1646,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_FJX( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_FJX( am_I_Root, Input_Opt, RC, LBRC )
 !
 ! !USES:
 !
@@ -1659,6 +1659,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+               
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1673,6 +1674,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL   :: LBRC
       INTEGER                     :: JXUNIT,J
       CHARACTER(LEN=255)          :: FILENAME
       INTEGER                     :: NJXX
@@ -1682,7 +1684,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       !=================================================================
       ! INIT_FJX begins here!
       !=================================================================
-
+      LBRC = Input_Opt%LBRC
       ! Assume success
       RC = GIGC_SUCCESS
 
@@ -1738,7 +1740,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
          WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
       ENDIF
 
-      call RD_MIE(JXUNIT,TRIM( FILENAME ), am_I_Root)
+      call RD_MIE(JXUNIT,TRIM( FILENAME ), am_I_Root, Input_Opt, LBRC)
 
 !------------------------------------------------------------------------------
 ! Prior to 3/30/15:
@@ -1759,7 +1761,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !      call RD_AOD(JXUNIT,TRIM( FILENAME ), am_I_Root)
 !------------------------------------------------------------------------------
       ! Read in AOD data
-      call RD_AOD(JXUNIT, am_I_Root)
+      call RD_AOD(JXUNIT, am_I_Root, Input_Opt, LBRC)
 
       ! Set up MIEDX array to interpret between GC and FJX aerosol indexing
       call SET_AER(am_I_Root)
@@ -2086,17 +2088,20 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_MIE(NUN,NAMFIL,am_I_Root)
+      SUBROUTINE RD_MIE(NUN,NAMFIL,am_I_Root, Input_Opt, LBRC)
 !
 ! !USES:
 !
       USE FILE_MOD,   ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
       INTEGER,      INTENT(IN) :: NUN
       CHARACTER(*), INTENT(IN) :: NAMFIL
       LOGICAL,      INTENT(IN) :: am_I_Root
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      
 !
 ! !OUTPUT VARIABLES:
 !
@@ -2123,11 +2128,21 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
       INTEGER  I, J, K, NK
       CHARACTER*78 TITLE0
+      LOGICAL   :: LBRC
+      CHARACTER*20, DIMENSION(7) :: TITLEAAt
+      REAL(fp)             :: QAAt(5,63)
+      REAL(fp)             :: WAAt(5,63)
+      REAL(fp)             :: PAAt(8,5,63)
+      REAL(fp)             :: RAAt(5,63)
+      REAL(fp)             :: SAAt(5,63)
+      INTEGER              :: NAAt
+
+
 
       !=================================================================
       ! RD_MIE begins here!
       !=================================================================
-
+       LBRC = Input_Opt%LBRC
       open (NUN,FILE=NAMFIL,status='old',form='formatted')
 
       ! Read header lines
@@ -2135,17 +2150,42 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       IF  ( am_I_Root ) WRITE( 6, '(1X,A)' ) TITLE0
       READ( NUN,'(A)' ) TITLE0
 
-!---Read aerosol phase functions:
+     
+      !---Read aerosol phase functions:
+     
       read(NUN,'(A10,I5,/)') TITLE0,NAA
-      NK=5
-      do j=1,NAA
-        read(NUN,110) TITLEAA(j)
-        do k=1,NK
-          read(NUN,*) WAA(k,j),QAA(k,j),RAA(k,j),SAA(k,j),
+ 
+        NK=5
+        do j=1,NAA
+           read(NUN,110) TITLEAA(j)
+         do k=1,NK
+            read(NUN,*) WAA(k,j),QAA(k,j),RAA(k,j),SAA(k,j),
      &                                             (PAA(i,k,j),i=1,8)
+       
+          enddo
         enddo
-      enddo
 
+      IF (LBRC) THEN
+          NAAt=63 
+          do j= 57, NAAt
+           read(NUN,110) TITLEAAt(j)
+          do k=1,NK
+             read(NUN,*) WAAt(k,j),QAAt(k,j),RAAt(k,j),SAAt(k,j),
+     &                                             (PAAt(i,k,j),i=1,8)
+       
+           enddo
+         enddo
+       
+        do j= 36, 42
+         TITLEAA(j) = TITLEAAt(j+21)
+         WAA(:,j) = WAAt(:,j+21)
+         QAA(:,j) = QAAt(:,j+21)
+         RAA(:,j) = RAAt(:,j+21)
+         SAA(:,j) = SAAt(:,j+21)
+         PAA(:,:,j) = PAAt(:,:,j+21)
+        enddo
+      ENDIF  
+      
       close(NUN)
 
       IF ( am_I_Root ) THEN 
@@ -2180,18 +2220,19 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! Prior to 3/30/15:
 !      SUBROUTINE RD_AOD( NJ1, NAMFIL, am_I_Root )
 !------------------------------------------------------------------------------
-      SUBROUTINE RD_AOD( NJ1, am_I_Root )
+      SUBROUTINE RD_AOD( NJ1, am_I_Root, Input_Opt, LBRC )
 !
 ! !USES:
 !
       USE FILE_MOD,   ONLY : IOERROR
-
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       IMPLICIT NONE
 
 !
 ! !INPUT PARAMETERS:
 !     
       INTEGER,          INTENT(IN) :: NJ1         ! Unit # of file to open
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !------------------------------------------------------------------------------
 ! Prior to 3/30/15:
 !      CHARACTER(LEN=*), INTENT(IN) :: NAMFIL      ! Name of file to open
@@ -2237,26 +2278,37 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       INTEGER           :: IOS
       CHARACTER*30      :: SPECFIL(8)
       CHARACTER(LEN=30) :: THISFILE
+           
+      LOGICAL   :: LBRC
 
       CHARACTER*78 TITLE0
 
       !================================================================
       ! RD_AOD begins here!
       !================================================================
-
+      
+      LBRC = Input_Opt%LBRC
+            
       ! aerosol_mod.F expects aerosol in this order now
       ! extra two LUT dat files for strat H2SO4 and NAT particles
-      DATA SPECFIL /"so4.dat","soot.dat","org.dat","ssa.dat","ssc.dat",
+             
+       DATA SPECFIL /"so4.dat","soot.dat","org.dat","ssa.dat","ssc.dat",
 #if defined( UCX )
-      ! add in dummy optics LUT tables for now
-      ! needs to be H2SO4 and something ice-like for NAT (DAR 03/2015)
+       ! add in dummy optics LUT tables for now
+       ! needs to be H2SO4 and something ice-like for NAT (DAR 03/2015)
      &              "so4.dat","so4.dat",
 #endif
      &              "dust.dat"/
+
+          
       !array of filenames
       DO k = 1, NSPAA
 
        ! mirror file. Need to append '.rc' in ESMF environment. (ckeller, 4/1/15)
+       IF (LBRC) THEN
+       SPECFIL(3) = "brc.dat"
+       ENDIF
+
        THISFILE = SPECFIL(k)
 #if defined( ESMF_ )
        THISFILE = TRIM(THISFILE) // '.rc'
