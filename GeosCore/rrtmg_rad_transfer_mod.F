@@ -1583,6 +1583,7 @@
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
+!  26 Jun 2015 - E. Lundgren - Fix typo in NXTRA definition
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1606,7 +1607,7 @@
       !WHERE NXTRA=NUMBER OF NEW SPECIES ADDED ABOVE THE STANDARD CODE
       !E.G. IF UCX=YES THEN NASPECRAD=18 AND STS AND NAT ARE INCLUDED
       !IN RTODAER INDEX 8 AND 9, BEFORE DUST
-      NXTRA=NASPECRAD-16
+      NXTRA=NSPECRAD-16
       !CONVERT THE CURRENT SPECIES SELECTION FROM THE INPUT MENU INTO
       !THE REQUIRED SPECIES TO BE INCLUDED IN THE RRTMG CALCULATION
       SPECMASK(:)=1
