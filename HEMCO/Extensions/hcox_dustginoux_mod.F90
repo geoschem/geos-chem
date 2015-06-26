@@ -169,6 +169,7 @@ CONTAINS
 !  11 Dec 2013 - C. Keller   - Now a HEMCO extension
 !  29 Sep 2014 - R. Yantosca - Bug fix: SRCE_CLAY should have been picked when
 !                              M=3 but was picked when M=2.  Now corrected.
+!  26 Jun 2015 - E. Lundgren - Add L. Zhang new dust size distribution scheme
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -193,6 +194,7 @@ CONTAINS
     CHARACTER(LEN=63) :: MSG
 
     ! Arrays
+    REAL*8            :: DUST_EMI_TOTAL(HcoState%NX, HcoState%NY)
     REAL(hp), TARGET  :: FLUX(HcoState%NX,HcoState%NY,NBINS)
 
     ! Pointers
@@ -214,6 +216,9 @@ CONTAINS
 
     ! Emission timestep [s]
     DTSRCE  = HcoState%TS_EMIS
+
+    ! Initialize total dust emissions array [kg/m2/s]
+    DUST_EMI_TOTAL = 0.0_hp
 
     ! Error check
     ERR     = .FALSE.
@@ -306,7 +311,7 @@ CONTAINS
 
           ENDIF
 
-          ! 10m wind speed [m/s]
+          ! 10m wind speed squared [m2/s2]
           W10M = ExtState%U10M%Arr%Val(I,J)**2 &
                + ExtState%V10M%Arr%Val(I,J)**2
 
@@ -330,6 +335,9 @@ CONTAINS
           ! Not less than zero
           IF ( FLUX(I,J,N) < 0.d0 ) FLUX(I,J,N) = 0.d0
 
+          ! Increment total dust emissions [kg/m2/s] (L. Zhang, 6/26/15)
+          DUST_EMI_TOTAL(I,J) = DUST_EMI_TOTAL(I,J) + FLUX(I,J,N)
+
        ENDDO
        ENDDO
     ENDDO
@@ -340,6 +348,29 @@ CONTAINS
        RC = HCO_FAIL
        RETURN 
     ENDIF
+
+    ! Redistribute dust emissions across bins (L. Zhang, 6/26/15)
+!$OMP PARALLEL DO                                           &
+!$OMP DEFAULT( SHARED )                                     &
+!$OMP PRIVATE( I, J, N )                                    &
+!$OMP SCHEDULE( DYNAMIC )
+     DO N=1,NBINS
+     DO J=1,HcoState%NY
+     DO I=1,HcoState%NX
+        SELECT CASE( N )
+           CASE( 1 ) 
+              FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.0766d0
+           CASE( 2 )
+              FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.1924d0
+           CASE( 3 ) 
+              FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.3491d0
+           CASE( 4 )
+              FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.3819d0
+        END SELECT
+     ENDDO
+     ENDDO
+     ENDDO
+!$OMP END PARALLEL DO
 
     !=======================================================================
     ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
