@@ -463,7 +463,7 @@ CONTAINS
     ! surface pressure at future time=t+dt
     REAL(fp),  INTENT(INOUT) :: ps2(IM, JFIRST:JLAST)  
 
-    ! Tracer "mixing ratios" [kg tracer/moist air v]
+    ! Tracer "mixing ratios" [kg tracer/moist air kg]
     REAL(fp),  INTENT(INOUT), TARGET :: q(:,:,:,:)
 
     ! E/W, N/S, and up/down diagnostic mass fluxes

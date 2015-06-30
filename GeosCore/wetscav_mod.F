@@ -4488,7 +4488,6 @@
       REAL(fp)          :: MEAN_SFC_STT         ! use to determine STT units 
       LOGICAL           :: UNITCHANGE = .FALSE. ! STT unit conversion indicator
       INTEGER           :: N_TRACERS
-      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
       REAL(fp), POINTER :: STT(:,:,:,:) => NULL()
 #endif
 
