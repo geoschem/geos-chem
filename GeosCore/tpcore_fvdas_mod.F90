@@ -953,7 +953,7 @@ CONTAINS
        DO K = 1, KM
        DO J = 1, JM
        DO I = 1, IM
-          IF ( q(I,J,K,IQ) < 0.0e0_fp )
+          IF ( q(I,J,K,IQ) < 0.0e0_fp ) THEN
              q(I,J,K,IQ) = 1.0e-26_fp
           ENDIF
        ENDDO
