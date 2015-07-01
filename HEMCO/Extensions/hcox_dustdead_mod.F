@@ -353,7 +353,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,     J,      P1,    P2,   PTHICK,  PMID, TLON        )
 !$OMP+PRIVATE( THLON, ULON,   VLON,  BHT2, Q_H2O,   ORO,  SNW_HGT_LQD )
-!$OMP+PRIVATE( N,     YMID_R, DSRC,  RC,   AREA_M2                    )
+!$OMP+PRIVATE( N,     YMID_R, DSRC,  RC,   AREA_M2, DUST_EMI_TOTAL    )
 
       ! Loop over latitudes
       DO J = 1, HcoState%NY 
@@ -425,7 +425,7 @@
 
          ! Redistribute dust emissions using new dust size distribution
          ! scheme (L. Zhang, 6/26/15)
-         DUST_EMI_TOTAL=0.0  
+         DUST_EMI_TOTAL = 0.0d0  
          DO N = 1, NBINS
             DUST_EMI_TOTAL(:) = DUST_EMI_TOTAL(:) + DSRC(:,N)
          ENDDO

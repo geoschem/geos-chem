@@ -218,7 +218,7 @@ CONTAINS
     DTSRCE  = HcoState%TS_EMIS
 
     ! Initialize total dust emissions array [kg/m2/s]
-    DUST_EMI_TOTAL = 0.0_hp
+    DUST_EMI_TOTAL = 0.0d0
 
     ! Error check
     ERR     = .FALSE.
@@ -250,11 +250,11 @@ CONTAINS
     !=================================================================
     ! Compute dust emisisons
     !=================================================================
-!$OMP PARALLEL DO                                           &
-!$OMP DEFAULT( SHARED )                                     &
-!$OMP PRIVATE( I,      J,     M,      N,      DEN,   DIAM ) &
-!$OMP PRIVATE( REYNOL, ALPHA, BETA,   GAMMA,  U_TS0, U_TS ) &
-!$OMP PRIVATE( CW,     W10M,  SRCE_P, RC                  ) &
+!$OMP PARALLEL DO                                             &
+!$OMP DEFAULT( SHARED )                                       &
+!$OMP PRIVATE( I,      J,     M,      N,      DEN,   DIAM   ) &
+!$OMP PRIVATE( REYNOL, ALPHA, BETA,   GAMMA,  U_TS0, U_TS   ) &
+!$OMP PRIVATE( CW,     W10M,  SRCE_P, RC                    ) &
 !$OMP SCHEDULE( DYNAMIC )
     DO N = 1, NBINS
 
