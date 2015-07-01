@@ -946,10 +946,9 @@ CONTAINS
        ! is negative. Negative concentration may occur at the poles. This 
        ! is an issue that should be looked into in the future. (ewl, 6/30/15) 
        !======================================================================
-       ! 
-       !$OMP PARALLEL DO
-       !$OMP+DEFAULT( SHARED )
-       !$OMP+PRIVATE( I, J, K )
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED   )&
+!$OMP PRIVATE( I, J, K )
        DO K = 1, KM
        DO J = 1, JM
        DO I = 1, IM
@@ -959,7 +958,7 @@ CONTAINS
        ENDDO
        ENDDO
        ENDDO
-       !$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
        
        !======================================================================
        ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
