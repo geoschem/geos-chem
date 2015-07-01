@@ -135,7 +135,7 @@ MODULE HCOX_GFED_MOD
   !=================================================================
   INTEGER                        :: nSpc
   CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
-  CHARACTER(LEN=61), ALLOCATABLE :: SpcMask(:)
+  CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
   INTEGER,           ALLOCATABLE :: HcoIDs(:)
   INTEGER,           ALLOCATABLE :: GfedIDs(:)
   REAL(sp),          ALLOCATABLE :: SpcScal(:)
@@ -393,7 +393,7 @@ CONTAINS
        END SELECT
 
        ! Check for masking
-       CALL HCOX_MASK( am_I_Root, HcoState, SpcArr, TRIM(SpcMask(N)), RC ) 
+       CALL HCOX_SCALE( am_I_Root, HcoState, SpcArr, TRIM(SpcScalFldNme(N)), RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Add flux to HEMCO emission array
@@ -636,8 +636,26 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get species mask fields
-    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'Mask', HCOX_NOMASK, SpcMask, RC )
+    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'ScaleField', HCOX_NOSCALE, SpcScalFldNme, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Error trap: in previous versions, CO, POA and NAP scale factor were given as
+    ! 'CO scale factor', etc. Make sure those attributes do not exist any more!
+    CALL GetExtOpt ( ExtNr, 'CO scale factor', OptValSp=ValSp, FOUND=FOUND, RC=RC )
+    IF ( .NOT. FOUND ) THEN
+       CALL GetExtOpt ( ExtNr, 'POA scale factor', OptValSp=ValSp, FOUND=FOUND, RC=RC )
+    ENDIF
+    IF ( .NOT. FOUND ) THEN
+       CALL GetExtOpt ( ExtNr, 'NAP scale factor', OptValSp=ValSp, FOUND=FOUND, RC=RC )
+    ENDIF
+    IF ( FOUND ) THEN
+       MSG = 'Found old definition of CO, POA and/or NAP scale factor! '  // & 
+             'This version of HEMCO expects species scale factors to be ' // &
+             'set as `Scaling_XX` instead of `XX scale factor`. '         // &
+             'Please update the GFED settings section accordingly.'
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+    ENDIF
 
     ! GFEDIDS are the matching indeces of the HEMCO species in GFED_EMFAC.
     ALLOCATE ( GfedIDs(nSpc), STAT=AS )
@@ -686,7 +704,7 @@ CONTAINS
                 CALL HCO_MSG( MSG )
                 WRITE(MSG,*) '     --> Will use scale factor: ', SpcScal(N)
                 CALL HCO_MSG( MSG )
-                WRITE(MSG,*) '     --> Mask                 : ', TRIM(SpcMask(N))
+                WRITE(MSG,*) '     --> Will use scale field : ', TRIM(SpcScalFldNme(N))
                 CALL HCO_MSG( MSG )
              ENDIF
              EXIT ! go to next species
@@ -749,13 +767,13 @@ CONTAINS
     GFED_EMFAC => NULL()
 
     ! Cleanup module arrays
-    IF ( ALLOCATED( GFED3_EMFAC ) ) DEALLOCATE( GFED3_EMFAC )
-    IF ( ALLOCATED( GFED4_EMFAC ) ) DEALLOCATE( GFED4_EMFAC )
-    IF ( ALLOCATED( GfedIDs     ) ) DEALLOCATE( GfedIds     )
-    IF ( ALLOCATED( HcoIDs      ) ) DEALLOCATE( HcoIDs      )
-    IF ( ALLOCATED( SpcNames    ) ) DEALLOCATE( SpcNames    )
-    IF ( ALLOCATED( SpcScal     ) ) DEALLOCATE( SpcScal     )
-    IF ( ALLOCATED( SpcMask     ) ) DEALLOCATE( SpcMask     )
+    IF ( ALLOCATED( GFED3_EMFAC  ) ) DEALLOCATE( GFED3_EMFAC  )
+    IF ( ALLOCATED( GFED4_EMFAC  ) ) DEALLOCATE( GFED4_EMFAC  )
+    IF ( ALLOCATED( GfedIDs      ) ) DEALLOCATE( GfedIds      )
+    IF ( ALLOCATED( HcoIDs       ) ) DEALLOCATE( HcoIDs       )
+    IF ( ALLOCATED( SpcNames     ) ) DEALLOCATE( SpcNames     )
+    IF ( ALLOCATED( SpcScal      ) ) DEALLOCATE( SpcScal      )
+    IF ( ALLOCATED( SpcScalFldNme) ) DEALLOCATE( SpcScalFldNme)
 
   END SUBROUTINE HCOX_GFED_Final
 !EOC

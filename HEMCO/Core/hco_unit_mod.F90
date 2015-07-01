@@ -67,7 +67,7 @@ MODULE HCO_Unit_Mod
   ! add more units if you don't want HEMCO to attempt to convert data
   ! in these units.
   ! All characters in this list should be lower case!
-  INTEGER,           PARAMETER :: NUL = 32
+  INTEGER,           PARAMETER :: NUL = 33
   CHARACTER(LEN=15), PARAMETER :: UL(NUL) = (/ '1',             &
                                                'count',         &
                                                'unitless',      &
@@ -99,6 +99,7 @@ MODULE HCO_Unit_Mod
                                                'dobsons',       &
                                                'dobsons/day',   &
                                                'pa',            &
+                                               'percent',       &
                                                'hpa'             /)
 
   ! Accepted units for data on HEMCO standard units. No unit conversion 

@@ -50,6 +50,7 @@ MODULE HCOX_AeroCom_Mod
 !
   USE HCO_Error_MOD
   USE HCO_Diagn_MOD
+  USE HCOX_TOOLS_MOD
   USE HCOX_State_MOD, ONLY : Ext_State
   USE HCO_State_MOD,  ONLY : HCO_State 
 
@@ -75,19 +76,20 @@ MODULE HCOX_AeroCom_Mod
 !
 ! !MODULE VARIABLES:
 !
-  INTEGER                         :: ExtNr     = -1  ! Extension number
-  INTEGER                         :: CatErupt  = -1  ! Category of eruptive emissions
-  INTEGER                         :: CatDegas  = -1  ! Category of degassing emissions
-  INTEGER                         :: nSpc      =  0  ! # of species
-  INTEGER                         :: nVolc     =  0  ! # of volcanoes in buffer 
-  INTEGER,  ALLOCATABLE           :: SpcIDs(:)       ! HEMCO species IDs
-  REAL(sp), ALLOCATABLE           :: SpcScl(:)       ! Species scale factors
-  REAL(sp), ALLOCATABLE           :: VolcSlf(:)      ! Sulface emissions [kg S/s]
-  REAL(sp), ALLOCATABLE           :: VolcElv(:)      ! Elevation [m]
-  REAL(sp), ALLOCATABLE           :: VolcCld(:)      ! Cloud column height [m]
-  INTEGER,  ALLOCATABLE           :: VolcIdx(:)      ! Lon grid index 
-  INTEGER,  ALLOCATABLE           :: VolcJdx(:)      ! Lat grid index 
-  CHARACTER(LEN=255)              :: FileName        ! Volcano file name
+  INTEGER                         :: ExtNr     = -1   ! Extension number
+  INTEGER                         :: CatErupt  = -1   ! Category of eruptive emissions
+  INTEGER                         :: CatDegas  = -1   ! Category of degassing emissions
+  INTEGER                         :: nSpc      =  0   ! # of species
+  INTEGER                         :: nVolc     =  0   ! # of volcanoes in buffer 
+  INTEGER,  ALLOCATABLE           :: SpcIDs(:)        ! HEMCO species IDs
+  REAL(sp), ALLOCATABLE           :: SpcScl(:)        ! Species scale factors
+  REAL(sp), ALLOCATABLE           :: VolcSlf(:)       ! Sulface emissions [kg S/s]
+  REAL(sp), ALLOCATABLE           :: VolcElv(:)       ! Elevation [m]
+  REAL(sp), ALLOCATABLE           :: VolcCld(:)       ! Cloud column height [m]
+  INTEGER,  ALLOCATABLE           :: VolcIdx(:)       ! Lon grid index 
+  INTEGER,  ALLOCATABLE           :: VolcJdx(:)       ! Lat grid index 
+  CHARACTER(LEN=255)              :: FileName         ! Volcano file name
+  CHARACTER(LEN=61), ALLOCATABLE  :: SpcScalFldNme(:) ! Names of scale factor fields
 
   ! AeroCom data is in kgS. Will be converted to kg emitted species.
   ! MW_S is the molecular weight of sulfur 
@@ -165,14 +167,19 @@ CONTAINS
     ! Add eruptive and degassing emissions to emission arrays & diagnostics 
     DO N = 1, nSpc
        iFlx = SO2degas * SpcScl(N) 
+       CALL HCOX_SCALE( am_I_Root, HcoState, iFlx, TRIM(SpcScalFldNme(N)), RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
        CALL HCO_EmisAdd( am_I_Root, HcoState,    iFlx, SpcIDs(N), &
-                         RC,        ExtNr=ExtNr, Cat=CatDegas )
+                         RC,        ExtNr=ExtNr, Cat=CatDegas, MinDiagnLev=2 )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        iFlx = SO2erupt * SpcScl(N) 
-       CALL HCO_EmisAdd( am_I_Root, HcoState,    iFlx, SpcIDs(N), &
-                         RC,        ExtNr=ExtNr, Cat=CatErupt )
+       CALL HCOX_SCALE( am_I_Root, HcoState, iFlx, TRIM(SpcScalFldNme(N)), RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL HCO_EmisAdd( am_I_Root, HcoState,    iFlx, SpcIDs(N), &
+                         RC,        ExtNr=ExtNr, Cat=CatErupt, MinDiagnLev=2 )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
     ENDDO !N
 
     ! Return w/ success
@@ -256,6 +263,10 @@ CONTAINS
     CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'Scaling', 1.0_sp, SpcScl, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! Get species mask fields
+    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'ScaleField', HCOX_NOSCALE, SpcScalFldNme, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Add conversion factor from kg S to kg of emitted species
     DO N = 1, nSpc
        SpcScl(N) = SpcScl(N) * HcoState%Spc(SpcIDs(N))%EmMW_g &
@@ -295,6 +306,7 @@ CONTAINS
        DO N = 1, nSpc
           WRITE(MSG,*) TRIM(SpcNames(N)), ', ', SpcIDs(N), ', ', SpcScl(N)
           CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'Apply scale field: ', TRIM(SpcScalFldNme(N))
        ENDDO
        WRITE(MSG,*) ' - Emit eruptive emissions as category ', CatErupt
        CALL HCO_MSG( MSG )
@@ -336,13 +348,14 @@ CONTAINS
     !=================================================================
     ! HCOX_AEROCOM_FINAL begins here!
     !=================================================================
-    IF ( ALLOCATED(VolcSlf  ) ) DEALLOCATE ( VolcSlf   )
-    IF ( ALLOCATED(VolcElv  ) ) DEALLOCATE ( VolcElv   )
-    IF ( ALLOCATED(VolcCld  ) ) DEALLOCATE ( VolcCld   )
-    IF ( ALLOCATED(VolcIdx  ) ) DEALLOCATE ( VolcIdx   )
-    IF ( ALLOCATED(VolcJdx  ) ) DEALLOCATE ( VolcJdx   )
-    IF ( ALLOCATED(SpcIDs   ) ) DEALLOCATE ( SpcIDs    )
-    IF ( ALLOCATED(SpcScl   ) ) DEALLOCATE ( SpcScl    )
+    IF ( ALLOCATED(VolcSlf      ) ) DEALLOCATE ( VolcSlf       )
+    IF ( ALLOCATED(VolcElv      ) ) DEALLOCATE ( VolcElv       )
+    IF ( ALLOCATED(VolcCld      ) ) DEALLOCATE ( VolcCld       )
+    IF ( ALLOCATED(VolcIdx      ) ) DEALLOCATE ( VolcIdx       )
+    IF ( ALLOCATED(VolcJdx      ) ) DEALLOCATE ( VolcJdx       )
+    IF ( ALLOCATED(SpcIDs       ) ) DEALLOCATE ( SpcIDs        )
+    IF ( ALLOCATED(SpcScl       ) ) DEALLOCATE ( SpcScl        )
+    IF ( ALLOCATED(SpcScalFldNme) ) DEALLOCATE ( SpcScalFldNme )
 
   END SUBROUTINE HCOX_AeroCom_Final
 !EOC

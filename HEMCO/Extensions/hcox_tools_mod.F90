@@ -22,11 +22,11 @@ MODULE HCOX_TOOLS_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: HCOX_Mask 
+  PUBLIC :: HCOX_SCALE 
 !
 ! !MODULE VARIABLES:
 !
-  CHARACTER(LEN=31), PARAMETER, PUBLIC  :: HCOX_NOMASK = 'none' 
+  CHARACTER(LEN=31), PARAMETER, PUBLIC  :: HCOX_NOSCALE = 'none' 
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -38,12 +38,12 @@ MODULE HCOX_TOOLS_MOD
 !
 ! !MODULE INTERFACES: 
 !
-  INTERFACE HCOX_Mask 
-     MODULE PROCEDURE HCOX_Mask_sp2D 
-     MODULE PROCEDURE HCOX_Mask_sp3D 
-     MODULE PROCEDURE HCOX_Mask_dp2D 
-     MODULE PROCEDURE HCOX_Mask_dp3D 
-  END INTERFACE HCOX_Mask 
+  INTERFACE HCOX_SCALE 
+     MODULE PROCEDURE HCOX_SCALE_sp2D 
+     MODULE PROCEDURE HCOX_SCALE_sp3D 
+     MODULE PROCEDURE HCOX_SCALE_dp2D 
+     MODULE PROCEDURE HCOX_SCALE_dp3D 
+  END INTERFACE HCOX_SCALE 
 
 CONTAINS
 !EOC
@@ -52,25 +52,25 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: HCOX_Mask_sp2D 
+! !ROUTINE: HCOX_SCALE_sp2D 
 !
-! !DESCRIPTION: Applies mask `MaskName` to the passed 2D sp field. 
+! !DESCRIPTION: Applies mask `SCALENAME` to the passed 2D sp field. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Mask_sp2D( am_I_Root, HcoState, Arr, MaskName, RC )
+  SUBROUTINE HCOX_SCALE_sp2D( am_I_Root, HcoState, Arr, SCALENAME, RC )
 !
 ! !USES:
 !
-    USE HCO_CALC_MOD,   ONLY : HCO_MaskFld
+    USE HCO_CALC_MOD,   ONLY : HCO_EvalFld
     USE HCO_STATE_MOD,  ONLY : HCO_State
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HcoState obj 
-    CHARACTER(LEN=*), INTENT(IN   )  :: MaskName   ! Mask to be used
+    CHARACTER(LEN=*), INTENT(IN   )  :: SCALENAME   ! SCALE to be used
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -85,51 +85,51 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(sp)            :: MASK(HcoState%NX,HcoState%NY)
+    REAL(hp)            :: SCAL(HcoState%NX,HcoState%NY)
 
     !======================================================================
-    ! HCOX_Mask_sp2D begins here
+    ! HCOX_SCALE_sp2D begins here
     !======================================================================
 
-    IF ( TRIM(MaskName) /= HCOX_NOMASK ) THEN
+    IF ( TRIM(SCALENAME) /= TRIM(HCOX_NOSCALE) ) THEN
        
        ! Get mask field
-       CALL HCO_MaskFld ( am_I_Root, HcoState, TRIM(MaskName), MASK, RC )
+       CALL HCO_EvalFld ( am_I_Root, HcoState, TRIM(SCALENAME), SCAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Set array to zero outside of mask region
-       Arr = Arr * MASK
+       Arr = Arr * SCAL
     ENDIF
 
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCOX_Mask_sp2D 
+  END SUBROUTINE HCOX_SCALE_sp2D 
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: HCOX_Mask_sp3D 
+! !ROUTINE: HCOX_SCALE_sp3D 
 !
-! !DESCRIPTION: Applies mask `MaskName` to the passed 3D sp field. 
+! !DESCRIPTION: Applies mask `SCALENAME` to the passed 3D sp field. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Mask_sp3D( am_I_Root, HcoState, Arr, MaskName, RC )
+  SUBROUTINE HCOX_SCALE_sp3D( am_I_Root, HcoState, Arr, SCALENAME, RC )
 !
 ! !USES:
 !
-    USE HCO_CALC_MOD,   ONLY : HCO_MaskFld
+    USE HCO_CALC_MOD,   ONLY : HCO_EvalFld
     USE HCO_STATE_MOD,  ONLY : HCO_State
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HcoState obj 
-    CHARACTER(LEN=*), INTENT(IN   )  :: MaskName   ! Mask to be used
+    CHARACTER(LEN=*), INTENT(IN   )  :: SCALENAME   ! SCALE to be used
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -144,24 +144,24 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(sp)            :: MASK(HcoState%NX,HcoState%NY)
+    REAL(hp)            :: SCAL(HcoState%NX,HcoState%NY)
     INTEGER             :: I, NZ
 
     !======================================================================
-    ! HCOX_Mask_sp3D begins here
+    ! HCOX_SCALE_sp3D begins here
     !======================================================================
 
-    IF ( TRIM(MaskName) /= HCOX_NOMASK ) THEN
+    IF ( TRIM(SCALENAME) /= TRIM(HCOX_NOSCALE) ) THEN
        
        ! Get mask field
-       CALL HCO_MaskFld ( am_I_Root, HcoState, TRIM(MaskName), MASK, RC )
+       CALL HCO_EvalFld ( am_I_Root, HcoState, TRIM(SCALENAME), SCAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! Number of levels
        NZ = SIZE(Arr,3)
 
        DO I = 1, NZ
-          Arr(:,:,I) = Arr(:,:,1) * MASK
+          Arr(:,:,I) = Arr(:,:,1) * SCAL
        ENDDO  
 
     ENDIF
@@ -169,32 +169,32 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCOX_Mask_sp3D 
+  END SUBROUTINE HCOX_SCALE_sp3D 
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: HCOX_Mask_dp2D 
+! !ROUTINE: HCOX_SCALE_dp2D 
 !
-! !DESCRIPTION: Applies mask `MaskName` to the passed 2D dp field. 
+! !DESCRIPTION: Applies mask `SCALENAME` to the passed 2D dp field. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Mask_dp2D( am_I_Root, HcoState, Arr, MaskName, RC )
+  SUBROUTINE HCOX_SCALE_dp2D( am_I_Root, HcoState, Arr, SCALENAME, RC )
 !
 ! !USES:
 !
-    USE HCO_CALC_MOD,   ONLY : HCO_MaskFld
+    USE HCO_CALC_MOD,   ONLY : HCO_EvalFld
     USE HCO_STATE_MOD,  ONLY : HCO_State
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HcoState obj 
-    CHARACTER(LEN=*), INTENT(IN   )  :: MaskName   ! Mask to be used
+    CHARACTER(LEN=*), INTENT(IN   )  :: SCALENAME   ! SCALE to be used
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -209,52 +209,52 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(sp)            :: MASK(HcoState%NX,HcoState%NY)
+    REAL(hp)            :: SCAL(HcoState%NX,HcoState%NY)
 
     !======================================================================
-    ! HCOX_Mask_dp2D begins here
+    ! HCOX_SCALE_dp2D begins here
     !======================================================================
 
-    IF ( TRIM(MaskName) /= HCOX_NOMASK ) THEN
+    IF ( TRIM(SCALENAME) /= TRIM(HCOX_NOSCALE) ) THEN
        
        ! Get mask field
-       CALL HCO_MaskFld ( am_I_Root, HcoState, TRIM(MaskName), MASK, RC )
+       CALL HCO_EvalFld ( am_I_Root, HcoState, TRIM(SCALENAME), SCAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! Set array to zero outside of mask region
-       Arr = Arr * MASK
+       Arr = Arr * SCAL
 
     ENDIF
 
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCOX_Mask_dp2D 
+  END SUBROUTINE HCOX_SCALE_dp2D 
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: HCOX_Mask_dp3D 
+! !ROUTINE: HCOX_SCALE_dp3D 
 !
-! !DESCRIPTION: Applies mask `MaskName` to the passed 3D dp field. 
+! !DESCRIPTION: Applies mask `SCALENAME` to the passed 3D dp field. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Mask_dp3D( am_I_Root, HcoState, Arr, MaskName, RC )
+  SUBROUTINE HCOX_SCALE_dp3D( am_I_Root, HcoState, Arr, SCALENAME, RC )
 !
 ! !USES:
 !
-    USE HCO_CALC_MOD,   ONLY : HCO_MaskFld
+    USE HCO_CALC_MOD,   ONLY : HCO_EvalFld
     USE HCO_STATE_MOD,  ONLY : HCO_State
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HcoState obj 
-    CHARACTER(LEN=*), INTENT(IN   )  :: MaskName   ! Mask to be used
+    CHARACTER(LEN=*), INTENT(IN   )  :: SCALENAME   ! SCALE to be used
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -269,29 +269,29 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(sp)            :: MASK(HcoState%NX,HcoState%NY)
+    REAL(hp)            :: SCAL(HcoState%NX,HcoState%NY)
     INTEGER             :: I, NZ
 
     !======================================================================
-    ! HCOX_Mask_dp3D begins here
+    ! HCOX_SCALE_dp3D begins here
     !======================================================================
 
-    IF ( TRIM(MaskName) /= HCOX_NOMASK ) THEN
+    IF ( TRIM(SCALENAME) /= TRIM(HCOX_NOSCALE) ) THEN
       
        ! Get mask field
-       CALL HCO_MaskFld ( am_I_Root, HcoState, TRIM(MaskName), MASK, RC )
+       CALL HCO_EvalFld ( am_I_Root, HcoState, TRIM(SCALENAME), SCAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! Number of levels
        NZ = SIZE(Arr,3)
        DO I = 1, NZ
-          Arr(:,:,I) = Arr(:,:,1) * MASK
+          Arr(:,:,I) = Arr(:,:,1) * SCAL
        ENDDO  
     ENDIF
 
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCOX_Mask_dp3D 
+  END SUBROUTINE HCOX_SCALE_dp3D 
 !EOC
 END MODULE HCOX_TOOLS_MOD

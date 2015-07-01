@@ -22,18 +22,19 @@
 ! can be listed in the extensions settings (see below), together with individual
 ! scale factors and masks. For example, to calculate emissions for total CH4 and
 ! two tagged CH4 species (CH4\_NA and CH4\_EU) with NA emissions scaled by a 
-! factor of 1.1, as well as applying masks USMASK and NAMASK to CH4\_NA and
-! CH4\_EU, respectively:
+! factor of 1.1, as well as applying the gridded factors NAFIELD and EUFIELD to 
+! CH4\_NA and CH4\_EU, respectively:
 !
-!121     CH4_WETLANDS      : on    CH4/CH4\_NA/CH4\_EU
-!    --> Wetlands          :       true
-!    --> Rice              :       true
-!    --> Scaling\_CH4\_NA  :       1.10
-!    --> Mask\_NA          :       NAMASK 
-!    --> Mask\_EU          :       EUMASK 
+!121     CH4_WETLANDS       : on    CH4/CH4\_NA/CH4\_EU
+!    --> Wetlands           :       true
+!    --> Rice               :       true
+!    --> Scaling\_CH4\_NA   :       1.10
+!    --> ScaleField\_CH4\_NA:       NAFIELD
+!    --> ScaleField\_CH4\_EU:       EUFIELD 
 !
-! The fields NAMASK and EUMASK must be defined in the mask section of the 
-! HEMCO configuration file.
+! The fields NAFIELD and EUFIELD must be defined in the base emission section of 
+! the HEMCO configuration file. You can apply any scale factors/masks to that
+! field.
 !\\
 !\\
 ! References:
@@ -90,7 +91,7 @@ MODULE HCOX_CH4WETLAND_Mod
   INTEGER                        :: nSpc
   INTEGER,           ALLOCATABLE :: SpcIDs(:)
   REAL(sp),          ALLOCATABLE :: SpcScal(:)
-  CHARACTER(LEN=61), ALLOCATABLE :: SpcMask(:)
+  CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
 
   ! Pointers to data read through configuration file
   REAL(sp), POINTER           :: RICE        (:,:) => NULL()
@@ -256,7 +257,7 @@ CONTAINS
        CH4tmp = CH4wtl * SpcScal(N)
 
        ! Check for masking
-       CALL HCOX_MASK ( am_I_Root, HcoState, CH4tmp, SpcMask(N), RC )
+       CALL HCOX_SCALE ( am_I_Root, HcoState, CH4tmp, SpcScalFldNme(N), RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Add emissions 
@@ -709,7 +710,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get mask field IDs
-    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'Mask', HCOX_NOMASK, SpcMask, RC )
+    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'ScaleField', HCOX_NOSCALE, SpcScalFldNme, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Check if wetlands and/or rice emissions shall be used and save
@@ -739,7 +740,7 @@ CONTAINS
        DO N = 1, nSpc
           WRITE(MSG,*) ' --> ', TRIM(SpcNames(N))
           WRITE(MSG,*) '     Scale factor: ', SpcScal(N)
-          WRITE(MSG,*) '     Mask field  : ', TRIM(SpcMask(N))
+          WRITE(MSG,*) '     Scale field : ', TRIM(SpcScalFldNme(N))
           CALL HCO_MSG( MSG )
        ENDDO
     ENDIF
@@ -788,9 +789,9 @@ CONTAINS
     ! HCOX_CH4WETLAND_Final begins here!
     !=================================================================
 
-    IF ( ALLOCATED (SpcScal) ) DEALLOCATE(SpcScal)
-    IF ( ALLOCATED (SpcIDs ) ) DEALLOCATE(SpcIDs )
-    IF ( ALLOCATED (SpcMask) ) DEALLOCATE(SpcMask)
+    IF ( ALLOCATED (SpcScal      ) ) DEALLOCATE(SpcScal      )
+    IF ( ALLOCATED (SpcIDs       ) ) DEALLOCATE(SpcIDs       )
+    IF ( ALLOCATED (SpcScalFldNme) ) DEALLOCATE(SpcScalFldNme)
 
   END SUBROUTINE HCOX_CH4WETLAND_Final
 !EOC

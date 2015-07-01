@@ -1107,10 +1107,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_UpdateSP( am_I_Root, cID,      cName,                  &
-                           ExtNr,     Cat,        Hier,       HcoID,      &
-                           AutoFill,  Scalar,     Array2D,    Array3D,    &
-                           Total,     PosOnly,    COL,        RC           )
+  SUBROUTINE Diagn_UpdateSP( am_I_Root, cID,      cName,                   &
+                           ExtNr,     Cat,        Hier,       HcoID,       &
+                           AutoFill,  Scalar,     Array2D,    Array3D,     &
+                           Total,     PosOnly,    COL,        MinDiagnLev, &
+                           RC                                               )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1133,6 +1134,7 @@ CONTAINS
     LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly           ! Use only vals
                                                                    !  >= 0?
     INTEGER,          INTENT(IN   ), OPTIONAL :: COL               ! Collection Nr.
+    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev       ! minimum diagn level 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1159,6 +1161,7 @@ CONTAINS
                        Total_SP   = Total,   & 
                        PosOnly = PosOnly, & 
                        COL = COL, & 
+                       MinDiagnLev = MinDiagnLev, & 
                        RC = RC )
 
   END SUBROUTINE Diagn_UpdateSp
@@ -1177,10 +1180,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_UpdateDP( am_I_Root, cID,      cName,                  &
-                           ExtNr,     Cat,        Hier,       HcoID,      &
-                           AutoFill,  Scalar,     Array2D,    Array3D,    &
-                           Total,     PosOnly,    COL,        RC           )
+  SUBROUTINE Diagn_UpdateDP( am_I_Root, cID,      cName,                   &
+                           ExtNr,     Cat,        Hier,       HcoID,       &
+                           AutoFill,  Scalar,     Array2D,    Array3D,     &
+                           Total,     PosOnly,    COL,        MinDiagnLev, &
+                           RC                                               )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1203,6 +1207,7 @@ CONTAINS
     LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly           ! Use only vals
                                                                    !  >= 0?
     INTEGER,          INTENT(IN   ), OPTIONAL :: COL               ! Collection Nr.
+    INTEGER,          INTENT(IN   ), OPTIONAL :: MinDiagnLev       ! minimum diagn level 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1229,6 +1234,7 @@ CONTAINS
                        Total   = Total,   & 
                        PosOnly = PosOnly, & 
                        COL = COL, & 
+                       MinDiagnLev = MinDiagnLev, & 
                        RC = RC )
 
   END SUBROUTINE Diagn_UpdateDp
@@ -1244,10 +1250,10 @@ CONTAINS
 ! diagnostics container. The container to be updated is determined
 ! from the passed variables. If a valid (i.e. positive) container 
 ! ID is provided, this container is used. Otherwise, if a valid 
-! HEMCO species ID (HcoID) is provided, the container with the same 
+! HEMCO species ID (HcoID) is provided, all containers with the same 
 ! combination of HcoID, extension number (ExtNr), emission category 
-! (Cat) and hierarchy (Hier) is used. If no valid HcoID and no valid
-! cID is given, the container name has to be provided. The passed 
+! (Cat) and hierarchy (Hier) are updated. If no valid HcoID and no 
+! valid cID is given, the container name has to be provided. The passed 
 ! data array (Scalar, Array2D, or Array3D) needs to match the 
 ! spatial dimension of the given container. For 2D diagnostics, a 3D
 ! array can be passed, in which case the level index specified
@@ -1258,6 +1264,20 @@ CONTAINS
 ! If no matching container is found, the subroutine leaves with no 
 ! error. This allows automatic diagnostics generation, e.g. of 
 ! intermediate emission fields created in HCO\_CALC\_Mod.F90.
+!\\
+!\\
+! The optional input argument `MinDiagnLev` determines how `deep` 
+! this routine will search for diagnostics with matching HcoID, ExtNr, 
+! etc. For example, if a HcoID, an ExtNr, and a category is provided,
+! HEMCO by default will only update diagnostics containers with exactly
+! the same HcoID, ExtNr, and category - but not diagnostics of `lower
+! level`, e.g. with the same HcoID and ExtNr but no assigned category.
+! This behavior can be changed by explicitly setting MinDiagnLev to the
+! minimum diagnostics level. In the given example, setting MinDiagnLev
+! to 1 would also update level 1 and level 2 diagnostics of the same 
+! HcoID (e.g. diagnostics with the same HcoID and no assigned ExtNr and
+! category; as well as diagnostics with the same HcoID and ExtNr and no
+! assigned category). 
 !\\
 !\\
 ! Notes:
@@ -1273,11 +1293,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_UpdateDriver( am_I_Root, cID,        cName,                  &
-                                 ExtNr,     Cat,        Hier,       HcoID,      &
-                                 AutoFill,  Scalar,     Array2D,    Array3D,    &
-                                 Total,     Scalar_SP,  Array2D_SP, Array3D_SP, &
-                                 Total_SP,  PosOnly,    COL,        RC           )
+  SUBROUTINE Diagn_UpdateDriver( am_I_Root, cID,        cName,                   &
+                                 ExtNr,     Cat,        Hier,       HcoID,       &
+                                 AutoFill,  Scalar,     Array2D,    Array3D,     &
+                                 Total,     Scalar_SP,  Array2D_SP, Array3D_SP,  &
+                                 Total_SP,  PosOnly,    COL,        MinDiagnLev, &
+                                 RC                                               )
 !
 ! !USES:
 !
@@ -1306,6 +1327,7 @@ CONTAINS
     LOGICAL,          INTENT(IN   ), OPTIONAL         :: PosOnly           ! Use only vals
                                                                            ! >= 0?
     INTEGER,          INTENT(IN   ), OPTIONAL         :: COL               ! Collection Nr.
+    INTEGER,          INTENT(IN   ), OPTIONAL         :: MinDiagnLev       ! Collection Nr.
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1316,6 +1338,7 @@ CONTAINS
 !  25 Sep 2014 - C. Keller - Now allow updating multiple diagnostics
 !  11 Mar 2015 - C. Keller - Now allow scanning of all diagnostic collections
 !  13 Mar 2015 - C. Keller - Bug fix: only prompt warning if it's a new timestep
+!  17 Jun 2015 - C. Keller - Added argument MinDiagnLev
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1337,10 +1360,12 @@ CONTAINS
     CHARACTER(LEN=31)              :: DgnName
     INTEGER                        :: I, J, L, PS, AS
     INTEGER                        :: DgncID,  DgnExtNr, DgnCat
+    INTEGER                        :: iHier,   iExt,     iCat
     INTEGER                        :: DgnHier, DgnHcoID
     INTEGER                        :: MinResetFlag, ThisUpdateID
     INTEGER                        :: AutoFlag
     INTEGER                        :: CNT
+    INTEGER                        :: MnDgnLev, OrigDgnLev, ThisDgnLev 
     LOGICAL                        :: Found, OnlyPos, VertSum, IsAssoc, IsNewTS
     LOGICAL                        :: InUse, SearchAll
 
@@ -1399,6 +1424,38 @@ CONTAINS
     CNT = 0 
 
     !-----------------------------------------------------------------
+    ! Diagnostics levels to be used. By default, use only diagnostics
+    ! at the provided level. For instance, if a hierarchy number if 
+    ! given do not update diagnostics with the same species and 
+    ! extension number but a hierarchy number of -1. If a diagnostics
+    ! level is given, update all diagnostics up to this diagnostics
+    ! level.  
+    !-----------------------------------------------------------------
+
+    ! Get original diagnostics level
+    OrigDgnLev = 999
+    IF ( DgnHcoID > -1 ) THEN
+       OrigDgnLev = 1
+       IF ( DgnExtNr > -1 ) THEN
+          OrigDgnLev = 2
+          IF ( DgnCat > -1 ) THEN
+             OrigDgnLev = 3
+             IF ( DgnHier > -1 ) THEN
+                OrigDgnLev = 4
+             ENDIF
+          ENDIF
+       ENDIF
+    ENDIF
+
+    ! Get maximum reset flag
+    IF ( PRESENT(MinDiagnLev) ) THEN
+       MnDgnLev = MinDiagnLev
+    ELSE
+       MnDgnLev = OrigDgnLev
+    ENDIF
+
+
+    !-----------------------------------------------------------------
     ! Loop over collections
     !-----------------------------------------------------------------
     DO WHILE ( ASSOCIATED(ThisColl) ) 
@@ -1406,24 +1463,45 @@ CONTAINS
        ! Reset Diagnostics
        ThisDiagn => NULL()
 
+       ! Reset diagnostics level to use
+       ThisDgnLev = OrigDgnLev
+
        !-----------------------------------------------------------------
        ! Do for every container in the diagnostics list that matches the 
        ! specified arguments (ID, ExtNr, etc.). This can be more than one
        ! container (ckeller, 09/25/2014).
        !-----------------------------------------------------------------
        DO
-  
+ 
+          ! Set ExtNr, Cat, Hier based on current diagnostics level.
+          iExt  = -1
+          iCat  = -1
+          iHier = -1
+          IF ( ThisDgnLev > 1 ) iExt  = DgnExtNr 
+          IF ( ThisDgnLev > 2 ) iCat  = DgnCat
+          IF ( ThisDgnLev > 3 ) iHier = DgnHier
+
           ! Search for diagnostics that matches the given arguments.
           ! If ThisDiagn is empty (first call), the search will start
           ! at the first diagnostics container. Otherwise, the search
           ! will resume from this diagnostics container.
-          CALL DiagnCont_Find( DgncID,    DgnExtNr, DgnCat,   DgnHier, &
+          CALL DiagnCont_Find( DgncID,    iExt,     iCat,     iHier,   &
                                DgnHcoID,  DgnName,  AutoFlag, Found,   &
                                ThisDiagn, RESUME=.TRUE., COL=ThisColl%CollectionID )
    
           ! Exit while loop if no diagnostics found
-          IF ( .NOT. Found ) EXIT
-   
+          !IF ( .NOT. Found ) EXIT
+          ! Now also check lower level diagnostics is specified so
+          IF ( .NOT. Found ) THEN
+             IF ( ThisDgnLev > MnDgnLev ) THEN
+                ThisDgnLev =  ThisDgnLev - 1
+                ThisDiagn  => NULL()
+                CYCLE
+             ELSE
+                EXIT
+             ENDIF 
+          ENDIF   
+
           ! If container holds just a pointer to external data, don't do
           ! anything!
           IF ( ThisDiagn%DtaIsPtr ) THEN

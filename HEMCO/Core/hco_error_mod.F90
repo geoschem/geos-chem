@@ -114,7 +114,7 @@ MODULE HCO_Error_Mod
   INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_MASK = 3
 
   ! HEMCO version number. Only increase after significant changes
-  CHARACTER(LEN=12), PARAMETER, PUBLIC :: HCO_VERSION = 'v1.1.005'
+  CHARACTER(LEN=12), PARAMETER, PUBLIC :: HCO_VERSION = 'v1.1.006'
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller   - Initialization

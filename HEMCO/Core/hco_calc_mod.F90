@@ -521,12 +521,14 @@ CONTAINS
        IF ( ThisHir == PrevHir ) THEN
 
           ! Only over masked area
-          CatFlx = CatFlx + ( Mask * TmpFlx )
+          ! CatFlx = CatFlx + ( Mask * TmpFlx )
+          CatFlx = CatFlx + TmpFlx
  
        ! If hierarchy is larger than those of the previously used
        ! fields, overwrite CatFlx w/ new values. 
        ELSEIF ( ThisHir > PrevHir ) THEN
-          CatFlx = ( (1.0_hp - Mask) * CatFlx ) + ( Mask * TmpFlx )
+          !CatFlx = ( (1.0_hp - Mask) * CatFlx ) + ( Mask * TmpFlx )
+          CatFlx = ( (1.0_hp - Mask) * CatFlx ) + TmpFlx
 
        ELSE
           MSG = 'Hierarchy error in calc_emis: ' // TRIM(Dct%cName)
@@ -1146,6 +1148,9 @@ CONTAINS
 
     ! Update optional variables
     IF ( PRESENT(UseLL) ) UseLL = UppLL
+
+    ! Weight output emissions by mask
+    OUTARR_3D = OUTARR_3D * MASK
 
     ! Cleanup and leave w/ success
     ScalDct => NULL()

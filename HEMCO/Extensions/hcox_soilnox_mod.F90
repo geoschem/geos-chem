@@ -19,6 +19,7 @@ MODULE HCOX_SoilNOx_Mod
   USE HCO_ERROR_Mod
   USE HCO_CHARTOOLS_MOD
   USE HCO_DIAGN_Mod
+  USE HCOX_TOOLS_MOD
   USE HCOX_State_Mod,     ONLY : Ext_State
   USE HCO_STATE_Mod,      ONLY : HCO_State
 
@@ -145,6 +146,12 @@ MODULE HCOX_SoilNOx_Mod
 
   ! DRYCOEFF (if read from settings in configuration file)
   REAL(hp), ALLOCATABLE, TARGET :: DRYCOEFF(:)
+
+  ! Overall scale factor to be applied to total soil NOx emissions. Must
+  ! be defined in the HEMCO configuration file as extension attribute 
+  ! 'Scaling_NO'
+  REAL(sp), ALLOCATABLE          :: SpcScalVal(:)
+  CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
 
   ! Diagnostics to write out the pulse (testing only)
 #if defined(DEVEL) 
@@ -519,6 +526,19 @@ CONTAINS
 !$OMP END PARALLEL DO
 
     !-----------------------------------------------------------------
+    ! EVENTUALLY ADD SCALE FACTORS 
+    !-----------------------------------------------------------------
+
+    ! Eventually apply species specific scale factor
+    IF ( SpcScalVal(1) /= 1.0_sp ) THEN
+       FLUX_2D = FLUX_2D * SpcScalVal(1)
+    ENDIF
+
+    ! Eventually apply spatiotemporal scale factors
+    CALL HCOX_SCALE ( am_I_Root, HcoState, FLUX_2D, TRIM(SpcScalFldNme(1)), RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
     ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
     !-----------------------------------------------------------------
 
@@ -597,6 +617,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_ExtList_Mod,        ONLY : GetExtNr, GetExtOpt
+    USE HCO_ExtList_Mod,        ONLY : GetExtSpcVal
     USE HCO_STATE_MOD,          ONLY : HCO_GetExtHcoID
     USE HCO_Restart_Mod,        ONLY : HCO_RestartDefine
 !
@@ -660,22 +681,27 @@ CONTAINS
     ENDIF
     IDTNO = HcoIDs(1)
 
+    ! Get species scale factor
+    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'Scaling', 1.0_sp, SpcScalVal, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'ScaleField', HCOX_NOSCALE, SpcScalFldNme, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Verbose mode
     IF ( am_I_Root ) THEN
        MSG = 'Use soil NOx emissions (extension module)'
        CALL HCO_MSG( MSG, SEP1='-' )
 
-       WRITE(MSG,*) '   - NOx species:', TRIM(SpcNames(1)), IDTNO
+       WRITE(MSG,*) '   - NOx species            : ', TRIM(SpcNames(1)), IDTNO
        CALL HCO_MSG(MSG)
-       WRITE(MSG,*) '   - Use fertilizer NOx: ', LFERTILIZERNOX
+       WRITE(MSG,*) '   - NOx scale factor       : ', SpcScalVal(1) 
        CALL HCO_MSG(MSG)
-       WRITE(MSG,*) '   - Global scale factor: ', FERT_SCALE 
+       WRITE(MSG,*) '   - NOx scale field        : ', TRIM(SpcScalFldNme(1))
        CALL HCO_MSG(MSG)
-       MSG = '   --> Restart variables are taken from file specified in'
+       WRITE(MSG,*) '   - Use fertilizer NOx     : ', LFERTILIZERNOX
        CALL HCO_MSG(MSG)
-       MSG = '       the config. file - I hope this file contains the'
-       CALL HCO_MSG(MSG)
-       MSG = '       simulation start date!!!' 
+       WRITE(MSG,*) '   - Fertilizer scale factor: ', FERT_SCALE 
        CALL HCO_MSG(MSG,SEP2='-')
     ENDIF
 
@@ -843,6 +869,8 @@ CONTAINS
     IF ( ALLOCATED (CANOPYNOX    ) ) DEALLOCATE ( CANOPYNOX     )
     IF ( ASSOCIATED(DEP_RESERVOIR) ) DEALLOCATE ( DEP_RESERVOIR )
     IF ( ALLOCATED (DRYCOEFF     ) ) DEALLOCATE ( DRYCOEFF      )
+    IF ( ALLOCATED( SpcScalVal   ) ) DEALLOCATE ( SpcScalVal    )
+    IF ( ALLOCATED( SpcScalFldNme) ) DEALLOCATE ( SpcScalFldNme )
 #if defined(DEVEL)
     IF ( ALLOCATED(DGN_PULSE) ) DEALLOCATE(DGN_PULSE)
 #endif

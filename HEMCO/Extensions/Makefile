@@ -112,7 +112,8 @@ debug:
 drydep_toolbox_mod.o        : drydep_toolbox_mod.F90
 
 hcox_aerocom_mod.o          : hcox_aerocom_mod.F90            \
-                              hcox_state_mod.o		      
+                              hcox_state_mod.o		      \
+                              hcox_tools_mod.o
 
 hcox_ch4wetland_mod.o       : hcox_ch4wetland_mod.F90         \
                               hcox_state_mod.o		      \
@@ -182,6 +183,7 @@ hcox_seasalt_mod.o          : hcox_seasalt_mod.F90            \
 
 hcox_soilnox_mod.o          : hcox_soilnox_mod.F90            \
                               hcox_state_mod.o                \
+                              hcox_tools_mod.o                \
                               drydep_toolbox_mod.o
 
 hcox_state_mod.o            : hcox_state_mod.F90
