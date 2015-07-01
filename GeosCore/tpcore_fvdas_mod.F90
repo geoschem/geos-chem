@@ -463,7 +463,7 @@ CONTAINS
     ! surface pressure at future time=t+dt
     REAL(fp),  INTENT(INOUT) :: ps2(IM, JFIRST:JLAST)  
 
-    ! Tracer "mixing ratios" [kg tracer/moist air v]
+    ! Tracer "mixing ratios" [kg tracer/moist air kg]
     REAL(fp),  INTENT(INOUT), TARGET :: q(:,:,:,:)
 
     ! E/W, N/S, and up/down diagnostic mass fluxes
@@ -505,6 +505,8 @@ CONTAINS
 !   5 Jun 2013 - R. Yantosca - Avoid array temporary in call to FZPPM
 !  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
+!  01 Jul 2015 - E. Lundgren - Set tracer conc to small positive number if
+!                              negative at end of advection (occurs at poles)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -927,15 +929,38 @@ CONTAINS
           q(:,jm-1,:,iq)  = q(:,jm,:,iq)
             
        end if
+       
     ENDDO
 !$OMP END PARALLEL DO
 
     DO iq=1,nq
-       
+
        ! Calculate fluxes for diag. (ccc, 11/20/08)
        JS2G0  = MAX( J1P, JFIRST )     !  No ghosting
        JN2G0  = MIN( J2P, JLAST  )     !  No ghosting
 
+       !======================================================================
+       ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+       ! 
+       ! Set tracer concentration to a small positive number if concentration 
+       ! is negative. Negative concentration may occur at the poles. This 
+       ! is an issue that should be looked into in the future. (ewl, 6/30/15) 
+       !======================================================================
+       ! 
+       !$OMP PARALLEL DO
+       !$OMP+DEFAULT( SHARED )
+       !$OMP+PRIVATE( I, J, K )
+       DO K = 1, KM
+       DO J = 1, JM
+       DO I = 1, IM
+          IF ( q(I,J,K,IQ) < 0.0e0_fp )
+             q(I,J,K,IQ) = 1.0e-26_fp
+          ENDIF
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+       
        !======================================================================
        ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
        !  

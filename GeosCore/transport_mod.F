@@ -334,7 +334,6 @@
       REAL(fp),  POINTER :: p_VWND   (:,:,:  )
       REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
       REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
-      REAL(fp),  POINTER :: p_MOISTMW(:,:,:  )
       REAL(fp),  POINTER :: p_STT    (:,:,:,:)
 
       ! For fields from Input_Opt
@@ -417,7 +416,6 @@
       p_STT     => State_Chm%Tracers(:,:,LLPAR:1:-1,:) ! v/v
       p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
-!      p_MOISTMW => State_Met%MOISTMW(:,:,LLPAR:1:-1  )
 
       ! Convert tracer concentration from mol/mol dry air to 
       ! kg/kg total  air before advection (ewl, 6/15/15)
