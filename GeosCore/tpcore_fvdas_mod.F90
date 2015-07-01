@@ -946,20 +946,19 @@ CONTAINS
        ! is negative. Negative concentration may occur at the poles. This 
        ! is an issue that should be looked into in the future. (ewl, 6/30/15) 
        !======================================================================
-       ! 
-       !$OMP PARALLEL DO
-       !$OMP+DEFAULT( SHARED )
-       !$OMP+PRIVATE( I, J, K )
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED   )&
+!$OMP PRIVATE( I, J, K )
        DO K = 1, KM
        DO J = 1, JM
        DO I = 1, IM
-          IF ( q(I,J,K,IQ) < 0.0e0_fp )
+          IF ( q(I,J,K,IQ) < 0.0e0_fp ) THEN
              q(I,J,K,IQ) = 1.0e-26_fp
           ENDIF
        ENDDO
        ENDDO
        ENDDO
-       !$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
        
        !======================================================================
        ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
