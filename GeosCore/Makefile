@@ -593,8 +593,8 @@ emissions_mod.o             : emissions_mod.F90                              \
                               bromocarb_mod.o                                \
                               carbon_mod.o            co2_mod.o              \
                               dust_mod.o              global_ch4_mod.o       \
-                              hcoi_gc_main_mod.o      tracerid_mod.o         \
-                              ucx_mod.o 
+                              hcoi_gc_main_mod.o      tomas_mod.o            \
+                              tracerid_mod.o          ucx_mod.o        
 
 exchange_mod.o              : exchange_mod.F                                 \
 	                      tpcore_bc_mod.o         dao_mod.o              \
