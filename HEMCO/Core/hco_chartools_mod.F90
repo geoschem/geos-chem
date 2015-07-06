@@ -1280,7 +1280,7 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     INTEGER             :: IOS
-    CHARACTER(LEN=255)  :: DUM
+    CHARACTER(LEN=2047) :: DUM
 
     !=================================================================
     ! GetNextLine begins here
@@ -1343,6 +1343,7 @@ CONTAINS
 !
     INTEGER             :: IOS
     CHARACTER(LEN=255)  :: MSG
+    CHARACTER(LEN=4095) :: DUM
 
     !=================================================================
     ! HCO_ReadLine begins here!
@@ -1353,7 +1354,7 @@ CONTAINS
     RC  = HCO_SUCCESS
 
     ! Read a line from the file
-    READ( LUN, '(a)', IOSTAT=IOS ) LINE
+    READ( LUN, '(a)', IOSTAT=IOS ) DUM
 
     ! IO Status < 0: EOF condition
     IF ( IOS < 0 ) THEN
@@ -1369,6 +1370,20 @@ CONTAINS
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
        RC = HCO_FAIL
        RETURN 
+    ENDIF
+
+    ! Make sure that character string DUM is not longer than LINE
+    IF ( LEN(TRIM(DUM)) > LEN(LINE) ) THEN
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+       WRITE( 6, * ) ' Line is too long - cannot read line ', TRIM(DUM)   
+       WRITE( 6, * ) ' '
+       WRITE( 6, * ) ' To fix this, increase length of argument `LINE` in '
+       WRITE( 6, * ) ' HCO_ReadLine (hco_chartools_mod.F90)' 
+       RC = HCO_FAIL
+       RETURN 
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    ELSE
+       LINE = DUM(1:LEN(LINE))
     ENDIF
 
   END SUBROUTINE HCO_ReadLine

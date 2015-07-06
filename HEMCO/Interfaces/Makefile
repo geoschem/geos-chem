@@ -83,6 +83,7 @@ clean:
 exe: 
 	@echo "LINK: $(LINK_HCO)"
 	$(LD) $(OBJECTS) $(LINK_HCO) -o $(EXE)
+	cp -f $(EXE) $(BIN)
 
 debug:
 	@echo "Targets : $(MAKECMDGOALS)"

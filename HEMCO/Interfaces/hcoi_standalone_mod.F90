@@ -908,16 +908,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    IF ( XMIN < -180.0_hp ) THEN
-       WRITE(MSG,*) 'Lower longitude must be between -180 and 180 degE: ', XMIN
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF   
-    IF ( XMAX > 180.0_hp ) THEN
-       WRITE(MSG,*) 'Upper longitude must be between -180 and 180 degE: ', XMAX
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF   
+    ! Restrict latitude values to -90.0 and 90.0. 
     IF ( YMIN < -90.0_hp ) THEN
        WRITE(MSG,*) 'Lower latitude must be between -90 and 90 degN: ', YMIN
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -945,7 +936,7 @@ CONTAINS
           CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
- 
+
        ! Read integer after colon (this is the dimension size)
        LNG = LEN(TRIM(DUM))
        LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
@@ -964,9 +955,6 @@ CONTAINS
     NY = SZ(2)
     NZ = SZ(3)
 
-    ! Close file
-    CLOSE( IU_FILE )      
-
     ! ------------------------------------------------------------------
     ! Now that sizes are known, allocate all arrays
     ! ------------------------------------------------------------------
@@ -978,24 +966,135 @@ CONTAINS
     ALLOCATE ( AREA_M2  (NX,  NY,  1) )
     XMID      = 0.0_hp
     YMID      = 0.0_hp
-    XEDGE     = 0.0_hp
-    YEDGE     = 0.0_hp
     YSIN      = 0.0_hp
     AREA_M2   = 0.0_hp
+    XEDGE     = -999.0_hp
+    YEDGE     = -999.0_hp
+
+    ! ------------------------------------------------------------------
+    ! Check if grid box edges are explicitly given.
+    ! Those need be provided on one line, e.g.:
+    ! YEDGE: -90.0 -89.0 -86.0 ... 86.0 89.0 90.0
+    ! ------------------------------------------------------------------
+    DO N = 1, 2 ! check for XEDGE and YEDGE
+
+       ! Try to read line
+       CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Error reading grid edges in ' // TRIM(GridFile)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! Exit loop here if end of file
+       IF ( EOF ) EXIT
+
+       ! Read XEDGES or YEDGES
+       IF ( DUM(1:5) == 'XEDGE' .OR. DUM(1:5) == 'YEDGE' ) THEN 
+          LNG = LEN(TRIM(DUM))
+
+          LOW = -1
+          UPP = -1
+          I   = 0
+
+          ! Walk through entire string
+          DO J = 7, LNG
+
+             ! Need to evaluate if this is the last string character and/or 
+             ! whitespace character
+             IF ( DUM(J:J) == HCO_SPC() ) THEN 
+
+                ! If the lower substring bound is not set yet, assume that this
+                ! is a lower substring bound, and continue search for upper bound
+                IF ( LOW == -1 ) LOW = J
+
+                ! Make sure the substring bounds are valid values
+                IF ( (J-1) >= (LOW+1) ) THEN
+                   UPP = J
+                ELSE
+                   LOW = J
+                ENDIF
+
+             ENDIF
+
+             ! If this is the last character, set upper substring bound to J 
+             IF ( J == LNG ) UPP = J 
+ 
+             ! Read substring if both bounds are defined
+             IF ( UPP > LOW ) THEN
+
+                ! Read value 
+                READ( DUM(LOW:UPP), * ) DVAL
+
+                ! Index to fill 
+                I = I + 1
+
+                ! Pass to XEDGE
+                IF ( TRIM(DUM(1:5)) == 'XEDGE' ) THEN
+                   IF ( I > NX+1 ) THEN
+                      WRITE(MSG,*) 'More than ', NX, ' longitude edges found in ', TRIM(DUM)
+                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      RETURN
+                   ENDIF 
+                   XEDGE(I,:,1) = DVAL
+
+                ! Pass to YEDGE
+                ELSE
+                   IF ( I > NY+1 ) THEN
+                      WRITE(MSG,*) 'More than ', NY, ' latitude edges found in ', TRIM(DUM)
+                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      RETURN
+                   ENDIF 
+                   YEDGE(:,I,1) = DVAL
+                ENDIF
+             
+                ! Update bounds 
+                LOW = UPP
+             ENDIF
+          ENDDO
+
+          ! Error check: all values must have been filled
+          IF ( TRIM(DUM(1:5)) == 'XEDGE' .AND. I /= NX+1 ) THEN
+             WRITE(MSG,*) 'Error reading XEDGES: exactly ', NX+1, ' values must be given: ', TRIM(DUM)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          IF ( TRIM(DUM(1:5)) == 'YEDGE' .AND. I /= NY+1 ) THEN
+             WRITE(MSG,*) 'Error reading YEDGES: exactly ', NY+1, ' values must be given: ', TRIM(DUM)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+
+       ENDIF
+    ENDDO
+
+    ! ------------------------------------------------------------------
+    ! Close file
+    ! ------------------------------------------------------------------
+    CLOSE( IU_FILE )      
 
     ! ------------------------------------------------------------------
     ! Fill grid box values
     ! ------------------------------------------------------------------
-    DLON = ( XMAX - XMIN ) / NX
     DLAT = ( YMAX - YMIN ) / NY
 
     ! Now fill values
     DO J = 1, NY
     DO I = 1, NX
 
-       ! Set longitude and latitude edge values
-       XEDGE(I,J,1) = XMIN + ( (I-1) * DLON )
-       YEDGE(I,J,1) = YMIN + ( (J-1) * DLAT )
+       ! Set longitude and latitude edge values if not read from disk
+       IF ( XEDGE(I,J,1) == -999.0_hp ) THEN
+          DLON = ( XMAX - XMIN ) / NX
+          XEDGE(I,J,1) = XMIN + ( (I-1) * DLON )
+       ELSE
+          DLON = XEDGE(I+1,J,1) - XEDGE(I,J,1)
+       ENDIF       
+       IF ( YEDGE(I,J,1) == -999.0_hp ) THEN
+          DLAT = ( YMAX - YMIN ) / NY
+          YEDGE(I,J,1) = YMIN + ( (J-1) * DLAT )
+       ELSE
+          DLAT = YEDGE(I,J+1,1) - YEDGE(I,J,1)
+       ENDIF       
 
        ! Set mid values
        XMID(I,J,1) = XEDGE(I,J,1) + ( DLON / 2.0_hp )
@@ -1008,10 +1107,14 @@ CONTAINS
 
        ! Eventually set uppermost edge
        IF ( I == NX ) THEN
-          XEDGE(I+1,J,1) = XMIN + I * DLON
+          IF ( XEDGE(I+1,J,1) == -999.0_hp ) THEN
+             XEDGE(I+1,J,1) = XMIN + I * DLON
+          ENDIF
        ENDIF
        IF ( J == NY ) THEN
-          YEDGE(I,J+1,1) = YMIN + J * DLAT
+          IF ( YEDGE(I,J+1,1) == -999.0_hp ) THEN
+             YEDGE(I,J+1,1) = YMIN + J * DLAT
+          ENDIF
           YDGR           = PI_180 * YEDGE(I,J+1,1)  ! radians       
           YSN            = SIN( YDGR )              ! sine
           YSIN(I,J+1,1)  = YSN
@@ -1064,14 +1167,10 @@ CONTAINS
     CALL HCO_MSG(MSG)
     WRITE(MSG,*) ' --> Number of levels         : ', NZ
     CALL HCO_MSG(MSG)
-    WRITE(MSG,*) ' --> Lon min, max [deg E]     : ', XMIN, XMAX
+    WRITE(MSG,*) ' --> Lon range [deg E]        : ', XMIN, XMAX
     CALL HCO_MSG(MSG)
-    WRITE(MSG,*) ' --> Lon delta    [deg E]     : ', DLON
+    WRITE(MSG,*) ' --> Lat range [deg N]        : ', YMIN, YMAX
     CALL HCO_MSG(MSG)
-    WRITE(MSG,*) ' --> Lat min, max [deg N]     : ', YMIN, YMAX
-    CALL HCO_MSG(MSG)
-    WRITE(MSG,*) ' --> Lat delta    [deg N]     : ', DLAT
-    CALL HCO_MSG(MSG,SEP2="-")
 
     ! Return w/ success
     RC = HCO_SUCCESS
