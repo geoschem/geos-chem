@@ -2209,10 +2209,6 @@
      &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
 
       ! Convert units [kg/kg total air] -> [kg] if mean conc less than 0.1
-      ! NOTE: this threshold may need to change
-      IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
-
-      ! Convert units [kg/kg total air] -> [kg] if mean conc less than 0.1
       ! (NOTE: this threshold may need to change)
       IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
          CALL Convert_MoistKgKg_to_Kg( am_I_Root, N_TRACERS, 
@@ -4514,7 +4510,6 @@
       REAL(fp)          :: MEAN_SFC_STT         ! use to determine STT units 
       LOGICAL           :: UNITCHANGE = .FALSE. ! STT unit conversion indicator
       INTEGER           :: N_TRACERS
-      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
       REAL(fp), POINTER :: STT(:,:,:,:) => NULL()
 #endif
 

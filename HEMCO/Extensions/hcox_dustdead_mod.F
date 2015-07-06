@@ -216,6 +216,7 @@
 !                              derived type object
 !  25 Nov 2013 - C. Keller - Now a HEMCO extension
 !  06 Oct 2014 - C. Keller - Now calculate pressure center from edges.
+!  26 Jun 2015 - E. Lundgren - Add L. Zhang new dust size distribution scheme
 !
 ! !NOTES: 
 !EOP
@@ -248,6 +249,7 @@
       REAL*8                 :: ORO(HcoState%NX)           ! "orography" 
       REAL*8                 :: SNW_HGT_LQD(HcoState%NX)   ! equivalent snow ht.
       REAL*8                 :: DSRC(HcoState%NX,NBINS)    ! dust mixing ratio incr.
+      REAL*8                 :: DUST_EMI_TOTAL(HcoState%NX) ! total dust emiss
       REAL(hp), TARGET       :: FLUX(HcoState%NX,HcoState%NY,NBINS) ! Flux array [kg/m2/s]   
       LOGICAL,  SAVE         :: FIRST = .TRUE.
 !
@@ -351,7 +353,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,     J,      P1,    P2,   PTHICK,  PMID, TLON        )
 !$OMP+PRIVATE( THLON, ULON,   VLON,  BHT2, Q_H2O,   ORO,  SNW_HGT_LQD )
-!$OMP+PRIVATE( N,     YMID_R, DSRC,  RC,   AREA_M2                    )
+!$OMP+PRIVATE( N,     YMID_R, DSRC,  RC,   AREA_M2, DUST_EMI_TOTAL    )
 
       ! Loop over latitudes
       DO J = 1, HcoState%NY 
@@ -420,6 +422,17 @@
             ERR = .TRUE.
             CYCLE 
          ENDIF 
+
+         ! Redistribute dust emissions using new dust size distribution
+         ! scheme (L. Zhang, 6/26/15)
+         DUST_EMI_TOTAL = 0.0d0  
+         DO N = 1, NBINS
+            DUST_EMI_TOTAL(:) = DUST_EMI_TOTAL(:) + DSRC(:,N)
+         ENDDO
+         DSRC(:,1) = DUST_EMI_TOTAL(:) * 0.0766d0
+         DSRC(:,2) = DUST_EMI_TOTAL(:) * 0.1924d0
+         DSRC(:,3) = DUST_EMI_TOTAL(:) * 0.3491d0
+         DSRC(:,4) = DUST_EMI_TOTAL(:) * 0.3819d0
 
          ! Write to emissions array
          DO I = 1, HcoState%NX 
