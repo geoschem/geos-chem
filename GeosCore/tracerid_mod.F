@@ -67,13 +67,14 @@
 !                              semivolatile POA simulations; Removed tracers
 !                              for old SOA simulation (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  12 Sep 2013 - M. Sulprizio- Added Flags for NIT/dust, SO4/dust, and dust
+!                              alkalinity (tdf 04/08/08)
 !  15 Aug 2014 - R. Yantosca - We can remove the IDBF* flags as all biofuel
 !                              emissions are now handled in HEMCO
 !  15 Aug 2014 - R. Yantosca - We can remove the IDF* flags as all biomass
 !                              emissions are now handled in HEMCO
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
-
 !******************************************************************************
 !
       ! for CTM tracers
@@ -197,6 +198,11 @@
 
       ! Reservoirs
       INTEGER            :: IDTN2O, IDTOCS, IDTCLOCK
+
+      ! Extra Flags for NIT/dust, SO4/dust, and dust alkalinity (tdf 04/08/08)
+      INTEGER            :: IDTNITd1,IDTNITd2, IDTNITd3,IDTNITd4
+      INTEGER            :: IDTSO4d1,IDTSO4d2, IDTSO4d3,IDTSO4d4
+      INTEGER            :: IDTDAL1, IDTDAL2,  IDTDAL3, IDTDAL4
 
       ! SOAudpate (hotp 6/15/09)
       ! semivolpoa: replace OCPO and OCPI with POA (hotp 2/17/09)
@@ -395,6 +401,8 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations; Removed tracers
 !                              for old SOA simulation (H. Pye)
+!  12 Sep 2013 - M. Sulprizio- Added Flags for NIT/dust, SO4/dust, and dust
+!                              alkalinity (tdf 04/08/08)
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !  15 Aug 2014 - R. Yantosca - Removed obsolete IDBF* and IDB* indices
 !******************************************************************************
@@ -642,6 +650,31 @@
             CASE ( 'NITS' )
                IDTNITs  = N
 
+            ! Add extra cases for nitrate on dust   tdf 04/16/08
+            CASE ( 'NITD1' )
+               IDTNITd1  = N
+
+            CASE ( 'NITD2' )
+               IDTNITd2  = N
+
+            CASE ( 'NITD3' )
+               IDTNITd3  = N
+
+            CASE ( 'NITD4' )
+               IDTNITd4  = N
+
+            ! Add extra cases for sulfate on dust   tdf 04/16/08
+            CASE ( 'SO4D1' )
+               IDTSO4d1  = N
+            CASE ( 'SO4D2' )
+               IDTSO4d2  = N
+
+            CASE ( 'SO4D3' )
+               IDTSO4d3  = N
+
+            CASE ( 'SO4D4' )
+               IDTSO4d4  = N
+
             !--------------------------------
             ! Crystalline & aqueous aerosols
             !--------------------------------
@@ -796,6 +829,19 @@
 
             CASE ( 'DST4' )
                IDTDST4  = N
+
+            ! Add extra cases for dust alkalinity   tdf 04/16/08
+            CASE ( 'DSTAL1' )
+               IDTDAL1  = N
+
+            CASE ( 'DSTAL2' )
+               IDTDAL2  = N
+
+            CASE ( 'DSTAL3' )
+               IDTDAL3  = N
+
+            CASE ( 'DSTAL4' )
+               IDTDAL4  = N
 
             !--------------------------------
             ! Seasalt aerosols
@@ -3731,6 +3777,20 @@
       ! Online CH4 emissions
       ! (mpayer 1/24/12)
       IDTCH4     = 0
+
+      ! GEOS-CHEM Coated dust tracers ( tdf 04/08/08 )
+      IDTNITd1  = 0
+      IDTNITd2  = 0
+      IDTNITd3  = 0
+      IDTNITd4  = 0
+      IDTSO4d1  = 0
+      IDTSO4d2  = 0
+      IDTSO4d3  = 0
+      IDTSO4d4  = 0
+      IDTDAL1   = 0
+      IDTDAL2   = 0
+      IDTDAL3   = 0
+      IDTDAL4   = 0
 
       ! SOAupdate: convert all POA/POG to 1 and 2 (hotp 10/11/09)
        !semivolpoa (hotp 8/24/09)

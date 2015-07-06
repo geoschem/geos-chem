@@ -430,6 +430,15 @@
             DO N = 1, NBINS
                IF ( HcoIDs(N) > 0 ) THEN
                   FLUX(I,J,N) = ( DSRC(I,N) / AREA_M2 / DTSRCE )
+
+!                  ! FIX (mps, 7/6/15)
+!                  IF ( LDSTUP ) THEN
+!                     ! Include DUST Alkalinity SOURCE, assuming an alkalinity
+!                     ! of 4% by weight [kg].                  !tdf 05/10/08
+!                     !tdf with 3% Ca, there's also 1% equ. Mg, makes 4%
+!                     TALK(I,J,1,N) = TALK(I,J,1,N) + 0.04 * DSRC(I,N)
+!                  ENDIF
+
                ENDIF
             ENDDO !N
          ENDDO !I

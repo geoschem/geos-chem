@@ -330,6 +330,14 @@ CONTAINS
           ! Not less than zero
           IF ( FLUX(I,J,N) < 0.d0 ) FLUX(I,J,N) = 0.d0
 
+!          ! FIX (mps, 7/6/15)
+!          IF ( LDSTUP ) THEN
+!             ! Include DUST Alkalinity SOURCE, assuming an alkalinity
+!             ! of 4% by weight [kg].                  !tdf 05/10/08
+!             !tdf 3% Ca + equ 1% Mg = 4% alkalinity
+!             TALK(I,J,1,N) = TALK(I,J,1,N) + 0.04 * DSRC
+!          ENDIF
+
        ENDDO
        ENDDO
     ENDDO

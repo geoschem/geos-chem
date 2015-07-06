@@ -619,6 +619,29 @@
      &                      UNIT,      NN, 1, -1, .FALSE.,  FACTOR, RC )
 
          ENDDO !N
+
+!tdf Include Dust alkalinity sources              tdf 6/18/2K8
+
+         DO N = 5, NDSTBIN*2
+
+            ! At present we have 4 dust bins
+
+            IF ( N == 5 ) NN = IDTDAL1
+            IF ( N == 6 ) NN = IDTDAL2
+            IF ( N == 7 ) NN = IDTDAL3
+            IF ( N == 8 ) NN = IDTDAL4
+!tdf
+            ! Save dust into ARRAY
+            ARRAY(:,:,1) = AD06(:,:,N) 
+
+            ! Write to BPCH file
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ENDDO
+
       ENDIF     
 !
 !******************************************************************************

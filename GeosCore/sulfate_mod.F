@@ -142,6 +142,8 @@
 !                                SOIL_DRYDEP routine even when ND44 is off
 !  30 May 2013 - S. Farina     - Merged TOMAS code into sulfate_mod.F
 !  20 Aug 2013 - R. Yantosca   - Removed "define.h", this is now obsolete
+!  12 Sep 2013 - M. Sulprizio  - Add modifications for acid uptake on dust
+!                                aerosol (T.D. Fairlie)
 !  18 Sep 2014 - M. Sulprizio  - Get oxidant fields for offline aerosol
 !                                simulation from HEMCO 
 !  03 Nov 2014 - C. Keller     - Incorporated GET_ALK from seasalt_mod.F
@@ -171,6 +173,7 @@
       REAL(fp),  PARAMETER   :: XNUMOL_NO3  = 6.022e+23_fp / 62e-3_fp
       REAL(fp),  PARAMETER   :: XNUMOL_H2O2 = 6.022e+23_fp / 34e-3_fp
       REAL(fp),  PARAMETER   :: TCVV_S      = 28.97e+0_fp  / 32e+0_fp 
+      REAL(fp),  PARAMETER   :: TCVV_N      = 28.97e+0_fp  / 14e+0_fp ! tdf
       REAL(fp),  PARAMETER   :: SMALLNUM    = 1e-20_fp
       REAL(fp),  PARAMETER   :: CM3PERM3    = 1.e6_fp
 
@@ -235,7 +238,7 @@
       !========================================================================
 
       ! Time variable
-      INTEGER              :: ELAPSED_SEC
+      INTEGER                :: ELAPSED_SEC
 
       ! Allocatable arrays
       REAL(fp),  ALLOCATABLE :: DMSo(:,:) 
@@ -244,6 +247,8 @@
       REAL(fp),  ALLOCATABLE :: PSO4_SO2(:,:,:)
       REAL(fp),  ALLOCATABLE :: PSO4_SS(:,:,:)
       REAL(fp),  ALLOCATABLE :: PNITs(:,:,:)
+      REAL(fp),  ALLOCATABLE :: PNIT_dust(:,:,:,:) ! tdf
+      REAL(fp),  ALLOCATABLE :: PSO4_dust(:,:,:,:) ! tdf
       REAL(f4),  ALLOCATABLE :: SOx_SCALE(:,:)
       REAL(fp),  ALLOCATABLE :: SSTEMP(:,:)
       REAL(fp),  ALLOCATABLE :: TCOSZ(:,:)
@@ -279,6 +284,10 @@
 
       ! Emission timestep (imported from HEMCO)
       REAL(fp)               :: TS_EMIS
+
+      !tdf Added pointers to nitrate and sulfate on dust (04/08/08)
+      INTEGER                :: DRYNITd1, DRYNITd2, DRYNITd3, DRYNITd4
+      INTEGER                :: DRYSO4d1, DRYSO4d2, DRYSO4d3, DRYSO4d4
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -336,12 +345,12 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp),  PARAMETER   :: ZRT = 0.60e+0_fp, ZRS = 0.99e+0_fp
+      REAL(fp),  PARAMETER :: ZRT = 0.60e+0_fp, ZRS = 0.99e+0_fp
 !
 ! !LOCAL VARIABLES:
 !
       INTEGER              :: I,    J,    L
-      REAL(fp)               :: PRES, PSFC, RH2, R0, B0
+      REAL(fp)             :: PRES, PSFC, RH2, R0, B0
 	
       !=================================================================
       ! GET_VCLDF begins here!
@@ -484,6 +493,10 @@
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE TRACERID_MOD,       ONLY : IDTNITs
       USE TRACERID_MOD,       ONLY : IDTSO4s
+      USE TRACERID_MOD,       ONLY : IDTSO4d1, IDTSO4d2
+      USE TRACERID_MOD,       ONLY : IDTSO4d3, IDTSO4d4
+      USE TRACERID_MOD,       ONLY : IDTNITd1, IDTNITd2
+      USE TRACERID_MOD,       ONLY : IDTNITd3, IDTNITd4
       USE UCX_MOD,            ONLY : SETTLE_STRAT_AER
 !
 ! !INPUT PARAMETERS:
@@ -539,6 +552,9 @@
 !                              with either TOMAS=yes or TOMAS40=yes
 !  31 May 2013 - R. Yantosca - Now pass am_I_root, Input_Opt, State_Chm
 !                              and RC to TOMAS routine CHEM_SO4_AQ
+!  12 Sep 2013 - M. Sulprizio- Include gravitational settling of dust_sulfate
+!                              and dust_nitrate. Changes made to CHEM_SO2 and
+!                              CHEM_SO4 (tdf, 04/07/08)
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !  18 Sep 2014 - M. Sulprizio- Get oxidant fields for offline aerosol
 !                              simulation from HEMCO
@@ -556,7 +572,7 @@
       LOGICAL           :: IT_IS_AN_AEROSOL_SIM
       LOGICAL           :: prtDebug
       INTEGER           :: I, J, L, N, MONTH
-      REAL(fp)            :: DTCHEM
+      REAL(fp)          :: DTCHEM
 
       ! For fields from Input_Opt
       LOGICAL           :: LCRYST
@@ -659,11 +675,13 @@
       ENDIF
 
       ! Initialize module arrays
-      PSO2_DMS = 0e+0_fp
-      PMSA_DMS = 0e+0_fp
-      PSO4_SO2 = 0e+0_fp
-      PSO4_SS  = 0e+0_fp
-      PNITs    = 0e+0_fp
+      PSO2_DMS   = 0e+0_fp
+      PMSA_DMS   = 0e+0_fp
+      PSO4_SO2   = 0e+0_fp
+      PSO4_SS    = 0e+0_fp
+      PNITs      = 0e+0_fp
+      PSO4_dust  = 0e+0_fp     ! tdf 04/17/08
+      PNIT_dust  = 0e+0_fp     ! tdf 04/17/08
 #if   defined( TOMAS )
       PSO4_SO2AQ = 0e+0_fp     ! For TOMAS microphysics
 #endif
@@ -684,6 +702,70 @@
      &                    STT(:,:,:,IDTNITs), 2,         RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
+      ENDIF
+
+      !tdf
+      ! DUST_SO4 [kg] gravitational settling
+      CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                    STT(:,:,:,IDTSO4d1), 3,         RC )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_SO4')
+      ENDIF
+
+      !tdf
+      ! DUST_SO4 [kg] gravitational settling
+      CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                    STT(:,:,:,IDTSO4d2), 4,         RC )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_SO4')
+      ENDIF
+
+      !tdf
+      ! DUST_SO4 [kg] gravitational settling
+      CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                    STT(:,:,:,IDTSO4d3), 5,         RC )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_SO4')
+      ENDIF
+
+      !tdf
+      ! DUST_SO4 [kg] gravitational settling
+      CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                    STT(:,:,:,IDTSO4d4), 6,         RC )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_SO4')
+      ENDIF
+
+      !tdf
+      ! DUST_NIT [kg] gravitational settling
+      CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                    STT(:,:,:,IDTNITd1), 7,         RC )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_NIT')
+      ENDIF
+
+      !tdf
+      ! DUST_NIT [kg] gravitational settling
+      CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                    STT(:,:,:,IDTNITd2), 8,         RC )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_NIT')
+      ENDIF
+
+      !tdf
+      ! DUST_NIT [kg] gravitational settling
+      CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                    STT(:,:,:,IDTNITd3), 9,         RC )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_NIT')
+      ENDIF
+
+      !tdf
+      ! DUST_NIT [kg] gravitational settling
+      CALL GRAV_SETTLING( am_I_Root,           Input_Opt,  State_Met,
+     &                    STT(:,:,:,IDTNITd4), 10,         RC )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_NIT')
       ENDIF
 
 #if defined( UCX )
@@ -721,18 +803,20 @@
 
       ENDIF
 
-      ! SO2
       CALL GET_VCLDF( am_I_Root, State_Met, RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a get VCLDF' )
       ENDIF
 
+      ! SO2
+      ! CHEM_SO2 now includes the effect of dust chemistry  tdf 04/07/08
       CALL CHEM_SO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2' )
       ENDIF
 
       ! SO4
+      ! CHEM_SO4 now includes the effect of dust chemistry  tdf 04/07/08
       CALL CHEM_SO4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
@@ -978,8 +1062,8 @@
 
       REAL*8                 :: N0(LLPAR,IBINS), M0(LLPAR,IBINS)
 
-      REAL(fp)                 :: AREA(IIPAR, JJPAR)
-      REAL(fp)                 :: AREA3D(IIPAR, JJPAR,2)
+      REAL(fp)               :: AREA(IIPAR, JJPAR)
+      REAL(fp)               :: AREA3D(IIPAR, JJPAR,2)
 
       ! Pointers
       TYPE(HCO_State), POINTER :: HcoState   => NULL()
@@ -990,7 +1074,7 @@
       REAL(fp)                 :: XNUMOL(Input_Opt%N_TRACERS)
 
       LOGICAL                :: ERRORSWITCH, SGCOAG = .TRUE.
-      INTEGER                  :: FLAG, ERR
+      INTEGER                :: FLAG, ERR
       logical                :: pdbug !(temporary) win, 10/24/07
       !integer                :: ii, jj, ll
       !data ii, jj, ll / 61, 1, 7 /
@@ -1363,6 +1447,10 @@
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE TRACERID_MOD,       ONLY : IDTSO4s
       USE TRACERID_MOD,       ONLY : IDTNITs
+      USE TRACERID_MOD,       ONLY : IDTSO4d1, IDTNITd1
+      USE TRACERID_MOD,       ONLY : IDTSO4d2, IDTNITd2
+      USE TRACERID_MOD,       ONLY : IDTSO4d3, IDTNITd3
+      USE TRACERID_MOD,       ONLY : IDTSO4d4, IDTNITd4
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
@@ -1379,8 +1467,18 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Tracer [kg]
+      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Tracer [kg]
 ! 
+! !REMARKS:
+!  N=1 is SO4S; N=2 is NITS
+!                                                                             .
+!  tdf Include Coarse Mode DUST size bins
+!  N=3 is SO4d2; N=4  is NIT_d1
+!  N=5 is SO4d3; N=6  is NIT_d2
+!  N=7 is SO4d4; N=8  is NIT_d3
+!  N=9 is SO4d4; N=10 is NIT_d4
+!  tdf Treat these coated DUSTs as DRY for now
+!
 ! !REVISION HISTORY:
 !  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
 !        (bmy, 7/20/04)
@@ -1396,6 +1494,7 @@
 !  14 Nov 2012 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  12 Sep 2013 - M. Sulprizio- Include Coarse Mode DUST size bins (T.D. Fairlie)
 !  06 Jan 2015 - M. Yannetti - Changed some variables to f8 as needed
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod.
@@ -1405,48 +1504,59 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp),  PARAMETER     :: C1   =  0.7674e+0_fp 
-      REAL(fp),  PARAMETER     :: C2   =  3.079e+0_fp 
-      REAL(fp),  PARAMETER     :: C3   =  2.573e-11_fp
-      REAL(fp),  PARAMETER     :: C4   = -1.424e+0_fp
-      REAL(fp),  PARAMETER     :: DEN  = 2200.0e+0_fp ! [kg/m3] sea-salt density
+      REAL(fp),  PARAMETER   :: C1     =  0.7674e+0_fp 
+      REAL(fp),  PARAMETER   :: C2     =  3.079e+0_fp 
+      REAL(fp),  PARAMETER   :: C3     =  2.573e-11_fp
+      REAL(fp),  PARAMETER   :: C4     = -1.424e+0_fp
+      REAL(fp),  PARAMETER   :: DEN_SS = 2200.0e+0_fp ! [kg/m3] sea-salt density
 
       ! Parameters for polynomial coefficients to derive seawater
       ! density. From Tang et al. (1997) (bec, jaegle, 5/11/11)
-      REAL(fp),  PARAMETER     :: A1   =  7.93e-3_fp
-      REAL(fp),  PARAMETER     :: A2   = -4.28e-5_fp
-      REAL(fp),  PARAMETER     :: A3   =  2.52e-6_fp
-      REAL(fp),  PARAMETER     :: A4   = -2.35e-8_fp
-      REAL(f8),  PARAMETER     :: EPSI = 1.0e-4_f8 
+      REAL(fp),  PARAMETER   :: A1   =  7.93e-3_fp
+      REAL(fp),  PARAMETER   :: A2   = -4.28e-5_fp
+      REAL(fp),  PARAMETER   :: A3   =  2.52e-6_fp
+      REAL(fp),  PARAMETER   :: A4   = -2.35e-8_fp
+      REAL(f8),  PARAMETER   :: EPSI = 1.0e-4_f8 
 !
 ! !LOCAL VARIABLES:
 !
+      !tdf from dry_settling
+      ! P    Pressure in Kpa 1 mb = 100 pa = 0.1 kPa
+      ! Dp   Diameter of aerosol [um]
+      ! PDp  Pressure * DP
+      ! TEMP Temperature (K)
+      ! Slip Slip correction factor
+      ! Visc Viscosity of air (Pa s)
+      ! VTS  Settling velocity of particle (m/s)
+
       INTEGER                :: I,      J,     L,        DTCHEM
-      REAL(fp)                 :: DELZ,   DELZ1, REFF
-      REAL(fp)                 :: P,      DP,    PDP,      TEMP        
-      REAL(fp)                 :: CONST,  SLIP,  VISC,     FAC1
-      REAL(fp)                 :: FAC2,   FLUX,  AREA_CM2, RHB
+      REAL(fp)               :: DELZ,   DELZ1, REFF
+      REAL(fp)               :: P,      DP,    PDP,      TEMP        
+      REAL(fp)               :: CONST,  SLIP,  VISC,     FAC1
+      REAL(fp)               :: FAC2,   FLUX,  AREA_CM2, RHB
       ! replace RCM (radius in CM with RUM radius in microns) jaegle 5/11/11
-      REAL(fp)                 :: RUM,    RWET,  RATIO_R
-      REAL(fp)                 :: TOT1,   TOT2
-      REAL(fp)                 :: VTS(LLPAR)  
-      REAL(fp)                 :: TC0(LLPAR)
+      REAL(fp)               :: RUM,    RWET,  RATIO_R
+      REAL(fp)               :: TOT1,   TOT2
+      REAL(fp)               :: VTS(LLPAR)  
+      REAL(fp)               :: TC0(LLPAR)
       ! added variables for density calculation (jaegle, bec 5/11/11)
-      REAL(f8)                 :: RHO1, WTP, RHO
+      REAL(f8)               :: RHO1, WTP, RHO
+      REAL(fp)               :: DEN !tdf
  
       ! Arrays
-      INTEGER                :: IDDEP(2)
-      INTEGER                :: IDTRC(2)	
-      REAL(fp)                 :: SALA_REDGE_um(2)
-      REAL(fp)                 :: SALC_REDGE_um(2)
-      REAL(fp)                 :: XNUMOL(Input_Opt%N_TRACERS)
+      INTEGER                :: IDDEP(10)
+      INTEGER                :: IDTRC(10)	
+      REAL(fp)               :: SALA_REDGE_um(2)
+      REAL(fp)               :: SALC_REDGE_um(2)
+      REAL(fp)               :: XNUMOL(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! GRAV_SETTLING begins here!
       !=================================================================
 
       ! Return if tracers are undefined
-      IF ( IDTSO4s == 0 .and. IDTNITs == 0 ) RETURN
+      IF ( IDTSO4s  == 0 .and. IDTNITs  == 0 ) RETURN
+      IF ( IDTSO4d1 == 0 .and. IDTNITd1 == 0 ) RETURN ! tdf
 
       ! Return if it's the start of the run
       IF ( GET_ELAPSED_SEC() == 0 ) RETURN
@@ -1463,15 +1573,68 @@
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
 
       ! Store in IDDEP array
-      IDDEP(1) = DRYSO4s
-      IDDEP(2) = DRYNITs
+      IDDEP(1)  = DRYSO4s
+      IDDEP(2)  = DRYNITs
+      !tdf
+      IDDEP(3)  = DRYSO4d1
+      IDDEP(4)  = DRYSO4d2
+      IDDEP(5)  = DRYSO4d3
+      IDDEP(6)  = DRYSO4d4
+      !tdf
+      IDDEP(7)  = DRYNITd1
+      IDDEP(8)  = DRYNITd2
+      IDDEP(9)  = DRYNITd3
+      IDDEP(10) = DRYNITd4
 
       ! Tracer array
-      IDTRC(1) = IDTSO4s
-      IDTRC(2) = IDTNITs
+      IDTRC(1)  = IDTSO4s
+      IDTRC(2)  = IDTNITs
+      !tdf
+      IDTRC(3)  = IDTSO4d1
+      IDTRC(4)  = IDTSO4d2
+      IDTRC(5)  = IDTSO4d3
+      IDTRC(6)  = IDTSO4d4
+      !tdf
+      IDTRC(7)  = IDTNITd1
+      IDTRC(8)  = IDTNITd2
+      IDTRC(9)  = IDTNITd3
+      IDTRC(10) = IDTNITd4
 
       ! Coarse mode
-      REFF = 0.5e-6_fp * ( SALC_REDGE_um(1) + SALC_REDGE_um(2) )
+      !tdf
+      IF ( N < 3 ) THEN  ! Sea salt
+         REFF = 0.5e-6_fp * ( SALC_REDGE_um(1) + SALC_REDGE_um(2) )
+         DEN  = DEN_SS
+
+      !tdf Use the same density for dust-sulfate as for dust
+      ELSE IF ( N == 3 ) THEN  ! Dust sulfate size bin 1 (um)
+         REFF = Input_Opt%DUSTREFF(1)
+         DEN  = Input_Opt%DUSTDEN(1)
+      ELSE IF ( N == 4 ) THEN  ! Dust sulfate size bin 2 (um)
+         REFF = Input_Opt%DUSTREFF(2)
+         DEN  = Input_Opt%DUSTDEN(2)
+      ELSE IF ( N == 5 ) THEN  ! Dust sulfate size bin 3 (um)
+         REFF = Input_Opt%DUSTREFF(3)
+         DEN  = Input_Opt%DUSTDEN(3)
+      ELSE IF ( N == 6 ) THEN  ! Dust sulfate size bin 4 (um)
+         REFF = Input_Opt%DUSTREFF(4)
+         DEN  = Input_Opt%DUSTDEN(4)
+
+      !tdf Use the same density for dust-nitrate as for dust
+      ELSE IF ( N == 7 ) THEN  ! Dust nitrate size bin 1 (um)
+         REFF = Input_Opt%DUSTREFF(1)
+         DEN  = Input_Opt%DUSTDEN(1)
+      ELSE IF ( N == 8 ) THEN  ! Dust nitrate size bin 2 (um)
+         REFF = Input_Opt%DUSTREFF(2)
+         DEN  = Input_Opt%DUSTDEN(2)
+      ELSE IF ( N == 9 ) THEN  ! Dust nitrate size bin 3 (um)
+         REFF = Input_Opt%DUSTREFF(3)
+         DEN  = Input_Opt%DUSTDEN(3)
+      ELSE IF ( N == 10 ) THEN  ! Dust nitrate size bin 4 (um)
+         REFF = Input_Opt%DUSTREFF(4)
+         DEN  = Input_Opt%DUSTDEN(4)
+
+      ENDIF
             
       ! Sea salt radius [cm]
       ! The Gerber formula for hygroscopic growth uses the radius in
@@ -1567,11 +1730,22 @@
             ! Dp = particle diameter [um]
             DP      = 2.e+0_fp * RWET * 1.e+6_fp        
 
+            !tdf
+            IF ( N > 2 ) THEN  ! Keep dust dry for now
+               DP   = 2.e+0_fp * REFF * 1.e+6_fp
+            ENDIF
+
             ! PdP = P * dP [hPa * um]
             PDp     = P * Dp
 
             ! Constant
             CONST   = 2.e+0_fp * RHO * RWET**2 * g0 / 9.e+0_fp
+
+            !tdf
+            IF ( N > 2 ) THEN  ! Keep dust dry for now
+               ! Constant
+               CONST = 2.e+0_fp * DEN * REFF**2 * g0 / 9.e+0_fp
+            ENDIF
 
             !===========================================================
             ! NOTE: Slip correction factor calculations following 
@@ -1596,6 +1770,13 @@
             ! Slip correction factor (as function of P*dp)
             Slip = 1.e+0_fp+(15.60e+0_fp + 7.0e+0_fp * 
      &             EXP(-0.059e+0_fp * PDp)) / PDp
+
+            !=====================================================
+            ! NOTE, Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
+            ! which produce slip correction factor with small
+            ! error compared to the above with less computation.
+            ! tdf
+            !=====================================================
 
             ! Viscosity [Pa*s] of air as a function of temperature 
             VISC = 1.458e-6_fp * (Temp)**(1.5e+0_fp) / 
@@ -1646,7 +1827,7 @@
             ! Surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
-            ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
+            ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
             FLUX     = FLUX * XNUMOL(IDTRC(N)) / AREA_CM2 
    
@@ -1775,14 +1956,14 @@
 !
       ! Scalars
       INTEGER           :: I,    J,    L
-      REAL(fp)            :: TK,   O2,   RK1,    RK2,    RK3,   F  
-      REAL(fp)            :: DMS,  DMS0, DMS_OH, DTCHEM, XOH,   XN3 
-      REAL(fp)            :: XX,   OH,   OH0,    XNO3,   XNO30, LOH
-      REAL(fp)            :: LNO3, BOXVL
+      REAL(fp)          :: TK,   O2,   RK1,    RK2,    RK3,   F  
+      REAL(fp)          :: DMS,  DMS0, DMS_OH, DTCHEM, XOH,   XN3 
+      REAL(fp)          :: XX,   OH,   OH0,    XNO3,   XNO30, LOH
+      REAL(fp)          :: LNO3, BOXVL
                         
       ! For fields from Input_Opt
       LOGICAL           :: IS_FULLCHEM
-      REAL(fp)            :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -2220,6 +2401,7 @@
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_WATER
       USE DIAG_MOD,           ONLY : AD05
+      USE DUST_MOD,           ONLY : GET_DUST_ALK      ! tdf 04/08/08
       USE ERROR_MOD,          ONLY : IS_SAFE_EXP
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE GIGC_ErrCode_Mod
@@ -2323,6 +2505,8 @@
 !  05 Sep 2013 - M. Sulprizio- Add modifications for cloud pH (B. Alexander)
 !  06 Sep 2013 - M. Sulprizio- Bug fix: Prevent divide-by-zero if LWC=0. Only
 !                              do aqueous SO2 chemistry when LWC>0.
+!  12 Sep 2013 - M. Sulprizio- Modified for SO4d, NITd.  Also modified for
+!                              alkalinity w/in the dust chemistry. (tdf 4/07/08)
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  28 Jan 2014 - R. Yantosca - Bug fix for TOMAS. Set ALKdst=0 since TOMAS
 !                              carries its own dust tracers instead of DST1-4.
@@ -2349,9 +2533,11 @@
       ! Scalars
       LOGICAL               :: IS_OFFLINE
       LOGICAL               :: IS_FULLCHEM
+      LOGICAL               :: LDSTUP
       INTEGER               :: I,      J,       L       !,      I1,   I2
       INTEGER               :: II,     NSTEP,   N_TRACERS
       INTEGER               :: BULK,   SIZE_RES 
+      INTEGER               :: IBIN  ! tdf
       REAL(fp)              :: K0,     Ki,      KK,     M,    L1
       REAL(fp)              :: L2,     L3,      Ld,     F,    Fc
       REAL(fp)              :: RK,     RKT,     DTCHEM, DT_T, TK
@@ -2365,10 +2551,27 @@
       REAL(fp)              :: HPLUS,  SO4nss, TNH3,   TNO3,  GNO3, ANIT
       REAL(fp)              :: LSTOT,  ALKdst, ALKss,  ALKds, NH3
       REAL(fp)              :: SSCvv,  aSO4,   SO2_sr, SR,    TANIT
+      !tdf 03/02/2K9
+      REAL(fp)              :: PSO4d_tot, PNITd_tot
+      REAL(fp)              :: SO2_gas,   PH2SO4d_tot
+      !tdf
+      REAL(fp)              :: H2SO4_cd,  H2SO4_gas
 
       ! Arrays
       REAL(fp)              :: TCVV  (Input_Opt%N_TRACERS)
       REAL(fp)              :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)              :: ALK_d   (NDSTBIN)  ! tdf 04/07/08
+      REAL(fp)              :: ALKA_d  (NDSTBIN)  ! tdf 04/07/08
+      REAL(fp)              :: PSO4_d  (NDSTBIN)  ! tdf 04/07/08
+      REAL(fp)              :: PNIT_d  (NDSTBIN)  ! tdf 06/25/08
+      REAL(fp)              :: PH2SO4_d(NDSTBIN)  ! tdf 03/02/09
+      !tdf
+      REAL(fp)              :: KTN(NDSTBIN)
+      REAL(fp)              :: KTS(NDSTBIN)  
+      REAL(fp)              :: KTH(NDSTBIN)
+      !tdf KTH now contains the fraction of uptake of H2SO4 on to each of the
+      ! dust size bins, based on a size- and area-weighted formulism
+      ! (GET_DUST_ALK)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -2395,6 +2598,7 @@
       N_TRACERS   = Input_Opt%N_TRACERS
       TCVV        = Input_Opt%TCVV  (1:N_TRACERS)
       XNUMOL      = Input_Opt%XNUMOL(1:N_TRACERS)
+      LDSTUP      = Input_Opt%LDSTUP
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -2444,6 +2648,9 @@
 !$OMP+PRIVATE( HPLUS, SO4nss, TNH3, TNO3,  GNO3, ANIT,   LSTOT, ALKdst )
 !$OMP+PRIVATE( ALKds, ALKss,  NH3,  SSCvv, aSO4, SO2_sr, SR,    TANIT  )
 !$OMP+PRIVATE( BULK,  SIZE_RES,     RC                                 )
+!$OMP+PRIVATE( ALK_d, KTS, KTN, PSO4_d, PH2SO4_d, PNIT_d, SO2_gas      ) !tdf
+!$OMP+PRIVATE( KTH, H2SO4_cd, H2SO4_gas, Ki                            ) !tdf
+!$OMP+PRIVATE( IBIN, PSO4d_tot, PH2SO4d_tot, PNITd_tot, ALKA_d         )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR 
       DO J = 1, JJPAR
@@ -2467,12 +2674,13 @@
          ! TK : Temperature [K]
          TK     = State_Met%T(I,J,L)
 
+         ! Updated to match JPL 2006 + full chem (jaf, 10/14/09)
+         K0  = 3.3e-31_fp * ( 300.e+0_fp / TK )**4.3e+0_fp
+         Ki  = 1.6e-12_fp
+
          IF ( IS_OFFLINE ) THEN
 
             ! Gas phase SO4 production is done here in offline run only 
-            ! Updated to match JPL 2006 + full chem (jaf, 10/14/09)
-            K0  = 3.3e-31_fp * ( 300.e+0_fp / TK )**4.3e+0_fp
-            Ki  = 1.6e-12_fp
             M   = State_Met%AIRDEN(I,J,L) * F
             KK  = K0 * M / Ki
             F1  = ( 1.e+0_fp + ( LOG10( KK ) )**2 )**( -1 )
@@ -2483,7 +2691,6 @@
 
             ! For online runs, SMVGEAR deals w/ this computation,
             ! so we can simply set RK1 = 0 (rjp, bmy, 3/23/03)
-            K0  = 0.e+0_fp
             M   = 0.e+0_fp
             KK  = 0.e+0_fp
             F1  = 0.e+0_fp
@@ -2514,6 +2721,26 @@
          ELSE
             SO2_cd = SO20
             L1     = 0.e+0_fp
+         ENDIF
+
+         ! Isolate H2SO4 for reaction with dust    tdf 3/6/2K9
+         IF ( LDSTUP ) THEN
+            ! Compute gas phase SO4 production again, as in offline case 
+            ! RK1: SO2 + OH(g) [s-1]  (rjp, bmy, 3/23/03)
+            M    = State_Met%AIRDEN(L,I,J) * F
+            KK   = K0 * M / Ki
+            F1   = ( 1.e+0_fp + ( LOG10( KK ) )**2 )**( -1 )
+            RK1  = ( K0 * M / ( 1.e+0_fp + KK ) ) * 0.6e+0_fp**F1 *
+     &             GET_OH( I, J, L, Input_Opt, State_Met)
+            RKT  =  RK1 * DTCHEM  ! [unitless] (bmy, 6/1/00)
+            SO20 = SO2_cd
+            H2SO4_cd = SO20 * ( 1.e+0_fp - EXP( -RKT ) ) 
+
+            !tdf Reset these constants to zero to avoid any problems below
+            M   = 0.e+0_fp
+            KK  = 0.e+0_fp
+            F1  = 0.e+0_fp
+            RK1 = 0.e+0_fp
          ENDIF
 
          !==============================================================
@@ -2550,6 +2777,70 @@
             PNITS(I,J,L) = 0.e+0_fp
 
          ENDIF
+
+         !==============================================================
+         ! Update SO2 conc. after DUST chemistry (tdf, 04/07/08)
+         !==============================================================
+
+         ! Get dust alkalinity ALK_d (NDSTBIN) [v/v], Uptake rates for
+         ! sulfate, KTS(NDSTBIN), and nitrate, KTN(NDSTBIN) on dust [s-1]
+         CALL GET_DUST_ALK( I, J, L, ALK_d, KTS, KTN, KTH,
+     &                      Input_Opt, State_Met, State_Chm )
+
+         ! Total alkalinity [kg]
+         ALK = 0.0e+0_fp
+
+         DO IBIN = 1, NDSTBIN
+            ALK = ALK + ALK_d (IBIN)
+         END DO
+
+         ! If (1) there is alkalinity, (2) there is SO2 present, and
+         ! (3) O3 is in excess, then compute dust SO2 chemistry
+         IF ( LDSTUP ) THEN
+            IF  ( ( ALK    > MINDAT )  .AND.
+     &            ( SO2_cd > MINDAT )  .AND.
+     &            ( SO2_cd < O3     ) ) THEN
+
+               ! Compute oxidation of SO2 -> SO4 and condensation of
+               ! HNO3 -> nitrate within the dust aerosol
+
+               !tdf Call DUST_CHEM using updated SO2_ss after sea salt chemistry
+               CALL DUST_CHEM( I,         J,         L,
+     &                         ALK_d,     SO2_ss,    H2SO4_cd,
+     &                         KTS,       KTN,       KTH,
+     &                         SO2_gas,   H2SO4_gas, PSO4_d,
+     &                         PH2SO4_d,  PNIT_d,    ALKA_d,
+     &                         Input_Opt, State_Met, State_Chm, RC )
+
+               ! tdf "SO2_ss" is SO2 mixing ratio remaining after interaction
+               ! with dust
+               SO2_ss = SO2_gas
+
+               ! tdf "H2SO4_cd" is H2SO4 remaining after interaction with dust
+               H2SO4_cd = H2SO4_gas
+
+            ELSE
+
+               ! Otherwise set equal to zero
+               SO2_ss  = SO2_ss
+               DO IBIN = 1, NDSTBIN
+                  PSO4_d    (IBIN)   = 0.e+0_fp
+                  PH2SO4_d  (IBIN)   = 0.e+0_fp
+                  PNIT_d    (IBIN)   = 0.e+0_fp
+               END DO
+
+            ENDIF
+
+         ELSE 
+
+            ! Otherwise set equal to zero
+            SO2_ss  = SO2_ss
+            DO IBIN = 1, NDSTBIN
+               PSO4_d    (IBIN)   = 0.e+0_fp
+               PH2SO4_d  (IBIN)   = 0.e+0_fp
+               PNIT_d    (IBIN)   = 0.e+0_fp
+            END DO
+         ENDIF    !tdf end of if (LDSTUP) condition 
 
          !==============================================================
          ! Update SO2 concentration after cloud chemistry          
@@ -3001,11 +3292,33 @@
          ! SO2 chemical loss rate  = SO4 production rate [v/v/timestep]
 !         PSO4_SO2(I,J,L) = L1 + L2S + L3S + PSO4E
          PSO4_SO2(I,J,L) = L1 + L2S + L3S + PSO4E + SR
+
+         ! Production of sulfate on sea salt
          PSO4_ss (I,J,L) = PSO4F
 
 #if   defined( TOMAS )
          PSO4_SO2AQ(I,J,L) = L2S + L3S + SR ! For TOMAS microphysics
 #endif
+
+         ! tdf Production of sulfate and nitrate on dust
+         IF ( LDSTUP ) THEN
+
+            ! NB Fine dust mass excluded from PSO4_SO2 - kept separately
+            ! (tdf 07/24/08)
+            ! tdf PNIT_d, PH2SO4_d, and PSO4_d computed in DUST_CHEM
+
+            DO IBIN = 1, NDSTBIN
+               ! included P(SO4) due to uptake of H2SO4(g)        !tdf 3/2/2K9
+               PSO4_dust(I,J,L,IBIN) = PSO4_d(IBIN) + PH2SO4_d(IBIN)
+               PNIT_dust(I,J,L,IBIN) = PNIT_d(IBIN)
+            END DO
+
+            ! tdf Subtract from PSO4_SO2 that which is now diverted to dust
+            DO IBIN = 1, NDSTBIN
+               PSO4_SO2(I,J,L) =  PSO4_SO2(I,J,L) - PH2SO4_d(IBIN)
+            END DO
+
+         ENDIF    !tdf end of if (LDSTUP) condition
 
          !=================================================================
          ! ND05 Diagnostics [kg S/timestep]
@@ -3030,6 +3343,31 @@
             AD05(I,J,L,8) = AD05(I,J,L,8) +
      &                      ( (PSO4E + PSO4F) * State_Met%AD(I,J,L) /
      &                      TCVV_S )
+
+            !tdf
+            PSO4d_tot   = 0.e+0_fp
+            PH2SO4d_tot = 0.e+0_fp
+            PNITd_tot   = 0.e+0_fp
+
+            DO IBIN = 1, NDSTBIN
+               PSO4d_tot = PSO4d_tot + PSO4_d(IBIN)
+               PNITd_tot = PNITd_tot + PNIT_d(IBIN)
+               ! included P(SO4) due to uptake of H2SO4(g)        !tdf 3/2/2K9
+               PH2SO4d_tot = PH2SO4d_tot + PH2SO4_d(IBIN)
+            END DO
+
+            ! P(SO4) from O3 oxidation on dust aerosols [kg S/timestep]
+            AD05(I,J,L,11) = AD05(I,J,L,11) +
+     &                    ( PSO4d_tot * State_Met%AD(I,J,L) / TCVV_S )
+
+            ! P(NIT) from HNO3 uptake on dust [kg N/timestep]
+            AD05(I,J,L,12) = AD05(I,J,L,12) +
+     &                    ( PNITd_tot * State_Met%AD(I,J,L) / TCVV_N )
+
+            ! Included P(SO4) due to uptake of H2SO4(g)        !tdf 3/2/2K9
+            ! P(SO4) from uptake of H2SO4 on dust aerosols [kg S/timestep]
+            AD05(I,J,L,13) = AD05(I,J,L,13) +
+     &                    ( PH2SO4d_tot * State_Met%AD(I,J,L) / TCVV_S )
 
          ENDIF
       ENDDO
@@ -3070,11 +3408,13 @@
       !USE CMN_DIAG_MOD          ! ND19
       !USE DIAG_MOD,        ONLY : AD09
       !---------------------------------------------------------------
+      USE CMN_DIAG_MOD             ! ND05, LD05
       USE CMN_GCTM_MOD          
       USE CMN_SIZE_MOD          
       USE COMODE_MOD,         ONLY : CSPEC
       USE COMODE_MOD,         ONLY : JLOP
       USE COMODE_MOD,         ONLY : VOLUME
+      USE DIAG_MOD,           ONLY : AD05
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE GIGC_ErrCode_Mod
@@ -3096,15 +3436,15 @@
 !
 
       INTEGER,        INTENT(IN)   :: I, J, L    ! Grid box indices
-      REAL(fp),         INTENT(IN)   :: SO2_cd     ! SO2 mixing ratio [v/v] after 
+      REAL(fp),       INTENT(IN)   :: SO2_cd     ! SO2 mixing ratio [v/v] after 
                                                  !  gas phase chemistry and 
                                                  !  dry deposition
-      REAL(fp),         INTENT(IN)   :: Kt1, Kt2   ! Rate constant [s-1] for 
+      REAL(fp),       INTENT(IN)   :: Kt1, Kt2   ! Rate constant [s-1] for 
                                                  !  sulfate formation on sea
                                                  !  salt aerosols from GET_ALK 
                                                  !  (1=fine; 2=coarse)
-      REAL(fp),         INTENT(IN)   :: Kt1N, Kt2N 
-      REAL(fp),         INTENT(IN)   :: ALK1, ALK2 ! Alkalinity [kg] from 
+      REAL(fp),       INTENT(IN)   :: Kt1N, Kt2N 
+      REAL(fp),       INTENT(IN)   :: ALK1, ALK2 ! Alkalinity [kg] from 
                                                  !  seasalt_mod
       TYPE(MetState), INTENT(IN)   :: State_Met  ! Meteorology State object
       TYPE(OptInput), INTENT(IN)   :: Input_Opt  ! Input Options object
@@ -3116,12 +3456,12 @@
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(OUT)   :: SO2_ss    ! SO2 mixing ratio [v/v] 
+      REAL(fp),       INTENT(OUT)   :: SO2_ss    ! SO2 mixing ratio [v/v] 
                                                  !  after sea salt chemistry
-      REAL(fp),         INTENT(OUT)   :: PSO4E     ! SO4E (sulfate produced by 
+      REAL(fp),       INTENT(OUT)   :: PSO4E     ! SO4E (sulfate produced by 
                                                  !  S(IV)+O3 on fine seasalt) 
                                                  !  mixing ratio [v/v]
-      REAL(fp),         INTENT(OUT)   :: PSO4F     ! SO4F (sulfate produced by 
+      REAL(fp),       INTENT(OUT)   :: PSO4F     ! SO4F (sulfate produced by 
                                                  !  S(IV)+O3 on coarse seasalt)
       INTEGER,        INTENT(OUT)   :: RC        ! Success or failure?
 !
@@ -3145,6 +3485,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  12 Sep 2013 - M. Sulprizio- Added loss of HNO3 on sea salt diagnostic
+!                              (T.D. Fairlie)
 !  18 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sim from HEMCO
 !EOP
 !------------------------------------------------------------------------------
@@ -3160,34 +3502,34 @@
       ! Scalars
       LOGICAL            :: IT_IS_A_FULLCHEM_SIM
       INTEGER            :: JLOOP,       N_TRACERS
-      REAL(fp)             :: SO2_chem,    DTCHEM
-      REAL(fp)             :: O3_cspec,    O3_lost
-      REAL(fp)             :: EQ_1_C,      EQ_2_C
-      REAL(fp)             :: SO4E,        SO2_new,    SO4F
-      REAL(fp)             :: SO2_eq,      N_FLUX_A,   N_FLUX_C
-      REAL(fp)             :: END_ALK,     L5A,        L5C
-      REAL(fp)             :: EQ1,         EQ2,        TITR_SO2
-      REAL(fp)             :: TITR_HNO3,   NIT_vv,     NITs_vv
-      REAL(fp)             :: NIT0,        NITS0
-      REAL(fp)             :: F_SO2,       FALK_A_SO2, FALK_C_SO2
-      REAL(fp)             :: EQ_BEG,      F_SO2_A,    F_SO2_C
-      REAL(fp)             :: ALKA,        ALKC,       TOTAL_ACID_FLUX
-      REAL(fp)             :: HNO3_EQ,     TOT_FLUX_A, TOT_FLUX_C
-      REAL(fp)             :: FALK_A_HNO3, HNO3_vv
-      REAL(fp)             :: FALK_C_HNO3, F_HNO3_A,   F_HNO3_C
-      REAL(fp)             :: EQ_1_N,      EQ_2_N,     F_HNO3
-      REAL(fp)             :: HNO3_SSA,    HNO3_SSC,   N_FLUX
-      REAL(fp)             :: HNO3_EQ_C,   L6A,        L6C   
-      REAL(fp)             :: C_FLUX_A,    C_FLUX_C,   C_FLUX
-      REAL(fp)             :: HNO3_ss,     HNO3_kg
+      REAL(fp)           :: SO2_chem,    DTCHEM
+      REAL(fp)           :: O3_cspec,    O3_lost
+      REAL(fp)           :: EQ_1_C,      EQ_2_C
+      REAL(fp)           :: SO4E,        SO2_new,    SO4F
+      REAL(fp)           :: SO2_eq,      N_FLUX_A,   N_FLUX_C
+      REAL(fp)           :: END_ALK,     L5A,        L5C
+      REAL(fp)           :: EQ1,         EQ2,        TITR_SO2
+      REAL(fp)           :: TITR_HNO3,   NIT_vv,     NITs_vv
+      REAL(fp)           :: NIT0,        NITS0
+      REAL(fp)           :: F_SO2,       FALK_A_SO2, FALK_C_SO2
+      REAL(fp)           :: EQ_BEG,      F_SO2_A,    F_SO2_C
+      REAL(fp)           :: ALKA,        ALKC,       TOTAL_ACID_FLUX
+      REAL(fp)           :: HNO3_EQ,     TOT_FLUX_A, TOT_FLUX_C
+      REAL(fp)           :: FALK_A_HNO3, HNO3_vv
+      REAL(fp)           :: FALK_C_HNO3, F_HNO3_A,   F_HNO3_C
+      REAL(fp)           :: EQ_1_N,      EQ_2_N,     F_HNO3
+      REAL(fp)           :: HNO3_SSA,    HNO3_SSC,   N_FLUX
+      REAL(fp)           :: HNO3_EQ_C,   L6A,        L6C   
+      REAL(fp)           :: C_FLUX_A,    C_FLUX_C,   C_FLUX
+      REAL(fp)           :: HNO3_ss,     HNO3_kg
 
       ! Arrays
-      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL(fp), POINTER    :: STT(:,:,:,:)
-      REAL(fp), POINTER    :: AD(:,:,:)
-      REAL(fp), POINTER    :: AIRVOL(:,:,:)
+      REAL(fp), POINTER  :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: AD(:,:,:)
+      REAL(fp), POINTER  :: AIRVOL(:,:,:)
 
       !=================================================================
       ! SEASALT_CHEM begins here!
@@ -3210,6 +3552,8 @@
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
 
       ! Convert SO2 [v/v] to  [eq/gridbox]
+      !tdf Note 0.064 is Mw of SO2 in kg
+      !    so RHS of SO2_eq is 2. * moles(SO2) / gridbox
       SO2_eq = ( 2.e+0_fp * SO2_cd  * AD(I,J,L) ) / 
      &         ( TCVV(IDTSO2) * 0.064e+0_fp )
       SO2_eq = MAX( SO2_eq, MINDAT )
@@ -3218,6 +3562,9 @@
 
  	 ! Convert HNO3 [v/v] to [equivalents]
          HNO3_vv = STT(I,J,L,IDTHNO3)
+
+         !tdf Note 28.97/63.0 = Mw(air)/Mw(HNO3)
+         !    so RHS of HNO3_eq is  moles(HNO3) / gridbox
          HNO3_eq = HNO3_vv * AD(I,J,L) / ( 28.97e+0_fp / 63e+0_fp ) 
      &           / 63.e-3_fp
 
@@ -3302,6 +3649,12 @@
       TOTAL_ACID_FLUX = TOT_FLUX_A + TOT_FLUX_C
 
       ! Total available alkalinity [eq]
+      !----------------------------------------------------------------------
+      ! From Alexander et al., buffering capacity (or alkalinity) of sea-salt
+      ! aerosols is equal to 0.07 equivalents per kg dry sea salt emitted
+      ! Gurciullo et al., 1999. JGR 104(D17) 21,719-21,731.
+      ! tdf
+      !----------------------------------------------------------------------
       EQ1 = ALK1 * 0.07e+0_fp
       EQ2 = ALK2 * 0.07e+0_fp
 
@@ -3441,6 +3794,13 @@
 
       ENDIF
 
+      !tdf Added loss of HNO3 on sea salt diagnostic
+      IF ( ND05 > 0 ) THEN
+         ! L(HNO3) on sea-salt aerosols [kg N/timestep]
+         AD05(I,J,L,14) = AD05(I,J,L,14) +
+     &                  ( HNO3_ss * State_Met%AD(I,J,L) / TCVV_N )
+      ENDIF
+
       ! NITS produced converted from [eq/timestep] to [v/v/timestep] 
       PNITs(I,J,L) = HNO3_SSC * 0.063 * TCVV(IDTNITS) / AD(I,J,L)
 	 
@@ -3479,6 +3839,589 @@
       NULLIFY( AIRVOL )
 
       END SUBROUTINE SEASALT_CHEM
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: dust_chem
+!
+! !DESCRIPTION: Subroutine DUST\_CHEM computes SO4 formed from S(IV) + O3 on
+!  dust aerosols as a function of dust alkalinity  (tdf 3/28/2K8)
+!  Based on routine SEASALT\_CHEM (bec, bmy, 4/13/05, 10/25/05)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DUST_CHEM ( I,         J,         L,
+     &                       ALK,       SO2_cd,    H2SO4_cd, 
+     &                       KTS,       KTN,       KTH, 
+     &                       SO2_gas,   H2SO4_gas, PSO4d, 
+     &                       PH2SO4d,   PNITd,     ALKA,
+     &                       Input_Opt, State_Met, State_Chm, RC )
+!
+! !USES:
+!
+      ! References to F90 modules
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE ERROR_MOD,          ONLY : IT_IS_NAN
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM,        GET_ELAPSED_SEC
+      USE TRACERID_MOD
+      USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,    GET_MONTH
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+!
+! !INPUT PARAMETERS: 
+!
+
+      INTEGER,        INTENT(IN)    :: I, J, L       ! Grid box indices
+      REAL(fp),       INTENT(IN)    :: SO2_cd        ! SO2 mixing ratio after 
+                                                     !  gas phase chemistry and
+                                                     !  dry deposition [v/v]
+      REAL(fp),       INTENT(IN)    :: H2SO4_cd      ! H2SO4 mixing ratio after
+                                                     !  gas phase chemistry and
+                                                     !  dry deposition [v/v]
+      REAL(fp),       INTENT(IN)    :: ALK(NDSTBIN)  ! Dust Alkalinity [v/v]
+      REAL(fp),       INTENT(IN)    :: KTS(NDSTBIN)  ! Rate constant for uptake
+                                                     !  of SO2 on dust [s-1]
+      REAL(fp),       INTENT(IN)    :: KTN(NDSTBIN)  ! Rate constant for uptake
+                                                     !  of HNO3 on dust [s-1]
+      REAL(fp),       INTENT(IN)    :: KTH(NDSTBIN)  ! Size- and area-weighted
+                                                     !  FRACTION for uptake of
+                                                     !  H2SO4 on dust
+      TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology State object
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt     ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm     ! Chemistry State object
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL(fp),       INTENT(OUT)   :: SO2_gas         ! SO2 mixing ratio after
+                                                       !  dust chem [v/v]
+      REAL(fp),       INTENT(OUT)   :: PSO4d(NDSTBIN)  ! Sulfate produced by
+                                                       !  S(IV)+O3 on dust in
+                                                       !  each size bin
+      REAL(fp),       INTENT(OUT)   :: H2SO4_gas       ! H2SO4 mixing ratio
+                                                       !  after dust chem [v/v]
+      REAL(fp),       INTENT(OUT)   :: PNITd (NDSTBIN) ! Nitrate produced by
+                                                       !  HNO3 uptake on dust
+                                                       !  in each size bin
+      REAL(fp),       INTENT(OUT)   :: PH2SO4d(NDSTBIN)! Sulfate produced by
+                                                       !  uptake of H2SO4 on
+                                                       !  dust in each size bin
+      REAL(fp),       INTENT(OUT)   :: ALKA(NDSTBIN)   ! Dust Alkalinity after
+                                                       !  dust chemistry [v/v]
+      INTEGER,        INTENT(OUT)   :: RC              ! Success or failure?
+!
+! !REMARKS:
+!  Chemical reactions:
+!  ============================================================================
+!  (R1) SO2 + O3 + CaCO3 => CaSO4 + O2 + CO2
+!                                                                             .
+!  (R2) 2(HNO3) + CaCO3 => Ca(NO3)2 + CO2 + H2O
+!                                                                             .
+! Added sulfate production due to H2SO4 adsorption tdf 2/13/2K9
+!  (R3) H2SO4  + CaCO3 => CaSO4 + H2O + CO2
+!
+! !REVISION HISTORY:
+!  28 Mar 2008 - T.D. Fairlie- Initial version
+!  16 Sep 2013 - M. Sulprizio- Added ProTeX headers
+!  17 Sep 2013 - M. Sulprizio- Now pass Input_Opt, State_Met, State_Chm, and RC
+!                              as arguments
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      REAL(fp), PARAMETER  :: MINDAT = 1.0e-20_fp
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL              :: IT_IS_A_FULLCHEM_SIM
+      INTEGER              :: JLOOP,       N_TRACERS
+      INTEGER              :: IBIN
+      REAL(fp)             :: EQ1
+      REAL(fp)             :: HNO3_gas
+      REAL(fp)             :: T_SO2, T_HNO3, T_H2SO4, KT1
+      REAL(fp)             :: RH2
+      REAL(fp)             :: SO2_chem,    DTCHEM
+      REAL(fp)             :: SO2_eq,      SO2_new,    SO4d
+      REAL(fp)             :: H2SO4_eq,    H2SO4_new
+      REAL(fp)             :: HNO3_eq,     HNO3_vv,    HNO3_new
+      REAL(fp)             :: HNO3_kg,     HNO3d
+      REAL(fp)             :: F_SO2_A,     F_SO2_T,    F_SO2
+      REAL(fp)             :: S_FLUX_A,    S_FLUX_T,   S_FLUX(NDSTBIN)
+      REAL(fp)             :: F_H2SO4_A,   F_H2SO4_T,  F_H2SO4
+      REAL(fp)             :: H_FLUX_A,    H_FLUX_T,   H_FLUX(NDSTBIN)
+      REAL(fp)             :: F_HNO3_A,    F_HNO3_T,   F_HNO3
+      REAL(fp)             :: N_FLUX_A,    N_FLUX_T,   N_FLUX(NDSTBIN)
+      REAL(fp)             :: T_FLUX_A,    TOT_FLUX(NDSTBIN)
+      REAL(fp)             :: FALK_SO2,    FALK_HNO3,  FALK_H2SO4
+      REAL(fp)             :: ALK_EQ_S (NDSTBIN), ALK_EQ_N (NDSTBIN)
+      REAL(fp)             :: ALK_EQ_H (NDSTBIN), TITR_H2SO4(NDSTBIN)
+      REAL(fp)             :: TITR_SO2 (NDSTBIN), TITR_HNO3(NDSTBIN)
+      REAL(fp)             :: ALK1_vv,     ALK1_kg,    ALK1_eq
+      REAL(fp)             :: ALKA_vv,     ALKA_kg,    ALKA_eq
+      REAL(fp)             :: END_ALK,     L5A,        L6A,      L7A
+      REAL(fp)             :: EQ_BEG
+      REAL(fp)             :: O3_cspec,    O3_lost
+
+      ! Arrays
+      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      REAL(fp), POINTER    :: STT(:,:,:,:)
+      REAL(fp), POINTER    :: AD(:,:,:)
+      REAL(fp), POINTER    :: AIRVOL(:,:,:)
+
+      !=================================================================
+      ! DUST_CHEM begins here!
+      !=================================================================
+
+      ! Assume success
+      RC                   = GIGC_SUCCESS
+
+      N_TRACERS            = Input_Opt%N_TRACERS
+      TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
+      IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      STT                 => State_Chm%Tracers
+      AD                  => State_Met%AD
+      AIRVOL              => State_Met%AIRVOL
+
+      ! DTCHEM is the chemistry timestep in seconds
+      DTCHEM = GET_TS_CHEM() * 60e+0_fp
+
+      ! Convert SO2 [v/v] to  [eq/gridbox]
+
+      !tdf Equivalence defined as moles of a substance * its valence
+      !tdf Note 0.064D0 is Mw of SO2 in kg
+      !    Hence, SO2_eq =  2 * moles(SO2) / gridbox
+
+      SO2_eq = ( 2.e+0_fp * SO2_cd * AD(I,J,L) ) /
+     &         ( TCVV(IDTSO2) * 0.064e+0_fp )
+      SO2_eq = MAX( SO2_eq, MINDAT )
+
+      !tdf 2/13/2K9
+      ! Convert H2SO4 [v/v] to  [eq/gridbox]
+      ! Note: H2SO4_cd [v/v] provided by H2SO4 production * DTCHEM
+
+      !tdf Equivalence defined as moles of a substance * its valence
+      !tdf Note 0.098D0 is Mw of H2SO4 in kg
+      !    Hence, H2SO4_eq =  2 * moles(H2SO4) / gridbox
+
+      H2SO4_eq = ( 2.e+0_fp * H2SO4_cd * AD(I,J,L) ) 
+     &         / ( 28.97e+0_fp / 98.e+0_fp ) / 98.e-3_fp
+      H2SO4_eq = MAX( H2SO4_eq, MINDAT )
+      !tdf 2/13/2K9
+
+      ! HNO3 mixing ratio
+      IF ( IT_IS_A_FULLCHEM_SIM ) THEN
+
+         ! Convert HNO3 [v/v] to [equivalents]
+
+         !tdf Note 28.97/63.0 = Mw(air)/Mw(HNO3)
+         !    Hence, HNO3_eq =  1. * moles(HNO3) / gridbox
+
+         HNO3_vv = STT(I,J,L,IDTHNO3)
+         HNO3_eq = HNO3_vv * AD(I,J,L) /
+     &             ( 28.97e+0_fp / 63.e+0_fp ) / 63.e-3_fp
+
+      ELSE
+
+         ! HNO3 is in v/v (from HEMCO)
+         HNO3_vv = HNO3(I,J,L)
+
+         ! Convert HNO3 [v/v] to [equivalents]
+         HNO3_eq = HNO3_vv * AD(I,J,L) / ( 28.97e+0_fp / 63e+0_fp ) 
+     &           / 63.e-3_fp
+
+      ENDIF
+
+      !--------------------------------------------------------
+      ! Compute Available SO2 fluxes to dust, S_FLUX (NDSTBIN)
+      !--------------------------------------------------------
+
+      S_FLUX_T = 0.0e+0_fp
+      F_SO2_T  = 0.0e+0_fp
+      RH2      = State_Met%RH(I,J,L) * 1.0e-2_fp
+
+      DO IBIN = 1, NDSTBIN
+
+         KT1      = 0.e+0_fp
+
+         ! Choose a threshold of 18% RH for SO2 uptake flux    tdf 4/22/08
+         IF ( RH2 >= 0.18e+0_fp ) THEN
+            KT1      = KTS(IBIN)
+         ENDIF
+
+         ! Available flux of SO2 to dust aerosols [v/v/timestep]
+         L5A      = EXP( -KT1 * DTCHEM )
+         F_SO2_A  = SO2_cd * ( 1.e+0_fp - L5A )
+         F_SO2_A  = MAX( F_SO2_A, 1.e-32_fp )
+
+         ! Available flux of SO2 converted to [eq/timestep]
+         S_FLUX_A = 2.e+0_fp * F_SO2_A * AD(I,J,L) /
+     &              TCVV(IDTSO2) / 0.064e+0_fp
+         S_FLUX (IBIN) = S_FLUX_A
+
+         ! Total available flux of SO2 [v/v/timestep]
+         F_SO2_T  = F_SO2_T + F_SO2_A
+
+         ! Total available flux of SO2 [eq/timestep]
+         S_FLUX_T = S_FLUX_T + S_FLUX_A 
+
+      END DO
+
+      !--------------------------------------------------------
+      ! Compute Available H2SO4 fluxes to dust, H_FLUX (NDSTBIN)
+      ! tdf 2/13/2K9
+      !--------------------------------------------------------
+
+      H_FLUX_T  = 0.0e+0_fp
+      F_H2SO4_T = 0.0e+0_fp
+
+      DO IBIN = 1, NDSTBIN
+
+         ! Supplied uptake rates, KTH, for H2SO4 uptake tdf 2/13/2K9
+         ! Now KTH is a fraction, so the flux is H2SO4_cd * KTH(IBIN)
+         !tdf 08/20/09
+         KT1      = KTH(IBIN)
+
+         ! Available flux of H2SO4 to dust aerosols [v/v/timestep]
+!tdf         L7A      = EXP( -KT1 * DTCHEM )
+!tdf         F_H2SO4_A  = H2SO4_cd * ( 1.e+0_fp - L7A )
+         F_H2SO4_A  = H2SO4_cd * KT1
+
+         F_H2SO4_A  = MAX( F_H2SO4_A, 1.e-32_fp )
+
+         ! Available flux of H2SO4 converted to [eq/timestep]
+         H_FLUX_A = 2.e+0_fp * F_H2SO4_A * AD(I,J,L) 
+     &            / ( 28.97e+0_fp / 98.e+0_fp ) / 0.098e+0_fp
+         H_FLUX (IBIN) = H_FLUX_A
+
+         ! Total available flux of H2SO4 [v/v/timestep]
+         F_H2SO4_T  = F_H2SO4_T + F_H2SO4_A
+
+         ! Total available flux of H2SO4 [eq/timestep]
+         H_FLUX_T = H_FLUX_T + H_FLUX_A 
+
+      END DO
+
+      !--------------------------------------------------------
+      ! Compute Available HNO3 fluxes to dust, N_FLUX (NDSTBIN)
+      !--------------------------------------------------------
+
+      F_HNO3_T = 0.0e+0_fp
+      N_FLUX_T = 0.0e+0_fp
+
+      DO IBIN = 1, NDSTBIN
+
+         ! Available flux of HNO3 to dust aerosols [v/v/timestep]
+         L6A = EXP( - KTN(IBIN) * DTCHEM )
+         F_HNO3_A = HNO3_vv * ( 1.e+0_fp - L6A )
+         F_HNO3_A = MAX( F_HNO3_A, 1.0e-32_fp )
+
+         ! Available flux of HNO3 converted to [eq/timestep]
+         N_FLUX_A = F_HNO3_A * AD(I,J,L) /
+     &              ( 28.97e+0_fp / 63.e+0_fp ) / 0.063e+0_fp
+         N_FLUX (IBIN) = N_FLUX_A
+
+         !tdf 3/28/2K8
+         ! Accumulate Total available flux of HNO3
+         F_HNO3_T = F_HNO3_T + F_HNO3_A ![v/v/timestep]
+         N_FLUX_T = N_FLUX_T + N_FLUX_A ![eq/timestep]
+
+      END DO
+
+      !------------------------------------------
+      ! Compute Total Available Acid Flux to dust
+      !------------------------------------------
+
+      DO IBIN = 1, NDSTBIN
+
+         ! Total acid flux to DUST aerosols [eq/box/timestep] by size bin
+!tdf         T_FLUX_A  = S_FLUX (IBIN) + N_FLUX (IBIN)
+         !tdf Include sulfuric acid flux                       tdf 2/13/2K9
+         T_FLUX_A  = S_FLUX (IBIN) + N_FLUX (IBIN) + H_FLUX (IBIN)
+         T_FLUX_A  = MAX( T_FLUX_A, MINDAT )
+
+         ! Total acid flux to DUST aerosols
+         TOT_FLUX (IBIN) = T_FLUX_A
+
+      END DO
+
+      !-------------------------------------
+      ! Find Total Available Alkalinity [eq]
+      !-------------------------------------
+
+      DO IBIN = 1, NDSTBIN
+
+         ALK1_vv = ALK (IBIN)
+
+         !tdf 04/08/08
+         ! Convert dust alkalinity from vv to eq., using Mw(Ca) for
+         ! Mw (alkalinity). Recall, Equvalents = moles * valency
+         ! In this case, we have taken the valency of alkalinity as 2.
+         ! Units of ALK1_eq (below) work out to be moles * 2.
+         ALK1_eq     = 2.e+0_fp * ALK1_vv * AD(I,J,L)
+     &               / ( 28.97e+0_fp / 40.e+0_fp ) / 40.e-3_fp
+
+         !---------------------------------------------------------------
+         ! DIAGNOSTIC -- leave uncommented for now (bec, bmy, 4/13/05)
+         ! Write out beginning alkalinity [eq SO4]
+         !EQ_BEG = EQ1 + EQ2
+         !IF ( ND09 > 0 ) AD09(I,J,L,1) = AD09(I,J,L,1) + EQ_BEG
+         !---------------------------------------------------------------
+
+         ! total acid flux available; exclude flux from H2SO4, since it is
+         ! not limited by dust alkalinity               ! tdf 3/02/2K9
+         T_FLUX_A = S_FLUX (IBIN) + N_FLUX (IBIN)
+         T_FLUX_A = MAX ( T_FLUX_A, MINDAT )
+
+         ! if the total acid flux available exceeds the available alkalinity
+         ! then compute the fraction of the available alkalinity for each acid
+         IF ( T_FLUX_A > ALK1_eq ) THEN
+
+            S_FLUX_A  = S_FLUX (IBIN)
+            N_FLUX_A  = N_FLUX (IBIN)
+
+            ! Fraction of alkalinity available for each acid
+            FALK_SO2  = S_FLUX_A / T_FLUX_A
+            FALK_SO2  = MAX( FALK_SO2, MINDAT )
+            FALK_HNO3 = N_FLUX_A / T_FLUX_A
+            FALK_HNO3 = MAX( FALK_HNO3, MINDAT )
+
+         ELSE
+
+            ! Fraction of alkalinity available for each acid
+            FALK_SO2  = 1.0e+0_fp
+            FALK_HNO3 = 1.0e+0_fp
+
+         ENDIF
+
+         !tdf Add sulfuric acid flux (not limited by alkalinity)    tdf 2/13/2K9
+         FALK_H2SO4 = 1.0e+0_fp
+
+         ! Alkalinity available for S(IV) --> S(VI)
+         EQ1             = ALK1_eq * FALK_SO2
+         EQ1             = MAX( EQ1, MINDAT )
+         ALK_EQ_S (IBIN) = EQ1
+
+         ! Alkalinity available for HNO3 update    tdf 04/07/08
+         EQ1             = ALK1_eq * FALK_HNO3
+         EQ1             = MAX( EQ1, MINDAT )
+         ALK_EQ_N (IBIN) = EQ1
+
+         ! H2SO4 not limited by dust alkalinity     tdf 3/02/2K9
+
+      END DO
+
+      !-------------------
+      ! Sulfate production
+      !-------------------
+
+      SO2_new       = SO2_eq
+
+      ! Don't produce more SO4 than available ALK or SO2
+      DO IBIN = 1, NDSTBIN
+
+         S_FLUX_A = S_FLUX (IBIN)
+         EQ1      = ALK_EQ_S (IBIN)
+         SO4d     = MIN( S_FLUX_A, EQ1, SO2_new )
+         SO4d     = MAX( SO4d, MINDAT )
+
+         ! Update SO2 concentration [eq/box]
+         SO2_new    = SO2_new - SO4d
+         SO2_new    = MAX( SO2_new, MINDAT )
+
+         ! Alkalinity titrated by S(IV) --> S(VI) [eq]
+         TITR_SO2 (IBIN) =  SO4d
+
+         !SO4d produced converted from [eq/timestep] to [v/v/timestep]
+         PSO4d (IBIN) = SO4d * 0.096e+0_fp * TCVV(IDTSO4) /
+     &                  AD(I,J,L) / 2.0e+0_fp
+
+         ! tdf
+!         if (I .eq. 1 .and. J .eq. 63 .and. L .eq. 6) then
+!            print *,' CHEM_SO4: SO4 production, SO2'
+!            write (6,30) IBIN, KTS(IBIN)
+!            print *,' IBIN,EQ1,S_FLUX_A,SO2_new,SO4d,PSO4d(IBIN)'
+!            write (6,31) IBIN,EQ1,S_FLUX_A,SO2_new,SO4d,PSO4d(IBIN)
+! 30         format (' IBIN, KTS(IBIN) ',I4,E12.3)
+! 31         format (' ',I4,5E12.3)
+!         endif
+
+      END DO
+
+      !Modified SO2 [eq] converted back to [v/v]
+      SO2_gas       = SO2_new * 0.064e+0_fp * TCVV(IDTSO2) /
+     &                AD(I,J,L) / 2.0e+0_fp
+      SO2_gas       = MAX( SO2_gas, MINDAT )
+
+      !------------------------------------------------
+      ! Additional sulfate production from H2SO4 uptake
+      !------------------------------------------------
+
+      H2SO4_new   = H2SO4_eq
+
+      ! Don't produce more SO4 than available H2SO4
+      ! Uptake not limited by alkalinity
+      DO IBIN = 1, NDSTBIN
+
+         H_FLUX_A = H_FLUX (IBIN)
+
+         ! H2SO4 uptake not limited by dust alkalinity, EQ1
+         SO4d     = MIN( H_FLUX_A, H2SO4_new )
+         SO4d     = MAX( SO4d, MINDAT )
+
+         ! Update H2SO4 concentration [eq/box]
+         H2SO4_new    = H2SO4_new - SO4d
+         H2SO4_new    = MAX( H2SO4_new, MINDAT )
+
+         ! Alkalinity titrated by H2SO4 uptake [eq]
+         TITR_H2SO4 (IBIN) =  SO4d
+
+         !SO4d produced converted from [eq/timestep] to [v/v/timestep]
+         PH2SO4d (IBIN) = SO4d * 0.096e+0_fp * TCVV(IDTSO4) /
+     &                    AD(I,J,L) / 2.0e+0_fp
+
+         ! tdf
+!         if (I .eq. 1 .and. J .eq. 63 .and. L .eq. 6) then
+!            print *,' CHEM_SO4: SO4 production, H2SO4'
+!            write (6,40) IBIN, KTH(IBIN)
+!            print *,' IBIN,H_FLUX_A,H2SO4_new,SO4d,PH2SO4d(IBIN)'
+!            write (6,41) IBIN,H_FLUX_A,H2SO4_new,SO4d,PH2SO4d(IBIN)
+! 40         format (' IBIN, KTH(IBIN) ',I4,E12.3)
+! 41         format (' ',I4,4E12.3)
+!         endif
+
+      END DO
+
+      !Modified H2SO4 [eq] converted back to [v/v]
+      H2SO4_gas       = H2SO4_new * 0.098e+0_fp * ( 28.97e+0_fp
+     &                  / 98.e+0_fp ) / AD(I,J,L) / 2.0e+0_fp
+      H2SO4_gas       = MAX( H2SO4_gas, MINDAT )
+
+      !-------------------------------------------------------------------
+      ! DIAGNOSTIC -- leave uncommented for now
+      !! write out in diagnostic
+      !IF ( ND09 > 0 ) AD09(I,J,L,2) = AD09(I,J,L,2) + TITR_SO2
+      !-------------------------------------------------------------------
+
+      !-------------------
+      ! Nitrate production
+      !-------------------
+
+      HNO3_new    = HNO3_eq
+
+      ! Alkalinity titrated by HNO3 in dust
+      DO IBIN = 1, NDSTBIN
+
+         N_FLUX_A = N_FLUX (IBIN)
+         EQ1      = ALK_EQ_N (IBIN)
+         HNO3d    = MIN( N_FLUX_A, EQ1, HNO3_new )
+         HNO3d    = MAX( HNO3d, MINDAT )
+
+         ! Update HNO3 concentration [eq/box]
+         HNO3_new = HNO3_new - HNO3d
+         HNO3_new = MAX( HNO3_new, MINDAT )
+
+         ! Alkalinity titrated by HNO3 [eq]
+         TITR_HNO3 (IBIN) = HNO3d
+
+         ! NIT produced converted from [eq/timestep] to [v/v/timestep]
+         PNITd (IBIN) = HNO3d * 0.063e+0_fp * TCVV(IDTNIT) / AD(I,J,L)
+
+         ! tdf
+!         if (I .eq. 1 .and. J .eq. 63 .and. L .eq. 6) then
+!            print *,' CHEM_SO4: NIT production, HNO3'
+!            write (6,50) IBIN, KTN(IBIN)
+!            print *,' IBIN,EQ1,N_FLUX_A,HNO3_new,HNO3d,PNITd(IBIN)'
+!            write (6,51) IBIN,EQ1,N_FLUX_A,HNO3_new,HNO3d,PNITd(IBIN)
+! 50         format (' IBIN, KTN(IBIN) ',I4,E12.3)
+! 51         format (' ',I4,5E12.3)
+!         endif
+
+      END DO
+
+      !----------------------------------------------------------------------
+      ! DIAGNOSTIC -- leave commented out for now
+      ! !write out alkalinity titrated by HNO3(g)
+      !IF ( ND09 > 0 ) AD09(I,J,L,3) = AD09(I,J,L,3) + TITR_HNO3
+      !----------------------------------------------------------------------
+
+      !Modified HNO3 [eq/timestep] converted back to [v/v/timestep]
+      HNO3_gas      = HNO3_new * 0.063e+0_fp * TCVV(IDTHNO3) / AD(I,J,L)
+      HNO3_gas      = MAX( HNO3_gas, MINDAT )
+
+      ! HNO3 [v/v]
+      IF ( IDTHNO3 > 0 ) THEN
+         STT(I,J,L,IDTHNO3) = MAX( HNO3_gas, MINDAT )
+      ENDIF
+
+      DO IBIN = 1, NDSTBIN
+
+         ALK1_vv     = ALK (IBIN)
+         ALK1_eq     = 2.e+0_fp * ALK1_vv * AD(I,J,L)
+     &               / ( 28.97e+0_fp / 40.e+0_fp ) / 40.e-3_fp
+         T_SO2       = TITR_SO2 (IBIN)
+         T_HNO3      = TITR_HNO3 (IBIN)
+
+         !tdf Include alkalinity titrated by sulfuric acid flux 2/13/2K9
+         T_H2SO4     = TITR_H2SO4 (IBIN)
+
+         ! tdf
+!         if (I .eq. 1 .and. J .eq. 63 .and. L .eq. 6) then
+!            print *,' CHEM_DUST: Titrate Alkalinity'
+!            print *,' IBIN,  ALK1_eq,  T_SO2,   T_HNO3,   T_H2SO4'
+!            write (6,61) IBIN,ALK1_eq,T_SO2,T_HNO3,T_H2SO4
+! 61         format (' ',I4,4E12.3)
+!         endif
+
+         ! Titrate DUST alkalinity  [eq]
+         ALKA_eq     = ALK1_eq - ( T_SO2 + T_HNO3 + T_H2SO4 )
+         ALKA_eq     = MAX( ALKA_eq, MINDAT )
+
+         ! Note:  Although we don't let the alkalinity go negative,
+         ! the uptake of H2SO4 can continue when the alkalinity is
+         ! fully titrated.                            ! tdf 3/02/2K9
+
+         ! Return remaining DUST Alkalinity [v/v]
+         ALKA_vv     = ALKA_eq / AD(I,J,L)
+     &               * ( 28.97e+0_fp / 40.e+0_fp ) * 40e-3_fp / 2.e+0_fp
+         ALKA (IBIN) = ALKA_vv
+
+      END DO
+
+      ! Update dust alkalinity
+      ! NB Hardwired for 4 size bins                    tdf 04/08/08
+
+      STT(I,J,L,IDTDAL1) = MAX( ALKA(1), MINDAT )
+      STT(I,J,L,IDTDAL2) = MAX( ALKA(2), MINDAT )
+      STT(I,J,L,IDTDAL3) = MAX( ALKA(3), MINDAT )
+      STT(I,J,L,IDTDAL4) = MAX( ALKA(4), MINDAT )
+
+      !------------------------------------------------------------------------
+      ! DIAGNOSTIC -- leave commented out for now (bec, bmy, 4/13/05)
+      !! write out ending alkalinity
+      !IF ( ND09 > 0 ) AD09(I,J,L,4) = AD09(I,J,L,4) + END_ALK
+      !------------------------------------------------------------------------
+
+      ! Free pointer
+      NULLIFY( STT )
+
+      END SUBROUTINE DUST_CHEM
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3543,21 +4486,21 @@
 !
 
       ! Water dissociation constants
-      REAL(fp),  PARAMETER     :: Kw   = 1.0e-14_fp
-      REAL(fp),  PARAMETER     :: DhrKw = -6710.e+0_fp
-      REAL(fp),  PARAMETER     :: MINVAL = 0.01
+      REAL(fp),  PARAMETER   :: Kw   = 1.0e-14_fp
+      REAL(fp),  PARAMETER   :: DhrKw = -6710.e+0_fp
+      REAL(fp),  PARAMETER   :: MINVAL = 0.01
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)                 :: D, Kw_T, ipH, newpH, nHPLUS
-      REAL(fp)                 :: kCO2p, kCO2p2
-      REAL(fp)                 :: kSO2p, kSO2p2
-      REAL(fp)                 :: kHNO3p, kNH3p, kHClp
+      REAL(fp)               :: D, Kw_T, ipH, newpH, nHPLUS
+      REAL(fp)               :: kCO2p, kCO2p2
+      REAL(fp)               :: kSO2p, kSO2p2
+      REAL(fp)               :: kHNO3p, kNH3p, kHClp
       INTEGER                :: count
-      REAL(fp)                 :: E, F, G, H, Q, R
-      REAL(fp)                 :: X, Y
-      REAL(fp)                 :: CRUTES( 3 ) ! Coeff and roots of cubic equation
-      REAL(f8)                 :: A, B, A1, A2, A0, P
+      REAL(fp)               :: E, F, G, H, Q, R
+      REAL(fp)               :: X, Y
+      REAL(fp)               :: CRUTES( 3 ) ! Coeff and roots of cubic equation
+      REAL(f8)               :: A, B, A1, A2, A0, P
       INTEGER                :: NR          ! Number of roots to cubic equation
 
       !=================================================================
@@ -4141,8 +5084,8 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER           :: NR
-      REAL(f8)            :: A2, A1, A0
-      REAL(fp)            :: CRUTES(3)
+      REAL(f8)          :: A2, A1, A0
+      REAL(fp)          :: CRUTES(3)
 !
 ! !REMARKS:
 ! Formulae can be found in numer. recip.  on page 145
@@ -4495,19 +5438,19 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN)  :: I, J, L
-      REAL(fp),         INTENT(IN)  :: LSTOT
-      REAL(fp),         INTENT(IN)  :: SSCvv
-      REAL(fp),         INTENT(IN)  :: aSO4
-      REAL(fp),         INTENT(IN)  :: GNH3
-      REAL(fp),         INTENT(IN)  :: SO2_sr
-      REAL(fp),         INTENT(IN)  :: H2O20
-      REAL(fp),         INTENT(IN)  :: GNO3
+      REAL(fp),       INTENT(IN)  :: LSTOT
+      REAL(fp),       INTENT(IN)  :: SSCvv
+      REAL(fp),       INTENT(IN)  :: aSO4
+      REAL(fp),       INTENT(IN)  :: GNH3
+      REAL(fp),       INTENT(IN)  :: SO2_sr
+      REAL(fp),       INTENT(IN)  :: H2O20
+      REAL(fp),       INTENT(IN)  :: GNO3
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(OUT) :: SR ! Sulfate production rate
+      REAL(fp),       INTENT(OUT) :: SR ! Sulfate production rate
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
@@ -4703,6 +5646,8 @@
       USE TRACERID_MOD,       ONLY : IDTLET
       USE TRACERID_MOD,       ONLY : IDTSO4aq
       USE TRACERID_MOD,       ONLY : IDTNH4aq
+      USE TRACERID_MOD,       ONLY : IDTSO4d1, IDTSO4d2
+      USE TRACERID_MOD,       ONLY : IDTSO4d3, IDTSO4d4
 !
 ! !INPUT PARAMETERS:
 !
@@ -4757,6 +5702,8 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
 !                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  12 Sep 2013 - M. Sulprizio- Now include references to dust-sulfate chemistry
+!                              (tdf 04/07/08)
 !  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
 !  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
 !                              so we can greatly collapse this code
@@ -4766,8 +5713,19 @@
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL           :: LDSTUP
       INTEGER           :: I,   J,    L,    N
-      REAL(fp)          :: SO4, SO40, SO4s, SO40s
+      INTEGER           :: IBIN  ! tdf
+      REAL(fp)          :: SO4, SO40, SO4s, SO40s 
+      REAL(fp)          :: PSO4d, SO40_dust ! tdf 04/07/08
+
+      ! Arrays
+      REAL(fp)          :: SO4d (NDSTBIN)  ! tdf 04/07/08
+      REAL(fp)          :: SO40d(NDSTBIN)  ! tdf 04/07/08
+
+      ! Following are index arrays to hold pointers to STT
+      ! tdf 04/07/08
+      INTEGER           :: IDTRC(NDSTBIN)
 
       ! Pointers
       REAL(fp), POINTER :: STT(:,:,:,:)
@@ -4783,6 +5741,9 @@
       ! Assume success
       RC        = GIGC_SUCCESS
 
+      ! Copy fields from INPUT_OPT to local variables for use below
+      LDSTUP    = Input_Opt%LDSTUP
+
       ! Initialize pointers
       STT      => State_Chm%Tracers
 
@@ -4790,17 +5751,20 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, SO4, SO4s, SO40, SO40s )
+!$OMP+PRIVATE( SO4d, SO40d, SO40_dust          ) ! tdf 04/07/08
+!$OMP+PRIVATE( IBIN, PSO4d, IDTRC              )
 !$OMP+SCHEDULE( DYNAMIC ) 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+
          ! Initialize for safety's sake
          SO4  = 0e+0_fp
          SO4s = 0e+0_fp
-
-         ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         SO4d = 0e+0_fp  ! tdf 04/07/08
 
          !==============================================================
          ! Initial concentrations before chemistry
@@ -4811,6 +5775,14 @@
          
          ! SO4 within coarse seasalt aerosol [v/v]
          SO40s = STT(I,J,L,IDTSO4s)
+
+         IF ( LDSTUP ) THEN
+            ! Initial Sulfate w/in dust bins [v/v]   ! tdf 04/07/08
+            SO40d(1) = STT(I,J,L,IDTSO4d1)
+            SO40d(2) = STT(I,J,L,IDTSO4d2)
+            SO40d(3) = STT(I,J,L,IDTSO4d3)
+            SO40d(4) = STT(I,J,L,IDTSO4d4)
+         ENDIF
 
          !==============================================================
          ! SO4 chemistry
@@ -4826,6 +5798,33 @@
          ! SO4 production from SO2 [v/v/timestep]
          SO4s = SO40s + PSO4_ss(I,J,L)
 
+         !tdf
+         IF ( LDSTUP ) THEN
+
+            !==============================================================
+            ! SO4d (SO4 w/in dust aerosol) chemistry:     tdf 04/07/08
+            !==============================================================
+
+            IDTRC(1) = IDTSO4d1
+            IDTRC(2) = IDTSO4d2
+            IDTRC(3) = IDTSO4d3
+            IDTRC(4) = IDTSO4d4
+
+            ! tdf Loop over size bins
+            DO IBIN = 1, NDSTBIN
+
+               ! Initial amount of sulfate on dust size bin IBIN
+               SO40_dust = SO40d(IBIN)
+
+               ! Production of sulfate on dust [v/v/timestep]
+               PSO4d = PSO4_dust(I,J,L,IBIN)
+
+               ! SO4 production from SO2 [v/v/timestep]
+               SO4d(IBIN) = SO40_dust + PSO4d
+
+            ENDDO
+         ENDIF    !tdf end of if ( LDSTUP) condition
+
          !==============================================================
          ! Final concentrations after chemistry
          !==============================================================
@@ -4837,6 +5836,15 @@
          ! Final concentrations [v/v]
          STT(I,J,L,IDTSO4)  = SO4
          STT(I,J,L,IDTSO4s) = SO4s
+
+         !tdf
+         IF ( LDSTUP ) THEN
+            DO IBIN = 1, NDSTBIN
+               SO40_dust = SO4d(IBIN)
+               IF ( SO40_dust < SMALLNUM ) SO40_dust = 0e+0_fp
+               STT(I,J,L,IDTRC(IBIN)) = SO40_dust ! dust sulfate
+            ENDDO
+         ENDIF    !tdf end of if ( LDSTUP) condition
 
       ENDDO
       ENDDO
@@ -5168,6 +6176,7 @@
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
@@ -5177,6 +6186,8 @@
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TRACERID_MOD,       ONLY : IDTNIT
       USE TRACERID_MOD,       ONLY : IDTNITs
+      USE TRACERID_MOD,       ONLY : IDTNITd1, IDTNITd2
+      USE TRACERID_MOD,       ONLY : IDTNITd3, IDTNITd4
 !
 ! !INPUT PARAMETERS:
 !
@@ -5233,6 +6244,10 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
 !                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  12 Sep 2013 - M. Sulprizio- Now include references to nitrate on dust
+!                              (tdf, 04/07/08)
+!  23 Sep 2013 - M. Sulprizio- Bug fix: Skip stratospheric boxes to prevent
+!                              out-of-bounds error in PNIT_DUST
 !  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
 !  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
 !                              so we can greatly collapse this code
@@ -5243,8 +6258,19 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL           :: LDSTUP
       INTEGER           :: I,   J,    L,    N
+      INTEGER           :: IBIN ! tdf
       REAL(fp)          :: NIT, NITs, NIT0, NIT0s, F_UNDER_TOP
+      REAL(fp)          :: PNITd           ! tdf 04/07/08
+
+      ! Arrays
+      REAL(fp)          :: NITd (NDSTBIN)  ! tdf 04/07/08
+      REAL(fp)          :: NIT0d(NDSTBIN)  ! tdf 04/07/08
+
+      ! Following are index arrays to hold pointers to DEPVEL and STT
+      ! tdf 04/07/08
+      INTEGER           :: IDTRC(NDSTBIN)
 
       ! Pointers
       REAL(fp), POINTER :: STT(:,:,:,:)
@@ -5260,6 +6286,9 @@
       ! Assume success
       RC  = GIGC_SUCCESS
 
+      ! Copy fields from INPUT_OPT to local variables for use below
+      LDSTUP    = Input_Opt%LDSTUP
+
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
@@ -5267,10 +6296,15 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, NIT0, NIT0s, NIT, NITs, F_UNDER_TOP )
+!$OMP+PRIVATE( NITd, NIT0d                                  )! tdf 04/07/08
+!$OMP+PRIVATE( IBIN, PNITd, IDTRC                           )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          ! Initial NITRATE [v/v]
          NIT0  = STT(I,J,L,IDTNIT)
@@ -5278,9 +6312,16 @@
          ! Initial NITRATE w/in seasalt [v/v]
          NIT0s = STT(I,J,L,IDTNITs)
 
+         ! Initial NITRATE w/in dust bins [v/v]   ! tdf 04/07/08
+         NIT0d(1) = STT(I,J,L,IDTNITd1)
+         NIT0d(2) = STT(I,J,L,IDTNITd2)
+         NIT0d(3) = STT(I,J,L,IDTNITd3)
+         NIT0d(4) = STT(I,J,L,IDTNITd4)
+
          ! Initialize variables
          NIT   = 0e+0_fp
          NITs  = 0e+0_fp
+         NITd  = 0e+0_fp  !tdf 04/07/08
 
          ! Fraction of box (I,J,L) underneath the PBL top [unitless]
          F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )     
@@ -5299,6 +6340,40 @@
             STT(I,J,L,IDTNITs) = NITs
             
          ENDIF
+
+         !tdf
+         IF ( LDSTUP ) THEN
+
+            !===========================================================
+            ! NITd chemistry                              ! tdf 04/07/08
+            !===========================================================
+
+            ! Assign pointers to STT arrays for loop over dust size bins
+            !tdf
+            IDTRC(1) = IDTNITd1
+            IDTRC(2) = IDTNITd2
+            IDTRC(3) = IDTNITd3
+            IDTRC(4) = IDTNITd4
+
+            ! tdf Loop over size bins
+            DO IBIN = 1, NDSTBIN
+
+               ! Initial amount of nitrate on dust size bin IBIN
+               NIT0 = NIT0d(IBIN)
+
+               ! Production of nitrate on dust [v/v/timestep]
+               PNITd = PNIT_dust(I,J,L,IBIN)
+
+               ! NIT prod from HNO3 uptake on dust [v/v/timestep]
+               NITd(IBIN) = NIT0 + PNITd
+
+               ! Store final concentration in STT [v/v]
+               STT(I,J,L,IDTRC(IBIN)) = NITd(IBIN)
+
+            ENDDO
+
+         ENDIF    !tdf end of if ( LDSTUP) condition
+
       ENDDO
       ENDDO
       ENDDO
@@ -5335,14 +6410,14 @@
 !
 ! !INPUT PARAMETERS:
 !             
-      INTEGER, INTENT(IN)    :: PBL_TOP ! Top level of boundary layer
-      LOGICAL, INTENT(IN)    :: IS_LOCAL ! mixing scheme
-      REAL(fp),  INTENT(IN)    :: FRAC_OF_PBL(:) ! 
-      REAL(fp),  INTENT(IN)    :: EMISS(:)  
+      INTEGER,  INTENT(IN)    :: PBL_TOP ! Top level of boundary layer
+      LOGICAL,  INTENT(IN)    :: IS_LOCAL ! mixing scheme
+      REAL(fp), INTENT(IN)    :: FRAC_OF_PBL(:) ! 
+      REAL(fp), INTENT(IN)    :: EMISS(:)  
 !     
 ! !OUTPUT PARAMETERS:
 !             
-      REAL(fp),  INTENT(INOUT) :: SULFATE(:) ! partitioned emissions
+      REAL(fp), INTENT(INOUT) :: SULFATE(:) ! partitioned emissions
 !
 ! !REVISION HISTORY: 
 !  27 Oct 2009 - P. Le Sager - initial
@@ -5354,7 +6429,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                :: TOPMIX, TOPEMISS
-      REAL(fp)                 :: TSULFATE
+      REAL(fp)               :: TSULFATE
 
       ! Zero  at all levels 
       SULFATE  = 0.0
@@ -5449,7 +6524,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: JLOOP
-      REAL(fp)              :: OH_MOLEC_CM3
+      REAL(fp)            :: OH_MOLEC_CM3
  
       !=================================================================
       ! GET_OH begins here!
@@ -5538,8 +6613,8 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I, J, L ! Indices for lon, lat, vertical level
-      REAL(fp),  INTENT(IN) :: OH      ! OH at (I,J,L) to be saved into CSPEC
+      INTEGER,  INTENT(IN) :: I, J, L ! Indices for lon, lat, vertical level
+      REAL(fp), INTENT(IN) :: OH      ! OH at (I,J,L) to be saved into CSPEC
 !
 ! !REVISION HISTORY:
 !  (1 ) We assume SETTRACE has been called to define IDOH (bmy, 12/16/02)
@@ -5620,9 +6695,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: JLOOP
-      REAL(fp)  :: NO3_MOLEC_CM3
-      REAL(fp)  :: BOXVL
+      INTEGER  :: JLOOP
+      REAL(fp) :: NO3_MOLEC_CM3
+      REAL(fp) :: BOXVL
 
       !=================================================================
       ! GET_NO3 begins here!
@@ -5732,8 +6807,8 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I, J, L ! Indices for lon, lat, vertical level
-      REAL(fp),  INTENT(IN) :: NO3     ! NO3 at (I,J,L) to be saved into CSPEC
+      INTEGER,  INTENT(IN) :: I, J, L ! Indices for lon, lat, vertical level
+      REAL(fp), INTENT(IN) :: NO3     ! NO3 at (I,J,L) to be saved into CSPEC
 !
 ! !REVISION HISTORY:
 !  (1 ) We assume SETTRACE has been called to define IDNO3. (bmy, 12/16/02)
@@ -5810,7 +6885,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER               :: JLOOP
-      REAL(fp)                :: O3_VV
+      REAL(fp)              :: O3_VV
  
       !=================================================================
       ! GET_O3 begins here!
@@ -5903,9 +6978,9 @@
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
       INTEGER             :: I, IJLOOP, J, L, N, NT, NDYSTEP
-      REAL(fp)              :: A0, A1, A2, A3, B1, B2, B3
-      REAL(fp)              :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-      REAL(fp)              :: SUNTMP(MAXIJ)
+      REAL(fp)            :: A0, A1, A2, A3, B1, B2, B3
+      REAL(fp)            :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
+      REAL(fp)            :: SUNTMP(MAXIJ)
       
       !=================================================================
       ! OHNO3TIME begins here!
@@ -6062,8 +7137,8 @@
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(OUT)   :: ALK1, ALK2  ! [kg]
-      REAL(fp),         INTENT(OUT)   :: Kt1, Kt2, Kt1N, Kt2N ! [s-1]
+      REAL(fp),       INTENT(OUT)   :: ALK1, ALK2  ! [kg]
+      REAL(fp),       INTENT(OUT)   :: Kt1, Kt2, Kt1N, Kt2N ! [s-1]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6088,27 +7163,27 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp),  PARAMETER :: PI = 3.14159265
-      REAL(fp)             :: N1, N2, Kt
-      REAL(fp)             :: HGF, ALK
-      REAL(fp)             :: RAD1, RAD2, RAD3
-      REAL(fp)             :: term1a, term2a, term3a
-      REAL(fp)             :: term1b, term2b, term3b
-      REAL(fp)             :: term1aN, term2aN, term3aN
-      REAL(fp)             :: term1bN, term2bN, term3bN
-      REAL(fp)             :: const1, const2, const1N, const2N
-      REAL(fp)             :: a1, a2, b1, b2, a1N, a2N, b1N, b2N
-      REAL(fp),  PARAMETER :: MINDAT = 1.e-20_fp
-      INTEGER            :: IRH
-      REAL(fp),  PARAMETER :: gamma_SO2 = 0.11e+0_fp !from Worsnop et al. (1989)
-      REAL(fp),  PARAMETER :: gamma_HNO3 = 0.2e+0_fp !from JPL [2001] 
-      REAL(fp),  PARAMETER :: Dg = 0.2e+0_fp !gas phase diffusion coeff. [cm2/s]
-      REAL(fp),  PARAMETER :: v = 3.0e+4_fp  !cm/s
+      REAL(fp), PARAMETER :: PI = 3.14159265
+      REAL(fp)            :: N1, N2, Kt
+      REAL(fp)            :: HGF, ALK
+      REAL(fp)            :: RAD1, RAD2, RAD3
+      REAL(fp)            :: term1a, term2a, term3a
+      REAL(fp)            :: term1b, term2b, term3b
+      REAL(fp)            :: term1aN, term2aN, term3aN
+      REAL(fp)            :: term1bN, term2bN, term3bN
+      REAL(fp)            :: const1, const2, const1N, const2N
+      REAL(fp)            :: a1, a2, b1, b2, a1N, a2N, b1N, b2N
+      REAL(fp), PARAMETER :: MINDAT = 1.e-20_fp
+      INTEGER             :: IRH
+      REAL(fp), PARAMETER :: gamma_SO2 = 0.11e+0_fp !from Worsnop et al. (1989)
+      REAL(fp), PARAMETER :: gamma_HNO3 = 0.2e+0_fp !from JPL [2001] 
+      REAL(fp), PARAMETER :: Dg = 0.2e+0_fp !gas phase diffusion coeff. [cm2/s]
+      REAL(fp), PARAMETER :: v = 3.0e+4_fp  !cm/s
 
       ! HEMCO update
-      REAL(fp)                       :: FEMIS
-      INTEGER                      :: NTOP
-      LOGICAL                      :: FOUND
+      REAL(fp)            :: FEMIS
+      INTEGER             :: NTOP
+      LOGICAL             :: FOUND
  
       !=================================================================
       ! GET_ALK begins here!
@@ -6346,6 +7421,8 @@
 !  04 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%ITS_AN_AEROSOL_SIM
 !  30 May 2013 - S. Farina   - Allocate PSO4_SO2AQ for TOMAS
+!  12 Sep 2013 - M. Sulprizio- Add PSO4_dust and PNIT_dust for acid update on
+!                              dust aerosols (T.D. Fairlie)
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !EOP
@@ -6391,6 +7468,18 @@
       ALLOCATE( PNITs( IIPAR, JJPAR, LLCHEM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PNITs' )
       PNITs = 0e+0_fp
+
+      !tdf
+      ALLOCATE( PSO4_dust( IIPAR, JJPAR, LLTROP, NDSTBIN ),
+     &          STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4_dust' )
+      PSO4_dust = 0e+0_fp
+
+      !tdf
+      ALLOCATE( PNIT_dust( IIPAR, JJPAR, LLTROP, NDSTBIN ),
+     &          STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PNIT_dust' )
+      PNIT_dust = 0e+0_fp
 
       ALLOCATE( SOx_SCALE( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOx_SCALE' )
@@ -6457,6 +7546,18 @@
       DRYSO4aq = 0
       DRYNH4aq = 0  
 
+      !tdf dust-sulfate flags
+      DRYSO4d1 = 0
+      DRYSO4d2 = 0
+      DRYSO4d3 = 0
+      DRYSO4d4 = 0
+
+      !tdf dust-nitrate flags
+      DRYNITd1 = 0
+      DRYNITd2 = 0
+      DRYNITd3 = 0
+      DRYNITd4 = 0
+
       ! Locate position of each tracer in DEPSAV
       IF ( Input_Opt%LDRYD ) THEN
          DO N = 1, Input_Opt%NUMDEP
@@ -6489,6 +7590,24 @@
                   DRYSO4aq = N
                CASE ( 'NH4aq' )
                   DRYNH4aq = N
+               !tdf dust-sulfate
+               CASE ( 'SO4D1' )
+                  DRYSO4d1 = N
+               CASE ( 'SO4D2' )
+                  DRYSO4d2 = N
+               CASE ( 'SO4D3' )
+                  DRYSO4d3 = N
+               CASE ( 'SO4D4' )
+                  DRYSO4d4 = N
+               !tdf dust-nitrate
+               CASE ( 'NITD1' )
+                  DRYNITd1 = N
+               CASE ( 'NITD2' )
+                  DRYNITd2 = N
+               CASE ( 'NITD3' )
+                  DRYNITd3 = N
+               CASE ( 'NITD4' )
+                  DRYNITd4 = N
                CASE DEFAULT
                   ! Nothing
             END SELECT        
@@ -6547,6 +7666,9 @@
       IF ( ALLOCATED( SO4_BIOF   ))  DEALLOCATE( SO4_BIOF   )
 #endif
       IF ( ALLOCATED( PSO4_ss    ) ) DEALLOCATE( PSO4_ss    )
+      
+      IF ( ALLOCATED( PSO4_dust  ) ) DEALLOCATE( PSO4_dust  ) !tdf
+      IF ( ALLOCATED( PNIT_dust  ) ) DEALLOCATE( PNIT_dust  ) !tdf
       IF ( ALLOCATED( SOx_SCALE  ) ) DEALLOCATE( SOx_SCALE  )
       IF ( ALLOCATED( SSTEMP     ) ) DEALLOCATE( SSTEMP     )
       IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )

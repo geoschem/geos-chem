@@ -902,7 +902,7 @@ subfun.o                    : subfun.F
 sulfate_mod.o               : sulfate_mod.F                                  \
                               chemgrid_mod.o          comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
-                              drydep_mod.o                                   \
+                              drydep_mod.o            dust_mod.o             \
                               future_emissions_mod.o  get_ndep_mod.o         \
                               pbl_mix_mod.o                                  \
                               wetscav_mod.o           tomas_mod.o            \

@@ -202,6 +202,8 @@
 !                              NO2, and NO3 are now tracers.
 !  13 Aug 2013 - M. Sulprizio- Modify AD07_HC for updated SOA (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  12 Sep 2013 - M. Sulprizio- Modify AD06 to include dust alkalinity tracers
+!                              (T.D. Fairlie)
 !  08 Nov 2013 - M. Sulprizio- Removed CTO3 and LTO3. They are no longer used
 !                              because O3 is now a tracer.
 !  15 Aug 2014 - R. Yantosca - Removed reference to biofuel_mod.F
@@ -323,7 +325,8 @@
       ! ND06: Dust emissions
       !================================================================
       IF ( ND06 > 0 .and. LDUST ) THEN 
-         ALLOCATE( AD06( IIPAR, JJPAR, NDSTBIN ), STAT=AS )
+         !tdf Include dust alkalinity tracers
+         ALLOCATE( AD06( IIPAR, JJPAR, NDSTBIN*2 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD06' )
       ENDIF
 
