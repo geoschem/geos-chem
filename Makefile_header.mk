@@ -173,6 +173,7 @@
 #  04 Jun 2015 - R. Yantosca - Bug fix: don't turn on UCX except for CHEM=UCX
 #  15 Jun 2015 - R. Yantosca - Now define the HEMCO standalone link command
 #                              separately from the GEOS-Chem link command
+#  07 Jul 2015 - M. Sulprizio- Add option for CHEM=SOA_SVPOA
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -335,6 +336,13 @@ endif
 REGEXP               :=(^[Ss][Oo][Aa])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   KPP_CHEM           :=SOA
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=SOA_SVPOA %%%%%
+REGEXP               :=(^[Ss][Oo][Aa]_[Ss][Vv][Pp][Oo][Aa])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=SOA_SVPOA
   IS_CHEM_SET        :=1
 endif
 

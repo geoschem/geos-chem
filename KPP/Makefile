@@ -127,6 +127,7 @@ clean:
 realclean:
 	@$(MAKE) -C benchmark        clean
 	@$(MAKE) -C SOA              clean
+	@$(MAKE) -C SOA_SVPOA        clean
 	@$(MAKE) -C UCX              clean
 	@$(MAKE) -C NOx_Ox_HC_Aer_Br clean
 
