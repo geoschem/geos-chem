@@ -183,7 +183,7 @@ CONTAINS
 !
     LOGICAL                         :: LSTRAT,  FOUND
     INTEGER                         :: nHcoSpc, HMRC
-    CHARACTER(LEN=255)              :: OptName, LOC
+    CHARACTER(LEN=255)              :: OptName, LOC, MSG
 
     !=================================================================
     ! HCOI_GC_INIT begins here!
@@ -335,7 +335,7 @@ CONTAINS
     IF( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC )
 
     !-----------------------------------------------------------------
-    ! Update logical switches in Input_Opt 
+    ! Update and check logical switches in Input_Opt 
     !-----------------------------------------------------------------
 
     ! Soil NOx
@@ -343,14 +343,28 @@ CONTAINS
 
     ! Ginoux dust emissions
     IF ( ExtState%DustGinoux ) THEN
-       Input_Opt%LDUST      = .TRUE.
+       IF ( .not. Input_Opt%LDUST ) THEN
+          MSG = 'DustGinoux is on in HEMCO but LDUST=F in input.geos'
+          CALL ERROR_STOP( MSG, LOC )
+       ENDIF
        Input_Opt%LDEAD      = .FALSE.
     ENDIF
 
     ! DEAD dust emissions
     IF ( ExtState%DustDead ) THEN
-       Input_Opt%LDUST      = .TRUE.
+       IF ( .not. Input_Opt%LDUST ) THEN
+          MSG = 'DustDead is on in HEMCO but LDUST=F in input.geos'
+          CALL ERROR_STOP( MSG, LOC )
+       ENDIF
        Input_Opt%LDEAD      = .TRUE.
+    ENDIF
+
+    ! Dust alkalinity
+    IF ( ExtState%DustAlk ) THEN
+       IF ( .not. Input_Opt%LDSTUP ) THEN
+          MSG = 'DustAlk is on in HEMCO but LDSTUP=F in input.geos'
+          CALL ERROR_STOP( MSG, LOC )
+       ENDIF
     ENDIF
 
     !-----------------------------------------------------------------

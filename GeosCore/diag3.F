@@ -563,6 +563,7 @@
 !   # : Field    : Description                     : Units      : Scale factor
 !  --------------------------------------------------------------------------
 !  (1)  DUST     : Soil dust (4 different classes) : kg         : 1
+ 
 !******************************************************************************
 !
       IF ( ND06 > 0 .and. Input_Opt%LDUST .and. Input_Opt%LEMIS ) THEN
@@ -619,6 +620,33 @@
      &                      UNIT,      NN, 1, -1, .FALSE.,  FACTOR, RC )
 
          ENDDO !N
+
+         ! Include Dust alkalinity sources   tdf 6/18/2K8
+         IF ( Input_Opt%LDSTUP ) THEN
+            DO N = 5, Input_Opt%N_DUST_BINS*2
+
+               SELECT CASE ( N )
+                  CASE ( 5 )
+                     NN         = IDTDAL1
+                     DiagnName  = 'AD06_DSTAL1'
+                  CASE ( 6 )
+                     NN         = IDTDAL2
+                     DiagnName  = 'AD06_DSTAL2'
+                  CASE ( 7 )
+                     NN         = IDTDAL3
+                     DiagnName  = 'AD06_DSTAL3'
+                  CASE ( 8 )
+                     NN         = IDTDAL4
+                     DiagnName  = 'AD06_DSTAL4'
+               END SELECT
+
+               ! Write to HEMCO diagnostics to bpch file
+               CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                         UNIT,      NN, 1, -1, .FALSE.,  FACTOR,
+     &                         RC )
+            ENDDO
+         ENDIF
+
       ENDIF     
 !
 !******************************************************************************

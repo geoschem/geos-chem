@@ -79,10 +79,11 @@
       ! Changed PD22 from 23 to 28 for ALD2, MVK, MACR, HAC, GLYC (mps, 5/27/14)
       ! Changed PD21 to be dynamically related to NAER and NDUST (dar, 3/6/15)
       ! Change PD68 from 4 to 13 to include new State_Met AirQnts (ewl, 4/30/15)
+      ! Changed PD05 from 10 to 14 (tdf, 03/02/09)
       !=================================================================
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
-      INTEGER, PARAMETER :: PD05=10        
+      INTEGER, PARAMETER :: PD05=14
       INTEGER, PARAMETER :: PD06=NDSTBIN
       ! +3 for SEAC4RS SOA tracers (jaf, 6/25/13)
       INTEGER, PARAMETER :: PD07=15

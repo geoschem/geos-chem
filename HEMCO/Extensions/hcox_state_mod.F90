@@ -100,6 +100,7 @@ MODULE HCOX_STATE_MOD
      LOGICAL                   :: Custom         ! Customizable ext.
      LOGICAL                   :: DustDead       ! DEAD dust model
      LOGICAL                   :: DustGinoux     ! Ginoux dust emissions
+     LOGICAL                   :: DustAlk        ! Dust alkalinity
      LOGICAL                   :: LightNOx       ! Lightning NOx
      LOGICAL                   :: ParaNOx        ! PARANOX ship emissions
      LOGICAL                   :: SoilNOx        ! Soil NOx emissions
@@ -289,6 +290,7 @@ CONTAINS
     ExtState%Custom         = .FALSE.
     ExtState%DustDead       = .FALSE.
     ExtState%DustGinoux     = .FALSE.
+    ExtState%DustAlk        = .FALSE.
     ExtState%LightNOx       = .FALSE.
     ExtState%ParaNOx        = .FALSE.
     ExtState%SoilNOx        = .FALSE.
