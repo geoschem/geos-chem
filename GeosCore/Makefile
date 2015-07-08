@@ -555,6 +555,7 @@ diag63_mod.o                : diag63_mod.F                                   \
                               tracerid_mod.o          hcoi_gc_main_mod.o
 
 diagnostics_mod.o           : diagnostics_mod.F90                            \
+                              chemgrid_mod.o                                 \
                               drydep_mod.o                                   \
                               hcoi_gc_main_mod.o                             \
                               tracer_mod.o                                   \
