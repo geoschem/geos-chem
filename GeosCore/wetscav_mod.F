@@ -154,6 +154,7 @@
 !                              over land/ice, 10 m/s over water).
 !  23 Jun 2015 - M. Sulprizio- Add impaction scavenging for hydrophobic BC and
 !                              homogeneous IN removal from Qiaoqiao Wang
+!  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -174,7 +175,8 @@
 #else
       ! SOAupdate: Increase NSOLMAX from 60 to 110 for SOA + semivol POA
       !  (jje, mpayer,7/5/11)
-      INTEGER, PARAMETER   :: NSOLMAX = 110     ! Max # of soluble tracers
+      ! Increase NSOLMAX to 111 for marine organic aerosol update (ewl, 7/8/15)
+      INTEGER, PARAMETER   :: NSOLMAX = 111     ! Max # of soluble tracers
                                                 !  for regular G-C runs
 #endif
       !REAL(fp),  PARAMETER   :: EPSILON = 1e-32_fp   ! A very small positive #
@@ -1823,6 +1825,14 @@
          ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
+      ! Marine Organics INSOLUBLE
+      !-------------------------------
+      ELSE IF ( N == IDTMOPO ) THEN
+         ! Force not to be lost in convective updraft for now
+         F    = 0d0
+         ISOL = GET_ISOL( N, N_TRACERS )
+
+      !-------------------------------
       ! MTPA (liquid phase only)
       !-------------------------------
       ! SOAudpate new mtp (hotp 5/24/10) 
@@ -2824,10 +2834,7 @@
 !
       USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTBCPO,   IDTDST1,  IDTHNO3 
-      USE TRACERID_MOD,       ONLY : IDTDST2,   IDTDST3,  IDTDST4
-      USE TRACERID_MOD,       ONLY : IDTOCPO,   IDTPOA1,  IDTPOA2
-      USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC
+      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2899,7 +2906,8 @@
          ELSE   
             IF ( N == IDTBCPO   .or. N == IDTHNO3 .or.
      &           N == IDTDST1   .or. N == IDTDST2 .or.
-     &           N == IDTDST3   .or. N == IDTDST4 ) THEN
+     &           N == IDTDST3   .or. N == IDTDST4 .or.
+     &           N == IDTMOPO ) THEN
                FF=1d0
             ELSE 
                FF=0.5d0
@@ -3019,44 +3027,9 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTPB,   IDTBE7,   IDTHNO3, IDTH2O2
-      USE TRACERID_MOD,       ONLY : IDTCH2O, IDTMP,    IDTSO2,  IDTSO4 
-      USE TRACERID_MOD,       ONLY : IDTSO4s, IDTSO4aq, IDTMSA,  IDTNH3 
-      USE TRACERID_MOD,       ONLY : IDTNH4,  IDTNH4aq, IDTNIT,  IDTNITs
-      USE TRACERID_MOD,       ONLY : IDTAS,   IDTAHS,   IDTLET,  IDTBCPI
-      USE TRACERID_MOD,       ONLY : IDTOCPI, IDTBCPO,  IDTOCPO, IDTDST1
-      USE TRACERID_MOD,       ONLY : IDTDST2, IDTDST3,  IDTDST4, IDTSALA
-      USE TRACERID_MOD,       ONLY : IDTSALC
-      USE TRACERID_MOD,       ONLY : IS_Hg2,  IS_HgP
-      USE TRACERID_MOD,       ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC
-      USE TRACERID_MOD,       ONLY : IDTSOAG,   IDTSOAM
-      USE TRACERID_MOD,       ONLY : IDTMOBA,   IDTPROPNN
-      USE TRACERID_MOD,       ONLY : IDTISOPN,  IDTMMN
-      USE TRACERID_MOD,       ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
-      USE TRACERID_MOD,       ONLY : IDTHOBr,   IDTHBr,    IDTBr2
-      USE TRACERID_MOD,       ONLY : IDTHCl ! SDE 04/17/13
-      USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
-      ! SOAupdate:  update biogenics (new mtp) (hotp 5/24/10)
-      USE TRACERID_MOD,       ONLY : IDTMTPA,  IDTLIMO,  IDTMTPO
-      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD,       ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD,       ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD,       ONLY : IDTISOG1, IDTISOG2, IDTISOG3
-      ! SOAupdate: semivolpoa2: add POG (hotp 3/2/09)
-      USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOA2
-      USE TRACERID_MOD,       ONLY : IDTPOG1,  IDTPOG2
-      ! SOAupdate: semivolpoa4opoa: add OPOA, OPOG (hotp 3/18/09)
-      USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOA2
-      USE TRACERID_MOD,       ONLY : IDTOPOG1, IDTOPOG2
-      ! SOAupdate: lumped aromatic/IVOC aerosol (hotp 5/12/10)
-      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
-      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
-      USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+      USE TRACERID_MOD
 
 #if defined( TOMAS )
-      USE TRACERID_MOD, ONLY : IDTH2SO4,IDTNK1,   IDTSF1,  IDTSS1
-      USE TRACERID_MOD, ONLY : IDTECIL1,IDTOCIL1, IDTOCOB1,IDTDUST1
       USE TOMAS_MOD,    ONLY : ICOMP,   IBINS
 #endif
 !
@@ -3066,16 +3039,16 @@
       INTEGER,        INTENT(IN)  :: J          ! Latitude index
       INTEGER,        INTENT(IN)  :: L          ! Level index
       INTEGER,        INTENT(IN)  :: N          ! Tracer number
-      REAL(fp),         INTENT(IN)  :: K_RAIN     ! Rainout rate constant [1/s]
-      REAL(fp),         INTENT(IN)  :: DT         ! Timestep for rainout event [s]
-      REAL(fp),         INTENT(IN)  :: F          ! Fraction of grid box that is
+      REAL(fp),       INTENT(IN)  :: K_RAIN     ! Rainout rate constant [1/s]
+      REAL(fp),       INTENT(IN)  :: DT         ! Timestep for rainout event [s]
+      REAL(fp),       INTENT(IN)  :: F          ! Fraction of grid box that is
                                                 !  precipitating [unitless]
       TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input options
       TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),         INTENT(OUT) :: RAINFRAC   ! Fraction of tracer lost 
+      REAL(fp),       INTENT(OUT) :: RAINFRAC   ! Fraction of tracer lost 
                                                 !  to rainout [unitless]
 ! 
 ! !REVISION HISTORY: 
@@ -3126,6 +3099,7 @@
 !                              inverted to be consistent with Mari et al (2000).
 !  23 Jun 2015 - M. Sulprizio- Add impaction scavenging for hydrophobic BC and
 !                              homogeneous IN removal from Qiaoqiao Wang
+!  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4133,8 +4107,20 @@
          ! Coarse seasalt (aerosol)
          !------------------------------
          ELSE IF ( N == IDTSALA .or. N == IDTSALC ) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )      
-  
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )   
+
+         !-----------------------------
+         ! ORGANICS INSOLUBLE
+         !-----------------------------
+         ELSE IF ( N == IDTMOPO ) THEN
+            ! No rainout
+            RAINFRAC = 0.0D0
+
+         !-----------------------------
+         ! ORGANICS SOLUBLE
+         !-----------------------------
+         ELSE IF ( N == IDTMOPI ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT ) 
   
          !--------------------------------------
          ! SOA (aerosol)
@@ -4359,46 +4345,12 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TRACERID_MOD, ONLY : IDTPB,    IDTBE7,   IDTHNO3, IDTH2O2 
-      USE TRACERID_MOD, ONLY : IDTCH2O,  IDTMP,    IDTSO2,  IDTSO4  
-      USE TRACERID_MOD, ONLY : IDTSO4s,  IDTSO4aq, IDTMSA,  IDTNH3   
-      USE TRACERID_MOD, ONLY : IDTNH4,   IDTNH4aq, IDTNIT,  IDTNITs  
-      USE TRACERID_MOD, ONLY : IDTAS,    IDTAHS,   IDTLET,  IDTBCPI 
-      USE TRACERID_MOD, ONLY : IDTOCPI,  IDTBCPO,  IDTOCPO, IDTDST1 
-      USE TRACERID_MOD, ONLY : IDTDST2,  IDTDST3,  IDTDST4, IDTSALA 
-      USE TRACERID_MOD, ONLY : IDTSALC
-      USE TRACERID_MOD, ONLY : IS_Hg2,   IS_HgP
-      USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTGLYC
-      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
-      USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
-      USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
-      USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
-      ! jpp 4/27/09
-      USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
-      USE TRACERID_MOD, ONLY : IDTHCl
-      USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
-      ! SOAupdate: update biogenics (new mtp) (hotp 5/24/10)
-      USE TRACERID_MOD, ONLY : IDTMTPA,  IDTLIMO,  IDTMTPO
-      USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD, ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD, ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD, ONLY : IDTISOG1, IDTISOG2, IDTISOG3
-      ! SOAudpate: semivolpoa2: add POG (hotp 3/2/09)
-      USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOA2,  IDTPOG1,  IDTPOG2
-      ! SOAupdate: semivolpoa4opoa: add OPOA, OPOG (hotp 3/18/09)
-      USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOA2, IDTOPOG1, IDTOPOG2
-      ! SOAupdate: lumped aromatic/IVOC aerosol (hotp 5/12/10)
-      USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
-      USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
-
+      USE TRACERID_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState !(sfarina 2/20/13)
 
 #if defined( TOMAS )
-      USE TRACERID_MOD, ONLY : IDTH2SO4, IDTNK1,   IDTSF1,  IDTSS1
-      USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1,IDTDUST1
       USE TOMAS_MOD,    ONLY : IBINS,    ICOMP
       USE DAO_MOD,      ONLY : CONVERT_UNITS
       USE UNITCONV_MOD
@@ -4499,6 +4451,7 @@
 !  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
 !  23 Jun 2015 - E. Lundgren - Adjust 5/12/15 TOMAS bug fix to convert
 !                              kg/kg total air <-> kg for new convection units
+!  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4809,6 +4762,16 @@
       ELSE IF ( N == IDTSALC ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+
+      !-----------------------------
+      ! Marine Organics INSOLUBLE
+      !-----------------------------
+      ELSE IF ( N == IDTMOPO ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+      ELSE IF ( N == IDTMOPI ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
  
       !------------------------------
       ! MTPA (liquid & gas)
@@ -8072,42 +8035,9 @@
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD, ONLY : IDTPB,     IDTBE7,    IDTHNO3, IDTH2O2 
-      USE TRACERID_MOD, ONLY : IDTCH2O,   IDTMP,     IDTSO2,  IDTSO4  
-      USE TRACERID_MOD, ONLY : IDTSO4s,   IDTSO4aq,  IDTMSA,  IDTNH3   
-      USE TRACERID_MOD, ONLY : IDTNH4,    IDTNH4aq,  IDTNIT,  IDTNITs  
-      USE TRACERID_MOD, ONLY : IDTAS,     IDTAHS,    IDTLET,  IDTBCPI 
-      USE TRACERID_MOD, ONLY : IDTOCPI,   IDTBCPO,   IDTOCPO, IDTDST1 
-      USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,   IDTDST4, IDTSALA 
-      USE TRACERID_MOD, ONLY : IDTSALC
-      USE TRACERID_MOD, ONLY : IS_Hg2,    IS_HgP
-      USE TRACERID_MOD, ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC
-      USE TRACERID_MOD, ONLY : IDTSOAG,   IDTSOAM
-      USE TRACERID_MOD, ONLY : IDTMOBA,   IDTPROPNN
-      USE TRACERID_MOD, ONLY : IDTISOPN,  IDTMMN
-      USE TRACERID_MOD, ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
-      USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr,    IDTBr2
-      ! SDE 04/17/13
-      USE TRACERID_MOD, ONLY : IDTHCl
-      USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC,  IDTPOPG
-      ! SOAudpate: update biogenics (new mtp) (hotp 5/24/10)
-      USE TRACERID_MOD, ONLY : IDTMTPA,  IDTLIMO,  IDTMTPO
-      USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD, ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD, ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD, ONLY : IDTISOG1, IDTISOG2, IDTISOG3
-      ! SOAupdate: semivolpoa2: add POG (hotp 3/2/09)
-      USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOA2,  IDTPOG1,  IDTPOG2
-      ! semivolpoa4opoa: add OPOA, OPOG (hotp 3/18/09)
-      USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOA2, IDTOPOG1, IDTOPOG2
-      ! lumped aromatic/IVOC aerosol (hotp 5/12/10)
-      USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
-      USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+      USE TRACERID_MOD
 
 #if defined( TOMAS )
-      USE TRACERID_MOD, ONLY : IDTH2SO4,  IDTNK1,    IDTSF1,  IDTSS1
-      USE TRACERID_MOD, ONLY : IDTECIL1,  IDTOCIL1,  IDTOCOB1,IDTDUST1
       USE TOMAS_MOD,    ONLY : IBINS
 #endif
 !
@@ -8143,6 +8073,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8509,6 +8440,17 @@
             IDWETD(NSOL) = IDTSALC
 
          !-----------------------------
+         ! Marine Organics
+         !-----------------------------
+         ELSE IF ( N == IDTMOPO ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTMOPO
+
+         ELSE IF ( N == IDTMOPI ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTMOPI
+
+         !-----------------------------
          ! Total and tagged Hg tracers 
          !-----------------------------
          ELSE IF ( IS_Hg2( N ) ) THEN
@@ -8705,12 +8647,13 @@
 !  23 Apr 2013 - R. Yantosca - Updated comments
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
       ! For fields from Input_Opt
-      LOGICAL :: LCARB,  LDUST, LSOA
+      LOGICAL :: LCARB,  LDUST, LSOA,   LMOA
       LOGICAL :: LSSALT, LSULF, LSPLIT, LCRYST
       LOGICAL :: LUCX
 
@@ -8725,6 +8668,7 @@
       LCARB  = Input_Opt%LCARB
       LDUST  = Input_Opt%LDUST
       LSOA   = Input_Opt%LSOA
+      LMOA   = Input_Opt%LMOA
       LSSALT = Input_Opt%LSSALT
       LSULF  = Input_Opt%LSULF
       LSPLIT = Input_Opt%LSPLIT
@@ -8739,13 +8683,12 @@
          !-----------------------
          ! Fullchem simulation
          !-----------------------
-         NMAX = 14                                   ! HNO3,  H2O2,   CH2O,
+         NMAX = 18                                   ! HNO3,  H2O2,   CH2O,
                                                      ! MP,    GLYX,   MGLY,
                                                      ! GLYC,  MOBA,   ISOPN,
                                                      ! MVKN,  PROPNN, RIP,
-                                                     ! IEPOX, PMNN
-
-         NMAX = NMAX + 4                             ! HBr, HOBr, Br2, BrNO3
+                                                     ! IEPOX, PMNN,   HBr, 
+                                                     ! HOBr,  Br2,    BrNO3
 
          IF ( LSULF )    NMAX = NMAX + 8             ! SO2,   SO4,    MSA,
                                                      ! NH3,   NH4,    NIT
@@ -8762,6 +8705,9 @@
          ELSE                                        !%% non-SOA SIMULATION %%
             IF ( LCARB ) NMAX = NMAX + 4             ! BCPI, BCPO, OCPI, OCPO
          ENDIF
+
+         IF ( LMOA )     NMAX = NMAX + 2             ! marine organic aerosols
+                                                     ! (MOPO,  MOPI)
 
 #if defined( TOMAS )
          IF ( IDTNK1 > 0 ) THEN                      !%% TOMAS SIMULATION %%

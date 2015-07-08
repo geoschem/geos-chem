@@ -223,6 +223,9 @@ MODULE GIGC_State_Met_Mod
                                             !  (I,J) occupied by each land type
      REAL(fp), POINTER :: XLAI      (:,:,:) ! LAI per land type, this month
      REAL(fp), POINTER :: XLAI2     (:,:,:) ! LAI per land type, next month
+     REAL(fp), POINTER :: XCHLR     (:,:,:) ! CHLR per land type, this month
+     REAL(fp), POINTER :: XCHLR2    (:,:,:) ! CHLR per land type, next month
+
 
 
   END TYPE MetState
@@ -246,6 +249,7 @@ MODULE GIGC_State_Met_Mod
 !                              definition of PMID as arithmetic average P. 
 !                              Add MOISTMW to use TCVV with moist mixing ratio. 
 !  25 May 2015 - C. Keller   - Removed SUNCOSmid5 (now calculated by HEMCO).
+!  08 Jul 2015 - E. Lundgren - Add XCHLR and XCHLR2 for organic marine aerosols
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -939,6 +943,14 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%XLAI2    = 0.0_fp
 
+    ALLOCATE( State_Met%XCHLR      ( IM, JM, NTYPE ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%XCHLR     = 0.0_fp
+
+    ALLOCATE( State_Met%XCHLR2     ( IM, JM, NTYPE ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%XCHLR2    = 0.0_fp
+
   END SUBROUTINE Init_GIGC_State_Met
 !EOC
 !------------------------------------------------------------------------------
@@ -1176,6 +1188,8 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%IUSE       )) DEALLOCATE( State_Met%IUSE       )
     IF ( ASSOCIATED( State_Met%XLAI       )) DEALLOCATE( State_Met%XLAI       )
     IF ( ASSOCIATED( State_Met%XLAI2      )) DEALLOCATE( State_Met%XLAI2      )
+    IF ( ASSOCIATED( State_Met%XCHLR      )) DEALLOCATE( State_Met%XCHLR      )
+    IF ( ASSOCIATED( State_Met%XCHLR2     )) DEALLOCATE( State_Met%XCHLR2     )
 
    END SUBROUTINE Cleanup_GIGC_State_Met
 !EOC

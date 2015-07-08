@@ -197,7 +197,8 @@
 ! !DEFINED PARAMETERS:
 !
       ! SOAupdate: 55 to 105 jje (8/19/2010)
-      INTEGER,  PARAMETER :: MAXDEP    = 105       ! Max # of depositing species
+      ! Marine organic aerosols update: 105 to 107 (ewl, 7/8/15)
+      INTEGER,  PARAMETER :: MAXDEP    = 107       ! Max # of depositing species
       REAL(f8), PARAMETER :: XCKMAN    = 0.4e+0_f8 ! Von Karman's constant
       INTEGER,  PARAMETER :: NR_MAX    = 200       ! # of seasalt bins 
       INTEGER,  PARAMETER :: NDRYDTYPE = 11        ! # of drydep land types
@@ -3899,6 +3900,7 @@
 !                              DIFFG, where it is in the denominator.
 !  04 Sep 2013 - R. Yantosca - Improve printout of drydep species
 !  15 Jan 2015 - R. Yantosca - Now save NTRAIND to Input_Opt%NTRAIND
+!  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4645,6 +4647,17 @@
             XMW(NUMDEP)     = 12e-3_f8
             AIROSOL(NUMDEP) = .TRUE.
 
+         ! Hydrophilic Marine OC (aerosol)
+         ELSE IF ( N == IDTMOPI ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTMOPI
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'MOPI'
+            HSTAR(NUMDEP)   = 0.0e+0_f8
+            F0(NUMDEP)      = 0.0e+0_f8
+            XMW(NUMDEP)     = 12e-3_f8
+            AIROSOL(NUMDEP) = .TRUE.
+
          ! Hydrophobic BC (aerosol)
          ELSE IF ( N == IDTBCPO ) THEN
             NUMDEP          = NUMDEP + 1
@@ -4662,6 +4675,17 @@
             NTRAIND(NUMDEP) = IDTOCPO
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'OCPO'
+            HSTAR(NUMDEP)   = 0.0e+0_f8
+            F0(NUMDEP)      = 0.0e+0_f8
+            XMW(NUMDEP)     = 12e-3_f8
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! Hydrophobic Marine OC (aerosol)
+         ELSE IF ( N == IDTMOPO ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTMOPO
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'MOPO'
             HSTAR(NUMDEP)   = 0.0e+0_f8
             F0(NUMDEP)      = 0.0e+0_f8
             XMW(NUMDEP)     = 12e-3_f8

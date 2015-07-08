@@ -115,7 +115,8 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LCRYST             
      LOGICAL                     :: LCARB
      LOGICAL                     :: LBRC              
-     LOGICAL                     :: LSOA               
+     LOGICAL                     :: LSOA
+     LOGICAL                     :: LMOA
      LOGICAL                     :: LSVPOA
      LOGICAL                     :: LDUST              
      LOGICAL                     :: LDEAD              
@@ -868,6 +869,7 @@ CONTAINS
     Input_Opt%LCARB                  = .FALSE.
     Input_Opt%LBRC                   = .FALSE.
     Input_Opt%LSOA                   = .FALSE.
+    Input_Opt%LMOA                   = .FALSE.
     Input_Opt%LSVPOA                 = .FALSE.
     Input_Opt%LDUST                  = .FALSE.
     Input_Opt%LDEAD                  = .FALSE.

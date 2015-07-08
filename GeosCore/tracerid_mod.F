@@ -73,6 +73,7 @@
 !                              emissions are now handled in HEMCO
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
+!  07 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 
 !******************************************************************************
 !
@@ -165,6 +166,9 @@
       INTEGER            :: IDTPYPAN,IDTMAP
       INTEGER            :: IDTAP
       INTEGER            :: IDTMPN
+
+      ! Hydrophobic and hydrophilic marine organic aerosols (ewl, 7/7/15)
+      INTEGER            :: IDTMOPO, IDTMOPI
 
       ! For tagged Ox simulation
       INTEGER            :: IDTO3Strt
@@ -805,6 +809,17 @@
 
             CASE ( 'SALC' )
                IDTSALC  = N
+
+            !-------------------------------
+            ! Marine organic aerosols
+            !-------------------------------
+
+            CASE ( 'MOPO' )
+               IDTMOPO  = N
+
+            CASE ( 'MOPI' )
+               IDTMOPI  = N
+
 
             !--------------------------------
             ! Bromine (jpp, 6/13/07)
@@ -3650,6 +3665,8 @@
       IDTDST4   = 0
       IDTSALA   = 0
       IDTSALC   = 0
+      IDTMOPO   = 0
+      IDTMOPI   = 0
       IDTRN     = 0
       IDTPB     = 0
       IDTBE7    = 0

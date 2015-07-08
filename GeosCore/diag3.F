@@ -47,6 +47,7 @@
       USE DRYDEP_MOD                         ! For dry deposition
       USE TRACERID_MOD                       ! For tracer flags
       USE WETSCAV_MOD                        ! For wet deposition
+      
 #if   defined( TOMAS )
       USE TOMAS_MOD, ONLY : ICOMP, IDIAG, IBINS  !(win, 1/25/10)
 #endif
@@ -261,6 +262,7 @@
 !                              should be molec/cm2/s instead of atoms C/cm2/2.
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !  22 May 2015 - R. Yantosca - Replace NOXEXTENT with 2 in TOMAS #if blocks
+!  07 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1221,15 +1223,21 @@
          CATEGORY = 'SALTSRCE'
 
          ! Loop over seasalt tracers
-         DO N = 1, 2
+         DO N = 1, 4
 
-            ! At present we have 2 seasalts
+            ! At present we have 4 seasalts
             IF ( N == 1 ) THEN
                NN = IDTSALA
                DiagnName  = 'AD08_SALA'
             ELSEIF ( N == 2 ) THEN
                NN = IDTSALC
                DiagnName  = 'AD08_SALC'
+            ELSEIF ( N == 3 ) THEN
+               NN = IDTMOPO
+               DiagnName  = 'AD08_MOPO'
+            ELSEIF ( N == 4 ) THEN
+               NN = IDTMOPI
+               DiagnName  = 'AD08_MOPI'
             ENDIF
 
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
