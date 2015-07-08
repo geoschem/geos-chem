@@ -4455,7 +4455,7 @@
       IF ( ND05 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(05) = 10
+         NTRAC(05) = 14
 
          ! Loop over tracers
          DO T = 1, NTRAC(05)
@@ -4512,6 +4512,26 @@
                   FNAME(T,05) = 'L(NO3) by DMS'
                   UNIT (T,05) = 'kg NO3'
                   MWT  (T,05) = 62e-3
+               CASE( 11 )
+                  NAME (T,05) = 'SO4dust'
+                  FNAME(T,05) = 'P(SO4) by dust O3'
+                  UNIT (T,05) = 'kg S'
+                  MWT  (T,05) = 32e-3
+               CASE( 12 )
+                  NAME (T,05) = 'NITdust'
+                  FNAME(T,05) = 'P(NIT) by dust HNO3'
+                  UNIT (T,05) = 'kg N'
+                  MWT  (T,05) = 14e-3
+               CASE( 13 )
+                  NAME (T,05) = 'H2SO4dust'
+                  FNAME(T,05) = 'P(SO4) by dust H2SO4'
+                  UNIT (T,05) = 'kg S'
+                  MWT  (T,05) = 32e-3
+               CASE( 14 )
+                  NAME (T,05) = 'HNO3ss'
+                  FNAME(T,05) = 'L(HNO3) on seasalt'
+                  UNIT (T,05) = 'kg N'
+                  MWT  (T,05) = 14e-3
                CASE DEFAULT
                   ! Nothing
             END SELECT

@@ -563,6 +563,7 @@
 !   # : Field    : Description                     : Units      : Scale factor
 !  --------------------------------------------------------------------------
 !  (1)  DUST     : Soil dust (4 different classes) : kg         : 1
+ 
 !******************************************************************************
 !
       IF ( ND06 > 0 .and. Input_Opt%LDUST .and. Input_Opt%LEMIS ) THEN
@@ -620,27 +621,31 @@
 
          ENDDO !N
 
-!tdf Include Dust alkalinity sources              tdf 6/18/2K8
+         ! Include Dust alkalinity sources   tdf 6/18/2K8
+         IF ( Input_Opt%LDSTUP ) THEN
+            DO N = 5, Input_Opt%N_DUST_BINS*2
 
-         DO N = 5, NDSTBIN*2
+               SELECT CASE ( N )
+                  CASE ( 5 )
+                     NN         = IDTDAL1
+                     DiagnName  = 'AD06_DSTAL1'
+                  CASE ( 6 )
+                     NN         = IDTDAL2
+                     DiagnName  = 'AD06_DSTAL2'
+                  CASE ( 7 )
+                     NN         = IDTDAL3
+                     DiagnName  = 'AD06_DSTAL3'
+                  CASE ( 8 )
+                     NN         = IDTDAL4
+                     DiagnName  = 'AD06_DSTAL4'
+               END SELECT
 
-            ! At present we have 4 dust bins
-
-            IF ( N == 5 ) NN = IDTDAL1
-            IF ( N == 6 ) NN = IDTDAL2
-            IF ( N == 7 ) NN = IDTDAL3
-            IF ( N == 8 ) NN = IDTDAL4
-!tdf
-            ! Save dust into ARRAY
-            ARRAY(:,:,1) = AD06(:,:,N) 
-
-            ! Write to BPCH file
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
-         ENDDO
+               ! Write to HEMCO diagnostics to bpch file
+               CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                         UNIT,      NN, 1, -1, .FALSE.,  FACTOR,
+     &                         RC )
+            ENDDO
+         ENDIF
 
       ENDIF     
 !

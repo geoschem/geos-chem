@@ -676,7 +676,7 @@ CONTAINS
           ENDIF
 #else
 
-          ! Get species name (i.e. DST1 .. DST4 for non TOMAS simualtions
+          ! Get species name (i.e. DST1 .. DST4) for non TOMAS simualtions
           WRITE( ISTR1,'(i1)' ) I
           SpcName   = 'DST'   // ISTR1
 
@@ -703,7 +703,50 @@ CONTAINS
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
+
        ENDDO 
+
+       ! Add diagnostics for dust alkalinity
+       IF ( Input_Opt%LDSTUP ) THEN
+
+          ! Get Ext. Nr of used extension
+          ExtNr = GetExtNr( 'DustAlk' )
+          IF ( ExtNr <= 0 ) THEN
+             CALL HCO_Error( 'Cannot find dust alk extension', RC, &
+                              THISLOC=LOC )
+             RETURN      
+          ENDIF
+
+          ! Do for each dust bin
+          DO I = 1, Input_Opt%N_DUST_BINS
+
+             ! Get species name (i.e. DSTAL1 .. DSTAL4)
+             WRITE( ISTR1,'(i1)' ) I
+             SpcName   = 'DSTAL' // ISTR1
+             DiagnName = 'AD06_' // TRIM( SpcName )
+
+             ! HEMCO species ID 
+             HcoID = GetHemcoId( TRIM( SpcName ), HcoState, LOC, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+
+             ! Create diagnostic container
+             CALL Diagn_Create( am_I_Root,                     & 
+                                HcoState  = HcoState,          &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &
+                                Cat       = -1,                &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg',              &
+                                COL       = HcoDiagnIDManual,  &
+                                AutoFill  = 1,                 &
+                                RC        = RC                  ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN
+          ENDDO
+       ENDIF
+
     ENDIF
 
   END SUBROUTINE Diagn_Dust
