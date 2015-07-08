@@ -2727,7 +2727,7 @@
          IF ( LDSTUP ) THEN
             ! Compute gas phase SO4 production again, as in offline case 
             ! RK1: SO2 + OH(g) [s-1]  (rjp, bmy, 3/23/03)
-            M    = State_Met%AIRDEN(L,I,J) * F
+            M    = State_Met%AIRDEN(I,J,L) * F
             KK   = K0 * M / Ki
             F1   = ( 1.e+0_fp + ( LOG10( KK ) )**2 )**( -1 )
             RK1  = ( K0 * M / ( 1.e+0_fp + KK ) ) * 0.6e+0_fp**F1 *
@@ -7470,13 +7470,13 @@
       PNITs = 0e+0_fp
 
       !tdf
-      ALLOCATE( PSO4_dust( IIPAR, JJPAR, LLTROP, NDSTBIN ),
+      ALLOCATE( PSO4_dust( IIPAR, JJPAR, LLCHEM, NDSTBIN ),
      &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4_dust' )
       PSO4_dust = 0e+0_fp
 
       !tdf
-      ALLOCATE( PNIT_dust( IIPAR, JJPAR, LLTROP, NDSTBIN ),
+      ALLOCATE( PNIT_dust( IIPAR, JJPAR, LLCHEM, NDSTBIN ),
      &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PNIT_dust' )
       PNIT_dust = 0e+0_fp
