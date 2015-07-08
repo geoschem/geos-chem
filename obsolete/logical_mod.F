@@ -77,6 +77,8 @@
 !                              simulation to Headers/gigc_input_opt_mod.F90
 !  13 Aug 2013 - M. Sulprizio- Added LSVPOA switch for semivolatile POA (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  12 Sep 2013 - M. Sulprizio- Added LDSTUP flag which triggers SO2 and HNO3
+!                              uptake on mineral dust (tdf 8/13/2K8)
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LMFCT for flux correction
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LAVHRRLAI and LMODISLAI
 !EOP
@@ -93,6 +95,7 @@
       LOGICAL :: LCOOKE          ! Use the C
       LOGICAL :: LDEAD           ! Use the DEAD/Zender dust algorithm?
       LOGICAL :: LDUST           ! Use dust aerosol tracers?
+      LOGICAL :: LDSTUP          ! Use acid uptake on dust aerosols? (tdf)
       LOGICAL :: LSULF           ! Use sulfate aerosol tracers?
       LOGICAL :: LSOA            ! Use secondary organic aerosol tracers?
       LOGICAL :: LSSALT          ! Use sea-salt aerosol tracers?
@@ -188,9 +191,7 @@
       LOGICAL :: L3HRBB3         ! Use GFED3 3-hr biomass burning?
       LOGICAL :: LPECCA          ! PCEEA BVOC emission model (mpb,2009)
       LOGICAL :: LRETRO          ! RETRO anthropogenic emissions (wfr, 3/8/11)
-![eml
-      LOGICAL :: LHIST           ! Use historical emissions?
-!eml]
+      LOGICAL :: LHIST           ! Use historical emissions? (eml)
       LOGICAL :: LWARWICK_VSLS   ! Use Warwick_s3 R(Br)n? (jpp 8/23/07)
       LOGICAL :: LSSABr2         ! Use sea salt Br2 emiss? (jpp, 3/28/2010)
       LOGICAL :: LFIX_PBL_BrO    ! Run 1ppt MBL BRO Sim.? (jpp 5/10/10)

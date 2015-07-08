@@ -145,6 +145,8 @@
 !                              with either TOMAS=yes or TOMAS40=yes
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
+!                              aerosols (T.D. Fairlie)
 !  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  12 Feb 2015 - C. Keller   - Added GET_F and GET_VUD. VUD is now stored in
 !                              State_Met. In an ESMF environment, it's values
@@ -1011,6 +1013,8 @@
 !  31 May 2013 - R. Yantosca - Now accept State_Chm, and pass it to TOMAS code
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
+!                              aerosols (T.D. Fairlie)
 !  18 Apr 2014 - R. Yantosca - Now make the F argument an assumed-shape array
 !                              so that we can pass a pointer array slice to it
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
@@ -1790,6 +1794,24 @@
          ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
+      ! NITD1 / NITD2 / NITD3 / NITD4 (aerosol)
+      ! tdf
+      !-------------------------------
+      ELSE IF ( N == IDTNITd1  .or. N == IDTNITd2 .or.
+     &          N == IDTNITd3   .or. N == IDTNITd4 ) THEN
+         CALL F_AEROSOL( KC, N, F, State_Met )
+         ISOL = GET_ISOL( N, N_TRACERS )
+
+      !-------------------------------
+      ! SO4D1 / SO4D2 / SO4D3 / SO4D4 (aerosol)
+      ! tdf
+      !-------------------------------
+      ELSE IF ( N == IDTSO4d1  .or. N == IDTSO4d2 .or.
+     &          N == IDTSO4d3   .or. N == IDTSO4d4 ) THEN
+         CALL F_AEROSOL( KC, N, F, State_Met )
+         ISOL = GET_ISOL( N, N_TRACERS )
+
+      !-------------------------------
       ! BC HYDROPHILIC (aerosol) or
       ! BC HYDROPHOBIC (aerosol) or
       ! OC HYDROPHILIC (aerosol) or
@@ -1830,6 +1852,15 @@
       ELSE IF ( N == IDTMOPO ) THEN
          ! Force not to be lost in convective updraft for now
          F    = 0d0
+         ISOL = GET_ISOL( N, N_TRACERS )
+
+      !-------------------------------
+      ! DSTAL1/DSTAL2/DSTAL3/DSTAL4 (dust alkalinity aerosol)
+      ! tdf
+      !-------------------------------
+      ELSE IF ( N == IDTDAL1 .or. N == IDTDAL2 .or.
+     &          N == IDTDAL3 .or. N == IDTDAL4 ) THEN
+         CALL F_AEROSOL( KC, N, F, State_Met )
          ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
@@ -3028,9 +3059,8 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD
-
 #if defined( TOMAS )
-      USE TOMAS_MOD,    ONLY : ICOMP,   IBINS
+      USE TOMAS_MOD,          ONLY : ICOMP,   IBINS
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -3092,6 +3122,8 @@
 !                              derived type object
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
+!                              aerosols (T.D. Fairlie)
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !  19 Dec 2014 - M. Sulprizio- Add bug fixes for CONV_H2O2 and CONV_NH3 from
@@ -4077,6 +4109,22 @@
             RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
          !------------------------------
+         ! Dust Nitrate (aerosol)
+         ! tdf
+         !------------------------------
+         ELSE IF ( N == IDTNITd1 .or. N == IDTNITd2 .or.
+     &             N == IDTNITd3 .or. N == IDTNITd4 ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+         !------------------------------
+         ! Dust Sulfate (aerosol)
+         ! tdf
+         !------------------------------
+         ELSE IF ( N == IDTSO4d1 .or. N == IDTSO4d2 .or.
+     &             N == IDTSO4d3 .or. N == IDTSO4d4 ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+         !------------------------------
          ! BC HYDROPHILIC (aerosol) or
          ! OC HYDROPHILIC (aerosol)
          !------------------------------
@@ -4122,6 +4170,14 @@
          ELSE IF ( N == IDTMOPI ) THEN
             RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT ) 
   
+         !-------------------------------
+         ! DUST alkalinity size bins (aerosol)
+         ! tdf
+         !-------------------------------
+         ELSE IF ( N == IDTDAL1 .or. N == IDTDAL2 .or.
+     &             N == IDTDAL3 .or. N == IDTDAL4 ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
          !--------------------------------------
          ! SOA (aerosol)
          ! Scavenging efficiency for SOA is 0.8
@@ -4344,7 +4400,7 @@
 !
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
-      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE TRACERID_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -4445,6 +4501,11 @@
 !  31 May 2013 - R. Yantosca - Now accept State_Chm, and pass it to TOMAS code
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
+!                              aerosols (T.D. Fairlie)
+!  27 Sep 2013 - M. Sulprizio- DST2-DST4 are now considered coarse mode aerosol
+!                              following the recommendation of T.D. Fairlie.
+!                              NITd, SO4d, and DALK are similarly updated.
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !  12 May 2015 - E. Lundgren - Change tracer units from v/v -> kg for TOMAS if
 !                              not already in kg (ie. called from convection)
@@ -4726,6 +4787,34 @@
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
+      ! Dust Nitrate (aerosol)
+      ! tdf
+      !------------------------------
+      ELSE IF ( N == IDTNITd1 ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+      !!coarse mode aerosols
+      ! NITd2-NITd4 are now considered coarse mode (mps, 9/27/13)
+      ELSE IF ( N == IDTNITd2 .or. N == IDTNITd3 .or.
+     &          N == IDTNITd4  ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+
+      !------------------------------
+      ! Dust Sulfate (aerosol)
+      ! tdf
+      !------------------------------
+      ELSE IF ( N == IDTSO4d1 ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+      !!coarse mode aerosols
+      ! SO4d2-SO4d4 are now considered coarse mode (mps, 9/27/13)
+      ELSE IF ( N == IDTSO4d2 .or. N == IDTSO4d3 .or.
+     &          N == IDTSO4d4  ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+
+      !------------------------------
       ! BC HYDROPHILIC (aerosol) or
       ! OC HYDROPHILIC (aerosol) or
       ! BC HYDROPHOBIC (aerosol) or
@@ -4742,12 +4831,27 @@
       !------------------------------
       ! DUST all size bins (aerosol)
       !------------------------------
-      ELSE IF ( N == IDTDST1 .or. N == IDTDST2  .or.
-     &          N == IDTDST3  ) THEN
+      ELSE IF ( N == IDTDST1 ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
       !!coarse mode aerosols (qq,10/11/2011)
-      ELSE IF ( N == IDTDST4 ) THEN
+      ! DST2-DST4 are now considered coarse mode (mps, 9/27/13)
+      ELSE IF ( N == IDTDST2 .or. N == IDTDST3 .or.
+     &          N == IDTDST4  ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+
+      !------------------------------
+      ! DUST alkalinity size bins (aerosol)
+      ! tdf
+      !------------------------------
+      ELSE IF ( N == IDTDAL1 ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+      !!coarse mode aerosols
+      ! DAL2-DAL4 are now considered coarse mode (mps, 9/27/13)
+      ELSE IF ( N == IDTDAL2 .or. N == IDTDAL3 .or.
+     &          N == IDTDAL4  ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
 
@@ -8032,13 +8136,12 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TRACERID_MOD
-
 #if defined( TOMAS )
-      USE TOMAS_MOD,    ONLY : IBINS
+      USE TOMAS_MOD,          ONLY : IBINS
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -8073,6 +8176,8 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
+!                              aerosols (T.D. Fairlie)
 !  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !EOP
 !------------------------------------------------------------------------------
@@ -8222,6 +8327,66 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTNITs
             
+         !-----------------------------
+         ! Dust nitrate aerosol tracers
+         ! tdf
+         !-----------------------------
+         ELSE IF ( N == IDTNITd1 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTNITd1
+
+         ELSE IF ( N == IDTNITd2 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTNITd2
+
+         ELSE IF ( N == IDTNITd3 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTNITd3
+
+         ELSE IF ( N == IDTNITd4 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTNITd4
+
+         !-----------------------------
+         ! Dust sulfate aerosol tracers
+         ! tdf
+         !-----------------------------
+         ELSE IF ( N == IDTSO4d1 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSO4d1
+
+         ELSE IF ( N == IDTSO4d2 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSO4d2
+
+         ELSE IF ( N == IDTSO4d3 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSO4d3
+
+         ELSE IF ( N == IDTSO4d4 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSO4d4
+
+         !-----------------------------
+         ! Dust alkalinity aerosol tracers
+         ! tdf
+         !-----------------------------
+         ELSE IF ( N == IDTDAL1 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTDAL1
+
+         ELSE IF ( N == IDTDAL2 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTDAL2
+
+         ELSE IF ( N == IDTDAL3 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTDAL3
+
+         ELSE IF ( N == IDTDAL4 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTDAL4
+
          !-----------------------------
          ! Crystal & Aqueous aerosols
          !-----------------------------
@@ -8647,13 +8812,16 @@
 !  23 Apr 2013 - R. Yantosca - Updated comments
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
+!                              aerosols (T.D. Fairlie)
 !  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
       ! For fields from Input_Opt
-      LOGICAL :: LCARB,  LDUST, LSOA,   LMOA
+      LOGICAL :: LCARB,  LDUST, LDSTUP, LSOA, LMOA
       LOGICAL :: LSSALT, LSULF, LSPLIT, LCRYST
       LOGICAL :: LUCX
 
@@ -8667,6 +8835,7 @@
       ! Copy values from Input_Opt
       LCARB  = Input_Opt%LCARB
       LDUST  = Input_Opt%LDUST
+      LDSTUP = Input_Opt%LDSTUP
       LSOA   = Input_Opt%LSOA
       LMOA   = Input_Opt%LMOA
       LSSALT = Input_Opt%LSSALT
@@ -8706,8 +8875,13 @@
             IF ( LCARB ) NMAX = NMAX + 4             ! BCPI, BCPO, OCPI, OCPO
          ENDIF
 
-         IF ( LMOA )     NMAX = NMAX + 2             ! marine organic aerosols
-                                                     ! (MOPO,  MOPI)
+         ! mj, bg
+         IF ( LMOA )     NMAX = NMAX + 2             ! plus hydrophobic MOA
+                                                     ! plus hydrophilic MOA
+         !tdf
+         IF ( LDSTUP )   NMAX = NMAX + NDSTBIN * 3   ! plus dust-sulfate
+                                                     ! plus dust-nitrate
+                                                     ! plus dust-alkalinity
 
 #if defined( TOMAS )
          IF ( IDTNK1 > 0 ) THEN                      !%% TOMAS SIMULATION %%

@@ -245,11 +245,11 @@
       integer(kind=im), intent(in) :: iceflglw        ! Flag for ice particle specification
       integer(kind=im), intent(in) :: liqflglw        ! Flag for liquid droplet specification
 
-      real(kind=rb), intent(in) :: cldfmcl(nbndlw,ncol,nlay)     ! Cloud fraction
+      real(kind=rb), intent(in) :: cldfmcl(ngptlw,ncol,nlay)     ! Cloud fraction
                                                       !    Dimensions: (ngptlw,ncol,nlay)
-      real(kind=rb), intent(in) :: ciwpmcl(nbndlw,ncol,nlay)     ! In-cloud ice water path (g/m2)
+      real(kind=rb), intent(in) :: ciwpmcl(ngptlw,ncol,nlay)     ! In-cloud ice water path (g/m2)
                                                       !    Dimensions: (ngptlw,ncol,nlay)
-      real(kind=rb), intent(in) :: clwpmcl(nbndlw,ncol,nlay)     ! In-cloud liquid water path (g/m2)
+      real(kind=rb), intent(in) :: clwpmcl(ngptlw,ncol,nlay)     ! In-cloud liquid water path (g/m2)
                                                       !    Dimensions: (ngptlw,ncol,nlay)
       real(kind=rb), intent(in) :: reicmcl(ncol,nlay)       ! Cloud ice particle effective size (microns)
                                                       !    Dimensions: (ncol,nlay)
@@ -265,7 +265,7 @@
                                                       !               [dge = 1.0315 * r_ec]
       real(kind=rb), intent(in) :: relqmcl(ncol,nlay)       ! Cloud water drop effective radius (microns)
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: taucmcl(nbndlw,ncol,nlay)     ! In-cloud optical depth
+      real(kind=rb), intent(in) :: taucmcl(ngptlw,ncol,nlay)     ! In-cloud optical depth
                                                       !    Dimensions: (ngptlw,ncol,nlay)
 !      real(kind=rb), intent(in) :: ssacmcl(nbndlw,ncol,nlay)    ! In-cloud single scattering albedo
                                                       !    Dimensions: (ngptlw,ncol,nlay)

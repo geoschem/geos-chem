@@ -1696,10 +1696,10 @@
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE UCX_MOD,            ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
-      USE TRACERID_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD
+      USE UCX_MOD,            ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
 !
 ! !INPUT PARAMETERS:
 !
@@ -1733,6 +1733,8 @@
 !  11 Apr 2013 - S.D. Eastham- Added gravitational settling flag
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
+!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
+!                              aerosols (T.D. Fairlie)
 !  16 Apr 2014 - M. Sulprizio- Now read path for PSC restart file
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
@@ -1748,11 +1750,11 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LSULF,      LCARB,      LBRC 
-      LOGICAL            :: LSOA,       LSVPOA,     LDUST
-      LOGICAL            :: LSSALT,     LMOA,       LCRYST     
-      LOGICAL            :: LDICARB,    LGRAVSTRAT, LHOMNUCNAT 
-      LOGICAL            :: LSOLIDPSC,  LPSCCHEM,   LSTRATOD
+      LOGICAL            :: LSULF,      LCARB,    LBRC,  LSOA
+      LOGICAL            :: LSVPOA,     LDUST,    LDSTUP
+      LOGICAL            :: LSSALT,     LCRYST,     LDICARB
+      LOGICAL            :: LGRAVSTRAT, LHOMNUCNAT, LSOLIDPSC
+      LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMOA
       INTEGER            :: N,          T,          I 
       CHARACTER(LEN=255) :: MSG,        LOCATION
 
@@ -1799,6 +1801,11 @@
       ! Use online dust aerosols ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
       READ( SUBSTRS(1:N), * ) LDUST
+
+      !tdf
+      ! Use SO2 and HNO3 uptake on dust aerosols 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:9.5' )
+      READ( SUBSTRS(1:N), * ) LDSTUP
 
       ! Use online sea-salt aerosols?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:8' )
@@ -2080,6 +2087,27 @@
          ENDIF
       ENDIF
 
+      !--------------------------------------
+      ! Error check DUST NITRATE    AEROSOLS
+      !             DUST SULFATE    AEROSOLS
+      !             DUST ALKALINITY AEROSOLS
+      !--------------------------------------
+      I = IDTNITd1 + IDTNITd2 + IDTNITd3 + IDTNITd4 +
+     &    IDTSO4d1 + IDTSO4d2 + IDTSO4d3 + IDTSO4d4 +
+     &    IDTDAL1  + IDTDAL2  + IDTDAL3  + IDTDAL4
+
+      IF ( LDSTUP ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LDSTUP=T but COATED DUST AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use COATED DUST AEROSOLS if LDSTUP=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
       !---------------------------------
       ! Error check SEASALT AEROSOLS
       !---------------------------------
@@ -2107,6 +2135,7 @@
       Input_Opt%LSOA               = LSOA 
       Input_Opt%LSVPOA             = LSVPOA
       Input_Opt%LDUST              = LDUST 
+      Input_Opt%LDSTUP             = LDSTUP
       Input_Opt%LSSALT             = LSSALT
       Input_Opt%LMOA               = LMOA 
       Input_Opt%LDICARB            = LDICARB  
@@ -2127,21 +2156,23 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'AEROSOL MENU'
          WRITE( 6, '(  a)' ) '------------'
-         WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ',    LSULF
-         WRITE( 6, 100     ) 'Online CRYST & AQ AEROSOLS? : ',    LCRYST
-         WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ',    LCARB
-         WRITE( 6, 100     ) 'Brown Carbon Aerosol?       : ',    LBRC
-         WRITE( 6, 100     ) 'Online 2dy ORGANIC AEROSOLS?: ',    LSOA
-         WRITE( 6, 100     ) 'Semivolatile POA?           : ',    LSVPOA
-         WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ',    LDUST
-         WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ',    LSSALT
+         WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ', LSULF
+         WRITE( 6, 100     ) 'Online CRYST & AQ AEROSOLS? : ', LCRYST
+         WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', LCARB
+         WRITE( 6, 100     ) 'Brown Carbon Aerosol?       : ', LBRC
+         WRITE( 6, 100     ) 'Online 2dy ORGANIC AEROSOLS?: ', LSOA
+         WRITE( 6, 100     ) 'Semivolatile POA?           : ', LSVPOA
+         WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
+         WRITE( 6, 100     ) 'Acid uptake on dust?        : ', LDSTUP
+
+         WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
          WRITE( 6, 110     ) 'Accum  SEA SALT radii [um]  : ', 
      &                        Input_Opt%SALA_REDGE_um(1), 
      &                        Input_Opt%SALA_REDGE_um(2)
          WRITE( 6, 110     ) 'Coarse SEA SALT radii [um]  : ',
      &                        Input_Opt%SALC_REDGE_um(1), 
      &                        Input_Opt%SALC_REDGE_um(2)
-         WRITE( 6, 100     ) 'MARINE ORGANIC AEROSOLS?: ', LMOA
+         WRITE( 6, 100     ) 'MARINE ORGANIC AEROSOLS?    : ', LMOA
          WRITE( 6, 100     ) 'Settle strat. aerosols?     : ',LGRAVSTRAT
          WRITE( 6, 100     ) 'Online SOLID PSC aerosols?  : ',LSOLIDPSC
          WRITE( 6, 100     ) 'Allow hom. NAT nucleation?  : ',LHOMNUCNAT
@@ -4402,7 +4433,7 @@
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
 
       USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! NDxx flags
+      USE CMN_DIAG_MOD       ! NDxx flags, TINDEX, TCOUNT, TMAX
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
