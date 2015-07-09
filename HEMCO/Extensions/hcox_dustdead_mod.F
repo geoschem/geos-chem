@@ -843,7 +843,8 @@
       ExtState%DustDead = .TRUE.
 
       ! Leave w/ success
-      IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
+      IF ( ALLOCATED(SpcNames   ) ) DEALLOCATE(SpcNames   )
+      IF ( ALLOCATED(SpcNamesAlk) ) DEALLOCATE(SpcNamesAlk)
       CALL HCO_LEAVE ( RC ) 
 
       END SUBROUTINE HCOX_DustDead_Init
