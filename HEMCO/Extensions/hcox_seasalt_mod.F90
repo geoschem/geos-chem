@@ -44,6 +44,7 @@ MODULE HCOX_SeaSalt_Mod
 !  15 Dec 2013 - C. Keller   - Now a HEMCO extension module 
 !  09 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  09 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  09 Jul 2015 - E. Lundgren - Add marine organoc aerosols (B.Gantt, M.Johnson)
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -52,7 +53,9 @@ MODULE HCOX_SeaSalt_Mod
   ! Tracer IDs 
   INTEGER             :: ExtNr
   INTEGER             :: IDTSALA           ! Fine aerosol model species ID
-  INTEGER             :: IDTSALC           ! Coarse aerosol model species ID
+  INTEGER             :: IDTSALC           ! Coarse aerosol model species ID  
+  INTEGER             :: IDTMOPO           ! marine organic aerosol - phobic
+  INTEGER             :: IDTMOPI           ! marine organic aerosol - philic
   INTEGER             :: IDTBr2            ! Br2 model species ID
   LOGICAL             :: CalcBr2           ! Calculate Br2 SSA emissions?
 
@@ -64,19 +67,23 @@ MODULE HCOX_SeaSalt_Mod
   INTEGER             :: NR(2)
 
   ! Module variables (to be defined during initialization)
+  INTEGER             :: NSALT             ! # of sea salt tracers (ewl)
   REAL*8, ALLOCATABLE :: SRRC  (:,:)
   REAL*8, ALLOCATABLE :: SRRC_N(:,:)
   REAL*8, ALLOCATABLE :: RREDGE(:,:)
   REAL*8, ALLOCATABLE :: RRMID (:,:)
+  REAL*8, ALLOCATABLE :: SS_DEN(:)         ! densities (ewl)
 
   ! Number densities
   REAL(sp), POINTER   :: NDENS_SALA(:,:) => NULL()
   REAL(sp), POINTER   :: NDENS_SALC(:,:) => NULL()
+  REAL(sp), POINTER   :: NDENS_MOPO(:,:) => NULL() ! (ewl, 7/9/15)
+  REAL(sp), POINTER   :: NDENS_MOPI(:,:) => NULL() ! (ewl, 7/9/15)
 !
 ! !DEFINED PARAMETERS:
 !
   ! Defined parameters
-  INTEGER, PARAMETER  :: NSALT  = 2    ! # of sea salt tracers
+!  INTEGER, PARAMETER  :: NSALT  = 2    ! # of sea salt tracers (removed by ewl)
   INTEGER, PARAMETER  :: NR_MAX = 200  ! max. # of bins per mode
 
   ! Increment of radius for Emission integration (um)
@@ -84,7 +91,7 @@ MODULE HCOX_SeaSalt_Mod
   REAL*8, PARAMETER   :: BETHA = 2.d0
 
   ! density
-  REAL*8, PARAMETER   :: SS_DEN(2) = (/ 2200.d0, 2200.d0 /)
+!  REAL*8, PARAMETER   :: SS_DEN(2) = (/ 2200.d0, 2200.d0 /) (removed by ewl)
 
 CONTAINS
 !EOC
@@ -158,6 +165,7 @@ CONTAINS
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  15 Dec 2013 - C. Keller   - Now a HEMCO extension 
+!  09 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -165,18 +173,22 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                :: I, J, N, R
-    REAL*8                 :: SALT, SALT_N, SSA_BR2
+    REAL*8                 :: SALT, SALT_N, SSA_BR2, CHLR
     REAL*8                 :: A_M2
     REAL*8                 :: W10M
     REAL                   :: FLUX
     REAL(hp), TARGET       :: FLUXSALA(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET       :: FLUXSALC(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET       :: FLUXBr2 (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: FLUXMOPO(HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: FLUXMOPI(HcoState%NX,HcoState%NY)
 
     ! New variables (jaegle 5/11/11)
     REAL*8                 :: SST, SCALE
     ! jpp, 3/2/10
     REAL*8                 :: BR2_NR, SALT_NR 
+    ! B. Gantt, M. Johnson (7,9/15)
+    REAL*8                 :: OMSS1, OMSS2
 
     ! Error handling
     LOGICAL                :: ERR
@@ -199,6 +211,8 @@ CONTAINS
     FLUXSALA = 0.0_hp
     FLUXSALC = 0.0_hp
     FLUXBr2  = 0.0_hp
+    FLUXMOPO = 0.0_hp
+    FLUXMOPI = 0.0_hp
 
     !=================================================================
     ! Emission is integrated over a given size range for each bin
@@ -207,6 +221,7 @@ CONTAINS
 !$OMP DEFAULT( SHARED )                                                &
 !$OMP PRIVATE( I, J, A_M2, W10M, SST, SCALE, SSA_BR2, N              ) &
 !$OMP PRIVATE( SALT, SALT_N, R, SALT_NR, BR2_NR, RC                  ) & 
+!$OMP PRIVATE( OMSS1, OMSS2                                          ) & 
 !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over surface boxes 
@@ -245,8 +260,9 @@ CONTAINS
        ! over accumulation and coarse mode
        SSA_BR2 = 0d0
     
-       ! Do for accumulation and coarse mode
-       DO N = 1,2
+       ! Do for accumulation and coarse mode, and Marine POA if enabled
+!      DO N = 1,2  (ewl, 7/9/15)
+       DO N = 1,NSALT   ! (ewl, 7/9/15)
 
           ! Reset values for SALT and SALT_N
           SALT   = 0d0
@@ -255,38 +271,69 @@ CONTAINS
           ! Loop over size bins
           DO R = 1, NR(N)
 
-             ! Update SeaSalt source into SALT [kg]
-             SALT   = SALT +                                   &
-                      ( SCALE * SRRC(R,N) * A_M2 * W10M**3.41d0 )
-
-             ! Update SeaSalt source into SALT_N [#] 
-             ! (bec, bmy, 4/13/05)
-             SALT_N = SALT_N +                               &
-                      ( SCALE * SRRC_N(R,N) * A_M2 * W10M**3.41d0 )
-
-             ! --------------------------------------------------
-             ! jpp, 3/2/10: Accounting for the bromine emissions
-             ! now. Store mass flux [kg] of Br2 based on how much
-             ! aerosol there is emitted in this box.
-             ! --------------------------------------------------
-             IF ( CalcBr2 ) THEN
-
-                ! jpp, 3/3/10: since the SALT arrays are integrations
-                !              I cannot use them for each independent
-                !              radius... that's why I'm getting too
-                !              much bromine. So I'm making a tmp
-                !              array to store only the current
-                !              Dry Radius bin. [kg]
-                SALT_NR = ( SRRC(R,N) * A_M2 * W10M**3.41d0 )
-                CALL EMIT_SSABr2( am_I_Root, ExtState,  HcoState, &
-                                  J,         RRMID(R,N), SALT_NR,  &
-                                  BR2_NR,    RC                    )
-                IF ( RC /= HCO_SUCCESS ) THEN
-                   ERR = .TRUE.
-                   EXIT
+             IF ( N .LT. 3 ) THEN ! (ewl, 7/9/15)
+             
+                ! Update SeaSalt source into SALT [kg]
+                SALT   = SALT +                                   &
+                         ( SCALE * SRRC(R,N) * A_M2 * W10M**3.41d0 )
+   
+                ! Update SeaSalt source into SALT_N [#] 
+                ! (bec, bmy, 4/13/05)
+                SALT_N = SALT_N +                               &
+                         ( SCALE * SRRC_N(R,N) * A_M2 * W10M**3.41d0 )
+   
+                ! --------------------------------------------------
+                ! jpp, 3/2/10: Accounting for the bromine emissions
+                ! now. Store mass flux [kg] of Br2 based on how much
+                ! aerosol there is emitted in this box.
+                ! --------------------------------------------------
+                IF ( CalcBr2 ) THEN
+   
+                   ! jpp, 3/3/10: since the SALT arrays are integrations
+                   !              I cannot use them for each independent
+                   !              radius... that's why I'm getting too
+                   !              much bromine. So I'm making a tmp
+                   !              array to store only the current
+                   !              Dry Radius bin. [kg]
+                   SALT_NR = ( SRRC(R,N) * A_M2 * W10M**3.41d0 )
+                   CALL EMIT_SSABr2( am_I_Root, ExtState,  HcoState, &
+                                     J,         RRMID(R,N), SALT_NR,  &
+                                     BR2_NR,    RC                    )
+                   IF ( RC /= HCO_SUCCESS ) THEN
+                      ERR = .TRUE.
+                      EXIT
+                   ENDIF
+                   SSA_Br2 = SSA_Br2 + BR2_NR
                 ENDIF
-                SSA_Br2 = SSA_Br2 + BR2_NR
-             ENDIF
+
+             ENDIF ! (ewl, 7/9/15)
+
+             !  (ewl, 7/9/15)
+             ! Marine organic aerosols (M. Johnson, B. Gantt, 7/9/15)
+             IF ( N .EQ. 3 ) THEN ! (ewl, 7/9/15)
+
+                ! Get MODIS Chlorophyll-a
+                CHLR = ExtState%CHLR%Arr%Val(I,J)
+
+                ! Calculate organic mass fraction of SSA
+                OMSS1 = 1.0 / ( 1.0 + EXP( -2.63 * 3.0 * CHLR         &
+                        + 0.18 * 3.0 * W10M ) )
+
+                OMSS2 = ( OMSS1 ) / (1.0 + 0.03                       &
+                        * EXP( 6.81 * ( RRMID(R,N) * 2.0 ) ) )        &
+                        + 0.03 * ( OMSS1 )
+
+                ! Update seasalt source into SALT [kg]
+                SALT  = SALT + 6.0 * ( ( SRRC(R,N) * SCALE * A_M2     &
+                               * W10M**3.41d0 * OMSS2 )               &
+                               * ( 1.0 / ( 2.2 / ( 1.0 - OMSS2        &
+                               * (1.0 - 2200.0 / 1000.0 ) ) ) ) )
+
+                SALT_N = SALT_N +  6.0 * ( SRRC_N(R,N) * SCALE * A_M2 &
+                                   * W10M**3.41d0 * OMSS2 )
+
+             ENDIF ! (ewl, 7/9/15)
+
           ENDDO !R
 
           ! ----------------------------------------------------------------
@@ -297,6 +344,10 @@ CONTAINS
              FLUXSALA(I,J) = SALT / A_M2 / HcoState%TS_EMIS 
           ELSEIF ( N == 2 ) THEN    
              FLUXSALC(I,J) = SALT / A_M2 / HcoState%TS_EMIS 
+          ELSEIF ( N == 3 ) THEN    
+             FLUXMOPO(I,J) = SALT / A_M2 / HcoState%TS_EMIS 
+          ELSEIF ( N == 4 ) THEN    
+             FLUXMOPI(I,J) = SALT / A_M2 / HcoState%TS_EMIS 
           ENDIF
 
           ! ----------------------------------------------------------------
@@ -306,6 +357,10 @@ CONTAINS
              NDENS_SALA(I,J) = SALT_N 
           ELSEIF ( N == 2 ) THEN
              NDENS_SALC(I,J) = SALT_N 
+          ELSEIF ( N == 3 ) THEN
+             NDENS_MOPO(I,J) = SALT_N 
+          ELSEIF ( N == 4 ) THEN
+             NDENS_MOPI(I,J) = SALT_N 
           ENDIF
 
 !=============================================================================
@@ -395,6 +450,32 @@ CONTAINS
        ENDIF
 
     ENDIF
+
+    ! MOPO 
+    IF ( IDTMOPO > 0 ) THEN
+
+       ! Add flux to emission array
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALC, IDTMOPO, & 
+                         RC,        ExtNr=ExtNr )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMOPO', RC )
+          RETURN 
+       ENDIF
+
+    ENDIF
+
+    ! MOPI
+    IF ( IDTMOPI > 0 ) THEN
+
+       ! Add flux to emission array
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMOPI, IDTMOPI, & 
+                         RC,        ExtNr=ExtNr )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMOPI', RC )
+          RETURN 
+       ENDIF
+
+    ENDIF
       
     ! Leave w/ success
     CALL HCO_LEAVE ( RC )
@@ -435,24 +516,27 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC          ! Return status
 !
 ! !REVISION HISTORY:
-!  15 Dec 2013 - C. Keller - Initial version
-!  07 Oct 2014 - C. Keller - Allow wind scale factor be set in configuration file
+!  15 Dec 2013 - C. Keller   - Initial version
+!  07 Oct 2014 - C. Keller   - Allow wind scale factor be set in config file
+!  09 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                        :: N, R, AS
+    INTEGER                        :: N, R, AS, ExtNrMPOA
     REAL*8                         :: A, B, R0, R1
     REAL*8                         :: CONST_N
     CHARACTER(LEN=255)             :: MSG
-    INTEGER                        :: nSpc, minLen
+    INTEGER                        :: nSpc, nSpcMPOA, minLen
     REAL*8                         :: SALA_REDGE_um(2), SALC_REDGE_um(2)
     REAL(dp)                       :: tmpScale
     LOGICAL                        :: FOUND
     INTEGER, ALLOCATABLE           :: HcoIDs(:)
+    INTEGER, ALLOCATABLE           :: HcoIDsMPOA(:)
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
+    CHARACTER(LEN=31), ALLOCATABLE :: SpcNamesMPOA(:)
 
     !=================================================================
     ! HCOX_SeaSalt_Init begins here!
@@ -461,6 +545,9 @@ CONTAINS
     ! Extension Nr.
     ExtNr = GetExtNr( TRIM(ExtName) )
     IF ( ExtNr <= 0 ) RETURN
+
+    ! Check for marine organic aerosols option
+    ExtNrMPOA = GetExtNr('MarinePOA')
  
     ! Enter 
     CALL HCO_ENTER ( 'HCOX_SeaSalt_Init (hcox_seasalt_mod.F90)', RC )
@@ -497,6 +584,15 @@ CONTAINS
     IDTSALA = HcoIDs(1) 
     IDTSALC = HcoIDs(2)
     IF ( CalcBr2 ) IDTBR2 = HcoIDs(3)
+    
+    ! Get the marine organic aerosol species defined for MarinePOA option
+    IF ( ExtNrMPOA > 0 ) THEN
+       CALL HCO_GetExtHcoID( HcoState,     ExtNrMPOA, HcoIDsMPOA,  &
+                             SpcNamesMPOA, nSpcMPOA,  RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IDTMOPO = HcoIDsMPOA(1)
+       IDTMOPI = HcoIDsMPOA(2)
+    ENDIF
 
     ! Get aerosol radius'
     SALA_REDGE_um(:) = 0.0d0
@@ -537,7 +633,12 @@ CONTAINS
     IF ( am_I_Root ) THEN
        MSG = 'Use sea salt aerosol emissions (extension module)'
        CALL HCO_MSG( MSG, SEP1='-' )
-   
+ 
+       IF ( ExtNrMPOA > 0 ) THEN
+          MSG = 'Use marine organic aerosols option'
+          CALL HCO_MSG ( MSG, SEP1='-' )
+       ENDIF 
+
        WRITE(MSG,*) 'Accumulation aerosol: ', TRIM(SpcNames(1)), ':', IDTSALA 
        CALL HCO_MSG(MSG)
        WRITE(MSG,*) ' - size range       : ', SALA_REDGE_um
@@ -555,11 +656,34 @@ CONTAINS
           WRITE(MSG,*) 'Br2 scale factor: ', Br2Scale
           CALL HCO_MSG(MSG)
        ENDIF
+
+       IF ( ExtNrMPOA > 0 ) THEN
+          DO N = 1, nSpcMPOA
+               WRITE(MSG,*) TRIM(SpcNamesMPOA(N)), ':', HcoIDsMPOA(N)
+               CALL HCO_MSG(MSG)
+          ENDDO   
+       ENDIF
     ENDIF
 
     ! ---------------------------------------------------------------------- 
     ! Allocate module and subroutine arrays
     ! ---------------------------------------------------------------------- 
+
+    ! Number of tracers dependent on MarinePOA (ewl, 7/9/15)
+    IF ( ExtNrMPOA > 0 ) THEN
+       NSALT = 4
+    ELSE
+       NSALT = 2
+    ENDIF
+
+    ! Now allocate SS_DEN during initialization (ewl, 7/9/15)
+    ALLOCATE ( SS_DEN  ( NSALT ), STAT=AS )
+    IF ( AS/=0 ) THEN
+       CALL HCO_ERROR( 'Cannot allocate SS_DEN', RC )
+       RETURN
+    ENDIF
+    SS_DEN = 2200.d0
+
     ALLOCATE ( SRRC   ( NR_MAX,   NSALT ), STAT=AS )
     IF ( AS/=0 ) THEN
        CALL HCO_ERROR( 'Cannot allocate SRRC', RC )
@@ -569,6 +693,7 @@ CONTAINS
     ALLOCATE ( SRRC_N ( NR_MAX,   NSALT ), STAT=AS ) 
     IF ( AS/=0 ) THEN
        CALL HCO_ERROR( 'Cannot allocate SRRC_N', RC )
+
        RETURN
     ENDIF
     SRRC_N = 0d0
@@ -599,6 +724,22 @@ CONTAINS
     ENDIF
     NDENS_SALC = 0.0_sp
 
+    ! Allocate density of phobic marine organic aerosols (ewl, 7/9/15)
+    ALLOCATE ( NDENS_MOPO( HcoState%NX, HcoState%NY), STAT=AS )
+    IF ( AS/=0 ) THEN
+       CALL HCO_ERROR( 'Cannot allocate NDENS_MOPO', RC )
+       RETURN
+    ENDIF
+    NDENS_MOPO = 0.0_sp
+
+    ! Allocate density of philic marine organic aerosols (ewl, 7/9/15)
+    ALLOCATE ( NDENS_MOPI( HcoState%NX, HcoState%NY), STAT=AS )
+    IF ( AS/=0 ) THEN
+       CALL HCO_ERROR( 'Cannot allocate NDENS_MOPI', RC )
+       RETURN
+    ENDIF
+    NDENS_MOPI = 0.0_sp
+
     !=================================================================
     ! Define edges and midpoints of each incremental radius bin
     !=================================================================
@@ -610,8 +751,10 @@ CONTAINS
     !  Constant for converting from [#/m2/s/um] to [#/m2]
     CONST_N = HcoState%TS_EMIS * (DR * BETHA)
  
-    ! Do for accumulation and fine mode
-    DO N = 1,2
+!    ! Do for accumulation and fine mode
+!    DO N = 1,2 (ewl, 7/9/15)
+    ! Do for accumulation, fine mode, and marine organics ! (ewl, 7/9/15)
+    DO N = 1,NSALT ! (ewl, 7/9/15)
 
        ! Lower and upper limit of size bin N [um]
        ! Note that these are dry size bins. In order to
@@ -625,6 +768,16 @@ CONTAINS
           
        ! Coarse mode
        ELSEIF ( N==2 ) THEN 
+          R0 = SALC_REDGE_um(1) 
+          R1 = SALC_REDGE_um(2)
+       
+       ! Marine phobic (mj, bg, 7/9/15) (ewl)
+       ELSEIF ( N==3 ) THEN 
+          R0 = SALA_REDGE_um(1) 
+          R1 = SALA_REDGE_um(2)
+          
+       ! Marine philic (mj, bg, 7/9/15) (ewl)
+       ELSEIF ( N==4 ) THEN 
           R0 = SALC_REDGE_um(1) 
           R1 = SALC_REDGE_um(2)
        ENDIF
@@ -702,7 +855,7 @@ CONTAINS
     !=======================================================================
     ! Create diagnostics. The number densities of both modes are always
     ! written into a diagnostics so that they can be used by other routines
-    ! and from outside of HEMCO. These two diagnostics just hold a pointer
+    ! and from outside of HEMCO. These diagnostics just hold a pointer
     ! to the respective density arrays filled by the run method of this
     ! module.
     !=======================================================================
@@ -736,6 +889,40 @@ CONTAINS
                         RC         = RC                      )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! Create marine density diagnostics only if LMOA is true (ewl)
+    ! Need to add this!!!
+    ! Add diagnostic for marine phobic (7/9/15)
+    CALL Diagn_Create ( am_I_Root,                          & 
+                        HcoState   = HcoState,              & 
+                        cName      = 'SEASALT_DENS_PHOBIC', &
+                        ExtNr      = ExtNr,                 &
+                        Cat        = -1,                    &
+                        Hier       = -1,                    &
+                        HcoID      = IDTMOPO,               &
+                        SpaceDim   = 2,                     &
+                        OutUnit    = 'number_dens',         &
+                        AutoFill   = 0,                     &
+                        Trgt2D     = NDENS_MOPO,            &
+                        COL        = HcoDiagnIDManual,      &
+                        RC         = RC                      )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Add diagnostic for marine philic (ewl, 7/9/15)
+    CALL Diagn_Create ( am_I_Root,                          & 
+                        HcoState   = HcoState,              & 
+                        cName      = 'SEASALT_DENS_PHILIC', &
+                        ExtNr      = ExtNr,                 &
+                        Cat        = -1,                    &
+                        Hier       = -1,                    &
+                        HcoID      = IDTMOPI,               &
+                        SpaceDim   = 2,                     &
+                        OutUnit    = 'number_dens',         &
+                        AutoFill   = 0,                     &
+                        Trgt2D     = NDENS_MOPI,            &
+                        COL        = HcoDiagnIDManual,      &
+                        RC         = RC                      )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     !=======================================================================
     ! Activate this module and the fields of ExtState that it uses
     !=======================================================================
@@ -752,7 +939,10 @@ CONTAINS
 
     ! Return w/ success
     IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  )
+    IF ( ALLOCATED(HcoIDsMPOA) ) DEALLOCATE(HcoIDsMPOA)
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
+    IF ( ALLOCATED(SpcNamesMPOA) ) DEALLOCATE(SpcNamesMPOA)
+
     CALL HCO_LEAVE ( RC ) 
  
   END SUBROUTINE HCOX_SeaSalt_Init
@@ -783,12 +973,17 @@ CONTAINS
     !=================================================================
 
     ! Cleanup module arrays
+    IF ( ALLOCATED ( SS_DEN     ) ) DEALLOCATE( SS_DEN     )    
     IF ( ALLOCATED ( SRRC       ) ) DEALLOCATE( SRRC       )
     IF ( ALLOCATED ( SRRC_N     ) ) DEALLOCATE( SRRC_N     )
     IF ( ALLOCATED ( RREDGE     ) ) DEALLOCATE( RREDGE     )
     IF ( ALLOCATED ( RRMID      ) ) DEALLOCATE( RRMID      )
+
     IF ( ASSOCIATED( NDENS_SALA ) ) DEALLOCATE( NDENS_SALA )
-    IF ( ASSOCIATED( NDENS_SALC ) ) DEALLOCATE( NDENS_SALC )
+    IF ( ASSOCIATED( NDENS_SALC ) ) DEALLOCATE( NDENS_SALC )    
+    IF ( ASSOCIATED( NDENS_MOPO ) ) DEALLOCATE( NDENS_MOPO )    
+    IF ( ASSOCIATED( NDENS_MOPI ) ) DEALLOCATE( NDENS_MOPI )
+
 
   END SUBROUTINE HCOX_SeaSalt_Final
 !EOC

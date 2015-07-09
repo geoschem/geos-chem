@@ -919,13 +919,15 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use sea salt
+!  09 Jul 2015 - E. Lundgren - Add marine organic aerosols
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: ExtNr, HcoID, I, N
+    INTEGER            :: ExtNr, ExtNrSS, ExtNrMPOA
+    INTEGER            :: HcoID, I, N, NSALT
     CHARACTER(LEN=15)  :: SpcName
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
@@ -948,23 +950,47 @@ CONTAINS
     IF ( ND08 > 0 .AND. Input_Opt%LSSALT .AND. ExtState%SeaSalt ) THEN
 
        ! Get HEMCO extension # for SeaSalt
-       ExtNr = GetExtNr( 'SeaSalt' )
+       ExtNrSS = GetExtNr( 'SeaSalt' )
        IF ( ExtNr <= 0 ) THEN
           CALL HCO_Error( 'Cannot find extension SeaSalt', RC, THISLOC=LOC )
           RETURN
        ENDIF
 
-       ! I=1 is SALA, I=2 is SALC
-       DO I = 1, 2
+       ! Get HEMCO extension # for marine organic aerosols and
+       ! set number of seasalt tracers
+       IF ( Input_Opt%LMOA ) THEN
+          ExtNrMPOA = GetExtNr( 'MarinePOA' )
+          IF ( ExtNr <= 0 ) THEN
+             CALL HCO_Error( 'Cannot find extension MarinePOA', RC,  &
+                             THISLOC=LOC )
+             RETURN
+          ENDIF
+          NSALT = 4
+       ELSE
+          NSALT = 2
+       ENDIF          
+       
+       ! I=1 is SALA, I=2 is SALC, I=3 is MOPO, I=4 is MOPI
+       DO I = 1,NSALT
 
-          ! Pick the proper species & diagnostic name
+          ! Pick the proper species, diagnostic name, and extension #
           SELECT CASE( I )
              CASE( 1 )
+                ExtNr     = ExtNrSS
                 SpcName   = 'SALA'
                 DiagnName = 'AD08_SALA'
              CASE( 2 )
+                ExtNr     = ExtNrSS
                 SpcName   = 'SALC'
                 DiagnName = 'AD08_SALC'
+             CASE( 3 )
+                ExtNr     = ExtNrMPOA
+                SpcName   = 'MOPO'
+                DiagnName = 'AD08_MOPO'
+             CASE( 4 )
+                ExtNr     = ExtNrMPOA
+                SpcName   = 'MOPI'
+                DiagnName = 'AD08_MOPI'
           END SELECT
 
           ! HEMCO species ID 

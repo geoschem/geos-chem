@@ -107,11 +107,12 @@ MODULE HCOX_STATE_MOD
      LOGICAL                   :: Megan          ! MEGAN biogenic emissions
      LOGICAL                   :: SeaFlux        ! air-sea exchange
      LOGICAL                   :: SeaSalt        ! Seasalt emissions
+     LOGICAL                   :: MarinePOA      ! Marine organic aerosols
      LOGICAL                   :: GFED           ! GFED biomass burning
      LOGICAL                   :: FINN           ! FINN biomass burning
      LOGICAL                   :: GC_RnPbBe      ! GEOS-Chem Rn-Pb-Be simulation
      LOGICAL                   :: GC_POPs        ! GEOS-Chem POPs simulation
-     LOGICAL                   :: Wetland_CH4    ! Methane emissions from wetlands
+     LOGICAL                   :: Wetland_CH4    ! Methane emiss from wetlands
      LOGICAL                   :: TOMAS_SeaSalt  ! TOMAS sectional sea salt
      LOGICAL                   :: TOMAS_DustDead ! TOMAS sectional Dead Dust
      LOGICAL                   :: AeroCom        ! AeroCom volcano 
@@ -150,7 +151,8 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: CLDFRC      ! cloud fraction [-]
      TYPE(ExtDat_2R),  POINTER :: JNO2        ! J-Value for NO2 [1/s] 
      TYPE(ExtDat_2R),  POINTER :: JO1D        ! J-Value for O3  [1/s]
-     TYPE(ExtDat_2R),  POINTER :: LAI         ! daily leaf area index [cm2/cm2] 
+     TYPE(ExtDat_2R),  POINTER :: LAI         ! daily leaf area index [cm2/cm2]
+     TYPE(ExtDat_2R),  POINTER :: CHLR        ! daily chlorophyll-a [mg/m3]
      INTEGER,          POINTER :: PBL_MAX     ! Max height of PBL [level]
      TYPE(ExtDat_3R),  POINTER :: CNV_MFC     ! Convective cloud mass flux [kg/m2/s] 
      TYPE(ExtDat_3R),  POINTER :: FRAC_OF_PBL ! Fraction of grid box in PBL
@@ -297,6 +299,7 @@ CONTAINS
     ExtState%Megan          = .FALSE.
     ExtState%SeaFlux        = .FALSE.
     ExtState%SeaSalt        = .FALSE.
+    ExtState%MarinePOA      = .FALSE.
     ExtState%GFED           = .FALSE.
     ExtState%FINN           = .FALSE.
     ExtState%GC_RnPbBe      = .FALSE.
@@ -394,6 +397,9 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%LAI, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Init ( ExtState%CHLR, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     CALL ExtDat_Init ( ExtState%JNO2, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -476,6 +482,7 @@ CONTAINS
 !  03 Oct 2013 - C. Keller - Initial version
 !  23 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  23 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  09 Jul 2015 - E. Lundgren - Add chlorophyll-a (CHLR)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -511,6 +518,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%FRLANDIC   )
        CALL ExtDat_Cleanup( ExtState%CLDFRC     )
        CALL ExtDat_Cleanup( ExtState%LAI        )
+       CALL ExtDat_Cleanup( ExtState%CHLR       )
        CALL ExtDat_Cleanup( ExtState%JNO2       )
        CALL ExtDat_Cleanup( ExtState%JO1D       )
        CALL ExtDat_Cleanup( ExtState%CNV_MFC    )

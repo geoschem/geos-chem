@@ -1561,6 +1561,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  28 Jul 2014 - C. Keller   - Initial Version
 !  06 Oct 2014 - M. Sulprizio- Remove PCENTER. Now calculate from pressure edges
+!  09 Jul 2015 - E. Lundgren - Add MODIS Chlorophyll-a (CHLR)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1691,6 +1692,9 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%LAI, 'LAI', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%CHLR, 'CHLR', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%JNO2, 'JNO2', RC, FIRST )

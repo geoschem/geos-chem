@@ -1242,6 +1242,8 @@
 !  --------------------------------------------------------------------------
 !  (1)  SALA     : Accumulation mode seasalt       : kg         : 1
 !  (2)  SALC     : Coarse mode seasalt             : kg         : 1
+!  (3)  MOPO     : Marine organic aerosol - phobo  : kg         : 1
+!  (4)  MOPI     : Marine organic aerosol - philic : kg         : 1
 !******************************************************************************
 !
       IF ( ND08 > 0 .and. Input_Opt%LSSALT .and. Input_Opt%LEMIS ) THEN
@@ -1250,22 +1252,16 @@
          UNIT     = 'kg'
          CATEGORY = 'SALTSRCE'
 
-         ! Loop over seasalt tracers
-         DO N = 1, 4
+         ! Loop over default seasalt tracers
+         DO N = 1, 2
 
-            ! At present we have 4 seasalts
+            ! At present we have 2 default seasalts
             IF ( N == 1 ) THEN
                NN = IDTSALA
                DiagnName  = 'AD08_SALA'
             ELSEIF ( N == 2 ) THEN
                NN = IDTSALC
                DiagnName  = 'AD08_SALC'
-            ELSEIF ( N == 3 ) THEN
-               NN = IDTMOPO
-               DiagnName  = 'AD08_MOPO'
-            ELSEIF ( N == 4 ) THEN
-               NN = IDTMOPI
-               DiagnName  = 'AD08_MOPI'
             ENDIF
 
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
@@ -1273,6 +1269,26 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          ENDDO
+
+         ! Loop over optional marine organic aerosols
+         IF ( Input_Opt%LMOA ) THEN
+            DO N = 3, 4
+   
+               IF ( N == 3 ) THEN
+                  NN = IDTMOPO
+                  DiagnName  = 'AD08_MOPO'
+               ELSEIF ( N == 4 ) THEN
+                  NN = IDTMOPI
+                  DiagnName  = 'AD08_MOPI'
+               ENDIF
+   
+               CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                         UNIT, NN, 1, -1, .FALSE., 1.0e+0_fp, RC )
+               IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP (DiagnName, LOC)
+   
+            ENDDO
+         ENDIF
+
       ENDIF   
 !
 !******************************************************************************

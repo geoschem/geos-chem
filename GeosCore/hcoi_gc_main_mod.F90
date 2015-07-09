@@ -367,6 +367,14 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! Marine organic aerosols
+    IF ( ExtState%MarinePOA ) THEN
+       IF ( .not. Input_Opt%LMOA ) THEN
+          MSG = 'MarinePOA is on in HEMCO but LMOA=F in input.geos'
+          CALL ERROR_STOP( MSG, LOC )
+       ENDIF
+    ENDIF
+
     !-----------------------------------------------------------------
     ! Set constants for POPs simulation
     !-----------------------------------------------------------------
