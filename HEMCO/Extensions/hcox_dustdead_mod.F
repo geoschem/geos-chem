@@ -453,7 +453,7 @@
                ! Include DUST Alkalinity SOURCE, assuming an alkalinity
                ! of 4% by weight [kg].                  !tdf 05/10/08
                !tdf with 3% Ca, there's also 1% equ. Mg, makes 4%
-               IF ( ExtNrAlk > 0 .and. HcoIDsAlk(N) > 0 ) THEN
+               IF ( ExtNrAlk > 0 ) THEN
                   FLUX_ALK(I,J,N) = 0.04 * ( DSRC(I,N) / AREA_M2 /
      &                              DTSRCE )
                ENDIF
@@ -473,6 +473,7 @@
       ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
       !=================================================================
       DO N = 1, NBINS
+
          IF ( HcoIDs(N) > 0 ) THEN
 
             ! Add to emissions array
@@ -486,18 +487,22 @@
 
          ENDIF
 
-         IF ( ExtNrAlk > 0 .and. HcoIDsAlk(N) > 0 ) THEN
+         IF ( ExtNrAlk > 0 ) THEN
+            IF ( HcoIDsAlk(N) > 0 ) THEN
 
-            ! Add to emissions array
-            CALL HCO_EmisAdd( am_I_Root,    HcoState, FLUX_Alk(:,:,N), 
-     &                        HcoIDsAlk(N), RC,       ExtNr=ExtNrAlk )
-            IF ( RC /= HCO_SUCCESS ) THEN
-               WRITE(MSG,*) 'HCO_EmisAdd error: dust alkalinity bin ', N
-               CALL HCO_ERROR( MSG, RC )
-               RETURN 
+               ! Add to dust alkalinity emissions array
+               CALL HCO_EmisAdd( am_I_Root,       HcoState,
+     &                           FLUX_Alk(:,:,N), HcoIDsAlk(N),
+     &                           RC,              ExtNr=ExtNrAlk )
+               IF ( RC /= HCO_SUCCESS ) THEN
+                  WRITE(MSG,*) 'HCO_EmisAdd error: dust alk bin ', N
+                  CALL HCO_ERROR( MSG, RC )
+                  RETURN 
+               ENDIF
+
             ENDIF
-
          ENDIF
+
       ENDDO !N
 
       ! Return w/ success
