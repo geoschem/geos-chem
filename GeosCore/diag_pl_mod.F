@@ -774,6 +774,7 @@
       USE TIME_MOD,           ONLY : EXPAND_DATE,   GET_NYMD
       USE TIME_MOD,           ONLY : GET_TAU,       GET_TAUb 
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
+      USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE TRACERID_MOD,       ONLY : IDTO3
 !
 ! !INPUT PARAMETERS:
@@ -850,12 +851,19 @@
       LOGICAL           :: DO_WRITE
       INTEGER           :: I, J, L, N, JLOOP
       REAL(fp)          :: P_Ox, L_Ox
+      REAL(fp)          :: LT
 
       ! Strings
       CHARACTER(LEN=16) :: STAMP 
 
       ! Pointers
       REAL(fp), POINTER :: STT(:,:,:,:)
+!
+! !DEFINED PARAMETERS:
+!
+      ! Local time limits (optional)
+      REAL(fp), PARAMETER :: LT_START = 12.0e+0_fp
+      REAL(fp), PARAMETER :: LT_END   = 16.0e+0_fp
 
       !=================================================================
       ! DIAG20 begins here!
@@ -898,7 +906,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, P_Ox, L_Ox, JLOOP )
+!$OMP+PRIVATE( I, J, L, P_Ox, L_Ox, JLOOP, LT )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LD65
       DO J = 1, JJPAR
@@ -913,6 +921,19 @@
 
          ! If this is a grid box where we have done chemistry, then ...
          IF ( JLOOP > 0 ) THEN
+
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%% NOTE: If you want to restrict output to a given local
+            !%%% time range, then uncomment these lines of code.
+            !%%% (bmy, 7/9/15)
+            !
+            ! Get the local time at box (I,J,L)
+            !LT = GET_LOCALTIME( I, J, L )
+            !
+            ! Skip processing if we are outside of the desired 
+            ! local time range (bmy, 7/9/15)
+            !IF ( LT < LT_START .or. LT > LT_END ) CYCLE
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! Increment counter of valid grid boxes
             COUNT(I,J,L) = COUNT(I,J,L) + 1
