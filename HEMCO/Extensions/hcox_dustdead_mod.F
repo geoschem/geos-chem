@@ -486,7 +486,7 @@
 
          ENDIF
 
-         IF ( HcoIDsAlk(N) > 0 ) THEN
+         IF ( ExtNrAlk > 0 .and. HcoIDsAlk(N) > 0 ) THEN
 
             ! Add to emissions array
             CALL HCO_EmisAdd( am_I_Root,    HcoState, FLUX_Alk(:,:,N), 
