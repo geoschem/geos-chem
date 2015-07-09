@@ -578,6 +578,7 @@
       LOGICAL           :: LCRYST
       LOGICAL           :: LPRT
       LOGICAL           :: LGRAVSTRAT
+      LOGICAL           :: LDSTUP
       INTEGER           :: N_TRACERS
       REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
 
@@ -607,6 +608,7 @@
       LCRYST               = Input_Opt%LCRYST
       LPRT                 = Input_Opt%LPRT
       LGRAVSTRAT           = Input_Opt%LGRAVSTRAT
+      LDSTUP               = Input_Opt%LDSTUP
       N_TRACERS            = Input_Opt%N_TRACERS
       TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
@@ -704,68 +706,70 @@
          CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
       ENDIF
 
-      !tdf
-      ! DUST_SO4 [kg] gravitational settling
-      CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                    STT(:,:,:,IDTSO4d1), 3,         RC )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_SO4')
-      ENDIF
-
-      !tdf
-      ! DUST_SO4 [kg] gravitational settling
-      CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                    STT(:,:,:,IDTSO4d2), 4,         RC )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_SO4')
-      ENDIF
-
-      !tdf
-      ! DUST_SO4 [kg] gravitational settling
-      CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                    STT(:,:,:,IDTSO4d3), 5,         RC )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_SO4')
-      ENDIF
-
-      !tdf
-      ! DUST_SO4 [kg] gravitational settling
-      CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                    STT(:,:,:,IDTSO4d4), 6,         RC )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_SO4')
-      ENDIF
-
-      !tdf
-      ! DUST_NIT [kg] gravitational settling
-      CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                    STT(:,:,:,IDTNITd1), 7,         RC )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_NIT')
-      ENDIF
-
-      !tdf
-      ! DUST_NIT [kg] gravitational settling
-      CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                    STT(:,:,:,IDTNITd2), 8,         RC )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_NIT')
-      ENDIF
-
-      !tdf
-      ! DUST_NIT [kg] gravitational settling
-      CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
-     &                    STT(:,:,:,IDTNITd3), 9,         RC )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_NIT')
-      ENDIF
-
-      !tdf
-      ! DUST_NIT [kg] gravitational settling
-      CALL GRAV_SETTLING( am_I_Root,           Input_Opt,  State_Met,
-     &                    STT(:,:,:,IDTNITd4), 10,         RC )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_NIT')
+      IF ( LDSTUP ) THEN
+         !tdf
+         ! DUST_SO4 [kg] gravitational settling
+         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                       STT(:,:,:,IDTSO4d1), 3,         RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_SO4')
+         ENDIF
+   
+         !tdf
+         ! DUST_SO4 [kg] gravitational settling
+         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                       STT(:,:,:,IDTSO4d2), 4,         RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_SO4')
+         ENDIF
+   
+         !tdf
+         ! DUST_SO4 [kg] gravitational settling
+         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                       STT(:,:,:,IDTSO4d3), 5,         RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_SO4')
+         ENDIF
+   
+         !tdf
+         ! DUST_SO4 [kg] gravitational settling
+         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                       STT(:,:,:,IDTSO4d4), 6,         RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_SO4')
+         ENDIF
+   
+         !tdf
+         ! DUST_NIT [kg] gravitational settling
+         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                       STT(:,:,:,IDTNITd1), 7,         RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_NIT')
+         ENDIF
+   
+         !tdf
+         ! DUST_NIT [kg] gravitational settling
+         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                       STT(:,:,:,IDTNITd2), 8,         RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_NIT')
+         ENDIF
+   
+         !tdf
+         ! DUST_NIT [kg] gravitational settling
+         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                       STT(:,:,:,IDTNITd3), 9,         RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_NIT')
+         ENDIF
+   
+         !tdf
+         ! DUST_NIT [kg] gravitational settling
+         CALL GRAV_SETTLING( am_I_Root,           Input_Opt,  State_Met,
+     &                       STT(:,:,:,IDTNITd4), 10,         RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_NIT')
+         ENDIF
       ENDIF
 
 #if defined( UCX )
@@ -1528,7 +1532,7 @@
       ! Slip Slip correction factor
       ! Visc Viscosity of air (Pa s)
       ! VTS  Settling velocity of particle (m/s)
-
+      LOGICAL                :: LDSTUP
       INTEGER                :: I,      J,     L,        DTCHEM
       REAL(fp)               :: DELZ,   DELZ1, REFF
       REAL(fp)               :: P,      DP,    PDP,      TEMP        
@@ -1554,9 +1558,14 @@
       ! GRAV_SETTLING begins here!
       !=================================================================
 
+      ! Copy fields from INPUT_OPT to local variables for use below
+      LDSTUP = Input_Opt%LDSTUP
+
       ! Return if tracers are undefined
       IF ( IDTSO4s  == 0 .and. IDTNITs  == 0 ) RETURN
-      IF ( IDTSO4d1 == 0 .and. IDTNITd1 == 0 ) RETURN ! tdf
+      IF ( LDSTUP ) THEN
+         IF ( IDTSO4d1 == 0 .and. IDTNITd1 == 0 ) RETURN ! tdf
+      ENDIF
 
       ! Return if it's the start of the run
       IF ( GET_ELAPSED_SEC() == 0 ) RETURN
@@ -1575,30 +1584,34 @@
       ! Store in IDDEP array
       IDDEP(1)  = DRYSO4s
       IDDEP(2)  = DRYNITs
-      !tdf
-      IDDEP(3)  = DRYSO4d1
-      IDDEP(4)  = DRYSO4d2
-      IDDEP(5)  = DRYSO4d3
-      IDDEP(6)  = DRYSO4d4
-      !tdf
-      IDDEP(7)  = DRYNITd1
-      IDDEP(8)  = DRYNITd2
-      IDDEP(9)  = DRYNITd3
-      IDDEP(10) = DRYNITd4
+      IF ( LDSTUP ) THEN
+         !tdf
+         IDDEP(3)  = DRYSO4d1
+         IDDEP(4)  = DRYSO4d2
+         IDDEP(5)  = DRYSO4d3
+         IDDEP(6)  = DRYSO4d4
+         !tdf
+         IDDEP(7)  = DRYNITd1
+         IDDEP(8)  = DRYNITd2
+         IDDEP(9)  = DRYNITd3
+         IDDEP(10) = DRYNITd4
+      ENDIF
 
       ! Tracer array
       IDTRC(1)  = IDTSO4s
       IDTRC(2)  = IDTNITs
-      !tdf
-      IDTRC(3)  = IDTSO4d1
-      IDTRC(4)  = IDTSO4d2
-      IDTRC(5)  = IDTSO4d3
-      IDTRC(6)  = IDTSO4d4
-      !tdf
-      IDTRC(7)  = IDTNITd1
-      IDTRC(8)  = IDTNITd2
-      IDTRC(9)  = IDTNITd3
-      IDTRC(10) = IDTNITd4
+      IF ( LDSTUP ) THEN
+         !tdf
+         IDTRC(3)  = IDTSO4d1
+         IDTRC(4)  = IDTSO4d2
+         IDTRC(5)  = IDTSO4d3
+         IDTRC(6)  = IDTSO4d4
+         !tdf
+         IDTRC(7)  = IDTNITd1
+         IDTRC(8)  = IDTNITd2
+         IDTRC(9)  = IDTNITd3
+         IDTRC(10) = IDTNITd4
+      ENDIF
 
       ! Coarse mode
       !tdf
@@ -2778,25 +2791,26 @@
 
          ENDIF
 
-         !==============================================================
-         ! Update SO2 conc. after DUST chemistry (tdf, 04/07/08)
-         !==============================================================
-
-         ! Get dust alkalinity ALK_d (NDSTBIN) [v/v], Uptake rates for
-         ! sulfate, KTS(NDSTBIN), and nitrate, KTN(NDSTBIN) on dust [s-1]
-         CALL GET_DUST_ALK( I, J, L, ALK_d, KTS, KTN, KTH,
-     &                      Input_Opt, State_Met, State_Chm )
-
-         ! Total alkalinity [kg]
-         ALK = 0.0e+0_fp
-
-         DO IBIN = 1, NDSTBIN
-            ALK = ALK + ALK_d (IBIN)
-         END DO
-
-         ! If (1) there is alkalinity, (2) there is SO2 present, and
-         ! (3) O3 is in excess, then compute dust SO2 chemistry
          IF ( LDSTUP ) THEN
+
+            !==============================================================
+            ! Update SO2 conc. after DUST chemistry (tdf, 04/07/08)
+            !==============================================================
+
+            ! Get dust alkalinity ALK_d (NDSTBIN) [v/v], Uptake rates for
+            ! sulfate, KTS(NDSTBIN), and nitrate, KTN(NDSTBIN) on dust [s-1]
+            CALL GET_DUST_ALK( I, J, L, ALK_d, KTS, KTN, KTH,
+     &                         Input_Opt, State_Met, State_Chm )
+
+            ! Total alkalinity [kg]
+            ALK = 0.0e+0_fp
+
+            DO IBIN = 1, NDSTBIN
+               ALK = ALK + ALK_d (IBIN)
+            END DO
+
+            ! If (1) there is alkalinity, (2) there is SO2 present, and
+            ! (3) O3 is in excess, then compute dust SO2 chemistry
             IF  ( ( ALK    > MINDAT )  .AND.
      &            ( SO2_cd > MINDAT )  .AND.
      &            ( SO2_cd < O3     ) ) THEN
@@ -2840,6 +2854,7 @@
                PH2SO4_d  (IBIN)   = 0.e+0_fp
                PNIT_d    (IBIN)   = 0.e+0_fp
             END DO
+
          ENDIF    !tdf end of if (LDSTUP) condition 
 
          !==============================================================
@@ -3349,25 +3364,30 @@
             PH2SO4d_tot = 0.e+0_fp
             PNITd_tot   = 0.e+0_fp
 
-            DO IBIN = 1, NDSTBIN
-               PSO4d_tot = PSO4d_tot + PSO4_d(IBIN)
-               PNITd_tot = PNITd_tot + PNIT_d(IBIN)
-               ! included P(SO4) due to uptake of H2SO4(g)        !tdf 3/2/2K9
-               PH2SO4d_tot = PH2SO4d_tot + PH2SO4_d(IBIN)
-            END DO
+            IF ( LDSTUP ) THEN
+               DO IBIN = 1, NDSTBIN
+                  PSO4d_tot = PSO4d_tot + PSO4_d(IBIN)
+                  PNITd_tot = PNITd_tot + PNIT_d(IBIN)
+                  ! included P(SO4) due to uptake of H2SO4(g)     !tdf 3/2/2K9
+                  PH2SO4d_tot = PH2SO4d_tot + PH2SO4_d(IBIN)
+               END DO
 
-            ! P(SO4) from O3 oxidation on dust aerosols [kg S/timestep]
-            AD05(I,J,L,11) = AD05(I,J,L,11) +
-     &                    ( PSO4d_tot * State_Met%AD(I,J,L) / TCVV_S )
+               ! P(SO4) from O3 oxidation on dust aerosols [kg S/timestep]
+               AD05(I,J,L,11) = AD05(I,J,L,11) +
+     &                       ( PSO4d_tot * State_Met%AD(I,J,L) /
+     &                         TCVV_S )
 
-            ! P(NIT) from HNO3 uptake on dust [kg N/timestep]
-            AD05(I,J,L,12) = AD05(I,J,L,12) +
-     &                    ( PNITd_tot * State_Met%AD(I,J,L) / TCVV_N )
+               ! P(NIT) from HNO3 uptake on dust [kg N/timestep]
+               AD05(I,J,L,12) = AD05(I,J,L,12) +
+     &                       ( PNITd_tot * State_Met%AD(I,J,L) /
+     &                         TCVV_N )
 
-            ! Included P(SO4) due to uptake of H2SO4(g)        !tdf 3/2/2K9
-            ! P(SO4) from uptake of H2SO4 on dust aerosols [kg S/timestep]
-            AD05(I,J,L,13) = AD05(I,J,L,13) +
-     &                    ( PH2SO4d_tot * State_Met%AD(I,J,L) / TCVV_S )
+               ! Included P(SO4) due to uptake of H2SO4(g)        !tdf 3/2/2K9
+               ! P(SO4) from uptake of H2SO4 on dust aerosols [kg S/timestep]
+               AD05(I,J,L,13) = AD05(I,J,L,13) +
+     &                       ( PH2SO4d_tot * State_Met%AD(I,J,L) /
+     &                         TCVV_S )
+            ENDIF
 
          ENDIF
       ENDDO
@@ -6312,11 +6332,13 @@
          ! Initial NITRATE w/in seasalt [v/v]
          NIT0s = STT(I,J,L,IDTNITs)
 
-         ! Initial NITRATE w/in dust bins [v/v]   ! tdf 04/07/08
-         NIT0d(1) = STT(I,J,L,IDTNITd1)
-         NIT0d(2) = STT(I,J,L,IDTNITd2)
-         NIT0d(3) = STT(I,J,L,IDTNITd3)
-         NIT0d(4) = STT(I,J,L,IDTNITd4)
+         IF ( LDSTUP ) THEN
+            ! Initial NITRATE w/in dust bins [v/v]   ! tdf 04/07/08
+            NIT0d(1) = STT(I,J,L,IDTNITd1)
+            NIT0d(2) = STT(I,J,L,IDTNITd2)
+            NIT0d(3) = STT(I,J,L,IDTNITd3)
+            NIT0d(4) = STT(I,J,L,IDTNITd4)
+         ENDIF
 
          ! Initialize variables
          NIT   = 0e+0_fp
