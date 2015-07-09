@@ -44,7 +44,8 @@ MODULE GIGC_State_Chm_Mod
      ! Advected tracers
      INTEGER,           POINTER :: Trac_Id    (:      )  ! Tracer ID #'s
      CHARACTER(LEN=14), POINTER :: Trac_Name  (:      )  ! Tracer names
-     REAL(fp),          POINTER :: Tracers    (:,:,:,:)  ! Tracer conc [kg]
+     REAL(fp),          POINTER :: Tracers    (:,:,:,:)  ! Tracer conc 
+                                                         ! [kg trcr/kg dry air]
 
      ! Chemical species
      INTEGER,           POINTER :: Spec_Id    (:      )  ! Species ID # 
@@ -152,6 +153,7 @@ MODULE GIGC_State_Chm_Mod
 !                              all species.
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  11 Dec 2014 - R. Yantosca - Keep JLOP and JLOP_PREV for ESMF runs only
+!  17 Feb 2015 - E. Lundgren - New tracer units kg/kg dry air (previously kg)
 !EOP
 !------------------------------------------------------------------------------
 !BOC

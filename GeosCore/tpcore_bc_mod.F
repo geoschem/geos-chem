@@ -479,6 +479,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_NYMD,  GET_NHMS
       USE TIME_MOD,           ONLY : GET_TAU,   TIMESTAMP_STRING
+      USE UNITCONV_MOD
 #if   defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
@@ -511,6 +512,8 @@
 !                              instead of from GeosUtil/file_mod.F
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  17 Feb 2014 - E. Lundgren - Move temporary unit change to vol/vol to within
+!                              this subroutine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -582,6 +585,12 @@
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  TEMPORARY - ewl, 2/17/15
+!      ! Convert tracer units from [kg/kg] to [vol/vol] for writing to file
+!      CALL CONVERT_MMR_To_VR( N_TRACERS, Input_Opt%TCVV, STT)
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Loop over the possible combinations of nested grids
       DO IC = 1, 4
@@ -718,6 +727,12 @@
             
          ENDIF
       ENDDO
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  TEMPORARY - ewl, 2/17/15
+!      ! Convert tracer units back from [vol/vol] to [kg/kg] 
+!      CALL CONVERT_VR_To_MMR( N_TRACERS, Input_Opt%TCVV, STT)
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Free pointer
       NULLIFY( STT )

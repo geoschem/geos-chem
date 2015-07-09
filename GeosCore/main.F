@@ -272,8 +272,10 @@
 !  22 Aug 2014 - R. Yantosca - Now save areas [m2] in State_Met%AREA_M2
 !  15 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  06 Jan 2015 - R. Yantosca - Added two-way coupled simulation options
-!  17 Feb 2015 - E. Lundgren - Remove STT and TCVV pointers.
-!  25 Feb 2015 - E. Lundgren - Remove MAKE_RH call since now in AIRQNT.
+!  17 Feb 2015 - E. Lundgren - Remove STT and TCVV pointers
+!  25 Feb 2015 - E. Lundgren - Remove MAKE-RH call since now in AIRQNT
+!  16 Mar 2015 - E. Lundgren - Change tracer main units from kg to kg/kg
+!  24 Mar 2015 - E. Lundgren - Now pass Input_Opt to Check_STT
 !  31 Mar 2015 - E. Lundgren - Move post-transport AIRQNT call to transport_mod 
 !  16 Apr 2015 - R. Yantosca - Remove call to INIT_DAO; it's obsolete
 !EOP
@@ -539,7 +541,6 @@
       ! N_TRACERS, which is obtained by reading the input.geos file.
       !
       CALL Fill_Chem_State_Name_IDs( am_I_Root, Input_Opt, State_Chm )
-
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field.  This will let us convert
       ! HEMCO emissions [kg/m2/s] to [kg] in various routines 
@@ -699,10 +700,25 @@
          CALL DEBUG_MSG( '### MAIN: a SET_INITIAL_MIXRATIOS' )
       ENDIF
 
+!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!     ! TEMPORARY - ewl, 3/19/15
+!     ! Go back to legacy units [kg] for INIT_STRAT_CHEM. 
+!     ! This ensures allocatable array MInit
+!     ! used for later strat chem remains in kg for the time being.
+      CALL Convert_MMR_to_KG( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
       IF ( LSCHEM ) THEN
          CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! TEMPORARY - ewl, 3/19/15
+      CALL Convert_KG_to_MMR( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Read ocean Hg initial conditions (if necessary)
       IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
@@ -791,7 +807,7 @@
       !     ***** D Y N A M I C   T I M E S T E P   L O O P *****
       !=================================================================
       DO N_STEP = 1, N_DYN_STEPS
-    
+
          ! Compute & print time quantities at start of dyn step
          CALL SET_CURRENT_TIME
          CALL PRINT_CURRENT_TIME
@@ -838,7 +854,7 @@
 
          ! Original diagnostics
          IF ( ITS_TIME_FOR_BPCH() ) THEN
-            
+
             ! Set time at end of diagnostic timestep
             CALL SET_DIAGe( TAU )
 
@@ -855,10 +871,28 @@
             !===========================================================
             IF ( LSVGLB ) THEN
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               ! TEMPORARY - ewl, 3/19/15
+               ! Go back to legacy units [kg] for
+               ! CALC_STE, which is a routine in strat_chem_mod.
+               ! More generally, deal with strat_chem_mod routines later,
+               ! as they all depend on a global array in the module that
+               ! is set to the initial state of the atm in kg (STT after
+               ! reading in restart file and converting units).
+               CALL Convert_MMR_to_KG( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
                ! Determine and print STE fluxes (ltm, 06/10/12)
                IF ( LSCHEM ) THEN
                   CALL CALC_STE( am_I_Root, Input_Opt, State_Chm, RC )
                ENDIF
+               
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               ! TEMPORARY - ewl, 3/19/15
+               CALL Convert_KG_to_MMR( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                ! Make atmospheric restart file
                CALL MAKE_RESTART_FILE
@@ -1077,7 +1111,7 @@
          ! Compute airmass quantities at each grid box 
          CALL AIRQNT( am_I_Root, State_Met, RC )
 
-         ! SDE 05/28/13: Set H2O to tracer if relevant
+         ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
          IF (IDTH2O.ne.0) THEN
             CALL SET_H2O_TRAC( am_I_Root, 
      &                         ( ( .not. LUCX ) .or. LSETH2O ),
@@ -1150,14 +1184,36 @@
          !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
          !==============================================================
          IF ( ITS_TIME_FOR_UNIT() ) THEN
-            CALL CONVERT_UNITS( 1,  N_TRACERS, Input_Opt%TCVV, 
-     &                          State_Met%AD, State_Chm%TRACERS )
+            CALL CONVERT_UNITS( 1,  N_TRACERS, TCVV, State_Met%AD, STT )
 
             !### Debug
             IF ( prtDebug ) THEN 
                CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
             ENDIF
          ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! TEMPORARY - ewl, 3/19/15
+         ! Convert MMR to VMR
+         IF ( ITS_TIME_FOR_UNIT() ) THEN 
+            CALL Convert_MMR_to_VMR( N_TRACERS, Input_Opt%TCVV, 
+     &                        State_Chm%TRACERS )
+         ENDIF
+
+!         !==============================================================
+!         !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
+!         !==============================================================
+!         IF ( ITS_TIME_FOR_UNIT() ) THEN
+!            CALL CONVERT_UNITS( 1,  N_TRACERS, Input_Opt%TCVV, 
+!     &                          State_Met%AD, State_Chm%TRACERS )
+!
+!            !### Debug
+!            IF ( prtDebug ) THEN 
+!               CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
+!            ENDIF
+!         ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
          !==============================================================
          !              ***** T R A N S P O R T *****
@@ -1240,12 +1296,31 @@
          !--------------------------------------------------------------
          IF ( ITS_TIME_FOR_EMIS() ) THEN
 
-            IF ( ITS_TIME_FOR_UNIT() )  ! v/v -> kg
-     &         CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV,
-     &                             State_Met%AD, State_Chm%TRACERS )
-
             ! Increment emission counter
             CALL SET_CT_EMIS( INCREMENT=.TRUE. )
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! TEMPORARY - ewl, 3/24/15
+         ! Convert VMR to MMR
+            IF ( ITS_TIME_FOR_UNIT() ) THEN 
+               CALL Convert_VMR_to_MMR( N_TRACERS, Input_Opt%TCVV, 
+     &                        State_Chm%TRACERS )
+            ENDIF
+!            IF ( ITS_TIME_FOR_UNIT() )  ! v/v -> kg
+!     &         CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV,
+!     &                             State_Met%AD, State_Chm%TRACERS )
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! TEMPORARY - ewl, 3/24/15
+         ! Go back to legacy units [kg] for dry dep and emissions
+            IF ( ITS_TIME_FOR_UNIT() ) THEN 
+               CALL Convert_MMR_to_KG( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+            ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
             !===========================================================
             !         ***** D R Y   D E P O S I T I O N *****
@@ -1272,15 +1347,30 @@
             CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, 
      &                          State_Chm, ITS_TIME_FOR_EMIS(), 2, RC )
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! TEMPORARY - ewl, 3/24/15
+            CALL Convert_KG_to_MMR( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
             ! Stop the run if the HEMCO run sequence dies w/ an error
             IF ( RC /= GIGC_SUCCESS ) THEN
                CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
             ENDIF
  
-            ! Unit conversion
-            IF ( ITS_TIME_FOR_UNIT() )
-     &         CALL CONVERT_UNITS( 1, N_TRACERS, Input_Opt%TCVV, 
-     &                             State_Met%AD, State_Chm%TRACERS )! kg->v/v
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! TEMPORARY - ewl, 3/24/15
+         ! Convert MMR to v/v using new unit conversion routine.
+            IF ( ITS_TIME_FOR_UNIT() ) THEN 
+               CALL Convert_MMR_to_VMR( N_TRACERS, Input_Opt%TCVV, 
+     &                        State_Chm%TRACERS )
+            ENDIF
+!            ! Unit conversion
+!            IF ( ITS_TIME_FOR_UNIT() )
+!     &         CALL CONVERT_UNITS( 1, N_TRACERS, Input_Opt%TCVV, 
+!     &                             State_Met%AD, State_Chm%TRACERS )! kg->v/v=
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
          ENDIF
 
          !-------------------------------
@@ -1328,18 +1418,12 @@
             ENDIF 
          ENDIF 
 
-         !==============================================================
-         !    ***** U N I T   C O N V E R S I O N  ( v/v -> kg ) *****
-         !==============================================================
-
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! TEMPORARY - ewl, 3/24/15
+         ! Convert v/v to MMR using new conversion routine.
          IF ( ITS_TIME_FOR_UNIT() ) THEN 
-            CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV, 
-     &                          State_Met%AD, State_Chm%TRACERS )
-
-            !### Debug
-            IF ( prtDebug ) THEN 
-               CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:2' )
-            ENDIF
+            CALL Convert_VMR_to_MMR( N_TRACERS, Input_Opt%TCVV, 
+     &                        State_Chm%TRACERS )
          ENDIF
          
 !         !-------------------------------
@@ -1408,6 +1492,20 @@
 !            ENDIF
 !
 !         ENDIF
+!         !==============================================================
+!         !    ***** U N I T   C O N V E R S I O N  ( v/v -> kg ) *****
+!         !==============================================================
+!
+!         IF ( ITS_TIME_FOR_UNIT() ) THEN 
+!            CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV, 
+!     &                          State_Met%AD, State_Chm%TRACERS )
+!
+!            !### Debug
+!            IF ( prtDebug ) THEN 
+!               CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:2' )
+!            ENDIF
+!         ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          !==============================================================
          !               ***** C H E M I S T R Y *****
@@ -1421,17 +1519,25 @@
          ! Also need to compute avg P, T for CH4 chemistry (bmy, 1/16/01)
          IF ( ITS_A_CH4_SIM ) CALL CH4_AVGTP( State_Met )
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! TEMPORARY - ewl, 3/24/15
+         ! Go back to legacy units [kg] for chem
+            CALL Convert_MMR_to_KG( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
          ! Every chemistry timestep...
          IF ( ITS_TIME_FOR_CHEM() ) THEN
 
             ! Increment chemistry timestep counter
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
 
-            ! SDE 05/28/13: Set H2O to tracer if relevant
+            ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
             IF (IDTH2O.ne.0) THEN
                CALL SET_H2O_TRAC( am_I_Root, (.not. LUCX), Input_Opt ,
      &                            State_Met, State_Chm, RC )
             ENDIF
+
 
             ! Do GEOS-Chem chemistry
             CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
@@ -1439,14 +1545,23 @@
 
          ENDIF 
 
-         ! Check STT (tracers) (yxw)   
+         ! Check State_Chm tracers (yxw)   
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
-         CALL CHECK_STT_05x0666( State_Chm, 
+         CALL CHECK_STT_05x0666( State_Chm, Input_Opt, 
      &                           'end of chem section, before wetdep' )
 #endif 
 #if   defined( GEOS_FP) && defined( GRID025x03125)
-         CALL CHECK_STT_025x03125( State_Chm, 'after chemistry' )
+         CALL CHECK_STT_025x03125( State_Chm, Input_Opt,
+     &                             'after chemistry' )
 #endif 
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               ! TEMPORARY - ewl, 3/25/15
+               ! Use mass mixing ratio for wet dep
+               CALL Convert_KG_to_MMR( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
@@ -1458,6 +1573,15 @@
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
          ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! TEMPORARY - ewl, 3/24/15
+         ! Go back to legacy units [kg] for more chemistry
+         ! (waiting for FlexChem for chemistry unit conversion work)
+            CALL Convert_MMR_to_KG( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
          !==============================================================
          !      ***** U P D A T E  O P T I C A L  D E P T H *****          
@@ -1528,7 +1652,13 @@
 
             ENDIF
          ENDIF
-#endif
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               ! TEMPORARY - ewl, 3/25/15
+               ! Last Unit Conversion!!!
+               CALL Convert_KG_to_MMR( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          !==============================================================
          !   ***** I N C R E M E N T   E L A P S E D   T I M E *****
@@ -1681,14 +1811,17 @@
          ! the nested-grid domain edges. Force them to be zero before
          ! CHECK_STT (yxw)
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
-            CALL CHECK_STT_05x0666( State_Chm, 'after dynamics step' )
+            CALL CHECK_STT_05x0666( State_Chm, Input_Opt,
+     &                              'after dynamics step' )
 #endif
 #if   defined( GEOS_FP) && defined( GRID025x03125)
-         CALL CHECK_STT_025x03125( State_Chm, 'after dynamics step' )
+         CALL CHECK_STT_025x03125( State_Chm, Input_Opt,
+     &                             'after dynamics step' )
 #endif 
 
 
-            CALL CHECK_STT( State_Chm, 'End of Dynamic Loop' )
+            CALL CHECK_STT( State_Chm, Input_Opt, 
+     &                      'End of Dynamic Loop' )
          ENDIF
           
       ENDDO

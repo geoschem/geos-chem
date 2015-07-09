@@ -611,9 +611,9 @@ CONTAINS
          !
          !  The conversion is as follows:
          !
-         !   mol tracer(N)  mol air     g tracer(N)         
-         !   -----------  * -------  *  -------------  
-         !     mol air       g air      mol tracer(N)           
+         !   mol tracer(N)  mol dry air     g tracer(N)         
+         !   -----------  * -----------  *  -------------  
+         !     mol air       g dry air      mol tracer(N)           
          !
          !   = volume ratio / ratio of air to tracer molecular wts  
          !   

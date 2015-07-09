@@ -185,6 +185,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CMN_GCTM_MOD,       ONLY : XNUMOLAIR
     USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
@@ -199,7 +200,6 @@ CONTAINS
     USE LINOZ_MOD,          ONLY : DO_LINOZ
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-    USE TRACER_MOD,         ONLY : XNUMOLAIR
     USE TRACERID_MOD,       ONLY : IDTO3
     USE TRACERID_MOD,       ONLY : IDTCHBr3
     USE TRACERID_MOD,       ONLY : IDTCH2Br2
@@ -244,6 +244,8 @@ CONTAINS
 !  19 Mar 2013 - R. Yantosca - Now only copy Input_Opt%TCVV(1:N_TRACERS)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  30 Dec 2014 - C. Keller   - Now get Bry data through HEMCO.
+!  24 Mar 2015 - E. Lundgren - Replace dependency on tracer_mod with
+!                              CMN_GTCM_MOD for XNUMOLAIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1169,8 +1171,7 @@ CONTAINS
     IT_IS_A_TAGOX_SIM        = Input_Opt%ITS_A_TAGOX_SIM
     TRACER_NAME(1:N_TRACERS) = Input_Opt%TRACER_NAME(1:N_TRACERS)
 
-    ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-    ! (mpayer, 12/6/12)
+    ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
     STT => State_Chm%Tracers
 
     ! Initialize counters, initial times, mapping arrays
@@ -1355,7 +1356,7 @@ CONTAINS
 
     ! Array to hold initial state of atmosphere at the beginning
     ! of the period over which to estimate STE. Populate with
-    ! initial atm. conditions from restart file [kg].
+    ! initial atm. conditions from restart file converted to [kg/kg].
     ALLOCATE( MInit( IIPAR, JJPAR, LLPAR, N_TRACERS ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
     MInit = STT

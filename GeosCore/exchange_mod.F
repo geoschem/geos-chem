@@ -247,6 +247,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
+!  17 Feb 2015 - E. Lundgren - Expect tracer units in kg/kg not v/v.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -267,7 +268,17 @@
 
       IF ( IS_EXCHANGE ) THEN
 
+!      Remove old units code (elundgren, 2/17/2015):
          CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT )  !(v/v ->kg)
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! TEMPORARY - ewl, 2/17/15
+! Convert kg/kg to kg - this might not even be necessary. Unclear from 
+! description EX_READ_AND_APPLY_FEEDBACK subroutine.
+!         CALL CONVERT_MMR_to_KG( N_TRACERS, State_Met%AD, 
+!     &                           State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
          CALL EX_CONVERT_UNITS_CSPEC
      & ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
      &  1, ILONG, ILAT, IPVERT) !mol/cm3 -> mol
@@ -287,7 +298,16 @@
      &  ( am_I_Root, Input_Opt,State_Met, State_Chm, RC, 3 )
 # endif
 
+!      Remove old units code (elundgren, 2/17/2015):
          CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT )  !(kg -> v/v)
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! TEMPORARY - ewl, 2/17/15
+! Convert kg back to kg/kg
+!         CALL CONVERT_KG_to_MMR( N_TRACERS, State_Met%AD, 
+!     &                           State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
          CALL EX_CONVERT_UNITS_CSPEC
      & ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
      &   2, ILONG, ILAT, IPVERT) !mol -> mol/cm3
@@ -370,6 +390,8 @@
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
+!  17 Feb 2015 - E. Lundgren - Expect tracer units in kg/kg not v/v.
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -386,7 +408,17 @@
 
       WRITE (*,*) "@@@@@@@@@@@@@@ EXCHANGE_NESTED_POST"
 
+!      Remove old units code (elundgren, 2/17/2015):
       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT )  !(V/V -> KG)
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! TEMPORARY - ewl, 2/17/15
+! Convert kg/kg to kg - this might not be necessary. Unclear from 
+! description of EX_DUMP_FOR_GLOBAL
+!         CALL CONVERT_MMR_to_KG( N_TRACERS, State_Met%AD, 
+!     &                           State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
       CALL EX_CONVERT_UNITS_CSPEC
      &  ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
@@ -395,7 +427,15 @@
       CALL EX_DUMP_FOR_GLOBAL
      &        (am_I_Root, Input_Opt,State_Met, State_Chm,RC)
 
+!      Remove old units code (elundgren, 2/17/2015):
       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT )  !(KG ->V/V)
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! TEMPORARY - ewl, 2/17/15
+! Convert kg back to kg/kg
+!         CALL CONVERT_KG_to_MMR( N_TRACERS, State_Met%AD, 
+!     &                           State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       CALL EX_CONVERT_UNITS_CSPEC
      &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
@@ -456,7 +496,6 @@
 !
       USE ERROR_MOD
       USE COMODE_MOD
-      USE TRACER_MOD
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
 !
@@ -467,6 +506,7 @@
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Now only print output on the root CPU
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
+!  24 Mar 2015 - E. Lundgren - Remove tracer_mod dependency since unused
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -857,7 +897,6 @@
 ! !USES:
 !
       USE ERROR_MOD
-      USE TRACER_MOD
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -883,6 +922,7 @@
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Now get LPRT from Input_Opt
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
+!  24 Mar 2015 - E. Lundgren - Remove tracer_mod dependency since not used
 !EOP
 !------------------------------------------------------------------------------
 !BOC

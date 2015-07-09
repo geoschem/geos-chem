@@ -406,6 +406,7 @@
 !  18 Jun 2014 - S. D. Eastham - Now read data for individual NOx species
 !  24 Nov 2014 - C. Keller     - Update for stratospheric NOy (as suggested by 
 !                                Seb Eastham)
+!  16 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -462,7 +463,7 @@
 
       ! Set module variable
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Initialize GEOS-Chem tracer array [kg/kg]
       STT => State_Chm%Tracers
 
       IF ( am_I_Root ) THEN
@@ -889,6 +890,7 @@
      &                     am_I_Root, Input_Opt )
 
          ! Convert from [vv] to [kg CH4/mol air]
+         ! (ewl, 3/16/15) actually [vv] to [kg CH4/kg air]???
          C3090S = C3090S / TCVV(IDTCH4)
          C0030S = C0030S / TCVV(IDTCH4)
          C0030N = C0030N / TCVV(IDTCH4)
@@ -904,15 +906,28 @@
             ! Grid-box latitude index
             YLAT  = GET_YMID( I,J,L )
 
+! Remove conversion of mixing ratio to kg  (ewl, 3/16/15)
+!            ! Set CH4 according to latitude
+!            IF ( YLAT < -30e+0_fp ) THEN
+!               STT(I,J,L,IDTCH4) = C3090S * State_Met%AD(I,J,L)
+!            ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
+!               STT(I,J,L,IDTCH4) = C0030S * State_Met%AD(I,J,L)
+!            ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
+!               STT(I,J,L,IDTCH4) = C0030N * State_Met%AD(I,J,L)
+!            ELSE
+!               STT(I,J,L,IDTCH4) = C3090N * State_Met%AD(I,J,L)
+!            ENDIF
+
             ! Set CH4 according to latitude
+            ! STT in [kg/kg] (ewl, 3/16/15)
             IF ( YLAT < -30e+0_fp ) THEN
-               STT(I,J,L,IDTCH4) = C3090S * State_Met%AD(I,J,L)
+               STT(I,J,L,IDTCH4) = C3090S
             ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
-               STT(I,J,L,IDTCH4) = C0030S * State_Met%AD(I,J,L)
+               STT(I,J,L,IDTCH4) = C0030S
             ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
-               STT(I,J,L,IDTCH4) = C0030N * State_Met%AD(I,J,L)
+               STT(I,J,L,IDTCH4) = C0030N
             ELSE
-               STT(I,J,L,IDTCH4) = C3090N * State_Met%AD(I,J,L)
+               STT(I,J,L,IDTCH4) = C3090N
             ENDIF
          ENDDO
          ENDDO
@@ -1763,6 +1778,7 @@
 !  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
 !                                air pressure, with State_Met%PMID and
 !                                remove dependency on PRESSURE_MOD.
+!  19 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1801,7 +1817,7 @@
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV = Input_Opt%TCVV(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Initialize GEOS-Chem tracer array [kg/kg]
       STT => State_Chm%Tracers
 
       ! Filename
@@ -1952,8 +1968,11 @@
                ENDIF
                ! Send to STT (currently kg/box)
                IF (SET_CELL) THEN
-                  ! Convert from [ppbv] to [kg]
-                  TRACMASS = SCALEFAC * TRACMR * State_Met%AD(I,J,L) /
+!                  ! Convert from [ppbv] to [kg]
+!                  TRACMASS = SCALEFAC * TRACMR * State_Met%AD(I,J,L) /
+!     &                       TCVV(TRAC_IDX)
+                  ! Convert from [ppbv] to [kg/kg] (ewl, 3/19/15)
+                  TRACMASS = SCALEFAC * TRACMR /
      &                       TCVV(TRAC_IDX)
                   IF (TRAC_ADD) THEN
                      STT(I,J,L,TRAC_IDX) = STT(I,J,L,TRAC_IDX)+TRACMASS
@@ -5474,8 +5493,9 @@
 !  14 Feb 2014 - R. Yantosca   - Reordered DO loop for efficiency
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
-!  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER with State_Met%PMID and
-!                                remove dependency on PRESSURE_MOD.
+!  24 Feb 2015 - E. Lundgren   - Replace GET_PCENTER with State_Met%PMID and
+!                                remove dependency on PRESSURE_MOD
+!  24 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg 
 !  29 Apr 2015 - E. Lundgren   - Now pass am_I_Root and RC to SET_H2O_TRAC
 !  29 Apr 2015 - E. Lundgren   - Now use grid box moist air mass ADMOIST 
 !                                with SPHU since AD is now dry air mass
@@ -5527,7 +5547,7 @@
       ! Copy fields from INPUT_OPT
       LACTIVEH2O = Input_Opt%LACTIVEH2O
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Initialize GEOS-Chem tracer array [kg/kg]
       STT => State_Chm%Tracers
 
 !$OMP PARALLEL DO

@@ -1290,6 +1290,7 @@
 !  12 Jan 2015 - L. Schiferl - Allow for more precision in TAUE computation
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod. 
+!  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1753,9 +1754,10 @@
                      ! Chemistry State object (mpayer, 12/6/12)
                      STT => State_Chm%Tracers
                      
-                     ! Convert from [kg] --> [v/v]
-                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N) /
-     &                         State_Met%AD(I,J,L)
+                     ! Convert from [kg/kg] --> [v/v]
+!                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N) /
+!     &                         State_Met%AD(I,J,L)
+                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N)
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 

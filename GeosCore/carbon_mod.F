@@ -6370,12 +6370,12 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE CMN_GCTM_MOD,       ONLY : XNUMOLAIR
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDO3
 !
 ! !INPUT PARAMETERS: 
@@ -6401,6 +6401,8 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  18 Sep 2014 - M. Sulprizio- Now get O3 for offline aerosol sim from HEMCO
+!  24 Mar 2015 - E. Lundgren - Replace dependency on tracer_mod with
+!                              CMN_GTCM_MOD for XNUMOLAIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
