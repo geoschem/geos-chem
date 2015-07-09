@@ -117,12 +117,6 @@
       ! Include dust alkalinity tracer IDs               tdf 04/10/08
       USE TRACERID_MOD,       ONLY : IDTDAL1,  IDTDAL2
       USE TRACERID_MOD,       ONLY : IDTDAL3,  IDTDAL4
-      ! Include dust sulfate tracer IDs                  tdf 06/16/08
-      USE TRACERID_MOD,       ONLY : IDTSO4D1, IDTSO4D2
-      USE TRACERID_MOD,       ONLY : IDTSO4D3, IDTSO4D4
-      ! Include dust nitrate tracer IDs                  tdf 06/16/08
-      USE TRACERID_MOD,       ONLY : IDTNITD1, IDTNITD2
-      USE TRACERID_MOD,       ONLY : IDTNITD3, IDTNITD4
 !
 ! !INPUT PARAMETERS:
 !
@@ -167,6 +161,7 @@
       ! Non-SAVEd scalars
       LOGICAL       :: LDRYD
       LOGICAL       :: LDUST
+      LOGICAL       :: LDSTUP
       LOGICAL       :: prtDebug
       INTEGER       :: N
       INTEGER       :: IDISP
@@ -184,8 +179,9 @@
       RC    = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LDRYD = Input_Opt%LDRYD
-      LDUST = Input_Opt%LDUST
+      LDRYD  = Input_Opt%LDRYD
+      LDUST  = Input_Opt%LDUST
+      LDSTUP = Input_Opt%LDSTUP
 
       ! Set a flag for debug output
       prtDebug = ( Input_Opt%LPrt .and. am_I_Root )
@@ -221,14 +217,17 @@
       CALL DRY_SETTLING(  am_I_Root, Input_Opt,  
      &                    State_Met, STT(:,:,:,IDTDST1:IDTDST4), RC,
      &                    IDTDST1,   IDISP )
-      ! Include dust alkalinity settling                 tdf 04/10/08
-      IDISP = 4
-      CALL DRY_SETTLING(  am_I_Root, Input_Opt,  
-     &                    State_Met, STT(:,:,:,IDTDAL1:IDTDAL4), RC,
-     &                    IDTDAL1,   IDISP )
 
-      ! Note: DRY SETTLING of DSTNIT, DSTSO4 occurs in GRAV_SETTLING
-      !       called from CHEMSULFATE in SULFATE_MOD.    tdf 04/10/08
+      IF ( LDSTUP ) THEN
+         ! Include dust alkalinity settling                 tdf 04/10/08
+         IDISP = 4
+         CALL DRY_SETTLING(  am_I_Root, Input_Opt,  
+     &                       State_Met, STT(:,:,:,IDTDAL1:IDTDAL4), RC,
+     &                       IDTDAL1,   IDISP )
+
+         ! Note: DRY SETTLING of DSTNIT, DSTSO4 occurs in GRAV_SETTLING
+         !       called from CHEMSULFATE in SULFATE_MOD.    tdf 04/10/08
+      ENDIF
 
       ! Debug print
       IF ( prtDebug ) THEN
@@ -2211,7 +2210,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Non-SAVEd scalars
-      LOGICAL            :: LDEAD
+      LOGICAL            :: LDEAD, LDSTUP
       INTEGER            :: AS, N
 #if   defined( TOMAS )
       INTEGER            :: I
@@ -2241,7 +2240,8 @@
       RC    = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LDEAD = Input_Opt%LDEAD
+      LDEAD  = Input_Opt%LDEAD
+      LDSTUP = Input_Opt%LDSTUP
 
 #if defined( TOMAS )
       !=================================================================
@@ -2440,11 +2440,13 @@
          Input_Opt%IDDEP(3) = DRYDST3
          Input_Opt%IDDEP(4) = DRYDST4
 
-         ! Include dust alkalinity tracers                     tdf 04/10/08
-         Input_Opt%IDDEP(5) = DRYDAL1
-         Input_Opt%IDDEP(6) = DRYDAL2
-         Input_Opt%IDDEP(7) = DRYDAL3
-         Input_Opt%IDDEP(8) = DRYDAL4
+         IF ( LDSTUP  ) THEN
+            ! Include dust alkalinity tracers                  tdf 04/10/08
+            Input_Opt%IDDEP(5) = DRYDAL1
+            Input_Opt%IDDEP(6) = DRYDAL2
+            Input_Opt%IDDEP(7) = DRYDAL3
+            Input_Opt%IDDEP(8) = DRYDAL4
+         ENDIF
       ENDIF
 #endif 
 
