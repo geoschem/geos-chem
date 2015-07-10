@@ -63,16 +63,14 @@ MODULE HCOX_SeaSalt_Mod
   REAL*8              :: Br2Scale          ! Br2 scale factor 
   REAL*8              :: WindScale         ! Wind adjustment factor
 
-  ! Size bin information (filled during initialization)
-  INTEGER             :: NR(2)
-
-  ! Module variables (to be defined during initialization)
-  INTEGER             :: NSALT             ! # of sea salt tracers (ewl)
-  REAL*8, ALLOCATABLE :: SRRC  (:,:)
-  REAL*8, ALLOCATABLE :: SRRC_N(:,:)
-  REAL*8, ALLOCATABLE :: RREDGE(:,:)
-  REAL*8, ALLOCATABLE :: RRMID (:,:)
-  REAL*8, ALLOCATABLE :: SS_DEN(:)         ! densities (ewl)
+  ! Module variables
+  INTEGER              :: NSALT             ! # of sea salt tracers (ewl)
+  INTEGER, ALLOCATABLE :: NR(:)             ! Size bin information
+  REAL*8,  ALLOCATABLE :: SRRC  (:,:)
+  REAL*8,  ALLOCATABLE :: SRRC_N(:,:)
+  REAL*8,  ALLOCATABLE :: RREDGE(:,:)
+  REAL*8,  ALLOCATABLE :: RRMID (:,:)
+  REAL*8,  ALLOCATABLE :: SS_DEN(:)         ! densities 
 
   ! Number densities
   REAL(sp), POINTER   :: NDENS_SALA(:,:) => NULL()
@@ -83,15 +81,11 @@ MODULE HCOX_SeaSalt_Mod
 ! !DEFINED PARAMETERS:
 !
   ! Defined parameters
-!  INTEGER, PARAMETER  :: NSALT  = 2    ! # of sea salt tracers (removed by ewl)
   INTEGER, PARAMETER  :: NR_MAX = 200  ! max. # of bins per mode
 
   ! Increment of radius for Emission integration (um)
   REAL*8, PARAMETER   :: DR    = 5.d-2
   REAL*8, PARAMETER   :: BETHA = 2.d0
-
-  ! density
-!  REAL*8, PARAMETER   :: SS_DEN(2) = (/ 2200.d0, 2200.d0 /) (removed by ewl)
 
 CONTAINS
 !EOC
@@ -676,7 +670,13 @@ CONTAINS
        NSALT = 2
     ENDIF
 
-    ! Now allocate SS_DEN during initialization (ewl, 7/9/15)
+    ALLOCATE ( NR  ( NSALT ), STAT=AS )
+    IF ( AS/=0 ) THEN
+       CALL HCO_ERROR( 'Cannot allocate NR', RC )
+       RETURN
+    ENDIF
+    SS_DEN = 2200.d0
+
     ALLOCATE ( SS_DEN  ( NSALT ), STAT=AS )
     IF ( AS/=0 ) THEN
        CALL HCO_ERROR( 'Cannot allocate SS_DEN', RC )
@@ -973,6 +973,7 @@ CONTAINS
     !=================================================================
 
     ! Cleanup module arrays
+    IF ( ALLOCATED ( NR         ) ) DEALLOCATE( NR         )    
     IF ( ALLOCATED ( SS_DEN     ) ) DEALLOCATE( SS_DEN     )    
     IF ( ALLOCATED ( SRRC       ) ) DEALLOCATE( SRRC       )
     IF ( ALLOCATED ( SRRC_N     ) ) DEALLOCATE( SRRC_N     )
