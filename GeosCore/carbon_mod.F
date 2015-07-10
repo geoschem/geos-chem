@@ -5440,6 +5440,8 @@ ccc
 ! the TOMAS portions of the v9 emisscarbon (JKodros 6/2/15)
 !\\
 !\\
+! !INTERFACE:
+!
       SUBROUTINE EMISSCARBONTOMAS( am_I_Root, Input_Opt,
      &                     State_Met, State_Chm, RC )
 !
@@ -5454,7 +5456,9 @@ ccc
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+!
 ! TOMAS DIAGNs:
+!
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TOMAS_MOD,          ONLY : IBINS,     AVGMASS, SOACOND
       USE TOMAS_MOD,          ONLY : ICOMP,     IDIAG, xSOA
@@ -5471,6 +5475,7 @@ ccc
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
@@ -5482,6 +5487,7 @@ ccc
 ! !REVISION HISTORY:
 !  12 Jun 2015 - J. Kodros   - Initial version
 !  12 Jun 2015 - R. Yantosca - Bug fix: also add reference to DEBUG_MSG
+!  10 Jul 2015 - R. Yantosca - Fixed typo in ProTeX header
 !EOP
 !------------------------------------------------------------------------------
 !BOC

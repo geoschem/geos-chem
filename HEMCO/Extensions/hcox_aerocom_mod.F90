@@ -11,37 +11,6 @@
 ! this file.
 !\\
 !\\
-! Each AeroCom table is expected to list the volcano location, sulfur 
-! emissions (in kg S/s), and the volcano elevation as well as the 
-! volcano plume column height. These entries need be separated by space
-! characters. For example:
-!###  LAT (-90,90), LON (-180,180), SULFUR [kg S/s], ELEVATION [m], CLOUD_COLUMN_HEIGHT [m]
-!### If elevation=cloud_column_height, emit in layer of elevation
-!### else, emit in top 1/3 of cloud_column_height
-!volcano::
-!50.170 6.850 3.587963e-03 600. 600. 
-!::
-!\\
-!\\
-! The sulfur read from table is emitted as the species defined in the
-! AeroCom settings section. More than one species can be provided. Mass
-! sulfur is automatically converted to mass of emitted species (using the
-! emitted molecular weight and molecular ratio of the corresponding HEMCO
-! species). Additional scale factors can be defined in the settings section
-! by using the (optional) setting 'Scaling_<SpecName>'.
-! For example, to emit SO2 and BrO from volcanoes, with an additional scale
-! factor of 1e-4 kg BrO / kgS for BrO, use the following setting:
-!115     AeroCom_Volcano   : on    SO2/BrO
-!    --> Scaling_BrO       :       1.0e-4
-!    --> AeroCom_Table     :       /path/to/Aerocom.so2_volcanic.$YYYY$MM$DD.rc
-!\\
-!\\
-! !REMARKS:
-! This extension was primarily added for usage within GEOS-5. 
-! When using this extension, you should turn off any other volcano emission
-! inventories!
-!\\
-!\\
 ! !INTERFACE:
 !
 MODULE HCOX_AeroCom_Mod 
@@ -67,6 +36,35 @@ MODULE HCOX_AeroCom_Mod
   PRIVATE :: ReadVolcTable
   PRIVATE :: EmitVolc
 !
+! !REMARKS:
+! Each AeroCom table is expected to list the volcano location, sulfur 
+! emissions (in kg S/s), and the volcano elevation as well as the 
+! volcano plume column height. These entries need be separated by space
+! characters. For example:
+!
+! ###  LAT (-90,90), LON (-180,180), SULFUR [kg S/s], ELEVATION [m], CLOUD_COLUMN_HEIGHT [m]
+! ### If elevation=cloud_column_height, emit in layer of elevation
+! ### else, emit in top 1/3 of cloud_column_height
+! volcano::
+! 50.170 6.850 3.587963e-03 600. 600. 
+! ::
+!
+! The sulfur read from table is emitted as the species defined in the
+! AeroCom settings section. More than one species can be provided. Mass
+! sulfur is automatically converted to mass of emitted species (using the
+! emitted molecular weight and molecular ratio of the corresponding HEMCO
+! species). Additional scale factors can be defined in the settings section
+! by using the (optional) setting 'Scaling_<SpecName>'.
+! For example, to emit SO2 and BrO from volcanoes, with an additional scale
+! factor of 1e-4 kg BrO / kgS for BrO, use the following setting:
+!115     AeroCom_Volcano   : on    SO2/BrO
+!    --> Scaling_BrO       :       1.0e-4
+!    --> AeroCom_Table     :       /path/to/Aerocom.so2_volcanic.$YYYY$MM$DD.rc
+!
+! This extension was primarily added for usage within GEOS-5. 
+! When using this extension, you should turn off any other volcano emission
+! inventories!
+
 ! !REVISION HISTORY:
 !  04 Jun 2015 - C. Keller   - Initial version 
 !EOP

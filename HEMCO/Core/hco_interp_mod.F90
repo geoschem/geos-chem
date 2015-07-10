@@ -423,7 +423,7 @@ CONTAINS
 !
 ! !IROUTINE: ModelLev_Interpolate
 !
-! !DESCRIPTION: Subroutine ModelLev\Interpolate puts 3D data from an
+! !DESCRIPTION: Subroutine ModelLev\_Interpolate puts 3D data from an
 ! arbitrary number of model levels onto the vertical levels of the simulation
 ! grid. Since the input data is already on model levels, this is only to
 ! inflate/collapse fields between native/reduced vertical levels, e.g. from

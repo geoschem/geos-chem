@@ -247,7 +247,7 @@
 !
 ! !IROUTINE: airqnt
 !
-! !DESCRIPTION: Subroutine AIRQNT sets several members of State_Met, the
+! !DESCRIPTION: Subroutine AIRQNT sets several members of State\_Met, the
 !  meteorology object of derived type MetState. 
 !\\
 !\\

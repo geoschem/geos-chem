@@ -20,6 +20,7 @@
 !  \item Clarke, A.D., Owens, S., Zhou, J. \emph{An ultrafine sea-salt flux 
 !        from breaking waves: Implications for CCN in the remote marine 
 !        atmosphere}, \underline{J. Geophys. Res.}, 2006.
+!  \end{itemize}
 !
 ! !INTERFACE: 
 !
@@ -69,8 +70,8 @@ CONTAINS
 !
 ! !IROUTINE: HCOX_TOMAS_SeaSalt_Run
 !
-! !DESCRIPTION: Subroutine SRCSALT_TOMAS emits sea-salt into the TOMAS
-!  sectional sea-salt mass and aerosol number arrays.  Sea-salt emission 
+! !DESCRIPTION: Subroutine HCOX\_TOMAS\_SeaSalt\_Run emits sea-salt into the 
+!  TOMAS sectional sea-salt mass and aerosol number arrays.  Sea-salt emission 
 !  parameterization of Clarke et al. [2006].  Formerly named SRCSALT30.
 !\\
 !\\
@@ -102,6 +103,7 @@ CONTAINS
 !  20 May 2015 - J. Kodros   - Add seasalt number & mass to HEMCO state
 !  20 May 2015 - R. Yantosca - Pass am_I_Root to HCO_EMISADD routine
 !  22 May 2015 - R. Yantosca - Extend up to 40 size bins
+!  10 Jul 2015 - R. Yantosca - Fixed minor issues in the ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -281,7 +283,7 @@ CONTAINS
 !
 ! !IROUTINE: HCOX_TOMAS_SeaSalt_Init
 !
-! !DESCRIPTION: Subroutine HcoX\_TOMAS_SeaSalt\_Init initializes all
+! !DESCRIPTION: Subroutine HcoX\_TOMAS\_SeaSalt\_Init initializes all
 !  extension variables.
 !\\
 !\\
@@ -309,7 +311,8 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  15 Dec 2013 - C. Keller - Initial version
+!  15 Dec 2013 - C. Keller   - Initial version
+!  10 Jul 2015 - R. Yantosca - Fixed minor issues in ProTeX header
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -540,7 +543,7 @@ CONTAINS
 !
 ! !IROUTINE: HCOX_TOMAS_SeaSalt_Final 
 !
-! !DESCRIPTION: Subroutine HcoX\_TOMAS_SeaSalt\_Final deallocates 
+! !DESCRIPTION: Subroutine HcoX\_TOMAS\_SeaSalt\_Final deallocates 
 !  all module arrays.
 !\\
 !\\
