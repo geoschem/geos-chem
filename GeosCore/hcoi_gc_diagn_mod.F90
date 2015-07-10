@@ -949,9 +949,15 @@ CONTAINS
     ! Define diagnostics
     IF ( ND08 > 0 .AND. Input_Opt%LSSALT .AND. ExtState%SeaSalt ) THEN
 
+       ! DEBUGGING (ewl, 7/10/15)
+       PRINT *, "ND08: ", ND08
+       PRINT *, "Input_Opt%LSSALT", Input_Opt%LSSALT
+       PRINT *, "ExtState%SeaSalt", ExtState%SeaSalt
+       ! END DEBUGGING
+
        ! Get HEMCO extension # for SeaSalt
        ExtNrSS = GetExtNr( 'SeaSalt' )
-       IF ( ExtNr <= 0 ) THEN
+       IF ( ExtNrSS <= 0 ) THEN
           CALL HCO_Error( 'Cannot find extension SeaSalt', RC, THISLOC=LOC )
           RETURN
        ENDIF
@@ -960,7 +966,7 @@ CONTAINS
        ! set number of seasalt tracers
        IF ( Input_Opt%LMPOA ) THEN
           ExtNrMPOA = GetExtNr( 'MarinePOA' )
-          IF ( ExtNr <= 0 ) THEN
+          IF ( ExtNrMPOA <= 0 ) THEN
              CALL HCO_Error( 'Cannot find extension MarinePOA', RC,  &
                              THISLOC=LOC )
              RETURN
