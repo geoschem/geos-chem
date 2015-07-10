@@ -8821,7 +8821,7 @@
 !BOC
 
       ! For fields from Input_Opt
-      LOGICAL :: LCARB,  LDUST, LDSTUP, LSOA, LMOA
+      LOGICAL :: LCARB,  LDUST, LDSTUP, LSOA, LMPOA
       LOGICAL :: LSSALT, LSULF, LSPLIT, LCRYST
       LOGICAL :: LUCX
 
@@ -8837,7 +8837,7 @@
       LDUST  = Input_Opt%LDUST
       LDSTUP = Input_Opt%LDSTUP
       LSOA   = Input_Opt%LSOA
-      LMOA   = Input_Opt%LMOA
+      LMPOA  = Input_Opt%LMPOA
       LSSALT = Input_Opt%LSSALT
       LSULF  = Input_Opt%LSULF
       LSPLIT = Input_Opt%LSPLIT
@@ -8876,7 +8876,7 @@
          ENDIF
 
          ! mj, bg
-         IF ( LMOA )     NMAX = NMAX + 2             ! plus hydrophobic MOA
+         IF ( LMPOA )    NMAX = NMAX + 2             ! plus hydrophobic MOA
                                                      ! plus hydrophilic MOA
          !tdf
          IF ( LDSTUP )   NMAX = NMAX + NDSTBIN * 3   ! plus dust-sulfate

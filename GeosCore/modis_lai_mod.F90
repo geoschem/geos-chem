@@ -246,7 +246,7 @@ CONTAINS
                         mapping,    wasModisRead, RC          )
 
     ! Only compute CHLR if organic marine aerosols are tracers
-    IF ( Input_Opt%LMOA ) THEN
+    IF ( Input_Opt%LMPOA ) THEN
 
        ! Call compute CHLR
        ComputeLAI = .false.
@@ -320,7 +320,7 @@ CONTAINS
                      wasModisRead, RC )
 
     ! Read CHLR if organic marine aerosols are tracers
-    IF ( Input_Opt%LMOA ) THEN
+    IF ( Input_Opt%LMPOA ) THEN
 
        ! Set flag read CHLR not LAI
        ReadLAI = .false.

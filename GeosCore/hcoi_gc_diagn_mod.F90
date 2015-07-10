@@ -958,7 +958,7 @@ CONTAINS
 
        ! Get HEMCO extension # for marine organic aerosols and
        ! set number of seasalt tracers
-       IF ( Input_Opt%LMOA ) THEN
+       IF ( Input_Opt%LMPOA ) THEN
           ExtNrMPOA = GetExtNr( 'MarinePOA' )
           IF ( ExtNr <= 0 ) THEN
              CALL HCO_Error( 'Cannot find extension MarinePOA', RC,  &

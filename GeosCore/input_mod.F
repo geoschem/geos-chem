@@ -1742,7 +1742,7 @@
 !                              emissions, POA emissions scale, and the PSC
 !                              restart file. These options are now handled
 !                              by HEMCO.
-!  08 Jul 2015 - E. Lundgren - Added LMOA option for marine organic aerosols
+!  08 Jul 2015 - E. Lundgren - Added LMPOA option for marine organic aerosols
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1754,7 +1754,7 @@
       LOGICAL            :: LSVPOA,     LDUST,    LDSTUP
       LOGICAL            :: LSSALT,     LCRYST,     LDICARB
       LOGICAL            :: LGRAVSTRAT, LHOMNUCNAT, LSOLIDPSC
-      LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMOA
+      LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA
       INTEGER            :: N,          T,          I 
       CHARACTER(LEN=255) :: MSG,        LOCATION
 
@@ -1825,7 +1825,7 @@
 
       ! Use marine organic aerosols?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:11' )
-      READ( SUBSTRS(1:N), * ) LMOA
+      READ( SUBSTRS(1:N), * ) LMPOA
 
       ! Switch to comment the SOG condensation in carbon_mod.f (ccc, 3/10/09)
       ! Use online dicarbonyl chemistry 
@@ -1884,7 +1884,7 @@
          LSOA   = .FALSE.
          LDUST  = .FALSE.
          LSSALT = .FALSE.
-         LMOA   = .FALSE.
+         LMPOA  = .FALSE.
          LSVPOA = .FALSE.
       ENDIF
 
@@ -1915,18 +1915,18 @@
       !------------------------------------
       I = IDTMOPO + IDTMOPI
 
-      IF ( LMOA ) THEN
+      IF ( LMPOA ) THEN
          IF ( .not. LSSALT ) THEN
-            MSG = 'LMOA=T but LSSALT=F!'
+            MSG = 'LMPOA=T but LSSALT=F!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
          IF ( I == 0 ) THEN
-            MSG = 'LMOA=T but MARINE ORGANIC AEROSOLS are undefined!'
+            MSG = 'LMPOA=T but MARINE ORGANIC AEROSOLS are undefined!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ELSE
          IF ( I > 0 ) THEN
-            MSG = 'Cannot use MARINE ORGANIC AEROSOLS if LMOA=F!'
+            MSG = 'Cannot use MARINE ORGANIC AEROSOLS if LMPOA=F!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ENDIF
@@ -2137,7 +2137,7 @@
       Input_Opt%LDUST              = LDUST 
       Input_Opt%LDSTUP             = LDSTUP
       Input_Opt%LSSALT             = LSSALT
-      Input_Opt%LMOA               = LMOA 
+      Input_Opt%LMPOA              = LMPOA 
       Input_Opt%LDICARB            = LDICARB  
       Input_Opt%LGRAVSTRAT         = LGRAVSTRAT
       Input_Opt%LSOLIDPSC          = LSOLIDPSC
@@ -2172,7 +2172,7 @@
          WRITE( 6, 110     ) 'Coarse SEA SALT radii [um]  : ',
      &                        Input_Opt%SALC_REDGE_um(1), 
      &                        Input_Opt%SALC_REDGE_um(2)
-         WRITE( 6, 100     ) 'MARINE ORGANIC AEROSOLS?    : ', LMOA
+         WRITE( 6, 100     ) 'MARINE ORGANIC AEROSOLS?    : ', LMPOA
          WRITE( 6, 100     ) 'Settle strat. aerosols?     : ',LGRAVSTRAT
          WRITE( 6, 100     ) 'Online SOLID PSC aerosols?  : ',LSOLIDPSC
          WRITE( 6, 100     ) 'Allow hom. NAT nucleation?  : ',LHOMNUCNAT

@@ -1271,7 +1271,7 @@
          ENDDO
 
          ! Loop over optional marine organic aerosols
-         IF ( Input_Opt%LMOA ) THEN
+         IF ( Input_Opt%LMPOA ) THEN
             DO N = 3, 4
    
                IF ( N == 3 ) THEN

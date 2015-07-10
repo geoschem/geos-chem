@@ -369,8 +369,8 @@ CONTAINS
 
     ! Marine organic aerosols
     IF ( ExtState%MarinePOA ) THEN
-       IF ( .not. Input_Opt%LMOA ) THEN
-          MSG = 'MarinePOA is on in HEMCO but LMOA=F in input.geos'
+       IF ( .not. Input_Opt%LMPOA ) THEN
+          MSG = 'MarinePOA is on in HEMCO but LMPOA=F in input.geos'
           CALL ERROR_STOP( MSG, LOC )
        ENDIF
     ENDIF
