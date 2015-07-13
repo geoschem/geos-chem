@@ -540,11 +540,14 @@ CONTAINS
        ! positive values are used.
        ! The same diagnostics may be updated multiple times 
        ! during the same time step, continuously adding
-       ! emissions to it. 
+       ! emissions to it.
+       ! Now remove PosOnly flag. TmpFlx is initialized to zero, so it's 
+       ! ok to keep negative values (ckeller, 7/12/15).
        IF ( Diagn_AutoFillLevelDefined(4) .AND. DoDiagn ) THEN 
           CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                   &
                              Cat=ThisCat,Hier=ThisHir,   HcoID=ThisSpc, &
-                             AutoFill=1, Array3D=TmpFlx, PosOnly=.TRUE.,&
+                             !AutoFill=1, Array3D=TmpFlx, PosOnly=.TRUE.,&
+                             AutoFill=1, Array3D=TmpFlx, &
                              COL=-1, RC=RC ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF

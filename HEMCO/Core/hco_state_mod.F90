@@ -138,6 +138,10 @@ MODULE HCO_State_Mod
      LOGICAL  :: MaskFractions  ! If TRUE, masks are treated as binary, e.g.  
                                 ! grid boxes are 100% inside or outside of a
                                 ! mask. 
+     LOGICAL  :: Field2Diagn    ! When reading fields from disk, check if there
+                                ! is a diagnostics with the same name and write
+                                ! field to that diagnostics? Defaults to yes in
+                                ! standalone mode and no in other setups.
   END TYPE HcoOpt
 
   !=========================================================================
@@ -190,6 +194,7 @@ MODULE HCO_State_Mod
 !  07 Jul 2014 - R. Yantosca - Cosmetic changes
 !  30 Sep 2014 - R. Yantosca - Add HcoMicroPhys derived type to HcoState
 !  08 Apr 2015 - C. Keller   - Added MaskFractions to HcoState options.
+!  13 Jul 2015 - C. Keller   - Added option 'Field2Diagn'. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -413,6 +418,11 @@ CONTAINS
                      OptValBool=HcoState%Options%MaskFractions, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%MaskFractions = .FALSE.
+
+    CALL GetExtOpt ( CoreNr, 'ConfigField to diagnostics', &
+                     OptValBool=HcoState%Options%Field2Diagn, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. Found ) HcoState%Options%Field2Diagn = .FALSE.
 
     ! Make sure ESMF pointers are not dangling 
 #if defined(ESMF_)

@@ -377,6 +377,7 @@ CONTAINS
     USE HCO_INTERP_MOD,     ONLY : REGRID_MAPA2A 
     USE HCO_INTERP_MOD,     ONLY : ModelLev_Interpolate 
     USE HCO_CLOCK_MOD,      ONLY : HcoClock_Get
+    USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 !
 ! !INPUT PARAMETERS:
 !
@@ -408,6 +409,8 @@ CONTAINS
 !  08 Apr 2015 - R. Yantosca - Bug fix: set KeepSpec=.TRUE. if there is no
 !                              species in the container.  This prevents
 !                              diffs in output in sp vs mp runs.
+!  13 Jul 2015 - C. Keller   - Write data into diagnostics right after reading
+!                              (if a diagnostics with the same name exists).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1235,6 +1238,19 @@ CONTAINS
     ELSE
        LUN = ncLun
     ENDIF      
+
+    !-----------------------------------------------------------------
+    ! Add to diagnostics (if it exists)
+    !-----------------------------------------------------------------
+    IF ( HcoState%Options%Field2Diagn ) THEN
+       IF ( Lct%Dct%Dta%SpaceDim == 3 .AND. ASSOCIATED(Lct%Dct%Dta%V3(1)%Val) ) THEN
+          CALL Diagn_Update ( am_I_Root, cName=TRIM(Lct%Dct%cName), &
+                              Array3D=Lct%Dct%Dta%V3(1)%Val, COL=-1, RC=RC )
+       ELSEIF ( Lct%Dct%Dta%SpaceDim == 2 .AND. ASSOCIATED(Lct%Dct%Dta%V2(1)%Val) ) THEN
+          CALL Diagn_Update ( am_I_Root, cName=TRIM(Lct%Dct%cName), &
+                              Array2D=Lct%Dct%Dta%V2(1)%Val, COL=-1, RC=RC )
+       ENDIF
+    ENDIF
 
     !-----------------------------------------------------------------
     ! Cleanup and leave 

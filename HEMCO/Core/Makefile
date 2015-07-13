@@ -250,6 +250,7 @@ hcoio_diagn_mod.o      : hcoio_diagn_mod.F90     \
 hcoio_dataread_mod.o   : hcoio_dataread_mod.F90  \
                          hco_chartools_mod.o     \
                          hco_datacont_mod.o      \
+                         hco_diagn_mod.o         \
                          hco_emislist_mod.o      \
                          hco_error_mod.o         \
                          hco_filedata_mod.o      \
