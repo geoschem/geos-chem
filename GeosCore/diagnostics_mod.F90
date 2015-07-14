@@ -34,6 +34,7 @@ MODULE Diagnostics_Mod
 #if defined( DEVEL )
   PUBLIC  :: Diagnostics_Init
   PUBLIC  :: Diagnostics_Final
+  PUBLIC  :: CalcDobsonColumn
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -43,6 +44,7 @@ MODULE Diagnostics_Mod
   PRIVATE :: DiagInit_Tracer_Conc
   PRIVATE :: DiagInit_Tracer_Emis
   PRIVATE :: DiagInit_GridBox
+  PRIVATE :: DiagInit_Dobson
 !
 ! !DEFINED PARAMETERS:
 !
@@ -78,6 +80,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE HCO_EXTLIST_MOD,    ONLY : GetExtOpt, CoreNr
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
     USE GRID_MOD,           ONLY : AREA_M2
     USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -107,6 +110,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: CollectionID
+    LOGICAL            :: FOUND
     REAL(sp)           :: TS
     REAL(fp), POINTER  :: AM2(:,:) => NULL()
     CHARACTER(LEN=15)  :: WriteFreq
@@ -127,10 +131,16 @@ CONTAINS
 
     ! Define output write frequency. In ESMF environment, make sure 
     ! diagnostics is always passed to MAPL history!
+    ! In standard environment, try to get output frequency from HEMCO 
+    ! configuration file. If not set, use a daily output frequency.
 #if defined(ESMF_)
     WriteFreq = 'Always' 
 #else
-    WriteFreq = 'Daily' 
+    CALL GetExtOpt( CoreNr, 'DiagnFreq', OptValChar=WriteFreq, &
+                    FOUND=FOUND, RC = RC )
+    IF ( .NOT. FOUND .OR. RC /= HCO_SUCCESS ) THEN
+       WriteFreq = 'Daily'
+    ENDIF 
 #endif
 
     CALL DiagnCollection_Create( am_I_Root,                   &
@@ -210,6 +220,12 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_EMIS', LOC ) 
     ENDIF
+
+    CALL DIAGINIT_DOBSON( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_DOBSON', LOC ) 
+    ENDIF
+
     ! Leave with success
     RC = GIGC_SUCCESS
 
@@ -924,6 +940,231 @@ CONTAINS
     ENDDO !N
 
   END SUBROUTINE DIAGINIT_WETDEP_LOSS
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_dobson
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_DOBSON initializes the O3 dobson column
+! diagnostics. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_Dobson( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE TRACERID_MOD, ONLY : IDTO3
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  07 Jul 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: Collection, N
+    CHARACTER(LEN=15)  :: OutOper
+    CHARACTER(LEN=60)  :: DiagnName
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_DOBSON (diagnostics_mod.F)' 
+    
+    !=======================================================================
+    ! DIAGINIT_DOBSON begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Nothing to do if O3 is not a tracer
+    IF ( IDTO3 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = 'Mean'
+     
+    ! troposphere and total column
+    DO N = 1, 2
+ 
+       ! Diagnostic name
+       IF ( N == 1 ) THEN
+          DiagnName = 'O3_COLUMN' 
+       ELSEIF ( N == 2 ) THEN
+          DiagnName = 'O3_TROPCOLUMN' 
+       ENDIF
+
+       ! Create container
+       CALL Diagn_Create( am_I_Root,                     &
+                          Col       = Collection,        & 
+                          cName     = TRIM( DiagnName ), &
+                          AutoFill  = 0,                 &
+                          ExtNr     = -1,                &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  =  2,                &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'dobson',          &
+                          OutOper   = TRIM( OutOper   ), &
+                          OkIfExist = .TRUE.,            &
+                          RC        = RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'Cannot create diagnostics '//TRIM(DiagnName), LOC ) 
+      ENDIF  
+ 
+   ENDDO
+   
+  END SUBROUTINE DiagInit_Dobson
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CalcDobsonColumn 
+!
+! !DESCRIPTION: Subroutine CalcDobsonColumn calculates total ozone column in
+! dobsons and adds them to the GEOS-Chem diagnostics. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE CalcDobsonColumn( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!
+! !USES:
+!
+    USE CMN_GCTM_MOD,       ONLY : AIRMW, AVO,   g0
+    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
+    USE TRACERID_MOD,       ONLY : IDTO3
+    USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
+    USE PRESSURE_MOD,       ONLY : GET_PEDGE
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root  ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(MetState), INTENT(IN   ) :: State_Met  ! Met state
+    TYPE(ChmState), INTENT(IN   ) :: State_Chm  ! Chemistry state 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  07 Jul 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    TYPE(DiagnCont), POINTER :: DgnPtr => NULL()
+
+    INTEGER                  :: I, J, L
+
+    REAL(fp)                 :: constant
+    REAL(fp)                 :: DP, O3vv, DU
+    REAL(fp)                 :: TROPO3(IIPAR,JJPAR)
+    REAL(fp)                 :: TOTO3 (IIPAR,JJPAR)
+
+    LOGICAL, SAVE            :: FIRST      = .TRUE.
+    LOGICAL, SAVE            :: TropDiagn  = .FALSE.
+    LOGICAL, SAVE            :: TotDiagn   = .FALSE.
+
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: LOC = 'CalcDobsonColumn (diagnostics_mod.F)' 
+    
+    !=======================================================================
+    ! CalcDobsonColumn begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Nothing to do if O3 is not a tracer
+    IF ( IDTO3 <= 0 ) RETURN
+
+    ! On first call, check if any of the two diagnostics is defined
+    IF ( FIRST ) THEN
+       CALL DiagnCont_Find( -1, -1, -1, -1, -1, 'O3_COLUMN', &
+                            -1, TotDiagn, DgnPtr )
+       DgnPtr => NULL()
+
+       CALL DiagnCont_Find( -1, -1, -1, -1, -1, 'O3_TROPCOLUMN', &
+                            -1, TropDiagn, DgnPtr ) 
+
+       DgnPtr => NULL()
+       FIRST = .FALSE.
+    ENDIF
+
+    ! Nothing to do if none of the diagnostics exist
+    IF ( .NOT. TotDiagn .AND. .NOT. TropDiagn ) RETURN 
+
+    ! Initialize values
+    TROPO3 = 0.0_fp
+    TOTO3  = 0.0_fp
+
+    ! Constant
+    constant = 0.01_fp * AVO / ( g0 * ( AIRMW/1000.0_fp) )
+
+    ! Do for all levels
+    !$OMP PARALLEL DO &
+    !$OMP DEFAULT( SHARED ) &
+    !$OMP PRIVATE( I, J, L, DP, O3vv, DU )
+    DO L = 1, LLPAR
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+
+       ! Pressure difference in hPa
+       DP = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
+
+       ! Ozone in v/v
+       O3vv = State_Chm%Tracers(I,J,L,IDTO3) * Input_Opt%TCVV(IDTO3) / State_Met%AD(I,J,L)
+
+       ! Calculate O3 in DU for this grid box 
+       DU = O3vv * DP * constant / 2.69e16_fp
+
+       ! Add to totals
+       IF ( TotDiagn ) THEN
+          TOTO3(I,J) = TOTO3(I,J) + DU
+       ENDIF
+       IF ( TropDiagn ) THEN
+          IF ( ITS_IN_THE_TROP(I,J,L,State_Met) ) THEN
+             TROPO3(I,J) = TROPO3(I,J) + DU
+          ENDIF
+       ENDIF
+
+    ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    ! Update diagnostics
+    IF ( TotDiagn ) THEN
+       CALL Diagn_Update( am_I_Root, cName = 'O3_COLUMN',     Array2D = TOTO3,  RC=RC )
+    ENDIF
+    IF ( TropDiagn ) THEN
+       CALL Diagn_Update( am_I_Root, cName = 'O3_TROPCOLUMN', Array2D = TROPO3, RC=RC )
+    ENDIF
+
+    ! Return w/ success
+    RC = GIGC_SUCCESS
+   
+  END SUBROUTINE CalcDobsonColumn
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

@@ -205,6 +205,9 @@ CONTAINS
     USE TRACERID_MOD,       ONLY : IDTCH2Br2
     USE TRACERID_MOD,       ONLY : IDTCH3Br
 
+    ! To read O3 concentrations from GEOS-5:
+    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
+
     IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -266,11 +269,13 @@ CONTAINS
     REAL(fp)          :: dt,   P,      k,   M0,  RC,     M
     REAL(fp)          :: TK,   RDLOSS, T1L, mOH, BryTmp
     REAL(fp)          :: BOXVL
+    REAL(f4)          :: wgt1, wgt2
     LOGICAL           :: LLINOZ
     LOGICAL           :: LPRT
     LOGICAL           :: LBRGCCM
     LOGICAL           :: LRESET, LCYCLE
     LOGICAL           :: ISBR2 
+    LOGICAL           :: FOUND 
     INTEGER           :: N_TRACERS
 
     ! Arrays
@@ -282,6 +287,7 @@ CONTAINS
     REAL(fp), POINTER :: STT(:,:,:,:)
     REAL(fp), POINTER :: AD(:,:,:)
     REAL(fp), POINTER :: T(:,:,:)
+    REAL(f4), POINTER :: Ptr3D(:,:,:) => NULL()
 
     !===============================
     ! DO_STRAT_CHEM begins here!
@@ -328,9 +334,6 @@ CONTAINS
     ! SDE 2014-01-14: Allow the user to overwrite stratospheric
     ! concentrations at model initialization if necessary
     LRESET = (FIRST.AND.LBRGCCM)
-
-    ! Set first-time flag to false
-    FIRST = .FALSE.    
 
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
@@ -423,14 +426,65 @@ CONTAINS
        ! Put ozone in v/v
        STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * TCVV( IDTO3 ) / AD
 
-       ! Do Linoz or Synoz
-       IF ( LLINOZ ) THEN
-          CALL Do_Linoz( am_I_Root, Input_Opt,             &
-                         State_Met, State_Chm, RC=errCode )
+       ! To read O3 from file
+       IF ( .TRUE. ) THEN
+
+       CALL HCO_GetPtr( am_I_Root, 'STRATO3', Ptr3D, errCode, FOUND=FOUND )
+       IF ( FOUND ) THEN
+
+          !$OMP PARALLEL DO &
+          !$OMP DEFAULT( SHARED ) &
+          !$OMP PRIVATE( I, J, L )
+          DO L = 1, LLPAR
+          DO J = 1, JJPAR
+          DO I = 1, IIPAR
+
+             ! Nothing to do if this is in the chemistry grid
+             IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) CYCLE
+
+!             IF ( L < 20 ) THEN
+!                wgt1 = 1.0_fp
+!                wgt2 = 0.0_fp
+!             ELSEIF ( L > 30 ) THEN
+!                wgt1 = 0.0_fp
+!                wgt2 = 1.0_fp
+!             ELSE
+!                wgt1 = ( 30 - L  ) * 0.1_fp
+!                wgt2 = ( L  - 20 ) * 0.1_fp
+!             ENDIF
+
+             ! Overwrite STT with value from disk 
+             STT(I,J,L,IDTO3) = Ptr3D(I,J,L) * 1.0e-6
+
+          ENDDO
+          ENDDO
+          ENDDO
+          !$OMP END PARALLEL DO
+
+          ! Cleanup 
+          Ptr3D => NULL()
+
+          ! Verbose
+          IF ( FIRST ) THEN
+             WRITE(*,*) ' '
+             WRITE(*,*) ' Stratospheric ozone taken from HEMCO field `STRATO3`'
+             WRITE(*,*) ' '
+          ENDIF
+
        ELSE
-          CALL Do_Synoz( am_I_Root, Input_Opt,             &
-                         State_Met, State_Chm, RC=errCode )
-       ENDIF
+      
+          ! Do Linoz or Synoz
+          IF ( LLINOZ ) THEN
+             CALL Do_Linoz( am_I_Root, Input_Opt,             &
+                            State_Met, State_Chm, RC=errCode )
+          ELSE
+             CALL Do_Synoz( am_I_Root, Input_Opt,             &
+                            State_Met, State_Chm, RC=errCode )
+          ENDIF
+ 
+       ! testing
+       ENDIF ! FOUND
+       ENDIF ! toggle
 
        ! Put ozone back to kg
        STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * AD / TCVV( IDTO3 )
@@ -645,6 +699,9 @@ CONTAINS
        CALL GEOS_CHEM_STOP
        
     ENDIF
+
+    ! Set first-time flag to false
+    FIRST = .FALSE.    
 
     ! Free pointer
     NULLIFY( STT )

@@ -1537,6 +1537,12 @@
          ENDIF
 #endif
 
+         ! Eventually write dobson columns into diagnostics array
+#if defined(DEVEL)
+         CALL CalcDobsonColumn ( am_I_Root, Input_Opt,
+     &                           State_Met, State_Chm, RC )
+#endif
+
          !==============================================================
          !   ***** I N C R E M E N T   E L A P S E D   T I M E *****
          !============================================================== 
