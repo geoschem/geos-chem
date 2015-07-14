@@ -933,6 +933,7 @@ CONTAINS
     ExtState%TSKIN%DoUse = .TRUE.
     ExtState%U10M%DoUse  = .TRUE.
     ExtState%V10M%DoUse  = .TRUE.
+    ExtState%CHLR%DoUse  = .TRUE.
 
     ! Enable module
     ExtState%SeaSalt = .TRUE.
