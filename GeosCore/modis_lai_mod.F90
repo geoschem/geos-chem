@@ -44,16 +44,16 @@ MODULE Modis_Lai_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: Compute_Modis_Lai
   PUBLIC  :: Read_Modis_Lai
+  PUBLIC  :: Compute_Modis_Lai
   PUBLIC  :: Find_Lai_Month
   PUBLIC  :: Init_Modis_Lai
   PUBLIC  :: Cleanup_Modis_Lai
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PUBLIC  :: Compute_Modis
   PUBLIC  :: Read_Modis
+  PUBLIC  :: Compute_Modis
   PRIVATE :: RoundOff
 !
 ! !REMARKS:
@@ -189,79 +189,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: compute_modis_lai
-!
-! !DESCRIPTION: Subroutine COMPUTE\_MODIS\_LAI is the wrapper routine to
-!  compute the daily MODIS leaf area indices for GEOS-Chem directly from the 
-!  native grid resolution  (0.25 x 0.25 or 0.5 x 0.5). If marine organic
-!  aerosol tracers are used, then daily MODIS chlorophyll is also computed.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Compute_Modis_Lai( am_I_Root,    Input_Opt, State_Met,  &
-                                doy,          mm,        mapping,    &
-                                wasModisRead, RC                    )
-!
-! !USES:
-!
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,         INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
-    TYPE(OptInput),  INTENT(IN)  :: Input_Opt     ! Input Options object
-    INTEGER,         INTENT(IN)  :: doy           ! Day of year
-    INTEGER,         INTENT(IN)  :: mm            ! Month for LAI data
-    TYPE(MapWeight), POINTER     :: mapping(:,:)  ! "fine" -> "coarse" grid map
-    LOGICAL,         INTENT(IN)  :: wasModisRead  ! Was LAI data just read in?
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(MetState),  INTENT(INOUT) :: State_Met   ! Meteorology State object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,         INTENT(OUT) :: RC            ! Success or failure?
-!
-! !REVISION HISTORY:
-!  08 Jul 2015 - E. Lundgren - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    LOGICAL              :: ComputeLAI      ! T = compute LAI, F = compute CHLR
-    
-    ! Assume success
-    RC = GIGC_SUCCESS
-
-    ! Always call compute LAI
-    ComputeLAI = .true.
-    CALL Compute_Modis( am_I_Root,  ComputeLAI,   Input_Opt,   &
-                        State_Met,  doy,          mm,          &
-                        mapping,    wasModisRead, RC          )
-
-    ! Only compute CHLR if organic marine aerosols are tracers
-    IF ( Input_Opt%LMPOA ) THEN
-
-       ! Call compute CHLR
-       ComputeLAI = .false.
-       CALL Compute_Modis( am_I_Root,  ComputeLAI,   Input_Opt,   &
-                           State_Met,  doy,          mm,          &
-                           mapping,    wasModisRead, RC          )
-    ENDIF
-
-  END SUBROUTINE Compute_Modis_LAI
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: read_modis_lai
 !
 ! !DESCRIPTION: Subroutine READ\_MODIS\_LAI is the wrapper routine to read 
@@ -292,7 +219,15 @@ CONTAINS
     INTEGER,        INTENT(OUT) :: RC            ! Success or failure?   
 !
 ! !REVISION HISTORY:
-!  07 Jul 2015 - E. Lundgren - Initial version
+!  03 Apr 2012 - R. Yantosca - Initial version
+!  05 Apr 2012 - R. Yantosca - Renamed arg "doMonthly" to "wasModisRead"
+!  05 Jun 2013 - R. Yantosca - Bug fix, use "mm" for current month index
+!  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  09 Oct 2014 - C. Keller   - MODIS_LAI_PM not needed anymore.
+!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/CHEM_INPUTS
+!  07 Jul 2015 - E. Lundgren - Generalized to read either LAI or CHLR
+!  08 Jul 2015 - E. Lundgren - Now read LAI and CHLR data. Abstracted 
+!                              read code to new routine Read_Modis.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -305,9 +240,6 @@ CONTAINS
     ! Assume success
     RC = GIGC_SUCCESS
 
-    ! Always read LAI
-    ReadLAI = .true.
-
     ! Set filename template for LAI
     IF ( Input_Opt%USE_OLSON_2001 ) THEN
        nc_tmpl = 'For_Olson_2001/MODIS.LAIv.V5.generic.025x025.YYYY.nc'
@@ -315,15 +247,13 @@ CONTAINS
        nc_tmpl = 'For_Olson_1992/MODIS.LAIv.V5.generic.05x05.YYYY.nc'
     ENDIF
 
-    ! Read LAI file
-    CALL Read_Modis( am_I_Root, ReadLAI, nc_tmpl, Input_Opt, yyyy, mm, &
-                     wasModisRead, RC )
+    ! Always read LAI file
+    ReadLAI = .true.
+    CALL Read_Modis( am_I_Root, ReadLAI, nc_tmpl,      Input_Opt,  &
+                     yyyy,      mm,      wasModisRead, RC         )
 
-    ! Read CHLR if organic marine aerosols are tracers
+    ! Read CHLR only if organic marine aerosols tracers are turned on
     IF ( Input_Opt%LMPOA ) THEN
-
-       ! Set flag read CHLR not LAI
-       ReadLAI = .false.
 
        ! Set filename template for CHLR
        IF ( Input_Opt%USE_OLSON_2001 ) THEN
@@ -333,315 +263,12 @@ CONTAINS
        ENDIF
 
        ! Read CHLR file
-       CALL Read_Modis( am_I_Root, READLAI, nc_tmpl, Input_Opt, yyyy, mm, &
-                        wasModisRead, RC )
+       ReadLAI = .false.
+       CALL Read_Modis(  am_I_Root, ReadLAI, nc_tmpl,      Input_Opt,  &
+                         yyyy,      mm,      wasModisRead, RC         )
     ENDIF
 
   END SUBROUTINE Read_Modis_Lai
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: compute_modis
-!
-! !DESCRIPTION: Subroutine COMPUTE\_MODIS computes either the daily MODIS 
-!  leaf area indices or the daily chlorophyll for GEOS-Chem directly from 
-!  the native grid resolution (0.25 x 0.25 or 0.5 x 0.5).  The XLAI array 
-!  (used in the legacy soil NOx and dry deposition routines) are populated 
-!  accordingly. The XYLAI array is now obsolete and has been replaced by XLAI.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Compute_Modis( am_I_Root,  ComputeLAI,   Input_Opt,   &
-                            State_Met,  doy,          mm,          &
-                            mapping,    wasModisRead, RC          )
-!
-! !USES:
-!
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,         INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
-    LOGICAL,         INTENT(IN)  :: ComputeLAI    ! T = LAI, F = CHLR
-    TYPE(OptInput),  INTENT(IN)  :: Input_Opt     ! Input Options object
-    INTEGER,         INTENT(IN)  :: doy           ! Day of year
-    INTEGER,         INTENT(IN)  :: mm            ! Month for LAI data
-    TYPE(MapWeight), POINTER     :: mapping(:,:)  ! "fine" -> "coarse" grid map
-    LOGICAL,         INTENT(IN)  :: wasModisRead  ! Was LAI data just read in?
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(MetState),  INTENT(INOUT) :: State_Met   ! Meteorology State object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,         INTENT(OUT) :: RC            ! Success or failure?
-!
-! !REMARKS:
-!  Uses same algorithm as RDISOLAI in the existing lai_mod.F.
-!
-! !REVISION HISTORY: 
-!  03 Apr 2012 - R. Yantosca - Initial version
-!  05 Apr 2012 - R. Yantosca - Renamed arg "doMonthly" to "wasModisRead"
-!  09 Apr 2012 - R. Yantosca - Changed variables to REAL(fp)
-!  09 Apr 2012 - R. Yantosca - Now follows same algorithm as rdlai.F for
-!                              populating XLAI array
-!  09 Apr 2012 - R. Yantosca - Remove refs to CMN_VEL_mod.F and XYLAI array;
-!                              these are now obsolete
-!  17 Apr 2012 - R. Yantosca - Now rename "map" object to "mapping" to avoid
-!                              name confusion w/ an F90 intrinsic function
-!  13 Dec 2012 - R. Yantosca - Add am_I_Root, State_Met, RC arguments
-!  13 Dec 2012 - R. Yantosca - XLAI, XLAI2 are now carried in State_Met
-!                              instead of in obsolete Headers/CMN_DEP_mod.F
-!  23 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
-!  09 Oct 2014 - C. Keller   - Removed GC_LAI_PM, GC_LAI_CM, GC_LAI_NM and
-!                              MODIS_LAI_PM.
-!  08 Jul 2015 - E. Lundgren - Generalized to compute either LAI or CHLR
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    LOGICAL, SAVE :: FIRST = .TRUE.
-
-    ! Scalars
-    INTEGER :: I,     J,    IMUL,    ITD,  IJLOOP
-    INTEGER :: C,     II,   JJ,      type, K, roundDigit
-    REAL(fp)  :: mapWt, area, sumArea, DMON, DITD, DIMUL
-
-    ! Arrays
-    REAL(fp)  :: tempArea (0:NVEGTYPE-1)
-    REAL(fp)  :: tempModis  (0:NVEGTYPE-1)
-    REAL(fp)  :: tempModisCm(0:NVEGTYPE-1)
-    REAL(fp)  :: tempModisNm(0:NVEGTYPE-1)
-
-    ! Pointers
-    REAL(fp), POINTER  :: GC_PTR(:,:)       => NULL()
-    REAL*4, POINTER    :: MODIS_PTR(:,:)    => NULL()
-    REAL*4, POINTER    :: MODIS_PTR_CM(:,:) => NULL()
-    REAL*4, POINTER    :: MODIS_PTR_NM(:,:) => NULL()
-    REAL(fp), POINTER  :: XTMP(:,:,:)       => NULL()
-    REAL(fp), POINTER  :: XTMP2(:,:,:)      => NULL()
-    
-
-    !======================================================================
-    ! Interpolate the data on the MODIS grid to current day
-    ! Use same algorithm as in routines RDISOLAI (in lai_mod.F)
-    !======================================================================
-    
-    ! Assume success
-    RC                = GIGC_SUCCESS
-
-    ! Assign pointers based on whether computing LAI or CHLR
-    IF ( ComputeLAI ) THEN
-       GC_PTR            => GC_LAI 
-       MODIS_PTR_CM      => MODIS_LAI_CM
-       MODIS_PTR_NM      => MODIS_LAI_NM
-       XTMP              => State_Met%XLAI
-       XTMP2             => State_Met%XLAI2
-       roundDigit        =  1
-    ELSE
-       GC_PTR            => GC_CHLR 
-       MODIS_PTR         => MODIS_CHLR 
-       MODIS_PTR_CM      => MODIS_CHLR_CM
-       MODIS_PTR_NM      => MODIS_CHLR_NM
-       XTMP              => State_Met%XCHLR
-       XTMP2             => State_Met%XCHLR2
-       roundDigit        =  3
-    ENDIF
-
-    ! IMUL is days since midmonth
-    ! ITD  is days between midmonths
-    IF ( doy < startDay(1) ) THEN
-       IMUL           = 365 + doy - startDay(12) 
-       ITD            = 31
-    ELSE
-       IMUL           = doy            - startDay(mm)
-       ITD            = startDay(mm+1) - startDay(mm)
-    ENDIF
-
-!    ! Archive the days between midmonths in the LAI data
-!    DAYS_BTW_MON      = ITD
-
-    ! Cast ITD, IMUL to REAL(fp)
-    DITD              = DBLE( ITD  )
-    DIMUL             = DBLE( IMUL )
-
-    ! Fraction of the LAI month that we are in
-    DMON              = REAL( IMUL ) / REAL( ITD ) 
-       
-    ! Interpolate to daily LAI values, on the MODIS grid
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) & 
-    !$OMP PRIVATE( I, J   )
-    DO J = 1, J_MODIS
-    DO I = 1, I_MODIS
-       MODIS_LAI(I,J) = MODIS_LAI_CM(I,J)  &
-                      + ( ( MODIS_LAI_NM(I,J) - MODIS_LAI_CM(I,J) ) * DMON )
-    ENDDO
-    ENDDO 
-    !$OMP END PARALLEL DO
-
-    !======================================================================
-    ! Bin data from the "fine" MODIS grid to the "coarse" GEOS-Chem grid.
-    ! Populate arrays for backwards-compatibility w/ existing routines
-    ! Use same algorithm as in routine rdlai.F
-    !======================================================================
-    !$OMP PARALLEL DO                                                 &
-    !$OMP DEFAULT( SHARED                                           ) &
-    !$OMP PRIVATE( I,         J,           tempArea                 ) &
-    !$OMP PRIVATE( tempModis, tempModisNm, sumArea,  IJLOOP         ) &
-    !$OMP PRIVATE( C,         II,          JJ,       type           ) & 
-    !$OMP PRIVATE( area,      K                                     )      
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
-
-       ! Initialize
-       tempArea             = 0e+0_fp
-       tempModis            = 0e+0_fp
-       tempModisCm          = 0e+0_fp
-       tempModisNm          = 0e+0_fp
-       sumArea              = mapping(I,J)%sumarea
-       IJLOOP               = ( (J-1) * IIPAR ) + I
-       GC_PTR(I,J)          = 0e+0_fp
-
-       !-------------------------------------------------------------------
-       ! Sum up the leaf area indices or chlorophyl-a from all of the the 
-       ! "fine" grid boxes (II,JJ) that are located within "coarse" grid 
-       ! box (I,J)
-       !-------------------------------------------------------------------
-       DO C = 1, mapping(I,J)%count
-
-          ! Extract fields from MAP object
-          II                = mapping(I,J)%II(C)
-          JJ                = mapping(I,J)%JJ(C)
-          type              = mapping(I,J)%olson(C)
-          area              = mapping(I,J)%area(C)
-
-          ! Sum of areas corresponding to each Olson
-          ! for "coarse" GEOS-Chem grid box (I,J)
-          tempArea(type)    = tempArea(type)  + area 
-
-          ! Compute the total leaf area or chlorophyll-a in "coarse" 
-          ! GEOS-Chem grid box (I,J) corresponding to each Olson land type
-          tempModisCm(type) = tempModisCm(type) +                &
-                                     ( MODIS_PTR_CM(II,JJ) * area )
-          tempModisNm(type) = tempModisNm(type) +                &
-                                     ( MODIS_PTR_NM(II,JJ) * area )
-
-          ! Compute the total leaf area or chlorophyll-a in "coarse" 
-          ! GEOS-Chem grid box (I,J), irrespective of Olson land type
-          GC_PTR(I,J) = GC_PTR(I,J) + ( MODIS_PTR(II,JJ) * area )
-
-       ENDDO
-
-       !-------------------------------------------------------------------
-       ! Compute the resultant (i.e. for all land types) daily-interpolated 
-       ! values for the "coarse" GEOS-Chem grid box (I,J).  DAILY_LAI is
-       ! a replacement for the ISOLAI array from "lai_mod.F".
-       !-------------------------------------------------------------------
-
-       ! Convert leaf area [cm2 leaf] to LAI [cm2 leaf/cm2 grid box],
-       ! or chlorophyll-a [mg/m] to [mg/m/cm2] for grid box (I,J), 
-       ! irrespective of Olson land type. 
-       GC_PTR(I,J) = GC_PTR(I,J) / sumArea
-
-       !-------------------------------------------------------------------
-       ! Compute the LAI or CHLR for each Olson land type at GEOS-Chem grid 
-       ! box (I,J).  These will be used to populate the XLAI & XYLAI arrays.
-       !-------------------------------------------------------------------
-       DO C = 0, NVEGTYPE-1
-          
-          ! Skip land types that are not in "coarse" grid box (I,J)
-          IF ( tempArea(C) > 0e+0_fp ) THEN
-          
-             ! Ordering for ILAND, IUSE, XLAI, XYLAI etc arrays
-             K = mapping(I,J)%ordOlson(C)
-
-             ! Convert leaf area [cm2 leaf] to LAI [cm2 leaf/cm2 grid box]
-             tempModisCm(C) = tempModisCm(C) / tempArea(C)
-             tempModisNm(C) = tempModisNm(C) / tempArea(C)
-
-             ! Round off to digits of precision to mimic the fact that
-             ! the LAI in the lai*.global files only had one decimal point,
-             ! Round CHLR to three digits of precision.
-             tempModisCm(C) = RoundOff( tempModisCm(C), roundDigit )
-             tempModisNm(C) = RoundOff( tempModisNm(C), roundDigit )
-
-             ! This IF statement mimics the algorithm in the obsolete
-             ! routine rdlai.F.  We need to keep the same algorithm
-             ! for backwards compatibility.
-             IF ( FIRST ) THEN 
-
-                !----------------------------------------------------------
-                ! %%%%% START OF SIMULATION, FIRST DATA READ %%%%%
-                !
-                ! Follow original algorithm in the old rdland.F. Example for
-                ! LAI is:
-                ! (1) XLAI  gets read in as the current month of LAI data
-                ! (2) XLAI2 gets read in as the next    month of LAI data
-                ! (3) XLAI2 is recomputed as the Delta-LAI this month
-                !     ([ next month - this month ] / # of days in month)
-                ! (4) XLAI is incremented by the amount 
-                !      ( Delta-LAI ) * # of days since start of month
-                ! 
-                ! NOTE: As of Dec 2012, XLAI and XLAI2 are now part of 
-                ! the Meteorology State object (bmy, 12/13/12)
-                !----------------------------------------------------------
-                XTMP2(I,J,K) = ( tempModisNm(C) - tempModisCm(C) ) / DITD       
-                XTMP(I,J,K) = tempModisCm(C) + ( XTMP2(I,J,K) * DIMUL ) 
-
-             ELSE
-
-                IF ( wasModisRead ) THEN
-
-                   !----------------------------------------------------------
-                   ! %%%% SUBSEQUENT DATA READ @ START OF NEW LAI/CHLR MONTH %
-                   !
-                   ! Follow original algorithm in the old rdland.F
-                   ! (1) XLAI (or XCHLR) gets read in as current month of data
-                   ! (2) XLAI2 (or XCHLR2) is computed as the Delta of this 
-                   !     month (i.e. [next month - this month ] / # of days
-                   !----------------------------------------------------------
-                   XTMP2(I,J,K) = ( tempModisNm(C) - tempModisCm(C) ) / DITD
-                   XTMP(I,J,K) = tempModisCm(C)       
- 
-                ELSE
-                
-                   !----------------------------------------------------------
-                   ! %%%%% ALL OTHER TIMES OF THE MONTH (NO DATA READS %%%%%
-                   !
-                   ! Follow original algorithm in the old rdland.F
-                   ! (1) Increment LAI or CHLR by this month's Delta-LAI
-                   !----------------------------------------------------------
-                   XTMP(I,J,K) = XTMP(I,J,K) + XTMP2(I,J,K)
-
-                ENDIF
-             ENDIF
-          ENDIF
-       ENDDO
-    ENDDO
-    ENDDO
-    !$OMP END PARALLEL DO
-
-    ! Save
-    FIRST = .FALSE.
-
-    ! Cleanup pointers
-    MODIS_PTR    => NULL()
-    MODIS_PTR_CM => NULL()
-    MODIS_PTR_NM => NULL()
-    XTMP         => NULL()
-    XTMP2        => NULL()
-
-  END SUBROUTINE Compute_Modis
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -656,8 +283,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Read_Modis( am_I_Root, ReadLAI, nc_tmpl, Input_Opt, yyyy, mm, &
-                         wasModisRead, RC )
+  SUBROUTINE Read_Modis( am_I_Root, ReadLAI, nc_tmpl,      Input_Opt,  &
+                         yyyy,      mm,      wasModisRead, RC         )
 !
 ! !USES:
 !
@@ -681,17 +308,12 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(OUT) :: wasModisRead  ! Was LAI data just read in?
+    LOGICAL,        INTENT(OUT) :: wasModisRead  ! Was data just read in?
     INTEGER,        INTENT(OUT) :: RC            ! Success or failure?   
 !
 ! !REVISION HISTORY:
-!  03 Apr 2012 - R. Yantosca - Initial version
-!  05 Apr 2012 - R. Yantosca - Renamed arg "doMonthly" to "wasModisRead"
-!  05 Jun 2013 - R. Yantosca - Bug fix, use "mm" for current month index
-!  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!  09 Oct 2014 - C. Keller   - MODIS_LAI_PM not needed anymore.
-!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/CHEM_INPUTS
-!  07 Jul 2015 - E. Lundgren - Generalized to read either LAI or CHLR
+!  07 Jul 2015 - E. Lundgren - Initial version, containing legacy Read_Modis_Lai
+!                              code plus modifications to read CHLR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -717,8 +339,9 @@ CONTAINS
     INTEGER              :: st1d(1), ct1d(1)   ! For 1D arrays    
     INTEGER              :: st3d(3), ct3d(3)   ! For 3D arrays 
 
-    ! SAVED variables
-    INTEGER, SAVE        :: mmLast = -1
+    ! SAVED variable
+    INTEGER, SAVE        :: mmLastLAI  = -1
+    INTEGER, SAVE        :: mmLastCHLR = -1
 
     ! Pointers
     REAL*4, POINTER      :: MODIS_PTR_CM(:,:) => NULL()
@@ -740,11 +363,14 @@ CONTAINS
        MODIS_PTR_NM => MODIS_CHLR_NM
     ENDIF
 
-    ! If we enter a new LAI month, then read MODIS LAI from disk
+    ! If we enter a new month, then read MODIS from disk
     ! Otherwise, just exit, since it is not time to read data yet
-    IF ( mm /= mmLast ) THEN
+    IF ( ReadLAI .and. mm /= mmLastLAI ) THEN
+       mmLastLAI    = mm
        wasModisRead = .TRUE.
-       mmLast       = mm
+    ELSEIF ( ( .not. ReadLAI ) .and. mm /= mmLastCHLR ) THEN
+       mmLastCHLR   = mm
+       wasModisRead = .TRUE.
     ELSE
        wasModisRead = .FALSE.
        RETURN
@@ -793,7 +419,7 @@ CONTAINS
 
     ! Open file for read
     nc_path = TRIM( nc_dir ) // TRIM( nc_file )
-    CALL Ncop_Rd( fId, TRIM(nc_path) )    
+    CALL Ncop_Rd( fId, TRIM(nc_path) )  
 
     ! Echo info to stdout
     WRITE( 6, 100 ) REPEAT( '%', 79 )
@@ -903,6 +529,389 @@ CONTAINS
 140 FORMAT( '%% Successfully closed file!'                                    )
 
   END SUBROUTINE Read_Modis
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: compute_modis_lai
+!
+! !DESCRIPTION: Subroutine COMPUTE\_MODIS\_LAI is the wrapper routine to
+!  compute the daily MODIS leaf area indices for GEOS-Chem directly from the 
+!  native grid resolution  (0.25 x 0.25 or 0.5 x 0.5). If marine organic
+!  aerosol tracers are used, then daily MODIS chlorophyll is also computed.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Compute_Modis_Lai( am_I_Root,    Input_Opt, State_Met,  &
+                                doy,          mm,        mapping,    &
+                                wasModisRead, RC                    )
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
+    TYPE(OptInput),  INTENT(IN)  :: Input_Opt     ! Input Options object
+    INTEGER,         INTENT(IN)  :: doy           ! Day of year
+    INTEGER,         INTENT(IN)  :: mm            ! Month for LAI data
+    TYPE(MapWeight), POINTER     :: mapping(:,:)  ! "fine" -> "coarse" grid map
+    LOGICAL,         INTENT(IN)  :: wasModisRead  ! Was LAI data just read in?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState),  INTENT(INOUT) :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(OUT) :: RC            ! Success or failure?
+!
+! !REVISION HISTORY: 
+!  03 Apr 2012 - R. Yantosca - Initial version
+!  05 Apr 2012 - R. Yantosca - Renamed arg "doMonthly" to "wasModisRead"
+!  09 Apr 2012 - R. Yantosca - Changed variables to REAL(fp)
+!  09 Apr 2012 - R. Yantosca - Now follows same algorithm as rdlai.F for
+!                              populating XLAI array
+!  09 Apr 2012 - R. Yantosca - Remove refs to CMN_VEL_mod.F and XYLAI array;
+!                              these are now obsolete
+!  17 Apr 2012 - R. Yantosca - Now rename "map" object to "mapping" to avoid
+!                              name confusion w/ an F90 intrinsic function
+!  13 Dec 2012 - R. Yantosca - Add am_I_Root, State_Met, RC arguments
+!  13 Dec 2012 - R. Yantosca - XLAI, XLAI2 are now carried in State_Met
+!                              instead of in obsolete Headers/CMN_DEP_mod.F
+!  23 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  09 Oct 2014 - C. Keller   - Removed GC_LAI_PM, GC_LAI_CM, GC_LAI_NM and
+!                              MODIS_LAI_PM.
+!  08 Jul 2015 - E. Lundgren - Now compute LAI and CHLR data. Abstracted 
+!                              compute code to new routine Compute_MODIS 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL             :: ComputeLAI       ! T = compute LAI, F = compute CHLR
+    INTEGER, PARAMETER  :: numRoundLAI  = 1 ! Data precision for LAI
+    INTEGER, PARAMETER  :: numRoundCHLR = 3 ! Data precision for CHLR
+
+    ! Assume success
+    RC = GIGC_SUCCESS
+
+    ! Always compute LAI
+    ComputeLAI = .true.
+    CALL Compute_Modis( am_I_Root,  ComputeLAI, numRoundLAI,       &
+                        Input_Opt,  State_Met,  doy,               & 
+                        mm,         mapping,    wasModisRead,  RC )
+
+    ! Only compute CHLR if organic marine aerosols are tracers
+    IF ( Input_Opt%LMPOA ) THEN
+
+       ComputeLAI = .false.
+       CALL Compute_Modis( am_I_Root,  ComputeLAI, numRoundCHLR,         &
+                           Input_Opt,  State_Met,  doy,               & 
+                           mm,         mapping,    wasModisRead,  RC )
+
+    ENDIF
+
+  END SUBROUTINE Compute_Modis_LAI
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: compute_modis
+!
+! !DESCRIPTION: Subroutine COMPUTE\_MODIS computes either the daily MODIS 
+!  leaf area indices or the daily chlorophyll for GEOS-Chem directly from 
+!  the native grid resolution (0.25 x 0.25 or 0.5 x 0.5).  The XLAI array 
+!  (used in the legacy soil NOx and dry deposition routines) are populated 
+!  accordingly. The XYLAI array is now obsolete and has been replaced by XLAI.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Compute_Modis( am_I_Root,  ComputeLAI,   numRound,          &
+                            Input_Opt,  State_Met,    doy,               & 
+                            mm,         mapping,      wasModisRead,  RC )
+
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
+    LOGICAL,         INTENT(IN)  :: ComputeLAI 
+    INTEGER,         INTENT(IN)  :: numRound      ! Precision of MODIS data
+    TYPE(OptInput),  INTENT(IN)  :: Input_Opt     ! Input Options object
+    INTEGER,         INTENT(IN)  :: doy           ! Day of year
+    INTEGER,         INTENT(IN)  :: mm            ! Month for LAI data
+    TYPE(MapWeight), POINTER     :: mapping(:,:)  ! "fine" -> "coarse" grid map
+    LOGICAL,         INTENT(IN)  :: wasModisRead  ! Was LAI data just read in?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState),  INTENT(INOUT) :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(OUT) :: RC            ! Success or failure?
+!
+! !REMARKS:
+!  Uses same algorithm as RDISOLAI in the existing lai_mod.F.
+!
+! !REVISION HISTORY: 
+!  07 Jul 2015 - E. Lundgren - Initial version, contains old Compute_Modis_Lai
+!                              code plus modifications to compute CHLR
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL, SAVE :: FIRST = .TRUE.
+
+    ! Scalars
+    INTEGER   :: I,      J,     IMUL,     ITD,   IJLOOP
+    INTEGER   :: C,      II,    JJ,       type,  K
+    REAL(fp)  :: mapWt,  area,  sumArea,  DMON,  DITD,   DIMUL
+
+    ! Arrays
+    REAL(fp)  :: tempArea   (0:NVEGTYPE-1)
+    REAL(fp)  :: tempModis  (0:NVEGTYPE-1)
+    REAL(fp)  :: tempModisCm(0:NVEGTYPE-1)
+    REAL(fp)  :: tempModisNm(0:NVEGTYPE-1)
+
+    ! Pointers
+    REAL(fp), POINTER  :: GC_PTR(:,:)       => NULL()
+    REAL*4,   POINTER  :: MODIS_PTR(:,:)    => NULL()
+    REAL*4,   POINTER  :: MODIS_PTR_CM(:,:) => NULL()
+    REAL*4,   POINTER  :: MODIS_PTR_NM(:,:) => NULL()
+    REAL(fp), POINTER  :: XTMP(:,:,:)       => NULL()
+    REAL(fp), POINTER  :: XTMP2(:,:,:)      => NULL()
+    
+
+    !======================================================================
+    ! Interpolate the data on the MODIS grid to current day
+    ! Use same algorithm as in routines RDISOLAI (in lai_mod.F)
+    !======================================================================
+    
+    ! Assume success
+    RC                = GIGC_SUCCESS
+
+    ! Assign pointers based on whether computing LAI or CHLR
+    IF ( ComputeLAI ) THEN
+       GC_PTR            => GC_LAI 
+       MODIS_PTR         => MODIS_LAI
+       MODIS_PTR_CM      => MODIS_LAI_CM
+       MODIS_PTR_NM      => MODIS_LAI_NM
+       XTMP              => State_Met%XLAI
+       XTMP2             => State_Met%XLAI2
+    ELSE
+       GC_PTR            => GC_CHLR 
+       MODIS_PTR         => MODIS_CHLR 
+       MODIS_PTR_CM      => MODIS_CHLR_CM
+       MODIS_PTR_NM      => MODIS_CHLR_NM
+       XTMP              => State_Met%XCHLR
+       XTMP2             => State_Met%XCHLR2
+    ENDIF
+
+    ! IMUL is days since midmonth
+    ! ITD  is days between midmonths
+    IF ( doy < startDay(1) ) THEN
+       IMUL           = 365 + doy - startDay(12) 
+       ITD            = 31
+    ELSE
+       IMUL           = doy            - startDay(mm)
+       ITD            = startDay(mm+1) - startDay(mm)
+    ENDIF
+
+!    ! Archive the days between midmonths in the LAI data
+!    DAYS_BTW_MON      = ITD
+
+    ! Cast ITD, IMUL to REAL(fp)
+    DITD              = DBLE( ITD  )
+    DIMUL             = DBLE( IMUL )
+
+    ! Fraction of the LAI month that we are in
+    DMON              = REAL( IMUL ) / REAL( ITD ) 
+       
+    ! Interpolate to daily values on the MODIS grid
+    !$OMP PARALLEL DO       &
+    !$OMP DEFAULT( SHARED ) & 
+    !$OMP PRIVATE( I, J   )
+    DO J = 1, J_MODIS
+    DO I = 1, I_MODIS
+       MODIS_PTR(I,J) = MODIS_PTR_CM(I,J)  &
+                      + ( ( MODIS_PTR_NM(I,J) - MODIS_PTR_CM(I,J) ) * DMON )
+    ENDDO
+    ENDDO 
+    !$OMP END PARALLEL DO
+
+    !======================================================================
+    ! Bin data from the "fine" MODIS grid to the "coarse" GEOS-Chem grid.
+    ! Populate arrays for backwards-compatibility w/ existing routines
+    ! Use same algorithm as in routine rdlai.F
+    !======================================================================
+    !$OMP PARALLEL DO                                                 &
+    !$OMP DEFAULT( SHARED                                           ) &
+    !$OMP PRIVATE( I,         J,           tempArea                 ) &
+    !$OMP PRIVATE( tempModis, tempModisNm, sumArea,  IJLOOP         ) &
+    !$OMP PRIVATE( C,         II,          JJ,       type           ) & 
+    !$OMP PRIVATE( area,      K                                     )      
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+
+       ! Initialize
+       tempArea             = 0e+0_fp
+       tempModis            = 0e+0_fp
+       tempModisCm          = 0e+0_fp
+       tempModisNm          = 0e+0_fp
+       sumArea              = mapping(I,J)%sumarea
+       IJLOOP               = ( (J-1) * IIPAR ) + I
+       GC_PTR(I,J)          = 0e+0_fp
+
+       !-------------------------------------------------------------------
+       ! Sum up the leaf area indices or chlorophyl-a from all of the the 
+       ! "fine" grid boxes (II,JJ) that are located within "coarse" grid 
+       ! box (I,J)
+       !-------------------------------------------------------------------
+       DO C = 1, mapping(I,J)%count
+
+          ! Extract fields from MAP object
+          II                = mapping(I,J)%II(C)
+          JJ                = mapping(I,J)%JJ(C)
+          type              = mapping(I,J)%olson(C)
+          area              = mapping(I,J)%area(C)
+
+          ! Sum of areas corresponding to each Olson
+          ! for "coarse" GEOS-Chem grid box (I,J)
+          tempArea(type)    = tempArea(type)  + area 
+
+          ! Compute the total leaf area or chlorophyll-a in "coarse" 
+          ! GEOS-Chem grid box (I,J) corresponding to each Olson land type
+          tempModisCm(type) = tempModisCm(type) +                &
+                                     ( MODIS_PTR_CM(II,JJ) * area )
+          tempModisNm(type) = tempModisNm(type) +                &
+                                     ( MODIS_PTR_NM(II,JJ) * area )
+
+          ! Compute the total leaf area or chlorophyll-a in "coarse" 
+          ! GEOS-Chem grid box (I,J), irrespective of Olson land type
+          GC_PTR(I,J) = GC_PTR(I,J) + ( MODIS_PTR(II,JJ) * area )
+
+       ENDDO
+
+       !-------------------------------------------------------------------
+       ! Compute the resultant (i.e. for all land types) daily-interpolated 
+       ! values for the "coarse" GEOS-Chem grid box (I,J).  DAILY_LAI is
+       ! a replacement for the ISOLAI array from "lai_mod.F".
+       !-------------------------------------------------------------------
+
+       ! Convert leaf area [cm2 leaf] to LAI [cm2 leaf/cm2 grid box],
+       ! or chlorophyll-a [mg/m] to [mg/m/cm2] for grid box (I,J), 
+       ! irrespective of Olson land type. 
+       GC_PTR(I,J) = GC_PTR(I,J) / sumArea
+
+       !-------------------------------------------------------------------
+       ! Compute the LAI or CHLR for each Olson land type at GEOS-Chem grid 
+       ! box (I,J).  These will be used to populate the XLAI & XYLAI arrays.
+       !-------------------------------------------------------------------
+       DO C = 0, NVEGTYPE-1
+          
+          ! Skip land types that are not in "coarse" grid box (I,J)
+          IF ( tempArea(C) > 0e+0_fp ) THEN
+          
+             ! Ordering for ILAND, IUSE, XLAI, XYLAI etc arrays
+             K = mapping(I,J)%ordOlson(C)
+
+             ! Convert leaf area [cm2 leaf] to LAI [cm2 leaf/cm2 grid box]
+             tempModisCm(C) = tempModisCm(C) / tempArea(C)
+             tempModisNm(C) = tempModisNm(C) / tempArea(C)
+
+             ! Round off to digits of precision to mimic the fact that
+             ! the LAI in the lai*.global files only had one decimal point,
+             ! Round CHLR to three digits of precision.
+             tempModisCm(C) = RoundOff( tempModisCm(C), numRound )
+             tempModisNm(C) = RoundOff( tempModisNm(C), numRound )
+
+             ! This IF statement mimics the algorithm in the obsolete
+             ! routine rdlai.F.  We need to keep the same algorithm
+             ! for backwards compatibility.
+             IF ( FIRST ) THEN 
+
+                !----------------------------------------------------------
+                ! %%%%% START OF SIMULATION, FIRST DATA READ %%%%%
+                !
+                ! Follow original algorithm in the old rdland.F. Example for
+                ! LAI is:
+                ! (1) XLAI  gets read in as the current month of LAI data
+                ! (2) XLAI2 gets read in as the next    month of LAI data
+                ! (3) XLAI2 is recomputed as the Delta-LAI this month
+                !     ([ next month - this month ] / # of days in month)
+                ! (4) XLAI is incremented by the amount 
+                !      ( Delta-LAI ) * # of days since start of month
+                ! 
+                ! NOTE: As of Dec 2012, XLAI and XLAI2 are now part of 
+                ! the Meteorology State object (bmy, 12/13/12)
+                !----------------------------------------------------------
+                XTMP2(I,J,K) = ( tempModisNm(C) - tempModisCm(C) ) / DITD       
+                XTMP(I,J,K) = tempModisCm(C) + ( XTMP2(I,J,K) * DIMUL ) 
+
+             ELSE
+
+                IF ( wasModisRead ) THEN
+
+                   !----------------------------------------------------------
+                   ! %%%% SUBSEQUENT DATA READ @ START OF NEW LAI/CHLR MONTH %
+                   !
+                   ! Follow original algorithm in the old rdland.F
+                   ! (1) XLAI (or XCHLR) gets read in as current month of data
+                   ! (2) XLAI2 (or XCHLR2) is computed as the Delta of this 
+                   !     month (i.e. [next month - this month ] / # of days
+                   !----------------------------------------------------------
+                   XTMP2(I,J,K) = ( tempModisNm(C) - tempModisCm(C) ) / DITD
+                   XTMP(I,J,K) = tempModisCm(C)       
+ 
+                ELSE
+                
+                   !----------------------------------------------------------
+                   ! %%%%% ALL OTHER TIMES OF THE MONTH (NO DATA READS %%%%%
+                   !
+                   ! Follow original algorithm in the old rdland.F
+                   ! (1) Increment LAI or CHLR by this month's Delta-LAI
+                   !----------------------------------------------------------
+                   XTMP(I,J,K) = XTMP(I,J,K) + XTMP2(I,J,K)
+
+                ENDIF
+             ENDIF
+          ENDIF
+       ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    ! Save
+    FIRST = .FALSE.
+
+    ! Cleanup pointers
+    GC_PTR       => NULL()
+    MODIS_PTR    => NULL()
+    MODIS_PTR_CM => NULL()
+    MODIS_PTR_NM => NULL()
+    XTMP         => NULL()
+    XTMP2        => NULL()
+
+  END SUBROUTINE Compute_Modis
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
