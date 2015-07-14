@@ -50,7 +50,6 @@
 !  21 Oct 2014 - C. Keller   - Now use GetHcoVal instead of Trac_Tend
 !  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -2707,7 +2707,7 @@
                   RWET(IBC) = WERADIUS(KLOOP,2)*1.e-2_fp
                ELSE
                   ! Use defaults, assume dry (!)
-                  RWET(IBC) = RAA(IND999,29)
+                  RWET(IBC) = RAA(IND999,29) * 1.0e-6_fp
                ENDIF
 
                ! Taken from aerosol_mod (MSDENS(2))

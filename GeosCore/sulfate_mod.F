@@ -875,9 +875,10 @@
 ! !DESCRIPTION: Subroutine EMISSSULFATETOMAS connects HEMCO bulk emissions to 
 ! the TOMAS tracers. Only use this for TOMAS sims. This should be quite similar 
 ! to the TOMAS relevant parts of 'emisssulfate' in v9 (Jkodros 6/2/15)
+!\\
+!\\
+! !INTERFACE:
 !
-!\\
-!\\
 #if defined( TOMAS )
       SUBROUTINE EMISSSULFATETOMAS( am_I_Root, Input_Opt,
      &                         State_Met, State_Chm, RC )

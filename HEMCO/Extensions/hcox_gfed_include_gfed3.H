@@ -4,10 +4,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_gfed_include.H
+! !IROUTINE: hcox_gfed_include_gfed3.H
 !
 ! !DESCRIPTION: Include file with GFED emission factor data that was 
-!  originally contained in file GFED_emission_factors.txt.  We have now
+!  originally contained in file GFED\_emission\_factors.txt.  We have now
 !  transformed this file into hardwired F90 commands in order to avoid reading
 !  an ASCII file in the ESMF environment.
 !
@@ -39,6 +39,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  08 Aug 2014 - R. Yantosca - Initial version
+!  10 Jul 2015 - R. Yantosca - Fixed minor issues in ProTeX header
 !EOP
 !------------------------------------------------------------------------------
 !BOC

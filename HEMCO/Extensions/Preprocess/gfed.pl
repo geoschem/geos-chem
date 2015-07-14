@@ -68,7 +68,7 @@ sub getProTeXHeader() {
 ! !IROUTINE: hcox_gfed_include.H
 !
 ! !DESCRIPTION: Include file with GFED emission factor data that was 
-!  originally contained in file GFED\_emission\_factors.txt.  We have now
+!  originally contained in file GFED\\_emission\\_factors.txt.  We have now
 !  transformed this file into hardwired F90 commands in order to avoid reading
 !  an ASCII file in the ESMF environment.
 !

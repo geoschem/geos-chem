@@ -4495,9 +4495,10 @@ CONTAINS
 !
 ! !DESCRIPTION: This creates diagnostics for bulk emissions that will be called
 ! to scale into TOMAS bins. May not even be necessary. (JKodros 6/2/15)
+!\\
+!\\
+! !INTERFACE:
 !
-!\\
-!\\
   SUBROUTINE Diagn_TOMAS( am_I_Root, Input_Opt, HcoState, ExtState, RC )
 !
 ! !USES:

@@ -27,6 +27,7 @@
 #  03 Apr 2012 - M. Payer    - Added *.F90 so that grid_mod.F90 and 
 #                              regrid_a2a_mod.F90 are included
 #  15 Jan 2014 - R. Yantosca - Now only create *.pdf output
+#  10 Jul 2015 - R. Yantosca - Use ./protex to avoid problems on some systems
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -47,7 +48,7 @@ PDF3 := GC_Ref_Vol_2.pdf
 # Make commands
 utildoc: 
 	rm -f $(TEX3)
-	protex -sf $(SRC3) > $(TEX3)
+	./protex -sf $(SRC3) > $(TEX3)
 	latex $(TEX3)
 	latex $(TEX3)
 	latex $(TEX3)
