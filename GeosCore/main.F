@@ -383,6 +383,7 @@
       LOGICAL                  :: USE_OLSON_2001
       INTEGER                  :: N_TRACERS 
       REAL(fpp),  POINTER       :: TCVV(:)
+
       !-----------------------------------------------------------------
 
       !=================================================================
@@ -1218,6 +1219,7 @@
             CALL INIT_WETSCAV
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #else 
+
             ! ... Standard GEOS-Chem: Call INIT_WETSCAV if   ...
             ! ... convection or wet scavenging or chemistry are turned on ...
             IF ( LCONV .or. LWETD .or. LCHEM ) THEN
@@ -1253,7 +1255,7 @@
 
             ! Increment emission counter
             CALL SET_CT_EMIS( INCREMENT=.TRUE. )
-
+     
             !===========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================
@@ -1322,6 +1324,7 @@
             !===========================================================
             !        ***** C L O U D   C O N V E C T I O N *****
             !===========================================================
+
             IF ( LCONV ) THEN
             
                ! Call the appropriate convection routine
@@ -1333,6 +1336,7 @@
                   CALL DEBUG_MSG( '### MAIN: a CONVECTION' )
                ENDIF
             ENDIF 
+
          ENDIF 
 
 

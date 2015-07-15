@@ -84,7 +84,7 @@ CONTAINS
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
     USE GRID_MOD,           ONLY : AREA_M2
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-!    USE UCX_MOD,            ONLY : DIAGINIT_UCX
+    USE TENDENCIES_MOD,     ONLY : TENDENCIES_INIT
 !
 ! !INPUT PARAMETERS:
 !
@@ -226,6 +226,12 @@ CONTAINS
        CALL ERROR_STOP( 'Error in DIAGINIT_DOBSON', LOC ) 
     ENDIF
 
+    ! Initialize tendencies
+    CALL TENDENCIES_INIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in TENDENCIES_INIT', LOC ) 
+    ENDIF
+
     ! Leave with success
     RC = GIGC_SUCCESS
 
@@ -248,6 +254,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE TENDENCIES_MOD,     ONLY : TENDENCIES_CLEANUP
 !
 ! !INPUT PARAMETERS:
 !
@@ -267,6 +274,7 @@ CONTAINS
 
 !    ! Finalize diagnostics
 !    CALL DiagnCollection_Cleanup( COL = Input_Opt%DIAG_COLLECTION )
+    CALL TENDENCIES_CLEANUP
 
     ! Return with success
     RC = GIGC_SUCCESS

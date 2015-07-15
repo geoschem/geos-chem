@@ -233,12 +233,13 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TENDENCIES_MOD
+      USE TIME_MOD,           ONLY : GET_TS_DYN
 
 #if   defined ( DEVEL )
       USE HCO_ERROR_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-      USE TIME_MOD,           ONLY : GET_TS_DYN
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -285,7 +286,8 @@
 ! !LOCAL VARIABLES:
 !
       ! For fields from Input_Opt
-      LOGICAL :: doPrt
+      LOGICAL  :: doPrt
+      REAL(f4) :: DT_TEND
 
       ! For new diagnostics
 #if   defined( DEVEL )
@@ -314,6 +316,15 @@
       ! Only print output on the root CPU
       doPrt = ( LPRT .and. am_I_Root )
 
+      !=================================================================
+      ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
+      !=================================================================
+#if defined( DEVEL )
+      CALL TENDENCIES_STAGE1( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 6, .FALSE., RC )
+#endif
+
+      !=================================================================
       ! For new diagnostics, mirror old species
 #if   defined( DEVEL )
       IF ( Input_Opt%ND39 > 0 ) THEN
@@ -425,6 +436,16 @@
          ! Cleanup
          DEALLOCATE( BEFORE, TMP3D, TMP2D )
       ENDIF
+#endif
+
+      !=================================================================
+      ! Calculate tendencies and write to diagnostics 
+      ! (ckeller,7/15/2015)
+      !=================================================================
+#if defined( DEVEL )
+      DT_TEND = GET_TS_DYN() * 60.0_f4
+      CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 6, .FALSE., DT_TEND, RC )
 #endif
 
       END SUBROUTINE DO_WETDEP

@@ -127,6 +127,8 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TPCORE_BC_MOD,      ONLY : INIT_TPCORE_BC
+      USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE TENDENCIES_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -162,6 +164,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+      REAL(f4)          :: DT
       LOGICAL, SAVE     :: FIRST = .TRUE.
 
       !=================================================================
@@ -191,6 +194,14 @@
 #endif
          FIRST = .FALSE.
       ENDIF
+
+      !=================================================================
+      ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
+      !=================================================================
+#if defined( DEVEL )
+      CALL TENDENCIES_STAGE1( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 1, .TRUE., RC )
+#endif
 
       !=================================================================
       ! Choose the proper version of TPCORE for the nested-grid window 
@@ -231,6 +242,16 @@
 
 #endif
       ENDIF
+
+      !=================================================================
+      ! Calculate tendencies and write to diagnostics 
+      ! (ckeller,7/15/2015)
+      !=================================================================
+#if defined( DEVEL )
+      DT = GET_TS_DYN() * 60.0_f4
+      CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 1, .TRUE., DT, RC )
+#endif
 
       ! Return to calling program
       END SUBROUTINE DO_TRANSPORT

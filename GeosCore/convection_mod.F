@@ -104,6 +104,7 @@
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TRACERID_MOD
       USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE TIME_MOD,           ONLY : GET_TS_CONV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
@@ -116,6 +117,7 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
+      USE TENDENCIES_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -185,6 +187,7 @@
       INTEGER           :: N_TRACERS
       REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
       REAL(fp)          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+      REAL(f4)          :: DT_TEND
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -237,6 +240,14 @@
       !=================================================================
       ! DO_CONVECT begins here!
       !=================================================================
+
+      !=================================================================
+      ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
+      !=================================================================
+#if defined( DEVEL )
+      CALL TENDENCIES_STAGE1( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 2, .TRUE., RC )
+#endif
 
       ! For new diagnostics, archive old species concentration. At the 
       ! moment, the new ND38 diagnostics only returns the total column 
@@ -490,6 +501,16 @@
          ! Cleanup
          DEALLOCATE( BEFORE, TMP3D, TMP2D )
       ENDIF
+#endif
+
+      !=================================================================
+      ! Calculate tendencies and write to diagnostics 
+      ! (ckeller,7/15/2015)
+      !=================================================================
+#if defined( DEVEL )
+      DT_TEND = GET_TS_CONV() * 60.0_f4
+      CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 2, .TRUE., DT_TEND, RC )
 #endif
 
       END SUBROUTINE DO_CONVECTION
