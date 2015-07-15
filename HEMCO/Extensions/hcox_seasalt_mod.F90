@@ -933,7 +933,9 @@ CONTAINS
     ExtState%TSKIN%DoUse = .TRUE.
     ExtState%U10M%DoUse  = .TRUE.
     ExtState%V10M%DoUse  = .TRUE.
-    ExtState%CHLR%DoUse  = .TRUE.
+    IF ( ExtNrMPOA > 0 ) THEN
+       ExtState%CHLR%DoUse  = .TRUE.
+    ENDIF
 
     ! Enable module
     ExtState%SeaSalt = .TRUE.

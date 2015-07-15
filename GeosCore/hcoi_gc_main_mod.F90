@@ -1025,11 +1025,12 @@ CONTAINS
     USE Get_Ndep_Mod,          ONLY : WET_TOTN
 
 #if !defined(ESMF_)
-    USE MODIS_LAI_MOD,         ONLY : GC_LAI, GC_CHLR
+    USE MODIS_LAI_MOD,         ONLY : GC_LAI
 #endif
+    USE MODIS_LAI_MOD,         ONLY : GC_CHLR
 
 #if defined(ESMF_)
-    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
+    USE HCOI_ESMF_MOD,         ONLY : HCO_SetExtState_ESMF
 #endif
 
 !
@@ -1189,24 +1190,21 @@ CONTAINS
          'FRLANDIC', HCRC,      FIRST,    State_Met%FRLANDIC  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
-    ! Use 'offline' MODIS LAI and CHLR in standard GEOS-Chem
+    ! Use 'offline' MODIS LAI in standard GEOS-Chem
 #if defined(ESMF_)
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%LAI, &
               'LAI', HCRC,      FIRST,    State_Met%LAI  )
-    IF ( HCRC /= HCO_SUCCESS ) RETURN
-
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%CHLR, &
-              'CHLR', HCRC,      FIRST,   State_Met%CHLR  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #else
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%LAI, &
               'LAI', HCRC,      FIRST,    GC_LAI         )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
+#endif
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%CHLR, &
               'CHLR', HCRC,      FIRST,   GC_CHLR         )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
-#endif
+
 
     ! ----------------------------------------------------------------
     ! 3D fields 
