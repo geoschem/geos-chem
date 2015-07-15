@@ -182,6 +182,11 @@ MODULE Modis_Lai_Mod
                                             135, 166, 196, 227,      &
                                             258, 288, 319, 349, 380/)
 
+  ! specify number of digits of precision for LAI and CHLR
+  INTEGER, PARAMETER  :: numRoundLAI  = 1 ! Data precision for LAI
+  INTEGER, PARAMETER  :: numRoundCHLR = 3 ! Data precision for CHLR
+
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -528,6 +533,10 @@ CONTAINS
 130 FORMAT( '%% Successfully read ',       a, ' [', a, '] for month = ', i2.2 )
 140 FORMAT( '%% Successfully closed file!'                                    )
 
+    ! Cleanup pointers
+    MODIS_PTR_CM => NULL()
+    MODIS_PTR_NM => NULL()
+
   END SUBROUTINE Read_Modis
 !EOC
 !------------------------------------------------------------------------------
@@ -597,15 +606,13 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     LOGICAL             :: ComputeLAI       ! T = compute LAI, F = compute CHLR
-    INTEGER, PARAMETER  :: numRoundLAI  = 1 ! Data precision for LAI
-    INTEGER, PARAMETER  :: numRoundCHLR = 3 ! Data precision for CHLR
 
     ! Assume success
     RC = GIGC_SUCCESS
 
     ! Always compute LAI
     ComputeLAI = .true.
-    CALL Compute_Modis( am_I_Root,  ComputeLAI, numRoundLAI,       &
+    CALL Compute_Modis( am_I_Root,  ComputeLAI,                    &
                         Input_Opt,  State_Met,  doy,               & 
                         mm,         mapping,    wasModisRead,  RC )
 
@@ -613,7 +620,7 @@ CONTAINS
     IF ( Input_Opt%LMPOA ) THEN
 
        ComputeLAI = .false.
-       CALL Compute_Modis( am_I_Root,  ComputeLAI, numRoundCHLR,         &
+       CALL Compute_Modis( am_I_Root,  ComputeLAI,                    &
                            Input_Opt,  State_Met,  doy,               & 
                            mm,         mapping,    wasModisRead,  RC )
 
@@ -637,7 +644,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Modis( am_I_Root,  ComputeLAI,   numRound,          &
+  SUBROUTINE Compute_Modis( am_I_Root,  ComputeLAI,                      &
                             Input_Opt,  State_Met,    doy,               & 
                             mm,         mapping,      wasModisRead,  RC )
 
@@ -652,7 +659,6 @@ CONTAINS
 !
     LOGICAL,         INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
     LOGICAL,         INTENT(IN)  :: ComputeLAI 
-    INTEGER,         INTENT(IN)  :: numRound      ! Precision of MODIS data
     TYPE(OptInput),  INTENT(IN)  :: Input_Opt     ! Input Options object
     INTEGER,         INTENT(IN)  :: doy           ! Day of year
     INTEGER,         INTENT(IN)  :: mm            ! Month for LAI data
@@ -683,7 +689,7 @@ CONTAINS
 
     ! Scalars
     INTEGER   :: I,      J,     IMUL,     ITD,   IJLOOP
-    INTEGER   :: C,      II,    JJ,       type,  K
+    INTEGER   :: C,      II,    JJ,       type,  K,      numRound
     REAL(fp)  :: mapWt,  area,  sumArea,  DMON,  DITD,   DIMUL
 
     ! Arrays
@@ -699,7 +705,6 @@ CONTAINS
     REAL*4,   POINTER  :: MODIS_PTR_NM(:,:) => NULL()
     REAL(fp), POINTER  :: XTMP(:,:,:)       => NULL()
     REAL(fp), POINTER  :: XTMP2(:,:,:)      => NULL()
-    
 
     !======================================================================
     ! Interpolate the data on the MODIS grid to current day
@@ -709,7 +714,7 @@ CONTAINS
     ! Assume success
     RC                = GIGC_SUCCESS
 
-    ! Assign pointers based on whether computing LAI or CHLR
+    ! Assign pointers and precision based on whether computing LAI or CHLR
     IF ( ComputeLAI ) THEN
        GC_PTR            => GC_LAI 
        MODIS_PTR         => MODIS_LAI
@@ -717,6 +722,7 @@ CONTAINS
        MODIS_PTR_NM      => MODIS_LAI_NM
        XTMP              => State_Met%XLAI
        XTMP2             => State_Met%XLAI2
+       numRound          =  numRoundLAI
     ELSE
        GC_PTR            => GC_CHLR 
        MODIS_PTR         => MODIS_CHLR 
@@ -724,6 +730,7 @@ CONTAINS
        MODIS_PTR_NM      => MODIS_CHLR_NM
        XTMP              => State_Met%XCHLR
        XTMP2             => State_Met%XCHLR2
+       numRound          =  numRoundCHLR 
     ENDIF
 
     ! IMUL is days since midmonth
@@ -765,10 +772,10 @@ CONTAINS
     !======================================================================
     !$OMP PARALLEL DO                                                 &
     !$OMP DEFAULT( SHARED                                           ) &
-    !$OMP PRIVATE( I,         J,           tempArea                 ) &
-    !$OMP PRIVATE( tempModis, tempModisNm, sumArea,  IJLOOP         ) &
-    !$OMP PRIVATE( C,         II,          JJ,       type           ) & 
-    !$OMP PRIVATE( area,      K                                     )      
+    !$OMP PRIVATE( I,           J,           tempArea, tempModis    ) &
+    !$OMP PRIVATE( tempModisCm, tempModisNm, sumArea,  IJLOOP       ) &
+    !$OMP PRIVATE( C,           II,          JJ,       type         ) & 
+    !$OMP PRIVATE( area,        K                                   )      
     DO J = 1, JJPAR
     DO I = 1, IIPAR
 
@@ -990,7 +997,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 ! 
     REAL(fp),  INTENT(IN) :: X   ! Number to be rounded
-    INTEGER, INTENT(IN) :: N   ! Number of decimal places to keep
+    INTEGER, INTENT(IN)   :: N   ! Number of decimal places to keep
 !
 ! !RETURN VALUE:
 !
@@ -1017,7 +1024,7 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
+!f
 ! !LOCAL VARIABLES
 !
     REAL(fp) :: TEN_TO_THE_N                   ! Term for 10**N
