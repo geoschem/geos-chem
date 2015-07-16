@@ -51,7 +51,8 @@ MODULE HCOX_SeaSalt_Mod
 ! !PRIVATE TYPES:
 !
   ! Tracer IDs 
-  INTEGER             :: ExtNr
+  INTEGER             :: ExtNrSS           ! Extension number for seasalt
+  INTEGER             :: ExtNrMPOA         ! Extension number for marine POA
   INTEGER             :: IDTSALA           ! Fine aerosol model species ID
   INTEGER             :: IDTSALC           ! Coarse aerosol model species ID  
   INTEGER             :: IDTMOPO           ! marine organic aerosol - phobic
@@ -412,7 +413,7 @@ CONTAINS
 
        ! Add flux to emission array
        CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALA, IDTSALA, &
-                         RC,        ExtNr=ExtNr )
+                         RC,        ExtNr=ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSALA', RC )
           RETURN 
@@ -424,7 +425,7 @@ CONTAINS
 
        ! Add flux to emission array
        CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALC, IDTSALC, & 
-                         RC,        ExtNr=ExtNr )
+                         RC,        ExtNr=ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSALC', RC )
           RETURN 
@@ -437,7 +438,7 @@ CONTAINS
 
        ! Add flux to emission array
        CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXBr2, IDTBr2, & 
-                         RC,        ExtNr=ExtNr )
+                         RC,        ExtNr=ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXBr2', RC )
           RETURN 
@@ -449,8 +450,8 @@ CONTAINS
     IF ( IDTMOPO > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALC, IDTMOPO, & 
-                         RC,        ExtNr=ExtNr )
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMOPO, IDTMOPO, & 
+                         RC,        ExtNr=ExtNrMPOA )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMOPO', RC )
           RETURN 
@@ -463,7 +464,7 @@ CONTAINS
 
        ! Add flux to emission array
        CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMOPI, IDTMOPI, & 
-                         RC,        ExtNr=ExtNr )
+                         RC,        ExtNr=ExtNrMPOA )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMOPI', RC )
           RETURN 
@@ -519,7 +520,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                        :: N, R, AS, ExtNrMPOA
+    INTEGER                        :: N, R, AS
     REAL*8                         :: A, B, R0, R1
     REAL*8                         :: CONST_N
     CHARACTER(LEN=255)             :: MSG
@@ -536,9 +537,9 @@ CONTAINS
     ! HCOX_SeaSalt_Init begins here!
     !=================================================================
 
-    ! Extension Nr.
-    ExtNr = GetExtNr( TRIM(ExtName) )
-    IF ( ExtNr <= 0 ) RETURN
+    ! Extension number for seasalt
+    ExtNrSS = GetExtNr( TRIM(ExtName) )
+    IF ( ExtNrSS <= 0 ) RETURN
 
     ! Check for marine organic aerosols option
     ExtNrMPOA = GetExtNr('MarinePOA')
@@ -554,12 +555,12 @@ CONTAINS
     ! Read settings specified in configuration file
     ! Note: the specified strings have to match those in 
     !       the config. file!
-    CALL GetExtOpt ( ExtNr, 'Emit Br2', OptValBool=CalcBr2, RC=RC )
+    CALL GetExtOpt ( ExtNrSS, 'Emit Br2', OptValBool=CalcBr2, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     IF ( CalcBr2 ) THEN
        minLen = 3
-       CALL GetExtOpt( ExtNr, 'Br2 scaling', OptValDp=Br2Scale, RC=RC )
+       CALL GetExtOpt( ExtNrSS, 'Br2 scaling', OptValDp=Br2Scale, RC=RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ELSE
        minLen   = 2
@@ -568,7 +569,7 @@ CONTAINS
     ENDIF
 
     ! Get HEMCO species IDs
-    CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+    CALL HCO_GetExtHcoID( HcoState, ExtNrSS, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( nSpc < minLen ) THEN
        MSG = 'Not enough sea salt emission species set' 
@@ -591,16 +592,16 @@ CONTAINS
     ! Get aerosol radius'
     SALA_REDGE_um(:) = 0.0d0
     SALC_REDGE_um(:) = 0.0d0
-    CALL GetExtOpt( ExtNr, 'SALA lower radius', &
+    CALL GetExtOpt( ExtNrSS, 'SALA lower radius', &
                     OptValDp=SALA_REDGE_um(1), RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL GetExtOpt( ExtNr, 'SALA upper radius', & 
+    CALL GetExtOpt( ExtNrSS, 'SALA upper radius', & 
                     OptValDp=SALA_REDGE_um(2), RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL GetExtOpt( ExtNr, 'SALC lower radius', & 
+    CALL GetExtOpt( ExtNrSS, 'SALC lower radius', & 
                     OptValDp=SALC_REDGE_um(1), RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL GetExtOpt( ExtNr, 'SALC upper radius', & 
+    CALL GetExtOpt( ExtNrSS, 'SALC upper radius', & 
                     OptValDp=SALC_REDGE_um(2), RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -612,7 +613,7 @@ CONTAINS
     ! winds in GEOS-4 are too rapid. To correct this, apply a global
     ! scaling factor of 0.72 (jaegle 5/11/11)
     ! Now check first if this factor is specified in configuration file
-    CALL GetExtOpt( ExtNr, 'Wind scale factor', & 
+    CALL GetExtOpt( ExtNrSS, 'Wind scale factor', & 
                     OptValDp=tmpScale, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) THEN   
@@ -862,7 +863,7 @@ CONTAINS
     CALL Diagn_Create ( am_I_Root,                          &
                         HcoState   = HcoState,              & 
                         cName      = 'SEASALT_DENS_FINE',   &
-                        ExtNr      = ExtNr,                 &
+                        ExtNr      = ExtNrSS,               &
                         Cat        = -1,                    &
                         Hier       = -1,                    &
                         HcoID      = IDTSALA,               &
@@ -877,7 +878,7 @@ CONTAINS
     CALL Diagn_Create ( am_I_Root,                          & 
                         HcoState   = HcoState,              & 
                         cName      = 'SEASALT_DENS_COARSE', &
-                        ExtNr      = ExtNr,                 &
+                        ExtNr      = ExtNrSS,               &
                         Cat        = -1,                    &
                         Hier       = -1,                    &
                         HcoID      = IDTSALC,               &
@@ -890,38 +891,39 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Create marine density diagnostics only if LMOA is true (ewl)
-    ! Need to add this!!!
-    ! Add diagnostic for marine phobic (7/9/15)
-    CALL Diagn_Create ( am_I_Root,                          & 
-                        HcoState   = HcoState,              & 
-                        cName      = 'SEASALT_DENS_PHOBIC', &
-                        ExtNr      = ExtNr,                 &
-                        Cat        = -1,                    &
-                        Hier       = -1,                    &
-                        HcoID      = IDTMOPO,               &
-                        SpaceDim   = 2,                     &
-                        OutUnit    = 'number_dens',         &
-                        AutoFill   = 0,                     &
-                        Trgt2D     = NDENS_MOPO,            &
-                        COL        = HcoDiagnIDManual,      &
-                        RC         = RC                      )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( ExtNrMPOA > 0 ) THEN
 
-    ! Add diagnostic for marine philic (ewl, 7/9/15)
-    CALL Diagn_Create ( am_I_Root,                          & 
-                        HcoState   = HcoState,              & 
-                        cName      = 'SEASALT_DENS_PHILIC', &
-                        ExtNr      = ExtNr,                 &
-                        Cat        = -1,                    &
-                        Hier       = -1,                    &
-                        HcoID      = IDTMOPI,               &
-                        SpaceDim   = 2,                     &
-                        OutUnit    = 'number_dens',         &
-                        AutoFill   = 0,                     &
-                        Trgt2D     = NDENS_MOPI,            &
-                        COL        = HcoDiagnIDManual,      &
-                        RC         = RC                      )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL Diagn_Create ( am_I_Root,                          & 
+                           HcoState   = HcoState,              & 
+                           cName      = 'SEASALT_DENS_PHOBIC', &
+                           ExtNr      = ExtNrMPOA,             &
+                           Cat        = -1,                    &
+                           Hier       = -1,                    &
+                           HcoID      = IDTMOPO,               &
+                           SpaceDim   = 2,                     &
+                           OutUnit    = 'number_dens',         &
+                           AutoFill   = 0,                     &
+                           Trgt2D     = NDENS_MOPO,            &
+                           COL        = HcoDiagnIDManual,      &
+                           RC         = RC                      )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+   
+       CALL Diagn_Create ( am_I_Root,                          & 
+                           HcoState   = HcoState,              & 
+                           cName      = 'SEASALT_DENS_PHILIC', &
+                           ExtNr      = ExtNrMPOA,             &
+                           Cat        = -1,                    &
+                           Hier       = -1,                    &
+                           HcoID      = IDTMOPI,               &
+                           SpaceDim   = 2,                     &
+                           OutUnit    = 'number_dens',         &
+                           AutoFill   = 0,                     &
+                           Trgt2D     = NDENS_MOPI,            &
+                           COL        = HcoDiagnIDManual,      &
+                           RC         = RC                      )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ENDIF
 
     !=======================================================================
     ! Activate this module and the fields of ExtState that it uses

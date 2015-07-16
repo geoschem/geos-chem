@@ -156,7 +156,7 @@ MODULE Modis_Lai_Mod
 !                              MODIS_LAI_PM.
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  07 Jul 2015 - E. Lundgren - Now also read and compute MODIS chlorophyll-a 
-!                              (B. Gantt, M. Johnson)
+!                              (B. Gantt, M. Johnson). Use separate end years.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -167,7 +167,8 @@ MODULE Modis_Lai_Mod
   INTEGER              :: I_MODIS             ! # of longitudes, MODIS grid
   INTEGER              :: J_MODIS             ! # of latitudes,  MODIS grid
   INTEGER              :: MODIS_START         ! First year of MODIS data  
-  INTEGER              :: MODIS_END           ! Last  year of MODIS data
+  INTEGER              :: LAI_END             ! Last  year of MODIS LAI data
+  INTEGER              :: CHLR_END            ! Last  year of MODIS CHLR data
                                               
   ! Arrays                                    
   REAL*4,  ALLOCATABLE, TARGET :: MODIS_LAI   (:,:) ! Daily LAI on MODIS grid
@@ -331,6 +332,7 @@ CONTAINS
     INTEGER              :: Pmm                ! Previous LAI month
     INTEGER              :: Nmm                ! Next     LAI month
     INTEGER              :: yyyymmdd           ! Date variable
+    INTEGER              :: MODIS_END          ! Last year or MODIS data
                          
     ! Character strings  
     CHARACTER(LEN=255)   :: nc_file            ! netCDF file name
@@ -359,13 +361,15 @@ CONTAINS
     ! Assume success
     RC = GIGC_SUCCESS
 
-    ! Assign pointers based on whether reading LAI or CHLR
+    ! Assign pointers etc. based on whether reading LAI or CHLR
     IF ( ReadLAI ) THEN
        MODIS_PTR_CM => MODIS_LAI_CM
        MODIS_PTR_NM => MODIS_LAI_NM
+       MODIS_END    =  LAI_END
     ELSE
        MODIS_PTR_CM => MODIS_CHLR_CM
        MODIS_PTR_NM => MODIS_CHLR_NM
+       MODIS_END    =  CHLR_END
     ENDIF
 
     ! If we enter a new month, then read MODIS from disk
@@ -1077,7 +1081,7 @@ CONTAINS
 !                              a large difference in the 2009 file that still
 !                              needs to be investigated (skim, 1/29/14)
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC 
-!  08 Jul 2015 - E. Lundgren - New end year to match files from M. Johnson
+!  08 Jul 2015 - E. Lundgren - New end years to match files from M. Johnson
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1114,13 +1118,14 @@ CONTAINS
        I_MODIS     = 1440             ! For Olson 2001, use MODIS LAI
        J_MODIS     = 720              ! on the 0.25 x 0.25 native grid
        MODIS_START = 2005             ! First year of MODIS data  
-!       MODIS_END   = 2008             ! Force to 2008 (skim, 1/29/14) 
-       MODIS_END   = 2011             ! Last  year of MODIS data
+       LAI_END     = 2011             ! Last  year of MODIS LAI data
+       CHLR_END    = 2011             ! Last  year of MODIS CHLR data
     ELSE
        I_MODIS     = 720              ! For Olson 1992, use MODIS LAI
        J_MODIS     = 360              ! on the 0.5 x 0.5 native grid
        MODIS_START = 2000             ! First year of MODIS data  
-       MODIS_END   = 2011             ! Last  year of MODIS data
+       LAI_END     = 2011             ! Last  year of MODIS LAI data
+       CHLR_END    = 2011             ! Last  year of MODIS CHLR data
     ENDIF
 
     ALLOCATE( MODIS_LAI( I_MODIS, J_MODIS ), STAT=RC ) 

@@ -949,12 +949,6 @@ CONTAINS
     ! Define diagnostics
     IF ( ND08 > 0 .AND. Input_Opt%LSSALT .AND. ExtState%SeaSalt ) THEN
 
-       ! DEBUGGING (ewl, 7/10/15)
-       PRINT *, "ND08: ", ND08
-       PRINT *, "Input_Opt%LSSALT", Input_Opt%LSSALT
-       PRINT *, "ExtState%SeaSalt", ExtState%SeaSalt
-       ! END DEBUGGING
-
        ! Get HEMCO extension # for SeaSalt
        ExtNrSS = GetExtNr( 'SeaSalt' )
        IF ( ExtNrSS <= 0 ) THEN
