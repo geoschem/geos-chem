@@ -105,7 +105,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: TrcID, AS
+    INTEGER            :: AS
     INTEGER            :: cID, Collection, I, N
     LOGICAL            :: SKIP
     CHARACTER(LEN=60)  :: DiagnName
@@ -356,7 +356,7 @@ CONTAINS
     TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry state 
     INTEGER,          INTENT(IN   ) :: TendType   ! 1=Adv; 2=Conv; 3=Chem
     LOGICAL,          INTENT(IN   ) :: IsInvv     ! Is tracer in v/v? 
-    REAL(f4),         INTENT(IN   ) :: DT         ! delta time, in seconds 
+    REAL(fp),         INTENT(IN   ) :: DT         ! delta time, in seconds 
 !
 ! !OUTPUT PARAMETERS:
 !

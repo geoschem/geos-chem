@@ -85,6 +85,7 @@ CONTAINS
     USE GRID_MOD,           ONLY : AREA_M2
     USE TIME_MOD,           ONLY : GET_TS_CHEM
     USE TENDENCIES_MOD,     ONLY : TENDENCIES_INIT
+    USE STRAT_CHEM_MOD,     ONLY : DiagInit_STD
 !
 ! !INPUT PARAMETERS:
 !
@@ -228,6 +229,12 @@ CONTAINS
 
     ! Initialize tendencies
     CALL TENDENCIES_INIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in TENDENCIES_INIT', LOC ) 
+    ENDIF
+
+    ! Initialize stratospheric tendencies due to dynamics 
+    CALL DiagInit_STD( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in TENDENCIES_INIT', LOC ) 
     ENDIF

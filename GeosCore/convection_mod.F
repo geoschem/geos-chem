@@ -187,7 +187,7 @@
       INTEGER           :: N_TRACERS
       REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
       REAL(fp)          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
-      REAL(f4)          :: DT_TEND
+      REAL(fp)          :: DT_TEND
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -508,7 +508,7 @@
       ! (ckeller,7/15/2015)
       !=================================================================
 #if defined( DEVEL )
-      DT_TEND = GET_TS_CONV() * 60.0_f4
+      DT_TEND = GET_TS_CONV() * 60.0_fp
       CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                        State_Chm, 2, .TRUE., DT_TEND, RC )
 #endif

@@ -287,7 +287,7 @@
 !
       ! For fields from Input_Opt
       LOGICAL  :: doPrt
-      REAL(f4) :: DT_TEND
+      REAL(fp) :: DT_TEND
 
       ! For new diagnostics
 #if   defined( DEVEL )
@@ -443,7 +443,7 @@
       ! (ckeller,7/15/2015)
       !=================================================================
 #if defined( DEVEL )
-      DT_TEND = GET_TS_DYN() * 60.0_f4
+      DT_TEND = GET_TS_DYN() * 60.0_fp
       CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                        State_Chm, 6, .FALSE., DT_TEND, RC )
 #endif

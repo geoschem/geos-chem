@@ -164,7 +164,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(f4)          :: DT
+      REAL(fp)          :: DT
       LOGICAL, SAVE     :: FIRST = .TRUE.
 
       !=================================================================
@@ -248,7 +248,7 @@
       ! (ckeller,7/15/2015)
       !=================================================================
 #if defined( DEVEL )
-      DT = GET_TS_DYN() * 60.0_f4
+      DT = GET_TS_DYN() * 60.0_fp
       CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                        State_Chm, 1, .TRUE., DT, RC )
 #endif

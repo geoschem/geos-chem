@@ -260,7 +260,7 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
 
       ! Chemistry time step in seconds
-      REAL(f4)      :: DT_TEND
+      REAL(fp)      :: DT_TEND
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -651,7 +651,7 @@
       ! (ckeller,7/15/2015)
       !=================================================================
 #if defined( DEVEL )
-      DT_TEND = GET_TS_CHEM() * 60.0_f4
+      DT_TEND = GET_TS_CHEM() * 60.0_fp
       CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                        State_Chm, 3, .FALSE., DT_TEND, RC )
 #endif

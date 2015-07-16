@@ -562,6 +562,7 @@ diagnostics_mod.o           : diagnostics_mod.F90                            \
                               tendencies_mod.o                               \
                               tracer_mod.o                                   \
                               tracerid_mod.o                                 \
+                              strat_chem_mod.o                               \
                               wetscav_mod.o
 
 diag_2pm.o                  : diag_2pm.F                                     \
@@ -816,6 +817,7 @@ partition.o                 : partition.F                                    \
                               comode_mod.o            tracerid_mod.o
 
 pbl_mix_mod.o               : pbl_mix_mod.F                                  \
+                              tendencies_mod.o                               \
                               diag_mod.o              tracer_mod.o
 
 pderiv.o                    : pderiv.F
@@ -975,6 +977,7 @@ vdiff_mod.o                 : vdiff_mod.F90                                  \
                               drydep_mod.o            ocean_mercury_mod.o    \
                               pbl_mix_mod.o           vdiff_pre_mod.o        \
                               tracer_mod.o            tracerid_mod.o         \
+                              tendencies_mod.o                               \
                               hcoi_gc_main_mod.o      global_ch4_mod.o       \
                               mercury_mod.o      
 

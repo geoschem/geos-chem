@@ -60,12 +60,18 @@ MODULE STRAT_CHEM_MOD
   PUBLIC  :: Do_Strat_Chem
   PUBLIC  :: Cleanup_Strat_Chem
   PUBLIC  :: Calc_STE
+#if defined(DEVEL)
+  PUBLIC  :: DiagInit_STD
+#endif
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: Set_BryPointers
   PRIVATE :: Set_PLVEC
   PRIVATE :: Do_Synoz
+#if defined(DEVEL)
+  PRIVATE :: STD_Update 
+#endif
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -161,6 +167,12 @@ MODULE STRAT_CHEM_MOD
   REAL(f4), ALLOCATABLE :: MInit(:,:,:,:)      ! Init. atm. state for STE period
   REAL(f4), ALLOCATABLE :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
                                                !   (total P - L) [kg period-1]
+
+#if defined( DEVEL )
+  ! Variables for STD diagnostics (ckeller, 7/16/2015)
+  REAL(fp), ALLOCATABLE :: OldO3(:,:)
+  INTEGER,  ALLOCATABLE :: OldTL(:,:)
+#endif
 
   !=================================================================
   ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -426,9 +438,9 @@ CONTAINS
        ! Put ozone in v/v
        STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * TCVV( IDTO3 ) / AD
 
-       ! To read O3 from file
-       IF ( .TRUE. ) THEN
-
+       ! Check if there exists field 'STRATO3' in the HEMCO import. If so,
+       ! take these O3 concentrations in the stratosphere. Otherwise, use
+       ! LINOZ/SYNOZ (ckeller, 7/13/15).
        CALL HCO_GetPtr( am_I_Root, 'STRATO3', Ptr3D, errCode, FOUND=FOUND )
        IF ( FOUND ) THEN
 
@@ -453,7 +465,8 @@ CONTAINS
 !                wgt2 = ( L  - 20 ) * 0.1_fp
 !             ENDIF
 
-             ! Overwrite STT with value from disk 
+             ! Overwrite STT with value from file. Concentrations are in ppm, 
+             ! convert to v/v.
              STT(I,J,L,IDTO3) = Ptr3D(I,J,L) * 1.0e-6
 
           ENDDO
@@ -484,7 +497,6 @@ CONTAINS
  
        ! testing
        ENDIF ! FOUND
-       ENDIF ! toggle
 
        ! Put ozone back to kg
        STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * AD / TCVV( IDTO3 )
@@ -493,6 +505,9 @@ CONTAINS
        SCHEM_TEND(:,:,:,IDTO3) = SCHEM_TEND(:,:,:,IDTO3) + &
                                                   ( STT(:,:,:,IDTO3) - BEFORE )
 
+#if defined( DEVEL ) 
+       CALL STD_UPDATE( am_I_Root, Input_Opt, State_Met, State_Chm, BEFORE, RC=errCode )
+#endif
 
        !========================================
        ! Reactions with OH
@@ -1481,6 +1496,11 @@ CONTAINS
     ! Cleanup pointer to strat. OH
     STRAT_OH => NULL()
 
+#if defined( DEVEL )
+    IF ( ALLOCATED( OldO3 ) ) DEALLOCATE ( OldO3 )
+    IF ( ALLOCATED( OldTL ) ) DEALLOCATE ( OldTL )
+#endif
+
   END SUBROUTINE CLEANUP_STRAT_CHEM
 !EOC
 !------------------------------------------------------------------------------
@@ -1903,7 +1923,229 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE Do_Synoz
-!!EOC
+!EOC
+#if defined ( DEVEL ) 
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagInit_STD
+!
+! !DESCRIPTION: Subroutine DiagInit\_STD initializes the STD (stratospheric 
+! tendencies due to dynamics) 2D diagnostics. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_STD ( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE TRACERID_MOD,       ONLY : IDTO3
+    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR
+    USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
+    TYPE(OptInput),   INTENT(IN   ) :: Input_Opt  ! Input opts
+    TYPE(MetState),   INTENT(IN   ) :: State_Met  ! Met state
+    TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry state 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)   :: RC         ! Failure or success
+!
+! !REVISION HISTORY: 
+!  16 Jul 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: AS
+    INTEGER            :: cID, Collection
+    CHARACTER(LEN=60)  :: DiagnName
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DiagInit_STE (strat_chem_mod.F90)' 
+    
+    !=======================================================================
+    ! DiagInit_STD begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    
+    ! Initialize arrays
+    ALLOCATE( OldO3(IIPAR,JJPAR), OldTL(IIPAR,JJPAR), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL ERROR_STOP( 'STD allocation error', LOC )
+       RC = GIGC_FAILURE
+       RETURN
+    ENDIF
+    OldO3 = 0.0_fp
+    OldTL = 0
+
+    ! Create container
+    IF ( IDTO3 > 0 ) THEN 
+       DiagnName = 'StratTendencyDyn_O3'
+       cID       = 74000 + IDTO3 
+
+       CALL Diagn_Create( am_I_Root,                     &
+                          Col       = Collection,        & 
+                          cID       = cID,               &
+                          cName     = TRIM( DiagnName ), &
+                          AutoFill  = 0,                 &
+                          ExtNr     = -1,                &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  =  2,                &
+                          OutUnit   = 'kg s-1',          &
+                          OutOper   = 'Mean',            &
+                          OkIfExist = .TRUE.,            &
+                          RC        = RC )
+      
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF
+    ENDIF  
+   
+  END SUBROUTINE DiagInit_STD
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: STD_UPDATE
+!
+! !DESCRIPTION: Subroutine STD\_UPDATE updates the STD (stratospheric 
+! tendencies due to dynamics) 2D diagnostics. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE STD_UPDATE( am_I_Root, Input_Opt, State_Met, State_Chm, BEFORE, RC ) 
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
+    USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
+    USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+    USE HCO_CLOCK_MOD,      ONLY : HcoClock_First, HcoClock_Rewind
+    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE TRACERID_MOD,       ONLY : IDTO3
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   ) :: am_I_Root     ! Are we on the root CPU?
+    TYPE(OptInput),   INTENT(IN   ) :: Input_Opt     ! Input opts
+    TYPE(MetState),   INTENT(IN   ) :: State_Met     ! Met state
+    TYPE(ChmState),   INTENT(IN   ) :: State_Chm     ! Chemistry state
+    REAL(fp),         INTENT(IN   ) :: BEFORE(:,:,:) ! ozone before chemistry [kg]
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)   :: RC            ! Failure or success
+!
+! !REVISION HISTORY: 
+!  16 Jul 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: I, J, NewTL, ijTL, cID
+    LOGICAL            :: AfterRewind
+    REAL(fp)           :: ijMass, ijPL, dt 
+    REAL(fp)           :: Array2D(IIPAR,JJPAR)
+    CHARACTER(LEN=60)  :: DiagnName
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'STD_UPDATE (strat_chem_mod.F90)' 
+    
+    !=======================================================================
+    ! STD_UPDATE begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Return if O3 is not a tracer
+    IF ( IDTO3 <= 0 ) RETURN
+
+    ! Chemistry time step
+    DT = GET_TS_CHEM() * 60.0_fp
+
+    ! Archive current tropopause level as well as total stratospheric mass
+    Array2D = 0.0_fp
+
+    !$OMP PARALLEL DO                               &
+    !$OMP DEFAULT( SHARED )                         &
+    !$OMP PRIVATE( I,  J,  ijTL, ijMass, ijPL, NewTL )
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+
+             ! ijTL is the old tropopause level. Do all calculations at this
+             ! level because OldO3 is the column sum from this level onwards
+             ijTL         = OldTL(I,J)
+
+             ! ijMass is the new strat. column mass
+             ijMass       = SUM(State_Chm%Tracers(I,J,ijTL:LLPAR,IDTO3))
+
+             ! ijPL is the new strat. column production/loss total
+             ijPL         = ijMass - SUM(BEFORE(I,J,ijTL:LLPAR)) 
+
+             ! dMass is the mass difference due to transport
+             Array2D(I,J) = ( ijMass - ijPL - OldO3(I,J) ) / dt
+
+             ! New tropopause level. Add +1 because we need the first 
+             ! stratospheric level.
+             NewTL        = GET_TPAUSE_LEVEL( I, J, State_Met )
+             NewTL        = NewTL + 1
+
+             ! Archive variables
+             OldTL(I,J)   = NewTL
+             OldO3(I,J)   = SUM( State_Chm%Tracers(I,J,NewTL:LLPAR,IDTO3) )
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    ! Update container
+    AfterRewind = HcoClock_Rewind(.TRUE.) .OR. HcoClock_First(.TRUE.) 
+    IF ( .NOT. AfterRewind ) THEN
+       cID = 74000 + IDTO3 
+       CALL Diagn_Update( am_I_Root,                             &
+                          cID       = cID,                       &
+                          Array2D   = Array2D,                   &
+                          Col       = Input_Opt%DIAG_COLLECTION, & 
+                          RC        = RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Error when updating diagnostics: ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF
+    ENDIF  
+   
+  END SUBROUTINE STD_UPDATE
+!EOC
+#endif
 !!------------------------------------------------------------------------------
 !!                  GEOS-Chem Global Chemical Transport Model                  !
 !!------------------------------------------------------------------------------

@@ -1676,7 +1676,7 @@
          !   IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a ND52' )
          !ENDIF
 
-!#if dfined( DEVEL )
+!#if defined( DEVEL )
 !         ! Write diagnostic data to the GEOS-Chem diagnostics netCDF file.
 !         ! Each diagnostic has a specified averaging period specified 
 !         ! in Input_Opt. (ckeller, bmy, 1/15/15)

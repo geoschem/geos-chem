@@ -97,7 +97,8 @@ CONTAINS
        CALL DO_PBL_MIX_2( am_I_Root, .FALSE. ,  Input_Opt, &
                           State_Met, State_Chm, RC          )
     ELSE 
-       CALL DO_PBL_MIX( .FALSE., Input_Opt, State_Met, State_Chm )
+       CALL DO_PBL_MIX( am_I_Root, .FALSE.,   Input_Opt, &
+                        State_Met, State_Chm, RC          )
     ENDIF
 
   END SUBROUTINE INIT_MIXING 
@@ -126,9 +127,6 @@ CONTAINS
     USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
     USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
     USE DAO_MOD,            ONLY : CONVERT_UNITS
-    USE TIME_MOD,           ONLY : GET_TS_EMIS, GET_TS_CONV
-    USE TIME_MOD,           ONLY : GET_TS_DYN 
-    USE TENDENCIES_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -152,7 +150,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
     LOGICAL       :: OnlyAbovePBL
-    REAL(f4)      :: DT_TEND
 
     !=================================================================
     ! DO_MIXING begins here!
@@ -168,25 +165,10 @@ CONTAINS
     ! deposition rates, including dust.
     ! Set OnlyAbovePBL flag (used below by DO_TEND) to indicate that
     ! fluxes within the PBL have already been applied. 
-    ! 
-    ! Now also archive concentrations and calculate turbulence 
-    ! tendencies (ckeller, 7/15/2015)
     ! ------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. Input_Opt%LNLPBL ) THEN
-#if defined( DEVEL )
-      CALL TENDENCIES_STAGE1( am_I_Root, Input_Opt, State_Met, & 
-                              State_Chm, 4, .TRUE., RC )
-#endif
-
        CALL DO_PBL_MIX_2( am_I_Root, Input_Opt%LTURB, Input_Opt, &
                           State_Met, State_Chm,       RC          )
-
-#if defined( DEVEL )
-      DT_TEND = GET_TS_CONV() * 60.0_f4
-      CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met, &
-                              State_Chm, 4, .TRUE., DT_TEND, RC )
-#endif
-
        OnlyAbovePBL = .TRUE.
     ELSE
        OnlyAbovePBL = .FALSE.
@@ -198,15 +180,7 @@ CONTAINS
     ! via the non-local PBL mixing. It also adds the emissions above 
     ! the PBL to the tracer array. Emissions of some species may be 
     ! capped at the tropopause to avoid build-up in stratosphere.
-    ! 
-    ! Now also archive concentrations and calculate turbulence 
-    ! tendencies (ckeller, 7/15/2015)
     ! ------------------------------------------------------------------
-
-#if defined( DEVEL )
-      CALL TENDENCIES_STAGE1( am_I_Root, Input_Opt, State_Met, &
-                              State_Chm, 5, .TRUE., RC )
-#endif
 
     ! DO_TEND operates in units of kg. The tracer arrays enters as
     ! v/v, hence need to convert before and after.
@@ -222,12 +196,6 @@ CONTAINS
     CALL CONVERT_UNITS( 1, Input_Opt%N_TRACERS, Input_Opt%TCVV, &
                         State_Met%AD, State_Chm%Tracers ) 
 
-#if defined( DEVEL )
-      DT_TEND = GET_TS_DYN() * 60.0_f4
-      CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met, &
-                              State_Chm, 5, .TRUE., DT_TEND, RC )
-#endif
-
     ! ------------------------------------------------------------------
     ! Do full pbl mixing. This fully mixes the updated tracer 
     ! concentrations within the PBL. 
@@ -236,18 +204,8 @@ CONTAINS
     ! tendencies (ckeller, 7/15/2015)
     ! ------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. .NOT. Input_Opt%LNLPBL ) THEN
-#if defined( DEVEL )
-      CALL TENDENCIES_STAGE1( am_I_Root, Input_Opt, State_Met, &
-                              State_Chm, 4, .TRUE., RC )
-#endif
-
-       CALL DO_PBL_MIX( Input_Opt%LTURB, Input_Opt, State_Met, State_Chm )
-
-#if defined( DEVEL )
-      DT_TEND = GET_TS_CONV() * 60.0_f4
-      CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met, &
-                              State_Chm, 4, .TRUE., DT_TEND, RC )
-#endif
+       CALL DO_PBL_MIX( am_I_Root, Input_Opt%LTURB, Input_Opt, & 
+                        State_Met, State_Chm,       RC )
     ENDIF
 
   END SUBROUTINE DO_MIXING 
@@ -271,6 +229,7 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
+    USE TENDENCIES_MOD
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -406,6 +365,12 @@ CONTAINS
     EMIS    = 0.0_fp
     TOTFLUX = 0.0_fp
     TOTDEP  = 0.0_fp
+#endif
+
+    ! Archive concentrations for tendencies (ckeller, 7/15/2015) 
+#if defined( DEVEL )
+      CALL TENDENCIES_STAGE1( am_I_Root, Input_Opt, State_Met, &
+                              State_Chm, 5, .FALSE., RC )
 #endif
 
     ! Do for every tracer and grid box
@@ -666,6 +631,13 @@ CONTAINS
        ENDDO !I
     ENDDO !N
 !$OMP END PARALLEL DO
+
+      ! Calculate tendencies and write to diagnostics (ckeller, 7/15/2015)
+#if defined( DEVEL )
+      CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met, &
+                              State_Chm, 5, .FALSE., TS, RC )
+#endif
+
 
 #if defined( DEVEL )
     !-------------------------------------------------------------------
