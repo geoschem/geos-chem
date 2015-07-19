@@ -65,7 +65,7 @@ MODULE HCOX_SeaSalt_Mod
   REAL*8              :: WindScale         ! Wind adjustment factor
 
   ! Module variables
-  INTEGER              :: NSALT             ! # of sea salt tracers (ewl)
+  INTEGER              :: NSALT             ! # of seasalt tracers
   INTEGER, ALLOCATABLE :: NR(:)             ! Size bin information
   REAL*8,  ALLOCATABLE :: SRRC  (:,:)
   REAL*8,  ALLOCATABLE :: SRRC_N(:,:)
@@ -76,8 +76,8 @@ MODULE HCOX_SeaSalt_Mod
   ! Number densities
   REAL(sp), POINTER   :: NDENS_SALA(:,:) => NULL()
   REAL(sp), POINTER   :: NDENS_SALC(:,:) => NULL()
-  REAL(sp), POINTER   :: NDENS_MOPO(:,:) => NULL() ! (ewl, 7/9/15)
-  REAL(sp), POINTER   :: NDENS_MOPI(:,:) => NULL() ! (ewl, 7/9/15)
+  REAL(sp), POINTER   :: NDENS_MOPO(:,:) => NULL() 
+  REAL(sp), POINTER   :: NDENS_MOPI(:,:) => NULL() 
 !
 ! !DEFINED PARAMETERS:
 !
@@ -256,8 +256,7 @@ CONTAINS
        SSA_BR2 = 0d0
     
        ! Do for accumulation and coarse mode, and Marine POA if enabled
-!      DO N = 1,2  (ewl, 7/9/15)
-       DO N = 1,NSALT   ! (ewl, 7/9/15)
+       DO N = 1,NSALT  
 
           ! Reset values for SALT and SALT_N
           SALT   = 0d0
@@ -266,7 +265,8 @@ CONTAINS
           ! Loop over size bins
           DO R = 1, NR(N)
 
-             IF ( N .LT. 3 ) THEN ! (ewl, 7/9/15)
+             ! Coarse and accumulation modes
+             IF ( N .LT. 3 ) THEN 
              
                 ! Update SeaSalt source into SALT [kg]
                 SALT   = SALT +                                   &
@@ -301,11 +301,10 @@ CONTAINS
                    SSA_Br2 = SSA_Br2 + BR2_NR
                 ENDIF
 
-             ENDIF ! (ewl, 7/9/15)
+             ENDIF 
 
-             !  (ewl, 7/9/15)
-             ! Marine organic aerosols (M. Johnson, B. Gantt, 7/9/15)
-             IF ( N .EQ. 3 ) THEN ! (ewl, 7/9/15)
+             ! Marine organic aerosols (M. Johnson, B. Gantt)
+             IF ( N .EQ. 3 ) THEN 
 
                 ! Get MODIS Chlorophyll-a
                 CHLR = ExtState%CHLR%Arr%Val(I,J)
@@ -327,7 +326,7 @@ CONTAINS
                 SALT_N = SALT_N +  6.0 * ( SRRC_N(R,N) * SCALE * A_M2 &
                                    * W10M**3.41d0 * OMSS2 )
 
-             ENDIF ! (ewl, 7/9/15)
+             ENDIF
 
           ENDDO !R
 
@@ -524,13 +523,13 @@ CONTAINS
     REAL*8                         :: A, B, R0, R1
     REAL*8                         :: CONST_N
     CHARACTER(LEN=255)             :: MSG
-    INTEGER                        :: nSpc, nSpcMPOA, minLen
+    INTEGER                        :: nSpcSS, nSpcMPOA, minLen
     REAL*8                         :: SALA_REDGE_um(2), SALC_REDGE_um(2)
     REAL(dp)                       :: tmpScale
     LOGICAL                        :: FOUND
-    INTEGER, ALLOCATABLE           :: HcoIDs(:)
+    INTEGER, ALLOCATABLE           :: HcoIDsSS(:)
     INTEGER, ALLOCATABLE           :: HcoIDsMPOA(:)
-    CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
+    CHARACTER(LEN=31), ALLOCATABLE :: SpcNamesSS(:)
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNamesMPOA(:)
 
     !=================================================================
@@ -569,21 +568,22 @@ CONTAINS
     ENDIF
 
     ! Get HEMCO species IDs
-    CALL HCO_GetExtHcoID( HcoState, ExtNrSS, HcoIDs, SpcNames, nSpc, RC )
+    CALL HCO_GetExtHcoID( HcoState,   ExtNrSS, HcoIDsSS,     &
+                          SpcNamesSS, nSpcSS,  RC           )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( nSpc < minLen ) THEN
+    IF ( nSpcSS < minLen ) THEN
        MSG = 'Not enough sea salt emission species set' 
        CALL HCO_ERROR ( MSG, RC ) 
        RETURN
     ENDIF
-    IDTSALA = HcoIDs(1) 
-    IDTSALC = HcoIDs(2)
-    IF ( CalcBr2 ) IDTBR2 = HcoIDs(3)
+    IDTSALA = HcoIDsSS(1) 
+    IDTSALC = HcoIDsSS(2)
+    IF ( CalcBr2 ) IDTBR2 = HcoIDsSS(3)
     
     ! Get the marine organic aerosol species defined for MarinePOA option
     IF ( ExtNrMPOA > 0 ) THEN
        CALL HCO_GetExtHcoID( HcoState,     ExtNrMPOA, HcoIDsMPOA,  &
-                             SpcNamesMPOA, nSpcMPOA,  RC)
+                             SpcNamesMPOA, nSpcMPOA,  RC          )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IDTMOPO = HcoIDsMPOA(1)
        IDTMOPI = HcoIDsMPOA(2)
@@ -634,11 +634,13 @@ CONTAINS
           CALL HCO_MSG ( MSG, SEP1='-' )
        ENDIF 
 
-       WRITE(MSG,*) 'Accumulation aerosol: ', TRIM(SpcNames(1)), ':', IDTSALA 
+       WRITE(MSG,*) 'Accumulation aerosol: ', TRIM(SpcNamesSS(1)),  &
+                    ':', IDTSALA 
        CALL HCO_MSG(MSG)
        WRITE(MSG,*) ' - size range       : ', SALA_REDGE_um
        CALL HCO_MSG(MSG)
-       WRITE(MSG,*) 'Coarse aerosol      : ', TRIM(SpcNames(2)), ':', IDTSALC
+       WRITE(MSG,*) 'Coarse aerosol      : ', TRIM(SpcNamesSS(2)),  &
+                     ':', IDTSALC
        CALL HCO_MSG(MSG)
        WRITE(MSG,*) ' - size range       : ', SALA_REDGE_um
        CALL HCO_MSG(MSG)
@@ -646,17 +648,20 @@ CONTAINS
        CALL HCO_MSG(MSG)
    
        IF ( CalcBr2 ) THEN
-          WRITE(MSG,*) 'Br2: ', TRIM(SpcNames(3)), IDTBr2
+          WRITE(MSG,*) 'Br2: ', TRIM(SpcNamesSS(3)), IDTBr2
           CALL HCO_MSG(MSG)
           WRITE(MSG,*) 'Br2 scale factor: ', Br2Scale
           CALL HCO_MSG(MSG)
        ENDIF
 
        IF ( ExtNrMPOA > 0 ) THEN
-          DO N = 1, nSpcMPOA
-               WRITE(MSG,*) TRIM(SpcNamesMPOA(N)), ':', HcoIDsMPOA(N)
-               CALL HCO_MSG(MSG)
-          ENDDO   
+          WRITE(MSG,*) 'Hydrophobic marine organic aerosol: ',        &
+                       TRIM(SpcNamesMPOA(1)), ':', IDTMOPO 
+          CALL HCO_MSG(MSG)
+
+          WRITE(MSG,*) 'Hydrophilic marine organic aerosol: ',        &
+                       TRIM(SpcNamesMPOA(2)), ':', IDTMOPI 
+          CALL HCO_MSG(MSG)
        ENDIF
     ENDIF
 
@@ -725,21 +730,25 @@ CONTAINS
     ENDIF
     NDENS_SALC = 0.0_sp
 
-    ! Allocate density of phobic marine organic aerosols (ewl, 7/9/15)
-    ALLOCATE ( NDENS_MOPO( HcoState%NX, HcoState%NY), STAT=AS )
-    IF ( AS/=0 ) THEN
-       CALL HCO_ERROR( 'Cannot allocate NDENS_MOPO', RC )
-       RETURN
-    ENDIF
-    NDENS_MOPO = 0.0_sp
+    IF ( ExtNrMPOA > 0 ) THEN 
+   
+       ! Allocate density of phobic marine organic aerosols
+       ALLOCATE ( NDENS_MOPO( HcoState%NX, HcoState%NY), STAT=AS )
+       IF ( AS/=0 ) THEN
+          CALL HCO_ERROR( 'Cannot allocate NDENS_MOPO', RC )
+          RETURN
+       ENDIF
+       NDENS_MOPO = 0.0_sp
+   
+       ! Allocate density of philic marine organic aerosols
+       ALLOCATE ( NDENS_MOPI( HcoState%NX, HcoState%NY), STAT=AS )
+       IF ( AS/=0 ) THEN
+          CALL HCO_ERROR( 'Cannot allocate NDENS_MOPI', RC )
+          RETURN
+       ENDIF
+       NDENS_MOPI = 0.0_sp
 
-    ! Allocate density of philic marine organic aerosols (ewl, 7/9/15)
-    ALLOCATE ( NDENS_MOPI( HcoState%NX, HcoState%NY), STAT=AS )
-    IF ( AS/=0 ) THEN
-       CALL HCO_ERROR( 'Cannot allocate NDENS_MOPI', RC )
-       RETURN
     ENDIF
-    NDENS_MOPI = 0.0_sp
 
     !=================================================================
     ! Define edges and midpoints of each incremental radius bin
@@ -752,10 +761,8 @@ CONTAINS
     !  Constant for converting from [#/m2/s/um] to [#/m2]
     CONST_N = HcoState%TS_EMIS * (DR * BETHA)
  
-!    ! Do for accumulation and fine mode
-!    DO N = 1,2 (ewl, 7/9/15)
-    ! Do for accumulation, fine mode, and marine organics ! (ewl, 7/9/15)
-    DO N = 1,NSALT ! (ewl, 7/9/15)
+    ! Do for accumulation, fine mode, and marine organics (if enabled)
+    DO N = 1,NSALT
 
        ! Lower and upper limit of size bin N [um]
        ! Note that these are dry size bins. In order to
@@ -772,12 +779,12 @@ CONTAINS
           R0 = SALC_REDGE_um(1) 
           R1 = SALC_REDGE_um(2)
        
-       ! Marine phobic (mj, bg, 7/9/15) (ewl)
+       ! Marine phobic (mj, bg, 7/9/15)
        ELSEIF ( N==3 ) THEN 
           R0 = SALA_REDGE_um(1) 
           R1 = SALA_REDGE_um(2)
           
-       ! Marine philic (mj, bg, 7/9/15) (ewl)
+       ! Marine philic (mj, bg, 7/9/15) 
        ELSEIF ( N==4 ) THEN 
           R0 = SALC_REDGE_um(1) 
           R1 = SALC_REDGE_um(2)
@@ -890,7 +897,7 @@ CONTAINS
                         RC         = RC                      )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Create marine density diagnostics only if LMOA is true (ewl)
+    ! Create marine density diagnostics only if marine POA enabled
     IF ( ExtNrMPOA > 0 ) THEN
 
        CALL Diagn_Create ( am_I_Root,                          & 
@@ -943,9 +950,9 @@ CONTAINS
     ExtState%SeaSalt = .TRUE.
 
     ! Return w/ success
-    IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  )
-    IF ( ALLOCATED(HcoIDsMPOA) ) DEALLOCATE(HcoIDsMPOA)
-    IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
+    IF ( ALLOCATED(HcoIDsSS    ) ) DEALLOCATE(HcoIDsSS    )
+    IF ( ALLOCATED(HcoIDsMPOA  ) ) DEALLOCATE(HcoIDsMPOA  )
+    IF ( ALLOCATED(SpcNamesSS  ) ) DEALLOCATE(SpcNamesSS  )
     IF ( ALLOCATED(SpcNamesMPOA) ) DEALLOCATE(SpcNamesMPOA)
 
     CALL HCO_LEAVE ( RC ) 
