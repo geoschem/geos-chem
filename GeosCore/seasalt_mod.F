@@ -259,13 +259,13 @@
       IF ( LMPOA > 0 ) THEN
 
          ! Chemistry for hydrophobic MOA
-         CALL CHEM_MOPO( am_I_Root, Input_Opt, STT(:,:,:,IDTMOPO), RC )
+         CALL CHEM_MOPO( am_I_Root, Input_Opt, State_Chm, RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPO' )
          ENDIF
 
          ! Chemistry for hydrophilic MOA
-         CALL CHEM_MOPI( am_I_Root, Input_Opt, STT(:,:,:,IDTMOPI), RC )
+         CALL CHEM_MOPI( am_I_Root, Input_Opt, State_Chm, RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPI' )
          ENDIF
@@ -728,247 +728,6 @@
       IF (LPRT) CALL DEBUG_MSG('SEASALT: ENDING WET_SETTLING')
       END SUBROUTINE WET_SETTLING
 !EOC
-
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: chem_ocpo
-!
-! !DESCRIPTION: Subroutine CHEM\_OCPO converts hydrophobic OC to hydrophilic
-!  OC and calculates the dry deposition of hydrophobic OC.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CHEM_OCPO( am_I_Root, Input_Opt, TC, RC )
-!
-! !USES:
-!
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-      USE DIAG_MOD,           ONLY : AD07_OC 
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTOCPO
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! H-phobic OC [kg]
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
-!
-! !REMARKS:
-! 
-! !REVISION HISTORY: 
-!  01 Apr 2004 - R. Park - Initial version
-!  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
-!  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
-!        "pbl_mix_mod.f" (bmy, 2/17/05)
-!  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
-!  26 Nov 2012 - R. Yantosca - Added ProTeX headers
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
-!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
-!  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
-!  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      INTEGER              :: I,      J,   L
-      REAL(fp)             :: DTCHEM, KOC, TC0, CNEW, RKT, FREQ
-!
-! !DEFINED PARAMETERS:
-!
-      REAL(fp),  PARAMETER :: OC_LIFE = 1.15e+0_fp
-
-      !=================================================================
-      ! CHEM_OCPO begins here!
-      !=================================================================
-
-      ! Assume success
-      RC        = GIGC_SUCCESS
-
-      ! Initialize
-      KOC       = 1.e+0_fp / ( 86400e+0_fp * OC_LIFE )
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
-      OCCONV    = 0e+0_fp
-
-      !=================================================================
-      ! For tracers with dry deposition, the loss rate of dry dep is 
-      ! combined in chem loss term.
-      !
-      ! Conversion from hydrophobic to hydrophilic:  
-      ! e-folding time 1.15 days 
-      ! ----------------------------------------
-      ! Use an e-folding time of 1.15 days or a convertion rate 
-      ! of 1.0e-5 /sec. 
-      !    Hydrophobic --> Hydrophilic,  k  = 1.0e-5          
-      !    Aerosols are dry-deposited,   kd = DEPSAV (sec-1)      
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, TC0, FREQ, RKT, CNEW )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Initial OC [kg]
-         TC0  = TC(I,J,L)
-
-         ! Zero drydep freq
-         ! ### NOTE: Remove this later, but need to make
-         ! ### sure we don't incur numerical diffs (bmy, 6/12/15)
-         FREQ = 0e+0_fp
-
-         ! Amount of OCPO left after chemistry and drydep [kg]
-         RKT  = ( KOC + FREQ ) * DTCHEM
-         CNEW = TC0 * EXP( -RKT )
-
-         ! Prevent underflow condition
-         IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
-
-         ! Amount of OCPO converted to OCPI [kg/timestep]
-         OCCONV(I,J,L) = ( TC0 - CNEW ) * KOC / ( KOC + FREQ )
-
-         !==============================================================
-         ! ND07 diagnostic: H-Philic OC from H-phobic [kg/timestep]
-         !==============================================================
-         IF ( ND07 > 0 .and. L <= LD07 ) THEN
-            AD07_OC(I,J,L) = AD07_OC(I,J,L) + OCCONV(I,J,L) 
-         ENDIF
-
-         ! Store modified OC concentration back in tracer array
-         TC(I,J,L) = CNEW
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO  
-
-      END SUBROUTINE CHEM_OCPO
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: chem_ocpi
-!
-! !DESCRIPTION: Subroutine CHEM\_BCPI calculates dry deposition of 
-!  hydrophilic OC.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CHEM_OCPI( am_I_Root, Input_Opt, TC, RC )
-!
-! !USES:
-!
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTOCPI
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! H-philic OC [kg]
-
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
-!
-! !REMARKS:
-! 
-! !REVISION HISTORY:
-!  01 Apr 2004 - R. Park - Initial version 
-!  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
-!  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
-!        "pbl_mix_mod.f" (bmy, 2/17/05)
-!  (3 ) Bug fix: add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
-!  (4 ) Now refrerences XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
-!  26 Nov 2012 - R. Yantosca - Added ProTeX headers
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
-!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
-!  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
-!  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      INTEGER  :: I,   J,     L
-      REAL(fp) :: TC0, CNEW, CCV
-
-      !=================================================================
-      ! CHEM_OCPI begins here!
-      !=================================================================
-
-      ! Assume success
-      RC        = GIGC_SUCCESS
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, TC0, CCV, CNEW )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Initial H-philic OC [kg]
-         TC0 = TC(I,J,L)
-
-         ! H-philic OC that used to be H-phobic OC [kg]
-         CCV = OCCONV(I,J,L)
-
-         ! Add the amount of converted OCPO to OCPI
-         CNEW = TC0 + CCV
-
-         ! Prevent underflow condition
-         IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
-
-         ! Store modified concentration back in tracer array [kg]
-         TC(I,J,L) = CNEW
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO  
-
-      !=================================================================
-      ! Zero OCCONV array for next timestep
-      !=================================================================
-      OCCONV = 0e+0_fp
-
-      END SUBROUTINE CHEM_OCPI
-!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -983,7 +742,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_MOPO( am_I_Root, Input_Opt, TC, RC )
+      SUBROUTINE CHEM_MOPO( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -992,7 +751,8 @@
       USE DIAG_MOD,           ONLY : AD07_OC 
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTOCPO
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,           ONLY : IDTMOPO
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -1002,7 +762,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! H-phobic OC [kg]
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1021,6 +781,9 @@
       ! Scalars
       INTEGER              :: I,      J,   L
       REAL(fp)             :: DTCHEM, KOC, TC0, CNEW, RKT, FREQ
+
+      ! Pointers
+      REAL(fp), POINTER :: STT(:,:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1037,6 +800,9 @@
       KOC       = 1.e+0_fp / ( 86400e+0_fp * OC_LIFE )
       DTCHEM    = GET_TS_CHEM() * 60e+0_fp
       OCCONV    = 0e+0_fp
+
+      ! Set pointer to GEOS-Chem tracer array [kg]
+      STT      => State_Chm%Tracers
 
       !=================================================================
       ! For tracers with dry deposition, the loss rate of dry dep is 
@@ -1058,30 +824,32 @@
       DO I = 1, IIPAR
 
          ! Initial OC [kg]
-         TC0  = TC(I,J,L)
+         TC0  = STT(I,J,L,IDTMOPO)
 
          ! Zero drydep freq
          ! ### NOTE: Remove this later, but need to make
          ! ### sure we don't incur numerical diffs (bmy, 6/12/15)
          FREQ = 0e+0_fp
 
-         ! Amount of OCPO left after chemistry and drydep [kg]
+         ! Amount of MOPO left after chemistry and drydep [kg]
          RKT  = ( KOC + FREQ ) * DTCHEM
          CNEW = TC0 * EXP( -RKT )
 
          ! Prevent underflow condition
          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
 
-         ! Amount of OCPO converted to OCPI [kg/timestep]
+         ! Amount of MOPO converted to MOPI [kg/timestep]
          OCCONV(I,J,L) = ( TC0 - CNEW ) * KOC / ( KOC + FREQ )
 
          ! Store modified OC concentration back in tracer array
-         TC(I,J,L) = CNEW
+         STT(I,J,L,IDTMOPO) = CNEW
 
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO  
+
+      NULLIFY( STT )
 
       END SUBROUTINE CHEM_MOPO
 !EOC
@@ -1090,7 +858,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: chem_ocpi
+! !IROUTINE: chem_mopi
 !
 ! !DESCRIPTION: Subroutine CHEM\_MOPI modifies hydrophilic marine organic
 !  aerosol concentrations based on the conversion from hydrophobic marine 
@@ -1099,7 +867,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_MOPI( am_I_Root, Input_Opt, TC, RC )
+      SUBROUTINE CHEM_MOPI( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -1107,7 +875,8 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTOCPI
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTMOPI
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -1117,8 +886,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! H-philic OC [kg]
-
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1138,12 +906,18 @@
       INTEGER  :: I,   J,     L
       REAL(fp) :: TC0, CNEW, CCV
 
+      ! Pointers
+      REAL(fp), POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CHEM_MOPI begins here!
       !=================================================================
 
       ! Assume success
       RC        = GIGC_SUCCESS
+
+      ! Set pointer to GEOS-Chem tracer array [kg]
+      STT      => State_Chm%Tracers
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1154,19 +928,19 @@
       DO I = 1, IIPAR
 
          ! Initial H-philic OC [kg]
-         TC0 = TC(I,J,L)
+         TC0 = STT(I,J,L,IDTMOPI)
 
          ! H-philic OC that used to be H-phobic OC [kg]
          CCV = OCCONV(I,J,L)
 
-         ! Add the amount of converted OCPO to OCPI
+         ! Add the amount of converted MOPO to MOPI
          CNEW = TC0 + CCV
 
          ! Prevent underflow condition
          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
 
          ! Store modified concentration back in tracer array [kg]
-         TC(I,J,L) = CNEW
+         STT(I,J,L,IDTMOPI) = CNEW
 
       ENDDO
       ENDDO
@@ -1177,6 +951,8 @@
       ! Zero OCCONV array for next timestep
       !=================================================================
       OCCONV = 0e+0_fp
+
+      NULLIFY( STT )
 
       END SUBROUTINE CHEM_MOPI
 !EOC
