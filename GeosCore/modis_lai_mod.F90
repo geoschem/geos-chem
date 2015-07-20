@@ -1114,17 +1114,21 @@ CONTAINS
     !======================================================================
     ! Allocate arrays on the "fine" MODIS grid grid
     !======================================================================
+    ! Restore LAI_END to 2008. Matthew Johnson provided LAI data files for
+    ! 2009-2011, but MODIS LAI for 2009 onwards is still undergoing
+    ! validation by Barron H. and Eloise M. (mps, 7/20/15)
     IF ( Input_Opt%USE_OLSON_2001 ) THEN
        I_MODIS     = 1440             ! For Olson 2001, use MODIS LAI
        J_MODIS     = 720              ! on the 0.25 x 0.25 native grid
        MODIS_START = 2005             ! First year of MODIS data  
-       LAI_END     = 2011             ! Last  year of MODIS LAI data
+       LAI_END     = 2008             ! Last  year of MODIS data
+                                      ! Force to 2008 (skim, 1/29/14)
        CHLR_END    = 2011             ! Last  year of MODIS CHLR data
     ELSE
        I_MODIS     = 720              ! For Olson 1992, use MODIS LAI
        J_MODIS     = 360              ! on the 0.5 x 0.5 native grid
        MODIS_START = 2000             ! First year of MODIS data  
-       LAI_END     = 2011             ! Last  year of MODIS LAI data
+       LAI_END     = 2008             ! Last  year of MODIS LAI data
        CHLR_END    = 2011             ! Last  year of MODIS CHLR data
     ENDIF
 
