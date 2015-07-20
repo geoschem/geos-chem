@@ -2163,15 +2163,19 @@
       prevMLD = prevMLD * 100e+0_fpp
 
       ! get rate of change of MLD; convert [cm/month] -> [cm/s]
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         dMLD(I,J) = (MLD(I,J) - prevMLD(I,J)) / (3.6e+3_fpp 
-     &             * 24e+0_fpp * 30.5e+0_fpp)
+   !   DO J = 1, JJPAR
+   !   DO I = 1, IIPAR
+   !      dMLD(I,J) = (MLD(I,J) - prevMLD(I,J)) / (3.6e+3_fpp 
+   !  &             * 24e+0_fpp * 30.5e+0_fpp)
          ! set current MLD to intermediate b/w last month and this month
-         MLDav(I,J) = prevMLD(I,J) + 0.5e+0_fpp * (MLD(I,J) - 
-     &                prevMLD(I,J))
-      ENDDO
-      ENDDO
+   !      MLDav(I,J) = prevMLD(I,J) + 0.5e+0_fpp * (MLD(I,J) - 
+   !  &                prevMLD(I,J))
+   !   ENDDO
+   !   ENDDO
+
+      ! add Shaojie bug-fix for hot spots
+      MLDav = MLD
+      dMlD = 0.0e+0_fpp
 
 
       ! Return to calling program
