@@ -271,7 +271,7 @@
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TOMAS_MOD,          ONLY : IBINS, Xk, SRTDUST
-      USE TRACERID_MOD,       ONLY : IDTDUST1, IDTNK1
+      USE TRACERID_MOD
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND44
@@ -295,6 +295,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  13 Dec 2012 - M. Payer    - Add am_I_Root, Input_Opt, RC as arguments
 !  31 May 2013 - R. Yantosca - Now pass State_Chm via the arg list
+!  16 Jul 2015 - R. Yantosca - Now pass INDEX and IDISP to DRY_SETTLING
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -302,26 +303,26 @@
 ! !LOCAL VARIABLES:
 !
       ! SAVEd scalars
-      LOGICAL, SAVE :: FIRST = .TRUE.
+      LOGICAL, SAVE     :: FIRST = .TRUE.
 
       ! Non-SAVEd scalars
-      INTEGER       :: N, BIN, I, J, L, NN
-      REAL(fp)        :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL(fp)        :: DIF, FLUXN, FLUXD
-      REAL(fp)        :: DT_SETTL, AREA_CM2
+      INTEGER           :: N, BIN, I, J, L, NN, IDISP
+      REAL(fp)          :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp)          :: DIF, FLUXN, FLUXD
+      REAL(fp)          :: DT_SETTL, AREA_CM2
 
       !debug
-      integer       :: ii, jj , ix, jx, bb
-      data ii,jj, ix, jx, bb /37, 24, 58, 34, 30 /
+      integer           :: ii, jj , ix, jx, bb
+      data                 ii,jj, ix, jx, bb /37, 24, 58, 34, 30 /
 
       ! For values from Input_Opt
-      INTEGER         :: N_TRACERS
+      INTEGER           :: N_TRACERS
       REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! SETTLEDUST begins here!
@@ -357,11 +358,15 @@
       ENDDO
 
       ! Dust settling
+      IDISP = 0
       CALL DRY_SETTLING( am_I_Root,
      &                   Input_Opt,  
      &                   State_Met,
      &                   STT(:,:,:,IDTDUST1:IDTDUST1-1+IBINS),
-     &                   RC )
+     &                   RC,
+     &                   IDTDUST1,
+     &                   IDISP )
+
 
       ! Calculate change in number to correspond with dust redistribution
       ! by gravitational settling
