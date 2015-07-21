@@ -1009,17 +1009,17 @@
                TAUAER_SW(IJLOOP,L,IB_SW) = 1.0
               ENDIF
               IF (ASMAERDIAG(IJLOOP,L,IB_SW).GT.0.999d0) THEN
-               ASMAER(IJLOOP,L,IB_SW) = 0.999d0
+               ASMAERDIAG(IJLOOP,L,IB_SW) = 0.999d0
               ENDIF
 !              IF (ASMAERDIAG(IJLOOP,L,IB_SW).LT.0.001d0) THEN
-!               ASMAER(IJLOOP,L,IB_SW) = 0.001
+!               ASMAERDIAG(IJLOOP,L,IB_SW) = 0.001
 !              ENDIF
               IF ((SSAAERDIAG(IJLOOP,L,IB_SW).LT.0.001d0).OR.
      &            (SSAAERDIAG(IJLOOP,L,IB_SW).GT.1.0d0)) THEN
-               SSAAER(IJLOOP,L,IB_SW) = 0.99
+               SSAAERDIAG(IJLOOP,L,IB_SW) = 0.99
               ENDIF
               IF (TAUAERDIAG(IJLOOP,L,IB_SW).GT.1.0) THEN
-               TAUAER_SW(IJLOOP,L,IB_SW) = 1.0
+               TAUAERDIAG(IJLOOP,L,IB_SW) = 1.0
               ENDIF
 
         ENDDO
@@ -1367,7 +1367,7 @@
             p_CIWPMCL_SW = CIWPMCL_SW(:,IL,:  )
             p_CLWPMCL_SW = CLWPMCL_SW(:,IL,:  )
             p_TAUAER_SW  = TAUAER_SW (  IL,:,:)
-            p_SSAAER     = TAUAER_LW (  IL,:,:)
+            p_SSAAER     = SSAAER    (  IL,:,:)
             p_ASMAER     = ASMAER    (  IL,:,:)
 
             ! Call RRTMG for shortwave radiation
