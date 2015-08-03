@@ -334,6 +334,9 @@
       REAL(hp), PARAMETER      :: S_SO4    = 32e+0_hp / 96e+0_hp
 
       CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG3 (diag3.F)'
+
+      ! RRTMG
+      LOGICAL                  :: IS_GAS, IS_AD21, IS_DUST
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -1857,25 +1860,37 @@
                   ! This diagnostic is for a GEOS-1/GEOS-STRAT field
                   ! so skip it! (bmy, 12/16/11)
                   CYCLE
-               CASE ( 5, 8, 11, 14, 17, 20, 29, 31 )
+               CASE ( 5, 8, 11, 14, 17, 20, 53, 56 )
                   UNIT = 'cm2/cm3'
                CASE DEFAULT
                   UNIT = 'unitless'
             END SELECT
 
-           !Only output extra wavelengths if they are requested
-           !standard is 5+3*NAER+NDUST but then each extra wavelength
-           !adds NAER+NDUST+1 <-- +1 for TOTALDUST
-           IF (( N < (6+NAER*3+NDUST) ) .OR. 
-     &         ( N > (5+NAER*3+NDUST) .AND. N < (7+NAER*4+NDUST*2) .AND.
-     &           NWVSELECT > 1 ) .OR.
-     &         ( N > (6+NAER*4+NDUST*2) .AND. NWVSELECT > 2 )) THEN 
+           ! Is this something that we want to output?
+           ! Only output extra wavelengths if they are requested
+           IF (NWVSELECT.eq.3) THEN
+               IS_AD21 = .TRUE.
+           ELSEIF (NWVSELECT.eq.2) THEN
+               ! Exclude wavelength 3
+               IS_AD21 = ((N.le.(5 + 2*NRHAER + 2*(NRHAER+NDUST))).or.
+     &                    (N.gt.(5 + 2*NRHAER + 3*(NRHAER+NDUST))))
+           ELSEIF (NWVSELECT.eq.1) THEN
+               ! Exclude wavelengths 2 and 3
+               IS_AD21 = ((N.le.(5 + 2*NRHAER + 1*(NRHAER+NDUST))).or.
+     &                    (N.gt.(5 + 2*NRHAER + 3*(NRHAER+NDUST))))
+           ENDIF
+               
+           ! Dust gets scaled differently
+           IS_DUST = (((N.eq.4).or.(N.eq.5)).or.
+     &                ((N.gt.(5 + 2*NRHAER + 1*(NRHAER))).and.
+     &                 (N.lt.(5 + 2*NRHAER + 1*(NRHAER+NDUST)))).or.
+     &                ((N.gt.(5 + 2*NRHAER + 2*(NRHAER))).and.
+     &                 (N.le.(5 + 2*NRHAER + 2*(NRHAER+NDUST)))).or.
+     &                ((N.gt.(5 + 2*NRHAER + 3*(NRHAER))).and.
+     &                 (N.le.(5 + 2*NRHAER + 3*(NRHAER+NDUST)))))
 
-            !Dust arrays
-            IF (( N > 3 .AND. N < 6 ) .OR. (N > 5+NAER*3 .AND. 
-     &            N < 13+NAER*3) .OR. 
-     &         ( N > 5+NAER*4+NDUST .AND. N < (7+NAER*4+NDUST*2) ) .OR. 
-     &         ( N > (6+NAER*5+NDUST*2))) THEN
+           IF (IS_AD21) THEN
+            IF (IS_DUST) THEN
 
                ! Online or offline dust fields?
                IF ( Input_Opt%LDUST ) THEN

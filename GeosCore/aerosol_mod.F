@@ -1306,7 +1306,7 @@
 !$OMP+PRIVATE( IR                                               )
 #endif
 #if defined( UCX )
-!$OMP+PRIVATE( RHOSTRAT, RAER,    SADSTRAT, XSASTRAT            )
+!$OMP+PRIVATE( RHOSTRAT, RAER,    SADSTRAT, XSASTRAT, ISTRAT    )
 #endif
 !$OMP+SCHEDULE( DYNAMIC )
 
@@ -1461,7 +1461,7 @@
             ! #19 Hygroscopic growth of Sea Salt (coarse)  [unitless]
             !==============================================================
             !only need to do hyg once, not for each wavelength             
-            IF (IIWV.EQ.1) THEN
+            IF ((IIWV.EQ.1).and.(ISTRAT.le.0)) THEN
 
                !save increase in AOD resulting from water uptake
                IF( ND21 > 0 .AND. L <= LD21 .AND.ODSWITCH.EQ.1) THEN
@@ -1549,10 +1549,12 @@
 
          ! Index for combination of aerosol type and RH
          N = NRHAER + ISTRAT
+         ! For ND21
+         IOUT = 5 + 2*NRHAER + (3*(NDUST+NRHAER)) + (ISTRAT-1)*3
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, RHOSTRAT, RAER, REFF, JLOOP )
+!$OMP+PRIVATE( I, J, L, RAER, REFF, JLOOP )
 !$OMP+PRIVATE( SADSTRAT, XSASTRAT )
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLPAR
@@ -1572,6 +1574,11 @@
                ! Store radius
                ERADIUS(JLOOP,NDUST+N) = RAER
                WERADIUS(JLOOP,NDUST+N) = RAER 
+            ENDIF
+
+            ! Store SAD
+            IF ((ND21.gt.0).and.(L.le.LD21)) THEN
+                AD21(I,J,L,IOUT+2) = AD21(I,J,L,IOUT+2) + SADSTRAT
             ENDIF
 
          ENDDO
@@ -1634,13 +1641,39 @@
 
       IF ( ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
 
+#if defined( UCX )
+         ! Get stratospheric aerosol properties from 1st WL (for now)
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, W, IOUT, ISTRAT )
+!$OMP+SCHEDULE( DYNAMIC )
+         !---------------------------------------------------
+         ! Strat Aerosol OD [-] and ND [#/cm3]
+         ! SAD was stored in previous loop
+         !---------------------------------------------------
+         DO ISTRAT=1,NSTRATAER
+            W = 1
+            N = NRHAER + ISTRAT
+            IOUT = 5 + 5*NRHAER + 3*NDUST + (ISTRAT-1)*3
+            DO L=1,LD21
+            DO J=1,JJPAR
+            DO I=1,IIPAR
+               AD21(I,J,L,IOUT+1) = AD21(I,J,L,IOUT+1) +
+     &                              ODAER(I,J,L,IWVSELECT(1,W),N)
+               AD21(I,J,L,IOUT+3) = AD21(I,J,L,IOUT+3) +
+     &                              NDENS_AER(I,J,L,ISTRAT)*1.d-6
+            ENDDO
+            ENDDO
+            ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+#endif
          ! Loop over aerosol types (dust handled in dust_mod.f)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, JLOOP, L, N, W, LINTERP, IOUT, ISTRAT )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO N = 1, NAER 
-            ISTRAT = N - NRHAER
+         DO N = 1, NRHAER 
             !------------------------------------
             ! Aerosol Optical Depths [unitless]
             ! Scale of optical depths w/ RH
@@ -1656,15 +1689,17 @@
                ! Determine subscript for ND21
                ! Store first wavelength in usual position and any
                ! subsequent wavelengths at end
+               ! There are always 5 entries first, but separation then
+               ! depends on W.
                SELECT CASE(W)
                   CASE(1)
-                     IOUT=6+3*(N-1)
+                     IOUT = 5 + (3*(N-1)) + 1
                   CASE(2)
-                     IOUT=6+3*NAER+NDUST+(N-1)
+                     IOUT = 5 + (3*NRHAER) + (  NDUST) + N
                   CASE(3)
-                     IOUT=6+4*NAER+2*NDUST+(N-1)
+                     IOUT = 5 + (4*NRHAER) + (2*NDUST) + N
                   CASE DEFAULT
-                     IOUT=6+3*(N-1)
+                     IOUT = 5 + (3*(N-1)) + 1
                END SELECT
 
                DO L = 1, LD21
@@ -1688,13 +1723,6 @@
      &                   ODAER(I,J,L,IWVSELECT(2,W),N)))
                      ENDIF
                   ENDIF
-#if defined( UCX )
-                 ! Output number density for stratospheric aerosol
-                 IF (ISTRAT.GT.0) THEN
-                  AD21(I,J,L,IOUT+2) = AD21(I,J,L,IOUT+2) +
-     &                                 NDENS_AER(I,J,L,ISTRAT)*1.d-6
-                 ENDIF
-#endif
                ENDDO
                ENDDO
                ENDDO
@@ -1707,13 +1735,14 @@
             DO JLOOP = 1, NTLOOP
 
                ! Get 3-D grid box indices
+               IOUT = 5 + (3*(N-1)) + 3
                I = IXSAVE(JLOOP)
                J = IYSAVE(JLOOP)
                L = IZSAVE(JLOOP)
 
                ! Add aerosol surface areas
                IF ( L <= LD21 ) THEN
-                  AD21(I,J,L,8+3*(N-1)) = AD21(I,J,L,8+3*(N-1)) +
+                  AD21(I,J,L,IOUT) = AD21(I,J,L,IOUT) +
      &                                    TAREA(JLOOP,N+NDUST)
                ENDIF
             ENDDO

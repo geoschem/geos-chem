@@ -1088,16 +1088,11 @@
             ELSE
                LINTERP=.TRUE.
             ENDIF
-            SELECT CASE(W)
-               CASE(1)
-                  NOUT=21+(N-1)
-               CASE(2)
-                  NOUT=21+NAER+NDUST+(N-1)
-               CASE(3)
-                  NOUT=21+2*(NAER+NDUST)+(N-1)
-               CASE DEFAULT
-                  NOUT=21+(N-1)
-            END SELECT
+
+            ! There are always 5 + (NRHAER*2) preceding size-res dust
+            ! Each subsequent set is separated by a further distance of
+            ! (NRHAER + NDUST)
+            NOUT = 5 + (NRHAER*2) + ((NRHAER+NDUST)*(W-1)) + N
 
             DO L = 1, LD21
             DO J = 1, JJPAR
