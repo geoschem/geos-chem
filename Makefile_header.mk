@@ -176,6 +176,8 @@
 #  07 Jul 2015 - M. Sulprizio- Add option for CHEM=SOA_SVPOA
 #  17 Jul 2015 - E. Lundgren - Remove BSTATIC option when picking pgi options 
 #                              for debug run or regular run 
+#  07 Nov 2013 - R. Yantosca - NEST=cu to now sets CPP switch w/ -DNESTED_CU for
+#                              custom nested grids
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -199,7 +201,7 @@ ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=
 ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=025x03125"
 
 # Error message for bad NEST input
-ERR_NEST             :="Select a nested grid: NEST=ch, NEST=eu, NEST=na NEST=se"
+ERR_NEST             :="Select a nested grid: NEST=ch, NEST=eu, NEST=na NEST=se, NEST=cu"
 
 # Error message for bad two-way coupled model input (yanyy,6/18/14)
 ERR_COUPLECH         :="Select a coupled grid for Asia         : COUPLECH=2x25ch, COUPLECH=4x5ch"
@@ -583,9 +585,15 @@ ifndef NO_GRID_NEEDED
     USER_DEFS        += -DNESTED_SE
   endif
 
+  # %%%%% Custom (CU) %%%%%
+  REGEXP             :=(^[Cc][Uu])
+  ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DNESTED_CU
+  endif
+
   # %%%%% ERROR CHECK!  Make sure our NEST selection is valid! %%%%%
   ifdef NEST_NEEDED
-    REGEXP           :=((\-DNESTED_)?CH|NA|EU)
+    REGEXP           :=((\-DNESTED_)?CH|NA|EU|SE|CU)
     ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
       $(error $(ERR_NEST))
     endif
