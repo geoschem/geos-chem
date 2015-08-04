@@ -54,6 +54,7 @@
 !                              to avoid conflict with HAC + OH reaction. Now
 !                              initialize NKHAC, NKMCO3, NKGLYC. (S.D. Eastham)
 !  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
 !******************************************************************************
 !
 ! !USES:
@@ -280,11 +281,6 @@
       ! Name of file to open
       FILENAME   ='globchem.dat' 
 
-#if defined( ESMF_ ) 
-      ! We need to add the ".rc" extension to the "globchem.dat" file
-      ! so that GEOS-5 will copy it to the proper run directory.
-      FILENAME   = TRIM( FILENAME ) // '.rc'
-#endif
       KGLC       = IU_CHEMDAT
 
       IF ( am_I_Root ) THEN 
@@ -1417,12 +1413,6 @@
 
       ! Name of file to open
       FILENAME = 'chemga.dat'
-
-#if defined( ESMF_)
-      ! We need to add the ".rc" extension to the "chemga.dat" file
-      ! so that GEOS-5 will copy it to the proper run directory.
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
 
       IF ( am_I_Root ) THEN
          WRITE( 6, 300 ) TRIM( FILENAME ), I
