@@ -1703,11 +1703,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in fast-J X-sections (spectral data)
       FILENAME = 'FJX_spec.dat'
 
-#if defined( ESMF_ )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
-
       ! Echo info
       IF ( am_I_Root ) THEN
          WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
@@ -1728,11 +1723,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in 5-wavelength scattering data
       FILENAME = 'jv_spec_mie.dat'
 
-#if defined( ESMF_ )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
-
       ! Echo info
       IF ( am_I_Root ) THEN
          WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
@@ -1745,11 +1735,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 ! Now get AOD data from LUT files for each aerosol type (mps, 3/30/15)
 !      ! Read in AOD data
 !      FILENAME = 'jv_spec_aod.dat'
-!
-!#if defined( ESMF_ )
-!      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-!      FILENAME = TRIM( FILENAME ) // '.rc'
-!#endif
 !
 !      ! Echo info
 !      IF ( am_I_Root ) THEN
@@ -1775,11 +1760,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in photolysis rates used in chemistry code and mapping onto FJX J's
       ! CTM call:  read in J-values names and link to fast-JX names
       FILENAME = 'FJX_j2j.dat'
-
-#if defined( ESMF_ )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
 
       ! Echo info
       IF ( am_I_Root ) THEN
@@ -2227,6 +2207,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !  30 Mar 2015 - M. Sulprizio  - Removed NAMFIL argument. Now specify filenames
 !                                for aerosol LUT files in this routine.
 !  02 Apr 2015 - C. Keller     - Append '.rc' to species files in ESMF mode.
+!  04 Aug 2015 - M. Long       - Removed ".rc" file specifier. Not necessary.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2256,11 +2237,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       !array of filenames
       DO k = 1, NSPAA
 
-       ! mirror file. Need to append '.rc' in ESMF environment. (ckeller, 4/1/15)
        THISFILE = SPECFIL(k)
-#if defined( ESMF_ )
-       THISFILE = TRIM(THISFILE) // '.rc'
-#endif
 
        ! open file
        OPEN( NJ1, FILE=TRIM( THISFILE ), STATUS='OLD', IOSTAT=IOS )

@@ -35,6 +35,7 @@
 !                              ".rc" to input.geos (instead of ___.rc)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
 !******************************************************************************
 !
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
@@ -181,13 +182,6 @@
 
       ! Name of file to open
       FILENAME = "mglob.dat"
-
-#if defined( ESMF_ )
-      ! When connecting to GEOS-5 via ESMF, we need to append '.rc'
-      ! to "mglob.dat" so that GEOS-5 will copy the file to the proper
-      ! run directory (bmy, 3/19/13)
-      FILENAME = TRIM( FILENAME ) // ".rc"
-#endif
 
       OPEN( UNIT=IU_FILE, FILE=TRIM( FILENAME ), ACTION="read",
      &      FORM="formatted", STATUS="old", ACCESS="sequential" )

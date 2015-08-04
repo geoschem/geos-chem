@@ -235,6 +235,7 @@
 !                              by the INIT_GIGC_INPUT_OPT routine
 !  15 Apr 2015 - R. Yantosca - Also define Input_Opt%ITS_A_NESTED_GRID here
 !                              so that we can pass it to INITIALIZE_GEOS_GRID
+!  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -264,12 +265,6 @@
 
       ! Assume success
       RC       = GIGC_SUCCESS
-
-#if defined( ESMF_ )
-      ! We need to add the ".rc" extension to the "input.geos" file
-      ! so that GEOS-5 will copy it to the proper run directory.
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
 
       ! Open file
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
