@@ -166,7 +166,8 @@ hcox_finn_mod.o             : hcox_finn_mod.F90               \
                               hcox_tools_mod.o
 
 hcox_lightnox_mod.o         : hcox_lightnox_mod.F90           \
-                              hcox_state_mod.o
+                              hcox_state_mod.o                \
+                              hcox_tools_mod.o
 
 hcox_megan_mod.o            : hcox_megan_mod.F                \
                               hcox_state_mod.o

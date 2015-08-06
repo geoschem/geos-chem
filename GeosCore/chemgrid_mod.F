@@ -328,6 +328,7 @@
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE m_netcdf_io_open
@@ -416,11 +417,17 @@
       !=================================================================
       ! Open and read data from the netCDF file
       !=================================================================
-    
+
+      ! temporary hack
+      IF ( .TRUE. ) THEN
+         FILENAME = '/home/ckeller/HEMCO/emis/TROPOPAUSE/tropopause.nc'
+      ELSE    
+
       ! Create filename
       FILENAME = TRIM( Input_Opt%CHEM_INPUTS_DIR )      // 
      &           'ann_mean_trop_200202/ann_mean_trop.'  //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
+      ENDIF ! temporary hack
 
       ! Open netCDF file
       CALL Ncop_Rd( fId, TRIM( FILENAME ) )
@@ -463,7 +470,8 @@
       ENDIF
 
       ! Copy from REAL*4 to INTEGER and resize to (IIPAR,JJPAR)
-      TROPOPAUSE = ARRAY(:,:,1)
+      !TROPOPAUSE = ARRAY(:,:,1)
+      TROPOPAUSE = NINT(ARRAY(:,:,1))
 
       !=================================================================
       ! L <  TROPOPAUSE(I,J) are tropospheric boxes  

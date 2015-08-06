@@ -507,6 +507,7 @@ diag04_mod.o                : diag04_mod.F
 diag1.o                     : diag1.F                                        \
                               chemgrid_mod.o          dao_mod.o              \
                               diag03_mod.o            diag_mod.o             \
+                              diagnostics_mod.o                              \
                               tracer_mod.o            tracerid_mod.o
 
 diag3.o                     : diag3.F                                        \

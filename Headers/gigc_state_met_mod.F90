@@ -148,7 +148,7 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: PFILSAN   (:,:,:) ! Dwn flux ice prec:LS+anv [kg/m2/s]
      REAL(fp), POINTER :: PFLCU     (:,:,:) ! Dwn flux liq prec:conv [kg/m2/s]
      REAL(fp), POINTER :: PFLLSAN   (:,:,:) ! Dwn flux ice prec:LS+anv [kg/m2/s]
-     REAL(fp), POINTER :: PV        (:,:,:) ! Potential vort [kg*m2/kg/s]
+     REAL(fp), POINTER :: PV        (:,:,:) ! Potential vort [10-6 kg*m2/kg/s]
      REAL(fp), POINTER :: QI        (:,:,:) ! Ice mixing ratio [kg/kg]
      REAL(fp), POINTER :: QL        (:,:,:) ! Water mixing ratio [kg/kg]
      REAL(fp), POINTER :: REEVAPCN  (:,:,:) ! Evap of precip conv [kg/kg/s]
@@ -957,8 +957,8 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%TO3        )) DEALLOCATE( State_Met%TO3        )
     IF ( ASSOCIATED( State_Met%U10M       )) DEALLOCATE( State_Met%U10M       )
     IF ( ASSOCIATED( State_Met%USTAR      )) DEALLOCATE( State_Met%USTAR      )
-    IF ( ASSOCIATED( State_Met%UVALBEDO   )) DEALLOCATE( State_Met%V10M       )
-    IF ( ASSOCIATED( State_Met%V10M       )) DEALLOCATE( State_Met%UVALBEDO   )
+    IF ( ASSOCIATED( State_Met%UVALBEDO   )) DEALLOCATE( State_Met%UVALBEDO   )
+    IF ( ASSOCIATED( State_Met%V10M       )) DEALLOCATE( State_Met%V10M       )
     IF ( ASSOCIATED( State_Met%Z0         )) DEALLOCATE( State_Met%Z0         )
 
     ! 3-D fields

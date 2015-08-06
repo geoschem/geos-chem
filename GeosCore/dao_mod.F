@@ -437,6 +437,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YEDGE
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
 !
 ! !INPUT PARAMETERS: 
 !
@@ -511,10 +512,15 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I,        J,        L
+      INTEGER   :: I,        J,        L, TP
       REAL(fp)  :: D_NTIME0, D_NTIME1, D_NDT
       REAL(fp)  :: D_NTDT,   TM,       TC2
       REAL(fp)  :: YSOUTH,   YNORTH
+
+      ! Use PVU tropopause definition?
+      LOGICAL             :: FIRST     = .TRUE.
+      LOGICAL,  PARAMETER :: PVU_TROPP = .TRUE.
+      REAL(fp), PARAMETER :: PVU_THRSH = 2.0_fp
 
       !=================================================================
       ! Initialization
@@ -687,7 +693,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
+!$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH, TP )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -713,9 +719,30 @@
             ! altitude.  Set TROPP in the polar regions to 200 hPa.
             ! (jal, phs, bmy, 9/18/07)
             IF ( Input_Opt%LVARTROP ) THEN
-               IF ( YSOUTH >= 60e+0_fp .or. YNORTH <= -60e+0_fp ) THEN
-                  State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
-     &                                        200e+0_fp )
+
+               ! To use PVU tropopause definition:
+               IF ( PVU_TROPP ) THEN
+
+                  ! 100 hPa in the tropics (10S - 10N)
+                  IF ( YNORTH <=  10e+0_fp .AND. 
+     &                 YSOUTH >= -10e+0_fp      ) THEN
+                     State_Met%TROPP(I,J) = 100e+0_fp
+
+                  ! 2 PVU level elsewhere
+                  ELSE
+                     DO TP = LLPAR,1,-1
+                        IF ( State_Met%PV(I,J,TP) <= PVU_THRSH ) THEN
+                           State_Met%TROPP(I,J) = GET_PCENTER(I,J,TP) 
+                           EXIT
+                        ENDIF 
+                     ENDDO
+                  ENDIF
+
+               ELSE
+                  IF ( YSOUTH >= 60.0_fp .OR. YNORTH <= -60.0_fp ) THEN
+                     State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
+     &                                           200e+0_fp )
+                  ENDIF
                ENDIF
             ENDIF
          ENDIF
@@ -735,6 +762,17 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Testing only
+      IF ( FIRST ) THEN
+         IF ( PVU_TROPP ) THEN
+            WRITE(*,*) 'USE PVU tropopause, PVU limit: ', PVU_THRSH
+         ELSE
+            WRITE(*,*) 'USE dynamic tropopause from GEOS'
+         ENDIF
+
+         FIRST = .FALSE.
+      ENDIF
 
 #endif
 

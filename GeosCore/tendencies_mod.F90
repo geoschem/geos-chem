@@ -421,10 +421,10 @@ CONTAINS
 
        ! Error check: stage 2 must be called after stage 1
        IF ( ALL ( Ptr3D == -999.0_f4 ) ) THEN
-          WRITE(MSG,*) 'Cannot do tendency stage 2 - stage 1 not yet called: ', TendType
-          CALL ERROR_STOP ( MSG, LOC )
-          RC = GIGC_FAILURE
-          RETURN
+          IF ( am_I_Root ) THEN
+             WRITE(*,*) 'Warning: cannot do tendency stage 2 - stage 1 not yet called: ', TendType
+          ENDIF
+          CYCLE
        ENDIF
 
        ! Calculate tendency in v/v/s

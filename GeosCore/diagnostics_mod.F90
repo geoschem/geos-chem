@@ -54,10 +54,13 @@ MODULE Diagnostics_Mod
   ! haven't reached the end of their output interval yet).
   CHARACTER(LEN=31), PARAMETER :: RST = 'GEOSCHEM_Restart'
   CHARACTER(LEN=31), PARAMETER :: DGN = 'GEOSCHEM_Diagnostics'
+
+  ! Toggle to enable species diagnostics
+  LOGICAL, PARAMETER, PUBLIC   :: DiagnSpec = .FALSE.
+#endif
 !
 ! !REVISION HISTORY:
 !  09 Jan 2015 - C. Keller   - Initial version. 
-#endif
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -205,7 +208,7 @@ CONTAINS
     ENDIF
 
     ! Tracer concentration diagnostics (ND45)
-    CALL DIAGINIT_TRACER_CONC( am_I_Root, Input_Opt, RC )
+    CALL DIAGINIT_TRACER_CONC( am_I_Root, Input_Opt, State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_CONC', LOC ) 
     ENDIF
@@ -217,9 +220,11 @@ CONTAINS
     ENDIF
 
     ! Tracer emission diagnostics (NEW)
-    CALL DIAGINIT_TRACER_EMIS( am_I_Root, Input_Opt, State_Met, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_EMIS', LOC ) 
+    IF ( .FALSE. ) THEN
+       CALL DIAGINIT_TRACER_EMIS( am_I_Root, Input_Opt, State_Met, RC )
+       IF ( RC /= GIGC_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_EMIS', LOC ) 
+       ENDIF
     ENDIF
 
     CALL DIAGINIT_DOBSON( am_I_Root, Input_Opt, RC )
@@ -431,15 +436,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagInit_Tracer_Conc( am_I_Root, Input_Opt, RC )
+  SUBROUTINE DiagInit_Tracer_Conc( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
+    USE COMODE_LOOP_MOD,    ONLY : NAMEGAS, NTSPEC, NCSURBAN
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry state 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -509,7 +516,44 @@ CONTAINS
        ENDIF
     ENDDO
 
-  END SUBROUTINE DiagInit_Tracer_Conc
+    IF ( DiagnSpec ) THEN
+
+       ! Loop over # of depositing species
+       DO N = 1, NTSPEC(NCSURBAN)
+   
+          !----------------------------------------------------------------
+          ! Create containers for drydep velocity [m/s]
+          !----------------------------------------------------------------
+   
+          ! Diagnostic name
+          IF ( TRIM(NAMEGAS(N)) == '' ) CYCLE
+          DiagnName = 'SPECIES_CONC_' // TRIM(NAMEGAS(N)) 
+   
+          ! Create container
+          CALL Diagn_Create( am_I_Root,                     &
+                             Col       = Collection,        &
+                             cName     = TRIM( DiagnName ), &
+                             AutoFill  = 0,                 &
+                             ExtNr     = -1,                &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  =  3,                &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'molec/cm3',       &
+                             OutOper   = TRIM( OutOper   ), &
+                             RC        = RC )
+   
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC )
+          ENDIF
+   
+       ENDDO
+   
+    ENDIF ! DiagnSpec
+   
+   END SUBROUTINE DiagInit_Tracer_Conc
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -549,6 +593,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: cId, Collection, N
+    INTEGER            :: SpaceDim 
     REAL(hp)           :: ScaleFact
     CHARACTER(LEN=31)  :: OutOper, OutUnit
     CHARACTER(LEN=60)  :: DiagnName
@@ -570,7 +615,7 @@ CONTAINS
     OutOper    = Input_Opt%ND68_OUTPUT_TYPE
       
     ! There are four diagnostics 
-    DO N = 1, 4 
+    DO N = 1,7
 
        !----------------------------------------------------------------
        ! Create containers
@@ -581,19 +626,38 @@ CONTAINS
              DiagnName = 'BOXHEIGHT'
              OutUnit   = 'm'
              ScaleFact = 1.0_hp
+             SpaceDim  = 3
           CASE ( 2 )
              DiagnName = 'AIRMASS'
              OutUnit   = 'kg'
              ScaleFact = 1.0_hp
+             SpaceDim  = 3
           CASE ( 3 )
              DiagnName = 'AIRDENS'
              OutUnit   = 'molecules air m-3'
              ScaleFact = XNUMOLAIR 
+             SpaceDim  = 3
           CASE ( 4 )
              IF ( .NOT. ASSOCIATED(State_Met%AVGW) ) CYCLE
              DiagnName = 'AVGW'
              OutUnit   = 'v/v'
              ScaleFact = 1.0_hp
+             SpaceDim  = 3
+          CASE ( 5 )
+             DiagnName = 'TROPP_PRESSURE'
+             OutUnit   = 'hPa'
+             ScaleFact = 1.0_hp
+             SpaceDim  = 2
+          CASE ( 6 )
+             DiagnName = 'TROPP_LEVEL'
+             OutUnit   = 'count'
+             ScaleFact = 1.0_hp
+             SpaceDim  = 2
+          CASE ( 7 )
+             DiagnName = 'PRESSURE'
+             OutUnit   = 'Pa'
+             ScaleFact = 1.0_hp
+             SpaceDim  = 3
        END SELECT
 
        ! Create container
@@ -605,7 +669,7 @@ CONTAINS
                           Cat       = -1,                &
                           Hier      = -1,                &
                           HcoID     = -1,                &
-                          SpaceDim  =  3,                &
+                          SpaceDim  =  SpaceDim,         &
                           LevIDx    = -1,                &
                           OutUnit   = TRIM( OutUnit   ), &
                           OutOper   = TRIM( OutOper   ), &

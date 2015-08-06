@@ -167,11 +167,17 @@ MODULE STRAT_CHEM_MOD
   REAL(f4), ALLOCATABLE :: MInit(:,:,:,:)      ! Init. atm. state for STE period
   REAL(f4), ALLOCATABLE :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
                                                !   (total P - L) [kg period-1]
+  ! testing only
+  REAL(fp), ALLOCATABLE :: STEaccum(:,:)
+  REAL(fp), ALLOCATABLE :: LastSTT (:,:,:)
+  REAL(fp)              :: DTaccum
+
+  REAL(fp), PARAMETER   :: Nudging_Tau = 86400.0_fp
 
 #if defined( DEVEL )
   ! Variables for STD diagnostics (ckeller, 7/16/2015)
-  REAL(fp), ALLOCATABLE :: OldO3(:,:)
-  INTEGER,  ALLOCATABLE :: OldTL(:,:)
+  REAL(fp), ALLOCATABLE :: OldO3(:,:,:)
+  INTEGER,  ALLOCATABLE :: OldTL(:,:  )
 #endif
 
   !=================================================================
@@ -219,6 +225,9 @@ CONTAINS
 
     ! To read O3 concentrations from GEOS-5:
     USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
+
+    ! testing only
+    USE TIME_MOD,           ONLY : GET_TS_CHEM
 
     IMPLICIT NONE
 !
@@ -280,7 +289,7 @@ CONTAINS
     INTEGER           :: I,    J,      L,   N,   NN
     REAL(fp)          :: dt,   P,      k,   M0,  RC,     M
     REAL(fp)          :: TK,   RDLOSS, T1L, mOH, BryTmp
-    REAL(fp)          :: BOXVL
+    REAL(fp)          :: BOXVL, dC
     REAL(f4)          :: wgt1, wgt2
     LOGICAL           :: LLINOZ
     LOGICAL           :: LPRT
@@ -300,6 +309,10 @@ CONTAINS
     REAL(fp), POINTER :: AD(:,:,:)
     REAL(fp), POINTER :: T(:,:,:)
     REAL(f4), POINTER :: Ptr3D(:,:,:) => NULL()
+
+    ! testing only
+    REAL(fp)          :: thisSTE, thisTnd, totalSTE
+    INTEGER           :: TROPPL
 
     !===============================
     ! DO_STRAT_CHEM begins here!
@@ -446,7 +459,7 @@ CONTAINS
 
           !$OMP PARALLEL DO &
           !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( I, J, L )
+          !$OMP PRIVATE( I, J, L, dC )
           DO L = 1, LLPAR
           DO J = 1, JJPAR
           DO I = 1, IIPAR
@@ -465,9 +478,15 @@ CONTAINS
 !                wgt2 = ( L  - 20 ) * 0.1_fp
 !             ENDIF
 
-             ! Overwrite STT with value from file. Concentrations are in ppm, 
+             ! Relax towards the concentration read from disk.
+             dC = ( (Ptr3D(I,J,L)*1.0e-6) - STT(I,J,L,IDTO3) ) &
+                * ( DTCHEM / Nudging_Tau )
+
+             ! Overwrite STT with value from file. Concentrations are in ppmv,
              ! convert to v/v.
-             STT(I,J,L,IDTO3) = Ptr3D(I,J,L) * 1.0e-6
+             !STT(I,J,L,IDTO3) = Ptr3D(I,J,L) * 1.0e-6
+             STT(I,J,L,IDTO3) = STT(I,J,L,IDTO3) + dC
+             IF ( STT(I,J,L,IDTO3) < 1.0e-20_fp ) STT(I,J,L,IDTO3) = 1.0e-20_fp
 
           ENDDO
           ENDDO
@@ -480,7 +499,8 @@ CONTAINS
           ! Verbose
           IF ( FIRST ) THEN
              WRITE(*,*) ' '
-             WRITE(*,*) ' Stratospheric ozone taken from HEMCO field `STRATO3`'
+             WRITE(*,*) ' Nudging stratospheric ozone towards HEMCO field `STRATO3`'
+             WRITE(*,*) ' Relaxation time [s]: ', Nudging_Tau
              WRITE(*,*) ' '
           ENDIF
 
@@ -504,6 +524,25 @@ CONTAINS
        ! Put tendency into diagnostic array [kg box-1]
        SCHEM_TEND(:,:,:,IDTO3) = SCHEM_TEND(:,:,:,IDTO3) + &
                                                   ( STT(:,:,:,IDTO3) - BEFORE )
+
+       ! Calculate current STE
+       totalSTE = 0.0_fp
+       IF ( SUM(lastSTT) > 0e0 ) THEN
+          DO J = 1, JJPAR
+          DO I = 1, IIPAR
+             TROPPL = GET_TPAUSE_LEVEL( I, J, State_Met )
+             thisSTE = SUM(STT(I,J,TROPPL:LLPAR,IDTO3)) - SUM(lastSTT(I,J,TROPPL:LLPAR))
+             thisTnd = SUM( STT(I,J,:,IDTO3) - BEFORE(I,J,:) )
+             thisSTE = thisTnd - thisSTE
+             STEaccum(I,J) = STEaccum(I,J) + (thisSTE*1e-9)
+             totalSTE = totalSTE + ( thisSTE*1e-9 )
+          ENDDO
+          ENDDO
+          DTaccum = DTaccum + ( GET_TS_CHEM()*60.0_fp )
+       ENDIF
+
+       ! Archive for next step
+       lastSTT(:,:,:) = STT(:,:,:,IDTO3)
 
 #if defined( DEVEL ) 
        CALL STD_UPDATE( am_I_Root, Input_Opt, State_Met, State_Chm, BEFORE, RC=errCode )
@@ -975,6 +1014,8 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE TIME_MOD,   ONLY : GET_TAU, GET_NYMD, GET_NHMS, EXPAND_DATE
+    USE GRID_MOD,           ONLY : GET_YMID
+    USE TRACERID_MOD,       ONLY : IDTO3
 
     USE CMN_SIZE_MOD
 
@@ -1012,6 +1053,8 @@ CONTAINS
     CHARACTER(LEN=255) :: dateStart, dateEnd
     INTEGER            :: N,         I,      J,    L,      NN
     REAL(fp)           :: dStrat,    STE,    Tend, tauEnd, dt
+    REAL(fp)           :: YMID
+    INTEGER            :: J1, J2, J3, J4, J5
 
     ! Arrays
     INTEGER            :: LTP(IIPAR,JJPAR      )
@@ -1125,9 +1168,89 @@ CONTAINS
                STE*1e-9_fp                                    ! Tg a-1
        ENDIF
 
+       ! Zonal values for O3
+       IF ( N == IDTO3 .AND. am_I_Root ) THEN
+             J1 = -1
+             J2 = -1
+             J3 = -1
+             J4 = -1
+             J5 = -1
+          DO J = 1, JJPAR
+             YMID = GET_YMID(1,J,1)
+             IF ( J1 < 0 .AND. YMID >= -60.0_fp ) J1 = J 
+             IF ( J2 < 0 .AND. YMID >= -30.0_fp ) J2 = J 
+             IF ( J3 < 0 .AND. YMID >=   0.0_fp ) J3 = J 
+             IF ( J4 < 0 .AND. YMID >=  30.0_fp ) J4 = J 
+             IF ( J5 < 0 .AND. YMID >=  60.0_fp ) J5 = J 
+          ENDDO
+
+          ! -90N to -60N
+          dStrat = SUM(M2(:,1:(J1-1),:))-SUM(M1(:,1:(J1-1),:))
+          Tend   = SUM(Schem_tend(:,1:(J1-1),:,N))
+          STE    = (Tend-dStrat)/dt
+          WRITE(6,130) '-90N to -60N', STE*1e-9_fp
+
+          ! -60N to -30N
+          dStrat = SUM(M2(:,J1:(J2-1),:))-SUM(M1(:,J1:(J2-1),:))
+          Tend   = SUM(Schem_tend(:,J1:(J2-1),:,N))
+          STE    = (Tend-dStrat)/dt
+          WRITE(6,130) '-60N to -30N', STE*1e-9_fp
+
+          ! -30N to +0N
+          dStrat = SUM(M2(:,J2:(J3-1),:))-SUM(M1(:,J2:(J3-1),:))
+          Tend   = SUM(Schem_tend(:,J2:(J3-1),:,N))
+          STE    = (Tend-dStrat)/dt
+          WRITE(6,130) '-30N to +00N', STE*1e-9_fp
+
+          ! 0N to +30N
+          dStrat = SUM(M2(:,J3:(J4-1),:))-SUM(M1(:,J3:(J4-1),:))
+          Tend   = SUM(Schem_tend(:,J3:(J4-1),:,N))
+          STE    = (Tend-dStrat)/dt
+          WRITE(6,130) '+00N to +30N', STE*1e-9_fp
+
+          ! +30 to +60N
+          dStrat = SUM(M2(:,J4:(J5-1),:))-SUM(M1(:,J4:(J5-1),:))
+          Tend   = SUM(Schem_tend(:,J4:(J5-1),:,N))
+          STE    = (Tend-dStrat)/dt
+          WRITE(6,130) '+30N to +60N', STE*1e-9_fp
+
+          ! +60 to +90N
+          dStrat = SUM(M2(:,J5:JJPAR,:))-SUM(M1(:,J5:JJPAR,:))
+          Tend   = SUM(Schem_tend(:,J5:JJPAR,:,N))
+          STE    = (Tend-dStrat)/dt
+          WRITE(6,130) '+60N to +90N', STE*1e-9_fp
+
+          ! testing only: also write out STEaccum
+          STE    = SUM(STEaccum(:,:))/DTaccum*365.0_fp*24.0_fp*60.0_fp*60.0_fp
+          WRITE(6,140) '-90N to +90N', STE
+
+          STE    = SUM(STEaccum(:,1:(J1-1)))/DTaccum*365.0_fp*24.0_fp*60.0_fp*60.0_fp
+          WRITE(6,140) '-90N to -60N', STE
+
+          STE    = SUM(STEaccum(:,J1:(J2-1)))/DTaccum*365.0_fp*24.0_fp*60.0_fp*60.0_fp
+          WRITE(6,140) '-60N to -30N', STE
+
+          STE    = SUM(STEaccum(:,J2:(J3-1)))/DTaccum*365.0_fp*24.0_fp*60.0_fp*60.0_fp
+          WRITE(6,140) '-30N to -00N', STE
+
+          STE    = SUM(STEaccum(:,J3:(J4-1)))/DTaccum*365.0_fp*24.0_fp*60.0_fp*60.0_fp
+          WRITE(6,140) '+00N to +30N', STE
+
+          STE    = SUM(STEaccum(:,J4:(J5-1)))/DTaccum*365.0_fp*24.0_fp*60.0_fp*60.0_fp
+          WRITE(6,140) '+30N to +60N', STE
+
+          STE    = SUM(STEaccum(:,J5:JJPAR))/DTaccum*365.0_fp*24.0_fp*60.0_fp*60.0_fp
+          WRITE(6,140) '+60N to +90N', STE
+
+          STEaccum = 0.0_fp
+          DTaccum  = 0.0_fp
+       ENDIF
+
     ENDDO
 
 120 FORMAT( 2x,a8,':',4x,e11.3,4x,f9.1,4x,f11.4 )
+130 FORMAT( 9x,'--> ',a12,':',17x,f11.4 ) 
+140 FORMAT( 9x,'`Exact` STE - ',a12,':',7x,f11.4 ) 
 
     IF ( am_I_Root ) THEN
        WRITE( 6, * ) ''
@@ -1443,6 +1566,16 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCHEM_TEND' )
     SCHEM_TEND = 0e0
 
+    ! testing only
+    ALLOCATE( STEaccum(IIPAR,JJPAR), STAT=AS ) 
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'STEaccum' )
+    STEaccum = 0e0
+    DTaccum  = 0.0_fp
+
+    ALLOCATE( LastSTT(IIPAR,JJPAR,LLPAR), STAT=AS ) 
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'LastSTT' )
+    LastSTT = 0e0
+
     ! Allocate and initialize bromine arrays
     GC_Bry_TrID(1:6) = (/IDTBr2,IDTBr,IDTBrO,IDTHOBr,IDTHBr,IDTBrNO3/)
 
@@ -1480,6 +1613,8 @@ CONTAINS
     IF ( ALLOCATED( MInit      ) ) DEALLOCATE( MInit      )
     IF ( ALLOCATED( TPAUSEL    ) ) DEALLOCATE( TPAUSEL    )
     IF ( ALLOCATED( SCHEM_TEND ) ) DEALLOCATE( SCHEM_TEND )
+    IF ( ALLOCATED( STEaccum   ) ) DEALLOCATE( STEaccum   )
+    IF ( ALLOCATED( LastSTT    ) ) DEALLOCATE( LastSTT    )
 
     ! Cleanup pointer vectors
     DO I = 1,6
@@ -1948,7 +2083,7 @@ CONTAINS
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE TRACERID_MOD,       ONLY : IDTO3
-    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR
+    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
 !
 ! !INPUT PARAMETERS:
@@ -1987,13 +2122,19 @@ CONTAINS
     Collection = Input_Opt%DIAG_COLLECTION
     
     ! Initialize arrays
-    ALLOCATE( OldO3(IIPAR,JJPAR), OldTL(IIPAR,JJPAR), STAT=AS )
+    ALLOCATE( OldO3(IIPAR,JJPAR,LLPAR), STAT=AS )
     IF ( AS /= 0 ) THEN
        CALL ERROR_STOP( 'STD allocation error', LOC )
        RC = GIGC_FAILURE
        RETURN
     ENDIF
     OldO3 = 0.0_fp
+    ALLOCATE( OldTL(IIPAR,JJPAR), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL ERROR_STOP( 'STD allocation error', LOC )
+       RC = GIGC_FAILURE
+       RETURN
+    ENDIF
     OldTL = 0
 
     ! Create container
@@ -2048,10 +2189,10 @@ CONTAINS
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
     USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
-    USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-    USE HCO_CLOCK_MOD,      ONLY : HcoClock_First, HcoClock_Rewind
     USE TIME_MOD,           ONLY : GET_TS_CHEM
     USE TRACERID_MOD,       ONLY : IDTO3
+    USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+    USE HCO_CLOCK_MOD,      ONLY : HcoClock_First, HcoClock_Rewind
 !
 ! !INPUT PARAMETERS:
 !
@@ -2073,14 +2214,17 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, J, NewTL, ijTL, cID
-    LOGICAL            :: AfterRewind
+    INTEGER            :: I, J, L, NewTL, ijTL, cID
+    LOGICAL            :: Skip
     REAL(fp)           :: ijMass, ijPL, dt 
     REAL(fp)           :: Array2D(IIPAR,JJPAR)
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'STD_UPDATE (strat_chem_mod.F90)' 
-    
+
+    ! Use tropopause definition of McLinden et al. 2000?   
+    LOGICAL, PARAMETER :: LINOZ_TROPP = .TRUE.
+ 
     !=======================================================================
     ! STD_UPDATE begins here!
     !=======================================================================
@@ -2097,40 +2241,39 @@ CONTAINS
     ! Archive current tropopause level as well as total stratospheric mass
     Array2D = 0.0_fp
 
-    !$OMP PARALLEL DO                               &
-    !$OMP DEFAULT( SHARED )                         &
-    !$OMP PRIVATE( I,  J,  ijTL, ijMass, ijPL, NewTL )
+    !$OMP PARALLEL DO       &
+    !$OMP DEFAULT( SHARED ) &
+    !$OMP PRIVATE( I, J, L, ijMass, ijPL, NewTL ) 
     DO J = 1, JJPAR
     DO I = 1, IIPAR
 
-             ! ijTL is the old tropopause level. Do all calculations at this
-             ! level because OldO3 is the column sum from this level onwards
-             ijTL         = OldTL(I,J)
+       ! New tropopause level. 
+       NewTL = GET_TPAUSE_LEVEL( I, J, State_Met )
 
-             ! ijMass is the new strat. column mass
-             ijMass       = SUM(State_Chm%Tracers(I,J,ijTL:LLPAR,IDTO3))
+       ! Pick tropopause level to use. This one or previous one, whichever is higher.
+       L = MAX(NewTL,OldTL(I,J))
 
-             ! ijPL is the new strat. column production/loss total
-             ijPL         = ijMass - SUM(BEFORE(I,J,ijTL:LLPAR)) 
+       ! ijMass is the new strat. column mass
+       ! ijPL is the new strat. column production/loss total
+!       ijMass = SUM(State_Chm%Tracers(I,J,NewTL:LLPAR,IDTO3)) 
+!       ijPL   = ijMass - ( SUM(BEFORE(I,J,NewTL:LLPAR)) ) 
 
-             ! dMass is the mass difference due to transport
-             Array2D(I,J) = ( ijMass - ijPL - OldO3(I,J) ) / dt
+       ! dMass is the mass difference due to transport
+!       Array2D(I,J) = ( ijMass - ijPL - SUM(OldO3(I,J,NewTL:LLPAR) ) ) / dt
 
-             ! New tropopause level. Add +1 because we need the first 
-             ! stratospheric level.
-             NewTL        = GET_TPAUSE_LEVEL( I, J, State_Met )
-             NewTL        = NewTL + 1
+       Array2D(I,J) = ( SUM(BEFORE(I,J,L:LLPAR)) - SUM(OldO3(I,J,L:LLPAR)) ) / dt
 
-             ! Archive variables
-             OldTL(I,J)   = NewTL
-             OldO3(I,J)   = SUM( State_Chm%Tracers(I,J,NewTL:LLPAR,IDTO3) )
+       ! Archive variables
+       OldO3(I,J,:) = State_Chm%Tracers(I,J,:,IDTO3)
+       OldTL(I,J)   = NewTL
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
 
     ! Update container
-    AfterRewind = HcoClock_Rewind(.TRUE.) .OR. HcoClock_First(.TRUE.) 
-    IF ( .NOT. AfterRewind ) THEN
+    Skip = HcoClock_Rewind(.TRUE.) .OR. HcoClock_First(.TRUE.) .OR. &
+           ( SUM(OldO3) == 0.0_fp ) 
+    IF ( .NOT. Skip ) THEN
        cID = 74000 + IDTO3 
        CALL Diagn_Update( am_I_Root,                             &
                           cID       = cID,                       &
@@ -2142,7 +2285,7 @@ CONTAINS
           CALL ERROR_STOP( MSG, LOC ) 
        ENDIF
     ENDIF  
-   
+ 
   END SUBROUTINE STD_UPDATE
 !EOC
 #endif
