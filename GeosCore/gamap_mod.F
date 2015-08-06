@@ -86,6 +86,8 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  06 Aug 2015 - J. Fisher   - Add non-reducible snowpack Hg reservoir
+!                              (orig. 29/11/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -833,6 +835,8 @@
 !  03 Sep 2013 - R. Yantosca - Restored PS-PTOP to avoid issues when using
 !                              diaginfo.dat, tracerinfo.dat w/ REGRIDH_RESTART
 !  30 Jan 2014 - R. Yantosca - Add ND60 TOMAS diagnostic catetories
+!  06 Aug 2015 - J. Fisher   - Add non-reducible snowpack Hg reservoir
+!                              (orig. 29/11/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1573,8 +1577,24 @@
       ! For mercury simulation only so we can use same spacing. (ccc, 5/21/10)
       N           = N + 1
       CATEGORY(N) = 'SNOW-HG'
-      DESCRIPT(N) = 'Hg mass in snow and ice'
+      DESCRIPT(N) = 'Reducible Hg mass in ocean snow and ice'
       OFFSET(N)   = SPACING * 49
+
+      ! Non-reducible snow Hg reservoir
+      N           = N + 1
+      CATEGORY(N) = 'SNOW-HGN'
+      DESCRIPT(N) = 'Non-reducible Hg mass in ocean snow and ice'
+      OFFSET(N)   = SPACING * 50 
+
+      N           = N + 1
+      CATEGORY(N) = 'SNHG-LN'
+      DESCRIPT(N) = 'Reducible Hg mass in land snow and ice'
+      OFFSET(N)   = SPACING * 51
+
+      N           = N + 1
+      CATEGORY(N) = 'SNHGN-LN'
+      DESCRIPT(N) = 'Non-reducible Hg mass in snow and ice'
+      OFFSET(N)   = SPACING * 52
 
 !(FP 06/19/2009)
       N           = N + 1
@@ -1727,6 +1747,8 @@
 !  04 Sep 2013 - R. Yantosca - Bug fix: # of ND46 tracers should be 20
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  31 Jan 2014 - R. Yantosca - Now save out tracerinfo.dat properly for TOMAS
+!  06 Aug 2015 - J. Fisher   - Add non-reducible snowpack Hg reservoir
+!                              (orig. 29/11/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2011,10 +2033,57 @@
             MWT  (T,03) = 201e-3
             SCALE(T,03) = 1e0
 
-
             NAME (T,03) = 'Snow_Hg'
             FNAME(T,03) = 'Tot. Hg in snowpack'
             INDEX(T,03) = ( N ) + ( SPACING * 49 )
+         ENDDO
+
+         ! Loop over tracers for SNOW-HGN (jaf, 6/17/11)
+         DO N = 1, 1
+
+            T = N + PD03 + PD03_PL + Input_Opt%N_TRACERS + 1
+
+            ! Define quantities
+            UNIT (T,03) = 'kg'
+            MOLC (T,03) = 1
+            MWT  (T,03) = 201e-3
+            SCALE(T,03) = 1e0
+
+            NAME (T,03) = 'Snow_HgN'
+            FNAME(T,03) = 'Tot. non-reducible Hg in snow on ocean'
+            INDEX(T,03) = ( N ) + ( SPACING * 50 )
+         ENDDO
+         
+         ! Loop over tracers for SNOW-HG-LN
+         DO N = 1, 1
+
+            T = N + PD03 + PD03_PL + Input_Opt%N_TRACERS + 2
+
+            ! Define quantities
+            UNIT (T,03) = 'kg'
+            MOLC (T,03) = 1
+            MWT  (T,03) = 201e-3
+            SCALE(T,03) = 1e0
+
+            NAME (T,03) = 'SnHg_ln'
+            FNAME(T,03) = 'Tot. reducible Hg in snow on land'
+            INDEX(T,03) = ( N ) + ( SPACING * 51 )
+         ENDDO
+
+         ! Loop over tracers for SNOW-HGN-LN
+         DO N = 1, 1
+
+            T = N + PD03 + PD03_PL + Input_Opt%N_TRACERS + 3
+
+            ! Define quantities
+            UNIT (T,03) = 'kg'
+            MOLC (T,03) = 1
+            MWT  (T,03) = 201e-3
+            SCALE(T,03) = 1e0
+
+            NAME (T,03) = 'SnHgN_ln'
+            FNAME(T,03) = 'Tot. non-reducible Hg in snow on land'
+            INDEX(T,03) = ( N ) + ( SPACING * 52 )
          ENDDO
          
          ! Total max number of tracers for DIAG 03.

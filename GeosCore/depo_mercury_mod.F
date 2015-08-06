@@ -38,6 +38,8 @@
       PUBLIC :: HG2mth_wd, HG0mth_dd, HG2mth_dd
       PUBLIC :: SNOW_HG_OC
       PUBLIC :: SNOW_HG_LN
+      PUBLIC :: SNOW_HG_STORED_OC
+      PUBLIC :: SNOW_HG_STORED_LN
       PUBLIC :: LHGSNOW
       REAL*8,  ALLOCATABLE :: DD_Hg2(:,:,:)
       REAL*8,  ALLOCATABLE :: DD_HgP(:,:,:)
@@ -48,6 +50,8 @@
       REAL*8,  ALLOCATABLE :: HG2mth_wd(:,:)
       REAL*8,  ALLOCATABLE :: SNOW_HG_OC(:,:,:)
       REAL*8,  ALLOCATABLE :: SNOW_HG_LN(:,:,:)
+      REAL*8,  ALLOCATABLE :: SNOW_HG_STORED_OC(:,:,:)
+      REAL*8,  ALLOCATABLE :: SNOW_HG_STORED_LN(:,:,:)
       REAL*8,  ALLOCATABLE :: Hg0dryGEOS(:,:), HgIIdryGEOS(:,:), 
      &                        HgIIwetGEOS(:,:)
 !
@@ -62,6 +66,8 @@
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
+!  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig.
+!                              29/11/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -324,6 +330,8 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
+!  06 Aug 2015 - J. Fisher   - Store reservoir of non-reducible Hg in snowpack
+!                              (orig. 29/11/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -392,11 +400,23 @@
          SNOW_HG_OC(I,J,NN) = SNOW_HG_OC(I,J,NN) + FRAC_O *
      &                     FRAC_SNOW_OR_ICE * MAX( 0.6D0*DEP_HG2, 0D0 )
 
+         ! Add remaining deposited Hg to reservoir for delivery to ocean
+         ! when snow melts later (jaf, 6/17/11)
+         ! This is Hg in snowpack over ocean that CANNOT be
+         ! re-emitted to atmosphere
+         SNOW_HG_STORED_OC(I,J,NN) = SNOW_HG_STORED_OC(I,J,NN) + FRAC_O*
+     &                     FRAC_SNOW_OR_ICE * MAX( 0.4D0*DEP_HG2, 0D0 )
+
          ! This is Hg in snowpack over land that can potentially be
          ! re-emitted to atmosphere
          SNOW_HG_LN(I,J,NN) = SNOW_HG_LN(I,J,NN) + (1d0 - FRAC_O) *
      &                     FRAC_SNOW_OR_ICE * MAX( 0.6D0*DEP_HG2, 0D0 )
 
+         ! This is Hg in snowpack over land that CANNOT be
+         ! re-emitted to atmosphere
+         SNOW_HG_STORED_LN(I,J,NN) = SNOW_HG_STORED_LN(I,J,NN) +
+     &                     ( 1d0 - FRAC_O ) *
+     &                     FRAC_SNOW_OR_ICE * MAX( 0.4D0*DEP_HG2, 0D0 )
 
       ENDIF
 
@@ -909,6 +929,7 @@
 !  23 Apr 2010 - C. Carouge   - Moved arrays allocation from 
 !                               ocean_mercury_mod.f
 !  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
+!  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig. 29/11/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -945,6 +966,14 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW_HG_LN' )
       SNOW_HG_LN = 0d0
 
+      ALLOCATE( SNOW_HG_STORED_OC( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW_HG_STORED_OC' )
+      SNOW_HG_STORED_OC = 0d0
+
+      ALLOCATE( SNOW_HG_STORED_LN( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW_HG_STORED_LN' )
+      SNOW_HG_STORED_LN = 0d0
+
       IF ( LGTMM ) THEN
          ALLOCATE( HG0mth_dd( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG0mth_dd' )
@@ -978,6 +1007,7 @@
 ! !REVISION HISTORY:
 !  23 Apr 2010 - C. Carouge - Moved from ocean_mercury_mod.f
 !  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
+!  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig. 29/11/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -988,6 +1018,10 @@
       IF ( ALLOCATED( WD_HgP      ) ) DEALLOCATE( WD_HgP      )
       IF ( ALLOCATED( SNOW_HG_OC  ) ) DEALLOCATE( SNOW_HG_OC  )
       IF ( ALLOCATED( SNOW_HG_LN  ) ) DEALLOCATE( SNOW_HG_LN  )
+      IF ( ALLOCATED( SNOW_HG_STORED_OC  ) ) 
+     &     DEALLOCATE( SNOW_HG_STORED_OC  )
+      IF ( ALLOCATED( SNOW_HG_STORED_LN  ) ) 
+     &     DEALLOCATE( SNOW_HG_STORED_LN  )
       IF ( ALLOCATED( HG0mth_dd   ) ) DEALLOCATE( HG0mth_dd   )
       IF ( ALLOCATED( HG2mth_dd   ) ) DEALLOCATE( HG2mth_dd   )
       IF ( ALLOCATED( HG2mth_wd   ) ) DEALLOCATE( HG2mth_wd   )

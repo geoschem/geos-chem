@@ -40,19 +40,20 @@
 !  ============================================================================
 !  (1 ) ADD_Hg2_DD             : Archives Hg2 lost to drydep in DD_HG2
 !  (2 ) ADD_Hg2_WD             : Archives Hg2 lost to wetdep in WD_HG2
-!  (3 ) OCEAN_MERCURY_FLUX     : Routine to compute flux of oceanic mercury
-!  (4 ) OCEAN_MERCURY_READ     : Routine to read MLD, NPP, RADSWG data fields
-!  (5 ) GET_MLD_FOR_NEXT_MONTH : Routine to read MLD for the next month
-!  (6 ) MLD_ADJUSTMENT         : Adjusts MLD 
-!  (7 ) READ_OCEAN_Hg_RESTART  : Reads restart file with ocean Hg tracers
-!  (8 ) CHECK_DIMENSIONS       : Checks dims of data blocks from restart file
-!  (9 ) CHECK_DATA_BLOCKS      : Checks for missing/multiple data blocks
-!  (10) MAKE_OCEAN_Hg_RESTART  : Writes new restart file with ocean Hg tracers
-!  (11) CHECK_ATMOS_MERCURY    : Checks mass of total & tagged atm Hg0 & Hg2 
-!  (12) CHECK_OCEAN_MERCURY    : Checks mass of total & tagged oc Hg0 & Hg2
-!  (13) CHECK_OCEAN_FLUXES     : Checks mass of total & tagged DD & WD fluxes
-!  (14) INIT_OCEAN_MERCURY     : Allocates and zeroes all module variables
-!  (15) CLEANUP_OCEAN_MERCURY  : Deallocates all module variables
+!  (3 ) DELIVER_SNOW_HG        : Delivers Hg stored in snowpack to ocean
+!  (4 ) OCEAN_MERCURY_FLUX     : Routine to compute flux of oceanic mercury
+!  (5 ) OCEAN_MERCURY_READ     : Routine to read MLD, NPP, RADSWG data fields
+!  (6 ) GET_MLD_FOR_NEXT_MONTH : Routine to read MLD for the next month
+!  (7 ) MLD_ADJUSTMENT         : Adjusts MLD 
+!  (8 ) READ_OCEAN_Hg_RESTART  : Reads restart file with ocean Hg tracers
+!  (9 ) CHECK_DIMENSIONS       : Checks dims of data blocks from restart file
+!  (10) CHECK_DATA_BLOCKS      : Checks for missing/multiple data blocks
+!  (11) MAKE_OCEAN_Hg_RESTART  : Writes new restart file with ocean Hg tracers
+!  (12) CHECK_ATMOS_MERCURY    : Checks mass of total & tagged atm Hg0 & Hg2 
+!  (13) CHECK_OCEAN_MERCURY    : Checks mass of total & tagged oc Hg0 & Hg2
+!  (14) CHECK_OCEAN_FLUXES     : Checks mass of total & tagged DD & WD fluxes
+!  (15) INIT_OCEAN_MERCURY     : Allocates and zeroes all module variables
+!  (16) CLEANUP_OCEAN_MERCURY  : Deallocates all module variables
 !
 !  GEOS-CHEM modules referenced by ocean_mercury_mod.f
 !  ============================================================================
@@ -124,6 +125,7 @@
 !			       irrespective of ice cover and reduce radiation,
 !			       Hg deposition accordingly in partial-ice boxes
 !                              (orig. 28/11/11)
+!  06 Aug 2015 - J. Fisher   - Added delivery of snow Hg to ocean (orig. 28/11/11)
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
@@ -567,6 +569,127 @@
       END SUBROUTINE READ_HG2_PARTITIONING
 
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: deliver_snow_hg
+!
+! !DESCRIPTION: Subroutine DELIVER\_SNOW\_HG delivers Hg accumulated in snow
+!  to the ocean.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DELIVER_SNOW_HG( SNOW_Hg2aq, I, J, State_Met )
+!
+! !USES:
+!
+      USE DAO_MOD,            ONLY : IS_ICE,  IS_LAND
+      USE DIAG03_MOD,         ONLY : AD03,    ND03 
+      USE DEPO_MERCURY_MOD,   ONLY : LHGSNOW
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC,  SNOW_HG_STORED_OC
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_LN,  SNOW_HG_STORED_LN
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACERID_MOD,       ONLY : N_Hg_CATS
+
+      USE CMN_SIZE_MOD      ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)   :: I, J 
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(OUT)  :: SNOW_Hg2aq(N_Hg_CATS)  ! Hg2 from snow
+
+!
+! !REMARKS:
+!  Snowpack Hg is delivered to the ocean instantaneously in an ionic pulse 
+!  at the start of snowmelt (i.e. when the temperature exceeds 276K). At
+!  this point, both the non-reducible Hg deposited to the snowpack and the
+!  remaining reducible Hg are delivered to the ocean. Over land, the snow Hg
+!  reservoirs are also emptied, but this Hg is not yet added to the land.
+! 
+! !REVISION HISTORY: 
+!  17 Jun 2011 - J. Fisher - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC  
+!     
+! !LOCAL VARIABLES:
+!
+      INTEGER       :: NN
+      REAL*8        :: FROCSNOW, FRLNSNOW
+      LOGICAL       :: IS_MELT, IS_SNOWHG_OC, IS_SNOWHG_LN
+      LOGICAL       :: IS_OPEN_OCEAN, IS_OPEN_LAND
+
+      !=================================================================
+      ! DELIVER_SNOW_HG begins here!
+      !=================================================================
+
+      ! Return to calling program if snowpack model is disabled
+      IF (.NOT. LHGSNOW) RETURN
+
+      ! Intialize
+      SNOW_Hg2aq = 0d0
+
+      IS_MELT = ( State_Met%TS(I,J) >= 276d0 )
+      IS_SNOWHG_OC = ( (SNOW_HG_OC(I,J,NN)        > 0d0) .OR.
+     &                 (SNOW_HG_STORED_OC(I,J,NN) > 0d0) )
+      IS_SNOWHG_LN = ( (SNOW_HG_LN(I,J,NN)        > 0d0) .OR.
+     &                 (SNOW_HG_STORED_LN(I,J,NN) > 0d0) )
+
+! FRSEAICE, FRSNO only defined in MERRA, so need to treat these differently
+! in older code versions (jaf, 6/19/13)
+#if   defined( MERRA ) || defined(GEOS_FP)
+      IS_OPEN_OCEAN = ( (State_Met%FROCEAN(I,J) - 
+     &                   State_Met%FRSEAICE(I,J)) > 0d0 )
+      IS_OPEN_LAND  = ( (State_Met%FRLAND(I,J)  - 
+     &                   State_Met%FRSNO(I,J)   ) > 0d0 )
+#elif defined( GEOS_5 )
+      IS_OPEN_OCEAN = ( .NOT. IS_ICE( I, J, State_Met ) )
+      IS_OPEN_LAND  = ( IS_LAND( I, J, State_Met ) .AND.
+     &                  (State_Met%SNOMAS(I,J) < 10d0) )
+#else
+      IS_OPEN_OCEAN = ( .NOT. IS_ICE( I, J, State_Met ) )
+      IS_OPEN_LAND  = ( IS_LAND( I, J, State_Met) .AND.
+     &                  (State_Met%SNOW(I,J) < 10d0) )
+#endif
+
+      DO NN = 1, N_Hg_CATS
+
+         ! OCEAN
+         ! Check if melt conditions reached and snow in grid box
+         IF ( IS_MELT .AND. IS_SNOWHG_OC .AND. IS_OPEN_OCEAN ) THEN
+
+            ! Add all snow Hg to aqueous Hg2 reservoir
+            SNOW_Hg2aq(NN) =
+     &            ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
+                  
+            ! Store diagnostic of meltwater delivery to ocean
+            IF ( ND03 > 0 ) AD03(I,J,19,1) = AD03(I,J,19,1) +
+     &         ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
+
+            ! Zero reservoirs over ocean box, since we've added it
+            ! all to the ocean
+            SNOW_HG_OC(I,J,NN) = 0d0
+            SNOW_HG_STORED_OC(I,J,NN) = 0d0
+               
+         ENDIF ! ocean box
+               
+         ! Zero reservoirs if there is exposed land
+         IF ( IS_MELT .AND. IS_SNOWHG_LN .AND. IS_OPEN_LAND ) THEN
+              SNOW_HG_LN(I,J,NN) = 0d0
+              SNOW_HG_STORED_LN(I,J,NN) = 0d0
+         ENDIF
+      
+      ENDDO ! Hg Tracers
+      
+      END SUBROUTINE DELIVER_SNOW_HG
+!EOC
+!------------------------------------------------------------------------------
 
       SUBROUTINE OCEAN_MERCURY_FLUX( FLUX,      Input_Opt, 
      &                               State_Met, State_Chm )
@@ -733,6 +856,7 @@
 !			       irrespective of ice cover and reduce radiation,
 !			       Hg deposition accordingly in partial-ice boxes
 !                              (orig. 28/11/11)
+!  06 Aug 2015 - J. Fisher   - Added delivery of snow Hg to ocean (orig. 28/11/11)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -803,6 +927,7 @@
       REAL*8                ::Hg2aq_tot                      
       REAL*8                :: C_tot,    Ze,       OC_tot,   Hg0_OX     
       REAL*8                :: FRAC_OPEN_OCEAN,    FRAC_OCEAN_OR_ICE
+      REAL*8                :: SNOW_Hg2aq(N_Hg_CATS)
 
       ! Parameters
       REAL*8, PARAMETER     :: EC_w      = 0.0145d0       
@@ -970,7 +1095,7 @@
 !$OMP+PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE   )
 !$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg   )
 !$OMP+PRIVATE( IS_OCEAN_BOX                   )
-!$OMP+PRIVATE( FRAC_OPEN_OCEAN,    FRAC_OCEAN_OR_ICE )
+!$OMP+PRIVATE( FRAC_OPEN_OCEAN,    FRAC_OCEAN_OR_ICE, Snow_Hg2aq )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1001,8 +1126,10 @@
          OC_tot_kg  = 0d0 
          Hg0_OX     = 0d0
          D          = 0d0
+         TOTDEP     = 0d0
          TOTDEPall  = 0d0
          k_ox       = 0d0
+         SNOW_Hg2aq = 0d0
 
          OLDMLD     = MLDav(I,J)
          MLDav(I,J) = MLDav(I,J) + dMLD(I,J) * DTSRCE
@@ -1069,19 +1196,31 @@
          CALL MLD_ADJUSTMENT( I, J, OLDMLD*1d-2, MLDcm*1d-2, 
      &                        Input_Opt, State_Met )
 
+         !---------------------------------------------------------------
+         ! Deliver snowpack Hg to ocean if snow has melted
+         ! Call before IF statement so that snow Hg is zeroed in land
+         ! boxes as well as ocean boxes (jaf, 11/29/11)
+         CALL DELIVER_SNOW_HG( SNOW_Hg2aq, I, J, State_Met )
+
+         ! Loop over total Hg (and ocean Hg if necessary)
+         DO C = 1, N_tot_oc
+
+            ! Get Hg category #
+            IF ( C == 1 ) NN = ID_Hg_tot
+            IF ( C == 2 ) NN = ID_Hg_ocn
+
+            ! Add snowpack Hg to ocean reservoirs
+            Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + SNOW_Hg2aq(NN)
+
+         ENDDO
+
          !===========================================================
          ! Make sure we are in an ocean box
          !===========================================================
-         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
-!         IF ( ( ALBD(I,J) <= 0.4d0 ) .and. 
-!     &        ( FRAC_L    <  0.8d0 ) .and.
-!     &        ( MLDCM     > 0.99d0 )      ) THEN
-!--jaf.start
-          ! Use consistent criteria for Ocean/Land/Ice categories
-          ! with snowpack and terrestrial emissions  !CDH 5/18/2010
-          !IF ( ( IS_WATER(I,J) ) .AND. ( MLDCM > 0.99d0 ) ) THEN
+         ! Use consistent criteria for Ocean/Land/Ice categories
+         ! with snowpack and terrestrial emissions  !CDH 5/18/2010
+         ! Use ocean criteria developed above (jaf, 11/29/11)
          IF ( (IS_OCEAN_BOX) .and. (MLDCM > 0.99d0) ) THEN
-!--jaf.end
 
             !===========================================================
             ! Reduction and oxidation coefficients
@@ -2643,12 +2782,15 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
+!  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig. 11/29/11)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
       USE CMN_SIZE_MOD
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC, SNOW_HG_LN
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_STORED_OC
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_STORED_LN
       USE DEPO_MERCURY_MOD,   ONLY : CHECK_DIMENSIONS
       USE DIRECTORY_MOD,      ONLY : RUN_DIR
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -2833,7 +2975,18 @@
 
             ENDIF
 
-            ! CDH snowpack (added following IF)
+         ! Non-reducible Hg in ocean snowpack (jaf, 6/17/11)
+         ELSE IF ( CATEGORY(1:8) == 'SNOW-HGN' ) THEN
+               !----------
+               ! Non-reducible Hg in snow
+               !----------
+            
+               ! Get the Hg category #
+               NN              = GET_Hg0_CAT( NTRACER )
+               
+               ! Store ocean Hg(0) in Hg0aq array
+               SNOW_HG_STORED_OC(:,:,NN)   = Hg_OCEAN(:,:,1)
+            
          ELSE IF ( CATEGORY(1:7) == 'SNOW-HG' ) THEN  
                !----------
                ! Hg in snow
@@ -2845,6 +2998,18 @@
                ! Store ocean Hg(0) in Hg0aq array
                SNOW_HG_OC(:,:,NN)   = Hg_OCEAN(:,:,1)
                
+         ! Non-reducible Hg in land  snowpack (jaf, 6/17/11)
+         ELSE IF ( CATEGORY(1:8) == 'SNHGN-LN' ) THEN
+               !----------
+               ! Non-reducible Hg in snow on land
+               !----------
+
+               ! Get the Hg category #
+               NN              = GET_Hg0_CAT( NTRACER )
+
+               ! Store ocean Hg(0) in Hg0aq array
+               SNOW_HG_STORED_LN(:,:,NN)   = Hg_OCEAN(:,:,1)
+
           ELSE IF ( CATEGORY(1:7) == 'SNHG-LN' ) THEN
                !----------
                ! Hg in snow
@@ -2910,8 +3075,12 @@
       WRITE( 6, 140 ) 3, 'HgP       ', SUM( HgPaq ), 'kg'
 
       ! Snow Hg (jaf, 6/17/11)
-      WRITE( 6, 140 ) 1, 'Reducible snow Hg',  SUM(SNOW_HG_OC), 'kg'
+      WRITE( 6, 140 ) 1, 'Reducible snow Hg ocean',SUM(SNOW_HG_OC), 'kg'
+      WRITE( 6, 140 ) 1, 'Non-reducible snow Hg ocean',
+     &                   SUM(SNOW_HG_STORED_OC), 'kg'
       WRITE( 6, 140 ) 1, 'Reducible snow Hg land', SUM(SNOW_HG_LN), 'kg'
+      WRITE( 6, 140 ) 1, 'Non-reducible snow Hg land',
+     &                   SUM(SNOW_HG_STORED_LN), 'kg'
 
       ! Format strings
  130  FORMAT( /, 'Total masses for each ocean tracer: ' ) 
@@ -3008,11 +3177,14 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
+!  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig. 11/29/11)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC, SNOW_HG_LN
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_STORED_OC
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_STORED_LN
       USE DIRECTORY_MOD,      ONLY : RUN_DIR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
@@ -3158,7 +3330,7 @@
       ENDIF
 
       !---------------------------
-      ! Total reducible Hg in snowpack
+      ! Total reducible Hg in snowpack on ocean
       !---------------------------
          DO NN = 1, N_Hg_CATS
             CATEGORY     = 'SNOW-HG'
@@ -3173,12 +3345,42 @@
          ENDDO
 
       !-----------------------------------
+      ! Total non-reducible Hg in snowpack on ocean
+      !-----------------------------------
+         DO NN = 1, N_Hg_CATS
+            CATEGORY     = 'SNOW-HGN'
+            N            = ID_Hg0(NN)
+            ARRAY(:,:,1) = SNOW_HG_STORED_OC(:,:,NN)
+
+            CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT,      TAU,       TAU,      RESERVED,
+     &                  IIPAR,     JJPAR,     1,        IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ENDDO
+
+      !-----------------------------------
       ! Total reducible Hg in snowpack on land
       !-----------------------------------
          DO NN = 1, N_Hg_CATS
             CATEGORY     = 'SNHG-LN'
             N            = ID_Hg0(NN)
             ARRAY(:,:,1) = SNOW_HG_LN(:,:,NN)
+
+            CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT,      TAU,       TAU,      RESERVED,
+     &                  IIPAR,     JJPAR,     1,        IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ENDDO
+
+      !-----------------------------------
+      ! Total non-reducible Hg in snowpack on land
+      !-----------------------------------
+         DO NN = 1, N_Hg_CATS
+            CATEGORY     = 'SNHGN-LN'
+            N            = ID_Hg0(NN)
+            ARRAY(:,:,1) = SNOW_HG_STORED_LN(:,:,NN)
 
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,

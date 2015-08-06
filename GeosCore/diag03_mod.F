@@ -20,7 +20,7 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      INTEGER, PUBLIC, PARAMETER   :: PD03    = 18         ! Dim of AD03 array
+      INTEGER, PUBLIC, PARAMETER   :: PD03    = 19         ! Dim of AD03 array
       INTEGER, PUBLIC, PARAMETER   :: PD03_PL = 10         ! # of PL-HG2 diags
 
 !
@@ -201,15 +201,17 @@
 !  (15) HG-SRCE  : Emissions from soils            : kg       : 1
 !  (16) HG-SRCE  : Flux-up Hg0 volat from ocean    : kg       : 1
 !  (17) HG-SRCE  : Flux-down Hg0 dry dep to ocean  : kg       : 1
-!  (18) PL-HG2-$ : Production of Hg2 from Hg0      : kg       : 1
-!  (19) PL-HG2-$ : Production of Hg2 from rxn w/OH : kg       : 1
-!  (20) PL-HG2-$ : Production of Hg2 from rxn w/O3 : kg       : 1
-!  (21) PL-HG2-$ : Loss of Hg2 from rxn w/ seasalt : kg       : 1 
-!  (22) PL-HG2-$ : Prod of Hg2 form rxn w/ Br      : kg       : 1
-!  (23) PL-HG2-$ : Br concentration                : molec/cm3: 1
-!  (24) PL-HG2-$ : Br concentration                : molec/cm3: 1
-!  (27) PL-HG2-$ : Reactive gaseous mercury        : pptv     : 1
-!  (28) PL-HG2-$ : Reactice particule mercury      : pptv     : 1
+!  (18) HG-SRCE  : Snow emission of Hg0            : kg       : 1
+!  (19) HG-SRCE  : Delivery of snow Hg2 to ocean   : kg       : 1
+!  ( 1) PL-HG2-$ : Production of Hg2 from Hg0      : kg       : 1
+!  ( 2) PL-HG2-$ : Production of Hg2 from rxn w/OH : kg       : 1
+!  ( 3) PL-HG2-$ : Production of Hg2 from rxn w/O3 : kg       : 1
+!  ( 4) PL-HG2-$ : Loss of Hg2 from rxn w/ seasalt : kg       : 1 
+!  ( 5) PL-HG2-$ : Prod of Hg2 form rxn w/ Br      : kg       : 1
+!  ( 6) PL-HG2-$ : Br concentration                : molec/cm3: 1
+!  ( 7) PL-HG2-$ : Br concentration                : molec/cm3: 1
+!  ( 8) PL-HG2-$ : Reactive gaseous mercury        : pptv     : 1
+!  ( 9) PL-HG2-$ : Reactice particule mercury      : pptv     : 1
 !
 !  NOTES:
 ! 
@@ -739,7 +741,7 @@
             NN                = N
             ARRAY(:,:,1)      = AD03(:,:,N,1) / SCALE
                
-         ELSE IF ( N <= 18 ) THEN
+         ELSE IF ( N <= 19 ) THEN
             
             !--------------------------------
             ! #1,3,4,5,6,9,13,14,15,18: Hg emissions
@@ -747,6 +749,7 @@
             ! #12: Carbon sinking               !anls
             ! #16: Flux-up (Hg0 volat from ocean)
             ! #17: Flux-down (Hg0 dry dep to ocean)
+            ! #19: Snow Hg2 delivery to ocean
             !--------------------------------
             CATEGORY          = 'HG-SRCE'
             UNIT              = 'kg'
