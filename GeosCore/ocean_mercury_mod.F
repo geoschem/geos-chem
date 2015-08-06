@@ -120,6 +120,10 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  23 Feb 2015 - J. Fisher   - Add Arctic MLD (orig. 28/11/11)
+!  05 Aug 2015 - J. Fisher   - Compute ocean chemistry in all ocean boxes
+!			       irrespective of ice cover and reduce radiation,
+!			       Hg deposition accordingly in partial-ice boxes
+!                              (orig. 28/11/11)
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
@@ -725,10 +729,14 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  05 Aug 2015 - J. Fisher   - Compute ocean chemistry in all ocean boxes
+!			       irrespective of ice cover and reduce radiation,
+!			       Hg deposition accordingly in partial-ice boxes
+!                              (orig. 28/11/11)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,            ONLY : IS_WATER 
+      USE DAO_MOD,            ONLY : IS_WATER, IS_ICE
       USE DEPO_MERCURY_MOD,   ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
       USE DIAG03_MOD,         ONLY : AD03, ND03
       USE DIRECTORY_MOD,      ONLY : DATA_DIR
@@ -781,7 +789,7 @@
       REAL*8                :: TC,       TK,       Kw
       REAL*8                :: Sc,       ScCO2,    USQ,      MHg
       REAL*8                :: Hg2_RED,  Hg2_GONE, Hg2_CONV  !HgPaq_SUNK
-      REAL*8                :: FRAC_L,   FRAC_O,   H,        TOTDEP
+      REAL*8                :: FRAC_O,   H,        TOTDEP
       REAL*8                :: oldMLD,   XTAU,     TOTDEPall                   
       REAL*8                :: FUP(IIPAR,JJPAR,N_Hg_CATS)
       REAL*8                :: FDOWN(IIPAR,JJPAR,N_Hg_CATS)
@@ -794,6 +802,7 @@
       !REAL*8                :: Hgaq_tot 
       REAL*8                ::Hg2aq_tot                      
       REAL*8                :: C_tot,    Ze,       OC_tot,   Hg0_OX     
+      REAL*8                :: FRAC_OPEN_OCEAN,    FRAC_OCEAN_OR_ICE
 
       ! Parameters
       REAL*8, PARAMETER     :: EC_w      = 0.0145d0       
@@ -921,19 +930,22 @@
          ! Grid box surface area [m2]
          A_M2 = GET_AREA_M2( I, J, 1 )
 
-!--jaf.start
          ! Use fractional land type information in MERRA (jaf, 4/26/11)
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction.
+         ! We now compute ocean chemistry for entire ocean grid box,
+         ! irrespective of ice cover (jaf, 11/28/11)
 #if   defined( MERRA ) || defined( GEOS_FP )
-         NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * 
-     &             ( State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J) )
-         A_ocean = A_ocean + A_M2 * 
-     &             ( State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J) )
+         NPP_tot = NPP_tot + NPP(I,J) * A_M2 * State_Met%FROCEAN(I,J)
+         A_ocean = A_ocean + A_M2 * State_Met%FROCEAN(I,J)
+!         NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * 
+!     &             ( State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J) )
+!         A_ocean = A_ocean + A_M2 * 
+!     &             ( State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J) )
 #else
-         NPP_tot = NPP_tot+ NPP(I,J) * A_M2 *
+         NPP_tot = NPP_tot + NPP(I,J) * A_M2 *
      &             ( 1d0 - State_Met%FRCLND(I,J))
-         A_ocean = A_ocean + A_M2 * ( 1 - State_Met%FRCLND(I,J) ) 
+         A_ocean = A_ocean + A_M2 * ( 1d0 - State_Met%FRCLND(I,J) ) 
 #endif
 
       ENDDO
@@ -950,7 +962,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,   vi,   A_M2,    Hg2_RED  )
 !$OMP+PRIVATE( J,   NN,   k_ox,    OC_tot,  Hg2_CONV   )
-!$OMP+PRIVATE( N,   TK,   CHg0,    FRAC_L,  k_red_bio  )
+!$OMP+PRIVATE( N,   TK,   CHg0,    k_red_bio  )
 !$OMP+PRIVATE( C,   TC,   RADz,    Hg0_OX,  k_red_rad  )
 !$OMP+PRIVATE( D,   EC,   k_red,   OLDMLD,  TOTDEPall  )
 !$OMP+PRIVATE( Y,   Ze,   ScCO2,   FRAC_O,  Frac_Hg2,   Hg2aq_tot  )
@@ -958,6 +970,7 @@
 !$OMP+PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE   )
 !$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg   )
 !$OMP+PRIVATE( IS_OCEAN_BOX                   )
+!$OMP+PRIVATE( FRAC_OPEN_OCEAN,    FRAC_OCEAN_OR_ICE )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1006,15 +1019,46 @@
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction. Don't let the fraction
          ! be less than zero (jaf, 4/26/11)
+         !---------------------------------------------------------------
+         ! Updated to distinguish between the fraction of the box that is
+         ! open ocean and that which is ocean at depth (i.e. surface is
+         ! either ocean or ice). Unless MERRA is used, these are equal.
+         ! For MERRA, we perform ocean chemistry whether or not there is
+         ! ice cover, but ice will reduce both solar radiation input to
+         ! ocean and mercury deposition to ocean (jaf, 11/28/11)
+         !---------------------------------------------------------------
 #if   defined( MERRA ) || defined( GEOS_FP )
-         FRAC_L       = State_Met%FRLAND(I,J)
-         FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
-     &                       State_Met%FRSEAICE(I,J), 0d0 )
-         IS_OCEAN_BOX = ( ( FRAC_O > 0d0                     ) .and. 
-     &                    ( State_Met%SEAICE00(I,J)  > 0.5d0 ) )
+!         FRAC_L       = State_Met%FRLAND(I,J)
+!         FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
+!     &                       State_Met%FRSEAICE(I,J), 0d0 )
+!         IS_OCEAN_BOX = ( ( FRAC_O > 0d0                     ) .and. 
+!     &                    ( State_Met%SEAICE00(I,J)  > 0.5d0 ) )
+         FRAC_OPEN_OCEAN   = MAX( State_Met%FROCEAN(I,J) - 
+     &                            State_Met%FRSEAICE(I,J), 0d0) 
+         FRAC_OCEAN_OR_ICE = State_Met%FROCEAN(I,J)
+         FRAC_O            = FRAC_OCEAN_OR_ICE 
+         IS_OCEAN_BOX      = ( FRAC_OCEAN_OR_ICE > 0d0 ) 
+#elif defined(GEOS_5)
+! Update to make these more appropriate in GEOS-5 (jaf, 05/27/13)
+! If it's a sea ice box, then ocean/ice fraction=1, open ocean frac=0
+! If it's a non-sea ice ocean box, then ocean/ice fraction=1, open ocean
+! frac = frac_o
+! Note that GEOS-5 met includes FRLAND, FRLANDICE, and FROCEAN but not
+! FRSEAICE
+         FRAC_OCEAN_OR_ICE = State_Met%FROCEAN(I,J)
+         FRAC_O            = FRAC_OCEAN_OR_ICE
+         IS_OCEAN_BOX      = ( FRAC_OCEAN_OR_ICE > 0d0 ) 
+         IF ( IS_ICE( I, J, State_Met ) ) THEN
+           FRAC_OPEN_OCEAN = 0d0
+         ELSE
+           FRAC_OPEN_OCEAN = 1d0
+         ENDIF
 #else
-         FRAC_L       = State_Met%FRCLND(I,J)
-         FRAC_O       = 1d0 - FRAC_L
+!         FRAC_L       = State_Met%FRCLND(I,J)
+!         FRAC_O       = 1d0 - FRAC_L
+         FRAC_O            = 1d0 - State_Met%FRCLND(I,J)
+         FRAC_OPEN_OCEAN   = FRAC_O
+         FRAC_OCEAN_OR_ICE = FRAC_O
          IS_OCEAN_BOX = ( IS_WATER( I, J, State_Met ) )
 #endif
 
@@ -1054,6 +1098,12 @@
             RADz   = ( 1 / ( MLDcm * 1d-2 ))
      &               * (State_Met%RADSWG(I,J) / EC )    
      &               * ( 1 - EXP( -EC * ( MLDcm * 1d-2) ) )
+
+            ! Reduce RADz in fractional sea ice boxes to only include
+            ! the fraction of open ocean (i.e. assume zero light
+            ! penetration through sea ice (jaf, 11/28/11)
+            IF ( FRAC_OCEAN_OR_ICE > FRAC_OPEN_OCEAN )
+     &         RADz = RADz * FRAC_OPEN_OCEAN
 
             !--------------------------------------------------------
             ! Hg(tot)aq reduction rate constants
@@ -1496,7 +1546,10 @@
                TOTDEPall = (WD_Hg2(I,J,NN) + DD_Hg2(I,J,NN) +
      &                   WD_HgP(I,J,NN) + DD_HgP(I,J,NN) ) 
 
-               TOTDEP        = TOTDEPall * FRAC_O
+               ! When distinguishing open ocean vs ice, only deposition
+               ! to ocean should be included in Hg exchange (jaf, 11/28/11)
+               !TOTDEP        = TOTDEPall * FRAC_O
+               TOTDEP        = TOTDEPall * FRAC_OPEN_OCEAN
 
                ! Add deposited Hg(II) to the Hg(II)tot ocean mass [kg]
                Hg2aq_tot     = Hg2aq(I,J,NN) + HgPaq(I,J,NN) + TOTDEP      
@@ -2258,6 +2311,10 @@
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  05 Aug 2015 - J. Fisher   - Compute MLD adjustment in all ocean boxes
+!			       irrespective of ice cover and reduce radiation,
+!			       Hg deposition accordingly in partial-ice boxes
+!                              (orig. 28/11/11)
 !******************************************************************************
 !
       ! Reference to fortran90 modules
@@ -2315,8 +2372,12 @@
       ! FROCEAN is a constant, so to get correct ocean fraction we
       ! need to subtract the sea ice fraction.
 #if   defined( MERRA ) || defined( GEOS_FP )
-      FRAC_O     = MAX( State_Met%FROCEAN(I,J) - 
-     &                  State_Met%FRSEAICE(I,J), 0d0)
+      ! We now apply ocean processes, including MLD adjustment, to
+      ! entire ocean grid box, irrespective of sea ice cover (jaf,
+      ! 11/28/11)
+!      FRAC_O     = MAX( State_Met%FROCEAN(I,J) - 
+!     &                  State_Met%FRSEAICE(I,J), 0d0)
+      FRAC_O     = State_Met%FROCEAN(I,J)
 #else
       FRAC_O = 1d0 - State_Met%FRCLND(I,J)
 #endif
