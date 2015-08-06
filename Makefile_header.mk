@@ -173,6 +173,9 @@
 #  04 Jun 2015 - R. Yantosca - Bug fix: don't turn on UCX except for CHEM=UCX
 #  15 Jun 2015 - R. Yantosca - Now define the HEMCO standalone link command
 #                              separately from the GEOS-Chem link command
+#  07 Jul 2015 - M. Sulprizio- Add option for CHEM=SOA_SVPOA
+#  17 Jul 2015 - E. Lundgren - Remove BSTATIC option when picking pgi options 
+#                              for debug run or regular run 
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -335,6 +338,13 @@ endif
 REGEXP               :=(^[Ss][Oo][Aa])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   KPP_CHEM           :=SOA
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=SOA_SVPOA %%%%%
+REGEXP               :=(^[Ss][Oo][Aa]_[Ss][Vv][Pp][Oo][Aa])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=SOA_SVPOA
   IS_CHEM_SET        :=1
 endif
 
@@ -992,10 +1002,10 @@ ifeq ($(COMPILER),pgi)
   # Pick compiler options for debug run or regular run 
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           :=-byteswapio -Mpreprocess -Bstatic -g -O0 
+    FFLAGS           :=-byteswapio -Mpreprocess -g -O0 
     USER_DEFS        += -DDEBUG
   else
-    FFLAGS           :=-byteswapio -Mpreprocess -Bstatic $(OPT)
+    FFLAGS           :=-byteswapio -Mpreprocess $(OPT)
   endif
 
   # Add options for medium memory model.  This is to prevent G-C from 

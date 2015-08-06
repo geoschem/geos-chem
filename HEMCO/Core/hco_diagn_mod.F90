@@ -1094,7 +1094,7 @@ CONTAINS
   END SUBROUTINE Diagn_Create
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1164,7 +1164,7 @@ CONTAINS
   END SUBROUTINE Diagn_UpdateSp
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1261,16 +1261,19 @@ CONTAINS
 !\\
 !\\
 ! Notes:
-! - For a given time step, the same diagnostics container can be 
-!   updated multiple times. The field average is always defined as
-!   temporal average, e.g. multiple updates on the same time step
-!   will not increase the averaging weight of that time step.
-! - If the passed array is empty (i.e. not associated), it is 
-!   treated as empty values (i.e. zeros).
-! - The collection number can be set to -1 to scan trough all 
-!   existing diagnostic collections.
-!\\
-!\\
+! \begin{itemize}
+! \item For a given time step, the same diagnostics container can be 
+!       updated multiple times. The field average is always defined as
+!       temporal average, e.g. multiple updates on the same time step
+!       will not increase the averaging weight of that time step.
+!
+! \item If the passed array is empty (i.e. not associated), it is 
+!       treated as empty values (i.e. zeros).
+!
+! \item The collection number can be set to -1 to scan trough all 
+!       existing diagnostic collections.
+! \end{itemize}
+!
 ! !INTERFACE:
 !
   SUBROUTINE Diagn_UpdateDriver( am_I_Root, cID,        cName,                  &
@@ -3400,18 +3403,19 @@ CONTAINS
 !
   SUBROUTINE DiagnCollection_Find ( PS, FOUND, RC, ThisColl ) 
 !
-! !INPUT ARGUMENTS:
+! !INPUT PARAMETERS:
 !
     INTEGER,               INTENT(IN   )          :: PS       ! desired collection number 
 !
-! !INPUT/OUTPUT ARGUMENTS:
+! !INPUT/OUTPUT PARAMETERS:
 !
     LOGICAL,               INTENT(  OUT)          :: FOUND    ! Collection exists?
     INTEGER,               INTENT(INOUT)          :: RC       ! Return code 
     TYPE(DiagnCollection), POINTER,      OPTIONAL :: ThisColl ! Pointer to collection 
 !
 ! !REVISION HISTORY:
-!  01 Apr 2015 - C. Keller - Initial version
+!  01 Apr 2015 - C. Keller   - Initial version
+!  10 Jul 2015 - R. Yantosca - Fixed minor issues in ProTeX header
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3460,6 +3464,9 @@ CONTAINS
 !
 ! !IROUTINE: DiagnFileOpen
 !
+! !DESCRIPTION: Opens a diagnostic configuration file.  This is where you
+!  tell HEMCO which diagnostics you would like to send directly to netCDF 
+!  output.
 !\\
 !\\
 ! !INTERFACE:
@@ -3543,7 +3550,8 @@ CONTAINS
 !
 ! !IROUTINE: DiagnFileGetNext
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Gets information from the next line of the diagnostic
+!  configuration file.
 !\\
 !\\
 ! !INTERFACE:
@@ -3652,6 +3660,7 @@ CONTAINS
 !
 ! !IROUTINE: DiagnFileClose
 !
+! !DESCRIPTION: Closes the diagnostic configuration file.
 !\\
 !\\
 ! !INTERFACE:

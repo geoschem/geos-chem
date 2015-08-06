@@ -71,6 +71,7 @@
 !  06 Aug 2012 - R. Yantosca - Make IU_ND20 a local module variable
 !  12 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  07 Jul 2015 - R. Yantosca - Added fixes for several minor issues
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -86,11 +87,12 @@
       CHARACTER(LEN=255)             :: FILENAME
 
       ! Arrays
-      INTEGER,           ALLOCATABLE :: FAM_NMEM(:), COUNT(:,:,:)
-      REAL(fp),          ALLOCATABLE :: FAM_COEF(:,:)
-      REAL(fp),          ALLOCATABLE :: PL24H(:,:,:,:)
-      CHARACTER(LEN=14), ALLOCATABLE :: FAM_TYPE(:)
-      CHARACTER(LEN=14), ALLOCATABLE :: FAM_MEMB(:,:)
+      INTEGER,           ALLOCATABLE :: FAM_NMEM(:      )
+      INTEGER,           ALLOCATABLE :: COUNT   (:,:,:  )
+      REAL(fp),          ALLOCATABLE :: FAM_COEF(:,:    )
+      REAL(fp),          ALLOCATABLE :: PL24H   (:,:,:,:)
+      CHARACTER(LEN=14), ALLOCATABLE :: FAM_TYPE(:      )
+      CHARACTER(LEN=14), ALLOCATABLE :: FAM_MEMB(:,:    )
 
       CONTAINS
 !EOC
@@ -258,9 +260,9 @@
       INTEGER          :: NNPL(MAXFAM)
       INTEGER          :: NKPL(MAXPL,MAXFAM)
       INTEGER          :: IPLREAC(NMRPROD,MAXPL,MAXFAM)
-      REAL(fp)           :: PL
-      REAL(fp)           :: COEFMEM(MAXMEM,MAXFAM)
-      REAL(fp)           :: COEFPL(MAXPL,MAXFAM)
+      REAL(fp)         :: PL
+      REAL(fp)         :: COEFMEM(MAXMEM,MAXFAM)
+      REAL(fp)         :: COEFPL(MAXPL,MAXFAM)
       CHARACTER(LEN=5) :: EXTRACHAR
 
       !=================================================================
@@ -569,7 +571,7 @@
 
             ENDIF        
             
-!           !### Debug (FP 6/2009)
+!      !### Debug (FP 6/2009)
 !      IF ( LPRT ) THEN
 !         CALL DEBUG_MSG( '### SETPL' )
 !            WRITE(6,*) NAMEGAS(IFAM(N))
@@ -604,7 +606,7 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE COMODE_LOOP_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -642,6 +644,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL :: IS_PSO4
       INTEGER :: I, J, L, JLOOP, N
 
       !=================================================================
@@ -662,9 +665,22 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, JLOOP )
+!$OMP+PRIVATE( I, J, L, N, JLOOP, IS_PSO4 )
 !$OMP+SCHEDULE( DYNAMIC ) 
       DO N = 1, NFAMILIES
+
+         ! Now avoid doing a string comparison in the (I,J,L) loops
+         ! We can do it once here and then save the value for use below
+         ! (bmy, 7/8/15)
+#if defined( TOMAS )
+         ! For TOMAS: test if this is the PSO4 family
+         IS_PSO4 = ( TRIM( FAM_NAME(N) ) == 'PSO4' )
+#else
+         ! Otherwise skip it
+         IS_PSO4 = .FALSE.
+#endif
+
+      ! Loop over grid boxes
       DO L = 1, LD65
       DO J = 1, NLAT
       DO I = 1, NLONG
@@ -691,11 +707,12 @@
 
             ! Calculate H2SO4 production rate [kg s-1] in each time step 
             ! (win, 8/4/09)
-            IF ( FAM_NAME(N) == 'PSO4' ) 
-     &           H2SO4RATE(I,J,L) = CSPEC(JLOOP,IFAM(N)) / 
-     &                          6.022e+23_fp  *
-     &                          98.e-3_fp * State_Met%AIRVOL(I,J,L) *
-     &                          1e+6_fp   / CHEMINTV
+            IF ( IS_PSO4 ) THEN 
+               H2SO4RATE(I,J,L) = CSPEC(JLOOP,IFAM(N)) / 
+     &                            6.022e+23_fp  *
+     &                            98.e-3_fp * State_Met%AIRVOL(I,J,L) *
+     &                            1e+6_fp   / CHEMINTV
+            ENDIF
 #endif
 
             ! Zero each "fake" ND65 prod/loss family for next iteration
@@ -757,6 +774,7 @@
       USE TIME_MOD,           ONLY : EXPAND_DATE,   GET_NYMD
       USE TIME_MOD,           ONLY : GET_TAU,       GET_TAUb 
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
+      USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE TRACERID_MOD,       ONLY : IDTO3
 !
 ! !INPUT PARAMETERS:
@@ -773,11 +791,25 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
-!  DIAG20 assumes that ND65 (P-L diagnostics) have been turned on.
+!  If you want to archive the prod and loss of ozone from one of the full-
+!  chemistry simulations (e.g. tropchem, UCX, SOA), then the PROD & LOSS MENU
+!  in your input.geos file should look similar to this:
+!                                                                             .
+!      %%% PROD & LOSS MENU %%%:
+!      Turn on P/L (ND65) diag?: T
+!      # of levels for ND65    : 47
+!      Save O3 P/L (ND20)?     : T
+!      Number of P/L families  : 2 (or more, if saving out other families)
+!      1st  chemical family    : POX: O3
+!      2nd  chemical family    : LOX: O3
+!                                                                             .
+!  Now that we no longer use family tracers, we the POX and LOX diagnostic
+!  families should just contain the O3 tracer.  Otherwise the loss rates may
+!  appear smaller than they should be.
 !
 !  ##########################################################################
 !  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####    WILL EVENTUALLY BE WRITTEN TO netCDF FILES FOR HEMCO!       #####
 !  #####       -- Bob Yantosca (05 Mar 2015)                            #####
 !  ##########################################################################
 !
@@ -803,22 +835,35 @@
 !                              NOx-Ox partitioning
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object + RC via the arg list
 !  04 Apr 2013 - R. Yantosca - Now pass the Input_Opt object
+!  06 Jul 2015 - R. Yantosca - Zero P_Ox and L_Ox variables at start of loop
+!  06 Jul 2015 - R. Yantosca - Now skip computations if we are not in the
+!                              chemgrid (where JLOOP == 0)
+!  08 Jul 2015 - R. Yantosca - Now save POx as kg/m3/s and LOx as 1/m3/s,
+!                              for compatibility with HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       LOGICAL, SAVE     :: FIRST = .TRUE.
       LOGICAL           :: DO_WRITE
       INTEGER           :: I, J, L, N, JLOOP
       REAL(fp)          :: P_Ox, L_Ox
+      REAL(fp)          :: LT
+
+      ! Strings
       CHARACTER(LEN=16) :: STAMP 
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: STT(:,:,:,:)
+!
+! !DEFINED PARAMETERS:
+!
+      ! Local time limits (optional)
+      REAL(fp), PARAMETER :: LT_START = 12.0e+0_fp
+      REAL(fp), PARAMETER :: LT_END   = 16.0e+0_fp
 
       !=================================================================
       ! DIAG20 begins here!
@@ -861,45 +906,70 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, P_Ox, L_Ox, JLOOP )
+!$OMP+PRIVATE( I, J, L, P_Ox, L_Ox, JLOOP, LT )
+!$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LD65
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         !-------------
-         ! Counter
-         !-------------
+         ! Zero P(Ox), L(Ox) variables for safety's sake
+         P_Ox  = 0e+0_fp
+         L_Ox  = 0e+0_fp
 
          ! JLOOP is the 1-D grid box index for SMVGEAR arrays
          JLOOP = JLOP(I,J,L)
 
-         ! If this is a valid grid box, increment counter
-         IF ( JLOOP > 0 ) COUNT(I,J,L) = COUNT(I,J,L) + 1
+         ! If this is a grid box where we have done chemistry, then ...
+         IF ( JLOOP > 0 ) THEN
 
-         !-------------
-         ! Production
-         !-------------
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%% NOTE: If you want to restrict output to a given local
+            !%%% time range, then uncomment these lines of code.
+            !%%% (bmy, 7/9/15)
+            !
+            ! Get the local time at box (I,J,L)
+            !LT = GET_LOCALTIME( I, J, L )
+            !
+            ! Skip processing if we are outside of the desired 
+            ! local time range (bmy, 7/9/15)
+            !IF ( LT < LT_START .or. LT > LT_END ) CYCLE
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         ! Convert P(Ox) from [molec/cm3/s] to [kg/cm3/s]
-         P_Ox           = FAM_PL(I,J,L,1) / Input_Opt%XNUMOL(IDTO3)
+            ! Increment counter of valid grid boxes
+            COUNT(I,J,L) = COUNT(I,J,L) + 1
 
-         ! Store P(Ox) [kg/cm3/s] in PL24H array
-         PL24H(I,J,L,1) = PL24H(I,J,L,1) + P_Ox
+            !-----------------------------------------------------------
+            ! Production
+            !-----------------------------------------------------------
 
-         !-------------
-         ! Loss
-         !-------------
+            ! Convert P(Ox) from [molec/cm3/s] to [kg/cm3/s]
+            P_Ox           = FAM_PL(I,J,L,1) / Input_Opt%XNUMOL(IDTO3)
 
-         ! Convert Ox mass from [kg] to [molec]
-         L_Ox           = STT(I,J,L,IDTO3) * Input_Opt%XNUMOL(IDTO3)
+            ! Convert to [kg/m3/s], for HEMCO (bmy, 7/7/15)
+            P_Ox           = P_Ox * 1e+6_fp
 
-         ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 
-         ! in order to get L(Ox) in [1/cm3/s]
-         L_Ox           = FAM_PL(I,J,L,2) / L_Ox
+            ! Store P(Ox) [kg/m3/s] in PL24H array
+            PL24H(I,J,L,1) = PL24H(I,J,L,1) + P_Ox
 
-         ! Store L(Ox) [1/cm3/s] in PL24H array
-         PL24H(I,J,L,2) = PL24H(I,J,L,2) + L_Ox
-            
+            !-----------------------------------------------------------
+            ! Loss
+            !-----------------------------------------------------------
+
+            ! Convert Ox mass from [kg] to [molec]
+            L_Ox           = STT(I,J,L,IDTO3) * Input_Opt%XNUMOL(IDTO3)
+
+            ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 
+            ! in order to get L(Ox) in [1/cm3/s]
+            L_Ox           = FAM_PL(I,J,L,2) / L_Ox
+
+            ! Convert to [1/m3/s], for HEMCO (bmy, 7/7/15)
+            L_Ox           = L_Ox * 1.e+6_fp
+
+            ! Store L(Ox) [1/m3/s] in PL24H array
+            PL24H(I,J,L,2) = PL24H(I,J,L,2) + L_Ox
+           
+         ENDIF
+ 
       ENDDO
       ENDDO
       ENDDO
@@ -913,7 +983,8 @@
       !=================================================================
 
       ! Check to see if the next chemistry timestep is the start of a
-      ! new day.  If so then we need to write to disk. (bmy, 3/3/05)
+      ! new day, or the last chemistry timestep before the end-of-run.
+      ! If so, then we need to write to disk. (bmy, 7/6/15)
       IF ( ITS_TIME_FOR_WRITE20( TAU1 ) ) THEN
 
          ! Compute average daily values
@@ -924,8 +995,9 @@
          DO L = 1, LD65
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( COUNT(I,J,L) /= 0 )
-     $           PL24H(I,J,L,N) = PL24H(I,J,L,N) / COUNT(I,J,L)
+            IF ( COUNT(I,J,L) /= 0 ) THEN
+               PL24H(I,J,L,N) = PL24H(I,J,L,N) / COUNT(I,J,L)
+            ENDIF
          ENDDO
          ENDDO
          ENDDO
@@ -944,14 +1016,13 @@
  110     FORMAT( '     - DIAG20: Writing ', a )
 
          ! Write P(Ox) and L(Ox) to disk
-         CALL WRITE20
+         CALL WRITE20()
 
-         ! Zero arrays
+         ! Reset variables for the next diagnostic interval
          COUNT = 0
          PL24H = 0e+0_fp
-
-         ! Reset for the next day
          TAU0  = TAU1
+
       ENDIF
 
       END SUBROUTINE DIAG20
@@ -969,7 +1040,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE20
+      SUBROUTINE WRITE20()
 !
 ! !USES:
 !
@@ -981,6 +1052,15 @@
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! LD65
 ! 
+! !REMARKS:
+!  WRITE20 assumes that ND65 (P-L diagnostics) have been turned on.
+!
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE WRITTEN TO netCDF FILES FOR HEMCO!       #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+!
 ! !REVISION HISTORY:
 !  09 Jun 1999 - I. Bey      - Initial version
 !  (1 ) Now bundled into "diag20_mod.f" (bmy, 7/20/04)
@@ -990,6 +1070,9 @@
 !  (4 ) Now only write up to LD65 levels (phs, bmy, 12/4/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  06 Jul 2015 - R. Yantosca - Now do not use parallel loops for casting
+!  06 Jul 2015 - R. Yantosca - Bug fix: restore missing JFIRST assignment
+!  08 Jul 2015 - R. Yantosca - Now save out as per m3 instead of per cm3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1016,7 +1099,7 @@
       IU_ND20   = findFreeLUN()
 
       ! Define various parameters for the BPCH file
-      TITLE     = 'GEOS-CHEM archived P(O3) and L(O3) rates for Tag Ox'
+      TITLE     = 'GEOS-CHEM archived P(O3) and L(O3) rates for Tag O3'
       CATEGORY  = 'PORL-L=$'
       RESERVED  = ''
       LONRES    = DISIZE
@@ -1034,21 +1117,14 @@
       ! Save P(O3) to disk
       !=================================================================
 
-      ! Cast to REAL*4 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LD65
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         ARRAY(I,J,L) = PL24H(I,J,L,1)
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+      ! Zero for safety's sake
+      ARRAY = 0e0
 
-      ! Unit string
-      UNIT = 'kg/cm3/s'
+      ! Cast P(Ox) to REAL*4
+      ARRAY(:,:,1:LD65) = PL24H(:,:,1:LD65,1)
+
+      ! Now save out as kg/m3/s, compatible with HEMCO (bmy, 7/8/15)
+      UNIT = 'kg/m3/s'
 
       ! Save P(O3) to BPCH file
       CALL BPCH2( IU_ND20,   MODELNAME, LONRES,    LATRES,    
@@ -1061,21 +1137,14 @@
       ! Save L(O3) to disk
       !=================================================================
 
-      ! Cast to REAL*4 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LD65
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         ARRAY(I,J,L) = PL24H(I,J,L,2)
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+      ! Zero for safety's sake
+      ARRAY = 0e0
 
-      ! Unit string
-      UNIT = '1/cm3/s'
+      ! Cast L(Ox) to REAL*4
+      ARRAY(:,:,1:LD65) = PL24H(:,:,1:LD65,2)
+
+      ! Now save out as 1/m3/s, compatible with HEMCO (bmy, 7/8/15)
+      UNIT = '1/m3/s'
 
       ! Save L(O3) to BPCH file
       CALL BPCH2( IU_ND20,   MODELNAME, LONRES,    LATRES,    
@@ -1122,6 +1191,7 @@
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  06 Jul 2015 - R. Yantosca - Now use TAU+CHEM >= TAUe to test for end of run
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1154,11 +1224,11 @@
          RETURN
       ENDIF
 
-      ! If the next dyn timestep is the 
-      ! end of the run, return TRUE
-      IF ( TAU + DYN == GET_TAUe() ) THEN
+      ! If the next chem timestep is the end of the run, return TRUE.
+      ! This allows us to do short debuggging runs (bmy, 7/6/15)
+      IF ( TAU + CHEM >= GET_TAUe() ) THEN
          ITS_TIME = .TRUE.
-         TAU_W    = TAU + DYN
+         TAU_W    = TAU + CHEM
          RETURN
       ENDIF
 
@@ -1383,7 +1453,7 @@
       INTEGER,           INTENT(IN) :: NMEM(MAXFAM)
 
       ! Coefficients for each prod/loss family member
-      REAL(fp),            INTENT(IN) :: COEF(MAXMEM,MAXFAM)
+      REAL(fp),          INTENT(IN) :: COEF(MAXMEM,MAXFAM)
 
       ! Prod/loss family name
       CHARACTER(LEN=14), INTENT(IN) :: NAME(MAXFAM)
@@ -1405,6 +1475,7 @@
 !  26 Apr 2013 - R. Yantosca - Removed LTOMAS; we now use #if defined( TOMAS )
 !  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  06 Jul 2015 - R. Yantosca - Bug fix: zero arrays after allocation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1453,6 +1524,7 @@
       !=================================================================
       ALLOCATE( AD65( IIPAR, JJPAR, LD65, NFAM ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'AD65' )
+      AD65 = 0.0e+0_f4
 
       ALLOCATE( FAM_NMEM( MAXFAM ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_NMEM' )
@@ -1460,7 +1532,7 @@
 
       ALLOCATE( FAM_COEF( MAXMEM, MAXFAM ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_COEF' )
-      FAM_COEF = 0d0
+      FAM_COEF = 0.0e+0_fp
 
       ALLOCATE( FAM_NAME( MAXFAM ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_NAME' )
@@ -1482,20 +1554,24 @@
       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
          ALLOCATE( FAM_PL( IIPAR, JJPAR, LD65, NFAM ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_PL' )
+         FAM_PL = 0.0e+0_fp
       ENDIF
 
 #if   defined ( TOMAS )
       ! Only allocate H2SO4RATE for a TOMAS simulation !(win, 7/709)
       ALLOCATE( H2SO4RATE( IIPAR, JJPAR, LLTROP ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'H2SO4RATE' )
+      H2SO4RATE = 0.0e+0_fp
 #endif
 
-      ! Allocate PL24H if we are also saving out the P(Ox)
-      ! and L(Ox) 
+      ! If we are saving out P(Ox), L(Ox) for the tagO3 simulation...
       IF ( DO_SAVE_O3 ) THEN
+
+         ! Allocate the array for P(Ox), L(Ox)
          ALLOCATE( PL24H( IIPAR, JJPAR, LD65, 2 ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'PL24H' )
          PL24H = 0e+0_fp
+
       ENDIF
 
       !=================================================================
@@ -1526,21 +1602,23 @@
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  07 Jul 2015 - R. Yantosca - Now deallocate PL24H, O3_MOLEC arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
       ! CLEANUP_DIAG65 begins here!
       !=================================================================
-      IF ( ALLOCATED( AD65     ) ) DEALLOCATE( AD65     )
-      IF ( ALLOCATED( FAM_COEF ) ) DEALLOCATE( FAM_COEF )
-      IF ( ALLOCATED( FAM_NAME ) ) DEALLOCATE( FAM_NAME )
-      IF ( ALLOCATED( FAM_NMEM ) ) DEALLOCATE( FAM_NMEM )
-      IF ( ALLOCATED( FAM_MEMB ) ) DEALLOCATE( FAM_MEMB )
-      IF ( ALLOCATED( FAM_PL   ) ) DEALLOCATE( FAM_PL   )
-      IF ( ALLOCATED( FAM_TYPE ) ) DEALLOCATE( FAM_TYPE )
+      IF ( ALLOCATED( AD65      ) ) DEALLOCATE( AD65      )
+      IF ( ALLOCATED( FAM_COEF  ) ) DEALLOCATE( FAM_COEF  )
+      IF ( ALLOCATED( FAM_NAME  ) ) DEALLOCATE( FAM_NAME  )
+      IF ( ALLOCATED( FAM_NMEM  ) ) DEALLOCATE( FAM_NMEM  )
+      IF ( ALLOCATED( FAM_MEMB  ) ) DEALLOCATE( FAM_MEMB  )
+      IF ( ALLOCATED( FAM_PL    ) ) DEALLOCATE( FAM_PL    )
+      IF ( ALLOCATED( FAM_TYPE  ) ) DEALLOCATE( FAM_TYPE  )
+      IF ( ALLOCATED( PL24H     ) ) DEALLOCATE( PL24H     )
 #if   defined( TOMAS )
-      IF ( ALLOCATED( H2SO4RATE) ) DEALLOCATE( H2SO4RATE)  !(win, 1/25/10)
+      IF ( ALLOCATED( H2SO4RATE ) ) DEALLOCATE( H2SO4RATE )
 #endif
 
       END SUBROUTINE CLEANUP_DIAG_PL

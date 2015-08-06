@@ -5,7 +5,7 @@
 !
 ! !MODULE: precision_mod
 !
-! !DESCRIPTION: Module precision\_mod is used to change the precision of
+! !DESCRIPTION: Module PRECISION\_MOD is used to change the precision of
 !  many variables throughout GEOS-Chem at compile-time.
 !\\
 !\\

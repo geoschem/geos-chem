@@ -47,6 +47,7 @@
       USE DRYDEP_MOD                         ! For dry deposition
       USE TRACERID_MOD                       ! For tracer flags
       USE WETSCAV_MOD                        ! For wet deposition
+      
 #if   defined( TOMAS )
       USE TOMAS_MOD, ONLY : ICOMP, IDIAG, IBINS  !(win, 1/25/10)
 #endif
@@ -261,6 +262,7 @@
 !                              should be molec/cm2/s instead of atoms C/cm2/2.
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !  22 May 2015 - R. Yantosca - Replace NOXEXTENT with 2 in TOMAS #if blocks
+!  07 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -563,6 +565,7 @@
 !   # : Field    : Description                     : Units      : Scale factor
 !  --------------------------------------------------------------------------
 !  (1)  DUST     : Soil dust (4 different classes) : kg         : 1
+ 
 !******************************************************************************
 !
       IF ( ND06 > 0 .and. Input_Opt%LDUST .and. Input_Opt%LEMIS ) THEN
@@ -619,6 +622,33 @@
      &                      UNIT,      NN, 1, -1, .FALSE.,  FACTOR, RC )
 
          ENDDO !N
+
+         ! Include Dust alkalinity sources   tdf 6/18/2K8
+         IF ( Input_Opt%LDSTUP ) THEN
+            DO N = 5, Input_Opt%N_DUST_BINS*2
+
+               SELECT CASE ( N )
+                  CASE ( 5 )
+                     NN         = IDTDAL1
+                     DiagnName  = 'AD06_DSTAL1'
+                  CASE ( 6 )
+                     NN         = IDTDAL2
+                     DiagnName  = 'AD06_DSTAL2'
+                  CASE ( 7 )
+                     NN         = IDTDAL3
+                     DiagnName  = 'AD06_DSTAL3'
+                  CASE ( 8 )
+                     NN         = IDTDAL4
+                     DiagnName  = 'AD06_DSTAL4'
+               END SELECT
+
+               ! Write to HEMCO diagnostics to bpch file
+               CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                         UNIT,      NN, 1, -1, .FALSE.,  FACTOR,
+     &                         RC )
+            ENDDO
+         ENDIF
+
       ENDIF     
 !
 !******************************************************************************
@@ -1212,6 +1242,8 @@
 !  --------------------------------------------------------------------------
 !  (1)  SALA     : Accumulation mode seasalt       : kg         : 1
 !  (2)  SALC     : Coarse mode seasalt             : kg         : 1
+!  (3)  MOPO     : Marine organic aerosol - phobo  : kg         : 1
+!  (4)  MOPI     : Marine organic aerosol - philic : kg         : 1
 !******************************************************************************
 !
       IF ( ND08 > 0 .and. Input_Opt%LSSALT .and. Input_Opt%LEMIS ) THEN
@@ -1220,10 +1252,10 @@
          UNIT     = 'kg'
          CATEGORY = 'SALTSRCE'
 
-         ! Loop over seasalt tracers
+         ! Loop over default seasalt tracers
          DO N = 1, 2
 
-            ! At present we have 2 seasalts
+            ! At present we have 2 default seasalts
             IF ( N == 1 ) THEN
                NN = IDTSALA
                DiagnName  = 'AD08_SALA'
@@ -1237,6 +1269,26 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          ENDDO
+
+         ! Loop over optional marine organic aerosols
+         IF ( Input_Opt%LMPOA ) THEN
+            DO N = 3, 4
+   
+               IF ( N == 3 ) THEN
+                  NN = IDTMOPO
+                  DiagnName  = 'AD08_MOPO'
+               ELSEIF ( N == 4 ) THEN
+                  NN = IDTMOPI
+                  DiagnName  = 'AD08_MOPI'
+               ENDIF
+   
+               CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                         UNIT, NN, 1, -1, .FALSE., 1.0e+0_fp, RC )
+               IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP (DiagnName, LOC)
+   
+            ENDDO
+         ENDIF
+
       ENDIF   
 !
 !******************************************************************************

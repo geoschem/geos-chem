@@ -182,6 +182,8 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
+!                              aerosols (T.D. Fairlie)
 !  29 Jan 2014 - R. Yantosca - Now set MAXDEP=105 for all simulations.  For
 !                              TOMAS we had MAXDEP=100; this is close enough.
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
@@ -197,7 +199,8 @@
 ! !DEFINED PARAMETERS:
 !
       ! SOAupdate: 55 to 105 jje (8/19/2010)
-      INTEGER,  PARAMETER :: MAXDEP    = 105       ! Max # of depositing species
+      ! Marine organic aerosols update: 105 to 107 (ewl, 7/8/15)
+      INTEGER,  PARAMETER :: MAXDEP    = 107       ! Max # of depositing species
       REAL(f8), PARAMETER :: XCKMAN    = 0.4e+0_f8 ! Von Karman's constant
       INTEGER,  PARAMETER :: NR_MAX    = 200       ! # of seasalt bins 
       INTEGER,  PARAMETER :: NDRYDTYPE = 11        ! # of drydep land types
@@ -1065,6 +1068,8 @@
 !  29 Aug 2013 - R. Yantosca - Bug fix: Skip to the next species if unless
 !                              HSTAR>0 and XMW>0, or AIROSOL=t.  This avoids
 !                              a floating-point invalid condition.
+!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
+!                              aerosols (T.D. Fairlie)
 !  28 Jan 2014 - R. Yantosca - For TOMAS, don't hold A_RADI and A_DEN PRIVATE
 !  19 May 2014 - C. Keller   - Now call BIOFIT from drydep_toolbox_mod.F
 !
@@ -1512,11 +1517,102 @@
                   ! [Zhang et al., 2001]
                   ! Now pass DIAM, DEN as arguments (bmy, 1/31/14)
                   RSURFC(K,LDT) = DUST_SFCRSII( K, II, 
-     &                                     PRESSU(IJLOOP)*1e-3_f8, 
-     &                                          TEMPK, 
-     &                                          USTAR(IJLOOP),
-     &                                          DIAM,  
-     &                                          DEN )
+     &                            PRESSU(IJLOOP)*1e-3_f8, 
+     &                            TEMPK, 
+     &                            USTAR(IJLOOP),
+     &                            DIAM,  
+     &                            DEN )
+
+               ELSE IF ( ( DEPNAME(K) == 'DSTAL1' )  .OR.
+     &                   ( DEPNAME(K) == 'DSTAL2' )  .OR.
+     &                   ( DEPNAME(K) == 'DSTAL3' )  .OR.
+     &                   ( DEPNAME(K) == 'DSTAL4' ) ) THEN
+
+                  !=====================================================
+                  ! Use size-resolved dry deposition calculations for
+                  ! dust alkalinity only.  Do not account for hygroscopic
+                  ! growth of the dust aerosol particles.
+                  ! (tdf 4/30/08)
+                  !=====================================================
+
+!                  ! [Seinfeld, 1986]
+!                  RSURFC(K,LDT) =
+!     &             DUST_sfcRsI(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
+
+                  ! Particle diameter [m]
+                  DIAM  = A_RADI(K) * 2.e+0_f8 
+
+                  ! Particle density [kg/m3]
+                  DEN   = A_DEN(K) 
+
+                  ! [Zhang et al., 2001]
+                  RSURFC(K,LDT) = DUST_SFCRSII(K, II,
+     &                            PRESSU(IJLOOP)*1e-3_fp,
+     &                            TEMPK,
+     &                            USTAR(IJLOOP),
+     &                            DIAM,  
+     &                            DEN )
+
+               ELSE IF ( ( DEPNAME(K) == 'NITD1' )  .OR.
+     &                   ( DEPNAME(K) == 'NITD2' )  .OR.
+     &                   ( DEPNAME(K) == 'NITD3' )  .OR.
+     &                   ( DEPNAME(K) == 'NITD4' ) ) THEN
+
+                  !=====================================================
+                  ! Use size-resolved dry deposition calculations for
+                  ! dust alkalinity only.  Do not account for hygroscopic
+                  ! growth of the dust aerosol particles.
+                  ! (tdf 4/30/08)
+                  !=====================================================
+
+!                  ! [Seinfeld, 1986]
+!                  RSURFC(K,LDT) =
+!     &             DUST_sfcRsI(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
+
+                  ! Particle diameter [m]
+                  DIAM  = A_RADI(K) * 2.e+0_f8 
+
+                  ! Particle density [kg/m3]
+                  DEN   = A_DEN(K) 
+
+                  ! [Zhang et al., 2001]
+                  RSURFC(K,LDT) = DUST_SFCRSII(K, II,
+     &                            PRESSU(IJLOOP)*1e-3_fp,
+     &                            TEMPK,
+     &                            USTAR(IJLOOP),
+     &                            DIAM,  
+     &                            DEN )
+
+               ELSE IF ( ( DEPNAME(K) == 'SO4D1' )  .OR.
+     &                   ( DEPNAME(K) == 'SO4D2' )  .OR.
+     &                   ( DEPNAME(K) == 'SO4D3' )  .OR.
+     &                   ( DEPNAME(K) == 'SO4D4' ) ) THEN
+
+                  !=====================================================
+                  ! Use size-resolved dry deposition calculations for
+                  ! dust alkalinity only.  Do not account for hygroscopic
+                  ! growth of the dust aerosol particles.
+                  ! (tdf 4/30/08)
+                  !=====================================================
+
+!                  ! [Seinfeld, 1986]
+!                  RSURFC(K,LDT) =
+!     &             DUST_sfcRsI(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
+
+                  ! Particle diameter [m]
+                  DIAM  = A_RADI(K) * 2.e+0_f8 
+
+                  ! Particle density [kg/m3]
+                  DEN   = A_DEN(K) 
+
+                  ! [Zhang et al., 2001]
+                  RSURFC(K,LDT) = DUST_SFCRSII(K, II,
+     &                            PRESSU(IJLOOP)*1e-3_fp,
+     &                            TEMPK,
+     &                            USTAR(IJLOOP),
+     &                            DIAM,  
+     &                            DEN )
+
 
 #if   defined( TOMAS )
                ! (win, 7/15/09)
@@ -3898,7 +3994,10 @@
 !                              prevents XMW=0e+0_f8 from being passed to function
 !                              DIFFG, where it is in the denominator.
 !  04 Sep 2013 - R. Yantosca - Improve printout of drydep species
+!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
+!                              aerosols (T.D. Fairlie)
 !  15 Jan 2015 - R. Yantosca - Now save NTRAIND to Input_Opt%NTRAIND
+!  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4645,6 +4744,17 @@
             XMW(NUMDEP)     = 12e-3_f8
             AIROSOL(NUMDEP) = .TRUE.
 
+         ! Hydrophilic Marine OC (aerosol)
+         ELSE IF ( N == IDTMOPI ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTMOPI
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'MOPI'
+            HSTAR(NUMDEP)   = 0.0e+0_f8
+            F0(NUMDEP)      = 0.0e+0_f8
+            XMW(NUMDEP)     = 12e-3_f8
+            AIROSOL(NUMDEP) = .TRUE.
+
          ! Hydrophobic BC (aerosol)
          ELSE IF ( N == IDTBCPO ) THEN
             NUMDEP          = NUMDEP + 1
@@ -4662,6 +4772,17 @@
             NTRAIND(NUMDEP) = IDTOCPO
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'OCPO'
+            HSTAR(NUMDEP)   = 0.0e+0_f8
+            F0(NUMDEP)      = 0.0e+0_f8
+            XMW(NUMDEP)     = 12e-3_f8
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! Hydrophobic Marine OC (aerosol)
+         ELSE IF ( N == IDTMOPO ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTMOPO
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'MOPO'
             HSTAR(NUMDEP)   = 0.0e+0_f8
             F0(NUMDEP)      = 0.0e+0_f8
             XMW(NUMDEP)     = 12e-3_f8
@@ -5059,6 +5180,176 @@
             XMW(NUMDEP)     = 29e-3_f8
             A_RADI(NUMDEP)  = 4.5e-6_f8
             A_DEN(NUMDEP)   = 2650.e+0_f8   
+            AIROSOL(NUMDEP) = .TRUE.
+
+         !----------------------------------
+         ! Dust Alkalinity aerosol tracers
+         ! tdf
+         !----------------------------------
+
+         ! DUST1 alkalinity (aerosol)
+         ELSE IF ( N == IDTDAL1 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTDAL1
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'DSTAL1'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 0.73d-6
+            A_DEN(NUMDEP)   = 2500.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! DUST2 alkalinity (aerosol)
+         ELSE IF ( N == IDTDAL2 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTDAL2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'DSTAL2'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 1.4d-6
+            A_DEN(NUMDEP)   = 2650.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! DUST3 alkalinity (aerosol)
+         ELSE IF ( N == IDTDAL3 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTDAL3
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'DSTAL3'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 2.4d-6
+            A_DEN(NUMDEP)   = 2650.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! DUST4 alkalinity (aerosol)
+         ELSE IF ( N == IDTDAL4 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTDAL4
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'DSTAL4'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 4.5d-6
+            A_DEN(NUMDEP)   = 2650.d0
+            AIROSOL(NUMDEP) = .TRUE.
+         !----------------------------------
+         ! Dust nitrate aerosol tracers
+         ! tdf
+         !----------------------------------
+
+         ! DUST1 nitrate (aerosol)
+         ELSE IF ( N == IDTNITd1 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNITd1
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NITD1'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 0.73d-6
+            A_DEN(NUMDEP)   = 2500.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! DUST2 nitrate (aerosol)
+         ELSE IF ( N == IDTNITd2 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNITd2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NITD2'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 1.4d-6
+            A_DEN(NUMDEP)   = 2650.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! DUST3 nitrate (aerosol)
+         ELSE IF ( N == IDTNITd3 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNITd3
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NITD3'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 2.4d-6
+            A_DEN(NUMDEP)   = 2650.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+        ! DUST4 nitrate (aerosol)
+         ELSE IF ( N == IDTNITd4 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNITd4
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NITD4'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 4.5d-6
+            A_DEN(NUMDEP)   = 2650.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         !----------------------------------
+         ! Dust sulfate aerosol tracers
+         ! tdf
+         !----------------------------------
+
+         ! DUST1 sulfate (aerosol)
+         ELSE IF ( N == IDTSO4d1 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSO4d1
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SO4D1'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 0.73d-6
+            A_DEN(NUMDEP)   = 2500.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! DUST2 sulfate (aerosol)
+         ELSE IF ( N == IDTSO4d2 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSO4d2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SO4D2'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 1.4d-6
+            A_DEN(NUMDEP)   = 2650.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! DUST3 sulfate (aerosol)
+         ELSE IF ( N == IDTSO4d3 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSO4d3
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SO4D3'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 2.4d-6
+            A_DEN(NUMDEP)   = 2650.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! DUST4 sulfate (aerosol)
+         ELSE IF ( N == IDTSO4d4 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSO4d4
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SO4D4'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 29d-3
+            A_RADI(NUMDEP)  = 4.5d-6
+            A_DEN(NUMDEP)   = 2650.d0
             AIROSOL(NUMDEP) = .TRUE.
 
          !----------------------------------

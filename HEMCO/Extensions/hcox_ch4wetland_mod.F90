@@ -529,7 +529,7 @@ CONTAINS
 !
 ! !IROUTINE: RICE_EMIS 
 !
-! !DESCRIPTION: Subroutine RICE_EMIS is the driver routine for the CH4
+! !DESCRIPTION: Subroutine RICE\_EMIS is the driver routine for the CH4
 ! rice emissions. It calculates rice emissions and writes them into the
 ! passed array CH4.
 !\\

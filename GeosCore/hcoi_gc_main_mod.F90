@@ -183,7 +183,7 @@ CONTAINS
 !
     LOGICAL                         :: LSTRAT,  FOUND
     INTEGER                         :: nHcoSpc, HMRC
-    CHARACTER(LEN=255)              :: OptName, LOC
+    CHARACTER(LEN=255)              :: OptName, LOC, MSG
 
     !=================================================================
     ! HCOI_GC_INIT begins here!
@@ -335,7 +335,7 @@ CONTAINS
     IF( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC )
 
     !-----------------------------------------------------------------
-    ! Update logical switches in Input_Opt 
+    ! Update and check logical switches in Input_Opt 
     !-----------------------------------------------------------------
 
     ! Soil NOx
@@ -343,14 +343,36 @@ CONTAINS
 
     ! Ginoux dust emissions
     IF ( ExtState%DustGinoux ) THEN
-       Input_Opt%LDUST      = .TRUE.
+       IF ( .not. Input_Opt%LDUST ) THEN
+          MSG = 'DustGinoux is on in HEMCO but LDUST=F in input.geos'
+          CALL ERROR_STOP( MSG, LOC )
+       ENDIF
        Input_Opt%LDEAD      = .FALSE.
     ENDIF
 
     ! DEAD dust emissions
     IF ( ExtState%DustDead ) THEN
-       Input_Opt%LDUST      = .TRUE.
+       IF ( .not. Input_Opt%LDUST ) THEN
+          MSG = 'DustDead is on in HEMCO but LDUST=F in input.geos'
+          CALL ERROR_STOP( MSG, LOC )
+       ENDIF
        Input_Opt%LDEAD      = .TRUE.
+    ENDIF
+
+    ! Dust alkalinity
+    IF ( ExtState%DustAlk ) THEN
+       IF ( .not. Input_Opt%LDSTUP ) THEN
+          MSG = 'DustAlk is on in HEMCO but LDSTUP=F in input.geos'
+          CALL ERROR_STOP( MSG, LOC )
+       ENDIF
+    ENDIF
+
+    ! Marine organic aerosols
+    IF ( ExtState%MarinePOA ) THEN
+       IF ( .not. Input_Opt%LMPOA ) THEN
+          MSG = 'MarinePOA is on in HEMCO but LMPOA=F in input.geos'
+          CALL ERROR_STOP( MSG, LOC )
+       ENDIF
     ENDIF
 
     !-----------------------------------------------------------------
@@ -1005,9 +1027,10 @@ CONTAINS
 #if !defined(ESMF_)
     USE MODIS_LAI_MOD,         ONLY : GC_LAI
 #endif
+    USE MODIS_LAI_MOD,         ONLY : GC_CHLR
 
 #if defined(ESMF_)
-    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
+    USE HCOI_ESMF_MOD,         ONLY : HCO_SetExtState_ESMF
 #endif
 
 !
@@ -1167,7 +1190,7 @@ CONTAINS
          'FRLANDIC', HCRC,      FIRST,    State_Met%FRLANDIC  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
-    ! Use 'offline' LAI in standard GEOS-Chem
+    ! Use 'offline' MODIS LAI in standard GEOS-Chem
 #if defined(ESMF_)
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%LAI, &
               'LAI', HCRC,      FIRST,    State_Met%LAI  )
@@ -1177,6 +1200,11 @@ CONTAINS
               'LAI', HCRC,      FIRST,    GC_LAI         )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #endif
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%CHLR, &
+              'CHLR', HCRC,      FIRST,   GC_CHLR         )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
 
     ! ----------------------------------------------------------------
     ! 3D fields 

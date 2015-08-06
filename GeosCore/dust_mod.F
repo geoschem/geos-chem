@@ -29,6 +29,7 @@
 #endif
       PUBLIC  :: RDUST_ONLINE
       PUBLIC  :: RDUST_OFFLINE
+      PUBLIC  :: GET_DUST_ALK
       PUBLIC  :: INIT_DUST
       PUBLIC  :: CLEANUP_DUST
 !     
@@ -64,6 +65,8 @@
 !  04 Mar 2013 - R. Yantosca - Now call INIT_DUST from the init stage
 !                              which facilitates connection to GEOS-5 GCM
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
+!                              aerosols (T.D. Fairlie)
 !  20 Jun 2014 - R. Yantosca - Remove obsolete emissions code; we now use HEMCO
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  01 Apr 2015 - R. Yantosca - Remove obsolete DUSTMIX, DRY_DEPOSITION routines
@@ -73,7 +76,9 @@
 !
 ! !PRIVATE TYPES:
 !
-      INTEGER               :: DRYDST1, DRYDST2, DRYDST3, DRYDST4
+      INTEGER               :: DRYDST1,  DRYDST2,   DRYDST3,  DRYDST4
+      INTEGER               :: DRYDAL1,  DRYDAL2,   DRYDAL3,  DRYDAL4
+      INTEGER               :: DRYSO4D1, DRYSO4D2,  DRYSO4D3, DRYSO4D4
       REAL(fp), ALLOCATABLE :: FRAC_S(:)
       REAL(fp), ALLOCATABLE :: SRCE_FUNC(:,:,:)
 
@@ -109,6 +114,9 @@
       USE TRACERID_MOD,       ONLY : IDTDST2
       USE TRACERID_MOD,       ONLY : IDTDST3
       USE TRACERID_MOD,       ONLY : IDTDST4
+      ! Include dust alkalinity tracer IDs               tdf 04/10/08
+      USE TRACERID_MOD,       ONLY : IDTDAL1,  IDTDAL2
+      USE TRACERID_MOD,       ONLY : IDTDAL3,  IDTDAL4
 !
 ! !INPUT PARAMETERS:
 !
@@ -137,6 +145,8 @@
 !  15 Nov 2012 - M. Payer    - Now pass State_Met as an argument
 !  05 Mar 2013 - R. Yantosca - Add ND70 debug print output
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
+!                              aerosols (T.D. Fairlie)
 !  01 Apr 2015 - R. Yantosca - Remove call to DRY_DEPOSITION, this is now
 !                              done in mixing_mod.F90.
 !EOP
@@ -151,8 +161,10 @@
       ! Non-SAVEd scalars
       LOGICAL       :: LDRYD
       LOGICAL       :: LDUST
+      LOGICAL       :: LDSTUP
       LOGICAL       :: prtDebug
       INTEGER       :: N
+      INTEGER       :: IDISP
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -167,8 +179,9 @@
       RC    = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LDRYD = Input_Opt%LDRYD
-      LDUST = Input_Opt%LDUST
+      LDRYD  = Input_Opt%LDRYD
+      LDUST  = Input_Opt%LDUST
+      LDSTUP = Input_Opt%LDSTUP
 
       ! Set a flag for debug output
       prtDebug = ( Input_Opt%LPrt .and. am_I_Root )
@@ -200,8 +213,21 @@
       !----------------------
       ! Dust settling
       !----------------------
+      IDISP = 0
       CALL DRY_SETTLING(  am_I_Root, Input_Opt,  
-     &                    State_Met, STT(:,:,:,IDTDST1:IDTDST4), RC )
+     &                    State_Met, STT(:,:,:,IDTDST1:IDTDST4), RC,
+     &                    IDTDST1,   IDISP )
+
+      IF ( LDSTUP ) THEN
+         ! Include dust alkalinity settling                 tdf 04/10/08
+         IDISP = 4
+         CALL DRY_SETTLING(  am_I_Root, Input_Opt,  
+     &                       State_Met, STT(:,:,:,IDTDAL1:IDTDAL4), RC,
+     &                       IDTDAL1,   IDISP )
+
+         ! Note: DRY SETTLING of DSTNIT, DSTSO4 occurs in GRAV_SETTLING
+         !       called from CHEMSULFATE in SULFATE_MOD.    tdf 04/10/08
+      ENDIF
 
       ! Debug print
       IF ( prtDebug ) THEN
@@ -245,7 +271,7 @@
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TOMAS_MOD,          ONLY : IBINS, Xk, SRTDUST
-      USE TRACERID_MOD,       ONLY : IDTDUST1, IDTNK1
+      USE TRACERID_MOD
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND44
@@ -269,32 +295,34 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  13 Dec 2012 - M. Payer    - Add am_I_Root, Input_Opt, RC as arguments
 !  31 May 2013 - R. Yantosca - Now pass State_Chm via the arg list
+!  16 Jul 2015 - R. Yantosca - Now pass INDEX and IDISP to DRY_SETTLING
+!EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
       ! SAVEd scalars
-      LOGICAL, SAVE :: FIRST = .TRUE.
+      LOGICAL, SAVE     :: FIRST = .TRUE.
 
       ! Non-SAVEd scalars
-      INTEGER       :: N, BIN, I, J, L, NN
-      REAL(fp)        :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL(fp)        :: DIF, FLUXN, FLUXD
-      REAL(fp)        :: DT_SETTL, AREA_CM2
+      INTEGER           :: N, BIN, I, J, L, NN, IDISP
+      REAL(fp)          :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp)          :: DIF, FLUXN, FLUXD
+      REAL(fp)          :: DT_SETTL, AREA_CM2
 
       !debug
-      integer       :: ii, jj , ix, jx, bb
-      data ii,jj, ix, jx, bb /37, 24, 58, 34, 30 /
+      integer           :: ii, jj , ix, jx, bb
+      data                 ii,jj, ix, jx, bb /37, 24, 58, 34, 30 /
 
       ! For values from Input_Opt
-      INTEGER         :: N_TRACERS
+      INTEGER           :: N_TRACERS
       REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! SETTLEDUST begins here!
@@ -330,11 +358,15 @@
       ENDDO
 
       ! Dust settling
+      IDISP = 0
       CALL DRY_SETTLING( am_I_Root,
      &                   Input_Opt,  
      &                   State_Met,
      &                   STT(:,:,:,IDTDUST1:IDTDUST1-1+IBINS),
-     &                   RC )
+     &                   RC,
+     &                   IDTDUST1,
+     &                   IDISP )
+
 
       ! Calculate change in number to correspond with dust redistribution
       ! by gravitational settling
@@ -577,7 +609,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DRY_SETTLING( am_I_Root, Input_Opt, State_Met, TC, RC )
+      SUBROUTINE DRY_SETTLING( am_I_Root, Input_Opt, State_Met, TC, RC,
+     &                         INDEX,     IDISP )
 !
 ! !USES:
 !
@@ -592,17 +625,19 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTDST1
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)   :: State_Met   ! Meteorology State object
+      INTEGER,        INTENT(IN)   :: INDEX       ! Tracer index for XNUMOL
+      INTEGER,        INTENT(IN)   :: IDISP       ! Displacement index for IIDEP
+
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
-      REAL(fp),        INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN) ! Dust [kg]
+      REAL(fp),      INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN) ! Dust [kg]
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -619,6 +654,8 @@
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
+!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
+!                              aerosols (T.D. Fairlie)
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod
 !EOP
@@ -628,42 +665,42 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER               :: I, J, L, N, N_TRACERS
-      REAL(fp)                :: DT_SETTL, DELZ,  DELZ1
-      REAL(fp)                :: REFF,     DEN,   CONST   
-      REAL(fp)                :: NUM,      LAMDA, FLUX
-      REAL(fp)                :: AREA_CM2, TC0(LLPAR)
-      REAL(fp)                :: TOT1,     TOT2
+      REAL(fp)              :: DT_SETTL, DELZ,  DELZ1
+      REAL(fp)              :: REFF,     DEN,   CONST   
+      REAL(fp)              :: NUM,      LAMDA, FLUX
+      REAL(fp)              :: AREA_CM2, TC0(LLPAR)
+      REAL(fp)              :: TOT1,     TOT2
 
       ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa      
-      REAL(fp)                :: P 
+      REAL(fp)              :: P 
 
       ! Diameter of aerosol [um]
-      REAL(fp)                :: Dp
+      REAL(fp)              :: Dp
 
       ! Pressure * DP
-      REAL(fp)                :: PDp 
+      REAL(fp)              :: PDp 
 
       ! Temperature (K)    
-      REAL(fp)                :: TEMP        
+      REAL(fp)              :: TEMP        
 
       ! Slip correction factor
-      REAL(fp)                :: Slip        
+      REAL(fp)              :: Slip        
 
       ! Viscosity of air (Pa s)
-      REAL(fp)                :: Visc   
+      REAL(fp)              :: Visc   
 
       ! Settling velocity of particle (m/s)
-      REAL(fp)                :: VTS(LLPAR)  
+      REAL(fp)              :: VTS(LLPAR)  
 
       ! Molecules tracer / kg tracer, from Input Options
-      REAL(fp)                :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)              :: XNUMOL(Input_Opt%N_TRACERS)
 !
 ! !DEFINED PARAMETERS:
 !      
-      REAL(fp),  PARAMETER    :: C1 =  0.7674e+0_fp
-      REAL(fp),  PARAMETER    :: C2 =  3.079e+0_fp 
-      REAL(fp),  PARAMETER    :: C3 =  2.573e-11_fp
-      REAL(fp),  PARAMETER    :: C4 = -1.424e+0_fp
+      REAL(fp),  PARAMETER  :: C1 =  0.7674e+0_fp
+      REAL(fp),  PARAMETER  :: C2 =  3.079e+0_fp 
+      REAL(fp),  PARAMETER  :: C3 =  2.573e-11_fp
+      REAL(fp),  PARAMETER  :: C4 = -1.424e+0_fp
 
       !=================================================================
       ! DRY_SETTLING begins here!
@@ -691,7 +728,7 @@
          ! Initialize
          DEN   = Input_Opt%DUSTDEN(N)
          REFF  = Input_Opt%DUSTREFF(N)
-         DP    = 2e+0_fp * REFF * 1.e+6_fp              ! Dp [um] = particle diameter
+         DP    = 2e+0_fp * REFF * 1.e+6_fp    ! Dp [um] = particle diameter
          CONST = 2e+0_fp * DEN * REFF**2 * G0 / 9e+0_fp
 
          ! Loop over latitudes
@@ -791,12 +828,14 @@
 
                   ! Convert dust flux from [kg/s] to [#/cm2/s]
                   FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
-                  FLUX = FLUX * XNUMOL(IDTDST1) / AREA_CM2 
+                  FLUX = FLUX * XNUMOL(INDEX) / AREA_CM2 
 
 #if !defined( NO_BPCH )
                   ! Save in AD44
-                  AD44(I,J,Input_Opt%IDDEP(N),1) = 
-     &            AD44(I,J,Input_OPt%IDDEP(N),1) + FLUX
+!tdf                  AD44(I,J,Input_Opt%IDDEP(N),1) = 
+!tdf     &            AD44(I,J,Input_OPt%IDDEP(N),1) + FLUX
+                  AD44(I,J,Input_Opt%IDDEP(N+IDISP),1) =
+     &            AD44(I,J,Input_Opt%IDDEP(N+IDISP),1) + FLUX
 #endif
                ENDIF
 
@@ -1639,6 +1678,490 @@
       
       END SUBROUTINE RDUST_OFFLINE
 !EOC
+!-----------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_dust_alk
+!
+! !DESCRIPTION: Subroutine GET\_DUST\_ALK returns: (1) dust alkalinity,
+!  ALK\_d(NDSTBIN) [v/v], (2) rate coefficients, KTS(NDSTBIN), KTN(NDSTBIN),
+!  for uptake of SO2 and HNO3 on dust for use in sulfate\_mod.f for chemistry
+!  on dust aerosols, (3) fraction, KTH(NDSTBIN), of the size-weighted total
+!  area of aerosols in the grid box. GET\_DUST\_ALK is analogous to GET\_ALK
+!  for seasalt (bec, 12/7/04; tdf 04/08/08)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_DUST_ALK( I, J, L, ALK_d, KTS, KTN, KTH,
+     &                         Input_Opt, State_Met, State_Chm )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_MOD,         ONLY : ERADIUS, JLOP,   TAREA
+      USE ERROR_MOD,          ONLY : IT_IS_NAN
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      ! Include dust tracers                            tdf 04/10/08
+      USE TRACERID_MOD,       ONLY : IDTDST1, IDTDST2
+      USE TRACERID_MOD,       ONLY : IDTDST3, IDTDST4
+      ! Include dust alkalinity tracers                 tdf 04/10/08
+      USE TRACERID_MOD,       ONLY : IDTDAL1, IDTDAL2
+      USE TRACERID_MOD,       ONLY : IDTDAL3, IDTDAL4
+
+
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,        INTENT(IN)    :: I, J, L        ! Grid box indices
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt      ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met      ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm      ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL(fp),       INTENT(OUT)   :: ALK_d(NDSTBIN) ! Dust alkalinity [v/v]
+      REAL(fp),       INTENT(OUT)   :: KTS  (NDSTBIN) ! Rate coef for uptake of
+                                                      ! SO2 on dust [s-1]
+      REAL(fp),       INTENT(OUT)   :: KTN  (NDSTBIN) ! Rate coef for uptake of
+                                                      ! HNO3 on dust [s-1]
+      REAL(fp),       INTENT(OUT)   :: KTH  (NDSTBIN) ! Fraction of the size-
+                                                      ! weighted total area
+                                                      ! of aerosols in grid box
+!
+! !REVISION HISTORY:
+!  08 Apr 2008 - T.D. Fairlie- Initial version
+!  16 Sep 2013 - M. Sulprizio- Added ProTeX headers
+!  17 Sep 2013 - M. Sulprizio- Now pass Input_Opt, State_Met, and State_Chm
+!                              as arguments
+!  14 Nov 2013 - M. Sulprizio- Bug fix: Avoid div-by-zero in calculation of
+!                              gas-to-particle rate constants for SO2 and HNO3
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      REAL(fp), PARAMETER :: PI = 3.14159265
+      REAL(fp), PARAMETER :: MINDAT = 1.d-20
+
+      ! Need this for dust
+      !REAL(fp), PARAMETER :: GAMMA_SO2 = 0.05d0  !(Song & Carmichael, 2001)
+      ! 200 times smaller 8/28/2K9
+      REAL(fp), PARAMETER :: GAMMA_SO2 = 2.5d-4
+
+      !tdf V9 4/1/2K9 Applying Song et al.(2007) reduced value 
+      REAL(fp), PARAMETER :: GAMMA_H2SO4 = 1.d0  
+
+      !  Need this for dust
+      !REAL(fp), PARAMETER :: GAMMA_HNO3 = 0.1d0 ! (Song & Carmichael, 2001)
+      ! 200 times smaller 8/28/2K9
+      REAL(fp), PARAMETER :: GAMMA_HNO3 = 5.0d-4 
+
+      REAL(fp), PARAMETER :: DG = 0.2d0 ! gas phase diffusion coeff. [cm2/s]
+      REAL(fp), PARAMETER :: v = 3.0d4  ! cm/s
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER             :: JLOOP,       N_TRACERS
+      INTEGER             :: IRH
+      INTEGER             :: IBIN, ISBIN
+      REAL(fp)            :: N1, KT1, KT1N
+      REAL(fp)            :: AREA, HGF
+      REAL(fp)            :: CONST1, CONST2, CONST
+      REAL(fp)            :: AIR_DENS
+      REAL(fp)            :: A1, B1, A1N, B1N, T1, R1
+      REAL(fp)            :: DD, RD, DM
+      REAL(fp)            :: TOTAL_AREA, DF_TOTAL_AREA
+      REAL(fp)            :: DST_d (NDSTBIN), ALK, GAMS, GAMN
+      REAL(fp)            :: SULF_AREA, BC_AREA, OC_AREA
+      REAL(fp)            :: SULF_RAD, BC_RAD, OC_RAD
+      REAL(fp)            :: SULF_FAC, BC_FAC, OC_FAC
+      REAL(fp)            :: SSA_AREA, SSC_AREA
+      REAL(fp)            :: SSA_RAD, SSC_RAD
+      REAL(fp)            :: SSA_FAC, SSC_FAC
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+
+      ! Arrays
+      ! Dust Surface Areas                                ! tdf 08/20/09
+      REAL(fp)            :: AREA_d(NDSTBIN)              ! [cm^2/cm^3]
+
+      ! Dust Surface Areas within sub-bins 1-4 of BIN 1   ! tdf 08/20/09
+      REAL(fp)            :: AREA_sd1(4)                  ! [cm^2/cm^3]
+
+      ! Dust Effective Radius                             ! tdf 08/20/09
+      REAL(fp)            :: RD_d(NDSTBIN)                ! [cm]
+
+      ! Dust Effective Radii for sub-bins 1-4 of BIN 1    ! tdf 08/20/09
+      REAL(fp)            :: RD_sd1(4)                    ! [cm]
+
+      ! Dust size-weighted Surface Areas                  ! tdf 08/20/09
+      REAL(fp)            :: DF_AREA_d(NDSTBIN)           ! [1/s]
+
+      ! Dust size-weighted Surface Areas for sub-bins 1-4 ! tdf 08/20/09
+      REAL(fp)            :: DF_AREA_sd1(4)               ! [1/s]
+
+      ! For fields from Input_Opt
+      REAL(fp)            :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      REAL(fp), POINTER   :: STT(:,:,:,:)
+
+      !=================================================================
+      ! GET_DUST_ALK begins here!
+      !=================================================================
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
+      ! Zero variables
+      DO IBIN = 1, NDSTBIN
+         ALK_d (IBIN)  = 0.0e+0_fp
+         KTS   (IBIN)  = 0.0e+0_fp
+         KTN   (IBIN)  = 0.0e+0_fp
+         KTH   (IBIN)  = 0.0e+0_fp
+         AREA_d (IBIN) = 0.0e+0_fp
+         RD_d (IBIN)   = 0.0e+0_fp
+      END DO
+
+      ! Air density [kg/m3]
+      AIR_DENS = State_Met%AD(I,J,L) / State_Met%AIRVOL(I,J,L) 
+
+      ! Retrieve Dust Alkalinity [v/v] from STT array
+      ALK_d(1) = STT(I,J,L,IDTDAL1)
+      ALK_d(2) = STT(I,J,L,IDTDAL2)
+      ALK_d(3) = STT(I,J,L,IDTDAL3)
+      ALK_d(4) = STT(I,J,L,IDTDAL4)
+
+      ! Dust [kg/m3] from STT, used to compute dust surface area
+      ! Units: (moles/mole).(kg(air)/m3).(kg(dust)/mole)/(kg(air)/mole)
+      DST_d(1) = STT(I,J,L,IDTDST1) * AIR_DENS/TCVV(IDTDST1)
+      DST_d(2) = STT(I,J,L,IDTDST2) * AIR_DENS/TCVV(IDTDST2)
+      DST_d(3) = STT(I,J,L,IDTDST3) * AIR_DENS/TCVV(IDTDST3)
+      DST_d(4) = STT(I,J,L,IDTDST4) * AIR_DENS/TCVV(IDTDST4)
+
+      ! tdf Now get aerosol surface area from TAREA (cm2/cm3)
+      JLOOP = JLOP(I,J,L)
+      SULF_AREA = TAREA(JLOOP,NDUST+1)
+      BC_AREA   = TAREA(JLOOP,NDUST+2)
+      OC_AREA   = TAREA(JLOOP,NDUST+3)
+      SSA_AREA  = TAREA(JLOOP,NDUST+4)
+      SSC_AREA  = TAREA(JLOOP,NDUST+5)
+
+      ! tdf Now get aerosol effective radius from ERADIUS (cm)
+      SULF_RAD  = ERADIUS(JLOOP,NDUST+1)
+      BC_RAD    = ERADIUS(JLOOP,NDUST+2)
+      OC_RAD    = ERADIUS(JLOOP,NDUST+3)
+      SSA_RAD   = ERADIUS(JLOOP,NDUST+4)
+      SSC_RAD   = ERADIUS(JLOOP,NDUST+5)
+
+      ! tdf Quotients [s/cm] used to weight surface area for H2SO4 uptake
+      SULF_FAC = (SULF_RAD / DG + 4.e+0_fp/(V*GAMMA_H2SO4) )
+      BC_FAC   = (  BC_RAD / DG + 4.e+0_fp/(V*GAMMA_H2SO4) )
+      OC_FAC   = (  OC_RAD / DG + 4.e+0_fp/(V*GAMMA_H2SO4) )
+      SSA_FAC  = ( SSA_RAD / DG + 4.e+0_fp/(V*GAMMA_H2SO4) )
+      SSC_FAC  = ( SSC_RAD / DG + 4.e+0_fp/(V*GAMMA_H2SO4) )
+
+      !tdf Surface areas and effective radii for sub-bins 1-4 of dust bin 1
+      DO ISBIN = 1, 4
+         T1 = TAREA  (JLOOP,ISBIN)
+         R1 = ERADIUS(JLOOP,ISBIN)
+         AREA_sd1    (ISBIN) = T1
+         RD_sd1      (ISBIN) = R1
+         !tdf surface area for sub bins 1-4 in bin 1, weighted by gas-phase
+         !tdf diffusion and collision limitations
+         !tdf used to compute proportionate uptake of H2SO4 only  [1/s]
+         DF_AREA_sd1 (ISBIN) = T1
+     &                       / (R1/DG + 4.0e+0_fp/(V*GAMMA_H2SO4))
+      END DO
+
+      !-----------------------------------------------------------------------
+      ! Very Simple Formulation: For each size bin (i)   ! tdf 8/20/09
+      ! Dust Area density = 3 * Dust Mass density  / (REFF(i) * DUSTDEN)
+      ! TAREA computed   in RDUST_ONLINE - Units: cm^2(dust) / cm^3(air) 
+      ! ERADIUS computed in RDUST_ONLINE - Units: cm
+      ! NB: I am now subdividing the submicron dust size bin 
+      !     using TAREA (JLKOOP,1->4), and ERADIUS (JLOOP,1->4).
+      !-----------------------------------------------------------------------
+
+      !-------------------------------------------------------------------------
+      !  Find Dust surface area density in grid-box, AREA_d [cm^2/cm^3].
+      !  Also find the size-weighted surface area density, DF_AREA_d [1/s].
+      !  The latter represents the gas-phase diffusion and surface 
+      !  limited weighting and is used to determine the fraction of H2SO4 
+      !  taken up on dust, versus taken up on other aerosols.
+      !                                                 tdf 08/21/09
+      !-------------------------------------------------------------------------
+
+      ! tdf Loop over size bins  (NDSTBIN = 4)
+      DO IBIN = 1, NDSTBIN
+
+         ! Dust Area density in grid box,      AREA_d [cm^2/cm^3]    tdf 8/21/09
+         ! Dust weighted surface area density, DF_AREA_d [1/s]       tdf 8/21/09
+
+         IF (IBIN .EQ. 1) THEN
+            ! For Dust size bin 1, sum over the 4 size sub bins  tdf 8/21/09
+!tdf 11/25/2013            AREA_d   (IBIN) = AREA_sd1(1) + AREA_sd1(1)        ! [cm^2/cm^3]
+            AREA_d   (IBIN) = AREA_sd1(1) + AREA_sd1(2)        ![cm^2/cm^3]
+     &                      + AREA_sd1(3) + AREA_sd1(4) 
+            DF_AREA_d(IBIN) = DF_AREA_sd1(1) + DF_AREA_sd1(3)  ! [1/s]
+     &                      + DF_AREA_sd1(2) + DF_AREA_sd1(4)
+         ELSE
+            T1 = TAREA(JLOOP,3+IBIN)      ! [cm^2/cm^3]
+            R1 = ERADIUS(JLOOP,3+IBIN)    ! [cm]
+!tdf 11/25/2013
+            RD_d     (IBIN) = R1
+!tdf 11/25/2013
+            AREA_d   (IBIN) = T1          ! [cm^2/cm^3]
+            DF_AREA_d(IBIN) = T1          ! [1/s]
+     &                       / (R1/DG + 4.0D0/(V*GAMMA_H2SO4))
+         ENDIF
+
+      END DO
+
+      ! tdf
+      !if (I .eq. 1 .and. J .eq. 63 .and. L .eq. 6) then
+      !   print *,' GET_DUST_ALK: AREA'
+      !   print *,' SULF_AREA ',SULF_AREA,'cm2/cm3'
+      !   print *,'   BC_AREA ',BC_AREA,'cm2/cm3'
+      !   print *,'   OC_AREA ',OC_AREA,'cm2/cm3'
+      !   print *,'  SSA_AREA ',SSA_AREA,'cm2/cm3'
+      !   print *,'  SSC_AREA ',SSC_AREA,'cm2/cm3'
+      !   print *,'  AREA_d(1) ',AREA_d(1),'cm2/cm3'
+      !   print *,'  AREA_d(2) ',AREA_d(2),'cm2/cm3'
+      !   print *,'  AREA_d(3) ',AREA_d(3),'cm2/cm3'
+      !   print *,'  AREA_d(4) ',AREA_d(4),'cm2/cm3'
+      !endif
+
+      ! tdf total aerosol surface area  [cm^2/cm^3]
+      TOTAL_AREA = SULF_AREA + BC_AREA + OC_AREA
+     &           + SSA_AREA  + SSC_AREA
+     &           + AREA_d(1) + AREA_d(2) + AREA_d(3) + AREA_d(4)
+
+      ! tdf total surface area weighted by gas-phase diffusion limitation [1/s]
+      DF_TOTAL_AREA = SULF_AREA / SULF_FAC + BC_AREA  / BC_FAC
+     &              + OC_AREA   / OC_FAC   + SSA_AREA / SSA_FAC
+     &              + SSC_AREA  / SSC_FAC
+     &              + DF_AREA_d(1) 
+     &              + DF_AREA_d(2) 
+     &              + DF_AREA_d(3) 
+     &              + DF_AREA_d(4) 
+
+      ! tdf
+      !if (I .eq. 1 .and. J .eq. 63 .and. L .eq. 6) then
+      !   print *,' GET_DUST_ALK: DF_AREA'
+      !   print *,' DF_SULF_AREA  ',SULF_AREA/SULF_FAC,'1/s'
+      !   print *,'   DF_BC_AREA  ',BC_AREA/BC_FAC,'1/s'
+      !   print *,'   DF_OC_AREA  ',OC_AREA/OC_FAC,'1/s'
+      !   print *,'  DF_SSA_AREA  ',SSA_AREA/SSA_FAC,'1/s'
+      !   print *,'  DF_SSC_AREA  ',SSC_AREA/SSC_FAC,'1/s'
+      !   print *,'  DF_AREA_d(1) ',DF_AREA_d(1),'1/s'
+      !   print *,'  DF_AREA_d(2) ',DF_AREA_d(2),'1/s'
+      !   print *,'  DF_AREA_d(3) ',DF_AREA_d(3),'1/s'
+      !   print *,'  DF_AREA_d(4) ',DF_AREA_d(4),'1/s'
+      !endif
+
+      ! tdf Total Dust Alkalinity
+      ALK = ALK_d(1) + ALK_d(2) + ALK_d(3) + ALK_d(4)  ! [v/v]
+
+      ! set humidity index IRH as a percent
+      IRH = State_Met%RH(I,J,L)
+      IRH = MAX(  1, IRH )
+      IRH = MIN( 99, IRH )
+
+      ! hygroscopic growth factor for dust: Set to NO GROWTH for now
+      IF ( IRH < 100 ) HGF = 1.0e+0_fp
+
+      ! tdf Loop over size bins (NDSTBIN = 4)
+      DO IBIN = 1, NDSTBIN
+
+         !----------------------------------
+         ! SO2 uptake onto particles
+         !----------------------------------
+
+         !tdf 2/11/2K9
+         !tdf Following relative uptake rates of Preszler-Prince et al.(2007)
+         IF (IRH >= 90 ) THEN     
+            GAMS = GAMMA_SO2 * 2.e+0_fp
+         ELSE IF (IRH >= 84 ) THEN  
+            GAMS = GAMMA_SO2 * (0.5e+0_fp  + 1.5e+0_fp*(IRH-84.e+0_fp)/
+     &             (90.e+0_fp-84.e+0_fp))
+         ELSE IF (IRH >= 76 ) THEN 
+            GAMS = GAMMA_SO2 * (0.16e+0_fp + 0.34e+0_fp*(IRH-76.e+0_fp)/
+     &             (84.e+0_fp-76.e+0_fp))
+         ELSE IF (IRH >= 33 ) THEN  
+            GAMS = GAMMA_SO2 * (0.03e+0_fp + 0.13e+0_fp*(IRH-33.e+0_fp)/
+     &             (76.e+0_fp-33.e+0_fp))
+         ELSE IF (IRH >= 20 ) THEN 
+            GAMS = GAMMA_SO2*0.03e+0_fp
+         ELSE                        ! 0.0 below 20%
+            GAMS = GAMMA_SO2*0.0e+0_fp
+         ENDIF
+
+         ! Check for sufficient alkalinity          tdf 3/28/2K8
+         IF ( ALK > MINDAT ) THEN
+
+            ! calculate gas-to-particle rate constant for uptake of
+            ! SO2 onto dust aerosols [Jacob, 2000] analytical solution
+            ! Corrected based on discussions with Becky     tdf 07/14/08
+            KT1    = 0.0e+0_fp
+
+            IF (IBIN .EQ. 1) THEN
+               ! tdf Sum over the 1-4 sub-bins for bin 1      ! tdf 08/21/2K9
+               DO ISBIN = 1, 4
+                  RD     = RD_sd1 (ISBIN)        ! effective radius [cm]
+                  AREA   = AREA_sd1 (ISBIN)      ! Dust Surface Area [cm^2/cm^3]
+
+                  ! Prevent divide by zero if GAMS = 0 (tdf, mps, 11/14/13)
+                  IF ( GAMS > 0.e+0_fp ) THEN
+                     CONST1 = 4.e+0_fp/(V*GAMS)  ! Collision [s/cm]
+                     CONST2 = RD/DG              ! Diffusion [s/cm]
+                     CONST  = CONST1 + CONST2
+                     KT1    = KT1 + AREA / CONST ! [cm^2/cm^3] * [cm/s] = [1/s]
+                  ELSE
+                     KT1    = KT1                ! [cm^2/cm^3] * [cm/s] = [1/s]
+                  ENDIF
+
+               END DO
+            ELSE
+               RD     = RD_d (IBIN)              ! effective radius [cm]
+               AREA   = AREA_d (IBIN)            ! Dust Surface Area [cm^2/cm^3]
+
+               ! Prevent divide by zero if GAMS = 0 (tdf, mps, 11/14/13)
+               IF ( GAMS > 0.e+0_fp ) THEN
+                  CONST1 = 4.e+0_fp/(V*GAMS)     ! Collision [s/cm]
+                  CONST2 = RD/DG                 ! Diffusion [s/cm]
+                  CONST  = CONST1 + CONST2
+                  KT1    = AREA / CONST          ! [cm^2/cm^3] * [cm/s] = [1/s]
+               ELSE
+                  KT1    = 0.0e+0_fp             ! [cm^2/cm^3] * [cm/s] = [1/s]
+               ENDIF
+
+            ENDIF
+
+            KTS(IBIN) = KT1
+
+         ELSE
+
+            ! If no alkalinity, set rate coefficients to zero
+            !tdf
+            KTS(IBIN)  = 0.0e+0_fp
+
+         ENDIF
+
+         !----------------------------------
+         ! HNO3 uptake onto particles
+         !----------------------------------
+
+         !tdf 2/11/2K9
+         !tdf Following uptake coefficients of Liu et al.(2007)
+         IF (IRH >= 80 ) THEN         
+            GAMN = GAMMA_HNO3 * 2.1e+0_fp
+         ELSE IF (IRH >= 70 ) THEN   
+            GAMN = GAMMA_HNO3 * (1.3e+0_fp  + 0.7e+0_fp   * 
+     &             (IRH - 70.e+0_fp)/ 10.e+0_fp)
+         ELSE IF (IRH >= 60 ) THEN 
+            GAMN = GAMMA_HNO3 * (1.0e+0_fp  + 0.3e+0_fp   * 
+     &             (IRH - 60.e+0_fp)/  10.e+0_fp)
+         ELSE IF (IRH >= 50 ) THEN
+            GAMN = GAMMA_HNO3 * (0.7e+0_fp  + 0.3e+0_fp   * 
+     &             (IRH - 50.e+0_fp)/ 10.e+0_fp)
+         ELSE IF (IRH >= 30 ) THEN  
+            GAMN = GAMMA_HNO3 * (0.19e+0_fp + 0.255e+0_fp * 
+     &             (IRH - 30.e+0_fp)/ 10.e+0_fp)
+         ELSE IF (IRH >= 10 ) THEN  
+            GAMN = GAMMA_HNO3 * (0.03e+0_fp + 0.08e+0_fp  * 
+     &             (IRH - 10.e+0_fp)/ 10.e+0_fp)
+         ELSE                        ! 0.0 below 10%
+            GAMN = GAMMA_HNO3*0.0e+0_fp
+         ENDIF
+
+         ! Check for sufficient alkalinity      tdf 3/28/2K8
+         IF ( ALK > MINDAT ) THEN
+
+            ! calculate gas-to-particle rate constant for uptake of
+            ! HNO3 onto dust aerosols [Jacob, 2000] analytical solution
+            ! Corrected based on discussions with Becky     tdf 07/14/08
+            KT1    = 0.0e+0_fp
+
+            IF (IBIN .EQ. 1) THEN
+               ! tdf Sum over the 1-4 sub-bins for bin 1      ! tdf 08/21/2K9
+               DO ISBIN = 1, 4
+                  RD = RD_sd1 (ISBIN)            ! effective radius [cm]
+                  AREA = AREA_sd1 (ISBIN)        ! Dust Surface Area [cm^2/cm^3]
+
+                  ! Prevent divide by zero if GAMN = 0 (tdf, mps, 11/14/13)
+                  IF ( GAMN > 0.e+0_fp ) THEN
+                     CONST1 = 4.e+0_fp/(V*GAMN)  ! Collision [s/cm]
+                     CONST2 = RD/DG              ! Diffusion [s/cm]
+                     CONST  = CONST1 + CONST2
+                     KT1    = KT1 + AREA / CONST ! [cm^2/cm^3] * [cm/s] = [1/s]
+                  ELSE
+                     KT1    = KT1                ! [cm^2/cm^3] * [cm/s] = [1/s]
+                  ENDIF
+
+               END DO
+            ELSE
+               RD     = RD_d (IBIN)              ! effective radius [cm]
+               AREA   = AREA_d (IBIN)            ! Dust Surface Area [cm^2/cm^3]
+
+               ! Prevent divide by zero if GAMN = 0 (tdf, mps, 11/14/13)
+               IF ( GAMN > 0.e+0_fp ) THEN
+                  CONST1 = 4.e+0_fp/(V*GAMN)     ! Collision [s/cm]
+                  CONST2 = RD/DG                 ! Diffusion [s/cm]
+                  CONST  = CONST1 + CONST2
+                  KT1    = AREA / CONST          ! [cm^2/cm^3] * [cm/s] = [1/s]
+               ELSE
+                  KT1    = 0.0e+0_fp             ! [cm^2/cm^3] * [cm/s] = [1/s]
+               ENDIF
+
+            ENDIF
+
+            KTN(IBIN) = KT1
+
+         ELSE
+
+            ! If no alkalinity, set rate coefficients to zero
+            !tdf
+            KTN(IBIN)  = 0.0e+0_fp
+
+         ENDIF
+
+         !----------------------------------
+         ! H2SO4 uptake onto particles
+         !----------------------------------
+
+         ! Uptake not limited by dust alkalinity      tdf 3/02/2K9
+
+         !tdf As of 08/20/09, we use AREA and size weighted uptake
+         !tdf where now KTH is a fractional uptake for each size bin
+         !tdf with respect to total aerosol surface area.
+
+         KT1    = DF_AREA_d(IBIN) / DF_TOTAL_AREA   ! Fraction
+
+         KTH(IBIN) = KT1
+
+      ! tdf End Loop over size bins
+      END DO
+
+      ! Free pointer
+      NULLIFY( STT )
+
+      END SUBROUTINE GET_DUST_ALK
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1683,6 +2206,8 @@
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  26 Feb 2013 - M. Long     - Now use fields from Input_Opt
+!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
+!                              aerosols (T.D. Fairlie)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1690,7 +2215,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Non-SAVEd scalars
-      LOGICAL            :: LDEAD
+      LOGICAL            :: LDEAD, LDSTUP
       INTEGER            :: AS, N
 #if   defined( TOMAS )
       INTEGER            :: I
@@ -1720,7 +2245,8 @@
       RC    = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LDEAD = Input_Opt%LDEAD
+      LDEAD  = Input_Opt%LDEAD
+      LDSTUP = Input_Opt%LDSTUP
 
 #if defined( TOMAS )
       !=================================================================
@@ -1890,6 +2416,24 @@
                   DRYDST3 = N
                CASE ( 'DST4' )
                   DRYDST4 = N
+               ! Include dust alkalinity tracers               tdf 04/10/08
+               CASE ( 'DSTAL1' )
+                  DRYDAL1 = N
+               CASE ( 'DSTAL2' )
+                  DRYDAL2 = N
+               CASE ( 'DSTAL3' )
+                  DRYDAL3 = N
+               CASE ( 'DSTAL4' )
+                  DRYDAL4 = N
+               ! Include dust sulfate tracers                  tdf 06/16/08
+               CASE ( 'SO4D1' )
+                  DRYSO4D1 = N
+               CASE ( 'SO4D2' )
+                  DRYSO4D2 = N
+               CASE ( 'SO4D3' )
+                  DRYSO4D3 = N
+               CASE ( 'SO4D4' )
+                  DRYSO4D4 = N
                CASE DEFAULT
                   ! Nothing
             END SELECT        
@@ -1900,6 +2444,14 @@
          Input_Opt%IDDEP(2) = DRYDST2
          Input_Opt%IDDEP(3) = DRYDST3
          Input_Opt%IDDEP(4) = DRYDST4
+
+         IF ( LDSTUP  ) THEN
+            ! Include dust alkalinity tracers                  tdf 04/10/08
+            Input_Opt%IDDEP(5) = DRYDAL1
+            Input_Opt%IDDEP(6) = DRYDAL2
+            Input_Opt%IDDEP(7) = DRYDAL3
+            Input_Opt%IDDEP(8) = DRYDAL4
+         ENDIF
       ENDIF
 #endif 
 

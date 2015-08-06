@@ -113,12 +113,15 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      LOGICAL                     :: LSULF              
      LOGICAL                     :: LCRYST             
-     LOGICAL                     :: LCARB              
-     LOGICAL                     :: LSOA               
+     LOGICAL                     :: LCARB
+     LOGICAL                     :: LBRC              
+     LOGICAL                     :: LSOA
+     LOGICAL                     :: LMPOA
      LOGICAL                     :: LSVPOA
      LOGICAL                     :: LDUST              
      LOGICAL                     :: LDEAD              
      LOGICAL                     :: LSSALT             
+     LOGICAL                     :: LDSTUP
      LOGICAL                     :: LDICARB            
      REAL(fp),           POINTER :: SALA_REDGE_um(:)   
      REAL(fp),           POINTER :: SALC_REDGE_um(:)   
@@ -672,6 +675,7 @@ MODULE GIGC_Input_Opt_Mod
 !                              remove LAIRNOX field
 !  13 Aug 2013 - M. Sulprizio- Add extra fields for semivolatile POA (H. Pye)
 !  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
+!  17 Sep 2013 - M. Sulprizio- Add LDSTUP flag for acid uptake on dust aerosols
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LMFCT for flux correction
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LAVHRRLAI and LMODISLAI
@@ -757,6 +761,9 @@ CONTAINS
 !  22 Jul 2013 - M. Sulprizio- Add extra fields for RCP emissions
 !  07 Aug 2013 - M. Sulprizio- Add extra fields for SOA + SVPOA simulation
 !  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
+!  12 Sep 2013 - M. Sulprizio- Double size of IDDEP to account for dust
+!                              alkalinity (tdf 04/10/08)
+!  17 Sep 2013 - M. Sulprizio- Add LDSTUP flag for acid uptake on dust aerosols
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
 !  25 Jun 2014 - R. Yantosca - Now initialize Input_Opt%SIM_TYPE field
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
@@ -865,10 +872,13 @@ CONTAINS
     Input_Opt%LSULF                  = .FALSE.
     Input_Opt%LCRYST                 = .FALSE.
     Input_Opt%LCARB                  = .FALSE.
+    Input_Opt%LBRC                   = .FALSE.
     Input_Opt%LSOA                   = .FALSE.
+    Input_Opt%LMPOA                  = .FALSE.
     Input_Opt%LSVPOA                 = .FALSE.
     Input_Opt%LDUST                  = .FALSE.
     Input_Opt%LDEAD                  = .FALSE.
+    Input_Opt%LDSTUP                 = .FALSE.
     Input_Opt%LSSALT                 = .FALSE.
     Input_Opt%LDICARB                = .FALSE.
     Input_Opt%SALA_REDGE_um          = 0e+0_fp
@@ -1391,19 +1401,20 @@ CONTAINS
     ! Fields for DRYDEP and DUST based on
     ! input from the file "input.geos"
     !----------------------------------------
-    ALLOCATE( Input_Opt%NDVZIND ( MAX_DEP ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%DEPNAME ( MAX_DEP ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%IDEP    ( MAX_DEP ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%IDDEP   ( NDSTBIN ), STAT=RC ) ! Dust_mod
-    ALLOCATE( Input_Opt%DUSTREFF( NDSTBIN ), STAT=RC ) ! Dust_mod
-    ALLOCATE( Input_Opt%DUSTDEN ( NDSTBIN ), STAT=RC ) ! Dust_mod
-    ALLOCATE( Input_Opt%NTRAIND ( MAX_DEP ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%F0      ( MAX_DEP ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%HSTAR   ( MAX_DEP ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%AIROSOL ( MAX_DEP ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%XMW     ( MAX_DEP ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%A_RADI  ( MAX_DEP ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%A_DEN   ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%NDVZIND ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%DEPNAME ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%IDEP    ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ! Double size of IDDEP to account for dust alkalinity   tdf 04/10/08
+    ALLOCATE( Input_Opt%IDDEP   ( NDSTBIN*2 ), STAT=RC ) ! Dust_mod
+    ALLOCATE( Input_Opt%DUSTREFF( NDSTBIN ),   STAT=RC ) ! Dust_mod
+    ALLOCATE( Input_Opt%DUSTDEN ( NDSTBIN ),   STAT=RC ) ! Dust_mod
+    ALLOCATE( Input_Opt%NTRAIND ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%F0      ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%HSTAR   ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%AIROSOL ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%XMW     ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%A_RADI  ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%A_DEN   ( MAX_DEP ),   STAT=RC ) ! Drydep
 
     Input_Opt%N_DUST_BINS            = NDSTBIN
     Input_Opt%NUMDEP                 = 0

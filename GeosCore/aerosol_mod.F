@@ -402,6 +402,8 @@
 !                              semivolatile POA simulations (H. Pye)
 !  17 Jun 2014 - J. Pierce   - Now allow bulk dust in TOMAS simulations
 !  07 Apr 2015 - R. Yantosca - Add check to prevent div-by-zero errors
+!  25 Jun 2015 - E. Lundgren - Use L. Zhang dust size distribution params for 
+!                              mineral dust aerosols (non-TOMAS)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -749,14 +751,16 @@
          IF ( LDUST ) THEN
 
             ! Lump 1st dust tracer for het chem
+            ! Now use dust size distribution scheme to improve PM2.5
+            ! surface dust conc over western U.S. (L. Zhang, 6/25/15)
             SOILDUST(I,J,L,1) = 
-     &            0.06e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.007e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,2) =
-     &            0.12e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.0332e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,3) =
-     &            0.24e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.2487e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,4) =
-     &            0.58e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.7111e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
 
             ! Other hetchem bins
             SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) / AIRVOL(I,J,L)
@@ -916,6 +920,8 @@
 !  31 Mar 2015 - R. Yantosca - Bug fix: Declare LINTERP as !$OMP PRIVATE
 !  07 Apr 2015 - R. Yantosca - Bug fix: Add error check to JLOOP do-loop
 !                              so that we cycle if JLOOP <= 0
+!  24 Jun 2015 - M. Sulprizio- Update organic aerosol density MSDENS(3) from
+!                              1800 to 1300 kg/m3 (E. Marais, M. Hammer)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1171,7 +1177,7 @@
       !=================================================================
       MSDENS(1) = 1700.0d0    !SO4
       MSDENS(2) = 1800.0d0    !BC (updated to 1800 DAR 09/2013)
-      MSDENS(3) = 1800.0d0    !OC 
+      MSDENS(3) = 1300.0d0    !OC (changed 1800 to 1300; mps, eam, mh, 6/24/15)
       MSDENS(4) = 2200.0d0    !SS (accum)
       MSDENS(5) = 2200.0d0    !SS (coarse)
 #if defined( UCX )

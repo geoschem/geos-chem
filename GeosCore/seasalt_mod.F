@@ -29,6 +29,12 @@
       PUBLIC :: CLEANUP_SEASALT
       PUBLIC :: INIT_SEASALT
 !
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: WET_SETTLING
+      PRIVATE :: CHEM_MOPO
+      PRIVATE :: CHEM_MOPI
+!
 ! !PUBLIC DATA MEMBERS:
 !
       PUBLIC :: SALT_V
@@ -88,6 +94,7 @@
 !
       INTEGER, PARAMETER   :: NSALT = 2    ! Number of sea salt tracers
       INTEGER, PARAMETER   :: NR_MAX = 200
+      REAL(fp), PARAMETER   :: SMALLNUM   = 1e-20_fp
 !
 ! !PRIVATE TYPES:
 !
@@ -120,6 +127,7 @@
       INTEGER               :: IDDEP(NSALT)
       REAL(fp), ALLOCATABLE :: SALT_V(:)
       REAL(fp), ALLOCATABLE :: DMID(:)
+      REAL(fp), ALLOCATABLE :: OCCONV(:,:,:)
 !
 ! !DEFINED PARAMETERS
 !
@@ -155,8 +163,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTSALA
-      USE TRACERID_MOD,       ONLY : IDTSALC
+      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -196,7 +203,7 @@
 !
       ! Non-SAVEd variables
       LOGICAL           :: prtDebug
-      LOGICAL           :: LPRT
+      LOGICAL           :: LPRT, LMPOA
       INTEGER           :: N
 
       ! Pointers
@@ -211,6 +218,7 @@
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LPRT     = Input_Opt%LPRT
+      LMPOA    = Input_Opt%LMPOA
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -224,9 +232,9 @@
       ! into one (rjp, 4/3/04)
       !=================================================================
 
-      !-------------------
-      ! Accumulation mode
-      !-------------------
+      !=================================================================
+      ! Accumulation mode wet settling
+      !=================================================================
       CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
      &                   STT(:,:,:,IDTSALA), 1,         RC         )
 
@@ -235,14 +243,33 @@
          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
       ENDIF
 
-      !-------------------
-      ! Coarse mode
-      !-------------------
+      !=================================================================
+      ! Coarse mode wet settling
+      !=================================================================
       CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
      &                   STT(:,:,:,IDTSALC), 2,         RC         )
 
       IF ( prtDebug ) THEN 
          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
+      ENDIF
+
+      !=================================================================
+      ! Do chemistry for marine organic aerosol tracers 
+      !=================================================================
+      IF ( LMPOA > 0 ) THEN
+
+         ! Chemistry for hydrophobic MOA
+         CALL CHEM_MOPO( am_I_Root, Input_Opt, State_Chm, RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPO' )
+         ENDIF
+
+         ! Chemistry for hydrophilic MOA
+         CALL CHEM_MOPI( am_I_Root, Input_Opt, State_Chm, RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPI' )
+         ENDIF
+
       ENDIF
 
       ! Free pointer
@@ -701,6 +728,237 @@
       IF (LPRT) CALL DEBUG_MSG('SEASALT: ENDING WET_SETTLING')
       END SUBROUTINE WET_SETTLING
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_mopo
+!
+! !DESCRIPTION: Subroutine CHEM\_MOPO modifies hydrophobic marine organic
+!  aerosol concentrations based on the conversion to hydrophilic marine 
+!  organic aerosols.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CHEM_MOPO( am_I_Root, Input_Opt, State_Chm, RC )
+!
+! !USES:
+!
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD07_OC 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,           ONLY : IDTMOPO
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+!
+! !REMARKS:
+! 
+! !REVISION HISTORY: 
+!  10 Jul 2015 - E. Lundgren - Initial version (based on routine Chem_OCPO)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER              :: I,      J,   L
+      REAL(fp)             :: DTCHEM, KOC, TC0, CNEW, RKT, FREQ
+
+      ! Pointers
+      REAL(fp), POINTER :: STT(:,:,:,:)
+!
+! !DEFINED PARAMETERS:
+!
+      REAL(fp),  PARAMETER :: OC_LIFE = 1.15e+0_fp
+
+      !=================================================================
+      ! CHEM_MOPO begins here!
+      !=================================================================
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Initialize
+      KOC       = 1.e+0_fp / ( 86400e+0_fp * OC_LIFE )
+      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
+      OCCONV    = 0e+0_fp
+
+      ! Set pointer to GEOS-Chem tracer array [kg]
+      STT      => State_Chm%Tracers
+
+      !=================================================================
+      ! For tracers with dry deposition, the loss rate of dry dep is 
+      ! combined in chem loss term.
+      !
+      ! Conversion from hydrophobic to hydrophilic:  
+      ! e-folding time 1.15 days 
+      ! ----------------------------------------
+      ! Use an e-folding time of 1.15 days or a convertion rate 
+      ! of 1.0e-5 /sec. 
+      !    Hydrophobic --> Hydrophilic,  k  = 1.0e-5          
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, TC0, FREQ, RKT, CNEW )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Initial OC [kg]
+         TC0  = STT(I,J,L,IDTMOPO)
+
+         ! Zero drydep freq
+         ! ### NOTE: Remove this later, but need to make
+         ! ### sure we don't incur numerical diffs (bmy, 6/12/15)
+         FREQ = 0e+0_fp
+
+         ! Amount of MOPO left after chemistry and drydep [kg]
+         RKT  = ( KOC + FREQ ) * DTCHEM
+         CNEW = TC0 * EXP( -RKT )
+
+         ! Prevent underflow condition
+         IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
+
+         ! Amount of MOPO converted to MOPI [kg/timestep]
+         OCCONV(I,J,L) = ( TC0 - CNEW ) * KOC / ( KOC + FREQ )
+
+         ! Store modified OC concentration back in tracer array
+         STT(I,J,L,IDTMOPO) = CNEW
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO  
+
+      NULLIFY( STT )
+
+      END SUBROUTINE CHEM_MOPO
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_mopi
+!
+! !DESCRIPTION: Subroutine CHEM\_MOPI modifies hydrophilic marine organic
+!  aerosol concentrations based on the conversion from hydrophobic marine 
+!  organic aerosols.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CHEM_MOPI( am_I_Root, Input_Opt, State_Chm, RC )
+!
+! !USES:
+!
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTMOPI
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+!
+! !REMARKS:
+! 
+! !REVISION HISTORY:
+!  10 Jul 2015 - E. Lundgren - Initial version (based on routine Chem_OCPI)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER  :: I,   J,     L
+      REAL(fp) :: TC0, CNEW, CCV
+
+      ! Pointers
+      REAL(fp), POINTER :: STT(:,:,:,:)
+
+      !=================================================================
+      ! CHEM_MOPI begins here!
+      !=================================================================
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Set pointer to GEOS-Chem tracer array [kg]
+      STT      => State_Chm%Tracers
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, TC0, CCV, CNEW )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Initial H-philic OC [kg]
+         TC0 = STT(I,J,L,IDTMOPI)
+
+         ! H-philic OC that used to be H-phobic OC [kg]
+         CCV = OCCONV(I,J,L)
+
+         ! Add the amount of converted MOPO to MOPI
+         CNEW = TC0 + CCV
+
+         ! Prevent underflow condition
+         IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
+
+         ! Store modified concentration back in tracer array [kg]
+         STT(I,J,L,IDTMOPI) = CNEW
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO  
+
+      !=================================================================
+      ! Zero OCCONV array for next timestep
+      !=================================================================
+      OCCONV = 0e+0_fp
+
+      NULLIFY( STT )
+
+      END SUBROUTINE CHEM_MOPI
+!EOC
+
+
+
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
