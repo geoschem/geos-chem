@@ -1310,7 +1310,7 @@
 !$OMP+PRIVATE( IR                                               )
 #endif
 #if defined( UCX )
-!$OMP+PRIVATE( RHOSTRAT, RAER,    SADSTRAT, XSASTRAT, ISTRAT    )
+!$OMP+PRIVATE( RHOSTRAT, RAER,    SADSTRAT, XSASTRAT            )
 #endif
 !$OMP+SCHEDULE( DYNAMIC )
 
@@ -1675,7 +1675,7 @@
          ! Loop over aerosol types (dust handled in dust_mod.f)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N, W, LINTERP, IOUT, ISTRAT )
+!$OMP+PRIVATE( I, J, JLOOP, L, N, W, LINTERP, IOUT )
 !$OMP+SCHEDULE( DYNAMIC )
          DO N = 1, NRHAER 
             !------------------------------------
