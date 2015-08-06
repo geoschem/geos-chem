@@ -5743,7 +5743,7 @@
       LOGICAL, SAVE      :: FIRST = .TRUE.
       LOGICAL            :: IS_Hg
       LOGICAL            :: KIN
-      INTEGER            :: I, IDX, J, L, N, NN
+      INTEGER            :: I, IDX, J, L, N, NN, N_TRACERS
       REAL(fp)           :: Q,     QDOWN,  DT,        DT_OVER_TAU
       REAL(fp)           :: K,     K_MIN,  K_RAIN,    RAINFRAC
       REAL(fp)           :: F,     FTOP,   F_PRIME,   WASHFRAC
@@ -5771,12 +5771,15 @@
       ! Is this a mercury simulation?
       IS_Hg = ( ITS_A_MERCURY_SIM )
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! TEMPORARY - ewl, 4/2/15
-      ! Convert tracer concentration from kg/kg to kg for wetdep
-      CALL Convert_MMR_to_KG( Input_Opt%N_TRACERS, State_Met%AD, 
-     &                        State_Chm%TRACERS )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!!      ! TEMPORARY - ewl, 4/2/15
+!!!
+!!!      N_TRACERS =  Input_Opt%N_TRACERS
+!!!
+!!!      ! Convert tracer concentration from kg/kg to kg for wetdep
+!!!      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met, 
+!!!     &                            State_Chm, RC )
+!!!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -6141,12 +6144,12 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! TEMPORARY - ewl, 4/2/15
-      ! Convert tracer concentration from kg to kg/kg
-      CALL Convert_KG_to_MMR( Input_Opt%N_TRACERS, State_Met%AD, 
-     &                        State_Chm%TRACERS )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!!      ! TEMPORARY - ewl, 4/2/15
+!!!      ! Convert tracer concentration from kg to kg/kg
+!!!      CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met, 
+!!!     &                            State_Chm, RC )
+!!!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Free pointer
       NULLIFY( STT )
@@ -6336,7 +6339,7 @@
       LOGICAL            :: IS_Hg
       LOGICAL            :: KIN
       LOGICAL            :: IS_RAINOUT, IS_WASHOUT, IS_BOTH
-      INTEGER            :: I, IDX, J, L, N, NN
+      INTEGER            :: I, IDX, J, L, N, NN, N_TRACERS
       REAL(fp)           :: Q,     QDOWN,  DT,        DT_OVER_TAU
       REAL(fp)           :: K,     K_MIN,  K_RAIN,    RAINFRAC
       REAL(fp)           :: F,     FTOP,   F_PRIME,   WASHFRAC
@@ -6364,12 +6367,15 @@
       ! Is this a mercury simulation?
       IS_Hg = ITS_A_MERCURY_SIM
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! TEMPORARY - ewl, 4/2/15
-      ! Convert tracer concentration from kg/kg to kg for wetdep
-      CALL Convert_MMR_to_KG( Input_Opt%N_TRACERS, State_Met%AD, 
-     &                        State_Chm%TRACERS )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!!      ! TEMPORARY - ewl, 4/2/15
+!!!
+!!!      N_TRACERS =  Input_Opt%N_TRACERS
+!!!
+!!!      ! Convert tracer concentration from kg/kg to kg for wetdep
+!!!      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met, 
+!!!     &                            State_Chm, RC )
+!!!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -6696,12 +6702,12 @@
       ENDDO	
 !$OMP END PARALLEL DO
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! TEMPORARY - ewl, 4/2/15
-      ! Convert tracer concentration from kg to kg/kg
-      CALL Convert_KG_to_MMR( Input_Opt%N_TRACERS, State_Met%AD, 
-     &                        State_Chm%TRACERS )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!!      ! TEMPORARY - ewl, 4/2/15
+!!!      ! Convert tracer concentration from kg to kg/kg
+!!!      CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met, 
+!!!     &                            State_Chm, RC )
+!!!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Free pointer
       NULLIFY( STT )

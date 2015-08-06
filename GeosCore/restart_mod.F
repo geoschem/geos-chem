@@ -264,10 +264,14 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-             ! Convert from mass mixing ratio [kg tracer / kg dry air] to 
-             ! molar mixing ratio [vol tracer / vol dry air] and store in 
-             ! the local TRACER array (elundgren, 2/17/15)
-             TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N)
+! old [kg]
+              TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N) / 
+     &                                       State_Met%AD(I,J,L)
+! new [kg/kg]
+!             ! Convert from mass mixing ratio [kg tracer / kg dry air] to 
+!             ! molar mixing ratio [vol tracer / vol dry air] and store in 
+!             ! the local TRACER array (elundgren, 2/17/15)
+!             TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N)
             
          ENDDO
          ENDDO
@@ -757,7 +761,15 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         State_Chm%Tracers(I,J,L,N) = TRACER(I,J,L) / Input_Opt%TCVV(N) 
+
+! old [kg]
+          State_Chm%Tracers(I,J,L,N) = TRACER(I,J,L) 
+     &                               * State_Met%AD(I,J,L) 
+     &                               / Input_Opt%TCVV(N) 
+
+! new [kg/kg]
+!         State_Chm%Tracers(I,J,L,N) = TRACER(I,J,L) / Input_Opt%TCVV(N) 
+
       ENDDO
       ENDDO
       ENDDO

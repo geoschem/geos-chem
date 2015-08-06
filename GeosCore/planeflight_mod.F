@@ -1755,9 +1755,11 @@
                      STT => State_Chm%Tracers
                      
                      ! Convert from [kg/kg] --> [v/v]
-!                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N) /
-!     &                         State_Met%AD(I,J,L)
-                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N)
+!old:
+                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N) /
+     &                         State_Met%AD(I,J,L)
+!new:
+!                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N)
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 

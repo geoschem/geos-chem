@@ -921,13 +921,25 @@
             ! Set CH4 according to latitude
             ! STT in [kg/kg] (ewl, 3/16/15)
             IF ( YLAT < -30e+0_fp ) THEN
-               STT(I,J,L,IDTCH4) = C3090S
+! old [kg]
+               STT(I,J,L,IDTCH4) = C3090S * State_Met%AD(I,J,L)
+! new [kg/kg]
+!               STT(I,J,L,IDTCH4) = C3090S
             ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
-               STT(I,J,L,IDTCH4) = C0030S
+! old [kg]
+               STT(I,J,L,IDTCH4) = C0030S * State_Met%AD(I,J,L)
+! new [kg/kg]
+!               STT(I,J,L,IDTCH4) = C0030S
             ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
-               STT(I,J,L,IDTCH4) = C0030N
+! old [kg]
+               STT(I,J,L,IDTCH4) = C0030N * State_Met%AD(I,J,L)
+! new [kg/kg]
+!               STT(I,J,L,IDTCH4) = C0030N
             ELSE
-               STT(I,J,L,IDTCH4) = C3090N
+! old [kg]
+               STT(I,J,L,IDTCH4) = C3090N * State_Met%AD(I,J,L)
+! new [kg/kg]
+!               STT(I,J,L,IDTCH4) = C3090N
             ENDIF
          ENDDO
          ENDDO
@@ -1969,11 +1981,13 @@
                ! Send to STT (currently kg/box)
                IF (SET_CELL) THEN
 !                  ! Convert from [ppbv] to [kg]
-!                  TRACMASS = SCALEFAC * TRACMR * State_Met%AD(I,J,L) /
-!     &                       TCVV(TRAC_IDX)
-                  ! Convert from [ppbv] to [kg/kg] (ewl, 3/19/15)
-                  TRACMASS = SCALEFAC * TRACMR /
+! old [kg]
+                  TRACMASS = SCALEFAC * TRACMR * State_Met%AD(I,J,L) /
      &                       TCVV(TRAC_IDX)
+! new [kg/kg]]
+!                  ! Convert from [ppbv] to [kg/kg] (ewl, 3/19/15)
+!                  TRACMASS = SCALEFAC * TRACMR /
+!     &                       TCVV(TRAC_IDX)
                   IF (TRAC_ADD) THEN
                      STT(I,J,L,TRAC_IDX) = STT(I,J,L,TRAC_IDX)+TRACMASS
                   ELSE
