@@ -41,12 +41,12 @@ MODULE UnitConv_Mod
   PUBLIC  :: Convert_DryVV_to_DryKgKg
 
   ! kg/kg moist air <-> kg/grid box
-  PUBLIC  :: Convert_MoistKgKg_to_KG
-  PUBLIC  :: Convert_KG_to_MoistKgKg
+  PUBLIC  :: Convert_MoistKgKg_to_Kg
+  PUBLIC  :: Convert_Kg_to_MoistKgKg
 
   ! kg/kg dry air <-> kg/grid box
-  PUBLIC  :: Convert_DryKgKg_to_KG
-  PUBLIC  :: Convert_KG_to_DryKgKg
+  PUBLIC  :: Convert_DryKgKg_to_Kg
+  PUBLIC  :: Convert_Kg_to_DryKgKg
 
   ! kg/kg dry air <-> molecules/cm3
   PUBLIC  :: Convert_DryKgKg_to_MND
