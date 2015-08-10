@@ -725,7 +725,8 @@
      &                          value_I_HI,     value_J_HI,
      &                          value_IM,       value_JM,  
      &                          value_LM,       value_IM_WORLD, 
-     &                          value_JM_WORLD, value_LM_WORLD  )
+     &                          value_JM_WORLD, value_LM_WORLD,
+     &                          value_LLTROP,   value_LLSTRAT  )
 !
 ! !USES:
 !
@@ -744,6 +745,8 @@
       INTEGER, OPTIONAL    :: value_IM_WORLD   ! # of lons in the global grid
       INTEGER, OPTIONAL    :: value_JM_WORLD   ! # of lats in the global grid
       INTEGER, OPTIONAL    :: value_LM_WORLD   ! # of levs in the global grid
+      INTEGER, OPTIONAL    :: value_LLTROP     ! # of levs in troposphere
+      INTEGER, OPTIONAL    :: value_LLSTRAT    ! # of levs in stratosphere
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -756,8 +759,7 @@
 !  03 Dec 2012 - R. Yantosca - Rewritten for clarity.  Also pass optional 
 !                              arguments to carry values from ESMF environment
 !  03 Dec 2012 - R. Yantosca - Now allocate DLON, DLAT arrays here.
-!  22 May 2015 - R. Yantosca -  
-
+!  04 Aug 2015 - C. Keller   - Added value_LLTROP and value_LLSTRAT. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC      
@@ -807,9 +809,19 @@
       IGLOB      = IIPAR            ! For backwards compatibility, set = IIPAR
       JGLOB      = JJPAR            ! For backwards compatibility, set = JJPAR
       LGLOB      = LLPAR            ! For backwards compatibility, set = LLPAR
-      LLTROP     = LLPAR            ! For backwards compatibility, set = LLPAR
-      LLTROP_FIX = LLPAR            ! For backwards compatibility, set = LLPAR
-      LLSTRAT    = LLPAR            ! For backwards compatibility, set = LLPAR
+
+      IF ( PRESENT(value_LLTROP) ) THEN
+         LLTROP  = value_LLTROP
+      ELSE
+         LLTROP  = 40
+      ENDIF
+      LLTROP_FIX = LLTROP
+
+      IF ( PRESENT(value_LLSTRAT) ) THEN
+         LLSTRAT = value_LLSTRAT
+      ELSE
+         LLSTRAT = 59
+      ENDIF
 
 #if defined( UCX )
       LLCHEM     = LLSTRAT
