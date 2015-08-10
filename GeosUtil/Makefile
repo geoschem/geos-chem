@@ -205,6 +205,8 @@ transfer_mod.o    : transfer_mod.F        \
 unitconv_mod.o	  : unitconv_mod.F90      \
                     error_mod.o
 
+geos_timers.o     : geos_timers.F         
+
 #%%% NOTE: THIS IS NOW OBSOLETE, WE SHOULD REMOVE IT %%% 
 # NOTE: if HDF5=yes then we need to also look for the hdf5.mod 
 # in the HDF5 include path (bmy, 12/21/09)

@@ -176,7 +176,8 @@
 #  07 Jul 2015 - M. Sulprizio- Add option for CHEM=SOA_SVPOA
 #  17 Jul 2015 - E. Lundgren - Remove BSTATIC option when picking pgi options 
 #                              for debug run or regular run 
-#  07 Nov 2013 - R. Yantosca - NEST=cu to now sets CPP switch w/ -DNESTED_CU for
+#  30 Jul 2015 - M. Yannetti - Added TIMERS.
+#  03 Aug 2015 - M. Sulprizio- NEST=cu to now sets CPP switch w/ -DNESTED_CU for
 #                              custom nested grids
 #EOP
 #------------------------------------------------------------------------------
@@ -253,6 +254,11 @@ endif
 # %%%%% Default to 8-byte precision unless specified otherwise %%%%%
 ifndef PRECISION
  PRECISION           :=8
+endif
+
+# %%%%% Default to Timers disabled %%%%%
+ifndef TIMERS
+ TIMERS              :=0
 endif
 
 # %%%%% Set default compiler %%%%%
@@ -966,6 +972,11 @@ ifeq ($(COMPILER),ifort)
     USER_DEFS        += -DUSE_REAL8
   endif
 
+  # Add timers declaration
+  ifeq ($(TIMERS),1)
+    USER_DEFS        += -DUSE_TIMERS
+  endif
+
   # Append the user options in USER_DEFS to FFLAGS
   FFLAGS             += $(USER_DEFS)
 
@@ -1055,6 +1066,11 @@ ifeq ($(COMPILER),pgi)
     USER_DEFS        += -DUSE_REAL8
   endif
 
+  # Add timers declaration
+  ifeq ($(TIMERS),1)
+    USER_DEFS        += -DUSE_TIMERS
+  endif
+
   # Append the user options in USER_DEFS to FFLAGS
   FFLAGS             += $(USER_DEFS)
 
@@ -1121,6 +1137,7 @@ export RRTMG_NEEDED
 export RRTMG_CLEAN
 export RRTMG_NO_CLEAN
 export KPP_CHEM
+export TIMERS
 
 #EOC
 
