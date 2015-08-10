@@ -111,7 +111,7 @@ MODULE HCO_DataCont_Mod
 ! !DEFINED PARAMETERS:
 !
   ! Maximum number of scale factor fields per base field
-  INTEGER, PARAMETER,     PUBLIC :: SclMax = 10
+!  INTEGER, PARAMETER,     PUBLIC :: SclMax = 10
 
   ! Maximum number of emission categories that can be assigned to a
   ! base field. If multiple emission categories are assigned to one
@@ -149,6 +149,7 @@ MODULE HCO_DataCont_Mod
      INTEGER                     :: Hier           ! Hierarchy
      INTEGER                     :: ScalID         ! Scale factor ID
      INTEGER                     :: Oper           ! Operator
+     INTEGER                     :: nScalID        ! # of scale factor IDs 
      INTEGER,            POINTER :: Scal_cID(:)    ! assoc. scalefactor IDs
      LOGICAL                     :: Scal_cID_set   ! cIDs or scalIDs 
   END TYPE DataCont
@@ -237,6 +238,7 @@ CONTAINS
     Dct%Cat          = -999
     Dct%Hier         = -999
     Dct%Oper         = 1
+    Dct%nScalID      = 0
     Dct%Scal_cID_set = .FALSE. 
 
     ! Assign container ID.

@@ -101,11 +101,6 @@ MODULE HCO_tIdx_Mod
      TYPE(TimeIdx), POINTER :: HOURLY
      TYPE(TimeIdx), POINTER :: HOURLY_GRID 
      TYPE(TimeIdx), POINTER :: WEEKDAY
-!------------------------------------------------------------------------------
-! Prior to 2/25/15:
-! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
-!     TYPE(TimeIdx), POINTER :: WEEKDAY_GRID
-!------------------------------------------------------------------------------
      TYPE(TimeIdx), POINTER :: MONTHLY
   END TYPE TimeIdxCollection
 
@@ -189,17 +184,6 @@ CONTAINS
     AlltIDx%WEEKDAY%TypeID       = 7
     AlltIDx%WEEKDAY%TempRes      = "Weekday"
 
-!------------------------------------------------------------------------------
-! Prior to 2/25/15:
-! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
-!    ! ----------------------------------------------------------------
-!    ! "WEEKDAY_GRID" => changes every weekday, longitude-independent
-!    ! ----------------------------------------------------------------
-!    ALLOCATE ( AlltIDx%WEEKDAY_GRID )
-!    AlltIDx%WEEKDAY_GRID%TypeID       = 71
-!    AlltIDx%WEEKDAY_GRID%TempRes      = "Weekday_Grid"
-!------------------------------------------------------------------------------
-
     ! ----------------------------------------------------------------
     ! "MONTHLY" => changes every month, longitude-dependent
     ! ----------------------------------------------------------------
@@ -266,13 +250,6 @@ CONTAINS
        CASE ( 7 )
           ctIDx => AlltIDx%WEEKDAY
 
-!------------------------------------------------------------------------------
-! Prior to 2/25/15:
-! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
-!       CASE ( 71 )
-!          ctIDx => AlltIDx%WEEKDAY_GRID
-!------------------------------------------------------------------------------
-
        CASE ( 12 )
           ctIDx => AlltIDx%MONTHLY
 
@@ -326,14 +303,6 @@ CONTAINS
           DEALLOCATE(AlltIDx%WEEKDAY) 
        ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 2/25/15:
-! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
-!       IF ( ASSOCIATED(AlltIDx%WEEKDAY_GRID) ) THEN
-!          DEALLOCATE(AlltIDx%WEEKDAY_GRID) 
-!       ENDIF
-!------------------------------------------------------------------------------
-  
        IF ( ASSOCIATED(AlltIDx%MONTHLY) ) THEN
           DEALLOCATE(AlltIDx%MONTHLY) 
        ENDIF
@@ -765,7 +734,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE HCO_GetPrefTimeAttr( Lct,    readYr, readMt, &
-                                  readDy, readHr, RC       ) 
+                                  readDy, readHr, readMn, RC ) 
 !
 ! !USES:
 !
@@ -782,6 +751,7 @@ CONTAINS
     INTEGER,         INTENT(  OUT) :: readMt    ! preferred month 
     INTEGER,         INTENT(  OUT) :: readDy    ! preferred day
     INTEGER,         INTENT(  OUT) :: readHr    ! preferred hour 
+    INTEGER,         INTENT(  OUT) :: readMn    ! preferred minute 
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -795,7 +765,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER   :: cYr, cMt, cDy, cHr 
+    INTEGER   :: cYr, cMt, cDy, cHr, cMn 
     LOGICAL   :: InRange
 
     !-----------------------------------
@@ -806,9 +776,12 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Get current time
-    CALL HcoClock_Get( cYYYY = cYr, cMM = cMt,        &
-                       cDD   = cDy, cH  = cHr, RC = RC ) 
+    CALL HcoClock_Get( cYYYY = cYr, cMM = cMt, cDD = cDy, &
+                       cH  = cHr,   cM  = cMn, RC  = RC    ) 
     IF ( RC /= HCO_SUCCESS ) RETURN 
+
+    ! preferred minute is always current one
+    readMn = cMn
 
     ! ------------------------------------------------------------- 
     ! If CycleFlag is set to range, the preferred datetime is 
@@ -976,6 +949,21 @@ CONTAINS
     !=================================================================
     ! HCO_ExtractTime begins here!
     !=================================================================
+
+    ! Check for case where time flag is set to just one wildcard 
+    ! character. In this case, we want to update the file on every
+    ! HEMCO time step, i.e. it will be added to readlist 'Always'
+    ! (in hco_readlist_mod.F90).
+    IF ( TRIM(CharStr) == HCO_WCD() ) THEN
+       Dta%UpdtFlag = HCO_UFLAG_ALWAYS
+       Dta%ncYrs    = -999 
+       Dta%ncMts    = -999 
+       Dta%ncDys    = -999 
+       Dta%ncHrs    = -999 
+
+       RC = HCO_SUCCESS
+       RETURN
+    ENDIF
 
     ! Init
     TimeVec(:) = -1

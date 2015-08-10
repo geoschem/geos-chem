@@ -72,6 +72,8 @@ MODULE HCOX_GFED_MOD
 !  08 Aug 2014 - R. Yantosca - Now avoid ASCII file reads for ESMF
 !  23 Sep 2014 - C. Keller   - Increase N_SPEC to 26 (+Hg0)
 !  12 Mar 2015 - C. Keller / P. Kasibhatla - Added GFED-4.
+!  03 Jun 2015 - C. Keller / P. Kasibhatla - GFED-4 update: now use GFED-4
+!                                            specific emission factors and DM data.
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -98,6 +100,8 @@ MODULE HCOX_GFED_MOD
   INTEGER                       :: ExtNr
   LOGICAL                       :: DoDay
   LOGICAL                       :: Do3Hr
+  LOGICAL                       :: IsGFED3
+  LOGICAL                       :: IsGFED4
 
   !=================================================================
   ! SPECIES VARIABLES 
@@ -134,7 +138,9 @@ MODULE HCOX_GFED_MOD
   !             NAP scale factor that must be specified in the HEMCO
   !             configuration file (NAP scale).
   !=================================================================
-  REAL(hp),          ALLOCATABLE :: GFED_EMFAC(:,:)
+  REAL(hp), ALLOCATABLE, TARGET  :: GFED3_EMFAC(:,:)
+  REAL(hp), ALLOCATABLE, TARGET  :: GFED4_EMFAC(:,:)
+  REAL(hp),              POINTER :: GFED_EMFAC (:,:) => NULL()
   REAL(sp)                       :: COScale
   REAL(sp)                       :: OCPIfrac 
   REAL(sp)                       :: BCPIfrac
@@ -223,20 +229,39 @@ CONTAINS
     ! Get pointers to data arrays 
     !-----------------------------------------------------------------
     IF ( FIRST ) THEN
-       CALL HCO_GetPtr ( am_I_Root, 'GFED_WDL', GFED_WDL, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( am_I_Root, 'GFED_SAV', GFED_SAV, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( am_I_Root, 'GFED_PET', GFED_PET, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( am_I_Root, 'GFED_FOR', GFED_FOR, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( am_I_Root, 'GFED_AGW', GFED_AGW, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( am_I_Root, 'GFED_DEF', GFED_DEF, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_GetPtr ( am_I_Root, 'GFED_HUMTROP', HUMTROP, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Get pointers to GFED3 data 
+       IF ( IsGFED3 ) THEN
+          CALL HCO_GetPtr ( am_I_Root, 'GFED_WDL', GFED_WDL, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          CALL HCO_GetPtr ( am_I_Root, 'GFED_SAV', GFED_SAV, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          CALL HCO_GetPtr ( am_I_Root, 'GFED_PET', GFED_PET, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          CALL HCO_GetPtr ( am_I_Root, 'GFED_FOR', GFED_FOR, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          CALL HCO_GetPtr ( am_I_Root, 'GFED_AGW', GFED_AGW, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          CALL HCO_GetPtr ( am_I_Root, 'GFED_DEF', GFED_DEF, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          CALL HCO_GetPtr ( am_I_Root, 'GFED_HUMTROP', HUMTROP, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Get pointers to GFED4 data
+       ELSEIF ( IsGFED4 ) THEN
+          CALL HCO_GetPtr ( am_I_Root, 'GFED_TEMP', GFED_WDL, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          CALL HCO_GetPtr ( am_I_Root, 'GFED_SAVA', GFED_SAV, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          CALL HCO_GetPtr ( am_I_Root, 'GFED_PEAT', GFED_PET, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          CALL HCO_GetPtr ( am_I_Root, 'GFED_BORF', GFED_FOR, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          CALL HCO_GetPtr ( am_I_Root, 'GFED_AGRI', GFED_AGW, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          CALL HCO_GetPtr ( am_I_Root, 'GFED_DEFO', GFED_DEF, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
 
        ! Make sure HUMTROP does not exceed one
        WHERE ( HUMTROP > 1.0_sp ) 
@@ -304,7 +329,7 @@ CONTAINS
           ! deforestation and woodland scale factors, based on the value
           ! of the humid tropical forest mask. This makes the calculation
           ! less dependent on model resolution. (ckeller, 4/3/15) 
-          IF ( M == 2 ) THEN
+          IF ( M == 2 .AND. IsGFED3 ) THEN
 !             WHERE ( HUMTROP == 0.0_hp ) 
 !                TypArr = TmpPtr * GFED_EMFAC(GfedIDs(N),6)
 !             END WHERE
@@ -419,15 +444,16 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     CHARACTER(LEN=255) :: MSG, ScalFile
-    CHARACTER(LEN=255) :: GFED_SPEC_NAME(N_SPEC)
     INTEGER            :: tmpNr, AS, IU_FILE, IOS
     INTEGER            :: N, M, NDUM
     CHARACTER(LEN=31)  :: tmpName
     CHARACTER(LEN=31)  :: SpcName
     LOGICAL            :: FOUND, Matched
-    LOGICAL            :: IsGFED3
-    LOGICAL            :: IsGFED4
     REAL(sp)           :: ValSp
+
+    CHARACTER(LEN=255), POINTER :: GFED_SPEC_NAME (:) => NULL()
+    CHARACTER(LEN=255), TARGET  :: GFED3_SPEC_NAME(N_SPEC)
+    CHARACTER(LEN=255), TARGET  :: GFED4_SPEC_NAME(N_SPEC)
 
     !=================================================================
     ! HCOX_GFED_Init begins here!
@@ -539,19 +565,31 @@ CONTAINS
     !----------------------------------------------------------------------- 
 
     ! Allocate scale factors table
-    ALLOCATE ( GFED_EMFAC ( N_SPEC, N_EMFAC ), STAT=AS )
+    ALLOCATE ( GFED3_EMFAC ( N_SPEC, N_EMFAC ),        &
+               GFED4_EMFAC ( N_SPEC, N_EMFAC ), STAT=AS )
     IF ( AS/=0 ) THEN
        CALL HCO_ERROR( 'Cannot allocate GFED_EMFAC', RC )
        RETURN
     ENDIF
-    GFED_EMFAC = 0.0_hp
+    GFED4_EMFAC = 0.0_hp
+    GFED3_EMFAC = 0.0_hp
 
     ! Now get definitions for GFED_EMFAC and GFED_SPEC_NAME from an include 
     ! file.  This avoids ASCII file reads in the ESMF environment.  To update
     ! the emission factors, one just needs to modify the include file.
     ! This can be done with the script HEMCO/Extensions/Preprocess/gfed.pl,
     ! (bmy, 8/14/14)
-#include "hcox_gfed_include.H"
+#include "hcox_gfed_include_gfed3.H"
+#include "hcox_gfed_include_gfed4.H"
+
+    ! Set working pointers
+    IF ( IsGFED3 ) THEN
+       GFED_EMFAC     => GFED3_EMFAC
+       GFED_SPEC_NAME => GFED3_SPEC_NAME
+    ELSEIF ( IsGFED4 ) THEN
+       GFED_EMFAC     => GFED4_EMFAC
+       GFED_SPEC_NAME => GFED4_SPEC_NAME
+    ENDIF
 
     !----------------------------------------------------------------------- 
     ! Match specified species with GFED species
@@ -673,6 +711,9 @@ CONTAINS
     ! Enable module
     ExtState%GFED = .TRUE.
 
+    ! Cleanup
+    GFED_SPEC_NAME => NULL()
+
     ! Return w/ success
     CALL HCO_LEAVE ( RC ) 
  
@@ -705,21 +746,23 @@ CONTAINS
     !=================================================================
 
     ! Free pointers
-    GFED_WDL => NULL()
-    GFED_SAV => NULL()
-    GFED_PET => NULL()
-    GFED_FOR => NULL()
-    GFED_AGW => NULL()
-    GFED_DEF => NULL()
-    HUMTROP  => NULL()
-    DAYSCAL  => NULL()
-    HRSCAL   => NULL()
+    GFED_WDL   => NULL()
+    GFED_SAV   => NULL()
+    GFED_PET   => NULL()
+    GFED_FOR   => NULL()
+    GFED_AGW   => NULL()
+    GFED_DEF   => NULL()
+    HUMTROP    => NULL()
+    DAYSCAL    => NULL()
+    HRSCAL     => NULL()
+    GFED_EMFAC => NULL()
 
     ! Cleanup module arrays
-    IF ( ALLOCATED( GFED_EMFAC ) ) DEALLOCATE( GFED_EMFAC )
-    IF ( ALLOCATED( GfedIDs    ) ) DEALLOCATE( GfedIds    )
-    IF ( ALLOCATED( HcoIDs     ) ) DEALLOCATE( HcoIDs     )
-    IF ( ALLOCATED( SpcNames   ) ) DEALLOCATE( SpcNames   )
+    IF ( ALLOCATED( GFED3_EMFAC ) ) DEALLOCATE( GFED3_EMFAC )
+    IF ( ALLOCATED( GFED4_EMFAC ) ) DEALLOCATE( GFED4_EMFAC )
+    IF ( ALLOCATED( GfedIDs     ) ) DEALLOCATE( GfedIds     )
+    IF ( ALLOCATED( HcoIDs      ) ) DEALLOCATE( HcoIDs      )
+    IF ( ALLOCATED( SpcNames    ) ) DEALLOCATE( SpcNames    )
 
   END SUBROUTINE HCOX_GFED_Final
 !EOC

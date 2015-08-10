@@ -444,71 +444,8 @@
       ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
       ! (jaf, eds, 4/1/11)
       !IF (LGCAPEMIS) THEN
-!------------------------------------------------------------------------------
-! Prior to 3/16/15:
-! LVEGEMIS=.FALSE. is the default setting (bmy, 3/16/15)
-!      IF (.NOT. LVEGEMIS) THEN
-!------------------------------------------------------------------------------
 
          EHg0_vg = 0e+0_fp
-
-!------------------------------------------------------------------------------
-! Prior to 3/16/15:
-! LVEGEMIS=.FALSE. is the default setting.  In the README file to directory
-! GEOS_4x5/mercury_201007/ it says:
-!
-!   Monthly mean climatological evapotranspiration fields [Mintz and Walker, 
-!   1993]. These were used in Selin et al., 2008 to scale vegetation mercury
-!   emissions. This process is not included in more recent versions of the 
-!   model and these files may be obsolete.
-!
-! Therefore, we will remove this code from GEOS-Chem.  This will save us
-! the hassle of converting the NASA evapotranspiration files from bpch
-! to netCDF. (bmy, 3/16/15).
-!
-!      ELSE
-!
-!         ! read GISS TRANSP monthly average
-!         IF ( ITS_A_NEW_MONTH() ) THEN 
-!            CALL READ_NASA_TRANSP( am_I_Root, Input_Opt, RC )
-!         ENDIF 
-!
-!         ! loop over I,J
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, SOILWATER_HG, DRYSOIL_HG, VEG_EMIS, AREA_M2 ) 
-!         DO J=1, JJPAR
-!         DO I=1, IIPAR
-!        
-!            IF (IS_LAND( I, J, State_Met )) THEN
-!
-!               ! Dry soil Hg concentration, ng Hg /g soil
-!               DRYSOIL_HG = DRYSOIL_PREIND_HG * EHg0_dist(I,J)
-!
-!               ! Hg concentration in soil water, ng /m3
-!               SOILWATER_HG =  DRYSOIL_HG / Kd
-!
-!               ! Emission from vegetation, ng /m2
-!               VEG_EMIS = SOILWATER_HG * TRANSP(I,J)
-!
-!               ! convert from ng /m2 /s -> kg/gridbox/s
-!               ! Grid box surface area [m2]
-!               AREA_M2      = GET_AREA_M2( I, J, 1 )
-!               EHg0_vg(I,J) = VEG_EMIS * AREA_M2 * 1e-12_fp
-!
-!            ELSE
-!
-!               ! No emissions from water and ice
-!               EHg0_vg(I,J) = 0e+0_fp
-!
-!            ENDIF
-!
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!
-!      ENDIF
-!------------------------------------------------------------------------------
 
       END SUBROUTINE VEGEMIS
 !EOC
@@ -743,7 +680,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),         INTENT(OUT) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)  ! Hg0 flux
+      REAL(fp),       INTENT(OUT) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)  ! Hg0 flux
                                                                   !  [kg/s]
 !
 ! !REMARKS:
@@ -780,52 +717,61 @@
       FLUX = 0e+0_fp
 
       ! Return to calling program if snowpack model is disabled
-      IF (.NOT. LHGSNOW) RETURN
+      IF ( .NOT. LHGSNOW ) RETURN
 
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60e+0_fp      
 
-      ! Emit Hg(0) at a steady rate, based on 180 d residence
-      ! time in snowpack, based on cycle observed at Alert 
-      ! (e.g. Steffen et al. 2008)
-      K_EMIT = 6e-8_fp
-
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, NN, SNOW_HG_NEW, K_EMIT )
-      DO J  = 1, JJPAR
-      DO I  = 1, IIPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Zero for safety's sake
+         K_EMIT      = 0.0e+0+fp
+         SNOW_HG_NEW = 0.0e+0_fp
 
          ! If the sun is set, then no emissions, go to next box
          IF ( State_Met%SUNCOS(I,J) < 0e+0_fp ) CYCLE 
 
-            ! Decrease residence time to 1 week when T > -3C
-            ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+         ! Decrease residence time to 1 week when T > -3C
+         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+         ! Emit Hg(0) at a steady rate, based on 180 d residence
+         ! time in snowpack, based on cycle observed at Alert 
+         ! (e.g. Steffen et al. 2008)
+         IF ( State_Met%T(I,J,1) > 270e+0_fp) THEN
+
+            ! NOW USE 3 weeks for broader summer peak
+            !K_EMIT = 1.6D-6
+            K_EMIT = 5e-7_fp
+
+         ELSE
+
             ! Emit Hg(0) at a steady rate, based on 180 d residence
             ! time in snowpack, based on cycle observed at Alert 
             ! (e.g. Steffen et al. 2008)
-            IF ( State_Met%T(I,J,1) > 270e+0_fp) THEN
-               ! NOW USE 3 weeks for broader summer peak
-               !K_EMIT = 1.6D-6
-               K_EMIT = 5e-7_fp
-            ELSE
-               K_EMIT = 6e-8_fp
-            ENDIF
+            K_EMIT = 6e-8_fp
 
+         ENDIF
+
+         ! Loop over # of categories 
          DO NN = 1, N_Hg_CATS
 
             ! Check if there is Hg that could be emitted
-            IF (SNOW_HG(I,J,NN)>0e+0_fp) THEN
+            IF ( SNOW_HG(I,J,NN) > 0e+0_fp ) THEN
 
                ! New mass of snow in Hg
-               SNOW_HG_NEW = SNOW_HG(I,J,NN) * EXP( - K_EMIT * DTSRCE )
+               SNOW_HG_NEW = SNOW_HG(I,J,NN) * EXP( -K_EMIT * DTSRCE )
 
+               ! Not less than zero
                FLUX(I,J,NN) = MAX( SNOW_HG(I,J,NN) - SNOW_HG_NEW,
-     &                        0e+0_fp )
+     &                             0e+0_fp )
 
                ! Convert mass -> flux
                FLUX(I,J,NN) = FLUX(I,J,NN) / DTSRCE
 
+               ! Save back into array
                SNOW_HG(I,J,NN) = SNOW_HG_NEW
 
             ENDIF

@@ -1092,9 +1092,11 @@
             ! Reduction and oxidation coefficients
             !===========================================================    
             ! Avoid having NPP or CHL to be zero
-            NPP(I,J) = MAX ( NPP(I,J) , NPPMINNUM )  
+            !GanLuo+NPP(I,J) = MAX ( NPP(I,J) , NPPMINNUM )
+            NPP(I,J) = MAX ( NPP(I,J)*1.d0 , NPPMINNUM )
 
-            CHL(I,J)    = MAX ( CHL(I,J) , CHLMINNUM )                  
+            !GanLuo+CHL(I,J) = MAX ( CHL(I,J) , CHLMINNUM )
+            CHL(I,J) = MAX ( CHL(I,J)*1.d0 , CHLMINNUM )
 
             ! Light attenuation (RADz) is calculated
             EC     = (EC_w + ( EC_doc * C_doc * ( NPP(I,J) / NPP_avg ) )
@@ -2565,7 +2567,7 @@
       INTEGER             :: NTRACER,   NSKIP
       INTEGER             :: HALFPOLAR, CENTER180
       REAL*4              :: LONRES,    LATRES
-      REAL(fpp)              :: ZTAU0,     ZTAU1
+      REAL(f8)              :: ZTAU0,     ZTAU1
       CHARACTER(LEN=20)   :: MODELNAME
       CHARACTER(LEN=40)   :: CATEGORY
       CHARACTER(LEN=40)   :: UNIT     
@@ -2758,7 +2760,15 @@
       PRINT*, 'N_oc', N_oc
 
       ! Check for missing or duplicate data blocks
-      CALL CHECK_DATA_BLOCKS( N_oc, NCOUNT )    
+      CALL CHECK_DATA_BLOCKS( N_oc, NCOUNT )
+
+!##############################################################################
+!### DEBUG: SET OCEAN RESTART VALUES TO ZERO FOR TESTING (uncomment if needed)
+!###      Hg0aq   = 0.0e+0_fpp
+!###      Hg2aq   = 0.0e+0_fpp
+!###      HgPaq   = 0.0e+0_fpp
+!###      SNOW_Hg = 0.0e+0_fpp
+!##############################################################################
 
       !=================================================================
       ! Print totals

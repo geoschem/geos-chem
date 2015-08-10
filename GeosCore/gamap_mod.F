@@ -5719,43 +5719,6 @@
          SCALE(T,31) = 1e0
       ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 8/18/14:
-! The CH3I simulation is obsolete, so comment out for now (bmy, 8/25/14)
-!      !-------------------------------------      
-!      ! CH3I emissions sources (ND36)
-!      !-------------------------------------      
-!      IF ( ND36 > 0 .and. Input_Opt%ITS_A_CH3I_SIM ) THEN
-!
-!         ! Number of tracers
-!         NTRAC(36) = NEMANTHRO
-!
-!         ! The first few are tracers
-!         DO T = 1, NTRAC(36)
-!            IF ( T <= Input_Opt%N_TRACERS ) THEN
-!               NAME (T,36) = Input_Opt%TRACER_NAME(T)
-!               FNAME(T,36) = TRIM( NAME(T,36) ) // ' tracer'
-!            ELSE IF ( T == 6 ) THEN
-!               NAME (T,36) = 'CH3Iof'
-!               FNAME(T,36) = 'CH3I ocean flux??'
-!            ELSE IF ( T == 7 ) THEN
-!               NAME (T,36) = 'CH3Igf'
-!               FNAME(T,36) = 'CH3I gas flux??'
-!            ELSE IF ( T == 8 ) THEN
-!               NAME (T,36) = 'CH3Itf'
-!               FNAME(T,36) = 'CH3I total flux??'
-!            ENDIF
-!
-!            ! Define other quantities
-!            MOLC (T,36) = 1
-!            SCALE(T,36) = 1e0
-!            INDEX(T,36) = T + ( SPACING * 44 )
-!            MWT  (T,36) = 141.9e-3
-!            UNIT (T,36) = 'ng/m2/s'
-!         ENDDO
-!      ENDIF
-!------------------------------------------------------------------------------
-
       !-------------------------------------      
       ! Afternoon-average boundary 
       ! layer heights (ND41) + timeseries
@@ -6294,12 +6257,10 @@
                      INDEX(N,44)   = T + ( SPACING * 36 )
                      NTRAC(44)     = NTRAC(44) + 1
 
-                     ! For the Rn simulation, unit is kg/s (bmy, 2/22/08)
-                     IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
-                        UNIT(N,44) = 'kg/s'
-                     ELSE
-                        UNIT(N,44) = 'molec/cm2/s'
-                     ENDIF
+                     ! NOTE: ND44 is now molec/cm2/s for all species
+                     ! because this is now centrally archived in
+                     ! module GeosCore/mixing_mod.F90 (bmy, 6/16/15)
+                     UNIT(N,44) = 'molec/cm2/s'
 
                      !--------------------------------------------------
                      ! Drydep velocity all other G-C tracers
@@ -7247,9 +7208,9 @@
 
             ! Define quantities
             INDEX(T,72) = T + ( SPACING * 72 )
-            MOLC (T,21) = 1
-            MWT  (T,21) = 0e0
-            SCALE(T,21) = 1e0
+            MOLC (T,72) = 1
+            MWT  (T,72) = 0e0
+            SCALE(T,72) = 1e0
             !get number of current flux type
             T0 = ((T-1)/(NSPECRADMENU+1))+1
             SELECT CASE( T0 )

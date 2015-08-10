@@ -192,7 +192,8 @@ CONTAINS
     Reals(:) = -999_dp
 
     ! Extract strings to be translated into integers 
-    CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Reals,1) ) THEN
        CALL HCO_ERROR( 'Too many substrings!', RC, THISLOC=LOC )
        RETURN
@@ -275,7 +276,8 @@ CONTAINS
     Reals(:) = -999_sp
 
     ! Extract strings to be translated into integers 
-    CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Reals,1) ) THEN
        CALL HCO_ERROR( 'Too many substrings!', RC, THISLOC=LOC )
        RETURN
@@ -357,8 +359,16 @@ CONTAINS
     ! Init
     Ints(:) = -999
 
+    ! If input string is wildcard or otherwise empty, return here.
+    IF ( TRIM(CharStr) == TRIM(WC) .OR. &
+         TRIM(CharStr) == '-'            ) THEN
+       N = 0
+       RETURN
+    ENDIF
+
     ! Extract strings to be translated into integers 
-    CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Ints,1) ) THEN
        CALL HCO_ERROR( 'Too many substrings!', RC, THISLOC=LOC )
        RETURN
@@ -367,16 +377,9 @@ CONTAINS
     ! Return here if no entry found
     IF ( N == 0 ) RETURN 
 
-    ! Pass all extracted strings to integer vector. Replace wildcard
-    ! character with -999!
+    ! Pass all extracted strings to integer vector.
     DO I = 1, N
-       IF ( TRIM(SUBSTR(I)) == TRIM(WC) ) THEN
-          Ints(I) = -999
-       ELSEIF ( TRIM(SUBSTR(I)) == '-' ) THEN
-          Ints(I) = -999
-       ELSE
-          READ( SUBSTR(I), * ) Ints(I) 
-       ENDIF
+       READ( SUBSTR(I), * ) Ints(I) 
     ENDDO
 
     ! Leave w/ success
@@ -473,10 +476,11 @@ CONTAINS
 ! source time settings set in the configuration file.
 !\item \$HH: will be replaced by the (2-digit) hour according to the
 ! source time settings set in the configuration file.
+!\item \$MN: will be replaced by the (2-digit) minute.
 !\end{itemize}
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_CharParse ( str, yyyy, mm, dd, hh, RC )
+  SUBROUTINE HCO_CharParse ( str, yyyy, mm, dd, hh, mn, RC )
 !
 ! !USES:
 !
@@ -487,6 +491,7 @@ CONTAINS
     INTEGER,          INTENT(IN   )  :: mm    ! replace $MM with this value 
     INTEGER,          INTENT(IN   )  :: dd    ! replace $DD with this value
     INTEGER,          INTENT(IN   )  :: hh    ! replace $HH with this value
+    INTEGER,          INTENT(IN   )  :: mn    ! replace $MN with this value
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -607,6 +612,26 @@ CONTAINS
        AFTER = str((IDX+OFF):LN)
 
        WRITE(str2,'(i2.2)') hh 
+
+       ! Updated string
+       str = TRIM(BEFORE) // TRIM(str2) // TRIM(AFTER)
+    ENDDO
+
+    ! Check for minute token
+    !-------------------------------------------------------------------
+    DO
+       IDX = INDEX( str, '$MN' )
+       IF ( IDX <= 0 ) EXIT 
+       LN = LEN(str)
+       IF ( IDX > 1 ) THEN
+          BEFORE = str(1:(IDX-1))
+       ELSE
+          BEFORE = ''
+       ENDIF
+       OFF   = 3
+       AFTER = str((IDX+OFF):LN)
+
+       WRITE(str2,'(i2.2)') mn
 
        ! Updated string
        str = TRIM(BEFORE) // TRIM(str2) // TRIM(AFTER)

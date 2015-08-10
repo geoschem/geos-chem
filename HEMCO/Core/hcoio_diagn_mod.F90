@@ -628,7 +628,7 @@ CONTAINS
              TRIM(ThisDiagn%cName), NotFoundOk=.TRUE., RC=STAT )
           IF ( ASSOCIATED(Ptr3D) ) THEN
              IF ( ASSOCIATED(ThisDiagn%Arr3D) ) THEN
-                Ptr3D = ThisDiagn%Arr3D%Val
+                Ptr3D(:,:,:) = ThisDiagn%Arr3D%Val(:,:,HcoState%NZ:1:-1)
                 !Ptr3D => ThisDiagn%Arr3D%Val
              ENDIF
           ENDIF

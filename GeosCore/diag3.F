@@ -20,7 +20,7 @@
       USE CMN_O3_MOD                         ! FMOL, XNUMOL
       USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays
       USE CMN_FJX_MOD                        ! Fast-JX flux diagnostics
-      USE COMODE_LOOP_MOD                    ! IDEMS
+      USE COMODE_LOOP_MOD                    ! NFAMILIES
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -257,6 +257,10 @@
 !                              emissions of hydrocarbon species to atomsC/cm2/s.
 !                              HEMCO now carries emissions for these species
 !                              entirely in kgC/m2/s.
+!  21 May 2015 - R. Yantosca - Bug fix: The bpch unit string for BIOMASS_NH3 
+!                              should be molec/cm2/s instead of atoms C/cm2/2.
+!  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
+!  22 May 2015 - R. Yantosca - Replace NOXEXTENT with 2 in TOMAS #if blocks
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -561,7 +565,7 @@
 !  (1)  DUST     : Soil dust (4 different classes) : kg         : 1
 !******************************************************************************
 !
-      IF ( ND06 > 0 .and. Input_Opt%LDUST ) THEN
+      IF ( ND06 > 0 .and. Input_Opt%LDUST .and. Input_Opt%LEMIS ) THEN
 
          ! Category & unit string
          UNIT     = 'kg'
@@ -1210,7 +1214,7 @@
 !  (2)  SALC     : Coarse mode seasalt             : kg         : 1
 !******************************************************************************
 !
-      IF ( ND08 > 0 .and. Input_Opt%LSSALT ) THEN
+      IF ( ND08 > 0 .and. Input_Opt%LSSALT .and. Input_Opt%LEMIS ) THEN
 
          ! Category & unit string
          UNIT     = 'kg'
@@ -1323,7 +1327,7 @@
 !       explicitly calculates the Acetone ocean sink. (ckeller, 08/04/14) 
 !******************************************************************************
 !
-      IF ( ND11 > 0 ) THEN
+      IF ( ND11 > 0 .and. Input_Opt%LEMIS ) THEN
          CATEGORY = 'ACETSRCE'
          UNIT     = 'atoms C/cm2/s'
 
@@ -1400,7 +1404,7 @@
 !  (1) ND13 diagnostics are now tracked by HEMCO. (bmy, 8/18/14)
 !******************************************************************************
 !
-      IF ( ND13 > 0 .and. 
+      IF ( ND13 > 0 .and. Input_Opt%LEMIS .and. 
      &   ( Input_Opt%ITS_A_FULLCHEM_SIM .or. 
      &     Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
          UNIT = 'kg S'
@@ -2397,7 +2401,7 @@
          !%%%%% NH3 %%%%%
          IF ( IDTNH3 > 0 ) THEN
             DiagnName = 'BIOMASS_NH3'
-            UNIT      = 'atoms C/cm2/s'
+            UNIT      = 'molec/cm2/s'
             N         = IDTNH3
             FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -2667,7 +2671,7 @@
 !  Levels        : Field                  : Units       : Scale Factor
 !  -------------------------------------------------------------------------
 !  1 - LLCHEM    : Aircraft NOx           : molec/cm2/s : SCALESRCE
-!  1 - NOXEXTENT : Anthropogenic NOx      : molec/cm2/s : SCALESRCE
+!  1 - ?         : Anthropogenic NOx      : molec/cm2/s : SCALESRCE
 !  Surface       : Biomass Burning NOx    : molec/cm2/s : SCALESRCE
 !  Surface       : Biofuel Burning NOx    : molec/cm2/s : SCALESRCE
 !  Surface       : Fertilizer NOx         : molec/cm2/s : SCALESRCE
@@ -3522,6 +3526,7 @@
 !  (9 ) Add code for H2/HD simulation (phs, 5/8/07)
 !  29 Jan 2014 - R. Yantosca - Now save DEPNAME(N) into DRYDEP_NAME, which
 !                              helps avoid ambiguity for TOMAS simulations
+!  12 Jun 2015 - R. Yantosca - ND44 is now always in molec/cm2/s
 !******************************************************************************
 !
       IF ( ND44 > 0 ) THEN
@@ -3567,8 +3572,10 @@
             IF ( Input_Opt%ITS_A_RnPbBe_SIM .or. 
      &           Input_Opt%ITS_A_H2HD_SIM ) THEN
 
+               ! NOTE: ND44 is now archived in molec/cm2/s for all 
+               ! simulations, including Rn-Pb-Be. (bmy, 6/16/15)
                ! Radon or H2/HD
-               UNIT = 'kg/s'       
+               UNIT = 'molec/cm2/s'
                NN   = NTRAIND(N)
  
             ELSE IF ( Input_Opt%ITS_A_TAGOX_SIM .or. 
@@ -4839,15 +4846,15 @@
          CATEGORY     = 'NK-EMISS'
          DO NBIN =1,IBINS
             N        = IDTNK1 + NBIN - 1
-            DO L = 1, NOXEXTENT 
+            DO L = 1, 2
                ARRAY(:,:,L) = AD59_NUMB(:,:,L,NBIN)
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
 
@@ -4858,15 +4865,15 @@
          CATEGORY     = 'SF-EMISS'
          DO NBIN =1,IBINS
             N        = IDTSF1 + NBIN - 1
-            DO L = 1, NOXEXTENT 
+            DO L = 1, 2
                ARRAY(:,:,L) = AD59_SULF(:,:,L,NBIN)
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
 
@@ -4877,15 +4884,15 @@
          CATEGORY     = 'SS-EMISS'
          DO NBIN =1,IBINS
             N        = IDTSS1 + NBIN - 1
-            DO L = 1, NOXEXTENT 
+            DO L = 1, 2
                ARRAY(:,:,L) = AD59_SALT(:,:,L,NBIN)
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
 
@@ -4896,15 +4903,15 @@
          CATEGORY     = 'ECIL-SRC'
          DO NBIN =1,IBINS
             N        = IDTECIL1 - 1 + NBIN
-            DO L = 1, NOXEXTENT 
+            DO L = 1, 2
                ARRAY(:,:,L) = AD59_ECIL(:,:,L,NBIN)
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
 
@@ -4915,15 +4922,15 @@
          CATEGORY     = 'ECOB-SRC'
          DO NBIN =1,IBINS
             N        = IDTECOB1 - 1 + NBIN
-            DO L = 1, NOXEXTENT 
+            DO L = 1, 2
                ARRAY(:,:,L) = AD59_ECOB(:,:,L,NBIN)
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
 
@@ -4934,15 +4941,15 @@
          CATEGORY     = 'OCIL-SRC'
          DO NBIN =1,IBINS
             N        = IDTOCIL1 - 1 + NBIN
-            DO L = 1, NOXEXTENT 
+            DO L = 1, 2
                ARRAY(:,:,L) = AD59_OCIL(:,:,L,NBIN)
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
 
@@ -4953,15 +4960,15 @@
          CATEGORY     = 'OCOB-SRC'
          DO NBIN =1,IBINS
             N        = IDTOCOB1 - 1 + NBIN
-            DO L = 1, NOXEXTENT 
+            DO L = 1, 2
                ARRAY(:,:,L) = AD59_OCOB(:,:,L,NBIN)
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
 
@@ -4972,15 +4979,15 @@
          CATEGORY     = 'DUST-SRC'
          DO NBIN =1,IBINS
             N        = IDTDUST1 - 1 + NBIN
-            DO L = 1, NOXEXTENT 
+            DO L = 1, 2
                ARRAY(:,:,L) = AD59_DUST(:,:,L,NBIN)
             ENDDO
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
 

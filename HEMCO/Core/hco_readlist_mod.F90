@@ -140,18 +140,24 @@ CONTAINS
     ! fields in list 'Day' every day, etc.
     ! If a time range instead of a single time stamp is given,
     ! categorize the field according to the most rapidly changing time
-    ! stamp. If no time attribute exist, put the field into the 'Once'
-    ! list which reads the file only at the beginning. 
-    IF (     Dct%Dta%ncHrs(1) /= Dct%Dta%ncHrs(2) ) THEN
-       intv = 1  
+    ! stamp. 
+    ! If no time attribute exist, put the field into the 'Once' list 
+    ! which reads the file only at the beginning. Similarly, fields
+    ! with an update flag of 'always' will be put into the 'Always'
+    ! list. The always update flag is set in routine HCO_ExtractTime,
+    ! which is called from Config_ReadCont (hco_config_mod.F90).
+    IF     ( Dct%Dta%UpdtFlag == HCO_UFLAG_ALWAYS ) THEN
+       intv = 1
+    ELSEIF ( Dct%Dta%ncHrs(1) /= Dct%Dta%ncHrs(2) ) THEN
+       intv = 2  
     ELSEIF ( Dct%Dta%ncDys(1) /= Dct%Dta%ncDys(2) ) THEN
-       intv = 2
-    ELSEIF ( Dct%Dta%ncMts(1) /= Dct%Dta%ncMts(2) ) THEN
        intv = 3
-    ELSEIF ( Dct%Dta%ncYrs(1) /= Dct%Dta%ncYrs(2) ) THEN
+    ELSEIF ( Dct%Dta%ncMts(1) /= Dct%Dta%ncMts(2) ) THEN
        intv = 4
-    ELSE
+    ELSEIF ( Dct%Dta%ncYrs(1) /= Dct%Dta%ncYrs(2) ) THEN
        intv = 5
+    ELSE
+       intv = 6 
     ENDIF
 
     ! NOTE: In an ESMF environment, data I/O is organized through 
@@ -162,21 +168,22 @@ CONTAINS
     ! Hence, make sure that all containers are added to the one-time
     ! reading list! 
     IF ( HcoState%isESMF .AND. Dct%Dta%ncRead ) THEN
-       intv = 5
+       intv = 6
     ENDIF
 
-    IF ( intv == 1 ) THEN 
-       CALL DtCont_Add( ReadLists%Hour,  Dct ) 
+    IF (     intv == 1 ) THEN 
+       CALL DtCont_Add( ReadLists%Always, Dct ) 
     ELSEIF ( intv == 2 ) THEN 
-       CALL DtCont_Add( ReadLists%Day,   Dct ) 
+       CALL DtCont_Add( ReadLists%Hour,   Dct ) 
     ELSEIF ( intv == 3 ) THEN 
-       CALL DtCont_Add( ReadLists%Month, Dct ) 
+       CALL DtCont_Add( ReadLists%Day,    Dct ) 
     ELSEIF ( intv == 4 ) THEN 
-       CALL DtCont_Add( ReadLists%Year,  Dct ) 
+       CALL DtCont_Add( ReadLists%Month,  Dct ) 
+    ELSEIF ( intv == 5 ) THEN 
+       CALL DtCont_Add( ReadLists%Year,   Dct ) 
     ELSE
-       CALL DtCont_Add( ReadLists%Once,  Dct ) 
+       CALL DtCont_Add( ReadLists%Once,   Dct ) 
     ENDIF
-!    ENDIF
 
     ! Verbose
     IF ( Verb ) THEN

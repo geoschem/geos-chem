@@ -553,6 +553,7 @@ CONTAINS
     REAL*8                 :: corr      ! netCDF attribute value 
 
     ! Arrays for netCDF start and count values
+    INTEGER                :: l1,    l2
     INTEGER                :: nlon,  nlat, nlev, ntime
     INTEGER                :: nclev, nctime
     INTEGER                :: st2d(2), ct2d(2)   ! For 2D arrays 
@@ -565,6 +566,7 @@ CONTAINS
     REAL*4, ALLOCATABLE    :: TMPARR_2D(:,:)
 
     ! Logicals
+    LOGICAL                :: FlipZ
     LOGICAL                :: ReadAtt
     LOGICAL                :: DONE 
 
@@ -611,9 +613,22 @@ CONTAINS
     nLon = lon2 - lon1 + 1
     nLat = lat2 - lat1 + 1
 
-    ! read multiple levels:
+    ! vertical levels
+    FlipZ = .FALSE. ! Flip z-axis?
+    l1    = lev1    ! Lower level to be read
+    l2    = lev2    ! Upper level to be read
     IF ( lev1 > 0 ) THEN
-       nLev = lev2 - lev1 + 1
+
+       ! Check if we need to flip the vertical axis
+       IF ( lev1 > lev2 ) THEN
+          FlipZ = .TRUE.
+          l1    = lev2
+          l2    = lev1
+       ENDIF
+
+       ! Number of levels to be read
+       nLev = l2 - l1 + 1
+
     ! no vertical levels:
     ELSE
        nLev = 0
@@ -649,7 +664,7 @@ CONTAINS
     ! Read 4D array:
     ! ==> multiple time slices
     IF ( (nLev>0) .AND. (nTime>0) ) THEN
-       st4d = (/ lon1, lat1, lev1, time1 /)
+       st4d = (/ lon1, lat1, l1,   time1 /)
        ct4d = (/ nlon, nlat, nlev, ntime /)
        CALL NcRd( ncArr, fId, TRIM(v_name), st4d, ct4d )
        DONE = .TRUE.
@@ -660,12 +675,12 @@ CONTAINS
        ALLOCATE ( TMPARR_4D( nLon, nLat, nLev, 2 ) )
 
        ! read first slice
-       st4d = (/ lon1, lat1, lev1, time1 /)
+       st4d = (/ lon1, lat1, l1,   time1 /)
        ct4d = (/ nlon, nlat, nlev, 1     /)
        CALL NcRd( TMPARR_4D(:,:,:,1:1), fId, TRIM(v_name), st4d, ct4d )
 
        ! read second slice
-       st4d = (/ lon1, lat1, lev1, time2 /)
+       st4d = (/ lon1, lat1, l1,   time2 /)
        ct4d = (/ nlon, nlat, nlev, 1     /)
        CALL NcRd( TMPARR_4D(:,:,:,2:2), fId, TRIM(v_name), st4d, ct4d )
 
@@ -682,7 +697,7 @@ CONTAINS
     ! ==> level defined but not time:
     IF ( .NOT. DONE .AND. nLev>0 ) THEN
        ALLOCATE ( TMPARR_3D( nLon, nLat, nLev ) )
-       st3d = (/ lon1, lat1, lev1 /)
+       st3d = (/ lon1, lat1, l1   /)
        ct3d = (/ nlon, nlat, nlev /)
        CALL NcRd( TMPARR_3D, fId, TRIM(v_name), st3d, ct3d )
        ncArr(:,:,:,1) = TMPARR_3D(:,:,:)
@@ -802,6 +817,13 @@ CONTAINS
              ncArr = MissValue
           END WHERE
        ENDIF
+    ENDIF
+
+    ! ------------------------------------------
+    ! Flip z-axis if needed 
+    ! ------------------------------------------
+    IF ( FlipZ ) THEN
+       ncArr(:,:,:,:) = ncArr(:,:,ncLev:1:-1,:)
     ENDIF
 
     ! ----------------------------

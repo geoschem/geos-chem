@@ -126,7 +126,6 @@ CONTAINS
     ! Array holding the CH4 emissions
     REAL(hp), TARGET         :: CH4wtl(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET         :: CH4rce(HcoState%NX,HcoState%NY)
-    REAL(hp), POINTER        :: Arr2D(:,:) => NULL()
     TYPE(DiagnCont), POINTER :: TmpCnt     => NULL()
 
     ! Name of the manual diagnostic container
@@ -212,18 +211,14 @@ CONTAINS
     ! Eventually update manual diagnostics
     IF ( DoDiagn ) THEN
        IF ( DoWetland ) THEN
-          Arr2D => CH4wtl
           CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                             cName=TRIM(DiagnWtl), Array2D=Arr2D, RC=RC )
+                             cName=TRIM(DiagnWtl), Array2D=CH4wtl, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          Arr2D => NULL()
        ENDIF
        IF ( DoRice ) THEN
-          Arr2D => CH4rce
           CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                             cName=TRIM(DiagnRce), Array2D=Arr2D, RC=RC )
+                             cName=TRIM(DiagnRce), Array2D=CH4rce, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          Arr2D => NULL()
        ENDIF
     ENDIF
 

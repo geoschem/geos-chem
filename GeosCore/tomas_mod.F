@@ -180,8 +180,8 @@
 !     &  1.4829d-15, 2.9658d-15, 5.9316d-15, 1.1863d-14, 2.3727d-14,
 !     &  4.7453d-14, 9.4906d-14, 1.8981d-13, 3.7963d-13, 7.5925d-13 /
 
-      INTEGER                        :: bin_nuc = 1, tern_nuc = 0  !Switches for nucleation type.
-      INTEGER                        :: act_nuc = 1 ! in BL
+      INTEGER                        :: bin_nuc = 1, tern_nuc = 1  !Switches for nucleation type.
+      INTEGER                        :: act_nuc = 0 ! in BL
       INTEGER                        :: ion_nuc = 0 ! 1 for modgil, 2 for Yu
       INTEGER                        :: absall  = 1 ! 1 for soa absorb to all spec
 !napari nucleation tuned by factor of 1.0D-5
@@ -189,6 +189,10 @@
       REAL(fp)                         :: soaareafrac=1.0e+0_fp ! fraction of SOA that goes
                                                           ! to SA rather than into mass
       
+      INTEGER                        :: xSOA = 1  !Switch for xSOA. If set to one, emit 100 Tg/yr 
+                                                  !SOA correlated with antrho CO (JKodros 6/3/15)
+
+      INTEGER                        :: lowRH = 1 !This is to match AW more with AERONET (JKODROS 6/15)
 
       CONTAINS
 
@@ -1727,7 +1731,8 @@ C     Checks for when condensation sink is very small
      &       BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
 
       if (fn.gt.0.e+0_fp) then      ! nucleation occured
-         gasConc_lo = H2SO4min*boxvol/(1000.e+0_fp/98.e+0_fp*6.022e+23_fp) !convert to kg/box
+         gasConc_lo = H2SO4min*boxvol/
+     &        (1000.e+0_fp/98.e+0_fp*6.022e+23_fp) !convert to kg/box
          
 C     Test to see if gasConc_lo gives a res < 0 (this means ANY nucleation is too high)
          Gci(srtso4) = gasConc_lo*1.000001e+0_fp
@@ -3627,7 +3632,7 @@ Cjrp      endif
       REAL(fp)                 :: CS, sinkfrac(IBINS)
       REAL(fp)                 :: partfrac(IBINS),avgfrac(IBINS)
       INTEGER                :: K, MPNUM, JC, TRACNUM
-      LOGICAL                :: PDBG
+      LOGICAL                :: PDBG, negvalue  ! negvalue added for xSOA (JKodros, 6/2/15)
       PARAMETER   (PI = 3.141592654e+0_fp)
 
 !sfarina
@@ -3733,8 +3738,10 @@ Cjrp      endif
          IF ( .not. SPINUP(14.0) ) THEN
             WRITE(*,*) 'Location: ',I,J,L
             WRITE(*,*) 'Mtot_&_Ntot: ',Mtot, Ntot
-            IF ( MSOA > 5e+0_fp ) CALL ERROR_STOP('Too few no. for SOAcond',
+            IF ( MSOA > 5e+0_fp ) THEN
+               CALL ERROR_STOP('Too few no. for SOAcond',
      &                                        'SOACOND:1')
+            ENDIF
          ELSE
             WRITE(*,*) 'SOACOND WARNING: SOA mass is being discarded'
             GOTO 30
@@ -3750,7 +3757,8 @@ Cjrp      endif
          
          IF ( Nk(K) > 0.e+0_fp ) THEN
             MPO = MPO / Nk(K)
-            OCTAU(K) = 1.5e+0_fp * ( ( ( MPO + MABS(K)/Nk(K) ) ** TDT ) - 
+            OCTAU(K) = 1.5e+0_fp * 
+     &                         ( ( ( MPO + MABS(K)/Nk(K) ) ** TDT ) - 
      &                           (   MPO                   ** TDT )   )
 
             ! Error checking for negative Tau
@@ -3781,6 +3789,15 @@ Cjrp      endif
       ENDDO
 !debug      if(i==24.and.j==13)       pdbg = .true.
       CALL TMCOND( OCTAU, XK, Mko, Nko, Mkf, Nkf, SRTOCIL, PDBG, MABS )
+
+! ----------- JRP ADD MNFIX...This is for xSOA (JKodros 6/2/15) -----------
+      if (pdbg) negvalue=.true. !signal received to printdebug (win, 4/8/06)
+      call mnfix(Nkf,Mkf,negvalue) !<step5.1> bug fix call argument
+      !(win, 4/15/06) !<step4.2> Add call argument to carry tell where mnfix
+      !found
+      if(negvalue==.true.)STOP 'MNFIX terminate' !(win, 9/12/05)
+                               ! the negative value (win, 9/12/05)
+!---------------------------------------------------------------------------
 
       IF( PDBG ) THEN
 !         print 12, I,J,L
@@ -4747,7 +4764,7 @@ cdbg         limit='max'
                enddo
                if (mc/xk(k) .gt. 1.0e-3_fp) then
                   !species has significant mass in particle - limit change
-                  if (abs(atau(k,j))/mc**(2.e+0_fp/3.e+0_fp) .gt. 0.1) then
+                  if (abs(atau(k,j))/mc**(2.e+0_fp/3.e+0_fp) > 0.1) then
                      ttr=abs(atau(k,j))/mc**(2.e+0_fp/3.e+0_fp)/5.e-2_fp
                      if (ttr. gt. tr) then 
                         tr=ttr
@@ -4757,7 +4774,7 @@ cdbg                        write(limit(7:11),'(I2,X,I2)') k,j
                   endif
                else
                   !species is new to particle - set max time step
-                if ((cdt/tr.gt.1.e-1_fp).and.(atau(k,j).gt.0.e+0_fp)) then
+                if ((cdt/tr.gt.1.e-1_fp).and.(atau(k,j)>0.e+0_fp)) then
 !                     tr=cdt/0.1 
                      tr=cdt/1.e-1_fp !Make sure tr is double precision (win,3/20/05)
 cdbg                     limit='nspec'
@@ -5497,7 +5514,8 @@ c
                            !<step5.2> (win, 5/10/06)
                            if(pdbug)then
                            print *,'XP',XP,'YM',YM
-                           print *,'Cond_TophatLowEnd',DN*(YM+YLC)*0.5e+0_fp
+                           print *,'Cond_TophatLowEnd',
+     &                          DN*(YM+YLC)*0.5e+0_fp
                            endif
                            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                         ELSE
@@ -6089,7 +6107,7 @@ c         SRTH2O = ICOMP
 
       USE inquireMod, ONLY : findFreeLun
 
-      CHARACTER(fp)0 INFILE
+      CHARACTER(LEN=255) INFILE
       INTEGER INNUM, II, JJ, KK, LUN
       INTEGER BINACT(101,101,101)
 
@@ -6116,7 +6134,7 @@ c         SRTH2O = ICOMP
 
       USE inquireMod, ONLY : findFreeLun
 
-      CHARACTER(fp)0 INFILE
+      CHARACTER(LEN=255) INFILE
       INTEGER INNUM, II, JJ, KK
       REAL(fp) FRACTION(101,101,101)
 
@@ -6419,7 +6437,11 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       !========================================================================
       
       rhe=100.e+0_fp*rhtomas
-      if (rhe .gt. 99.e+0_fp) rhe=99.e+0_fp
+      if (lowRH == 1) THEN !JKodros RH switch
+         if (rhe .gt. 90.e+0_fp) rhe=90.e+0_fp
+      ELSE
+         if (rhe .gt. 99.e+0_fp) rhe=99.e+0_fp
+      END IF !JKodros RH switch
       if (rhe .lt. 1.e+0_fp) rhe=1.e+0_fp
 
       do k=1,ibins
@@ -6444,7 +6466,8 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
             wrocil = 1.e+0_fp
          endif
 
-         Mke(k,srth2o)=so4mass*(wrso4-1.e+0_fp)+naclmass*(wrnacl-1.e+0_fp)
+         Mke(k,srth2o)=so4mass*(wrso4-1.e+0_fp)+naclmass
+     &                 *(wrnacl-1.e+0_fp)
      &                 +ocilmass*(wrocil-1.e+0_fp)
 
       enddo
@@ -6990,7 +7013,7 @@ C     &      call debugprint( NK, MK, i,j,l,LOCATION)
       PRT = .FALSE.
       PRT = ERRORSWITCH !just carrying a signal to print out value at the observed box - since mnfix does not have any information about I,J,L location. (Win, 9/27/05)
       ERRORSWITCH = .FALSE.
-
+      PRT = .FALSE.             !TO AVOID THE HUGE AMOUNT OF PRINTING (JKodros 6/2/15)
 !      xk(1)=xk(2)/2.e+0_fp  ! jrp for some reason xk(1) is changing?!
       save1=xk(1)
 
@@ -8924,7 +8947,8 @@ c sensitivity       fn = 1.e-3 * fn ! 10^-3 tuner
      &  T*Log(H2SO4) + 2.0451815715440337e-6_fp*q*RH*T*Log(H2SO4) - 
      &  0.015299483302534183*RH**2*T*Log(H2SO4) + 0.000775633115370002*
      &  T**2*Log(H2SO4) + 0.04228608723566267*h6*T**2*Log(H2SO4) - 
-     &  9.572221299803945e-7_fp*q*T**2*Log(H2SO4) + 0.0002669785990812474*
+     &  9.572221299803945e-7_fp*q*T**2*Log(H2SO4) + 
+     &  0.0002669785990812474*
      &  RH*T**2*Log(H2SO4) - 1.7595742533055222e-6_fp*T**3*Log(H2SO4) - 
      &  2.7165200489046812*Log(H2SO4)**2 + 1.963036665672805*h6*
      &  Log(H2SO4)**2 + 33.88545004559797*h6**2*Log(H2SO4)**2 - 
@@ -9340,7 +9364,8 @@ c sensitivity       fn = 1.e-3 * fn ! 10^-3 tuner
      & (0.5623561810520002*h6*T**2*Log(H2SO4)**2)/h3 - 
      & 0.000024272415265506407*q*T**2*Log(H2SO4)**2 - 
      & (0.0000317372505770328*q*T**2*Log(H2SO4)**2)/h3 -  
-     & 0.0028928533476792*h6*q*T**2*Log(H2SO4)**2-1.7589107450560238e-7_fp*
+     & 0.0028928533476792*h6*q*T**2*
+     & Log(H2SO4)**2-1.7589107450560238e-7_fp*
      & q**2*T**2*Log(H2SO4)**
      & 2+8.98009092200891e-6_fp*T**3*Log(H2SO4)**2+
      & (7.173660190761036e-6_fp*T**3*Log(H2SO4)**2)/h3 -  
@@ -9374,7 +9399,8 @@ c sensitivity       fn = 1.e-3 * fn ! 10^-3 tuner
      & T**2*Log(RH))/h3+3.7003812518449353e-6_fp*h6*q**2*T**2*Log(RH) +
      & 0.0009227426647911644*T**3*Log(RH) - (0.008600685587907114*T**3* 
      & Log(RH))/h3 + 0.23093344962838908*h6*T**3*Log(RH) -  
-     & (0.38790097045592176*h6*T**3*Log(RH))/h3 + 1.2941739001871342e-6_fp*
+     & (0.38790097045592176*h6*T**3*Log(RH))/h3 + 
+     & 1.2941739001871342e-6_fp*
      & q*T**3*Log(RH)-(0.000013459445557723903*q*T**3*Log(RH))/h3 +  
      & 0.00016881487161048804* h6*q*T**3*Log(RH) +
      & 2.609280671396356e-9_fp*
@@ -9455,7 +9481,8 @@ c sensitivity       fn = 1.e-3 * fn ! 10^-3 tuner
      & (2.0745682824062985*h6*T**2*Log(RH)**2)/h3 +  
      & 0.00015350888582331981* q*T**2*Log(RH)**2 + 
      & (0.00011285744022151752*q*T**2*Log(RH)**2)/h3 +  
-     & 0.00004952110557031714*h6*q*T**2*Log(RH)**2+3.968468979853371e-7_fp*
+     & 0.00004952110557031714*h6*q*T**2*
+     &Log(RH)**2+3.968468979853371e-7_fp*
      & q**2*T**2*Log(RH)**2 - 0.00021374165659919817*T**3*Log(RH)**2 +  
      & (0.000023714077438108623*T**3*Log(RH)**2)/h3 -  
      & 0.0010671420677054659* h6* 
@@ -9623,7 +9650,8 @@ c sensitivity       fn = 1.e-3 * fn ! 10^-3 tuner
      &  Log(H2SO4) + 0.00003323858217484082*q*RH*T*Log(H2SO4) - 
      &  0.021039758605777333*RH**2*T*Log(H2SO4) + 0.0018827939246916288*
      &  T**2*Log(H2SO4) + 0.0014616406839659635*h6*T**2*Log(H2SO4) - 
-     &  2.8887052861955783e-7_fp*q*T**2*Log(H2SO4) + 0.0007036899839828474*
+     &  2.8887052861955783e-7_fp*q*T**2*Log(H2SO4) + 
+     &  0.0007036899839828474*
      &  RH*T**2*Log(H2SO4) - 6.077113667352327e-6_fp*T**3*Log(H2SO4) + 
      &  0.8758449734328851*Log(H2SO4)**2 - 61.130559299849466*h6*
      &  Log(H2SO4)**2 + 0.007311434341744119*q*Log(H2SO4)**2 - 

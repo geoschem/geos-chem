@@ -563,7 +563,7 @@
       ! Set of Hg/Br rate constants to use
       ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB
       ! DonohoueYBBalabanov used by Holmes et al. 2010
-      CHARACTER(LEN=*), PARAMETER  :: METHOD='GoodsiteUpdate' \
+      CHARACTER(LEN=*), PARAMETER  :: METHOD='GoodsiteUpdate'
 
       !================================================================
       ! CHEMMERCURY begins here!
@@ -1843,7 +1843,8 @@
             T_Hg_An = 0e+0_fp
 
             ! No biomass burning emissions
-            EHg0_bb = 0e+0_fp
+            EHg0_bb(I,J) = 0e+0_fp
+            EHg0_bb(I,J) = 0e+0_fp
 
          ELSE
 
@@ -1852,19 +1853,15 @@
 
             IF ( LAnthroHgOnly ) THEN
                ! No other emissions
-               EHg0_bb = 0e+0_fp
-               EHg0_oc = 0e+0_fp
-!- eds 8/31/10 ---------------------------------------------------------------
-!               EHg0_nt = 0e+0_fp
-               EHg0_geo = 0e+0_fp
-!-----------------------------------------------------------------------------
-               EHg0_snow = 0e+0_fp
+               EHg0_bb(I,J)      = 0e+0_fp
+               EHg0_oc(I,J,:)    = 0e+0_fp
+               EHg0_snow(I,J,:)  = 0e+0_fp
                IF ( LGTMM ) THEN
-                  EHg0_gtm = 0e+0_fp
+                  EHg0_gtm(I,J) = 0e+0_fp
                ELSE
-                  EHg0_ln = 0e+0_fp
-                  EHg0_vg = 0e+0_fp
-                  EHg0_so = 0e+0_fp
+                  EHg0_ln(I,J,:) = 0e+0_fp
+                  EHg0_vg(I,J)   = 0e+0_fp
+                  EHg0_so(I,J)   = 0e+0_fp
                ENDIF
             ENDIF
             

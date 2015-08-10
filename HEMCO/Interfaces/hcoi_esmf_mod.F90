@@ -30,7 +30,6 @@ MODULE HCOI_ESMF_MOD
   ! ESMF environment only:
   PUBLIC :: HCO_SetServices 
   PUBLIC :: HCO_SetExtState_ESMF
-  !PUBLIC :: HCOI_ESMF_DIAGNCREATE
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !      
@@ -84,6 +83,9 @@ CONTAINS
       USE HCO_CONFIG_MOD,   ONLY : Config_ScalIDinUse
       USE HCO_CONFIG_MOD,   ONLY : Config_GetnSpecies
       USE HCO_CONFIG_MOD,   ONLY : Config_GetSpecNames
+      USE HCO_DIAGN_MOD,    ONLY : DiagnFileOpen
+      USE HCO_DIAGN_MOD,    ONLY : DiagnFileGetNext
+      USE HCO_DIAGN_MOD,    ONLY : DiagnFileClose
 !
 ! !ARGUMENTS:
 !
@@ -100,7 +102,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                    :: I, FLAG, nSpc
+      INTEGER                    :: LUN, ExtNr, Cat, Hier, SpaceDim
+      INTEGER                    :: DIMS, VLOC
+      INTEGER                    :: I, FLAG, nSpc, nDiagn
+      LOGICAL                    :: EOF
+      CHARACTER(LEN=31)          :: cName, SpcName, OutUnit 
       CHARACTER(LEN=63)          :: SNAME, LNAME, UNITS
       CHARACTER(LEN=63), POINTER :: Spc(:)   => NULL() 
       TYPE(ListCont),    POINTER :: CurrCont => NULL()
@@ -109,7 +115,7 @@ CONTAINS
       ! HCO_SetServices begins here
       ! ================================================================
 
-      ! For MAPL/ESMF error handling (defined Iam and STATUS)
+      ! For MAPL/ESMF error handling (defines Iam and STATUS)
       __Iam__('HCO_SetServices (HCOI_ESMF_MOD.F90)')
 
       ! ---------------------------------------------------------------------
@@ -201,38 +207,73 @@ CONTAINS
       CurrCont => NULL()
 
       ! ---------------------------------------------------------------------
-      ! Prepare a diagnostics export for every potential HEMCO species
+      ! Try to open diagnostics definition file 
       ! ---------------------------------------------------------------------
-      nSpc = Config_GetnSpecies( )
-      CALL Config_GetSpecNames( Spc, nSpc, RC )
-      ASSERT_(RC == HCO_SUCCESS) 
-
-      ! All units in kg/m2/s
-      UNITS = 'kg m-2 s-1'
-
-      ! Loop over all species and add to export state
-      DO I = 1, nSpc
-         SNAME = 'EMIS_'//TRIM(Spc(I))
-         LNAME = 'HEMCO_emissions_'//TRIM(Spc(I))
-         CALL Diagn2Exp( GC, SNAME, LNAME, UNITS, 2, RC )
-         ASSERT_(RC == HCO_SUCCESS)
-      ENDDO
+      CALL DiagnFileOpen( am_I_Root, LUN, RC )
+      ASSERT_(RC == HCO_SUCCESS )
 
       ! ---------------------------------------------------------------------
-      ! Prepare an export for all other potential HEMCO diagnostics
+      ! If DiagnFile is found, prepare a diagnostics export for every entry
       ! ---------------------------------------------------------------------
-      CALL Diagn2Exp( GC, 'EMIS_NO_ANTHRO',    'NO anthropogenic emissions',   &
-                      UNITS, 2, __RC__ )
-      CALL Diagn2Exp( GC, 'EMIS_NO_AVIATION',  'NO aviation emissions',        &
-                      UNITS, 2, __RC__ )
-      CALL Diagn2Exp( GC, 'EMIS_NO_PARANOX',   'NO PARANOX ship emissions',    &
-                      UNITS, 2, __RC__ )
-      CALL Diagn2Exp( GC, 'EMIS_NO_LIGHTNING', 'NO lightning emissions',       &
-                      UNITS, 2, __RC__ )
-      CALL Diagn2Exp( GC, 'EMIS_NO_SOIL',      'NO soil emissions',            &
-                      UNITS, 2, __RC__ )
-      CALL Diagn2Exp( GC, 'EMIS_NO_BIOMASS',   'NO biomass burning emissions', &
-                      UNITS, 2, __RC__ )
+
+      IF ( LUN > 0 ) THEN
+
+         DO 
+
+            ! Get next line
+            CALL DiagnFileGetNext( am_I_Root, LUN, cName, &
+               SpcName, ExtNr, Cat, Hier, SpaceDim, OutUnit, EOF, RC ) 
+            IF ( RC /= HCO_SUCCESS ) RETURN
+
+            ! Leave here if end of file
+            IF ( EOF ) EXIT
+
+            ! Define vertical dimension
+            IF ( SpaceDim == 3 ) THEN
+               DIMS = MAPL_DimsHorzVert
+               VLOC = MAPL_VLocationCenter
+            ELSE 
+               DIMS = MAPL_DimsHorzOnly
+               VLOC = MAPL_VLocationNone
+            ENDIF
+  
+            ! Add to export state 
+            CALL MAPL_AddExportSpec(GC,       &
+               SHORT_NAME         = cName,    &
+               LONG_NAME          = cName,    &
+               UNITS              = OutUnit,  &
+               DIMS               = DIMS,     &
+               VLOCATION          = VLOC,     &
+               RC                 = STATUS     )
+            IF ( STATUS /= ESMF_SUCCESS ) THEN
+               WRITE(*,*) 'Cannot add to export: ',TRIM(SNAME)
+               ASSERT_(.FALSE.)
+            ENDIF
+
+         ENDDO
+
+         ! Close file
+         CALL DiagnFileClose ( LUN )
+
+      ! ---------------------------------------------------------------------
+      ! If DiagnFile is is not found, prepare a diagnostics export for every
+      ! potential HEMCO species
+      ! ---------------------------------------------------------------------
+      ELSE
+         nSpc = Config_GetnSpecies( )
+         CALL Config_GetSpecNames( Spc, nSpc, RC )
+         ASSERT_(RC == HCO_SUCCESS) 
+
+         ! All units in kg/m2/s
+         UNITS = 'kg m-2 s-1'
+
+         ! Loop over all species and add to export state
+         DO I = 1, nSpc
+            SNAME = 'EMIS_'//TRIM(Spc(I))
+            LNAME = 'HEMCO_emissions_'//TRIM(Spc(I))
+            CALL Diagn2Exp( GC, SNAME, LNAME, UNITS, 2, __RC__ )
+         ENDDO
+      ENDIF
 
       ! ---------------------------------------------------------------------
       ! Cleanup
@@ -311,7 +352,7 @@ CONTAINS
       ENDIF
 
       ! Return w/ success
-      RC = HCO_SUCCESS
+      RETURN_(ESMF_SUCCESS)
 
       END SUBROUTINE Diagn2Exp
 !EOC

@@ -539,15 +539,6 @@
       ! Also use the same limits for GRID025x03125.  We do not need to set
       ! the global limits since we will never run the model at the full
       ! global resolution, due to memory restrictions. (bmy, 5/25/12)
-!------------------------------------------------------------------------------
-! Prior to 4/1/15:
-! Update for nested-grid (lzh, 4/1/15)
-!#if   defined( GRID05x0666 ) || defined( GRID025x03125 )
-!     REAL*4             :: TEMPARRAY(540,361,73)   
-!#else
-!      REAL*4             :: TEMPARRAY(360,181,73)   
-!#endif
-!------------------------------------------------------------------------------
 #if   defined( GRID05x0666 )
       REAL*4             :: TEMPARRAY(540,361,73)  
 #elif defined( GRID025x03125 ) 

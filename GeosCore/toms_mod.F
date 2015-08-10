@@ -515,7 +515,8 @@
       !=================================================================
 
       ! Allocate arrays
-      ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=RC )
+      IF (.not. ALLOCATED( TO3_DAILY) )
+     &     ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) CALL ALLOC_ERR( 'TO3_DAILY' )
       TO3_DAILY = 0e+0_fp
 

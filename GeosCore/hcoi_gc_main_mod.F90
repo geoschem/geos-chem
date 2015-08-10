@@ -478,8 +478,10 @@ CONTAINS
     IF ( am_I_Root .and. FIRST ) THEN 
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
        WRITE( 6, 100   ) 'HEMCO: Harvard-NASA Emissions Component'
+       WRITE( 6, 101   ) 'You are using HEMCO version ', ADJUSTL(HCO_VERSION)
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
- 100   FORMAT( '%%%%%', 15x, a, 15x, '%%%%%' )
+ 100   FORMAT( '%%%%%', 15x, a,      15x, '%%%%%' )
+ 101   FORMAT( '%%%%%', 15x, a, a12, 14x  '%%%%%' )
        FIRST = .FALSE.
     ENDIF
 
@@ -623,7 +625,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_Final( am_I_Root )
+  SUBROUTINE HCOI_GC_Final( am_I_Root, ERROR )
 !
 ! !USES:
 !
@@ -638,6 +640,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     LOGICAL, INTENT(IN)              :: am_I_Root
+    LOGICAL, INTENT(IN)              :: ERROR
 !
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller   - Initial version 
@@ -659,7 +662,7 @@ CONTAINS
     LOC = 'HCOI_GC_Final (hcoi_gc_main_mod.F90)'
 
     ! Cleanup HCO core. 
-    CALL HCO_FINAL( am_I_Root, HcoState, HMRC )
+    CALL HCO_FINAL( am_I_Root, HcoState, ERROR, HMRC )
 
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields. 
@@ -931,6 +934,15 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! SUNCOS: HEMCO now calculates SUNCOS values based on its own
+    ! subroutine 
+    IF ( ExtState%SUNCOS%DoUse ) THEN
+       CALL HCO_ArrAssert( ExtState%SUNCOS%Arr, IIPAR, JJPAR, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Allocate ExtState%SUNCOS', LOC )
+       ENDIF
+    ENDIF
+
     ! Leave with success
     RC = GIGC_SUCCESS
 
@@ -1097,10 +1109,6 @@ CONTAINS
                'Z0', HCRC,      FIRST,    State_Met%Z0  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SUNCOSmid, &
-        'SUNCOSmid', HCRC,      FIRST,    State_Met%SUNCOSmid  )
-    IF ( HCRC /= HCO_SUCCESS ) RETURN
-
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%PARDR, &
             'PARDR', HCRC,      FIRST,    State_Met%PARDR  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
@@ -1161,12 +1169,12 @@ CONTAINS
 
     ! Use 'offline' LAI in standard GEOS-Chem
 #if defined(ESMF_)
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%GC_LAI, &
-           'GC_LAI', HCRC,      FIRST,    State_Met%LAI     )
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%LAI, &
+              'LAI', HCRC,      FIRST,    State_Met%LAI  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #else
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%GC_LAI, &
-           'GC_LAI', HCRC,      FIRST,    GC_LAI            )
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%LAI, &
+              'LAI', HCRC,      FIRST,    GC_LAI         )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #endif
 
@@ -1289,6 +1297,7 @@ CONTAINS
     USE COMODE_LOOP_MOD,       ONLY : NCS, JPHOTRAT, NRATES
     USE COMODE_LOOP_MOD,       ONLY : NAMEGAS, IRM
 
+    USE HCO_GeoTools_Mod,      ONLY : HCO_GetSUNCOS
 #if defined(ESMF_) 
     USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
 #endif
@@ -1340,6 +1349,14 @@ CONTAINS
        ExtState%SPHU%Arr%Val(:,:,1) = State_Met%SPHU(:,:,1) / 1000.0_hp
     ENDIF
 
+    ! SUNCOS
+    IF ( ExtState%SUNCOS%DoUse ) THEN
+       CALL HCO_GetSUNCOS( am_I_Root, HcoState, ExtState%SUNCOS%Arr%Val, 0, RC ) 
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Error in HCO_GetSUNCOS', LOC )
+       ENDIF
+    ENDIF
+
     ! If we need to use the SZAFACT scale factor (i.e. to put a diurnal
     ! variation on monthly mean OH concentrations), then call CALC_SUMCOSZA
     ! here.  CALC_SUMCOSZA computes the sum of cosine of the solar zenith
@@ -1379,7 +1396,7 @@ CONTAINS
             (ExtState%JNO2%DoUse .OR. ExtState%JO1D%DoUse) ) THEN
 
           ! Check if sun is up
-          IF ( State_Met%SUNCOSmid(I,J) == 0d0 ) THEN
+          IF ( State_Met%SUNCOS(I,J) == 0d0 ) THEN
              IF ( ExtState%JNO2%DoUse ) JNO2 = 0.0_hp
              IF ( ExtState%JO1D%DoUse ) JO1D = 0.0_hp
           ELSE
@@ -1945,7 +1962,8 @@ CONTAINS
     HcoState%Grid%YEDGE%Val      => YEDGE  (:,:,1)
     HcoState%Grid%YSIN%Val       => YSIN   (:,:,1)
     HcoState%Grid%AREA_M2%Val    => AREA_M2(:,:,1)
-    HcoState%Grid%BXHEIGHT_M%Val => State_Met%BXHEIGHT
+    HcoState%Grid%ZSFC%Val       => State_Met%PHIS      ! Surface geopotential height
+    HcoState%Grid%BXHEIGHT_M%Val => State_Met%BXHEIGHT  ! Grid box heights
 
     ! Allocate PEDGE. Will be updated every time step!
     CALL HCO_ArrInit( HcoState%Grid%PEDGE, HcoState%NX, HcoState%NY, HcoState%NZ+1, RC )
@@ -2602,12 +2620,12 @@ CONTAINS
     !=======================================================================
 
     ! Test for sunlight...
-    IF ( State_Met%SUNCOSmid(I,J) > 0e+0_fp  .AND. & 
-         SUMCOSZA(I,J)            > 0e+0_fp ) THEN
+    IF ( State_Met%SUNCOS(I,J) > 0e+0_fp  .AND. & 
+         SUMCOSZA(I,J)         > 0e+0_fp ) THEN
 
        ! Impose a diurnal variation on OH during the day
-       FACT = ( State_Met%SUNCOSmid(I,J) / SUMCOSZA(I,J) ) &
-            *  ( 1440e+0_fp              / GET_TS_CHEM() )
+       FACT = ( State_Met%SUNCOS(I,J) / SUMCOSZA(I,J) ) &
+            *  ( 1440e+0_fp           / GET_TS_CHEM() )
 
     ELSE
 

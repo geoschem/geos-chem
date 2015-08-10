@@ -53,6 +53,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  28 Oct 2013 - R. Yantosca - Now avoid array temporaries
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  27 Apr 2015 - M. Yannetti - Fixed SMALLEST
 !******************************************************************************
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -83,7 +84,7 @@
       REAL(fp),  PARAMETER :: CMFTAU   = 3600.e+0_fp
       REAL(fp),  PARAMETER :: EPS      = 1.0e-13_fp   
       REAL(fp),  PARAMETER :: GRAV     = 9.8e+0_fp
-      REAL(fp),  PARAMETER :: SMALLEST = 1.0e-60_fp
+      REAL(fp),  PARAMETER :: SMALLEST = TINY(1.0e+0_fp)
       REAL(fp),  PARAMETER :: TINYALT  = 1.0e-36_fp       
       REAL(fp),  PARAMETER :: TINYNUM  = 2*SMALLEST
 
@@ -914,7 +915,7 @@
                   CBEL = MAX( CMIX(I,K),   MAXC*TINYNUM, SMALLEST )
 
                   ! If CABV-CBEL is zero then set CHAT=SMALLEST
-                  ! so that we avoid div by zero (bmy, 12/19/06) 
+                  ! so that we avoid div by zero (bmy, 12/19/06)
                   IF ( ABS( CABV - CBEL ) > 0e+0_fp ) THEN
                      CHAT(I,K) = LOG( CABV / CBEL )
      &                         /    ( CABV - CBEL )

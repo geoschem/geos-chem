@@ -915,6 +915,7 @@
 #if defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS
       USE TOMAS_MOD,          ONLY : GETFRACTION
+      USE DAO_MOD,            ONLY : CONVERT_UNITS
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -1000,6 +1001,8 @@
 !  19 Dec 2014 - M. Sulprizio- Add bug fixes for CONV_H2O2 and CONV_NH3 from
 !                              Duncan Fairlie. The square root term should be
 !                              inverted to be consistent with Mari et al (2000).
+!  12 May 2015 - E. Lundgren - Change tracer units from v/v -> kg for TOMAS if
+!                              not already in kg (ie. called from convection)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1007,18 +1010,24 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER             :: I, J, L, NN, N_TRACERS
+      INTEGER            :: I, J, L, NN, N_TRACERS
       !REAL(fp)           :: L2G, I2G, C_TOT, F_L, F_I, K, TMP, SO2LOSS
       REAL(fp)           :: L2G, I2G, C_TOT, F_L, F_I, K, SO2LOSS
 #if defined( TOMAS )
       ! Scavenging fraction of TOMAS aerosols (win, 7/16/09)
       REAL(fp)           :: TOM_SC_FRACTION(IIPAR, JJPAR, LLPAR, IBINS)
       REAL(fp)           :: SOLFRAC, XFRAC
+      REAL(fp)           :: MEAN_SFC_STT         ! use to determine STT units 
+      LOGICAL            :: UNITCHANGE = .FALSE. ! STT unit conversion indicator
+
+      ! For unit conversion
+      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp), POINTER  :: STT(:,:,:,:) => NULL()
 #endif
 
       ! Pointers
-!      REAL(fp), POINTER     :: BXHEIGHT(:,:,:)
-      REAL(fp), POINTER     :: T       (:,:,:)
+!      REAL(fp), POINTER  :: BXHEIGHT(:,:,:)
+      REAL(fp), POINTER  :: T       (:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -2168,6 +2177,21 @@
          ISOL = GET_ISOL( N, N_TRACERS )
 #if defined( TOMAS )
 
+      ! For use below
+      STT       => State_Chm%TRACERS
+      TCVV      =  Input_Opt%TCVV(1:N_TRACERS)
+
+      ! Convert State_Chm%Tracers units to [kg] if currently in [v/v]
+      ! Use average surface level concentration of tracer 1 as an indicator
+      ! NOTE: units are [v/v] if called from convection (ewl, 5/12/15)
+      MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
+     &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
+      IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
+         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) ! v/v->kg
+         UNITCHANGE = .TRUE.
+      ENDIF
+
+
       ! Added for size-resolved aerosol (win, 7/16/09)
       !-------------------------------
       ! H2SO4 (treat as aerosol)
@@ -2260,6 +2284,7 @@
          CALL F_AEROSOL( KC, N, F, State_Met )
          DO L = 2, LLPAR
          DO J = 1, JJPAR
+
          DO I = 1, IIPAR
 !            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTOCIL1+1) * F(I,J,L)
             CALL GETFRACTION( I, J, L, N, .FALSE., 
@@ -2308,6 +2333,14 @@
          
       !(end part) Added for size-resolved aerosol (win, 7/16/09)
 
+      ! Convert State_Chm%Tracers units back to v/v if converted to kg
+      ! (ewl, 5/12/15)
+      IF ( UNITCHANGE ) THEN
+         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg->v/v
+      ENDIF
+
+      ! Free pointer
+      STT => NULL()
 #endif
 
       !-------------------------------
@@ -4316,6 +4349,8 @@
       USE TRACERID_MOD, ONLY : IDTH2SO4, IDTNK1,   IDTSF1,  IDTSS1
       USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1,IDTDUST1
       USE TOMAS_MOD,    ONLY : IBINS,    ICOMP
+      USE DAO_MOD,      ONLY : CONVERT_UNITS
+
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -4406,13 +4441,22 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
+!  12 May 2015 - E. Lundgren - Change tracer units from v/v -> kg for TOMAS if
+!                              not already in kg (ie. called from convection)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)            :: L2G, DZ, SO2LOSS
+      REAL(fp)          :: L2G, DZ, SO2LOSS
+#if defined( TOMAS )
+      REAL(fp)          :: MEAN_SFC_STT         ! use to determine STT units 
+      LOGICAL           :: UNITCHANGE = .FALSE. ! STT unit conversion indicator
+      INTEGER           :: N_TRACERS
+      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp), POINTER :: STT(:,:,:,:) => NULL()
+#endif
 
       !=================================================================
       ! WASHOUT begins here!
@@ -4799,6 +4843,22 @@
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
 #if defined( TOMAS )
+
+      ! Define fields for use below
+      STT       => State_Chm%TRACERS
+      N_TRACERS =  Input_Opt%N_TRACERS
+      TCVV      =  Input_Opt%TCVV(1:N_TRACERS)
+
+      ! Convert State_Chm%Tracers units to [kg] if currently in [v/v]
+      ! Use average surface level concentration of tracer 1 as an indicator
+      ! NOTE: units are [v/v] if called from convection (ewl, 5/12/15)
+      MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
+     &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
+      IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
+         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) ! v/v->kg
+         UNITCHANGE = .TRUE.
+      ENDIF
+
       !=================================================================
       ! FOR TOMAS MICROPHYSICS
       !=================================================================
@@ -4876,6 +4936,15 @@
      &                                     State_Met, State_Chm )
 
       ! (end part) Added for size-resolved aerosol (win, 7/16/09)
+
+      ! Convert State_Chm%Tracers units back to v/v if converted to kg
+      ! (ewl, 5/12/15)
+      IF ( UNITCHANGE ) THEN
+         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg->v/v
+      ENDIF
+
+      ! Free pointers
+      STT => NULL()
 #endif
 
       !------------------------------
@@ -5602,6 +5671,8 @@
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  27 May 2011 - R. Yantosca - Now pass F_RAINOUT to DO_WASHOUT_ONLY
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
+!  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
+!                              whether the dynamic ocean is used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5637,8 +5708,8 @@
       ! (1)  I n i t i a l i z e   V a r i a b l e s
       !=================================================================
 
-      ! Is this a mercury simulation with dynamic online ocean?
-      IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
+      ! Is this a mercury simulation?
+      IS_Hg = ( ITS_A_MERCURY_SIM )
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -6167,6 +6238,8 @@
 !  27 May 2011 - R. Yantosca - Now pass F_RAINOUT to DO_WASHOUT_ONLY
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !  01 Apr 2015 - L. Zhang    - Don't do wetdep in nested-grid buffer zone
+!  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
+!                              whether the dynamic ocean is used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6203,8 +6276,8 @@
       ! (1)  I n i t i a l i z e   V a r i a b l e s
       !=================================================================
 
-      ! Is this a mercury simulation with dynamic online ocean?
-      IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
+      ! Is this a mercury simulation?
+      IS_Hg = ITS_A_MERCURY_SIM
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -7059,6 +7132,8 @@
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !  04 Feb 2015 - M. Sulprizio- Fix calculation of WETLOSS for non-aerosol 
 !                              tracers (C. Friedman)
+!  20 May 2015 - M. Sulprizio- Remove WASHFRAC < 1D-3 error trap for MERRA
+!                              following recommendation by Viral Shah
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7136,8 +7211,18 @@
          ! DSTT < 0 and SAFETY trips.  (Helen Amos, 20100928)
          IF ( IT_IS_NAN( WASHFRAC ) ) THEN
             CYCLE
-         ELSEIF ( WASHFRAC < 1e-3_fp ) THEN
-            CYCLE
+!------------------------------------------------------------------------------
+! Prior to 5/20/15:
+! Viral Shah wrote:
+!  The condition requiring that the WASHFRAC>1D-3 or any number greater than 0
+!  for washout to occur, prevents the partial resuspension of the dissolved
+!  mass falling from above, and leads to an overestimate in the wet deposited
+!  mass... I recommend that the condition on WASHFRAC should be removed. If
+!  this leads to negative values of DSTT, we should add a few lines to restrict
+!  DSTT to a minimum of 0. (mps, 5/20/15)
+!         ELSEIF ( WASHFRAC < 1e-3_fp ) THEN
+!            CYCLE
+!------------------------------------------------------------------------------
          ENDIF
 #endif
 
@@ -7207,9 +7292,27 @@
             ! size-resolved sulfate by AQOXID (win, 7/16/09)
             IF ( GAINED > 0e+0_fp ) THEN 
                IF ( LS ) THEN
-                  KMIN = 10
+! JKodros (6/2/15 - allow for different TOMAS bin lengths)
+# if  defined( TOMAS12)
+                  KMIN = 5
+# elif  defined( TOMAS15)
+                  KMIN = 8
+# elif  defined( TOMAS30)
+                  KIMIN = 10
+# else
+                  KMIN = 20
+# endif
+
                ELSE
+# if  defined( TOMAS12)
+                  KMIN = 3
+# elif  defined( TOMAS15)
                   KMIN = 6
+# elif  defined( TOMAS30)
+                  KIMIN = 6
+# else
+                  KMIN = 16
+# endif
                ENDIF
 
                REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp
@@ -7453,9 +7556,27 @@
                      ! size-resolved sulfate by AQOXID (win, 7/16/09)
                      IF ( ABS(WETLOSS) > 0e+0_fp ) THEN 
                         IF ( LS ) THEN
-                           KMIN = 10
+! JKodros (6/2/15) - Allow for different TOMAS bin lengths
+# if  defined( TOMAS12)
+                           KMIN = 5
+# elif  defined( TOMAS15)
+                           KMIN = 8
+# elif  defined( TOMAS30)
+                           KIMIN = 10
+# else
+                           KMIN = 20
+# endif
+
                         ELSE
+# if  defined( TOMAS12)
+                           KMIN = 3
+# elif  defined( TOMAS15)
                            KMIN = 6
+# elif  defined( TOMAS30)
+                           KIMIN = 6
+# else
+                           KMIN = 16
+# endif
                         ENDIF
                         REEVAPSO2 =  - ( WETLOSS * 96e+0_fp / 64e+0_fp )
                         CALL AQOXID( REEVAPSO2, KMIN, I, J, L,
@@ -8973,7 +9094,7 @@
 
 !#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! Skip computation of Vud, CLDICE, CLDLIQ, C_H2O.  These would 
       ! have to be computed at a higher level and passed through the
@@ -8985,7 +9106,7 @@
       !-----------------------------------------------------------------
 !#else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Compute Vud, CLDICE, CLDLIQ, C_H2O.  This is current practice 
       ! in the standard GEOS-Chem model.  (bmy, 10/31/12)

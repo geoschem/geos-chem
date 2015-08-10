@@ -121,6 +121,9 @@ MODULE HCO_Diagn_Mod
   PUBLIC  :: DiagnCollection_Create
   PUBLIC  :: DiagnCollection_Cleanup
   PUBLIC  :: DiagnCollection_Get
+  PUBLIC  :: DiagnFileOpen
+  PUBLIC  :: DiagnFileGetNext
+  PUBLIC  :: DiagnFileClose
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -487,6 +490,7 @@ CONTAINS
     ! into the default HEMCO collection.
     ! ------------------------------------------------------------------
     CALL Diagn_DefineFromConfig( am_I_Root, HcoState, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
  
     ! Return w/ success
     RC = HCO_SUCCESS
@@ -520,9 +524,20 @@ CONTAINS
 ! HEMCO configuration file.
 !\\
 !\\
+! If argument `Add2MaplExp` is set to true, the diagnostics field
+! defined in the diagnostics definition file are not added to the
+! HEMCO diagnostics collection (yet), but rather added to the MAPL
+! export state. This is useful in an ESMF environment to automate
+! the coupling of HEMCO diagnostics, e.g. subroutine 
+! Diagn\_DefineFromConfig can be called during SetServices to make
+! sure that all diagnostic fields defined in DiagnFile have a 
+! corresponding Export state object (and can thus be written out
+! via the MAPL History component).
+!\\
+!\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_DefineFromConfig( am_I_Root, HcoState, RC ) 
+  SUBROUTINE Diagn_DefineFromConfig( am_I_Root, HcoState, RC )
 !
 ! !USES:
 !
@@ -535,12 +550,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
+    LOGICAL,          INTENT(IN   )           :: am_I_Root   ! root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+    TYPE(HCO_State),  POINTER                 :: HcoState    ! HEMCO state object
+    INTEGER,          INTENT(INOUT)           :: RC          ! Failure or success
 !
 ! !REVISION HISTORY: 
 !  10 Apr 2015 - C. Keller   - Initial version 
@@ -550,13 +565,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER             :: N, LUN, IOS
-    LOGICAL             :: FOUND,  EXISTS, EOF
-    CHARACTER(LEN=31)   :: cName,  OutUnit
-    INTEGER             :: HcoID,  ExtNr, Cat, Hier, SpaceDim
-    CHARACTER(LEN=255)  :: LINE,   DiagnFile
+    INTEGER             :: N,      LUN
+    LOGICAL             :: EOF
+    CHARACTER(LEN=31)   :: cName,  SpcName, OutUnit
+    INTEGER             :: HcoID,  ExtNr,   Cat, Hier, SpaceDim
     CHARACTER(LEN=255)  :: LOC,    MSG
-    CHARACTER(LEN=255)  :: SUBSTR(255) 
 
     !=================================================================
     ! Diagn_DefineFromConfig begins here!
@@ -565,73 +578,32 @@ CONTAINS
     ! Init 
     LOC = 'Diagn_DefineFromConfig (hco_diagn_mod.F90)'
 
-    ! Try to get name of diagnostics file
-    CALL GetExtOpt ( CoreNr, 'DiagnFile', OptValChar=DiagnFile, &
-                     FOUND=FOUND, RC=RC )
+    ! Load DiagnFile into buffer
+    CALL DiagnFileOpen( am_I_Root, LUN, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Read file and define diagnostics for each entry
-    IF ( FOUND ) THEN
-
-       ! Find free LUN
-       LUN = findFreeLUN()
-
-       INQUIRE( FILE=TRIM(DiagnFile), EXIST=EXISTS )
-       IF ( .NOT. EXISTS ) THEN
-          MSG = 'Cannot read file - it does not exist: ' // TRIM(DiagnFile)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       ! Open configuration file
-       OPEN ( LUN, FILE=TRIM( DiagnFile ), STATUS='OLD', IOSTAT=IOS )
-       IF ( IOS /= 0 ) THEN
-          MSG = 'Error opening ' // TRIM(DiagnFile)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF 
+    ! If defined, sequentially get all entries 
+    IF ( LUN > 0 ) THEN
 
        ! Do for every line
        DO
 
           ! Get next line
-          CALL GetNextLine( am_I_Root, LUN, LINE, EOF, RC ) 
+          CALL DiagnFileGetNext( am_I_Root, LUN, cName, &
+             SpcName, ExtNr, Cat, Hier, SpaceDim, OutUnit, EOF, RC ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! Leave here if end of file
           IF ( EOF ) EXIT
 
-          ! Parse diagnostics information from line
-          CALL STRREPL( LINE, HCO_TAB(), HCO_SPC() )
-
-          ! Split into substrings
-          CALL STRSPLIT( LINE, HCO_SPC(), SUBSTR, N ) 
-
-          ! There must be at least 7 entries
-          IF ( N < 7 ) THEN 
-             MSG = 'Diagnostics entries must have 7 elements: '// TRIM(LINE)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-             RETURN
-          ENDIF
-
-          ! Extract diagnostics properties
-          cName = TRIM(SUBSTR(1))
-
           ! Get HEMCO species ID. Skip entry if HEMCO ID not
           ! defined for this species
-          HcoID = HCO_GetHcoID( SUBSTR(2), HcoState ) 
+          HcoID = HCO_GetHcoID( TRIM(SpcName), HcoState ) 
           IF ( HcoID <= 0 ) CYCLE
-
-          ! Extension number, category, hierarchy, space dimension
-          READ( SUBSTR(3), * ) ExtNr
-          READ( SUBSTR(4), * ) Cat 
-          READ( SUBSTR(5), * ) Hier
-          READ( SUBSTR(6), * ) SpaceDim
-
-          ! Read output unit
-          OutUnit = TRIM(SUBSTR(7))
-
-          ! Define diagnostics 
+   
+          ! ------------------------------------------------------------------
+          ! Add it to the HEMCO diagnostics collection
+          ! ------------------------------------------------------------------
           CALL Diagn_Create( am_I_Root,                     &
                              HcoState  = HcoState,          &
                              cName     = cName,             &
@@ -645,10 +617,14 @@ CONTAINS
                              COL       = HcoDiagnIDDefault, &
                              RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN
-
+  
        ENDDO
-    ENDIF
 
+       ! Close file
+       CALL DiagnFileClose ( LUN )
+
+    ENDIF ! LUN > 0
+ 
     ! Return w/ success
     RC = HCO_SUCCESS
 
@@ -1151,8 +1127,8 @@ CONTAINS
     INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill          ! 1=yes; 0=no; 
                                                                    ! -1=either 
     REAL(sp),         INTENT(IN   ), OPTIONAL :: Scalar            ! 1D scalar 
-    REAL(sp),         POINTER,       OPTIONAL :: Array2D   (:,:)   ! 2D array 
-    REAL(sp),         POINTER,       OPTIONAL :: Array3D   (:,:,:) ! 3D array 
+    REAL(sp),         INTENT(IN   ), OPTIONAL :: Array2D   (:,:)   ! 2D array 
+    REAL(sp),         INTENT(IN   ), OPTIONAL :: Array3D   (:,:,:) ! 3D array 
     REAL(sp),         INTENT(IN   ), OPTIONAL :: Total             ! Total 
     LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly           ! Use only vals
                                                                    !  >= 0?
@@ -1221,8 +1197,8 @@ CONTAINS
     INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill          ! 1=yes; 0=no; 
                                                                    ! -1=either 
     REAL(dp),         INTENT(IN   ), OPTIONAL :: Scalar            ! 1D scalar 
-    REAL(dp),         POINTER,       OPTIONAL :: Array2D   (:,:)   ! 2D array 
-    REAL(dp),         POINTER,       OPTIONAL :: Array3D   (:,:,:) ! 3D array 
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Array2D   (:,:)   ! 2D array 
+    REAL(dp),         INTENT(IN   ), OPTIONAL :: Array3D   (:,:,:) ! 3D array 
     REAL(dp),         INTENT(IN   ), OPTIONAL :: Total             ! Total 
     LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly           ! Use only vals
                                                                    !  >= 0?
@@ -1310,33 +1286,30 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root         ! Root CPU?
-    INTEGER,          INTENT(IN   ), OPTIONAL :: cID               ! Assigned 
-                                                                   !  container ID
-    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName             ! Diagnostics 
-                                                                   !  name
-    INTEGER,          INTENT(IN   ), OPTIONAL :: ExtNr             ! Extension #
-    INTEGER,          INTENT(IN   ), OPTIONAL :: Cat               ! Category 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: Hier              ! Hierarchy 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: HcoID             ! HEMCO species
-                                                                   !  ID number 
-    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill          ! 1=yes; 0=no; 
-                                                                   ! -1=either 
-    REAL(dp),         INTENT(IN   ), OPTIONAL :: Scalar            ! 1D scalar 
-    REAL(dp),         POINTER,       OPTIONAL :: Array2D   (:,:)   ! 2D array 
-    REAL(dp),         POINTER,       OPTIONAL :: Array3D   (:,:,:) ! 3D array 
-    REAL(dp),         INTENT(IN   ), OPTIONAL :: Total             ! Total 
-    REAL(sp),         INTENT(IN   ), OPTIONAL :: Scalar_SP         ! 1D scalar 
-    REAL(sp),         POINTER,       OPTIONAL :: Array2D_SP(:,:)   ! 2D array 
-    REAL(sp),         POINTER,       OPTIONAL :: Array3D_SP(:,:,:) ! 3D array 
-    REAL(sp),         INTENT(IN   ), OPTIONAL :: Total_SP          ! Total 
-    LOGICAL,          INTENT(IN   ), OPTIONAL :: PosOnly           ! Use only vals
-                                                                   !  >= 0?
-    INTEGER,          INTENT(IN   ), OPTIONAL :: COL               ! Collection Nr.
+    LOGICAL,          INTENT(IN   )                   :: am_I_Root         ! Root CPU?
+    INTEGER,          INTENT(IN   ), OPTIONAL         :: cID               ! container ID 
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL         :: cName             ! Dgn name
+    INTEGER,          INTENT(IN   ), OPTIONAL         :: ExtNr             ! Extension #
+    INTEGER,          INTENT(IN   ), OPTIONAL         :: Cat               ! Category 
+    INTEGER,          INTENT(IN   ), OPTIONAL         :: Hier              ! Hierarchy 
+    INTEGER,          INTENT(IN   ), OPTIONAL         :: HcoID             ! HEMCO species ID
+    INTEGER,          INTENT(IN   ), OPTIONAL         :: AutoFill          ! 1=yes; 0=no; 
+                                                                           ! -1=either 
+    REAL(dp),         INTENT(IN   ), OPTIONAL         :: Scalar            ! 1D scalar 
+    REAL(dp),         INTENT(IN   ), OPTIONAL, TARGET :: Array2D   (:,:)   ! 2D array 
+    REAL(dp),         INTENT(IN   ), OPTIONAL, TARGET :: Array3D   (:,:,:) ! 3D array 
+    REAL(dp),         INTENT(IN   ), OPTIONAL         :: Total             ! Total 
+    REAL(sp),         INTENT(IN   ), OPTIONAL         :: Scalar_SP         ! 1D scalar 
+    REAL(sp),         INTENT(IN   ), OPTIONAL, TARGET :: Array2D_SP(:,:)   ! 2D array 
+    REAL(sp),         INTENT(IN   ), OPTIONAL, TARGET :: Array3D_SP(:,:,:) ! 3D array 
+    REAL(sp),         INTENT(IN   ), OPTIONAL         :: Total_SP          ! Total 
+    LOGICAL,          INTENT(IN   ), OPTIONAL         :: PosOnly           ! Use only vals
+                                                                           ! >= 0?
+    INTEGER,          INTENT(IN   ), OPTIONAL         :: COL               ! Collection Nr.
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)           :: RC                ! Return code 
+    INTEGER,          INTENT(INOUT)                   :: RC                ! Return code 
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller - Initialization
@@ -1522,28 +1495,24 @@ CONTAINS
              IF ( PRESENT(Array3D_SP) ) THEN
                 Arr3D => Array3D_SP
              ELSEIF( PRESENT(Array3D) ) THEN
-                IF ( ASSOCIATED(Array3D) ) THEN
-                   ALLOCATE( Arr3D(ThisColl%NX,ThisColl%NY,ThisColl%NZ),STAT=AS)
-                   IF ( AS /= 0 ) THEN
-                      CALL HCO_ERROR( 'Allocation error Arr3D', RC, THISLOC=LOC )
-                      RETURN
-                   ENDIF
-                   Arr3D = Array3D
+                ALLOCATE( Arr3D(ThisColl%NX,ThisColl%NY,ThisColl%NZ),STAT=AS)
+                IF ( AS /= 0 ) THEN
+                   CALL HCO_ERROR( 'Allocation error Arr3D', RC, THISLOC=LOC )
+                   RETURN
                 ENDIF
+                Arr3D = Array3D
              ENDIF
      
              ! 2D array 
              IF ( PRESENT(Array2D_SP) ) THEN
                 Arr2D => Array2D_SP
              ELSEIF( PRESENT(Array2D) ) THEN
-                IF ( ASSOCIATED(Array2D) ) THEN
-                   ALLOCATE( Arr2D(ThisColl%NX,ThisColl%NY),STAT=AS)
-                   IF ( AS /= 0 ) THEN
-                      CALL HCO_ERROR( 'Allocation error Arr2D', RC, THISLOC=LOC )
-                      RETURN
-                   ENDIF
-                   Arr2D = Array2D
+                ALLOCATE( Arr2D(ThisColl%NX,ThisColl%NY),STAT=AS)
+                IF ( AS /= 0 ) THEN
+                   CALL HCO_ERROR( 'Allocation error Arr2D', RC, THISLOC=LOC )
+                   RETURN
                 ENDIF
+                Arr2D = Array2D
              ENDIF
      
              ! Scalar
@@ -1749,7 +1718,6 @@ CONTAINS
                 TRIM(ThisDiagn%cName), ' (counter:', ThisDiagn%Counter, ')'
              CALL HCO_MSG ( MSG )
           ENDIF
-
        ENDDO ! loop over containers in collection
    
        ! Advance to next collection
@@ -3484,5 +3452,223 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE DiagnCollection_Find
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagnFileOpen
+!
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagnFileOpen( am_I_Root, LUN, RC )
+!
+! !USES:
+!
+    USE inquireMod,        ONLY : findFreeLUN
+    USE HCO_ExtList_Mod,   ONLY : CoreNr, GetExtOpt
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root   ! root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: RC          ! Failure or success
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(  OUT)           :: LUN         ! File LUN 
+!
+! !REVISION HISTORY: 
+!  10 Apr 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER             :: IOS
+    LOGICAL             :: EXISTS, FOUND
+    CHARACTER(LEN=255)  :: MSG, DiagnFile
+    CHARACTER(LEN=255)  :: LOC = 'DiagnFileOpen (hco_diagn_mod.F90)' 
+
+    !=================================================================
+    ! DiagnFileOpen begins here!
+    !=================================================================
+    
+    ! Init
+    LUN = -1    
+
+    ! Try to get name of diagnostics file
+    CALL GetExtOpt ( CoreNr, 'DiagnFile', OptValChar=DiagnFile, &
+                     FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Read file and define diagnostics for each entry
+    IF ( FOUND ) THEN
+
+       ! Find free LUN
+       LUN = findFreeLUN()
+
+       INQUIRE( FILE=TRIM(DiagnFile), EXIST=EXISTS )
+       IF ( .NOT. EXISTS ) THEN
+          MSG = 'Cannot read file - it does not exist: ' // TRIM(DiagnFile)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! Open configuration file
+       OPEN ( LUN, FILE=TRIM( DiagnFile ), STATUS='OLD', IOSTAT=IOS )
+       IF ( IOS /= 0 ) THEN
+          MSG = 'Error opening ' // TRIM(DiagnFile)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF 
+
+    ENDIF !FOUND
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE DiagnFileOpen
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagnFileGetNext
+!
+! !DESCRIPTION: 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagnFileGetNext( am_I_Root, LUN,      cName,   &
+                               SpcName,   ExtNr,    Cat,     &
+                               Hier,      SpaceDim, OutUnit, & 
+                               EOF,       RC ) 
+!
+! !USES:
+!
+    USE HCO_CharTools_Mod
+    USE CHARPAK_Mod,       ONLY : STRREPL, STRSPLIT
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root   ! root CPU?
+    INTEGER,          INTENT(IN   )           :: LUN         ! file LUN 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(INOUT)           :: EOF
+    INTEGER,          INTENT(INOUT)           :: RC          ! Failure or success
+!
+! !OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(  OUT)           :: cName  
+    CHARACTER(LEN=*), INTENT(  OUT)           :: SpcName
+    INTEGER,          INTENT(  OUT)           :: ExtNr 
+    INTEGER,          INTENT(  OUT)           :: Cat 
+    INTEGER,          INTENT(  OUT)           :: Hier
+    INTEGER,          INTENT(  OUT)           :: SpaceDim 
+    CHARACTER(LEN=*), INTENT(  OUT)           :: OutUnit
+!
+! !REVISION HISTORY: 
+!  10 Apr 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER             :: N
+    CHARACTER(LEN=255)  :: LINE
+    CHARACTER(LEN=255)  :: MSG
+    CHARACTER(LEN=255)  :: SUBSTR(255) 
+    CHARACTER(LEN=255)  :: LOC = 'DiagnFileGetNext (hco_diagn_mod.F90)'
+
+    !=================================================================
+    ! DiagnFileGetNext begins here!
+    !=================================================================
+
+    ! Init
+    cName    = ''
+    SpcName  = '' 
+    OutUnit  = ''
+    ExtNr    = -1
+    Cat      = -1
+    Hier     = -1
+    SpaceDim = -1
+
+    ! Get next line
+    CALL GetNextLine ( am_I_Root, LUN, LINE, EOF, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Leave here if end of file
+    IF ( .NOT. EOF ) THEN 
+
+       ! Parse diagnostics information from line
+       CALL STRREPL( LINE, HCO_TAB(), HCO_SPC() )
+
+       ! Split into substrings
+       CALL STRSPLIT( LINE, HCO_SPC(), SUBSTR, N ) 
+
+       ! There must be at least 7 entries
+       IF ( N < 7 ) THEN 
+          MSG = 'Diagnostics entries must have 7 elements: '// TRIM(LINE)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! Extract diagnostics properties
+       cName   = TRIM(SUBSTR(1))
+       SpcName = TRIM(SUBSTR(2))
+
+       ! Extension number, category, hierarchy, space dimension
+       READ( SUBSTR(3), * ) ExtNr
+       READ( SUBSTR(4), * ) Cat 
+       READ( SUBSTR(5), * ) Hier
+       READ( SUBSTR(6), * ) SpaceDim
+
+       ! Read output unit
+       OutUnit = TRIM(SUBSTR(7))
+
+    ENDIF !EOF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE DiagnFileGetNext
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagnFileClose
+!
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagnFileClose ( LUN )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: LUN         ! File LUN 
+!
+! !REVISION HISTORY: 
+!  10 Apr 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    CLOSE ( LUN ) 
+
+  END SUBROUTINE DiagnFileClose
 !EOC
 END MODULE HCO_Diagn_Mod

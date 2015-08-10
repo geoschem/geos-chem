@@ -145,7 +145,7 @@ CONTAINS
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( ESMF_ )
     !-----------------------------------------------------------------------
-    !        %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+    !          %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
     !
     ! Pass dimension sizes obtained from the ESMF interface to routine 
     ! INIT_CMN_SIZE via several optional arguments (i.e. "value_*").  This
@@ -175,7 +175,7 @@ CONTAINS
 
 #else
     !-----------------------------------------------------------------------
-    !                   %%%%% TRADITIONAL GEOS-Chem %%%%%
+    !          %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
     !
     ! Current practice in the standard GEOS-Chem is to set dimension sizes
     ! from parameters IGLOB, JGLOB, LGLOB in CMN_SIZE_mod.F.  Therefore,
@@ -305,7 +305,7 @@ CONTAINS
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) 
 
     !-----------------------------------------------------------------------
-    !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+    !           %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
     !
     ! At present, we have not included stratospheric chemistry in when
     ! connecting to the ESMF interface.  We will have to include all strat

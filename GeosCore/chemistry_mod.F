@@ -92,7 +92,6 @@
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
       USE COMODE_LOOP_MOD     
-      USE DRYDEP_MOD,         ONLY : DRYFLXRnPbBe
       USE DUST_MOD,           ONLY : CHEMDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -114,12 +113,12 @@
       USE TAGGED_OX_MOD,      ONLY : CHEM_TAGGED_OX
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-!      USE TRACERID_MOD,       ONLY : IDTACET
       USE TRACERID_MOD,       ONLY : IDTISOP
       USE TRACERID_MOD,       ONLY : IDTDST1
 #if defined (UCX )
       USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
       USE UCX_MOD,            ONLY : READ_PSC_FILE
+      USE UCX_MOD,            ONLY : WRITE_STATE_PSC
 #endif
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
@@ -218,6 +217,9 @@
 !  19 May 2014 - C. Keller   - Removed call for acetone ocean sink - now done
 !                              in HEMCO.
 !  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  08 May 2015 - C. Keller   - Added WRITE_STATE_PSC.
+!  18 May 2015 - R. Yantosca - Remove DIAG_STATE_PSC, that is not used anymore
+!  15 Jun 2015 - R. Yantosca - Removed calls to DRYFLXRnPbBe, that's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -295,7 +297,7 @@
       IT_IS_NOT_COPARAM_OR_CH4 = Input_Opt%ITS_NOT_COPARAM_OR_CH4
 
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! NOTE: State_Chm%TRACERS needs to enter this routine with
       ! units of [kg].  If we are calling this routine from the 
@@ -331,10 +333,10 @@
             ! We need to get the STATE_PSC from the HEMCO restart file.
             ! NOTE: Do this before calling CHEMDR to avoid reading this
             ! data from w/in an !$OMP PARALLEL region. (bmy, 4/8/15)
-            IF ( FIRST ) THEN
-               CALL READ_PSC_FILE( am_I_Root )
-               FIRST         = .FALSE.
-            ENDIF
+            ! Now call READ_PSC_FILE on every time step to accomodate 
+            ! replay simulations in GEOS-5 (ckeller, 5/8/15)
+            CALL READ_PSC_FILE( am_I_Root, RC )
+            IF ( RC /= GIGC_SUCCESS ) RETURN
 #endif
             
             ! Call gas-phase chemistry
@@ -408,6 +410,15 @@
 
             ! ND43 chemical production
             CALL DIAGOH()
+
+            ! Write STATE_PSC to diagnostics. This is only of relevance in
+            ! an ESMF environment, where the restart variables (STATE_PSC)
+            ! need to be written to the internal state object on every time
+            ! step (ckeller, 5/8/15). 
+#if defined( UCX )
+            CALL WRITE_STATE_PSC( am_I_Root, RC )
+            IF ( RC /= GIGC_SUCCESS ) RETURN
+#endif
  
          !---------------------------------
          ! Offline aerosol simulation
@@ -440,10 +451,8 @@
             MONTH      = 0
             YEAR       = 0
             WAVELENGTH = 0
-            write(6,*) 'before RDAER, FJX'
             CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
      &                  MONTH,     YEAR,      WAVELENGTH      )
-            write(6,*) 'after RDAER'
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
             IF ( LSULF ) THEN
                IF ( LSSALT ) THEN
@@ -488,7 +497,6 @@
 
             !*** MINERAL DUST AEROSOLS ***
             IF ( LDUST ) THEN 
-            write(6,*) 'before DUST'
                ! Do dust aerosol chemsitry
                CALL CHEMDUST
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -498,7 +506,6 @@
                CALL RDUST_ONLINE
      &             ( am_I_Root, Input_Opt,  State_Met, 
      &               SOILDUST,  WAVELENGTH, RC         )
-            write(6,*) 'after DUST'
             ENDIF
  
          !---------------------------------
@@ -508,30 +515,6 @@
             CALL CHEMRnPbBe 
      &         (  am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-!            ! Modified for non-local PBL mixing (jintai, bmy, 8/1/13)
-             ! This is now done in mixing_mod.F90 (ckeller, 3/5/15)
-!            IF ( .not. Input_Opt%LNLPBL ) THEN
-!               CALL DRYFLXRnPbBe
-!     &            ( am_I_Root, Input_Opt, State_Chm, RC )
-!            ENDIF
-
-!-----------------------------------------------------------------------------
-! These simulations are now obsolete.  You can reactivate them if you want.
-!         !---------------------------------
-!         ! CH3I
-!         !---------------------------------
-!         ELSE IF ( IT_IS_A_CH3I_SIM ) THEN
-!            CALL CHEMCH3I
-!     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-! 
-!         !---------------------------------            
-!         ! HCN
-!         !---------------------------------
-!         ELSE IF ( IT_IS_A_HCN_SIM ) THEN
-!            CALL CHEM_HCN_CH3CN
-!     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!-----------------------------------------------------------------------------
- 
          !---------------------------------
          ! Tagged O3
          !---------------------------------
@@ -588,24 +571,6 @@
             CALL CHEMPOPS
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-!-----------------------------------------------------------------------------
-! This simulation is now obsolete.  You can reactivate it if you want.
-!         !---------------------------------
-!         ! Offline H2/HD
-!         !---------------------------------
-!         ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
-!            CALL CHEM_H2_HD
-!     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!
-!            CALL DRYFLXH2HD( State_Met, State_Chm )
-!
-!            ! Call linearized stratospheric scheme
-!            IF ( LSCHEM ) THEN 
-!               CALL DO_STRAT_CHEM
-!     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!            ENDIF
-!-----------------------------------------------------------------------------
-
          ENDIF
 
          !### Debug
@@ -615,7 +580,7 @@
       ENDIF
       
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! ALSO NOTE: State_Chm%TRACERS needs to leave this routine with
       ! units of [kg].  If we are calling this routine from the 

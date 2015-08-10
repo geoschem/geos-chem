@@ -64,7 +64,7 @@ MODULE HCOX_Driver_Mod
   REAL(sp), ALLOCATABLE, TARGET :: DGN_SUNCOS   (:,:  )
   REAL(sp), ALLOCATABLE, TARGET :: DGN_DRYTOTN  (:,:  )
   REAL(sp), ALLOCATABLE, TARGET :: DGN_WETTOTN  (:,:  )
-!  REAL(sp), ALLOCATABLE, TARGET :: DGN_LAI      (:,:  )
+  REAL(sp), ALLOCATABLE, TARGET :: DGN_LAI      (:,:  )
 !  REAL(sp), ALLOCATABLE, TARGET :: DGN_T2M      (:,:  )
 !  REAL(sp), ALLOCATABLE, TARGET :: DGN_GWET     (:,:  )
 !  REAL(sp), ALLOCATABLE, TARGET :: DGN_U10M     (:,:  )
@@ -110,8 +110,10 @@ CONTAINS
     USE HCOX_GC_RnPbBe_Mod,     ONLY : HCOX_GC_RnPbBe_Init
     USE HCOX_GC_POPs_Mod,       ONLY : HCOX_GC_POPs_Init
     USE HCOX_CH4WetLand_MOD,    ONLY : HCOX_CH4WETLAND_Init
+    USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Init
 #if defined( TOMAS )
     USE HCOX_TOMAS_SeaSalt_Mod, ONLY : HCOX_TOMAS_SeaSalt_Init
+    USE HCOX_TOMAS_DustDead_Mod, ONLY : HCOX_TOMAS_DustDead_Init  
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -195,7 +197,11 @@ CONTAINS
     !-----------------------------------------------------------------------
     CALL HCOX_DustDead_Init( amIRoot, HcoState, 'DustDead', ExtState,  RC )
     IF ( RC /= HCO_SUCCESS ) RETURN 
-
+#if defined( TOMAS )
+    CALL HCOX_TOMAS_DustDead_Init( amIRoot, HcoState, 'TOMAS_DustDead', &
+    	 		     	      ExtState,  RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+#endif 
     !-----------------------------------------------------------------------
     ! Dust Ginoux emissions 
     !-----------------------------------------------------------------------
@@ -246,6 +252,13 @@ CONTAINS
     !-----------------------------------------------------------------------
     CALL HCOX_CH4Wetland_Init( amIRoot,  HcoState, 'CH4_WETLANDS', &
                                          ExtState,  RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+
+    !-----------------------------------------------------------------------
+    ! AeroCom volcano emissions 
+    !-----------------------------------------------------------------------
+    CALL HCOX_AeroCom_Init( amIRoot,  HcoState, 'AeroCom_Volcano', &
+                            ExtState,  RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
 #if defined( TOMAS )
@@ -319,8 +332,10 @@ CONTAINS
     USE HCOX_GC_RnPbBe_Mod,     ONLY : HCOX_GC_RnPbBe_Run
     USE HCOX_GC_POPs_Mod,       ONLY : HCOX_GC_POPs_Run
     USE HCOX_CH4WetLand_mod,    ONLY : HCOX_CH4Wetland_Run
+    USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Run
 #if defined( TOMAS )
     USE HCOX_TOMAS_SeaSalt_Mod, ONLY : HCOX_TOMAS_SeaSalt_Run
+    USE HCOX_TOMAS_DustDead_Mod, ONLY : HCOX_TOMAS_DustDead_Run
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -419,6 +434,14 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
+#if defined( TOMAS )
+    IF ( ExtState%TOMAS_DustDead ) THEN
+       !print*, 'JACK TOMAS_DustDead is on'
+       CALL HCOX_TOMAS_DustDead_Run( amIRoot, ExtState, HcoState, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF
+#endif 
+
     !-----------------------------------------------------------------------
     ! Dust emissions (Ginoux)
     !-----------------------------------------------------------------------
@@ -493,6 +516,14 @@ CONTAINS
     ENDIF
 #endif
 
+    !-----------------------------------------------------------------------
+    ! AeroCom volcano emissions 
+    !-----------------------------------------------------------------------
+    IF ( ExtState%AeroCom ) THEN
+       CALL HCOX_AeroCom_Run( amIRoot, ExtState, HcoState, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF
+
     !-----------------------------------------------------------------
     ! Add extensions here ...
     !-----------------------------------------------------------------
@@ -544,8 +575,10 @@ CONTAINS
     USE HCOX_GC_RnPbBe_Mod,     ONLY : HCOX_GC_RnPbBe_Final
     USE HCOX_GC_POPs_Mod,       ONLY : HCOX_GC_POPs_Final
     USE HCOX_CH4WetLand_Mod,    ONLY : HCOX_CH4Wetland_Final
+    USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Final
 #if defined( TOMAS )
     USE HCOX_TOMAS_SeaSalt_Mod, ONLY : HCOX_TOMAS_SeaSalt_Final
+    USE HCOX_TOMAS_DustDead_Mod, ONLY : HCOX_TOMAS_DustDead_Final
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -587,6 +620,9 @@ CONTAINS
        IF ( ExtState%ParaNOx       ) CALL HCOX_PARANOX_Final(am_I_Root,HcoState,RC)
        IF ( ExtState%LightNOx      ) CALL HCOX_LIGHTNOX_Final()
        IF ( ExtState%DustDead      ) CALL HCOX_DustDead_Final()
+#if defined( TOMAS)
+       IF ( ExtState%TOMAS_DustDead )  CALL HCOX_TOMAS_DustDead_Final()
+#endif
        IF ( ExtState%DustGinoux    ) CALL HCOX_DustGinoux_Final()
        IF ( ExtState%SeaSalt       ) CALL HCOX_SeaSalt_Final()
        IF ( ExtState%Megan         ) CALL HCOX_Megan_Final(am_I_Root,HcoState,RC)
@@ -596,6 +632,7 @@ CONTAINS
        IF ( ExtState%GC_RnPbBe     ) CALL HCOX_GC_RnPbBe_Final()
        IF ( ExtState%GC_POPs       ) CALL HCOX_GC_POPs_Final()
        IF ( ExtState%Wetland_CH4   ) CALL HCOX_CH4Wetland_Final()
+       IF ( ExtState%AeroCom       ) CALL HCOX_AeroCom_Final()
 #if defined( TOMAS )
        IF ( ExtState%TOMAS_SeaSalt ) CALL HCOX_TOMAS_SeaSalt_Final()
 #endif       
@@ -606,7 +643,7 @@ CONTAINS
     ENDIF
 
     ! Eventually deallocate diagnostics array
-!    IF ( ALLOCATED( DGN_LAI      ) ) DEALLOCATE( DGN_LAI      )
+    IF ( ALLOCATED( DGN_LAI      ) ) DEALLOCATE( DGN_LAI      )
 !    IF ( ALLOCATED( DGN_T2M      ) ) DEALLOCATE( DGN_T2M      )
 !    IF ( ALLOCATED( DGN_GWET     ) ) DEALLOCATE( DGN_GWET     )
 !    IF ( ALLOCATED( DGN_U10M     ) ) DEALLOCATE( DGN_U10M     )
@@ -676,7 +713,12 @@ CONTAINS
 
     IF ( DoDiagn ) THEN
 
-!       ALLOCATE( DGN_LAI(I,J), DGN_GWET(I,J), STAT=AS )
+       ALLOCATE( DGN_LAI(I,J), STAT=AS )
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR( 'Diagnostics allocation error 1', RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+!       ALLOCATE( DGN_GWET(I,J), STAT=AS )
 !       IF ( AS /= 0 ) THEN
 !          CALL HCO_ERROR( 'Diagnostics allocation error 1', RC, THISLOC=LOC )
 !          RETURN
@@ -708,7 +750,7 @@ CONTAINS
           RETURN
        ENDIF
 
-!       DGN_LAI     = 0.0_sp
+       DGN_LAI     = 0.0_sp
 !       DGN_T2M     = 0.0_sp
 !       DGN_GWET    = 0.0_sp
 !       DGN_V10M    = 0.0_sp
@@ -730,9 +772,9 @@ CONTAINS
 !       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_GWET', DGN_GWET, RC ) 
 !       IF ( RC /= HCO_SUCCESS ) RETURN
 !
-!       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_LAI', DGN_LAI, RC ) 
-!       IF ( RC /= HCO_SUCCESS ) RETURN
-!   
+       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_LAI', DGN_LAI, RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+   
 !       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_U10M', DGN_U10M, RC ) 
 !       IF ( RC /= HCO_SUCCESS ) RETURN
 !   
@@ -864,7 +906,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 
     IF ( DoDiagn ) THEN
-!       DGN_LAI     = ExtState%GC_LAI%Arr%Val
+       DGN_LAI     = ExtState%LAI%Arr%Val
 !       DGN_T2M     = ExtState%T2M%Arr%Val
 !       DGN_GWET    = ExtState%GWETTOP%Arr%Val
 !       DGN_U10M    = ExtState%U10M%Arr%Val
@@ -876,7 +918,7 @@ CONTAINS
 !       DGN_ALBD    = ExtState%ALBD%Arr%Val
 !       DGN_WLI     = ExtState%WLI%Arr%Val
 !       DGN_TROPP   = ExtState%TROPP%Arr%Val
-       DGN_SUNCOS  = ExtState%SUNCOSmid%Arr%Val
+       DGN_SUNCOS  = ExtState%SUNCOS%Arr%Val
        DGN_DRYTOTN = ExtState%DRY_TOTN%Arr%Val
        DGN_WETTOTN = ExtState%WET_TOTN%Arr%Val
     ENDIF

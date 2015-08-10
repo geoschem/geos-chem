@@ -204,11 +204,14 @@ CONTAINS
 !
     LOGICAL,         INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
     TYPE(OptInput),  INTENT(IN)  :: Input_Opt     ! Input Options object
-    TYPE(MetState),  INTENT(IN)  :: State_Met     ! Meteorology State object
     INTEGER,         INTENT(IN)  :: doy           ! Day of year
     INTEGER,         INTENT(IN)  :: mm            ! Month for LAI data
     TYPE(MapWeight), POINTER     :: mapping(:,:)  ! "fine" -> "coarse" grid map
     LOGICAL,         INTENT(IN)  :: wasModisRead  ! Was LAI data just read in?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState),  INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !

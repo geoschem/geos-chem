@@ -503,6 +503,8 @@
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  29 Oct 2013 - R. Yantosca - Now interpolate T_FULLGRID field for GEOS-FP met
+!  12 May 2015 - E. Lundgren - Fix I3 interpolation bug where time fraction
+!                              spans from 1 to 2, not 0 to 1, for hrs 3 to 6
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -534,6 +536,14 @@
       
       ! Fraction of 6h timestep elapsed at the end of this dyn timestep
       TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
+
+#if   defined( GEOS_FP )
+      ! For I3 fields, need to reset fraction after 3 hours (ewl, 5/12/2015)
+      IF ( TM > 1.0e+0_fp ) THEN
+         TM  = TM  - 1.0e+0_fp
+         TC2 = TC2 - 1.0e+0_fp
+      ENDIF
+#endif
 
 #if   defined( GEOS_4 ) || defined( GCAP )
 
@@ -1468,20 +1478,23 @@
       ! Compute cosine(SZA) quantities for the current time
       CALL COSSZA( DOY, HOUR,  .FALSE., State_Met )
 
-      !=================================================================
-      ! Get cosine (SZA) at 5 hours behind the current time (SUNCOS_5hr)
-      ! and at the midpt of the chemistry timestep 5h ago (SUNCOS_MID_5hr)
-      !=================================================================
-
-      ! Time 5h ago
-      JDJan0 = JULDAY( YEAR, 1, 0d0 )                  ! Julian date on Jan 0
-      JD5    = JD  - ( 5d0 / 24d0 )                    ! Julian date 5h ago
-      DOY5   = JD5 - JDJan0                            ! Day of year 5h ago
-      GMT5   = GMT - 5d0                               ! GMT 5h ago
-      HOUR5  = INT( GMT5 )
-
-      ! Compute cosine(SZA) quantities for 5h ago
-      CALL COSSZA( DOY5, HOUR5, .TRUE., State_Met )
+! The following is now obsolete. SZA 5 hours ago is calculated in HEMCO
+! PARANOx extension (ckeller, 5/22/15).
+!
+!      !=================================================================
+!      ! Get cosine (SZA) at 5 hours behind the current time (SUNCOS_5hr)
+!      ! and at the midpt of the chemistry timestep 5h ago (SUNCOS_MID_5hr)
+!      !=================================================================
+!
+!      ! Time 5h ago
+!      JDJan0 = JULDAY( YEAR, 1, 0d0 )                  ! Julian date on Jan 0
+!      JD5    = JD  - ( 5d0 / 24d0 )                    ! Julian date 5h ago
+!      DOY5   = JD5 - JDJan0                            ! Day of year 5h ago
+!      GMT5   = GMT - 5d0                               ! GMT 5h ago
+!      HOUR5  = INT( GMT5 )
+!
+!      ! Compute cosine(SZA) quantities for 5h ago
+!      CALL COSSZA( DOY5, HOUR5, .TRUE., State_Met )
 
       END SUBROUTINE GET_COSINE_SZA
 !EOC
@@ -1623,7 +1636,7 @@
       R        = ( 2e+0_fp * PI / 365e+0_fp ) * DBLE( DOY - 1 ) 
 
       ! Solar declination angle (low precision formula) [radians]
-      DEC      = A0 - A1*COS(     R ) + B1*SIN(     R )
+      DEC      = A0 - A1*COS(         R ) + B1*SIN(         R )
      &              - A2*COS( 2e+0_fp*R ) + B2*SIN( 2e+0_fp*R )
      &              - A3*COS( 3e+0_fp*R ) + B3*SIN( 3e+0_fp*R )
 
@@ -1682,9 +1695,9 @@
          !==============================================================
          IF ( DO_5hr_AGO ) THEN
 
-            ! COS(SZA) at midpt of chemistry timestep that was 5h ago
-            ! This is needed for the PARANOX ship plume model
-            State_Met%SUNCOSmid5(I,J) = SUNCOS_MID
+!            ! COS(SZA) at midpt of chemistry timestep that was 5h ago
+!            ! This is needed for the PARANOX ship plume model
+!            State_Met%SUNCOSmid5(I,J) = SUNCOS_MID
 
          ELSE
 

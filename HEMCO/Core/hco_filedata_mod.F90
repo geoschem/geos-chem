@@ -38,6 +38,10 @@
 !       model time is outside of the source file range. If CycleFlag is
 !       set to 3, an error is returned if none of the file time slices
 !       matches the model time. 
+! \item UpdtFlag: determines the update frequency of the data. This is
+!       currently only used to distinguish containers that are updated
+!       on every time step (always) or according to the frequency 
+!       provided in the HEMCO configuration file via attribute 'srcTime'. 
 ! \item ncRead: logical denoting whether or not we need to read this
 !       data container. ncRead is set to false for containers whose
 !       data is directly specified in the configuration file. For
@@ -63,6 +67,8 @@
 !       specified in the configuration file. 
 ! \item SpaceDim: spatial dimension of data array: 1 = spatially uniform
 !       (x=y=z=1); 2 = 2D data (x,y); 3 = 3D data (x,y,z).
+! \item Levels: handling of vertical levels (3D data only). For internal
+!       use only. 
 ! \item nt: time dimension. length of vector V3 or V2. For internal use 
 !       only.
 ! \item DeltaT: time interval between time slices. For internal use only.
@@ -124,6 +130,7 @@ MODULE HCO_FileData_Mod
      INTEGER                     :: ncDys(2)  ! day range
      INTEGER                     :: ncHrs(2)  ! hour range
      INTEGER                     :: CycleFlag ! cycle flag
+     INTEGER                     :: UpdtFlag  ! update flag 
      LOGICAL                     :: ncRead    ! read from source?
      TYPE(Arr3D_SP),     POINTER :: V3(:)     ! vector of 3D fields
      TYPE(Arr2D_SP),     POINTER :: V2(:)     ! vector of 2D fields
@@ -131,6 +138,8 @@ MODULE HCO_FileData_Mod
      CHARACTER(LEN= 31)          :: OrigUnit  ! original data units 
      INTEGER                     :: Cover     ! data coverage
      INTEGER                     :: SpaceDim  ! space dimension: 1, 2 or 3 
+     INTEGER                     :: Levels    ! vertical level handling 
+     INTEGER                     :: Lev2D     ! level to use for 2D data 
      INTEGER                     :: nt        ! time dimension: length of Arr
      INTEGER                     :: DeltaT    ! temp. resolution of array [h]
      LOGICAL                     :: IsLocTime ! local time? 
@@ -211,11 +220,14 @@ CONTAINS
     NewFDta%ncDys(:)     = -999
     NewFDta%ncHrs(:)     = -999
     NewFDta%CycleFlag    = HCO_CFLAG_CYCLE
+    NewFDta%UpdtFlag     = HCO_UFLAG_FROMFILE
     NewFDta%ncRead       = .TRUE.
     NewFDta%Cover        = -999 
     NewFDta%DeltaT       = 0
     NewFDta%nt           = 0
     NewFDta%SpaceDim     = -1
+    NewFDta%Levels       = 0
+    NewFDta%Lev2D        = 1
     NewFDta%OrigUnit     = ''
     NewFDta%IsLocTime    = .FALSE.
     NewFDta%IsConc       = .FALSE.

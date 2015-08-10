@@ -311,7 +311,7 @@
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) 
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! When we are connecting to the GEOS-5 GCM, we don't define
       ! L_OVERWRLD.  We cannot know the maximum extent of the
@@ -321,7 +321,7 @@
       !-----------------------------------------------------------------
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Current practice in the std GEOS-Chem is to call function
       ! GET_MAX_TPAUSE_LEVEL (from tropopause_mod.F) to return the
@@ -406,7 +406,7 @@
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             !-----------------------------------------------------------
-            !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+            !       %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
             !
             ! When we are connecting to the GEOS-5 GCM, we don't define
             ! L_OVERWRLD.  We cannot know the maximum extent of the
@@ -416,7 +416,7 @@
             !-----------------------------------------------------------
 #else
             !-----------------------------------------------------------
-            !           %%%%% TRADITIONAL GEOS-Chem %%%%%
+            !       %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
             !
             ! Current practice in the std GEOS-Chem is to call function
             ! GET_MAX_TPAUSE_LEVEL (from tropopause_mod.F) to return the

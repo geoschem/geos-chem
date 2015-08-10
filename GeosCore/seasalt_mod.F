@@ -27,7 +27,6 @@
 !
       PUBLIC :: CHEMSEASALT
       PUBLIC :: CLEANUP_SEASALT
-!      PUBLIC :: GET_ALK
       PUBLIC :: INIT_SEASALT
 !
 ! !PUBLIC DATA MEMBERS:
@@ -79,6 +78,8 @@
 !  23 Jun 2014 - R. Yantosca - Remove code now made obsolete by HEMCO
 !  03 Nov 2014 - C. Keller   - Moved GET_ALK to sulfate_mod.F. 
 !  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  12 Jun 2015 - R. Yantosca - Removed DRY_DEPOSITION routine, because we
+!                              now apply drydep in mixing_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -117,17 +118,12 @@
 
       ! Arrays
       INTEGER               :: IDDEP(NSALT)
-      REAL(fp),   ALLOCATABLE :: SALT_V(:)
-      REAL(fp),   ALLOCATABLE :: DMID(:)
+      REAL(fp), ALLOCATABLE :: SALT_V(:)
+      REAL(fp), ALLOCATABLE :: DMID(:)
+!
+! !DEFINED PARAMETERS
+!
       REAL(fp), PARAMETER :: SS_DEN(NSALT)=(/2200.e+0_fp, 2200.e+0_fp/)
-
-      ! Now obsolete
-!      REAL(fp),   ALLOCATABLE :: REDGE(:,:)   
-!      REAL(fp),   ALLOCATABLE :: RMID(:,:)
-!      REAL(fp),   ALLOCATABLE :: SRC(:,:)   
-!      REAL(fp),   ALLOCATABLE :: SRC_N(:,:)   
-!      REAL(fp),   ALLOCATABLE :: ALK_EMIS(:,:,:,:)
-!      REAL(fp),   ALLOCATABLE :: N_DENS(:,:,:,:)    
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -154,9 +150,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-!      USE DRYDEP_MOD,         ONLY : DEPNAME
-!      USE DRYDEP_MOD,         ONLY : DEPSAV
-!      USE DRYDEP_MOD,         ONLY : NUMDEP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -179,6 +172,10 @@
 !      
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
+! !REMARKS:
+!  Dry deposition is now handled in mixing_mod.F90.  We have removed
+!  the calls to the DRY_DEPOSITION routine here. (bmy, 6/12/15)
+
 ! !REVISION HISTORY:
 !  (1 ) Now reference STT from "tracer_mod.f".  Now references LPRT from
 !        "logical_mod.f" (bmy, 7/20/04)
@@ -189,6 +186,8 @@
 !  13 Nov 2012 - R. Yantosca - Now add Input_Opt, RC arguments for GIGC
 !  15 Nov 2012 - M. Payer    - Now pass met fields via State_Met object
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
+!                              so we can greatly collapse this code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -196,15 +195,11 @@
 ! !LOCAL VARIABLES:
 !
       ! Non-SAVEd variables
-      LOGICAL        :: prtDebug
-      LOGICAL        :: LDRYD
-      LOGICAL        :: LNLPBL
-      LOGICAL        :: LPRT
-      INTEGER        :: N
+      LOGICAL           :: prtDebug
+      LOGICAL           :: LPRT
+      INTEGER           :: N
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
@@ -215,8 +210,6 @@
       RC       = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LDRYD    = Input_Opt%LDRYD
-      LNLPBL   = Input_Opt%LNLPBL
       LPRT     = Input_Opt%LPRT
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -242,18 +235,6 @@
          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
       ENDIF
 
-!      ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
-!      ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
-!      ! Now always do dry-deposition outside of seasalt_mod.F (ckeller, 3/5/15)
-!      IF ( LDRYD .and. ( .not. LNLPBL ) ) THEN
-!         CALL DRY_DEPOSITION( am_I_Root,          Input_Opt, 
-!     &                        STT(:,:,:,IDTSALA), 1,         RC )
-!
-!         IF ( prtDebug ) THEN
-!            CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Accum' )
-!         ENDIF
-!      ENDIF
-
       !-------------------
       ! Coarse mode
       !-------------------
@@ -263,18 +244,6 @@
       IF ( prtDebug ) THEN 
          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
       ENDIF
-
-      ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
-      ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
-      ! Now always do dry-deposition outside of seasalt_mod.F (ckeller, 3/5/15)
-!      IF ( LDRYD .and. ( .not. LNLPBL ) ) THEN
-!         CALL DRY_DEPOSITION( am_I_Root,          Input_Opt,
-!     &                        STT(:,:,:,IDTSALC), 2,         RC )
-!
-!         IF ( prtDebug ) THEN
-!            CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Coarse')
-!         ENDIF
-!      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -305,7 +274,6 @@
 #if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
 #endif
-!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
@@ -737,189 +705,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: dry_deposition
-!
-! !DESCRIPTION: Subroutine DRY\_DEPOSITION computes the loss of sea salt by dry
-!  deposition at the surface, using an implicit method (bec, rjp, bmy, 4/20/04)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE DRY_DEPOSITION( am_I_Root, Input_Opt, TC, N, RC )
-!
-! !USES:
-!
-      USE CMN_GCTM_MOD
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV 
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TRACERID_MOD,       ONLY : IDTSALA
-      USE TRACERID_MOD,       ONLY : IDTSALC
-      USE TIME_MOD,           ONLY : GET_MONTH
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root             ! Is this root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
-      INTEGER,        INTENT(IN)    :: N                     ! 1=accum; 2=coarse
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      REAL(fp),         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt [kg]
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
-!
-! !REVISION HISTORY:
-!  (1 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  (2 ) Update to calculate the drydep throughout the entire PBL instead of
-!       just at the surface. This is more in line with what is done in
-!       dry_dep.f. This is only used if LNLPBL is turned off (or for GEOS-4 and
-!       prior met fields). (jaegle 5/11/11)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  20 Nov 2012 - R. Yantosca - Bug fix: use temp array to archive ND44 drydep
-!                              then save back to AD44 outside parallel loop
-!  20 Nov 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC.  Remove
-!                              references to GET_PBL_MAX_L.
-!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      INTEGER            :: N_TRACERS
-      INTEGER            :: I,        J,     L,      DTCHEM
-      REAL(fp)             :: OLD,      NEW,   G,      REFF
-      REAL(fp)             :: DIAM,     U_TS0, REYNOL, ALPHA 
-      REAL(fp)             :: BETA,     GAMMA, DENS,   FLUX 
-      REAL(fp)             :: AREA_CM2, TOT1,  TOT2
-      REAL(fp)             :: F_UNDER_TOP, FREQ
-
-      ! Arrays
-      REAL(fp)             :: ND44_TMP(IIPAR,JJPAR,LLPAR)
-      REAL(fp)             :: XNUMOL(Input_Opt%N_TRACERS)
-!
-! !DEFINED PARAMETERS:
-!
-      REAL(fp),  PARAMETER :: RHOA = 1.25e-3_fp
-
-      !=================================================================
-      ! DRY_DEPOSITION begins here!
-      !=================================================================
-
-      ! Assume success
-      RC        = GIGC_SUCCESS
-
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-
-      ! Chemistry timestep [s]
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
-
-      ! Zero temporary array for drydep diagnostic
-      IF ( ND44 > 0 ) ND44_TMP = 0e+0_fp
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, AREA_CM2, OLD, NEW, FLUX )
-!$OMP+PRIVATE( L, F_UNDER_TOP   , FREQ ) ! (jaegle 5/11/11)
-!$OMP+SCHEDULE( DYNAMIC )
-
-      ! Note, for grid-independent GEOS-Chem we have to loop over
-      ! all levels and then just shunt if we are in the stratosphere
-      ! (bmy, 11/20/12)
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Grid box surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2( I, J, L )
-
-         ! Fraction of box (I,J,L) under PBL top [unitless]
-	 F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
-
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( F_UNDER_TOP > 0e+0_fp ) THEN
-
-            ! Sea salt dry deposition frequency [1/s] accounting
-            ! for fraction of each grid box located beneath the PBL top
-            FREQ = DEPSAV(I,J,IDDEP(N)) * F_UNDER_TOP
-
-            ! Only apply drydep loss if FREQ is nonzero
-            IF ( FREQ > 0e+0_fp ) THEN
-
-               ! Old tracer concentration [kg]
-               OLD  = TC(I,J,L)
-
-               ! New tracer concentration [kg]
-               NEW  = OLD * EXP( -FREQ * DTCHEM )
-
-               ! Old tracer concentration [kg]
-               !OLD  = TC(I,J,1)
-
-               ! New tracer concentration [kg]
-               !NEW  = OLD * EXP( -DEPSAV(I,J,IDDEP(N)) * DTCHEM  )
-
-               !===========================================================
-               ! ND44 diagnostic: sea salt drydep loss [molec/cm2/s]
-               !===========================================================
-               IF ( ND44 > 0 ) THEN
-            
-                  ! Convert drydep loss from [kg/s] to [molec/cm2/s]
-                  FLUX = ( OLD - NEW ) / DTCHEM 
-                  FLUX = FLUX * XNUMOL(IDTSALA) / AREA_CM2 
-         
-                  ! Save in ND44 temporary array
-                  ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-               ENDIF
-
-               ! Update tracer array
-               TC(I,J,L) = NEW 
-            ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#if !defined( NO_BPCH )
-      !====================================================================
-      ! ND44 diagnostic: save into AD44 array, summing in the vertical
-      !====================================================================
-      IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) +
-     &                             SUM( ND44_TMP(I,J,:) )
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-#endif
-
-      END SUBROUTINE DRY_DEPOSITION
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: init_seasalt
 !
 ! !DESCRIPTION: Subroutine INIT\_SEASALT initializes and zeroes all module
@@ -952,8 +737,8 @@
 !  (2 ) Added SALT_V and DMID (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  04 Mar 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
-!   4 Mar 2013 - R. Yantosca - Now test for DEPSALA, DEPSALC here
-
+!  04 Mar 2013 - R. Yantosca - Now test for DEPSALA, DEPSALC here
+!  12 Jun 2015 - R. Yantosca - Remove obsolete, commented-out code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -972,31 +757,6 @@
 
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN
-
-      ! Allocate arrays
-!      ALLOCATE( REDGE( 0:NR_MAX, NSALT ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REDGE' )
-!      REDGE = 0e+0_fp
-
-!      ALLOCATE( RMID( NR_MAX, NSALT ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RMID' )
-!      RMID = 0e+0_fp
-
-!      ALLOCATE( SRC( NR_MAX, NSALT ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRC' )
-!      SRC = 0e+0_fp
-
-!      ALLOCATE( SRC_N( NR_MAX, NSALT ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRC_N' )
-!      SRC_N = 0e+0_fp
-
-!      ALLOCATE( ALK_EMIS( IIPAR, JJPAR, LLCHEM, NSALT ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALK_EMIS' )
-!      ALK_EMIS = 0e+0_fp
-
-!      ALLOCATE( N_DENS( IIPAR, JJPAR, LLCHEM, NSALT ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'N_DENS' )
-!      N_DENS = 0e+0_fp
 
       ALLOCATE( SALT_V( NR_MAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SALT_V' )

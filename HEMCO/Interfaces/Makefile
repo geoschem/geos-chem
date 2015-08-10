@@ -18,6 +18,8 @@
 #
 # !REVISION HISTORY: 
 #  15 Jul 2014 - R. Yantosca - Initial version
+#  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
+#  10 Jun 2015 - R. Yantosca - Also place a copy of the executable in bin
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -29,22 +31,32 @@
 ###############################################################################
 
 # Directories
-ROOT :=../..
-BIN  :=$(ROOT)/bin
-DOC  :=$(ROOT)/doc
-LIB  :=$(ROOT)/lib
-MOD  :=$(ROOT)/mod
+ROOT    :=../..
+LIB     :=$(ROOT)/lib
+MOD     :=$(ROOT)/mod
+BIN     :=$(ROOT)/bin
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOT)/Makefile_header.mk
 
 # List of source files to compile
-SRC  := $(wildcard *.F) $(wildcard *.F90)
+SOURCES :=$(wildcard *.F) $(wildcard *.F90)
 
 # Replace .f and .f90 extensions with *.o
-TMP  := $(SRC:.F=.o)
-OBJ  := $(TMP:.F90=.o)
+TMP     :=$(SOURCES:.F=.o)
+OBJECTS :=$(TMP:.F90=.o)
+
+# List of module files.  Convert to lowercase, then prefix directory name.
+MODULES :=$(OBJECTS:.o=.mod)
+MODULES :=$(shell echo $(MODULES) | tr A-Z a-z)
+MODULES :=$(foreach I,$(MODULES),$(MOD)/$(I))
+
+# Library file
+LIBRARY :=libHCOI.a
+
+# Executable file
+EXE     :=hemco_standalone.x
 
 ###############################################################################
 ###                                                                         ###
@@ -52,24 +64,37 @@ OBJ  := $(TMP:.F90=.o)
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean debug
+.PHONY: clean debug check
 
-all: lib
+all: 
+	@${MAKE} lib
+	@${MAKE} exe
 
-lib: $(OBJ)
-	$(AR) crs libHCOI.a $(OBJ)
-	mv libHCOI.a $(LIB)
+check:
+	@${MAKE} exe
+
+lib: $(OBJECTS)
+	$(AR) crs $(LIBRARY) $(OBJECTS)
+	mv $(LIBRARY) $(LIB)
+
 clean:
-	rm -f *.o *.mod *.a *.x
+	@echo "===> Making clean in directory: HEMCO/Interfaces <==="
+	@rm -f *.x *$(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
+
+exe: 
+	@echo "LINK: $(LINK_HCO)"
+	$(LD) $(OBJECTS) $(LINK_HCO) -o $(EXE)
+	cp -f $(EXE) $(BIN)
 
 debug:
 	@echo "Targets : $(MAKECMDGOALS)"
 	@echo "ROOT    : $(ROOT)"
-	@echo "BIN     : $(BIN)"
 	@echo "LIB     : $(LIB)"
 	@echo "MOD     : $(MOD)"
 	@echo "F90     : $(F90)"
-	@echo "LINK    : $(LINK)"
+	@echo "OBJECTS : $(OBJECTS)"
+	@echo "MODULES : $(MODULES)"
+	@echo "LIBRARY : $(LIBRARY)"
 
 ###############################################################################
 ###                                                                         ###
@@ -92,5 +117,8 @@ debug:
 hcoi_esmf_mod.o : hcoi_esmf_mod.F90
 
 hcoi_standalone_mod.o : hcoi_standalone_mod.F90
+
+hemco_standalone.o : hemco_standalone.F90 \
+                     hcoi_standalone_mod.o
 
 #EOC

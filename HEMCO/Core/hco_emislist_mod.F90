@@ -473,7 +473,6 @@ CONTAINS
 !
     USE HCO_DATACONT_MOD, ONLY : ListCont_Find
     USE HCO_FILEDATA_MOD, ONLY : FileData_ArrCheck
-!    USE HCO_DATACONT_MOD, ONLY : DataCont_Cleanup
 !
 ! !INPUT PARAMETERS:
 !
@@ -727,11 +726,18 @@ CONTAINS
 ! default, the routine returns an error if the given container name is
 ! not found. This can be avoided by calling the routine with the optional
 ! argument FOUND, in which case only this argument will be set to FALSE.
+! Similarly, the FILLED flag can be used to control the behaviour if the
+! data container is found but empty, e.g. no data is associated with it.
+!\\
+!\\
+! This routine returns the unevaluated data field, e.g. no scale factors
+! or masking is applied to the data. Use routine HCO\_EvalFld in 
+! hco\_calc\_mod.F90 to get evaluated fields.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_GetPtr_3D( am_I_Root, DctName, Ptr3D, RC, TIDX, FOUND )
+  SUBROUTINE HCO_GetPtr_3D( am_I_Root, DctName, Ptr3D, RC, TIDX, FOUND, FILLED )
 !
 ! !USES:
 !
@@ -747,6 +753,7 @@ CONTAINS
 !
     REAL(sp),         POINTER               :: Ptr3D(:,:,:)   ! output array
     LOGICAL,          INTENT(OUT), OPTIONAL :: FOUND          ! cont. found?
+    LOGICAL,          INTENT(OUT), OPTIONAL :: FILLED         ! array filled?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -754,6 +761,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  04 Sep 2013 - C. Keller    - Initialization
+!  19 May 2015 - C. Keller    - Added argument FILLED
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -782,6 +790,9 @@ CONTAINS
        T = 1
     ENDIF
  
+    ! Init 
+    IF ( PRESENT(FILLED) ) FILLED = .FALSE. 
+
     ! Search for container in emissions linked list
     CALL ListCont_Find ( EmisList, TRIM(DctName), FND, Lct )
     IF ( PRESENT(FOUND) ) FOUND = FND
@@ -790,7 +801,7 @@ CONTAINS
     ! return an error if container not found but only pass the FOUND
     ! argument to the caller routine. Otherwise, exit with error. 
     IF ( .NOT. FND ) THEN
-       IF ( PRESENT(FOUND) ) THEN
+       IF ( PRESENT(FOUND) .OR. PRESENT(FILLED) ) THEN
           Ptr3D => NULL()
           RC    = HCO_SUCCESS
           RETURN
@@ -817,10 +828,15 @@ CONTAINS
 
     IF ( ASSOCIATED( Lct%Dct%Dta%V3 ) ) THEN
        Ptr3D => Lct%Dct%Dta%V3(T)%Val
+       IF ( PRESENT( FILLED ) ) FILLED = .TRUE. 
     ELSE
-       MSG = 'Container data not filled: ' // TRIM(DctName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
+       IF ( PRESENT( FILLED ) ) THEN
+          Ptr3D  => NULL()
+       ELSE
+          MSG = 'Container data not filled: ' // TRIM(DctName)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
     ENDIF
 
     ! Leave w/ success
@@ -836,12 +852,13 @@ CONTAINS
 ! !IROUTINE: HCO_GetPtr_2D 
 !
 ! !DESCRIPTION: Subroutine HCO\_GetPtr\_2D returns the 2D data pointer 
-! Ptr2D of EmisList that is associated with data container DctName. 
+! Ptr2D of EmisList that is associated with data container DctName. See
+! HCO\_GetPtr\_3D for more details. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_GetPtr_2D( am_I_Root, DctName, Ptr2D, RC, TIDX, FOUND )
+  SUBROUTINE HCO_GetPtr_2D( am_I_Root, DctName, Ptr2D, RC, TIDX, FOUND, FILLED )
 !
 ! !USES:
 !
@@ -857,6 +874,7 @@ CONTAINS
 !
     REAL(sp),         POINTER               :: Ptr2D(:,:)  ! output array
     LOGICAL,          INTENT(OUT), OPTIONAL :: FOUND       ! cont. found?
+    LOGICAL,          INTENT(OUT), OPTIONAL :: FILLED      ! array filled? 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -864,6 +882,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  04 Sep 2013 - C. Keller    - Initialization
+!  19 May 2015 - C. Keller    - Added argument FILLED
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -876,7 +895,7 @@ CONTAINS
     CHARACTER(LEN=255)         :: MSG, LOC
 
     ! Pointers
-    TYPE(ListCont), POINTER    :: Lct => NULL()
+    TYPE(ListCont), POINTER    :: Lct     => NULL()
 
     !=================================================================
     ! HCO_GetPtr_2D BEGINS HERE
@@ -891,7 +910,10 @@ CONTAINS
     ELSE
        T = 1
     ENDIF
- 
+
+    ! Init 
+    IF ( PRESENT(FILLED) ) FILLED = .FALSE. 
+
     ! Search for container in emissions linked list
     CALL ListCont_Find( EmisList, TRIM(DctName), FND, Lct )
     IF ( PRESENT(FOUND) ) FOUND = FND
@@ -928,13 +950,18 @@ CONTAINS
 
     IF ( ASSOCIATED( Lct%Dct%Dta%V2 ) ) THEN
        Ptr2D => Lct%Dct%Dta%V2(T)%Val
+       IF ( PRESENT( FILLED ) ) FILLED = .TRUE. 
     ELSE
-       MSG = 'Container data not filled: ' // TRIM(DctName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
+       IF ( PRESENT( FILLED ) ) THEN
+          Ptr2D  => NULL()
+       ELSE
+          MSG = 'Container data not filled: ' // TRIM(DctName)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
     ENDIF
 
-    ! Leave w/ success
+    ! Return w/ success
     RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_GetPtr_2D

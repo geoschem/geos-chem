@@ -268,7 +268,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Final( am_I_Root, HcoState, RC ) 
+  SUBROUTINE HCO_Final( am_I_Root, HcoState, ERROR, RC ) 
 !
 ! !USES:
 !
@@ -285,6 +285,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   ) :: am_I_Root  ! root CPU?
+    LOGICAL,          INTENT(IN   ) :: ERROR      ! Cleanup because of crash? 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -311,7 +312,7 @@ CONTAINS
     !=================================================================
 
     ! Write diagnostics if needed
-    IF ( HcoState%Options%HcoWritesDiagn ) THEN
+    IF ( HcoState%Options%HcoWritesDiagn .AND. .NOT. ERROR ) THEN
        CALL  HcoDiagn_Write( am_I_Root, HcoState, .FALSE., RC )
        CALL  HcoDiagn_Write( am_I_Root, HcoState, .TRUE.,  RC )
     ENDIF
