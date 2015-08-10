@@ -34,7 +34,8 @@
 !
       PRIVATE  :: GEOS_Timer_Find      ! Finds the specified timer.
       PRIVATE  :: GEOS_Timer_PrintNum  ! Prints the timer by number.
-
+      PRIVATE  :: GEOS_Timer_TheTime   ! Returns the current time in MS.
+      PRIVATE  :: GEOS_Timer_TimePrint ! Formats the seconds when printing.
 !
 ! !DEFINED PARAMETERS:
 ! 
@@ -51,7 +52,7 @@
 !
 ! !PRIVATE TYPES:
 !
-#if defined( TIMERS )
+#if defined( USE_TIMERS )
 
       ! Enable the timers boolean.
       LOGICAL, PARAMETER         :: DoTimers = .true.
@@ -63,11 +64,11 @@
 
 #endif
 
-      ! What mode the timers should be in. Defaults to 0.
-      ! 0: CPU Time
-      ! 1: Real Time
-      ! 2: MPI time
-      INTEGER                    :: TimerMode = 0
+      ! What mode the timers should be in. Defaults to 1.
+      ! 1: CPU Time
+      ! 2: Real Time
+      ! 3: MPI time
+      INTEGER                    :: TimerMode = 1
 
       ! Current number of timers. Starts at 0.
       INTEGER                    :: TimerCurrentSize = 0
@@ -78,7 +79,7 @@
       ! The definition of the GEOS_Timer type.
       TYPE GEOS_Timer
         LOGICAL                  :: ENABLED
-        CHARACTER(LEN=255)       :: TIMER_NAME
+        CHARACTER(LEN=30)       :: TIMER_NAME
         REAL*8                   :: TOTAL_TIME
         REAL*8                   :: START_TIME
         REAL*8                   :: END_TIME
@@ -124,8 +125,18 @@
 ! !LOCAL VARIABLES:
 !
 
-      TimerMode = TheMode
+      ! First it is important to check if timers are enabled.
+      IF (.not. DoTimers) THEN       ! Assume False for optimization.
+        RETURN                       ! If no timers, do nothing.
+      ENDIF
 
+      IF (TheMode .lt. 1) THEN
+        PRINT*, "** WARNING: INVALID TIMER TYPE!"
+        RETURN
+      ENDIF
+
+      TimerMode = TheMode
+      PRINT*, "** GEOS TIMERS SET UP!"
       END SUBROUTINE GEOS_Timer_Setup
 !EOC
 !------------------------------------------------------------------------------
@@ -145,7 +156,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=255),   INTENT(IN) :: TimerName    ! Name for timer.
+      CHARACTER(LEN=*),   INTENT(IN) :: TimerName    ! Name for timer.
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -166,6 +177,7 @@
 
       ! First it is important to check if timers are enabled.
       IF (.not. DoTimers) THEN       ! Assume False for optimization.
+        RC = GIGC_SUCCESS
         RETURN                       ! If no timers, do nothing.
       ENDIF
 
@@ -183,6 +195,7 @@
         SavedTimers(TimerCurrentSize) % END_TIME   = 0
 
         ! Success.
+!        PRINT*, "Timer added at slot ", TimerCurrentSize
         RC = GIGC_SUCCESS
       ELSE                                              ! There's not room.
         PRINT*," ** WARNING: Max timers reached!"
@@ -207,7 +220,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=255),   INTENT(IN) :: TimerName    ! Name for timer.
+      CHARACTER(LEN=*),   INTENT(IN) :: TimerName    ! Name for timer.
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -227,14 +240,18 @@
 !
       INTEGER    ::  TimerLoc           ! Timer number
       REAL*8     ::  TheTime            ! Returned Time from method
+      CHARACTER(LEN=30)   :: TempTimerName
 
       ! First it is important to check if timers are enabled.
       IF (.not. DoTimers) THEN       ! Assume False for optimization.
+        RC = GIGC_SUCCESS
         RETURN                       ! If no timers, do nothing.
       ENDIF
 
+      TempTimerName = TimerName
+
       ! First we must find the specified timer.
-      TimerLoc = GEOS_Timer_Find( TimerName )
+      TimerLoc = GEOS_Timer_Find( TempTimerName )
 
       IF (TimerLoc .eq. 0) THEN
         PRINT*, "** WARNING: Timer not found: ", TimerName
@@ -253,12 +270,14 @@
       SavedTimers(TimerLoc)%ENABLED = .true.
 
       ! And we note the current time
-      ! 0: CPU Time
-      ! 1: Real Time
-      ! 2: MPI time
-      IF ( TimerMode .eq. 0 ) THEN
-       CALL TIMER( TheTime )
+      ! 1: CPU Time
+      ! 2: Real Time
+      ! 3: MPI time
+      IF ( TimerMode .eq. 1 ) THEN
+       TheTime = GEOS_Timer_TheTime()
       ENDIF
+      
+!     PRINT*, "** RETURNED TIME (START): ", TheTime
 
       SavedTimers(TimerLoc)%START_TIME = TheTime
 
@@ -283,7 +302,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=255),   INTENT(IN) :: TimerName    ! Name for timer.
+      CHARACTER(LEN=*),   INTENT(IN) :: TimerName    ! Name for timer.
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -303,13 +322,17 @@
       INTEGER    ::  TimerLoc           ! Timer number
       REAL*8     ::  TheTime            ! Returned Time from method
       REAL*8     ::  Diff               ! Difference in times
+      CHARACTER(LEN=30)   :: TempTimerName
 
       ! First it is important to check if timers are enabled.
       IF (.not. DoTimers) THEN       ! Assume False for optimization.
+        RC = GIGC_SUCCESS
         RETURN                       ! If no timers, do nothing.
       ENDIF
 
-      TimerLoc = GEOS_Timer_Find( TimerName )
+      TempTimerName = TimerName
+
+      TimerLoc = GEOS_Timer_Find( TempTimerName )
 
       IF (TimerLoc .eq. 0) THEN
         PRINT*, "** WARNING: Timer not found: ", TimerName
@@ -328,12 +351,14 @@
       SavedTimers(TimerLoc)%ENABLED = .false.
 
       ! And we note the current time
-      ! 0: CPU Time
-      ! 1: Real Time
-      ! 2: MPI time
-      IF ( TimerMode .eq. 0 ) THEN
-       CALL TIMER( TheTime )
+      ! 1: CPU Time
+      ! 2: Real Time
+      ! 3: MPI time
+      IF ( TimerMode .eq. 1 ) THEN
+       TheTime = GEOS_Timer_TheTime()
       ENDIF
+
+!      PRINT*, "** RETURNED TIME (END): ", TheTime
 
       SavedTimers(TimerLoc)%END_TIME = TheTime
 
@@ -341,9 +366,15 @@
       Diff = SavedTimers(TimerLoc)%END_TIME -
      &       SavedTimers(TimerLoc)%START_TIME
 
+      ! Error check...
+      IF ( Diff .lt. 0 ) THEN
+       PRINT*, "** WARNING: Timer returned invalid value: ", TimerName
+       Diff = 0
+      ENDIF
+
       ! And add difference to current value of total time
       SavedTimers(TimerLoc)%TOTAL_TIME =
-     &   SavedTimers(TimerLoc)%END_TIME + Diff
+     &   (SavedTimers(TimerLoc)%TOTAL_TIME) + Diff
 
       ! Success.
       RC = GIGC_SUCCESS
@@ -367,7 +398,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=255),   INTENT(IN) :: TimerName    ! Name for timer.
+      CHARACTER(LEN=*),   INTENT(IN) :: TimerName    ! Name for timer.
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -384,14 +415,18 @@
 !
 ! !LOCAL VARIABLES:
 !
+      CHARACTER(LEN=30)   :: TempTimerName
       INTEGER    ::  TimerLoc           ! Timer number
 
       ! First it is important to check if timers are enabled.
       IF (.not. DoTimers) THEN       ! Assume False for optimization.
+        RC = GIGC_SUCCESS
         RETURN                       ! If no timers, do nothing.
       ENDIF
 
-      TimerLoc = GEOS_Timer_Find( TimerName )
+      TempTimerName = TimerName
+
+      TimerLoc = GEOS_Timer_Find( TempTimerName )
 
       IF (TimerLoc .eq. 0) THEN
         PRINT*, "** WARNING: Timer not found: ", TimerName
@@ -445,6 +480,7 @@
 
       ! First it is important to check if timers are enabled.
       IF (.not. DoTimers) THEN       ! Assume False for optimization.
+        RC = GIGC_SUCCESS
         RETURN                       ! If no timers, do nothing.
       ENDIF
 
@@ -511,8 +547,12 @@
       PRINT*, "Timer data for timer name: ",
      &  SavedTimers(SlotNumber) % TIMER_NAME
 
-      PRINT*, "Total Running time: ",
-     &  SavedTimers(SlotNumber) % TOTAL_TIME, " seconds"
+      IF ( (SavedTimers(SlotNumber) % ENABLED) ) THEN
+       PRINT*, "** WARNING: Timer still enabled! "
+      ENDIF
+
+      CALL GEOS_Timer_TimePrint (
+     &      SavedTimers(SlotNumber) % TOTAL_TIME )
 
       END SUBROUTINE GEOS_Timer_PrintNum
 
@@ -534,7 +574,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=255),   INTENT(IN) :: TimerName    ! Name for timer.
+      CHARACTER(LEN=30),   INTENT(IN) :: TimerName    ! Name for timer.
 !
 ! !RETURN VALUE:
 !
@@ -561,17 +601,171 @@
 
       SlotNumber = 0
 
-      IF(TimerCurrentSize < 1) THEN  ! Return 0 if it's empty
+      IF(TimerCurrentSize .lt. 1) THEN  ! Return 0 if it's empty
         RETURN
       ENDIF
 
-      DO I = 1, TimerCurrentSize
-       IF(SavedTimers(TimerCurrentSize) % TIMER_NAME 
-     &  .eq. TimerName) THEN
+      DO I = 1, TimerCurrentSize, 1
+       IF((SavedTimers(I) % TIMER_NAME) .eq. TimerName) THEN
            SlotNumber = I
        ENDIF
       ENDDO
 
       END FUNCTION GEOS_Timer_Find
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GEOS_Timer_TheTime
+!
+! !DESCRIPTION: Returns the current time in MS.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GEOS_Timer_TheTime() RESULT ( TotalTime )
+!
+! !INPUT PARAMETERS: 
+!
+
+!
+! !RETURN VALUE:
+!
+      REAL*8           :: TotalTime  ! The current calculated time.
+
+!
+! !REMARKS:
+!  This is a private routine.
+! 
+! !REVISION HISTORY: 
+!  24 Jul 2015 - M. Yannetti - Initial version.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER        :: TIME_VALUE            ! For the function
+      INTEGER        :: TIME_CLOCK            ! For the function
+
+      ! First it is important to check if timers are enabled.
+!      IF (.not. DoTimers) THEN       ! Assume False for optimization.
+!        RETURN                       ! If no timers, do nothing.
+!      ENDIF
+
+      ! Let's call the intrinsic function...
+      CALL SYSTEM_CLOCK(TIME_VALUE, TIME_CLOCK)
+!      PRINT*, "TIME_VALUE: ", TIME_VALUE
+!      PRINT*, "TIME_CLOCK: ", TIME_CLOCK
+!      CALL FLUSH(6)
+      TotalTime = REAL(TIME_VALUE) / REAL(TIME_CLOCK)
+
+      END FUNCTION GEOS_Timer_TheTime
+
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+
+! !IROUTINE: GEOS_Timer_TimePrint
+!
+! !DESCRIPTION: Formats the printing of the seconds.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GEOS_Timer_TimePrint( InputSecs )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8,              INTENT(IN) :: InputSecs  ! Real value of seconds
+
+!
+! !OUTPUT PARAMETERS:
+!
+
+!
+! !REMARKS:
+!  This is a private subroutine.
+! 
+! !REVISION HISTORY: 
+!  24 Jul 2015 - M. Yannetti - Initial version.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8    :: SecsLeft    ! How many seconds are 'left'
+      INTEGER   :: IntSecs     ! Same as above, but integer
+      INTEGER   :: TotalMS    = 0  ! Total Milliseconds
+      INTEGER   :: TotalSecs  = 0  ! Total Seconds
+      INTEGER   :: TotalMins  = 0  ! Total Minutes
+      INTEGER   :: TotalHours = 0  ! Total Hours
+      CHARACTER(LEN=100) :: OutputStr ! Combined output string
+      CHARACTER(LEN=10)  :: TempStr   ! This is needed to remove whitespace.
+
+      ! First it is important to check if timers are enabled.
+      IF (.not. DoTimers) THEN       ! Assume False for optimization.
+        RETURN                       ! If no timers, do nothing.
+      ENDIF
+
+      ! Copy the value over
+      IntSecs = INT(InputSecs)
+      SecsLeft = InputSecs - REAL(IntSecs)
+
+      IF (IntSecs < 0) THEN ! Invalid time
+        PRINT*, "Invalid running time: negative value!"
+        RETURN
+      ELSEIF (SecsLeft .eq. 0) THEN ! Zero timer
+        PRINT*, "The timer did not run."
+        RETURN
+      ENDIF
+
+!      PRINT*, "INT: ", IntSecs
+!      PRINT*, "REAL: ", InputSecs
+!      PRINT*, "REMAIN: ", SecsLeft
+
+      ! Start the calculation loop
+      ! 1 hour = 60 minutes = 3600 seconds
+      TotalHours = FLOOR(REAL(IntSecs)/3600.0)
+      IntSecs = IntSecs - (TotalHours*3600)
+      TotalMins = FLOOR(REAL(IntSecs)/60.0)
+      IntSecs = IntSecs - (TotalMins*60)
+      TotalSecs = IntSecs
+      ! and the milliseconds
+      SecsLeft = SecsLeft * 1000
+      TotalMS = INT(SecsLeft)
+
+      ! This big ugly part is entirely to make the output look nicer.
+      OutputStr = "Total Running time: "
+
+      IF (TotalHours > 0) THEN
+       WRITE(TempStr, "(I10)") TotalHours
+       OutputStr = TRIM(OutputStr) // " " // TRIM(ADJUSTL(TempStr))
+       OutputStr = TRIM(OutputStr) // " hours, "
+      ENDIF
+      IF (TotalMins > 0) THEN
+       WRITE(TempStr, "(I10)") TotalMins
+       OutputStr = TRIM(OutputStr) // " " // TRIM(ADJUSTL(TempStr)) 
+       OutputStr = TRIM(OutputStr) // " minutes, "
+      ENDIF
+      IF (TotalSecs > 0) THEN
+       WRITE(TempStr, "(I10)") TotalSecs
+       OutputStr = TRIM(OutputStr) // " " // TRIM(ADJUSTL(TempStr)) 
+       OutputStr = TRIM(OutputStr) // " seconds, and "
+      ENDIF
+      WRITE(TempStr, "(I10)") TotalMS
+      OutputStr = TRIM(OutputStr) // " " //  TRIM(ADJUSTL(TempStr)) 
+      OutputStr = TRIM(OutputStr) // " ms."
+
+      PRINT*, TRIM(OutputStr)
+
+      END SUBROUTINE GEOS_Timer_TimePrint
+
 !EOC
       END MODULE GEOS_TIMERS

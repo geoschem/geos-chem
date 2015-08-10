@@ -42,6 +42,7 @@
       USE TRACERID_MOD          ! Flags for G-C tracers & chemical species
       USE TRACER_MOD            ! For error-checking the tracer array
       USE REGRID_A2A_MOD        ! For horizontal regridding
+      USE GEOS_TIMERS           ! For optional timing of components
       
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
@@ -450,6 +451,24 @@
       !            ***** I N I T I A L I Z A T I O N *****
       !=================================================================
 
+      ! Call timer initilization
+      CALL GEOS_Timer_Setup ( 1 )
+      RC = GEOS_Timer_Add ( "Initialization" )
+      RC = GEOS_Timer_Add ( "Timesteps" )
+      RC = GEOS_Timer_Add ( "HEMCO" )
+      RC = GEOS_Timer_Add ( "Chemistry" )
+      RC = GEOS_Timer_Add ( "Chemistry-Stratospheric" )
+      RC = GEOS_Timer_Add ( "Chemistry-Gas-Phase" )
+      RC = GEOS_Timer_Add ( "Chemistry-Sulfate" )
+      RC = GEOS_Timer_Add ( "Aerosols" )
+      RC = GEOS_Timer_Add ( "Transport" )
+      RC = GEOS_Timer_Add ( "Convection" )
+      RC = GEOS_Timer_Add ( "Emissions" )
+      RC = GEOS_Timer_Add ( "Deposition" )
+      RC = GEOS_Timer_Add ( "Radiation" )
+      RC = GEOS_Timer_Add ( "Diagnostics" )
+      RC = GEOS_Timer_Start ( "Initialization" )
+
       ! Read input file and call init routines from other modules
       CALL Read_Input_File( am_I_Root, Input_Opt, RC ) 
 
@@ -676,6 +695,7 @@
       ! 
       ! This call will also initialize the three built-in HEMCO 
       ! diagnostics (default, manual, restart).
+      RC = GEOS_Timer_Start ( "HEMCO" )
       CALL EMISSIONS_INIT( am_I_Root, Input_Opt,
      &                     State_Met, State_Chm, RC )
 
@@ -683,6 +703,7 @@
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP( 'Error in EMISSIONS_INIT!', 'main.F' )
       ENDIF
+      RC = GEOS_Timer_End ( "HEMCO" )
 
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
@@ -758,10 +779,15 @@
       CALL Diagnostics_Init( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
 #endif 
+
+      RC = GEOS_Timer_End ( "Initialization" )
+
  
       !=================================================================
       !      ***** 6 - H O U R   T I M E S T E P   L O O P  *****
       !=================================================================      
+ 
+      RC = GEOS_Timer_Start ( "Timesteps" )
 
       ! Echo message before first timestep
       WRITE( 6, '(a)' )
@@ -779,7 +805,6 @@
 
       ! Start a new outer loop
       DO 
-
       ! Compute time parameters at start of 6-h loop
       CALL SET_CURRENT_TIME
 
@@ -831,18 +856,19 @@
          !    and before using any of the HEMCO data list fields.
          !    (ckeller, 4/1/15)
          !==============================================================
+         RC = GEOS_Timer_Start ( "HEMCO" )
          CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, 
      &                       State_Chm, ITS_TIME_FOR_EMIS(), 1, RC )
 
          !==============================================================
          !   ***** W R I T E   D I A G N O S T I C   F I L E S *****
          !==============================================================
-
+         RC = GEOS_Timer_Start ( "Diagnostics" )
          ! Write HEMCO diagnostics as well as new GEOS-Chem diagnostics
          ! (the latter is currently only defined in development mode)
          ! (ckeller, 4/1/15). 
          CALL Diagnostics_Write( am_I_Root, Input_Opt, .FALSE., RC)
-
+         RC = GEOS_Timer_End ( "HEMCO" )
          ! Original diagnostics
          IF ( ITS_TIME_FOR_BPCH() ) THEN
             
@@ -885,8 +911,9 @@
 
                ! Force the output of a HEMCO restart file. 
                ! (ckeller, 4/1/15)
+               RC = GEOS_Timer_Start ( "HEMCO" )
                CALL Diagnostics_Write( am_I_Root, Input_Opt, .TRUE., RC)
-
+               RC = GEOS_Timer_End ( "HEMCO" )
                !### Debug
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### MAIN: a MAKE_RESTART_FILE' )
@@ -902,7 +929,7 @@
             CALL INITIALIZE( am_I_Root, Input_Opt, 2, RC )  ! Zero diag arrays
             CALL INITIALIZE( am_I_Root, Input_Opt, 3, RC )  ! Zero counters
          ENDIF
-
+         RC = GEOS_Timer_End ( "Diagnostics" )
          !=============================================================
          !   ***** W R I T E   MERCURY RESTART  F I L E *****
          !     ***** MUST be done after call to diag3 *****
@@ -1164,7 +1191,7 @@
          !              ***** T R A N S P O R T *****
          !==============================================================
          IF ( ITS_TIME_FOR_DYN() ) THEN
-
+            RC = GEOS_Timer_Start ( "Transport" )
             ! Output BC's
             ! Save boundary conditions (global grid) for future nested run
             IF ( LWINDO ) THEN
@@ -1225,6 +1252,7 @@
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 #endif
+            RC = GEOS_Timer_End ( "Transport" )
          ENDIF
 
          ! SDE 10/16/13: Set clock tracer if relevant
@@ -1246,7 +1274,7 @@
          ! (ckeller, 3/5/15)
          !--------------------------------------------------------------
          IF ( ITS_TIME_FOR_EMIS() ) THEN
-
+            RC = GEOS_Timer_Start ( "Emissions" )
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV,
      &                             State_Met%AD, STT ) ! v/v -> kg
@@ -1258,8 +1286,10 @@
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================
             IF ( LDRYD ) THEN
+               RC = GEOS_Timer_Start ( "Deposition" )
                CALL DO_DRYDEP( am_I_Root, Input_Opt, 
      &                         State_Met, State_Chm, RC )
+               RC = GEOS_Timer_End ( "Deposition" )
             ENDIF
 
             !===========================================================
@@ -1276,6 +1306,7 @@
             ! only calculates emissions. All data has been read to disk
             ! in phase 1 at the beginning of the time step. 
             ! (ckeller, 4/1/15)
+            RC = GEOS_Timer_Start ( "HEMCO" )
             CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, 
      &                          State_Chm, ITS_TIME_FOR_EMIS(), 2, RC )
 
@@ -1283,18 +1314,19 @@
             IF ( RC /= GIGC_SUCCESS ) THEN
                CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
             ENDIF
- 
+            RC = GEOS_Timer_End ( "HEMCO" )
             ! Unit conversion
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
      &                             State_Met%AD, STT ) ! kg -> v/v
+            RC = GEOS_Timer_End ( "Emissions" )
          ENDIF
 
          !-------------------------------
          ! Test for convection timestep
          !-------------------------------
          IF ( ITS_TIME_FOR_CONV() ) THEN
-
+            RC = GEOS_Timer_Start ( "Convection" )
             ! Increment the convection timestep
             CALL SET_CT_CONV( INCREMENT=.TRUE. )
 
@@ -1333,6 +1365,7 @@
                   CALL DEBUG_MSG( '### MAIN: a CONVECTION' )
                ENDIF
             ENDIF 
+            RC = GEOS_Timer_End ( "Convection" )
          ENDIF 
 
 
@@ -1374,6 +1407,7 @@
 !               ! This is to make sure that HEMCO can still be used to read
 !               ! non-emission data such as stratospheric Bry fields. 
 !               ! (ckeller, 1/12/15).
+!               RC = GEOS_Timer_Start ( "HEMCO" )
 !               CALL EMISSIONS_RUN ( am_I_Root, Input_Opt, 
 !     &                              State_Met, State_Chm, RC )
 !
@@ -1381,6 +1415,8 @@
 !               IF ( RC /= GIGC_SUCCESS ) THEN
 !                  CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
 !               ENDIF
+!
+!               RC = GEOS_Timer_End ( "HEMCO" )
 !
 !               !### Debug
 !               IF ( prtDebug ) THEN 
@@ -1419,6 +1455,8 @@
          !               ***** C H E M I S T R Y *****
          !============================================================== 
 
+         RC = GEOS_Timer_Start ( "Chemistry" )
+
          ! Get the overhead column O3 for use with FAST-J
          ! NOTE: Move to CHEMISTRY section.  This now has to come after
          ! the call to HEMCO emissions driver EMISSIONS_RUN. (bmy, 3/20/15)
@@ -1454,16 +1492,17 @@
          CALL CHECK_STT_025x03125( State_Chm, 'after chemistry' )
 #endif 
 
+         RC = GEOS_Timer_End ( "Chemistry" )
 
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
          IF ( LWETD .and. ITS_TIME_FOR_DYN() ) THEN
-
+            RC = GEOS_Timer_Start ( "Deposition" )
             ! Do wet deposition
             CALL DO_WETDEP
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-            
+            RC = GEOS_Timer_End ( "Deposition" )
          ENDIF
 
          !==============================================================
@@ -1484,7 +1523,7 @@
          !==============================================================
          IF ( Input_opt%LRAD ) THEN 
             IF ( ITS_TIME_FOR_RT() ) THEN
-               
+               RC = GEOS_Timer_Start ( "Radiation" )
                ! Splash page
                IF ( am_I_Root .and. FIRST_RT ) THEN
                   WRITE( 6, '(a)' ) REPEAT( '#', 79 )
@@ -1532,7 +1571,7 @@
                IF ( prtDebug ) THEN 
                   CALL DEBUG_MSG( '### MAIN: a DO_RRTMG_RAD_TRANSFER' )
                ENDIF
-
+             RC = GEOS_Timer_End ( "Radiation" )
             ENDIF
          ENDIF
 #endif
@@ -1543,7 +1582,7 @@
          ! Moved before diagnostics to count the last timestep as done.
          ! Need to save timestamps for filenames.
          ! (ccc, 5/13/09)
- 
+         RC = GEOS_Timer_Start ( "Diagnostics" )
          ! Plane following diagnostic
          IF ( ND40 > 0 .and. DO_DIAG_WRITE ) THEN 
          
@@ -1584,7 +1623,6 @@
          !       ***** A R C H I V E   D I A G N O S T I C S *****
          !==============================================================
          IF ( ITS_TIME_FOR_DIAG() ) THEN
-
             !### Debug
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: b DIAGNOSTICS' )
 
@@ -1697,7 +1735,7 @@
 
             CALL CHECK_STT( State_Chm, 'End of Dynamic Loop' )
          ENDIF
-          
+         RC = GEOS_Timer_End ( "Diagnostics" )
       ENDDO
 
       !=================================================================
@@ -1717,7 +1755,6 @@
       !         ***** C L E A N U P   A N D   Q U I T *****
       !=================================================================
  9999 CONTINUE
-
       ! Remove all files from temporary directory 
       IF ( LUNZIP ) THEN
          
@@ -1751,6 +1788,8 @@
       IF ( LSTDRUN ) THEN 
          CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.FALSE. )
       ENDIF
+
+      RC = GEOS_Timer_End ( "Timesteps" )
 
       ! Close all files
       CALL CLOSE_FILES
@@ -1796,6 +1835,8 @@
 #endif
 
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLEANUP' )
+
+      RC = GEOS_Timer_PrintAll ()
 
       ! Print ending time of simulation
       CALL DISPLAY_END_TIME

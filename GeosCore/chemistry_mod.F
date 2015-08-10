@@ -16,6 +16,7 @@
 ! !USES:
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE GEOS_TIMERS      ! For optional timing of components
 
       IMPLICIT NONE
       PRIVATE
@@ -338,45 +339,48 @@
             CALL READ_PSC_FILE( am_I_Root, RC )
             IF ( RC /= GIGC_SUCCESS ) RETURN
 #endif
-            
+            RC = GEOS_Timer_Start ( "Chemistry-Gas-Phase" )            
             ! Call gas-phase chemistry
             CALL CHEMDR
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            RC = GEOS_Timer_End ( "Chemistry-Gas-Phase" )
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 
+              RC = GEOS_Timer_Start ( "Chemistry-Stratospheric" )
                CALL DO_STRAT_CHEM
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+              RC = GEOS_Timer_End ( "Chemistry-Stratospheric" )
             ENDIF
-
+            RC = GEOS_Timer_Start( "Aerosols" )
             ! Do seasalt aerosol chemistry
             IF ( LSSALT ) THEN
                CALL CHEMSEASALT
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
-
 #if defined( UCX )
             ! Recalculate PSC properties
             CALL CALC_STRAT_AER
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #endif
+            RC = GEOS_Timer_End( "Aerosols" )
 
             ! Also do sulfate chemistry
             IF ( LSULF ) THEN
-
+               RC = GEOS_Timer_Start ( "Chemistry-Sulfate" )
                ! Do sulfate chemistry
                CALL CHEMSULFATE
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-
+               RC = GEOS_Timer_End ( "Chemistry-Sulfate" )
                ! Do aerosol thermodynamic equilibrium
                IF ( LSSALT ) THEN
-
+                RC = GEOS_Timer_Start( "Aerosols" )
 #if   !defined( NO_ISORROPIA )
                   ! ISOROPIA takes Na+, Cl- into account
                   CALL DO_ISOROPIAII
      &               ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #endif
-
+                RC = GEOS_Timer_End( "Aerosols" )
                ELSE
 
                   ! RPMARES does not take Na+, Cl- into account
@@ -386,7 +390,7 @@
                ENDIF
 
             ENDIF
-
+            RC = GEOS_Timer_Start( "Aerosols" )
             ! Do carbonaceous aerosol chemistry
             IF ( LCARB ) THEN
                CALL CHEMCARBON
@@ -407,7 +411,7 @@
      &             ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 #endif
-
+            RC = GEOS_Timer_End( "Aerosols" )
             ! ND43 chemical production
             CALL DIAGOH()
 
@@ -424,7 +428,7 @@
          ! Offline aerosol simulation
          !---------------------------------
          ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
-
+            RC = GEOS_Timer_Start( "Aerosols" )
             ! Define loop index and other SMVGEAR arrays
             ! N_TROP, the # of trop boxes, is returned
             CALL AEROSOL_RURALBOX( N_TROP,    am_I_Root, 
@@ -507,7 +511,7 @@
      &             ( am_I_Root, Input_Opt,  State_Met, 
      &               SOILDUST,  WAVELENGTH, RC         )
             ENDIF
- 
+            RC = GEOS_Timer_End( "Aerosols" )
          !---------------------------------
          ! Rn-Pb-Be
          !---------------------------------                 
