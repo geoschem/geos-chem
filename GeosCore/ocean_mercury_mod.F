@@ -540,7 +540,7 @@
         !       (hma, 20120104)
         ! 0..5x0.666 file is regridded from 4x5 file, yzh, 12/15/12
 #if defined( GRID4x5 ) || defined( GRID05x0666 )
-        BULK_CONC(I,J,L) = 1e+9_fpp * ( BULK_CONC(I,J,L) *
+        BULK_CONC(I,J,L) = ( BULK_CONC(I,J,L) *
      &                     State_Met%AIRDEN(I,J,L)  )
 #elif defined( GRID2x25 )
         BULK_CONC(I,J,L) = ( BULK_CONC(I,J,L) * State_Met%AIRDEN(I,J,L))
