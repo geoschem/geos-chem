@@ -182,6 +182,7 @@
 !                              passing State_Met array slice
 !  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
+!  10 Aug 2015 - E. Lundgren - Incoming tracer units are now kg/kg dry air
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -195,8 +196,8 @@
       ! Pointers
       ! Define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. Units are 
-      ! initially v/v dry air but will be converted to
-      ! kg/kg total air for convection (ewl, 23/15)
+      ! initially kg/kg dry air but will be converted to
+      ! kg/kg total air for convection (ewl, 8/10/15)
       REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
@@ -251,10 +252,8 @@
       ! Copy values from Input_Opt
       N_TRACERS         = Input_Opt%N_TRACERS
 
-      ! Convert State_Chm%Tracers from [v/v dry air] to 
-      ! [kg/kg total air] prior to convection (ewl, 6/23/15)
-      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
-     &                               Input_Opt, State_Chm, RC)
+      ! Convert State_Chm%Tracers from [kg/kg dry air] to 
+      ! [kg/kg total air] prior to convection (ewl, 8/10/15)
       CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
      &                                   State_Met, State_Chm, RC )
 
@@ -506,11 +505,9 @@
 #endif
 
       ! Convert tracer concentration from kg/kg total air to 
-      ! mol/mol dry air after convection (ewl, 6/23/15)
+      ! kg/kg dry air after convection (ewl, 8/10/15)
       CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
      &                                   State_Met, State_Chm, RC ) 
-      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
-     &                               Input_Opt, State_Chm, RC)
 
       END SUBROUTINE DO_CONVECTION
 !EOC
