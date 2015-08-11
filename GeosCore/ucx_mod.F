@@ -889,8 +889,8 @@
      &                     C3090S, C0030S, C0030N, C3090N,
      &                     am_I_Root, Input_Opt )
 
-         ! Convert from [vv] to [kg CH4/mol air]
-         ! (ewl, 3/16/15) actually [vv] to [kg CH4/kg air]???
+         ! Convert from [vv] to [kg CH4/kg air]
+         ! (ewl, 3/16/15) 
          C3090S = C3090S / TCVV(IDTCH4)
          C0030S = C0030S / TCVV(IDTCH4)
          C0030N = C0030N / TCVV(IDTCH4)
@@ -906,40 +906,16 @@
             ! Grid-box latitude index
             YLAT  = GET_YMID( I,J,L )
 
-! Remove conversion of mixing ratio to kg  (ewl, 3/16/15)
-!            ! Set CH4 according to latitude
-!            IF ( YLAT < -30e+0_fp ) THEN
-!               STT(I,J,L,IDTCH4) = C3090S * State_Met%AD(I,J,L)
-!            ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
-!               STT(I,J,L,IDTCH4) = C0030S * State_Met%AD(I,J,L)
-!            ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
-!               STT(I,J,L,IDTCH4) = C0030N * State_Met%AD(I,J,L)
-!            ELSE
-!               STT(I,J,L,IDTCH4) = C3090N * State_Met%AD(I,J,L)
-!            ENDIF
-
             ! Set CH4 according to latitude
-            ! STT in [kg/kg] (ewl, 3/16/15)
+            ! STT now in [kg/kg] (ewl, 3/16/15)
             IF ( YLAT < -30e+0_fp ) THEN
-! old [kg]
-               STT(I,J,L,IDTCH4) = C3090S * State_Met%AD(I,J,L)
-! new [kg/kg]
-!               STT(I,J,L,IDTCH4) = C3090S
+               STT(I,J,L,IDTCH4) = C3090S
             ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
-! old [kg]
-               STT(I,J,L,IDTCH4) = C0030S * State_Met%AD(I,J,L)
-! new [kg/kg]
-!               STT(I,J,L,IDTCH4) = C0030S
+               STT(I,J,L,IDTCH4) = C0030S
             ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
-! old [kg]
-               STT(I,J,L,IDTCH4) = C0030N * State_Met%AD(I,J,L)
-! new [kg/kg]
-!               STT(I,J,L,IDTCH4) = C0030N
+               STT(I,J,L,IDTCH4) = C0030N
             ELSE
-! old [kg]
-               STT(I,J,L,IDTCH4) = C3090N * State_Met%AD(I,J,L)
-! new [kg/kg]
-!               STT(I,J,L,IDTCH4) = C3090N
+               STT(I,J,L,IDTCH4) = C3090N
             ENDIF
          ENDDO
          ENDDO
@@ -1980,14 +1956,10 @@
                ENDIF
                ! Send to STT (currently kg/box)
                IF (SET_CELL) THEN
-!                  ! Convert from [ppbv] to [kg]
-! old [kg]
-                  TRACMASS = SCALEFAC * TRACMR * State_Met%AD(I,J,L) /
-     &                       TCVV(TRAC_IDX)
-! new [kg/kg]]
-!                  ! Convert from [ppbv] to [kg/kg] (ewl, 3/19/15)
-!                  TRACMASS = SCALEFAC * TRACMR /
-!     &                       TCVV(TRAC_IDX)
+
+                  ! Convert from [ppbv] to [kg/kg] (ewl, 3/19/15)
+                  TRACMASS = SCALEFAC * TRACMR / TCVV(TRAC_IDX)
+
                   IF (TRAC_ADD) THEN
                      STT(I,J,L,TRAC_IDX) = STT(I,J,L,TRAC_IDX)+TRACMASS
                   ELSE
@@ -5516,6 +5488,7 @@
 !  29 Apr 2015 - E. Lundgren   - Replace RH calculation method with Nordquist,
 !                                1973 and call AirQnt if moisture vars
 !                                are updated using H2O tracer concentration
+!  10 Aug 2015 - E. Lundgren   - Tracer units are now kg/kg dry air
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5561,7 +5534,7 @@
       ! Copy fields from INPUT_OPT
       LACTIVEH2O = Input_Opt%LACTIVEH2O
 
-      ! Initialize GEOS-Chem tracer array [kg/kg]
+      ! Initialize GEOS-Chem tracer array [kg/kg dry air]
       STT => State_Chm%Tracers
 
 !$OMP PARALLEL DO
@@ -5576,11 +5549,24 @@
      &                 SETSTRAT .or. ( .not. LACTIVEH2O )  )
 
          IF ( READ_SPHU ) THEN
+
+! old (ewl):
             STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
      &                          State_Met%ADMOIST(I,J,L)
+
+             ! Tracer units are [kg H2O / kg dry air] while specific
+             ! humidity is [kg H2O / kg total air] (ewl, 8/10/15)
+!             STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L)
+!     &                           / ( 1.e+3_fp - State_Met%SPHU(I,J,L) )
+
          ELSE
 
-            ! Calculate specific humidity [g/kg] from transported H2O
+            ! Calculate specific humidity [g/kg total air] from 
+            ! transported H2O [kg/kg dry air] (ewl, 8/10/15)
+!            SPHU = STT(I,J,L,IDTH2O) * 1.e+3_fp / ( 1.e+0_fp
+!     &              + STT(I,J,L,IDTH2O) )
+
+! old (ewl):
             ! Use moist air mass for calculating specific humidity
             SPHU = STT(I,J,L,IDTH2O) * 1.e+3_fp 
      &               / State_Met%ADMOIST(I,J,L)
