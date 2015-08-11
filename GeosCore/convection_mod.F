@@ -182,6 +182,7 @@
 !                              passing State_Met array slice
 !  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
+!  11 Aug 2015 - R. Yantosca - Added support for MERRA2 data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -202,7 +203,7 @@
       !=================================================================
       ! MERRA or GEOS-FP met fields definitions
       !=================================================================
-#if defined( MERRA ) || defined( GEOS_FP )
+#if defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       
       ! Scalars          
       INTEGER           :: I, J, L, N, NN, TS_DYN
@@ -322,7 +323,7 @@
       CALL NFCLDMX( am_I_Root, Input_Opt, State_Met, 
      &              State_Chm, RC )
 
-#elif defined( MERRA ) || defined( GEOS_FP )
+#elif defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
       !=================================================================
       ! MERRA or GEOS-FP met fields

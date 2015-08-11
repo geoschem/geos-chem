@@ -211,6 +211,7 @@
 !                              EXTERNAL_GRID.
 !  09 Apr 2015 - R. Yantosca - Bug fixes: Add missing vars to !$OMP+PRIVATE
 !                              clause and error check for JLOOP > 0
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as for GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -379,13 +380,13 @@
             ! Directly use OPTDEPTH = TAUCLD * CLDTOT
             !===========================================================
 
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
             ! Column cloud fraction (not less than zero)
             CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
             WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
                
-            ! NOTE: For GEOS-5, GEOS-FP, and MERRA met fields, the optical
+            ! For GEOS-5, GEOS-FP, MERRA, and MERRA2 met fields, the optical
             ! depth is the in-cloud optical depth.  At this point it has 
             ! NOT been multiplied by cloud fraction yet.  Therefore, we can
             ! just apply the ! we can just apply the linear overlap formula 
@@ -413,7 +414,7 @@
             CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
             WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
                
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
             ! NOTE: For GEOS-5, GEOS-FP, and MERRA met fields, the optical
             ! depth is the in-cloud optical depth.  At this point it has 

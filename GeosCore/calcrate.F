@@ -178,6 +178,7 @@
 !                              already applied in vdiff_mod.F90
 !  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  12 Dec 2014 - M. Yannetti - Updated HEMCO variable Dep from REAL*8 to REAL(hp)
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -446,7 +447,7 @@
             ! Vertical index
             IZ                = IZSAVE(JLOOP)
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
             
             ! GEOS-5 / MERRA / GEOS-5.7 have QI and QL defined as met fields
             ! so use these to define the QICE, QLIQ arrays.  Also, QICE and
@@ -2741,7 +2742,7 @@ c new OH+CO rate from JPL2006.
       ! ----------------------------------------------
 
       ! continental or marine clouds only...
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       IF ( (FRLAND (I,J) > 0) .or. (FROCEAN(I,J) > 0) ) THEN
 #else
       ! Above line is to skip over land ice (Greenland and Antartica). This
@@ -2818,7 +2819,7 @@ c new OH+CO rate from JPL2006.
       !     AREA =  -----------------
       !              AIRVOL x RADIUS      (in cm)
       ! ----------------------------------------------
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       IF ( FRLAND(I,J) > FROCEAN(I,J) ) THEN
 #else
       IF ( IS_LAND(I,J, State_Met) ) THEN
@@ -2836,7 +2837,7 @@ c new OH+CO rate from JPL2006.
       XAIRM3 = XAIRM3 * (100.e+0_fp)**3
 
       ! get the volume of cloud [cm3]
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       ! QL is [g/g]
       Vc = CLDF(I,J,L) * QL * AD(I,J,L) / dens_h2o
 #else
