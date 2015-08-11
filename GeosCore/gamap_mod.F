@@ -1993,6 +1993,21 @@
                   FNAME(T,03) = 'Reactive gaseous mercury'
                   UNIT (T,03) = 'pptv'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
+               CASE( 11 )
+                  NAME (T,03) = 'Br_pol'
+                  FNAME(T,03) = 'Polar Br concentration'
+                  UNIT (T,03) = 'pptv'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 12 )
+                  NAME (T,03) = 'BrO_pol' 
+                  FNAME(T,03) = 'Polar BrO concentration'
+                  UNIT (T,03) = 'pptv'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 13 )
+                  NAME (T,03) = 'O3_pol'
+                  FNAME(T,03) = 'Polar O3 concentration'
+                  UNIT (T,03) = 'ppbv'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
                CASE DEFAULT
                   ! Nothing
             END SELECT

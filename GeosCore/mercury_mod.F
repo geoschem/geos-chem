@@ -149,6 +149,12 @@
 !       including oxidation by bromine atoms, AC&P, 10, 12,037-12,057.
 !  (11) Parrella, J. et al. (2012), Tropospheric bromine chemistry: 
 !       implications for present and pre-industrial ozone and mercury, ACP.
+!  (12) Pohler, D. et al. (2010), Observation of halogen species in the Amundsen
+!       Gulf, Arctic, by active long-path differential optical absorption
+!       spectroscopy, Proc. Natl. Acad. Sci, 107(15): 6528-6587.
+!  (13) Prados-Roman, C. et al. (2011), Airborne DOAS limb measurements of 
+!       tropospheric trace gas profiles: case studies on the profile retrieval
+!       of O4 and BrO, Atmos. Meas. Tech., 4: 1241-1260.
 !
 ! !REVISION HISTORY:
 !  (1 ) Updated for reduction rxn and online Hg0 ocean flux.  Now use 
@@ -173,6 +179,8 @@
 !  03 Jun 2013 - C. Holmes   - Extensively rewritten for simplicity
 !  03 Jun 2013 - R. Yantosca - Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  10 Aug 2015 - J. Fisher   - Updated treatment of polar BrO chemistry
+!                              (orig. 29/11/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -486,6 +494,7 @@
       REAL*8          :: KMAX
       REAL*8          :: A(9,9), Xold(9), Xnew(9)
       REAL*8          :: s1(9), s2(9), s3(9), s4(9)
+      LOGICAL, SAVE   :: FIRSTTIME = .TRUE.
 
       ! For values from Input_Opt
       LOGICAL         :: LDYNOCEAN
@@ -568,6 +577,16 @@
       STT      => State_Chm%Tracers
       T        => State_Met%T
 
+! Warning for non-MERRA
+      IF ( FIRSTTIME ) THEN
+#if !defined( MERRA ) && !defined( GEOS_FP )
+         WRITE( 6, * ) 'WARNING: Polar BrO parameterization '//
+     &                 'designed for use with incident shortwave'
+         WRITE( 6, * ) 'radiation. Only net shortwave radiation '//
+     &                 'available.'
+#endif
+         FIRSTTIME = .FALSE.
+      ENDIF
       !=================================================================
       ! Read monthly mean Br, OH, O3, and J_NO2 fields
       !=================================================================
@@ -6161,10 +6180,11 @@
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : GET_OBK
       USE DAO_MOD,            ONLY : IS_WATER
+      USE DIAG03_MOD,         ONLY : AD03_Br,   LD03,     ND03
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_BR_MOD,      ONLY : BR_MERGE,  BR_TROP
-      USE GLOBAL_BR_MOD,      ONLY : BR_STRAT, J_BRO
+      USE GLOBAL_BR_MOD,      ONLY : BR_STRAT,  J_BRO
       USE GLOBAL_BR_MOD,      ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
       USE GRID_MOD,           ONLY : GET_YMID
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
@@ -6193,6 +6213,13 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  10 Aug 2015 - J. Fisher - implement variable polar BrO concentrations based
+!                            on temperature and incoming solar radiation
+!  10 Aug 2015 - J. Fisher - only apply diurnal cycle to BrO from pTOMCAT
+!                            daily means, NOT to polar BrO which represents
+!                            instantaneous values
+!  10 Aug 2015 - J. Fisher - add upper ice threshold to MERRA conditions for
+!                            polar BrO release
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6221,7 +6248,15 @@
       ! Reduce concentration of BrO in Arctic during depletion events to 5 pptv
       ! Ref low end of uncertainty range in Holmes et al. 2010
       ! Ref low [BrO] observed Neuman et al 2010
-      REAL*8, PARAMETER   :: BRO_POLAR=5D0
+      !REAL*8, PARAMETER   :: BRO_POLAR=5D0
+
+      ! Make polar BrO variable rather than fixed, varying as a factor of
+      ! solar radiation and temperatures. (jaf, 11/29/11)
+      REAL*8             :: BRO_POLAR, BR_POLAR, O3_POLAR, SWRAD
+      LOGICAL            :: IS_MOSTLY_ICE
+      ! Assume 5 ppb O3 when BrO present. Pohler et al. (2010) shows 5 ppb O3 can 
+      ! exist for 3 ppt < [BrO] < 40 ppt. (jaf, 11/29/11)
+      REAL*8, PARAMETER  :: O3_POLAR_PPB = 5D0
 
       ! Parameters for calculating Br/BrO photostationary state
       ! BrO J value, /s 
@@ -6240,6 +6275,12 @@
       ! Get monthly-mean Br from bromocarbon and halon sources 
       !----------------------------------------------------------------
     
+      ! Zero polar BrOx, O3 concentrations (jaf, 11/29/11)
+      BRO_POLAR     = 0d0
+      BR_POLAR      = 0d0
+      O3_POLAR      = 0d0
+      SWRAD         = 0d0
+
       BR_PPTV  = BR_MERGE(I,J,L)
       BRO_PPTV = BRO_MERGE(I,J,L)
 
@@ -6275,40 +6316,42 @@
 
       ENDIF            
 
+! Now moved to after imposed diurnal cycle, updated parameters (J. Fisher)
       !----------------------------------------------------------------
-      ! Add Br in polar boundary layer
+      ! OLD VERSION: Add Br in polar boundary layer
       ! 
       ! Bromine in the polar boundary layer requires cold temperatures
       ! (below 268K), sunlight and contact between open water and sea ice
       ! Assuming these conditions are met, we assume a fixed 5-10pptv BrO 
       ! At the moment, we only have Br north of 60N, i.e. not Hudson's Bay
       !----------------------------------------------------------------
-
-      ! 1-D grid box index for SUNCOS
-      JLOOP = ( (J-1) * IIPAR ) + I
-
-      IF ( ( LPOLARBR ) .AND. ( FPBL >  0d0   ) .AND.
-     &     ( State_Met%SUNCOS(I,J)   >  0D0   ) .AND. 
-     &     ( State_Met%T(I,J,1)      <= 268D0 ) .AND.
-     &     ( State_Met%LWI(I,J)      == 2     ) .AND. 
-     &       GET_OBK(I,J,State_Met)  >  0D0   ) THEN
-
-         IF ( ( (GET_YMID(I,J,L) > 60D0) .AND. 
-     &          (GET_MONTH() >= 3) .AND. (GET_MONTH() <= 5)  ) .OR.
-     &        ( (GET_YMID(I,J,L) < -50D0) .AND. 
-     &          (GET_MONTH() >= 9) .AND. (GET_MONTH() <= 11)  ) ) THEN
-
-            ! Br concentration due to bromine explosion, pptv
-            ! Assume [O3] is 2ppb during event
-            BR_MBL = BRO_POLAR *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
-     &                          ( K_BR_O3 * 5D10 ) * FPBL
-        
-            BR_PPTV  = BR_PPTV  + BR_MBL
-            BrO_PPTV = BrO_PPTV + BRO_POLAR * FPBL
-
-         ENDIF
-
-      ENDIF
+!
+!      ! 1-D grid box index for SUNCOS
+!      JLOOP = ( (J-1) * IIPAR ) + I
+!
+!      IF ( ( LPOLARBR ) .AND. ( FPBL >  0d0   ) .AND.
+!     &     ( State_Met%SUNCOS(I,J)   >  0D0   ) .AND. 
+!     &     ( State_Met%T(I,J,1)      <= 268D0 ) .AND.
+!     &     ( State_Met%LWI(I,J)      == 2     ) .AND. 
+!     &       GET_OBK(I,J,State_Met)  >  0D0   ) THEN
+!
+!         IF ( ( (GET_YMID(I,J,L) > 60D0) .AND. 
+!     &          (GET_MONTH() >= 3) .AND. (GET_MONTH() <= 5)  ) .OR.
+!     &        ( (GET_YMID(I,J,L) < -50D0) .AND. 
+!     &          (GET_MONTH() >= 9) .AND. (GET_MONTH() <= 11)  ) ) THEN
+!
+!            ! Br concentration due to bromine explosion, pptv
+!            ! Assume [O3] is 2ppb during event
+!            BR_MBL = BRO_POLAR *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
+!     &                          ( K_BR_O3 * 5D10 ) * FPBL
+!        
+!            BR_PPTV  = BR_PPTV  + BR_MBL
+!            BrO_PPTV = BrO_PPTV + BRO_POLAR * FPBL
+!
+!         ENDIF
+!
+!      ENDIF
+      !----------------------------------------------------------------
 
       !----------------------------------------------------------------
       ! Impose a diurnal cycle
@@ -6364,6 +6407,84 @@
 
       ENDIF
 
+      ! Do this AFTER application of the diurnal cycle, since polar
+      ! bromine has implicit diurnal cycle driven by solar radiation
+      ! and represents instantaneous concentrations (jaf, 12/16/11)
+      !----------------------------------------------------------------
+      ! Add Br in polar boundary layer (jaf, 11/29/11)
+      ! 
+      ! Bromine in the polar boundary layer requires the following
+      ! criteria be met:
+      ! - In the PBL
+      ! - Downward shortwave radiation > 100 W/m2 (Pohler et al. 2010)
+      ! - Sea ice exists (>50% native boxes have >10% ice cover)
+      ! - Breaks in sea ice exist (<100% native boxes have >90% ice cover) 
+      ! - Month is between Feb & June (Arctic) or Aug & Dec (Antarctic)
+      !   based on http://bro.aeronomie.be/level3_monthly.php?cmd=map
+      ! - Temperature is less than 0C
+      !
+      ! If these criteria are met, BrO is a function of ambient temp.
+      ! with [BrO] based on findings from Pohler et al. (2010) and
+      ! Prados-Roman et al. (2011). O3 used to convert BrO to Br is 5
+      ! ppb, based on data from Pohler et al. (2010).
+      !----------------------------------------------------------------
+! KLUDGE: can't get SWGDN in State_Met; add this later
+#if   defined( MERRA ) || defined( GEOS_FP)
+!      SWRAD         = State_Met%SWGDN(I,J)
+      SWRAD = State_Met%RADSWG(I,J)
+! END KLUDGE
+      IS_MOSTLY_ICE = ( State_Met%SEAICE00(I,J) <= 0.5 .AND.
+     &                  State_Met%SEAICE90(I,J) < 1d0 )
+#else
+      SWRAD = State_Met%RADSWG(I,J)
+      IS_MOSTLY_ICE = ( State_Met%LWI(I,J) == 2 )
+#endif
+
+      IF ( (LPOLARBR) .AND. (FPBL > 0d0) .AND. (IS_MOSTLY_ICE) .AND.
+     &     (SWRAD > 100D0) .AND. (State_Met%TS(I,J) <= 273D0) ) THEN 
+
+         IF ( ((GET_YMID(I,J,L) > 0D0) .AND.
+     &          (GET_MONTH() >= 2) .AND. (GET_MONTH() <= 6)) .OR.
+     &        ((GET_YMID(I,J,L) < 0D0) .AND.
+     &          (GET_MONTH() >= 8) .AND. (GET_MONTH() <= 12)) ) THEN
+
+            ! [BrO] is a linear function of temperature derived based on
+            ! results from Pohler et al. (2010), Prados-Roman et al. (2011)
+            ! and ability to match Hg0 seasonal cycle at Alert. (jaf,
+            ! 12/24/11)
+            IF ( State_Met%TS(I,J) <= 253D0 ) THEN 
+               BRO_POLAR = 20d0 
+            ELSE 
+               BRO_POLAR = -1d0 * ( State_Met%TS(I,J) - 253d0 ) + 20d0
+            ENDIF
+
+            ! Convert O3 to molec/cm3
+            O3_POLAR = O3_POLAR_PPB * 1d-9 * ( 6.022d23 / 28.97d-3 ) *
+     &                 State_Met%AD(I,J,L) / BOXVL(I,J,L,State_Met)
+
+            ! Compute polar Br, BrO concentrations in pptv
+            BrO_POLAR = BrO_POLAR * FPBL
+            Br_POLAR  = BRO_POLAR * ( J_BRO(I,J,L) + K_BRO_NO * C_NO ) /
+     &                              ( K_BR_O3 * O3_POLAR )
+         
+            BR_PPTV  = BR_PPTV  + Br_POLAR
+            BrO_PPTV = BrO_PPTV + BrO_POLAR
+
+            !==============================================================
+            ! ND03 diagnostic: Polar Bromine [pptv]
+            !==============================================================
+            IF ( ND03 > 0 .AND. L <= LD03 ) THEN 
+
+                  AD03_Br(I,J,L,3) = AD03_Br(I,J,L,3) + BR_POLAR
+                  AD03_Br(I,J,L,4) = AD03_Br(I,J,L,4) + BRO_POLAR
+                  AD03_Br(I,J,L,5) = AD03_Br(I,J,L,5) + O3_POLAR_PPB
+
+            ENDIF ! ND03
+
+         ENDIF ! Month
+
+      ENDIF ! Polar BrO criteria
+      !----------------------------------------------------------------
 
       ! Convert pptv mixing ratio -> molec/cm3
       BR_MOLEC_CM3  = BR_PPTV             * 1D-12      *

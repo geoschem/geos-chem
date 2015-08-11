@@ -884,7 +884,7 @@
          SWRAD  = 0d0
 
 ! KLUDGE: can't get SWGDN in State_Met; add this later
-!#if   defined( MERRA )
+!#if   defined( MERRA ) || defined( GEOS_FP )
 !         SWRAD = State_Met%SWGDN(I,J)
 !#else
          SWRAD = State_Met%RADSWG(I,J)

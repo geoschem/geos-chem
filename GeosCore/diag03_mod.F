@@ -21,7 +21,7 @@
 ! !DEFINED PARAMETERS:
 !
       INTEGER, PUBLIC, PARAMETER   :: PD03    = 19         ! Dim of AD03 array
-      INTEGER, PUBLIC, PARAMETER   :: PD03_PL = 10         ! # of PL-HG2 diags
+      INTEGER, PUBLIC, PARAMETER   :: PD03_PL = 13         ! # of PL-HG2 diags
 
 !
 ! !PUBLIC DATA MEMBERS:
@@ -82,6 +82,7 @@
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  07 Feb 2012 - E. Corbitt  - Added new diagnostics for tagged simulation.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  10 Aug 2015 - J. Fisher   - Add polar Br/BrO/O3 diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -207,11 +208,15 @@
 !  ( 2) PL-HG2-$ : Production of Hg2 from rxn w/OH : kg       : 1
 !  ( 3) PL-HG2-$ : Production of Hg2 from rxn w/O3 : kg       : 1
 !  ( 4) PL-HG2-$ : Loss of Hg2 from rxn w/ seasalt : kg       : 1 
-!  ( 5) PL-HG2-$ : Prod of Hg2 form rxn w/ Br      : kg       : 1
-!  ( 6) PL-HG2-$ : Br concentration                : molec/cm3: 1
+!  ( 5) PL-HG2-$ : Loss of Hg2 from rxn w/ seasalt : 1/s      : 1 
+!  ( 6) PL-HG2-$ : Prod of Hg2 form rxn w/ Br      : kg       : 1
 !  ( 7) PL-HG2-$ : Br concentration                : molec/cm3: 1
-!  ( 8) PL-HG2-$ : Reactive gaseous mercury        : pptv     : 1
-!  ( 9) PL-HG2-$ : Reactice particule mercury      : pptv     : 1
+!  ( 8) PL-HG2-$ : BrO concentration               : molec/cm3: 1
+!  ( 9) PL-HG2-$ : Reactive gaseous mercury        : pptv     : 1
+!  (10) PL-HG2-$ : Reactive particule mercury      : pptv     : 1
+!  (11) PL-HG2-$ : Polar Br concentration          : pptv     : 1
+!  (12) PL-HG2-$ : Polar BrO concentration         : pptv     : 1
+!  (13) PL-HG2-$ : Polar O3 concentration          : ppbv     : 1
 !
 !  NOTES:
 ! 
@@ -716,7 +721,7 @@
 
       ENDDO 
 
-      ELSE
+      ELSE ! Total Hg simulation
 
       !=================================================================
       ! Write data to the bpch file
@@ -868,18 +873,6 @@
             NN                = N
             ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,2) / NCHEMSTEP
 
-!This is a duplicate of N==7, must be a bug (H Amos, 26 Oct 2011)
-!         ELSE IF ( N == 9 ) THEN
-!
-!            !--------------------------------
-!            ! #8: Br concentration
-!            !--------------------------------
-!            CATEGORY          = 'PL-HG2-$'
-!            UNIT              = 'molec/cm3'
-!            LMAX              = LD03
-!            NN                = N
-!            ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,2) / NCHEMSTEP
-
          ELSE IF ( N == 9 ) THEN
             !--------------------------------
             ! #9: Reactive particulate mercury
@@ -900,6 +893,36 @@
             NN                = N
             ARRAY(:,:,1:LMAX) = AD03_RGM(:,:,1:LMAX) / NDIAGSTEP 
 
+         ELSE IF ( N == 11 ) THEN
+            !--------------------------------
+            ! #13: Polar Br concentration    
+            !--------------------------------
+            CATEGORY          = 'PL-HG2-$'
+            UNIT              = 'pptv'
+            LMAX              = LD03
+            NN                = N
+            ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,3) / NCHEMSTEP
+            
+         ELSE IF ( N == 12 ) THEN
+            !--------------------------------
+            ! #14: Polar BrO concentration   
+            !--------------------------------
+            CATEGORY          = 'PL-HG2-$'
+            UNIT              = 'pptv'
+            LMAX              = LD03
+            NN                = N
+            ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,4) / NCHEMSTEP
+            
+         ELSE IF ( N == 13 ) THEN
+            !--------------------------------
+            ! #15: Polar O3 concentration    
+            !--------------------------------
+            CATEGORY          = 'PL-HG2-$'
+            UNIT              = 'ppbv'
+            LMAX              = LD03
+            NN                = N
+            ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,5) / NCHEMSTEP
+ 
          ELSE
 
             !--------------------------------
@@ -1026,7 +1049,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_SSR' )
 !-----------------------------------------------------------------
 
-      ALLOCATE( AD03_Br( IIPAR, JJPAR, LLPAR, 2 ), STAT=AS )
+      ALLOCATE( AD03_Br( IIPAR, JJPAR, LLPAR, 5 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_BR' )
       !End CDH
 
