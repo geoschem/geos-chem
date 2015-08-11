@@ -1754,12 +1754,8 @@
                      ! Chemistry State object (mpayer, 12/6/12)
                      STT => State_Chm%Tracers
                      
-                     ! Convert from [kg/kg] --> [v/v]
-!old:
-                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N) /
-     &                         State_Met%AD(I,J,L)
-!new:
-!                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N)
+                     ! Convert from [kg/kg] --> [v/v] (ewl, 8/11/15)
+                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N)
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 
