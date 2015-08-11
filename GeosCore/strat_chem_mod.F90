@@ -897,16 +897,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Calc_STE( am_I_Root, Input_Opt, State_Chm, RC )
+  SUBROUTINE Calc_STE( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
     USE TIME_MOD,   ONLY : GET_TAU, GET_NYMD, GET_NHMS, EXPAND_DATE
 
     USE CMN_SIZE_MOD
+    USE UNITCONV_MOD
 
     IMPLICIT NONE
 !
@@ -914,6 +916,7 @@ CONTAINS
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -934,6 +937,7 @@ CONTAINS
 !                              to avoid including code for nested-grid sims
 !  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm, RC arguments
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  10 Aug 2015 - E. Lundgren - Input tracer concentraiton units are now [kg/kg] 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -981,9 +985,14 @@ CONTAINS
     ! Copy values from Input_Opt
     N_TRACERS = Input_Opt%N_TRACERS
 
-    ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-    ! (mpayer, 12/6/12)
+    ! Create pointer to GEOS-Chem tracer array in Chemistry State object
+    ! [kg/kg dry air] (ewl, 8/10/15)
     STT       => State_Chm%Tracers
+
+    ! Convert State_Chm%TRACERS from [kg/kg dry air] to [kg] so that
+    ! units are consistently mixing ratio in main (ewl, 8/10/15)
+    CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
+                                State_Chm, RC )
 
     ! Determine mean tropopause level for the period
     !$OMP PARALLEL DO                               &
@@ -1027,7 +1036,7 @@ CONTAINS
        M1 = MInit(:,:,:,N)             
        M2 =   STT(:,:,:,N)
 
-       ! Zero out tropopshere and determine total change in the stratospheric
+       ! Zero out troposphere and determine total change in the stratospheric
        ! burden of species N (dStrat) [kg]
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
@@ -1074,6 +1083,11 @@ CONTAINS
     SChem_tend(:,:,:,:)  = 0e+0_fp
     MInit(:,:,:,:)       = STT(:,:,:,:)
 
+    ! Convert State_Chm%TRACERS from [kg] back to [kg/kg dry air] 
+    ! (ewl, 8/10/15)
+    CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met,  &
+                                State_Chm, RC )
+
     ! Free pointer
     NULLIFY( STT )
 #endif
@@ -1092,7 +1106,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !      
-  SUBROUTINE INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, RC )
+  SUBROUTINE INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
 !
 ! !USES:
 !
@@ -1101,6 +1115,7 @@ CONTAINS
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Met_Mod, ONLY : MetState
     USE TRACERID_MOD,       ONLY : IDTCHBr3, IDTCH2Br2, IDTCH3Br
     USE TRACERID_MOD,       ONLY : IDTBr2,   IDTBr,     IDTBrO
     USE TRACERID_MOD,       ONLY : IDTHOBr,  IDTHBr,    IDTBrNO3
@@ -1108,6 +1123,7 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_NYMD
     USE TIME_MOD,           ONLY : GET_NHMS
     USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE UNITCONV_MOD
 
     IMPLICIT NONE
 !
@@ -1115,6 +1131,7 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(MetState), INTENT(IN)  :: State_Met     ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1133,6 +1150,8 @@ CONTAINS
 !  05 Nov 2013 - R. Yantosca - Now update tracer flags for tagOx simulation
 !  03 Apr 2014 - R. Yantosca - PROD, LOSS, STRAT_OH, MINIT, SCHEM_TEND are 
 !                              now REAL*4, so use 0e0 to initialize
+!  11 Aug 2015 - E. Lundgren - Tracer units are now kg/kg and are converted 
+!                              kg for assignment of MInit
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1359,7 +1378,16 @@ CONTAINS
     ! initial atm. conditions from restart file converted to [kg/kg].
     ALLOCATE( MInit( IIPAR, JJPAR, LLPAR, N_TRACERS ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
+
+    ! Convert State_Chm%TRACERS from [kg/kg dry air] to [kg] so
+    ! that initial state of atmosphere is in same units as
+    ! chemistry ([kg]), and then convert back after MInit is assigned 
+    ! (ewl, 8/10/15)
+    CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
+                                State_Chm, RC )
     MInit = STT
+    CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met,  &
+                                State_Chm, RC )
 
     ! Array to determine the mean tropopause level over the period
     ! for which STE is being estimated.
