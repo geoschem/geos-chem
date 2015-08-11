@@ -306,6 +306,7 @@
 ! !USES:
 !
       USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
+      USE DIAG03_MOD,         ONLY : AD03, ND03
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : GET_Hg2_CAT, GET_HgP_CAT
       USE TRACERID_MOD,       ONLY : IS_Hg2,      IS_HgP
@@ -417,6 +418,10 @@
          SNOW_HG_STORED_LN(I,J,NN) = SNOW_HG_STORED_LN(I,J,NN) +
      &                     ( 1d0 - FRAC_O ) *
      &                     FRAC_SNOW_OR_ICE * MAX( 0.4D0*DEP_HG2, 0D0 )
+
+         ! Store diagnostic of TOTAL HgII/HgP deposition to snow/ice
+         IF ( ND03 > 0 ) AD03(I,J,21,1) = AD03(I,J,21,1) +
+     &                   FRAC_SNOW_OR_ICE * MAX(DEP_HG2, 0d0) 
 
       ENDIF
 

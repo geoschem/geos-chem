@@ -1901,6 +1901,9 @@
 
               ENDDO
 
+               ! Total HgII/HgP dep to open ocean [kg]
+               AD03(I,J,20,1) = AD03(I,J,20,1) + TOTDEP
+
             ENDIF
 
            

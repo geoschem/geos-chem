@@ -20,7 +20,7 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      INTEGER, PUBLIC, PARAMETER   :: PD03    = 19         ! Dim of AD03 array
+      INTEGER, PUBLIC, PARAMETER   :: PD03    = 21         ! Dim of AD03 array
       INTEGER, PUBLIC, PARAMETER   :: PD03_PL = 13         ! # of PL-HG2 diags
 
 !
@@ -83,6 +83,7 @@
 !  07 Feb 2012 - E. Corbitt  - Added new diagnostics for tagged simulation.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  10 Aug 2015 - J. Fisher   - Add polar Br/BrO/O3 diagnostics
+!  11 Aug 2015 - J. Fisher   - Add snow, deposition diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -204,6 +205,8 @@
 !  (17) HG-SRCE  : Flux-down Hg0 dry dep to ocean  : kg       : 1
 !  (18) HG-SRCE  : Snow emission of Hg0            : kg       : 1
 !  (19) HG-SRCE  : Delivery of snow Hg2 to ocean   : kg       : 1
+!  (20) HG-SRCE  : Hg2/HgP deposition to ocean     : kg       : 1
+!  (21) HG-SRCE  : Hg2/HgP deposition to snow/ice  : kg       : 1
 !  ( 1) PL-HG2-$ : Production of Hg2 from Hg0      : kg       : 1
 !  ( 2) PL-HG2-$ : Production of Hg2 from rxn w/OH : kg       : 1
 !  ( 3) PL-HG2-$ : Production of Hg2 from rxn w/O3 : kg       : 1
@@ -746,7 +749,7 @@
             NN                = N
             ARRAY(:,:,1)      = AD03(:,:,N,1) / SCALE
                
-         ELSE IF ( N <= 19 ) THEN
+         ELSE IF ( N <= 21 ) THEN
             
             !--------------------------------
             ! #1,3,4,5,6,9,13,14,15,18: Hg emissions
@@ -754,7 +757,10 @@
             ! #12: Carbon sinking               !anls
             ! #16: Flux-up (Hg0 volat from ocean)
             ! #17: Flux-down (Hg0 dry dep to ocean)
+            ! #18: Snow emissions of Hg0
             ! #19: Snow Hg2 delivery to ocean
+            ! #20: Hg2/HgP deposited to open ocean
+            ! #21: Hg2/HgP deposited to snow/ice
             !--------------------------------
             CATEGORY          = 'HG-SRCE'
             UNIT              = 'kg'

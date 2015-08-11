@@ -1932,6 +1932,18 @@
                   NAME (T,03) = 'Hg0_snow'
                   FNAME(T,03) = 'Snow emission of Hg'
                   INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 19 )
+                  NAME (T,03) = 'Hg_sn_oc'
+                  FNAME(T,03) = 'Snow Hg2 delivered to ocean'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 20 )
+                  NAME (T,03) = 'Hgdep_oc'
+                  FNAME(T,03) = 'HgII/HgP dep to open ocean'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 21 )
+                  NAME (T,03) = 'Hgdep_sn'
+                  FNAME(T,03) = 'HgII/HgP dep to snow/ice'
+                  INDEX(T,03) = T + ( SPACING * 34 )
                CASE DEFAULT
                   ! Nothing
             END SELECT
