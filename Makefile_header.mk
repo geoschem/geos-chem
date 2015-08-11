@@ -179,6 +179,7 @@
 #  30 Jul 2015 - M. Yannetti - Added TIMERS.
 #  03 Aug 2015 - M. Sulprizio- NEST=cu to now sets CPP switch w/ -DNESTED_CU for
 #                              custom nested grids
+#  11 Aug 2015 - R. Yantosca - Add MERRA2 as a met field option
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -196,10 +197,10 @@ SHELL                :=/bin/bash
 ERR_CMPLR            :="Select a compiler: COMPILER=ifort, COMPILER=pgi"
 
 # Error message for bad MET input
-ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp)"
+ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp, MET=merra2)"
 
 # Error message for bad GRID input
-ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=025x03125"
+ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=05x0625, GRID=025x03125"
 
 # Error message for bad NEST input
 ERR_NEST             :="Select a nested grid: NEST=ch, NEST=eu, NEST=na NEST=se, NEST=cu"
@@ -449,10 +450,17 @@ ifndef NO_MET_NEEDED
     USER_DEFS        += -DGEOS_5
   endif
 
-  # %%%%% MERRA %%%%%
+  # %%%%% MERRA or MERRA2 %%%%%
+  # We have to employ a double regexp test in order to prevent
+  # inadvertently setting MERRA if we want MERRA2. (bmy, 8/11/15)
   REGEXP             :=(^[Mm][Ee][Rr][Rr][Aa])
   ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DMERRA
+    REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2|^[Mm][Ee][Rr][Rr][Aa].2)
+    ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+      USER_DEFS      += -DMERRA2
+    else
+      USER_DEFS      += -DMERRA
+    endif
   endif
 
   # %%%%% GEOS-FP %%%%%
@@ -471,7 +479,7 @@ ifndef NO_MET_NEEDED
   endif
 
   # %%%%% ERROR CHECK!  Make sure our MET selection is valid! %%%%%
-  REGEXP             :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP)
+  REGEXP             :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP\-DMERRA2)
   ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
     $(error $(ERR_MET))
   endif
@@ -535,6 +543,25 @@ ifndef NO_GRID_NEEDED
     else
       NEST_NEEDED    :=1
       USER_DEFS      += -DGRID05x0666
+    endif
+  endif
+
+  # %%%%% 0.5 x 0.625 %%%%%
+  REGEXP             :=(^05.0625|^0\.5.0\.625)
+  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
+
+    # Ensure that MET=geos-fp
+    REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2)|(^[Mm][Ee][Rr][Rr][Aa].2)
+    ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+      $(error When GRID=05x0625, you can only use MET=merra2)
+    endif
+
+    # Ensure that a nested-grid option is selected
+    ifndef NEST
+      $(error $(ERR_NEST))
+    else
+      NEST_NEEDED    :=1
+      USER_DEFS      += -DGRID05x0625
     endif
   endif
 
@@ -1148,15 +1175,15 @@ export TIMERS
 ###                                                                         ###
 ###############################################################################
 
-#headerinfo:
-#	@@echo '####### in Makefile_header.mk ########' 
-#	@@echo "COMPILER    : $(COMPILER)"
-#	@@echo "DEBUG       : $(DEBUG)"
-#	@@echo "BOUNDS      : $(BOUNDS)"
-#	@@echo "F90         : $(F90)"
-#	@@echo "CC          : $(CC)"
-#	@@echo "INCLUDE     : $(INCLUDE)"
-#	@@echo "LINK        : $(LINK)"
-#	@@echo "USERDEFS    : $(USER_DEFS)"
-#	@@echo "NC_INC_CMD  : $(NC_INC_CMD)"
-#	@@echo "NC_LINK_CMD : $(NC_LINK_CMD)"
+headerinfo:
+	@@echo '####### in Makefile_header.mk ########' 
+	@@echo "COMPILER    : $(COMPILER)"
+	@@echo "DEBUG       : $(DEBUG)"
+	@@echo "BOUNDS      : $(BOUNDS)"
+	@@echo "F90         : $(F90)"
+	@@echo "CC          : $(CC)"
+	@@echo "INCLUDE     : $(INCLUDE)"
+	@@echo "LINK        : $(LINK)"
+	@@echo "USERDEFS    : $(USER_DEFS)"
+	@@echo "NC_INC_CMD  : $(NC_INC_CMD)"
+	@@echo "NC_LINK_CMD : $(NC_LINK_CMD)"

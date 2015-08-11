@@ -46,7 +46,6 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: MAX_FAMS
      INTEGER                     :: MAX_DEP
 
-
      !----------------------------------------
      ! SIMULATION MENU fields 
      !----------------------------------------
@@ -66,6 +65,7 @@ MODULE GIGC_Input_Opt_Mod
      CHARACTER(LEN=255)          :: GEOS_5_DIR         
      CHARACTER(LEN=255)          :: GEOS_FP_DIR        
      CHARACTER(LEN=255)          :: MERRA_DIR          
+     CHARACTER(LEN=255)          :: MERRA2_DIR          
      CHARACTER(LEN=255)          :: DATA_DIR_1x1       
      CHARACTER(LEN=255)          :: TEMP_DIR           
      LOGICAL                     :: LUNZIP             
@@ -691,6 +691,7 @@ MODULE GIGC_Input_Opt_Mod
 !  09 Apr 2015 - M. Sulprizio- Removed fields for NAPEMISS, POAEMISSSCALE,
 !                              and PST_RST_FILE. These options are now handled
 !                              by HEMCO.
+!  11 Aug 2015 - R. Yantosca - Add MERRA2_DIR field to OptInput
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -810,6 +811,7 @@ CONTAINS
     Input_Opt%GEOS_5_DIR             = './'
     Input_Opt%GEOS_FP_DIR            = './'
     Input_Opt%MERRA_DIR              = './'
+    Input_Opt%MERRA2_DIR             = './'
     Input_Opt%DATA_DIR_1x1           = './'      ! NOTE: Now deprecated!
     Input_Opt%TEMP_DIR               = './'
     Input_Opt%LUNZIP                 = .FALSE.   ! NOTE: Now deprecated!

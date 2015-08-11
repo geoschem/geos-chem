@@ -2933,11 +2933,12 @@
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  11 Aug 2015 - R. Yantosca - Return DATE for MERRA2 the same as for GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
       ! MERRA and GEOS-5.7.x met fields are 1-hour time-averages, timestamped 
       ! at the center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)

@@ -1530,11 +1530,6 @@ CONTAINS
     ! Assume success
     RC        = GIGC_SUCCESS
 
-!-----------------------------------------------------------------------------
-! Prior to 4/1/15:
-!    ! First assume that we are doing a global simulation
-!    IS_NESTED = .FALSE.
-!-----------------------------------------------------------------------------
     ! IS_NESTED is now a local shadow variable (bmy, 4/1/15)
     IS_NESTED = Input_Opt%ITS_A_NESTED_GRID
 
@@ -1572,27 +1567,6 @@ CONTAINS
     ALLOCATE( AREA_M2( IM,   JM,   L ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'AREA_M2' )
     AREA_M2 = 0e+0_fp
-
-!-----------------------------------------------------------------------------
-! Prior to 4/1/15:
-! Now use the value of Input_Opt%ITS_A_NESTED_GRID, which is set in 
-! input_mod.F. (bmy, 4/1/15)
-!#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
-!
-!    !======================================================================
-!    ! Special settings for nested-grid simulations only
-!    !======================================================================
-!
-!    ! Denote that this is a nested-grid simulation
-!    IS_NESTED = .TRUE.
-!    
-!    ! Allocate nested-grid window array of lat centers (radians)
-!    ALLOCATE( YMID_R_W( IM, 0:JM+1, L ), STAT=AS ) 
-!    IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
-!    YMID_R_W = 0e+0_fp
-!
-!#endif
-!-----------------------------------------------------------------------------
 
     !======================================================================
     ! Special settings for nested-grid simulations only
