@@ -38,20 +38,20 @@
 !
 !  Module Routines:
 !  ============================================================================
-!  (1 ) ADD_Hg2_DD             : Archives Hg2 lost to drydep in DD_HG2
-!  (2 ) ADD_Hg2_WD             : Archives Hg2 lost to wetdep in WD_HG2
-!  (3 ) DELIVER_SNOW_HG        : Delivers Hg stored in snowpack to ocean
-!  (4 ) OCEAN_MERCURY_FLUX     : Routine to compute flux of oceanic mercury
-!  (5 ) OCEAN_MERCURY_READ     : Routine to read MLD, NPP, RADSWG data fields
-!  (6 ) GET_MLD_FOR_NEXT_MONTH : Routine to read MLD for the next month
+!  (1 ) READ_HG2_PARTITIONING  : Calculates fraction of Hg2 in gas phase
+!  (2 ) DELIVER_SNOW_HG        : Delivers Hg stored in snowpack to ocean
+!  (3 ) OCEAN_MERCURY_FLUX     : Routine to compute flux of oceanic mercury
+!  (4 ) OCEAN_MERCURY_READ     : Routine to read MLD, NPP, RADSWG data fields
+!  (5 ) GET_MLD_FOR_NEXT_MONTH : Routine to read MLD for the next month
+!  (6 ) GET_MLD_FOR_LAST_MONTH : Routine to read MLD for the last month
 !  (7 ) MLD_ADJUSTMENT         : Adjusts MLD 
 !  (8 ) READ_OCEAN_Hg_RESTART  : Reads restart file with ocean Hg tracers
-!  (9 ) CHECK_DIMENSIONS       : Checks dims of data blocks from restart file
-!  (10) CHECK_DATA_BLOCKS      : Checks for missing/multiple data blocks
-!  (11) MAKE_OCEAN_Hg_RESTART  : Writes new restart file with ocean Hg tracers
-!  (12) CHECK_ATMOS_MERCURY    : Checks mass of total & tagged atm Hg0 & Hg2 
-!  (13) CHECK_OCEAN_MERCURY    : Checks mass of total & tagged oc Hg0 & Hg2
-!  (14) CHECK_OCEAN_FLUXES     : Checks mass of total & tagged DD & WD fluxes
+!  (9 ) CHECK_DATA_BLOCKS      : Checks for missing/multiple data blocks
+!  (10) MAKE_OCEAN_Hg_RESTART  : Writes new restart file with ocean Hg tracers
+!  (11) CHECK_ATMOS_MERCURY    : Checks mass of total & tagged atm Hg0 & Hg2 
+!  (12) CHECK_OCEAN_MERCURY    : Checks mass of total & tagged oc Hg0 & Hg2
+!  (13) CHECK_OCEAN_FLUXES     : Checks mass of total & tagged DD & WD fluxes
+!  (14) CHECK_FLUX_OUT         : Checks mass of total & tagged sums
 !  (15) INIT_OCEAN_MERCURY     : Allocates and zeroes all module variables
 !  (16) CLEANUP_OCEAN_MERCURY  : Deallocates all module variables
 !
@@ -126,6 +126,7 @@
 !			       Hg deposition accordingly in partial-ice boxes
 !                              (orig. 28/11/11)
 !  06 Aug 2015 - J. Fisher   - Added delivery of snow Hg to ocean (orig. 28/11/11)
+!  11 Aug 2015 - J. Fisher   - Remove obsolete parameters LOCEANFIX, FUDGE
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
@@ -224,13 +225,6 @@
       LOGICAL   :: LnoUSAemis
       LOGICAL   :: LNEI2005, LInPlume    ! yzh
       REAL*8    :: STRAT_BR_FACTOR
-
-      ! CDH Set this TRUE to use corrected area-flux relationship
-      ! Set this to FALSE to use original Strode et al. (2007) model
-      LOGICAL, PARAMETER :: LOCEANFIX=.TRUE. 
-      ! CDH average ocean area per grid box: 1.67d11 m2/box
-      ! used when eliminating AREA * FRAC_O
-      REAL*8, PARAMETER :: FUDGE=1.67D11
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -404,7 +398,7 @@
 #endif
 
       ! Echo some information to the standard output
-      WRITE( 6, 110 )  FILENAME 
+      WRITE( 6, 110 )  TRIM(FILENAME) 
  110  FORMAT( '     -READ_HG2_PARTITIONING: Reading ', a )
 
       !------------------------------------------------------!
@@ -2930,7 +2924,7 @@
                ! Check for negative concentrations (jaf, 7/6/11)
                DO I = 1, IIPAR
                DO J = 1, JJPAR
-                  IF ( Hg0aq(I,J,NN) .LT. 0 ) Hg0aq(I,J,NN) = 0d0
+                  IF ( Hg0aq(I,J,NN) < 0 ) Hg0aq(I,J,NN) = 0d0
                ENDDO
                ENDDO
 
@@ -2952,7 +2946,7 @@
                ! Check for negative concentrations (jaf, 7/6/11)
                DO I = 1, IIPAR
                DO J = 1, JJPAR
-                  IF ( Hg2aq(I,J,NN) .LT. 0 ) Hg2aq(I,J,NN) = 0d0
+                  IF ( Hg2aq(I,J,NN) < 0 ) Hg2aq(I,J,NN) = 0d0
                ENDDO
                ENDDO
 
@@ -2972,6 +2966,13 @@
 
                ! Particulate Hg
                HgPaq(:,:,NN)        = Hg_OCEAN(:,:,1)
+
+               ! Check for negative concentrations (jaf, 7/6/11)
+               DO I = 1, IIPAR
+               DO J = 1, JJPAR
+                  IF ( HgPaq(I,J,NN) < 0 ) HgPaq(I,J,NN) = 0d0
+               ENDDO
+               ENDDO
 
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
@@ -3067,9 +3068,6 @@
 
       ! Hg2
       DO NN = 1, N_Hg_CATS
-!     Bug fixed, Y. Zhang, 11/1/2011
-!         WRITE( 6, 140 ) ID_Hg2(NN), TRACER_NAME( Id_Hg2(NN) ), 
-!     &                   SUM( Hg0aq(:,:,NN) ), 'kg'
          WRITE( 6, 140 ) ID_Hg2(NN), TRACER_NAME( Id_Hg2(NN) ), 
      &                   SUM( Hg2aq(:,:,NN) ), 'kg'
       ENDDO

@@ -193,27 +193,25 @@
       ! (2 ) AN_Hg2   : Tracer index array for tagged anth Hg(II) regions
       ! (3 ) AN_HgP   : Tracer index array for tagged anth HgP    regions
       ! (4 ) COSZM    : Max daily value of COS( S. Z. Angle ) [unitless]
-      ! (5 ) DRYHg0   : Index for Hg0 in DEPSAV array (drydep freq)
-      ! (6 ) DRYHg2   : Index for Hg2 in DEPSAV array (drydep freq)
-      ! (7 ) DRYHgP   : Index for HgP in DEPSAV array (drydep freq)
-      ! (8 ) EHg0_an  : Anthropogenic Hg0 emissions [kg/s]
-      ! (9 ) EHg2_an  : Anthropogenic Hg2 emissions [kg/s]
-      ! (10) EHgP_an  : Anthropogenic HgP emissions [kg/s]
-      ! (11) EHg0_am  : Artisanal mining Hg0 emissions [kg/s]
-      ! (12) EHg0_oc  : Hg0 emissions from oceans [kg/s]
-      ! (13) EHg0_ln  : Re-emissions of Hg0 from land [kg/s]
-      ! (14) EHg0_nt  : Hg0 emissions from natural land sources [kg/s] 
-      ! (15) EHg0_bb  : Hg0 emissions fom biomass burning sources [kg/s]
-      ! (16) EHg0_vg  : Hg0 emissions fom vegetation sources [kg/s] 
-      ! (17) EHg0_so  : Hg0 emissions from soil sources [kg/s]
-      ! (18) EHg0_dist: Spatial distribution of terrestrial Hg0 sources
+      ! (5 ) EHg0_an  : Anthropogenic Hg0 emissions [kg/s]
+      ! (6 ) EHg2_an  : Anthropogenic Hg2 emissions [kg/s]
+      ! (7 ) EHgP_an  : Anthropogenic HgP emissions [kg/s]
+      ! (8 ) EHg0_am  : Artisanal mining Hg0 emissions [kg/s]
+      ! (9 ) EHg0_oc  : Hg0 emissions from oceans [kg/s]
+      ! (10) EHg0_ln  : Re-emissions of Hg0 from land [kg/s]
+      ! (11) EHg0_nt  : Hg0 emissions from natural land sources [kg/s] 
+      ! (12) EHg0_bb  : Hg0 emissions fom biomass burning sources [kg/s]
+      ! (13) EHg0_vg  : Hg0 emissions fom vegetation sources [kg/s] 
+      ! (14) EHg0_so  : Hg0 emissions from soil sources [kg/s]
+      ! (15) EHg0_dist: Spatial distribution of terrestrial Hg0 sources
       !                   [dimensionless] 
-      ! (19) TCOSZ    : Sum of COS( Solar Zenith Angle ) [unitless]
-      ! (20) TTDAY    : Total daylight time at location (I,J) [minutes]
-      ! (21) T44      : Local array for drydep diagnostic
-      ! (22) ZERO_DVEL: Array with zero dry deposition velocity [cm/s]
-      ! (23) ANTHRO_Hg: Anthropogenic Hg emissions year (1995 or 2000)
-      ! (24) TRANSP   : Plant transpiration rate [m/s]
+      ! (16) EHg0_gtm : Hg0 emissions from GTMM [kg/s]
+      ! (17) EHg0_snow: Hg0 emissions from snow [kg/s]
+      ! (18) TCOSZ    : Sum of COS( Solar Zenith Angle ) [unitless]
+      ! (19) TTDAY    : Total daylight time at location (I,J) [minutes]
+      ! (20) ZERO_DVEL: Array with zero dry deposition velocity [cm/s]
+      ! (21) HG2_SEASALT_LOSSRATE
+      ! (22) JNO2     : Array with JNO2 value
       ! (25) SMALLNUM : A small number to prevent underflow
       !=================================================================
 
@@ -6604,11 +6602,11 @@
                TIMLOC = real(LHR0) + real(NT)/3600.0 
      &                + GET_XMID(I,J,1)/15.0
          
-               DO WHILE (TIMLOC .lt. 0)
+               DO WHILE (TIMLOC < 0)
                   TIMLOC = TIMLOC + 24.0
                ENDDO
 
-               DO WHILE (TIMLOC .gt. 24.0)
+               DO WHILE (TIMLOC > 24.0)
                   TIMLOC = TIMLOC - 24.0
                ENDDO
 
