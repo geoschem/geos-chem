@@ -703,6 +703,7 @@
 !
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GEOS_TIMERS
 #if defined( ESMF_ )
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
@@ -721,6 +722,7 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  12 Mar 2013 - R. Yantosca - Now use GEOS-5 style traceback when using ESMF
 !   8 Jul 2014 - R. Yantosca - Now call cleanup.F with shadow variables
+!  11 Aug 2015 - M. Yannetti - Now calls all timers to stop.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -728,6 +730,9 @@
 ! !LOCAL VARIABLES
 !
       INTEGER :: RC
+
+      RC = GEOS_Timer_StopAll()
+      RC = GEOS_Timer_PrintAll()  
 
 #if defined( ESMF_ )
 

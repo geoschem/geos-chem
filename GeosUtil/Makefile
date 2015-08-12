@@ -166,7 +166,8 @@ bpch2_mod.o       : bpch2_mod.F           \
 
 charpak_mod.o     : charpak_mod.F
 
-error_mod.o       : error_mod.F
+error_mod.o       : error_mod.F           \
+                    geos_timers.o
 
 file_mod.o        : file_mod.F            \
                     error_mod.o

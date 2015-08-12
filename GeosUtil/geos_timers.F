@@ -28,6 +28,7 @@
       PUBLIC   :: GEOS_Timer_End       ! Stops a timer ticking.
       PUBLIC   :: GEOS_Timer_Print     ! Prints the specified timer.
       PUBLIC   :: GEOS_Timer_PrintAll  ! Prints all timers.
+      PUBLIC   :: GEOS_Timer_StopAll   ! Stops all currently running timers.
       
 ! 
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -79,7 +80,7 @@
       ! The definition of the GEOS_Timer type.
       TYPE GEOS_Timer
         LOGICAL                  :: ENABLED
-        CHARACTER(LEN=30)       :: TIMER_NAME
+        CHARACTER(LEN=30)        :: TIMER_NAME
         REAL*8                   :: TOTAL_TIME
         REAL*8                   :: START_TIME
         REAL*8                   :: END_TIME
@@ -497,6 +498,66 @@
       RC = GIGC_SUCCESS
 
       END FUNCTION GEOS_Timer_PrintAll
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GEOS_Timer_StopAll
+!
+! !DESCRIPTION: Stops all GEOS_Timers.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GEOS_Timer_StopAll() RESULT ( RC )
+!
+! !INPUT PARAMETERS: 
+!
+
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER           :: RC          ! Success / Failure
+
+!
+! !REMARKS:
+!  This stops all currently running timers. Used during crashes.
+! 
+! !REVISION HISTORY: 
+!  11 Aug 2015 - M. Yannetti - Initial version.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+      INTEGER           :: I            ! For the for loop
+
+      ! First it is important to check if timers are enabled.
+      IF (.not. DoTimers) THEN       ! Assume False for optimization.
+        RC = GIGC_SUCCESS
+        RETURN                       ! If no timers, do nothing.
+      ENDIF
+
+      IF(TimerCurrentSize < 1) THEN  ! Return 0 if it's empty
+        RC = GIGC_FAILURE
+        RETURN
+      ENDIF
+
+      DO I = 1, TimerCurrentSize
+        IF ( (SavedTimers(I) % ENABLED) ) THEN
+         ! Yes, this is inefficient. Should have another function
+         ! written eventually to replace using the normal one.
+         RC = GEOS_Timer_End( SavedTimers(I) % TIMER_NAME )
+        ENDIF
+      ENDDO
+
+      ! Success.
+      RC = GIGC_SUCCESS
+
+      END FUNCTION GEOS_Timer_StopAll
+
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
