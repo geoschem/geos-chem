@@ -232,6 +232,8 @@
       REAL(f4), POINTER :: MLD   (:,:) => NULL()
       REAL(f4), POINTER :: NPP   (:,:) => NULL()
       REAL(f4), POINTER :: UPVEL (:,:) => NULL()
+      REAL(f4), POINTER :: dMLD1 (:,:) => NULL()
+      REAL(f4), POINTER :: dMLD2 (:,:) => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -912,7 +914,7 @@
       ENDIF
 
       !-----------------------------------------------
-      ! Read monthly NPP, RADSW, MLD, UPVEL data
+      ! Read monthly NPP, RADSW, MLD, UPVEL, dMLD data
       !-----------------------------------------------
       IF ( ITS_A_NEW_MONTH() ) THEN
 
@@ -927,28 +929,33 @@
 
       !eds 10/19/10
       IF ( FIRST ) THEN
-         CALL GET_MLD_FOR_LAST_MONTH
-     &      ( am_I_Root, Input_Opt, THISMONTH, RC )
+!         CALL GET_MLD_FOR_LAST_MONTH
+!     &      ( am_I_Root, Input_Opt, THISMONTH, RC )
+         MLDav = MLD
          FIRST = .FALSE.
       ENDIF
 
-
+      
       !-----------------------------------------------
       ! MLD and entrainment change in middle of month
       !-----------------------------------------------
-      IF ( ITS_MIDMONTH() ) THEN
+      
+      dMLD = dMLD1 
 
+      IF ( ITS_MIDMONTH() ) THEN
+         
+         dMLD = dMLD2
          ! Get current month
-         THISMONTH = GET_MONTH()
+!         THISMONTH = GET_MONTH()
 
 !--jaf.start
          ! Get current year to check if leap year (jaf, 7/6/11)
-         THISYEAR = GET_YEAR()
+!         THISYEAR = GET_YEAR()
 
          ! Read next month's MLD
          !CALL GET_MLD_FOR_NEXT_MONTH( THISMONTH )
-         CALL GET_MLD_FOR_NEXT_MONTH
-     &        ( am_I_Root, Input_Opt, THISMONTH, THISYEAR, RC )
+!         CALL GET_MLD_FOR_NEXT_MONTH
+!     &        ( am_I_Root, Input_Opt, THISMONTH, THISYEAR, RC )
 !--jaf.end
          
       ENDIF
@@ -1930,6 +1937,29 @@
          CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_EKMAN_V', LOC )
       ENDIF
 
+      !-----------------------------------------------------------------
+      ! MLD tendency, first half of month [cm/s]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_dMLD1', dMLD1, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to dMLD1', LOC )
+      ENDIF
+
+       ! Convert [m/s] to [cm/s]
+      dMLD1 = dMLD1 * 100e+0_f4
+
+      !-----------------------------------------------------------------
+      ! MLD tendency, second half of month [cm/s]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_dMLD2', dMLD2, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to dMLD2', LOC )
+      ENDIF
+
+      ! Convert [m/s] to [cm/s]
+      dMLD2 = dMLD2 * 100e+0_f4
+
+      
       ! Return to calling program
       END SUBROUTINE OCEAN_MERCURY_READ
 
@@ -3800,6 +3830,8 @@
       MLD   => NULL()
       NPP   => NULL()
       UPVEL => NULL()
+      dMLD1 => NULL()
+      dMLD2 => NULL()
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_OCEAN_MERCURY
