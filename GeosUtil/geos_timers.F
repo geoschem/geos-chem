@@ -547,6 +547,9 @@
 
       DO I = 1, TimerCurrentSize
         IF ( (SavedTimers(I) % ENABLED) ) THEN
+         ! Note it
+         PRINT*, "Timer forced to stop due to error: ",
+     &        SavedTimers(I) % TIMER_NAME
          ! Yes, this is inefficient. Should have another function
          ! written eventually to replace using the normal one.
          RC = GEOS_Timer_End( SavedTimers(I) % TIMER_NAME )
