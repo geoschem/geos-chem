@@ -104,9 +104,10 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_RRTMG_RAD_TRANSFER( THISDAY,   THISMONTH, ICLD, 
-     &                                  ISPECMENU, ISEED,     Input_Opt,
-     &                                  State_Met, State_Chm  )
+      SUBROUTINE DO_RRTMG_RAD_TRANSFER( am_I_Root, THISDAY,   THISMONTH, 
+     &                                  ICLD,      ISPECMENU, ISEED,     
+     &                                  Input_Opt, State_Met, State_Chm,
+     &                                  RC  )
 !
 ! !USES:
 !
@@ -146,9 +147,11 @@
       USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
       USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
       USE TRACERID_MOD
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! root CPU?
       INTEGER,        INTENT(IN)    :: THISDAY     ! CURRENT DAY
       INTEGER,        INTENT(IN)    :: THISMONTH   ! CURRENT MONTH
       INTEGER,        INTENT(IN)    :: ISPECMENU   ! THE SPECIES BEING INCLUDED
@@ -162,6 +165,7 @@
 !
       INTEGER,        INTENT(INOUT) :: ICLD        ! CLOUD FLAG FOR RRTMG
                                                    ! 0-NOCLOUD, 1-GREY CLOUD
+      INTEGER,        INTENT(INOUT) :: RC          ! Failure or success
 !
 ! !REMARKS:
 !  THIS ROUTINE PASSES INPUTS TO THE RRTMG DRIVER ROUTINE "RAD_DRIVER"
@@ -182,6 +186,9 @@
 !                              (I,J,L) ordering.  This is for the NASA GCM.
 !  02 Jun 2015 - R. Yantosca - Bug fix: Add missing variables to OMP PRIVATE
 !  03 Jun 2015 - R. Yantosca - Now use pointers to avoid array temporaries
+!  12 Aug 2015 - E. Lundgren - Incoming tracer units are now [kg/kg] and
+!                              are converted to [kg] for RRTMG
+!  12 Aug 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -197,7 +204,7 @@
       LOGICAL                :: LOUTPUTAERO  ! OUTPUT AEROSOL DIAGNOSTICS?
       INTEGER                :: NAD72        ! NUMBER OF OUTPUTS PER FIELD
       INTEGER                :: ITIMEVALS(8)
-      INTEGER                :: IDIAGOUT     ! INDEX OF SPECIES OPTICS FOR OUTPUT
+      INTEGER                :: IDIAGOUT     ! INDEX OF SPECIES OPTICS FOR OUTPUT     
       REAL*8                 :: OLDSECS, NEWSECS
 
       !-----------------------------------------------------------------
@@ -463,10 +470,17 @@
       ! DO_RRTMG_RAD_TRANSFER begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Get fields from Input_Opt
       N_TRACERS   = Input_Opt%N_TRACERS
       XNUMOL      = Input_Opt%XNUMOL
       TRACER_MW_G = Input_Opt%TRACER_MW_G(1:N_TRACERS)
+
+      ! Convert tracer units to [kg] for RRTMG (ewl, 8/12/15)
+      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met,  
+     &                            State_Chm, RC ) 
 
       !=================================================================
       ! PREPARE INPUTS FOR RAD_DRIVER
@@ -1537,6 +1551,7 @@
          AD72(I,J,OUTIDX+(8+3*(W-1))*NAD72) = 
      &   AD72(I,J,OUTIDX+(8+3*(W-1))*NAD72) + AODOUT
          AD72(I,J,OUTIDX+(9+3*(W-1))*NAD72) = 
+
      &   AD72(I,J,OUTIDX+(9+3*(W-1))*NAD72) + SSAOUT
          AD72(I,J,OUTIDX+(10+3*(W-1))*NAD72)= 
      &   AD72(I,J,OUTIDX+(10+3*(W-1))*NAD72) + ASYMOUT
@@ -1545,6 +1560,10 @@
       ENDDO 
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Convert tracer units to [kg] for HEMCO (ewl, 8/12/15)
+      CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met,  
+     &                            State_Chm, RC ) 
 
 !EOC
       END SUBROUTINE DO_RRTMG_RAD_TRANSFER

@@ -5458,6 +5458,7 @@
       USE DAO_MOD,            ONLY : AIRQNT
       USE TRACERID_MOD,       ONLY : IDTH2O
       USE GIGC_ErrCode_Mod
+      USE UNITCONV_MOD  ! ewl, 8/12/15
 !
 ! !INPUT PARAMETERS:
 !      
@@ -5550,26 +5551,31 @@
 
          IF ( READ_SPHU ) THEN
 
-! old (ewl):
+! old [kg]:
             STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
      &                          State_Met%ADMOIST(I,J,L)
 
-             ! Tracer units are [kg H2O / kg dry air] while specific
-             ! humidity is [kg H2O / kg total air] (ewl, 8/10/15)
-!             STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L)
-!     &                           / ( 1.e+3_fp - State_Met%SPHU(I,J,L) )
+! new [kg/kg] - need to keep it in [kg] for now since moisture changes
+!               in this routine for some grid boxes.  
+            ! Tracer units are [kg H2O / kg dry air] while specific
+            ! humidity is [kg H2O / kg total air] (ewl, 8/10/15)
+!             STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp
+!     &                           / ( 1.e+0_fp - State_Met%SPHU(I,J,L)
+!     &                           * 1.e-3_fp )
 
          ELSE
 
+! old [kg]:
+!            ! Use moist air mass for calculating specific humidity
+            SPHU = STT(I,J,L,IDTH2O) * 1.e+3_fp 
+     &               / State_Met%ADMOIST(I,J,L)
+
+! new  [kg/kg] - need to keep it in [kg] for now since moisture changes
+!                in this routine for some grid boxes.
             ! Calculate specific humidity [g/kg total air] from 
             ! transported H2O [kg/kg dry air] (ewl, 8/10/15)
 !            SPHU = STT(I,J,L,IDTH2O) * 1.e+3_fp / ( 1.e+0_fp
 !     &              + STT(I,J,L,IDTH2O) )
-
-! old (ewl):
-            ! Use moist air mass for calculating specific humidity
-            SPHU = STT(I,J,L,IDTH2O) * 1.e+3_fp 
-     &               / State_Met%ADMOIST(I,J,L)
 
             ! Set State_Met specific humidity [g/kg]
             State_Met%SPHU(I,J,L) = SPHU

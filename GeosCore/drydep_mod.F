@@ -324,6 +324,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_ERROR_MOD
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -400,6 +401,8 @@
 !                              facilitates connection to the GEOS-5 GCM.   
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt & State_Chm to DEPVEL
 !  15 Jan 2015 - R. Yantosca - Add new netCDF diagnostics structure
+!  12 Aug 2015 - E. Lundgren - Input tracer units are now [kg/kg] and 
+!                              are converted to [kg] for dry deposition
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -407,7 +410,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER       :: I,   J,   L,  N, IJLOOP, NN, NDVZ
+      INTEGER       :: I,   J,   L,  N, IJLOOP, NN, NDVZ, N_TRACERS
       REAL(f8)      :: DVZ, THIK
 
       ! Arrays
@@ -451,6 +454,16 @@
       !=================================================================
       ! DO_DRYDEP begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Set number of tracers for unit conversion call (ewl, 8/12/15)
+      N_TRACERS = Input_Opt%N_TRACERS
+
+      ! Convert [kg/kg dry air] to [kg] for dry deposition (ewl, 8/12/15)
+      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met, 
+     &                            State_Chm, RC ) 
 
 #if defined( DEVEL )
       ! Zero depositioln velocity array
@@ -610,6 +623,9 @@
       ENDIF
 #endif
 
+      ! Convert tracer conc back to [kg/kg dry air] after dry dep (ewl, 8/12/15)
+      CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met, 
+     &                            State_Chm, RC ) 
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN
          CALL DEBUG_MSG( '### DO_DRYDEP: after dry dep' )

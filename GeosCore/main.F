@@ -687,13 +687,6 @@
      &                        Input_Opt, State_Met, State_Chm )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!
-!! TEMPORARY: After READ_RESTART: [kg/kg dry]
-!!
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
 
@@ -799,23 +792,11 @@
       ! Get dynamic timestep in seconds
       N_DYN  = 60e+0_fpp * GET_TS_DYN()
 
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!                                                                    %%
-!! TEMPORARY: End of initialization: [kg/kg]
-!!                                                                    %%
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
       !=================================================================
       !     ***** D Y N A M I C   T I M E S T E P   L O O P *****
       !=================================================================
       DO N_STEP = 1, N_DYN_STEPS
     
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!                                                                    %%
-!! TEMPORARY: Start of dynamic timestep loop: [kg/kg]                  
-!!                                                                    %% 
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
          ! Compute & print time quantities at start of dyn step
          CALL SET_CURRENT_TIME
          CALL PRINT_CURRENT_TIME
@@ -839,15 +820,6 @@
             CALL DEBUG_MSG( '### MAIN: a SET_CURRENT_TIME' )
          ENDIf
 
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!                                                                      %%
-!! TEMPORARY: Before HEMCO Phase 1: [kg/kg] -> [kg]                    
-!!                                                                      
-         CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met,  
-     &                            State_Chm, RC )                      
-!!                                                                      %%
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
          !==============================================================
          !       ***** R U N   H E M C O   P H A S E   1 *****
          ! 
@@ -859,15 +831,6 @@
          !==============================================================
          CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, 
      &                       State_Chm, ITS_TIME_FOR_EMIS(), 1, RC )
-
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!                                                                      %%
-!! TEMPORARY: Before writing diag and rst files [kg] -> [kg/kg]         
-!!                                                                     
-         CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,             
-     &                                     State_Met, State_Chm, RC )  
-!!                                                                      %%
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          !==============================================================
          !   ***** W R I T E   D I A G N O S T I C   F I L E S *****
@@ -1120,11 +1083,14 @@
 !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !!                                                                     %%
 !! TEMPORARY: Before AIRQNT: [kg/kg] -> [kg]                           
-!!                                                                     
-!!            Putting this after AIRQNT would result in slightly       
-!!            different kg from v11-01b due to change in moisture.     
-!!            Putting this after SET_FLOATING_PRESSURE is okay since   
-!!            transport is on for this diff testing.                   
+!!
+!!            Convert to [kg] before moisture update to preserve the
+!!            mass used in legacy code. Mixing ratio -> mass requires
+!!            grid box dry air mass which fluctuates with moisture.  
+!!            Converting to [kg] after AIRQNT would result in slightly       
+!!            different mass than in v11-01b due to change in SPHU.
+!!            Converting after SET_FLOATING_PRESSURE is okay since   
+!!            pressure has not yet been incorporated into moisture.   
 !!                                                                     
          CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,            
      &                                     State_Met, State_Chm, RC ) 
@@ -1136,14 +1102,17 @@
 
 !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !!                                                                      %%
-!! TEMPORARY: After AIRQNT: [kg]                                        
-!!                                                                      
-!         CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,             
-!     &                                     State_Met, State_Chm, RC )  
-!!                                                                      %%
+!! TEMPORARY: Before SET_H2O_TRAC: [kg]                              
+!!                                     
+!!            Converting to kg/kg before SET_H2O_TRAC would result in
+!!            slightly different kg from v11-01b due to change in moisture
+!!            in the stratosphere within SET_H2O_TRAC.
+!! 
 !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
+         ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant and,
+         ! if LUCX=T and LSETH2O=F and LACTIVEH2O=T, update specific humidity 
+         ! in the stratosphere
          IF (IDTH2O.ne.0) THEN
             CALL SET_H2O_TRAC( am_I_Root, 
      &                         ( ( .not. LUCX ) .or. LSETH2O ),
@@ -1154,7 +1123,7 @@
 
 !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !!                                                                      %%
-!! TEMPORARY: After SET_H2O_TRAC: [kg] -> [kg/kg]                       
+!! TEMPORARY: After SET_H2O_TRAC: [kg/kg] -> [kg]                       
 !!                                                                      
          CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,             
      &                                     State_Met, State_Chm, RC )  
@@ -1341,15 +1310,6 @@
             ! Increment emission counter
             CALL SET_CT_EMIS( INCREMENT=.TRUE. )
 
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                   %%
-   !! TEMPORARY: Before dry deposition: [kg/kg] -> [kg]                 
-   !!                                                                   
-            CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,          
-     &                                     State_Met, State_Chm, RC )  
-   !!                                                                   %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
             !===========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================
@@ -1357,12 +1317,6 @@
                CALL DO_DRYDEP( am_I_Root, Input_Opt, 
      &                         State_Met, State_Chm, RC )
             ENDIF
-
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                    %%
-   !! TEMPORARY: Before emissions part 2 [kg]                            
-   !!                                                                    %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             !===========================================================
             !             ***** E M I S S I O N S *****
@@ -1380,15 +1334,6 @@
             ! (ckeller, 4/1/15)
             CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, 
      &                          State_Chm, ITS_TIME_FOR_EMIS(), 2, RC )
-
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                   %%
-   !! TEMPORARY: End of ITS_TIME_FOR_EMIS(): [kg] -> [kg/kg]            
-   !!                                                                   
-            CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,          
-     &                                     State_Met, State_Chm, RC )  
-   !!                                                                   %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! Stop the run if the HEMCO run sequence dies w/ an error
             IF ( RC /= GIGC_SUCCESS ) THEN
@@ -1409,15 +1354,6 @@
             ! Increment the convection timestep
             CALL SET_CT_CONV( INCREMENT=.TRUE. )
 
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                   %%
-   !! TEMPORARY: Before mixing: [kg/kg] -> [v/v]                        
-   !!                                                                   
-         CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS,           
-     &                                     Input_Opt, State_Chm, RC )   
-   !!                                                                   %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
             !===========================================================
             !      ***** M I X E D   L A Y E R   M I X I N G *****
             !===========================================================
@@ -1433,15 +1369,6 @@
             ! (ckeller, 3/5/15)
             CALL DO_MIXING ( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
-
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                   %%
-   !! TEMPORARY: After mixing: [v/v] -> [kg/kg]                         
-   !!                                                                   
-               CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS,     
-     &                                     Input_Opt, State_Chm, RC )   
-   !!                                                                   %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             IF ( RC /= GIGC_SUCCESS ) THEN
                CALL ERROR_STOP( 'Error in MIX_TRACERS!', 'main.F' )
@@ -1500,7 +1427,11 @@
 
    !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    !!                                                                    %%
-   !! TEMPORARY: Before SET_H2O_TRAC: [kg/kg] -> [kg]                     
+   !! TEMPORARY: Before SET_H2O_TRAC: [kg/kg] -> [kg] 
+   !! 
+   !!       NOTE: It is important to keep SET_H2O_TRAC in kg for now
+   !!             since a moisture update occurs within it for the
+   !!             stratosphere. 
    !!                                                                     
             CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,             
      &                                     State_Met, State_Chm, RC )     
@@ -1520,11 +1451,8 @@
 
    !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    !!                                                                    %%
-   !! TEMPORARY: Before DO_CHEMISTRY: [kg]                               
+   !! TEMPORARY: Before DO_CHEMISTRY: [kg]                   
    !!                                                                    
-!            CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,  
-!     &                                     State_Met, State_Chm, RC )
-   !!                                                                    %%
    !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! Do GEOS-Chem chemistry
@@ -1533,7 +1461,7 @@
 
    !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    !!                                                                    %%  
-   !! TEMPORARY: After DO_CHEMISTRY: [kg/kg] -> [kg]                      
+   !! TEMPORARY: After DO_CHEMISTRY: [kg] -> [kg/kg]                      
    !!                                                                    
             CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,  
      &                                     State_Met, State_Chm, RC )
@@ -1589,30 +1517,8 @@
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
 
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                    %%
-   !! TEMPORARY: Before RECOMPUTE_OD: [kg/kg] -> [kg]                    
-   !!                                                                    
-   !!            NOTE: RECOMPUTE_OD calls AEROSOL_CONC which is also     
-   !!                  called from CHEMDR (in DO_CHEMISTRY). Keep in     
-   !!                  [kg] until FlexChem                               
-   !!                                                                    
-            CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,           
-     &                                     State_Met, State_Chm, RC )   
-   !!                                                                    %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
             CALL RECOMPUTE_OD
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                    %%
-   !! TEMPORARY: After RECOMPUTE_OD: [kg] -> [kg/kg]                     
-   !!                                                                    
-             CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,           
-     &                                     State_Met, State_Chm, RC )    
-   !!                                                                    %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ENDIF
 
@@ -1648,39 +1554,22 @@
                !set all values to one for baseline RT calc
                CALL SET_SPECMASK(0)
 
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                     %%
-   !! TEMPORARY: Before RRTMG: [kg/kg] -> [kg]                            
-   !!                                                                     
-            CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,             
-        &                                     State_Met, State_Chm, RC )  
-   !!                                                                     %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
                !First call for baseline (all aerosol and ozone)
-               CALL DO_RRTMG_RAD_TRANSFER( DAY, MONTH, ICLD, 0, ISEED,
-     &                                     Input_Opt, State_Met,
-     &                                     State_Chm)
+               CALL DO_RRTMG_RAD_TRANSFER( am_I_Root, DAY, MONTH, 
+     &                                     ICLD, 0, ISEED, Input_Opt, 
+     &                                     State_Met, State_Chm, RC)
 
                !Second call with aerosols or ozone if requested
                DO N = 1, NSPECRADMENU
                   IF (LSPECRADMENU(N).EQ.1) THEN
                      !generate mask for species in RT
                      CALL SET_SPECMASK(N)
-                     CALL DO_RRTMG_RAD_TRANSFER(DAY, MONTH, ICLD,
-     &                                          N,   ISEED, Input_Opt,
-     &                                          State_Met, State_Chm )
+                     CALL DO_RRTMG_RAD_TRANSFER( am_I_Root, DAY, MONTH, 
+     &                                           ICLD, N, ISEED, 
+     &                                           Input_Opt, State_Met, 
+     &                                           State_Chm, RC )
                   ENDIF
                ENDDO
-
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                     %%
-   !! TEMPORARY: End of RRTMG: [kg] -> [kg/kg]                            
-   !!                                                                     
-               CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,          
-     &                                     State_Met, State_Chm, RC )     
-   !!                                                                     %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                ! Increment radiation timestep counter
                CALL SET_CT_RAD( INCREMENT=.TRUE. )
@@ -1694,12 +1583,6 @@
          ENDIF
 
 #endif
-
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!                                                                      %%
-!! TEMPORARY - For rest of dynamic timestep loop: [kg/kg]               
-!!                                                                      %%
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          !==============================================================
          !   ***** I N C R E M E N T   E L A P S E D   T I M E *****

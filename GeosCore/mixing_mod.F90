@@ -126,6 +126,7 @@ CONTAINS
     USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
     USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
     USE DAO_MOD,            ONLY : CONVERT_UNITS
+    USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -145,10 +146,16 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  04 Mar 2015 - C. Keller    - Initial version 
+!  12 Aug 2015 - E. Lundgren  - Input tracer units are now [kg/kg] and 
+!                               are converted to [v/v] for mixing
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    LOGICAL       :: OnlyAbovePBL
+!
+! LOCAL VARIABLES:
+!
+    LOGICAL   :: OnlyAbovePBL
+    INTEGER   :: N_TRACERS
 
     !=================================================================
     ! DO_MIXING begins here!
@@ -156,6 +163,13 @@ CONTAINS
 
     ! Assume success
     RC = GIGC_SUCCESS
+
+    ! Set number of tracers for unit conversion call (ewl, 8/12/15)
+    N_TRACERS = Input_Opt%N_TRACERS
+
+    ! Convert [kg/kg dry air] to [v/v dry air] for mixing (ewl, 8/12/15)
+    CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, Input_Opt, &
+                                   State_Chm, RC )  
 
     ! ------------------------------------------------------------------
     ! Do non-local PBL mixing. This will apply the tracer tendencies
@@ -181,8 +195,8 @@ CONTAINS
     ! capped at the tropopause to avoid build-up in stratosphere.
     ! ------------------------------------------------------------------
 
-    ! DO_TEND operates in units of kg. The tracer arrays enters as
-    ! v/v, hence need to convert before and after.
+    ! DO_TEND operates in units of kg. The tracer arrays are in
+    ! v/v for mixing, hence need to convert before and after.
     ! v/v --> kg
     CALL CONVERT_UNITS( 2, Input_Opt%N_TRACERS, Input_Opt%TCVV, &
                         State_Met%AD, State_Chm%Tracers ) 
@@ -202,6 +216,10 @@ CONTAINS
     IF ( Input_Opt%LTURB .AND. .NOT. Input_Opt%LNLPBL ) THEN
        CALL DO_PBL_MIX( Input_Opt%LTURB, Input_Opt, State_Met, State_Chm )
     ENDIF
+
+    ! Convert tracer conc back to [kg/kg dry air] after mixing (ewl, 8/12/15)
+    CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, Input_Opt, &
+                                   State_Chm, RC )
 
   END SUBROUTINE DO_MIXING 
 !EOC

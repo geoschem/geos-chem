@@ -975,6 +975,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -997,6 +998,8 @@
 !  13 Nov 2012 - R. Yantosca - Now pass Input_Opt and RC arguments for GIGC
 !  15 Nov 2012 - M. Payer    - Now pass all met fields via State_Met
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  12 Aug 2015 - E. Lundgren  - Input tracer units are now [kg/kg] and 
+!                               are converted to [kg] for recomputing OD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1007,7 +1010,7 @@
       LOGICAL :: IT_IS_AN_AEROSOL_SIM
       LOGICAL :: LCARB, LCHEM,  LCRYST,     LDUST
       LOGICAL :: LPRT,  LSSALT, LSULF,      LSOA
-      INTEGER :: MONTH, YEAR,   WAVELENGTH
+      INTEGER :: MONTH, YEAR,   WAVELENGTH, N_TRACERS
 
       !=================================================================
       ! RECOMPUTE_OD begins here!
@@ -1041,9 +1044,17 @@
             ! And then make sure that the aersol tracers are defined
             IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
+               ! Convert tracer units to [kg] for AEROSOL_CONC (ewl, 8/12/15)
+               CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,   
+     &                                     State_Met, State_Chm, RC )
+
                ! Skip this section if all of these are turned off
                CALL AEROSOL_CONC
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+               ! Convert tracer units back to [kg/kg]  (ewl, 8/12/15)
+               CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,   
+     &                                     State_Met, State_Chm, RC )
 
                !===============================================================
                ! Call RDAER -- computes aerosol optical depths

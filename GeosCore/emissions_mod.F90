@@ -125,6 +125,7 @@ CONTAINS
     USE TRACERID_MOD,       ONLY : IDTCH3Br, IDTBrO
     USE BROMOCARB_MOD,      ONLY : SET_BRO
     USE BROMOCARB_MOD,      ONLY : SET_CH3BR
+    USE UNITCONV_MOD
 
     ! Use old mercury code for now (ckeller, 09/23/2014)
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
@@ -138,7 +139,8 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
     LOGICAL,          INTENT(IN   )  :: EmisTime   ! Emissions in this time step? 
-    INTEGER,          INTENT(IN   )  :: Phase      ! Run phase 
+    INTEGER,          INTENT(IN   )  :: Phase      ! Run phase
+ 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -152,6 +154,8 @@ CONTAINS
 !  13 Nov 2014 - C. Keller    - Added EMISSCARBON (for SESQ and POA)
 !  21 Nov 2014 - C. Keller    - Added EMISSVOC to prevent VOC build-up
 !                               above tropopause
+!  12 Aug 2015 - E. Lundgren  - Incoming tracer units are now [kg/kg] and
+!                               are converted to [kg] for HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -159,6 +163,7 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     LOGICAL   :: IsInVV
+    INTEGER   :: N_TRACERS
  
     !=================================================================
     ! EMISSIONS_RUN begins here!
@@ -166,6 +171,13 @@ CONTAINS
 
     ! Assume success
     RC = GIGC_SUCCESS
+
+    ! Set number of tracers for unit conversion call (ewl, 8/12/15)
+    N_TRACERS = Input_Opt%N_TRACERS
+
+    ! Convert tracer units to [kg] for HEMCO (ewl, 8/12/15)
+    CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
+                                State_Chm, RC ) 
 
     ! Run HEMCO. Phase 1 will only update the HEMCO clock and the 
     ! HEMCO data list, phase 2 will perform the emission calculations.
@@ -253,6 +265,10 @@ CONTAINS
        ENDIF
     ENDIF ! Phase/=1  
  
+    ! Convert tracer units to [kg] for HEMCO (ewl, 8/12/15)
+    CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met,  &
+                                State_Chm, RC ) 
+
     ! Return w/ success
     RC = GIGC_SUCCESS
    
