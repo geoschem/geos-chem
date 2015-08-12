@@ -210,6 +210,8 @@
 !  31 May 2013 - R. Yantosca - Now pass State_Chm object via the arg list
 !  31 May 2013 - R. Yantosca - Remove LDRYD; replace w/ Input_Opt%LDRYD
 !  31 May 2013 - R. Yantosca - Pass State_Chm to AEROPHYS, AERO_DRYDEP
+!  12 Aug 2015 - E. Lundgren - State_Chm%TRACERS units are now [kg/kg] so
+!                              convert to [kg] internally for TOMAS
 !******************************************************************************
 !
       ! References to F90 modules
@@ -217,6 +219,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE UNITCONV_MOD
 
       ! Arguments
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
@@ -225,12 +228,26 @@
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER    :: N_TRACERS   ! for tracer unit conversion (ewl, 8/12/15)
+
       !=================================================================
       ! DO_TOMAS begins here
       !=================================================================
 
       ! Assume success
       RC    = GIGC_SUCCESS
+
+      ! Get logical values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+
+      ! Convert tracer concentration (State_Chm%TRACERS) from [kg/kg] 
+      ! to [kg] for TOMAS 
+      ! (ewl, 8/12/15)
+      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,            
+     &                                     State_Met, State_Chm, RC ) 
 
       ! Do TOMAS aerosol microphysics
       CALL AEROPHYS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -253,6 +270,10 @@
       CALL CHECKMN( 0,         0,         0,    
      &              Input_Opt, State_Met, State_Chm, 
      &              'kg',      'Before exiting DO_TOMAS' )
+
+      ! Convert tracer concentration back to [kg/kg] (ewl, 8/12/15)
+      CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,            
+     &                                     State_Met, State_Chm, RC ) 
 
       ! Return to calling program 
       END SUBROUTINE DO_TOMAS
@@ -389,8 +410,8 @@
       LOGICAL :: LPRT
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      ! Define a local array to hold tracer concentration values from the 
+      ! Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
@@ -5922,7 +5943,7 @@ c
 ! !LOCAL VARIABLES:
 !
       INTEGER              :: AS, K, I,J,L, dum1, dum2, dum3, LUN
-      REAL(fp)               :: Mo
+      REAL(fp)             :: Mo
       CHARACTER(LEN=255)   :: filename
       CHARACTER(LEN=255)   :: fname(4)     
       CHARACTER(LEN=255)   :: DATA_DIR
@@ -6632,8 +6653,8 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       
 !------------------------------------------------------------------------------
 
-      SUBROUTINE AERO_DIADEN( DIA,       DENSITY,   LEV, 
-     &                        Input_Opt, State_Met, State_Chm )
+      SUBROUTINE AERO_DIADEN( am_I_Root, UNITS,     LEV, Input_Opt,
+     &                        State_Met, State_Chm, DIA, DENSITY, RC )
 
 !******************************************************************************
 !  Subroutine AERO_DIADEN calculate the diameter and density by calling external
@@ -6643,7 +6664,8 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 !        to DEPVEL.
 !
 !  REVISION HISTORY:
-!  24 Mar 2015 - E.Lundgren - Change tracer units from kg to kg/kg.
+!  12 Aug 2015 - E.Lundgren - Now pass am_I_Root, tracer units, and RC for 
+!                             internal tracer unit conversion to [kg] if needed
 !******************************************************************************
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -6651,37 +6673,55 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_ErrCode_Mod
       USE TRACERID_MOD,       ONLY : IDTNK1,   IDTSF1,   IDTSS1
       USE TRACERID_MOD,       ONLY : IDTDUST1, IDTECIL1, IDTECOB1
       USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1
+      USE UNITCONV_MOD
 
       IMPLICIT NONE
 
       ! Arguments 
-      REAL(fp),         INTENT(OUT)   :: DIA(MAXIJ, IBINS)
-      REAL(fp),         INTENT(OUT)   :: DENSITY(MAXIJ, IBINS)
-      INTEGER,        INTENT(IN)    :: LEV  
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      
+      LOGICAL,           INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      CHARACTER(LEN=*),  INTENT(IN)    :: UNITS       ! units ('kg' or 'kg/kg')
+      INTEGER,           INTENT(IN)    :: LEV  
+      TYPE(OptInput),    INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState),    INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState),    INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      REAL(fp),          INTENT(OUT)   :: DIA(MAXIJ, IBINS)
+      REAL(fp),          INTENT(OUT)   :: DENSITY(MAXIJ, IBINS)
+      INTEGER,           INTENT(OUT)   :: RC          ! Success or failure?
+
       ! Local variables
-      INTEGER           :: I,J, BIN, JC, IJLOOP, TRACID, WID
+      INTEGER           :: I,J, BIN, JC, IJLOOP, TRACID, WID, N_TRACERS
 !      REAL(fp), EXTERNAL  :: AERODENS 
       REAL(fp)            :: AMASS(ICOMP)
       REAL(fp)            :: MSO4, MNACL, MH2O
       REAL(fp)            :: MECIL, MECOB, MOCIL, MOCOB, MDUST
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      ! Define a local array to hold tracer concentration values from the 
+      ! Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER   :: STT(:,:,:,:)
 
       !========================================================================
       ! AERO_DIADEN begins here!
       !========================================================================
+
+      ! Assume success
+      RC                =  GIGC_SUCCESS
+
+      ! Set variables for potential tracer unit conversion (ewl, 8/12/15)
+      N_TRACERS = Input_Opt%N_TRACERS
       
-      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
+      ! If UNITS is 'kg/kg', convert tracer units to [kg] for this routine
+      ! (ewl, 8/12/15)
+      IF ( TRIM( UNITS ) .eq. 'kg/kg' ) THEN
+         CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met, 
+     &                               State_Chm, RC )  
+      ENDIF
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       STT => State_Chm%Tracers
 
       ! Initialize mass mixing ratios
@@ -6745,6 +6785,13 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! If units were originally 'kg/kg', convert [kg] back to mixing 
+      ! ratio (ewl, 8/12/15)
+      IF ( TRIM( UNITS ) .eq. 'kg/kg' ) THEN
+         CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met, 
+     &                            State_Chm, RC )  
+      ENDIF
 
       ! Free pointer
       NULLIFY( STT )

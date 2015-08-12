@@ -68,6 +68,8 @@
 !  05 Nov 2014 - M. Yannetti - PRECISION_MOD convert REAL*8 to REAL(fp)
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
 !                              Remove dependency on pressure_mod.
+!  12 Aug 2015 - E. Lundgren - Now pass am_I_Root, tracer units, and RC
+!                              to AERO_DIADEN for potential unit conversion
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -75,18 +77,18 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                :: I, J, L, N, JC, BIN, ID, IJLOOP
-      REAL(fp)                 :: DTCHEM,  AREA_CM2, FLUX
-      REAL(fp)                 :: X, X0(IBINS, ICOMP-IDIAG+1)
-      REAL(fp)                 :: Y, Y0, RKT
-      REAL(fp)                 :: NU0(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL(fp)                 :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL(fp)                 :: SIZ_DIA(IIPAR*JJPAR,IBINS)
-      REAL(fp)                 :: SIZ_DEN(IIPAR*JJPAR,IBINS)
-      REAL(fp)                 :: DEN,   DP,    PDP,  TEMP,  P
-      REAL(fp)                 :: CONST, SLIP,  VISC, DELZ,  DELZ1
-      REAL(fp)                 :: TOT1,  TOT2
-      REAL(fp),  PARAMETER     :: Go = 9.8e+0_fp  !Gravitational accel [m/s2]
-      REAL(fp)                 :: TC(LLPAR),  TC0(LLPAR)
+      REAL(fp)               :: DTCHEM,  AREA_CM2, FLUX
+      REAL(fp)               :: X, X0(IBINS, ICOMP-IDIAG+1)
+      REAL(fp)               :: Y, Y0, RKT
+      REAL(fp)               :: NU0(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp)               :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp)               :: SIZ_DIA(IIPAR*JJPAR,IBINS)
+      REAL(fp)               :: SIZ_DEN(IIPAR*JJPAR,IBINS)
+      REAL(fp)               :: DEN,   DP,    PDP,  TEMP,  P
+      REAL(fp)               :: CONST, SLIP,  VISC, DELZ,  DELZ1
+      REAL(fp)               :: TOT1,  TOT2
+      REAL(fp),  PARAMETER   :: Go = 9.8e+0_fp  !Gravitational accel [m/s2]
+      REAL(fp)               :: TC(LLPAR),  TC0(LLPAR)
       INTEGER,SAVE           :: DRYD(IBINS)
       LOGICAL,SAVE           :: FIRST = .TRUE.
       INTEGER,SAVE           :: H2SO4ID
@@ -183,8 +185,8 @@ cdbg      print *, dryd(:)
       IF ( DOSETTLING ) THEN
 
       ! SIZ_DIA [=] m  and SIZ_DEN [=] kg/m3
-      CALL AERO_DIADEN( SIZ_DIA(:,:), SIZ_DEN(:,:), 1, 
-     &                  Input_Opt,    State_Met,    State_Chm )
+      CALL AERO_DIADEN( am_I_Root, 'kg',      1,       Input_Opt,
+     &                  State_Met, State_Chm, SIZ_DIA, SIZ_DEN, RC )
 
 !$OMP PARALLEL DO
 !$OMP+PRIVATE( BIN, I, J, IJLOOP, DP, DEN, CONST, L, P, TEMP )
