@@ -107,6 +107,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -144,7 +145,7 @@
          FRAC_SNOW_OR_ICE    = 0e+0_fp
          FRAC_SNOWFREE_LAND  = 1e+0_fp
 
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          ! Distinguish between ice/snow and snow-free land
          FRAC_SNOW_OR_ICE    = MIN( State_Met%FRSNO(I,J)     +
      &                              State_Met%FRSEAICE(I,J)  + 
@@ -524,6 +525,7 @@
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -554,6 +556,16 @@
       REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp ! for sunlight function, yzh
 #elif defined(GRID2x25)
       REAL(fp), PARAMETER :: SOIL_EMIS_FAC=1.6e-2_fp
+#elif defined(GRID05x0625)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! bmy, 8/12/15, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
+      ! This is a non-physical value and would need to be changed for an
+      ! actual mercury simulation
+      !
+      ! %%% NOTE: Bob Y. used same value as for GRID05x0666  %%%
+      ! %%% Team Hg will have to supply a better value later %%%
+      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp  ! yzh
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #elif defined(GRID05x0666)
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! lhu, 1/5/2012, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
@@ -588,7 +600,7 @@
          ! (jaf, 4/26/11)
          FRAC_SNOWFREE_LAND = 1e+0_fp
 
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          FRAC_SNOWFREE_LAND = MAX( State_Met%FRLAND(I,J) - 
      &                             State_Met%FRSNO(I,J), 0e+0_fp )
          IS_SNOWFREE_LAND   = ( FRAC_SNOWFREE_LAND > 0e+0_fp )

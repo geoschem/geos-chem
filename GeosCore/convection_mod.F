@@ -2098,6 +2098,7 @@
 !  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
 !  22 Jun 2015 - E. Lundgren - Move QB_NUM calculation to within timestep loop
+!  12 Aug 2015 - R. Yantosca - Treat MERRA2 in same way as we do for GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2159,9 +2160,9 @@
       Q        => State_Chm%TRACERS (I,J,:,:      ) ! Tracer concentration
                                                     ! [mol/mol total air] 
                                                 
-#if   defined( GEOS_FP )
+#if   defined( GEOS_FP ) || defined( MERRA2 )
 
-      !%%%%% FOR GEOS-FP, PFICU and PFLCU are on level edges %%%%%
+      !%%%%% FOR GEOS-FP/MERRA2, PFICU and PFLCU are on level edges %%%%%
       PFICU    => State_Met%PFICU   (I,J,2:LLPAR+1) ! Dwnwd flx of conv 
                                                     !  ice precip [kg/m2/s]
       PFLCU    => State_Met%PFLCU   (I,J,2:LLPAR+1) ! Dwnwd flux of conv   

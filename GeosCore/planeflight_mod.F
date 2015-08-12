@@ -1290,6 +1290,7 @@
 !  12 Jan 2015 - L. Schiferl - Allow for more precision in TAUE computation
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod. 
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1553,7 +1554,7 @@
                   CASE ( 1009 )
                      VARI(V) = L
 
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
                   !--------------------------
                   ! GEOS-Chem SEAICE frac's
                   !--------------------------

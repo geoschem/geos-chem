@@ -478,6 +478,7 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
+!  12 Aug 2015 - R. Yantosca - Added support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -555,6 +556,12 @@
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp ! yzh, consider cloud fraction 
 #elif defined( GRID2x25 )
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 3.5e-3_fp/2e+0_fp
+#elif defined( GRID05x0625 ) && defined( NESTED_NA )
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% Bob Y. used same value as for GRID05x0666             %%%
+      !%%% Team Hg needs to supply a better value (bmy, 8/12/15) %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 ! yzh
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 ! yzh
 #else
@@ -727,7 +734,7 @@
 
          ! Area fraction of box with Hg0 dep. Default is dep everywhere
          F_Hg0_Dep = 1e+0_fp
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          ! Deposition occurs over areas that are not ocean, snow or ice
          ! (jaf, 4/26/11)
          F_Hg0_Dep = 1e+0_fp - MAX( 0e+0_fp, MIN( 1e+0_fp, 
@@ -812,7 +819,7 @@
          ! Reduction rate (requires liquid water content)
          !---------------------------------------------
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields

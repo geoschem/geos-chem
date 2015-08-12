@@ -1175,15 +1175,15 @@ export TIMERS
 ###                                                                         ###
 ###############################################################################
 
-headerinfo:
-	@@echo '####### in Makefile_header.mk ########' 
-	@@echo "COMPILER    : $(COMPILER)"
-	@@echo "DEBUG       : $(DEBUG)"
-	@@echo "BOUNDS      : $(BOUNDS)"
-	@@echo "F90         : $(F90)"
-	@@echo "CC          : $(CC)"
-	@@echo "INCLUDE     : $(INCLUDE)"
-	@@echo "LINK        : $(LINK)"
-	@@echo "USERDEFS    : $(USER_DEFS)"
-	@@echo "NC_INC_CMD  : $(NC_INC_CMD)"
-	@@echo "NC_LINK_CMD : $(NC_LINK_CMD)"
+#headerinfo:
+#	@@echo '####### in Makefile_header.mk ########' 
+#	@@echo "COMPILER    : $(COMPILER)"
+#	@@echo "DEBUG       : $(DEBUG)"
+#	@@echo "BOUNDS      : $(BOUNDS)"
+#	@@echo "F90         : $(F90)"
+#	@@echo "CC          : $(CC)"
+#	@@echo "INCLUDE     : $(INCLUDE)"
+#	@@echo "LINK        : $(LINK)"
+#	@@echo "USERDEFS    : $(USER_DEFS)"
+#	@@echo "NC_INC_CMD  : $(NC_INC_CMD)"
+#	@@echo "NC_LINK_CMD : $(NC_LINK_CMD)"

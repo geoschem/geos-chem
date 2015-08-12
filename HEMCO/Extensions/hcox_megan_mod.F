@@ -2798,7 +2798,9 @@
 !  16 Apr 2015 - C. Keller   - Now restrict GWETROOT to values between 0.0 and
 !                              1.0. This only seems to be a problem within the
 !                              GEOS-5 ESM, where GWETROOT values over the ocean
-!                              become 1e+15 (= missing value). 
+!                              become 1e+15 (= missing value).
+!  12 Aug 2015 - R. Yantosca - Extend #ifdef for MERRA2 meteorology
+ 
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -2814,7 +2816,7 @@
       GAMMA_SM = 1.0_hp
 
       ! GWETROOT is only defined for GEOS-5
-#if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
+#if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
 
       !GWETROOT = ExtState%GWETROOT%Arr%Val(I,J)
       ! Error trap: GWETROOT must be between 0.0 and 1.0 (ckeller, 4/16/15)

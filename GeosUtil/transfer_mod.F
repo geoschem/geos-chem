@@ -1065,6 +1065,7 @@
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  12 Aug 2015 - R. Yantosca - Treat MERRA2 in the same way as GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1098,15 +1099,17 @@
       ELSE
 
 #if   defined( GEOS_4  )
-         L_COPY = 19       ! GEOS-4: Copy up to L=19
+         L_COPY = 19       ! GEOS-4:  Copy up to L=19
 #elif defined( GEOS_5  )
-         L_COPY = 36       ! GEOS-5: Copy up to L=36
+         L_COPY = 36       ! GEOS-5:  Copy up to L=36
 #elif defined( GEOS_FP )
          L_COPY = 36       ! GEOS-FP: Copy up to L=36
 #elif defined( MERRA   )
-         L_COPY = 36       ! MERRA: Copy up to L=36
+         L_COPY = 36       ! MERRA:   Copy up to L=36
+#elif defined( MERRA2  )
+         L_COPY = 36       ! MERRA2:  Copy up to L=36
 #elif defined( GCAP    )
-         L_COPY = LGLOB    ! GCAP: Copy all levels
+         L_COPY = LGLOB    ! GCAP:    Copy all levels
 #endif
 
       ENDIF
@@ -1120,7 +1123,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGE_IN' )
       EDGE_IN = 0e+0_fp
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
       !-----------------------------------------------------------------
       ! For GEOS-5/MERRA, levels 1-31 are "terrain-following" 

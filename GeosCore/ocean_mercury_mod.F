@@ -768,7 +768,8 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  25 Jul 2014 - R. Yantosca - Now remove reference to function SFCWINDSQR
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!   5 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !
 !  ##########################################################################
 !  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
@@ -974,7 +975,7 @@
          ! Use fractional land type information in MERRA (jaf, 4/26/11)
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction.
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * 
      &             ( State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J) )
          A_ocean = A_ocean + A_M2 * 
@@ -1055,7 +1056,7 @@
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction. Don't let the fraction
          ! be less than zero (jaf, 4/26/11)
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          FRAC_L       = State_Met%FRLAND(I,J)
          FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
      &                       State_Met%FRSEAICE(I,J), 0e+0_fpp )
@@ -2208,6 +2209,7 @@
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !******************************************************************************
 !
       ! Reference to fortran90 modules
@@ -2264,7 +2266,7 @@
       ! Use fractional land type information in MERRA (jaf, 4/26/11)
       ! FROCEAN is a constant, so to get correct ocean fraction we
       ! need to subtract the sea ice fraction.
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       FRAC_O     = MAX( State_Met%FROCEAN(I,J) - 
      &                  State_Met%FRSEAICE(I,J), 0e+0_fpp)
 #else
