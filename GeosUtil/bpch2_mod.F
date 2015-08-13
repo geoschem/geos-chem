@@ -751,10 +751,10 @@
 #elif defined( GEOS_FP )
       MODELNAME = 'GEOSFP'
 
-#elif defined( MERRA ) && defined( GRIDREDUCED )
+#elif defined( MERRA2 ) && defined( GRIDREDUCED )
       MODELNAME = 'MERRA2_47L'
       
-#elif defined( MERRA ) 
+#elif defined( MERRA2 ) 
       MODELNAME = 'MERRA2'
 
 #elif defined( EXTERNAL_FORCING ) || defined ( EXTERNAL_GRID ) 
