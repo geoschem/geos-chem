@@ -87,42 +87,43 @@ CONTAINS
 ! 
 ! !REVISION HISTORY:
 !  12 Aug 2015 - R. Yantosca - Initial version, based on geosfp_read_mod.F90
+!  13 Aug 2015 - R. Yantosca - MERRA2 data is now storead as netCDF4 (.nc4)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
 #if   defined( GRID4x5 )
-    resString = '4x5.nc'
+    resString = '4x5.nc4'
      
 #elif defined( GRID2x25 ) 
-    resString = '2x25.nc'
+    resString = '2x25.nc4'
 
 #elif defined( GRID1x125 )
-    resString = '1x125.nc'
+    resString = '1x125.nc4'
 
 #elif defined( GRID1x1 ) 
-    resString = '1x1.nc'
+    resString = '1x1.nc4'
 
 #elif defined( GRID05x0666 )
-    resString = '05x0625.nc'
+    resString = '05x0625.nc4'
 
 #elif defined( GRID05x0666 )
-    resString = '05x0666.nc'
+    resString = '05x0666.nc4'
 
 #elif defined( GRID05x0625 ) && defined( NESTED_CH )
-    resString = '05x0625.CH.nc'
+    resString = '05x0625.CH.nc4'
 
 #elif defined( GRID05x0625 ) && defined( NESTED_EU )
-    resString = '05x0625.EU.nc'
+    resString = '05x0625.EU.nc4'
 
 #elif defined( GRID05x0625 ) && defined( NESTED_NA )
-    resString = '05x0625.NA.nc'
+    resString = '05x0625.NA.nc4'
 
 #elif defined( GRID05x0625 ) && defined( NESTED_SE )
-    resString = '05x0625.SE.nc'
+    resString = '05x0625.SE.nc4'
 
 #elif defined( GRID05x0625 )
-    resString = '05x0625.nc'
+    resString = '05x0625.nc4'
 
 #endif
 
@@ -252,6 +253,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  12 Aug 2015 - R. Yantosca - Initial version, based on geosfp_read_mod.F90
+!  13 Aug 2015 - R. Yantosca - Bug fix: change CN date to 2015/01/01
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -281,16 +283,16 @@ CONTAINS
 
     ! Replace time & date tokens in the file name
     dir     = TRIM( Input_Opt%MERRA2_DIR )
-    CALL Expand_Date( dir, 20110101, 000000 )
+    CALL Expand_Date( dir, 20150101, 000000 )
 
     ! Replace time & date tokens in the file name
     nc_file = Get_Resolution_String() 
     nc_file = 'MERRA2.YYYYMMDD.CN.' // TRIM( nc_file ) 
-    CALL Expand_Date( nc_file, 20110101, 000000 )
+    CALL Expand_Date( nc_file, 20150101, 000000 )
 
     ! Construct complete file path
     nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-   
+    
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
 
@@ -466,7 +468,7 @@ CONTAINS
 
     ! Construct complete file path
     nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-    
+
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
 
@@ -945,7 +947,7 @@ CONTAINS
 
     ! Construct complete file path
     nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-    
+
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
 
@@ -1269,7 +1271,7 @@ CONTAINS
 
     ! Construct complete file path
     nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-    
+
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
 

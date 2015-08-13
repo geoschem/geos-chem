@@ -699,6 +699,7 @@
 !  23 Jun 2014 - R. Yantosca - Remove references to logical_mod.F
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2
 !  12 Aug 2015 - R. Yantosca - Add support for 05x0625 grids
+!  13 Aug 2015 - R. Yantosca - Bug fix: prefix RES_DIR in front of MERRA2_DIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -871,6 +872,9 @@
 
       Input_Opt%MERRA_DIR  =  TRIM( Input_Opt%RES_DIR     ) //
      &                        TRIM( Input_Opt%MERRA_DIR   )
+
+      Input_Opt%MERRA2_DIR =  TRIM( Input_Opt%RES_DIR     ) //
+     &                        TRIM( Input_Opt%MERRA2_DIR  )
 
 !##############################################################################
 
