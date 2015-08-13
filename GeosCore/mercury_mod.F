@@ -35,6 +35,7 @@
       USE OCEAN_MERCURY_MOD, ONLY : LBROCHEM
       USE OCEAN_MERCURY_MOD, ONLY : LNEI2005
       USE OCEAN_MERCURY_MOD, ONLY : LInPlume    
+      USE OCEAN_MERCURY_MOD, ONLY : LOCEANCOEF
 
       IMPLICIT NONE
       PRIVATE
@@ -7544,6 +7545,10 @@
       !=================================================================
       ! Settings
       !=================================================================
+
+      ! Switch uses ocean rate coefficients from parameter inversion,
+      ! ref. Song et al. 2015 ACP
+      LOCEANCOEF=.FALSE.
 
       ! Switch determines whether uptake of Hg2 by sea-salt aerosol
       ! is calculated dynamically (TRUE) or uses a constant rate (FALSE)

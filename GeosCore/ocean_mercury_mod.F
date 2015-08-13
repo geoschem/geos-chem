@@ -147,6 +147,7 @@
       PUBLIC :: READ_HG2_PARTITIONING
       PUBLIC :: Fp, Fg        ! hma 
       PUBLIC :: LNEI2005,               LInPlume     ! yzh
+      PUBLIC :: LOCEANCOEF        ! sjs 
          
       !=================================================================
       ! MODULE VARIABLES
@@ -213,6 +214,7 @@
       LOGICAL   :: LGCBROMINE !eds 4/19/12
       LOGICAL   :: LnoUSAemis
       LOGICAL   :: LNEI2005, LInPlume    ! yzh
+      LOGICAL   :: LOCEANCOEF    ! sjs
       REAL*8    :: STRAT_BR_FACTOR
 
       ! CDH Set this TRUE to use corrected area-flux relationship
@@ -777,6 +779,7 @@
       !REAL*8                :: Hgaq_tot 
       REAL*8                ::Hg2aq_tot                      
       REAL*8                :: C_tot,    Ze,       OC_tot,   Hg0_OX     
+      REAL*8                :: Kd_part, k_ox_dark ! sjs
 
       ! Parameters
       REAL*8, PARAMETER     :: EC_w      = 0.0145d0       
@@ -789,12 +792,7 @@
       REAL*8, PARAMETER     :: k_radbase = 1.557d-6
       REAL*8, PARAMETER     :: k_biobase = 4.1d-10    
       REAL*8, PARAMETER     :: k_oxbase  = 6.64d-6 
-#if defined ( LINUX_PGI )
-      REAL*8, PARAMETER     :: Kd_part   = 316227.76601684
-#else
-      REAL*8, PARAMETER     :: Kd_part   = 10d0**(5.5d0)
-#endif
-      REAL*8, PARAMETER     :: k_ox_dark = 1d-7  
+
       REAL*8, PARAMETER     :: ECchla    = 31d0     
 
       ! Conversion factor from [cm/h * ng/L] --> [kg/m2/s]
@@ -817,6 +815,29 @@
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
+
+      ! when LOCEANCOEF is true, use Kd_part and k_ox_dark from 
+      ! Song et al. ACP 2015, otherwise use ocean coefficients from 
+      ! Soerensen et al. EST 2010 ! sjs,08/12/2015
+#if defined ( LINUX_PGI )
+      IF (LOCEANCOEF) THEN
+         Kd_part = 15848.93192461
+      ELSE
+         Kd_part = 316227.76601684
+      ENDIF
+#else
+      IF (LOCEANCOEF) THEN
+         Kd_part = 10d0**(4.2d0)
+      ELSE
+         Kd_part = 10d0**(5.5d0)
+      ENDIF
+#endif
+
+      IF (LOCEANCOEF) THEN
+         k_ox_dark = 10d0**(-5.2d0)
+      ELSE
+         k_ox_dark = 1d-7  
+      ENDIF
 
       !=================================================================
       ! OCEAN_MERCURY_FLUX begins here!
