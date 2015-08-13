@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -16,9 +16,9 @@
 ! !USES:
 !
       USE inquireMod, ONLY : findFreeLUN
+      USE PRECISION_MOD
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -39,7 +39,7 @@
 ! !REMARKS:
 !  This module reads GEOS-4, GEOS-5, and GCAP met fields
 !  MERRA met fields are read in routines merra_*_mod.F
-!  GEOS-5.7.2 met fields are read in geos572_read_mod.F
+!  GEOS-FP met fields are read in geosfp_read_mod.F
 !
 ! !REVISION HISTORY:
 !  23 Jun 2003 - R. Yantosca - Initial version
@@ -61,6 +61,9 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  05 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -76,7 +79,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -90,25 +93,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE UNZIP_A3_FIELDS( OPTION, NYMD )
+      SUBROUTINE UNZIP_A3_FIELDS( Input_Opt, OPTION, NYMD )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
-      USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
-
-      USE CMN_SIZE_MOD                          ! Size parameters
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=*),  INTENT(IN) :: OPTION   ! Unzip option
-      INTEGER, OPTIONAL, INTENT(IN) :: NYMD     ! YYYY/MM/DD of file to unzip
-! 
+      CHARACTER(LEN=*),  INTENT(IN) :: OPTION    ! Unzip option
+      INTEGER, OPTIONAL, INTENT(IN) :: NYMD      ! YYYY/MM/DD of file to unzip
+      TYPE(OptInput),    INTENT(IN) :: Input_Opt ! Input Options object
+!     
 ! !REVISION HISTORY: 
 !  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from UNZIP_MET_FIELDS of "dao_read_mod.f" (bmy, 6/23/03)
@@ -141,19 +141,19 @@
 #if   defined( GEOS_4 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_4_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_4_DIR )
          A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #elif defined( GEOS_5 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_5_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_5_DIR )
          A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #elif defined( GCAP )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GCAP_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GCAP_DIR )
          A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #endif
@@ -163,33 +163,42 @@
          CALL EXPAND_DATE( A3_STR,   NYMD, 000000 )
 
          ! Location of zipped A-3 file in data dir 
-         A3_FILE_GZ  = TRIM( DATA_DIR   ) // TRIM( GEOS_DIR   ) // 
-     &                 TRIM( A3_STR     ) // TRIM( ZIP_SUFFIX )
+         A3_FILE_GZ  = TRIM( Input_Opt%DATA_DIR   ) // 
+     &                 TRIM( GEOS_DIR             ) // 
+     &                 TRIM( A3_STR               ) // 
+     &                 TRIM( Input_Opt%ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir 
-         A3_FILE     = TRIM( TEMP_DIR   ) // TRIM( A3_STR     )
+         A3_FILE     = TRIM( Input_Opt%TEMP_DIR   ) // 
+     &                 TRIM( A3_STR               )
 
          ! Remove A-3 files for this date from temp dir
-         REMOVE_DATE = TRIM( REMOVE_CMD ) // ' '                // 
-     &                 TRIM( TEMP_DIR   ) // TRIM( A3_STR     )   
+         REMOVE_DATE = TRIM( Input_Opt%REMOVE_CMD ) // ' '    // 
+     &                 TRIM( Input_Opt%TEMP_DIR   ) // 
+     &                 TRIM( A3_STR               )   
 
          !==============================================================
          ! Define the foreground and background UNZIP commands
          !==============================================================
 
          ! Foreground unzip
-         UNZIP_FG = TRIM( UNZIP_CMD ) // ' ' // TRIM( A3_FILE_GZ ) // 
-     &              TRIM( REDIRECT  ) // ' ' // TRIM( A3_FILE    )  
+         UNZIP_FG = TRIM( Input_Opt%UNZIP_CMD     ) // ' '    // 
+     &              TRIM( A3_FILE_GZ              ) // 
+     &              TRIM( Input_Opt%REDIRECT      ) // ' '    //
+     &              TRIM( A3_FILE                 )  
 
          ! Background unzip
-         UNZIP_BG  = TRIM( UNZIP_FG ) // TRIM( BACKGROUND )
+         UNZIP_BG  = TRIM( UNZIP_FG               ) // 
+     &               TRIM( Input_Opt%BACKGROUND   )
       ENDIF
 
       !=================================================================
       ! Define command to remove all A-3 files from the TEMP dir
       !=================================================================
-      REMOVE_ALL = TRIM( REMOVE_CMD ) // ' '    // TRIM( TEMP_DIR   ) // 
-     &             TRIM( WILD_CARD  ) // '.a3.' // TRIM( WILD_CARD  ) 
+      REMOVE_ALL = TRIM( Input_Opt%REMOVE_CMD     ) // ' '    // 
+     &             TRIM( Input_Opt%TEMP_DIR       ) // 
+     &             TRIM( Input_Opt%WILD_CARD      ) // '.a3.' // 
+     &             TRIM( Input_Opt%WILD_CARD      ) 
 
       !=================================================================
       ! Perform an F90 system call to do the desired operation
@@ -231,7 +240,7 @@
       END SUBROUTINE UNZIP_A3_FIELDS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -307,7 +316,7 @@
       END FUNCTION DO_OPEN_A3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -319,29 +328,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_A3_FIELDS( NYMD, NHMS, RESET, IUNIT )
+      SUBROUTINE OPEN_A3_FIELDS( NYMD, NHMS, Input_Opt, RESET, IUNIT )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
-      USE LOGICAL_MOD,   ONLY : LUNZIP
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE FILE_MOD,      ONLY : IOERROR,    FILE_EXISTS
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
       USE CMN_SIZE_MOD                          ! Size parameters
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR,    FILE_EXISTS
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)            :: NYMD    ! YYYY/MM/dd and 
-      INTEGER, INTENT(IN)            :: NHMS    !  hh:mm:ss of desired data
-      LOGICAL, INTENT(IN),  OPTIONAL :: RESET   ! Reset first-time flag?
+      TYPE(OptInput), INTENT(IN)            :: Input_Opt  ! Input_Options
+      INTEGER,        INTENT(IN)            :: NYMD       ! YYYY/MM/dd and 
+      INTEGER,        INTENT(IN)            :: NHMS       !  hh:mm:ss of data
+      LOGICAL,        INTENT(IN),  OPTIONAL :: RESET      ! Reset first flag?
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT), OPTIONAL :: IUNIT   ! Returns IU_A1 to caller
+      INTEGER,        INTENT(OUT), OPTIONAL :: IUNIT      ! Returns IU_A1 
 ! 
 ! !REVISION HISTORY: 
 !  15 Jun 1998 - R. Yantosca - Initial version
@@ -364,6 +371,7 @@
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A3 locally
 !  06 Aug 2012 - R. Yantosca - Add IUNIT to pass IU_A3 to calling routine
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  11 Apr 2013 - R. Yantosca - Now pass Input_Opt object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -395,19 +403,19 @@
 #if   defined( GEOS_4 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_4_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_4_DIR )
          A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #elif defined( GEOS_5 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_5_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_5_DIR )
          A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #elif defined( GCAP )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GCAP_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GCAP_DIR )
          A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #endif
@@ -418,11 +426,13 @@
 
          ! If unzipping, open GEOS-4 file in TEMP dir
          ! If not unzipping, open GEOS-4 file in DATA dir
-         IF ( LUNZIP ) THEN
-            PATH = TRIM( TEMP_DIR ) // TRIM( A3_FILE )
+         IF ( Input_Opt%LUNZIP ) THEN
+            PATH = TRIM( Input_Opt%TEMP_DIR ) // 
+     &             TRIM( A3_FILE            )
          ELSE
-            PATH = TRIM( DATA_DIR ) // 
-     &             TRIM( GEOS_DIR ) // TRIM( A3_FILE )
+            PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &             TRIM( GEOS_DIR           ) // 
+     &             TRIM( A3_FILE            )
          ENDIF
 
          ! Close previously opened A-3 file
@@ -447,14 +457,15 @@
          OPEN( UNIT   = IU_A3,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
-               
-         IF ( IOS /= 0 ) THEN
-            CALL IOERROR( IOS, IU_A3, 'open_a3_fields:1' )
-         ENDIF
 
          ! Echo info
          WRITE( 6, 100 ) TRIM( PATH ), IU_A3
  100     FORMAT( '     - Opening: ', a,  ' on unit ', i4 )
+          
+         IF ( IOS /= 0 ) THEN
+            CALL IOERROR( IOS, IU_A3, 'open_a3_fields:1' )
+         ENDIF
+
          
          ! Skip past the ident string
          READ( IU_A3, IOSTAT=IOS ) IDENT
@@ -472,7 +483,7 @@
       END SUBROUTINE OPEN_A3_FIELDS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -485,24 +496,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_A3_FIELDS( NYMD, NHMS )
+      SUBROUTINE GET_A3_FIELDS( NYMD, NHMS, Input_Opt, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : ALBD,    CLDFRC, EVAP,   GRN,      GWETROOT 
-      USE DAO_MOD, ONLY : GWETTOP, HFLUX,  LAI,    MOLENGTH, OICE    
-      USE DAO_MOD, ONLY : PARDF,   PARDR,  PBL,    PREACC,   PRECON
-      USE DAO_MOD, ONLY : PRECSNO, RADLWG, RADSWG, SNICE,    SNOMAS
-      USE DAO_MOD, ONLY : SNODP,   SNOW,   TROPP,  TS,       TSKIN
-      USE DAO_MOD, ONLY : U10M,    USTAR,  V10M,   Z0, EFLUX
-      USE DAO_MOD, ONLY : FRLAND,  FROCEAN,FRLAKE, FRLANDIC
-
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYY/MM/DD
-      INTEGER, INTENT(IN) :: NHMS   !  and hh:mm:ss of desired data
+      INTEGER,        INTENT(IN)    :: NYMD      ! YYYY/MM/DD
+      INTEGER,        INTENT(IN)    :: NHMS      !  and hh:mm:ss of desired data
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  23 Jun 2003 - R. Yantosca - Initial version
@@ -522,6 +532,14 @@
 !        (kjw, 8/18/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  02 Jul 2013 - R. Yantosca - For GCAP, PBL is now State_Met%PBLH (similarly
+!                              for State_Met%PRECCON and State_Met%PRECTOT)
+!  13 Aug 2013 - R. Yantosca - For GEOS-4, PBL is now State_Met%PBLH (similarly
+!                              for State_Met%PRECCON and State_Met%PRECTOT)
+!  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -555,13 +573,27 @@
       ! (1 ) ALBEDO is an A-3 field in GEOS-4.
       ! (2 ) T2M is used as a proxy for TS in GEOS-4.
       !================================================================
-      CALL READ_A3( NYMD=NYMD,       NHMS=NHMS,     
-     &              ALBEDO=ALBD,     CLDFRC=CLDFRC, HFLUX=HFLUX,   
-     &              GWETTOP=GWETTOP, PARDF=PARDF,   PARDR=PARDR,  
-     &              PBL=PBL,         PREACC=PREACC, PRECON=PRECON, 
-     &              RADLWG=RADLWG,   RADSWG=RADSWG, SNOW=SNOW,  
-     &              TS=TS,           TSKIN=TSKIN,   U10M=U10M,       
-     &              USTAR=USTAR ,    V10M=V10M,     Z0=Z0 )
+      CALL READ_A3( NYMD      = NYMD,       
+     &              NHMS      = NHMS,     
+     &              Input_Opt = Input_Opt,
+     &              ALBEDO    = State_Met%ALBD,     
+     &              CLDFRC    = State_Met%CLDFRC, 
+     &              HFLUX     = State_Met%HFLUX,   
+     &              GWETTOP   = State_Met%GWETTOP, 
+     &              PARDF     = State_Met%PARDF,   
+     &              PARDR     = State_Met%PARDR,  
+     &              PBL       = State_Met%PBLH,         
+     &              PREACC    = State_Met%PRECTOT, 
+     &              PRECON    = State_Met%PRECCON, 
+     &              RADLWG    = State_Met%RADLWG,   
+     &              RADSWG    = State_Met%RADSWG, 
+     &              SNOW      = State_Met%SNOW,  
+     &              TS        = State_Met%TS,           
+     &              TSKIN     = State_Met%TSKIN,   
+     &              U10M      = State_Met%U10M,       
+     &              USTAR     = State_Met%USTAR,    
+     &              V10M      = State_Met%V10M,     
+     &              Z0        = State_Met%Z0 )
 
 #elif defined( GEOS_5 )
 
@@ -575,17 +607,39 @@
       !    FRLAND, FRLANDIC,      FROCEAN,          FRLAKE
       !
       !=================================================================
-      CALL READ_A3( NYMD=NYMD,         NHMS=NHMS,       ALBEDO=ALBD,   
-     &              CLDFRC=CLDFRC,     EVAP=EVAP,       GRN=GRN,       
-     &              GWETROOT=GWETROOT, GWETTOP=GWETTOP, HFLUX=HFLUX,   
-     &              LAI=LAI,           PARDF=PARDF,     PARDR=PARDR,       
-     &              PBL=PBL,           PREACC=PREACC,   PRECON=PRECON, 
-     &              PRECSNO=PRECSNO,   RADLWG=RADLWG,   RADSWG=RADSWG, 
-     &              SNODP=SNODP,       SNOMAS=SNOMAS,   TROPP=TROPP,   
-     &              TS=TS,             TSKIN=TSKIN,     U10M=U10M,     
-     &              USTAR=USTAR,       V10M=V10M,       Z0=Z0, 
-     &              EFLUX=EFLUX,       FRLAND=FRLAND,   FROCEAN=FROCEAN, 
-     &              FRLAKE=FRLAKE,     FRLANDIC=FRLANDIC )
+      CALL READ_A3( NYMD      = NYMD,         
+     &              NHMS      = NHMS, 
+     &              Input_Opt = Input_Opt,  
+     &              ALBEDO    = State_Met%ALBD,   
+     &              CLDFRC    = State_Met%CLDFRC,     
+     &              EVAP      = State_Met%EVAP,       
+     &              GRN       = State_Met%GRN,       
+     &              GWETROOT  = State_Met%GWETROOT, 
+     &              GWETTOP   = State_Met%GWETTOP, 
+     &              HFLUX     = State_Met%HFLUX,   
+     &              LAI       = State_Met%LAI,           
+     &              PARDF     = State_Met%PARDF,     
+     &              PARDR     = State_Met%PARDR,       
+     &              PBL       = State_Met%PBLH,           
+     &              PREACC    = State_Met%PRECTOT,   
+     &              PRECON    = State_Met%PRECCON, 
+     &              PRECSNO   = State_Met%PRECSNO,   
+     &              RADLWG    = State_Met%RADLWG,   
+     &              RADSWG    = State_Met%RADSWG, 
+     &              SNODP     = State_Met%SNODP,       
+     &              SNOMAS    = State_Met%SNOMAS,   
+     &              TROPP     = State_Met%TROPP,   
+     &              TS        = State_Met%TS,             
+     &              TSKIN     = State_Met%TSKIN,     
+     &              U10M      = State_Met%U10M,     
+     &              USTAR     = State_Met%USTAR,       
+     &              V10M      = State_Met%V10M,       
+     &              Z0        = State_Met%Z0, 
+     &              EFLUX     = State_Met%EFLUX,       
+     &              FRLAND    = State_Met%FRLAND,   
+     &              FROCEAN   = State_Met%FROCEAN, 
+     &              FRLAKE    = State_Met%FRLAKE,     
+     &              FRLANDIC  = State_Met%FRLANDIC )
 
 #elif defined( GCAP )
 
@@ -598,16 +652,28 @@
       !
       ! NOTES: 
       !================================================================
-      CALL READ_A3( NYMD=NYMD,     NHMS=NHMS,     
-     &              ALBEDO=ALBD,   GWETTOP=GWETTOP,   MOLENGTH=MOLENGTH,      
-     &              OICE=OICE,     PARDF=PARDF,       PARDR=PARDR,
-     &              PBL=PBL,       PREACC=PREACC,     PRECON=PRECON,
-     &              RADSWG=RADSWG, SNICE=SNICE,       SNOW=SNOW, 
-     &              TS=TS,         U10M=U10M,         USTAR=USTAR,
-     &              V10M=V10M  )
+      CALL READ_A3( NYMD      = NYMD,     
+     &              NHMS      = NHMS,  
+     &              Input_Opt = Input_Opt,  
+     &              ALBEDO    = State_Met%ALBD,   
+     &              GWETTOP   = State_Met%GWETTOP,   
+     &              MOLENGTH  = State_Met%MOLENGTH,      
+     &              OICE      = State_Met%OICE,     
+     &              PARDF     = State_Met%PARDF,       
+     &              PARDR     = State_Met%PARDR,
+     &              PBL       = State_Met%PBLH,
+     &              PREACC    = State_Met%PRECTOT,
+     &              PRECON    = State_Met%PRECCON,
+     &              RADSWG    = State_Met%RADSWG, 
+     &              SNICE     = State_Met%SNICE,
+     &              SNOW      = State_Met%SNOW, 
+     &              TS        = State_Met%TS,
+     &              U10M      = State_Met%U10M,         
+     &              USTAR     = State_Met%USTAR,
+     &              V10M      = State_Met%V10M  )
 
       ! Convert [m] to [mm]
-      SNOW = SNOW*1000.D0
+      State_Met%SNOW = State_Met%SNOW*1000.D0
 
 #endif
 
@@ -618,7 +684,7 @@
       END SUBROUTINE GET_A3_FIELDS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -684,11 +750,11 @@
       END FUNCTION GET_N_A3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: check_time
 !
 ! !DESCRIPTION: Function CHECK\_TIME checks to see if the timestamp of the A3 
 !  field just read from disk matches the current time.  If so, then it's 
@@ -721,10 +787,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! Arguments 
-      
-      ! Function value
-
       !=================================================================
       ! CHECK_TIME begins here!
       !=================================================================
@@ -737,7 +799,7 @@
       END FUNCTION CHECK_TIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -748,7 +810,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_A3( NYMD,    NHMS, 
+      SUBROUTINE READ_A3( NYMD,    NHMS,   Input_Opt,
      &                    ALBEDO,  CLDFRC, EVAP,   GRN,      GWETROOT,
      &                    GWETTOP, HFLUX,  LAI,    MOLENGTH, OICE,   
      &                    PARDF,   PARDR,  PBL,    PREACC,   PRECON,  
@@ -759,58 +821,57 @@
 !
 ! !USES:
 !
-      USE DIAG_MOD,     ONLY : AD67
-      USE FILE_MOD,     ONLY : IOERROR
-      USE TIME_MOD,     ONLY : SET_CT_A3
-      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
-      USE TRANSFER_MOD, ONLY : TRANSFER_TO_1D
-
-      USE CMN_SIZE_MOD                         ! Size parameters
-      USE CMN_DIAG_MOD                         ! ND67
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD67
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput!
+      USE TIME_MOD,           ONLY : SET_CT_A3
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)            :: NYMD   ! YYYYMMDD
-      INTEGER, INTENT(IN)            :: NHMS   !  and hhmmss of desired data
-!
+      INTEGER,        INTENT(IN)     :: NYMD      ! YYYYMMDD
+      INTEGER,        INTENT(IN)     :: NHMS      ! and hhmmss of desired data
+      TYPE(OptInput), INTENT(IN)     :: Input_Opt ! Input Options object
+
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT), OPTIONAL :: ALBEDO  (IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: CLDFRC  (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: EVAP    (IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: GRN     (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: GWETROOT(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: GWETTOP (IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: HFLUX   (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: LAI     (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: MOLENGTH(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: OICE    (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: PARDF   (IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: PARDR   (IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: PBL     (IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: PREACC  (IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: PRECON  (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: PRECSNO (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: RADLWG  (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: RADSWG  (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: RADSWT  (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: SNICE   (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: SNODP   (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: SNOMAS  (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: SNOW    (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: TROPP   (IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: TS      (IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: TSKIN   (IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: U10M    (IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: USTAR   (IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: V10M    (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: Z0      (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: EFLUX   (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: FRLAND  (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: FRLAKE  (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: FROCEAN (IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: FRLANDIC(IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: ALBEDO  (IIPAR,JJPAR) 
+      REAL(fp),  INTENT(OUT), OPTIONAL :: CLDFRC  (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: EVAP    (IIPAR,JJPAR) 
+      REAL(fp),  INTENT(OUT), OPTIONAL :: GRN     (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: GWETROOT(IIPAR,JJPAR) 
+      REAL(fp),  INTENT(OUT), OPTIONAL :: GWETTOP (IIPAR,JJPAR) 
+      REAL(fp),  INTENT(OUT), OPTIONAL :: HFLUX   (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: LAI     (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: MOLENGTH(IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: OICE    (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: PARDF   (IIPAR,JJPAR) 
+      REAL(fp),  INTENT(OUT), OPTIONAL :: PARDR   (IIPAR,JJPAR) 
+      REAL(fp),  INTENT(OUT), OPTIONAL :: PBL     (IIPAR,JJPAR) 
+      REAL(fp),  INTENT(OUT), OPTIONAL :: PREACC  (IIPAR,JJPAR) 
+      REAL(fp),  INTENT(OUT), OPTIONAL :: PRECON  (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: PRECSNO (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: RADLWG  (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: RADSWG  (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: RADSWT  (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: SNICE   (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: SNODP   (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: SNOMAS  (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: SNOW    (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: TROPP   (IIPAR,JJPAR) 
+      REAL(fp),  INTENT(OUT), OPTIONAL :: TS      (IIPAR,JJPAR) 
+      REAL(fp),  INTENT(OUT), OPTIONAL :: TSKIN   (IIPAR,JJPAR) 
+      REAL(fp),  INTENT(OUT), OPTIONAL :: U10M    (IIPAR,JJPAR) 
+      REAL(fp),  INTENT(OUT), OPTIONAL :: USTAR   (IIPAR,JJPAR) 
+      REAL(fp),  INTENT(OUT), OPTIONAL :: V10M    (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: Z0      (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: EFLUX   (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: FRLAND  (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: FRLAKE  (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: FROCEAN (IIPAR,JJPAR)
+      REAL(fp),  INTENT(OUT), OPTIONAL :: FRLANDIC(IIPAR,JJPAR)
 !
 ! !REMARKS:
 !  (1 ) ALBEDO   : (2-D) GMAO surface albedo at 10 m            [unitless]
@@ -869,8 +930,11 @@
 !  (10) Now read FRLAND, FROCEAN, FRLANDIC, FRLAKE for methane (kjw, 8/18/09)
 !  (11) Remove reference to IN_CLOUD_OD (bmy, 10/15/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  08 Jun 2012 - S. Philip   - Correction for GEOS_5 boundary layer height
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  05 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp)
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -925,7 +989,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:2' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( ALBEDO ) ) CALL TRANSFER_2D( Q2,ALBEDO )
+                  IF ( PRESENT( ALBEDO ) ) ALBEDO = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -938,7 +1002,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:3' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( CLDFRC ) ) CALL TRANSFER_2D( Q2,CLDFRC )
+                  IF ( PRESENT( CLDFRC ) ) CLDFRC = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -950,7 +1014,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:4' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( EVAP ) ) CALL TRANSFER_2D( Q2, EVAP )
+                  IF ( PRESENT( EVAP ) ) EVAP = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -962,7 +1026,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:5' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( GRN ) ) CALL TRANSFER_2D( Q2, GRN )
+                  IF ( PRESENT( GRN ) ) GRN = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -974,9 +1038,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:6' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( GWETROOT ) ) THEN
-                     CALL TRANSFER_2D( Q2,GWETROOT )
-                  ENDIF
+                  IF ( PRESENT( GWETROOT ) ) GWETROOT = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -988,7 +1050,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:7' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( GWETTOP ) ) CALL TRANSFER_2D(Q2,GWETTOP)
+                  IF ( PRESENT( GWETTOP ) ) GWETTOP = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1000,7 +1062,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:8' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( HFLUX ) ) CALL TRANSFER_2D( Q2, HFLUX )
+                  IF ( PRESENT( HFLUX ) ) HFLUX = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1012,7 +1074,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:9' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( LAI ) ) CALL TRANSFER_2D( Q2, LAI )
+                  IF ( PRESENT( LAI ) ) LAI = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1024,9 +1086,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:10' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( MOLENGTH ) ) THEN
-                     CALL TRANSFER_2D( Q2, MOLENGTH )
-                  ENDIF
+                  IF ( PRESENT( MOLENGTH ) ) MOLENGTH = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1038,7 +1098,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:11' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( OICE ) ) CALL TRANSFER_2D( Q2, OICE )
+                  IF ( PRESENT( OICE ) ) OICE = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1050,7 +1110,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:12' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PARDF ) ) CALL TRANSFER_2D( Q2, PARDF )
+                  IF ( PRESENT( PARDF ) ) PARDF = Q2
                   NFOUND = NFOUND + 1
                ENDIF  
 
@@ -1062,7 +1122,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:13' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PARDR ) ) CALL TRANSFER_2D( Q2, PARDR )
+                  IF ( PRESENT( PARDR ) ) PARDR = Q2
                   NFOUND = NFOUND + 1
                ENDIF 
 
@@ -1074,7 +1134,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:14' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PBL ) ) CALL TRANSFER_2D( Q2, PBL )
+                  IF ( PRESENT( PBL ) ) PBL = Q2
                   NFOUND = NFOUND + 1
                ENDIF       
 
@@ -1087,7 +1147,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:15' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PREACC ) ) CALL TRANSFER_2D( Q2,PREACC )
+                  IF ( PRESENT( PREACC ) ) PREACC = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1100,7 +1160,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:16' )
               
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PRECON ) ) CALL TRANSFER_2D( Q2,PRECON )
+                  IF ( PRESENT( PRECON ) ) PRECON = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1112,7 +1172,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:17' )
               
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PRECSNO ) ) CALL TRANSFER_2D(Q2,PRECSNO)
+                  IF ( PRESENT( PRECSNO ) ) PRECSNO = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1125,7 +1185,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:18' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( RADLWG ) ) CALL TRANSFER_2D( Q2,RADLWG )
+                  IF ( PRESENT( RADLWG ) ) RADLWG = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1138,7 +1198,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:19' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( RADSWG ) ) CALL TRANSFER_2D( Q2,RADSWG )
+                  IF ( PRESENT( RADSWG ) ) RADSWG = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1150,7 +1210,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:20' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( RADSWT ) ) CALL TRANSFER_2D( Q2,RADSWT )
+                  IF ( PRESENT( RADSWT ) ) RADSWT = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1162,7 +1222,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:21' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( SNICE ) ) CALL TRANSFER_2D( Q2, SNICE )
+                  IF ( PRESENT( SNICE ) ) SNICE = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1175,7 +1235,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:22' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( SNOMAS ) ) CALL TRANSFER_2D( Q2,SNOMAS )
+                  IF ( PRESENT( SNOMAS ) ) SNOMAS = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1188,7 +1248,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:23' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( SNODP ) ) CALL TRANSFER_2D( Q2, SNODP )
+                  IF ( PRESENT( SNODP ) ) SNODP = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1200,7 +1260,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:24' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( SNOW ) ) CALL TRANSFER_2D( Q2, SNOW )
+                  IF ( PRESENT( SNOW ) ) SNOW = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1212,7 +1272,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:25' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( TROPP ) ) CALL TRANSFER_2D( Q2, TROPP )
+                  IF ( PRESENT( TROPP ) ) TROPP = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1224,7 +1284,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:26' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( TS ) ) CALL TRANSFER_2D( Q2, TS )
+                  IF ( PRESENT( TS ) ) TS = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1236,7 +1296,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:27' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( TSKIN ) ) CALL TRANSFER_2D( Q2, TSKIN )
+                  IF ( PRESENT( TSKIN ) ) TSKIN = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1248,7 +1308,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:28' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( U10M ) ) CALL TRANSFER_2D( Q2, U10M )
+                  IF ( PRESENT( U10M ) ) U10M = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1260,7 +1320,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:29' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( USTAR ) ) CALL TRANSFER_2D( Q2, USTAR )
+                  IF ( PRESENT( USTAR ) ) USTAR = Q2
                   NFOUND = NFOUND + 1
                ENDIF
             
@@ -1272,7 +1332,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:30' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( V10M ) ) CALL TRANSFER_2D( Q2, V10M )
+                  IF ( PRESENT( V10M ) ) V10M = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1284,7 +1344,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:31' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( Z0 ) ) CALL TRANSFER_2D( Q2, Z0 ) 
+                  IF ( PRESENT( Z0 ) ) Z0 = Q2
                   NFOUND = NFOUND + 1
                ENDIF
   
@@ -1297,7 +1357,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:32' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( EFLUX ) ) CALL TRANSFER_2D( Q2, EFLUX )
+                  IF ( PRESENT( EFLUX ) ) EFLUX = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1331,7 +1391,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:35')
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( FRLAND ) ) CALL TRANSFER_2D( Q2, FRLAND) 
+                  IF ( PRESENT( FRLAND ) ) FRLAND = Q2
                   NFOUND = NFOUND + 1
                ENDIF         
 
@@ -1343,7 +1403,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:36')
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( FRLAKE ) ) CALL TRANSFER_2D( Q2, FRLAKE) 
+                  IF ( PRESENT( FRLAKE ) ) FRLAKE = Q2
                   NFOUND = NFOUND + 1
                ENDIF 
 
@@ -1355,10 +1415,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:37')
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( FROCEAN ) ) THEN
-                     CALL TRANSFER_2D( Q2, FROCEAN ) 
-                     NFOUND = NFOUND + 1
-                  ENDIF
+                  IF ( PRESENT( FROCEAN ) ) FROCEAN = Q2
+                  NFOUND = NFOUND + 1
                ENDIF 
 
             !--------------------------------            
@@ -1369,10 +1427,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:38')
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( FRLANDIC ) ) THEN
-                     CALL TRANSFER_2D( Q2, FRLANDIC ) 
-                     NFOUND = NFOUND + 1
-                  ENDIF
+                  IF ( PRESENT( FRLANDIC ) ) FRLANDIC = Q2
+                  NFOUND = NFOUND + 1
                ENDIF 
 
             !--------------------------------
@@ -1431,6 +1487,27 @@
 
       ! Convert GEOS-5 PRECCON from [kg/m2/s] to [mm/day]
       IF ( PRESENT( PRECON ) ) PRECON = PRECON * 86400d0
+#endif
+      ! PBLH must be greater than a minimum mechanical mixing depth,
+      ! defined as 700*friction velocity (Koracin and Berkowicz, 1988;
+      ! Lin and McElroy, 2010)
+      ! (lds implemented fix for GEOS5.2.0 from Dalhousie, 10/29/13)
+#if   defined( GEOS_5 )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         PBL(I,J) = max( PBL(I,J), 700d0*USTAR(I,J) )
+      ENDDO
+      ENDDO
+
+      ! Correction for GEOS_5 PBLH:
+      ! PBLH must be greater than a minimum mechanical mixing depth,
+      ! defined as 700*friction velocity
+      ! (Koracin and Berkowicz, 1988; Lin and McElroy, 2010)
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         PBL(I,J) = max( PBL(I,J), 700d0*USTAR(I,J) )
+      ENDDO
+      ENDDO
 
 #endif
 
@@ -1489,7 +1566,7 @@
       END SUBROUTINE READ_A3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1543,7 +1620,7 @@
       END SUBROUTINE ARCHIVE_ND67_1D
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1573,6 +1650,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
       !=================================================================
       ! A3_CHECK begins here!
       !=================================================================
@@ -1588,7 +1666,7 @@
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
          ! Deallocate arrays and stop (bmy, 10/15/02)
-         CALL GEOS_CHEM_STOP
+         CALL GEOS_CHEM_STOP()
       ENDIF
 
       END SUBROUTINE A3_CHECK

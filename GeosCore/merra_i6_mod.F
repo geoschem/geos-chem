@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -17,8 +17,9 @@
 !
       USE inquireMod, ONLY : findFreeLUN
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -38,6 +39,9 @@
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now make IU_I6 a private module variable
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -50,7 +54,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -62,27 +66,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_MERRA_I6_FIELDS( NYMD, NHMS )
+      SUBROUTINE OPEN_MERRA_I6_FIELDS( NYMD, NHMS, Input_Opt )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE DIRECTORY_MOD, ONLY : MERRA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE FILE_MOD,      ONLY : FILE_EXISTS
-      USE FILE_MOD,      ONLY : IOERROR
-      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : FILE_EXISTS
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date
-      INTEGER, INTENT(IN) :: NHMS   ! hhmmss time
+      INTEGER,        INTENT(IN) :: NYMD        ! YYYYMMDD date
+      INTEGER,        INTENT(IN) :: NHMS        ! hhmmss time
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_I6 locally
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -110,7 +115,7 @@
          !---------------------------
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( MERRA_DIR )
+         GEOS_DIR = TRIM( Input_Opt%MERRA_DIR )
          I6_FILE  = 'YYYYMMDD.i6.' // GET_RES_EXT()
 
          ! Replace date tokens
@@ -118,8 +123,9 @@
          CALL EXPAND_DATE( I6_FILE,  NYMD, NHMS )
 
          ! Full file path
-         PATH = TRIM( DATA_DIR ) // 
-     &          TRIM( GEOS_DIR ) // TRIM( I6_FILE )
+         PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &          TRIM( GEOS_DIR           ) // 
+     &          TRIM( I6_FILE            )
 
          ! Close previously opened A-3 file
 	 INQUIRE( IU_I6, OPENED=IS_OPEN )
@@ -174,7 +180,7 @@
       END SUBROUTINE OPEN_MERRA_I6_FIELDS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -186,35 +192,45 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_I6_FIELDS_1( NYMD, NHMS )
+      SUBROUTINE GET_MERRA_I6_FIELDS_1( NYMD,      NHMS, 
+     &                                  Input_Opt, State_Met )
 !
 ! !USES:
-!
-      USE DAO_MOD, ONLY : PS1       ! Surface pressure  [hPa]
-      USE DAO_MOD, ONLY : RH1       ! Relative humidity [fraction]
+!      
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date 
-      INTEGER, INTENT(IN) :: NHMS   !  and hhmmss time of desired data
+      INTEGER,        INTENT(IN)    :: NYMD   ! YYYYMMDD date 
+      INTEGER,        INTENT(IN)    :: NHMS   ! hhmmss time of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================      
       ! Read data from disk
       !=================================================================
-      CALL READ_I6( NYMD = NYMD, 
-     &              NHMS = NHMS, 
-     &              PS   = PS1, 
-     &              RH   = RH1   )
-      
+      CALL READ_I6( NYMD      = NYMD, 
+     &              NHMS      = NHMS, 
+     &              Input_Opt = Input_Opt,
+     &              PS        = State_Met%PS1, 
+     &              RH        = State_Met%RH1   )
+
       END SUBROUTINE GET_MERRA_I6_FIELDS_1
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -226,35 +242,44 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_I6_FIELDS_2( NYMD, NHMS )
+      SUBROUTINE GET_MERRA_I6_FIELDS_2( NYMD,      NHMS, 
+     &                                  Input_Opt, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : PS2       ! Surface pressure  [hPa]
-      USE DAO_MOD, ONLY : RH2       ! Relative humidity [fraction]
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date 
-      INTEGER, INTENT(IN) :: NHMS   !  and hhmmss time of desired data
+      INTEGER,        INTENT(IN)    :: NYMD   ! YYYYMMDD date 
+      INTEGER,        INTENT(IN)    :: NHMS   ! hhmmss time of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================      
       ! Read data from disk
       !=================================================================
-      CALL READ_I6( NYMD = NYMD, 
-     &              NHMS = NHMS,
-     &              PS   = PS2, 
-     &              RH   = RH2   )
-      
+      CALL READ_I6( NYMD      = NYMD, 
+     &              NHMS      = NHMS,
+     &              Input_Opt = Input_Opt,
+     &              PS        = State_Met%PS2, 
+     &              RH        = State_Met%RH2  )
+
       END SUBROUTINE GET_MERRA_I6_FIELDS_2
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -266,33 +291,36 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_I6( NYMD, NHMS, PS, RH )
+      SUBROUTINE READ_I6( NYMD, NHMS, Input_Opt, PS, RH )
 !
 ! !USES:
 !
-      USE FILE_MOD,     ONLY : IOERROR
-      USE TIME_MOD,     ONLY : SET_CT_I6
-      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D
-
-      USE CMN_SIZE_MOD                               ! Size parameters
-      USE CMN_DIAG_MOD                               ! NDxx flags
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD 
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : SET_CT_I6
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: NYMD                   ! YYYYMMDD and hhmmss
-      INTEGER, INTENT(IN)  :: NHMS                   !  time of desired data
+      INTEGER,        INTENT(IN)  :: NYMD            ! YYYYMMDD and hhmmss
+      INTEGER,        INTENT(IN)  :: NHMS            !  time of desired data
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt       ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: PS(IIPAR,JJPAR      )  ! Surface pressure [hPa]
-      REAL*8,  INTENT(OUT) :: RH(IIPAR,JJPAR,LLPAR)  ! Rel. humidity [unitless]
+      REAL(fp),  INTENT(OUT) :: PS(IIPAR,JJPAR      )  ! Surface pressure [hPa]
+      REAL(fp),  INTENT(OUT) :: RH(IIPAR,JJPAR,LLPAR)  ! Rel. humidity    [1]
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_I6 file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  15 Nov 2013 - R. Yantosca - Now convert RH from [1] to [%], in order
+!                              to be consistent with GEOS-Chem convention
+!  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -345,12 +373,13 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:2' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, PS )
+                  PS     = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
             !------------------------------------
-            ! RH: Relative humidity [unitless]
+            ! RH: Relative humidity [1]
+            !     and converted to  [%]
             !------------------------------------
             CASE ( 'RH' )
                READ( IU_I6, IOSTAT=IOS ) XYMD, XHMS, Q3
@@ -359,6 +388,9 @@
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_3D( Q3, RH )
                   NFOUND = NFOUND + 1
+
+                  ! Convert RH from [1] to [%] 
+                  RH = RH * 100e+0_fp
                ENDIF
 
             !------------------------------------
@@ -409,7 +441,7 @@
       END SUBROUTINE READ_I6
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

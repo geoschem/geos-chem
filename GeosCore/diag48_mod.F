@@ -7,7 +7,7 @@
 !
 !  Module Variables:
 !  ============================================================================
-!  (1 ) DO_SAVE_DIAG48 (LOGICAL ) : Switch to turn ND49 timeseries on/off 
+!  (1 ) DO_SAVE_DIAG48 (LOGICAL ) : Switch to turn ND48 timeseries on/off 
 !  (2 ) I0             (INTEGER ) : Lon offset between global & nested grid
 !
 !  Module Routines:
@@ -31,32 +31,30 @@
 !  ND48 tracer numbers:
 !  ============================================================================
 !  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v      ]
-!  76            : OH concentration                         [molec/cm3]
-!  77            : NO2 concentration                        [v/v      ]
-!  78            : PBL heights                              [m        ]
-!  79            : PBL heights                              [levels   ]
-!  80            : Air density                              [molec/cm3]
-!  81            : 3-D Cloud fractions                      [unitless ]
-!  82            : Column optical depths                    [unitless ]
-!  83            : Cloud top heights                        [hPa      ]
-!  84            : Sulfate aerosol optical depth            [unitless ]
-!  85            : Black carbon aerosol optical depth       [unitless ]
-!  86            : Organic carbon aerosol optical depth     [unitless ]
-!  87            : Accumulation mode seasalt optical depth  [unitless ]
-!  88            : Coarse mode seasalt optical depth        [unitless ]
-!  89            : Total dust optical depth                 [unitless ]
-!  90            : Total seasalt tracer concentration       [unitless ]
-!  91            : Pure O3 (not Ox) concentration           [v/v      ]
-!  92            : NO concentration                         [v/v      ]
-!  93            : NOy concentration                        [v/v      ]
-!  94            : Grid box heights                         [m        ]
-!  95            : Relative humidity                        [%        ]
-!  96            : Sea level pressure                       [hPa      ]
-!  97            : Zonal wind (a.k.a. U-wind)               [m/s      ]
-!  98            : Meridional wind (a.k.a. V-wind)          [m/s      ]
-!  99            : PEDGE-$ (Pressure at level edges)        [hPa      ]
-!  100           : Temperature                              [K        ]
-!  115-121       : size resolved dust optical depth         [unitless   ]
+!  151           : OH concentration                         [molec/cm3]
+!  152           : NOy concentration                        [v/v      ]
+!  153           : Relative Humidity                        [%        ]
+!  154           : 3-D Cloud fractions                      [unitless ]
+!  155           : Column optical depths                    [unitless ]
+!  156           : Cloud top heights                        [hPa      ]
+!  157           : Air density                              [molec/cm3]
+!  158           : Total seasalt tracer concentration       [unitless ]
+!  159           : PBL heights                              [m        ]
+!  160           : PBL heights                              [levels   ]
+!  161           : Grid box heights                         [m        ]
+!  162           : PEDGE-$ (Pressure @ level edges)         [hPa      ]
+!                  (lower edge, moist air pressure) 
+!  163           : Sea level pressure                       [hPa      ]
+!  164           : Zonal wind (a.k.a. U-wind)               [m/s      ]
+!  165           : Meridional wind (a.k.a. V-wind)          [m/s      ]
+!  166           : Temperature                              [K        ]
+!  167           : Sulfate aerosol optical depth            [unitless ]
+!  168           : Black carbon aerosol optical depth       [unitless ]
+!  169           : Organic carbon aerosol optical depth     [unitless ]
+!  170           : Accumulation mode seasalt optical depth  [unitless ]
+!  171           : Coarse mode seasalt optical depth        [unitless ]
+!  172           : Total dust optical depth                 [unitless ]
+!  173-179       : Size resolved dust optical depth         [unitless ]
 !  
 !  NOTES:
 !  (1 ) Now save out cld frac and grid box heights (bmy, 4/20/05)
@@ -76,12 +74,18 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  06 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  06 Aug 2012 - R. Yantosca - Now make IU_ND48 a local module variable
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
+!  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE calls with State_Met%PEDGE. 
+!                              Remove dependency on pressure_mod.
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -134,8 +138,8 @@
       CONTAINS
 
 !------------------------------------------------------------------------------
-
-      SUBROUTINE DIAG48 
+      SUBROUTINE DIAG48( am_I_Root, Input_Opt, 
+     &                   State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine DIAG48 saves station time series diagnostics to disk.
@@ -160,39 +164,61 @@
 !  (9 ) Now save SLP under tracer #18 in "DAO-FLDS" (tai, bmy, 10/13/09)
 !  12 Nov 2010 - R. Yantosca - Save out PEDGE-$ (pressure @ level edges) rather
 !                              than PSURFACE - PTOP.
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO, NO2, and O3 as part
+!                              of removal of NOx-Ox partitioning
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : BPCH2
-      USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF 
-      USE DAO_MOD,      ONLY : CLDTOPS, OPTD,   RH,       SLP   
-      USE DAO_MOD,      ONLY : T,       UWND,   VWND 
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
-      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : GET_LOCALTIME,      GET_NYMD
-      USE TIME_MOD,     ONLY : GET_NHMS,           GET_TAU
-      USE TIME_MOD,     ONLY : EXPAND_DATE,        ITS_A_NEW_DAY
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
-      USE TRACER_MOD,   ONLY : STT,                TCVV  
-      USE TRACER_MOD,   ONLY : XNUMOLAIR
-      USE TRACERID_MOD, ONLY : IDTHNO3, IDTN2O5, IDTHNO4, IDTNOX
-      USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
-      USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
+      USE BPCH2_MOD,          ONLY : BPCH2
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XOFFSET,        GET_YOFFSET
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
+      USE TIME_MOD,           ONLY : GET_LOCALTIME,      GET_NYMD
+      USE TIME_MOD,           ONLY : GET_NHMS,           GET_TAU
+      USE TIME_MOD,           ONLY : EXPAND_DATE,        ITS_A_NEW_DAY
+      USE TRACER_MOD,         ONLY : XNUMOLAIR
+      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTN2O5, IDTHNO4, IDTNO
+      USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
+      USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
 
-      USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ    ! Size parameters + FAST-J stuff
-      USE JV_CMN_MOD    ! ODAER, ODMDUST, QAA, QAA_OUT
-      USE CMN_O3_MOD      ! XNUMOLAIR
-      USE CMN_GCTM_MOD    ! SCALE_HEIGHT
-      USE LOGICAL_MOD,  ONLY : DO_DIAG_WRITE
-
-      ! Local variables
+      USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
+      USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
+      USE CMN_O3_MOD               ! SAVEOH, XNUMOLAIR
+      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE      :: IS_CLDTOPS,  IS_OPTD, IS_SEASALT, IS_SLP
-      LOGICAL, SAVE      :: IS_FULLCHEM, IS_Ox,   IS_NOx,     IS_NOy
+      LOGICAL, SAVE      :: IS_FULLCHEM, IS_NOy
       LOGICAL, SAVE      :: FIRST = .TRUE.
-      INTEGER            :: GMTRC, I, I0, J, J0, L, N, K, R, TMP, W
-      REAL*8             :: LT, TAU, Q(LLPAR), SCALEAODnm
+      LOGICAL            :: LINTERP
+      INTEGER            :: GMTRC, I, I0, J, J0, L, N, K, R, TMP, W,ISPC
+      REAL(fp)           :: LT, Q(LLPAR), SCALEAODnm
+      REAL(f8)           :: TAU
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT
       CHARACTER(LEN=255) :: FILENAME
@@ -200,9 +226,30 @@
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER            :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
 
+      ! For fields from Input_Opt
+      LOGICAL            :: DO_DIAG_WRITE
+      INTEGER            :: N_TRACERS
+      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      REAL(fp), POINTER  :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: AD(:,:,:)
+
       !=================================================================
       ! DIAG48 begins here!
       !=================================================================
+
+      ! Assume success
+      RC            =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      DO_DIAG_WRITE = Input_Opt%DO_DIAG_WRITE
+      N_TRACERS     = Input_Opt%N_TRACERS
+      TCVV          = Input_Opt%TCVV(1:N_TRACERS)
+
+      ! Initialize pointers
+      STT          => State_Chm%Tracers
+      AD           => State_Met%AD
 
       ! Get grid offsets
       I0 = GET_XOFFSET( GLOBAL=.TRUE. )
@@ -212,15 +259,13 @@
       IF ( FIRST ) THEN
 
          ! Set logical flags on first timestep
-         IS_CLDTOPS  = ALLOCATED( CLDTOPS )
-         IS_OPTD     = ALLOCATED( OPTD    )
-         IS_SLP      = ALLOCATED( SLP     )
-         IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
+         IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
+         IS_SLP      = ASSOCIATED( State_Met%SLP     )
+         IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
+         IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
-         IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
-         IS_NOx      = ( IS_FULLCHEM .and. IDTNOX  > 0 )
-         IS_NOy      = ( IS_FULLCHEM .and. 
-     &                   IDTNOX  > 0 .and. IDTPAN  > 0 .and.
+         IS_NOy      = ( IS_FULLCHEM .and. IDTNO   > 0 .and.
+     &                   IDTNO2  > 0 .and. IDTPAN  > 0 .and.
      &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
      &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
      &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
@@ -247,6 +292,16 @@
       ! Get TAU value
       TAU = GET_TAU()
 
+      !Determine if optical properties need interpolating
+      !The LUT wavelengths in IWVSELECT will match if no interpolation
+      !is needed. (output is only for the first requested wavelength)
+      !(DAR 10/2013)
+      IF(IWVSELECT(1,1).EQ.IWVSELECT(2,1)) THEN
+         LINTERP=.FALSE.
+      ELSE
+         LINTERP=.TRUE.
+      ENDIF
+
       ! Loop over each station
       DO W = 1, ND48_N_STATIONS
 
@@ -257,7 +312,7 @@
          N = ND48_N(W)
 
          ! Get local time
-         LT = GET_LOCALTIME( I , J, L )
+         LT = GET_LOCALTIME( I, J, K )
 
          ! Initialize
          Q(:) = 0
@@ -275,109 +330,157 @@
                Q(L) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
             ENDDO
 
-         ELSE IF ( N == 91 .and. IS_Ox ) THEN
- 
-            !------------------------------------
-            ! PURE O3 CONCENTRATION [v/v]
-            !------------------------------------
-            CATEGORY = 'IJ-AVG-$'
-            UNIT     = ''              ! Let GAMAP pick the unit
-            GMTRC    = N_TRACERS + 1
+         ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
 
-            DO L = 1, K
-               Q(L) = STT(I,J,L,IDTOX) * TCVV(IDTOX)  / 
-     &                AD(I,J,L)        * FRACO3(I,J,L)
-            ENDDO
-               
-         ELSE IF ( N == 92 .and. IS_NOx ) THEN
-
-            !------------------------------------
-            ! NO CONCENTRATION [v/v]
-            !------------------------------------ 
+            !-------------------------------------
+            ! OH CONCENTRATION [molec/cm3]
+            !-------------------------------------
             CATEGORY = 'TIME-SER'
-            UNIT     = ''           ! Let GAMAP pick the unit
-            GMTRC    = 9
+            UNIT     = 'molec/cm3'
+            GMTRC    = 1
 
             DO L = 1, K
-               Q(L) = STT(I,J,L,IDTNOX) * TCVV(IDTNOX) * 
-     &                FRACNO(I,J,L)     / AD(I,J,L)
+               Q(L) = SAVEOH(I,J,L)
             ENDDO
 
-         ELSE IF ( N == 93 .and. IS_NOy ) THEN
+         ELSE IF ( N == 152 .and. IS_NOy ) THEN
 
             !-------------------------------------
             ! NOy CONCENTRATION [v/v]
             !-------------------------------------
             CATEGORY = 'TIME-SER'
             UNIT     = ''              ! Let GAMAP pick unit
-            GMTRC    = 3
+            GMTRC    = 2
 
             DO L = 1, K
 
                ! Initialize
-               Q(L) = 0d0
+               Q(L) = 0e+0_fp
 
-               ! NOx
-               Q(L) = Q(L) + ( TCVV(IDTNOX)        * 
-     &                         STT(I,J,L,IDTNOX)   / AD(I,J,L) )
+               ! NO
+               Q(L) = Q(L) + ( TCVV(IDTNO)         * 
+     &                         STT(I,J,L,IDTNO)    / 
+     &                         AD(I,J,L) )
+
+               ! NO2
+               Q(L) = Q(L) + ( TCVV(IDTNO2)        * 
+     &                         STT(I,J,L,IDTNO2)   / 
+     &                         AD(I,J,L) )
 
                ! PAN
                Q(L) = Q(L) + ( TCVV(IDTPAN)        * 
-     &                         STT(I,J,L,IDTPAN)   / AD(I,J,L) )
+     &                         STT(I,J,L,IDTPAN)   / 
+     &                         AD(I,J,L) )
 
                ! HNO3
                Q(L) = Q(L) + ( TCVV(IDTHNO3)       *
-     &                         STT(I,J,L,IDTHNO3)  / AD(I,J,L) )
+     &                         STT(I,J,L,IDTHNO3)  / 
+     &                         AD(I,J,L) )
             
                ! PMN
                Q(L) = Q(L) + ( TCVV(IDTPMN)        *
-     &                         STT(I,J,L,IDTPMN)   / AD(I,J,L) )
+     &                         STT(I,J,L,IDTPMN)   / 
+     &                         AD(I,J,L) )
 
                ! PPN
                Q(L) = Q(L) + ( TCVV(IDTPPN)        * 
-     &                         STT(I,J,L,IDTPPN)   / AD(I,J,L) )
+     &                         STT(I,J,L,IDTPPN)   / 
+     &                         AD(I,J,L) )
  
                ! R4N2
                Q(L) = Q(L) + ( TCVV(IDTR4N2)       *
-     &                         STT(I,J,L,IDTR4N2)  / AD(I,J,L) )
+     &                         STT(I,J,L,IDTR4N2)  / 
+     &                         AD(I,J,L) )
             
                ! N2O5
                Q(L) = Q(L) + ( 2d0 * TCVV(IDTN2O5) *
-     &                         STT(I,J,L,IDTN2O5)  / AD(I,J,L) )
+     &                         STT(I,J,L,IDTN2O5)  / 
+     &                         AD(I,J,L) )
                         
                ! HNO4
                Q(L) = Q(L) + ( TCVV(IDTHNO4)       *
-     &                         STT(I,J,L,IDTHNO4)  / AD(I,J,L) )
+     &                         STT(I,J,L,IDTHNO4)  / 
+     &                         AD(I,J,L) )
             ENDDO
 
-         ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
+         ELSE IF ( N == 153 ) THEN 
 
-            !------------------------------------
-            ! OH CONCENTRATION [molec/cm3]
-            !------------------------------------ 
+            !-------------------------------------
+            ! RELATIVE HUMIDITY [%]
+            !-------------------------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = '%'
+            GMTRC    = 3
+
+            DO L = 1, K
+               Q(L) = State_Met%RH(I,J,L)
+            ENDDO
+
+         ELSE IF ( N == 154 ) THEN
+
+            !-------------------------------------
+            ! 3-D CLOUD FRACTIONS [unitless]
+            !-------------------------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'unitless'
+            GMTRC    = 4
+
+            DO L = 1, K
+               Q(L) = State_Met%CLDF(I,J,L)
+            ENDDO
+
+         ELSE IF ( N == 155 .and. IS_OPTD ) THEN
+            
+            !-------------------------------------
+            ! COLUMN OPTICAL DEPTHS [unitless]
+            !-------------------------------------
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'unitless'
+            GMTRC    = 5
+
+            Q(1) = SUM( State_Met%OPTD(I,J,:) )
+
+         ELSE IF ( N == 156 .and. IS_CLDTOPS ) THEN
+
+            !-------------------------------------
+            ! CLOUD TOP HEIGHTS [hPa]
+            !-------------------------------------
+            CATEGORY = 'TIME_SER'
+            UNIT     = 'hPa'
+            GMTRC    = 6
+
+            IF ( K == 1 ) THEN
+               Q(1) = State_Met%PEDGE(I,J,State_Met%CLDTOPS(I,J))
+            ENDIF
+
+         ELSE IF ( N == 157 ) THEN 
+
+            !-------------------------------------
+            ! AIR DENSITY [molec/cm3]
+            !-------------------------------------
             CATEGORY = 'TIME-SER'
             UNIT     = 'molec/cm3'
-            GMTRC    = 2
+            GMTRC    = 7
 
             DO L = 1, K
-               Q(L) = SAVEOH(I,J,L)
+               Q(L) = State_Met%AIRDEN(I,J,L) * XNUMOLAIR * 1e-6_fp
             ENDDO
 
+         ELSE IF ( N == 158 .and. IS_SEASALT ) THEN
 
-         ELSE IF ( N == 77 .and. IS_FULLCHEM ) THEN
-
-            !------------------------------------
-            ! NO2 CONCENTRATION [molec/cm3]
-            !------------------------------------ 
+            !-------------------------------------
+            ! TOTAL SEASALT TRACER [v/v]
+            !-------------------------------------
             CATEGORY = 'TIME-SER'
-            UNIT     = ''           ! Let GAMAP pick the unit
-            GMTRC    = 19
+            UNIT     = ''              ! Let GAMAP pick unit
+            GMTRC    = 8
 
             DO L = 1, K
-               Q(L) = SAVENO2(I,J,L)
+               Q(L) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
+     &                  TCVV(IDTSALA)      / AD(I,J,L) 
             ENDDO
 
-         ELSE IF ( N == 78 ) THEN
+         ELSE IF ( N == 159 ) THEN
 
             !-------------------------------------
             ! PBL HEIGHTS [m] 
@@ -390,11 +493,11 @@
                Q(1) = GET_PBL_TOP_m( I, J )
             ENDIF
                
-         ELSE IF ( N == 79 ) THEN
+         ELSE IF ( N == 160 ) THEN
 
             !-------------------------------------
-            ! PBL HEIGHTS [layers] 
-            !-------------------------------------    
+            ! PBL HEIGHTS [levels] 
+            !-------------------------------------   
             CATEGORY = 'PBLDEPTH'
             UNIT     = 'levels'
             GMTRC    = 2
@@ -403,306 +506,311 @@
                Q(1) = GET_PBL_TOP_L( I, J )
             ENDIF
 
-         ELSE IF ( N == 80 ) THEN 
+         ELSE IF ( N == 161 ) THEN 
 
             !-------------------------------------
-            ! AIR DENSITY [molec/cm3]
+            ! GRID BOX HEIGHT [m]
             !-------------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'molec/cm3'
-            GMTRC    = 22
+            CATEGORY = 'BXHGHT-$'
+            UNIT     = 'm'
+            GMTRC    = 1
 
             DO L = 1, K
-               Q(L) = AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
+               Q(L) = State_Met%BXHEIGHT(I,J,L)
             ENDDO
 
-         ELSE IF ( N == 81 ) THEN
+         ELSE IF ( N == 162 ) THEN
 
             !-------------------------------------
-            ! CLOUD FRACTIONS [unitless]
-            !------------------------------------- 
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'unitless'
-            GMTRC    = 19
-
-            DO L = 1, K
-               Q(L) = CLDF(L,I,J)
-            ENDDO
-
-         ELSE IF ( N == 82 .and. IS_OPTD ) THEN
-            
-            !---------------------------------------
-            ! COLUMN OPTICAL DEPTHS [unitless]
-            !---------------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'unitless'
-            GMTRC    = 20
-
-            Q(1) = SUM( OPTD(:,I,J) )
-
-         ELSE IF ( N == 83 .and. IS_CLDTOPS ) THEN
-
-            !---------------------------------------
-            ! CLOUD TOP HEIGHTS [hPa]
-            !---------------------------------------
-            CATEGORY = 'TIME_SER'
+            ! PEDGE-$ [hPa]
+            !-------------------------------------
+            CATEGORY = 'PEDGE-$'
             UNIT     = 'hPa'
-            GMTRC    = 21
+            GMTRC    = 1            
+            
+            DO L = 1, K
+               Q(L) = State_Met%PEDGE( I, J, L )
+            ENDDO
+
+         ELSE IF ( N == 163 .and. IS_SLP ) THEN
+
+            !-------------------------------------
+            ! SEA LEVEL PRESSURE [hPa]
+            !-------------------------------------
+            CATEGORY = 'DAO-FLDS'
+            UNIT     = 'hPa'
+            GMTRC    = 18
 
             IF ( K == 1 ) THEN
-               Q(1) = GET_PEDGE( I, J, CLDTOPS(I,J) )
+               Q(1) = State_Met%SLP(I,J)
             ENDIF
 
-         ELSE IF ( N == 84 ) THEN
+         ELSE IF ( N == 164 ) THEN
 
-            !---------------------------------------
-            ! SULFATE AOD @ jv_spec_aod.dat wavelength[unitless]
-            !--------------------------------------- 
+            !-------------------------------------
+            ! ZONAL (U) WIND [m/s]
+            !-------------------------------------
+            CATEGORY = 'DAO-3D-$'
+            UNIT     = 'm/s'
+            GMTRC    = 1
+
+            DO L = 1, K
+               Q(L) = State_Met%U(I,J,L)
+            ENDDO
+            
+         ELSE IF ( N == 165 ) THEN 
+
+            !-------------------------------------
+            ! MERIDIONAL (V) WIND [m/s]
+            !-------------------------------------
+            CATEGORY = 'DAO-3D-$'
+            UNIT     = 'm/s'
+            GMTRC    = 2
+
+            DO L = 1, K
+               Q(L) = State_Met%V(I,J,L)
+            ENDDO
+
+         ELSE IF ( N == 166 ) THEN
+
+            !-------------------------------------
+            ! TEMPERATURE [K]
+            !-------------------------------------
+            CATEGORY = 'DAO-3D-$'
+            UNIT     = 'K'
+            GMTRC    = 3            
+
+            DO L = 1, K
+               Q(L) = State_Met%T(I,J,L)
+            ENDDO
+
+         ELSE IF ( N == 167 ) THEN
+
+            !-------------------------------------
+            ! SULFATE AOD [unitless]
+            ! for wavelengths set in Radiation Menu
+            !-------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMTRC    = 6
 
-            DO R = 1, NRH
-
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(1)+R-1) / QAA(4,IND(1)+R-1)
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0
-
+            ISPC     = 1 !sulfate
+            IF ( .not. LINTERP ) THEN
                DO L = 1, K
-                  Q(L) = Q(L) + ODAER(I,J,L,R) * SCALEAODnm
+                  ! Accumulate
+                  Q(L) = Q(L) + ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
-            ENDDO
+            ELSE
+               DO L = 1, K
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(L) = Q(L) + 
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                  ENDIF
+               ENDDO
+            ENDIF
 
-         ELSE IF ( N == 85 ) THEN
+         ELSE IF ( N == 168 ) THEN
 
             !-------------------------------------
-            ! BLACK CARBON AOD @ jv_spec_aod.dat wavelength[unitless]
+            ! BLACK CARBON AOD [unitless]
+            ! for wavelengths set in Radiation Menu
             !-------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMTRC    = 9            
 
-            DO R = 1, NRH
-
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1)
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0 
-
+            ISPC     = 2 !BC
+            IF ( .not. LINTERP ) THEN
                DO L = 1, K
-                  Q(L) = Q(L) + ODAER(I,J,L,NRH+R) * SCALEAODnm
+                  ! Accumulate
+                  Q(L) = Q(L) + ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
-            ENDDO
+            ELSE
+               DO L = 1, K
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(L) = Q(L) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                  ENDIF
+               ENDDO
+            ENDIF
 
-         ELSE IF ( N == 86 ) THEN
+         ELSE IF ( N == 169 ) THEN
 
-            !-----------------------------------
-            ! ORGANIC CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
-            !-----------------------------------            
+            !-------------------------------------
+            ! ORGANIC CARBON AOD [unitless]
+            ! for wavelengths set in Radiation Menu
+            !-------------------------------------       
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMTRC    = 12
 
-            DO R = 1, NRH
-
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(4,IND(3)+R-1)
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0 
-
+            ISPC     = 3 !OC
+            IF ( .not. LINTERP ) THEN
                DO L = 1, K
-                  Q(L) = Q(L) + ODAER(I,J,L,2*NRH+R) * SCALEAODnm
+                  ! Accumulate
+                  Q(L) = Q(L) + ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
-            ENDDO
+            ELSE
+               DO L = 1, K
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(L) = Q(L) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                  ENDIF
+               ENDDO
+            ENDIF
 
-         ELSE IF ( N == 87 ) THEN
+         ELSE IF ( N == 170 ) THEN
             
             !-------------------------------------
-            ! ACCUM SEASALT AOD @ jv_spec_aod.dat wavelength[unitless]
+            ! ACCUM SEASALT AOD [unitless]
+            ! for wavelengths set in Radiation Menu
             !-------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMTRC    = 15
 
-            DO R = 1, NRH
-
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(4,IND(4)+R-1)
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0 
-
+            ISPC     = 4 !SSa
+            IF ( .not. LINTERP ) THEN
                DO L = 1, K
-                  Q(L) = Q(L) + ODAER(I,J,L,3*NRH+R) * SCALEAODnm
+                  ! Accumulate
+                  Q(L) = Q(L) + ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
-            ENDDO
+            ELSE
+               DO L = 1, K
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(L) = Q(L) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                  ENDIF
+               ENDDO
+            ENDIF
 
-         ELSE IF ( N == 88 ) THEN
+         ELSE IF ( N == 171 ) THEN
 
             !-------------------------------------
-            ! COARSE SEASALT AOD @ jv_spec_aod.dat wavelength[unitless]
-            !-------------------------------------            
+            ! COARSE SEASALT AOD [unitless]
+            ! for wavelengths set in Radiation Menu
+            !-------------------------------------    
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMTRC    = 18
 
-            DO R = 1, NRH
-
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(4,IND(5)+R-1) 
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0
-
+            ISPC     = 5 !SSc
+            IF ( .not. LINTERP ) THEN
                DO L = 1, K
-                  Q(L) = Q(L) + ODAER(I,J,L,4*NRH+R) * SCALEAODnm
+                  ! Accumulate
+                  Q(L) = Q(L) + ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
-            ENDDO
+            ELSE
+               DO L = 1, K
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(L) = Q(L) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                  ENDIF
+               ENDDO
+            ENDIF
 
-         ELSE IF ( N == 89 ) THEN
+         ELSE IF ( N == 172 ) THEN
 
-            !-----------------------------------
-            ! TOTAL DUST OPT DEPTH @ jv_spec_aod.dat wavelength[unitless]
-            !-----------------------------------
+            !-------------------------------------
+            ! TOTAL DUST OPT DEPTH [unitless]
+            ! for wavelengths set in Radiation Menu
+            !-------------------------------------
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
             GMTRC     = 4
 
             DO R = 1, NDUST
 
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1) 
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0
+               IF ( .not. LINTERP ) THEN
+                  DO L = 1, K
+                     ! Accumulate
+                     Q(L) = Q(L) + ODMDUST(I,J,L,IWVSELECT(1,1),R)
+                  ENDDO
+               ELSE
+                  DO L = 1, K
+                     ! Interpolated using angstrom exponent between
+                     ! Closest available wavelengths
+                     ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                     !catch any zero values before interpolation
+                     IF ((ODMDUST(I,J,L,IWVSELECT(2,1),R).GT.0).AND.
+     &                   (ODMDUST(I,J,L,IWVSELECT(1,1),R).GT.0)) THEN
+                       Q(L) = Q(L) +
+     &                 (ODAER(I,J,L,IWVSELECT(2,1),R)*ACOEF_WV(1)**
+     &                 (BCOEF_WV(1)*LOG(ODMDUST(I,J,L,IWVSELECT(1,1),R)/
+     &                                ODMDUST(I,J,L,IWVSELECT(2,1),R))))
+                     ENDIF
+                  ENDDO
+               ENDIF
 
-               DO L = 1, K
-                  Q(L) = Q(L) + ODMDUST(I,J,L,R)* SCALEAODnm
-               ENDDO
             ENDDO
 
-         ELSE IF ( N > 114 ) THEN
+         ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
 
-            !-----------------------------------
-            ! DUST BINS 1-7 OPT DEPTH @ jv_spec_aod.dat wavelength [unitless]
-            !-----------------------------------
+            !-------------------------------------
+            ! DUST BINS 1-7 OPT DEPTH [unitless]
+            ! for wavelengths set in Radiation Menu
+            !-------------------------------------
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
-            GMTRC     = 21+(N-115)
+            GMTRC     = 21+(N-173)
 
-            R = N - 114
+            R = N - 172
 
-            ! Scaling factor for AOD wavelength (clh, 05/09)
-            ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
-            ! We no longer need to scale by wavelength (skim, 02/03/11)
-            SCALEAODnm = 1.0 
-
-            DO L = 1, K
-               Q(L) = ODMDUST(I,J,L,R) * SCALEAODnm
-            ENDDO
-
-         ELSE IF ( N == 90 .and. IS_SEASALT ) THEN
-
-            !-----------------------------------
-            ! TOTAL SEASALT TRACER [v/v]
-            !-----------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = ''              ! Let GAMAP pick unit
-            GMTRC    = 24
-
-            DO L = 1, K
-               Q(L) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
-     &                  TCVV(IDTSALA)      / AD(I,J,L) 
-            ENDDO
-
-         ELSE IF ( N == 94 ) THEN 
-
-            !-----------------------------------
-            ! GRID BOX HEIGHTS [m]
-            !----------------------------------- 
-            CATEGORY = 'BXHGHT-$'
-            UNIT     = 'm'
-            GMTRC    = 1
-
-            DO L = 1, K
-               Q(L) = BXHEIGHT(I,J,L)
-            ENDDO
-
-         ELSE IF ( N == 95 ) THEN 
-
-            !-----------------------------------
-            ! RELATIVE HUMIDITY [%]
-            !----------------------------------- 
-            CATEGORY = 'TIME-SER'
-            UNIT     = '%'
-            GMTRC    = 17
-
-            DO L = 1, K
-               Q(L) = RH(I,J,L)
-            ENDDO
-
-         ELSE IF ( N == 96 .and. IS_SLP ) THEN
-
-            !-----------------------------------
-            ! SEA LEVEL PRESSURE [hPa]
-            !----------------------------------- 
-            CATEGORY = 'DAO-FLDS'
-            UNIT     = 'hPa'
-            GMTRC    = 18
-
-            IF ( K == 1 ) THEN
-               Q(1) = SLP(I,J)
+            IF ( .not. LINTERP ) THEN
+               DO L = 1, K
+                  ! Accumulate
+                  Q(L) = Q(L) + ODMDUST(I,J,L,IWVSELECT(1,1),R)
+               ENDDO
+            ELSE
+               DO L = 1, K
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODMDUST(I,J,L,IWVSELECT(2,1),R).GT.0).AND.
+     &                (ODMDUST(I,J,L,IWVSELECT(1,1),R).GT.0)) THEN
+                    Q(L) = Q(L) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),R)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODMDUST(I,J,L,IWVSELECT(1,1),R)/
+     &                               ODMDUST(I,J,L,IWVSELECT(2,1),R))))
+                  ENDIF
+               ENDDO
             ENDIF
-
-         ELSE IF ( N == 97 ) THEN
-
-            !-----------------------------------
-            ! ZONAL (U) WIND [M/S]
-            !----------------------------------- 
-            CATEGORY = 'DAO-3D-$'
-            UNIT     = 'm/s'
-            GMTRC    = 1
-
-            DO L = 1, K
-               Q(L) = UWND(I,J,L)
-            ENDDO
-            
-         ELSE IF ( N == 98 ) THEN 
-
-            !-----------------------------------
-            ! MERIDIONAL (V) WIND [M/S]
-            !----------------------------------- 
-            CATEGORY = 'DAO-3D-$'
-            UNIT     = 'm/s'
-            GMTRC    = 2
-
-            DO L = 1, K
-               Q(L) = VWND(I,J,L)
-            ENDDO
-
-         ELSE IF ( N == 99 ) THEN
-
-            !-----------------------------------
-            ! PSURFACE - PTOP [hPa]
-            !----------------------------------- 
-            CATEGORY = 'PEDGE-$'
-            UNIT     = 'hPa'
-            GMTRC    = 1            
-            
-            DO L = 1, K
-               Q(L) = GET_PEDGE( I, J, K )
-            ENDDO
-
-         ELSE IF ( N == 100 ) THEN
-
-            !-----------------------------------
-            ! TEMPERATURE [K]
-            !----------------------------------- 
-            CATEGORY = 'DAO-3D-$'
-            UNIT     = 'K'
-            GMTRC    = 3            
-
-            DO L = 1, K
-               Q(L) = T(I,J,L)
-            ENDDO
 
          ELSE
 
@@ -749,6 +857,10 @@
          IF ( ITS_A_NEW_DAY() ) CALL FLUSH( IU_ND48 ) 
 
       ENDIF
+
+      ! Free pointers
+      NULLIFY( STT )
+      NULLIFY( AD  )
 
       ! Return to calling program
       END SUBROUTINE DIAG48

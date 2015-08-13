@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -17,11 +17,14 @@ SUBROUTINE doHerbCarbon
   USE defineConstants
   USE loadCASAinput
   USE defineArrays
+
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
   
   IMPLICIT NONE
 !
 ! !REVISION HISTORY:
-!  09 July 2010 - C. Carouge  - Parallelized
+!  09 Jul 2010 - C. Carouge  - Parallelized
+!  25 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -29,8 +32,8 @@ SUBROUTINE doHerbCarbon
   ! herbaceous vegetation carbon fluxes
   
   ! NPP: calculate inputs from NPP to living pools
-  leafinput(:,1)=NPP(:,mo)*0.40d0    ! 40% of NPP is aboveground
-  frootinput(:,1)=NPP(:,mo)*0.60d0   ! 60% of NPP is belowground
+  leafinput(:,1)=NPP(:,mo)*0.40e+0_fp    ! 40% of NPP is aboveground
+  frootinput(:,1)=NPP(:,mo)*0.60e+0_fp   ! 60% of NPP is belowground
 
 !$OMP PARALLEL        &
 !$OMP DEFAULT(SHARED)
@@ -54,11 +57,11 @@ SUBROUTINE doHerbCarbon
   
   carbonout_leaf(:,1)=herbivory(:,1)*(1.00-herbivoreEff)
   !part of the consumed leaf will be returned as litter
-  herbivory(:,1)=herbivory(:,1)-herbivory(:,1)*(1.00d0-herbivoreEff)
+  herbivory(:,1)=herbivory(:,1)-herbivory(:,1)*(1.00e+0_fp-herbivoreEff)
   !part of the consumed leaf for maintenance
   
   hsurfstrpool(:,1)=hsurfstrpool(:,1)+carbonout_leaf(:,1)*                  &
-                    (1.00d0-metabfract(:,1))
+                    (1.00e+0_fp-metabfract(:,1))
   hsurfmetpool(:,1)=hsurfmetpool(:,1)+carbonout_leaf(:,1)*metabfract(:,1)
 
   !DECAY of biomass and litter, each of thes following equations
@@ -83,9 +86,9 @@ SUBROUTINE doHerbCarbon
   !determine inputs into structural and metabolic pools from 
   !decaying living pools
   hsurfstrpool(:,1)=hsurfstrpool(:,1)+carbonout_leaf(:,1)*                  &
-                    (1.00d0-metabfract(:,1))
+                    (1.00e+0_fp-metabfract(:,1))
   hsoilstrpool(:,1)=hsoilstrpool(:,1)+carbonout_froot(:,1)*                 &
-                    (1.00d0-metabfract(:,1))
+                    (1.00e+0_fp-metabfract(:,1))
   hsurfmetpool(:,1)=hsurfmetpool(:,1)+carbonout_leaf(:,1)*metabfract(:,1)
   hsoilmetpool(:,1)=hsoilmetpool(:,1)+carbonout_froot(:,1)*metabfract(:,1)
   
@@ -94,86 +97,90 @@ SUBROUTINE doHerbCarbon
   hsurfstrpool(:,1)=hsurfstrpool(:,1)-carbonout_surfstr(:,1)
 
   !empty respiration pools in beginning of month
-  resppool_surfstr(:,1)=resppool_surfstr(:,1)*0.0d0
-  resppool_surfmet(:,1)=resppool_surfmet(:,1)*0.0d0
-  resppool_surfmic(:,1)=resppool_surfmic(:,1)*0.0d0
-  resppool_soilstr(:,1)=resppool_soilstr(:,1)*0.0d0
-  resppool_soilmet(:,1)=resppool_soilmet(:,1)*0.0d0
-  resppool_soilmic(:,1)=resppool_soilmic(:,1)*0.0d0
-  resppool_slow(:,1)=resppool_slow(:,1)*0.0d0
-  resppool_armored(:,1)=resppool_armored(:,1)*0.0d0
+  resppool_surfstr(:,1)=resppool_surfstr(:,1)*0.0e+0_fp
+  resppool_surfmet(:,1)=resppool_surfmet(:,1)*0.0e+0_fp
+  resppool_surfmic(:,1)=resppool_surfmic(:,1)*0.0e+0_fp
+  resppool_soilstr(:,1)=resppool_soilstr(:,1)*0.0e+0_fp
+  resppool_soilmet(:,1)=resppool_soilmet(:,1)*0.0e+0_fp
+  resppool_soilmic(:,1)=resppool_soilmic(:,1)*0.0e+0_fp
+  resppool_slow(:,1)=resppool_slow(:,1)*0.0e+0_fp
+  resppool_armored(:,1)=resppool_armored(:,1)*0.0e+0_fp
 
   ! respiratory fluxes from every pool
   temp(:,1)=(carbonout_surfstr(:,1)*structuralLignin(:,1))*eff_surfstr2slow
   hslowpool(:,1)=hslowpool(:,1)+temp(:,1)
   resppool_surfstr(:,1)=resppool_surfstr(:,1)+(temp(:,1)/eff_surfstr2slow)* &
-                        (1.00d0-eff_surfstr2slow)
+                        (1.00e+0_fp-eff_surfstr2slow)
   
-  temp(:,1)=0.0d0
-  temp(:,1)=(carbonout_surfstr(:,1)*(1d0-structuralLignin(:,1)))*           &
+  temp(:,1)=0.0e+0_fp
+  temp(:,1)=(carbonout_surfstr(:,1)*(1e+0_fp-structuralLignin(:,1)))*           &
             eff_surfstr2surfmic
   hsurfmicpool(:,1)=hsurfmicpool(:,1)+temp(:,1)
   resppool_surfstr(:,1)=resppool_surfstr(:,1)+(temp(:,1)/                   &
-                        eff_surfstr2surfmic)*(1.000d0-eff_surfstr2surfmic)
+             eff_surfstr2surfmic)*(1.000e+0_fp-eff_surfstr2surfmic)
   hsoilstrpool(:,1)=hsoilstrpool(:,1)-carbonout_soilstr(:,1)
   
-  temp(:,1)=0.0d0
+  temp(:,1)=0.0e+0_fp
   temp(:,1)=carbonout_soilstr(:,1)*structuralLignin(:,1)*eff_soilstr2slow
   hslowpool(:,1)=hslowpool(:,1)+temp(:,1)
   resppool_soilstr(:,1)=resppool_soilstr(:,1)+(temp(:,1)/eff_soilstr2slow)* &
-                        (1.000d0-eff_soilstr2slow)
+                        (1.000e+0_fp-eff_soilstr2slow)
   
-  temp(:,1)=0.0d0
+  temp(:,1)=0.0e+0_fp
   temp(:,1)=carbonout_soilstr(:,1)*(1-structuralLignin(:,1))*               &
             eff_soilstr2soilmic
   hsurfmicpool(:,1)=hsurfmicpool(:,1)+temp(:,1)
   resppool_soilstr(:,1)=resppool_soilstr(:,1)+(temp(:,1)/                   &
-                        eff_soilstr2soilmic)*(1.000d0-eff_soilstr2soilmic)
+                eff_soilstr2soilmic)*(1.000e+0_fp-eff_soilstr2soilmic)
   
-  temp(:,1)=0.0d0
+  temp(:,1)=0.0e+0_fp
   temp(:,1)=carbonout_surfmet(:,1)*eff_surfmet2surfmic
   hsurfmetpool(:,1)=hsurfmetpool(:,1)-carbonout_surfmet(:,1)
   hsurfmicpool(:,1)=hsurfmicpool(:,1)+temp(:,1)
-  resppool_surfmet(:,1)=(temp(:,1)/eff_surfmet2surfmic)*(1.000d0-eff_surfmet2surfmic)
+  resppool_surfmet(:,1)=(temp(:,1)/eff_surfmet2surfmic)* &
+          (1.000e+0_fp-eff_surfmet2surfmic)
   
-  temp(:,1)=0.0d0
+  temp(:,1)=0.0e+0_fp
   temp(:,1)=carbonout_soilmet(:,1)*eff_soilmet2soilmic
   hsoilmetpool(:,1)=hsoilmetpool(:,1)-carbonout_soilmet(:,1)
   hsurfmicpool(:,1)=hsurfmicpool(:,1)+temp(:,1)
-  resppool_soilmet(:,1)=(temp(:,1)/eff_soilmet2soilmic)*(1.000d0-eff_soilmet2soilmic)
+  resppool_soilmet(:,1)=(temp(:,1)/eff_soilmet2soilmic)* &
+          (1.000e+0_fp-eff_soilmet2soilmic)
   
-  temp(:,1)=0.0d0
+  temp(:,1)=0.0e+0_fp
   temp(:,1)=carbonout_surfmic(:,1)*eff_surfmic2slow
   hsurfmicpool(:,1)=hsurfmicpool(:,1)-carbonout_surfmic(:,1)
   hslowpool(:,1)=hslowpool(:,1)+temp(:,1)
-  resppool_surfmic(:,1)=(temp(:,1)/eff_surfmic2slow)*(1.000d0-eff_surfmic2slow)
+  resppool_surfmic(:,1)=(temp(:,1)/eff_surfmic2slow)* &
+          (1.000e+0_fp-eff_surfmic2slow)
   
   resppool_soilmic(:,1)=eff_soilmic2slow(:,1)*carbonout_soilmic(:,1)
   hsurfmicpool(:,1)=hsurfmicpool(:,1)-carbonout_soilmic(:,1)
   
-  temp(:,1)=0.0d0
-  temp(:,1)=carbonout_soilmic(:,1)*(0.003d0+(0.032d0*clay(:,1)))
+  temp(:,1)=0.0e+0_fp
+  temp(:,1)=carbonout_soilmic(:,1)*(0.003e+0_fp+(0.032e+0_fp*clay(:,1)))
   harmoredpool(:,1)=harmoredpool(:,1)+temp(:,1)
   
   temp(:,1)=carbonout_soilmic(:,1)-temp(:,1)-resppool_soilmic(:,1)
   hslowpool(:,1)=hslowpool(:,1)+temp(:,1)
   
-  resppool_slow(:,1)=carbonout_slow(:,1)*(1.000d0-eff_slow2soilmic)
+  resppool_slow(:,1)=carbonout_slow(:,1)*(1.000e+0_fp-eff_slow2soilmic)
   hslowpool(:,1)=hslowpool(:,1)-carbonout_slow(:,1)
   
-  temp(:,1)=0.0d0
+  temp(:,1)=0.0e+0_fp
   temp(:,1)=carbonout_slow(:,1)*eff_slow2soilmic*decayClayFactor(:,1)
   harmoredpool(:,1)=harmoredpool(:,1)+temp(:,1)
   
   temp(:,1)=carbonout_slow(:,1)-resppool_slow(:,1)-temp(:,1)
   hsurfmicpool(:,1)=hsurfmicpool(:,1)+temp(:,1)
   
-  temp(:,1)=0.0d0
+  temp(:,1)=0.0e+0_fp
   temp(:,1)=carbonout_armored(:,1)*eff_armored2soilmic
   harmoredpool(:,1)=harmoredpool(:,1)-carbonout_armored(:,1)
   hsurfmicpool(:,1)=hsurfmicpool(:,1)+temp(:,1)
   
-  resppool_armored(:,1)=(temp(:,1)/eff_armored2soilmic)*(1.000d0-eff_armored2soilmic)
+  resppool_armored(:,1)=(temp(:,1)/eff_armored2soilmic)* &
+             (1.000e+0_fp-eff_armored2soilmic)
   
   !FIRES consume part of the pools depending on burned fraction
   !BF, combustion completeness CC, and tree mortality rate
@@ -191,13 +198,16 @@ SUBROUTINE doHerbCarbon
   combusted_armored(:,1)=harmoredpool(:,1)*BF1(:,mo)*ccFineLitter(:,mo)*veg_burn(:,1)
   !FIRE: The non-combusted parts
   
-  nonCombusted_leaf(:,1)=hleafpool(:,1)*BF1(:,mo)*(1.00d0-ccLeaf(:,mo))*mortality_tree(:,1)
+  nonCombusted_leaf(:,1)=hleafpool(:,1)*BF1(:,mo)*(1.00e+0_fp-ccLeaf(:,mo)) & 
+       *mortality_tree(:,1)
   nonCombusted_froot(:,1)=hfrootpool(:,1)*BF1(:,mo)*mortality_hfroot(:,1)
   
   !FIRE flux from non combusted parts to other pools
-  hsurfstrpool(:,1)=hsurfstrpool(:,1)+nonCombusted_leaf(:,1)*(1.00d0-metabfract(:,1))
+  hsurfstrpool(:,1)=hsurfstrpool(:,1)+nonCombusted_leaf(:,1)* &
+       (1.00e+0_fp-metabfract(:,1))
   hsurfmetpool(:,1)=hsurfmetpool(:,1)+nonCombusted_leaf(:,1)*metabfract(:,1)
-  hsoilstrpool(:,1)=hsoilstrpool(:,1)+nonCombusted_froot(:,1)*(1.00d0-metabfract(:,1))
+  hsoilstrpool(:,1)=hsoilstrpool(:,1)+nonCombusted_froot(:,1)* &
+       (1.00e+0_fp-metabfract(:,1))
   hsoilmetpool(:,1)=hsoilmetpool(:,1)+nonCombusted_froot(:,1)*metabfract(:,1)
   
   !FIRE
@@ -217,9 +227,9 @@ SUBROUTINE doHerbCarbon
 
   !calculate fluxes
   IF (age_class .eq. 1) THEN
-     hresp(:,1)=0.0d0
-     hcomb(:,1)=0.0d0
-     hherb(:,1)=0.0d0
+     hresp(:,1)=0.0e+0_fp
+     hcomb(:,1)=0.0e+0_fp
+     hherb(:,1)=0.0e+0_fp
   ENDIF
   
   IF (n_age_classes .eq. 1) THEN
@@ -238,9 +248,9 @@ SUBROUTINE doHerbCarbon
      hherb(:,1)=herbivory(:,1)
   ELSE
      IF (age_class .eq. 1) THEN
-        hresp(:,1)=0.0d0
-        hcomb(:,1)=0.0d0
-        hherb(:,1)=0.0d0
+        hresp(:,1)=0.0e+0_fp
+        hcomb(:,1)=0.0e+0_fp
+        hherb(:,1)=0.0e+0_fp
      ENDIF
      
      hresp(:,1)=hresp(:,1)+(resppool_surfstr(:,1)  &

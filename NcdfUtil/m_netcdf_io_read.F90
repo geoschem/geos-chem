@@ -43,6 +43,8 @@
          MODULE PROCEDURE Ncrd_5d_R4
          MODULE PROCEDURE Ncrd_6d_R8
          MODULE PROCEDURE Ncrd_6d_R4
+         MODULE PROCEDURE Ncrd_7d_R8
+         MODULE PROCEDURE Ncrd_7d_R4
       END INTERFACE
 !
 ! !DESCRIPTION: Routines for reading variables in a netCDF file.
@@ -60,6 +62,7 @@
 !  20 Dec 2011 - R. Yantosca - Added Ncwr_4d_Int 
 !  20 Dec 2011 - R. Yantosca - Make process more efficient by not casting
 !                              to temporary variables after file read
+!  04 Feb 2015 - C. Keller   - Added 7d reading routines.
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -203,7 +206,8 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine Ncrd_1d_R8 (varrd_1d, ncid, varname, strt1d, cnt1d)
+      subroutine Ncrd_1d_R8 (varrd_1d, ncid, varname, strt1d, cnt1d,   &
+                             err_stop, stat)
 !
 ! !USES:
 !
@@ -223,10 +227,12 @@ CONTAINS
       character (len=*), intent(in)   :: varname
       integer          , intent(in)   :: strt1d(1)
       integer          , intent(in)   :: cnt1d (1)
+      logical, optional, intent(in)   :: err_stop
 !
 ! !OUTPUT PARAMETERS:
 !!    varrd_1d : array to fill
       real*8           , intent(out)  :: varrd_1d(cnt1d(1))
+      integer, optional, intent(out)  :: stat
 !
 ! !DESCRIPTION: Reads in a 1D netCDF real array and does some error checking.
 !\\
@@ -238,29 +244,55 @@ CONTAINS
 !  26 Oct 2011 - R. Yantosca - Renamed to Ncrd_1d_R8.  REAL*8 version.
 !  20 Dec 2011 - R. Yantosca - Now read varrd_1d directly from file
 !  20 Dec 2011 - R. Yantosca - Now use netCDF function NF_GET_VARA_DOUBLE
+!  24 Jan 2013 - C. Keller   - Added optional input arguments err_stop
+!                              and stat
 !EOP
 !-------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
+!
       character (len=128) :: err_msg
       integer             :: ierr
       integer             :: varid
-!
+      logical             :: dostop
+
+      ! set dostop flag
+      if ( present ( err_stop ) ) then
+        dostop = err_stop
+      else
+        dostop = .true.
+      endif
+
       ierr = Nf_Inq_Varid (ncid, varname, varid)
 
       if (ierr /= NF_NOERR) then
-        err_msg = 'In Ncrd_1d_R8 #1:  ' // Trim (varname) // &
-                   ', ' // Nf_Strerror (ierr)
-        call Do_Err_Out (err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
+        if ( dostop ) then
+          err_msg = 'In Ncrd_1d_R8 #1:  ' // Trim (varname) // &
+                     ', ' // Nf_Strerror (ierr)
+          call Do_Err_Out (err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
+        else
+          varrd_1d(:) = -999d0
+          if ( present ( stat ) ) stat = 1
+          return
+        end if
       end if
 
       ierr =  Nf_Get_Vara_Double (ncid, varid, strt1d, cnt1d, varrd_1d)
 
       if (ierr /= NF_NOERR) then
-        err_msg = 'In Ncrd_1d_R8 #2:  ' // Nf_Strerror (ierr)
-        call Do_Err_Out (err_msg, .true., 2, ncid, varid, 0, 0.0d0, 0.0d0)
+        if ( dostop ) then
+          err_msg = 'In Ncrd_1d_R8 #2:  ' // Nf_Strerror (ierr)
+          call Do_Err_Out (err_msg, .true., 2, ncid, varid, 0, 0.0d0, 0.0d0)
+        else
+          varrd_1d(:) = -999d0
+          if ( present ( stat ) ) stat = 2
+          return
+        endif
       end if
+
+      ! set stat to 0 (= success)
+      if ( present ( stat ) ) stat = 0
 
       end subroutine Ncrd_1d_R8
 !EOC
@@ -271,7 +303,8 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine Ncrd_1d_R4 (varrd_1d, ncid, varname, strt1d, cnt1d)
+      subroutine Ncrd_1d_R4 (varrd_1d, ncid, varname, strt1d, cnt1d, &
+                             err_stop, stat)
 !
 ! !USES:
 !
@@ -291,10 +324,12 @@ CONTAINS
       character (len=*), intent(in)   :: varname
       integer          , intent(in)   :: strt1d(1)
       integer          , intent(in)   :: cnt1d (1)
+      logical, optional, intent(in)   :: err_stop
 !
 ! !OUTPUT PARAMETERS:
 !!    varrd_1d : array to fill
       real*4           , intent(out)  :: varrd_1d(cnt1d(1))
+      integer, optional, intent(out)  :: stat
 !
 ! !DESCRIPTION: Reads in a 1D netCDF real array and does some error checking.
 !\\
@@ -305,29 +340,56 @@ CONTAINS
 ! !REVISION HISTORY:
 !  26 Oct 2011 - R. Yantosca - Renamed to Ncrd_1d_R4.  REAL*4 version.
 !  20 Dec 2011 - R. Yantosca - Now read varrd_1d directly from file
+!  24 Jan 2013 - C. Keller   - Added optional input arguments err_stop
+!                              and stat
 !EOP
 !-------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
+!
       character (len=128) :: err_msg
       integer             :: ierr
       integer             :: varid
-!
+      logical             :: dostop
+
+      ! set dostop flag
+      if ( present ( err_stop ) ) then
+        dostop = err_stop
+      else
+        dostop = .true.
+      endif
+
       ierr = Nf_Inq_Varid (ncid, varname, varid)
 
       if (ierr /= NF_NOERR) then
-        err_msg = 'In Ncrd_1d_R4 #1:  ' // Trim (varname) // &
-                   ', ' // Nf_Strerror (ierr)
-        call Do_Err_Out (err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
+        if ( dostop ) then
+           err_msg = 'In Ncrd_1d_R4 #1:  ' // Trim (varname) // &
+                      ', ' // Nf_Strerror (ierr)
+           call Do_Err_Out (err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
+        else
+          varrd_1d(:) = -999.0
+          if ( present ( stat ) ) stat = 1
+          return
+        end if
       end if
 
       ierr =  Nf_Get_Vara_Real (ncid, varid, strt1d, cnt1d, varrd_1d)
 
       if (ierr /= NF_NOERR) then
-        err_msg = 'In Ncrd_1d_R4 #2:  ' // Nf_Strerror (ierr)
-        call Do_Err_Out (err_msg, .true., 2, ncid, varid, 0, 0.0d0, 0.0d0)
+        if ( dostop ) then
+          err_msg = 'In Ncrd_1d_R4 #2:  ' // Nf_Strerror (ierr)
+          call Do_Err_Out (err_msg, .true., 2, ncid, varid, 0, 0.0d0, 0.0d0)
+        else
+          varrd_1d(:) = -999.0
+          if ( present ( stat ) ) stat = 2
+          return
+        endif
       end if
+
+      ! set stat to 0 (= success)
+      if ( present ( stat ) ) stat = 0
+      return
 
       end subroutine Ncrd_1d_R4
 !EOC
@@ -338,7 +400,8 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-      subroutine Ncrd_1d_Int (varrd_1di, ncid, varname, strt1d, cnt1d)
+      subroutine Ncrd_1d_Int (varrd_1di, ncid, varname, strt1d, cnt1d, &
+                              err_stop, stat)
 !
 ! !USES:
 !
@@ -359,10 +422,12 @@ CONTAINS
       character (len=*), intent(in)   :: varname
       integer          , intent(in)   :: strt1d(1)
       integer          , intent(in)   :: cnt1d (1)
+      logical, optional, intent(in)   :: err_stop
 !
 ! !OUTPUT PARAMETERS:
 !!    varrd_1di : intger array to fill
       integer          , intent(out)  :: varrd_1di(cnt1d(1))
+      integer, optional, intent(out)  :: stat
 !
 ! !DESCRIPTION: Reads in a 1D netCDF integer array and does some error 
 !  checking.
@@ -378,25 +443,48 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
+!
       character (len=128) :: err_msg
       integer             :: ierr
       integer             :: varid
-!
+      logical             :: dostop
+
+      ! set dostop flag
+      if ( present ( err_stop ) ) then
+        dostop = err_stop
+      else
+        dostop = .true.
+      endif
+
       ierr = Nf_Inq_Varid (ncid, varname, varid)
 
       if (ierr /= NF_NOERR) then
-        err_msg = 'In Ncrd_1d_Int #1:  ' // Trim (varname) // &
-                  ', ' // Nf_Strerror (ierr)
-        call Do_Err_Out (err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
+        if ( dostop ) then
+          err_msg = 'In Ncrd_1d_Int #1:  ' // Trim (varname) // &
+                    ', ' // Nf_Strerror (ierr)
+          call Do_Err_Out (err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
+        else
+          varrd_1di(:) = -999
+          if ( present ( stat ) ) stat = 1
+          return
+        end if
       end if
-
 
       ierr = Nf_Get_Vara_Int (ncid, varid, strt1d, cnt1d, varrd_1di)
 
       if (ierr /= NF_NOERR) then
-        err_msg = 'In Ncrd_1d_Int #2:  ' // Nf_Strerror (ierr)
-        call Do_Err_Out (err_msg, .true., 2, ncid, varid, 0, 0.0d0, 0.0d0)
+        if ( dostop ) then
+          err_msg = 'In Ncrd_1d_Int #2:  ' // Nf_Strerror (ierr)
+          call Do_Err_Out (err_msg, .true., 2, ncid, varid, 0, 0.0d0, 0.0d0)
+        else
+          varrd_1di(:) = -999
+          if ( present ( stat ) ) stat = 2
+          return
+        endif
       end if
+
+      ! set stat to 0 (= success)
+      if ( present ( stat ) ) stat = 0
 
       return
 
@@ -1295,6 +1383,146 @@ CONTAINS
       end if
 
       end subroutine Ncrd_6d_R4
+!EOC
+!-------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Ncrd_7d_R8
+!
+! !INTERFACE:
+!
+      subroutine Ncrd_7d_R8 (varrd_7d, ncid, varname, strt7d, cnt7d)
+!
+! !USES:
+!
+      use m_do_err_out
+!
+      implicit none
+!
+      include "netcdf.inc"
+!
+! !INPUT PARAMETERS:
+!!    ncid     : netCDF file id to read array input data from
+!!    varname  : netCDF variable name for array
+!!    strt7d   : vector specifying the index in varrd_7d where
+!!               the first of the data values will be read
+!!    cnt7d    : varrd_7d dimensions
+      integer          , intent(in)   :: ncid
+      character (len=*), intent(in)   :: varname
+      integer          , intent(in)   :: strt7d(7)
+      integer          , intent(in)   :: cnt7d (7)
+!
+! !OUTPUT PARAMETERS:
+!!    varrd_5d : array to fill
+      real*8         , intent(out)  :: varrd_7d(cnt7d(1), cnt7d(2), &
+                                                cnt7d(3), cnt7d(4), &
+                                                cnt7d(5), cnt7d(6), &
+                                                cnt7d(7))
+!
+! !DESCRIPTION: Reads in a 7D netCDF real array and does some error checking.
+!\\
+!\\
+! !AUTHOR: 
+!  John Tannahill (LLNL) and Jules Kouatchou
+!
+! !REVISION HISTORY:
+!  20 Dec 2011 - R. Yantosca - Initial version
+!  20 Dec 2011 - R. Yantosca - Now use netCDF function NF_GET_VARA_DOUBLE
+!EOP
+!-------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+      character (len=128) :: err_msg
+      integer             :: ierr
+      integer             :: varid
+!
+      ierr = Nf_Inq_Varid (ncid, varname, varid)
+
+      if (ierr /= NF_NOERR) then
+        err_msg = 'In Ncrd_7d_R8 #1:  ' // Trim (varname) // &
+                  ', ' // Nf_Strerror (ierr)
+        call Do_Err_Out (err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
+      end if
+
+      ierr = Nf_Get_Vara_Double (ncid, varid, strt7d, cnt7d, varrd_7d)
+
+      if (ierr /= NF_NOERR) then
+        err_msg = 'In Ncrd_7d_R8 #2:  ' // Nf_Strerror (ierr)
+        call Do_Err_Out (err_msg, .true., 2, ncid, varid, 0, 0.0d0, 0.0d0)
+      end if
+
+      end subroutine Ncrd_7d_R8
+!EOC
+!-------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Ncrd_7d_R4
+!
+! !INTERFACE:
+!
+      subroutine Ncrd_7d_R4 (varrd_7d, ncid, varname, strt7d, cnt7d)
+!
+! !USES:
+!
+      use m_do_err_out
+!
+      implicit none
+!
+      include "netcdf.inc"
+!
+! !INPUT PARAMETERS:
+!!    ncid     : netCDF file id to read array input data from
+!!    varname  : netCDF variable name for array
+!!    strt7d   : vector specifying the index in varrd_7d where
+!!               the first of the data values will be read
+!!    cnt7d    : varrd_7d dimensions
+      integer          , intent(in)   :: ncid
+      character (len=*), intent(in)   :: varname
+      integer          , intent(in)   :: strt7d(7)
+      integer          , intent(in)   :: cnt7d (7)
+!
+! !OUTPUT PARAMETERS:
+!!    varrd_7d : array to fill
+      real*4          , intent(out)  :: varrd_7d(cnt7d(1), cnt7d(2), &
+                                                 cnt7d(3), cnt7d(4), &
+                                                 cnt7d(5), cnt7d(6), &
+                                                 cnt7d(7))
+!
+! !DESCRIPTION: Reads in a 7D netCDF real array and does some error checking.
+!\\
+!\\
+! !AUTHOR: 
+!  John Tannahill (LLNL) and Jules Kouatchou
+!
+! !REVISION HISTORY:
+!  20 Dec 2011 - R. Yantosca - Initial version
+!  20 Dec 2011 - R. Yantosca - Now use netCDF function NF_GET_VARA_DOUBLE
+!EOP
+!-------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+      character (len=128) :: err_msg
+      integer             :: ierr
+      integer             :: varid
+!
+      ierr = Nf_Inq_Varid (ncid, varname, varid)
+
+      if (ierr /= NF_NOERR) then
+        err_msg = 'In Ncrd_7d_R4 #1:  ' // Trim (varname) // &
+                  ', ' // Nf_Strerror (ierr)
+        call Do_Err_Out (err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
+      end if
+
+      ierr = Nf_Get_Vara_Real (ncid, varid, strt7d, cnt7d, varrd_7d)
+
+      if (ierr /= NF_NOERR) then
+        err_msg = 'In Ncrd_7d_R4 #2:  ' // Nf_Strerror (ierr)
+        call Do_Err_Out (err_msg, .true., 2, ncid, varid, 0, 0.0d0, 0.0d0)
+      end if
+
+      end subroutine Ncrd_7d_R4
 !EOC
 !-------------------------------------------------------------------------
 !BOP

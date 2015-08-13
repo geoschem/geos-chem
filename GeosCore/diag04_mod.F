@@ -1,6 +1,5 @@
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !     
@@ -16,8 +15,9 @@
 !     
 ! !USES:
 !     
+      USE PRECISION_MOD     ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
-#     include "define.h"
       PUBLIC 
 !
 ! !PUBLIC DATA MEMBERS:
@@ -54,14 +54,15 @@
 !  (3 ) Modified for ship emissions (2-D), aircraft emissions (3-D) and 
 !       chemical source for CO2 (3-D) (RayNassar, 2009-12-23)
 !  20 May 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -101,8 +102,7 @@
       END SUBROUTINE ZERO_DIAG04
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -153,9 +153,10 @@
 !
       INTEGER            :: CENTER180, HALFPOLAR, IFIRST, JFIRST 
       INTEGER            :: LFIRST,    LMAX,      M,      N       
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL*4             :: LONRES,    LATRES
-      REAL*8             :: DIAGb,     DIAGe,       SCALE
+      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL(f4)           :: LONRES,    LATRES
+      REAL(f8)           :: DIAGb,     DIAGe
+      REAL(fp)           :: SCALE
       CHARACTER(LEN=20)  :: MODELNAME 
       CHARACTER(LEN=40)  :: CATEGORY,  RESERVED,    UNIT
 
@@ -178,7 +179,7 @@
       LONRES    = DISIZE
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
-      SCALE     = DBLE( GET_CT_EMIS() ) + 1d-32
+      SCALE     = DBLE( GET_CT_EMIS() ) + 1e-32_fp
 
       !=================================================================
       ! Write data to the bpch file
@@ -239,8 +240,7 @@
       END SUBROUTINE WRITE_DIAG04
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -298,8 +298,7 @@
       END SUBROUTINE INIT_DIAG04
 !EOC
 !------------------------------------------------------------------------------
-!                        University of Toronto and                            !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

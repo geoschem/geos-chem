@@ -16214,7 +16214,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO ***********************
 !
-      DX = (RTHI-RTLW)/FLOAT(NDIV)
+      DX = (RTHI-RTLW)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNC (X2)
@@ -17511,7 +17511,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (OMEHI-OMELO)/FLOAT(NDIV)
+      DX = (OMEHI-OMELO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = MAX(X1-DX, OMELO)
          Y2 = FUNCA2 (X2)
@@ -17804,7 +17804,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO ***********************
 !
-      DZ = (ZHI-ZLO)/FLOAT(NDIV)
+      DZ = (ZHI-ZLO)/REAL(NDIV)
       DO 10 I=1,NDIV
          Z2 = Z1+DZ
          Y2 = FUNCB3A (Z2, TLC, TNH42S4)
@@ -18558,7 +18558,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO ***********************
 !
-      DX = (KHI-KLO)/FLOAT(NDIV)
+      DX = (KHI-KLO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCC1 (X2)
@@ -18752,7 +18752,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI4HI-PSI4LO)/FLOAT(NDIV)
+      DX = (PSI4HI-PSI4LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCD3 (X2)
@@ -18999,7 +18999,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX   = (PSI4HI-PSI4LO)/FLOAT(NDIV)
+      DX   = (PSI4HI-PSI4LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCD2 (X2)
@@ -19349,7 +19349,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX 
          Y2 = FUNCG5A (X2)
@@ -19575,7 +19575,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2  = X1+DX
          Y2  = FUNCG4A (X2)
@@ -19883,7 +19883,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2  = X1+DX 
          Y2  = FUNCG3A (X2)
@@ -20205,7 +20205,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX 
          Y2 = FUNCG2A (X2)
@@ -20673,7 +20673,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX 
          Y2 = FUNCH6A (X2)
@@ -20919,7 +20919,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX 
          Y2 = FUNCH5A (X2)
@@ -21177,7 +21177,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX 
          Y2 = FUNCH4A (X2)
@@ -21460,7 +21460,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX 
          Y2 = FUNCH3A (X2)
@@ -21800,7 +21800,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX 
          Y2 = FUNCH2A (X2)
@@ -22394,7 +22394,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI4HI-PSI4LO)/FLOAT(NDIV)
+      DX = (PSI4HI-PSI4LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1-DX
          Y2 = FUNCI5A (X2)
@@ -22616,7 +22616,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI4HI-PSI4LO)/FLOAT(NDIV)
+      DX = (PSI4HI-PSI4LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1-DX
          Y2 = FUNCI4A (X2)
@@ -22901,7 +22901,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI2HI-PSI2LO)/FLOAT(NDIV)
+      DX = (PSI2HI-PSI2LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = MAX(X1-DX, PSI2LO)
          Y2 = FUNCI3A (X2)
@@ -23006,7 +23006,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI4HI-PSI4LO)/FLOAT(NDIV)
+      DX = (PSI4HI-PSI4LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = MAX(X1-DX, PSI4LO)
          Y2 = FUNCI3B (X2)
@@ -23285,7 +23285,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI2HI-PSI2LO)/FLOAT(NDIV)
+      DX = (PSI2HI-PSI2LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = MAX(X1-DX, PSI2LO)
          Y2 = FUNCI2A (X2)
@@ -23691,7 +23691,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI1HI-PSI1LO)/FLOAT(NDIV)
+      DX = (PSI1HI-PSI1LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1-DX
          Y2 = FUNCJ2 (X2)
@@ -23883,7 +23883,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI1HI-PSI1LO)/FLOAT(NDIV)
+      DX = (PSI1HI-PSI1LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1-DX
          Y2 = FUNCJ1 (X2)
@@ -24102,7 +24102,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCO7 (X2)
@@ -24357,7 +24357,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCO6 (X2)
@@ -24627,7 +24627,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCO5 (X2)
@@ -24905,7 +24905,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCO4 (X2)
@@ -25246,7 +25246,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCO3A (X2)
@@ -25613,7 +25613,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO ***********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCO2A (X2)
@@ -26129,7 +26129,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCM8 (X2)
@@ -26385,7 +26385,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCM7 (X2)
@@ -26647,7 +26647,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCM6 (X2)
@@ -26936,7 +26936,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCM5 (X2)
@@ -27234,7 +27234,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCM4 (X2)
@@ -27561,7 +27561,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCM3 (X2)
@@ -27954,7 +27954,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCM2A (X2)
@@ -28521,7 +28521,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCP13 (X2)
@@ -28835,7 +28835,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCP12 (X2)
@@ -29164,7 +29164,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCP11 (X2)
@@ -29501,7 +29501,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCP10 (X2)
@@ -29838,7 +29838,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCP9 (X2)
@@ -30181,7 +30181,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCP8 (X2)
@@ -30552,7 +30552,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCP7 (X2)
@@ -30932,7 +30932,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCP6 (X2)
@@ -31381,7 +31381,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCP5 (X2)
@@ -31857,7 +31857,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCP4 (X2)
@@ -32333,7 +32333,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCP3 (X2)
@@ -32844,7 +32844,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1+DX
          Y2 = FUNCP2A (X2)
@@ -33584,7 +33584,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI6HI-PSI6LO)/FLOAT(NDIV)
+      DX = (PSI6HI-PSI6LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1-DX
          Y2 = FUNCL8 (X2)
@@ -33816,7 +33816,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI4HI-PSI4LO)/FLOAT(NDIV)
+      DX = (PSI4HI-PSI4LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1-DX
          Y2 = FUNCL7 (X2)
@@ -34067,7 +34067,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI4HI-PSI4LO)/FLOAT(NDIV)
+      DX = (PSI4HI-PSI4LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1-DX
          Y2 = FUNCL6 (X2)
@@ -34320,7 +34320,7 @@
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
 
-      DX = (PSI4HI-PSI4LO)/FLOAT(NDIV)
+      DX = (PSI4HI-PSI4LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = MAX(X1-DX, PSI4LO)
          Y2 = FUNCL5 (X2)
@@ -34582,7 +34582,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI4HI-PSI4LO)/FLOAT(NDIV)
+      DX = (PSI4HI-PSI4LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1-DX
          Y2 = FUNCL4 (X2)
@@ -34903,7 +34903,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI2HI-PSI2LO)/FLOAT(NDIV)
+      DX = (PSI2HI-PSI2LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = MAX(X1-DX, PSI2LO)
          Y2 = FUNCL3A (X2)
@@ -35009,7 +35009,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI4HI-PSI4LO)/FLOAT(NDIV)
+      DX = (PSI4HI-PSI4LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = MAX(X1-DX, PSI4LO)
          Y2 = FUNCL3B (X2)
@@ -35322,7 +35322,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI2HI-PSI2LO)/FLOAT(NDIV)
+      DX = (PSI2HI-PSI2LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = MAX(X1-DX, PSI2LO)
          Y2 = FUNCL2A (X2)
@@ -35431,7 +35431,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI4HI-PSI4LO)/FLOAT(NDIV)
+      DX = (PSI4HI-PSI4LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = MAX(X1-DX, PSI4LO)
          Y2 = FUNCL2B (X2)
@@ -35900,7 +35900,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI3HI-PSI3LO)/FLOAT(NDIV)
+      DX = (PSI3HI-PSI3LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1-DX
          Y2 = FUNCK3 (X2)
@@ -36092,7 +36092,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI3HI-PSI3LO)/FLOAT(NDIV)
+      DX = (PSI3HI-PSI3LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1-DX
          Y2 = FUNCK2 (X2)
@@ -36286,7 +36286,7 @@
 !
 ! *** ROOT TRACKING ; FOR THE RANGE OF HI AND LO **********************
 !
-      DX = (PSI3HI-PSI3LO)/FLOAT(NDIV)
+      DX = (PSI3HI-PSI3LO)/REAL(NDIV)
       DO 10 I=1,NDIV
          X2 = X1-DX
          Y2 = FUNCK1 (X2)
@@ -36353,7 +36353,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCK1 (P1)
-#     include "isrpia.inc"y
+#     include "isrpia.inc"
       !DOUBLE PRECISION LAMDA, KAPA
       ! modified by hotp 8/2/07
       ! explicitly declared all variables in CASEK

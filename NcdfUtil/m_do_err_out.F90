@@ -1,20 +1,20 @@
-! $Id: m_do_err_out.F90,v 1.1 2009/08/04 14:52:04 bmy Exp $
-!-------------------------------------------------------------------------
-!  NASA/GFSC, SIVO, Code 610.3
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: m_Do_Err_Outc
+! !MODULE: m_do_err_out.F90
 !
 ! !INTERFACE:
 !
-   module m_Do_Err_Out
+module m_Do_Err_Out
 !
-   implicit none
+  implicit none
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-   public  Do_Err_Out
+  public  Do_Err_Out
 !
 ! !DESCRIPTION: Provides a routine to print an error message and exit the code.
 !\\
@@ -23,25 +23,28 @@
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
-!
+!  10 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
+!  10 Jul 2014 - R. Yantosca - Cosmetic changes to ProTeX headers
 !EOP
-!-------------------------------------------------------------------------
-
+!------------------------------------------------------------------------------
+!BOC
 CONTAINS
-
-!-------------------------------------------------------------------------
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Do_Err_Out
 !
 ! !INTERFACE:
 !
-      subroutine Do_Err_Out  &
-        (err_msg, err_do_stop, err_num_ints, err_int1, err_int2,  &
-         err_num_reals, err_real1, err_real2)
+  subroutine Do_Err_Out  &
+       (err_msg, err_do_stop, err_num_ints, err_int1, err_int2,  &
+       err_num_reals, err_real1, err_real2)
 !
-      implicit none
+    implicit none
 !
 ! !INPUT PARAMETERS:
 !!     err_msg       : error message to be printed out
@@ -52,14 +55,14 @@ CONTAINS
 !!     err_num_reals : number of reals to be printed out (0, 1, or 2)
 !!     err_real1     : real 1 to print out
 !!     err_real2     : real 2 to print out
-      character (len=*), intent(in) :: err_msg
-      logical          , intent(in) :: err_do_stop
-      integer          , intent(in) :: err_num_ints
-      integer          , intent(in) :: err_int1
-      integer          , intent(in) :: err_int2
-      integer          , intent(in) :: err_num_reals
-      real*8           , intent(in) :: err_real1
-      real*8           , intent(in) :: err_real2
+    character (len=*), intent(in) :: err_msg
+    logical          , intent(in) :: err_do_stop
+    integer          , intent(in) :: err_num_ints
+    integer          , intent(in) :: err_int1
+    integer          , intent(in) :: err_int2
+    integer          , intent(in) :: err_num_reals
+    real*8           , intent(in) :: err_real1
+    real*8           , intent(in) :: err_real2
 !
 ! !DESCRIPTION: Outputs error messages, and exits if requested.
 !\\
@@ -73,35 +76,34 @@ CONTAINS
 !EOP
 !-------------------------------------------------------------------------
 !BOC
-      Write (6,*)
-      Write (6,*) &
-        '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+    Write (6,*)
+    Write (6,*) &
+         '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+    
+    Write (6,*) '!! ' // Trim (err_msg)
 
-      Write (6,*) '!! ' // Trim (err_msg)
+    if (err_num_ints == 1) then
+       Write (6,*) '!! ', err_int1
+    else if (err_num_ints == 2) then
+       Write (6,*) '!! ', err_int1, err_int2
+    end if
 
-      if (err_num_ints == 1) then
-         Write (6,*) '!! ', err_int1
-      else if (err_num_ints == 2) then
-         Write (6,*) '!! ', err_int1, err_int2
-      end if
+    if (err_num_reals == 1) then
+       Write (6,*) '!! ', err_real1
+    else if (err_num_reals == 2) then
+       Write (6,*) '!! ', err_real1, err_real2
+    end if
 
-      if (err_num_reals == 1) then
-         Write (6,*) '!! ', err_real1
-      else if (err_num_reals == 2) then
-         Write (6,*) '!! ', err_real1, err_real2
-      end if
+    Write (6,*) &
+         '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+    Write (6,*)
 
-      Write (6,*) &
-        '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-      Write (6,*)
+    if (err_do_stop) then
+       stop "Code stopped from Do_Err_Out."
+    end if
 
-      if (err_do_stop) then
-        stop "Code stopped from Do_Err_Out."
-      end if
+    return
 
-      return
-
-      end subroutine Do_Err_Out
+  end subroutine Do_Err_Out
 !EOC
-!------------------------------------------------------------------------
 end module m_Do_Err_Out

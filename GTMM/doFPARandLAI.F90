@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -18,6 +18,8 @@ SUBROUTINE doFPARandLAI(FIRST)
   USE loadCASAinput
   USE defineArrays
 
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
   implicit none
 !
 ! !INPUT PARAMETERS
@@ -25,7 +27,8 @@ SUBROUTINE doFPARandLAI(FIRST)
   LOGICAL, INTENT(IN) :: FIRST
 !
 ! !REVISION HISTORY:
-!  09 July 2010 - C. Carouge  - Adapted to restart simulations. Parallelization
+!  09 Jul 2010 - C. Carouge  - Adapted to restart simulations. Parallelization
+!  25 Nov 2014 - M. Yannetti - Added PRECISION_MOD 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -40,7 +43,7 @@ SUBROUTINE doFPARandLAI(FIRST)
 !--- Previous to (ccc, 11/4/09)      
 !      IF (yr .eq. 1 .and. mo .eq. 1) THEN
   IF ( FIRST ) THEN
-     maxallLAI=0.0d0
+     maxallLAI=0.0e+0_fp
 !$OMP PARALLEL DO      &
 !$OMP DEFAULT(SHARED)  &
 !$OMP PRIVATE(i)
@@ -102,7 +105,7 @@ SUBROUTINE doFPARandLAI(FIRST)
 !$OMP PARALLEL         &
 !$OMP DEFAULT(SHARED)
 !$OMP WORKSHARE
-  sr(:,1)=(1.000d0+NDVI1(:,mo))/(1.000d0-NDVI1(:,mo))
+  sr(:,1)=(1.000e+0_fp+NDVI1(:,mo))/(1.000e+0_fp-NDVI1(:,mo))
 
 
   FPAR(:,mo)=(((sr(:,1)-SRMIN)/(srmax(:,1)-SRMIN))*(FPARMAX-FPARMIN))+  &
@@ -134,8 +137,9 @@ SUBROUTINE doFPARandLAI(FIRST)
      !mix of clustered and homogeneous canopy
      
      IF (veg1(i,1) .eq. 3) THEN
-        LAI_temp(i,1)=(LAImax(i,1)*(log(1d0-FPAR(i,mo))/log(1d0-FPARMAX)+ &
-                      FPAR(i,mo)/FPARMAX))/2d0
+        LAI_temp(i,1)=(LAImax(i,1)*(log(1e+0_fp-FPAR(i,mo))/ &
+                      log(1e+0_fp-FPARMAX)+ &
+                      FPAR(i,mo)/FPARMAX))/2e+0_fp
      ENDIF
 
      !homogeneous canopy
@@ -144,7 +148,8 @@ SUBROUTINE doFPARandLAI(FIRST)
          veg1(i,1) .ne. 4 .and.      &
          veg1(i,1) .ne. 5 .and.      &
          veg1(i,1) .ne. 9) THEN
-        LAI_temp(i,1)=LAImax(i,1)*(log(1d0-FPAR(i,mo))/log(1d0-FPARMAX))
+        LAI_temp(i,1)=LAImax(i,1)*(log(1e+0_fp-FPAR(i,mo))/ &
+                      log(1e+0_fp-FPARMAX))
      ENDIF
          
   END DO
@@ -153,13 +158,13 @@ SUBROUTINE doFPARandLAI(FIRST)
 !$OMP DO PRIVATE(i)      
   DO i=1, n_veg
      IF (LAI_temp(i,1) .lt. 0) THEN
-        LAI_temp(i,1)=0.0d0
+        LAI_temp(i,1)=0.0e+0_fp
      ENDIF
   END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
-  maxallLAI=8.0d0
+  maxallLAI=8.0e+0_fp
   LAI(:,mo)=LAI_temp(:,1)
   filename3(f_len_output+1:f_len_output+4)='flai'
   IF (mo .eq. 12 .and. yr .eq. NPPequilibriumYear ) THEN

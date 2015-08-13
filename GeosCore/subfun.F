@@ -7,11 +7,12 @@
 !
 !  NOTES:
 !  (1 ) Now force double-precision with the "D" exponent (bmy, 4/18/03)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
-#     include "define.h"
       USE CMN_SIZE_MOD  ! Size parameters
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 !
@@ -83,7 +84,7 @@
       INTEGER NKN,JA,JB,JC,NH,K,NK2,NH2,JSPC,NPL,NL5,NH5,NL4,NH4,NL3,NH3
       INTEGER NL2,NL1,NH1,NC,NK0,NK1,NK3,NK4,N
       INTEGER NK,I,JNEW,KLOOP
-      REAL*8 CONCMULT,FRACN
+      REAL(fp) CONCMULT,FRACN
 
       NSUBFUN        = NSUBFUN + 1
       NFDH1          = NFDH2 + IONER(NCSP) 
@@ -99,7 +100,7 @@
        JC            = IRMC(NKN)
        NH            = NKN + NALLR
        DO 100 K      = 1, KTLOOP
-        TRATE(K,NKN) = RRATE(K,NKN)*CNEW(K,JA)*CNEW(K,JB)*CNEW(K,JC) 
+        TRATE(K,NKN) = RRATE(K,NKN)*CNEW(K,JA)*CNEW(K,JB)*CNEW(K,JC)
         TRATE(K,NH) = -TRATE(K,NKN) 
  100   CONTINUE
  102  CONTINUE
@@ -164,7 +165,7 @@
 
       DO 302 JSPC      = 1, ISCHAN
        DO 300 K        = 1, KTLOOP
-        GLOSS(K,JSPC)  = 0.d0
+        GLOSS(K,JSPC)  = 0.e+0_fp
  300   CONTINUE
  302  CONTINUE
 

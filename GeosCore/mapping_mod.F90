@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -19,7 +19,9 @@ MODULE Mapping_Mod
 !
   USE CMN_SIZE_MOD                    ! Size parameters
   USE ERROR_MOD                       ! Error handling routines
-  USE LOGICAL_MOD                     ! Logical switches
+
+  USE PRECISION_MOD                   ! For GEOS-Chem Precision (fp)
+
 
   IMPLICIT NONE
   PRIVATE
@@ -60,13 +62,14 @@ MODULE Mapping_Mod
 !                              leave this for future expansion
 !  17 Apr 2012 - R. Yantosca - Rename pointer object "map" to "mapping,
 !                              to remove confusion w/ F90 intrinsic
+!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -78,18 +81,30 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Mapping( I_FINE, J_FINE, I_COARSE, J_COARSE, mapping )
+  SUBROUTINE Init_Mapping( am_I_Root, Input_Opt, I_FINE,  J_FINE,  &
+                           I_COARSE,  J_COARSE,  mapping, RC      )
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN) :: I_FINE    ! # of longitudes on the "fine" grid
-    INTEGER, INTENT(IN) :: J_FINE    ! # of latitudes  on the,"fine" grid
-    INTEGER, INTENT(IN) :: I_COARSE  ! # of longitudes on the "coarse" grid
-    INTEGER, INTENT(IN) :: J_COARSE  ! # of latitudes  on the "coarse" grid
+    LOGICAL,        INTENT(IN) :: am_I_Root ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN) :: Input_Opt ! Input Options object
+    INTEGER,        INTENT(IN) :: I_FINE    ! # of lons on the "fine" grid
+    INTEGER,        INTENT(IN) :: J_FINE    ! # of lats on the,"fine" grid
+    INTEGER,        INTENT(IN) :: I_COARSE  ! # of lons on the "coarse" grid
+    INTEGER,        INTENT(IN) :: J_COARSE  ! # of lats on the "coarse" grid
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
     TYPE(MapWeight), POINTER, INTENT(INOUT) :: mapping(:,:) !"fine" -> "coarse"
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,       INTENT(OUT) :: RC      ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
@@ -100,6 +115,7 @@ CONTAINS
 !  17 Apr 2012 - R. Yantosca - Add error check for mapping object
 !  18 Apr 2012 - R. Yantosca - Improve error check for sub-fields of mapping
 !                              object so as not to interfere w/ parallel loop
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -122,7 +138,7 @@ CONTAINS
 
     ! Define a number of extra boxes to add to FINE_PER_COARSE
     ! in order to prevent out-of-bounds errors
-    IF ( USE_OLSON_2001 ) THEN
+    IF ( Input_Opt%USE_OLSON_2001 ) THEN
        ADD = 10
     ELSE
        ADD = 5
@@ -190,7 +206,7 @@ CONTAINS
   END SUBROUTINE Init_Mapping
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -232,8 +248,8 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL*8 :: ox1, ox2, nx1, nx2, ov1, ov2, xOverLap
-    REAL*8 :: oy1, oy2, ny1, ny2,           yOverLap
+    REAL(fp) :: ox1, ox2, nx1, nx2, ov1, ov2, xOverLap
+    REAL(fp) :: oy1, oy2, ny1, ny2,           yOverLap
 
     !======================================================================
     ! Get overlap in longitude
@@ -311,7 +327,7 @@ CONTAINS
   END SUBROUTINE Get_Map_Wt
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

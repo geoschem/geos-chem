@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -14,8 +14,9 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD   ! For Geos-Chem Precision (fp)
+
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -39,15 +40,15 @@
       PUBLIC :: HG2mth_wd, HG0mth_dd, HG2mth_dd
       PUBLIC :: SNOW_HG
       PUBLIC :: LHGSNOW
-      REAL*8,  ALLOCATABLE :: DD_Hg2(:,:,:)
-      REAL*8,  ALLOCATABLE :: DD_HgP(:,:,:)
-      REAL*8,  ALLOCATABLE :: WD_Hg2(:,:,:)
-      REAL*8,  ALLOCATABLE :: WD_HgP(:,:,:)
-      REAL*8,  ALLOCATABLE :: HG0mth_dd(:,:)
-      REAL*8,  ALLOCATABLE :: HG2mth_dd(:,:)
-      REAL*8,  ALLOCATABLE :: HG2mth_wd(:,:)
-      REAL*8,  ALLOCATABLE :: SNOW_HG(:,:,:) !CDH Hg stored in snow+ice
-      REAL*8,  ALLOCATABLE :: Hg0dryGEOS(:,:), HgIIdryGEOS(:,:), 
+      REAL(fp),  ALLOCATABLE :: DD_Hg2(:,:,:)
+      REAL(fp),  ALLOCATABLE :: DD_HgP(:,:,:)
+      REAL(fp),  ALLOCATABLE :: WD_Hg2(:,:,:)
+      REAL(fp),  ALLOCATABLE :: WD_HgP(:,:,:)
+      REAL(fp),  ALLOCATABLE :: HG0mth_dd(:,:)
+      REAL(fp),  ALLOCATABLE :: HG2mth_dd(:,:)
+      REAL(fp),  ALLOCATABLE :: HG2mth_wd(:,:)
+      REAL(fp),  ALLOCATABLE :: SNOW_HG(:,:,:) !CDH Hg stored in snow+ice
+      REAL(fp),  ALLOCATABLE :: Hg0dryGEOS(:,:), HgIIdryGEOS(:,:), 
      &                        HgIIwetGEOS(:,:)
 !
 ! !PRIVATE DATA MEMBERS:
@@ -59,13 +60,15 @@
 !  23 Apr 2010 - C. Carouge  - Initial version
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -86,7 +89,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)   :: I, J, N   ! GEOS-Chem long, lat and tracer index
-      REAL*8,  INTENT(IN)   :: DRY_Hg2   ! Hg(II) dry deposited out of the 
+      REAL(fp),  INTENT(IN)   :: DRY_Hg2   ! Hg(II) dry deposited out of the 
                                          ! atmosphere [kg]
 !
 ! !REVISION HISTORY:
@@ -119,7 +122,7 @@
       END SUBROUTINE ADD_Hg2_DD
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -140,7 +143,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)   :: I, J, N   ! GEOS-Chem long, lat and tracer index
-      REAL*8,  INTENT(IN)   :: WET_Hg2   ! Hg(II) scavenged out of the 
+      REAL(fp),  INTENT(IN)   :: WET_Hg2   ! Hg(II) scavenged out of the 
                                          ! atmosphere [kg]
 !
 ! !REVISION HISTORY:
@@ -173,7 +176,7 @@
       END SUBROUTINE ADD_Hg2_WD
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -194,7 +197,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)   :: I, J, N   ! GEOS-Chem long, lat and tracer index
-      REAL*8,  INTENT(IN)   :: DRY_HgP   ! HgP dry deposited out of the 
+      REAL(fp),  INTENT(IN)   :: DRY_HgP   ! HgP dry deposited out of the 
                                          ! atmosphere [kg]
 !
 ! !REVISION HISTORY:
@@ -227,7 +230,7 @@
       END SUBROUTINE ADD_HgP_DD
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -248,7 +251,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)   :: I, J, N   ! GEOS-Chem long, lat and tracer index
-      REAL*8,  INTENT(IN)   :: WET_HgP   ! HgP scavenged out of the 
+      REAL(fp),  INTENT(IN)   :: WET_HgP   ! HgP scavenged out of the 
                                          ! atmosphere [kg]
 !
 ! !REVISION HISTORY:
@@ -281,7 +284,7 @@
       END SUBROUTINE ADD_HgP_WD
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -292,23 +295,21 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE ADD_HG2_SNOWPACK( I, J, N, DEP_Hg2 )
+      SUBROUTINE ADD_HG2_SNOWPACK( I, J, N, DEP_Hg2, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,           ONLY : SNOW, SNOMAS 
-      USE DAO_MOD,           ONLY : IS_ICE, IS_LAND
-      USE DAO_MOD,           ONLY : FRSNO, FRSEAICE, FRLANDIC 
-      USE TRACERID_MOD,      ONLY : GET_Hg2_CAT, GET_HgP_CAT
-      USE TRACERID_MOD,      ONLY : IS_Hg2,      IS_HgP
-
-#     include "define.h"
+      USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACERID_MOD,       ONLY : GET_Hg2_CAT, GET_HgP_CAT
+      USE TRACERID_MOD,       ONLY : IS_Hg2,      IS_HgP
 !
 ! !INPUT PARAMETERS:
 !
       ! Arguments as input
-      INTEGER, INTENT(IN)   :: I, J, N
-      REAL*8,  INTENT(IN)   :: Dep_Hg2
+      INTEGER,        INTENT(IN)  :: I, J, N
+      REAL(fp),         INTENT(IN)  :: Dep_Hg2
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY:
 !  02 Sep 2008 - C. Holmes   - Initial version
@@ -318,6 +319,10 @@
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !  13 Apr 2011 - R. Yantosca - Bug fix: reference IS_LAND from dao_mod.f
 !   8 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -325,7 +330,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Local variables
-      REAL*8  :: FRAC_SNOW_OR_ICE 
+      REAL(fp)  :: FRAC_SNOW_OR_ICE 
       LOGICAL :: IS_SNOW_OR_ICE 
       INTEGER :: NN
 
@@ -349,27 +354,26 @@
       ! land fraction of 1 and only use boxes that are mostly snow/ice. 
       ! For MERRA we use the actual fractions, so FRAC_SNOW_OR_ICE is 
       ! overwritten (jaf, 4/25/11)
-      FRAC_SNOW_OR_ICE = 1d0
+      FRAC_SNOW_OR_ICE = 1e+0_fp
 
-#if   defined( MERRA ) || defined( GEOS_57 )
-
+#if   defined( MERRA ) || defined( GEOS_FP )
       ! Don't let fraction be greater than 1
-      FRAC_SNOW_OR_ICE = MIN(FRSNO(I,J) 
-     &                 + FRSEAICE(I,J) + FRLANDIC(I,J), 1d0)
-      IS_SNOW_OR_ICE   = ( FRAC_SNOW_OR_ICE > 0d0 )
+      FRAC_SNOW_OR_ICE = MIN( State_Met%FRSNO(I,J)     +
+     &                        State_Met%FRSEAICE(I,J)  + 
+     &                        State_Met%FRLANDIC(I,J), 1e+0_fp)
+      IS_SNOW_OR_ICE   = ( FRAC_SNOW_OR_ICE > 0e+0_fp )
 
 #elif defined( GEOS_5 )
-
       ! Use GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-      IS_SNOW_OR_ICE   = ( (IS_ICE(I,J)) .OR. 
-     &                     (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
- 
+      IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, State_Met     )) .OR. 
+     &                    ( IS_LAND( I, J, State_Met     )  .AND. 
+     &                      State_Met%SNOMAS(I,J) > 10e+0_fp ))
+
 #else
-
       ! Use GEOS1-4 snow height (water equivalent) in mm
-      IS_SNOW_OR_ICE   = ( (IS_ICE(I,J)) .OR. 
-     &                     (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) )
-
+      IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, State_Met     )) .OR. 
+     &                    ( IS_LAND( I, J, State_Met     )  .AND. 
+     &                      State_Met%SNOW(I,J)   > 10e+0_fp ))
 #endif 
 
       ! Check if there is snow on the ground, or if this is sea ice
@@ -379,14 +383,14 @@
          ! in surface) multiplied by the fraction of the box that is 
          ! snow or ice (i.e. 1 for all met fields but MERRA and GEOS-5.7.x)
          SNOW_HG(I,J,NN) = SNOW_HG(I,J,NN) + 
-     &                     FRAC_SNOW_OR_ICE * MAX( 0.6D0*DEP_HG2, 0D0 )
+     &           FRAC_SNOW_OR_ICE * MAX( 0.6e+0_fp*DEP_HG2, 0e0_fp )
 
       ENDIF
 
       END SUBROUTINE ADD_HG2_SNOWPACK
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -410,15 +414,15 @@
 !BOC
 !
       ! Reset deposition arrays.
-      DD_Hg2 = 0d0
-      WD_Hg2 = 0d0
-      DD_HgP = 0d0
-      WD_HgP = 0d0
+      DD_Hg2 = 0e+0_fp
+      WD_Hg2 = 0e+0_fp
+      DD_HgP = 0e+0_fp
+      WD_HgP = 0e+0_fp
 
       END SUBROUTINE RESET_HG_DEP_ARRAYS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -430,31 +434,38 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE MAKE_GTMM_RESTART( NYMD, NHMS, TAU )
+      SUBROUTINE MAKE_GTMM_RESTART( am_I_Root, Input_Opt, NYMD, 
+     &                              NHMS,      TAU,       RC    )
 ! 
 ! !USES:
 !
       USE BPCH2_MOD
-      USE DIAG_MOD,      ONLY : AD39, AD44, AD38
-      USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE TRACERID_MOD,  ONLY : ID_Hg0, ID_Hg2, ID_Hg_tot
       USE TIME_MOD,      ONLY : GET_CT_DYN, GET_CT_CHEM
       USE inquireMod,    ONLY : findFreeLUN
       USE CMN_SIZE_MOD                 ! Size parameters
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)   :: NYMD    ! Year-Month-Date
-      INTEGER, INTENT(IN)   :: NHMS    ! and Hour-Min-Sec for which to create 
-                                       ! a restart file 
-      REAL*8,  INTENT(IN)   :: TAU     ! GEOS-CHEM TAU value corresponding to 
-                                       ! NYMD, NHMS
+      INTEGER,        INTENT(IN)   :: NYMD        ! Year-Month-Date
+      INTEGER,        INTENT(IN)   :: NHMS        ! and Hour-Min-Sec
+      REAL(f8),       INTENT(IN)   :: TAU         ! TAU value: hrs since 1/1/85
+      LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)  :: RC          ! Success or failure?
+
 ! !REVISION HISTORY:
 !  15 Sep 2009 - C. Carouge  - Initial version
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  20 Jun 2014 - R. Yantosca - Remove reference to directory_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -464,8 +475,8 @@
       INTEGER               :: HALFPOLAR, CENTER180, IU_FILE
       INTEGER               :: IFIRST,    JFIRST,    LFIRST
       INTEGER               :: N,         NN
-      REAL*8                :: TS_DYN,    TS_CHEM
-      REAL*4                :: LONRES,    LATRES,   ARRAY(IIPAR,JJPAR,1)
+      REAL(f8)              :: TS_DYN,    TS_CHEM
+      REAL(f4)              :: LONRES,    LATRES,   ARRAY(IIPAR,JJPAR,1)
       CHARACTER(LEN=20)     :: MODELNAME
       CHARACTER(LEN=40)     :: CATEGORY,  UNIT,     RESERVED
       CHARACTER(LEN=255)    :: FILENAME
@@ -474,6 +485,9 @@
       ! MAKE_GTMM_RESTART begins here!
       !=================================================================
     
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Initialize values
       IFIRST    = GET_XOFFSET( GLOBAL=.TRUE. ) + 1
       JFIRST    = GET_YOFFSET( GLOBAL=.TRUE. ) + 1
@@ -491,7 +505,7 @@
       IU_FILE   = findFreeLUN()
 
       ! Expand date in filename
-      FILENAME  = TRIM( RUN_DIR ) // TRIM( GTMM_RST_FILE )
+      FILENAME  = TRIM( Input_Opt%RUN_DIR ) // TRIM( GTMM_RST_FILE )
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
 
       ! Echo info
@@ -541,7 +555,7 @@
       END SUBROUTINE MAKE_GTMM_RESTART
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -553,35 +567,41 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE READ_GTMM_RESTART( YYYYMMDD, HHMMSS, 
-     &                            Hg0dryGEOS, HgIIdryGEOS, HgIIwetGEOS )
+      SUBROUTINE READ_GTMM_RESTART( am_I_Root,   Input_Opt,  
+     &                              YYYYMMDD,    HHMMSS,     
+     &                              Hg0dryGEOS,  HgIIdryGEOS, 
+     &                              HgIIwetGEOS, RC )
 ! 
 ! !USES:
 !
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
-      USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE ERROR_MOD,     ONLY : DEBUG_MSG
       USE FILE_MOD,      ONLY : IOERROR
       USE inquireMod,    ONLY : findFreeLun
       USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE TRACER_MOD,    ONLY : STT,         TRACER_NAME, TRACER_MW_G
       USE TRACERID_MOD,  ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
       USE TRACERID_MOD,  ONLY : ID_Hg0,      ID_Hg2
-
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)   :: YYYYMMDD, HHMMSS
+      INTEGER,        INTENT(IN)    :: YYYYMMDD, HHMMSS
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8, DIMENSION(IIPAR, JJPAR)   :: Hg0dryGEOS
-      REAL*8, DIMENSION(IIPAR, JJPAR)   :: HgIIdryGEOS
-      REAL*8, DIMENSION(IIPAR, JJPAR)   :: HgIIwetGEOS     
+      INTEGER,        I    NTENT(OUT)   :: RC          ! Success or failure?!
+      REAL(fp), DIMENSION(IIPAR, JJPAR)   :: Hg0dryGEOS
+      REAL(fp), DIMENSION(IIPAR, JJPAR)   :: HgIIdryGEOS
+      REAL(fp), DIMENSION(IIPAR, JJPAR)   :: HgIIwetGEOS     
 !
 ! !REVISION HISTORY:
-!  15 Sep 2009 - C. Carouge - Initial version
+!  15 Sep 2009 - C. Carouge  - Initial version
+!  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -599,7 +619,7 @@
       INTEGER               :: NTRACER,   NSKIP
       INTEGER               :: HALFPOLAR, CENTER180
       REAL*4                :: LONRES,    LATRES
-      REAL*8                :: ZTAU0,     ZTAU1
+      REAL(fp)                :: ZTAU0,     ZTAU1
       CHARACTER(LEN=20)     :: MODELNAME
       CHARACTER(LEN=40)     :: CATEGORY
       CHARACTER(LEN=40)     :: UNIT     
@@ -609,21 +629,26 @@
       ! READ_GTMM_RESTART begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Find a free file LUN
       IU_FILE  = findFreeLUN()
 
       ! Copy input file name to a local variable
-      FILENAME = TRIM( RUN_DIR ) // TRIM( GTMM_RST_FILE )
+      FILENAME = TRIM( Input_Opt%RUN_DIR ) // TRIM( GTMM_RST_FILE )
     
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
     
       ! Echo some input to the screen
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      WRITE( 6, 100   ) 
-      WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
- 100  FORMAT( 'G T M M  H g   R E S T A R T   F I L E   I N P U T' )
- 110  FORMAT( /, 'READ_GTMM_RESTART: Reading ', a, ' on unit ', i6 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         WRITE( 6, 100   ) 
+         WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
+ 100     FORMAT( 'G T M M  H g   R E S T A R T   F I L E   I N P U T' )
+ 110     FORMAT( /, 'READ_GTMM_RESTART: Reading ', a, ' on unit ', i6 )
+      ENDIF
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
@@ -735,7 +760,7 @@
       END SUBROUTINE READ_GTMM_RESTART
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -751,8 +776,10 @@
 ! 
 ! !USES:
 !
-      USE DIAG_MOD,     ONLY : AD38,   AD39,   AD44
-      USE LOGICAL_MOD,  ONLY : LGTMM
+#if !defined( NO_BPCH )
+      USE DIAG_MOD,     ONLY : AD38,   AD39
+      USE DIAG_MOD,     ONLY : AD44
+#endif
       USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_CHEM 
       USE TRACERID_MOD, ONLY : IDTHg0, IDTHg2
 !
@@ -769,16 +796,17 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: N
-      REAL*8  :: SCALEDYN, SCALECHEM
+      REAL(fp)  :: SCALEDYN, SCALECHEM
 
       !=================================================================
       ! UPDATE_DEP begins here!
       !=================================================================
 
       ! counter variables 
-      SCALEDYN   = DBLE( GET_CT_DYN()  ) + 1d-32
-      SCALECHEM  = DBLE( GET_CT_CHEM() ) + 1d-32
+      SCALEDYN   = DBLE( GET_CT_DYN()  ) + 1e-32_fp
+      SCALECHEM  = DBLE( GET_CT_CHEM() ) + 1e-32_fp
 
+#if !defined( NO_BPCH )
       ! Hg2 total wet deposition at the surface
       HG2mth_wd = HG2mth_wd + ( SUM(AD38(:,:,:,NN), DIM=3) + 
      &                          SUM(AD39(:,:,:,NN), DIM=3) )
@@ -791,11 +819,12 @@
       ! Hg2 total dry deposition at the surface
       N = IDTHg2
       HG2mth_dd = HG2mth_dd + AD44(:,:,N,1) / SCALECHEM
+#endif
 
       END SUBROUTINE UPDATE_DEP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -833,7 +862,9 @@
          WRITE( 6, 100 ) 
  100     FORMAT( 'ERROR reading in Hg restart file', /
      &           'Wrong number of longitudes encountered', /
-     &           'STOP in CHECK_DIMENSIONS ("ocean_mercury_mod.f")' )
+     &           'STOP in CHECK_DIMENSIONS ("depo_mercury_mod.f")' )
+         PRINT*, "NI: ", NI
+         PRINT*, "IIPAR: ", IIPAR
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          CALL GEOS_CHEM_STOP
       ENDIF
@@ -842,8 +873,8 @@
       IF ( NJ /= JJPAR ) THEN
          WRITE( 6, 110 ) 
  110     FORMAT( 'ERROR reading in Hg restart file', /
-     &           'Wrong number of longitudes encountered', /
-     &           'STOP in CHECK_DIMENSIONS ("ocean_mercury_mod.f")' )
+     &           'Wrong number of latitudes encountered', /
+     &           'STOP in CHECK_DIMENSIONS ("depo_mercury_mod.f")' )
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          CALL GEOS_CHEM_STOP
       ENDIF
@@ -852,8 +883,8 @@
       IF ( NL /= 1 ) THEN
          WRITE( 6, 120 ) 
  120     FORMAT( 'ERROR reading in Hg restart file', /
-     &           'Wrong number of longitudes encountered', /
-     &           'STOP in CHECK_DIMENSIONS ("ocean_mercury_mod.f")' )
+     &           'Wrong number of vertical encountered', /
+     &           'STOP in CHECK_DIMENSIONS ("depo_mercury_mod.f")' )
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          CALL GEOS_CHEM_STOP
       ENDIF
@@ -861,7 +892,7 @@
       END SUBROUTINE CHECK_DIMENSIONS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -873,74 +904,76 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE INIT_DEPO_MERCURY( THIS_Hg_RST_FILE )
+      SUBROUTINE INIT_DEPO_MERCURY( am_I_Root, Input_Opt, RC )
 !
 ! !USES
 !
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE LOGICAL_MOD,  ONLY : LGTMM
-      USE TRACERID_MOD, ONLY : N_Hg_CATS
-
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : N_Hg_CATS
 !
 ! !INPUT PARAMETERS:
 !
-      ! Name of the GTMM restart file
-      CHARACTER(LEN=*), INTENT(IN) :: THIS_Hg_RST_FILE
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  23 Apr 2010 - C. Carouge   - Moved arrays allocation from 
-!                               ocean_mercury_mod.f
+!  23 Apr 2010 - C. Carouge  - Moved arrays allocation from ocean_mercury_mod.f
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                      :: AS
-
       ! GTMM restart file name
-      GTMM_RST_FILE = THIS_Hg_RST_FILE
+      GTMM_RST_FILE = Input_Opt%GTMM_RST_FILE
 
       ! Allocate arrays
-      ALLOCATE( DD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DD_Hg2' )
-      DD_Hg2 = 0d0
+      ALLOCATE( DD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'DD_Hg2' )
+      DD_Hg2 = 0e+0_fp
 
-      ALLOCATE( DD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DD_HgP' )
-      DD_HgP = 0d0
+      ALLOCATE( DD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'DD_HgP' )
+      DD_HgP = 0e+0_fp
 
-      ALLOCATE( WD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'WD_Hg2' )
-      WD_Hg2 = 0d0
+      ALLOCATE( WD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'WD_Hg2' )
+      WD_Hg2 = 0e+0_fp
 
-      ALLOCATE( WD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'WD_HgP' )
-      WD_HgP = 0d0
+      ALLOCATE( WD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'WD_HgP' )
+      WD_HgP = 0e+0_fp
 
-      ALLOCATE( SNOW_HG( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW_HG' )
-      SNOW_HG = 0d0
+      ALLOCATE( SNOW_HG( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SNOW_HG' )
+      SNOW_HG = 0e+0_fp
 
-      IF ( LGTMM ) THEN
-         ALLOCATE( HG0mth_dd( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG0mth_dd' )
-         HG0mth_dd = 0d0
+      IF ( Input_Opt%LGTMM ) THEN
+         ALLOCATE( HG0mth_dd( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG0mth_dd' )
+         HG0mth_dd = 0e+0_fp
          
-         ALLOCATE( HG2mth_dd( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG2mth_dd' )
-         HG2mth_dd = 0d0
+         ALLOCATE( HG2mth_dd( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG2mth_dd' )
+         HG2mth_dd = 0e+0_fp
          
-         ALLOCATE( HG2mth_wd( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG2mth_wd' )
-         HG2mth_wd = 0d0
+         ALLOCATE( HG2mth_wd( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG2mth_wd' )
+         HG2mth_wd = 0e+0_fp
       ENDIF
 
       END SUBROUTINE INIT_DEPO_MERCURY
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

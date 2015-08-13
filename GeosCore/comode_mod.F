@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -15,8 +15,9 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD  ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -40,26 +41,25 @@
       ! TAREA     : array for surface area of aerosol or dust [cm2/cm3]
       ! VOLUME    : array for grid box volume [cm3]
       !======================================================================
-      REAL*8,  ALLOCATABLE, PUBLIC :: ABSHUM(:) 
-      REAL*8,  ALLOCATABLE, PUBLIC :: AIRDENS(:) 
-      REAL*8,  ALLOCATABLE, PUBLIC :: CSPEC(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: CSPEC_FULL(:,:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: CSUMA(:) 
-      REAL*8,  ALLOCATABLE, PUBLIC :: CSUMC(:) 
-      REAL*8,  ALLOCATABLE, PUBLIC :: ERADIUS(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ERRMX2(:) 
-      INTEGER, ALLOCATABLE, PUBLIC :: IXSAVE(:)
-      INTEGER, ALLOCATABLE, PUBLIC :: IYSAVE(:)
-      INTEGER, ALLOCATABLE, PUBLIC :: IZSAVE(:)
-      INTEGER, ALLOCATABLE, PUBLIC :: JLOP(:,:,:)
-      INTEGER, ALLOCATABLE, PUBLIC :: JLOP_PREVIOUS(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PRESS3(:)      
-      REAL*8,  ALLOCATABLE, PUBLIC :: REMIS(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: T3(:)      
-      REAL*8,  ALLOCATABLE, PUBLIC :: TAREA(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: VOLUME(:)      
-      REAL*8,  ALLOCATABLE, PUBLIC :: WTAREA(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: WERADIUS(:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: ABSHUM(:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: AIRDENS(:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: CSPEC(:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: CSUMA(:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: CSUMC(:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: ERADIUS(:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: ERRMX2(:)
+      INTEGER,  ALLOCATABLE, PUBLIC :: IXSAVE(:)
+      INTEGER,  ALLOCATABLE, PUBLIC :: IYSAVE(:)
+      INTEGER,  ALLOCATABLE, PUBLIC :: IZSAVE(:)
+      INTEGER,  ALLOCATABLE, PUBLIC :: JLOP(:,:,:)
+      INTEGER,  ALLOCATABLE, PUBLIC :: JLOP_PREVIOUS(:,:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: PRESS3(:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: REMIS(:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: T3(:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: TAREA(:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: VOLUME(:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: WTAREA(:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: WERADIUS(:,:)
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
@@ -90,14 +90,17 @@
 !       but excludes BCPO and OCPO (tmf, ccc, 1/7/09)
 !  (11) Added 3 *_KPP arrays (phs,ks,dhk, 09/15/09)
 !  (12) Removed 3 *_KPP arrays (phs, 09/16/09)
-!  21 Dec 2010 - R. Yantosca - Added ProTeX headers     
+!  21 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  04 Apr 2013 - R. Yantosca - Removed CSPEC_FULL (now in State_Chm)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete 
+!  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -109,20 +112,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_COMODE( am_I_Root )
+      SUBROUTINE INIT_COMODE( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
-!
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE TRACER_MOD, ONLY : ITS_AN_AEROSOL_SIM
-      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
-      
+!    
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD 
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  31 Aug 2000 - R. Yantosca - Initial version
@@ -133,6 +140,8 @@
 !  21 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  13 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC arguments for GIGC
+!  04 Apr 2013 - R. Yantosca - Removed CSPEC_FULL (now in State_Chm)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -140,6 +149,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: AS
+      LOGICAL :: IT_IS_AN_AEROSOL_SIM
+      LOGICAL :: IT_IS_A_FULLCHEM_SIM
 
       !=================================================================
       ! INIT_COMODE begins here!
@@ -149,42 +160,45 @@
       ENDIF
  100  FORMAT( '     - INIT_COMODE: Allocating arrays for SMVGEAR...' )
 
+      ! Assume success
+      RC                   = GIGC_SUCCESS
+
+      ! Copy logical fields from INPUT_OPT to local variables for use below
+      IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
+      IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+
       !----------------------------------
       ! FULL CHEMISTRY SIMULATION
       !----------------------------------
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( IT_IS_A_FULLCHEM_SIM ) THEN
       
          ALLOCATE( ABSHUM( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ABSHUM' )
-         ABSHUM = 0d0
+         ABSHUM = 0e+0_fp
       
          ALLOCATE( AIRDENS( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDENS' )
-         AIRDENS = 0d0      
+         AIRDENS = 0e+0_fp      
 
          ALLOCATE( CSPEC( ITLOOP, IGAS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC' )
-         CSPEC = 0d0
-
-         ALLOCATE( CSPEC_FULL( ILONG, ILAT, IPVERT, IGAS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC_FULL' )
-         CSPEC_FULL = 0d0
+         CSPEC = 0e+0_fp
 
          ALLOCATE( CSUMA( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMA' )
-         CSUMA = 0d0
+         CSUMA = 0e+0_fp
       
          ALLOCATE( CSUMC( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMC' )
-         CSUMC = 0d0
+         CSUMC = 0e+0_fp
 
          ALLOCATE( ERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERADIUS' )
-         ERADIUS = 0d0      
+         ERADIUS = 0e+0_fp      
 
          ALLOCATE( ERRMX2( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERRMX2' )
-         ERRMX2 = 0d0
+         ERRMX2 = 0e+0_fp
            
          ALLOCATE( IXSAVE( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'IXSAVE' )
@@ -209,50 +223,50 @@
 
          ALLOCATE( PRESS3( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRESS3' )
-         PRESS3 = 0d0
+         PRESS3 = 0e+0_fp
       
          ALLOCATE( REMIS( ITLOOP, MAXGL3 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'REMIS' )
-         REMIS = 0d0
+         REMIS = 0e+0_fp
       
          ALLOCATE( T3( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'T3' )
-         T3 = 0d0
+         T3 = 0e+0_fp
 
          ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAREA' )
-         TAREA = 0d0      
+         TAREA = 0e+0_fp      
       
          ALLOCATE( VOLUME( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'VOLUME' )
-         VOLUME = 0d0
+         VOLUME = 0e+0_fp
 
          ALLOCATE( WTAREA( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'WTAREA' )
-         WTAREA = 0d0      
+         WTAREA = 0e+0_fp      
 
          ALLOCATE( WERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'WERADIUS' )
-         WERADIUS = 0d0      
+         WERADIUS = 0e+0_fp      
 
       ENDIF
 
       !----------------------------------
       ! OFFLINE AEROSOL SIMULATION
       !----------------------------------
-      IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
          ALLOCATE( ABSHUM( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ABSHUM' )
-         ABSHUM = 0d0
+         ABSHUM = 0e+0_fp
       
          ALLOCATE( AIRDENS( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDENS' )
-         AIRDENS = 0d0      
+         AIRDENS = 0e+0_fp      
 
          ALLOCATE( ERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERADIUS' )
-         ERADIUS = 0d0      
+         ERADIUS = 0e+0_fp      
 
          ALLOCATE( IXSAVE( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'IXSAVE' )
@@ -277,22 +291,22 @@
 
          ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAREA' )
-         TAREA = 0d0      
+         TAREA = 0e+0_fp      
 
          ALLOCATE( WTAREA( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'WTAREA' )
-         WTAREA = 0d0
+         WTAREA = 0e+0_fp
 
          ALLOCATE( WERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'WERADIUS' )
-         WERADIUS = 0d0      
+         WERADIUS = 0e+0_fp      
          
       ENDIF
 
       END SUBROUTINE INIT_COMODE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -304,40 +318,39 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_COMODE
+      SUBROUTINE CLEANUP_COMODE()
 ! 
 ! !REVISION HISTORY: 
 !  31 Aug 2000 - R. Yantosca - Initial version
 !  (1 ) Now deallocate CSPEC, CSUMA, ERRMX2; cosmetic changes (bmy, 7/18/03)
 !  21 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  13 Nov 2012 - R. Yantosca - Cosmetic changes
+!   4 Apr 2013 - R. Yantosca - Removed CSPEC_FULL (now in State_Chm)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
       ! CLEANUP_COMODE begins here!
       !=================================================================
-      IF ( ALLOCATED( ABSHUM     ) ) DEALLOCATE( ABSHUM     )
-      IF ( ALLOCATED( AIRDENS    ) ) DEALLOCATE( AIRDENS    )
-      IF ( ALLOCATED( CSPEC      ) ) DEALLOCATE( CSPEC      )
-      IF ( ALLOCATED( CSPEC_FULL ) ) DEALLOCATE( CSPEC_FULL )
-      IF ( ALLOCATED( CSUMA      ) ) DEALLOCATE( CSUMA      )
-      IF ( ALLOCATED( CSUMC      ) ) DEALLOCATE( CSUMC      )
-      IF ( ALLOCATED( ERADIUS    ) ) DEALLOCATE( ERADIUS    )
-      IF ( ALLOCATED( ERRMX2     ) ) DEALLOCATE( ERRMX2     )
-      IF ( ALLOCATED( IXSAVE     ) ) DEALLOCATE( IXSAVE     )
-      IF ( ALLOCATED( IYSAVE     ) ) DEALLOCATE( IYSAVE     )
-      IF ( ALLOCATED( IZSAVE     ) ) DEALLOCATE( IZSAVE     )
-      IF ( ALLOCATED( JLOP       ) ) DEALLOCATE( JLOP       )
-
+      IF ( ALLOCATED( ABSHUM        ) ) DEALLOCATE( ABSHUM        )
+      IF ( ALLOCATED( AIRDENS       ) ) DEALLOCATE( AIRDENS       )
+      IF ( ALLOCATED( CSPEC         ) ) DEALLOCATE( CSPEC         )
+      IF ( ALLOCATED( CSUMA         ) ) DEALLOCATE( CSUMA         )
+      IF ( ALLOCATED( CSUMC         ) ) DEALLOCATE( CSUMC         )
+      IF ( ALLOCATED( ERADIUS       ) ) DEALLOCATE( ERADIUS       )
+      IF ( ALLOCATED( ERRMX2        ) ) DEALLOCATE( ERRMX2        )
+      IF ( ALLOCATED( IXSAVE        ) ) DEALLOCATE( IXSAVE        )
+      IF ( ALLOCATED( IYSAVE        ) ) DEALLOCATE( IYSAVE        )
+      IF ( ALLOCATED( IZSAVE        ) ) DEALLOCATE( IZSAVE        )
+      IF ( ALLOCATED( JLOP          ) ) DEALLOCATE( JLOP          )
       IF ( ALLOCATED( JLOP_PREVIOUS ) ) DEALLOCATE( JLOP_PREVIOUS )
-
-      IF ( ALLOCATED( PRESS3     ) ) DEALLOCATE( PRESS3     )     
-      IF ( ALLOCATED( REMIS      ) ) DEALLOCATE( REMIS      )
-      IF ( ALLOCATED( T3         ) ) DEALLOCATE( T3         )     
-      IF ( ALLOCATED( TAREA      ) ) DEALLOCATE( TAREA      )
-      IF ( ALLOCATED( VOLUME     ) ) DEALLOCATE( VOLUME     )  
-      IF ( ALLOCATED( WTAREA     ) ) DEALLOCATE( WTAREA     )
-      IF ( ALLOCATED( WERADIUS   ) ) DEALLOCATE( WERADIUS   )
+      IF ( ALLOCATED( PRESS3        ) ) DEALLOCATE( PRESS3        )     
+      IF ( ALLOCATED( REMIS         ) ) DEALLOCATE( REMIS         )
+      IF ( ALLOCATED( T3            ) ) DEALLOCATE( T3            )     
+      IF ( ALLOCATED( TAREA         ) ) DEALLOCATE( TAREA         )
+      IF ( ALLOCATED( VOLUME        ) ) DEALLOCATE( VOLUME        )  
+      IF ( ALLOCATED( WTAREA        ) ) DEALLOCATE( WTAREA        )
+      IF ( ALLOCATED( WERADIUS      ) ) DEALLOCATE( WERADIUS      )
 
       END SUBROUTINE CLEANUP_COMODE
 !EOC

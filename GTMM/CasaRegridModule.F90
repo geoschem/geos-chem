@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -15,6 +15,8 @@ MODULE CasaRegridModule
 !
 ! !USES:
 !
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
   IMPLICIT NONE
   PRIVATE
 !
@@ -41,46 +43,46 @@ MODULE CasaRegridModule
 ! !PRIVATE TYPES:
 !
   ! Degrees to Radians
-  REAL*8,  PARAMETER  :: D2R = 3.141592658979323d0 / 180d0
+  REAL(fp),  PARAMETER  :: D2R = 3.141592658979323e+0_fp / 180e+0_fp
 
   !---------------------
   ! 1 x 1 grid
   !---------------------
 
   ! Lon edges
-  REAL*8 :: xedge_1x1( I1x1 + 1 ) 
+  REAL(fp) :: xedge_1x1( I1x1 + 1 ) 
 
   ! Lat edges
-  REAL*8 :: yedge_1x1( J1x1 + 1 )
+  REAL(fp) :: yedge_1x1( J1x1 + 1 )
 
   ! Sine of latitude
-  REAL*8 :: sine_1x1( J1x1 + 1 )
+  REAL(fp) :: sine_1x1( J1x1 + 1 )
 
   !---------------------
   ! 2 x 2.5 grid
   !---------------------
 
   ! Longitude edges
-  REAL*8 :: xedge_2x25( I2x25 + 1 ) 
+  REAL(fp) :: xedge_2x25( I2x25 + 1 ) 
 
   ! Latitude edges
-  REAL*8 :: yedge_2x25( J2x25 + 1 )
+  REAL(fp) :: yedge_2x25( J2x25 + 1 )
 
   ! Latitude edges
-  REAL*8 :: sine_2x25( J2x25 + 1 )
+  REAL(fp) :: sine_2x25( J2x25 + 1 )
 
   !---------------------
   ! 4 x 5 grid
   !---------------------
 
   ! Longitude edges
-  REAL*8 :: xedge_4x5( I4x5 + 1 )
+  REAL(fp) :: xedge_4x5( I4x5 + 1 )
 
   ! Latitude edges
-  REAL*8 :: yedge_4x5( J4x5 + 1 )
+  REAL(fp) :: yedge_4x5( J4x5 + 1 )
 
   ! Latitude edges
-  REAL*8 :: sine_4x5( J4x5 + 1 )
+  REAL(fp) :: sine_4x5( J4x5 + 1 )
 !
 ! !REMARKS:
 !  CasaRegridModule uses the regridding software "MAP_A2A" from S-J Lin.  
@@ -94,13 +96,14 @@ MODULE CasaRegridModule
 !  (1 ) Modify regriddGeos5To* routines so that if all values are zero,
 !        then we just fill the output data array with zeros and return.
 !        This ought to speed up program execution. (bmy, 11/14/06)
+!  25 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
   CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -117,11 +120,11 @@ MODULE CasaRegridModule
 ! !INPUT PARAMETERS: 
 !
     INTEGER, INTENT(IN)  :: iv
-    REAL*8,  INTENT(IN)  :: q1( I4x5, J4x5 )
+    REAL(fp),  INTENT(IN)  :: q1( I4x5, J4x5 )
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*8,  INTENT(OUT) :: q2( I1x1, J1x1 )
+    REAL(fp),  INTENT(OUT) :: q2( I1x1, J1x1 )
 !
 ! !REVISION HISTORY: 
 !  08 Nov 2006 - R. Yantosca - Initial version
@@ -134,8 +137,8 @@ MODULE CasaRegridModule
     !---------------------------------
 
     ! If all elements of q1 are zero, then set q2=0 and return
-    IF ( ALL( q1 == 0d0 ) ) THEN
-       q2 = 0d0
+    IF ( ALL( q1 == 0e+0_fp ) ) THEN
+       q2 = 0e+0_fp
        RETURN
     ENDIF
 
@@ -146,7 +149,7 @@ MODULE CasaRegridModule
   END SUBROUTINE regrid4x5to1x1
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -163,11 +166,11 @@ MODULE CasaRegridModule
 ! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN)  :: iv
-    REAL*8,  INTENT(IN)  :: q1( I1x1, J1x1 )
+    REAL(fp),  INTENT(IN)  :: q1( I1x1, J1x1 )
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*8,  INTENT(OUT) :: q2( I4x5, J4x5 )
+    REAL(fp),  INTENT(OUT) :: q2( I4x5, J4x5 )
 !
 ! !REVISION HISTORY:
 !  08 Nov 2006 - R. Yantosca - Initial version
@@ -180,8 +183,8 @@ MODULE CasaRegridModule
     !---------------------------------
 
     ! If all elements of q1 are zero, then set q2=0 and return
-    IF ( ALL( q1 == 0d0 ) ) THEN
-       q2 = 0d0
+    IF ( ALL( q1 == 0e+0_fp ) ) THEN
+       q2 = 0e+0_fp
        RETURN
     ENDIF
 
@@ -192,7 +195,7 @@ MODULE CasaRegridModule
   END SUBROUTINE regrid1x1to4x5
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -210,11 +213,11 @@ MODULE CasaRegridModule
 ! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN)  :: iv
-    REAL*8,  INTENT(IN)  :: q1( I2x25, J2x25 )
+    REAL(fp),  INTENT(IN)  :: q1( I2x25, J2x25 )
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*8,  INTENT(OUT) :: q2( I1x1,  J1x1  )
+    REAL(fp),  INTENT(OUT) :: q2( I1x1,  J1x1  )
 !
 ! !REVISION HISTORY:
 !  08 Nov 2006 - R. Yantosca - Initial version
@@ -227,8 +230,8 @@ MODULE CasaRegridModule
     !---------------------------------
 
     ! If all elements of q1 are zero, then set q2=0 and return
-    IF ( ALL( q1 == 0d0 ) ) THEN
-       q2 = 0d0
+    IF ( ALL( q1 == 0e+0_fp ) ) THEN
+       q2 = 0e+0_fp
        RETURN
     ENDIF
 
@@ -239,7 +242,7 @@ MODULE CasaRegridModule
   END SUBROUTINE regrid2x25to1x1
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -256,11 +259,11 @@ MODULE CasaRegridModule
 ! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN)  :: iv
-    REAL*8,  INTENT(IN)  :: q1( I1x1,  J1x1  )
+    REAL(fp),  INTENT(IN)  :: q1( I1x1,  J1x1  )
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*8,  INTENT(OUT) :: q2( I2x25, J2x25 )
+    REAL(fp),  INTENT(OUT) :: q2( I2x25, J2x25 )
 !
 ! !REVISION HISTORY:
 !  08 Nov 2006 - R. Yantosca - Initial version
@@ -273,8 +276,8 @@ MODULE CasaRegridModule
     !---------------------------------
 
     ! If all elements of q1 are zero, then set q2=0 and return
-    IF ( ALL( q1 == 0d0 ) ) THEN
-       q2 = 0d0
+    IF ( ALL( q1 == 0e+0_fp ) ) THEN
+       q2 = 0e+0_fp
        RETURN
     ENDIF
 
@@ -285,7 +288,7 @@ MODULE CasaRegridModule
   END SUBROUTINE regrid1x1to2x25
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -303,13 +306,13 @@ MODULE CasaRegridModule
 ! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN)  :: im, jm, in, jn, ig, iv
-    REAL*8,  INTENT(IN)  :: lon1(im+1), lon2(in+1)
-    REAL*8,  INTENT(IN)  :: sin1(jm+1), sin2(jn+1)
-    REAL*8,  INTENT(IN)  :: q1(im,jm)
+    REAL(fp),  INTENT(IN)  :: lon1(im+1), lon2(in+1)
+    REAL(fp),  INTENT(IN)  :: sin1(jm+1), sin2(jn+1)
+    REAL(fp),  INTENT(IN)  :: q1(im,jm)
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*8,  INTENT(OUT) :: q2(in,jn)
+    REAL(fp),  INTENT(OUT) :: q2(in,jn)
 !
 !  !REVISION HISTORY:
 !  (1) Original subroutine by S-J Lin.  Converted to F90 freeform format
@@ -324,7 +327,7 @@ MODULE CasaRegridModule
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: i,j,k
-    REAL*8               :: qtmp(in,jm)
+    REAL(fp)               :: qtmp(in,jm)
 
     !===================================================================
     ! MAP_A2A begins here!
@@ -359,7 +362,7 @@ MODULE CasaRegridModule
   END SUBROUTINE map_a2a
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -382,16 +385,16 @@ MODULE CasaRegridModule
                                           ! D-grid v-wind is also ig 0
                                           ! ig=1: D-grid u-wind
     INTEGER, INTENT(IN)  :: iv            ! iv=0 scalar; iv=1: vector
-    REAL*8,  INTENT(IN)  :: sin1(jm+1-ig) ! original southern edge of 
+    REAL(fp),  INTENT(IN)  :: sin1(jm+1-ig) ! original southern edge of 
                                           !  the cell sin(lat1)  
-    REAL*8,  INTENT(IN)  :: q1(im,jm)     ! original data at center of 
+    REAL(fp),  INTENT(IN)  :: q1(im,jm)     ! original data at center of 
                                           !  the cell
-    REAL*8,  INTENT(IN)  :: sin2(jn+1-ig) ! Target cell's southern edge
+    REAL(fp),  INTENT(IN)  :: sin2(jn+1-ig) ! Target cell's southern edge
                                           !  sin(lat2)
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*8,  INTENT(OUT) :: q2(im,jn)     ! Mapped data at the 
+    REAL(fp),  INTENT(OUT) :: q2(im,jn)     ! Mapped data at the 
                                           !  target resolution
 !
 ! !REMARKS:
@@ -415,9 +418,9 @@ MODULE CasaRegridModule
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: i, j0, m, mm, j
-    REAL*8               :: al(im,jm), ar(im,jm), a6(im,jm), dy1(jm)
-    REAL*8,  PARAMETER   :: r3 = 1./3., r23 = 2./3. 
-    REAL*8               :: pl, pr, qsum, esl, dy, sum
+    REAL(fp)               :: al(im,jm), ar(im,jm), a6(im,jm), dy1(jm)
+    REAL(fp),  PARAMETER   :: r3 = 1./3., r23 = 2./3. 
+    REAL(fp)               :: pl, pr, qsum, esl, dy, sum
     
     ! YMAP begins here!
     do j=1,jm-ig
@@ -446,14 +449,14 @@ MODULE CasaRegridModule
                 
                 ! entire new cell is within the original cell
                 pr = (sin2(j+1)-sin1(m)) / dy1(m)
-                q2(i,j) = al(i,m) + 0.5d0*(a6(i,m)+ar(i,m)-al(i,m)) &
+                q2(i,j) = al(i,m) + 0.5e+0_fp*(a6(i,m)+ar(i,m)-al(i,m)) &
                &                    *(pr+pl)-a6(i,m)*r3*(pr*(pr+pl)+pl**2)
                 j0 = m
                 goto 555
              else
 
                 ! South most fractional area
-                qsum = (sin1(m+1)-sin2(j))*(al(i,m)+0.5d0*(a6(i,m)+ &
+                qsum = (sin1(m+1)-sin2(j))*(al(i,m)+0.5e+0_fp*(a6(i,m)+ &
                 &              ar(i,m)-al(i,m))*(1.+pl)-a6(i,m)*  &
                 &               (r3*(1.+pl*(1.+pl))))
 
@@ -469,7 +472,7 @@ MODULE CasaRegridModule
                       ! North most fractional area
                       dy = sin2(j+1)-sin1(mm)
                       esl = dy / dy1(mm)
-                      qsum = qsum + dy*(al(i,mm)+0.5d0*esl* &
+                      qsum = qsum + dy*(al(i,mm)+0.5e+0_fp*esl* &
                      &       (ar(i,mm)-al(i,mm)+a6(i,mm)*(1.-r23*esl)))
                       j0 = mm
                       goto 123
@@ -515,7 +518,7 @@ MODULE CasaRegridModule
   END SUBROUTINE YMAP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -539,13 +542,13 @@ MODULE CasaRegridModule
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    REAL*8            :: q(im,jm-ig)
+    REAL(fp)            :: q(im,jm-ig)
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*8            :: al(im,jm-ig)
-    REAL*8            :: ar(im,jm-ig)
-    REAL*8            :: a6(im,jm-ig)
+    REAL(fp)            :: al(im,jm-ig)
+    REAL(fp)            :: ar(im,jm-ig)
+    REAL(fp)            :: a6(im,jm-ig)
 !
 ! !REVISION HISTORY:
 !  21 Sep 2000 - R. Yantosca - Initial version
@@ -555,16 +558,16 @@ MODULE CasaRegridModule
 !
 ! !LOCAL VARIABLES:
 !
-    REAL*8            :: dm(im,jm-ig)
-    REAL*8, PARAMETER :: r3 = 1./3. 
+    REAL(fp)            :: dm(im,jm-ig)
+    REAL(fp), PARAMETER :: r3 = 1./3. 
     INTEGER           :: i, j, im2, iop, jm1
-    REAL*8            :: tmp, qmax, qmin, qop
+    REAL(fp)            :: tmp, qmax, qmin, qop
     
     ! PPM_LAT begins here
     ! Compute dm: linear slope
     do j=2,jm-1-ig
        do i=1,im
-          dm(i,j) = 0.25d0*(q(i,j+1) - q(i,j-1))
+          dm(i,j) = 0.25e+0_fp*(q(i,j+1) - q(i,j-1))
           qmax = max(q(i,j-1),q(i,j),q(i,j+1)) - q(i,j)
           qmin = q(i,j) - min(q(i,j-1),q(i,j),q(i,j+1))
           dm(i,j) = sign(min(abs(dm(i,j)),qmin,qmax),dm(i,j))
@@ -589,7 +592,7 @@ MODULE CasaRegridModule
           else
              qop = -q(i-im2,2-ig)
           endif
-          tmp = 0.25d0*(q(i,2) - qop)
+          tmp = 0.25e+0_fp*(q(i,2) - qop)
           qmax = max(q(i,2),q(i,1), qop) - q(i,1)
           qmin = q(i,1) - min(q(i,2),q(i,1), qop)
           dm(i,1) = sign(min(abs(tmp),qmax,qmin),tmp)
@@ -602,7 +605,7 @@ MODULE CasaRegridModule
           else
              qop = -q(i-im2,jm1)
           endif
-          tmp = 0.25d0*(qop - q(i,jm1-ig))
+          tmp = 0.25e+0_fp*(qop - q(i,jm1-ig))
           qmax = max(qop,q(i,jm-ig), q(i,jm1-ig)) - q(i,jm-ig)
           qmin = q(i,jm-ig) - min(qop,q(i,jm-ig), q(i,jm1-ig))
           dm(i,jm-ig) = sign(min(abs(tmp),qmax,qmin),tmp)
@@ -616,7 +619,7 @@ MODULE CasaRegridModule
 
        ! SP
        do i=1,im2
-          tmp = 0.25d0*(q(i,2)-q(i+im2,2))
+          tmp = 0.25e+0_fp*(q(i,2)-q(i+im2,2))
           qmax = max(q(i,2),q(i,1), q(i+im2,2)) - q(i,1)
           qmin = q(i,1) - min(q(i,2),q(i,1), q(i+im2,2))
           dm(i,1) = sign(min(abs(tmp),qmax,qmin),tmp)
@@ -628,7 +631,7 @@ MODULE CasaRegridModule
 
        ! NP
        do i=1,im2
-          tmp = 0.25d0*(q(i+im2,jm1)-q(i,jm1))
+          tmp = 0.25e+0_fp*(q(i+im2,jm1)-q(i,jm1))
           qmax = max(q(i+im2,jm1),q(i,jm), q(i,jm1)) - q(i,jm)
           qmin = q(i,jm) - min(q(i+im2,jm1),q(i,jm), q(i,jm1))
           dm(i,jm) = sign(min(abs(tmp),qmax,qmin),tmp)
@@ -641,7 +644,7 @@ MODULE CasaRegridModule
       
      do j=2,jm-ig
         do i=1,im
-           al(i,j) = 0.5d0*(q(i,j-1)+q(i,j)) + r3*(dm(i,j-1) - dm(i,j))
+           al(i,j) = 0.5e+0_fp*(q(i,j-1)+q(i,j)) + r3*(dm(i,j-1) - dm(i,j))
         enddo
      enddo
       
@@ -678,7 +681,7 @@ MODULE CasaRegridModule
               else
                  iop = i-im2
               endif
-              al(i,1) = 0.5d0*(q(i,1)-q(iop,1)) - r3*(dm(iop,1) + dm(i,1))
+              al(i,1) = 0.5e+0_fp*(q(i,1)-q(iop,1)) - r3*(dm(iop,1) + dm(i,1))
            enddo
 
            !============================================================
@@ -690,7 +693,7 @@ MODULE CasaRegridModule
               else
                  iop = i-im2
               endif
-              ar(i,jm1) = 0.5d0*(q(i,jm1)-q(iop,jm1)) - &
+              ar(i,jm1) = 0.5e+0_fp*(q(i,jm1)-q(iop,jm1)) - &
              &                 r3*(dm(iop,jm1) + dm(i,jm1))
             enddo
         endif
@@ -710,7 +713,7 @@ MODULE CasaRegridModule
       
      do j=1,jm-ig
         do i=1,im
-           a6(i,j) = 3d0*(q(i,j)+q(i,j) - (al(i,j)+ar(i,j)))
+           a6(i,j) = 3e+0_fp*(q(i,j)+q(i,j) - (al(i,j)+ar(i,j)))
         enddo
         call lmppm(dm(1,j), a6(1,j), ar(1,j), al(1,j),  q(1,j), im, jord-3)
      enddo
@@ -718,7 +721,7 @@ MODULE CasaRegridModule
   END SUBROUTINE ppm_lat
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -739,15 +742,15 @@ MODULE CasaRegridModule
     INTEGER, INTENT(IN)  :: im           ! original E-W dimension
     INTEGER, INTENT(IN)  :: in           ! Target E-W dimension
     INTEGER, INTENT(IN)  :: jm           ! original N-S dimension
-    REAL*8,  INTENT(IN)  :: lon1(im+1)   ! original western edge of 
+    REAL(fp),  INTENT(IN)  :: lon1(im+1)   ! original western edge of 
                                          !  the cell
-    REAL*8,  INTENT(IN)  :: q1(im,jm)    ! original data at center of 
+    REAL(fp),  INTENT(IN)  :: q1(im,jm)    ! original data at center of 
                                          !  the cell
-    REAL*8,  INTENT(IN)  :: lon2(in+1)   ! Target cell's western edge
+    REAL(fp),  INTENT(IN)  :: lon2(in+1)   ! Target cell's western edge
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*8,  INTENT(OUT) :: q2(in,jm)    ! Mapped data at the 
+    REAL(fp),  INTENT(OUT) :: q2(in,jm)    ! Mapped data at the 
                                          !  target resolution
 !
 ! !REVISION HISTORY:
@@ -761,14 +764,14 @@ MODULE CasaRegridModule
 !
     INTEGER              :: i1, i2, i, i0, m, mm, j
 
-    REAL*8               :: qtmp(-im:im+im)
-    REAL*8               :: al(-im:im+im)
-    REAL*8               :: ar(-im:im+im)
-    REAL*8               :: a6(-im:im+im)
-    REAL*8               :: x1(-im:im+im+1)
-    REAL*8               :: dx1(-im:im+im)
-    REAL*8,  PARAMETER   :: r3 = 1./3., r23 = 2./3. 
-    REAL*8               :: pl, pr, qsum, esl, dx
+    REAL(fp)               :: qtmp(-im:im+im)
+    REAL(fp)               :: al(-im:im+im)
+    REAL(fp)               :: ar(-im:im+im)
+    REAL(fp)               :: a6(-im:im+im)
+    REAL(fp)               :: x1(-im:im+im+1)
+    REAL(fp)               :: dx1(-im:im+im)
+    REAL(fp),  PARAMETER   :: r3 = 1./3., r23 = 2./3. 
+    REAL(fp)               :: pl, pr, qsum, esl, dx
     INTEGER              :: iord = 3
     LOGICAL              :: found
 
@@ -869,14 +872,14 @@ MODULE CasaRegridModule
                 
                 ! entire new grid is within the original grid
                 pr = (lon2(i+1)-x1(m)) / dx1(m)
-                q2(i,j) = al(m) + 0.5d0*(a6(m)+ar(m)-al(m)) &
+                q2(i,j) = al(m) + 0.5e+0_fp*(a6(m)+ar(m)-al(m)) &
                &                  *(pr+pl)-a6(m)*r3*(pr*(pr+pl)+pl**2)
                 i0 = m
                 goto 555
              else
 
                 ! Left most fractional area
-                qsum = (x1(m+1)-lon2(i))*(al(m)+0.5d0*(a6(m)+ &
+                qsum = (x1(m+1)-lon2(i))*(al(m)+0.5e+0_fp*(a6(m)+ &
                &              ar(m)-al(m))*(1.+pl)-a6(m)*   &
                &               (r3*(1.+pl*(1.+pl))))
 
@@ -892,7 +895,7 @@ MODULE CasaRegridModule
                       ! Right most fractional area
                       dx = lon2(i+1)-x1(mm)
                       esl = dx / dx1(mm)
-                      qsum = qsum + dx*(al(mm)+0.5d0*esl* &
+                      qsum = qsum + dx*(al(mm)+0.5e+0_fp*esl* &
                      &              (ar(mm)-al(mm)+a6(mm)*(1.-r23*esl)))
                       i0 = mm
                       goto 123
@@ -909,7 +912,7 @@ MODULE CasaRegridModule
    END SUBROUTINE xmap
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -925,11 +928,11 @@ MODULE CasaRegridModule
 ! !INPUT PARAMETERS:
 ! 
      INTEGER, INTENT(IN)  :: im, iord
-     REAL*8,  INTENT(IN)  :: q(1)
+     REAL(fp),  INTENT(IN)  :: q(1)
 ! 
 ! !OUTPUT PARAMETERS:
 !
-     REAL*8,  INTENT(OUT) :: al(1), ar(1), a6(1), p(0:im+1)
+     REAL(fp),  INTENT(OUT) :: al(1), ar(1), a6(1), p(0:im+1)
 !
 ! !REVISION HISTORY:
 !  21 Sep 2000 - R. Yantosca - Initial version
@@ -939,9 +942,9 @@ MODULE CasaRegridModule
 !
 ! !LOCAL VARIABLES:
 !
-     REAL*8               :: dm(0:im), tmp, qmax, qmin
+     REAL(fp)               :: dm(0:im), tmp, qmax, qmin
      INTEGER              :: i, lmt
-     REAL*8,  PARAMETER   :: r3 = 1./3. 
+     REAL(fp),  PARAMETER   :: r3 = 1./3. 
 
      ! PPM_CYCLE begins here!
      p(0) = q(im)
@@ -952,7 +955,7 @@ MODULE CasaRegridModule
 
      ! 2nd order slope
      do i=1,im
-        tmp = 0.25d0*(p(i+1) - p(i-1))
+        tmp = 0.25e+0_fp*(p(i+1) - p(i-1))
         qmax = max(p(i-1), p(i), p(i+1)) - p(i)
         qmin = p(i) - min(p(i-1), p(i), p(i+1))
         dm(i) = sign(min(abs(tmp),qmax,qmin), tmp)
@@ -960,7 +963,7 @@ MODULE CasaRegridModule
      dm(0) = dm(im)
 
      do i=1,im
-        al(i) = 0.5d0*(p(i-1)+p(i)) + (dm(i-1) - dm(i))*r3
+        al(i) = 0.5e+0_fp*(p(i-1)+p(i)) + (dm(i-1) - dm(i))*r3
      enddo
 
      do i=1,im-1
@@ -970,7 +973,7 @@ MODULE CasaRegridModule
 
      if(iord .le. 6) then
         do i=1,im
-           a6(i) = 3d0*(p(i)+p(i)  - (al(i)+ar(i)))
+           a6(i) = 3e+0_fp*(p(i)+p(i)  - (al(i)+ar(i)))
         enddo
         lmt = iord - 3
         if(lmt.le.2) call lmppm(dm(1),a6(1),ar(1),al(1),p(1),im,lmt)
@@ -981,7 +984,7 @@ MODULE CasaRegridModule
    END SUBROUTINE ppm_cycle
 !EOC
 !-----------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -997,11 +1000,11 @@ MODULE CasaRegridModule
 ! !INPUT PARAMETERS:
 !
      INTEGER           :: im, lmt
-     REAL*8            :: p(im),dm(im)
+     REAL(fp)            :: p(im),dm(im)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-     REAL*8            :: a6(im),ar(im),al(im)
+     REAL(fp)            :: a6(im),ar(im),al(im)
 !
 ! !REMARKS:
 !  LMT = 0: full monotonicity
@@ -1018,8 +1021,8 @@ MODULE CasaRegridModule
 !
      INTEGER           :: i
 
-     REAL*8            :: da1, da2, fmin, a6da
-     REAL*8, PARAMETER :: r12 = 1.d0/12.d0 
+     REAL(fp)            :: da1, da2, fmin, a6da
+     REAL(fp), PARAMETER :: r12 = 1.e+0_fp/12.e+0_fp 
 
      ! LMPPM begins here!
      if(lmt.eq.0) then
@@ -1035,10 +1038,10 @@ MODULE CasaRegridModule
               da2  = da1**2
               a6da = a6(i)*da1
               if(a6da .lt. -da2) then
-                 a6(i) = 3d0*(al(i)-p(i))
+                 a6(i) = 3e+0_fp*(al(i)-p(i))
                  ar(i) = al(i) - a6(i)
               elseif(a6da .gt. da2) then
-                 a6(i) = 3d0*(ar(i)-p(i))
+                 a6(i) = 3e+0_fp*(ar(i)-p(i))
                  al(i) = ar(i) - a6(i)
               endif
            endif
@@ -1052,12 +1055,12 @@ MODULE CasaRegridModule
            if(p(i).lt.ar(i) .and. p(i).lt.al(i)) then
               ar(i) = p(i)
               al(i) = p(i)
-              a6(i) = 0d0
+              a6(i) = 0e+0_fp
            elseif(ar(i) .gt. al(i)) then
-              a6(i) = 3d0*(al(i)-p(i))
+              a6(i) = 3e+0_fp*(al(i)-p(i))
               ar(i) = al(i) - a6(i)
            else
-              a6(i) = 3d0*(ar(i)-p(i))
+              a6(i) = 3e+0_fp*(ar(i)-p(i))
               al(i) = ar(i) - a6(i)
            endif
 150     continue
@@ -1067,17 +1070,17 @@ MODULE CasaRegridModule
         ! Positive definite constraint
         do 250 i=1,im
            if(abs(ar(i)-al(i)) .ge. -a6(i)) go to 250
-           fmin = p(i) + 0.25d0*(ar(i)-al(i))**2/a6(i) + a6(i)*r12
-           if(fmin.ge.0d0) go to 250
+           fmin = p(i) + 0.25e+0_fp*(ar(i)-al(i))**2/a6(i) + a6(i)*r12
+           if(fmin.ge.0e+0_fp) go to 250
            if(p(i).lt.ar(i) .and. p(i).lt.al(i)) then
               ar(i) = p(i)
               al(i) = p(i)
-              a6(i) = 0d0
+              a6(i) = 0e+0_fp
            elseif(ar(i) .gt. al(i)) then
-              a6(i) = 3d0*(al(i)-p(i))
+              a6(i) = 3e+0_fp*(al(i)-p(i))
               ar(i) = al(i) - a6(i)
            else
-              a6(i) = 3d0*(ar(i)-p(i))
+              a6(i) = 3e+0_fp*(ar(i)-p(i))
               al(i) = ar(i) - a6(i)
            endif
 250     continue
@@ -1086,7 +1089,7 @@ MODULE CasaRegridModule
    END SUBROUTINE lmppm
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1103,11 +1106,11 @@ MODULE CasaRegridModule
 ! !INPUT PARAMETERS:
 !
     INTEGER :: im
-    REAL*8  :: p(im)
+    REAL(fp)  :: p(im)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    REAL*8  :: ar(im), al(im), d2(im), d1(im)
+    REAL(fp)  :: ar(im), al(im), d2(im), d1(im)
 !
 ! !REVISION HISTORY:
 !  21 Sep 2000 - R. Yantosca - Initial version
@@ -1118,7 +1121,7 @@ MODULE CasaRegridModule
 ! !LOCAL VARIABLES:
 !
     INTEGER :: i
-    REAL*8  :: pmp, lac, pmin, pmax
+    REAL(fp)  :: pmp, lac, pmin, pmax
 
     !===================================================================
     ! HUYNH begins here!
@@ -1138,15 +1141,15 @@ MODULE CasaRegridModule
     ! Constraint for AR
     ! i = 1
     !===================================================================
-    pmp   = p(1) + 2.0d0 * d1(1)
-    lac   = p(1) + 0.5d0 * (d1(1)+d2(im)) + d2(im) 
+    pmp   = p(1) + 2.0e+0_fp * d1(1)
+    lac   = p(1) + 0.5e+0_fp * (d1(1)+d2(im)) + d2(im) 
     pmin  = min(p(1), pmp, lac)
     pmax  = max(p(1), pmp, lac)
     ar(1) = min(pmax, max(ar(1), pmin))
     
     do i=2, im
-       pmp   = p(i) + 2.0d0*d1(i)
-       lac   = p(i) + 0.5d0*(d1(i)+d2(i-1)) + d2(i-1)
+       pmp   = p(i) + 2.0e+0_fp*d1(i)
+       lac   = p(i) + 0.5e+0_fp*(d1(i)+d2(i-1)) + d2(i-1)
        pmin  = min(p(i), pmp, lac)
        pmax  = max(p(i), pmp, lac)
        ar(i) = min(pmax, max(ar(i), pmin))
@@ -1156,8 +1159,8 @@ MODULE CasaRegridModule
     ! Constraint for AL
     !==================================================================
     do i=1, im-1
-       pmp   = p(i) - 2.0d0*d1(i+1)
-       lac   = p(i) + 0.5d0*(d2(i+1)-d1(i+1)) + d2(i+1)
+       pmp   = p(i) - 2.0e+0_fp*d1(i+1)
+       lac   = p(i) + 0.5e+0_fp*(d2(i+1)-d1(i+1)) + d2(i+1)
        pmin  = min(p(i), pmp, lac)
        pmax  = max(p(i), pmp, lac)
        al(i) = min(pmax, max(al(i), pmin))
@@ -1167,8 +1170,8 @@ MODULE CasaRegridModule
     ! i=im
     !==================================================================
     i = im
-    pmp    = p(im) - 2.0d0*d1(1)
-    lac    = p(im) + 0.5d0*(d2(1)-d1(1)) + d2(1)
+    pmp    = p(im) - 2.0e+0_fp*d1(1)
+    lac    = p(im) + 0.5e+0_fp*(d2(1)-d1(1)) + d2(1)
     pmin   = min(p(im), pmp, lac)
     pmax   = max(p(im), pmp, lac)
     al(im) = min(pmax, max(al(im), pmin))
@@ -1177,13 +1180,13 @@ MODULE CasaRegridModule
     ! compute A6 (d2)
     !==================================================================
     do i=1, im
-       d2(i) = 3d0*(p(i)+p(i)  - (al(i)+ar(i)))
+       d2(i) = 3e+0_fp*(p(i)+p(i)  - (al(i)+ar(i)))
     enddo
 
   END SUBROUTINE huynh
 !EOC
 !-----------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1198,7 +1201,7 @@ MODULE CasaRegridModule
   SUBROUTINE CasaRegridInit
 !
 ! !REMARKS:
-!  Computation is done in REAL*8 and then casted to REAL*4 in order
+!  Computation is done in REAL(fp) and then casted to REAL*4 in order
 !  to get correct values for the high-resolution grids. 
 !
 ! !REVISION HISTORY:
@@ -1210,7 +1213,7 @@ MODULE CasaRegridModule
 ! !LOCAL VARIABLES:
 !
     INTEGER :: I, J
-    REAL*8  :: DI, DJ
+    REAL(fp)  :: DI, DJ
 
     !-----------------------
     ! 1 x 1 GENERIC GRID
@@ -1218,22 +1221,22 @@ MODULE CasaRegridModule
     !-----------------------
 
     ! Size of box
-    DI = 1.00d0
-    DJ = 1.00d0
+    DI = 1.00e+0_fp
+    DJ = 1.00e+0_fp
 
     ! Lon edges
     DO I = 0, I1x1
-       xedge_1x1(I+1) = -180d0 + ( DI * I )
+       xedge_1x1(I+1) = -180e+0_fp + ( DI * I )
     ENDDO
 
     ! Lat edges
     DO J = 0, J1x1
-       yedge_1x1(J+1) =  -90d0 + ( DJ * J )
+       yedge_1x1(J+1) =  -90e+0_fp + ( DJ * J )
     ENDDO
 
     ! Reset poles
-    yedge_1x1(1)      = -90d0
-    yedge_1x1(J1x1+1) = +90d0
+    yedge_1x1(1)      = -90e+0_fp
+    yedge_1x1(J1x1+1) = +90e+0_fp
 
     ! Sine of latitude edges
     DO J = 1, J1x1+1
@@ -1246,22 +1249,22 @@ MODULE CasaRegridModule
     !-----------------------
 
     ! Size of box
-    DI = 2.5d0
-    DJ = 2.0d0
+    DI = 2.5e+0_fp
+    DJ = 2.0e+0_fp
 
     ! Lon edges
     DO I = 0, I2x25
-       xedge_2x25(I+1)    = -180d0 - DI/2d0 + ( DI * I )
+       xedge_2x25(I+1)    = -180e+0_fp - DI/2e+0_fp + ( DI * I )
     ENDDO
 
     ! Lat edges
     DO J = 0, J2x25
-       yedge_2x25(J+1)    =  -90d0 - DJ/2d0 + ( DJ * J )
+       yedge_2x25(J+1)    =  -90e+0_fp - DJ/2e+0_fp + ( DJ * J )
     ENDDO
 
     ! Reset poles
-    yedge_2x25(1)         = -90d0
-    yedge_2x25(J2x25+1)   = +90d0
+    yedge_2x25(1)         = -90e+0_fp
+    yedge_2x25(J2x25+1)   = +90e+0_fp
 
     ! Sine of latitude edges
     DO J = 1, J2x25+1
@@ -1274,22 +1277,22 @@ MODULE CasaRegridModule
     !-----------------------
 
     ! Size of box
-    DI = 5d0
-    DJ = 4d0
+    DI = 5e+0_fp
+    DJ = 4e+0_fp
 
     ! Lon edges
     DO I = 0, I4x5
-       xedge_4x5(I+1) = -180d0 - DI/2d0 + ( DI * I )
+       xedge_4x5(I+1) = -180e+0_fp - DI/2e+0_fp + ( DI * I )
     ENDDO
 
     ! Lat edges and sine
     DO J = 0, J4x5
-       yedge_4x5(J+1) =  -90d0 - DJ/2d0 + ( DJ * J )
+       yedge_4x5(J+1) =  -90e+0_fp - DJ/2e+0_fp + ( DJ * J )
     ENDDO
 
     ! Reset poles
-    yedge_4x5(1)      = -90d0
-    yedge_4x5(J4x5+1) = +90d0
+    yedge_4x5(1)      = -90e+0_fp
+    yedge_4x5(J4x5+1) = +90e+0_fp
 
     ! Sine of latitude edges
     DO J = 1, J4x5+1

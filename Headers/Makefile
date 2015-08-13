@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOP
 #
@@ -11,7 +11,7 @@
 # !REMARKS:
 # To build the programs, call "make" with the following syntax:
 #                                                                             .
-#   make TARGET [ OPTIONAL-FLAGS ]
+#   make -jN TARGET REQUIRED-FLAGS [ OPTIONAL-FLAGS ]
 #                                                                             .
 # To display a complete list of options, type "make help".
 #                                                                             .
@@ -35,97 +35,150 @@
 #
 # !REVISION HISTORY: 
 #  23 Aug 2011 - M. Long     - Initial version
+#  19 Mar 2012 - M. Payer    - Added EF_MGN20_mod for SOA + semivolatile POA
+#                              simulation (H. Pye)
 #  09 Apr 2012 - R. Yantosca - Removed CMN_VEL_mod.F; it's obsolete
+#  19 Oct 2012 - R. Yantosca - Add modules for Grid-Independent GEOS-Chem
+#  01 Nov 2012 - R. Yantosca - Added gigc_input_opt_mod.F90
+#  16 Nov 2012 - R. Yantosca - Added more GIGC updates, removed obsolete 
+#  15 Jan 2013 - R. Yantosca - Removed CMN_DEP_mod.F, it's obsolete
+#  15 Jan 2013 - R. Yantosca - Added dependency for gigc_input_opt_mod.o
+#                              to comode_loop_mod.F, to make it compile
+#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
+#  25 Jun 2014 - R. Yantosca - Now compiles commsoil_mod.F90 (was .F before)
+#  23 Jul 2014 - R. Yantosca - Move smv_dimension_mod.F to obsolete/ dir
+#  23 Jul 2014 - R. Yantosca - Move smv_physconst_mod.F to obsolete/ dir
+#  23 Jul 2014 - R. Yantosca - Move CMN_mod.F to obsolete/ dir
+#  23 Jul 2014 - R. Yantosca - Move CMN_NOX_mod.F to obsolete/ dir
+#  23 Jul 2014 - R. Yantosca - Move gigc_state_phy_mod.F90 to obsolete/ dir
+#  04 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
+#  04 Jun 2015 - R. Yantosca - Add debug target, remove help
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
-# Define variables
-ROOTDIR = ..
-HDR     = $(ROOTDIR)/Headers
-HELP    = $(ROOTDIR)/help
-LIB     = $(ROOTDIR)/lib
-MOD     = $(ROOTDIR)/mod
+###############################################################################
+###                                                                         ###
+###  Initialization section                                                 ###
+###                                                                         ###
+###############################################################################
+
+# Directories
+ROOT    :=..
+LIB     :=$(ROOT)/lib
+MOD     :=$(ROOT)/mod
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
-include $(ROOTDIR)/Makefile_header.mk
-
-#=============================================================================
-# List of files to compile.  Here the order is not important,
-# as we will explicity define the dependencies listing below.
-#=============================================================================
+include $(ROOT)/Makefile_header.mk
 
 # List of source files
-SRC = $(wildcard *.F) $(wildcard *.F90)
+SOURCES :=$(wildcard *.F) $(wildcard *.F90)
 
-# Replace .f and .f90 extensions with *.o
-TMP = $(SRC:.F=.o)
-OBJ = $(TMP:.F90=.o)
+# List of object files (replace .F and .F90 extensions with *.o)
+TMP     :=$(SOURCES:.F=.o)
+OBJECTS :=$(TMP:.F90=.o)
 
-#=============================================================================
-# Makefile targets: type "make help" for a complete listing!
-#=============================================================================
+# List of module files.  Convert to lowercase, then prefix directory name.
+MODULES :=$(OBJECTS:.o=.mod)
+MODULES :=$(shell echo $(MODULES) | tr A-Z a-z)
+MODULES :=$(foreach I,$(MODULES),$(MOD)/$(I))
 
-.PHONY: clean help
+# Library file
+LIBRARY :=libHeaders.a
 
-lib: $(OBJ)
-	$(AR) crs libHeaders.a $(OBJ)
-	mv libHeaders.a $(LIB)
+###############################################################################
+###                                                                         ###
+###  Makefile targets: type "make help" for a complete listing!             ###
+###                                                                         ###
+###############################################################################
+
+.PHONY: clean debug
+
+lib: $(OBJECTS)
+	$(AR) crs $(LIBRARY) $(OBJECTS)
+	mv $(LIBRARY) $(LIB)
 
 clean:
-	rm -f *.o *.mod
+	@echo "===> Making clean in directory: Headers <==="
+	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
-help:
-	@$(MAKE) -C $(HELP)
+debug:
+	@echo "Targets : $(MAKECMDGOALS)"
+	@echo "ROOT    : $(ROOT)"
+	@echo "LIB     : $(LIB)"
+	@echo "MOD     : $(MOD)"
+	@echo "F90     : $(F90)"
+	@echo "OBJECTS : $(OBJECTS)"
+	@echo "MODULES : $(MODULES)"
+	@echo "LIBRARY : $(LIBRARY)"
 
-#=============================================================================
-# Dependencies listing (grep "USE " to get the list of module references!)
-#
-# From this list of dependencies, the "make" utility will figure out the
-# correct order of compilation (so we don't have to do that ourselves).
-# This also allows us to compile on multiple processors with "make -j".
-#
-# NOTES:
-# (1) Only specify object-file dependencies that are within this directory.  
-#      Object files in other directories will be referenced at link-time.
-# (2) For "make -j" to work, all files in this directory must have a 
-#      listed dependency.
-#=============================================================================
-#
-CMN_DEP_mod.o       : CMN_DEP_mod.F          CMN_SIZE_mod.o
+###############################################################################
+###                                                                         ###
+###  Dependencies listing                                                   ###
+###  (grep "USE " to get the list of module references!)                    ###
+###                                                                         ###
+###  From this list of dependencies, the "make" utility will figure out     ###
+###  correct order of compilation (so we don't have to do that ourselves).  ###
+###  This also allows us to compile on multiple processors with "make -j".  ###
+###                                                                         ###
+###  NOTES:                                                                 ###
+###  (1) Only specify object-file dependencies that are within this         ###
+###       directory.  Object files in other directories will be referenced  ### 
+###       at link-time.                                                     ###
+###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
+###       in this directory must have a listed dependency.                  ###
+###                                                                         ###
+###############################################################################
 
-CMN_DIAG_mod.o      : CMN_DIAG_mod.F         CMN_SIZE_mod.o
+CMN_DIAG_mod.o       : CMN_DIAG_mod.F           \
+                       CMN_SIZE_mod.o           \
+                       CMN_FJX_MOD.o            \
+                       gigc_errcode_mod.o       \
+                       precision_mod.o
 
-CMN_GCTM_mod.o      : CMN_GCTM_mod.F	   
+CMN_GCTM_mod.o       : CMN_GCTM_mod.F           \
+                       precision_mod.o
 
-CMN_ISOP_mod.o      : CMN_ISOP_mod.F         CMN_SIZE_mod.o
+CMN_FJX_MOD.o        : CMN_FJX_MOD.F            \
+                       CMN_SIZE_mod.o           \
+                       precision_mod.o
 
-CMN_MONOT_mod.o     : CMN_MONOT_mod.F        CMN_SIZE_mod.o
+CMN_O3_mod.o         : CMN_O3_mod.F             \
+                       CMN_SIZE_mod.o           \
+                       gigc_errcode_mod.o       \
+                       precision_mod.o
 
-CMN_NOX_mod.o       : CMN_NOX_mod.F          CMN_SIZE_mod.o
+CMN_SIZE_mod.o       : CMN_SIZE_mod.F           \
+                       gigc_errcode_mod.o       \
+                       precision_mod.o
 
-CMN_O3_mod.o        : CMN_O3_mod.F           CMN_SIZE_mod.o
+commsoil_mod.o       : commsoil_mod.F90         \
+                       CMN_SIZE_mod.o           \
+                       gigc_errcode_mod.o
 
-CMN_SIZE_mod.o      : CMN_SIZE_mod.F       
+comode_loop_mod.o    : comode_loop_mod.F        \
+                       CMN_SIZE_mod.o           \
+                       gigc_errcode_mod.o       \
+                       gigc_input_opt_mod.o     \
+                       precision_mod.o
 
-CMN_mod.o           : CMN_mod.F              CMN_SIZE_mod.o
+gigc_errcode_mod.o   : gigc_errcode_mod.F90
 
-cmn_fj_mod.o        : cmn_fj_mod.F           CMN_SIZE_mod.o
+gigc_input_opt_mod.o : gigc_input_opt_mod.F90   \
+                       gigc_errcode_mod.o       \
+                       CMN_SIZE_mod.o           \
+                       precision_mod.o
 
-commsoil_mod.o      : commsoil_mod.F         CMN_SIZE_mod.o
+gigc_state_chm_mod.o : gigc_state_chm_mod.F90   \
+                       gigc_errcode_mod.o       \
+                       gigc_input_opt_mod.o     \
+		       comode_loop_mod.o        \
+                       precision_mod.o
 
-comode_loop_mod.o   : comode_loop_mod.F      CMN_SIZE_mod.o
-
-jv_cmn_mod.o        : jv_cmn_mod.F           CMN_SIZE_mod.o  \
-                                             cmn_fj_mod.o
-
-jv_mie_mod.o        : jv_mie_mod.F
-
-smv_dimension_mod.o : smv_dimension_mod.F
-
-smv_errcode_mod.o   : smv_errcode_mod.F
-
-smv_physconst_mod.o : smv_physconst_mod.F
+gigc_state_met_mod.o : gigc_state_met_mod.F90   \
+                       gigc_errcode_mod.o       \
+                       CMN_SIZE_mod.o           \
+                       precision_mod.o
 
 #EOC

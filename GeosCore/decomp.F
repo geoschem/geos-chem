@@ -10,14 +10,15 @@
 !        precision with the "D" exponent. (bmy, 4/18/03)
 !  (2 ) Comment out counter variable NUM_BACKSUB, you can get the same info
 !        w/ a profiling run. (bmy, 7/9/03)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  07 Jan 2015 - M. Yannetti - Added PRECISION_MOD
 !******************************************************************************
 !
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
+      USE PRECISION_MOD
 
       IMPLICIT NONE
-#     include "define.h"
-
 !
 ! *********************************************************************
 ! ************        WRITTEN BY MARK JACOBSON (1993)      ************
@@ -182,7 +183,7 @@
 !
        IAR          = JARRDIAG(J,NCSP)
        DO 400 K     = 1, KTLOOP 
-          VDIAG(K,J)  = 1.0d0 / CC2(K,IAR) 
+          VDIAG(K,J)  = 1.0e+0_fp / CC2(K,IAR) 
  400   CONTINUE
 !
 ! *********************************************************************

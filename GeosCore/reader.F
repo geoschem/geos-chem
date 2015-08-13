@@ -31,16 +31,20 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
+!                              ".rc" to input.geos (instead of ___.rc)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
 !******************************************************************************
 !
-#     include "define.h"
-
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,   ONLY : GET_TS_CHEM
       USE inquireMod, ONLY : findFreeLUN
       USE CMN_SIZE_MOD                       ! Size parameters
       USE COMODE_LOOP_MOD                    ! SMVGEAR II arrays
       USE CMN_GCTM_MOD                       ! Re, PI
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 
@@ -90,14 +94,14 @@
       INTEGER             :: JLOOP,   IAVBLOK, IAVGSIZE, IREMAIN, JADD
       INTEGER             :: IFCHEM,  I,       NALLREAC, NMPROD,  I1
       INTEGER             :: J,      NK
-      INTEGER             :: IU_CHEMDAT
+!      INTEGER             :: IU_CHEMDAT
       INTEGER             :: IU_FILE
       INTEGER             :: IU_SMV2LOG
 
-      REAL*8              :: ERRMAXU, YLOWU, YHIU, HMAXDAYU
-      REAL*8              :: ERRMAXR, YLOWR, YHIR, HMAXDAYR
-      REAL*8              :: ERRMAXS, YLOWS, YHIS, HMAXDAYS
-      REAL*8              :: ABHI,    ABLO
+      REAL(fp)              :: ERRMAXU, YLOWU, YHIU, HMAXDAYU
+      REAL(fp)              :: ERRMAXR, YLOWR, YHIR, HMAXDAYR
+      REAL(fp)              :: ERRMAXS, YLOWS, YHIS, HMAXDAYS
+      REAL(fp)              :: ABHI,    ABLO
       CHARACTER(LEN=255)  :: FILENAME
 
 
@@ -179,11 +183,6 @@
       ! Name of file to open
       FILENAME = "mglob.dat"
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! When connecting to GEOS-5 via ESMF, we need to append '___.rc'
-      FILENAME = TRIM( FILENAME ) // "___.rc"
-#endif
-
       OPEN( UNIT=IU_FILE, FILE=TRIM( FILENAME ), ACTION="read",
      &      FORM="formatted", STATUS="old", ACCESS="sequential" )
   
@@ -204,7 +203,7 @@
       ! NOTE: Redefine CHEMINTV [s] to the value in "input.geos" so 
       ! that we don't have a discrepancy with the value in "mglob.dat" 
       ! (bmy, 5/10/05)
-      CHEMINTV = GET_TS_CHEM() * 60d0
+      CHEMINTV = GET_TS_CHEM() * 60e+0_fp
 !
 ! *********************************************************************
 ! *                     DEFINE SOME GRID PARAMETERS                   *
@@ -240,7 +239,7 @@
       ! needed in reader.f for kuloop (bdf, 4/1/03)
       NTLOOP    = IIPAR*JJPAR*NVERT  
 !
-      NLAYER    = LLTROP
+      NLAYER    = LLCHEM
       LXOUT     = MIN0(LXOUT,NLONG)
       LYOUT     = MIN0(LYOUT,NLAT)
       LZOUT     = MIN0(LZOUT,NVERT)
@@ -249,26 +248,28 @@
 !                            OPEN MORE FILES 
 ! *********************************************************************
 !
-
-      ! Find a free file LUN
-      IU_CHEMDAT = findFreeLUN()
-
-      ! Name of file to open
-      FILENAME   ='globchem.dat' 
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! When connecting to GEOS-5 via ESMF, we need to append '___.rc'
-      FILENAME   = TRIM( FILENAME ) // '___.rc'
-#endif
-      KGLC       = IU_CHEMDAT
-
-      IF ( am_I_Root ) THEN 
-         WRITE( 6, 310 ) TRIM( FILENAME ), KGLC
- 310     FORMAT( 'GEOSCHEM::READER: Opening ', a, ' on unit ', i4  )
-      ENDIF
-
-      ! Open chemistry mechanism file
-      OPEN( KGLC, FILE=TRIM( FILENAME ) )
+!----> Transferred to READCHEM.F
+!      ! Find a free file LUN
+!      IU_CHEMDAT = findFreeLUN()
+!
+!      ! Name of file to open
+!      FILENAME   ='globchem.dat' 
+!
+!#if defined( ESMF_ )
+!      ! We need to add the ".rc" extension to the "globchem.dat" file
+!      ! so that GEOS-5 will copy it to the proper run directory.
+!      FILENAME   = TRIM( FILENAME ) // 'rc'
+!#endif
+!      KGLC       = IU_CHEMDAT
+!
+!      IF ( am_I_Root ) THEN 
+!         WRITE( 6, 310 ) TRIM( FILENAME ), KGLC
+! 310     FORMAT( 'GEOSCHEM::READER: Opening ', a, ' on unit ', i4  )
+!      ENDIF
+!
+!      ! Open chemistry mechanism file
+!      OPEN( KGLC, FILE=TRIM( FILENAME ) )
+!------------------------------------------------------------------
 
       ! Open "smv2.log" for echoback output as unit #93
       IF ( am_I_Root ) THEN
@@ -289,7 +290,7 @@
          IF ( IPREADER.EQ. 1 .AND. FIRSTCHEM .and. am_I_Root ) THEN
             WRITE( IO93, '(a)'   ) REPEAT( '=', 79 )
             WRITE( IO93, '(a,/)' ) 'SMV2.LOG -- SMVGEAR II information' 
-            WRITE( IO93, '(a)'   ) 'Switches in mglob.dat___.rc'
+            WRITE( IO93, '(a)'   ) 'Switches in mglob.dat'
             WRITE( IO93, '(a)'   ) REPEAT( '=', 79 )
             WRITE( IO93, *       ) 'IFSOLVE   = ', IFSOLVE
             WRITE( IO93, *       ) 'ITESTGEAR = ', ITESTGEAR
@@ -329,8 +330,8 @@
             WRITE( IO93, *       ) 'YHIS      = ', YHIS
             WRITE( IO93, *       ) 'HMAXDAYS  = ', HMAXDAYS 
             WRITE( IO93, *       ) 'HMAXNIT   = ', HMAXNIT
-            WRITE( IO93, '(/,a)' ) 'Using U.C.I. Fast-J photolysis'  
-            WRITE(    6, '(  a)' ) 'Using U.C.I. Fast-J photolysis'     
+           WRITE( IO93, '(/,a)' ) 'Using U.C.I. Fast-JX v7.0 photolysis'
+           WRITE(    6, '(  a)' ) 'Using U.C.I. Fast-JX v7.0 photolysis'
 
             ! Write spacer line to "smv2.log
             WRITE( IO93, '(a)' )
@@ -419,7 +420,7 @@
 !                            PLOTROP, AND S ABOVE PLOTROP  
 !    0        2       2      SOLVE T/S   CHEMISTRY EVERYWHERE   
 !    2        2       2      SOLVE U/T/S CHEMISTRY EVERYWHERE   
-!
+! 
 ! IGLOBCHEM = -2 --> SOLVE ALL GAS CHEMISTRY WITH COMBINATION OF U/R/S SETS
 !           = -1 --> SOLVE ALL GAS CHEMISTRY WITH COMBINATION OF R/S SETS
 !           = 0  --> SOLVE ALL GAS CHEMISTRY WITH EITHER U, R, OR S SETS
@@ -484,22 +485,22 @@
 ! ITESTGEAR = 2: GENERATE SMVGEAR ACCURATE SOLUTION AND WRITE TO compare.dat
 !
       IF (ITESTGEAR.EQ.2) THEN
-       ERRMAXU = 1.00d-09
-       ERRMAXR = 1.00d-09
-       ERRMAXS = 1.00d-09
+       ERRMAXU = 1.00e-09_fp
+       ERRMAXR = 1.00e-09_fp
+       ERRMAXS = 1.00e-09_fp
 !
-       YLOWU   = 1.00d-10  
-       YLOWR   = 1.00d-10  
-       YLOWS   = 1.00d-10   
+       YLOWU   = 1.00e-10_fp  
+       YLOWR   = 1.00e-10_fp
+       YLOWS   = 1.00e-10_fp
 !
-       YHIU    = 1.00d-10  
-       YHIR    = 1.00d-10  
-       YHIS    = 1.00d-10   
+       YHIU    = 1.00e-10_fp
+       YHIR    = 1.00e-10_fp
+       YHIS    = 1.00e-10_fp
       ENDIF 
 !
       DO 269 NCS     = 1, ICS
-       ABTOL(1,NCS)  = 0.d0
-       ABTOL(6,NCS)  = 0.d0
+       ABTOL(1,NCS)  = 0.e+0_fp
+       ABTOL(6,NCS)  = 0.e+0_fp
  269  CONTINUE 
 !
 ! URBAN / REGIONAL / STRATOSPHERIC CHEMISTRY TOGETHER
@@ -557,7 +558,7 @@
        ABTOL(1, NCS)  = YHIR   
        ABTOL(6, NCS)  = YLOWR   
        TIMEINTV(NCS)  = CHEMINTV 
-       ABST2(   NCS)  = 1.d0 / (CHEMINTV * CHEMINTV) 
+       ABST2(   NCS)  = 1.e+0_fp / (CHEMINTV * CHEMINTV) 
        HMAXUSE( NCS)  = HMAXDAYR     
        HMAXUSE(NCSP)  = HMAXNIT
       ENDIF 
@@ -572,7 +573,7 @@
        ABTOL(1, NCS)  = YHIS    
        ABTOL(6, NCS)  = YLOWS    
        TIMEINTV(NCS)  = CHEMINTV 
-       ABST2(   NCS)  = 1.d0 / (CHEMINTV * CHEMINTV) 
+       ABST2(   NCS)  = 1.e+0_fp / (CHEMINTV * CHEMINTV) 
        HMAXUSE( NCS)  = HMAXDAYS      
        HMAXUSE(NCSP)  = HMAXNIT
       ENDIF 
@@ -593,7 +594,8 @@
        ENDIF
 !
        DO 270 I       = 2, 5 
-        ABTOL(I,NCS)  = 10.d0**(ABLO + (ABHI - ABLO) *FLOAT(6-I) / 5.d0)
+        ABTOL(I,NCS)  = 10.e+0_fp**(ABLO + (ABHI - ABLO) *FLOAT(6-I) 
+     &                / 5.e+0_fp)
  270   CONTINUE 
  272  CONTINUE
 !
@@ -617,20 +619,20 @@
       LFAILTOT       = 0
       NFAILTOT       = 0
       NOCC           = 0
-      SUMAVGE        = 0.d0
-      SUMAVHI        = 0.d0
-      SUMRMSE        = 0.d0
-      SUMRMHI        = 0.d0
-      TOTSTEP        = 0.d0
-      TOTIT          = 0.d0
-      TELAPS         = 0.d0
-      RMSERR         = 0.d0
+      SUMAVGE        = 0.e+0_fp
+      SUMAVHI        = 0.e+0_fp
+      SUMRMSE        = 0.e+0_fp
+      SUMRMHI        = 0.e+0_fp
+      TOTSTEP        = 0.e+0_fp
+      TOTIT          = 0.e+0_fp
+      TELAPS         = 0.e+0_fp
+      RMSERR         = 0.e+0_fp
 !
       MB1            = 1 
       MB2            = 2 
       DO 660 I       = 1, IMASBAL
-       MBCOMP(I,MB1) = 0.d0
-       MBCOMP(I,MB2) = 0.d0
+       MBCOMP(I,MB1) = 0.e+0_fp
+       MBCOMP(I,MB2) = 0.e+0_fp
  660  CONTINUE
 !
       DO 705 NCS       = 1, ICS
@@ -667,10 +669,17 @@
        NKSPECX(  NCS) = 0
        NKSPECY(  NCS) = 0
        NKSPECZ(  NCS) = 0
+       NKSO4PHOT(NCS) = 0
+       NKO3PHOT( NCS) = 0
+       NKO3PHOTH2(NCS)= 0
+       NKO3PPHOT(NCS) = 0
+       NKO2PHOT( NCS) = 0
+       NKPSC( NCS,11) = 0
  705  CONTINUE
+      NKNOPHOT        = 0
 
       ! Zero out entire nkspecv array (bdf, 4/1/03)
-      NKSPECV = 0d0
+      NKSPECV = 0e+0_fp
 !
       DO 710 NCS       = 1, ICP 
        NOLOSP(   NCS) = 0  
@@ -722,8 +731,8 @@
       DO 735 NCS        = 1, ICS
        DO 734 I         = 1, MXGSAER 
         NAMENCS( I,NCS) = ' '
-        FRACGAIN(I,NCS) = 0.d0
-        QBKCHEM( I,NCS) = 0.d0
+        FRACGAIN(I,NCS) = 0.e+0_fp
+        QBKCHEM( I,NCS) = 0.e+0_fp
         NUMLOST( I,NCS) = 0        
         NUMGFRT( I,NCS) = 0 
         NUMGAINT(I,NCS) = 0
@@ -748,11 +757,11 @@
       DO 745 NCS        = 1, ICS
        DO 744 I         = 1, NMTRATE
         I1              = NMTRATE + I
-        ARR(     I,NCS) = 0.d0  
-        BRR(     I,NCS) = 0.d0
-        FCV(     I,NCS) = 0.d0
-        FCTEMP1( I,NCS) = 0.d0
-        FCTEMP2( I,NCS) = 0.d0
+        ARR(     I,NCS) = 0.e+0_fp  
+        BRR(     I,NCS) = 0.e+0_fp
+        FCV(     I,NCS) = 0.e+0_fp
+        FCTEMP1( I,NCS) = 0.e+0_fp
+        FCTEMP2( I,NCS) = 0.e+0_fp
         NKARR(   I,NCS) = 0
         NKABR(   I,NCS) = 0
         NKACR(   I,NCS) = 0
@@ -799,8 +808,8 @@
         DO 768 I         = 1, NMRPROD
          IRM(  I,NK,NCS) = 0
          IRM2( I,NK,NCS) = 0
-         FKOEF(I,NK,NCS) = 0.d0
-         FK2(  I,NK,NCS) = 0.d0
+         FKOEF(I,NK,NCS) = 0.e+0_fp
+         FK2(  I,NK,NCS) = 0.e+0_fp
  768    CONTINUE
  769   CONTINUE
  770  CONTINUE

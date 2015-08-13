@@ -14,6 +14,8 @@
 !        precision with "D" exponents. (bmy, 4/18/03)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument even when
 !                              called from the traditional driver "main.F"
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !******************************************************************************
 !
       ! References to F90 modules
@@ -23,8 +25,9 @@
       USE CMN_SIZE_MOD  ! Size parameters
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
-#     include "define.h"
 
       INTEGER, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
@@ -97,8 +100,8 @@
       INTEGER KNUMPORL,NCCOUNT,NREMAIN,NFIVE,NFOUR,NTHREE,NONE,MC
       INTEGER IR,JR,IAR,JP,JSPC
 
-      REAL*8 RFRAC,ALFRAC,DIFF,TNUMGNA,TNUMGN
-      REAL*8 TNUMLS,SUMGN,TSUMGNA,TNUMLSA
+      REAL(fp) RFRAC,ALFRAC,DIFF,TNUMGNA,TNUMGN
+      REAL(fp) TNUMLS,SUMGN,TSUMGNA,TNUMLSA
 
       INTEGER, SAVE :: NPLTOT,NPLFUN,NFRCOUN,NPDCOUN
 
@@ -234,7 +237,7 @@
         IAL                      = 0
 !
         DO 157 JSPC              = 1, MXGSAER
-         APORL(JSPC)             = 0.d0
+         APORL(JSPC)             = 0.e+0_fp
  157    CONTINUE
 !
         DO 158 J                 = 1, NMREAC
@@ -242,7 +245,7 @@
          IF (IREACT.GT.0) THEN
           IRE                    = MAPPL(IREACT,NCS)
 !
-          APORL(IRE)             = APORL(IRE) - 1.d0
+          APORL(IRE)             = APORL(IRE) - 1.e+0_fp
           NUMLOST(IRE,NCS)       = NUMLOST(IRE,NCS) + 1
 !
           IF (IRE.LE.NSPEC(NCS)) THEN
@@ -374,7 +377,7 @@
            APORL(IPR)             = APORL(IPR) + RFRAC
            KPRODS                 = LFRAC
            NUMGAINT(IPR,NCS)      = NUMGAINT(IPR,NCS) + LFRAC
-           FKOEF(K,NK,NCS)        = 1.d0
+           FKOEF(K,NK,NCS)        = 1.e+0_fp
           ENDIF  
 !
 ! ******************* IDENTIFY ALL PRODUCTION TERMS *******************

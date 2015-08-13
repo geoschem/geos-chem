@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -23,11 +23,15 @@ SUBROUTINE doLeafRootShedding
   USE defineConstants
   USE loadCASAinput
   USE defineArrays
+
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
   
   implicit none
 !
 ! !REVISION HISTORY:
-!  09 July 2010 - C. Carouge  - Parallelization
+!  09 Jul 2010 - C. Carouge  - Parallelization
+!  01 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -40,12 +44,12 @@ SUBROUTINE doLeafRootShedding
   filename3(1:f_len_output)=outputpath
   
   
-  MINLAI(:,1)=12.000d0
+  MINLAI(:,1)=12.000e+0_fp
 
   SUMLAI(:,1)=sum(lais(:,2:13),2)
   
   SUMLAInew(:,mo)=SUMLAI(:,1)
-  LTVARSUM(:,1)=0.0d0
+  LTVARSUM(:,1)=0.0e+0_fp
 
   DO i=13,2,-1
 !$OMP PARALLEL DO        &
@@ -65,37 +69,37 @@ SUBROUTINE doLeafRootShedding
 !$OMP END PARALLEL DO
   END DO
       
-  AVELAI(:,1)=SUMLAI(:,1)/12.00000d0
+  AVELAI(:,1)=SUMLAI(:,1)/12.00000e+0_fp
 
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT(SHARED)    &
 !$OMP PRIVATE(i)
   DO i=1, n_veg
-     IF (AVELAI(i,1) .gt. 0d0) THEN
+     IF (AVELAI(i,1) .gt. 0e+0_fp) THEN
         LTCON(i,1)=MINLAI(i,1)/AVELAI(i,1)
      ELSE
-        LTCON(i,1)=0.0d0
+        LTCON(i,1)=0.0e+0_fp
      ENDIF
 
-     IF (lais(i,2)-lais(i,1) .gt. 0d0) THEN
+     IF (lais(i,2)-lais(i,1) .gt. 0e+0_fp) THEN
         LTVAR(i,1)=(lais(i,2)-lais(i,1))
      ELSE
-        LTVAR(i,1)=0.000d0
+        LTVAR(i,1)=0.000e+0_fp
      ENDIF
 
-     IF (LTVARSUM(i,1) .gt. 0d0) THEN
-        litterscalar(i,mo)=(LTCON(i,1)/12.000d0)+(1.000d0-LTCON(i,1))*(LTVAR(i,1)/LTVARSUM(i,1))
+     IF (LTVARSUM(i,1) .gt. 0e+0_fp) THEN
+        litterscalar(i,mo)=(LTCON(i,1)/12.000e+0_fp)+(1.000e+0_fp-LTCON(i,1))*(LTVAR(i,1)/LTVARSUM(i,1))
      ELSE
-        litterscalar(i,mo)=0.000d0
+        litterscalar(i,mo)=0.000e+0_fp
      ENDIF
 
-     IF(SUMLAI(i,1) .gt. 0d0) THEN
-        rootlitscalar(i,mo)=0.7d0*((litterscalar(i,mo)+LAI(i,mo)/SUMLAI(i,1))/2.000d0)+(0.3d0/12.000d0)
+     IF(SUMLAI(i,1) .gt. 0e+0_fp) THEN
+        rootlitscalar(i,mo)=0.7e+0_fp*((litterscalar(i,mo)+LAI(i,mo)/SUMLAI(i,1))/2.000e+0_fp)+(0.3e+0_fp/12.000e+0_fp)
      ELSE
-        rootlitscalar(i,mo)=0.000d0
+        rootlitscalar(i,mo)=0.000e+0_fp
      ENDIF
 
-     hlitterscalar(i,mo)=0.500d0+(0.500d0-abiotic(i,mo)/2.00d0)
+     hlitterscalar(i,mo)=0.500e+0_fp+(0.500e+0_fp-abiotic(i,mo)/2.00e+0_fp)
   END DO
 !$OMP END PARALLEL DO
   

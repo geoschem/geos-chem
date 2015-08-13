@@ -1,37 +1,39 @@
-! $Id: a6_read_mod.f,v 1.3 2010/02/02 16:57:55 bmy Exp $
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: a6_read_mod
+!
+! !DESCRIPTION: Module A6\_READ\_MOD contains subroutines that unzip, open, and
+!  read GEOS-CHEM A-6 (avg 6-hour) met fields from disk.
+!\\
+!\\
+! !INTERFACE:
+!
       MODULE A6_READ_MOD
 !
-!******************************************************************************
-!  Module A6_READ_MOD contains subroutines that unzip, open, and read
-!  GEOS-CHEM A-6 (avg 6-hour) met fields from disk. (bmy, 6/19/03, 10/15/09)
-! 
-!  Module Routines:
-!  ============================================================================
-!  (1 ) UNZIP_A6_FIELDS : Unzips & copies met field files to a temp dir
-!  (2 ) DO_OPEN_A6      : Returns TRUE if it's time to open A-6 fields
-!  (3 ) OPEN_A6_FIELDS  : Opens met field files residing in the temp dir
-!  (4 ) GET_A6_FIELDS   : Wrapper for routine READ_A6
-!  (5 ) MAKE_GCAP_CLDFRC: Computes CLDFRC from 3-D CLDF field for GCAP
-!  (6 ) GET_N_A6        : Returns # of A-6 fields for each DAO data set
-!  (7 ) CHECK_TIME      : Tests if A-6 et field timestamps equal current time
-!  (8 ) READ_A6         : Reads A-6 fields from disk
-!  (9 ) A6_CHECK        : Checks if we have found all of the A-6 fields
-! 
-!  GEOS-CHEM modules referenced by a6_read_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f     : Module w/ routines for binary punch file I/O
-!  (2 ) dao_mod.f       : Module w/ arrays for DAO met fields
-!  (3 ) diag_mod.f      : Module w/ GEOS-CHEM diagnostic arrays
-!  (4 ) directory_mod.f : Module w/ GEOS-CHEM data & met field dirs
-!  (5 ) error_mod.f     : Module w/ NaN and other error check routines
-!  (6 ) logical_mod.f   : Module w/ GEOS-CHEM logical switches 
-!  (7 ) file_mod.f      : Module w/ file unit #'s and error checks
-!  (8 ) pressure_mod.f  : Module w/ routines to compute P(I,J,L)
-!  (9 ) time_mod.f      : Module w/ routines for computing time & date
-!  (10) transfer_mod.f  : Module w/ routines to cast & resize arrays
-!  (11) unix_cmds_mod.f : Module w/ Unix commands for unzipping etc.
+! !USES:
 !
-!  NOTES:
+      USE inquireMod, ONLY : findFreeLUN
+      USE PRECISION_MOD
+
+      IMPLICIT NONE
+      PRIVATE
+!
+! !PUBLIC DATA MEMBERS:
+!
+      PUBLIC :: GET_A6_FIELDS   
+      PUBLIC :: OPEN_A6_FIELDS  
+      PUBLIC :: UNZIP_A6_FIELDS
+!
+! !REMARKS:
+!  This module reads GEOS-4, GEOS-5, and GCAP met fields
+!  MERRA met fields are read in routines merra_*_mod.F
+!  GEOS-FP met fields are read in geosfp_read_mod.F
+!
+! !REVISION HISTORY:
+!  19 Jun 2003 - R. Yantosca - Initial version
 !  (1 ) Adapted from "dao_read_mod.f" (bmy, 6/19/03)
 !  (2 ) Now use TIMESTAMP_STRING for formatted output (bmy, 10/28/03)
 !  (3 ) CLDFRC is now a 2-D array in MAKE_CLDFRC< GET_A6_FIELDS.  Also now
@@ -55,57 +57,57 @@
 !  (16) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  03 Aug 2012 - R. Yantosca - Now make IU_A6 a private module variable
-!******************************************************************************
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!  05 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      USE inquireMod, ONLY : findFreeLUN
-
-      IMPLICIT NONE
-#     include "define.h"
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "a6_read_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC :: GET_A6_FIELDS   
-      PUBLIC :: OPEN_A6_FIELDS  
-      PUBLIC :: UNZIP_A6_FIELDS
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
+! !PRIVATE TYPES:
+!
       ! Number of A6 fields in the file
       INTEGER :: N_A6_FIELDS
 
       ! File unit for A-6 met fields
       INTEGER :: IU_A6
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE UNZIP_A6_FIELDS( OPTION, NYMD )
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine UNZIP_A6_FIELDS invokes a FORTRAN system call to uncompress
-!  GEOS-CHEM A-6 met field files and store the uncompressed data in a 
-!  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (bmy, bdf, 6/15/98, 8/4/06)
+! !IROUTINE: unzip_a6_fields 
 !
-!  Arguments as input:
-!  ============================================================================
-!  (1 ) OPTION (CHAR*(*)) : Option
-!  (2 ) NYMD   (INTEGER ) : YYYYMMDD of A-6 file to be unzipped (optional)
+! !DESCRIPTION: Subroutine UNZIP\_A6\_FIELDS invokes a FORTRAN system call 
+!  to uncompress GEOS-Chem A6 met field files and store the uncompressed data 
+!  in a temporary directory, where GEOS-CHEM can read them.  The original data 
+!  files are not disturbed.  
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
+      SUBROUTINE UNZIP_A6_FIELDS( Input_Opt, OPTION, NYMD )
+!
+! !USES:
+!
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*),  INTENT(IN) :: OPTION    ! Unzip option
+      INTEGER, OPTIONAL, INTENT(IN) :: NYMD      ! YYYY/MM/DD of file to unzip
+      TYPE(OptInput),    INTENT(IN) :: Input_Opt ! Input Options object
+!     
+! !REVISION HISTORY:
+!  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from UNZIP_MET_FIELDS of "dao_read_mod.f" (bmy, 6/19/03)
 !  (2 ) Directory information YYYY/MM or YYYYMM is now contained w/in 
 !        GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR (bmy, 12/11/03)
@@ -117,24 +119,15 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!******************************************************************************
+!  11 Apr 2013 - R. Yantosca - Now replace directory_mod.F and unix_cmds_mod.F
+!                              with the Input_Opt derived type object
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
-      USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
-
-      USE CMN_SIZE_MOD
-
-      ! Arguments
-      CHARACTER(LEN=*),  INTENT(IN) :: OPTION
-      INTEGER, OPTIONAL, INTENT(IN) :: NYMD
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       CHARACTER(LEN=255)            :: GEOS_DIR,   A6_STR
       CHARACTER(LEN=255)            :: A6_FILE_GZ, A6_FILE
       CHARACTER(LEN=255)            :: UNZIP_BG,   UNZIP_FG
@@ -148,19 +141,19 @@
 #if   defined( GEOS_4 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_4_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_4_DIR )
          A6_STR   = 'YYYYMMDD.a6.' // GET_RES_EXT() 
 
 #elif defined( GEOS_5 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_5_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_5_DIR )
          A6_STR   = 'YYYYMMDD.a6.' // GET_RES_EXT() 
 
 #elif defined( GCAP )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GCAP_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GCAP_DIR )
          A6_STR   = 'YYYYMMDD.a6.' // GET_RES_EXT() 
 
 #endif
@@ -170,33 +163,42 @@
          CALL EXPAND_DATE( A6_STR,   NYMD, 000000 )
 
          ! Location of zipped A-3 file in data dir
-         A6_FILE_GZ  = TRIM( DATA_DIR  ) // TRIM( GEOS_DIR   ) // 
-     &                 TRIM( A6_STR    ) // TRIM( ZIP_SUFFIX )
+         A6_FILE_GZ  = TRIM( Input_Opt%DATA_DIR   ) // 
+     &                 TRIM( GEOS_DIR             ) // 
+     &                 TRIM( A6_STR               ) // 
+     &                 TRIM( Input_Opt%ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir
-         A6_FILE     = TRIM( TEMP_DIR  ) // TRIM( A6_STR     )
+         A6_FILE     = TRIM( Input_Opt%TEMP_DIR   ) // 
+     &                 TRIM( A6_STR               )
          
          ! Remove A-3 files for this date from temp dir 
-         REMOVE_DATE = TRIM( REMOVE_CMD ) // ' '               // 
-     &                 TRIM( TEMP_DIR   ) // TRIM( A6_STR    ) 
+         REMOVE_DATE = TRIM( Input_Opt%REMOVE_CMD ) // ' '   // 
+     &                 TRIM( Input_Opt%TEMP_DIR   ) // 
+     &                 TRIM( A6_STR               ) 
 
          !==============================================================
          ! Define the foreground and background UNZIP commands
          !==============================================================
 
          ! Foreground unzip
-         UNZIP_FG = TRIM( UNZIP_CMD ) // ' ' // TRIM( A6_FILE_GZ ) // 
-     &              TRIM( REDIRECT  ) // ' ' // TRIM( A6_FILE    )  
+         UNZIP_FG = TRIM( Input_Opt%UNZIP_CMD    ) //  ' '   // 
+     &              TRIM( A6_FILE_GZ             ) // 
+     &              TRIM( Input_Opt%REDIRECT     ) //  ' '   // 
+     &              TRIM( A6_FILE                )  
 
          ! Background unzip
-         UNZIP_BG  = TRIM( UNZIP_FG ) // TRIM( BACKGROUND )
+         UNZIP_BG = TRIM( UNZIP_FG               ) // 
+     &              TRIM( Input_Opt%BACKGROUND   ) 
       ENDIF
 
       !=================================================================
       ! Define command to remove all A-6 files from the TEMP dir
       !=================================================================
-      REMOVE_ALL = TRIM( REMOVE_CMD ) // ' '    // TRIM( TEMP_DIR  ) // 
-     &             TRIM( WILD_CARD  ) // '.a6.' // TRIM( WILD_CARD ) 
+      REMOVE_ALL = TRIM( Input_Opt%REMOVE_CMD    ) // ' '    // 
+     &             TRIM( Input_Opt%TEMP_DIR      ) // 
+     &             TRIM( Input_Opt%WILD_CARD     ) // '.a6.' // 
+     &             TRIM( Input_Opt%WILD_CARD     ) 
 
       !=================================================================
       ! Perform an F90 system call to do the desired operation
@@ -235,33 +237,41 @@
  110  FORMAT( '     - Removing: ', a )
  120  FORMAT( '     - About to execute command: ', a )
 
-      ! Return to calling program
       END SUBROUTINE UNZIP_A6_FIELDS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_open_a6
+!
+! !DESCRIPTION: Function DO\_OPEN\_A6 returns TRUE if is time to open the A6 
+!  met field file or FALSE otherwise.  This prevents us from opening a file 
+!  which has already been opened. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION DO_OPEN_A6( NYMD, NHMS ) RESULT( DO_OPEN )
 !
-!******************************************************************************
-!  Function DO_OPEN_A6 returns TRUE if is time to open the A-6 met field file
-!  or FALSE otherwise.  This prevents us from opening a file which has already
-!  been opened. (bmy, 6/19/03, 5/25/05)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NYMD (INTEGER) : YYYYMMDD 
-!  (2 ) NHMS (INTEGER) :  and HHMMSS to be tested for A-3 file open
-!
-!  NOTES:
+      INTEGER, INTENT(IN) :: NYMD    ! YYYY/MM/DD date
+      INTEGER, INTENT(IN) :: NHMS     ! hh:mm:ss time
+! 
+! !REVISION HISTORY: 
+!  19 Jun 2003 - R. Yantosca - Initial version
 !  (1 ) Now modified for GEOS-4 "a_llk_03" or "a_llk_04" data (bmy, 3/22/04)
 !  (2 ) Remove code for obsolete GEOS-4 a_llk_03 data.  Also modified for
 !        GEOS-5 and GCAP met fields. (swu, bmy, 5/25/05)
-!******************************************************************************
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS 
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL             :: DO_OPEN
       LOGICAL, SAVE       :: FIRST    = .TRUE.
       INTEGER, SAVE       :: LASTNYMD = -1
@@ -306,23 +316,40 @@
       LASTNHMS = NHMS
       FIRST    = .FALSE.
       
-      ! Return to calling program
       END FUNCTION DO_OPEN_A6
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE OPEN_A6_FIELDS( NYMD, NHMS )
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine OPEN_A6_FIELDS opens the A-6 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 10/15/09)
-!  
-!  Arguments as input:
-!  ===========================================================================
-!  (1 ) NYMD (INTEGER)   : Current value of YYYYMMDD
-!  (2 ) NHMS (INTEGER)   : Current value of HHMMSS
+! !IROUTINE: open_a6_fields
 !
-!  NOTES:
+! !DESCRIPTION: Subroutine OPEN\_A6\_FIELDS opens the A6 met fields file 
+!  for date NYMD and time NHMS.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE OPEN_A6_FIELDS( NYMD, NHMS, Input_Opt )
+!
+! !USES:
+!
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR, FILE_EXISTS
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input_Options
+      INTEGER,        INTENT(IN) :: NYMD       ! YYYY/MM/dd and 
+      INTEGER,        INTENT(IN) :: NHMS       !  hh:mm:ss of data
+! 
+! !REVISION HISTORY: 
+!  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/19/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
 !  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
@@ -340,23 +367,14 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A6 locally
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
-!******************************************************************************
-!      
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE LOGICAL_MOD,   ONLY : LUNZIP
-      USE FILE_MOD,      ONLY : IOERROR, FILE_EXISTS
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-
-      USE CMN_SIZE_MOD        ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: NYMD, NHMS
-
-      ! Local variables
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE          :: FIRST = .TRUE.
       LOGICAL                :: IT_EXISTS, IS_OPEN
       INTEGER                :: IOS, IUNIT
@@ -375,19 +393,19 @@
 #if   defined( GEOS_4 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_4_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_4_DIR )
          A6_FILE  = 'YYYYMMDD.a6.' // GET_RES_EXT()
 
 #elif defined( GEOS_5 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_5_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_5_DIR )
          A6_FILE  = 'YYYYMMDD.a6.' // GET_RES_EXT()
 
 #elif defined( GCAP )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GCAP_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GCAP_DIR )
          A6_FILE  = 'YYYYMMDD.a6.' // GET_RES_EXT()
 
 #endif
@@ -398,11 +416,13 @@
 
          ! If unzipping, open GEOS-1 file in TEMP dir
          ! If not unzipping, open GEOS-1 file in DATA dir
-         IF ( LUNZIP ) THEN
-            PATH = TRIM( TEMP_DIR ) // TRIM( A6_FILE )
+         IF ( Input_Opt%LUNZIP ) THEN
+            PATH = TRIM( Input_Opt%TEMP_DIR ) // 
+     &             TRIM( A6_FILE            )
          ELSE
-            PATH = TRIM( DATA_DIR ) // 
-     &             TRIM( GEOS_DIR ) // TRIM( A6_FILE )
+            PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &             TRIM( GEOS_DIR           ) // 
+     &             TRIM( A6_FILE            )
          ENDIF
 
          ! Close previously opened A-3 file
@@ -452,28 +472,43 @@
 
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE OPEN_A6_FIELDS
-
+!EOC
 !------------------------------------------------------------------------------
-
-#if defined( DEVEL )
-      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS, LOCAL_MET )
-#else
-      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS )
-#endif
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine GET_A6_FIELDS is a wrapper for routine READ_A6.  GET_A6_FIELDS
-!  calls READ_A6 properly for reading A-6 fields from GEOS-1, GEOS-STRAT, 
-!  GEOS-3, GEO b  S-4, GEOS-5, or GCAP met data sets. (bmy, 6/19/03, 10/30/07)
+! !IROUTINE: get_a6_fields
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NYMD (INTEGER) : YYYYMMDD
-!  (2 ) NHMS (INTEGER) :  and HHMMSS of A-6 fields to be read from disk
+! !DESCRIPTION: Subroutine GET\_A6\_FIELDS is a wrapper for routine READ\_A6.  
+!  GET\_A6\_FIELDS calls READ\_A6 properly for reading A-6 fields from GEOS-1,
+!  GEOS-STRAT, GEOS-3, GEO b  S-4, GEOS-5, or GCAP met data sets.
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
+      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS, Input_Opt, State_Met )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS: 
+!
+      ! Arguments
+      INTEGER,        INTENT(IN)    :: NYMD      ! YYYY/MM/DD
+      INTEGER,        INTENT(IN)    :: NHMS      !  and hh:mm:ss of desired data
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input_Options
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met ! Meteorology State object
+! 
+! !REVISION HISTORY: 
+!  19 Jun 2003 - R. Yantosca - Initial version
 !  (1 ) CFRAC has been removed from CMN_DEP.  Now use CLDFRC(I,J) from
 !        "dao_mod.f" (bmy, 12/9/03)
 !  (2 ) Now pass CLDTOPS to READ_A6 for GEOS-4 (bmy, 3/4/04)
@@ -483,33 +518,27 @@
 !        MFYC, MFZ, PV, QI, QL, RH, TAUCLI, TAUCLW for GEOS-5 
 !        (bmy, 10/30/07)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!******************************************************************************
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  23 Oct 2012 - R. Yantosca - Add QI, QL to the State_Met object
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  14 Mar 2013 - M. Payer    - Now read T_FULLGRID for vertical regridding of
+!                              OH for offline simulations (C. Holmes)
+!  02 Jul 2013 - R. Yantosca - Now use State_Met%U and State_Met%V to hold
+!                              the GCAP U and V wind fields
+!  02 Jul 2013 - R. Yantosca - Now use State_Met%U and State_Met%V to hold
+!                              the GEOS-4 U and V wind fields
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD,      ONLY : CLDF,    CLDFRC,   CLDMAS,   CLDTOPS 
-      USE DAO_MOD,      ONLY : CMFMC,   DETRAINE, DETRAINN, DNDE    
-      USE DAO_MOD,      ONLY : DNDN,    DQIDTMST, DQLDTMST, DQRCON
-      USE DAO_MOD,      ONLY : DQRLSC,  DQVDTMST, DTRAIN,   ENTRAIN
-      USE DAO_MOD,      ONLY : HKBETA,  HKETA,    MFXC,     MFYC
-      USE DAO_MOD,      ONLY : MFZ,     MOISTQ,   OPTDEP,   PV
-      USE DAO_MOD,      ONLY : QI,      QL,       RH,       SPHU 
-      USE DAO_MOD,      ONLY : T,       TAUCLI,   TAUCLW,   UPDE
-      USE DAO_MOD,      ONLY : UPDN,    UWND,     VWND,     ZMEU
-      USE DAO_MOD,      ONLY : ZMMD,    ZMMU
-
-      USE CMN_SIZE_MOD  ! Size parameters
-#if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
-#endif
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS 
-#if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
-#endif
-
-      ! Local variables
-      INTEGER, SAVE       :: LASTNYMD = -1, LASTNHMS = -1
+! !LOCAL VARIABLES:
+!
+      INTEGER, SAVE                 :: LASTNYMD = -1
+      INTEGER, SAVE                 :: LASTNHMS = -1
 
       !=================================================================
       ! GET_A6_FIELDS begins here!
@@ -523,60 +552,88 @@
          RETURN
       ENDIF
 
+      !=================================================================
+      ! Read met fields
+      !=================================================================
+
 #if   defined( GEOS_4 )
 
-      !=================================================================      
-      ! GEOS-4: get CLDF, CLDTOPS, HKBETA, HKETA, MOISTQ, OPTDEP, SPHU
-      !             TMPU, UWND,    VWND,  ZMEU,   ZMMD,   ZMMU
-      !=================================================================
-      CALL READ_A6( NYMD=NYMD,     NHMS=NHMS,       CLDTOPS=CLDTOPS,
-     &              CLDF=CLDF,     HKBETA=HKBETA,   HKETA=HKETA,   
-     &              MOISTQ=MOISTQ, OPTDEPTH=OPTDEP, Q=SPHU,        
-     &              T=T,           U=UWND,          V=VWND,        
-     &              ZMEU=ZMEU,     ZMMD=ZMMD,       ZMMU=ZMMU ) 
+      !-----------------------------------------------------------------
+      ! Read fields for GEOS-4 meteorology
+      !-----------------------------------------------------------------
+      CALL READ_A6( NYMD       = NYMD,     
+     &              NHMS       = NHMS,  
+     &              Input_Opt  = Input_Opt,    
+     &              CLDTOPS    = State_Met%CLDTOPS,
+     &              CLDF       = State_Met%CLDF,     
+     &              HKBETA     = State_Met%HKBETA,   
+     &              HKETA      = State_Met%HKETA,   
+     &              MOISTQ     = State_Met%MOISTQ, 
+     &              OPTDEPTH   = State_Met%OPTDEP, 
+     &              Q          = State_Met%SPHU,        
+     &              T          = State_Met%T,           
+     &              U          = State_Met%U,          
+     &              V          = State_Met%V,        
+     &              ZMEU       = State_Met%ZMEU,     
+     &              ZMMD       = State_Met%ZMMD,       
+     &              ZMMU       = State_Met%ZMMU )
 
 #elif defined( GEOS_5 )
 
-      !=================================================================      
-      ! GEOS-5: get CLDF,   CLDTOPS, CMFMC,    DQIDTMST, DQLDTMST,
-      !             DQRCON, DQRLSC,  DQVDTMST, MFXC,     MFYC,
-      !             MFZ,    MOISTQ,  OPTDEPTH, PLE,      PV,
-      !             RH,     QV,      T,        TAUCLI,   TAUCLW,
-      !             U,      V    fields
-      !=================================================================
-      CALL READ_A6( NYMD=NYMD,          NHMS=NHMS,       
-     &              CLDF=CLDF,          CLDTOPS=CLDTOPS, 
-     &              CMFMC=CMFMC,        DQIDTMST=DQIDTMST, 
-     &              DQLDTMST=DQLDTMST,  DQRCON=DQRCON, 
-     &              DQRLSC=DQRLSC,      DQVDTMST=DQVDTMST,
-     &              DTRAIN=DTRAIN,     
-     &              MOISTQ=MOISTQ,      OPTDEPTH=OPTDEP, 
-     &              PV=PV,              RH=RH,             
-     &              Q=SPHU,             QL=QL,             
-     &              QI=QI,              T=T,               
-     &              TAUCLI=TAUCLI,      TAUCLW=TAUCLW,     
-     &              U=UWND,             V=VWND         ) 
-
+      !-----------------------------------------------------------------
+      ! Read fields for GEOS-5 meteorology
+      !-----------------------------------------------------------------
+      CALL READ_A6( NYMD       = NYMD,          
+     &              NHMS       = NHMS, 
+     &              Input_Opt  = Input_Opt,      
+     &              CLDF       = State_Met%CLDF,          
+     &              CLDTOPS    = State_Met%CLDTOPS, 
+     &              CMFMC      = State_Met%CMFMC,        
+     &              DQIDTMST   = State_Met%DQIDTMST, 
+     &              DQLDTMST   = State_Met%DQLDTMST,  
+     &              DQRCON     = State_Met%DQRCU, 
+     &              DQRLSC     = State_Met%DQRLSAN,      
+     &              DQVDTMST   = State_Met%DQVDTMST,
+     &              DTRAIN     = State_Met%DTRAIN,     
+     &              MOISTQ     = State_Met%MOISTQ,      
+     &              OPTDEPTH   = State_Met%OPTDEP, 
+     &              PV         = State_Met%PV,              
+     &              RH         = State_Met%RH,             
+     &              Q          = State_Met%SPHU,             
+     &              QL         = State_Met%QL,             
+     &              QI         = State_Met%QI,              
+     &              T          = State_Met%T,               
+     &              TAUCLI     = State_Met%TAUCLI,      
+     &              TAUCLW     = State_Met%TAUCLW,     
+     &              U          = State_Met%U,             
+     &              V          = State_Met%V )
 
 #elif defined( GCAP ) 
 
-      !=================================================================
-      ! GCAP: read CLDF,   DETRAINE, DETRAIN, DNDE, DNDN, ENTRAIN,   
-      !            MOISTQ, OPTDEPTH, SPHU,    T=T,  UWND, UPDE,
-      !            UPDN,   VWND, and compute CLDTOPS & CLDFRC
-      !=================================================================
-      CALL READ_A6( NYMD=NYMD,          NHMS=NHMS,         
-     &              CLDF=CLDF,          CLDTOPS=CLDTOPS, 
-     &              DETRAINE=DETRAINE,  DETRAINN=DETRAINN, 
-     &              DNDE=DNDE,          DNDN=DNDN,         
-     &              ENTRAIN=ENTRAIN,    MOISTQ=MOISTQ,
-     &              OPTDEPTH=OPTDEP,    Q=SPHU,            
-     &              T=T,                U=UWND,            
-     &              UPDE=UPDE,          UPDN=UPDN,  
-     &              V=VWND )
-          
+      !-----------------------------------------------------------------
+      ! Read fields for GCAP meteorology
+      !-----------------------------------------------------------------
+      CALL READ_A6( NYMD       = NYMD,          
+     &              NHMS       = NHMS, 
+     &              Input_Opt  = Input_Opt,       
+     &              CLDF       = State_Met%CLDF,          
+     &              CLDTOPS    = State_Met%CLDTOPS, 
+     &              DETRAINE   = State_Met%DETRAINE,  
+     &              DETRAINN   = State_Met%DETRAINN, 
+     &              DNDE       = State_Met%DNDE,          
+     &              DNDN       = State_Met%DNDN,         
+     &              ENTRAIN    = State_Met%ENTRAIN,    
+     &              MOISTQ     = State_Met%MOISTQ,
+     &              OPTDEPTH   = State_Met%OPTDEP,    
+     &              Q          = State_Met%SPHU,            
+     &              T          = State_Met%T,                
+     &              U          = State_Met%U,
+     &              UPDE       = State_Met%UPDE,          
+     &              UPDN       = State_Met%UPDN,  
+     &              V          = State_Met%V )
+     
       ! Create 2-D CLDFRC field from 3-D CLDF field
-      CALL MAKE_GCAP_CLDFRC( CLDF, CLDFRC )
+      CALL MAKE_GCAP_CLDFRC( State_Met%CLDF, State_Met%CLDFRC )
       
 #endif
 
@@ -584,55 +641,49 @@
       LASTNYMD = NYMD
       LASTNHMS = NHMS
 
-#if defined( DEVEL )
-      LOCAL_MET%CLDF     = CLDF
-      LOCAL_MET%CMFMC    = CMFMC
-      LOCAL_MET%DTRAIN   = DTRAIN
-      LOCAL_MET%MOISTQ   = MOISTQ
-      LOCAL_MET%OPTD     = OPTDEP
-      LOCAL_MET%RH       = RH
-      LOCAL_MET%SPHU     = SPHU
-      LOCAL_MET%T        = T
-      LOCAL_MET%DQIDTMST = DQIDTMST
-      LOCAL_MET%DQLDTMST = DQLDTMST
-      LOCAL_MET%TAUCLI   = TAUCLI
-      LOCAL_MET%TAUCLW   = TAUCLW
-      LOCAL_MET%DQVDTMST = DQVDTMST
-#endif
-
-      ! Return to calling program
       END SUBROUTINE GET_A6_FIELDS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: make_gcap_cldfrc
+!
+! !DESCRIPTION: Subroutine MAKE\_CLDFRC constructs the GCAP CLDFRC field from
+!  the 3-D cloud fraction field.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE MAKE_GCAP_CLDFRC( CLDF, CLDFRC )
 !
-!******************************************************************************
-!  Subroutine MAKE_CLDFRC constructs the GCAP CLDFRC field from the 3-D
-!  cloud fraction field. (swu, bmy, 5/25/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) CLDF   (REAL*8) : GCAP 3-D cloud fraction field [unitless]
-!
-!  Arguments as Output:
-!  ===========================================================================
-!  (2 ) CLDFRC (REAL*8) : GCAP column cloud fraction field [unitless]
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DIAG_MOD, ONLY : AD67
-
       USE CMN_SIZE_MOD   ! Size parameters
       USE CMN_DIAG_MOD   ! ND67
-
-      ! Arguments
-      REAL*8, INTENT(IN)  :: CLDF(LLPAR,IIPAR,JJPAR)
-      REAL*8, INTENT(OUT) :: CLDFRC(IIPAR,JJPAR)
-
-      ! Local variables
+      USE DIAG_MOD, ONLY : AD67
+!
+! !INPUT PARAMETERS: 
+!
+      ! GCAP 3-D cloud fraction field [unitless]
+      REAL(fp), INTENT(IN)  :: CLDF(IIPAR,JJPAR,LLPAR)
+!
+! !OUTPUT PARAMETERS: 
+!
+      ! GCAP column cloud fraction field [unitless]
+      REAL(fp), INTENT(OUT) :: CLDFRC(IIPAR,JJPAR)
+! 
+! !REVISION HISTORY: 
+!  25 May 2005 - R. Yantosca - Initial version
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!  06 Nov 2014 - R. Yantosca - Now use CLDF(I,J,L)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL             :: IS_ND67 
       INTEGER             :: I, J
       
@@ -651,7 +702,7 @@
       DO I = 1, IIPAR
 
          ! Take max value
-         CLDFRC(I,J) = MAXVAL( CLDF(:,I,J) )
+         CLDFRC(I,J) = MAXVAL( CLDF(I,J,:) )
 
          ! Store in ND67 diagnostic if necessary
          IF ( IS_ND67 ) AD67(I,J,10) = AD67(I,J,10) + CLDFRC(I,J)
@@ -659,33 +710,41 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE MAKE_GCAP_CLDFRC
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_n_a6
+!
+! !DESCRIPTION: Function GET\_N\_A6 returns the number of A6 fields per 
+!  met data set.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_N_A6() RESULT( N_A6 )
 !
-!******************************************************************************
-!  Function GET_N_A6 returns the number of A-6 fields per met data set
-!  (GEOS-3, GEOS-4, GEOS-5, or GCAP). (bmy, 6/19/03, 5/15/07) 
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NYMD (INTEGER) : YYYYMMDD for which to read in A-6 fields
+      USE CMN_SIZE_MOD 
 !
-!  NOTES:
+! !RETURN VALUE:
+!
+      INTEGER :: N_A6
+!
+! !REVISION HISTORY: 
+!  19 Jun 2003 - R. Yantosca - Initial version
 !  (1 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/25/05)
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (3 ) Increase number of A-6 fields for GEOS-5 to 21 (bmy, 5/15/07)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!******************************************************************************
-!
-      USE CMN_SIZE_MOD 
-
-      ! Function value
-      INTEGER :: N_A6
-
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! GET_N_A6 begins here!
       !=================================================================
@@ -706,37 +765,46 @@
 
 #endif
 
-      ! Return to calling program
       END FUNCTION GET_N_A6
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_time
+!
+! !DESCRIPTION: Function CHECK\_TIME checks to see if the timestamp of the A6
+!  field just read from disk matches the current time.  If so, then it's 
+!  time to return the A6 field to the calling program. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) RESULT( ITS_TIME )
 !
-!******************************************************************************
-!  Function CHECK_TIME checks to see if the timestamp of the A-3 field just
-!  read from disk matches the current time.  If so, then it's time to return
-!  the A-3 field to the calling program. (bmy, 6/19/03, 8/4/06)
-!  
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) XYMD (INTEGER) : YYYYMMDD timestamp for A-3 field in file
-!  (2 ) XHMS (INTEGER) : HHMMSS   timestamp for A-3 field in file
-!  (3 ) NYMD (INTEGER) : YYYYMMDD at which A-3 field is to be read
-!  (4 ) NHMS (INTEGER) : HHMMSS   at which A-3 field is to be read
-!
-!  NOTES:
-!  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!******************************************************************************
+! !USES:
 !
       USE CMN_SIZE_MOD
-
-      ! Arguments 
-      INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
-      
-      ! Function value
-      LOGICAL             :: ITS_TIME
-
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: XYMD       ! YYYY/MM/DD and hh:mm:ss
+      INTEGER, INTENT(IN) :: XHMS       !  timestamp of A6 data in file
+      INTEGER, INTENT(IN) :: NYMD       ! YYYY/MM/DD and hh:mm:ss
+      INTEGER, INTENT(IN) :: NHMS       !  timestamp for desired data 
+! 
+! !RETURN VALUE:
+!
+      LOGICAL             :: ITS_TIME   ! =T if XYMD & XHMS match NYMD & NHMS
+!
+! !REVISION HISTORY: 
+!  19 Jun 2003 - R. Yantosca - Initial version
+!  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CHECK_TIME begins here!
       !=================================================================
@@ -746,12 +814,21 @@
          ITS_TIME = .FALSE.
       ENDIF
 
-      ! Return to calling program
       END FUNCTION CHECK_TIME
-
-!-----------------------------------------------------------------------------
-
-      SUBROUTINE READ_A6( NYMD,      NHMS,   
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_a6
+!
+! !DESCRIPTION: Subroutine READ\_A6 reads GEOS A-6 (6-hr avg) fields from disk.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_A6( NYMD,      NHMS,      Input_Opt,  
      &                    CLDF,      CLDMAS,    CLDTOPS,   CMFMC, 
      &                    DETRAINE,  DETRAINN,  DNDE,      DNDN,     
      &                    DQIDTMST,  DQLDTMST,  DQRCON,    DQRLSC,      
@@ -763,17 +840,69 @@
      &                    UPDE,      UPDN,      V,         ZMEU,      
      &                    ZMMD,      ZMMU )
 !
-!******************************************************************************
-!  Subroutine READ_A6 reads A-6 (avg 6-hr) met fields from disk. 
-!  (bmy, 6/5/98, 10/15/09)
-! 
-!  Arguments as input:
-!  ===========================================================================
-!  (1 ) NYMD     : YYYYMMDD
-!  (2 ) NHMS     :  and HHMMSS of A-6 met fields to be accessed
+! !USES:
 !
-!  A-6 Met Fields as Output (Optional Arguments):
-!  ============================================================================
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE CMN_GCTM_MOD
+      USE DIAG_MOD,           ONLY : AD66
+      USE DIAG_MOD,           ONLY : AD67
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : SET_CT_A6
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D_Lp1
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
+      USE TRANSFER_MOD,       ONLY : TRANSFER_G5_PLE
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN)    :: NYMD      ! YYYYMMDD
+      INTEGER,        INTENT(IN)    :: NHMS      !  and hhmmss of desired data
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,  INTENT(OUT), OPTIONAL :: CLDTOPS(IIPAR,JJPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: CLDF(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: CLDMAS(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: CMFMC(IIPAR,JJPAR,LLPAR+1)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DETRAINE(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DETRAINN(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DNDE(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DNDN(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DQIDTMST(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DQLDTMST(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DQRCON(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DQRLSC(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DQVDTMST(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DTRAIN(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: ENTRAIN(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: HKBETA(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: HKETA(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: MFXC(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: MFYC(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: MFZ(IIPAR,JJPAR,LLPAR+1)
+      REAL(fp), INTENT(OUT), OPTIONAL :: MOISTQ(IIPAR,JJPAR,LLPAR) 
+      REAL(fp), INTENT(OUT), OPTIONAL :: OPTDEPTH(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: PLE(IIPAR,JJPAR,LLPAR+1)
+      REAL(fp), INTENT(OUT), OPTIONAL :: PV(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: Q(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: QI(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: QL(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: RH(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: T(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: TAUCLI(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: TAUCLW(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: U(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: UPDE(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: UPDN(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: V(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: ZMEU(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: ZMMD(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: ZMMU(IIPAR,JJPAR,LLPAR)
+!
+! !REMARKS:
 !  (3 ) CLDF     : (3-D) Total cloud fractions                 [unitless]
 !  (4 ) CLDMAS   : (3-D) Cloud mass flux field                 [kg/m2/600s]
 !  (5 ) CLDTOPS  : (2-D) CTM Level in which cloud top occurs   [unitless]
@@ -810,7 +939,8 @@
 !  (36) ZMMD     : (3-D) Zhang/McFarlane downdraft mass flux   [Pa/s]
 !  (37) ZMMU     : (3-D) Zhang/McFarlane updraft mass flux     [Pa/s]
 !
-!  NOTES:
+! !REVISION HISTORY: 
+!  05 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from READ_A6 of "dao_read_mod.f" (bmy, 6/19/03)
 !  (2 ) Now use function TIMESTAMP_STRING from "time_mod.f" for formatted 
 !        date/time output. (bmy, 10/28/03)
@@ -835,68 +965,29 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
-!******************************************************************************
+!  14 Mar 2013 - M. Payer    - Added T_FULLGRID as optional argument
+!  29 Oct 2013 - R. Yantosca - Remove reference to TRANSFER_3D_NOLUMP
+!  07 Nov 2013 - R. Yantosca - Now replace any NaN's in the MOISTQ field
+!                              with zeroes.  NaN's have occured near t-pause.
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  05 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp)
+!  06 Nov 2014 - R. Yantosca - All input arguments are now declared as (I,J,L) 
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_A6 with TRANSFER_3D
+!  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD66,        AD67
-      USE FILE_MOD,     ONLY : IOERROR
-      USE TIME_MOD,     ONLY : SET_CT_A6,   TIMESTAMP_STRING
-      USE TRANSFER_MOD, ONLY : TRANSFER_A6, TRANSFER_3D_Lp1
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D, TRANSFER_G5_PLE
-
-      USE CMN_SIZE_MOD               ! Size parameters
-      USE CMN_DIAG_MOD               ! ND66, ND67
-      USE CMN_GCTM_MOD               ! g0
-
-      ! Arguments
-      INTEGER, INTENT(IN)            :: NYMD, NHMS
-      INTEGER, INTENT(OUT), OPTIONAL :: CLDTOPS(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: CLDF(LLPAR,IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: CLDMAS(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: CMFMC(IIPAR,JJPAR,LLPAR+1)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DETRAINE(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DETRAINN(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DNDE(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DNDN(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DQIDTMST(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DQLDTMST(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DQRCON(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DQRLSC(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DQVDTMST(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DTRAIN(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: ENTRAIN(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: HKBETA(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: HKETA(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: MFXC(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: MFYC(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: MFZ(IIPAR,JJPAR,LLPAR+1)
-      REAL*8,  INTENT(OUT), OPTIONAL :: MOISTQ(LLPAR,IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: OPTDEPTH(LLPAR,IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: PLE(IIPAR,JJPAR,LLPAR+1)
-      REAL*8,  INTENT(OUT), OPTIONAL :: PV(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: Q(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: QI(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: QL(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: RH(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: T(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: TAUCLI(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: TAUCLW(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: U(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: UPDE(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: UPDN(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: V(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: ZMEU(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: ZMMD(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: ZMMU(IIPAR,JJPAR,LLPAR)
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER                        :: I, IJLOOP, J, K, L
       INTEGER                        :: IOS, NFOUND, N_A6
       REAL*4                         :: D(IIPAR,JJPAR,LGLOB)       
       REAL*4                         :: D1(IIPAR,JJPAR,LGLOB+1)       
-      REAL*8                         :: C1, C2
-      REAL*8                         :: TAUCLD(LLPAR,IIPAR,JJPAR)
-      REAL*8                         :: CLDTOT(LLPAR,IIPAR,JJPAR)
+      REAL(fp)                       :: C1, C2
+      REAL(fp)                       :: TAUCLD(IIPAR,JJPAR,LLPAR)
+      REAL(fp)                       :: CLDTOT(IIPAR,JJPAR,LLPAR)
       CHARACTER(LEN=8)               :: NAME
       CHARACTER(LEN=16)              :: STAMP
       INTEGER                        :: XYMD, XHMS
@@ -958,7 +1049,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:3' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  CALL TRANSFER_A6( D, CLDTOT )
+!                  CALL TRANSFER_A6( D, CLDTOT )
+                  CALL TRANSFER_3D( D, CLDTOT )
                   NFOUND = NFOUND +1 
                ENDIF
 
@@ -1192,7 +1284,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:21' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( MOISTQ ) ) CALL TRANSFER_A6( D, MOISTQ )
+!                  IF ( PRESENT( MOISTQ ) ) CALL TRANSFER_A6( D, MOISTQ )
+                  IF ( PRESENT( MOISTQ ) ) CALL TRANSFER_3D( D, MOISTQ )
                   NFOUND = NFOUND + 1 
                ENDIF
 
@@ -1205,7 +1298,8 @@
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( OPTDEPTH ) ) THEN
-                     CALL TRANSFER_A6( D, OPTDEPTH )
+!                     CALL TRANSFER_A6( D, OPTDEPTH )
+                     CALL TRANSFER_3D( D, OPTDEPTH )
                   ENDIF
                   NFOUND = NFOUND + 1 
                ENDIF
@@ -1561,7 +1655,18 @@
       ! positives, and then divide by 8.64d7 to convert to units of
       ! [kg H2O/kg air/s].  (bmy, 4/5/99)
       !=================================================================
-      IF ( PRESENT( MOISTQ ) ) MOISTQ = -MOISTQ / 8.64d7
+      IF ( PRESENT( MOISTQ ) ) THEN
+
+         ! First replace any NaN values with zeroes.  Most NaN's in MOISTQ 
+         ! have been shown to occur near the tropopause, where there are 
+         ! no clouds, and no cloud or ice precip. (bmy, 11/7/13)
+         WHERE( MOISTQ .ne. MOISTQ ) 
+            MOISTQ = 0d0
+         ENDWHERE
+
+         ! Then convert to [kg H2O/kg air/s]
+         MOISTQ = -MOISTQ / 8.64d7
+      ENDIF
 
       !=================================================================
       ! ND66 diagnostic: A-6 fields
@@ -1634,31 +1739,39 @@
       !=================================================================
       CALL SET_CT_A6( INCREMENT=.TRUE. )
 
-      ! Return to calling program
       END SUBROUTINE READ_A6
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: a6_check
+!
+! !DESCRIPTION: Subroutine A6\_CHECK prints an error message if not all 
+!  of the A-6 met fields are found.  The run is also terminated. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE A6_CHECK( NFOUND, N_A6 )
 !
-!******************************************************************************
-!  Subroutine A6_CHECK prints an error message if not all of the A-6 met 
-!  fields are found.  The run is also terminated. (bmy, 10/27/00, 6/19/03)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NFOUND (INTEGER) : # of A-6 met fields read from disk
-!  (2 ) N_A6   (INTEGER) : # of A-6 met fields expected to be read from disk
-!
-!  NOTES
-!  (1 ) Adapted from DAO_CHECK from "dao_read_mod.f" (bmy, 6/19/03)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NFOUND, N_A6
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: NFOUND   ! Number of A6 fields found in file
+      INTEGER, INTENT(IN) :: N_A6     ! Expected number of A6 fields
+! 
+! !REVISION HISTORY: 
+!  27 Oct 2000 - R. Yantosca - Initial version
+!  (1 ) Adapted from DAO_CHECK from "dao_read_mod.f" (bmy, 6/19/03)
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
       !=================================================================
       ! A6_CHECK begins here!
@@ -1678,10 +1791,6 @@
          CALL GEOS_CHEM_STOP
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE A6_CHECK
-
-!------------------------------------------------------------------------------
-      
-      ! End of module
+!EOC
       END MODULE A6_READ_MOD
