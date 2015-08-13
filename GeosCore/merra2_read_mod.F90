@@ -288,11 +288,8 @@ CONTAINS
     nc_file = 'MERRA2.YYYYMMDD.CN.' // TRIM( nc_file ) 
     CALL Expand_Date( nc_file, 20110101, 000000 )
 
-    !### DEBUG: Hardwire path for testing 
-    nc_file = '/n/regal/jacob_lab/ryantosca/MERRA2/processed/' // TRIM(nc_file)
-
-!    ! Construct complete file path
-!    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    ! Construct complete file path
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
    
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
@@ -467,11 +464,8 @@ CONTAINS
     nc_file = 'MERRA2.YYYYMMDD.A1.' // TRIM( nc_file )
     CALL Expand_Date( nc_file, YYYYMMDD, HHMMSS )
 
-    !### DEBUG: Hardwire path for testing 
-    nc_file = '/n/regal/jacob_lab/ryantosca/MERRA2/processed/' // TRIM(nc_file)
-
-!    ! Construct complete file path
-!    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    ! Construct complete file path
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
     
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
@@ -949,11 +943,8 @@ CONTAINS
     nc_file = 'MERRA2.YYYYMMDD.A3cld.' // TRIM( nc_file )
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
-    !### DEBUG: Hardwire path for testing 
-    nc_file = '/n/regal/jacob_lab/ryantosca/MERRA2/processed/' // TRIM(nc_file)
-
-!    ! Construct complete file path
-!    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    ! Construct complete file path
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
     
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
@@ -1107,11 +1098,8 @@ CONTAINS
     nc_file = 'MERRA2.YYYYMMDD.A3dyn.' // TRIM( nc_file )
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
-    !### DEBUG: Hardwire path for testing 
-    nc_file = '/n/regal/jacob_lab/ryantosca/MERRA2/processed/' // TRIM(nc_file)
-
-!    ! Construct complete file path
-!    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    ! Construct complete file path
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
     
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
@@ -1279,11 +1267,8 @@ CONTAINS
     nc_file = 'MERRA2.YYYYMMDD.A3mstC.' // TRIM( nc_file )
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
-    !### DEBUG: Hardwire path for testing 
-    nc_file = '/n/regal/jacob_lab/ryantosca/MERRA2/processed/' // TRIM(nc_file)
-
-!    ! Construct complete file path
-!    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    ! Construct complete file path
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
     
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
@@ -1430,11 +1415,8 @@ CONTAINS
     nc_file = 'MERRA2.YYYYMMDD.A3mstE.' // TRIM( nc_file )
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
-    !### DEBUG: Hardwire path for testing 
-    nc_file = '/n/regal/jacob_lab/ryantosca/MERRA2/processed/' // TRIM(nc_file)
-
-!    ! Construct complete file path
-!    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    ! Construct complete file path
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
     
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
@@ -1602,11 +1584,8 @@ CONTAINS
     nc_file = 'MERRA2.YYYYMMDD.I3.' // TRIM( nc_file )
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
-    !### DEBUG: Hardwire path for testing 
-    nc_file = '/n/regal/jacob_lab/ryantosca/MERRA2/processed/' // TRIM(nc_file)
-
-!    ! Construct complete file path
-!    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    ! Construct complete file path
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
 
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
@@ -1802,11 +1781,8 @@ CONTAINS
     nc_file = 'MERRA2.YYYYMMDD.I3.' // TRIM( nc_file )
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
-    !### DEBUG: Hardwire path for testing 
-    nc_file = '/n/regal/jacob_lab/ryantosca/MERRA2/processed/' // TRIM(nc_file)
-
-!    ! Construct complete file path
-!    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    ! Construct complete file path
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
 
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )

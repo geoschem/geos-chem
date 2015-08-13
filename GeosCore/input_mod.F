@@ -7943,29 +7943,27 @@
 
 #elif defined( MERRA2 )
 
-! Temporarily disable for testing (bmy, 8/12/15)
-!      ! Check MERRA2 met field directory (starting date)
-!      DIR = Input_Opt%MERRA2_DIR
-!      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
-!      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-!      CALL CHECK_DIRECTORY( Input_Opt, DIR )
-!
-!      ! Check MERRA2 met field directory (ending date)
-!      DIR = Input_Opt%MERRA2_DIR
-!      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
-!      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-!      CALL CHECK_DIRECTORY( Input_Opt, DIR )
+      ! Check MERRA2 met field directory (starting date)
+      DIR = Input_Opt%MERRA2_DIR
+      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
+
+      ! Check MERRA2 met field directory (ending date)
+      DIR = Input_Opt%MERRA2_DIR
+      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
 #elif defined( GCAP )
 
-      ! Check GEOS-5 met field directory (starting date)
+      ! Check GCAP met field directory (starting date)
       DIR = Input_Opt%GCAP_DIR
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
-
-      ! Check GEOS-5 met field directory (ending date)
+      ! Check GCAP met field directory (ending date)
       DIR = Input_Opt%GCAP_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
