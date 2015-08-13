@@ -153,7 +153,7 @@
 !                              are directly taken from the GEOS-5 model. In 
 !                              the traditional GEOS-Chem, the updraft velocity
 !                              is still calculated in the old manner (5 m/s 
-!                              over land/ice, 10 m/s over water).
+!                              over water, 10 m/s over land/ice).
 !  23 Jun 2015 - M. Sulprizio- Add impaction scavenging for hydrophobic BC and
 !                              homogeneous IN removal from Qiaoqiao Wang
 !  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
