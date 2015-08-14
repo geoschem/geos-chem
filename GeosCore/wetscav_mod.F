@@ -2255,25 +2255,13 @@
       ! For use below
       STT       => State_Chm%TRACERS
 
-      ! Tracer concentration units are in [kg/kg total air] if COMPUTE_F
-      ! is called during convection. TOMAS subroutine GETFRACTION
-      ! expects units in kg tracer. Therefore, convert State_Chm%Tracers 
-      ! to [kg] if currently in [kg/kg]. Use the average surface level 
-      ! concentration of tracer 1 to determine current units (ewl, 6/4/15)
-
-      ! Mean surface concentration of tracer 1
-      MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
-     &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
-
-      ! Convert units [kg/kg total air] -> [kg] if mean conc less than 0.1
-      ! (NOTE: this threshold may need to change)
-      IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
+      ! Convert units [kg/kg total air] -> [kg] if units not already [kg]
+      ! since TOMAS function and routins expect tracer units in [kg]. Units
+      ! are kg/kg if COMPUTE_F is called from convection (ewl, 8/14/15)
+      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg wet' ) THEN
          CALL Convert_MoistKgKg_to_Kg( am_I_Root, N_TRACERS, 
-     &                                  State_Met, State_Chm, RC )
-
-         ! Set flag indicating conversion change occurred
+     &                                 State_Met, State_Chm, RC )
          UNITCHANGE = .TRUE.
-
       ENDIF
 
       ! Added for size-resolved aerosol (win, 7/16/09)
@@ -2421,7 +2409,7 @@
       ! if conversion occurred at start of TOMAS block (ewl, 6/23/15)
       IF ( UNITCHANGE ) THEN
          CALL Convert_Kg_to_MoistKgKg( am_I_Root, N_TRACERS, 
-     &                                  State_Met, State_Chm, RC )
+     &                                 State_Met, State_Chm, RC )
       ENDIF
 
       ! Free pointer
@@ -4989,26 +4977,13 @@
       STT       => State_Chm%TRACERS
       N_TRACERS =  Input_Opt%N_TRACERS
 
-      ! Tracer concentration units are in [kg/kg total air] if WASHOUT
-      ! is called during convection. TOMAS subroutine GETFRACTION
-      ! expects units in kg tracer. Therefore, convert State_Chm%Tracers 
-      ! to [kg] if currently in [kg/kg]. Use the average surface level 
-      ! concentration of tracer 1 to determine current units (ewl, 6/23/15)
-
-      ! Mean surface concentration of tracer 1
-      MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
-     &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
-
-      ! Convert units [kg/kg total air] -> [kg] if mean conc less than 0.1
-      ! (NOTE: this threshold may need to change)
-      IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
+      ! Convert units [kg/kg total air] -> [kg] if units not already [kg]
+      ! since TOMAS functions expect tracer units in [kg]. Units are
+      ! kg/kg if WASHOUT is called from convection (ewl, 8/14/15)
+      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg wet' ) THEN
          CALL Convert_MoistKgKg_to_Kg( am_I_Root, N_TRACERS, 
-     &                                  State_Met, State_Chm, RC )
-
-         ! Set flag indicating unit conversion occurred so that reverse
-         ! unit conversion happens at end
+     &                                 State_Met, State_Chm, RC )
          UNITCHANGE = .TRUE.
-
       ENDIF
 
       !=================================================================
@@ -5089,7 +5064,7 @@
 
       ! (end part) Added for size-resolved aerosol (win, 7/16/09)
 
-      ! Convert State_Chm%Tracers units back to kg/kg total air 
+      ! Convert State_Chm%Tracers units back to [kg/kg total air] 
       ! if conversion occurred at start of TOMAS block (ewl, 5/12/15)
       IF ( UNITCHANGE ) THEN
          CALL Convert_Kg_to_MoistKgKg( am_I_Root, N_TRACERS, 
