@@ -284,7 +284,8 @@
 !  02 Jul 2013 - R. Yantosca - Bug fix: add State_Chm to WETDEP calls for
 !                              met other than MERRA, GEOS-5.7 or GEOS-5
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  08 Aug 2015 - E. Lundgren - Tracer units are now [kg/kg]
+!  08 Aug 2015 - E. Lundgren - Tracer units are input as [kg/kg] and converted
+!                              to [kg] locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -325,14 +326,6 @@
       ! Only print output on the root CPU
       doPrt = ( LPRT .and. am_I_Root )
 
-      ! For new diagnostics, mirror old species
-#if   defined( DEVEL )
-      IF ( Input_Opt%ND39 > 0 ) THEN
-         ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
-         BEFORE = State_Chm%Tracers
-      ENDIF
-#endif
-
       ! Convert tracer units from [kg/kg] to [kg] for do_wetdep (ewl, 8/12/15)
       CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met,  
      &                            State_Chm, RC ) 
@@ -340,6 +333,14 @@
          CALL ERROR_STOP('Unit conversion error', 
      &                      'DO_WETDEP in wetscav_mod.F')
       ENDIF  
+
+      ! For new diagnostics, mirror old species
+#if   defined( DEVEL )
+      IF ( Input_Opt%ND39 > 0 ) THEN
+         ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
+         BEFORE = State_Chm%Tracers
+      ENDIF
+#endif
 
 #if   defined( MERRA ) || defined( GEOS_FP )
 
@@ -946,7 +947,6 @@
 #if defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS
       USE TOMAS_MOD,          ONLY : GETFRACTION
-      USE DAO_MOD,            ONLY : CONVERT_UNITS
       USE UNITCONV_MOD
 #endif
 !
@@ -1058,11 +1058,7 @@
       ! Scavenging fraction of TOMAS aerosols (win, 7/16/09)
       REAL(fp)           :: TOM_SC_FRACTION(IIPAR, JJPAR, LLPAR, IBINS)
       REAL(fp)           :: SOLFRAC, XFRAC
-      REAL(fp)           :: MEAN_SFC_STT         ! use to determine STT units 
       LOGICAL            :: UNITCHANGE = .FALSE. ! STT unit conversion indicator
-
-      ! For unit conversion
-      REAL(fp), POINTER  :: STT(:,:,:,:) => NULL()
 #endif
 
       ! Pointers
@@ -2252,9 +2248,6 @@
 
 #if defined( TOMAS )
 
-      ! For use below
-      STT       => State_Chm%TRACERS
-
       ! Convert units [kg/kg total air] -> [kg] if units not already [kg]
       ! since TOMAS function and routins expect tracer units in [kg]. Units
       ! are kg/kg if COMPUTE_F is called from convection (ewl, 8/14/15)
@@ -2412,8 +2405,6 @@
      &                                 State_Met, State_Chm, RC )
       ENDIF
 
-      ! Free pointer
-      STT => NULL()
 #endif
 
       !-------------------------------
@@ -4412,7 +4403,6 @@
 
 #if defined( TOMAS )
       USE TOMAS_MOD,    ONLY : IBINS,    ICOMP
-      USE DAO_MOD,      ONLY : CONVERT_UNITS
       USE UNITCONV_MOD
 #endif
 !
@@ -4525,10 +4515,8 @@
 !
       REAL(fp)          :: L2G, DZ, SO2LOSS
 #if defined( TOMAS )
-      REAL(fp)          :: MEAN_SFC_STT         ! use to determine STT units 
       LOGICAL           :: UNITCHANGE = .FALSE. ! STT unit conversion indicator
       INTEGER           :: N_TRACERS
-      REAL(fp), POINTER :: STT(:,:,:,:) => NULL()
 #endif
 
       !=================================================================
@@ -4974,7 +4962,6 @@
 #if defined( TOMAS )
 
       ! Define fields for use below
-      STT       => State_Chm%TRACERS
       N_TRACERS =  Input_Opt%N_TRACERS
 
       ! Convert units [kg/kg total air] -> [kg] if units not already [kg]
@@ -5071,8 +5058,6 @@
      &                                  State_Met, State_Chm, RC )
       ENDIF
 
-      ! Free pointers
-      STT => NULL()
 #endif
 
       !------------------------------
@@ -6991,10 +6976,10 @@
       INTEGER,          INTENT(IN)    :: J             ! Latitude index
       INTEGER,          INTENT(IN)    :: L             ! Level index
       INTEGER,          INTENT(IN)    :: IDX           ! ND38 index
-      REAL(fp),           INTENT(IN)    :: F_RAINOUT     ! Fraction of grid box 
+      REAL(fp),         INTENT(IN)    :: F_RAINOUT     ! Fraction of grid box 
                                                        !  undergoing rainout
-      REAL(fp),           INTENT(IN)    :: K_RAIN        ! Rainout constant
-      REAL(fp),           INTENT(IN)    :: DT            ! Rainout timestep [s]
+      REAL(fp),         INTENT(IN)    :: K_RAIN        ! Rainout constant
+      REAL(fp),         INTENT(IN)    :: DT            ! Rainout timestep [s]
       CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
       TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
       TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
@@ -7072,6 +7057,10 @@
 
 
 #if defined( TOMAS )
+         ! (ewl, 8/14/15)
+         ! STT units must be in [kg] for TOMAS. Convert units??? This 
+         ! would not be ideal here since inside a do loop.
+
          IF ( IDTNK1 > 0 ) THEN
             IF ( N >= IDTNK1 .and. N < IDTNK1 + IBINS ) THEN  
                CALL GETFRACTION( I, J, L, N, LS, XFRAC, SOLFRAC, STT ) 
@@ -7210,7 +7199,6 @@
       USE TRACERID_MOD,       ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1
       USE TRACERID_MOD,       ONLY : IDTDUST1
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID
-      USE TOMAS_MOD,          ONLY : GETFRACTION
       USE DIAG_MOD,           ONLY : AD05
 #endif
 !
