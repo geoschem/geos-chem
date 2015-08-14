@@ -1747,8 +1747,7 @@
 !  04 Sep 2013 - R. Yantosca - Bug fix: # of ND46 tracers should be 20
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  31 Jan 2014 - R. Yantosca - Now save out tracerinfo.dat properly for TOMAS
-!  06 Aug 2015 - J. Fisher   - Add non-reducible snowpack Hg reservoir
-!                              (orig. 29/11/11)
+!  12 Aug 2015 - J. Fisher   - Add cryosphere Hg diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1944,6 +1943,10 @@
                   NAME (T,03) = 'Hgdep_sn'
                   FNAME(T,03) = 'HgII/HgP dep to snow/ice'
                   INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 22 ) 
+                  NAME (T,03) = 'Hg2_riv'
+                  FNAME(T,03) = 'Hg2 from rivers'
+                  INDEX(T,03) = T + ( SPACING * 34 ) 
                CASE DEFAULT
                   ! Nothing
             END SELECT

@@ -20,7 +20,7 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      INTEGER, PUBLIC, PARAMETER   :: PD03    = 21         ! Dim of AD03 array
+      INTEGER, PUBLIC, PARAMETER   :: PD03    = 22         ! Dim of AD03 array
       INTEGER, PUBLIC, PARAMETER   :: PD03_PL = 13         ! # of PL-HG2 diags
 
 !
@@ -52,6 +52,7 @@
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Br(:,:,:,:)     !
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_RGM(:,:,:)      !
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_PBM(:,:,:)      !
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_RIV(:,:)        !
 
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -118,6 +119,7 @@
 !        rather than nested DO loops and single precision 0E0. (cdh, 8/14/08)
 !  (3 ) Now zeros RGM and PBM diagnostics. (hma 20100219)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  12 Aug 2015 - Add Arctic river Hg diagnostic
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -145,6 +147,7 @@
       AD03_Br      = 0D0  
       AD03_RGM     = 0D0     
       AD03_PBM     = 0D0
+      AD03_RIV     = 0D0
 
       END SUBROUTINE ZERO_DIAG03
 !EOC
@@ -768,6 +771,17 @@
             NN                = N
             ARRAY(:,:,1)      = AD03(:,:,N,1)
 
+        ELSE IF ( N == 22 ) THEN
+
+            !--------------------------------
+            ! #22: Hg2 from rivers !jaf
+            !--------------------------------
+            CATEGORY          = 'HG-SRCE'
+            UNIT              = 'kg'
+            LMAX              = 1 
+            NN                = N 
+            ARRAY(:,:,1)      = AD03_riv(:,:)
+    
          ELSE
 
             !--------------------------------
@@ -1069,6 +1083,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_RGM' )
 !------------------------------------------------------------------------
 
+      ! Arctic river Hg
+      ALLOCATE( AD03_RIV( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_RIV' )
+
       ! Zero arrays
       CALL ZERO_DIAG03
 
@@ -1112,6 +1130,7 @@
       IF ( ALLOCATED( AD03_PBM     ) ) DEALLOCATE( AD03_PBM     )
       IF ( ALLOCATED( AD03_RGM     ) ) DEALLOCATE( AD03_RGM     )
 !------------------------------------------------------------------------------
+      IF ( ALLOCATED( AD03_RIV     ) ) DEALLOCATE( AD03_RIV     )
 
       END SUBROUTINE CLEANUP_DIAG03
 !EOC

@@ -127,6 +127,8 @@
 !                              (orig. 28/11/11)
 !  06 Aug 2015 - J. Fisher   - Added delivery of snow Hg to ocean (orig. 28/11/11)
 !  11 Aug 2015 - J. Fisher   - Remove obsolete parameters LOCEANFIX, FUDGE
+!  12 Aug 2015 - J. Fisher   - Added input of Hg from Arctic rivers to ocean
+!                              (orig. 8/12/11)
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
@@ -179,6 +181,11 @@
       REAL*8   :: CDEEPANT(3)
       REAL*8   :: CDEEPARC(3)
       REAL*8   :: CDEEPNPA(3)
+
+      ! For Arctic rivers (jaf, 12/8/11)
+      REAL*8   :: RIVERFLOW(12)
+      REAL*8   :: dFLOW
+      REAL*8   :: FLOWNOW 
 
       ! Arrays
       REAL*8,  ALLOCATABLE :: dMLD(:,:)
@@ -333,7 +340,6 @@
       USE BPCH2_MOD,          ONLY : GET_TAU0,       READ_BPCH2
       USE DIAG03_MOD,         ONLY : ND03                
       USE DIRECTORY_MOD,      ONLY : DATA_DIR
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR      
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : SET_Hg2_DIAG        
@@ -851,12 +857,14 @@
 !			       Hg deposition accordingly in partial-ice boxes
 !                              (orig. 28/11/11)
 !  06 Aug 2015 - J. Fisher   - Added delivery of snow Hg to ocean (orig. 28/11/11)
+!  12 Aug 2015 - J. Fisher   - Added input of Hg from Arctic rivers to ocean
+!                              (orig. 8/12/11)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,            ONLY : IS_WATER, IS_ICE
       USE DEPO_MERCURY_MOD,   ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
-      USE DIAG03_MOD,         ONLY : AD03, ND03
+      USE DIAG03_MOD,         ONLY : AD03,   ND03,   AD03_RIV
       USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -921,6 +929,7 @@
       REAL*8                ::Hg2aq_tot                      
       REAL*8                :: C_tot,    Ze,       OC_tot,   Hg0_OX     
       REAL*8                :: FRAC_OPEN_OCEAN,    FRAC_OCEAN_OR_ICE
+      REAL*8                :: OLDFLOW,            RIVER_HG
       REAL*8                :: SNOW_Hg2aq(N_Hg_CATS)
 
       ! Parameters
@@ -945,6 +954,24 @@
       ! Conversion factor from [cm/h * ng/L] --> [kg/m2/s]
       REAL*8,  PARAMETER    :: TO_KGM2S = 1.0D-11 / 3600D0 
 
+      ! Monthly Arctic river Hg concentrations (jaf, 12/8/11)
+      ! These assume no river Hg flux in Nov-Apr and concentrations at 
+      ! freshet (May-June) 3x higher than in summer (Leitch et al., 2009). 
+      ! These values are chosen to maximize agreement with atmospheric
+      ! Hg0 observations at Arctic sites (Alert, Zeppelin, Amderma).
+      ! They were calculated using:
+      ! Flux = CHg*Flow = CHg_may*Flow_may + CHg_jun*Flow_jun + ...
+      ! If (e.g. here) CHg is 3x higher in May-June, you end up with
+      ! Flux = 3CHg_jul*Flow_may + 3CHg_jul*Flow_jun + CHG_jul*Flow_jul + ...
+      !      = CHg_jul * ( 3*Flow_may + 3*Flow_jun + Flow_jul + ...)
+      ! You can then calculate CHg_jul and use it to calculate CHg for
+      ! other months.
+      ! This is in kg/km3 = ng/L
+      REAL*8,  PARAMETER :: RIVER_CHg(12) = (/0d0,  0d0,  0d0,  0d0,
+     &                                       80d0, 80d0, 27d0, 27d0,
+     &                                       27d0, 27d0,  0d0,  0d0 /)
+      REAL*8             :: A_ARCTIC_OCEAN
+
       ! Small numbers to avoid dividing by zero
       REAL*8,  PARAMETER   :: SMALLNUM   = 1D-32
       REAL*8,  PARAMETER   :: NPPMINNUM   = 5D-2       
@@ -955,6 +982,7 @@
      
       ! For values from Input_Opt
       LOGICAL         :: LSPLIT
+      LOGICAL         :: LArcticRiv
       INTEGER         :: N_TRACERS
       REAL*8          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
 
@@ -969,6 +997,7 @@
 
       ! Copy values from Input_Opt
       LSPLIT       = Input_Opt%LSPLIT
+      LArcticRiv   = Input_Opt%LArcticRiv
       N_TRACERS    = Input_Opt%N_TRACERS
       TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
 
@@ -992,17 +1021,19 @@
          CALL CHECK_OCEAN_FLUXES ( 'start of OCEAN_MERCURY_FLUX' )
       ENDIF
 
+      ! Get current month
+      THISMONTH = GET_MONTH()
+
+      ! Get current year to check if leap year (jaf, 8/12/11)
+      THISYEAR  = GET_YEAR()
+
       !-----------------------------------------------
       ! Read monthly NPP, RADSW, MLD, UPVEL data
       !-----------------------------------------------
       IF ( ITS_A_NEW_MONTH() ) THEN
 
-         ! Get current month
-         THISMONTH = GET_MONTH()
-
          ! Get monthly MLD, NPP, CHL etc.                         
-         !CALL OCEAN_MERCURY_READ( THISMONTH )
-         CALL OCEAN_MERCURY_READ( THISMONTH, THISYEAR ) !jaf
+         CALL OCEAN_MERCURY_READ( THISMONTH, THISYEAR )
 
       ENDIF    
 
@@ -1018,17 +1049,7 @@
       !-----------------------------------------------
       IF ( ITS_MIDMONTH() ) THEN
 
-         ! Get current month
-         THISMONTH = GET_MONTH()
-
-!--jaf.start
-         ! Get current year to check if leap year (jaf, 7/6/11)
-         THISYEAR = GET_YEAR()
-
-         ! Read next month's MLD
-         !CALL GET_MLD_FOR_NEXT_MONTH( THISMONTH )
          CALL GET_MLD_FOR_NEXT_MONTH( THISMONTH, THISYEAR )
-!--jaf.end
          
       ENDIF
 
@@ -1042,12 +1063,16 @@
       ! Initialize values
       NPP_tot = 0d0
       A_ocean = 0d0
+      A_ARCTIC_OCEAN = 0d0
 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
          A_M2 = GET_AREA_M2( I, J, 1 )
+
+         ! Grid-box latitude [degrees]
+         Y = GET_YMID( I, J, 1 )
 
          ! Use fractional land type information in MERRA (jaf, 4/26/11)
          ! FROCEAN is a constant, so to get correct ocean fraction we
@@ -1057,20 +1082,49 @@
 #if   defined( MERRA ) || defined( GEOS_FP )
          NPP_tot = NPP_tot + NPP(I,J) * A_M2 * State_Met%FROCEAN(I,J)
          A_ocean = A_ocean + A_M2 * State_Met%FROCEAN(I,J)
-!         NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * 
-!     &             ( State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J) )
-!         A_ocean = A_ocean + A_M2 * 
-!     &             ( State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J) )
+         IF ( Y >= 70 ) THEN
+         IF ( (State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J)) > 0d0 )
+     &      A_ARCTIC_OCEAN = A_ARCTIC_OCEAN + A_M2 
+     &                     * State_Met%FROCEAN(I,J)
+         ENDIF
+#elif defined(GEOS_5)
+         NPP_tot = NPP_tot + NPP(I,J) * A_M2 * State_Met%FROCEAN(I,J)
+         A_ocean = A_ocean + A_M2 * State_Met%FROCEAN(I,J)
+         IF ( Y >= 70 ) THEN
+            IF ( State_Met%FROCEAN(I,J) > 0d0 )
+     &      A_ARCTIC_OCEAN = A_ARCTIC_OCEAN + A_M2 
+     &                     * State_Met%FROCEAN(I,J)
+         ENDIF
 #else
          NPP_tot = NPP_tot + NPP(I,J) * A_M2 *
      &             ( 1d0 - State_Met%FRCLND(I,J))
          A_ocean = A_ocean + A_M2 * ( 1d0 - State_Met%FRCLND(I,J) ) 
+         IF ( Y >= 70 ) THEN
+            IF ( State_Met%FROCEAN(I,J) > 0d0 )
+     &      A_ARCTIC_OCEAN = A_ARCTIC_OCEAN + A_M2 
+     &                     * (1d0 - State_Met%FRCLND(I,J))
+         ENDIF
 #endif
 
       ENDDO
       ENDDO
 
       NPP_avg = NPP_tot / A_ocean
+
+      !----------------------------------------------------------------
+      ! Calculate Arctic river flow and Hg flux (jaf, 12/8/11)
+      !---------------------------------------------------------------- 
+      ! FLOW is in m3/s; RIVER_CHg in kg/km3; RIVERHG in kg/m2/s
+      OLDFLOW = FLOWNOW 
+      FLOWNOW = OLDFLOW + dFLOW * DTSRCE
+
+      ! For some months / met fields, there may be no non-ice ocean
+      IF ( A_ARCTIC_OCEAN == 0d0 ) THEN
+         RIVER_HG = 0d0
+      ELSE
+         RIVER_HG = FLOWNOW * RIVER_CHg(THISMONTH) * 1d-9 /
+     &              A_ARCTIC_OCEAN
+      ENDIF
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -1096,6 +1150,9 @@
 
          ! Grid box surface area [m2]
          A_M2       = GET_AREA_M2( I, J, 1 )
+
+         ! Grid-box latitude [degrees]
+         Y = GET_YMID( I, J, 1 )
 
          ! Initialize values
          Kw         = 0d0
@@ -1182,8 +1239,6 @@
          FRAC_OCEAN_OR_ICE = FRAC_O
          IS_OCEAN_BOX = ( IS_WATER( I, J, State_Met ) )
 #endif
-
-
 
          ! Change ocean mass due to mixed layer depth change
          ! Keep before next IF so that we adjust mass in ice-covered boxes
@@ -1420,8 +1475,9 @@
             ! Loop over total Hg (and ocean Hg if necessary)
             DO C = 1, N_tot_oc
 
+               ! Move to start of loop for use earlier (jaf, 12/8/11)
                ! Grid-box latitude [degrees]
-               Y = GET_YMID( I, J, 1 )
+               !Y = GET_YMID( I, J, 1 )
          
                ! Grid box longitude [degrees]
                X = GET_XMID( I, J, 1 )
@@ -1664,6 +1720,19 @@
                FUP(I,J,NN)   = 0d0
                FDOWN(I,J,NN) = 0d0
 
+               !--------------------------------------------------------
+               ! Calculate new Hg(II) mass
+               !--------------------------------------------------------
+               ! Add flux of Hg(II) from rivers in Arctic (jaf, 12/8/11)
+               ! Convert to kg/box/timestep and add to Hg2aq
+               IF ( (LArcticRiv) .AND. (Y >= 70) ) THEN
+                  Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + RIVER_HG *
+     &                            A_M2 * DTSRCE * FRAC_O
+
+                  IF ( ND03 .and. NN == ID_Hg_tot )
+     &                AD03_riv(I,J) = AD03_riv(I,J) + RIVER_HG *
+     &                                A_M2 * DTSRCE * FRAC_O
+               ENDIF
                   
                !--------------------------------------------------------
                ! Calculate new Hg(II) mass
@@ -1958,6 +2027,8 @@
 !  (1 ) Modified for S. Strode's latest ocean Hg code.  Now read files
 !        from DATA_DIR_1x1/mercury_200511. (sas, cdh, bmy, 3/28/06)
 !  23 Feb 2015 - J. Fisher   - Add Arctic MLD (orig. 28/11/11)
+!  12 Aug 2015 - J. Fisher   - Added input of Hg from Arctic rivers to ocean
+!                              (orig. 8/12/11)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1966,7 +2037,6 @@
       USE GRID_MOD,      ONLY : GET_YMID, GET_XMID
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR
-      USE FILE_MOD,      ONLY : IOERROR, IU_FILE
 
       USE CMN_SIZE_MOD      ! Size parameters
 
@@ -1988,20 +2058,6 @@
       ! OCEAN_MERCURY_READ begins here!
       !=================================================================
      
-      ! Get the last month (jaf, 12/8/11)
-      IF ( THISMONTH == 1 ) THEN
-         LASTMONTH = 12
-      ELSE
-         LASTMONTH = THISMONTH - 1
-      ENDIF
-
-      ! Calculate days in this month (jaf, 12/8/11)
-      IF ( LASTMONTH == 2 .and. ITS_A_LEAPYEAR( THISYEAR ) ) THEN
-         DAYS_IN_MONTH = M(LASTMONTH) + 1
-      ELSE
-         DAYS_IN_MONTH = M(LASTMONTH)
-      ENDIF
-
       !------------------------------
       ! Mixed layer depth [cm]
       !------------------------------
@@ -2037,15 +2093,15 @@
       ! Convert [m] to [cm]
       MLD = MLD * 100d0
 
-      ! First-time only: Set MDLav [cm] to MLD of first month
-      IF ( FIRST ) THEN   
+!      ! First-time only: Set MDLav [cm] to MLD of first month
+!      IF ( FIRST ) THEN   
 !-eds 10/19/10 causes differences dep. on restart date -----------
 !         MLDav = MLD   
 !         dMLD  = 0.0
 !         MLDav = MLDprev
 !----------------------------------------------------------------
-         FIRST = .FALSE.
-      ENDIF
+!         FIRST = .FALSE.
+!      ENDIF
 
 !-------------------------------------------------      (anls, 090520) chl
 ! Chl from Modis [mg/m3]                                only for 4x5 for now  
@@ -2190,6 +2246,33 @@
       ENDDO
 ! OMP END PARALLEL DO
 
+      !-------------------------------------------------
+      ! River flow
+      !-------------------------------------------------
+
+      ! Get the last month (jaf, 12/8/11)
+      IF ( THISMONTH == 1 ) THEN
+         LASTMONTH = 12
+      ELSE
+         LASTMONTH = THISMONTH - 1
+      ENDIF
+
+      ! Calculate days in this month (jaf, 12/8/11)
+      IF ( LASTMONTH == 2 .and. ITS_A_LEAPYEAR( THISYEAR ) ) THEN
+         DAYS_IN_MONTH = M(LASTMONTH) + 1
+      ELSE
+         DAYS_IN_MONTH = M(LASTMONTH)
+      ENDIF
+
+      ! Set dFLOW, FLOWNOW first time (jaf, 12/8/11)
+      IF ( FIRST ) THEN
+         dFLOW = ( RIVERFLOW(THISMONTH) - RIVERFLOW(LASTMONTH) ) /
+     &           ( 3.6d3 * 24d0 * DAYS_IN_MONTH )
+         FLOWNOW = RIVERFLOW(LASTMONTH) + dFLOW *
+     &             ( DAYS_IN_MONTH - 15 ) * 3.6d3 * 24d0
+         FIRST = .FALSE.
+      ENDIF
+
       ! Return to calling program
       END SUBROUTINE OCEAN_MERCURY_READ
 
@@ -2322,6 +2405,11 @@
       ENDDO
 ! OMP END PARALLEL DO
 
+      ! Now also get rate of change of river flow, which isn't grid box
+      ! dependent. Flow is in m3/s, so dFLOW is in m3/s2 (jaf, 12/8/11)
+      dFLOW = ( RIVERFLOW(NEXTMONTH) - RIVERFLOW(THISMONTH) ) /  
+     &        ( 3.6d3 * 24d0 * DAYS_IN_MONTH )
+
       ! Return to calling program
       END SUBROUTINE GET_MLD_FOR_NEXT_MONTH
 
@@ -2386,9 +2474,6 @@
         LASTMONTH = THISMONTH -1
       ENDIF
      
-      PRINT *, 'LAST MONTH: '
-      PRINT *, LASTMONTH
-
       ! TAU0 value for next month (uses year 1985)
       TAU	= GET_TAU0( LASTMONTH, 1, 1985 )
 
@@ -3937,12 +4022,17 @@
 !                               should be "South Atlantic Ocean".
 !  23 Feb 2015 - J. Fisher   - change intermediate water Hg2/HgP speciation in
 !			        Arctic so Hg2 dominates over HgP (orig. 28/11/11)
+!  12 Aug 2015 - J. Fisher   - Added interannual river flow variability
+!                              (orig. 23/3/12)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE TRACERID_MOD, ONLY : N_Hg_CATS
-      USE LOGICAL_MOD,  ONLY : LPREINDHG
+      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
+      USE FILE_MOD,      ONLY : IOERROR,   IU_FILE
+      USE LOGICAL_MOD,   ONLY : LPREINDHG
+      USE TIME_MOD,      ONLY : GET_YEAR,  EXPAND_DATE
+      USE TRACERID_MOD,  ONLY : N_Hg_CATS
 
       USE CMN_SIZE_MOD     ! Size parameters
 
@@ -3952,6 +4042,12 @@
 
       ! Local variables
       INTEGER                      :: AS
+
+      ! For reading riverflow interannual scaling (jaf, 3/26/12)
+      CHARACTER(LEN=255) :: FILENAME
+      INTEGER            :: THISYEAR, THISMONTH, RYEAR, RMON
+      INTEGER            :: YYMMDD, HHMMSS, IOS
+      REAL*8             :: RSCF
 
       !=================================================================
       ! INIT_OCEAN_MERCURY begins here!
@@ -3990,7 +4086,53 @@
          CDEEPNPA = (/ 1.0d-10, 6.0d-10, 6.0d-10 /)        
       ENDIF
 
-      
+      ! Set monthly Arctic river flow rate in m3/s (jaf, 12/8/11)
+      ! These come from the 8 largest Arctic rivers, with data
+      ! from UNH/GRDC
+      RIVERFLOW = (/ 2.2d4,  1.9d4,  1.8d4, 1.9d4, 9.6d4, 24.6d4,
+     &               14.4d4, 10.2d4, 8.4d4, 6.2d4, 3.0d4, 2.3d4   /)
+
+      ! Get interannual flow scaling factors for May-Oct (jaf, 3/23/11)
+      RSCF = 1d0
+      THISYEAR = GET_YEAR()
+      DO THISMONTH = 5, 10
+
+         ! Scaling factors only exist through 2009; use default if later
+         IF ( THISYEAR <= 2009 ) THEN
+
+         YYMMDD=THISYEAR*10000+THISMONTH*100+1
+         HHMMSS=000000
+         FILENAME = TRIM( DATA_DIR_1x1 )           // 
+     &              'mercury_201303/'              //
+     &              'river_scaling_factors_MM.txt'
+         CALL EXPAND_DATE( FILENAME, YYMMDD, HHMMSS )
+   
+         ! Open scale factor file (ASCII format)
+         OPEN( IU_FILE, FILE=TRIM(FILENAME), STATUS='OLD', IOSTAT=IOS )
+         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'riverflow:1' )
+   
+         ! Read emission factors for each species
+         DO 
+            READ( IU_FILE, 101, IOSTAT=IOS ) 
+     &          RYEAR, RMON, RSCF
+            IF ( IOS < 0 ) EXIT ! EOF
+            IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'riverflow:2' )
+            IF ( RYEAR .EQ. THISYEAR ) EXIT
+         ENDDO
+        
+         ! FORMAT string
+ 101     FORMAT( i4, 1x, i2, 1x, f4.2 )
+   
+         ! Close file
+         CLOSE( IU_FILE )
+
+         ENDIF
+
+         ! Scale RIVERFLOW array
+         RIVERFLOW(THISMONTH) = RIVERFLOW(THISMONTH) * RSCF
+
+      ENDDO
+
       ! Allocate arrays     
       ALLOCATE( dMLD( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'dMLD' )

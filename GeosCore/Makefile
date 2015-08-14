@@ -491,7 +491,8 @@ decomp.o                    : decomp.F
 
 depo_mercury_mod.o          : depo_mercury_mod.F                             \
                               dao_mod.o               diag_mod.o             \
-                              logical_mod.o           tracerid_mod.o         
+                              logical_mod.o           tracerid_mod.o         \
+                              diag03_mod.o
 
 diag03_mod.o                : diag03_mod.F                                   \
                               logical_mod.o           tracerid_mod.o
