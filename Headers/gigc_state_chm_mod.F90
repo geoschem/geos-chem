@@ -46,6 +46,7 @@ MODULE GIGC_State_Chm_Mod
      CHARACTER(LEN=14), POINTER :: Trac_Name  (:      )  ! Tracer names
      REAL(fp),          POINTER :: Tracers    (:,:,:,:)  ! Tracer conc 
                                                          ! [kg trcr/kg dry air]
+     CHARACTER(LEN=10)          :: Trac_Units            ! Tracer units
 
      ! Chemical species
      INTEGER,           POINTER :: Spec_Id    (:      )  ! Species ID # 
@@ -154,6 +155,7 @@ MODULE GIGC_State_Chm_Mod
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  11 Dec 2014 - R. Yantosca - Keep JLOP and JLOP_PREV for ESMF runs only
 !  17 Feb 2015 - E. Lundgren - New tracer units kg/kg dry air (previously kg)
+!  13 Aug 2015 - E. Lundgren - Add tracer units string to ChmState derived type 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -389,6 +391,7 @@ CONTAINS
 !  26 Feb 2013 - M. Long     - Now pass Input_Opt via the argument list
 !  26 Feb 2013 - M. Long     - Now allocate the State_Chm%DEPSAV field
 !  11 Dec 2014 - R. Yantosca - Remove TRAC_TEND and DEPSAV fields
+!  13 Aug 2015 - E. Lundgren - Initialize trac_units to ''
 
 !EOP
 !------------------------------------------------------------------------------
@@ -490,6 +493,7 @@ CONTAINS
     State_Chm%Trac_Id     = 0
     State_Chm%Trac_name   = ''
     State_Chm%Tracers     = 0e+0_fp
+    State_Chm%Trac_Units  = ''
 
     ! Chemical species
     State_Chm%Spec_Id     = 0
