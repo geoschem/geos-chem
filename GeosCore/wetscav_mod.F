@@ -234,6 +234,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE CMN_GCTM_MOD
       USE ERROR_MOD 
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -284,8 +285,8 @@
 !  02 Jul 2013 - R. Yantosca - Bug fix: add State_Chm to WETDEP calls for
 !                              met other than MERRA, GEOS-5.7 or GEOS-5
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  08 Aug 2015 - E. Lundgren - Tracer units are input as [kg/kg] and converted
-!                              to [kg] locally
+!  08 Aug 2015 - E. Lundgren - Tracer units are now input as [kg/kg] and ND39
+!                              has units [kg/m2/s] (previously [kg/s])
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -326,15 +327,8 @@
       ! Only print output on the root CPU
       doPrt = ( LPRT .and. am_I_Root )
 
-      ! Convert tracer units from [kg/kg] to [kg] for do_wetdep (ewl, 8/12/15)
-      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met,  
-     &                            State_Chm, RC ) 
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL ERROR_STOP('Unit conversion error', 
-     &                      'DO_WETDEP in wetscav_mod.F')
-      ENDIF  
-
       ! For new diagnostics, mirror old species
+      ! Tracer units are now [kg/kg dry air] (ewl, 8/14/15)
 #if   defined( DEVEL )
       IF ( Input_Opt%ND39 > 0 ) THEN
          ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
@@ -404,6 +398,7 @@
      &             State_Chm, RC, LS=.FALSE. )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
 
+
 #endif
 
       !---------------------
@@ -424,9 +419,14 @@
             ! Is this a tracer selected for diagnostics?
             IF ( ANY( Input_Opt%TINDEX(39,:) == N ) ) THEN
 
-               ! Loss rate (kg/s)
-               TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N) ) 
-     &             / DT 
+               ! Loss rate [kg/m2/s] (previously kg/s)
+               ! Convert kg/kg/s to kg/m2/s so that the vertical
+               ! sum makes physical sense (ewl, 8/14/15)
+               TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N) )
+     &                 * State_Met%DELP * 1.e+2_fp 
+     &                 * ( 1.e+0_fp - 1.e-3_fp * State_Met%SPHU ) 
+     &                 / ( G0_100 * DT ) 
+
                TMP2D = SUM(TMP3D,DIM=3)
 
                ! Update diagnostics
@@ -449,10 +449,6 @@
          DEALLOCATE( BEFORE, TMP3D, TMP2D )
       ENDIF
 #endif
-
-      ! Convert tracer units back to [kg/kg] after do_wetdep (ewl, 8/12/15)
-      CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met,  
-     &                            State_Chm, RC ) 
 
       END SUBROUTINE DO_WETDEP
 !EOC
@@ -5597,6 +5593,7 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
@@ -5835,15 +5832,21 @@
       ! Is this a mercury simulation?
       IS_Hg = ( ITS_A_MERCURY_SIM )
 
-!!!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!!      ! TEMPORARY - ewl, 4/2/15
-!!!
-!!!      N_TRACERS =  Input_Opt%N_TRACERS
-!!!
-!!!      ! Convert tracer concentration from kg/kg to kg for wetdep
-!!!      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met, 
-!!!     &                            State_Chm, RC )
-!!!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   !!                                                                   %%
+   !! TEMPORARY: Start of WETDEP: [kg/kg] -> [kg]
+   !!                                                                   
+      N_TRACERS =  Input_Opt%N_TRACERS
+
+      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,           
+     &                               State_Met, State_Chm, RC )   
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP('Unit conversion error', 
+     &                      'WETDEP in wetscav_mod.F')
+      ENDIF  
+   !!                                                                   %%
+   !!%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -6208,12 +6211,18 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-!!!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!!      ! TEMPORARY - ewl, 4/2/15
-!!!      ! Convert tracer concentration from kg to kg/kg
-!!!      CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met, 
-!!!     &                            State_Chm, RC )
-!!!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   !!%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   !!                                                                   %%
+   !! TEMPORARY: End of WETDEP: [kg] -> [kg/kg]
+   !!                                                                   
+         CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,           
+     &                               State_Met, State_Chm, RC )   
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP('Unit conversion error', 
+     &                      'WETDEP in wetscav_mod.F')
+      ENDIF  
+   !!                                                                   %%
+   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Free pointer
       NULLIFY( STT )
@@ -6242,6 +6251,7 @@
 !
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
@@ -6254,7 +6264,7 @@
       USE TRACERID_MOD,       ONLY : IDTSO4
       USE TRACERID_MOD,       ONLY : IS_Hg2
       USE TRACERID_MOD,       ONLY : IS_HgP
-      USE UnitConv_Mod
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6431,15 +6441,25 @@
       ! Is this a mercury simulation?
       IS_Hg = ITS_A_MERCURY_SIM
 
-!!!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!!      ! TEMPORARY - ewl, 4/2/15
-!!!
-!!!      N_TRACERS =  Input_Opt%N_TRACERS
-!!!
-!!!      ! Convert tracer concentration from kg/kg to kg for wetdep
-!!!      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met, 
-!!!     &                            State_Chm, RC )
-!!!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   !!                                                                   %%
+   !! TEMPORARY: Start of WETDEP_MERRA: [kg/kg] -> [kg]
+   !!                                                                   
+      N_TRACERS = Input_Opt%N_TRACERS
+
+      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,           
+     &                               State_Met, State_Chm, RC )   
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP('Unit conversion error', 
+     &                      'WETDEP_MERRA in wetscav_mod.F')
+      ENDIF  
+
+! Now, try converting [kg] to [kg/m2] and then back again at end
+!      CALL Convert_Kg_to_Kgm2( am_I_Root, N_TRACERS,
+!     &                          State_Met, State_Chm, RC )
+
+   !!                                                                   %%
+   !!%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -6766,12 +6786,22 @@
       ENDDO	
 !$OMP END PARALLEL DO
 
-!!!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!!      ! TEMPORARY - ewl, 4/2/15
-!!!      ! Convert tracer concentration from kg to kg/kg
-!!!      CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met, 
-!!!     &                            State_Chm, RC )
-!!!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   !!%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   !!                                                                   %%
+   !! TEMPORARY: End of WETDEP_MERRA: [kg] -> [kg/kg]
+   !!                                                                   
+! Trying out kg/m2 theory:
+!      CALL Convert_Kgm2_to_Kg( am_I_Root, N_TRACERS,
+!     &                          State_Met, State_Chm, RC )
+
+      CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,           
+     &                               State_Met, State_Chm, RC )   
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP('Unit conversion error', 
+     &                      'WETDEP_MERRA in wetscav_mod.F')
+      ENDIF  
+   !!                                                                   %%
+   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Free pointer
       NULLIFY( STT )
@@ -6992,7 +7022,7 @@
 ! !REMARKS:
 !  The modifications for the MERRA met fields require calling this same 
 !  sequence of code more than once.  The expedient solution was to just move
-!  the relevant code into this this subroutine.
+!  the relevant code into this subroutine.
 !                                                                             .
 !  An IF statement in WETDEP decides if this rainout is to be done (and thus
 !  if this routine will be called.  The criteria for rainout is:
@@ -7961,10 +7991,10 @@
             WETLOSS = STT(I,J,L,N) * WASHFRAC * F
          ENDIF
 
-         ! Subtract WETLOSS from STT
+         ! Subtract WETLOSS from STT [kg]
          STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS     
       
-         ! Add washout losses in grid box (I,J,L=1) to DSTT 
+         ! Add washout losses in grid box (I,J,L=1) to DSTT [kg] 
          ! (added cdh, 4/14/2009)
          DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
 
@@ -7987,7 +8017,7 @@
          ENDIF
 
 #if !defined(NO_BPCH)
-         ! ND39 diag -- save washout loss in [kg/s]
+         ! ND39 diag -- save washout loss in [kg/s] 
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
