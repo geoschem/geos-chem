@@ -29,29 +29,32 @@ MODULE UnitConv_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  ! kg/kg dry air <-> kg/kg moist air
+  ! kg/kg dry air <-> kg/kg moist air (State_Chm%TRACERS)
   PUBLIC  :: Convert_DryKgKg_to_MoistKgKg
   PUBLIC  :: Convert_MoistKgKg_to_DryKgKg
 
-  ! v/v dry air <-> v/v moist air
+  ! v/v dry air <-> v/v moist air (State_Chm%TRACERS)
   PUBLIC  :: Convert_DryVV_to_MoistVV
   PUBLIC  :: Convert_MoistVV_to_DryVV
 
-  ! kg/kg dry air <-> v/v dry air
+  ! kg/kg dry air <-> v/v dry air (State_Chm%TRACERS)
   PUBLIC  :: Convert_DryKgKg_to_DryVV
   PUBLIC  :: Convert_DryVV_to_DryKgKg
 
-  ! kg/kg moist air <-> kg/grid box
+  ! kg/kg moist air <-> kg/grid box (State_Chm%TRACERS)
   PUBLIC  :: Convert_MoistKgKg_to_Kg
   PUBLIC  :: Convert_Kg_to_MoistKgKg
 
-  ! kg/kg dry air <-> kg/grid box
+  ! kg/kg dry air <-> kg/grid box (State_Chm%TRACERS)
   PUBLIC  :: Convert_DryKgKg_to_Kg
   PUBLIC  :: Convert_Kg_to_DryKgKg
 
-  ! kg/kg dry air <-> molecules/cm3
-  PUBLIC  :: Convert_DryKgKg_to_MND
-  PUBLIC  :: Convert_MND_to_DryKgKg
+  ! kg/kg dry air <-> kg/m2 (generic 3D tracer array)
+  PUBLIC  :: Convert_DryKgKg_to_Kgm2
+  PUBLIC  :: Convert_kgm2_to_DryKgKg
+  ! kg <-> kg/m2 (State_Chm%TRACERS)
+  PUBLIC  :: Convert_Kg_to_Kgm2
+  PUBLIC  :: Convert_Kgm2_to_Kg 
 !
 ! !REMARKS:
 !  The routines in this module are used to convert the units of tracer 
@@ -1399,4 +1402,370 @@ CONTAINS
 
   END SUBROUTINE Convert_Kg_to_DryKgKg
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: convert_drymmr_to_kgm2
+!
+! !DESCRIPTION: Subroutine Convert\_DryKgKg\_to\_kgm2 converts the units of 
+!  a 3D array from dry mass mixing ratio [kg/kg dry air] to area density 
+!  [kg/m2].  
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Convert_DryKgKg_to_Kgm2( am_I_Root, N_TRACERS, State_Chm,  &
+                                      State_Met, RC             )
+!
+! !USES:
+!
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE CMN_GCTM_MOD
+
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
+    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
+    TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology state object
+
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC            ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  14 Aug 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
+
+    !====================================================================
+    ! Convert_DryKgKg_to_Kgm2 begins here!
+    !====================================================================
+
+    ! Assume success
+    RC        =  GIGC_SUCCESS
+
+    !====================================================================
+    !
+    !  The conversion is as follows:
+    !
+    !   kg tracer      Delta P [hPa]   100 [Pa]     kg dry air 
+    !   -----------  * ------------- * -------- * --------------     
+    !   kg dry air     g [m/s2]        [hPa]      kg total air  
+    !
+    !   = kg / m2
+    !
+    ! where:
+    !
+    !  Delta P = edge pressure difference across level
+    !  g = acceleration due to gravity
+    !  kg dry air / kg total air  = 1 - specific humidity
+    !     
+    !====================================================================
+
+    !$OMP PARALLEL DO        &
+    !$OMP DEFAULT( SHARED  ) &
+    !$OMP PRIVATE( I, J, L ) 
+    DO N = 1, N_TRACERS
+    DO L = 1, LLPAR
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)    &
+                              * State_Met%DELP(I,J,L) * 1.e+2_fp  &
+                              * ( 1.e+0_fp - 1.e-3_fp             &
+                              * State_Met%SPHU(I,J,L) ) / G0_100
+    ENDDO
+    ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+  END SUBROUTINE Convert_DryKgKg_to_Kgm2
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: convert_kgm2_to_drymmr
+!
+! !DESCRIPTION: Subroutine Convert\_Kgm2\_to\_DryKgKg converts the units of 
+!  tracer concentrations from area density [kg/m2] to dry mass mixing ratio 
+!  [kg/kg dry air].  
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Convert_Kgm2_to_DryKgKg( am_I_Root, N_TRACERS, State_Met, &
+                                      State_Chm, RC          )
+!
+! !USES:
+!
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE CMN_GCTM_MOD
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  14 Aug 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
+
+    !====================================================================
+    ! Convert_Kgm2_to_DryKgKg begins here!
+    !====================================================================
+
+    ! Assume success
+    RC        =  GIGC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/m2' ) THEN
+       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
+       LOC = 'UNITCONV_MOD: Convert_Kgm2_to_DryKgKg'
+       CALL GIGC_Error( MSG, RC, LOC)
+       RETURN
+    ENDIF
+
+    !====================================================================
+    !
+    !  The conversion is as follows:
+    !
+    !   kg tracer(N)   g [m/s2]        [hPa]      kg total air   
+    !   -----------  * ------------- * -------- * --------------     
+    !        m2        Delta P [hPa]   100 [Pa]    kg dry air
+    !
+    !   = kg tracer(N) / kg dry air
+    !
+    ! where:
+    !
+    !  Delta P = edge pressure difference across level
+    !  g = acceleration due to gravity
+    !  kg dry air / kg total air  = 1 - specific humidity
+    !     
+    !====================================================================
+
+    !$OMP PARALLEL DO           &
+    !$OMP DEFAULT( SHARED     ) &
+    !$OMP PRIVATE( I, J, L, N ) 
+    DO N = 1, N_TRACERS
+    DO L = 1, LLPAR
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)        &
+                                  * G0_100 / ( State_Met%DELP(I,J,L)  &
+                                  * 1.e+2_fp * ( 1.e+0_fp - 1.e-3_fp &
+                                  * State_Met%SPHU(I,J,L) ) )
+    ENDDO
+    ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    ! Update tracer units
+    State_Chm%Trac_Units = 'kg/kg dry'
+
+  END SUBROUTINE Convert_Kgm2_to_DryKgKg
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: convert_kg_to_kgm2
+!
+! !DESCRIPTION: Subroutine Convert\_Kg\_to\_kgm2 converts the units of 
+! mass [kg] to area density [kg/m2].  
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Convert_Kg_to_Kgm2( am_I_Root, N_TRACERS, State_Met,  &
+                                      State_Chm, RC             )
+!
+! !USES:
+!
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE CMN_GCTM_MOD
+
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
+    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
+    TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology state object
+
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC            ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  14 Aug 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
+
+    !====================================================================
+    ! Convert_Kg_to_Kgm2 begins here!
+    !====================================================================
+
+    ! Assume success
+    RC        =  GIGC_SUCCESS
+
+    !====================================================================
+    !
+    !  The conversion is as follows:
+    !
+    !====================================================================
+
+    !$OMP PARALLEL DO        &
+    !$OMP DEFAULT( SHARED  ) &
+    !$OMP PRIVATE( I, J, L, N ) 
+    DO N = 1, N_TRACERS
+    DO L = 1, LLPAR
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)    &
+                                     / State_Met%AREA_M2(I,J,L)
+    ENDDO
+    ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+  END SUBROUTINE Convert_Kg_to_Kgm2
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: convert_kgm2_to_kg
+!
+! !DESCRIPTION: Subroutine Convert\_Kgm2\_to\_Kg converts the units of area 
+!  density [kg/m2] to mass [kg].  
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Convert_Kgm2_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
+                                      State_Chm, RC             )
+!
+! !USES:
+!
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE CMN_GCTM_MOD
+
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
+    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
+    TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology state object
+
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC            ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  14 Aug 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
+
+    !====================================================================
+    ! Convert_Kgm2_to_Kg begins here!
+    !====================================================================
+
+    ! Assume success
+    RC        =  GIGC_SUCCESS
+
+    !====================================================================
+    !
+    !  The conversion is as follows:
+    !
+    !====================================================================
+
+    !$OMP PARALLEL DO        &
+    !$OMP DEFAULT( SHARED  ) &
+    !$OMP PRIVATE( I, J, L, N ) 
+    DO N = 1, N_TRACERS
+    DO L = 1, LLPAR
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)    &
+                                     * State_Met%AREA_M2(I,J,L)
+    ENDDO
+    ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+  END SUBROUTINE Convert_Kgm2_to_Kg
+!EOC
+
 END MODULE UnitConv_Mod
