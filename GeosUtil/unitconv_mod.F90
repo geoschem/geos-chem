@@ -22,6 +22,7 @@ MODULE UnitConv_Mod
   USE CMN_SIZE_MOD          ! Size parameters
   USE PRECISION_MOD         ! GEOS-Chem Flexible Precision (fp)
   USE GIGC_ErrCode_Mod
+  USE ERROR_MOD
                     
   IMPLICIT NONE
   PRIVATE
@@ -58,7 +59,7 @@ MODULE UnitConv_Mod
 !
 ! !REVISION HISTORY:
 !  23 Jun 2015 - E. Lundgren - Initial version
-!  10 Jul 2015 - R. Yantosca - Added cosmetic changes; fixed ProTeX issues
+!  13 Aug 2015 - E. Lundgren - Add tracer unit error handling
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -103,7 +104,6 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  16 Apr 2015 - E. Lundgren - Initial version
-!  10 Jul 2015 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -111,6 +111,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
     ! Convert_DryKgKg_to_MoistKgKg begins here!
@@ -118,6 +119,15 @@ CONTAINS
 
     ! Assume success
     RC        =  GIGC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
+       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
+       LOC = 'UNITCONV_MOD: Convert_DryKgKg_to_MoistKgKg'
+       CALL GIGC_Error( MSG, RC, LOC)
+    ENDIF
 
     !====================================================================
     !
@@ -157,6 +167,9 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    ! Update tracer units
+    State_Chm%Trac_Units = 'kg/kg wet'
 
   END SUBROUTINE Convert_DryKgKg_to_MoistKgKg
 !EOC
@@ -200,7 +213,6 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  16 Apr 2015 - E. Lundgren - Initial version
-!  10 Jul 2015 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -208,6 +220,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
     ! Convert_MoistKgKg_to_DryKgKg begins here!
@@ -215,6 +228,16 @@ CONTAINS
 
     ! Assume success
     RC        =  GIGC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg wet' ) THEN
+       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
+       LOC = 'UNITCONV_MOD: Convert_MoistKgKg_to_DryKgKg'
+       CALL GIGC_Error( MSG, RC, LOC)
+       RETURN
+    ENDIF
 
     !====================================================================
     !
@@ -254,6 +277,9 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    ! Update tracer units
+    State_Chm%Trac_Units = 'kg/kg dry'
   
   END SUBROUTINE Convert_MoistKgKg_to_DryKgKg
 !EOC
@@ -297,7 +323,6 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  16 Apr 2015 - E. Lundgren - Initial version
-!  10 Jul 2015 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -305,6 +330,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
     ! Convert_DryVV_to_MoistVV begins here!
@@ -312,6 +338,16 @@ CONTAINS
 
     ! Assume success
     RC        =  GIGC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'v/v dry' ) THEN
+       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
+       LOC = 'UNITCONV_MOD: Convert_DryVV_to_MoistVV'
+       CALL GIGC_Error( MSG, RC, LOC)
+       RETURN
+    ENDIF
 
     !====================================================================
     !
@@ -348,6 +384,9 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    ! Update tracer units
+    State_Chm%Trac_Units = 'v/v wet'
 
   END SUBROUTINE Convert_DryVV_to_MoistVV
 !EOC
@@ -391,7 +430,6 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  16 Apr 2015 - E. Lundgren - Initial version
-!  10 Jul 2015 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -399,6 +437,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
     ! Convert_MoistVV_to_DryVV begins here!
@@ -406,6 +445,16 @@ CONTAINS
 
     ! Assume success
     RC        =  GIGC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'v/v wet' ) THEN
+       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
+       LOC = 'UNITCONV_MOD: Convert_MoistVV_to_DryVV'
+       CALL GIGC_Error( MSG, RC, LOC)
+       RETURN
+    ENDIF
 
     !====================================================================
     !
@@ -442,6 +491,9 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    ! Update tracer units
+    State_Chm%Trac_Units = 'v/v dry'
 
   END SUBROUTINE Convert_MoistVV_to_DryVV
 !EOC
@@ -485,7 +537,6 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
-!  10 Jul 2015 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -493,6 +544,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
     
     !====================================================================
     ! Convert_DryKgKg_to_DryVV begins here!
@@ -500,6 +552,16 @@ CONTAINS
 
     ! Assume success
     RC        =  GIGC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
+       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
+       LOC = 'UNITCONV_MOD: Convert_DryKgKg_to_DryVV'
+       CALL GIGC_Error( MSG, RC, LOC)
+       RETURN
+    ENDIF
 
     !====================================================================
     !
@@ -539,6 +601,9 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    ! Update tracer units
+    State_Chm%Trac_Units = 'v/v dry'
 
   END SUBROUTINE Convert_DryKgKg_to_DryVV
 !EOC
@@ -582,7 +647,6 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
-!  10 Jul 2015 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -590,6 +654,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
     ! Convert_DryVV_to_DryKgKg begins here!
@@ -597,6 +662,16 @@ CONTAINS
 
       ! Assume success
       RC        =  GIGC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'v/v dry' ) THEN
+       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
+       LOC = 'UNITCONV_MOD: Convert_DryVV_to_DryKgKg'
+       CALL GIGC_Error( MSG, RC, LOC)
+       RETURN
+    ENDIF
 
          !==============================================================
          !
@@ -637,7 +712,9 @@ CONTAINS
       ENDDO
       !$OMP END PARALLEL DO
 
-    ! Return to calling program
+    ! Update tracer units
+    State_Chm%Trac_Units = 'kg/kg dry'
+
     END SUBROUTINE Convert_DryVV_to_DryKgKg
 !EOC
 !------------------------------------------------------------------------------
@@ -682,7 +759,6 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
-!  10 Jul 2015 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -690,6 +766,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
     ! Convert_DryKgKg_to_MND begins here!
@@ -697,6 +774,16 @@ CONTAINS
 
     ! Assume success
     RC        =  GIGC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
+       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
+       LOC = 'UNITCONV_MOD: Convert_DryKgKg_to_MND'
+       CALL GIGC_Error( MSG, RC, LOC)
+       RETURN
+    ENDIF
 
     !====================================================================
     !
@@ -738,6 +825,9 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    ! Update tracer units
+    State_Chm%Trac_Units = 'molec/cm3'
 
   END SUBROUTINE Convert_DryKgKg_to_MND
 !EOC
@@ -784,7 +874,6 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
-!  10 Jul 2015 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -792,6 +881,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
     ! Convert_MND_to_DryKgKg begins here!
@@ -799,6 +889,16 @@ CONTAINS
 
     ! Assume success
     RC        =  GIGC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'molec/cm3' ) THEN
+       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
+       LOC = 'UNITCONV_MOD: Convert_MND_to_DryKgKg'
+       CALL GIGC_Error( MSG, RC, LOC)
+       RETURN
+    ENDIF
 
     !====================================================================
     !
@@ -842,6 +942,9 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
+    ! Update tracer units
+    State_Chm%Trac_Units = 'kg/kg dry'
+
   END SUBROUTINE Convert_MND_to_DryKgKg
 !EOC
 !------------------------------------------------------------------------------
@@ -849,7 +952,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convert_moistmmr_to_kg
+! !IROUTINE: convert_moistkgkg_to_kg
 !
 ! !DESCRIPTION: Subroutine Convert\_MoistKgKg\_to\_Kg converts the units of 
 !  tracer concentrations from moist mass mixing ratio 
@@ -885,7 +988,6 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
-!  10 Jul 2015 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -893,6 +995,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
 
     !=================================================================
     ! Convert_MoistKgKg_to_Kg begins here!
@@ -900,6 +1003,16 @@ CONTAINS
 
     ! Assume success
     RC        =  GIGC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg wet' ) THEN
+       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
+       LOC = 'UNITCONV_MOD: Convert_MoistKgKg_to_Kg'
+       CALL GIGC_Error( MSG, RC, LOC)
+       RETURN
+    ENDIF
 
     !==============================================================
     !
@@ -925,6 +1038,14 @@ CONTAINS
     !                   
     !==============================================================
 
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
+       RC = GIGC_FAILURE
+       RETURN
+    ENDIF
+
     !$OMP PARALLEL DO           &
     !$OMP DEFAULT( SHARED     ) &
     !$OMP PRIVATE( I, J, L, N ) 
@@ -939,6 +1060,9 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    ! Update tracer units
+    State_Chm%Trac_Units = 'kg'
 
   END SUBROUTINE Convert_MoistKgKg_to_Kg
 !EOC
@@ -984,7 +1108,6 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
-!  10 Jul 2015 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -992,6 +1115,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
     ! Convert_Kg_to_MoistKgKg begins here!
@@ -999,6 +1123,16 @@ CONTAINS
 
     ! Assume success
     RC        =  GIGC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
+       LOC = 'UNITCONV_MOD: Convert_Kg_to_MoistKgKg'
+       CALL GIGC_Error( MSG, RC, LOC)
+       RETURN
+    ENDIF
 
     !====================================================================
     !
@@ -1038,6 +1172,9 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    ! Update tracer units
+    State_Chm%Trac_Units = 'kg/kg wet'
 
   END SUBROUTINE Convert_Kg_to_MoistKgKg
 !EOC
@@ -1082,7 +1219,6 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
-!  10 Jul 2015 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1090,6 +1226,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
     ! Convert_DryKgKg_to_Kg begins here!
@@ -1097,6 +1234,16 @@ CONTAINS
 
     ! Assume success
     RC        =  GIGC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
+       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
+       LOC = 'UNITCONV_MOD: Convert_DryKgKg_to_Kg'
+       CALL GIGC_Error( MSG, RC, LOC)
+       RETURN
+    ENDIF
 
     !====================================================================
     !
@@ -1136,6 +1283,9 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    ! Update tracer units
+    State_Chm%Trac_Units = 'kg'
 
   END SUBROUTINE Convert_DryKgKg_to_Kg
 !EOC
@@ -1179,7 +1329,6 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
-!  10 Jul 2015 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1187,6 +1336,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
     ! Convert_Kg_to_DryKgKg begins here!
@@ -1194,6 +1344,16 @@ CONTAINS
 
     ! Assume success
     RC        =  GIGC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
+       LOC = 'UNITCONV_MOD: Convert_Kg_to_DryKgKg'
+       CALL GIGC_Error( MSG, RC, LOC)
+       RETURN
+    ENDIF
 
     !====================================================================
     !
@@ -1233,6 +1393,9 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    ! Update tracer units
+    State_Chm%Trac_Units = 'kg/kg dry'
 
   END SUBROUTINE Convert_Kg_to_DryKgKg
 !EOC

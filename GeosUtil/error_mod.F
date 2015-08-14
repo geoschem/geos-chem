@@ -30,6 +30,7 @@
       PUBLIC  :: ALLOC_ERR
       PUBLIC  :: CHECK_VALUE
       PUBLIC  :: DEBUG_MSG
+      PUBLIC  :: GIGC_ERROR
       PUBLIC  :: ERROR_STOP
       PUBLIC  :: GEOS_CHEM_STOP
       PUBLIC  :: IS_SAFE_DIV
@@ -131,6 +132,8 @@
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD 
 !  19 Dec 2014 - R. Yantosca - Now overload IS_SAFE_DIV w/ REAL*4 and REAL*8 
 !                              module procedures to facilitate flex precision
+!  13 Aug 2015 - E. Lundgren - Add GIGC_ERROR which sets RC to GIGC_FAILURE
+!                              and print msg and location to log
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -640,6 +643,57 @@
 
       ! Return to calling program
       END SUBROUTINE CHECK_DBLE_VALUE
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GIGC_Error
+!
+! !DESCRIPTION: Subroutine GIGC\_Error prints an error message and sets RC to 
+! GIGC\_FAILURE. Note that this routine does not stop a run, but it will cause 
+! a stop at a higher level if you add a catch for RC /= GIGC_SUCCESS. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GIGC_Error( ErrMsg, RC, ThisLoc )
+!
+! !INPUT PARAMETERS:
+!
+      CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg 
+      CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: ThisLoc 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,          INTENT(INOUT)            :: RC 
+!
+! !REVISION HISTORY:
+!  13 Aug 2015 - E. Lundgren - Initial version, based on C. Keller's HCO_ERROR
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      CHARACTER(LEN=255) :: MSG
+
+      !======================================================================
+      ! GIGC_ERROR begins here 
+      !======================================================================
+
+      ! Print error message to log
+      MSG =  'GEOS-Chem ERROR: ' // TRIM(ErrMsg)
+      WRITE(6,*) MSG
+      
+      ! Print error location to log
+      IF ( PRESENT(ThisLoc) ) THEN
+         MSG = 'ERROR LOCATION: ' // TRIM( ThisLoc )
+         WRITE(6,*) ThisLoc
+      ENDIF
+      
+      ! Return with error
+      RC = GIGC_FAILURE 
+
+      END SUBROUTINE GIGC_Error
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

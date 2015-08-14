@@ -136,41 +136,40 @@
 
       ! Note that there is a parameter declared in CMN_SIZE called TOMASBIN --> which defines how many size bins (win, 7/7/09)
 #if   defined ( TOMAS12 )
-      INTEGER,           PARAMETER   :: IBINS = 12
+      INTEGER, PARAMETER   :: IBINS = 12
 #elif defined ( TOMAS15 )
-      INTEGER,           PARAMETER   :: IBINS = 15
+      INTEGER, PARAMETER   :: IBINS = 15
 #elif defined ( TOMAS40 )
-      INTEGER,           PARAMETER   :: IBINS = 40
+      INTEGER, PARAMETER   :: IBINS = 40
 #else
-      INTEGER,           PARAMETER   :: IBINS = 30
+      INTEGER, PARAMETER   :: IBINS = 30
 #endif
 
-      INTEGER,           PARAMETER   :: SRTSO4  = 1
-      INTEGER,           PARAMETER   :: SRTNACL = 2
-      INTEGER,           PARAMETER   :: SRTECIL = 3
-      INTEGER,           PARAMETER   :: SRTECOB = 4
-      INTEGER,           PARAMETER   :: SRTOCIL = 5
-      INTEGER,           PARAMETER   :: SRTOCOB = 6
-      INTEGER,           PARAMETER   :: SRTDUST = 7
-      INTEGER,           PARAMETER   :: SRTNH4  = 8
-      INTEGER,           PARAMETER   :: SRTH2O  = 9
+      INTEGER, PARAMETER   :: SRTSO4  = 1
+      INTEGER, PARAMETER   :: SRTNACL = 2
+      INTEGER, PARAMETER   :: SRTECIL = 3
+      INTEGER, PARAMETER   :: SRTECOB = 4
+      INTEGER, PARAMETER   :: SRTOCIL = 5
+      INTEGER, PARAMETER   :: SRTOCOB = 6
+      INTEGER, PARAMETER   :: SRTDUST = 7
+      INTEGER, PARAMETER   :: SRTNH4  = 8
+      INTEGER, PARAMETER   :: SRTH2O  = 9
 
-      INTEGER,           PARAMETER   :: ICOMPHARD = 9
-     
-
+      INTEGER, PARAMETER   :: ICOMPHARD = 9
 
       ! Arrays
-      REAL(fp),   TARGET,  SAVE        :: Xk(IBINS+1)
-      REAL*4,   save,    ALLOCATABLE :: MOLWT(:)
-      INTEGER,           SAVE        :: BINACT1(101,101,101)
-      REAL(fp),            SAVE        :: FRACTION1(101,101,101)
-      INTEGER,           SAVE        :: BINACT2(101,101,101)
-      REAL(fp),            SAVE        :: FRACTION2(101,101,101)
-      REAL(fp)                            AVGMASS(IBINS) ! Average mass per particle
-                                                       ! mid-range of size bin
-                                                       ! [kg/no.]
-      REAL(fp)                         ::  cosmic_ions(72,46,9) !careful, this is not GIGC safe!
-                                                       ! [ion pairs kg^-1 s^-1]
+      REAL(fp), TARGET, SAVE        :: Xk(IBINS+1)
+      REAL*4,   save,   ALLOCATABLE :: MOLWT(:)
+      INTEGER,          SAVE        :: BINACT1(101,101,101)
+      REAL(fp),         SAVE        :: FRACTION1(101,101,101)
+      INTEGER,          SAVE        :: BINACT2(101,101,101)
+      REAL(fp),         SAVE        :: FRACTION2(101,101,101)
+ 
+      REAL(fp) :: AVGMASS(IBINS)       ! Average mass per particle
+                                       ! mid-range of size bin
+                                       ! [kg/no.]
+      REAL(fp) :: cosmic_ions(72,46,9) !careful, this is not GIGC safe!
+                                       ! [ion pairs kg^-1 s^-1]
 
 !      DATA AVGMASS/ 1.4142d-21, 
 !     &              2.8284d-21, 5.6569d-21, 1.1314d-20, 2.2627d-20,
@@ -180,19 +179,19 @@
 !     &  1.4829d-15, 2.9658d-15, 5.9316d-15, 1.1863d-14, 2.3727d-14,
 !     &  4.7453d-14, 9.4906d-14, 1.8981d-13, 3.7963d-13, 7.5925d-13 /
 
-      INTEGER                        :: bin_nuc = 1, tern_nuc = 1  !Switches for nucleation type.
-      INTEGER                        :: act_nuc = 0 ! in BL
-      INTEGER                        :: ion_nuc = 0 ! 1 for modgil, 2 for Yu
-      INTEGER                        :: absall  = 1 ! 1 for soa absorb to all spec
-!napari nucleation tuned by factor of 1.0D-5
-
-      REAL(fp)                         :: soaareafrac=1.0e+0_fp ! fraction of SOA that goes
-                                                          ! to SA rather than into mass
-      
-      INTEGER                        :: xSOA = 1  !Switch for xSOA. If set to one, emit 100 Tg/yr 
-                                                  !SOA correlated with antrho CO (JKodros 6/3/15)
-
-      INTEGER                        :: lowRH = 1 !This is to match AW more with AERONET (JKODROS 6/15)
+      INTEGER  :: bin_nuc = 1, tern_nuc = 1  ! Switches for nucleation type.
+      INTEGER  :: act_nuc = 0 ! in BL
+      INTEGER  :: ion_nuc = 0 ! 1 for modgil, 2 for Yu
+      INTEGER  :: absall  = 1 ! 1 for soa absorb to all specnapari 
+                              ! nucleation tuned by factor of 1.0D-5
+                
+      REAL(fp) :: soaareafrac=1.0e+0_fp ! fraction of SOA that goes
+                                        ! to SA rather than into mass
+                
+      INTEGER :: xSOA = 1  !Switch for xSOA. If set to one, emit 100 
+                             ! Tg/yr SOA correlated with anrtho CO 
+                             ! (JKodros 6/3/15)               
+      INTEGER :: lowRH = 1 !This is to match AW more with AERONET (JKODROS 6/15)
 
       CONTAINS
 
@@ -210,16 +209,14 @@
 !  31 May 2013 - R. Yantosca - Now pass State_Chm object via the arg list
 !  31 May 2013 - R. Yantosca - Remove LDRYD; replace w/ Input_Opt%LDRYD
 !  31 May 2013 - R. Yantosca - Pass State_Chm to AEROPHYS, AERO_DRYDEP
-!  12 Aug 2015 - E. Lundgren - State_Chm%TRACERS units are now [kg/kg] so
-!                              convert to [kg] internally for TOMAS
 !******************************************************************************
 !
       ! References to F90 modules
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE UNITCONV_MOD
 
       ! Arguments
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
@@ -231,7 +228,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER    :: N_TRACERS   ! for tracer unit conversion (ewl, 8/12/15)
+      ! Local vars for tracer unit check (ewl, 8/12/15)
+      CHARACTER(LEN=255) :: MSG, LOC
 
       !=================================================================
       ! DO_TOMAS begins here
@@ -240,14 +238,12 @@
       ! Assume success
       RC    = GIGC_SUCCESS
 
-      ! Get logical values from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
-
-      ! Convert tracer concentration (State_Chm%TRACERS) from [kg/kg] 
-      ! to [kg] for TOMAS 
-      ! (ewl, 8/12/15)
-      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,            
-     &                                     State_Met, State_Chm, RC ) 
+      ! Check that tracer units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+         LOC = 'TOMAS_MOD: DO_TOMAS'
+         CALL GIGC_Error( MSG, RC, LOC)
+      ENDIF
 
       ! Do TOMAS aerosol microphysics
       CALL AEROPHYS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -270,10 +266,6 @@
       CALL CHECKMN( 0,         0,         0,    
      &              Input_Opt, State_Met, State_Chm, 
      &              'kg',      'Before exiting DO_TOMAS' )
-
-      ! Convert tracer concentration back to [kg/kg] (ewl, 8/12/15)
-      CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,            
-     &                                     State_Met, State_Chm, RC ) 
 
       ! Return to calling program 
       END SUBROUTINE DO_TOMAS
@@ -6653,8 +6645,8 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       
 !------------------------------------------------------------------------------
 
-      SUBROUTINE AERO_DIADEN( am_I_Root, UNITS,     LEV, Input_Opt,
-     &                        State_Met, State_Chm, DIA, DENSITY, RC )
+      SUBROUTINE AERO_DIADEN( am_I_Root, LEV, Input_Opt, State_Met, 
+     &                        State_Chm, DIA, DENSITY,   RC        )
 
 !******************************************************************************
 !  Subroutine AERO_DIADEN calculate the diameter and density by calling external
@@ -6664,12 +6656,12 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 !        to DEPVEL.
 !
 !  REVISION HISTORY:
-!  12 Aug 2015 - E.Lundgren - Now pass am_I_Root, tracer units, and RC for 
-!                             internal tracer unit conversion to [kg] if needed
+!  12 Aug 2015 - E.Lundgren - Now pass am_I_Root and RC for internal tracer 
+!                             unit conversion to [kg] if needed
 !******************************************************************************
 
       USE CMN_SIZE_MOD             ! Size parameters
-      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -6683,7 +6675,6 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 
       ! Arguments 
       LOGICAL,           INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      CHARACTER(LEN=*),  INTENT(IN)    :: UNITS       ! units ('kg' or 'kg/kg')
       INTEGER,           INTENT(IN)    :: LEV  
       TYPE(OptInput),    INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState),    INTENT(IN)    :: State_Met   ! Meteorology State object
@@ -6714,11 +6705,18 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       ! Set variables for potential tracer unit conversion (ewl, 8/12/15)
       N_TRACERS = Input_Opt%N_TRACERS
       
-      ! If UNITS is 'kg/kg', convert tracer units to [kg] for this routine
-      ! (ewl, 8/12/15)
-      IF ( TRIM( UNITS ) .eq. 'kg/kg' ) THEN
+      ! If tracer units are 'kg/kg dry', convert to [kg] for this routine.
+      ! Otherwise, if tracer units are not 'kg', throw an error to the 
+      ! calling routine (ewl, 8/12/15)
+      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg dry' ) THEN
          CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met, 
      &                               State_Chm, RC )  
+      ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         CALL GIGC_Error('Unexpected tracer units' // 
+     &                   State_Chm%Trac_Units, RC, 'AERO_DIADEN')
+         RETURN
+      ELSE
+         CONTINUE
       ENDIF
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -6786,9 +6784,9 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! If units were originally 'kg/kg', convert [kg] back to mixing 
+      ! If units were originally 'kg/kg dry', convert [kg] back to mixing 
       ! ratio (ewl, 8/12/15)
-      IF ( TRIM( UNITS ) .eq. 'kg/kg' ) THEN
+      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg dry' ) THEN
          CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met, 
      &                            State_Chm, RC )  
       ENDIF
