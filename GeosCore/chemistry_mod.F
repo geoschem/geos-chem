@@ -60,6 +60,8 @@
 !  15 Dec 2014 - M. Yannetti - KPP code is commented out unless compiling KPP
 !  08 Jan 2015 - M. Sulprizio- Now restrict KPP to REAL*8 to allow for KPP code
 !                              to compile properly
+!  13 Aug 2015 - E. Lundgren - Tracer units are now kg/kg and converted to
+!                              kg within DO_CHEMISTRY
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -115,6 +117,7 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTISOP
       USE TRACERID_MOD,       ONLY : IDTDST1
+      USE UNITCONV_MOD
 #if defined (UCX )
       USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
       USE UCX_MOD,            ONLY : READ_PSC_FILE
@@ -307,7 +310,18 @@
       ! then we need to convert State_Chm%TRACERS from [v/v] to [kg]
       ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90).
       ! (bmy, 4/4/13) 
+      !
+      ! Now DO_CHEMISTRY is passed tracer concentration in units of 
+      ! kg/kg and must be converted to kg at the start of the routine.
+      ! Units are then converted back to kg/kg at the end. To work in
+      ! an ESMF environment, GIGC_Do_Chem (in ESMF/gigc_chemdr.F90)
+      ! will need to be updated to convert State_Chm%TRACERS from [v/v]
+      ! to [kg/kg dry air]. (ewl, 8/13/15)
       !-----------------------------------------------------------------
+
+      ! Convert tracer units from [kg/kg] to [kg] for chemistry (ewl, 8/12/15)
+      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met,  
+     &                            State_Chm, RC ) 
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -405,6 +419,7 @@
             IF ( IDTNK1 > 0 ) THEN 
                CALL DO_TOMAS
      &             ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               IF ( RC /= GIGC_SUCCESS ) RETURN
             ENDIF
 #endif
 
@@ -590,7 +605,18 @@
       ! then we need to convert State_Chm%TRACERS from [kg] to [v/v]
       ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90).
       ! (bmy, 4/4/13) 
+      !
+      !
+      ! Now DO_CHEMISTRY is passed tracer concentration in units of 
+      ! kg/kg and is converted to kg at the start of the routine.
+      ! Units are then converted back to kg/kg at the end. To work in
+      ! an ESMF environment, GIGC_Do_Chem (in ESMF/gigc_chemdr.F90)
+      ! will need to be updated to convert State_Chm%TRACERS from [kg]
+      ! to [kg/kg dry air] at the end (not [v/v]). (ewl, 8/13/15)
       !-----------------------------------------------------------------
+      ! Convert tracer units back to [kg/kg] after chemistry (ewl, 8/12/15)
+      CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met,  
+     &                            State_Chm, RC ) 
 
       ! Free pointer
       NULLIFY( STT )
@@ -975,7 +1001,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
-      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -1033,7 +1058,8 @@
       LSULF                = Input_Opt%LSULF
       LSOA                 = Input_Opt%LSOA
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
-      IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM    
+      IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM 
+      N_TRACERS            = Input_Opt%N_TRACERS
 
       ! First make sure chemistry is turned on
       IF ( LCHEM ) THEN
@@ -1044,17 +1070,17 @@
             ! And then make sure that the aersol tracers are defined
             IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
-               ! Convert tracer units to [kg] for AEROSOL_CONC (ewl, 8/12/15)
-               CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,   
-     &                                     State_Met, State_Chm, RC )
+!               ! Convert tracer units to [kg] for AEROSOL_CONC (ewl, 8/12/15)
+!               CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,   
+!     &                                     State_Met, State_Chm, RC )
 
                ! Skip this section if all of these are turned off
                CALL AEROSOL_CONC
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-               ! Convert tracer units back to [kg/kg]  (ewl, 8/12/15)
-               CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,   
-     &                                     State_Met, State_Chm, RC )
+!               ! Convert tracer units back to [kg/kg]  (ewl, 8/12/15)
+!               CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,   
+!     &                                     State_Met, State_Chm, RC )
 
                !===============================================================
                ! Call RDAER -- computes aerosol optical depths

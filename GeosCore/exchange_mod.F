@@ -227,6 +227,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -247,7 +248,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
-!  17 Feb 2015 - E. Lundgren - Expect tracer units in kg/kg not v/v.
+!  13 Aut 2015 - E. Lundgren - Now input tracer conc in kg/kg not v/v.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -268,16 +269,9 @@
 
       IF ( IS_EXCHANGE ) THEN
 
-!      Remove old units code (elundgren, 2/17/2015):
-         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT )  !(v/v ->kg)
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! TEMPORARY - ewl, 2/17/15
-! Convert kg/kg to kg - this might not even be necessary. Unclear from 
-! description EX_READ_AND_APPLY_FEEDBACK subroutine.
-!         CALL CONVERT_MMR_to_KG( N_TRACERS, State_Met%AD, 
-!     &                           State_Chm%TRACERS )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! Convert tracer units from [kg/kg dry] to [kg] (ewl, 8/13/15)
+         CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,            
+     &                                     State_Met, State_Chm, RC )
 
          CALL EX_CONVERT_UNITS_CSPEC
      & ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
@@ -298,15 +292,9 @@
      &  ( am_I_Root, Input_Opt,State_Met, State_Chm, RC, 3 )
 # endif
 
-!      Remove old units code (elundgren, 2/17/2015):
-         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT )  !(kg -> v/v)
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! TEMPORARY - ewl, 2/17/15
-! Convert kg back to kg/kg
-!         CALL CONVERT_KG_to_MMR( N_TRACERS, State_Met%AD, 
-!     &                           State_Chm%TRACERS )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! Convert tracer units back to kg/kg (ewl, 8/13/15)
+         CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,            
+     &                               State_Met, State_Chm, RC )
 
          CALL EX_CONVERT_UNITS_CSPEC
      & ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
@@ -368,6 +356,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -390,7 +379,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
-!  17 Feb 2015 - E. Lundgren - Expect tracer units in kg/kg not v/v.
+!  13 Aug 2015 - E. Lundgren - Input tracer conc in kg/kg not v/v
 
 !EOP
 !------------------------------------------------------------------------------
@@ -408,17 +397,9 @@
 
       WRITE (*,*) "@@@@@@@@@@@@@@ EXCHANGE_NESTED_POST"
 
-!      Remove old units code (elundgren, 2/17/2015):
-      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT )  !(V/V -> KG)
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! TEMPORARY - ewl, 2/17/15
-! Convert kg/kg to kg - this might not be necessary. Unclear from 
-! description of EX_DUMP_FOR_GLOBAL
-!         CALL CONVERT_MMR_to_KG( N_TRACERS, State_Met%AD, 
-!     &                           State_Chm%TRACERS )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+      ! Convert tracer units from [kg/kg dry] to [kg] (ewl, 8/13/15)
+      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,            
+     &                                     State_Met, State_Chm, RC )
 
       CALL EX_CONVERT_UNITS_CSPEC
      &  ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
@@ -427,15 +408,10 @@
       CALL EX_DUMP_FOR_GLOBAL
      &        (am_I_Root, Input_Opt,State_Met, State_Chm,RC)
 
-!      Remove old units code (elundgren, 2/17/2015):
-      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT )  !(KG ->V/V)
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! TEMPORARY - ewl, 2/17/15
-! Convert kg back to kg/kg
-!         CALL CONVERT_KG_to_MMR( N_TRACERS, State_Met%AD, 
-!     &                           State_Chm%TRACERS )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! Convert tracer units back to kg/kg (ewl, 8/13/15)
+      CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,            
+     &                               State_Met, State_Chm, RC )
 
       CALL EX_CONVERT_UNITS_CSPEC
      &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,

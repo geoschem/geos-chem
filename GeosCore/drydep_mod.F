@@ -905,6 +905,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_ErrCode_Mod
+      USE ERROR_MOD
       USE DRYDEP_TOOLBOX_MOD, ONLY : BIOFIT
 !
 ! !INPUT PARAMETERS:
@@ -1078,8 +1079,8 @@
 !  28 Jan 2014 - R. Yantosca - For TOMAS, don't hold A_RADI and A_DEN PRIVATE
 !  19 May 2014 - C. Keller   - Now call BIOFIT from drydep_toolbox_mod.F\
 !  12 Aug 2015 - E. Lundgren - Now accept am_I_Root and RC as input args
-!  12 Aug 2015 - E. Lundgren - Now pass am_I_Root, tracer units string, and
-!                              RC to AERO_DIADEN to enable unit conversion
+!  12 Aug 2015 - E. Lundgren - Now pass am_I_Root and RC to AERO_DIADEN 
+!                              to enable unit conversion in that routine
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1240,12 +1241,16 @@
       ! because at each box the aerosol size&density is different
       ! depending on the internally-mixed composition (win, 7/15/09)
       !
-      ! Now pass am_I_Root, tracer units ('kg/kg'), and RC to enable
-      ! tracer unit conversion to [kg] in TOMAS code (ewl, 8/12/15)
+      ! Now pass am_I_Root and RC to enable tracer unit conversion to 
+      ! [kg] in TOMAS code (ewl, 8/12/15)
       !=================================================================
       IF ( IDTNK1 > 0 ) THEN
-         CALL AERO_DIADEN( am_I_Root, 'kg/kg',   1,       Input_Opt,
-     &                     State_Met, State_Chm, SIZ_DIA, SIZ_DEN, RC )
+         CALL AERO_DIADEN( am_I_Root, 1,       Input_Opt, State_Met,
+     &                     State_Chm, SIZ_DIA, SIZ_DEN,   RC        )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP('CALL AERO_DIADEN',
+     &                      'DEPVEL in drydep_mod.F')
+         ENDIF
       ENDIF
 #endif
 

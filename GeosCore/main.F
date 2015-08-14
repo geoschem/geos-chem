@@ -1093,7 +1093,10 @@
 !!            pressure has not yet been incorporated into moisture.   
 !!                                                                     
          CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,            
-     &                                     State_Met, State_Chm, RC ) 
+     &                                     State_Met, State_Chm, RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP('Unit conv error before AIRQNT', 'main.F')
+         ENDIF
 !!                                                                     %%
 !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1126,7 +1129,10 @@
 !! TEMPORARY: After SET_H2O_TRAC: [kg/kg] -> [kg]                       
 !!                                                                      
          CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,             
-     &                                     State_Met, State_Chm, RC )  
+     &                                     State_Met, State_Chm, RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP('Unit conv error after AIRQNT', 'main.F')
+         ENDIF  
 !!                                                                      %%
 !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1190,32 +1196,10 @@
             ENDIF
          ENDIF
 
-!         !==============================================================
-!         !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
-!         !==============================================================
-!         IF ( ITS_TIME_FOR_UNIT() ) THEN
-!            CALL CONVERT_UNITS( 1,  N_TRACERS, Input_Opt%TCVV, 
-!     &                          State_Met%AD, State_Chm%TRACERS )
-!
-!            !### Debug
-!            IF ( prtDebug ) THEN 
-!               CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
-!            ENDIF
-!         ENDIF
-
          !==============================================================
          !              ***** T R A N S P O R T *****
          !==============================================================
          IF ( ITS_TIME_FOR_DYN() ) THEN
-
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                    %%
-   !! TEMPORARY: ITS_TIME_FOR_DYN: [kg/kg] -> [v/v]                      
-   !!                                                                    
-         CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS,            
-     &                                     Input_Opt, State_Chm, RC )    
-   !!                                                                    %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! Output BC's
             ! Save boundary conditions (global grid) for future nested run
@@ -1272,15 +1256,6 @@
 
 #endif
 
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                    %%
-   !! TEMPORARY: End of ITS_TIME_FOR_DYN: [v/v] -> [kg/kg]               
-   !!                                                                    
-         CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS,            
-     &                                     Input_Opt, State_Chm, RC )    
-   !!                                                                    %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
          ENDIF
 
          ! SDE 10/16/13: Set clock tracer if relevant
@@ -1302,10 +1277,6 @@
          ! (ckeller, 3/5/15)
          !--------------------------------------------------------------
          IF ( ITS_TIME_FOR_EMIS() ) THEN
-
-!            IF ( ITS_TIME_FOR_UNIT() )  ! v/v -> kg
-!     &         CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV,
-!     &                             State_Met%AD, State_Chm%TRACERS )
 
             ! Increment emission counter
             CALL SET_CT_EMIS( INCREMENT=.TRUE. )
@@ -1339,10 +1310,6 @@
             IF ( RC /= GIGC_SUCCESS ) THEN
                CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
             ENDIF
-
-!            IF ( ITS_TIME_FOR_UNIT() )
-!     &         CALL CONVERT_UNITS( 1, N_TRACERS, Input_Opt%TCVV, 
-!     &                             State_Met%AD, State_Chm%TRACERS )! kg->v/v
 
          ENDIF
 
@@ -1393,20 +1360,6 @@
 
          ENDIF 
 
-!         !==============================================================
-!         !    ***** U N I T   C O N V E R S I O N  ( v/v -> kg ) *****
-!         !==============================================================
-!
-!         IF ( ITS_TIME_FOR_UNIT() ) THEN 
-!            CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV, 
-!     &                          State_Met%AD, State_Chm%TRACERS )
-!
-!            !### Debug
-!            IF ( prtDebug ) THEN 
-!               CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:2' )
-!            ENDIF
-!         ENDIF
-   
          !==============================================================
          !               ***** C H E M I S T R Y *****
          !============================================================== 
@@ -1434,39 +1387,36 @@
    !!             stratosphere. 
    !!                                                                     
             CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,             
-     &                                     State_Met, State_Chm, RC )     
+     &                                     State_Met, State_Chm, RC )
+            IF ( RC /= GIGC_SUCCESS ) THEN
+               CALL ERROR_STOP('Unit conversion error', 
+     &                      'before SET_H2O_TRAC in main.F')
+            ENDIF         
    !!                                                                    %%
    !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
-            PRINT *, "H2O tracer (pre): ", 
-     &                          State_Chm%TRACERS(25,25,35,IDTH2O)
             IF (IDTH2O.ne.0) THEN
                CALL SET_H2O_TRAC( am_I_Root, (.not. LUCX), Input_Opt ,
      &                            State_Met, State_Chm, RC )
-
-               PRINT *, "H2O tracer (post): ", 
-     &                            State_Chm%TRACERS(25,25,35,IDTH2O)
             ENDIF
 
    !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    !!                                                                    %%
-   !! TEMPORARY: Before DO_CHEMISTRY: [kg]                   
+   !! TEMPORARY: After SET_H2O_TRAC: [kg] -> [kg/kg] 
    !!                                                                    
+            CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,  
+     &                                     State_Met, State_Chm, RC )
+            IF ( RC /= GIGC_SUCCESS ) THEN
+               CALL ERROR_STOP('Unit conversion error', 
+     &                      'after SET_H2O_TRAC in main.F')
+            ENDIF         
+   !!                                                                    %%
    !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! Do GEOS-Chem chemistry
             CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
      &                         State_Chm, State_Met, RC ) 
-
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                    %%  
-   !! TEMPORARY: After DO_CHEMISTRY: [kg] -> [kg/kg]                      
-   !!                                                                    
-            CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,  
-     &                                     State_Met, State_Chm, RC )
-   !!                                                                    %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ENDIF 
 
@@ -1485,26 +1435,9 @@
          !==============================================================
          IF ( LWETD .and. ITS_TIME_FOR_DYN() ) THEN
 
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                    %%
-   !! TEMPORARY: Before DO_WETDEP: [kg/kg] -> [kg]                       
-            CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,            
-     &                                     State_Met, State_Chm, RC )    
-   !!                                                                    %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
             ! Do wet deposition
             CALL DO_WETDEP
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                    %%
-   !! TEMPORARY: After DO_WETDEP: [kg] -> [kg/kg]                        
-   !!                                                                    
-            CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,            
-     &                                     State_Met, State_Chm, RC )    
-   !!                                                                    %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ENDIF
 

@@ -24,6 +24,7 @@
       USE DIAG_MOD,           ONLY : AD44
       USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, NTRAIND 
       USE DUST_MOD,           ONLY : SETTLEDUST   
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -68,8 +69,8 @@
 !  05 Nov 2014 - M. Yannetti - PRECISION_MOD convert REAL*8 to REAL(fp)
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
 !                              Remove dependency on pressure_mod.
-!  12 Aug 2015 - E. Lundgren - Now pass am_I_Root, tracer units, and RC
-!                              to AERO_DIADEN for potential unit conversion
+!  12 Aug 2015 - E. Lundgren - Now pass am_I_Root and RC to AERO_DIADEN 
+!                              to enable unit conversion if needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,8 +186,12 @@ cdbg      print *, dryd(:)
       IF ( DOSETTLING ) THEN
 
       ! SIZ_DIA [=] m  and SIZ_DEN [=] kg/m3
-      CALL AERO_DIADEN( am_I_Root, 'kg',      1,       Input_Opt,
-     &                  State_Met, State_Chm, SIZ_DIA, SIZ_DEN, RC )
+      CALL AERO_DIADEN( am_I_Root, 1,       Input_Opt, State_Met,
+     &                  State_Chm, SIZ_DIA, SIZ_DEN,   RC         )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP('CALL AERO_DIADEN',
+     &                   'AERO_DRYDEP in aero_drydep.F')
+      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+PRIVATE( BIN, I, J, IJLOOP, DP, DEN, CONST, L, P, TEMP )

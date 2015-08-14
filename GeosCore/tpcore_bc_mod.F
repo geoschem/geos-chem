@@ -514,6 +514,7 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  17 Feb 2014 - E. Lundgren - Move temporary unit change to vol/vol to within
 !                              this subroutine
+!  13 Aug 2015 - E. Lundgren - Tracer units are now [kg/kg dry air]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -582,15 +583,9 @@
       MODELNAME = GET_MODELNAME()
       TAU       = GET_TAU()
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  TEMPORARY - ewl, 2/17/15
-!      ! Convert tracer units from [kg/kg] to [vol/vol] for writing to file
-!      CALL CONVERT_MMR_To_VR( N_TRACERS, Input_Opt%TCVV, STT)
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Loop over the possible combinations of nested grids
       DO IC = 1, 4
@@ -728,12 +723,6 @@
          ENDIF
       ENDDO
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  TEMPORARY - ewl, 2/17/15
-!      ! Convert tracer units back from [vol/vol] to [kg/kg] 
-!      CALL CONVERT_VR_To_MMR( N_TRACERS, Input_Opt%TCVV, STT)
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
       ! Free pointer
       NULLIFY( STT )
 
@@ -791,7 +780,7 @@
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-
+!  13 Aug 2014 - E. Lundgren - Tracer units are now [kg/kg dry air]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -828,7 +817,7 @@
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
 #endif
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 

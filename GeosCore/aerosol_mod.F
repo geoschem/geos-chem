@@ -340,6 +340,7 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CMN_SIZE_MOD
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -360,6 +361,7 @@
       USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
       USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
       USE UCX_MOD,            ONLY : KG_STRAT_AER
+      USE UNITCONV_MOD
 #if   defined( TOMAS ) 
       USE TRACERID_MOD,       ONLY : IDTDUST1
       USE TOMAS_MOD,          ONLY : IBINS
@@ -404,6 +406,8 @@
 !  07 Apr 2015 - R. Yantosca - Add check to prevent div-by-zero errors
 !  25 Jun 2015 - E. Lundgren - Use L. Zhang dust size distribution params for 
 !                              mineral dust aerosols (non-TOMAS)
+!  13 Aug 2015 - E. Lundgren - Convert tracer units to kg if input units are
+!                              mixing ratio
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -434,7 +438,7 @@
       LOGICAL, SAVE       :: FIRST = .TRUE. 
 
       ! Non-SAVEd variables
-      INTEGER             :: I, J, L, N, K
+      INTEGER             :: I, J, L, N, K, N_TRACERS
       LOGICAL             :: LCARB
       LOGICAL             :: LDUST
       LOGICAL             :: LSOA
@@ -453,11 +457,27 @@
       RC     = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LCARB  = Input_Opt%LCARB
-      LDUST  = Input_Opt%LDUST
-      LSOA   = Input_Opt%LSOA
-      LSSALT = Input_Opt%LSSALT
-      LSULF  = Input_Opt%LSULF
+      LCARB     = Input_Opt%LCARB
+      LDUST     = Input_Opt%LDUST
+      LSOA      = Input_Opt%LSOA
+      LSSALT    = Input_Opt%LSSALT
+      LSULF     = Input_Opt%LSULF
+      N_TRACERS = Input_Opt%N_TRACERS
+
+      ! If tracer units are 'kg/kg dry', convert to [kg] for this routine.
+      ! Otherwise, if tracer units are not 'kg', throw an error to the 
+      ! calling routine (ewl, 8/12/15)
+      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg dry' ) THEN
+         CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met, 
+     &                               State_Chm, RC )  
+      ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         CALL GIGC_Error('Unexpected tracer units' // 
+     &                   State_Chm%Trac_Units, RC, 
+     &                   'AEROSOL_CONC in sulfate_mod')
+         RETURN
+      ELSE
+         CONTINUE
+      ENDIF
 
       ! Initialize pointers
       STT    => State_Chm%Tracers
@@ -794,6 +814,13 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! If units were originally 'kg/kg dry', convert [kg] back to mixing 
+      ! ratio (ewl, 8/12/15)
+      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg dry' ) THEN
+         CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met, 
+     &                            State_Chm, RC )  
+      ENDIF
 
       ! Free pointers
       NULLIFY( STT    )

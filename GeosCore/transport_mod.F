@@ -78,6 +78,8 @@
 !  24 Jun 2015 - E. Lundgren - Remove post-advection residual mass correction
 !                              and GET_AIR_MASS function since no longer needed
 !                              when using kg/kg total air in advection
+!  13 Aug 2015 - E. Lundgren - Tracer units are now input as kg/kg dry air 
+!                              (previously v/v)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -161,7 +163,6 @@
 !  28 Feb 2012 - R. Yantosca - Treat GEOS-5.7 in the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  17 Feb 2015 - E. Lundgren - Expect kg/kg rather than kg tracer units. 
 !  31 Mar 2015 - E. Lundgren - Make State_Met INTENT(INOUT) for AIRQNT calls
 !EOP
 !------------------------------------------------------------------------------
@@ -198,13 +199,6 @@
 #endif
          FIRST = .FALSE.
       ENDIF
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! TEMPORARY - ewl, 2/17/15
-! Convert kg/kg to kg
-!         CALL CONVERT_MMR_to_KG( Input_Opt%N_TRACERS, State_Met%AD, 
-!     &                           State_Chm%TRACERS )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !=================================================================
       ! Choose the proper version of TPCORE for the nested-grid window 
@@ -245,13 +239,6 @@
 
 #endif
       ENDIF
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! TEMPORARY - ewl, 2/17/15
-! Convert kg back to kg/kg
-!         CALL CONVERT_KG_to_MMR( Input_Opt%N_TRACERS, State_Met%AD, 
-!     &                           State_Chm%TRACERS )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Return to calling program
       END SUBROUTINE DO_TRANSPORT
@@ -331,6 +318,7 @@
 !                              (previously v/v)
 !  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
 !                              concentration following advection
+!  13 Aug 2015 - E. lundgren - Remove v/v <-> kg/kg conversion
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -433,10 +421,8 @@
       p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
 
-      ! Convert tracer concentration from mol/mol dry air to 
+      ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg total  air before advection (ewl, 6/15/15)
-      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
-     &                               Input_Opt, State_Chm, RC)
       CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS, 
      &                                   State_Met, State_Chm, RC )
 
@@ -455,11 +441,9 @@
      &                   A_M2,   ND24,      ND25,     ND26 )
 
       ! Convert tracer concentration from kg/kg wet air to 
-      ! mol/mol dry air after advection (ewl, 6/15/15)
+      ! kg/kg dry air after advection (ewl, 6/15/15)
       CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS, 
      &                                   State_Met, State_Chm, RC ) 
-      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
-     &                               Input_Opt, State_Chm, RC)
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
@@ -554,6 +538,7 @@
 !                              (previously v/v)
 !  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
 !                              concentration following advection
+!  13 Aug 2015 - E. lundgren - Remove v/v <-> kg/kg conversion
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -662,10 +647,8 @@
       p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
 
-      ! Convert tracer concentration from mol/mol dry air to 
+      ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg total air before advection (ewl, 6/15/15)
-      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
-     &                                Input_Opt, State_Chm, RC)
       CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
      &                                    State_Met, State_Chm, RC )
 
@@ -684,11 +667,9 @@
      &                   A_M2,    ND24,      ND25,     ND26 )
 
       ! Convert tracer concentration from kg/kg total air to 
-      ! mol/mol dry air after advection (ewl, 6/15/15)
+      ! kg/kg dry air after advection (ewl, 6/15/15)
       CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
      &                                    State_Met, State_Chm, RC ) 
-      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
-     &                                Input_Opt, State_Chm, RC)
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
@@ -784,6 +765,7 @@
 !                              (previously v/v)
 !  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
 !                              concentration prior to advection
+!  13 Aug 2015 - E. lundgren - Remove v/v <-> kg/kg conversion
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -899,10 +881,8 @@
 
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a array flip' )
 
-      ! Convert tracer concentration from mol/mol dry air to 
+      ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg moist air before advection (ewl, 6/15/15)
-      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
-     &                                Input_Opt, State_Chm, RC)
       CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
      &                                   State_Met, State_Chm, RC )
 
@@ -921,11 +901,9 @@
      &                          ND24,      ND25,     ND26 )
 
       ! Convert tracer concentration from kg/kg wet air to 
-      ! mol/mol dry air after advection (ewl, 6/15/15)
+      ! kg/kg dry air after advection (ewl, 6/15/15)
       CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
      &                                    State_Met, State_Chm, RC ) 
-      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
-     &                                Input_Opt, State_Chm, RC)
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS ) 
@@ -1019,6 +997,7 @@
 !                              (previously v/v)
 !  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
 !                              concentration prior to advection
+!  13 Aug 2015 - E. lundgren - Remove v/v <-> kg/kg conversion
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1182,10 +1161,8 @@
 
       p_A_M2  => A_M2( J0_W1+1 : J0_W1+JM_W1                     )
 
-      ! Convert tracer concentration from mol/mol dry air to 
+      ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg moist air before advection (ewl, 6/15/15)
-      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
-     &                                Input_Opt, State_Chm, RC)
       CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
      &                                   State_Met, State_Chm, RC )
 
@@ -1204,11 +1181,9 @@
      &      ND26 ) 
 
       ! Convert tracer concentration from kg/kg wet air to 
-      ! mol/mol dry air after advection (ewl, 6/15/15)
+      ! kg/kg dry air after advection (ewl, 6/15/15)
       CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
      &                                    State_Met, State_Chm, RC ) 
-      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
-     &                                 Input_Opt, State_Chm, RC)
 !=========================================================================
 
       ! Free pointer memory

@@ -750,7 +750,8 @@
       ! Exit if N is out of range
       IF ( N < 1 .or. N > Input_Opt%N_TRACERS ) RETURN
 
-      ! Convert from [v/v] to [kg/kg] and store in State_Chm%Tracers
+      ! Convert tracer concentration from [v/v dry] to [kg/kg dry] and 
+      ! store in State_Chm%Tracers
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -764,6 +765,9 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+      
+      ! Set State_Chm units
+      State_Chm%Trac_Units = 'kg/kg dry'
 
       ! Increment the # of records found for tracer N
       NCOUNT(N) = NCOUNT(N) + 1

@@ -22,8 +22,8 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: H2O2s(:,:,:)   ! Save H2O2 and SO2 [v/v]
-      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: SO2s(:,:,:)    !  for sulfate chemistry
+      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: H2O2s(:,:,:) ! Save H2O2 and SO2 [v/v]
+      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: SO2s(:,:,:)  !  for sulfate chemistry
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -165,45 +165,45 @@
 !
 #if defined( TOMAS   )
 # if   defined( TOMAS40 )
-      INTEGER, PARAMETER   :: NSOLMAX = 370     ! Max # of soluble tracers for TOMAS40 runs
+      INTEGER, PARAMETER    :: NSOLMAX = 370 ! Max # soluble trcrs for TOMAS40
 # elif defined( TOMAS12 )
-      INTEGER, PARAMETER   :: NSOLMAX = 136     ! Max # of soluble tracers for TOMAS12 runs
+      INTEGER, PARAMETER    :: NSOLMAX = 136 ! Max # soluble trcrs for TOMAS12
 # elif defined( TOMAS15 )
-      INTEGER, PARAMETER   :: NSOLMAX = 157     ! Max # of soluble tracers for TOMAS15 runs
+      INTEGER, PARAMETER    :: NSOLMAX = 157 ! Max # soluble trcrs for TOMAS15
 # else
-      INTEGER, PARAMETER   :: NSOLMAX = 262     ! Max # of soluble tracers for TOMAS30 runs
+      INTEGER, PARAMETER    :: NSOLMAX = 262 ! Max # soluble trcrs for TOMAS30
 # endif
 
 #else
       ! SOAupdate: Increase NSOLMAX from 60 to 110 for SOA + semivol POA
       !  (jje, mpayer,7/5/11)
       ! Increase NSOLMAX to 111 for marine organic aerosol update (ewl, 7/8/15)
-      INTEGER, PARAMETER   :: NSOLMAX = 111     ! Max # of soluble tracers
+      INTEGER, PARAMETER     :: NSOLMAX = 111   ! Max # of soluble tracers
                                                 !  for regular G-C runs
 #endif
-      !REAL(fp),  PARAMETER   :: EPSILON = 1e-32_fp   ! A very small positive #
+      !REAL(fp), PARAMETER   :: EPSILON = 1e-32_fp   ! A very small positive #
 
       ! TINY number
-      REAL(fp), PARAMETER :: TINY_FP = TINY(1.0_fp)
+      REAL(fp), PARAMETER    :: TINY_FP = TINY(1.0_fp)
 !
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER              :: NSOL              ! # of soluble species
+      INTEGER                :: NSOL             ! # of soluble species
 
       ! Arrays
-      INTEGER              :: IDWETD(NSOLMAX)   ! Index array for WETDEP
-!      REAL(fp),  ALLOCATABLE :: Vud(:,:)          ! Updraft velocity [m/s]
-      REAL(fp),  ALLOCATABLE :: C_H2O(:,:,:)      ! Mixing ratio of H2O [v/v]
-      REAL(fp),  ALLOCATABLE :: CLDICE(:,:,:)     ! Cloud ice mixing ratio
-                                                !  [cm3 ice/cm3 air]
-      REAL(fp),  ALLOCATABLE :: CLDLIQ(:,:,:)     ! Cloud liquid water mix rat
-                                                !  [cm3 H2O/cm3 air]
-      REAL(fp),  ALLOCATABLE :: PDOWN(:,:,:)      ! Precipitation thru the
-                                                !  bottom of the grid box 
-                                                !  [cm3 H2O/cm2 area/s]
-      REAL(fp),  ALLOCATABLE :: QQ(:,:,:)         ! Rate of new precip formation
-                                                !  [cm3 H2O/cm3 air/s]
+      INTEGER                :: IDWETD(NSOLMAX)  ! Index array for WETDEP
+!      REAL(fp),  ALLOCATABLE :: Vud(:,:)        ! Updraft velocity [m/s]
+      REAL(fp),  ALLOCATABLE :: C_H2O(:,:,:)     ! Mixing ratio of H2O [v/v]
+      REAL(fp),  ALLOCATABLE :: CLDICE(:,:,:)    ! Cloud ice mixing ratio
+                                                 !  [cm3 ice/cm3 air]
+      REAL(fp),  ALLOCATABLE :: CLDLIQ(:,:,:)    ! Cloud liquid water mix rat
+                                                 !  [cm3 H2O/cm3 air]
+      REAL(fp),  ALLOCATABLE :: PDOWN(:,:,:)     ! Precipitation thru the
+                                                 !  bottom of the grid box 
+                                                 !  [cm3 H2O/cm2 area/s]
+      REAL(fp),  ALLOCATABLE :: QQ(:,:,:)        ! Rate of new precip formation
+                                                 !  [cm3 H2O/cm3 air/s]
 
       ! Define local shadow variables for values in Input_Opt
       LOGICAL :: LPRT
@@ -234,15 +234,15 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD 
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE UNITCONV_MOD
 
 #if   defined ( DEVEL )
       USE HCO_ERROR_MOD
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE TIME_MOD,           ONLY : GET_TS_DYN
 #endif
@@ -284,7 +284,7 @@
 !  02 Jul 2013 - R. Yantosca - Bug fix: add State_Chm to WETDEP calls for
 !                              met other than MERRA, GEOS-5.7 or GEOS-5
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  02 Apr 2015 - E. Lundgren - Change tracer units from kg to kg/kg
+!  08 Aug 2015 - E. Lundgren - Tracer units are now [kg/kg]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -293,6 +293,7 @@
 !
       ! For fields from Input_Opt
       LOGICAL :: doPrt
+      INTEGER :: N_TRACERS
 
       ! For new diagnostics
 #if   defined( DEVEL )
@@ -318,6 +319,9 @@
       ITS_A_MERCURY_SIM = Input_Opt%ITS_A_MERCURY_SIM
       ITS_A_POPS_SIM    = Input_Opt%ITS_A_POPS_SIM
 
+      ! Additional values from Input_Opt
+      N_TRACERS         = Input_Opt%N_TRACERS
+
       ! Only print output on the root CPU
       doPrt = ( LPRT .and. am_I_Root )
 
@@ -329,6 +333,13 @@
       ENDIF
 #endif
 
+      ! Convert tracer units from [kg/kg] to [kg] for do_wetdep (ewl, 8/12/15)
+      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met,  
+     &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP('Unit conversion error', 
+     &                      'DO_WETDEP in wetscav_mod.F')
+      ENDIF  
 
 #if   defined( MERRA ) || defined( GEOS_FP )
 
@@ -437,6 +448,10 @@
          DEALLOCATE( BEFORE, TMP3D, TMP2D )
       ENDIF
 #endif
+
+      ! Convert tracer units back to [kg/kg] after do_wetdep (ewl, 8/12/15)
+      CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met,  
+     &                            State_Chm, RC ) 
 
       END SUBROUTINE DO_WETDEP
 !EOC
@@ -9237,12 +9252,13 @@
 !
       USE CMN_SIZE_MOD
 !      USE DAO_MOD,            ONLY : IS_WATER
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTH2O2, IDTSO2
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -9292,13 +9308,14 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
 !  28 Apr 2015 - E. Lundgren - Change PMID_DRY to PMID for Dalton's Law.
+!  13 Aug 2015 - E. Lundgren - Convert tracer units from kg/kg to v/v locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, L
+      INTEGER             :: I, J, L, N_TRACERS
       REAL(fp)            :: PL, TK
       LOGICAL,  SAVE      :: FIRST = .TRUE.      
             
@@ -9312,7 +9329,19 @@
       !=================================================================
       IF ( FIRST ) THEN
 
-         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! Set local variable for unit conversion (ewl, 8/13/15)
+         N_TRACERS = Input_Opt%N_TRACERS
+
+         ! Convert tracer concentration units from mass mixing ratio
+         ! to molar mixing ratio (ewl, 8/13/15)
+         CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS,            
+     &                                     Input_Opt, State_Chm, RC ) 
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP('Unit conversion error', 
+     &                      'INIT_WETSCAV in wetscav_mod.F')
+         ENDIF 
+
+         ! Initialize GEOS-Chem tracer array from Chemistry State object
          ! (mpayer, 12/6/12)
          STT => State_Chm%Tracers
 
@@ -9339,6 +9368,11 @@
          ELSE
             SO2s = 0e+0_fp
          ENDIF
+
+         ! Convert tracer concentration units from molar mixing ratio
+         ! back to mass mixing ratio (ewl, 8/13/15)
+         CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS,            
+     &                                     Input_Opt, State_Chm, RC ) 
 
          ! Free pointer
          NULLIFY( STT )
