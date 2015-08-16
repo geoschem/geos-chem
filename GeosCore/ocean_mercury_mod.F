@@ -859,6 +859,8 @@
 !  06 Aug 2015 - J. Fisher   - Added delivery of snow Hg to ocean (orig. 28/11/11)
 !  12 Aug 2015 - J. Fisher   - Added input of Hg from Arctic rivers to ocean
 !                              (orig. 8/12/11)
+!  14 Aug 2015 - J. Fisher   - Reduce partitioning coefficient Kd in Arctic 
+!                              (orig. 3/23/12)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -943,11 +945,13 @@
       REAL*8, PARAMETER     :: k_radbase = 1.557d-6
       REAL*8, PARAMETER     :: k_biobase = 4.1d-10    
       REAL*8, PARAMETER     :: k_oxbase  = 6.64d-6 
-#if defined ( LINUX_PGI )
-      REAL*8, PARAMETER     :: Kd_part   = 316227.76601684
-#else
-      REAL*8, PARAMETER     :: Kd_part   = 10d0**(5.5d0)
-#endif
+! no longer a paramter (jaf, 3/23/12)
+!#if defined ( LINUX_PGI )
+!      REAL*8, PARAMETER     :: Kd_part   = 316227.76601684
+!#else
+!      REAL*8, PARAMETER     :: Kd_part   = 10d0**(5.5d0)
+!#endif
+      REAL*8                :: Kd_part
       REAL*8, PARAMETER     :: k_ox_dark = 1d-7  
       REAL*8, PARAMETER     :: ECchla    = 31d0     
 
@@ -1360,6 +1364,22 @@
             ! SPM is converted to kg/L by 10E-9
 
             ! SPM = Suspended particulate matter (kg/L)
+
+            ! For most of globe, log10(Kd)=5.5, see Soerensen et al. 2010
+            ! For Arctic, log10(Kd)=5.0, see Fisher et al. 2012 (jaf, 3/23/12)
+#if defined ( LINUX_PGI )
+            IF ( Y >=  70.0 ) THEN
+               kd_part = 1.0d5
+            ELSE
+               Kd_part = 316227.76601684
+            ENDIF 
+#else
+            IF ( Y >=  70.0 ) THEN
+               kd_part = 1.0d5
+            ELSE
+               Kd_part = 10d0**(5.5d0)
+            ENDIF 
+#endif
 
             Frac_Hg2    = 1 / ( 1 + Kd_part * SPM * 1d-9)
 
