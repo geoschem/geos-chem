@@ -1961,7 +1961,18 @@
 
                ! Convert [cm/h*ng/L] --> [kg/m2/s] --> [kg/s]
                ! Also account for ocean fraction of grid box
-               FLUX(I,J,NN)  = FLUX(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O 
+               !FLUX(I,J,NN)  = FLUX(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O 
+               ! Assume fast horizontal equilibration w/in the grid box
+               ! therefore no need to scale by open ocean fraction
+               ! (jaf, 6/22/11)
+               ! Evasive flux only if there is some open ocean in the
+               ! grid box (not 100% sea ice)
+               IF ( FRAC_OPEN_OCEAN > 0d0 ) THEN
+                 FLUX(I,J,NN)  = FLUX(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
+               ELSE
+                 FLUX(I,J,NN)  = 0d0
+               ENDIF
+
 
                !Prior to 09 Nov 2011, H Amos ---------------------             
                !FUP(I,J,NN)  = FUP(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
