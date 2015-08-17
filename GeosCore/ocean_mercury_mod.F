@@ -129,6 +129,8 @@
 !  11 Aug 2015 - J. Fisher   - Remove obsolete parameters LOCEANFIX, FUDGE
 !  12 Aug 2015 - J. Fisher   - Added input of Hg from Arctic rivers to ocean
 !                              (orig. 8/12/11)
+!  17 Aug 2015 - J. Fisher   - Add Arctic NPP, Chl from Anne Soerensen
+!                              (orig. 3/19/13)
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
@@ -219,6 +221,11 @@
       REAL*8,  ALLOCATABLE :: SO4_WAC(:,:,:) 
       REAL*8,  ALLOCATABLE :: SO4_CONC(:,:,:) 
 !-------------------------------------------------------------------------
+      REAL*8,  ALLOCATABLE :: NPP_A(:,:)
+      REAL*8,  ALLOCATABLE :: CHL_A(:,:)
+
+      ! For IAV in NPP (jaf, 3/19/13)
+      REAL*8   :: NPP_SCF
 
       ! Logical switches for the mercury simulation, all of which are 
       ! set in INIT_MERCURY (cdh, 9/1/09)
@@ -982,8 +989,6 @@
 
       ! Small numbers to avoid dividing by zero
       REAL*8,  PARAMETER   :: SMALLNUM   = 1D-32
-      REAL*8,  PARAMETER   :: NPPMINNUM   = 5D-2       
-      REAL*8,  PARAMETER   :: CHLMINNUM   = 1D-1       
 
       ! External functions
       REAL*8,  EXTERNAL     :: SFCWINDSQR 
@@ -1293,9 +1298,7 @@
             ! Reduction and oxidation coefficients
             !===========================================================    
             ! Avoid having NPP or CHL to be zero
-            NPP(I,J) = MAX ( NPP(I,J) , NPPMINNUM )  
-
-            CHL(I,J)    = MAX ( CHL(I,J) , CHLMINNUM )                       
+            ! Moved to OCEAN_MERCURY_READ
 
             ! Light attenuation (RADz) is calculated
             EC     = (EC_w + ( EC_doc * C_doc * ( NPP(I,J) / NPP_avg ) ) 
@@ -2142,6 +2145,8 @@
 !  23 Feb 2015 - J. Fisher   - Add Arctic MLD (orig. 28/11/11)
 !  12 Aug 2015 - J. Fisher   - Added input of Hg from Arctic rivers to ocean
 !                              (orig. 8/12/11)
+!  17 Aug 2015 - J. Fisher   - Added Arctic NPP, Chl from Anne Soerensen
+!                              (orig. 3/19/13)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2166,6 +2171,10 @@
       INTEGER                :: DAYS_IN_MONTH, LASTMONTH
       INTEGER                :: M(12) = (/ 31, 28, 31, 30, 31, 30,
      &                                     31, 31, 30, 31, 30, 31 /)
+     
+      ! Moved from ocean_mercury_flux (jaf,3/20/13)
+      REAL*8,  PARAMETER   :: NPPMINNUM   = 5D-2
+      REAL*8,  PARAMETER   :: CHLMINNUM   = 1D-1
      
       !=================================================================
       ! OCEAN_MERCURY_READ begins here!
@@ -2253,6 +2262,28 @@
       ! Resize and cast to REAL*8
       CALL TRANSFER_2D( ARRAY(:,:,1), CHL )
 
+      !-------------------------------------------------
+      ! Chl from Jin et al 2012 for the Arctic [mg/m3]
+      !-------------------------------------------------
+
+      ! Chl file name
+      FILENAME = TRIM( DATA_DIR )       //
+     &           'mercury_201303/CHL_ocn_2009.geos.' // GET_RES_EXT()
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+
+      ! TAU0 values (uses year 2009)
+      TAU = GET_TAU0( THISMONTH, 1, 2009 )
+
+      ! Read data
+      CALL READ_BPCH2( FILENAME, 'CHLO-A-$',    3,
+     &                 TAU,       IIPAR,        JJPAR,
+     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
+
+
+      ! Resize and cast to REAL*8
+      CALL TRANSFER_2D( ARRAY(:,:,1), CHL_A )
 
       !--------------------------------
       ! Net primary productivity [mg/m2/day]
@@ -2285,6 +2316,27 @@
       ! Resize and cast to REAL*8
       CALL TRANSFER_2D( ARRAY(:,:,1), NPP )
   
+      !--------------------------------
+      ! Arctic Net primary productivity [mg/m2/day]
+      !--------------------------------
+
+      ! NPP file name
+      FILENAME = TRIM( DATA_DIR )       // 
+     &           'mercury_201303/NPP_ocn_2009.geos.' // GET_RES_EXT()
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+
+      ! TAU0 values (uses year 2009)
+      TAU = GET_TAU0( THISMONTH, 1, 2009 )   
+
+      ! Read data
+      CALL READ_BPCH2( FILENAME, 'GLOB-NPP',    3,     
+     &                 TAU,       IIPAR,        JJPAR,
+     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
+
+      ! Resize and cast to REAL*8
+      CALL TRANSFER_2D( ARRAY(:,:,1), NPP_A )
 
       !---------------------------------
       ! Ekman upwelling velocity [cm/s]
@@ -2354,6 +2406,21 @@
                       MLD(I,J) = 20d2
                END SELECT
           ENDIF
+
+         ! Added NPP for the Arctic from Jin et al. 2012. (anls)
+         IF ( Y >= 60 ) THEN
+            IF ( NPP_A(I,J) > NPP(I,J) ) NPP(I,J) = NPP_A(I,J)
+            IF ( CHL_A(I,J) > CHL(I,J) ) CHL(I,J) = CHL_A(I,J)
+            ! Apply interannual scaling
+            IF ( Y >= 70 ) THEN
+              NPP(I,J) = NPP(I,J) * NPP_SCF
+              CHL(I,J) = CHL(I,J) * NPP_SCF
+            ENDIF
+         ENDIF
+
+         ! Avoid having NPP or CHL to be zero
+         NPP(I,J) = MAX ( NPP(I,J) , NPPMINNUM )
+         CHL(I,J) = MAX ( CHL(I,J) , CHLMINNUM )
 
       ENDDO
       ENDDO
@@ -4137,6 +4204,8 @@
 !			        Arctic so Hg2 dominates over HgP (orig. 28/11/11)
 !  12 Aug 2015 - J. Fisher   - Added interannual river flow variability
 !                              (orig. 23/3/12)
+!  17 Aug 2015 - J. Fisher   - Added interannual Arctic NPP variability
+!                              (orig. 22/3/13)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4161,6 +4230,11 @@
       INTEGER            :: THISYEAR, THISMONTH, RYEAR, RMON
       INTEGER            :: YYMMDD, HHMMSS, IOS
       REAL*8             :: RSCF
+
+      ! For reading NPP interannual scaling (jaf, 3/19/13)
+      CHARACTER(LEN=255) :: FILENAME_N, HEADER
+      INTEGER            :: NYEAR, N
+      REAL*8             :: NTMP, NSCF
 
       !=================================================================
       ! INIT_OCEAN_MERCURY begins here!
@@ -4245,6 +4319,44 @@
          RIVERFLOW(THISMONTH) = RIVERFLOW(THISMONTH) * RSCF
 
       ENDDO
+
+      ! Get interannual NPP scaling factor - default to 1 (jaf, 3/19/13)
+      NPP_SCF = 1d0
+
+      ! Scaling factors only exist through 2009; use default if later
+      IF ( THISYEAR <= 2009 ) THEN
+
+         FILENAME_N = TRIM( DATA_DIR_1x1 )           // 
+     &                'mercury_201303/'              //
+     &                'Arctic_NPP_IAV.txt'
+
+         ! Open scale factor file (ASCII format)
+         OPEN(IU_FILE, FILE=TRIM(FILENAME_N), STATUS='OLD', IOSTAT=IOS)
+         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'NPP_IAV:1' )
+
+         ! Read header
+         DO N = 1, 2
+            READ( IU_FILE, *, IOSTAT=IOS ) HEADER
+         ENDDO
+
+         ! Read scale factor for each year; stop at correct year
+         DO
+            READ( IU_FILE, 102, IOSTAT=IOS ) NYEAR, NTMP, NSCF
+            IF ( IOS < 0 ) EXIT ! EOF
+            IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'NPP_IAV:2' )
+            IF ( NYEAR .EQ. THISYEAR ) EXIT
+         ENDDO
+
+         ! FORMAT string
+ 102     FORMAT( i4, 2x, i3, 2x, f5.3 )
+
+         ! Close file
+         CLOSE( IU_FILE )
+
+         ! Set scaling factor
+         NPP_SCF = NSCF
+
+      ENDIF
 
       ! Allocate arrays     
       ALLOCATE( dMLD( IIPAR, JJPAR ), STAT=AS )
@@ -4348,6 +4460,13 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_CONC' )
       SO4_CONC = 0d0 
 
+      ALLOCATE( NPP_A( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NPP_A' )
+      NPP_A = 0d0
+
+      ALLOCATE( CHL_A( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CHL_A' )
+      CHL_A = 0d0
 
       ! Return to calling program
       END SUBROUTINE INIT_OCEAN_MERCURY
@@ -4395,6 +4514,8 @@
       IF ( ALLOCATED( DST_CONC  ) ) DEALLOCATE( DST_CONC  )
       IF ( ALLOCATED( R         ) ) DEALLOCATE( R         )
       IF ( ALLOCATED( SO4_CONC  ) ) DEALLOCATE( SO4_CONC  )
+      IF ( ALLOCATED( NPP_A     ) ) DEALLOCATE( NPP_A     )
+      IF ( ALLOCATED( CHL_A     ) ) DEALLOCATE( CHL_A     )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_OCEAN_MERCURY
