@@ -1551,6 +1551,11 @@ CONTAINS
 !  file specification.  Therefore we can "cheat" a little bit and not have
 !  to read netCDF attributes to find what these values are.
 !
+!  MERRA2 pressure quantities are stored on disk with units of Pa.  For now
+!  we will convert to hPa for compatibility with GEOS-Chem.  But in the near
+!  future we will probably recode GEOS-Chem to use the native units, which
+!  facilitate GEOS-Chem HP development.
+!
 ! !REVISION HISTORY:
 !  12 Aug 2015 - R. Yantosca - Initial version, based on geosfp_read_mod.F90
 !EOP
@@ -1747,6 +1752,11 @@ CONTAINS
 !  dimensions, and units are pre-specified according to the GMAO MERRA2
 !  file specification.  Therefore we can "cheat" a little bit and not have
 !  to read netCDF attributes to find what these values are.
+!
+!  MERRA2 pressure quantities are stored on disk with units of Pa.  For now
+!  we will convert to hPa for compatibility with GEOS-Chem.  But in the near
+!  future we will probably recode GEOS-Chem to use the native units, which
+!  facilitate GEOS-Chem HP development.
 !
 ! !REVISION HISTORY:
 !  12 Aug 2015 - R. Yantosca - Initial version, based on geosfp_read_mod.F90
