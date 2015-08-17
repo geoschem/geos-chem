@@ -861,6 +861,8 @@
 !                              (orig. 8/12/11)
 !  14 Aug 2015 - J. Fisher   - Reduce partitioning coefficient Kd in Arctic 
 !                              (orig. 3/23/12)
+!  17 Aug 2015 - J. Fisher   - Add scaling of reducible HgII based on UV-B
+!                              (orig. 3/24/12)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -875,6 +877,7 @@
       USE TIME_MOD,           ONLY : GET_TS_EMIS,     GET_MONTH 
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_MIDMONTH
       USE TIME_MOD,           ONLY : GET_YEAR 
+      USE TOMS_MOD,           ONLY : READ_TOMS, TOMS, TOMS_PD, TOMS_LT
 !- eds 8/31/10 -------------------------------------------------------------
 !      USE TRACERID_MOD,  ONLY : ID_Hg_tot,       ID_Hg_oc
       USE TRACERID_MOD,       ONLY : ID_Hg_tot
@@ -932,6 +935,7 @@
       REAL*8                :: C_tot,    Ze,       OC_tot,   Hg0_OX     
       REAL*8                :: FRAC_OPEN_OCEAN,    FRAC_OCEAN_OR_ICE
       REAL*8                :: OLDFLOW,            RIVER_HG
+      REAL*8                :: FRAC_REDUCIBLE,     UVI_RATIO
       REAL*8                :: SNOW_Hg2aq(N_Hg_CATS)
 
       ! Parameters
@@ -986,7 +990,7 @@
      
       ! For values from Input_Opt
       LOGICAL         :: LSPLIT
-      LOGICAL         :: LArcticRiv
+      LOGICAL         :: LArcticRiv,  LKRedUV
       INTEGER         :: N_TRACERS
       REAL*8          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
 
@@ -1002,6 +1006,7 @@
       ! Copy values from Input_Opt
       LSPLIT       = Input_Opt%LSPLIT
       LArcticRiv   = Input_Opt%LArcticRiv
+      LKRedUV      = Input_Opt%LKRedUV
       N_TRACERS    = Input_Opt%N_TRACERS
       TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
 
@@ -1038,6 +1043,12 @@
 
          ! Get monthly MLD, NPP, CHL etc.                         
          CALL OCEAN_MERCURY_READ( THISMONTH, THISYEAR )
+
+         ! Now also read TOMS O3 column data
+         ! At this stage we don't use the O3 from met fields when
+         ! TOMS data is missing - instead use long-term mean value.
+         IF ( LKRedUV )
+     &      CALL READ_TOMS( THISMONTH, THISYEAR, .FALSE. )
 
       ENDIF    
 
@@ -1137,17 +1148,18 @@
       ! Loop over surface boxes  
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,   vi,   A_M2,    Hg2_RED  )
-!$OMP+PRIVATE( J,   NN,   k_ox,    OC_tot,  Hg2_CONV   )
-!$OMP+PRIVATE( N,   TK,   CHg0,    k_red_bio  )
-!$OMP+PRIVATE( C,   TC,   RADz,    Hg0_OX,  k_red_rad  )
-!$OMP+PRIVATE( D,   EC,   k_red,   OLDMLD,  TOTDEPall  )
-!$OMP+PRIVATE( Y,   Ze,   ScCO2,   FRAC_O,  Frac_Hg2,   Hg2aq_tot  )
-!$OMP+PRIVATE( H,   Kw,   MLDCM,   TOTDEP,  OC_tot_kg  )
-!$OMP+PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE   )
-!$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg   )
-!$OMP+PRIVATE( IS_OCEAN_BOX                   )
-!$OMP+PRIVATE( FRAC_OPEN_OCEAN,    FRAC_OCEAN_OR_ICE, Snow_Hg2aq )
+!$OMP+PRIVATE( I,   vi,   A_M2,    Hg2_RED                         )
+!$OMP+PRIVATE( J,   NN,   k_ox,    OC_tot,  Hg2_CONV               )
+!$OMP+PRIVATE( N,   TK,   CHg0,    k_red_bio                       )
+!$OMP+PRIVATE( C,   TC,   RADz,    Hg0_OX,  k_red_rad              )
+!$OMP+PRIVATE( D,   EC,   k_red,   OLDMLD,  TOTDEPall              )
+!$OMP+PRIVATE( Y,   Ze,   ScCO2,   FRAC_O,  Frac_Hg2,  Hg2aq_tot   )
+!$OMP+PRIVATE( H,   Kw,   MLDCM,   TOTDEP,  OC_tot_kg              )
+!$OMP+PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE                        )
+!$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg                        )
+!$OMP+PRIVATE( IS_OCEAN_BOX                                        )
+!$OMP+PRIVATE( FRAC_OPEN_OCEAN,    FRAC_OCEAN_OR_ICE,  Snow_Hg2aq  )
+!$OMP+PRIVATE( FRAC_REDUCIBLE,     UVI_RATIO                       )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1185,6 +1197,8 @@
          TOTDEPall  = 0d0
          k_ox       = 0d0
          SNOW_Hg2aq = 0d0
+         UVI_RATIO  = 0d0
+         FRAC_REDUCIBLE = 0d0
 
          OLDMLD     = MLDav(I,J)
          MLDav(I,J) = MLDav(I,J) + dMLD(I,J) * DTSRCE
@@ -1780,8 +1794,76 @@
 
 
                ! Mass of Hg(II)  -->  Hg(0) 
+               !---------------------------
                ! Only a certain percentage of Hg(II) is considered reducible
-               Hg2_RED       = Hg2aq(I,J,NN) * 0.4d0 * k_red * DTSRCE       
+               ! Previously this value was set as 40%. Now it is determined
+               ! dynamically. Based on lab studies of Hg photoreduction,
+               ! UV-B radiation leads to more DGM production than UV-A. We
+               ! assume that this difference reflects the ability of higher
+               ! energy UV-B to break bonds that UV-A can't. In other words
+               ! UV-B increases the reducible fraction of Hg(II).
+               ! Changes in O3 columns are leading to changes in UV radiation
+               ! especially in the UV-B portion of the spectrum. Based on
+               ! realistic present-day conditions, we assume 50% of the 
+               ! reducible pool (20% of total Hg(II) can be reduced by any 
+               ! wavelength, but the remaining 50% by UV-B only, and this 
+               ! fraction changes with time.
+               !
+               ! The relative change in UV is computed from the change in
+               ! O3 column. O3 column data is provided from TOMS satellite
+               ! data. UV is approximated using the UV Index (UVI), which
+               ! is heavily weighted to the UV-B portion of the spectrum.
+               ! To compute the UVI, we use the simplified analytical
+               ! formula from Madronich, 2007, Photochem & Photobio.
+               ! This formula does not apply to high albedo, but we use it
+               ! here only for radiation entering the water column. It also
+               ! assumes clear-sky, aerosol-free conditions. However, we
+               ! are considering only a ratio between present day and
+               ! current model time step, so we can assume on average those
+               ! conditions haven't changed (or we don't know enough about
+               ! how they have). Errors are induced for high solar zenith
+               ! angle, but for a given grid box / date-time, we can assume
+               ! no variation between years and therefore this should
+               ! have minimal impact on the ratio. Finally, SZA in a
+               ! given grid box at a given day/time doesn't change from
+               ! year to year, so we can simplify the formula by
+               ! excluding all common factors and do not need to rely on
+               ! SZA (which is occasionally negative even when there is
+               ! some incoming solar radiation, especially at the
+               ! equinox (jaf, 2/27/12, 8/3/12)
+               !
+               ! Some years have missing ozone data. In this case, we
+               ! replace the missing values with the longterm mean,
+               ! which will be >0 unless it is a region in polar
+               ! darkness. In that case, the darkness component should
+               ! already be caught with the RADz term used in the
+               ! reduction part of the code. (jaf, 8/2/12)
+               !
+               ! Use fraction=0.4 as error trapping default value
+               ! to prevent catastrophically low reduction. This
+               ! should basically never be used since in case of no
+               ! O3 , RADSWG will also be zero and there will be no
+               ! photo-reduction below. (jaf, 8/2/12)
+
+               ! Default: 40% HgII photo-reducible
+               FRAC_REDUCIBLE = 0.4d0
+               IF ( LKRedUV ) THEN
+
+                  IF ( (TOMS(I,J) < 0) .AND. (TOMS_LT(I,J) > 0) )
+     &               TOMS(I,J) = TOMS_LT(I,J)
+
+                  IF ( (TOMS(I,J) > 0) .AND. (TOMS_PD(I,J) > 0) ) THEN 
+                     UVI_RATIO = ( TOMS(I,J) / TOMS_PD(I,J) )**(-1.23) 
+                     FRAC_REDUCIBLE = 0.2d0 + 0.2d0 * ( UVI_RATIO )
+                  ENDIF
+               ENDIF
+
+               ! Now use new FRAC_REDUCIBLE for photo-reduction only.
+               ! Retain 40% for biological reduction
+               !Hg2_RED       = Hg2aq(I,J,NN) * 0.4d0 * k_red * DTSRCE
+               Hg2_RED = Hg2aq(I,J,NN) * DTSRCE * ( 0.4d0 * k_red_bio +
+     &                   FRAC_REDUCIBLE * k_red_rad )    
+
                ! Mass of Hg(0) --> Hg(II)
                Hg0_OX        = Hg0aq(I,J,NN) * k_ox * DTSRCE
 

@@ -39,6 +39,11 @@
 #else
       INTEGER, PUBLIC, PARAMETER :: LAST_TOMS_YEAR  = 2008
 #endif
+
+      ! Make these public for use in Hg simulation
+      REAL*8, PUBLIC, ALLOCATABLE :: TOMS(:,:)               
+      REAL*8, PUBLIC, ALLOCATABLE :: TOMS_PD(:,:)               
+      REAL*8, PUBLIC, ALLOCATABLE :: TOMS_LT(:,:)               
 !
 ! !REMARKS:
 !  References:
@@ -83,13 +88,14 @@
 !  03 Jul 2012 - R. Yantosca - Restrict reading from TOMS_201203 directory
 !                              to GEOS-5.7.2 met data for the time being.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Aug 2015 - J. Fisher   - Add present-day & long-term mean TOMS for Hg.
+!                              Present-day is 2006-2010 mean. (orig. 3/24/12)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
-      REAL*8, PRIVATE, ALLOCATABLE :: TOMS(:,:)               
       REAL*8, PRIVATE, ALLOCATABLE :: DTOMS1(:,:)             
       REAL*8, PRIVATE, ALLOCATABLE :: DTOMS2(:,:)     
 #if   defined( DEVEL )
@@ -309,6 +315,68 @@
 
       ! Cast to REAL*8 and resize if necessary
       CALL TRANSFER_2D( ARRAY(:,:,1), DTOMS2 )
+
+      !=================================================================
+      ! Read present-day TOMS data from disk (jaf, 2/27/12)
+      !=================================================================
+      ! These are 2006-2010 mean values
+
+      ! Get TAU0 value for first day of the MONTH 
+      ! Default year is set to 1985
+      XTAU     = GET_TAU0( THISMONTH, 1, 1985 )
+
+      ! Define filename (with replaceable tokens)
+      FILENAME = 'TOMS_201203/TOMS_O3col_presentday.'  
+     &           // GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+
+      ! Now prefix the data directory
+      FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
+
+      ! Echo filename
+      WRITE( 6, 110 ) TRIM( FILENAME )
+
+      !-----------------------------
+      ! Present-day (2006-2010) TOMS O3 columns
+      !-----------------------------
+      
+      ! Read data
+      CALL READ_BPCH2( FILENAME, 'TOMS-O3',  1, 
+     &                 XTAU,      IIPAR,     JJPAR,     
+     &                 1,         ARRAY,     QUIET=.TRUE. )         
+
+      ! Cast to REAL*8 and resize if necessary
+      CALL TRANSFER_2D( ARRAY(:,:,1), TOMS_PD )
+
+      !=================================================================
+      ! Read long-term mean TOMS data from disk (jaf, 8/2/12)
+      !=================================================================
+      ! These are 1971-2010 mean values
+
+      ! Get TAU0 value for first day of the MONTH 
+      ! Default year is set to 1985
+      XTAU     = GET_TAU0( THISMONTH, 1, 1985 )
+
+      ! Define filename (with replaceable tokens)
+      FILENAME = 'TOMS_201203/TOMS_O3col_longterm.'  
+     &           // GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+
+      ! Now prefix the data directory
+      FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
+
+      ! Echo filename
+      WRITE( 6, 110 ) TRIM( FILENAME )
+
+      !-----------------------------
+      ! Long-term mean (1971-2010) TOMS O3 columns
+      !-----------------------------
+      
+      ! Read data
+      CALL READ_BPCH2( FILENAME, 'TOMS-O3',  1, 
+     &                 XTAU,      IIPAR,     JJPAR,     
+     &                 1,         ARRAY,     QUIET=.TRUE. )         
+
+      ! Cast to REAL*8 and resize if necessary
+      CALL TRANSFER_2D( ARRAY(:,:,1), TOMS_LT )
 
       END SUBROUTINE READ_TOMS
 !EOC
@@ -583,6 +651,16 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTOMS2' )
       DTOMS2 = 0d0
 
+      ! Allocate TOMS_PD
+      ALLOCATE( TOMS_PD( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TOMS_PD' )
+      TOMS_PD = 0d0
+
+      ! Allocate TOMS_LT
+      ALLOCATE( TOMS_LT( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TOMS_LT' )
+      TOMS_LT = 0d0
+
       ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3_DAILY' )
       TO3_DAILY = 0d0
@@ -616,6 +694,8 @@
       IF ( ALLOCATED( TOMS      ) ) DEALLOCATE( TOMS      )
       IF ( ALLOCATED( DTOMS1    ) ) DEALLOCATE( DTOMS1    )
       IF ( ALLOCATED( DTOMS2    ) ) DEALLOCATE( DTOMS2    )
+      IF ( ALLOCATED( TOMS_PD   ) ) DEALLOCATE( TOMS_PD   )
+      IF ( ALLOCATED( TOMS_LT   ) ) DEALLOCATE( TOMS_LT   )
       IF ( ALLOCATED( TO3_DAILY ) ) DEALLOCATE( TO3_DAILY )
 
       END SUBROUTINE CLEANUP_TOMS

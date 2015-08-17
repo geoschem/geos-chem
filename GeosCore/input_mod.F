@@ -7275,8 +7275,8 @@
 ! !USES:
 !
       ! References to F90 modules
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LPREINDHG, LGTMM
-      USE LOGICAL_MOD,       ONLY : LARCTICRIV
+      USE LOGICAL_MOD,       ONLY : LDYNOCEAN,  LPREINDHG, LGTMM
+      USE LOGICAL_MOD,       ONLY : LARCTICRIV, LKRedUV
       USE MERCURY_MOD,       ONLY : INIT_MERCURY
       USE OCEAN_MERCURY_MOD, ONLY : INIT_OCEAN_MERCURY
       USE DEPO_MERCURY_MOD,  ONLY : INIT_DEPO_MERCURY
@@ -7357,14 +7357,19 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:9' )
       READ( SUBSTRS(1:N), * ) LARCTICRIV
 
-      ! Separator line
+      ! Tie reducible HgII(aq) to UV-B?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:10' )
+      READ( SUBSTRS(1:N), * ) LKRedUV
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:11' )
 
       ! Check on logical
       IF (.NOT.( ITS_A_MERCURY_SIM() ) ) THEN
          LGTMM      = .FALSE.
          LDYNOCEAN  = .FALSE.
          LARCTICRIV = .FALSE.
+         LKRedUV    = .FALSE.
       ENDIF
 
       !=================================================================
@@ -7386,6 +7391,7 @@
          WRITE( 6, 120 ) '=> GTMM restart file        : ',
      &                        TRIM( GTMM_RST_FILE )
          WRITE( 6, 110 ) 'Use Arctic river Hg ?       : ', LARCTICRIV
+         WRITE( 6, 110 ) 'Tie HgII(aq) red. to UV-B?  : ', LKRedUV
       END IF
 
       ! FORMAT statements
@@ -7405,6 +7411,7 @@
       Input_Opt%LGTMM          = LGTMM
       Input_Opt%GTMM_RST_FILE  = GTMM_RST_FILE
       Input_Opt%LARCTICRIV     = LARCTICRIV
+      Input_Opt%LKRedUV        = LKRedUV
 
       ! Return success
       RC = GIGC_SUCCESS

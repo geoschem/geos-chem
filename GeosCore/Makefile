@@ -919,7 +919,7 @@ NOABS.o                     : NOABS.F
 ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
                               dao_mod.o               depo_mercury_mod.o     \
                               diag03_mod.o            logical_mod.o          \
-                              tracerid_mod.o
+                              toms_mod.o              tracerid_mod.o
 
 ohsave.o                    : ohsave.F                                       \
                               comode_mod.o            tracerid_mod.o
