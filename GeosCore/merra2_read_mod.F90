@@ -413,6 +413,12 @@ CONTAINS
 !               |
 !        1 / density of water 
 !
+! !REMARKS:
+!  MERRA2 pressure quantities are stored on disk with units of Pa.  For now
+!  we will convert to hPa for compatibility with GEOS-Chem.  But in the near
+!  future we will probably recode GEOS-Chem to use the native units, which
+!  facilitate GEOS-Chem HP development.
+!
 ! !REVISION HISTORY:
 !  12 Aug 2015 - R. Yantosca - Initial version, based on geosfp_read_mod.F90
 !EOP
@@ -751,8 +757,9 @@ CONTAINS
     State_Met%PRECLSC = State_Met%PRECLSC * 86400e0_fp
     State_Met%PRECTOT = State_Met%PRECTOT * 86400e0_fp
     
-    ! Convert SLP from [Pa] -> [hPa]
+    ! Convert pressure quantities from [Pa] -> [hPa]
     State_Met%SLP     = State_Met%SLP     * 1e-2_fp
+    State_Met%TROPP   = State_Met%TROPP   * 1e-2_fp
 
     ! ND67 diagnostic: surface fields
     IF ( ND67 > 0 ) THEN
