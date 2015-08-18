@@ -656,7 +656,8 @@
       IS_OPEN_LAND  = ( (State_Met%FRLAND(I,J)  - 
      &                   State_Met%FRSNO(I,J)   ) > 0d0 )
 #elif defined( GEOS_5 )
-      IS_OPEN_OCEAN = ( .NOT. IS_ICE( I, J, State_Met ) )
+      IS_OPEN_OCEAN = ( State_Met%FROCEAN(I,J) > 0d0 .AND.
+     &                  .NOT. IS_ICE( I, J, State_Met ) )
       IS_OPEN_LAND  = ( IS_LAND( I, J, State_Met ) .AND.
      &                  (State_Met%SNOMAS(I,J) < 10d0) )
 #else
