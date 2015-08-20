@@ -10,30 +10,30 @@
 !  ============================================================================
 !  (1 ) Hg_RST_FILE (CHAR   )  : Name of restart file with ocean tracers
 !  (2 ) USE_CHECKS  (LOGICAL)  : Flag for turning on error-checking  
-!  (3 ) MAX_RELERR  (REAL(fpp) )  : Max error for total-tag error check [unitless]
-!  (4 ) MAX_ABSERR  (REAL(fpp) )  : Max abs error for total-tag err chk [unitless]
-!  (5 ) MAX_FLXERR  (REAL(fpp) )  : Max error tol for flux error check  [unitless]
-!  (6 ) Hg2aq_tot   (REAL(fpp) )  : Total Hg2 conc. in the mixed layer  [kg      ]
-!  (7 ) DD_Hg2      (REAL(fpp) )  : Array for Hg(II) dry dep'd to ocean [kg      ]
-!  (8 ) Hgaq_tot    (REAL(fpp) )  : Total Hg conc. in the mixed layer   [kg      ]
-!  (9 ) Hg0aq       (REAL(fpp) )  : Array for ocean mass of Hg(0)       [kg      ]
-!  (10) Hg2aq       (REAL(fpp) )  : Array for ocean mass of Hg(II)      [kg      ]
-!  (11) HgPaq       (REAL(fpp) )  : Array for ocean mass of HgP         [kg      ]
-!  (12) dMLD        (REAL(fpp) )  : Array for Change in ocean MLD       [cm      ]
-!  (13) MLD         (REAL(fpp) )  : Array for instantaneous ocean MLD   [cm      ]
-!  (14) MLDav       (REAL(fpp) )  : Array for monthly mean ocean MLD    [cm      ]
-!  (15) newMLD      (REAL(fpp) )  : Array for next month's ocean MLD    [cm      ]
-!  (16) NPP         (REAL(fpp) )  : Array for mean net primary prod.    [unitless]
-!  (17) RAD         (REAL(fpp) )  : Array for mean solar radiation      [W/m2    ]
-!  (18) UPVEL       (REAL(fpp) )  : Array for ocean upwelling velocity  [m/s     ]
-!  (19) WD_Hg2      (REAL(fpp) )  : Array for Hg(II) wet dep'd to ocean [kg      ]
-!  (20) CHL         (REAL(fpp) )  : Chl surface concentration           [mg(m3   ]
-!  (21) CDEEPATL    (REAL(fpp) )  : Conc. Hg0, Hg2, HgP below MLD-Atl   [pM      ]
-!  (22) CDEEP       (REAL(fpp) )  : Conc. of Hg0, Hg2, HgP below MLD    [pM      ]
-!  (23) CDEEPNAT    (REAL(fpp) )  : Conc. Hg0, Hg2, HgP below MLD-NAtl  [pM      ]
-!  (24) CDEEPSAT    (REAL(fpp) )  : Conc. Hg0, Hg2, HgP below MLD-SAtl  [pM      ]
-!  (25) CDEEPANT    (REAL(fpp) )  : Conc. Hg0, Hg2, HgP below MLD-Ant   [pM      ]
-!  (26) CDEEPARC    (REAL(fpp) )  : Conc. Hg0, Hg2, HgP below MLD-Arc   [pM      ]
+!  (3 ) MAX_RELERR  (REAL(fpp)): Max error for total-tag error check [unitless]
+!  (4 ) MAX_ABSERR  (REAL(fpp)): Max abs error for total-tag err chk [unitless]
+!  (5 ) MAX_FLXERR  (REAL(fpp)): Max error tol for flux error check  [unitless]
+!  (6 ) Hg2aq_tot   (REAL(fpp)): Total Hg2 conc. in the mixed layer  [kg      ]
+!  (7 ) DD_Hg2      (REAL(fpp)): Array for Hg(II) dry dep'd to ocean [kg      ]
+!  (8 ) Hgaq_tot    (REAL(fpp)): Total Hg conc. in the mixed layer   [kg      ]
+!  (9 ) Hg0aq       (REAL(fpp)): Array for ocean mass of Hg(0)       [kg      ]
+!  (10) Hg2aq       (REAL(fpp)): Array for ocean mass of Hg(II)      [kg      ]
+!  (11) HgPaq       (REAL(fpp)): Array for ocean mass of HgP         [kg      ]
+!  (12) dMLD        (REAL(fpp)): Array for Change in ocean MLD       [cm      ]
+!  (13) MLD         (REAL(fpp)): Array for instantaneous ocean MLD   [cm      ]
+!  (14) MLDav       (REAL(fpp)): Array for monthly mean ocean MLD    [cm      ]
+!  (15) newMLD      (REAL(fpp)): Array for next month's ocean MLD    [cm      ]
+!  (16) NPP         (REAL(fpp)): Array for mean net primary prod.    [unitless]
+!  (17) RAD         (REAL(fpp)): Array for mean solar radiation      [W/m2    ]
+!  (18) UPVEL       (REAL(fpp)): Array for ocean upwelling velocity  [m/s     ]
+!  (19) WD_Hg2      (REAL(fpp)): Array for Hg(II) wet dep'd to ocean [kg      ]
+!  (20) CHL         (REAL(fpp)): Chl surface concentration           [mg(m3   ]
+!  (21) CDEEPATL    (REAL(fpp)): Conc. Hg0, Hg2, HgP below MLD-Atl   [pM      ]
+!  (22) CDEEP       (REAL(fpp)): Conc. of Hg0, Hg2, HgP below MLD    [pM      ]
+!  (23) CDEEPNAT    (REAL(fpp)): Conc. Hg0, Hg2, HgP below MLD-NAtl  [pM      ]
+!  (24) CDEEPSAT    (REAL(fpp)): Conc. Hg0, Hg2, HgP below MLD-SAtl  [pM      ]
+!  (25) CDEEPANT    (REAL(fpp)): Conc. Hg0, Hg2, HgP below MLD-Ant   [pM      ]
+!  (26) CDEEPARC    (REAL(fpp)): Conc. Hg0, Hg2, HgP below MLD-Arc   [pM      ]
 !
 !
 !  Module Routines:
@@ -152,6 +152,7 @@
       PUBLIC :: READ_HG2_PARTITIONING
       PUBLIC :: Fp, Fg        ! hma 
       PUBLIC :: LNEI2005,               LInPlume     ! yzh
+      PUBLIC :: LOCEANCOEF        ! sjs 
          
       !=================================================================
       ! MODULE VARIABLES
@@ -217,7 +218,8 @@
       LOGICAL   :: LGCBROMINE !eds 4/19/12
       LOGICAL   :: LnoUSAemis
       LOGICAL   :: LNEI2005, LInPlume    ! yzh
-      REAL(fpp)    :: STRAT_BR_FACTOR
+      LOGICAL   :: LOCEANCOEF    ! sjs
+      REAL(fpp) :: STRAT_BR_FACTOR
 
       ! CDH Set this TRUE to use corrected area-flux relationship
       ! Set this to FALSE to use original Strode et al. (2007) model
@@ -814,75 +816,93 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fpp),         INTENT(OUT)   :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
+      REAL(fpp),      INTENT(OUT)   :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !LOCAL VARIABLES:
 !
       ! Local variables
-      LOGICAL, SAVE         :: FIRST = .TRUE.
-      LOGICAL               :: IS_OCEAN_BOX ! jaf
-      CHARACTER(LEN=255)    :: FILENAME
-      INTEGER               :: I,         J,        NN, C
-      INTEGER               :: N,         N_tot_oc
-      INTEGER               :: NEXTMONTH, THISMONTH
-      INTEGER               :: THISYEAR
+      LOGICAL, SAVE        :: FIRST = .TRUE.
+      LOGICAL              :: IS_OCEAN_BOX ! jaf
+      CHARACTER(LEN=255)   :: FILENAME
+      INTEGER              :: I,         J,        NN, C
+      INTEGER              :: N,         N_tot_oc
+      INTEGER              :: NEXTMONTH, THISMONTH
+      INTEGER              :: THISYEAR
 
-      REAL(fpp)                :: A_M2,     DTSRCE,   MLDCM
-      REAL(fpp)                :: CHg0aq,   CHg0,     vi,       JorgC_kg 
-      REAL(fpp)                :: TC,       TK,       Kw
-      REAL(fpp)                :: Sc,       ScCO2,    USQ,      MHg
-      REAL(fpp)                :: Hg2_RED,  Hg2_GONE, Hg2_CONV  !HgPaq_SUNK
-      REAL(fpp)                :: FRAC_L,   FRAC_O,   H,        TOTDEP
-      REAL(fpp)                :: oldMLD,   XTAU,     TOTDEPall          
-      REAL(fpp)                :: FUP(IIPAR,JJPAR,N_Hg_CATS)
-      REAL(fpp)                :: FDOWN(IIPAR,JJPAR,N_Hg_CATS)
-      REAL(fpp)                :: X,        Y,        D                  
-      REAL(fpp)                :: NPP_tot,  A_ocean,  NPP_avg,  RADz     
-      REAL(fpp)                :: EC         
-      REAL(fpp)                :: k_red,    k_red_rad,  k_red_bio        
-      REAL(fpp)                :: k_ox    
-      REAL(fpp)                :: SPM,      Frac_Hg2, OC_tot_kg          
-      !REAL(fpp)                :: Hgaq_tot 
-      REAL(fpp)                ::Hg2aq_tot                      
-      REAL(fpp)                :: C_tot,    Ze,       OC_tot,   Hg0_OX  
+      REAL(fpp)            :: A_M2,     DTSRCE,   MLDCM
+      REAL(fpp)            :: CHg0aq,   CHg0,     vi,       JorgC_kg 
+      REAL(fpp)            :: TC,       TK,       Kw
+      REAL(fpp)            :: Sc,       ScCO2,    USQ,      MHg
+      REAL(fpp)            :: Hg2_RED,  Hg2_GONE, Hg2_CONV  !HgPaq_SUNK
+      REAL(fpp)            :: FRAC_L,   FRAC_O,   H,        TOTDEP
+      REAL(fpp)            :: oldMLD,   XTAU,     TOTDEPall          
+      REAL(fpp)            :: FUP(IIPAR,JJPAR,N_Hg_CATS)
+      REAL(fpp)            :: FDOWN(IIPAR,JJPAR,N_Hg_CATS)
+      REAL(fpp)            :: X,        Y,        D                  
+      REAL(fpp)            :: NPP_tot,  A_ocean,  NPP_avg,  RADz     
+      REAL(fpp)            :: EC         
+      REAL(fpp)            :: k_red,    k_red_rad,  k_red_bio        
+      REAL(fpp)            :: k_ox    
+      REAL(fpp)            :: SPM,      Frac_Hg2, OC_tot_kg          
+      !REAL(fpp)            :: Hgaq_tot 
+      REAL(fpp)            ::Hg2aq_tot                      
+      REAL(fpp)            :: C_tot,    Ze,       OC_tot,   Hg0_OX  
+      REAL(fpp)            :: Kd_part, k_ox_dark ! sjs
 
       ! Parameters
-      REAL(fpp), PARAMETER     :: EC_w      = 0.0145e+0_fpp       
-      REAL(fpp), PARAMETER     :: EC_doc    = 0.654e+0_fpp
-      REAL(fpp), PARAMETER     :: C_doc     = 1.5e+0_fpp 
-      !REAL(fpp), PARAMETER     :: k_radbase = 1.73d-6    
+      REAL(fpp), PARAMETER :: EC_w      = 0.0145e+0_fpp       
+      REAL(fpp), PARAMETER :: EC_doc    = 0.654e+0_fpp
+      REAL(fpp), PARAMETER :: C_doc     = 1.5e+0_fpp 
+      !REAL(fpp), PARAMETER :: k_radbase = 1.73d-6    
       !decrease photoreduction in atm & surf ocean
       ! per H. Amos 23 Sep 2011 to multiply by 0.9e+0_fpp
       ! implemented by eck 10/19/11
-      REAL(fpp), PARAMETER     :: k_radbase = 1.557e-6_fpp
-      REAL(fpp), PARAMETER     :: k_biobase = 4.1e-10_fpp    
-      REAL(fpp), PARAMETER     :: k_oxbase  = 6.64e-6_fpp 
-#if defined ( LINUX_PGI )
-      REAL(fpp), PARAMETER     :: Kd_part   = 316227.76601684
-#else
-      REAL(fpp), PARAMETER     :: Kd_part   = 10e+0_fpp**(5.5e+0_fpp)
-#endif
-      REAL(fpp), PARAMETER     :: k_ox_dark = 1e-7_fpp  
-      REAL(fpp), PARAMETER     :: ECchla    = 31e+0_fpp     
+      REAL(fpp), PARAMETER :: k_radbase = 1.557e-6_fpp
+      REAL(fpp), PARAMETER :: k_biobase = 4.1e-10_fpp    
+      REAL(fpp), PARAMETER :: k_oxbase  = 6.64e-6_fpp 
+      REAL(fpp), PARAMETER :: ECchla    = 31e+0_fpp     
 
       ! Conversion factor from [cm/h * ng/L] --> [kg/m2/s]
-      REAL(fpp),  PARAMETER    :: TO_KGM2S = 1.0e-11_fpp / 3600e+0_fpp 
+      REAL(fpp), PARAMETER :: TO_KGM2S = 1.0e-11_fpp / 3600e+0_fpp 
 
       ! Small numbers to avoid dividing by zero
-      REAL(fpp),  PARAMETER   :: SMALLNUM   = 1e-32_fpp
-      REAL(fpp),  PARAMETER   :: NPPMINNUM   = 5e-2_fpp       
-      REAL(fpp),  PARAMETER   :: CHLMINNUM   = 1e-1_fpp       
+      REAL(fpp), PARAMETER :: SMALLNUM   = 1e-32_fpp
+      REAL(fpp), PARAMETER :: NPPMINNUM   = 5e-2_fpp       
+      REAL(fpp), PARAMETER :: CHLMINNUM   = 1e-1_fpp       
 
       ! For values from Input_Opt
-      LOGICAL         :: LSPLIT
-      INTEGER         :: N_TRACERS
-      REAL(fpp)          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+      LOGICAL              :: LSPLIT
+      INTEGER              :: N_TRACERS
+      REAL(fpp)            :: TRACER_MW_KG(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fpp), POINTER :: STT(:,:,:,:)
+      REAL(fpp), POINTER   :: STT(:,:,:,:)
+
+      ! when LOCEANCOEF is true, use Kd_part and k_ox_dark from 
+      ! Song et al. ACP 2015, otherwise use ocean coefficients from 
+      ! Soerensen et al. EST 2010 ! sjs,08/12/2015
+#if defined ( LINUX_PGI )
+      IF (LOCEANCOEF) THEN
+         Kd_part = 15848.93192461
+      ELSE
+         Kd_part = 316227.76601684
+      ENDIF
+#else
+      IF (LOCEANCOEF) THEN
+         Kd_part = 10d0**(4.2d0)
+      ELSE
+         Kd_part = 10d0**(5.5d0)
+      ENDIF
+#endif
+
+      IF (LOCEANCOEF) THEN
+         k_ox_dark = 10d0**(-5.2d0)
+      ELSE
+         k_ox_dark = 1d-7  
+      ENDIF
 
       !=================================================================
       ! OCEAN_MERCURY_FLUX begins here!
@@ -2227,10 +2247,10 @@
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) I      (INTEGER) : GEOS-CHEM longitude index
-!  (2 ) J      (INTEGER) : GEOS-CHEM latitude index
-!  (3 ) MLDold (REAL(fpp) ) : Old ocean mixed layer depth [m]
-!  (4 ) MLDnew (REAL(fpp) ) : New ocean mixed layer depth [m]
+!  (1 ) I      (INTEGER)  : GEOS-CHEM longitude index
+!  (2 ) J      (INTEGER)  : GEOS-CHEM latitude index
+!  (3 ) MLDold (REAL(fpp)): Old ocean mixed layer depth [m]
+!  (4 ) MLDnew (REAL(fpp)): New ocean mixed layer depth [m]
 !
 !  NOTES:
 !  (1 ) Now use MERRA land fraction information (jaf, 4/26/11)
@@ -2260,20 +2280,20 @@
       
       ! Arguments
       INTEGER,        INTENT(IN)  :: I, J 
-      REAL(fpp),         INTENT(IN)  :: MLDold, MLDnew  
+      REAL(fpp),      INTENT(IN)  :: MLDold, MLDnew  
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       INTEGER               :: C,    NN,     N_tot_oc    
       INTEGER               :: K, L
-      REAL(fpp)                :: A_M2, DELTAH, FRAC_O,  MHg
-      REAL(fpp)                :: X, Y                   !(added anls 01/05/09)
+      REAL(fpp)             :: A_M2, DELTAH, FRAC_O,  MHg
+      REAL(fpp)             :: X, Y                   !(added anls 01/05/09)
 
       ! For fields from Input_Opt
       LOGICAL               :: LSPLIT
       INTEGER               :: N_TRACERS
-      REAL(fpp)                :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+      REAL(fpp)             :: TRACER_MW_KG(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! MLD_ADJUSTMENT begins here!
@@ -2613,7 +2633,7 @@
       LOGICAL             :: LFUTURE
       INTEGER             :: N_TRACERS
       CHARACTER(LEN=14)   :: TRACER_NAME(Input_Opt%N_TRACERS)
-      REAL(fpp)              :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+      REAL(fpp)           :: TRACER_MW_KG(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! READ_OCEAN_Hg_RESTART begins here!
@@ -3121,19 +3141,19 @@
       USE TRACERID_MOD,        ONLY : ID_Hg0,    ID_Hg2,   ID_HgP
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
 
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD              ! Size parameters
 
       ! Arguments as Input
-      CHARACTER(LEN=*), INTENT(IN) :: LOC
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      CHARACTER(LEN=*), INTENT(IN)    :: LOC
+      TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
       LOGICAL                      :: FLAG
       INTEGER                      :: I,       J,       L
       INTEGER                      :: N,       NN
-      REAL(fpp)                   :: Hg0_tot, Hg0_tag, RELERR0, ABSERR0
-      REAL(fpp)                   :: Hg2_tot, Hg2_tag, RELERR2, ABSERR2
-      REAL(fpp)                   :: HgP_tot, HgP_tag, RELERRP, ABSERRP
+      REAL(fpp)                    :: Hg0_tot, Hg0_tag, RELERR0, ABSERR0
+      REAL(fpp)                    :: Hg2_tot, Hg2_tag, RELERR2, ABSERR2
+      REAL(fpp)                    :: HgP_tot, HgP_tag, RELERRP, ABSERRP
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -3318,7 +3338,7 @@
       USE ERROR_MOD,           ONLY : ERROR_STOP
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
 
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD              ! Size parameters
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: LOC
@@ -3327,8 +3347,8 @@
       LOGICAL, SAVE                :: FIRST = .TRUE.
       LOGICAL                      :: FLAG
       INTEGER                      :: I,       J
-      REAL(fpp)                   :: Hg0_tot, Hg0_tag, RELERR0, ABSERR0
-      REAL(fpp)                   :: Hg2_tot, Hg2_tag, RELERR2, ABSERR2
+      REAL(fpp)                    :: Hg0_tot, Hg0_tag, RELERR0, ABSERR0
+      REAL(fpp)                    :: Hg2_tot, Hg2_tag, RELERR2, ABSERR2
 
       !=================================================================
       ! CHECK_OCEAN_MERCURY begins here!
@@ -3434,10 +3454,10 @@
       ! Local variables
       LOGICAL                      :: FLAG
       INTEGER                      :: I,         J
-      REAL(fpp)                       :: DD_tot,    DD_tag 
-      REAL(fpp)                       :: DD_RELERR, DD_ABSERR      
-      REAL(fpp)                       :: WD_tot,    WD_tag
-      REAL(fpp)                       :: WD_RELERR, WD_ABSERR
+      REAL(fpp)                    :: DD_tot,    DD_tag 
+      REAL(fpp)                    :: DD_RELERR, DD_ABSERR      
+      REAL(fpp)                    :: WD_tot,    WD_tag
+      REAL(fpp)                    :: WD_RELERR, WD_ABSERR
 
       !=================================================================
       ! CHECK_OCEAN_MERCURY begins here!
@@ -3531,7 +3551,7 @@
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) FLUX (REAL(fpp))   : Flux array (output of OCEAN_MERCURY_FLUX)
+!  (1 ) FLUX (REAL(fpp)): Flux array (output of OCEAN_MERCURY_FLUX)
 !  (2 ) LOC (CHARACTER) : Name of routine where CHECK_FLUX_OUT is called
 !
 !  NOTES:
@@ -3541,17 +3561,17 @@
       USE ERROR_MOD,           ONLY : ERROR_STOP
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
 
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD              ! Size parameters
 
       ! Arguments
-      REAL(fpp),         INTENT(IN) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)       
+      REAL(fpp),        INTENT(IN) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)       
       CHARACTER(LEN=*), INTENT(IN) :: LOC
 
       ! Local variables
       LOGICAL                      :: FLAG
       INTEGER                      :: I,          J
-      REAL(fpp)                       :: FLX_tot,    FLX_tag
-      REAL(fpp)                       :: FLX_RELERR, FLX_ABSERR
+      REAL(fpp)                    :: FLX_tot,    FLX_tag
+      REAL(fpp)                    :: FLX_RELERR, FLX_ABSERR
 
       !=================================================================
       ! CHECK_FLUX_OUT begins here!
