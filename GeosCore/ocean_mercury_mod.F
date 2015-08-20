@@ -232,6 +232,8 @@
       REAL(f4), POINTER :: MLD   (:,:) => NULL()
       REAL(f4), POINTER :: NPP   (:,:) => NULL()
       REAL(f4), POINTER :: UPVEL (:,:) => NULL()
+      REAL(f4), POINTER :: dMLD1 (:,:) => NULL()
+      REAL(f4), POINTER :: dMLD2 (:,:) => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -540,7 +542,7 @@
         !       (hma, 20120104)
         ! 0..5x0.666 file is regridded from 4x5 file, yzh, 12/15/12
 #if defined( GRID4x5 ) || defined( GRID05x0666 )
-        BULK_CONC(I,J,L) = 1e+9_fpp * ( BULK_CONC(I,J,L) *
+        BULK_CONC(I,J,L) = ( BULK_CONC(I,J,L) *
      &                     State_Met%AIRDEN(I,J,L)  )
 #elif defined( GRID2x25 )
         BULK_CONC(I,J,L) = ( BULK_CONC(I,J,L) * State_Met%AIRDEN(I,J,L))
@@ -912,7 +914,7 @@
       ENDIF
 
       !-----------------------------------------------
-      ! Read monthly NPP, RADSW, MLD, UPVEL data
+      ! Read monthly NPP, RADSW, MLD, UPVEL, dMLD data
       !-----------------------------------------------
       IF ( ITS_A_NEW_MONTH() ) THEN
 
@@ -927,28 +929,33 @@
 
       !eds 10/19/10
       IF ( FIRST ) THEN
-         CALL GET_MLD_FOR_LAST_MONTH
-     &      ( am_I_Root, Input_Opt, THISMONTH, RC )
+!         CALL GET_MLD_FOR_LAST_MONTH
+!     &      ( am_I_Root, Input_Opt, THISMONTH, RC )
+         MLDav = MLD
          FIRST = .FALSE.
       ENDIF
 
-
+      
       !-----------------------------------------------
       ! MLD and entrainment change in middle of month
       !-----------------------------------------------
-      IF ( ITS_MIDMONTH() ) THEN
+      
+      dMLD = dMLD1 
 
+      IF ( ITS_MIDMONTH() ) THEN
+         
+         dMLD = dMLD2
          ! Get current month
-         THISMONTH = GET_MONTH()
+!         THISMONTH = GET_MONTH()
 
 !--jaf.start
          ! Get current year to check if leap year (jaf, 7/6/11)
-         THISYEAR = GET_YEAR()
+!         THISYEAR = GET_YEAR()
 
          ! Read next month's MLD
          !CALL GET_MLD_FOR_NEXT_MONTH( THISMONTH )
-         CALL GET_MLD_FOR_NEXT_MONTH
-     &        ( am_I_Root, Input_Opt, THISMONTH, THISYEAR, RC )
+!         CALL GET_MLD_FOR_NEXT_MONTH
+!     &        ( am_I_Root, Input_Opt, THISMONTH, THISYEAR, RC )
 !--jaf.end
          
       ENDIF
@@ -1930,6 +1937,29 @@
          CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_EKMAN_V', LOC )
       ENDIF
 
+      !-----------------------------------------------------------------
+      ! MLD tendency, first half of month [cm/s]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_dMLD1', dMLD1, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to dMLD1', LOC )
+      ENDIF
+
+       ! Convert [m/s] to [cm/s]
+      dMLD1 = dMLD1 * 100e+0_f4
+
+      !-----------------------------------------------------------------
+      ! MLD tendency, second half of month [cm/s]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_dMLD2', dMLD2, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to dMLD2', LOC )
+      ENDIF
+
+      ! Convert [m/s] to [cm/s]
+      dMLD2 = dMLD2 * 100e+0_f4
+
+      
       ! Return to calling program
       END SUBROUTINE OCEAN_MERCURY_READ
 
@@ -2163,15 +2193,19 @@
       prevMLD = prevMLD * 100e+0_fpp
 
       ! get rate of change of MLD; convert [cm/month] -> [cm/s]
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         dMLD(I,J) = (MLD(I,J) - prevMLD(I,J)) / (3.6e+3_fpp 
-     &             * 24e+0_fpp * 30.5e+0_fpp)
+   !   DO J = 1, JJPAR
+   !   DO I = 1, IIPAR
+   !      dMLD(I,J) = (MLD(I,J) - prevMLD(I,J)) / (3.6e+3_fpp 
+   !  &             * 24e+0_fpp * 30.5e+0_fpp)
          ! set current MLD to intermediate b/w last month and this month
-         MLDav(I,J) = prevMLD(I,J) + 0.5e+0_fpp * (MLD(I,J) - 
-     &                prevMLD(I,J))
-      ENDDO
-      ENDDO
+   !      MLDav(I,J) = prevMLD(I,J) + 0.5e+0_fpp * (MLD(I,J) - 
+   !  &                prevMLD(I,J))
+   !   ENDDO
+   !   ENDDO
+
+      ! add Shaojie bug-fix for hot spots
+      MLDav = MLD
+      dMlD = 0.0e+0_fpp
 
 
       ! Return to calling program
@@ -3796,6 +3830,8 @@
       MLD   => NULL()
       NPP   => NULL()
       UPVEL => NULL()
+      dMLD1 => NULL()
+      dMLD2 => NULL()
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_OCEAN_MERCURY

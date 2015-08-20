@@ -4964,7 +4964,7 @@
       LNEI2005=.TRUE.
 
       ! Switch modifying the speciation profile of Hg emission
-      LInPlume=.TRUE.
+      LInPlume=.FALSE.
 
       ! no Hg emitted through transpiration (VEGEMIS off)
       LVEGEMIS=.FALSE.
