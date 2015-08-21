@@ -1104,7 +1104,8 @@
          NPP_tot = NPP_tot + NPP(I,J) * A_M2 * State_Met%FROCEAN(I,J)
          A_ocean = A_ocean + A_M2 * State_Met%FROCEAN(I,J)
          IF ( Y >= 70 ) THEN
-         IF ( (State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J)) > 0d0 )
+         !IF ( (State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J)) > 0d0 )
+         IF ( State_Met%FROCEAN(I,J) > 0d0 )
      &      A_ARCTIC_OCEAN = A_ARCTIC_OCEAN + A_M2 
      &                     * State_Met%FROCEAN(I,J)
          ENDIF
