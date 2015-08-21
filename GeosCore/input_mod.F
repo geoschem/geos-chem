@@ -3704,7 +3704,7 @@
       ! Also pass the chemistry timestep value directly to module
       ! GeosUtil/time_mod.F via subroutine ACCEPT_EXTERNAL_DATE_TIME.
       !
-      ! Ideallly it would be good to have one single version of 
+      ! Ideally it would be good to have one single version of 
       ! "input.geos" that can double as the GEOS-Chem input file as 
       ! well as the ESMF resource.  We may be a way off from that.
       ! One potential solution is to use a Perl script to generate
@@ -3720,6 +3720,9 @@
       !-----------------------------------------------------------------
       
       ! Save to local variables for printing below
+      ! In GCHP, this is irrelevant since dynamics is a separate ESMF
+      ! component. It's settings cannot be controlled through the
+      ! chemistry component (where we are now) - MSL.
       TS_DYN                = Input_Opt%TS_DYN
 #else
       !-----------------------------------------------------------------
@@ -3734,9 +3737,11 @@
 #endif
 
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error
+      IF ( .not. Input_Opt%HPC ) THEN
       IF ( Input_Opt%TS_DYN > MAX_DYN .and. LTRAN ) THEN
-         MSG = 'Transport timestep is too big!'
+         write(*,*) '<>', Input_Opt%TS_DYN, Input_Opt%HPC
          CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
       ENDIF
 
       ! Return success

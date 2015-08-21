@@ -188,7 +188,8 @@
 !      CALL COMPUTE_PBL_HEIGHT( State_Met )
 
       ! Do complete mixing of tracers in the PBL (if necessary)
-      IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV, State_Met )
+      IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV, 
+     &                                Input_Opt, State_Met  )
 
       ! Free pointer
       NULLIFY( STT )
@@ -430,11 +431,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TURBDAY( NTRC, TC, TCVV, State_Met )              
+      SUBROUTINE TURBDAY( NTRC, TC, TCVV, Input_Opt, State_Met )              
 !
 ! !USES:
 !
       USE DIAG_MOD,           ONLY : TURBFLUP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CONV
 
@@ -451,6 +453,7 @@
 
       ! Meteorology State object
       TYPE(MetState), INTENT(IN)    :: State_Met
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -539,7 +542,7 @@
       !=================================================================
 
       ! First-time initialization
-      IF ( FIRST ) THEN
+      IF ( FIRST .and. Input_Opt%RootCPU ) THEN
 
          ! Echo info
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
