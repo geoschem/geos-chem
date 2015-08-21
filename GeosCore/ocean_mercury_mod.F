@@ -1386,15 +1386,16 @@
 
             ! For most of globe, log10(Kd)=5.5, see Soerensen et al. 2010
             ! For Arctic, log10(Kd)=5.0, see Fisher et al. 2012 (jaf, 3/23/12)
+            ! For Arctic, now use log10(Kd)=4.5 to match Fisher et al. (2013)
 #if defined ( LINUX_PGI )
             IF ( Y >=  70.0 ) THEN
-               kd_part = 1.0d5
+               kd_part = 31622.776601684
             ELSE
                Kd_part = 316227.76601684
             ENDIF 
 #else
             IF ( Y >=  70.0 ) THEN
-               kd_part = 1.0d5
+               Kd_part = 10d0**(4.5d0)
             ELSE
                Kd_part = 10d0**(5.5d0)
             ENDIF 
