@@ -180,6 +180,7 @@
 #  03 Aug 2015 - M. Sulprizio- NEST=cu to now sets CPP switch w/ -DNESTED_CU for
 #                              custom nested grids
 #  11 Aug 2015 - R. Yantosca - Add MERRA2 as a met field option
+#  24 Aug 2015 - R. Yantosca - Bug fix: Add missing | when testing USER_DEFS
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -479,7 +480,7 @@ ifndef NO_MET_NEEDED
   endif
 
   # %%%%% ERROR CHECK!  Make sure our MET selection is valid! %%%%%
-  REGEXP             :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP\-DMERRA2)
+  REGEXP             :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP|\-DMERRA2)
   ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
     $(error $(ERR_MET))
   endif
