@@ -36,6 +36,11 @@ MODULE GIGC_Input_Opt_Mod
      ! General Runtime & Distributed Comp Info
      !----------------------------------------
      INTEGER                     :: NPES      ! Number of MPI procs
+     INTEGER                     :: myCpu     ! Local MPI process handle
+     INTEGER                     :: MPICOMM   ! MPI Communicator Handle
+     LOGICAL                     :: HPC       ! Is this an HPC (ESMF or otherwise) sim?
+     LOGICAL                     :: RootCPU   ! Is this the root cpu?
+     
 
      !----------------------------------------
      ! SIZE PARAMETER fields
@@ -631,7 +636,6 @@ MODULE GIGC_Input_Opt_Mod
      ! Fields for interface to GEOS-5 GCM
      !----------------------------------------
      LOGICAL                     :: haveImpRst
-     INTEGER                     :: myCpu
 
      !----------------------------------------
      ! Fields for LINOZ strat chem
@@ -782,6 +786,14 @@ CONTAINS
     ! Assume success
     RC                               = GIGC_SUCCESS
 
+    !----------------------------------------
+    ! General Runtime & Distributed Comp Info
+    !----------------------------------------
+    Input_Opt%NPES                   = 1       ! Assume Serial Sim.
+    Input_Opt%HPC                    = .false. ! Assume Serial Sim.
+    Input_Opt%myCpu                  = -1
+    Input_Opt%RootCPU                = .false.
+    
     !----------------------------------------
     ! SIZE PARAMETER fields 
     !----------------------------------------
@@ -1436,7 +1448,6 @@ CONTAINS
     ! Fields for interface to GEOS-5 GCM
     !----------------------------------------
     Input_Opt%haveImpRst             = .FALSE.
-    Input_Opt%myCpu                  = -1
 
 
     !----------------------------------------
