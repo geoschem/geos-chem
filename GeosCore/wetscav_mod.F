@@ -2440,7 +2440,7 @@
             ! Ma et al and Del_H the same as pyrene for now)
             CALL COMPUTE_L2G( 1e+0_fp / Input_Opt%POP_HSTAR /
      &                        8.21e-2_fp / 298e+0_fp,
-                              -Input_Opt%POP_DEL_Hw / 8.32d-3, 
+     &                        -Input_Opt%POP_DEL_Hw / 8.32d-3, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of POP in liquid phase 
@@ -5312,7 +5312,7 @@
       ! WASHFRAC_COARSE_AEROSOL begins here!
       !=================================================================
 
-      IF ( TK >= 268e+0_fp .OR. ITS_A_POPS_SIM() ) THEN
+      IF ( TK >= 268e+0_fp .OR. ITS_A_POPS_SIM ) THEN
 
          !---------------------------------
          ! T >= 268K (or POPS simulation)  

@@ -1527,25 +1527,20 @@
             ! POPs
             ! (eck, 9/20/10); (clf, 2/11/2011)
             !--------------------------------
-            CASE ( 'POPG' )
-               COUNT     = COUNT+1              
-               IDTPOPG         = N
+            CASE ( 'POPG'     )
+               IDTPOPG      = N
                
             CASE ( 'POPPOCPO' )
-               COUNT     = COUNT+1
-               IDTPOPPOCPO     = N
+               IDTPOPPOCPO  = N
 
             CASE ( 'POPPOCPI' )
-               COUNT     = COUNT+1
-               IDTPOPPOCPI     = N
+               IDTPOPPOCPI  = N
 
             CASE ( 'POPPBCPO' )
-               COUNT     = COUNT+1
-               IDTPOPPBCPO       = N
+               IDTPOPPBCPO  = N
 
             CASE ( 'POPPBCPI' )
-               COUNT     = COUNT+1
-               IDTPOPPBCPI       = N
+               IDTPOPPBCPI  = N
 
 #if   defined( TOMAS )
             !-----------------------------------

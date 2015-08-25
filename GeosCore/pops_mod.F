@@ -94,6 +94,10 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE DRYDEP_MOD,         ONLY : DRYPOPG
+      USE DRYDEP_MOD,         ONLY : DRYPOPP_OCPO, DRYPOPP_BCPO
+      USE DRYDEP_MOD,         ONLY : DRYPOPP_OCPI, DRYPOPP_BCPI
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
@@ -202,7 +206,7 @@
          ! Dry deposition occurs with PBL mixing,
          ! pass zero deposition frequency
          CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL,
-                          ZERO_DVEL, ZERO_DVEL,
+     &                    ZERO_DVEL, ZERO_DVEL,
      &                    am_I_Root, Input_Opt, State_Met,
      &                    State_Chm, RC )
          
@@ -300,7 +304,7 @@
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
      &                       DEPSAV(:,:,DRYPOPP_BCPO),
-     &                       DEPSAV(:,:,DRYPOPP_BCPI)),
+     &                       DEPSAV(:,:,DRYPOPP_BCPI),
      &                       am_I_Root, Input_Opt, State_Met,
      &                       State_Chm, RC )
 
@@ -465,6 +469,7 @@
       REAL(fp)          :: F_POP_G
       REAL(fp)          :: MPOP_OCPO,     MPOP_BCPO,   MPOP_G
       REAL(fp)          :: MPOP_OCPI,     MPOP_BCPI
+      REAL(fp)          :: MPOP_OC,       MPOP_BC
       REAL(fp)          :: DIFF_G,        DIFF_OC,     DIFF_BC
       REAL(fp)          :: OC_AIR_RATIO,  OC_BC_RATIO, BC_AIR_RATIO
       REAL(fp)          :: BC_OC_RATIO,   SUM_DIFF
@@ -1297,12 +1302,6 @@
          !==============================================================
 
          IF ( ND53 > 0 .AND. L <= LD53 ) THEN ! LD53 is max level
-
-            AD53_POPG_OH(I,J,L)    = AD53_POPG_OH(I,J,L) + GROSS_OX
-            AD53_POPP_OC_O3(I,J,L) = AD53_POPP_OC_O3(I,J,L) + 
-     &                               GROSS_OX_OC
-            AD53_POPP_BC_O3(I,J,L) = AD53_POPP_BC_O3(I,J,L) + 
-     &                               GROSS_OX_BC
 
             ! OH:
             AD53_POPG_OH(I,J,L) = AD53_POPG_OH(I,J,L) + GROSS_OX_OH
