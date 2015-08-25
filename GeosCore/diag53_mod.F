@@ -208,120 +208,17 @@
          ! Get ND53 tracer #
          N = TINDEX(53,M)
 
-         !-----------------------------------
-         ! #1 POPs emissions
-         ! N = 1-7 are now tracked by HEMCO
-         ! and handled in diag3.F
-         !-----------------------------------
+         !--------------------------------------------------------------
+         ! POPs emissions
+         !
+         ! N = 1-16 are now tracked by HEMCO and saved out in diag3.F
+         !--------------------------------------------------------------
 
-         ! Pick the proper array & dimensions
-         IF ( N == 8) THEN
-               
-            !--------------------------------
-            ! #2 Secondary gas phase positive soil POP fluxes
-            !--------------------------------
-            CATEGORY          = 'PG-SRCE'
-            UNIT              = 'ng/m2/day'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD53(:,:,N) / SCALE
+         IF ( N == 17  ) THEN
 
-
-         ELSE IF ( N == 9  ) THEN
-
-            !--------------------------------
-            ! #2 Secondary gas phase negative soil POP fluxes
-            !--------------------------------
-            CATEGORY          = 'PG-SRCE'
-            UNIT              = 'ng/m2/day'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD53(:,:,N) / SCALE
-
-         ELSE IF ( N == 10 ) THEN
-               
-            !--------------------------------
-            ! #2 Secondary gas phase positive lake POP fluxes
-            !--------------------------------
-            CATEGORY          = 'PG-SRCE'
-            UNIT              = 'ng/m2/day'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD53(:,:,N) / SCALE
-
-
-         ELSE IF ( N == 11  ) THEN
-
-            !--------------------------------
-            ! #2 Secondary gas phase negative lake POP fluxes
-            !--------------------------------
-            CATEGORY          = 'PG-SRCE'
-            UNIT              = 'ng/m2/day'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD53(:,:,N) / SCALE
-
-         ELSE IF ( N == 12 ) THEN
-               
-            !--------------------------------
-            ! #2 Secondary gas phase positive leaf surface POP fluxes
-            !--------------------------------
-            CATEGORY          = 'PG-SRCE'
-            UNIT              = 'ng/m2/day'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD53(:,:,N) / SCALE
-
-
-         ELSE IF ( N == 13  ) THEN
-
-            !--------------------------------
-            ! #2 Secondary gas phase negative leaf surface POP fluxes
-            !--------------------------------
-            CATEGORY          = 'PG-SRCE'
-            UNIT              = 'ng/m2/day'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD53(:,:,N) / SCALE
-
-         ELSE IF ( N == 14  ) THEN
-
-            !--------------------------------
-            ! #2 fugacity ratios for soils (soil/air)
-            !--------------------------------
-            CATEGORY          = 'PG-SRCE'
-            UNIT              = 'unitless'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD53(:,:,N) / SCALE
-
-         ELSE IF ( N == 15 ) THEN
-
-            !--------------------------------
-            ! #2 fugacity ratios for lakes (water/air)
-            !--------------------------------
-            CATEGORY          = 'PG-SRCE'
-            UNIT              = 'unitless'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD53(:,:,N) / SCALE
-
-         ELSE IF ( N == 16 ) THEN
-
-            !--------------------------------
-            ! #2 fugacity ratios for leaves (leaf surface/air)
-            !--------------------------------
-            CATEGORY          = 'PG-SRCE'
-            UNIT              = 'unitless'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD53(:,:,N) / SCALE
-
-         ELSE IF ( N == 17  ) THEN
-
-            !--------------------------------
-            ! #3 New gas phase from OC (negative formation of OC)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! New gas phase from OC (negative formation of OC)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
@@ -330,9 +227,9 @@
 
          ELSE IF ( N == 18  ) THEN
 
-            !--------------------------------
-            ! #4 New OC phase from gas (positive formation of OC)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! New OC phase from gas (positive formation of OC)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
@@ -341,9 +238,9 @@
 
          ELSE IF ( N == 19  ) THEN
 
-            !--------------------------------
-            ! #5 New gas phase from BC (negative formation of BC)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! New gas phase from BC (negative formation of BC)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
@@ -352,9 +249,9 @@
 
          ELSE IF ( N == 20 ) THEN
 
-            !--------------------------------
-            ! #6 New BC phase from gas (positive formation of BC)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! New BC phase from gas (positive formation of BC)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
@@ -364,9 +261,9 @@
 
          ELSE IF ( N == 21  ) THEN
 
-            !--------------------------------
-            ! #7 Production of oxidized POPG from rxn with OH (clf, 1/27/11)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! Production of oxidized POPG from rxn with OH (clf, 1/27/11)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
@@ -375,9 +272,9 @@
 
          ELSE IF ( N == 22  ) THEN
 
-            !--------------------------------
-            ! #8 Production of oxidized POPOCPO from rxn with O3 (clf, 6/28/11)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! Production of oxidized POPOCPO from rxn with O3 (clf, 6/28/11)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
@@ -386,9 +283,9 @@
 
          ELSE IF ( N == 23  ) THEN
 
-            !--------------------------------
-            ! #9 Production of oxidized POPOCPI from rxn with O3 (clf, 6/28/11)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! Production of oxidized POPOCPI from rxn with O3 (clf, 6/28/11)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
@@ -397,9 +294,9 @@
 
          ELSE IF ( N == 24  ) THEN
 
-            !--------------------------------
-            ! #10 Production of oxidized POPBCPO from rxn with O3 (clf, 6/28/11)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! Production of oxidized POPBCPO from rxn with O3 (clf, 6/28/11)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
@@ -408,9 +305,9 @@
 
          ELSE IF ( N == 25  ) THEN
 
-            !--------------------------------
-            ! #11 Production of oxidized POPBCPI from rxn with O3 (clf, 6/28/11)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! Production of oxidized POPBCPI from rxn with O3 (clf, 6/28/11)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
@@ -419,9 +316,9 @@
 
          ELSE IF ( N == 26  ) THEN
 
-            !--------------------------------
-            ! #12 Production of oxidized POPOCPO from rxn with NO3 (clf, 6/28/11)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! Production of oxidized POPOCPO from rxn with NO3 (clf, 6/28/11)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
@@ -430,9 +327,9 @@
 
          ELSE IF ( N == 27  ) THEN
 
-            !--------------------------------
-            ! #9 Production of oxidized POPOCPI from rxn with NO3 (clf, 6/28/11)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! Production of oxidized POPOCPI from rxn with NO3 (clf, 6/28/11)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
@@ -441,9 +338,9 @@
 
          ELSE IF ( N == 28  ) THEN
 
-            !--------------------------------
-            ! #10 Production of oxidized POPBCPO from rxn with NO3 (clf, 6/28/11)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! Production of oxidized POPBCPO from rxn with NO3 (clf, 6/28/11)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
@@ -452,9 +349,9 @@
 
          ELSE IF ( N == 29  ) THEN
 
-            !--------------------------------
-            ! #11 Production of oxidized POPBCPI from rxn with NO3 (clf, 6/28/11)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! Production of oxidized POPBCPI from rxn with NO3 (clf, 6/28/11)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
@@ -463,9 +360,7 @@
   
          ELSE
 
-            !--------------------------------
             ! Otherwise skip to next N
-            !--------------------------------
             CYCLE
 
          ENDIF

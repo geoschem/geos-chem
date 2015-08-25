@@ -382,6 +382,9 @@ CONTAINS
        ExtState%POP_DEL_H   = Input_Opt%POP_DEL_H
        ExtState%POP_KOA     = Input_Opt%POP_KOA
        ExtState%POP_KBC     = Input_Opt%POP_KBC
+       ExtState%POP_DEL_Hw  = Input_Opt%POP_DEL_Hw
+       ExtState%POP_XMW     = Input_Opt%POP_XMW
+       ExtState%POP_HSTAR   = Input_Opt%POP_HSTAR
     ENDIF
 
     !-----------------------------------------------------------------
@@ -1024,6 +1027,9 @@ CONTAINS
     USE Get_Ndep_Mod,          ONLY : DRY_TOTN
     USE Get_Ndep_Mod,          ONLY : WET_TOTN
 
+    ! For POPs
+    USE TRACERID_MOD,          ONLY : IDTPOPG
+
 #if !defined(ESMF_)
     USE MODIS_LAI_MOD,         ONLY : GC_LAI
 #endif
@@ -1104,9 +1110,15 @@ CONTAINS
             'ALBD',  HCRC,      FIRST,    State_Met%ALBD )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
+#if defined ( GCAP )
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%WLI, &
+             'WLI',  HCRC,      FIRST,    State_Met%LWI_GISS  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+#else
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%WLI, &
              'WLI',  HCRC,      FIRST,    State_Met%LWI  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
+#endif
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%T2M, &
              'T2M',  HCRC,      FIRST,    State_Met%TS   )
@@ -1140,6 +1152,10 @@ CONTAINS
             'PARDF', HCRC,      FIRST,    State_Met%PARDF  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%PSC2, &
+             'PSC2', HCRC,      FIRST,    State_Met%PSC2  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%RADSWG, &
            'RADSWG', HCRC,      FIRST,    State_Met%RADSWG  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
@@ -1152,7 +1168,7 @@ CONTAINS
             'CLDFRC', HCRC,      FIRST,    State_Met%CLDFRC  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
-#if   defined( GEOS_4 ) 
+#if defined( GEOS_4 ) 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNOWHGT, &
           'SNOWHGT', HCRC,      FIRST,    State_Met%SNOW     )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
@@ -1160,8 +1176,19 @@ CONTAINS
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNODP, &
             'SNODP', HCRC,      FIRST,    State_Met%SNOW   )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
-#else
+#elif defined ( GCAP )
+   CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNOWHGT, &
+         'SNOWHGT', HCRC,      FIRST,    State_Met%SNOW     )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNODP, &
+            'SNODP', HCRC,      FIRST,    State_Met%SNOW   )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNICE, &
+            'SNICE', HCRC,      FIRST,    State_Met%SNICE  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+#else
     ! SNOWHGT is is mm H2O, which is the same as kg H2O/m2.
     ! This is the unit of SNOMAS.
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNOWHGT, &
@@ -1202,7 +1229,7 @@ CONTAINS
 #endif
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%CHLR, &
-              'CHLR', HCRC,      FIRST,   GC_CHLR         )
+             'CHLR', HCRC,      FIRST,   GC_CHLR          )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
 
@@ -1247,6 +1274,11 @@ CONTAINS
     IF ( IDTHNO3 > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%HNO3, &
           'HEMCO_HNO3', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTHNO3))
+       IF ( HCRC /= HCO_SUCCESS ) RETURN
+    ENDIF
+    IF ( IDTPOPG > 0 ) THEN
+       CALL ExtDat_Set( am_I_Root, HcoState, ExtState%POPG, &
+          'HEMCO_POPG', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTPOPG))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
 

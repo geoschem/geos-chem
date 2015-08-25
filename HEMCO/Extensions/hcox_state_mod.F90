@@ -135,6 +135,7 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: GWETTOP     ! Top soil moisture [-]
      TYPE(ExtDat_2R),  POINTER :: SNOWHGT     ! Snow height [mm H2O = kg H2O/m2]
      TYPE(ExtDat_2R),  POINTER :: SNODP       ! Snow depth [m ] 
+     TYPE(ExtDat_2R),  POINTER :: SNICE       ! Fraction of snow/ice [1]
      TYPE(ExtDat_2R),  POINTER :: USTAR       ! Friction velocity [m/s] 
      TYPE(ExtDat_2R),  POINTER :: Z0          ! Sfc roughness height [m]
      TYPE(ExtDat_2R),  POINTER :: TROPP       ! Tropopause pressure [Pa] 
@@ -142,6 +143,7 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: SZAFACT     ! current SZA/total daily SZA
      TYPE(ExtDat_2R),  POINTER :: PARDR       ! direct photsyn radiation [W/m2]
      TYPE(ExtDat_2R),  POINTER :: PARDF       ! diffuse photsyn radiation [W/m2]
+     TYPE(ExtDat_2R),  POINTER :: PSC2        ! Interpolated sfc pressure [hPa]
      TYPE(ExtDat_2R),  POINTER :: RADSWG      ! surface radiation [W/m2]
      TYPE(ExtDat_2R),  POINTER :: FRCLND      ! Olson land fraction [-] 
      TYPE(ExtDat_2R),  POINTER :: FRLAND      ! land fraction [-] 
@@ -164,6 +166,7 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_3R),  POINTER :: NO          ! NO mass [kg]
      TYPE(ExtDat_3R),  POINTER :: NO2         ! NO2 mass [kg]
      TYPE(ExtDat_3R),  POINTER :: HNO3        ! HNO3 mass [kg]
+     TYPE(ExtDat_3R),  POINTER :: POPG        ! POPG mass [kg]
 
      !----------------------------------------------------------------------
      ! Deposition parameter
@@ -183,8 +186,11 @@ MODULE HCOX_STATE_MOD
      ! Constants for POPs emissions module
      !----------------------------------------------------------------------
      REAL(dp)                  :: POP_DEL_H   ! Delta H [J/mol]
+     REAL(dp)                  :: POP_DEL_Hw  ! Delta Hw [J/mol]
+     REAL(dp)                  :: POP_HSTAR   ! Henry's law constant [atm/M/L]
      REAL(dp)                  :: POP_KOA     ! POP octanol-water partition coef
      REAL(dp)                  :: POP_KBC     ! POP BC-air partition coeff.
+     REAL(dp)                  :: POP_XMW     ! POP molecular weight [kg/mol]
 
      !----------------------------------------------------------------------
      ! Fields used in ESMF environment only. These arrays won't be used
@@ -313,8 +319,11 @@ CONTAINS
     ! Initialize constants for POPs emissions module
     !-----------------------------------------------------------------------
     ExtState%POP_DEL_H      = 0d0
+    ExtState%POP_DEL_Hw     = 0d0
+    ExtState%POP_HSTAR      = 0d0
     ExtState%POP_KOA        = 0d0
     ExtState%POP_KBC        = 0d0
+    ExtState%POP_XMW        = 0d0
 
     !-----------------------------------------------------------------------
     ! Initialize all met arrays.
@@ -352,6 +361,9 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%SNODP, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Init ( ExtState%SNICE, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     CALL ExtDat_Init ( ExtState%USTAR, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -371,6 +383,9 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Init ( ExtState%PARDF, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Init ( ExtState%PSC2, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Init ( ExtState%RADSWG, RC ) 
@@ -438,6 +453,9 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%HNO3, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Init ( ExtState%POPG, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     CALL ExtDat_Init ( ExtState%DRY_TOTN, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -503,6 +521,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%GWETTOP    )
        CALL ExtDat_Cleanup( ExtState%SNOWHGT    )
        CALL ExtDat_Cleanup( ExtState%SNODP      )
+       CALL ExtDat_Cleanup( ExtState%SNICE      )
        CALL ExtDat_Cleanup( ExtState%USTAR      )
        CALL ExtDat_Cleanup( ExtState%Z0         )
        CALL ExtDat_Cleanup( ExtState%TROPP      )
@@ -510,6 +529,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%SZAFACT    )
        CALL ExtDat_Cleanup( ExtState%PARDR      )
        CALL ExtDat_Cleanup( ExtState%PARDF      )
+       CALL ExtDat_Cleanup( ExtState%PSC2       )
        CALL ExtDat_Cleanup( ExtState%RADSWG     )
        CALL ExtDat_Cleanup( ExtState%FRCLND     )
        CALL ExtDat_Cleanup( ExtState%FRLAND     )
@@ -531,6 +551,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%NO         )
        CALL ExtDat_Cleanup( ExtState%NO2        )
        CALL ExtDat_Cleanup( ExtState%HNO3       )
+       CALL ExtDat_Cleanup( ExtState%POPG       )
        CALL ExtDat_Cleanup( ExtState%DRY_TOTN   )
        CALL ExtDat_Cleanup( ExtState%WET_TOTN   )
        CALL ExtDat_Cleanup( ExtState%CNV_TOPP   )
