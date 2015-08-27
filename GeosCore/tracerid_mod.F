@@ -180,7 +180,8 @@
       INTEGER            :: IDTCH4
 
       ! For POPs simulation (clf, 2/11/2011)
-      INTEGER            :: IDTPOPPOC,  IDTPOPPBC,   IDTPOPG
+      INTEGER              :: IDTPOPPOCPO,  IDTPOPPBCPO,   IDTPOPG
+      INTEGER              :: IDTPOPPOCPI,  IDTPOPPBCPI
 
       ! For H2/HD simulation
       INTEGER            :: IDTH2, IDTHD ! (hup, phs, 9/18/07)
@@ -394,6 +395,8 @@
 !  (21) Add IDEMS definitions for new species (fp, hotp, 01/10)
 !  (22) Add writing check on IDs. (hotp, 01/10)
 !  (23) Added IDTPOPG, IDTPOPPOC, and IDTPOPPBC for POPs simulation (eck, 9/20/10)
+!  (24) Changed IDTPOPPOC and IDTPOPPBC to IDTPOPPOCPO and IDTPOPPBCPO, 
+!        added IDTPOPPOCPI and IDTPOPPBCPI for POPs (CLF, 2/11/2012)
 !  17 Aug 2011 - R. Yantosca - Print values of 3 extra emission IDExxx flags
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  16 Feb 2012 - M. Payer    - Account for alternate spellings of the Rn and Pb
@@ -1519,20 +1522,25 @@
             CASE ( 'HGP_STR' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
-!--------------------------------------------------------------------------------
 
             !--------------------------------
             ! POPs
             ! (eck, 9/20/10); (clf, 2/11/2011)
             !--------------------------------
-            CASE ( 'POPG' )
-               IDTPOPG         = N
+            CASE ( 'POPG'     )
+               IDTPOPG      = N
                
-            CASE ( 'POPPOC' )
-               IDTPOPPOC       = N
+            CASE ( 'POPPOCPO' )
+               IDTPOPPOCPO  = N
 
-            CASE ( 'POPPBC' )
-               IDTPOPPBC       = N
+            CASE ( 'POPPOCPI' )
+               IDTPOPPOCPI  = N
+
+            CASE ( 'POPPBCPO' )
+               IDTPOPPBCPO  = N
+
+            CASE ( 'POPPBCPI' )
+               IDTPOPPBCPI  = N
 
 #if   defined( TOMAS )
             !-----------------------------------

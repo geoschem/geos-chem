@@ -213,6 +213,7 @@
 !                              now obtained either from CMN_SIZE_mod.F or
 !                              from the Input_Opt object
 !  05 Mar 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC to DRYFLX
+!  25 Mar 2013 - H. Amos     - merged C. Friedman's PAH code into v9-01-03
 !  28 Mar 2013 - S.D. Eastham- Updated to use FAST_JX_MOD
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt, State_Chm to DO_TOMAS
 !  19 May 2014 - C. Keller   - Removed call for acetone ocean sink - now done

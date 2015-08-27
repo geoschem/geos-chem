@@ -54,7 +54,9 @@
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
       PUBLIC :: DRYHg0, DRYHg2, DryHgP    !CDH
-      PUBLIC :: DRYPOPG, DRYPOPP_OC, DRYPOPP_BC
+      PUBLIC :: DRYPOPG
+      PUBLIC :: DRYPOPP_OCPO, DRYPOPP_BCPO          ! H. Amos, 6 Mar 2013
+      PUBLIC :: DRYPOPP_OCPI, DRYPOPP_BCPI          ! H. Amos, 6 Mar 2013
       PUBLIC :: IDEP,   IRGSS,  IRAC, IRCLS
       PUBLIC :: IRGSO,  IRLU,   IRI,  IRCLO, DRYCOEFF
       PUBLIC :: NDVZIND ! MSL -> For MPI broadcasting in GIGC
@@ -251,10 +253,11 @@
       INTEGER               :: NUMDEP,   NWATER
       INTEGER               :: DRYDHNO3, DRYDNO2, DRYDPAN, DRYDH2O2
       INTEGER               :: DRYHg0,   DRYHg2,  DryHgP
+
       ! Additional variables for POPs sim (eck, 9/20/10)
-      INTEGER               :: DRYPOPP_OC
-      INTEGER               :: DRYPOPP_BC
-      INTEGER               :: DRYPOPG
+      ! (H. Amos, 6 March 2013)
+      INTEGER               :: DRYPOPP_OCPO, DRYPOPP_BCPO, DRYPOPG
+      INTEGER               :: DRYPOPP_OCPI, DRYPOPP_BCPI
 
       ! Arrays for Baldocchi drydep polynomial coefficients
       REAL(fp), TARGET      :: DRYCOEFF(NPOLY    )
@@ -289,8 +292,8 @@
       CHARACTER(LEN=14)     :: DEPNAME (MAXDEP   )
 
       ! Allocatable arrays
-      REAL(fp), ALLOCATABLE, TARGET :: DEPSAV  (:,:,:    )   ! Drydep frequencies
-      REAL(f8), ALLOCATABLE         :: DMID    (:        )   ! 
+      REAL(fp), ALLOCATABLE, TARGET :: DEPSAV  (:,:,:    ) ! Drydep frequencies
+      REAL(f8), ALLOCATABLE         :: DMID    (:        )
       REAL(f8), ALLOCATABLE         :: SALT_V  (:        )
       
       !=================================================================
@@ -1063,6 +1066,7 @@
 !                              running with the traditional driver main.F
 !  12 Dec 2012 - R. Yantosca - Now get ILAND, IUSE, IREG from State_Met
 !  13 Dec 2012 - R. Yantosca - Now get XLAI from State_Met
+!  06 Mar 2013 - H. Amos     - Merge C. Friedman's PAH code
 !  31 May 2013 - R. Yantosca - Now pass State_Chm, for TOMAS
 !  14 Jun 2013 - R. Yantosca - Now use Input_Opt%ITS_A_POPS_SIM
 !  29 Aug 2013 - R. Yantosca - Bug fix: Skip to the next species if unless
@@ -5926,9 +5930,9 @@
          ! POPS tracers
          !----------------------------------
 
-         ELSE IF ( IS_POPS ) THEN
-            ! POPs gas phase
-            IF ( N == IDTPOPG) THEN
+          ELSE IF ( IS_POPS ) THEN
+             ! POPs gas phase
+             IF ( N == IDTPOPG) THEN
                NUMDEP          = NUMDEP + 1
                NTRAIND(NUMDEP) = IDTPOPG
                NDVZIND(NUMDEP) = NUMDEP
@@ -5942,7 +5946,7 @@
                ! For BENZO[a]PYRENE, log Kaw = -4.51
                ! Using the same conversion, HSTAR = 1.32d3 M/atm
                ! All log Kaws from Ma et al., J Chem Eng Data 2010, 55:819 
-               HSTAR(NUMDEP)   = Input_Opt%POP_HSTAR
+               HSTAR(NUMDEP)   = 1.0e+0_f8 / Input_Opt%POP_HSTAR *0.0409
                ! Adding Koa (octanol-ar partition coefficient) for POPs to
                ! account for accumulation in leaf cuticles
                ! Needs to be in units of mol/liter/atm as with HSTAR
@@ -5954,8 +5958,10 @@
                ! use same conversion to get 2.96d7 M/atm
                ! For BENZO[a]PYRENE, log Koa = 11.48
                ! use same conversion to get 1.23d10 M/atm 
-               ! All log Koas from Ma et al., J Chem Eng Data 2010, 55:819 
-               KOA(NUMDEP)     = Input_Opt%POP_KOA *0.0409
+               ! All log Koas from Ma et al., J Chem Eng Data 2010, 55:819
+               ! Now add factor of 0.8 to account for 80% vol content of octanol
+               ! equivalent in leaf surface
+               KOA(NUMDEP)     = Input_Opt%POP_KOA *0.0409 *0.8e+0_f8
                F0(NUMDEP)      = 0.0e+0_f8
                ! Need to change molecular weight for different POPs
                ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
@@ -5965,12 +5971,12 @@
                AIROSOL(NUMDEP) = .FALSE. 
             ENDIF
 
-            ! POPs PARTICLES - OC 
-            IF ( N == IDTPOPPOC ) THEN
+             ! POPs PARTICLES - OCPO 
+            IF ( N == IDTPOPPOCPO ) THEN
                NUMDEP          = NUMDEP + 1
-               NTRAIND(NUMDEP) = IDTPOPPOC
+               NTRAIND(NUMDEP) = IDTPOPPOCPO
                NDVZIND(NUMDEP) = NUMDEP
-               DEPNAME(NUMDEP) = 'POPPOC'
+               DEPNAME(NUMDEP) = 'POPPOCPO'
                HSTAR(NUMDEP)   = 0.0e+0_f8
                ! Koa for particulate POPs is set to equivalent of Henry's Law
                ! so cuticular accumulation is not considered
@@ -5984,12 +5990,50 @@
                AIROSOL(NUMDEP) = .TRUE. 
             ENDIF
 
-            ! POPs PARTICLES - BC 
-            IF ( N == IDTPOPPBC ) THEN
+            ! POPs PARTICLES - BCPO 
+            IF ( N == IDTPOPPBCPO ) THEN
                NUMDEP          = NUMDEP + 1
-               NTRAIND(NUMDEP) = IDTPOPPBC
+               NTRAIND(NUMDEP) = IDTPOPPBCPO
                NDVZIND(NUMDEP) = NUMDEP
-               DEPNAME(NUMDEP) = 'POPPBC'
+               DEPNAME(NUMDEP) = 'POPPBCPO'
+               HSTAR(NUMDEP)   = 0.0e+0_f8
+               ! Koa for particulate POPs is set to equivalent of Henry's Law
+               ! so cuticular accumulation is not considered
+               KOA(NUMDEP)     = 0.0e+0_f8
+               F0(NUMDEP)      = 0.0e+0_f8
+               ! Need to change molecular weight for different POPs
+               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
+               ! For PYRENE, MW = 202d-3 (kg/mol)
+               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
+               XMW(NUMDEP)     = Input_Opt%POP_XMW
+               AIROSOL(NUMDEP) = .TRUE. 
+            ENDIF
+
+             ! POPs PARTICLES - OCPI 
+            IF ( N == IDTPOPPOCPI ) THEN
+               NUMDEP          = NUMDEP + 1
+               NTRAIND(NUMDEP) = IDTPOPPOCPI
+               NDVZIND(NUMDEP) = NUMDEP
+               DEPNAME(NUMDEP) = 'POPPOCPI'
+               HSTAR(NUMDEP)   = 0.0e+0_f8
+               ! Koa for particulate POPs is set to equivalent of Henry's Law
+               ! so cuticular accumulation is not considered
+               KOA(NUMDEP)     = 0.0e+0_f8
+               F0(NUMDEP)      = 0.0e+0_f8
+               ! Need to change molecular weight for different POPs
+               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
+               ! For PYRENE, MW = 202d-3 (kg/mol)
+               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
+               XMW(NUMDEP)     = Input_Opt%POP_XMW
+               AIROSOL(NUMDEP) = .TRUE. 
+            ENDIF
+
+            ! POPs PARTICLES - BCPI 
+            IF ( N == IDTPOPPBCPI ) THEN
+               NUMDEP          = NUMDEP + 1
+               NTRAIND(NUMDEP) = IDTPOPPBCPI
+               NDVZIND(NUMDEP) = NUMDEP
+               DEPNAME(NUMDEP) = 'POPPBCPI'
                HSTAR(NUMDEP)   = 0.0e+0_f8
                ! Koa for particulate POPs is set to equivalent of Henry's Law
                ! so cuticular accumulation is not considered
@@ -6015,9 +6059,11 @@
 
          ! Initialize flags
          ! add dry dep of Hg0
-         DRYPOPG = 0
-         DRYPOPP_OC = 0
-         DRYPOPP_BC = 0
+         DRYPOPG      = 0
+         DRYPOPP_OCPO = 0
+         DRYPOPP_BCPO = 0
+         DRYPOPP_OCPI = 0
+         DRYPOPP_BCPI = 0
          
          ! If drydep is turned on ...
          IF ( LDRYD ) THEN
@@ -6029,13 +6075,18 @@
                SELECT CASE ( TRIM( DEPNAME(N) ) )
                   CASE( 'POPG' )
                      DRYPOPG = N
-                  CASE( 'POPPOC' )
-                     DRYPOPP_OC = N
-                  CASE( 'POPPBC' )
-                     DRYPOPP_BC = N
+                  CASE( 'POPPOCPO' )
+                     DRYPOPP_OCPO = N
+                  CASE( 'POPPBCPO' )
+                     DRYPOPP_BCPO = N
+                  CASE( 'POPPOCPI' )
+                     DRYPOPP_OCPI = N
+                  CASE( 'POPPBCPI' )
+                     DRYPOPP_BCPI = N
                   CASE DEFAULT
                      ! nothing
                 END SELECT
+
              ENDDO
 
           ENDIF

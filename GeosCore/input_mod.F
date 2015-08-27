@@ -4476,6 +4476,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  06 Mar 2013 - H. Amos     - merge C. Friedman's POP code
 !  08 Nov 2013 - M. Sulprizio- Remove HR1_NO, and HR2_NO from ND43 diagnostic.
 !  03 Feb 2014 - R. Yantosca - Remove references to TINDEX, TCOUNT, and TMAX
 !                              from diag_mod.  They are in CMN_SIZE_mod.F.
@@ -7529,10 +7530,10 @@
       ! Scalars
       INTEGER            :: N
       LOGICAL            :: CHEM_PROCESS
-      REAL(fp)             :: POP_XMW, POP_KOA, POP_KBC
-      REAL(fp)             :: POP_K_POPG_OH
-      REAL(fp)             :: POP_K_POPP_O3A, POP_K_POPP_O3B
-      REAL(fp)             :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      REAL(fp)           :: POP_XMW, POP_KOA, POP_KBC
+      REAL(fp)           :: POP_K_POPG_OH
+      REAL(fp)           :: POP_K_POPP_O3A, POP_K_POPP_O3B
+      REAL(fp)           :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
       CHARACTER(LEN=3)   :: POP_TYPE
 
       ! Arrays
