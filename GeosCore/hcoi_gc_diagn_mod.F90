@@ -3871,6 +3871,7 @@ CONTAINS
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg',              &
+                             OutOper   = 'Mean',            &
                              COL       = HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  ) 

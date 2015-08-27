@@ -79,9 +79,9 @@ MODULE HCOX_GC_POPs_Mod
 
   ! Pointers to emission arrays read from disk
   REAL(sp), POINTER             :: POP_TOT_EM(:,:) => NULL() ! [kg/m2/s]
-  REAL(sp), POINTER             :: POP_SURF(:,:)   => NULL() !
-  REAL(sp), POINTER             :: C_OC(:,:,:)     => NULL() !
-  REAL(sp), POINTER             :: C_BC(:,:,:)     => NULL() !
+  REAL(sp), POINTER             :: POP_SURF(:,:)   => NULL() ! [kg]
+  REAL(sp), POINTER             :: C_OC(:,:,:)     => NULL() ! [kg]
+  REAL(sp), POINTER             :: C_BC(:,:,:)     => NULL() ! [kg]
   REAL(sp), POINTER             :: F_OC_SOIL(:,:)  => NULL() ! [kg/m2]
 
   ! Calculated emissions of OC-phase, BC-phase, and gas-phase POPs [kg/m2/s]
@@ -278,6 +278,19 @@ CONTAINS
        CALL HCO_GetPtr( aIR, 'SOIL_CARBON', F_OC_SOIL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
+       ! Convert F_OC_SOIL from kg/m2 to fraction
+       DO J=1, HcoState%NY
+       DO I=1, HcoState%NX
+
+          ! Assume most of carbon mass extends to 5 cm and calculate
+          ! concentration in kg/kg
+          ! For now, assume a mean soil bulk density of 1300 kg/m3 similar to
+          ! McLachlan 2002 to calculate a dry weight fraction
+          F_OC_SOIL(I,J) = F_OC_SOIL(I,J) / 30e-2_hp / 13e+2_hp
+
+       ENDDO
+       ENDDO
+
        FIRST = .FALSE.
 
     ENDIF
@@ -289,19 +302,6 @@ CONTAINS
     ELSE
        PBL_MAX = DBLE( ExtState%PBL_MAX )
     ENDIF
-
-    ! Convert F_OC_SOIL from kg/m2 to fraction
-    DO J=1, HcoState%NY
-    DO I=1, HcoState%NX
-
-       ! Assume most of carbon mass extends to 5 cm and calculate concentration
-       ! in kg/kg
-       ! For now, assume a mean soil bulk density of 1300 kg/m3 similar to
-       ! McLachlan 2002 to calculate a dry weight fraction
-       F_OC_SOIL(I,J) = F_OC_SOIL(I,J) / 30e-2_hp / 13e+2_hp
-
-    ENDDO
-    ENDDO
 
     !=================================================================
     ! Call emissions routines for revolatilization fluxes from surfaces
@@ -724,12 +724,12 @@ CONTAINS
          ! snow or ice
          IF ((IS_LAND_OR_ICE) .AND. .NOT. ( IS_SNOW_OR_ICE )) THEN
 
-#if defined ( GEOS_5 ) 
-            ! Get fraction of grid box covered by lake surface area
-            FRAC_LAKE = ExtState%FRLAKE%Arr%Val(I,J)
-#elif defined ( GCAP )
+#if defined ( GCAP )
             ! Lake surface is not defined for GCAP
             FRAC_LAKE = 0e+0_hp
+#else
+            ! Get fraction of grid box covered by lake surface area
+            FRAC_LAKE = ExtState%FRLAKE%Arr%Val(I,J)
 #endif      
 
             ! Get fraction of land remaining
@@ -740,11 +740,11 @@ CONTAINS
             ! ONLY SUBTRACT FRAC LAKE NOW
             FRAC_SOIL = MAX(1e+0_hp - FRAC_LAKE, 0e+0_hp)
 
-#if defined ( GEOS_5 )
             ! Get surface skin temp [K]
+#if defined ( GCAP )
+            TK_SURF = ExtState%T2M%Arr%Val(I,J)
+#else
             TK_SURF = ExtState%TSKIN%Arr%Val(I,J)
-#elif defined ( GCAP )
-            TK_SURF = ExtState%TS%Arr%Val(I,J)
 #endif
 
             ! Get air temp [K]
@@ -846,6 +846,7 @@ CONTAINS
             DSA = KSA * ZAIR  ! (m/h)  * (mol/m3*Pa) = mol/m2*h*Pa
             DAD = BA* ZAIR    ! (m2/h) * (mol/m3*Pa) = mol/m*h*Pa
             DWD = BW * ZSOIL  ! (m2/h) * (mol/m3*Pa) = mol/m*h*Pa
+            PL  = 0.025e+0_hp
             DS  = 1e+0_hp / ( 1e+0_hp/DSA + PL/(DAD+DWD) ) ! mol/(m2*h*Pa) [* m3*Pa/K/mol = m/h/K
 
             ! Calculate Flux in mol/m2/h
@@ -864,17 +865,10 @@ CONTAINS
                DIFF = 0e+0_hp
             ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 8/25/15:
-!            ! Convert to an emission rate in kg/s for returning to pops_mod.f
-!            EPOP_SOIL(I,J) = MAX(FLUX * AREA_M2 / 24e+0_hp    &
-!                             / 3600e+0_hp / 1e+12_hp, 0e+0_hp )
-!------------------------------------------------------------------------------
             ! Convert to an emission rate in kg/m2/s for returning to
             ! HcoX_GC_POPs_Run
             EPOP_SOIL(I,J) = MAX(FLUX / 24e+0_hp / 3600e+0_hp / 1e+12_hp, &
                                  0e+0_hp )
-
 
             ! Multiply the mass emitted by the fraction of land that is soil
             EPOP_SOIL(I,J) = FRAC_SOIL * EPOP_SOIL(I,J)
@@ -1057,18 +1051,16 @@ CONTAINS
 
 #if defined ( GCAP )
       ! No definition of lakes, consider emission from lakes to be zero
-       EPOP_LAKE(I,J)     = 0e+0_hp
-       FLUX               = 0e+0_hp
-       EMIS_LAKE(I,J)     = 0e+0_hp 
-       FLUX_LAKE2AIR(I,J) = 0e+0_hp
-       FLUX_AIR2LAKE(I,J) = 0e+0_hp
-       FUG_LAKEAIR(I,J)   = 0e+0_hp
+       EPOP_LAKE     = 0e+0_hp
+       FLUX          = 0e+0_hp
+       EMIS_LAKE     = 0e+0_hp 
+       FLUX_LAKE2AIR = 0e+0_hp
+       FLUX_AIR2LAKE = 0e+0_hp
+       FUG_LAKEAIR   = 0e+0_hp
               
       ! Return to calling program
       RETURN
-
 #endif
-!#elif defined ( GEOS_5 )
       
       ! Do lake emissions routine:
 
@@ -1230,13 +1222,6 @@ CONTAINS
                FLUX = KOL_T * 3600e+0_hp * 24e+0_hp * ( C_DISS - &
                       POPG/KAW_T ) * MWPOP * 1e+12_hp / 100e+0_hp
 
-!------------------------------------------------------------------------------
-! Prior to 8/25/15:
-!               ! Convert to an emission rate in kg/s for returning to pops_mod.f
-!               ! Only return it if it's positive
-!               EPOP_LAKE(I,J) = MAX(FLUX * AREA_M2 / 24e+0_hp / &
-!                                3600e+0_hp / 1e+12_hp, 0e+0_hp )
-!------------------------------------------------------------------------------
                ! Convert to an emission rate in kg/m2/s for returning to
                ! HcoX_GC_POPs_Run
                ! Only return it if it's positive
@@ -1297,8 +1282,6 @@ CONTAINS
         
       ENDDO
       ENDDO
-
-!#endif
 
       END SUBROUTINE LAKEEMISPOP
 !EOC
@@ -1465,11 +1448,11 @@ CONTAINS
 
             IF ( LAI > 0e+0_hp ) THEN
 
-#if defined ( GEOS_5 )
                ! Get surface skin temp [K]
-               TK_SURF = ExtState%TSKIN%Arr%Val(I,J)
-#elif defined ( GCAP )
+#if defined ( GCAP )
                TK_SURF = ExtState%T2M%Arr%Val(I,J)
+#else
+               TK_SURF = ExtState%TSKIN%Arr%Val(I,J)
 #endif
                ! Get air temp [K]
                TK = ExtState%TK%Arr%Val(I,J,1)
@@ -1602,13 +1585,6 @@ CONTAINS
                ! Change to units of ng/m2/d for storage
                FLUX = FLUX * 24e+0_hp * MW * 1e+12_hp 
 
-!------------------------------------------------------------------------------
-! Prior to 8/25/15:
-!               ! Convert to an emission rate in kg/s for returning to pops_mod.f
-!               ! Only want to add rates that are positive
-!               EPOP_VEG(I,J) = MAX(FLUX * AREA_M2 * LAI / 24e+0_hp /  &
-!                               3600e+0_hp / 1e+12_hp, 0e+0_hp)
-!------------------------------------------------------------------------------
                ! Convert to an emission rate in kg/m2/s for returning to
                ! HcoX_GC_POPs_Run
                ! Only want to add rates that are positive
@@ -1932,10 +1908,12 @@ CONTAINS
     !=======================================================================
 
     ! Activate met fields required by this extension
+    ExtState%POPG%DoUse        = .TRUE.
     ExtState%ALBD%DoUse        = .TRUE. 
     ExtState%AIRVOL%DoUse      = .TRUE. 
     ExtState%FRAC_OF_PBL%DoUse = .TRUE. 
     ExtState%FRLAKE%DoUse      = .TRUE.
+    ExtState%LAI%DoUse         = .TRUE.
     ExtState%PSC2%DoUse        = .TRUE. 
     ExtState%SNOWHGT%DoUse     = .TRUE.
     ExtState%T2M%DoUse         = .TRUE. 

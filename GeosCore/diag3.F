@@ -4541,34 +4541,34 @@
 !   # : Field  : Description                    : Units      : Scale factor
 !  ----------------------------------------------------------------------------
 !  (1 ) POPT     : Emissions of total POPs        : kg       : 1
-!  (2 ) POPPOCPO : Emissions of OC-sorbed POP     : kg       : 1
-!  (3 ) POPPBCPO : Emissions of BC-sorbed POP     : kg       : 1
-!  (4 ) POPG     : Emissions of gas-phase POP     : kg       : 1
-!  (5 ) POPG     : Secondary emissions from soil  : kg       : 1
-!  (6 ) POPG     : Secondary emissions from lake  : kg       : 1
-!  (7 ) POPG     : Secondary emissions from leaf  : kg       : 1
-!  (8 ) POPG     : Secondary positive soil flux   : ng/m2/day: 1
-!  (9 ) POPG     : Secondary negative soil flux   : ng/m2/day: 1
-!  (10) POPG     : Secondary positive lake flux   : ng/m2/day: 1
-!  (11) POPG     : Secondary negative lake flux   : ng/m2/day: 1
-!  (12) POPG     : Secondary positive leaf flux   : ng/m2/day: 1
-!  (13) POPG     : Secondary negative leaf flux   : ng/m2/day: 1
-!  (14) POPG     : Fugacity ratios soil/air       : unitless : 1
-!  (15) POPG     : Fugacity ratios lake/air       : unitless : 1
-!  (16) POPG     : Fugacity ratios leaf/air       : unitless : 1
-!  (17) POPPOC   : Gross POP OC lost to gas       : kg       : 1
-!  (18) POPPOC   : Gross POP OC formed from gas   : kg       : 1
-!  (19) POPPBC   : Gross POP BC lost to gas       : kg       : 1
-!  (20) POPPBC   : Gross POP BC formed from gas   : kg       : 1
-!  (21) POPG     : Prod of POPG from rxn with OH  : kg       : 1
-!  (22) POPPOCPO : Prod of POPOCPO from rxn w/ O3 : kg       : 1
-!  (23) POPPOCPI : Prod of POPOCPI from rxn w/ O3 : kg       : 1
-!  (24) POPPBCPO : Prod of POPBCPO from rxn w/ O3 : kg       : 1
-!  (25) POPPBCPI : Prod of POPBCPI from rxn w/ O3 : kg       : 1
-!  (26) POPPOCPO : Prod of POPOCPO from rxn w/ NO3: kg       : 1
-!  (27) POPPOCPI : Prod of POPOCPI from rxn w/ NO3: kg       : 1
-!  (28) POPPBCPO : Prod of POPBCPO from rxn w/ NO3: kg       : 1
-!  (29) POPPBCPI : Prod of POPBCPI from rxn w/ NO3: kg       : 1
+!  (2 ) OCPO em  : Emissions of OC-sorbed POP     : kg       : 1
+!  (3 ) BCPO em  : Emissions of BC-sorbed POP     : kg       : 1
+!  (4 ) G em     : Emissions of gas-phase POP     : kg       : 1
+!  (5 ) kgGsoil  : Secondary emissions from soil  : kg       : 1
+!  (6 ) kgGlake  : Secondary emissions from lake  : kg       : 1
+!  (7 ) kgGleaf  : Secondary emissions from leaf  : kg       : 1
+!  (8 ) soi2air  : Secondary positive soil flux   : ng/m2/day: 1
+!  (9 ) air2soi  : Secondary negative soil flux   : ng/m2/day: 1
+!  (10) lak2air  : Secondary positive lake flux   : ng/m2/day: 1
+!  (11) air2lak  : Secondary negative lake flux   : ng/m2/day: 1
+!  (12) lea2air  : Secondary positive leaf flux   : ng/m2/day: 1
+!  (13) air2lea  : Secondary negative leaf flux   : ng/m2/day: 1
+!  (14) soi/air  : Fugacity ratios soil/air       : unitless : 1
+!  (15) lak/air  : Fugacity ratios lake/air       : unitless : 1
+!  (16) lea/air  : Fugacity ratios leaf/air       : unitless : 1
+!  (17) OCPO2G   : Gross POP OC lost to gas       : kg       : 1
+!  (18) G2OCPO   : Gross POP OC formed from gas   : kg       : 1
+!  (19) BCPO2G   : Gross POP BC lost to gas       : kg       : 1
+!  (20) G2BCPO   : Gross POP BC formed from gas   : kg       : 1
+!  (21) OHoxG    : Prod of POPG from rxn with OH  : kg       : 1
+!  (22) O3oxOCPO : Prod of POPOCPO from rxn w/ O3 : kg       : 1
+!  (23) O3oxOCPI : Prod of POPOCPI from rxn w/ O3 : kg       : 1
+!  (24) O3oxBCPO : Prod of POPBCPO from rxn w/ O3 : kg       : 1
+!  (25) O3oxBCPI : Prod of POPBCPI from rxn w/ O3 : kg       : 1
+!  (26) NO3xOCPO : Prod of POPOCPO from rxn w/ NO3: kg       : 1
+!  (27) NO3xOCPI : Prod of POPOCPI from rxn w/ NO3: kg       : 1
+!  (28) NO3xBCPO : Prod of POPBCPO from rxn w/ NO3: kg       : 1
+!  (29) NO3xBCPI : Prod of POPBCPI from rxn w/ NO3: kg       : 1
 !******************************************************************************
 !
       IF ( ND53 > 0 .and. Input_Opt%ITS_A_POPS_SIM ) THEN
@@ -4586,7 +4586,7 @@
             !---------------------------------------------------------
             ! (1) Get OC POP emissions from HEMCO data structure
             !---------------------------------------------------------
-            DiagnName = 'AD53_POPPOC_SOURCE'
+            DiagnName = 'AD53_POPPOCPO_SOURCE'
             UNIT      = 'kg'
             N         = 1
             DiagnCnt  => NULL()
@@ -4616,7 +4616,7 @@
             !---------------------------------------------------------
             ! (2) Get BC POP emissions from HEMCO data structure
             !---------------------------------------------------------
-            DiagnName = 'AD53_POPPBC_SOURCE'
+            DiagnName = 'AD53_POPPBCPO_SOURCE'
             DiagnCnt  => NULL()
 
             ! Get diagnostics from HEMCO
@@ -4680,7 +4680,7 @@
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             ! OC-sorbed POP emissions
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            DiagnName = 'AD53_POPPOC_SOURCE'
+            DiagnName = 'AD53_POPPOCPO_SOURCE'
             UNIT      = 'kg'
             N         = 2
             FACTOR    = 1.0e+0_fp
@@ -4695,7 +4695,7 @@
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             ! BC-sorbed POP emissions
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            DiagnName = 'AD53_POPPBC_SOURCE'
+            DiagnName = 'AD53_POPPBCPO_SOURCE'
             UNIT      = 'kg'
             N         = 3
             FACTOR    = 1.0e+0_fp
