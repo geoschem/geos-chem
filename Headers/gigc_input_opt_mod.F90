@@ -568,6 +568,8 @@ MODULE GIGC_Input_Opt_Mod
      CHARACTER(LEN=255)          :: Hg_RST_FILE
      LOGICAL                     :: LGTMM
      CHARACTER(LEN=255)          :: GTMM_RST_FILE
+     LOGICAL                     :: LARCTICRIV
+     LOGICAL                     :: LKRedUV
 
      !----------------------------------------
      ! CH4 MENU fields

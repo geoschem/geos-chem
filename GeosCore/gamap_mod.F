@@ -90,6 +90,8 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  09 Apr 2014 - R. Yantosca - Increase MAXCAT to 160 
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  06 Aug 2015 - J. Fisher   - Add non-reducible snowpack Hg reservoir
+!                              (orig. 29/11/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -867,6 +869,8 @@
 !  03 Sep 2013 - R. Yantosca - Restored PS-PTOP to avoid issues when using
 !                              diaginfo.dat, tracerinfo.dat w/ REGRIDH_RESTART
 !  30 Jan 2014 - R. Yantosca - Add ND60 TOMAS diagnostic catetories
+!  06 Aug 2015 - J. Fisher   - Add non-reducible snowpack Hg reservoir
+!                              (orig. 29/11/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1612,8 +1616,24 @@
       ! For mercury simulation only so we can use same spacing. (ccc, 5/21/10)
       N           = N + 1
       CATEGORY(N) = 'SNOW-HG'
-      DESCRIPT(N) = 'Hg mass in snow and ice'
+      DESCRIPT(N) = 'Reducible Hg mass in ocean snow and ice'
       OFFSET(N)   = SPACING * 49
+
+      ! Non-reducible snow Hg reservoir
+      N           = N + 1
+      CATEGORY(N) = 'SNOW-HGN'
+      DESCRIPT(N) = 'Non-reducible Hg mass in ocean snow and ice'
+      OFFSET(N)   = SPACING * 50 
+
+      N           = N + 1
+      CATEGORY(N) = 'SNHG-LN'
+      DESCRIPT(N) = 'Reducible Hg mass in land snow and ice'
+      OFFSET(N)   = SPACING * 51
+
+      N           = N + 1
+      CATEGORY(N) = 'SNHGN-LN'
+      DESCRIPT(N) = 'Non-reducible Hg mass in snow and ice'
+      OFFSET(N)   = SPACING * 52
 
 !(FP 06/19/2009)
       N           = N + 1
@@ -1789,6 +1809,7 @@
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to GET_FAM_MWT function
 !  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND71 to ND72 to
 !                              avoid conflicts with hourly max ppbv diagnostic.
+!  12 Aug 2015 - J. Fisher   - Add cryosphere Hg diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1972,6 +1993,22 @@
                   NAME (T,03) = 'Hg0_snow'
                   FNAME(T,03) = 'Snow emission of Hg'
                   INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 19 )
+                  NAME (T,03) = 'Hg_sn_oc'
+                  FNAME(T,03) = 'Snow Hg2 delivered to ocean'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 20 )
+                  NAME (T,03) = 'Hgdep_oc'
+                  FNAME(T,03) = 'HgII/HgP dep to open ocean'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 21 )
+                  NAME (T,03) = 'Hgdep_sn'
+                  FNAME(T,03) = 'HgII/HgP dep to snow/ice'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 22 ) 
+                  NAME (T,03) = 'Hg2_riv'
+                  FNAME(T,03) = 'Hg2 from rivers'
+                  INDEX(T,03) = T + ( SPACING * 34 ) 
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -2033,6 +2070,21 @@
                   FNAME(T,03) = 'Reactive gaseous mercury'
                   UNIT (T,03) = 'pptv'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
+               CASE( 11 )
+                  NAME (T,03) = 'Br_pol'
+                  FNAME(T,03) = 'Polar Br concentration'
+                  UNIT (T,03) = 'pptv'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 12 )
+                  NAME (T,03) = 'BrO_pol' 
+                  FNAME(T,03) = 'Polar BrO concentration'
+                  UNIT (T,03) = 'pptv'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 13 )
+                  NAME (T,03) = 'O3_pol'
+                  FNAME(T,03) = 'Polar O3 concentration'
+                  UNIT (T,03) = 'ppbv'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -2073,10 +2125,57 @@
             MWT  (T,03) = 201e-3
             SCALE(T,03) = 1e0
 
-
             NAME (T,03) = 'Snow_Hg'
             FNAME(T,03) = 'Tot. Hg in snowpack'
             INDEX(T,03) = ( N ) + ( SPACING * 49 )
+         ENDDO
+
+         ! Loop over tracers for SNOW-HGN (jaf, 6/17/11)
+         DO N = 1, 1
+
+            T = N + PD03 + PD03_PL + Input_Opt%N_TRACERS + 1
+
+            ! Define quantities
+            UNIT (T,03) = 'kg'
+            MOLC (T,03) = 1
+            MWT  (T,03) = 201e-3
+            SCALE(T,03) = 1e0
+
+            NAME (T,03) = 'Snow_HgN'
+            FNAME(T,03) = 'Tot. non-reducible Hg in snow on ocean'
+            INDEX(T,03) = ( N ) + ( SPACING * 50 )
+         ENDDO
+         
+         ! Loop over tracers for SNOW-HG-LN
+         DO N = 1, 1
+
+            T = N + PD03 + PD03_PL + Input_Opt%N_TRACERS + 2
+
+            ! Define quantities
+            UNIT (T,03) = 'kg'
+            MOLC (T,03) = 1
+            MWT  (T,03) = 201e-3
+            SCALE(T,03) = 1e0
+
+            NAME (T,03) = 'SnHg_ln'
+            FNAME(T,03) = 'Tot. reducible Hg in snow on land'
+            INDEX(T,03) = ( N ) + ( SPACING * 51 )
+         ENDDO
+
+         ! Loop over tracers for SNOW-HGN-LN
+         DO N = 1, 1
+
+            T = N + PD03 + PD03_PL + Input_Opt%N_TRACERS + 3
+
+            ! Define quantities
+            UNIT (T,03) = 'kg'
+            MOLC (T,03) = 1
+            MWT  (T,03) = 201e-3
+            SCALE(T,03) = 1e0
+
+            NAME (T,03) = 'SnHgN_ln'
+            FNAME(T,03) = 'Tot. non-reducible Hg in snow on land'
+            INDEX(T,03) = ( N ) + ( SPACING * 52 )
          ENDDO
          
          ! Total max number of tracers for DIAG 03.

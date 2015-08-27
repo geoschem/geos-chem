@@ -2331,6 +2331,8 @@ CONTAINS
 !  16 Mar 2015 - R. Yantosca - Now also toggle TOMS_SBUV_O3 based on
 !                              met field type and input.geos settings
 !  25 Mar 2015 - C. Keller   - Added switch for STATE_PSC (for UCX)
+!  27 Aug 2015 - E. Lundgren - Now always read TOMS for mercury simulation when
+!                              photo-reducible HgII(aq) to UV-B radiation is on
 !EOP
 !------------------------------------------------------------------------------
 
@@ -2487,14 +2489,17 @@ CONTAINS
     ! NON-EMISSIONS DATA #4: TOMS/SBUV overhead O3 columns
     !
     ! If we are using the GEOS-FP met fields, then we will not read in 
-    ! the TOMS/SBUV O3 columns.  We will instead use the O3 columns from
-    ! the GEOS-FP met fields.  In this case, we will toggle the 
-    ! +TOMS_SBUV_O3+ collection OFF.
+    ! the TOMS/SBUV O3 columns unless running a mercury simulation.
+    ! We will instead use the O3 columns from the GEOS-FP met fields.  
+    ! In this case, we will toggle the +TOMS_SBUV_O3+ collection OFF.
     !
     ! All other met fields use the TOMS/SBUV data in one way or another,
     ! so we will have to read these data from netCDF files.  In this
-    ! case, toggle the +TOMS_SBUV_O3+ collection ON if wphotolysis is
+    ! case, toggle the +TOMS_SBUV_O3+ collection ON if photolysis is
     ! required (i.e. for fullchem/aerosol simulations w/ chemistry on).
+    !
+    ! If running a mercury simulation, TOMS/SBUV O3 columns are only used 
+    ! for the photo-reducible HgII(aq) to UV-B radiation option (jaf)
     !-----------------------------------------------------------------------
     CALL GetExtOpt( -999, '+TOMS_SBUV_O3+', OptValBool=LTMP, &
                            FOUND=FOUND,     RC=RC )
@@ -2504,10 +2509,17 @@ CONTAINS
 
 #if defined( GEOS_FP )
     
-    ! Disable for GEOS-FP met fields, no matter what it is set to
-    ! in the HEMCO configuration file.
+    ! Disable for GEOS-FP met fields if not a mercury simulation 
+    ! no matter what it is set to in the HEMCO configuration file.
+    ! Always enable if a mercury simulation done with photo-reducible
+    ! HgII(aq) to UV-B radiation turned on.
     IF ( FOUND ) THEN
-       OptName = '+TOMS_SBUV_O3+ : false'
+       IF ( Input_Opt%ITS_A_MERCURY_SIM .and.   &
+            Input_Opt%LKRedUV ) THEN
+          OptName = '+TOMS_SBUV_O3+ : true'
+       ELSE 
+          OptName = '+TOMS_SBUV_O3+ : false'          
+       ENDIF
        CALL AddExtOpt( TRIM(OptName), CoreNr, RC ) 
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP( 'AddExtOpt GEOS-FP +TOMS_SBUV_O3+', LOC )
@@ -2519,8 +2531,10 @@ CONTAINS
     IF ( FOUND ) THEN
 
        ! Print a warning if this collection is defined in the HEMCO config
-       ! file, but is set to an value inconsistent with input.geos file.
-       IF ( Input_Opt%LCHEM /= LTMP ) THEN
+       ! file, but is set to a value inconsistent with input.geos file.
+       !
+       IF ( Input_Opt%LCHEM /= LTMP .and.                           &
+            .not. Input_Opt%ITS_A_MERCURY_SIM ) THEN
           WRITE(*,*) ' '
           WRITE(*,*) 'Setting +TOMS_SBUV_O3+ in the HEMCO configuration'
           WRITE(*,*) 'file does not agree with the chemistry settings'
@@ -2532,20 +2546,23 @@ CONTAINS
 
        ! If this collection is not found in the HEMCO config file, then
        ! activate it only for those simulations that use photolysis 
-       ! (e.g. fullchem or aerosol) and only when chemistry is turned on.
+       ! (e.g. fullchem or aerosol) and only when chemistry is turned on,
+       ! or when a mercury simulation is done with photo-reducible
+       ! HgII(aq) to UV-B radiation turned on.
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
             Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
           IF ( Input_Opt%LCHEM ) THEN
              OptName = '+TOMS_SBUV_O3+ : true'
-          ELSE
-             OptName = '+TOMS_SBUV_O3+ : false'
           ENDIF
+       ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM .and. &
+                 Input_Opt%LKRedUV ) THEN
+          OptName = '+TOMS_SBUV_O3+ : true'
        ELSE
           OptName = '+TOMS_SBUV_O3+ : false'
        ENDIF
        CALL AddExtOpt( TRIM(OptName), CoreNr, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'AddExtOpt +Uvalbedo+', LOC )
+          CALL ERROR_STOP( 'AddExtOpt +TOMS_SBUV_O3+', LOC )
        ENDIF
     ENDIF 
 
@@ -2569,7 +2586,7 @@ CONTAINS
        ! Stop the run if this collection is defined in the HEMCO config
        ! file, but is set to an value inconsistent with input.geos file.
        IF ( Input_Opt%LDYNOCEAN .AND. ( .NOT. LTMP ) ) THEN
-          MSG = 'Setting +UValbedo+ in the HEMCO configuration file ' // &
+          MSG = 'Setting +OCEAN_Hg+ in the HEMCO configuration file ' // &
                 'must not be disabled if chemistry is turned on. '    // &
                 'If you don`t set that setting explicitly, it will '  // &
                 'be set automatically during run-time (recommended)'
