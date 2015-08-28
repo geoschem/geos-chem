@@ -551,7 +551,7 @@
       ! SULFATE_MOD).  This removes the init calls from the run stage,
       ! which is required when connecting to the GEOS-5 GCM w/ ESMF.
       ! (bmy, 3/4/13)
-      CALL GIGC_Init_Extra( am_I_Root, Input_Opt, RC )
+      CALL GIGC_Init_Extra( am_I_Root, Input_Opt, State_Chm, RC )
       !
       ! Assign values to the TRAC_NAME, TRAC_ID, SMVG_ID fields
       ! of the State_Chm object.  NOTE: This has to be done after

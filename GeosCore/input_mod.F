@@ -4039,11 +4039,11 @@
 ! !USES:
 !
       USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE DRYDEP_MOD,  ONLY : INIT_DRYDEP
-      USE WETSCAV_MOD, ONLY : WETDEPID
-#if   defined( APM )
-      USE APM_WETS_MOD, ONLY : WETDEPBINID
-#endif
+!      USE DRYDEP_MOD,  ONLY : INIT_DRYDEP
+!      USE WETSCAV_MOD, ONLY : WETDEPID
+!#if   defined( APM )
+!      USE APM_WETS_MOD, ONLY : WETDEPBINID
+!#endif
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -4178,41 +4178,47 @@
  100  FORMAT( A, L5 )
  110  FORMAT( A, I5 )
 
-      !=================================================================
-      ! Call setup routines from other F90 modules
-      !=================================================================
-
-      ! Initialize dry deposition arrays
-      IF ( Input_Opt%LDRYD ) THEN
-
-         ! Setup for dry deposition
-         CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
-      
-         ! Print extra info message for Hg simulation
-         IF ( Input_Opt%ITS_A_MERCURY_SIM  .and. 
-     &        Input_Opt%LSPLIT            ) THEN
-            WRITE ( 6, 120 )
-            WRITE ( 6, 121 )
-         ENDIF
-      ENDIF
-
-      ! Initialize wet deposition tracers
-      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
-         CALL WETDEPID( am_I_Root, Input_Opt, RC )
-      ENDIF
-
-#if   defined( APM )
-      ! Initialize wet deposition tracers for APM
-      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
-         CALL WETDEPBINID
-      ENDIF
-#endif
-
-      ! FORMAT strings
- 120  FORMAT( /, 'All tagged Hg2 tracers have the same dep velocity '
-     &           'as the total Hg2 tracer.' )
- 121  FORMAT( 'All tagged HgP tracers have the same dep velocity '
-     &        'as the total HgP tracer.' )
+!-----------------------------------------------------------------------------
+! Prior to 8/28/15:
+! Now move this to GIGC_INIT_EXTRA, which is called after State_Chm is
+! initialized.  This will let us take advantage of the species database.
+! (bmy, 8/28/15)
+!      !=================================================================
+!      ! Call setup routines from other F90 modules
+!      !=================================================================
+!
+!      ! Initialize dry deposition arrays
+!      IF ( Input_Opt%LDRYD ) THEN
+!
+!         ! Setup for dry deposition
+!         CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!      
+!         ! Print extra info message for Hg simulation
+!         IF ( Input_Opt%ITS_A_MERCURY_SIM  .and. 
+!     &        Input_Opt%LSPLIT            ) THEN
+!            WRITE ( 6, 120 )
+!            WRITE ( 6, 121 )
+!         ENDIF
+!      ENDIF
+!
+!      ! Initialize wet deposition tracers
+!      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
+!         CALL WETDEPID( am_I_Root, Input_Opt, RC )
+!      ENDIF
+!
+!#if   defined( APM )
+!      ! Initialize wet deposition tracers for APM
+!      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
+!         CALL WETDEPBINID
+!      ENDIF
+!#endif
+!
+!      ! FORMAT strings
+! 120  FORMAT( /, 'All tagged Hg2 tracers have the same dep velocity '
+!     &           'as the total Hg2 tracer.' )
+! 121  FORMAT( 'All tagged HgP tracers have the same dep velocity '
+!     &        'as the total HgP tracer.' )
+!-----------------------------------------------------------------------------
 
       END SUBROUTINE READ_DEPOSITION_MENU
 !EOC
@@ -8341,7 +8347,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GIGC_Init_Extra( am_I_Root, Input_Opt, RC )
+      SUBROUTINE GIGC_Init_Extra( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -8355,6 +8361,7 @@
       USE Error_Mod,          ONLY : Debug_Msg
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE Global_CH4_Mod,     ONLY : Init_Global_CH4
       USE Linoz_Mod,          ONLY : Init_Linoz
       USE Modis_Lai_Mod,      ONLY : Init_Modis_Lai
@@ -8365,6 +8372,10 @@
       USE Tagged_Ox_Mod,      ONLY : Init_Tagged_Ox
       USE Toms_Mod,           ONLY : Init_Toms
       USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
+      Use Wetscav_Mod,        ONLY : WetdepId
+#if   defined( APM )
+      USE APM_WETS_MOD, ONLY : WETDEPBINID
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -8373,6 +8384,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -8402,6 +8414,8 @@
 !  25 Jun 2014 - R. Yantosca - Now call SET_VDIFF_VALUES (vdiff_pre_mod.F90)
 !  25 Aug 2014 - M. Sulprizio- Now call INIT_POPS
 !  16 Mar 2015 - R. Yantosca - Now call INIT_TOMS here
+!  28 Aug 2015 - R. Yantosca - Now initialize drydep & wetdep here, so that
+!                              we can take advantage of the species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8419,6 +8433,46 @@
 
       ! Set a flag for debugging
       prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
+
+      !=================================================================
+      ! Call setup routines for drydep and wetdep
+      !=================================================================
+
+      ! Initialize dry deposition arrays
+      IF ( Input_Opt%LDRYD ) THEN
+
+         ! Setup for dry deposition
+         CALL INIT_DRYDEP( am_I_Root, Input_Opt, State_Chm, RC )
+      
+         ! Print extra info message for Hg simulation
+         IF ( Input_Opt%ITS_A_MERCURY_SIM  .and. 
+     &        Input_Opt%LSPLIT            ) THEN
+            WRITE ( 6, 120 )
+            WRITE ( 6, 121 )
+         ENDIF
+      ENDIF
+
+      ! FORMAT strings
+ 120  FORMAT( /, 'All tagged Hg2 tracers have the same dep velocity '
+     &           'as the total Hg2 tracer.' )
+ 121  FORMAT( 'All tagged HgP tracers have the same dep velocity '
+     &        'as the total HgP tracer.' )
+
+      ! Initialize wet deposition tracers
+      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
+         CALL WETDEPID( am_I_Root, Input_Opt, State_Chm, RC )
+      ENDIF
+
+#if   defined( APM )
+      ! Initialize wet deposition tracers for APM
+      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
+         CALL WETDEPBINID
+      ENDIF
+#endif
+
+      !=================================================================
+      ! Call setup routines from other F90 modules
+      !=================================================================
 
       ! Initialize the MODIS leaf area index module
       CALL Init_Modis_LAI( am_I_Root, Input_Opt, RC )

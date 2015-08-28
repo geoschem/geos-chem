@@ -8134,7 +8134,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WETDEPID( am_I_Root, Input_Opt, RC )
+      SUBROUTINE WETDEPID( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -8142,6 +8142,7 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD
 #if defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS
@@ -8151,6 +8152,7 @@
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -8182,6 +8184,8 @@
 !  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
 !                              aerosols (T.D. Fairlie)
 !  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
+!  28 Aug 2015 - R. Yantosca - Now pass State_Chm as an argument
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
