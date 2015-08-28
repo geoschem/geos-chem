@@ -68,7 +68,7 @@ MODULE HCO_Unit_Mod
   ! add more units if you don't want HEMCO to attempt to convert data
   ! in these units.
   ! All characters in this list should be lower case!
-  INTEGER,           PARAMETER :: NUL = 34
+  INTEGER,           PARAMETER :: NUL = 37
   CHARACTER(LEN=15), PARAMETER :: UL(NUL) = (/ '1',             &
                                                'count',         &
                                                'unitless',      &
@@ -84,6 +84,8 @@ MODULE HCO_Unit_Mod
                                                'm2m-2',         &
                                                'kg/kg',         & 
                                                'kgkg-1',        &
+                                               'mg/m3',         &
+                                               'mg/m2/d',       &
                                                'k',             & 
                                                'w/m2',          & 
                                                'wm-2',          &
@@ -99,6 +101,7 @@ MODULE HCO_Unit_Mod
                                                'cm2cm-2',       &
                                                'dobsons',       &
                                                'dobsons/day',   &
+                                               'DU',            &
                                                'pa',            &
                                                'hpa',           &
                                                '%',             &

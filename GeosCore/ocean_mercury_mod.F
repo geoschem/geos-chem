@@ -2355,7 +2355,7 @@
       !-----------------------------------------------------------------
       ! Arctic Chl from Jin et al 2012 [mg/m3]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, 'OCEAN_ACHLA', CHL_A, RC )
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_CHLA_A', CHL_A, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_ACHLA', LOC )
       ENDIF
@@ -2374,7 +2374,7 @@
       !-----------------------------------------------------------------
       ! Arctic Net primary productivity [mg/m2/day]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, 'OCEAN_ANPP', NPP_A, RC )
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_NPP_A', NPP_A, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_ANPP', LOC )
       ENDIF
@@ -3223,7 +3223,7 @@
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
-      
+
       ! Echo more output
       WRITE( 6, 120 )
  120  FORMAT( /, 'Min and Max of each tracer, as read from the file:',
