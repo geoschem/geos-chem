@@ -882,6 +882,8 @@ setemis.o                   : setemis.F                                      \
                               pbl_mix_mod.o           tracerid_mod.o         \
                               hcoi_gc_main_mod.o
 
+species_database_mod.o      : species_database_mod.F90
+
 ucx_mod.o                   : ucx_mod.F                                      \
                               chemgrid_mod.o          global_ch4_mod.o       \
                               fast_jx_mod.o           hcoi_gc_main_mod.o     \
