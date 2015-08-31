@@ -43,23 +43,29 @@ MODULE GIGC_State_Chm_Mod
   !=========================================================================
   TYPE, PUBLIC :: ChmState
 
+     ! Number of species
+     INTEGER                    :: nSpecies             ! # of species
+     INTEGER                    :: nAdvect              ! # of advected species
+     INTEGER                    :: nDrydep              ! # of drydep species
+     INTEGER                    :: nWetDep              ! # of wetdep species
+
      ! Physical properties about tracers & species
-     TYPE(SpcPtr),      POINTER :: SpcData(:)            ! Species database
+     TYPE(SpcPtr),      POINTER :: SpcData(:)           ! Species database
 
      ! Advected tracers
-     INTEGER,           POINTER :: Trac_Id    (:      )  ! Tracer ID #'s
-     CHARACTER(LEN=14), POINTER :: Trac_Name  (:      )  ! Tracer names
-     REAL(fp),          POINTER :: Tracers    (:,:,:,:)  ! Tracer conc [kg]
+     INTEGER,           POINTER :: Trac_Id    (:      ) ! Tracer ID #'s
+     CHARACTER(LEN=14), POINTER :: Trac_Name  (:      ) ! Tracer names
+     REAL(fp),          POINTER :: Tracers    (:,:,:,:) ! Tracer conc [kg]
 
      ! Chemical species
-     INTEGER,           POINTER :: Spec_Id    (:      )  ! Species ID # 
-     CHARACTER(LEN=14), POINTER :: Spec_Name  (:      )  ! Species names
-     REAL(fp),          POINTER :: Species    (:,:,:,:)  ! Species [molec/cm3]
+     INTEGER,           POINTER :: Spec_Id    (:      ) ! Species ID # 
+     CHARACTER(LEN=14), POINTER :: Spec_Name  (:      ) ! Species names
+     REAL(fp),          POINTER :: Species    (:,:,:,:) ! Species [molec/cm3]
 
 #if defined( ESMF_ )
      ! Chemical rates & rate parameters
-     INTEGER,           POINTER :: JLOP       (:,:,:  )  ! 1-D SMVGEAR index
-     INTEGER,           POINTER :: JLOP_PREV  (:,:,:  )  ! JLOP, prev timestep
+     INTEGER,           POINTER :: JLOP       (:,:,:  ) ! 1-D SMVGEAR index
+     INTEGER,           POINTER :: JLOP_PREV  (:,:,:  ) ! JLOP, prev timestep
 #endif
 
   END TYPE ChmState
@@ -340,6 +346,10 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: N
 
     ! Assume success until otherwise
     RC = GIGC_SUCCESS
@@ -390,6 +400,12 @@ CONTAINS
     ! Initialize fields
     !=====================================================================
 
+    ! Number of species
+    State_Chm%nSpecies    = 0
+    State_Chm%nAdvect     = 0
+    State_Chm%nDryDep     = 0
+    State_Chm%nWetDep     = 0
+
     ! Advected tracers
     State_Chm%Trac_Id     = 0
     State_Chm%Trac_name   = ''
@@ -409,6 +425,21 @@ CONTAINS
                                 SpcData   = State_Chm%SpcData,  &
                                 RC        = RC                 )
 
+    !=====================================================================
+    ! Determine the number of advected, drydep, wetdep, and total species
+    !=====================================================================
+    State_Chm%nSpecies = SIZE( State_Chm%SpcData )
+
+
+!    State_Chm%nAdvect  = MAXVAL( State_Chm%SpcData%Info%AdvectID )
+!    State_Chm%nDryDep  = MAXVAL( State_Chm%SpcData%Info%DryDepID )
+!    State_Chm%nWetDep  = MAXVAL( State_Chm%SpcData%Info%WetDepID )
+
+    print*, 'nSpecies : ', State_Chm%nSpecies
+    print*, 'nAdvect  : ', State_Chm%nAdvect
+    print*, 'nDryDep  : ', State_Chm%nDryDep
+    print*, 'nWetDep  : ', State_Chm%nWetDep
+    
   END SUBROUTINE Init_GIGC_State_Chm
 !EOC
 !------------------------------------------------------------------------------
