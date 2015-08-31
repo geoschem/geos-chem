@@ -4159,11 +4159,12 @@
                   XMW(NUMDEP)       = DBLE( ThisSpc%EmMW_g * 1e-3_fp )
                   AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas )
 
-                  ! 
+                  ! Only copy DD_A_DENSITY if it's not a missing value
                   IF ( ThisSpc%DD_A_Density > 0.0_fp ) THEN
                      A_DEN(NUMDEP)  = DBLE( ThisSpc%DD_A_Density     )
                   ENDIF
 
+                  ! Only copy DD_A_RADIUS if it's not a missing value
                   IF ( ThisSpc%DD_A_Radius > 0.0_fp ) THEN
                      A_RADI(NUMDEP) = DBLE( ThisSpc%DD_A_Radius      )
                   ENDIF
