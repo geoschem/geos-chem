@@ -842,7 +842,7 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_A_Density  = 2650.0_fp,                    &
-                              DD_A_Radius   = 4.54e-6_fp,                   &
+                              DD_A_Radius   = 4.50e-6_fp,                   &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -1225,7 +1225,7 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
-          CASE( 'ISOPNN', 'ISOPN' )
+          CASE( 'ISOPN' )
 
              ! First create isoprene nitrate species name
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1249,6 +1249,22 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
         
+! Leave for future expansion 
+!          CASE( 'ISOPNB', 'ISOPND'  )
+!             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+!                              ThisSpc       = SpcData(N)%Info,              &
+!                              ModelID       = N,                            &
+!                              Name          = NameAllCaps,                  &
+!                              FullName      = 'Isoprene nitrate',           &
+!                              MW_g          = 147.0_fp,                     &
+!                              Is_Advected   = F,                            &
+!                              Is_Gas        = T,                            &
+!                              Is_Drydep     = T,                            &
+!                              Is_Wetdep     = F,                            &
+!                              DD_F0         = 1.0_fp,                       &
+!                              DD_Hstar_old  = 1.70e+4_fp,                   &
+!                              RC            = RC )
+
           CASE( 'LIMO' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -1615,28 +1631,40 @@ CONTAINS
                               WD_AerScavEff = 1.0_fp,                       &
                               RC            = RC )
 
-          CASE( 'NIT', 'NITS' )
+          CASE( 'NIT' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Inorganic nitrates',         &
+                              MW_g          = 62.0_fp,                      &
+                              Is_Advected   = T,                            &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_Old  = 0.0_fp,                       &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              RC            = RC )
+
+          CASE( 'NITS' )
              
-             ! These have identical properties except for the names
-             SELECT CASE( NameAllCaps )
-                CASE( 'NIT' )
-                   Name     = 'NIT'
-                   FullName = 'Inorganic nitrates'
-                CASE( 'NITS' )
-                   Name     = 'NITs'
-                   Fullname = 'Inorganic nitrates on surface of seasalt aerosol'
-             END SELECT
+             A_Radius = ( Input_Opt%SALC_REDGE_um(1) +                      &
+                          Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+             Fullname = 'Inorganic nitrates on surface of seasalt aerosol'
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              Name          = Name,                         &
+                              Name          = 'NITs',                       &
                               FullName      = FullName,                     &
                               MW_g          = 62.0_fp,                      &
                               Is_Advected   = T,                            &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              DD_A_Density  = 2200.0_fp,                    &
+                              DD_A_Radius   = A_Radius,                     &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -2084,28 +2112,40 @@ CONTAINS
 #endif									    
                               RC            = RC )
 
-          CASE( 'SO4', 'SO4S' )
+          CASE( 'SO4' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = 'SO4',                        &
+                              FullName      = 'Sulfate',                    &
+                              MW_g          = 96.0_fp,                      &
+                              Is_Advected   = T,                            &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_Old  = 0.0_fp,                       &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              RC            = RC )
+
+          CASE( 'SO4S' )
              
-             ! These have identical properties except for the names
-             SELECT CASE( NameAllCaps )
-                CASE( 'SO4' )
-                   Name     = 'SO4'
-                   FullName = 'Sulfate'
-                CASE( 'SO4S' )
-                   Name     = 'SO4s'
-                   Fullname = 'Sulfate on surface of seasalt aerosol'
-             END SELECT
+             A_Radius = ( Input_Opt%SALC_REDGE_um(1) +                      &
+                          Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+             Fullname = 'Sulfate on surface of seasalt aerosol'
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              Name          = Name,                         &
+                              Name          = 'SO4s',                       &
                               FullName      = FullName,                     &
                               MW_g          = 96.0_fp,                      &
                               Is_Advected   = T,                            &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              DD_A_Density  = 2200.0_fp,                    &
+                              DD_A_Radius   = A_Radius,                     &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
