@@ -699,12 +699,6 @@
       ! Intialize
       SNOW_Hg2aq = 0d0
 
-      IS_MELT = ( State_Met%TS(I,J) >= 276e+0_fpp )
-      IS_SNOWHG_OC = ( (SNOW_HG_OC(I,J,NN)        > 0e+0_fpp) .OR.
-     &                 (SNOW_HG_STORED_OC(I,J,NN) > 0e+0_fpp) )
-      IS_SNOWHG_LN = ( (SNOW_HG_LN(I,J,NN)        > 0e+0_fpp) .OR.
-     &                 (SNOW_HG_STORED_LN(I,J,NN) > 0e+0_fpp) )
-
 ! FRSEAICE, FRSNO only defined in MERRA, so need to treat these differently
 ! in older code versions (jaf, 6/19/13)
 #if   defined( MERRA ) || defined(GEOS_FP)
@@ -723,7 +717,14 @@
      &                  ( State_Met%SNOW(I,J) < 10e+0_fpp ) )
 #endif
 
+      IS_MELT = ( State_Met%TS(I,J) >= 276e+0_fpp )
+
       DO NN = 1, N_Hg_CATS
+
+         IS_SNOWHG_OC = ( (SNOW_HG_OC(I,J,NN)        > 0e+0_fpp) .OR.
+     &                 (SNOW_HG_STORED_OC(I,J,NN) > 0e+0_fpp) )
+         IS_SNOWHG_LN = ( (SNOW_HG_LN(I,J,NN)        > 0e+0_fpp) .OR.
+     &                 (SNOW_HG_STORED_LN(I,J,NN) > 0e+0_fpp) )
 
          ! OCEAN
          ! Check if melt conditions reached and snow in grid box
