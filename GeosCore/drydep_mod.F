@@ -4048,11 +4048,40 @@
       XMW(:)     = 0e+0_f8
       A_RADI(:)  = 0e+0_f8
       A_DEN(:)   = 0e+0_f8
+      KOA(:)     = 0e+0_f8
       AIROSOL(:) = .FALSE.
 
       !=================================================================
       ! First identify tracers that dry deposit and then initialize 
-      ! DEPNAME, NDVZIND, HSTAR, F0, XMW and AIROSOL accordingly
+      ! the dry deposition quantities accordingly:
+      !
+      ! Quantity  Description
+      ! ----------------------------------------------------------------
+      ! NUMDEP    Number of dry depositing species
+      ! NTRAIND   GEOS-Chem tracer ID number (advected index)
+      ! NDVZIND   Coresponding index in the DVEL drydep velocity array
+      ! HSTAR     Henry's law solubility constant [M atm-1]
+      ! F0        Reactivity (0.0 = not reactive, 1.0=very reactive)
+      ! XMW       Molecular weight of species [kg mol-1]
+      ! AIROSOL    = T if the species is aerosol, =F if gas
+      ! A_DEN     Aerosol density [kg m-3]
+      ! A_RADIUS  Aerosol radius [um]
+      ! KOA       POPs KOA parameter
+      ! 
+      ! NOTES: 
+      ! (1) For XMW, we take the species emitted molecular weight
+      !      (EmMW_g * 1e-3).  Several hydrocarbons are transported
+      !      as equivalent molecules of carbon.  In this case the
+      !      EmMw_g will be 12.0.
+      ! (2) We have edited the molecular weights of some species to
+      !      match the prior code.  Some of these definitions are
+      !      inconsistent with the listed molecular weights. (e.g.
+      !      ACET is transported as 3 carbons, but we give it a
+      !      molecular weight of 58 instead of 12).  These will need
+      !      to be researched further.
+      ! (3) The deposition names of SO4s and NITs need to be in
+      !      uppercase.  Therefore, we overwrite the values from
+      !      the species database with SO4S, NITS.
       !=================================================================
       DO N = 1, Input_Opt%N_TRACERS
 
@@ -4063,31 +4092,31 @@
          IF ( ThisSpc%Is_Drydep ) THEN
 
             ! Test species name
-            SELECT CASE( TRIM( ThisSpc%Name ) ) 
+            SELECT CASE( TRIM( ThisSpc%Name ) )
             
                !-------------------------------------------------------
                ! Special case: ISOPN family tracer
                !-------------------------------------------------------
-               CASE( 'ISOPN') 
+               CASE( 'ISOPN' )  
 
                   ! First species; ISOPND
                   NUMDEP          = NUMDEP + 1
                   NTRAIND(NUMDEP) = ThisSpc%ModelID
                   NDVZIND(NUMDEP) = ThisSpc%DryDepID
                   DEPNAME(NUMDEP) = 'ISOPND'
-                  HSTAR(NUMDEP)   = ThisSpc%DD_Hstar_old
-                  F0(NUMDEP)      = ThisSpc%DD_F0
-                  XMW(NUMDEP)     = ThisSpc%EmMW_g
+                  HSTAR(NUMDEP)   = DBLE( ThisSpc%DD_Hstar_old     )
+                  F0(NUMDEP)      = DBLE( ThisSpc%DD_F0            )
+                  XMW(NUMDEP)     = DBLE( ThisSpc%EmMW_g * 1e-3_fp )
                   AIROSOL(NUMDEP) = ( .not. ThisSpc%Is_Gas )
                   
                   ! Second species: ISOPNB
                   NUMDEP          = NUMDEP + 1
                   NTRAIND(NUMDEP) = ThisSpc%ModelID
-                  NDVZIND(NUMDEP) = ThisSpc%DryDepID
+                  NDVZIND(NUMDEP) = ThisSpc%DryDepID + 1
                   DEPNAME(NUMDEP) = 'ISOPNB'
-                  HSTAR(NUMDEP)   = ThisSpc%DD_Hstar_old
-                  F0(NUMDEP)      = ThisSpc%DD_F0
-                  XMW(NUMDEP)     = ThisSpc%EmMW_g
+                  HSTAR(NUMDEP)   = DBLE( ThisSpc%DD_Hstar_old     )
+                  F0(NUMDEP)      = DBLE( ThisSpc%DD_F0            )
+                  XMW(NUMDEP)     = DBLE( ThisSpc%EmMW_g * 1e-3_fp )
                   AIROSOL(NUMDEP) = ( .not. ThisSpc%Is_Gas )
 
                !-------------------------------------------------------
@@ -4096,40 +4125,72 @@
                CASE( 'MMN') 
 
                   ! First species; MACRN
-                  NUMDEP          = NUMDEP + 1
-                  NTRAIND(NUMDEP) = ThisSpc%ModelID
-                  NDVZIND(NUMDEP) = ThisSpc%DryDepID
-                  DEPNAME(NUMDEP) = 'MACRN'
-                  HSTAR(NUMDEP)   = ThisSpc%DD_Hstar_old
-                  F0(NUMDEP)      = ThisSpc%DD_F0
-                  XMW(NUMDEP)     = ThisSpc%EmMW_g
-                  AIROSOL(NUMDEP) = ( .not. ThisSpc%Is_Gas )
+                  NUMDEP            = NUMDEP + 1
+                  NTRAIND(NUMDEP)   = ThisSpc%ModelID
+                  NDVZIND(NUMDEP)   = ThisSpc%DryDepID
+                  DEPNAME(NUMDEP)   = 'MACRN'
+                  HSTAR(NUMDEP)     = DBLE( ThisSpc%DD_Hstar_old     )
+                  F0(NUMDEP)        = DBLE( ThisSpc%DD_F0            )
+                  XMW(NUMDEP)       = DBLE( ThisSpc%EmMW_g * 1e-3_fp )
+                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas )
                   
                   ! Second species: MVKN
-                  NUMDEP          = NUMDEP + 1
-                  NTRAIND(NUMDEP) = ThisSpc%ModelID
-                  NDVZIND(NUMDEP) = ThisSpc%DryDepID
-                  DEPNAME(NUMDEP) = 'MVKN'
-                  HSTAR(NUMDEP)   = ThisSpc%DD_Hstar_old
-                  F0(NUMDEP)      = ThisSpc%DD_F0
-                  XMW(NUMDEP)     = ThisSpc%EmMW_g
-                  AIROSOL(NUMDEP) = ( .not. ThisSpc%Is_Gas )
+                  NUMDEP            = NUMDEP + 1
+                  NTRAIND(NUMDEP)   = ThisSpc%ModelID
+                  NDVZIND(NUMDEP)   = ThisSpc%DryDepID + 1
+                  DEPNAME(NUMDEP)   = 'MVKN'
+                  HSTAR(NUMDEP)     = DBLE( ThisSpc%DD_Hstar_old     )
+                  F0(NUMDEP)        = DBLE( ThisSpc%DD_F0            )
+                  XMW(NUMDEP)       = DBLE( ThisSpc%EmMW_g * 1e-3_fp )
+                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas )
 
                !-------------------------------------------------------
                ! All other tracers
                !-------------------------------------------------------
                CASE DEFAULT
 
-                  NUMDEP          = NUMDEP + 1               ! # of DD species
-                  NTRAIND(NUMDEP) = ThisSpc%ModelID          ! Tracer index
-                  NDVZIND(NUMDEP) = ThisSpc%DryDepID         ! Drydep index
-                  DEPNAME(NUMDEP) = TRIM( ThisSpc%Name )     ! Species name
-                  HSTAR(NUMDEP)   = ThisSpc%DD_Hstar_old     ! Henry HSTAR
-                  F0(NUMDEP)      = ThisSpc%DD_F0            ! Reactivity
-                  XMW(NUMDEP)     = ThisSpc%EmMw_g           ! Molecular wt
-                  AIROSOL(NUMDEP) = ( .not. ThisSpc%Is_Gas ) ! Is Aerosol?
+                  NUMDEP            = NUMDEP + 1
+                  NTRAIND(NUMDEP)   = ThisSpc%AdvectId
+                  NDVZIND(NUMDEP)   = ThisSpc%DryDepID
+                  DEPNAME(NUMDEP)   = TRIM( ThisSpc%Name )
+                  HSTAR(NUMDEP)     = DBLE( ThisSpc%DD_Hstar_old     )
+                  F0(NUMDEP)        = DBLE( ThisSpc%DD_F0            )
+                  KOA(NUMDEP)       = DBLE( ThisSpc%DD_KOA           )
+                  XMW(NUMDEP)       = DBLE( ThisSpc%EmMW_g * 1e-3_fp )
+                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas )
+
+                  ! 
+                  IF ( ThisSpc%DD_A_Density > 0.0_fp ) THEN
+                     A_DEN(NUMDEP)  = DBLE( ThisSpc%DD_A_Density     )
+                  ENDIF
+
+                  IF ( ThisSpc%DD_A_Radius > 0.0_fp ) THEN
+                     A_RADI(NUMDEP) = DBLE( ThisSpc%DD_A_Radius      )
+                  ENDIF
+
+                  ! Kludges to match behavior of reference code
+                  ! We will remove these eventually (bmy, 8/31/15)
+                  SELECT CASE ( TRIM( ThisSpc%Name ) ) 
+                     CASE( 'ACET' )
+                        XMW(NUMDEP)     = 58e-3_f8
+                     CASE( 'ALD2' )
+                        XMW(NUMDEP)     = 44e-3_f8
+                     CASE( 'NITs', 'NITS' )
+                        DEPNAME(NUMDEP) = 'NITS' 
+                        XMW(NUMDEP)     = 36e-3_f8
+                     CASE( 'N2O5', 'PMN', 'PPN', 'R4N2' )
+                        XMW(NUMDEP)      = 0.0_f8
+                     CASE( 'SO4s', 'SO4S' )
+                        DEPNAME(NUMDEP) = 'SO4S'
+                        XMW(NUMDEP)     = 36e-3_f8
+                     CASE( 'SALA', 'SALC' )
+                        XMW(NUMDEP)     = 36e-3_f8
+                     CASE DEFAULT
+                        ! Nothing
+                  END SELECT
 
             END SELECT
+
          ENDIF
             
          ! Free pointer
@@ -6259,6 +6320,7 @@
       ! Need to save NUMDEP into Input_Opt (already done above)
 !      Input_Opt%NUMDEP = NUMDEP
 
+      STOP
       END SUBROUTINE INIT_DRYDEP
 !EOC
 !------------------------------------------------------------------------------
