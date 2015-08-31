@@ -1239,6 +1239,11 @@
             IF ( LTRAN ) THEN 
                CALL DO_TRANSPORT
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+               !### Debug
+               IF ( prtDebug ) THEN 
+                  CALL DEBUG_MSG( '### MAIN: a DO_TRANSPORT' )
+               ENDIF
             ENDIF
 
             ! Initialize wet scavenging and wetdep fields after
@@ -1254,6 +1259,11 @@
             IF ( LCONV .or. LWETD .or. LCHEM ) THEN
                CALL INIT_WETSCAV
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+               !### Debug
+               IF ( prtDebug ) THEN 
+                  CALL DEBUG_MSG( '### MAIN: a INIT_WETSCAV' )
+               ENDIF
             ENDIF
 
 #endif
@@ -1274,6 +1284,11 @@
          ! (ckeller, 3/5/15) 
          !--------------------------------------------------------------
          CALL COMPUTE_PBL_HEIGHT ( State_Met )
+
+         !### Debug
+         IF ( prtDebug ) THEN 
+            CALL DEBUG_MSG( '### MAIN: a COMPUTE_PBL_HEIGHT' )
+         ENDIF
 
          !--------------------------------------------------------------
          ! Test for emission timestep
@@ -1303,6 +1318,10 @@
 
                RC = GEOS_Timer_End ( "Deposition" )
 
+               !### Debug
+               IF ( prtDebug ) THEN 
+                  CALL DEBUG_MSG( '### MAIN: a DO_DRYDEP' )
+               ENDIF
             ENDIF
 
             !===========================================================
