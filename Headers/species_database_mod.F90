@@ -841,8 +841,8 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
-                              DD_A_Density  = 4.54e-6_fp,                   &
-                              DD_A_Radius   = 2650.0_fp,                    &
+                              DD_A_Density  = 2650.0_fp,                    &
+                              DD_A_Radius   = 4.54e-6_fp,                   &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -1110,7 +1110,7 @@ CONTAINS
                               Henry_K0      = 1.30e+0_f8 * To_M_atm,        &
                               Henry_CR      = 4000.0_f8,                    &
 #else									    
-                              DD_Hstar_old  = 0.0_fp,                       &
+                              DD_Hstar_old  = 6.10e+3_fp,                   &
                               Henry_K0      = 6.10e+3_f8,                   &
                               Henry_CR      = 6014.0_f8,                    &
 #endif									    
@@ -1936,7 +1936,7 @@ CONTAINS
                               Henry_K0      = 4.93e+3_f8 * To_M_atm,        &
                               Henry_CR      = 0.0_f8,                       &
 #else									    
-                              DD_Hstar_old  = 0.0_fp,                       &
+                              DD_Hstar_old  = 1.00e+3_fp,                   &
                               Henry_K0      = 1.00e+3_f8,                   &
                               Henry_CR      = 0.0_f8,                       &
 #endif									    
@@ -2023,7 +2023,7 @@ CONTAINS
                               Is_Wetdep     = T,                            &
                               DD_A_Density  = 2200.0_fp,                    &
                               DD_A_Radius   = A_Radius,                     &
-                              DD_F0         = 1.0_fp,                       &
+                              DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               RC            = RC )
@@ -2046,7 +2046,7 @@ CONTAINS
                               Is_Wetdep     = T,                            &
                               DD_A_Density  = 2200.0_fp,                    &
                               DD_A_Radius   = A_Radius,                     &
-                              DD_F0         = 1.0_fp,                       &
+                              DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               RC            = RC )

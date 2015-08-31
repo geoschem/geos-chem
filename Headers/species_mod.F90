@@ -33,6 +33,7 @@ MODULE Species_Mod
   !=========================================================================
   ! Counters for the species indices
   !=========================================================================
+  INTEGER, PRIVATE :: AdvectCount = 0    ! Counter of advected species
   INTEGER, PRIVATE :: DryDepCount = 0    ! Counter of dry-deposited species
   INTEGER, PRIVATE :: WetDepCount = 0    ! Counter of wet-deposited species
 
@@ -45,7 +46,7 @@ MODULE Species_Mod
   END Type AsciiSum
 
   !=========================================================================
-  ! Type for the vector of species
+  ! Type for the species database object (vector of type Species)
   !=========================================================================
   TYPE, PUBLIC :: SpcPtr
      TYPE(Species),     POINTER :: Info  ! Species type
@@ -58,6 +59,7 @@ MODULE Species_Mod
 
      ! Indices
      INTEGER            :: ModelID       ! Model species ID
+     INTEGER            :: AdvectID      ! Advection index
      INTEGER            :: DryDepID      ! Dry deposition index
      INTEGER            :: WetDepID      ! Wet deposition index
 
@@ -66,12 +68,10 @@ MODULE Species_Mod
      CHARACTER(LEN=80)  :: FullName      ! Long name
 
      ! Logical switches
-     LOGICAL            :: Is_Advected   ! Is it advected?
      LOGICAL            :: Is_Gas        ! Is it a gas?  If not, aerosol.
+     LOGICAL            :: Is_Advected   ! Is it advected?
      LOGICAL            :: Is_DryDep     ! Is it dry-deposited?
      LOGICAL            :: Is_WetDep     ! Is it wet-deposited?
-
-     ! Indices
 
      ! Physical properties
      REAL(fp)           :: MW_g          ! Species molecular weight  [g/mole]
@@ -129,6 +129,7 @@ MODULE Species_Mod
 !  22 Jul 2015 - R. Yantosca - Updated and cleaned up a bit 
 !  18 Aug 2015 - R. Yantosca - Added indices for drydep, wetdep, transport
 !  18 Aug 2015 - R. Yantosca - Added missing value parameters
+!  31 Aug 2015 - R. Yantosca - Add AdvectId
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -376,6 +377,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2013 - C. Keller   - Adapted from gigc_state_chm_mod.F90
 !  22 Jul 2015 - R. Yantosca - Added RetFactor and drydep parameters
+!  31 Aug 2015 - R. Yantosca - Now also compute AdvectId
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -516,7 +518,7 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------------
-    ! Henry's law pKA parameter
+    ! Henry's law pKA parameter [1]
     !---------------------------------------------------------------------
     IF ( PRESENT( Henry_PKA ) ) THEN
        ThisSpc%Henry_PKA = Henry_PKA 
@@ -555,7 +557,16 @@ CONTAINS
     ! Is it advected?
     !---------------------------------------------------------------------
     IF ( PRESENT( Is_Advected ) ) THEN
+
+       ! Increment the count of advected species
        ThisSpc%Is_Advected = Is_Advected
+       
+       ! Update count & index of advected species
+       IF ( Is_Advected ) THEN
+          AdvectCount      = AdvectCount + 1
+          ThisSpc%AdvectID = AdvectCount
+       ENDIF
+
     ELSE
        ThisSpc%Is_Advected = .FALSE.
     ENDIF
@@ -565,6 +576,7 @@ CONTAINS
     !---------------------------------------------------------------------
     IF ( PRESENT( Is_Drydep ) ) THEN
        ThisSpc%Is_Drydep       = Is_Drydep
+
        IF( Is_Drydep ) THEN
 
           ! Increment count of drydep'd species
@@ -578,12 +590,12 @@ CONTAINS
              ThisSpc%DryDepID  = DryDepCount
           ENDIF
 
-          ! ISOPNN dry deposits as ISOPND + ISOPNB
-          ! MMN    dry deposits as MACRN  + MVKN
+          ! ISOPN dry deposits as ISOPND + ISOPNB
+          ! MMN   dry deposits as MACRN  + MVKN
           ! So we need to increment the drydep counter to
           ! leave space for the next species
           SELECT CASE( TRIM( ThisSpc%Name ) ) 
-             CASE( 'ISOPNN', 'MMN' )
+             CASE( 'ISOPN', 'MMN' )
                 DryDepCount    = DryDepCount + 1
              CASE DEFAULT
                 ! Nothing
@@ -599,10 +611,13 @@ CONTAINS
     !---------------------------------------------------------------------
     IF ( PRESENT( Is_Wetdep ) ) THEN
        ThisSpc%Is_Wetdep    = Is_Wetdep
+
+       ! Increment count & index of wet deposited species
        IF ( Is_WetDep ) THEN
           WetDepCount       = WetDepCount + 1
           ThisSpc%WetDepID  = WetDepCount
        ENDIF
+
     ELSE
        ThisSpc%Is_Wetdep    = .FALSE.
        ThisSpc%WetDepID     = MISSING_INT
