@@ -426,8 +426,12 @@
       ! for diagnostic output (bmy, 3/4/13)
       !-----------------------------------------------------------------
 
-      ! Define GEOS-Chem diagnostic info
-      CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
+!------------------------------------------------------------------------------
+! Prior to 8/31/15:
+! Move NDXX_SETUP to GIGC_INIT_XTRA (bmy, 8/31/15)
+!      ! Define GEOS-Chem diagnostic info
+!      CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
+!------------------------------------------------------------------------------
 
       ! Make sure all directories are valid
       CALL VALIDATE_DIRECTORIES( am_I_Root, Input_Opt, RC )
@@ -8571,6 +8575,12 @@
       IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
          CALL Init_POPs( am_I_Root, Input_Opt, RC )
       ENDIF
+
+      !=================================================================
+      ! Initialize GEOS-Chem diagnostics here.  This allows us to
+      ! take advantage of the species database (bmy, 8/31/15)
+      !=================================================================
+      CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
 
       END SUBROUTINE GIGC_Init_Extra
 !EOC
