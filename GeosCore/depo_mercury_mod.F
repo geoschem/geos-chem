@@ -394,7 +394,7 @@
      &                    ( IS_LAND( I, J, State_Met     )  .AND. 
      &                      State_Met%SNOW(I,J)   > 10e+0_fp ))
       ! Ocean fraction (vs land)
-      FRAC_O = 1e+0_fpp - FRLAND(I,J)
+      FRAC_O = 1e+0_fp - State_Met%FRLAND(I,J)
 #endif 
 
       ! Check if there is snow on the ground, or if this is sea ice
