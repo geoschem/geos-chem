@@ -1459,7 +1459,7 @@
       USE CMN_SIZE_MOD
       USE DEPO_MERCURY_MOD,   ONLY : RESET_HG_DEP_ARRAYS
       USE DIAG03_MOD,         ONLY : AD03_nat
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD,          ONLY : DEBUG_MSG, GEOS_CHEM_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -1524,6 +1524,7 @@
       LOGICAL         :: LNLPBL
       LOGICAL         :: LPRT
       LOGICAL         :: LPREINDHG
+      LOGICAL         :: LEMIS
 
       !=================================================================
       ! EMISSMERCURY begins here!
@@ -1537,10 +1538,19 @@
       LGTMM     = Input_Opt%LGTMM
       LNLPBL    = Input_Opt%LNLPBL
       LPREINDHG = Input_Opt%LPREINDHG
+      LEMIS     = Input_Opt%LEMIS
       LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
 
       ! First-time initialization
       IF ( FIRST ) THEN
+
+         ! Check that emissions are turned on. Print error message 
+         ! and stop GEOS-Chem if emissions are turned off (ewl, 9/1/15)
+         IF ( .not. LEMIS ) THEN
+            PRINT *, 'ERROR: Hg emissions are need for simulation ' //
+     &               'but emissions are turned off in input.geos'
+            CALL GEOS_CHEM_STOP
+         ENDIF
 
          ! Read anthro, ocean, land emissions of Hg from disk
          CALL MERCURY_READYR( am_I_Root, Input_Opt, RC )

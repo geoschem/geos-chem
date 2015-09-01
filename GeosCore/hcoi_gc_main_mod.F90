@@ -2509,21 +2509,18 @@ CONTAINS
 
 #if defined( GEOS_FP )
     
-    ! Disable for GEOS-FP met fields if not a mercury simulation 
-    ! no matter what it is set to in the HEMCO configuration file.
-    ! Always enable if a mercury simulation done with photo-reducible
-    ! HgII(aq) to UV-B radiation turned on.
-    IF ( FOUND ) THEN
-       IF ( Input_Opt%ITS_A_MERCURY_SIM .and.   &
-            Input_Opt%LKRedUV ) THEN
-          OptName = '+TOMS_SBUV_O3+ : true'
-       ELSE 
-          OptName = '+TOMS_SBUV_O3+ : false'          
-       ENDIF
-       CALL AddExtOpt( TRIM(OptName), CoreNr, RC ) 
-       IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'AddExtOpt GEOS-FP +TOMS_SBUV_O3+', LOC )
-       ENDIF
+    ! Disable for GEOS-FP met fields no matter what it is set to in the 
+    ! HEMCO configuration file unless it is a mercury simulation done 
+    ! with photo-reducible HgII(aq) to UV-B radiation turned on (jaf)
+    IF ( Input_Opt%ITS_A_MERCURY_SIM .and.   &
+         Input_Opt%LKRedUV ) THEN
+       OptName = '+TOMS_SBUV_O3+ : true'          
+    ELSE
+       OptName = '+TOMS_SBUV_O3+ : false'          
+    ENDIF
+    CALL AddExtOpt( TRIM(OptName), CoreNr, RC ) 
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP( 'AddExtOpt GEOS-FP +TOMS_SBUV_O3+', LOC )
     ENDIF
 
 #else
