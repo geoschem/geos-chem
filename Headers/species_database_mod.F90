@@ -2429,12 +2429,53 @@ CONTAINS
           ! Species for the CO2 specialty simulation
           !==================================================================
 
-          CASE( 'CO2' )
+          CASE( 'CO2',    'CO2FF', 'CO2OC', 'CO2BAL', 'CO2BB', 'CO2BF',     &
+                'CO2NTE', 'CO2SE', 'CO2AV', 'CO2CH',  'CO2CORR'         )
+
+             ! These all have identical properties except for the names 
+             ! Add TOMAS bin number to full name
+             
+             SELECT CASE( TRIM( NameAllCaps ) ) 
+                CASE( 'CO2FF' )
+                   Name     = 'CO2ff'
+                   FullName = 'Carbon dioxide from fossil fuel emissions'
+                CASE( 'CO2OC' )
+                   Name     = 'CO2oc'
+                   FullName = 'Carbon dioxide from ocean emissions'
+                CASE( 'CO2BAL' )
+                   Name     = 'CO2bal'
+                   FullName = 'Carbon dioxide from balanced biosphere'
+                CASE( 'CO2BB' )
+                   Name     = 'CO2bb'
+                   FullName = 'Carbon dioxide  from biomass burning emissions'
+                CASE( 'CO2BF' )
+                   Name     = 'CO2bf'
+                   FullName = 'Carbon dioxide  from biofuel emissions'
+                CASE( 'CO2NTE' )
+                   Name     = 'CO2nte'
+                   FullName = 'Carbon dioxide from net terrestrial exchange'
+                CASE( 'CO2SE' )
+                   Name     = 'CO2se'
+                   FullName = 'Carbon dioxide from ship emissions'
+                CASE( 'CO2AV' )
+                   Name     = 'CO2av'
+                   FullName = 'Carbon dioxide from aviation emissions'
+                CASE( 'CO2CH' )
+                   Name     = 'CO2ch'
+                   FullName = 'Carbon dioxide from chemical sources'
+                CASE( 'CO2CORR' )
+                   Name     = 'CO2corr'
+                   FullName = 'Carbon dioxide chemical source surface correction'
+                CASE DEFAULT
+                   Name     = 'CO2'
+                   FullName = 'Carbon dioxide'
+             END SELECT
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Carbon dioxide',             &
+                              Name          = Name,                         &
+                              FullName      = FullName,                     &
                               MW_g          = 44.0_fp,                      &
                               Is_Advected   = T,                            &
                               Is_Gas        = T,                            &
