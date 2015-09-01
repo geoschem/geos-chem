@@ -101,6 +101,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Jul 2015 - R. Yantosca - Initial version
+!  01 Sep 2015 - R. Yantosca - Add Henry K0, CR constants for DMS, ACET
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -179,6 +180,8 @@ CONTAINS
                               Henry_CR      = 5500.0_f8,                    &
 #else                                                                       
                               DD_Hstar_Old  = 1e5_fp,                       &
+                              Henry_K0      = 2.7e+1_f8,                    &
+                              Henry_CR      = 5300.0_f8,                    &
 #endif                                      
                               RC            = RC )
 
@@ -211,7 +214,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Lumped >= C4 Alkanes',       &
                               MW_g          = 58.12_fp,                     &
-                              EmMW_g        = 12e-3_fp,                     &
+                              EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 4.0_fp,                       &
                               Is_Advected   = T,                            &
                               Is_Gas        = T,                            &
@@ -429,7 +432,8 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Propane',                    &
                               MW_g          = 44.1_fp,                      &
-                              MolecRatio    = 12.0_fp,                      &
+                              EmMW_g        = 12.0_fp,                      &
+                              MolecRatio    = 3.0_fp,                       &
                               Is_Advected   = T,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -721,6 +725,8 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
+                              Henry_K0      = 4.80e-1_f8,                   &
+                              Henry_CR      = 3100.0_f8,                    &
                               RC            = RC )
 
           CASE( 'DST1', 'DSTAL1', 'NITD1', 'SO4D1' )
@@ -1137,7 +1143,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Isoprene',                   &
                               MW_g          = 68.12_fp,                     &
-                              EmMW_g        = 12e-3_fp,                     &
+                              EmMW_g        = 12.0_fp,                      &
                               MolecRatio    = 5e+0_fp,                      &
                               Is_Advected   = T,                            &
                               Is_Gas        = T,                            &
