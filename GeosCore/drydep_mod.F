@@ -6321,7 +6321,6 @@
       ! Need to save NUMDEP into Input_Opt (already done above)
 !      Input_Opt%NUMDEP = NUMDEP
 
-      STOP
       END SUBROUTINE INIT_DRYDEP
 !EOC
 !------------------------------------------------------------------------------
