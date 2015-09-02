@@ -102,6 +102,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  22 Jul 2015 - R. Yantosca - Initial version
 !  01 Sep 2015 - R. Yantosca - Add Henry K0, CR constants for DMS, ACET
+!  02 Sep 2015 - R. Yantosca - Corrected typos for some SOA species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -537,7 +538,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              Name          = 'CH3BR',                      &
+                              Name          = 'CH3Br',                      &
                               FullName      = 'Methyl bromide',             &
                               MW_g          = 95.0_fp,                      &
                               Is_Advected   = T,                            &
@@ -630,7 +631,7 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = 'Cl2O2',                      &
                               FullName      = 'Dichlorine dioxide',         &
-                              MW_g          = 71.0_fp,                      &
+                              MW_g          = 103.0_fp,                     &
                               Is_Advected   = T,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -1518,12 +1519,9 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 0.0_fp,                       &
-#if defined( NEW_HENRY_CONSTANTS )					    
-#else									    
-                              DD_Hstar_old  = 4.90e-1_fp,                   &
-                              Henry_K0      = 4.90e02_f8,                   &
+                              DD_Hstar_old  = 4.90e-2_fp,                   &
+                              Henry_K0      = 4.90e-2_f8,                   &
                               Henry_CR      = 0.0_f8,                       &
-#endif									    
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
           
@@ -2165,7 +2163,7 @@ CONTAINS
                               FullName      = 'Toluene',                    &
                               MW_g          = 92.14_fp,                     &
                               EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 6.0_fp,                       &
+                              MolecRatio    = 7.0_fp,                       &
                               Is_Advected   = T,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
