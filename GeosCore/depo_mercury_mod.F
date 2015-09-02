@@ -376,6 +376,7 @@
      &                        State_Met%FRSEAICE(I,J)  + 
      &                        State_Met%FRLANDIC(I,J), 1e+0_fp)
       IS_SNOW_OR_ICE   = ( FRAC_SNOW_OR_ICE > 0e+0_fp )
+
       ! Ocean fraction (vs land)
       FRAC_O = State_Met%FROCEAN(I,J)
 
@@ -393,8 +394,12 @@
       IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, State_Met     )) .OR. 
      &                    ( IS_LAND( I, J, State_Met     )  .AND. 
      &                      State_Met%SNOW(I,J)   > 10e+0_fp ))
+
       ! Ocean fraction (vs land)
+      ! NOTE: GEOS-4 and GCAP don't have an equivalent field for FRLAND
+      ! so FRAC_O will be set to 1
       FRAC_O = 1e+0_fp - State_Met%FRLAND(I,J)
+
 #endif 
 
       ! Check if there is snow on the ground, or if this is sea ice
@@ -403,30 +408,35 @@
          ! Add 60% of deposition to surface (i.e. assume 40% accumulates
          ! in surface) multiplied by the fraction of the box that is 
          ! snow or ice (i.e. 1 for all met fields but MERRA and GEOS-5.7.x)
-         SNOW_HG_OC(I,J,NN) = SNOW_HG_OC(I,J,NN) + FRAC_O *
-     &           FRAC_SNOW_OR_ICE * MAX( 0.6e+0_fp*DEP_HG2, 0e0_fp )
+         SNOW_HG_OC(I,J,NN) = SNOW_HG_OC(I,J,NN) +
+     &                        FRAC_O * FRAC_SNOW_OR_ICE *
+     &                        MAX( 0.6e+0_fp*DEP_HG2, 0e+0_fp )
 
          ! Add remaining deposited Hg to reservoir for delivery to ocean
          ! when snow melts later (jaf, 6/17/11)
          ! This is Hg in snowpack over ocean that CANNOT be
          ! re-emitted to atmosphere
-         SNOW_HG_STORED_OC(I,J,NN) = SNOW_HG_STORED_OC(I,J,NN) + FRAC_O*
-     &                     FRAC_SNOW_OR_ICE * MAX( 0.4D0*DEP_HG2, 0D0 )
+         SNOW_HG_STORED_OC(I,J,NN) = SNOW_HG_STORED_OC(I,J,NN) +
+     &                               FRAC_O * FRAC_SNOW_OR_ICE *
+     &                               MAX( 0.4e+0_fp*DEP_HG2, 0e+0_fp )
 
          ! This is Hg in snowpack over land that can potentially be
          ! re-emitted to atmosphere
-         SNOW_HG_LN(I,J,NN) = SNOW_HG_LN(I,J,NN) + (1d0 - FRAC_O) *
-     &                     FRAC_SNOW_OR_ICE * MAX( 0.6D0*DEP_HG2, 0D0 )
+         SNOW_HG_LN(I,J,NN) = SNOW_HG_LN(I,J,NN) +
+     &                        (1e+0_fp - FRAC_O) * FRAC_SNOW_OR_ICE *
+     &                        MAX( 0.6e+0_fp*DEP_HG2, 0e+0_fp )
 
          ! This is Hg in snowpack over land that CANNOT be
          ! re-emitted to atmosphere
          SNOW_HG_STORED_LN(I,J,NN) = SNOW_HG_STORED_LN(I,J,NN) +
-     &                     ( 1d0 - FRAC_O ) *
-     &                     FRAC_SNOW_OR_ICE * MAX( 0.4D0*DEP_HG2, 0D0 )
+     &                               ( 1e+0_fp - FRAC_O ) *
+     7                               FRAC_SNOW_OR_ICE
+     &                               * MAX( 0.4e+0_fp*DEP_HG2, 0e+0_fp )
 
          ! Store diagnostic of TOTAL HgII/HgP deposition to snow/ice
-         IF ( ND03 > 0 ) AD03(I,J,21,1) = AD03(I,J,21,1) +
-     &                   FRAC_SNOW_OR_ICE * MAX(DEP_HG2, 0d0) 
+         IF ( ND03 > 0 ) AD03(I,J,21,1) = AD03(I,J,21,1)   +
+     &                                    FRAC_SNOW_OR_ICE *
+     &                                    MAX(DEP_HG2, 0e+0_fp) 
 
       ENDIF
 
@@ -999,19 +1009,19 @@
 
       ALLOCATE( SNOW_HG_OC( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'SNOW_HG_OC' )
-      SNOW_HG_OC = 0e+0+fp
+      SNOW_HG_OC = 0e+0_fp
 
       ALLOCATE( SNOW_HG_LN( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'SNOW_HG_LN' )
-      SNOW_HG_LN = 0e+0+fp
+      SNOW_HG_LN = 0e+0_fp
 
       ALLOCATE( SNOW_HG_STORED_OC( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'SNOW_HG_STORED_OC' )
-      SNOW_HG_STORED_OC = 0e+0+fp
+      SNOW_HG_STORED_OC = 0e+0_fp
 
       ALLOCATE( SNOW_HG_STORED_LN( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'SNOW_HG_STORED_LN' )
-      SNOW_HG_STORED_LN = 0e+0+fp
+      SNOW_HG_STORED_LN = 0e+0_fp
 
       IF ( Input_Opt%LGTMM ) THEN
          ALLOCATE( HG0mth_dd( IIPAR, JJPAR ), STAT=RC )

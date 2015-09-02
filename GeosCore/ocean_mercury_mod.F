@@ -1258,6 +1258,7 @@
 !$OMP+PRIVATE( IS_OCEAN_BOX                                        )
 !$OMP+PRIVATE( FRAC_OPEN_OCEAN,    FRAC_OCEAN_OR_ICE,  Snow_Hg2aq  )
 !$OMP+PRIVATE( FRAC_REDUCIBLE,     UVI_RATIO                       )
+!$OMP+PRIVATE( Kd_part                                             )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR

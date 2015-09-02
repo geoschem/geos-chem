@@ -492,13 +492,14 @@
 ! !LOCAL VARIABLES:
 
       LOGICAL, SAVE   :: FIRST = .TRUE.
-      INTEGER         :: I, J, L, K, N, MONTH, NSTEPS
+      INTEGER         :: I, J, L, K, N, NN, MONTH, NSTEPS
       REAL(fp)        :: K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT
       REAL(fp)        :: C_OH, C_O3, C_BR, C_BRO
       REAL(fp)        :: K_OH, K_O3, K_BR, K_BRO
       REAL(fp)        :: K_OX, K_RED, K_DEP0, K_DEP2G, K_DEP2P
       REAL(fp)        :: DEP_Hg0, DEP_HG2G, DEP_HG2P
       REAL(fp)        :: DEP_HG2G_DRY, DEP_HG2G_SALT, DEP_HG2P_DRY
+      REAL(fp)        :: DEP_HG2_DRY
       REAL(fp)        :: GROSS_OX, GROSS_OX_BR, GROSS_OX_OH, GROSS_OX_O3
       REAL(fp)        :: GROSS_RED, NET_OX
       REAL(fp)        :: F_PBL, FC, Faq, LWC
@@ -665,7 +666,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,        L,        K,       N, NSTEPS         )
+!$OMP+PRIVATE( I,       J,        L,        K,       N, NN, NSTEPS )
 !$OMP+PRIVATE( K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT )
 !$OMP+PRIVATE( C_OH,    C_O3,     C_BR,     C_BRO )
 !$OMP+PRIVATE( K_OH,    K_O3,     K_BR,     K_BRO )
@@ -675,14 +676,14 @@
 !$OMP+PRIVATE( A,       Xold,     Xnew,     s1, s2, s3, s4 )
 !$OMP+PRIVATE( DEP_Hg0, DEP_HG2G, DEP_HG2P )
 !$OMP+PRIVATE( DEP_HG2G_DRY,      DEP_HG2G_SALT,     DEP_HG2P_DRY )
+!$OMP+PRIVATE( DEP_HG2_DRY )
 !$OMP+PRIVATE( GROSS_OX, GROSS_OX_BR, GROSS_OX_OH, GROSS_OX_O3 )
 !$OMP+PRIVATE( GROSS_RED, NET_OX )
 !$OMP+PRIVATE( AREA_CM2,  DEP_DRY_FLX )
 !$OMP+PRIVATE( F_HG0_DEP )
-!%%%% NOTE: LOOP IS IN WRONG ORDER, WILL BE MORE EFFICIENT IF REVERSED %%%%
-      DO I=1, IIPAR
-      DO J=1, JJPAR
       DO L=1, LLPAR
+      DO J=1, JJPAR
+      DO I=1, IIPAR
 
          !------------------------------------------------------
          ! Dry deposition frequencies, 1/s
@@ -1061,14 +1062,18 @@
             ! We should add an if statement to test whether DYNAMIC LAND is 
             ! active.
             IF ( LDYNOCEAN ) THEN
-               CALL ADD_Hg2_DD( I, J, ID_Hg2(N), DEP_Hg2G )
-               CALL ADD_HgP_DD( I, J, ID_HgP(N), DEP_Hg2P )
+               NN = ID_Hg2(N)
+               CALL ADD_Hg2_DD( I, J, NN, DEP_Hg2G )
+
+               NN = ID_HgP(N)
+               CALL ADD_HgP_DD( I, J, NN, DEP_Hg2P )
             ENDIF           
 
             ! Add deposited Hg(II) to the snowpack
             IF ( LHGSNOW ) THEN
-               CALL ADD_HG2_SNOWPACK(I,J,ID_Hg2(N),
-     &              DEP_HG2g_DRY + DEP_Hg2p_DRY, State_Met )
+               NN = ID_Hg2(N)
+               DEP_HG2_DRY = DEP_HG2g_DRY + DEP_HG2p_DRY
+               CALL ADD_HG2_SNOWPACK( I, J, NN, DEP_HG2_DRY, State_Met )
             ENDIF           
 
 #if !defined( NO_BPCH )
