@@ -27,6 +27,7 @@ MODULE Species_Mod
   PUBLIC :: SpcData_Cleanup
   PUBLIC :: Spc_Create
   PUBLIC :: Spc_Print
+  PUBLIC :: Spc_GetNumSpecies
 !
 ! !PUBLIC TYPES: 
 !
@@ -776,6 +777,40 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE Spc_Print
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Spc_GetNumSpecies
+!
+! !DESCRIPTION: Routine Spc\_GetNumSpecies returns the number of advected,
+!  dry-deposited, and wet-deposited species to an external routine.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Spc_GetNumSpecies( nAdvect, nDryDep, nWetDep )
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(OUT) :: nAdvect   ! # of advected species
+    INTEGER, INTENT(OUT) :: nDryDep   ! # of dry-deposited species
+    INTEGER, INTENT(OUT) :: nWetDep   ! # of wet-deposited species
+! 
+! !REVISION HISTORY: 
+!   2 Sep 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Return module variables
+    nAdvect = AdvectCount
+    nDryDep = DryDepCount
+    nWetDep = WetDepCount
+    
+  END SUBROUTINE Spc_GetNumSpecies
 !EOC
 END MODULE Species_Mod
 

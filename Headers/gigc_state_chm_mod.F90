@@ -306,7 +306,8 @@ CONTAINS
     USE Comode_Loop_Mod,      ONLY : ILONG, ILAT, IPVERT
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-    USe Species_Database_Mod, ONLY : Init_Species_Database
+    USE Species_Mod,          ONLY : Spc_GetNumSpecies
+    USE Species_Database_Mod, ONLY : Init_Species_Database
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -428,18 +429,15 @@ CONTAINS
     !=====================================================================
     ! Determine the number of advected, drydep, wetdep, and total species
     !=====================================================================
+
+    ! The total number of species is the size of SpcData
     State_Chm%nSpecies = SIZE( State_Chm%SpcData )
 
+    ! Get the number of advected, dry-deposited, and wet-deposited species
+    CALL Spc_GetNumSpecies( State_Chm%nAdvect,  &
+                            State_Chm%nDryDep,  &
+                            State_Chm%nWetDep  )
 
-!    State_Chm%nAdvect  = MAXVAL( State_Chm%SpcData%Info%AdvectID )
-!    State_Chm%nDryDep  = MAXVAL( State_Chm%SpcData%Info%DryDepID )
-!    State_Chm%nWetDep  = MAXVAL( State_Chm%SpcData%Info%WetDepID )
-
-    print*, 'nSpecies : ', State_Chm%nSpecies
-    print*, 'nAdvect  : ', State_Chm%nAdvect
-    print*, 'nDryDep  : ', State_Chm%nDryDep
-    print*, 'nWetDep  : ', State_Chm%nWetDep
-    
   END SUBROUTINE Init_GIGC_State_Chm
 !EOC
 !------------------------------------------------------------------------------
