@@ -73,10 +73,18 @@ MODULE Species_Mod
      LOGICAL            :: Is_DryDep     ! Is it dry-deposited?
      LOGICAL            :: Is_WetDep     ! Is it wet-deposited?
 
-     ! Physical properties
+     ! Molecular weights and conversion factors
      REAL(fp)           :: MW_g          ! Species molecular weight  [g/mole]
      REAL(fp)           :: EmMW_g        ! Emitted molecular weight  [g/mole]
      REAL(fp)           :: MolecRatio    ! Molecule emission ratio   [1     ] 
+     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+     !%%% NOTE: These parameters are kept for backwards compatibility 
+     !%%% but will be removed when the new unit conversion modifications
+     !%%% are introduced into GEOS-Chem. (bmy, 9/2/15)
+     !%%%
+     REAL(fp)           :: TCVV          ! Mol. Wt. dry air / Mol. wt. species
+     REAL(fp)           :: XNUMOL        ! Molecules species / kg species
+     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
      ! Henry's law parameters
      REAL(f8)           :: Henry_K0      ! Liq. over gas Henry const [M/atm ]
@@ -328,6 +336,10 @@ CONTAINS
                          DD_KOA,        DD_HStar_Old, WD_RetFactor,   &
                          WD_AerScavEff, Is_Advected,  Is_Gas,         &
                          Is_Drydep,     Is_Wetdep,    RC             )
+!
+! !USES:
+!
+    USE CMN_GCTM_Mod, ONLY : AIRMW, AVO              ! Physical constants
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -622,6 +634,25 @@ CONTAINS
        ThisSpc%Is_Wetdep    = .FALSE.
        ThisSpc%WetDepID     = MISSING_INT
     ENDIF
+
+    !---------------------------------------------------------------------
+    ! Conversion factors based on emitted molecular weight  
+    ! These are mostly for backwards compatibility w/ existing code
+    !
+    ! NOTE: We have to use the emitted molecular weight EmMw_g instead
+    ! of the actual molecular weight.  This will provide the proper
+    ! unit conversion for species like ISOP which are emitted and
+    ! transported as equivalent carbons.
+    !
+    ! These will be removed from GEOS-Chem once the new unit conversion
+    ! routines are brought into the the code. (bmy, 9/2/15)
+    !---------------------------------------------------------------------
+    
+    ! Ratio of MW of dry air per emitted MW Of species
+    ThisSpc%TCVV   = AIRMW / ThisSpc%EmMw_g
+
+    ! Molecules species per kg of species
+    ThisSpc%XNUMOL = AVO   / ( ThisSpc%EmMw_g * 1e-3_fp ) 
 
   END SUBROUTINE Spc_Create
 !EOC

@@ -185,6 +185,7 @@ gigc_state_met_mod.o   : gigc_state_met_mod.F90   \
                          precision_mod.o
 
 species_mod.o          : species_mod.F90          \
+                         CMN_GCTM_mod.o           \
                          precision_mod.o 
 
 species_database_mod.o : species_database_mod.F90 \
