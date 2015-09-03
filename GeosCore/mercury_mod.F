@@ -681,9 +681,12 @@
 !$OMP+PRIVATE( GROSS_RED, NET_OX )
 !$OMP+PRIVATE( AREA_CM2,  DEP_DRY_FLX )
 !$OMP+PRIVATE( F_HG0_DEP )
-      DO L=1, LLPAR
-      DO J=1, JJPAR
+!%%%% NOTE: LOOP IS IN WRONG ORDER, WILL BE MORE EFFICIENT IF REVERSED %%%%
+!%%%% Putting this loop in the correct order causes differences in the %%%%
+!%%%% AD03_HG2_SS diagnostic array when using mp vs sp (mps, 9/3/15)   %%%%
       DO I=1, IIPAR
+      DO J=1, JJPAR
+      DO L=1, LLPAR
 
          !------------------------------------------------------
          ! Dry deposition frequencies, 1/s
