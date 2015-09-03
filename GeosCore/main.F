@@ -279,6 +279,7 @@
 !  31 Mar 2015 - E. Lundgren - Move post-transport AIRQNT call to transport_mod 
 !  16 Apr 2015 - R. Yantosca - Remove call to INIT_DAO; it's obsolete
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
+!  03 Sep 2015 - R. Yantosca - Now call SETUP_WETSCAV instead of INIT_WETSCAV
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1249,20 +1250,18 @@
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
 #if defined ( TOMAS )
-            ! ... TOMAS microphysics: Always call INIT_WETSCAV ...
-            CALL INIT_WETSCAV
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            ! ... TOMAS microphysics: Always call SETUP_WETSCAV ...
+            CALL SETUP_WETSCAV( am_I_Root, Input_Opt, State_Met, RC )
 
 #else 
             ! ... Standard GEOS-Chem: Call INIT_WETSCAV if   ...
             ! ... convection or wet scavenging or chemistry are turned on ...
             IF ( LCONV .or. LWETD .or. LCHEM ) THEN
-               CALL INIT_WETSCAV
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL SETUP_WETSCAV( am_I_Root, Input_Opt, State_Met, RC )
 
                !### Debug
                IF ( prtDebug ) THEN 
-                  CALL DEBUG_MSG( '### MAIN: a INIT_WETSCAV' )
+                  CALL DEBUG_MSG( '### MAIN: a SETUP_WETSCAV' )
                ENDIF
             ENDIF
 

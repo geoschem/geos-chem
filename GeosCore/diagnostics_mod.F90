@@ -61,6 +61,7 @@ MODULE Diagnostics_Mod
 !BOC
 CONTAINS
 #if defined( DEVEL )
+!EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -119,6 +120,9 @@ CONTAINS
     ! Define collection variables
     AM2    => AREA_M2(:,:,1)
     TS     =  GET_TS_CHEM() * 60.0_sp
+
+    ! Save number of wet-depositing species for later use
+    nWetDep = State_Chm%nWetDep
 
     !-----------------------------------------------------------------------
     ! Create diagnostics collection for GEOS-Chem.  This will keep the
@@ -182,7 +186,7 @@ CONTAINS
     ENDIF
 
     ! Wetdeposition scavenging loss (ND39)
-    CALL DIAGINIT_WETDEP_LOSS( am_I_Root, Input_Opt, State_Met, RC )
+    CALL DIAGINIT_WETDEP_LOSS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DIAGINIT_WETDEP_LOSS', LOC ) 
     ENDIF
@@ -832,17 +836,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DIAGINIT_WETDEP_LOSS( am_I_Root, Input_Opt, State_Met, RC )
+  SUBROUTINE DIAGINIT_WETDEP_LOSS( am_I_Root, Input_Opt,     &
+                                   State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-    USE WETSCAV_MOD,    ONLY : GET_WETDEP_NSOL, GET_WETDEP_IDWETD
+    USE Species_Mod, ONLY : Species   
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(MetState), INTENT(IN   ) :: State_Met  ! Met state
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+    TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -850,6 +856,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  20 Mar 2015 - C. Keller   - Initial version
+!   3 Sep 2015 - R. Yantosca - Now get wetdep species from State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -862,6 +869,9 @@ CONTAINS
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGINIT_WETDEP_LOSS (diagnostics_mod.F90)' 
+
+    ! Pointers
+    TYPE(Species), POINTER :: ThisSpc
 
     !=======================================================================
     ! DIAGINIT_WETDEP_LOSS begins here!
@@ -879,13 +889,19 @@ CONTAINS
     OutOper    = Input_Opt%ND39_OUTPUT_TYPE
 
     ! Get number of soluble species
-    M = GET_WETDEP_NSOL()
+    M = State_Chm%nWetDep
 
-    ! Loop over # of species 
-    DO N = 1, M 
+    ! Loop over all species
+    DO N = 1, State_Chm%nSpecies
 
-       ! Get GEOS-Chem tracer number
-       NN = GET_WETDEP_IDWETD( N )
+       ! Get info about the Nth species from the species database
+       ThisSpc => State_Chm%SpcData(N)%Info
+
+       ! Skip if this is not a wet-depositing species
+       IF ( .not. ThisSpc%Is_WetDep ) CYCLE
+
+       ! Wetdep species index
+       NN = ThisSpc%WetDepId
 
        ! Check if this is a species asked in input.geos
        IF ( ANY( Input_Opt%TINDEX(39,:) == NN ) ) THEN
@@ -921,6 +937,10 @@ CONTAINS
              CALL ERROR_STOP( MSG, LOC ) 
           ENDIF
        ENDIF
+
+       ! Free pointer
+       ThisSpc => NULL()
+
     ENDDO !N
 
   END SUBROUTINE DIAGINIT_WETDEP_LOSS

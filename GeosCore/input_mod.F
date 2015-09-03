@@ -441,8 +441,12 @@
       ! Check GEOS-CHEM timesteps
       CALL CHECK_TIME_STEPS( am_I_Root, Input_Opt, RC )
 
-      ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
-      CALL DO_GAMAP( am_I_Root, Input_Opt, RC )
+!------------------------------------------------------------------------------
+! Prior to 9/3/15:
+! Move this to GIGC_Init_Extra
+!      ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
+!      CALL DO_GAMAP( am_I_Root, Input_Opt, RC )
+!------------------------------------------------------------------------------
 
       ! Echo output
       IF ( am_I_Root ) THEN
@@ -4042,12 +4046,7 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-!      USE DRYDEP_MOD,  ONLY : INIT_DRYDEP
-!      USE WETSCAV_MOD, ONLY : WETDEPID
-!#if   defined( APM )
-!      USE APM_WETS_MOD, ONLY : WETDEPBINID
-!#endif
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -4181,48 +4180,6 @@
       ! FORMAT statements
  100  FORMAT( A, L5 )
  110  FORMAT( A, I5 )
-
-!-----------------------------------------------------------------------------
-! Prior to 8/28/15:
-! Now move this to GIGC_INIT_EXTRA, which is called after State_Chm is
-! initialized.  This will let us take advantage of the species database.
-! (bmy, 8/28/15)
-!      !=================================================================
-!      ! Call setup routines from other F90 modules
-!      !=================================================================
-!
-!      ! Initialize dry deposition arrays
-!      IF ( Input_Opt%LDRYD ) THEN
-!
-!         ! Setup for dry deposition
-!         CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
-!      
-!         ! Print extra info message for Hg simulation
-!         IF ( Input_Opt%ITS_A_MERCURY_SIM  .and. 
-!     &        Input_Opt%LSPLIT            ) THEN
-!            WRITE ( 6, 120 )
-!            WRITE ( 6, 121 )
-!         ENDIF
-!      ENDIF
-!
-!      ! Initialize wet deposition tracers
-!      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
-!         CALL WETDEPID( am_I_Root, Input_Opt, RC )
-!      ENDIF
-!
-!#if   defined( APM )
-!      ! Initialize wet deposition tracers for APM
-!      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
-!         CALL WETDEPBINID
-!      ENDIF
-!#endif
-!
-!      ! FORMAT strings
-! 120  FORMAT( /, 'All tagged Hg2 tracers have the same dep velocity '
-!     &           'as the total Hg2 tracer.' )
-! 121  FORMAT( 'All tagged HgP tracers have the same dep velocity '
-!     &        'as the total HgP tracer.' )
-!-----------------------------------------------------------------------------
 
       END SUBROUTINE READ_DEPOSITION_MENU
 !EOC
@@ -4459,8 +4416,6 @@
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE FILE_MOD,     ONLY : IU_BPCH
       USE TIME_MOD,     ONLY : GET_NYMDb, GET_NHMSb, EXPAND_DATE
-      USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
-
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! NDxx flags, TINDEX, TCOUNT, TMAX
       USE GIGC_ErrCode_Mod
@@ -8363,6 +8318,7 @@
       USE Drydep_Mod,         ONLY : Init_Drydep
       USE Dust_Mod,           ONLY : Init_Dust
       USE Error_Mod,          ONLY : Debug_Msg
+      USE Gamap_Mod,          ONLY : Do_Gamap
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -8376,10 +8332,10 @@
       USE Tagged_Ox_Mod,      ONLY : Init_Tagged_Ox
       USE Toms_Mod,           ONLY : Init_Toms
       USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
-      Use Wetscav_Mod,        ONLY : WetdepId
-#if   defined( APM )
-      USE APM_WETS_MOD, ONLY : WETDEPBINID
-#endif
+      USE WetScav_Mod,        ONLY : Init_WetScav
+!#if   defined( APM )
+!      USE APM_WETS_MOD, ONLY : WETDEPBINID
+!#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -8420,6 +8376,7 @@
 !  16 Mar 2015 - R. Yantosca - Now call INIT_TOMS here
 !  28 Aug 2015 - R. Yantosca - Now initialize drydep & wetdep here, so that
 !                              we can take advantage of the species database
+!  03 Sep 2015 - R. Yantosca - Now call INIT_WETSCAV instead of WETDEPID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8463,16 +8420,15 @@
      &        'as the total HgP tracer.' )
 
       ! Initialize wet deposition tracers
-      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
-         CALL WETDEPID( am_I_Root, Input_Opt, State_Chm, RC )
-      ENDIF
+      CALL INIT_WETSCAV( am_I_Root, Input_Opt, State_Chm, RC )
 
-#if   defined( APM )
-      ! Initialize wet deposition tracers for APM
-      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
-         CALL WETDEPBINID
-      ENDIF
-#endif
+! This might be obsolete now
+!#if   defined( APM )
+!     ! Initialize wet deposition tracers for APM
+!      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
+!         CALL WETDEPBINID
+!      ENDIF
+!#endif
 
       !=================================================================
       ! Call setup routines from other F90 modules
@@ -8577,10 +8533,15 @@
       ENDIF
 
       !=================================================================
-      ! Initialize GEOS-Chem diagnostics here.  This allows us to
-      ! take advantage of the species database (bmy, 8/31/15)
+      ! Initialize GEOS-Chem bpch diagnostics here.  This allows us to
+      ! take advantage of the species database object. (bmy, 8/31/15)
       !=================================================================
-      CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
+
+      ! Allocate and initialize variables
+      CALL NDXX_SETUP( am_I_Root, Input_Opt, State_Chm, RC )
+
+      ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
+      CALL DO_GAMAP( am_I_Root, Input_Opt, State_Chm, RC )
 
       END SUBROUTINE GIGC_Init_Extra
 !EOC

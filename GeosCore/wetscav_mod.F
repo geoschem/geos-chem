@@ -22,8 +22,9 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: H2O2s(:,:,:)   ! Save H2O2 and SO2 [v/v]
-      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: SO2s(:,:,:)    !  for sulfate chemistry
+      ! Save H2O2 and SO2 [v/v] for sulfate chemistry
+      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: H2O2s(:,:,:)
+      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: SO2s(:,:,:)
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -31,10 +32,8 @@
       PUBLIC  :: COMPUTE_F
       PUBLIC  :: DO_WETDEP
       PUBLIC  :: GET_WETDEP_IDWETD
-      PUBLIC  :: GET_WETDEP_NMAX
-      PUBLIC  :: GET_WETDEP_NSOL
       PUBLIC  :: INIT_WETSCAV
-      PUBLIC  :: WETDEPID
+      PUBLIC  :: SETUP_WETSCAV
       PUBLIC  :: WASHOUT
       PUBLIC  :: LS_K_RAIN
       PUBLIC  :: LS_F_PRIME
@@ -157,61 +156,45 @@
 !  23 Jun 2015 - M. Sulprizio- Add impaction scavenging for hydrophobic BC and
 !                              homogeneous IN removal from Qiaoqiao Wang
 !  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
+!  03 Sep 2015 - R. Yantosca - Remove NSOLMAX, we now get the # of wetdep
+!                              species from State_Chm%nWetDep
+!  03 Sep 2015 - R. Yantosca - INIT_WETSCAV now just allocates arrays;
+!                              SETUP_WETSCAV now just sets up quantities
+!  03 Sep 2015 - R. Yantosca - Remove WETDEPID routine, it's not needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-#if defined( TOMAS   )
-# if   defined( TOMAS40 )
-      INTEGER, PARAMETER   :: NSOLMAX = 370     ! Max # of soluble tracers for TOMAS40 runs
-# elif defined( TOMAS12 )
-      INTEGER, PARAMETER   :: NSOLMAX = 136     ! Max # of soluble tracers for TOMAS12 runs
-# elif defined( TOMAS15 )
-      INTEGER, PARAMETER   :: NSOLMAX = 157     ! Max # of soluble tracers for TOMAS15 runs
-# else
-      INTEGER, PARAMETER   :: NSOLMAX = 262     ! Max # of soluble tracers for TOMAS30 runs
-# endif
-
-#else
-      ! SOAupdate: Increase NSOLMAX from 60 to 110 for SOA + semivol POA
-      !  (jje, mpayer,7/5/11)
-      ! Increase NSOLMAX to 111 for marine organic aerosol update (ewl, 7/8/15)
-      INTEGER, PARAMETER   :: NSOLMAX = 111     ! Max # of soluble tracers
-                                                !  for regular G-C runs
-#endif
-      !REAL(fp),  PARAMETER   :: EPSILON = 1e-32_fp   ! A very small positive #
-
       ! TINY number
-      REAL(fp), PARAMETER :: TINY_FP = TINY(1.0_fp)
+      REAL(fp), PARAMETER   :: TINY_FP = TINY(1.0_fp)
 !
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER              :: NSOL              ! # of soluble species
+      INTEGER               :: NSOL            ! # of soluble species
 
       ! Arrays
-      INTEGER              :: IDWETD(NSOLMAX)   ! Index array for WETDEP
-!      REAL(fp),  ALLOCATABLE :: Vud(:,:)          ! Updraft velocity [m/s]
-      REAL(fp),  ALLOCATABLE :: C_H2O(:,:,:)      ! Mixing ratio of H2O [v/v]
-      REAL(fp),  ALLOCATABLE :: CLDICE(:,:,:)     ! Cloud ice mixing ratio
-                                                !  [cm3 ice/cm3 air]
-      REAL(fp),  ALLOCATABLE :: CLDLIQ(:,:,:)     ! Cloud liquid water mix rat
-                                                !  [cm3 H2O/cm3 air]
-      REAL(fp),  ALLOCATABLE :: PDOWN(:,:,:)      ! Precipitation thru the
-                                                !  bottom of the grid box 
-                                                !  [cm3 H2O/cm2 area/s]
-      REAL(fp),  ALLOCATABLE :: QQ(:,:,:)         ! Rate of new precip formation
-                                                !  [cm3 H2O/cm3 air/s]
+      INTEGER,  ALLOCATABLE :: IDWETD(:    )   ! Index array for WETDEP
+      REAL(fp), ALLOCATABLE :: C_H2O (:,:,:)   ! Mixing ratio of H2O [v/v]
+      REAL(fp), ALLOCATABLE :: CLDICE(:,:,:)   ! Cloud ice mixing ratio
+                                               !  [cm3 ice/cm3 air]
+      REAL(fp), ALLOCATABLE :: CLDLIQ(:,:,:)   ! Cloud liquid water mix ratio
+                                               !  [cm3 H2O/cm3 air]
+      REAL(fp), ALLOCATABLE :: PDOWN (:,:,:)   ! Precipitation thru the
+                                               !  bottom of the grid box 
+                                               !  [cm3 H2O/cm2 area/s]
+      REAL(fp), ALLOCATABLE :: QQ    (:,:,:)   ! Rate of new precip formation
+                                               !  [cm3 H2O/cm3 air/s]
 
       ! Define local shadow variables for values in Input_Opt
-      LOGICAL :: LPRT
-      LOGICAL :: LGTMM
-      LOGICAL :: LSOILNOX
-      LOGICAL :: LDYNOCEAN
-      LOGICAL :: ITS_A_MERCURY_SIM
-      LOGICAL :: ITS_A_POPS_SIM
+      LOGICAL               :: LPRT
+      LOGICAL               :: LGTMM
+      LOGICAL               :: LSOILNOX
+      LOGICAL               :: LDYNOCEAN
+      LOGICAL               :: ITS_A_MERCURY_SIM
+      LOGICAL               :: ITS_A_POPS_SIM
 
       CONTAINS
 !EOC
@@ -8064,19 +8047,19 @@
       INTEGER,          INTENT(IN) :: L             !
       INTEGER,          INTENT(IN) :: N             !
       CHARACTER(LEN=*), INTENT(IN) :: A             !
-      REAL(fp),           INTENT(IN) :: PDOWN         !
-      REAL(fp),           INTENT(IN) :: QQ            !
-      REAL(fp),           INTENT(IN) :: ALPHA         !
-      REAL(fp),           INTENT(IN) :: ALPHA2        !
-      REAL(fp),           INTENT(IN) :: RAINFRAC      !
-      REAL(fp),           INTENT(IN) :: WASHFRAC      ! 
-      REAL(fp),           INTENT(IN) :: MASS_WASH     !
-      REAL(fp),           INTENT(IN) :: MASS_NOWASH   !
-      REAL(fp),           INTENT(IN) :: WETLOSS       !
-      REAL(fp),           INTENT(IN) :: GAINED        !
-      REAL(fp),           INTENT(IN) :: LOST          !
-      REAL(fp),           INTENT(IN) :: DSTT(LLPAR)   !
-      REAL(fp),           INTENT(IN) :: STT(LLPAR)    !
+      REAL(fp),         INTENT(IN) :: PDOWN         !
+      REAL(fp),         INTENT(IN) :: QQ            !
+      REAL(fp),         INTENT(IN) :: ALPHA         !
+      REAL(fp),         INTENT(IN) :: ALPHA2        !
+      REAL(fp),         INTENT(IN) :: RAINFRAC      !
+      REAL(fp),         INTENT(IN) :: WASHFRAC      ! 
+      REAL(fp),         INTENT(IN) :: MASS_WASH     !
+      REAL(fp),         INTENT(IN) :: MASS_NOWASH   !
+      REAL(fp),         INTENT(IN) :: WETLOSS       !
+      REAL(fp),         INTENT(IN) :: GAINED        !
+      REAL(fp),         INTENT(IN) :: LOST          !
+      REAL(fp),         INTENT(IN) :: DSTT(LLPAR)   !
+      REAL(fp),         INTENT(IN) :: STT(LLPAR)    !
 ! 
 ! !REVISION HISTORY: 
 !  18 Mar 2004 - R. Yantosca - Initial version
@@ -8126,877 +8109,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: wetdepid
-!
-! !DESCRIPTION: Subroutine WETDEPID sets up the index array of soluble 
-!  tracers used in the WETDEP routine above.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE WETDEPID( am_I_Root, Input_Opt, State_Chm, RC )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD
-#if defined( TOMAS )
-      USE TOMAS_MOD,          ONLY : IBINS
-#endif
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(ChmState), INTENT(IN)  :: State_Chm
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
-!  08 Nov 2002 - R. Yantosca - Initial version
-!  (1 ) Now references "tracerid_mod.f".  Also references "CMN" in order to
-!        pass variables NSRCX and NTRACE. (bmy, 11/8/02)
-!  (2 ) Updated for carbon aerosol & dust tracers (rjp, bmy, 4/5/04)
-!  (3 ) Updated for seasalt aerosol tracers.  Also added fancy output.
-!        (rjp, bec, bmy, 4/20/04)
-!  (4 ) Updated for secondary organic aerosol tracers (bmy, 7/13/04)
-!  (5 ) Now references N_TRACERS, TRACER_NAME, TRACER_MW_KG from
-!        "tracer_mod.f".  Removed reference to NSRCX.  (bmy, 7/20/04)
-!  (6 ) Updated for mercury aerosol tracers (eck, bmy, 12/9/04)
-!  (7 ) Updated for AS, AHS, LET, NH4aq, SO4aq (cas, bmy, 12/20/04)
-!  (8 ) Updated for SO4s, NITs (bec, bmy, 4/25/05)
-!  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (10) Now use IS_Hg2 and IS_HgP to determine if a tracer is a tagged Hg2
-!        or HgP tracer (bmy, 1/6/06)
-!  (11) Now added SOG4 and SOA4 (dkh, bmy, 5/18/06)
-!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
-!                              semivolatile POA simulations (H. Pye)
-!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
-!                              aerosols (T.D. Fairlie)
-!  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
-!  28 Aug 2015 - R. Yantosca - Now pass State_Chm as an argument
-
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: N, NN
-
-      !=================================================================
-      ! WETDEPID begins here!
-      !=================================================================
-
-      ! Assume success
-      RC        =  GIGC_SUCCESS
-
-      ! Zero NSOL
-      NSOL = 0
-
-      ! Sort soluble tracers into IDWETD
-      DO N = 1, Input_Opt%N_TRACERS
-
-         !-----------------------------
-         ! Rn-Pb-Be tracers
-         !-----------------------------
-         IF ( N == IDTPB ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTPB
-
-         ELSE IF ( N == IDTBE7 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTBE7
-
-         !-----------------------------
-         ! Full chemistry tracers
-         !-----------------------------
-         ELSE IF ( N == IDTHNO3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHNO3
-
-         ELSE IF ( N == IDTH2O2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTH2O2
-
-         ELSE IF ( N == IDTCH2O ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTCH2O
-
-         ELSE IF ( N == IDTMP ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTMP
-
-         ELSE IF ( N == IDTGLYX ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTGLYX
-
-         ELSE IF ( N == IDTMGLY ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTMGLY
-
-         ELSE IF ( N == IDTGLYC ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTGLYC
-
-         !---------------------------------------
-         ! jpp, 10/21/08: adding bromine species
-         ELSE IF ( N == IDTHOBr ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHOBr
-
-         ELSE IF ( N == IDTHBr ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHBr
-
-         ELSE IF ( N == IDTBr2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTBr2
-         !---------------------------------------
-
-         ! SDE 04/17/13: HCl
-         ELSE IF ( N == IDTHCl ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTHCl
-
-         !FP_ISOP (6/2009) 
-         ELSE IF ( N == IDTISOPN ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTISOPN
-
-         ELSE IF ( N == IDTMMN ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTMMN
-
-         ELSE IF ( N == IDTMOBA ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTMOBA
-
-         ELSE IF ( N == IDTPROPNN ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTPROPNN
-
-         ELSE IF ( N == IDTRIP ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTRIP
-
-         ELSE IF ( N == IDTMAP ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTMAP
-
-         ELSE IF ( N == IDTIEPOX ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTIEPOX
-         ! end FP
-
-         !-----------------------------
-         ! Sulfate aerosol tracers
-         !-----------------------------
-         ELSE IF ( N == IDTSO2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSO2
-
-         ELSE IF ( N == IDTSO4 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSO4
-
-         ELSE IF ( N == IDTSO4s ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSO4s
-
-         ELSE IF ( N == IDTMSA ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTMSA
-
-         ELSE IF ( N == IDTNH3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTNH3
-
-         ELSE IF ( N == IDTNH4 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTNH4
-            
-         ELSE IF ( N == IDTNIT ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTNIT
-
-         ELSE IF ( N == IDTNITs ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTNITs
-            
-         !-----------------------------
-         ! Dust nitrate aerosol tracers
-         ! tdf
-         !-----------------------------
-         ELSE IF ( N == IDTNITd1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTNITd1
-
-         ELSE IF ( N == IDTNITd2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTNITd2
-
-         ELSE IF ( N == IDTNITd3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTNITd3
-
-         ELSE IF ( N == IDTNITd4 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTNITd4
-
-         !-----------------------------
-         ! Dust sulfate aerosol tracers
-         ! tdf
-         !-----------------------------
-         ELSE IF ( N == IDTSO4d1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSO4d1
-
-         ELSE IF ( N == IDTSO4d2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSO4d2
-
-         ELSE IF ( N == IDTSO4d3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSO4d3
-
-         ELSE IF ( N == IDTSO4d4 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSO4d4
-
-         !-----------------------------
-         ! Dust alkalinity aerosol tracers
-         ! tdf
-         !-----------------------------
-         ELSE IF ( N == IDTDAL1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTDAL1
-
-         ELSE IF ( N == IDTDAL2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTDAL2
-
-         ELSE IF ( N == IDTDAL3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTDAL3
-
-         ELSE IF ( N == IDTDAL4 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTDAL4
-
-         !-----------------------------
-         ! Crystal & Aqueous aerosols
-         !-----------------------------
-         ELSE IF ( N == IDTAS ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTAS
-
-         ELSE IF ( N == IDTAHS ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTAHS
-
-         ELSE IF ( N == IDTLET ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTLET
-
-         ELSE IF ( N == IDTNH4aq ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTNH4aq
-
-         ELSE IF ( N == IDTSO4aq ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSO4aq
-
-         !-----------------------------
-         ! Carbon & SOA aerosol tracers
-         !-----------------------------
-         ELSE IF ( N == IDTBCPI ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTBCPI
-
-         ELSE IF ( N == IDTOCPI ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTOCPI
-
-         ELSE IF ( N == IDTBCPO ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTBCPO
-
-         ELSE IF ( N == IDTOCPO ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTOCPO
-
-         ! SOAudpate: semivolpoa: POA (hotp 8/24/09)
-         ELSE IF ( N == IDTPOA1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTPOA1
-         ELSE IF ( N == IDTPOA2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTPOA2
-
-         ! new mtp (hotp 5/24/10), SOAupdate
-         ELSE IF ( N == IDTMTPA ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTMTPA
-
-         ELSE IF ( N == IDTLIMO ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTLIMO
-
-         ! new mtp (hotp 5/24/10), SOAupdate
-         ELSE IF ( N == IDTMTPO ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTMTPO
-
-         ! new mtp (hotp 7/25/10), SOAupdate
-         ELSE IF ( N == IDTTSOG1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTTSOG1
-
-         ELSE IF ( N == IDTTSOG2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTTSOG2
-
-         ELSE IF ( N == IDTTSOG3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTTSOG3
-
-         ELSE IF ( N == IDTTSOG0 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTTSOG0
-
-         ELSE IF ( N == IDTTSOA1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTTSOA1
-
-         ELSE IF ( N == IDTTSOA2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTTSOA2
-
-         ELSE IF ( N == IDTTSOA3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTTSOA3
-
-         ELSE IF ( N == IDTTSOA0 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTTSOA0
-
-         ELSE IF ( N == IDTISOG1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTISOG1
-
-         ELSE IF ( N == IDTISOG2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTISOG2
-
-         ELSE IF ( N == IDTISOG3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTISOG3
-
-         ELSE IF ( N == IDTISOA1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTISOA1
-
-         ELSE IF ( N == IDTISOA2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTISOA2
-
-         ELSE IF ( N == IDTISOA3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTISOA3
-
-         ! lumped aromatic/IVOC aerosol (hotp 5/12/10)
-         ! LUMPAROMIVOC
-         ELSE IF ( N == IDTASOG1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOG1
-
-         ELSE IF ( N == IDTASOG2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOG2
-
-         ELSE IF ( N == IDTASOG3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOG3
-
-         ELSE IF ( N == IDTASOAN ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOAN
-
-         ELSE IF ( N == IDTASOA1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOA1
-
-         ELSE IF ( N == IDTASOA2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOA2
-
-         ELSE IF ( N == IDTASOA3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOA3
-
-         ! semivolpoa2: add POG (hotp 3/2/09)  
-         ELSE IF ( N == IDTPOG1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTPOG1
-
-         ELSE IF ( N == IDTPOG2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTPOG2
-
-         ! semivolpoa4opoa: add OPOG (hotp 3/18/09) 
-         ELSE IF ( N == IDTOPOG1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTOPOG1
-
-         ELSE IF ( N == IDTOPOG2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTOPOG2
-
-         ! semivolpoa4opoa: add OPOA (hotp 3/18/09) 
-         ELSE IF ( N == IDTOPOA1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTOPOA1
-
-         ELSE IF ( N == IDTOPOA2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTOPOA2
-         ! end hotp SOAupdate
-
-         ELSE IF ( N == IDTSOAG ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSOAG
-
-         ELSE IF ( N == IDTSOAM ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSOAM
-
-         !-----------------------------
-         ! Dust aerosol tracers
-         !-----------------------------
-         ELSE IF ( N == IDTDST1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTDST1
-
-         ELSE IF ( N == IDTDST2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTDST2
-
-         ELSE IF ( N == IDTDST3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTDST3
-
-         ELSE IF ( N == IDTDST4 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTDST4
-
-         !-----------------------------
-         ! Seasalt aerosol tracers
-         !-----------------------------
-         ELSE IF ( N == IDTSALA ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSALA
-
-         ELSE IF ( N == IDTSALC ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTSALC
-
-         !-----------------------------
-         ! Marine Organics
-         !-----------------------------
-         ELSE IF ( N == IDTMOPO ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTMOPO
-
-         ELSE IF ( N == IDTMOPI ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTMOPI
-
-         !-----------------------------
-         ! Total and tagged Hg tracers 
-         !-----------------------------
-         ELSE IF ( IS_Hg2( N ) ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = N
-
-         ELSE IF ( IS_HgP( N ) ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = N
-
-         !-----------------------------
-         ! POPs: Particulate and gas phase 
-         !-----------------------------
-         ELSE IF (N == IDTPOPPOC ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTPOPPOC
-
-         ELSE IF (N == IDTPOPPBC ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTPOPPBC
-
-         ELSE IF (N == IDTPOPG ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTPOPG
-
-#if defined( TOMAS )
-         ! Added for size-resolved aerosol tracers (win, 7/16/09)
-         !-----------------------------
-         ! H2SO4
-         !-----------------------------
-         ELSE IF ( N == IDTH2SO4 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTH2SO4
-
-         ! Added for size-resolved aerosol tracers (win, 7/16/09)
-         !--------------------------------------
-         ! Size-resolved aerosol number 
-         !--------------------------------------
-         ELSE IF ( IDTNK1 >  0 .and. N >= IDTNK1  .and. 
-     &             N <  IDTNK1 + IBINS  ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = N
-
-         ! Added for size-resolved aerosol tracers (win, 7/16/09)
-         !--------------------------------------
-         ! Size-resolved sulfate aerosol  
-         !--------------------------------------
-         ELSE IF ( IDTSF1 >  0 .and. N >= IDTSF1  .and. 
-     &             N <  IDTSF1 + IBINS  ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = N
-
-         ! Added for size-resolved aerosol tracers (win, 7/16/09)
-         !--------------------------------------
-         ! Size-resolved sea salt aerosol
-         !--------------------------------------
-         ELSE IF ( IDTSS1 >  0 .and. N >= IDTSS1  .and. 
-     &             N <  IDTSS1 + IBINS  ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = N
-
-         ! Added for size-resolved aerosol tracers (win, 7/16/09)
-         !--------------------------------------
-         ! Size-resolved internally-mixed EC aerosol
-         !--------------------------------------
-         ELSE IF ( IDTECIL1 >  0 .and. N >= IDTECIL1  .and. 
-     &             N <  IDTECIL1 + IBINS  ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = N
-
-         ! Added for size-resolved aerosol tracers (win, 7/16/09)
-         !--------------------------------------
-         ! Size-resolved hydrophilic OC aerosol
-         !--------------------------------------
-         ELSE IF ( IDTOCIL1 >  0 .and. N >= IDTOCIL1  .and. 
-     &             N <  IDTOCIL1 + IBINS  ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = N
-
-         ! Added for size-resolved aerosol tracers (win, 7/16/09)
-         !--------------------------------------
-         ! Size-resolved hydrophobic OC aerosol
-         !--------------------------------------
-         ELSE IF ( IDTOCOB1 >  0 .and. N >= IDTOCOB1  .and. 
-     &             N <  IDTOCOB1 + IBINS  ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = N
-
-         ! Added for size-resolved aerosol tracers (win, 7/16/09)
-         !--------------------------------------
-         ! Size-resolved dust aerosol
-         !--------------------------------------
-         ELSE IF ( IDTDUST1 >  0 .and. N >= IDTDUST1  .and. 
-     &             N <  IDTDUST1 + IBINS  ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = N
-
-#endif
-        
-         ENDIF
-      ENDDO
-
-      ! Error check: Make sure that NSOL is less than NSOLMAX
-      IF ( NSOL > NSOLMAX ) THEN
-         CALL ERROR_STOP( 'NSOL > NSOLMAX!', 'WETDEPID (wetscav_mod.f)')
-      ENDIF
-      
-      ! Also check to see if NSOL is larger than the maximum
-      ! number of soluble tracers for a particular simulation
-      IF ( NSOL > GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC ) ) THEN
-         CALL ERROR_STOP( 'NSOL > NMAX', 'WETDEPID (wetscav_mod.f)')
-      ENDIF
-
-      !=================================================================
-      ! Echo list of soluble tracers to the screen
-      !=================================================================
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(/,a,/)' ) 'WETDEPID: List of soluble tracers: '
-         WRITE( 6, '(a)  '   ) '  #             Name  Tracer Mol Wt'
-         WRITE( 6, '(a)'     ) '                      Number g/mole'
-         WRITE( 6, '(a)'     ) REPEAT( '-', 36 )
-
-         DO NN = 1, NSOL
-            N = IDWETD(NN)
-            WRITE( 6, '(i3,3x,a14,3x,i3,3x,f6.1)' )
-     &           NN, TRIM( Input_Opt%TRACER_NAME(N) ), 
-     &           N, Input_Opt%TRACER_MW_G(N)
-         ENDDO
-      ENDIF
-
-      END SUBROUTINE WETDEPID
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_wetdep_nmax
-!
-! !DESCRIPTION: Function GET\_WETDEP\_NMAX returns the maximum number of 
-!  soluble tracers for a given type of simulation.  Primarily used for 
-!  allocation of diagnostic arrays.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC ) RESULT(NMAX)
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTSOAG,  IDTSOAM
-#if defined( TOMAS )
-      USE TRACERID_MOD,       ONLY : IDTNK1
-      USE TOMAS_MOD,          ONLY : IBINS, IDIAG, ICOMP
-#endif
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!
-! !RETURN VALUE:
-!
-      INTEGER :: NMAX        ! Max # of soluble tracers per simulation
-! 
-! !REMARKS:
-!  NOTE: If you add tracers to a simulation, update as necessary
-!
-! !REVISION HISTORY: 
-!  02 Dec 2002 - R. Yantosca - Initial version
-!  (1 ) Modified to include carbon & dust aerosol tracers (rjp, bmy, 4/5/04)
-!  (2 ) Modified to include seasalt aerosol tracers (rjp, bec, bmy, 4/20/04)
-!  (3 ) Modified to include 2ndary organic aerosol tracers (rjp, bmy, 7/13/04)
-!  (4 ) Now references ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM, and 
-!        ITS_A_RnPbBe_SIM from "tracer_mod.f".  Now references LCARB, LDUST,
-!        LSOA, LSSALT, LSULF from "logical_mod.f". (bmy, 7/20/04)
-!  (5 ) Modified to include mercury aerosol tracers (eck, bmy, 12/14/04)
-!  (6 ) Modified for AS, AHS, LET, NH4aq, SO4aq (cas, bmy, 12/20/04)
-!  (7 ) Modified for SO4s, NITs (bec, bmy, 4/25/05)
-!  (8 ) Modified for SOG4, SOA4 (dkh, bmy, 5/18/06)
-!  (9 ) Added 9 new tracers for ISOPRENE species (fp, 6/2009)
-!  (10) Added SOA5 and SOG5 (hotp, 6/15/09)
-!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  17 Apr 2013 - S.D. Eastham- Added HCl
-!  23 Apr 2013 - S. Farina   - Inlined code for TOMAS, separated w/ #ifdefs
-!  23 Apr 2013 - R. Yantosca - Updated comments
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
-!                              semivolatile POA simulations (H. Pye)
-!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
-!                              aerosols (T.D. Fairlie)
-!  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
-
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-      ! For fields from Input_Opt
-      LOGICAL :: LCARB,  LDUST, LDSTUP, LSOA, LMPOA
-      LOGICAL :: LSSALT, LSULF, LSPLIT, LCRYST
-      LOGICAL :: LUCX
-
-      !=================================================================
-      ! GET_WETDEP_NMAX begins here!
-      !=================================================================
-
-      ! Assume success
-      RC        =  GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      LCARB  = Input_Opt%LCARB
-      LDUST  = Input_Opt%LDUST
-      LDSTUP = Input_Opt%LDSTUP
-      LSOA   = Input_Opt%LSOA
-      LMPOA  = Input_Opt%LMPOA
-      LSSALT = Input_Opt%LSSALT
-      LSULF  = Input_Opt%LSULF
-      LSPLIT = Input_Opt%LSPLIT
-      LCRYST = Input_Opt%LCRYST
-      LUCX   = Input_Opt%LUCX
-
-      !=================================================================
-      ! NOTE: If you add tracers to a simulation, update as necessary
-      !=================================================================
-      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
-      
-         !-----------------------
-         ! Fullchem simulation
-         !-----------------------
-         NMAX = 18                                   ! HNO3,  H2O2,   CH2O,
-                                                     ! MP,    GLYX,   MGLY,
-                                                     ! GLYC,  MOBA,   ISOPN,
-                                                     ! MVKN,  PROPNN, RIP,
-                                                     ! IEPOX, PMNN,   HBr, 
-                                                     ! HOBr,  Br2,    BrNO3
-
-         IF ( LSULF )    NMAX = NMAX + 8             ! SO2,   SO4,    MSA,
-                                                     ! NH3,   NH4,    NIT
-         IF ( LDUST  )   NMAX = NMAX + NDSTBIN       ! plus # of dust bins
-         IF ( LSSALT )   NMAX = NMAX + 2             ! plus 2 seasalts
-
-         IF ( LUCX )     NMAX = NMAX + 1             ! SDE 04/17/13: Also HCl
-
-         IF ( LSOA ) THEN                            !%% SOA SIMULATION %%
-            ! SOAudpate (hotp 7/25/10)
-            IF ( LCARB ) NMAX = NMAX + 32            ! carbon + SOA aerosols
-            IF ( IDTSOAG /= 0 ) NMAX = NMAX + 1      ! plus SOAG deposition
-            IF ( IDTSOAM /= 0 ) NMAX = NMAX + 1      ! plus SOAM deposition
-         ELSE                                        !%% non-SOA SIMULATION %%
-            IF ( LCARB ) NMAX = NMAX + 4             ! BCPI, BCPO, OCPI, OCPO
-         ENDIF
-
-         ! mj, bg
-         IF ( LMPOA )    NMAX = NMAX + 2             ! plus hydrophobic MOA
-                                                     ! plus hydrophilic MOA
-         !tdf
-         IF ( LDSTUP )   NMAX = NMAX + NDSTBIN * 3   ! plus dust-sulfate
-                                                     ! plus dust-nitrate
-                                                     ! plus dust-alkalinity
-
-#if defined( TOMAS )
-         IF ( IDTNK1 > 0 ) THEN                      !%% TOMAS SIMULATION %%
-            NMAX = NMAX + IBINS                      ! Aerosol numbers
-            NMAX = NMAX + ( ICOMP - IDIAG ) * IBINS  ! Aerosol mass species
-            NMAX = NMAX + 1                          ! H2SO4
-         ENDIF
-#endif
-
-      ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-
-         !-----------------------
-         ! Offline simulation
-         !-----------------------
-         NMAX = 0                                    ! Start with 0
-         IF ( LSULF  )   NMAX = NMAX + 9             ! add 9 sulfur species
-         IF ( LCRYST )   NMAX = NMAX + 5             ! add 5 cryst & aq species
-         IF ( LDUST  )   NMAX = NMAX + NDSTBIN       ! add number of dust bins
-         IF ( LSSALT )   NMAX = NMAX + 2             ! add 2 seasalts
-
-         IF ( LSOA ) THEN                            !%% SOA SIMULATION %%
-            ! SOAudpate (hotp 7/25/10)
-            IF ( LCARB ) NMAX = NMAX + 32            ! carbon + SOA aerosols
-         ELSE                                        !%% non-SOA simulation %%
-            IF ( LCARB ) NMAX = NMAX + 4             ! BCPI, BCPO, OCPI, OCPO
-         ENDIF
-
-#if defined( TOMAS )
-          IF ( IDTNK1 > 0 ) THEN                     !%% TOMAS SIMULATION %%
-            NMAX = NMAX + IBINS                      ! Aerosol numbers
-            NMAX = NMAX + ( ICOMP - IDIAG ) * IBINS  ! Aerosol mass species
-            NMAX = NMAX + 1                          ! H2SO4
-         ENDIF
-#endif
-               
-      ELSE IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
-
-         !-----------------------
-         ! Rn-Pb-Be simulation
-         !-----------------------
-         NMAX = 2                                    ! 210Pb, 7Be
-
-      ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-
-         !-----------------------
-         ! Mercury simulation
-         !-----------------------
-         NMAX = 2                                    ! Hg2, HgP
-         IF ( LSPLIT ) NMAX = 58                     ! Tagged tracers (eds)
-
-      ELSE IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
-
-         ! ------------------
-         ! POPs simulation
-         ! -----------------
-         NMAX = 3                                    ! POPPOC, POPPBC, POPG
-
-      ELSE 
-
-         !-----------------------
-         ! Everything else
-         !-----------------------
-         NMAX = 0
-
-      ENDIF
-
-      END FUNCTION GET_WETDEP_NMAX
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_wetdep_nsol
-!
-! !DESCRIPTION: Function GET\_WETDEP\_NSOL returns NSOL (# of soluble tracers) 
-!  to a calling program outside WETSCAV_MOD.  This is so that we can keep 
-!  NSOL declared as a PRIVATE variable.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_WETDEP_NSOL() RESULT( N_SOLUBLE )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: N_SOLUBLE   ! Number of soluble tracers
-!
-! !REVISION HISTORY: 
-!  10 Jan 2003 - R. Yantosca - Initial version
-!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! GET_WETDEP_NSOL begins here!
-      !=================================================================
-
-      ! Get the # of soluble tracers
-      N_SOLUBLE = NSOL
-     
-      END FUNCTION GET_WETDEP_NSOL
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: get_wetdep_idwetd
 !
 ! !DESCRIPTION: Function GET\_WETDEP\_IDWETD returns the tracer number of 
@@ -9023,7 +8135,7 @@
 ! !REVISION HISTORY:
 !  10 Jan 2003 - R. Yantosca - Initial version 
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!EOP
+!EOP 
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
@@ -9031,7 +8143,7 @@
       !=================================================================
 
       ! Make sure NWET is valid
-      IF ( NWET < 1 .or. NWET > NSOLMAX ) THEN
+      IF ( NWET < 1 .or. NWET > NSOL ) THEN
          CALL ERROR_STOP( 'Invalid value of NWET!', 
      &                    'GET_N_WETDEP (wetscav_mod.f)' )
       ENDIF
@@ -9196,17 +8308,232 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_WETSCAV( am_I_Root, Input_Opt, 
-     &                         State_Met, State_Chm, RC )
+      SUBROUTINE INIT_WETSCAV( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-!      USE DAO_MOD,            ONLY : IS_WATER
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Species_Mod,        ONLY : Species
+      USE TRACERID_MOD,       ONLY : IDTH2O2, IDTSO2
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY: 
+!  03 Sep 2015 - R. Yantosca - Split off from the old INIT_WETSCAV.  We now
+!                              just allocate arrays here.  Arrays are assigned
+!                              values from State_Met in SETUP_WETSCAV.
+!  03 Sep 2015 - R. Yantosca - Also initialize IDWETD here; this makes routine
+!                              WETDEPID obsolete, so we can remove it.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER           :: N, N_WD
+      LOGICAL, SAVE     :: FIRST = .TRUE.      
+            
+      ! Strings
+      CHARACTER(LEN=9)  :: K0, CR, pKA
+      CHARACTER(LEN=80) :: LINE
+
+      ! Pointers
+      TYPE(Species), POINTER :: ThisSpc
+
+      !=================================================================
+      ! INIT_WETSCAV begins here!
+      !=================================================================
+
+      ! Exit if we have already executed this routine
+      IF ( .not. FIRST ) RETURN
+      
+      ! Number of wet-depositing species
+      NSOL = State_Chm%nWetDep
+
+      !-----------------------------------------------------------------
+      ! Allocate H2O2s for wet deposition 
+      !-----------------------------------------------------------------
+      ALLOCATE( H2O2s( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'H2O2s' )
+
+      ! Set H2O2s to the initial H2O2 from STT, so that we will have
+      ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
+      IF ( IDTH2O2 > 0 ) THEN
+         H2O2s = State_Chm%Tracers(:,:,:,IDTH2O2)
+      ELSE
+         H2O2s = 0.0_fp
+      ENDIF
+ 
+      !-----------------------------------------------------------------
+      ! Allocate SO2s for wet deposition
+      !-----------------------------------------------------------------
+      ALLOCATE( SO2s( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO2s' )
+
+      ! Set SO2s to the initial SO2 from STT, so that we will have
+      ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
+      IF ( IDTSO2 > 0 ) THEN
+         SO2s = State_Chm%Tracers(:,:,:,IDTSO2)
+      ELSE
+         SO2s = 0.0_fp
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Only allocate arrays if wetdep or convection is turned on
+      !-----------------------------------------------------------------
+      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
+
+         ! Tracer numbers of all wet-depositing species
+         ALLOCATE( IDWETD( NSOL ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'IDWETD' )
+         IDWETD = 0
+            
+         ! Allocate C_H2O on first call
+         ALLOCATE( C_H2O( IIPAR, JJPAR, LLPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'C_H2O' )
+         C_H2O = 0.0_fp
+            
+         ! Allocate CLDLIQ on first call
+         ALLOCATE( CLDLIQ( IIPAR, JJPAR, LLPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'CLDLIQ' )
+         CLDLIQ = 0.0_fp
+            
+         ! Allocate CLDICE on first call
+         ALLOCATE( CLDICE( IIPAR, JJPAR, LLPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'CLDICE' )
+         CLDICE = 0.0_fp
+      ENDIF
+
+      !=================================================================
+      ! Construct the vector of wet-depositing species tracer numbers
+      !=================================================================
+
+      ! Loop over all species
+      DO N = 1, State_Chm%nSpecies
+
+         ! Get physical parameters for the Nth species from the
+         ! species database object (which is part of State_Chm)
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         ! If this is a wet-depositing species, then store the
+         ! advected species index in the IDWETD array
+         IF ( ThisSpc%Is_WetDep ) THEN
+            N_WD         = ThisSpc%WetDepID
+            IDWETD(N_WD) = ThisSpc%AdvectId
+         ENDIF
+
+         ! Free pointer
+         ThisSpc => NULL()
+
+      ENDDO
+
+      !=================================================================
+      ! Print information about wet-depositing species
+      !=================================================================
+      IF ( am_I_Root ) THEN
+
+         ! Title
+         LINE = 'INIT_WETSCAV: List of soluble tracers: '
+         WRITE( 6, '(/,a,/)' ) TRIM( LINE )
+
+         ! 1st line
+         LINE = '  #             Name  Tracer Mol Wt ' // 
+     &          ' Henry K0  Henry CR  Henry pKa'
+         WRITE( 6, '(a)'     ) TRIM( LINE )
+
+         ! 2nd line
+         LINE = 'ID    g/mol    M/atm      K         1'
+         WRITE( 6, '(24x,a)' ) TRIM( LINE )
+
+         ! Separator line
+         WRITE( 6, '(a)'     ) REPEAT( '-', 70 )
+
+         ! Loop over all wet-depositing species
+         DO N_WD = 1, NSOL
+
+            ! GEt the corresponding advected tracer ID
+            N = IDWETD(N_WD)
+
+            ! Get physical parameters from the species database object
+            ThisSpc => State_Chm%SpcData(N)%Info 
+
+            ! Convert Henry's law K0 parameter to string
+            IF ( ThisSpc%Henry_K0 > 0.0_f8 ) THEN
+               WRITE( K0, '(es9.2)' ) ThisSpc%Henry_K0
+            ELSE
+               K0 = '    -    '
+            ENDIF
+
+            ! Convert Henry's law CR parameter to string
+            IF ( ThisSpc%Henry_K0 > 0.0_f8 ) THEN
+               WRITE( CR, '(es9.2)' ) ThisSpc%Henry_CR
+            ELSE
+               CR = '    -    '
+            ENDIF
+
+            ! Convert Henry's law pKa parameter to string
+            IF ( ThisSpc%Henry_pKa > 0.0_f8 ) THEN
+               WRITE( pKa, '(es9.2)' ) ThisSpc%Henry_pKa
+            ELSE
+               pKa = '    -    '
+            ENDIF
+
+            ! Write info to stdout
+            WRITE( 6, 100 ) N_WD,           
+     &                      TRIM( ThisSpc%Name ),  
+     &                      N,    
+     &                      ThisSpc%EmMW_g, 
+     &                      K0,  CR,  pKA
+
+ 100        FORMAT( i3, 3x, a14, 3x, i3, 3x, f6.1, 3(1x,a9) )
+
+            ! Free pointer
+            ThisSpc => NULL()
+
+         ENDDO
+      ENDIF
+
+
+      ! Reset flag
+      FIRST = .FALSE. 
+
+      END SUBROUTINE INIT_WETSCAV
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: setup_wetscav
+!
+! !DESCRIPTION: Subroutine SETUP\_WETSCAV initializes updraft velocity, cloud 
+!  liquid water content, cloud ice content, and mixing ratio of water fields, 
+!  which are used in the wet scavenging routines.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SETUP_WETSCAV( am_I_Root, Input_Opt, State_Met, RC )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTH2O2, IDTSO2
 !
@@ -9215,10 +8542,6 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -9258,85 +8581,17 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
 !  28 Apr 2015 - E. Lundgren - Change PMID_DRY to PMID for Dalton's Law.
+!  03 Sep 2015 - R. Yantosca - Now allocate IDWETD
+!  03 Sep 2015 - R. Yantosca - Now move array allocation into INIT_WETSCAV
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, L
-      REAL(fp)            :: PL, TK
-      LOGICAL,  SAVE      :: FIRST = .TRUE.      
+      INTEGER  :: I, J, L
+      REAL(fp) :: PL, TK
             
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
-
-      !=================================================================
-      ! INIT_WETSCAV begins here!
-      !=================================================================
-      IF ( FIRST ) THEN
-
-         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-         ! (mpayer, 12/6/12)
-         STT => State_Chm%Tracers
-
-         ! Allocate H2O2s for wet deposition 
-         ALLOCATE( H2O2s( IIPAR, JJPAR, LLPAR ), STAT=RC )
-         IF ( RC /= 0 ) CALL ALLOC_ERR( 'H2O2s' )
-
-         ! Set H2O2s to the initial H2O2 from STT, so that we will have
-         ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
-         IF ( IDTH2O2 > 0 ) THEN
-            H2O2s = STT(:,:,:,IDTH2O2)
-         ELSE
-            H2O2s = 0e+0_fp
-         ENDIF
-
-         ! Allocate SO2s for wet deposition
-         ALLOCATE( SO2s( IIPAR, JJPAR, LLPAR ), STAT=RC )
-         IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO2s' )
-
-         ! Set SO2s to the initial SO2 from STT, so that we will have
-         ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
-         IF ( IDTSO2 > 0 ) THEN
-            SO2s = STT(:,:,:,IDTSO2)
-         ELSE
-            SO2s = 0e+0_fp
-         ENDIF
-
-         ! Free pointer
-         NULLIFY( STT )
-
-         ! Only allocate these if wetdep or convection is turned on
-         IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
-!            ! Allocate Vud on first call
-!            ALLOCATE( Vud( IIPAR, JJPAR ), STAT=RC )
-!            IF ( RC /= 0 ) CALL ALLOC_ERR( 'Vud' )
-!            Vud = 0e+0_fp
-            
-            ! Allocate C_H2O on first call
-            ALLOCATE( C_H2O( IIPAR, JJPAR, LLPAR ), STAT=RC )
-            IF ( RC /= 0 ) CALL ALLOC_ERR( 'C_H2O' )
-            C_H2O = 0e+0_fp
-            
-            ! Allocate CLDLIQ on first call
-            ALLOCATE( CLDLIQ( IIPAR, JJPAR, LLPAR ), STAT=RC )
-            IF ( RC /= 0 ) CALL ALLOC_ERR( 'CLDLIQ' )
-            CLDLIQ = 0e+0_fp
-            
-            ! Allocate CLDICE on first call
-            ALLOCATE( CLDICE( IIPAR, JJPAR, LLPAR ), STAT=RC )
-            IF ( RC /= 0 ) CALL ALLOC_ERR( 'CLDICE' )
-            CLDICE = 0e+0_fp
-         ENDIF
-
-         ! Reset flag
-         FIRST = .FALSE. 
-
-      ENDIF
-
       !=================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
       !=================================================================
@@ -9365,14 +8620,14 @@
             !    CLDLIQ = 0                       [     T <= 248 K    ]
             !
             !==============================================================
-            IF ( TK >= 268e+0_fp ) THEN
+            IF ( TK >= 268.0_fp ) THEN
                CLDLIQ(I,J,L) = 1e-6_fp
          
-            ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-               CLDLIQ(I,J,L) = 1e-6_fp * ((TK - 248e+0_fp) / 20e+0_fp )
+            ELSE IF ( TK > 248.0_fp .and. TK < 268.0_fp ) THEN
+               CLDLIQ(I,J,L) = 1e-6_fp * ((TK - 248.0_fp) / 20.0_fp )
          
             ELSE
-               CLDLIQ(I,J,L) = 0e+0_fp
+               CLDLIQ(I,J,L) = 0.0_fp
                
             ENDIF
               
@@ -9407,8 +8662,8 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
-!#endif
-      END SUBROUTINE INIT_WETSCAV
+
+      END SUBROUTINE SETUP_WETSCAV
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -9427,16 +8682,17 @@
 ! !REVISION HISTORY: 
 !  23 Feb 2000 - R. Yantosca - Initial version
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  03 Sep 2015 - R. Yantosca - Now deallocate IDWETD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
       ! CLEANUP_WETSCAV begins here!
       !=================================================================
-!      IF ( ALLOCATED( Vud    ) ) DEALLOCATE( Vud    )
       IF ( ALLOCATED( C_H2O  ) ) DEALLOCATE( C_H2O  )
       IF ( ALLOCATED( CLDLIQ ) ) DEALLOCATE( CLDLIQ )
       IF ( ALLOCATED( CLDICE ) ) DEALLOCATE( CLDICE )
+      IF ( ALLOCATED( IDWETD ) ) DEALLOCATE( IDWETD )
       IF ( ALLOCATED( PDOWN  ) ) DEALLOCATE( PDOWN  )
       IF ( ALLOCATED( QQ     ) ) DEALLOCATE( QQ     )
       IF ( ALLOCATED( H2O2s  ) ) DEALLOCATE( H2O2s  )

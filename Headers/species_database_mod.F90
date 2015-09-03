@@ -2229,7 +2229,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              Name          = 'Rn222',                      &
+                              Name          = 'Rn',                         &
                               FullName      = 'Radon-222 isotope',          &
                               MW_g          = 222.0_fp,                     &
                               Is_Advected   = T,                            &
@@ -2242,7 +2242,7 @@ CONTAINS
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              Name          = 'Pb210',                      &
+                              Name          = 'Pb',                         &
                               FullName      = 'Lead-210 isotope',           &
                               MW_g          = 210.0_fp,                     &
                               Is_Advected   = T,                            &
