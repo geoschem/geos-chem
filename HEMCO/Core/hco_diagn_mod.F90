@@ -121,6 +121,9 @@ MODULE HCO_Diagn_Mod
   PUBLIC  :: DiagnCollection_Create
   PUBLIC  :: DiagnCollection_Cleanup
   PUBLIC  :: DiagnCollection_Get
+  PUBLIC  :: DiagnCollection_Set
+  PUBLIC  :: DiagnCollection_GetDefaultDelta
+  PUBLIC  :: DiagnCollection_IsTimeToWrite
   PUBLIC  :: DiagnFileOpen
   PUBLIC  :: DiagnFileGetNext
   PUBLIC  :: DiagnFileClose
@@ -223,6 +226,10 @@ MODULE HCO_Diagn_Mod
      INTEGER                        :: NX                 =  0
      INTEGER                        :: NY                 =  0
      INTEGER                        :: NZ                 =  0
+     INTEGER                        :: deltaYMD           =  0
+     INTEGER                        :: deltaHMS           =  0
+     INTEGER                        :: lastYMD            = -1
+     INTEGER                        :: lastHMS            = -1
      REAL(sp)                       :: TS                 =  0       ! Time step
      REAL(hp),              POINTER :: AREA_M2(:,:)       => NULL()
      TYPE(DiagnCollection), POINTER :: NextCollection     => NULL()
@@ -382,8 +389,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER             :: CollectionID
+    INTEGER             :: deltaYMD, deltaHMS 
     LOGICAL             :: FOUND
-    CHARACTER(LEN=15)   :: WriteFreq
     CHARACTER(LEN=255)  :: LOC, DiagnPrefix
 
     !=================================================================
@@ -396,27 +403,15 @@ CONTAINS
     ! ------------------------------------------------------------------
     ! Default diagnostics
     ! ------------------------------------------------------------------
-
-    ! Output frequency. Try to read from configuration file. 
-    CALL GetExtOpt ( CoreNr, 'DiagnFreq', OptValChar=WriteFreq, &
-                     FOUND=FOUND, RC=RC )
+    CALL DiagnCollection_GetDefaultDelta ( am_I_Root, deltaYMD, deltaHMS, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( .NOT. FOUND ) THEN
-       WriteFreq = 'Daily'
-    ENDIF
-
-    ! Force to 'Always' in ESMF environment to make sure that
-    ! diagnostics are passed to MAPL HISTORY every time.
-#if defined ( ESMF_ )
-    WriteFreq = 'Always'
-#endif
 
     ! Try to get prefix from configuration file
     CALL GetExtOpt ( CoreNr, 'DiagnPrefix', OptValChar=DiagnPrefix, &
                      FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) THEN
-       DiagnPrefix = 'HEMCO_Diagnostics_' // TRIM(WriteFreq)
+       DiagnPrefix = 'HEMCO_Diagnostics'
     ENDIF
 
     CALL DiagnCollection_Create( am_I_Root,                             &
@@ -427,7 +422,8 @@ CONTAINS
                                  AM2       = HcoState%Grid%AREA_M2%Val, &
                                  COL       = CollectionID,              & 
                                  PREFIX    = TRIM(DiagnPrefix),         &
-                                 WriteFreq = TRIM(WriteFreq),           & 
+                                 deltaYMD  = deltaYMD,                  & 
+                                 deltaHMS  = deltaHMS,                  & 
                                  RC        = RC                          )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -439,9 +435,11 @@ CONTAINS
     ! HEMCO restart 
     ! ------------------------------------------------------------------
 #if defined ( ESMF_ )
-    WriteFreq = 'Always'
+    deltaYMD = 0 
+    deltaHMS = 1
 #else
-    WriteFreq = 'End'
+    deltaYMD = 99999999
+    deltaHMS = 999999
 #endif
     CALL DiagnCollection_Create( am_I_Root,                             &
                                  NX        = HcoState%NX,               &
@@ -451,7 +449,8 @@ CONTAINS
                                  AM2       = HcoState%Grid%AREA_M2%Val, &
                                  COL       = CollectionID,              & 
                                  PREFIX    = 'HEMCO_restart',           &
-                                 WriteFreq = TRIM(WriteFreq),           & 
+                                 deltaYMD  = deltaYMD,                  & 
+                                 deltaHMS  = deltaHMS,                  & 
                                  RC        = RC                          )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -463,9 +462,11 @@ CONTAINS
     ! Manual diagnostics
     ! ------------------------------------------------------------------
 #if defined ( ESMF_ )
-    WriteFreq = 'Always'
+    deltaYMD = 0 
+    deltaHMS = 1
 #else
-    WriteFreq = 'Manual'
+    deltaYMD = -1
+    deltaHMS = -1
 #endif
     CALL DiagnCollection_Create( am_I_Root,                             &
                                  NX        = HcoState%NX,               &
@@ -475,7 +476,8 @@ CONTAINS
                                  AM2       = HcoState%Grid%AREA_M2%Val, &
                                  COL       = CollectionID,              & 
                                  PREFIX    = 'HEMCO_manual',            &
-                                 WriteFreq = TRIM(WriteFreq),           & 
+                                 deltaYMD  = deltaYMD,                  & 
+                                 deltaHMS  = deltaHMS,                  & 
                                  RC        = RC                          )
     IF ( RC /= HCO_SUCCESS ) RETURN
  
@@ -1903,8 +1905,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     TYPE(DiagnCollection), POINTER :: ThisColl => NULL()
-    INTEGER                        :: MinResetFlag
+!    INTEGER                        :: MinResetFlag
     INTEGER                        :: PS, AF
+    LOGICAL                        :: TimeToWrite
     LOGICAL                        :: FOUND, CF
     LOGICAL                        :: SKIPZERO 
 
@@ -1929,22 +1932,30 @@ CONTAINS
     SKIPZERO = .FALSE.
     IF ( PRESENT(SkipZeroCount) ) SKIPZERO = SkipZeroCount
 
-    ! Get minimum reset flag for current time. Set reset flag to -1 if
-    ! EndOFIntvOnly flag is disabled. This will make sure that all 
-    ! diagnostics are considered.
-    IF ( .NOT. EndOfIntvOnly ) THEN
-       MinResetFlag = ResetFlagManually
-    ELSE
-       MinResetFlag = HcoClock_GetMinResetFlag()
-    ENDIF
+!    ! Get minimum reset flag for current time. Set reset flag to -1 if
+!    ! EndOFIntvOnly flag is disabled. This will make sure that all 
+!    ! diagnostics are considered.
+!    IF ( .NOT. EndOfIntvOnly ) THEN
+!       MinResetFlag = ResetFlagManually
+!    ELSE
+!       MinResetFlag = HcoClock_GetMinResetFlag()
+!    ENDIF
+!
+!    ! If current time stamp is not at the end of an interval - or if 
+!    ! there is no diagnostics container in the list with a reset flag 
+!    ! smaller or equal to MinResetFlag - there will be no matching 
+!    ! container whatsoever. Can leave right here.
+!    IF ( MinResetFlag > ThisColl%ResetFlag ) THEN
+!       DgnCont => NULL()
+!       RETURN
+!    ENDIF
 
-    ! If current time stamp is not at the end of an interval - or if 
-    ! there is no diagnostics container in the list with a reset flag 
-    ! smaller or equal to MinResetFlag - there will be no matching 
-    ! container whatsoever. Can leave right here.
-    IF ( MinResetFlag > ThisColl%ResetFlag ) THEN
-       DgnCont => NULL()
-       RETURN
+    IF ( EndOfIntvOnly ) THEN
+       TimeToWrite =  DiagnCollection_IsTimeToWrite( PS )
+       IF ( .NOT. TimeToWrite ) THEN
+          DgnCont => NULL()
+          RETURN
+       ENDIF
     ENDIF
 
     ! If container name is given, search for diagnostics with 
@@ -2254,8 +2265,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCollection_Get( COL,       InUse,   Prefix, WriteFreq, &
-                                  ResetFlag, nnDiagn, RC                  )
+  SUBROUTINE DiagnCollection_Get( COL,         InUse,     Prefix, WriteFreq, &
+                                  ResetFlag,   nnDiagn,   DeltaYMD,       &
+                                  LastYMD, DeltaHMS, LastHMS,         &
+                                  RC )
 !
 ! !INPUT ARGUMENTS:
 !
@@ -2268,6 +2281,10 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(OUT), OPTIONAL :: WriteFreq 
     INTEGER,          INTENT(OUT), OPTIONAL :: ResetFlag 
     INTEGER,          INTENT(OUT), OPTIONAL :: nnDiagn 
+    INTEGER,          INTENT(OUT), OPTIONAL :: DeltaYMD 
+    INTEGER,          INTENT(OUT), OPTIONAL :: LastYMD 
+    INTEGER,          INTENT(OUT), OPTIONAL :: DeltaHMS
+    INTEGER,          INTENT(OUT), OPTIONAL :: LastHMS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2295,6 +2312,10 @@ CONTAINS
     IF ( PRESENT(ResetFlag) ) ResetFlag = -999
     IF ( PRESENT(InUse    ) ) InUse     = .FALSE. 
     IF ( PRESENT(nnDiagn  ) ) nnDiagn   = 0 
+    IF ( PRESENT(DeltaYMD) ) DeltaYMD = 0 
+    IF ( PRESENT(LastYMD) ) LastYMD = -1 
+    IF ( PRESENT(DeltaHMS) ) DeltaHMS = 0 
+    IF ( PRESENT(LastHMS) ) LastHMS = -1 
 
     ! Get collection number
     CALL DiagnCollection_DefineID( PS, RC, COL=COL, InUse=FOUND, ThisColl=ThisColl )
@@ -2321,6 +2342,12 @@ CONTAINS
        IF ( PRESENT(nnDiagn) ) THEN
           nnDiagn = ThisColl%nnDiagn
        ENDIF
+
+       IF ( PRESENT(DeltaYMD) ) DeltaYMD = ThisColl%DeltaYMD
+       IF ( PRESENT(LastYMD) ) LastYMD = ThisColl%LastYMD
+       IF ( PRESENT(DeltaHMS  ) ) DeltaHMS   = ThisColl%DeltaHMS  
+       IF ( PRESENT(LastHMS  ) ) LastHMS   = ThisColl%LastHMS  
+          
     ENDIF
    
     ! Cleanup
@@ -2330,6 +2357,76 @@ CONTAINS
     RC = HCO_SUCCESS
  
   END SUBROUTINE DiagnCollection_Get
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: DiagnCollection_Set
+!
+! !DESCRIPTION: Subroutine DiagnCollection\_Set sets variables assigned to
+! a given diagnostics collection. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagnCollection_Set( COL, InUse, LastYMD, LastHMS, RC )
+!
+! !INPUT ARGUMENTS:
+!
+    INTEGER,          INTENT(IN), OPTIONAL :: COL       ! Collection Nr.
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(OUT), OPTIONAL :: InUse 
+    INTEGER,          INTENT(IN ), OPTIONAL :: LastYMD 
+    INTEGER,          INTENT(IN ), OPTIONAL :: LastHMS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: RC
+!
+! !REVISION HISTORY:
+!  19 Dec 2013 - C. Keller: Initialization
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    TYPE(DiagnCollection), POINTER :: ThisColl => NULL()
+    INTEGER                        :: PS
+    LOGICAL                        :: FOUND
+
+    !======================================================================
+    ! DiagnCollection_Set begins here!
+    !======================================================================
+
+    ! Init
+    IF ( PRESENT(InUse    ) ) InUse     = .FALSE. 
+
+    ! Get collection number
+    CALL DiagnCollection_DefineID( PS, RC, COL=COL, InUse=FOUND, ThisColl=ThisColl )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    IF ( PRESENT(InUse) ) THEN
+       InUse = FOUND
+    ENDIF   
+
+    ! Get variables from collection 
+    IF ( FOUND ) THEN
+       IF ( PRESENT(LastYMD ) ) ThisColl%LastYMD = LastYMD
+       IF ( PRESENT(LastHMS ) ) ThisColl%LastHMS = LastHMS
+    ENDIF
+   
+    ! Cleanup
+    ThisColl => NULL()
+    
+    ! Return w/ success
+    RC = HCO_SUCCESS
+ 
+  END SUBROUTINE DiagnCollection_Set
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -3194,9 +3291,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCollection_Create ( am_I_Root, NX,     NY, NZ,    &
-                                      TS,   AM2, PREFIX, WriteFreq, &
-                                      RC,   COL                      )
+  SUBROUTINE DiagnCollection_Create ( am_I_Root, NX,      NY, NZ,    &
+                                      TS,   AM2, PREFIX,  WriteFreq, &
+                                      deltaYMD, deltaHMS, RC, COL )
 !
 ! !USES:
 !
@@ -3210,7 +3307,9 @@ CONTAINS
     REAL(sp),           INTENT(IN)           :: TS         ! timestep [s] 
     REAL(hp),           POINTER              :: AM2(:,:)   ! grid box areas [m2]
     CHARACTER(LEN=*),   INTENT(IN)           :: PREFIX     ! Output prefix
-    CHARACTER(LEN=*),   INTENT(IN)           :: WriteFreq  ! Output frequency 
+    CHARACTER(LEN=*),   INTENT(IN), OPTIONAL :: WriteFreq  ! Output frequency 
+    INTEGER,            INTENT(IN), OPTIONAL :: deltaYMD   ! Output frequency
+    INTEGER,            INTENT(IN), OPTIONAL :: deltaHMS   ! Output frequency
 !
 ! !OUTPUT ARGUMENTS:
 !
@@ -3250,42 +3349,44 @@ CONTAINS
     ! Set prefix
     NewCollection%PREFIX = TRIM(PREFIX)
 
-    ! Determine output frequency
-    IF ( TRIM(WriteFreq) == 'Annually' ) THEN
-       NewCollection%ResetFlag = ResetFlagAnnually 
-
-    ! Write out every month
-    ELSEIF ( TRIM(WriteFreq) == 'Monthly' ) THEN
-       NewCollection%ResetFlag = ResetFlagMonthly
-         
-    ! Write out every day
-    ELSEIF ( TRIM(WriteFreq) == 'Daily' ) THEN
-       NewCollection%ResetFlag = ResetFlagDaily
-
-    ! Write out every hour
-    ELSEIF ( TRIM(WriteFreq) == 'Hourly' ) THEN
-       NewCollection%ResetFlag = ResetFlagHourly
-
-    ! Write out all the time 
-    ELSEIF ( TRIM(WriteFreq) == 'Always' ) THEN
-       NewCollection%ResetFlag = ResetFlagAlways
-
-    ! Write out only at end of simulation
-    ELSEIF ( TRIM(WriteFreq) == 'End' ) THEN
-       NewCollection%ResetFlag = ResetFlagEnd
-
-    ! Manually write out.
-    ELSEIF ( TRIM(WriteFreq) == 'Manual' ) THEN
-       NewCollection%ResetFlag = ResetFlagManually
-
-    ! Error otherwise
-    ELSE
-       MSG = 'Illegal averaging interval: ' // TRIM(WriteFreq) // &
-             ' - cannot create diagnostics ' // TRIM(NewCollection%PREFIX)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
-    NewCollection%WriteFreq = TRIM(WriteFreq)
+!    ! Determine output frequency
+!    IF ( TRIM(WriteFreq) == 'Annually' ) THEN
+!       NewCollection%ResetFlag = ResetFlagAnnually 
+!
+!    ! Write out every month
+!    ELSEIF ( TRIM(WriteFreq) == 'Monthly' ) THEN
+!       NewCollection%ResetFlag = ResetFlagMonthly
+!         
+!    ! Write out every day
+!    ELSEIF ( TRIM(WriteFreq) == 'Daily' ) THEN
+!       NewCollection%ResetFlag = ResetFlagDaily
+!
+!    ! Write out every hour
+!    ELSEIF ( TRIM(WriteFreq) == 'Hourly' ) THEN
+!       NewCollection%ResetFlag = ResetFlagHourly
+!
+!    ! Write out all the time 
+!!    ELSEIF ( TRIM(WriteFreq) == 'Always' ) THEN
+!       NewCollection%ResetFlag = ResetFlagAlways
+!
+!    ! Write out only at end of simulation
+!    ELSEIF ( TRIM(WriteFreq) == 'End' ) THEN
+!       NewCollection%ResetFlag = ResetFlagEnd
+!
+!    ! Manually write out.
+!    ELSEIF ( TRIM(WriteFreq) == 'Manual' ) THEN
+!       NewCollection%ResetFlag = ResetFlagManually
+!
+!    ! Error otherwise
+!    ELSE
+!       MSG = 'Illegal averaging interval: ' // TRIM(WriteFreq) // &
+!             ' - cannot create diagnostics ' // TRIM(NewCollection%PREFIX)
+!       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+!       RETURN
+!    ENDIF
+!    NewCollection%WriteFreq = TRIM(WriteFreq)
+    NewCollection%WriteFreq = 'Dummy'
+    NewCollection%ResetFlag = -999
 
     ! Add to collections list. Put at the beginning
     NewCollection%NextCollection => Collections
@@ -3295,6 +3396,10 @@ CONTAINS
     nnCollections              = nnCollections + 1
     NewCollection%CollectionID = nnCollections
     COL                        = NewCollection%CollectionID 
+
+    ! New output frequency
+    IF ( PRESENT(DeltaYMD ) ) NewCollection%DeltaYMD = DeltaYMD
+    IF ( PRESENT(DeltaHMS ) ) NewCollection%DeltaHMS = DeltaHMS
 
     ! verbose
     IF ( HCO_IsVerb( 1 ) ) THEN
@@ -3530,6 +3635,213 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE DiagnCollection_Find
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagnCollection_GetDefaultDelta
+!
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagnCollection_GetDefaultDelta ( am_I_Root, deltaYMD, deltaHMS, RC )
+!
+! !USES:
+!
+    USE HCO_STATE_MOD,   ONLY : HCO_State
+    USE HCO_ExtList_Mod, ONLY : GetExtOpt
+    USE HCO_ExtList_Mod, ONLY : CoreNr 
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root ! Root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(  OUT)           :: deltaYMD  ! delta YYYYMMDD
+    INTEGER,          INTENT(  OUT)           :: deltaHMS  ! delta HHMMSS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: RC        ! Return code 
+!
+! !REVISION HISTORY: 
+!  06 Aug 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL             :: FOUND, SET
+    CHARACTER(LEN=255)  :: MSG,   WriteFreq
+    CHARACTER(LEN=255)  :: LOC = 'DiagnCollection_GetDefaultDelta (hco_diagn_mod.F90)' 
+
+    !=================================================================
+    ! DiagnCollection_GetDefaultDelta begins here!
+    !=================================================================
+    
+    ! Try to get name of diagnostics file
+
+    ! Output frequency. Try to read from configuration file. 
+    CALL GetExtOpt ( CoreNr, 'DiagnFreq', OptValChar=WriteFreq, &
+                     FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Determine output frequency from given output frequency
+    IF ( FOUND ) THEN
+
+       ! Frequency set?
+       SET = .FALSE.
+
+       IF ( TRIM(WriteFreq) == 'Hourly' ) THEN
+          DeltaYMD = 0
+          DeltaHMS = 10000
+          SET = .TRUE.
+       ELSEIF ( TRIM(WriteFreq) == 'Daily' ) THEN
+          DeltaYMD = 1
+          DeltaHMS = 0
+          SET = .TRUE.
+       ELSEIF ( TRIM(WriteFreq) == 'Monthly' ) THEN
+          DeltaYMD = 100
+          DeltaHMS = 0
+          SET = .TRUE.
+       ELSEIF ( TRIM(WriteFreq) == 'Annually' ) THEN
+          DeltaYMD = 10000
+          DeltaHMS = 0
+          SET = .TRUE.
+       ELSEIF ( TRIM(WriteFreq) == 'Always' ) THEN
+          DeltaYMD = 0
+          DeltaHMS = 1
+          SET = .TRUE.
+       ELSEIF ( TRIM(WriteFreq) == 'End' ) THEN
+          DeltaYMD = 99999999
+          DeltaHMS = 999999
+          SET = .TRUE.
+
+       ! If none of the above works, assume that string explicitly gives integer
+       ! intervals (YYYYMMDD HHMMSS)
+       ELSE
+          IF ( LEN(TRIM(WriteFreq)) == 15 ) THEN
+             READ(DeltaYMD,'(I8)') WriteFreq(1:8)
+             READ(DeltaHMS,'(I6)') WriteFreq(10:15)
+             IF ( DeltaYMD >= 0 .AND. DeltaHMS >= 0 ) SET=.TRUE. 
+          ENDIF
+       ENDIF
+
+       ! Error check
+       IF ( .NOT. SET ) THEN
+          MSG = 'Cannot define output frequency from string ' // &
+                TRIM(WriteFreq) // '. The output frequency must be one of '  // &
+                '`Hourly`, `Daily`, `Monthly`, `Annually`, `Always`, `End`,' // &
+                ' or the explicit YYYYMMDD HHMMSS interval (15 characters).'
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC)
+          RETURN
+       ENDIF
+
+    ! If output frequency is not explicitly given, set to a default of 1 day.
+    ELSE
+       DeltaYMD = 1 ! = 00000001 ==> 1 day
+       DeltaHMS = 0 ! = 000000
+    ENDIF
+
+    ! Force to 'Always' in ESMF environment to make sure that
+    ! diagnostics are passed to MAPL HISTORY every time.
+#if defined ( ESMF_ )
+    DeltaYMD = 0 ! = 00000000
+    DeltaHMS = 1 ! = 000001   ==> 1 second!
+#endif
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE DiagnCollection_GetDefaultDelta
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagnCollection_IsTimeToWrite
+!
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION DiagnCollection_IsTimeToWrite( PS ) Result ( TimeToWrite )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER, INTENT(IN   )     :: PS   ! Diagnostics collection
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL                    :: TimeToWrite ! Is it time to write?
+!
+! !REVISION HISTORY: 
+!  06 Aug 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER             :: YYYY, MM,   DD,   h, m, s
+    INTEGER             :: delta
+    INTEGER             :: dymd, lymd, dhms, lhms 
+    INTEGER             :: RC
+    CHARACTER(LEN=255)  :: LOC = 'DiagnCollection_IsTimeToWrite (hco_diagn_mod.F90)' 
+
+    !=================================================================
+    ! DiagnCollection_IsTimeToWrite begins here!
+    !=================================================================
+
+    ! Init
+    TimeToWrite = .FALSE.
+   
+    ! Get current simulation date
+    CALL HcoClock_Get(sYYYY=YYYY,sMM=MM,sDD=DD,sH=h,sM=m,sS=s,RC=RC)
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! testing only
+    write(*,*) 'IsTimeToWrite collection ', PS, ' at ', YYYY, MM, DD, h, m, s
+ 
+    CALL DiagnCollection_Get( PS, DeltaYMD=dymd, LastYMD=lymd, &
+                                  DeltaHMS=dhms, LastHMS=lhms, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! testing only
+    write(*,*) 'DeltaYMD: ', dymd
+    write(*,*) 'LastYMD : ', lymd
+    write(*,*) 'DeltaHMS: ', dhms
+    write(*,*) 'LastHMS : ', lhms
+
+    ! Check if we need to write this collection now
+    IF ( .NOT. TimeToWrite .AND. dhms > 0 .AND. lhms >= 0 ) THEN
+       delta = ( h * 10000 + m * 100 + s ) - lhms
+       IF ( delta >= dhms ) TimeToWrite = .TRUE.
+
+       ! testing only
+       write(*,*) 'hms delta: ', delta, TimeToWrite
+
+    ENDIF
+
+    IF ( .NOT. TimeToWrite .AND. dymd > 0 .AND. lymd >= 0 ) THEN
+       delta = ( YYYY * 10000 + MM * 100 + DD ) - lymd
+       IF ( delta >= dymd ) TimeToWrite = .TRUE.
+
+       ! testing only
+       write(*,*) 'ymd delta: ', delta, TimeToWrite
+
+    ENDIF
+
+  END FUNCTION DiagnCollection_IsTimeToWrite
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
