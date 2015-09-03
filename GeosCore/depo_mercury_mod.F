@@ -337,6 +337,7 @@
 !  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
 !  06 Aug 2015 - J. Fisher   - Store reservoir of non-reducible Hg in snowpack
 !                              (orig. 29/11/11)
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -370,7 +371,7 @@
       ! overwritten (jaf, 4/25/11)
       FRAC_SNOW_OR_ICE = 1e+0_fp
 
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       ! Don't let fraction be greater than 1
       FRAC_SNOW_OR_ICE = MIN( State_Met%FRSNO(I,J)     +
      &                        State_Met%FRSEAICE(I,J)  + 

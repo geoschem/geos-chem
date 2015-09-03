@@ -90,6 +90,11 @@
       ! For nested grids, then IIPAR<IGLOB, JJPAR<JGLOB, LLPAR<LGLOB.
       !=================================================================
 
+      ! IIPAR and JJPAR are always set at runtime
+      ! for both GEOS-Chem HP and GEOS-Chem Classic
+      INTEGER               :: IIPAR
+      INTEGER               :: JJPAR
+
 #if defined ( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( ESMF_ )
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
@@ -101,8 +106,6 @@
       INTEGER               :: IGLOB
       INTEGER               :: JGLOB
       INTEGER               :: LGLOB
-      INTEGER               :: IIPAR
-      INTEGER               :: JJPAR
       INTEGER               :: LLPAR                
       INTEGER               :: LLTROP_FIX
       INTEGER               :: LLTROP
@@ -116,6 +119,7 @@
       ! For GEOS-Chem "Classic", we can preset the values of IGLOB,
       ! JGLOB, LGLOB, LLTROP, LLTROP_FIX, LLSTRAT, (bmy, 5/22/15)
       !-----------------------------------------------------------------
+
 #if   defined( GCAP ) && defined( GRID4x5 )
 
       !-----------------------------------------------------------------
@@ -124,8 +128,6 @@
       INTEGER               :: IGLOB      = 72
       INTEGER               :: JGLOB      = 45
       INTEGER               :: LGLOB      = 23
-      INTEGER               :: IIPAR
-      INTEGER               :: JJPAR
       INTEGER               :: LLPAR
       INTEGER,    PARAMETER :: LLTROP     = 12   
       INTEGER,    PARAMETER :: LLTROP_FIX = LLTROP     
@@ -140,8 +142,6 @@
       INTEGER               :: IGLOB      = 72
       INTEGER               :: JGLOB      = 46
       INTEGER               :: LGLOB      = 55           
-      INTEGER               :: IIPAR
-      INTEGER               :: JJPAR
 #if   defined( GRIDREDUCED ) 
       INTEGER               :: LLPAR      = 30        ! Reduced vertical grid
       INTEGER,    PARAMETER :: LLTROP     = 22        !  -- 30 levels
@@ -162,8 +162,6 @@
       INTEGER               :: IGLOB      = 144
       INTEGER               :: JGLOB      = 91
       INTEGER               :: LGLOB      = 55
-      INTEGER               :: IIPAR
-      INTEGER               :: JJPAR
 #if   defined( GRIDREDUCED )
       INTEGER               :: LLPAR      = 30        ! Reduced vertical grid
       INTEGER,    PARAMETER :: LLTROP     = 22        !  -- 30 levels
@@ -184,8 +182,6 @@
       INTEGER               :: IGLOB      = 288
       INTEGER               :: JGLOB      = 181
       INTEGER               :: LGLOB      = 55
-      INTEGER               :: IIPAR
-      INTEGER               :: JJPAR
 #if   defined( GRIDREDUCED )
       INTEGER               :: LLPAR      = 30        ! Reduced vertical grid
       INTEGER,    PARAMETER :: LLTROP     = 22        !  -- 30 levels
@@ -206,8 +202,6 @@
       INTEGER               :: IGLOB      = 72
       INTEGER               :: JGLOB      = 46
       INTEGER               :: LGLOB      = 72         
-      INTEGER               :: IIPAR
-      INTEGER               :: JJPAR
 #if   defined( GRIDREDUCED ) 
       INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
@@ -229,8 +223,6 @@
       INTEGER               :: IGLOB      = 144
       INTEGER               :: JGLOB      = 91
       INTEGER               :: LGLOB      = 72
-      INTEGER               :: IIPAR
-      INTEGER               :: JJPAR
 #if   defined( GRIDREDUCED )
       INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
@@ -251,8 +243,6 @@
       INTEGER               :: IGLOB      = 288
       INTEGER               :: JGLOB      = 181
       INTEGER               :: LGLOB      = 72
-      INTEGER               :: IIPAR
-      INTEGER               :: JJPAR
 #if   defined( GRIDREDUCED )
       INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
@@ -284,8 +274,6 @@
       INTEGER               :: JGLOB      = 81
       INTEGER               :: LGLOB      = 72
 #endif
-      INTEGER               :: IIPAR  
-      INTEGER               :: JJPAR
 #if   defined( GRIDREDUCED )
       INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
@@ -307,8 +295,6 @@
       INTEGER               :: IGLOB      = 144
       INTEGER               :: JGLOB      = 91
       INTEGER               :: LGLOB      = 72
-      INTEGER               :: IIPAR
-      INTEGER               :: JJPAR
 #if   defined( GRIDREDUCED )
       INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
@@ -330,8 +316,6 @@
       INTEGER               :: IGLOB      = 72
       INTEGER               :: JGLOB      = 46
       INTEGER               :: LGLOB      = 72         
-      INTEGER               :: IIPAR
-      INTEGER               :: JJPAR
 #if   defined( GRIDREDUCED ) 
       INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
@@ -353,8 +337,6 @@
       INTEGER               :: IGLOB      = 225
       INTEGER               :: JGLOB      = 161
       INTEGER               :: LGLOB      = 72
-      INTEGER               :: IIPAR                  !Delete the specific 
-      INTEGER               :: JJPAR                  !values(yuyao,5/30/2014)
 #if   defined( GRIDREDUCED )
       INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
@@ -376,8 +358,6 @@
       INTEGER               :: IGLOB      = 225
       INTEGER               :: JGLOB      = 202
       INTEGER               :: LGLOB      = 72
-      INTEGER               :: IIPAR
-      INTEGER               :: JJPAR
 #if   defined( GRIDREDUCED )
       INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
@@ -400,8 +380,6 @@
       INTEGER               :: IGLOB      = 177
       INTEGER               :: JGLOB      = 115
       INTEGER               :: LGLOB      = 72
-      INTEGER               :: IIPAR
-      INTEGER               :: JJPAR
 #if   defined( GRIDREDUCED )
       INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
@@ -423,8 +401,6 @@
       INTEGER               :: IGLOB      = 144
       INTEGER               :: JGLOB      = 91
       INTEGER               :: LGLOB      = 72
-      INTEGER               :: IIPAR
-      INTEGER               :: JJPAR
 #if   defined( GRIDREDUCED )
       INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
@@ -446,8 +422,111 @@
       INTEGER               :: IGLOB      = 72
       INTEGER               :: JGLOB      = 46
       INTEGER               :: LGLOB      = 72         
-      INTEGER               :: IIPAR
-      INTEGER               :: JJPAR
+#if   defined( GRIDREDUCED ) 
+      INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER,    PARAMETER :: LLTROP     = 38  
+      INTEGER,    PARAMETER :: LLSTRAT    = 44
+#else
+      INTEGER               :: LLPAR                  ! Full vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels 
+      INTEGER,    PARAMETER :: LLTROP     = 40  
+      INTEGER,    PARAMETER :: LLSTRAT    = 59
+#endif
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
+
+#elif defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_CH )
+
+      !-----------------------------------------------------------------
+      ! MERRA2: Nested China Grid
+      !-----------------------------------------------------------------
+      INTEGER               :: IGLOB      = 225       ! Need correct value
+      INTEGER               :: JGLOB      = 161       ! Need correct value
+      INTEGER               :: LGLOB      = 72
+#if   defined( GRIDREDUCED )
+      INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER,    PARAMETER :: LLTROP     = 38  
+      INTEGER,    PARAMETER :: LLSTRAT    = 44
+#else 
+      INTEGER               :: LLPAR                  ! Full vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER,    PARAMETER :: LLTROP     = 40  
+      INTEGER,    PARAMETER :: LLSTRAT    = 59
+#endif
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
+
+#elif defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_NA)
+
+      !-----------------------------------------------------------------
+      ! MERRA2: Nested NA Grid
+      !-----------------------------------------------------------------
+      INTEGER               :: IGLOB      = 225       ! Need correct value
+      INTEGER               :: JGLOB      = 202       ! Need correct value
+      INTEGER               :: LGLOB      = 72
+#if   defined( GRIDREDUCED )
+      INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER,    PARAMETER :: LLTROP     = 38
+      INTEGER,    PARAMETER :: LLSTRAT    = 44
+#else
+      INTEGER               :: LLPAR                  ! Full vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER,    PARAMETER :: LLTROP     = 40
+      INTEGER,    PARAMETER :: LLSTRAT    = 59
+#endif
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
+
+#elif defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_EU)
+
+      !-----------------------------------------------------------------
+      ! MERRA2: Nested EU Grid
+      !-----------------------------------------------------------------
+      INTEGER               :: IGLOB      = 177       ! Need correct value
+      INTEGER               :: JGLOB      = 115       ! Need correct value
+      INTEGER               :: LGLOB      = 72
+#if   defined( GRIDREDUCED )
+      INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER,    PARAMETER :: LLTROP     = 38
+      INTEGER,    PARAMETER :: LLSTRAT    = 44
+#else
+      INTEGER               :: LLPAR                  ! Full vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER,    PARAMETER :: LLTROP     = 40
+      INTEGER,    PARAMETER :: LLSTRAT    = 59
+#endif
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
+
+#elif defined( MERRA2 ) && defined( GRID2x25 )
+
+      !-----------------------------------------------------------------
+      ! MERRA2: 2 x 2.5
+      !-----------------------------------------------------------------
+      INTEGER               :: IGLOB      = 144
+      INTEGER               :: JGLOB      = 91
+      INTEGER               :: LGLOB      = 72
+#if   defined( GRIDREDUCED )
+      INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER,    PARAMETER :: LLTROP     = 38  
+      INTEGER,    PARAMETER :: LLSTRAT    = 44
+#else 
+      INTEGER               :: LLPAR                  ! Full vertical grid
+      INTEGER,    PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER,    PARAMETER :: LLTROP     = 40  
+      INTEGER,    PARAMETER :: LLSTRAT    = 59
+#endif
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
+
+#elif defined( MERRA2 ) && defined( GRID4x5 )
+
+      !-----------------------------------------------------------------
+      ! MERRA2: 4 x 5
+      !-----------------------------------------------------------------
+      INTEGER               :: IGLOB      = 72
+      INTEGER               :: JGLOB      = 46
+      INTEGER               :: LGLOB      = 72         
 #if   defined( GRIDREDUCED ) 
       INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER,    PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
@@ -463,23 +542,28 @@
 
 #endif
 #endif
-      !-----------------------------------------------------------------
-      ! For GEOS 1x1 files
-      !-----------------------------------------------------------------
-      INTEGER,    PARAMETER :: I1x1       = 360
-      INTEGER,    PARAMETER :: J1x1       = 181
 
-      !-----------------------------------------------------------------
-      ! For GEOS 05x0666 files
-      !-----------------------------------------------------------------
-      INTEGER,    PARAMETER :: I05x0666   = 540 
-      INTEGER,    PARAMETER :: J05x0666   = 361
-
-      !-----------------------------------------------------------------
-      ! For GFED3
-      !-----------------------------------------------------------------
-      INTEGER,    PARAMETER :: IGFED3     = 720 
-      INTEGER,    PARAMETER :: JGFED3     = 360
+!-----------------------------------------------------------------------------
+! Prior to 8/11/15:
+! HEMCO has rendered these parameters obsolete (bmy, 8/11/15)
+!      !-----------------------------------------------------------------
+!      ! For GEOS 1x1 files
+!      !-----------------------------------------------------------------
+!      INTEGER,    PARAMETER :: I1x1       = 360
+!      INTEGER,    PARAMETER :: J1x1       = 181
+!
+!      !-----------------------------------------------------------------
+!      ! For GEOS 05x0666 files
+!      !-----------------------------------------------------------------
+!      INTEGER,    PARAMETER :: I05x0666   = 540 
+!      INTEGER,    PARAMETER :: J05x0666   = 361
+!
+!      !-----------------------------------------------------------------
+!      ! For GFED3
+!      !-----------------------------------------------------------------
+!      INTEGER,    PARAMETER :: IGFED3     = 720 
+!      INTEGER,    PARAMETER :: JGFED3     = 360
+!-----------------------------------------------------------------------------
 
       !-----------------------------------------------------------------
       ! For stratospheric chemistry
@@ -539,8 +623,12 @@
 #endif
       INTEGER,    PARAMETER :: NPOLY    = 20
 
-      ! NNSTA = max number of time series stations (in inptr.ctm)
-      INTEGER,    PARAMETER :: NNSTA = 800
+!-----------------------------------------------------------------------------
+! Prior to 8/11/15:
+! This is now obsolete (bmy, 8/11/15)
+!      ! NNSTA = max number of time series stations (in inptr.ctm)
+!      INTEGER,    PARAMETER :: NNSTA = 800
+!-----------------------------------------------------------------------------
 
       ! MAXIJ - Maximum number of 1st level grid boxes
       INTEGER               :: MAXIJ

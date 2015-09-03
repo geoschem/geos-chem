@@ -5544,6 +5544,22 @@ c Fix up for negative argument, erf, etc.
       !----------------------------------------------------------------
       FLX_MSS_FDG_FCT = 7.0d-4 * 1.1898d0
 
+#elif defined( MERRA2 ) && defined( GRID2x25 )
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: RETUNING FOR MERRA2 2x25 IS NEEDED ONCE MET IS AVAILABLE %%%
+      !%%%       Add placeholder value for now (bmy, 8/12/15)             %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      FLX_MSS_FDG_FCT = -999.0d0
+
+#elif defined( MERRA2 ) && defined( GRID4x5 )
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: RETUNING FOR MERRA2 4x5 IS NEEDED ONCE MET IS AVAILABLE %%%
+      !%%%       Add placeholder value for now (bmy, 8/12/15)             %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      FLX_MSS_FDG_FCT = -999.0d0
+
 #else
 
       ! Default value

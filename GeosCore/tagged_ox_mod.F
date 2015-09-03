@@ -265,7 +265,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 (hyl,bmy,11/3/11)
-!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally\
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -302,7 +303,7 @@
 #if   defined( GEOS_4 )
       PBLTOP = 5
       MTTOP  = 10
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       PBLTOP = 5
       MTTOP  = 10
 #endif

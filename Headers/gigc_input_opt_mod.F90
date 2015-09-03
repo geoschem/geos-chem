@@ -36,6 +36,11 @@ MODULE GIGC_Input_Opt_Mod
      ! General Runtime & Distributed Comp Info
      !----------------------------------------
      INTEGER                     :: NPES      ! Number of MPI procs
+     INTEGER                     :: myCpu     ! Local MPI process handle
+     INTEGER                     :: MPICOMM   ! MPI Communicator Handle
+     LOGICAL                     :: HPC       ! Is this an HPC (ESMF or otherwise) sim?
+     LOGICAL                     :: RootCPU   ! Is this the root cpu?
+     
 
      !----------------------------------------
      ! SIZE PARAMETER fields
@@ -45,7 +50,6 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: MAX_MEMB
      INTEGER                     :: MAX_FAMS
      INTEGER                     :: MAX_DEP
-
 
      !----------------------------------------
      ! SIMULATION MENU fields 
@@ -66,6 +70,7 @@ MODULE GIGC_Input_Opt_Mod
      CHARACTER(LEN=255)          :: GEOS_5_DIR         
      CHARACTER(LEN=255)          :: GEOS_FP_DIR        
      CHARACTER(LEN=255)          :: MERRA_DIR          
+     CHARACTER(LEN=255)          :: MERRA2_DIR          
      CHARACTER(LEN=255)          :: DATA_DIR_1x1       
      CHARACTER(LEN=255)          :: TEMP_DIR           
      LOGICAL                     :: LUNZIP             
@@ -633,7 +638,6 @@ MODULE GIGC_Input_Opt_Mod
      ! Fields for interface to GEOS-5 GCM
      !----------------------------------------
      LOGICAL                     :: haveImpRst
-     INTEGER                     :: myCpu
 
      !----------------------------------------
      ! Fields for LINOZ strat chem
@@ -693,6 +697,7 @@ MODULE GIGC_Input_Opt_Mod
 !  09 Apr 2015 - M. Sulprizio- Removed fields for NAPEMISS, POAEMISSSCALE,
 !                              and PST_RST_FILE. These options are now handled
 !                              by HEMCO.
+!  11 Aug 2015 - R. Yantosca - Add MERRA2_DIR field to OptInput
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -784,6 +789,14 @@ CONTAINS
     RC                               = GIGC_SUCCESS
 
     !----------------------------------------
+    ! General Runtime & Distributed Comp Info
+    !----------------------------------------
+    Input_Opt%NPES                   = 1       ! Assume Serial Sim.
+    Input_Opt%HPC                    = .false. ! Assume Serial Sim.
+    Input_Opt%myCpu                  = -1
+    Input_Opt%RootCPU                = .false.
+    
+    !----------------------------------------
     ! SIZE PARAMETER fields 
     !----------------------------------------
     MAX_DIAG                         = Input_Opt%MAX_DIAG
@@ -812,6 +825,7 @@ CONTAINS
     Input_Opt%GEOS_5_DIR             = './'
     Input_Opt%GEOS_FP_DIR            = './'
     Input_Opt%MERRA_DIR              = './'
+    Input_Opt%MERRA2_DIR             = './'
     Input_Opt%DATA_DIR_1x1           = './'      ! NOTE: Now deprecated!
     Input_Opt%TEMP_DIR               = './'
     Input_Opt%LUNZIP                 = .FALSE.   ! NOTE: Now deprecated!
@@ -1436,7 +1450,6 @@ CONTAINS
     ! Fields for interface to GEOS-5 GCM
     !----------------------------------------
     Input_Opt%haveImpRst             = .FALSE.
-    Input_Opt%myCpu                  = -1
 
 
     !----------------------------------------

@@ -697,6 +697,9 @@
 !                              to ACCEPT_EXTERNAL_DATE_TIME
 !  19 May 2014 - C. Keller   - Now read HEMCO configuration file.
 !  23 Jun 2014 - R. Yantosca - Remove references to logical_mod.F
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2
+!  12 Aug 2015 - R. Yantosca - Add support for 05x0625 grids
+!  13 Aug 2015 - R. Yantosca - Bug fix: prefix RES_DIR in front of MERRA2_DIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -770,6 +773,10 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%MERRA_DIR
 
+      ! MERRA2 subdir
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%MERRA2_DIR
+
       ! 1x1  dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
 !      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%DATA_DIR_1x1
@@ -821,6 +828,14 @@
       Input_Opt%RES_DIR = 'GEOS_1x1.25/'
 #elif defined( GRID1x1 ) 
       Input_Opt%RES_DIR = 'GEOS_1x1/'
+#elif defined( GRID05x0625 ) && defined( NESTED_CH )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_CH/'
+#elif defined( GRID05x0625 ) && defined( NESTED_EU )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_EU/'
+#elif defined( GRID05x0625 ) && defined( NESTED_NA )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_NA/'
+#elif defined( GRID05x0625 ) && defined( NESTED_SE )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_SE/'
 #elif defined( GRID05x0666 ) && defined( NESTED_CH )
       Input_Opt%RES_DIR = 'GEOS_0.5x0.666_CH/'
 #elif defined( GRID05x0666 ) && defined( NESTED_EU )
@@ -858,6 +873,9 @@
       Input_Opt%MERRA_DIR  =  TRIM( Input_Opt%RES_DIR     ) //
      &                        TRIM( Input_Opt%MERRA_DIR   )
 
+      Input_Opt%MERRA2_DIR =  TRIM( Input_Opt%RES_DIR     ) //
+     &                        TRIM( Input_Opt%MERRA2_DIR  )
+
 !##############################################################################
 
       ! Temp dir
@@ -887,7 +905,7 @@
       !=================================================================
       ! Add safety checks for logical switches
       !=================================================================
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       ! Turn unzipping off for MERRA met fields
       LUNZIP = .FALSE. 
 #endif
@@ -3773,7 +3791,7 @@
       ! Also pass the chemistry timestep value directly to module
       ! GeosUtil/time_mod.F via subroutine ACCEPT_EXTERNAL_DATE_TIME.
       !
-      ! Ideallly it would be good to have one single version of 
+      ! Ideally it would be good to have one single version of 
       ! "input.geos" that can double as the GEOS-Chem input file as 
       ! well as the ESMF resource.  We may be a way off from that.
       ! One potential solution is to use a Perl script to generate
@@ -3789,6 +3807,9 @@
       !-----------------------------------------------------------------
       
       ! Save to local variables for printing below
+      ! In GCHP, this is irrelevant since dynamics is a separate ESMF
+      ! component. It's settings cannot be controlled through the
+      ! chemistry component (where we are now) - MSL.
       TS_DYN                = Input_Opt%TS_DYN
 #else
       !-----------------------------------------------------------------
@@ -3803,9 +3824,11 @@
 #endif
 
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error
+      IF ( .not. Input_Opt%HPC ) THEN
       IF ( Input_Opt%TS_DYN > MAX_DYN .and. LTRAN ) THEN
-         MSG = 'Transport timestep is too big!'
+         write(*,*) '<>', Input_Opt%TS_DYN, Input_Opt%HPC
          CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
       ENDIF
 
       ! Return success
@@ -3891,6 +3914,7 @@
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  01 Mar 2013 - R. Yantosca - Now set TS_CONV to the same value as TS_DYN
 !                              when connecting to the GEOS-5 GCM. 
+!  12 Aug 2015 - R. Yantosca - Now allow non-local PBL mixing for MERRA2 met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3938,13 +3962,13 @@
       ! Further error checks and initializations
       !=================================================================
 
-#if !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
+#if !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
       ! The non-local PBL scheme is valid only with GEOS-5/MERRA/GEOS-FP
       IF ( LNLPBL ) THEN
          IF( am_I_Root ) THEN
             WRITE(6,*) REPEAT( '=', 79 )
             WRITE(6,*) 'The non-local PBL scheme is only valid for'
-            WRITE(6,*) 'GEOS-5, GEOS-FP, and MERRA met fields!'
+            WRITE(6,*) 'GEOS-5, GEOS-FP, MERRA, and MERRA2 met fields!'
             WRITE(6,*) 'LNLPBL is automatically turned to false !'
             WRITE(6,*) REPEAT( '=', 79 )
          ENDIF
@@ -7830,6 +7854,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  20 Jun 2014 - R. Yantosca - Now use fields from Input_Opt
 !  05 Mar 2015 - R. Yantosca - Now also check CHEM_INPUTS_DIR
+!  12 Aug 2015 - R. Yantosca - Now validate Input_Opt%MERRA2_DIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7893,7 +7918,6 @@
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
-
       ! Check GEOS-4 met field directory (ending date)
       DIR = Input_Opt%GEOS_4_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
@@ -7930,28 +7954,41 @@
 
 #elif defined( MERRA )
 
-      ! Check GEOS-5 met field directory (starting date)
+      ! Check MERRA met field directory (starting date)
       DIR = Input_Opt%MERRA_DIR
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
-      ! Check GEOS-5 met field directory (ending date)
+      ! Check MERRA met field directory (ending date)
       DIR = Input_Opt%MERRA_DIR
+      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
+
+#elif defined( MERRA2 )
+
+      ! Check MERRA2 met field directory (starting date)
+      DIR = Input_Opt%MERRA2_DIR
+      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
+
+      ! Check MERRA2 met field directory (ending date)
+      DIR = Input_Opt%MERRA2_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
 #elif defined( GCAP )
 
-      ! Check GEOS-5 met field directory (starting date)
+      ! Check GCAP met field directory (starting date)
       DIR = Input_Opt%GCAP_DIR
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
-
-      ! Check GEOS-5 met field directory (ending date)
+      ! Check GCAP met field directory (ending date)
       DIR = Input_Opt%GCAP_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )

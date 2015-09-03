@@ -284,6 +284,7 @@
 !  02 Jul 2013 - R. Yantosca - Bug fix: add State_Chm to WETDEP calls for
 !                              met other than MERRA, GEOS-5.7 or GEOS-5
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -329,7 +330,7 @@
 #endif
 
 
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
       !=================================================================
       ! MERRA: Only do wet deposition for large-scale + anvil precip
@@ -468,10 +469,10 @@
 ! 
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%%%           FOR MERRA and GEOS-FP MET FIELDS ONLY           %%%%%
+!  %%%%%       FOR MERRA, MERRA2, and GEOS-FP MET FIELDS ONLY      %%%%%
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !                                                                             .
-!  Now construct QQ and PDOWN directly from MERRA met fields.
+!  Construct QQ and PDOWN directly from GEOS-FP, MERRA, MERRA2  met fields.
 !                                                                             .
 !  This only applies to large-scale precip, as the #if defined
 !  block in routine DO_WETDEP prevents the wet deposition
@@ -582,6 +583,7 @@
 !  29 Apr 2015 - E. Lundgren - Now use State_Met%MAIRDEN instead of AIRDEN
 !                              since AIRDEN is now dry air density and MAIRDEN
 !                              is moist air density, needed for use with MOISTQ
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -622,10 +624,10 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-#if   defined( GEOS_FP )
+#if   defined( GEOS_FP ) || defined( MERRA2 )
 
          !==============================================================
-         ! %%%%% FOR GEOS-FP MET FIELDS ONLY %%%%%  
+         ! %%%%% FOR GEOS-FP or MERRA2 MET FIELDS %%%%%  
          !
          ! In GEOS-FP, the PFILSAN and PFLLSAN fields are defined
          ! on level edges.  Therefore, we must use L+1 to index them.
@@ -4021,7 +4023,7 @@
 
       ELSE
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          !------------------------------------------------------------------
          ! Suppress scavenging at cold temperatures for most aerosol simulation
          ! Allow scavenging at cold temperatures for BCPO,DUST and HNO3 (qq,
@@ -7414,9 +7416,10 @@
      &                 WASHFRAC,  KIN,          Input_Opt,
      &                 State_Met, State_Chm, RC )
 
-#if    defined( MERRA ) || defined( GEOS_FP )
+#if    defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          !%%% BUG FIX: Only apply this section of when running
-         !%%% GEOS-Chem with MERRA met fields.  (bmy, hamos, 5/26/11)
+         !%%% GEOS-Chem with GEOS-FP, MERRA, or MERRA2 met fields.  
+         ! (bmy, hamos, 5/26/11, 8/12/15)
          !
          ! Check if WASHFRAC = NaN or WASHFRAC < 0.1 %
          ! 
@@ -9393,26 +9396,6 @@
 
       ENDIF
 
-!#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-      !
-      ! Skip computation of Vud, CLDICE, CLDLIQ, C_H2O.  These would 
-      ! have to be computed at a higher level and passed through the
-      ! import state. (bmy, 10/31/12)
-      ! 
-      ! Still calculate CLDICE, CLDLIQ and C_H2O in GEOS-5, but get 
-      ! Vud from GEOS-5 convection component. Vud is now obtained 
-      ! through function GET_VUD (see above). (ckeller, 2/12/15)
-      !-----------------------------------------------------------------
-!#else
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
-      !
-      ! Compute Vud, CLDICE, CLDLIQ, C_H2O.  This is current practice 
-      ! in the standard GEOS-Chem model.  (bmy, 10/31/12)
-      !-----------------------------------------------------------------
-
       !=================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
       !=================================================================
@@ -9431,20 +9414,6 @@
             ! Compute Temp [K] and Pressure [hPa]
             TK = State_Met%T(I,J,L)
             PL = State_Met%PMID(I,J,L)
-         
-            !==============================================================
-            ! Compute Vud -- 5 m/s over oceans, 10 m/s over land (or ice?)
-            ! Assume Vud is the same at all altitudes; the array can be 2-D
-            ! ==> Now done in function GET_VUD (ckeller, 2/12/15).
-            !==============================================================
-
-!            IF ( L == 1 ) THEN
-!               IF ( IS_WATER( I, J, State_Met ) ) THEN
-!                  Vud(I,J) = 5e+0_fp
-!               ELSE
-!                  Vud(I,J) = 10e+0_fp
-!               ENDIF
-!            ENDIF
          
             !==============================================================
             ! CLDLIQ, the cloud liquid water content [cm3 H2O/cm3 air], 

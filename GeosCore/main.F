@@ -110,6 +110,7 @@
       USE DAO_MOD               ! Met field definitions
       USE GCAP_READ_MOD         ! For reading GCAP met data
       USE GEOSFP_READ_MOD       ! For reading GEOS-FP data
+      USE MERRA2_READ_MOD       ! For reading MERRA2 data
       USE MERRA_A1_MOD          ! For reading MERRA A1 data
       USE MERRA_A3_MOD          ! For reading MERRA A3 data
       USE MERRA_CN_MOD          ! For reading MERRA CN data
@@ -277,6 +278,7 @@
 !  25 Feb 2015 - E. Lundgren - Remove MAKE_RH call since now in AIRQNT.
 !  31 Mar 2015 - E. Lundgren - Move post-transport AIRQNT call to transport_mod 
 !  16 Apr 2015 - R. Yantosca - Remove call to INIT_DAO; it's obsolete
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -306,9 +308,6 @@
 
       ! Arrays
       INTEGER                  :: DATE(2)
-!      INTEGER                  :: ITIMEVALS(8)
-!      REAL*8                   :: OLDSECS, NEWSECS
-!      REAL*8                   :: OLDSECST, NEWSECST
 
       ! Derived type objects
       TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
@@ -430,6 +429,7 @@
       Input_Opt%LINOZ_NLAT    = 18
       Input_Opt%LINOZ_NMONTHS = 12
       Input_Opt%LINOZ_NFIELDS = 7
+      Input_Opt%RootCPU       = .true.
       !
       ! Call the routine GIGC_Allocate_All (located in module file
       ! GeosCore/gigc_environment_mod.F90) to allocate all lat/lon
@@ -791,8 +791,8 @@
       WRITE( 6, '(a)' ) 
 
       ! NSTEP is the number of dynamic timesteps w/in the outer loop
-#if   defined( GEOS_FP ) 
-      N_DYN_STEPS = 180 / GET_TS_DYN()     ! GEOS-5.7.x has a 3-hr interval
+#if   defined( GEOS_FP ) || defined( MERRA2 )
+      N_DYN_STEPS = 180 / GET_TS_DYN()     ! GEOS-FP/MERRA2 have a 3hr interval
 #else
       N_DYN_STEPS = 360 / GET_TS_DYN()     ! All other met has a 6hr interval
 #endif
@@ -986,7 +986,7 @@
             Input_Opt%USE_O3_FROM_MET = .FALSE.
          ENDIF
 
-#elif defined( GEOS_FP )
+#elif defined( GEOS_FP ) || defined( MERRA2 )
 
          ! For GEOS-FP met, always use the O3 columns
          ! from the A1 met field files (bmy, 11/14/13)
@@ -1901,7 +1901,6 @@
 !  19 Mar 2012 - R. Yantosca - Now echo info for 0.25 x 0.3125 runs
 !  19 Mar 2012 - R. Yantosca - Now echo info if ISORROPIA is turned off
 !  22 Oct 2012 - R. Yantosca - Now echo info if -DDEVEL is used
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2121,6 +2120,7 @@
 !  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_MERRA_A3_FIELDS
 !  24 Jun 2014 - R. Yantosca - Now pass Input_Opt to other routines
 !  24 Jun 2014 - R. Yantosca - Cosmetic changes, line up arguments
+!  12 Aug 2015 - R. Yantosca - Call routines for reading MERRA2 fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2130,14 +2130,14 @@
       ! Convenience variable for date & time
       INTEGER :: D(2)
 
+#if   defined( GEOS_FP )
+
       !=================================================================
       !    *****  R E A D   G E O S -- F P   F I E L D S    *****
       !    *****  At the start of the GEOS-Chem simulation  *****
       !
       !    Handle GEOS-FP met fields separately from other met 
       !=================================================================
-
-#if   defined( GEOS_FP )
 
       ! Read time-invariant data
       CALL GEOSFP_READ_CN  (             Input_Opt, State_Met )
@@ -2153,6 +2153,30 @@
       ! Read 3-hr time averaged data
       D = GET_FIRST_I3_TIME()
       CALL GEOSFP_READ_I3_1( D(1), D(2), Input_Opt, State_Met )
+
+#elif defined( MERRA2 )
+
+      !=================================================================
+      !    *****  R E A D   M E R R A 2   F I E L D S    *****
+      !    *****  At the start of the GEOS-Chem simulation  *****
+      !
+      !    Handle MERRA2 met fields separately from other met 
+      !=================================================================
+
+      ! Read time-invariant data
+      CALL MERRA2_READ_CN  (             Input_Opt, State_Met )
+
+      ! Read 1-hr time-averaged data
+      D = GET_FIRST_A1_TIME()
+      CALL MERRA2_READ_A1  ( D(1), D(2), Input_Opt, State_Met )
+
+      ! Read 3-hr time averaged data
+      D = GET_FIRST_A3_TIME()
+      CALL MERRA2_READ_A3  ( D(1), D(2), Input_Opt, State_Met )
+
+      ! Read 3-hr time averaged data
+      D = GET_FIRST_I3_TIME()
+      CALL MERRA2_READ_I3_1( D(1), D(2), Input_Opt, State_Met )
 
 #elif defined( MERRA )
 
@@ -2340,6 +2364,7 @@
 !  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_A6_FIELDS
 !  24 Jun 2014 - R. Yantosca - Now pass Input_Opt to other routines
 !  24 Jun 2014 - R. Yantosca - Cosmetic changes, line up arguments
+!  12 Aug 2015 - R. Yantosca - Now call routines to read MERRA2 met data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2377,6 +2402,40 @@
       IF ( ITS_TIME_ FOR_I3() ) THEN
          D = GET_I3_TIME()
          CALL GEOSFP_READ_I3_2( D(1), D(2), Input_Opt, State_Met )
+
+         ! Compute avg pressure at polar caps 
+         CALL AVGPOLE( State_Met%PS2 )
+
+      ENDIF
+
+#elif defined( MERRA2 )
+
+      !==============================================================
+      !  ****** R E A D   M E R R A 2   F I E L D S  *****
+      !==============================================================
+
+      !---------------------------------
+      ! A-1 fields (1hr time averaged)
+      !---------------------------------
+      IF ( ITS_TIME_FOR_A1() ) THEN
+         D = GET_A1_TIME()
+         CALL MERRA2_READ_A1  ( D(1), D(2), Input_Opt, State_Met )
+      ENDIF
+
+      !----------------------------------
+      ! A-3 fields (3-hr time averaged)
+      !----------------------------------
+      IF ( ITS_TIME_FOR_A3() ) THEN
+         D = GET_A3_TIME()
+         CALL MERRA2_READ_A3  ( D(1), D(2), Input_Opt, State_Met )
+      ENDIF
+
+      !----------------------------------
+      ! I-3 fields (3-hr instantaneous
+      !----------------------------------
+      IF ( ITS_TIME_ FOR_I3() ) THEN
+         D = GET_I3_TIME()
+         CALL MERRA2_READ_I3_2( D(1), D(2), Input_Opt, State_Met )
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2 )

@@ -920,7 +920,8 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  25 Jul 2014 - R. Yantosca - Now remove reference to function SFCWINDSQR
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!   5 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !
 !  ##########################################################################
 !  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
@@ -1191,7 +1192,7 @@
          ! need to subtract the sea ice fraction.
          ! We now compute ocean chemistry for entire ocean grid box,
          ! irrespective of ice cover (jaf, 11/28/11)
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          NPP_tot = NPP_tot + NPP(I,J) * A_M2 * State_Met%FROCEAN(I,J)
          A_ocean = A_ocean + A_M2 * State_Met%FROCEAN(I,J)
          IF ( Y >= 70 ) THEN
@@ -1321,7 +1322,7 @@
          ! ice cover, but ice will reduce both solar radiation input to
          ! ocean and mercury deposition to ocean (jaf, 11/28/11)
          !---------------------------------------------------------------
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 !         FRAC_L       = State_Met%FRLAND(I,J)
 !         FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
 !     &                       State_Met%FRSEAICE(I,J), 0e+0_fpp )
@@ -2810,6 +2811,7 @@
 !			       irrespective of ice cover and reduce radiation,
 !			       Hg deposition accordingly in partial-ice boxes
 !                              (orig. 28/11/11)
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !******************************************************************************
 !
       ! Reference to fortran90 modules
@@ -2866,7 +2868,7 @@
       ! Use fractional land type information in MERRA (jaf, 4/26/11)
       ! FROCEAN is a constant, so to get correct ocean fraction we
       ! need to subtract the sea ice fraction.
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       ! We now apply ocean processes, including MLD adjustment, to
       ! entire ocean grid box, irrespective of sea ice cover (jaf,
       ! 11/28/11)

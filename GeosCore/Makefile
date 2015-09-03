@@ -748,7 +748,7 @@ main.o                      : main.F                                         \
                               tracerid_mod.o          wetscav_mod.o          \
                               ucx_mod.o               vdiff_mod.o            \
                               emissions_mod.o         cleanup.o              \
-                              mixing_mod.o                                   \
+                              mixing_mod.o            merra2_read_mod.o      \
                               rrtmg_rad_transfer_mod.o
 
 mapping_mod.o               : mapping_mod.F90                              
@@ -772,6 +772,9 @@ merra_cn_mod.o              : merra_cn_mod.F                                 \
                               diag_mod.o
 
 merra_i6_mod.o              : merra_i6_mod.F
+
+merra2_read_mod.o           : merra2_read_mod.F90                            \
+                              dao_mod.o               diag_mod.o
 
 mixing_mod.o                : mixing_mod.F90                                 \
                               chemgrid_mod.o                                 \

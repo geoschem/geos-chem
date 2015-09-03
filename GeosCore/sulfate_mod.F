@@ -1280,6 +1280,8 @@
             TSCALE = 2.*3600.
 #elif defined( GRID1x1   )
             TSCALE = 2.*3600.
+#elif defined( GRID05x0625 )
+            TSCALE = 1.*3600.  ! Placeholder: the 0.5 x 0.666 value
 #elif defined( GRID05x0666 )
             TSCALE = 1.*3600.
 #elif defined( GRID025x03125 )
@@ -2531,6 +2533,7 @@
 !  12 Jan 2015 - C. Keller   - Now allow NDENS_SALA and NDENS_SALC to be empty.
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2862,7 +2865,7 @@
          ! Update SO2 concentration after cloud chemistry          
          ! SO2 chemical loss rate = SO4 production rate [v/v/timestep]
          !==============================================================
-#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -7531,7 +7534,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOx_SCALE' )
       SOx_SCALE = 0e+0_fp
 
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
       ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
       ! directly from the met fields.  (skim, bmy, 1/14/10)
       ALLOCATE( VCLDF( IIPAR, JJPAR, LLCHEM ), STAT=AS )

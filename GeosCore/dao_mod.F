@@ -808,6 +808,7 @@
 !  29 Oct 2013 - R. Yantosca - Now interpolate T_FULLGRID field for GEOS-FP met
 !  12 May 2015 - E. Lundgren - Fix I3 interpolation bug where time fraction
 !                              spans from 1 to 2, not 0 to 1, for hrs 3 to 6
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -983,10 +984,10 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#elif defined( GEOS_FP )
+#elif defined( GEOS_FP ) || defined( MERRA2 )
 
       !=================================================================
-      ! Do the interpolation for GEOS-FP met fields 
+      ! Do the interpolation for GEOS-FP and MERRA2 met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -2034,6 +2035,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves in the same way as GEOS-FP
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2043,7 +2046,7 @@
       INTEGER :: I, J, L
 
       !=================================================================
-      ! COPY_I6_FIELDS begins here!
+      ! COPY_I3_I6_FIELDS begins here!
       !=================================================================
 
 #if   defined( GCAP )
@@ -2069,7 +2072,7 @@
       !------------------
       State_Met%PS1    = State_Met%PS2     ! I6 surface pressure    [hPa] 
 
-#elif defined( GEOS_FP )
+#elif defined( GEOS_FP ) || defined( MERRA2 )
 
       !------------------
       ! GEOS-FP met

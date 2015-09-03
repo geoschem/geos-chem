@@ -2376,7 +2376,7 @@ contains
           ! if conditions are met (jaf, 4/26/11)
           FRAC_NO_HG0_DEP = 1e+0_fp
 
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
           FRAC_NO_HG0_DEP = MIN( State_Met%FROCEAN(I,J) + &
                                  State_Met%FRSNO(I,J)   + &
                                  State_Met%FRLANDIC(I,J), 1e+0_fp)
