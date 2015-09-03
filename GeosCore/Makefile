@@ -496,7 +496,7 @@ decomp.o                    : decomp.F
 
 depo_mercury_mod.o          : depo_mercury_mod.F                             \
                               dao_mod.o               diag_mod.o             \
-                              tracerid_mod.o         
+                              diag03_mod.o            tracerid_mod.o         
 
 diag03_mod.o                : diag03_mod.F                                   \
                               tracerid_mod.o
@@ -797,8 +797,8 @@ ndxx_setup.o                : ndxx_setup.F                                   \
 
 ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
                               dao_mod.o               depo_mercury_mod.o     \
-                              diag03_mod.o            tracerid_mod.o
-
+                              diag03_mod.o            tracerid_mod.o         \
+                              toms_mod.o
 
 ohsave.o                    : ohsave.F                                       \
                               comode_mod.o            tracerid_mod.o

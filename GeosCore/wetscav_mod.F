@@ -5885,6 +5885,7 @@
       REAL(fp)           :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
       REAL(fp)           :: ALPHA, ALPHA2, WETLOSS,   TMP
       REAL(fp)           :: F_RAINOUT,     F_WASHOUT
+      REAL(fp)           :: DEP_HG
 
       ! Arrays
       ! DSTT is the accumulator array of rained-out 
@@ -5929,6 +5930,7 @@
 !$OMP+PRIVATE( I,       J,      FTOP,      ERRMSG,    F          )
 !$OMP+PRIVATE( F_PRIME, K_RAIN, L,         Q,         QDOWN      )
 !$OMP+PRIVATE( NN,      N,      F_RAINOUT, F_WASHOUT             )
+!$OMP+PRIVATE( DEP_HG )
 !$OMP+SCHEDULE( DYNAMIC )   
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -6244,20 +6246,19 @@
             ! Loop over soluble tracers and/or aerosol tracers
             DO NN = 1, NSOL
                N = IDWETD(NN)
+               DEP_HG = DSTT(NN,1,I,J)
 
                ! Check if it is a gaseous Hg2 tag
                IF ( IS_Hg2( N ) ) THEN
 
-                  CALL ADD_Hg2_WD      ( I, J, N, DSTT(NN,1,I,J) )
-                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
-     &                                   State_Met )
+                  CALL ADD_Hg2_WD      ( I, J, N, DEP_HG )
+                  CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_HG, State_Met )
 
                ! Check if it is a HgP tag
                ELSE IF ( IS_HgP( N ) ) THEN
                   
-                  CALL ADD_HgP_WD      ( I, J, N, DSTT(NN,1,I,J) )
-                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
-     &                                   State_Met )
+                  CALL ADD_HgP_WD      ( I, J, N, DEP_HG )
+                  CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_HG, State_Met )
                   
                ENDIF
 
@@ -6461,6 +6462,7 @@
       REAL(fp)           :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
       REAL(fp)           :: ALPHA, ALPHA2, WETLOSS,   TMP
       REAL(fp)           :: F_RAINOUT,     F_WASHOUT 
+      REAL(fp)           :: DEP_HG
 
       ! Arrays
       ! DSTT is the accumulator array of rained-out 
@@ -6506,6 +6508,7 @@
 !$OMP+PRIVATE( NN,          ERRMSG,     F,           F_PRIME    )
 !$OMP+PRIVATE( F_RAINOUT,   F_WASHOUT,  K_RAIN,      Q          )       
 !$OMP+PRIVATE( QDOWN,       IS_RAINOUT, IS_WASHOUT,  N          ) 
+!$OMP+PRIVATE( DEP_HG )
 !$OMP+SCHEDULE( DYNAMIC )   
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -6782,20 +6785,19 @@
             ! Loop over soluble tracers and/or aerosol tracers
             DO NN = 1, NSOL
                N = IDWETD(NN)
+               DEP_HG = DSTT(NN,1,I,J)
 
                ! Check if it is a gaseous Hg2 tag
                IF ( IS_Hg2( N ) ) THEN
 
-                  CALL ADD_Hg2_WD      ( I, J, N, DSTT(NN,1,I,J) )
-                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
-     &                                   State_Met )
+                  CALL ADD_Hg2_WD      ( I, J, N, DEP_HG )
+                  CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_HG, State_Met )
 
                ! Check if it is a HgP tag
                ELSE IF ( IS_HgP( N ) ) THEN
                   
-                  CALL ADD_HgP_WD      ( I, J, N, DSTT(NN,1,I,J) )
-                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
-     &                                   State_Met )
+                  CALL ADD_HgP_WD      ( I, J, N, DEP_HG )
+                  CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_HG, State_Met )
                   
                ENDIF
 
