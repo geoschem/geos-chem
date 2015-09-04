@@ -4273,48 +4273,53 @@
       USE TRACERID_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState !(sfarina 2/20/13)
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Species_Mod,        ONLY : Species
 
 #if defined( TOMAS )
-      USE TOMAS_MOD,    ONLY : IBINS,    ICOMP
-      USE DAO_MOD,      ONLY : CONVERT_UNITS
+      USE TOMAS_MOD,          ONLY : IBINS,    ICOMP
+      USE DAO_MOD,            ONLY : CONVERT_UNITS
       USE UNITCONV_MOD
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,   INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
-      INTEGER,   INTENT(IN)    :: I          ! Longitude index
-      INTEGER,   INTENT(IN)    :: J          ! Latitude index
-      INTEGER,   INTENT(IN)    :: L          ! Level index
-      INTEGER,   INTENT(IN)    :: N          ! Tracer number
-      REAL(fp),  INTENT(IN)    :: BXHEIGHT   ! Grid box height [m]
-      REAL(fp),  INTENT(IN)    :: TK         ! Temperature [K]
-      REAL(fp),  INTENT(IN)    :: PP         ! Precip rate thru  bottom of grid
-                                           !  box (I,J,L)  [cm3 H2O/cm2 air/s]
-      REAL(fp),  INTENT(IN)    :: DT       ! Timestep for rainout event [s]
-      REAL(fp),  INTENT(IN)    :: F        ! Fraction of grid box that is 
-                                           !   precipitating [unitless]
+      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
+      INTEGER,        INTENT(IN)    :: I          ! Longitude index
+      INTEGER,        INTENT(IN)    :: J          ! Latitude index
+      INTEGER,        INTENT(IN)    :: L          ! Level index
+      INTEGER,        INTENT(IN)    :: N          ! Tracer number
+      REAL(fp),       INTENT(IN)    :: BXHEIGHT   ! Grid box height [m]
+      REAL(fp),       INTENT(IN)    :: TK         ! Temperature [K]
+      REAL(fp),       INTENT(IN)    :: PP         ! Precip rate thru bottom 
+                                                  !  of grid (I,J,L)  
+                                                  !  [cm3 H2O/cm2 air/s]
+      REAL(fp),       INTENT(IN)    :: DT         ! Timestep [s]
+      REAL(fp),       INTENT(IN)    :: F          ! Fraction of grid box that 
+                                                  !  is precipitating [1]
 
-      TYPE(OptInput), INTENT(IN) :: Input_Opt ! Input options
-      TYPE(MetState), INTENT(IN) :: State_Met ! Meteorology State object
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options
+      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State
 
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      REAL(fp),  INTENT(INOUT) :: H2O2s      ! H2O2 [v/v] and SO2 [v/v] 
-      REAL(fp),  INTENT(INOUT) :: SO2s       ! concentrations after aqueous rxns 
-                                           ! are applied.  These are computed 
-                                           ! in the sulfate chemistry module
-                                           ! and passed here as arguments. 
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+      REAL(fp),       INTENT(INOUT) :: H2O2s      ! H2O2 [v/v] and SO2 [v/v] 
+      REAL(fp),       INTENT(INOUT) :: SO2s       ! conc's after aqueous rxns 
+                                                  ! are applied.  These are 
+                                                  ! computed in the sulfate 
+                                                  ! chemistry module and
+                                                  ! passed here as arguments. 
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),  INTENT(OUT) :: WASHFRAC   ! Fraction of tracer lost to 
-                                           !  washout [unitless]
-      LOGICAL,   INTENT(OUT) :: KIN  ! =T washout is a kinetic process
-                                     ! =F washout is an equilibrium process
-      INTEGER,   INTENT(OUT) :: RC   ! Success or failure?       
+      REAL(fp),       INTENT(OUT)   :: WASHFRAC   ! Fraction of tracer lost
+                                                  !  to washout [1]
+      LOGICAL,        INTENT(OUT)   :: KIN        ! =T washout is a 
+                                                  !    kinetic process
+                                                  ! =F washout is an 
+                                                  !    equilibrium process
+      INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?       
 !
 ! !REVISION HISTORY: 
 !  28 Feb 2000 - R. Yantosca - Initial version
@@ -4388,12 +4393,19 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)          :: L2G, DZ, SO2LOSS
+      ! Scalars
+      REAL(fp)               :: L2G, DZ, SO2LOSS
+      REAL(fp)               :: K0,  CR, pKa
+
+      ! Pointers
+      TYPE(Species), POINTER :: ThisSpc
+
+
 #if defined( TOMAS )
-      REAL(fp)          :: MEAN_SFC_STT         ! use to determine STT units 
-      LOGICAL           :: UNITCHANGE = .FALSE. ! STT unit conversion indicator
-      INTEGER           :: N_TRACERS
-      REAL(fp), POINTER :: STT(:,:,:,:) => NULL()
+      REAL(fp)               :: MEAN_SFC_STT         ! use to get STT units 
+      LOGICAL                :: UNITCHANGE = .FALSE. ! STT unit conv indicator
+      INTEGER                :: N_TRACERS
+      REAL(fp),      POINTER :: STT(:,:,:,:) => NULL()
 #endif
 
       !=================================================================
@@ -4405,196 +4417,39 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC                =  GIGC_SUCCESS
 
       ! DZ is the height of the grid box in cm
-      DZ = BXHEIGHT * 1e+2_fp
+      DZ                =  BXHEIGHT * 1e+2_fp
 
-      !------------------------------
-      ! 210Pb or 7Be (aerosol)
-      !------------------------------
-      IF ( N == IDTPb .or. N == IDTBe7 ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
-
-      !------------------------------
+      ! Get info about Nth species from the species database
+      ThisSpc           => State_Chm%SpcData(N)%Info
+      
+      !=================================================================
       ! HNO3 (aerosol)
-      !------------------------------
-      ELSE IF ( N == IDTHNO3 ) THEN
+      !=================================================================
+      IF ( N == IDTHNO3 ) THEN      
+
+         ! Washout is a kinetic process
          KIN      = .TRUE.
+
+         ! Get washout fraction
          WASHFRAC = WASHFRAC_HNO3( DT, F, PP, TK )
 
-      !------------------------------
-      ! H2O2 (liquid & gas phases)
-      !------------------------------
-      ELSE IF ( N == IDTH2O2 ) THEN
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 8.3e+4_fp, -7.4e+3_fp, PP,       DT,  F,
-     &                          DZ,     TK,    WASHFRAC, KIN  )
-
-      !------------------------------
-      ! CH2O (liquid & gas phases)
-      !------------------------------
-      ELSE IF ( N == IDTCH2O ) THEN 
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 3.0e+3_fp, -7.2e+3_fp, PP,       DT,  F,
-     &                          DZ,     TK,    WASHFRAC, KIN  )
-
-      !------------------------------
-      ! HOBr (liquid & gas phases) jpp
-      !------------------------------
-      ELSE IF ( N == IDTHOBr ) THEN 
-         KIN      = .FALSE.
-         ! McGrath and Rowland, 1994 says dH_sol for HOBr = 50 kJ/mol
-         CALL WASHFRAC_LIQ_GAS( 6.1e+3_fp, -6014.e+0_fp, PP, DT,  F, 
-     &                          DZ,     TK,      WASHFRAC, KIN  )
-
-      !------------------------------
-      ! HBr (liquid & gas phases) jpp
-      !------------------------------
-      ELSE IF ( N == IDTHBr ) THEN 
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 7.1e+13_fp, -10200.e+0_fp, PP, DT,  F,
-     &                          DZ,     TK,        WASHFRAC, KIN  )
-
-      !------------------------------
-      ! HCl (liquid & gas phases) SDE
-      !------------------------------
-      ELSE IF ( N == IDTHCl ) THEN 
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 7.1e+15_fp, -1.10e+4_fp, PP, DT,  F,
-     &                          DZ,     TK,      WASHFRAC, KIN  )
-
-      !------------------------------
-      ! Br2 (liquid & gas phases) jpp
-      !------------------------------
-      ELSE IF ( N == IDTBr2 ) THEN 
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 0.76e+0_fp, -3.72e+3_fp, PP, DT,  F,
-     &                          DZ,      TK,     WASHFRAC, KIN  ) 
-
-      !------------------------------
-      ! GLYX (liquid & gas phases)
-      !------------------------------
-      ELSE IF ( N == IDTGLYX ) THEN 
-
-         ! Compute liquid to gas ratio for GLYX, using
-         ! (1) Zhou and Mopper (1990): Kstar298 = 3.6e5 M/atm 
-         ! (2) Schweitzer et al. (1998) showed that the temperature 
-         ! dependence for CH2O works well for glyoxal,
-         !      so we use the same H298_R as CH2O
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 3.6e+5_fp, -7.2e+3_fp, PP, DT,  F, 
-     &                          DZ,     TK,    WASHFRAC, KIN  )
-
-      !------------------------------
-      ! MGLY (liquid & gas phases)
-      !------------------------------
-      ELSE IF ( N == IDTMGLY ) THEN 
-         ! Compute liquid to gas ratio for MGLY, using
-         ! the appropriate parameters for Henry's law
-         ! from Betterton and Hoffman 1988): Kstar298 = 3.71d3 M/atm;  
-         ! H298_R = -7.5d3 K
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 3.7e+3_fp, -7.5e+3_fp, PP, DT,  F, 
-     &                          DZ,     TK,    WASHFRAC, KIN  )
-
-      !------------------------------
-      ! GLYC (liquid & gas phases)
-      !------------------------------
-      ELSE IF ( N == IDTGLYC ) THEN 
-         ! Compute liquid to gas ratio for GLYC, using
-         ! the appropriate parameters for Henry's law
-         ! from Betterton and Hoffman 1988): Kstar298 = 4.6d4 M/atm;  
-         ! H298_R = -4.6d3 K
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 4.1e+4_fp, -4.6e+3_fp, PP, DT,  F,
-     &                          DZ,     TK,    WASHFRAC, KIN  )
-
-      !------------------------------
-      ! MP (liquid & gas phases)
-      !------------------------------
-      ELSE IF ( N == IDTMP ) THEN
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 3.1e+2_fp, -5.2e+3_fp, PP, DT,  F,
-     &                          DZ,     TK,    WASHFRAC, KIN  )
-
-      !------------------------------
-      ! MOBA (liquid phase only)
-      !------------------------------
-      ELSE IF ( N == IDTMOBA ) THEN       
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 2.6e+4_fp, -6.3e+3_fp, PP, DT,  F,
-     &                          DZ,     TK,    WASHFRAC, KIN  )
-
-      !------------------------------
-      ! ISOPN (liquid phase only)
-      !------------------------------
-      ELSE IF ( N == IDTISOPN ) THEN
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS(17e+3_fp, -9.2e+3_fp , PP, DT,  F,
-     &                          DZ,     TK,    WASHFRAC, KIN  )
-
-      !------------------------------
-      ! MMN (liquid phase only)
-      !------------------------------
-      ELSE IF ( N == IDTMMN ) THEN
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 17e+3_fp, -9.2e+3_fp, PP, DT,  F,
-     &                          DZ,     TK,    WASHFRAC, KIN  )
-
-      !------------------------------
-      ! PROPNN (liquid phase only)
-      !------------------------------
-      ELSE IF ( N == IDTPROPNN ) THEN
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 1.0e+3_fp, 0.0e+0_fp, PP, DT,  F,
-     &                          DZ,     TK,    WASHFRAC, KIN  )
-
-      !------------------------------
-      ! RIP (liquid phase only)
-      !------------------------------
-      ELSE IF ( N == IDTRIP ) THEN
-         !USE H2O2 
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 1.7e+6_fp, 0.0e+0_fp, PP, DT,  F,
-     &                          DZ,     TK,    WASHFRAC, KIN  )
-
-      !------------------------------
-      ! MAP   (liquid phase only)
-      !------------------------------
-      ELSE IF ( N == IDTMAP ) THEN
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 8.4e+2_fp, -5.3e+3_fp, PP, DT,  F,
-     &                          DZ,     TK,    WASHFRAC, KIN  )
-
-      !------------------------------
-      ! IEPOX (liquid phase only)
-      !------------------------------
-      ELSE IF ( N == IDTIEPOX ) THEN
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 1.3e+8_fp, 0.0e+0_fp, PP, DT,  F,
-     &                          DZ,     TK,    WASHFRAC, KIN  )
-
-      !------------------------------
+      !=================================================================
       ! SO2 (aerosol treatment)
-      !------------------------------
+      !=================================================================
       ELSE IF ( N == IDTSO2 ) THEN
 
-         !==============================================================
          ! NOTE: Even though SO2 is not an aerosol we treat it as SO4 in
          ! wet scavenging.  When evaporation occurs, it returns to SO4.
-         !==============================================================
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
-         !==============================================================
          ! Use the wet-scavenging following [Chin et al, 1996] such 
          ! that a soluble fraction of SO2 is limited by the availability 
          ! of H2O2 in the precipitating grid box.  Then scavenge the 
          ! soluble SO2 at the same rate as sulfate.
-         !==============================================================
-         !IF ( TK >= 268e+0_fp .AND. SO2s  > EPSILON ) THEN
          IF ( TK >= 268e+0_fp .AND. SO2s > TINY_FP ) THEN
          
             ! Adjust WASHFRAC
@@ -4616,374 +4471,645 @@
          SO2s = SO2s * ( 1e+0_fp - WASHFRAC )
          !SO2s = MAX( SO2s, EPSILON ) 
          SO2s = MAX( SO2s, TINY_FP ) 
-          
-      !------------------------------
-      ! SO4 and SO4aq (aerosol)
-      !------------------------------
-      ELSE IF ( N == IDTSO4 .or. N == IDTSO4s .or. N == IDTSO4aq ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
-      !------------------------------
-      ! MSA (aerosol)
-      !------------------------------
-      ELSE IF ( N == IDTMSA ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+      ELSE
 
-      !------------------------------
-      ! NH3 (liquid & gas phases)
-      !------------------------------
-      ELSE IF ( N == IDTNH3 ) THEN
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 3.3e+6_fp, -4.1e+3_fp, PP, DT,  F, 
-     &                          DZ,     TK,    WASHFRAC, KIN  )
+         !=================================================================
+         ! All other species
+         !=================================================================
+         IF ( ThisSpc%Is_Gas ) THEN
 
-      !------------------------------
-      ! NH4 and NH4aq (aerosol)
-      !------------------------------
-      ELSE IF ( N == IDTNH4 .or. N == IDTNH4aq ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+            !-----------------------------------------------------------
+            ! Washout for gas-phase species other than HNO3, SO2
+            !-----------------------------------------------------------
 
-      !------------------------------
-      ! NIT/AS/AHS/LET (aerosol)
-      !------------------------------
-      ELSE IF ( N == IDTNIT  .or. N == IDTNITs .or.
-     &          N == IDTAS   .or. N == IDTAHS  .or. 
-     &          N == IDTLET ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+            ! Get  Henry's law parameters
+            K0  = ThisSpc%Henry_K0
+            CR  = ThisSpc%Henry_CR
+            !pKa = ThisSpc%Henry_pKa       !  Leave for future use
 
-      !------------------------------
-      ! Dust Nitrate (aerosol)
-      ! tdf
-      !------------------------------
-      ELSE IF ( N == IDTNITd1 ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
-      !!coarse mode aerosols
-      ! NITd2-NITd4 are now considered coarse mode (mps, 9/27/13)
-      ELSE IF ( N == IDTNITd2 .or. N == IDTNITd3 .or.
-     &          N == IDTNITd4  ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+            ! NOTE: The routine WASHFRAC_LIQ_GAS assumes that the
+            ! Henry's CR parameter is negative.  The CR value stored
+            ! in the species database is positive, so flip the sign.
+            CR  = -CR
 
-      !------------------------------
-      ! Dust Sulfate (aerosol)
-      ! tdf
-      !------------------------------
-      ELSE IF ( N == IDTSO4d1 ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
-      !!coarse mode aerosols
-      ! SO4d2-SO4d4 are now considered coarse mode (mps, 9/27/13)
-      ELSE IF ( N == IDTSO4d2 .or. N == IDTSO4d3 .or.
-     &          N == IDTSO4d4  ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+            ! Washout is an equilibrium process
+            KIN = .FALSE.
+            
+            ! Get the washout fraction for this species
+            CALL WASHFRAC_LIQ_GAS( K0, CR, PP,       DT, F, 
+     &                             DZ, TK, WASHFRAC, KIN    )
 
-      !------------------------------
-      ! BC HYDROPHILIC (aerosol) or
-      ! OC HYDROPHILIC (aerosol) or
-      ! BC HYDROPHOBIC (aerosol) or
-      ! OC HYDROPHOBIC (aerosol)
-      !------------------------------
-      ! SOAupdate (hotp 6/15/09)
-      ! treat POA like OCPO
-      ELSE IF ( N == IDTBCPI .or. N == IDTOCPI  .or.
-     &          N == IDTBCPO .or. N == IDTOCPO  .or.
-     &          N == IDTPOA1 .or. N == IDTPOA2 ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+         ELSE
 
-      !------------------------------
-      ! DUST all size bins (aerosol)
-      !------------------------------
-      ELSE IF ( N == IDTDST1 ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
-      !!coarse mode aerosols (qq,10/11/2011)
-      ! DST2-DST4 are now considered coarse mode (mps, 9/27/13)
-      ELSE IF ( N == IDTDST2 .or. N == IDTDST3 .or.
-     &          N == IDTDST4  ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+            IF ( ThisSpc%WD_CoarseAer ) THEN
 
-      !------------------------------
-      ! DUST alkalinity size bins (aerosol)
-      ! tdf
-      !------------------------------
-      ELSE IF ( N == IDTDAL1 ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
-      !!coarse mode aerosols
-      ! DAL2-DAL4 are now considered coarse mode (mps, 9/27/13)
-      ELSE IF ( N == IDTDAL2 .or. N == IDTDAL3 .or.
-     &          N == IDTDAL4  ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+               !--------------------------------------------------------
+               ! Washout for coarse aerosol species (Reff >= 1um)
+               !--------------------------------------------------------
+               
+               ! Washout is a kinetic process
+               KIN      = .TRUE.
 
-      !------------------------------
-      ! Accum  seasalt (aerosol) or
-      ! Coarse seasalt (aerosol)
-      !------------------------------
-      ELSE IF ( N == IDTSALA  ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
-      !!coarse mode aerosols (qq,10/11/2011)
-      ELSE IF ( N == IDTSALC ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+               ! Compute washout fraction
+               WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
 
-      !-----------------------------
-      ! Marine Organics INSOLUBLE
-      !-----------------------------
-      ELSE IF ( N == IDTMOPO ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
-      ELSE IF ( N == IDTMOPI ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
- 
-      !------------------------------
-      ! MTPA (liquid & gas)
-      !------------------------------
-      ! new mtp (hotp 5/24/10), SOAupdate
-      ELSE IF ( N == IDTMTPA ) THEN
-         KIN      = .FALSE. 
-         CALL WASHFRAC_LIQ_GAS( 0.049e+0_fp, 0.e+0_fp, PP, DT,  F,
-     &                          DZ,      TK,   WASHFRAC, KIN  )
+            ELSE
 
-      !------------------------------
-      ! LIMO (liquid & gas phases)
-      !------------------------------
-      ELSE IF ( N == IDTLIMO ) THEN
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 0.07e+0_fp, 0.e+0_fp, PP, DT,  F,  
-     &                          DZ,     TK,   WASHFRAC, KIN  )
+               !--------------------------------------------------------
+               ! Washout for fine-aerosol species (Reff < 1um)
+               !--------------------------------------------------------
 
-      !-------------------------------
-      ! MTPO (liquid & gas)
-      !-------------------------------
-      ! new mtp (hotp 5/24/10), SOAupdate
-      ELSE IF ( N == IDTMTPO ) THEN
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 0.049e+0_fp, 0.e+0_fp, PP, DT,  F, 
-     &                          DZ,      TK,   WASHFRAC, KIN  )
+               ! Washout is a kinetic process
+               KIN      = .TRUE.
 
-      !------------------------------------
-      ! POG
-      !------------------------------------
-      ! Treat POG as relatively hydrophobic (hotp 9/22/09)
-      ELSE IF ( N == IDTPOG1 .or. N == IDTPOG2 ) THEN
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 9.5e+0_fp, -4.70e+3_fp, PP, DT,  F,
-     &                          DZ,    TK,      WASHFRAC, KIN  )
+               ! Compute washout fraction
+               WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
-      !---------------------------------
-      ! SOG (liq & gas phases)
-      !---------------------------------
-      ! update for new mtp (hotp 5/24/10), SOAupdate
-      ELSE IF ( N == IDTTSOG1 .or. N == IDTTSOG2 .or. 
-     &          N == IDTTSOG3 .or. N == IDTTSOG0 .or. 
-     &          N == IDTISOG1 .or. N == IDTISOG2 .or. 
-     &          N == IDTISOG3 .or.  
-     &          N == IDTOPOG1 .or. N == IDTOPOG2 .or.
-     &          N == IDTASOG1 .or. N == IDTASOG2 .or.
-     &          N == IDTASOG3                    ) THEN   
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 1.0e+5_fp, -6.039e+3_fp, PP, DT, F,  
-     &                          DZ,     TK,      WASHFRAC, KIN  )
+            ENDIF
 
-      !------------------------------
-      ! SOA (aerosol)
-      !------------------------------
-      ! update for new mtp (hotp 5/24/10), SOAupdate
-      ELSE IF ( N == IDTTSOA1 .or. N == IDTTSOA2 .or. 
-     &          N == IDTTSOA3 .or. N == IDTTSOA0 .or. 
-     &          N == IDTISOA1 .or. N == IDTISOA2 .or. 
-     &          N == IDTISOA3 .or. 
-     &          N == IDTOPOA1 .or. N == IDTOPOA2 .or. 
-     &          N == IDTASOAN .or. N == IDTASOA1 .or.
-     &          N == IDTASOA2 .or. N == IDTASOA3  ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+         ENDIF
 
-      !------------------------------
-      ! SOAG and SOAM (aerosol)
-      !------------------------------
-      ELSE IF ( N == IDTSOAG .or. N == IDTSOAM ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
-
-      !------------------------------
-      ! Hg2 (liquid & gas phases)
-      !------------------------------
-      ELSE IF ( IS_Hg2( N ) ) THEN
-
-         ! Assume Hg2 is in gas phase and equilibrates with precip
-         ! according to Henry's law
-         ! HgCl2: 1.4d+6 M/atm (Ref: Lindqvist and Rhode, 1985) 
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 1.4e+6_fp, -8.4e+3_fp, PP, DT, F,
-     &                          DZ,      TK,    WASHFRAC, KIN  )
-      
-      !------------------------------
-      ! HgP (treat like aerosol) 
-      !------------------------------
-      ELSE IF ( IS_HgP( N ) ) THEN 
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
-
-#if defined( TOMAS )
-
-      ! Define fields for use below
-      STT       => State_Chm%TRACERS
-      N_TRACERS =  Input_Opt%N_TRACERS
-
-      ! Tracer concentration units are in [kg/kg total air] if WASHOUT
-      ! is called during convection. TOMAS subroutine GETFRACTION
-      ! expects units in kg tracer. Therefore, convert State_Chm%Tracers 
-      ! to [kg] if currently in [kg/kg]. Use the average surface level 
-      ! concentration of tracer 1 to determine current units (ewl, 6/23/15)
-
-      ! Mean surface concentration of tracer 1
-      MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
-     &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
-
-      ! Convert units [kg/kg total air] -> [kg] if mean conc less than 0.1
-      ! (NOTE: this threshold may need to change)
-      IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
-         CALL Convert_MoistKgKg_to_Kg( am_I_Root, N_TRACERS, 
-     &                                  State_Met, State_Chm, RC )
-
-         ! Set flag indicating unit conversion occurred so that reverse
-         ! unit conversion happens at end
-         UNITCHANGE = .TRUE.
 
       ENDIF
 
-      !=================================================================
-      ! FOR TOMAS MICROPHYSICS
-      !=================================================================
+!      !------------------------------
+!      ! 210Pb or 7Be (aerosol)
+!      !------------------------------
+!      IF ( N == IDTPb .or. N == IDTBe7 ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!
+!      !------------------------------
+!      ! HNO3 (aerosol)
+!      !------------------------------
+!      ELSE IF ( N == IDTHNO3 ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_HNO3( DT, F, PP, TK )
+!
+!      !------------------------------
+!      ! H2O2 (liquid & gas phases)
+!      !------------------------------
+!      ELSE IF ( N == IDTH2O2 ) THEN
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 8.3e+4_fp, -7.4e+3_fp, PP,       DT,  F,
+!     &                          DZ,     TK,    WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! CH2O (liquid & gas phases)
+!      !------------------------------
+!      ELSE IF ( N == IDTCH2O ) THEN 
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 3.0e+3_fp, -7.2e+3_fp, PP,       DT,  F,
+!     &                          DZ,     TK,    WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! HOBr (liquid & gas phases) jpp
+!      !------------------------------
+!      ELSE IF ( N == IDTHOBr ) THEN 
+!         KIN      = .FALSE.
+!         ! McGrath and Rowland, 1994 says dH_sol for HOBr = 50 kJ/mol
+!         CALL WASHFRAC_LIQ_GAS( 6.1e+3_fp, -6014.e+0_fp, PP, DT,  F, 
+!     &                          DZ,     TK,      WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! HBr (liquid & gas phases) jpp
+!      !------------------------------
+!      ELSE IF ( N == IDTHBr ) THEN 
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 7.1e+13_fp, -10200.e+0_fp, PP, DT,  F,
+!     &                          DZ,     TK,        WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! HCl (liquid & gas phases) SDE
+!      !------------------------------
+!      ELSE IF ( N == IDTHCl ) THEN 
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 7.1e+15_fp, -1.10e+4_fp, PP, DT,  F,
+!     &                          DZ,     TK,      WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! Br2 (liquid & gas phases) jpp
+!      !------------------------------
+!      ELSE IF ( N == IDTBr2 ) THEN 
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 0.76e+0_fp, -3.72e+3_fp, PP, DT,  F,
+!     &                          DZ,      TK,     WASHFRAC, KIN  ) 
+!
+!      !------------------------------
+!      ! GLYX (liquid & gas phases)
+!      !------------------------------
+!      ELSE IF ( N == IDTGLYX ) THEN 
+!
+!         ! Compute liquid to gas ratio for GLYX, using
+!         ! (1) Zhou and Mopper (1990): Kstar298 = 3.6e5 M/atm 
+!         ! (2) Schweitzer et al. (1998) showed that the temperature 
+!         ! dependence for CH2O works well for glyoxal,
+!         !      so we use the same H298_R as CH2O
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 3.6e+5_fp, -7.2e+3_fp, PP, DT,  F, 
+!     &                          DZ,     TK,    WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! MGLY (liquid & gas phases)
+!      !------------------------------
+!      ELSE IF ( N == IDTMGLY ) THEN 
+!         ! Compute liquid to gas ratio for MGLY, using
+!         ! the appropriate parameters for Henry's law
+!         ! from Betterton and Hoffman 1988): Kstar298 = 3.71d3 M/atm;  
+!         ! H298_R = -7.5d3 K
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 3.7e+3_fp, -7.5e+3_fp, PP, DT,  F, 
+!     &                          DZ,     TK,    WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! GLYC (liquid & gas phases)
+!      !------------------------------
+!      ELSE IF ( N == IDTGLYC ) THEN 
+!         ! Compute liquid to gas ratio for GLYC, using
+!         ! the appropriate parameters for Henry's law
+!         ! from Betterton and Hoffman 1988): Kstar298 = 4.6d4 M/atm;  
+!         ! H298_R = -4.6d3 K
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 4.1e+4_fp, -4.6e+3_fp, PP, DT,  F,
+!     &                          DZ,     TK,    WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! MP (liquid & gas phases)
+!      !------------------------------
+!      ELSE IF ( N == IDTMP ) THEN
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 3.1e+2_fp, -5.2e+3_fp, PP, DT,  F,
+!     &                          DZ,     TK,    WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! MOBA (liquid phase only)
+!      !------------------------------
+!      ELSE IF ( N == IDTMOBA ) THEN       
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 2.6e+4_fp, -6.3e+3_fp, PP, DT,  F,
+!     &                          DZ,     TK,    WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! ISOPN (liquid phase only)
+!      !------------------------------
+!      ELSE IF ( N == IDTISOPN ) THEN
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS(17e+3_fp, -9.2e+3_fp , PP, DT,  F,
+!     &                          DZ,     TK,    WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! MMN (liquid phase only)
+!      !------------------------------
+!      ELSE IF ( N == IDTMMN ) THEN
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 17e+3_fp, -9.2e+3_fp, PP, DT,  F,
+!     &                          DZ,     TK,    WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! PROPNN (liquid phase only)
+!      !------------------------------
+!      ELSE IF ( N == IDTPROPNN ) THEN
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 1.0e+3_fp, 0.0e+0_fp, PP, DT,  F,
+!     &                          DZ,     TK,    WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! RIP (liquid phase only)
+!      !------------------------------
+!      ELSE IF ( N == IDTRIP ) THEN
+!         !USE H2O2 
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 1.7e+6_fp, 0.0e+0_fp, PP, DT,  F,
+!     &                          DZ,     TK,    WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! MAP   (liquid phase only)
+!      !------------------------------
+!      ELSE IF ( N == IDTMAP ) THEN
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 8.4e+2_fp, -5.3e+3_fp, PP, DT,  F,
+!     &                          DZ,     TK,    WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! IEPOX (liquid phase only)
+!      !------------------------------
+!      ELSE IF ( N == IDTIEPOX ) THEN
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 1.3e+8_fp, 0.0e+0_fp, PP, DT,  F,
+!     &                          DZ,     TK,    WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! SO2 (aerosol treatment)
+!      !------------------------------
+!      ELSE IF ( N == IDTSO2 ) THEN
+!
+!         !==============================================================
+!         ! NOTE: Even though SO2 is not an aerosol we treat it as SO4 in
+!         ! wet scavenging.  When evaporation occurs, it returns to SO4.
+!         !==============================================================
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!
+!         !==============================================================
+!         ! Use the wet-scavenging following [Chin et al, 1996] such 
+!         ! that a soluble fraction of SO2 is limited by the availability 
+!         ! of H2O2 in the precipitating grid box.  Then scavenge the 
+!         ! soluble SO2 at the same rate as sulfate.
+!         !==============================================================
+!         !IF ( TK >= 268e+0_fp .AND. SO2s  > EPSILON ) THEN
+!         IF ( TK >= 268e+0_fp .AND. SO2s > TINY_FP ) THEN
+!         
+!            ! Adjust WASHFRAC
+!            SO2LOSS  = MIN( SO2s, H2O2s )
+!            WASHFRAC = SO2LOSS * WASHFRAC / SO2s
+!            WASHFRAC = MAX( WASHFRAC, 0e+0_fp )
+!                  
+!            ! Deplete H2O2s the same as SO2s (dkh, rjp, bmy, 11/17/05)
+!            H2O2s = H2O2s - ( SO2s * WASHFRAC )
+!            !H2O2s = MAX( H2O2s, EPSILON )
+!            H2O2s = MAX( H2O2s, TINY_FP )
+!
+!         ELSE
+!            WASHFRAC = 0e+0_fp
+!         
+!         ENDIF
+!         
+!         ! Update saved SO2 concentration 
+!         SO2s = SO2s * ( 1e+0_fp - WASHFRAC )
+!         !SO2s = MAX( SO2s, EPSILON ) 
+!         SO2s = MAX( SO2s, TINY_FP ) 
+!          
+!      !------------------------------
+!      ! SO4 and SO4aq (aerosol)
+!      !------------------------------
+!      ELSE IF ( N == IDTSO4 .or. N == IDTSO4s .or. N == IDTSO4aq ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!
+!      !------------------------------
+!      ! MSA (aerosol)
+!      !------------------------------
+!      ELSE IF ( N == IDTMSA ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!
+!      !------------------------------
+!      ! NH3 (liquid & gas phases)
+!      !------------------------------
+!      ELSE IF ( N == IDTNH3 ) THEN
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 3.3e+6_fp, -4.1e+3_fp, PP, DT,  F, 
+!     &                          DZ,     TK,    WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! NH4 and NH4aq (aerosol)
+!      !------------------------------
+!      ELSE IF ( N == IDTNH4 .or. N == IDTNH4aq ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!
+!      !------------------------------
+!      ! NIT/AS/AHS/LET (aerosol)
+!      !------------------------------
+!      ELSE IF ( N == IDTNIT  .or. N == IDTNITs .or.
+!     &          N == IDTAS   .or. N == IDTAHS  .or. 
+!     &          N == IDTLET ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!
+!      !------------------------------
+!      ! Dust Nitrate (aerosol)
+!      ! tdf
+!      !------------------------------
+!      ELSE IF ( N == IDTNITd1 ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!      !!coarse mode aerosols
+!      ! NITd2-NITd4 are now considered coarse mode (mps, 9/27/13)
+!      ELSE IF ( N == IDTNITd2 .or. N == IDTNITd3 .or.
+!     &          N == IDTNITd4  ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+!
+!      !------------------------------
+!      ! Dust Sulfate (aerosol)
+!      ! tdf
+!      !------------------------------
+!      ELSE IF ( N == IDTSO4d1 ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!      !!coarse mode aerosols
+!      ! SO4d2-SO4d4 are now considered coarse mode (mps, 9/27/13)
+!      ELSE IF ( N == IDTSO4d2 .or. N == IDTSO4d3 .or.
+!     &          N == IDTSO4d4  ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+!
+!      !------------------------------
+!      ! BC HYDROPHILIC (aerosol) or
+!      ! OC HYDROPHILIC (aerosol) or
+!      ! BC HYDROPHOBIC (aerosol) or
+!      ! OC HYDROPHOBIC (aerosol)
+!      !------------------------------
+!      ! SOAupdate (hotp 6/15/09)
+!      ! treat POA like OCPO
+!      ELSE IF ( N == IDTBCPI .or. N == IDTOCPI  .or.
+!     &          N == IDTBCPO .or. N == IDTOCPO  .or.
+!     &          N == IDTPOA1 .or. N == IDTPOA2 ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!
+!      !------------------------------
+!      ! DUST all size bins (aerosol)
+!      !------------------------------
+!      ELSE IF ( N == IDTDST1 ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!      !!coarse mode aerosols (qq,10/11/2011)
+!      ! DST2-DST4 are now considered coarse mode (mps, 9/27/13)
+!      ELSE IF ( N == IDTDST2 .or. N == IDTDST3 .or.
+!     &          N == IDTDST4  ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+!
+!      !------------------------------
+!      ! DUST alkalinity size bins (aerosol)
+!      ! tdf
+!      !------------------------------
+!      ELSE IF ( N == IDTDAL1 ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!      !!coarse mode aerosols
+!      ! DAL2-DAL4 are now considered coarse mode (mps, 9/27/13)
+!      ELSE IF ( N == IDTDAL2 .or. N == IDTDAL3 .or.
+!     &          N == IDTDAL4  ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+!
+!      !------------------------------
+!      ! Accum  seasalt (aerosol) or
+!      ! Coarse seasalt (aerosol)
+!      !------------------------------
+!      ELSE IF ( N == IDTSALA  ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!      !!coarse mode aerosols (qq,10/11/2011)
+!      ELSE IF ( N == IDTSALC ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+!
+!      !-----------------------------
+!      ! Marine Organics INSOLUBLE
+!      !-----------------------------
+!      ELSE IF ( N == IDTMOPO ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!      ELSE IF ( N == IDTMOPI ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+! 
+!      !------------------------------
+!      ! MTPA (liquid & gas)
+!      !------------------------------
+!      ! new mtp (hotp 5/24/10), SOAupdate
+!      ELSE IF ( N == IDTMTPA ) THEN
+!         KIN      = .FALSE. 
+!         CALL WASHFRAC_LIQ_GAS( 0.049e+0_fp, 0.e+0_fp, PP, DT,  F,
+!     &                          DZ,      TK,   WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! LIMO (liquid & gas phases)
+!      !------------------------------
+!      ELSE IF ( N == IDTLIMO ) THEN
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 0.07e+0_fp, 0.e+0_fp, PP, DT,  F,  
+!     &                          DZ,     TK,   WASHFRAC, KIN  )
+!
+!      !-------------------------------
+!      ! MTPO (liquid & gas)
+!      !-------------------------------
+!      ! new mtp (hotp 5/24/10), SOAupdate
+!      ELSE IF ( N == IDTMTPO ) THEN
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 0.049e+0_fp, 0.e+0_fp, PP, DT,  F, 
+!     &                          DZ,      TK,   WASHFRAC, KIN  )
+!
+!      !------------------------------------
+!      ! POG
+!      !------------------------------------
+!      ! Treat POG as relatively hydrophobic (hotp 9/22/09)
+!      ELSE IF ( N == IDTPOG1 .or. N == IDTPOG2 ) THEN
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 9.5e+0_fp, -4.70e+3_fp, PP, DT,  F,
+!     &                          DZ,    TK,      WASHFRAC, KIN  )
+!
+!      !---------------------------------
+!      ! SOG (liq & gas phases)
+!      !---------------------------------
+!      ! update for new mtp (hotp 5/24/10), SOAupdate
+!      ELSE IF ( N == IDTTSOG1 .or. N == IDTTSOG2 .or. 
+!     &          N == IDTTSOG3 .or. N == IDTTSOG0 .or. 
+!     &          N == IDTISOG1 .or. N == IDTISOG2 .or. 
+!     &          N == IDTISOG3 .or.  
+!     &          N == IDTOPOG1 .or. N == IDTOPOG2 .or.
+!     &          N == IDTASOG1 .or. N == IDTASOG2 .or.
+!     &          N == IDTASOG3                    ) THEN   
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 1.0e+5_fp, -6.039e+3_fp, PP, DT, F,  
+!     &                          DZ,     TK,      WASHFRAC, KIN  )
+!
+!      !------------------------------
+!      ! SOA (aerosol)
+!      !------------------------------
+!      ! update for new mtp (hotp 5/24/10), SOAupdate
+!      ELSE IF ( N == IDTTSOA1 .or. N == IDTTSOA2 .or. 
+!     &          N == IDTTSOA3 .or. N == IDTTSOA0 .or. 
+!     &          N == IDTISOA1 .or. N == IDTISOA2 .or. 
+!     &          N == IDTISOA3 .or. 
+!     &          N == IDTOPOA1 .or. N == IDTOPOA2 .or. 
+!     &          N == IDTASOAN .or. N == IDTASOA1 .or.
+!     &          N == IDTASOA2 .or. N == IDTASOA3  ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!
+!      !------------------------------
+!      ! SOAG and SOAM (aerosol)
+!      !------------------------------
+!      ELSE IF ( N == IDTSOAG .or. N == IDTSOAM ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!
+!      !------------------------------
+!      ! Hg2 (liquid & gas phases)
+!      !------------------------------
+!      ELSE IF ( IS_Hg2( N ) ) THEN
+!
+!         ! Assume Hg2 is in gas phase and equilibrates with precip
+!         ! according to Henry's law
+!         ! HgCl2: 1.4d+6 M/atm (Ref: Lindqvist and Rhode, 1985) 
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( 1.4e+6_fp, -8.4e+3_fp, PP, DT, F,
+!     &                          DZ,      TK,    WASHFRAC, KIN  )
+!      
+!      !------------------------------
+!      ! HgP (treat like aerosol) 
+!      !------------------------------
+!      ELSE IF ( IS_HgP( N ) ) THEN 
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!
+!#if defined( TOMAS )
+!
+!      ! Define fields for use below
+!      STT       => State_Chm%TRACERS
+!      N_TRACERS =  Input_Opt%N_TRACERS
+!
+!      ! Tracer concentration units are in [kg/kg total air] if WASHOUT
+!      ! is called during convection. TOMAS subroutine GETFRACTION
+!      ! expects units in kg tracer. Therefore, convert State_Chm%Tracers 
+!      ! to [kg] if currently in [kg/kg]. Use the average surface level 
+!      ! concentration of tracer 1 to determine current units (ewl, 6/23/15)
+!
+!      ! Mean surface concentration of tracer 1
+!      MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
+!     &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
+!
+!      ! Convert units [kg/kg total air] -> [kg] if mean conc less than 0.1
+!      ! (NOTE: this threshold may need to change)
+!      IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
+!         CALL Convert_MoistKgKg_to_Kg( am_I_Root, N_TRACERS, 
+!     &                                  State_Met, State_Chm, RC )
+!
+!         ! Set flag indicating unit conversion occurred so that reverse
+!         ! unit conversion happens at end
+!         UNITCHANGE = .TRUE.
+!
+!      ENDIF
+!
+!      !=================================================================
+!      ! FOR TOMAS MICROPHYSICS
+!      !=================================================================
+!
+!      ! Added for size-resolved aerosol (win, 7/16/09)
+!      !-------------------------------
+!      ! H2SO4 (treat as aerosol)
+!      !-------------------------------
+!      ELSE IF ( N == IDTH2SO4 ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!
+!      ! Added for size-resolved aerosol (win, 7/16/09)
+!      !-------------------------------
+!      ! Aerosol number NK1-NK30
+!      !-------------------------------
+!      ELSE IF ( IDTNK1 > 0 .and. N >= IDTNK1 .and. 
+!     &          N <  IDTNK1 + IBINS ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+!     &                                     State_Met, State_Chm )
+!         
+!      !-------------------------------
+!      ! Sulfate SF1-SF30
+!      !-------------------------------
+!      ELSE IF ( IDTSF1 > 0 .and. N >= IDTSF1 .and. 
+!     &          N <  IDTSF1 + IBINS ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+!     &                                     State_Met, State_Chm )
+!         
+!      !-------------------------------
+!      ! Sea-salt SS1-SS30
+!      !-------------------------------
+!      ELSE IF ( IDTSS1 > 0 .and. N >= IDTSS1 .and. 
+!     &          N <  IDTSS1 + IBINS ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+!     &                                     State_Met, State_Chm )
+!         
+!      !-------------------------------
+!      ! Hydrophilic EC ECIL1-ECIL30
+!      !-------------------------------
+!      ELSE IF ( IDTECIL1 > 0 .and. N >= IDTECIL1 .and. 
+!     &          N <  IDTECIL1 + IBINS ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+!     &                                     State_Met, State_Chm )
+!         
+!      !-------------------------------
+!      ! Hydrophilic OC OCIL1-OCIL30
+!      !-------------------------------
+!      ELSE IF ( IDTOCIL1 > 0 .and. N >= IDTOCIL1 .and. 
+!     &          N <  IDTOCIL1 + IBINS ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+!     &                                     State_Met, State_Chm )
+!         
+!      !-------------------------------
+!      ! Hydrophobic OC OCOB1-OCOB30
+!      !-------------------------------
+!      ELSE IF ( IDTOCOB1 > 0 .and. N >= IDTOCOB1 .and. 
+!     &          N <  IDTOCOB1 + IBINS ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+!     &                                     State_Met, State_Chm )
+!         
+!      !-------------------------------
+!      ! Dust DUST1-DUST30
+!      !-------------------------------
+!      ELSE IF ( IDTDUST1 > 0 .and. N >= IDTDUST1 .and. 
+!     &          N <  IDTDUST1 + IBINS ) THEN
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+!     &                                     State_Met, State_Chm )
+!
+!      ! (end part) Added for size-resolved aerosol (win, 7/16/09)
+!
+!      ! Convert State_Chm%Tracers units back to kg/kg total air 
+!      ! if conversion occurred at start of TOMAS block (ewl, 5/12/15)
+!      IF ( UNITCHANGE ) THEN
+!         CALL Convert_Kg_to_MoistKgKg( am_I_Root, N_TRACERS, 
+!     &                                  State_Met, State_Chm, RC )
+!      ENDIF
+!
+!      ! Free pointers
+!      STT => NULL()
+!#endif
+!
+!      !------------------------------
+!      ! POPG (liquid and gas phases) (clf, 11/17/2010)
+!      !------------------------------
+!      ELSE IF ( N == IDTPOPG ) THEN
+!         KIN      = .FALSE.
+!         CALL WASHFRAC_LIQ_GAS( Input_Opt%POP_HSTAR,
+!     &                          Input_Opt%POP_DEL_Hw,
+!     &                          PP, DT, F, DZ, TK, WASHFRAC, KIN )     
+!
+!      !------------------------------
+!      ! POPPOC (treat like hydrophobic OC aerosol) 
+!      !------------------------------
+!      ELSE IF ( N == IDTPOPPOC ) THEN 
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!
+!      !------------------------------
+!      ! POPPBC (treat like hydrophobic BC aerosol) 
+!      !------------------------------
+!      ELSE IF ( N == IDTPOPPBC ) THEN 
+!         KIN      = .TRUE.
+!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+!
+!      !------------------------------
+!      ! ERROR: Insoluble tracer
+!      !------------------------------
+!      ELSE 
+!         print*, '### N: ', N
+!         CALL ERROR_STOP( 'Invalid tracer!', 'WASHOUT (wetscav_mod.f)' )
+!
+!      ENDIF
 
-      ! Added for size-resolved aerosol (win, 7/16/09)
-      !-------------------------------
-      ! H2SO4 (treat as aerosol)
-      !-------------------------------
-      ELSE IF ( N == IDTH2SO4 ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
-
-      ! Added for size-resolved aerosol (win, 7/16/09)
-      !-------------------------------
-      ! Aerosol number NK1-NK30
-      !-------------------------------
-      ELSE IF ( IDTNK1 > 0 .and. N >= IDTNK1 .and. 
-     &          N <  IDTNK1 + IBINS ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-     &                                     State_Met, State_Chm )
-         
-      !-------------------------------
-      ! Sulfate SF1-SF30
-      !-------------------------------
-      ELSE IF ( IDTSF1 > 0 .and. N >= IDTSF1 .and. 
-     &          N <  IDTSF1 + IBINS ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-     &                                     State_Met, State_Chm )
-         
-      !-------------------------------
-      ! Sea-salt SS1-SS30
-      !-------------------------------
-      ELSE IF ( IDTSS1 > 0 .and. N >= IDTSS1 .and. 
-     &          N <  IDTSS1 + IBINS ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-     &                                     State_Met, State_Chm )
-         
-      !-------------------------------
-      ! Hydrophilic EC ECIL1-ECIL30
-      !-------------------------------
-      ELSE IF ( IDTECIL1 > 0 .and. N >= IDTECIL1 .and. 
-     &          N <  IDTECIL1 + IBINS ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-     &                                     State_Met, State_Chm )
-         
-      !-------------------------------
-      ! Hydrophilic OC OCIL1-OCIL30
-      !-------------------------------
-      ELSE IF ( IDTOCIL1 > 0 .and. N >= IDTOCIL1 .and. 
-     &          N <  IDTOCIL1 + IBINS ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-     &                                     State_Met, State_Chm )
-         
-      !-------------------------------
-      ! Hydrophobic OC OCOB1-OCOB30
-      !-------------------------------
-      ELSE IF ( IDTOCOB1 > 0 .and. N >= IDTOCOB1 .and. 
-     &          N <  IDTOCOB1 + IBINS ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-     &                                     State_Met, State_Chm )
-         
-      !-------------------------------
-      ! Dust DUST1-DUST30
-      !-------------------------------
-      ELSE IF ( IDTDUST1 > 0 .and. N >= IDTDUST1 .and. 
-     &          N <  IDTDUST1 + IBINS ) THEN
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-     &                                     State_Met, State_Chm )
-
-      ! (end part) Added for size-resolved aerosol (win, 7/16/09)
-
-      ! Convert State_Chm%Tracers units back to kg/kg total air 
-      ! if conversion occurred at start of TOMAS block (ewl, 5/12/15)
-      IF ( UNITCHANGE ) THEN
-         CALL Convert_Kg_to_MoistKgKg( am_I_Root, N_TRACERS, 
-     &                                  State_Met, State_Chm, RC )
-      ENDIF
-
-      ! Free pointers
-      STT => NULL()
-#endif
-
-      !------------------------------
-      ! POPG (liquid and gas phases) (clf, 11/17/2010)
-      !------------------------------
-      ELSE IF ( N == IDTPOPG ) THEN
-         KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( Input_Opt%POP_HSTAR,
-     &                          Input_Opt%POP_DEL_Hw,
-     &                          PP, DT, F, DZ, TK, WASHFRAC, KIN )     
-
-      !------------------------------
-      ! POPPOC (treat like hydrophobic OC aerosol) 
-      !------------------------------
-      ELSE IF ( N == IDTPOPPOC ) THEN 
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
-
-      !------------------------------
-      ! POPPBC (treat like hydrophobic BC aerosol) 
-      !------------------------------
-      ELSE IF ( N == IDTPOPPBC ) THEN 
-         KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
-
-      !------------------------------
-      ! ERROR: Insoluble tracer
-      !------------------------------
-      ELSE 
-         print*, '### N: ', N
-         CALL ERROR_STOP( 'Invalid tracer!', 'WASHOUT (wetscav_mod.f)' )
-
-      ENDIF
+      ! Free pointer
+      ThisSpc => NULL()
 
       END SUBROUTINE WASHOUT
 !EOC

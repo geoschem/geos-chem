@@ -112,6 +112,8 @@ MODULE Species_Mod
      REAL(fp)           :: WD_RetFactor  ! Retention factor [1]
      REAL(fp)           :: WD_AerScavEff ! Aerosol scavenging efficiency
      REAL(fp)           :: WD_RainoutEff ! Aerosol rainout efficiency
+     LOGICAL            :: WD_CoarseAer  ! T=coarse aerosol; F=fine aerosol
+     LOGICAL            :: WD_SizeResAer ! T=size-resolved aerosol (TOMAS)
 
   END TYPE Species
 !
@@ -336,9 +338,9 @@ CONTAINS
                          Henry_K0,      Henry_CR,      Henry_PKA,      &
                          DD_A_Density,  DD_A_Radius,   DD_F0,          &
                          DD_KOA,        DD_HStar_Old,  WD_RetFactor,   &
-                         WD_AerScavEff, WD_RainoutEff, Is_Advected,    &
-                         Is_Gas,        Is_Drydep,     Is_Wetdep,      &
-                         RC                                           )
+                         WD_AerScavEff, WD_RainoutEff, WD_CoarseAer,   &
+                         WD_SizeResAer, Is_Advected,   Is_Gas,         &
+                         Is_Drydep,     Is_Wetdep,     RC             )
 !
 ! !USES:
 !
@@ -374,6 +376,8 @@ CONTAINS
     REAL(fp),         OPTIONAL      :: WD_RetFactor  ! Wetdep retention factor
     REAL(fp),         OPTIONAL      :: WD_AerScavEff ! Aerosol scavenging eff.
     REAL(fp),         OPTIONAL      :: WD_RainoutEff ! Rainout efficiency
+    LOGICAL,          OPTIONAL      :: WD_CoarseAer  ! Coarse aerosol?
+    LOGICAL,          OPTIONAL      :: WD_SizeResAer ! Size resolved aerosol?
     LOGICAL,          OPTIONAL      :: Is_Advected   ! Is it advected?
     LOGICAL,          OPTIONAL      :: Is_Gas        ! Gas (T) or aerosol (F)?
     LOGICAL,          OPTIONAL      :: Is_Drydep     ! Is it dry deposited?
@@ -395,6 +399,8 @@ CONTAINS
 !  20 Aug 2013 - C. Keller   - Adapted from gigc_state_chm_mod.F90
 !  22 Jul 2015 - R. Yantosca - Added RetFactor and drydep parameters
 !  31 Aug 2015 - R. Yantosca - Now also compute AdvectId
+!  04 Sep 2015 - R. Yantosca - Add arguments WD_RainoutEff, WD_CoarseAer,
+!                              and WD_SizeResAer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -657,6 +663,24 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------------
+    ! Is it a coarse aerosol?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( WD_CoarseAer ) ) THEN
+       ThisSpc%WD_CoarseAer = WD_CoarseAer
+    ELSE
+       ThisSpc%WD_CoarseAer = .FALSE.
+    ENDIF
+
+    !---------------------------------------------------------------------
+    ! Is it a size-resolved aerosol?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( WD_SizeResAer ) ) THEN
+       ThisSpc%WD_SizeResAer = WD_SizeResAer
+    ELSE
+       ThisSpc%WD_SizeResAer = .FALSE.
+    ENDIF
+
+    !---------------------------------------------------------------------
     ! Conversion factors based on emitted molecular weight  
     ! These are mostly for backwards compatibility w/ existing code
     !
@@ -674,6 +698,25 @@ CONTAINS
 
     ! Molecules species per kg of species
     ThisSpc%XNUMOL = AVO   / ( ThisSpc%EmMw_g * 1e-3_fp ) 
+
+    !---------------------------------------------------------------------
+    ! Sanity checks
+    !---------------------------------------------------------------------
+    IF ( ThisSpc%Is_Gas ) THEN
+
+       ! If this is a gas, then zero out all aerosol fields
+       ThisSpc%WD_CoarseAer  = .FALSE.
+       ThisSpc%WD_SizeResAer = .FALSE.
+       ThisSpc%WD_AerScavEff = MISSING
+       ThisSpc%WD_RainoutEff = MISSING
+       
+    ELSE
+
+       ! If this species is an aerosol, zero out gas-phase fields
+       ThisSpc%WD_RetFactor  = MISSING
+
+    ENDIF
+
 
   END SUBROUTINE Spc_Create
 !EOC

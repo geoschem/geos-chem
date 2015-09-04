@@ -794,6 +794,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_CoarseAer  = T,                            &
                               RC            = RC )
 
           CASE( 'DST3', 'DSTAL3', 'NITD3', 'SO4D3' )
@@ -825,6 +826,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_CoarseAer  = T,                            &
                               RC            = RC )
 
 
@@ -857,6 +859,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_CoarseAer  = T,                            &
                               RC            = RC )
 
           CASE( 'GLYC' )
@@ -2091,6 +2094,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_CoarseAer  = T,                            &
                               RC            = RC )
 
           CASE( 'SESQ' )
@@ -2580,6 +2584,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_SizeResAer = T,                            &
                               RC            = RC )
 
           CASE( 'SS1',  'SS2',  'SS3',  'SS4',  'SS5',  'SS6',  'SS7',      &
@@ -2611,6 +2616,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_SizeResAer = T,                            &
                               RC            = RC )
 
 
@@ -2645,6 +2651,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_SizeResAer = T,                            &
                               RC            = RC )
 
           CASE( 'OCIL1',  'OCIL2',  'OCIL3',  'OCIL4',  'OCIL5',            &
@@ -2678,6 +2685,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_SizeResAer = T,                            &
                               RC            = RC )
 
           CASE( 'DUST1',  'DUST2',  'DUST3',  'DUST4',  'DUST5',            &
@@ -2711,6 +2719,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_SizeResAer = T,                            &
                               RC            = RC )
 
 #endif
