@@ -4071,13 +4071,6 @@
          ENDIF
 #endif
 
-           
-!         !------------------------------
-!         ! HNO3 (aerosol)
-!         !------------------------------
-!         ELSE IF ( N == IDTHNO3 ) THEN
-!            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-  
          !------------------------------
          ! SO2
          !------------------------------
@@ -4118,196 +4111,10 @@
             !SO2s(I,J,L) = MAX( SO2s(I,J,L), EPSILON )         
             SO2s(I,J,L) = MAX( SO2s(I,J,L), TINY_FP )
   
-         !----------------------------
-         ! SO4 and SO4aq (aerosol)
-         !----------------------------
-         ELSE IF ( N == IDTSO4 .or. N == IDTSO4s .or.
-     &             N == IDTSO4aq )THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-  
-         !------------------------------
-         ! MSA (aerosol)
-         !------------------------------
-         ELSE IF ( N == IDTMSA ) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-  
-  
-         !------------------------------
-         ! NH4 and NH4aq (aerosol)
-         !------------------------------
-         ELSE IF ( N == IDTNH4 .or. N == IDTNH4aq ) THEN
-  
-            ! NOTE: NH4aq may have a henry's law constant; 
-            !       Carine will investigate (cas, bmy, 12/20/04)
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-  
-         !------------------------------
-         ! NIT/AS/AHS/LET (aerosol)
-         !------------------------------
-         ELSE IF ( N == IDTNIT .or. N == IDTNITs .or.
-     &             N == IDTAS  .or. N == IDTAHS  .or. 
-     &             N == IDTLET ) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-         !------------------------------
-         ! Dust Nitrate (aerosol)
-         ! tdf
-         !------------------------------
-         ELSE IF ( N == IDTNITd1 .or. N == IDTNITd2 .or.
-     &             N == IDTNITd3 .or. N == IDTNITd4 ) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-         !------------------------------
-         ! Dust Sulfate (aerosol)
-         ! tdf
-         !------------------------------
-         ELSE IF ( N == IDTSO4d1 .or. N == IDTSO4d2 .or.
-     &             N == IDTSO4d3 .or. N == IDTSO4d4 ) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-         !------------------------------
-         ! BC HYDROPHILIC (aerosol) or
-         ! OC HYDROPHILIC (aerosol)
-         !------------------------------
-         ELSE IF ( N == IDTBCPI .or. N == IDTOCPI) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-  
          !-------------------------------
-         ! BC HYDROPHOBIC (aerosol) or
-         ! OC HYDROPHOBIC (aerosol)
+         ! POPG (liquid phase only) (clf 11/16/10)
          !-------------------------------
-         ! SOAupdate (hotp 6/15/09)
-         ! treat POA and hydrophobic
-         ELSE IF ( N == IDTBCPO .or. N == IDTOCPO .or.
-     &             N == IDTPOA1 .or. N == IDTPOA2 ) THEN
-  
-            ! No rainout 
-            RAINFRAC = 0.0e+0_fp                  
-  
-         !-------------------------------
-         ! DUST all size bins (aerosol)
-         !-------------------------------
-         ELSE IF ( N == IDTDST1 .or. N == IDTDST2 .or.
-     &             N == IDTDST3 .or. N == IDTDST4 ) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-  
-         !------------------------------
-         ! Accum  seasalt (aerosol) or
-         ! Coarse seasalt (aerosol)
-         !------------------------------
-         ELSE IF ( N == IDTSALA .or. N == IDTSALC ) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )   
-
-         !-----------------------------
-         ! ORGANICS INSOLUBLE
-         !-----------------------------
-         ELSE IF ( N == IDTMOPO ) THEN
-            ! No rainout
-            RAINFRAC = 0.0D0
-
-         !-----------------------------
-         ! ORGANICS SOLUBLE
-         !-----------------------------
-         ELSE IF ( N == IDTMOPI ) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT ) 
-  
-         !-------------------------------
-         ! DUST alkalinity size bins (aerosol)
-         ! tdf
-         !-------------------------------
-         ELSE IF ( N == IDTDAL1 .or. N == IDTDAL2 .or.
-     &             N == IDTDAL3 .or. N == IDTDAL4 ) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-         !--------------------------------------
-         ! SOA (aerosol)
-         ! Scavenging efficiency for SOA is 0.8
-         !--------------------------------------
-         ! update new mtp (hotp 5/24/10), SOAudpate
-         ELSE IF ( N == IDTTSOA1 .or. N == IDTTSOA2 .or. 
-     &             N == IDTTSOA3 .or. N == IDTTSOA0 .or. 
-     &             N == IDTISOA1 .or. N == IDTISOA2 .or. 
-     &             N == IDTISOA3 .or. 
-     &             N == IDTOPOA1 .or. N == IDTOPOA2 .or. 
-     &             N == IDTASOAN .or. N == IDTASOA1 .or.
-     &             N == IDTASOA2 .or. N == IDTASOA3      ) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-            RAINFRAC = RAINFRAC * 0.8e+0_fp
-  
-         !--------------------------------------
-         ! SOAG and SOAM (aerosol)
-         ! Scavenging efficiency for SOA is 0.8
-         !--------------------------------------
-         ELSE IF ( N == IDTSOAG .OR. N == IDTSOAM ) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-            RAINFRAC = RAINFRAC * 0.8e+0_fp
-
-#if defined( TOMAS )
-         ! Added for size-resolved aerosol (win, 7/16/09)
-         !------------------------------
-         ! H2SO4 (treat as aerosol)
-         !------------------------------
-         ELSE IF ( N == IDTH2SO4 ) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-      ! Added for size-resolved aerosol (win, 7/16/09)
-      !------------------------------
-      ! Aerosol number NK1-NK30
-      !------------------------------
-         ELSE IF ( IDTNK1 > 0 .and. N >= IDTNK1 .and. 
-     &           N <  IDTNK1 + IBINS ) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-      !------------------------------
-      ! Sulfate SF1-SF30
-      !------------------------------
-      ELSE IF ( IDTSF1 > 0 .and. N >= IDTSF1 .and. 
-     &          N <  IDTSF1 + IBINS ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-      !------------------------------
-      ! Sea-salt SS1-SS30
-      !------------------------------
-      ELSE IF ( IDTSS1 > 0 .and. N >= IDTSS1 .and. 
-     &          N <  IDTSS1 + IBINS ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-      !------------------------------
-      ! Hydrophilic EC ECIL1-ECIL30
-      !------------------------------
-      ELSE IF ( IDTECIL1 > 0 .and. N >= IDTECIL1 .and. 
-     &          N <  IDTECIL1 + IBINS ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-      !------------------------------
-      ! Hydrophilic OC OCIL1-OCIL30
-      !------------------------------
-      ELSE IF ( IDTOCIL1 > 0 .and. N >= IDTOCIL1 .and. 
-     &          N <  IDTOCIL1 + IBINS ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-      !------------------------------
-      ! Hydrophobic OC OCOB1-OCOB30
-      !------------------------------
-      ELSE IF ( IDTOCOB1 > 0 .and. N >= IDTOCOB1 .and. 
-     &          N <  IDTOCOB1 + IBINS ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-      !------------------------------
-      ! Dust DUST1-DUST30
-      !------------------------------
-      ELSE IF ( IDTDUST1 > 0 .and. N >= IDTDUST1 .and. 
-     &          N <  IDTDUST1 + IBINS ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-      ! (end part) Added for size-resolved aerosol (win, 7/16/09)
-
-#endif
-
-      !-------------------------------
-      ! POPG (liquid phase only) (clf 11/16/10)
-      !-------------------------------
-      ELSE IF (N == IDTPOPG ) THEN
+         ELSE IF (N == IDTPOPG ) THEN
 
          ! Compute liquid to gas ratio for POPs using
          ! the appropriate parameters for Henry's Law (M/atm, unitless Kaw
@@ -4350,20 +4157,6 @@
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
-      !------------------------------
-      ! POPPOC (treat like hydrophobic OC aerosol)
-      !------------------------------
-      ELSE IF ( N == IDTPOPPOC ) THEN
-         ! No rainout 
-         RAINFRAC = 0.0e+0_fp
-         
-      !------------------------------
-      ! POPPBC (treat like hydrophobic BC aerosol)
-      !------------------------------
-      ELSE IF ( N == IDTPOPPBC ) THEN
-         ! No rainout 
-         RAINFRAC = 0.0e+0_fp  
-         
          
          ELSE
     
@@ -4382,20 +4175,25 @@
 
             ELSE
 
-
                !--------------------------------------------------------
                ! Soluble aerosol species
                !--------------------------------------------------------
-
-               ! Get the fraction of species rained out in the grid box
-               RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-               ! Multiply by the aerosol scavenging efficiency
-               ! For most species this is 1.0
-               ! For SOA species this is usually 0.8
-               ! For some species (POPs, MOPO) this is 0.0
                IF ( ThisSpc%WD_RainoutEff > 0.0_fp ) THEN
+ 
+                  ! Get the fraction of species rained out in the grid box
+                  RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+                  ! Multiply by the rainout efficiency
+                  ! For most species this is 1.0
+                  ! For SOA species this is usually 0.8
                   RAINFRAC = RAINFRAC * ThisSpc%WD_RainoutEff
+
+               ELSE
+
+                  ! If the rainout efficiency is zero, then just set 
+                  ! RAINFRAC = 0.  This avoids a subroutine call.
+                  RAINFRAC = 0.0_fp
+
                ENDIF
 
             ENDIF
@@ -4426,7 +4224,7 @@
       REAL(fp), INTENT(IN) :: K          ! Rainout rate constant [1/s]
       REAL(fp), INTENT(IN) :: F          ! Timestep for rainout event [s]
       REAL(fp), INTENT(IN) :: DT         ! Fraction of grid box that is
-                                       !  undergoing precipitation [unitless]
+                                         !  undergoing precipitation [unitless]
 !
 ! !RETURN VALUE:
 !

@@ -110,9 +110,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER             :: C,        N,      nSpecies
-    REAL(fp)            :: A_Radius, KOA,    MW_g
-    REAL(fp)            :: ScavEff,  RainEff
+    INTEGER             :: C,        N,   nSpecies
+    REAL(fp)            :: A_Radius, KOA, MW_g,    RainEff
 
     ! Strings
     CHARACTER(LEN=31)   :: NameAllCaps
