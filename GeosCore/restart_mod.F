@@ -301,8 +301,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_RESTART_FILE( YYYYMMDD,  HHMMSS,
-     &                              Input_Opt, State_Met, State_Chm ) 
+      SUBROUTINE READ_RESTART_FILE( am_I_Root, YYYYMMDD,  HHMMSS,
+     &                              Input_Opt, State_Met, State_Chm, RC)
 !
 ! !USES:
 !
@@ -314,10 +314,12 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE
 
+      USE GIGC_ErrCode_Mod
       USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
+      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Root CPU? 
       INTEGER,        INTENT(IN)    :: YYYYMMDD   ! YYYY/MM/DD GMT date
       INTEGER,        INTENT(IN)    :: HHMMSS     ! hh:mm:ss   GMT time
       TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
@@ -326,6 +328,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+      INTEGER,        INTENT(INOUT) :: RC         ! Return code 
 ! 
 ! !REVISION HISTORY: 
 !  27 May 1999 - R. Yantosca - Initial version
@@ -364,6 +367,8 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm arguments
 !  16 Dec 2014 - M. Yannetti - Changed ZTAU0 and ZTAU1 to REAL*8
+!  04 Sep 2015 - C. Keller   - Now pass am_I_Root and RC (needed for passive 
+!                              tracers).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -397,6 +402,9 @@
       !=================================================================
       ! READ_RESTART_FILE begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! Get fields from Input_Opt
       LSPLIT    = Input_Opt%LSPLIT
@@ -488,7 +496,8 @@
       !=================================================================
 
       ! Check for missing or duplicate data blocks
-      CALL CHECK_DATA_BLOCKS( Input_Opt%N_TRACERS, NCOUNT )
+      CALL CHECK_DATA_BLOCKS( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, NCOUNT,    RC        )
 
       ! Close file
       CLOSE( IU_RST )      
@@ -520,6 +529,9 @@
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### READ_RESTART_FILE: read file' )
+
+      ! Return w/ success 
+      RC = GIGC_SUCCESS
 
       END SUBROUTINE READ_RESTART_FILE
 !EOC
@@ -773,19 +785,33 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_DATA_BLOCKS( NTRACE, NCOUNT )
+      SUBROUTINE CHECK_DATA_BLOCKS( am_I_Root, Input_Opt, State_Met, 
+     &                              State_Chm, NCOUNT,    RC        )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE PASSIVE_TRACER_MOD, ONLY : IS_PASSIVE_TRACER
+      USE PASSIVE_TRACER_MOD, ONLY : PASSIVE_TRACER_INITCONC
 
       USE CMN_SIZE_MOD                       ! Size parameters
 
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NTRACE          ! # of advected tracers 
-      INTEGER, INTENT(IN) :: NCOUNT(NNPAR)   ! Data blocks found per tracer
+      LOGICAL,        INTENT(IN)    :: am_I_Root     ! Root CPU? 
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt     ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology State object
+      INTEGER,        INTENT(IN)    :: NCOUNT(NNPAR) ! Data blocks found per tracer
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm     ! Chemistry State object
+      INTEGER,        INTENT(INOUT) :: RC            ! Return code
 ! 
 ! !REVISION HISTORY: 
 !  25 Jun 2002 - R. Yantosca - Initial version
@@ -795,17 +821,22 @@
 !        allocated memory before stopping the run. (bmy, 10/15/02)
 !  11 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
+!  04 Sep 2015 - C. Keller   - Allow default concentrations for passive tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N
+      INTEGER  :: NTRACE, N
+      REAL(fp) :: InitConc
 
       !=================================================================
       ! CHECK_DATA_BLOCKS begins here! 
       !=================================================================
+
+      ! # of tracers
+      NTRACE = Input_Opt%N_TRACERS
 
       ! Loop over all tracers
       DO N = 1, NTRACE
@@ -818,12 +849,33 @@
             CALL GEOS_CHEM_STOP
          ENDIF
          
-         ! Stop if a tracer has no data blocks 
+         ! If a tracer has no data blocks: 
          IF ( NCOUNT(N) == 0 ) THEN
-            WRITE( 6, 110 ) N
-            WRITE( 6, 120 ) 
-            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-            CALL GEOS_CHEM_STOP
+
+            ! For passive tracers, set to default values
+            IF ( IS_PASSIVE_TRACER ( N ) ) THEN
+
+               ! Get initial concentration (v/v)
+               InitConc = PASSIVE_TRACER_INITCONC( N )
+
+               ! Fill tracer array: convert from v/v to kg 
+               State_Chm%Tracers(:,:,:,N) = InitConc
+     &                                    * State_Met%AD(:,:,:)
+     &                                    / Input_Opt%TCVV(N)
+
+               ! Verbose
+               IF ( am_I_Root ) THEN
+                  WRITE( 6, 130 ) TRIM(Input_Opt%TRACER_NAME(N))
+                  WRITE( 6, 140 ) InitConc
+               ENDIF
+ 
+            ! Otherwise, stop with error 
+            ELSE
+               WRITE( 6, 110 ) N
+               WRITE( 6, 120 ) 
+               WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+               CALL GEOS_CHEM_STOP
+            ENDIF
          ENDIF
       ENDDO
 
@@ -831,6 +883,11 @@
  100  FORMAT( 'More than one record found for tracer : ', i4 )
  110  FORMAT( 'No records found for tracer : ',           i4 ) 
  120  FORMAT( 'STOP in CHECK_DATA_BLOCKS (restart_mod.f)'    )
+ 130  FORMAT( 'No restart field found for species ', A       )
+ 140  FORMAT( '--> Concentration initialized to ', ES10.2, ' v/v')
+
+      ! Return w/ success
+      RC = GIGC_SUCCESS
 
       END SUBROUTINE CHECK_DATA_BLOCKS
 !EOC

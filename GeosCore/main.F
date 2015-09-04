@@ -690,8 +690,8 @@
       !=================================================================
 
       ! Read initial tracer conditions
-      CALL READ_RESTART_FILE( NYMDb,     NHMSb, 
-     &                        Input_Opt, State_Met, State_Chm )
+      CALL READ_RESTART_FILE( am_I_Root, NYMDb,     NHMSb, 
+     &                        Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
       ! Initialize stratospheric routines
