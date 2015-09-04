@@ -110,8 +110,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER             :: C,        N,   nSpecies
-    REAL(fp)            :: A_Radius, KOA, MW_g
+    INTEGER             :: C,        N,      nSpecies
+    REAL(fp)            :: A_Radius, KOA,    MW_g
+    REAL(fp)            :: ScavEff,  RainEff
 
     ! Strings
     CHARACTER(LEN=31)   :: NameAllCaps
@@ -272,12 +273,15 @@ CONTAINS
 
           CASE( 'BCPI', 'BCPO' )
              
-             ! These have identical properties except for the names
+             ! These have identical properties except for 
+             ! the names and rainout efficiencies
              SELECT CASE( NameAllCaps )
                 CASE( 'BCPI' )
                    FullName = 'Hydrophilic black carbon aerosol'
+                   RainEff  = 1.0_fp
                 CASE( 'BCPO' )
                    Fullname = 'Hydrophobic black carbon aerosol'
+                   RainEff  = 0.0_fp
              END SELECT
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -294,6 +298,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'BENZ' )
@@ -1431,6 +1436,7 @@ CONTAINS
                               Is_Wetdep     = F,                            &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 0.0_fp,                       &
+                              WD_RainOutEff = 0.0_fp,                       &
                               RC            = RC )
 
           CASE( 'MP', 'CH3OOH' )
@@ -1752,12 +1758,15 @@ CONTAINS
 
           CASE( 'OCPI', 'OCPO' )
              
-             ! These have identical properties except for the names
+             ! These have identical properties except for 
+             ! the names and rainout efficiencies
              SELECT CASE( NameAllCaps )
                 CASE( 'OCPI' )
                    FullName = 'Hydrophilic organic carbon aerosol'
+                   RainEff  = 1.0_fp
                 CASE( 'OCPO' )
                    Fullname = 'Hydrophobic organic carbon aerosol'
+                   RainEff  = 0.0_fp
              END SELECT
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1774,6 +1783,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'OPOA1', 'OPOA2' )
@@ -1910,6 +1920,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = 0.0_fp,                       &
                               RC            = RC )
 
           CASE( 'POG1', 'POG2' )
@@ -2397,6 +2408,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = 0.0_fp,                       &
                               RC            = RC )
 
           CASE( 'POPBC' )
@@ -2427,6 +2439,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = 0.0_fp,                       &
                               RC            = RC )
 
           !==================================================================

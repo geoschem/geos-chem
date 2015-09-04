@@ -111,6 +111,7 @@ MODULE Species_Mod
      ! Wetdep parameters
      REAL(fp)           :: WD_RetFactor  ! Retention factor [1]
      REAL(fp)           :: WD_AerScavEff ! Aerosol scavenging efficiency
+     REAL(fp)           :: WD_RainoutEff ! Aerosol rainout efficiency
 
   END TYPE Species
 !
@@ -329,14 +330,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_Create( am_I_Root,     ThisSpc,      ModelID,        &
-                         DryDepID,      Name,         FullName,       &
-                         MW_g,          EmMW_g,       MolecRatio,     &
-                         Henry_K0,      Henry_CR,     Henry_PKA,      &
-                         DD_A_Density,  DD_A_Radius,  DD_F0,          &
-                         DD_KOA,        DD_HStar_Old, WD_RetFactor,   &
-                         WD_AerScavEff, Is_Advected,  Is_Gas,         &
-                         Is_Drydep,     Is_Wetdep,    RC             )
+  SUBROUTINE Spc_Create( am_I_Root,     ThisSpc,       ModelID,        &
+                         DryDepID,      Name,          FullName,       &
+                         MW_g,          EmMW_g,        MolecRatio,     &
+                         Henry_K0,      Henry_CR,      Henry_PKA,      &
+                         DD_A_Density,  DD_A_Radius,   DD_F0,          &
+                         DD_KOA,        DD_HStar_Old,  WD_RetFactor,   &
+                         WD_AerScavEff, WD_RainoutEff, Is_Advected,    &
+                         Is_Gas,        Is_Drydep,     Is_Wetdep,      &
+                         RC                                           )
 !
 ! !USES:
 !
@@ -371,6 +373,7 @@ CONTAINS
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     REAL(fp),         OPTIONAL      :: WD_RetFactor  ! Wetdep retention factor
     REAL(fp),         OPTIONAL      :: WD_AerScavEff ! Aerosol scavenging eff.
+    REAL(fp),         OPTIONAL      :: WD_RainoutEff ! Rainout efficiency
     LOGICAL,          OPTIONAL      :: Is_Advected   ! Is it advected?
     LOGICAL,          OPTIONAL      :: Is_Gas        ! Gas (T) or aerosol (F)?
     LOGICAL,          OPTIONAL      :: Is_Drydep     ! Is it dry deposited?
@@ -385,6 +388,7 @@ CONTAINS
 !  (1) If Fullname   is not specified, it will use the value assigned to Name.
 !  (2) If EmMw_g     is not specified, it will use the value assigned to MW_g.
 !  (3) If MolecRatio is not specified, it will be set to 1.
+!  (4) If WD_RainoutEff is not specified, it will default to WD_AerScavEff.
 !  (4) All other fields, if not specified, will be set to -999 (missing value).
 !
 ! !REVISION HISTORY: 
@@ -447,6 +451,7 @@ CONTAINS
 
     !---------------------------------------------------------------------
     ! Emission molecular weight [g]
+    ! (Defaults to molecular weight MW_g if not specified)
     !---------------------------------------------------------------------
     IF ( PRESENT( EmMW_g ) ) THEN
        ThisSpc%EmMW_g = EmMW_g 
@@ -459,7 +464,8 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------------
-    ! Molecule ratio (i.e. moles carbon/moles tracer)
+    ! Molecule ratio (i.e. moles carbon per moles species)
+    ! (Defaults to 1.0 if not specified)
     !---------------------------------------------------------------------
     IF ( PRESENT( MolecRatio ) ) THEN
        ThisSpc%MolecRatio = MolecRatio 
@@ -555,6 +561,20 @@ CONTAINS
        ThisSpc%WD_AerScavEff = WD_AerScavEff
     ELSE
        ThisSpc%WD_AerScavEff = MISSING
+    ENDIF
+
+    !---------------------------------------------------------------------
+    ! Rainout efficiency for wetdep (aerosol species only)
+    ! (Defaults to WD_AerScavEff, if not specified)
+    !---------------------------------------------------------------------
+    IF ( PRESENT( WD_RainOutEff ) ) THEN
+       ThisSpc%WD_RainOutEff = WD_RainOutEff
+    ELSE
+       IF ( PRESENT( WD_AerScavEff ) ) THEN
+          ThisSpc%WD_RainOutEff = WD_AerScavEff
+       ELSE
+          ThisSpc%WD_RainOutEff = MISSING
+       ENDIF
     ENDIF
 
     !---------------------------------------------------------------------
