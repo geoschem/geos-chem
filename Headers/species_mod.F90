@@ -108,8 +108,12 @@ MODULE Species_Mod
      REAL(fp)           :: DD_Hstar_Old  ! HSTAR value in drydep_mod [M/atm]
      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
      
-     ! Wetdep parameters
+     ! Wetdep parameters, gas-phase species
      REAL(fp)           :: WD_RetFactor  ! Retention factor [1]
+     LOGICAL            :: WD_LiqAndGas  ! Consider liquid and gas phases?
+     REAL(fp)           :: WD_ConvFactor ! Conversion factor for ice/gas ratio 
+
+     ! Wetdep parameters, aerosol-phase species
      REAL(fp)           :: WD_AerScavEff ! Aerosol scavenging efficiency
      REAL(fp)           :: WD_RainoutEff ! Aerosol rainout efficiency
      LOGICAL            :: WD_CoarseAer  ! T=coarse aerosol; F=fine aerosol
@@ -338,9 +342,10 @@ CONTAINS
                          Henry_K0,      Henry_CR,      Henry_PKA,      &
                          DD_A_Density,  DD_A_Radius,   DD_F0,          &
                          DD_KOA,        DD_HStar_Old,  WD_RetFactor,   &
-                         WD_AerScavEff, WD_RainoutEff, WD_CoarseAer,   &
-                         WD_SizeResAer, Is_Advected,   Is_Gas,         &
-                         Is_Drydep,     Is_Wetdep,     RC             )
+                         WD_LiqAndGas,  WD_ConvFactor, WD_AerScavEff,  &
+                         WD_RainoutEff, WD_CoarseAer,  WD_SizeResAer,  &
+                         Is_Advected,   Is_Gas,        Is_Drydep,      &
+                         Is_Wetdep,     RC                            )
 !
 ! !USES:
 !
@@ -374,6 +379,8 @@ CONTAINS
     REAL(fp),         OPTIONAL      :: DD_Hstar_Old  ! HSTAR-drydep_mod [M/atm]
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     REAL(fp),         OPTIONAL      :: WD_RetFactor  ! Wetdep retention factor
+    LOGICAL,          OPTIONAL      :: WD_LiqAndGas  ! Liquid and gas phases?
+    REAL(fp),         OPTIONAL      :: WD_ConvFactor ! Factor for ice/gas ratio
     REAL(fp),         OPTIONAL      :: WD_AerScavEff ! Aerosol scavenging eff.
     REAL(fp),         OPTIONAL      :: WD_RainoutEff ! Rainout efficiency
     LOGICAL,          OPTIONAL      :: WD_CoarseAer  ! Coarse aerosol?
@@ -561,6 +568,25 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------------
+    ! Use liquid and gas phases for gas-phase species wetdep?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( WD_LiqAndGas ) ) THEN
+       ThisSpc%WD_LiqAndGas = WD_LiqAndGas
+    ELSE
+       ThisSpc%WD_LiqAndGas = .FALSE.
+    ENDIF
+
+    !---------------------------------------------------------------------
+    ! Conversion factor for computing the ice/gas ratio for wetdep
+    ! (gas-phase species only)
+    !---------------------------------------------------------------------
+    IF ( PRESENT( WD_ConvFactor ) ) THEN
+       ThisSpc%WD_ConvFactor = WD_ConvFactor
+    ELSE
+       ThisSpc%WD_ConvFactor = MISSING
+    ENDIF
+
+    !---------------------------------------------------------------------
     ! Scavenging efficiency for wetdep (aerosol species only)
     !---------------------------------------------------------------------
     IF ( PRESENT( WD_AerScavEff ) ) THEN
@@ -714,6 +740,8 @@ CONTAINS
 
        ! If this species is an aerosol, zero out gas-phase fields
        ThisSpc%WD_RetFactor  = MISSING
+       ThisSpc%WD_LiqAndGas  = .FALSE.
+       ThisSpc%WD_ConvFactor = MISSING
 
     ENDIF
 

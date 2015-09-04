@@ -920,6 +920,8 @@ CONTAINS
                               Henry_CR      = 7400.0_f8,                    &
 #endif                                                                      
                               WD_RetFactor  = 5e-2_fp,                      &
+                              WD_LiqAndGas  = T,                            &
+                              WD_ConvFactor = 4.36564e-1_fp,                &
                               RC            = RC )
 
           CASE( 'HAC' )
@@ -1625,6 +1627,8 @@ CONTAINS
                               Henry_CR      = 4100.0_f8,                    &
 #endif									    
                               WD_RetFactor  = 5.0e-2_fp,                    &
+                              WD_LiqAndGas  = T,                            &
+                              WD_ConvFactor = 6.17395e-1_fp,                &
                               RC            = RC )
 
           CASE( 'NH4' )
@@ -2349,19 +2353,24 @@ CONTAINS
 
           CASE( 'POPG' )
 
-             ! Get info from the POP menu
+             ! Specify values for different types of POPs
+             ! The Koa (octanol-ar partition coefficient) for POPs
+             ! accounts for accumulation in leaf cuticles.  This needs to 
+             ! be in units of mol/liter/atm as with HSTAR 
+             ! Divide unitless Koa at 298 K by product of R (0.0821 atm/M/K)
+             ! and T (298 K). (The factor 0.409 = 0.0821 * 298.0 )
              SELECT CASE( TRIM( Input_Opt%POP_TYPE ) )
                 CASE( 'PHE' )
-                   MW_g     = 178.0_fp
-                   KOA      = 4.37e+7_fp                
+                   MW_g     = 178.23_fp
+                   KOA      = 4.37e+7_fp  * 0.0409_fp       
                    FullName = 'Phenanthrene (gas phase)'
                 CASE( 'PYR' )
-                   MW_g     = 202.0_fp
-                   KOA      = 7.24e+8_fp
+                   MW_g     = 202.25_fp
+                   KOA      = 7.24e+8_fp  * 0.0409_fp 
                    FullName = 'Pyrene (gas phase)'
                 CASE( 'BaP' )
-                   MW_g     = 252.0_fp
-                   KOA      = 3.02e+11_fp
+                   MW_g     = 252.31_fp
+                   KOA      = 3.02e+11_fp * 0.0409_fp 
                    FullName = 'Benzo(a)pyrene (gas phase)'
              END SELECT
 
@@ -2383,18 +2392,18 @@ CONTAINS
                               WD_RetFactor  = 0.0_fp,                       &
                               RC            = RC )
 
-          CASE( 'POPOC' )
+          CASE( 'POPOC', 'POPPOC', 'POPPOCPO', 'POPPOCPI' )
 
              ! Get info from the POP menu
              SELECT CASE( TRIM( Input_Opt%POP_TYPE ) )
                 CASE( 'PHE' )
-                   MW_g     = 178.0_fp
+                   MW_g     = 178.23_fp
                    FullName = 'Phenanthrene particles on organic carbon'
                 CASE( 'PYR' )
-                   MW_g     = 202.0_fp
+                   MW_g     = 202.25_fp
                    FullName = 'Pyrene particles on organic carbon'
                 CASE( 'BaP' )
-                   MW_g     = 252.0_fp
+                   MW_g     = 252.31_fp
                    FullName = 'Benzo(a)pyrene particles on organic carbon'
              END SELECT
 
@@ -2414,18 +2423,18 @@ CONTAINS
                               WD_RainoutEff = 0.0_fp,                       &
                               RC            = RC )
 
-          CASE( 'POPBC' )
+          CASE( 'POPBC', 'POPPBC', 'POPPBCPO', 'POPPBCPI' )
 
              ! Get info from the POP menu
              SELECT CASE( TRIM( Input_Opt%POP_TYPE ) )
                 CASE( 'PHE' )
-                   MW_g     = 178.0_fp
+                   MW_g     = 178.23_fp
                    FullName = 'Phenanthrene particles on black carbon'
                 CASE( 'PYR' )
-                   MW_g     = 202.0_fp
+                   MW_g     = 202.25_fp
                    FullName = 'Pyrene particles on black carbon'
                 CASE( 'BaP' )
-                   MW_g     = 252.0_fp
+                   MW_g     = 252.31_fp
                    FullName = 'Benzo(a)pyrene particles on black carbon'
              END SELECT
 

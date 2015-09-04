@@ -54,7 +54,6 @@
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
       PUBLIC :: DRYHg0, DRYHg2, DryHgP    !CDH
-      PUBLIC :: DRYPOPG, DRYPOPP_OC, DRYPOPP_BC
       PUBLIC :: IDEP,   IRGSS,  IRAC, IRCLS
       PUBLIC :: IRGSO,  IRLU,   IRI,  IRCLO, DRYCOEFF
       PUBLIC :: NDVZIND ! MSL -> For MPI broadcasting in GIGC
@@ -251,10 +250,6 @@
       INTEGER               :: NUMDEP,   NWATER
       INTEGER               :: DRYDHNO3, DRYDNO2, DRYDPAN, DRYDH2O2
       INTEGER               :: DRYHg0,   DRYHg2,  DryHgP
-      ! Additional variables for POPs sim (eck, 9/20/10)
-      INTEGER               :: DRYPOPP_OC
-      INTEGER               :: DRYPOPP_BC
-      INTEGER               :: DRYPOPG
 
       ! Arrays for Baldocchi drydep polynomial coefficients
       REAL(fp), TARGET      :: DRYCOEFF(NPOLY    )
@@ -4239,41 +4234,6 @@
          ThisSpc => NULL()
       ENDDO
       
-      !=================================================================
-      ! Additional variables required for pops simultion (following hg)
-      ! Locate the drydep species w/in the DEPSAV array
-      !=================================================================
-      IF ( IS_POPS ) THEN
-
-         ! Initialize flags
-         ! add dry dep of Hg0
-         DRYPOPG = 0
-         DRYPOPP_OC = 0
-         DRYPOPP_BC = 0
-         
-         ! If drydep is turned on ...
-         IF ( LDRYD ) THEN
-         
-            ! Loop over drydep species
-            DO N = 1, NUMDEP
-
-               ! Locate by DEPNAME
-               SELECT CASE ( TRIM( DEPNAME(N) ) )
-                  CASE( 'POPG' )
-                     DRYPOPG = N
-                  CASE( 'POPPOC' )
-                     DRYPOPP_OC = N
-                  CASE( 'POPPBC' )
-                     DRYPOPP_BC = N
-                  CASE DEFAULT
-                     ! nothing
-                END SELECT
-             ENDDO
-
-          ENDIF
-
-       ENDIF
-       
       !=================================================================
       ! Additional variables required for mercury simultion
       ! Locate the drydep species w/in the DEPSAV array
