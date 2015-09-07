@@ -442,6 +442,7 @@ chemistry_mod.o             : chemistry_mod.F                                \
                               comode_mod.o            dust_mod.o             \
                               drydep_mod.o            global_ch4_mod.o       \
                               mercury_mod.o           optdepth_mod.o         \
+                              passive_tracer_mod.o                           \
                               pops_mod.o              rpmares_mod.o          \
                               RnPbBe_mod.o            seasalt_mod.o          \
                               strat_chem_mod.o        sulfate_mod.o          \
@@ -474,6 +475,7 @@ cleanup.o                   : cleanup.F                                      \
                               uvalbedo_mod.o          tpcore_fvdas_mod.o     \
                               tpcore_geos5_window_mod.o                      \
                               tpcore_geosfp_window_mod.o                     \
+                              passive_tracer_mod.o                           \
                               rrtmg_rad_transfer_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
@@ -693,6 +695,7 @@ input_mod.o                 : input_mod.F                                    \
                               linoz_mod.o             vdiff_pre_mod.o        \
                               mercury_mod.o           modis_lai_mod.o        \
                               ocean_mercury_mod.o     planeflight_mod.o      \
+                              passive_tracer_mod.o                           \
                               restart_mod.o           seasalt_mod.o          \
                               sulfate_mod.o           tomas_mod.o            \
                               tpcore_bc_mod.o         tracerid_mod.o         \
@@ -811,6 +814,8 @@ optdepth_mod.o              : optdepth_mod.F          diag_mod.o
 partition.o                 : partition.F                                    \
                               comode_mod.o            tracerid_mod.o
 
+passive_tracer_mod.o        : passive_tracer_mod.F90
+
 pbl_mix_mod.o               : pbl_mix_mod.F                                  \
                               diag_mod.o              tracer_mod.o
 
@@ -844,7 +849,8 @@ reader.o                    : reader.F
 read_jv_atms_dat.o          : read_jv_atms_dat.F90
 
 restart_mod.o               : restart_mod.F                                  \
-                              comode_mod.o            
+                              comode_mod.o                                   \
+                              passive_tracer_mod.o
 
 RnPbBe_mod.o                : RnPbBe_mod.F                                   \
                               chemgrid_mod.o          diag_mod.o             \
