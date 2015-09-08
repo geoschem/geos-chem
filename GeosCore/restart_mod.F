@@ -690,7 +690,7 @@
 !
 ! !IROUTINE: copy_stt
 !
-! !DESCRIPTION: Subroutine COPY\_STT converts tracer concetrations from [v/v] 
+! !DESCRIPTION: Subroutine COPY\_STT converts tracer concentrations from [v/v] 
 !  to [kg/kg] and then copies the results into the STT tracer array. 
 !\\
 !\\

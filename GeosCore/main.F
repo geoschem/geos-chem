@@ -1315,7 +1315,8 @@
 
             ! Stop the run if the HEMCO run sequence dies w/ an error
             IF ( RC /= GIGC_SUCCESS ) THEN
-               CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
+               CALL ERROR_STOP( 'Error in EMISSIONS_RUN after drydep!',
+     &                          'main.F' )
             ENDIF
 
          ENDIF
