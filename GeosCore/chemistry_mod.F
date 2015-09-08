@@ -96,7 +96,7 @@
       USE COMODE_LOOP_MOD     
       USE DUST_MOD,           ONLY : CHEMDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD,          ONLY : DEBUG_MSG, GIGC_ERROR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -320,8 +320,13 @@
       !-----------------------------------------------------------------
 
       ! Convert tracer units from [kg/kg] to [kg] for chemistry (ewl, 8/12/15)
-      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met,  
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  
      &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                      'DO_CHEMISTRY in chemistry_mod.F')
+         RETURN
+      ENDIF  
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -512,7 +517,7 @@
 
             !*** MINERAL DUST AEROSOLS ***
             IF ( LDUST ) THEN 
-               ! Do dust aerosol chemsitry
+               ! Do dust aerosol chemistry
                CALL CHEMDUST
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
@@ -615,8 +620,13 @@
       ! to [kg/kg dry air] at the end (not [v/v]). (ewl, 8/13/15)
       !-----------------------------------------------------------------
       ! Convert tracer units back to [kg/kg] after chemistry (ewl, 8/12/15)
-      CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met,  
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  
      &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                      'DO_CHEMISTRY in chemistry_mod.F')
+         RETURN
+      ENDIF  
 
       ! Free pointer
       NULLIFY( STT )
@@ -1070,17 +1080,9 @@
             ! And then make sure that the aersol tracers are defined
             IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
-!               ! Convert tracer units to [kg] for AEROSOL_CONC (ewl, 8/12/15)
-!               CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,   
-!     &                                     State_Met, State_Chm, RC )
-
                ! Skip this section if all of these are turned off
                CALL AEROSOL_CONC
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-
-!               ! Convert tracer units back to [kg/kg]  (ewl, 8/12/15)
-!               CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,   
-!     &                                     State_Met, State_Chm, RC )
 
                !===============================================================
                ! Call RDAER -- computes aerosol optical depths

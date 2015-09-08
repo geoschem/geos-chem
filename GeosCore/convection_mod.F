@@ -94,6 +94,7 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : CONVFLUP
+      USE ERROR_MOD,          ONLY : GIGC_ERROR
       USE UNITCONV_MOD
 #if   !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD38
@@ -254,8 +255,13 @@
 
       ! Convert State_Chm%Tracers from [kg/kg dry air] to 
       ! [kg/kg total air] prior to convection (ewl, 8/10/15)
-      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, N_TRACERS,  
      &                                   State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'DO_CONVECTION in convection_mod.F')
+         RETURN
+      ENDIF  
 
       ! For new diagnostics, archive old species concentration. At the 
       ! moment, the new ND38 diagnostics only returns the total column 
@@ -506,8 +512,13 @@
 
       ! Convert tracer concentration from kg/kg total air to 
       ! kg/kg dry air after convection (ewl, 8/10/15)
-      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, N_TRACERS,  
      &                                   State_Met, State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'DO_CONVECTION in convection_mod.F')
+         RETURN
+      ENDIF  
 
       END SUBROUTINE DO_CONVECTION
 !EOC

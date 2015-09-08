@@ -2245,13 +2245,19 @@
 #if defined( TOMAS )
 
       ! Convert units [kg/kg total air] -> [kg] if units not already [kg]
-      ! since TOMAS function and routins expect tracer units in [kg]. Units
-      ! are kg/kg if COMPUTE_F is called from convection (ewl, 8/14/15)
-      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg wet' ) THEN
-         CALL Convert_MoistKgKg_to_Kg( am_I_Root, N_TRACERS, 
+      ! since TOMAS functions and routines expect [kg]. Units are
+      ! kg/kg if COMPUTE_F is called from convection (ewl, 8/14/15)
+      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg total' ) THEN
+         CALL Convert_KgKgTotal_to_Kg( am_I_Root, N_TRACERS, 
      &                                 State_Met, State_Chm, RC )
          UNITCHANGE = .TRUE.
+      ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         CALL GIGC_Error('Incorrect tracer units for TOMAS:' // 
+     &                   State_Chm%Trac_Units, RC, 
+     &                   'Routine COMPUTE_F in wetscav_mod')
+         RETURN
       ENDIF
+
 
       ! Added for size-resolved aerosol (win, 7/16/09)
       !-------------------------------
@@ -2397,7 +2403,7 @@
       ! Convert State_Chm%Tracers units back to kg/kg total air 
       ! if conversion occurred at start of TOMAS block (ewl, 6/23/15)
       IF ( UNITCHANGE ) THEN
-         CALL Convert_Kg_to_MoistKgKg( am_I_Root, N_TRACERS, 
+         CALL Convert_Kg_to_KgKgTotal( am_I_Root, N_TRACERS, 
      &                                 State_Met, State_Chm, RC )
       ENDIF
 
@@ -4961,12 +4967,17 @@
       N_TRACERS =  Input_Opt%N_TRACERS
 
       ! Convert units [kg/kg total air] -> [kg] if units not already [kg]
-      ! since TOMAS functions expect tracer units in [kg]. Units are
+      ! since TOMAS functions and routines expect [kg]. Units are
       ! kg/kg if WASHOUT is called from convection (ewl, 8/14/15)
-      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg wet' ) THEN
-         CALL Convert_MoistKgKg_to_Kg( am_I_Root, N_TRACERS, 
+      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg total' ) THEN
+         CALL Convert_KgKgTotal_to_Kg( am_I_Root, N_TRACERS, 
      &                                 State_Met, State_Chm, RC )
          UNITCHANGE = .TRUE.
+      ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         CALL GIGC_Error('Incorrect tracer units for TOMAS:' // 
+     &                   State_Chm%Trac_Units, RC, 
+     &                   'Routine WASHOUT in wetscav_mod')
+         RETURN
       ENDIF
 
       !=================================================================
@@ -5050,7 +5061,7 @@
       ! Convert State_Chm%Tracers units back to [kg/kg total air] 
       ! if conversion occurred at start of TOMAS block (ewl, 5/12/15)
       IF ( UNITCHANGE ) THEN
-         CALL Convert_Kg_to_MoistKgKg( am_I_Root, N_TRACERS, 
+         CALL Convert_Kg_to_KgKgTotal( am_I_Root, N_TRACERS, 
      &                                  State_Met, State_Chm, RC )
       ENDIF
 
@@ -5835,15 +5846,16 @@
 
    !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    !!                                                                   %%
-   !! TEMPORARY: Start of WETDEP: [kg/kg] -> [kg]
+   !! TEMPORARY: Start of WETDEP: [kg/kg] -> [kg/m2]
    !!                                                                   
       N_TRACERS =  Input_Opt%N_TRACERS
 
-      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,           
+      CALL Convert_KgKgDry_to_Kgm2( am_I_Root, N_TRACERS,           
      &                               State_Met, State_Chm, RC )   
       IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL ERROR_STOP('Unit conversion error', 
+         CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP in wetscav_mod.F')
+         RETURN
       ENDIF  
    !!                                                                   %%
    !!%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -6213,14 +6225,16 @@
 
    !!%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    !!                                                                   %%
-   !! TEMPORARY: End of WETDEP: [kg] -> [kg/kg]
+   !! TEMPORARY: End of WETDEP: [kg/m2] -> [kg/kg]
    !!                                                                   
-         CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,           
+      CALL Convert_Kgm2_to_KgKgDry( am_I_Root, N_TRACERS,           
      &                               State_Met, State_Chm, RC )   
       IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL ERROR_STOP('Unit conversion error', 
+         CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP in wetscav_mod.F')
+         RETURN
       ENDIF  
+  
    !!                                                                   %%
    !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -6252,10 +6266,10 @@
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE ERROR_MOD
-      USE GIGC_ErrCode_Mod
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -6443,21 +6457,22 @@
 
    !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    !!                                                                   %%
-   !! TEMPORARY: Start of WETDEP_MERRA: [kg/kg] -> [kg]
+   !! TEMPORARY: Start of WETDEP_MERRA: [kg/kg] -> [kg/m2]
    !!                                                                   
       N_TRACERS = Input_Opt%N_TRACERS
-
-      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,           
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS,           
      &                               State_Met, State_Chm, RC )   
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL ERROR_STOP('Unit conversion error', 
-     &                      'WETDEP_MERRA in wetscav_mod.F')
-      ENDIF  
 
-! Now, try converting [kg] to [kg/m2] and then back again at end
 !      CALL Convert_Kg_to_Kgm2( am_I_Root, N_TRACERS,
-!     &                          State_Met, State_Chm, RC )
+!     &                               State_Met, State_Chm, RC )
 
+!      CALL Convert_KgKgDry_to_Kgm2( am_I_Root, N_TRACERS,
+!     &                               State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                      'WETDEP_MERRA in wetscav_mod.F')
+         RETURN
+      ENDIF  
    !!                                                                   %%
    !!%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -6788,18 +6803,24 @@
 
    !!%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    !!                                                                   %%
-   !! TEMPORARY: End of WETDEP_MERRA: [kg] -> [kg/kg]
+   !! TEMPORARY: End of WETDEP_MERRA: [kg/m2] -> [kg/kg]
    !!                                                                   
-! Trying out kg/m2 theory:
-!      CALL Convert_Kgm2_to_Kg( am_I_Root, N_TRACERS,
-!     &                          State_Met, State_Chm, RC )
+! Convert to kg/m2:
 
-      CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,           
-     &                               State_Met, State_Chm, RC )   
+      CALL Convert_Kgm2_to_Kg( am_I_Root, N_TRACERS,
+     &                               State_Met, State_Chm, RC )
+
+!      CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS,           
+!     &                               State_Met, State_Chm, RC )   
+
+!      CALL Convert_Kgm2_to_KgKgDry( am_I_Root, N_TRACERS,
+!     &                               State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL ERROR_STOP('Unit conversion error', 
+         CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP_MERRA in wetscav_mod.F')
+         RETURN
       ENDIF  
+
    !!                                                                   %%
    !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -9326,13 +9347,15 @@
          N_TRACERS = Input_Opt%N_TRACERS
 
          ! Convert tracer concentration units from mass mixing ratio
-         ! to molar mixing ratio (ewl, 8/13/15)
-         CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS,            
+         ! to molar mixing ratio for allocation of H2O2s and SO2s 
+         ! (ewl, 8/13/15)
+         CALL Convert_KgKgDry_to_VVDry( am_I_Root, N_TRACERS,            
      &                                     Input_Opt, State_Chm, RC ) 
          IF ( RC /= GIGC_SUCCESS ) THEN
-            CALL ERROR_STOP('Unit conversion error', 
+            CALL GIGC_Error('Unit conversion error', RC, 
      &                      'INIT_WETSCAV in wetscav_mod.F')
-         ENDIF 
+            RETURN
+         ENDIF  
 
          ! Initialize GEOS-Chem tracer array from Chemistry State object
          ! (mpayer, 12/6/12)
@@ -9363,9 +9386,15 @@
          ENDIF
 
          ! Convert tracer concentration units from molar mixing ratio
-         ! back to mass mixing ratio (ewl, 8/13/15)
-         CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS,            
+         ! back to mass mixing ratio which were the original units
+         ! in this routine (ewl, 8/13/15)
+         CALL Convert_VVDry_to_KgKgDry( am_I_Root, N_TRACERS,            
      &                                     Input_Opt, State_Chm, RC ) 
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL GIGC_Error('Unit conversion error', RC, 
+     &                      'INIT_WETSCAV in wetscav_mod.F')
+            RETURN
+         ENDIF  
 
          ! Free pointer
          NULLIFY( STT )

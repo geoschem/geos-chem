@@ -224,6 +224,8 @@
       USE DAO_MOD
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
+      USE ERROR_MOD,          ONLY : GIGC_Error
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -270,8 +272,13 @@
       IF ( IS_EXCHANGE ) THEN
 
          ! Convert tracer units from [kg/kg dry] to [kg] (ewl, 8/13/15)
-         CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,            
+         CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS,            
      &                                     State_Met, State_Chm, RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'EXCHANGE_GLOBAL_POST in exchange_mod.F')
+            RETURN
+         ENDIF 
 
          CALL EX_CONVERT_UNITS_CSPEC
      & ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
@@ -293,8 +300,13 @@
 # endif
 
          ! Convert tracer units back to kg/kg (ewl, 8/13/15)
-         CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,            
+         CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS,            
      &                               State_Met, State_Chm, RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'EXCHANGE_GLOBAL_POST in exchange_mod.F')
+            RETURN
+         ENDIF 
 
          CALL EX_CONVERT_UNITS_CSPEC
      & ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
@@ -353,6 +365,8 @@
       USE DAO_MOD
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
+      USE ERROR_MOD,          ONLY : GIGC_Error
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -398,8 +412,13 @@
       WRITE (*,*) "@@@@@@@@@@@@@@ EXCHANGE_NESTED_POST"
 
       ! Convert tracer units from [kg/kg dry] to [kg] (ewl, 8/13/15)
-      CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,            
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS,            
      &                                     State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'EXCHANGE_NESTED_POST in exchange_mod.F')
+         RETURN
+      ENDIF 
 
       CALL EX_CONVERT_UNITS_CSPEC
      &  ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
@@ -410,8 +429,13 @@
 
 
       ! Convert tracer units back to kg/kg (ewl, 8/13/15)
-      CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,            
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS,            
      &                               State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'EXCHANGE_NESTED_POST in exchange_mod.F')
+         RETURN
+      ENDIF 
 
       CALL EX_CONVERT_UNITS_CSPEC
      &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,

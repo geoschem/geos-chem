@@ -1092,7 +1092,7 @@
 !!            Converting after SET_FLOATING_PRESSURE is okay since   
 !!            pressure has not yet been incorporated into moisture.   
 !!                                                                     
-         CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,            
+         CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS,            
      &                                     State_Met, State_Chm, RC )
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL ERROR_STOP('Unit conv error before AIRQNT', 'main.F')
@@ -1128,7 +1128,7 @@
 !!                                                                      %%
 !! TEMPORARY: After SET_H2O_TRAC: [kg/kg] -> [kg]                       
 !!                                                                      
-         CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,             
+         CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS,             
      &                                     State_Met, State_Chm, RC )
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL ERROR_STOP('Unit conv error after AIRQNT', 'main.F')
@@ -1237,6 +1237,9 @@
             IF ( LTRAN ) THEN 
                CALL DO_TRANSPORT
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               IF ( RC /= GIGC_SUCCESS ) THEN
+                  CALL ERROR_STOP('Error in DO_TRANSPORT!', 'main.F')
+               ENDIF
             ENDIF
 
             ! Initialize wet scavenging and wetdep fields after
@@ -1287,6 +1290,10 @@
             IF ( LDRYD ) THEN
                CALL DO_DRYDEP( am_I_Root, Input_Opt, 
      &                         State_Met, State_Chm, RC )
+               IF ( RC /= GIGC_SUCCESS ) THEN
+                  CALL ERROR_STOP('Error in DO_DRYDEP!', 'main.F')
+               ENDIF
+
             ENDIF
 
             !===========================================================
@@ -1336,6 +1343,9 @@
             ! (ckeller, 3/5/15)
             CALL DO_MIXING ( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
+            IF ( RC /= GIGC_SUCCESS ) THEN
+               CALL ERROR_STOP('Error in DO_MIXING!', 'main.F')
+            ENDIF
 
             IF ( RC /= GIGC_SUCCESS ) THEN
                CALL ERROR_STOP( 'Error in MIX_TRACERS!', 'main.F' )
@@ -1351,6 +1361,9 @@
                ! Call the appropriate convection routine
                CALL DO_CONVECTION
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               IF ( RC /= GIGC_SUCCESS ) THEN
+                  CALL ERROR_STOP('Error in DO_CONVECTION!', 'main.F')
+               ENDIF
 
                !### Debug
                IF ( prtDebug ) THEN
@@ -1386,7 +1399,7 @@
    !!             since a moisture update occurs within it for the
    !!             stratosphere. 
    !!                                                                     
-            CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS,             
+            CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS,             
      &                                     State_Met, State_Chm, RC )
             IF ( RC /= GIGC_SUCCESS ) THEN
                CALL ERROR_STOP('Unit conversion error', 
@@ -1405,7 +1418,7 @@
    !!                                                                    %%
    !! TEMPORARY: After SET_H2O_TRAC: [kg] -> [kg/kg] 
    !!                                                                    
-            CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS,  
+            CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS,  
      &                                     State_Met, State_Chm, RC )
             IF ( RC /= GIGC_SUCCESS ) THEN
                CALL ERROR_STOP('Unit conversion error', 
@@ -1417,6 +1430,9 @@
             ! Do GEOS-Chem chemistry
             CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
      &                         State_Chm, State_Met, RC ) 
+            IF ( RC /= GIGC_SUCCESS ) THEN
+               CALL ERROR_STOP('Error in DO_CHEMISTRY!', 'main.F')
+            ENDIF
 
          ENDIF 
 
@@ -1438,6 +1454,9 @@
             ! Do wet deposition
             CALL DO_WETDEP
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            IF ( RC /= GIGC_SUCCESS ) THEN
+               CALL ERROR_STOP('Error in DO_WETDEP!', 'main.F')
+            ENDIF
 
          ENDIF
 
@@ -1503,6 +1522,12 @@
      &                                           State_Chm, RC )
                   ENDIF
                ENDDO
+
+               ! Stop the run if DO_RRTMG_RAD_TRANSFER returns an error
+               IF ( RC /= GIGC_SUCCESS ) THEN
+                  CALL ERROR_STOP('Error in DO_RRTMG_RAD_TRANSFER!',
+     &                            'main.F')
+               ENDIF
 
                ! Increment radiation timestep counter
                CALL SET_CT_RAD( INCREMENT=.TRUE. )

@@ -444,6 +444,7 @@
       LOGICAL             :: LSOA
       LOGICAL             :: LSSALT
       LOGICAL             :: LSULF
+      LOGICAL             :: UNITCONVERSION = .FALSE.
 
       ! Pointers
       REAL(fp), POINTER   :: STT(:,:,:,:)
@@ -468,15 +469,19 @@
       ! Otherwise, if tracer units are not 'kg', throw an error to the 
       ! calling routine (ewl, 8/12/15)
       IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg dry' ) THEN
-         CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met, 
+         CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met, 
      &                               State_Chm, RC )  
+         UNITCONVERSION = .TRUE.
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL GIGC_Error('Unit conversion error', RC, 
+     &                      'AEROSOL_CONC in aerosol_mod.F')
+            RETURN
+         ENDIF
       ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
          CALL GIGC_Error('Unexpected tracer units' // 
      &                   State_Chm%Trac_Units, RC, 
-     &                   'AEROSOL_CONC in sulfate_mod')
+     &                   'AEROSOL_CONC in aerosol_mod')
          RETURN
-      ELSE
-         CONTINUE
       ENDIF
 
       ! Initialize pointers
@@ -817,9 +822,14 @@
 
       ! If units were originally 'kg/kg dry', convert [kg] back to mixing 
       ! ratio (ewl, 8/12/15)
-      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg dry' ) THEN
-         CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met, 
+      IF ( UNITCONVERSION ) THEN
+         CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met, 
      &                            State_Chm, RC )  
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL GIGC_Error('Unit conversion error', RC, 
+     &                      'AEROSOL_CONC in aerosol_mod.F')
+            RETURN
+         ENDIF
       ENDIF
 
       ! Free pointers

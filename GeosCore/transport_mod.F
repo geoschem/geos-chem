@@ -16,7 +16,7 @@
 ! 
 ! !USES:
 !
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE PRECISION_MOD      ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -262,7 +262,7 @@
 ! !USES:
 !
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
-      USE ERROR_MOD,          ONLY : IT_IS_NAN, DEBUG_MSG, SAFE_DIV
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -423,8 +423,13 @@
 
       ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg total  air before advection (ewl, 6/15/15)
-      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS, 
+      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, N_TRACERS, 
      &                                   State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'GEOS4_GEOS5_GLOBAL_ADV in transport_mod.F')
+         RETURN
+      ENDIF 
 
       ! Do the advection
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
@@ -442,8 +447,13 @@
 
       ! Convert tracer concentration from kg/kg wet air to 
       ! kg/kg dry air after advection (ewl, 6/15/15)
-      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS, 
+      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, N_TRACERS, 
      &                                   State_Met, State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'GEOS4_GEOS5_GLOBAL_ADV in transport_mod.F')
+         RETURN
+      ENDIF 
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
@@ -483,7 +493,7 @@
 ! !USES:
 !
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
-      USE ERROR_MOD,          ONLY : IT_IS_NAN, DEBUG_MSG, SAFE_DIV
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -649,8 +659,13 @@
 
       ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg total air before advection (ewl, 6/15/15)
-      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, N_TRACERS,  
      &                                    State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'GCAP_GLOBAL_ADV in transport_mod.F')
+         RETURN
+      ENDIF 
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -668,8 +683,13 @@
 
       ! Convert tracer concentration from kg/kg total air to 
       ! kg/kg dry air after advection (ewl, 6/15/15)
-      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, N_TRACERS,  
      &                                    State_Met, State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'GCAP_GLOBAL_ADV in transport_mod.F')
+         RETURN
+      ENDIF 
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
@@ -710,7 +730,7 @@
 !
       ! References to F90 modules
       USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
-      USE ERROR_MOD,                 ONLY : IT_IS_NAN,     DEBUG_MSG
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,        ONLY : OptInput
       USE GIGC_State_Chm_Mod,        ONLY : ChmState
@@ -883,8 +903,13 @@
 
       ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg moist air before advection (ewl, 6/15/15)
-      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, N_TRACERS,  
      &                                   State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'DO_GEOS5_WINDOW_TRANSPORT in transport_mod.F')
+         RETURN
+      ENDIF 
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -902,8 +927,13 @@
 
       ! Convert tracer concentration from kg/kg wet air to 
       ! kg/kg dry air after advection (ewl, 6/15/15)
-      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, N_TRACERS,  
      &                                    State_Met, State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'DO_GEOS5_WINDOW_TRANSPORT in transport_mod.F')
+         RETURN
+      ENDIF 
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS ) 
@@ -944,7 +974,7 @@
 !
       ! References to F90 modules
       USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
-      USE ERROR_MOD,                 ONLY : IT_IS_NAN,     DEBUG_MSG
+      USE ERROR_MOD
       USE GRID_MOD,                  ONLY : GET_XOFFSET,   GET_YOFFSET
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,        ONLY : OptInput
@@ -1163,8 +1193,13 @@
 
       ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg moist air before advection (ewl, 6/15/15)
-      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, N_TRACERS,  
      &                                   State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                'DO_GEOSFP_WINDOW_TRANSPORT in transport_mod.F')
+         RETURN
+      ENDIF 
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -1182,8 +1217,14 @@
 
       ! Convert tracer concentration from kg/kg wet air to 
       ! kg/kg dry air after advection (ewl, 6/15/15)
-      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, N_TRACERS,  
      &                                    State_Met, State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                'DO_GEOSFP_WINDOW_TRANSPORT in transport_mod.F')
+         RETURN
+      ENDIF 
+
 !=========================================================================
 
       ! Free pointer memory
@@ -1405,7 +1446,7 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,               ONLY : ALLOC_ERR
+      USE ERROR_MOD,               ONLY : ALLOC_ERR, GIGC_ERROR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,      ONLY : OptInput
       USE GRID_MOD,                ONLY : GET_AREA_M2
@@ -1548,7 +1589,7 @@
 !
 ! !USES:    
 !
-      USE ERROR_MOD,               ONLY : ALLOC_ERR
+      USE ERROR_MOD,               ONLY : ALLOC_ERR, GIGC_ERROR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,      ONLY : OptInput
       USE GRID_MOD,                ONLY : GET_AREA_M2

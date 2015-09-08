@@ -122,7 +122,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE ERROR_MOD,          ONLY : GIGC_ERROR
     USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
     USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
     USE DAO_MOD,            ONLY : CONVERT_UNITS
@@ -168,8 +168,13 @@ CONTAINS
     N_TRACERS = Input_Opt%N_TRACERS
 
     ! Convert [kg/kg dry air] to [v/v dry air] for mixing (ewl, 8/12/15)
-    CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, Input_Opt, &
+    CALL Convert_KgKgDry_to_VVDry( am_I_Root, N_TRACERS, Input_Opt, &
                                    State_Chm, RC )  
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL GIGC_Error('Unit conversion error', RC, &
+                       'DO_MIXING in mixing_mod.F')
+       RETURN
+    ENDIF  
 
     ! ------------------------------------------------------------------
     ! Do non-local PBL mixing. This will apply the tracer tendencies
@@ -218,8 +223,13 @@ CONTAINS
     ENDIF
 
     ! Convert tracer conc back to [kg/kg dry air] after mixing (ewl, 8/12/15)
-    CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, Input_Opt, &
+    CALL Convert_VVDry_to_KgKgDry( am_I_Root, N_TRACERS, Input_Opt, &
                                    State_Chm, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL GIGC_Error('Unit conversion error', RC, &
+                       'DO_MIXING in mixing_mod.F')
+       RETURN
+    ENDIF  
 
   END SUBROUTINE DO_MIXING 
 !EOC

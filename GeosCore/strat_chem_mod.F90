@@ -901,6 +901,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE ERROR_MOD,          ONLY : GIGC_ERROR
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -991,8 +992,13 @@ CONTAINS
 
     ! Convert State_Chm%TRACERS from [kg/kg dry air] to [kg] so that
     ! units are consistently mixing ratio in main (ewl, 8/10/15)
-    CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
+    CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
                                 State_Chm, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL GIGC_Error('Unit conversion error', RC, &
+                        'Calc_STE in strat_chem_mod.F')
+       RETURN
+    ENDIF  
 
     ! Determine mean tropopause level for the period
     !$OMP PARALLEL DO                               &
@@ -1085,8 +1091,13 @@ CONTAINS
 
     ! Convert State_Chm%TRACERS from [kg] back to [kg/kg dry air] 
     ! (ewl, 8/10/15)
-    CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met,  &
+    CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  &
                                 State_Chm, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL GIGC_Error('Unit conversion error', RC, &
+                        'Calc_STE in strat_chem_mod.F')
+       RETURN
+    ENDIF  
 
     ! Free pointer
     NULLIFY( STT )
@@ -1111,7 +1122,7 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_MOD
-    USE ERROR_MOD,          ONLY : ALLOC_ERR
+    USE ERROR_MOD,          ONLY : ALLOC_ERR, GIGC_ERROR
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -1383,11 +1394,23 @@ CONTAINS
     ! that initial state of atmosphere is in same units as
     ! chemistry ([kg]), and then convert back after MInit is assigned 
     ! (ewl, 8/10/15)
-    CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
+    CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
                                 State_Chm, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL GIGC_Error('Unit conversion error', RC, &
+                       'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
+       RETURN
+    ENDIF 
+    
     MInit = STT
-    CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met,  &
+    
+    CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  &
                                 State_Chm, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL GIGC_Error('Unit conversion error', RC, &
+                       'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
+       RETURN
+    ENDIF 
 
     ! Array to determine the mean tropopause level over the period
     ! for which STE is being estimated.

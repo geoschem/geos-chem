@@ -112,7 +112,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE ERROR_MOD,          ONLY : GIGC_ERROR
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
     USE CARBON_MOD,         ONLY : EMISSCARBON
 #if defined ( TOMAS )
@@ -176,8 +176,14 @@ CONTAINS
     N_TRACERS = Input_Opt%N_TRACERS
 
     ! Convert tracer units to [kg] for HEMCO (ewl, 8/12/15)
-    CALL Convert_DryKgKg_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
-                                State_Chm, RC ) 
+    CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
+                                State_Chm, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL GIGC_Error('Unit conversion error', RC, &
+                       'Routine EMISSIONS_RUN in emissions_mod.F')
+       RETURN
+    ENDIF                         
+
 
     ! Run HEMCO. Phase 1 will only update the HEMCO clock and the 
     ! HEMCO data list, phase 2 will perform the emission calculations.
@@ -266,8 +272,13 @@ CONTAINS
     ENDIF ! Phase/=1  
  
     ! Convert tracer units to [kg] for HEMCO (ewl, 8/12/15)
-    CALL Convert_Kg_to_DryKgKg( am_I_Root, N_TRACERS, State_Met,  &
+    CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  &
                                 State_Chm, RC ) 
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL GIGC_Error('Unit conversion error', RC, &
+                       'Routine EMISSIONS_RUN in emissions_mod.F')
+       RETURN
+    ENDIF                         
 
     ! Return w/ success
     RC = GIGC_SUCCESS
