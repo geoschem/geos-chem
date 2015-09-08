@@ -46,7 +46,7 @@ MODULE GIGC_State_Chm_Mod
      CHARACTER(LEN=14), POINTER :: Trac_Name  (:      )  ! Tracer names
      REAL(fp),          POINTER :: Tracers    (:,:,:,:)  ! Tracer conc 
                                                          ! [kg trcr/kg dry air]
-     CHARACTER(LEN=10)          :: Trac_Units            ! Tracer units
+     CHARACTER(LEN=14)          :: Trac_Units            ! Tracer units
 
      ! Chemical species
      INTEGER,           POINTER :: Spec_Id    (:      )  ! Species ID # 
