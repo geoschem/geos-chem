@@ -5843,22 +5843,21 @@
       ! Is this a mercury simulation?
       IS_Hg = ( ITS_A_MERCURY_SIM )
 
-
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                   %%
-   !! TEMPORARY: Start of WETDEP: [kg/kg] -> [kg/m2]
-   !!                                                                   
+      ! Set number of tracers
       N_TRACERS =  Input_Opt%N_TRACERS
 
-      CALL Convert_KgKgDry_to_Kgm2( am_I_Root, N_TRACERS,           
+      ! Convert tracer concentration from mixing ratio (kg/kg dry air) to
+      ! mass per unit area (kg/m2) for wet deposition since computation is
+      ! done per column (ewl, 9/8/15)
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS,           
      &                               State_Met, State_Chm, RC )   
+!      CALL Convert_KgKgDry_to_Kgm2( am_I_Root, N_TRACERS,           
+!     &                               State_Met, State_Chm, RC )   
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP in wetscav_mod.F')
          RETURN
       ENDIF  
-   !!                                                                   %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -6223,20 +6222,16 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                   %%
-   !! TEMPORARY: End of WETDEP: [kg/m2] -> [kg/kg]
-   !!                                                                   
-      CALL Convert_Kgm2_to_KgKgDry( am_I_Root, N_TRACERS,           
+      ! Convert tracer units back to mixing ratio (ewl, 9/8/15)
+!      CALL Convert_Kgm2_to_KgKgDry( am_I_Root, N_TRACERS,           
+!     &                               State_Met, State_Chm, RC )   
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS,           
      &                               State_Met, State_Chm, RC )   
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP in wetscav_mod.F')
          RETURN
       ENDIF  
-  
-   !!                                                                   %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Free pointer
       NULLIFY( STT )
@@ -6455,26 +6450,16 @@
       ! Is this a mercury simulation?
       IS_Hg = ITS_A_MERCURY_SIM
 
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                   %%
-   !! TEMPORARY: Start of WETDEP_MERRA: [kg/kg] -> [kg/m2]
-   !!                                                                   
-      N_TRACERS = Input_Opt%N_TRACERS
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS,           
-     &                               State_Met, State_Chm, RC )   
-
-!      CALL Convert_Kg_to_Kgm2( am_I_Root, N_TRACERS,
-!     &                               State_Met, State_Chm, RC )
-
-!      CALL Convert_KgKgDry_to_Kgm2( am_I_Root, N_TRACERS,
-!     &                               State_Met, State_Chm, RC )
+      ! Convert tracer concentration from mixing ratio (kg/kg dry air) to
+      ! mass per unit area (kg/m2) for wet deposition since computation is
+      ! done per column (ewl, 9/8/15)
+      CALL Convert_KgKgDry_to_Kgm2( am_I_Root, N_TRACERS,
+     &                               State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP_MERRA in wetscav_mod.F')
          RETURN
       ENDIF  
-   !!                                                                   %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -6801,28 +6786,14 @@
       ENDDO	
 !$OMP END PARALLEL DO
 
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                   %%
-   !! TEMPORARY: End of WETDEP_MERRA: [kg/m2] -> [kg/kg]
-   !!                                                                   
-! Convert to kg/m2:
-
-      CALL Convert_Kgm2_to_Kg( am_I_Root, N_TRACERS,
+      ! Convert tracer concentration back to kg/kg dry air (ewl, 9/8/15)
+      CALL Convert_Kgm2_to_KgKgDry( am_I_Root, N_TRACERS,
      &                               State_Met, State_Chm, RC )
-
-!      CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS,           
-!     &                               State_Met, State_Chm, RC )   
-
-!      CALL Convert_Kgm2_to_KgKgDry( am_I_Root, N_TRACERS,
-!     &                               State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP_MERRA in wetscav_mod.F')
          RETURN
       ENDIF  
-
-   !!                                                                   %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Free pointer
       NULLIFY( STT )
