@@ -4096,8 +4096,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 4
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4109,8 +4108,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 5
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 5e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4136,8 +4134,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 7
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4149,8 +4146,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 8
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4162,8 +4158,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 9
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4175,8 +4170,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 10
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4188,8 +4182,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 11
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4201,8 +4194,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 12
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4214,8 +4206,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 13
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4265,8 +4256,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 17
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4290,8 +4280,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 19
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 2e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4303,8 +4292,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 20
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 15e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4316,8 +4304,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 21
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 15e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4329,8 +4316,7 @@
          UNIT      = 'atoms C/cm2/s'
          N         = 22
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR    = 15e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
-     &               CM2PERM2
+         FACTOR    = GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
