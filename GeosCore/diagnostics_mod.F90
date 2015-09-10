@@ -107,9 +107,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: CollectionID
+    INTEGER            :: DeltaYMD, DeltaHMS 
     REAL(sp)           :: TS
     REAL(fp), POINTER  :: AM2(:,:) => NULL()
-    CHARACTER(LEN=15)  :: WriteFreq
     CHARACTER(LEN=255) :: LOC = 'Diagnostics_Init (diagnostics_mod.F90)'
 
     !=======================================================================
@@ -127,22 +127,20 @@ CONTAINS
 
     ! Define output write frequency. In ESMF environment, make sure 
     ! diagnostics is always passed to MAPL history!
-#if defined(ESMF_)
-    WriteFreq = 'Always' 
-#else
-    WriteFreq = 'Daily' 
-#endif
+    CALL DiagnCollection_GetDefaultDelta ( am_I_Root, deltaYMD, deltaHMS, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL DiagnCollection_Create( am_I_Root,                   &
-                                 NX        = IIPAR,           &
-                                 NY        = JJPAR,           &
-                                 NZ        = LLPAR,           &
-                                 TS        = TS,              &
-                                 AM2       = AM2,             &
-                                 PREFIX    = DGN,             &
-                                 WriteFreq = TRIM(WriteFreq), &
-                                 COL       = CollectionID,    &
-                                 RC        = RC         )
+    CALL DiagnCollection_Create( am_I_Root,                     &
+                                 NX          = IIPAR,           &
+                                 NY          = JJPAR,           &
+                                 NZ          = LLPAR,           &
+                                 TS          = TS,              &
+                                 AM2         = AM2,             &
+                                 PREFIX      = DGN,             &
+                                 deltaYMD    = deltaYMD,        &
+                                 deltaHMS    = deltaHMS,        &
+                                 COL         = CollectionID,    &
+                                 RC          = RC         )
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in creating diagnostics collection '//TRIM(DGN), LOC ) 
     ENDIF

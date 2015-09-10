@@ -813,6 +813,7 @@ CONTAINS
 !  13 Sep 2013 - C. Keller - Initial Version
 !  11 May 2015 - C. Keller - Now provide lon/lat edges instead of assuming
 !                            global grid. 
+!  10 Sep 2015 - C. Keller - Allow to provide mid-points instead of edges.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -823,7 +824,7 @@ CONTAINS
     INTEGER               :: NX, NY, NZ
     INTEGER               :: I, J, N, LNG, LOW, UPP
     INTEGER               :: SZ(3)
-    INTEGER               :: IU_FILE, IOS
+    INTEGER               :: IU_FILE, IOS, STRT
     REAL(hp)              :: RG(4)
     REAL(hp)              :: XMIN, XMAX
     REAL(hp)              :: YMIN, YMAX
@@ -831,9 +832,9 @@ CONTAINS
     REAL(hp)              :: DLON, DLAT
     REAL(hp)              :: PI_180, YDGR, YSN, SIN_DELTA, AM2 
     LOGICAL               :: FOUND,   EOF
-    CHARACTER(LEN=255)    :: MSG, LOC 
+    CHARACTER(LEN=255)    :: LOC 
     CHARACTER(LEN=255)    :: MyGridFile 
-    CHARACTER(LEN=2047)   :: DUM
+    CHARACTER(LEN=2047)   :: MSG, DUM
 
     !=================================================================
     ! SET_GRID begins here
@@ -972,24 +973,24 @@ CONTAINS
     ALLOCATE ( YEDGE    (NX,  NY+1,1) )
     ALLOCATE ( YSIN     (NX,  NY+1,1) )
     ALLOCATE ( AREA_M2  (NX,  NY,  1) )
-    XMID      = 0.0_hp
-    YMID      = 0.0_hp
-    YSIN      = 0.0_hp
-    AREA_M2   = 0.0_hp
-    XEDGE     = -999.0_hp
-    YEDGE     = -999.0_hp
+    YSIN      = HCO_MISSVAL
+    AREA_M2   = HCO_MISSVAL
+    XMID      = HCO_MISSVAL
+    YMID      = HCO_MISSVAL
+    XEDGE     = HCO_MISSVAL
+    YEDGE     = HCO_MISSVAL
 
     ! ------------------------------------------------------------------
-    ! Check if grid box edges are explicitly given.
+    ! Check if grid box edges and/or midpoints are explicitly given.
     ! Those need be provided on one line, e.g.:
     ! YEDGE: -90.0 -89.0 -86.0 ... 86.0 89.0 90.0
     ! ------------------------------------------------------------------
-    DO N = 1, 2 ! check for XEDGE and YEDGE
+    DO N = 1, 4 ! check for XEDGE, YEDGE, XMID, YMID
 
        ! Try to read line
        CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          MSG = 'Error reading grid edges in ' // TRIM(GridFile)
+          MSG = 'Error reading grid edges and/or midpoints in ' // TRIM(GridFile)
           CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
@@ -998,15 +999,23 @@ CONTAINS
        IF ( EOF ) EXIT
 
        ! Read XEDGES or YEDGES
+       LNG = -1
        IF ( DUM(1:5) == 'XEDGE' .OR. DUM(1:5) == 'YEDGE' ) THEN 
+          LNG  = LEN(TRIM(DUM))
+          STRT = 7 ! Start at string position 7 (e.g. 'XEDGE: XXX')
+       ELSEIF ( DUM(1:4) == 'XMID' .OR. DUM(1:4) == 'YMID' ) THEN 
           LNG = LEN(TRIM(DUM))
+          STRT = 6 ! Start at string position 6 (e.g. 'XMID: XXX')
+       ENDIF
+
+       IF ( LNG > 0 ) THEN
 
           LOW = -1
           UPP = -1
           I   = 0
 
           ! Walk through entire string
-          DO J = 7, LNG
+          DO J = STRT, LNG
 
              ! Need to evaluate if this is the last string character and/or 
              ! whitespace character
@@ -1040,20 +1049,38 @@ CONTAINS
                 ! Pass to XEDGE
                 IF ( TRIM(DUM(1:5)) == 'XEDGE' ) THEN
                    IF ( I > NX+1 ) THEN
-                      WRITE(MSG,*) 'More than ', NX, ' longitude edges found in ', TRIM(DUM)
+                      WRITE(MSG,*) 'More than ', NX+1, ' longitude edges found in ', TRIM(DUM)
                       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
                       RETURN
                    ENDIF 
                    XEDGE(I,:,1) = DVAL
 
                 ! Pass to YEDGE
-                ELSE
+                ELSEIF ( TRIM(DUM(1:5)) == 'YEDGE' ) THEN
                    IF ( I > NY+1 ) THEN
-                      WRITE(MSG,*) 'More than ', NY, ' latitude edges found in ', TRIM(DUM)
+                      WRITE(MSG,*) 'More than ', NY+1, ' latitude edges found in ', TRIM(DUM)
                       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
                       RETURN
                    ENDIF 
                    YEDGE(:,I,1) = DVAL
+
+                ! Pass to XMID 
+                ELSEIF ( TRIM(DUM(1:4)) == 'XMID' ) THEN
+                   IF ( I > NX ) THEN
+                      WRITE(MSG,*) 'More than ', NX, ' latitude mid-points found in ', TRIM(DUM)
+                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      RETURN
+                   ENDIF 
+                   XMID(I,:,1) = DVAL
+             
+                ! Pass to YMID
+                ELSEIF ( TRIM(DUM(1:4)) == 'YMID' ) THEN
+                   IF ( I > NY ) THEN
+                      WRITE(MSG,*) 'More than ', NY, ' latitude mid-points found in ', TRIM(DUM)
+                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      RETURN
+                   ENDIF 
+                   YMID(:,I,1) = DVAL
                 ENDIF
              
                 ! Update bounds 
@@ -1069,6 +1096,16 @@ CONTAINS
           ENDIF
           IF ( TRIM(DUM(1:5)) == 'YEDGE' .AND. I /= NY+1 ) THEN
              WRITE(MSG,*) 'Error reading YEDGES: exactly ', NY+1, ' values must be given: ', TRIM(DUM)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          IF ( TRIM(DUM(1:4)) == 'XMID' .AND. I /= NX ) THEN
+             WRITE(MSG,*) 'Error reading XMID: exactly ', NX, ' values must be given: ', TRIM(DUM)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          IF ( TRIM(DUM(1:4)) == 'YMID' .AND. I /= NY ) THEN
+             WRITE(MSG,*) 'Error reading YMID: exactly ', NY, ' values must be given: ', TRIM(DUM)
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
@@ -1091,22 +1128,53 @@ CONTAINS
     DO I = 1, NX
 
        ! Set longitude and latitude edge values if not read from disk
-       IF ( XEDGE(I,J,1) == -999.0_hp ) THEN
-          DLON = ( XMAX - XMIN ) / NX
-          XEDGE(I,J,1) = XMIN + ( (I-1) * DLON )
+       IF ( XEDGE(I,J,1) == HCO_MISSVAL ) THEN
+
+          ! eventually get from mid-points
+          IF ( XMID(I,J,1) /= HCO_MISSVAL ) THEN
+             IF ( I > 1 ) THEN 
+                DLON         = XMID(I,J,1) - XMID(I-1,J,1)
+             ELSE
+                DLON         = XMID(I+1,J,1) - XMID(I,J,1)
+             ENDIF
+             XEDGE(I,J,1) = XMID(I,J,1) - DLON/2.0
+
+          ! otherwise assume constant grid spacing
+          ELSE
+             DLON = ( XMAX - XMIN ) / NX
+             XEDGE(I,J,1) = XMIN + ( (I-1) * DLON )
+          ENDIF
        ELSE
           DLON = XEDGE(I+1,J,1) - XEDGE(I,J,1)
-       ENDIF       
-       IF ( YEDGE(I,J,1) == -999.0_hp ) THEN
-          DLAT = ( YMAX - YMIN ) / NY
-          YEDGE(I,J,1) = YMIN + ( (J-1) * DLAT )
+       ENDIF
+ 
+       IF ( YEDGE(I,J,1) == HCO_MISSVAL ) THEN
+
+          ! eventually get from mid-points
+          IF ( YMID(I,J,1) /= HCO_MISSVAL ) THEN
+             IF ( J > 1 ) THEN 
+                DLAT         = YMID(I,J,1) - YMID(I,J-1,1)
+             ELSE
+                DLAT         = YMID(I,J+1,1) - YMID(I,J,1)
+             ENDIF
+             YEDGE(I,J,1) = YMID(I,J,1) - DLAT/2.0
+
+          ! otherwise assume constant grid spacing
+          ELSE
+             DLAT = ( YMAX - YMIN ) / NY
+             YEDGE(I,J,1) = YMIN + ( (J-1) * DLAT )
+          ENDIF       
        ELSE
           DLAT = YEDGE(I,J+1,1) - YEDGE(I,J,1)
        ENDIF       
 
        ! Set mid values
-       XMID(I,J,1) = XEDGE(I,J,1) + ( DLON / 2.0_hp )
-       YMID(I,J,1) = YEDGE(I,J,1) + ( DLAT / 2.0_hp )
+       IF ( XMID(I,J,1) == HCO_MISSVAL ) THEN
+          XMID(I,J,1) = XEDGE(I,J,1) + ( DLON / 2.0_hp )
+       ENDIF
+       IF ( YMID(I,J,1) == HCO_MISSVAL ) THEN
+          YMID(I,J,1) = YEDGE(I,J,1) + ( DLAT / 2.0_hp )
+       ENDIF
 
        ! Get sine of latitude edges
        YDGR        = PI_180 * YEDGE(I,J,1)  ! radians       
@@ -1115,12 +1183,12 @@ CONTAINS
 
        ! Eventually set uppermost edge
        IF ( I == NX ) THEN
-          IF ( XEDGE(I+1,J,1) == -999.0_hp ) THEN
+          IF ( XEDGE(I+1,J,1) == HCO_MISSVAL ) THEN
              XEDGE(I+1,J,1) = XMIN + I * DLON
           ENDIF
        ENDIF
        IF ( J == NY ) THEN
-          IF ( YEDGE(I,J+1,1) == -999.0_hp ) THEN
+          IF ( YEDGE(I,J+1,1) == HCO_MISSVAL ) THEN
              YEDGE(I,J+1,1) = YMIN + J * DLAT
           ENDIF
           YDGR           = PI_180 * YEDGE(I,J+1,1)  ! radians       
