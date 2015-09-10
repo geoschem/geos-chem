@@ -31,57 +31,46 @@ MODULE UnitConv_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! TOTAL <-> DRY 
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! State_Chm%TRACERS: TOTAL <-> DRY 
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-  ! kg/kg dry air <-> kg/kg moist air (State_Chm%TRACERS)
+  ! kg/kg dry air <-> kg/kg total air
   PUBLIC  :: Convert_KgKgDry_to_KgKgTotal
   PUBLIC  :: Convert_KgKgTotal_to_KgKgDry
 
-  ! v/v dry air <-> v/v moist air (State_Chm%TRACERS)
-  ! (not currently used)
+  ! v/v dry air <-> v/v total air (not currently used)
   PUBLIC  :: Convert_VVDry_to_VVTotal
   PUBLIC  :: Convert_VVTotal_to_VVDry
 
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! KG/KG <-> V/V
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! State_Chm%TRACERS: KG/KG <-> V/V
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-  ! kg/kg dry air <-> v/v dry air (State_Chm%TRACERS)
+  ! kg/kg dry air <-> v/v dry air
   PUBLIC  :: Convert_KgKgDry_to_VVDry
   PUBLIC  :: Convert_VVDry_to_KgKgDry
 
-  ! kg/kg total air <-> v/v total air (State_Chm%TRACERS)
+  ! kg/kg total air <-> v/v total air
   PUBLIC  :: Convert_KgKgTotal_to_VVTotal
   PUBLIC  :: Convert_VVTotal_to_KgKgTotal
 
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! MIXING RATIO <-> AREA DENSITY
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! State_Chm%TRACERS: MIXING RATIO <-> AREA DENSITY
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-  ! kg/kg dry air <-> molec/cm3 dry air (State_Chm%TRACERS)
-  ! (not currently used, change to molec/cm2)
-  PUBLIC  :: Convert_KgKgDry_to_MND
-  PUBLIC  :: Convert_MND_to_KgKgDry
-
-  ! kg/kg total air <-> molec/cm3 total air (State_Chm%TRACERS)
-  ! (not yet written, change to molec/cm2)
-!  PUBLIC  :: Convert_KgKgTotal_to_MND
-!  PUBLIC  :: Convert_MND_to_KgKgTotal
-
-  ! kg/kg dry air <-> kg/m2 (generic 3D tracer array)
+  ! kg/kg dry air <-> kg/m2
   PUBLIC  :: Convert_KgKgDry_to_Kgm2
   PUBLIC  :: Convert_kgm2_to_KgKgDry
 
-  ! kg/kg total air <-> kg/m2 (generic 3D tracer array)
-  ! (not yet written)
-!  PUBLIC  :: Convert_KgKgTotal_to_Kgm2
-!  PUBLIC  :: Convert_kgm2_to_KgKgTotal
+  !%%%%%%%%%%%%%%%%
+  ! AREA-DEPENDENT
+  !%%%%%%%%%%%%%%%%
 
-  !%%%%%%%%%%%%%%%%%%%%%
-  ! AREA-DEPENDENT MASS
-  !%%%%%%%%%%%%%%%%%%%%%
+  ! kg/kg dry air <-> molec/cm3 dry air
+  ! (not currently used, could be adapted to be area-independent)
+  PUBLIC  :: Convert_KgKgDry_to_MND
+  PUBLIC  :: Convert_MND_to_KgKgDry
 
   ! kg/kg moist air <-> kg/grid box (State_Chm%TRACERS)
   PUBLIC  :: Convert_KgKgTotal_to_Kg
@@ -994,6 +983,246 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: convert_kgkgdry_to_kgm2
+!
+! !DESCRIPTION: Subroutine Convert\_kgkgdry\_to\_kgm2 converts the units of 
+!  a 3D array from dry mass mixing ratio [kg/kg dry air] to area density 
+!  [kg/m2].  
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Convert_KgKgDry_to_Kgm2( am_I_Root, N_TRACERS, State_Met,  &
+                                      State_Chm, RC             )
+!
+! !USES:
+!
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE CMN_GCTM_MOD
+
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
+    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
+    TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology state object
+
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC            ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  14 Aug 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
+    REAL(fp)           :: SPHU_kgkg
+
+    !====================================================================
+    ! Convert_KgKgDry_to_Kgm2 begins here!
+    !====================================================================
+
+    ! Assume success
+    RC        =  GIGC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
+       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
+       LOC = 'UNITCONV_MOD: Convert_KgKgDry_to_Kgm2'
+       CALL GIGC_Error( MSG, RC, LOC)
+       RETURN
+    ENDIF
+
+    !====================================================================
+    !
+    !  The conversion is as follows:
+    !
+    !   kg tracer      Delta P [hPa]   100 [Pa]     kg dry air 
+    !   -----------  * ------------- * -------- * --------------     
+    !   kg dry air     g [m/s2]        [hPa]      kg total air  
+    !
+    !   = kg / m2
+    !
+    ! where:
+    !
+    !  Delta P = edge pressure difference across level
+    !  g = acceleration due to gravity
+    !  kg dry air / kg total air  = 1 - specific humidity
+    !     
+    !====================================================================
+
+    !$OMP PARALLEL DO        &
+    !$OMP DEFAULT( SHARED  ) &
+    !$OMP PRIVATE( I, J, L, SPHU_kgkg ) 
+    DO N = 1, N_TRACERS
+    DO L = 1, LLPAR
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+
+       ! Convert specific humidity from [g/kg] to [kg/kg]
+       SPHU_kgkg = State_Met%SPHU(I,J,L) * 1.0e-3_fp 
+
+       ! Area-independent conversion
+       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)         &
+                                    * ( State_Met%DELP(I,J,L) *        &
+                                    g0_100 * ( 1.0e+0_fp - SPHU_kgkg ) ) 
+
+!       ! Equivalent area-dependent conversion
+!       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
+!                                    * State_Met%AD(I,J,L)               &
+!                                    / State_Met%AREA_M2(I,J,1) 
+
+       ! Area-independent conversion that preserves order of 
+       ! area-dependent conversion
+    ENDDO
+    ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    ! Update tracer units
+    State_Chm%Trac_Units = 'kg/m2'
+
+  END SUBROUTINE Convert_KgKgDry_to_Kgm2
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: convert_kgm2_to_kgkgdry
+!
+! !DESCRIPTION: Subroutine Convert\_Kgm2\_to\_kgkgdry converts the units of 
+!  tracer concentrations from area density [kg/m2] to dry mass mixing ratio 
+!  [kg/kg dry air].  
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Convert_Kgm2_to_KgKgDry( am_I_Root, N_TRACERS, State_Met, &
+                                      State_Chm, RC          )
+!
+! !USES:
+!
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE CMN_GCTM_MOD
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  14 Aug 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: I, J, L, N
+    CHARACTER(LEN=255) :: MSG, LOC
+    REAL(fp)           :: SPHU_kgkg
+
+    !====================================================================
+    ! Convert_Kgm2_to_KgKgDry begins here!
+    !====================================================================
+
+    ! Assume success
+    RC        =  GIGC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/m2' ) THEN
+       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
+       LOC = 'UNITCONV_MOD: Convert_Kgm2_to_KgKgDry'
+       CALL GIGC_Error( MSG, RC, LOC)
+       RETURN
+    ENDIF
+
+    !====================================================================
+    !
+    !  The conversion is as follows:
+    !
+    !   kg tracer(N)   g [m/s2]        [hPa]      kg total air   
+    !   -----------  * ------------- * -------- * --------------     
+    !        m2        Delta P [hPa]   100 [Pa]    kg dry air
+    !
+    !   = kg tracer(N) / kg dry air
+    !
+    ! where:
+    !
+    !  Delta P = edge pressure difference across level
+    !  g = acceleration due to gravity
+    !  kg dry air / kg total air  = 1 - specific humidity
+    !     
+    !====================================================================
+
+    !$OMP PARALLEL DO           &
+    !$OMP DEFAULT( SHARED     ) &
+    !$OMP PRIVATE( I, J, L, N, SPHU_kgkg ) 
+    DO N = 1, N_TRACERS
+    DO L = 1, LLPAR
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+
+       ! Convert specific humidity from [g/kg] to [kg/kg]
+       SPHU_kgkg = State_Met%SPHU(I,J,L) * 1.0e-3_fp 
+
+       ! Area-independent conversions
+       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
+                                    / ( State_Met%DELP(I,J,L) *         &
+                                    g0_100 * ( 1.0e+0_fp - SPHU_kgkg ) )       
+
+       ! Equivalent area-dependent conversion
+!       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
+!                              * State_Met%AREA_M2(I,J,1)                &
+!                              / State_Met%AD(I,J,L)
+
+    ENDDO
+    ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    ! Update tracer units
+    State_Chm%Trac_Units = 'kg/kg dry'
+
+  END SUBROUTINE Convert_Kgm2_to_KgKgDry
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: convert_kgkgdry_to_mnd
 !
 ! !DESCRIPTION: Subroutine Convert\_KgKgDry\_to\_MND converts the units of 
@@ -1662,242 +1891,6 @@ CONTAINS
     State_Chm%Trac_Units = 'kg/kg dry'
 
   END SUBROUTINE Convert_Kg_to_KgKgDry 
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: convert_kgkgdry_to_kgm2
-!
-! !DESCRIPTION: Subroutine Convert\_kgkgdry\_to\_kgm2 converts the units of 
-!  a 3D array from dry mass mixing ratio [kg/kg dry air] to area density 
-!  [kg/m2].  
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Convert_KgKgDry_to_Kgm2( am_I_Root, N_TRACERS, State_Met,  &
-                                      State_Chm, RC             )
-!
-! !USES:
-!
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE CMN_GCTM_MOD
-
-!
-! !INPUT PARAMETERS: 
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
-    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
-    TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology state object
-
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object 
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC            ! Success or failure?
-!
-! !REMARKS:
-!
-! !REVISION HISTORY: 
-!  14 Aug 2015 - E. Lundgren - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER            :: I, J, L, N
-    CHARACTER(LEN=255) :: MSG, LOC
-    REAL(fp)           :: SPHU_kgkg
-
-    !====================================================================
-    ! Convert_KgKgDry_to_Kgm2 begins here!
-    !====================================================================
-
-    ! Assume success
-    RC        =  GIGC_SUCCESS
-
-    ! Verify correct initial units. If current units are unexpected,
-    ! write error message and location to log, then pass failed RC
-    ! to calling routine. 
-    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_KgKgDry_to_Kgm2'
-       CALL GIGC_Error( MSG, RC, LOC)
-       RETURN
-    ENDIF
-
-    !====================================================================
-    !
-    !  The conversion is as follows:
-    !
-    !   kg tracer      Delta P [hPa]   100 [Pa]     kg dry air 
-    !   -----------  * ------------- * -------- * --------------     
-    !   kg dry air     g [m/s2]        [hPa]      kg total air  
-    !
-    !   = kg / m2
-    !
-    ! where:
-    !
-    !  Delta P = edge pressure difference across level
-    !  g = acceleration due to gravity
-    !  kg dry air / kg total air  = 1 - specific humidity
-    !     
-    !====================================================================
-
-    !$OMP PARALLEL DO        &
-    !$OMP DEFAULT( SHARED  ) &
-    !$OMP PRIVATE( I, J, L ) 
-    DO N = 1, N_TRACERS
-    DO L = 1, LLPAR
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
-!       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)    &
-!                              * State_Met%DELP(I,J,L) * 1.e+2_fp  &
-!                              * ( 1.e+0_fp - 1.e-3_fp             &
-!                              * State_Met%SPHU(I,J,L) ) / G0_100
-
-       ! Convert specific humidity from [g/kg] to [kg/kg]
-       SPHU_kgkg = State_Met%SPHU(I,J,L) * 1.0e-3_fp 
-
-       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)         &
-                                    * ( State_Met%DELP(I,J,L) *        &
-                                    g0_100 * ( 1.0e+0_fp - SPHU_kgkg ) ) 
-    ENDDO
-    ENDDO
-    ENDDO
-    ENDDO
-    !$OMP END PARALLEL DO
-
-    ! Update tracer units
-    State_Chm%Trac_Units = 'kg/m2'
-
-  END SUBROUTINE Convert_KgKgDry_to_Kgm2
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: convert_kgm2_to_kgkgdry
-!
-! !DESCRIPTION: Subroutine Convert\_Kgm2\_to\_kgkgdry converts the units of 
-!  tracer concentrations from area density [kg/m2] to dry mass mixing ratio 
-!  [kg/kg dry air].  
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Convert_Kgm2_to_KgKgDry( am_I_Root, N_TRACERS, State_Met, &
-                                      State_Chm, RC          )
-!
-! !USES:
-!
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE CMN_GCTM_MOD
-!
-! !INPUT PARAMETERS: 
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
-    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object 
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !REMARKS:
-!
-! !REVISION HISTORY: 
-!  14 Aug 2015 - E. Lundgren - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER            :: I, J, L, N
-    CHARACTER(LEN=255) :: MSG, LOC
-    REAL(fp)           :: SPHU_kgkg
-
-    !====================================================================
-    ! Convert_Kgm2_to_KgKgDry begins here!
-    !====================================================================
-
-    ! Assume success
-    RC        =  GIGC_SUCCESS
-
-    ! Verify correct initial units. If current units are unexpected,
-    ! write error message and location to log, then pass failed RC
-    ! to calling routine. 
-    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/m2' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_Kgm2_to_KgKgDry'
-       CALL GIGC_Error( MSG, RC, LOC)
-       RETURN
-    ENDIF
-
-    !====================================================================
-    !
-    !  The conversion is as follows:
-    !
-    !   kg tracer(N)   g [m/s2]        [hPa]      kg total air   
-    !   -----------  * ------------- * -------- * --------------     
-    !        m2        Delta P [hPa]   100 [Pa]    kg dry air
-    !
-    !   = kg tracer(N) / kg dry air
-    !
-    ! where:
-    !
-    !  Delta P = edge pressure difference across level
-    !  g = acceleration due to gravity
-    !  kg dry air / kg total air  = 1 - specific humidity
-    !     
-    !====================================================================
-
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L, N ) 
-    DO N = 1, N_TRACERS
-    DO L = 1, LLPAR
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
-!       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)        &
-!                                  * G0_100 / ( State_Met%DELP(I,J,L)  &
-!                                  * 1.e+2_fp * ( 1.e+0_fp - 1.e-3_fp &
-!                                  * State_Met%SPHU(I,J,L) ) )
-!       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)        &
-!                              * State_Met%AREA_M2(I,J,1)               &
-!                              / State_Met%AD(I,J,L)
-
-       ! Convert specific humidity from [g/kg] to [kg/kg]
-       SPHU_kgkg = State_Met%SPHU(I,J,L) * 1.0e-3_fp 
-
-       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
-                                    / ( State_Met%DELP(I,J,L) *         &
-                                    g0_100 * ( 1.0e+0_fp - SPHU_kgkg ) )       
-
-    ENDDO
-    ENDDO
-    ENDDO
-    ENDDO
-    !$OMP END PARALLEL DO
-
-    ! Update tracer units
-    State_Chm%Trac_Units = 'kg/kg dry'
-
-  END SUBROUTINE Convert_Kgm2_to_KgKgDry
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
