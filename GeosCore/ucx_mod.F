@@ -1991,14 +1991,16 @@
 ! !INTERFACE:
 !
       SUBROUTINE EMISS_BASIC( am_I_Root, Input_Opt, State_Met,
-     &                        State_Chm  )
+     &                        State_Chm, RC  )
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_MONTH
+      USE ERROR_MOD,              ONLY : GIGC_Error
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,     ONLY : OptInput     
+      USE GIGC_State_Chm_Mod,     ONLY : ChmState
+      USE GIGC_State_Met_Mod,     ONLY : MetState
+      USE TIME_MOD,               ONLY : GET_MONTH
 !
 ! !INPUT PARAMETERS:
 !
@@ -2009,6 +2011,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      INTEGER,          INTENT(INOUT)  :: RC       ! Failure or success
 !
 ! !REMARKS:
 !  
@@ -2019,20 +2022,21 @@
 !  14 Feb 2014 - R. Yantosca   - Now parallelize main DO loop
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
+!  10 Sep 2015 - E. Lundgren   - Tracer units are now kg/kg dry air (prev v/v)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: I, J, N, N_EMITTED
+      INTEGER              :: I, J, N, N_EMITTED
       REAL(fp)             :: N2O_MULT,OCS_MULT,CFC_MULT,HCFC_MULT
       REAL(fp)             :: DT_YR
-      CHARACTER(LEN=255) :: OUTMSG
+      CHARACTER(LEN=255)   :: OUTMSG
 
       ! Local variables for quantities from Input_Opt
-      LOGICAL            :: LPRT
-      INTEGER            :: N_TRACERS
+      LOGICAL              :: LPRT
+      INTEGER              :: N_TRACERS
       REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
@@ -2042,12 +2046,23 @@
       ! EMISS_BASIC begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Check that tracer units are in kg/kg dry air (ewl, 9/10/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
+         CALL GIGC_Error( 'Incorrect tracer units: ' //
+     &                    State_Chm%Trac_Units, RC, 
+     &                    'Routine EMISS_BASIC in ucx_mod.F' )
+         RETURN
+      ENDIF
+
+      ! Initialize GEOS-Chem tracer array [kg/kg dry]
       STT => State_Chm%Tracers
 
        ! If not correct hour block and day read in new fields
@@ -2081,9 +2096,8 @@
              DO J = 1, JJPAR
              DO I = 1, IIPAR
            
-                ! Set kg/box using vol/vol (see CONVERT_UNITS in DAO_MOD)
+                ! Set kg/kg dry air using vol/vol (ewl, 9/10/15)
                 STT(I,J,1,N_EMITTED) = GRID_EMIT(J,N)
-     &                               * State_Met%AD(I,J,1)   
      &                               / TCVV(N_EMITTED)
 
              ENDDO

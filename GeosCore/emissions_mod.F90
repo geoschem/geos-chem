@@ -227,13 +227,36 @@ CONTAINS
           CALL EMISSCH4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
           IF ( RC /= GIGC_SUCCESS ) RETURN 
        ENDIF
+
+! new
+       ! Convert tracer units to [kg/kg] (ewl, 8/12/15)
+       CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  &
+                                   State_Chm, RC ) 
+       IF ( RC /= GIGC_SUCCESS ) THEN
+          CALL GIGC_Error('Unit conversion error', RC, &
+                          'Routine EMISSIONS_RUN in emissions_mod.F')
+          RETURN
+       ENDIF                         
+! end new (ewl)
    
        ! For UCX, use Seb's routines for stratospheric species for now.
 #if defined( UCX )
        IF ( Input_Opt%LBASICEMIS ) THEN
-          CALL EMISS_BASIC( am_I_Root, Input_Opt, State_Met, State_Chm )
+          CALL EMISS_BASIC( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
        ENDIF
 #endif
+
+! new
+       ! Convert tracer units back to [kg] for Hg (ewl, 8/12/15)
+       ! (keep Hg in Kg for now)
+       CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
+                                   State_Chm, RC ) 
+       IF ( RC /= GIGC_SUCCESS ) THEN
+          CALL GIGC_Error('Unit conversion error', RC, &
+                          'Routine EMISSIONS_RUN in emissions_mod.F')
+          RETURN
+       ENDIF                         
+! end new (ewl)
 
        ! For mercury, use old emissions code for now
        IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
@@ -241,7 +264,7 @@ CONTAINS
        ENDIF
 
 ! new
-       ! Convert tracer units back to [kg/kg] after HEMCO (ewl, 8/12/15)
+       ! Convert tracer units to [kg/kg] (ewl, 8/12/15)
        CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  &
                                    State_Chm, RC ) 
        IF ( RC /= GIGC_SUCCESS ) THEN
