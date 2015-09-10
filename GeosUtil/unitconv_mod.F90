@@ -1087,8 +1087,6 @@ CONTAINS
 !                                    * State_Met%AD(I,J,L)               &
 !                                    / State_Met%AREA_M2(I,J,1) 
 
-       ! Area-independent conversion that preserves order of 
-       ! area-dependent conversion
     ENDDO
     ENDDO
     ENDDO
@@ -1197,7 +1195,7 @@ CONTAINS
        ! Convert specific humidity from [g/kg] to [kg/kg]
        SPHU_kgkg = State_Met%SPHU(I,J,L) * 1.0e-3_fp 
 
-       ! Area-independent conversions
+       ! Area-independent conversion
        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
                                     / ( State_Met%DELP(I,J,L) *         &
                                     g0_100 * ( 1.0e+0_fp - SPHU_kgkg ) )       
