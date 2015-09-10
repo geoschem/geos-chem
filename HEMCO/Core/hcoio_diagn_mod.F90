@@ -291,9 +291,6 @@ CONTAINS
        RETURN
     ENDIF 
 
-    ! testing only
-    write(*,*) 'Writing to diagnostics: collection ', PS
-
     ! Inherit precision from HEMCO 
     Prc = HP
  
@@ -423,9 +420,6 @@ CONTAINS
     ! Write diagnostics 
     !-----------------------------------------------------------------
 
-    ! testing only
-    write(*,*) 'Now loop over diagnostics elements...'
-
     ! Loop over all diagnostics in diagnostics list 
     ThisDiagn => NULL()
     DO WHILE ( .TRUE. )
@@ -450,9 +444,6 @@ CONTAINS
        ELSE
           levIdTmp = -1
        ENDIF
-
-       ! testing only
-       write(*,*) 'Writing ', TRIM(myName)
 
        ! Write out in single precision
        CALL NC_VAR_DEF ( fId, lonId, latId, levIdTmp, timeId, &

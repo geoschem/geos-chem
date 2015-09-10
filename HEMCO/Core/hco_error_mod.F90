@@ -128,15 +128,15 @@ MODULE HCO_Error_Mod
 ! !PRIVATE VARIABLES:
 !
   TYPE :: HcoErr
-     LOGICAL                     :: IsRoot
-     LOGICAL                     :: LogIsOpen
-     INTEGER                     :: Warnings 
-     INTEGER                     :: Verbose
-     INTEGER                     :: nWarnings
-     INTEGER                     :: CurrLoc
-     CHARACTER(LEN=255), POINTER :: Loc(:)
-     CHARACTER(LEN=255)          :: LogFile
-     INTEGER                     :: Lun
+     LOGICAL                     :: IsRoot    =  .FALSE.
+     LOGICAL                     :: LogIsOpen =  .FALSE.
+     INTEGER                     :: Warnings  =  0
+     INTEGER                     :: Verbose   =  0
+     INTEGER                     :: nWarnings =  0
+     INTEGER                     :: CurrLoc   =  -1
+     CHARACTER(LEN=255), POINTER :: Loc(:)    => NULL()
+     CHARACTER(LEN=255)          :: LogFile   =  ''
+     INTEGER                     :: Lun       =  -1
   END TYPE HcoErr
 
   ! MAXNEST is the maximum accepted subroutines nesting level.
@@ -327,7 +327,7 @@ CONTAINS
        IsOpen = .FALSE.
     ELSE
        IsOpen = Err%LogIsOpen
-       
+      
        ! Don't print if this is not the root CPU
        IF ( .NOT. Err%IsRoot ) RETURN
 
