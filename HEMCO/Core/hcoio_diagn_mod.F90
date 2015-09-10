@@ -276,8 +276,24 @@ CONTAINS
        EOI     = .TRUE.
     ENDIF
 
-    IF ( .NOT. DoWrite ) RETURN
- 
+    ! Create current time stamps (to be used to archive time stamps) 
+    CALL HcoClock_Get(sYYYY=YYYY,sMM=MM,sDD=DD,sH=h,sM=m,sS=s,RC=RC)
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    lymd = YYYY*10000 + MM*100 + DD
+    lhms = h   *10000 + m *100 + s
+
+    ! Leave here if it's not time to write diagnostics. On the first 
+    ! time step, set lastYMD and LastHMS to current dates.
+    IF ( .NOT. DoWrite ) THEN
+       IF ( .NOT. DiagnCollection_LastTimesSet(PS) ) THEN
+          CALL DiagnCollection_Set ( COL=PS, LastYMD=lymd, LastHMS=lhms, RC=RC ) 
+       ENDIF
+       RETURN
+    ENDIF 
+
+    ! testing only
+    write(*,*) 'Writing to diagnostics: collection ', PS
+
     ! Inherit precision from HEMCO 
     Prc = HP
  
@@ -328,6 +344,9 @@ CONTAINS
     ! Get prefix
     IF ( PRESENT(PREFIX) ) THEN
        Pfx = PREFIX
+    ELSE
+       CALL DiagnCollection_Get( PS, PREFIX=Pfx, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
     ncFile = TRIM(Pfx)//'.'//Yrs//Mts//Dys//hrs//mns//'.nc'
 
@@ -404,6 +423,9 @@ CONTAINS
     ! Write diagnostics 
     !-----------------------------------------------------------------
 
+    ! testing only
+    write(*,*) 'Now loop over diagnostics elements...'
+
     ! Loop over all diagnostics in diagnostics list 
     ThisDiagn => NULL()
     DO WHILE ( .TRUE. )
@@ -428,6 +450,9 @@ CONTAINS
        ELSE
           levIdTmp = -1
        ENDIF
+
+       ! testing only
+       write(*,*) 'Writing ', TRIM(myName)
 
        ! Write out in single precision
        CALL NC_VAR_DEF ( fId, lonId, latId, levIdTmp, timeId, &
@@ -476,15 +501,9 @@ CONTAINS
     ! Cleanup local variables 
     Deallocate(Arr3D,Arr4D)
     ThisDiagn => NULL()
-    
-    ! Update time stamp on diagnostics
-    CALL HcoClock_Get(sYYYY=YYYY,sMM=MM,sDD=DD,sH=h,sM=m,sS=s,RC=RC)
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    lymd = YYYY*10000 + MM*100 + DD
-    lhms = h   *10000 + m *100 + s
+   
+    ! Archive time stamp 
     CALL DiagnCollection_Set ( COL=PS, LastYMD=lymd, LastHMS=lhms, RC=RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return 
     RC = HCO_SUCCESS

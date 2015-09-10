@@ -27,15 +27,24 @@
 ! manual, and restart. These three collections become automatically
 ! defined during initialization of HEMCO, and diagnostic containers
 ! can be added to them anytime afterwards.
-! The output frequency of the default collection can be specified
-! in the settings section of the HEMCO configuration file 
-! (DiagnFreq), along with its output file prefix (DiagnPrefix). The
-! restart collection always gets an output frequency of 'End', but
-! writing its content to disk can be forced at any given time using
-! routine HcoDiagn\_Write (see below). The manual diagnostics has
-! an output frequency of 'Manual', which means that it's content is
-! never written to disk. Instead, it's fields need to be fetched
-! explicitly in other routine via routine Diagn\_Get. 
+! The output frequency of the default collection can be specified 
+! in the HEMCO configuration file through argument 'DiagnFreq'.
+! This can be a character indicating the output frequency (valid
+! entries are 'Always', 'Hourly', 'Daily', 'Monthly', 'Annually',
+! 'Manual', and 'End') or by two integer strings of format 
+! '00000000 000000' denoting the year-month-day and hour-minute-
+! second output interval, respectively. For example, setting 
+! DiagnFreq to '00000001 000000' would be equivalent to setting
+! it to 'Daily'. A value of '00000000 030000' indicates that the
+! diagnostics shall be written out every 3 hours. 
+!\\
+!\\
+! The restart collection always gets an output frequency of 'End', 
+! but writing its content to disk can be forced at any given time 
+! using routine HcoDiagn\_Write (see below). The manual diagnostics 
+! has an output frequency of 'Manual', which means that its content 
+! is never written to disk. Instead, its fields need to be fetched
+! explicitly from other routines via routine Diagn\_Get. 
 !\\
 !\\ 
 ! The public module variables HcoDiagnIDDefault, HcoDiagnIDManual, 
@@ -124,6 +133,7 @@ MODULE HCO_Diagn_Mod
   PUBLIC  :: DiagnCollection_Set
   PUBLIC  :: DiagnCollection_GetDefaultDelta
   PUBLIC  :: DiagnCollection_IsTimeToWrite
+  PUBLIC  :: DiagnCollection_LastTimesSet
   PUBLIC  :: DiagnFileOpen
   PUBLIC  :: DiagnFileGetNext
   PUBLIC  :: DiagnFileClose
@@ -3641,8 +3651,13 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: DiagnCollection_GetDefaultDelta
-!
+! !IROUTINE: DiagnCollection_GetDefaultDelta returns the default diagnostics
+!  output intervals based on the 'DiagnFreq' entry of the HEMCO configuration
+!  file. This can be one of the following character values: 'Hourly', 'Daily', 
+!  'Monthly', 'Annually', 'Always', or 'End'; or two integer explicitly denoting
+!  the year-month-day and hour-minute-second interval, respectively (format 
+!  00000000 000000). For example, setting DiagnFreq to '00000000 010000' would
+!  be the same as setting it to 'Hourly'.
 !\\
 !\\
 ! !INTERFACE:
@@ -3726,9 +3741,9 @@ CONTAINS
        ! intervals (YYYYMMDD HHMMSS)
        ELSE
           IF ( LEN(TRIM(WriteFreq)) == 15 ) THEN
-             READ(DeltaYMD,'(I8)') WriteFreq(1:8)
-             READ(DeltaHMS,'(I6)') WriteFreq(10:15)
-             IF ( DeltaYMD >= 0 .AND. DeltaHMS >= 0 ) SET=.TRUE. 
+             READ(WriteFreq(1 :8 ), * ) DeltaYMD
+             READ(WriteFreq(10:15), * ) DeltaHMS
+             IF ( DeltaYMD >= 0 .AND. DeltaHMS >= 0 ) SET=.TRUE.
           ENDIF
        ENDIF
 
@@ -3765,8 +3780,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: DiagnCollection_IsTimeToWrite
-!
+! !IROUTINE: Function DiagnCollection_IsTimeToWrite returns true if it is time
+!  to write the provided diagnostics collection (identified by the collection
+!  number) to output. Whether it is time to write the diagnostics is based upon
+!  the current simulation time, the diagnostics output frequency, and the time
+!  span since the last output datetime. 
 !\\
 !\\
 ! !INTERFACE:
@@ -3809,36 +3827,19 @@ CONTAINS
     CALL HcoClock_Get(sYYYY=YYYY,sMM=MM,sDD=DD,sH=h,sM=m,sS=s,RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! testing only
-    write(*,*) 'IsTimeToWrite collection ', PS, ' at ', YYYY, MM, DD, h, m, s
- 
     CALL DiagnCollection_Get( PS, DeltaYMD=dymd, LastYMD=lymd, &
                                   DeltaHMS=dhms, LastHMS=lhms, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! testing only
-    write(*,*) 'DeltaYMD: ', dymd
-    write(*,*) 'LastYMD : ', lymd
-    write(*,*) 'DeltaHMS: ', dhms
-    write(*,*) 'LastHMS : ', lhms
 
     ! Check if we need to write this collection now
     IF ( .NOT. TimeToWrite .AND. dhms > 0 .AND. lhms >= 0 ) THEN
        delta = ( h * 10000 + m * 100 + s ) - lhms
        IF ( delta >= dhms ) TimeToWrite = .TRUE.
-
-       ! testing only
-       write(*,*) 'hms delta: ', delta, TimeToWrite
-
     ENDIF
 
     IF ( .NOT. TimeToWrite .AND. dymd > 0 .AND. lymd >= 0 ) THEN
        delta = ( YYYY * 10000 + MM * 100 + DD ) - lymd
        IF ( delta >= dymd ) TimeToWrite = .TRUE.
-
-       ! testing only
-       write(*,*) 'ymd delta: ', delta, TimeToWrite
-
     ENDIF
 
   END FUNCTION DiagnCollection_IsTimeToWrite
@@ -3848,8 +3849,61 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: DiagnFileOpen
+! !IROUTINE: Function DiagnCollection_LastTimesSet returns true if there 
+!  exists a valid entry for the last datetime that collection PS has been
+!  written to disk. This is primarily important to check if the last 
+!  output date needs be initialized (to non-default values).
+!\\
+!\\
+! !INTERFACE:
 !
+  FUNCTION DiagnCollection_LastTimesSet( PS ) Result ( LastTimesSet )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER, INTENT(IN   )     :: PS   ! Diagnostics collection
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL                    :: LastTimesSet ! Are last times defined or not? 
+!
+! !REVISION HISTORY: 
+!  09 Sep 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER             :: lymd, lhms 
+    INTEGER             :: RC
+    CHARACTER(LEN=255)  :: LOC = 'DiagnCollection_LastTimesSet (hco_diagn_mod.F90)' 
+
+    !=================================================================
+    ! DiagnCollection_LastTimesSet begins here!
+    !=================================================================
+
+    ! Init
+    LastTimesSet = .FALSE.
+ 
+    CALL DiagnCollection_Get( PS, LastYMD=lymd, LastHMS=lhms, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Last time stamp is defined if either of the values is greater equal zero.
+    IF ( lymd >= 0 .OR. lhms >= 0 ) LastTimesSet = .TRUE.
+
+  END FUNCTION DiagnCollection_LastTimesSet
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagnFileOpen is a wrapper routine to open the diagnostics list
+!  file specified by attribute 'DiagnFile' of the HEMCO configuration file.
 !\\
 !\\
 ! !INTERFACE:
@@ -3931,7 +3985,8 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: DiagnFileGetNext
+! !IROUTINE: DiagnFileGetNext returns the diagnostics entries of the next
+!  line of the diagnostics list file. 
 !
 ! !DESCRIPTION: 
 !\\
@@ -4040,8 +4095,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: DiagnFileClose
-!
+! !IROUTINE: DiagnFileClose closes the diagnostics list file.
 !\\
 !\\
 ! !INTERFACE:
