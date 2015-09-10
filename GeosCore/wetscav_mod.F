@@ -5849,10 +5849,10 @@
       ! Convert tracer concentration from mixing ratio (kg/kg dry air) to
       ! mass per unit area (kg/m2) for wet deposition since computation is
       ! done per column (ewl, 9/8/15)
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS,           
-     &                               State_Met, State_Chm, RC )   
-!      CALL Convert_KgKgDry_to_Kgm2( am_I_Root, N_TRACERS,           
+!      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS,           
 !     &                               State_Met, State_Chm, RC )   
+      CALL Convert_KgKgDry_to_Kgm2( am_I_Root, N_TRACERS,           
+     &                               State_Met, State_Chm, RC )   
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP in wetscav_mod.F')
@@ -6223,10 +6223,10 @@
 !$OMP END PARALLEL DO
 
       ! Convert tracer units back to mixing ratio (ewl, 9/8/15)
-!      CALL Convert_Kgm2_to_KgKgDry( am_I_Root, N_TRACERS,           
-!     &                               State_Met, State_Chm, RC )   
-      CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS,           
+      CALL Convert_Kgm2_to_KgKgDry( am_I_Root, N_TRACERS,           
      &                               State_Met, State_Chm, RC )   
+!      CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS,           
+!     &                               State_Met, State_Chm, RC )   
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP in wetscav_mod.F')
@@ -6455,6 +6455,8 @@
       ! done per column (ewl, 9/8/15)
       CALL Convert_KgKgDry_to_Kgm2( am_I_Root, N_TRACERS,
      &                               State_Met, State_Chm, RC )
+!      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS,
+!     &                               State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP_MERRA in wetscav_mod.F')
@@ -6789,6 +6791,8 @@
       ! Convert tracer concentration back to kg/kg dry air (ewl, 9/8/15)
       CALL Convert_Kgm2_to_KgKgDry( am_I_Root, N_TRACERS,
      &                               State_Met, State_Chm, RC )
+!      CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS,
+!     &                               State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
      &                      'WETDEP_MERRA in wetscav_mod.F')
