@@ -543,9 +543,10 @@
       CALL Fill_Chem_State_Name_IDs( am_I_Root, Input_Opt, State_Chm )
 
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
-      ! to the State_Met%AREA_M2 field.  This will let us convert
-      ! HEMCO emissions [kg/m2/s] to [kg] in various routines 
-      ! without the overhead of many function calls. (bmy, 8/22/14)
+      ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)
+      ! NOTE: Most routines now use either mixing ratio or kg/m2
+      ! and are independent of area. Area will eventually be 
+      ! completely removed for grid-independence (ewl, 9/10/15)
       State_Met%AREA_M2 =  AREA_M2
 
       !-----------------------------------------------------------------

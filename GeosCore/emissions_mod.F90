@@ -162,7 +162,6 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    LOGICAL   :: IsInVV
     INTEGER   :: N_TRACERS
  
     !=================================================================
@@ -241,12 +240,20 @@ CONTAINS
           CALL EMISSMERCURY ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
        ENDIF
 
+! new
+       ! Convert tracer units back to [kg/kg] after HEMCO (ewl, 8/12/15)
+       CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  &
+                                   State_Chm, RC ) 
+       IF ( RC /= GIGC_SUCCESS ) THEN
+          CALL GIGC_Error('Unit conversion error', RC, &
+                          'Routine EMISSIONS_RUN in emissions_mod.F')
+          RETURN
+       ENDIF                         
+! end new (ewl)
+
        ! Prescribe some concentrations if needed
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
   
-          ! tracer array is in kg, not v/v
-          IsInVV = .FALSE.
-    
           !========================================================
           !jpp, 2/12/08: putting a call to SET_CH3Br
           !              which is in bromocarb_mod.f
@@ -256,7 +263,7 @@ CONTAINS
           !========================================================
           IF ( Input_Opt%LEMIS .AND. ( IDTCH3Br > 0 ) ) THEN
              CALL SET_CH3BR( am_I_Root, Input_Opt, State_Met, &
-                             IsInVV,    State_Chm, RC )
+                             State_Chm, RC )
           ENDIF
    
           ! ----------------------------------------------------
@@ -265,20 +272,23 @@ CONTAINS
           ! ----------------------------------------------------
           IF ( Input_Opt%LEMIS .AND. ( IDTBrO > 0 ) ) THEN
              CALL SET_BRO( am_I_Root, Input_Opt, State_Met, & 
-                           IsInVV,    State_Chm, RC          )
+                           State_Chm, RC          )
           ENDIF
    
        ENDIF
     ENDIF ! Phase/=1  
+    
+    ! Still need to convert back to kg/kg if phase 1
+    IF ( TRIM( State_Chm%Trac_Units ) == 'kg' ) THEN
+       CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  &
+                                   State_Chm, RC ) 
+       IF ( RC /= GIGC_SUCCESS ) THEN
+          CALL GIGC_Error('Unit conversion error', RC, &
+                          'Routine EMISSIONS_RUN in emissions_mod.F')
+          RETURN
+       ENDIF                         
+    ENDIF
  
-    ! Convert tracer units to [kg] for HEMCO (ewl, 8/12/15)
-    CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  &
-                                State_Chm, RC ) 
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL GIGC_Error('Unit conversion error', RC, &
-                       'Routine EMISSIONS_RUN in emissions_mod.F')
-       RETURN
-    ENDIF                         
 
     ! Return w/ success
     RC = GIGC_SUCCESS

@@ -77,12 +77,13 @@
 ! !INTERFACE:
 !
       SUBROUTINE SET_CH3Br( am_I_Root, Input_Opt, State_Met,
-     &                      unit_flag, State_Chm, RC         )
+     &                      State_Chm, RC         )
 ! 
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
+      USE ERROR_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -94,7 +95,6 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      LOGICAL,        INTENT(IN)    :: unit_flag   ! Convert kg -> v/v?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -118,6 +118,9 @@
 !                              derived type object
 !  24 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Met,
 !                              State_Chm.  Get fields from these objects.
+!  10 Sep 2015 - E. Lundgren - Modification for State_Chm%TRACERS units 
+!                              now in kg/kg dry air (previously kg/box)
+!  10 Sep 2015 - E. Lundgren - Remove passed argument 'unitflag'
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -132,13 +135,13 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: I,  J,  L,  N
-      INTEGER           :: CH3Br_sel
+      INTEGER             :: I,  J,  L,  N
+      INTEGER             :: CH3Br_sel
       REAL(fp)            :: CH3Br_conc
       REAL(fp)            :: LAT_MID
 
       ! For values from Input_Opt
-      INTEGER           :: N_TRACERS
+      INTEGER             :: N_TRACERS
       REAL(fp)            :: TCVV(Input_Opt%N_TRACERS)
       REAL(fp),   POINTER :: STT(:,:,:,:)
 
@@ -171,6 +174,14 @@
          RETURN 
       ENDIF
 
+      ! Check that tracer units are in kg/kg dry air (ewl, 9/10/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
+         CALL GIGC_Error( 'Incorrect tracer units: ' //
+     &                    State_Chm%Trac_Units, RC, 
+     &                    'Routine SET_CH3Br in bromocarb_mod.F' )
+         RETURN
+      ENDIF
+
       !=================================================================
       ! SET_CH3Br begins here!
       !=================================================================
@@ -201,19 +212,10 @@
                CH3Br_conc = lt55S
             ENDIF
 
-            ! Make sure we're using the correct units
-            IF ( unit_flag ) THEN
-               ! if the flag is true, then STT has been
-               ! converted from kg/box to v/v mixing ratio.
-               ! so we must supply v/v
-               STT(I,J,L,CH3Br_sel) = CH3Br_conc
-            ELSE
-               ! Now convert the [v/v] units to [kg]
-               ! as in convert_units subroutine in dao_mod.f
-               STT(I,J,L,CH3Br_sel) = CH3Br_conc * State_Met%AD(I,J,L) /
-     &                                TCVV(CH3Br_sel)
-            ENDIF
-
+            ! Convert the [v/v] CH3Br conc units (dry air) to [kg/kg] 
+            ! when setting tracer concentration (ewl, 9/10/15)
+            STT(I,J,L,CH3Br_sel) = CH3Br_conc / TCVV(CH3Br_sel)
+               
          ENDIF  ! end selection of PBL boxes
 
       ENDDO
@@ -242,13 +244,14 @@
 ! !INTERFACE:
 !
       SUBROUTINE SET_BRO( am_I_Root, Input_Opt, State_Met, 
-     &                    unit_flag, State_Chm, RC         )
+     &                    State_Chm, RC         )
 
 ! 
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_WATER
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -260,7 +263,6 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Met State object
-      LOGICAL,        INTENT(IN)    :: unit_flag   ! Convert kg -> v/v ?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -285,6 +287,9 @@
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  24 Jun 2014 - R. Yantosca - Remove IJLOOP, it's not used anymroe
 !  06 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp)
+!  10 Sep 2015 - E. Lundgren - Modification for State_Chm%TRACERS units 
+!                              now in kg/kg dry air (previously kg/box)
+!  10 Sep 2015 - E. Lundgren - Remove passed argument 'unitflag'
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -292,7 +297,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER         :: I,  J,  L,  N, N_TRACERS, BrO_sel
+      INTEGER           :: I,  J,  L,  N, N_TRACERS, BrO_sel
       REAL(fp)          :: BrO_conc
 
       ! Pointers
@@ -322,7 +327,7 @@
       ! ------------------------------------------------------
       ! Set the BrO concentration to 1 pptv inside the PBL.
       ! ------------------------------------------------------
-      BrO_conc = 1.0d-12
+      BrO_conc = 1.0e-12_fp
 
       ! get ID # for Bro
       DO N = 1, N_TRACERS
@@ -338,6 +343,14 @@
          WRITE( 6, '(a)' ) 'set concentrations in STT'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          RETURN 
+      ENDIF
+
+      ! Check that tracer units are in kg/kg dry air (ewl, 9/10/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
+         CALL GIGC_Error( 'Incorrect tracer units: ' //
+     &                    State_Chm%Trac_Units, RC, 
+     &                    'Routine SET_BrO in bromocarb_mod.F' )
+         RETURN
       ENDIF
 
       !=================================================================
@@ -371,27 +384,34 @@
             ! -----------------------------------------
 
             IF ( State_Met%SUNCOS(I,J) > 0.d0 ) THEN
-               BrO_conc = 1.0d-12 ! 1pptv if daytime
+               BrO_conc = 1.0e-12_fp ! 1pptv if daytime
             ELSE
-               BrO_conc = 0.d0    ! 0 otherwise
+               BrO_conc = 0.e+0_fp    ! 0 otherwise
             ENDIF
 
             DO L = 1, LLPAR
                IF ( GET_FRAC_UNDER_PBLTOP( I, J, L ) > 0d0 ) THEN
 
-                  ! Make sure we're using the correct units
-                  IF ( unit_flag ) THEN
-                     ! If the flag is true, then STT has been
-                     ! converted from kg/box to v/v mixing ratio.
-                     ! so we must supply v/v
-                     STT(I,J,L,BrO_sel) = BrO_conc
-                  ELSE
-                     ! Now convert the [v/v] units to [kg]
-                     ! as in convert_units subroutine in dao_mod.f
-                     STT(I,J,L,BrO_sel) = BrO_conc * 
-     &                                    State_Met%AD(I,J,L) /
-     &                                    TCVV(BrO_sel)
-                  ENDIF
+! old:
+!                  ! Make sure we're using the correct units
+!                  IF ( unit_flag ) THEN
+!                     ! If the flag is true, then STT has been
+!                     ! converted from kg/box to v/v mixing ratio.
+!                     ! so we must supply v/v
+!                     STT(I,J,L,BrO_sel) = BrO_conc
+!                  ELSE
+!                     ! Now convert the [v/v] units to [kg]
+!                     ! as in convert_units subroutine in dao_mod.f
+!                     STT(I,J,L,BrO_sel) = BrO_conc * 
+!     &                                    State_Met%AD(I,J,L) /
+!     &                                    TCVV(BrO_sel)
+!                  ENDIF
+!
+! new:
+                  ! Convert the [v/v] BrO conc units (dry air) to [kg/kg] 
+                  ! when setting tracer concentration (ewl, 9/10/15)
+                  STT(I,J,L,BrO_sel) = BrO_conc / TCVV(BrO_sel)
+! end new (ewl)
 
                ENDIF            ! end selection of PBL boxes
 
