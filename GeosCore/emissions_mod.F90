@@ -189,16 +189,6 @@ CONTAINS
     CALL HCOI_GC_RUN( am_I_Root, Input_Opt, State_Met, State_Chm, & 
                       EmisTime,  Phase,     RC                     ) 
     IF ( RC /= GIGC_SUCCESS ) RETURN 
- 
-    ! The following only needs to be done in phase 2
-    IF ( Phase /= 1 ) THEN 
-
-       ! Call carbon emissions module to make sure that sesquiterpene
-       ! emissions calculated in HEMCO (SESQ) are passed to the internal
-       ! species array in carbon, as well as to ensure that POA emissions
-       ! are correctly treated.
-       CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN 
 
 ! new
        ! Convert tracer units to [kg/kg] (ewl, 8/12/15)
@@ -210,6 +200,16 @@ CONTAINS
           RETURN
        ENDIF                         
 ! end new (ewl)
+ 
+    ! The following only needs to be done in phase 2
+    IF ( Phase /= 1 ) THEN 
+
+       ! Call carbon emissions module to make sure that sesquiterpene
+       ! emissions calculated in HEMCO (SESQ) are passed to the internal
+       ! species array in carbon, as well as to ensure that POA emissions
+       ! are correctly treated.
+       CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN 
 
     ! Call TOMAS emission routines (JKodros 6/2/15)
 #if defined ( TOMAS )
@@ -300,18 +300,6 @@ CONTAINS
        ENDIF
     ENDIF ! Phase/=1  
     
-    ! Still need to convert back to kg/kg if phase 1
-    IF ( TRIM( State_Chm%Trac_Units ) == 'kg' ) THEN
-       CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  &
-                                   State_Chm, RC ) 
-       IF ( RC /= GIGC_SUCCESS ) THEN
-          CALL GIGC_Error('Unit conversion error', RC, &
-                          'Routine EMISSIONS_RUN in emissions_mod.F')
-          RETURN
-       ENDIF                         
-    ENDIF
- 
-
     ! Return w/ success
     RC = GIGC_SUCCESS
    

@@ -5268,11 +5268,11 @@ ccc
 ! defined) are properly passed to the internal arrays. 
 !\\
 !\\
-! POA emissions are expected to be fully calculated by HEMCO, e.g. its emissions
-! need be specified in the HEMCO configuration file. In the original code, the
-! emissions were calculated by scaling anthropogenic, biofuel and biomass burning
-! OC emissions. The same behavior can be achieved in HEMCO by assigning the desired
-! POA tracer name to the given source type, e.g.:
+! POA emissions are expected to be fully calculated by HEMCO, e.g. its 
+! emissions need be specified in the HEMCO configuration file. In the original 
+! code, the emissions were calculated by scaling anthropogenic, biofuel and 
+! biomass burning OC emissions. The same behavior can be achieved in HEMCO 
+! by assigning the desired POA tracer name to the given source type, e.g.:
 !
 !0 BOND\_ANTH .../Bond\_fossil.nc OC 2000/1-12/1/0 C xy kg/m2/s POA1 70/300 1 1
 !
@@ -5280,21 +5280,21 @@ ccc
 ! represent tracer POA1 and POAEMISS(:,:,:,2) represent tracer POG1.
 !\\
 !\\
-! IMPORTANT: the POA emissions scale factor should be applied through HEMCO. In
-! the example above, scale factor 300 represents the scale POA scale factor. The
-! same scale factor should also be applied to the biomass burning extensions.
+! IMPORTANT: the POA emissions scale factor should be applied through HEMCO. 
+! In the example above, scale factor 300 represents the scale POA scale factor.
+! The same scale factor should also be applied to the biomass burning 
+! extensions.
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE EMISSCARBON( am_I_Root, Input_Opt, 
-     &                        State_Met, State_Chm, RC )
+     &                        State_Met, RC )
 !
 ! !USES:
 !
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-      USE GIGC_State_Chm_Mod,    ONLY : ChmState
       USE GIGC_State_Met_Mod,    ONLY : MetState
       USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR
       USE TRACERID_MOD,          ONLY : IDTPOA1, IDTPOG1
@@ -5314,11 +5314,11 @@ ccc
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState),  INTENT(INOUT)  :: State_Chm   ! Chemistry State object
       INTEGER,         INTENT(INOUT)  :: RC          ! Failure?
 ! 
 ! !REVISION HISTORY:
 !  11 Nov 2014 - C. Keller   - Initial version
+!  11 Sep 2015 - E. Lundgren - Remove State_Chm from arguments since not used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
