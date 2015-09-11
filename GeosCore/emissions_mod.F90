@@ -215,18 +215,6 @@ CONTAINS
           CALL EMISSCO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
           IF ( RC /= GIGC_SUCCESS ) RETURN 
        ENDIF
-   
-       ! For CH4 simulation or if CH4 is defined, call EMISSCH4. 
-       ! This will get the individual CH4 emission terms (gas, coal, wetlands, 
-       ! ...) and write them into the individual emissions arrays defined in
-       ! global_ch4_mod (CH4_EMIS). Emissions are all done in mixing_mod, the
-       ! call to EMISSCH4 is for backwards consistency, in particular for the
-       ! ND58 diagnostics.
-       IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
-          ( IDTCH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
-          CALL EMISSCH4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-          IF ( RC /= GIGC_SUCCESS ) RETURN 
-       ENDIF
 
 ! new
        ! Convert tracer units to [kg/kg] (ewl, 8/12/15)
@@ -238,6 +226,18 @@ CONTAINS
           RETURN
        ENDIF                         
 ! end new (ewl)
+   
+       ! For CH4 simulation or if CH4 is defined, call EMISSCH4. 
+       ! This will get the individual CH4 emission terms (gas, coal, wetlands, 
+       ! ...) and write them into the individual emissions arrays defined in
+       ! global_ch4_mod (CH4_EMIS). Emissions are all done in mixing_mod, the
+       ! call to EMISSCH4 is for backwards consistency, in particular for the
+       ! ND58 diagnostics.
+       IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
+          ( IDTCH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
+          CALL EMISSCH4( am_I_Root, Input_Opt, State_Met, RC )
+          IF ( RC /= GIGC_SUCCESS ) RETURN 
+       ENDIF
    
        ! For UCX, use Seb's routines for stratospheric species for now.
 #if defined( UCX )

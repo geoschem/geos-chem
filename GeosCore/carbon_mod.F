@@ -5500,8 +5500,6 @@ ccc
       REAL(fp)                 :: DTSRCE, AREA_M2
 
       ! Arrays
-      REAL(fp), DIMENSION(7)   :: DBGANTHRO
-      REAL(fp), DIMENSION(3)   :: DBGBIO
       REAL(fp)                 :: BCFF(IIPAR, JJPAR, IBINS, 2)
       REAL(fp)                 :: OCFF(IIPAR, JJPAR, IBINS, 2)
       REAL(fp)                 :: BCBF(IIPAR, JJPAR, IBINS, 2)
