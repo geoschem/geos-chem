@@ -865,6 +865,8 @@
       FIRSTCHEM = .FALSE. 
          
       END SUBROUTINE CHEMSULFATE
+!EOC
+#if defined( TOMAS )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -879,13 +881,13 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( TOMAS )
       SUBROUTINE EMISSSULFATETOMAS( am_I_Root, Input_Opt,
      &                         State_Met, State_Chm, RC )
 
 ! !USES:
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -895,6 +897,7 @@
       USE TOMAS_MOD,          ONLY : IBINS,      ICOMP,   IDIAG
       USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
       USE TOMAS_MOD,          ONLY : SRTNH4
+      USE UNITCONV_MOD
 !#endif
 !
 ! !INPUT PARAMETERS:
@@ -918,7 +921,8 @@
       INTEGER       :: TID, I, J, L
       REAL*8        :: MK_TEMP(IBINS)
       INTEGER       :: ii=53, jj=29, ll=1
-
+      INTEGER       :: N_TRACERS
+      
       ! Pointers
       ! We need to define local arrays to hold corresponding values
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
@@ -927,6 +931,21 @@
       !=================================================================
       ! EMISSSULFATETOMAS begins here!
       !=================================================================
+
+      ! Set number of tracers for unit conversion (ewl, 9/11/15)
+      N_TRACERS = Input_Opt%N_TRACERS
+
+      ! Convert State_Chm%Tracers from [kg/kg dry air] to [kg] for TOMAS.
+      ! This will be removed once TOMAS uses mixing ratio instead of mass 
+      ! as tracer units (ewl, 9/11/15)
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  
+     &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'Routine EMISSSULFATETOMAS in sulfate_mod.F')
+         RETURN
+      ENDIF 
+
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       STT => State_Chm%Tracers
 
@@ -975,13 +994,21 @@
      &        BINMASS(:,:,:,1:IBINS*(ICOMP-IDIAG))
       ENDIF
 
-
       ! Free pointer
       NULLIFY( STT )
 
-      END SUBROUTINE EMISSSULFATETOMAS
-#endif
+      ! Convert State_Chm%Tracers back to kg (ewl, 9/11/15)
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  
+     &                             State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'Routine EMISSSULFATETOMAS in sulfate_mod.F')
+         RETURN
+      ENDIF  
 
+      END SUBROUTINE EMISSSULFATETOMAS
+!EOC
+#endif
 !
 !-----------------------------------------------------------------------------
 !                  Jack Kodros re-writing this

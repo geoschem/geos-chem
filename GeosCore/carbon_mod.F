@@ -5454,8 +5454,8 @@ ccc
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD
+      USE UNITCONV_MOD
 !
 ! TOMAS DIAGNs:
 !
@@ -5567,6 +5567,17 @@ ccc
 
       ! Grid box aarea
       AREA = HcoState%Grid%AREA_M2%Val(:,:)
+
+      ! Convert State_Chm%Tracers from [kg/kg dry air] to [kg] for TOMAS.
+      ! This will be removed once TOMAS uses mixing ratio instead of mass 
+      ! as tracer units (ewl, 9/11/15)
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  
+     &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                     'Routine EMISSSULFATETOMAS in sulfate_mod.F')
+         RETURN
+      ENDIF 
 
       ! ---------BC---------------------------------------------------
       DgnName = 'BCPI_ANTH'
@@ -5809,6 +5820,15 @@ ccc
      &    CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
 
       ENDIF  ! size resolved > 0
+
+      ! Convert State_Chm%Tracers back to kg (ewl, 9/11/15)
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  
+     &                             State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'Routine EMISSSULFATETOMAS in sulfate_mod.F')
+         RETURN
+      ENDIF  
 
       END SUBROUTINE EMISSCARBONTOMAS
 #endif

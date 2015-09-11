@@ -200,13 +200,6 @@ CONTAINS
        CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN 
 
-    ! Call TOMAS emission routines (JKodros 6/2/15)
-#if defined ( TOMAS )
-       CALL EMISSCARBONTOMAS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-    
-       CALL EMISSSULFATETOMAS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-#endif
-
 ! new
        ! Convert tracer units to [kg/kg] (ewl, 8/12/15)
        CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  &
@@ -217,6 +210,13 @@ CONTAINS
           RETURN
        ENDIF                         
 ! end new (ewl)
+
+    ! Call TOMAS emission routines (JKodros 6/2/15)
+#if defined ( TOMAS )
+       CALL EMISSCARBONTOMAS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+    
+       CALL EMISSSULFATETOMAS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+#endif
    
        ! For CO2 simulation, emissions are not added to STT in mixing_mod.F90 
        ! because the HEMCO CO2 species are not GEOS-Chem tracers. The emissions
