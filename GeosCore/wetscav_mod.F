@@ -943,6 +943,7 @@
 #if defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS
       USE TOMAS_MOD,          ONLY : GETFRACTION
+      USE ERROR_MOD
       USE UNITCONV_MOD
 #endif
 !
@@ -4405,6 +4406,7 @@
 
 #if defined( TOMAS )
       USE TOMAS_MOD,    ONLY : IBINS,    ICOMP
+      USE ERROR_MOD
       USE UNITCONV_MOD
 #endif
 !
