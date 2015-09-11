@@ -133,14 +133,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_Init( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+  SUBROUTINE HCOI_GC_Init( am_I_Root, Input_Opt, State_Met, RC ) 
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE TIME_MOD,           ONLY : GET_TS_EMIS, GET_TS_DYN
     USE TIME_MOD,           ONLY : GET_TS_CHEM
     USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -161,7 +160,6 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -175,6 +173,7 @@ CONTAINS
 !  30 Sep 2014 - R. Yantosca  - Now pass fields for aerosol and microphysics
 !                               options to extensions via HcoState
 !  13 Feb 2015 - C. Keller    - Now read configuration file in two steps.
+!  11 Sep 2015 - E. Lundgren  - Remove State_Chm as passed arg since not used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -217,7 +216,7 @@ CONTAINS
     IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Config_ReadFile', LOC )
 
     ! Check settings
-    CALL CheckSettings( am_I_Root, Input_Opt, State_Met, State_Chm, HMRC )
+    CALL CheckSettings( am_I_Root, Input_Opt, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'CheckSettings', LOC )
 
     ! Phase 2: read fields
@@ -590,7 +589,7 @@ CONTAINS
           RETURN 
        ENDIF 
    
-       CALL ExtState_UpdateFields( am_I_Root, State_Met, State_Chm, RC )
+       CALL ExtState_UpdateFields( am_I_Root, State_Met, RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
    
        !=======================================================================
@@ -1309,32 +1308,27 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_UpdateFields( am_I_Root, State_Met, State_Chm, RC ) 
+  SUBROUTINE ExtState_UpdateFields( am_I_Root, State_Met, RC ) 
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
     USE ERROR_MOD,             ONLY : ERROR_STOP
     USE GIGC_State_Met_Mod,    ONLY : MetState
-    USE GIGC_State_Chm_Mod,    ONLY : ChmState
     USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
-
     USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
-
     USE FAST_JX_MOD,           ONLY : FJXFUNC
     USE COMODE_LOOP_MOD,       ONLY : NCS, JPHOTRAT, NRATES
     USE COMODE_LOOP_MOD,       ONLY : NAMEGAS, IRM
-
     USE HCO_GeoTools_Mod,      ONLY : HCO_GetSUNCOS
 #if defined(ESMF_) 
-    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
+    USE HCOI_ESMF_MOD,         ONLY : HCO_SetExtState_ESMF
 #endif
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1345,6 +1339,7 @@ CONTAINS
 !  20 Aug 2014 - M. Sulprizio- Add PBL_MAX and FRAC_OF_PBL for POPs simulation
 !  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
 !  11 Mar 2015 - R. Yantosca - Now call GET_SZAFACT in this module
+!  11 Sep 2015 - E. Lundgren - Remove State_Chm from passed args since not used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2300,13 +2295,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CheckSettings( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+  SUBROUTINE CheckSettings( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE ERROR_MOD,          ONLY : ERROR_STOP
 
     USE HCO_ExtList_Mod,    ONLY : GetExtNr,  SetExtNr
@@ -2316,8 +2309,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2331,6 +2322,7 @@ CONTAINS
 !  16 Mar 2015 - R. Yantosca - Now also toggle TOMS_SBUV_O3 based on
 !                              met field type and input.geos settings
 !  25 Mar 2015 - C. Keller   - Added switch for STATE_PSC (for UCX)
+!  11 Sep 2015 - E. Lundgren - Remove State_Met and State_Chm from passed args
 !EOP
 !------------------------------------------------------------------------------
 
