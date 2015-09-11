@@ -2196,6 +2196,9 @@ CONTAINS
 !                                interpolation code by G.C.M. Vinken and 
 !                                M. Payer. LUT now includes wind speed.
 !  04 Feb 2015 - C. Keller     - Updated for use in HEMCO.
+!  11 Sep 2015 - E. Lundgren   - ExtState vars O3, NO2, and NO now in
+!                                kg/kg dry air (previously kg)
+!  11 Sep 2015 - E. Lundgren   - Removed air mass variable 'AIR'
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2207,7 +2210,6 @@ CONTAINS
    REAL(sp)                   :: WEIGHT
    REAL(sp)                   :: DENS, JNO2, JO1D, JOH, TAIR
    REAL(sp)                   :: H2O
-   REAL(sp)                   :: AIR
    REAL*8                     :: MOE
 
    ! Interpolation variables, indices, and weights
@@ -2227,11 +2229,9 @@ CONTAINS
    ! PARANOX_LUT begins here!
    !=================================================================
 
-   ! Air mass, kg
-   AIR  = ExtState%AIR%Arr%Val(I,J,1)
-
    ! Air density, molec/cm3
-   DENS = AIR                            * 1.e3_sp             &
+   ! NOTE: ExtState%AIR is dry air mass per box (ewl, 9/11/15)
+   DENS = ExtState%AIR%Arr%Val(I,J,1)    * 1.e3_sp             &
         / ExtState%AIRVOL%Arr%Val(I,J,1) / HcoState%Phys%AIRMW &
         * HcoState%Phys%Avgdr            / 1.e6_sp
 
@@ -2256,6 +2256,8 @@ CONTAINS
       JO1D = ExtState%JO1D%Arr%Val(I,J)
 
       ! H2O, molec/cm3. Get from specific humidity, which is in kg/kg.
+      ! NOTE: SPHU is mass H2O / mass total air so use of dry air molecular
+      ! weight is slightly inaccurate. C (ewl, 9/11/15)
       H2O = ExtState%SPHU%Arr%Val(I,J,1) * DENS &
           * HcoState%Phys%AIRMW / MWH2O 
          
@@ -2296,11 +2298,19 @@ CONTAINS
 
    ! J(NO2), 1/s
    VARS(2) = JNO2                           
-      
+ 
+! old     
+!   ! O3 concentration in ambient air, ppb
+!   VARS(3) = ExtState%O3%Arr%Val(I,J,1) / AIR   &
+!           * HcoState%Phys%AIRMW        / MW_O3 &
+!           * 1.e9_sp
+! new
    ! O3 concentration in ambient air, ppb
-   VARS(3) = ExtState%O3%Arr%Val(I,J,1) / AIR   &
+   ! NOTE: ExtState%O3 units are now kg/kg dry air (ewl, 9/11/15)
+   VARS(3) = ExtState%O3%Arr%Val(I,J,1)         &
            * HcoState%Phys%AIRMW        / MW_O3 &
            * 1.e9_sp
+! end new (ewl)
 
    ! Solar elevation angle, degree
    ! SEA0 = SEA when emitted from ship, 5-h before current model time
@@ -2320,12 +2330,22 @@ CONTAINS
       ENDIF
    ENDIF
 
+! old
+!   ! NOx concetration in ambient air, ppt
+!   VARS(7) = ( ( ExtState%NO%Arr%Val(I,J,1)  / AIR        &
+!           *     HcoState%Phys%AIRMW         / MW_NO  )   &
+!           +   ( ExtState%NO2%Arr%Val(I,J,1) / AIR        &
+!           *     HcoState%Phys%AIRMW         / MW_NO2 ) ) &
+!           * 1.e12_sp
+! new
    ! NOx concetration in ambient air, ppt
-   VARS(7) = ( ( ExtState%NO%Arr%Val(I,J,1)  / AIR        &
+   ! NOTE: ExtState vars NO and NO2 units are now kg/kg dry air (ewl, 9/11/15)
+   VARS(7) = ( ( ExtState%NO%Arr%Val(I,J,1)               &
            *     HcoState%Phys%AIRMW         / MW_NO  )   &
-           +   ( ExtState%NO2%Arr%Val(I,J,1) / AIR        &
+           +   ( ExtState%NO2%Arr%Val(I,J,1)              &
            *     HcoState%Phys%AIRMW         / MW_NO2 ) ) &
            * 1.e12_sp
+! end new (ewl)
 
       ! Wind speed, m/s
    VARS(8) = SQRT( ExtState%U10M%Arr%Val(I,J)**2 & 
@@ -2341,7 +2361,7 @@ CONTAINS
 !      write(*,*) 'VARS(6): ', VARS(6)
 !      write(*,*) 'VARS(7): ', VARS(7)
 !      write(*,*) 'VARS(8): ', VARS(8)
-!      write(*,*) 'AIR    : ', AIR 
+!      write(*,*) 'AIR    : ', ExtState%AIR%Arr%Val(I,J,1) 
 !      write(*,*) 'AIRMW  : ', HcoState%Phys%AIRMW
 !      write(*,*) 'MWNO, NO2, O3: ', MW_NO, MW_NO2, MW_O3
 !      write(*,*) 'O3conc: ', ExtState%O3%Arr%Val(I,J,1) 
