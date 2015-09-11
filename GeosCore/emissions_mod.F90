@@ -207,15 +207,6 @@ CONTAINS
        CALL EMISSSULFATETOMAS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #endif
 
-   
-       ! For CO2 simulation, emissions are not added to STT in mixing_mod.F90 
-       ! because the HEMCO CO2 species are not GEOS-Chem tracers. The emissions
-       ! thus need to be added explicitly, which is done in EMISSCO2.
-       IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
-          CALL EMISSCO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-          IF ( RC /= GIGC_SUCCESS ) RETURN 
-       ENDIF
-
 ! new
        ! Convert tracer units to [kg/kg] (ewl, 8/12/15)
        CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  &
@@ -226,6 +217,14 @@ CONTAINS
           RETURN
        ENDIF                         
 ! end new (ewl)
+   
+       ! For CO2 simulation, emissions are not added to STT in mixing_mod.F90 
+       ! because the HEMCO CO2 species are not GEOS-Chem tracers. The emissions
+       ! thus need to be added explicitly, which is done in EMISSCO2.
+       IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
+          CALL EMISSCO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+          IF ( RC /= GIGC_SUCCESS ) RETURN 
+       ENDIF
    
        ! For CH4 simulation or if CH4 is defined, call EMISSCH4. 
        ! This will get the individual CH4 emission terms (gas, coal, wetlands, 
