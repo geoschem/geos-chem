@@ -3940,11 +3940,15 @@
       ! Prados-Roman et al. (2011). O3 used to convert BrO to Br is 5
       ! ppb, based on data from Pohler et al. (2010).
       !----------------------------------------------------------------
-      SWRAD = State_Met%RADSWG(I,J) ! TADSWG is assigned SWGDN if MERRA/GEOS-FP
-#if   defined( MERRA ) || defined( GEOS_FP)
+! KLUDGE: can't get SWGDN in State_Met; add this later (jaf)
+#if   defined( MERRA ) || defined( GEOS_FP) || defined( MERRA2)
+!      SWRAD         = State_Met%SWGDN(I,J)
+      SWRAD = State_Met%RADSWG(I,J)
+! END KLUDGE
       IS_MOSTLY_ICE = ( State_Met%SEAICE00(I,J) <= 0.5e+0_fp .AND.
      &                  State_Met%SEAICE90(I,J) < 1e+0_fp )
 #else
+      SWRAD = State_Met%RADSWG(I,J)
       IS_MOSTLY_ICE = ( State_Met%LWI(I,J) == 2 )
 #endif
 

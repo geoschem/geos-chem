@@ -754,8 +754,11 @@
       DTSRCE = GET_TS_EMIS() * 60e+0_fp      
 
 ! Warning for non-MERRA (jaf, 6/19/13)
+! NOTE:  Incident shortwave radiation is currently only available for
+! GEOS-FP and MERRA-2 in GEOS-Chem. It is available from MERRA data sets
+! but is not currently stored in State_Met (ewl, 9/14/15) 
       IF ( FIRSTTIME ) THEN 
-#if !defined( MERRA )
+#if !defined( MERRA2 ) || !defined( GEOS_FP )
          WRITE( 6, * ) 'WARNING: Snow emission parameterization '//
      &        'designed for use with incident '
          WRITE( 6, * ) 'shortwave radiation. Only net shortwave '//
@@ -796,9 +799,18 @@
          SWRAD  = 0e+0_fp
 
          ! Set solar radiation @ ground
-         ! NOTE: For MERRA and GEOS-FP, solar radiation at ground is read
-         ! in as SWGDN but assigned to variable RADSWG (ewl, 8/26/15)
+         ! NOTE: State_Met%RADSWG represents surface incident shortwave
+         ! flux for GEOS-FP and MERRA-2 and net shortwave radiation at 
+         ! ground for all other MET fields. Surface incident shortwave
+         ! flux is available for GMAO but is not stored globally 
+         ! (ewl, 8/26/15)
+! KLUDGE: can't get SWGDN in State_Met; add this later (jaf)
+!#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+!         SWRAD = State_Met%SWGDN(I,J)
+!#else       
          SWRAD = State_Met%RADSWG(I,J)
+!#endif
+! END KLUDGE
 
          ! Compute K_EMIT
          K_EMIT = K_EMIT_0 * SWRAD
