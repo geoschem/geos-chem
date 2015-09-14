@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -15,16 +15,17 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD
+
       IMPLICIT NONE
-#     include "define.h" 
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: GET_C2H6_ANTHRO
-      PUBLIC  :: EMISSC2H6
       PUBLIC  :: CHEMC2H6
       PUBLIC  :: CLEANUP_C2H6
+      PUBLIC  :: INIT_C2H6
 !
 ! PRIVATE DATA MEMBERS:
 !
@@ -56,6 +57,11 @@
 !  (7 ) Now modified
 !  22 Mar 2012 - M. Payer    - Add function GET_C2H6_ANTHRO
 !  22 Mar 2012 - M. Payer    - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  11 Apr 2014 - R. Yantosca - Now declare INIT_C2H6 public, so that it can
+!                              be called from input_mod.F
+!  20 Jun 2014 - R. Yantosca - Remove obsolete code now replaced by HEMCO
+!  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -63,15 +69,18 @@
 ! !DEFINED PARAMETERS:
 !
       ! Molecular weight of C2H6 [kg/mole]
-      REAL*8, PARAMETER   :: FMOL_C2H6 = 30d-3
+      REAL(fp), PARAMETER   :: FMOL_C2H6 = 30e-3_fp
 
       ! Ratio of [molec C2H6/kg C2H6]
-      REAL*8, PARAMETER   :: XNUMOL_C2H6 = 6.022d+23/FMOL_C2H6
+      REAL(fp), PARAMETER   :: XNUMOL_C2H6 = 6.022e+23_fp/FMOL_C2H6
 !
 ! PRIVATE TYPES:
 !
       ! Global monthly mean natural gas C2H6 emissions
-      REAL*8, ALLOCATABLE :: NGASC2H6(:,:)
+      REAL(fp), ALLOCATABLE :: NGASC2H6(:,:)
+
+      ! Pointer to the OH field in the HEMCO list
+      REAL(f4), POINTER     :: OH (:,:,:) => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -79,269 +88,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: emissc2h6
-!
-! !DESCRIPTION: Subroutine EMISSC2H6 reads in C2H6 emissions for the Tagged
-!  C2H6 run. (xyp, qli, bmy, 7/21/00, 4/5/06)
-!\\
-!\\
-! !INTERFACE:
-!
-#if defined( DEVEL )      
-      SUBROUTINE EMISSC2H6(EMISS, BIO_EMISS)
-#else
-      SUBROUTINE EMISSC2H6
-#endif
-!
-! !USES:
-!
-      USE BIOMASS_MOD,   ONLY : BIOMASS
-      USE TRACERID_MOD,  ONLY : IDBC2H6      
-      USE BIOFUEL_MOD,   ONLY : BIOFUEL, BIOFUEL_BURN
-      USE DIAG_MOD,      ONLY : AD36
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE GEIA_MOD,      ONLY : READ_C3H8_C2H6_NGAS, TOTAL_FOSSIL_TG
-      USE GRID_MOD,      ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,   ONLY : LSPLIT, LBIOMASS, LBIOFUEL, LANTHRO
-      USE TIME_MOD,      ONLY : GET_MONTH, GET_TS_EMIS
-      USE TRACER_MOD,    ONLY : STT
-      USE TRACER_MOD,    ONLY : ITS_A_C2H6_SIM
-      USE TRACERID_MOD,  ONLY : IDBFC2H6, IDEC2H6, IDTC2H6
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_O3_MOD          ! EMISTC2H6
-      USE CMN_DIAG_MOD        ! Diagnostic arrays & switches
-      USE CMN_MOD             ! STT, etc.
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-#if defined( DEVEL )
-      REAL*8, INTENT(INOUT)  :: EMISS(IIPAR,JJPAR)
-      REAL*8, INTENT(INOUT)  :: BIO_EMISS(:,:,:)
-#endif
-!
-! !REVISION HISTORY:
-!  (1 ) BURNEMIS and BIOFUEL are now dimensioned with IIPAR,JJPAR instead of
-!        IIPAR,JJPAR.  Remove BXHEIGHT from the arg list, since ND28 and ND36
-!        diags are archived in BIOBURN and BIOFUEL_BURN.  Now use routine
-!        TRANSFER_2D from "transfer_mod.f" to cast from REAL*4 to REAL*8.
-!        Now print emission totals for C2H6 emissions to stdout. (bmy, 1/25/02)
-!  (2 ) Eliminated obsolete code from 1/02 (bmy, 2/27/02)
-!  (3 ) Now references IDBC2H6 etc from "tracerid_mod.f".  Now make FIRSTEMISS
-!        a local SAVEd variable instead of an argument. (bmy, 11/15/02)
-!  (4 ) Now use GET_AREA_CM2 from "grid_mod.f" to get grid box surface
-!        area in cm2.  Remove references to DXYP.  Use routines GET_MONTH
-!        and GET_TS_EMIS from "time_mod.f".  Remove MONTH from call to
-!        BIOBURN. (bmy, 2/11/03)
-!  (5 ) Now replace CMN_SETUP w/ references from "logical_mod.f" and
-!        "directory_mod.f".  Now references STT from "tracer_mod.f".
-!        Replace LFOSSIL with LANTHRO (bmy, 7/20/04)
-!  (6 ) Now make sure all USE statements are USE, ONLY.  Also eliminate 
-!        reference to BPCH2_MOD, it's obsolete. (bmy, 10/3/05)
-!  (7 ) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
-!  (8 ) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
-!        [atoms C/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
-!  (9 ) Now IDBC2H6 is defined in TRACERID_MOD. (fp, hotp , 7/31/09)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
-!  22 Mar 2012 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
-      INTEGER, SAVE          :: LASTMONTH  = -99
-      INTEGER                :: I, J, L, AS
-      REAL*4                 :: ARRAY(IIPAR,JJPAR)
-      REAL*8                 :: AREA_CM2,    XTAU  
-      REAL*8                 :: E_C2H6_BB,   E_C2H6_BF
-      REAL*8                 :: E_C2H6_NGAS, DTSRCE
-      CHARACTER(LEN=255)     :: FILENAME
-!
-! !EXTERNAL FUNCTIONS:
-!
-      REAL*8, EXTERNAL       :: BOXVL
-
-      !=================================================================
-      ! EMISS_C2H6 begins here!
-      !=================================================================
-      IF ( FIRSTEMISS ) THEN 
-
-         ! Allocate NGASC2H6 array, if this is the first emission 
-         CALL INIT_C2H6
-
-         ! Set first-time flag to false
-         FIRSTEMISS = .FALSE.
-      ENDIF
-
-      ! DTSRCE is the number of seconds per emission timestep
-      DTSRCE = GET_TS_EMIS() * 60d0
-
-      !=================================================================
-      ! Process biomass C2H6 emissions ored in BURNEMIS(IDBC2H6,:,:) 
-      ! in [molec C/cm3/s].  Convert to [kg C2H6] and store in STT.
-      !=================================================================
-      IF ( LBIOMASS ) THEN
-
-         ! Only process biomass C2H6 emissions if offline C2H6 sim.
-         ! For fullchem sim, C2H6 biomass emissions are read from GFED2/3. 
-         ! (mpayer, 3/22/12)
-         IF ( ITS_A_C2H6_SIM() ) THEN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, AREA_CM2, E_C2H6_BB )
-            ! Loop over lats & lons
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-
-                  ! Grid box area [cm2]
-                  AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-            
-                  ! Convert [atoms C/cm2/s] to [kg C2H6] and store in E_C2H6
-                  E_C2H6_BB = BIOMASS(I,J,IDBC2H6)   / 2.0d0  / 
-     &                        XNUMOL_C2H6 * AREA_CM2 * DTSRCE  
-
-                  ! Add BB C2H6 to tracer #1 -- total C2H6 [kg C2H6]
-                  STT(I,J,1,1) = STT(I,J,1,1) + E_C2H6_BB  
-
-                  ! Add BB C2H6 to tracer #2 -- BB C2H6
-                  IF ( LSPLIT ) THEN
-                     STT(I,J,1,2) = STT(I,J,1,2) + E_C2H6_BB 
-                  ENDIF
-
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-      ENDIF
-      
-      !=================================================================
-      ! Process biofuel C2H6 emissions stored in BIOFUEL(IDBFC2H6,:,:) 
-      ! in [molec C/cm3/s.  Convert to [kg C2H6] and store in STT. 
-      !=================================================================
-      IF ( LBIOFUEL ) THEN
-
-         ! Only read biofuel burning emissions if offline C2H6 sim in order
-         ! to avoid double counting of biofuel emissions in fullchem sim
-         ! (mpayer, 3/22/12)
-         IF ( ITS_A_C2H6_SIM() ) THEN
-
-            ! Read biofuel burning emissions (and update ND34 diagnostic)
-#if defined( DEVEL )
-            CALL BIOFUEL_BURN( BIO_EMISS )
-#else
-            CALL BIOFUEL_BURN
-#endif
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, E_C2H6_BF )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
- 
-               ! Convert [molec C/cm3/s] to [kg C2H6] and store in E_C2H6
-               E_C2H6_BF = BIOFUEL(IDBFC2H6,I,J) / 2.0d0 / 
-     &                     XNUMOL_C2H6 * BOXVL(I,J,1) * DTSRCE  
-
-               ! Add BF C2H6 to tracer #1 -- total C2H6 [kg C2H6]
-               STT(I,J,1,1) = STT(I,J,1,1) + E_C2H6_BF
-
-               ! Add BF C2H6 to tracer #3 -- BF C2H6
-               IF ( LSPLIT ) THEN
-                  STT(I,J,1,3) = STT(I,J,1,3) + E_C2H6_BF 
-               ENDIF
-
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-      ENDIF
-
-      !=================================================================
-      ! Process anthro (natural gas venting/leakage) C2H6 emissions
-      ! This source is 6.3 Tg C/yr, following Wang et al. [1998].
-      ! The distribution follows natural gas venting/leakage of CH4.
-      ! Contact: Yaping Xiao (xyp@io.harvard.edu)
-      !=================================================================
-      IF ( LANTHRO ) THEN 
-
-         ! Read C2H6 emissions only if it's a new month
-         IF ( GET_MONTH() /= LASTMONTH ) THEN
-
-            ! Fancy output...
-            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-            WRITE( 6, '(a)' ) 'EMISSC2H6: Reading anthro C2H6!'
-
-            ! Read C2H6 emissions [atoms C/cm2/s]
-            CALL READ_C3H8_C2H6_NGAS( E_C2H6=ARRAY )
-            
-            ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-            CALL TRANSFER_2D( ARRAY, NGASC2H6 )
-
-            ! Print emission totals in Tg C
-            CALL TOTAL_FOSSIL_TG( NGASC2H6, IIPAR, JJPAR, 
-     &                            1,        12d-3, 'C2H6' )
-
-            ! Fancy output...
-            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-
-            ! Save current month in LASTMONTH
-            LASTMONTH = GET_MONTH()
-         ENDIF
-
-         ! Only add anthro emissions to STT if offline C2H6 sim. For
-         ! fullchem sim, this is done in emfossil (mpayer, 3/22/12)
-         IF ( ITS_A_C2H6_SIM() ) THEN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, AREA_CM2, E_C2H6_NGAS  )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-
-               ! Grid box surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-
-               ! Convert NGAS C2H6 from [atoms C/cm2/s] to [kg C2H6]
-               E_C2H6_NGAS = NGASC2H6(I,J) / 2.0d0  /
-     &                       XNUMOL_C2H6 * AREA_CM2 * DTSRCE 
-
-               ! Add NGAS C2H6 to tracer #1 -- total C2H6 [kg C2H6]
-               STT(I,J,1,1) = STT(I,J,1,1) + E_C2H6_NGAS
-
-               ! Add NGAS C2H6 to tracer #4 -- NGAS C2H6
-               IF ( LSPLIT ) THEN
-                  STT(I,J,1,4) = STT(I,J,1,4) + E_C2H6_NGAS 
-               ENDIF
-
-               ! ND36 = Anthro source diagnostic...store as [moleC/cm2]
-               ! and convert to [moleC/cm2/s] in DIAG3.F
-               IF ( ND36 > 0 ) THEN
-                  AD36(I,J,IDEC2H6) = AD36(I,J,IDEC2H6) + 
-     &                              ( NGASC2H6(I,J) * DTSRCE )
-               ENDIF
-  
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-      ENDIF
-         
-#if defined( DEVEL )
-      EMISS(:,:) = EMISS(:,:) + NGASC2H6(:,:)
-#endif
-
-      END SUBROUTINE EMISSC2H6
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -353,17 +100,33 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMC2H6
+      SUBROUTINE CHEMC2H6( am_I_Root, Input_Opt,
+     &                     State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : AIRVOL,    T
-      USE GLOBAL_OH_MOD, ONLY : OH,        GET_GLOBAL_OH
-      USE LOGICAL_MOD,   ONLY : LSPLIT 
-      USE TIME_MOD,      ONLY : GET_MONTH, GET_TS_CHEM
-      USE TRACER_MOD,    ONLY : N_TRACERS, STT
+      USE CMN_SIZE_MOD
+      USE Error_Mod,          ONLY : Error_Stop
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+      USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
 
-      USE CMN_SIZE_MOD        ! Size parameters
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now do chemistry all the way to the model top. 
@@ -376,38 +139,72 @@
 !  (5 ) Now reference STT & N_TRACERS from "tracer_mod.f".  Now reference 
 !        LSPLIT from "logical_mod.f" (bmy, 7/20/04)
 !  22 Mar 2012 - M. Payer    - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
+!  06 Nov 2014 - M. Yannetti - Converted REAL*8 to REAL(fp)
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
-      INTEGER, SAVE          :: LASTMONTH = -99
-      INTEGER                :: I, J, L, N
-      REAL*8                 :: DTCHEM, KRATE
-!
-! !EXTERNAL FUNCTIONS:
-!
-      REAL*8, EXTERNAL       :: BOXVL
+      ! SAVEd scalars
+      LOGICAL, SAVE      :: FIRSTCHEM = .TRUE.
+      INTEGER, SAVE      :: LASTMONTH = -99
+
+      ! Scalars
+      LOGICAL            :: LSPLIT
+      INTEGER            :: N_TRACERS, MONTH
+      INTEGER            :: I, J, L, N
+      REAL(fp)           :: DTCHEM, KRATE
+
+      ! Strings
+      CHARACTER(LEN=255) :: LOC = 'CHEMPOPS (pops_mod.F)'
+
+      ! Pointers
+      REAL(fp), POINTER  :: STT(:,:,:,:) => NULL()
 
       !=================================================================
       ! CHEMC2H6 begins here! 
       !=================================================================
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Get fields from Input_Opt
+      LSPLIT    = Input_Opt%LSPLIT
+      N_TRACERS = Input_Opt%N_TRACERS
+
       IF ( FIRSTCHEM ) THEN
          FIRSTCHEM = .FALSE.  ! save for future use?
       ENDIF
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM = GET_TS_CHEM() * 60e+0_fp
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
+      ! Get current month
+      MONTH = GET_MONTH()
 
       !=================================================================
       ! Read in the tropospheric OH fields of the (LMN)th month
       ! OH data will be saved into the OH array of "global_oh_mod.f" 
       !=================================================================
-      IF ( GET_MONTH() /= LASTMONTH ) THEN
-         CALL GET_GLOBAL_OH( GET_MONTH() )
-         LASTMONTH = GET_MONTH()
+      IF ( MONTH /= LASTMONTH ) THEN
+         
+         ! Get a pointer to the HEMCO data structure (bmy, 3/11/15)
+         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,  RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
+         ENDIF
+
+         LASTMONTH = MONTH
       ENDIF
 
       !=================================================================
@@ -428,11 +225,11 @@
       DO I = 1, IIPAR
          
          ! Loss rate [molec2 C2H6/cm6/s]^-1
-         KRATE = 8.7d-12 * EXP( -1070.0d0 / T(I,J,L) )
+         KRATE = 8.7e-12_fp * EXP( -1070.0e+0_fp / State_Met%T(I,J,L) )
 
          ! Apply loss to total C2H6 (tracer #1)
          STT(I,J,L,1) = STT(I,J,L,1) *
-     &                  ( 1d0 - KRATE * OH(I,J,L) * DTCHEM )
+     &                  ( 1e+0_fp - KRATE * OH(I,J,L) * DTCHEM )
 
          ! If we are running w/ tagged tracers,
          ! then also apply the loss to each of these
@@ -442,7 +239,7 @@
                ! Subtract loss of C2H6 by OH and store in STT [kg C2H6]
                ! Loss = k * [C2H6] * [OH] * dt
                STT(I,J,L,N) = STT(I,J,L,N) *
-     &                        ( 1d0 - KRATE * OH(I,J,L) * DTCHEM )
+     &                        ( 1e+0_fp - KRATE * OH(I,J,L) * DTCHEM )
             ENDDO
          ENDIF
 
@@ -451,10 +248,13 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE CHEMC2H6
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -482,7 +282,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8                :: C2H6_ANTHRO
+      REAL(fp)                :: C2H6_ANTHRO
 ! 
 ! !REVISION HISTORY: 
 !  22 Mar 2012 - M. Payer    - Initial version adapted from GET_RETRO_ANTHRO
@@ -500,53 +300,67 @@
       END FUNCTION GET_C2H6_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: init_c2h6
 !
 ! !DESCRIPTION: Subroutine INIT\_C2H6 allocates and zeroes the NGASC2H6 array,
-!  which holds global monthly mean natural gas C2H6 emissions. (qli, bmy,
-!  1/1/01, 10/15/02)
+!  which holds global monthly mean natural gas C2H6 emissions.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_C2H6
+      SUBROUTINE INIT_C2H6( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
       USE CMN_SIZE_MOD
-! 
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?! 
+!
+! !REMARKS:
+!  This routine is now called from GIGC_INIT_EXTRA (in GeosCore/input_mod.F).
+!
 ! !REVISION HISTORY:
 !  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
 !  22 Mar 2012 - M. Payer    - Added ProTeX headers
+!  11 Apr 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS
-
       !=================================================================
       !  INIT_C2H6 begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Allocate NGASC2H6 array
-      ALLOCATE( NGASC2H6( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NGASC2H6' )
+      ALLOCATE( NGASC2H6( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NGASC2H6' )
 
       ! Zero NGASC2H6 array
-      NGASC2H6 = 0d0
+      NGASC2H6 = 0e+0_fp
 
       END SUBROUTINE INIT_C2H6
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -570,6 +384,9 @@
       !=================================================================
 
       IF ( ALLOCATED( NGASC2H6 ) ) DEALLOCATE( NGASC2H6 )
+
+      ! Free the OH pointer
+      OH => NULL()
 
       END SUBROUTINE CLEANUP_C2H6
 !EOC

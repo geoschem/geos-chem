@@ -292,7 +292,7 @@ CONTAINS
 
  pi = 4. * atan(1.)
 
- dlon = 2.*pi / float(540)       !(dan)
+ dlon = 2.*pi / real(540)       !(dan)
 
     ! dan for window
     !elat(1) = -0.5*pi         ! S. Pole
@@ -439,12 +439,16 @@ CONTAINS
  !%%%
  !%%% Added MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV, ND24, ND25, and 
  !%%% ND26 to arg list of TPCORE_FVDAS for GEOS-CHEM mass-flux diagnostics 
- !%%% (bdf, bmy, 9/28/04)
+ !%%% (bdf, bmy, 9/28/04). 
+ !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%%
                          MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2,     &
-                         TCVV,     ND24,     ND25,     ND26 )
+                         ND24,     ND25,     ND26  )
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 !----------------------------------------------------------------------------
+
+! Uses:
+    USE CMN_GCTM_MOD   ! Physical constants g0_100 and AIRMW
 
  implicit none
 
@@ -484,8 +488,8 @@ CONTAINS
 
  real, intent(in):: ak(km+1)              ! See below
  real, intent(in):: bk(km+1)              ! See below
- real, intent(in):: u(im,jfirst:jlast,km) ! u-wind (m/s) at mid-time-level (t=t+dt/2)
- real, intent(inout):: v(im,jfirst-mg:jlast+mg,km) ! v-wind (m/s) at mid-time-level (t=t+dt/2)
+ real, intent(in):: u(:,:,:)    ! u-wind (m/s) at mid-time-level (t=t+dt/2)
+ real, intent(inout):: v(:,:,:) ! v-wind (m/s) at mid-time-level (t=t+dt/2)
 
 !------------------------------------------------------
 ! The hybrid ETA-coordinate:
@@ -530,8 +534,9 @@ CONTAINS
  real, intent(in):: dt                    ! Transport time step in seconds
  real, intent(in):: ae                    ! Earth's radius (m)
 
- real, intent(inout):: q(im,jfirst-ng:jlast+ng,km,nq)  ! Tracer "mixing ratios"
+ real, intent(inout):: q(:,:,:,:)         ! Tracer "mixing ratios"
                                           ! q could easily be re-dimensioned
+
  real, intent(out):: ps(im,jfirst:jlast)  ! "predicted" surface pressure
 
  real  delp(im,jfirst:jlast,km)    ! Predicted thickness at future time (t=t+dt)
@@ -545,7 +550,7 @@ CONTAINS
  !%%%
  !%%% Added XMASS, YMASS for the PJC pressure-fixer (bdf, bmy, 5/7/03)
  !%%%
- REAL,    INTENT(IN)    :: XMASS(IM,JM,KM), YMASS(IM,JM,KM)
+ REAL,    INTENT(IN)    :: XMASS(:,:,:), YMASS(:,:,:)
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -553,18 +558,15 @@ CONTAINS
  !%%%
  !%%% Added MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV, ND24, ND25, ND26
  !%%% for mass-flux diagnostics (bdf, bmy, 9/28/04)
+ !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%%
-! REAL,    INTENT(INOUT) :: MASSFLEW(IM,JM,KM,NQ) ! east/west mass flux
-! REAL,    INTENT(INOUT) :: MASSFLNS(IM,JM,KM,NQ) ! north/south mass flux
-! REAL,    INTENT(INOUT) :: MASSFLUP(IM,JM,KM,NQ) ! up/down vertical mass flux
  REAL,    INTENT(INOUT) :: MASSFLEW(:,:,:,:) ! east/west mass flux
  REAL,    INTENT(INOUT) :: MASSFLNS(:,:,:,:) ! north/south mass flux
  REAL,    INTENT(INOUT) :: MASSFLUP(:,:,:,:) ! up/down vertical mass flux
- REAL,    INTENT(IN)    :: AREA_M2(JM)           ! box area for mass flux diag
- REAL,    INTENT(IN)    :: TCVV(NQ)              ! tracer masses for flux diag
- INTEGER, INTENT(IN)    :: ND24                  ! E/W flux diag switch
- INTEGER, INTENT(IN)    :: ND25                  ! N/S flux diag switch
- INTEGER, INTENT(IN)    :: ND26                  ! up/down flux diag switch
+ REAL,    INTENT(IN)    :: AREA_M2(JM)       ! box area for mass flux diag
+ INTEGER, INTENT(IN)    :: ND24              ! E/W flux diag switch
+ INTEGER, INTENT(IN)    :: ND25              ! N/S flux diag switch
+ INTEGER, INTENT(IN)    :: ND26              ! up/down flux diag switch
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !-----------------------
@@ -629,15 +631,15 @@ CONTAINS
      enddo
   enddo
 
-  if ( jfirst == 1 ) then
-       call xpavg(psg(1,1,1), im)
-       call xpavg(psg(1,1,2), im)
-  endif
+!  if ( jfirst == 1 ) then
+!       call xpavg(psg(:,1,1), im)
+!       call xpavg(psg(:,1,2), im)
+!  endif
 
-  if ( jlast == jm ) then
-       call xpavg(psg(1,jm,1), im)
-       call xpavg(psg(1,jm,2), im)
-  endif
+!  if ( jlast == jm ) then
+!       call xpavg(psg(:,jm,1), im)
+!       call xpavg(psg(:,jm,2), im)
+!  endif
 
 #if defined(SPMD)
 ! Ghost v, psm and psn north/south --> now in one array psg
@@ -651,19 +653,19 @@ CONTAINS
 #endif
 
 ! Average q at both poles
-  do iq=1,nq
-!$omp parallel do   &
-!$omp shared(im)    &
-!$omp private(k)
-     do k=1,km
-        if ( jfirst == 1 ) then
-             call xpavg(q(1,1,k,iq), im)
-        endif
-        if ( jlast == jm ) then
-             call xpavg(q(1,jm,k,iq), im)
-        endif
-     enddo
-  enddo
+!  do iq=1,nq
+!!$omp parallel do   &
+!!$omp shared(im)    &
+!!$omp private(k)
+!     do k=1,km
+!        if ( jfirst == 1 ) then
+!             call xpavg(q(:,1,k,iq), im)
+!        endif
+!        if ( jlast == jm ) then
+!             call xpavg(q(:,jm,k,iq), im)
+!        endif
+!     enddo
+!  enddo
 
 #if defined(SPMD)
 #if defined(PILGRIM)
@@ -712,6 +714,7 @@ CONTAINS
 #endif
 #endif
 
+
 ! Multi_Tracer: 
    do iq=1,nq
 
@@ -736,13 +739,17 @@ CONTAINS
 #endif
 
 !$omp parallel do                                   &
-!$omp shared(im,jm,iv,iord,jord,ng,mg,jfirst,jlast) &
-!$omp private(i, j, k, q2)
+!$omp default( shared ) &
+!$omp private(i, j, k, q2, MFLEW, MFLNS)
 
 ! Vertical_OMP:  
 
    do k=1,km
 
+
+    q2(:,:) = 0.d0
+    MFLEW(:,:) = 0.d0
+    MFLNS(:,:) = 0.d0
 
 
 ! Copying q to 2d work array for transport. This allows q to be dimensioned
@@ -796,10 +803,10 @@ CONTAINS
  !%%%
  !%%% Now pass MASSFLEW, MASSFLNS, AREA_M2, TCVV, ND24, ND25, DT as 
  !%%% arguments to routine TP2G for GEOS-CHEM mass flux diagnostics 
- !%%% (bdf, bmy, 9/28/04)
+ !%%% (bdf, bmy, 9/28/04). 
+ !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%%
-               MFLEW, MFLNS,      &
-               AREA_M2, TCVV(IQ), ND24, ND25, DT )
+               MFLEW, MFLNS, AREA_M2, ND24, ND25, DT )
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ! Save mass flux diagnostics (clb, 7/2/12)
@@ -811,7 +818,8 @@ CONTAINS
        MASSFLNS(:,:,K,IQ) = MFLNS
     ENDIF
 
-    do j=jfirst,jlast
+    !do j=jfirst,jlast
+    do j=max(jfirst,jord+1),min(jlast,jm-jord+1)   ! Lin_20140518
        do i=1,im
           q(i,j,k,iq) = q2(i,j)
        enddo
@@ -863,9 +871,10 @@ CONTAINS
     DO IQ = 1, NQ
     DO I  = 1, IM
     DO J  = 1, JM
+
        DTC(I,J,K,IQ) = ( Q(I,J,K,IQ)     * DELP1(I,J,K)   -          &
                          QTEMP(I,J,K,IQ) * DELP(I,J,K)  ) *          &
-                       (100d0) * AREA_M2(J) / ( 9.8d0 * TCVV(IQ) )
+                         AREA_M2(J) * g0_100
 
        ! top layer should have no residual.  the small residual is from 
        ! a non-pressure fixed flux diag.  The z direction may be off by 
@@ -886,9 +895,10 @@ CONTAINS
     DO IQ = 1, NQ
     DO I  = 1, IM
     DO J  = 1, JM
-       TRACE_DIFF         = ( Q(I,J,K,IQ)     * DELP1(I,J,K)  -  &
-                              QTEMP(I,J,K,IQ) * DELP(I,J,K) ) *  &
-                            (100D0) * AREA_M2(J) / ( 9.8D0* TCVV(IQ) )
+
+       TRACE_DIFF         = ( Q(I,J,K,IQ)     * DELP1(I,J,K)  -     &
+                              QTEMP(I,J,K,IQ) * DELP(I,J,K) ) *     &
+                              AREA_M2(J) * g0_100       
 
        DTC(I,J,K,IQ)      = DTC(I,J,K-1,IQ) + TRACE_DIFF
 
@@ -898,7 +908,6 @@ CONTAINS
     ENDDO
 !$OMP END PARALLEL DO
     ENDDO
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
     ENDIF
 
@@ -1189,14 +1198,14 @@ CONTAINS
           do i=1,im
              delp(i,1,k) = delp1(i,1,k) - fy(i,2,k)*rgw(1)
           enddo
-             call xpavg(delp(1,1,k), im)
+!             call xpavg(delp(:,1,k), im)
       endif
 
       if ( jlast == jm ) then
           do i=1,im
              delp(i,jm,k) = delp1(i,jm,k) + fy(i,jm,k)*rgw(jm)
           enddo
-             call xpavg(delp(1,jm,k), im)
+!             call xpavg(delp(:,jm,k), im)
       endif
 
      if ( n_adj == 0 ) then
@@ -1251,12 +1260,16 @@ CONTAINS
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
  !%%% 
- !%%% Add MFLEW, MFLNS, AREA_M2, TCV, ND24, ND25, DT as arguments
+ !%%% Add MFLEW, MFLNS, AREA_M2, TCVV, ND24, ND25, DT as arguments
  !%%% to subroutine TP2G for mass-flux diagnostics (bmy, 9/28/04)
+ !%%% Removed TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%%
-                MFLEW, MFLNS, AREA_M2,                 & 
-                TCV,   ND24,  ND25,   DT )
+                MFLEW, MFLNS, AREA_M2, ND24,  ND25,   DT )
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+! Uses:
+    USE CMN_GCTM_MOD   ! Physical constants g0_100
+
  implicit none
 
 ! !INPUT PARAMETERS:
@@ -1282,16 +1295,16 @@ CONTAINS
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
  !%%%  
- !%%% Declare MFLEW, MFLNS, AREA_M2, TCV, ND24, ND25, DT for the
+ !%%% Declare MFLEW, MFLNS, AREA_M2, TCVV, ND24, ND25, DT for the
  !%%% GEOS-CHEM mass-flux diagnostics (bdf, bmy, 9/28/04)
+ !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%% 
-   REAL,    INTENT(INOUT) :: MFLEW(IM,JM)  ! E/W mass flux array
-   REAL,    INTENT(INOUT) :: MFLNS(IM,JM)  ! N/S mass flux array
-   REAL,    INTENT(IN)    :: AREA_M2(JM)   ! Grid bos surface area [m2]
-   REAL,    INTENT(IN)    :: TCV           ! Mass ratio
-   INTEGER, INTENT(IN)    :: ND24          ! flux diag
-   INTEGER, INTENT(IN)    :: ND25          ! flux diag
-   REAL,    INTENT(IN)    :: DT            ! time step for flux diagnostic
+   REAL,    INTENT(INOUT) :: MFLEW(IM,JM)   ! E/W mass flux array
+   REAL,    INTENT(INOUT) :: MFLNS(IM,JM)   ! N/S mass flux array
+   REAL,    INTENT(IN)    :: AREA_M2(JM)    ! Grid bos surface area [m2]
+   INTEGER, INTENT(IN)    :: ND24           ! flux diag
+   INTEGER, INTENT(IN)    :: ND25           ! flux diag
+   REAL,    INTENT(IN)    :: DT             ! time step for flux diagnostic
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ! Local
@@ -1324,14 +1337,14 @@ CONTAINS
         do i=1,im
            h(i,1) = h(i,1)*dp(i,1) - fy(i,2)*rgw(1)
         enddo
-        call xpavg(h(1, 1), im)
+!        call xpavg(h(:, 1), im)
    endif
    
    if ( jlast == jm ) then
         do i=1,im
            h(i,jm) = h(i,jm)*dp(i,jm) + fy(i,jm)*rgw(jm)
         enddo
-        call xpavg(h(1,jm), im)
+!        call xpavg(h(:,jm), im)
    endif
 
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1348,11 +1361,14 @@ CONTAINS
       DO J = JS2G0, JN2G0
 
          DO I = 1, IM-1
-            DTC        = FX(I,J)*AREA_M2(J)*100.d0 / (TCV*DT*9.8d0)
+
+            DTC = FX(I,J) * AREA_M2(J) * g0_100 / DT 
+
             MFLEW(I,J) = MFLEW(I,J) + DTC
          ENDDO
 
-         DTC         = FX(IM,J)*AREA_M2(J)*100.d0 / (TCV*DT*9.8d0)
+         DTC = FX(IM,J) * AREA_M2(J) * g0_100 / DT 
+
          MFLEW(IM,J) = MFLEW(I,J) + DTC
       ENDDO
    ENDIF
@@ -1367,7 +1383,9 @@ CONTAINS
    IF ( ND25 > 0 ) THEN
       DO J = JS2G0, JN2G0
       DO I = 1,     IM
-         DTC        = FY(I,J)*RGW_25(J)*AREA_M2(J)*100./ (TCV*DT*9.8)
+
+         DTC = FY(I,J) * RGW_25(J) * AREA_M2(J) * g0_100 / DT 
+
          MFLNS(I,J) = MFLNS(I,J) + DTC
       ENDDO
       ENDDO
@@ -1375,7 +1393,9 @@ CONTAINS
       ! South Pole
       IF ( JFIRST == 1 ) THEN
          DO I = 1, IM
-            DTC        = -FY(I,2)*RGW_25(1)*AREA_M2(1)*100./(TCV*DT*9.8)
+
+            DTC = -FY(I,2) * RGW_25(1) * AREA_M2(1) * g0_100 / DT 
+
             MFLNS(I,1) = MFLNS(I,1) + DTC
          ENDDO
       ENDIF
@@ -1383,7 +1403,9 @@ CONTAINS
       ! North Pole
       IF ( JLAST == JM ) THEN
          DO I = 1, IM
-            DTC     = FY(I,JM)*RGW_25(JM)*AREA_M2(JM)*100./(TCV*DT*9.8)
+
+            DTC = FY(I,JM) * RGW_25(JM) * AREA_M2(JM) * g0_100 / DT
+
             MFLNS(I,JM) = MFLNS(I,JM) + DTC
          ENDDO
       ENDIF
@@ -1634,7 +1656,7 @@ CONTAINS
 
       if(iord == 1 .or. cosa < cos_upw) then
          do i=1,im
-            iu = float(i) - c(i)
+            iu = real(i) - c(i)
             fx(i) = mfx(i)*qtmp(iu)
          enddo
       else
@@ -1652,7 +1674,7 @@ CONTAINS
 
          if( abs(iord) ==2 .or. cosa < cos_van ) then
             do i=1,im
-               iu = float(i) - c(i)
+               iu = real(i) - c(i)
                fx(i) =  mfx(i)*(qtmp(iu)+dm(iu)*(sign(1.,c(i))-c(i)))
             enddo
          else
@@ -2006,7 +2028,7 @@ CONTAINS
    if(jord == 1) then
         do j=js2g0,jn1g1
           do i=1,im
-            jt = float(j) - c(i,j)
+            jt = real(j) - c(i,j)
             fy(i,j) = q(i,jt)
           enddo
         enddo
@@ -2027,7 +2049,7 @@ CONTAINS
 !
           do j=js2g0,jn1g1
             do i=1,im
-              jt = float(j) - c(i,j)
+              jt = real(j) - c(i,j)
               fy(i,j) = q(i,jt) + (sign(1.,c(i,j))-c(i,j))*dm(i,jt)
             enddo
           enddo
@@ -2275,15 +2297,17 @@ CONTAINS
       integer i
       real sum1
 
-      sum1 = 0.
-      do i=1,im
-         sum1 = sum1 + p(i)
-      enddo
-      sum1 = sum1 / im
+      p(1:im) = sum(p(1:im))/im
 
-      do i=1,im
-         p(i) = sum1
-      enddo
+!      sum1 = 0.
+!      do i=1,im
+!         sum1 = sum1 + p(i)
+!      enddo
+!      sum1 = sum1 / im
+
+!      do i=1,im
+!         p(i) = sum1
+!      enddo
  end subroutine xpavg
 
  subroutine qmap(pe,  q, im, jm, km, nx, jfirst, jlast, ng, nq,       &
@@ -3316,13 +3340,13 @@ CONTAINS
        do i=1,im
           delp(i,1,k) = delp(i,1,k) - fy(i,2)*rgw(1)
        enddo
-       call xpavg(delp(1,1,k), im)
+!       call xpavg(delp(:,1,k), im)
     endif
     if ( jlast == jm ) then
        do i=1,im
           delp(i,jm,k) = delp(i,jm,k) + fy(i,jm)*rgw(jm)
        enddo
-       call xpavg(delp(1,jm,k), im)
+!       call xpavg(delp(:,jm,k), im)
     endif
 
     endif

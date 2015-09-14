@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -15,8 +15,9 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD           ! For GEOS-Chem Precision (fp)
+     
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -40,6 +41,8 @@
 !        (bmy, 9/5/06)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -52,7 +55,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -108,7 +111,7 @@
       END SUBROUTINE ZERO_DIAG41
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -152,6 +155,7 @@
 !  (3 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -161,9 +165,10 @@
       INTEGER            :: I,         J,           M,      N
       INTEGER            :: CENTER180, HALFPOLAR,   IFIRST
       INTEGER            :: JFIRST,    LFIRST,      LMAX
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL*4             :: LONRES,    LATRES,      EPS
-      REAL*8             :: DIAGb,     DIAGe,       SCALE
+      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL(f4)           :: LONRES,    LATRES,      EPS
+      REAL(f8)           :: DIAGb,     DIAGe
+      REAL(fp)           :: SCALE
       CHARACTER(LEN=20)  :: MODELNAME 
       CHARACTER(LEN=40)  :: CATEGORY,  RESERVED,    UNIT
 
@@ -187,7 +192,7 @@
       LONRES    = DISIZE
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
-      EPS       = 1d-32
+      EPS       = 1e-32_f4
          
       !=================================================================
       ! Write data to the bpch file
@@ -221,7 +226,7 @@
       END SUBROUTINE WRITE_DIAG41
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -276,7 +281,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I, J, N, GOOD(IIPAR)
-      REAL*8  :: LT, PBLTOP
+      REAL(fp)  :: LT, PBLTOP
 
       !=================================================================
       ! DIAG41 begins here!
@@ -291,7 +296,7 @@
          LT = GET_LOCALTIME( I, 1, 1 )
    
          ! Find points between 12 and 16 GMT
-         IF ( LT >= 12d0 .and. LT <= 16d0 ) THEN
+         IF ( LT >= 12e+0_fp .and. LT <= 16e+0_fp ) THEN
             GOOD(I) = 1
          ELSE
             GOOD(I) = 0
@@ -334,7 +339,7 @@
       END SUBROUTINE DIAG41
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -386,7 +391,7 @@
       END SUBROUTINE INIT_DIAG41
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

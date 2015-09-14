@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -19,29 +19,32 @@ SUBROUTINE load_GC_data(month, TS, PREACC, RADSWG)
   USE defineConstants
   USE loadCASAinput
   USE CasaRegridModule
+
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
   
   implicit none
 !
 ! !INPUT PARAMETERS:
 !
   INTEGER, INTENT(IN) :: month
-  REAL*8, INTENT(IN), DIMENSION(I4x5, J4x5)  :: TS, &
+  REAL(fp), INTENT(IN), DIMENSION(I4x5, J4x5)  :: TS, &
        PREACC, RADSWG
 !
 ! !REVISION HISTORY:
-!  09 July 2010 - C. Carouge  - Initial version
+!  09 Jul 2010 - C. Carouge  - Initial version
+!  01 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-  real*8, dimension(columns, rows)      ::   geos1x1
+  real(fp), dimension(columns, rows)      ::   geos1x1
   
 
   CALL regrid4x5to1x1(1, TS, geos1x1)
   airt(:,:,month)=geos1x1
-  airt(:,:,month)=airt(:,:,month)-273.15d0
+  airt(:,:,month)=airt(:,:,month)-273.15e+0_fp
   
 
   CALL regrid4x5to1x1(1, PREACC, geos1x1)

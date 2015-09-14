@@ -14,12 +14,13 @@
 !        precision with the "D" exponent. (bdf, bmy, 4/18/03)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !******************************************************************************
 !
-#     include "define.h"
-
       USE CMN_SIZE_MOD  ! Size parameters
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 !
@@ -52,8 +53,8 @@
 ! *********************************************************************
 !
       KULOOP             = MIN(KULOOP,KBLOOP,NTLOOP) 
-      NBLOCKS            = 1 + NTTLOOP / (KULOOP  + 0.0001d0)
-      IAVBLOK            = 1 + NTTLOOP / (NBLOCKS + 0.0001d0)
+      NBLOCKS            = 1 + NTTLOOP / (KULOOP  + 0.0001e+0_fp)
+      IAVBLOK            = 1 + NTTLOOP / (NBLOCKS + 0.0001e+0_fp)
       IAVGSIZE           = MIN0(IAVBLOK,KULOOP)
       JLOOPLO            = 0 
       IREMAIN            = NTTLOOP

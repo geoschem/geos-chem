@@ -1,9 +1,10 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 ! !MODULE: Individual GEOS-Chem subroutines
 ! !DESCRIPTION: Here follows a list of GEOS-Chem subroutines which do not
-!  belong to any F90 module.
+!  belong to any Fortran-90 module.  Most of these are legacy routines
+!  that will eventually be removed.
 !EOP
 !------------------------------------------------------------------------------

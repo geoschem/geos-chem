@@ -1,6 +1,5 @@
-! $Id: tpcore_fvdas_mod.f90,v 1.4 2010/02/02 16:57:51 bmy Exp $
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -126,9 +125,9 @@ MODULE Tpcore_FvDas_Mod
 !
 ! !USES:
 ! 
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
   IMPLICIT NONE
-#     include "define.h"
-#     include "define.h"
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -171,12 +170,12 @@ MODULE Tpcore_FvDas_Mod
 !
 ! !PRIVATE DATA MEMBERS:
 !  
-  REAL*8, ALLOCATABLE, SAVE :: dtdx5(:)
-  REAL*8, ALLOCATABLE, SAVE :: dtdy5(:)
-  REAL*8, ALLOCATABLE, SAVE :: cosp(:)
-  REAL*8, ALLOCATABLE, SAVE :: cose(:)
-  REAL*8, ALLOCATABLE, SAVE :: gw(:)
-  REAL*8, ALLOCATABLE, SAVE :: DLAT(:)
+  REAL(fp), ALLOCATABLE, SAVE :: dtdx5(:)
+  REAL(fp), ALLOCATABLE, SAVE :: dtdy5(:)
+  REAL(fp), ALLOCATABLE, SAVE :: cosp(:)
+  REAL(fp), ALLOCATABLE, SAVE :: cose(:)
+  REAL(fp), ALLOCATABLE, SAVE :: gw(:)
+  REAL(fp), ALLOCATABLE, SAVE :: DLAT(:)
 !
 ! !AUTHOR:
 ! Original code from Shian-Jiann Lin, GMAO 
@@ -191,20 +190,22 @@ MODULE Tpcore_FvDas_Mod
 !                             This eliminates the polar overshoot in the
 !                             stratosphere.
 ! 05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                             Declare all REAL variables as REAL*8.  Added
+!                             Declare all REAL variables as REAL(fp).  Added
 !                             OpenMP parallel loops in various routines (and
 !                             made some modifications to facilitate OpenMP).
 ! 01 Apr 2009 - C. Carouge  - Modified OpenMp parallelization and move the 
 !                             loops over vertical levels outside the 
 !                             horizontal transport routines for reducing
 !                             processing time.
+! 20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+! 21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
-
+!BOC
 CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -224,14 +225,14 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    INTEGER, INTENT(IN)  :: IM        ! Global E-W dimension
-    INTEGER, INTENT(IN)  :: JM        ! Global N-S dimension
-    INTEGER, INTENT(IN)  :: KM        ! Vertical dimension
-    INTEGER, INTENT(IN)  :: NG        ! large ghost width
-    INTEGER, INTENT(IN)  :: MG        ! small ghost width
-    REAL*8,  INTENT(IN)  :: dt        ! Time step in seconds
-    REAL*8,  INTENT(IN)  :: ae        ! Earth's radius (m)
-    REAL*8,  INTENT(IN)  :: clat(JM)  ! latitude in radian
+    INTEGER,   INTENT(IN)  :: IM        ! Global E-W dimension
+    INTEGER,   INTENT(IN)  :: JM        ! Global N-S dimension
+    INTEGER,   INTENT(IN)  :: KM        ! Vertical dimension
+    INTEGER,   INTENT(IN)  :: NG        ! large ghost width
+    INTEGER,   INTENT(IN)  :: MG        ! small ghost width
+    REAL(fp),  INTENT(IN)  :: dt        ! Time step in seconds
+    REAL(fp),  INTENT(IN)  :: ae        ! Earth's radius (m)
+    REAL(fp),  INTENT(IN)  :: clat(JM)  ! latitude in radian
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -244,7 +245,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.
 !EOP
@@ -253,10 +254,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL*8  :: elat(jm+1)      ! cell edge latitude in radian
-    REAL*8  :: sine(jm+1)  
-    REAL*8  :: SINE_25(JM+1)   ! 
-    REAL*8  :: dlon
+    REAL(fp)  :: elat(jm+1)      ! cell edge latitude in radian
+    REAL(fp)  :: sine(jm+1)  
+    REAL(fp)  :: SINE_25(JM+1)   ! 
+    REAL(fp)  :: dlon
     INTEGER :: I, J
 
     ! NOTE: since we are not using MPI parallelization, we can set JFIRST 
@@ -279,41 +280,41 @@ CONTAINS
     ALLOCATE( dtdy5 ( JM ) ) 
     ALLOCATE( DLAT  ( JM ) )    ! For PJC pressure-fixer 
     
-    dlon = 2.d0 * PI / DBLE( IM )
+    dlon = 2.e+0_fp * PI / DBLE( IM )
     
     ! S. Pole
-    elat(1)    = -0.5d0*PI
-    sine(1)    = -1.0d0
-    SINE_25(1) = -1.0d0
-    cose(1)    =  0.0d0
+    elat(1)    = -0.5e+0_fp*PI
+    sine(1)    = -1.0e+0_fp
+    SINE_25(1) = -1.0e+0_fp
+    cose(1)    =  0.0e+0_fp
     
     do j=2,jm
-       elat(j)    = 0.5d0*(clat(j-1) + clat(j))
+       elat(j)    = 0.5e+0_fp*(clat(j-1) + clat(j))
        sine(j)    = SIN( elat(j) )
        SINE_25(J) = SIN( CLAT(J) )
        cose(j)    = COS( elat(j) ) 
     enddo
     
     ! N. Pole
-    elat(jm+1)    = 0.5d0*PI       
-    sine(jm+1)    = 1.0d0
-    SINE_25(JM+1) = 1.0d0
+    elat(jm+1)    = 0.5e+0_fp*PI       
+    sine(jm+1)    = 1.0e+0_fp
+    SINE_25(JM+1) = 1.0e+0_fp
     
     ! Polar cap (S. Pole)
-    dlat(1) = 2.d0*(elat(2) - elat(1))  
+    dlat(1) = 2.e+0_fp*(elat(2) - elat(1))  
     do j=2,jm-1
        dlat(j) = elat(j+1) - elat(j)
     enddo
 
     ! Polar cap (N. Pole)
-    dlat(jm) = 2.0d0*(elat(jm+1) - elat(jm))    
+    dlat(jm) = 2.0e+0_fp*(elat(jm+1) - elat(jm))    
     
     do j=1,jm
        gw(j)     = sine(j+1) - sine(j)
        cosp(j)   = gw(j) / dlat(j)
 
-       dtdx5(j)  = 0.5d0 * dt / (dlon*ae*cosp(j))
-       dtdy5(j)  = 0.5d0 * dt / (ae*dlat(j))
+       dtdx5(j)  = 0.5e+0_fp * dt / (dlon*ae*cosp(j))
+       dtdy5(j)  = 0.5e+0_fp * dt / (ae*dlat(j))
     enddo
       
     ! Echo info to stdout
@@ -325,7 +326,7 @@ CONTAINS
   END SUBROUTINE Init_Tpcore
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -344,7 +345,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.
 !EOP
@@ -362,7 +363,7 @@ CONTAINS
   END SUBROUTINE Exit_Tpcore
 !EOC  
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -382,21 +383,21 @@ CONTAINS
                            ak,       bk,       u,        v,       ps1,      &
                            ps2,      ps,       q,        iord,    jord,     &
                            kord,     n_adj,    XMASS,    YMASS,   FILL,     &
-                           MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV,     &
-                           ND24,     ND25,     ND26 )
+                           MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, ND24,     &
+                           ND25,     ND26 )
 !
 ! !USES:
 !
-    ! Include file w/ physical constants
+    ! Include files w/ physical constants and met values
     USE CMN_GCTM_MOD
 !
 ! !INPUT PARAMETERS: 
 !
     ! Transport time step [s]
-    REAL*8,  INTENT(IN)    :: dt                    
+    REAL(fp),  INTENT(IN)  :: dt                    
 
     ! Earth's radius [m]
-    REAL*8,  INTENT(IN)    :: ae                    
+    REAL(fp),  INTENT(IN)  :: ae                    
 
     ! Global E-W, N-S, and vertical dimensions
     INTEGER, INTENT(IN)    :: IM         
@@ -430,22 +431,19 @@ CONTAINS
     
     ! Ak and Bk coordinates to specify the hybrid grid
     ! (see the REMARKS section below)
-    REAL*8,  INTENT(IN)    :: ak(KM+1)              
-    REAL*8,  INTENT(IN)    :: bk(KM+1)              
+    REAL(fp),  INTENT(IN)  :: ak(KM+1)              
+    REAL(fp),  INTENT(IN)  :: bk(KM+1)              
 
     ! u-wind (m/s) at mid-time-level (t=t+dt/2)
-    REAL*8,  INTENT(IN)    :: u(IM,JFIRST:JLAST,KM) 
+    REAL(fp),  INTENT(IN)  :: u(:,:,:)
 
     ! E/W and N/S mass fluxes [kg/s]
     ! (These are computed by the pressure fixer, and passed into TPCORE)
-    REAL*8,  INTENT(IN)    :: XMASS(IM,JM,KM)
-    REAL*8,  INTENT(IN)    :: YMASS(IM,JM,KM)
+    REAL(fp),  INTENT(IN)  :: XMASS(:,:,:)
+    REAL(fp),  INTENT(IN)  :: YMASS(:,:,:)
 
     ! Grid box surface area for mass flux diag [m2]
-    REAL*8,  INTENT(IN)    :: AREA_M2(JM)        
-
-    ! Tracer masses for flux diag
-    REAL*8,  INTENT(IN)    :: TCVV(NQ)              
+    REAL(fp),  INTENT(IN)  :: AREA_M2(JM)        
 
     ! Diagnostic flags
     INTEGER, INTENT(IN)    :: ND24    ! Turns on E/W     flux diagnostic
@@ -457,51 +455,58 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! V-wind (m/s) at mid-time-level (t=t+dt/2)
-    REAL*8,  INTENT(INOUT) :: v(IM, JFIRST-MG:JLAST+MG, KM) 
+    REAL(fp),  INTENT(INOUT) :: v(:,:,:)
 
     ! surface pressure at current time
-    REAL*8,  INTENT(INOUT) :: ps1(IM, JFIRST:JLAST)  
+    REAL(fp),  INTENT(INOUT) :: ps1(IM, JFIRST:JLAST)  
 
     ! surface pressure at future time=t+dt
-    REAL*8,  INTENT(INOUT) :: ps2(IM, JFIRST:JLAST)  
+    REAL(fp),  INTENT(INOUT) :: ps2(IM, JFIRST:JLAST)  
 
-    ! Tracer "mixing ratios" [v/v]
-    REAL*8,  INTENT(INOUT) :: q(IM, JFIRST-NG:JLAST+NG, KM, NQ)  
+    ! Tracer "mixing ratios" [kg tracer/moist air kg]
+    REAL(fp),  INTENT(INOUT), TARGET :: q(:,:,:,:)
 
     ! E/W, N/S, and up/down diagnostic mass fluxes
-!--- Previous to (ccc, 12/3/09)
-!    REAL*8,  INTENT(INOUT) :: MASSFLEW(IM,JM,KM,NQ)  ! for ND24 diagnostic
-!    REAL*8,  INTENT(INOUT) :: MASSFLNS(IM,JM,KM,NQ)  ! for ND25 diagnostic
-!    REAL*8,  INTENT(INOUT) :: MASSFLUP(IM,JM,KM,NQ)  ! for ND26 diagnostic 
-    REAL*8,  INTENT(INOUT) :: MASSFLEW(:,:,:,:)  ! for ND24 diagnostic
-    REAL*8,  INTENT(INOUT) :: MASSFLNS(:,:,:,:)  ! for ND25 diagnostic
-    REAL*8,  INTENT(INOUT) :: MASSFLUP(:,:,:,:)  ! for ND26 diagnostic 
+    REAL(fp),  INTENT(INOUT) :: MASSFLEW(:,:,:,:)  ! for ND24 diagnostic
+    REAL(fp),  INTENT(INOUT) :: MASSFLNS(:,:,:,:)  ! for ND25 diagnostic
+    REAL(fp),  INTENT(INOUT) :: MASSFLUP(:,:,:,:)  ! for ND26 diagnostic 
 !
 ! !OUTPUT PARAMETERS:
 !
     ! "Predicted" surface pressure [hPa]
-    REAL*8,  INTENT(OUT)   :: ps(IM,JFIRST:JLAST)  
+    REAL(fp),  INTENT(OUT)   :: ps(IM,JFIRST:JLAST)  
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO) 
 !   John Tannahill, LLNL (jrt@llnl.gov)
 ! 
 ! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.  Added
-!                               OpenMP parallel DO loops.
-!   01 Apr 2009 - C. Carouge  - Modified OpenMp parallelization and move the 
-!                               loops over vertical levels outside the 
-!                               horizontal transport routines for reducing
-!                               processing time.
-!   03 Dec 2009 - C. Carouge  - Modify declarations of MASSFLEW, MASSFLNS and 
-!                               MASSFLUP to save memory space.
+!  05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
+!                              Yeh with the TPCORE routines from GMI model.
+!                              This eliminates the polar overshoot in the
+!                              stratosphere.
+!  05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                              Declare all REAL variables as REAL(fp).  Also
+!                              make sure all numerical constants are declared
+!                              with the "D" double-precision exponent.  Added
+!                              OpenMP parallel DO loops.
+!  01 Apr 2009 - C. Carouge  - Modified OpenMp parallelization and move the
+!                              loops over vertical levels outside the
+!                              horizontal transport routines for reducing
+!                              processing time.
+!  03 Dec 2009 - C. Carouge  - Modify declarations of MASSFLEW, MASSFLNS and
+!                              MASSFLUP to save memory space.
+!  30 May 2013 - S. Farina   - For TOMAS, zero out UA and VA variables
+!  04 Jun 2013 - R. Yantosca - Use assumed-shape declarations for XMASS, YMASS,
+!                              U, V, and Q arrays.  These arrays are used to
+!                              pass pointer references, so this may help to
+!                              reduce the creation of array temporaries,
+!                              which will reduce memory.
+!   5 Jun 2013 - R. Yantosca - Avoid array temporary in call to FZPPM
+!  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
+!                              (previously v/v)
+!  01 Jul 2015 - E. Lundgren - Set tracer conc to small positive number if
+!                              negative at end of advection (occurs at poles)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -520,42 +525,42 @@ CONTAINS
     INTEGER            :: il, ij, ik, iq, k, j, i
     INTEGER            :: num, k2m1
                        
-    REAL*8             :: dap   (km)
-    REAL*8             :: dbk   (km)
-    REAL*8             :: cx(im,jfirst-ng:jlast+ng,km)  ! E-W CFL # on C-grid
-    REAL*8             :: cy(im,jfirst:jlast+mg,km)     ! N-S CFL # on C-grid
-    REAL*8             :: delp1(im, jm, km)  
-    REAL*8             :: delp2(im, jm, km)  
-    REAL*8             :: delpm(im, jm, km)
-    REAL*8             :: pu   (im, jm, km)
-    REAL*8             :: dpi(im, jm, km)
-    REAL*8             :: geofac  (jm)     ! geometrical factor for meridional
-                                           ! advection; geofac uses correct 
-                                           ! spherical geometry, and replaces 
-                                           ! RGW_25. (ccc, 4/1/09)
-    REAL*8             :: geofac_pc        ! geometrical gactor for poles.
-    REAL*8             :: dp
-    REAL*8             :: dps_ctm(im,jm)
-    REAL*8             :: ua (im, jm, km)
-    REAL*8             :: va (im, jm, km)
-    REAL*8             :: wz(im, jm, km)
-    REAL*8             :: dq1(im,jfirst-ng:jlast+ng,km)
+    REAL(fp)           :: dap   (km)
+    REAL(fp)           :: dbk   (km)
+    REAL(fp)           :: cx(im,jfirst-ng:jlast+ng,km)  ! E-W CFL # on C-grid
+    REAL(fp)           :: cy(im,jfirst:jlast+mg,km)     ! N-S CFL # on C-grid
+    REAL(fp)           :: delp1(im, jm, km)  
+    REAL(fp)           :: delp2(im, jm, km)  
+    REAL(fp)           :: delpm(im, jm, km)
+    REAL(fp)           :: pu   (im, jm, km)
+    REAL(fp)           :: dpi(im, jm, km)
+    REAL(fp)           :: geofac  (jm)     ! geometrical factor for meridional
+                                         ! advection; geofac uses correct 
+                                         ! spherical geometry, and replaces 
+                                         ! RGW_25. (ccc, 4/1/09)
+    REAL(fp)           :: geofac_pc        ! geometrical gactor for poles.
+    REAL(fp)           :: dp
+    REAL(fp)           :: dps_ctm(im,jm)
+    REAL(fp)           :: ua (im, jm, km)
+    REAL(fp)           :: va (im, jm, km)
+    REAL(fp)           :: wz(im, jm, km)
+    REAL(fp)           :: dq1(im,jfirst-ng:jlast+ng,km)
     
     ! qqu, qqv, adx and ady are now 2d arrays for parallelization purposes.
     !(ccc, 4/1/08)  
-    REAL*8             :: qqu(im, jm)
-    REAL*8             :: qqv(im, jm)
-    REAL*8             :: adx(im, jm)
-    REAL*8             :: ady(im, jm)
+    REAL(fp)           :: qqu(im, jm)
+    REAL(fp)           :: qqv(im, jm)
+    REAL(fp)           :: adx(im, jm)
+    REAL(fp)           :: ady(im, jm)
 
-    ! fx, fy, fz and qtemp are now 4D arrays for parallelization purposes.
+    ! fx, fy, fz and qtp are now 4D arrays for parallelization purposes.
     ! (ccc, 4/1/09) 
-    REAL*8             :: fx (im, jm, km, nq)
-    REAL*8             :: fy (im, jm+1, km, nq)           ! one more for edges
-    REAL*8             :: fz  (im, jm, km, nq)
-    REAL*8             :: qtemp (im, jm, km, nq)
-    REAL*8             :: DTC(IM,JM,KM)               ! up/down flux temp array
-    REAL*8             :: TRACE_DIFF                  ! up/down flux variable
+    REAL(fp)           :: fx    (im, jm,   km, nq)
+    REAL(fp)           :: fy    (im, jm+1, km, nq)    ! one more for edges
+    REAL(fp)           :: fz    (im, jm,   km, nq)
+    REAL(fp)           :: qtemp (im, jm,   km, nq)
+    REAL(fp)           :: DTC   (IM, JM,   KM    )    ! up/down flux temp array
+    REAL(fp)           :: TRACE_DIFF                  ! up/down flux variable
                        
     LOGICAL, SAVE      :: first = .true.
     
@@ -568,6 +573,9 @@ CONTAINS
     INTEGER, SAVE      :: ilmt, jlmt, klmt
     INTEGER            :: js2g0, jn2g0
     
+    ! Add pointer to avoid array temporary in call to FZPPM (bmy, 6/5/13)
+    REAL(fp),  POINTER   :: ptr_Q(:,:,:)
+
     !     ----------------
     !     Begin execution.
     !     ----------------
@@ -575,7 +583,27 @@ CONTAINS
     ! Add definition of j1p and j2p for enlarge polar cap. (ccc, 11/20/08)
     j1p = 3
     j2p = jm - j1p + 1
-    
+
+#if defined( TOMAS )
+      !================================================================
+      ! For TOMAS microphysics: zero out UA and VA.
+      !
+      ! Segregate this block from the code with an #ifdef block.
+      ! We can't bring this into the standard GEOS-Chem yet, since
+      ! that will make it hard to compare benchmark results to prior
+      ! versions.  When we do bring this change into the standard code,
+      ! we will have to benchmark it. (sfarina, bmy, 5/30/13)
+      !================================================================
+      do ik= 1, km
+      do ij= 1, jm
+      do il= 1, im
+         va(il,ij,ik) = 0.e+0_fp
+         ua(il,ij,ik) = 0.e+0_fp
+      end do
+      end do
+      end do
+#endif
+
     ! Average surf. pressures in the polar cap. (ccc, 11/20/08)
     CALL Average_Press_Poles( area_m2, ps1, 1, im, 1, jm, 1, im, 1, jm )
     CALL Average_Press_Poles( area_m2, ps2, 1, im, 1, jm, 1, im, 1, jm )
@@ -586,11 +614,11 @@ CONTAINS
     dp    = PI / rj2m1
     
     do ij = 1, jm
-       geofac(ij) = dp / (2.0d0 * area_m2(ij)/(sum(area_m2) * im) * im)
+       geofac(ij) = dp / (2.0e+0_fp * area_m2(ij)/(sum(area_m2) * im) * im)
     end do
     
     geofac_pc =  &
-         dp / (2.0d0 * (Sum (area_m2(1:2))/(sum(area_m2) * im)) * im)
+         dp / (2.0e+0_fp * (Sum (area_m2(1:2))/(sum(area_m2) * im)) * im)
     
     
     if (first) then
@@ -744,7 +772,7 @@ CONTAINS
 !--------------------------------------------------------
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED   )&
-!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1 )
+!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1, ptr_Q )
     do iq = 1, nq
 
        do ik = 1, km
@@ -860,14 +888,20 @@ CONTAINS
 
        qtemp(:,:,:,iq) = q(:,:,:,iq)
 
+       ! Set up temporary pointer to Q to avoid array temporary in FZPPM
+       ! (bmy, 6/5/13)
+       ptr_Q => q(:,:,:,iq)
 
      ! ==========
        call Fzppm  &
      ! ==========
-            (klmt, delp1, wz, dq1, q(:,:,:,iq), fz(:,:,:,iq), &
+            (klmt, delp1, wz, dq1, ptr_Q, fz(:,:,:,iq), &
             j1p, 1, jm, 1, im, 1, jm, &
             im, km, 1, im, 1, jm, 1, km)
          
+       ! Free pointer memory (bmy, 6/5/13)
+       NULLIFY( ptr_Q )
+
        !.sds notes on output arrays
        !   wz  (in) : vertical mass flux
        !   dq1 (inout) : species density (mb)
@@ -895,15 +929,37 @@ CONTAINS
           q(:,jm-1,:,iq)  = q(:,jm,:,iq)
             
        end if
+       
     ENDDO
 !$OMP END PARALLEL DO
 
     DO iq=1,nq
-       
+
        ! Calculate fluxes for diag. (ccc, 11/20/08)
        JS2G0  = MAX( J1P, JFIRST )     !  No ghosting
        JN2G0  = MIN( J2P, JLAST  )     !  No ghosting
 
+       !======================================================================
+       ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+       ! 
+       ! Set tracer concentration to a small positive number if concentration 
+       ! is negative. Negative concentration may occur at the poles. This 
+       ! is an issue that should be looked into in the future. (ewl, 6/30/15) 
+       !======================================================================
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED   )&
+!$OMP PRIVATE( I, J, K )
+       DO K = 1, KM
+       DO J = 1, JM
+       DO I = 1, IM
+          IF ( q(I,J,K,IQ) < 0.0e0_fp ) THEN
+             q(I,J,K,IQ) = 1.0e-26_fp
+          ENDIF
+       ENDDO
+       ENDDO
+       ENDDO
+!$OMP END PARALLEL DO
+       
        !======================================================================
        ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
        !  
@@ -911,18 +967,19 @@ CONTAINS
        !
        !  The unit conversion is:
        !
-       !  Mass    P diff     100      1       area of     kg tracer     1
-       ! ------ = in grid *  ---  *  ---   *  grid box * ----------- * ---
-       !  time    box         1       g       AREA_M2      kg air       s
+       !  Mass    P diff     100      1       area of     kg tracer      1
+       ! ------ = in grid *  ---  *  ---   *  grid box * ------------ * ---
+       !  time    box         1       g       AREA_M2    kg moist air    s
        !
-       !   kg       hPa       Pa     s^2        m^2          1          1 
-       !  ----  =  -----  * ----- * -----  *   -----   *   ------  * --------
-       !   s         1       hPa      m          1          TCVV      DeltaT
+       !   kg      hPa     Pa     s^2    m^2        1 
+       !  ----  = ----- * ----- * ---- * ---- * --------
+       !   s        1      hPa     m      1       DeltaT
+       !
        !======================================================================
        IF ( ND24 > 0 ) THEN
 
           ! Zero temp array
-          DTC = 0d0
+          DTC = 0e+0_fp
 
           !$OMP PARALLEL DO        &
           !$OMP DEFAULT( SHARED  ) &
@@ -932,8 +989,7 @@ CONTAINS
           DO I = 1,     IM
 
              ! Compute mass flux
-             DTC(I,J,K)         = ( FX(I,J,K,IQ)  * AREA_M2(J)  * 100.d0 ) / &
-                                  ( TCVV(IQ)   * DT          * 9.8d0  )
+             DTC(I,J,K) = FX(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT 
 
              ! Save into MASSFLEW diagnostic array
              MASSFLEW(I,J,K,IQ) = MASSFLEW(I,J,K,IQ) + DTC(I,J,K)
@@ -958,7 +1014,7 @@ CONTAINS
        IF ( ND25 > 0 ) THEN
 
           ! Zero temp array
-          DTC = 0d0
+          DTC = 0e+0_fp
 
           !$OMP PARALLEL DO        &
           !$OMP DEFAULT( SHARED  ) &
@@ -968,8 +1024,7 @@ CONTAINS
           DO I = 1, IM 
 
              ! Compute mass flux
-             DTC(I,J,K)    = ( FY(I,J,K,IQ) * AREA_M2(J) * 1d2 ) / & 
-                             ( TCVV(IQ)  * DT         * 9.8d0           ) 
+             DTC(I,J,K) = FY(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT 
 
              ! Save into MASSFLNS diagnostic array
              MASSFLNS(I,J,K,IQ) = MASSFLNS(I,J,K,IQ) + DTC(I,J,K) 
@@ -1001,7 +1056,7 @@ CONTAINS
        IF ( ND26 > 0 ) THEN
           
           ! Zero temp array
-          DTC = 0d0
+          DTC = 0e+0_fp
 
           !-----------------
           ! start with top
@@ -1015,9 +1070,9 @@ CONTAINS
           DO I  = 1, IM
 
              ! Compute mass flux
-             DTC(I,J,K)         = ( Q(I,J,K,IQ)  * DELP1(I,J,K)   -   &
-                                    QTEMP(I,J,K,IQ) * DELP2(I,J,K)  ) *  &
-                                  (100d0) * AREA_M2(J) / ( 9.8d0 * TCVV(IQ) )
+             DTC(I,J,K) = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
+                            - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
+                            * g0_100 * AREA_M2(J) 
                 
              ! top layer should have no residual.  the small residual is 
              ! from a non-pressure fixed flux diag.  The z direction may 
@@ -1042,10 +1097,9 @@ CONTAINS
              DO I  = 1, IM
 
                 ! Compute tracer difference
-                TRACE_DIFF         = ( Q(I,J,K,IQ)     * DELP1(I,J,K)  -  &
-                                       QTEMP(I,J,K,IQ) * DELP2(I,J,K) ) *  &
-                                       (100D0) * AREA_M2(J) /           &
-                                       ( 9.8D0* TCVV(IQ) )
+                TRACE_DIFF = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
+                               - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
+                               * AREA_M2(J) * g0_100  
                 
                 ! Compute mass flux
                 DTC(I,J,K)         = DTC(I,J,K-1) + TRACE_DIFF
@@ -1060,10 +1114,11 @@ CONTAINS
           ENDDO
        ENDIF
     ENDDO      
+
   END SUBROUTINE Tpcore_FvDas
 !EOC  
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1098,21 +1153,21 @@ CONTAINS
     INTEGER, INTENT(IN)   :: JULO, JHI
 
     ! Pressure difference across layer from (ai * pt) term [hPa]
-    REAL*8,  INTENT(IN)   :: dap
+    REAL(fp),  INTENT(IN)   :: dap
 
     ! Difference in bi across layer - the dSigma term
-    REAL*8,  INTENT(IN)   :: dbk
+    REAL(fp),  INTENT(IN)   :: dbk
 
     ! Relative surface area of grid box [fraction]
-    REAL*8,  INTENT(IN)   :: rel_area(JU1:J2)
+    REAL(fp),  INTENT(IN)   :: rel_area(JU1:J2)
 
     ! CTM surface pressure at t1 [hPa]
-    REAL*8,  INTENT(IN)   :: pctm1( ILO:IHI, JULO:JHI )
+    REAL(fp),  INTENT(IN)   :: pctm1( ILO:IHI, JULO:JHI )
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! Species concentration, known at zone center [mixing ratio]
-    REAL*8, INTENT(INOUT) :: const1( I1:I2, JU1:J2)
+    REAL(fp), INTENT(INOUT) :: const1( I1:I2, JU1:J2)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO) 
@@ -1124,7 +1179,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.
 !EOP
@@ -1135,8 +1190,8 @@ CONTAINS
 ! 
     INTEGER :: ik, il
     
-    REAL*8  :: meanq
-    REAL*8  :: sum1, sum2
+    REAL(fp)  :: meanq
+    REAL(fp)  :: sum1, sum2
 
 !   -----------------------------------------------------------------
 !   delp1n : pressure thickness at North Pole, the psudo-density in a
@@ -1145,8 +1200,8 @@ CONTAINS
 !            hydrostatic system at t1 (mb)
 !   -----------------------------------------------------------------
 
-    REAL*8  :: delp1n(i1:i2, j2-1:j2)
-    REAL*8  :: delp1s(i1:i2,  ju1:ju1+1)
+    REAL(fp)  :: delp1n(i1:i2, j2-1:j2)
+    REAL(fp)  :: delp1s(i1:i2,  ju1:ju1+1)
 
 
 !   ----------------
@@ -1161,8 +1216,8 @@ CONTAINS
             dap +                             &
             (dbk * pctm1(i1:i2,ju1:ju1+1))
        
-       sum1=0.0d0
-       sum2=0.0d0
+       sum1=0.0e+0_fp
+       sum2=0.0e+0_fp
        do il = i1, i2
           sum1 = sum1 +                            &
                Sum (const1  (il,ju1:ju1+1) *  &
@@ -1192,8 +1247,8 @@ CONTAINS
             dap +                           &
             (dbk * pctm1(i1:i2,j2-1:j2))
        
-       sum1=0.0d0
-       sum2=0.0d0
+       sum1=0.0e+0_fp
+       sum2=0.0e+0_fp
        do il = i1, i2
           sum1 = sum1 +                         & 
                Sum (const1  (il,j2-1:j2) * & 
@@ -1217,7 +1272,7 @@ CONTAINS
   END SUBROUTINE Average_Const_Poles
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1254,10 +1309,10 @@ CONTAINS
     INTEGER, INTENT(IN)   :: JULO,   JHI
 
     ! Courant number in E-W direction
-    REAL*8,  INTENT(IN) :: crx(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN) :: crx(ILO:IHI, JULO:JHI)
 
     ! Courant number in N-S direction
-    REAL*8,  INTENT(IN) :: cry(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN) :: cry(ILO:IHI, JULO:JHI)
 
     ! Logical switch.  If CROSS=T then cross-terms will be computed.
     LOGICAL, INTENT(IN) :: CROSS
@@ -1265,10 +1320,10 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     ! Average of Courant numbers from il and il+1
-    REAL*8, INTENT(OUT) :: ua(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(OUT) :: ua(ILO:IHI, JULO:JHI)
 
     ! Average of Courant numbers from ij and ij+1
-    REAL*8, INTENT(OUT) :: va(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(OUT) :: va(ILO:IHI, JULO:JHI)
 
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO) 
@@ -1280,7 +1335,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
@@ -1302,24 +1357,24 @@ CONTAINS
     
     if (.not. CROSS) then
        
-       ua(:,:) = 0.0d0
-       va(:,:) = 0.0d0
+       ua(:,:) = 0.0e+0_fp
+       va(:,:) = 0.0e+0_fp
        
     else
        
        do ij = j1p, j2p
           do il = i1, i2-1
              
-             ua(il,ij) = 0.5d0 * (crx(il,ij) + crx(il+1,ij))
+             ua(il,ij) = 0.5e+0_fp * (crx(il,ij) + crx(il+1,ij))
              
           end do
-          ua(i2,ij) = 0.5d0 * (crx(i2,ij) + crx(1,ij))
+          ua(i2,ij) = 0.5e+0_fp * (crx(i2,ij) + crx(1,ij))
        end do
 
        do ij = ju1+1, j2-1
           do il = i1, i2
              
-             va(il,ij) = 0.5d0 * (cry(il,ij) + cry(il,ij+1))
+             va(il,ij) = 0.5e+0_fp * (cry(il,ij) + cry(il,ij+1))
           end do
        end do
 
@@ -1336,7 +1391,7 @@ CONTAINS
   END SUBROUTINE Set_Cross_Terms
 !EOC  
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1359,20 +1414,20 @@ CONTAINS
     INTEGER, INTENT(IN)   :: K1,  K2
 
     ! Difference in bi across layer - the dSigma term
-    REAL*8,  INTENT(IN)  :: dbk(K1:K2)
+    REAL(fp),  INTENT(IN)  :: dbk(K1:K2)
 
     ! CTM surface pressure tendency; sum over vertical of dpi
     ! calculated from original mass fluxes [hPa]
-    REAL*8,  INTENT(IN)  :: dps_ctm(I1:I2, JU1:J2)
+    REAL(fp),  INTENT(IN)  :: dps_ctm(I1:I2, JU1:J2)
 
     ! Divergence at a grid point; used to calculate vertical motion [mb]
-    REAL*8,  INTENT(IN)  :: dpi(I1:I2, JU1:J2, K1:K2)
+    REAL(fp),  INTENT(IN)  :: dpi(I1:I2, JU1:J2, K1:K2)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Large scale mass flux (per time step tdt) in the vertical
     ! direction as diagnosed from the hydrostatic relationship [hPa]
-    REAL*8, INTENT(OUT) :: wz(I1:I2, JU1:J2, K1:K2)
+    REAL(fp), INTENT(OUT) :: wz(I1:I2, JU1:J2, K1:K2)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO) 
@@ -1384,7 +1439,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops
@@ -1413,7 +1468,7 @@ CONTAINS
             dpi(il,ij,k1) -  &
             (dbk(k1) * dps_ctm(il,ij))
     
-       wz(il,ij,k2) = 0.0d0
+       wz(il,ij,k2) = 0.0e+0_fp
     end do
     end do
     !$OMP END PARALLEL DO
@@ -1440,7 +1495,7 @@ CONTAINS
   END SUBROUTINE Calc_Vert_Mass_Flux
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1476,7 +1531,7 @@ CONTAINS
     INTEGER, INTENT(IN)   :: JULO,   JHI
 
     ! Courant number in E-W direction
-    REAL*8,  INTENT(IN)  :: crx(ILO:IHI, JULO:JHI, K1:K2)
+    REAL(fp),  INTENT(IN)  :: crx(ILO:IHI, JULO:JHI, K1:K2)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1502,7 +1557,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  
 !EOP
@@ -1533,7 +1588,7 @@ CONTAINS
        do ij = jend, jst, -1
           do il = i1, i2
              
-             if (Abs (crx(il,ij,ik)) > 1.0d0) then
+             if (Abs (crx(il,ij,ik)) > 1.0e+0_fp) then
                 
                 js(ik) = ij
                 
@@ -1559,7 +1614,7 @@ CONTAINS
        do ij = jst, jend
           do il = i1, i2
              
-             if (Abs (crx(il,ij,ik)) > 1.0d0) then
+             if (Abs (crx(il,ij,ik)) > 1.0e+0_fp) then
                 
                 jn(ik) = ij
                 
@@ -1577,7 +1632,7 @@ CONTAINS
   END SUBROUTINE Set_Jn_Js
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1623,13 +1678,13 @@ CONTAINS
     INTEGER, INTENT(IN)  :: Js
 
     ! Species concentration (mixing ratio)
-    REAL*8,  INTENT(IN)  :: qq1(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: qq1(ILO:IHI, JULO:JHI)
 
     ! Average of Courant numbers from il and il+1
-    REAL*8,  INTENT(IN)  :: ua (ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: ua (ILO:IHI, JULO:JHI)
 
     ! Average of Courant numbers from ij and ij+1
-    REAL*8,  INTENT(IN)  :: va (ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: va (ILO:IHI, JULO:JHI)
 
     ! Logical switch: If CROSS=T then cross-terms are being computed
     LOGICAL, INTENT(IN)  :: CROSS
@@ -1637,10 +1692,10 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     ! Concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(OUT) :: qqu(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(OUT) :: qqu(ILO:IHI, JULO:JHI)
 
     ! concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(OUT) :: qqv(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(OUT) :: qqv(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO) 
@@ -1652,7 +1707,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel do loops.
@@ -1666,9 +1721,9 @@ CONTAINS
 !    
     INTEGER :: i, imp, il, ij, iu
     INTEGER :: jv, iuw, iue
-    REAL*8  :: ril, rij, riu
-    REAL*8  :: ru
-    REAL*8  :: qtmp(-i2/3:i2+i2/3, julo:jhi)
+    REAL(fp)  :: ril, rij, riu
+    REAL(fp)  :: ru
+    REAL(fp)  :: qtmp(-i2/3:i2+i2/3, julo:jhi)
     
     !     ----------------
     !     Begin execution.
@@ -1700,8 +1755,8 @@ CONTAINS
     else
 !   ====
 
-       qqu(:,:) = 0.0d0
-       qqv(:,:) = 0.0d0
+       qqu(:,:) = 0.0e+0_fp
+       qqv(:,:) = 0.0e+0_fp
        
        do ij = j1p, j2p
              
@@ -1719,7 +1774,7 @@ CONTAINS
                 ru  = ua(il,ij) - riu
                 iu  = il - iu
                 
-                if (ua(il,ij) >= 0.0d0) then
+                if (ua(il,ij) >= 0.0e+0_fp) then
                    
                    qqu(il,ij) =  &
                         qtmp(iu,ij) +  &
@@ -1772,10 +1827,10 @@ CONTAINS
        do ij = ju1, j2
        do il = i1,  i2
           qqu(il,ij) =  &
-               qtmp(il,ij) + (0.5d0 * qqu(il,ij))
+               qtmp(il,ij) + (0.5e+0_fp * qqu(il,ij))
        
           qqv(il,ij) =  &
-               qtmp(il,ij) + (0.5d0 * qqv(il,ij))
+               qtmp(il,ij) + (0.5e+0_fp * qqv(il,ij))
        enddo
        enddo
        
@@ -1787,7 +1842,7 @@ CONTAINS
   END SUBROUTINE Calc_Advec_Cross_Terms
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1824,7 +1879,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! Species density [hPa]
-    REAL*8,  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI, K1:K2)
+    REAL(fp),  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI, K1:K2)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO) 
@@ -1836,7 +1891,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
@@ -1853,9 +1908,9 @@ CONTAINS
     INTEGER :: il, ij, ik
     INTEGER :: ip
     INTEGER :: k1p1, k2m1
-    REAL*8  :: dup, qup
-    REAL*8  :: qly
-    REAL*8  :: sum
+    REAL(fp)  :: dup, qup
+    REAL(fp)  :: qly
+    REAL(fp)  :: sum
 
 
 !     ----------------
@@ -1877,12 +1932,12 @@ CONTAINS
     do ij = j1p, j2p
        do il = i1, i2
 
-          if (dq1(il,ij,k1) < 0.0d0) then
+          if (dq1(il,ij,k1) < 0.0e+0_fp) then
 
              ip = ip + 1
 
              dq1(il,ij,k1p1) = dq1(il,ij,k1p1) + dq1(il,ij,k1)
-             dq1(il,ij,k1)   = 0.0d0
+             dq1(il,ij,k1)   = 0.0e+0_fp
             
           end if
 
@@ -1899,7 +1954,7 @@ CONTAINS
        do ij = j1p, j2p
           do il = i1, i2
              
-             if (dq1(il,ij,ik) < 0.0d0) then
+             if (dq1(il,ij,ik) < 0.0e+0_fp) then
                 
                 ip = ip + 1
 
@@ -1919,7 +1974,7 @@ CONTAINS
 !             -----------
 
                 dq1(il,ij,ik+1) = dq1(il,ij,ik+1) + dq1(il,ij,ik)
-                dq1(il,ij,ik)   = 0.0d0
+                dq1(il,ij,ik)   = 0.0e+0_fp
                 
              end if
 
@@ -1934,7 +1989,7 @@ CONTAINS
 !     Bottom layer.
 !     -------------
 
-    sum  = 0.0d0
+    sum  = 0.0e+0_fp
 
     k2m1 = k2 - 1
 
@@ -1946,7 +2001,7 @@ CONTAINS
     do ij = j1p, j2p
        do il = i1, i2
 
-          if (dq1(il,ij,k2) < 0.0d0) then
+          if (dq1(il,ij,k2) < 0.0e+0_fp) then
 
              ip = ip + 1
 
@@ -1966,7 +2021,7 @@ CONTAINS
 
              sum = sum + qly - dup
 
-             dq1(il,ij,k2) = 0.0d0
+             dq1(il,ij,k2) = 0.0e+0_fp
 
           end if
 
@@ -1983,7 +2038,7 @@ CONTAINS
   END SUBROUTINE Qckxyz
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2026,7 +2081,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.
 !EOP
@@ -2075,7 +2130,7 @@ CONTAINS
   END SUBROUTINE Set_Lmts
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2111,29 +2166,29 @@ CONTAINS
     INTEGER, INTENT(IN)  :: JULO,   JHI
 
     ! Pressure difference across layer from (ai * pt) term [hPa]
-    REAL*8,  INTENT(IN)  :: dap
+    REAL(fp),  INTENT(IN)  :: dap
 
     ! Difference in bi across layer - the dSigma term
-    REAL*8,  INTENT(IN)  :: dbk
+    REAL(fp),  INTENT(IN)  :: dbk
 
     ! Surface pressure at t1 [hPa]
-    REAL*8,  INTENT(IN)  :: pres1(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: pres1(ILO:IHI, JULO:JHI)
     
     ! Surface pressure at t1+tdt [hPa]
-    REAL*8,  INTENT(IN)  :: pres2(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: pres2(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Pressure thickness, the pseudo-density in a 
     ! hydrostatic system at t1 [hPa]
-    REAL*8, INTENT(OUT) :: delp1(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(OUT) :: delp1(ILO:IHI, JULO:JHI)
 
     ! Pressure thickness, the pseudo-density in a 
     ! hydrostatic system at t1+tdt/2 (approximate) [hPa]
-    REAL*8, INTENT(OUT) :: delpm(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(OUT) :: delpm(ILO:IHI, JULO:JHI)
 
     ! Pressure at edges in "u" [hPa]
-    REAL*8, INTENT(OUT) :: pu(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(OUT) :: pu(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO) 
@@ -2145,7 +2200,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
@@ -2166,13 +2221,13 @@ CONTAINS
     
        delpm(:,:) =  &
                 dap+  &
-                (dbk * 0.5d0 * (pres1(:,:) + pres2(:,:)))
+                (dbk * 0.5e+0_fp * (pres1(:,:) + pres2(:,:)))
 
     do ij = j1p, j2p
-       pu(1,ij) = 0.5d0 * (delpm(1,ij) + delpm(i2,ij))
+       pu(1,ij) = 0.5e+0_fp * (delpm(1,ij) + delpm(i2,ij))
        do il = i1+1, i2
           
-          pu(il,ij) = 0.5d0 * (delpm(il,ij) + delpm(il-1,ij))
+          pu(il,ij) = 0.5e+0_fp * (delpm(il,ij) + delpm(il-1,ij))
     
        end do
     end do
@@ -2181,7 +2236,7 @@ CONTAINS
   END SUBROUTINE Set_Press_Terms
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2216,24 +2271,24 @@ CONTAINS
     INTEGER, INTENT(IN)  :: JULO,   JHI
 
     ! Cosine of grid box edges
-    REAL*8,  INTENT(IN)  :: cose (JU1_GL:J2_GL)
+    REAL(fp),  INTENT(IN)  :: cose (JU1_GL:J2_GL)
 
     ! Pressure thickness, the pseudo-density in a hydrostatic system
     ! at t1+tdt/2 (approximate) (mb)
-    REAL*8,  INTENT(IN)  :: delpm(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: delpm(ILO:IHI, JULO:JHI)
 
     ! pressure at edges in "u"  (mb)
-    REAL*8,  INTENT(IN)  :: pu   (iLO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: pu   (iLO:IHI, JULO:JHI)
 
     ! horizontal mass flux in E-W and N-S directions [hPa]
-    REAL*8,  INTENT(IN)  :: xmass(ILO:IHI, JULO:JHI)
-    REAL*8,  INTENT(IN)  :: ymass(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: xmass(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: ymass(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Courant numbers in E-W and N-S directions
-    REAL*8,  INTENT(OUT) :: crx(ILO:IHI, JULO:JHI)
-    REAL*8,  INTENT(OUT) :: cry(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(OUT) :: crx(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(OUT) :: cry(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO) 
@@ -2245,7 +2300,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.
 !   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
@@ -2261,8 +2316,8 @@ CONTAINS
 !   Begin execution.
 !   ----------------
 
-    crx(:,:) = 0.0d0
-    cry(:,:) = 0.0d0
+    crx(:,:) = 0.0e+0_fp
+    cry(:,:) = 0.0e+0_fp
 
 !      ---------------------------------------------
 !      Calculate E-W and N-S horizontal mass fluxes.
@@ -2275,13 +2330,13 @@ CONTAINS
     
           cry(:,ij) =  &
                ymass(:,ij) /  &
-               ((0.5d0 * cose(ij)) *  &
+               ((0.5e+0_fp * cose(ij)) *  &
                (delpm(:,ij) + delpm(:,ij-1)))
        end do
 
        cry(:,j2p+1) =  &
                ymass(:,j2p+1) /  &
-               ((0.5d0 * cose(j2p+1)) *  &
+               ((0.5e+0_fp * cose(j2p+1)) *  &
                (delpm(:,j2p+1) + delpm(:,j2p)))
 
 
@@ -2289,7 +2344,7 @@ CONTAINS
   END SUBROUTINE Calc_Courant
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2331,21 +2386,21 @@ CONTAINS
     LOGICAL, INTENT(IN)  :: do_reduction
 
     ! Special geometrical factor (geofac) for Polar cap
-    REAL*8 , INTENT(IN)  :: geofac_pc
+    REAL(fp) , INTENT(IN)  :: geofac_pc
 
     ! Geometrical factor for meridional advection; geofac uses correct 
     ! spherical geometry, and replaces acosp as the meridional geometrical 
     ! factor in TPCORE
-    REAL*8 , INTENT(IN)  :: geofac(JU1_GL:J2_GL)
+    REAL(fp) , INTENT(IN)  :: geofac(JU1_GL:J2_GL)
 
     ! Horizontal mass flux in E/W and N/S directions [hPa]
-    REAL*8 , INTENT(IN)  :: xmass(ILO:IHI, JULO:JHI)
-    REAL*8 , INTENT(IN)  :: ymass(ILO:IHI, JULO:JHI)
+    REAL(fp) , INTENT(IN)  :: xmass(ILO:IHI, JULO:JHI)
+    REAL(fp) , INTENT(IN)  :: ymass(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Divergence at a grid point; used to calculate vertical motion [hPa]
-    REAL*8,  INTENT(OUT) :: dpi(I1:I2, JU1:J2)
+    REAL(fp),  INTENT(OUT) :: dpi(I1:I2, JU1:J2)
 !      
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -2357,7 +2412,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
@@ -2424,7 +2479,7 @@ CONTAINS
   END SUBROUTINE Calc_Divergence
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2466,15 +2521,15 @@ CONTAINS
     LOGICAL, INTENT(IN)   :: do_reduction
 
     ! Special geometrical factor (geofac) for Polar cap
-    REAL*8,  INTENT(in)   :: geofac_pc
+    REAL(fp),  INTENT(in)   :: geofac_pc
 
     ! Horizontal mass flux in N-S direction [hPa]
-    REAL*8,  INTENT(IN)   :: ymass(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)   :: ymass(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Divergence at a grid point; used to calculate vertical motion [hPa]
-    REAL*8,  INTENT(OUT)  :: dpi(I1:I2, JU1:J2)
+    REAL(fp),  INTENT(OUT)  :: dpi(I1:I2, JU1:J2)
 
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -2486,7 +2541,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent. Added
 !                               OpenMP parallel DO loops.
@@ -2498,11 +2553,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 ! 
     INTEGER :: il
-    REAL*8  :: ri2
-    REAL*8  :: mean_np
-    REAL*8  :: mean_sp
-    REAL*8  :: sumnp
-    REAL*8  :: sumsp
+    REAL(fp)  :: ri2
+    REAL(fp)  :: mean_np
+    REAL(fp)  :: mean_sp
+    REAL(fp)  :: sumnp
+    REAL(fp)  :: sumsp
    
 
 !   ----------------
@@ -2516,7 +2571,7 @@ CONTAINS
     if (ju1 == ju1_gl) then
 !   ==================
 
-          sumsp = 0.0d0
+          sumsp = 0.0e+0_fp
 
           do il = i1, i2
 
@@ -2541,7 +2596,7 @@ CONTAINS
     if (j2 == j2_gl) then
 !   ================
 
-          sumnp = 0.0d0
+          sumnp = 0.0e+0_fp
 
           do il = i1, i2
 
@@ -2564,7 +2619,7 @@ CONTAINS
   END SUBROUTINE Do_Divergence_Pole_Sum
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2599,12 +2654,12 @@ CONTAINS
     INTEGER, INTENT(IN)  :: JULO,   JHI
 
     ! Courant number in N-S direction
-    REAL*8,  INTENT(IN)  :: cry(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: cry(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Average of Courant numbers from ij and ij+1
-    REAL*8,  INTENT(OUT) :: va(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(OUT) :: va(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -2616,7 +2671,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.
 !   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
@@ -2652,7 +2707,7 @@ CONTAINS
           do il = i1, i2d2
 
              va(il,ju1) =  &
-                  0.5d0 * (cry(il,ju1+1) - cry(il+i2d2,ju1+1))
+                  0.5e+0_fp * (cry(il,ju1+1) - cry(il+i2d2,ju1+1))
 
              va(il+i2d2,ju1) = -va(il,ju1)
 
@@ -2670,7 +2725,7 @@ CONTAINS
           do il = i1, i2d2
 
              va(il,j2) =  &
-                  0.5d0 * (cry(il,j2) - cry(il+i2d2,j2-1))
+                  0.5e+0_fp * (cry(il,j2) - cry(il+i2d2,j2-1))
 
              va(il+i2d2,j2) = -va(il,j2)
 
@@ -2688,7 +2743,7 @@ CONTAINS
   END SUBROUTINE Do_Cross_Terms_Pole_I2d2
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2736,15 +2791,15 @@ CONTAINS
     INTEGER, INTENT(IN)  :: js
  
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(IN)  :: qqv(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: qqv(ILO:IHI, JULO:JHI)
 
     ! Average of Courant numbers from il and il+1
-    REAL*8,  INTENT(IN)  :: ua(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: ua(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Cross term due to E-W advection [mixing ratio]
-    REAL*8,  INTENT(OUT) :: adx(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(OUT) :: adx(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -2756,7 +2811,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
@@ -2770,20 +2825,20 @@ CONTAINS
     ! Scalars
     INTEGER :: il, ij, iu
     INTEGER :: imp, iue, iuw
-    REAL*8  :: a1, b1, c1
-    REAL*8  :: rdiff
-    REAL*8  :: ril, riu
-    real*8  :: ru
+    REAL(fp)  :: a1, b1, c1
+    REAL(fp)  :: rdiff
+    REAL(fp)  :: ril, riu
+    real(fp)  :: ru
     
     ! Arrays
-    REAL*8  :: qtmp(-i2/3:i2+i2/3, julo:jhi)
+    REAL(fp)  :: qtmp(-i2/3:i2+i2/3, julo:jhi)
       
     !     ----------------
     !     Begin execution.
     !     ----------------
     
     ! Zero output array
-    adx = 0d0
+    adx = 0e+0_fp
 
        do ij = julo, jhi
   
@@ -2824,7 +2879,7 @@ CONTAINS
                    ru  = ua(il,ij) - riu
                    iu  = il - iu
                      
-                   if (ua(il,ij) >= 0.0d0) then
+                   if (ua(il,ij) >= 0.0e+0_fp) then
                       rdiff = qtmp(iu-1,ij) - qtmp(iu,ij)
                    else
                       rdiff = qtmp(iu,ij)   - qtmp(iu+1,ij)
@@ -2876,10 +2931,10 @@ CONTAINS
                    ru  = riu - ua(il,ij)
                    iu  = il - iu
                      
-                   a1 = 0.5d0 * (qtmp(iu+1,ij) + qtmp(iu-1,ij)) -  &
+                   a1 = 0.5e+0_fp * (qtmp(iu+1,ij) + qtmp(iu-1,ij)) -  &
                                  qtmp(iu,ij)
                      
-                   b1 = 0.5d0 * (qtmp(iu+1,ij) - qtmp(iu-1,ij))
+                   b1 = 0.5e+0_fp * (qtmp(iu+1,ij) - qtmp(iu-1,ij))
                      
                    c1 = qtmp(iu,ij) - qtmp(il,ij)
                      
@@ -2900,10 +2955,10 @@ CONTAINS
                    ru  = riu - ua(il,ij)
                    iu  = il - iu
                      
-                   a1 = 0.5d0 * (qtmp(iu+1,ij) + qtmp(iu-1,ij)) -  &
+                   a1 = 0.5e+0_fp * (qtmp(iu+1,ij) + qtmp(iu-1,ij)) -  &
                                  qtmp(iu,ij)
                    
-                   b1 = 0.5d0 * (qtmp(iu+1,ij) - qtmp(iu-1,ij))
+                   b1 = 0.5e+0_fp * (qtmp(iu+1,ij) - qtmp(iu-1,ij))
                      
                    c1 = qtmp(iu,ij) - qtmp(il,ij)
                      
@@ -2921,11 +2976,11 @@ CONTAINS
       
     if (ju1 == ju1_gl) then
        
-          adx(i1:i2,ju1) = 0.0d0
+          adx(i1:i2,ju1) = 0.0e+0_fp
          
           if (j1p /= ju1_gl+1) then
             
-             adx(i1:i2,ju1+1) = 0.0d0
+             adx(i1:i2,ju1+1) = 0.0e+0_fp
             
           end if
           
@@ -2934,11 +2989,11 @@ CONTAINS
       
     if (j2 == j2_gl) then
 
-          adx(i1:i2,j2) = 0.0d0
+          adx(i1:i2,j2) = 0.0e+0_fp
          
           if (j1p /= ju1_gl+1) then
             
-             adx(i1:i2,j2-1) = 0.0d0
+             adx(i1:i2,j2-1) = 0.0e+0_fp
             
           end if
 
@@ -2948,7 +3003,7 @@ CONTAINS
   END SUBROUTINE Xadv_Dao2
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2989,15 +3044,15 @@ CONTAINS
     INTEGER, INTENT(IN)  :: iad
 
     ! Concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
 
     ! Average of Courant numbers from ij and ij+1
-    REAL*8,  INTENT(IN)  :: va(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: va(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Cross term due to N-S advection (mixing ratio)
-    REAL*8,  INTENT(OUT) :: ady(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(OUT) :: ady(ILO:IHI, JULO:JHI)
 
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -3009,7 +3064,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.
 !   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
@@ -3022,21 +3077,21 @@ CONTAINS
     ! Scalars
     INTEGER :: il, ij
     INTEGER :: jv
-    REAL*8  :: a1, b1, c1
-    REAL*8  :: rij, rjv
-    REAL*8  :: rv
+    REAL(fp)  :: a1, b1, c1
+    REAL(fp)  :: rij, rjv
+    REAL(fp)  :: rv
 
     ! Arrays 
     ! We may need a small ghost zone depending 
     ! on the polar cap used
-    REAL*8  :: qquwk(ilo:ihi, julo-2:jhi+2)   
+    REAL(fp)  :: qquwk(ilo:ihi, julo-2:jhi+2)   
                                                        
 !     ----------------
 !     Begin execution.
 !     ----------------
 
     ! Zero output array
-    ady = 0d0
+    ady = 0e+0_fp
 
     ! Make work array
     do ij = julo, jhi
@@ -3089,10 +3144,10 @@ CONTAINS
                 rv  = rjv - va(il,ij)
                 jv  = ij - jv
                   
-                a1 = 0.5d0 * (qquwk(il,jv+1) + qquwk(il,jv-1)) -  &
+                a1 = 0.5e+0_fp * (qquwk(il,jv+1) + qquwk(il,jv-1)) -  &
                               qquwk(il,jv)
                   
-                b1 = 0.5d0 * (qquwk(il,jv+1) - qquwk(il,jv-1))
+                b1 = 0.5e+0_fp * (qquwk(il,jv+1) - qquwk(il,jv-1))
                   
                 c1 = qquwk(il,jv) - qquwk(il,ij)
                   
@@ -3115,7 +3170,7 @@ CONTAINS
   END SUBROUTINE Yadv_Dao2
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3150,12 +3205,12 @@ CONTAINS
     INTEGER, INTENT(IN)  :: JULO,   JHI
       
     ! concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! qqu working array [mixing ratio]
-    REAL*8,  INTENT(OUT) :: qquwk(ILO:IHI, JULO-2:JHI+2)
+    REAL(fp),  INTENT(OUT) :: qquwk(ILO:IHI, JULO-2:JHI+2)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -3167,7 +3222,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
@@ -3244,7 +3299,7 @@ CONTAINS
   END SUBROUTINE Do_Yadv_Pole_I2d2
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3282,7 +3337,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     ! Cross term due to N-S advection (mixing ratio)
-    REAL*8,  INTENT(INOUT) :: ady(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(INOUT) :: ady(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -3294,7 +3349,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.  Also make a logical
@@ -3311,8 +3366,8 @@ CONTAINS
     INTEGER :: il
       
     ! Arrays
-    REAL*8  :: sumnp
-    REAL*8  :: sumsp
+    REAL(fp)  :: sumnp
+    REAL(fp)  :: sumsp
       
     ! Add 
     LOGICAL :: IS_EXT_POLAR_CAP
@@ -3331,8 +3386,8 @@ CONTAINS
     !  South Pole
     ! ------------
 
-          sumsp = 0.0d0
-          sumnp = 0.0d0
+          sumsp = 0.0e+0_fp
+          sumnp = 0.0e+0_fp
             
           if ( IS_EXT_POLAR_CAP ) then
 
@@ -3386,7 +3441,7 @@ CONTAINS
   END SUBROUTINE Do_Yadv_Pole_Sum
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3436,26 +3491,26 @@ CONTAINS
     INTEGER, INTENT(IN)    :: iord
 
     ! pressure at edges in "u" [hPa]
-    REAL*8,  INTENT(IN)    :: pu(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)    :: pu(ILO:IHI, JULO:JHI)
 
     ! Courant number in E-W direction
-    REAL*8,  INTENT(IN)    :: crx(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)    :: crx(ILO:IHI, JULO:JHI)
 
     ! Horizontal mass flux in E-W direction [hPa]
-    REAL*8,  INTENT(IN)    :: xmass(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)    :: xmass(ILO:IHI, JULO:JHI)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! Species density [hPa]
-    REAL*8,  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI)
 
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! E-W flux [mixing ratio]
-    REAL*8,  INTENT(OUT)   :: fx(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(OUT)   :: fx(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -3467,7 +3522,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
@@ -3482,21 +3537,21 @@ CONTAINS
     INTEGER :: il, ij, ic
     INTEGER :: iu, ix, iuw, iue, imp
     INTEGER :: jvan
-    REAL*8  :: rc
-    REAL*8  :: ric, ril
+    REAL(fp)  :: rc
+    REAL(fp)  :: ric, ril
 
     ! Arrays
     INTEGER :: isav(i1:i2)
-    REAL*8  :: dcx(-i2/3:i2+i2/3, julo:jhi)
-    REAL*8  :: qtmp(-i2/3:i2+i2/3, julo:jhi)
+    REAL(fp)  :: dcx(-i2/3:i2+i2/3, julo:jhi)
+    REAL(fp)  :: qtmp(-i2/3:i2+i2/3, julo:jhi)
 
 
     !     ----------------
     !     Begin execution.
     !     ----------------
 
-    dcx(:,:) = 0.0d0
-    fx(:,:) = 0.0d0
+    dcx(:,:) = 0.0e+0_fp
+    fx(:,:) = 0.0e+0_fp
     
     imp = i2+1
     
@@ -3567,7 +3622,7 @@ CONTAINS
                       fx(il,ij) =  &
                            qtmp(iu,ij) +  &
                            (dcx(iu,ij) *  &
-                           (Sign (1.0d0, crx(il,ij)) - crx(il,ij)))
+                           (Sign (1.0e+0_fp, crx(il,ij)) - crx(il,ij)))
                    end do
                      
                 else
@@ -3623,20 +3678,20 @@ CONTAINS
                    fx(il,ij) =  &
                         rc *  &
                         (qtmp(iu,ij) +  &
-                        (dcx(iu,ij) * (Sign (1.0d0, rc) - rc)))
+                        (dcx(iu,ij) * (Sign (1.0e+0_fp, rc) - rc)))
                 end do
 
              end if
                
              do il = i1, i2
                   
-                if (crx(il,ij) > 1.0d0) then
+                if (crx(il,ij) > 1.0e+0_fp) then
 
                    do ix = isav(il), il - 1
                       fx(il,ij) = fx(il,ij) + qtmp(ix,ij)
                    end do
 
-                else if (crx(il,ij) < -1.0d0) then
+                else if (crx(il,ij) < -1.0e+0_fp) then
                                         
                    do ix = il, isav(il) - 1
                       fx(il,ij) = fx(il,ij) - qtmp(ix,ij)
@@ -3673,7 +3728,7 @@ CONTAINS
   END SUBROUTINE Xtp
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3708,12 +3763,12 @@ CONTAINS
     INTEGER, INTENT(IN)  :: JULO,   JHI
 
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(IN)  :: qqv(-I2/3:I2+I2/3, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: qqv(-I2/3:I2+I2/3, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Slope of concentration distribution in E-W direction [mixing ratio]
-    REAL*8,  INTENT(OUT) :: dcx(-I2/3:I2+I2/3, JULO:JHI)
+    REAL(fp),  INTENT(OUT) :: dcx(-I2/3:I2+I2/3, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -3725,7 +3780,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
@@ -3738,22 +3793,22 @@ CONTAINS
 ! 
     ! Scalars
     INTEGER :: il, ij
-    REAL*8  :: pmax, pmin
-    REAL*8  :: r24
-    REAL*8  :: tmp
+    REAL(fp)  :: pmax, pmin
+    REAL(fp)  :: r24
+    REAL(fp)  :: tmp
       
 
 !   ----------------
 !   Begin execution.
 !   ----------------
 
-    r24 = 1.0d0 / 24.0d0
+    r24 = 1.0e+0_fp / 24.0e+0_fp
 
        do ij = j1p+1, j2p-1
           do il = i1, i2
 
              tmp =  &
-                  ((8.0d0 * (qqv(il+1,ij) - qqv(il-1,ij))) +  &
+                  ((8.0e+0_fp * (qqv(il+1,ij) - qqv(il-1,ij))) +  &
                   qqv(il-2,ij) - qqv(il+2,ij)) *  &
                   r24
 
@@ -3787,7 +3842,7 @@ CONTAINS
   END SUBROUTINE Xmist
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3819,20 +3874,20 @@ CONTAINS
     INTEGER, INTENT(IN)    :: ilmt
 
     ! Courant number in E-W direction
-    REAL*8,  INTENT(IN)    :: crx(I1:I2, JULO:JHI)
+    REAL(fp),  INTENT(IN)    :: crx(I1:I2, JULO:JHI)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Slope of concentration distribution in E-W direction (mixing ratio)
-    REAL*8,  INTENT(OUT)   :: dcx(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(OUT)   :: dcx(ILO:IHI, JULO:JHI)
 
     ! E-W flux [mixing ratio]
-    REAL*8,  INTENT(OUT)   :: fx(I1:I2, JULO:JHI)
+    REAL(fp),  INTENT(OUT)   :: fx(I1:I2, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -3848,7 +3903,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.
 !                               Also remove the allocatable arrays, which
@@ -3864,40 +3919,40 @@ CONTAINS
     INTEGER                   :: il
     INTEGER                   :: ilm1
     INTEGER                   :: lenx
-    REAL*8                    :: r13, r23
-    REAL*8                    :: rval
+    REAL(fp)                    :: r13, r23
+    REAL(fp)                    :: rval
  
     ! Arrays
-    REAL*8                    :: a6( ILO:IHI )
-    REAL*8                    :: al( ILO:IHI )
-    REAL*8                    :: ar( ILO:IHI )
-    REAL*8                    :: a61(   (IHI-1) - (ILO+1) + 1 )
-    REAL*8                    :: al1(   (IHI-1) - (ILO+1) + 1 )
-    REAL*8                    :: ar1(   (IHI-1) - (ILO+1) + 1 )
-    REAL*8                    :: dcxi1( (IHI-1) - (ILO+1) + 1 )
-    REAL*8                    :: qqvi1( (IHI-1) - (ILO+1) + 1 )
+    REAL(fp)                    :: a6( ILO:IHI )
+    REAL(fp)                    :: al( ILO:IHI )
+    REAL(fp)                    :: ar( ILO:IHI )
+    REAL(fp)                    :: a61(   (IHI-1) - (ILO+1) + 1 )
+    REAL(fp)                    :: al1(   (IHI-1) - (ILO+1) + 1 )
+    REAL(fp)                    :: ar1(   (IHI-1) - (ILO+1) + 1 )
+    REAL(fp)                    :: dcxi1( (IHI-1) - (ILO+1) + 1 )
+    REAL(fp)                    :: qqvi1( (IHI-1) - (ILO+1) + 1 )
 
     !     ----------------
     !     Begin execution.
     !     ----------------
      
     ! Zero arrays (bmy, 12/5/08)
-    a6    = 0.0d0
-    al    = 0.0d0
-    ar    = 0.0d0
-    a61   = 0.0d0
-    al1   = 0.0d0
-    ar1   = 0.0d0
-    dcxi1 = 0.0d0
-    qqvi1 = 0.0d0
+    a6    = 0.0e+0_fp
+    al    = 0.0e+0_fp
+    ar    = 0.0e+0_fp
+    a61   = 0.0e+0_fp
+    al1   = 0.0e+0_fp
+    ar1   = 0.0e+0_fp
+    dcxi1 = 0.0e+0_fp
+    qqvi1 = 0.0e+0_fp
 
-    r13 = 1.0d0 / 3.0d0
-    r23 = 2.0d0 / 3.0d0
+    r13 = 1.0e+0_fp / 3.0e+0_fp
+    r23 = 2.0e+0_fp / 3.0e+0_fp
 
 
     do il = ilo + 1, ihi
        
-       rval = 0.5d0 * (qqv(il-1,ij) + qqv(il,ij)) +  &
+       rval = 0.5e+0_fp * (qqv(il-1,ij) + qqv(il,ij)) +  &
                       (dcx(il-1,ij) - dcx(il,ij)) * r13
 
        al(il)   = rval
@@ -3907,7 +3962,7 @@ CONTAINS
       
 
     do il = ilo + 1, ihi - 1
-       a6(il) = 3.0d0 *  &
+       a6(il) = 3.0e+0_fp *  &
                 (qqv(il,ij) + qqv(il,ij) - (al(il) + ar(il)))
     end do
 
@@ -3916,12 +3971,12 @@ CONTAINS
     if (ilmt <= 2) then
 !   ==============
 
-       a61(:) = 0.0d0
-       al1(:) = 0.0d0
-       ar1(:) = 0.0d0
+       a61(:) = 0.0e+0_fp
+       al1(:) = 0.0e+0_fp
+       ar1(:) = 0.0e+0_fp
          
-       dcxi1(:) = 0.0d0
-       qqvi1(:) = 0.0d0
+       dcxi1(:) = 0.0e+0_fp
+       qqvi1(:) = 0.0e+0_fp
          
        lenx = 0
          
@@ -3974,46 +4029,46 @@ CONTAINS
       
     do il = i1+1, i2
          
-       if (crx(il,ij) > 0.0d0) then
+       if (crx(il,ij) > 0.0e+0_fp) then
           
           ilm1 = il - 1
             
           fx(il,ij) =  &
                ar(ilm1) +  &
-               0.5d0 * crx(il,ij) *  &
+               0.5e+0_fp * crx(il,ij) *  &
                (al(ilm1) - ar(ilm1) +  &
-               (a6(ilm1) * (1.0d0 - (r23 * crx(il,ij)))))
+               (a6(ilm1) * (1.0e+0_fp - (r23 * crx(il,ij)))))
             
        else
             
           fx(il,ij) =  &
                al(il) -  &
-               0.5d0 * crx(il,ij) *  &
+               0.5e+0_fp * crx(il,ij) *  &
                (ar(il) - al(il) +  &
-               (a6(il) * (1.0d0 + (r23 * crx(il,ij)))))
+               (a6(il) * (1.0e+0_fp + (r23 * crx(il,ij)))))
             
        end if
          
     end do
 
     ! First box case (ccc, 11/20/08)
-    if (crx(i1,ij) > 0.0d0) then
+    if (crx(i1,ij) > 0.0e+0_fp) then
          
        ilm1 = i2
        
        fx(i1,ij) =  &
             ar(ilm1) +  &
-            0.5d0 * crx(i1,ij) *  &
+            0.5e+0_fp * crx(i1,ij) *  &
             (al(ilm1) - ar(ilm1) +  &
-            (a6(ilm1) * (1.0d0 - (r23 * crx(i1,ij)))))
+            (a6(ilm1) * (1.0e+0_fp - (r23 * crx(i1,ij)))))
          
     else
          
        fx(i1,ij) =  &
             al(i1) -  &
-            0.5d0 * crx(i1,ij) *  &
+            0.5e+0_fp * crx(i1,ij) *  &
             (ar(i1) - al(i1) +  &
-            (a6(i1) * (1.0d0 + (r23 * crx(i1,ij)))))
+            (a6(i1) * (1.0e+0_fp + (r23 * crx(i1,ij)))))
          
     end if
       
@@ -4022,7 +4077,7 @@ CONTAINS
   END SUBROUTINE Fxppm
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4050,19 +4105,19 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! Curvature of the test parabola
-    REAL*8,  INTENT(INOUT) :: a6(lenx)
+    REAL(fp),  INTENT(INOUT) :: a6(lenx)
 
     ! Left edge value of the test parabola
-    REAL*8,  INTENT(INOUT) :: al(lenx)
+    REAL(fp),  INTENT(INOUT) :: al(lenx)
 
     ! Right edge value of the test parabola
-    REAL*8,  INTENT(INOUT) :: ar(lenx)
+    REAL(fp),  INTENT(INOUT) :: ar(lenx)
 
     ! 0.5 * mismatch
-    REAL*8,  INTENT(INOUT) :: dc(lenx)
+    REAL(fp),  INTENT(INOUT) :: dc(lenx)
 
     ! Cell-averaged value
-    REAL*8,  INTENT(INOUT) :: qa(lenx)
+    REAL(fp),  INTENT(INOUT) :: qa(lenx)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -4074,7 +4129,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.
 !EOP
@@ -4085,17 +4140,17 @@ CONTAINS
 ! 
     ! Scalars
     INTEGER :: il
-    REAL*8  :: a6da
-    REAL*8  :: da1, da2
-    REAL*8  :: fmin, ftmp
-    REAL*8  :: r12
+    REAL(fp)  :: a6da
+    REAL(fp)  :: da1, da2
+    REAL(fp)  :: fmin, ftmp
+    REAL(fp)  :: r12
 
 
 !   ----------------
 !   Begin execution.
 !   ----------------
 
-    r12 = 1.0d0 / 12.0d0
+    r12 = 1.0e+0_fp / 12.0e+0_fp
 
 
 !   =============
@@ -4108,9 +4163,9 @@ CONTAINS
 
        do il = 1, lenx
           
-          if (dc(il) == 0.0d0) then
+          if (dc(il) == 0.0e+0_fp) then
                
-             a6(il) = 0.0d0
+             a6(il) = 0.0e+0_fp
              al(il) = qa(il)
              ar(il) = qa(il)
                
@@ -4122,12 +4177,12 @@ CONTAINS
                
              if (a6da < -da2) then
                 
-                a6(il) = 3.0d0 * (al(il) - qa(il))
+                a6(il) = 3.0e+0_fp * (al(il) - qa(il))
                 ar(il) = al(il) - a6(il)
                   
              else if (a6da > da2) then
                   
-                a6(il) = 3.0d0 * (ar(il) - qa(il))
+                a6(il) = 3.0e+0_fp * (ar(il) - qa(il))
                 al(il) = ar(il) - a6(il)
                   
              end if
@@ -4151,18 +4206,18 @@ CONTAINS
                
              if ((qa(il) < ar(il)) .and. (qa(il) < al(il))) then
                 
-                a6(il) = 0.0d0
+                a6(il) = 0.0e+0_fp
                 al(il) = qa(il)
                 ar(il) = qa(il)
                   
              else if (ar(il) > al(il)) then
                 
-                a6(il) = 3.0d0 * (al(il) - qa(il))
+                a6(il) = 3.0e+0_fp * (al(il) - qa(il))
                 ar(il) = al(il) - a6(il)
                   
              else
                   
-                a6(il) = 3.0d0 * (ar(il) - qa(il))
+                a6(il) = 3.0e+0_fp * (ar(il) - qa(il))
                 al(il) = ar(il) - a6(il)
                   
              end if
@@ -4183,25 +4238,25 @@ CONTAINS
              ftmp = ar(il) - al(il)
                
              fmin = qa(il) +  &
-                    0.25d0 * (ftmp * ftmp) / a6(il) +  &
+                    0.25e+0_fp * (ftmp * ftmp) / a6(il) +  &
                     a6(il) * r12
                
-             if (fmin < 0.0d0) then
+             if (fmin < 0.0e+0_fp) then
                   
                 if ((qa(il) < ar(il)) .and. (qa(il) < al(il))) then
                      
-                   a6(il) = 0.0d0
+                   a6(il) = 0.0e+0_fp
                    al(il) = qa(il)
                    ar(il) = qa(il)
                      
                 else if (ar(il) > al(il)) then
                      
-                   a6(il) = 3.0d0 * (al(il) - qa(il))
+                   a6(il) = 3.0e+0_fp * (al(il) - qa(il))
                    ar(il) = al(il) - a6(il)
                      
                 else
                      
-                   a6(il) = 3.0d0 * (ar(il) - qa(il))
+                   a6(il) = 3.0e+0_fp * (ar(il) - qa(il))
                    al(il) = ar(il) - a6(il)
                      
                 end if
@@ -4218,7 +4273,7 @@ CONTAINS
   END SUBROUTINE Lmtppm
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4263,34 +4318,34 @@ CONTAINS
     INTEGER, INTENT(IN)    :: jord       
 
     ! special geometrical factor (geofac) for Polar cap
-    REAL*8,  INTENT(IN)    :: geofac_pc
+    REAL(fp),  INTENT(IN)    :: geofac_pc
 
     ! geometrical factor for meridional advection; geofac uses correct 
     ! spherical geometry, and replaces acosp as the  meridional geometrical 
     ! factor in tpcore
-    REAL*8,  INTENT(IN)    :: geofac(JU1_GL:J2_GL)
+    REAL(fp),  INTENT(IN)    :: geofac(JU1_GL:J2_GL)
 
     ! Courant number in N-S direction
-    REAL*8,  INTENT(IN)    :: cry(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)    :: cry(ILO:IHI, JULO:JHI)
     
     ! Concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(IN)    :: qqu(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)    :: qqu(ILO:IHI, JULO:JHI)
 
     ! Horizontal mass flux in N-S direction [hPa]
-    REAL*8,  INTENT(IN)    :: ymass(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)    :: ymass(ILO:IHI, JULO:JHI)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! Species density [hPa]
-    REAL*8,  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI)
 
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! N-S flux [mixing ratio]
-    REAL*8,  INTENT(OUT)   :: fy(ILO:IHI, JULO:JHI+1)
+    REAL(fp),  INTENT(OUT)   :: fy(ILO:IHI, JULO:JHI+1)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -4302,7 +4357,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
@@ -4316,18 +4371,18 @@ CONTAINS
     ! Scalars
     INTEGER :: il, ij
     INTEGER :: jv
-    REAL*8  :: rj1p
+    REAL(fp)  :: rj1p
 
     ! Arrays
-    REAL*8  :: dcy(ilo:ihi, julo:jhi)
+    REAL(fp)  :: dcy(ilo:ihi, julo:jhi)
 
 
 !   ----------------
 !   Begin execution.
 !   ----------------
 
-    dcy(:,:) = 0.0d0
-    fy(:,:) = 0.0d0
+    dcy(:,:) = 0.0e+0_fp
+    fy(:,:) = 0.0e+0_fp
 
     rj1p = j1p
       
@@ -4376,7 +4431,7 @@ CONTAINS
                      
                    qqv(il,ij) =  &
                         qqu(il,jv) +  &
-                        ((Sign (1.0d0, cry(il,ij)) - cry(il,ij)) *  &
+                        ((Sign (1.0e+0_fp, cry(il,ij)) - cry(il,ij)) *  &
                         dcy(il,jv))
 
                 end do
@@ -4413,7 +4468,7 @@ CONTAINS
   END SUBROUTINE Ytp
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4453,12 +4508,12 @@ CONTAINS
     INTEGER, INTENT(IN)  :: id
 
     ! Concentration contribution from E-W advection (mixing ratio)
-    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Slope of concentration distribution in N-S direction [mixing ratio]
-    REAL*8,  INTENT(OUT) :: dcy(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(OUT) :: dcy(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -4470,7 +4525,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
@@ -4483,21 +4538,21 @@ CONTAINS
 ! 
     ! Scalars
     INTEGER :: il, ij
-    REAL*8  :: pmax, pmin
-    REAL*8  :: r24
-    REAL*8  :: tmp
+    REAL(fp)  :: pmax, pmin
+    REAL(fp)  :: r24
+    REAL(fp)  :: tmp
 
     ! Arrays
     ! I suppose the values for these indexes are 0. 
     ! It should work as the pole values are re-calculated in the 
     ! pole functions. (ccc)
-    REAL*8 :: qtmp(ilo:ihi, julo-2:jhi+2)
+    REAL(fp) :: qtmp(ilo:ihi, julo-2:jhi+2)
 
 !   ----------------
 !   Begin execution.
 !   ----------------
 
-    r24  = 1.0d0 / 24.0d0
+    r24  = 1.0e+0_fp / 24.0e+0_fp
 
     ! Populate qtmp
     qtmp = 0.
@@ -4512,7 +4567,7 @@ CONTAINS
           do ij = ju1 - 1, j2 - 1
              do il = i1, i2
 
-                tmp  = 0.25d0 * (qtmp(il,ij+2) - qtmp(il,ij))
+                tmp  = 0.25e+0_fp * (qtmp(il,ij+2) - qtmp(il,ij))
                   
                 pmax =  &
                   Max (qtmp(il,ij), qtmp(il,ij+1), qtmp(il,ij+2)) -  &
@@ -4541,7 +4596,7 @@ CONTAINS
           do ij = ju1 - 2, j2 - 2
              do il = i1, i2
                   
-                tmp  = ((8.0d0 * (qtmp(il,ij+3) - qtmp(il,ij+1))) +  &
+                tmp  = ((8.0e+0_fp * (qtmp(il,ij+3) - qtmp(il,ij+1))) +  &
                          qtmp(il,ij) - qtmp(il,ij+4)) *  &
                          r24
 
@@ -4572,7 +4627,7 @@ CONTAINS
   END SUBROUTINE Ymist
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4604,12 +4659,12 @@ CONTAINS
     INTEGER, INTENT(IN)  :: JULO,   JHI
 
     ! Concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO-2:JHI+2)
+    REAL(fp),  INTENT(IN)  :: qqu(ILO:IHI, JULO-2:JHI+2)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Slope of concentration distribution in N-S direction [mixing ratio]
-    REAL*8, INTENT(OUT)  :: dcy(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(OUT)  :: dcy(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -4621,7 +4676,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
@@ -4634,9 +4689,9 @@ CONTAINS
 ! 
     INTEGER :: i2d2
     INTEGER :: il
-    REAL*8  :: pmax, pmin
-    REAL*8  :: r24
-    REAL*8  :: tmp
+    REAL(fp)  :: pmax, pmin
+    REAL(fp)  :: r24
+    REAL(fp)  :: tmp
       
 
 !   ----------------
@@ -4645,7 +4700,7 @@ CONTAINS
 
     i2d2 = i2_gl / 2
       
-    r24  = 1.0d0 / 24.0d0
+    r24  = 1.0e+0_fp / 24.0e+0_fp
 
 
 !   ==================
@@ -4655,7 +4710,7 @@ CONTAINS
           do il = i1, i2d2
                
              tmp  =  &
-                  ((8.0d0 * (qqu(il,ju1+2) - qqu(il,ju1))) +  &
+                  ((8.0e+0_fp * (qqu(il,ju1+2) - qqu(il,ju1))) +  &
                   qqu(il+i2d2,ju1+1) - qqu(il,ju1+3)) *  &
                   r24
                
@@ -4675,7 +4730,7 @@ CONTAINS
           do il = i1 + i2d2, i2
              
              tmp  =  &
-                  ((8.0d0 * (qqu(il,ju1+2) - qqu(il,ju1))) +  &
+                  ((8.0e+0_fp * (qqu(il,ju1+2) - qqu(il,ju1))) +  &
                   qqu(il-i2d2,ju1+1) - qqu(il,ju1+3)) *  &
                   r24
              
@@ -4704,7 +4759,7 @@ CONTAINS
           do il = i1, i2d2
                
              tmp  =  &
-                  ((8.0d0 * (qqu(il,j2) - qqu(il,j2-2))) +  &
+                  ((8.0e+0_fp * (qqu(il,j2) - qqu(il,j2-2))) +  &
                   qqu(il,j2-3) - qqu(il+i2d2,j2-1)) *  &
                   r24
                
@@ -4724,7 +4779,7 @@ CONTAINS
          do il = i1 + i2d2, i2
                
              tmp  =  &
-                  ((8.0d0 * (qqu(il,j2) - qqu(il,j2-2))) +  &
+                  ((8.0e+0_fp * (qqu(il,j2) - qqu(il,j2-2))) +  &
                   qqu(il,j2-3) - qqu(il-i2d2,j2-1)) *  &
                   r24
              
@@ -4749,7 +4804,7 @@ CONTAINS
   END SUBROUTINE Do_Ymist_Pole1_I2d2
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4784,12 +4839,12 @@ CONTAINS
     INTEGER, INTENT(IN)  :: JULO,   JHI
 
     ! Concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO-2:JHI+2)
+    REAL(fp),  INTENT(IN)  :: qqu(ILO:IHI, JULO-2:JHI+2)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Slope of concentration distribution in N-S direction [mixing ratio]
-    REAL*8,  INTENT(OUT) :: dcy(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(OUT) :: dcy(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -4801,7 +4856,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
@@ -4815,8 +4870,8 @@ CONTAINS
     ! Scalars
     INTEGER :: i2d2
     INTEGER :: il
-    REAL*8  :: pmax, pmin
-    REAL*8  :: tmp
+    REAL(fp)  :: pmax, pmin
+    REAL(fp)  :: tmp
 
 !   ----------------
 !   Begin execution.
@@ -4831,7 +4886,7 @@ CONTAINS
          
        if (j1p /= ju1_gl+1) then
             
-          dcy(i1:i2,ju1) = 0.0d0
+          dcy(i1:i2,ju1) = 0.0e+0_fp
             
        else
 
@@ -4842,7 +4897,7 @@ CONTAINS
              do il = i1, i2d2
                   
                 tmp  =  &
-                     0.25d0 *  &
+                     0.25e+0_fp *  &
                      (qqu(il,ju1+1) - qqu(il+i2d2,ju1+1))
 
                 pmax =  &
@@ -4877,7 +4932,7 @@ CONTAINS
 
        if (j1p /= ju1_gl+1) then
 
-          dcy(i1:i2,j2) = 0.0d0
+          dcy(i1:i2,j2) = 0.0e+0_fp
             
        else
 
@@ -4888,7 +4943,7 @@ CONTAINS
              do il = i1, i2d2
                  
                 tmp  =  &
-                     0.25d0 *  &
+                     0.25e+0_fp *  &
                      (qqu(il+i2d2,j2-1) - qqu(il,j2-1))
                 
                 pmax =  &
@@ -4920,7 +4975,7 @@ CONTAINS
   END SUBROUTINE Do_Ymist_Pole2_I2d2
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4963,18 +5018,18 @@ CONTAINS
     INTEGER, INTENT(IN)  :: jlmt
 
     ! Courant number in N-S direction
-    REAL*8,  INTENT(IN)  :: cry(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: cry(ILO:IHI, JULO:JHI)
 
     ! Slope of concentration distribution in N-S direction [mixing ratio]
-    REAL*8,  INTENT(IN)  :: dcy(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: dcy(ILO:IHI, JULO:JHI)
 
     ! Concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(OUT) :: qqv(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(OUT) :: qqv(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -4986,7 +5041,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops
@@ -5001,17 +5056,17 @@ CONTAINS
     INTEGER :: ijm1
     INTEGER :: il, ij
     INTEGER :: lenx
-    REAL*8  :: r13, r23
+    REAL(fp)  :: r13, r23
 
     ! Arrays
-    REAL*8  :: a61 (ilong*((JHI-1)-(JULO+1)+1))
-    REAL*8  :: al1 (ilong*((JHI-1)-(JULO+1)+1))
-    REAL*8  :: ar1 (ilong*((JHI-1)-(JULO+1)+1))
-    REAL*8  :: dcy1(ilong*((JHI-1)-(JULO+1)+1))
-    REAL*8  :: qqu1(ilong*((JHI-1)-(JULO+1)+1))
-    REAL*8  :: a6(ILO:IHI, JULO:JHI)
-    REAL*8  :: al(ILO:IHI, JULO:JHI)
-    REAL*8  :: ar(ILO:IHI, JULO:JHI)
+    REAL(fp)  :: a61 (ilong*((JHI-1)-(JULO+1)+1))
+    REAL(fp)  :: al1 (ilong*((JHI-1)-(JULO+1)+1))
+    REAL(fp)  :: ar1 (ilong*((JHI-1)-(JULO+1)+1))
+    REAL(fp)  :: dcy1(ilong*((JHI-1)-(JULO+1)+1))
+    REAL(fp)  :: qqu1(ilong*((JHI-1)-(JULO+1)+1))
+    REAL(fp)  :: a6(ILO:IHI, JULO:JHI)
+    REAL(fp)  :: al(ILO:IHI, JULO:JHI)
+    REAL(fp)  :: ar(ILO:IHI, JULO:JHI)
    
     ! NOTE: The code was writtein with I1:I2 as the first dimension of AL,
     ! AR, A6, AL1, A61, AR1.  However, the limits should really should be 
@@ -5024,16 +5079,16 @@ CONTAINS
 !   Begin execution.
 !   ----------------
 
-    a6(:,:) = 0.0d0; al(:,:) = 0.0d0; ar(:,:) = 0.0d0
+    a6(:,:) = 0.0e+0_fp; al(:,:) = 0.0e+0_fp; ar(:,:) = 0.0e+0_fp
 
 
-    r13 = 1.0d0 / 3.0d0
-    r23 = 2.0d0 / 3.0d0
+    r13 = 1.0e+0_fp / 3.0e+0_fp
+    r23 = 2.0e+0_fp / 3.0e+0_fp
 
     do ij = julo+1, jhi
     do il = ilo,    ihi
        al(il,ij) =  &
-            0.5d0 * (qqu(il,ij-1) + qqu(il,ij)) +  &
+            0.5e+0_fp * (qqu(il,ij-1) + qqu(il,ij)) +  &
             (dcy(il,ij-1) - dcy(il,ij)) * r13
        ar(il,ij-1) = al(il,ij)
     end do
@@ -5050,7 +5105,7 @@ CONTAINS
     do il = ilo,    ihi
 
        a6(il,ij) =  &
-            3.0d0 *  &
+            3.0e+0_fp *  &
             (qqu(il,ij) + qqu(il,ij) -  &
             (al(il,ij) + ar(il,ij)))
        
@@ -5107,21 +5162,21 @@ CONTAINS
 
           do il = ilo, ihi
 
-             if (cry(il,ij) > 0.0d0) then
+             if (cry(il,ij) > 0.0e+0_fp) then
 
                 qqv(il,ij) =  &
                      ar(il,ijm1) +  &
-                     0.5d0 * cry(il,ij) *  &
+                     0.5e+0_fp * cry(il,ij) *  &
                      (al(il,ijm1) - ar(il,ijm1) +  &
-                     (a6(il,ijm1) * (1.0d0 - (r23 * cry(il,ij)))))
+                     (a6(il,ijm1) * (1.0e+0_fp - (r23 * cry(il,ij)))))
 
              else
 
                 qqv(il,ij) =  &
                      al(il,ij) -  &
-                     0.5d0 * cry(il,ij) *  &
+                     0.5e+0_fp * cry(il,ij) *  &
                      (ar(il,ij) - al(il,ij) +  &
-                     (a6(il,ij) * (1.0d0 + (r23 * cry(il,ij)))))
+                     (a6(il,ij) * (1.0e+0_fp + (r23 * cry(il,ij)))))
 
              end if
 
@@ -5133,7 +5188,7 @@ CONTAINS
   END SUBROUTINE Fyppm
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5166,8 +5221,8 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     ! Left (al) and right (ar) edge values of the test parabola
-    REAL*8,  INTENT(INOUT) :: al(ILO:IHI, JULO:JHI)
-    REAL*8,  INTENT(INOUT) :: ar(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(INOUT) :: al(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(INOUT) :: ar(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -5179,7 +5234,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
@@ -5214,7 +5269,7 @@ CONTAINS
   END SUBROUTINE Do_Fyppm_Pole_I2d2
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5250,18 +5305,18 @@ CONTAINS
     INTEGER, INTENT(IN)    :: JULO,   JHI
 
     ! Special geometrical factor (geofac) for Polar cap
-    REAL*8,  INTENT(IN)    :: geofac_pc
+    REAL(fp),  INTENT(IN)    :: geofac_pc
 
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(IN)    :: qqv(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN)    :: qqv(ILO:IHI, JULO:JHI)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! Species density [hPa]
-    REAL*8,  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI)
 
     ! N-S mass flux [mixing ratio]
-    REAL*8,  INTENT(INOUT) :: fy (ILO:IHI, JULO:JHI+1)
+    REAL(fp),  INTENT(INOUT) :: fy (ILO:IHI, JULO:JHI+1)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -5273,7 +5328,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
@@ -5286,14 +5341,14 @@ CONTAINS
 ! 
     ! Scalars
     INTEGER :: il, ik
-    REAL*8  :: ri2
+    REAL(fp)  :: ri2
 
     ! Arrays
-    REAL*8  :: dq_np
-    REAL*8  :: dq_sp
-    REAL*8  :: dqik(2)  ! 2 elements array for each pole value.
-    REAL*8  :: sumnp
-    REAL*8  :: sumsp
+    REAL(fp)  :: dq_np
+    REAL(fp)  :: dq_sp
+    REAL(fp)  :: dqik(2)  ! 2 elements array for each pole value.
+    REAL(fp)  :: sumnp
+    REAL(fp)  :: sumsp
 
 
 !   ----------------
@@ -5302,13 +5357,13 @@ CONTAINS
 
     ri2 = i2_gl
 
-    dqik(:) = 0.0d0
+    dqik(:) = 0.0e+0_fp
 
 
 !... Integrate N-S flux around polar cap lat circle for each level
 
-          sumsp = 0.0d0
-          sumnp = 0.0d0
+          sumsp = 0.0e+0_fp
+          sumnp = 0.0e+0_fp
             
           do il = i1, i2
              sumsp = sumsp + qqv(il,j1p)
@@ -5350,7 +5405,7 @@ CONTAINS
   END SUBROUTINE Do_Ytp_Pole_Sum
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5404,25 +5459,25 @@ CONTAINS
 
     ! Pressure thickness, the pseudo-density in a 
     ! hydrostatic system at t1 [hPa]
-    REAL*8,  INTENT(IN)    :: delp1(ILO:IHI, JULO:JHI, K1:K2)
+    REAL(fp),  INTENT(IN)    :: delp1(ILO:IHI, JULO:JHI, K1:K2)
 
     ! Large scale mass flux (per time step tdt) in the vertical
     ! direction as diagnosed from the hydrostatic relationship [hPa]
-    REAL*8,  INTENT(IN)    :: wz(I1:I2, JU1:J2, K1:K2)
+    REAL(fp),  INTENT(IN)    :: wz(I1:I2, JU1:J2, K1:K2)
 
     ! Species concentration [mixing ratio]
-    REAL*8,  INTENT(IN)    :: qq1(ILO:IHI, JULO:JHI, K1:K2)
+    REAL(fp),  INTENT(IN)    :: qq1(:,:,:)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! Species density [hPa]
-    REAL*8,  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI, K1:K2)
+    REAL(fp),  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI, K1:K2)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Vertical flux [mixing ratio]
-    REAL*8,  INTENT(OUT)   :: fz(ILO:IHI, JULO:JHI,  K1:K2)
-
+    REAL(fp),  INTENT(OUT)   :: fz(ILO:IHI, JULO:JHI,  K1:K2)
+!
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
 !   John Tannahill, LLNL (jrt@llnl.gov)
@@ -5433,7 +5488,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.
 !EOP
@@ -5447,33 +5502,33 @@ CONTAINS
     INTEGER :: k1p1, k1p2
     INTEGER :: k2m1, k2m2
     INTEGER :: lenx
-    REAL*8  :: a1, a2
-    REAL*8  :: aa, bb
-    REAL*8  :: c0, c1, c2
-    REAL*8  :: cm, cp
-    REAL*8  :: fac1, fac2
-    REAL*8  :: lac
-    REAL*8  :: qmax, qmin
-    REAL*8  :: qmp
-    REAL*8  :: r13, r23
-    REAL*8  :: tmp
+    REAL(fp)  :: a1, a2
+    REAL(fp)  :: aa, bb
+    REAL(fp)  :: c0, c1, c2
+    REAL(fp)  :: cm, cp
+    REAL(fp)  :: fac1, fac2
+    REAL(fp)  :: lac
+    REAL(fp)  :: qmax, qmin
+    REAL(fp)  :: qmp
+    REAL(fp)  :: r13, r23
+    REAL(fp)  :: tmp
 
     ! Arrays
-    REAL*8  :: a61  (ilong*(ivert-4))
-    REAL*8  :: al1  (ilong*(ivert-4))
-    REAL*8  :: ar1  (ilong*(ivert-4))
-    REAL*8  :: dca1 (ilong*(ivert-4))
-    REAL*8  :: qq1a1(ilong*(ivert-4))
-    REAL*8  :: a6   (i1:i2, k1:k2)
-    REAL*8  :: al   (i1:i2, k1:k2)
-    REAL*8  :: ar   (i1:i2, k1:k2)
-    REAL*8  :: dca  (i1:i2, k1:k2)
-    REAL*8  :: dlp1a(i1:i2, k1:k2)
-    REAL*8  :: qq1a (i1:i2, k1:k2)
-    REAL*8  :: wza  (i1:i2, k1:k2)
-    REAL*8  :: dc   (i1:i2, ju1:j2, k1:k2)
+    REAL(fp)  :: a61  (ilong*(ivert-4))
+    REAL(fp)  :: al1  (ilong*(ivert-4))
+    REAL(fp)  :: ar1  (ilong*(ivert-4))
+    REAL(fp)  :: dca1 (ilong*(ivert-4))
+    REAL(fp)  :: qq1a1(ilong*(ivert-4))
+    REAL(fp)  :: a6   (i1:i2, k1:k2)
+    REAL(fp)  :: al   (i1:i2, k1:k2)
+    REAL(fp)  :: ar   (i1:i2, k1:k2)
+    REAL(fp)  :: dca  (i1:i2, k1:k2)
+    REAL(fp)  :: dlp1a(i1:i2, k1:k2)
+    REAL(fp)  :: qq1a (i1:i2, k1:k2)
+    REAL(fp)  :: wza  (i1:i2, k1:k2)
+    REAL(fp)  :: dc   (i1:i2, ju1:j2, k1:k2)
     ! Work array 
-    REAL*8  :: dpi(I1:I2, JU1:J2, K1:K2)
+    REAL(fp)  :: dpi(I1:I2, JU1:J2, K1:K2)
 
 
 
@@ -5481,10 +5536,10 @@ CONTAINS
 !     Begin execution.
 !     ----------------
 
-    a6(:,:) = 0.0d0
-    al(:,:) = 0.0d0
-    ar(:,:) = 0.0d0
-    dc(:,:,:) = 0.0d0
+    a6(:,:) = 0.0e+0_fp
+    al(:,:) = 0.0e+0_fp
+    ar(:,:) = 0.0e+0_fp
+    dc(:,:,:) = 0.0e+0_fp
 !.sds... diagnostic vertical flux for species - set top to 0.0
     fz(:,:,:) = 0.0
 
@@ -5495,8 +5550,8 @@ CONTAINS
     k2m1 = k2 - 1
     k2m2 = k2 - 2
 
-    r13  = 1.0d0 / 3.0d0
-    r23  = 2.0d0 / 3.0d0
+    r13  = 1.0e+0_fp / 3.0e+0_fp
+    r23  = 2.0e+0_fp / 3.0e+0_fp
 
 
 !   -------------------
@@ -5517,10 +5572,10 @@ CONTAINS
                   (delp1(il,ij,ik-1) + delp1(il,ij,ik) +  &
                   delp1(il,ij,ik+1))
 
-             c1 = (delp1(il,ij,ik-1) + (0.5d0 * delp1(il,ij,ik))) /  &
+             c1 = (delp1(il,ij,ik-1) + (0.5e+0_fp * delp1(il,ij,ik))) /  &
                   (delp1(il,ij,ik+1) + delp1(il,ij,ik))
                
-             c2 = (delp1(il,ij,ik+1) + (0.5d0 * delp1(il,ij,ik))) /  &
+             c2 = (delp1(il,ij,ik+1) + (0.5e+0_fp * delp1(il,ij,ik))) /  &
                   (delp1(il,ij,ik-1) + delp1(il,ij,ik))
                
              tmp = c0 *  &
@@ -5597,16 +5652,16 @@ CONTAINS
           fac2 = (dlp1a(il,k1p1) + dlp1a(il,k1p2)) *  &
                  (dlp1a(il,k1) + dlp1a(il,k1p1) + dlp1a(il,k1p2))
             
-          aa = 3.0d0 * fac1 / fac2
+          aa = 3.0e+0_fp * fac1 / fac2
 
           bb =  &
-               2.0d0 * dpi(il,ij,k1) / (dlp1a(il,k1) + dlp1a(il,k1p1)) -  &
-               r23 * aa * (2.0d0 * dlp1a(il,k1) + dlp1a(il,k1p1))
+               2.0e+0_fp * dpi(il,ij,k1) / (dlp1a(il,k1) + dlp1a(il,k1p1)) -  &
+               r23 * aa * (2.0e+0_fp * dlp1a(il,k1) + dlp1a(il,k1p1))
             
           al(il,k1) = qq1a(il,k1) -  &
                dlp1a(il,k1) *  &
                (r13 * aa * dlp1a(il,k1) +  &
-               0.5d0 * bb)
+               0.5e+0_fp * bb)
             
           al(il,k1p1) = dlp1a(il,k1) * (aa * dlp1a(il,k1) + bb) +  &
                al(il,k1)
@@ -5615,10 +5670,10 @@ CONTAINS
 !         Check if change sign.
 !         ---------------------
 
-          if ((qq1a(il,k1) * al(il,k1)) <= 0.0d0) then
+          if ((qq1a(il,k1) * al(il,k1)) <= 0.0e+0_fp) then
              
-             al (il,k1) = 0.0d0
-             dca(il,k1) = 0.0d0
+             al (il,k1) = 0.0e+0_fp
+             dca(il,k1) = 0.0e+0_fp
                
           else
                
@@ -5640,13 +5695,13 @@ CONTAINS
 
           fac1 = dpi(il,ij,k2m1) * (dlp1a(il,k2) * dlp1a(il,k2)) /  &
                  ((dlp1a(il,k2) + dlp1a(il,k2m1)) *  &
-                 (2.0d0 * dlp1a(il,k2) + dlp1a(il,k2m1)))
+                 (2.0e+0_fp * dlp1a(il,k2) + dlp1a(il,k2m1)))
             
           ar(il,k2) = qq1a(il,k2) + fac1
           al(il,k2) = qq1a(il,k2) - (fac1 + fac1)
             
-          if ((qq1a(il,k2) * ar(il,k2)) <= 0.0d0) then
-             ar(il,k2) = 0.0d0
+          if ((qq1a(il,k2) * ar(il,k2)) <= 0.0e+0_fp) then
+             ar(il,k2) = 0.0e+0_fp
           end if
             
           dca(il,k2) = ar(il,k2) - qq1a(il,k2)
@@ -5664,15 +5719,15 @@ CONTAINS
              c1 = (dpi(il,ij,ik-1) * dlp1a(il,ik-1)) /  &
                   (dlp1a(il,ik-1) + dlp1a(il,ik))
                
-             c2 = 2.0d0 /  &
+             c2 = 2.0e+0_fp /  &
                   (dlp1a(il,ik-2) + dlp1a(il,ik-1) +  &
                   dlp1a(il,ik)   + dlp1a(il,ik+1))
                
              a1 = (dlp1a(il,ik-2) + dlp1a(il,ik-1)) /  &
-                  (2.0d0 * dlp1a(il,ik-1) + dlp1a(il,ik))
+                  (2.0e+0_fp * dlp1a(il,ik-1) + dlp1a(il,ik))
                
              a2 = (dlp1a(il,ik) + dlp1a(il,ik+1)) /  &
-                  (2.0d0 * dlp1a(il,ik) + dlp1a(il,ik-1))
+                  (2.0e+0_fp * dlp1a(il,ik) + dlp1a(il,ik-1))
                
              al(il,ik) =  &
                   qq1a(il,ik-1) + c1 +  &
@@ -5700,7 +5755,7 @@ CONTAINS
           do il = i1, i2
              
              a6(il,ik) =  &
-                  3.0d0 * (qq1a(il,ik) + qq1a(il,ik) -  &
+                  3.0e+0_fp * (qq1a(il,ik) + qq1a(il,ik) -  &
                   (al(il,ik)  + ar(il,ik)))
           end do
             
@@ -5718,7 +5773,7 @@ CONTAINS
           do il = i1, i2
              
              a6(il,ik) =  &
-                  3.0d0 * (qq1a(il,ik) + qq1a(il,ik) -  &
+                  3.0e+0_fp * (qq1a(il,ik) + qq1a(il,ik) -  &
                   (al(il,ik)  + ar(il,ik)))
           end do
             
@@ -5757,9 +5812,9 @@ CONTAINS
 !             Right edges.
 !             ------------
 
-                qmp   = qq1a(il,ik) + (2.0d0 * dpi(il,ij,ik-1))
+                qmp   = qq1a(il,ik) + (2.0e+0_fp * dpi(il,ij,ik-1))
                 lac   = qq1a(il,ik) +  &
-                     (1.5d0 * dca(il,ik-1)) + (0.5d0 * dpi(il,ij,ik-1))
+                     (1.5e+0_fp * dca(il,ik-1)) + (0.5e+0_fp * dpi(il,ij,ik-1))
                 qmin  = Min (qq1a(il,ik), qmp, lac)
                 qmax  = Max (qq1a(il,ik), qmp, lac)
                 
@@ -5769,9 +5824,9 @@ CONTAINS
 !             Left edges.
 !             -----------
                 
-                qmp   = qq1a(il,ik) - (2.0d0 * dpi(il,ij,ik))
+                qmp   = qq1a(il,ik) - (2.0e+0_fp * dpi(il,ij,ik))
                 lac   = qq1a(il,ik) +  &
-                        (1.5d0 * dca(il,ik+1)) - (0.5d0 * dpi(il,ij,ik))
+                        (1.5e+0_fp * dca(il,ik+1)) - (0.5e+0_fp * dpi(il,ij,ik))
                 qmin  = Min (qq1a(il,ik), qmp, lac)
                 qmax  = Max (qq1a(il,ik), qmp, lac)
                 
@@ -5782,7 +5837,7 @@ CONTAINS
 !             -------------
 
                 a6(il,ik) =  &
-                     3.0d0 * (qq1a(il,ik) + qq1a(il,ik) -  &
+                     3.0e+0_fp * (qq1a(il,ik) + qq1a(il,ik) -  &
                      (ar(il,ik)  + al(il,ik)))
              end do
           end do
@@ -5804,7 +5859,7 @@ CONTAINS
                 dca1 (lenx) = dca (il,ik)
                 qq1a1(lenx) = qq1a(il,ik)
                   
-                a61  (lenx) = 3.0d0 * (qq1a1(lenx) + qq1a1(lenx) -  &
+                a61  (lenx) = 3.0e+0_fp * (qq1a1(lenx) + qq1a1(lenx) -  &
                              (al1(lenx)  + ar1(lenx)))
              end do
           end do
@@ -5837,15 +5892,15 @@ CONTAINS
        do ik = k1, k2m1
           do il = i1, i2
                
-             if (wza(il,ik) > 0.0d0) then
+             if (wza(il,ik) > 0.0e+0_fp) then
                 
                 cm = wza(il,ik) / dlp1a(il,ik)
                 
                 dca(il,ik+1) =  &
                      ar(il,ik) +  &
-                     0.5d0 * cm *  &
+                     0.5e+0_fp * cm *  &
                      (al(il,ik) - ar(il,ik) +  &
-                     a6(il,ik) * (1.0d0 - r23 * cm))
+                     a6(il,ik) * (1.0e+0_fp - r23 * cm))
 
              else
 
@@ -5853,9 +5908,9 @@ CONTAINS
 
                 dca(il,ik+1) =  &
                      al(il,ik+1) +  &
-                     0.5d0 * cp *  &
+                     0.5e+0_fp * cp *  &
                      (al(il,ik+1) - ar(il,ik+1) -  &
-                     a6(il,ik+1) * (1.0d0 + r23 * cp))
+                     a6(il,ik+1) * (1.0e+0_fp + r23 * cp))
                   
              end if
                
@@ -5892,7 +5947,7 @@ CONTAINS
 
 !EOC 
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5919,12 +5974,12 @@ CONTAINS
     INTEGER, INTENT(IN)   :: JULO,   JHI
 
     ! Surface area of grid box
-    REAL*8,  INTENT(IN)   :: AREA_1D(JU1:J2)
+    REAL(fp),  INTENT(IN)   :: AREA_1D(JU1:J2)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! Surface pressure [hPa]
-    REAL*8, INTENT(INOUT) :: press(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(INOUT) :: press(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003) 
@@ -5939,7 +5994,7 @@ CONTAINS
 !                               This eliminates the polar overshoot in the
 !                               stratosphere.
 !   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
+!                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.
 !EOP
@@ -5950,9 +6005,9 @@ CONTAINS
 ! 
     ! Scalars
     INTEGER :: I, J
-    REAL*8  :: meanp
-    REAL*8  :: REL_AREA(JU1:J2)
-    REAL*8  :: SUM_AREA
+    REAL(fp)  :: meanp
+    REAL(fp)  :: REL_AREA(JU1:J2)
+    REAL(fp)  :: SUM_AREA
 
     !----------------
     !Begin execution.
@@ -5974,7 +6029,7 @@ CONTAINS
     SUM_AREA = SUM( rel_area( JU1:JU1+1 ) ) * DBLE( I2 )
 
     ! Zero
-    meanp = 0.d0
+    meanp = 0.e+0_fp
 
     ! Sum pressure * surface area over the S. Polar cap
     DO J = JU1, JU1+1
@@ -5994,7 +6049,7 @@ CONTAINS
     SUM_AREA = SUM( rel_area( J2-1:J2 ) ) * DBLE( I2 )
 
     ! Zero
-    meanp = 0.d0
+    meanp = 0.e+0_fp
 
     ! Sum pressure * surface area over the N. Polar cap
     DO J = J2-1, J2

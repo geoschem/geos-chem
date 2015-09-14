@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -15,10 +15,13 @@ MODULE defineConstants
 !
 ! !USES:
 !
+  USE PRECISION_MOD ! For GEOS-Chem Precision (fp)
+
   IMPLICIT NONE
 !
 ! !REVISION HISTORY:
-!  09 July 2010 - C. Carouge  - Adapted to restart simulations.
+!  09 Jul 2010 - C. Carouge  - Adapted to restart simulations.
+!  25 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -48,21 +51,21 @@ MODULE defineConstants
                                            ! AGE CLASSES
                                            ! SO LEAVE = 1
   
-  real*8                ::  number_age_classes=1.000d0 ! real of above
+  real(fp)                ::  number_age_classes=1.000e+0_fp ! real of above
   
-  real*8                ::  Q10=1.500d0 !effect of temperature on soil fluxes
+  real(fp)                ::  Q10=1.500e+0_fp !effect of temperature on soil fluxes
   
-  real*8                ::  EMAX=0.700d0 !maximum light use efficiency
+  real(fp)                ::  EMAX=0.700e+0_fp !maximum light use efficiency
   
-  real*8                ::  aboveWoodFraction=0.7500d0 ! fraction of wood that
+  real(fp)                ::  aboveWoodFraction=0.7500e+0_fp ! fraction of wood that
                                                        ! is above ground
   
-  real*8                ::  herbivoreEff=0.500d0 ! efficiency of herbivory
+  real(fp)                ::  herbivoreEff=0.500e+0_fp ! efficiency of herbivory
                                                  ! (part autotrophic 
                                                  ! respiration, part to
                                                  ! surface litter pools)
   
-  real*8                ::  decompHgEff=0.163d0 ! fraction of organic bound
+  real(fp)                ::  decompHgEff=0.163e+0_fp ! fraction of organic bound
                                                 ! Hg that is reduced and 
                                                 ! re-emitted
   

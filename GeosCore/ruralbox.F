@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -12,29 +12,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RURALBOX( AD, T, AVGW, ALBD )
+      SUBROUTINE RURALBOX( State_Met )
 !
 ! !USES:
 !
-      USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS,  IXSAVE, IYSAVE
-      USE COMODE_MOD,     ONLY : IZSAVE, JLOP,     PRESS3, T3,  VOLUME 
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER,      GET_PEDGE
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP
-
-#     include "define.h"
-
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE COMODE_LOOP_MOD       ! NPVERT
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS
+      USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE
+      USE COMODE_MOD,         ONLY : IZSAVE, JLOP
+      USE COMODE_MOD,         ONLY : PRESS3, T3,       VOLUME 
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! NPVERT
+      USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,  INTENT(IN) :: AD(IIPAR,JJPAR,LLPAR)     ! Air mass [kg]
-      REAL*8,  INTENT(IN) :: T(IIPAR,JJPAR,LLPAR)      ! Temperature [K]
-      REAL*8,  INTENT(IN) :: AVGW(IIPAR,JJPAR,LLPAR)   ! Mix rat. of H2O [v/v]
-      REAL*8,  INTENT(IN) :: ALBD(IIPAR,JJPAR)         ! Sfc albedo [unitless]
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  Developers: amf, bey, ljm, lwh, gmg, bdf, bmy, 7/16/01, 2/25/10)
@@ -70,6 +68,13 @@
 !  (14) Remove ALT and CLOUDS from arg list -- they are obsolete (bmy, 4/10/06)
 !  (15) Remove obsolete embedded chemistry stuff (bmy, 2/25/10)
 !  10 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -78,14 +83,12 @@
 !
       LOGICAL                 :: LDEBUG
       INTEGER                 :: I, J, L, JLOOP, IJLOOP
-#if defined( DEVEL )
-      INTEGER                 :: TMP_LEV
-#endif
-      ! External functions
-      REAL*8,  EXTERNAL       :: BOXVL
+!#if defined( DEVEL )
+!      INTEGER                 :: TMP_LEV
+!#endif
 
       !! testing variables for variable tropopause
-      !real*8  :: temp(iipar,jjpar,llpar)
+      !real(fp)  :: temp(iipar,jjpar,llpar)
       !logical :: templ
       !temp = 0
 
@@ -98,17 +101,17 @@
       JLOOP     = 0
       NTLOOPNCS = 0
 
-      ! Loop over vertical levels (max = LLTROP) 
-#if defined( DEVEL )
-      IF (NVERT .gt. LLPAR) THEN
-         TMP_LEV = LLPAR
-      ELSE
-         TMP_LEV = NVERT
-      ENDIF
-      DO L = 1, TMP_LEV
-#else
+      ! Loop over vertical levels (max = LLCHEM) 
+!if defined( DEVEL )
+!      IF (NVERT .gt. LLPAR) THEN
+!         TMP_LEV = LLPAR
+!      ELSE
+!         TMP_LEV = NVERT
+!      ENDIF
+!      DO L = 1, TMP_LEV
+!#else
       DO L = 1, NVERT
-#endif
+!#endif
 
          ! Loop over surface grid boxes
          DO J = 1, NLAT
@@ -120,9 +123,10 @@
             IF ( IGLOBCHEM <= 0 ) THEN
 
                !=======================================================
-               ! Skip over strat boxes
+               ! Skip over non-chemgrid boxes
                !=======================================================
-               IF ( ITS_IN_THE_STRAT( I, J, L ) ) GOTO 40
+               IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) )
+     &            GOTO 40
 
                ! Increment JLOOP for trop boxes
                JLOOP          = JLOOP + 1
@@ -149,9 +153,9 @@
                JLOOP          = JLOOP + 1
                JLOP(I,J,L)    = JLOOP
 
-               IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+               IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
-                  ! Tropospheric boxes go into the SMVGEAR II "URBAN" slot
+                  ! Chemgrid boxes go into the SMVGEAR II "URBAN" slot
                   NTLOOPNCS(NCSURBAN) = NTLOOPNCS(NCSURBAN) + 1
                   NCSLOOP(NTLOOPNCS(NCSURBAN),NCSURBAN) = JLOOP
 
@@ -182,20 +186,21 @@
             IZSAVE(JLOOP)  = L                              
 
             ! get box volume [cm3]
-            VOLUME(JLOOP)  = BOXVL(I, J, L)
+            VOLUME(JLOOP)  = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
             ! get air density in (molecs cm^-3)
-            AIRDENS(JLOOP) = AD(I,J,L)*1000.d0/VOLUME(JLOOP)*AVG/WTAIR
+            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
+     &                       VOLUME(JLOOP) * AVG / WTAIR
 
             ! get temperature
-            T3(JLOOP)      = T(I,J,L)
+            T3(JLOOP)      = State_Met%T(I,J,L)
 
             ! PRESS3 = pressure in bar, multiply mb * 1000
-            PRESS3(JLOOP) = GET_PCENTER(I,J,L) * 1000d0
+            PRESS3(JLOOP)  = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp
 
             ! Get relative humidity (here is absolute #H2O/cc air)
             ! AVGW is the mixing ratio of water vapor [v/v]
-            ABSHUM(JLOOP) = AVGW(I,J,L) * AIRDENS(JLOOP)
+            ABSHUM(JLOOP)  = State_Met%AVGW(I,J,L) * AIRDENS(JLOOP)
 
             ! Go to next I
  40         CONTINUE           

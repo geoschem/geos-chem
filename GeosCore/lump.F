@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -7,32 +7,38 @@
 !
 ! !DESCRIPTION: Subroutine LUMP takes individual chemistry species and 
 !  "lumps" them back into tracers after each SMVGEAR chemistry timestep.
-
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LUMP( NTRACER, XNUMOL, STT )
+      SUBROUTINE LUMP( am_I_Root, Input_Opt, State_Chm, RC  )
 !
 ! !USES:
 !
-      USE COMODE_MOD,   ONLY : CSPEC,  JLOP,    VOLUME
-      USE TRACERID_MOD, ONLY : IDTRMB, NMEMBER, CTRMB
-      USE CMN_SIZE_MOD                            ! Size parameters
-      USE COMODE_LOOP_MOD                         ! SMVGEAR II arrays
+      USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : CSPEC,  JLOP,    VOLUME
+      USE COMODE_LOOP_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTRMB, NMEMBER, CTRMB
+
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
-#     include "define.h"
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)    :: NTRACER           ! # of tracers
-      REAL*8,  INTENT(IN)    :: XNUMOL(NTRACER)   ! Molec tracer / kg tracer
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
-      ! Tracer concentrations [kg/box]
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2003 - R. Yantosca - Initial version
@@ -42,23 +48,48 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC\
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES
 !
-      INTEGER :: I, J, L, N, JLOOP, KK, JJ
-      REAL*8  :: CONCTMP  
+      INTEGER         :: I, J, L, N, JLOOP, KK, JJ
+      REAL(fp)          :: CONCTMP  
+
+      ! For values from Input_Opt
+      INTEGER         :: N_TRACERS
+      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! LUMP begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, JLOOP, CONCTMP, KK, JJ )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO N = 1, NTRACER
+      DO N = 1, N_TRACERS
          
          ! Skip if not a valid tracer
          IF ( IDTRMB(N,1) == 0 ) CYCLE
@@ -74,10 +105,11 @@
 
             ! Compute tracer concentration [molec/cm3/box] by
             ! looping over all species belonging to this tracer
-            CONCTMP = 0.d0
+            CONCTMP = 0.e+0_fp
             DO KK = 1, NMEMBER(N)
                JJ = IDTRMB(N, KK)
-               CONCTMP = CONCTMP + ( 1d0+CTRMB(N,KK) ) * CSPEC(JLOOP,JJ)
+               CONCTMP = CONCTMP + ( 1e+0_fp+CTRMB(N,KK) ) * 
+     &                   CSPEC(JLOOP,JJ)
             ENDDO
 
             ! Save tracer concentrations back to STT
@@ -90,6 +122,9 @@
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE LUMP
 !EOC

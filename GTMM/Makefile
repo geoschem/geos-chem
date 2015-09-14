@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOP
 #
@@ -11,7 +11,7 @@
 # !REMARKS:
 # To build the programs, call "make" with the following syntax:
 #                                                                             .
-#   make TARGET [ OPTIONAL-FLAGS ]
+#   make -jN TARGET REQUIRED-FLAGS [ OPTIONAL-FLAGS ]
 #                                                                             .
 # To display a complete list of options, type "make help".
 #                                                                             .
@@ -39,64 +39,96 @@
 #  18 Sep 2009 - P. Le Sager - Added kppintegrator target & commented
 #                              "make -C int" calls
 #  21 Sep 2009 - C. Carouge  - Adapted to use with GTMM model. 
+#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
-# Define variables
-SHELL   = /bin/sh
-ROOTDIR = ..
-HDR     = $(ROOTDIR)/Headers
-HELP    = $(ROOTDIR)/help
-LIB     = $(ROOTDIR)/lib
-MOD     = $(ROOTDIR)/mod
-LGTMM   = -L$(LIB) -lHg
+###############################################################################
+###                                                                         ###
+###  Initialization section                                                 ###
+###                                                                         ###
+###############################################################################
 
+# Directories
+ROOT    :=..
+LIB     :=$(ROOT)/lib
+MOD     :=$(ROOT)/mod
+
+# Link command
+LGTMM   :=-L$(LIB) -lHg
 
 # Include header file.  This returns variables CC, F90, FREEFORM, LD, R8,
 # as well as the default Makefile compilation rules for source code files.
-include $(ROOTDIR)/Makefile_header.mk
-
-#=============================================================================
-# List of files to compile.  Here the order is not important,
-# as we will explicity define the dependencies listing below.
-#=============================================================================
+include $(ROOT)/Makefile_header.mk
 
 # Source code files
-SRC  = $(wildcard *.F90)
+SOURCES := $(wildcard *.F90)
 
 # Object files
-OBJ  = $(SRC:.F90=.o)
+OBJECTS := $(SOURCES:.F90=.o)
 
-#=============================================================================
-# Makefile targets: type "make help" for a complete listing!
-#=============================================================================
+# List of module files.  Convert to lowercase, then prefix directory name.
+MODULES :=$(OBJECTS:.o=.mod)
+MODULES :=$(shell echo $(MODULES) | tr A-Z a-z)
+MODULES :=$(foreach I,$(MODULES),$(MOD)/$(I))
 
-.PHONY: clean help gtmm
+# Library file
+LIBRARY :=libHg.a
 
-lib: $(OBJ)
-	$(AR) crs libHg.a $(OBJ)
-	mv libHg.a $(LIB)
+# Executable file
+EXEFILE :=gtmm
+
+###############################################################################
+###                                                                         ###
+###  Makefile targets: type "make help" for a complete listing!             ###
+###                                                                         ###
+###############################################################################
+
+.PHONY: clean gtmm debug
+
+lib: $(OBJECTS)
+	$(AR) crs $(LIBRARY) $(OBJECTS)
+	mv $(LIBRARY) $(LIB)
 
 gtmm:
 	@$(MAKE) lib
 	@$(MAKE) exe
 
 exe: 
-	$(LD) $(OBJ) $(LGTMM) -o gtmm
+	$(LD) $(OBJECTS) $(LGTMM) -o $(EXEFILE)
 
 clean:
-	rm -f *.o *.mod gtmm
+	@echo "===> Making clean in directory: GTMM <==="
+	@rm -f *$(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY) $(EXEFILE)
 
-help:
-	@$(MAKE) -C $(HELP)
+debug:
+	@echo "Targets : $(MAKECMDGOALS)"
+	@echo "ROOT    : $(ROOT)"
+	@echo "LIB     : $(LIB)"
+	@echo "MOD     : $(MOD)"
+	@echo "F90     : $(F90)"
+	@echo "OBJECTS : $(OBJECTS)"
+	@echo "MODULES : $(MODULES)"
+	@echo "LIBRARY : $(LIBRARY)"
 
-#=============================================================================
-# Dependencies listing (grep "USE " to get the list of module references!)
-#
-# From this list of dependencies, the "make" utility will figure out the
-# correct order of compilation (so we don't have to do that ourselves!)
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Dependencies listing                                                   ###
+###  (grep "USE " to get the list of module references!)                    ###
+###                                                                         ###
+###  From this list of dependencies, the "make" utility will figure out     ###
+###  correct order of compilation (so we don't have to do that ourselves).  ###
+###  This also allows us to compile on multiple processors with "make -j".  ###
+###                                                                         ###
+###  NOTES:                                                                 ###
+###  (1) Only specify object-file dependencies that are within this         ###
+###       directory.  Object files in other directories will be referenced  ### 
+###       at link-time.                                                     ###
+###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
+###       in this directory must have a listed dependency.                  ###
+###                                                                         ###
+###############################################################################
 
 CleanupCASAarrays.o            : CleanupCASAarrays.F90 defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          

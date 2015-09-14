@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -17,8 +17,9 @@
 !
       USE inquireMod, ONLY : findFreeLUN
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -38,8 +39,10 @@
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now make IU_A1 a private module variable
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
-
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -51,7 +54,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -128,7 +131,7 @@
       END FUNCTION DO_OPEN_A1
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -140,33 +143,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_MERRA_A1_FIELDS( NYMD, NHMS, RESET, IUNIT )
+      SUBROUTINE OPEN_MERRA_A1_FIELDS( NYMD,  NHMS, Input_Opt, 
+     &                                 RESET, IUNIT            )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE DIRECTORY_MOD, ONLY : MERRA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE FILE_MOD,      ONLY : FILE_EXISTS
-      USE FILE_MOD,      ONLY : IOERROR
-      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : FILE_EXISTS
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)            :: NYMD    ! YYYYMMDD date
-      INTEGER, INTENT(IN)            :: NHMS    ! hhmmss time
-      LOGICAL, INTENT(IN),  OPTIONAL :: RESET   ! Reset first-time A1 flag?
+      INTEGER,        INTENT(IN)            :: NYMD      ! YYYYMMDD date
+      INTEGER,        INTENT(IN)            :: NHMS      ! hhmmss time
+      TYPE(OptInput), INTENT(IN)            :: Input_Opt ! Input Options
+      LOGICAL,        INTENT(IN),  OPTIONAL :: RESET     ! Reset first A1 flag?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT), OPTIONAL :: IUNIT   ! Returns IU_A1 to caller
+      INTEGER,        INTENT(OUT), OPTIONAL :: IUNIT     ! Returns IU_A1
 ! 
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A1 locally
 !  06 Aug 2012 - R. Yantosca - Add optional IUNIT to pass LUN to calling routine
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -201,7 +206,7 @@
          !---------------------------
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( MERRA_DIR )
+         GEOS_DIR = TRIM( Input_Opt%MERRA_DIR )
          A1_FILE  = 'YYYYMMDD.a1.' // GET_RES_EXT()
 
          ! Replace date tokens
@@ -209,8 +214,9 @@
          CALL EXPAND_DATE( GEOS_DIR, NYMD, NHMS )
 
          ! Full file path
-         PATH = TRIM( DATA_DIR ) // 
-     &          TRIM( GEOS_DIR ) // TRIM( A1_FILE )
+         PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &          TRIM( GEOS_DIR           ) // 
+     &          TRIM( A1_FILE            )
 
          ! Close previously opened A-1 file
 	 INQUIRE( IU_A1, OPENED=IS_OPEN )
@@ -268,7 +274,7 @@
       END SUBROUTINE OPEN_MERRA_A1_FIELDS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -280,32 +286,30 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_A1_FIELDS( NYMD, NHMS )
+      SUBROUTINE GET_MERRA_A1_FIELDS( NYMD, NHMS, Input_Opt, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : ALBD,     CLDFRC,   EFLUX,    EVAP    
-      USE DAO_MOD, ONLY : FRSEAICE, FRSNO,    GRN,      GWETROOT  
-      USE DAO_MOD, ONLY : GWETTOP,  HFLUX,    LAI,      LWI
-      USE DAO_MOD, ONLY : PARDF,    PARDR,    PBL,      PREANV
-      USE DAO_MOD, ONLY : PREACC,   PRECON,   PRELSC,   PRECSNO
-      USE DAO_MOD, ONLY : RADLWG,   RADSWG,   SEAICE00, SEAICE10 
-      USE DAO_MOD, ONLY : SEAICE20, SEAICE30, SEAICE40, SEAICE50
-      USE DAO_MOD, ONLY : SEAICE60, SEAICE70, SEAICE80, SEAICE90
-      USE DAO_MOD, ONLY : SLP,      SNODP,    SNOMAS,   TROPP
-      USE DAO_MOD, ONLY : TS,       TSKIN,    U10M,     USTAR
-      USE DAO_MOD, ONLY : V10M,     Z0 
-
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD 
-      INTEGER, INTENT(IN) :: NHMS   !  and hhmmss of data to read from disk
+      INTEGER,        INTENT(IN)    :: NYMD        ! YYYYMMDD and 
+      INTEGER,        INTENT(IN)    :: NHMS        !  hhmmss of data to read
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  25 Aug 2010 - R. Yantosca - Now pass LWI down to READ_A1
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
+!  15 Nov 2012 - R. Yantosca - Remove reference to dao_mod.F module arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -330,50 +334,51 @@
       !=================================================================      
       ! Read data from disk
       !=================================================================
-      CALL READ_A1( NYMD     = NYMD, 
-     &              NHMS     = NHMS,
-     &              ALBEDO   = ALBD,
-     &              CLDTOT   = CLDFRC,   
-     &              EFLUX    = EFLUX,    
-     &              EVAP     = EVAP,
-     &              FRSEAICE = FRSEAICE,
-     &              FRSNO    = FRSNO, 
-     &              GRN      = GRN,      
-     &              GWETROOT = GWETROOT,
-     &              GWETTOP  = GWETTOP, 
-     &              HFLUX    = HFLUX,  
-     &              LAI      = LAI,
-     &              LWI      = LWI,
-     &              LWGNT    = RADLWG,
-     &              PARDF    = PARDF,
-     &              PARDR    = PARDR,
-     &              PBLH     = PBL,
-     &              PRECANV  = PREANV,   
-     &              PRECTOT  = PREACC,  
-     &              PRECCON  = PRECON, 
-     &              PRECLSC  = PRELSC,   
-     &              PRECSNO  = PRECSNO,
-     &              SEAICE00 = SEAICE00,
-     &              SEAICE10 = SEAICE10,
-     &              SEAICE20 = SEAICE20,
-     &              SEAICE30 = SEAICE30,
-     &              SEAICE40 = SEAICE40,
-     &              SEAICE50 = SEAICE50,
-     &              SEAICE60 = SEAICE60,
-     &              SEAICE70 = SEAICE70,
-     &              SEAICE80 = SEAICE80,
-     &              SEAICE90 = SEAICE90,
-     &              SLP      = SLP,
-     &              SNODP    = SNODP,
-     &              SNOMAS   = SNOMAS,
-     &              SWGNT    = RADSWG,
-     &              TROPPT   = TROPP,
-     &              T2M      = TS,
-     &              TS       = TSKIN, 
-     &              U10M     = U10M,
-     &              USTAR    = USTAR,
-     &              V10M     = V10M,
-     &              Z0M      = Z0        )
+      CALL READ_A1( NYMD      = NYMD, 
+     &              NHMS      = NHMS,
+     &              Input_Opt = Input_Opt,
+     &              ALBEDO    = State_Met%ALBD,
+     &              CLDTOT    = State_Met%CLDFRC,   
+     &              EFLUX     = State_Met%EFLUX,    
+     &              EVAP      = State_Met%EVAP,
+     &              FRSEAICE  = State_Met%FRSEAICE,
+     &              FRSNO     = State_Met%FRSNO, 
+     &              GRN       = State_Met%GRN,      
+     &              GWETROOT  = State_Met%GWETROOT,
+     &              GWETTOP   = State_Met%GWETTOP, 
+     &              HFLUX     = State_Met%HFLUX,  
+     &              LAI       = State_Met%LAI,
+     &              LWI       = State_Met%LWI,
+     &              LWGNT     = State_Met%RADLWG,
+     &              PARDF     = State_Met%PARDF,
+     &              PARDR     = State_Met%PARDR,
+     &              PBLH      = State_Met%PBLH,
+     &              PRECANV   = State_Met%PRECANV,   
+     &              PRECTOT   = State_Met%PRECTOT,  
+     &              PRECCON   = State_Met%PRECCON, 
+     &              PRECLSC   = State_Met%PRECLSC,   
+     &              PRECSNO   = State_Met%PRECSNO,
+     &              SEAICE00  = State_Met%SEAICE00,
+     &              SEAICE10  = State_Met%SEAICE10,
+     &              SEAICE20  = State_Met%SEAICE20,
+     &              SEAICE30  = State_Met%SEAICE30,
+     &              SEAICE40  = State_Met%SEAICE40,
+     &              SEAICE50  = State_Met%SEAICE50,
+     &              SEAICE60  = State_Met%SEAICE60,
+     &              SEAICE70  = State_Met%SEAICE70,
+     &              SEAICE80  = State_Met%SEAICE80,
+     &              SEAICE90  = State_Met%SEAICE90,
+     &              SLP       = State_Met%SLP,
+     &              SNODP     = State_Met%SNODP,
+     &              SNOMAS    = State_Met%SNOMAS,
+     &              SWGNT     = State_Met%RADSWG,
+     &              TROPPT    = State_Met%TROPP,
+     &              T2M       = State_Met%TS,
+     &              TS        = State_Met%TSKIN, 
+     &              U10M      = State_Met%U10M,
+     &              USTAR     = State_Met%USTAR,
+     &              V10M      = State_Met%V10M,
+     &              Z0M       = State_Met%Z0        )
 
       ! Save NYMD, NHMS for next call
       LASTNYMD = NYMD
@@ -382,7 +387,7 @@
       END SUBROUTINE GET_MERRA_A1_FIELDS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -394,7 +399,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_A1( NYMD,     NHMS, 
+      SUBROUTINE READ_A1( NYMD,     NHMS,     Input_Opt,
      &                    ALBEDO,   CLDTOT,   EFLUX,    EVAP,    
      &                    FRSEAICE, FRSNO,    GRN,      GWETROOT, 
      &                    GWETTOP,  HFLUX,    LAI,      LWGNT,   
@@ -409,73 +414,75 @@
 !
 ! !USES:
 !
-      USE DIAG_MOD,     ONLY : AD67
-      USE FILE_MOD,     ONLY : IOERROR
-      USE TIME_MOD,     ONLY : SET_CT_A1
-      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
-      USE TRANSFER_MOD, ONLY : TRANSFER_TO_1D
-
-      USE CMN_SIZE_MOD                             ! Size parameters
-      USE CMN_DIAG_MOD                             ! ND67 flag
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD67
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : SET_CT_A1
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: NYMD                   ! YYYYMMDD and hhmmss     
-      INTEGER, INTENT(IN)  :: NHMS                   !  of data to read
+      INTEGER,        INTENT(IN)  :: NYMD            ! YYYYMMDD and hhmmss     
+      INTEGER,        INTENT(IN)  :: NHMS            !  of data to read
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt       ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: ALBEDO  (IIPAR,JJPAR)  ! Sfc albedo [unitless]
-      REAL*8,  INTENT(OUT) :: CLDTOT  (IIPAR,JJPAR)  ! Column cld fraction
-      REAL*8,  INTENT(OUT) :: EFLUX   (IIPAR,JJPAR)  ! Latent heat flux [W/m2]
-      REAL*8,  INTENT(OUT) :: EVAP    (IIPAR,JJPAR)  ! Surface evap [kg/m2/s]
-      REAL*8,  INTENT(OUT) :: FRSEAICE(IIPAR,JJPAR)  ! Sfc sea ice fraction
-      REAL*8,  INTENT(OUT) :: FRSNO   (IIPAR,JJPAR)  ! Sfc snow fraction
-      REAL*8,  INTENT(OUT) :: GRN     (IIPAR,JJPAR)  ! Greenness fraction
-      REAL*8,  INTENT(OUT) :: GWETROOT(IIPAR,JJPAR)  ! Root soil wetness [frac]
-      REAL*8,  INTENT(OUT) :: GWETTOP (IIPAR,JJPAR)  ! Topsoil wetness [frac]
-      REAL*8,  INTENT(OUT) :: HFLUX   (IIPAR,JJPAR)  ! Sensible H-flux [W/m2]
-      REAL*8,  INTENT(OUT) :: LAI     (IIPAR,JJPAR)  ! Leaf area index [m2/m2]
-      REAL*8,  INTENT(OUT) :: LWI     (IIPAR,JJPAR)  ! Leaf area index [m2/m2]
-      REAL*8,  INTENT(OUT) :: LWGNT   (IIPAR,JJPAR)  ! Net LW rad @ sfc [W/m2]
-      REAL*8,  INTENT(OUT) :: PARDF   (IIPAR,JJPAR)  ! Diffuse PAR [W/m2]
-      REAL*8,  INTENT(OUT) :: PARDR   (IIPAR,JJPAR)  ! Direct PAR [W/m2]
-      REAL*8,  INTENT(OUT) :: PBLH    (IIPAR,JJPAR)  ! PBL height [m]
-      REAL*8,  INTENT(OUT) :: PRECANV (IIPAR,JJPAR)  ! Anv prec @ sfc [kg/m2/s]
-      REAL*8,  INTENT(OUT) :: PRECTOT (IIPAR,JJPAR)  ! Tot prec @ sfc [kg/m2/s]
-      REAL*8,  INTENT(OUT) :: PRECCON (IIPAR,JJPAR)  ! CV prec @ sfc [kg/m2/s]
-      REAL*8,  INTENT(OUT) :: PRECLSC (IIPAR,JJPAR)  ! LS prec @ sfc [kg/m2/s]
-      REAL*8,  INTENT(OUT) :: PRECSNO (IIPAR,JJPAR)  ! Snow precip [kg/m2/s]
-      REAL*8,  INTENT(OUT) :: SEAICE00(IIPAR,JJPAR)  ! Sea ice coverage 00-10%
-      REAL*8,  INTENT(OUT) :: SEAICE10(IIPAR,JJPAR)  ! Sea ice coverage 10-20%
-      REAL*8,  INTENT(OUT) :: SEAICE20(IIPAR,JJPAR)  ! Sea ice coverage 20-30%
-      REAL*8,  INTENT(OUT) :: SEAICE30(IIPAR,JJPAR)  ! Sea ice coverage 30-40%
-      REAL*8,  INTENT(OUT) :: SEAICE40(IIPAR,JJPAR)  ! Sea ice coverage 40-50%
-      REAL*8,  INTENT(OUT) :: SEAICE50(IIPAR,JJPAR)  ! Sea ice coverage 50-60%
-      REAL*8,  INTENT(OUT) :: SEAICE60(IIPAR,JJPAR)  ! Sea ice coverage 60-70%
-      REAL*8,  INTENT(OUT) :: SEAICE70(IIPAR,JJPAR)  ! Sea ice coverage 70-80%
-      REAL*8,  INTENT(OUT) :: SEAICE80(IIPAR,JJPAR)  ! Sea ice coverage 80-90%
-      REAL*8,  INTENT(OUT) :: SEAICE90(IIPAR,JJPAR)  ! Sea ice coverage 90-100%
-      REAL*8,  INTENT(OUT) :: SLP     (IIPAR,JJPAR)  ! Sea level pressure [hPa]
-      REAL*8,  INTENT(OUT) :: SNODP   (IIPAR,JJPAR)  ! Snow depth [m]
-      REAL*8,  INTENT(OUT) :: SNOMAS  (IIPAR,JJPAR)  ! Snow mass [kg/m2]
-      REAL*8,  INTENT(OUT) :: SWGNT   (IIPAR,JJPAR)  ! SW rad @ sfc [W/m2] 
-      REAL*8,  INTENT(OUT) :: TROPPT  (IIPAR,JJPAR)  ! T'pause pressure [hPa]
-      REAL*8,  INTENT(OUT) :: T2M     (IIPAR,JJPAR)  ! T @ 2m height [K]
-      REAL*8,  INTENT(OUT) :: TS      (IIPAR,JJPAR)  ! Sfc skin T [K]
-      REAL*8,  INTENT(OUT) :: U10M    (IIPAR,JJPAR)  ! U-wind @ 10m [m/s]
-      REAL*8,  INTENT(OUT) :: USTAR   (IIPAR,JJPAR)  ! Friction velocity [m/s]
-      REAL*8,  INTENT(OUT) :: V10M    (IIPAR,JJPAR)  ! V-wind @ 10m [m/s]
-      REAL*8,  INTENT(OUT) :: Z0M     (IIPAR,JJPAR)  ! Roughness height [m]
+      REAL(fp),  INTENT(OUT) :: ALBEDO  (IIPAR,JJPAR)  ! Sfc albedo [unitless]
+      REAL(fp),  INTENT(OUT) :: CLDTOT  (IIPAR,JJPAR)  ! Column cld fraction
+      REAL(fp),  INTENT(OUT) :: EFLUX   (IIPAR,JJPAR)  ! Latent heat flux [W/m2]
+      REAL(fp),  INTENT(OUT) :: EVAP    (IIPAR,JJPAR)  ! Surface evap [kg/m2/s]
+      REAL(fp),  INTENT(OUT) :: FRSEAICE(IIPAR,JJPAR)  ! Sfc sea ice fraction
+      REAL(fp),  INTENT(OUT) :: FRSNO   (IIPAR,JJPAR)  ! Sfc snow fraction
+      REAL(fp),  INTENT(OUT) :: GRN     (IIPAR,JJPAR)  ! Greenness fraction
+      REAL(fp),  INTENT(OUT) :: GWETROOT(IIPAR,JJPAR)  ! Root soil wetness [frac]
+      REAL(fp),  INTENT(OUT) :: GWETTOP (IIPAR,JJPAR)  ! Topsoil wetness [frac]
+      REAL(fp),  INTENT(OUT) :: HFLUX   (IIPAR,JJPAR)  ! Sensible H-flux [W/m2]
+      REAL(fp),  INTENT(OUT) :: LAI     (IIPAR,JJPAR)  ! Leaf area index [m2/m2]
+      REAL(fp),  INTENT(OUT) :: LWI     (IIPAR,JJPAR)  ! Leaf area index [m2/m2]
+      REAL(fp),  INTENT(OUT) :: LWGNT   (IIPAR,JJPAR)  ! Net LW rad @ sfc [W/m2]
+      REAL(fp),  INTENT(OUT) :: PARDF   (IIPAR,JJPAR)  ! Diffuse PAR [W/m2]
+      REAL(fp),  INTENT(OUT) :: PARDR   (IIPAR,JJPAR)  ! Direct PAR [W/m2]
+      REAL(fp),  INTENT(OUT) :: PBLH    (IIPAR,JJPAR)  ! PBL height [m]
+      REAL(fp),  INTENT(OUT) :: PRECANV (IIPAR,JJPAR)  ! Anv prec @ sfc [kg/m2/s]
+      REAL(fp),  INTENT(OUT) :: PRECTOT (IIPAR,JJPAR)  ! Tot prec @ sfc [kg/m2/s]
+      REAL(fp),  INTENT(OUT) :: PRECCON (IIPAR,JJPAR)  ! CV prec @ sfc [kg/m2/s]
+      REAL(fp),  INTENT(OUT) :: PRECLSC (IIPAR,JJPAR)  ! LS prec @ sfc [kg/m2/s]
+      REAL(fp),  INTENT(OUT) :: PRECSNO (IIPAR,JJPAR)  ! Snow precip [kg/m2/s]
+      REAL(fp),  INTENT(OUT) :: SEAICE00(IIPAR,JJPAR)  ! Sea ice coverage 00-10%
+      REAL(fp),  INTENT(OUT) :: SEAICE10(IIPAR,JJPAR)  ! Sea ice coverage 10-20%
+      REAL(fp),  INTENT(OUT) :: SEAICE20(IIPAR,JJPAR)  ! Sea ice coverage 20-30%
+      REAL(fp),  INTENT(OUT) :: SEAICE30(IIPAR,JJPAR)  ! Sea ice coverage 30-40%
+      REAL(fp),  INTENT(OUT) :: SEAICE40(IIPAR,JJPAR)  ! Sea ice coverage 40-50%
+      REAL(fp),  INTENT(OUT) :: SEAICE50(IIPAR,JJPAR)  ! Sea ice coverage 50-60%
+      REAL(fp),  INTENT(OUT) :: SEAICE60(IIPAR,JJPAR)  ! Sea ice coverage 60-70%
+      REAL(fp),  INTENT(OUT) :: SEAICE70(IIPAR,JJPAR)  ! Sea ice coverage 70-80%
+      REAL(fp),  INTENT(OUT) :: SEAICE80(IIPAR,JJPAR)  ! Sea ice coverage 80-90%
+      REAL(fp),  INTENT(OUT) :: SEAICE90(IIPAR,JJPAR)  ! Sea ice coverage 90-100%
+      REAL(fp),  INTENT(OUT) :: SLP     (IIPAR,JJPAR)  ! Sea level pressure [hPa]
+      REAL(fp),  INTENT(OUT) :: SNODP   (IIPAR,JJPAR)  ! Snow depth [m]
+      REAL(fp),  INTENT(OUT) :: SNOMAS  (IIPAR,JJPAR)  ! Snow mass [kg/m2]
+      REAL(fp),  INTENT(OUT) :: SWGNT   (IIPAR,JJPAR)  ! SW rad @ sfc [W/m2] 
+      REAL(fp),  INTENT(OUT) :: TROPPT  (IIPAR,JJPAR)  ! T'pause pressure [hPa]
+      REAL(fp),  INTENT(OUT) :: T2M     (IIPAR,JJPAR)  ! T @ 2m height [K]
+      REAL(fp),  INTENT(OUT) :: TS      (IIPAR,JJPAR)  ! Sfc skin T [K]
+      REAL(fp),  INTENT(OUT) :: U10M    (IIPAR,JJPAR)  ! U-wind @ 10m [m/s]
+      REAL(fp),  INTENT(OUT) :: USTAR   (IIPAR,JJPAR)  ! Friction velocity [m/s]
+      REAL(fp),  INTENT(OUT) :: V10M    (IIPAR,JJPAR)  ! V-wind @ 10m [m/s]
+      REAL(fp),  INTENT(OUT) :: Z0M     (IIPAR,JJPAR)  ! Roughness height [m]
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  25 Aug 2010 - R. Yantosca - Now read LWI (land/water/ice) from disk
 !  15 Aug 2011 - R. Yantosca - Now save SWGDN in 2nd slot of ND67 diagnostic
 !  25 Mar 2011 - R. Yantosca - Bug fix: make local SWGDN array for ND67 diag
+!  08 Jun 2012 - S. Philip   - Correction for MERRA boundary layer height
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A1 file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -526,7 +533,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:2' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, ALBEDO )
+                  ALBEDO = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -538,7 +545,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:3' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, CLDTOT )
+                  CLDTOT = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -550,7 +557,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:4' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, EFLUX )
+                  EFLUX  = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -562,7 +569,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:5' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, EVAP )
+                  EVAP   = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -574,8 +581,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:6' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, FRSEAICE )
-                  NFOUND = NFOUND + 1
+                  FRSEAICE = Q2
+                  NFOUND   = NFOUND + 1
                ENDIF
 
             !--------------------------------------
@@ -586,7 +593,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:7' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, FRSNO )
+                  FRSNO  = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -598,7 +605,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:8' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, GRN )
+                  GRN    = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -610,8 +617,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:9' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, GWETROOT )
-                  NFOUND = NFOUND + 1
+                  GWETROOT = Q2
+                  NFOUND   = NFOUND + 1
                ENDIF
 
             !-------------------------------------
@@ -622,8 +629,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:10' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, GWETTOP )
-                  NFOUND = NFOUND + 1
+                  GWETTOP = Q2
+                  NFOUND  = NFOUND + 1
                ENDIF
 
             !-------------------------------------
@@ -634,7 +641,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:11' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, HFLUX )
+                  HFLUX  = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -646,7 +653,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:12' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, LAI )
+                  LAI    = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -659,7 +666,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:13' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, LWI )
+                  LWI    = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -671,7 +678,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:14' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, LWGNT )
+                  LWGNT  = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -683,7 +690,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:15' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, PARDF )
+                  PARDF  = Q2
                   NFOUND = NFOUND + 1
                ENDIF  
 
@@ -695,7 +702,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:16' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, PARDR )
+                  PARDR  = Q2
                   NFOUND = NFOUND + 1
                ENDIF 
 
@@ -707,7 +714,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:17' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, PBLH )
+                  PBLH   = Q2
                   NFOUND = NFOUND + 1
                ENDIF       
 
@@ -719,8 +726,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:18' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, PRECANV )
-                  NFOUND = NFOUND + 1
+                  PRECANV = Q2
+                  NFOUND  = NFOUND + 1
                ENDIF       
 
             !-------------------------------------
@@ -731,8 +738,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:19' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, PRECCON )
-                  NFOUND = NFOUND + 1
+                  PRECCON = Q2
+                  NFOUND  = NFOUND + 1
                ENDIF   
 
             !-------------------------------------
@@ -743,8 +750,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:20' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, PRECLSC )
-                  NFOUND = NFOUND + 1
+                  PRECLSC = Q2
+                  NFOUND  = NFOUND + 1
                ENDIF   
 
             !-------------------------------------
@@ -755,8 +762,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:21' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, PRECTOT )
-                  NFOUND = NFOUND + 1
+                  PRECTOT = Q2
+                  NFOUND  = NFOUND + 1
                ENDIF   
 
             !-------------------------------------
@@ -767,8 +774,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:22' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, PRECSNO )
-                  NFOUND = NFOUND + 1
+                  PRECSNO = Q2
+                  NFOUND  = NFOUND + 1
                ENDIF   
 
             !-------------------------------------
@@ -779,8 +786,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:23' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, SEAICE00 )
-                  NFOUND = NFOUND + 1
+                  SEAICE00 = Q2
+                  NFOUND   = NFOUND + 1
                ENDIF   
 
             !-------------------------------------
@@ -791,8 +798,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:24' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, SEAICE10 )
-                  NFOUND = NFOUND + 1
+                  SEAICE10 = Q2
+                  NFOUND   = NFOUND + 1
                ENDIF   
 
             !-------------------------------------
@@ -803,8 +810,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:25' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, SEAICE20 )
-                  NFOUND = NFOUND + 1
+                  SEAICE20 = Q2
+                  NFOUND   = NFOUND + 1
                ENDIF  
 
             !-------------------------------------
@@ -815,8 +822,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:26' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, SEAICE30 )
-                  NFOUND = NFOUND + 1
+                  SEAICE30 = Q2
+                  NFOUND   = NFOUND + 1
                ENDIF  
 
             !-------------------------------------
@@ -827,8 +834,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:27' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, SEAICE40 )
-                  NFOUND = NFOUND + 1
+                  SEAICE40 = Q2
+                  NFOUND   = NFOUND + 1
                ENDIF  
 
             !-------------------------------------
@@ -839,8 +846,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:28' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, SEAICE50 )
-                  NFOUND = NFOUND + 1
+                  SEAICE50 = Q2
+                  NFOUND   = NFOUND + 1
                ENDIF  
 
             !-------------------------------------
@@ -851,8 +858,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:29' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, SEAICE60 )
-                  NFOUND = NFOUND + 1
+                  SEAICE60 = Q2
+                  NFOUND   = NFOUND + 1
                ENDIF  
 
             !-------------------------------------
@@ -863,8 +870,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:30' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, SEAICE70 )
-                  NFOUND = NFOUND + 1
+                  SEAICE70 = Q2
+                  NFOUND   = NFOUND + 1
                ENDIF  
 
             !-------------------------------------
@@ -875,8 +882,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:31' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, SEAICE80 )
-                  NFOUND = NFOUND + 1
+                  SEAICE80 = Q2
+                  NFOUND   = NFOUND + 1
                ENDIF  
 
             !-------------------------------------
@@ -887,8 +894,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:32' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, SEAICE90 )
-                  NFOUND = NFOUND + 1
+                  SEAICE90 = Q2
+                  NFOUND   = NFOUND + 1
                ENDIF  
 
             !-------------------------------------
@@ -899,7 +906,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:33' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, SLP )
+                  SLP    = Q2
                   NFOUND = NFOUND + 1
                ENDIF  
 
@@ -911,7 +918,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:34' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, SNODP )
+                  SNODP  = Q2
                   NFOUND = NFOUND + 1
                ENDIF 
  
@@ -923,7 +930,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:35' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, SNOMAS )
+                  SNOMAS = Q2
                   NFOUND = NFOUND + 1
                ENDIF  
 
@@ -935,7 +942,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:36' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, SWGNT )
+                  SWGNT  = Q2
                   NFOUND = NFOUND + 1
                ENDIF  
 
@@ -947,7 +954,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:37' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, TROPPT )
+                  TROPPT = Q2
                   NFOUND = NFOUND + 1
                ENDIF  
 
@@ -959,7 +966,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:38' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, TS )
+                  TS     = Q2
                   NFOUND = NFOUND + 1
                ENDIF  
 
@@ -971,7 +978,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:39' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, T2M )
+                  T2M    = Q2
                   NFOUND = NFOUND + 1
                ENDIF  
 
@@ -983,7 +990,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:40' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, U10M )
+                  U10M   = Q2
                   NFOUND = NFOUND + 1
                ENDIF 
 
@@ -995,7 +1002,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:41' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, USTAR )
+                  USTAR  = Q2
                   NFOUND = NFOUND + 1
                ENDIF 
 
@@ -1007,7 +1014,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:42' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, V10M )
+                  V10M   = Q2
                   NFOUND = NFOUND + 1
                ENDIF 
 
@@ -1019,7 +1026,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:43' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, Z0M )
+                  Z0M    = Q2
                   NFOUND = NFOUND + 1
                ENDIF 
 
@@ -1096,10 +1103,20 @@
       !=================================================================
       
       ! Convert from [kg/m2/s] --> [mm/day]
-      PRECANV = PRECANV * 86400d0
-      PRECCON = PRECCON * 86400d0
-      PRECLSC = PRECLSC * 86400d0
-      PRECTOT = PRECTOT * 86400d0
+      PRECANV = PRECANV * 86400e+0_fp
+      PRECCON = PRECCON * 86400e+0_fp
+      PRECLSC = PRECLSC * 86400e+0_fp
+      PRECTOT = PRECTOT * 86400e+0_fp
+
+      ! Correction for MERRA PBLH:
+      ! PBLH must be greater than a minimum mechanical mixing depth,
+      ! defined as 700*friction velocity
+      ! (Koracin and Berkowicz, 1988; Lin and McElroy, 2010)
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         PBLH(I,J) = max( PBLH(I,J), 700e+0_fp*USTAR(I,J) )
+      ENDDO
+      ENDDO
 
       !=================================================================
       ! ND67 diagnostic: A1 surface fields
@@ -1137,7 +1154,7 @@
       END SUBROUTINE READ_A1
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

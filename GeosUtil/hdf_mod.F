@@ -1,6 +1,5 @@
-! $Id: hdf_mod.f,v 1.1 2010/02/02 16:57:46 bmy Exp $
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -16,8 +15,9 @@
 ! 
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -69,13 +69,15 @@
 !                                   so that users w/o HDF5 library can still
 !                                   compile & run GEOS-Chem
 !  21 Dec 2009 - R. Yantosca      - Updated comments
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -123,6 +125,9 @@
 !  21 Dec 2009 - R. Yantosca      - Updated comments
 !  01 Mar 2012 - R. Yantosca      - Now use GET_XMID(I,J,L), GET_YMID(I,J,L)
 !                                   from the new grid_mod.F90
+!  17 Oct 2012 - M. Payer         - Bug fix: Reorder indices for GET_YMID,
+!                                   otherwise LAT variable in HDF files will
+!                                   be wrong (S. Philip)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -152,7 +157,7 @@
       ENDDO
 
       DO J = 0, NJ-1
-         LAT(J+1) = GET_YMID(J+JMIN,1,1)
+         LAT(J+1) = GET_YMID(1,J+JMIN,1)
       ENDDO
 
       DO I = 1,2
@@ -200,7 +205,7 @@
 #endif
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -258,7 +263,7 @@
 #endif
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -289,8 +294,8 @@
       CHARACTER(LEN=40), INTENT(IN) :: NDCATEGORY        ! Diagnostic category
       INTEGER,           INTENT(IN) :: NDTRACER          ! Tracer # for file
       CHARACTER(LEN=40), INTENT(IN) :: NDUNIT            ! Units of data
-      REAL*8,            INTENT(IN) :: TAU0              ! TAU at start & end
-      REAL*8,            INTENT(IN) :: TAU1              !  of diag interval
+      REAL(fp),            INTENT(IN) :: TAU0              ! TAU at start & end
+      REAL(fp),            INTENT(IN) :: TAU1              !  of diag interval
       CHARACTER(LEN=40), INTENT(IN) :: RESERVED          ! Descriptive string
       INTEGER,           INTENT(IN) :: NI                ! # of longitudes
       INTEGER,           INTENT(IN) :: NJ                ! # of latitudes
@@ -306,6 +311,8 @@
 !                                   so that users w/o HDF5 library can still
 !                                   compile & run GEOS-Chem
 !  21 Dec 2009 - R. Yantosca      - Updated comments
+!  17 Oct 2012 - M. Payer         - Add PBLDEPTH to fix bad HDF category error
+!                                   (S. Philip, A. van Donkelaar)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -326,7 +333,7 @@
       INTEGER(SIZE_T)   :: attrlen           ! Length of the attribute string
       CHARACTER(LEN=20) :: aname             ! Attibute Name
       CHARACTER(LEN=40) :: attr_data         ! Attribute Data
-      REAL*8            :: attr_data_num     ! Attribute Data
+      REAL(fp)            :: attr_data_num     ! Attribute Data
 
       INTEGER           :: I, GAMAPI, GAMAPI2
 
@@ -359,6 +366,21 @@
          GAMAPI2 = 68
       ELSEIF ( NDCATEGORY .eq. 'DAO-3D-$' ) THEN
          GAMAPI2 = 66
+      ELSEIF ( NDCATEGORY .eq. 'PBLDEPTH' ) THEN
+         GAMAPI2 = 32
+         HDFNAME(1,GAMAPI2) = 'PBL-HGHT-M'
+         HDFFNAME(1,GAMAPI2) = 'Planetary Boundary Layer Height [m]'
+         HDFUNIT(1,GAMAPI2) = 'm'
+         HDFMOLC(1,GAMAPI2) = 1
+         HDFMWT(1,GAMAPI2) = 0
+         HDFSCALE(1,GAMAPI2) = 1
+
+         HDFNAME(2,GAMAPI2) = 'PBL-HGHT-L'
+         HDFFNAME(2,GAMAPI2) = 'Planetary Boundary Layer Height [lvl]'
+         HDFUNIT(2,GAMAPI2) = 'level'
+         HDFMOLC(2,GAMAPI2) = 1
+         HDFMWT(2,GAMAPI2) = 0
+         HDFSCALE(2,GAMAPI2) = 1
       ELSEIF ( NDCATEGORY .eq. 'OD-MAP-$' ) THEN
          GAMAPI2 = 21
       ELSEIF ( NDCATEGORY .eq. 'PEDGE-$' ) THEN
@@ -376,7 +398,7 @@
       ENDIF
 
       IF (GAMAPI2 .eq. 0) THEN
-         PRINT*, 'BAD HDF CATEGORY 2'
+         PRINT*, 'BAD HDF CATEGORY 2:', NDCATEGORY
          CALL FLUSH(6)
       ENDIF
 
@@ -482,7 +504,7 @@
 #endif
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -558,7 +580,7 @@
       END SUBROUTINE INIT_HDF
 !EOC
 !------------------------------------------------------------------------------
-!      Dalhousie University Atmospheric Composition Analysis Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

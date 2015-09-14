@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -16,7 +16,7 @@
 !
 ! !INTERFACE:
 !
-      SUBROUTINE INITIALIZE( IFLAG, am_I_Root )
+      SUBROUTINE INITIALIZE( am_I_Root, Input_Opt, IFLAG, RC )
 !
 ! !USES:
 !
@@ -25,6 +25,8 @@
       USE CMN_DIAG_MOD
       USE ERROR_MOD
       USE TIME_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
       ! Modules from GeosCore subdirectory
       USE DIAG_MOD
@@ -32,23 +34,28 @@
       USE DIAG04_MOD
       USE DIAG41_MOD
       USE DIAG42_MOD
+      USE DIAG53_MOD
       USE DIAG56_MOD
       USE DIAG_PL_MOD
-      USE LOGICAL_MOD
+
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
-
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+
+
       ! If IFLAG=1, zero global CTM arrays 
       ! If IFLAG=2, zero accumulating diagnostic arrays
       ! If IFLAG=3, zero accumulating diagnostic counters
-      INTEGER, INTENT(IN)  :: IFLAG
-
-      ! Is this the root CPU?
-      LOGICAL, INTENT(IN) :: am_I_Root   
+      INTEGER,        INTENT(IN)  :: IFLAG
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Eventually we will fold this into "diag_mod.f" in a cleaner,
@@ -57,7 +64,7 @@
 ! !REVISION HISTORY: 
 !  15 Jun 1998 - M. Prather  - Initial version
 !  (1 ) INITIALIZE is written in Fixed-Form Fortran 90.
-!  (2 ) To ensure double precision accuracy, use 0d0 instead of 0.0.
+!  (2 ) To ensure double precision accuracy, use 0e+0_fp instead of 0.0.
 !  (3 ) Also zero the mass flux arrays from TPCORE (bmy, 4/26/99)
 !  (4 ) Only zero allocatable arrays that are turned on. (bmy, 11/29/99)
 !  (5 ) Added arrays for ND13 diagnostic -- sulfur emissions.
@@ -117,11 +124,25 @@
 !  (44) Add initialization of counter for diag time steps. (ccc, 7/20/09)
 !  (45) Define new diagnostics, ND19, ND58, ND60 for methane 
 !       (kjw, 8/18/09)
-!  (46) Add potential temperature diagnostic. (fp, 06/09)
+!  (46) Add ND59 and ND60 for initialization (win, 7/28/09)
+!  (47) Add potential temperature diagnostic. (fp, 06/09)
+!  (48) Add TOMAS diags using ifdefs. (sfarina, 01/13)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Aug 2010 - R. Yantosca - Now also reset the counter for A1 timesteps
 !  08 Feb 2012 - R. Yantosca - Rewrote USE statements, for clarity
 !  08 Feb 2012 - R. Yantosca - Now also reset the counter for I3 timesteps
+!  15 Oct 2012 - R. Yantosca - Bug fix, make sure Counter arrays CTLBRO2H etc. 
+!                              are allocated before we use them
+!  02 Apr 2013 - M. Payer    - Remove code for CTNO, CTNO2, and CTNO3. These
+!                              are no onger needed because NO, NO2, and NO3
+!                              are now tracers.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  08 Nov 2013 - M. Sulprizio- Removed CTO3. It is no longer used because O3
+!                              is now a tracer.
+!  15 Aug 2014 - R. Yantosca - Remove diagnostics now tracked by HEMCO
+!  17 Sep 2014 - M. Sulprizio- Now initialize AD61 for TOMAS
+!  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  17 Nov 2014 - C. Keller   - Now reset ND45 if IFLAG is set to 2.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -149,49 +170,66 @@
          IF ( ND05 > 0 ) AD05     = 0e0
          IF ( ND06 > 0 ) AD06     = 0e0
          IF ( ND08 > 0 ) AD08     = 0e0
-         IF ( ND11 > 0 ) AD11     = 0e0
          IF ( ND12 > 0 ) AD12     = 0e0
-         IF ( ND14 > 0 ) CONVFLUP = 0d0
-         IF ( ND15 > 0 ) TURBFLUP = 0d0
+         IF ( ND14 > 0 ) CONVFLUP = 0e+0_fp
+         IF ( ND15 > 0 ) TURBFLUP = 0e+0_fp
          IF ( ND16 > 0 ) AD16     = 0e0
          IF ( ND17 > 0 ) AD17     = 0e0
          IF ( ND18 > 0 ) AD18     = 0e0         
          IF ( ND19 > 0 ) AD19     = 0e0
          IF ( ND22 > 0 ) AD22     = 0e0
-         IF ( ND24 > 0 ) MASSFLEW = 0d0
-         IF ( ND25 > 0 ) MASSFLNS = 0d0
-         IF ( ND26 > 0 ) MASSFLUP = 0d0
-         IF ( ND28 > 0 ) AD28     = 0e0
-         IF ( ND29 > 0 ) AD29     = 0e0
+         IF ( ND24 > 0 ) MASSFLEW = 0e+0_fp
+         IF ( ND25 > 0 ) MASSFLNS = 0e+0_fp
+         IF ( ND26 > 0 ) MASSFLUP = 0e+0_fp
          IF ( ND30 > 0 ) AD30     = 0e0
          IF ( ND31 > 0 ) AD31     = 0e0
          IF ( ND33 > 0 ) AD33     = 0e0
-         IF ( ND34 > 0 ) AD34     = 0e0
          IF ( ND35 > 0 ) AD35     = 0e0
-         IF ( ND36 > 0 ) AD36     = 0e0
          IF ( ND37 > 0 ) AD37     = 0e0
+#if !defined( NO_BPCH )
          IF ( ND38 > 0 ) AD38     = 0e0
          IF ( ND39 > 0 ) AD39     = 0e0
+#endif
          IF ( ND43 > 0 ) AD43     = 0e0
+#if !defined( NO_BPCH )
          IF ( ND44 > 0 ) AD44     = 0e0
          IF ( ND45 > 0 ) AD45     = 0e0
-         IF ( ND46 > 0 ) AD46     = 0e0
+#endif
          IF ( ND47 > 0 ) AD47     = 0e0
          IF ( ND52 > 0 ) AD52     = 0e0
          IF ( ND54 > 0 ) AD54     = 0e0
          IF ( ND55 > 0 ) AD55     = 0e0
-         !potential temp (fp, 6/2009)
          IF ( ND57 > 0 ) AD57     = 0e0
          IF ( ND58 > 0 ) AD58     = 0e0
          IF ( ND60 > 0 ) AD60     = 0e0
+         IF ( ND64 > 0 ) AD64     = 0e0
          IF ( ND66 > 0 ) AD66     = 0e0
          IF ( ND67 > 0 ) AD67     = 0e0
+#if !defined( NO_BPCH )
          IF ( ND68 > 0 ) AD68     = 0e0
+#endif
          IF ( ND69 > 0 ) AD69     = 0e0
+         IF ( ND72 > 0 ) AD72     = 0e0
+
+         ! Daily max mean hourly surface v/v
+         IF ( ND71 > 0 ) THEN
+            AD71       = 0e0
+            AD71_HR    = 0e0
+            AD71_DAY   = 0e0
+            AD71_COUNT = 0
+            AD71_HRCT  = 0
+            AD71_LHR   = -1
+            AD71_LDAY  = -1
+         ENDIF
 
          ! For ND03 - mercury simulations (eck, sas, bmy, 1/20/05)
          IF ( ND03 > 0 ) THEN
             CALL ZERO_DIAG03
+         ENDIF
+
+         ! For ND53: POPS simulations (eck, 9/20/10)
+         IF ( ND53 > 0 ) THEN
+            CALL ZERO_DIAG53
          ENDIF
 
          ! For ND04 - CO2 simulation (pns, bmy, 7/26/05)
@@ -216,47 +254,11 @@
             AD09     = 0e0
             AD09_em  = 0e0
          ENDIF
-         
-         ! For ND10 -- H2 & HD simulation (phs, 9/18/07)
-         IF ( ND10 > 0 ) THEN 
-            AD10    = 0e0
-            AD10em  = 0e0
-         ENDIF
-
-         ! For ND13 - sulfur emissions (bmy, 6/6/00, 5/20/04)
-         IF ( ND13 > 0 ) THEN
-            AD13_DMS    = 0e0  
-            AD13_SO2_ac = 0e0
-            AD13_SO2_an = 0e0
-            AD13_SO2_bb = 0e0
-            AD13_SO2_bf = 0e0
-            AD13_SO2_nv = 0e0
-            AD13_SO2_ev = 0e0
-            AD13_SO2_sh = 0e0
-            AD13_SO4_an = 0e0
-            AD13_SO4_bf = 0e0
-            AD13_NH3_an = 0e0
-            AD13_NH3_na = 0e0
-            AD13_NH3_bb = 0e0
-            AD13_NH3_bf = 0e0
-         ENDIF
-
+ 
          ! ND21 -- optical depths
          IF ( ND21 > 0 ) THEN
             AD21 = 0e0
-            IF ( LCRYST ) AD21_cr = 0e0
-         ENDIF
-
-         ! For ND32 -- NOx source diagnostics (bmy, 3/28/00)
-         IF ( ND32 > 0 ) THEN 
-            AD32_ac = 0e0
-            AD32_an = 0e0
-            AD32_bb = 0e0
-            AD32_bf = 0e0
-            AD32_fe = 0e0
-            AD32_li = 0e0
-            AD32_so = 0e0
-            AD32_ub = 0e0
+            IF ( Input_Opt%LCRYST ) AD21_cr = 0e0
          ENDIF
 
          ! For ND41 - afternoon PBL heights (bmy, 2/17/05)
@@ -274,10 +276,37 @@
             CALL ZERO_DIAG56
          ENDIF
 
+#if   defined( TOMAS )
+         ! For ND59 - size-resolved primary aerosol emissions (win, 7/28/09)
+         IF ( ND59 > 0 ) THEN 
+            AD59_NUMB = 0e0
+            AD59_SULF = 0e0
+            AD59_SALT = 0e0
+            AD59_ECIL = 0e0
+            AD59_ECOB = 0e0
+            AD59_OCIL = 0e0
+            AD59_OCOB = 0e0
+            AD59_DUST = 0e0
+         ENDIF
+
+         ! For ND60 - aerosol microphysics (win, 7/28/09)
+         IF ( ND60 > 0 ) THEN
+            AD60_COND = 0e0
+            AD60_COAG = 0e0
+            AD60_NUCL = 0e0
+            AD60_AQOX = 0e0
+            AD60_ERROR = 0e0
+            AD60_SOA   = 0e0
+         ENDIF
+
+         ! For ND61 - 3-D process rate diagnostic
+         IF ( ND61 > 0 ) AD61 = 0e0
+#endif
+
          ! For ND65 -- Chemical production & loss (bmy, 12/5/00)
          IF ( ND65 > 0 ) THEN
-            AD65  = 0d0
-            IF ( ALLOCATED( FAM_PL ) ) FAM_PL = 0d0      
+            AD65  = 0e+0_fp
+            IF ( ALLOCATED( FAM_PL ) ) FAM_PL = 0e+0_fp      
          ENDIF
 
          ! Echo output
@@ -296,6 +325,7 @@
          CALL SET_CT_A3(   RESET=.TRUE. )
          CALL SET_CT_A6(   RESET=.TRUE. )
          CALL SET_CT_CHEM( RESET=.TRUE. )
+         CALL SET_CT_RAD ( RESET=.TRUE. )
          CALL SET_CT_CONV( RESET=.TRUE. )
          CALL SET_CT_DYN(  RESET=.TRUE. )
          CALL SET_CT_EMIS( RESET=.TRUE. )
@@ -312,27 +342,40 @@
          IF ( ND17 >               0 ) CT17       = 0
          IF ( ND18 >               0 ) CT18       = 0
          IF ( ND22 >               0 ) CTJV       = 0
-         IF ( ND43 >               0 ) CTNO       = 0
          IF ( ND43 >               0 ) CTOH       = 0
+         IF ( ND43 >               0 ) CTO1D      = 0
+         IF ( ND43 >               0 ) CTO3P      = 0
+#if !defined(NO_BPCH)
          IF ( ND45 >               0 ) CTOTH      = 0
-         IF ( ND45 >               0 ) CTO3       = 0
+#endif
          IF ( ND47 > 0 .OR. ND65 > 0 ) CTO3_24h   = 0
-         IF ( ND43 >               0 ) CTNO2      = 0
          IF ( ND43 >               0 ) CTHO2      = 0
-         IF ( ND43 >               0 ) CTNO3      = 0
          ! update for arom (dkh, 06/21/07)  
-         IF ( ND43 >               0 ) CTLBRO2H   = 0
-         IF ( ND43 >               0 ) CTLBRO2N   = 0
-         IF ( ND43 >               0 ) CTLTRO2H   = 0
-         IF ( ND43 >               0 ) CTLTRO2N   = 0
-         IF ( ND43 >               0 ) CTLXRO2H   = 0
-         IF ( ND43 >               0 ) CTLXRO2N   = 0
+         IF ( ND43 > 0 ) THEN
+            IF ( ALLOCATED( CTLBRO2H ) ) CTLBRO2H   = 0
+            IF ( ALLOCATED( CTLBRO2N ) ) CTLBRO2N   = 0
+            IF ( ALLOCATED( CTLTRO2H ) ) CTLTRO2H   = 0
+            IF ( ALLOCATED( CTLTRO2N ) ) CTLTRO2N   = 0
+            IF ( ALLOCATED( CTLXRO2H ) ) CTLXRO2H   = 0
+            IF ( ALLOCATED( CTLXRO2N ) ) CTLXRO2N   = 0
+         ENDIF
+
+         ! Daily max mean hourly surface v/v
+         IF ( ND71 > 0 ) THEN
+            AD71       = 0e0
+            AD71_HR    = 0e0
+            AD71_DAY   = 0e0
+            AD71_COUNT = 0
+            AD71_HRCT  = 0
+            AD71_LHR   = -1
+            AD71_LDAY  = -1
+         ENDIF
 
          ! Echo output
          IF ( am_I_Root ) THEN
             WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'
          ENDIF
       ENDIF
- 
+
       END SUBROUTINE INITIALIZE
 !EOC

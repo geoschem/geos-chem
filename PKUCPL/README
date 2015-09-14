@@ -1,0 +1,97 @@
+README -- PeKing University CouPLer version 1 (PKUCPL)  -- Yan Y.-Y. 2014/06/23
+
+
+NOTE:     Users can couple a global model with any numbers of nested models, see below
+          *** Currently works with GEOS-5 met data (4x5, 2x2.5, 0.5x0.667)
+
+
+PKUCPL/:
+---------
+
+- Twoway.compile.sh -> Bash script to compile the two-way coupled modeling
+
+- geos/      -> contains the executable 'geos' compiled for global model
+- geosch/    -> contains the executable 'geos' compiled for nested model in Asia
+- geosna/    -> contains the executable 'geos' compiled for nested model in North America
+- geoseu/    -> contains the executable 'geos' compiled for nested model in Europe
+
+- PKUCPL.f95 -> modulate the normal DO-Loop of GeosCore/main.F, to coordinate all models
+
+- PKUCPL.sh  -> provide utility to run models in the right directories
+                *** Users can modify the run dir -- normally needs to be done once
+
+- run        -> outputted from PKUCPL.f95 and PKUCPL.sh, to modulate all models
+                *** Users need to execute this file to finally activate the two-way coupled simulation
+                Some examples:
+                ./run 2cne codedir rundir: couple global model (2x2.5) with three nested models in Asia, North America and Europe
+                ./run 2cn codedir rundir : couple global model (2x2.5) with three nested models in Asia and North America
+                ./run 2c  codedir rundir : couple global model (2x2.5) with three nested models in Asia
+                ./run 2n  codedir rundir : couple global model (2x2.5) with three nested models in North America
+                ./run 2e  codedir rundir : couple global model (2x2.5) with three nested models in Europe
+                ./run 4cne codedir rundir: couple global model (4x5) with three nested models in Asia, North America and Europe
+                ./run 4cn codedir rundir : couple global model (4x5) with three nested models in Asia and North America
+                ./run 4c  codedir rundir : couple global model (4x5) with three nested models in Asia
+                ./run 4n  codedir rundir : couple global model (4x5) with three nested models in North America
+                ./run 4e  codedir rundir : couple global model (4x5) with three nested models in Europe
+                *** rundir is the run directory for two-way coupled simulation; codedir is the directory for code sources
+
+
+Additional code modification:
+-----------------------------
+
+- GeosCore/main.F              -> add the code of initialization, exchange, cleanup for two-way coupled model
+- GeosCore/exchange_mod.F      -> new file: contain variables & routines for data exchange across all models, in a two-way framework
+- GeosCore/Makefile            -> add code to compile exchange_mod.F
+- GeosUtil/time_mod.F          -> add code to define the timestep for data exchange between models
+- Makefile_header.mk           -> add options to compile for two-way coupled model
+
+
+Example run dir:
+--------------
+
+- run.v9-02.geos5.twoway/      -> master run directory, inside which there are:
+
+  - 2x25/                      -> run directory for global mdel
+    - run_global               -> batch job script to submit global model
+  - CH/                        -> run directory for nested model in Aisa
+    - run_nested               -> batch job script to submit nested CH model
+  - NA/                        -> run directory for nested model in North America
+    - run_nested               -> batch job script to submit nested NA model
+  - EU/                        -> run directory for nested model in Europe
+    - run_nested               -> batch job script to submit nested EU model
+  - lock/                      -> directory for ancillary files communicating run imformation between models
+                                  Example files inside:
+                                    done*done: to pause a model and wait for data update
+                                    key*key  : to continue a model after all necessary data update
+  - exchange/                  -> temporary directory to contain data for exchange between models
+
+
+Batch job script:
+---------------
+
+- run_twoway                   -> batch job script to do two-way coupled simulation
+
+
+
+Setup steps:
+---------------
+
+ 1. set up the run directories
+       * e.g., master run dir      : /home/yanyy/geoschem/run/run.v9-02.geos5.twoway/
+               run for Global 2x2.5: /home/yanyy/geoschem/run/run.v9-02.geos5.twoway/2x25/
+               run for Asia nested : /home/yanyy/geoschem/run/run.v9-02.geos5.twoway/CH/
+
+ 2. set up the batch job script in run directories
+
+ 3. go to PKUCPL/ in the code directory
+
+ 4. make sure the run directories for individual models defined in PKUCPL.sh are consistent with the setup at the 1st step
+       * No need to change the variable 'rundir' in PKUCPL.sh -- It will be automatically corrected later
+
+ 5. compile for two-way coupled model: ./Twoway.compile.sh
+       * This step generates the executables for all global/nested models, and an additional executable 'run' as a coupling master
+
+ 6. copy the executable 'run' and the batch job script 'run_twoway' to the master run directory
+
+ 7. go to the master run directory, and submit the batch job script 'run_twoway' for two-way simulation: qsub run_twoway
+

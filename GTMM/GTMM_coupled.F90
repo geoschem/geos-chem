@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -28,15 +28,16 @@ SUBROUTINE GTMM_coupled(year, month,  DD_Hg0, DD_HgII, WD_HgII, &
 
   USE      INPUT_GTMM_MOD
   
+  USE      PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
   IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !  
-  REAL*8, INTENT(IN)           :: DD_Hg0(72, 46), DD_HgII(72, 46), &
+  REAL(fp), INTENT(IN)           :: DD_Hg0(72, 46), DD_HgII(72, 46), &
                                   WD_HgII(72, 46)    ! Hg deposition info.
 
-  REAL*8, INTENT(IN),  DIMENSION(72, 46)  :: TS, PREACC, RADSWG !Met field info
+  REAL(fp), INTENT(IN),  DIMENSION(72, 46)  :: TS, PREACC, RADSWG !Met field info
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !  
@@ -44,11 +45,12 @@ SUBROUTINE GTMM_coupled(year, month,  DD_Hg0, DD_HgII, WD_HgII, &
 !
 ! !OUTPUT PARAMETERS:
 !  
-  REAL*8, INTENT(OUT), DIMENSION(72, 46)  :: Hg0reemit  ! Reemitted flux, 
+  REAL(fp), INTENT(OUT), DIMENSION(72, 46)  :: Hg0reemit  ! Reemitted flux, 
                                                         ! output to GEOS-Chem
 !
 ! !REVISION HISTORY:
-!  09 July 2010 - C. Carouge  - First version. Adapted from GTMM.f90
+!  09 Jul 2010 - C. Carouge  - First version. Adapted from GTMM.f90
+!  25 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC

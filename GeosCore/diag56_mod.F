@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -15,8 +15,9 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -30,7 +31,7 @@
 !
       ! Scalars
       INTEGER,              PUBLIC :: ND56
-      INTEGER, PARAMETER,   PUBLIC :: PD56 = 3
+      INTEGER, PARAMETER,   PUBLIC :: PD56 = 4
 
       ! Arrays
       REAL*4,  ALLOCATABLE, PUBLIC :: AD56(:,:,:)
@@ -41,13 +42,17 @@
 !        (bmy, 9/5/06)
 !  (2 ) Now divide AD56 by the # of A-6 timesteps (ltm, bmy, 3/7/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  02 Apr 2015 - M. Sulprizio- Increase PD56 from 3 to 4 so we can save out the
+!                              lightning cloud top heights from HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       CONTAINS
 !EOC    
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -79,7 +84,7 @@
       END SUBROUTINE ZERO_DIAG56
 !EOC    
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -117,6 +122,8 @@
 !        (bmy, 9/5/06)
 !  (2 ) Now scale AD56 by the # of A-6 timesteps (ltm, bmy, 3/7/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -125,9 +132,10 @@
 !
       INTEGER               :: CENTER180, HALFPOLAR,   IFIRST
       INTEGER               :: JFIRST,    LFIRST,      M,      N         
-      REAL*4                :: ARRAY(IIPAR,JJPAR,1)
-      REAL*4                :: LONRES,    LATRES
-      REAL*8                :: DIAGb,     DIAGe,       SCALE
+      REAL(f4)              :: ARRAY(IIPAR,JJPAR,1)
+      REAL(f4)              :: LONRES,    LATRES
+      REAL(fp)              :: SCALE
+      REAL(f8)              :: DIAGb,     DIAGe
       CHARACTER(LEN=20)     :: MODELNAME 
       CHARACTER(LEN=40)     :: CATEGORY,  RESERVED,    UNIT
 
@@ -135,7 +143,7 @@
       ! WRITE_DIAG56 begins here!
       !=================================================================
 
-      ! Exit if ND03 is turned off
+      ! Exit if ND56 is turned off
       IF ( ND56 == 0 ) RETURN
 
       ! Initialize
@@ -151,18 +159,18 @@
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
 #if   defined( MERRA )
-      SCALE     = DBLE( GET_CT_A3() ) + 1d-32
-#elif defined( GEOS_57 )
-      SCALE     = DBLE( GET_CT_I3() ) + 1d-32
+      SCALE     = DBLE( GET_CT_A3() ) + 1e-32_fp
+#elif defined( GEOS_FP )
+      SCALE     = DBLE( GET_CT_I3() ) + 1e-32_fp
 #else
-      SCALE     = DBLE( GET_CT_A6() ) + 1d-32
+      SCALE     = DBLE( GET_CT_A6() ) + 1e-32_fp
 #endif     
   
       !=================================================================
       ! Write data to the bpch file
       !=================================================================
 
-      ! Loop over ND03 diagnostic tracers
+      ! Loop over ND56 diagnostic tracers
       DO M = 1, TMAX(56)
 
          ! Define quantities
@@ -182,7 +190,7 @@
       END SUBROUTINE WRITE_DIAG56
 !EOC    
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -229,7 +237,7 @@
       END SUBROUTINE INIT_DIAG56
 !EOC    
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

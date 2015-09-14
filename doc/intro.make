@@ -1,9 +1,9 @@
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOI
-# !TITLE: GEOS-Chem Reference, Vol. 1: Makefiles
+# !TITLE: GEOS-Chem Reference, Volume 1:\\Makefiles
 # !AUTHORS: GEOS-Chem Support Team
-# !DATE: 24 July 2012
+# !DATE: 10 Jul 2015
 #EOI
 #------------------------------------------------------------------------------

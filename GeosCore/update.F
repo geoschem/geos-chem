@@ -6,10 +6,9 @@
 !  (M. Jacobson, 1997, bdf, bmy, 4/18/03)
 !
 !  NOTES:
-!  (1 ) 
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
-#     include "define.h"
       USE CMN_SIZE_MOD  ! Size parameters
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 

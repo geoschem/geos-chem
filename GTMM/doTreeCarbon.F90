@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -17,11 +17,15 @@ SUBROUTINE doTreeCarbon
   USE defineConstants
   USE loadCASAinput
   USE defineArrays
+
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
   
   IMPLICIT NONE
 !
 ! !REVISION HISTORY:
-!  09 July 2010 - C. Carouge  - Parallelization
+!  09 Jul 2010 - C. Carouge  - Parallelization
+!  01 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -30,7 +34,7 @@ SUBROUTINE doTreeCarbon
 !
   INTEGER :: i
   character(len=f_len_output+4) :: filename3
-  real*8 :: tempa(n_veg, 1)
+  real(fp) :: tempa(n_veg, 1)
   
   filename3(1:f_len_output)=outputpath
   
@@ -38,20 +42,20 @@ SUBROUTINE doTreeCarbon
 !$OMP DEFAULT(SHARED)
   !Woody vegetation carbon fluxes
   !NPP: calculate inputs from NPP into living pools
-  leafinput(:,1)=0.0d0
-  woodinput(:,1)=0.0d0
-  frootinput(:,1)=0.0d0
+  leafinput(:,1)=0.0e+0_fp
+  woodinput(:,1)=0.0e+0_fp
+  frootinput(:,1)=0.0e+0_fp
   
   
-  leafinput(:,1)=NPP(:,mo)/3.000d0
-  woodinput(:,1)=NPP(:,mo)/3.000d0
-  frootinput(:,1)=NPP(:,mo)/3.000d0
+  leafinput(:,1)=NPP(:,mo)/3.000e+0_fp
+  woodinput(:,1)=NPP(:,mo)/3.000e+0_fp
+  frootinput(:,1)=NPP(:,mo)/3.000e+0_fp
   
   !NPP: transfer NPP into living biomass pools
 
   leafpool(:,1)=leafpool(:,1)+leafinput(:,1)
   abovewoodpool(:,1)=abovewoodpool(:,1)+woodinput(:,1)*aboveWoodFraction
-  belowwoodpool(:,1)=belowwoodpool(:,1)+woodinput(:,1)*(1.00d0-aboveWoodFraction)
+  belowwoodpool(:,1)=belowwoodpool(:,1)+woodinput(:,1)*(1.00e+0_fp-aboveWoodFraction)
   frootpool(:,1)=frootpool(:,1)+frootinput(:,1)
   
   !herbivory
@@ -67,12 +71,12 @@ SUBROUTINE doTreeCarbon
   leafpool(:,1)=leafpool(:,1)-herbivory(:,1)
   
   !part of the consumed leaf will be returned as litter
-  carbonout_leaf(:,1)=herbivory(:,1)*(1.000d0-herbivoreEff)
+  carbonout_leaf(:,1)=herbivory(:,1)*(1.000e+0_fp-herbivoreEff)
   
   !part of the consumed leaf for maintenance
-  herbivory(:,1)=herbivory(:,1)-herbivory(:,1)*(1.000d0-herbivoreEff)
+  herbivory(:,1)=herbivory(:,1)-herbivory(:,1)*(1.000e+0_fp-herbivoreEff)
   
-  surfstrpool(:,1)=surfstrpool(:,1)+carbonout_leaf(:,1)*(1.000d0-metabfract(:,1))
+  surfstrpool(:,1)=surfstrpool(:,1)+carbonout_leaf(:,1)*(1.000e+0_fp-metabfract(:,1))
   surfmetpool(:,1)=surfmetpool(:,1)+carbonout_leaf(:,1)*metabfract(:,1)
   
   
@@ -98,9 +102,9 @@ SUBROUTINE doTreeCarbon
   !decaying living pools
   
   surfstrpool(:,1)=surfstrpool(:,1)+(carbonout_leaf(:,1)+& 
-       carbonout_cwd(:,1))*(1.00d0-metabfract(:,1))
+       carbonout_cwd(:,1))*(1.00e+0_fp-metabfract(:,1))
   soilstrpool(:,1)=soilstrpool(:,1)+(carbonout_froot(:,1)+&
-       carbonout_belowwood(:,1))*(1.00d0-metabfract(:,1))
+       carbonout_belowwood(:,1))*(1.00e+0_fp-metabfract(:,1))
   surfmetpool(:,1)=surfmetpool(:,1)+(carbonout_leaf(:,1)+&
        carbonout_cwd(:,1))*metabfract(:,1)
   soilmetpool(:,1)=soilmetpool(:,1)+(carbonout_froot(:,1)+&  
@@ -115,71 +119,71 @@ SUBROUTINE doTreeCarbon
   surfstrpool(:,1)=surfstrpool(:,1)-carbonout_surfstr(:,1)
   
   !empty respiration pools at the beginning of the month
-  resppool_surfstr(:,1)=0.000d0
-  resppool_surfmet(:,1)=0.000d0
-  resppool_surfmic(:,1)=0.000d0
-  resppool_soilstr(:,1)=0.000d0
-  resppool_soilmet(:,1)=0.000d0
-  resppool_soilmic(:,1)=0.000d0
-  resppool_slow(:,1)=0.000d0
-  resppool_armored(:,1)=0.000d0
+  resppool_surfstr(:,1)=0.000e+0_fp
+  resppool_surfmet(:,1)=0.000e+0_fp
+  resppool_surfmic(:,1)=0.000e+0_fp
+  resppool_soilstr(:,1)=0.000e+0_fp
+  resppool_soilmet(:,1)=0.000e+0_fp
+  resppool_soilmic(:,1)=0.000e+0_fp
+  resppool_slow(:,1)=0.000e+0_fp
+  resppool_armored(:,1)=0.000e+0_fp
   
   !respiratory fluxes from every pool - temp
   temp(:,1)=(carbonout_surfstr(:,1)*structuralLignin(:,1))&
        *eff_surfstr2slow
   slowpool(:,1)=slowpool(:,1)+temp(:,1)
   resppool_surfstr(:,1)=resppool_surfstr(:,1)+&
-       (temp(:,1)/eff_surfstr2slow)*(1.00d0-eff_surfstr2slow)
+       (temp(:,1)/eff_surfstr2slow)*(1.00e+0_fp-eff_surfstr2slow)
   
-  temp(:,1)=0.000d0
-  temp(:,1)=(carbonout_surfstr(:,1)*(1.00d0-structuralLignin(:,1)))*eff_surfstr2surfmic
+  temp(:,1)=0.000e+0_fp
+  temp(:,1)=(carbonout_surfstr(:,1)*(1.00e+0_fp-structuralLignin(:,1)))*eff_surfstr2surfmic
   surfmicpool(:,1)=surfmicpool(:,1)+temp(:,1)
-  resppool_surfstr(:,1)=resppool_surfstr(:,1)+(temp(:,1)/eff_surfstr2surfmic)*(1.00d0-eff_surfstr2surfmic)
+  resppool_surfstr(:,1)=resppool_surfstr(:,1)+(temp(:,1)/eff_surfstr2surfmic)*(1.00e+0_fp-eff_surfstr2surfmic)
   soilstrpool(:,1)=soilstrpool(:,1)-carbonout_soilstr(:,1)
   
-  temp(:,1)=0.000d0
+  temp(:,1)=0.000e+0_fp
   temp(:,1)=carbonout_soilstr(:,1)*structuralLignin(:,1)*eff_soilstr2slow
   slowpool(:,1)=slowpool(:,1)+temp(:,1)
   resppool_soilstr(:,1)=resppool_soilstr(:,1)+(temp(:,1)/eff_soilstr2slow)*(1.00-eff_soilstr2slow)
   
-  temp(:,1)=0.0d0
-  temp(:,1)=carbonout_soilstr(:,1)*(1.00d0-structuralLignin(:,1))*eff_soilstr2soilmic
+  temp(:,1)=0.0e+0_fp
+  temp(:,1)=carbonout_soilstr(:,1)*(1.00e+0_fp-structuralLignin(:,1))*eff_soilstr2soilmic
   soilmicpool(:,1)=soilmicpool(:,1)+temp(:,1)
-  resppool_soilstr(:,1)=resppool_soilstr(:,1)+(temp(:,1)/eff_soilstr2soilmic)*(1.000d0-eff_soilstr2soilmic)
+  resppool_soilstr(:,1)=resppool_soilstr(:,1)+(temp(:,1)/eff_soilstr2soilmic)*(1.000e+0_fp-eff_soilstr2soilmic)
   
-  temp(:,1)=0.0d0
+  temp(:,1)=0.0e+0_fp
   temp(:,1)=carbonout_surfmet(:,1)*eff_surfmet2surfmic
   surfmetpool(:,1)=surfmetpool(:,1)-carbonout_surfmet(:,1)
   surfmicpool(:,1)=surfmicpool(:,1)+temp(:,1)
-  resppool_surfmet(:,1)=(temp(:,1)/eff_surfmet2surfmic)*(1.00d0-eff_surfmet2surfmic)
+  resppool_surfmet(:,1)=(temp(:,1)/eff_surfmet2surfmic)*(1.00e+0_fp-eff_surfmet2surfmic)
   
-  temp(:,1)=0.0d0
+  temp(:,1)=0.0e+0_fp
   temp(:,1)=carbonout_soilmet(:,1)*eff_soilmet2soilmic
   soilmetpool(:,1)=soilmetpool(:,1)-carbonout_soilmet(:,1)
   soilmicpool(:,1)=soilmicpool(:,1)+temp(:,1)
-  resppool_soilmet(:,1)=(temp(:,1)/eff_soilmet2soilmic)*(1.00d0-eff_soilmet2soilmic)
+  resppool_soilmet(:,1)=(temp(:,1)/eff_soilmet2soilmic)*(1.00e+0_fp-eff_soilmet2soilmic)
   
-  temp(:,1)=0.0d0
+  temp(:,1)=0.0e+0_fp
   temp(:,1)=carbonout_surfmic(:,1)*eff_surfmic2slow
   surfmicpool(:,1)=surfmicpool(:,1)-carbonout_surfmic(:,1)
   slowpool(:,1)=slowpool(:,1)+temp(:,1)
-  resppool_surfmic(:,1)=(temp(:,1)/eff_surfmic2slow)*(1.00d0-eff_surfmic2slow)
+  resppool_surfmic(:,1)=(temp(:,1)/eff_surfmic2slow)*(1.00e+0_fp-eff_surfmic2slow)
 
   resppool_soilmic(:,1)=eff_soilmic2slow(:,1)*carbonout_soilmic(:,1)
   soilmicpool(:,1)=soilmicpool(:,1)-carbonout_soilmic(:,1)
   
-  temp(:,1)=0.0d0
-  temp(:,1)=carbonout_soilmic(:,1)*(0.003d0+(0.032d0*clay(:,1)))
+  temp(:,1)=0.0e+0_fp
+  temp(:,1)=carbonout_soilmic(:,1)*(0.003e+0_fp+(0.032e+0_fp*clay(:,1)))
   armoredpool(:,1)=armoredpool(:,1)+temp(:,1)
   tempa(:,1)=temp(:,1)
   temp(:,1)=carbonout_soilmic(:,1)-tempa(:,1)-resppool_soilmic(:,1)
   
   slowpool(:,1)=slowpool(:,1)+temp(:,1)
   
-  resppool_slow(:,1)=carbonout_slow(:,1)*(1.00d0-eff_slow2soilmic)
+  resppool_slow(:,1)=carbonout_slow(:,1)*(1.00e+0_fp-eff_slow2soilmic)
   slowpool(:,1)=slowpool(:,1)-carbonout_slow(:,1)
   
-  temp(:,1)=0.0d0
+  temp(:,1)=0.0e+0_fp
   temp(:,1)=carbonout_slow(:,1)*eff_slow2soilmic*decayClayFactor(:,1)
   armoredpool(:,1)=armoredpool(:,1)+temp(:,1)
   
@@ -187,12 +191,12 @@ SUBROUTINE doTreeCarbon
   temp(:,1)=carbonout_slow(:,1)-resppool_slow(:,1)-tempa(:,1)
   soilmicpool(:,1)=soilmicpool(:,1)+temp(:,1)
   
-  temp(:,1)=0.0d0
+  temp(:,1)=0.0e+0_fp
   temp(:,1)=carbonout_armored(:,1)*eff_armored2soilmic
   armoredpool(:,1)=armoredpool(:,1)-carbonout_armored(:,1)
   soilmicpool(:,1)=soilmicpool(:,1)+temp(:,1)
   
-  resppool_armored(:,1)=(temp(:,1)/eff_armored2soilmic)*(1.00d0-eff_armored2soilmic)
+  resppool_armored(:,1)=(temp(:,1)/eff_armored2soilmic)*(1.00e+0_fp-eff_armored2soilmic)
 
   !FIRES consume part of the pools depending on burn fraction 
   !(BF), combustion completeness (CC) and tree mortality rate
@@ -212,7 +216,7 @@ SUBROUTINE doTreeCarbon
   combusted_armored(:,1)=armoredpool(:,1)*BF1(:,mo)*ccFineLitter(:,mo)*veg_burn(:,1)
   
   !FIRE: the non combusted parts
-  temp(:,1)=1.00d0
+  temp(:,1)=1.00e+0_fp
   nonCombusted_leaf(:,1)=leafpool(:,1)*BF1(:,mo)*(temp(:,1)-ccLeaf(:,mo))*mortality_tree(:,1)
   nonCombusted_abovewood(:,1)=abovewoodpool(:,1)*BF1(:,mo)*(temp(:,1)-ccWood(:,mo))*mortality_tree(:,1)
   nonCombusted_belowwood(:,1)=belowwoodpool(:,1)*BF1(:,mo)*mortality_tree(:,1)
@@ -220,9 +224,9 @@ SUBROUTINE doTreeCarbon
   
   !FIRE flux from non combusted parts to other pools
   
-  surfstrpool(:,1)=surfstrpool(:,1)+nonCombusted_leaf(:,1)*(1.00d0-metabfract(:,1))
+  surfstrpool(:,1)=surfstrpool(:,1)+nonCombusted_leaf(:,1)*(1.00e+0_fp-metabfract(:,1))
   surfmetpool(:,1)=surfmetpool(:,1)+nonCombusted_leaf(:,1)*metabfract(:,1)
-  soilstrpool(:,1)=soilstrpool(:,1)+(nonCombusted_froot(:,1)+nonCombusted_belowwood(:,1))*(1.00d0-metabfract(:,1))
+  soilstrpool(:,1)=soilstrpool(:,1)+(nonCombusted_froot(:,1)+nonCombusted_belowwood(:,1))*(1.00e+0_fp-metabfract(:,1))
   soilmetpool(:,1)=soilmetpool(:,1)+(nonCombusted_froot(:,1)+nonCombusted_belowwood(:,1))*metabfract(:,1)
   cwdpool(:,1)=cwdpool(:,1)+nonCombusted_abovewood(:,1)
   
@@ -261,8 +265,8 @@ SUBROUTINE doTreeCarbon
            !shortage decreases
            fuelshortage(i,1)=fuelshortage(i,1)-cwdpool(i,1)+fuelwoodout(i,1)
         END IF
-        IF (fuelshortage(i,1) .lt. 0d0) THEN
-           fuelshortage(i,1)=0.000d0
+        IF (fuelshortage(i,1) .lt. 0e+0_fp) THEN
+           fuelshortage(i,1)=0.000e+0_fp
         END IF
 
         !fuelwood taken out of cwd pool
@@ -306,10 +310,10 @@ SUBROUTINE doTreeCarbon
 !$OMP END PARALLEL WORKSHARE
   ELSE
      IF (age_class .eq. 1) THEN
-        wresp(:,1)=0.0d0
-        wcomb(:,1)=0.0d0
-        wherb(:,1)=0.0d0
-        wbiof(:,1)=0.0d0
+        wresp(:,1)=0.0e+0_fp
+        wcomb(:,1)=0.0e+0_fp
+        wherb(:,1)=0.0e+0_fp
+        wbiof(:,1)=0.0e+0_fp
      ENDIF
 !$OMP PARALLEL WORKSHARE  &
 !$OMP DEFAULT(SHARED)

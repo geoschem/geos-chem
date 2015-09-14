@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -17,9 +17,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD                    ! Size parameters
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -35,16 +35,7 @@
       ! First & last years for which TOMS/SBUV data is is available
       ! (update these as new data is added to the archive)
       INTEGER, PUBLIC, PARAMETER :: FIRST_TOMS_YEAR = 1979
-#if   defined( GEOS_57 )
-      !%%% KLUDGE for SEAC4RS: Use TOMS data up to 2010.  This has not
-      !%%% yet gone into the std code since it needs to be benchmarked.
-      !%%% (bmy, 7/3/12)
       INTEGER, PUBLIC, PARAMETER :: LAST_TOMS_YEAR  = 2010
-#else
-      !%%% Std GEOS-Chem: use TOMS data up to 2008 for the time being.
-      !%%% (bmy, 7/3/12)
-      INTEGER, PUBLIC, PARAMETER :: LAST_TOMS_YEAR  = 2008
-#endif
 !
 ! !REMARKS:
 !  References:
@@ -88,25 +79,27 @@
 !                              updated data
 !  03 Jul 2012 - R. Yantosca - Restrict reading from TOMS_201203 directory
 !                              to GEOS-5.7.2 met data for the time being.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  16 Mar 2015 - R. Yantosca - Retire bpch input; now read TOMS via HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
-      REAL*8, PRIVATE, ALLOCATABLE :: TOMS(:,:)               
-      REAL*8, PRIVATE, ALLOCATABLE :: DTOMS1(:,:)             
-      REAL*8, PRIVATE, ALLOCATABLE :: DTOMS2(:,:)     
-#if   defined( DEVEL )
-      REAL*8, PUBLIC,  ALLOCATABLE :: TO3_DAILY(:,:)
-#else
-      REAL*8, PRIVATE, ALLOCATABLE :: TO3_DAILY(:,:)
-#endif
+      ! Arrays
+      REAL(fp), PRIVATE, ALLOCATABLE :: TO3_DAILY(:,:)
+
+      ! Pointers to fields in the HEMCO data structure
+      REAL(f4), PRIVATE, POINTER     :: TOMS(:,:)               
+      REAL(f4), PRIVATE, POINTER     :: DTOMS1(:,:)             
+      REAL(f4), PRIVATE, POINTER     :: DTOMS2(:,:)     
 
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -118,22 +111,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TOMS( THISMONTH, THISYEAR )
+      SUBROUTINE READ_TOMS( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0
-      USE BPCH2_MOD,     ONLY : READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE Error_Mod,          ONLY : Error_Stop
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)    :: THISMONTH   ! Current month
-      INTEGER, INTENT(IN)    :: THISYEAR    ! Current year
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  TOMS/SBUV MERGED TOTAL OZONE DATA, Version 8, Revision 5.
@@ -174,6 +168,12 @@
 !                                                                             .
 !  This methodology was originally adopted by Mat Evans.
 !  
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+!
 ! !REVISION HISTORY: 
 !  10 Dec 2002 - M. Evans - Initial version
 !  (1 ) Bundled into "toms_mod.f" (bmy, 7/14/03)
@@ -190,127 +190,60 @@
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  03 Jul 2012 - R. Yantosca - Restrict reading from TOMS_201203 directory
 !                              to GEOS-5.7.2 met data for the time being.
+!  13 Dec 2013 - M. Sulprizio- Now pass USE_O3_FROM_MET logical flag so that
+!                              we bypass reading TOMS O3 data when using TO3
+!                              from the met fields.
+!  05 Mar 2014 - M. Sulprizio- Now regrid TOMS O3 from the files on GEOS 1x1
+!                              grid (J. Lin)
+!  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  23 Jun 2014 - R. Yantosca - Now use Input_Opt%DATA_DIR_1x1
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/CHEM_INPUTS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL            :: FIRST = .TRUE.
-      INTEGER            :: YYYYMMDD, YEAR
-      REAL*4             :: ARRAY(IIPAR,JJPAR,1)
-      REAL*8             :: XTAU
-      CHARACTER(LEN=255) :: FILENAME
+      ! Strings
+      CHARACTER(LEN=255) :: LOC = 'READ_TOMS (GeosCore/toms_mod.F)'
 
       !=================================================================
-      ! Initialization
+      ! READ_TOMS begins here
       !=================================================================
+      
+      ! Exit if we are getting the overhead O3 columns from the met fields
+      IF ( Input_Opt%USE_O3_FROM_MET ) RETURN
 
-      ! Allocate arrays on the first call only
-      IF ( FIRST ) THEN
-         CALL INIT_TOMS
-         FIRST = .FALSE.
+      !-----------------------------------------------------------------
+      ! Read TOMS O3 columns [dobsons]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'TOMS_O3_COL', TOMS, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
       ENDIF
 
-      ! Always use 2002 data for GCAP
-#if   defined ( GCAP )
-      YEAR = 2002
-#else 
-      YEAR = THISYEAR
-#endif
-
-      ! Use 1979 data prior to 1979
-      IF ( YEAR < FIRST_TOMS_YEAR ) THEN
-         WRITE( 6, 100 ) YEAR
-         YEAR = FIRST_TOMS_YEAR
+      !-----------------------------------------------------------------
+      ! Read d(TOMS)/dt, 1st half of the month [dobsons/day]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'DTOMS1_O3_COL', DTOMS1, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
       ENDIF
 
-      ! Use 2010 data after 2010
-      IF ( YEAR > LAST_TOMS_YEAR ) THEN
-         WRITE( 6, 105 ) YEAR
-         YEAR = LAST_TOMS_YEAR
+      !-----------------------------------------------------------------
+      ! Read d(TOMS)/dt, 2nd half of the month [dobsons/day]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'DTOMS2_O3_COL', DTOMS2, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
       ENDIF
-      
-
-      ! FORMAT statemetns
- 100  FORMAT( '     - READ_TOMS: No data for ',i4,', using 1979!' )
- 105  FORMAT( '     - READ_TOMS: No data for ',i4,', using 2010!' )
-
-      !=================================================================
-      ! Read TOMS data from disk
-      !=================================================================
-
-      ! Get TAU0 value for first day of the MONTH 
-      XTAU     = GET_TAU0( THISMONTH, 1, YEAR )
-
-      ! Create YYYYMMDD value
-      YYYYMMDD = ( YEAR * 10000 ) + ( THISMONTH * 100 ) + 01
-     
-      ! Define filename (with replaceable tokens)
-#if   defined( GEOS_57 )
-      !%%% KLUDGE FOR SEAC4RS
-      !%%% Update to the latest TOMS data directory only for GEOS-5.7.2 met.
-      !%%% This update has not gone into the std code since it needs to be 
-      !%%% benchmarked. (skim, 6/25/12)
-      FILENAME = 'TOMS_201203/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
-     &           '.'                            // GET_RES_EXT()
-#else
-      !%%% Std GEOS-Chem: Read from the existing TOMS data directory
-      !%%% for the time being (bmy, 7/2/12)
-      FILENAME = 'TOMS_200906/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
-     &           '.'                            // GET_RES_EXT()
-#endif
-
-      ! Replace YYYY token with current year
-      CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
-
-      ! Now prefix the data directory
-      FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
-
-      ! Echo filename
-      WRITE( 6, 110 ) TRIM( FILENAME )
- 110  FORMAT( '     - READ_TOMS: Reading ', a )
-
-      !-----------------------------
-      ! TOMS O3 columns
-      !-----------------------------
-      
-      ! Read data
-      CALL READ_BPCH2( FILENAME, 'TOMS-O3',  1, 
-     &                 XTAU,      IIPAR,     JJPAR,     
-     &                 1,         ARRAY,     QUIET=.TRUE. )         
-
-      ! Cast to REAL*8 and resize if necessary
-      CALL TRANSFER_2D( ARRAY(:,:,1), TOMS )
-
-      !--------------------------------
-      ! d(TOMS)/dT (1st half of month)
-      !--------------------------------
-
-       ! Read data
-      CALL READ_BPCH2( FILENAME, 'TOMS-O3',  2, 
-     &                 XTAU,      IIPAR,     JJPAR,     
-     &                 1,         ARRAY,     QUIET=.TRUE. )         
-
-      ! Cast to REAL*8 and resize if necessary
-      CALL TRANSFER_2D( ARRAY(:,:,1), DTOMS1 )
-      
-      !--------------------------------
-      ! d(TOMS)/dT (2nd half of month)
-      !--------------------------------
-
-       ! Read data: 
-      CALL READ_BPCH2( FILENAME, 'TOMS-O3',  3, 
-     &                 XTAU,      IIPAR,     JJPAR,     
-     &                 1,         ARRAY,     QUIET=.TRUE. )         
-
-      ! Cast to REAL*8 and resize if necessary
-      CALL TRANSFER_2D( ARRAY(:,:,1), DTOMS2 )
 
       END SUBROUTINE READ_TOMS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -332,10 +265,14 @@
 !
 ! !INTERFACE:
 !
-      SUBROUTINE COMPUTE_OVERHEAD_O3( DAY, USE_O3_FROM_MET, TO3 )
+      SUBROUTINE COMPUTE_OVERHEAD_O3( am_I_Root,       DAY,
+     &                                USE_O3_FROM_MET, TO3 )
 !
 ! !INPUT PARAMETERS: 
 !
+      ! Root CPU?
+      LOGICAL, INTENT(IN)  :: am_I_Root
+
       ! Day of month 
       INTEGER, INTENT(IN)  :: DAY      
 
@@ -343,8 +280,8 @@
       ! directly from the met fields
       LOGICAL, INTENT(IN)  :: USE_O3_FROM_MET
       
-      ! TO3 from the met fields
-      REAL*8,  INTENT(IN)  :: TO3(IIPAR,JJPAR)
+      ! TO3 from the met fields [Dobsons]
+      REAL(fp),  INTENT(IN)  :: TO3(IIPAR,JJPAR)
 !
 ! !REMARKS:
 ! Reference for the TOMS/SBUV merged O3 columns:
@@ -415,6 +352,7 @@
 !  06 Mar 2012 - R. Yantosca - Initial version, pulled code out from 
 !                              the FAST-J routine SET_PROF; based on the
 !                              GEOS-Chem column code routine
+!  22 Oct 2014 - C. Keller   - Added am_I_Root parameter.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -425,7 +363,7 @@
       INTEGER       :: I, J
 
       ! Initialize
-      TO3_DAILY = 0d0
+      TO3_DAILY = 0e+0_fp
 
       !=================================================================
       ! Now weight the O3 column by the observed monthly mean TOMS.
@@ -437,11 +375,11 @@
          ! Here we are using the overhead O3 from the meteorology;
          ! we won't overwrite this with TOMS/SBUV O3 columns
          !---------------------------------------------------------------
-         IF ( FIRST ) THEN
-            WRITE(6,*) 'TOMS/SBUV data are not available for this year'
-            WRITE(6,*) 'We use the total O3 column given by GEOS-5.'
-            WRITE(6,*) 'The validation by GMAO of these O3 columns is ' 
-     &                 // 'in progress.'
+         IF ( am_I_Root .AND. FIRST ) THEN
+            WRITE( 6, '(a)' ) REPEAT( '%', 45 )
+            WRITE( 6, 100   )
+ 100        FORMAT( '%%% USING O3 COLUMNS FROM THE MET FIELDS! %%% ' )
+            WRITE( 6, '(a)' ) REPEAT( '%', 45 )
             FIRST = .FALSE.
          ENDIF
 
@@ -462,8 +400,8 @@
 !$OMP+DEFAULT( SHARED )
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               IF ( TOMS(I,J)   > -999d0  .AND. 
-     &              DTOMS1(I,J) > -999d0 ) THEN  
+               IF ( TOMS(I,J)   > -999e+0_f4  .AND. 
+     &              DTOMS1(I,J) > -999e+0_f4 ) THEN  
                   TO3_DAILY(I,J) = TOMS(I,J) 
      &                           + DTOMS1(I,J) * ( DAY - 15 )
                ENDIF            
@@ -479,8 +417,8 @@
 !$OMP+DEFAULT( SHARED )
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               IF ( TOMS(I,J)   > -999d0  .AND. 
-     &              DTOMS2(I,J) > -999d0 ) THEN  
+               IF ( TOMS(I,J)   > -999e+0_f4  .AND. 
+     &              DTOMS2(I,J) > -999e+0_f4 ) THEN  
                   TO3_DAILY(I,J) = TOMS(I,J) 
      &                           + DTOMS2(I,J) * ( DAY - 15 )
                ENDIF
@@ -495,7 +433,7 @@
       END SUBROUTINE COMPUTE_OVERHEAD_O3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -517,7 +455,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8  :: OVERHEAD_O3   ! Total overhead O3 column [DU]
+      REAL(fp)  :: OVERHEAD_O3   ! Total overhead O3 column [DU]
 ! 
 ! !REVISION HISTORY: 
 !  06 Mar 2012 - R. Yantosca - Initial version
@@ -530,7 +468,7 @@
       END FUNCTION GET_OVERHEAD_O3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -541,53 +479,56 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TOMS
+      SUBROUTINE INIT_TOMS( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD  
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root  ! root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input opts
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC         ! Failure or success
 ! 
 ! !REVISION HISTORY: 
 !  14 Jul 2003 - R. Yantosca - Initial version
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  06 Mar 2012 - R. Yantosca - Now allocate TO3_DAILY
+!  16 Mar 2015 - R. Yantosca - TOMS, DTOMS1, DTOMS2 are now pointers
+!  16 Mar 2015 - R. Yantosca - Add Input_Opt, RC arguments for std interface
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS
-
       !=================================================================
       ! INIT_TOMS begins here!
       !=================================================================
 
-      ! Allocate TOMS
-      ALLOCATE( TOMS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TOMS' )
-      TOMS = 0d0
+      ! Allocate arrays
+      IF (.not. ALLOCATED( TO3_DAILY) )
+     &     ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) CALL ALLOC_ERR( 'TO3_DAILY' )
+      TO3_DAILY = 0e+0_fp
 
-      ! Allocate DTOMS
-      ALLOCATE( DTOMS1( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTOMS1' )
-      DTOMS1 = 0d0
-
-      ! Allocate DTOMS2
-      ALLOCATE( DTOMS2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTOMS2' )
-      DTOMS2 = 0d0
-
-      ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3_DAILY' )
-      TO3_DAILY = 0d0
+      ! Initialize pointers
+      TOMS   => NULL()
+      DTOMS1 => NULL()
+      DTOMS2 => NULL()
 
       END SUBROUTINE INIT_TOMS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -610,10 +551,14 @@
       !=================================================================
       ! CLEANUP_TOMS begins here!
       !=================================================================
-      IF ( ALLOCATED( TOMS      ) ) DEALLOCATE( TOMS      )
-      IF ( ALLOCATED( DTOMS1    ) ) DEALLOCATE( DTOMS1    )
-      IF ( ALLOCATED( DTOMS2    ) ) DEALLOCATE( DTOMS2    )
+
+      ! Free arrays
       IF ( ALLOCATED( TO3_DAILY ) ) DEALLOCATE( TO3_DAILY )
+
+      ! Free pointers
+      TOMS   => NULL()
+      DTOMS1 => NULL()
+      DTOMS2 => NULL()
 
       END SUBROUTINE CLEANUP_TOMS
 !EOC

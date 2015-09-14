@@ -1,9 +1,11 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
-! !MODULE: GEOS-Chem include files
-! !DESCRIPTION: Here follows a list of include files used by the
-   GEOS-Chem modules and subroutines.
+! !MODULE: GEOS-Chem header modules
+! !DESCRIPTION: Here follows a list modules that are used to define various
+!  global parameters and variables used by GEOS-Chem.  These were formerly 
+!  COMMON-block include files (*.h), but were converted to Fortran-90
+!  modules as part of the GEOS-Chem HP (high-performance) project.
 !EOP
 !------------------------------------------------------------------------------

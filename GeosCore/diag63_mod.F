@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -41,6 +43,7 @@
 !  24 Feb 2012 - M. Payer    - Rename module from diag59_mod to diag63_mod.
 !                              Diag59 is used by TOMAS. Fix this throughout.
 !  06 Aug 2012 - R. Yantosca - Now make IU_ND63 a local module variable
+!  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -93,7 +96,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -106,16 +109,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG63
+      SUBROUTINE DIAG63 ( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE BPCH2_MOD,    ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
-      USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF 
-      USE DAO_MOD,      ONLY : CLDTOPS, OPTD,   RH,       SLP     
-      USE DAO_MOD,      ONLY : T,       UWND,   VWND
-      USE DAO_MOD,      ONLY : TS
-      USE DAO_MOD,      ONLY : PARDF, PARDR
       USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
       USE inquireMod,   ONLY : findFreeLUN
       USE TIME_MOD,     ONLY : EXPAND_DATE
@@ -123,66 +121,68 @@
       USE TIME_MOD,     ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
       USE TIME_MOD,     ONLY : GET_TAU,            GET_HOUR
       USE TIME_MOD,     ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
+      USE TIME_MOD,     ONLY : GET_TAUb
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
-      USE TRACER_MOD,   ONLY : STT,                TCVV
-      USE TRACER_MOD,   ONLY : XNUMOLAIR
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TRACERID_MOD, ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
-      USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
-      USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
-      USE DIAG_MOD,     ONLY : AD63     
+      USE ERROR_MOD,    ONLY : SAFE_DIV, ERROR_STOP
 
-      USE CMN_FJ_MOD         ! FAST-J stuff, includes CMN_SIZE
-      USE JV_CMN_MOD         ! ODAER, QAA, QAA_AOD (clh)
       USE CMN_O3_MOD	     ! Pure O3, SAVENO2
       USE CMN_GCTM_MOD       ! XTRA2
+
+      ! Connect to HEMCO diagnostics
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : IDTNO
+      USE HCO_DIAGN_MOD
+      USE HCO_ERROR_MOD
+!
+! !INPUT ARGUMENTS
+!
+      LOGICAL,        INTENT(IN   )       :: am_I_Root
+      TYPE(OptInput), INTENT(IN   )       :: Input_Opt  ! Input opts 
+!
+! !INPUT/OUTPUT ARGUMENTS
+!
+      INTEGER,        INTENT(INOUT)       :: RC
 !
 ! !REVISION HISTORY:
 !  25 Feb 2011 - G. Vinken   - Initial version based on DIAG49 
 !  07 Feb 2012 - M. Payer    - Added ProTeX headers
 !  11 Apr 2012 - R. Yantosca - Remove reference to lai_mod.F, it's not needed
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  26 Feb 2015 - E. Lundgren - Remove pressure_mod from use list (not used)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE            :: FIRST  = .TRUE.
-      LOGICAL, SAVE            :: IS_FULLCHEM, IS_NOx,     IS_Ox 
-      LOGICAL, SAVE            :: IS_NOy,      IS_CLDTOPS, IS_OPTD
-      LOGICAL, SAVE            :: IS_SEASALT,  IS_SLP
-      INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
-      INTEGER                  :: N,    R,     H,    W, X, Y
-      INTEGER                  :: NHMS, TS_DIAG
-      REAL*8                   :: TAU, TMP,   SCALEAODnm
-      REAL*8                   :: Q( ND63_NI, ND63_NJ, 1)
-      CHARACTER(LEN=16)        :: STAMP
-      CHARACTER(LEN=40)        :: CATEGORY
-      CHARACTER(LEN=40)        :: UNIT
-      CHARACTER(LEN=255)       :: FILENAME
+      INTEGER                       :: IOS,  GMTRC, GMNL, I, J, K, L 
+      INTEGER                       :: N,    R,     H,    W, X, Y
+      INTEGER                       :: NHMS, TS_DIAG
+      REAL(f8)                      :: TAU1, TAU0
+      REAL(fp)                      :: Q( ND63_NI, ND63_NJ, 1)
+      CHARACTER(LEN=16)             :: STAMP
+      CHARACTER(LEN=40)             :: CATEGORY
+      CHARACTER(LEN=40)             :: UNIT
+      CHARACTER(LEN=255)            :: FILENAME
+
+      ! Connect to HEMCO diagnostics
+      INTEGER                       :: FLAG
+      INTEGER                       :: AF
+      CHARACTER(LEN= 63)            :: DiagnName
+      CHARACTER(LEN=255)            :: MSG
+      TYPE(DiagnCont), POINTER      :: DiagnCnt => NULL()
+      REAL(f8)                      :: FACTOR
+!
+! !DEFINED PARAMETERS:
+!
+      REAL(f8), PARAMETER           :: CM2PERM2 = 10000e+0_f8
+      CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG63 (DIAG63_MOD.F)' 
 
       !=================================================================
       ! DIAG63 begins here!
       !=================================================================
-
-      ! Set logical flags on first timestep
-      IF ( FIRST ) THEN
-         IS_CLDTOPS  = ALLOCATED( CLDTOPS )
-         IS_OPTD     = ALLOCATED( OPTD    )
-         IS_SLP      = ALLOCATED( SLP     )
-         IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
-         IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
-         IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
-         IS_NOx      = ( IS_FULLCHEM .and. IDTNOX  > 0 )
-         IS_NOy      = ( IS_FULLCHEM .and. 
-     &                   IDTNOX  > 0 .and. IDTPAN  > 0 .and.
-     &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
-     &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
-     &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
-         FIRST       = .FALSE.
-      ENDIF
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header
@@ -196,7 +196,10 @@
       ! To change TS_DIAG to NHMS format
       TS_DIAG = TS_DIAG/60 * 10000 + (TS_DIAG - (TS_DIAG/60)*60) * 100  
 
-      IF ( NHMS == TS_DIAG ) THEN     ! It's a new day for diagnostics.
+      ! Check if it's a new day for diagnostics, 
+      ! or if the model run just started
+      IF ( (NHMS == TS_DIAG) .OR. 
+     &     (GET_TAU() == ( GET_TAUb() + ND63_FREQ/60e+0_fp )) ) THEN
 
          ! Find a free file LUN
          IU_ND63  = findFreeLUN()
@@ -223,46 +226,87 @@
  110  FORMAT( '     - DIAG63: Saving timeseries at ', a )
 
       ! Time for BPCH file
-      TAU  = GET_TAU()
+      TAU1  = GET_TAU()
+      
+      ! Time for start of averaging period
+      TAU0  = TAU1 - (ND63_FREQ / 60e+0_fp) 
 
       ! Loop over tracers
       DO W = 1, ND63_N_TRACERS
 
          ! Zero summing array
-         Q = 0d0
+         Q = 0e+0_fp
 
          !-------------------------------------
          ! SHIP-diagnostic tracers [unitless]
          !-------------------------------------
          CATEGORY = 'SHIP-$$$'
-         UNIT     = ''           ! Let GAMAP pick the unit
          GMNL     = ND63_NL
          GMTRC    = W
-         
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y)
-            DO Y = 1, ND63_NJ
-               J = JOFF + Y
-            DO X = 1, ND63_NI
-               I = GET_I( X )
-               Q(X,Y,1) = AD63(I,J,W)
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
 
+         ! Pick variables to get diagnostics from HEMCO
+         SELECT CASE ( W )
+            CASE ( 1 ) 
+               DiagnName = 'PARANOX_NOXFRAC_REMAINING'
+               UNIT      = 'UNITLESS'
+               AF        = 0
+               FACTOR    = 1.0d0
+            CASE ( 2 ) 
+               DiagnName = 'PARANOX_OPE'
+               UNIT      = 'UNITLESS'
+               AF        = 0
+               FACTOR    = 1.0d0
+            CASE ( 3 ) 
+               DiagnName = 'PARANOX_OX_PRODUCTION'
+               UNIT      = 'molec/cm2/s'
+               AF        = 0
+               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
+            CASE ( 4 ) 
+               DiagnName = 'PARANOX_NOX_REMAINING'
+               UNIT      = 'molec/cm2/s'
+               AF        = 0
+               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
+            CASE ( 5 ) 
+               DiagnName = 'SHIP_NO'
+               UNIT      = 'molec/cm2/s'
+               AF        = 1
+               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
+            CASE DEFAULT
+               MSG = 'Only 5 diagnostics expected!'
+               CALL ERROR_STOP ( MSG, LOC )
+         END SELECT
+
+         ! Get diagnostics from HEMCO
+         DiagnCnt => NULL()
+         CALL Diagn_Get( am_I_Root, .FALSE., DiagnCnt,
+     &                   FLAG,  RC, cName=TRIM(DiagnName),
+     &                   AutoFill=AF, COL=HcoDiagnIDManual )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC )
+         ENDIF
+        
+         ! Save into ARRAY. Convert to desired output units
+         IF ( FLAG == HCO_SUCCESS ) THEN
+            Q(:,:,1) = DiagnCnt%Arr2D%Val(:,:) * FACTOR
+         ELSE
+            MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+            MSG = TRIM(MSG) // ' - will write zeros!'
+            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+         ENDIF
+ 
          !==============================================================
          ! Save this data block to the ND63 timeseries file
          !==============================================================
          CALL BPCH2( IU_ND63,      MODELNAME,    LONRES,   
      &               LATRES,       HALFPOLAR,    CENTER180, 
      &               CATEGORY,     GMTRC,        UNIT,      
-     &               TAU,          TAU,          RESERVED,  
+     &               TAU0,         TAU1,         RESERVED,  
      &               ND63_NI,      ND63_NJ,      1,  
      &               ND63_IMIN+I0, ND63_JMIN+J0, 1, 
      &               REAL( Q(1:ND63_NI, 1:ND63_NJ, 1) ) )
       ENDDO
-            
+ 
       !=================================================================
       ! Close the file at the proper time
       !=================================================================
@@ -282,10 +326,14 @@
          CLOSE( IU_ND63 ) 
       ENDIF
 
+      ! Return w/ success
+      DiagnCnt => NULL()
+      RC = GIGC_SUCCESS
+
       END SUBROUTINE DIAG63
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -315,14 +363,14 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL :: ITS_TIME
-      REAL*8  :: HR1
+      REAL(fp)  :: HR1
 
       !=================================================================
       ! ITS_TIME_TO_CLOSE_FILE begins here!
       !=================================================================
 
       ! Current hour
-      HR1      = GET_HOUR() + ( GET_MINUTE() / 60d0 )
+      HR1      = GET_HOUR() + ( GET_MINUTE() / 60e+0_fp )
 
 !--- Previous to (ccc, 8/12/09)
 !      ! Hour at the next dynamic timestep
@@ -337,7 +385,7 @@
        END FUNCTION ITS_TIME_TO_CLOSE_FILE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -403,7 +451,7 @@
       END FUNCTION ITS_TIME_FOR_DIAG63
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -449,7 +497,7 @@
       END FUNCTION GET_I
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

@@ -1,0 +1,25 @@
+#!/bin/bash
+#PBS -V
+##PBS -N run_twoway
+#PBS -j oe
+##PBS -m yanyy09@163.com
+#PBS -l nodes=1:ppn=1
+
+ulimit -c 0
+ulimit -s unlimited
+ulimit -f unlimited
+#export KMP_STACKSIZE=unlimited
+export KMP_STACKSIZE=100000000
+
+# OMP_NUM_THREADS = number of ppn divided by number of global/nested models
+export OMP_NUM_THREADS=8
+
+codedir=/home/yanyy/geoschem/run/src/Code.v9-02.two-way/
+rundir=/home/yanyy/geoschem/run.v9-02.geos5.twoway/
+
+cd $rundir
+
+date
+run 2cne $codedir $rundir > run.log
+date
+

@@ -1,10 +1,9 @@
-! $Id: error_mod.f,v 1.3 2010/02/02 16:57:47 bmy Exp $
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: error_mod.f
+! !MODULE: error_mod
 !
 ! !DESCRIPTION: Module ERROR\_MOD contains error checking routines.
 !\\
@@ -15,15 +14,23 @@
 ! 
 ! !USES:
 !
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
+!
+! !PUBLIC DATA MEMBERS:
+!
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: ALLOC_ERR
       PUBLIC  :: CHECK_VALUE
       PUBLIC  :: DEBUG_MSG
+      PUBLIC  :: GIGC_ERROR
       PUBLIC  :: ERROR_STOP
       PUBLIC  :: GEOS_CHEM_STOP
       PUBLIC  :: IS_SAFE_DIV
@@ -34,6 +41,8 @@
       PUBLIC  :: SAFE_EXP
       PUBLIC  :: SAFE_LOG
       PUBLIC  :: SAFE_LOG10
+      PUBLIC  :: INIT_ERROR
+      PUBLIC  :: CLEANUP_ERROR
 
       ! Interface for NaN-check routines
       INTERFACE IT_IS_NAN
@@ -52,6 +61,11 @@
          MODULE PROCEDURE CHECK_REAL_VALUE
          MODULE PROCEDURE CHECK_DBLE_VALUE
       END INTERFACE
+
+      INTERFACE IS_SAFE_DIV
+         MODULE PROCEDURE IS_SAFE_DIV_R4
+         MODULE PROCEDURE IS_SAFE_DIV_R8
+      END INTERFACE
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -61,6 +75,18 @@
       PRIVATE :: FINITE_FLOAT
       PRIVATE :: NAN_DBLE
       PRIVATE :: NAN_FLOAT
+      PRIVATE :: IS_SAFE_DIV_R4
+      PRIVATE :: IS_SAFE_DIV_R8
+!
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: "LINUX_IFORT" and "LINUX_PGI" ARE CURRENTLY THE ONLY       %%%
+!  %%%  SUPPORTED COMPILER OPTIONS.  MOST SYSTEMS NOW USE A UNIX VERSION %%%
+!  %%%  BASED ON LINUX, SO OTHER COMPILERS (IBM/AIX, SUN/SPARC, etc.)    %%%
+!  %%%  ARE GENERALLY NOT USED ANYMORE.  LEAVE THE OLDER CODE HERE JUST  %%%
+!  %%%  IN CASE WE NEED TO REVERT TO IT AGAIN IN THE FUTURE.             %%%
+!  %%%     -- Bob Yantosca, 20 Aug 2013                                  %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  08 Mar 2001 - R. Yantosca - Initial version
@@ -99,13 +125,28 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  04 Jan 2010 - R. Yantosca - Added SAFE_EXP and IS_SAFE_EXP functions
 !  04 Jan 2010 - R. Yantosca - Added SAVE_LOG and SAFE_LOG10 functions
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  08 Jul 2014 - R. Yantosca - Added INIT_ERROR and CLEANUP_ERROR subroutines
+!  08 Jul 2014 - R. Yantosca - Add shadow variables for am_I_Root, Input_Opt
+!                              so that we can pass these to routine CLEANUP
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD 
+!  19 Dec 2014 - R. Yantosca - Now overload IS_SAFE_DIV w/ REAL*4 and REAL*8 
+!                              module procedures to facilitate flex precision
+!  13 Aug 2015 - E. Lundgren - Add GIGC_ERROR which sets RC to GIGC_FAILURE
+!                              and print msg and location to log
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+
+      LOGICAL                 :: SHADOW_am_I_Root   ! Shadow for am_I_Root
+      TYPE(OptInput), POINTER :: SHADOW_Input_Opt   ! Shadow for Input_Opt
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -121,8 +162,6 @@
 !
 ! !USES:
 !
-#     include "define.h" 
-
 #if   defined( IBM_AIX ) || defined( IBM_XLF )
       USE IEEE_ARITHMETIC
 #endif
@@ -151,6 +190,7 @@
 !  (10) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -195,13 +235,13 @@
       END FUNCTION NAN_FLOAT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: nan_dble
 !
-! !DESCRIPTION: Function NAN\_DBLE returns TRUE if a REAL*8 number is equal 
+! !DESCRIPTION: Function NAN\_DBLE returns TRUE if a REAL(fp) number is equal 
 !  to the IEEE NaN (Not-a-Number) flag.  Returns FALSE otherwise.
 !\\
 !\\
@@ -211,8 +251,6 @@
 !
 ! !USES:
 !
-#     include "define.h" 
-
 #if   defined( IBM_AIX ) || defined( IBM_XLF )
       USE IEEE_ARITHMETIC
 #endif
@@ -241,6 +279,7 @@
 !  (10) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -284,7 +323,7 @@
       END FUNCTION NAN_DBLE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -300,8 +339,6 @@
 !
 ! !USES:
 !
-#     include "define.h" 
-
 #if   defined( IBM_AIX ) || defined( IBM_XLF )
       USE IEEE_ARITHMETIC
 #endif
@@ -331,6 +368,7 @@
 !  (11) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -385,13 +423,13 @@
       END FUNCTION FINITE_FLOAT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: finite_dble
 !
-! !DESCRIPTION: Function FINITE\_FLOAT returns FALSE if a REAL*8 number is 
+! !DESCRIPTION: Function FINITE\_FLOAT returns FALSE if a REAL(fp) number is 
 !  equal to the IEEE Infinity flag.  Returns TRUE otherwise.
 !\\
 !\\
@@ -401,8 +439,6 @@
 !
 ! !USES:
 !
-#     include "define.h" 
-
 #if   defined( IBM_AIX ) || defined( IBM_XLF )
       USE IEEE_ARITHMETIC
 #endif
@@ -432,6 +468,7 @@
 !  (11) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
 !        (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -486,7 +523,7 @@
       END FUNCTION FINITE_DBLE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -503,16 +540,17 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*4,           INTENT(IN) :: VALUE        ! Value to be checked
-      CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
-      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
-      INTEGER,          INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
+      REAL*4,             INTENT(IN) :: VALUE        ! Value to be checked
+      CHARACTER(LEN=255), INTENT(IN) :: VARNAME      ! Name of variable
+      CHARACTER(LEN=255), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+      INTEGER,            INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
 !
 ! !REVISION HISTORY:
 !  13 Jun 2001 - R. Yantosca - Initial version
 !  15 Oct 2002 - R. Yantosca - Now call GEOS_CHEM_STOP to shutdown safely
 !  15 Oct 2002 - R. Yantosca - Updated comments, cosmetic changes
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Jun 2013 - R. Yantosca - Avoid array temporaries, use CHAR*255 args
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -523,7 +561,7 @@
          WRITE( 6, 115   ) LOCATION
          WRITE( 6, '(a)' ) TRIM( MESSAGE )
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         CALL GEOS_CHEM_STOP
+         CALL GEOS_CHEM_STOP()
       ENDIF
 
       ! Next check for infinity -- print info & stop run if found
@@ -534,7 +572,7 @@
          WRITE( 6, '(f13.6)' ) VALUE      
          WRITE( 6, '(a)'     ) TRIM ( MESSAGE )
          WRITE( 6, '(a)'     ) REPEAT( '=', 79 )         
-         CALL GEOS_CHEM_STOP
+         CALL GEOS_CHEM_STOP()
       ENDIF
 
       ! FORMAT statements
@@ -546,7 +584,7 @@
       END SUBROUTINE CHECK_REAL_VALUE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -563,16 +601,17 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,           INTENT(IN) :: VALUE        ! Value to be checked
-      CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
-      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
-      INTEGER,          INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
+      REAL*8,             INTENT(IN) :: VALUE        ! Value to be checked
+      CHARACTER(LEN=255), INTENT(IN) :: VARNAME      ! Name of variable
+      CHARACTER(LEN=255), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+      INTEGER,            INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
 !
 ! !REVISION HISTORY:
 !  13 Jun 2001 - R. Yantosca - Initial version
 !  15 Oct 2002 - R. Yantosca - Now call GEOS_CHEM_STOP to shutdown safely
 !  15 Oct 2002 - R. Yantosca - Updated comments, cosmetic changes
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Jun 2013 - R. Yantosca - Avoid array temporaries, use CHAR*255 args
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -606,7 +645,58 @@
       END SUBROUTINE CHECK_DBLE_VALUE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GIGC_Error
+!
+! !DESCRIPTION: Subroutine GIGC\_Error prints an error message and sets RC to 
+! GIGC\_FAILURE. Note that this routine does not stop a run, but it will cause 
+! a stop at a higher level if you add a catch for RC /= GIGC_SUCCESS. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GIGC_Error( ErrMsg, RC, ThisLoc )
+!
+! !INPUT PARAMETERS:
+!
+      CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg 
+      CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: ThisLoc 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,          INTENT(INOUT)            :: RC 
+!
+! !REVISION HISTORY:
+!  13 Aug 2015 - E. Lundgren - Initial version, based on C. Keller's HCO_ERROR
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      CHARACTER(LEN=255) :: MSG
+
+      !======================================================================
+      ! GIGC_ERROR begins here 
+      !======================================================================
+
+      ! Print error message to log
+      MSG =  'GEOS-Chem ERROR: ' // TRIM(ErrMsg)
+      WRITE(6,*) MSG
+      
+      ! Print error location to log
+      IF ( PRESENT(ThisLoc) ) THEN
+         MSG = 'ERROR LOCATION: ' // TRIM( ThisLoc )
+         WRITE(6,*) ThisLoc
+      ENDIF
+      
+      ! Return with error
+      RC = GIGC_FAILURE 
+
+      END SUBROUTINE GIGC_Error
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -643,13 +733,13 @@
 !$OMP END CRITICAL
 
       ! Deallocate memory and stop the run
-      CALL GEOS_CHEM_STOP
+      CALL GEOS_CHEM_STOP()
       
       ! Return to calling program
       END SUBROUTINE ERROR_STOP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -661,36 +751,79 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GEOS_CHEM_STOP
+      SUBROUTINE GEOS_CHEM_STOP()
 !
 ! !USES:
 !
-#     include "define.h"
-
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GEOS_TIMERS
+#if defined( ESMF_ )
+      !-----------------------------------------------------------------
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
+      !
+      ! Use GEOS-5 style error reporting when connecting to the GEOS-5
+      ! GCM via the ESMF interface (bmy, 3/12/13)
+      !-----------------------------------------------------------------
+      USE MAPL_Mod
+#     include "MAPL_Generic.h"
+#endif
+!
 ! !REVISION HISTORY:
 !  15 Oct 2002 - R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Now EXIT works for LINUX_IFC, LINUX_EFC,
 !                              so remove #if block.
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  12 Mar 2013 - R. Yantosca - Now use GEOS-5 style traceback when using ESMF
+!   8 Jul 2014 - R. Yantosca - Now call cleanup.F with shadow variables
+!  11 Aug 2015 - M. Yannetti - Now calls all timers to stop.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES
+!
+      INTEGER :: RC
 
+      RC = GEOS_Timer_StopAll()
+      RC = GEOS_Timer_PrintAll()  
+
+#if defined( ESMF_ )
+
+      !-----------------------------------------------------------------
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
+      !
+      ! Use GEOS-5 style error reporting when connecting to the GEOS-5
+      ! GCM via the ESMF interface (bmy, 3/12/13)
+      !-----------------------------------------------------------------
+      __Iam__('GEOSCHEMSTOP')
+      STATUS = -1
+      VERIFY_(STATUS)
+
+#else
+      !-----------------------------------------------------------------
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
+      !
+      ! Current practice in the std GEOS-Chem is to call CLEANUP to 
+      ! deallocate module arrays and then exit (bmy, 3/12/13)
+      !-----------------------------------------------------------------
 !$OMP CRITICAL
 
       ! Deallocate all module arrays
-      CALL CLEANUP
+      CALL CLEANUP( SHADOW_am_I_Root, SHADOW_Input_Opt, .TRUE., RC )
 
       ! Flush all files and stop
       CALL EXIT( 99999 )
 
 !$OMP END CRITICAL
 
+#endif
+
       ! End of program
       END SUBROUTINE GEOS_CHEM_STOP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -704,10 +837,6 @@
 !
       SUBROUTINE ALLOC_ERR( ARRAYNAME, AS )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !INPUT PARAMETERS: 
 !
       CHARACTER(LEN=*),  INTENT(IN) :: ARRAYNAME  ! Name of array
@@ -718,6 +847,7 @@
 !  15 Oct 2002 - R. Yantosca - Added to "error_mod.f"
 !  30 Nov 2005 - R. Yantosca - Call IFORT_ERRMSG for Intel Fortran compiler
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -771,7 +901,7 @@
       END SUBROUTINE ALLOC_ERR
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -786,10 +916,6 @@
 !
       SUBROUTINE DEBUG_MSG( MESSAGE )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !INPUT PARAMETERS: 
 !
       CHARACTER(LEN=*), INTENT(IN) :: MESSAGE   ! Message to print
@@ -803,6 +929,7 @@
 !  (5 ) Now add a little space for debug output (bmy, 4/10/06)
 !  (6 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -817,7 +944,7 @@
       END SUBROUTINE DEBUG_MSG
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -836,18 +963,18 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,           INTENT(IN) :: N           ! Numerator
-      REAL*8,           INTENT(IN) :: D           ! Denominator
-      REAL*8,           INTENT(IN) :: ALT_NAN     ! Alternate value to be 
+      REAL(fp),           INTENT(IN) :: N           ! Numerator
+      REAL(fp),           INTENT(IN) :: D           ! Denominator
+      REAL(fp),           INTENT(IN) :: ALT_NAN     ! Alternate value to be 
                                                   !  returned if the division 
                                                   !  is either NAN (0/0) or 
                                                   !  leads to overflow (i.e., 
                                                   !  a too large number)
-      REAL*8, OPTIONAL, INTENT(IN) :: ALT_OVER    ! Alternate value to be 
+      REAL(fp), OPTIONAL, INTENT(IN) :: ALT_OVER    ! Alternate value to be 
                                                   !  returned if the division
                                                   !  leads to overflow (default
                                                   !  is ALT_NAN)
-      REAL*8, OPTIONAL, INTENT(IN) :: ALT_UNDER   ! Alternate value to be 
+      REAL(fp), OPTIONAL, INTENT(IN) :: ALT_UNDER   ! Alternate value to be 
                                                   !  returned if the division
                                                   !  leads to underflow 
                                                   !  (default is 0, but you 
@@ -856,7 +983,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8                       :: Q           ! Output from the division
+      REAL(fp)                       :: Q           ! Output from the division
 
 !
 ! !REMARKS:
@@ -905,33 +1032,34 @@
       END FUNCTION SAFE_DIV
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: is_safe_div
+! !IROUTINE: is_safe_div_r4
 !
 ! !DESCRIPTION: Function IS\_SAFE\_DIV tests for "safe division", that is 
 !  check if the division will overflow/underflow or hold NaN.  .FALSE. is 
-!  returned if the division cannot be performed. (phs, 6/11/08)
+!  returned if the division cannot be performed.  The numerator and 
+!  denominator must be 4-byte floating point.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION IS_SAFE_DIV( N, D, R4 ) RESULT( F )
+      FUNCTION IS_SAFE_DIV_R4( N, D, R4 ) RESULT( F )
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,  INTENT(IN)           :: N    ! Numerator
-      REAL*8,  INTENT(IN)           :: D    ! Denominator
-      LOGICAL, INTENT(IN), OPTIONAL :: R4   ! Logical flag to use the limits 
-                                            !  of REAL*4 to define underflow
-                                            !  or overflow.  Extra defensive.
+      REAL(f4), INTENT(IN)           :: N    ! Numerator
+      REAL(f4), INTENT(IN)           :: D    ! Denominator
+      LOGICAL,  INTENT(IN), OPTIONAL :: R4   ! Logical flag to use the limits 
+                                             !  of REAL*4 to define underflow
+                                             !  or overflow.  Extra defensive.
 !
 ! !OUTPUT PARAMETERS:
 !
-      LOGICAL                       :: F    ! =F if division isn't allowed
-                                            ! =T otherwise
+      LOGICAL                        :: F    ! =F if division isn't allowed
+                                             ! =T otherwise
 !
 ! !REMARKS:
 !  UnderFlow, OverFlow and NaN are tested for. If you need to
@@ -946,8 +1074,8 @@
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER MaxExp, MinExp
-      REAL*4  RR
+      INTEGER  :: MaxExp, MinExp
+      REAL(f4) :: RR
 
       !==================================================================
       ! IS_SAFE_DIV begins here!
@@ -971,10 +1099,80 @@
       ENDIF
 
       ! Return to calling program
-      END FUNCTION IS_SAFE_DIV
+      END FUNCTION IS_SAFE_DIV_R4
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: is_safe_div_r8
+!
+! !DESCRIPTION: Function IS\_SAFE\_DIV tests for "safe division", that is 
+!  check if the division will overflow/underflow or hold NaN.  .FALSE. is 
+!  returned if the division cannot be performed.  The numerator and 
+!  denominator must be 4-byte floating point.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION IS_SAFE_DIV_R8( N, D, R4 ) RESULT( F )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL(f8), INTENT(IN)           :: N    ! Numerator
+      REAL(f8), INTENT(IN)           :: D    ! Denominator
+      LOGICAL,  INTENT(IN), OPTIONAL :: R4   ! Logical flag to use the limits 
+                                             !  of REAL*4 to define underflow
+                                             !  or overflow.  Extra defensive.
+!
+! !OUTPUT PARAMETERS:
+!
+      LOGICAL                        :: F    ! =F if division isn't allowed
+                                             ! =T otherwise
+!
+! !REMARKS:
+!  UnderFlow, OverFlow and NaN are tested for. If you need to
+!  differentiate between the three, use the SAFE_DIV (phs, 4/14/09)
+!
+! !REVISION HISTORY:
+!  11 Jun 2008 - P. Le Sager - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+      INTEGER  :: MaxExp, MinExp
+      REAL(f4) :: RR
+
+      !==================================================================
+      ! IS_SAFE_DIV begins here!
+      !==================================================================
+
+      MaxExp = MAXEXPONENT( N )
+      MinExp = MINEXPONENT( N )
+
+      IF ( PRESENT( R4 ) ) THEN
+         IF ( R4 ) THEN
+            MaxExp = MAXEXPONENT( RR )
+            MinExp = MINEXPONENT( RR )
+         ENDIF
+      ENDIF  
+
+      IF ( EXPONENT(N) - EXPONENT(D) >= MaxExp .or. D==0 .or.
+     &     EXPONENT(N) - EXPONENT(D) <= MinExp  ) THEN
+         F = .FALSE.
+      ELSE
+         F = .TRUE.
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION IS_SAFE_DIV_R8
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -992,12 +1190,12 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: X      ! Argument of EXP
-      REAL*8, INTENT(IN) :: ALT    ! Alternate value to be returned
+      REAL(fp), INTENT(IN) :: X      ! Argument of EXP
+      REAL(fp), INTENT(IN) :: ALT    ! Alternate value to be returned
 !
 ! !RETURN VALUE:
 !
-      REAL*8             :: VALUE  ! Output from the exponential
+      REAL(fp)             :: VALUE  ! Output from the exponential
 !
 ! !REVISION HISTORY:
 !  04 Jan 2010 - R. Yantosca - Initial version
@@ -1013,7 +1211,7 @@
       END FUNCTION SAFE_EXP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1030,7 +1228,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: X    ! Argument to the exponential function
+      REAL(fp), INTENT(IN) :: X    ! Argument to the exponential function
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1044,13 +1242,19 @@
 !
 ! !REVISION HISTORY:
 !  04 Jan 2010 - R. Yantosca - Initial version
+!  06 Feb 2015 - M. Yannetti - Needed to make the CUTOFF smaller for
+!                              REAL*4.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL*8, PARAMETER :: CUTOFF = 600d0
+#IF DEFINED( USE_REAL8 )
+      REAL(fp), PARAMETER :: CUTOFF = 600e+0_fp
+#ELSE
+      REAL(fp), PARAMETER :: CUTOFF = 75e+0_fp
+#ENDIF
 
       ! If -CUTOFF < x < CUTOFF, then it is safe to take EXP( x )
       F = ( ABS( X ) < CUTOFF )
@@ -1058,7 +1262,7 @@
       END FUNCTION IS_SAFE_EXP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1076,12 +1280,12 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: X      ! Argument of LOG
-      REAL*8, INTENT(IN) :: ALT    ! Alternate value to be returned
+      REAL(fp), INTENT(IN) :: X      ! Argument of LOG
+      REAL(fp), INTENT(IN) :: ALT    ! Alternate value to be returned
 !
 ! !RETURN VALUE:
 !
-      REAL*8             :: VALUE  ! Output from the natural logarithm
+      REAL(fp)             :: VALUE  ! Output from the natural logarithm
 !
 ! !REVISION HISTORY:
 !  04 Jan 2010 - R. Yantosca - Initial version
@@ -1091,7 +1295,7 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      IF ( X > 0d0 ) THEN
+      IF ( X > 0e+0_fp ) THEN
          VALUE = LOG( X )          ! Take LOG(x) for positive-definite X
       ELSE 
          VALUE = ALT               ! Otherwise return alternate value
@@ -1100,7 +1304,7 @@
       END FUNCTION SAFE_LOG
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1118,12 +1322,12 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: X      ! Argument of LOG10
-      REAL*8, INTENT(IN) :: ALT    ! Alternate value to be returned
+      REAL(fp), INTENT(IN) :: X      ! Argument of LOG10
+      REAL(fp), INTENT(IN) :: ALT    ! Alternate value to be returned
 !
 ! !RETURN VALUE:
 !
-      REAL*8             :: VALUE  ! Output from the natural logarithm
+      REAL(fp)             :: VALUE  ! Output from the natural logarithm
 !
 ! !REVISION HISTORY:
 !  04 Jan 2010 - R. Yantosca - Initial version
@@ -1133,12 +1337,85 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      IF ( X > 0d0 ) THEN
+      IF ( X > 0e+0_fp ) THEN
          VALUE = LOG10( X )        ! Take LOG10(x) for positive-definite X
       ELSE 
          VALUE = ALT               ! Otherwise return alternate value
       ENDIF
 
       END FUNCTION SAFE_LOG10
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_error
+!
+! !DESCRIPTION: Subroutine INIT\_ERROR stores shadow copies of am\_I\_Root
+!  and Input\_Opt.  We need store shadow copies of these variables within
+!  error\_mod.F to compensate for the removal of logical\_mod.F from 
+!  GEOS-Chem.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE INIT_ERROR( am_I_Root, Input_Opt, RC )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)         :: am_I_Root ! Are we on root CPU?
+      TYPE(OptInput), INTENT(IN), TARGET :: Input_Opt ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)        :: RC        ! Success or failure?
+!
+! !REMARKS:
+!  Instead of making a copy of Input_Opt, we use a pointer reference.  
+!  This should be more efficient memory-wise.
+!
+! !REVISION HISTORY:
+!  04 Jan 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Assume success
+      RC               =  GIGC_SUCCESS
+
+      ! Store a shadow copy of am_I_Root
+      SHADOW_am_I_Root =  am_I_Root
+
+      ! Store a shadow copy of Input_Opt (point to it instead of copying)
+      SHADOW_Input_Opt => Input_Opt
+
+      END SUBROUTINE INIT_ERROR
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_error
+!
+! !DESCRIPTION: Subroutine CLEANUP\_ERROR finalizes all module variables.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CLEANUP_ERROR()
+!
+! !REVISION HISTORY:
+!  04 Jan 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Free the pointer to Input_Opt
+      NULLIFY( SHADOW_Input_Opt )
+
+      END SUBROUTINE CLEANUP_ERROR
 !EOC
       END MODULE ERROR_MOD

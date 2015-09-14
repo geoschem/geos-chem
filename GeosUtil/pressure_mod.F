@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: pressure_mod.f
+! !MODULE: pressure_mod
 !
 ! !DESCRIPTION: Module PRESSURE\_MOD contains variables and routines which 
 !  specify the grid box pressures for both hybrid or pure-sigma models.  
@@ -17,22 +17,24 @@
 ! 
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: CLEANUP_PRESSURE           
-      PUBLIC :: GET_AP
-      PUBLIC :: GET_BP
-      PUBLIC :: GET_PCENTER           
-      PUBLIC :: GET_PEDGE
-      PUBLIC :: GET_PEDGE_FULLGRID             
-      PUBLIC :: INIT_PRESSURE         
-      PUBLIC :: SET_FLOATING_PRESSURE 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      PUBLIC :: EXTERNAL_PEDGE
+      PUBLIC  :: INIT_PRESSURE
+      PUBLIC  :: GET_AP
+      PUBLIC  :: GET_BP
+      PUBLIC  :: GET_PCENTER              ! wet air P at grid center
+      PUBLIC  :: GET_PEDGE                ! wet air P at lower grid edge
+      PUBLIC  :: GET_PEDGE_FULLGRID       ! wet air P at lower grid edge
+      PUBLIC  :: SET_FLOATING_PRESSURE
+      PUBLIC  :: CLEANUP_PRESSURE
+
+#if defined( ESMF_ )
+      PUBLIC  :: Accept_External_Pedge
 #endif
 !
 ! !REMARKS:
@@ -97,22 +99,33 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  31 Jul 2012 - R. Yantosca - Modifications for grid-independence
 !  10 Aug 2012 - R. Yantosca - Remove DEVEL from #ifdef for EXTERNAL_PEDGE
+!  11 Dec 2012 - R. Yantosca - Now make EXTERNAL_PEDGE private
+!  11 Dec 2012 - R. Yantosca - Add new routine ACCEPT_PEDGE_FROM_ESMF to set
+!                              EXTERNAL_PEDGE from the ESMF environment
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  18 Sep 2013 - M. Long     - Now use #if defined( ESMF_ ) for HPC code
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
+!  11 Aug 2015 - R. Yantosca - Added support for MERRA2 data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+!
       ! Module variables
-      REAL*8, ALLOCATABLE :: AP(:)      ! "A" term for hybrid ETA coordinate
-      REAL*8, ALLOCATABLE :: BP(:)      ! "B" term for hybrid ETA coordinate
-      REAL*8, ALLOCATABLE :: PFLT(:,:)  ! "Floating" surface pressure field
-      REAL*8, ALLOCATABLE :: AP_FULLGRID(:) ! "A" term for unreduced ETA
-      REAL*8, ALLOCATABLE :: BP_FULLGRID(:) ! "B" term for unreduced ETA
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      REAL*8, ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)
+      REAL(fp), ALLOCATABLE :: AP(:)                  ! "A" term for hybrid grid
+      REAL(fp), ALLOCATABLE :: BP(:)                  ! "B" term for hybrid grid
+      REAL(fp), ALLOCATABLE :: PFLT(:,:)              ! "Floating" sfc pressure
+      REAL(fp), ALLOCATABLE :: AP_FULLGRID(:)         ! "A" term for full grid
+      REAL(fp), ALLOCATABLE :: BP_FULLGRID(:)         ! "B" term for full grid
+#if defined( ESMF_ )
+      REAL(fp), ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)  ! Pressure edges from 
+                                                      !  external grid
 #endif
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -136,7 +149,7 @@
 !
 ! !RETURN VALUE: 
 !
-      REAL*8              :: AP_TEMP  ! Corresponding "A" value [hPa]
+      REAL(fp)              :: AP_TEMP  ! Corresponding "A" value [hPa]
                                       !  at bottom edge of level L
 !
 ! !REVISION HISTORY:
@@ -150,7 +163,7 @@
       END FUNCTION GET_AP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -174,7 +187,7 @@
 !
 ! !RETURN VALUE: 
 !
-      REAL*8              :: BP_TEMP  ! Corresponding "B" value [unitless]
+      REAL(fp)              :: BP_TEMP  ! Corresponding "B" value [unitless]
                                       !  at bottom edge of level L
 !
 ! !REVISION HISTORY:
@@ -188,7 +201,7 @@
       END FUNCTION GET_BP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -212,36 +225,47 @@
 ! !INPUT PARAMETERS: 
 !
       ! Array containing pressure with which to initialize PFLT [hPa]
-      REAL*8, INTENT(IN) :: PS(IIPAR,JJPAR)  
+      REAL(fp), INTENT(IN) :: PS(:,:)  
 !
 ! !REVISION HISTORY:
 !  27 Aug 2002 - D. Abbot, B. Field,  R. Yantosca - Initial version  
 !  (1 ) Now check PFLT for NaN or Infinities (bmy, 8/27/02)
 !  (2 ) Added parallel DO-loop (bmy, 4/14/04)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
+!  04 Nov 2013 - M. Sulprizio- Eliminate array temporary by accepting assumed-
+!                              shape dummy argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER :: I, J
+      INTEGER            :: I, J
+      INTEGER            :: ERR_LOC(4)
+      CHARACTER(LEN=255) :: ERR_VAR
+      CHARACTER(LEN=255) :: ERR_MSG
 
       !=================================================================
       ! SET_FLOATING_PRESSURE begins here!
       !=================================================================
+
+      ! Define quantities for CHECK_VALUE
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
+!$OMP+PRIVATE( I, J, ERR_LOC, ERR_VAR, ERR_MSG )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Assign into PFLT array
-         PFLT(I,J) = PS(I,J) 
+         PFLT(I,J) = PS(I,J)
 
          ! Check for NaN or Infinities
-         CALL CHECK_VALUE( PFLT(I,J), (/I,J,0,0/), 
-     &                    'PFLT',   'set_floating_pressure:1' )
+         ERR_LOC = (/ I, J, 0, 0 /)
+         ERR_VAR = 'PFLT'
+         ERR_MSG = 'set_floating_pressure:1'
+         CALL CHECK_VALUE( PFLT(I,J), ERR_LOC, ERR_VAR, ERR_MSG )
+
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -250,7 +274,7 @@
       END SUBROUTINE SET_FLOATING_PRESSURE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -276,7 +300,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: PEDGE  ! Pressure @ bottom edge of (I,J,L) [hPa]
+      REAL(f8)              :: PEDGE  ! Pressure @ bottom edge of (I,J,L) [hPa]
 !
 ! !REVISION HISTORY:
 !  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version  
@@ -291,17 +315,20 @@
 !                              EXTERNAL_FORCING to use the GCM pressures.
 !                              This prevents problems when compiling G-C with
 !                              the DEVEL tag when using traditional main.F.
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  23 Dec 2014 - M. Yannetti - Changed output to REAL(f8)
+!  11 Aug 2015 - R. Yantosca - Compute PEDGE for MERRA2 the same as for GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
       !-----------------------------
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
       ! Taken from the GCM fields
       PEDGE = EXTERNAL_PEDGE(I,J,L)
@@ -317,7 +344,7 @@
       ! GEOS-3 & GCAP met fields
       !-----------------------------
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
       ! Taken from the GCM fields
       PEDGE = EXTERNAL_PEDGE(I,J,L)
@@ -332,7 +359,7 @@
       END FUNCTION GET_PEDGE 
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -359,11 +386,13 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: PEDGE  ! Pressure @ bottom edge of (I,J,L) [hPa]
+      REAL(fp)              :: PEDGE  ! Pressure @ bottom edge of (I,J,L) [hPa]
 !
 ! !REVISION HISTORY:
 !  (1 ) Modified from GET_PEDGE (cdh, 1/22/09)
 !  02 Feb 2012 - R. Yantosca - Compute PEDGE for GEOS-5.7.2 the same as MERRA
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  11 Aug 2015 - R. Yantosca - Compute PEDGE for MERRA2 the same as for GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -371,7 +400,7 @@
       ! GET_PEDGE_FULLGRID begins here!
       !=================================================================
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
@@ -395,7 +424,7 @@
       END FUNCTION GET_PEDGE_FULLGRID
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -421,7 +450,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: PCENTER  ! Pressure @ center of (I,J,L) [hPa]
+      REAL(fp)              :: PCENTER  ! Pressure @ center of (I,J,L) [hPa]
 !
 ! !REVISION HISTORY:
 !  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version  
@@ -434,12 +463,12 @@
 
       ! The pressure at the center of a grid-box is found
       ! by averaging the pressures at the box's two edges
-      PCENTER = 0.5d0 * ( GET_PEDGE(I,J,L) + GET_PEDGE(I,J,L+1) )
+      PCENTER = 0.5e+0_fp * ( GET_PEDGE(I,J,L) + GET_PEDGE(I,J,L+1) )
 
       END FUNCTION GET_PCENTER
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -488,6 +517,8 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  11 Aug 2015 - R. Yantosca - Init MERRA2 Ap & Bp the same way as for GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -498,38 +529,38 @@
       INTEGER :: L
 
       ! Temporary array for GCAP met fields (swu, bmy, 5/24/05)
-      REAL*8  :: SIGE_GCAP(LLPAR+1)  
+      REAL(fp)  :: SIGE_GCAP(LLPAR+1)  
 
       !=================================================================
       ! INIT_PRESSURE begins here!
       !=================================================================
       ALLOCATE( PFLT( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLT' )
-      PFLT = 0d0
+      PFLT = 0e+0_fp
 
       ALLOCATE( AP( LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AP' )
-      AP = 1d0
+      AP = 1e+0_fp
 
       ALLOCATE( BP( LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP' )
-      BP = 0d0
+      BP = 0e+0_fp
 
       ALLOCATE( AP_FULLGRID( LGLOB+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AP_FULLGRID' )
-      AP = 1d0
+      AP = 1e+0_fp
 
       ALLOCATE( BP_FULLGRID( LGLOB+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP_FULLGRID' )
-      BP = 0d0
+      BP = 0e+0_fp
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ALLOCATE( EXTERNAL_PEDGE( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EXTERNAL_PEDGE' )
-      EXTERNAL_PEDGE = 0d0
+      EXTERNAL_PEDGE = 0e+0_fp
 #endif
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
       !=================================================================
       ! GEOS-5/MERRA vertical coordinates (47 or 72 levels)
@@ -538,7 +569,7 @@
 #if   defined( GRIDREDUCED )
 
       !-----------------------------------------------------------------
-      ! GEOS-5/MERRA 47-level reduced vertical grid
+      ! GEOS-5/MERRA/GEOS-FP/MERRA2 47-level reduced vertical grid
       !  
       !  Bottom   Bottom    # levels
       !  edge of  edge prs  lumped 
@@ -728,24 +759,40 @@
       !-----------------------------------------------------------------
 
       ! Ap [hPa] for 30 levels (31 edges)
-      AP = (/  0.000000d0,   0.000000d0,  12.704939d0,  35.465965d0, 
-     &        66.098427d0, 101.671654d0, 138.744400d0, 173.403183d0, 
-     &       198.737839d0, 215.417526d0, 223.884689d0, 224.362869d0, 
-     &       216.864929d0, 201.192093d0, 176.929993d0, 150.393005d0, 
-     &       127.837006d0, 108.663429d0,  92.365662d0,  78.512299d0, 
-     &        56.387939d0,  40.175419d0,  28.367815d0,  19.791553d0, 
-     &         9.292943d0,   4.076567d0,   1.650792d0,   0.616779d0, 
-     &         0.211349d0,   0.066000d0,   0.010000d0 /)
+      AP = (/  0.000000e+0_fp,   0.000000e+0_fp,
+     &        12.704939e+0_fp,  35.465965e+0_fp, 
+     &        66.098427e+0_fp, 101.671654e+0_fp,
+     &       138.744400e+0_fp, 173.403183e+0_fp, 
+     &       198.737839e+0_fp, 215.417526e+0_fp,
+     &       223.884689e+0_fp, 224.362869e+0_fp, 
+     &       216.864929e+0_fp, 201.192093e+0_fp,
+     &       176.929993e+0_fp, 150.393005e+0_fp, 
+     &       127.837006e+0_fp, 108.663429e+0_fp,
+     &        92.365662e+0_fp,  78.512299e+0_fp, 
+     &        56.387939e+0_fp,  40.175419e+0_fp,
+     &        28.367815e+0_fp,  19.791553e+0_fp, 
+     &         9.292943e+0_fp,   4.076567e+0_fp,
+     &         1.650792e+0_fp,   0.616779e+0_fp, 
+     &         0.211349e+0_fp,   0.066000e+0_fp,
+     &         0.010000e+0_fp /)
 
       ! Bp [unitless] for 30 levels (31 edges)
-      BP = (/  1.000000d0,   0.985110d0,   0.943290d0,   0.867830d0, 
-     &         0.764920d0,   0.642710d0,   0.510460d0,   0.378440d0, 
-     &         0.270330d0,   0.183300d0,   0.115030d0,   0.063720d0, 
-     &         0.028010d0,   0.006960d0,   0.000000d0,   0.000000d0, 
-     &         0.000000d0,   0.000000d0,   0.000000d0,   0.000000d0, 
-     &         0.000000d0,   0.000000d0,   0.000000d0,   0.000000d0, 
-     &         0.000000d0,   0.000000d0,   0.000000d0,   0.000000d0, 
-     &         0.000000d0,   0.000000d0,   0.000000d0 /)
+      BP = (/  1.000000e+0_fp,   0.985110e+0_fp,
+     &         0.943290e+0_fp,   0.867830e+0_fp, 
+     &         0.764920e+0_fp,   0.642710e+0_fp,
+     &         0.510460e+0_fp,   0.378440e+0_fp, 
+     &         0.270330e+0_fp,   0.183300e+0_fp,
+     &         0.115030e+0_fp,   0.063720e+0_fp, 
+     &         0.028010e+0_fp,   0.006960e+0_fp,
+     &         0.000000e+0_fp,   0.000000e+0_fp, 
+     &         0.000000e+0_fp,   0.000000e+0_fp,
+     &         0.000000e+0_fp,   0.000000e+0_fp, 
+     &         0.000000e+0_fp,   0.000000e+0_fp,
+     &         0.000000e+0_fp,   0.000000e+0_fp, 
+     &         0.000000e+0_fp,   0.000000e+0_fp,
+     &         0.000000e+0_fp,   0.000000e+0_fp, 
+     &         0.000000e+0_fp,   0.000000e+0_fp,
+     &         0.000000e+0_fp /)
 
       !-----------------------------------
       ! GEOS-4 55 level grid
@@ -753,37 +800,65 @@
 
       ! AP [hPa] for 55 levels (56 edges)
       AP_FULLGRID =
-     &     (/ 0.000000d0,   0.000000d0,  12.704939d0,  35.465965d0, 
-     &       66.098427d0, 101.671654d0, 138.744400d0, 173.403183d0,
-     &      198.737839d0, 215.417526d0, 223.884689d0, 224.362869d0,
-     &      216.864929d0, 201.192093d0, 176.929993d0, 150.393005d0,
-     &      127.837006d0, 108.663429d0,  92.365662d0,  78.512299d0, 
-     &       66.603378d0,  56.387939d0,  47.643932d0,  40.175419d0, 
-     &       33.809956d0,  28.367815d0,  23.730362d0,  19.791553d0, 
-     &       16.457071d0,  13.643393d0,  11.276889d0,   9.292943d0,
-     &        7.619839d0,   6.216800d0,   5.046805d0,   4.076567d0, 
-     &        3.276433d0,   2.620212d0,   2.084972d0,   1.650792d0,
-     &        1.300508d0,   1.019442d0,   0.795134d0,   0.616779d0, 
-     &        0.475806d0,   0.365041d0,   0.278526d0,   0.211349d0, 
-     &        0.159495d0,   0.119703d0,   0.089345d0,   0.066000d0, 
-     &        0.047585d0,   0.032700d0,   0.020000d0,   0.010000d0 /)
+     &     (/ 0.000000e+0_fp,   0.000000e+0_fp,
+     &       12.704939e+0_fp,  35.465965e+0_fp, 
+     &       66.098427e+0_fp, 101.671654e+0_fp,
+     &      138.744400e+0_fp, 173.403183e+0_fp,
+     &      198.737839e+0_fp, 215.417526e+0_fp,
+     &      223.884689e+0_fp, 224.362869e+0_fp,
+     &      216.864929e+0_fp, 201.192093e+0_fp,
+     &      176.929993e+0_fp, 150.393005e+0_fp,
+     &      127.837006e+0_fp, 108.663429e+0_fp,
+     &       92.365662e+0_fp,  78.512299e+0_fp, 
+     &       66.603378e+0_fp,  56.387939e+0_fp,
+     &       47.643932e+0_fp,  40.175419e+0_fp, 
+     &       33.809956e+0_fp,  28.367815e+0_fp,
+     &       23.730362e+0_fp,  19.791553e+0_fp, 
+     &       16.457071e+0_fp,  13.643393e+0_fp,
+     &       11.276889e+0_fp,   9.292943e+0_fp,
+     &        7.619839e+0_fp,   6.216800e+0_fp,
+     &        5.046805e+0_fp,   4.076567e+0_fp, 
+     &        3.276433e+0_fp,   2.620212e+0_fp,
+     &        2.084972e+0_fp,   1.650792e+0_fp,
+     &        1.300508e+0_fp,   1.019442e+0_fp,
+     &        0.795134e+0_fp,   0.616779e+0_fp, 
+     &        0.475806e+0_fp,   0.365041e+0_fp,
+     &        0.278526e+0_fp,   0.211349e+0_fp, 
+     &        0.159495e+0_fp,   0.119703e+0_fp,
+     &        0.089345e+0_fp,   0.066000e+0_fp, 
+     &        0.047585e+0_fp,   0.032700e+0_fp,
+     &        0.020000e+0_fp,   0.010000e+0_fp /)
 
       ! BP [unitless] for 55 levels (56 edges)
       BP_FULLGRID =
-     &     (/  1.000000d0,  0.985110d0,   0.943290d0,   0.867830d0,
-     &         0.764920d0,  0.642710d0,   0.510460d0,   0.378440d0,
-     &         0.270330d0,  0.183300d0,   0.115030d0,   0.063720d0,
-     &         0.028010d0,  0.006960d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0 /)
+     &     (/  1.000000e+0_fp,  0.985110e+0_fp,
+     &         0.943290e+0_fp,  0.867830e+0_fp,
+     &         0.764920e+0_fp,  0.642710e+0_fp,
+     &         0.510460e+0_fp,  0.378440e+0_fp,
+     &         0.270330e+0_fp,  0.183300e+0_fp,
+     &         0.115030e+0_fp,  0.063720e+0_fp,
+     &         0.028010e+0_fp,  0.006960e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp /)
 
 #else
 
@@ -792,36 +867,64 @@
       !-----------------------------------------------------------------
 
       ! AP [hPa] for 55 levels (56 edges)
-      AP = (/ 0.000000d0,   0.000000d0,  12.704939d0,  35.465965d0, 
-     &       66.098427d0, 101.671654d0, 138.744400d0, 173.403183d0,
-     &      198.737839d0, 215.417526d0, 223.884689d0, 224.362869d0,
-     &      216.864929d0, 201.192093d0, 176.929993d0, 150.393005d0,
-     &      127.837006d0, 108.663429d0,  92.365662d0,  78.512299d0, 
-     &       66.603378d0,  56.387939d0,  47.643932d0,  40.175419d0, 
-     &       33.809956d0,  28.367815d0,  23.730362d0,  19.791553d0, 
-     &       16.457071d0,  13.643393d0,  11.276889d0,   9.292943d0,
-     &        7.619839d0,   6.216800d0,   5.046805d0,   4.076567d0, 
-     &        3.276433d0,   2.620212d0,   2.084972d0,   1.650792d0,
-     &        1.300508d0,   1.019442d0,   0.795134d0,   0.616779d0, 
-     &        0.475806d0,   0.365041d0,   0.278526d0,   0.211349d0, 
-     &        0.159495d0,   0.119703d0,   0.089345d0,   0.066000d0, 
-     &        0.047585d0,   0.032700d0,   0.020000d0,   0.010000d0 /)
+      AP = (/ 0.000000e+0_fp,   0.000000e+0_fp,
+     &       12.704939e+0_fp,  35.465965e+0_fp, 
+     &       66.098427e+0_fp, 101.671654e+0_fp,
+     &      138.744400e+0_fp, 173.403183e+0_fp,
+     &      198.737839e+0_fp, 215.417526e+0_fp,
+     &      223.884689e+0_fp, 224.362869e+0_fp,
+     &      216.864929e+0_fp, 201.192093e+0_fp,
+     &      176.929993e+0_fp, 150.393005e+0_fp,
+     &      127.837006e+0_fp, 108.663429e+0_fp,
+     &       92.365662e+0_fp,  78.512299e+0_fp, 
+     &       66.603378e+0_fp,  56.387939e+0_fp,
+     &       47.643932e+0_fp,  40.175419e+0_fp, 
+     &       33.809956e+0_fp,  28.367815e+0_fp,
+     &       23.730362e+0_fp,  19.791553e+0_fp, 
+     &       16.457071e+0_fp,  13.643393e+0_fp,
+     &       11.276889e+0_fp,   9.292943e+0_fp,
+     &        7.619839e+0_fp,   6.216800e+0_fp,
+     &        5.046805e+0_fp,   4.076567e+0_fp, 
+     &        3.276433e+0_fp,   2.620212e+0_fp,
+     &        2.084972e+0_fp,   1.650792e+0_fp,
+     &        1.300508e+0_fp,   1.019442e+0_fp,
+     &        0.795134e+0_fp,   0.616779e+0_fp, 
+     &        0.475806e+0_fp,   0.365041e+0_fp,
+     &        0.278526e+0_fp,   0.211349e+0_fp, 
+     &        0.159495e+0_fp,   0.119703e+0_fp,
+     &        0.089345e+0_fp,   0.066000e+0_fp, 
+     &        0.047585e+0_fp,   0.032700e+0_fp,
+     &        0.020000e+0_fp,   0.010000e+0_fp /)
 
       ! BP [unitless] for 55 levels (56 edges)
-      BP = (/  1.000000d0,  0.985110d0,   0.943290d0,   0.867830d0,
-     &         0.764920d0,  0.642710d0,   0.510460d0,   0.378440d0,
-     &         0.270330d0,  0.183300d0,   0.115030d0,   0.063720d0,
-     &         0.028010d0,  0.006960d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0,
-     &         0.000000d0,  0.000000d0,   0.000000d0,   0.000000d0 /)
+      BP = (/  1.000000e+0_fp,  0.985110e+0_fp,
+     &         0.943290e+0_fp,  0.867830e+0_fp,
+     &         0.764920e+0_fp,  0.642710e+0_fp,
+     &         0.510460e+0_fp,  0.378440e+0_fp,
+     &         0.270330e+0_fp,  0.183300e+0_fp,
+     &         0.115030e+0_fp,  0.063720e+0_fp,
+     &         0.028010e+0_fp,  0.006960e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp,
+     &         0.000000e+0_fp,  0.000000e+0_fp /)
 
 
 #endif
@@ -833,24 +936,32 @@
       !=================================================================
 
       ! Define SIGMA edges from GISS 23L model
-      SIGE_GCAP = (/ 1.0d0,           0.9712230d0,     0.9340528d0,     
-     &               0.8800959d0,     0.8021583d0,     0.6714628d0, 
-     &               0.5035971403d0,  0.3297362030d0,  0.1966426820d0,  
-     &               0.1139088720d0,  0.0503597111d0,  0.0000000000d0, 
-     &              -0.0395683460d0, -0.0764988065d0, -0.1124700233d0, 
-     &              -0.1419664323d0, -0.1585131884d0, -0.1678657085d0, 
-     &              -0.1743045598d0, -0.1781055182d0, -0.1793033630d0, 
-     &              -0.1796822548d0, -0.1798187047d0, -0.1798536479d0 /)
+      SIGE_GCAP = (/ 1.0e+0_fp,           0.9712230e+0_fp,   
+     &               0.9340528e+0_fp,     
+     &               0.8800959e+0_fp,     0.8021583e+0_fp,   
+     &               0.6714628e+0_fp, 
+     &               0.5035971403e+0_fp,  0.3297362030e+0_fp,
+     &               0.1966426820e+0_fp,  
+     &               0.1139088720e+0_fp,  0.0503597111e+0_fp,
+     &               0.0000000000e+0_fp, 
+     &              -0.0395683460e+0_fp, -0.0764988065e+0_fp,
+     &              -0.1124700233e+0_fp, 
+     &              -0.1419664323e+0_fp, -0.1585131884e+0_fp,
+     &              -0.1678657085e+0_fp, 
+     &              -0.1743045598e+0_fp, -0.1781055182e+0_fp,
+     &              -0.1793033630e+0_fp, 
+     &              -0.1796822548e+0_fp, -0.1798187047e+0_fp,
+     &              -0.1798536479e+0_fp /)
 
       ! Convert SIGMA to AP and BP coordinates
-      DO  L = 1, LLTROP
-         AP(L) = 150d0 + ( SIGE_GCAP(L) * ( PTOP - 150d0 ) )
+      DO  L = 1, LLCHEM
+         AP(L) = 150e+0_fp + ( SIGE_GCAP(L) * ( PTOP - 150e+0_fp ) )
          BP(L) = SIGE_GCAP(L)
       ENDDO
 
-      DO L = LLTROP+1, LLPAR+1  
-         AP(L) = 150d0 + ( SIGE_GCAP(L) * ( 984d0 - 150d0 ) )
-         BP(L) = 0d0
+      DO L = LLCHEM+1, LLPAR+1  
+         AP(L) = 150e+0_fp + ( SIGE_GCAP(L) * (984e+0_fp - 150e+0_fp) )
+         BP(L) = 0e+0_fp
       ENDDO
 
       AP_FULLGRID = AP
@@ -858,7 +969,8 @@
 
 #endif
       
-      ! Echo info to std output
+#if !defined( ESMF_ ) 
+      ! Echo info to std output (skip if using ESMF interface to GEOS-5 GCM)
       IF ( am_I_Root ) THEN
          WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
          WRITE( 6, '(a,/)' ) 'V E R T I C A L   G R I D   S E T U P'
@@ -868,11 +980,12 @@
          WRITE( 6, '( ''Bp '', /, 6(f11.6,1x) )' ) BP(1:LLPAR+1)
          WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
       ENDIF
+#endif
 
       END SUBROUTINE INIT_PRESSURE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -897,10 +1010,64 @@
       IF ( ALLOCATED( AP_FULLGRID ) ) DEALLOCATE( AP_FULLGRID )
       IF ( ALLOCATED( BP_FULLGRID ) ) DEALLOCATE( BP_FULLGRID )
       IF ( ALLOCATED( PFLT        ) ) DEALLOCATE( PFLT        )
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       IF ( ALLOCATED( EXTERNAL_PEDGE ) ) DEALLOCATE( EXTERNAL_PEDGE )
 #endif
 
       END SUBROUTINE CLEANUP_PRESSURE
 !EOC
+!#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: accept_external_pedge
+!
+! !DESCRIPTION: Subroutine ACCEPT\_EXTERNAL\_PEDGE sets the GEOS-Chem
+!  pressure edge variable with the values obtained from an external GCM
+!  (such as the NASA GEOS-5 GCM).
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Accept_External_Pedge( am_I_Root, State_Met, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!     
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on root CPU?
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology state object
+!
+! !OUTPUT ARGUMENTS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  This routine is a setter for EXTERNAL_PEDGE.  It allows us to keep the 
+!  EXTERNAL_PEDGE array PRIVATE to this module, which is good programming
+!  practice.
+! 
+! !REVISION HISTORY: 
+!  06 Dec 2012 - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      ! Set EXTERNAL_PEDGE to the pressure edges [hPa] carried in the
+      ! State_Met object, which were obtained from the external GCM
+      EXTERNAL_PEDGE = State_Met%PEDGE
+
+      ! Return successfully
+      RC             = GIGC_SUCCESS
+      
+      END SUBROUTINE Accept_External_Pedge
+!EOC
+#endif
       END MODULE PRESSURE_MOD
+

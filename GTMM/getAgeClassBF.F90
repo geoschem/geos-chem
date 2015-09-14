@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -19,11 +19,14 @@ SUBROUTINE getAgeClassBF
   USE defineConstants
   USE loadCASAinput
   USE defineArrays
+
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
   
   IMPLICIT NONE
 !
 ! !REVISION HISTORY:
-!  09 July 2010 - C. Carouge  - Parallelization
+!  09 Jul 2010 - C. Carouge  - Parallelization
+!  01 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -43,9 +46,9 @@ SUBROUTINE getAgeClassBF
 !$OMP DEFAULT(SHARED)
   BFtemp(:,1)=BFleftCurrentMonth(:,1) !assign current BF
       
-  WHERE (BFtemp(:,1) > 1d0/number_age_classes)
+  WHERE (BFtemp(:,1) > 1e+0_fp/number_age_classes)
      !check where burned fraction exceeds class size
-     BFtemp(:,1)=1d0/number_age_classes
+     BFtemp(:,1)=1e+0_fp/number_age_classes
   END WHERE
   
   BFleftCurrentMonth(:,1)=BFleftCurrentMonth(:,1)-BFtemp(:,1)
@@ -58,9 +61,9 @@ SUBROUTINE getAgeClassBF
   ageCurrentClass(:,1)=ageCurrentClass(:,1)+1
   !add age [months]
 
-  WHERE (BFtemp(:,1) > 0d0) !check in which gridcells 
+  WHERE (BFtemp(:,1) > 0e+0_fp) !check in which gridcells 
      !there was fire
-     ageCurrentClass(:,1)=1.00d0-BFtemp(:,1)
+     ageCurrentClass(:,1)=1.00e+0_fp-BFtemp(:,1)
      !reset age to 0 (completely burned) or a value
      !between 0 and 1 (partly burned)
   END WHERE

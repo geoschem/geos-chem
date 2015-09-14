@@ -7,11 +7,13 @@
 !
 !  NOTES:
 !  (1 ) Now force double-precision w/ "D" exponents (bmy, 4/18/03)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
-#     include "define.h"
       USE CMN_SIZE_MOD  ! Size parameters
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
 
       IMPLICIT NONE
 
@@ -105,7 +107,7 @@
 !
       INTEGER IARRY,NONDIAG,NONDIAG1,NPDL,NPDH,NKN,JA,JB,JC,K,IAR,N
       INTEGER IAL
-      REAL*8 FRACR1
+      REAL(fp) FRACR1
 
       NPDERIV             = NPDERIV + 1
       IARRY               = IARRAY(NCSP) 
@@ -161,13 +163,13 @@
 !   
       DO 255 IAR     = 1, NONDIAG
          DO 250 K      = 1, KTLOOP
-            CC2(K,IAR)   = 0.d0
+            CC2(K,IAR)   = 0.e+0_fp
  250     CONTINUE
  255  CONTINUE
 !
       DO 305 IAR     = NONDIAG1, IARRY
          DO 300 K      = 1, KTLOOP
-            CC2(K,IAR)   = 1.d0
+            CC2(K,IAR)   = 1.e+0_fp
  300     CONTINUE
  305  CONTINUE
 !
