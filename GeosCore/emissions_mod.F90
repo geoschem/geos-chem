@@ -85,7 +85,7 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     ! Initialize the HEMCO environment for this GEOS-Chem run.
-    CALL HCOI_GC_Init( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+    CALL HCOI_GC_Init( am_I_Root, Input_Opt, State_Met, RC ) 
     IF ( RC/=GIGC_SUCCESS ) RETURN 
 
   END SUBROUTINE EMISSIONS_INIT
