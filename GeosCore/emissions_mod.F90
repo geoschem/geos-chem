@@ -174,14 +174,14 @@ CONTAINS
     ! Set number of tracers for unit conversion call (ewl, 8/12/15)
     N_TRACERS = Input_Opt%N_TRACERS
 
-    ! Convert tracer units to [kg] for HEMCO (ewl, 8/12/15)
-    CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
-                                State_Chm, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL GIGC_Error('Unit conversion error', RC, &
-                       'Routine EMISSIONS_RUN in emissions_mod.F')
-       RETURN
-    ENDIF                         
+!    ! Convert tracer units to [kg] for HEMCO (ewl, 8/12/15)
+!    CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
+!                                State_Chm, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL GIGC_Error('Unit conversion error', RC, &
+!                       'Routine EMISSIONS_RUN in emissions_mod.F')
+!       RETURN
+!    ENDIF                         
 
 
     ! Run HEMCO. Phase 1 will only update the HEMCO clock and the 
@@ -190,16 +190,16 @@ CONTAINS
                       EmisTime,  Phase,     RC                     ) 
     IF ( RC /= GIGC_SUCCESS ) RETURN 
 
-! new
-       ! Convert tracer units to [kg/kg] (ewl, 8/12/15)
-       CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  &
-                                   State_Chm, RC ) 
-       IF ( RC /= GIGC_SUCCESS ) THEN
-          CALL GIGC_Error('Unit conversion error', RC, &
-                          'Routine EMISSIONS_RUN in emissions_mod.F')
-          RETURN
-       ENDIF                         
-! end new (ewl)
+!! new
+!    ! Convert tracer units to [kg/kg] (ewl, 8/12/15)
+!    CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  &
+!                                State_Chm, RC ) 
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL GIGC_Error('Unit conversion error', RC, &
+!                       'Routine EMISSIONS_RUN in emissions_mod.F')
+!       RETURN
+!    ENDIF                         
+!! end new (ewl)
  
     ! The following only needs to be done in phase 2
     IF ( Phase /= 1 ) THEN 
