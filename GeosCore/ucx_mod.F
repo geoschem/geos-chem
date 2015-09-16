@@ -5503,7 +5503,6 @@
 !  29 Apr 2015 - E. Lundgren   - Replace RH calculation method with Nordquist,
 !                                1973 and call AirQnt if moisture vars
 !                                are updated using H2O tracer concentration
-!  10 Aug 2015 - E. Lundgren   - Tracer units are now kg/kg dry air
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5549,7 +5548,7 @@
       ! Copy fields from INPUT_OPT
       LACTIVEH2O = Input_Opt%LACTIVEH2O
 
-      ! Initialize GEOS-Chem tracer array [kg/kg dry air]
+      ! Initialize GEOS-Chem tracer array [kg]
       STT => State_Chm%Tracers
 
 !$OMP PARALLEL DO
@@ -5560,6 +5559,7 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
          READ_SPHU = ( ITS_IN_THE_TROP( I, J, L, State_Met ) .or.
      &                 SETSTRAT .or. ( .not. LACTIVEH2O )  )
 
@@ -5568,6 +5568,7 @@
 ! old [kg]:
             STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
      &                          State_Met%ADMOIST(I,J,L)
+!     &                          / State_Met%AREA_M2(I,J,1) ! temp (ewl)
 
 ! new [kg/kg] - need to keep it in [kg] for now since moisture changes
 !               in this routine for some grid boxes.  
@@ -5583,6 +5584,7 @@
 !            ! Use moist air mass for calculating specific humidity
             SPHU = STT(I,J,L,IDTH2O) * 1.e+3_fp 
      &               / State_Met%ADMOIST(I,J,L)
+!     &               * State_Met%AREA_M2(I,J,1) ! temp (ewl)
 
 ! new  [kg/kg] - need to keep it in [kg] for now since moisture changes
 !                in this routine for some grid boxes.
