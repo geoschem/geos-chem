@@ -30,7 +30,6 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: TRANSFER_3D
-      PUBLIC  :: TRANSFER_3D_Bry
       PUBLIC  :: TRANSFER_3D_Lp1
       PUBLIC  :: TRANSFER_G5_PLE
       PUBLIC  :: INIT_TRANSFER
@@ -65,10 +64,10 @@
 !
 ! !REMARKS:
 !
-!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 2/2/12)
+!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 8/11/15)
 !  ============================================================================
 !                                                                             .
-!  GEOS-4, GEOS-5, GEOS-5.7, and MERRA (hybrid grids):
+!  GEOS-4, GEOS-5, GEOS-FP, MERRA, and MERRA-2 (hybrid grids):
 !  ----------------------------------------------------------------------------
 !  For GEOS-4 and GEOS-5, the pressure at the bottom edge of grid box (I,J,L) 
 !  is defined as follows:
@@ -152,8 +151,9 @@
 !  06 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_ZONAL* functions
 !  06 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_TO_1D function
 !  06 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_2D* functions
-!   6 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_3D_TROP function
+!  06 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_3D_TROP function
 !  04 Dec 2014 - M. Yannetti - Added PRECISION_MOD
+!  11 Aug 2015 - R. Yantosca - Add support for MERRA2 data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -196,6 +196,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  03 Apr 2014 - R. Yantosca - Initial version, based on TRANSFER_3D_R8
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves as GEOS-5, MERRA, GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -251,7 +252,7 @@
          OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA Lump 72 levels into 47 levels, starting above 
@@ -323,6 +324,7 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  03 Apr 2014 - R. Yantosca - Renamed to TRANSFER_3D_R8 so that it can
 !                              be overloaded with an interface
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves as GEOS-5, MERRA, GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -378,7 +380,7 @@
          OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA Lump 72 levels into 47 levels, starting above 
@@ -413,119 +415,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: transfer_3d_bry
-!
-! !DESCRIPTION: Subroutine TRANSFER\_3D\_Bry transfers 3-dimensional data 
-!  from a REAL*4 array to a REAL(fp) array.  Vertical layers are collapsed 
-!  (from LGLOB to LLPAR) if necessary.  This routine was specially created 
-!  for 2 x 2.5 Bry data in strat\_chem\_mod.F90.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE TRANSFER_3D_Bry( IN, OUT )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL*4,  INTENT(IN)  :: IN(144,91,LGLOB)    ! Input data
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL(fp),  INTENT(OUT) :: OUT(144,91,LLPAR)   ! Output data
-! 
-! !REVISION HISTORY: 
-!  20 Jul 2012 - R. Yantosca - Initial version, based on TRANSFER_3D
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I, J
-      REAL*4  :: INCOL(LGLOB)
-     
-      !================================================================
-      ! TRANSFER_3D begins here!
-      !================================================================
-
-      ! Copy the first L_COPY levels
-      OUT(:,:,1:L_COPY) = IN(:,:,1:L_COPY)
-
-      ! Exit if we are running at full vertical resolution
-      IF ( LLPAR == LGLOB ) RETURN
-
-      !================================================================
-      ! Collapse levels in the stratosphere
-      !================================================================
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, INCOL )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, 91
-      DO I = 1, 144
-
-         ! Copy a vertical column into INCOL
-         INCOL = IN( I, J, 1:LGLOB )
-
-#if   defined( GEOS_4 )
-
-         !--------------------------------------------------------------
-         ! GEOS-4: Lump 55 levels into 30 levels, starting above L=20
-         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
-         !--------------------------------------------------------------
-
-         ! Lump 2 levels together at a time, starting at L=20
-         OUT(I,J,20) = LUMP_2( INCOL, LGLOB, 20 )
-         OUT(I,J,21) = LUMP_2( INCOL, LGLOB, 22 )
-         OUT(I,J,22) = LUMP_2( INCOL, LGLOB, 24 )
-         OUT(I,J,23) = LUMP_2( INCOL, LGLOB, 26 )
-
-         ! Lump 4 levels together at a time, starting at L=28
-         OUT(I,J,24) = LUMP_4( INCOL, LGLOB, 28 )
-         OUT(I,J,25) = LUMP_4( INCOL, LGLOB, 32 )
-         OUT(I,J,26) = LUMP_4( INCOL, LGLOB, 36 ) 
-         OUT(I,J,27) = LUMP_4( INCOL, LGLOB, 40 ) 
-         OUT(I,J,28) = LUMP_4( INCOL, LGLOB, 44 ) 
-         OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
-         OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
-
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
-
-         !--------------------------------------------------------------
-         ! GEOS-5/MERRA Lump 72 levels into 47 levels, starting above 
-         ! L=36.  Lump levels in groups of 2, then 4. (cf. Bob Yantosca)
-         !--------------------------------------------------------------
-
-         ! Lump 2 levels together at a time
-         OUT(I,J,37) = LUMP_2( INCOL, LGLOB, 37 )
-         OUT(I,J,38) = LUMP_2( INCOL, LGLOB, 39 )
-         OUT(I,J,39) = LUMP_2( INCOL, LGLOB, 41 )
-         OUT(I,J,40) = LUMP_2( INCOL, LGLOB, 43 )
-
-         ! Lump 4 levels together at a time
-         OUT(I,J,41) = LUMP_4( INCOL, LGLOB, 45 )
-         OUT(I,J,42) = LUMP_4( INCOL, LGLOB, 49 )
-         OUT(I,J,43) = LUMP_4( INCOL, LGLOB, 53 ) 
-         OUT(I,J,44) = LUMP_4( INCOL, LGLOB, 57 ) 
-         OUT(I,J,45) = LUMP_4( INCOL, LGLOB, 61 ) 
-         OUT(I,J,46) = LUMP_4( INCOL, LGLOB, 65 ) 
-         OUT(I,J,47) = LUMP_4( INCOL, LGLOB, 69 ) 
-
-#endif
-
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE TRANSFER_3D_Bry
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: transfer_g5_ple
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_G5\_PLE transfers GEOS-5/MERRA pressure 
@@ -551,6 +440,7 @@
 !                              the vertical grids are identical
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves as GEOS-5, MERRA, GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -573,7 +463,7 @@
       ! Return GEOS-5 pressure edges for reduced grid
       !================================================================
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -636,6 +526,7 @@
 !                              the vertical grids are identical
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves as GEOS-5, MERRA, GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -666,7 +557,7 @@
       ! %%% above about 120 hPa. (bmy, 2/8/07)
       !=================================================================
       
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1174,6 +1065,7 @@
 !  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  12 Aug 2015 - R. Yantosca - Treat MERRA2 in the same way as GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1207,15 +1099,17 @@
       ELSE
 
 #if   defined( GEOS_4  )
-         L_COPY = 19       ! GEOS-4: Copy up to L=19
+         L_COPY = 19       ! GEOS-4:  Copy up to L=19
 #elif defined( GEOS_5  )
-         L_COPY = 36       ! GEOS-5: Copy up to L=36
+         L_COPY = 36       ! GEOS-5:  Copy up to L=36
 #elif defined( GEOS_FP )
          L_COPY = 36       ! GEOS-FP: Copy up to L=36
 #elif defined( MERRA   )
-         L_COPY = 36       ! MERRA: Copy up to L=36
+         L_COPY = 36       ! MERRA:   Copy up to L=36
+#elif defined( MERRA2  )
+         L_COPY = 36       ! MERRA2:  Copy up to L=36
 #elif defined( GCAP    )
-         L_COPY = LGLOB    ! GCAP: Copy all levels
+         L_COPY = LGLOB    ! GCAP:    Copy all levels
 #endif
 
       ENDIF
@@ -1229,7 +1123,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGE_IN' )
       EDGE_IN = 0e+0_fp
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
       !-----------------------------------------------------------------
       ! For GEOS-5/MERRA, levels 1-31 are "terrain-following" 

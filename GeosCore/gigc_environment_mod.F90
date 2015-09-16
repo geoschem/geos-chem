@@ -166,6 +166,8 @@ CONTAINS
                         value_IM_WORLD = value_IM_WORLD,  &
                         value_JM_WORLD = value_JM_WORLD,  &
                         value_LM_WORLD = value_LM_WORLD,  &
+                        value_LLTROP   = 40,              &
+                        value_LLSTRAT  = 59,              &
                         RC             = RC              )
 
     ! Exit upon error

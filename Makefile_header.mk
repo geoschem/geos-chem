@@ -176,6 +176,11 @@
 #  07 Jul 2015 - M. Sulprizio- Add option for CHEM=SOA_SVPOA
 #  17 Jul 2015 - E. Lundgren - Remove BSTATIC option when picking pgi options 
 #                              for debug run or regular run 
+#  30 Jul 2015 - M. Yannetti - Added TIMERS.
+#  03 Aug 2015 - M. Sulprizio- NEST=cu to now sets CPP switch w/ -DNESTED_CU for
+#                              custom nested grids
+#  11 Aug 2015 - R. Yantosca - Add MERRA2 as a met field option
+#  24 Aug 2015 - R. Yantosca - Bug fix: Add missing | when testing USER_DEFS
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -193,13 +198,13 @@ SHELL                :=/bin/bash
 ERR_CMPLR            :="Select a compiler: COMPILER=ifort, COMPILER=pgi"
 
 # Error message for bad MET input
-ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp)"
+ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp, MET=merra2)"
 
 # Error message for bad GRID input
-ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=025x03125"
+ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=05x0625, GRID=025x03125"
 
 # Error message for bad NEST input
-ERR_NEST             :="Select a nested grid: NEST=ch, NEST=eu, NEST=na NEST=se"
+ERR_NEST             :="Select a nested grid: NEST=ch, NEST=eu, NEST=na NEST=se, NEST=cu"
 
 # Error message for bad two-way coupled model input (yanyy,6/18/14)
 ERR_COUPLECH         :="Select a coupled grid for Asia         : COUPLECH=2x25ch, COUPLECH=4x5ch"
@@ -251,6 +256,11 @@ endif
 # %%%%% Default to 8-byte precision unless specified otherwise %%%%%
 ifndef PRECISION
  PRECISION           :=8
+endif
+
+# %%%%% Default to Timers disabled %%%%%
+ifndef TIMERS
+ TIMERS              :=0
 endif
 
 # %%%%% Set default compiler %%%%%
@@ -441,10 +451,17 @@ ifndef NO_MET_NEEDED
     USER_DEFS        += -DGEOS_5
   endif
 
-  # %%%%% MERRA %%%%%
+  # %%%%% MERRA or MERRA2 %%%%%
+  # We have to employ a double regexp test in order to prevent
+  # inadvertently setting MERRA if we want MERRA2. (bmy, 8/11/15)
   REGEXP             :=(^[Mm][Ee][Rr][Rr][Aa])
   ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DMERRA
+    REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2|^[Mm][Ee][Rr][Rr][Aa].2)
+    ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+      USER_DEFS      += -DMERRA2
+    else
+      USER_DEFS      += -DMERRA
+    endif
   endif
 
   # %%%%% GEOS-FP %%%%%
@@ -463,7 +480,7 @@ ifndef NO_MET_NEEDED
   endif
 
   # %%%%% ERROR CHECK!  Make sure our MET selection is valid! %%%%%
-  REGEXP             :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP)
+  REGEXP             :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP|\-DMERRA2)
   ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
     $(error $(ERR_MET))
   endif
@@ -530,6 +547,25 @@ ifndef NO_GRID_NEEDED
     endif
   endif
 
+  # %%%%% 0.5 x 0.625 %%%%%
+  REGEXP             :=(^05.0625|^0\.5.0\.625)
+  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
+
+    # Ensure that MET=geos-fp
+    REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2)|(^[Mm][Ee][Rr][Rr][Aa].2)
+    ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+      $(error When GRID=05x0625, you can only use MET=merra2)
+    endif
+
+    # Ensure that a nested-grid option is selected
+    ifndef NEST
+      $(error $(ERR_NEST))
+    else
+      NEST_NEEDED    :=1
+      USER_DEFS      += -DGRID05x0625
+    endif
+  endif
+
   # %%%%% 0.25 x 0.3125 %%%%%
   REGEXP             :=(^025.03125|^0\.25.0\.3125)
   ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
@@ -583,9 +619,15 @@ ifndef NO_GRID_NEEDED
     USER_DEFS        += -DNESTED_SE
   endif
 
+  # %%%%% Custom (CU) %%%%%
+  REGEXP             :=(^[Cc][Uu])
+  ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DNESTED_CU
+  endif
+
   # %%%%% ERROR CHECK!  Make sure our NEST selection is valid! %%%%%
   ifdef NEST_NEEDED
-    REGEXP           :=((\-DNESTED_)?CH|NA|EU)
+    REGEXP           :=((\-DNESTED_)?CH|NA|EU|SE|CU)
     ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
       $(error $(ERR_NEST))
     endif
@@ -958,6 +1000,11 @@ ifeq ($(COMPILER),ifort)
     USER_DEFS        += -DUSE_REAL8
   endif
 
+  # Add timers declaration
+  ifeq ($(TIMERS),1)
+    USER_DEFS        += -DUSE_TIMERS
+  endif
+
   # Append the user options in USER_DEFS to FFLAGS
   FFLAGS             += $(USER_DEFS)
 
@@ -1047,6 +1094,11 @@ ifeq ($(COMPILER),pgi)
     USER_DEFS        += -DUSE_REAL8
   endif
 
+  # Add timers declaration
+  ifeq ($(TIMERS),1)
+    USER_DEFS        += -DUSE_TIMERS
+  endif
+
   # Append the user options in USER_DEFS to FFLAGS
   FFLAGS             += $(USER_DEFS)
 
@@ -1113,6 +1165,7 @@ export RRTMG_NEEDED
 export RRTMG_CLEAN
 export RRTMG_NO_CLEAN
 export KPP_CHEM
+export TIMERS
 
 #EOC
 

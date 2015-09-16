@@ -153,7 +153,7 @@
 !                              are directly taken from the GEOS-5 model. In 
 !                              the traditional GEOS-Chem, the updraft velocity
 !                              is still calculated in the old manner (5 m/s 
-!                              over land/ice, 10 m/s over water).
+!                              over water, 10 m/s over land/ice).
 !  23 Jun 2015 - M. Sulprizio- Add impaction scavenging for hydrophobic BC and
 !                              homogeneous IN removal from Qiaoqiao Wang
 !  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
@@ -287,6 +287,7 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  08 Aug 2015 - E. Lundgren - Tracer units are now input as [kg/kg] and ND39
 !                              has units [kg/m2/s] (previously [kg/s])
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -336,7 +337,7 @@
       ENDIF
 #endif
 
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
       !=================================================================
       ! MERRA: Only do wet deposition for large-scale + anvil precip
@@ -481,10 +482,10 @@
 ! 
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%%%           FOR MERRA and GEOS-FP MET FIELDS ONLY           %%%%%
+!  %%%%%       FOR MERRA, MERRA2, and GEOS-FP MET FIELDS ONLY      %%%%%
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !                                                                             .
-!  Now construct QQ and PDOWN directly from MERRA met fields.
+!  Construct QQ and PDOWN directly from GEOS-FP, MERRA, MERRA2  met fields.
 !                                                                             .
 !  This only applies to large-scale precip, as the #if defined
 !  block in routine DO_WETDEP prevents the wet deposition
@@ -595,6 +596,7 @@
 !  29 Apr 2015 - E. Lundgren - Now use State_Met%MAIRDEN instead of AIRDEN
 !                              since AIRDEN is now dry air density and MAIRDEN
 !                              is moist air density, needed for use with MOISTQ
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -635,10 +637,10 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-#if   defined( GEOS_FP )
+#if   defined( GEOS_FP ) || defined( MERRA2 )
 
          !==============================================================
-         ! %%%%% FOR GEOS-FP MET FIELDS ONLY %%%%%  
+         ! %%%%% FOR GEOS-FP or MERRA2 MET FIELDS %%%%%  
          !
          ! In GEOS-FP, the PFILSAN and PFLLSAN fields are defined
          ! on level edges.  Therefore, we must use L+1 to index them.
@@ -1023,6 +1025,7 @@
 !  27 Sep 2011 - H. Amos     - remove LHg_WETDasHNO3 logical, it's obsolete
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  06 Mar 2013 - H. Amos     - merge C. Friedman's POP code
 !  31 May 2013 - R. Yantosca - Now accept State_Chm, and pass it to TOMAS code
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
@@ -2413,7 +2416,7 @@
       !-------------------------------
       ! POPG (liquid phase only) (clf 11/16/10)
       !-------------------------------
-      ELSE IF (N == IDTPOPG ) THEN
+      ELSE IF ( N == IDTPOPG ) THEN
 
          ! No scavenging at the surface
          F(:,:,1) = 0e+0_fp
@@ -2435,7 +2438,9 @@
             ! al and del_H from Scharzenbach 2003, p200)
             ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.65d3 (HSTAR from
             ! Ma et al and Del_H the same as pyrene for now)
-            CALL COMPUTE_L2G( Input_Opt%POP_HSTAR, Input_Opt%POP_DEL_Hw, 
+            CALL COMPUTE_L2G( 1e+0_fp / Input_Opt%POP_HSTAR /
+     &                        8.21e-2_fp / 298e+0_fp,
+     &                        -Input_Opt%POP_DEL_Hw / 8.32d-3, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of POP in liquid phase 
@@ -2471,18 +2476,36 @@
          ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
-      ! POPPOC (treat like hydrophobic OC aerosol)
+      ! POPPOCPO (treat like hydrophobic OC aerosol)
       !-------------------------------
-      ELSE IF (N == IDTPOPPOC ) THEN
+      ELSE IF ( N == IDTPOPPOCPO ) THEN
+
          CALL F_AEROSOL( KC, N, F, State_Met )
          ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
       ! POPPBC (treat like hydrophobic BC aerosol)
       !-------------------------------
-      ELSE IF (N == IDTPOPPBC ) THEN
+      ELSE IF (N == IDTPOPPBCPO ) THEN
+
          CALL F_AEROSOL( KC, N, F, State_Met )
          ISOL = GET_ISOL( N, N_TRACERS )
+
+      !-------------------------------
+      ! POPPOCPI (treat like hydrophilic OC aerosol)
+      !-------------------------------
+      ELSE IF (N == IDTPOPPOCPI ) THEN
+
+         CALL F_AEROSOL( KC, N, F, State_Met )
+         ISOL = GET_ISOL( N, N_TRACERS )
+
+      !-------------------------------
+      ! POPPBCPI (treat like hydrophilic BC aerosol)
+      !-------------------------------
+      ELSE IF (N == IDTPOPPBCPI ) THEN
+
+         CALL F_AEROSOL( KC, N, F, State_Met )
+         ISOL = GET_ISOL( N, N_Tracers )
 
       ! Additional tracers for isoprene
       ! (fp, 06/09)
@@ -2916,27 +2939,27 @@
                 
          ! snow vs rain (qq, 10/11/2011)
          IF ( State_Met%T(I,J,L) >= 258d0) THEN
-             IF (N == IDTBCPO   .or. N == IDTOCPO  .or.
-     &           N == IDTPOA1   .or. N == IDTPOA2  .or.
-     &           N == IDTPOPPOC .or. N == IDTPOPPBC ) THEN
+             IF ( N == IDTBCPO     .or. N == IDTOCPO  .or.
+     &            N == IDTPOA1     .or. N == IDTPOA2  .or.
+     &            N == IDTPOPPOCPO .or. N == IDTPOPPBCPO ) THEN
                 FF=0.5d0
              ELSE
                 FF=1d0
              ENDIF
 
          ELSE IF ( State_Met%T(I,J,L) < 237d0) THEN
-             IF (N == IDTOCPO   .or. N == IDTPOPPOC .or.
-     &           N == IDTPOA1   .or. N == IDTPOA2  ) THEN
+             IF ( N == IDTOCPO     .or. N == IDTPOPPOCPO .or.
+     &            N == IDTPOA1     .or. N == IDTPOA2     ) THEN
                 FF=0.5d0
              ELSE
                 FF=1d0
              ENDIF
 
          ELSE   
-            IF ( N == IDTBCPO   .or. N == IDTHNO3 .or.
-     &           N == IDTDST1   .or. N == IDTDST2 .or.
-     &           N == IDTDST3   .or. N == IDTDST4 .or.
-     &           N == IDTMOPO ) THEN
+            IF ( N == IDTBCPO      .or. N == IDTHNO3 .or.
+     &           N == IDTDST1      .or. N == IDTDST2 .or.
+     &           N == IDTDST3      .or. N == IDTDST4 .or.
+     &           N == IDTMOPO      .or. N == IDTPOPPBCPO ) THEN
                FF=1d0
             ELSE 
                FF=0.5d0
@@ -3998,7 +4021,7 @@
 
       ELSE
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          !------------------------------------------------------------------
          ! Suppress scavenging at cold temperatures for most aerosol simulation
          ! Allow scavenging at cold temperatures for BCPO,DUST and HNO3 (qq,
@@ -4007,14 +4030,15 @@
          ! (cdh, 4/16/09, 5/20/09)
          !------------------------------------------------------------------- 
 ! CDH 8/7/2009, 10/27/2009. All temperature dependence for Hg handled above
-         IF ( TK < 237d0 .AND. (N == IDTBCPO .or. N == IDTPOPPBC)) THEN
+         IF ( TK < 237d0 .AND.
+     &      ( N == IDTBCPO .or. N == IDTPOPPBCPO ) ) THEN
             RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
             RETURN
          ENDIF
          IF (TK < 258d0 .AND. TK >= 237d0) THEN
             IF ( N == IDTBCPO .or. N == IDTDST1 .or. N == IDTDST2 .or.
      &           N == IDTDST3 .or. N == IDTDST4 .or. N == IDTHNO3 .or.
-     &           N == IDTPOPPBC ) THEN
+     &           N == IDTPOPPBCPO ) THEN
                RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
             ELSE 
                RAINFRAC = 0e+0_fp
@@ -4200,64 +4224,64 @@
             RAINFRAC = RAINFRAC * 0.8e+0_fp
 
 #if defined( TOMAS )
-      ! Added for size-resolved aerosol (win, 7/16/09)
-      !------------------------------
-      ! H2SO4 (treat as aerosol)
-      !------------------------------
-      ELSE IF ( N == IDTH2SO4 ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+         ! Added for size-resolved aerosol (win, 7/16/09)
+         !------------------------------
+         ! H2SO4 (treat as aerosol)
+         !------------------------------
+         ELSE IF ( N == IDTH2SO4 ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-      ! Added for size-resolved aerosol (win, 7/16/09)
-      !------------------------------
-      ! Aerosol number NK1-NK30
-      !------------------------------
-      ELSE IF ( IDTNK1 > 0 .and. N >= IDTNK1 .and. 
-     &          N <  IDTNK1 + IBINS ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+         ! Added for size-resolved aerosol (win, 7/16/09)
+         !------------------------------
+         ! Aerosol number NK1-NK30
+         !------------------------------
+         ELSE IF ( IDTNK1 > 0 .and. N >= IDTNK1 .and. 
+     &             N <  IDTNK1 + IBINS ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-      !------------------------------
-      ! Sulfate SF1-SF30
-      !------------------------------
-      ELSE IF ( IDTSF1 > 0 .and. N >= IDTSF1 .and. 
-     &          N <  IDTSF1 + IBINS ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+         !------------------------------
+         ! Sulfate SF1-SF30
+         !------------------------------
+         ELSE IF ( IDTSF1 > 0 .and. N >= IDTSF1 .and. 
+     &             N <  IDTSF1 + IBINS ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-      !------------------------------
-      ! Sea-salt SS1-SS30
-      !------------------------------
-      ELSE IF ( IDTSS1 > 0 .and. N >= IDTSS1 .and. 
-     &          N <  IDTSS1 + IBINS ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+         !------------------------------
+         ! Sea-salt SS1-SS30
+         !------------------------------
+         ELSE IF ( IDTSS1 > 0 .and. N >= IDTSS1 .and. 
+     &             N <  IDTSS1 + IBINS ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-      !------------------------------
-      ! Hydrophilic EC ECIL1-ECIL30
-      !------------------------------
-      ELSE IF ( IDTECIL1 > 0 .and. N >= IDTECIL1 .and. 
-     &          N <  IDTECIL1 + IBINS ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+         !------------------------------
+         ! Hydrophilic EC ECIL1-ECIL30
+         !------------------------------
+         ELSE IF ( IDTECIL1 > 0 .and. N >= IDTECIL1 .and. 
+     &             N <  IDTECIL1 + IBINS ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-      !------------------------------
-      ! Hydrophilic OC OCIL1-OCIL30
-      !------------------------------
-      ELSE IF ( IDTOCIL1 > 0 .and. N >= IDTOCIL1 .and. 
-     &          N <  IDTOCIL1 + IBINS ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+         !------------------------------
+         ! Hydrophilic OC OCIL1-OCIL30
+         !------------------------------
+         ELSE IF ( IDTOCIL1 > 0 .and. N >= IDTOCIL1 .and. 
+     &             N <  IDTOCIL1 + IBINS ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-      !------------------------------
-      ! Hydrophobic OC OCOB1-OCOB30
-      !------------------------------
-      ELSE IF ( IDTOCOB1 > 0 .and. N >= IDTOCOB1 .and. 
-     &          N <  IDTOCOB1 + IBINS ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+         !------------------------------
+         ! Hydrophobic OC OCOB1-OCOB30
+         !------------------------------
+         ELSE IF ( IDTOCOB1 > 0 .and. N >= IDTOCOB1 .and. 
+     &             N <  IDTOCOB1 + IBINS ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-      !------------------------------
-      ! Dust DUST1-DUST30
-      !------------------------------
-      ELSE IF ( IDTDUST1 > 0 .and. N >= IDTDUST1 .and. 
-     &          N <  IDTDUST1 + IBINS ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+         !------------------------------
+         ! Dust DUST1-DUST30
+         !------------------------------
+         ELSE IF ( IDTDUST1 > 0 .and. N >= IDTDUST1 .and. 
+     &             N <  IDTDUST1 + IBINS ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-      ! (end part) Added for size-resolved aerosol (win, 7/16/09)
+         ! (end part) Added for size-resolved aerosol (win, 7/16/09)
 
 #endif
 
@@ -4279,7 +4303,9 @@
             ! al and del_H from Scharzenbach 2003, p200)
             ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.17d3 (HSTAR from
             ! Ma et al and Del_H the same as pyrene for now)
-            CALL COMPUTE_L2G( Input_Opt%POP_HSTAR, Input_Opt%POP_DEL_Hw,
+            CALL COMPUTE_L2G( 1e+0_fp / Input_Opt%POP_HSTAR /
+     &                        8.21e-2_fp / 298e+0_fp,
+     &                        -Input_Opt%POP_DEL_Hw / 8.32e-3_fp,
      &                        TK, CLDLIQ(I,J,L), L2G )
 
             ! Fraction of POP in liquid phase 
@@ -4308,19 +4334,31 @@
             RAINFRAC = GET_RAINFRAC( K, F, DT )
 
          !------------------------------
-         ! POPPOC (treat like hydrophobic OC aerosol)
+         ! POPPOCPO (treat like hydrophobic OC aerosol)
          !------------------------------
-         ELSE IF ( N == IDTPOPPOC ) THEN
+         ELSE IF ( N == IDTPOPPOCPO ) THEN
             ! No rainout 
             RAINFRAC = 0.0e+0_fp
-         
+
          !------------------------------
-         ! POPPBC (treat like hydrophobic BC aerosol)
+         ! POPPBCPO (treat like hydrophobic BC aerosol)
          !------------------------------
-         ELSE IF ( N == IDTPOPPBC ) THEN
+         ELSE IF ( N == IDTPOPPBCPO ) THEN
             ! No rainout 
-            RAINFRAC = 0.0e+0_fp  
-         
+            RAINFRAC = 0.0e+0_fp
+
+         !------------------------------
+         ! POPPOCPI (treat like hydrophilic OC aerosol)
+         !------------------------------
+         ELSE IF ( N == IDTPOPPOCPI ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )   
+
+         !------------------------------
+         ! POPPBCPI (treat like hydrophilic BC aerosol)
+         !------------------------------
+         ELSE IF ( N == IDTPOPPBCPI ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )  
+
          !------------------------------
          ! ERROR: insoluble tracer!
          !------------------------------
@@ -4420,10 +4458,10 @@
       REAL(fp),  INTENT(IN)    :: BXHEIGHT   ! Grid box height [m]
       REAL(fp),  INTENT(IN)    :: TK         ! Temperature [K]
       REAL(fp),  INTENT(IN)    :: PP         ! Precip rate thru  bottom of grid
-                                           !  box (I,J,L)  [cm3 H2O/cm2 air/s]
-      REAL(fp),  INTENT(IN)    :: DT       ! Timestep for rainout event [s]
-      REAL(fp),  INTENT(IN)    :: F        ! Fraction of grid box that is 
-                                           !   precipitating [unitless]
+                                             !  box (I,J,L)  [cm3 H2O/cm2 air/s]
+      REAL(fp),  INTENT(IN)    :: DT         ! Timestep for rainout event [s]
+      REAL(fp),  INTENT(IN)    :: F          ! Fraction of grid box that is 
+                                             !   precipitating [unitless]
 
       TYPE(OptInput), INTENT(IN) :: Input_Opt ! Input options
       TYPE(MetState), INTENT(IN) :: State_Met ! Meteorology State object
@@ -4432,10 +4470,10 @@
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       REAL(fp),  INTENT(INOUT) :: H2O2s      ! H2O2 [v/v] and SO2 [v/v] 
-      REAL(fp),  INTENT(INOUT) :: SO2s       ! concentrations after aqueous rxns 
-                                           ! are applied.  These are computed 
-                                           ! in the sulfate chemistry module
-                                           ! and passed here as arguments. 
+      REAL(fp),  INTENT(INOUT) :: SO2s       ! concentrations after aqueous rxns
+                                             ! are applied.  These are computed 
+                                             ! in the sulfate chemistry module
+                                             ! and passed here as arguments. 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -5074,21 +5112,36 @@
       !------------------------------
       ELSE IF ( N == IDTPOPG ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( Input_Opt%POP_HSTAR,
-     &                          Input_Opt%POP_DEL_Hw,
+         CALL WASHFRAC_LIQ_GAS( 1e+0_fp / Input_Opt%POP_HSTAR /
+     &                          8.21e-2_fp / 298e+0_fp,
+     &                          -Input_Opt%POP_DEL_Hw / 8.32d-3,
      &                          PP, DT, F, DZ, TK, WASHFRAC, KIN )     
 
       !------------------------------
-      ! POPPOC (treat like hydrophobic OC aerosol) 
+      ! POPPOCPO (treat like hydrophobic OC aerosol) 
       !------------------------------
-      ELSE IF ( N == IDTPOPPOC ) THEN 
+      ELSE IF ( N == IDTPOPPOCPO ) THEN 
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
-      ! POPPBC (treat like hydrophobic BC aerosol) 
+      ! POPPBCPO (treat like hydrophobic BC aerosol) 
       !------------------------------
-      ELSE IF ( N == IDTPOPPBC ) THEN 
+      ELSE IF ( N == IDTPOPPBCPO ) THEN 
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+
+      !------------------------------
+      ! POPPOCPI (treat like hydrophilic OC aerosol) 
+      !------------------------------
+      ELSE IF ( N == IDTPOPPOCPI ) THEN 
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+
+      !------------------------------
+      ! POPPBCPI (treat like hydrophilic BC aerosol) 
+      !------------------------------
+      ELSE IF ( N == IDTPOPPBCPI ) THEN 
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
@@ -5215,15 +5268,15 @@
 !
       REAL(fp), INTENT(IN) :: DT         ! Timestep of washout event [s]
       REAL(fp), INTENT(IN) :: F          ! Fraction of grid box that is
-                                       !  precipitating [unitless]
+                                         !  precipitating [unitless]
       REAL(fp), INTENT(IN) :: PP         ! Precip rate thru bottom of grid 
-                                       !  box (I,J,L)  [cm3 H2O/cm2 air/s]
+                                         !  box (I,J,L)  [cm3 H2O/cm2 air/s]
       REAL(fp), INTENT(IN) :: TK         ! Temperature in grid box [K]
 !
 ! !RETURN VALUE:
 !
       REAL(fp)             :: WASHFRAC   ! Fraction of soluble tracer 
-                                       !  lost to washout
+                                         !  lost to washout
 ! 
 ! !REVISION HISTORY: 
 !  08 Nov 2002 - R. Yantosca - Initial version
@@ -5243,15 +5296,14 @@
 !BOC
 !
       !=================================================================
-      ! WASHFRAC_FINE_AEROSOL begins here!
+      ! WASHFRAC_COARSE_AEROSOL begins here!
       !=================================================================
 
-      ! Washout only happens at or above 268 K
-      IF ( TK >= 268e+0_fp ) THEN
+      IF ( TK >= 268e+0_fp .OR. ITS_A_POPS_SIM ) THEN
 
-         !-------------
-         ! T >= 268K 
-         !-------------
+         !---------------------------------
+         ! T >= 268K (or POPS simulation)  
+         !---------------------------------
          IF ( F > 0e+0_fp ) THEN
             WASHFRAC = F*(1e+0_fp - EXP(-0.92e+0_fp * (PP / F*3.6e+4_fp)
      &                ** 0.79e+0_fp * DT / 3.6e+3_fp ))
@@ -5261,9 +5313,9 @@
 
       ELSE
 
-         !-------------
-         ! T < 268K 
-         !-------------
+         !---------------------------------
+         ! T < 268K
+         !---------------------------------
          IF ( F > 0e+0_fp ) THEN
             WASHFRAC = F *(1e+0_fp - EXP( -1.57e+0_fp *
      &                (PP / F*3.6e+4_fp)**0.96e+0_fp * DT / 3.6e+3_fp ))
@@ -5824,6 +5876,7 @@
       REAL(fp)           :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
       REAL(fp)           :: ALPHA, ALPHA2, WETLOSS,   TMP
       REAL(fp)           :: F_RAINOUT,     F_WASHOUT
+      REAL(fp)           :: DEP_HG
 
       ! Arrays
       ! DSTT is the accumulator array of rained-out 
@@ -5882,6 +5935,7 @@
 !$OMP+PRIVATE( I,       J,      FTOP,      ERRMSG,    F          )
 !$OMP+PRIVATE( F_PRIME, K_RAIN, L,         Q,         QDOWN      )
 !$OMP+PRIVATE( NN,      N,      F_RAINOUT, F_WASHOUT             )
+!$OMP+PRIVATE( DEP_HG )
 !$OMP+SCHEDULE( DYNAMIC )   
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -6197,20 +6251,19 @@
             ! Loop over soluble tracers and/or aerosol tracers
             DO NN = 1, NSOL
                N = IDWETD(NN)
+               DEP_HG = DSTT(NN,1,I,J)
 
                ! Check if it is a gaseous Hg2 tag
                IF ( IS_Hg2( N ) ) THEN
 
-                  CALL ADD_Hg2_WD      ( I, J, N, DSTT(NN,1,I,J) )
-                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
-     &                                   State_Met )
+                  CALL ADD_Hg2_WD      ( I, J, N, DEP_HG )
+                  CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_HG, State_Met )
 
                ! Check if it is a HgP tag
                ELSE IF ( IS_HgP( N ) ) THEN
                   
-                  CALL ADD_HgP_WD      ( I, J, N, DSTT(NN,1,I,J) )
-                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
-     &                                   State_Met )
+                  CALL ADD_HgP_WD      ( I, J, N, DEP_HG )
+                  CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_HG, State_Met )
                   
                ENDIF
 
@@ -6427,6 +6480,7 @@
       REAL(fp)           :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
       REAL(fp)           :: ALPHA, ALPHA2, WETLOSS,   TMP
       REAL(fp)           :: F_RAINOUT,     F_WASHOUT 
+      REAL(fp)           :: DEP_HG
 
       ! Arrays
       ! DSTT is the accumulator array of rained-out 
@@ -6486,6 +6540,7 @@
 !$OMP+PRIVATE( NN,          ERRMSG,     F,           F_PRIME    )
 !$OMP+PRIVATE( F_RAINOUT,   F_WASHOUT,  K_RAIN,      Q          )       
 !$OMP+PRIVATE( QDOWN,       IS_RAINOUT, IS_WASHOUT,  N          ) 
+!$OMP+PRIVATE( DEP_HG )
 !$OMP+SCHEDULE( DYNAMIC )   
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -6762,20 +6817,19 @@
             ! Loop over soluble tracers and/or aerosol tracers
             DO NN = 1, NSOL
                N = IDWETD(NN)
+               DEP_HG = DSTT(NN,1,I,J)
 
                ! Check if it is a gaseous Hg2 tag
                IF ( IS_Hg2( N ) ) THEN
 
-                  CALL ADD_Hg2_WD      ( I, J, N, DSTT(NN,1,I,J) )
-                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
-     &                                   State_Met )
+                  CALL ADD_Hg2_WD      ( I, J, N, DEP_HG )
+                  CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_HG, State_Met )
 
                ! Check if it is a HgP tag
                ELSE IF ( IS_HgP( N ) ) THEN
                   
-                  CALL ADD_HgP_WD      ( I, J, N, DSTT(NN,1,I,J) )
-                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
-     &                                   State_Met )
+                  CALL ADD_HgP_WD      ( I, J, N, DEP_HG )
+                  CALL ADD_Hg2_SNOWPACK( I, J, N, DEP_HG, State_Met )
                   
                ENDIF
 
@@ -7404,9 +7458,10 @@
      &                 WASHFRAC,  KIN,          Input_Opt,
      &                 State_Met, State_Chm, RC )
 
-#if    defined( MERRA ) || defined( GEOS_FP )
+#if    defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          !%%% BUG FIX: Only apply this section of when running
-         !%%% GEOS-Chem with MERRA met fields.  (bmy, hamos, 5/26/11)
+         !%%% GEOS-Chem with GEOS-FP, MERRA, or MERRA2 met fields.  
+         ! (bmy, hamos, 5/26/11, 8/12/15)
          !
          ! Check if WASHFRAC = NaN or WASHFRAC < 0.1 %
          ! 
@@ -7631,6 +7686,7 @@
      &                   LOST        = LOST,         
      &                   DSTT        = DSTT(NN,:,I,J), 
      &                   STT         = STT(I,J,:,N)     )
+
          ENDIF
       ENDDO  
  
@@ -8671,13 +8727,22 @@
          !-----------------------------
          ! POPs: Particulate and gas phase 
          !-----------------------------
-         ELSE IF (N == IDTPOPPOC ) THEN
+            
+         ELSE IF (N == IDTPOPPOCPO ) THEN
             NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTPOPPOC
+            IDWETD(NSOL) = IDTPOPPOCPO
 
-         ELSE IF (N == IDTPOPPBC ) THEN
+         ELSE IF (N == IDTPOPPBCPO ) THEN
             NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTPOPPBC
+            IDWETD(NSOL) = IDTPOPPBCPO
+
+         ELSE IF (N == IDTPOPPOCPI ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTPOPPOCPI
+
+         ELSE IF (N == IDTPOPPBCPI ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTPOPPBCPI
 
          ELSE IF (N == IDTPOPG ) THEN
             NSOL         = NSOL + 1
@@ -8848,6 +8913,7 @@
 !  (9 ) Added 9 new tracers for ISOPRENE species (fp, 6/2009)
 !  (10) Added SOA5 and SOG5 (hotp, 6/15/09)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  06 Mar 2013 - H. Amos     - merge C. Friedman's POPs code
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  17 Apr 2013 - S.D. Eastham- Added HCl
 !  23 Apr 2013 - S. Farina   - Inlined code for TOMAS, separated w/ #ifdefs
@@ -8857,7 +8923,6 @@
 !  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
 !                              aerosols (T.D. Fairlie)
 !  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8979,7 +9044,8 @@
          ! ------------------
          ! POPs simulation
          ! -----------------
-         NMAX = 3                                    ! POPPOC, POPPBC, POPG
+         NMAX = 5                                    ! POPPOCPO, POPPBCPO, POPG
+                                                     ! POPPOCPI, POPPBCPI
 
       ELSE 
 
@@ -9399,26 +9465,6 @@
 
       ENDIF
 
-!#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-      !
-      ! Skip computation of Vud, CLDICE, CLDLIQ, C_H2O.  These would 
-      ! have to be computed at a higher level and passed through the
-      ! import state. (bmy, 10/31/12)
-      ! 
-      ! Still calculate CLDICE, CLDLIQ and C_H2O in GEOS-5, but get 
-      ! Vud from GEOS-5 convection component. Vud is now obtained 
-      ! through function GET_VUD (see above). (ckeller, 2/12/15)
-      !-----------------------------------------------------------------
-!#else
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
-      !
-      ! Compute Vud, CLDICE, CLDLIQ, C_H2O.  This is current practice 
-      ! in the standard GEOS-Chem model.  (bmy, 10/31/12)
-      !-----------------------------------------------------------------
-
       !=================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
       !=================================================================
@@ -9437,20 +9483,6 @@
             ! Compute Temp [K] and Pressure [hPa]
             TK = State_Met%T(I,J,L)
             PL = State_Met%PMID(I,J,L)
-         
-            !==============================================================
-            ! Compute Vud -- 5 m/s over oceans, 10 m/s over land (or ice?)
-            ! Assume Vud is the same at all altitudes; the array can be 2-D
-            ! ==> Now done in function GET_VUD (ckeller, 2/12/15).
-            !==============================================================
-
-!            IF ( L == 1 ) THEN
-!               IF ( IS_WATER( I, J, State_Met ) ) THEN
-!                  Vud(I,J) = 5e+0_fp
-!               ELSE
-!                  Vud(I,J) = 10e+0_fp
-!               ENDIF
-!            ENDIF
          
             !==============================================================
             ! CLDLIQ, the cloud liquid water content [cm3 H2O/cm3 air], 

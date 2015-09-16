@@ -184,6 +184,7 @@
 !  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
 !  10 Aug 2015 - E. Lundgren - Incoming tracer units are now kg/kg dry air
+!  11 Aug 2015 - R. Yantosca - Added support for MERRA2 data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -204,7 +205,7 @@
       !=================================================================
       ! MERRA or GEOS-FP met fields definitions
       !=================================================================
-#if defined( MERRA ) || defined( GEOS_FP )
+#if defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       
       ! Scalars          
       INTEGER           :: I, J, L, N, NN, TS_DYN
@@ -327,7 +328,7 @@
       CALL NFCLDMX( am_I_Root, Input_Opt, State_Met, 
      &              State_Chm, RC )
 
-#elif defined( MERRA ) || defined( GEOS_FP )
+#elif defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
       !=================================================================
       ! MERRA or GEOS-FP met fields
@@ -1446,7 +1447,7 @@
       NLAY = LLPAR
 
       ! Convection timestep [s]
-      NDT  = GET_TS_CONV() * 60e+0_fp
+      NDT  = GET_TS_CONV() * 60
 
       !=================================================================
       ! Define active convective region, from J = JS(outh) to 
@@ -1837,12 +1838,10 @@
                      !=================================================
                      IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
-                        ! Wet scavenged Hg(II) in [kg/s]
-                        WET_Hg2 = T0 * AREA_M2 / DNS   
-
-                        ! Convert [kg/s] to [kg]
-                        WET_Hg2 = WET_Hg2 * NDT 
-
+                        ! Wet scavenged Hg(II) in [kg/s], converted
+                        ! to [kg] by multiplying by NDT
+                        WET_Hg2 = T0 * AREA_M2 / DNS * NDT
+                        
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_Hg2_WD( I, J, IC, WET_Hg2 )
                         CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2,
@@ -1851,11 +1850,9 @@
 
                      IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
 
-                        ! Wet scavenged Hg(P) in [kg/s]
-                        WET_HgP = T0 * AREA_M2 / DNS
-
-                        ! Convert [kg/s] to [kg]
-                        WET_HgP = WET_HgP * NDT 
+                        ! Wet scavenged Hg(P) in [kg/s], converted 
+                        ! to [kg] by multiplying by NDT
+                        WET_HgP = T0 * AREA_M2 / DNS * NDT
 
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_HgP_WD( I, J, IC, WET_HgP )
@@ -2105,6 +2102,7 @@
 !  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
 !  22 Jun 2015 - E. Lundgren - Move QB_NUM calculation to within timestep loop
+!  12 Aug 2015 - R. Yantosca - Treat MERRA2 in same way as we do for GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2166,9 +2164,9 @@
       Q        => State_Chm%TRACERS (I,J,:,:      ) ! Tracer concentration
                                                     ! [mol/mol total air] 
                                                 
-#if   defined( GEOS_FP )
+#if   defined( GEOS_FP ) || defined( MERRA2 )
 
-      !%%%%% FOR GEOS-FP, PFICU and PFLCU are on level edges %%%%%
+      !%%%%% FOR GEOS-FP/MERRA2, PFICU and PFLCU are on level edges %%%%%
       PFICU    => State_Met%PFICU   (I,J,2:LLPAR+1) ! Dwnwd flx of conv 
                                                     !  ice precip [kg/m2/s]
       PFLCU    => State_Met%PFLCU   (I,J,2:LLPAR+1) ! Dwnwd flux of conv   

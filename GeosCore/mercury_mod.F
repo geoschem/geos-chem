@@ -35,6 +35,7 @@
       USE OCEAN_MERCURY_MOD, ONLY : LBROCHEM
       USE OCEAN_MERCURY_MOD, ONLY : LNEI2005
       USE OCEAN_MERCURY_MOD, ONLY : LInPlume    
+      USE OCEAN_MERCURY_MOD, ONLY : LOCEANCOEF
 
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
@@ -150,6 +151,12 @@
 !       including oxidation by bromine atoms, AC&P, 10, 12,037-12,057.
 !  (11) Parrella, J. et al. (2012), Tropospheric bromine chemistry: 
 !       implications for present and pre-industrial ozone and mercury, ACP.
+!  (12) Pohler, D. et al. (2010), Observation of halogen species in the Amundsen
+!       Gulf, Arctic, by active long-path differential optical absorption
+!       spectroscopy, Proc. Natl. Acad. Sci, 107(15): 6528-6587.
+!  (13) Prados-Roman, C. et al. (2011), Airborne DOAS limb measurements of 
+!       tropospheric trace gas profiles: case studies on the profile retrieval
+!       of O4 and BrO, Atmos. Meas. Tech., 4: 1241-1260.
 !
 ! !REVISION HISTORY:
 !  (1 ) Updated for reduction rxn and online Hg0 ocean flux.  Now use 
@@ -177,6 +184,8 @@
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  12 Mar 2015 - R. Yantosca - Now get JNO2 from the HEMCO data structure
 !  12 Mar 2015 - R. Yantosca - Remove GET_GLOBAL_JNO2 routine
+!  10 Aug 2015 - J. Fisher   - Updated treatment of polar BrO chemistry
+!                              (orig. 29/11/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -189,27 +198,25 @@
       ! (2 ) AN_Hg2   : Tracer index array for tagged anth Hg(II) regions
       ! (3 ) AN_HgP   : Tracer index array for tagged anth HgP    regions
       ! (4 ) COSZM    : Max daily value of COS( S. Z. Angle ) [unitless]
-      ! (5 ) DRYHg0   : Index for Hg0 in DEPSAV array (drydep freq)
-      ! (6 ) DRYHg2   : Index for Hg2 in DEPSAV array (drydep freq)
-      ! (7 ) DRYHgP   : Index for HgP in DEPSAV array (drydep freq)
-      ! (8 ) EHg0_an  : Anthropogenic Hg0 emissions [kg/s]
-      ! (9 ) EHg2_an  : Anthropogenic Hg2 emissions [kg/s]
-      ! (10) EHgP_an  : Anthropogenic HgP emissions [kg/s]
-      ! (11) EHg0_am  : Artisanal mining Hg0 emissions [kg/s]
-      ! (12) EHg0_oc  : Hg0 emissions from oceans [kg/s]
-      ! (13) EHg0_ln  : Re-emissions of Hg0 from land [kg/s]
-      ! (14) EHg0_nt  : Hg0 emissions from natural land sources [kg/s] 
-      ! (15) EHg0_bb  : Hg0 emissions fom biomass burning sources [kg/s]
-      ! (16) EHg0_vg  : Hg0 emissions fom vegetation sources [kg/s] 
-      ! (17) EHg0_so  : Hg0 emissions from soil sources [kg/s]
-      ! (18) EHg0_dist: Spatial distribution of terrestrial Hg0 sources
+      ! (5 ) EHg0_an  : Anthropogenic Hg0 emissions [kg/s]
+      ! (6 ) EHg2_an  : Anthropogenic Hg2 emissions [kg/s]
+      ! (7 ) EHgP_an  : Anthropogenic HgP emissions [kg/s]
+      ! (8 ) EHg0_am  : Artisanal mining Hg0 emissions [kg/s]
+      ! (9 ) EHg0_oc  : Hg0 emissions from oceans [kg/s]
+      ! (10) EHg0_ln  : Re-emissions of Hg0 from land [kg/s]
+      ! (11) EHg0_nt  : Hg0 emissions from natural land sources [kg/s] 
+      ! (12) EHg0_bb  : Hg0 emissions fom biomass burning sources [kg/s]
+      ! (13) EHg0_vg  : Hg0 emissions fom vegetation sources [kg/s] 
+      ! (14) EHg0_so  : Hg0 emissions from soil sources [kg/s]
+      ! (15) EHg0_dist: Spatial distribution of terrestrial Hg0 sources
       !                   [dimensionless] 
-      ! (19) TCOSZ    : Sum of COS( Solar Zenith Angle ) [unitless]
-      ! (20) TTDAY    : Total daylight time at location (I,J) [minutes]
-      ! (21) T44      : Local array for drydep diagnostic
-      ! (22) ZERO_DVEL: Array with zero dry deposition velocity [cm/s]
-      ! (23) ANTHRO_Hg: Anthropogenic Hg emissions year (1995 or 2000)
-      ! (24) TRANSP   : Plant transpiration rate [m/s]
+      ! (16) EHg0_gtm : Hg0 emissions from GTMM [kg/s]
+      ! (17) EHg0_snow: Hg0 emissions from snow [kg/s]
+      ! (18) TCOSZ    : Sum of COS( Solar Zenith Angle ) [unitless]
+      ! (19) TTDAY    : Total daylight time at location (I,J) [minutes]
+      ! (20) ZERO_DVEL: Array with zero dry deposition velocity [cm/s]
+      ! (21) HG2_SEASALT_LOSSRATE
+      ! (22) JNO2     : Array with JNO2 value
       ! (25) SMALLNUM : A small number to prevent underflow
       !=================================================================
 
@@ -478,6 +485,7 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
+!  12 Aug 2015 - R. Yantosca - Added support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -485,13 +493,14 @@
 ! !LOCAL VARIABLES:
 
       LOGICAL, SAVE   :: FIRST = .TRUE.
-      INTEGER         :: I, J, L, K, N, MONTH, NSTEPS
+      INTEGER         :: I, J, L, K, N, NN, MONTH, NSTEPS
       REAL(fp)        :: K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT
       REAL(fp)        :: C_OH, C_O3, C_BR, C_BRO
       REAL(fp)        :: K_OH, K_O3, K_BR, K_BRO
       REAL(fp)        :: K_OX, K_RED, K_DEP0, K_DEP2G, K_DEP2P
       REAL(fp)        :: DEP_Hg0, DEP_HG2G, DEP_HG2P
       REAL(fp)        :: DEP_HG2G_DRY, DEP_HG2G_SALT, DEP_HG2P_DRY
+      REAL(fp)        :: DEP_HG2_DRY
       REAL(fp)        :: GROSS_OX, GROSS_OX_BR, GROSS_OX_OH, GROSS_OX_O3
       REAL(fp)        :: GROSS_RED, NET_OX
       REAL(fp)        :: F_PBL, FC, Faq, LWC
@@ -555,6 +564,12 @@
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp ! yzh, consider cloud fraction 
 #elif defined( GRID2x25 )
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 3.5e-3_fp/2e+0_fp
+#elif defined( GRID05x0625 ) && defined( NESTED_NA )
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% Bob Y. used same value as for GRID05x0666             %%%
+      !%%% Team Hg needs to supply a better value (bmy, 8/12/15) %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 ! yzh
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 ! yzh
 #else
@@ -592,6 +607,14 @@
       ! file has not been read yet. (bmy, 3/12/15)
       IF ( FIRST ) THEN
          CALL SET_OPTIONS_FROM_HEMCO( RC )
+
+#if !defined( MERRA ) && !defined( GEOS_FP )
+         ! Warning for non-MERRA
+         WRITE( 6, * ) 'WARNING: Polar BrO parameterization '//
+     &                 'designed for use with incident shortwave'
+         WRITE( 6, * ) 'radiation. Only net shortwave radiation '//
+     &                 'available.'
+#endif
          FIRST = .FALSE.
       ENDIF
 
@@ -650,7 +673,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,        L,        K,       N, NSTEPS         )
+!$OMP+PRIVATE( I,       J,        L,        K,       N, NN, NSTEPS )
 !$OMP+PRIVATE( K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT )
 !$OMP+PRIVATE( C_OH,    C_O3,     C_BR,     C_BRO )
 !$OMP+PRIVATE( K_OH,    K_O3,     K_BR,     K_BRO )
@@ -660,11 +683,14 @@
 !$OMP+PRIVATE( A,       Xold,     Xnew,     s1, s2, s3, s4 )
 !$OMP+PRIVATE( DEP_Hg0, DEP_HG2G, DEP_HG2P )
 !$OMP+PRIVATE( DEP_HG2G_DRY,      DEP_HG2G_SALT,     DEP_HG2P_DRY )
+!$OMP+PRIVATE( DEP_HG2_DRY )
 !$OMP+PRIVATE( GROSS_OX, GROSS_OX_BR, GROSS_OX_OH, GROSS_OX_O3 )
 !$OMP+PRIVATE( GROSS_RED, NET_OX )
 !$OMP+PRIVATE( AREA_CM2,  DEP_DRY_FLX )
 !$OMP+PRIVATE( F_HG0_DEP )
 !%%%% NOTE: LOOP IS IN WRONG ORDER, WILL BE MORE EFFICIENT IF REVERSED %%%%
+!%%%% Putting this loop in the correct order causes differences in the %%%%
+!%%%% AD03_HG2_SS diagnostic array when using mp vs sp (mps, 9/3/15)   %%%%
       DO I=1, IIPAR
       DO J=1, JJPAR
       DO L=1, LLPAR
@@ -727,7 +753,7 @@
 
          ! Area fraction of box with Hg0 dep. Default is dep everywhere
          F_Hg0_Dep = 1e+0_fp
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          ! Deposition occurs over areas that are not ocean, snow or ice
          ! (jaf, 4/26/11)
          F_Hg0_Dep = 1e+0_fp - MAX( 0e+0_fp, MIN( 1e+0_fp, 
@@ -812,7 +838,7 @@
          ! Reduction rate (requires liquid water content)
          !---------------------------------------------
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -1046,14 +1072,18 @@
             ! We should add an if statement to test whether DYNAMIC LAND is 
             ! active.
             IF ( LDYNOCEAN ) THEN
-               CALL ADD_Hg2_DD( I, J, ID_Hg2(N), DEP_Hg2G )
-               CALL ADD_HgP_DD( I, J, ID_HgP(N), DEP_Hg2P )
+               NN = ID_Hg2(N)
+               CALL ADD_Hg2_DD( I, J, NN, DEP_Hg2G )
+
+               NN = ID_HgP(N)
+               CALL ADD_HgP_DD( I, J, NN, DEP_Hg2P )
             ENDIF           
 
             ! Add deposited Hg(II) to the snowpack
             IF ( LHGSNOW ) THEN
-               CALL ADD_HG2_SNOWPACK(I,J,ID_Hg2(N),
-     &              DEP_HG2g_DRY + DEP_Hg2p_DRY, State_Met )
+               NN = ID_Hg2(N)
+               DEP_HG2_DRY = DEP_HG2g_DRY + DEP_HG2p_DRY
+               CALL ADD_HG2_SNOWPACK( I, J, NN, DEP_HG2_DRY, State_Met )
             ENDIF           
 
 #if !defined( NO_BPCH )
@@ -1444,7 +1474,7 @@
       USE CMN_SIZE_MOD
       USE DEPO_MERCURY_MOD,   ONLY : RESET_HG_DEP_ARRAYS
       USE DIAG03_MOD,         ONLY : AD03_nat
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD,          ONLY : DEBUG_MSG, GEOS_CHEM_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -1509,6 +1539,7 @@
       LOGICAL         :: LNLPBL
       LOGICAL         :: LPRT
       LOGICAL         :: LPREINDHG
+      LOGICAL         :: LEMIS
 
       !=================================================================
       ! EMISSMERCURY begins here!
@@ -1522,10 +1553,19 @@
       LGTMM     = Input_Opt%LGTMM
       LNLPBL    = Input_Opt%LNLPBL
       LPREINDHG = Input_Opt%LPREINDHG
+      LEMIS     = Input_Opt%LEMIS
       LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
 
       ! First-time initialization
       IF ( FIRST ) THEN
+
+         ! Check that emissions are turned on. Print error message 
+         ! and stop GEOS-Chem if emissions are turned off (ewl, 9/1/15)
+         IF ( .not. LEMIS ) THEN
+            PRINT *, 'ERROR: Hg emissions are need for simulation ' //
+     &               'but emissions are turned off in input.geos'
+            CALL GEOS_CHEM_STOP
+         ENDIF
 
          ! Read anthro, ocean, land emissions of Hg from disk
          CALL MERCURY_READYR( am_I_Root, Input_Opt, RC )
@@ -3651,10 +3691,11 @@
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : GET_OBK
       USE DAO_MOD,            ONLY : IS_WATER
+      USE DIAG03_MOD,         ONLY : AD03_Br,   LD03,     ND03
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_BR_MOD,      ONLY : BR_MERGE,  BR_TROP
-      USE GLOBAL_BR_MOD,      ONLY : BR_STRAT, J_BRO
+      USE GLOBAL_BR_MOD,      ONLY : BR_STRAT,  J_BRO
       USE GLOBAL_BR_MOD,      ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
       USE GRID_MOD,           ONLY : GET_YMID
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
@@ -3683,13 +3724,20 @@
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod (not used)
+!  10 Aug 2015 - J. Fisher - implement variable polar BrO concentrations based
+!                            on temperature and incoming solar radiation
+!  10 Aug 2015 - J. Fisher - only apply diurnal cycle to BrO from pTOMCAT
+!                            daily means, NOT to polar BrO which represents
+!                            instantaneous values
+!  10 Aug 2015 - J. Fisher - add upper ice threshold to MERRA conditions for
+!                            polar BrO release
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: JLOOP
+      INTEGER               :: JLOOP
       REAL(fp)              :: BR_PPTV, BR_MBL, BR_FAC
       REAL(fp)              :: LOCALTIME, HOUR, BRO_PPTV, FPBL
       REAL(fp)              :: BOXVL           
@@ -3709,7 +3757,15 @@
       ! Reduce concentration of BrO in Arctic during depletion events to 5 pptv
       ! Ref low end of uncertainty range in Holmes et al. 2010
       ! Ref low [BrO] observed Neuman et al 2010
-      REAL(fp), PARAMETER   :: BRO_POLAR=5e+0_fp
+      !REAL(fp), PARAMETER   :: BRO_POLAR=5e+0_fp
+
+      ! Make polar BrO variable rather than fixed, varying as a factor of
+      ! solar radiation and temperatures. (jaf, 11/29/11)
+      REAL(fp)           :: BRO_POLAR, BR_POLAR, O3_POLAR, SWRAD
+      LOGICAL            :: IS_MOSTLY_ICE
+      ! Assume 5 ppb O3 when BrO present. Pohler et al. (2010) shows 5 ppb O3
+      ! can exist for 3 ppt < [BrO] < 40 ppt. (jaf, 11/29/11)
+      REAL(fp), PARAMETER  :: O3_POLAR_PPB = 5e+0_fp
 
       ! Parameters for calculating Br/BrO photostationary state
       ! BrO J value, /s 
@@ -3728,6 +3784,12 @@
       ! Get monthly-mean Br from bromocarbon and halon sources 
       !----------------------------------------------------------------
     
+      ! Zero polar BrOx, O3 concentrations (jaf, 11/29/11)
+      BRO_POLAR     = 0e+0_fp
+      BR_POLAR      = 0e+0_fp
+      O3_POLAR      = 0e+0_fp
+      SWRAD         = 0e+0_fp
+
       BR_PPTV  = BR_MERGE(I,J,L)
       BRO_PPTV = BRO_MERGE(I,J,L)
 
@@ -3763,40 +3825,41 @@
 
       ENDIF            
 
+! Now moved to after imposed diurnal cycle, updated parameters (J. Fisher)
       !----------------------------------------------------------------
-      ! Add Br in polar boundary layer
+      ! OLD VERSION: Add Br in polar boundary layer
       ! 
       ! Bromine in the polar boundary layer requires cold temperatures
       ! (below 268K), sunlight and contact between open water and sea ice
       ! Assuming these conditions are met, we assume a fixed 5-10pptv BrO 
       ! At the moment, we only have Br north of 60N, i.e. not Hudson's Bay
       !----------------------------------------------------------------
-
-      ! 1-D grid box index for SUNCOS
-      JLOOP = ( (J-1) * IIPAR ) + I
-
-      IF ( ( LPOLARBR ) .AND. ( FPBL >  0e+0_fp   ) .AND.
-     &     ( State_Met%SUNCOS(I,J)   >  0e+0_fp   ) .AND. 
-     &     ( State_Met%T(I,J,1)      <= 268e+0_fp ) .AND.
-     &     ( State_Met%LWI(I,J)      == 2     ) .AND. 
-     &       GET_OBK(I,J,State_Met)  >  0e+0_fp   ) THEN
-
-         IF ( ( (GET_YMID(I,J,L) > 60e+0_fp) .AND. 
-     &          (GET_MONTH() >= 3) .AND. (GET_MONTH() <= 5)  ) .OR.
-     &        ( (GET_YMID(I,J,L) < -50e+0_fp) .AND. 
-     &          (GET_MONTH() >= 9) .AND. (GET_MONTH() <= 11)  ) ) THEN
-
-            ! Br concentration due to bromine explosion, pptv
-            ! Assume [O3] is 2ppb during event
-            BR_MBL = BRO_POLAR *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
-     &                          ( K_BR_O3 * 5e+10_fp ) * FPBL
-        
-            BR_PPTV  = BR_PPTV  + BR_MBL
-            BrO_PPTV = BrO_PPTV + BRO_POLAR * FPBL
-
-         ENDIF
-
-      ENDIF
+!
+!      ! 1-D grid box index for SUNCOS
+!      JLOOP = ( (J-1) * IIPAR ) + I
+!
+!      IF ( ( LPOLARBR ) .AND. ( FPBL >  0e+0_fp   ) .AND.
+!     &     ( State_Met%SUNCOS(I,J)   >  0e+0_fp   ) .AND. 
+!     &     ( State_Met%T(I,J,1)      <= 268e+0_fp ) .AND.
+!     &     ( State_Met%LWI(I,J)      == 2     ) .AND. 
+!     &       GET_OBK(I,J,State_Met)  >  0e+0_fp   ) THEN
+!
+!         IF ( ( (GET_YMID(I,J,L) > 60e+0_fp) .AND. 
+!     &          (GET_MONTH() >= 3) .AND. (GET_MONTH() <= 5)  ) .OR.
+!     &        ( (GET_YMID(I,J,L) < -50e+0_fp) .AND. 
+!     &          (GET_MONTH() >= 9) .AND. (GET_MONTH() <= 11)  ) ) THEN
+!
+!            ! Br concentration due to bromine explosion, pptv
+!            ! Assume [O3] is 2ppb during event
+!            BR_MBL = BRO_POLAR *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
+!     &                          ( K_BR_O3 * 5e+10_fp ) * FPBL
+!        
+!            BR_PPTV  = BR_PPTV  + BR_MBL
+!            BrO_PPTV = BrO_PPTV + BRO_POLAR * FPBL
+!
+!         ENDIF
+!
+!      ENDIF
 
       !----------------------------------------------------------------
       ! Impose a diurnal cycle
@@ -3855,6 +3918,88 @@
 
       ! Grid box volume [cm3]
       BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+
+      ! Do this AFTER application of the diurnal cycle, since polar
+      ! bromine has implicit diurnal cycle driven by solar radiation
+      ! and represents instantaneous concentrations (jaf, 12/16/11)
+      !----------------------------------------------------------------
+      ! Add Br in polar boundary layer (jaf, 11/29/11)
+      ! 
+      ! Bromine in the polar boundary layer requires the following
+      ! criteria be met:
+      ! - In the PBL
+      ! - Downward shortwave radiation > 100 W/m2 (Pohler et al. 2010)
+      ! - Sea ice exists (>50% native boxes have >10% ice cover)
+      ! - Breaks in sea ice exist (<100% native boxes have >90% ice cover) 
+      ! - Month is between Feb & June (Arctic) or Aug & Dec (Antarctic)
+      !   based on http://bro.aeronomie.be/level3_monthly.php?cmd=map
+      ! - Temperature is less than 0C
+      !
+      ! If these criteria are met, BrO is a function of ambient temp.
+      ! with [BrO] based on findings from Pohler et al. (2010) and
+      ! Prados-Roman et al. (2011). O3 used to convert BrO to Br is 5
+      ! ppb, based on data from Pohler et al. (2010).
+      !----------------------------------------------------------------
+! KLUDGE: can't get SWGDN in State_Met; add this later (jaf)
+#if   defined( MERRA ) || defined( GEOS_FP) || defined( MERRA2)
+!      SWRAD         = State_Met%SWGDN(I,J)
+      SWRAD = State_Met%RADSWG(I,J)
+! END KLUDGE
+      IS_MOSTLY_ICE = ( State_Met%SEAICE00(I,J) <= 0.5e+0_fp .AND.
+     &                  State_Met%SEAICE90(I,J) < 1e+0_fp )
+#else
+      SWRAD = State_Met%RADSWG(I,J)
+      IS_MOSTLY_ICE = ( State_Met%LWI(I,J) == 2 )
+#endif
+
+      IF ( (LPOLARBR) .AND. (FPBL > 0e+0_fp) .AND. (IS_MOSTLY_ICE) .AND.
+     &     (SWRAD > 1e+2_fp) .AND. (State_Met%TS(I,J) <= 273e+0_fp) ) 
+     &     THEN 
+
+         IF ( ((GET_YMID(I,J,L) > 0e+0_fp) .AND.
+     &          (GET_MONTH() >= 2) .AND. (GET_MONTH() <= 6)) .OR.
+     &        ((GET_YMID(I,J,L) < 0e+0_fp) .AND.
+     &          (GET_MONTH() >= 8) .AND. (GET_MONTH() <= 12)) ) THEN
+
+            ! [BrO] is a linear function of temperature derived based on
+            ! results from Pohler et al. (2010), Prados-Roman et al. (2011)
+            ! and ability to match Hg0 seasonal cycle at Alert. (jaf,
+            ! 12/24/11)
+            IF ( State_Met%TS(I,J) <= 253e+0_fp ) THEN 
+               BRO_POLAR = 2e+1_fp 
+            ELSE 
+               BRO_POLAR = -1e+0_fp * ( State_Met%TS(I,J) - 
+     &                                  253e+0_fp ) + 2e+1_fp
+            ENDIF
+
+            ! Convert O3 to molec/cm3
+            O3_POLAR = O3_POLAR_PPB * 1e-9_fp * ( 6.022e+23_fp / 
+     &                 28.97e-3_fp ) * State_Met%AD(I,J,L) / 
+     &                 BOXVL
+
+            ! Compute polar Br, BrO concentrations in pptv
+            BrO_POLAR = BrO_POLAR * FPBL
+            Br_POLAR  = BRO_POLAR * ( J_BRO(I,J,L) + K_BRO_NO * C_NO ) /
+     &                              ( K_BR_O3 * O3_POLAR )
+         
+            BR_PPTV  = BR_PPTV  + Br_POLAR
+            BrO_PPTV = BrO_PPTV + BrO_POLAR
+
+            !==============================================================
+            ! ND03 diagnostic: Polar Bromine [pptv]
+            !==============================================================
+            IF ( ND03 > 0 .AND. L <= LD03 ) THEN 
+
+                  AD03_Br(I,J,L,3) = AD03_Br(I,J,L,3) + BR_POLAR
+                  AD03_Br(I,J,L,4) = AD03_Br(I,J,L,4) + BRO_POLAR
+                  AD03_Br(I,J,L,5) = AD03_Br(I,J,L,5) + O3_POLAR_PPB
+
+            ENDIF ! ND03
+
+         ENDIF ! Month
+
+      ENDIF ! Polar BrO criteria
+      !----------------------------------------------------------------
 
       ! Convert pptv mixing ratio -> molec/cm3
       BR_MOLEC_CM3  = BR_PPTV             * 1e-12_fp      *
@@ -3974,11 +4119,11 @@
                TIMLOC = real(LHR0) + real(NT)/3600.0 
      &                + GET_XMID(I,J,1)/15.0
          
-               DO WHILE (TIMLOC .lt. 0)
+               DO WHILE (TIMLOC < 0)
                   TIMLOC = TIMLOC + 24.0
                ENDDO
 
-               DO WHILE (TIMLOC .gt. 24.0)
+               DO WHILE (TIMLOC > 24.0)
                   TIMLOC = TIMLOC - 24.0
                ENDDO
 
@@ -4946,6 +5091,10 @@
       ! Settings
       !=================================================================
 
+      ! Switch uses ocean rate coefficients from parameter inversion,
+      ! ref. Song et al. 2015 ACP
+      LOCEANCOEF=.FALSE.
+
       ! Switch determines whether uptake of Hg2 by sea-salt aerosol
       ! is calculated dynamically (TRUE) or uses a constant rate (FALSE)
       LDYNSEASALT = .TRUE.
@@ -4964,7 +5113,7 @@
       LNEI2005=.TRUE.
 
       ! Switch modifying the speciation profile of Hg emission
-      LInPlume=.TRUE.
+      LInPlume=.FALSE.
 
       ! no Hg emitted through transpiration (VEGEMIS off)
       LVEGEMIS=.FALSE.

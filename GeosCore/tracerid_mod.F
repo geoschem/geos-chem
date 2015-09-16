@@ -76,7 +76,6 @@
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !  07 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
-
 !******************************************************************************
 !
       ! for CTM tracers
@@ -181,7 +180,8 @@
       INTEGER            :: IDTCH4
 
       ! For POPs simulation (clf, 2/11/2011)
-      INTEGER            :: IDTPOPPOC,  IDTPOPPBC,   IDTPOPG
+      INTEGER              :: IDTPOPPOCPO,  IDTPOPPBCPO,   IDTPOPG
+      INTEGER              :: IDTPOPPOCPI,  IDTPOPPBCPI
 
       ! For H2/HD simulation
       INTEGER            :: IDTH2, IDTHD ! (hup, phs, 9/18/07)
@@ -395,6 +395,8 @@
 !  (21) Add IDEMS definitions for new species (fp, hotp, 01/10)
 !  (22) Add writing check on IDs. (hotp, 01/10)
 !  (23) Added IDTPOPG, IDTPOPPOC, and IDTPOPPBC for POPs simulation (eck, 9/20/10)
+!  (24) Changed IDTPOPPOC and IDTPOPPBC to IDTPOPPOCPO and IDTPOPPBCPO, 
+!        added IDTPOPPOCPI and IDTPOPPBCPI for POPs (CLF, 2/11/2012)
 !  17 Aug 2011 - R. Yantosca - Print values of 3 extra emission IDExxx flags
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  16 Feb 2012 - M. Payer    - Account for alternate spellings of the Rn and Pb
@@ -410,15 +412,16 @@
 !                              alkalinity (tdf 04/08/08)
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !  15 Aug 2014 - R. Yantosca - Removed obsolete IDBF* and IDB* indices
+!  10 Aug 2015 - M. Sulprizio- Removed COUNT variable made obsolete by HEMCO
 !******************************************************************************
 !
       ! References to F90 modules
-      USE CHARPAK_MOD, ONLY : TRANUC
+      USE CHARPAK_MOD,        ONLY : TRANUC
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : ERROR_STOP
 !
 ! !INPUT PARAMETERS:
 !
@@ -431,12 +434,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER              :: N, COUNT, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
-      CHARACTER(LEN=14)    :: NAME
-
-      !(fp, 6/09)
-      ! COUNT_BB is the number of BB tracers for a given sim
-      INTEGER              :: COUNT_BB
+      INTEGER                     :: N, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
+      CHARACTER(LEN=14)           :: NAME
 
       !=================================================================
       ! TRACERID begins here!
@@ -465,7 +464,6 @@
       CALL INIT_TRACERID( am_I_Root, Input_Opt, RC )
       
       ! Initialize counters
-      COUNT     = 0
       COUNT_Hg0 = 0
       COUNT_Hg2 = 0
       COUNT_HgP = 0
@@ -488,7 +486,6 @@
             ! Full chem tracers
             !------------------------
             CASE ( 'NO' )
-               COUNT    = COUNT + 1
                IDTNO    = N
 
             CASE ( 'NO2' )
@@ -507,7 +504,6 @@
                IDTPAN   = N
                
             CASE ( 'CO' )
-               COUNT    = COUNT + 1
                IDTCO    = N
 
                ! Special case: Tagged CO
@@ -529,7 +525,6 @@
             ! (hup, lyj, phs, 9/18/07)
             !-----------------------------------
             CASE ( 'H2' )
-               COUNT    = COUNT + 1
                IDTCO    = N
 
                ! Special case: Tagged H2 (hup 4/28/2004)
@@ -544,11 +539,9 @@
 
             ! ... and HD
             CASE ( 'HD' )
-               COUNT    = COUNT + 1
                IDTHD    = N
 
             CASE ( 'ALK4' )
-               COUNT    = COUNT + 1
                IDTALK4  = N
 
             CASE ( 'ISOP' )
@@ -561,15 +554,12 @@
                IDTH2O2  = N
 
             CASE ( 'ACET' )
-               COUNT    = COUNT + 1
                IDTACET  = N
 
             CASE ( 'MEK' )
-               COUNT    = COUNT + 1
                IDTMEK   = N
 
             CASE ( 'ALD2' )
-               COUNT    = COUNT + 1
                IDTALD2  = N
 
             CASE ( 'RCHO' )
@@ -591,19 +581,15 @@
                IDTR4N2  = N
 
             CASE ( 'PRPE' )
-               COUNT    = COUNT + 1
                IDTPRPE  = N
 
             CASE ( 'C3H8' )
-               COUNT    = COUNT + 1
                IDTC3H8  = N
 
             CASE ( 'CH2O' )
-               COUNT    = COUNT + 1
                IDTCH2O  = N
 
             CASE ( 'C2H6' )
-               COUNT    = COUNT + 1
                IDTC2H6  = N
 
                ! Special case: tagged C2H6
@@ -999,26 +985,21 @@
             ! Dicarbonyls GLYX & MGLY
             !--------------------------------
             CASE ( 'GLYX' )
-               COUNT    = COUNT + 1
                IDTGLYX  = N
 
             CASE ( 'MGLY' )
-               COUNT    = COUNT + 1
                IDTMGLY  = N
 
             !--------------------------------
             ! Aromatics tracers
             !--------------------------------
             CASE ( 'BENZ' )
-               COUNT    = COUNT + 1
                IDTBENZ  = N
 
             CASE ( 'TOLU' )
-               COUNT    = COUNT + 1
                IDTTOLU  = N
 
             CASE ( 'XYLE' )
-               COUNT    = COUNT + 1
                IDTXYLE  = N
 
             ! SOAupdate: for gas phase NAP chemistry (hotp 6/24/09)
@@ -1026,7 +1007,6 @@
             ! semivolpoa5: IVOC tracer (hotp 3/30/09)
             !-------------------------------
             CASE ( 'NAP' )
-               COUNT    = COUNT + 1
                IDTNAP   = N
 
             !--------------------------------
@@ -1048,14 +1028,12 @@
             ! C2H4
             !--------------------------------
             CASE ( 'C2H4' )
-               COUNT    = COUNT + 1
                IDTC2H4  = N
 
             !--------------------------------
             ! C2H2
             !--------------------------------
             CASE ( 'C2H2' )
-               COUNT    = COUNT + 1
                IDTC2H2  = N
                
             !--------------------------------
@@ -1068,14 +1046,12 @@
             ! GLYC
             !--------------------------------
             CASE ( 'GLYC' )
-               COUNT    = COUNT + 1
                IDTGLYC  = N
 
             !--------------------------------
             ! HAC
             !--------------------------------
             CASE ( 'HAC' )
-               COUNT    = COUNT + 1
                IDTHAC   = N
 
             !--------------------------------
@@ -1155,14 +1131,12 @@
 
             ! Special case: CH3I needs CO biomass/biofuel
             CASE ( 'CH3I', 'CH3IOC' )
-               COUNT    = COUNT + 1
                IDTCO    = 1
                !NEMANTHRO= 8      ! Reset NEMANTHRO here too (bmy, 7/25/06)
                EXIT
 
             ! Special case: HCN needs CO biomass/biofuel
             CASE ( 'HCN' )
-               COUNT    = COUNT + 1
                IDTCO    = 1
                EXIT
 
@@ -1548,23 +1522,25 @@
             CASE ( 'HGP_STR' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
-!--------------------------------------------------------------------------------
 
             !--------------------------------
             ! POPs
             ! (eck, 9/20/10); (clf, 2/11/2011)
             !--------------------------------
-            CASE ( 'POPG' )
-               COUNT     = COUNT+1              
-               IDTPOPG         = N
+            CASE ( 'POPG'     )
+               IDTPOPG      = N
                
-            CASE ( 'POPPOC' )
-               COUNT     = COUNT+1
-               IDTPOPPOC       = N
+            CASE ( 'POPPOCPO' )
+               IDTPOPPOCPO  = N
 
-            CASE ( 'POPPBC' )
-               COUNT     = COUNT+1
-               IDTPOPPBC       = N
+            CASE ( 'POPPOCPI' )
+               IDTPOPPOCPI  = N
+
+            CASE ( 'POPPBCPO' )
+               IDTPOPPBCPO  = N
+
+            CASE ( 'POPPBCPI' )
+               IDTPOPPBCPI  = N
 
 #if   defined( TOMAS )
             !-----------------------------------

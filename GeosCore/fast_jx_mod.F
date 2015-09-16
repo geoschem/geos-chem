@@ -211,6 +211,7 @@
 !                              EXTERNAL_GRID.
 !  09 Apr 2015 - R. Yantosca - Bug fixes: Add missing vars to !$OMP+PRIVATE
 !                              clause and error check for JLOOP > 0
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as for GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -379,13 +380,13 @@
             ! Directly use OPTDEPTH = TAUCLD * CLDTOT
             !===========================================================
 
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
             ! Column cloud fraction (not less than zero)
             CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
             WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
                
-            ! NOTE: For GEOS-5, GEOS-FP, and MERRA met fields, the optical
+            ! For GEOS-5, GEOS-FP, MERRA, and MERRA2 met fields, the optical
             ! depth is the in-cloud optical depth.  At this point it has 
             ! NOT been multiplied by cloud fraction yet.  Therefore, we can
             ! just apply the ! we can just apply the linear overlap formula 
@@ -413,7 +414,7 @@
             CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
             WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
                
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
             ! NOTE: For GEOS-5, GEOS-FP, and MERRA met fields, the optical
             ! depth is the in-cloud optical depth.  At this point it has 
@@ -1695,11 +1696,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in fast-J X-sections (spectral data)
       FILENAME = 'FJX_spec.dat'
 
-#if defined( ESMF_ )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
-
       ! Echo info
       IF ( am_I_Root ) THEN
          WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
@@ -1719,11 +1715,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       ! Read in 5-wavelength scattering data
       FILENAME = 'jv_spec_mie.dat'
-
-#if defined( ESMF_ )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
 
       ! Echo info
       IF ( am_I_Root ) THEN
@@ -1749,11 +1740,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in photolysis rates used in chemistry code and mapping onto FJX J's
       ! CTM call:  read in J-values names and link to fast-JX names
       FILENAME = 'FJX_j2j.dat'
-
-#if defined( ESMF_ )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
 
       ! Echo info
       IF ( am_I_Root ) THEN
@@ -2240,6 +2226,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !                                as there are elements in the SPECFIL array.
 !  25 Jun 2015 - M. Sulprizio  - Add brown carbon optical properties from 
 !                                M. Hammer 
+!  04 Aug 2015 - M. Long       - Removed ".rc" file specifier. Not necessary.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2285,15 +2272,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       !array of filenames
       DO k = 1, NSPAA
 
-       ! mirror file. Need to append '.rc' in ESMF environment. (ckeller, 4/1/15)
-       IF (LBRC) THEN
-          SPECFIL(3) = "brc.dat"
-       ENDIF
-
        THISFILE = SPECFIL(k)
-#if defined( ESMF_ )
-       THISFILE = TRIM(THISFILE) // '.rc'
-#endif
 
        ! open file
        OPEN( NJ1, FILE=TRIM( THISFILE ), STATUS='OLD', IOSTAT=IOS )

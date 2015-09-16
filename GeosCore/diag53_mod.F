@@ -22,7 +22,7 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      INTEGER, PUBLIC, PARAMETER   :: PD53 = 11  ! # of AD53 diags
+      INTEGER, PUBLIC, PARAMETER   :: PD53 = 29  ! # of AD53 diags
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -43,17 +43,20 @@
       REAL*4,  PUBLIC, ALLOCATABLE :: AD53_PG_BC_NEG(:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD53_PG_BC_POS(:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPG_OH(:,:,:)
-      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPP_OC_O3(:,:,:)
-      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPP_BC_O3(:,:,:)
-
-!      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPG_NO3(:,:,:)
-!      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPG_OX(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPP_OCPO_O3(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPP_OCPI_O3(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPP_BCPO_O3(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPP_BCPI_O3(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPP_OCPO_NO3(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPP_OCPI_NO3(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPP_BCPO_NO3(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPP_BCPI_NO3(:,:,:)
 !
 ! !REMARKS:
 !  Nomenclature: 
 !  ============================================================================
 !  (1 ) POPG                  : Gas phase POP
-!  (2 ) POPP                  : PARTICULATE PHASE POP
+!  (2 ) POPP                  : Particulate phase POP
 !
 ! !REVISION HISTORY:
 !  20 Sep 2010 - N.E. Selin  - Initial Version based on DIAG03_MOD
@@ -93,8 +96,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L, N
-
       !=================================================================
       ! ZERO_DIAG53 begins here!
       !=================================================================
@@ -103,11 +104,19 @@
       IF ( ND53 == 0 ) RETURN
 
       ! Zero arrays
-      AD53_PG_OC_NEG    = 0e+0_fp
-      AD53_PG_OC_POS    = 0e+0_fp
-      AD53_PG_BC_NEG    = 0e+0_fp
-      AD53_PG_BC_POS    = 0e+0_fp
-      AD53_POPG_OH      = 0e+0_fp
+      AD53_PG_OC_NEG     = 0e+0_fp
+      AD53_PG_OC_POS     = 0e+0_fp
+      AD53_PG_BC_NEG     = 0e+0_fp
+      AD53_PG_BC_POS     = 0e+0_fp
+      AD53_POPG_OH       = 0e+0_fp
+      AD53_POPP_OCPO_O3  = 0e+0_fp
+      AD53_POPP_OCPI_O3  = 0e+0_fp
+      AD53_POPP_BCPO_O3  = 0e+0_fp
+      AD53_POPP_BCPI_O3  = 0e+0_fp
+      AD53_POPP_OCPO_NO3 = 0e+0_fp
+      AD53_POPP_OCPI_NO3 = 0e+0_fp
+      AD53_POPP_BCPO_NO3 = 0e+0_fp
+      AD53_POPP_BCPI_NO3 = 0e+0_fp
 
       END SUBROUTINE ZERO_DIAG53
 !EOC
@@ -187,7 +196,8 @@
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
       SCALE     = DBLE( GET_CT_EMIS() ) + 1e-32_fp
-      NCHEMSTEP = DBLE( GET_CT_CHEM() ) + TINY( 1e+0_fp ) !CDH for sea salt loss rat         
+      NCHEMSTEP = DBLE( GET_CT_CHEM() ) + TINY( 1e+0_fp )
+
       !=================================================================
       ! Write data to the bpch file
       !=================================================================
@@ -198,95 +208,159 @@
          ! Get ND53 tracer #
          N = TINDEX(53,M)
 
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         ! NOTE: POPs emissions (N = 1-4) are now tracked by HEMCO
-         ! and handled in diag3.F (mps, 8/26/14)
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !--------------------------------------------------------------
+         ! POPs emissions
+         !
+         ! N = 1-16 are now tracked by HEMCO and saved out in diag3.F
+         !--------------------------------------------------------------
 
-         ! Pick the proper array & dimensions
-         IF ( N == 5  ) THEN 
+         IF ( N == 17  ) THEN
 
-            !--------------------------------
-            ! #2 New gas phase from OC (negative formation of OC)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! New gas phase from OC (negative formation of OC)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
-            NN                = N
+            NN                = N-16
             ARRAY(:,:,1:LMAX) = AD53_PG_OC_NEG(:,:,1:LMAX)
 
-         ELSE IF ( N == 6  ) THEN
+         ELSE IF ( N == 18  ) THEN
 
-            !--------------------------------
-            ! #3 New OC phase from gas (positive formation of OC)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! New OC phase from gas (positive formation of OC)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
-            NN                = N
+            NN                = N-16
             ARRAY(:,:,1:LMAX) = AD53_PG_OC_POS(:,:,1:LMAX)
 
-         ELSE IF ( N == 7  ) THEN
+         ELSE IF ( N == 19  ) THEN
 
-            !--------------------------------
-            ! #4 New gas phase from BC (negative formation of BC)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! New gas phase from BC (negative formation of BC)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
-            NN                = N
+            NN                = N-16
             ARRAY(:,:,1:LMAX) = AD53_PG_BC_NEG(:,:,1:LMAX)
 
-         ELSE IF ( N == 8 ) THEN
+         ELSE IF ( N == 20 ) THEN
 
-            !--------------------------------
-            ! #5 New BC phase from gas (positive formation of BC)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! New BC phase from gas (positive formation of BC)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
-            NN                = N
+            NN                = N-16
             ARRAY(:,:,1:LMAX) = AD53_PG_BC_POS(:,:,1:LMAX)
 
 
-         ELSE IF ( N == 9  ) THEN
+         ELSE IF ( N == 21  ) THEN
 
-            !--------------------------------
-            ! #6 Production of oxidized POPG from rxn with OH (clf, 1/27/11)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! Production of oxidized POPG from rxn with OH (clf, 1/27/11)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
-            NN                = N
+            NN                = N-16
             ARRAY(:,:,1:LMAX) = AD53_POPG_OH(:,:,1:LMAX)     
 
-         ELSE IF ( N == 10  ) THEN
+         ELSE IF ( N == 22  ) THEN
 
-            !--------------------------------
-            ! #7 Production of oxidized POPOC from rxn with O3 (clf, 6/28/11)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! Production of oxidized POPOCPO from rxn with O3 (clf, 6/28/11)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD53_POPP_OC_O3(:,:,1:LMAX) 
+            NN                = N-16
+            ARRAY(:,:,1:LMAX) = AD53_POPP_OCPO_O3(:,:,1:LMAX) 
 
-         ELSE IF ( N == 11  ) THEN
+         ELSE IF ( N == 23  ) THEN
 
-            !--------------------------------
-            ! #8 Production of oxidized POPBC from rxn with O3 (clf, 6/28/11)
-            !--------------------------------
+            !-----------------------------------------------------------
+            ! Production of oxidized POPOCPI from rxn with O3 (clf, 6/28/11)
+            !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD53_POPP_BC_O3(:,:,1:LMAX)       
+            NN                = N-16
+            ARRAY(:,:,1:LMAX) = AD53_POPP_OCPI_O3(:,:,1:LMAX) 
+
+         ELSE IF ( N == 24  ) THEN
+
+            !-----------------------------------------------------------
+            ! Production of oxidized POPBCPO from rxn with O3 (clf, 6/28/11)
+            !-----------------------------------------------------------
+            CATEGORY          = 'PG-PP-$'
+            UNIT              = 'kg'
+            LMAX              = LD53 
+            NN                = N-16
+            ARRAY(:,:,1:LMAX) = AD53_POPP_BCPO_O3(:,:,1:LMAX)    
+
+         ELSE IF ( N == 25  ) THEN
+
+            !-----------------------------------------------------------
+            ! Production of oxidized POPBCPI from rxn with O3 (clf, 6/28/11)
+            !-----------------------------------------------------------
+            CATEGORY          = 'PG-PP-$'
+            UNIT              = 'kg'
+            LMAX              = LD53 
+            NN                = N-16
+            ARRAY(:,:,1:LMAX) = AD53_POPP_BCPI_O3(:,:,1:LMAX)  
+
+         ELSE IF ( N == 26  ) THEN
+
+            !-----------------------------------------------------------
+            ! Production of oxidized POPOCPO from rxn with NO3 (clf, 6/28/11)
+            !-----------------------------------------------------------
+            CATEGORY          = 'PG-PP-$'
+            UNIT              = 'kg'
+            LMAX              = LD53 
+            NN                = N-16
+            ARRAY(:,:,1:LMAX) = AD53_POPP_OCPO_NO3(:,:,1:LMAX) 
+
+         ELSE IF ( N == 27  ) THEN
+
+            !-----------------------------------------------------------
+            ! Production of oxidized POPOCPI from rxn with NO3 (clf, 6/28/11)
+            !-----------------------------------------------------------
+            CATEGORY          = 'PG-PP-$'
+            UNIT              = 'kg'
+            LMAX              = LD53 
+            NN                = N-16
+            ARRAY(:,:,1:LMAX) = AD53_POPP_OCPI_NO3(:,:,1:LMAX) 
+
+         ELSE IF ( N == 28  ) THEN
+
+            !-----------------------------------------------------------
+            ! Production of oxidized POPBCPO from rxn with NO3 (clf, 6/28/11)
+            !-----------------------------------------------------------
+            CATEGORY          = 'PG-PP-$'
+            UNIT              = 'kg'
+            LMAX              = LD53 
+            NN                = N-16
+            ARRAY(:,:,1:LMAX) = AD53_POPP_BCPO_NO3(:,:,1:LMAX)    
+
+         ELSE IF ( N == 29  ) THEN
+
+            !-----------------------------------------------------------
+            ! Production of oxidized POPBCPI from rxn with NO3 (clf, 6/28/11)
+            !-----------------------------------------------------------
+            CATEGORY          = 'PG-PP-$'
+            UNIT              = 'kg'
+            LMAX              = LD53 
+            NN                = N-16
+            ARRAY(:,:,1:LMAX) = AD53_POPP_BCPI_NO3(:,:,1:LMAX)
   
          ELSE
 
-            !--------------------------------
             ! Otherwise skip to next N
-            !--------------------------------
             CYCLE
 
          ENDIF
@@ -361,11 +435,29 @@
       ALLOCATE( AD53_POPG_OH( IIPAR, JJPAR, LD53 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPG_OH' )
 
-      ALLOCATE( AD53_POPP_OC_O3( IIPAR, JJPAR, LD53 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_OC_O3' )
+      ALLOCATE( AD53_POPP_OCPO_O3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_OCPO_O3' )
 
-      ALLOCATE( AD53_POPP_BC_O3( IIPAR, JJPAR, LD53 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_BC_O3' )
+      ALLOCATE( AD53_POPP_OCPI_O3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_OCPI_O3' )
+
+      ALLOCATE( AD53_POPP_BCPO_O3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_BCPO_O3' )
+
+      ALLOCATE( AD53_POPP_BCPI_O3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_BCPI_O3' )
+
+      ALLOCATE( AD53_POPP_OCPO_NO3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_OCPO_NO3' )
+
+      ALLOCATE( AD53_POPP_OCPI_NO3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_OCPI_NO3' )
+
+      ALLOCATE( AD53_POPP_BCPO_NO3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_BCPO_NO3' )
+
+      ALLOCATE( AD53_POPP_BCPI_NO3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_BCPI_NO3' )
     
       ! Zero arrays
       CALL ZERO_DIAG53
@@ -395,13 +487,19 @@
       !=================================================================
       ! CLEANUP_DIAG53 begins here!
       !=================================================================
-      IF ( ALLOCATED( AD53_PG_OC_NEG ) ) DEALLOCATE( AD53_PG_OC_NEG ) 
-      IF ( ALLOCATED( AD53_PG_OC_POS ) ) DEALLOCATE( AD53_PG_OC_POS )
-      IF ( ALLOCATED( AD53_PG_BC_NEG ) ) DEALLOCATE( AD53_PG_BC_NEG )
-      IF ( ALLOCATED( AD53_PG_BC_POS ) ) DEALLOCATE( AD53_PG_BC_POS )
-      IF ( ALLOCATED( AD53_POPG_OH ) ) DEALLOCATE( AD53_POPG_OH )
-      IF ( ALLOCATED( AD53_POPP_OC_O3 ) ) DEALLOCATE( AD53_POPP_OC_O3 )
-      IF ( ALLOCATED( AD53_POPP_BC_O3 ) ) DEALLOCATE( AD53_POPP_BC_O3 )
+      IF (ALLOCATED(AD53_PG_OC_NEG    )) DEALLOCATE(AD53_PG_OC_NEG    ) 
+      IF (ALLOCATED(AD53_PG_OC_POS    )) DEALLOCATE(AD53_PG_OC_POS    )
+      IF (ALLOCATED(AD53_PG_BC_NEG    )) DEALLOCATE(AD53_PG_BC_NEG    )
+      IF (ALLOCATED(AD53_PG_BC_POS    )) DEALLOCATE(AD53_PG_BC_POS    )
+      IF (ALLOCATED(AD53_POPG_OH      )) DEALLOCATE(AD53_POPG_OH      )
+      IF (ALLOCATED(AD53_POPP_OCPO_O3 )) DEALLOCATE(AD53_POPP_OCPO_O3 )
+      IF (ALLOCATED(AD53_POPP_OCPI_O3 )) DEALLOCATE(AD53_POPP_OCPI_O3 )
+      IF (ALLOCATED(AD53_POPP_BCPO_O3 )) DEALLOCATE(AD53_POPP_BCPO_O3 )
+      IF (ALLOCATED(AD53_POPP_BCPI_O3 )) DEALLOCATE(AD53_POPP_BCPI_O3 )
+      IF (ALLOCATED(AD53_POPP_OCPO_NO3)) DEALLOCATE(AD53_POPP_OCPO_NO3)
+      IF (ALLOCATED(AD53_POPP_OCPI_NO3)) DEALLOCATE(AD53_POPP_OCPI_NO3)
+      IF (ALLOCATED(AD53_POPP_BCPO_NO3)) DEALLOCATE(AD53_POPP_BCPO_NO3)
+      IF (ALLOCATED(AD53_POPP_BCPI_NO3)) DEALLOCATE(AD53_POPP_BCPI_NO3)
 
       END SUBROUTINE CLEANUP_DIAG53
 !EOC

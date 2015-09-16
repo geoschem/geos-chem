@@ -230,6 +230,9 @@ MODULE GIGC_State_Met_Mod
 
   END TYPE MetState
 !
+! !REMARKS:
+!  In MERRA2, PS and SLP are kept in Pa (not converted to hPa).
+!
 ! !REVISION HISTORY: 
 !  19 Oct 2012 - R. Yantosca - Initial version, split off from gc_type_mod.F90
 !  23 Oct 2012 - R. Yantosca - Added QI, QL met fields to the derived type
@@ -250,6 +253,7 @@ MODULE GIGC_State_Met_Mod
 !                              Add MOISTMW to use TCVV with moist mixing ratio. 
 !  25 May 2015 - C. Keller   - Removed SUNCOSmid5 (now calculated by HEMCO).
 !  08 Jul 2015 - E. Lundgren - Add XCHLR and XCHLR2 for organic marine aerosols
+!  11 Aug 2015 - R. Yantosca - Extend #ifdefs for MERRA2 met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -575,10 +579,10 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%TTO3     = 0.0_fp
 
-#elif defined( GEOS_FP ) || defined( MERRA )
+#elif defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
 
     !=======================================================================
-    ! GEOS-5.7.x / MERRA met fields
+    ! MERRA, GEOS-FP, and MERRA2 met fields
     !=======================================================================
     ALLOCATE( State_Met%FRSEAICE  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -857,14 +861,14 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%ZMMU     = 0.0_fp
 
-#elif defined( GEOS_FP ) || defined( MERRA )
+#elif defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
 
     !=======================================================================
-    ! GEOS-5.7.x / MERRA met fields
+    ! MERRA, GEOS-FP, and MERRA2 met fields
     !=======================================================================
 
     ! Pick the proper vertical dimension
-#if defined( GEOS_FP )
+#if defined( GEOS_FP ) || defined( MERRA2 )
     LX = LM + 1           ! For fields that are on level edges
 #else
     LX = LM               ! For fields that are on level centers
@@ -1143,9 +1147,9 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%TO32       )) DEALLOCATE( State_Met%TO32       )
     IF ( ASSOCIATED( State_Met%TTO3       )) DEALLOCATE( State_Met%TTO3       )
 
-#elif defined( GEOS_FP ) || defined( MERRA )
+#elif defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
     !========================================================================
-    ! Fields specific to the GMAO MERRA and GEOS-5.7.x met data products
+    ! Fields specific to the GMAO GEOS-FP, MERRA, and MERRA-2 met products
     !========================================================================
 
     ! 2-D fields

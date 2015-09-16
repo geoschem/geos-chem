@@ -381,6 +381,9 @@ CONTAINS
        ExtState%POP_DEL_H   = Input_Opt%POP_DEL_H
        ExtState%POP_KOA     = Input_Opt%POP_KOA
        ExtState%POP_KBC     = Input_Opt%POP_KBC
+       ExtState%POP_DEL_Hw  = Input_Opt%POP_DEL_Hw
+       ExtState%POP_XMW     = Input_Opt%POP_XMW
+       ExtState%POP_HSTAR   = Input_Opt%POP_HSTAR
     ENDIF
 
     !-----------------------------------------------------------------
@@ -1023,6 +1026,9 @@ CONTAINS
     USE Get_Ndep_Mod,          ONLY : DRY_TOTN
     USE Get_Ndep_Mod,          ONLY : WET_TOTN
 
+    ! For POPs
+    USE TRACERID_MOD,          ONLY : IDTPOPG
+
 #if !defined(ESMF_)
     USE MODIS_LAI_MOD,         ONLY : GC_LAI
 #endif
@@ -1103,9 +1109,15 @@ CONTAINS
             'ALBD',  HCRC,      FIRST,    State_Met%ALBD )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
+#if defined ( GCAP )
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%WLI, &
+             'WLI',  HCRC,      FIRST,    State_Met%LWI_GISS  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+#else
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%WLI, &
              'WLI',  HCRC,      FIRST,    State_Met%LWI  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
+#endif
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%T2M, &
              'T2M',  HCRC,      FIRST,    State_Met%TS   )
@@ -1139,6 +1151,10 @@ CONTAINS
             'PARDF', HCRC,      FIRST,    State_Met%PARDF  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%PSC2, &
+             'PSC2', HCRC,      FIRST,    State_Met%PSC2  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%RADSWG, &
            'RADSWG', HCRC,      FIRST,    State_Met%RADSWG  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
@@ -1151,7 +1167,7 @@ CONTAINS
             'CLDFRC', HCRC,      FIRST,    State_Met%CLDFRC  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
-#if   defined( GEOS_4 ) 
+#if defined( GEOS_4 ) 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNOWHGT, &
           'SNOWHGT', HCRC,      FIRST,    State_Met%SNOW     )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
@@ -1159,8 +1175,19 @@ CONTAINS
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNODP, &
             'SNODP', HCRC,      FIRST,    State_Met%SNOW   )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
-#else
+#elif defined ( GCAP )
+   CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNOWHGT, &
+         'SNOWHGT', HCRC,      FIRST,    State_Met%SNOW     )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNODP, &
+            'SNODP', HCRC,      FIRST,    State_Met%SNOW   )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNICE, &
+            'SNICE', HCRC,      FIRST,    State_Met%SNICE  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+#else
     ! SNOWHGT is is mm H2O, which is the same as kg H2O/m2.
     ! This is the unit of SNOMAS.
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNOWHGT, &
@@ -1201,7 +1228,7 @@ CONTAINS
 #endif
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%CHLR, &
-              'CHLR', HCRC,      FIRST,   GC_CHLR         )
+             'CHLR', HCRC,      FIRST,   GC_CHLR          )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
 
@@ -1246,6 +1273,11 @@ CONTAINS
     IF ( IDTHNO3 > 0 ) THEN
        CALL ExtDat_Set( am_I_Root, HcoState, ExtState%HNO3, &
           'HEMCO_HNO3', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTHNO3))
+       IF ( HCRC /= HCO_SUCCESS ) RETURN
+    ENDIF
+    IF ( IDTPOPG > 0 ) THEN
+       CALL ExtDat_Set( am_I_Root, HcoState, ExtState%POPG, &
+          'HEMCO_POPG', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTPOPG))
        IF ( HCRC /= HCO_SUCCESS ) RETURN
     ENDIF
 
@@ -2322,6 +2354,8 @@ CONTAINS
 !  16 Mar 2015 - R. Yantosca - Now also toggle TOMS_SBUV_O3 based on
 !                              met field type and input.geos settings
 !  25 Mar 2015 - C. Keller   - Added switch for STATE_PSC (for UCX)
+!  27 Aug 2015 - E. Lundgren - Now always read TOMS for mercury simulation when
+!                              photo-reducible HgII(aq) to UV-B radiation is on
 !  11 Sep 2015 - E. Lundgren - Remove State_Met and State_Chm from passed args
 !EOP
 !------------------------------------------------------------------------------
@@ -2479,14 +2513,17 @@ CONTAINS
     ! NON-EMISSIONS DATA #4: TOMS/SBUV overhead O3 columns
     !
     ! If we are using the GEOS-FP met fields, then we will not read in 
-    ! the TOMS/SBUV O3 columns.  We will instead use the O3 columns from
-    ! the GEOS-FP met fields.  In this case, we will toggle the 
-    ! +TOMS_SBUV_O3+ collection OFF.
+    ! the TOMS/SBUV O3 columns unless running a mercury simulation.
+    ! We will instead use the O3 columns from the GEOS-FP met fields.  
+    ! In this case, we will toggle the +TOMS_SBUV_O3+ collection OFF.
     !
     ! All other met fields use the TOMS/SBUV data in one way or another,
     ! so we will have to read these data from netCDF files.  In this
-    ! case, toggle the +TOMS_SBUV_O3+ collection ON if wphotolysis is
+    ! case, toggle the +TOMS_SBUV_O3+ collection ON if photolysis is
     ! required (i.e. for fullchem/aerosol simulations w/ chemistry on).
+    !
+    ! If running a mercury simulation, TOMS/SBUV O3 columns are only used 
+    ! for the photo-reducible HgII(aq) to UV-B radiation option (jaf)
     !-----------------------------------------------------------------------
     CALL GetExtOpt( -999, '+TOMS_SBUV_O3+', OptValBool=LTMP, &
                            FOUND=FOUND,     RC=RC )
@@ -2496,14 +2533,18 @@ CONTAINS
 
 #if defined( GEOS_FP )
     
-    ! Disable for GEOS-FP met fields, no matter what it is set to
-    ! in the HEMCO configuration file.
-    IF ( FOUND ) THEN
-       OptName = '+TOMS_SBUV_O3+ : false'
-       CALL AddExtOpt( TRIM(OptName), CoreNr, RC ) 
-       IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'AddExtOpt GEOS-FP +TOMS_SBUV_O3+', LOC )
-       ENDIF
+    ! Disable for GEOS-FP met fields no matter what it is set to in the 
+    ! HEMCO configuration file unless it is a mercury simulation done 
+    ! with photo-reducible HgII(aq) to UV-B radiation turned on (jaf)
+    IF ( Input_Opt%ITS_A_MERCURY_SIM .and.   &
+         Input_Opt%LKRedUV ) THEN
+       OptName = '+TOMS_SBUV_O3+ : true'          
+    ELSE
+       OptName = '+TOMS_SBUV_O3+ : false'          
+    ENDIF
+    CALL AddExtOpt( TRIM(OptName), CoreNr, RC ) 
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP( 'AddExtOpt GEOS-FP +TOMS_SBUV_O3+', LOC )
     ENDIF
 
 #else
@@ -2511,8 +2552,10 @@ CONTAINS
     IF ( FOUND ) THEN
 
        ! Print a warning if this collection is defined in the HEMCO config
-       ! file, but is set to an value inconsistent with input.geos file.
-       IF ( Input_Opt%LCHEM /= LTMP ) THEN
+       ! file, but is set to a value inconsistent with input.geos file.
+       !
+       IF ( Input_Opt%LCHEM /= LTMP .and.                           &
+            .not. Input_Opt%ITS_A_MERCURY_SIM ) THEN
           WRITE(*,*) ' '
           WRITE(*,*) 'Setting +TOMS_SBUV_O3+ in the HEMCO configuration'
           WRITE(*,*) 'file does not agree with the chemistry settings'
@@ -2524,20 +2567,23 @@ CONTAINS
 
        ! If this collection is not found in the HEMCO config file, then
        ! activate it only for those simulations that use photolysis 
-       ! (e.g. fullchem or aerosol) and only when chemistry is turned on.
+       ! (e.g. fullchem or aerosol) and only when chemistry is turned on,
+       ! or when a mercury simulation is done with photo-reducible
+       ! HgII(aq) to UV-B radiation turned on.
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
             Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
           IF ( Input_Opt%LCHEM ) THEN
              OptName = '+TOMS_SBUV_O3+ : true'
-          ELSE
-             OptName = '+TOMS_SBUV_O3+ : false'
           ENDIF
+       ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM .and. &
+                 Input_Opt%LKRedUV ) THEN
+          OptName = '+TOMS_SBUV_O3+ : true'
        ELSE
           OptName = '+TOMS_SBUV_O3+ : false'
        ENDIF
        CALL AddExtOpt( TRIM(OptName), CoreNr, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'AddExtOpt +Uvalbedo+', LOC )
+          CALL ERROR_STOP( 'AddExtOpt +TOMS_SBUV_O3+', LOC )
        ENDIF
     ENDIF 
 
@@ -2561,7 +2607,7 @@ CONTAINS
        ! Stop the run if this collection is defined in the HEMCO config
        ! file, but is set to an value inconsistent with input.geos file.
        IF ( Input_Opt%LDYNOCEAN .AND. ( .NOT. LTMP ) ) THEN
-          MSG = 'Setting +UValbedo+ in the HEMCO configuration file ' // &
+          MSG = 'Setting +OCEAN_Hg+ in the HEMCO configuration file ' // &
                 'must not be disabled if chemistry is turned on. '    // &
                 'If you don`t set that setting explicitly, it will '  // &
                 'be set automatically during run-time (recommended)'

@@ -7053,6 +7053,7 @@ ccc
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7139,7 +7140,7 @@ ccc
          ! GET gas mixing ratio [v/v]
          XGASMIX = XGASM / XMW / ( XAIRM / 28.97e+0_fp )
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -7292,6 +7293,7 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7379,7 +7381,7 @@ ccc
          ! GET gas mixing ratio [v/v]
          XGASMIX = XGASM / XMW / ( XAIRM / 28.97e+0_fp )
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -8872,6 +8874,7 @@ ccc
 !  26 Sep 2013 - R. Yantosca - Removed SEAC4RS Cpp switch, this is supplanted
 !                              by NESTED_NA
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  11 Aug 2015 - R. Yantosca - Add support for MERRA2 data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9019,7 +9022,7 @@ ccc
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_SESQ' )
          ORVC_SESQ = 0e+0_fp
 
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
          ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
          ! directly from the met fields.  (skim, bmy, 1/14/10)
          ALLOCATE( VCLDF( IIPAR, JJPAR, LLCHEM ), STAT=AS )

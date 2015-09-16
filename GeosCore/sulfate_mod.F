@@ -1307,6 +1307,8 @@
             TSCALE = 2.*3600.
 #elif defined( GRID1x1   )
             TSCALE = 2.*3600.
+#elif defined( GRID05x0625 )
+            TSCALE = 1.*3600.  ! Placeholder: the 0.5 x 0.666 value
 #elif defined( GRID05x0666 )
             TSCALE = 1.*3600.
 #elif defined( GRID025x03125 )
@@ -2558,6 +2560,7 @@
 !  12 Jan 2015 - C. Keller   - Now allow NDENS_SALA and NDENS_SALC to be empty.
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2889,7 +2892,7 @@
          ! Update SO2 concentration after cloud chemistry          
          ! SO2 chemical loss rate = SO4 production rate [v/v/timestep]
          !==============================================================
-#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -7180,6 +7183,9 @@
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
       USE TRACERID_MOD,       ONLY : IDTSALA, IDTSALC
+! (jas, 8/4/15) calculate kt using sea salt surface area concentration
+      USE CMN_SIZE_MOD,       ONLY : NDUST
+      USE COMODE_MOD,         ONLY : JLOP, ERADIUS, TAREA
 !
 ! !INPUT PARAMETERS: 
 !
@@ -7202,6 +7208,9 @@
 !  (2 ) Bug fix to remove a double-substitution.  Replace code lines for 
 !        TERM{123}A, TERM{123}B, TERM{123}AN, TERM{123}BN. (bec, bmy, 7/18/08)
 !  (3 ) Updated hygroscopic growth parameters (bec, bmy, 11/23/09)
+!  (4 ) Fixed bug when calculating rate constants for uptake of SO2 and HNO3
+!       (kt). The bug caused kt to be too small and prevented acidification 
+!       of SSA. (jas, 8/4/15)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
@@ -7232,6 +7241,10 @@
       REAL(fp), PARAMETER :: gamma_HNO3 = 0.2e+0_fp !from JPL [2001] 
       REAL(fp), PARAMETER :: Dg = 0.2e+0_fp !gas phase diffusion coeff. [cm2/s]
       REAL(fp), PARAMETER :: v = 3.0e+4_fp  !cm/s
+      REAL(fp)            :: SA1, SA2 ! SSA surface area [cm2/cm3]
+      REAL(fp)            :: R1, R2 ! SSA radius [cm]
+      INTEGER             :: JLOOP
+
 
       ! HEMCO update
       REAL(fp)            :: FEMIS
@@ -7290,14 +7303,14 @@
      &        * State_Met%AREA_M2(I,J,1) * TS_EMIS * FEMIS 
 
          ! Get number densities in # / cm3. Weight by fraction of PBL
-         IF ( ASSOCIATED(NDENS_SALA) ) THEN
-            N1 = NDENS_SALA(I,J) / State_Met%AIRVOL(I,J,L) 
-     &         * 1.e-6_fp        * FEMIS
-         ENDIF
-         IF ( ASSOCIATED(NDENS_SALC) ) THEN
-            N2 = NDENS_SALC(I,J) / State_Met%AIRVOL(I,J,L) 
-     &         * 1.e-6_fp        * FEMIS
-         ENDIF
+!         IF ( ASSOCIATED(NDENS_SALA) ) THEN
+!            N1 = NDENS_SALA(I,J) / State_Met%AIRVOL(I,J,L) 
+!     &         * 1.e-6_fp        * FEMIS
+!         ENDIF
+!         IF ( ASSOCIATED(NDENS_SALC) ) THEN
+!            N2 = NDENS_SALC(I,J) / State_Met%AIRVOL(I,J,L) 
+!     &         * 1.e-6_fp        * FEMIS
+!         ENDIF
 
       ENDIF
 
@@ -7321,26 +7334,34 @@
       ! If there is any alkalinity ...
       IF ( ALK > MINDAT ) THEN
 
+         JLOOP = JLOP(I,J,L)
+
+         SA1= TAREA(JLOOP,4+NDUST) !in cm2/cm3
+         SA2= TAREA(JLOOP,5+NDUST) !in cm2/cm3
+
+         R1 = ERADIUS(JLOOP,4+NDUST) !in cm
+         R2 = ERADIUS(JLOOP,5+NDUST) !in cm
+
          ! set humidity index IRH as a percent
-         IRH = State_Met%RH(I,J,L)
-         IRH = MAX(  1, IRH )
-         IRH = MIN( 99, IRH )
+         !IRH = State_Met%RH(I,J,L)
+         !IRH = MAX(  1, IRH )
+         !IRH = MIN( 99, IRH )
 
          ! Hygroscopic growth factor for sea-salt from Chin et al. (2002)
          ! Updated (bec, bmy, 11/23/09)
-         IF ( IRH < 100 ) HGF = 4.8e+0_fp
-         IF ( IRH < 99  ) HGF = 2.9e+0_fp
-         IF ( IRH < 95  ) HGF = 2.4e+0_fp
-         IF ( IRH < 90  ) HGF = 2.0e+0_fp
-         IF ( IRH < 80  ) HGF = 1.8e+0_fp
-         IF ( IRH < 70  ) HGF = 1.6e+0_fp
-         IF ( IRH < 50  ) HGF = 1.0e+0_fp
+         !IF ( IRH < 100 ) HGF = 4.8e+0_fp
+         !IF ( IRH < 99  ) HGF = 2.9e+0_fp
+         !IF ( IRH < 95  ) HGF = 2.4e+0_fp
+         !IF ( IRH < 90  ) HGF = 2.0e+0_fp
+         !IF ( IRH < 80  ) HGF = 1.8e+0_fp
+         !IF ( IRH < 70  ) HGF = 1.6e+0_fp
+         !IF ( IRH < 50  ) HGF = 1.0e+0_fp
 
          ! radius of sea-salt aerosol size bins [cm] accounting for 
          ! hygroscopic growth
-         RAD1 = Input_Opt%SALA_REDGE_um(1) * HGF * 1.e-4_fp 
-         RAD2 = Input_Opt%SALA_REDGE_um(2) * HGF * 1.e-4_fp 
-         RAD3 = Input_Opt%SALC_REDGE_um(2) * HGF * 1.e-4_fp 
+         !RAD1 = Input_Opt%SALA_REDGE_um(1) * HGF * 1.e-4_fp 
+         !RAD2 = Input_Opt%SALA_REDGE_um(2) * HGF * 1.e-4_fp 
+         !RAD3 = Input_Opt%SALC_REDGE_um(2) * HGF * 1.e-4_fp 
 
          !----------------------------------
          ! SO2 uptake onto fine particles 
@@ -7349,12 +7370,14 @@
 	 ! calculate gas-to-particle rate constant for uptake of 
 	 ! SO2 onto fine sea-salt aerosols [Jacob, 2000] analytical solution
          CONST1 = 4.e+0_fp/(V*GAMMA_SO2)
-         A1     = (RAD1/DG)+CONST1
-         B1     = (RAD2/DG)+CONST1
-         TERM1A = ((B1**2)/2.0e+0_fp) - ((A1**2)/2.0e+0_fp)
-         TERM2A = 2.e+0_fp*CONST1*(B1-A1)
-         TERM3A = (CONST1**2)*LOG(B1/A1)
-         KT1    = 4.e+0_fp*PI*N1*(DG**3)*(TERM1A - TERM2A + TERM3A)
+         !A1     = (RAD1/DG)+CONST1
+         !B1     = (RAD2/DG)+CONST1
+         !TERM1A = ((B1**2)/2.0e+0_fp) - ((A1**2)/2.0e+0_fp)
+         !TERM2A = 2.e+0_fp*CONST1*(B1-A1)
+         !TERM3A = (CONST1**2)*LOG(B1/A1)
+         !KT1    = 4.e+0_fp*PI*N1*(DG**3)*(TERM1A - TERM2A + TERM3A)
+         ! now calculate rate of uptake as kt = [SSA]/( r/Dg + 4/(v*gamma) )
+         KT1    = SA1/((R1/DG) + CONST1)
 
          !----------------------------------
          ! SO2 uptake onto coarse particles 
@@ -7363,12 +7386,13 @@
 	 ! calculate gas-to-particle rate constant for uptake of 
 	 ! SO2 onto coarse sea-salt aerosols [Jacob, 2000] analytical solution
          CONST2 = 4.e+0_fp/(V*GAMMA_SO2)
-         A2     = (RAD2/DG)+CONST2
-         B2     = (RAD3/DG)+CONST2
-         TERM1B = ((B2**2)/2.0e+0_fp) - ((A2**2)/2.0e+0_fp)
-         TERM2B = 2.e+0_fp*CONST2*(B2-A2)
-         TERM3B = (CONST2**2)*LOG(B2/A2)
-         KT2    = 4.e+0_fp*PI*N2*(DG**3)*(TERM1B - TERM2B + TERM3B)
+         !A2     = (RAD2/DG)+CONST2
+         !B2     = (RAD3/DG)+CONST2
+         !TERM1B = ((B2**2)/2.0e+0_fp) - ((A2**2)/2.0e+0_fp)
+         !TERM2B = 2.e+0_fp*CONST2*(B2-A2)
+         !TERM3B = (CONST2**2)*LOG(B2/A2)
+         !KT2    = 4.e+0_fp*PI*N2*(DG**3)*(TERM1B - TERM2B + TERM3B)
+         KT2    = SA2/((R2/DG) + CONST2)
          KT     = KT1 + KT2
 
          !----------------------------------
@@ -7378,12 +7402,13 @@
          ! calculate gas-to-particle rate constant for uptake of 
          ! HNO3 onto fine sea-salt aerosols [Jacob, 2000] analytical solution
          CONST1N = 4.e+0_fp/(V*GAMMA_HNO3)
-         A1N     = (RAD1/DG)+CONST1N
-         B1N     = (RAD2/DG)+CONST1N
-         TERM1AN = ((B1N**2)/2.0e+0_fp) - ((A1N**2)/2.0e+0_fp)
-         TERM2AN = 2.e+0_fp*CONST1N*(B1N-A1N)
-         TERM3AN = (CONST1N**2)*LOG(B1N/A1N)
-         KT1N    = 4.e+0_fp*PI*N1*(DG**3)*(TERM1AN - TERM2AN + TERM3AN)
+         !A1N     = (RAD1/DG)+CONST1N
+         !B1N     = (RAD2/DG)+CONST1N
+         !TERM1AN = ((B1N**2)/2.0e+0_fp) - ((A1N**2)/2.0e+0_fp)
+         !TERM2AN = 2.e+0_fp*CONST1N*(B1N-A1N)
+         !TERM3AN = (CONST1N**2)*LOG(B1N/A1N)
+         !KT1N    = 4.e+0_fp*PI*N1*(DG**3)*(TERM1AN - TERM2AN + TERM3AN)
+         KT1N    = SA1/((R1/DG) + CONST1N)
 
          !----------------------------------
          ! HNO3 uptake onto coarse particles 
@@ -7392,12 +7417,13 @@
 	 ! calculate gas-to-particle rate constant for uptake of 
 	 ! HNO3 onto coarse sea-salt aerosols [Jacob, 2000] analytical solution
          CONST2N = 4.e+0_fp/(V*GAMMA_HNO3)
-         A2N     = (RAD2/DG)+CONST2N
-         B2N     = (RAD3/DG)+CONST2N
-         TERM1BN = ((B2N**2)/2.0e+0_fp) - ((A2N**2)/2.0e+0_fp)
-         TERM2BN = 2.e+0_fp*CONST2N*(B2N-A2N)
-         TERM3BN = (CONST2N**2)*LOG(B2N/A2N)
-         KT2N    = 4.e+0_fp*PI*N2*(DG**3)*(TERM1BN - TERM2BN + TERM3BN)
+         !A2N     = (RAD2/DG)+CONST2N
+         !B2N     = (RAD3/DG)+CONST2N
+         !TERM1BN = ((B2N**2)/2.0e+0_fp) - ((A2N**2)/2.0e+0_fp)
+         !TERM2BN = 2.e+0_fp*CONST2N*(B2N-A2N)
+         !TERM3BN = (CONST2N**2)*LOG(B2N/A2N)
+         !KT2N    = 4.e+0_fp*PI*N2*(DG**3)*(TERM1BN - TERM2BN + TERM3BN)
+         KT2N    = SA2/((R2/DG) + CONST2N)
 
 
       ELSE
@@ -7538,7 +7564,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOx_SCALE' )
       SOx_SCALE = 0e+0_fp
 
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
       ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
       ! directly from the met fields.  (skim, bmy, 1/14/10)
       ALLOCATE( VCLDF( IIPAR, JJPAR, LLCHEM ), STAT=AS )

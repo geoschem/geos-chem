@@ -496,7 +496,7 @@ decomp.o                    : decomp.F
 
 depo_mercury_mod.o          : depo_mercury_mod.F                             \
                               dao_mod.o               diag_mod.o             \
-                              tracerid_mod.o         
+                              diag03_mod.o            tracerid_mod.o         
 
 diag03_mod.o                : diag03_mod.F                                   \
                               tracerid_mod.o
@@ -590,12 +590,11 @@ dust_mod.o                  : dust_mod.F                                     \
                               tomas_mod.o             tracerid_mod.o
 
 emissions_mod.o             : emissions_mod.F90                              \
-                              bromocarb_mod.o                                \
-                              carbon_mod.o            co2_mod.o              \
-                              dust_mod.o              global_ch4_mod.o       \
-                              hcoi_gc_main_mod.o      sulfate_mod.o          \
-                              tomas_mod.o             tracerid_mod.o         \
-                              ucx_mod.o        
+                              bromocarb_mod.o         carbon_mod.o           \
+                              co2_mod.o               global_ch4_mod.o       \
+                              hcoi_gc_main_mod.o      mercury_mod.o          \
+                              sulfate_mod.o           tomas_mod.o            \
+                              tracerid_mod.o          ucx_mod.o        
 
 exchange_mod.o              : exchange_mod.F                                 \
 	                      tpcore_bc_mod.o         dao_mod.o              \
@@ -749,7 +748,7 @@ main.o                      : main.F                                         \
                               tracerid_mod.o          wetscav_mod.o          \
                               ucx_mod.o               vdiff_mod.o            \
                               emissions_mod.o         cleanup.o              \
-                              mixing_mod.o                                   \
+                              mixing_mod.o            merra2_read_mod.o      \
                               rrtmg_rad_transfer_mod.o
 
 mapping_mod.o               : mapping_mod.F90                              
@@ -773,6 +772,9 @@ merra_cn_mod.o              : merra_cn_mod.F                                 \
                               diag_mod.o
 
 merra_i6_mod.o              : merra_i6_mod.F
+
+merra2_read_mod.o           : merra2_read_mod.F90                            \
+                              dao_mod.o               diag_mod.o
 
 mixing_mod.o                : mixing_mod.F90                                 \
                               chemgrid_mod.o                                 \
@@ -798,8 +800,8 @@ ndxx_setup.o                : ndxx_setup.F                                   \
 
 ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
                               dao_mod.o               depo_mercury_mod.o     \
-                              diag03_mod.o            tracerid_mod.o
-
+                              diag03_mod.o            tracerid_mod.o         \
+                              toms_mod.o
 
 ohsave.o                    : ohsave.F                                       \
                               comode_mod.o            tracerid_mod.o
