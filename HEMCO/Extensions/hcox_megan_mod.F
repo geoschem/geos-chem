@@ -1814,6 +1814,12 @@
       !  standard conditions. 
       IF ( CMPD == 'ISOP' ) THEN
          ! Only apply CO2 inhibition to isoprene (mps, 9/15/15)
+         ! Amos Tai wrote: 
+         !  In my opinion, we should not apply the CO2 inhibition factor on
+         !  other monoterpene species yet, because the empirical data I've used
+         !  are for isoprene emissions only. But we generally agree that CO2
+         !  inhibition should affect monoterpenes too, so we'll leave room for
+         !  future incorporation when new data arise.
          MEGAN_EMIS = NORM_FAC(1) * AEF * GAMMA_AGE * GAMMA_SM *
      &                GAMMA_LAI * ((1.0_hp - LDF) * GAMMA_T_LI +
      &                (LDF * GAMMA_PAR * GAMMA_T_LD)) * GAMMA_CO2
