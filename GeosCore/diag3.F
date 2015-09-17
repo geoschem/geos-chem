@@ -1853,31 +1853,62 @@
 !   # : Field : Description                        : Units    : Scale factor
 !  --------------------------------------------------------------------------
 !  (1 ) OPTD   Cloud Optical Depth                 : unitless : SCALECHEM
-!  (2 ) CLMO   Max Overlap Cloud Fraction (GEOS1,S): unitless : SCALECHEM
-!   or  CLDF   3-D Total Cloud fraction   (GEOS3,4): unitless : SCALECHEM
+!  (2 ) CLDTOT 3-D Total Cloud fraction            : unitless : SCALECHEM
 !  (3 ) CLRO   Random  Overlap Cloud Fraction      : unitless : SCALECHEM
-!  (4 ) OPD    Mineral Dust Optical Depth (400 nm) : unitless : none
+!  (4 ) OPD    Mineral Dust Optical Depth (wvlen 1): unitless : none
 !  (5 ) SD     Mineral Dust Surface Area           : cm2/cm3  : none
-!  (6 ) OPSO4  Sulfate Optical Depth (400 nm)      : unitless : SCALECHEM
+!  (6 ) OPSO4  Sulfate Optical Depth    (wavelen 1): unitless : SCALECHEM
 !  (7 ) HGSO4  Hygroscopic growth of SO4           : unitless : SCALECHEM
 !  (8 ) SSO4   Sulfate Surface Area                : cm2/cm3  : SCALECHEM
-!  (9 ) OPBC   Black Carbon Optical Depth (400 nm) : unitless : SCALECHEM
+!  (9 ) OPBC   Black Carbon Optical Depth (wvlen 1): unitless : SCALECHEM
 !  (10) HGBC   Hygroscopic growth of BC            : unitless : SCALECHEM
 !  (11) SBC    Black Carbon Surface Area           : cm2/cm3  : SCALECHEM
-!  (12) OPOC   Organic C Optical Depth (400 nm)    : unitless : SCALECHEM
+!  (12) OPOC   Organic C Optical Depth  (wavelen 1): unitless : SCALECHEM
 !  (13) HGOC   Hygroscopic growth of OC            : unitless : SCALECHEM
 !  (14) SOC    Organic Carbon Surface Area         : cm2/cm3  : SCALECHEM
-!  (15) OPSSa  Sea Salt (accum) Opt Depth (400 nm) : unitless : SCALECHEM
+!  (15) OPSSa  Sea Salt (accum) Opt Depth (wvlen 1): unitless : SCALECHEM
 !  (16) HGSSa  Hygroscopic growth of SSa           : unitless : SCALECHEM
 !  (17) SSSa   Sea Salt (accum) Surface Area       : cm2/cm3  : SCALECHEM
-!  (18) OPSSc  Sea Salt (coarse) Opt Depth(400 nm) : unitless : SCALECHEM
+!  (18) OPSSc  Sea Salt (coarse) Opt Depth(wvlen 1): unitless : SCALECHEM
 !  (19) HGSSc  Hygroscopic growth of SSc           : unitless : SCALECHEM
 !  (20) SSSc   Sea Salt (coarse) Surface Area      : cm2/cm3  : SCALECHEM  
-!  (21-27)     Dust Optical Depth for each size    : unitless : SCALECHEM 
-!  (28) ODSLA  Strat. liquid aerosol optical depth : unitless : SCALECHEM
-!  (29) SASLA  Strat. liquid aerosol surface area  : cm2/cm3  : SCALECHEM 
-!  (30) ODSPA  Strat. particulate optical depth    : unitless : SCALECHEM
-!  (31) SASPA  Strat. particula. soln. surf. area  : cm2/cm3  : SCALECHEM 
+!  (21) OPD1   Dust Optical Depth Bin 1   (wvlen 1): unitless : SCALECHEM 
+!  (22) OPD2   Dust Optical Depth Bin 2   (wvlen 1): unitless : SCALECHEM 
+!  (23) OPD3   Dust Optical Depth Bin 3   (wvlen 1): unitless : SCALECHEM 
+!  (24) OPD4   Dust Optical Depth Bin 4   (wvlen 1): unitless : SCALECHEM 
+!  (25) OPD5   Dust Optical Depth Bin 5   (wvlen 1): unitless : SCALECHEM 
+!  (26) OPD6   Dust Optical Depth Bin 6   (wvlen 1): unitless : SCALECHEM 
+!  (27) OPD7   Dust Optical Depth Bin 7   (wvlen 1): unitless : SCALECHEM
+!  (28) OPSO4  Sulfate Optical Depth    (wavelen 2): unitless : SCALECHEM
+!  (29) OPBC   Black Carbon Optical Depth (wvlen 2): unitless : SCALECHEM
+!  (30) OPOC   Organic C Optical Depth  (wavelen 2): unitless : SCALECHEM
+!  (31) OPSSa  Sea Salt (accum) Opt Depth (wvlen 2): unitless : SCALECHEM
+!  (32) OPSSc  Sea Salt (coarse) Opt Depth(wvlen 2): unitless : SCALECHEM
+!  (33) OPD1   Dust Optical Depth Bin 1   (wvlen 2): unitless : SCALECHEM 
+!  (34) OPD2   Dust Optical Depth Bin 2   (wvlen 2): unitless : SCALECHEM 
+!  (35) OPD3   Dust Optical Depth Bin 3   (wvlen 2): unitless : SCALECHEM 
+!  (36) OPD4   Dust Optical Depth Bin 4   (wvlen 2): unitless : SCALECHEM 
+!  (37) OPD5   Dust Optical Depth Bin 5   (wvlen 2): unitless : SCALECHEM 
+!  (38) OPD6   Dust Optical Depth Bin 6   (wvlen 2): unitless : SCALECHEM 
+!  (39) OPD7   Dust Optical Depth Bin 7   (wvlen 2): unitless : SCALECHEM
+!  (40) OPSO4  Sulfate Optical Depth    (wavelen 3): unitless : SCALECHEM
+!  (41) OPBC   Black Carbon Optical Depth (wvlen 3): unitless : SCALECHEM
+!  (42) OPOC   Organic C Optical Depth  (wavelen 3): unitless : SCALECHEM
+!  (43) OPSSa  Sea Salt (accum) Opt Depth (wvlen 3): unitless : SCALECHEM
+!  (44) OPSSc  Sea Salt (coarse) Opt Depth(wvlen 3): unitless : SCALECHEM
+!  (45) OPD1   Dust Optical Depth Bin 1   (wvlen 3): unitless : SCALECHEM 
+!  (46) OPD2   Dust Optical Depth Bin 2   (wvlen 3): unitless : SCALECHEM 
+!  (47) OPD3   Dust Optical Depth Bin 3   (wvlen 3): unitless : SCALECHEM 
+!  (48) OPD4   Dust Optical Depth Bin 4   (wvlen 3): unitless : SCALECHEM 
+!  (49) OPD5   Dust Optical Depth Bin 5   (wvlen 3): unitless : SCALECHEM 
+!  (50) OPD6   Dust Optical Depth Bin 6   (wvlen 3): unitless : SCALECHEM 
+!  (51) OPD7   Dust Optical Depth Bin 7   (wvlen 3): unitless : SCALECHEM 
+!  (52) ODSLA  Strat. liquid aerosol optical depth : unitless : SCALECHEM
+!  (53) SASLA  Strat. liquid aerosol surface area  : cm2/cm3  : SCALECHEM 
+!  (54) NDSLA  Strat. liquid aerosol number density: num/cm3  : SCALECHEM 
+!  (55) ODSPA  Strat. particulate optical depth    : unitless : SCALECHEM
+!  (56) SASPA  Strat. particula. soln. surf. area  : cm2/cm3  : SCALECHEM 
+!  (57) NDSPA  Strat. particula. soln. number dens,: num/cm3  : SCALECHEM 
 !
 !  NOTES:
 !  (1 ) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
