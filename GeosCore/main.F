@@ -1982,6 +1982,8 @@
       WRITE( 6, '(a)' ) 'Using GMAO GEOS-FP met fields'
 #elif defined( MERRA )
       WRITE( 6, '(a)' ) 'Using GMAO MERRA met fields'
+#elif defined( MERRA2 )
+      WRITE( 6, '(a)' ) 'Using GMAO MERRA2 met fields'
 #elif defined( GCAP  )
       WRITE( 6, '(a)' ) 'Using GCAP/GISS met fields'
 #endif

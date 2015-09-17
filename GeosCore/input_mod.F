@@ -4133,7 +4133,7 @@
       IF ( Input_Opt%ITS_A_C2H6_SIM    ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_CH4_SIM     ) Input_Opt%LWETD = .FALSE.
 
-#if   defined( GEOS_FP ) 
+#if   defined( GEOS_FP ) || defined( MERRA2 )
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%% KLUDGE FOR TESTING GEOS-FP (bmy, 3/26/12)
       !%%% Use the Olson 2001 land map, which is at 0.25 x 0.25 resolution

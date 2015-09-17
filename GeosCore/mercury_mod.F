@@ -608,7 +608,7 @@
       IF ( FIRST ) THEN
          CALL SET_OPTIONS_FROM_HEMCO( RC )
 
-#if !defined( MERRA ) && !defined( GEOS_FP )
+#if !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
          ! Warning for non-MERRA
          WRITE( 6, * ) 'WARNING: Polar BrO parameterization '//
      &                 'designed for use with incident shortwave'
@@ -3941,7 +3941,7 @@
       ! ppb, based on data from Pohler et al. (2010).
       !----------------------------------------------------------------
 ! KLUDGE: can't get SWGDN in State_Met; add this later (jaf)
-#if   defined( MERRA ) || defined( GEOS_FP) || defined( MERRA2)
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 !      SWRAD         = State_Met%SWGDN(I,J)
       SWRAD = State_Met%RADSWG(I,J)
 ! END KLUDGE

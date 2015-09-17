@@ -701,7 +701,7 @@
 
 ! FRSEAICE, FRSNO only defined in MERRA, so need to treat these differently
 ! in older code versions (jaf, 6/19/13)
-#if   defined( MERRA ) || defined(GEOS_FP)
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       IS_OPEN_OCEAN = ( ( State_Met%FROCEAN(I,J) - 
      &                    State_Met%FRSEAICE(I,J) ) > 0e+0_fpp )
       IS_OPEN_LAND  = ( ( State_Met%FRLAND(I,J)  - 

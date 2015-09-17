@@ -2539,7 +2539,7 @@ CONTAINS
        CALL ERROR_STOP( 'GetExtOpt +TOMS_SBUV_O3+', LOC )
     ENDIF
 
-#if defined( GEOS_FP )
+#if defined( GEOS_FP ) || defined( MERRA2 )
     
     ! Disable for GEOS-FP met fields no matter what it is set to in the 
     ! HEMCO configuration file unless it is a mercury simulation done 
