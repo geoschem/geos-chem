@@ -252,7 +252,7 @@
       print *, 'call checkmn in tomas_mod:222'
 #endif
       CALL CHECKMN( 0,         0,         0,     Input_Opt, 
-     &              State_Met, State_Chm, 'kg', 'Before Aerodrydep')
+     &              State_Met, State_Chm, 'Before Aerodrydep', RC)
 
       ! Do dry deposition
       IF ( Input_Opt%LDRYD ) THEN
@@ -265,7 +265,7 @@
 #endif
       CALL CHECKMN( 0,         0,         0,    
      &              Input_Opt, State_Met, State_Chm, 
-     &              'kg',      'Before exiting DO_TOMAS' )
+     &              'Before exiting DO_TOMAS', RC )
 
       ! Return to calling program 
       END SUBROUTINE DO_TOMAS
@@ -6739,7 +6739,7 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 
       CALL CHECKMN( 0,         0,         0, 
      &              Input_Opt, State_Met, State_Chm, 
-     &              'kg',      'AERO_DIADEN called from DEPVEL' )
+     &              'AERO_DIADEN called from DEPVEL', RC )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -6810,7 +6810,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 !-----------------------------------------------------------------------------
       
       SUBROUTINE CHECKMN
-     &  ( II, JJ, LL, Input_Opt, State_Met, State_Chm, UNITS, LOCATION )
+     &  ( II, JJ, LL, Input_Opt, State_Met, State_Chm, LOCATION, RC )
 !      
 !*****************************************************************************
 !  Subroutine CHECKMN use the subroutine MNFIX to check for error in the 
@@ -6825,31 +6825,34 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 !       (Win, 7/24/07)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  17 Sep 2015 - E. Lundgren - Remove passed unit string and replace unit
+!                              conversion with unit check. Now pass RC.
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,            ONLY : CONVERT_UNITS      
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND60
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTNK1,  IDTAW1, IDTNH4, IDTNH3
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND60
+      USE UNITCONV_MOD
 
       ! Arguments
       INTEGER                         :: II, JJ, LL
-      CHARACTER(LEN=*), INTENT(IN)    :: UNITS, LOCATION
+      CHARACTER(LEN=*), INTENT(IN)    :: LOCATION
       TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState),   INTENT(IN)    :: State_Met   ! Meteorology State object
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      INTEGER,          INTENT(OUT)   :: RC          ! Success or failure?
 
       ! Local variables
       INTEGER                :: I, J, L
       INTEGER                :: I1, I2, J1, J2, L1, L2
       INTEGER                :: K, JC, NKID, TRACNUM, MPNUM
+      CHARACTER(LEN=255)     :: MSG, LOC
       LOGICAL                :: ERRORSWITCH
                                ! Make ERRORSWITCH = .TRUE. to get full print 
                                ! for debugging
@@ -6860,12 +6863,12 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       REAL(fp)                         :: Mkd(IBINS,ICOMP)
       REAL(fp)                         :: Gc(ICOMP - 1)
       REAL(fp)                         :: Gcd(ICOMP - 1)
-      REAL*4                         :: BOXVOL
+      REAL*4                           :: BOXVOL
       REAL(fp)                         :: XFER(IBINS)
     
       ! For values from Input_Opt
-      LOGICAL :: LPRT
-      INTEGER :: N_TRACERS
+      LOGICAL   :: LPRT
+      INTEGER   :: N_TRACERS
       REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
       REAL(fp)  :: TCVV(Input_Opt%N_TRACERS)
 
@@ -6877,6 +6880,9 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       !=================================================================
       ! CHECKMN begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
 
       ! Copy values from Input_Opt
       LPRT      = Input_Opt%LPRT
@@ -6890,10 +6896,15 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ERRORSWITCH = .FALSE.
 
-      ! We want to work with STT in [kg]
-      IF ( TRIM( UNITS ) == 'V/V' .or. TRIM( UNITS ) == 'v/v' )
-      ! Convert STT from v/v --> kg
-     &     CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) 
+      ! Check that tracer units are in [kg]. While tracer units
+      ! are now generally [kg/kg] in GEOS-Chem, they are converted to 
+      ! kg for TOMAS elsewhere in tomas_mod prior to calling this subroutine 
+      ! (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+         LOC = 'TOMAS_MOD: CHECKMN'
+         CALL GIGC_Error( MSG, RC, LOC)
+      ENDIF
 
       ! Check throughout all grid boxes
       IF ( II == 0 .and. JJ == 0 .and. LL == 0 ) THEN 
@@ -6994,11 +7005,6 @@ C     &      call debugprint( NK, MK, i,j,l,LOCATION)
       ENDDO
 !$OMP END PARALLEL DO
       
-      ! In the input unit is [v/v], then convert [kg] back to [v/v]
-      IF ( TRIM( UNITS ) == 'V/V' .or. TRIM( UNITS ) == 'v/v' ) 
-       ! Convert STT from kg --> v/v
-     &     CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) 
-        
       IF ( LPRT ) WRITE(6,*)' #### CHECKMN: finish at ',LOCATION
 
       ! Free pointer
