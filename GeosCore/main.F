@@ -707,6 +707,8 @@
       !=================================================================
 
       ! Read initial tracer conditions
+      ! NOTE: Tracer concentrations are read in as [v/v dry air] and converted
+      ! to kg/kg dry air (ewl, 9/18/15)
       CALL READ_RESTART_FILE( NYMDb,     NHMSb, 
      &                        Input_Opt, State_Met, State_Chm )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
@@ -728,6 +730,8 @@
       ENDIF
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
+      ! NOTE: Tracer concentration units are converted locally to [v/v dry air]
+      ! for chemistry (ewl, 9/18/15)
       IF ( LSCHEM ) THEN
          CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, 
      &                         State_Met, RC )
@@ -1117,42 +1121,21 @@
          ! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)
          IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( State_Met%PSC2 )
 
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!                                                                     %%
-!! TEMPORARY: Before AIRQNT: [kg/kg] -> [kg]                           
-!!
-!!            Convert to [kg] before moisture update to preserve the
-!!            mass used in legacy code. Mixing ratio -> mass requires
-!!            grid box dry air mass which fluctuates with moisture.  
-!!            Converting to [kg] after AIRQNT would result in slightly       
-!!            different mass than in v11-01b due to change in SPHU.
-!!            Converting after SET_FLOATING_PRESSURE is okay since   
-!!            pressure has not yet been incorporated into moisture.   
-!!                                                                     
-         CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS,            
+         ! Convert tracer concentrations to [kg/m2] before the air
+         ! quantity update in order to conserve tracer mass (ewl, 9/17/15)
+         CALL Convert_KgKgDry_to_Kgm2( am_I_Root, N_TRACERS,            
      &                                     State_Met, State_Chm, RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
-            CALL ERROR_STOP('Unit conv error before AIRQNT', 'main.F')
-         ENDIF
-!!                                                                     %%
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         ! Compute airmass quantities at each grid box 
+         ! Compute updated airmass quantities at each grid box 
          CALL AIRQNT( am_I_Root, State_Met, RC )
-
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!                                                                      %%
-!! TEMPORARY: Before SET_H2O_TRAC: [kg]                              
-!!                                     
-!!            Converting to kg/kg before SET_H2O_TRAC would result in
-!!            slightly different kg from v11-01b due to change in moisture
-!!            in the stratosphere within SET_H2O_TRAC.
-!! 
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant and,
          ! if LUCX=T and LSETH2O=F and LACTIVEH2O=T, update specific humidity 
          ! in the stratosphere
+         !
+         ! Keep tracer concentrations in [kg/m2] for setting H2O tracer 
+         ! since State_Met%SPHU and State_Met%RH may be updated and
+         ! AIRQNT called (ewl, 9/17/15)
          IF (IDTH2O.ne.0) THEN
             CALL SET_H2O_TRAC( am_I_Root, 
      &                         ( ( .not. LUCX ) .or. LSETH2O ),
@@ -1161,17 +1144,10 @@
             IF (LSETH2O) LSETH2O = .FALSE.
          ENDIF
 
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!                                                                      %%
-!! TEMPORARY: After SET_H2O_TRAC: [kg/kg] -> [kg]                       
-!!                                                                      
-         CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS,             
+         ! Convert tracer concentrations back to mixing ratio after
+         ! the air quantity updates (ewl, 9/17/15)
+         CALL Convert_Kgm2_to_KgKgDry( am_I_Root, N_TRACERS,             
      &                                     State_Met, State_Chm, RC )
-         IF ( RC /= GIGC_SUCCESS ) THEN
-            CALL ERROR_STOP('Unit conv error after AIRQNT', 'main.F')
-         ENDIF  
-!!                                                                      %%
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ! Compute the cosine of the solar zenith angle array
          ! State_Met%SUNCOS     = at the current time
@@ -1273,6 +1249,9 @@
 !-----------------------------------------------------------------------------
 
             ! Call the appropriate version of TPCORE
+            ! NOTE: Tracer concentration units are converted locally
+            ! within transport to [kg/kg total air] for advection 
+            ! (ewl, 9/18/15)
             IF ( LTRAN ) THEN 
                CALL DO_TRANSPORT
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -1397,6 +1376,9 @@
             ! routine. Otherwise, tracer concentrations are first updated
             ! and the full-mixing is then applied.
             ! (ckeller, 3/5/15)
+            ! NOTE: Tracer concentration units are converted locally
+            ! to [v/v dry air] for mixing. Eventually mixing should
+            ! be updated to use [kg/kg total air] (ewl, 9/18/15)
             CALL DO_MIXING ( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
             IF ( RC /= GIGC_SUCCESS ) THEN
@@ -1415,6 +1397,8 @@
             IF ( LCONV ) THEN
             
                ! Call the appropriate convection routine
+               ! NOTE: Tracer concentration units are converted locally
+               ! to [kg/kg total air] for convection (ewl, 9/18/15)
                CALL DO_CONVECTION
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
                IF ( RC /= GIGC_SUCCESS ) THEN
@@ -1450,43 +1434,29 @@
             ! Increment chemistry timestep counter
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
 
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                    %%
-   !! TEMPORARY: Before SET_H2O_TRAC: [kg/kg] -> [kg] 
-   !! 
-   !!       NOTE: It is important to keep SET_H2O_TRAC in kg for now
-   !!             since a moisture update occurs within it for the
-   !!             stratosphere. 
-   !!                                                                     
-            CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS,             
-     &                                     State_Met, State_Chm, RC )
-            IF ( RC /= GIGC_SUCCESS ) THEN
-               CALL ERROR_STOP('Unit conversion error', 
-     &                      'before SET_H2O_TRAC in main.F')
-            ENDIF         
-   !!                                                                    %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
             ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
             IF (IDTH2O.ne.0) THEN
+
+               ! Convert tracer concentrations from mixing ratio to
+               ! kg/m2 for more tracer mass conservation. In some cases 
+               ! SET_H2O_TRAC updates State_Met%SPHU and calls AIRQNT 
+               ! (ewl, 9/17/15)
+               CALL Convert_KgKgDry_to_Kgm2( am_I_Root, N_TRACERS,             
+     &                                       State_Met, State_Chm, RC )
+
                CALL SET_H2O_TRAC( am_I_Root, (.not. LUCX), Input_Opt ,
      &                            State_Met, State_Chm, RC )
+
+               ! Convert tracer concentrations back to mixing ratio after
+               ! the air quantity update in SET_H2O_TRAC (ewl, 9/17/15)
+               CALL Convert_Kgm2_to_KgKgDry( am_I_Root, N_TRACERS,  
+     &                                       State_Met, State_Chm, RC )
             ENDIF
 
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   !!                                                                    %%
-   !! TEMPORARY: After SET_H2O_TRAC: [kg] -> [kg/kg] 
-   !!                                                                    
-            CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS,  
-     &                                     State_Met, State_Chm, RC )
-            IF ( RC /= GIGC_SUCCESS ) THEN
-               CALL ERROR_STOP('Unit conversion error', 
-     &                      'after SET_H2O_TRAC in main.F')
-            ENDIF         
-   !!                                                                    %%
-   !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%----------%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
             ! Do GEOS-Chem chemistry
+            ! NOTE: Tracer concentration units are converted locally
+            ! to [kg] for all of chemistry. We will replace use of [kg] 
+            ! once FlexChem is implemented (ewl, 9/18/15)
             CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
      &                         State_Chm, State_Met, RC ) 
             IF ( RC /= GIGC_SUCCESS ) THEN
@@ -1515,6 +1485,9 @@
             RC = GEOS_Timer_Start ( "Deposition" )
 
             ! Do wet deposition
+            ! NOTE: Tracer concentration units are converted locally
+            ! to [kg/m2] in wet deposition to enable calculations
+            ! along the column (ewl, 9/18/15)
             CALL DO_WETDEP
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             IF ( RC /= GIGC_SUCCESS ) THEN
@@ -1544,6 +1517,8 @@
          !==============================================================
          !  ***** R R T M G   R A D I A T I V E   T R A N S F E R *****
          !==============================================================
+         ! NOTE: Tracer concentration units are converted locally to
+         ! [kg] in RRTMG. Units should eventually be [kg/kg]  (ewl, 9/18/15)
          IF ( Input_opt%LRAD ) THEN 
             IF ( ITS_TIME_FOR_RT() ) THEN
 

@@ -5466,13 +5466,14 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CMN_SIZE_MOD
       USE CMN_GCTM_MOD
+      USE ERROR_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE DAO_MOD,            ONLY : AIRQNT
       USE TRACERID_MOD,       ONLY : IDTH2O
       USE GIGC_ErrCode_Mod
-      USE UNITCONV_MOD  ! ewl, 8/12/15
+      USE UNITCONV_MOD 
 !
 ! !INPUT PARAMETERS:
 !      
@@ -5503,6 +5504,7 @@
 !  29 Apr 2015 - E. Lundgren   - Replace RH calculation method with Nordquist,
 !                                1973 and call AirQnt if moisture vars
 !                                are updated using H2O tracer concentration
+!  16 Sep 2015 - E. Lundgren   - Tracer units are now kg/m2 (prev kg)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5513,8 +5515,9 @@
 
       LOGICAL           :: READ_SPHU
       LOGICAL           :: RESET_MOISTURE = .FALSE.
-      REAL(fp)          :: SPHU, H2OVV_moist, Ev_mid
+      REAL(fp)          :: SPHU_kgkg, H2OVV_moist, Ev_mid
       REAL(fp)          :: Esat, EsatA, EsatB, EsatC, EsatD
+      CHARACTER(LEN=255):: MSG, LOC
 
       ! Local variables for quantities from Input_Opt
       LOGICAL           :: LACTIVEH2O
@@ -5535,9 +5538,6 @@
       REAL(fp), PARAMETER   :: ESATP8  = -3.03998e-2_fp
       REAL(fp), PARAMETER   :: ESATP9  = -2.949076e+3_fp
       
-      ! Conversion factors
-      REAL(fp), PARAMETER   :: MCONV   = 1.00e-3_fp ! g -> kg
-
       ! Pointers
       REAL(fp), POINTER   :: STT(:,:,:,:)
 
@@ -5548,13 +5548,20 @@
       ! Copy fields from INPUT_OPT
       LACTIVEH2O = Input_Opt%LACTIVEH2O
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Check that tracer concentration units are in [kg/m2] (ewl, 9/18/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/m2' ) THEN
+         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+         LOC = 'UCX_MOD: SET_H2O_TRAC'
+         CALL GIGC_Error( TRIM(MSG), RC, TRIM(LOC) )
+      ENDIF
+
+      ! Initialize GEOS-Chem tracer array [kg/m2]
       STT => State_Chm%Tracers
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, READ_SPHU)
-!$OMP+PRIVATE( SPHU, H2OVV_moist, Ev_mid )
+!$OMP+PRIVATE( SPHU_kgkg, H2OVV_moist, Ev_mid )
 !$OMP+PRIVATE( Esat, EsatA, EsatB, EsatC, EsatD )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -5565,36 +5572,41 @@
 
          IF ( READ_SPHU ) THEN
 
-! old [kg]:
+! legacy: Tracer units in [kg] (commented out by ewl, 9/17/15)
+!            STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
+!     &                          State_Met%ADMOIST(I,J,L)
+! new: [kg/m2] - uses mass and area but results in no differences
             STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
-     &                          State_Met%ADMOIST(I,J,L)
-!     &                          / State_Met%AREA_M2(I,J,1) ! temp (ewl)
-
-! new [kg/kg] - need to keep it in [kg] for now since moisture changes
-!               in this routine for some grid boxes.  
-            ! Tracer units are [kg H2O / kg dry air] while specific
+     &                          ( State_Met%ADMOIST(I,J,L)
+     &                            / State_Met%AREA_M2(I,J,1) )
+! new: [kg/m2] - does not use mass but may result in differences
+            ! Tracer units are [kg H2O / m2] while specific
             ! humidity is [kg H2O / kg total air] (ewl, 8/10/15)
-!             STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp
-!     &                           / ( 1.e+0_fp - State_Met%SPHU(I,J,L)
-!     &                           * 1.e-3_fp )
+!            STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
+!     &                          * ( ( State_Met%DELP(I,J,L) 
+!     &                          * g0_100 * State_Met%AREA_M2(I,J,1) )
+!     &                          / State_Met%AREA_M2(I,J,1) )
+! end new (ewl)
 
          ELSE
 
-! old [kg]:
+! legacy: Tracer units in [kg] (commented out by ewl, 9/17/15)
 !            ! Use moist air mass for calculating specific humidity
-            SPHU = STT(I,J,L,IDTH2O) * 1.e+3_fp 
-     &               / State_Met%ADMOIST(I,J,L)
-!     &               * State_Met%AREA_M2(I,J,1) ! temp (ewl)
-
-! new  [kg/kg] - need to keep it in [kg] for now since moisture changes
-!                in this routine for some grid boxes.
+!            SPHU = STT(I,J,L,IDTH2O) * 1.e+3_fp 
+!     &               / State_Met%ADMOIST(I,J,L)
+! new: [kg/m2] - uses mass and area but results in no differences
+            SPHU_kgkg = STT(I,J,L,IDTH2O) * ( State_Met%AREA_M2(I,J,1) 
+     &                      / State_Met%ADMOIST(I,J,L) )
+! new: [kg/m2] - does not use mass but may result in differences
             ! Calculate specific humidity [g/kg total air] from 
-            ! transported H2O [kg/kg dry air] (ewl, 8/10/15)
-!            SPHU = STT(I,J,L,IDTH2O) * 1.e+3_fp / ( 1.e+0_fp
-!     &              + STT(I,J,L,IDTH2O) )
+            ! transported H2O [kg/m2] (ewl, 9/17/15)
+!            SPHU_kgkg = STT(I,J,L,IDTH2O) * ( State_Met%AREA_M2(I,J,1)
+!     &                  / ( State_Met%DELP(I,J,L) * g0_100 
+!     &                      * State_Met%AREA_M2(I,J,1) ) )
+! end new (ewl)
 
             ! Set State_Met specific humidity [g/kg]
-            State_Met%SPHU(I,J,L) = SPHU
+            State_Met%SPHU(I,J,L) = SPHU_kgkg * 1.e+3_fp
             
             ! Calculate water vapor saturation pressure [hPa] from T
             ! (see local variables above for method reference)
@@ -5607,9 +5619,8 @@
             ! Calculate mol water vapor per mol moist air from SPHU
             ! Note that SPHU must be converted to [kg/kg] to use 1-SPHU
             ! as mass dry air / mass moist air
-            H2OVV_moist = SPHU * MCONV * AIRMW 
-     &                   / ( SPHU * MCONV * AIRMW 
-     &                       + ( 1 - SPHU * MCONV ) * H2OMW )
+            H2OVV_moist = SPHU_kgkg * AIRMW 
+     &               / ( SPHU_kgkg * AIRMW + ( 1 - SPHU_kgkg ) * H2OMW )
    
             ! Calculate water vapor partial pressure at grid box center [hPa]
             ! Note that grid box center is defined as the arithmetic average
@@ -5630,7 +5641,7 @@
       ENDDO ! J
 !$OMP END PARALLEL DO
 
-      ! If at moisture values were updated for at least one grid box,
+      ! If moisture values were updated for at least one grid box,
       ! call AIRQNT to update all moist-dependent air quantities
       ! with the new moisture content (ewl, 4/29/15) 
       IF ( RESET_MOISTURE ) THEN
