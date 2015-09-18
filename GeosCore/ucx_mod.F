@@ -5575,18 +5575,25 @@
 ! legacy: Tracer units in [kg] (commented out by ewl, 9/17/15)
 !            STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
 !     &                          State_Met%ADMOIST(I,J,L)
-! new: [kg/m2] - uses mass and area but results in no differences
+! new: [kg/m2] - results in no differences but uses mass and area
             STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
      &                          ( State_Met%ADMOIST(I,J,L)
-     &                            / State_Met%AREA_M2(I,J,1) )
-! new: [kg/m2] - does not use mass but may result in differences
-            ! Tracer units are [kg H2O / m2] while specific
-            ! humidity is [kg H2O / kg total air] (ewl, 8/10/15)
+     &                            / State_Met%AREA_M2(I,J,1) )!
+! new: [kg/m2] - results in differences and uses area...hmmm...
 !            STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
 !     &                          * ( ( State_Met%DELP(I,J,L) 
 !     &                          * g0_100 * State_Met%AREA_M2(I,J,1) )
 !     &                          / State_Met%AREA_M2(I,J,1) )
-! end new (ewl)
+! new: [kg/m2] - might result in no differences? try it next week...
+!            STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
+!     &                          * ( ( State_Met%DELP(I,J,L) 
+!     &                          * g0_100 ) / 1.0e+0_fp )
+! new: [kg/m2] - area-independent but results in differences
+            ! Tracer units are [kg H2O / m2] while specific
+            ! humidity is [kg H2O / kg total air] (ewl, 8/10/15)
+!            STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
+!     &                          * ( State_Met%DELP(I,J,L) * g0_100 )
+!end new (ewl)
 
          ELSE
 
@@ -5594,15 +5601,18 @@
 !            ! Use moist air mass for calculating specific humidity
 !            SPHU = STT(I,J,L,IDTH2O) * 1.e+3_fp 
 !     &               / State_Met%ADMOIST(I,J,L)
-! new: [kg/m2] - uses mass and area but results in no differences
-            SPHU_kgkg = STT(I,J,L,IDTH2O) * ( State_Met%AREA_M2(I,J,1) 
-     &                      / State_Met%ADMOIST(I,J,L) )
-! new: [kg/m2] - does not use mass but may result in differences
-            ! Calculate specific humidity [g/kg total air] from 
-            ! transported H2O [kg/m2] (ewl, 9/17/15)
+! new: [kg/m2] - results in no differences but uses mass and area
+!            SPHU_kgkg = STT(I,J,L,IDTH2O) * ( State_Met%AREA_M2(I,J,1) 
+!     &                      / State_Met%ADMOIST(I,J,L) )
+! new: [kg/m2] - results in no differences but uses area
 !            SPHU_kgkg = STT(I,J,L,IDTH2O) * ( State_Met%AREA_M2(I,J,1)
 !     &                  / ( State_Met%DELP(I,J,L) * g0_100 
 !     &                      * State_Met%AREA_M2(I,J,1) ) )
+! new: [kg/m2] - area-independent and results in no differences
+            ! Calculate specific humidity [g/kg total air] from 
+            ! transported H2O [kg/m2] (ewl, 9/17/15)
+            SPHU_kgkg = STT(I,J,L,IDTH2O) * ( 1.0e+0_fp
+     &                  / ( State_Met%DELP(I,J,L) * g0_100 ) )
 ! end new (ewl)
 
             ! Set State_Met specific humidity [g/kg]
