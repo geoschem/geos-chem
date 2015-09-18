@@ -393,7 +393,8 @@ CONTAINS
              RETURN
           ENDIF
           ALLOCATE(VecDp(MaxDryCoeff))
-          CALL HCO_CharSplit( DMY, HCO_SEP(), HCO_WCD(), VecDp, N, RC )
+          CALL HCO_CharSplit( DMY, HCO_GetToken('Separator'), &
+                              HCO_GetToken('Wildcard'), VecDp, N, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           ALLOCATE(DRYCOEFF(N))
           DRYCOEFF(1:N) = VecDp(1:N)

@@ -4058,10 +4058,10 @@ CONTAINS
     IF ( .NOT. EOF ) THEN 
 
        ! Parse diagnostics information from line
-       CALL STRREPL( LINE, HCO_TAB(), HCO_SPC() )
+       CALL STRREPL( LINE, HCO_TAB, HCO_SPC )
 
        ! Split into substrings
-       CALL STRSPLIT( LINE, HCO_SPC(), SUBSTR, N ) 
+       CALL STRSPLIT( LINE, HCO_SPC, SUBSTR, N ) 
 
        ! There must be at least 7 entries
        IF ( N < 7 ) THEN 

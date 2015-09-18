@@ -238,8 +238,8 @@ CONTAINS
     ! Register HEMCO core as extension Nr. CoreNr (default). The 
     ! core module is used by all HEMCO simulations, and the overall
     ! HEMCO settings are stored as options of this extension.
-    ! Note: cannot use HCO_WCD for species here because HCO_WCD is
-    ! linked to the core extension...
+    ! Note: cannot use HCO_GetToken('Wildcard') for species here because 
+    ! this is linked to the core extension... 
     IF ( .NOT. ExtNrInUse( CoreNr ) ) THEN
        CALL AddExt ( 'CORE', CoreNr, 'all' )
     ENDIF
@@ -256,7 +256,7 @@ CONTAINS
        IF ( EOF ) EXIT
 
        ! Replace tab characters in LINE (if any) w/ spaces
-       CALL STRREPL( LINE, HCO_TAB(), HCO_SPC() )
+       CALL STRREPL( LINE, HCO_TAB, HCO_SPC )
 
        ! Read settings if this is beginning of settings section 
        IF ( INDEX ( LINE, 'BEGIN SECTION SETTINGS' ) > 0 ) THEN
@@ -511,6 +511,8 @@ CONTAINS
     CHARACTER(LEN= 31)        :: srcVar
     CHARACTER(LEN= 31)        :: srcTime
     CHARACTER(LEN=  1)        :: TmCycle 
+    CHARACTER(LEN=  1)        :: WildCard
+    CHARACTER(LEN=  1)        :: Separator
     CHARACTER(LEN= 31)        :: srcDim
     CHARACTER(LEN= 31)        :: srcUnit
     CHARACTER(LEN= 31)        :: SpcName 
@@ -537,6 +539,10 @@ CONTAINS
     ! Initialize
     SKIP           = .FALSE.
     nCat           = -1
+
+    ! Get tokens
+    WildCard  = HCO_GetToken( 'Wildcard'  )
+    Separator = HCO_GetToken( 'Separator' )
 
     ! Repeat until end of the given section is found 
     DO
@@ -680,7 +686,7 @@ CONTAINS
 
           ! Extract category from character 2. This can be up to 
           ! CatMax integers, or empty. 
-          CALL HCO_CharSplit( Char2, HCO_SEP(), HCO_WCD(), Cats, nCat, RC ) 
+          CALL HCO_CharSplit( Char2, Separator, Wildcard, Cats, nCat, RC ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( nCat == 0 ) THEN
              Lct%Dct%Cat = -999
@@ -690,7 +696,7 @@ CONTAINS
 
           ! Set scale factor IDs into Scal_cID. These values will be
           ! replaced lateron with the container IDs (in register_base)!
-          CALL HCO_CharSplit( Char1, HCO_SEP(), HCO_WCD(), &
+          CALL HCO_CharSplit( Char1, Separator, Wildcard, &
                               SplitInts, nScl, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( nScl > 0 ) THEN
@@ -837,7 +843,7 @@ CONTAINS
           IF ( DctType == HCO_DCTTYPE_MASK ) THEN
                
              ! Extract grid box edges. Need to be four values.
-             CALL HCO_CharSplit ( Char1, HCO_SEP(), HCO_WCD(), & 
+             CALL HCO_CharSplit ( Char1, Separator, Wildcard, & 
                                   SplitInts, N, RC ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( N /= 4 ) THEN
@@ -1438,7 +1444,7 @@ CONTAINS
        IF ( INDEX ( LINE, 'END SECTION' ) > 0 ) RETURN 
 
        ! Jump to next line if line is commented out
-       IF ( LINE(1:1) == HCO_CMT() ) CYCLE
+       IF ( LINE(1:1) == HCO_CMT ) CYCLE
 
        ! Check if these are options
        IF ( INDEX(LINE,'-->') > 0 ) THEN
@@ -1451,8 +1457,8 @@ CONTAINS
        ENDIF
 
        ! Split character string
-       CALL STRREPL ( LINE, HCO_TAB(), HCO_TAB() )
-       CALL STRSPLIT( LINE, HCO_SPC(), SUBSTR, N )    
+       CALL STRREPL ( LINE, HCO_TAB, HCO_TAB )
+       CALL STRSPLIT( LINE, HCO_SPC, SUBSTR, N )    
 
        ! Jump to next line if this line is empty
        IF ( N <= 1 ) CYCLE
@@ -1482,7 +1488,7 @@ CONTAINS
           CALL AddExt ( TRIM(SUBSTR(2)), ExtNr, SUBSTR(idx) )
 
           ! Register species (specNames)
-          CALL STRSPLIT( SUBSTR(idx), HCO_SEP(), SPECS, N ) 
+          CALL STRSPLIT( SUBSTR(idx), HCO_GetToken('Separator'), SPECS, N ) 
           IF ( N < 1 ) THEN
              CALL HCO_ERROR ( 'No species defined', RC, THISLOC=LOC )
              RETURN
@@ -1578,7 +1584,7 @@ CONTAINS
        IF ( INDEX ( LINE, 'END SECTION' ) > 0 ) EXIT 
 
        ! Jump to next line if line is commented out
-       IF ( LINE(1:1) == HCO_CMT() ) CYCLE
+       IF ( LINE(1:1) == HCO_CMT ) CYCLE
 
        ! Ignore empty lines
        IF ( TRIM(LINE) == '' ) CYCLE
@@ -1606,10 +1612,14 @@ CONTAINS
     CALL GetExtOpt( CoreNr, 'Warnings', OptValInt=warn, RC=RC  )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! Initialize (standard) HEMCO tokens
+    CALL HCO_InitToken ( am_I_Root, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! If LogFile is equal to wildcard character, set LogFile to asterik 
     ! character. This will ensure that all output is written to standard
     ! output!
-    IF ( TRIM(LogFile) == HCO_WCD() ) LogFile = '*'
+    IF ( TRIM(LogFile) == HCO_GetToken('Wildcard') ) LogFile = '*'
 
     ! We should now have everything to define the HEMCO error settings
     CALL HCO_ERROR_SET ( am_I_Root, LogFile, verb, warn, RC )
@@ -1618,8 +1628,8 @@ CONTAINS
     ! Call the chartool routines that may be defined
     ! in the settings. This is to make sure that they
     ! are correctly initialized.
-    CALL HCO_Char_Set( RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+!    CALL HCO_Char_Set( RC )
+!    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Leave w/ success
     RC = HCO_SUCCESS
@@ -2653,7 +2663,7 @@ CONTAINS
     ENDIF
 
     ! Return here with flag = 1 if line is commented 
-    IF ( LINE(1:1) == HCO_CMT() ) THEN
+    IF ( LINE(1:1) == HCO_CMT ) THEN
        STAT = 1
        RETURN
     ENDIF
@@ -2685,8 +2695,8 @@ CONTAINS
     ENDIF 
 
     ! Split line into columns
-    CALL STRREPL ( LINE, HCO_TAB(), HCO_SPC() )
-    CALL STRSPLIT( LINE, HCO_SPC(), SUBSTR, N ) 
+    CALL STRREPL ( LINE, HCO_TAB, HCO_SPC )
+    CALL STRSPLIT( LINE, HCO_SPC, SUBSTR, N ) 
 
     ! Also ignore empty lines 
     IF ( N <= 1 ) THEN
@@ -2835,7 +2845,7 @@ CONTAINS
           ENDIF
        ELSE
           ! Check for wildcard
-          IF ( SUBSTR(intcl) == HCO_WCD() ) THEN
+          IF ( SUBSTR(intcl) == TRIM(HCO_GetToken('Wildcard')) ) THEN
              intout = -999
           ELSE
              READ( SUBSTR(intcl), * ) intout
@@ -3400,7 +3410,7 @@ CONTAINS
     !======================================================================
 
     ! Ignore if wildcard character. These fields will always be used!
-    IF ( TRIM(SpecName) == TRIM(HCO_WCD() ) ) THEN
+    IF ( TRIM(SpecName) == TRIM(HCO_GetToken('Wildcard')) ) THEN
        RC = HCO_SUCCESS
        RETURN
     ENDIF

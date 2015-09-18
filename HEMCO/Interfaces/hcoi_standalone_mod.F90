@@ -730,7 +730,7 @@ CONTAINS
                 CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
-             UPP = NextCharPos( TRIM(DUM), HCO_SPC(), LOW )
+             UPP = NextCharPos( TRIM(DUM), TRIM(HCO_GetToken('Space')), LOW )
              IF ( UPP < 0 ) UPP = LNG
           ENDDO
    
@@ -833,6 +833,7 @@ CONTAINS
     REAL(hp)              :: PI_180, YDGR, YSN, SIN_DELTA, AM2 
     LOGICAL               :: FOUND,   EOF
     CHARACTER(LEN=255)    :: LOC 
+    CHARACTER(LEN=  1)    :: COL 
     CHARACTER(LEN=255)    :: MyGridFile 
     CHARACTER(LEN=2047)   :: MSG, DUM
 
@@ -851,6 +852,9 @@ CONTAINS
                      Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) GridFile = MyGridFile
+
+    ! Write colon character to local variable
+    COL = HCO_GetToken( 'Colon' )
 
     ! ------------------------------------------------------------------
     ! Open grid file
@@ -888,7 +892,7 @@ CONTAINS
 
        ! Read integer after colon (this is the dimension size)
        LNG = LEN(TRIM(DUM))
-       LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
+       LOW = NextCharPos ( TRIM(DUM), COL, 1 )
        IF ( LOW < 0 .OR. LOW == LNG ) THEN
           MSG = 'Cannot extract size information from ' // TRIM(DUM)
           CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -948,7 +952,7 @@ CONTAINS
 
        ! Read integer after colon (this is the dimension size)
        LNG = LEN(TRIM(DUM))
-       LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
+       LOW = NextCharPos ( TRIM(DUM), COL, 1 )
        IF ( LOW < 0 .OR. LOW == LNG ) THEN
           MSG = 'Cannot extract size information from ' // TRIM(DUM)
           CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -1019,7 +1023,7 @@ CONTAINS
 
              ! Need to evaluate if this is the last string character and/or 
              ! whitespace character
-             IF ( DUM(J:J) == HCO_SPC() ) THEN 
+             IF ( TRIM(DUM(J:J)) == TRIM(HCO_GetToken('Space')) ) THEN 
 
                 ! If the lower substring bound is not set yet, assume that this
                 ! is a lower substring bound, and continue search for upper bound
@@ -1608,6 +1612,7 @@ CONTAINS
     INTEGER             :: AS, IOS, IU_FILE
     INTEGER             :: I,  N,   LNG, LOW
     LOGICAL             :: EOF, FOUND
+    CHARACTER(LEN=  1)  :: COL
     CHARACTER(LEN=255)  :: MSG, LOC, DUM
     CHARACTER(LEN=255)  :: MyTimeFile 
 
@@ -1626,6 +1631,9 @@ CONTAINS
 
     ! Find a free file LUN
     IU_FILE = findFreeLUN()
+
+    ! Write colon character to local variable
+    COL = HCO_GetToken( 'Colon' )
 
     ! Open time file 
     OPEN( IU_FILE, FILE=TRIM(TimeFile), STATUS='OLD', IOSTAT=IOS )
@@ -1647,7 +1655,7 @@ CONTAINS
      
        ! Remove 'BEGIN: ' or 'END: ' at the beginning 
        LNG = LEN(TRIM(DUM))
-       LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
+       LOW = NextCharPos ( TRIM(DUM), COL, 1 )
        IF ( LOW < 0 .OR. LOW == LNG ) THEN
           MSG = 'Cannot extract index after colon: ' // TRIM(DUM)
           CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -1685,7 +1693,7 @@ CONTAINS
 
     ! Get index after colon 
     LNG = LEN(TRIM(DUM))
-    LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
+    LOW = NextCharPos ( TRIM(DUM), COL, 1 )
     IF ( LOW < 0 .OR. LOW == LNG ) THEN
        MSG = 'Cannot extract index after colon: ' // TRIM(DUM)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )

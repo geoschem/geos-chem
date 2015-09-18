@@ -520,7 +520,7 @@ CONTAINS
                 RETURN
              ENDIF   
      
-             CALL HCO_CharSplit( TRIM(ThisLine), ' ', HCO_WCD(), Dum, nCol, RC )
+             CALL HCO_CharSplit( TRIM(ThisLine), ' ', HCO_GetToken('Wildcard'), Dum, nCol, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
 
              ! Expect 5 values

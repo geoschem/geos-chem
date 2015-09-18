@@ -556,7 +556,7 @@ CONTAINS
 !
 ! !USES:
 !
-      USE HCO_CHARTOOLS_MOD,   ONLY : HCO_WCD
+      USE HCO_CHARTOOLS_MOD,   ONLY : HCO_GetToken
 !
 ! !INPUT PARAMETERS:
 !
@@ -584,7 +584,7 @@ CONTAINS
     Indx = -1
 
     ! Return 0 if wildcard character
-    IF ( TRIM(name) == HCO_WCD() ) THEN
+    IF ( TRIM(name) == TRIM(HCO_GetToken('Wildcard')) ) THEN
        Indx = 0
        RETURN
     ENDIF
@@ -620,7 +620,7 @@ CONTAINS
 !
 ! !USES:
 !
-      USE HCO_CHARTOOLS_MOD,   ONLY : HCO_WCD
+      USE HCO_CHARTOOLS_MOD,   ONLY : HCO_GetToken
 !
 ! !INPUT PARAMETERS:
 !
@@ -645,7 +645,7 @@ CONTAINS
     Indx = -1
 
     ! Return 0 if wildcard character
-    IF ( TRIM(name) == HCO_WCD() ) THEN
+    IF ( TRIM(name) == TRIM(HCO_GetToken('Wildcard')) ) THEN
        Indx = 0
        RETURN
     ENDIF
@@ -683,7 +683,7 @@ CONTAINS
 !
     USE CHARPAK_MOD,         ONLY : STRSPLIT 
     USE HCO_EXTLIST_MOD,     ONLY : GetExtSpcStr
-    USE HCO_CHARTOOLS_MOD,   ONLY : HCO_SEP
+    USE HCO_CHARTOOLS_MOD,   ONLY : HCO_GetToken
 !
 ! !INPUT PARAMETERS:
 !
@@ -726,7 +726,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Split character into species string. 
-    CALL STRSPLIT( SpcStr, HCO_SEP(), SUBSTR, nSpc )
+    CALL STRSPLIT( SpcStr, HCO_GetToken('Separator'), SUBSTR, nSpc )
 
     ! nothing to do if there are no species
     IF ( nSpc == 0 ) RETURN 

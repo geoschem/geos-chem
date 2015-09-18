@@ -866,7 +866,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
     ! If OrigUnit is set to wildcard character: use unit from source file
-    IF ( TRIM(Lct%Dct%Dta%OrigUnit) == HCO_WCD() ) THEN
+    IF ( TRIM(Lct%Dct%Dta%OrigUnit) == TRIM(HCO_GetToken('Wildcard')) ) THEN
        Lct%Dct%Dta%OrigUnit = TRIM(thisUnit)
     ENDIF
 
@@ -2613,8 +2613,8 @@ CONTAINS
        ENDIF
 
        ! Skip commented lines and/or empty lines
-       IF ( TRIM(LINE) == '' ) CYCLE
-       IF ( LINE(1:1) == HCO_CMT() ) CYCLE
+       IF ( TRIM(LINE) == ''      ) CYCLE
+       IF ( LINE(1:1)  == HCO_CMT ) CYCLE
 
        ! First (valid) line holds the name of the mask container
        IF ( NLINE == 0 ) THEN
@@ -2643,15 +2643,15 @@ CONTAINS
        ! Get first space character to skip country name.
        ! We assume here that a country name is given right at the
        ! beginning of the line, e.g. 'USA 744 1.05/1.02/...'
-       ID1 = NextCharPos( LINE, HCO_SPC() )
+       ID1 = NextCharPos( LINE, HCO_SPC )
        CNT = LINE(1:ID1)
 
        ! Get country ID
        DO I = ID1, LEN(LINE)
-          IF ( LINE(I:I) /= HCO_SPC() ) EXIT
+          IF ( LINE(I:I) /= HCO_SPC ) EXIT
        ENDDO
        ID1 = I
-       ID2 = NextCharPos( LINE, HCO_SPC(), START=ID1 )
+       ID2 = NextCharPos( LINE, HCO_SPC, START=ID1 )
 
        IF ( ID2 >= LEN(LINE) .OR. ID2 < 0 ) THEN
           MSG = 'Cannot extract country ID from: ' // TRIM(LINE)
@@ -2869,7 +2869,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_CHARTOOLS_MOD,  ONLY : HCO_CharSplit
-    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_WCD, HCO_SEP
+    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_GetToken
     USE HCO_UNIT_MOD,       ONLY : HCO_Unit_Change
     USE HCO_tIdx_Mod,       ONLY : HCO_GetPrefTimeAttr
 !
@@ -2927,7 +2927,8 @@ CONTAINS
     ENDIF
 
     ! Read data into array
-    CALL HCO_CharSplit ( ValStr, HCO_SEP(), HCO_WCD(), FileVals, N, RC )
+    CALL HCO_CharSplit ( ValStr, HCO_GetToken('Separator'), &
+                         HCO_GetToken('Wildcard'), FileVals, N, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ error if no scale factor defined
