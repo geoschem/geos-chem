@@ -440,8 +440,8 @@
       !-----------------------------------------------------------------
       ! MERRA2: Nested China Grid
       !-----------------------------------------------------------------
-      INTEGER               :: IGLOB      = 225       ! Need correct value
-      INTEGER               :: JGLOB      = 161       ! Need correct value
+      INTEGER               :: IGLOB      = 145
+      INTEGER               :: JGLOB      = 133
       INTEGER               :: LGLOB      = 72
 #if   defined( GRIDREDUCED )
       INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
@@ -461,8 +461,8 @@
       !-----------------------------------------------------------------
       ! MERRA2: Nested NA Grid
       !-----------------------------------------------------------------
-      INTEGER               :: IGLOB      = 225       ! Need correct value
-      INTEGER               :: JGLOB      = 202       ! Need correct value
+      INTEGER               :: IGLOB      = 161
+      INTEGER               :: JGLOB      = 121
       INTEGER               :: LGLOB      = 72
 #if   defined( GRIDREDUCED )
       INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
@@ -482,8 +482,8 @@
       !-----------------------------------------------------------------
       ! MERRA2: Nested EU Grid
       !-----------------------------------------------------------------
-      INTEGER               :: IGLOB      = 177       ! Need correct value
-      INTEGER               :: JGLOB      = 115       ! Need correct value
+      INTEGER               :: IGLOB      = 129
+      INTEGER               :: JGLOB      = 81
       INTEGER               :: LGLOB      = 72
 #if   defined( GRIDREDUCED )
       INTEGER               :: LLPAR      = 47        ! Reduced vertical grid
