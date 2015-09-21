@@ -117,7 +117,7 @@ hco_calc_mod.o         : hco_calc_mod.F90        \
 
 hco_chartools_mod.o    : hco_chartools_mod.F90   \
 	                 hco_error_mod.o         \
-                         hco_extlist_mod.o
+	                 hco_extlist_mod.o
 
 hco_clock_mod.o        : hco_clock_mod.F90       \
                          hco_emislist_mod.o      \
@@ -253,6 +253,7 @@ hcoio_dataread_mod.o   : hcoio_dataread_mod.F90  \
                          hco_diagn_mod.o         \
                          hco_emislist_mod.o      \
                          hco_error_mod.o         \
+                         hco_extlist_mod.o       \
                          hco_filedata_mod.o      \
                          hco_geotools_mod.o      \
                          hco_interp_mod.o        \

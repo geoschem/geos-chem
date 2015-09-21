@@ -238,10 +238,15 @@ CONTAINS
     ! Register HEMCO core as extension Nr. CoreNr (default). The 
     ! core module is used by all HEMCO simulations, and the overall
     ! HEMCO settings are stored as options of this extension.
-    ! Note: cannot use HCO_GetToken('Wildcard') for species here because 
+    ! Note: cannot use HCO_GetOpt('Wildcard') for species here because 
     ! this is linked to the core extension... 
     IF ( .NOT. ExtNrInUse( CoreNr ) ) THEN
-       CALL AddExt ( 'CORE', CoreNr, 'all' )
+       CALL AddExt ( am_I_Root, 'CORE', CoreNr, 'all', RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          WRITE(*,*) 'Error adding CORE extension' 
+          RC = HCO_FAIL
+          RETURN
+       ENDIF
     ENDIF
 
     ! NN counts how many sections have ben read already
@@ -460,7 +465,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,  ONLY : ExtNrInUse
+    USE HCO_EXTLIST_MOD,  ONLY : ExtNrInUse, HCO_GetOpt
     USE HCO_TIDX_Mod,     ONLY : HCO_ExtractTime
     USE HCO_FILEDATA_Mod, ONLY : FileData_Init
     USE HCO_DATACONT_Mod, ONLY : CatMax, ZeroScalID
@@ -541,8 +546,8 @@ CONTAINS
     nCat           = -1
 
     ! Get tokens
-    WildCard  = HCO_GetToken( 'Wildcard'  )
-    Separator = HCO_GetToken( 'Separator' )
+    WildCard  = HCO_GetOpt( 'Wildcard'  )
+    Separator = HCO_GetOpt( 'Separator' )
 
     ! Repeat until end of the given section is found 
     DO
@@ -1388,7 +1393,7 @@ CONTAINS
 ! !USES:
 !
     USE CHARPAK_Mod,        ONLY : STRREPL, STRSPLIT, TRANLC
-    USE HCO_EXTLIST_MOD,    ONLY : AddExt, AddExtOpt
+    USE HCO_EXTLIST_MOD,    ONLY : AddExt, AddExtOpt, HCO_GetOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -1450,7 +1455,7 @@ CONTAINS
        IF ( INDEX(LINE,'-->') > 0 ) THEN
           ! Only add if extension is defined!
           IF ( ExtNr >= 0 .AND. Enabled ) THEN 
-             CALL AddExtOpt( TRIM(LINE), ExtNr, RC )
+             CALL AddExtOpt( am_I_Root, TRIM(LINE), ExtNr, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
           CYCLE
@@ -1485,10 +1490,11 @@ CONTAINS
           ! idx is the position of the species names
           idx = idx+1 
           READ( SUBSTR(1), * ) ExtNr
-          CALL AddExt ( TRIM(SUBSTR(2)), ExtNr, SUBSTR(idx) )
+          CALL AddExt ( am_I_Root, TRIM(SUBSTR(2)), ExtNr, SUBSTR(idx), RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! Register species (specNames)
-          CALL STRSPLIT( SUBSTR(idx), HCO_GetToken('Separator'), SPECS, N ) 
+          CALL STRSPLIT( SUBSTR(idx), HCO_GetOpt('Separator'), SPECS, N ) 
           IF ( N < 1 ) THEN
              CALL HCO_ERROR ( 'No species defined', RC, THISLOC=LOC )
              RETURN
@@ -1524,6 +1530,8 @@ CONTAINS
 ! !USES:
 !
     USE HCO_EXTLIST_MOD,    ONLY : AddExtOpt, GetExtOpt, CoreNr
+    USE HCO_EXTLIST_MOD,    ONLY : HCO_SetDefaultToken 
+    USE HCO_EXTLIST_MOD,    ONLY : HCO_GetOpt
     USE CHARPAK_MOD,        ONLY : STRREPL, STRSPLIT, TRANLC
 !
 ! !INPUT PARAMETERS:
@@ -1590,7 +1598,7 @@ CONTAINS
        IF ( TRIM(LINE) == '' ) CYCLE
 
        ! Add this option to HEMCO core 
-       CALL AddExtOpt ( TRIM(LINE), CoreNr, RC )
+       CALL AddExtOpt ( am_I_Root, TRIM(LINE), CoreNr, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     ENDDO
@@ -1613,13 +1621,13 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Initialize (standard) HEMCO tokens
-    CALL HCO_InitToken ( am_I_Root, RC )
+    CALL HCO_SetDefaultToken ( am_I_Root, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! If LogFile is equal to wildcard character, set LogFile to asterik 
     ! character. This will ensure that all output is written to standard
     ! output!
-    IF ( TRIM(LogFile) == HCO_GetToken('Wildcard') ) LogFile = '*'
+    IF ( TRIM(LogFile) == HCO_GetOpt('Wildcard') ) LogFile = '*'
 
     ! We should now have everything to define the HEMCO error settings
     CALL HCO_ERROR_SET ( am_I_Root, LogFile, verb, warn, RC )
@@ -2815,6 +2823,10 @@ CONTAINS
 !
   SUBROUTINE READINT ( LINE, SUBSTR, N, intcl, intout, OPT, STAT )
 !
+! !USES:
+!
+    USE HCO_EXTLIST_MOD, ONLY : HCO_GetOpt
+!
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=255), INTENT(IN   )    :: LINE 
@@ -2845,7 +2857,7 @@ CONTAINS
           ENDIF
        ELSE
           ! Check for wildcard
-          IF ( SUBSTR(intcl) == TRIM(HCO_GetToken('Wildcard')) ) THEN
+          IF ( SUBSTR(intcl) == TRIM(HCO_GetOpt('Wildcard')) ) THEN
              intout = -999
           ELSE
              READ( SUBSTR(intcl), * ) intout
@@ -3384,6 +3396,10 @@ CONTAINS
 !
   SUBROUTINE SpecName_Register( SpecName, RC ) 
 !
+! !USES:
+!
+    USE HCO_EXTLIST_MOD, ONLY : HCO_GetOpt
+!
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN   ) :: SpecName 
@@ -3410,7 +3426,7 @@ CONTAINS
     !======================================================================
 
     ! Ignore if wildcard character. These fields will always be used!
-    IF ( TRIM(SpecName) == TRIM(HCO_GetToken('Wildcard')) ) THEN
+    IF ( TRIM(SpecName) == TRIM(HCO_GetOpt('Wildcard')) ) THEN
        RC = HCO_SUCCESS
        RETURN
     ENDIF

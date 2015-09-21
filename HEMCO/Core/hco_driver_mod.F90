@@ -281,7 +281,6 @@ CONTAINS
     USE HCO_DataCont_Mod,  ONLY : Reset_nnDataCont
     USE HCO_ExtList_Mod,   ONLY : ExtFinal
     USE HCOIO_DIAGN_MOD,   ONLY : HcoDiagn_Write
-    USE HCO_CHARTOOLS_MOD, ONLY : HCO_CleanupToken
 !
 ! !INPUT PARAMETERS:
 !
@@ -328,9 +327,6 @@ CONTAINS
  
     ! Cleanup the extension list object
     CALL ExtFinal         (         )
-
-    ! Cleanup token list
-    CALL HCO_CleanupToken ( RC )
 
     ! Close the logfile and cleanup error object. 
     CALL HCO_Error_Final  (         )

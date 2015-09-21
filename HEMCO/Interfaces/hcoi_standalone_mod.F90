@@ -597,7 +597,7 @@ CONTAINS
 ! !USES:
 !
     USE inquireMod,      ONLY : findfreeLUN
-    USE HCO_EXTLIST_Mod, ONLY : GetExtOpt, CoreNr
+    USE HCO_EXTLIST_Mod, ONLY : HCO_GetOpt, GetExtOpt, CoreNr
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -730,7 +730,7 @@ CONTAINS
                 CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
-             UPP = NextCharPos( TRIM(DUM), TRIM(HCO_GetToken('Space')), LOW )
+             UPP = NextCharPos( TRIM(DUM), TRIM(HCO_GetOpt('Space')), LOW )
              IF ( UPP < 0 ) UPP = LNG
           ENDDO
    
@@ -799,7 +799,7 @@ CONTAINS
 !
 !    USE Grid_Mod,        ONLY : DoGridComputation
     USE inquireMod,      ONLY : findFreeLUN
-    USE HCO_ExtList_Mod, ONLY : GetExtOpt, CoreNr
+    USE HCO_ExtList_Mod, ONLY : HCO_GetOpt, GetExtOpt, CoreNr
 !
 ! !INPUT PARAMETERS:
 !
@@ -854,7 +854,7 @@ CONTAINS
     IF ( FOUND ) GridFile = MyGridFile
 
     ! Write colon character to local variable
-    COL = HCO_GetToken( 'Colon' )
+    COL = HCO_GetOpt( 'Colon' )
 
     ! ------------------------------------------------------------------
     ! Open grid file
@@ -1023,7 +1023,7 @@ CONTAINS
 
              ! Need to evaluate if this is the last string character and/or 
              ! whitespace character
-             IF ( TRIM(DUM(J:J)) == TRIM(HCO_GetToken('Space')) ) THEN 
+             IF ( TRIM(DUM(J:J)) == TRIM(HCO_GetOpt('Space')) ) THEN 
 
                 ! If the lower substring bound is not set yet, assume that this
                 ! is a lower substring bound, and continue search for upper bound
@@ -1591,7 +1591,7 @@ CONTAINS
 ! !USES:
 !
     USE inquireMod,      ONLY : findfreeLUN
-    USE HCO_Extlist_Mod, ONLY : GetExtOpt, CoreNr
+    USE HCO_Extlist_Mod, ONLY : HCO_GetOpt, GetExtOpt, CoreNr
 !
 ! !INPUT PARAMETERS:
 !
@@ -1633,7 +1633,7 @@ CONTAINS
     IU_FILE = findFreeLUN()
 
     ! Write colon character to local variable
-    COL = HCO_GetToken( 'Colon' )
+    COL = HCO_GetOpt( 'Colon' )
 
     ! Open time file 
     OPEN( IU_FILE, FILE=TRIM(TimeFile), STATUS='OLD', IOSTAT=IOS )

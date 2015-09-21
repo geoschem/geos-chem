@@ -381,6 +381,7 @@ CONTAINS
     USE HCO_CLOCK_MOD,      ONLY : HcoClock_NewDay
     USE HCO_CLOCK_MOD,      ONLY : HcoClock_Get
     USE HCO_GeoTools_MOD,   ONLY : HCO_GetHorzIJIndex 
+    USE HCO_EXTLIST_MOD,    ONLY : HCO_GetOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -520,7 +521,7 @@ CONTAINS
                 RETURN
              ENDIF   
      
-             CALL HCO_CharSplit( TRIM(ThisLine), ' ', HCO_GetToken('Wildcard'), Dum, nCol, RC )
+             CALL HCO_CharSplit( TRIM(ThisLine), ' ', HCO_GetOpt('Wildcard'), Dum, nCol, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
 
              ! Expect 5 values

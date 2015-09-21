@@ -7,10 +7,8 @@
 !
 ! !DESCRIPTION: Module HCO\_CHARTOOLS\_MOD contains a collection of 
 ! helper routines to handle character strings and parse tokens. It also 
-! contains definitions of special characters, including space, tab, wildcard, 
-! separator, colon, and comment. Some of these characters (wildcard, separator, 
-! colon, as well as tokens ROOT, MET, RES) may be manually set in the settings 
-! section of the HEMCO configuration file.
+! contains definitions of special characters such as space, tab and 
+! comment. 
 ! \\
 ! !INTERFACE: 
 !
@@ -29,10 +27,6 @@ MODULE HCO_CharTools_Mod
   PUBLIC :: HCO_CharMatch
   PUBLIC :: HCO_CharParse
   PUBLIC :: HCO_GetBase
-  PUBLIC :: HCO_AddToken
-  PUBLIC :: HCO_GetToken
-  PUBLIC :: HCO_CleanupToken
-  PUBLIC :: HCO_InitToken
   PUBLIC :: IsInWord
   PUBLIC :: NextCharPos
   PUBLIC :: GetNextLine
@@ -44,7 +38,7 @@ MODULE HCO_CharTools_Mod
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  11 Jul 2014 - C. Keller   - Characters added
 !  17 Oct 2014 - C. Keller   - Added parser and tokens ROOT, MET, and RES.
-!  18 Sep 2015 - C. Keller   - Tokens are now organized in token linked list.
+!  20 Sep 2015 - C. Keller   _ Moved tokens to hco_extlist_mod.F90 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -63,71 +57,6 @@ MODULE HCO_CharTools_Mod
   CHARACTER(LEN=1), PARAMETER, PUBLIC :: HCO_SPC     = ' '
   CHARACTER(LEN=1), PARAMETER, PUBLIC :: HCO_TAB     = ACHAR(9)
   CHARACTER(LEN=1), PARAMETER, PUBLIC :: HCO_CMT     = '#'
-
-  ! Default values for characters that can be changed 
-  ! through the configuration file
-  CHARACTER(LEN=1), PARAMETER :: DEF_COLON     = ':'
-  CHARACTER(LEN=1), PARAMETER :: DEF_SEPARATOR = '/'
-  CHARACTER(LEN=1), PARAMETER :: DEF_WILDCARD  = '*'
-
-  !---------------------------------------------------------------------------
-  ! Default tokens
-  ! HEMCO has three tokens that can be specified in the HEMCO configuration
-  ! file: ROOT (root directory), MET (met fields), and RES (horizontal 
-  ! resolution). These tokens can be used in file names to be dynamically
-  ! replaced, e.g. file.$MET.$RES.nc becomes file.geos5.4x5.nc if MET is set
-  ! to 'geos5' and RES to '4x5'. Tokens are also allowed for dates ($YYYY,
-  ! $MM, $DD, $HH, see routine HCO_CharParse).
-  ! The default tokens below will be used if by default, i.e. if the
-  ! corresponding token is not specified in the HEMCO configuration file.
-  !---------------------------------------------------------------------------
-
-  ! Default root directory
-  CHARACTER(LEN=1023), PARAMETER :: DEF_ROOT = '/please/provide/root/path'
-
-  ! Default met field token
-#if defined( GEOS_FP )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'geosfp'
-#elif defined( GEOS_5 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'geos5'
-#elif defined( GEOS_4 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'geos4'
-#elif defined( MERRA )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'merra'
-#elif defined( GCAP )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'gcap'
-#else
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'unknown_model'
-#endif 
-
-  ! Default resolution token
-#if defined( GRID4x5 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '4x5'
-#elif defined( GRID2x25 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '2x25'
-#elif defined( GRID1x125 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '1x125'
-#elif defined( GRID05x0666 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '05x0666'
-#elif defined( GRID025x03125 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '025x03125'
-#else
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = 'unknown_res'
-#endif
-
-  ! Lenght of maximum token character length
-  INTEGER, PARAMETER             :: TOKENLEN   = 1023
-  CHARACTER(LEN=TOKENLEN)        :: EMPTYTOKEN = '---'
-
-  ! Derived type to manage tokens
-  TYPE :: Token
-     CHARACTER(LEN=TOKENLEN)     :: TokenName
-     CHARACTER(LEN=TOKENLEN)     :: TokenValue
-     TYPE(Token), POINTER        :: NextToken => NULL()
-  END TYPE Token
-
-  ! Linked list with all tokens
-  TYPE(Token), POINTER           :: TokenList => NULL()
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -463,10 +392,15 @@ CONTAINS
 ! replacing those values by the intendend characters. 
 !\\
 !\\
-! At the moment, the following tokens are searched and replaced:
+! The following list shows the 'default' HEMCO tokens. These are available
+! in any HEMCO simulation. Tokens $ROOT, $MET, and $RES are internally 
+! stored as a HEMCO option in module hco\_extlist\_mod.F90 (see subroutine
+! HCO\_SetDefaultToken). 
 !\begin{itemize}
 !\item \$ROOT: will be replaced by the root path specified in the settings
 ! section of the configuration file.
+!\item \$MET: will be replaced by the met-field token. 
+!\item \$RES: will be replaced by the resolution token. 
 !\item \$YYYY: will be replaced by the (4-digit) year according to the 
 ! source time settings set in the configuration file.
 !\item \$MM: will be replaced by the (2-digit) month according to the
@@ -483,6 +417,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE HCO_ExtList_Mod, ONLY  : HCO_GetOpt, HCO_Root
 !
 ! !INPUT PARAMETERS:
 !
@@ -502,6 +437,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Oct 2014 - C. Keller - Initial version
+!  20 Sep 2015 - C. Keller - Tokens can now be any option setting set in the
+!                            HEMCO configuration file.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -510,31 +447,19 @@ CONTAINS
 !
     CHARACTER(LEN=255)  :: MSG
     CHARACTER(LEN=255)  :: LOC = 'HCO_CharParse (HCO_CharTools_Mod.F90)'
+    CHARACTER(LEN=255)  :: TOKEN
     CHARACTER(LEN=2047) :: TMPSTR, BEFORE, AFTER
-    INTEGER             :: LN, IDX, OFF
+    INTEGER             :: I, LN, IDX, OFF
     CHARACTER(LEN=4)    :: str4
     CHARACTER(LEN=2)    :: str2
+    CHARACTER(LEN=1)    :: SEP
 
     !=================================================================
     ! HCO_CharParse begins here
     !=================================================================
 
-    ! Check for root token
-    !-------------------------------------------------------------------
-    IDX = INDEX( str, '$ROOT' )
-    IF ( IDX > 0 ) THEN
-       LN = LEN(str)
-       IF ( IDX > 1 ) THEN
-          BEFORE = str(1:(IDX-1))
-       ELSE
-          BEFORE = ''
-       ENDIF
-       OFF   = 5
-       AFTER = str((IDX+OFF):LN)
-
-       ! Updated string
-       str = TRIM(BEFORE) // TRIM(HCO_GetToken('ROOT')) // TRIM(AFTER)
-    ENDIF
+    ! Get characters
+    SEP = HCO_GetOpt('Separator')
 
     ! Check for year token
     !-------------------------------------------------------------------
@@ -636,41 +561,75 @@ CONTAINS
        str = TRIM(BEFORE) // TRIM(str2) // TRIM(AFTER)
     ENDDO
 
-    ! Check for met. model token 
+    ! Check for root token
     !-------------------------------------------------------------------
-    DO
-       IDX = INDEX( str, '$MET' )
-       IF ( IDX <= 0 ) EXIT 
+    IDX = INDEX( str, '$ROOT' )
+    IF ( IDX > 0 ) THEN
        LN = LEN(str)
        IF ( IDX > 1 ) THEN
           BEFORE = str(1:(IDX-1))
        ELSE
           BEFORE = ''
        ENDIF
-       OFF   = 4
+       OFF   = 5
        AFTER = str((IDX+OFF):LN)
 
        ! Updated string
-       str = TRIM(BEFORE) // TRIM(HCO_GetToken('MET')) // TRIM(AFTER)
-    ENDDO
+       str = TRIM(BEFORE) // TRIM(HCO_ROOT()) // TRIM(AFTER)
+    ENDIF
 
-    ! Check for met. resolution token 
+    ! Check for any other token
     !-------------------------------------------------------------------
-    DO
-       IDX = INDEX( str, '$RES' )
-       IF ( IDX <= 0 ) EXIT 
-       LN = LEN(str)
+    DO 
+       IDX = INDEX( str, '$' )
+       IF ( IDX <= 0 ) EXIT
+       LN = LEN(TRIM(str))
+
+       ! Determine token name:
+       ! Find end of token by starting at the first character after the 
+       ! token and then advance in string until a 'token end character' 
+       ! is encountered.
+       DO I = IDX+1,LN
+
+          ! Special case that end of string is encountered:
+          IF ( I == LN ) THEN
+             TOKEN = str( (IDX+1) : I )
+             OFF   = I
+             EXIT
+          ENDIF
+
+          ! Scan for token cap:
+          IF ( str(I:I) == ' '  .OR. &
+               str(I:I) == '.'  .OR. &
+               str(I:I) == ':'  .OR. &
+               str(I:I) == '$'  .OR. &
+               str(I:I) == '%'  .OR. &
+               str(I:I) == '_'  .OR. &
+               str(I:I) == '-'  .OR. &
+               str(I:I) == 'x'  .OR. &
+               str(I:I) == SEP        ) THEN 
+
+             TOKEN = str( (IDX+1) : (I-1) )
+             OFF   = I
+             EXIT
+          ENDIF
+       ENDDO
+
        IF ( IDX > 1 ) THEN
           BEFORE = str(1:(IDX-1))
        ELSE
           BEFORE = ''
        ENDIF
-       OFF   = 4
-       AFTER = str((IDX+OFF):LN)
+       IF ( OFF >= LN ) THEN
+          AFTER = ''
+       ELSE
+          AFTER = str(OFF:LN)
+       ENDIF
 
-       ! Updated string
-       str = TRIM(BEFORE) // TRIM(HCO_GetToken('RES')) // TRIM(AFTER)
-    ENDDO
+       ! Update string
+       str = TRIM(BEFORE) // TRIM(HCO_GetOpt(TOKEN)) // TRIM(AFTER)
+
+    ENDDO 
 
     ! Return w/ success
     RC = HCO_SUCCESS
@@ -989,298 +948,5 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE HCO_ReadLine
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HCO_AddToken
-!
-! !DESCRIPTION: Subroutine HCO\_AddToken adds a token name/value pair to the
-! list of tokens.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE HCO_AddToken ( am_I_Root, TokenName, TokenValue, RC, VERB )
-!
-! !INPUT PARAMETERS: 
-!
-    LOGICAL,          INTENT(IN   )           :: am_I_Root  ! Root CPU?
-    CHARACTER(LEN=*), INTENT(IN   )           :: TokenName  ! TokenName
-    CHARACTER(LEN=*), INTENT(IN   )           :: TokenValue ! TokenValue
-    LOGICAL,          INTENT(IN   ), OPTIONAL :: VERB  ! Verbose on
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,          INTENT(INOUT)           :: RC       ! Return code 
-! 
-! !REVISION HISTORY: 
-!  18 Sep 2015 - C. Keller - Initial version 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    TYPE(Token), POINTER    :: NewToken => NULL()
-    CHARACTER(LEN=TOKENLEN) :: DUM
-    LOGICAL                 :: Exists
-    LOGICAL                 :: VRB
-    CHARACTER(LEN=255)      :: MSG
-    CHARACTER(LEN=255)      :: LOC = 'HCO_AddToken (hco_chartools_mod.F90)' 
-
-    !=================================================================
-    ! HCO_AddToken begins here!
-    !=================================================================
-
-    ! Check if this token already exists
-    DUM = HCO_GetToken( TokenName )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! If token already exists...
-    IF ( TRIM(DUM) /= TRIM(EMPTYTOKEN) ) THEN
-       IF ( TRIM(DUM) /= TRIM(TokenValue) ) THEN
-          MSG = 'Cannot add token pair: '//TRIM(TokenName)//': '//TRIM(TokenValue) &
-             // ' - token already exists: '//TRIM(TokenName)//': '//TRIM(DUM)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-    ENDIF
-
-    ! Init verbose flag
-    IF ( PRESENT(VERB) ) THEN
-       VRB = VERB
-    ELSE
-       VRB = .TRUE.
-    ENDIF
-
-    ! Create new token
-    ALLOCATE(NewToken)
-    NewToken%TokenName  = TokenName
-    NewToken%TokenValue = TokenValue
-   
-    ! Add to token linked list 
-    IF ( ASSOCIATED(TokenList) ) THEN
-       NewToken%NextToken => TokenList
-    ELSE
-       NewToken%NextToken => NULL()
-    ENDIF
-    TokenList => NewToken
-
-    ! Verbose
-    IF ( VRB .AND. am_I_Root .AND. HCO_IsVerb(2) ) THEN
-       MSG = 'Added the following token: ' // TRIM(TokenName)//': '//TRIM(TokenValue)
-       CALL HCO_MSG(MSG)
-    ENDIF
-
-    ! Return w/ success
-    RC = HCO_SUCCESS
-
-  END SUBROUTINE HCO_AddToken
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HCO_GetToken
-!
-! !DESCRIPTION: Subroutine HCO\_GetToken returns a token value for the given
-! token name. 
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION HCO_GetToken ( TokenName ) RESULT ( TokenValue )
-!
-! !INPUT PARAMETERS: 
-!
-    CHARACTER(LEN=*), INTENT(IN   )           :: TokenName  ! TokenName
-!
-! !OUTPUT PARAMETERS:
-!
-    CHARACTER(LEN=TOKENLEN)                   :: TokenValue ! TokenValue
-! 
-! !REVISION HISTORY: 
-!  18 Sep 2015 - C. Keller - Initial version 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    TYPE(Token), POINTER    :: ThisToken => NULL()
-
-    !=================================================================
-    ! HCO_GetToken begins here!
-    !=================================================================
-
-    ! Init
-    TokenValue = EMPTYTOKEN 
-
-    ! Walk through token list until we find the given value
-    ThisToken => TokenList
-    DO WHILE ( ASSOCIATED(ThisToken) ) 
-
-       ! Check if this is the token of interest
-       IF ( TRIM(ThisToken%TokenName) == TRIM(TokenName) ) THEN
-          TokenValue = ThisToken%TokenValue
-          EXIT
-       ENDIF
-
-       ! Advance in list
-       ThisToken => ThisToken%NextToken
-    END DO
-
-    ! Free pointer
-    ThisToken => NULL()
-
-  END FUNCTION HCO_GetToken
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HCO_CleanupToken
-!
-! !DESCRIPTION: Subroutine HCO\_CleanupToken cleans up the token list. 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE HCO_CleanupToken ( RC )
-!
-! !INPUT PARAMETERS: 
-!
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,          INTENT(INOUT)           :: RC         ! Return code 
-! 
-! !REVISION HISTORY: 
-!  18 Sep 2015 - C. Keller - Initial version 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    TYPE(Token), POINTER    :: ThisToken => NULL()
-    TYPE(Token), POINTER    :: NextToken => NULL()
-
-    !=================================================================
-    ! HCO_CleanupToken begins here!
-    !=================================================================
-
-    ! Walk through token list until we find the given value
-    ThisToken => TokenList
-    DO WHILE ( ASSOCIATED(ThisToken) ) 
-
-       ! Archive next token in list
-       NextToken => ThisToken%NextToken
-
-       ! Cleanup token
-       ThisToken%NextToken => NULL()
-       NULLIFY(ThisToken) 
-
-       ! Go to next token in list (previously archived) 
-       ThisToken => NextToken
-    END DO
-
-    ! Free pointer
-    ThisToken => NULL()
-    NextToken => NULL()
-
-    ! Return w/ success
-    RC =  HCO_SUCCESS
-
-  END SUBROUTINE HCO_CleanupToken
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HCO_InitToken
-!
-! !DESCRIPTION: Subroutine HCO\_InitToken is a wrapper routine to initialize
-! the default set of HEMCO tokens.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE HCO_InitToken ( am_I_Root, RC )
-!
-! !USES:
-!
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
-
-!
-! !INPUT PARAMETERS: 
-!
-    LOGICAL,          INTENT(IN   )           :: am_I_Root  ! Root CPU?
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,          INTENT(INOUT)           :: RC         ! Return code 
-! 
-! !REVISION HISTORY: 
-!  18 Sep 2015 - C. Keller - Initial version 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    CHARACTER(LEN=TOKENLEN)     :: DUM
-    LOGICAL                     :: FOUND
-
-    !=================================================================
-    ! HCO_InitToken begins here!
-    !=================================================================
-
-    ! Wildcard character
-    CALL GetExtOpt( -999, 'Wildcard', OptValChar=DUM, Found=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( .NOT. FOUND) DUM = DEF_WILDCARD
-    CALL HCO_AddToken( am_I_Root, 'Wildcard', DUM, RC, VERB=.FALSE. )
-
-    ! Separator
-    CALL GetExtOpt( -999, 'Separator', OptValChar=DUM, Found=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( .NOT. FOUND) DUM = DEF_SEPARATOR
-    CALL HCO_AddToken( am_I_Root, 'Separator', DUM, RC, VERB=.FALSE. )
-
-    ! Colon
-    CALL GetExtOpt( -999, 'Colon', OptValChar=DUM, Found=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( .NOT. FOUND) DUM = DEF_COLON
-    CALL HCO_AddToken( am_I_Root, 'Colon', DUM, RC, VERB=.FALSE. )
-
-    ! Root directory
-    CALL GetExtOpt( -999, 'ROOT', OptValChar=DUM, Found=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( .NOT. FOUND) DUM = DEF_ROOT
-    CALL HCO_AddToken( am_I_Root, 'ROOT', DUM, RC, VERB=.FALSE. )
-
-    ! Meteorology token
-    CALL GetExtOpt( -999, 'MET', OptValChar=DUM, Found=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( .NOT. FOUND) DUM = DEF_MET
-    CALL HCO_AddToken( am_I_Root, 'MET', DUM, RC, VERB=.FALSE. )
-
-    ! Resolution token
-    CALL GetExtOpt( CoreNr, 'RES', OptValChar=DUM, Found=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( .NOT. FOUND ) DUM = DEF_RES
-    CALL HCO_AddToken( am_I_Root, 'RES', DUM, RC, VERB=.FALSE. )
-
-    ! Return w/ success
-    RC =  HCO_SUCCESS
-
-  END SUBROUTINE HCO_InitToken
 !EOC
 END MODULE HCO_CharTools_Mod

@@ -264,6 +264,9 @@ CONTAINS
     ENDIF
     ALLOCATE ( HcoState )
 
+    ! testing only
+    write(*,*) 'debug 1'
+
     ! Initialize vector w/ species information
     HcoState%nSpc = nSpecies
     IF ( nSpecies > 0 ) THEN
@@ -273,6 +276,9 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
+
+    ! testing only
+    write(*,*) 'debug 2'
 
     ! Initalize species information. The effective values for species
     ! names, model IDs, etc. are set in the HEMCO-model interface 
@@ -302,6 +308,9 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDDO !I
 
+    ! testing only
+    write(*,*) 'debug 3'
+
     !=====================================================================
     ! Initialize grid 
     !=====================================================================
@@ -315,6 +324,9 @@ CONTAINS
        CALL HCO_ERROR( 'HEMCO grid', RC )
        RETURN
     ENDIF
+
+    ! testing only
+    write(*,*) 'debug 4'
 
     ! Initialize grid arrays.
     CALL HCO_ArrInit ( HcoState%Grid%XMID,       0, 0,    RC )
@@ -363,6 +375,9 @@ CONTAINS
     HcoState%TS_CHEM = 0.0_sp
     HcoState%TS_DYN  = 0.0_sp
 
+    ! testing only
+    write(*,*) 'debug 5'
+
     ! Nullify temporary array. This array may be used as temporary
     ! place to write emissions into.
     HcoState%Buffer3D => NULL()
@@ -392,11 +407,17 @@ CONTAINS
     HcoState%Options%HcoWritesDiagn = .FALSE.
     HcoState%Options%FillBuffer     = .FALSE.
 
+    ! testing only
+    write(*,*) 'debug 6'
+
     ! Get negative flag value from configuration file. If not found, set to 0. 
     CALL GetExtOpt ( CoreNr, 'Negative values', &
                      OptValInt=HcoState%Options%NegFlag, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%NegFlag = 0
+
+    ! testing only
+    write(*,*) 'debug 7'
 
     ! Get PBL_DRYDEP flag from configuration file. If not found, set to default
     ! value of false. 
@@ -556,7 +577,7 @@ CONTAINS
 !
 ! !USES:
 !
-      USE HCO_CHARTOOLS_MOD,   ONLY : HCO_GetToken
+      USE HCO_EXTLIST_MOD,     ONLY : HCO_GetOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -584,7 +605,7 @@ CONTAINS
     Indx = -1
 
     ! Return 0 if wildcard character
-    IF ( TRIM(name) == TRIM(HCO_GetToken('Wildcard')) ) THEN
+    IF ( TRIM(name) == TRIM(HCO_GetOpt('Wildcard')) ) THEN
        Indx = 0
        RETURN
     ENDIF
@@ -620,7 +641,7 @@ CONTAINS
 !
 ! !USES:
 !
-      USE HCO_CHARTOOLS_MOD,   ONLY : HCO_GetToken
+      USE HCO_EXTLIST_MOD,   ONLY : HCO_GetOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -645,7 +666,7 @@ CONTAINS
     Indx = -1
 
     ! Return 0 if wildcard character
-    IF ( TRIM(name) == TRIM(HCO_GetToken('Wildcard')) ) THEN
+    IF ( TRIM(name) == TRIM(HCO_GetOpt('Wildcard')) ) THEN
        Indx = 0
        RETURN
     ENDIF
@@ -683,7 +704,7 @@ CONTAINS
 !
     USE CHARPAK_MOD,         ONLY : STRSPLIT 
     USE HCO_EXTLIST_MOD,     ONLY : GetExtSpcStr
-    USE HCO_CHARTOOLS_MOD,   ONLY : HCO_GetToken
+    USE HCO_EXTLIST_MOD,     ONLY : HCO_GetOpt 
 !
 ! !INPUT PARAMETERS:
 !
@@ -726,7 +747,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Split character into species string. 
-    CALL STRSPLIT( SpcStr, HCO_GetToken('Separator'), SUBSTR, nSpc )
+    CALL STRSPLIT( SpcStr, HCO_GetOpt('Separator'), SUBSTR, nSpc )
 
     ! nothing to do if there are no species
     IF ( nSpc == 0 ) RETURN 

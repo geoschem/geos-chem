@@ -378,6 +378,7 @@ CONTAINS
     USE HCO_INTERP_MOD,     ONLY : ModelLev_Interpolate 
     USE HCO_CLOCK_MOD,      ONLY : HcoClock_Get
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+    USE HCO_EXTLIST_MOD,    ONLY : HCO_GetOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -866,7 +867,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
     ! If OrigUnit is set to wildcard character: use unit from source file
-    IF ( TRIM(Lct%Dct%Dta%OrigUnit) == TRIM(HCO_GetToken('Wildcard')) ) THEN
+    IF ( TRIM(Lct%Dct%Dta%OrigUnit) == TRIM(HCO_GetOpt('Wildcard')) ) THEN
        Lct%Dct%Dta%OrigUnit = TRIM(thisUnit)
     ENDIF
 
@@ -2869,7 +2870,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_CHARTOOLS_MOD,  ONLY : HCO_CharSplit
-    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_GetToken
+    USE HCO_EXTLIST_MOD,    ONLY : HCO_GetOpt
     USE HCO_UNIT_MOD,       ONLY : HCO_Unit_Change
     USE HCO_tIdx_Mod,       ONLY : HCO_GetPrefTimeAttr
 !
@@ -2927,8 +2928,8 @@ CONTAINS
     ENDIF
 
     ! Read data into array
-    CALL HCO_CharSplit ( ValStr, HCO_GetToken('Separator'), &
-                         HCO_GetToken('Wildcard'), FileVals, N, RC )
+    CALL HCO_CharSplit ( ValStr, HCO_GetOpt('Separator'), &
+                         HCO_GetOpt('Wildcard'), FileVals, N, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ error if no scale factor defined

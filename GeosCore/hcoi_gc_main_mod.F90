@@ -2374,7 +2374,7 @@ CONTAINS
        ELSE
           OptName = '+UValbedo+ : false'
        ENDIF
-       CALL AddExtOpt( TRIM(OptName), CoreNr, RC )
+       CALL AddExtOpt( am_I_Root, TRIM(OptName), CoreNr, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP( 'AddExtOpt +UValbedo+', LOC )
        ENDIF
@@ -2403,7 +2403,7 @@ CONTAINS
        ELSE
           OptName = '+STATE_PSC+ : false'
        ENDIF
-       CALL AddExtOpt( TRIM(OptName), CoreNr, RC ) 
+       CALL AddExtOpt( am_I_Root, TRIM(OptName), CoreNr, RC ) 
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP( 'AddExtOpt +STATE_PSC+', LOC )
        ENDIF
@@ -2447,7 +2447,7 @@ CONTAINS
        ELSE
           OptName = '+LinStratChem+ : false'
        ENDIF
-       CALL AddExtOpt( TRIM(OptName), CoreNr, RC ) 
+       CALL AddExtOpt( am_I_Root, TRIM(OptName), CoreNr, RC ) 
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP( 'AddExtOpt +LinStratChem+', LOC )
        ENDIF
@@ -2479,7 +2479,7 @@ CONTAINS
     ! in the HEMCO configuration file.
     IF ( FOUND ) THEN
        OptName = '+TOMS_SBUV_O3+ : false'
-       CALL AddExtOpt( TRIM(OptName), CoreNr, RC ) 
+       CALL AddExtOpt( am_I_Root, TRIM(OptName), CoreNr, RC ) 
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP( 'AddExtOpt GEOS-FP +TOMS_SBUV_O3+', LOC )
        ENDIF
@@ -2514,7 +2514,7 @@ CONTAINS
        ELSE
           OptName = '+TOMS_SBUV_O3+ : false'
        ENDIF
-       CALL AddExtOpt( TRIM(OptName), CoreNr, RC )
+       CALL AddExtOpt( am_I_Root, TRIM(OptName), CoreNr, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP( 'AddExtOpt +Uvalbedo+', LOC )
        ENDIF
@@ -2561,7 +2561,7 @@ CONTAINS
        ELSE
           OptName = '+OCEAN_Hg+ : false'
        ENDIF
-       CALL AddExtOpt( TRIM(OptName), CoreNr, RC )
+       CALL AddExtOpt( am_I_Root, TRIM(OptName), CoreNr, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP( 'AddExtOpt +OCEAN_Hg+', LOC )
        ENDIF
