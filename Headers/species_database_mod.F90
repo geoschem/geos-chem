@@ -2392,7 +2392,7 @@ CONTAINS
              ! Notes for Henry_K0, Henry_CR from the v11-01c wetscav_mod.F
              ! (cf. Carey Friedman and Helen Amos
              !----------------------------------------------------------------
-             ! Compute liquid to gas ratio for POPs using
+             ! Cocmpute liquid to gas ratio for POPs using
              !  the appropriate parameters for Henry's Law (M/atm, unitless
              !  Kaw divided by R (in atm/M/K, or 8.21d-2) and T (T = 298 K))
              !  as first argument and negative enthalpy of water-air exchange
@@ -2414,7 +2414,7 @@ CONTAINS
                    KOA      = 4.37e+7_fp  * 0.0409_fp  * 0.8_fp
                    Hstar    = 1.0_fp      / 1.74e-3_fp * 0.0409_fp
                    K0       = 1.0_f8      / 1.74e-3_f8 / 8.21e-2_f8 / 298.0_f8
-                   CR       = 7400.0_f8   / 8.32e-3_f8
+                   CR       = 47.0_f8     / 8.32e-3_f8
                 CASE( 'PYR' )
                    FullName = 'Pyrene (gas phase)'
                    MW_g     = 202.25_fp

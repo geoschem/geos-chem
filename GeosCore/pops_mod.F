@@ -103,9 +103,6 @@
 !
       USE CMN_SIZE_MOD
       USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE DRYDEP_MOD,         ONLY : DRYPOPG
-      USE DRYDEP_MOD,         ONLY : DRYPOPP_OCPO, DRYPOPP_BCPO
-      USE DRYDEP_MOD,         ONLY : DRYPOPP_OCPI, DRYPOPP_BCPI
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
@@ -1828,7 +1825,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER                :: AS
+      INTEGER                :: AS,    N
       LOGICAL                :: LDRYD, LNLPBL, LPRT
 
       ! Objects
