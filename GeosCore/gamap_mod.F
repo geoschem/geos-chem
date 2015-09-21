@@ -144,18 +144,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_GAMAP( am_I_Root, Input_Opt, RC )
+      SUBROUTINE DO_GAMAP( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : SYSTEM_TIMESTAMP
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -167,6 +169,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  25 Jun 2014 - R. Yantosca - Now get SIM_NAME from Input_Opt
 !  25 Jun 2014 - R. Yantosca - Remove all references to tracer_mod.F
+!  03 Sep 2015 - R. Yantosca - Now get State_Chm as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -178,7 +181,7 @@
       RC = GIGC_SUCCESS
 
       ! Allocate and initialize variables
-      CALL INIT_GAMAP( am_I_Root, Input_Opt, RC )
+      CALL INIT_GAMAP( am_I_Root, Input_Opt, State_Chm, RC )
 
       ! Create a timestamp with the system date & time
       STAMP    = SYSTEM_TIMESTAMP()
@@ -190,7 +193,7 @@
       CALL CREATE_DINFO()
 
       ! Write "tracerinfo.dat" file
-      CALL CREATE_TINFO( am_I_Root, Input_Opt, RC )
+      CALL CREATE_TINFO( am_I_Root, Input_Opt, State_Chm, RC )
 
       ! Deallocate variables
       CALL CLEANUP_GAMAP
@@ -308,18 +311,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CREATE_TINFO( am_I_Root, Input_Opt, RC )
+      SUBROUTINE CREATE_TINFO( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-      USE FILE_MOD,    ONLY : IOERROR
+      USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1713,7 +1718,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TRACERINFO( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_TRACERINFO( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -1737,9 +1742,9 @@
       USE DRYDEP_MOD,         ONLY : DEPNAME,     NUMDEP,    NTRAIND
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD
       USE WETSCAV_MOD,        ONLY : GET_WETDEP_IDWETD
-      USE WETSCAV_MOD,        ONLY : GET_WETDEP_NSOL
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
 #endif
@@ -1748,6 +1753,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -5046,7 +5052,7 @@
       IF ( ND17 + ND18 > 0 ) THEN
          
          ! Number of tracers
-         NTRAC(17) = GET_WETDEP_NSOL()
+         NTRAC(17) = State_Chm%nWetDep
 
          ! Loop over tracers
          DO N = 1, NTRAC(17)
@@ -7584,7 +7590,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GAMAP( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_GAMAP( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -7592,6 +7598,7 @@
       USE TIME_MOD,    ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE HDF_MOD,     ONLY : INIT_HDF
       USE HDF_MOD,     ONLY : HDFCATEGORY
       USE HDF_MOD,     ONLY : HDFDESCRIPT
@@ -7606,6 +7613,7 @@
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -7752,7 +7760,7 @@
       CALL INIT_DIAGINFO
 
       ! Initialize arrays for "tracerinfo.dat"
-      CALL INIT_TRACERINFO( am_I_Root, Input_Opt, RC )
+      CALL INIT_TRACERINFO( am_I_Root, Input_Opt, State_Chm, RC )
 
       ! Store values for hdf output
       IF ( Input_Opt%LND50_HDF    .or. 

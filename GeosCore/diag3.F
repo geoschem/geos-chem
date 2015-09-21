@@ -1705,7 +1705,7 @@
          UNIT = 'unitless'
 
          ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NSOL()
+         NMAX = State_Chm%nWetDep
 
          ! Loop over soluble tracers
          DO N = 1, NMAX
@@ -1772,7 +1772,7 @@
          UNIT = 'unitless'
 
          ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NSOL()
+         NMAX = State_Chm%nWetDep
 
          DO N = 1, NMAX
 
@@ -3270,7 +3270,7 @@
          UNIT     = 'unitless'
 
          ! Get actual # of soluble tracers
-         NMAX = GET_WETDEP_NSOL()
+         NMAX = State_Chm%nWetDep
 
          ! Loop over soluble tracers
          DO N = 1, NMAX
@@ -3320,7 +3320,7 @@
          UNIT     = 'kg/s'
 
          ! Get actual # of soluble tracers
-         M = GET_WETDEP_NSOL()
+         M = State_Chm%nWetDep
 
          ! Loop over soluble tracers
          DO N = 1, M
@@ -3367,7 +3367,7 @@
          UNIT     = 'kg/s'
 
          ! Get actual # of soluble tracers
-         M = GET_WETDEP_NSOL()
+         M = State_Chm%nWetDep
             
          ! Loop over soluble tracers
          DO N = 1, M
