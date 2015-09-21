@@ -2449,19 +2449,27 @@ CONTAINS
                               WD_RetFactor  = 0.0_fp,                       &
                               RC            = RC )
 
-          CASE( 'POPPOCPO', 'POPPOCPI' )
+          CASE( 'POPPBCPO', 'POPPOCPO' )
 
-             ! Get info from the POP menu
+             ! These have identical properties except for the mol weights ...
              SELECT CASE( TRIM( Input_Opt%POP_TYPE ) )
                 CASE( 'PHE' )
                    MW_g     = 178.23_fp
-                   FullName = 'Phenanthrene particles on organic carbon'
+                   FullName = 'Phenanthrene particles on'
                 CASE( 'PYR' )
                    MW_g     = 202.25_fp
-                   FullName = 'Pyrene particles on organic carbon'
+                   FullName = 'Pyrene particles on'
                 CASE( 'BaP' )
                    MW_g     = 252.31_fp
-                   FullName = 'Benzo(a)pyrene particles on organic carbon'
+                   FullName = 'Benzo(a)pyrene particles on'
+             END SELECT
+
+             ! ... and the names
+             SELECT CASE( TRIM( NameAllCaps ) ) 
+                CASE( 'POPPBCPO' ) 
+                   FullName = TRIM( FullName ) // ' hydrophobic black carbon'
+                CASE( 'POPPOCPO' )
+                   FullName = TRIM( FullName ) // ' hydrophobic organic carbon'
              END SELECT
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2480,19 +2488,28 @@ CONTAINS
                               WD_RainoutEff = 0.0_fp,                       &
                               RC            = RC )
 
-          CASE( 'POPPBCPO', 'POPPBCPI' )
+          CASE( 'POPPBCPI', 'POPPOCPI' )
 
+             ! These have identica properties except for the mol weights ...
              ! Get info from the POP menu
              SELECT CASE( TRIM( Input_Opt%POP_TYPE ) )
                 CASE( 'PHE' )
                    MW_g     = 178.23_fp
-                   FullName = 'Phenanthrene particles on black carbon'
+                   FullName = 'Phenanthrene particles on'
                 CASE( 'PYR' )
                    MW_g     = 202.25_fp
-                   FullName = 'Pyrene particles on black carbon'
+                   FullName = 'Pyrene particles on'
                 CASE( 'BaP' )
                    MW_g     = 252.31_fp
-                   FullName = 'Benzo(a)pyrene particles on black carbon'
+                   FullName = 'Benzo(a)pyrene particles on'
+             END SELECT
+
+             ! ... and the names
+             SELECT CASE( TRIM( NameAllCaps ) ) 
+                CASE( 'POPPBCPI' ) 
+                   FullName = TRIM( FullName ) // ' hydrophilic black carbon'
+                CASE( 'POPPOCPI' )
+                   FullName = TRIM( FullName ) // ' hydrophilic organic carbon'
              END SELECT
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2508,7 +2525,6 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
-                              WD_RainoutEff = 0.0_fp,                       &
                               RC            = RC )
 
           !==================================================================
