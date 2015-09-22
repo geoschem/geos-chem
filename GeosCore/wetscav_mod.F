@@ -22,8 +22,9 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: H2O2s(:,:,:) ! Save H2O2 and SO2 [v/v]
-      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: SO2s(:,:,:)  !  for sulfate chemistry
+      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: H2O2s(:,:,:) ! Save H2O2 [v/v]
+      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: SO2s(:,:,:)  ! Save SO2 [v/v] for
+                                                            ! sulfate chemistry
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -329,7 +330,6 @@
       doPrt = ( LPRT .and. am_I_Root )
 
       ! For new diagnostics, mirror old species
-      ! Tracer units are now [kg/kg dry air] (ewl, 8/14/15)
 #if   defined( DEVEL )
       IF ( Input_Opt%ND39 > 0 ) THEN
          ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
@@ -1094,6 +1094,23 @@
 !      BXHEIGHT  => State_Met%BXHEIGHT
       T         => State_Met%T
       N_TRACERS =  Input_Opt%N_TRACERS
+
+#if defined( TOMAS )
+      ! TOMAS functions and routines expect tracer units in [kg] but units 
+      ! are [kg/kg total air] if COMPUTE_F is called from convection.
+      ! Therefore, convert units [kg/kg total air] -> [kg] if units not 
+      ! already [kg] (ewl, 8/14/15)
+      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg total' ) THEN
+         CALL Convert_KgKgTotal_to_Kg( am_I_Root, N_TRACERS, 
+     &                                 State_Met, State_Chm, RC )
+         UNITCHANGE = .TRUE.
+      ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         CALL GIGC_Error('Incorrect tracer units for TOMAS:' // 
+     &                   State_Chm%Trac_Units, RC, 
+     &                   'Routine COMPUTE_F in wetscav_mod')
+         RETURN
+      ENDIF
+#endif
 
       !-------------------------------
       ! 210Pb and 7Be (aerosols)
@@ -2248,21 +2265,6 @@
 
 #if defined( TOMAS )
 
-      ! Convert units [kg/kg total air] -> [kg] if units not already [kg]
-      ! since TOMAS functions and routines expect [kg]. Units are
-      ! kg/kg if COMPUTE_F is called from convection (ewl, 8/14/15)
-      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg total' ) THEN
-         CALL Convert_KgKgTotal_to_Kg( am_I_Root, N_TRACERS, 
-     &                                 State_Met, State_Chm, RC )
-         UNITCHANGE = .TRUE.
-      ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         CALL GIGC_Error('Incorrect tracer units for TOMAS:' // 
-     &                   State_Chm%Trac_Units, RC, 
-     &                   'Routine COMPUTE_F in wetscav_mod')
-         RETURN
-      ENDIF
-
-
       ! Added for size-resolved aerosol (win, 7/16/09)
       !-------------------------------
       ! H2SO4 (treat as aerosol)
@@ -2305,6 +2307,7 @@
 !new
             CALL GETFRACTION( I, J, L, N, .FALSE., 
      &                        XFRAC, SOLFRAC, State_Chm%Tracers )
+
             F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
@@ -2323,6 +2326,7 @@
 !            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTSS1+1) * F(I,J,L)
             CALL GETFRACTION( I, J, L, N, .FALSE., 
      &                        XFRAC, SOLFRAC, State_Chm%Tracers )
+
             F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
@@ -2341,6 +2345,7 @@
 !            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTECIL1+1) * F(I,J,L)
             CALL GETFRACTION( I, J, L, N, .FALSE., 
      &                        XFRAC, SOLFRAC, State_Chm%Tracers )
+
             F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
@@ -2360,6 +2365,7 @@
 !            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTOCIL1+1) * F(I,J,L)
             CALL GETFRACTION( I, J, L, N, .FALSE., 
      &                        XFRAC, SOLFRAC, State_Chm%Tracers )
+
             F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
@@ -2378,6 +2384,7 @@
 !            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTOCOB1+1) * F(I,J,L)
             CALL GETFRACTION( I, J, L, N, .FALSE., 
      &                        XFRAC, SOLFRAC, State_Chm%Tracers )
+
             F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
@@ -2396,6 +2403,7 @@
 !            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTDUST1+1) * F(I,J,L)
             CALL GETFRACTION( I, J, L, N, .FALSE., 
      &                        XFRAC, SOLFRAC, State_Chm%Tracers )
+
             F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
@@ -2403,13 +2411,6 @@
          ISOL = GET_ISOL( N, N_TRACERS )
          
       !(end part) Added for size-resolved aerosol (win, 7/16/09)
-
-      ! Convert State_Chm%Tracers units back to kg/kg total air 
-      ! if conversion occurred at start of TOMAS block (ewl, 6/23/15)
-      IF ( UNITCHANGE ) THEN
-         CALL Convert_Kg_to_KgKgTotal( am_I_Root, N_TRACERS, 
-     &                                 State_Met, State_Chm, RC )
-      ENDIF
 
 #endif
 
@@ -2860,6 +2861,15 @@
          ISOL     = 0
 
       ENDIF
+
+#if defined( TOMAS )
+      ! Convert State_Chm%Tracers units back to [kg/kg total air] 
+      ! if tracer unit conversion occurred for TOMAS (ewl, 6/23/15)
+      IF ( UNITCHANGE ) THEN
+         CALL Convert_Kg_to_KgKgTotal( am_I_Root, N_TRACERS, 
+     &                                 State_Met, State_Chm, RC )
+      ENDIF
+#endif
 
       ! Free pointers
 !      NULLIFY( BXHEIGHT )
@@ -4549,6 +4559,7 @@
 !  23 Jun 2015 - E. Lundgren - Adjust 5/12/15 TOMAS bug fix to convert
 !                              kg/kg total air <-> kg for new convection units
 !  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
+!  22 Sep 2015 - E. Lundgren - Add kg/m2 <-> kg conversion for TOMAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4557,7 +4568,8 @@
 !
       REAL(fp)          :: L2G, DZ, SO2LOSS
 #if defined( TOMAS )
-      LOGICAL           :: UNITCHANGE = .FALSE. ! STT unit conversion indicator
+      LOGICAL           :: UNITCHANGE_KGKG = .FALSE. ! flag for STT units kg/kg
+      LOGICAL           :: UNITCHANGE_KGM2 = .FALSE. ! flag for STT units kg/m2 
       INTEGER           :: N_TRACERS
 #endif
 
@@ -4571,6 +4583,37 @@
 
       ! Assume success
       RC        =  GIGC_SUCCESS
+
+#if defined( TOMAS )
+      ! Define fields for STT unit conversion if necessary for TOMAS
+      N_TRACERS =  Input_Opt%N_TRACERS
+
+      ! Convert tracer concentration units to [kg] if not already
+      ! since TOMAS functions and routines expect [kg]. Units are
+      ! kg/kg total air if WASHOUT is called from convection and are
+      ! kg/m2 is called from DO_WASHOUT_ONLY (ewl, 9/22/15)
+      !
+      ! ***NOTE*** Converting tracer units without this routine
+      ! is not optimal because it is called within an I,J,L-loop.
+      ! The unit conversion is applied to all I,J,L for every
+      ! combination of I,J,L which likely causes very long run times! 
+      ! This needs to be redesigned once know whether STT in TOMAS will 
+      ! be kg/kg or kg/m2 (ewl)
+      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg total' ) THEN
+         CALL Convert_KgKgTotal_to_Kg( am_I_Root, N_TRACERS, 
+     &                                 State_Met, State_Chm, RC )
+         UNITCHANGE_KGKG = .TRUE.
+      ELSE IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/m2' ) THEN
+         CALL Convert_Kgm2_to_Kg( am_I_Root, N_TRACERS, 
+     &                                 State_Met, State_Chm, RC )
+         UNITCHANGE_KGM2 = .TRUE.
+      ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         CALL GIGC_Error('Incorrect tracer units for TOMAS:' // 
+     &                   State_Chm%Trac_Units, RC, 
+     &                   'Routine WASHOUT in wetscav_mod')
+         RETURN
+      ENDIF
+#endif
 
       ! DZ is the height of the grid box in cm
       DZ = BXHEIGHT * 1e+2_fp
@@ -5003,23 +5046,6 @@
 
 #if defined( TOMAS )
 
-      ! Define fields for use below
-      N_TRACERS =  Input_Opt%N_TRACERS
-
-      ! Convert units [kg/kg total air] -> [kg] if units not already [kg]
-      ! since TOMAS functions and routines expect [kg]. Units are
-      ! kg/kg if WASHOUT is called from convection (ewl, 8/14/15)
-      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg total' ) THEN
-         CALL Convert_KgKgTotal_to_Kg( am_I_Root, N_TRACERS, 
-     &                                 State_Met, State_Chm, RC )
-         UNITCHANGE = .TRUE.
-      ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         CALL GIGC_Error('Incorrect tracer units for TOMAS:' // 
-     &                   State_Chm%Trac_Units, RC, 
-     &                   'Routine WASHOUT in wetscav_mod')
-         RETURN
-      ENDIF
-
       !=================================================================
       ! FOR TOMAS MICROPHYSICS
       !=================================================================
@@ -5098,13 +5124,6 @@
 
       ! (end part) Added for size-resolved aerosol (win, 7/16/09)
 
-      ! Convert State_Chm%Tracers units back to [kg/kg total air] 
-      ! if conversion occurred at start of TOMAS block (ewl, 5/12/15)
-      IF ( UNITCHANGE ) THEN
-         CALL Convert_Kg_to_KgKgTotal( am_I_Root, N_TRACERS, 
-     &                                  State_Met, State_Chm, RC )
-      ENDIF
-
 #endif
 
       !------------------------------
@@ -5152,6 +5171,18 @@
          CALL ERROR_STOP( 'Invalid tracer!', 'WASHOUT (wetscav_mod.f)' )
 
       ENDIF
+
+#if defined( TOMAS )
+      ! Convert State_Chm%Tracers units back to original units 
+      ! if conversion occurred at start of TOMAS block (ewl, 5/12/15)
+      IF ( UNITCHANGE_KGKG ) THEN
+         CALL Convert_Kg_to_KgKgTotal( am_I_Root, N_TRACERS, 
+     &                                  State_Met, State_Chm, RC )
+      ELSE IF ( UNITCHANGE_KGM2 ) THEN
+         CALL Convert_Kg_to_Kgm2( am_I_Root, N_TRACERS, 
+     &                                  State_Met, State_Chm, RC )
+      ENDIF
+#endif
 
       END SUBROUTINE WASHOUT
 !EOC
@@ -5859,6 +5890,7 @@
 !  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
 !  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
 !                              whether the dynamic ocean is used
+!  22 Sep 2015 - E. Lundgren - Tracer units now converted to kg/m2 from kg/kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5912,7 +5944,7 @@
          RETURN
       ENDIF  
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [kg/m2] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -7063,7 +7095,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp),           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
+      REAL(fp),           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg/m2]
       REAL(fp),           INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
 ! 
 ! !REMARKS:
@@ -7089,13 +7121,14 @@
 ! !REVISION HISTORY: 
 !  16 Sep 2010 - R. Yantosca - Initial version
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
+!  22 Sep 2015 - E. Lundgren - Input STT is now in kg/m2 (prev kg)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N,        NN
+      INTEGER   :: N,        NN
       REAL(fp)  :: RAINFRAC, WETLOSS
 
 #if defined( TOMAS )
@@ -7134,25 +7167,28 @@
 
 
 #if defined( TOMAS )
-         ! (ewl, 8/14/15)
-         ! STT units must be in [kg] for TOMAS. Convert units??? This 
-         ! would not be ideal here since inside a do loop.
-
+         ! ***NOTE*** STT units are now [kg/m2], not [kg]. GETFRACTION
+         ! expects units in [kg]. TOMAS code therefore may not give
+         ! proper results (ewl, 9/22/15)
          IF ( IDTNK1 > 0 ) THEN
             IF ( N >= IDTNK1 .and. N < IDTNK1 + IBINS ) THEN  
-               CALL GETFRACTION( I, J, L, N, LS, XFRAC, SOLFRAC, STT ) 
+
+               CALL GETFRACTION( I, J, L, N, LS, XFRAC, SOLFRAC, STT )
+ 
                RAINFRAC = RAINFRAC * XFRAC * SOLFRAC
              ELSE IF ( N >= IDTSF1 .and. N < IDTDUST1 + IBINS ) THEN
+
                CALL GETFRACTION( I, J, L, N, LS, XFRAC, SOLFRAC, STT ) 
+
                RAINFRAC = RAINFRAC * XFRAC
              ENDIF
           ENDIF
 #endif
-         ! WETLOSS is the amount of tracer in grid box 
-         ! (I,J,L) that is lost to rainout.
+         ! WETLOSS is the amount of tracer in grid box per unit area
+         ! (I,J,L) that is lost to rainout [kg/m2]
          WETLOSS = STT(I,J,L,N) * RAINFRAC
 
-         ! Subtract the rainout loss in grid box (I,J,L) from STT
+         ! Subtract the rainout loss in grid box (I,J,L) from STT [kg/m2]
          STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS
 
          IF ( L == LLPAR ) THEN
@@ -7186,14 +7222,14 @@
          ENDIF
 
 #if !defined(NO_BPCH)
-         ! ND39 diag -- save rainout losses in [kg/s]
+         ! ND39 diag -- save rainout losses in [kg/m2/s]
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
          ENDIF
 #endif
 
-         ! Archive wet loss in kg/s
+         ! Archive wet loss in kg/m2/s
          IF ( LSOILNOX ) THEN
             CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
          ENDIF
@@ -7304,8 +7340,9 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
-      REAL(fp),         INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
+      REAL(fp),         INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg/m2]
+      REAL(fp),         INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array 
+                                                       ! [kg/m2]
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
@@ -7390,21 +7427,22 @@
 !  20 May 2015 - M. Sulprizio- Remove WASHFRAC < 1D-3 error trap for MERRA
 !                              following recommendation by Viral Shah
 !  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
+!  22 Sep 2015 - E. Lundgren - Incoming tracer units are now [kg/m2]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL :: KIN,       DO_REEVAP
-      INTEGER :: N,         NN
+      LOGICAL   :: KIN,       DO_REEVAP
+      INTEGER   :: N,         NN
       REAL(fp)  :: ALPHA,     ALPHA2,      GAINED,   LOST
       REAL(fp)  :: MASS_WASH, MASS_NOWASH, WASHFRAC, WETLOSS
       REAL(fp)  :: TK,        TF  
 
 #if defined( TOMAS )
       REAL(fp)  :: REEVAPSO2  !(win, 7/16/09)
-      INTEGER :: KMIN       !(win, 7/16/09)
+      INTEGER   :: KMIN       !(win, 7/16/09)
 #endif
 
       !=================================================================
@@ -7575,6 +7613,10 @@
 # endif
                ENDIF
 
+               ! ***NOTE*** Tracer concentration units are currently in
+               ! [kg/m2] which is incompatible with TOMAS. Work needs to
+               ! be done to reconcile new units with TOMAS code which
+               ! expects [kg] (ewl, 9/22/15)
                REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp
                CALL AQOXID( REEVAPSO2, KMIN, I, J, L, 
      &                      State_Met, State_Chm  )
@@ -7650,14 +7692,14 @@
          ENDIF
 
 #if !defined(NO_BPCH)
-         ! ND39 diag -- save rainout losses in [kg/s]
+         ! ND39 diag -- save rainout losses in [kg/m2/s]
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
          ENDIF
 #endif
 
-         ! Archive wet loss in kg/s
+         ! Archive wet loss in kg/m2/s
          IF ( LSOILNOX ) THEN
             CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
          ENDIF
@@ -7751,8 +7793,9 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
-      REAL(fp),           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
-      REAL(fp),           INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
+      REAL(fp),           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg/m2]
+      REAL(fp),           INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array 
+                                                         ! [kg/m2]
 ! 
 ! !REMARKS:
 !  The modifications for the MERRA met fields require calling this same 
@@ -7761,19 +7804,20 @@
 !
 ! !REVISION HISTORY: 
 !  16 Sep 2010 - R. Yantosca - Initial version
+!  22 Sep 2015 - E. Lundgren - Incoming tracer units are now kg/m2 (prev kg)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N, NN
+      INTEGER   :: N, NN
       REAL(fp)  :: WETLOSS
 
 
 #if defined( TOMAS )
       REAL(fp)  :: REEVAPSO2  !(win, 7/16/09)
-      INTEGER :: KMIN       !(win, 7/16/09)
+      INTEGER   :: KMIN       !(win, 7/16/09)
 #endif
 
       !=================================================================
@@ -7786,7 +7830,7 @@
          ! Tracer # corresponding to the wetdep species #
          N = IDWETD(NN) 
 
-         ! WETLOSS is the amount of tracer in grid box (I,J,L) 
+         ! WETLOSS is the amount of tracer in grid box (I,J,L) per area
          ! that is lost to rainout. (qli, bmy, 10/29/02)
          WETLOSS = -DSTT(NN,L+1,I,J)
 
@@ -7839,6 +7883,11 @@
                            KMIN = 16
 # endif
                         ENDIF
+
+               ! ***NOTE*** Tracer concentration units are currently in
+               ! [kg/m2] which is incompatible with TOMAS. Work needs to
+               ! be done to reconcile new units with TOMAS code which
+               ! expects [kg] (ewl, 9/22/15)
                         REEVAPSO2 =  - ( WETLOSS * 96e+0_fp / 64e+0_fp )
                         CALL AQOXID( REEVAPSO2, KMIN, I, J, L,
      &                               State_Met, State_Chm )
@@ -7860,14 +7909,14 @@
          !--------------------------------------------------------------
 
 #if !defined(NO_BPCH)
-         ! ND39 diag -- save rainout losses in [kg/s]
+         ! ND39 diag -- save rainout losses in [kg/m2s]
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + ( WETLOSS / DT )
          ENDIF
 #endif
 
-         ! Archive wet loss in kg/s
+         ! Archive wet loss in kg/m2/s
          IF ( LSOILNOX ) THEN
             CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
          ENDIF
@@ -7960,8 +8009,8 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
-      REAL(fp),         INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
+      REAL(fp),         INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg/m2]
+      REAL(fp),         INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg/m2]
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
 ! 
 ! !OUTPUT PARAMETERS:
@@ -7982,6 +8031,7 @@
 !                              derived type object
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
+!  22 Sep 2015 - E. Lundgren - Tracer units are now kg/m2 (prev kg)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8040,10 +8090,10 @@
             WETLOSS = STT(I,J,L,N) * WASHFRAC * F
          ENDIF
 
-         ! Subtract WETLOSS from STT [kg]
+         ! Subtract WETLOSS from STT [kg/m2]
          STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS     
       
-         ! Add washout losses in grid box (I,J,L=1) to DSTT [kg] 
+         ! Add washout losses in grid box (I,J,L=1) to DSTT [kg/m2] 
          ! (added cdh, 4/14/2009)
          DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
 
@@ -8066,14 +8116,15 @@
          ENDIF
 
 #if !defined(NO_BPCH)
-         ! ND39 diag -- save washout loss in [kg/s] 
+         ! ND39 diag -- save washout loss in [kg/m2/s] 
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
          ENDIF
 #endif
 
-         ! Archive wet loss in kg/s
+         ! Archive wet loss in kg/m2/s (check source code for this routine
+         ! - ewl )
 !         IF ( LSOILNOX ) THEN
             CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
 !         ENDIF

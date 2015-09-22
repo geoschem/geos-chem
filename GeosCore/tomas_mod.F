@@ -6173,6 +6173,7 @@ c         SRTH2O = ICOMP
 
       SUBROUTINE GETFRACTION
      &   ( I, J, L, N, LS, FRACTION, SOLFRAC, STT )
+
 !
 !******************************************************************************
 !  Subroutine GETFRACTION calculate the mass fraction of each soluble component 
@@ -6198,10 +6199,10 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)    :: I, J, L, N
-      LOGICAL, INTENT(IN)    :: LS
-      REAL(fp),  INTENT(OUT)   :: FRACTION, SOLFRAC
-      REAL(fp),  INTENT(INOUT) :: STT(:,:,:,:)            ! Tracer array
+      INTEGER,        INTENT(IN)    :: I, J, L, N
+      LOGICAL,        INTENT(IN)    :: LS
+      REAL(fp),       INTENT(OUT)   :: FRACTION, SOLFRAC
+      REAL(fp),       INTENT(INOUT) :: STT(:,:,:,:)            ! Tracer array
 
       ! Local variables
       REAL*4                 ::  MECIL, MOCIL, MOCOB, MSO4, MNACL, MTOT
@@ -6235,7 +6236,8 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
          MOCOB = STT(I,J,L,IDTOCOB1-1+BIN)
       ENDIF
       IF ( IDTDUST1 > 0 ) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
-      IF ( IDTSF1 > 0 ) MSO4  = STT(I,J,L,IDTSF1-1+BIN) * 1.2 !account for ammonium sulfate
+      !account for ammonium sulfate
+      IF ( IDTSF1 > 0 ) MSO4  = STT(I,J,L,IDTSF1-1+BIN) * 1.2 
       IF ( IDTSS1 > 0 ) MNACL = STT(I,J,L,IDTSS1-1+BIN)
       MTOT  = MECIL + MOCIL + MOCOB + MSO4 + MNACL + MDUST + 1.e-20
       XOCIL = MOCIL / MTOT
@@ -6656,8 +6658,9 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 !        to DEPVEL.
 !
 !  REVISION HISTORY:
-!  12 Aug 2015 - E.Lundgren - Now pass am_I_Root and RC for internal tracer 
-!                             unit conversion to [kg] if needed
+!  12 Aug 2015 - E. Lundgren - Now pass am_I_Root and RC for internal tracer 
+!                              unit conversion to [kg] if needed
+!  22 Sep 2015 - E. Lundgren - Use UNITCONV flag to determine 2nd unit conv
 !******************************************************************************
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -6689,6 +6692,7 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       REAL(fp)            :: AMASS(ICOMP)
       REAL(fp)            :: MSO4, MNACL, MH2O
       REAL(fp)            :: MECIL, MECOB, MOCIL, MOCOB, MDUST
+      LOGICAL             :: UNITCONV = .FALSE.
 
       ! Pointers
       ! Define a local array to hold tracer concentration values from the 
@@ -6704,24 +6708,26 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 
       ! Set variables for potential tracer unit conversion (ewl, 8/12/15)
       N_TRACERS = Input_Opt%N_TRACERS
-      
+
       ! If tracer units are 'kg/kg dry', convert to [kg] for this routine.
-      ! Otherwise, if tracer units are not 'kg', throw an error to the 
+      ! Otherwise, if tracer units are not 'kg' then throw an error to the 
       ! calling routine (ewl, 8/12/15)
+      ! NOTE: For complete area-independence, tracer units will need to be 
+      !       mixing ratio or mass per unit area in TOMAS
       IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg dry' ) THEN
          CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met, 
-     &                               State_Chm, RC )  
+     &                               State_Chm, RC ) 
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL GIGC_Error('Unit conversion error', RC, 
-     &                      'AERO_DIADEN in tomas_mod.F')
+     &                      'tomas_mod.F: AERODIADEN')
             RETURN
          ENDIF 
+         UNITCONV = .TRUE.
       ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         CALL GIGC_Error('Unexpected tracer units' // 
-     &                   State_Chm%Trac_Units, RC, 'AERO_DIADEN')
+         CALL GIGC_Error('Incorrect tracer units for TOMAS: ' // 
+     &                   TRIM( State_Chm%Trac_Units ), RC, 
+     &                   'tomas_mod.F: AERO_DIADEN')
          RETURN
-      ELSE
-         CONTINUE
       ENDIF
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -6791,7 +6797,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ! If units were originally 'kg/kg dry', convert [kg] back to mixing 
       ! ratio (ewl, 8/12/15)
-      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg dry' ) THEN
+      IF ( UNITCONV ) THEN
          CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met, 
      &                            State_Chm, RC )  
          IF ( RC /= GIGC_SUCCESS ) THEN
@@ -8393,7 +8399,7 @@ Cpja Perform some numerical checks on dmdt_int
       REAL(fp)                :: VALUE
 
       ! Local variables
-      INTEGER               :: NUMBIN,  ID,   JC
+      INTEGER                 :: NUMBIN,  ID,   JC
       REAL(fp)                :: MSO4, MNO3, MNH4, MH2O, MNACL 
       REAL(fp)                :: MECIL, MECOB, MOCIL, MOCOB, MDUST
       REAL(fp)                :: DENSITY !density (kg/m3) of current size bin
