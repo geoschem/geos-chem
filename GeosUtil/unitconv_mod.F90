@@ -1077,16 +1077,16 @@ CONTAINS
        ! Convert specific humidity from [g/kg] to [kg/kg]
        SPHU_kgkg = State_Met%SPHU(I,J,L) * 1.0e-3_fp 
 
-       ! Area-independent conversion
+       ! Area-independent conversion results in +/-1e-5% precision diffs
 !       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)         &
 !                                    * ( ( 1.0e+0_fp - SPHU_kgkg )      &
-!                                    * ( g0_100                         &
-!                                    * State_Met%DELP(I,J,L) ) )          
+!                                    *  g0_100                         &
+!                                    * State_Met%DELP(I,J,L)  )          
 
 !       ! Equivalent area-dependent conversion
-       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
-                                    * ( State_Met%AD(I,J,L)             &
-                                        / State_Met%AREA_M2(I,J,1) ) 
+!       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
+!                                    * ( State_Met%AD(I,J,L)             &
+!                                        / State_Met%AREA_M2(I,J,1) ) 
 
     ENDDO
     ENDDO
@@ -1196,16 +1196,16 @@ CONTAINS
        ! Convert specific humidity from [g/kg] to [kg/kg]
        SPHU_kgkg = State_Met%SPHU(I,J,L) * 1.0e-3_fp 
 
-       ! Area-independent conversion
-!       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
-!                                    / ( ( 1.0e+0_fp - SPHU_kgkg )       &
-!                                    * ( g0_100                          &
-!                                    * State_Met%DELP(I,J,L) ) )          
+       ! Area-independent conversion results in +/-1e-5% precision diffs
+       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
+                                    / ( ( 1.0e+0_fp - SPHU_kgkg )       &
+                                    * g0_100                          &
+                                    * State_Met%DELP(I,J,L) )          
 
        ! Equivalent area-dependent conversion
-       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
-                                  / ( State_Met%AD(I,J,L)               &
-                                      / State_Met%AREA_M2(I,J,1) )         
+!       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
+!                                  / ( State_Met%AD(I,J,L)               &
+!                                      / State_Met%AREA_M2(I,J,1) )         
                                
 
     ENDDO
