@@ -50,7 +50,11 @@
 !
       PUBLIC :: DEPNAME
       PUBLIC :: DEPSAV
-      PUBLIC :: MAXDEP
+!---------------------------------
+! Prior to 9/22/15:
+! Remove MAXDEP (bmy, 9/22/15)
+!      PUBLIC :: MAXDEP
+!---------------------------------
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
       PUBLIC :: DRYHg0, DRYHg2, DryHgP    !CDH
@@ -199,7 +203,7 @@
 !
       ! SOAupdate: 55 to 105 jje (8/19/2010)
       ! Marine organic aerosols update: 105 to 107 (ewl, 7/8/15)
-      INTEGER,  PARAMETER :: MAXDEP    = 107       ! Max # of depositing species
+!      INTEGER,  PARAMETER :: MAXDEP    = 107       ! Max # of depositing species
       REAL(f8), PARAMETER :: XCKMAN    = 0.4e+0_f8 ! Von Karman's constant
       INTEGER,  PARAMETER :: NR_MAX    = 200       ! # of seasalt bins 
       INTEGER,  PARAMETER :: NDRYDTYPE = 11        ! # of drydep land types
@@ -209,7 +213,6 @@
       !========================================================================
       !  MODULE VARIABLES:
       !
-      !  MAXDEP    : Maximum number of drydep species
       !  XCKMAN    : Von Karman constant?
       !  DRYDHNO3  : Internal flag for location of HNO3 in DEPVEL
       !  DRYDNO2   : Internal flag for location of NO2  in DEPVEL
@@ -247,46 +250,46 @@
       !========================================================================
 
       ! Scalars
-      INTEGER               :: NUMDEP,   NWATER
-      INTEGER               :: DRYDHNO3, DRYDNO2, DRYDPAN, DRYDH2O2
-      INTEGER               :: DRYHg0,   DRYHg2,  DryHgP
+      INTEGER                        :: NUMDEP,   NWATER
+!      INTEGER                        :: DRYDHNO3, DRYDNO2, DRYDPAN, DRYDH2O2
+      INTEGER                        :: DRYHg0,   DRYHg2,  DryHgP
 
       ! Arrays for Baldocchi drydep polynomial coefficients
-      REAL(fp), TARGET      :: DRYCOEFF(NPOLY    )
+      REAL(fp), TARGET               :: DRYCOEFF(NPOLY    )
 
       ! Arrays that hold information for each of the 74 Olson land types
-      INTEGER               :: INDOLSON(NVEGTYPE )
-      INTEGER, POINTER      :: IDEP    (:        )
-      INTEGER               :: IZO     (NVEGTYPE )
-      INTEGER               :: IWATER  (NVEGTYPE )
+      INTEGER                        :: INDOLSON(NVEGTYPE )
+      INTEGER, POINTER               :: IDEP    (:        )
+      INTEGER                        :: IZO     (NVEGTYPE )
+      INTEGER                        :: IWATER  (NVEGTYPE )
 
       ! Arrays that hold information for each of the 11 drydep land types
-      INTEGER               :: IDRYDEP (NDRYDTYPE)
-      INTEGER               :: IRAC    (NDRYDTYPE)
-      INTEGER               :: IRCLO   (NDRYDTYPE)
-      INTEGER               :: IRCLS   (NDRYDTYPE)
-      INTEGER               :: IRGSS   (NDRYDTYPE)
-      INTEGER               :: IRGSO   (NDRYDTYPE)
-      INTEGER               :: IRI     (NDRYDTYPE)
-      INTEGER               :: IRLU    (NDRYDTYPE)
-      INTEGER               :: IVSMAX  (NDRYDTYPE)
+      INTEGER                        :: IDRYDEP (NDRYDTYPE)
+      INTEGER                        :: IRAC    (NDRYDTYPE)
+      INTEGER                        :: IRCLO   (NDRYDTYPE)
+      INTEGER                        :: IRCLS   (NDRYDTYPE)
+      INTEGER                        :: IRGSS   (NDRYDTYPE)
+      INTEGER                        :: IRGSO   (NDRYDTYPE)
+      INTEGER                        :: IRI     (NDRYDTYPE)
+      INTEGER                        :: IRLU    (NDRYDTYPE)
+      INTEGER                        :: IVSMAX  (NDRYDTYPE)
 
       ! Arrays that hold information about the dry-depositing species
-      LOGICAL               :: AIROSOL (MAXDEP   )
-      INTEGER               :: NDVZIND (MAXDEP   )
-      INTEGER               :: NTRAIND (MAXDEP   )
-      REAL(f8)              :: HSTAR   (MAXDEP   )
-      REAL(f8)              :: KOA     (MAXDEP   )
-      REAL(f8)              :: F0      (MAXDEP   )
-      REAL(f8)              :: XMW     (MAXDEP   )
-      REAL(f8)              :: A_RADI  (MAXDEP   )
-      REAL(f8)              :: A_DEN   (MAXDEP   )
-      CHARACTER(LEN=14)     :: DEPNAME (MAXDEP   )
+      LOGICAL,           ALLOCATABLE :: AIROSOL (:    ) ! Is Aerosol? (T/F)
+      INTEGER,           ALLOCATABLE :: NDVZIND (:    ) ! Drydep index
+      INTEGER,           ALLOCATABLE :: NTRAIND (:    ) ! Tracer index
+      REAL(f8),          ALLOCATABLE :: HSTAR   (:    ) ! Henry's K0 [M/atm]
+      REAL(f8),          ALLOCATABLE :: KOA     (:    ) ! POP's KOA
+      REAL(f8),          ALLOCATABLE :: F0      (:    ) ! Reactivity factor [1]
+      REAL(f8),          ALLOCATABLE :: XMW     (:    ) ! Mol wt. [kg/mol]
+      REAL(f8),          ALLOCATABLE :: A_RADI  (:    ) ! Aer radius [um]
+      REAL(f8),          ALLOCATABLE :: A_DEN   (:    ) ! Aer density [kg/m3]
+      CHARACTER(LEN=14), ALLOCATABLE :: DEPNAME (:    ) ! Species name
 
       ! Allocatable arrays
-      REAL(fp), ALLOCATABLE, TARGET :: DEPSAV  (:,:,:    ) ! Drydep frequencies
-      REAL(f8), ALLOCATABLE         :: DMID    (:        )
-      REAL(f8), ALLOCATABLE         :: SALT_V  (:        )
+      REAL(fp), TARGET,  ALLOCATABLE :: DEPSAV  (:,:,:) ! Drydep frequencies
+      REAL(f8),          ALLOCATABLE :: DMID    (:    )
+      REAL(f8),          ALLOCATABLE :: SALT_V  (:    )
       
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -415,7 +418,12 @@
       REAL(f8)      :: RADIAT(MAXIJ       )   ! Solar radiation [W/m2]
       REAL(f8)      :: USTAR (MAXIJ       )   ! Grid box friction velocity[m/s]
       REAL(f8)      :: RHB   (MAXIJ       )   ! Relative humidity [unitless]
-      REAL(f8)      :: DVEL  (MAXIJ,MAXDEP)   ! Drydep velocities [m/s]
+!------------------------------------------------------------------------------
+! Prior to 9/22/18:
+! Now use NUMDEP instead of MAXDEP
+!      REAL(f8)      :: DVEL  (MAXIJ,MAXDEP)   ! Drydep velocities [m/s]
+!------------------------------------------------------------------------------
+      REAL(f8)      :: DVEL  (MAXIJ,NUMDEP)   ! Drydep velocities [m/s]
       REAL(f8)      :: PRESSU(MAXIJ       )   ! Local surface pressure [Pa]
       REAL(f8)      :: W10   (MAXIJ       )   ! 10m windspeed [m/s]
 
@@ -432,7 +440,6 @@
 
       ! For ESMF, need to assign these from Input_Opt
       LOGICAL       :: PBL_DRYDEP 
-!      LOGICAL       :: LNLPBL
       LOGICAL       :: LPRT
 
 #if defined( DEVEL )
@@ -457,14 +464,14 @@
       
       ! Copy values from the Input Options object to local variables
       PBL_DRYDEP = Input_Opt%PBL_DRYDEP
-!      LNLPBL     = Input_Opt%LNLPBL
       LPRT       = Input_Opt%LPRT
 
-      ! Be careful only to copy NUMDEP values from Input_Opt%NDVZIND
-      ! to the NDVZIND local array.  This will prevent an OOB error.
-      DO N = 1, Input_Opt%NUMDEP
-         NDVZIND(N) = Input_Opt%NDVZIND(N)
-      ENDDO
+! Why do we do this???
+!      ! Be careful only to copy NUMDEP values from Input_Opt%NDVZIND
+!      ! to the NDVZIND local array.  This will prevent an OOB error.
+!      DO N = 1, Input_Opt%NUMDEP
+!         NDVZIND(N) = Input_Opt%NDVZIND(N)
+!      ENDDO
 
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
@@ -908,11 +915,11 @@
       REAL(f8), INTENT(IN) :: RADIAT (MAXIJ )  ! Solar radiation [W/m2]
       REAL(f8), INTENT(IN) :: TEMP   (MAXIJ )  ! Temperature [K]
       REAL(f8), INTENT(IN) :: SUNCOS (MAXIJ )  ! Cosine of solar zenith angle
-      LOGICAL,  INTENT(IN) :: AIROSOL(MAXDEP)  ! =T denotes aerosol species
-      REAL(f8), INTENT(IN) :: F0     (MAXDEP)  ! Reactivity factor for oxidation
+      LOGICAL,  INTENT(IN) :: AIROSOL(NUMDEP)  ! =T denotes aerosol species
+      REAL(f8), INTENT(IN) :: F0     (NUMDEP)  ! Reactivity factor for oxidation
                                                !  of biological substances
-      REAL(f8), INTENT(IN) :: HSTAR  (MAXDEP)  ! Henry's law constant
-      REAL(f8), INTENT(IN) :: XMW    (MAXDEP)  ! Molecular weight [kg/mol]
+      REAL(f8), INTENT(IN) :: HSTAR  (NUMDEP)  ! Henry's law constant
+      REAL(f8), INTENT(IN) :: XMW    (NUMDEP)  ! Molecular weight [kg/mol]
       REAL(f8), INTENT(IN) :: USTAR  (MAXIJ )  ! Friction velocity [m/s]
       REAL(f8), INTENT(IN) :: CZ1    (MAXIJ )  ! Alt @ which Vd is computed [m]
       REAL(f8), INTENT(IN) :: OBK    (MAXIJ )  ! Monin-Obhukov length [m]
@@ -928,7 +935,8 @@
 !
 ! !OUTPUT PARAMETERS:
 ! 
-      REAL(f8), INTENT(OUT) :: DVEL(MAXIJ,MAXDEP)   ! Drydep velocity [m/s]
+!      REAL(f8), INTENT(OUT) :: DVEL(MAXIJ,MAXDEP)   ! Drydep velocity [m/s]
+      REAL(f8), INTENT(OUT) :: DVEL(MAXIJ,NUMDEP)   ! Drydep velocity [m/s]
 !
 ! !REMARKS:
 !  Need as landtype input for each grid square (I,J); see CMN_DEP_mod.F
@@ -1068,6 +1076,7 @@
 !                              aerosols (T.D. Fairlie)
 !  28 Jan 2014 - R. Yantosca - For TOMAS, don't hold A_RADI and A_DEN PRIVATE
 !  19 May 2014 - C. Keller   - Now call BIOFIT from drydep_toolbox_mod.F
+!  22 Sep 2015 - R. Yantosca - Now use NUMDEP instead of MAXDEP for arrays
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1101,9 +1110,15 @@
 !
       REAL(f8)  RI(NTYPE),RLU(NTYPE),RAC(NTYPE),RGSS(NTYPE),
      1        RGSO(NTYPE),RCLS(NTYPE),RCLO(NTYPE),
-     2        RSURFC(MAXDEP,NTYPE)       
+!------------------------------------------------------------------------------
+! Prior to 9/22/15:
+! Now use NUMDEP instead of MAXDEP (bmy, 9/22/15)
+!     2        RSURFC(MAXDEP,NTYPE)       
+!------------------------------------------------------------------------------
+     2        RSURFC(NUMDEP,NTYPE)       
                                    
-      REAL(f8)  C1X(MAXDEP),VD(MAXDEP),VK(MAXDEP)              
+!      REAL(f8)  C1X(MAXDEP),VD(MAXDEP),VK(MAXDEP)              
+      REAL(f8)  C1X(NUMDEP),VD(NUMDEP),VK(NUMDEP)              
 
 #if   defined( GCAP )
       ! For the GISS/GCAP model, ZO is a function of land type 
@@ -1115,7 +1130,8 @@
       REAL(f8)  ZO(MAXIJ)           
 #endif
 
-      LOGICAL LDEP(MAXDEP)
+!      LOGICAL LDEP(MAXDEP)
+      LOGICAL LDEP(NUMDEP)
       LOGICAL LRGERA(MAXIJ)
 
       REAL(f8)  VDS
@@ -3947,6 +3963,11 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
+! !REMARKS:
+!  We now know how many drydep species there are before INIT_DRYDEP is 
+!  called.  This allows us to get rid of MAXDEP.  NUMDEP should be
+!  equal to State_Chm%nDryDep, otherwise there is an error.
+!
 ! !REVISION HISTORY: 
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
 !        HNO3.  Now initialize PBLFRAC array. (rjp, bmy, 7/21/03)
@@ -3997,20 +4018,22 @@
 !                              aerosols (T.D. Fairlie)
 !  15 Jan 2015 - R. Yantosca - Now save NTRAIND to Input_Opt%NTRAIND
 !  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
+!  22 Sep 2015 - R. Yantosca - Now allocate internal variables that used 
+!                              to be of size MAXDEP.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL      :: LDRYD
-      LOGICAL      :: IS_Hg
-      LOGICAL      :: IS_POPS
-      INTEGER      :: AS, N
+      LOGICAL                :: LDRYD
+      LOGICAL                :: IS_Hg
+      INTEGER                :: AS, N
 
-      CHARACTER(LEN=255) :: MSG
+      ! Strings
+      CHARACTER(LEN=255)     :: MSG
 
-      ! Pointers
+      ! Objects
       TYPE(Species), POINTER :: ThisSpc 
 
       !=================================================================
@@ -4018,34 +4041,74 @@
       !=================================================================
       
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC     = GIGC_SUCCESS
      
       ! Is this a mercury simulation?
-      IS_Hg      = Input_Opt%ITS_A_MERCURY_SIM
-
-      ! Is this a pops simulation?
-      IS_POPS    = Input_Opt%ITS_A_POPS_SIM
+      IS_Hg  = Input_Opt%ITS_A_MERCURY_SIM
 
       ! ARe we using drydep?
-      LDRYD      = Input_Opt%LDRYD
+      LDRYD  = Input_Opt%LDRYD
 
-      ! Zero variables
-      DRYDNO2    = 0
-      DRYDPAN    = 0
-      DRYDHNO3   = 0 
-      !(f8, 06/09)
-      DRYDH2O2   = 0 
- 
-      NUMDEP     = 0
-      NTRAIND(:) = 0
-      NDVZIND(:) = 0
-      HSTAR(:)   = 0e+0_f8
-      F0(:)      = 0e+0_f8
-      XMW(:)     = 0e+0_f8
-      A_RADI(:)  = 0e+0_f8
-      A_DEN(:)   = 0e+0_f8
-      KOA(:)     = 0e+0_f8
-      AIROSOL(:) = .FALSE.
+      ! Count of drydep species
+      NUMDEP = 0
+
+      !===================================================================
+      ! Arrays that hold information about dry-depositing species
+      ! Only allocate these if dry deposition is activated
+      !===================================================================
+      IF ( State_Chm%nDryDep > 0 ) THEN
+
+         ! Aerosol density [kg/m3]
+         ALLOCATE( A_DEN( State_Chm%nDryDep ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_DEN' )
+         A_DEN(:)   = 0e+0_f8
+
+         ! Aerosol radius [um]
+         ALLOCATE( A_RADI( State_Chm%nDryDep ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_RADI' )
+         A_RADI = 0e+0_f8
+
+         ! Is the species an aerosol? (T/F)
+         ALLOCATE( AIROSOL( State_Chm%nDryDep ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIROSOL' )
+         AIROSOL = .FALSE.
+
+         ! Drydep species name
+         ALLOCATE( DEPNAME( State_Chm%nDryDep ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'DEPNAME' )
+         DEPNAME = ''
+
+         ! Reactivity factor
+         ALLOCATE( F0( State_Chm%nDryDep ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'F0' )
+         F0 = 0e+0_f8
+
+         ! Henry's law K0
+         ALLOCATE( HSTAR( State_Chm%nDryDep ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'HSTAR' )
+         HSTAR = 0e+0_f8
+
+         ! POPs KOA
+         ALLOCATE( KOA( State_Chm%nDryDep ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'KOA' )
+         KOA  = 0e+0_f8
+
+         ! Drydep species indicies
+         ALLOCATE( NDVZIND( State_Chm%nDryDep ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'NDVZIND' )
+         NDVZIND = 0
+
+         ! Tracer indices
+         ALLOCATE( NTRAIND( State_Chm%nDryDep ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'NTRAIND' )
+         NTRAIND = 0
+
+         ! Molecular weight [kg/mol]
+         ALLOCATE( XMW( State_Chm%nDryDep ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'XMW' )
+         XMW = 0e+0_f8
+
+      ENDIF
 
       !=================================================================
       ! First identify tracers that dry deposit and then initialize 
@@ -4087,7 +4150,8 @@
          ! Only proceed if the species dry deposits
          IF ( ThisSpc%Is_Drydep ) THEN
 
-! Preserve diffs for now until we are sure that the code passes diff tests
+!------------------------------------------------------------------------------
+! Preserve code for now until we are sure that the code passes diff tests
 ! (bmy, 9/21/15)
 !<<<<<<< HEAD
 !            ! Hg2 -- Divalent Mercury
@@ -4116,128 +4180,8 @@
 !               AIROSOL(NUMDEP) = .TRUE. 
 !            ENDIF
 !         
-!         
-!         !----------------------------------
-!         ! POPS tracers
-!         !----------------------------------
-!
-!          ELSE IF ( IS_POPS ) THEN
-!             ! POPs gas phase
-!             IF ( N == IDTPOPG) THEN
-!               NUMDEP          = NUMDEP + 1
-!               NTRAIND(NUMDEP) = IDTPOPG
-!               NDVZIND(NUMDEP) = NUMDEP
-!               DEPNAME(NUMDEP) = 'POPG'
-!               ! HSTAR is Henry's Law in mol/L/atm. 
-!               ! For PHENANTHRENE, log Kaw = -2.76  
-!               ! so unitless Kaw = 1.73*10^-3 and Kwa = 1/Kaw
-!               ! Divide by R (0.0821 atm/M/K) and T (298 K) and get HSTAR = 23.5 M/atm
-!               ! For PYRENE, log Kaw = -3.27
-!               ! Using the same conversion, HSTAR = 76.1 M/atm
-!               ! For BENZO[a]PYRENE, log Kaw = -4.51
-!               ! Using the same conversion, HSTAR = 1.32d3 M/atm
-!               ! All log Kaws from Ma et al., J Chem Eng Data 2010, 55:819 
-!               HSTAR(NUMDEP)   = 1.0e+0_f8 / Input_Opt%POP_HSTAR *0.0409
-!               ! Adding Koa (octanol-ar partition coefficient) for POPs to
-!               ! account for accumulation in leaf cuticles
-!               ! Needs to be in units of mol/liter/atm as with HSTAR
-!               ! Divide unitless Koa at 298 K by product of R (0.0821 atm/M/K)
-!               ! and T (298 K)
-!               ! For PHENANTHRENE, log Koa = 7.64  
-!               ! use same conversion as for HSTAR to get 1.78d6 M/atm
-!               ! For PYRENE, log Koa = 8.86
-!               ! use same conversion to get 2.96d7 M/atm
-!               ! For BENZO[a]PYRENE, log Koa = 11.48
-!               ! use same conversion to get 1.23d10 M/atm 
-!               ! All log Koas from Ma et al., J Chem Eng Data 2010, 55:819
-!               ! Now add factor of 0.8 to account for 80% vol content of octanol
-!               ! equivalent in leaf surface
-!               KOA(NUMDEP)     = Input_Opt%POP_KOA *0.0409 *0.8e+0_f8
-!               F0(NUMDEP)      = 0.0e+0_f8
-!               ! Need to change molecular weight for different POPs
-!               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
-!               ! For PYRENE, MW = 202d-3 (kg/mol)
-!               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
-!               XMW(NUMDEP)     = Input_Opt%POP_XMW
-!               AIROSOL(NUMDEP) = .FALSE. 
-!            ENDIF
-!
-!             ! POPs PARTICLES - OCPO 
-!            IF ( N == IDTPOPPOCPO ) THEN
-!               NUMDEP          = NUMDEP + 1
-!               NTRAIND(NUMDEP) = IDTPOPPOCPO
-!               NDVZIND(NUMDEP) = NUMDEP
-!               DEPNAME(NUMDEP) = 'POPPOCPO'
-!               HSTAR(NUMDEP)   = 0.0e+0_f8
-!               ! Koa for particulate POPs is set to equivalent of Henry's Law
-!               ! so cuticular accumulation is not considered
-!               KOA(NUMDEP)     = 0.0e+0_f8
-!               F0(NUMDEP)      = 0.0e+0_f8
-!               ! Need to change molecular weight for different POPs
-!               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
-!               ! For PYRENE, MW = 202d-3 (kg/mol)
-!               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
-!               XMW(NUMDEP)     = Input_Opt%POP_XMW
-!               AIROSOL(NUMDEP) = .TRUE. 
-!            ENDIF
-!
-!            ! POPs PARTICLES - BCPO 
-!            IF ( N == IDTPOPPBCPO ) THEN
-!               NUMDEP          = NUMDEP + 1
-!               NTRAIND(NUMDEP) = IDTPOPPBCPO
-!               NDVZIND(NUMDEP) = NUMDEP
-!               DEPNAME(NUMDEP) = 'POPPBCPO'
-!               HSTAR(NUMDEP)   = 0.0e+0_f8
-!               ! Koa for particulate POPs is set to equivalent of Henry's Law
-!               ! so cuticular accumulation is not considered
-!               KOA(NUMDEP)     = 0.0e+0_f8
-!               F0(NUMDEP)      = 0.0e+0_f8
-!               ! Need to change molecular weight for different POPs
-!               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
-!               ! For PYRENE, MW = 202d-3 (kg/mol)
-!               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
-!               XMW(NUMDEP)     = Input_Opt%POP_XMW
-!               AIROSOL(NUMDEP) = .TRUE. 
-!            ENDIF
-!
-!             ! POPs PARTICLES - OCPI 
-!            IF ( N == IDTPOPPOCPI ) THEN
-!               NUMDEP          = NUMDEP + 1
-!               NTRAIND(NUMDEP) = IDTPOPPOCPI
-!               NDVZIND(NUMDEP) = NUMDEP
-!               DEPNAME(NUMDEP) = 'POPPOCPI'
-!               HSTAR(NUMDEP)   = 0.0e+0_f8
-!               ! Koa for particulate POPs is set to equivalent of Henry's Law
-!               ! so cuticular accumulation is not considered
-!               KOA(NUMDEP)     = 0.0e+0_f8
-!               F0(NUMDEP)      = 0.0e+0_f8
-!               ! Need to change molecular weight for different POPs
-!               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
-!               ! For PYRENE, MW = 202d-3 (kg/mol)
-!               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
-!               XMW(NUMDEP)     = Input_Opt%POP_XMW
-!               AIROSOL(NUMDEP) = .TRUE. 
-!            ENDIF
-!
-!            ! POPs PARTICLES - BCPI 
-!            IF ( N == IDTPOPPBCPI ) THEN
-!               NUMDEP          = NUMDEP + 1
-!               NTRAIND(NUMDEP) = IDTPOPPBCPI
-!               NDVZIND(NUMDEP) = NUMDEP
-!               DEPNAME(NUMDEP) = 'POPPBCPI'
-!               HSTAR(NUMDEP)   = 0.0e+0_f8
-!               ! Koa for particulate POPs is set to equivalent of Henry's Law
-!               ! so cuticular accumulation is not considered
-!               KOA(NUMDEP)     = 0.0e+0_f8
-!               F0(NUMDEP)      = 0.0e+0_f8
-!               ! Need to change molecular weight for different POPs
-!               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
-!               ! For PYRENE, MW = 202d-3 (kg/mol)
-!               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
-!               XMW(NUMDEP)     = Input_Opt%POP_XMW
-!               AIROSOL(NUMDEP) = .TRUE. 
-!            ENDIF
-!=======
+!------------------------------------------------------------------------------
+
             ! Test species name
             SELECT CASE( TRIM( ThisSpc%Name ) )
             
@@ -4385,7 +4329,8 @@
          ! Free pointer
          ThisSpc => NULL()
       ENDDO
-          
+ 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%%% NOTE: This can be made local to mercury_mod.F (bmy, 9/21/15)   
       !=================================================================
       ! Additional variables required for mercury simultion
@@ -4421,6 +4366,15 @@
 
           ENDIF
 
+      ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      !%%% Temporary error check!  Need to add a better one later.
+      IF ( NUMDEP /= State_Chm%nDryDep ) THEN
+         PRINT*, '### NUMDEP: = ', NUMDEP
+         PRINT*, '### State_Chm%nDryDep: ', State_Chm%nDryDep
+         PRINT*, '### MISMATCH!!!'
+         STOP
       ENDIF
 
       !=================================================================
@@ -4537,15 +4491,27 @@
 !  (1 ) Remove reference to PBLFRAC array; it's obsolete (bmy, 2/22/05)
 !  (2 ) Added SALT_V and DMID (jaegle, 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  22 Sep 2015 - R. Yantosca - Now deallocate arrays that were formerly
+!                              sized to MAXDEP.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
       ! CLEANUP_DRYDEP begins here!
       !=================================================================
+      IF ( ALLOCATED( A_DEN    ) ) DEALLOCATE( A_DEN    )
+      IF ( ALLOCATED( A_RADI   ) ) DEALLOCATE( A_RADI   )
+      IF ( ALLOCATED( AIROSOL  ) ) DEALLOCATE( AIROSOL  )
+      IF ( ALLOCATED( DEPNAME  ) ) DEALLOCATE( DEPNAME  )
       IF ( ALLOCATED( DEPSAV   ) ) DEALLOCATE( DEPSAV   )
-      IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
       IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
+      IF ( ALLOCATED( F0       ) ) DEALLOCATE( F0       )
+      IF ( ALLOCATED( HSTAR    ) ) DEALLOCATE( HSTAR    )
+      IF ( ALLOCATED( KOA      ) ) DEALLOCATE( KOA      )
+      IF ( ALLOCATED( NDVZIND  ) ) DEALLOCATE( NDVZIND  )
+      IF ( ALLOCATED( NTRAIND  ) ) DEALLOCATE( NTRAIND  )
+      IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
+      IF ( ALLOCATED( XMW      ) ) DEALLOCATE( XMW      )
 
       END SUBROUTINE CLEANUP_DRYDEP
 !EOC
