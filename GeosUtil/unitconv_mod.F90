@@ -1079,9 +1079,9 @@ CONTAINS
 
        ! Area-independent conversion results in +/-1e-5% precision diffs
 !       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)         &
-!                                    * ( ( 1.0e+0_fp - SPHU_kgkg )      &
-!                                    *  g0_100                         &
-!                                    * State_Met%DELP(I,J,L)  )          
+                                    * ( ( 1.0e+0_fp - SPHU_kgkg )      &
+                                    *  g0_100                         &
+                                    * State_Met%DELP(I,J,L)  )          
 
 !       ! Equivalent area-dependent conversion
 !       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
