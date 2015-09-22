@@ -962,12 +962,13 @@
 !                  WRITE(*,*) 'ERROR NDRYDEP Greater then MAXDEP',
 !     x                 ' NDRYDEP(NCS)=',NDRYDEP(NCS),'MAXDEP=',MAXDEP
 !------------------------------------------------------------------------------
-               IF (NDRYDEP(NCS) .GT. NUMDEP) THEN
-                  WRITE(*,*) 'ERROR NDRYDEP Greater then NUMDEP',
-     x                 ' NDRYDEP(NCS)=',NDRYDEP(NCS),'MAXDEP=',NUMDEP
-                  IF ( am_I_Root ) WRITE( 6, '(a)' ) 'STOP 125'
-                  CALL GEOS_CHEM_STOP
-               ENDIF
+! Disable this test for now
+!               IF (NDRYDEP(NCS) .GT. NUMDEP) THEN
+!                  WRITE(*,*) 'ERROR NDRYDEP Greater then NUMDEP',
+!     x                 ' NDRYDEP(NCS)=',NDRYDEP(NCS),'MAXDEP=',NUMDEP
+!                  IF ( am_I_Root ) WRITE( 6, '(a)' ) 'STOP 125'
+!                  CALL GEOS_CHEM_STOP
+!               ENDIF
                NKDRY(NDRYDEP(NCS),NCS)   = NK
             ENDIF
          ENDIF
