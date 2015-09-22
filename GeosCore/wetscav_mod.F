@@ -31,6 +31,7 @@
       PUBLIC  :: CLEANUP_WETSCAV
       PUBLIC  :: COMPUTE_F
       PUBLIC  :: DO_WETDEP
+      PUBLIC  :: GET_WETDEP_NSOL
       PUBLIC  :: GET_WETDEP_IDWETD
       PUBLIC  :: INIT_WETSCAV
       PUBLIC  :: SETUP_WETSCAV
@@ -161,6 +162,7 @@
 !  03 Sep 2015 - R. Yantosca - INIT_WETSCAV now just allocates arrays;
 !                              SETUP_WETSCAV now just sets up quantities
 !  03 Sep 2015 - R. Yantosca - Remove WETDEPID routine, it's not needed
+!  22 Sep 2015 - R. Yantosca - Re-introduce GET_WETDEP_NSOL routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6256,6 +6258,47 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: get_wetdep_nsol
+!
+! !DESCRIPTION: Function GET\_WETDEP\_NSOL returns NSOL (# of soluble tracers) 
+!  to a calling program outside WETSCAV_MOD.  This is so that we can keep 
+!  NSOL declared as a PRIVATE variable.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_WETDEP_NSOL() RESULT( N_SOLUBLE )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: N_SOLUBLE   ! Number of soluble tracers
+!
+! !REMARKS:
+!  This routine returns the actual number of wet deposited species.  For
+!  example, if wet deposition is turned off in input.geos, then N_SOLUBLE
+!  will be zero, even though the count of species that can potentially
+!  undergo wet deposition (State_Chm%nWetDep) is nonzero.
+!
+! !REVISION HISTORY: 
+!  10 Jan 2003 - R. Yantosca - Initial version
+!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      !=================================================================
+      ! GET_WETDEP_NSOL begins here!
+      !=================================================================
+
+      ! Get the # of soluble tracers
+      N_SOLUBLE = NSOL
+     
+      END FUNCTION GET_WETDEP_NSOL
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: get_wetdep_idwetd
 !
 ! !DESCRIPTION: Function GET\_WETDEP\_IDWETD returns the tracer number of 
@@ -6292,7 +6335,7 @@
       ! Make sure NWET is valid
       IF ( NWET < 1 .or. NWET > NSOL ) THEN
          CALL ERROR_STOP( 'Invalid value of NWET!', 
-     &                    'GET_N_WETDEP (wetscav_mod.f)' )
+     &                    'GET_WETDEP_IDWETD (wetscav_mod.f)' )
       ENDIF
 
       ! Get the tracer # for wet deposition species N
@@ -6483,6 +6526,9 @@
 !                              values from State_Met in SETUP_WETSCAV.
 !  03 Sep 2015 - R. Yantosca - Also initialize IDWETD here; this makes routine
 !                              WETDEPID obsolete, so we can remove it.
+!  22 Sep 2015 - R. Yantosca - Bug fix: only define the IDWETD array if
+!                              wetdep or drydep is turned on.  Also only
+!                              print info if wetdep is turned on.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6509,7 +6555,7 @@
       IF ( .not. FIRST ) RETURN
       
       ! Number of wet-depositing species
-      NSOL = State_Chm%nWetDep
+      NSOL = 0
 
       !-----------------------------------------------------------------
       ! Allocate H2O2s for wet deposition 
@@ -6545,7 +6591,7 @@
       IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
 
          ! Tracer numbers of all wet-depositing species
-         ALLOCATE( IDWETD( NSOL ), STAT=RC )
+         ALLOCATE( IDWETD( State_Chm%nWetDep ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'IDWETD' )
          IDWETD = 0
             
@@ -6563,35 +6609,36 @@
          ALLOCATE( CLDICE( IIPAR, JJPAR, LLPAR ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'CLDICE' )
          CLDICE = 0.0_fp
+
+         !--------------------------------------------------------------
+         ! Construct the vector of wet-depositing species indices
+         !--------------------------------------------------------------
+
+         ! Loop over all species
+         DO N = 1, State_Chm%nSpecies
+
+            ! Get physical parameters for the Nth species from the
+            ! species database object (which is part of State_Chm)
+            ThisSpc => State_Chm%SpcData(N)%Info
+
+            ! If this is a wet-depositing species, then store the
+            ! advected species index in the IDWETD array
+            IF ( ThisSpc%Is_WetDep ) THEN
+               NSOL         = NSOL + 1          ! Increment counter
+               N_WD         = ThisSpc%WetDepID  ! Wetdep ID
+               IDWETD(N_WD) = ThisSpc%AdvectId  ! Species ID
+            ENDIF
+
+            ! Free pointer
+            ThisSpc => NULL()
+
+         ENDDO
       ENDIF
-
-      !=================================================================
-      ! Construct the vector of wet-depositing species tracer numbers
-      !=================================================================
-
-      ! Loop over all species
-      DO N = 1, State_Chm%nSpecies
-
-         ! Get physical parameters for the Nth species from the
-         ! species database object (which is part of State_Chm)
-         ThisSpc => State_Chm%SpcData(N)%Info
-
-         ! If this is a wet-depositing species, then store the
-         ! advected species index in the IDWETD array
-         IF ( ThisSpc%Is_WetDep ) THEN
-            N_WD         = ThisSpc%WetDepID
-            IDWETD(N_WD) = ThisSpc%AdvectId
-         ENDIF
-
-         ! Free pointer
-         ThisSpc => NULL()
-
-      ENDDO
 
       !=================================================================
       ! Print information about wet-depositing species
       !=================================================================
-      IF ( am_I_Root ) THEN
+      IF ( am_I_Root .and. NSOL > 0 ) THEN
 
          ! Title
          LINE = 'INIT_WETSCAV: List of soluble tracers: '

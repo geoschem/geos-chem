@@ -8394,6 +8394,9 @@
 !                              we can take advantage of the species database
 !  03 Sep 2015 - R. Yantosca - Now call INIT_WETSCAV instead of WETDEPID
 !  21 Sep 2015 - R. Yantosca - Now pass State_Chm to INIT_POPS
+!  22 Sep 2015 - R. Yantosca - Bug fix: only call INIT_WETSCAV if convection,
+!                              wetdep, or chemistry ist turned on.  This
+!                              replicates the prior behavior,
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8437,8 +8440,12 @@
      &        'as the total HgP tracer.' )
 
       ! Initialize wet deposition tracers
-      CALL INIT_WETSCAV( am_I_Root, Input_Opt, State_Chm, RC )
-
+      IF ( Input_Opt%LCONV   .or. 
+     &     Input_Opt%LWETD   .or.    
+     &     Input_Opt%LCHEM ) THEN
+         CALL INIT_WETSCAV( am_I_Root, Input_Opt, State_Chm, RC )
+      ENDIF
+         
 ! This might be obsolete now
 !#if   defined( APM )
 !     ! Initialize wet deposition tracers for APM

@@ -443,10 +443,20 @@
       !       and conv precipitation) --> uses AD17 array (allocatable)
       !=================================================================
       IF ( ND17 > 0 ) THEN
-         LD17 = MIN( ND17, LLPAR )
 
          ! Get # of soluble tracers for this simulation
          NMAX = State_Chm%nWetDep
+
+         ! Turn off ND17 if there are no wetdep species
+         IF ( NMAX == 0 ) THEN 
+            ND17 = 0
+            IF ( am_I_Root ) THEN 
+               print*, '### No wetdep species, so turn off ND17'
+            ENDIF
+         ENDIF
+
+         ! Number of levels
+         LD17 = MIN( ND17, LLPAR )
 
          ! Store both LS and convective rainout fractions
          ALLOCATE( AD17( IIPAR, JJPAR, LD17, NMAX, 2 ), STAT=AS ) 
@@ -462,10 +472,20 @@
       !       and convective precipitation) --> uses AD18 array (alloc.)
       !=================================================================
       IF ( ND18 > 0 ) THEN
-         LD18 = MIN( ND18, LLPAR )
 
          ! Get # of soluble tracers for this simulation
          NMAX = State_Chm%nWetDep
+
+         ! Turn off ND17 if there are no wetdep species
+         IF ( NMAX == 0 ) THEN 
+            ND18 = 0
+            IF ( am_I_Root ) THEN 
+               print*, '### No wetdep species, so turn off ND18'
+            ENDIF
+         ENDIF
+
+         ! Number of levels
+         LD18 = MIN( ND18, LLPAR )
 
          ! Store both LS and convective rainout fractions         
          ALLOCATE( AD18( IIPAR, JJPAR, LD18, NMAX, 2 ), STAT=AS) 
@@ -643,10 +663,20 @@
       !       --> Uses AD37 array (allocatable)
       !=================================================================
       IF ( ND37 > 0 ) THEN
-         LD37 = MIN( ND37, LLPAR )
          
          ! Get # of soluble tracers for this simulation
          NMAX = State_Chm%nWetDep
+
+         ! Turn off ND37 if there are no wetdep species
+         IF ( NMAX == 0 ) THEN 
+            ND37 = 0
+            IF ( am_I_Root ) THEN 
+               print*, '### No wetdep species, so turn off ND37'
+            ENDIF
+         ENDIF
+
+         ! Number of levels
+         LD37 = MIN( ND37, LLPAR )
 
          ! Allocate array accordingly
          IF ( NMAX > 0 ) THEN
@@ -662,14 +692,18 @@
       !=================================================================
       ! Allocate AD38 for GTMM. (ccc, 10/29/09)
       IF ( ND38 > 0 .OR. LGTMM ) THEN
+
+         ! Get # of soluble tracers for this simulation
+         NMAX = State_Chm%nWetDep
+         
+         
+
+
          LD38 = MIN( ND38, LLPAR )
 
          ! If GTMM on and LD38 off, ND38 should be LLPAR, (ccc, 10/29/09)
          IF ( ND38 == 0 ) LD38 = LLPAR
          
-         ! Get # of soluble tracers for this simulation
-         NMAX = State_Chm%nWetDep
-
          ! Allocate AD38 array accordingly
          IF ( NMAX > 0 ) THEN
             ALLOCATE( AD38( IIPAR, JJPAR, LD38, NMAX ), STAT=AS )

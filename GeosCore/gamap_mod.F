@@ -1744,6 +1744,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD
+      USE WETSCAV_MOD,        ONLY : GET_WETDEP_NSOL
       USE WETSCAV_MOD,        ONLY : GET_WETDEP_IDWETD
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
@@ -5052,7 +5053,7 @@
       IF ( ND17 + ND18 > 0 ) THEN
          
          ! Number of tracers
-         NTRAC(17) = State_Chm%nWetDep
+         NTRAC(17) = GET_WETDEP_NSOL()
 
          ! Loop over tracers
          DO N = 1, NTRAC(17)

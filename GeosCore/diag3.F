@@ -1704,8 +1704,8 @@
       IF ( ND17 > 0 ) THEN
          UNIT = 'unitless'
 
-         ! Get max # of soluble tracers for this simulation
-         NMAX = State_Chm%nWetDep
+         ! Get actual # of wet-deposited tracers for this simulation
+         NMAX = GET_WETDEP_NSOL()
 
          ! Loop over soluble tracers
          DO N = 1, NMAX
@@ -1771,9 +1771,10 @@
       IF ( ND18 > 0 ) THEN
          UNIT = 'unitless'
 
-         ! Get max # of soluble tracers for this simulation
-         NMAX = State_Chm%nWetDep
+         ! Get actual # of wet-deposited tracers for this simulation
+         NMAX = GET_WETDEP_NSOL()
 
+         ! Loop over soluble tracers
          DO N = 1, NMAX
 
             ! Tracer number
@@ -3269,8 +3270,8 @@
          CATEGORY = 'MC-FRC-$'
          UNIT     = 'unitless'
 
-         ! Get actual # of soluble tracers
-         NMAX = State_Chm%nWetDep
+         ! Get actual # of wet-deposited tracers for this simulation
+         NMAX = GET_WETDEP_NSOL()
 
          ! Loop over soluble tracers
          DO N = 1, NMAX
@@ -3320,7 +3321,7 @@
          UNIT     = 'kg/s'
 
          ! Get actual # of soluble tracers
-         M = State_Chm%nWetDep
+         M = GET_WETDEP_NSOL()
 
          ! Loop over soluble tracers
          DO N = 1, M
@@ -3367,8 +3368,8 @@
          UNIT     = 'kg/s'
 
          ! Get actual # of soluble tracers
-         M = State_Chm%nWetDep
-            
+         M = GET_WETDEP_NSOL()
+
          ! Loop over soluble tracers
          DO N = 1, M
                
