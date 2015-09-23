@@ -903,7 +903,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COMPUTE_F( am_I_Root, N, F, ISOL, 
+      SUBROUTINE COMPUTE_F( am_I_Root, N,         F,         ISOL, 
      &                      Input_Opt, State_Met, State_Chm, RC )
 !
 ! !USES:
@@ -1069,19 +1069,24 @@
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC         =  GIGC_SUCCESS
 
       ! Initialize
-      N_TRACERS =  Input_Opt%N_TRACERS
-      T         => State_Met%T
-      F         =  0.0_fp
-      ISOL      =  0
+      N_TRACERS  =  Input_Opt%N_TRACERS
+      F          =  0.0_fp
+      ISOL       =  0
 
       ! Get information for this species from the species database
-      ThisSpc   => State_Chm%SpcData(N)%Info
+      ThisSpc    => State_Chm%SpcData(N)%Info
 
       ! Exit with F=0, ISOL=0 if this is not a wetdep species
-      IF ( .not. ThisSpc%Is_WetDep ) RETURN
+      IF ( .not. ThisSpc%Is_WetDep ) THEN
+         ThisSpc => NULL()
+         RETURN
+      ENDIF
+
+      ! Point to the temperature field in State_Met
+      T => State_Met%T
 
       !-------------------------------
       ! HNO3 (aerosol)
@@ -6508,7 +6513,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE Species_Mod,        ONLY : Species
-      USE TRACERID_MOD,       ONLY : IDTH2O2, IDTSO2
 !
 ! !INPUT PARAMETERS:
 !
@@ -6554,36 +6558,20 @@
       ! Exit if we have already executed this routine
       IF ( .not. FIRST ) RETURN
       
-      ! Number of wet-depositing species
+      ! Actual number of wet-depositing species
       NSOL = 0
 
       !-----------------------------------------------------------------
-      ! Allocate H2O2s for wet deposition 
+      ! Allocate H2O2s and SO2s for wet deposition 
+      ! (regardless of whether wet dep is turned on or not
       !-----------------------------------------------------------------
       ALLOCATE( H2O2s( IIPAR, JJPAR, LLPAR ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'H2O2s' )
-
-      ! Set H2O2s to the initial H2O2 from STT, so that we will have
-      ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
-      IF ( IDTH2O2 > 0 ) THEN
-         H2O2s = State_Chm%Tracers(:,:,:,IDTH2O2)
-      ELSE
-         H2O2s = 0.0_fp
-      ENDIF
+      H2O2s = 0.0_fp
  
-      !-----------------------------------------------------------------
-      ! Allocate SO2s for wet deposition
-      !-----------------------------------------------------------------
       ALLOCATE( SO2s( IIPAR, JJPAR, LLPAR ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO2s' )
-
-      ! Set SO2s to the initial SO2 from STT, so that we will have
-      ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
-      IF ( IDTSO2 > 0 ) THEN
-         SO2s = State_Chm%Tracers(:,:,:,IDTSO2)
-      ELSE
-         SO2s = 0.0_fp
-      ENDIF
+      SO2s = 0.0_fp
 
       !-----------------------------------------------------------------
       ! Only allocate arrays if wetdep or convection is turned on
@@ -6735,7 +6723,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETUP_WETSCAV( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE SETUP_WETSCAV( am_I_Root, Input_Opt, 
+     &                          State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -6744,6 +6733,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD,       ONLY : IDTH2O2, IDTSO2
 !
 ! !INPUT PARAMETERS:
@@ -6751,6 +6741,10 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -6792,18 +6786,25 @@
 !  28 Apr 2015 - E. Lundgren - Change PMID_DRY to PMID for Dalton's Law.
 !  03 Sep 2015 - R. Yantosca - Now allocate IDWETD
 !  03 Sep 2015 - R. Yantosca - Now move array allocation into INIT_WETSCAV
+!  22 Sep 2015 - R. Yantosca - Bug fix: now initialize H2O2s and SO2s on
+!                              the first call.  This was done in INIT_WETSCAV,
+!                              but that is now called before the restart file
+!                              is read from disk.
+!  23 Sep 2015 - R. Yantosca - Now accept State_Chm as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: I, J, L
-      REAL(fp) :: PL, TK
+      ! Scalars
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: I, J, L
+      REAL(fp)      :: PL, TK
             
-      !=================================================================
+      !=====================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
-      !=================================================================
+      !=====================================================================
 
       ! Only do computation if wetdep or convection is turned on
       IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
@@ -6820,7 +6821,7 @@
             TK = State_Met%T(I,J,L)
             PL = State_Met%PMID(I,J,L)
          
-            !==============================================================
+            !--------------------------------------------------------------
             ! CLDLIQ, the cloud liquid water content [cm3 H2O/cm3 air], 
             ! is a function of the local Kelvin temperature:
             ! Tunable parameter and use 1e-6 here (qq,10/14/2011) 
@@ -6828,7 +6829,7 @@
             !    CLDLIQ = 1e-6 * ((T - 248) / 20) [ 248 K < T < 268 K ]
             !    CLDLIQ = 0                       [     T <= 248 K    ]
             !
-            !==============================================================
+            !--------------------------------------------------------------
             IF ( TK >= 268.0_fp ) THEN
                CLDLIQ(I,J,L) = 1e-6_fp
          
@@ -6840,14 +6841,14 @@
                
             ENDIF
               
-            !=============================================================
+            !--------------------------------------------------------------
             ! CLDICE, the cloud ice content [cm3 ice/cm3 air] is given by:
             !
             !    CLDICE = 1.0e-6 - CLDLIQ
-            !=============================================================
+            !--------------------------------------------------------------
             CLDICE(I,J,L) = 1e-6_fp - CLDLIQ(I,J,L)
          
-            !=============================================================
+            !--------------------------------------------------------------
             ! C_H2O is given by Dalton's Law as:
             !
             !       C_H2O = Eice( Tk(I,J,L) ) / P(I,J,L)
@@ -6859,7 +6860,7 @@
             ! and   Eice( Tk(I,J,L) ) is the saturation vapor pressure 
             !       of ice [hPa] at temperature Tk(I,J,L) -- computed in 
             !       routine E_ICE above.
-            !==============================================================
+            !--------------------------------------------------------------
             IF ( PL <= TINY_FP ) THEN
                C_H2O(I,J,L) = 0.0_fp 
             ELSE
@@ -6870,6 +6871,37 @@
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
+      ENDIF
+
+      !====================================================================
+      ! We need to initialize the H2O2s and SO2s arrays to the values
+      ! of State_Chm%Tracers for H2O2 and SO2.  This only needs to be
+      ! done the first time this routine is called (which happens after
+      ! the restart file is read from disk).
+      !
+      ! Prior to GEOS-Chem v11-01, this was done in routine INIT_WETSCAV, 
+      ! which also allocated the arrays.  In GEOS-Chem v11-01 and higher
+      ! versions, we do array allocations only in INIT_WETSCAV, which is
+      ! called in the init phase (before restart file I/O).  We now
+      ! call SETUP_WETSCAV to compute the CLDLIQ, CLDICE, and CH2O 
+      ! arrays on each dynamic timestep.  (bmy, 9/22/15)
+      !====================================================================
+      IF ( FIRST ) THEN 
+
+         ! Set H2O2s to the initial H2O2 from STT, so that we will have
+         ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
+         IF ( IDTH2O2 > 0 ) THEN
+            H2O2s = State_Chm%Tracers(:,:,:,IDTH2O2)
+         ENDIF
+
+         ! Set SO2s to the initial SO2 from STT, so that we will have
+         ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
+         IF ( IDTSO2 > 0 ) THEN
+            SO2s = State_Chm%Tracers(:,:,:,IDTSO2)
+         ENDIF
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
       ENDIF
 
       END SUBROUTINE SETUP_WETSCAV

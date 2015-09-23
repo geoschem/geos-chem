@@ -1256,13 +1256,15 @@
             ! the airmass quantities are reset after transport
 #if defined ( TOMAS )
             ! ... TOMAS microphysics: Always call SETUP_WETSCAV ...
-            CALL SETUP_WETSCAV( am_I_Root, Input_Opt, State_Met, RC )
+            CALL SETUP_WETSCAV
+     &           ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
 #else 
             ! ... Standard GEOS-Chem: Call INIT_WETSCAV if   ...
             ! ... convection or wet scavenging or chemistry are turned on ...
             IF ( LCONV .or. LWETD .or. LCHEM ) THEN
-               CALL SETUP_WETSCAV( am_I_Root, Input_Opt, State_Met, RC )
+               CALL SETUP_WETSCAV
+     &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
                !### Debug
                IF ( prtDebug ) THEN 
