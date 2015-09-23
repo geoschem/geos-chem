@@ -8397,6 +8397,8 @@
 !  22 Sep 2015 - R. Yantosca - Bug fix: only call INIT_WETSCAV if convection,
 !                              wetdep, or chemistry ist turned on.  This
 !                              replicates the prior behavior,
+!  23 Sep 2015 - R. Yantosca - Now pass State_Chm to INIT_SEASALT
+!  23 Sep 2015 - R. Yantosca - Now pass State_Chm to INIT_SULFATE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8423,7 +8425,7 @@
       IF ( Input_Opt%LDRYD ) THEN
 
          ! Setup for dry deposition
-         CALL INIT_DRYDEP( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL Init_DryDep( am_I_Root, Input_Opt, State_Chm, RC )
       
          ! Print extra info message for Hg simulation
          IF ( Input_Opt%ITS_A_MERCURY_SIM  .and. 
@@ -8439,11 +8441,16 @@
  121  FORMAT( 'All tagged HgP tracers have the same dep velocity '
      &        'as the total HgP tracer.' )
 
-      ! Initialize wet deposition tracers
+      ! We need to initialize the wetdep module if either wet deposition 
+      ! or convection is turned on, so that we can do the large-scale and 
+      ! convective scavenging.  Also initialize the wetdep module if both 
+      ! wetdep and convection are turned off, but chemistry is turned on.
+      ! The INIT_WETSCAV routine will also allocate the H2O2s and SO2s 
+      ! arrays that are referenced in the convection code. (bmy, 9/23/15)
       IF ( Input_Opt%LCONV   .or. 
      &     Input_Opt%LWETD   .or.    
      &     Input_Opt%LCHEM ) THEN
-         CALL INIT_WETSCAV( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL Init_WetScav( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
          
 ! This might be obsolete now
@@ -8484,14 +8491,14 @@
 
       ! Initialize "seasalt_mod.F
       IF ( Input_Opt%LSSALT ) THEN
-         CALL Init_Seasalt( am_I_Root, Input_Opt, RC )
+         CALL Init_Seasalt( am_I_Root, Input_Opt, State_Chm, RC )
          IF ( RC /= GIGC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SEASALT' )
       ENDIF
 
       ! Initialize "sulfate_mod.F"
       IF ( Input_Opt%LSULF ) THEN
-         CALL Init_Sulfate( am_I_Root, Input_Opt, RC )
+         CALL Init_Sulfate( am_I_Root, Input_Opt, State_Chm, RC )
          IF ( RC /= GIGC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SULFATE' )
       ENDIF

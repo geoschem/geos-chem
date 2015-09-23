@@ -89,26 +89,18 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !DEFINED PARAMETERS:
-!
-      INTEGER, PARAMETER   :: NSALT = 2    ! Number of sea salt tracers
-      INTEGER, PARAMETER   :: NR_MAX = 200
-      REAL(fp), PARAMETER   :: SMALLNUM   = 1e-20_fp
-!
-! !PRIVATE TYPES:
-!
       !========================================================================
       ! Module Variables:
       !
-      ! DRYSALA  : Drydep index for accumulation mode sea salt
-      ! DRYSALC  : Drydep index for coarse mode sea salt
+      ! NSALT    : # of sea salt tracers
+      ! NR_MAX   : Number of size bins
+      ! SMALLNUM : A small number (epsilon) for numerical cutoff
+      ! SS_DEN   : Sea salt density [kg/m3]
       ! IDDEP    : Drydep index array for sea salt tracers
       ! REDGE    : Array for edges of seasalt radius bins
-      ! RMID     : Array for centers of seasalt radius bins
+      ! DMID     : Array for centers of seasalt radius bins
       ! SRC      : Array for baseline seasalt emission/bin [kg/m2]
       ! SRC_N    : Array for baseline seasalt emission/bin [#/m2]
-      ! SS_DEN   : Sea salt density [kg/m3]
       ! ALK_EMIS : Array for alkalinity [kg]
       ! N_DENS   : Number density of seasalt emissions [#/m3]
       ! SALT_V   : Log-normal volum size distribution for sea salt
@@ -118,20 +110,23 @@
       ! obsolete. Alkalinity and number density are now calculated in 
       ! sulfate_mod.F through the HEMCO interface (ckeller, 11/03/2014).
       !=======================================================================-
-
-      ! Scalars
-      INTEGER               :: DRYSALA
-      INTEGER               :: DRYSALC
-
+!
+! !DEFINED PARAMETERS:
+!
+      INTEGER,  PARAMETER   :: NSALT    = 2
+      INTEGER,  PARAMETER   :: NR_MAX   = 200
+      REAL(fp), PARAMETER   :: SMALLNUM = 1e-20_fp
+!
+! !PRIVATE TYPES:
+!
       ! Arrays
-      INTEGER               :: IDDEP(NSALT)
-      REAL(fp), ALLOCATABLE :: SALT_V(:)
-      REAL(fp), ALLOCATABLE :: DMID(:)
+      INTEGER               :: IDDEP (NSALT)
+      REAL(fp)              :: SS_DEN(NSALT)
+
+      ! Allocatable arrays
+      REAL(fp), ALLOCATABLE :: SALT_V(:    )
+      REAL(fp), ALLOCATABLE :: DMID  (:    )
       REAL(fp), ALLOCATABLE :: OCCONV(:,:,:)
-!
-! !DEFINED PARAMETERS
-!
-      REAL(fp), PARAMETER :: SS_DEN(NSALT)=(/2200.e+0_fp, 2200.e+0_fp/)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -956,9 +951,6 @@
 
       END SUBROUTINE CHEM_MOPI
 !EOC
-
-
-
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -972,7 +964,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_SEASALT( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_SEASALT( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -980,11 +972,14 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root
       TYPE(OptInput), INTENT(IN)  :: Input_Opt
+      TYPE(ChmState), INTENT(IN)  :: State_Chm
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -998,14 +993,20 @@
 !  04 Mar 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
 !  04 Mar 2013 - R. Yantosca - Now test for DEPSALA, DEPSALC here
 !  12 Jun 2015 - R. Yantosca - Remove obsolete, commented-out code
+!  23 Sep 2015 - R. Yantosca - Now accept State_Chm as an argument so that
+!                              we can use the species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: IS_INIT = .FALSE.
-      INTEGER       :: AS, N
+      ! Scalars
+      LOGICAL, SAVE          :: IS_INIT = .FALSE.
+      INTEGER                :: AS, N
+
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc => NULL()
 
       !=================================================================
       ! INIT_SEASALT begins here!
@@ -1026,24 +1027,33 @@
       DMID = 0e+0_fp
 
       ! Zero the IDDEP array
-      IDDEP = 0
+      IDDEP  = 0
+      SS_DEN = 0
 
       ! Find drydep species in DEPSAV
       IF ( Input_Opt%LDRYD ) THEN 
-         DO N = 1, Input_Opt%NUMDEP
-            SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
+
+         ! Loop over all species
+         DO N = 1, State_Chm%nSpecies
+            
+            ! Get info about this species from the species database
+            ThisSpc => State_Chm%SpcData(N)%Info
+
+            ! Assign parameters to each species
+            SELECT CASE ( TRIM( ThisSpc%Name ) )
                CASE ( 'SALA' )
-                  DRYSALA = N
+                  IDDEP(1)  = ThisSpc%DryDepID
+                  SS_DEN(1) = ThisSpc%DD_A_Density
                CASE ( 'SALC' )
-                  DRYSALC = N
+                  IDDEP(2)  = ThisSpc%DryDepID
+                  SS_DEN(2) = ThisSpc%DD_A_Density
                CASE DEFAULT
                   ! Nothing
             END SELECT        
-         ENDDO
 
-         ! Store in IDDEP array
-         IDDEP(1) = DRYSALA
-         IDDEP(2) = DRYSALC
+            ! Free pointer
+            ThisSpc => NULL()
+         ENDDO
       ENDIF
 
       ! Reset IS_INIT
