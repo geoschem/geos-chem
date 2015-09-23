@@ -3849,7 +3849,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER            :: idx
     INTEGER            :: strLen
+    CHARACTER(LEN=255) :: str1, str2
     CHARACTER(LEN=255) :: MSG    
     CHARACTER(LEN=255) :: LOC = 'ExtractSrcDim (hco_config_mod.F90)' 
 
@@ -3861,14 +3863,25 @@ CONTAINS
           ' for file ' // TRIM(Dta%ncFile) // &
           '. Valid entries are e.g. xy or xyz.'
 
+    ! See if there is an arbitrary additional dimension. This must be added
+    ! at the end of the string and be separated by a '+' sign
+    idx = INDEX( TRIM(srcDim), '+' )
+    IF ( idx > 0 ) THEN
+       str1 = srcDim(1:(idx-1))
+       str2 = srcDim((idx+1):LEN(srcDim))
+    ELSE
+       str1 = srcDim
+       str2 = ''
+    ENDIF
+
     ! 2D data:
-    IF ( TRIM(srcDim) == 'xy' .OR. TRIM(srcDim) == '-' ) THEN
+    IF ( TRIM(str1) == 'xy' .OR. TRIM(str1) == '-' ) THEN
        Dta%SpaceDim = 2
 
     ! All other cases
     ELSE
        ! Character length
-       strLen = LEN(TRIM(srcDim))
+       strLen = LEN(TRIM(str1))
 
        ! There must be at least 3 characters (e.g. xyz)
        IF ( strLen < 3 ) THEN
@@ -3877,7 +3890,7 @@ CONTAINS
        ENDIF
 
        ! First two entries must be xy
-       IF ( srcDim(1:2) /= 'xy' ) THEN
+       IF ( str1(1:2) /= 'xy' ) THEN
           CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
@@ -3885,13 +3898,13 @@ CONTAINS
        ! If third entry is 'L', this means we have 2D data that shall be put
        ! into a particular level, e.g. xyL4 will cause the 2D data to be 
        ! emitted into level 4.
-       IF ( srcDim(3:3) == 'L' .OR. srcDim(3:3) == 'l' ) THEN
+       IF ( str1(3:3) == 'L' .OR. str1(3:3) == 'l' ) THEN
           IF ( strLen < 4 ) THEN
              CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF       
           Dta%SpaceDim = 2
-          READ(srcDim(4:strLen),*) Dta%Lev2D
+          READ(str1(4:strLen),*) Dta%Lev2D
        ELSE
 
           ! If we get to here, it's 3D data 
@@ -3900,9 +3913,50 @@ CONTAINS
           ! The third entry determines the vertical dimension. 
           ! This can be 'z' (standard) or a number to explicitly define
           ! the vertical extension and direction.
-          IF ( srcDim(3:3) /= 'z' ) THEN
-             READ(srcDim(3:strLen),*) Dta%Levels
+          IF ( str1(3:3) /= 'z' ) THEN
+             READ(str1(3:strLen),*) Dta%Levels
           ENDIF
+       ENDIF
+    ENDIF
+
+    ! Eventually set additional dimension name and value
+    IF ( TRIM(str2) /= '' ) THEN
+       MSG = 'Cannot extract arbitrary dimension from ' &
+           // TRIM(srcDim) // ' for file ' // TRIM(Dta%ncFile) &
+           // ' - arbitrary dimensions must follow a `+` sign ' &
+           // 'and contain the name/value pair, e.g. xyz+"ens"=3' 
+       idx = INDEX( TRIM(str2), '=' ) 
+       IF ( idx <= 0 ) THEN
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF 
+
+       ! Extract dimension name. Eventually remove '"' character at 
+       ! beginning
+       IF ( str2(1:1) == '"' .OR. &
+            str2(1:1) == '`'       ) THEN
+          Dta%ArbDimName = str2(2:(idx-1))   
+       ELSE
+          Dta%ArbDimName = str2(1:(idx-1))   
+       ENDIF
+
+       ! Extract dimension value. Eventually remove trailing '"'
+       ! character. The string value itself will be evaluated when
+       ! reading the file (in hcoio_dataread_mod.F90).
+       strlen = LEN(TRIM(str2))
+       IF ( str2(strlen:strlen) == '"' .OR. &
+            str2(strlen:strlen) == '`'       ) THEN
+          Dta%ArbDimVal = str2((idx+1):(strlen-1))
+       ELSE
+          Dta%ArbDimVal = str2((idx+1):(strlen))
+       ENDIF
+
+       ! Verbose
+       IF ( am_I_Root .AND. HCO_IsVerb(2) ) THEN
+          WRITE(MSG,*) 'Will use additional dimension on file ', &
+             TRIM(Dta%ncFile), & ': ', TRIM(Dta%ArbDimName), ' = ', &
+             TRIM(Dta%ArbDimVal)
+          CALL HCO_MSG(MSG)
        ENDIF
     ENDIF
 

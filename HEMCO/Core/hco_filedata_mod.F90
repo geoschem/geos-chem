@@ -47,6 +47,8 @@
 !       data is directly specified in the configuration file. For
 !       internal use only. 
 ! \item OrigUnit: original unit of data.
+! \item ArbDimName: name of additional (arbitrary) file dimension.
+! \item ArbDimVal : desired value of arbitrary dimension.
 ! \item IsConc: Set to true if data is concentration. Concentration 
 !       data will be added to the concentration array instead of the
 !       emission array.
@@ -136,6 +138,8 @@ MODULE HCO_FileData_Mod
      TYPE(Arr2D_SP),     POINTER :: V2(:)     ! vector of 2D fields
      TYPE(TimeIdx),      POINTER :: tIDx      ! for time slice indexing 
      CHARACTER(LEN= 31)          :: OrigUnit  ! original data units 
+     CHARACTER(LEN= 63)          :: ArbDimName! name of additional dimension 
+     CHARACTER(LEN= 63)          :: ArbDimVal ! desired value of additional dimension 
      INTEGER                     :: Cover     ! data coverage
      INTEGER                     :: SpaceDim  ! space dimension: 1, 2 or 3 
      INTEGER                     :: Levels    ! vertical level handling 
@@ -229,6 +233,8 @@ CONTAINS
     NewFDta%Levels       = 0
     NewFDta%Lev2D        = 1
     NewFDta%OrigUnit     = ''
+    NewFDta%ArbDimName   = 'none'
+    NewFDta%ArbDimVal    = ''
     NewFDta%IsLocTime    = .FALSE.
     NewFDta%IsConc       = .FALSE.
     NewFDta%DoShare      = .FALSE.

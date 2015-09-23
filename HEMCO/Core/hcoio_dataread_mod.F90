@@ -429,6 +429,7 @@ CONTAINS
     INTEGER                       :: tidx1,  tidx2,  ncYr,  ncMt
     INTEGER                       :: tidx1b, tidx2b, ncYr2, ncMt2
     INTEGER                       :: HcoID
+    INTEGER                       :: ArbIdx
     INTEGER                       :: nlatEdge, nlonEdge
     REAL(hp)                      :: MW_g, EmMW_g, MolecRatio
     REAL(sp)                      :: wgt1,   wgt2
@@ -611,14 +612,14 @@ CONTAINS
        LevName = 'lev'
        CALL NC_READ_VAR ( ncLun, LevName, nlev, LevUnit, LevMid, NCRC )
        IF ( NCRC /= 0 ) THEN
-          CALL HCO_ERROR( 'NC_READ_LEV', RC )
+          CALL HCO_ERROR( 'NC_READ_VAR: lev', RC )
           RETURN 
        ENDIF
        IF ( nlev == 0 ) THEN
           LevName = 'height'
           CALL NC_READ_VAR ( ncLun, LevName, nlev, LevUnit, LevMid, NCRC )
           IF ( NCRC /= 0 ) THEN
-             CALL HCO_ERROR( 'NC_READ_LEV', RC )
+             CALL HCO_ERROR( 'NC_READ_VAR: height', RC )
              RETURN 
           ENDIF
        ENDIF
@@ -693,6 +694,13 @@ CONTAINS
     ENDIF
 
     ! ----------------------------------------------------------------
+    ! Check for arbitrary additional dimension. Will return -1 if not
+    ! set. 
+    ! ----------------------------------------------------------------
+    CALL GetArbDimIndex( am_I_Root, ncLun, Lct, ArbIdx, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! ----------------------------------------------------------------
     ! Read data
     ! ----------------------------------------------------------------
 
@@ -702,7 +710,7 @@ CONTAINS
        CALL HCO_MSG(MSG)
     ENDIF
 
-    CALL NC_READ_ARR( fID     = ncLun,              &
+    CALL NC_READ_ARR( fID     = ncLun,              & 
                       ncVar   = Lct%Dct%Dta%ncPara, &
                       lon1    = 1,                  &
                       lon2    = nlon,               &
@@ -717,6 +725,7 @@ CONTAINS
                       wgt1    = wgt1,               &
                       wgt2    = wgt2,               &
                       MissVal = HCO_MISSVAL,        &
+                      ArbIdx  = ArbIdx,             &
                       RC      = NCRC                 )
 
     IF ( NCRC /= 0 ) THEN
@@ -736,9 +745,6 @@ CONTAINS
     ! data and if no appropriate interpolation date could be found in
     ! the first file. This will only be the case if the preferred date-
     ! time is outside the file range.
-    ! be found in the we check here if there exist 
-    ! another file with the same data tokens, etc. but for a future 
-    ! date. If this is the case 
     !-----------------------------------------------------------------
     IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_INTER .AND. wgt1 < 0.0_sp ) THEN
 
@@ -3777,5 +3783,132 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE CheckMissVal 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetArbDimIndex 
+!
+! !DESCRIPTION: Subroutine GetArbDimIndex returns the index of the arbitrary
+! file dimension. -1 if no such dimension is defined. 
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetArbDimIndex( am_I_Root, Lun, Lct, ArbIdx, RC ) 
+!
+! !USES:
+!
+    USE m_netcdf_io_checks
+    USE m_netcdf_io_get_dimlen
+    USE HCO_ExtList_Mod,    ONLY : GetExtOpt
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root
+    INTEGER,          INTENT(IN   )           :: Lun
+    TYPE(ListCont),   POINTER                 :: Lct
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(  OUT)           :: ArbIdx
+    INTEGER,          INTENT(  OUT)           :: RC
+!
+! !REVISION HISTORY:
+!  22 Sep 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    INTEGER                       :: TargetVal, nVal
+    LOGICAL                       :: Found
+    CHARACTER(LEN=255)            :: ArbDimVal
+    CHARACTER(LEN=511)            :: MSG
+    CHARACTER(LEN=255)            :: LOC = 'GetArbDimIndex (hcoio_dataread_mod.F90)' 
+
+    !=================================================================
+    ! GetArbDimIndex 
+    !=================================================================
+
+    ! Assume success until otherwise 
+    RC = HCO_SUCCESS 
+
+    ! Init
+    ArbIdx = -1
+    IF ( TRIM(Lct%Dct%Dta%ArbDimName) == 'none' ) RETURN 
+
+    ! Check if variable exists 
+    Found = Ncdoes_Dim_Exist ( Lun, TRIM(Lct%Dct%Dta%ArbDimName) ) 
+    IF ( .NOT. Found ) THEN 
+       MSG = 'Cannot read dimension ' // TRIM(Lct%Dct%Dta%ArbDimName) // ' from file ' // &
+             TRIM(Lct%Dct%Dta%ncFile)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN 
+    ENDIF
+ 
+    ! Get dimension length
+    CALL Ncget_Dimlen ( Lun, TRIM(Lct%Dct%Dta%ArbDimName), nVal )
+
+    ! Get value to look for. This is archived in variable ArbDimVal. Eventually need to
+    ! extract value from HEMCO settings
+    ArbDimVal = TRIM(Lct%Dct%Dta%ArbDimVal)
+
+    ! If string starts with a number, evaluate value directly 
+    IF ( ArbDimVal(1:1) == '0' .OR. & 
+         ArbDimVal(1:1) == '1' .OR. &
+         ArbDimVal(1:1) == '2' .OR. &
+         ArbDimVal(1:1) == '3' .OR. &
+         ArbDimVal(1:1) == '4' .OR. &
+         ArbDimVal(1:1) == '5' .OR. &
+         ArbDimVal(1:1) == '6' .OR. &
+         ArbDimVal(1:1) == '7' .OR. &
+         ArbDimVal(1:1) == '8' .OR. &
+         ArbDimVal(1:1) == '9'       ) THEN
+       READ(ArbDimVal,*) TargetVal 
+
+    ! Otherwise, assume this is a HEMCO option (including a token)
+    ELSE
+       IF ( ArbDimVal(1:1) == '$' ) ArbDimVal = ArbDimVal(2:LEN(ArbDimVal))
+       CALL GetExtOpt ( ExtNr=-999, OptName=TRIM(ArbDimVal), &
+                        OptValInt=TargetVal, FOUND=Found, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( .NOT. Found ) THEN
+          WRITE(MSG,*) 'Cannot evaluate additional dimension value ', &
+             TRIM(ArbDimVal), '. This does not seem to be a number nor ', &
+             'a HEMCO token/setting. This error happened when evaluating ', &
+             'dimension ', TRIM(Lct%Dct%Dta%ArbDimName), ' belonging to ', &
+             'file ', TRIM(Lct%Dct%Dta%ncFile)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( TargetVal > nVal ) THEN
+       WRITE(MSG,*) 'Desired dimension value ', TargetVal, &
+          ' exceeds corresponding dimension length on that file: ', nVal, &
+          'This error happened when evaluating ', &
+          'dimension ', TRIM(Lct%Dct%Dta%ArbDimName), ' belonging to ', &
+          'file ', TRIM(Lct%Dct%Dta%ncFile)
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN
+
+    ELSE
+       ArbIdx = TargetVal
+    ENDIF
+
+    ! Verbose
+    IF ( am_I_Root .AND. HCO_IsVerb( 2 ) ) THEN
+       WRITE(MSG,*) 'Additional dimension ', TRIM(Lct%Dct%Dta%ArbDimName), ' in ', &
+          TRIM(Lct%Dct%Dta%ncFile), ': use index ', ArbIdx, ' (set: ', Lct%Dct%Dta%ArbDimVal, ')'
+       CALL HCO_MSG(MSG)
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE GetArbDimIndex 
 !EOC
 END MODULE HCOIO_DataRead_Mod
