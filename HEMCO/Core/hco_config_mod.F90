@@ -490,9 +490,10 @@ CONTAINS
 !  29 Dec 2014 - C. Keller - Added optional 11th element for scale factors. This
 !                            value will be interpreted as mask field (applied to
 !                            this scale factor only).
-!  27 Feb 2015 - C. Keller - Added CycleFlag 4 (interpolation)
+!  27 Feb 2015 - C. Keller - Added CycleFlag 'I' (interpolation)
 !  13 Mar 2015 - C. Keller - Added include files (nested configuration files)
 !                            and CFDIR argument.
+!  23 Sep 2015 - C. Keller - Added cycle flags 'A' and 'RA' (for averaging).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -515,7 +516,7 @@ CONTAINS
     CHARACTER(LEN=255)        :: srcFile
     CHARACTER(LEN= 31)        :: srcVar
     CHARACTER(LEN= 31)        :: srcTime
-    CHARACTER(LEN=  1)        :: TmCycle 
+    CHARACTER(LEN=  2)        :: TmCycle 
     CHARACTER(LEN=  1)        :: WildCard
     CHARACTER(LEN=  1)        :: Separator
     CHARACTER(LEN= 31)        :: srcDim
@@ -799,10 +800,12 @@ CONTAINS
 #endif
 
           ! Set time cycling behaviour. Possible values are: 
-          ! - "C": cycling     (CycleFlag = 1) --> Default
-          ! - "R": range       (CycleFlag = 2)
-          ! - "E": exact       (CycleFlag = 3)
-          ! - "I": interpolate (CycleFlag = 4)
+          ! - "C": cycling --> Default
+          ! - "R": range
+          ! - "E": exact
+          ! - "I": interpolate 
+          ! - "A": average
+          ! - "RA": range, average outside 
           IF ( TRIM(TmCycle) == "R" ) THEN
              Dta%CycleFlag = HCO_CFLAG_RANGE
           ELSEIF ( TRIM(TmCycle) == "E" ) THEN
@@ -811,6 +814,10 @@ CONTAINS
              Dta%CycleFlag = HCO_CFLAG_INTER
           ELSEIF ( TRIM(TmCycle) == "C" ) THEN
              Dta%CycleFlag = HCO_CFLAG_CYCLE
+          ELSEIF ( TRIM(TmCycle) == "A" ) THEN
+             Dta%CycleFlag = HCO_CFLAG_AVERG
+          ELSEIF ( TRIM(TmCycle) == "RA" ) THEN
+             Dta%CycleFlag = HCO_CFLAG_RANGEAVG
           ELSEIF ( TRIM(TmCycle) == "-" ) THEN
              Dta%CycleFlag = HCO_CFLAG_CYCLE
           ELSE

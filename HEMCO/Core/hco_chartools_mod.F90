@@ -604,9 +604,20 @@ CONTAINS
                str(I:I) == ':'  .OR. &
                str(I:I) == '$'  .OR. &
                str(I:I) == '%'  .OR. &
+               str(I:I) == '+'  .OR. &
                str(I:I) == '_'  .OR. &
                str(I:I) == '-'  .OR. &
                str(I:I) == 'x'  .OR. &
+               str(I:I) == '0'  .OR. &
+               str(I:I) == '1'  .OR. &
+               str(I:I) == '2'  .OR. &
+               str(I:I) == '3'  .OR. &
+               str(I:I) == '4'  .OR. &
+               str(I:I) == '5'  .OR. &
+               str(I:I) == '6'  .OR. &
+               str(I:I) == '7'  .OR. &
+               str(I:I) == '8'  .OR. &
+               str(I:I) == '9'  .OR. &
                str(I:I) == SEP        ) THEN 
 
              TOKEN = str( (IDX+1) : (I-1) )

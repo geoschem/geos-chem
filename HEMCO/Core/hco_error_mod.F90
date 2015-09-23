@@ -96,10 +96,12 @@ MODULE HCO_Error_Mod
   ! the simulation date is outside of the datetime range of the
   ! source data. See data reading routine (hcoio_dataread_mod.F90)
   ! for more details. 
-  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_CYCLE = 1
-  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_RANGE = 2
-  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_EXACT = 3
-  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_INTER = 4
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_CYCLE    = 1
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_RANGE    = 2
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_EXACT    = 3
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_INTER    = 4
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_AVERG    = 5
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_RANGEAVG = 6
 
   ! Data container update flags. At the moment, those only indicate
   ! if a container gets updated every time step or based upon the 

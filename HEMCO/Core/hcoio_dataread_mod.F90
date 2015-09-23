@@ -379,6 +379,7 @@ CONTAINS
     USE HCO_CLOCK_MOD,      ONLY : HcoClock_Get
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
     USE HCO_EXTLIST_MOD,    ONLY : HCO_GetOpt
+    USE HCO_TIDX_MOD,       ONLY : tIDx_IsInRange
 !
 ! !INPUT PARAMETERS:
 !
@@ -412,6 +413,7 @@ CONTAINS
 !                              diffs in output in sp vs mp runs.
 !  13 Jul 2015 - C. Keller   - Write data into diagnostics right after reading
 !                              (if a diagnostics with the same name exists).
+!  23 Sep 2015 - C. Keller   - Support time averaging (cycle flags A and RA).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -450,7 +452,9 @@ CONTAINS
     INTEGER                       :: AreaFlag, TimeFlag 
     INTEGER                       :: YMDha, YMDhb, YMDh1 
     INTEGER                       :: oYMDh1, oYMDh2
-
+    INTEGER                       :: cYr, cMt, cDy, cHr, Yr1, Yr2
+    INTEGER                       :: nYears, iYear 
+ 
     ! Use MESSy regridding routines?
     LOGICAL                       :: UseMESSy
 
@@ -790,6 +794,7 @@ CONTAINS
                             wgt1    = wgt1,               &
                             wgt2    = wgt2,               &
                             MissVal = HCO_MISSVAL,        &
+                            ArbIdx  = ArbIdx,             &
                             RC      = NCRC                 )
           IF ( NCRC /= 0 ) THEN
              CALL HCO_ERROR( 'NC_READ_ARRAY (2)', RC )
@@ -832,7 +837,123 @@ CONTAINS
           ! Close file
           CALL NC_CLOSE ( ncLun2 )
        ENDIF !FOUND
-    ENDIF
+
+    !-----------------------------------------------------------------
+    ! Eventually calculate averages. Currently, averages are only
+    ! calculated on the year dimension, e.g. over years.
+    !-----------------------------------------------------------------
+    ELSEIF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_AVERG    .OR. & 
+             Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGEAVG       ) THEN
+
+       ! cYr is the current simulation year
+       CALL HcoClock_Get( cYYYY=cYr, cMM=cMt, cDD=cDy, cH=cHr, RC=RC ) 
+
+       ! Determine year range to be read:
+       ! By default, we would like to average between the year range given
+       ! in the time attribute
+       Yr1 = Lct%Dct%Dta%ncYrs(1) 
+       Yr2 = Lct%Dct%Dta%ncYrs(2)
+
+       ! If averaging shall only be performed if outside the given
+       ! range, check if current simulation date is within the range
+       ! provied in the configuration file. If so, set year range to
+       ! be read to current year only.
+       IF ( ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGEAVG ) ) THEN
+          IF ( tIDx_IsInRange(Lct,cYr,cMt,cDy,cHr) ) THEN
+             Yr1 = cYr
+             Yr2 = cYr
+          ENDIF
+       ENDIF
+
+       ! Total number of years to be read
+       nYears = Yr2 - Yr1 + 1
+
+       ! Read and add annual data if there is more than one year to be
+       ! used. 
+       IF ( nYears > 1 ) THEN
+
+          ! Cleanup ncArr. This is refilled again
+          ncArr = 0.0_sp
+
+          DO iYear = Yr1, Yr2
+
+             ! Get file name for this year 
+             CALL SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile2, &
+                                  FOUND, RC, Year=iYear ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN 
+      
+             ! If found, read data. Assume that all meta-data is the same.
+             IF ( .NOT. FOUND ) THEN
+                WRITE(MSG,*) 'Cannot find file for year ', iYear, ' - needed ', &
+                   'to perform time-averaging on file ', TRIM(Lct%Dct%Dta%ncFile)
+                CALL HCO_ERROR( MSG, RC )
+                RETURN
+             ENDIF
+  
+             ! Open file
+             CALL NC_OPEN ( TRIM(srcFile2), ncLun2 )
+      
+             ! Define time stamp to be read.
+             CALL GET_TIMEIDX ( am_I_Root, HcoState, Lct,    &
+                                ncLun2,    tidx1,    tidx2,  &
+                                wgt1,      wgt2,     oYMDh2, & 
+                                YMDhb,     YMDh1,    RC,     &
+                                Year=iYear                    )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+     
+             ! Do not perform weights
+             wgt1  = -1.0_sp
+             wgt2  = -1.0_sp
+            
+             ! Read data and write into array ncArr2 
+             CALL NC_READ_ARR( fID     = ncLun,              &
+                               ncVar   = Lct%Dct%Dta%ncPara, &
+                               lon1    = 1,                  &
+                               lon2    = nlon,               &
+                               lat1    = 1,                  &
+                               lat2    = nlat,               &
+                               lev1    = lev1,               &
+                               lev2    = lev2,               &
+                               time1   = tidx1,              &
+                               time2   = tidx2,              &
+                               ncArr   = ncArr2,             &
+                               varUnit = thisUnit,           &
+                               wgt1    = wgt1,               &
+                               wgt2    = wgt2,               &
+                               MissVal = HCO_MISSVAL,        &
+                               ArbIdx  = ArbIdx,             &
+                               RC      = NCRC                 )
+             IF ( NCRC /= 0 ) THEN
+                CALL HCO_ERROR( 'NC_READ_ARRAY (3)', RC )
+                RETURN 
+             ENDIF
+      
+             ! Eventually fissing values
+             CALL CheckMissVal ( Lct, ncArr2 )
+      
+             ! Add all values to ncArr 
+             ncArr = ncArr + ncArr2
+      
+             ! Cleanup
+             IF ( ASSOCIATED(ncArr2) ) DEALLOCATE(ncArr2) 
+      
+             ! Close file
+             CALL NC_CLOSE ( ncLun2 )
+
+          ENDDO !iYear
+
+          ! Now calculate average
+          ncArr = ncArr / REAL(nYears,sp)
+
+          ! Verbose
+          IF ( am_I_Root .AND. HCO_IsVerb(1) ) THEN
+             WRITE(MSG,110) TRIM(Lct%Dct%cName), Yr1, Yr2
+             CALL HCO_MSG(MSG)
+          ENDIF
+ 110      FORMAT( 'Field ', a, ': Average data over years ', I4.4, ' to ', I4.4 )
+
+       ENDIF !nYears>1
+    ENDIF !Averaging
 
     !-----------------------------------------------------------------
     ! Convert to HEMCO units 
@@ -1304,7 +1425,8 @@ CONTAINS
   SUBROUTINE GET_TIMEIDX( am_I_Root, HcoState, Lct,     &
                           ncLun,     tidx1,    tidx2,   &
                           wgt1,      wgt2,     oYMDh,   &
-                          YMDh,      YMDh1,    RC        )
+                          YMDh,      YMDh1,    RC,      &
+                          Year )
 !
 ! !USES:
 !
@@ -1313,24 +1435,25 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root ! Root CPU?
-    TYPE(HCO_State),  POINTER        :: HcoState  ! HcoState object
-    TYPE(ListCont),   POINTER        :: Lct       ! List container
-    INTEGER,          INTENT(IN   )  :: ncLun     ! open ncLun
+    LOGICAL,          INTENT(IN   )            :: am_I_Root ! Root CPU?
+    TYPE(HCO_State),  POINTER                  :: HcoState  ! HcoState object
+    TYPE(ListCont),   POINTER                  :: Lct       ! List container
+    INTEGER,          INTENT(IN   )            :: ncLun     ! open ncLun
+    INTEGER,          INTENT(IN   ), OPTIONAL  :: Year      ! year to be used 
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(  OUT)  :: tidx1     ! lower time idx
-    INTEGER,          INTENT(  OUT)  :: tidx2     ! upper time idx
-    REAL(sp),         INTENT(  OUT)  :: wgt1      ! weight to tidx1
-    REAL(sp),         INTENT(  OUT)  :: wgt2      ! weight to tidx2
-    INTEGER,          INTENT(  OUT)  :: oYMDh     ! preferred time slice 
-    INTEGER,          INTENT(  OUT)  :: YMDh      ! selected time slice 
-    INTEGER,          INTENT(  OUT)  :: YMDh1     ! 1st time slice in file 
+    INTEGER,          INTENT(  OUT)            :: tidx1     ! lower time idx
+    INTEGER,          INTENT(  OUT)            :: tidx2     ! upper time idx
+    REAL(sp),         INTENT(  OUT)            :: wgt1      ! weight to tidx1
+    REAL(sp),         INTENT(  OUT)            :: wgt2      ! weight to tidx2
+    INTEGER,          INTENT(  OUT)            :: oYMDh     ! preferred time slice 
+    INTEGER,          INTENT(  OUT)            :: YMDh      ! selected time slice 
+    INTEGER,          INTENT(  OUT)            :: YMDh1     ! 1st time slice in file 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)  :: RC
+    INTEGER,          INTENT(INOUT)            :: RC
 !
 ! !REVISION HISTORY:
 !  13 Mar 2013 - C. Keller - Initial version
@@ -1413,6 +1536,9 @@ CONTAINS
     ! ---------------------------------------------------------------- 
     CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, prefMn, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Eventually force preferred year to passed value
+    IF ( PRESENT(Year) ) prefYr = Year
 
     ! Check if we are outside of provided range
     IF ( prefYr < 0 .OR. prefMt < 0 .OR. prefDy < 0 ) THEN
@@ -3394,7 +3520,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, FOUND, RC, FUTURE )
+  SUBROUTINE SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, FOUND, RC, &
+                             FUTURE,    Year )
 !
 ! !USES:
 !
@@ -3410,6 +3537,7 @@ CONTAINS
     TYPE(ListCont),   POINTER                 :: Lct        ! HEMCO list container
     LOGICAL,          INTENT(IN   ), OPTIONAL :: FUTURE     ! If needed, update
                                                             ! date tokens to future 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Year       ! To use fixed year 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3467,6 +3595,9 @@ CONTAINS
        CALL HcoClock_Get( cH    = prefHr, RC = RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF 
+
+    ! Eventually replace default preferred year with specified one
+    IF ( PRESENT(Year) ) prefYr = Year  
 
     ! Call the parser
     CALL HCO_CharParse ( srcFile, prefYr, prefMt, prefDy, prefHr, prefMn, RC )
