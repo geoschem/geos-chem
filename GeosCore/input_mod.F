@@ -8484,7 +8484,7 @@
     
       ! Initialize "dust_mod.F"
       IF ( Input_Opt%LDUST ) then
-         CALL Init_Dust( am_I_Root, Input_Opt, RC )
+         CALL Init_Dust( am_I_Root, Input_Opt, State_Chm, RC )
          IF ( RC /= GIGC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_DUST' )
       ENDIF
