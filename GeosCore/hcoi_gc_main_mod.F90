@@ -1156,9 +1156,21 @@ CONTAINS
              'PSC2', HCRC,      FIRST,    State_Met%PSC2  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
+    ! NOTE: State_Met%RADSWG is net radiation at ground for all
+    ! MET fields except GEOS-FP and MERRA2. For those data sets,
+    ! net radiation was not processed and so we use incident radiation 
+    ! at ground (SWGDN). For simplicity we store radiation as a single 
+    ! variable in HEMCO. SWGDN is also available for MERRA but is not 
+    ! used in HEMCO to preserve legacy usage of net radiation (ewl, 9/23/15)
+#if defined ( GEOS_FP ) || ( MERRA2 )
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%RADSWG, &
+           'RADSWG', HCRC,      FIRST,    State_Met%SWGDN  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+#else
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%RADSWG, &
            'RADSWG', HCRC,      FIRST,    State_Met%RADSWG  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
+#endif
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%FRCLND, &
            'FRCLND', HCRC,      FIRST,    State_Met%FRCLND  )

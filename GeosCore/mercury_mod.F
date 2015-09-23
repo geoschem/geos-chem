@@ -1,4 +1,4 @@
-!------------------------------------------------------------------------------
+cd !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -3941,9 +3941,11 @@
       ! ppb, based on data from Pohler et al. (2010).
       !----------------------------------------------------------------
 ! KLUDGE: can't get SWGDN in State_Met; add this later (jaf)
+! Use incident radiation at ground (State_Met%SWGDN) where available. 
+! Otherwise, use net radiation at ground (State_Met%RADSWG)
 #if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-!      SWRAD         = State_Met%SWGDN(I,J)
-      SWRAD = State_Met%RADSWG(I,J)
+      SWRAD         = State_Met%SWGDN(I,J)
+!      SWRAD = State_Met%RADSWG(I,J) - old code (jaf)
 ! END KLUDGE
       IS_MOSTLY_ICE = ( State_Met%SEAICE00(I,J) <= 0.5e+0_fp .AND.
      &                  State_Met%SEAICE90(I,J) < 1e+0_fp )

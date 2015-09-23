@@ -102,6 +102,7 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: SUNCOSmid (:,:  ) ! COS(SZA), midpt of chem timestep
 !     REAL(fp), POINTER :: SUNCOSmid5(:,:  ) ! COS(SZA), midpt of chem timestep
 !                                            !  5 hrs ago (for PARANOX)
+     REAL(fp), POINTER :: SWGDN     (:,:  ) ! Incident radiation @ grnd [W/m2]
      REAL(fp), POINTER :: TO3       (:,:  ) ! Total overhead O3 column [DU]
      REAL(fp), POINTER :: TO31      (:,:  ) ! Total O3 at timestep start [DU]
      REAL(fp), POINTER :: TO32      (:,:  ) ! Total O3 at timestep end [DU]
@@ -254,6 +255,7 @@ MODULE GIGC_State_Met_Mod
 !  25 May 2015 - C. Keller   - Removed SUNCOSmid5 (now calculated by HEMCO).
 !  08 Jul 2015 - E. Lundgren - Add XCHLR and XCHLR2 for organic marine aerosols
 !  11 Aug 2015 - R. Yantosca - Extend #ifdefs for MERRA2 met fields
+!  22 Sep 2015 - E. Lundgren - Add SWGDN for incident radiation at ground
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -475,6 +477,10 @@ CONTAINS
 !    ALLOCATE( State_Met%SUNCOSmid5( IM, JM ), STAT=RC )
 !    IF ( RC /= GIGC_SUCCESS ) RETURN
 !    State_Met%SUNCOSmid5 = 0.0_fp
+
+    ALLOCATE( State_Met%SWGDN     ( IM, JM ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SWGDN    = 0.0_fp
 
     ALLOCATE( State_Met%TO3       ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -1046,6 +1052,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%SUNCOS     )) DEALLOCATE( State_Met%SUNCOS     )
     IF ( ASSOCIATED( State_Met%SUNCOSmid  )) DEALLOCATE( State_Met%SUNCOSmid  )
 !    IF ( ASSOCIATED( State_Met%SUNCOSmid5 )) DEALLOCATE( State_Met%SUNCOSmid5 )
+    IF ( ASSOCIATED( State_Met%SWGDN      )) DEALLOCATE( State_Met%SWGDN      )
     IF ( ASSOCIATED( State_Met%TROPP      )) DEALLOCATE( State_Met%TROPP      )
     IF ( ASSOCIATED( State_Met%TS         )) DEALLOCATE( State_Met%TS         )
     IF ( ASSOCIATED( State_Met%TSKIN      )) DEALLOCATE( State_Met%TSKIN      )

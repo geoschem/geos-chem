@@ -1403,9 +1403,22 @@
             EC     = (EC_w + ( EC_doc * C_doc * ( NPP(I,J) / NPP_avg ) )
      &               + ( ECchla * CHL(I,J) / 1000 ) )             
 
+            ! NOTE: State_Met%RADSWG is net radiation at ground for all
+            ! MET fields except GEOS-FP and MERRA2. For those data sets,
+            ! net radiation was not processed and therefore we use
+            ! incident radiation at ground. We split them up below for
+            ! clarity, using the new SWGDN field for incident radiation.
+            ! SWGDN is also available for MERRA but we do not use it
+            ! here to preserve the legacy method (ewl, 9/23/15)
+#if defined ( GEOS_FP ) || defined ( MERRA2 )
+            RADz   = ( 1 / ( MLDcm * 1e-2_fpp ))
+     &               * (State_Met%SWGDN(I,J) / EC )    
+     &               * ( 1 - EXP( -EC * ( MLDcm * 1e-2_fpp) ) )
+#else
             RADz   = ( 1 / ( MLDcm * 1e-2_fpp ))
      &               * (State_Met%RADSWG(I,J) / EC )    
      &               * ( 1 - EXP( -EC * ( MLDcm * 1e-2_fpp) ) )
+#endif
 
             ! Reduce RADz in fractional sea ice boxes to only include
             ! the fraction of open ocean (i.e. assume zero light

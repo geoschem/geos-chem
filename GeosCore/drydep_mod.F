@@ -846,7 +846,18 @@
          OBK(IJLOOP)    = GET_OBK( I, J, State_Met )
 
          ! Solar insolation @ ground [W/m2]
+         ! NOTE: State_Met%RADSWG is net radiation at ground for all
+         ! MET fields except GEOS-FP and MERRA2. For those data sets,
+         ! net radiation was not processed and therefore we use
+         ! incident radiation at ground. We split them up below for
+         ! clarity, using the new SWGDN field for incident radiation.
+         ! SWGDN is also available for MERRA but we do not use it
+         ! here to preserve the legacy method (ewl, 9/23/15)
+#if defined ( GEOS_FP ) || defined ( MERRA2 )
+         RADIAT(IJLOOP) = State_Met%SWGDN(I,J) 
+#else
          RADIAT(IJLOOP) = State_Met%RADSWG(I,J) 
+#endif
 
          ! Surface temperature [K]
          TC0(IJLOOP)    = State_Met%TS(I,J)
