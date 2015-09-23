@@ -1654,8 +1654,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RAINOUT( I, J, L, N, K_RAIN, DT, F, RAINFRAC,
-     &                    Input_Opt, State_Met, State_Chm )
+      SUBROUTINE RAINOUT( I,         J,         L,        N,         
+     &                    K_RAIN,    DT,        F,        RAINFRAC,
+     &                    Input_Opt, State_Met, State_Chm           )
 !
 ! !USES:
 !
@@ -1740,6 +1741,8 @@
 !  23 Jun 2015 - M. Sulprizio- Add impaction scavenging for hydrophobic BC and
 !                              homogeneous IN removal from Qiaoqiao Wang
 !  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
+!  23 Sep 2015 - R. Yantosca - Use the species database to eliminate many
+!                              IF blocks to simplify the code logic
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1747,25 +1750,14 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      REAL(fp)               :: L2G, I2G, C_TOT, F_L
-      REAL(fp)               :: F_I, K, TK, SO2LOSS
-      REAL(fp)               :: K0, CR, pKa, RetFactor, ConvFactor
-      LOGIcAL                :: LiqAndGas
+      REAL(fp)      :: L2G,        I2G, C_TOT, F_L
+      REAL(fp)      :: F_I,        K,   TK,    SO2LOSS
+      REAL(fp)      :: RetFactor,  K0,  CR,    pKa
+      REAL(fp)      :: ConvFactor 
+      LOGIcAL       :: LiqAndGas
 
       ! Pointers
-      TYPE(Species)          :: ThisSpc
-!
-! !DEFINED PARAMETERS:
-!
-      ! CONV_H2O2 = 0.6 * SQRT( 0.53 ), used for the ice to gas ratio for H2O2
-      ! 0.6 is ( sticking  coeff H2O2  / sticking  coeff  water )
-      ! 0.53 is ( molecular weight water / molecular weight H2O2 )
-      REAL(fp), PARAMETER    :: CONV_H2O2 = 4.36564e-1_fp     
-
-      ! CONV_NH3 = 0.6 * SQRT( 1.06 ), used for the ice to gas ratio for NH3
-      ! 0.6 is ( sticking  coeff  NH3 / sticking  coeff  water )
-      ! 1.06 is ( molecular weight/n/home13/mslong/GCHP/ water /  molecular weight NH3 )
-      REAL(fp), PARAMETER    :: CONV_NH3  = 6.17395e-1_fp
+      TYPE(Species) :: ThisSpc
 
       !==================================================================
       ! RAINOUT begins here!
@@ -1781,851 +1773,72 @@
       ! NOTE: Do a copy to avoid problems w/ unallocated pointers!
       ThisSpc = State_Chm%SpcData(N)%Info
 
-      !------------------------------
-      ! H2O2 (liquid & ice phases)
-      !------------------------------
-      IF ( N == IDTH2O2 ) THEN
+      !=================================================================
+      ! Compute rainout fraction for SO2 (also update SO2s, H2O2s)
+      !
+      ! NOTE: SO2 and H2O2 are in [v/v] and here RAINFRAC contains 
+      ! the amount of SO2 lost due to rainout normalized by the
+      ! total SO2 -- so that in WETDEP routine mulitiplying SO2 in 
+      ! [kg] will produce correct amount.  Need to verify this. 
+      ! (rjp, 01/16/02)
+      !=================================================================
+      IF ( N == IDTSO2 ) THEN
+  
+         IF ( TK < 258.0_fp .and. TK >= 237.0_fp ) THEN
 
-         ! Compute ice to gas ratio for H2O2 by co-condensation
-         ! (Eq. 9, Jacob et al, 2000)
-         IF ( C_H2O(I,J,L) > 0e+0_fp ) THEN 
-            I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV_H2O2
+            !-----------------------------------------------------------
+            ! NOTE: GEOS-Chem v10-01 implemented a trap to suppress 
+            ! scavenging of aerosol tracers (except for black carbon, 
+            ! dust, and HNO3) when 238 K < T < 258K.  This trap was 
+            ! executed before RAINFRAC for SO2 was computed.  This 
+            ! turned off SO2 rainout when 238 K < T < 258K, although
+            ! this might not have been obvious from the logic of the
+            ! prior code.
+            !
+            ! Therefore, in order to replicate the behavior of prior
+            ! GEOS-Chem v10-01, we set RAINFRAC=0 for SO2 for the
+            ! temperature range 238 K < T < 258 K. (bmy, 9/23/15)
+            !-----------------------------------------------------------
+            RAINFRAC        = 0.0_fp
+
          ELSE
-            I2G = 0e+0_fp
-         ENDIF
 
-         ! Compute liquid to gas ratio for H2O2, using
-         ! the appropriate parameters for Henry's law
-         ! (Eqs. 7, 8 and Table 1, Jacob et al, 2000)
-         CALL COMPUTE_L2G(8.3e+4_fp, -7.4e+3_fp, TK, CLDLIQ(I,J,L), L2G)
-
-         ! Fraction of H2O2 in liquid & ice phases
-         ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-         C_TOT = 1e+0_fp + L2G + I2G
-         F_L   = L2G / C_TOT
-         F_I   = I2G / C_TOT
-
-         ! Compute the rate constant K.  The retention factor  
-         ! for liquid H2O2 is 0.05 for 248 K < T < 268 K, and 
-         ! 1.0 for T >= 268 K.  (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * ( F_L + F_I ) 
-               
-         ELSE IF ( TK > 248e+0_fp  .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( ( 5e-2_fp * F_L ) + F_I ) 
-
-         ELSE 
-            K = K_RAIN * F_I
-
-         ENDIF
-
-         ! Compute RAINFRAC, the fraction of rained-out H2O2
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT )
-
-      !------------------------------
-      ! CH2O (liquid phase only)
-      !------------------------------     
-      ELSE IF ( N == IDTCH2O ) THEN 
-                  
-         ! Compute liquid to gas ratio for CH2O, using
-         ! the appropriate parameters for Henry's law
-         ! (Eqs. 7, 8 and Table 1, Jacob et al, 2000)
-         CALL COMPUTE_L2G(3.0e+3_fp, -7.2e+3_fp, TK, CLDLIQ(I,J,L), L2G)
+            !-----------------------------------------------------------
+            ! Outside of the range of 238 K < T < 258 K, SO2 scavenging
+            ! can occur.  Compute the rainout fraction of SO2 and also
+            ! adjust the SO2s, H2O2s arrays accordingly (bmy, 9/23/15)
+            !-----------------------------------------------------------
+            IF ( SO2s(I,J,L) > TINY_FP ) THEN 
             
-         ! Fraction of CH2O in liquid phase 
-         ! NOTE: CH2O does not exist in the ice phase!
-         ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
+               ! Get rainout fraction for SO2
+               RAINFRAC     = GET_RAINFRAC( K_RAIN, F, DT )
 
-         ! Compute the rate constant K.  The retention factor  
-         ! for liquid CH2O is 0.02 for 248 K < T < 268 K, and 
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L 
-
-         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( 2e-2_fp * F_L )
+               ! Limit RAINFRAC 
+               SO2LOSS      = MIN( SO2s(I,J,L), H2O2s(I,J,L) )
+               RAINFRAC     = SO2LOSS * RAINFRAC / SO2s(I,J,L)
+               RAINFRAC     = MAX( RAINFRAC, 0.0_fp )
                
-         ELSE
-            K = 0e+0_fp
+               ! Update saved H2O2 concentration
+               H2O2s(I,J,L) = H2O2s(I,J,L) - ( SO2s(I,J,L) * RAINFRAC )
+               H2O2s(I,J,L) = MAX( H2O2s(I,J,L), TINY_FP )
+           
+            ELSE
+
+               ! IF SO2s is not defined, then set RAINFRAC=0
+               RAINFRAC     = 0.0_fp
+           
+            ENDIF
+           
+            ! Update saved SO2 concentration
+            SO2s(I,J,L)     = SO2s(I,J,L) * ( 1.0_fp - RAINFRAC )
+            SO2s(I,J,L)     = MAX( SO2s(I,J,L), TINY_FP )
 
          ENDIF
-
-         ! Compute RAINFRAC, the fraction of rained-out CH2O
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT )
-
-      ! Update GLYX and MGLY Henry's Law Const calculations (tmf, 9/13/06) 
-      !------------------------------
-      ! GLYX (liquid phase only)
-      !------------------------------     
-      ELSE IF ( N == IDTGLYX ) THEN 
-
-         ! Compute liquid to gas ratio for GLYX, using
-         ! (1) Zhou and Mopper (1990): Kstar298 = 3.6e5 M/atm 
-         ! (2) Schweitzer et al. (1998) showed that the temperature dependence 
-         ! for CH2O works well for glyoxal, so we use the same H298_R as CH2O
-         CALL COMPUTE_L2G(3.6e+5_fp, -7.2e+3_fp, TK, CLDLIQ(I,J,L), L2G)
-
-         ! Fraction of GLYX in liquid phase 
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! assume same retention factor as CH2O
-         ! Compute the rate constant K.  The retention factor  
-         ! for liquid CH2O is 0.02 for 248 K < T < 268 K, and 
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L 
-
-         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( 2e-2_fp * F_L )
-               
-         ELSE
-            K = 0e+0_fp
-
-         ENDIF
-
-         ! Compute RAINFRAC, the fraction of rained-out GLYX
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT )
-
-      !------------------------------
-      ! MGLY (liquid phase only)
-      !------------------------------     
-      ELSE IF ( N == IDTMGLY ) THEN 
-
-         ! Compute liquid to gas ratio for MGLY, using
-         ! the appropriate parameters for Henry's law
-         ! from Betterton and Hoffman 1988): 
-         ! Kstar298 = 3.71d3 M/atm;  H298_R = -7.5d3 K
-         CALL COMPUTE_L2G(3.7e+3_fp, -7.5e+3_fp, TK, CLDLIQ(I,J,L), L2G)
-            
-         ! Fraction of MGLY in liquid phase 
-         ! NOTE: CH2O does not exist in the ice phase!
-         ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! assume same retention factor as CH2O
-         ! Compute the rate constant K.  The retention factor  
-         ! for liquid CH2O is 0.02 for 248 K < T < 268 K, and 
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L 
-
-         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( 2e-2_fp * F_L )
-               
-         ELSE
-            K = 0e+0_fp
-
-         ENDIF
-
-         ! Compute RAINFRAC, the fraction of rained-out MGLY
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT )
-
-      !------------------------------
-      ! GLYC (liquid phase only)
-      !------------------------------     
-      ELSE IF ( N == IDTGLYC ) THEN 
-
-         ! Compute liquid to gas ratio for GLYC, using
-         ! the appropriate parameters for Henry's law
-         ! from Betterton and Hoffman 1988): 
-         ! Kstar298 = 4.1d4 M/atm;  H298_R = -4.6d3 K
-         CALL COMPUTE_L2G(4.1e+4_fp, -4.6e+3_fp, TK, CLDLIQ(I,J,L), L2G)
-            
-         ! Fraction of GLYC in liquid phase 
-         ! NOTE: CH2O does not exist in the ice phase!
-         ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! assume same retention factor as CH2O
-         ! Compute the rate constant K.  The retention factor  
-         ! for liquid CH2O is 0.02 for 248 K < T < 268 K, and 
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L 
-
-         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( 2e-2_fp * F_L )
-               
-         ELSE
-            K = 0e+0_fp
-
-         ENDIF
-
-         ! Compute RAINFRAC, the fraction of rained-out MGLY
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT )
-
-  
-      !------------------------------
-      ! CH3OOH (liquid phase only)
-      !------------------------------
-      ELSE IF ( N == IDTMP ) THEN
-
-         ! Compute liquid to gas ratio for CH3OOH, using
-         ! the appropriate parameters for Henry's law
-         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-         CALL COMPUTE_L2G(3.1e+2_fp, -5.2e+3_fp, TK, CLDLIQ(I,J,L), L2G)
-
-         ! Fraction of CH3OOH in liquid phase
-         ! NOTE: CH3OOH does not exist in the ice phase!
-         ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.  The retention factor  
-         ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L  
-
-         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( 2e-2_fp * F_L )  
-            
-         ELSE
-            K = 0e+0_fp
-               
-         ENDIF
-  
-         ! Compute RAINFRAC, the fraction of rained-out CH3OOH
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-
-      !!!!!!!!!
-      !FP_ISOP!
-      !!!!!!!!!
-
-      !------------------------------
-      ! MOBA (liquid phase only)
-      !------------------------------
-      ELSE IF ( N == IDTMOBA ) THEN
-         
-         !based on methacrylic acid
-         CALL COMPUTE_L2G(2.3e+4_fp, -6.3e+3_fp, TK, CLDLIQ(I,J,L), L2G)
-
-         ! Fraction of methacrylic acid in liquid phase
-         ! Assume: methacrylic acid does not exist in the ice phase!
-         ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.  The retention factor  
-         ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L  
-
-         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( 2e-2_fp * F_L )  
-            
-         ELSE
-            K = 0e+0_fp
-               
-         ENDIF
-  
-         ! Compute RAINFRAC, the fraction of rained-out CH3OOH
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-
-      !------------------------------
-      ! ISOPN (liquid phase only)
-      !------------------------------
-      ELSE IF ( N == IDTISOPN ) THEN
-
-         !Based on 2-pentyl nitrate
-
-         CALL COMPUTE_L2G(17e+3_fp, -9.2e+3_fp, TK, CLDLIQ(I,J,L), L2G)
-
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.  The retention factor  
-         ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L  
-
-         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( 2e-2_fp * F_L )  
-            
-         ELSE
-            K = 0e+0_fp
-               
-         ENDIF
-  
-         ! Compute RAINFRAC, the fraction of rained-out CH3OOH
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-
-      !------------------------------
-      ! MMN (liquid phase only)
-      !------------------------------
-      ELSE IF ( N == IDTMMN ) THEN
-
-         !Ito 2007
-         CALL COMPUTE_L2G(17e+3_fp, -9.2e+3_fp, TK, CLDLIQ(I,J,L), L2G)
-
-
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.  The retention factor  
-         ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L  
-
-         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( 2e-2_fp * F_L )  
-            
-         ELSE
-            K = 0e+0_fp
-               
-         ENDIF
-  
-         ! Compute RAINFRAC, the fraction of rained-out CH3OOH
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-
-      !------------------------------
-      ! PROPNN (liquid phase only)
-      !------------------------------
-      ELSE IF ( N == IDTPROPNN ) THEN
-
-         CALL COMPUTE_L2G(1.0e+3_fp, 0.0e+0_fp, TK, CLDLIQ(I,J,L), L2G)
-
-
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.  The retention factor  
-         ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L  
-
-         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( 2e-2_fp * F_L )  
-            
-         ELSE
-            K = 0e+0_fp
-               
-         ENDIF
-  
-         ! Compute RAINFRAC, the fraction of rained-out CH3OOH
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-
-      !------------------------------
-      ! RIP
-      !------------------------------
-      ELSE IF ( N == IDTRIP ) THEN
-
-         !USE H2O2 
-         CALL COMPUTE_L2G(1.7e+6_fp, 0.0e+0_fp, TK, CLDLIQ(I,J,L), L2G)
-
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.  The retention factor  
-         ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L  
-
-         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( 2e-2_fp * F_L )  
-            
-         ELSE
-            K = 0e+0_fp
-               
-         ENDIF
-  
-         ! Compute RAINFRAC, the fraction of rained-out CH3OOH
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-
-      !------------------------------
-      ! MAP
-      !------------------------------
-      ELSE IF ( N == IDTMAP ) THEN
-
-         !USE H2O2 
-         CALL COMPUTE_L2G( 8.4e+2_fp, -5.3e+3_fp, TK, 
-     &         CLDLIQ(I,J,L), L2G )
-
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.  The retention factor  
-         ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L  
-
-         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( 2e-2_fp * F_L )  
-            
-         ELSE
-            K = 0e+0_fp
-         ENDIF
-  
-         ! Compute RAINFRAC, the fraction of rained-out CH3OOH
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-
-      !------------------------------
-      ! IEPOX
-      !------------------------------
-      ELSE IF ( N == IDTIEPOX ) THEN
-
-         !USE H2O2 
-         CALL COMPUTE_L2G( 1.3e+8_fp, 0.0e+0_fp, TK, 
-     &         CLDLIQ(I,J,L), L2G )
-
-
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.  The retention factor  
-         ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L  
-
-         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( 2e-2_fp * F_L )  
-            
-         ELSE
-            K = 0e+0_fp
-               
-         ENDIF
-  
-         ! Compute RAINFRAC, the fraction of rained-out CH3OOH
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-
-      !!!!! end FP additional tracers for ISOP (6/2009)
-
-      !----------------------------------
-      ! HOBr (liquid phase only), jpp
-      !----------------------------------
-      ELSE IF ( N == IDTHOBr ) THEN
-
-
-         ! Compute liquid to gas ratio for HOBr:
-         ! 1. first argument is the adjusted Henry's law coefficient,
-         ! which I've calculated for pH = 4.5
-         ! (jpp, 4/27/09)
-         ! 
-         ! McGrath and Rowland, 1994 estimate - 50 kJ/mol heat of solution
-         ! H0 comes from Freznel et al. [1998]
-         CALL COMPUTE_L2G( 6.1e+3_fp, -6014.e+0_fp, TK, 
-     &         CLDLIQ(I,J,L), L2G ) 
-
-         ! Fraction of HOBr in liquid phase
-         ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-         ! F_I not defined for HOBr (ckeller, 10/11/2014)
-         !F_I   = I2G / C_TOT
-
-         ! Compute the rate constant K.
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L 
-         ELSE IF ( TK > 248e+0_fp  .and. TK < 268e+0_fp ) THEN
-
-            K = K_RAIN * (0.e+0_fp * F_L)
-
-         ELSE
-            K = 0.e+0_fp
-         ENDIF
-
-         ! Compute RAINFRAC, the fraction of rained-out HOBr
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-
-      !-----------------------------------
-      ! HCl (liquid phase only), SDE 04/17/13
-      !-----------------------------------
-      ELSE IF ( N == IDTHCl ) THEN
-
-         CALL COMPUTE_L2G( 7.1e+15_fp, -1.10e+4_fp, TK, 
-     &         CLDLIQ(I,J,L), L2G )
-
-         ! Fraction of HCl in liquid phase
-         ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L 
-         ELSE IF ( TK > 248e+0_fp  .and. TK < 268e+0_fp ) THEN
-
-            ! HCl has a large effective H*
-            K = K_RAIN * (1.e+0_fp * F_L)
-
-         ELSE
-            K = 0.e+0_fp
-         ENDIF
-  
-         ! Compute RAINFRAC, the fraction of rained-out HCl
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-
-      !-----------------------------------
-      ! HBr (liquid phase only), jpp
-      !-----------------------------------
-      ELSE IF ( N == IDTHBr ) THEN
-
-         ! Compute liquid to gas ratio for HBr:
-         ! 1. first argument is the adjusted Henry's law coefficient,
-         ! which I've calculated for pH = 4.5
-         !
-         ! H0 and heat of solution are estimated by Yang et al. [2005]
-         CALL COMPUTE_L2G( 7.1e+13_fp, -10200.0e+0_fp, TK, 
-     &         CLDLIQ(I,J,L), L2G )
-
-         ! Fraction of HBr in liquid phase
-         ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L 
-         ELSE IF ( TK > 248e+0_fp  .and. TK < 268e+0_fp ) THEN
-
-            ! HBr has a large effective Henry's
-            ! Law Constant, similar to HCl and HNO3, which have
-            ! retention fractions (RFs) of 1.
-            ! RFs have not been measured for HBr; 
-            ! however, Stuart and Jacobson [2003]
-            ! suggest that species with large
-            ! Hstar's should have RF's of about 1.
-            ! (jpp, 6/13/2011)
-            K = K_RAIN * (1.e+0_fp * F_L) ! jpp, testing riming efficiency
-
-         ELSE
-            K = 0.e+0_fp
-         ENDIF
-  
-         ! Compute RAINFRAC, the fraction of rained-out HBr
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-
-      !------------------------------
-      ! Br2 (liquid phase only), jpp
-      !------------------------------
-      ELSE IF ( N == IDTBr2 ) THEN
-
-         ! 1. H0 and the heat of solution are taken from Dean [1992].
-         ! 2. Dissociation constant for hydrolysis is small (4e-9) and taken
-         !    from Beckwith et al. [1996]
-         CALL COMPUTE_L2G( 0.76e+0_fp, -3.72e+3_fp, TK, 
-     &         CLDLIQ(I,J,L), L2G )
-
-         ! Fraction of HBr in liquid phase
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L
-         ELSE IF ( TK > 248e+0_fp  .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * (0.e+0_fp * F_L)
-         ELSE
-            K = 0e+0_fp   
-         ENDIF
-  
-         ! Compute RAINFRAC, the fraction of rained-out HBr
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-
-      !------------------------------
-      ! NH3 (liquid & ice phases)
-      !------------------------------
-      ELSE IF ( N == IDTNH3 ) THEN
-
-         ! Compute ice to gas ratio for NH3 by co-condensation
-         ! (Eq. 9, Jacob et al, 2000)
-         IF ( C_H2O(I,J,L) > 0e+0_fp ) THEN 
-            I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV_NH3
-         ELSE
-            I2G = 0e+0_fp
-         ENDIF
-                  
-         ! Compute liquid to gas ratio for NH3, using
-         ! the appropriate parameters for Henry's law
-         ! (Seinfeld and Pandis, p343 eq. 6.8)
-         ! PH    = 4.5  ! Assumed PH for typical cloud drop
-         ! Hstar = 1.054d11 * (10.**(-PH)) == 3.3d6
-         CALL COMPUTE_L2G(3.3e+6_fp, -4.1e+3_fp, TK, CLDLIQ(I,J,L), L2G)
-
-         ! Fraction of NH3 in liquid & ice phases
-         ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-         C_TOT = 1e+0_fp + L2G + I2G
-         F_L   = L2G / C_TOT
-         F_I   = I2G / C_TOT
-
-         ! Compute the rate constant K.  The retention factor  
-         ! for liquid NH3 is 0.05 for 248 K < T < 268 K, and 
-         ! 1.0 for T >= 268 K.  (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * ( F_L + F_I ) 
-
-         ELSE IF ( TK > 248e+0_fp  .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( ( 5e-2_fp * F_L ) + F_I ) 
-
-         ELSE 
-            K = K_RAIN * F_I
-
-         ENDIF
-
-         ! Compute RAINFRAC, the fraction of rained-out NH3
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT )
-
-      !------------------------------
-      ! MTPA (liquid phase only)
-      !------------------------------
-      ! new mtp (hotp 5/24/10), SOAupdate
-      ELSE IF ( N == IDTMTPA ) THEN
-
-         ! Compute liquid to gas ratio for MTPA, using
-         ! the appropriate parameters for Henry's law
-         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-         ! use H-law of 0.049 (hotp 5/24/10), SOAupdate
-         CALL COMPUTE_L2G(0.049e+0_fp, 0.e+0_fp, TK, CLDLIQ(I,J,L), L2G)
-
-         ! Fraction of MTPA in liquid phase
-         ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.  Assume that the retention factor
-         ! for liquid MTPA is 0.02 for 248 K < T < 268 K, and
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L
-
-         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( 2e-2_fp * F_L )
-
-         ELSE
-            K = 0e+0_fp
-
-         ENDIF
- 
-         ! Compute RAINFRAC, the fraction of rained-out MTPA
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT )
-
-      !------------------------------
-      ! LIMO (liquid phase only)
-      !------------------------------
-      ELSE IF ( N == IDTLIMO ) THEN
-
-         ! Compute liquid to gas ratio for LIMO, using
-         ! the appropriate parameters for Henry's law
-         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-         CALL COMPUTE_L2G(0.07e+0_fp, 0.e+0_fp, TK, CLDLIQ(I,J,L), L2G)
-
-         ! Fraction of LIMO in liquid phase
-         ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.  Assume that the retention factor
-         ! for liquid LIMO is 0.02 for 248 K < T < 268 K, and
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L
-
-         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( 2e-2_fp * F_L )
-
-         ELSE
-            K = 0e+0_fp
-
-         ENDIF
-
-         ! Compute RAINFRAC, the fraction of rained-out LIMO
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT )
-
-      !------------------------------
-      ! MTPO (liquid phase only)
-      !------------------------------
-      ! new mtp (hotp 5/24/10), SOAupdate
-      ELSE IF ( N == IDTMTPO ) THEN
-
-         ! Compute liquid to gas ratio for MTPO, using
-         ! the appropriate parameters for Henry's law.
-         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-         ! H-law is 0.049 (hotp 5/24/10), SOAupdate
-         CALL COMPUTE_L2G( 0.049e+0_fp, 0.e+0_fp, TK, 
-     &         CLDLIQ(I,J,L), L2G )
-
-         ! Fraction of MTPO in liquid phase
-         ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.  Assume that the retention factor
-         ! for liquid MTPO is 0.02 for 248 K < T < 268 K, and
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L
-
-         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( 2e-2_fp * F_L )
-
-         ELSE
-            K = 0e+0_fp
-
-         ENDIF
-
-         ! Compute RAINFRAC, the fraction of rained-out MTPO
-         ! (Eq. 10, Jacob et al, 2000)   
-         RAINFRAC = GET_RAINFRAC( K, F, DT )
-
-      !------------------------------------
-      ! POG
-      !------------------------------------
-      ! Treat POG as relatively hydrophobic (hotp 9/22/09)
-      ELSE IF ( N == IDTPOG1 .or. N == IDTPOG2 ) THEN
-
-         ! Compute liquid to gas ratio for POG, using
-         ! the appropriate parameters for Henry's law
-         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-         ! Heff and deltaH/R based on phenanthrene from Sander 1999
-         CALL COMPUTE_L2G( 9.5e+0_fp, -4.70e+3_fp, TK, 
-     &          CLDLIQ(I,J,L), L2G )
-
-         ! Fraction of POG in liquid phase
-         ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.  Assume that the retention factor
-         ! for liquid POG is 0.02 for 248 K < T < 268 K, and
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L
-
-         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( 2e-2_fp * F_L )
-
-         ELSE
-            K = 0e+0_fp
-
-         ENDIF
- 
-         ! Compute RAINFRAC, the fraction of rained-out POG
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT )
-
-      !----------------------------------
-      ! SOG (liquid phase only)
-      !----------------------------------
-      ! update for new mtp (hotp 5/24/10), SOAudpate
-      ELSE IF ( N == IDTTSOG1 .or. N == IDTTSOG2 .or. 
-     &          N == IDTTSOG3 .or. N == IDTTSOG0 .or.
-     &          N == IDTISOG1 .or. N == IDTISOG2 .or. 
-     &          N == IDTISOG3 .or. 
-     &          N == IDTOPOG1 .or. N == IDTOPOG2 .or.
-     &          N == IDTASOG1 .or. N == IDTASOG2 .or.
-     &          N == IDTASOG3                         ) THEN
-
-         ! Compute liquid to gas ratio for GAS1, using
-         ! the appropriate parameters for Henry's law
-         ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-         CALL COMPUTE_L2G( 1.0e+5_fp, -6.039e+3_fp, TK, 
-     &               CLDLIQ(I,J,L), L2G )
-
-         ! Fraction of GAS1 in liquid phase
-         ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.  Assume that the retention factor
-         ! for liquid GAS1 is 0.02 for 248 K < T < 268 K, and
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268e+0_fp ) THEN
-            K = K_RAIN * F_L
-
-         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
-            K = K_RAIN * ( 2e-2_fp * F_L )
-
-         ELSE
-            K = 0e+0_fp
-
-         ENDIF
- 
-         ! Compute RAINFRAC, the fraction of rained-out SOG{1,2,3}
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT )
-        
-      !------------------------------
-      ! Hg2 (liquid phase only)
-      !------------------------------
-      ELSE IF ( IS_Hg2( N ) ) THEN 
-
-         ! Compute liquid to gas ratio for HgCl2, using
-         ! the appropriate parameters for Henry's law
-         ! (Refs: INSERT HERE)
-         !
-         ! hma, 10-Jan-2011, Henry's law constant for 
-         ! HgCl2 = 1.4d+6 M/atm for HgCl2 (Lindqvist and Rodhe, 1985)
-         CALL COMPUTE_L2G( 1.4e+6_fp, -8.4e+3_fp, TK, 
-     &                     CLDLIQ(I,J,L), L2G )
-         
-         ! Fraction of HgCl2 in liquid phase
-         ! Assume no HgCl2 in the ice phase
-         C_TOT = 1e+0_fp + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.  Assume the retention factor  
-         ! for liquid HgCl2 is 0 for T < 268 K, and 
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 248e+0_fp ) THEN
-            K = K_RAIN * F_L  
-         ELSE
-            K = 0e+0_fp               
-         ENDIF
-  
-         ! Compute RAINFRAC, the fraction of rained-out HgCl2
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-
-      !------------------------------
-      ! HgP (treat like aerosol)
-      !------------------------------
-      ELSE IF ( IS_HgP( N ) ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-         ! CDH 9/28/2009
-!         IF ( TK < 248e+0_fp ) RAINFRAC = 0e+0_fp
 
       !=================================================================
-      ! Compute rainout fraction for soluble species
-      ! Most species that don't need special handling can go here
+      ! Compute rainout fraction for soluble gas-phase species
       !=================================================================
       ELSE IF ( ThisSpc%Is_Gas ) THEN 
-
-         !--------------------------------------------------------------
-         ! Soluble gas-phase species
-         !--------------------------------------------------------------
 
          ! Get Henry's law parameters
          K0         = ThisSpc%Henry_K0
@@ -2691,112 +1904,96 @@
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
+      !=================================================================
+      ! Compute rainout fraction for aerosol species
+      ! (except for SO2, which is treated specially above)
+      !
+      ! NOTE: Rainout will be suppressed at colder temperatures for
+      ! most aerosol species.  See the code immediately below.
+      !=================================================================
       ELSE
-         
-         !==============================================================
-         ! Aerosols
-         !==============================================================
-         IF ( .not. ThisSpc%Is_Gas ) THEN
 
-            !--------------------------------------------------------
-            ! Soluble aerosol species
-            !--------------------------------------------------------
-            IF ( ThisSpc%WD_RainoutEff > 0.0_fp ) THEN
+         IF ( ThisSpc%WD_RainoutEff > 0.0_fp ) THEN
  
-               ! Get the fraction of species rained out in the grid box
-               RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+            ! If the species has a rainout efficiency greater than 0,
+            ! get the fraction of species rained out in the grid box
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-               ! Multiply by the rainout efficiency
-               ! For most species this is 1.0
-               ! For SOA species this is usually 0.8
-               RAINFRAC = RAINFRAC * ThisSpc%WD_RainoutEff
+            ! Multiply by the rainout efficiency
+            ! For most species this is 1.0
+            ! For SOA species this is usually 0.8
+            RAINFRAC = RAINFRAC * ThisSpc%WD_RainoutEff
 
-            ELSE
+         ELSE
 
-               ! If the rainout efficiency is zero, then just set 
-               ! RAINFRAC = 0.  This avoids a subroutine call.
-               RAINFRAC = 0.0_fp
-
-            ENDIF
+            ! If the rainout efficiency is zero, then just set 
+            ! RAINFRAC = 0.  This avoids a subroutine call.
+            RAINFRAC = 0.0_fp
 
          ENDIF
 
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-         !------------------------------------------------------------------
-         ! Suppress scavenging at cold temperatures for most aerosol simulation
-         ! Allow scavenging at cold temperatures for BCPO,DUST and HNO3 (qq,
-         ! 10/14/2011)
-         ! Allow scavenging at cold temperatures for Hg simulation.
-         ! (cdh, 4/16/09, 5/20/09)
-         !------------------------------------------------------------------- 
-! CDH 8/7/2009, 10/27/2009. All temperature dependence for Hg handled above
-         IF ( TK < 237d0 .AND.
-     &      ( N == IDTBCPO .or. N == IDTPOPPBCPO ) ) THEN
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+         !==============================================================
+         ! %%% PRESERVE THE BEHAVIOR FROM VERSIONS PRIOR TO v11-01 %%%
+         !
+         ! Suppress scavenging at cold temperatures for most aerosols
+         !
+         ! Allow scavenging at cold temperatures for BCPO,DUST and HNO3 
+         ! (Qiaoqiao Wang, 10/14/2011)
+         !
+         ! NOTE: Introduce a new field for rainout cutoff temperature 
+         ! to the species data base at a later time.  This can help us
+         ! to avoid dependence on the IDTxxxx flags. (bmy, 9/23/15)
+         !==============================================================
+         IF ( TK < 237.0_fp ) THEN 
 
-            ! Free pointers and return
-            RETURN
+            !-----------------------------------------------------------
+            ! CASE 1: Temperature < 237 K
+            !
+            ! Normally, we set RAINFRAC=0 for hydrophilic black carbon
+            ! species (BCPO and POPPBCPO)  The prior code allowed these
+            ! tracers to be scavenged for T < 237 K.  So we need to 
+            ! recompute RAINFRAC for these tracers. (cf. Q. Wang)
+            !-----------------------------------------------------------
+            IF ( N == IDTBCPO .or. N == IDTPOPPBCPO ) THEN
+               RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+            ENDIF
+      
+         ELSE IF ( TK < 258.0_fp .and. TK >= 237.0_fp ) THEN
 
-         ENDIF
-
-         IF (TK < 258d0 .AND. TK >= 237d0) THEN
-            IF ( N == IDTBCPO .or. N == IDTDST1 .or. N == IDTDST2 .or.
-     &           N == IDTDST3 .or. N == IDTDST4 .or. N == IDTHNO3 .or.
+            !-----------------------------------------------------------
+            ! CASE 2a: 237 K <= Temperature < 258 K
+            !
+            ! Normally, we set RAINFRAC=0 for hydrophilic black carbon
+            ! (BCPO, POPPBCPO), dust (DST*), and nitric acid (HNO3)
+            ! species.  The prior code allowed these tracers to be 
+            ! scavenged for 237 K <= T < 258 K.  Theree range.  So we 
+            ! need to recompute RAINFRAC here for these tracers. 
+            ! (cf. Q. Wang)
+            !-----------------------------------------------------------
+            IF ( N == IDTBCPO       .or. 
+     &           N == IDTDST1       .or.  ! Question? Should we also do this for
+     &           N == IDTDST2       .or.  ! DSTAL*, SO4D* and NITD* tracers?
+     &           N == IDTDST3       .or.  ! (bmy, 9/23/15)
+     &           N == IDTDST4       .or. 
+     &           N == IDTHNO3       .or.
      &           N == IDTPOPPBCPO ) THEN
                RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+            !-----------------------------------------------------------
+            ! CASE 2b: 237 K <= Temperature < 258 K
+            !
+            ! For all other species except the ones listed above, 
+            ! suppress rainout when 237 K <= T <= 258 K. (cf. Q. Wang)
+            !-----------------------------------------------------------
             ELSE 
-               RAINFRAC = 0e+0_fp
+               RAINFRAC = 0.0_fp
+
             ENDIF
-            
-            ! Free pointer and return
-            RETURN
          ENDIF
 #endif
-
-         !%%% Does the code even reach here????
-         !------------------------------
-         ! SO2
-         !------------------------------
-         IF ( N == IDTSO2 ) THEN
-  
-            !==============================================================
-            ! NOTE: SO2 and H2O2 are in [v/v] and here RAINFRAC contains 
-            ! the amount of SO2 lost due to rainout normalized by the
-            ! total SO2 -- so that in WETDEP routine mulitiplying SO2 in 
-            ! [kg] will produce correct amount.  Need to verify this. 
-            ! (rjp, 01/16/02)
-            !==============================================================
-  
-            ! Treat SO2 as an aerosol
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-  
-            ! Update SO2 and H2O2
-            !IF ( SO2s(I,J,L) > EPSILON ) THEN 
-            IF ( SO2s(I,J,L) > TINY_FP ) THEN 
-            
-               ! Limit RAINFRAC 
-               SO2LOSS      = MIN( SO2s(I,J,L), H2O2s(I,J,L) )
-               RAINFRAC     = SO2LOSS * RAINFRAC / SO2s(I,J,L)
-               RAINFRAC     = MAX( RAINFRAC, 0e+0_fp )
-         
-               ! Update saved H2O2 concentration
-               H2O2s(I,J,L) = H2O2s(I,J,L) - ( SO2s(I,J,L) * RAINFRAC )
-               !H2O2s(I,J,L) = MAX( H2O2s(I,J,L), EPSILON )
-               H2O2s(I,J,L) = MAX( H2O2s(I,J,L), TINY_FP )
-           
-            ELSE
-               RAINFRAC = 0e+0_fp
-           
-            ENDIF
-           
-            ! Update saved SO2 concentration
-            SO2s(I,J,L) = SO2s(I,J,L) * ( 1.e+0_fp - RAINFRAC )
-            !SO2s(I,J,L) = MAX( SO2s(I,J,L), EPSILON )         
-            SO2s(I,J,L) = MAX( SO2s(I,J,L), TINY_FP )
-  
-         ENDIF
       ENDIF
-      
+
       END SUBROUTINE RAINOUT
 !EOC
 !------------------------------------------------------------------------------
