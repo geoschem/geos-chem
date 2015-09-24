@@ -115,8 +115,11 @@ MODULE Species_Mod
 
      ! Wetdep parameters, aerosol-phase species
      REAL(fp)           :: WD_AerScavEff    ! Aerosol scavenging efficiency
-     REAL(fp)           :: WD_RainoutEff(3) ! Aerosol rainout efficiency
      LOGICAL            :: WD_CoarseAer     ! T=coarse aerosol; F=fine aerosol
+     REAL(fp)           :: WD_KcScaleFac(3) ! Factor used to multiply Kc rate
+                                            !  (conv of condensate -> precip)
+                                            !  in F_AEROSOL (wetscav_mod.F)
+     REAL(fp)           :: WD_RainoutEff(3) ! Updraft scavenging efficiency
      LOGICAL            :: WD_SizeResAer    ! T=size-resolved aerosol (TOMAS)
 
   END TYPE Species
@@ -347,9 +350,9 @@ CONTAINS
                          DD_A_Density,  DD_A_Radius,   DD_F0,          &
                          DD_KOA,        DD_HStar_Old,  WD_RetFactor,   &
                          WD_LiqAndGas,  WD_ConvFacI2G, WD_AerScavEff,  &
-                         WD_RainoutEff, WD_CoarseAer,  WD_SizeResAer,  &
-                         Is_Advected,   Is_Gas,        Is_Drydep,      &
-                         Is_Wetdep,     RC                            )
+                         WD_KcScaleFac, WD_RainoutEff, WD_CoarseAer,   &
+                         WD_SizeResAer, Is_Advected,   Is_Gas,         &
+                         Is_Drydep,     Is_Wetdep,     RC             )
 !
 ! !USES:
 !
@@ -386,6 +389,8 @@ CONTAINS
     LOGICAL,          OPTIONAL    :: WD_LiqAndGas     ! Liquid and gas phases?
     REAL(fp),         OPTIONAL    :: WD_ConvFacI2G    ! Factor for ice/gas ratio
     REAL(fp),         OPTIONAL    :: WD_AerScavEff    ! Aerosol scavenging eff.
+    REAL(fp),         OPTIONAL    :: WD_KcScaleFac(3) ! Factor to multiply Kc
+                                                      !  rate in F_AEROSOL
     REAL(fp),         OPTIONAL    :: WD_RainoutEff(3) ! Rainout efficiency
     LOGICAL,          OPTIONAL    :: WD_CoarseAer     ! Coarse aerosol?
     LOGICAL,          OPTIONAL    :: WD_SizeResAer    ! Size resolved aerosol?
@@ -415,6 +420,7 @@ CONTAINS
 !  31 Aug 2015 - R. Yantosca - Now also compute AdvectId
 !  04 Sep 2015 - R. Yantosca - Add arguments WD_RainoutEff, WD_CoarseAer,
 !                              and WD_SizeResAer
+!  24 Sep 2015 - R. Yantosca - Added WD_KcScaleFac argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -603,8 +609,18 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------------
+    ! Scale factor used to multiply the Kc rate (condensate -> precip)
+    ! in routine F_AEROSOL in wetscav_mod.F.  This implments the 
+    ! impaction scavenging for aerosol species.
+    !---------------------------------------------------------------------
+    IF ( PRESENT( WD_KcScaleFac ) ) THEN
+       ThisSpc%WD_KcScaleFac(:) = WD_KcScaleFac(:)
+    ELSE
+       ThisSpc%WD_KcScaleFac(:) = MISSING
+    ENDIF
+
+    !---------------------------------------------------------------------
     ! Rainout efficiency for wetdep (aerosol species only)
-    ! (Defaults to WD_AerScavEff, if not specified)
     !---------------------------------------------------------------------
     IF ( PRESENT( WD_RainOutEff ) ) THEN
        ThisSpc%WD_RainOutEff(:) = WD_RainOutEff(:)
@@ -733,23 +749,26 @@ CONTAINS
     !---------------------------------------------------------------------
     IF ( ThisSpc%Is_Gas ) THEN
 
-       ! If this is a gas, then zero out all aerosol fields
-       ThisSpc%WD_CoarseAer        = .FALSE.
-       ThisSpc%WD_SizeResAer       = .FALSE.
-       ThisSpc%WD_AerScavEff       = MISSING
+       ! If this is a gas, then zero out all aerosol fields ...
+       ThisSpc%WD_CoarseAer  = .FALSE.
+       ThisSpc%WD_SizeResAer = .FALSE.
        
-       ! SO2 wetdeps like an aerosol, so we don't want to set
-       ! the rainout efficiency to MISSING for this species.
-       IF ( TRIM( ThisSpc%Name ) /= 'SO2' ) THEN
-          ThisSpc%WD_RainoutEff(:) = MISSING
-       ENDIF
+       ! ... except for those species that wetdep like aerosols
+       SELECT CASE( TRIM( ThisSpc%Name ) )
+          CASE( 'SO2', 'HNO3' )
+             ! Do nothing
+          CASE DEFAULT 
+             ThisSpc%WD_AerScavEff    = MISSING
+             ThisSpc%WD_KcScaleFac(:) = MISSING
+             ThisSpc%WD_RainoutEff(:) = MISSING
+       END SELECT
        
     ELSE
 
        ! If this species is an aerosol, zero out gas-phase fields
-       ThisSpc%WD_RetFactor        = MISSING
-       ThisSpc%WD_LiqAndGas        = .FALSE.
-       ThisSpc%WD_ConvFacI2G       = MISSING
+       ThisSpc%WD_RetFactor  = MISSING
+       ThisSpc%WD_LiqAndGas  = .FALSE.
+       ThisSpc%WD_ConvFacI2G = MISSING
 
     ENDIF
 

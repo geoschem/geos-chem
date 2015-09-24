@@ -1041,6 +1041,7 @@
 #endif
 
       ! Arrays and pointers
+      REAL(fp)               :: KcScale(3)
       REAL(fp),      POINTER :: T(:,:,:) => NULL()
 #if defined( TOMAS )
       REAL(fp),      POINTER :: STT(:,:,:,:) => NULL()
@@ -1082,13 +1083,18 @@
       ! Point to the temperature field in State_Met
       T => State_Met%T
 
+      ! Temperature-dependent scale factors for the KC rate
+      ! (conversion of cloud condensate -> precipitation)
+      KcScale = ThisSpc%WD_KcScaleFac
+
       !-------------------------------
       ! HNO3 (aerosol)
       !-------------------------------
       IF ( N == IDTHNO3 ) THEN
          
          ! NOTE: HNO3 drydeps like gas, wetdeps like aerosol
-         CALL F_AEROSOL( KC, N, F, State_Met )
+         !CALL F_AEROSOL( KC, N, F, State_Met )
+         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
          ISOL = GET_ISOL( N, N_TRACERS ) 
 
       !------------------------------
@@ -1097,7 +1103,8 @@
       ELSE IF ( N == IDTSO2 ) THEN
 
          ! Compute fraction of SO2 scavenged
-         CALL F_AEROSOL( KC, N, F, State_Met )
+         !CALL F_AEROSOL( KC, N, F, State_Met )
+         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
          ISOL = GET_ISOL( N, N_TRACERS )
 
          !==============================================================
@@ -1171,7 +1178,8 @@
       ! H2SO4 (treat as aerosol)
       !-------------------------------
       ELSE IF ( N == IDTH2SO4 ) THEN
-         CALL F_AEROSOL( KC, N, F, State_Met )
+         !CALL F_AEROSOL( KC, N, F, State_Met )
+         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
          ISOL = GET_ISOL( N, N_TRACERS )
 
       ! Added for size-resolved aerosol (win, 7/16/09)
@@ -1180,7 +1188,8 @@
       !-------------------------------
       ELSE IF ( IDTNK1 > 0 .and. N >= IDTNK1 .and. 
      &          N <  IDTNK1 +  IBINS ) THEN
-         CALL F_AEROSOL( KC, N, F, State_Met )
+         !CALL F_AEROSOL( KC, N, F, State_Met )
+         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -1199,7 +1208,8 @@
       !-------------------------------
       ELSE IF ( IDTSF1 > 0 .and. N >= IDTSF1 .and. 
      &          N <  IDTSF1 +  IBINS ) THEN
-         CALL F_AEROSOL( KC, N, F, State_Met )
+         !CALL F_AEROSOL( KC, N, F, State_Met )
+         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -1219,7 +1229,8 @@
       !-------------------------------
       ELSE IF ( IDTSS1 > 0 .and. N >= IDTSS1 .and. 
      &          N <  IDTSS1 +  IBINS ) THEN
-         CALL F_AEROSOL( KC, N, F, State_Met )
+         !CALL F_AEROSOL( KC, N, F, State_Met )
+         CALL F_AEROSOL( KC, KcScale, N, State_Met, F ) 
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -1237,7 +1248,8 @@
       !-------------------------------
       ELSE IF ( IDTECIL1 > 0 .and. N >= IDTECIL1 .and. 
      &          N <  IDTECIL1 +  IBINS ) THEN
-         CALL F_AEROSOL( KC, N, F, State_Met )
+         !CALL F_AEROSOL( KC, N, F, State_Met )
+         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -1255,7 +1267,8 @@
       !-------------------------------
       ELSE IF ( IDTOCIL1 > 0 .and. N >= IDTOCIL1 .and. 
      &          N <  IDTOCIL1 +  IBINS ) THEN
-         CALL F_AEROSOL( KC, N, F, State_Met )
+         !CALL F_AEROSOL( KC, N, F, State_Met )
+         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )  
          DO L = 2, LLPAR
          DO J = 1, JJPAR
 
@@ -1274,7 +1287,8 @@
       !-------------------------------
       ELSE IF ( IDTOCOB1 > 0 .and. N >= IDTOCOB1 .and. 
      &          N <  IDTOCOB1 +  IBINS ) THEN
-         CALL F_AEROSOL( KC, N, F, State_Met )
+         !CALL F_AEROSOL( KC, N, F, State_Met )
+         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -1292,7 +1306,8 @@
       !-------------------------------
       ELSE IF ( IDTDUST1 > 0 .and. N >= IDTDUST1 .and. 
      &          N <  IDTDUST1 +  IBINS ) THEN
-         CALL F_AEROSOL( KC, N, F, State_Met )
+         !CALL F_AEROSOL( KC, N, F, State_Met )
+         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -1420,7 +1435,8 @@
             ! Get the fraction of tracer scavenged in updrafts'
             ! NOTE: The surface layer F(:,:,1) will be returned
             ! as zero, to shut off scavenging at the surface
-            CALL F_AEROSOL( KC, N, F, State_Met )
+            !CALL F_AEROSOL( KC, N, F, State_Met )
+            CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
 
             ! Multiply by the aerosol scavenging efficiency
             ! For most species this is 1.0
@@ -1455,29 +1471,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE F_AEROSOL( KC, N, F, State_Met ) 
+      SUBROUTINE F_AEROSOL( KC, KcScale, N, State_Met, F )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD
+      USE GIGC_State_Met_Mod, ONLY: MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Conversion rate from cloud condensate to precip [1/s]
-      REAL(fp),       INTENT(IN)  :: KC
-
-      !Add N to idendify tracers (qq,10/11/2011)
-      INTEGER,        INTENT(IN)  :: N
-
-      ! Meteorology State object
-      TYPE(MetState), INTENT(IN)  :: State_Met
+      REAL(fp),       INTENT(IN)  :: KC                   ! Cloud condensate to
+                                                          !  precipitation rate 
+                                                          !  [1/s]
+      REAL(fp),       INTENT(IN)  :: KcScale(3)           ! Scale factors for Kc
+                                                          !  for 3 temperature
+                                                          !  regimes
+      INTEGER,        INTENT(IN)  :: N                    ! Tracer number
+      TYPE(MetState), INTENT(IN)  :: State_Met            ! Meteorology State
 !
 ! !OUTPUT PARAMETERS:
 !
-      ! Fraction of aerosol scavenged in updrafts [unitless]
-      REAL(fp),       INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR)
+      REAL(fp),       INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR) ! Fraction of aerosol
+                                                          !  scavenged in 
+                                                          !  convective updrafts
 ! 
 ! !REVISION HISTORY: 
 !  07 Nov 2002 - R. Yantosca - Initial version
@@ -1494,8 +1510,9 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       INTEGER  :: I, J, L
-      REAL(fp) :: TMP, FF
+      REAL(fp) :: TMP, FF, Scaled_KC
 
       !=================================================================
       ! F_AEROSOL begins here!
@@ -1503,53 +1520,76 @@
       ! Aerosol tracers are 100% in the cloud condensate phase, so 
       ! we set K = Kc, and compute F accordingly (cf Jacob et al 2000 )    
       !=================================================================
-      
+
       ! Turn off scavenging in the first level by setting F = 0
       F(:,:,1) = 0.0_fp
- 
+
       ! Apply scavenging in levels 2 and higher
       DO L = 2, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-                
-         ! snow vs rain (qq, 10/11/2011)
-         IF ( State_Met%T(I,J,L) >= 258.0_fp ) THEN
 
-             IF ( N == IDTBCPO     .or. N == IDTOCPO       .or.
-     &            N == IDTPOA1     .or. N == IDTPOA2       .or.
-     &            N == IDTPOPPOCPO .or. N == IDTPOPPBCPO ) THEN
-                FF = 0.5_fp
-             ELSE
-                FF = 1.0_fp
-             ENDIF
+!------------------------------------------------------------------------------
+!         ! snow vs rain (qq, 10/11/2011)
+!         IF ( State_Met%T(I,J,L) >= 258.0_fp ) THEN
+!
+!             IF ( N == IDTBCPO     .or. N == IDTOCPO       .or.
+!     &            N == IDTPOA1     .or. N == IDTPOA2       .or.
+!     &            N == IDTPOPPOCPO .or. N == IDTPOPPBCPO ) THEN
+!                FF = 0.5_fp
+!             ELSE
+!                FF = 1.0_fp
+!             ENDIF
+!
+!         ELSE IF ( State_Met%T(I,J,L) < 237.0_fp ) THEN
+!
+!             IF ( N == IDTOCPO .or. N == IDTPOPPOCPO    .or.
+!     &            N == IDTPOA1 .or. N == IDTPOA2     )  THEN
+!                FF = 0.5_fp
+!             ELSE
+!                FF = 1.0_fp
+!             ENDIF
+!
+!         ELSE   
+!            
+!            IF ( N == IDTBCPO .or. N == IDTHNO3       .or.
+!     &           N == IDTDST1 .or. N == IDTDST2       .or.
+!     &           N == IDTDST3 .or. N == IDTDST4       .or.
+!     &           N == IDTMOPO .or. N == IDTPOPPBCPO ) THEN
+!               FF = 1.0_fp
+!            ELSE 
+!               FF = 0.5_fp
+!            ENDIF       
+!         ENDIF
+!------------------------------------------------------------------------------
 
-         ELSE IF ( State_Met%T(I,J,L) < 237.0_fp ) THEN
+         ! Apply temperature-dependent scale factors to the KC rate for ..
+         IF ( State_Met%T(I,J,L) < 237.0_fp ) THEN
 
-             IF ( N == IDTOCPO .or. N == IDTPOPPOCPO    .or.
-     &            N == IDTPOA1 .or. N == IDTPOA2     )  THEN
-                FF = 0.5_fp
-             ELSE
-                FF = 1.0_fp
-             ENDIF
+            ! Ice: T < 237 K:
+            Scaled_KC = KC * KcScale(1)
 
-         ELSE   
+         ELSE IF ( State_Met%T(I,J,L) >= 237.0_fp  .and. 
+     &             State_Met%T(I,J,L) <  258.0_fp ) THEN
             
-            IF ( N == IDTBCPO .or. N == IDTHNO3       .or.
-     &           N == IDTDST1 .or. N == IDTDST2       .or.
-     &           N == IDTDST3 .or. N == IDTDST4       .or.
-     &           N == IDTMOPO .or. N == IDTPOPPBCPO ) THEN
-               FF = 1.0_fp
-            ELSE 
-               FF = 0.5_fp
-            ENDIF       
+            ! Snow: 237 K <= T < 258 K
+            Scaled_KC = KC * KcScale(2)
+
+         ELSE
+
+            ! Rain: T > 258 K
+            Scaled_KC = KC * KcScale(3) 
+
          ENDIF
 
          ! (Eq. 2, Jacob et al, 2000, with K = Kc)
-         F(I,J,L) = GET_F( State_Met, I, J, L, KC, FF )
+         ! Kc now has been scaled for impaction scavenging (bmy, 9/24/15)
+         F(I,J,L) = GET_F( State_Met, I, J, L, Scaled_KC )
             
       ENDDO
       ENDDO
       ENDDO
+      
 
       END SUBROUTINE F_AEROSOL 
 !EOC
@@ -5599,7 +5639,7 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_F( State_Met, I, J, L, K, FF ) RESULT( F )
+      FUNCTION GET_F( State_Met, I, J, L, K ) RESULT( F )
 !
 ! !USES:
 !
@@ -5608,15 +5648,14 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(MetState),     INTENT(IN) :: State_Met   ! Meteorology State object
-      INTEGER,            INTENT(IN) :: I, J, L     ! Location
-      REAL(fp),           INTENT(IN) :: K           ! Rate constant
-      REAL(fp), OPTIONAL, INTENT(IN) :: FF          ! Rate constant factor
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      INTEGER,        INTENT(IN) :: I, J, L     ! Location
+      REAL(fp),       INTENT(IN) :: K           ! Rate constant
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                       :: F           ! Vertical updraft velocity
-                                                    ! in m/s. 
+      REAL(fp)                   :: F           ! Fraction of tracer scavenged
+                                                !  out of the updraft [1]
 ! 
 ! !REVISION HISTORY:
 !  12 Feb 2015 - C. Keller   - Initial version 
@@ -5635,19 +5674,32 @@
       !=================================================================
 
       ! Distance between grid box centers [m]
-      TMP = 0.5e+0_fp 
+      TMP = 0.5_fp  
      &    * ( State_Met%BXHEIGHT(I,J,L-1) + State_Met%BXHEIGHT(I,J,L) )
                
-      ! F is the fraction scavenged out of the updraft
+      ! Vertical updraft velocity [m/s]
       Vud = GET_VUD( State_Met, I, J, L )
-      IF ( Vud <= TINY_FP) THEN
-         F = 0.0_fp
+
+!-----------------------------------========---------------------
+! Prior to 9/24/15:
+! We don't need to pass FF here, we can multiply by that in 
+! the calling routine (bmy, 9/24/15)
+!      IF ( Vud <= TINY_FP ) THEN
+!         F = 0.0_fp
+!      ELSE
+!         IF ( PRESENT ( FF ) ) THEN
+!            F = 1e+0_fp - EXP( -FF*K * TMP / Vud )
+!         ELSE
+!            F = 1e+0_fp - EXP( -K * TMP / Vud )
+!         ENDIF
+!      ENDIF
+!----------------------------------------------------------------
+
+      ! Compute F (avoid div-by-zero errors)
+      IF ( Vud > TINY_FP ) THEN
+         F = 1.0_fp - EXP( -K * TMP / Vud )
       ELSE
-         IF ( PRESENT ( FF ) ) THEN
-            F = 1e+0_fp - EXP( -FF*K * TMP / Vud )
-         ELSE
-            F = 1e+0_fp - EXP( -K * TMP / Vud )
-         ENDIF
+         F = 0.0_fp
       ENDIF
 
       END FUNCTION GET_F

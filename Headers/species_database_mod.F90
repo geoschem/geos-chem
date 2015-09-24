@@ -103,6 +103,8 @@ CONTAINS
 !  22 Jul 2015 - R. Yantosca - Initial version
 !  01 Sep 2015 - R. Yantosca - Add Henry K0, CR constants for DMS, ACET
 !  02 Sep 2015 - R. Yantosca - Corrected typos for some SOA species
+!  24 Sep 2015 - R. Yantosca - WD_RainoutEff is now a 3-element vector
+!  24 Sep 2015 - R. Yantosca - Add WD_KcScaleFAc, a 3-element vector
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -115,6 +117,7 @@ CONTAINS
     REAL(fp)            :: K0,       CR,  HStar
 
     ! Arrays
+    REAL(fp)            :: KcScale(3)
     REAL(fp)            :: RainEff(3)
 
     ! Strings
@@ -240,8 +243,12 @@ CONTAINS
           CASE( 'ASOA1', 'ASOA2', 'ASOA3', 'ASOAN' )
              FullName = 'Lumped non-volatile aerosol products of light aromatics + IVOCs'
              
-             ! Rainout efficiency is 0.8 because this is an SOA tracer.
-             ! Turn off rainout when 237 K <= T < 258 K.
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             !
+             ! NOTE: Rainout efficiency is 0.8 because these are SOA species
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -257,6 +264,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 0.8_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -286,19 +294,31 @@ CONTAINS
 
           CASE( 'BCPI', 'BCPO' )
              
-             ! These have identical properties except for 
-             ! the names and rainout efficiencies
-             !
-             ! NOTE: Hydrophobic BC, which normally has a rainout efficiency
-             ! of zero, is considered to be IN (ice nuclei) and therefore is
-             ! allowed to be scavenged at temperatures below 258 K.
+             ! These have mostly identical properties
              SELECT CASE( NameAllCaps )
+
                 CASE( 'BCPI' )
                    FullName = 'Hydrophilic black carbon aerosol'
+
+                   ! When 237 K <= T < 258K:
+                   ! (1) Halve Kc (cloud condensate -> precip) rate
+                   ! (2) Turn off rainout
+                   KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
                    RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
                 CASE( 'BCPO' )
                    Fullname = 'Hydrophobic black carbon aerosol'
+
+                   ! When T >= 258 K:
+                   ! (1) Halve Kc (cloud condensate -> precip) rate
+                   ! (2) Turn off rainout
+                   !
+                   ! But because hydrophobic BC (which normally has a
+                   ! rainout efficiency of zero) is considered to be IN,
+                   ! it can be rained out when T < 258K.
+                   KcScale  = (/ 1.0_fp, 1.0_fp, 0.5_fp /)
                    RainEff  = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
              END SELECT
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -315,6 +335,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -767,7 +788,8 @@ CONTAINS
              END SELECT
 
              ! Dust species are considered to be IN (ice nuclei),
-             ! so we allow rainout at all temperatures
+             ! so we allow scavenging to occur at all temperatures.
+             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -785,6 +807,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -803,7 +826,8 @@ CONTAINS
              END SELECT
 
              ! Dust species are considered to be IN (ice nuclei),
-             ! so we allow rainout at all temperatures
+             ! so we allow scavenging to occur at all temperatures.
+             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -822,6 +846,7 @@ CONTAINS
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_CoarseAer  = T,                            &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -840,7 +865,8 @@ CONTAINS
              END SELECT
 
              ! Dust species are considered to be IN (ice nuclei),
-             ! so we allow rainout at all temperatures
+             ! so we allow scavenging to occur at all temperatures
+             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -859,6 +885,7 @@ CONTAINS
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_CoarseAer  = T,                            &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -878,7 +905,8 @@ CONTAINS
              END SELECT
 
              ! Dust species are considered to be IN (ice nuclei),
-             ! so we allow rainout at all temperatures
+             ! so we allow scavenging to occur at all temperatures
+             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -897,6 +925,7 @@ CONTAINS
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_CoarseAer  = T,                            &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -1246,8 +1275,12 @@ CONTAINS
           CASE( 'ISOA1', 'ISOA2', 'ISOA3' )
              FullName = 'Lumped semivolatile gas products of isoprene oxidation'
 
-             ! Rainout efficiency is 0.8 because this is a SOA species.
-             ! Turn off rainout when 237 K < T < 258 K.
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             !
+             ! NOTE: Rainout efficiency is 0.8 because these are SOA species
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1263,6 +1296,8 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_HStar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 0.8_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'ISOG1', 'ISOG2', 'ISOG3' )
@@ -1452,7 +1487,10 @@ CONTAINS
 
           CASE( 'MOPI' )
              
-             ! Turn off rainout when 237 K <= T < 258 K
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1469,12 +1507,14 @@ CONTAINS
                               Is_Wetdep     = F,                            &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'MOPO' )
 
              ! Turn off rainout because MOPO is hydrophobic
+             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
              RainEff = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1530,7 +1570,10 @@ CONTAINS
 
           CASE( 'MSA' )
 
-             ! Turn off rainout when 237 K <= T < 258 K
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1546,6 +1589,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -1687,7 +1731,10 @@ CONTAINS
 
           CASE( 'NH4' )
 
-             ! Turn off rainout when 237 K <= T < 258 K
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1703,12 +1750,16 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'NIT' )
 
-             ! Turn off rainout when 237 K <= T < 258 K
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1724,16 +1775,20 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'NITS' )
              
+             Fullname = 'Inorganic nitrates on surface of seasalt aerosol'
              A_Radius = ( Input_Opt%SALC_REDGE_um(1) +                      &
                           Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
-             Fullname = 'Inorganic nitrates on surface of seasalt aerosol'
 
-             ! Turn off rainout when 237 K <= T < 258 K
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1751,6 +1806,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -1832,18 +1888,28 @@ CONTAINS
 
           CASE( 'OCPI', 'OCPO' )
              
-             ! These have identical properties except for 
-             ! the names and rainout efficiencies
-             !
-             ! Turn off rainout for hydrophilic OC when 237 K <= T < 258 K.
+             ! These have mostly identical properties
              ! Turn off rainout for hydrophobic OC, for all temperatures.
              SELECT CASE( NameAllCaps )
+
                 CASE( 'OCPI' )
                    FullName = 'Hydrophilic organic carbon aerosol'
+
+                   ! When 237 K <= T < 258 K:
+                   ! (1) Halve the Kc (cloud condensate -> precip) rate
+                   ! (2) Turn off rainout
+                   KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
                    RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
                 CASE( 'OCPO' )
                    Fullname = 'Hydrophobic organic carbon aerosol'
+
+                   ! For all temperatures:
+                   ! (1) Halve the Kc (cloud condensate -> precip) rate
+                   ! (2) Turn off rainout
+                   KcScale  = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
                    RainEff  = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+
              END SELECT
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1860,14 +1926,19 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'OPOA1', 'OPOA2' )
              FullName = 'Lumped aerosol product of SVOC oxidation'
 
-             ! Rainout efficiency is 0.8 because these are SOA species.
-             ! Turn off rainout when when 237 K <= T < 258 K.
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             !
+             ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /) 
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1989,7 +2060,10 @@ CONTAINS
 
           CASE( 'POA1', 'POA2' )
 
-             ! Turn off rainout because these are hydrophobic species.
+             ! For all temperatures:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout (these are hydrophobic species)
+             KcScale = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
              RainEff = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2007,6 +2081,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -2135,13 +2210,15 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'SALA' )
-             
+             FullName = 'Accumulation mode sea salt aerosol'
              A_Radius = ( Input_Opt%SALA_REDGE_um(1) +                      &
                           Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
-             FullName = 'Accumulation mode sea salt aerosol'
 
-             ! Turn off rainout when 237 K <= T < 258 K
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -2162,12 +2239,14 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'SALC' )
-             
+             FullName = 'Coarse mode sea salt aerosol'
              A_Radius = ( Input_Opt%SALC_REDGE_um(1) +                      &
                           Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
-             FullName = 'Coarse mode sea salt aerosol'
  
-             ! Turn off rainout when 237 K <= T < 258 K
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /) 
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2186,6 +2265,7 @@ CONTAINS
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_CoarseAer  = T,                            &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -2205,7 +2285,10 @@ CONTAINS
           CASE( 'SO2' )
 
              ! SO2 wet-deposits like an aerosol. 
-             ! Turn off rainout when 237 K < T < 258K.
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2225,12 +2308,16 @@ CONTAINS
 #else									    
                               DD_Hstar_old  = 1.00e+5_fp,                   &
 #endif									    
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'SO4' )
 
-             ! Turn off rainout when 237 K <= T < 258 K
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2246,17 +2333,20 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'SO4S' )
-             
+             Fullname = 'Sulfate on surface of seasalt aerosol'
              A_Radius = ( Input_Opt%SALC_REDGE_um(1) +                      &
                           Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
-             Fullname = 'Sulfate on surface of seasalt aerosol'
 
-             ! Turn off rainout when 237 K <= T < 258 K
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -2273,6 +2363,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -2294,8 +2385,12 @@ CONTAINS
           CASE( 'TSOA0', 'TSOA1', 'TSOA2', 'TSOA3' )
              FullName = 'Lumped semivolatile aerosol products of monoterpene + sesquiterpene oxidation'
 
-             ! Rainout efficiency is 0.8 because these are SOA species.
-             ! Turn off rainout when 237 K <= T < 258 K.
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             !
+             ! NOTE: Rainout efficiency is 0.8 because these are SOA species
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 0.8_fp, 0.0_fp, 0.8_fp /)   
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2311,6 +2406,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 0.8_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -2367,7 +2463,10 @@ CONTAINS
 
           CASE( 'PB', '210PB', 'PB210' )
 
-             ! Turn off rainout when 237 K <= T < 258 K
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2383,12 +2482,16 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_HStar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'BE', '7BE', 'BE7' )
 
-             ! Turn off rainout when 237 K <= T < 258 K
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2404,6 +2507,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_HStar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -2451,7 +2555,10 @@ CONTAINS
 
           CASE( 'HGP' )
 
-             ! Turn off rainout when 237 K <= T < 258 K
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2467,6 +2574,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -2587,19 +2695,30 @@ CONTAINS
              END SELECT
 
              ! ... and the names and rainout efficiencies.
-             !
-             ! POPS on hydrophobic BC, which normally has a rainout 
-             ! efficiency of zero, is considered to be IN (ice nuclei) and 
-             ! therefore is allowed to be scavenged when T < 258 K.
-             !
-             ! POPS on hydrophobic OC does not rainout.
              SELECT CASE( TRIM( NameAllCaps ) ) 
+
                 CASE( 'POPPBCPO' ) 
                    FullName = TRIM( FullName ) // ' hydrophobic black carbon'
+
+                   ! When T >= 258 K:
+                   ! (1) Halve Kc (cloud condensate -> precip) rate
+                   ! (2) Turn off rainout
+                   !
+                   ! But because POPS on hydrophobic BC (which normally has
+                   ! a rainout efficiency of zero) is considered to be IN,
+                   ! it can be rained out when T < 258K.
+                   KcScale  = (/ 1.0_fp, 1.0_fp, 0.5_fp /)
                    RainEff  = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
                 CASE( 'POPPOCPO' )
                    FullName = TRIM( FullName ) // ' hydrophobic organic carbon'
+
+                   ! For all temperatures:
+                   ! (1) Halve the Kc (cloud condensate -> precip) rate
+                   ! (2) Turn off rainout
+                   KcScale  = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
                    RainEff  = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+
              END SELECT
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2615,13 +2734,13 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'POPPBCPI', 'POPPOCPI' )
 
-             ! These have identica properties except for the mol weights ...
-             ! Get info from the POP menu
+             ! These have identical properties except for the mol weights ...
              SELECT CASE( TRIM( Input_Opt%POP_TYPE ) )
                 CASE( 'PHE' )
                    MW_g     = 178.23_fp
@@ -2635,15 +2754,26 @@ CONTAINS
              END SELECT
 
              ! ... and the names and rainout efficiencies.
-             !
-             ! Turn off rainout when 237 K <= T < 258 K
              SELECT CASE( TRIM( NameAllCaps ) ) 
+
                 CASE( 'POPPBCPI' ) 
                    FullName = TRIM( FullName ) // ' hydrophilic black carbon'
+
+                   ! When 237 K <= T < 258K:
+                   ! (1) Halve Kc (cloud condensate -> precip) rate
+                   ! (2) Turn off rainout
+                   KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
                    RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
                 CASE( 'POPPOCPI' )
                    FullName = TRIM( FullName ) // ' hydrophilic organic carbon'
+
+                   ! When 237 K <= T < 258 K:
+                   ! (1) Halve the Kc (cloud condensate -> precip) rate
+                   ! (2) Turn off rainout
+                   KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
                    RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
              END SELECT
              
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2757,7 +2887,10 @@ CONTAINS
                 FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
              ENDIF
 
-             ! Turn off rainout when 237 K <= T < 258 K
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2773,6 +2906,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -2792,7 +2926,10 @@ CONTAINS
                 FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
              ENDIF
 
-             ! Turn off rainout when 237 K <= T < 258 K
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2828,7 +2965,10 @@ CONTAINS
                 FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
              ENDIF
 
-             ! Turn off rainout when 237 K <= T < 258 K
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2845,6 +2985,7 @@ CONTAINS
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_SizeResAer = T,                            &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -2866,7 +3007,10 @@ CONTAINS
                 FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
              ENDIF
 
-             ! Turn off rainout when 237 K <= T < 258 K
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2883,6 +3027,7 @@ CONTAINS
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_SizeResAer = T,                            &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -2904,7 +3049,10 @@ CONTAINS
                 FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
              ENDIF
 
-             ! Turn off rainout when 237 K <= T < 258 K
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2921,6 +3069,7 @@ CONTAINS
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_SizeResAer = T,                            &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
@@ -2942,9 +3091,13 @@ CONTAINS
                 FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
              ENDIF
 
-             ! Turn off rainout when 237 K <= T < 258 K
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             !
              !%%% NOTE: Should these be considered "IN" as well?      %%%
              !%%% Ask the TOMAS team for clarification (bmy, 9/24/15) %%%
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2961,6 +3114,7 @@ CONTAINS
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_SizeResAer = T,                            &
+                              WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
