@@ -105,19 +105,19 @@ MODULE Species_Mod
      !%%% add this field as a temporary placeholder for the Hstar quantity
      !%%% from drydep_mod.F.  We will remove this later on. (bmy, 8/24/15)
      !%%%
-     REAL(fp)           :: DD_Hstar_Old  ! HSTAR value in drydep_mod [M/atm]
+     REAL(fp)           :: DD_Hstar_Old     ! HSTAR value in drydep_mod [M/atm]
      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
      
      ! Wetdep parameters, gas-phase species
-     REAL(fp)           :: WD_RetFactor  ! Retention factor [1]
-     LOGICAL            :: WD_LiqAndGas  ! Consider liquid and gas phases?
-     REAL(fp)           :: WD_ConvFactor ! Conversion factor for ice/gas ratio 
+     REAL(fp)           :: WD_RetFactor     ! Retention factor [1]
+     LOGICAL            :: WD_LiqAndGas     ! Consider liquid and gas phases?
+     REAL(fp)           :: WD_ConvFacI2G    ! Conv. factor for ice/gas ratio 
 
      ! Wetdep parameters, aerosol-phase species
-     REAL(fp)           :: WD_AerScavEff ! Aerosol scavenging efficiency
-     REAL(fp)           :: WD_RainoutEff ! Aerosol rainout efficiency
-     LOGICAL            :: WD_CoarseAer  ! T=coarse aerosol; F=fine aerosol
-     LOGICAL            :: WD_SizeResAer ! T=size-resolved aerosol (TOMAS)
+     REAL(fp)           :: WD_AerScavEff    ! Aerosol scavenging efficiency
+     REAL(fp)           :: WD_RainoutEff(3) ! Aerosol rainout efficiency
+     LOGICAL            :: WD_CoarseAer     ! T=coarse aerosol; F=fine aerosol
+     LOGICAL            :: WD_SizeResAer    ! T=size-resolved aerosol (TOMAS)
 
   END TYPE Species
 !
@@ -146,6 +146,10 @@ MODULE Species_Mod
 !  18 Aug 2015 - R. Yantosca - Added indices for drydep, wetdep, transport
 !  18 Aug 2015 - R. Yantosca - Added missing value parameters
 !  31 Aug 2015 - R. Yantosca - Add AdvectId
+!  24 Sep 2015 - R. Yantosca - Make WD_RainoutEff a 3-element vector:
+!                              (1) T < 237K; (2) 237K < T < 258 K (3) T > 258K
+!  24 Sep 2015 - R. Yantosca - Rename WD_ConvFactor to WD_ConvFacI2G
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -342,7 +346,7 @@ CONTAINS
                          Henry_K0,      Henry_CR,      Henry_PKA,      &
                          DD_A_Density,  DD_A_Radius,   DD_F0,          &
                          DD_KOA,        DD_HStar_Old,  WD_RetFactor,   &
-                         WD_LiqAndGas,  WD_ConvFactor, WD_AerScavEff,  &
+                         WD_LiqAndGas,  WD_ConvFacI2G, WD_AerScavEff,  &
                          WD_RainoutEff, WD_CoarseAer,  WD_SizeResAer,  &
                          Is_Advected,   Is_Gas,        Is_Drydep,      &
                          Is_Wetdep,     RC                            )
@@ -353,21 +357,21 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 ! 
-    LOGICAL,          INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
-    INTEGER,          OPTIONAL      :: ModelID       ! Model ID number
-    INTEGER,          OPTIONAL      :: DryDepID      ! Drydep ID number
-    CHARACTER(LEN=*), OPTIONAL      :: Name          ! Short name of species
-    CHARACTER(LEN=*), OPTIONAL      :: FullName      ! Long name of species
-    REAL(fp),         OPTIONAL      :: MW_g          ! Molecular weight [g]
-    REAL(fp),         OPTIONAL      :: EmMW_g        ! Emissions mol. wt [g]
-    REAL(fp),         OPTIONAL      :: MolecRatio    ! Molec ratio
-    REAL(f8),         OPTIONAL      :: Henry_K0      ! Henry's law K0 [M/atm]
-    REAL(f8),         OPTIONAL      :: Henry_CR      ! Henry's law CR [K]
-    REAL(f8),         OPTIONAL      :: Henry_PKA     ! Henry's law pKa
-    REAL(fp),         OPTIONAL      :: DD_A_Density  ! Aerosol density [kg/m3]
-    REAL(fp),         OPTIONAL      :: DD_A_Radius   ! Aerosol radius [um]
-    REAL(fp),         OPTIONAL      :: DD_F0         ! Drydep reactivity
-    REAL(fp),         OPTIONAL      :: DD_KOA        ! Drydep KOA parameter
+    LOGICAL,          INTENT(IN)  :: am_I_Root        ! Are we on the root CPU?
+    INTEGER,          OPTIONAL    :: ModelID          ! Model ID number
+    INTEGER,          OPTIONAL    :: DryDepID         ! Drydep ID number
+    CHARACTER(LEN=*), OPTIONAL    :: Name             ! Short name of species
+    CHARACTER(LEN=*), OPTIONAL    :: FullName         ! Long name of species
+    REAL(fp),         OPTIONAL    :: MW_g             ! Molecular weight [g]
+    REAL(fp),         OPTIONAL    :: EmMW_g           ! Emissions mol. wt [g]
+    REAL(fp),         OPTIONAL    :: MolecRatio       ! Molec ratio
+    REAL(f8),         OPTIONAL    :: Henry_K0         ! Henry's law K0 [M/atm]
+    REAL(f8),         OPTIONAL    :: Henry_CR         ! Henry's law CR [K]
+    REAL(f8),         OPTIONAL    :: Henry_PKA        ! Henry's law pKa
+    REAL(fp),         OPTIONAL    :: DD_A_Density     ! Aerosol density [kg/m3]
+    REAL(fp),         OPTIONAL    :: DD_A_Radius      ! Aerosol radius [m]
+    REAL(fp),         OPTIONAL    :: DD_F0            ! Drydep reactivity
+    REAL(fp),         OPTIONAL    :: DD_KOA           ! Drydep KOA parameter
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     !%%% NOTE: We will eventually replace this with the common Henry's law
     !%%% parameters.  But in order to replicate the prior behavior,
@@ -376,24 +380,27 @@ CONTAINS
     !%%% add this field as a temporary placeholder for the Hstar quantity
     !%%% from drydep_mod.F.  We will remove this later on. (bmy, 8/24/15)
     !%%%
-    REAL(fp),         OPTIONAL      :: DD_Hstar_Old  ! HSTAR-drydep_mod [M/atm]
+    REAL(fp),         OPTIONAL    :: DD_Hstar_Old     ! HSTAR, drydep [M/atm]
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    REAL(fp),         OPTIONAL      :: WD_RetFactor  ! Wetdep retention factor
-    LOGICAL,          OPTIONAL      :: WD_LiqAndGas  ! Liquid and gas phases?
-    REAL(fp),         OPTIONAL      :: WD_ConvFactor ! Factor for ice/gas ratio
-    REAL(fp),         OPTIONAL      :: WD_AerScavEff ! Aerosol scavenging eff.
-    REAL(fp),         OPTIONAL      :: WD_RainoutEff ! Rainout efficiency
-    LOGICAL,          OPTIONAL      :: WD_CoarseAer  ! Coarse aerosol?
-    LOGICAL,          OPTIONAL      :: WD_SizeResAer ! Size resolved aerosol?
-    LOGICAL,          OPTIONAL      :: Is_Advected   ! Is it advected?
-    LOGICAL,          OPTIONAL      :: Is_Gas        ! Gas (T) or aerosol (F)?
-    LOGICAL,          OPTIONAL      :: Is_Drydep     ! Is it dry deposited?
-    LOGICAL,          OPTIONAL      :: Is_Wetdep     ! Is it wet deposited?
+    REAL(fp),         OPTIONAL    :: WD_RetFactor     ! Wetdep retention factor
+    LOGICAL,          OPTIONAL    :: WD_LiqAndGas     ! Liquid and gas phases?
+    REAL(fp),         OPTIONAL    :: WD_ConvFacI2G    ! Factor for ice/gas ratio
+    REAL(fp),         OPTIONAL    :: WD_AerScavEff    ! Aerosol scavenging eff.
+    REAL(fp),         OPTIONAL    :: WD_RainoutEff(3) ! Rainout efficiency
+    LOGICAL,          OPTIONAL    :: WD_CoarseAer     ! Coarse aerosol?
+    LOGICAL,          OPTIONAL    :: WD_SizeResAer    ! Size resolved aerosol?
+    LOGICAL,          OPTIONAL    :: Is_Advected      ! Is it advected?
+    LOGICAL,          OPTIONAL    :: Is_Gas           ! Gas (T) or aerosol (F)?
+    LOGICAL,          OPTIONAL    :: Is_Drydep        ! Is it dry deposited?
+    LOGICAL,          OPTIONAL    :: Is_Wetdep        ! Is it wet deposited?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(Species),    POINTER       :: ThisSpc       ! Object w/ species info
-    INTEGER,          INTENT(INOUT) :: RC            ! Return code
+    TYPE(Species),    POINTER     :: ThisSpc       ! Object w/ species info
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: RC            ! Return code
 ! 
 ! !REMARKS:
 !  (1) If Fullname   is not specified, it will use the value assigned to Name.
@@ -580,10 +587,10 @@ CONTAINS
     ! Conversion factor for computing the ice/gas ratio for wetdep
     ! (gas-phase species only)
     !---------------------------------------------------------------------
-    IF ( PRESENT( WD_ConvFactor ) ) THEN
-       ThisSpc%WD_ConvFactor = WD_ConvFactor
+    IF ( PRESENT( WD_ConvFacI2G ) ) THEN
+       ThisSpc%WD_ConvFacI2G = WD_ConvFacI2G
     ELSE
-       ThisSpc%WD_ConvFactor = MISSING
+       ThisSpc%WD_ConvFacI2G = MISSING
     ENDIF
 
     !---------------------------------------------------------------------
@@ -600,13 +607,9 @@ CONTAINS
     ! (Defaults to WD_AerScavEff, if not specified)
     !---------------------------------------------------------------------
     IF ( PRESENT( WD_RainOutEff ) ) THEN
-       ThisSpc%WD_RainOutEff = WD_RainOutEff
+       ThisSpc%WD_RainOutEff(:) = WD_RainOutEff(:)
     ELSE
-       IF ( PRESENT( WD_AerScavEff ) ) THEN
-          ThisSpc%WD_RainOutEff = WD_AerScavEff
-       ELSE
-          ThisSpc%WD_RainOutEff = MISSING
-       ENDIF
+       ThisSpc%WD_RainOutEff(:) = MISSING
     ENDIF
 
     !---------------------------------------------------------------------
@@ -731,17 +734,22 @@ CONTAINS
     IF ( ThisSpc%Is_Gas ) THEN
 
        ! If this is a gas, then zero out all aerosol fields
-       ThisSpc%WD_CoarseAer  = .FALSE.
-       ThisSpc%WD_SizeResAer = .FALSE.
-       ThisSpc%WD_AerScavEff = MISSING
-       ThisSpc%WD_RainoutEff = MISSING
+       ThisSpc%WD_CoarseAer        = .FALSE.
+       ThisSpc%WD_SizeResAer       = .FALSE.
+       ThisSpc%WD_AerScavEff       = MISSING
+       
+       ! SO2 wetdeps like an aerosol, so we don't want to set
+       ! the rainout efficiency to MISSING for this species.
+       IF ( TRIM( ThisSpc%Name ) /= 'SO2' ) THEN
+          ThisSpc%WD_RainoutEff(:) = MISSING
+       ENDIF
        
     ELSE
 
        ! If this species is an aerosol, zero out gas-phase fields
-       ThisSpc%WD_RetFactor  = MISSING
-       ThisSpc%WD_LiqAndGas  = .FALSE.
-       ThisSpc%WD_ConvFactor = MISSING
+       ThisSpc%WD_RetFactor        = MISSING
+       ThisSpc%WD_LiqAndGas        = .FALSE.
+       ThisSpc%WD_ConvFacI2G       = MISSING
 
     ENDIF
 

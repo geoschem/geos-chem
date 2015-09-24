@@ -1026,40 +1026,34 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: I, J, L, NN, N_TRACERS
-      !REAL(fp)           :: L2G, I2G, C_TOT, F_L, F_I, K, TMP, SO2LOSS
-      REAL(fp)           :: L2G, I2G, C_TOT, F_L, F_I, K, SO2LOSS
-      REAL(fp)           :: K0, CR, pKa, RetFactor, ConvFactor
-      LOGIcAL            :: LiqAndGas
+      LOGICAL                :: LiqAndGas
+      INTEGER                :: N_TRACERS
+      INTEGER                :: I,         J,    L,         NN
+      REAL(fp)               :: L2G,       I2G,  C_TOT,     F_L
+      REAL(fp)               :: F_I,       K,    SO2LOSS,   K0   
+      REAL(fp)               :: CR,        pKa,  RetFactor, ConvFacI2G
 #if defined( TOMAS )
       ! Scavenging fraction of TOMAS aerosols (win, 7/16/09)
-      REAL(fp)           :: TOM_SC_FRACTION(IIPAR, JJPAR, LLPAR, IBINS)
-      REAL(fp)           :: SOLFRAC, XFRAC
-      REAL(fp)           :: MEAN_SFC_STT         ! use to determine STT units 
-      LOGICAL            :: UNITCHANGE = .FALSE. ! STT unit conversion indicator
+      REAL(fp)               :: SOLFRAC, XFRAC
+      REAL(fp)               :: MEAN_SFC_STT         ! use to get STT units 
+      LOGICAL                :: UNITCHANGE = .FALSE. ! Convert units of STT?
 
-      ! For unit conversion
-      REAL(fp), POINTER  :: STT(:,:,:,:) => NULL()
 #endif
 
-      ! Pointers
+      ! Arrays and pointers
       REAL(fp),      POINTER :: T(:,:,:) => NULL()
-      TYPE(Species), POINTER :: ThisSpc  => NULL()
+#if defined( TOMAS )
+      REAL(fp),      POINTER :: STT(:,:,:,:) => NULL()
+      REAL(fp)               :: TOM_SC_FRACTION(IIPAR,JJPAR,LLPAR,IBINS)
+#endif
+
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
       ! Kc is the conversion rate from cloud condensate to precip [s^-1]
-      REAL(fp),  PARAMETER  :: KC        = 5e-3_fp
-
-      ! CONV_H2O2 = 0.6 * SQRT( 0.53 ), used for the ice to gas ratio for H2O2
-      ! 0.6 is ( sticking  coeff H2O2  / sticking  coeff  water )
-      ! 0.53 is ( molecular weight water / molecular weight H2O2 )
-      REAL(fp), PARAMETER   :: CONV_H2O2 = 4.36564e-1_fp     
-
-      ! CONV_NH3 = 0.6 * SQRT( 1.06 ), used for the ice to gas ratio for NH3
-      ! 0.6 is ( sticking  coeff  NH3 / sticking  coeff  water )
-      ! 1.06 is ( molecular weight water /  molecular weight NH3 )
-      REAL(fp), PARAMETER   :: CONV_NH3  = 6.17395e-1_fp
+      REAL(fp),  PARAMETER   :: KC = 5e-3_fp
 
       !=================================================================
       ! COMPUTE_F begins here!
@@ -1355,7 +1349,7 @@
 
             ! Get conversion factor for ice/gas ratio 
             LiqAndGas  = ThisSpc%WD_LiqAndGas
-            ConvFactor = ThisSpc%WD_ConvFactor
+            ConvFacI2G = ThisSpc%WD_ConvFacI2G
             
             ! Start scavenging at level 2
             DO L = 2, LLPAR
@@ -1368,7 +1362,7 @@
                   ! in wet deposition, compute ice to gas ratio for by 
                   ! co-condensation (Eq. 9, Jacob et al, 2000)
                   IF ( C_H2O(I,J,L) > 0e+0_fp ) THEN 
-                     I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * ConvFactor
+                     I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * ConvFacI2G
                   ELSE
                      I2G = 0.0_fp
                   ENDIF
@@ -1750,13 +1744,13 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL       :: LiqAndGas
       REAL(fp)      :: L2G,        I2G, C_TOT, F_L
       REAL(fp)      :: F_I,        K,   TK,    SO2LOSS
       REAL(fp)      :: RetFactor,  K0,  CR,    pKa
-      REAL(fp)      :: ConvFactor 
-      LOGIcAL       :: LiqAndGas
+      REAL(fp)      :: ConvFacI2G
 
-      ! Pointers
+      ! Objects
       TYPE(Species) :: ThisSpc
 
       !==================================================================
@@ -1784,56 +1778,38 @@
       !=================================================================
       IF ( N == IDTSO2 ) THEN
   
-         IF ( TK < 258.0_fp .and. TK >= 237.0_fp ) THEN
+         ! Update SO2 and H2O2
+         IF ( SO2s(I,J,L) > TINY_FP ) THEN 
 
-            !-----------------------------------------------------------
-            ! NOTE: GEOS-Chem v10-01 implemented a trap to suppress 
-            ! scavenging of aerosol tracers (except for black carbon, 
-            ! dust, and HNO3) when 238 K < T < 258K.  This trap was 
-            ! executed before RAINFRAC for SO2 was computed.  This 
-            ! turned off SO2 rainout when 238 K < T < 258K, although
-            ! this might not have been obvious from the logic of the
-            ! prior code.
-            !
-            ! Therefore, in order to replicate the behavior of prior
-            ! GEOS-Chem v10-01, we set RAINFRAC=0 for SO2 for the
-            ! temperature range 238 K < T < 258 K. (bmy, 9/23/15)
-            !-----------------------------------------------------------
-            RAINFRAC        = 0.0_fp
+            ! Treat SO2 as an aerosol
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
+            ! Apply temperature-dependent rainout efficiencies
+            ! This accounts for impaction scavenging of certain aerosols
+            CALL APPLY_RAINOUT_EFF( TK, 
+     &                              ThisSpc%WD_RainoutEff, 
+     &                              RAINFRAC               )
+
+            ! Limit RAINFRAC 
+            SO2LOSS      = MIN( SO2s(I,J,L), H2O2s(I,J,L) )
+            RAINFRAC     = SO2LOSS * RAINFRAC / SO2s(I,J,L)
+            RAINFRAC     = MAX( RAINFRAC, 0e+0_fp )
+         
+            ! Update saved H2O2 concentration
+            H2O2s(I,J,L) = H2O2s(I,J,L) - ( SO2s(I,J,L) * RAINFRAC )
+            H2O2s(I,J,L) = MAX( H2O2s(I,J,L), TINY_FP )
+           
          ELSE
 
-            !-----------------------------------------------------------
-            ! Outside of the range of 238 K < T < 258 K, SO2 scavenging
-            ! can occur.  Compute the rainout fraction of SO2 and also
-            ! adjust the SO2s, H2O2s arrays accordingly (bmy, 9/23/15)
-            !-----------------------------------------------------------
-            IF ( SO2s(I,J,L) > TINY_FP ) THEN 
-            
-               ! Get rainout fraction for SO2
-               RAINFRAC     = GET_RAINFRAC( K_RAIN, F, DT )
-
-               ! Limit RAINFRAC 
-               SO2LOSS      = MIN( SO2s(I,J,L), H2O2s(I,J,L) )
-               RAINFRAC     = SO2LOSS * RAINFRAC / SO2s(I,J,L)
-               RAINFRAC     = MAX( RAINFRAC, 0.0_fp )
-               
-               ! Update saved H2O2 concentration
-               H2O2s(I,J,L) = H2O2s(I,J,L) - ( SO2s(I,J,L) * RAINFRAC )
-               H2O2s(I,J,L) = MAX( H2O2s(I,J,L), TINY_FP )
+            ! If SO2s is not defined (i.e. if wetdep and convection
+            ! are turned off), then set 
+            RAINFRAC     = 0.0_fp
            
-            ELSE
-
-               ! IF SO2s is not defined, then set RAINFRAC=0
-               RAINFRAC     = 0.0_fp
-           
-            ENDIF
-           
-            ! Update saved SO2 concentration
-            SO2s(I,J,L)     = SO2s(I,J,L) * ( 1.0_fp - RAINFRAC )
-            SO2s(I,J,L)     = MAX( SO2s(I,J,L), TINY_FP )
-
          ENDIF
+
+         ! Update saved SO2 concentration
+         SO2s(I,J,L)     = SO2s(I,J,L) * ( 1.0_fp - RAINFRAC )
+         SO2s(I,J,L)     = MAX( SO2s(I,J,L), TINY_FP )
 
       !=================================================================
       ! Compute rainout fraction for soluble gas-phase species
@@ -1855,7 +1831,7 @@
 
          ! Get conversion factor for ice/gas ratio 
          LiqAndGas  = ThisSpc%WD_LiqAndGas
-         ConvFactor = ThisSpc%WD_ConvFactor
+         ConvFacI2G = ThisSpc%WD_ConvFacI2G
 
          IF ( LiqAndGas ) THEN 
 
@@ -1864,7 +1840,7 @@
             ! co-condensation (Eq. 9, Jacob et al, 2000)
             ! (Eq. 9, Jacob et al, 2000)
             IF ( C_H2O(I,J,L) > 0e+0_fp ) THEN 
-               I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * ConvFactor
+               I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * ConvFacI2G
             ELSE
                I2G = 0e+0_fp
             ENDIF
@@ -1913,88 +1889,78 @@
       !=================================================================
       ELSE
 
-         IF ( ThisSpc%WD_RainoutEff > 0.0_fp ) THEN
- 
-            ! If the species has a rainout efficiency greater than 0,
-            ! get the fraction of species rained out in the grid box
-            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+         ! Compute rainout fraction for aerosol tracres
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
-            ! Multiply by the rainout efficiency
-            ! For most species this is 1.0
-            ! For SOA species this is usually 0.8
-            RAINFRAC = RAINFRAC * ThisSpc%WD_RainoutEff
+         ! Apply temperature-dependent rainout efficiencies
+         ! This accounts for impaction scavenging of certain aerosols
+         CALL APPLY_RAINOUT_EFF( TK, ThisSpc%WD_RainoutEff, RAINFRAC )
 
-         ELSE
-
-            ! If the rainout efficiency is zero, then just set 
-            ! RAINFRAC = 0.  This avoids a subroutine call.
-            RAINFRAC = 0.0_fp
-
-         ENDIF
-
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-         !==============================================================
-         ! %%% PRESERVE THE BEHAVIOR FROM VERSIONS PRIOR TO v11-01 %%%
-         !
-         ! Suppress scavenging at cold temperatures for most aerosols
-         !
-         ! Allow scavenging at cold temperatures for BCPO,DUST and HNO3 
-         ! (Qiaoqiao Wang, 10/14/2011)
-         !
-         ! NOTE: Introduce a new field for rainout cutoff temperature 
-         ! to the species data base at a later time.  This can help us
-         ! to avoid dependence on the IDTxxxx flags. (bmy, 9/23/15)
-         !==============================================================
-         IF ( TK < 237.0_fp ) THEN 
-
-            !-----------------------------------------------------------
-            ! CASE 1: Temperature < 237 K
-            !
-            ! Normally, we set RAINFRAC=0 for hydrophilic black carbon
-            ! species (BCPO and POPPBCPO)  The prior code allowed these
-            ! tracers to be scavenged for T < 237 K.  So we need to 
-            ! recompute RAINFRAC for these tracers. (cf. Q. Wang)
-            !-----------------------------------------------------------
-            IF ( N == IDTBCPO .or. N == IDTPOPPBCPO ) THEN
-               RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-            ENDIF
-      
-         ELSE IF ( TK < 258.0_fp .and. TK >= 237.0_fp ) THEN
-
-            !-----------------------------------------------------------
-            ! CASE 2a: 237 K <= Temperature < 258 K
-            !
-            ! Normally, we set RAINFRAC=0 for hydrophilic black carbon
-            ! (BCPO, POPPBCPO), dust (DST*), and nitric acid (HNO3)
-            ! species.  The prior code allowed these tracers to be 
-            ! scavenged for 237 K <= T < 258 K.  Theree range.  So we 
-            ! need to recompute RAINFRAC here for these tracers. 
-            ! (cf. Q. Wang)
-            !-----------------------------------------------------------
-            IF ( N == IDTBCPO       .or. 
-     &           N == IDTDST1       .or.  ! Question? Should we also do this for
-     &           N == IDTDST2       .or.  ! DSTAL*, SO4D* and NITD* tracers?
-     &           N == IDTDST3       .or.  ! (bmy, 9/23/15)
-     &           N == IDTDST4       .or. 
-     &           N == IDTHNO3       .or.
-     &           N == IDTPOPPBCPO ) THEN
-               RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-            !-----------------------------------------------------------
-            ! CASE 2b: 237 K <= Temperature < 258 K
-            !
-            ! For all other species except the ones listed above, 
-            ! suppress rainout when 237 K <= T <= 258 K. (cf. Q. Wang)
-            !-----------------------------------------------------------
-            ELSE 
-               RAINFRAC = 0.0_fp
-
-            ENDIF
-         ENDIF
-#endif
       ENDIF
 
       END SUBROUTINE RAINOUT
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: apply_rainout_eff
+!
+! !DESCRIPTION: Subroutine APPLY\_RAINOUT\_EFF multiplies the rainout fraction
+!  computed by RAINOUT with the rainout efficiency for one of 3 temperature
+!  ranges: (1) T < 237 K; (2) 237 K <= T < 258 K; (3) T > 258 K. The rainout
+!  efficiencies for each aerosol species are defined in the species database
+!  object (i.e. State_Chm%SpcData(:)%Info).
+!\\
+!\\
+!  This allows us to apply the impaction scavenging of certain aerosol species
+!  (BC, dust, HNO3) as implemented by Qiaoqiao Wang, while also suppressing 
+!  rainout for other aerosol species.  The prior code achieved this by using
+!  a large and confusing IF statement, whose logic was hard to understand.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE APPLY_RAINOUT_EFF( TK, RainoutEff, RainFrac )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL(fp), INTENT(IN)    :: TK              ! Temperature [K]
+      REAL(fp), INTENT(IN)    :: RainoutEff(3)   ! Rainout efficiencies
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      REAL(fp), INTENT(INOUT) :: RAINFRAC        ! Rainout fraction
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+
+      ! Apply temperature-dependent rainout efficiencies
+      ! This accounts for impaction scavenging of certain aerosols
+      IF ( TK < 237.0_fp ) THEN 
+
+         ! Ice: T < 237 K
+         RAINFRAC = RAINFRAC * RainoutEff(1)
+
+      ELSE IF ( TK >= 237.0_fp .and. TK < 258.0_fp ) THEN
+
+         ! Snow: 237 K <= T < 258 K
+         RAINFRAC = RAINFRAC * RainoutEff(2)
+
+      ELSE
+            
+         ! Liquid rain: T > 258 K
+         RAINFRAC = RAINFRAC * RainoutEff(3)
+
+      ENDIF
+
+      END SUBROUTINE APPLY_RAINOUT_EFF
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -5879,11 +5845,11 @@
             ENDIF
 
             ! Convert aerosol scavenging efficiency to a string
-            IF ( ThisSpc%WD_RainOutEff > 0.0_fp ) THEN
-               WRITE( RAIN, '(f7.1)' ) ThisSpc%WD_RainoutEff
-            ELSE
+            !IF ( ThisSpc%WD_RainOutEff > 0.0_fp ) THEN
+            !   WRITE( RAIN, '(f7.1)' ) ThisSpc%WD_RainoutEff
+            !ELSE
                RAIN = '  -  '
-            ENDIF
+            !ENDIF
 
             ! Write info to stdout
             WRITE( 6, 100 ) N_WD,           

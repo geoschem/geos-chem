@@ -112,15 +112,17 @@ CONTAINS
     ! Scalars
     INTEGER             :: C,        N,   nSpecies
     REAL(fp)            :: A_Radius, KOA, MW_g   
-    REAL(fp)            :: RainEff,  K0,  CR
-    REAL(fp)            :: HStar
+    REAL(fp)            :: K0,       CR,  HStar
+
+    ! Arrays
+    REAL(fp)            :: RainEff(3)
 
     ! Strings
     CHARACTER(LEN=31)   :: NameAllCaps
     CHARACTER(LEN=31)   :: Name
     CHARACTER(LEN=80)   :: FullName
 
-    ! some species use the same drydep velocities as others, etc.
+    ! Some species use the same drydep velocities as others, etc.
     INTEGER             :: DryDepID_PAN
     INTEGER             :: DryDepID_HNO3
 !
@@ -162,6 +164,11 @@ CONTAINS
           !
           ! CH4 is also contained here, as it is part of the benchmark
           ! and UCX mechanisms.
+          !
+          ! NOTE: Rainout efficiency is a 3-element vector:
+          ! Element 1: Efficiency when T < 237 K.
+          ! Element 2: Efficiency when 237 K <= T < 258 K
+          ! Element 3: Efficiency when T > 258 K.
           !==================================================================
 
           CASE( 'ACET' )
@@ -232,6 +239,10 @@ CONTAINS
 
           CASE( 'ASOA1', 'ASOA2', 'ASOA3', 'ASOAN' )
              FullName = 'Lumped non-volatile aerosol products of light aromatics + IVOCs'
+             
+             ! Rainout efficiency is 0.8 because this is an SOA tracer.
+             ! Turn off rainout when 237 K <= T < 258 K.
+             RainEff = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -246,6 +257,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 0.8_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'ASOG1', 'ASOG2', 'ASOG3' )
@@ -276,13 +288,17 @@ CONTAINS
              
              ! These have identical properties except for 
              ! the names and rainout efficiencies
+             !
+             ! NOTE: Hydrophobic BC, which normally has a rainout efficiency
+             ! of zero, is considered to be IN (ice nuclei) and therefore is
+             ! allowed to be scavenged at temperatures below 258 K.
              SELECT CASE( NameAllCaps )
                 CASE( 'BCPI' )
                    FullName = 'Hydrophilic black carbon aerosol'
-                   RainEff  = 1.0_fp
+                   RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
                 CASE( 'BCPO' )
                    Fullname = 'Hydrophobic black carbon aerosol'
-                   RainEff  = 0.0_fp
+                   RainEff  = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
              END SELECT
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -747,8 +763,12 @@ CONTAINS
                 CASE( 'NITD1' )
                    FullName = 'Nitrate on dust, Reff = 0.7 microns'
                 CASE( 'SO4D1' )
-                   Name     = 'Sulfate on dust, Reff = 0.7 microns'
+                   FullName = 'Sulfate on dust, Reff = 0.7 microns'
              END SELECT
+
+             ! Dust species are considered to be IN (ice nuclei),
+             ! so we allow rainout at all temperatures
+             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -765,6 +785,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'DST2', 'DSTAL2', 'NITD2', 'SO4D2' )
@@ -778,8 +799,12 @@ CONTAINS
                 CASE( 'NITD2' )
                    FullName = 'Nitrate on dust, Reff = 1.4 microns'
                 CASE( 'SO4D2' )
-                   Name     = 'Sulfate on dust, Reff = 1.4 microns'
+                   FullName = 'Sulfate on dust, Reff = 1.4 microns'
              END SELECT
+
+             ! Dust species are considered to be IN (ice nuclei),
+             ! so we allow rainout at all temperatures
+             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -797,6 +822,7 @@ CONTAINS
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_CoarseAer  = T,                            &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'DST3', 'DSTAL3', 'NITD3', 'SO4D3' )
@@ -810,8 +836,12 @@ CONTAINS
                 CASE( 'NITD3' )
                    FullName = 'Nitrate on dust, Reff = 2.4 microns'
                 CASE( 'SO4D3' )
-                   Name     = 'Sulfate on dust, Reff = 2.4 microns'
+                   FullName = 'Sulfate on dust, Reff = 2.4 microns'
              END SELECT
+
+             ! Dust species are considered to be IN (ice nuclei),
+             ! so we allow rainout at all temperatures
+             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -829,6 +859,7 @@ CONTAINS
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_CoarseAer  = T,                            &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
 
@@ -846,6 +877,10 @@ CONTAINS
                    Name     = 'Sulfate on dust, Reff = 4.5 microns'
              END SELECT
 
+             ! Dust species are considered to be IN (ice nuclei),
+             ! so we allow rainout at all temperatures
+             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -862,6 +897,7 @@ CONTAINS
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_CoarseAer  = T,                            &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'GLYC' )
@@ -923,7 +959,7 @@ CONTAINS
 #endif                                                                      
                               WD_RetFactor  = 5e-2_fp,                      &
                               WD_LiqAndGas  = T,                            &
-                              WD_ConvFactor = 4.36564e-1_fp,                &
+                              WD_ConvFacI2G = 4.36564e-1_fp,                &
                               RC            = RC )
 
           CASE( 'HAC' )
@@ -1210,6 +1246,10 @@ CONTAINS
           CASE( 'ISOA1', 'ISOA2', 'ISOA3' )
              FullName = 'Lumped semivolatile gas products of isoprene oxidation'
 
+             ! Rainout efficiency is 0.8 because this is a SOA species.
+             ! Turn off rainout when 237 K < T < 258 K.
+             RainEff = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1411,6 +1451,10 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'MOPI' )
+             
+             ! Turn off rainout when 237 K <= T < 258 K
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1425,9 +1469,14 @@ CONTAINS
                               Is_Wetdep     = F,                            &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
-         CASE( 'MOPO' )
+          CASE( 'MOPO' )
+
+             ! Turn off rainout because MOPO is hydrophobic
+             RainEff = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1442,7 +1491,7 @@ CONTAINS
                               Is_Wetdep     = F,                            &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 0.0_fp,                       &
-                              WD_RainOutEff = 0.0_fp,                       &
+                              WD_RainOutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'MP', 'CH3OOH' )
@@ -1480,6 +1529,10 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'MSA' )
+
+             ! Turn off rainout when 237 K <= T < 258 K
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1493,6 +1546,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'MTPA' )
@@ -1536,8 +1590,6 @@ CONTAINS
                               Henry_CR      = 0.0_f8,                       &
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
-          
-
 
           CASE( 'MVK' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1630,10 +1682,14 @@ CONTAINS
 #endif									    
                               WD_RetFactor  = 5.0e-2_fp,                    &
                               WD_LiqAndGas  = T,                            &
-                              WD_ConvFactor = 6.17395e-1_fp,                &
+                              WD_ConvFacI2G = 6.17395e-1_fp,                &
                               RC            = RC )
 
           CASE( 'NH4' )
+
+             ! Turn off rainout when 237 K <= T < 258 K
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1647,9 +1703,14 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'NIT' )
+
+             ! Turn off rainout when 237 K <= T < 258 K
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1663,6 +1724,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'NITS' )
@@ -1670,6 +1732,9 @@ CONTAINS
              A_Radius = ( Input_Opt%SALC_REDGE_um(1) +                      &
                           Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
              Fullname = 'Inorganic nitrates on surface of seasalt aerosol'
+
+             ! Turn off rainout when 237 K <= T < 258 K
+             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -1686,6 +1751,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'NO' )
@@ -1768,13 +1834,16 @@ CONTAINS
              
              ! These have identical properties except for 
              ! the names and rainout efficiencies
+             !
+             ! Turn off rainout for hydrophilic OC when 237 K <= T < 258 K.
+             ! Turn off rainout for hydrophobic OC, for all temperatures.
              SELECT CASE( NameAllCaps )
                 CASE( 'OCPI' )
                    FullName = 'Hydrophilic organic carbon aerosol'
-                   RainEff  = 1.0_fp
+                   RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
                 CASE( 'OCPO' )
                    Fullname = 'Hydrophobic organic carbon aerosol'
-                   RainEff  = 0.0_fp
+                   RainEff  = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
              END SELECT
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -1796,6 +1865,11 @@ CONTAINS
 
           CASE( 'OPOA1', 'OPOA2' )
              FullName = 'Lumped aerosol product of SVOC oxidation'
+
+             ! Rainout efficiency is 0.8 because these are SOA species.
+             ! Turn off rainout when when 237 K <= T < 258 K.
+             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /) 
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1811,6 +1885,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 0.8_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'OPOG1', 'OPOG2' )
@@ -1913,6 +1988,10 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'POA1', 'POA2' )
+
+             ! Turn off rainout because these are hydrophobic species.
+             RainEff = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1928,7 +2007,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
-                              WD_RainoutEff = 0.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'POG1', 'POG2' )
@@ -1949,7 +2028,6 @@ CONTAINS
                               Henry_K0      = 9.50e+0_f8,                   &
                               Henry_CR      = 4700.0_f8,                    &
                               WD_RetFactor  = 2.0e-2_fp,                    &
-                              WD_AerScavEff = 1.0_fp,                       &
                               RC            = RC )
 
           CASE( 'PRPE' )
@@ -2062,6 +2140,9 @@ CONTAINS
                           Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
              FullName = 'Accumulation mode sea salt aerosol'
 
+             ! Turn off rainout when 237 K <= T < 258 K
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2077,6 +2158,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'SALC' )
@@ -2085,6 +2167,9 @@ CONTAINS
                           Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
              FullName = 'Coarse mode sea salt aerosol'
  
+             ! Turn off rainout when 237 K <= T < 258 K
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /) 
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2101,6 +2186,7 @@ CONTAINS
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_CoarseAer  = T,                            &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'SESQ' )
@@ -2117,6 +2203,11 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'SO2' )
+
+             ! SO2 wet-deposits like an aerosol. 
+             ! Turn off rainout when 237 K < T < 258K.
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2134,9 +2225,14 @@ CONTAINS
 #else									    
                               DD_Hstar_old  = 1.00e+5_fp,                   &
 #endif									    
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'SO4' )
+
+             ! Turn off rainout when 237 K <= T < 258 K
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2150,6 +2246,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'SO4S' )
@@ -2157,6 +2254,9 @@ CONTAINS
              A_Radius = ( Input_Opt%SALC_REDGE_um(1) +                      &
                           Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
              Fullname = 'Sulfate on surface of seasalt aerosol'
+
+             ! Turn off rainout when 237 K <= T < 258 K
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -2173,6 +2273,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'TOLU' )
@@ -2192,6 +2293,11 @@ CONTAINS
 
           CASE( 'TSOA0', 'TSOA1', 'TSOA2', 'TSOA3' )
              FullName = 'Lumped semivolatile aerosol products of monoterpene + sesquiterpene oxidation'
+
+             ! Rainout efficiency is 0.8 because these are SOA species.
+             ! Turn off rainout when 237 K <= T < 258 K.
+             RainEff = (/ 0.8_fp, 0.0_fp, 0.8_fp /)   
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2205,6 +2311,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 0.8_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'TSOG0', 'TSOG1', 'TSOG2', 'TSOG3' )
@@ -2259,6 +2366,10 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'PB', '210PB', 'PB210' )
+
+             ! Turn off rainout when 237 K <= T < 258 K
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2272,9 +2383,14 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_HStar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'BE', '7BE', 'BE7' )
+
+             ! Turn off rainout when 237 K <= T < 258 K
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2288,6 +2404,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_HStar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           !==================================================================
@@ -2333,6 +2450,10 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'HGP' )
+
+             ! Turn off rainout when 237 K <= T < 258 K
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2346,6 +2467,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
 
@@ -2464,12 +2586,20 @@ CONTAINS
                    FullName = 'Benzo(a)pyrene particles on'
              END SELECT
 
-             ! ... and the names
+             ! ... and the names and rainout efficiencies.
+             !
+             ! POPS on hydrophobic BC, which normally has a rainout 
+             ! efficiency of zero, is considered to be IN (ice nuclei) and 
+             ! therefore is allowed to be scavenged when T < 258 K.
+             !
+             ! POPS on hydrophobic OC does not rainout.
              SELECT CASE( TRIM( NameAllCaps ) ) 
                 CASE( 'POPPBCPO' ) 
                    FullName = TRIM( FullName ) // ' hydrophobic black carbon'
+                   RainEff  = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
                 CASE( 'POPPOCPO' )
                    FullName = TRIM( FullName ) // ' hydrophobic organic carbon'
+                   RainEff  = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
              END SELECT
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2485,7 +2615,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
-                              WD_RainoutEff = 0.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'POPPBCPI', 'POPPOCPI' )
@@ -2504,14 +2634,18 @@ CONTAINS
                    FullName = 'Benzo(a)pyrene particles on'
              END SELECT
 
-             ! ... and the names
+             ! ... and the names and rainout efficiencies.
+             !
+             ! Turn off rainout when 237 K <= T < 258 K
              SELECT CASE( TRIM( NameAllCaps ) ) 
                 CASE( 'POPPBCPI' ) 
                    FullName = TRIM( FullName ) // ' hydrophilic black carbon'
+                   RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
                 CASE( 'POPPOCPI' )
                    FullName = TRIM( FullName ) // ' hydrophilic organic carbon'
+                   RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
              END SELECT
-
+             
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2525,6 +2659,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           !==================================================================
@@ -2622,6 +2757,9 @@ CONTAINS
                 FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
              ENDIF
 
+             ! Turn off rainout when 237 K <= T < 258 K
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2635,6 +2773,7 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'SF1',  'SF2',  'SF3',  'SF4',  'SF5',  'SF6',  'SF7',      &
@@ -2653,6 +2792,9 @@ CONTAINS
                 FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
              ENDIF
 
+             ! Turn off rainout when 237 K <= T < 258 K
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2667,6 +2809,7 @@ CONTAINS
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_SizeResAer = T,                            &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'SS1',  'SS2',  'SS3',  'SS4',  'SS5',  'SS6',  'SS7',      &
@@ -2685,6 +2828,9 @@ CONTAINS
                 FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
              ENDIF
 
+             ! Turn off rainout when 237 K <= T < 258 K
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2699,8 +2845,8 @@ CONTAINS
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_SizeResAer = T,                            &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
-
 
           CASE( 'ECIL1',  'ECIL2',  'ECIL3',  'ECIL4',  'ECIL5',            &
                 'ECIL6',  'ECIL7',  'ECIL8',  'ECIL9',  'ECIL10',           &
@@ -2720,6 +2866,9 @@ CONTAINS
                 FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
              ENDIF
 
+             ! Turn off rainout when 237 K <= T < 258 K
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2734,6 +2883,7 @@ CONTAINS
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_SizeResAer = T,                            &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'OCIL1',  'OCIL2',  'OCIL3',  'OCIL4',  'OCIL5',            &
@@ -2754,6 +2904,9 @@ CONTAINS
                 FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
              ENDIF
 
+             ! Turn off rainout when 237 K <= T < 258 K
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2768,6 +2921,7 @@ CONTAINS
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_SizeResAer = T,                            &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'DUST1',  'DUST2',  'DUST3',  'DUST4',  'DUST5',            &
@@ -2788,6 +2942,11 @@ CONTAINS
                 FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
              ENDIF
 
+             ! Turn off rainout when 237 K <= T < 258 K
+             !%%% NOTE: Should these be considered "IN" as well?      %%%
+             !%%% Ask the TOMAS team for clarification (bmy, 9/24/15) %%%
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -2802,6 +2961,7 @@ CONTAINS
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_SizeResAer = T,                            &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
 #endif
