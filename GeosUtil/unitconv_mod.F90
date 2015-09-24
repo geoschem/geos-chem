@@ -1208,8 +1208,7 @@ CONTAINS
        ! Equivalent area-dependent conversion
        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
                                   / ( State_Met%AD(I,J,L)               &
-                                      / State_Met%AREA_M2(I,J,1) )         
-                               
+                                      / State_Met%AREA_M2(I,J,1) )    
 
     ENDDO
     ENDDO

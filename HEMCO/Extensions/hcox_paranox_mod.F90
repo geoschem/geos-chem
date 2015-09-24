@@ -2196,9 +2196,8 @@ CONTAINS
 !                                interpolation code by G.C.M. Vinken and 
 !                                M. Payer. LUT now includes wind speed.
 !  04 Feb 2015 - C. Keller     - Updated for use in HEMCO.
-!  11 Sep 2015 - E. Lundgren   - ExtState vars O3, NO2, and NO now in
+!  24 Sep 2015 - E. Lundgren   - ExtState vars O3, NO2, and NO now in
 !                                kg/kg dry air (previously kg)
-!  11 Sep 2015 - E. Lundgren   - Removed air mass variable 'AIR'
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2304,16 +2303,16 @@ CONTAINS
    VARS(2) = JNO2                           
  
 ! old     
-   ! O3 concentration in ambient air, ppb
-   VARS(3) = ExtState%O3%Arr%Val(I,J,1) / AIR   &
-           * HcoState%Phys%AIRMW        / MW_O3 &
-           * 1.e9_sp
-! new
 !   ! O3 concentration in ambient air, ppb
-!   ! NOTE: ExtState%O3 units are now kg/kg dry air (ewl, 9/11/15)
-!   VARS(3) = ExtState%O3%Arr%Val(I,J,1)         &
+!   VARS(3) = ExtState%O3%Arr%Val(I,J,1) / AIR   &
 !           * HcoState%Phys%AIRMW        / MW_O3 &
 !           * 1.e9_sp
+! new
+   ! O3 concentration in ambient air, ppb
+   ! NOTE: ExtState%O3 units are now kg/kg dry air (ewl, 9/11/15)
+   VARS(3) = ExtState%O3%Arr%Val(I,J,1)         &
+           * HcoState%Phys%AIRMW        / MW_O3 &
+           * 1.e9_sp
 ! end new (ewl)
 
    ! Solar elevation angle, degree
@@ -2335,20 +2334,20 @@ CONTAINS
    ENDIF
 
 ! old
-   ! NOx concetration in ambient air, ppt
-   VARS(7) = ( ( ExtState%NO%Arr%Val(I,J,1)  / AIR        &
-           *     HcoState%Phys%AIRMW         / MW_NO  )   &
-           +   ( ExtState%NO2%Arr%Val(I,J,1) / AIR        &
-           *     HcoState%Phys%AIRMW         / MW_NO2 ) ) &
-           * 1.e12_sp
-! new
 !   ! NOx concetration in ambient air, ppt
-!   ! NOTE: ExtState vars NO and NO2 units are now kg/kg dry air (ewl, 9/11/15)
-!   VARS(7) = ( ( ExtState%NO%Arr%Val(I,J,1)               &
+!   VARS(7) = ( ( ExtState%NO%Arr%Val(I,J,1)  / AIR        &
 !           *     HcoState%Phys%AIRMW         / MW_NO  )   &
-!           +   ( ExtState%NO2%Arr%Val(I,J,1)              &
+!           +   ( ExtState%NO2%Arr%Val(I,J,1) / AIR        &
 !           *     HcoState%Phys%AIRMW         / MW_NO2 ) ) &
 !           * 1.e12_sp
+! new
+   ! NOx concetration in ambient air, ppt
+   ! NOTE: ExtState vars NO and NO2 units are now kg/kg dry air (ewl, 9/11/15)
+   VARS(7) = ( ( ExtState%NO%Arr%Val(I,J,1)               &
+           *     HcoState%Phys%AIRMW         / MW_NO  )   &
+           +   ( ExtState%NO2%Arr%Val(I,J,1)              &
+           *     HcoState%Phys%AIRMW         / MW_NO2 ) ) &
+           * 1.e12_sp
 ! end new (ewl)
 
       ! Wind speed, m/s
