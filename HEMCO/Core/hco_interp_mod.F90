@@ -220,22 +220,26 @@ CONTAINS
        !   values. Will be updated continuously.
        ! - UNIQVALS is a vector holding all unique values of the input
        !   array (NINDEX is the number of unique values).
+       ! 
+       ! ckeller, 9/24/15: Extend vertical axis of MAXFRACS, REGFRACS, and 
+       ! INDECES to HcoState%NZ+1 for fields that are on edges instead of
+       ! mid-points.
        ALLOCATE( FRACS(NX,NY,NLEV,NTIME), STAT=AS ) 
        IF ( AS /= 0 ) THEN
           CALL HCO_ERROR( 'alloc error FRACS', RC, THISLOC=LOC )
           RETURN
        ENDIF
-       ALLOCATE( MAXFRACS(HcoState%NX,HcoState%NY,HcoState%NZ,NTIME), STAT=AS ) 
+       ALLOCATE( MAXFRACS(HcoState%NX,HcoState%NY,HcoState%NZ+1,NTIME), STAT=AS ) 
        IF ( AS /= 0 ) THEN
           CALL HCO_ERROR( 'alloc error MAXFRACS', RC, THISLOC=LOC )
           RETURN
        ENDIF
-       ALLOCATE( REGFRACS(HcoState%NX,HcoState%NY,HcoState%NZ,NTIME), STAT=AS ) 
+       ALLOCATE( REGFRACS(HcoState%NX,HcoState%NY,HcoState%NZ+1,NTIME), STAT=AS ) 
        IF ( AS /= 0 ) THEN
           CALL HCO_ERROR( 'alloc error INDECES', RC, THISLOC=LOC )
           RETURN
        ENDIF
-       ALLOCATE( INDECES(HcoState%NX,HcoState%NY,HcoState%NZ,NTIME), STAT=AS ) 
+       ALLOCATE( INDECES(HcoState%NX,HcoState%NY,HcoState%NZ+1,NTIME), STAT=AS ) 
        IF ( AS /= 0 ) THEN
           CALL HCO_ERROR( 'alloc error INDECES', RC, THISLOC=LOC )
           RETURN
@@ -488,6 +492,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  30 Dec 2014 - C. Keller   - Initial version
 !  24 Feb 2015 - R. Yantosca - Now exit if vertical interpolation isn't needed
+!  24 Sep 2015 - C. Keller   - Added interpolation on edges.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -497,6 +502,7 @@ CONTAINS
     INTEGER                 :: nx, ny, nz, nt
     INTEGER                 :: minlev, nlev, nout
     INTEGER                 :: L, T, NL
+    INTEGER                 :: OS 
     LOGICAL                 :: verb, infl, clps
     LOGICAL                 :: DONE
     CHARACTER(LEN=255)      :: MSG
@@ -547,9 +553,9 @@ CONTAINS
     ! input data array to to the HEMCO list container object and
     ! (2) exit this subroutine.
     !===================================================================
-    IF ( nlev == nz ) THEN
+    IF ( ( nlev == nz ) .OR. ( nlev == nz+1 ) ) THEN
 
-       CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, nz, nt, RC )
+       CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, nlev, nt, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        DO T = 1, nt
@@ -588,8 +594,22 @@ CONTAINS
              nout = nz
              NL   = 20
 
+          ! Input data has 31 levels --> assume to be reduced GEOS-4 levels
+          ! on edges
+          ELSEIF ( nlev == 31 ) THEN
+             nz   = nz + 1
+             nout = nz
+             NL   = 21
+
           ! Input data has 55 levels --> assume to be native GEOS-4 levels.
-          ELSEIF ( nlev == 55 ) THEN
+          ELSEIF ( nlev == 55 ) THEN 
+             nout = nz
+             NL   = nout
+
+          ! Input data has 56 levels --> assume to be native GEOS-4 levels
+          ! on edges
+          ELSEIF ( nlev == 56 ) THEN 
+             nz   = nz + 1
              nout = nz
              NL   = nout
 
@@ -598,8 +618,16 @@ CONTAINS
              nout = nz
              NL   = 0
 
-          ! 47 levels or less: assume to be reduced GEOS-5 levels
-          ELSEIF ( nlev <= 47 ) THEN
+          ! Input data has 73 levels --> assume to be native GEOS-5 levels
+          ! on edges
+          ELSEIF ( nlev == 72 ) THEN
+             nz   = nz + 1
+             nout = nz
+             NL   = 0
+
+          ! 48 levels or less: assume to be reduced GEOS-5 levels (mid-points)
+          ELSEIF ( nlev <= 48 ) THEN
+             IF ( nlev == 48 ) nz = nz + 1
              nout = nz
              NL   = 0
 
@@ -631,20 +659,22 @@ CONTAINS
              ENDIF
 
              ! Inflate from reduced GEOS-4 onto native GEOS-4
-             IF ( NL == 20 .AND. nlev == 30 ) THEN
+             IF ( ( NL == 20 .AND. nlev == 30 ) .OR. & 
+                  ( NL == 21 .AND. nlev == 31 )       ) THEN
+
                 ! two levels:
-                CALL INFLATE( Lct, REGR_4D, 20, 20, 2, T )
-                CALL INFLATE( Lct, REGR_4D, 21, 22, 2, T )
-                CALL INFLATE( Lct, REGR_4D, 22, 24, 2, T )
-                CALL INFLATE( Lct, REGR_4D, 23, 26, 2, T )
+                CALL INFLATE( Lct, REGR_4D, NL   , NL   , 2, T )
+                CALL INFLATE( Lct, REGR_4D, NL+1 , NL+2 , 2, T )
+                CALL INFLATE( Lct, REGR_4D, NL+2 , NL+4 , 2, T )
+                CALL INFLATE( Lct, REGR_4D, NL+3 , NL+6 , 2, T )
                 ! four levels:
-                CALL INFLATE( Lct, REGR_4D, 24, 28, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 25, 32, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 26, 36, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 27, 40, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 28, 44, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 29, 48, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 30, 52, 4, T )
+                CALL INFLATE( Lct, REGR_4D, NL+4 , NL+8 , 4, T )
+                CALL INFLATE( Lct, REGR_4D, NL+5 , NL+12, 4, T )
+                CALL INFLATE( Lct, REGR_4D, NL+6 , NL+16, 4, T )
+                CALL INFLATE( Lct, REGR_4D, NL+7 , NL+20, 4, T )
+                CALL INFLATE( Lct, REGR_4D, NL+8 , NL+24, 4, T )
+                CALL INFLATE( Lct, REGR_4D, NL+9 , NL+28, 4, T )
+                CALL INFLATE( Lct, REGR_4D, NL+10, NL+31, 4, T )
 
              ! Native GEOS-5 onto native GEOS-4
              ! Above level 11, the native GEOS-4 levels are the same as GEOS-5
@@ -652,6 +682,10 @@ CONTAINS
                 DO L = 12, 55
                    Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L+17,T)
                 ENDDO
+
+             ELSEIF ( NL == 0 .AND. nlev == 73 ) THEN
+                DO L = 13, 56
+                   Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L+17,T)
 
              ! Reduced GEOS-5 onto native GEOS-4
              ! Use the same mappings as for reduced GEOS-5 to native GEOS-5,
@@ -676,6 +710,30 @@ CONTAINS
                 CALL INFLATE( Lct, REGR_4D, 45, 44, 4, T )
                 CALL INFLATE( Lct, REGR_4D, 46, 48, 4, T )
                 CALL INFLATE( Lct, REGR_4D, 47, 52, 4, T )
+
+             ! Reduced GEOS-5 onto native GEOS-4 (edges)
+             ! Use the same mappings as for reduced GEOS-5 to native GEOS-5,
+             ! but start at appropriate levels
+             ELSEIF ( NL == 0 .AND. nlev == 48 ) THEN
+
+                ! Levels 13-20 in GEOS-4 correspond to levels 30-37 in GEOS-5.
+                DO L = 13, 20
+                   Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L+17,T)
+                ENDDO
+
+                ! Distribute over 2 levels (e.g. level 39 into 23-24):
+                CALL INFLATE( Lct, REGR_4D, 38, 21, 2, T )
+                CALL INFLATE( Lct, REGR_4D, 39, 23, 2, T )
+                CALL INFLATE( Lct, REGR_4D, 40, 25, 2, T )
+                CALL INFLATE( Lct, REGR_4D, 41, 27, 2, T )
+                ! Distribute over 4 levels:
+                CALL INFLATE( Lct, REGR_4D, 42, 29, 4, T )
+                CALL INFLATE( Lct, REGR_4D, 43, 33, 4, T )
+                CALL INFLATE( Lct, REGR_4D, 44, 37, 4, T )
+                CALL INFLATE( Lct, REGR_4D, 45, 41, 4, T )
+                CALL INFLATE( Lct, REGR_4D, 46, 45, 4, T )
+                CALL INFLATE( Lct, REGR_4D, 47, 49, 4, T )
+                CALL INFLATE( Lct, REGR_4D, 48, 53, 4, T )
              ENDIF
 
           ENDDO !T
@@ -701,18 +759,36 @@ CONTAINS
              nout = nlev
              NL   = nout
 
+          ! Input data has 31 levels --> assume to be native GEOS-4 edges.
+          ELSEIF ( nlev == 31 ) THEN
+             nout = nlev
+             NL   = nout
+
           ! Input data has 55 levels --> assume to be native GEOS-4 levels.
           ELSEIF ( nlev == 55 ) THEN
              nout = nz
              NL   = 20
+
+          ! Input data has 56 levels --> assume to be native GEOS-4 levels.
+          ELSEIF ( nlev == 56 ) THEN
+             nz   = nz + 1
+             nout = nz
+             NL   = 21
 
           ! Input data has 72 levels --> assume to be native GEOS-5 levels
           ELSEIF ( nlev == 72 ) THEN
              nout = nz
              NL   = 0
 
+          ! Input data has 73 levels --> assume to be native GEOS-5 edges 
+          ELSEIF ( nlev == 73 ) THEN
+             nz   = nz + 1
+             nout = nz
+             NL   = 0
+
           ! 47 levels or less: assume to be reduced GEOS-5 levels
-          ELSEIF ( nlev <= 47 ) THEN
+          ELSEIF ( nlev <= 48 ) THEN
+             IF ( nlev == 48 ) nz = nz + 1
              nout = nz
              NL   = 0
 
@@ -743,21 +819,22 @@ CONTAINS
                 IF ( RC /= HCO_SUCCESS ) RETURN
              ENDIF
 
-             ! Collapse from native GEOS-4 onto reduced GEOS-4
-             IF ( NL == 20 .AND. nlev == 55 ) THEN
+            ! Collapse from native GEOS-4 onto reduced GEOS-4
+             IF ( ( NL == 20 .AND. nlev == 55 ) .OR. & 
+                  ( NL == 21 .AND. nlev == 56 )       ) THEN
                 ! two levels:
-                CALL COLLAPSE( Lct, REGR_4D, 20, 20, 2, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, 21, 22, 2, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, 22, 24, 2, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, 23, 26, 2, T, 4 )
+                CALL COLLAPSE( Lct, REGR_4D, NL,    NL   , 2, T, 4 )
+                CALL COLLAPSE( Lct, REGR_4D, NL+ 1, NL+2 , 2, T, 4 )
+                CALL COLLAPSE( Lct, REGR_4D, NL+ 2, NL+4 , 2, T, 4 )
+                CALL COLLAPSE( Lct, REGR_4D, NL+ 3, NL+6 , 2, T, 4 )
                 ! four levels:
-                CALL COLLAPSE( Lct, REGR_4D, 24, 28, 4, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, 25, 32, 4, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, 26, 36, 4, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, 27, 40, 4, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, 28, 44, 4, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, 29, 48, 4, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, 30, 52, 4, T, 4 )
+                CALL COLLAPSE( Lct, REGR_4D, NL+ 4, NL+8 , 4, T, 4 )
+                CALL COLLAPSE( Lct, REGR_4D, NL+ 5, NL+12, 4, T, 4 )
+                CALL COLLAPSE( Lct, REGR_4D, NL+ 6, NL+16, 4, T, 4 )
+                CALL COLLAPSE( Lct, REGR_4D, NL+ 7, NL+20, 4, T, 4 )
+                CALL COLLAPSE( Lct, REGR_4D, NL+ 8, NL+24, 4, T, 4 )
+                CALL COLLAPSE( Lct, REGR_4D, NL+ 9, NL+28, 4, T, 4 )
+                CALL COLLAPSE( Lct, REGR_4D, NL+10, NL+32, 4, T, 4 )
 
              ! Reduced GEOS-5 onto reduced GEOS-4.
              ! Above level 11, the reduced GEOS-4 are the same as the reduced
@@ -766,6 +843,15 @@ CONTAINS
                 DO L = 12, 30
                    Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L+17,T)
                 ENDDO
+
+             ! Reduced GEOS-5 onto reduced GEOS-4.
+             ! Above level 11, the reduced GEOS-4 are the same as the reduced
+             ! GEOS-5.
+             ELSEIF ( NL == 0 .AND. nlev == 48 ) THEN
+                DO L = 13, 31
+                   Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L+17,T)
+                ENDDO
+
              ! Native GEOS-5 onto reduced GEOS-4
              ! Can use same mapping as for native GEOS-5 onto reduced GEOS-5,
              ! but starting at level 13 instead of 30.
@@ -790,6 +876,32 @@ CONTAINS
                 CALL COLLAPSE( Lct, REGR_4D, 29, 65, 4, T, 5 )
                 CALL COLLAPSE( Lct, REGR_4D, 30, 69, 4, T, 5 )
              ENDIF
+
+             ! Native GEOS-5 onto reduced GEOS-4
+             ! Can use same mapping as for native GEOS-5 onto reduced GEOS-5,
+             ! but starting at level 13 instead of 30.
+             ELSEIF ( NL == 0 .AND. nlev == 73 ) THEN
+
+                ! Map levels 13 to 20 level by level
+                DO L = 13, 20
+                   Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L+17,T)
+                ENDDO
+
+                ! Collapse two levels (e.g. levels 38-39 into level 21):
+                CALL COLLAPSE( Lct, REGR_4D, 21, 38, 2, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 22, 40, 2, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 23, 42, 2, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 24, 44, 2, T, 5 )
+                ! Collapse four levels:
+                CALL COLLAPSE( Lct, REGR_4D, 25, 46, 4, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 26, 50, 4, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 27, 54, 4, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 28, 58, 4, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 29, 62, 4, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 30, 66, 4, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 31, 70, 4, T, 5 )
+             ENDIF
+
           ENDDO ! T
 
           ! Verbose
@@ -818,9 +930,15 @@ CONTAINS
           ! GEOS-5 levels and data is mapped accordingly. If input data
           ! has more than 47 levels, it cannot be on the reduced grid
           ! and mapping is done 1:1
-          IF ( nlev > 36 .AND. nlev <= 47 ) THEN
-             nout = nz
-             NL   = 36
+          IF ( nlev > 36 .AND. nlev <= 48 ) THEN
+             IF ( nlev == 48 ) THEN
+                nz   = nz + 1
+                nout = nz
+                NL   = 37
+             ELSE
+                nout = nz
+                NL   = 36
+             ENDIF
           ELSE
              nout = nlev
              NL   = nout
@@ -838,20 +956,21 @@ CONTAINS
              ENDDO !L
 
              ! If needed, inflate from reduced GEOS-5 grid onto native GEOS-5
-             IF ( NL == 36 .AND. nz == 72 ) THEN
+             IF ( ( NL == 36 .AND. nz == 72 ) .OR. & 
+                  ( NL == 37 .AND. nz == 73 )       ) THEN
                 ! Distribute over 2 levels (e.g. level 38 into 39-40):
-                CALL INFLATE( Lct, REGR_4D, 37, 37, 2, T )
-                CALL INFLATE( Lct, REGR_4D, 38, 39, 2, T )
-                CALL INFLATE( Lct, REGR_4D, 39, 41, 2, T )
-                CALL INFLATE( Lct, REGR_4D, 40, 43, 2, T )
+                CALL INFLATE( Lct, REGR_4D, NL+1 , NL+1, 2, T )
+                CALL INFLATE( Lct, REGR_4D, NL+2 , NL+3, 2, T )
+                CALL INFLATE( Lct, REGR_4D, NL+3 , NL+5, 2, T )
+                CALL INFLATE( Lct, REGR_4D, NL+4 , NL+7, 2, T )
                 ! Distribute over 4 levels:
-                CALL INFLATE( Lct, REGR_4D, 41, 45, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 42, 49, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 43, 53, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 44, 57, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 45, 61, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 46, 65, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 47, 69, 4, T )
+                CALL INFLATE( Lct, REGR_4D, NL+5 , NL+9, 4, T )
+                CALL INFLATE( Lct, REGR_4D, NL+6 , NL+13, 4, T )
+                CALL INFLATE( Lct, REGR_4D, NL+7 , NL+17, 4, T )
+                CALL INFLATE( Lct, REGR_4D, NL+8 , NL+21, 4, T )
+                CALL INFLATE( Lct, REGR_4D, NL+9 , NL+25, 4, T )
+                CALL INFLATE( Lct, REGR_4D, NL+10, NL+29, 4, T )
+                CALL INFLATE( Lct, REGR_4D, NL+11, NL+33, 4, T )
              ENDIF
 
           ENDDO ! T
@@ -877,9 +996,13 @@ CONTAINS
           IF ( nlev == 72 ) THEN
              nout = nz
              NL   = 36
+          ELSEIF ( nlev == 73 ) THEN
+             nz   = nz + 1
+             nout = nz
+             NL   = 37
           ELSEIF ( nlev > 47 ) THEN
              MSG = 'Can only remap from native onto reduced GEOS-5 if '// &
-                   'input data has exactly 72 levels: '//TRIM(Lct%Dct%cName)
+                   'input data has exactly 72 or 73 levels: '//TRIM(Lct%Dct%cName)
              CALL HCO_ERROR( MSG, RC )
              RETURN
           ELSE
@@ -899,20 +1022,29 @@ CONTAINS
              ENDDO !L
 
              ! If needed, collapse from native GEOS-5 onto reduced GEOS-5
-             IF ( nlev == 72 ) THEN
+             IF ( nlev == 72 .OR. nlev == 73 ) THEN
+ 
+                ! Add one level offset if these are edges
+                IF ( nlev == 73 ) THEN
+                   OS = 1
+                ELSE
+                   OS = 0
+                ENDIF
+
                 ! Collapse two levels (e.g. levels 39-40 into level 38):
-                CALL COLLAPSE( Lct, REGR_4D, 37, 37, 2, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 38, 39, 2, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 39, 41, 2, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 40, 43, 2, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 37+OS, 37+OS, 2, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 38+OS, 39+OS, 2, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 39+OS, 41+OS, 2, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 40+OS, 43+OS, 2, T, 5 )
                 ! Collapse four levels:
-                CALL COLLAPSE( Lct, REGR_4D, 41, 45, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 42, 49, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 43, 53, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 44, 57, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 45, 61, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 46, 65, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 47, 69, 4, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 41+OS, 45+OS, 4, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 42+OS, 49+OS, 4, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 43+OS, 53+OS, 4, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 44+OS, 57+OS, 4, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 45+OS, 61+OS, 4, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 46+OS, 65+OS, 4, T, 5 )
+                CALL COLLAPSE( Lct, REGR_4D, 47+OS, 69+OS, 4, T, 5 )
+
              ENDIF
           ENDDO ! T
 
@@ -1022,7 +1154,8 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC                ! Return code
 !
 ! !REVISION HISTORY:
-!  07 Jan 2015 - C. Keller   - Initial version
+!  07 Jan 2015 - C. Keller   - Initial version.
+!  24 Sep 2015 - C. Keller   - Added option to interpolate edges. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1035,78 +1168,151 @@ CONTAINS
     ! GEOS5_TO_GEOS4_LOWLEV begins here
     !=================================================================
 
-    ! Reset
-    Lct%Dct%Dta%V3(T)%Val(:,:,1:12) = 0.0_sp
-
     ! Number of levels in output array
     NZ = SIZE(REGR_4D,3)
-    IF ( NZ < 29 ) THEN
-       MSG = 'This GEOS-5 field has less than 29 levels: '//TRIM(Lct%Dct%cName)
+    IF ( NZ < 28 ) THEN
+       MSG = 'This GEOS-5 field has less than 28 levels: '//TRIM(Lct%Dct%cName)
        CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
 
-    ! Map 29 GEOS-5 levels onto 12 GEOS-4 levels:
+    ! Map 28 GEOS-5 levels onto 11 GEOS-4 levels (grid midpoints):
+    IF ( NZ == 28 ) THEN 
 
-    ! Level 1:
-    Lct%Dct%Dta%V3(T)%Val(:,:, 1) = REGR_4D(:,:,1,T)
+       ! Reset
+       Lct%Dct%Dta%V3(T)%Val(:,:,1:11) = 0.0_sp
 
-    ! Level 2:
-    Lct%Dct%Dta%V3(T)%Val(:,:, 2) = 3.78e-3_sp * REGR_4D(:,:, 1,T) &
-                                  + 0.515_sp   * REGR_4D(:,:, 2,T) &
-                                  + 0.481_sp   * REGR_4D(:,:, 3,T)
+       ! Level 1:
+       Lct%Dct%Dta%V3(T)%Val(:,:, 1) = REGR_4D(:,:,1,T)
 
-    ! Level 3:
-    Lct%Dct%Dta%V3(T)%Val(:,:, 3) = 1.88e-2_sp * REGR_4D(:,:, 3,T) &
-                                  + 0.285_sp   * REGR_4D(:,:, 4,T) &
-                                  + 0.285_sp   * REGR_4D(:,:, 5,T) &
-                                  + 0.285_sp   * REGR_4D(:,:, 6,T) &
-                                  + 0.127_sp   * REGR_4D(:,:, 7,T)
+       ! Level 2:
+       Lct%Dct%Dta%V3(T)%Val(:,:, 2) = 3.78e-3_sp * REGR_4D(:,:, 1,T) &
+                                     + 0.515_sp   * REGR_4D(:,:, 2,T) &
+                                     + 0.481_sp   * REGR_4D(:,:, 3,T)
+   
+       ! Level 3:
+       Lct%Dct%Dta%V3(T)%Val(:,:, 3) = 1.88e-2_sp * REGR_4D(:,:, 3,T) &
+                                     + 0.285_sp   * REGR_4D(:,:, 4,T) &
+                                     + 0.285_sp   * REGR_4D(:,:, 5,T) &
+                                     + 0.285_sp   * REGR_4D(:,:, 6,T) &
+                                     + 0.127_sp   * REGR_4D(:,:, 7,T)
+   
+       ! Level 4:
+       Lct%Dct%Dta%V3(T)%Val(:,:, 4) = 0.115_sp   * REGR_4D(:,:, 7,T) &
+                                     + 0.208_sp   * REGR_4D(:,:, 8,T) &
+                                     + 0.208_sp   * REGR_4D(:,:, 9,T) &
+                                     + 0.208_sp   * REGR_4D(:,:,10,T) &
+                                     + 0.208_sp   * REGR_4D(:,:,11,T) &
+                                     + 5.51e-2_sp * REGR_4D(:,:,12,T)
+   
+       ! Level 5:
+       Lct%Dct%Dta%V3(T)%Val(:,:, 5) = 0.189_sp   * REGR_4D(:,:,12,T) &
+                                     + 0.253_sp   * REGR_4D(:,:,13,T) &
+                                     + 0.253_sp   * REGR_4D(:,:,14,T) &
+                                     + 0.253_sp   * REGR_4D(:,:,15,T) &
+                                     + 5.68e-2_sp * REGR_4D(:,:,16,T)
 
-    ! Level 4:
-    Lct%Dct%Dta%V3(T)%Val(:,:, 4) = 0.115_sp   * REGR_4D(:,:, 7,T) &
-                                  + 0.208_sp   * REGR_4D(:,:, 8,T) &
-                                  + 0.208_sp   * REGR_4D(:,:, 9,T) &
-                                  + 0.208_sp   * REGR_4D(:,:,10,T) &
-                                  + 0.208_sp   * REGR_4D(:,:,11,T) &
-                                  + 5.51e-2_sp * REGR_4D(:,:,12,T)
+       ! Level 6:
+       Lct%Dct%Dta%V3(T)%Val(:,:, 6) = 0.224_sp   * REGR_4D(:,:,16,T) &
+                                     + 0.289_sp   * REGR_4D(:,:,17,T) &
+                                     + 0.289_sp   * REGR_4D(:,:,18,T) &
+                                     + 0.199_sp   * REGR_4D(:,:,19,T)
+   
+       ! Level 7:
+       Lct%Dct%Dta%V3(T)%Val(:,:, 7) = 0.120_sp   * REGR_4D(:,:,19,T) &
+                                     + 0.385_sp   * REGR_4D(:,:,20,T) &
+                                     + 0.385_sp   * REGR_4D(:,:,21,T) &
+                                     + 0.110_sp   * REGR_4D(:,:,22,T)
+   
+       ! Level 8:
+       Lct%Dct%Dta%V3(T)%Val(:,:, 8) = 0.324_sp   * REGR_4D(:,:,22,T) &
+                                     + 0.453_sp   * REGR_4D(:,:,23,T) &
+                                     + 0.223_sp   * REGR_4D(:,:,24,T)
+   
+       ! Level 9:
+       Lct%Dct%Dta%V3(T)%Val(:,:, 9) = 0.271_sp   * REGR_4D(:,:,24,T) &
+                                     + 0.533_sp   * REGR_4D(:,:,25,T) &
+                                     + 0.196_sp   * REGR_4D(:,:,26,T)
+   
+       ! Level 10:
+       Lct%Dct%Dta%V3(T)%Val(:,:,10) = 0.396_sp   * REGR_4D(:,:,26,T) &
+                                     + 0.604_sp   * REGR_4D(:,:,27,T)
+   
+       ! Level 11:
+       Lct%Dct%Dta%V3(T)%Val(:,:,11) = 3.63e-2_sp * REGR_4D(:,:,27,T) &
+                                     + 0.964_sp   * REGR_4D(:,:,28,T)
 
-    ! Level 5:
-    Lct%Dct%Dta%V3(T)%Val(:,:, 5) = 0.189_sp   * REGR_4D(:,:,12,T) &
-                                  + 0.253_sp   * REGR_4D(:,:,13,T) &
-                                  + 0.253_sp   * REGR_4D(:,:,14,T) &
-                                  + 0.253_sp   * REGR_4D(:,:,15,T) &
-                                  + 5.68e-2_sp * REGR_4D(:,:,16,T)
+    ! Map 29 GEOS-5 levels onto 12 GEOS-4 levels (grid edges):
+    ELSEIF ( NZ == 29 ) THEN
 
-    ! Level 6:
-    Lct%Dct%Dta%V3(T)%Val(:,:, 6) = 0.224_sp   * REGR_4D(:,:,16,T) &
-                                  + 0.289_sp   * REGR_4D(:,:,17,T) &
-                                  + 0.289_sp   * REGR_4D(:,:,18,T) &
-                                  + 0.199_sp   * REGR_4D(:,:,19,T)
+       ! Reset
+       Lct%Dct%Dta%V3(T)%Val(:,:,1:12) = 0.0_sp
 
-    ! Level 7:
-    Lct%Dct%Dta%V3(T)%Val(:,:, 7) = 0.120_sp   * REGR_4D(:,:,19,T) &
-                                  + 0.385_sp   * REGR_4D(:,:,20,T) &
-                                  + 0.385_sp   * REGR_4D(:,:,21,T) &
-                                  + 0.110_sp   * REGR_4D(:,:,22,T)
+       ! Level 1
+       Lct%Dct%Dta%V3(T)%Val(:,:, 1) = REGR_4D(:,:,1,T)
 
-    ! Level 8:
-    Lct%Dct%Dta%V3(T)%Val(:,:, 8) = 0.324_sp   * REGR_4D(:,:,22,T) &
-                                  + 0.453_sp   * REGR_4D(:,:,23,T) &
-                                  + 0.223_sp   * REGR_4D(:,:,24,T)
+       ! Level 2:
+       Lct%Dct%Dta%V3(T)%Val(:,:, 2) = 5.01e-3_sp * REGR_4D(:,:, 1,T) &
+                                     + 0.680_sp   * REGR_4D(:,:, 2,T) &
+                                     + 0.314_sp   * REGR_4D(:,:, 3,T)
+   
+       ! Level 3:
+       Lct%Dct%Dta%V3(T)%Val(:,:, 3) = 0.197_sp   * REGR_4D(:,:, 3,T) &
+                                     + 0.366_sp   * REGR_4D(:,:, 4,T) &
+                                     + 0.366_sp   * REGR_4D(:,:, 5,T) &
+                                     + 6.98e-2_sp * REGR_4D(:,:, 6,T)
+   
+       ! Level 4:
+       Lct%Dct%Dta%V3(T)%Val(:,:, 4) = 0.194_sp   * REGR_4D(:,:, 6,T) &
+                                     + 0.240_sp   * REGR_4D(:,:, 7,T) &
+                                     + 0.240_sp   * REGR_4D(:,:, 8,T) &
+                                     + 0.240_sp   * REGR_4D(:,:, 9,T) &
+                                     + 8.55e-2_sp * REGR_4D(:,:,10,T)
+   
+       ! Level 5:
+       Lct%Dct%Dta%V3(T)%Val(:,:, 5) = 0.139_sp   * REGR_4D(:,:,10,T) &
+                                     + 0.216_sp   * REGR_4D(:,:,11,T) &
+                                     + 0.216_sp   * REGR_4D(:,:,12,T) &
+                                     + 0.216_sp   * REGR_4D(:,:,13,T) &
+                                     + 0.214_sp   * REGR_4D(:,:,14,T)
 
-    ! Level 9:
-    Lct%Dct%Dta%V3(T)%Val(:,:, 9) = 0.271_sp   * REGR_4D(:,:,24,T) &
-                                  + 0.533_sp   * REGR_4D(:,:,25,T) &
-                                  + 0.196_sp   * REGR_4D(:,:,26,T)
+       ! Level 6:
+       Lct%Dct%Dta%V3(T)%Val(:,:, 6) = 2.20e-2_sp * REGR_4D(:,:,14,T) &
+                                     + 0.275_sp   * REGR_4D(:,:,15,T) &
+                                     + 0.275_sp   * REGR_4D(:,:,16,T) &
+                                     + 0.275_sp   * REGR_4D(:,:,17,T) &
+                                     + 0.173_sp   * REGR_4D(:,:,18,T)
+   
+       ! Level 7:
+       Lct%Dct%Dta%V3(T)%Val(:,:, 7) = 0.130_sp   * REGR_4D(:,:,18,T) &
+                                     + 0.345_sp   * REGR_4D(:,:,19,T) &
+                                     + 0.345_sp   * REGR_4D(:,:,20,T) &
+                                     + 0.170_sp   * REGR_4D(:,:,21,T)
+   
+       ! Level 8:
+       Lct%Dct%Dta%V3(T)%Val(:,:, 8) = 0.214_sp   * REGR_4D(:,:,21,T) &
+                                     + 0.416_sp   * REGR_4D(:,:,22,T) &
+                                     + 0.370_sp   * REGR_4D(:,:,23,T)
+   
+       ! Level 9:
+       Lct%Dct%Dta%V3(T)%Val(:,:, 9) = 5.49e-2_sp * REGR_4D(:,:,23,T) &
+                                     + 0.490_sp   * REGR_4D(:,:,24,T) &
+                                     + 0.455_sp   * REGR_4D(:,:,25,T)
+   
+       ! Level 10:
+       Lct%Dct%Dta%V3(T)%Val(:,:,10) = 4.06e-2_sp * REGR_4D(:,:,25,T) &
+                                     + 0.576_sp   * REGR_4D(:,:,26,T) &
+                                     + 0.383_sp   * REGR_4D(:,:,27,T)
+   
+       ! Level 11:
+       Lct%Dct%Dta%V3(T)%Val(:,:,11) = 0.254_sp   * REGR_4D(:,:,27,T) &
+                                     + 0.746_sp   * REGR_4D(:,:,28,T)
 
-    ! Level 10:
-    Lct%Dct%Dta%V3(T)%Val(:,:,10) = 0.396_sp   * REGR_4D(:,:,26,T) &
-                                  + 0.604_sp   * REGR_4D(:,:,27,T)
+       ! Level 12:
+       Lct%Dct%Dta%V3(T)%Val(:,:,12) = 1.60e-2_sp * REGR_4D(:,:,28,T) &
+                                     + 0.984_sp   * REGR_4D(:,:,29,T)
 
-    ! Level 11:
-    Lct%Dct%Dta%V3(T)%Val(:,:,11) = 3.63e-2_sp * REGR_4D(:,:,27,T) &
-                                  + 0.964_sp   * REGR_4D(:,:,28,T)
+    ENDIF
 
     ! Return with success
     RC = HCO_SUCCESS
