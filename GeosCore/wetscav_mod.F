@@ -163,6 +163,8 @@
 !                              SETUP_WETSCAV now just sets up quantities
 !  03 Sep 2015 - R. Yantosca - Remove WETDEPID routine, it's not needed
 !  22 Sep 2015 - R. Yantosca - Re-introduce GET_WETDEP_NSOL routine
+!  25 Sep 2015 - R. Yantosca - Use species database to collapse down routines
+!                              COMPUTE_F, RAINOUT, WASHOUT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -170,33 +172,35 @@
 ! !DEFINED PARAMETERS:
 !
       ! TINY number
-      REAL(fp), PARAMETER   :: TINY_FP = TINY(1.0_fp)
+      REAL(fp), PARAMETER           :: TINY_FP = TINY(1.0_fp)
 !
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER               :: NSOL            ! # of soluble species
+      INTEGER                       :: NSOL          ! # of soluble species
 
       ! Arrays
-      INTEGER,  ALLOCATABLE :: IDWETD(:    )   ! Index array for WETDEP
-      REAL(fp), ALLOCATABLE :: C_H2O (:,:,:)   ! Mixing ratio of H2O [v/v]
-      REAL(fp), ALLOCATABLE :: CLDICE(:,:,:)   ! Cloud ice mixing ratio
-                                               !  [cm3 ice/cm3 air]
-      REAL(fp), ALLOCATABLE :: CLDLIQ(:,:,:)   ! Cloud liquid water mix ratio
-                                               !  [cm3 H2O/cm3 air]
-      REAL(fp), ALLOCATABLE :: PDOWN (:,:,:)   ! Precipitation thru the
-                                               !  bottom of the grid box 
-                                               !  [cm3 H2O/cm2 area/s]
-      REAL(fp), ALLOCATABLE :: QQ    (:,:,:)   ! Rate of new precip formation
-                                               !  [cm3 H2O/cm3 air/s]
+      INTEGER,  ALLOCATABLE         :: IDWETD(:    ) ! Index array for WETDEP
+      REAL(fp), ALLOCATABLE, TARGET :: C_H2O (:,:,:) ! Mix ratio of H2O [v/v]
+      REAL(fp), ALLOCATABLE, TARGET :: CLDICE(:,:,:) ! Cloud ice mixing ratio
+                                                     !  [cm3 ice/cm3 air]
+      REAL(fp), ALLOCATABLE, TARGET :: CLDLIQ(:,:,:) ! Cloud liquid water
+                                                     !  mixing ratio
+                                                     !  [cm3 H2O/cm3 air]
+      REAL(fp), ALLOCATABLE         :: PDOWN (:,:,:) ! Precipitation thru the
+                                                     !  bottom of the grid box
+                                                     !  [cm3 H2O/cm2 area/s]
+      REAL(fp), ALLOCATABLE         :: QQ    (:,:,:) ! Rate of new precip
+                                                     !  formation
+                                                     !  [cm3 H2O/cm3 air/s]
 
       ! Define local shadow variables for values in Input_Opt
-      LOGICAL               :: LPRT
-      LOGICAL               :: LGTMM
-      LOGICAL               :: LSOILNOX
-      LOGICAL               :: LDYNOCEAN
-      LOGICAL               :: ITS_A_MERCURY_SIM
-      LOGICAL               :: ITS_A_POPS_SIM
+      LOGICAL                       :: LPRT
+      LOGICAL                       :: LGTMM
+      LOGICAL                       :: LSOILNOX
+      LOGICAL                       :: LDYNOCEAN
+      LOGICAL                       :: ITS_A_MERCURY_SIM
+      LOGICAL                       :: ITS_A_POPS_SIM
 
       CONTAINS
 !EOC
@@ -836,18 +840,16 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp), INTENT(IN)  :: KStar298    ! Henry's law constant @ 298 K   
-                                         !  [M/atm]
-      REAL(fp), INTENT(IN)  :: H298_R      ! Molar heat of formation @ 298 K / R 
-                                         !  [K]
-      REAL(fp), INTENT(IN)  :: TK          ! Temperature [K]
-      REAL(fp), INTENT(IN)  :: H2OLIQ      ! Liquid water content 
+      REAL(fp), INTENT(IN)  :: KStar298  ! Henry's law constant @ 298 K [M/atm]
+      REAL(fp), INTENT(IN)  :: H298_R    ! Molar heat of formation 
+                                         ! @ 298 K / R [K]
+      REAL(fp), INTENT(IN)  :: TK        ! Temperature [K]
+      REAL(fp), INTENT(IN)  :: H2OLIQ    ! Liquid water content 
                                          !  [cm3 H2O/cm3 air]
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp), INTENT(OUT) :: L2G         ! Cliq/Cgas ratio for given tracer  
-                                         !  [unitless]
+      REAL(fp), INTENT(OUT) :: L2G       ! Cliq/Cgas ratio [1]
 !
 ! !REMARKS:
 !  The ratio Cliq / Cgas is obtained via Henry's law.  The appropriate 
@@ -867,15 +869,15 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)              :: Kstar
+      REAL(fp)            :: Kstar
 !
 ! !DEFINED PARAMETERS:
 !
       ! R = universal gas constant [L*atm/moles/K]
-      REAL(fp), PARAMETER   :: R = 8.2057e-2_fp
+      REAL(fp), PARAMETER :: R = 8.2057e-2_fp
 
       ! INV_T0 = 1/298 K
-      REAL(fp), PARAMETER   :: INV_T0 = 1e+0_fp / 298e+0_fp
+      REAL(fp), PARAMETER :: INV_T0 = 1e+0_fp / 298e+0_fp
 
       !=================================================================
       ! COMPUTE_L2G begins here!
@@ -904,22 +906,19 @@
 ! !INTERFACE:
 !
       SUBROUTINE COMPUTE_F( am_I_Root, N,         F,         ISOL, 
-     &                      Input_Opt, State_Met, State_Chm, RC )
+     &                      Input_Opt, State_Met, State_Chm, RC    )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
+      USE CMN_Size_Mod
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE Species_Mod,        ONLY : Species
-      USE TRACERID_MOD
+      USE Tracerid_Mod
 #if defined( TOMAS )
-      USE TOMAS_MOD,          ONLY : IBINS
-      USE TOMAS_MOD,          ONLY : GETFRACTION
-      USE DAO_MOD,            ONLY : CONVERT_UNITS
-      USE UNITCONV_MOD
+      USE Tomas_Mod,          ONLY : GetFraction
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -1019,6 +1018,9 @@
 !                              homogeneous IN removal from Qiaoqiao Wang
 !  04 Sep 2015 - R. Yantosca - Use species database to radically simplify
 !                              the structure of this routine.
+!  25 Sep 2015 - R. Yantosca - Move the computation of the Ki rate (Eq. 1 from
+!                              Jacob et al 2000) into routine COMPUTE_Ki
+!  25 Sep 2015 - R. Yantosca - Remove T pointer, it's not needed here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1026,41 +1028,28 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL                :: LiqAndGas
-      INTEGER                :: N_TRACERS
-      INTEGER                :: I,         J,    L,         NN
-      REAL(fp)               :: L2G,       I2G,  C_TOT,     F_L
-      REAL(fp)               :: F_I,       K,    SO2LOSS,   K0   
-      REAL(fp)               :: CR,        pKa,  RetFactor, ConvFacI2G
-#if defined( TOMAS )
-      ! Scavenging fraction of TOMAS aerosols (win, 7/16/09)
-      REAL(fp)               :: SOLFRAC, XFRAC
-      REAL(fp)               :: MEAN_SFC_STT         ! use to get STT units 
-      LOGICAL                :: UNITCHANGE = .FALSE. ! Convert units of STT?
+      INTEGER                :: N_TRACERS, I, J, L
+      REAL(fp)               :: SO2LOSS,   Ki
 
-#endif
-
-      ! Arrays and pointers
+      ! Arrays
       REAL(fp)               :: KcScale(3)
-      REAL(fp),      POINTER :: T(:,:,:) => NULL()
-#if defined( TOMAS )
-      REAL(fp),      POINTER :: STT(:,:,:,:) => NULL()
-      REAL(fp)               :: TOM_SC_FRACTION(IIPAR,JJPAR,LLPAR,IBINS)
-#endif
+
+      ! Pointers
+      REAL(fp),      POINTER :: p_C_H2O  => NULL()
+      REAL(fp),      POINTER :: p_CLDICE => NULL()
+      REAL(fp),      POINTER :: p_CLDLIQ => NULL()
+      REAL(fp),      POINTER :: p_T      => NULL()
 
       ! Objects
-      TYPE(Species), POINTER :: ThisSpc => NULL()
+      TYPE(Species), POINTER :: ThisSpc  => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
       ! Kc is the conversion rate from cloud condensate to precip [s^-1]
-      REAL(fp),  PARAMETER   :: KC = 5e-3_fp
+      REAL(fp),  PARAMETER   :: Kc = 5e-3_fp
 
       !=================================================================
       ! COMPUTE_F begins here!
-      !
-      ! For aerosol tracers, compute F with internal routine F_AEROSOL.
-      ! ISOL = tracer index for the ND38 diagnostic.
       !=================================================================
 
       ! Assume success
@@ -1080,41 +1069,40 @@
          RETURN
       ENDIF
 
-      ! Point to the temperature field in State_Met
-      T => State_Met%T
-
       ! Temperature-dependent scale factors for the KC rate
       ! (conversion of cloud condensate -> precipitation)
-      KcScale = ThisSpc%WD_KcScaleFac
+      KcScale    = ThisSpc%WD_KcScaleFac
 
-      !-------------------------------
-      ! HNO3 (aerosol)
-      !-------------------------------
+      !=================================================================
+      ! %%% SPECIAL CASE #1: %%%
+      ! HNO3 scavenges like an aerosol although it is considered
+      ! to be a gas-phase species elsewhere (e.g. dry deposition)
+      !=================================================================
       IF ( N == IDTHNO3 ) THEN
          
          ! NOTE: HNO3 drydeps like gas, wetdeps like aerosol
-         !CALL F_AEROSOL( KC, N, F, State_Met )
-         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
+         CALL F_AEROSOL( KC, KcScale, State_Met, F )
          ISOL = GET_ISOL( N, N_TRACERS ) 
 
-      !------------------------------
-      ! SO2 (aerosol)
-      !------------------------------
+      !=================================================================
+      ! %%% SPECIAL CASE #2: %%%
+      ! SO2 scavenges like an aerosol although it is considered
+      ! to be a gas-phase species elsewhere (e.g. dry deposition)
+      !=================================================================
       ELSE IF ( N == IDTSO2 ) THEN
 
          ! Compute fraction of SO2 scavenged
-         !CALL F_AEROSOL( KC, N, F, State_Met )
-         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
+         CALL F_AEROSOL( KC, KcScale, State_Met, F )
          ISOL = GET_ISOL( N, N_TRACERS )
 
-         !==============================================================
+         !--------------------------------------------------------------
          ! Coupled full chemistry/aerosol simulation:
          ! Use the wet scavenging formula of Chin et al [1996], 
          ! such that a soluble fraction of SO2 is limited by the
          ! availability of H2O2 in the precipitating grid box. 
          ! Scavenge the soluble SO2 at the same rate as the sulfate.
          ! Update H2O2_sav and SO2_sav for use in RAINOUT, WASHOUT
-         !==============================================================
+         !--------------------------------------------------------------
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -1147,276 +1135,45 @@
          ENDDO
          ENDDO
 
-#if defined( TOMAS )
-
-      ! For use below
-      STT       => State_Chm%TRACERS
-
-      ! Tracer concentration units are in [kg/kg total air] if COMPUTE_F
-      ! is called during convection. TOMAS subroutine GETFRACTION
-      ! expects units in kg tracer. Therefore, convert State_Chm%Tracers 
-      ! to [kg] if currently in [kg/kg]. Use the average surface level 
-      ! concentration of tracer 1 to determine current units (ewl, 6/4/15)
-
-      ! Mean surface concentration of tracer 1
-      MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
-     &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
-
-      ! Convert units [kg/kg total air] -> [kg] if mean conc less than 0.1
-      ! (NOTE: this threshold may need to change)
-      IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
-         CALL Convert_MoistKgKg_to_Kg( am_I_Root, N_TRACERS, 
-     &                                  State_Met, State_Chm, RC )
-
-         ! Set flag indicating conversion change occurred
-         UNITCHANGE = .TRUE.
-
-      ENDIF
-
-      ! Added for size-resolved aerosol (win, 7/16/09)
-      !-------------------------------
-      ! H2SO4 (treat as aerosol)
-      !-------------------------------
-      ELSE IF ( N == IDTH2SO4 ) THEN
-         !CALL F_AEROSOL( KC, N, F, State_Met )
-         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
-         ISOL = GET_ISOL( N, N_TRACERS )
-
-      ! Added for size-resolved aerosol (win, 7/16/09)
-      !-------------------------------
-      ! Aerosol number NK1-NK30
-      !-------------------------------
-      ELSE IF ( IDTNK1 > 0 .and. N >= IDTNK1 .and. 
-     &          N <  IDTNK1 +  IBINS ) THEN
-         !CALL F_AEROSOL( KC, N, F, State_Met )
-         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
-         DO L = 2, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            CALL GETFRACTION( I, J, L, N, .FALSE., 
-     &                        XFRAC, SOLFRAC, State_Chm%Tracers  )
-            F(I,J,L) = XFRAC * SOLFRAC * F(I,J,L)                 
-!            TOM_SC_FRACTION(I,J,L,N-IDTNK1+1) = XFRAC
-!            F(I,J,L) = ACTIV_F( N, .FALSE. ) * F(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-        ISOL = GET_ISOL( N, N_TRACERS )
-         
-      !-------------------------------
-      ! Sulfate SF1-SF30
-      !-------------------------------
-      ELSE IF ( IDTSF1 > 0 .and. N >= IDTSF1 .and. 
-     &          N <  IDTSF1 +  IBINS ) THEN
-         !CALL F_AEROSOL( KC, N, F, State_Met )
-         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
-         DO L = 2, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-!sfarina - old
-!            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTSF1+1) * F(I,J,L)
-!new
-            CALL GETFRACTION( I, J, L, N, .FALSE., 
-     &                        XFRAC, SOLFRAC, State_Chm%Tracers )
-            F(I,J,L) = XFRAC * F(I,J,L)                 
-         ENDDO
-         ENDDO
-         ENDDO
-         ISOL = GET_ISOL( N, N_TRACERS )
-         
-      !-------------------------------
-      ! Sea-salt SS1-SS30
-      !-------------------------------
-      ELSE IF ( IDTSS1 > 0 .and. N >= IDTSS1 .and. 
-     &          N <  IDTSS1 +  IBINS ) THEN
-         !CALL F_AEROSOL( KC, N, F, State_Met )
-         CALL F_AEROSOL( KC, KcScale, N, State_Met, F ) 
-         DO L = 2, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-!            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTSS1+1) * F(I,J,L)
-            CALL GETFRACTION( I, J, L, N, .FALSE., 
-     &                        XFRAC, SOLFRAC, State_Chm%Tracers )
-            F(I,J,L) = XFRAC * F(I,J,L)                 
-         ENDDO
-         ENDDO
-         ENDDO
-         ISOL = GET_ISOL( N, N_TRACERS )
-         
-      !-------------------------------
-      ! Hydrophilic EC ECIL1-ECIL30 
-      !-------------------------------
-      ELSE IF ( IDTECIL1 > 0 .and. N >= IDTECIL1 .and. 
-     &          N <  IDTECIL1 +  IBINS ) THEN
-         !CALL F_AEROSOL( KC, N, F, State_Met )
-         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
-         DO L = 2, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-!            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTECIL1+1) * F(I,J,L)
-            CALL GETFRACTION( I, J, L, N, .FALSE., 
-     &                        XFRAC, SOLFRAC, State_Chm%Tracers )
-            F(I,J,L) = XFRAC * F(I,J,L)                 
-         ENDDO
-         ENDDO
-         ENDDO
-         ISOL = GET_ISOL( N, N_TRACERS )
-         
-      !-------------------------------
-      ! Hydrophilic OC OCIL1-OCIL30 
-      !-------------------------------
-      ELSE IF ( IDTOCIL1 > 0 .and. N >= IDTOCIL1 .and. 
-     &          N <  IDTOCIL1 +  IBINS ) THEN
-         !CALL F_AEROSOL( KC, N, F, State_Met )
-         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )  
-         DO L = 2, LLPAR
-         DO J = 1, JJPAR
-
-         DO I = 1, IIPAR
-!            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTOCIL1+1) * F(I,J,L)
-            CALL GETFRACTION( I, J, L, N, .FALSE., 
-     &                        XFRAC, SOLFRAC, State_Chm%Tracers )
-            F(I,J,L) = XFRAC * F(I,J,L)                 
-         ENDDO
-         ENDDO
-         ENDDO
-         ISOL = GET_ISOL( N, N_TRACERS )
-         
-      !-------------------------------
-      ! Hydrophobic OC OCOB1-OCOB30 
-      !-------------------------------
-      ELSE IF ( IDTOCOB1 > 0 .and. N >= IDTOCOB1 .and. 
-     &          N <  IDTOCOB1 +  IBINS ) THEN
-         !CALL F_AEROSOL( KC, N, F, State_Met )
-         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
-         DO L = 2, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-!            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTOCOB1+1) * F(I,J,L)
-            CALL GETFRACTION( I, J, L, N, .FALSE., 
-     &                        XFRAC, SOLFRAC, State_Chm%Tracers )
-            F(I,J,L) = XFRAC * F(I,J,L)                 
-         ENDDO
-         ENDDO
-         ENDDO
-         ISOL = GET_ISOL( N, N_TRACERS )
-         
-      !-------------------------------
-      ! Dust DUST1-DUST30 
-      !-------------------------------
-      ELSE IF ( IDTDUST1 > 0 .and. N >= IDTDUST1 .and. 
-     &          N <  IDTDUST1 +  IBINS ) THEN
-         !CALL F_AEROSOL( KC, N, F, State_Met )
-         CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
-         DO L = 2, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-!            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTDUST1+1) * F(I,J,L)
-            CALL GETFRACTION( I, J, L, N, .FALSE., 
-     &                        XFRAC, SOLFRAC, State_Chm%Tracers )
-            F(I,J,L) = XFRAC * F(I,J,L)                 
-         ENDDO
-         ENDDO
-         ENDDO
-         ISOL = GET_ISOL( N, N_TRACERS )
-         
-      !(end part) Added for size-resolved aerosol (win, 7/16/09)
-
-      ! Convert State_Chm%Tracers units back to kg/kg total air 
-      ! if conversion occurred at start of TOMAS block (ewl, 6/23/15)
-      IF ( UNITCHANGE ) THEN
-         CALL Convert_Kg_to_MoistKgKg( am_I_Root, N_TRACERS, 
-     &                                  State_Met, State_Chm, RC )
-      ENDIF
-
-      ! Free pointer
-      STT => NULL()
-#endif
-
+      !=================================================================
+      ! For all other species that do not require special handling,
+      ! compute the fraction of species scavenged in updrafts.
+      !=================================================================
       ELSE 
 
-         !===============================================================
-         ! Compute fraction of soluble species scavenged in updrafts
-         ! Most species that don't need special handling can go here
-         !===============================================================
-
+         !--------------------------------------------------------------
+         ! Soluble gas-phase species
+         !--------------------------------------------------------------
          IF ( ThisSpc%Is_Gas ) THEN
 
-            !-----------------------------------------------------------
-            ! Soluble gas-phase species
-            !-----------------------------------------------------------
-
             ! No scavenging at the surface
-            F(:,:,1)   = 0.0_fp
+            F(:,:,1) = 0.0_fp
 
-            ! Get Henry's law parameters
-            K0         = ThisSpc%Henry_K0
-            CR         = ThisSpc%Henry_CR
-            !pKa        = ThisSpc%Henry_pKa       !  Leave for future use
-
-            ! NOTE: The routine COMPUTE_L2G assumes that the
-            ! Henry's CR parameter is negative.  The CR value stored
-            ! in the species database is positive, so flip the sign.
-            CR         = -CR
-
-            ! Get wetdep retention factor 
-            RetFactor  = ThisSpc%WD_RetFactor
-
-            ! Get conversion factor for ice/gas ratio 
-            LiqAndGas  = ThisSpc%WD_LiqAndGas
-            ConvFacI2G = ThisSpc%WD_ConvFacI2G
-            
             ! Start scavenging at level 2
             DO L = 2, LLPAR
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 
-               IF ( LiqAndGas ) THEN
+               ! Set pointers
+               p_C_H2O  => C_H2O (I,J,L)
+               p_CLDICE => CLDICE(I,J,L)
+               p_CLDLIQ => CLDLIQ(I,J,L)
+               p_T      => State_Met%T(I,J,L)
 
-                  ! For species that consider ice and liquid phases
-                  ! in wet deposition, compute ice to gas ratio for by 
-                  ! co-condensation (Eq. 9, Jacob et al, 2000)
-                  IF ( C_H2O(I,J,L) > 0e+0_fp ) THEN 
-                     I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * ConvFacI2G
-                  ELSE
-                     I2G = 0.0_fp
-                  ENDIF
+               ! Compute Ki, the loss rate of a gas-phase species from
+               ! the convective updraft (Eq. 1, Jacob et al, 2000)
+               CALL COMPUTE_Ki( ThisSpc,  p_C_H2O, p_CLDICE,
+     &                          p_CLDLIQ, Kc,      p_T,      Ki )
 
-               ELSE
-                  
-                  ! For all other species, set the ice/gas ratio to zero
-                  I2G = 0.0_fp
-
-               ENDIF
-
-               ! Compute liquid to gas ratio for using 
-               ! the appropriate parameters for Henry's law
-               ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-               CALL COMPUTE_L2G( K0, CR, T(I,J,L), CLDLIQ(I,J,L), L2G )
-
-               ! Fraction of species in liquid & ice phases
-               ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-               C_TOT = 1.0_fp + L2G + I2G
-               F_L   = L2G / C_TOT
-               F_I   = I2G / C_TOT
-
-               ! Compute the rate constant K.
-               ! (Eq. 1, Jacob et al, 2000)
-               IF ( T(I,J,L) >= 268.0_fp ) THEN
-                  K = KC * ( F_L + F_I )
- 
-               ELSE IF ( T(I,J,L) > 248.0_fp  .and. 
-     &                   T(I,J,L) < 268.0_fp ) THEN
-                  K = KC * ( ( RetFactor * F_L ) + F_I ) 
-
-               ELSE
-                  K = KC * F_I
-                  
-               ENDIF
+               ! Free pointers
+               p_C_H2O  => NULL()
+               p_CLDICE => NULL()
+               p_CLDLIQ => NULL()
+               p_T      => NULL()
 
                ! Compute F, the fraction of scavenged H2O2.
                ! (Eq. 2, Jacob et al, 2000)
-               F(I,J,L) = GET_F( State_Met, I, J, L, K )
+               F(I,J,L) = GET_F( State_Met, I, J, L, Ki )
 
             ENDDO
             ENDDO
@@ -1427,36 +1184,196 @@
 
          ELSE
 
+            !-----------------------------------------------------------
+            ! Size-resolved soluble aerosol species
+            ! (Microphysics simulations only)
+            !-----------------------------------------------------------
+            IF ( ThisSpc%MP_SizeResAer ) THEN
+
+#if defined( TOMAS )
+               ! Get the fraction of tracer scavenged in updrafts
+               ! NOTE: The surface layer F(:,:,1) will be returned
+               ! as zero, to shut off scavenging at the surface
+               CALL F_AEROSOL( KC, KcScale, State_Met, F )
+
+               ! Adjust F for size-resolved aerosol (multiply by XFRAC)
+               DO L = 2, LLPAR
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+                  CALL GETFRACTION( I,        J,               L,
+     &                              N,       .FALSE.,          XFRAC,
+     &                              SOLFRAC,  State_Chm%Tracers       )
+                  F(I,J,L) = XFRAC * F(I,J,L)
+               ENDDO
+               ENDDO
+               ENDDO
+               ISOL = GET_ISOL( N, N_TRACERS )
+#endif
 
             !-----------------------------------------------------------
-            ! Soluble aerosol species
+            ! Size-resolved aerosol number
+            ! (Microphysics simulations only)
             !-----------------------------------------------------------
+            ELSE IF ( ThisSpc%MP_SizeResNum ) THEN
 
-            ! Get the fraction of tracer scavenged in updrafts'
-            ! NOTE: The surface layer F(:,:,1) will be returned
-            ! as zero, to shut off scavenging at the surface
-            !CALL F_AEROSOL( KC, N, F, State_Met )
-            CALL F_AEROSOL( KC, KcScale, N, State_Met, F )
+#if defined( TOMAS )
+               ! Get the fraction of tracer scavenged in updrafts
+               ! NOTE: The surface layer F(:,:,1) will be returned
+               ! as zero, to shut off scavenging at the surface
+               CALL F_AEROSOL( KC, KcScale, State_Met, F )
 
-            ! Multiply by the aerosol scavenging efficiency
-            ! For most species this is 1.0
-            ! For SOA species this is usually 0.8
-            IF ( ThisSpc%WD_AerScavEff > 0.0_fp ) THEN
-               F = F * ThisSpc%WD_AerScavEff
+               ! Adjust F for size-resolved aerosol number
+               ! (multiply by XFRAC * SOLFRAC)
+               DO L = 2, LLPAR
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+                  CALL GETFRACTION( I,        J,               L,
+     &                              N,       .FALSE.,          XFRAC,
+     &                              SOLFRAC,  State_Chm%Tracers       )
+                  F(I,J,L) = XFRAC * SOLFRAC * F(I,J,L)
+               ENDDO
+               ENDDO
+               ENDDO
+               ISOL = GET_ISOL( N, N_TRACERS )
+#endif
+
+            !-----------------------------------------------------------
+            ! Soluble aerosol species (non-size-resolved)
+            !-----------------------------------------------------------
+            ELSE
+
+               ! Get the fraction of tracer scavenged in updrafts
+               ! NOTE: The surface layer F(:,:,1) will be returned
+               ! as zero, to shut off scavenging at the surface
+               CALL F_AEROSOL( KC, KcScale, State_Met, F )
+
+               ! Multiply by the aerosol scavenging efficiency
+               ! For most species this is 1.0
+               ! For SOA species this is usually 0.8
+               IF ( ThisSpc%WD_AerScavEff > 0.0_fp ) THEN
+                  F = F * ThisSpc%WD_AerScavEff
+               ENDIF
+
+               ! Wetdep species index for ND38 diagnostic
+               ISOL = GET_ISOL( N, N_TRACERS )
+
             ENDIF
-
-            ! Wetdep species index for ND38 diagnostic
-            ISOL = GET_ISOL( N, N_TRACERS )
-
          ENDIF
+      ENDIF
+
+      ! Nullify pointers
+      ThisSpc  => NULL()
+
+      END SUBROUTINE COMPUTE_F
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: compute_ki
+!
+! !DESCRIPTION: Subroutine COMPUTE\_Ki computes the loss of tracer
+!  by scavenging according to Jacob et al 2000, eq. 1.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE COMPUTE_Ki( ThisSpc, C_H2O, CLDICE, CLDLIQ, Kc, T, Ki )
+!
+! !USES:
+!
+      USE Species_Mod, ONLY : Species
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(Species), INTENT(IN)  :: ThisSpc  ! Species database object
+      REAL(fp),      INTENT(IN)  :: C_H2O    ! Mixing ratio of H2O [v/v]
+      REAL(fp),      INTENT(IN)  :: CLDICE   ! Cloud ice mixing ratio
+                                             !  [cm3 ice/cm3 air]
+      REAL(fp),      INTENT(IN)  :: CLDLIQ   ! Cloud liquid water mix ratio
+                                             !  [cm3 H2O/cm3 air]
+      REAL(fp),      INTENT(IN)  :: Kc       ! Rate for conversion of cloud
+                                             !  condensate -> precip [1/s]
+      REAL(fp),      INTENT(IN)  :: T        ! Temperature [K]
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL(fp),      INTENT(OUT) :: Ki       ! Loss of species from updraft
+                                             !  (cf Eq. 1, Jacob et al, 2000)
+!
+! !REMARKS:
+!  This routine centralizes computations that are used in routines
+!  COMPUTE_F and RAINOUT.
+!
+! !REVISION HISTORY:
+!  25 Sep 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      REAL(fp) :: L2G, I2G, C_TOT, F_L, F_I, K0, CR, pKa
+
+      !=================================================================
+      ! COMPUTE_Ki begins here!
+      !=================================================================
+
+      ! Get Henry's law parameters
+      K0   = ThisSpc%Henry_K0
+      CR   = ThisSpc%Henry_CR
+      !pKa  = ThisSpc%Henry_pKa       !  Leave for future use
+
+      ! NOTE: The routine COMPUTE_L2G assumes that the
+      ! Henry's CR parameter is negative.  The CR value stored
+      ! in the species database is positive, so flip the sign.
+      CR   = -CR
+
+      IF ( ThisSpc%WD_LiqAndGas ) THEN
+
+         ! For species that consider ice and liquid phases
+         ! in wet deposition, compute ice to gas ratio for by
+         ! co-condensation (Eq. 9, Jacob et al, 2000)
+         IF ( C_H2O > 0.0_fp ) THEN
+            I2G = ( CLDICE / C_H2O ) * ThisSpc%WD_ConvFacI2G
+         ELSE
+            I2G = 0.0_fp
+         ENDIF
+
+      ELSE
+
+         ! For all other species, set the ice/gas ratio to zero
+         I2G = 0.0_fp
 
       ENDIF
 
-      ! Free pointers
-      T       => NULL()
-      ThisSpc => NULL()
+      ! Compute liquid to gas ratio for using 
+      ! the appropriate parameters for Henry's law
+      ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
+      CALL COMPUTE_L2G( K0, CR, T, CLDLIQ, L2G )
 
-      END SUBROUTINE COMPUTE_F
+      ! Fraction of species in liquid & ice phases
+      ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+      C_TOT = 1.0_fp + L2G + I2G
+      F_L   = L2G / C_TOT
+      F_I   = I2G / C_TOT
+
+      ! Compute the rate constant Ki for loss of species from
+      ! convective updraft scavenging (Eq. 1, Jacob et al, 2000)
+      IF ( T >= 268.0_fp ) THEN
+         Ki = KC * ( F_L + F_I )
+
+      ELSE IF ( T > 248.0_fp  .and. T < 268.0_fp ) THEN
+         Ki = KC * ( ( ThisSpc%WD_RetFactor * F_L ) + F_I )
+
+      ELSE
+         Ki = KC * F_I
+
+      ENDIF
+
+      END SUBROUTINE COMPUTE_Ki
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1471,7 +1388,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE F_AEROSOL( KC, KcScale, N, State_Met, F )
+      SUBROUTINE F_AEROSOL( KC, KcScale, State_Met, F )
 !
 ! !USES:
 !
@@ -1486,7 +1403,6 @@
       REAL(fp),       INTENT(IN)  :: KcScale(3)           ! Scale factors for Kc
                                                           !  for 3 temperature
                                                           !  regimes
-      INTEGER,        INTENT(IN)  :: N                    ! Tracer number
       TYPE(MetState), INTENT(IN)  :: State_Met            ! Meteorology State
 !
 ! !OUTPUT PARAMETERS:
@@ -1504,6 +1420,8 @@
 !  10 Nov 2014 - C. Keller   - Now also apply TINY check in ESMF environment.
 !  23 Jun 2015 - M. Sulprizio- Add impaction scavenging for hydrophobic BC and
 !                              homogeneous IN removal from Qiaoqiao Wang
+!  25 Sep 2015 - R. Yantosca - Rewrite this routine to avoid testing on the
+!                              tracer number.  Remove the N argument.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1528,40 +1446,6 @@
       DO L = 2, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
-!------------------------------------------------------------------------------
-!         ! snow vs rain (qq, 10/11/2011)
-!         IF ( State_Met%T(I,J,L) >= 258.0_fp ) THEN
-!
-!             IF ( N == IDTBCPO     .or. N == IDTOCPO       .or.
-!     &            N == IDTPOA1     .or. N == IDTPOA2       .or.
-!     &            N == IDTPOPPOCPO .or. N == IDTPOPPBCPO ) THEN
-!                FF = 0.5_fp
-!             ELSE
-!                FF = 1.0_fp
-!             ENDIF
-!
-!         ELSE IF ( State_Met%T(I,J,L) < 237.0_fp ) THEN
-!
-!             IF ( N == IDTOCPO .or. N == IDTPOPPOCPO    .or.
-!     &            N == IDTPOA1 .or. N == IDTPOA2     )  THEN
-!                FF = 0.5_fp
-!             ELSE
-!                FF = 1.0_fp
-!             ENDIF
-!
-!         ELSE   
-!            
-!            IF ( N == IDTBCPO .or. N == IDTHNO3       .or.
-!     &           N == IDTDST1 .or. N == IDTDST2       .or.
-!     &           N == IDTDST3 .or. N == IDTDST4       .or.
-!     &           N == IDTMOPO .or. N == IDTPOPPBCPO ) THEN
-!               FF = 1.0_fp
-!            ELSE 
-!               FF = 0.5_fp
-!            ENDIF       
-!         ENDIF
-!------------------------------------------------------------------------------
 
          ! Apply temperature-dependent scale factors to the KC rate for ..
          IF ( State_Met%T(I,J,L) < 237.0_fp ) THEN
@@ -1590,7 +1474,6 @@
       ENDDO
       ENDDO
       
-
       END SUBROUTINE F_AEROSOL 
 !EOC
 !------------------------------------------------------------------------------
@@ -1694,16 +1577,13 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
-      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE CMN_Size_Mod
+      USE Error_Mod,          ONLY : Error_Stop
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE Species_Mod,        ONLY : Species
-      USE TRACERID_MOD
-#if defined( TOMAS )
-      USE TOMAS_MOD,          ONLY : ICOMP,   IBINS
-#endif
+      USE Tracerid_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1717,6 +1597,9 @@
                                                 !  precipitating [unitless]
       TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input options
       TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(ChmState), INTENT(IN)  :: State_Chm  ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
@@ -1777,6 +1660,9 @@
 !  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !  23 Sep 2015 - R. Yantosca - Use the species database to eliminate many
 !                              IF blocks to simplify the code logic
+!  25 Sep 2015 - R. Yantosca - Now call routine COMPUTE_Ki to compute the
+!                              rate of scavenging (Eq. 1, Jacob et al 2000)
+!  25 Sep 2015 - R. Yantosca - Now define THREADPRIVATE pointers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1784,28 +1670,34 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL       :: LiqAndGas
-      REAL(fp)      :: L2G,        I2G, C_TOT, F_L
-      REAL(fp)      :: F_I,        K,   TK,    SO2LOSS
-      REAL(fp)      :: RetFactor,  K0,  CR,    pKa
-      REAL(fp)      :: ConvFacI2G
+      REAL(fp)                     :: Ki, SO2LOSS
+
+      ! Pointers (add SAVE to make them THREADPRIVATE)
+      REAL(fp),      POINTER, SAVE :: p_C_H2O  => NULL()
+      REAL(fp),      POINTER, SAVE :: p_CLDICE => NULL()
+      REAL(fp),      POINTER, SAVE :: p_CLDLIQ => NULL()
+      REAL(fp),      POINTER, SAVE :: p_T      => NULL()
 
       ! Objects
-      TYPE(Species) :: ThisSpc
+      TYPE(Species), POINTER, SAVE :: ThisSpc  => NULL()
+
+      ! Need to declare the pointers and objects THREADPRIVATE
+      ! because RAINOUT is called from within a parallel loop
+!$OMP THREADPRIVATE( p_C_H2O, p_CLDICE, p_CLDLIQ, p_T, ThisSpc )
 
       !==================================================================
       ! RAINOUT begins here!
       !
-      ! For aerosols, set K = K_RAIN and compute RAINFRAC according
+      ! For aerosols, set Kc = K_RAIN and compute RAINFRAC according
       ! to Eq. 10 of Jacob et al 2000.  Call function GET_RAINFRAC.
       !==================================================================
 
-      ! Save the local temperature in TK for convenience
-      TK = State_Met%T(I,J,L)
-
-      ! Get info about this species from the species database
-      ! NOTE: Do a copy to avoid problems w/ unallocated pointers!
-      ThisSpc = State_Chm%SpcData(N)%Info
+      ! Set pointers
+      p_C_H2O  => C_H2O (I,J,L)
+      p_CLDICE => CLDICE(I,J,L)
+      p_CLDLIQ => CLDLIQ(I,J,L)
+      p_T      => State_Met%T(I,J,L)
+      ThisSpc  => State_Chm%SpcData(N)%Info
 
       !=================================================================
       ! Compute rainout fraction for SO2 (also update SO2s, H2O2s)
@@ -1826,9 +1718,7 @@
 
             ! Apply temperature-dependent rainout efficiencies
             ! This accounts for impaction scavenging of certain aerosols
-            CALL APPLY_RAINOUT_EFF( TK, 
-     &                              ThisSpc%WD_RainoutEff, 
-     &                              RAINFRAC               )
+            CALL APPLY_RAINOUT_EFF( p_T, ThisSpc, RAINFRAC )
 
             ! Limit RAINFRAC 
             SO2LOSS      = MIN( SO2s(I,J,L), H2O2s(I,J,L) )
@@ -1856,76 +1746,19 @@
       !=================================================================
       ELSE IF ( ThisSpc%Is_Gas ) THEN 
 
-         ! Get Henry's law parameters
-         K0         = ThisSpc%Henry_K0
-         CR         = ThisSpc%Henry_CR
-         !pKa         = ThisSpc%Henry_pKa       !  Leave for future use
+         ! Compute Ki, the loss rate of a gas-phase species from
+         ! the convective updraft (Eq. 1, Jacob et al, 2000)
+         CALL COMPUTE_Ki( ThisSpc,  p_C_H2O, p_CLDICE,
+     &                    p_CLDLIQ, K_RAIN,  p_T,      Ki )
 
-         ! NOTE: The routine COMPUTE_L2G assumes that the
-         ! Henry's CR parameter is negative.  The CR value stored
-         ! in the species database is positive, so flip the sign.
-         CR         = -CR
-
-         ! Get wetdep retention factor 
-         RetFactor  = ThisSpc%WD_RetFactor
-
-         ! Get conversion factor for ice/gas ratio 
-         LiqAndGas  = ThisSpc%WD_LiqAndGas
-         ConvFacI2G = ThisSpc%WD_ConvFacI2G
-
-         IF ( LiqAndGas ) THEN 
-
-            ! For species that consider ice and liquid phases
-            ! in wet deposition, compute ice to gas ratio for by 
-            ! co-condensation (Eq. 9, Jacob et al, 2000)
-            ! (Eq. 9, Jacob et al, 2000)
-            IF ( C_H2O(I,J,L) > 0e+0_fp ) THEN 
-               I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * ConvFacI2G
-            ELSE
-               I2G = 0e+0_fp
-            ENDIF
-
-         ELSE
-                
-            ! For all other species, set the ice/gas ratio to zero
-            I2G = 0.0_fp
-
-         ENDIF
-
-         ! Compute liquid to gas ratio, using the
-         ! appropriate parameters for Henry's law
-         ! (Eqs. 7, 8 and Table 1, Jacob et al, 2000)
-         CALL COMPUTE_L2G( K0, CR, TK, CLDLIQ(I,J,L), L2G )
-
-         ! Fraction of species in liquid & ice phases
-         ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-         C_TOT = 1e+0_fp + L2G + I2G
-         F_L   = L2G / C_TOT
-         F_I   = I2G / C_TOT
-
-         ! Compute the rate constant K
-         ! (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268.0_fp ) THEN
-            K = K_RAIN * ( F_L + F_I ) 
-               
-         ELSE IF ( TK > 248.0_fp  .and. TK < 268.0_fp ) THEN
-            K = K_RAIN * ( ( RetFactor * F_L ) + F_I ) 
-
-         ELSE 
-            K = K_RAIN * F_I
-                  
-         ENDIF
 
          ! Compute RAINFRAC, the fraction of rained-out H2O2
          ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT )
+         RAINFRAC = GET_RAINFRAC( Ki, F, DT )
 
       !=================================================================
       ! Compute rainout fraction for aerosol species
       ! (except for SO2, which is treated specially above)
-      !
-      ! NOTE: Rainout will be suppressed at colder temperatures for
-      ! most aerosol species.  See the code immediately below.
       !=================================================================
       ELSE
 
@@ -1934,9 +1767,16 @@
 
          ! Apply temperature-dependent rainout efficiencies
          ! This accounts for impaction scavenging of certain aerosols
-         CALL APPLY_RAINOUT_EFF( TK, ThisSpc%WD_RainoutEff, RAINFRAC )
+         CALL APPLY_RAINOUT_EFF( p_T, ThisSpc, RAINFRAC )
 
       ENDIF
+
+      ! Free pointers
+      p_C_H2O  => NULL()
+      p_CLDICE => NULL()
+      p_CLDLIQ => NULL()
+      p_T      => NULL()
+      ThisSpc  => NULL()
 
       END SUBROUTINE RAINOUT
 !EOC
@@ -1962,16 +1802,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE APPLY_RAINOUT_EFF( TK, RainoutEff, RainFrac )
+      SUBROUTINE APPLY_RAINOUT_EFF( TK, ThisSpc, RainFrac )
+!
+! !USES:
+!
+      USE Species_Mod, ONLY : Species
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp), INTENT(IN)    :: TK              ! Temperature [K]
-      REAL(fp), INTENT(IN)    :: RainoutEff(3)   ! Rainout efficiencies
+      REAL(fp),      INTENT(IN)    :: TK         ! Temperature [K]
+      TYPE(Species), INTENT(IN)    :: ThisSpc    ! Species Database object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp), INTENT(INOUT) :: RAINFRAC        ! Rainout fraction
+      REAL(fp),      INTENT(INOUT) :: RainFrac   ! Rainout fraction
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
@@ -1986,17 +1830,17 @@
       IF ( TK < 237.0_fp ) THEN 
 
          ! Ice: T < 237 K
-         RAINFRAC = RAINFRAC * RainoutEff(1)
+         RainFrac = RainFrac * ThisSpc%WD_RainoutEff(1)
 
       ELSE IF ( TK >= 237.0_fp .and. TK < 258.0_fp ) THEN
 
          ! Snow: 237 K <= T < 258 K
-         RAINFRAC = RAINFRAC * RainoutEff(2)
+         RainFrac = RainFrac * ThisSpc%WD_RainoutEff(2)
 
       ELSE
             
          ! Liquid rain: T > 258 K
-         RAINFRAC = RAINFRAC * RainoutEff(3)
+         RainFrac = RainFrac * ThisSpc%WD_RainoutEff(3)
 
       ENDIF
 
@@ -2198,14 +2042,6 @@
       ! Pointers
       TYPE(Species), POINTER :: ThisSpc
 
-
-#if defined( TOMAS )
-      REAL(fp)               :: MEAN_SFC_STT         ! use to get STT units 
-      LOGICAL                :: UNITCHANGE = .FALSE. ! STT unit conv indicator
-      INTEGER                :: N_TRACERS
-      REAL(fp),      POINTER :: STT(:,:,:,:) => NULL()
-#endif
-
       !=================================================================
       ! WASHOUT begins here!
       !
@@ -2300,7 +2136,21 @@
 
          ELSE
 
-            IF ( ThisSpc%WD_CoarseAer ) THEN
+            IF ( ThisSpc%MP_SizeResAer .or. ThisSpc%MP_SizeResNum ) THEN
+
+               !--------------------------------------------------------
+               ! Washout for size-resolved aerosol species or
+               ! size-resolved aerosol number (e.g. from TOMAS)
+               !--------------------------------------------------------
+#if defined( TOMAS )
+               !%%% This will break the TOMAS code.
+               !%%% Handle this later (bmy, 9/25/15)
+               KIN      = .TRUE.
+               WASHFRAC = WASHFRAC_SIZE_AEROSOL
+     &            ( DT, F, PP, TK, N, I, J, L, State_Met, State_Chm )
+#endif
+
+            ELSE IF ( ThisSpc%WD_CoarseAer ) THEN
 
                !--------------------------------------------------------
                ! Washout for coarse aerosol species (Reff >= 1um)
@@ -2331,125 +2181,6 @@
 
       ENDIF
 
-! NOTE: Need to bring the TOMAS updates in here as well 
-!
-!#if defined( TOMAS )
-!
-!      ! Define fields for use below
-!      STT       => State_Chm%TRACERS
-!      N_TRACERS =  Input_Opt%N_TRACERS
-!
-!      ! Tracer concentration units are in [kg/kg total air] if WASHOUT
-!      ! is called during convection. TOMAS subroutine GETFRACTION
-!      ! expects units in kg tracer. Therefore, convert State_Chm%Tracers 
-!      ! to [kg] if currently in [kg/kg]. Use the average surface level 
-!      ! concentration of tracer 1 to determine current units (ewl, 6/23/15)
-!
-!      ! Mean surface concentration of tracer 1
-!      MEAN_SFC_STT = SUM( STT(:,:,1,1) ) / 
-!     &                    ( SIZE( STT, dim=1 ) * SIZE( STT, dim=2 ) )
-!
-!      ! Convert units [kg/kg total air] -> [kg] if mean conc less than 0.1
-!      ! (NOTE: this threshold may need to change)
-!      IF ( MEAN_SFC_STT < 1.0e-1_fp ) THEN
-!         CALL Convert_MoistKgKg_to_Kg( am_I_Root, N_TRACERS, 
-!     &                                  State_Met, State_Chm, RC )
-!
-!         ! Set flag indicating unit conversion occurred so that reverse
-!         ! unit conversion happens at end
-!         UNITCHANGE = .TRUE.
-!
-!      ENDIF
-!
-!      !=================================================================
-!      ! FOR TOMAS MICROPHYSICS
-!      !=================================================================
-!
-!      ! Added for size-resolved aerosol (win, 7/16/09)
-!      !-------------------------------
-!      ! H2SO4 (treat as aerosol)
-!      !-------------------------------
-!      ELSE IF ( N == IDTH2SO4 ) THEN
-!         KIN      = .TRUE.
-!         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
-!
-!      ! Added for size-resolved aerosol (win, 7/16/09)
-!      !-------------------------------
-!      ! Aerosol number NK1-NK30
-!      !-------------------------------
-!      ELSE IF ( IDTNK1 > 0 .and. N >= IDTNK1 .and. 
-!     &          N <  IDTNK1 + IBINS ) THEN
-!         KIN      = .TRUE.
-!         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-!     &                                     State_Met, State_Chm )
-!         
-!      !-------------------------------
-!      ! Sulfate SF1-SF30
-!      !-------------------------------
-!      ELSE IF ( IDTSF1 > 0 .and. N >= IDTSF1 .and. 
-!     &          N <  IDTSF1 + IBINS ) THEN
-!         KIN      = .TRUE.
-!         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-!     &                                     State_Met, State_Chm )
-!         
-!      !-------------------------------
-!      ! Sea-salt SS1-SS30
-!      !-------------------------------
-!      ELSE IF ( IDTSS1 > 0 .and. N >= IDTSS1 .and. 
-!     &          N <  IDTSS1 + IBINS ) THEN
-!         KIN      = .TRUE.
-!         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-!     &                                     State_Met, State_Chm )
-!         
-!      !-------------------------------
-!      ! Hydrophilic EC ECIL1-ECIL30
-!      !-------------------------------
-!      ELSE IF ( IDTECIL1 > 0 .and. N >= IDTECIL1 .and. 
-!     &          N <  IDTECIL1 + IBINS ) THEN
-!         KIN      = .TRUE.
-!         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-!     &                                     State_Met, State_Chm )
-!         
-!      !-------------------------------
-!      ! Hydrophilic OC OCIL1-OCIL30
-!      !-------------------------------
-!      ELSE IF ( IDTOCIL1 > 0 .and. N >= IDTOCIL1 .and. 
-!     &          N <  IDTOCIL1 + IBINS ) THEN
-!         KIN      = .TRUE.
-!         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-!     &                                     State_Met, State_Chm )
-!         
-!      !-------------------------------
-!      ! Hydrophobic OC OCOB1-OCOB30
-!      !-------------------------------
-!      ELSE IF ( IDTOCOB1 > 0 .and. N >= IDTOCOB1 .and. 
-!     &          N <  IDTOCOB1 + IBINS ) THEN
-!         KIN      = .TRUE.
-!         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-!     &                                     State_Met, State_Chm )
-!         
-!      !-------------------------------
-!      ! Dust DUST1-DUST30
-!      !-------------------------------
-!      ELSE IF ( IDTDUST1 > 0 .and. N >= IDTDUST1 .and. 
-!     &          N <  IDTDUST1 + IBINS ) THEN
-!         KIN      = .TRUE.
-!         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-!     &                                     State_Met, State_Chm )
-!
-!      ! (end part) Added for size-resolved aerosol (win, 7/16/09)
-!
-!      ! Convert State_Chm%Tracers units back to kg/kg total air 
-!      ! if conversion occurred at start of TOMAS block (ewl, 5/12/15)
-!      IF ( UNITCHANGE ) THEN
-!         CALL Convert_Kg_to_MoistKgKg( am_I_Root, N_TRACERS, 
-!     &                                  State_Met, State_Chm, RC )
-!      ENDIF
-!
-!      ! Free pointers
-!      STT => NULL()
-!#endif
-
       ! Free pointer
       ThisSpc => NULL()
 
@@ -2476,17 +2207,17 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp), INTENT(IN) :: DT         ! Timestep of washout event [s]
-      REAL(fp), INTENT(IN) :: F          ! Fraction of grid box that is
-                                       !  precipitating [unitless]
-      REAL(fp), INTENT(IN) :: PP         ! Precip rate thru bottom of grid 
-                                       !  box (I,J,L)  [cm3 H2O/cm2 air/s]
-      REAL(fp), INTENT(IN) :: TK         ! Temperature in grid box [K]
+      REAL(fp), INTENT(IN) :: DT        ! Timestep of washout event [s]
+      REAL(fp), INTENT(IN) :: F         ! Fraction of grid box that is
+                                        !  precipitating [unitless]
+      REAL(fp), INTENT(IN) :: PP        ! Precip rate thru bottom of grid
+                                        !  box (I,J,L)  [cm3 H2O/cm2 air/s]
+      REAL(fp), INTENT(IN) :: TK        ! Temperature in grid box [K]
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)             :: WASHFRAC   ! Fraction of soluble tracer 
-                                       !  lost to washout
+      REAL(fp)             :: WASHFRAC  ! Fraction of soluble tracer
+                                        !  lost to washout [1]
 ! 
 ! !REVISION HISTORY: 
 !  08 Nov 2002 - R. Yantosca - Initial version
@@ -2605,10 +2336,10 @@
          ! T >= 268K (or POPS simulation)  
          !---------------------------------
          IF ( F > 0e+0_fp ) THEN
-            WASHFRAC = F*(1e+0_fp - EXP(-0.92e+0_fp * (PP / F*3.6e+4_fp)
-     &                ** 0.79e+0_fp * DT / 3.6e+3_fp ))
+            WASHFRAC = F*(1.0_fp - EXP(-0.92_fp * (PP / F*3.6e+4_fp)
+     &                ** 0.79_fp * DT / 3.6e+3_fp ))
          ELSE
-            WASHFRAC = 0e+0_fp
+            WASHFRAC = 0.0_fp
          ENDIF
 
       ELSE
@@ -2617,10 +2348,10 @@
          ! T < 268K
          !---------------------------------
          IF ( F > 0e+0_fp ) THEN
-            WASHFRAC = F *(1e+0_fp - EXP( -1.57e+0_fp *
-     &                (PP / F*3.6e+4_fp)**0.96e+0_fp * DT / 3.6e+3_fp ))
+            WASHFRAC = F *(1.0_fp - EXP( -1.57_fp *
+     &                (PP / F*3.6e+4_fp)**0.96_fp * DT / 3.6e+3_fp ))
          ELSE
-            WASHFRAC = 0e+0_fp
+            WASHFRAC = 0.0_fp
          ENDIF
 
       ENDIF   
@@ -2655,28 +2386,28 @@
 !
 ! !INPUT PARAMETERS:
 ! 
-      REAL(fp),         INTENT(IN)    :: DT          ! Dynamic timestep [s]     
-      REAL(fp),         INTENT(IN)    :: F           ! Fraction of grid box
-                                                   !  that is precipitating
-      REAL(fp),         INTENT(IN)    :: PP          ! Precip rate thru bottom
-                                                   !  of grid box (I,J,L)
-                                                   !  [cm3 H2O/cm2 air/s]
-      REAL(fp),         INTENT(IN)    :: TK          ! Temperature [K] 
-      INTEGER,        INTENT(IN)    :: I           ! Longitude index
-      INTEGER,        INTENT(IN)    :: J           ! Latitude index
-      INTEGER,        INTENT(IN)    :: L           ! Level index
-      INTEGER,        INTENT(IN)    :: N           ! Tracer index
+      REAL(fp),       INTENT(IN)    :: DT         ! Dynamic timestep [s]
+      REAL(fp),       INTENT(IN)    :: F          ! Fraction of grid box
+                                                  !  that is precipitating
+      REAL(fp),       INTENT(IN)    :: PP         ! Precip rate thru bottom
+                                                  !  of grid box (I,J,L)
+                                                  !  [cm3 H2O/cm2 air/s]
+      REAL(fp),       INTENT(IN)    :: TK         ! Temperature [K]
+      INTEGER,        INTENT(IN)    :: I          ! Longitude index
+      INTEGER,        INTENT(IN)    :: J          ! Latitude index
+      INTEGER,        INTENT(IN)    :: L          ! Level index
+      INTEGER,        INTENT(IN)    :: N          ! Tracer index
 
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                        :: WASHFRAC    ! Fraction of tracer 
-                                                   !  lost to washout
+      REAL(fp)                      :: WASHFRAC   ! Fraction of tracer
+                                                  !  lost to washout [1]
 ! 
 ! !REVISION HISTORY: 
 !  31 May 2013 - R. Yantosca - Now accept State_Met, State_Chm as arguments
@@ -2762,24 +2493,23 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION WASHFRAC_HNO3( DT, F, PP, TK ) 
-     &         RESULT( WASHFRAC )
+      FUNCTION WASHFRAC_HNO3( DT, F, PP, TK ) RESULT( WASHFRAC )
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp), INTENT(IN) :: DT         ! Timestep of washout event [s]
-      REAL(fp), INTENT(IN) :: F          ! Fraction of grid box that is
-                                       !  precipitating [unitless]
-      REAL(fp), INTENT(IN) :: PP         ! Precip rate thru bottom of grid 
-                                       !  box (I,J,L)  [cm3 H2O/cm2 air/s]
-      REAL(fp), INTENT(IN) :: TK         ! Temperature in grid box [K]
+      REAL(fp), INTENT(IN) :: DT        ! Timestep of washout event [s]
+      REAL(fp), INTENT(IN) :: F         ! Fraction of grid box that is
+                                        !  precipitating [unitless]
+      REAL(fp), INTENT(IN) :: PP        ! Precip rate thru bottom of grid 
+                                        !  box (I,J,L)  [cm3 H2O/cm2 air/s]
+      REAL(fp), INTENT(IN) :: TK        ! Temperature in grid box [K]
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)             :: WASHFRAC   ! Fraction of soluble tracer 
+      REAL(fp)             :: WASHFRAC  ! Fraction of soluble tracer 
 
 ! 
 ! !REVISION HISTORY: 
@@ -2799,8 +2529,8 @@
 !
 ! !DEFINED PARAMETER:
 !
-      REAL(fp), PARAMETER :: K_WASH = 1.0e+0_fp  ! First order washout rate 
-                                           ! constant [cm^-1]. 
+      REAL(fp), PARAMETER :: K_WASH = 1.0_fp  ! First order washout rate
+                                              ! constant [cm^-1].
 
       !=================================================================
       ! WASHFRAC_HNO3 begins here!
@@ -2846,21 +2576,21 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp),  INTENT(IN)  :: Kstar298   ! Effective Henry's law constant 
+      REAL(fp), INTENT(IN)  :: Kstar298  ! Effective Henry's law constant
                                          !  @ 298 K  [moles/atm]
-      REAL(fp),  INTENT(IN)  :: H298_R     ! Henry's law coefficient [K]
-      REAL(fp),  INTENT(IN)  :: PP         ! Precip rate thru bottom of the
+      REAL(fp), INTENT(IN)  :: H298_R    ! Henry's law coefficient [K]
+      REAL(fp), INTENT(IN)  :: PP        ! Precip rate thru bottom of the
                                          !  grid box [cm3 H2O/cm2 air/s]
-      REAL(fp),  INTENT(IN)  :: DT         ! Timestep for washout event [s]
-      REAL(fp),  INTENT(IN)  :: F          ! Fraction of grid box that is
+      REAL(fp), INTENT(IN)  :: DT        ! Timestep for washout event [s]
+      REAL(fp), INTENT(IN)  :: F         ! Fraction of grid box that is
                                          !  precipitating [unitless]
-      REAL(fp),  INTENT(IN)  :: DZ         ! Height of grid box [cm]
-      REAL(fp),  INTENT(IN)  :: TK         ! Temperature in grid box [K]
+      REAL(fp), INTENT(IN)  :: DZ        ! Height of grid box [cm]
+      REAL(fp), INTENT(IN)  :: TK        ! Temperature in grid box [K]
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),  INTENT(OUT) :: WASHFRAC   ! Fraction of tracer lost to washout
-      LOGICAL, INTENT(OUT) :: KIN        ! T = washout is a kinetic process
+      REAL(fp), INTENT(OUT) :: WASHFRAC  ! Fraction of tracer lost to washout
+      LOGICAL,  INTENT(OUT) :: KIN       ! T = washout is a kinetic process
                                          ! F = washout is an equilibrium process
 !
 ! !REVISION HISTORY: 
@@ -2882,12 +2612,12 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp) :: L2G, LP, WASHFRAC_F_14
+      REAL(fp)            :: L2G, LP, WASHFRAC_F_14
 !
 ! !DEFINED PARAMETERS
 !
       REAL(fp), PARAMETER :: K_WASH = 1e+0_fp  ! First order washout rate 
-                                         ! constant [cm^-1]. 
+                                               ! constant [cm^-1].
 
       !=================================================================
       ! WASHFRAC_LIQ_GAS begins here!
@@ -3185,7 +2915,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER  :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: STT(:,:,:,:) => NULL()
 
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
@@ -5648,19 +5378,20 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-      INTEGER,        INTENT(IN) :: I, J, L     ! Location
-      REAL(fp),       INTENT(IN) :: K           ! Rate constant
+      TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
+      INTEGER,        INTENT(IN) :: I, J, L    ! Lon, lat, level indices
+      REAL(fp),       INTENT(IN) :: K          ! Rate constant
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                   :: F           ! Fraction of tracer scavenged
-                                                !  out of the updraft [1]
+      REAL(fp)                   :: F          ! Fraction of tracer scavenged
+                                               !  out of the updraft [1]
 ! 
 ! !REVISION HISTORY:
 !  12 Feb 2015 - C. Keller   - Initial version 
 !  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod since not used.
 !  25 Jun 2015 - M. Sulprizio- Now pass FF as an optional argument for aerosols
+!  25 Sep 2015 - R. Yantosca - Remove FF; we scale Kc in F_AEROSOL now.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5674,26 +5405,11 @@
       !=================================================================
 
       ! Distance between grid box centers [m]
-      TMP = 0.5_fp  
-     &    * ( State_Met%BXHEIGHT(I,J,L-1) + State_Met%BXHEIGHT(I,J,L) )
+      TMP = 0.5_fp * ( State_Met%BXHEIGHT(I,J,L-1) + 
+     &                 State_Met%BXHEIGHT(I,J,L) )
                
       ! Vertical updraft velocity [m/s]
       Vud = GET_VUD( State_Met, I, J, L )
-
-!-----------------------------------========---------------------
-! Prior to 9/24/15:
-! We don't need to pass FF here, we can multiply by that in 
-! the calling routine (bmy, 9/24/15)
-!      IF ( Vud <= TINY_FP ) THEN
-!         F = 0.0_fp
-!      ELSE
-!         IF ( PRESENT ( FF ) ) THEN
-!            F = 1e+0_fp - EXP( -FF*K * TMP / Vud )
-!         ELSE
-!            F = 1e+0_fp - EXP( -K * TMP / Vud )
-!         ENDIF
-!      ENDIF
-!----------------------------------------------------------------
 
       ! Compute F (avoid div-by-zero errors)
       IF ( Vud > TINY_FP ) THEN
@@ -5722,8 +5438,8 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE CMN_Size_Mod
+      USE Error_Mod,          ONLY : Alloc_Err
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -5759,12 +5475,11 @@
       LOGICAL, SAVE          :: FIRST = .TRUE.      
             
       ! Strings
-      CHARACTER(LEN=7)       :: SCAV, RAIN
-      CHARACTER(LEN=9)       :: K0,   CR,  pKA
+      CHARACTER(LEN=9)       :: K0,  CR,  pKA
       CHARACTER(LEN=80)      :: LINE
 
       ! Pointers
-      TYPE(Species), POINTER :: ThisSpc
+      TYPE(Species), POINTER :: ThisSpc => NULL()
 
       !=================================================================
       ! INIT_WETSCAV begins here!
@@ -5889,28 +5604,14 @@
                pKa = '    -    '
             ENDIF
 
-            ! Convert aerosol scavenging efficiency to a string
-            IF ( ThisSpc%WD_AerScavEff > 0.0_fp ) THEN
-               WRITE( SCAV, '(f7.1)' ) ThisSpc%WD_AerScavEff
-            ELSE
-               SCAV = '  -  '
-            ENDIF
-
-            ! Convert aerosol scavenging efficiency to a string
-            !IF ( ThisSpc%WD_RainOutEff > 0.0_fp ) THEN
-            !   WRITE( RAIN, '(f7.1)' ) ThisSpc%WD_RainoutEff
-            !ELSE
-               RAIN = '  -  '
-            !ENDIF
-
             ! Write info to stdout
             WRITE( 6, 100 ) N_WD,           
      &                      TRIM( ThisSpc%Name ),  
      &                      N,    
      &                      ThisSpc%EmMW_g, 
-     &                      K0,  CR, pKA, SCAV, RAIN
+     &                      K0, CR, pKA
 
- 100        FORMAT( i3,3x,a14,3x,i3,3x,f6.1,3(1x,a9),2(1x,a7) )
+ 100        FORMAT( i3,3x,a14,3x,i3,3x,f6.1,3(1x,a9) )
 
             ! Free pointer
             ThisSpc => NULL()
@@ -5943,13 +5644,13 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE CMN_Size_Mod
+      USE Error_Mod,          ONLY : Alloc_Err
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACERID_MOD,       ONLY : IDTH2O2, IDTSO2
+      USE TracerId_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -6013,9 +5714,12 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: I, J, L
-      REAL(fp)      :: PL, TK
+      LOGICAL, SAVE     :: FIRST = .TRUE.
+      INTEGER           :: I, J, L
+
+      ! Pointers
+      REAL(fp), POINTER :: PL => NULL()
+      REAL(fp), POINTER :: TK => NULL()
             
       !=====================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
@@ -6032,9 +5736,9 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          
-            ! Compute Temp [K] and Pressure [hPa]
-            TK = State_Met%T(I,J,L)
-            PL = State_Met%PMID(I,J,L)
+            ! Point to Temp [K] and Pressure [hPa]
+            TK => State_Met%T(I,J,L)
+            PL => State_Met%PMID(I,J,L)
          
             !--------------------------------------------------------------
             ! CLDLIQ, the cloud liquid water content [cm3 H2O/cm3 air], 
@@ -6081,6 +5785,10 @@
             ELSE
                C_H2O(I,J,L) = E_ICE( TK ) / PL
             ENDIF         
+
+            ! Free pointers
+            PL => NULL()
+            TK => NULL()
 
          ENDDO
          ENDDO

@@ -88,15 +88,15 @@ MODULE Species_Mod
      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
      ! Henry's law parameters
-     REAL(f8)           :: Henry_K0      ! Liq. over gas Henry const [M/atm ]
-     REAL(f8)           :: Henry_CR      ! d(ln K0) / d(1/T)         [K     ] 
-     REAL(f8)           :: Henry_PKA     ! pKa for Henry const. correction
+     REAL(f8)           :: Henry_K0         ! Liq./gas Henry const [M/atm ]
+     REAL(f8)           :: Henry_CR         ! d(ln K0) / d(1/T)    [K     ] 
+     REAL(f8)           :: Henry_PKA        ! pKa for Henry const. correction
 
      ! Drydep parameters
-     REAL(fp)           :: DD_A_Density  ! Aerosol density [kg/m3]
-     REAL(fp)           :: DD_A_Radius   ! Aerosol radius  [um]
-     REAL(fp)           :: DD_F0         ! F0 (reactivity) factor [1]
-     REAL(fp)           :: DD_KOA        ! KOA factor
+     REAL(fp)           :: DD_A_Density     ! Aerosol density [kg/m3]
+     REAL(fp)           :: DD_A_Radius      ! Aerosol radius  [um]
+     REAL(fp)           :: DD_F0            ! F0 (reactivity) factor [1]
+     REAL(fp)           :: DD_KOA           ! KOA factor for POPG
      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
      !%%% NOTE: We will eventually replace this with the common Henry's law
      !%%% parameters.  But in order to replicate the prior behavior,
@@ -120,7 +120,10 @@ MODULE Species_Mod
                                             !  (conv of condensate -> precip)
                                             !  in F_AEROSOL (wetscav_mod.F)
      REAL(fp)           :: WD_RainoutEff(3) ! Updraft scavenging efficiency
-     LOGICAL            :: WD_SizeResAer    ! T=size-resolved aerosol (TOMAS)
+
+     ! Microphysics parameters
+     LOGICAL            :: MP_SizeResAer    ! T=size-resolved aerosol (TOMAS)
+     LOGICAL            :: MP_SizeResNum    ! T=size-resolved aerosol number
 
   END TYPE Species
 !
@@ -152,7 +155,8 @@ MODULE Species_Mod
 !  24 Sep 2015 - R. Yantosca - Make WD_RainoutEff a 3-element vector:
 !                              (1) T < 237K; (2) 237K < T < 258 K (3) T > 258K
 !  24 Sep 2015 - R. Yantosca - Rename WD_ConvFactor to WD_ConvFacI2G
-
+!  25 Sep 2015 - R. Yantosca - Rename WD_SizeResAer to MP_SizeResAer
+!  25 Sep 2015 - R. Yantosca - Add MP_SizeResBin for microphysics size bins
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -348,11 +352,12 @@ CONTAINS
                          MW_g,          EmMW_g,        MolecRatio,     &
                          Henry_K0,      Henry_CR,      Henry_PKA,      &
                          DD_A_Density,  DD_A_Radius,   DD_F0,          &
-                         DD_KOA,        DD_HStar_Old,  WD_RetFactor,   &
-                         WD_LiqAndGas,  WD_ConvFacI2G, WD_AerScavEff,  &
-                         WD_KcScaleFac, WD_RainoutEff, WD_CoarseAer,   &
-                         WD_SizeResAer, Is_Advected,   Is_Gas,         &
-                         Is_Drydep,     Is_Wetdep,     RC             )
+                         DD_KOA,        DD_HStar_Old,  MP_SizeResAer,  &
+                         MP_SizeResNum, WD_RetFactor,  WD_LiqAndGas,   &
+                         WD_ConvFacI2G, WD_AerScavEff, WD_KcScaleFac,  &
+                         WD_RainoutEff, WD_CoarseAer,  Is_Advected,    &
+                         Is_Gas,        Is_Drydep,     Is_Wetdep,      &
+                         RC                                           )
 !
 ! !USES:
 !
@@ -385,6 +390,8 @@ CONTAINS
     !%%%
     REAL(fp),         OPTIONAL    :: DD_Hstar_Old     ! HSTAR, drydep [M/atm]
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    LOGICAL,          OPTIONAL    :: MP_SizeResAer    ! Size resolved aerosol?
+    LOGICAL,          OPTIONAL    :: MP_SizeResNum    ! Size resolved aer #?
     REAL(fp),         OPTIONAL    :: WD_RetFactor     ! Wetdep retention factor
     LOGICAL,          OPTIONAL    :: WD_LiqAndGas     ! Liquid and gas phases?
     REAL(fp),         OPTIONAL    :: WD_ConvFacI2G    ! Factor for ice/gas ratio
@@ -393,7 +400,6 @@ CONTAINS
                                                       !  rate in F_AEROSOL
     REAL(fp),         OPTIONAL    :: WD_RainoutEff(3) ! Rainout efficiency
     LOGICAL,          OPTIONAL    :: WD_CoarseAer     ! Coarse aerosol?
-    LOGICAL,          OPTIONAL    :: WD_SizeResAer    ! Size resolved aerosol?
     LOGICAL,          OPTIONAL    :: Is_Advected      ! Is it advected?
     LOGICAL,          OPTIONAL    :: Is_Gas           ! Gas (T) or aerosol (F)?
     LOGICAL,          OPTIONAL    :: Is_Drydep        ! Is it dry deposited?
@@ -717,12 +723,21 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------------
-    ! Is it a size-resolved aerosol?
+    ! Is it a size-resolved aerosol species for microphysics?
     !---------------------------------------------------------------------
-    IF ( PRESENT( WD_SizeResAer ) ) THEN
-       ThisSpc%WD_SizeResAer = WD_SizeResAer
+    IF ( PRESENT( MP_SizeResAer ) ) THEN
+       ThisSpc%MP_SizeResAer = MP_SizeResAer
     ELSE
-       ThisSpc%WD_SizeResAer = .FALSE.
+       ThisSpc%MP_SizeResAer = .FALSE.
+    ENDIF
+
+    !---------------------------------------------------------------------
+    ! Is it a size-resolved bin number?
+    !---------------------------------------------------------------------
+    IF ( PRESENT( MP_SizeResNum ) ) THEN
+       ThisSpc%MP_SizeResNum = MP_SizeResNum
+    ELSE
+       ThisSpc%MP_SizeResNum = .FALSE.
     ENDIF
 
     !---------------------------------------------------------------------
@@ -750,8 +765,9 @@ CONTAINS
     IF ( ThisSpc%Is_Gas ) THEN
 
        ! If this is a gas, then zero out all aerosol fields ...
+       ThisSpc%MP_SizeResAer = .FALSE.
+       ThisSpc%MP_SizeResNum = .FALSE.
        ThisSpc%WD_CoarseAer  = .FALSE.
-       ThisSpc%WD_SizeResAer = .FALSE.
        
        ! ... except for those species that wetdep like aerosols
        SELECT CASE( TRIM( ThisSpc%Name ) )

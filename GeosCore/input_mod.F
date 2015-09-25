@@ -426,13 +426,6 @@
       ! for diagnostic output (bmy, 3/4/13)
       !-----------------------------------------------------------------
 
-!------------------------------------------------------------------------------
-! Prior to 8/31/15:
-! Move NDXX_SETUP to GIGC_INIT_XTRA (bmy, 8/31/15)
-!      ! Define GEOS-Chem diagnostic info
-!      CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
-!------------------------------------------------------------------------------
-
       ! Make sure all directories are valid
       CALL VALIDATE_DIRECTORIES( am_I_Root, Input_Opt, RC )
 
@@ -440,13 +433,6 @@
 
       ! Check GEOS-CHEM timesteps
       CALL CHECK_TIME_STEPS( am_I_Root, Input_Opt, RC )
-
-!------------------------------------------------------------------------------
-! Prior to 9/3/15:
-! Move this to GIGC_Init_Extra
-!      ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
-!      CALL DO_GAMAP( am_I_Root, Input_Opt, RC )
-!------------------------------------------------------------------------------
 
       ! Echo output
       IF ( am_I_Root ) THEN

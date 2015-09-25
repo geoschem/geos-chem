@@ -50,11 +50,6 @@
 !
       PUBLIC :: DEPNAME
       PUBLIC :: DEPSAV
-!---------------------------------
-! Prior to 9/22/15:
-! Remove MAXDEP (bmy, 9/22/15)
-!      PUBLIC :: MAXDEP
-!---------------------------------
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
       PUBLIC :: DRYHg0, DRYHg2, DryHgP    !CDH
@@ -418,11 +413,6 @@
       REAL(f8)      :: RADIAT(MAXIJ       )   ! Solar radiation [W/m2]
       REAL(f8)      :: USTAR (MAXIJ       )   ! Grid box friction velocity[m/s]
       REAL(f8)      :: RHB   (MAXIJ       )   ! Relative humidity [unitless]
-!------------------------------------------------------------------------------
-! Prior to 9/22/18:
-! Now use NUMDEP instead of MAXDEP
-!      REAL(f8)      :: DVEL  (MAXIJ,MAXDEP)   ! Drydep velocities [m/s]
-!------------------------------------------------------------------------------
       REAL(f8)      :: DVEL  (MAXIJ,NUMDEP)   ! Drydep velocities [m/s]
       REAL(f8)      :: PRESSU(MAXIJ       )   ! Local surface pressure [Pa]
       REAL(f8)      :: W10   (MAXIJ       )   ! 10m windspeed [m/s]
@@ -1110,11 +1100,6 @@
 !
       REAL(f8)  RI(NTYPE),RLU(NTYPE),RAC(NTYPE),RGSS(NTYPE),
      1        RGSO(NTYPE),RCLS(NTYPE),RCLO(NTYPE),
-!------------------------------------------------------------------------------
-! Prior to 9/22/15:
-! Now use NUMDEP instead of MAXDEP (bmy, 9/22/15)
-!     2        RSURFC(MAXDEP,NTYPE)       
-!------------------------------------------------------------------------------
      2        RSURFC(NUMDEP,NTYPE)       
                                    
 !      REAL(f8)  C1X(MAXDEP),VD(MAXDEP),VK(MAXDEP)              
@@ -4150,38 +4135,6 @@
          ! Only proceed if the species dry deposits
          IF ( ThisSpc%Is_Drydep ) THEN
 
-!------------------------------------------------------------------------------
-! Preserve code for now until we are sure that the code passes diff tests
-! (bmy, 9/21/15)
-!<<<<<<< HEAD
-!            ! Hg2 -- Divalent Mercury
-!            IF ( N == ID_Hg2(ID_Hg_tot) ) THEN
-!               NUMDEP          = NUMDEP + 1
-!               NTRAIND(NUMDEP) = ID_Hg2(ID_Hg_tot)
-!               NDVZIND(NUMDEP) = NUMDEP
-!               DEPNAME(NUMDEP) = 'Hg2'
-!               HSTAR(NUMDEP)   = 1.0e+14_f8
-!               ! Change from 1d6 to 1d14 per HAmos 9/23/11
-!               ! implemented 10/19/11 eck
-!               F0(NUMDEP)      = 0.0e+0_f8
-!               XMW(NUMDEP)     = 201e-3_f8
-!               AIROSOL(NUMDEP) = .FALSE. 
-!            ENDIF
-!
-!            ! HgP -- Particulate Mercury
-!            IF ( N == ID_HgP(ID_Hg_tot) ) THEN
-!               NUMDEP          = NUMDEP + 1
-!               NTRAIND(NUMDEP) = ID_HgP(ID_Hg_tot)
-!               NDVZIND(NUMDEP) = NUMDEP
-!               DEPNAME(NUMDEP) = 'HgP'
-!               HSTAR(NUMDEP)   = 0.0e+0_f8
-!               F0(NUMDEP)      = 0.0e+0_f8
-!               XMW(NUMDEP)     = 201e-3_f8
-!               AIROSOL(NUMDEP) = .TRUE. 
-!            ENDIF
-!         
-!------------------------------------------------------------------------------
-
             ! Test species name
             SELECT CASE( TRIM( ThisSpc%Name ) )
             
@@ -4368,14 +4321,6 @@
 
       ENDIF
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-      !%%% Temporary error check!  Need to add a better one later.
-      IF ( NUMDEP /= State_Chm%nDryDep ) THEN
-         PRINT*, '### NUMDEP: = ', NUMDEP
-         PRINT*, '### State_Chm%nDryDep: ', State_Chm%nDryDep
-         PRINT*, '### MISMATCH!!!'
-         STOP
-      ENDIF
 
       !=================================================================
       ! Allocate arrays
