@@ -241,8 +241,8 @@
       ! Check that tracer units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
          MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
-         LOC = 'TOMAS_MOD: DO_TOMAS'
-         CALL GIGC_Error( MSG, RC, LOC)
+         LOC = 'Routine DO_TOMAS in tomas_mod.F'
+         CALL GIGC_Error( MSG, RC, LOC )
       ENDIF
 
       ! Do TOMAS aerosol microphysics
@@ -296,13 +296,14 @@
 !  30 Jan 2014 - R. Yantosca - Add missing variables to !$OMP+PRIVATE statement
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod.
+!  24 Sep 2015 - E. Lundgren - Add tracer concentration unit check      
 !******************************************************************************
 !
       ! References to F90 modules
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE DIAG_MOD,           ONLY : AD61,  AD61_INST
       USE DIAG_PL_MOD,        ONLY : H2SO4RATE, FAM_NAME
-      USE ERROR_MOD,          ONLY : ERROR_STOP, IT_IS_NAN, check_value
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -323,12 +324,13 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 
       ! Local variables
-      INTEGER           :: I, J, L, N, JC, K !counters
-      INTEGER           :: MPNUM          !microphysical process id #
-      REAL*4            :: ADT !aerosol microphysics time step (seconds)
-      REAL(fp)            :: QSAT         !used in RH calculation
-      INTEGER           :: TRACNUM
+      INTEGER             :: I, J, L, N, JC, K !counters
+      INTEGER             :: MPNUM    !microphysical process id #
+      REAL*4              :: ADT      !aerosol microphysics time step (seconds)
+      REAL(fp)            :: QSAT     !used in RH calculation
+      INTEGER             :: TRACNUM
       REAL(fp)            :: FRAC
+      CHARACTER(LEN=255)  :: MSG, LOC ! tracer conc unit check
 
       ! Arguments for CHECK_VALUE; avoids array temporaries (bmy, 1/28/14)
       CHARACTER(LEN=255) :: ERR_VAR
@@ -338,33 +340,33 @@
 !---------
 !sfarina - move definitions of these from module common
 !to within each sub and pass them around for openmp
-      REAL(fp)                         :: Nk(IBINS), Nkd(IBINS)
-      REAL(fp)                         :: Mk(IBINS, ICOMP)
-      REAL(fp)                         :: Mkd(IBINS,ICOMP)
-      REAL(fp)                         :: Gc(ICOMP - 1)
-      REAL(fp)                         :: Gcd(ICOMP - 1)
+      REAL(fp)           :: Nk(IBINS), Nkd(IBINS)
+      REAL(fp)           :: Mk(IBINS, ICOMP)
+      REAL(fp)           :: Mkd(IBINS,ICOMP)
+      REAL(fp)           :: Gc(ICOMP - 1)
+      REAL(fp)           :: Gcd(ICOMP - 1)
 
-      REAL*4                         :: BOXVOL,  BOXMASS, TEMPTMS
-      REAL*4                         :: PRES,    RHTOMAS
+      REAL*4             :: BOXVOL,  BOXMASS, TEMPTMS
+      REAL*4             :: PRES,    RHTOMAS
 
-      REAL(fp)                         ::  surf_area     ! aerosol surface area [micon^2 cm^-3]
-      REAL(fp)                         ::  ionrate       ! ion pair formation 
-                                                       ! rate [ion pairs cm^-3 s^-1]
+      REAL(fp)           ::  surf_area     ! aerosol surface area [micon^2 cm^-3]
+      REAL(fp)           ::  ionrate       ! ion pair formation 
+                                           ! rate [ion pairs cm^-3 s^-1]
 !---------
 
-      REAL(fp)            :: Nkout(ibins), Mkout(ibins,icomp)
-      REAL(fp)            :: Gcout(icomp-1)
-      REAL(fp)            :: Nknuc(ibins), Mknuc(ibins,icomp)
-      REAL(fp)            :: Nkcond(ibins), Mkcond(ibins,icomp)
-      REAL(fp)            :: fn  ! nucleation rate of clusters cm-3 s-1
-      REAL(fp)            :: fn1 ! formation rate of particles to first size bin cm-3 s-1
-      REAL(fp)            :: nucrate(JJPAR,LLPAR), nucrate1(JJPAR,LLPAR)
-      REAL(fp)            :: tot_n_1, tot_n_1a, tot_n_2, tot_n_i ! used for nitrogen mass checks
-      REAL(fp)            :: tot_s_1, tot_s_1a, tot_s_2 ! used for sulfur mass checks
-      REAL(fp)            :: h2so4rate_o ! H2SO4rate for the specific grid cell
-      REAL(fp)            :: TOT_Mk, TOT_nk  ! for checking mass and number
+      REAL(fp)          :: Nkout(ibins), Mkout(ibins,icomp)
+      REAL(fp)          :: Gcout(icomp-1)
+      REAL(fp)          :: Nknuc(ibins), Mknuc(ibins,icomp)
+      REAL(fp)          :: Nkcond(ibins), Mkcond(ibins,icomp)
+      REAL(fp)          :: fn  ! nucleation rate of clusters cm-3 s-1
+      REAL(fp)          :: fn1 ! formation rate of particles to first size bin cm-3 s-1
+      REAL(fp)          :: nucrate(JJPAR,LLPAR), nucrate1(JJPAR,LLPAR)
+      REAL(fp)          :: tot_n_1, tot_n_1a, tot_n_2, tot_n_i ! used for nitrogen mass checks
+      REAL(fp)          :: tot_s_1, tot_s_1a, tot_s_2 ! used for sulfur mass checks
+      REAL(fp)          :: h2so4rate_o ! H2SO4rate for the specific grid cell
+      REAL(fp)          :: TOT_Mk, TOT_nk  ! for checking mass and number
 
-      REAL(fp)            :: transfer(ibins)
+      REAL(fp)          :: transfer(ibins)
       LOGICAL           :: PRINTNEG  !<step4.0-temp> (win, 3/24/05)
       logical           :: ERRORSWITCH  !<step4.2> To see where mnfix found negative value (win, 9/12/05)
       logical           :: errspot   !<step4.4> To see where so4cond found errors (win, 9/21/05)
@@ -409,6 +411,19 @@
       !=================================================================
       ! AEROPHYS begins here
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
+      
+      ! Check that tracer units are in [kg]. While tracer units
+      ! are now generally [kg/kg] in GEOS-Chem, they are converted to 
+      ! kg for TOMAS elsewhere in tomas_mod prior to calling this subroutine 
+      ! (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+         LOC = 'Routine AEROPHYS in tomas_mod.F'
+         CALL GIGC_Error( MSG, RC, LOC )
+      ENDIF
       
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       STT                      => State_Chm%Tracers
@@ -3314,7 +3329,8 @@ Cjrp      endif
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE AQOXID ( MOXID, KMIN, I, J, L, State_Met, State_Chm )
+      SUBROUTINE AQOXID ( am_I_Root, MOXID, KMIN, I, J, L, State_Met,
+     &                    State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine AQOXID takes an amount of SO4 produced via in-cloud oxidation and
@@ -3331,12 +3347,15 @@ Cjrp      endif
 !  NOTES: 
 !  (1 ) Currently do aqueous oxidation pretending that it's dry, so aerosol 
 !       water is just zero (win, 7/23/07)
-!  29 Jan 2014 - R. Yantosca - Avoid array temporaries in call to NH4BULKTOBIN
+!   29 Jan 2014 - R. Yantosca - Avoid array temporaries in call to NH4BULKTOBIN
+!   24 Sep 2015 - E. Lundgren - Now pass am_I_Root and RC as arguments and
+!                               test tracer concentration units  
 !*****************************************************************************
 !
       ! References to F90 modules
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD
+      USE GIGC_ErrCode_Mod
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTNK1, IDTAW1, IDTNH4
@@ -3345,11 +3364,13 @@ Cjrp      endif
       USE CMN_DIAG_MOD             ! ND60
 
       ! Arguments
-      REAL(fp)                        :: MOXID
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      REAL(fp)                      :: MOXID
       INTEGER                       :: KMIN, I, J, L
       TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
-
+      INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
+      
       ! Local variables
       INTEGER,     PARAMETER :: K_MIN = 4
       REAL(fp)                 :: Nact, Mact, MPO, AQTAU(IBINS)
@@ -3357,17 +3378,18 @@ Cjrp      endif
       REAL(fp)                 :: Nkf(IBINS), Mkf(IBINS, ICOMP)
       REAL(fp),      PARAMETER :: TDT = 2.e+0_fp / 3.e+0_fp
       REAL(fp)                 :: M_OXID(IBINS)
-      INTEGER                :: K, MPNUM, JC, TRACNUM
-      INTEGER                :: NKID
-      LOGICAL                :: PDBG
+      INTEGER                  :: K, MPNUM, JC, TRACNUM
+      INTEGER                  :: NKID
+      LOGICAL                  :: PDBG
 
       REAL(fp)                 :: Nk(IBINS), Nkd(IBINS)
       REAL(fp)                 :: Mk(IBINS, ICOMP)
       REAL(fp)                 :: Mkd(IBINS,ICOMP)
       REAL(fp)                 :: Gc(ICOMP - 1)
       REAL(fp)                 :: Gcd(ICOMP - 1)
-      REAL*4                 :: BOXVOL
-      REAL*4                 :: thresh
+      REAL*4                   :: BOXVOL
+      REAL*4                   :: thresh
+      CHARACTER(LEN=255)       :: MSG, LOC ! For tracer conc unit check (ewl)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -3378,6 +3400,16 @@ Cjrp      endif
       ! AQOXID begins here
       !=================================================================
 
+      ! Assume success
+      RC                =  GIGC_SUCCESS
+
+      ! Check that tracer units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+         LOC = 'Routine AQOXID in tomas_mod.F'
+         CALL GIGC_Error( MSG, RC, LOC )
+      ENDIF
+
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       STT => State_Chm%Tracers
 
@@ -3387,7 +3419,7 @@ Cjrp      endif
       BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
       ! Update aerosol water from the current RH
       DO K = 1, IBINS
-         CALL EZWATEREQM2( I, J, L, K, State_Met, State_Chm )
+         CALL EZWATEREQM2( I, J, L, K, State_Met, State_Chm, RC )
       ENDDO
 
 
@@ -3601,7 +3633,8 @@ Cjrp      endif
 !------------------------------------------------------------------------------
 
       SUBROUTINE SOACOND
-     &    ( MSOA, I, J, L, BOXVOL, TEMPTMS, PRES, State_Chm )
+     &     ( am_I_Root, MSOA, I, J, L, BOXVOL, TEMPTMS, PRES,
+     &       State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine SOACOND takes the SOA calculated via 10% yeild assumption and 
@@ -3624,16 +3657,20 @@ Cjrp      endif
       ! Reference to F90 modules
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE ERROR_MOD,          ONLY : ERROR_STOP, IT_IS_NAN
+      USE ERROR_MOD
+      USE GIGC_ErrCode_Mod
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD,       ONLY : IDTNK1, IDTAW1, IDTNH4
 
       ! Arguments
-      REAL(fp)                        :: MSOA
-      INTEGER,INTENT(IN)            :: I, J, L
-      REAL*4, INTENT(IN)            :: BOXVOL, TEMPTMS, PRES
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      REAL(fp)                      :: MSOA
+      INTEGER,        INTENT(IN)    :: I, J, L
+      REAL*4,         INTENT(IN)    :: BOXVOL, TEMPTMS, PRES
       TYPE(ChmState), INTENT(INOUT) :: State_Chm
-      REAL(fp)                        :: surf_area
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+      REAL(fp)                      :: surf_area
+      
 
       ! Local variables
       REAL(fp)                 :: MPO, OCTAU(IBINS), ntot, mtot
@@ -3645,17 +3682,20 @@ Cjrp      endif
       REAL(fp)                 :: M_NH4
       REAL(fp)                 :: CS, sinkfrac(IBINS)
       REAL(fp)                 :: partfrac(IBINS),avgfrac(IBINS)
-      INTEGER                :: K, MPNUM, JC, TRACNUM
-      LOGICAL                :: PDBG, negvalue  ! negvalue added for xSOA (JKodros, 6/2/15)
+      INTEGER                  :: K, MPNUM, JC, TRACNUM
+      LOGICAL                  :: PDBG, negvalue ! negvalue added for xSOA
+                                                 ! (JKodros, 6/2/15)
       PARAMETER   (PI = 3.141592654e+0_fp)
 
 !sfarina
-      REAL(fp)                         :: Nk(IBINS), Nkd(IBINS)
-      REAL(fp)                         :: Mk(IBINS, ICOMP)
-      REAL(fp)                         :: Mkd(IBINS,ICOMP)
-      REAL(fp)                         :: Gc(ICOMP - 1)
-      REAL(fp)                         :: Gcd(ICOMP - 1)
-      REAL*4                         :: thresh
+      REAL(fp)                 :: Nk(IBINS), Nkd(IBINS)
+      REAL(fp)                 :: Mk(IBINS, ICOMP)
+      REAL(fp)                 :: Mkd(IBINS,ICOMP)
+      REAL(fp)                 :: Gc(ICOMP - 1)
+      REAL(fp)                 :: Gcd(ICOMP - 1)
+      REAL*4                   :: thresh
+      CHARACTER(LEN=255)       :: MSG, LOC ! For tracer conc unit check (ewl)
+
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -3666,6 +3706,17 @@ Cjrp      endif
       ! SOACOND begins here
       !=================================================================
 
+      ! Assume success
+      RC                =  GIGC_SUCCESS
+
+      ! Check that tracer units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+         LOC = 'Routine SOACOND in tomas_mod.F'
+         CALL GIGC_Error( MSG, RC, LOC )
+      ENDIF
+
+      
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
@@ -6295,7 +6346,7 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       
 !------------------------------------------------------------------------------
 
-      SUBROUTINE GETACTBIN ( I, J, L, N, LS, BINACT, State_Chm )
+      SUBROUTINE GETACTBIN ( I, J, L, N, LS, BINACT, State_Chm, RC )
 
 !
 !******************************************************************************
@@ -6316,6 +6367,8 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
 
       ! Reference to F90 modules
       USE CMN_SIZE_MOD
+      USE ERROR_MOD
+      USE GIGC_ErrCode_Mod
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1, IDTECOB1
       USE TRACERID_MOD, ONLY : IDTNK1,   IDTSF1,   IDTSS1 ,  IDTDUST1
@@ -6324,7 +6377,8 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       INTEGER,        INTENT(IN)    :: I, J, L, N
       LOGICAL,        INTENT(IN)    :: LS
       INTEGER,        INTENT(OUT)   :: BINACT
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
+      INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
 
       ! Local variables
       REAL*4                 ::  MECIL, MOCIL, MOCOB, MSO4, MNACL, MTOT
@@ -6333,6 +6387,8 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       INTEGER                ::  ISO4, INACL, IOCIL
       INTEGER                ::  BIN
       INTEGER                ::  OFFSET
+      CHARACTER(LEN=255)       :: MSG, LOC ! For tracer conc unit check (ewl)
+
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -6342,6 +6398,16 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       !=================================================================
       ! GETACTBIN begins here
       !=================================================================
+
+      ! Assume success
+      RC                =  GIGC_SUCCESS
+
+      ! Check that tracer units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+         LOC = 'Routine GETACTBIN in tomas_mod.F'
+         CALL GIGC_Error( MSG, RC, LOC )
+      ENDIF
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -6493,7 +6559,7 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE EZWATEREQM2( I, J, L, BIN, State_Met, State_Chm ) 
+      SUBROUTINE EZWATEREQM2( I, J, L, BIN, State_Met, State_Chm, RC ) 
 !
 !******************************************************************************
 !  Subroutine EZWATEREQM2 is just like EZWATEREQM but access directly to STT
@@ -6504,24 +6570,31 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 !  NOTES:
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  24 Sep 2015 - E. Lundgren - Now pass RC as argument and test tracer
+!                              concentration units
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD          ! Size parameters
+      USE ERROR_MOD
+      USE GIGC_ErrCode_Mod
       USE GIGC_State_Chm_Mod, ONLY : ChmState    
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTNK1, IDTSF1, IDTSS1
       USE TRACERID_MOD,       ONLY : IDTAW1, IDTOCIL1
 
-      ! Arguments
-      INTEGER,  INTENT(IN)          :: I, J, L, BIN
+! Arguments
+      INTEGER,        INTENT(IN)    :: I, J, L, BIN
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 
       ! Local variables
       REAL(fp)               :: RHE
       REAL(fp)               :: SO4MASS, NACLMASS, OCILMASS
       REAL(fp)               :: WRSO4, WRNACL, WROCIL
+      CHARACTER(LEN=255)     :: MSG, LOC ! For tracer conc unit check (ewl)
+
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -6531,6 +6604,16 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       !========================================================================
       ! EZWATEREQM begins here!
       !========================================================================
+
+      ! Assume success
+      RC                =  GIGC_SUCCESS
+
+      ! Check that tracer units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+         LOC = 'Routine EZWATEREQM2 in tomas_mod.F'
+         CALL GIGC_Error( MSG, RC, LOC )
+      ENDIF
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -6709,8 +6792,8 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       ! Set variables for potential tracer unit conversion (ewl, 8/12/15)
       N_TRACERS = Input_Opt%N_TRACERS
 
-      ! If tracer units are 'kg/kg dry', convert to [kg] for this routine.
-      ! Otherwise, if tracer units are not 'kg' then throw an error to the 
+      ! If tracer units are [kg/kg dry], convert to [kg] for this routine.
+      ! Otherwise, if tracer units are not [kg] then throw an error to the 
       ! calling routine (ewl, 8/12/15)
       ! NOTE: For complete area-independence, tracer units will need to be 
       !       mixing ratio or mass per unit area in TOMAS
@@ -6719,14 +6802,14 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
      &                               State_Chm, RC ) 
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL GIGC_Error('Unit conversion error', RC, 
-     &                      'tomas_mod.F: AERODIADEN')
+     &                      'Routine AERO_DIADEN in tomas_mod.F')
             RETURN
          ENDIF 
          UNITCONV = .TRUE.
       ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
          CALL GIGC_Error('Incorrect tracer units for TOMAS: ' // 
      &                   TRIM( State_Chm%Trac_Units ), RC, 
-     &                   'tomas_mod.F: AERO_DIADEN')
+     &                   'Routine AERO_DIADEN in tomas_mod.F')
          RETURN
       ENDIF
 
@@ -6766,7 +6849,7 @@ c         print *,"TRACID=",TRACID,"IDTNK1=",IDTNK1, "BIN=", BIN
 c         print *, "wid=", WID, "ICOMP=", ICOMP, "IBINS=", IBINS
          ! Get the diameter from an external function
          DIA(IJLOOP,BIN) = GETDP( I,      J,         LEV, 
-     &                            TRACID, State_Met, State_Chm )
+     &                            TRACID, State_Met, State_Chm, RC )
          
          ! Prepare the mass mixing ratio to call external function 
          ! for density
@@ -6795,14 +6878,14 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! If units were originally 'kg/kg dry', convert [kg] back to mixing 
+      ! If units were originally [kg/kg dry], convert [kg] back to mixing 
       ! ratio (ewl, 8/12/15)
       IF ( UNITCONV ) THEN
          CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met, 
      &                            State_Chm, RC )  
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL GIGC_Error('Unit conversion error', RC, 
-     &                      'AERO_DIADEN in tomas_mod.F')
+     &                      'Routine AERO_DIADEN in tomas_mod.F')
             RETURN
          ENDIF 
       ENDIF
@@ -6858,7 +6941,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       INTEGER                :: I, J, L
       INTEGER                :: I1, I2, J1, J2, L1, L2
       INTEGER                :: K, JC, NKID, TRACNUM, MPNUM
-      CHARACTER(LEN=255)     :: MSG, LOC
+      CHARACTER(LEN=255)     :: MSG, LOC ! For tracer conc unit check (ewl)
       LOGICAL                :: ERRORSWITCH
                                ! Make ERRORSWITCH = .TRUE. to get full print 
                                ! for debugging
@@ -6908,8 +6991,8 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ! (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
          MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
-         LOC = 'TOMAS_MOD: CHECKMN'
-         CALL GIGC_Error( MSG, RC, LOC)
+         LOC = 'Routine CHECKMN in tomas_mod.F'
+         CALL GIGC_Error( MSG, RC, LOC )
       ENDIF
 
       ! Check throughout all grid boxes
@@ -8358,7 +8441,8 @@ Cpja Perform some numerical checks on dmdt_int
 
 !-----------------------------------------------------------------------------
 
-      FUNCTION GETDP( I, J, L, N, State_Met, State_Chm ) RESULT( VALUE )
+      FUNCTION GETDP( I, J, L, N, State_Met, State_Chm, RC )
+     &                RESULT( VALUE )
 !
 !*****************************************************************************
 !  Function GETDP calculate multi-component aerosol diameter
@@ -8380,7 +8464,8 @@ Cpja Perform some numerical checks on dmdt_int
 !                              derived type object
 !*****************************************************************************
 
-      USE ERROR_MOD,          ONLY : ERROR_STOP, IT_IS_NAN
+      USE ERROR_MOD
+      USE GIGC_ErrCode_Mod
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTNK1,  IDTAW1
@@ -8393,7 +8478,8 @@ Cpja Perform some numerical checks on dmdt_int
       ! Arguments
       INTEGER,   INTENT(IN)         :: I, J, L, N
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
+      INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
 
       ! Return value
       REAL(fp)                :: VALUE
@@ -8405,6 +8491,7 @@ Cpja Perform some numerical checks on dmdt_int
       REAL(fp)                :: DENSITY !density (kg/m3) of current size bin
       REAL(fp)                :: TOTALMASS !(kg)
       REAL(fp)                :: MCONC, NCONC  
+      CHARACTER(LEN=255)      :: MSG, LOC ! For tracer conc unit check (ewl)
 
 !      real(fp), external :: aerodens
 
@@ -8419,7 +8506,17 @@ Cpja Perform some numerical checks on dmdt_int
       !=================================================================
       ! GETDP begins here!
       !=================================================================
-      
+
+      ! Assume success
+      RC                =  GIGC_SUCCESS
+
+      ! Check that tracer units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+         LOC = 'Routine GET_DP in tomas_mod.F'
+         CALL GIGC_Error( MSG, RC, LOC )
+      ENDIF
+
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
@@ -8434,7 +8531,7 @@ Cpja Perform some numerical checks on dmdt_int
       !-------------------------------------------------------------
       ! Calculate aerosol water in case it has not been initialized elsewhere 
       !-------------------------------------------------------------
-      CALL EZWATEREQM2( I, J, L, NUMBIN, State_Met, State_Chm )
+      CALL EZWATEREQM2( I, J, L, NUMBIN, State_Met, State_Chm, RC )
 
       !-------------------------------------------------------------
       ! Check negative STT

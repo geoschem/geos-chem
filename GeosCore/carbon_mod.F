@@ -5575,7 +5575,7 @@ ccc
      &                            State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
-     &                     'Routine EMISSSULFATETOMAS in sulfate_mod.F')
+     &                     'Routine EMISSCARBONTOMAS in carbon_mod.F')
          RETURN
       ENDIF 
 
@@ -5806,12 +5806,12 @@ ccc
          TEMPTMS = State_Met%T(I,J,1)
          PRES    = GET_PCENTER(i,j,1)*100.0 ! in Pa
          IF ( TERP_ORGC(I,J) > 0.d0 )
-     &        CALL SOACOND( OC2OM * TERP_ORGC(I,J), I, J, 1,
-     &               BOXVOL, TEMPTMS, PRES, State_Chm )
+     &        CALL SOACOND( am_I_Root, OC2OM * TERP_ORGC(I,J), I, J, 1,
+     &               BOXVOL, TEMPTMS, PRES, State_Chm, RC )
             IF ( xSOA == 1) Then  !JKodros, switch from tomas_mod (6/15)
                IF ( XTRA_ORG_A(I,J) > 0.d0 )  ! (SDD, 01/14)
-     &            CALL SOACOND( XTRA_ORG_A(I,J), I, J, 1,
-     &               BOXVOL, TEMPTMS, PRES, State_Chm )
+     &            CALL SOACOND( am_I_Root, XTRA_ORG_A(I,J), I, J, 1,
+     &               BOXVOL, TEMPTMS, PRES, State_Chm, RC )
 
             ENDIF
       ENDDO
@@ -5822,11 +5822,11 @@ ccc
       ENDIF  ! size resolved > 0
 
       ! Convert State_Chm%Tracers back to kg (ewl, 9/11/15)
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  
      &                             State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
-     &                   'Routine EMISSSULFATETOMAS in sulfate_mod.F')
+     &                   'Routine EMISSCARBONTOMAS in carbon_mod.F')
          RETURN
       ENDIF  
 

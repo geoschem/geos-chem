@@ -72,7 +72,7 @@ MODULE UnitConv_Mod
   PUBLIC  :: Convert_KgKgDry_to_MND
   PUBLIC  :: Convert_MND_to_KgKgDry
 
-  ! kg/kg moist air <-> kg/grid box (State_Chm%TRACERS)
+  ! kg/kg total air <-> kg/grid box (State_Chm%TRACERS, single tracer only)
   PUBLIC  :: Convert_KgKgTotal_to_Kg
   PUBLIC  :: Convert_Kg_to_KgKgTotal
 
@@ -156,9 +156,9 @@ CONTAINS
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_KgKgDry_to_KgKgTotal'
-       CALL GIGC_Error( MSG, RC, LOC)
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
+       LOC = 'Routine Convert_KgKgDry_to_KgKgTotal in unitconv_mod.F90'
+       CALL GIGC_Error( MSG, RC, LOC )
     ENDIF
 
     !====================================================================
@@ -265,9 +265,9 @@ CONTAINS
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg total' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_KgKgTotal_to_KgKgDry'
-       CALL GIGC_Error( MSG, RC, LOC)
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
+       LOC = 'Routine Convert_KgKgTotal_to_KgKgDry in unitconv_mod.F90'
+       CALL GIGC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -375,9 +375,9 @@ CONTAINS
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
     IF ( TRIM( State_Chm%Trac_Units ) /= 'v/v dry' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_VVDry_to_VVTotal'
-       CALL GIGC_Error( MSG, RC, LOC)
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
+       LOC = 'Routine Convert_VVDry_to_VVTotal in unitconv_mod.F90'
+       CALL GIGC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -482,9 +482,9 @@ CONTAINS
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
     IF ( TRIM( State_Chm%Trac_Units ) /= 'v/v total' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_VVTotal_to_VVDry'
-       CALL GIGC_Error( MSG, RC, LOC)
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
+       LOC = 'Routine Convert_VVTotal_to_VVDry in unitconv_mod.F90'
+       CALL GIGC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -589,9 +589,9 @@ CONTAINS
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_KgKgDry_to_VVDry'
-       CALL GIGC_Error( MSG, RC, LOC)
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
+       LOC = 'Routine Convert_KgKgDry_to_VVDry in unitconv_mod.F90'
+       CALL GIGC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -699,9 +699,9 @@ CONTAINS
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
     IF ( TRIM( State_Chm%Trac_Units ) /= 'v/v dry' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_VVDry_to_KgKgDry'
-       CALL GIGC_Error( MSG, RC, LOC)
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
+       LOC = 'Routine Convert_VVDry_to_KgKgDry in unitconv_mod.F90'
+       CALL GIGC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -811,9 +811,9 @@ CONTAINS
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg total' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_KgKgTotal_to_VVTotal'
-       CALL GIGC_Error( MSG, RC, LOC)
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
+       LOC = 'Routine Convert_KgKgTotal_to_VVTotal in unitconv_mod.F90'
+       CALL GIGC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -925,9 +925,9 @@ CONTAINS
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
     IF ( TRIM( State_Chm%Trac_Units ) /= 'v/v total' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_VVTotal_to_KgKgTotal'
-       CALL GIGC_Error( MSG, RC, LOC)
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
+       LOC = 'Routine Convert_VVTotal_to_KgKgTotal in unitconv_mod.F90'
+       CALL GIGC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -1042,9 +1042,9 @@ CONTAINS
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_KgKgDry_to_Kgm2'
-       CALL GIGC_Error( MSG, RC, LOC)
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
+       LOC = 'Routine Convert_KgKgDry_to_Kgm2 in unitconv_mod.F90'
+       CALL GIGC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -1162,9 +1162,9 @@ CONTAINS
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/m2' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_Kgm2_to_KgKgDry'
-       CALL GIGC_Error( MSG, RC, LOC)
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
+       LOC = 'Routine Convert_Kgm2_to_KgKgDry in unitconv_mod.F90'
+       CALL GIGC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -1283,9 +1283,9 @@ CONTAINS
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_KgKgDry_to_MND'
-       CALL GIGC_Error( MSG, RC, LOC)
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
+       LOC = 'Routine Convert_KgKgDry_to_MND in unitconv_mod.F90'
+       CALL GIGC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -1398,9 +1398,9 @@ CONTAINS
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
     IF ( TRIM( State_Chm%Trac_Units ) /= 'molec/cm3' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_MND_to_KgKgDry'
-       CALL GIGC_Error( MSG, RC, LOC)
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
+       LOC = 'Routine Convert_MND_to_KgKgDry in unitconv_mod.F90'
+       CALL GIGC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -1460,12 +1460,13 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine Convert\_KgKgTotal\_to\_Kg converts the units of 
 !  tracer concentrations from moist mass mixing ratio 
-!  [kg tracer/kg total (wet) air] to tracer mass per grid box [kg]. 
+!  [kg tracer/kg total (wet) air] to tracer mass per grid box [kg] for
+!  a single tracer. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Convert_KgKgTotal_to_Kg( am_I_Root, N_TRACERS,    &
+  SUBROUTINE Convert_KgKgTotal_to_Kg( am_I_Root, N           ,    &
                                       State_Met, State_Chm, RC   ) 
 !
 ! !USES:
@@ -1476,7 +1477,7 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
+    INTEGER,        INTENT(IN)    :: N           ! Tracer ID
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1492,13 +1493,14 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
+!  24 Sep 2015 - E. Lundgren - Now convert for a single tracer    
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: I, J, L, N
+    INTEGER :: I, J, L
     CHARACTER(LEN=255) :: MSG, LOC
 
     !=================================================================
@@ -1512,9 +1514,9 @@ CONTAINS
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg total' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_KgKgTotal_to_Kg'
-       CALL GIGC_Error( MSG, RC, LOC)
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
+       LOC = 'Routine Convert_KgKgTotal_to_Kg in unitconv_mod.F90'
+       CALL GIGC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -1544,8 +1546,7 @@ CONTAINS
 
     !$OMP PARALLEL DO           &
     !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L, N ) 
-    DO N = 1, N_TRACERS
+    !$OMP PRIVATE( I, J, L ) 
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
@@ -1554,11 +1555,10 @@ CONTAINS
     ENDDO
     ENDDO
     ENDDO
-    ENDDO
     !$OMP END PARALLEL DO
 
     ! Update tracer units
-    State_Chm%Trac_Units = 'kg'
+    State_Chm%Trac_Units = 'kg (single tracer)'
 
   END SUBROUTINE Convert_KgKgTotal_to_Kg
 !EOC
@@ -1577,7 +1577,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Convert_Kg_to_KgKgTotal( am_I_Root, N_TRACERS,    &
+  SUBROUTINE Convert_Kg_to_KgKgTotal( am_I_Root, N,    &
                                       State_Met, State_Chm, RC   ) 
 !
 ! !USES:
@@ -1588,7 +1588,7 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
+    INTEGER,        INTENT(IN)    :: N           ! Tracer id
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1604,13 +1604,14 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
+!  24 Sep 2015 - E. Lundgren - Now convert for a single tracer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: I, J, L, N
+    INTEGER :: I, J, L
     CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
@@ -1623,10 +1624,10 @@ CONTAINS
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
-    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_Kg_to_KgKgTotal'
-       CALL GIGC_Error( MSG, RC, LOC)
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg (single tracer)' ) THEN
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
+       LOC = 'Routine Convert_Kg_to_KgKgTotal in unitconv_mod.F90'
+       CALL GIGC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -1656,14 +1657,12 @@ CONTAINS
 
     !$OMP PARALLEL DO           &
     !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L, N ) 
-    DO N = 1, N_TRACERS
+    !$OMP PRIVATE( I, J, L ) 
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) &
                                   / State_Met%ADMOIST(I,J,L)
-    ENDDO
     ENDDO
     ENDDO
     ENDDO
@@ -1735,9 +1734,9 @@ CONTAINS
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_KgKgDry_to_Kg'
-       CALL GIGC_Error( MSG, RC, LOC)
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
+       LOC = 'Routine Convert_KgKgDry_to_Kg in unitconv_mod.F90'
+       CALL GIGC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
@@ -1845,9 +1844,9 @@ CONTAINS
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
     IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-       MSG = 'Incorrect initial units:' // TRIM( State_Chm%Trac_Units )
-       LOC = 'UNITCONV_MOD: Convert_Kg_to_KgKgDry'
-       CALL GIGC_Error( MSG, RC, LOC)
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
+       LOC = 'Routine Convert_Kg_to_KgKgDry in unitconv_mod.F90'
+       CALL GIGC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 

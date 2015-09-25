@@ -998,7 +998,7 @@
       NULLIFY( STT )
 
       ! Convert State_Chm%Tracers back to kg (ewl, 9/11/15)
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  
      &                             State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
@@ -6027,34 +6027,35 @@
          IF ( SO4OXID > 0e+0_fp ) THEN
 ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin length being used)
 # if   defined( TOMAS12 )
-                CALL GETACTBIN
-     &         ( I, J, L, IDTNK5, .TRUE. , BINACT1, State_Chm )
+            CALL GETACTBIN
+     &         ( I, J, L, IDTNK5, .TRUE. , BINACT1, State_Chm, RC )
 
             CALL GETACTBIN
-     &         ( I, J, L, IDTNK5, .FALSE., BINACT2, State_Chm )
+     &         ( I, J, L, IDTNK5, .FALSE., BINACT2, State_Chm, RC )
 # elif defined ( TOMAS15 )
-                CALL GETACTBIN
-     &         ( I, J, L, IDTNK8, .TRUE. , BINACT1, State_Chm )
+            CALL GETACTBIN
+     &         ( I, J, L, IDTNK8, .TRUE. , BINACT1, State_Chm, RC )
 
             CALL GETACTBIN
-     &         ( I, J, L, IDTNK8, .FALSE., BINACT2, State_Chm )
+     &         ( I, J, L, IDTNK8, .FALSE., BINACT2, State_Chm, RC )
 # elif defined ( TOMAS30 )
             CALL GETACTBIN
-     &         ( I, J, L, IDTNK10, .TRUE. , BINACT1, State_Chm )
+     &         ( I, J, L, IDTNK10, .TRUE. , BINACT1, State_Chm, RC )
 
             CALL GETACTBIN
-     &         ( I, J, L, IDTNK10, .FALSE., BINACT2, State_Chm )
+     &         ( I, J, L, IDTNK10, .FALSE., BINACT2, State_Chm, RC )
 # else
             CALL GETACTBIN
-     &         ( I, J, L, IDTNK20, .TRUE. , BINACT1, State_Chm )
+     &         ( I, J, L, IDTNK20, .TRUE. , BINACT1, State_Chm, RC )
 
             CALL GETACTBIN
-     &         ( I, J, L, IDTNK20, .FALSE., BINACT2, State_Chm )
+     &         ( I, J, L, IDTNK20, .FALSE., BINACT2, State_Chm, RC )
 # endif
 
             KMIN = ( BINACT1 + BINACT2 )/ 2.
 
-            CALL AQOXID( SO4OXID, KMIN, I, J, L, State_Met, State_Chm )
+            CALL AQOXID( am_I_Root, SO4OXID, KMIN, I, J, L, State_Met,
+     &                   State_Chm, RC )
          ENDIF
       ENDDO
       ENDDO
