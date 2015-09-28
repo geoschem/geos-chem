@@ -2546,7 +2546,7 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
                               DD_F0         = 1.0e-5_fp,                    &
-                              DD_Hstar_old  = 1.10e-1_fp,                   &
+                              DD_Hstar_old  = 0.11_fp,                      &
                               RC            = RC )
 
           CASE( 'HG2' )
@@ -2560,7 +2560,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              DD_F0         = 0.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 1.40e+4_f8 * To_M_atm,        &
                               Henry_CR      = 5300.0_f8,                    &
