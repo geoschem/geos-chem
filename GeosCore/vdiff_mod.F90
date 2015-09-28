@@ -1832,6 +1832,8 @@ contains
     USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, NCS, ND44, NDRYDEP
     USE MERCURY_MOD,        ONLY : HG_EMIS
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
+    USE TENDENCIES_MOD
+
     ! HEMCO update
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
 #if defined( DEVEL )
@@ -1969,7 +1971,7 @@ contains
     ! HEMCO update
     LOGICAL            :: FND
     REAL(fp)           :: TMPFLX, EMIS, DEP
-    INTEGER            :: HCRC,   TOPMIX
+    INTEGER            :: RC,     HCRC, TOPMIX
 
     ! For HEMCO diagnostics
 #if defined( DEVEL )
@@ -2048,6 +2050,13 @@ contains
                          .FALSE.,   HCRC, Ptr2D = PNOXLOSS_HNO3       ) 
        FIRST = .FALSE.
     ENDIF
+
+    ! Archive concentrations for tendencies calculations. Tracers array
+    ! is already in v/v (ckeller, 7/15/2015).
+#if defined(DEVEL)
+    CALL TENDENCIES_STAGE1( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, 4, .TRUE., RC )
+#endif
 
 ! (Turn off parallelization for now, skim 6/20/12)
     
@@ -2767,6 +2776,12 @@ contains
 
        CALL COMPUTE_PBL_HEIGHT( State_Met )
     endif
+
+    ! Compute tendencies and write to diagnostics (ckeller, 7/15/2015)
+#if defined(DEVEL)
+    CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, 4, .TRUE., dtime, RC )
+#endif
 
 !      !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )

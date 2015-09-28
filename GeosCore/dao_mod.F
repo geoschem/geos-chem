@@ -511,7 +511,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I,        J,        L
+      INTEGER   :: I,        J,        L
       REAL(fp)  :: D_NTIME0, D_NTIME1, D_NDT
       REAL(fp)  :: D_NTDT,   TM,       TC2
       REAL(fp)  :: YSOUTH,   YNORTH
@@ -713,7 +713,8 @@
             ! altitude.  Set TROPP in the polar regions to 200 hPa.
             ! (jal, phs, bmy, 9/18/07)
             IF ( Input_Opt%LVARTROP ) THEN
-               IF ( YSOUTH >= 60e+0_fp .or. YNORTH <= -60e+0_fp ) THEN
+
+               IF ( YSOUTH >= 60.0_fp .OR. YNORTH <= -60.0_fp ) THEN
                   State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
      &                                        200e+0_fp )
                ENDIF
@@ -735,7 +736,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
 #endif
 
       END SUBROUTINE INTERP

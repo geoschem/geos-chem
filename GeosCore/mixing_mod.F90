@@ -97,7 +97,8 @@ CONTAINS
        CALL DO_PBL_MIX_2( am_I_Root, .FALSE. ,  Input_Opt, &
                           State_Met, State_Chm, RC          )
     ELSE 
-       CALL DO_PBL_MIX( .FALSE., Input_Opt, State_Met, State_Chm )
+       CALL DO_PBL_MIX( am_I_Root, .FALSE.,   Input_Opt, &
+                        State_Met, State_Chm, RC          )
     ENDIF
 
   END SUBROUTINE INIT_MIXING 
@@ -198,9 +199,13 @@ CONTAINS
     ! ------------------------------------------------------------------
     ! Do full pbl mixing. This fully mixes the updated tracer 
     ! concentrations within the PBL. 
+    ! 
+    ! Now also archive concentrations and calculate turbulence 
+    ! tendencies (ckeller, 7/15/2015)
     ! ------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. .NOT. Input_Opt%LNLPBL ) THEN
-       CALL DO_PBL_MIX( Input_Opt%LTURB, Input_Opt, State_Met, State_Chm )
+       CALL DO_PBL_MIX( am_I_Root, Input_Opt%LTURB, Input_Opt, & 
+                        State_Met, State_Chm,       RC )
     ENDIF
 
   END SUBROUTINE DO_MIXING 
@@ -224,6 +229,7 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
+    USE TENDENCIES_MOD
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -359,6 +365,12 @@ CONTAINS
     EMIS    = 0.0_fp
     TOTFLUX = 0.0_fp
     TOTDEP  = 0.0_fp
+#endif
+
+    ! Archive concentrations for tendencies (ckeller, 7/15/2015) 
+#if defined( DEVEL )
+      CALL TENDENCIES_STAGE1( am_I_Root, Input_Opt, State_Met, &
+                              State_Chm, 5, .FALSE., RC )
 #endif
 
     ! Do for every tracer and grid box
@@ -619,6 +631,13 @@ CONTAINS
        ENDDO !I
     ENDDO !N
 !$OMP END PARALLEL DO
+
+      ! Calculate tendencies and write to diagnostics (ckeller, 7/15/2015)
+#if defined( DEVEL )
+      CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met, &
+                              State_Chm, 5, .FALSE., TS, RC )
+#endif
+
 
 #if defined( DEVEL )
     !-------------------------------------------------------------------

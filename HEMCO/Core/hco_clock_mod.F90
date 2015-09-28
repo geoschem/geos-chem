@@ -1024,9 +1024,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
     IF ( EmisTime ) THEN
-       First = ( HcoClock%nEmisSteps == 1 )      
+       !First = ( HcoClock%nEmisSteps == 1 )      
+       First = ( HcoClock%nEmisSteps <= 1 )
     ELSE
-       First = ( HcoClock%nSteps     == 1 )
+       !First = ( HcoClock%nSteps     == 1 )
+       First = ( HcoClock%nSteps     <= 1 )
     ENDIF
 
   END FUNCTION HcoClock_First

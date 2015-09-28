@@ -1731,10 +1731,11 @@ CONTAINS
     !----------------------------------------------------------------
     ! Prior to 2/3/12:
     ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
-    !! Read PV
-    !v_name = "PV"
-    !CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
-    !CALL Transfer_3d( Q3, State_Met%PV )
+    ! Read PV
+!    v_name = "PV"
+!    CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
+!    !Q3 = ABS(1.0e6*Q3) ! PV to PVU
+!    CALL Transfer_3d( Q3, State_Met%PV )
     !----------------------------------------------------------------
 
     ! Read QV
