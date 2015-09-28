@@ -179,6 +179,7 @@
 !  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  12 Dec 2014 - M. Yannetti - Updated HEMCO variable Dep from REAL*8 to REAL(hp)
 !  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
+!  23 Sep 2015 - E. Lundgren - Add Criegee chemistry (dbm, mje, eam, 2015)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -781,6 +782,13 @@
            ENDDO
          ENDDO
 
+! --- Criegee chemistry (dbm, mje, eam, 2015)
+         DO I=1, NNADDAT(NCS)
+            NK = NKSPECAT(I,NCS)
+            DO KLOOP=1, KTLOOP
+               RRATE(KLOOP,NK)=RRATE(KLOOP,NK)*CBLK(KLOOP,IH2O)
+            ENDDO
+         ENDDO
 
 ! ---  K = K1 + K2  ---- 
          IF (NKSPECW(NCS).GT.0) THEN
