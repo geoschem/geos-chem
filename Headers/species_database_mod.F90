@@ -2574,11 +2574,39 @@ CONTAINS
 
           CASE( 'HGP' )
 
+             !%%% NOTE: In the prior code, the rainout fraction for HgP
+             !%%% was computed before the shunt that turned off rainout
+             !%%% when 237 K <= T < 258 K.  Therefore, in order to
+             !%%% replicate the behavior of the prior code, we need to
+             !%%% set the rainout efficiency (field WD_RainoutEff) to
+             !%%% 1.0 for all temperature regimes.
+             !%%%
+             !%%% But in the prior code, the Kc rate (rate of conversion
+             !%%% of cloud condensate to precipitation) for HgP was
+             !%%% multiplied by 0.5 (as is done for most other aerosols)
+             !%%% in routine F_AEROSOL.  This is part of the update to
+             !%%% allow scavenging by snow that was implemented by Qiaoqiao
+             !%%% Wang.
+             !%%%
+             !%%% Therefore, we have to ask Team Hg if we should allow
+             !%%% the rainout for Hg to be turned off AND the Kc rate
+             !%%% to be multiplied by 0.5.  They may have intended to
+             !%%% not turn off rainout for HgP, but may also have been
+             !%%% unaware of the scaling of the Kc rate by 0.5 in the
+             !%%% F_AEROSOL routine.
+             !%%%
+             !%%% For the time being, we shall replicate the behavior of
+             !%%% the prior code.  Therefore, we shall allow rainout of
+             !%%% HgP to occur for 237 <= T < 258 K AND ALSO multiply
+             !%%% Kc by 0.5.
+             !%%%
+             !%%% (bmy, 9/28/15)
+
              ! When 237 K <= T < 258 K:
              ! (1) Halve the Kc (cloud condensate -> precip) rate
-             ! (2) Turn off rainout
+             ! (2) DON'T TURN OFF RAINOUT! (at least until we talk to Team Hg)
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)   
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
