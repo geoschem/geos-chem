@@ -2569,7 +2569,7 @@ CONTAINS
                               Henry_K0      = 1.40e+6_f8,                   &
                               Henry_CR      = 8400.0_f8,                    &
 #endif									    
-                              WD_RetFactor  = 0.0_fp,                       &
+                              WD_RetFactor  = 1.0_fp,                       &
                               RC            = RC )
 
           CASE( 'HGP' )
