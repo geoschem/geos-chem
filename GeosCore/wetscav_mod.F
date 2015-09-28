@@ -1663,6 +1663,7 @@
 !  25 Sep 2015 - R. Yantosca - Now call routine COMPUTE_Ki to compute the
 !                              rate of scavenging (Eq. 1, Jacob et al 2000)
 !  25 Sep 2015 - R. Yantosca - Now define THREADPRIVATE pointers
+!  28 Sep 2015 - R. Yantosca - Needed to add special case for HNO3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1700,15 +1701,25 @@
       ThisSpc  => State_Chm%SpcData(N)%Info
 
       !=================================================================
-      ! Compute rainout fraction for SO2 (also update SO2s, H2O2s)
-      !
-      ! NOTE: SO2 and H2O2 are in [v/v] and here RAINFRAC contains 
-      ! the amount of SO2 lost due to rainout normalized by the
-      ! total SO2 -- so that in WETDEP routine mulitiplying SO2 in 
-      ! [kg] will produce correct amount.  Need to verify this. 
-      ! (rjp, 01/16/02)
+      ! %%% SPECIAL CASE #1: %%%
+      ! HNO3 scavenges like an aerosol although it is considered
+      ! to be a gas-phase species elsewhere (e.g. dry deposition)
       !=================================================================
-      IF ( N == IDTSO2 ) THEN
+      IF ( N == IDTHNO3 ) THEN
+
+         ! Compute rainout fraction for aerosol tracres
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+         ! Apply temperature-dependent rainout efficiencies
+         ! This accounts for impaction scavenging of certain aerosols
+         CALL APPLY_RAINOUT_EFF( p_T, ThisSpc, RAINFRAC )
+
+      !=================================================================
+      ! %%% SPECIAL CASE #2: %%%
+      ! SO2 scavenges like an aerosol although it is considered
+      ! to be a gas-phase species elsewhere (e.g. dry deposition)
+      !=================================================================
+      ELSE IF ( N == IDTSO2 ) THEN
   
          ! Update SO2 and H2O2
          IF ( SO2s(I,J,L) > TINY_FP ) THEN 
@@ -1758,7 +1769,7 @@
 
       !=================================================================
       ! Compute rainout fraction for aerosol species
-      ! (except for SO2, which is treated specially above)
+      ! (except for special cases HNO3 and SO2, which are done above)
       !=================================================================
       ELSE
 

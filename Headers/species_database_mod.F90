@@ -388,7 +388,7 @@ CONTAINS
                               Henry_CR      = 4400.0_f8,                    &
 #else									    
                               DD_Hstar_old  = 7.60e-1_fp,                   &
-                              Henry_K0      = 7.60e01_f8,                   &
+                              Henry_K0      = 7.60e-1_f8,                   &
                               Henry_CR      = 3720.0_f8,                    &
 #endif									    
                               WD_RetFactor  = 0.0_fp,                       &
@@ -1113,6 +1113,13 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'HNO3' )
+
+             ! NOTE: HNO3 dry-deposits like a gas, but wet-deposits/scavenges
+             ! like an aerosol.  Therefore we need to define HNO3 with both
+             ! gas-phase and aerosol parameters. (bmy, 9/28/15)
+             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1132,6 +1139,9 @@ CONTAINS
                               Henry_K0      = 8.3e+4_f8,                    &
                               Henry_CR      = 7400.0_f8,                    &
 #endif                                      
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
                               ! Save HNO3 drydep index for use further down
@@ -1314,7 +1324,9 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 1.0e+5_fp,                    &
+                              DD_Hstar_old  = 1.00e+5_fp,                   &
+                              Henry_K0      = 1.00e+5_f8,                   &
+                              Henry_CR      = 6039.0_f8,                    &
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
@@ -2285,6 +2297,10 @@ CONTAINS
 
           CASE( 'SO2' )
 
+             ! NOTE: SO2 dry-deposits like a gas but wet-deposits/scavenges
+             ! like an aerosol.  Therefore, we need to define SO2 with both
+             ! both gas-phase and aerosol parameters. (bmy, 9/28/15)
+             !
              ! SO2 wet-deposits like an aerosol. 
              ! When 237 K <= T < 258 K:
              ! (1) Halve the Kc (cloud condensate -> precip) rate
@@ -2309,6 +2325,7 @@ CONTAINS
 #else									    
                               DD_Hstar_old  = 1.00e+5_fp,                   &
 #endif									    
+                              WD_AerScavEff = 1.0_fp,                       &
                               WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
