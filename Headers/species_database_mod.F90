@@ -2606,7 +2606,7 @@ CONTAINS
              ! (1) Halve the Kc (cloud condensate -> precip) rate
              ! (2) DON'T TURN OFF RAINOUT! (at least until we talk to Team Hg)
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
-             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)   
+             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
