@@ -1774,7 +1774,7 @@
          ! Get actual # of wet-deposited tracers for this simulation
          NMAX = GET_WETDEP_NSOL()
 
-         ! Loop over soluble tracers
+         ! Get actual # of wet-deposited tracers for this simulation
          DO N = 1, NMAX
 
             ! Tracer number
