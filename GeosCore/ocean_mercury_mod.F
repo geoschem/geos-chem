@@ -175,7 +175,6 @@
 
       ! Scalars
       LOGICAL              :: USE_CHECKS
-      CHARACTER(LEN=255)   :: Hg_RST_FILE
 
       ! Parameters
       REAL*4,  PARAMETER   :: MAX_RELERR = 5.0d-2
@@ -3226,7 +3225,7 @@
       IU_FILE         = findFreeLUN()
 
       ! Copy input file name to a local variable
-      FILENAME        = TRIM( Input_Opt%RUN_DIR ) // TRIM( Hg_RST_FILE )
+      FILENAME        = TRIM( Input_Opt%IN_HG_RST_FILE )
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
@@ -3621,7 +3620,7 @@
       IU_FILE   = findFreeLUN()
 
       ! Expand date in filename
-      FILENAME  = TRIM( Input_Opt%RUN_DIR ) // Hg_RST_FILE
+      FILENAME  = TRIM( Input_Opt%OUT_HG_RST_FILE )
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
 
       ! Echo info
@@ -4419,9 +4418,6 @@
       ! These variables are only needed for the dynamic ocean option
       !-----------------------------------------------------------------
 
-      ! Ocean Hg restart file name
-      Hg_RST_FILE = Input_Opt%Hg_RST_FILE
-      
       ! Turn on error checks for tagged & total sums?
       USE_CHECKS  = Input_Opt%USE_CHECKS
 
