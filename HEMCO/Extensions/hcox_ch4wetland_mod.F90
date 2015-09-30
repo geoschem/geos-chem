@@ -325,6 +325,7 @@ CONTAINS
 !  12 Feb 2014 - K. Wecht    - Updated for 0.25 x 0.3125 NA grid
 !  09 Apr 2014 - R. Yantosca - Bug fix, extend #ifdef for MERRA met fields
 !  11 Sep 2014 - C. Keller   - Now a HEMCO extension
+!  12 Aug 2015 - R. Yantosca - Extend #ifdef for MERRA2 met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -451,7 +452,7 @@ CONTAINS
                 ENDIF
              ENDIF
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
              ! We want emissions from any box that contains some land
              ! FRLAND is fraction of grid box that is land
              IF ( ExtState%FRLAND%Arr%Val(I,J) > 0) THEN 
@@ -563,7 +564,7 @@ CONTAINS
 !
 ! !IROUTINE: RICE_EMIS 
 !
-! !DESCRIPTION: Subroutine RICE_EMIS is the driver routine for the CH4
+! !DESCRIPTION: Subroutine RICE\_EMIS is the driver routine for the CH4
 ! rice emissions. It calculates rice emissions and writes them into the
 ! passed array CH4.
 !\\

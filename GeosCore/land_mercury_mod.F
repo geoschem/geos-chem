@@ -107,6 +107,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -144,7 +145,7 @@
          FRAC_SNOW_OR_ICE    = 0e+0_fp
          FRAC_SNOWFREE_LAND  = 1e+0_fp
 
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          ! Distinguish between ice/snow and snow-free land
          FRAC_SNOW_OR_ICE    = MIN( State_Met%FRSNO(I,J)     +
      &                              State_Met%FRSEAICE(I,J)  + 
@@ -524,6 +525,7 @@
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -554,6 +556,16 @@
       REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp ! for sunlight function, yzh
 #elif defined(GRID2x25)
       REAL(fp), PARAMETER :: SOIL_EMIS_FAC=1.6e-2_fp
+#elif defined(GRID05x0625)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! bmy, 8/12/15, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
+      ! This is a non-physical value and would need to be changed for an
+      ! actual mercury simulation
+      !
+      ! %%% NOTE: Bob Y. used same value as for GRID05x0666  %%%
+      ! %%% Team Hg will have to supply a better value later %%%
+      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp  ! yzh
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #elif defined(GRID05x0666)
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! lhu, 1/5/2012, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
@@ -588,7 +600,7 @@
          ! (jaf, 4/26/11)
          FRAC_SNOWFREE_LAND = 1e+0_fp
 
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          FRAC_SNOWFREE_LAND = MAX( State_Met%FRLAND(I,J) - 
      &                             State_Met%FRSNO(I,J), 0e+0_fp )
          IS_SNOWFREE_LAND   = ( FRAC_SNOWFREE_LAND > 0e+0_fp )
@@ -680,7 +692,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),         INTENT(OUT) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)  ! Hg0 flux
+      REAL(fp),       INTENT(OUT) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)  ! Hg0 flux
                                                                   !  [kg/s]
 !
 ! !REMARKS:
@@ -717,52 +729,61 @@
       FLUX = 0e+0_fp
 
       ! Return to calling program if snowpack model is disabled
-      IF (.NOT. LHGSNOW) RETURN
+      IF ( .NOT. LHGSNOW ) RETURN
 
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60e+0_fp      
 
-      ! Emit Hg(0) at a steady rate, based on 180 d residence
-      ! time in snowpack, based on cycle observed at Alert 
-      ! (e.g. Steffen et al. 2008)
-      K_EMIT = 6e-8_fp
-
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, NN, SNOW_HG_NEW, K_EMIT )
-      DO J  = 1, JJPAR
-      DO I  = 1, IIPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Zero for safety's sake
+         K_EMIT      = 0.0e+0+fp
+         SNOW_HG_NEW = 0.0e+0_fp
 
          ! If the sun is set, then no emissions, go to next box
          IF ( State_Met%SUNCOS(I,J) < 0e+0_fp ) CYCLE 
 
-            ! Decrease residence time to 1 week when T > -3C
-            ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+         ! Decrease residence time to 1 week when T > -3C
+         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+         ! Emit Hg(0) at a steady rate, based on 180 d residence
+         ! time in snowpack, based on cycle observed at Alert 
+         ! (e.g. Steffen et al. 2008)
+         IF ( State_Met%T(I,J,1) > 270e+0_fp) THEN
+
+            ! NOW USE 3 weeks for broader summer peak
+            !K_EMIT = 1.6D-6
+            K_EMIT = 5e-7_fp
+
+         ELSE
+
             ! Emit Hg(0) at a steady rate, based on 180 d residence
             ! time in snowpack, based on cycle observed at Alert 
             ! (e.g. Steffen et al. 2008)
-            IF ( State_Met%T(I,J,1) > 270e+0_fp) THEN
-               ! NOW USE 3 weeks for broader summer peak
-               !K_EMIT = 1.6D-6
-               K_EMIT = 5e-7_fp
-            ELSE
-               K_EMIT = 6e-8_fp
-            ENDIF
+            K_EMIT = 6e-8_fp
 
+         ENDIF
+
+         ! Loop over # of categories 
          DO NN = 1, N_Hg_CATS
 
             ! Check if there is Hg that could be emitted
-            IF (SNOW_HG(I,J,NN)>0e+0_fp) THEN
+            IF ( SNOW_HG(I,J,NN) > 0e+0_fp ) THEN
 
                ! New mass of snow in Hg
-               SNOW_HG_NEW = SNOW_HG(I,J,NN) * EXP( - K_EMIT * DTSRCE )
+               SNOW_HG_NEW = SNOW_HG(I,J,NN) * EXP( -K_EMIT * DTSRCE )
 
+               ! Not less than zero
                FLUX(I,J,NN) = MAX( SNOW_HG(I,J,NN) - SNOW_HG_NEW,
-     &                        0e+0_fp )
+     &                             0e+0_fp )
 
                ! Convert mass -> flux
                FLUX(I,J,NN) = FLUX(I,J,NN) / DTSRCE
 
+               ! Save back into array
                SNOW_HG(I,J,NN) = SNOW_HG_NEW
 
             ENDIF

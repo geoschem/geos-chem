@@ -69,7 +69,7 @@
 ! Atmosphere/clouds - cldprop
       real(kind=rb), intent(in) :: cldfrac(ncol,nlay)       ! layer cloud fraction
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: tauc(ngptlw,ncol,nlay)        ! in-cloud optical depth
+      real(kind=rb), intent(in) :: tauc(nbndlw,ncol,nlay)        ! in-cloud optical depth
                                                       !    Dimensions: (nbndlw,ncol,nlay)
 !      real(kind=rb), intent(in) :: ssac(ngptlw,ncol,nlay)       ! in-cloud single scattering albedo
                                                       !    Dimensions: (nbndlw,ncol,nlay)

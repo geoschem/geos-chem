@@ -308,9 +308,9 @@
       ! Seconds per day
       REAL(fp), PARAMETER :: SCDAY    = 86400.0e+0_fp
 
-      ! Molecular weight of air 
+      ! Molecular weight of air [g/mol]
       REAL(fp), PARAMETER :: WTAIR    = 28.966e+0_fp
-     
+
       !---------------------------------------------------------------
       ! Small number tolerances
       ! (now make these PARAMETERS instead of COMMON block variables)

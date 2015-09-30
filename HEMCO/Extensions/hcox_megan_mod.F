@@ -176,6 +176,8 @@
 !                              scheme exclusively now.
 !                              Restore emissions of individual MEGAN species to
 !                              diagnostics for consistency with pre-HEMCO code.
+!  10 Jun 2015 - M. Sulprizio- Bug fix for SOA simulation: Now convert AEFs for
+!                              sesquiterpenes to kg/m2/s.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -343,7 +345,7 @@
 !   9 Mar 2015 - R. Yantosca - Bug fix: add EMIS_ALD2 to $OMP PRIVATE clause
 !  08 May 2015 - C. Keller   - Now read/write restart variables from here to
 !                              accomodate replay runs in GEOS-5.
-
+!  30 Sep 2015 - C. Keller   - Now add OCPI flux to BIOGENIC_OCPI diagnostics.
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -1353,6 +1355,13 @@
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXOCPI', RC )
             RETURN 
          ENDIF
+
+         ! Also archive the BIOGENIC_OCPI diagnostic (ckeller, 9/30/15)
+         DiagnName =  'BIOGENIC_OCPI'
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
+     &      cName=TRIM(DiagnName), Array2D=FLUXOCPI, RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN
+         Arr2D => NULL()
       ENDIF
 
       ! ----------------------------------------------------------------
@@ -1606,8 +1615,8 @@
 !
 ! !IROUTINE: Get_Megan_Emissions
 !
-! !DESCRIPTION: Subroutine Get\_EmIsop\_Megan computes isoprene emissions in 
-!  units of [atoms C/box] using the MEGAN inventory. (dbm, 12/2012)
+! !DESCRIPTION: Subroutine Get\_Megan\Emissions computes biogenic emissions in 
+!  units of [kgC/m2/s] or [kg/m2/s] using the MEGAN inventory. (dbm, 12/2012)
 !\\
 !\\
 ! !INTERFACE:
@@ -1624,8 +1633,8 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(hp),         INTENT(OUT) :: MEGAN_EMIS ! VOC emission in atomsC/box 
-                                                  ! or molec/box, depending on
+      REAL(hp),         INTENT(OUT) :: MEGAN_EMIS ! VOC emission in kgC/m2/s 
+                                                  ! or kg/m2/s, depending on
                                                   ! units the compound is
                                                   ! carried in
 !
@@ -1720,7 +1729,7 @@
 
       ! --------------------------------------------
       ! Get base emission factor for this compound and grid square
-      ! Units: atomsC/box or molec/box
+      ! Units: kgC/m2/s or kg/m2/s
       ! --------------------------------------------
       CALL GET_MEGAN_AEF ( I, J, CMPD, AEF, RC )
      
@@ -1791,7 +1800,7 @@
       END IF
 
       ! Emission is the product of all of these.
-      ! Units here are atomsC/box or molec/box as appropriate for the compound.
+      ! Units here are kgC/m2/s or kg/m2/s as appropriate for the compound.
       ! Normalization factor ensures product of GAMMA values is 1.0 under
       !  standard conditions. 
       MEGAN_EMIS = NORM_FAC(1) * AEF * GAMMA_AGE * GAMMA_SM * GAMMA_LAI
@@ -2099,7 +2108,7 @@
 ! !OUTPUT PARAMETERS: 
 !
       REAL(hp),          INTENT(OUT) :: EMFAC       ! MEGAN base emission factor
-                                                    ! (molec/box or atomsC/box)
+                                                    ! (kgC/m2/s or kg/m2/s)
                                                     ! for grid cell (I,J)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -2797,7 +2806,9 @@
 !  16 Apr 2015 - C. Keller   - Now restrict GWETROOT to values between 0.0 and
 !                              1.0. This only seems to be a problem within the
 !                              GEOS-5 ESM, where GWETROOT values over the ocean
-!                              become 1e+15 (= missing value). 
+!                              become 1e+15 (= missing value).
+!  12 Aug 2015 - R. Yantosca - Extend #ifdef for MERRA2 meteorology
+ 
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -2813,7 +2824,7 @@
       GAMMA_SM = 1.0_hp
 
       ! GWETROOT is only defined for GEOS-5
-#if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
+#if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
 
       !GWETROOT = ExtState%GWETROOT%Arr%Val(I,J)
       ! Error trap: GWETROOT must be between 0.0 and 1.0 (ckeller, 4/16/15)
@@ -3341,6 +3352,8 @@
 !  (7 ) Also, now read in the EF values already gridded to model resolution.
 !       (dbm, 11/2012)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  10 Jun 2015 - M. Sulprizio- Bug fix: Now convert sesquiterpenes (FARN, BCAR,
+!                              OSQT) from ug compound/m2/h to kg C/m2/s
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3348,7 +3361,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                 :: I, J, P, ARR_IND
-      REAL(hp)                :: FACTOR
+      REAL(hp)                :: FACTOR, SPECIES2CARBON
       REAL(hp)                :: ARRAY_16(HcoState%NX,HcoState%NY,16)
       REAL(hp)                :: PFT_EF_OMON(15), PFT_EF_MOHX(15)
       REAL(hp)                :: PFT_EF_ACET(15), PFT_EF_BIDR(15)
@@ -3798,6 +3811,14 @@
      &                    * FACTOR * 120.0_hp / 136.234_hp
             AEF_OMON(I,J) = AEF_OMON(I,J) 
      &                    * FACTOR * 120.0_hp / 136.234_hp
+
+            ! Sesquiterpenes
+            SPECIES2CARBON = 15.d0 * 12.01d0 / 
+     &                     ( 15.d0 * 12.01d0 + 24.d0 * 1.01d0 )
+            AEF_FARN(I,J) = AEF_FARN(I,J) * FACTOR * SPECIES2CARBON
+            AEF_BCAR(I,J) = AEF_BCAR(I,J) * FACTOR * SPECIES2CARBON
+            AEF_OSQT(I,J) = AEF_OSQT(I,J) * FACTOR * SPECIES2CARBON
+
          ENDIF
 
          AEF_ACET(I,J) = AEF_ACET(I,J) * FACTOR *  36.0_hp /  58.079_hp 

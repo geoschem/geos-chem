@@ -184,7 +184,6 @@
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
 !      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
       USE GRID_MOD,           ONLY : GET_YMID
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
@@ -267,6 +266,7 @@
 !  10 Jul 2014 - J.A. Fisher - Moved ALPHA definitions out of code
 !  27 Aug 2014 - R. Yantosca - Bug fix: pass Input_Opt to GET_GLOBAL_CH4
 !  21 Oct 2014 - C. Keller   - Now use GetHcoVal instead ot Trac_Tend array
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
 !  11 Mar 2015 - R. Yantosca - Remove references to global_nox_mod.F
 !  11 Mar 2015 - R. Yantosca - Now get OH via the HEMCO data structure
 !EOP

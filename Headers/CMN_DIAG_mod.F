@@ -78,14 +78,18 @@
       ! Changed PD22 from 22 to 23 for ACET (mps, 4/25/14)
       ! Changed PD22 from 23 to 28 for ALD2, MVK, MACR, HAC, GLYC (mps, 5/27/14)
       ! Changed PD21 to be dynamically related to NAER and NDUST (dar, 3/6/15)
+      ! Change PD68 from 4 to 13 to include new State_Met AirQnts (ewl, 4/30/15)
+      ! Change PD08 from 2 to 4 to include MOPO and MOPI (ewl, 7/7/15)
+      ! Change PD44 from 53 to 55 to include MOPO and MOPI (ewl, 7/7/15)
+      ! Changed PD05 from 10 to 14 (tdf, 03/02/09)
       !=================================================================
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
-      INTEGER, PARAMETER :: PD05=10        
+      INTEGER, PARAMETER :: PD05=14
       INTEGER, PARAMETER :: PD06=NDSTBIN
       ! +3 for SEAC4RS SOA tracers (jaf, 6/25/13)
       INTEGER, PARAMETER :: PD07=15
-      INTEGER, PARAMETER :: PD08=2
+      INTEGER, PARAMETER :: PD08=4
       INTEGER, PARAMETER :: PD09=6
       INTEGER, PARAMETER :: PD10=20            
       INTEGER, PARAMETER :: PD11=5
@@ -119,7 +123,7 @@
       INTEGER, PARAMETER :: PD39=38      !jpp replaced 35
       INTEGER, PARAMETER :: PD40=4       
       INTEGER, PARAMETER :: PD43=7  
-      INTEGER, PARAMETER :: PD44=53      !jpp replaced 41
+      INTEGER, PARAMETER :: PD44=55     
       INTEGER, PARAMETER :: PD45=NNPAR+1      
       INTEGER, PARAMETER :: PD46=26
       INTEGER, PARAMETER :: PD47=NNPAR+1
@@ -150,7 +154,7 @@
       INTEGER            :: PD65
       INTEGER, PARAMETER :: PD66=6           
       INTEGER, PARAMETER :: PD67=23 ! (Lin, 31/03/09)
-      INTEGER, PARAMETER :: PD68=4            
+      INTEGER, PARAMETER :: PD68=13     
       INTEGER, PARAMETER :: PD69=1
       INTEGER, PARAMETER :: PD70=0
       INTEGER, PARAMETER :: PD71=NNPAR+1

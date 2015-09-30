@@ -34,28 +34,11 @@ MODULE VDIFF_PRE_MOD
   PUBLIC :: IIPAR,  JJPAR,  LLPAR            ! from "CMN_SIZE_mod"
   PUBLIC :: NCS,    NDRYDEP                  ! from "comode_loop_mod"
   PUBLIC :: ND15,   ND44                     ! from "CMN_DIAG_mod"
-!------------------------------------------------------------------------------
-! Prior to 5/22/15:
-! HEMCO made this obsolete, so remove it (bmy, 5/22/15)
-!  PUBLIC :: EMISRR, EMISRRN                  ! from "CMN_O3_mod"
-!  PUBLIC :: emis_save
-!------------------------------------------------------------------------------
 
   ! Scalars
   LOGICAL, PUBLIC      :: LPRT               ! Passes LPRT to vdiff_mod
   LOGICAL, PUBLIC      :: LTURB              ! Passes LTURB to vdiff_mod
   INTEGER, PUBLIC      :: PCNST              ! Passes N_TRACERS to vdiff_mod
-
-!------------------------------------------------------------------------------
-! Prior to 5/22/15:
-! HEMCO made these obsolete, so remove tjem (bmy, 5/22/15)
-!  ! Arrays
-!  REAL(fp),  ALLOCATABLE :: emis_save(:,:,:)   ! Emissions array
-!!
-!! !DEFINED PARAMETERS:
-!!
-!  INTEGER, PARAMETER   :: MAXTRACERS = 100   ! Max # of emission tracers
-!------------------------------------------------------------------------------
 !
 ! !REVISION HISTORY:
 !  01 Jun 2009 - C. Carouge & J. Lin - Initial version  
@@ -107,26 +90,12 @@ CONTAINS
 !  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  24 Jun 2014 - R. Yantosca - Now allocate EMIS_SAVE to the # of tracers
 !                              in the simulation (i.e. INIT_OPT)
-!  22 May 2015 - R. Yantosca - Remove variables made obsolet by HEMCO
+!  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
     ! Assume success
     RC = GIGC_SUCCESS
-
-!------------------------------------------------------------------------------
-! Prior to 5/22/15:
-! HEMCO made this obsolete, so remove it (bmy, 5/22/15)
-!    ! Allocate arrays
-!    ALLOCATE( emis_save( IIPAR, JJPAR, PCNST ), STAT=RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       WRITE( 6, '(a)' ) 'Allocation error: EMIS_SAVE'
-!       RETURN
-!    ENDIF
-!      
-!    ! Zero arrays
-!    emis_save = 0.e+0_fp
-!------------------------------------------------------------------------------
       
   END SUBROUTINE Init_VDIFF_PRE
 !EOC
@@ -167,13 +136,6 @@ CONTAINS
 !BOC
     ! Assume success
     RC = GIGC_SUCCESS
-
-!------------------------------------------------------------------------------
-! Prior to 5/22/15:
-! HEMCO made this obsolete, so remove it (bmy, 5/22/15)
-!    ! Deallocate arrays
-!    IF ( ALLOCATED( EMIS_SAVE ) ) DEALLOCATE( EMIS_SAVE )
-!------------------------------------------------------------------------------
 
   END SUBROUTINE Cleanup_VDIFF_PRE
 !EOC

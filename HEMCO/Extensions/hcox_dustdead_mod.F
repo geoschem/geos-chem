@@ -69,9 +69,10 @@
 !  (7 ) Modifications for 0.5 x 0.667 grid (yxw, dan, bmy, 11/6/08)
 !  (8 ) Updates for nested grids (amv, bmy, 12/18/09)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
-!  25 Nov 2013 - C. Keller - Now a HEMCO extension
-!  06 Oct 2014 - C. Keller - Allow mass flux tuning factor be set in
-!                            configuration file.
+!  25 Nov 2013 - C. Keller   - Now a HEMCO extension
+!  06 Oct 2014 - C. Keller   - Allow mass flux tuning factor be set in
+!                              configuration file.
+!  08 Jul 2015 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -79,9 +80,11 @@
 ! !MODULE VARIABLES:
 !
       ! Fields required by module
-      INTEGER                   :: ExtNr           ! Extension number
+      INTEGER                   :: ExtNr           ! Extension num for DustDead
+      INTEGER                   :: ExtNrAlk        ! Extension num for DustAlk
       INTEGER, PARAMETER        :: NBINS = 4       ! # of dust bins 
-      INTEGER, ALLOCATABLE      :: HcoIDs(:)       ! tracer IDs
+      INTEGER, ALLOCATABLE      :: HcoIDs(:)       ! tracer IDs for DustDead
+      INTEGER, ALLOCATABLE      :: HcoIDsAlk(:)    ! tracer IDs for DustAlk
       REAL*8                    :: FLX_MSS_FDG_FCT
 
       !---------------------------------------
@@ -214,10 +217,10 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
-!  25 Nov 2013 - C. Keller - Now a HEMCO extension
-!  06 Oct 2014 - C. Keller - Now calculate pressure center from edges.
-!
-! !NOTES: 
+!  25 Nov 2013 - C. Keller   - Now a HEMCO extension
+!  06 Oct 2014 - C. Keller   - Now calculate pressure center from edges.
+!  26 Jun 2015 - E. Lundgren - Add L. Zhang new dust size distribution scheme
+!  08 Jul 2015 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -248,7 +251,9 @@
       REAL*8                 :: ORO(HcoState%NX)           ! "orography" 
       REAL*8                 :: SNW_HGT_LQD(HcoState%NX)   ! equivalent snow ht.
       REAL*8                 :: DSRC(HcoState%NX,NBINS)    ! dust mixing ratio incr.
+      REAL*8                 :: DUST_EMI_TOTAL(HcoState%NX) ! total dust emiss
       REAL(hp), TARGET       :: FLUX(HcoState%NX,HcoState%NY,NBINS) ! Flux array [kg/m2/s]   
+      REAL(hp), TARGET       :: FLUX_ALK(HcoState%NX,HcoState%NY,NBINS) ! Flux array for dust alkalinity [kg/m2/s]   
       LOGICAL,  SAVE         :: FIRST = .TRUE.
 !
 ! !DEFINED PARAMETERS:
@@ -342,7 +347,8 @@
       DOY = intDOY
 
       ! Init
-      FLUX(:,:,:) = 0.0_hp
+      FLUX(:,:,:)     = 0.0_hp
+      FLUX_ALK(:,:,:) = 0.0_hp
 
       ! Error check
       ERR = .FALSE.
@@ -351,7 +357,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,     J,      P1,    P2,   PTHICK,  PMID, TLON        )
 !$OMP+PRIVATE( THLON, ULON,   VLON,  BHT2, Q_H2O,   ORO,  SNW_HGT_LQD )
-!$OMP+PRIVATE( N,     YMID_R, DSRC,  RC,   AREA_M2                    )
+!$OMP+PRIVATE( N,     YMID_R, DSRC,  RC,   AREA_M2, DUST_EMI_TOTAL    )
 
       ! Loop over latitudes
       DO J = 1, HcoState%NY 
@@ -421,6 +427,17 @@
             CYCLE 
          ENDIF 
 
+         ! Redistribute dust emissions using new dust size distribution
+         ! scheme (L. Zhang, 6/26/15)
+         DUST_EMI_TOTAL = 0.0d0  
+         DO N = 1, NBINS
+            DUST_EMI_TOTAL(:) = DUST_EMI_TOTAL(:) + DSRC(:,N)
+         ENDDO
+         DSRC(:,1) = DUST_EMI_TOTAL(:) * 0.0766d0
+         DSRC(:,2) = DUST_EMI_TOTAL(:) * 0.1924d0
+         DSRC(:,3) = DUST_EMI_TOTAL(:) * 0.3491d0
+         DSRC(:,4) = DUST_EMI_TOTAL(:) * 0.3819d0
+
          ! Write to emissions array
          DO I = 1, HcoState%NX 
 
@@ -428,9 +445,19 @@
             ! Write into flux array: kg/box --> kg/m2/s
             AREA_M2 = HcoState%Grid%AREA_M2%Val( I, J )
             DO N = 1, NBINS
+
                IF ( HcoIDs(N) > 0 ) THEN
                   FLUX(I,J,N) = ( DSRC(I,N) / AREA_M2 / DTSRCE )
                ENDIF
+
+               ! Include DUST Alkalinity SOURCE, assuming an alkalinity
+               ! of 4% by weight [kg].                  !tdf 05/10/08
+               !tdf with 3% Ca, there's also 1% equ. Mg, makes 4%
+               IF ( ExtNrAlk > 0 ) THEN
+                  FLUX_ALK(I,J,N) = 0.04 * ( DSRC(I,N) / AREA_M2 /
+     &                              DTSRCE )
+               ENDIF
+
             ENDDO !N
          ENDDO !I
       ENDDO !J 
@@ -446,11 +473,12 @@
       ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
       !=================================================================
       DO N = 1, NBINS
+
          IF ( HcoIDs(N) > 0 ) THEN
 
             ! Add to emissions array
             CALL HCO_EmisAdd( am_I_Root, HcoState, FLUX(:,:,N), 
-     &                        HcoIDs(N), RC, ExtNr=ExtNr )
+     &                        HcoIDs(N), RC,       ExtNr=ExtNr )
             IF ( RC /= HCO_SUCCESS ) THEN
                WRITE(MSG,*) 'HCO_EmisAdd error: dust bin ', N
                CALL HCO_ERROR( MSG, RC )
@@ -458,6 +486,23 @@
             ENDIF
 
          ENDIF
+
+         IF ( ExtNrAlk > 0 ) THEN
+            IF ( HcoIDsAlk(N) > 0 ) THEN
+
+               ! Add to dust alkalinity emissions array
+               CALL HCO_EmisAdd( am_I_Root,       HcoState,
+     &                           FLUX_Alk(:,:,N), HcoIDsAlk(N),
+     &                           RC,              ExtNr=ExtNrAlk )
+               IF ( RC /= HCO_SUCCESS ) THEN
+                  WRITE(MSG,*) 'HCO_EmisAdd error: dust alk bin ', N
+                  CALL HCO_ERROR( MSG, RC )
+                  RETURN 
+               ENDIF
+
+            ENDIF
+         ENDIF
+
       ENDDO !N
 
       ! Return w/ success
@@ -479,7 +524,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE HCOX_DustDead_Init ( am_I_Root, HcoState, ExtName,
-     &                                ExtState,    RC                )
+     &                                ExtState,  RC                )
 !
 ! !USES:
 !
@@ -509,7 +554,9 @@
       CHARACTER(LEN=255)             :: MSG
       INTEGER                        :: I, J, N, AS
       INTEGER                        :: nSpc
+      INTEGER                        :: nSpcAlk
       CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
+      CHARACTER(LEN=31), ALLOCATABLE :: SpcNamesAlk(:)
       REAL(dp)                       :: TmpScal
       LOGICAL                        :: FOUND
 
@@ -520,6 +567,9 @@
       ! Extension Nr.
       ExtNr = GetExtNr( TRIM(ExtName) )
       IF ( ExtNr <= 0 ) RETURN
+
+      ! Check for dust alkalinity option
+      ExtNrAlk = GetExtNr('DustAlk')
 
       ! Enter
       CALL HCO_ENTER ('HCOX_DustDead_Init (hcox_dustdead_mod.F90)', RC )
@@ -535,6 +585,13 @@
 
       CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC)
       IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! Get the dust alkalinity species defined for DustAlk option
+      IF ( ExtNrAlk > 0 ) THEN
+         CALL HCO_GetExtHcoID( HcoState,    ExtNrAlk, HcoIDsAlk,
+     &                         SpcNamesAlk, nSpcAlk,  RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN
+      ENDIF
 
       ! Sanity check
       IF ( nSpc /= NBINS ) THEN
@@ -567,15 +624,27 @@
          MSG = 'Use DEAD dust emissions (extension module)'
          CALL HCO_MSG( MSG, SEP1='-' )
    
+         IF ( ExtNrAlk > 0 ) THEN
+            MSG = 'Use dust alkalinity option'
+            CALL HCO_MSG ( MSG, SEP1='-' )
+         ENDIF
+
          MSG = 'Use the following species (Name: HcoID):' 
          CALL HCO_MSG(MSG)
          DO N = 1, nSpc
             WRITE(MSG,*) TRIM(SpcNames(N)), ':', HcoIDs(N)
             CALL HCO_MSG(MSG)
          ENDDO
+         IF ( ExtNrAlk > 0 ) THEN
+            DO N = 1, nSpcAlk
+               WRITE(MSG,*) TRIM(SpcNamesAlk(N)), ':', HcoIDsAlk(N)
+               CALL HCO_MSG(MSG)
+            ENDDO
+         ENDIF
             
          WRITE(MSG,*) 'Global mass flux tuning factor: ',FLX_MSS_FDG_FCT
          CALL HCO_MSG(MSG,SEP2='-')
+
       ENDIF
 
       !-----------------------------------------------------------------
@@ -779,7 +848,8 @@
       ExtState%DustDead = .TRUE.
 
       ! Leave w/ success
-      IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
+      IF ( ALLOCATED(SpcNames   ) ) DEALLOCATE(SpcNames   )
+      IF ( ALLOCATED(SpcNamesAlk) ) DEALLOCATE(SpcNamesAlk)
       CALL HCO_LEAVE ( RC ) 
 
       END SUBROUTINE HCOX_DustDead_Init
@@ -846,6 +916,7 @@
       IF ( ALLOCATED( GSD_ANL_SRC     ) ) DEALLOCATE( GSD_ANL_SRC     )
       IF ( ALLOCATED( MSS_FRC_SRC     ) ) DEALLOCATE( MSS_FRC_SRC     )
       IF ( ALLOCATED( HcoIDs          ) ) DEALLOCATE( HcoIDs          )
+      IF ( ALLOCATED( HcoIDsALK       ) ) DEALLOCATE( HcoIDsALK       )
 
       END SUBROUTINE HCOX_DustDead_Final
 !EOC
@@ -5435,6 +5506,22 @@ c Fix up for negative argument, erf, etc.
       !    -- R. Yantosca, M. Sulprizio, 06 Jan 2014
       !----------------------------------------------------------------
       FLX_MSS_FDG_FCT = 7.0d-4 * 1.1898d0
+
+#elif defined( MERRA2 ) && defined( GRID2x25 )
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: RETUNING FOR MERRA2 2x25 IS NEEDED ONCE MET IS AVAILABLE %%%
+      !%%%       Add placeholder value for now (bmy, 8/12/15)             %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      FLX_MSS_FDG_FCT = -999.0d0
+
+#elif defined( MERRA2 ) && defined( GRID4x5 )
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: RETUNING FOR MERRA2 4x5 IS NEEDED ONCE MET IS AVAILABLE %%%
+      !%%%       Add placeholder value for now (bmy, 8/12/15)             %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      FLX_MSS_FDG_FCT = -999.0d0
 
 #else
 

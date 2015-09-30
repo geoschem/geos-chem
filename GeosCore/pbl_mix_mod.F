@@ -207,7 +207,8 @@
 #endif
 
          ! Do complete mixing of tracers in the PBL (if necessary)
-         CALL TURBDAY( N_TOT_TRC, STT, TCVV, State_Met )
+         CALL TURBDAY( N_TOT_TRC, STT, TCVV, 
+     &                 Input_Opt, State_Met )
 
          ! Archive tracer concentrations for tendencies (ckeller, 7/15/2015)
 #if defined( DEVEL ) 
@@ -242,7 +243,6 @@
 !
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_GCTM_MOD             ! Scale height
@@ -263,6 +263,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  22 Aug 2014 - R. Yantosca - Now declare State_Met INTENT(INOUT)
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -291,7 +293,7 @@
 
          ! Pressure at level edges [hPa]
          DO L = 0, LLPAR
-            P(L) = GET_PEDGE(I,J,L+1)
+            P(L) = State_Met%PEDGE(I,J,L+1)
          ENDDO
          
          !----------------------------------------------
@@ -458,11 +460,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TURBDAY( NTRC, TC, TCVV, State_Met )              
+      SUBROUTINE TURBDAY( NTRC, TC, TCVV, Input_Opt, State_Met )              
 !
 ! !USES:
 !
       USE DIAG_MOD,           ONLY : TURBFLUP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CONV
 
@@ -479,6 +482,7 @@
 
       ! Meteorology State object
       TYPE(MetState), INTENT(IN)    :: State_Met
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -568,7 +572,7 @@
       !=================================================================
 
       ! First-time initialization
-      IF ( FIRST ) THEN
+      IF ( FIRST .and. Input_Opt%RootCPU ) THEN
 
          ! Echo info
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )

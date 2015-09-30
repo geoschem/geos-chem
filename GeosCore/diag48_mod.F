@@ -42,7 +42,8 @@
 !  159           : PBL heights                              [m        ]
 !  160           : PBL heights                              [levels   ]
 !  161           : Grid box heights                         [m        ]
-!  162           : PEDGE-$ (Pressure @ level edges          [hPa      ]
+!  162           : PEDGE-$ (Pressure @ level edges)         [hPa      ]
+!                  (lower edge, moist air pressure) 
 !  163           : Sea level pressure                       [hPa      ]
 !  164           : Zonal wind (a.k.a. U-wind)               [m/s      ]
 !  165           : Meridional wind (a.k.a. V-wind)          [m/s      ]
@@ -76,6 +77,8 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE calls with State_Met%PEDGE. 
+!                              Remove dependency on pressure_mod.
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
@@ -180,7 +183,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET,        GET_YOFFSET
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_LOCALTIME,      GET_NYMD
       USE TIME_MOD,           ONLY : GET_NHMS,           GET_TAU
       USE TIME_MOD,           ONLY : EXPAND_DATE,        ITS_A_NEW_DAY
@@ -448,7 +450,7 @@
             GMTRC    = 6
 
             IF ( K == 1 ) THEN
-               Q(1) = GET_PEDGE( I, J, State_Met%CLDTOPS(I,J) )
+               Q(1) = State_Met%PEDGE(I,J,State_Met%CLDTOPS(I,J))
             ENDIF
 
          ELSE IF ( N == 157 ) THEN 
@@ -527,7 +529,7 @@
             GMTRC    = 1            
             
             DO L = 1, K
-               Q(L) = GET_PEDGE( I, J, L )
+               Q(L) = State_Met%PEDGE( I, J, L )
             ENDDO
 
          ELSE IF ( N == 163 .and. IS_SLP ) THEN

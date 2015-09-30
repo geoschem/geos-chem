@@ -4455,7 +4455,7 @@
       IF ( ND05 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(05) = 10
+         NTRAC(05) = 14
 
          ! Loop over tracers
          DO T = 1, NTRAC(05)
@@ -4512,6 +4512,26 @@
                   FNAME(T,05) = 'L(NO3) by DMS'
                   UNIT (T,05) = 'kg NO3'
                   MWT  (T,05) = 62e-3
+               CASE( 11 )
+                  NAME (T,05) = 'SO4dust'
+                  FNAME(T,05) = 'P(SO4) by dust O3'
+                  UNIT (T,05) = 'kg S'
+                  MWT  (T,05) = 32e-3
+               CASE( 12 )
+                  NAME (T,05) = 'NITdust'
+                  FNAME(T,05) = 'P(NIT) by dust HNO3'
+                  UNIT (T,05) = 'kg N'
+                  MWT  (T,05) = 14e-3
+               CASE( 13 )
+                  NAME (T,05) = 'H2SO4dust'
+                  FNAME(T,05) = 'P(SO4) by dust H2SO4'
+                  UNIT (T,05) = 'kg S'
+                  MWT  (T,05) = 32e-3
+               CASE( 14 )
+                  NAME (T,05) = 'HNO3ss'
+                  FNAME(T,05) = 'L(HNO3) on seasalt'
+                  UNIT (T,05) = 'kg N'
+                  MWT  (T,05) = 14e-3
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -6257,12 +6277,10 @@
                      INDEX(N,44)   = T + ( SPACING * 36 )
                      NTRAC(44)     = NTRAC(44) + 1
 
-                     ! For the Rn simulation, unit is kg/s (bmy, 2/22/08)
-                     IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
-                        UNIT(N,44) = 'kg/s'
-                     ELSE
-                        UNIT(N,44) = 'molec/cm2/s'
-                     ENDIF
+                     ! NOTE: ND44 is now molec/cm2/s for all species
+                     ! because this is now centrally archived in
+                     ! module GeosCore/mixing_mod.F90 (bmy, 6/16/15)
+                     UNIT(N,44) = 'molec/cm2/s'
 
                      !--------------------------------------------------
                      ! Drydep velocity all other G-C tracers
@@ -7146,7 +7164,7 @@
       IF ( ND68 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
-         NTRAC(68) = 4
+         NTRAC(68) = 13
 
          ! Loop over tracers
          DO T = 1, NTRAC(68)
@@ -7169,6 +7187,42 @@
                   NAME (T,68) = 'N(AIR)'
                   FNAME(T,68) = 'Number density of air'
                   UNIT (T,68) = 'molec/m3'
+               CASE( 5 )
+                  NAME (T,68) = 'MAIRDEN'
+                  FNAME(T,68) = 'Moist air mass density'
+                  UNIT (T,68) = 'kg/m3'
+               CASE( 6 )
+                  NAME (T,68) = 'T'
+                  FNAME(T,68) = 'Temperature'
+                  UNIT (T,68) = 'K'
+               CASE( 7 )
+                  NAME (T,68) = 'TV'
+                  FNAME(T,68) = 'Virtual temperature'
+                  UNIT (T,68) = 'K'
+               CASE( 8 )
+                  NAME (T,68) = 'PMID'
+                  FNAME(T,68) = 'Pressure at L = average P'
+                  UNIT (T,68) = 'hPa'
+               CASE( 9 )
+                  NAME (T,68) = 'PMEAN'
+                  FNAME(T,68) = 'Pressure at L = wghted-mean P'
+                  UNIT (T,68) = 'hPa'
+               CASE( 10 )
+                  NAME (T,68) = 'PEDGE'
+                  FNAME(T,68) = 'Pressure at grid box lower edge'
+                  UNIT (T,68) = 'hPa'
+               CASE( 11 )
+                  NAME (T,68) = 'RH'
+                  FNAME(T,68) = 'Relative humidity'
+                  UNIT (T,68) = 'percent'
+               CASE( 12 )
+                  NAME (T,68) = 'PMID_DRY'
+                  FNAME(T,68) = 'Dry pressure at average P level'
+                  UNIT (T,68) = 'hPa'
+               CASE( 13 )
+                  NAME (T,68) = 'PMEAN_DRY'
+                  FNAME(T,68) = 'Dry pressure at wghted-mean P level'
+                  UNIT (T,68) = 'hPa'
                CASE DEFAULT
                   ! Nothing
             END SELECT

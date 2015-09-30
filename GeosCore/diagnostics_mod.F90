@@ -601,7 +601,7 @@ CONTAINS
     OutOper    = Input_Opt%ND68_OUTPUT_TYPE
       
     ! There are four diagnostics 
-    DO N = 1,7
+    DO N = 1,6
 
        !----------------------------------------------------------------
        ! Create containers
@@ -619,9 +619,9 @@ CONTAINS
              ScaleFact = 1.0_hp
              SpaceDim  = 3
           CASE ( 3 )
-             DiagnName = 'AIRDENS'
-             OutUnit   = 'molecules air m-3'
-             ScaleFact = XNUMOLAIR 
+             DiagnName = 'AIRDEN'
+             OutUnit   = 'kg m-3'
+             ScaleFact = 1.0_hp
              SpaceDim  = 3
           CASE ( 4 )
              IF ( .NOT. ASSOCIATED(State_Met%AVGW) ) CYCLE
@@ -639,11 +639,6 @@ CONTAINS
              OutUnit   = 'count'
              ScaleFact = 1.0_hp
              SpaceDim  = 2
-          CASE ( 7 )
-             DiagnName = 'PRESSURE'
-             OutUnit   = 'Pa'
-             ScaleFact = 1.0_hp
-             SpaceDim  = 3
        END SELECT
 
        ! Create container

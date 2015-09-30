@@ -47,6 +47,7 @@
       USE DRYDEP_MOD                         ! For dry deposition
       USE TRACERID_MOD                       ! For tracer flags
       USE WETSCAV_MOD                        ! For wet deposition
+      
 #if   defined( TOMAS )
       USE TOMAS_MOD, ONLY : ICOMP, IDIAG, IBINS  !(win, 1/25/10)
 #endif
@@ -261,6 +262,7 @@
 !                              should be molec/cm2/s instead of atoms C/cm2/2.
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !  22 May 2015 - R. Yantosca - Replace NOXEXTENT with 2 in TOMAS #if blocks
+!  07 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -334,6 +336,9 @@
       REAL(hp), PARAMETER      :: S_SO4    = 32e+0_hp / 96e+0_hp
 
       CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG3 (diag3.F)'
+
+      ! RRTMG
+      LOGICAL                  :: IS_GAS, IS_AD21, IS_DUST
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -563,6 +568,7 @@
 !   # : Field    : Description                     : Units      : Scale factor
 !  --------------------------------------------------------------------------
 !  (1)  DUST     : Soil dust (4 different classes) : kg         : 1
+ 
 !******************************************************************************
 !
       IF ( ND06 > 0 .and. Input_Opt%LDUST .and. Input_Opt%LEMIS ) THEN
@@ -619,6 +625,33 @@
      &                      UNIT,      NN, 1, -1, .FALSE.,  FACTOR, RC )
 
          ENDDO !N
+
+         ! Include Dust alkalinity sources   tdf 6/18/2K8
+         IF ( Input_Opt%LDSTUP ) THEN
+            DO N = 5, Input_Opt%N_DUST_BINS*2
+
+               SELECT CASE ( N )
+                  CASE ( 5 )
+                     NN         = IDTDAL1
+                     DiagnName  = 'AD06_DSTAL1'
+                  CASE ( 6 )
+                     NN         = IDTDAL2
+                     DiagnName  = 'AD06_DSTAL2'
+                  CASE ( 7 )
+                     NN         = IDTDAL3
+                     DiagnName  = 'AD06_DSTAL3'
+                  CASE ( 8 )
+                     NN         = IDTDAL4
+                     DiagnName  = 'AD06_DSTAL4'
+               END SELECT
+
+               ! Write to HEMCO diagnostics to bpch file
+               CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                         UNIT,      NN, 1, -1, .FALSE.,  FACTOR,
+     &                         RC )
+            ENDDO
+         ENDIF
+
       ENDIF     
 !
 !******************************************************************************
@@ -789,6 +822,7 @@
             CATEGORY  = 'OC-BIOG'
             DiagnName = 'BIOGENIC_OCPI'
             FACTOR    = SECONDS
+
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                 UNIT, N, 1, -1, .TRUE., FACTOR, RC, AreaScal=1 )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -1212,6 +1246,8 @@
 !  --------------------------------------------------------------------------
 !  (1)  SALA     : Accumulation mode seasalt       : kg         : 1
 !  (2)  SALC     : Coarse mode seasalt             : kg         : 1
+!  (3)  MOPO     : Marine organic aerosol - phobo  : kg         : 1
+!  (4)  MOPI     : Marine organic aerosol - philic : kg         : 1
 !******************************************************************************
 !
       IF ( ND08 > 0 .and. Input_Opt%LSSALT .and. Input_Opt%LEMIS ) THEN
@@ -1220,10 +1256,10 @@
          UNIT     = 'kg'
          CATEGORY = 'SALTSRCE'
 
-         ! Loop over seasalt tracers
+         ! Loop over default seasalt tracers
          DO N = 1, 2
 
-            ! At present we have 2 seasalts
+            ! At present we have 2 default seasalts
             IF ( N == 1 ) THEN
                NN = IDTSALA
                DiagnName  = 'AD08_SALA'
@@ -1237,6 +1273,26 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          ENDDO
+
+         ! Loop over optional marine organic aerosols
+         IF ( Input_Opt%LMPOA ) THEN
+            DO N = 3, 4
+   
+               IF ( N == 3 ) THEN
+                  NN = IDTMOPO
+                  DiagnName  = 'AD08_MOPO'
+               ELSEIF ( N == 4 ) THEN
+                  NN = IDTMOPI
+                  DiagnName  = 'AD08_MOPI'
+               ENDIF
+   
+               CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                         UNIT, NN, 1, -1, .FALSE., 1.0e+0_fp, RC )
+               IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP (DiagnName, LOC)
+   
+            ENDDO
+         ENDIF
+
       ENDIF   
 !
 !******************************************************************************
@@ -1857,25 +1913,37 @@
                   ! This diagnostic is for a GEOS-1/GEOS-STRAT field
                   ! so skip it! (bmy, 12/16/11)
                   CYCLE
-               CASE ( 5, 8, 11, 14, 17, 20, 29, 31 )
+               CASE ( 5, 8, 11, 14, 17, 20, 53, 56 )
                   UNIT = 'cm2/cm3'
                CASE DEFAULT
                   UNIT = 'unitless'
             END SELECT
 
-           !Only output extra wavelengths if they are requested
-           !standard is 5+3*NAER+NDUST but then each extra wavelength
-           !adds NAER+NDUST+1 <-- +1 for TOTALDUST
-           IF (( N < (6+NAER*3+NDUST) ) .OR. 
-     &         ( N > (5+NAER*3+NDUST) .AND. N < (7+NAER*4+NDUST*2) .AND.
-     &           NWVSELECT > 1 ) .OR.
-     &         ( N > (6+NAER*4+NDUST*2) .AND. NWVSELECT > 2 )) THEN 
+           ! Is this something that we want to output?
+           ! Only output extra wavelengths if they are requested
+           IF (NWVSELECT.eq.3) THEN
+               IS_AD21 = .TRUE.
+           ELSEIF (NWVSELECT.eq.2) THEN
+               ! Exclude wavelength 3
+               IS_AD21 = ((N.le.(5 + 2*NRHAER + 2*(NRHAER+NDUST))).or.
+     &                    (N.gt.(5 + 2*NRHAER + 3*(NRHAER+NDUST))))
+           ELSEIF (NWVSELECT.eq.1) THEN
+               ! Exclude wavelengths 2 and 3
+               IS_AD21 = ((N.le.(5 + 2*NRHAER + 1*(NRHAER+NDUST))).or.
+     &                    (N.gt.(5 + 2*NRHAER + 3*(NRHAER+NDUST))))
+           ENDIF
+               
+           ! Dust gets scaled differently
+           IS_DUST = (((N.eq.4).or.(N.eq.5)).or.
+     &                ((N.gt.(5 + 2*NRHAER + 1*(NRHAER))).and.
+     &                 (N.lt.(5 + 2*NRHAER + 1*(NRHAER+NDUST)))).or.
+     &                ((N.gt.(5 + 2*NRHAER + 2*(NRHAER))).and.
+     &                 (N.le.(5 + 2*NRHAER + 2*(NRHAER+NDUST)))).or.
+     &                ((N.gt.(5 + 2*NRHAER + 3*(NRHAER))).and.
+     &                 (N.le.(5 + 2*NRHAER + 3*(NRHAER+NDUST)))))
 
-            !Dust arrays
-            IF (( N > 3 .AND. N < 6 ) .OR. (N > 5+NAER*3 .AND. 
-     &            N < 13+NAER*3) .OR. 
-     &         ( N > 5+NAER*4+NDUST .AND. N < (7+NAER*4+NDUST*2) ) .OR. 
-     &         ( N > (6+NAER*5+NDUST*2))) THEN
+           IF (IS_AD21) THEN
+            IF (IS_DUST) THEN
 
                ! Online or offline dust fields?
                IF ( Input_Opt%LDUST ) THEN
@@ -3526,6 +3594,7 @@
 !  (9 ) Add code for H2/HD simulation (phs, 5/8/07)
 !  29 Jan 2014 - R. Yantosca - Now save DEPNAME(N) into DRYDEP_NAME, which
 !                              helps avoid ambiguity for TOMAS simulations
+!  12 Jun 2015 - R. Yantosca - ND44 is now always in molec/cm2/s
 !******************************************************************************
 !
       IF ( ND44 > 0 ) THEN
@@ -3571,8 +3640,10 @@
             IF ( Input_Opt%ITS_A_RnPbBe_SIM .or. 
      &           Input_Opt%ITS_A_H2HD_SIM ) THEN
 
+               ! NOTE: ND44 is now archived in molec/cm2/s for all 
+               ! simulations, including Rn-Pb-Be. (bmy, 6/16/15)
                ! Radon or H2/HD
-               UNIT = 'kg/s'       
+               UNIT = 'molec/cm2/s'
                NN   = NTRAIND(N)
  
             ELSE IF ( Input_Opt%ITS_A_TAGOX_SIM .or. 
@@ -5450,7 +5521,7 @@
       IF ( ND66 > 0 ) THEN
          CATEGORY = 'DAO-3D-$'
 
-#if   defined( GEOS_FP )
+#if   defined( GEOS_FP ) || defined( MERRA2 )
          SCALE_ND66 = SCALE_A3   ! For GEOS-FP,  ND66 is 3-hr time-avg data
 #elif defined( MERRA )
          SCALE_ND66 = SCALE_A3   ! For MERRA,    ND66 is 3-hr time-avg data
@@ -5471,7 +5542,7 @@
 
                ! TMPU
                CASE ( 3 )
-#if   defined( GEOS_FP )
+#if   defined( GEOS_FP ) || defined( MERRA2 )
                   SCALEX = SCALE_I3      ! T is an I3 field in GEOS-5.7.x
 #else
                   SCALEX = SCALE_ND66
@@ -5480,7 +5551,7 @@
 
                ! SPHU
                CASE ( 4 )
-#if   defined( GEOS_FP )
+#if   defined( GEOS_FP ) || defined( MERRA2 )
                   SCALEX = SCALE_I3      ! SPHU is an I3 field in GEOS-5.7.x
 #else
                   SCALEX = SCALE_ND66
@@ -5557,7 +5628,7 @@
 
 #if   defined( MERRA )
          SCALE_ND67 = SCALE_A1    ! For MERRA,      ND67 fields are hourly
-#elif defined( GEOS_FP )
+#elif defined( GEOS_FP ) || defined( MERRA2 ) 
          SCALE_ND67 = SCALE_A1    ! For GEOS-FP,    ND67 fields are hourly
 #else
          SCALE_ND67 = SCALE_A3    ! Otherwise, most ND67 fields are 3-hourly
@@ -5610,7 +5681,7 @@
                   SCALEX = SCALED
                   UNIT   = 'm'
                CASE ( 16 )
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
                   SCALEX = SCALE_A3     ! MERRA/GEOS-FP CLDTOPS 3-hr avg'd
 #else 
                   SCALEX = SCALE_A6     ! Otherwise CLDTOPS is 6-hr time avg'd
@@ -5620,7 +5691,7 @@
                   SCALEX = SCALE_ND67
                   UNIT   = 'hPa'
                CASE ( 18 ) 
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
                  SCALEX = SCALE_A1      ! MERRA/GEOS-FP SLP is hourly
 #else
                  SCALEX = SCALE_I6      ! Otherwise SLP is 6-h inst.

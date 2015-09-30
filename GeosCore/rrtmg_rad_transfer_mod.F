@@ -1009,17 +1009,17 @@
                TAUAER_SW(IJLOOP,L,IB_SW) = 1.0
               ENDIF
               IF (ASMAERDIAG(IJLOOP,L,IB_SW).GT.0.999d0) THEN
-               ASMAER(IJLOOP,L,IB_SW) = 0.999d0
+               ASMAERDIAG(IJLOOP,L,IB_SW) = 0.999d0
               ENDIF
 !              IF (ASMAERDIAG(IJLOOP,L,IB_SW).LT.0.001d0) THEN
-!               ASMAER(IJLOOP,L,IB_SW) = 0.001
+!               ASMAERDIAG(IJLOOP,L,IB_SW) = 0.001
 !              ENDIF
               IF ((SSAAERDIAG(IJLOOP,L,IB_SW).LT.0.001d0).OR.
      &            (SSAAERDIAG(IJLOOP,L,IB_SW).GT.1.0d0)) THEN
-               SSAAER(IJLOOP,L,IB_SW) = 0.99
+               SSAAERDIAG(IJLOOP,L,IB_SW) = 0.99
               ENDIF
               IF (TAUAERDIAG(IJLOOP,L,IB_SW).GT.1.0) THEN
-               TAUAER_SW(IJLOOP,L,IB_SW) = 1.0
+               TAUAERDIAG(IJLOOP,L,IB_SW) = 1.0
               ENDIF
 
         ENDDO
@@ -1367,7 +1367,7 @@
             p_CIWPMCL_SW = CIWPMCL_SW(:,IL,:  )
             p_CLWPMCL_SW = CLWPMCL_SW(:,IL,:  )
             p_TAUAER_SW  = TAUAER_SW (  IL,:,:)
-            p_SSAAER     = TAUAER_LW (  IL,:,:)
+            p_SSAAER     = SSAAER    (  IL,:,:)
             p_ASMAER     = ASMAER    (  IL,:,:)
 
             ! Call RRTMG for shortwave radiation
@@ -1573,7 +1573,7 @@
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD,   ONLY :  SPECMASK,NASPECRAD,
+      USE CMN_FJX_MOD,   ONLY :  SPECMASK,NSPECRAD,NASPECRAD,
      &                          LSPECRADMENU,NSPECRADMENU
 !
 ! !INPUT PARAMETERS:
@@ -1583,6 +1583,7 @@
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
+!  26 Jun 2015 - E. Lundgren - Fix typo in NXTRA definition
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1606,7 +1607,7 @@
       !WHERE NXTRA=NUMBER OF NEW SPECIES ADDED ABOVE THE STANDARD CODE
       !E.G. IF UCX=YES THEN NASPECRAD=18 AND STS AND NAT ARE INCLUDED
       !IN RTODAER INDEX 8 AND 9, BEFORE DUST
-      NXTRA=NASPECRAD-16
+      NXTRA=NSPECRAD-16
       !CONVERT THE CURRENT SPECIES SELECTION FROM THE INPUT MENU INTO
       !THE REQUIRED SPECIES TO BE INCLUDED IN THE RRTMG CALCULATION
       SPECMASK(:)=1

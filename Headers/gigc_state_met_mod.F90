@@ -75,8 +75,11 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: PRECLSC   (:,:  ) ! LS precip @ ground [kg/m2/s]
      REAL(fp), POINTER :: PRECSNO   (:,:  ) ! Snow precip [kg/m2/s]
      REAL(fp), POINTER :: PS1       (:,:  ) ! Sfc press at timestep start[hPa]
+                                            ! (wet air pressure)
      REAL(fp), POINTER :: PS2       (:,:  ) ! Sfc press at timestep end [hPa]
+                                            ! (wet air pressure)
      REAL(fp), POINTER :: PSC2      (:,:  ) ! Interpolated sfc pressure [hPa]
+                                            ! (wet air pressure)
      REAL(fp), POINTER :: RADLWG    (:,:  ) ! Net LW radiation @ ground [W/m2]
      REAL(fp), POINTER :: RADSWG    (:,:  ) ! Solar radiation @ ground [W/m2]
      REAL(fp), POINTER :: SEAICE00  (:,:  ) ! Sea ice coverage 00-10%
@@ -117,48 +120,52 @@ MODULE GIGC_State_Met_Mod
      !----------------------------------------------------------------------
      ! 3-D Fields                  
      !----------------------------------------------------------------------
-     REAL(fp), POINTER :: AD        (:,:,:) ! Air mass [kg]
-     REAL(fp), POINTER :: AIRDEN    (:,:,:) ! Air density [kg/m3]
-     REAL(fp), POINTER :: AIRVOL    (:,:,:) ! Grid box volume [m3]
      REAL(fp), POINTER :: AREA_M2   (:,:,:) ! Grid box surface area [cm2]
-     REAL(fp), POINTER :: AVGW      (:,:,:) ! Mixing ratio of water vapor
-     REAL(fp), POINTER :: BXHEIGHT  (:,:,:) ! Grid box height [m]
+     REAL(fp), POINTER :: AIRDEN    (:,:,:) ! Dry air density [kg/m3]
      REAL(fp), POINTER :: CLDF      (:,:,:) ! 3-D cloud fraction [1]
      REAL(fp), POINTER :: CMFMC     (:,:,:) ! Cloud mass flux [kg/m2/s]
-     REAL(fp), POINTER :: DELP      (:,:,:) ! Delta-P extent  of a grid box [mb]
      REAL(fp), POINTER :: DETRAINE  (:,:,:) ! Detrainment (entrain plume)[Pa/s]
      REAL(fp), POINTER :: DETRAINN  (:,:,:) ! Detrainment (non-entr plume)[Pa/s]
      REAL(fp), POINTER :: DNDE      (:,:,:) ! Downdraft (entr plume) [Pa/s]
      REAL(fp), POINTER :: DNDN      (:,:,:) ! Downdraft (non-entr plume) [Pa/s]
      REAL(fp), POINTER :: DQRCU     (:,:,:) ! Conv precip prod rate [kg/kg/s]
+                                            ! (assume per dry air)
      REAL(fp), POINTER :: DQRLSAN   (:,:,:) ! LS precip prod rate [kg/kg/s]
+                                            ! (assume per dry air)
      REAL(fp), POINTER :: DQIDTMST  (:,:,:) ! Ice tendency, mst proc [kg/kg/s]
+                                            ! (assume per moist air)
      REAL(fp), POINTER :: DQLDTMST  (:,:,:) ! H2O tendency, mst proc [kg/kg/s]
+                                            ! (assume per moist air)
      REAL(fp), POINTER :: DQVDTMST  (:,:,:) ! Vapor tendency, mst proc [kg/kg/s]
+                                            ! (assume per moist air)
      REAL(fp), POINTER :: DTRAIN    (:,:,:) ! Detrainment flux [kg/m2/s]
      REAL(fp), POINTER :: ENTRAIN   (:,:,:) ! GCAP entrainment [Pa/s]
      REAL(fp), POINTER :: HKBETA    (:,:,:) ! Hack overshoot parameter [1]
      REAL(fp), POINTER :: HKETA     (:,:,:) ! Hack conv mass flux [kg/m2/s]
-     REAL(fp), POINTER :: MOISTQ    (:,:,:) ! Tendency in sp. humidity [kg/kg/s]
+     REAL(fp), POINTER :: MOISTQ    (:,:,:) ! Tendency in sp. humidity 
+                                            ! [kg/kg moist air/s]
      REAL(fp), POINTER :: OPTD      (:,:,:) ! Visible optical depth [1]
      REAL(fp), POINTER :: OPTDEP    (:,:,:) ! Visible optical depth [1]
-     REAL(fp), POINTER :: PEDGE     (:,:,:) ! Pressure @ level edges [Pa]
-     REAL(fp), POINTER :: PMID      (:,:,:) ! Pressure @ level centers [Pa]
+     REAL(fp), POINTER :: PEDGE     (:,:,:) ! Wet air pressure [hPa] @ level 
+                                            ! edges [hPa]
      REAL(fp), POINTER :: PFICU     (:,:,:) ! Dwn flux ice prec:conv [kg/m2/s]
      REAL(fp), POINTER :: PFILSAN   (:,:,:) ! Dwn flux ice prec:LS+anv [kg/m2/s]
      REAL(fp), POINTER :: PFLCU     (:,:,:) ! Dwn flux liq prec:conv [kg/m2/s]
      REAL(fp), POINTER :: PFLLSAN   (:,:,:) ! Dwn flux ice prec:LS+anv [kg/m2/s]
      REAL(fp), POINTER :: PV        (:,:,:) ! Potential vort [kg*m2/kg/s]
-     REAL(fp), POINTER :: QI        (:,:,:) ! Ice mixing ratio [kg/kg]
-     REAL(fp), POINTER :: QL        (:,:,:) ! Water mixing ratio [kg/kg]
+     REAL(fp), POINTER :: QI        (:,:,:) ! Ice mixing ratio [kg/kg dry air]
+     REAL(fp), POINTER :: QL        (:,:,:) ! Water mixing ratio [kg/kg dry air]
      REAL(fp), POINTER :: REEVAPCN  (:,:,:) ! Evap of precip conv [kg/kg/s]
+                                            ! (assume per dry air)
      REAL(fp), POINTER :: REEVAPLS  (:,:,:) ! Evap of precip LS+anvil [kg/kg/s]
+                                            ! (assume per dry air)
      REAL(fp), POINTER :: RH        (:,:,:) ! Relative humidity [%]
      REAL(fp), POINTER :: RH1       (:,:,:) ! RH at timestep start [%]
      REAL(fp), POINTER :: RH2       (:,:,:) ! RH at timestep end [%]
-     REAL(fp), POINTER :: SPHU      (:,:,:) ! Specific humidity [kg/kg]
-     REAL(fp), POINTER :: SPHU1     (:,:,:) ! Spec hum at timestep start [kg/kg]
-     REAL(fp), POINTER :: SPHU2     (:,:,:) ! Spec hum at timestep end [kg/kg]
+     REAL(fp), POINTER :: SPHU      (:,:,:) ! Specific humidity 
+                                            ! [g water vapor / kg moist air]
+     REAL(fp), POINTER :: SPHU1     (:,:,:) ! Spec hum at timestep start [g/kg]
+     REAL(fp), POINTER :: SPHU2     (:,:,:) ! Spec hum at timestep end [g/kg] 
      REAL(fp), POINTER :: T         (:,:,:) ! Temperature [K]
      REAL(fp), POINTER :: TAUCLI    (:,:,:) ! Opt depth of ice clouds [1]
      REAL(fp), POINTER :: TAUCLW    (:,:,:) ! Opt depth of H2O clouds [1]
@@ -174,6 +181,40 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: ZMMU      (:,:,:) ! Z/M updraft   mass flux [Pa/s]
 
      !----------------------------------------------------------------------
+     ! Air quantities assigned in AIRQNT
+     !----------------------------------------------------------------------
+     ! Note on pressures: PMID and PMEAN are calculated from PEDGE, 
+     ! and dry air partial pressures assume constant RH and T across grid box
+     REAL(fp), POINTER :: PEDGE_DRY (:,:,:) ! Dry air partial pressure [hPa] 
+                                            ! @ level edges [hPa]
+     REAL(fp), POINTER :: PMID      (:,:,:) ! Average wet air pressure [hPa]
+                                            ! defined as arithmetic
+                                            ! average of edge pressures
+     REAL(fp), POINTER :: PMID_DRY  (:,:,:) ! Dry air partial pressure [hPa]
+                                            ! defined as arithmetic average
+                                            ! of edge pressures 
+     REAL(fp), POINTER :: PMEAN     (:,:,:) ! Grid box mean wet air pressure 
+                                            ! [hPa] calculated as P
+                                            ! integrated over z
+     REAL(fp), POINTER :: PMEAN_DRY (:,:,:) ! Grid box mean dry air partial 
+                                            ! pressure calculated using water 
+                                            ! vapor partial pressure derived
+                                            ! from PMEAN
+     REAL(fp), POINTER :: MOISTMW   (:,:,:) ! Moist air molec weight [g/mol]
+                                            ! at the grid box altitude-weighted
+                                            ! pressure level (temporary)        
+     REAL(fp), POINTER :: TV        (:,:,:) ! Virtual temperature [K]
+     REAL(fp), POINTER :: MAIRDEN   (:,:,:) ! Moist air density [kg/m3]
+     REAL(fp), POINTER :: AVGW      (:,:,:) ! Water vapor volume mixing ratio
+                                            ! [vol H2O / vol dry air]
+     REAL(fp), POINTER :: BXHEIGHT  (:,:,:) ! Grid box height [m] (dry air)
+     REAL(fp), POINTER :: DELP      (:,:,:) ! Delta-P extent of grid box [hPa]
+                                            ! (wet air)
+     REAL(fp), POINTER :: AD        (:,:,:) ! Dry air mass [kg] in grid box
+     REAL(fp), POINTER :: ADMOIST   (:,:,:) ! Moist air mass [kg] in grid box
+     REAL(fp), POINTER :: AIRVOL    (:,:,:) ! Grid box volume [m3] (dry air)
+
+     !----------------------------------------------------------------------
      ! Land type and leaf area index (LAI) fields for dry deposition
      !----------------------------------------------------------------------
      INTEGER,  POINTER :: IREG      (:,:  ) ! # of landtypes in grid box (I,J) 
@@ -182,8 +223,15 @@ MODULE GIGC_State_Met_Mod
                                             !  (I,J) occupied by each land type
      REAL(fp), POINTER :: XLAI      (:,:,:) ! LAI per land type, this month
      REAL(fp), POINTER :: XLAI2     (:,:,:) ! LAI per land type, next month
+     REAL(fp), POINTER :: XCHLR     (:,:,:) ! CHLR per land type, this month
+     REAL(fp), POINTER :: XCHLR2    (:,:,:) ! CHLR per land type, next month
+
+
 
   END TYPE MetState
+!
+! !REMARKS:
+!  In MERRA2, PS and SLP are kept in Pa (not converted to hPa).
 !
 ! !REVISION HISTORY: 
 !  19 Oct 2012 - R. Yantosca - Initial version, split off from gc_type_mod.F90
@@ -198,7 +246,14 @@ MODULE GIGC_State_Met_Mod
 !                              more.
 !  05 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp)
 !  12 Feb 2015 - C. Keller   - Added UPDVVEL (for use in wet scavenging).
+!  24 Feb 2015 - E. Lundgren - Add PEDGE_DRY, PMID_DRY, and MAIRDEN
+!  03 Mar 2015 - E. Lundgren - Add TV (virtual temperature)
+!  16 Apr 2015 - E. Lundgren - Add mean pressures PMEAN and PMEAN_DRY. Clarify
+!                              definition of PMID as arithmetic average P. 
+!                              Add MOISTMW to use TCVV with moist mixing ratio. 
 !  25 May 2015 - C. Keller   - Removed SUNCOSmid5 (now calculated by HEMCO).
+!  08 Jul 2015 - E. Lundgren - Add XCHLR and XCHLR2 for organic marine aerosols
+!  11 Aug 2015 - R. Yantosca - Extend #ifdefs for MERRA2 met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -524,10 +579,10 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%TTO3     = 0.0_fp
 
-#elif defined( GEOS_FP ) || defined( MERRA )
+#elif defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
 
     !=======================================================================
-    ! GEOS-5.7.x / MERRA met fields
+    ! MERRA, GEOS-FP, and MERRA2 met fields
     !=======================================================================
     ALLOCATE( State_Met%FRSEAICE  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -593,10 +648,18 @@ CONTAINS
     ALLOCATE( State_Met%AD        ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%AD       = 0.0_fp
+
+    ALLOCATE( State_Met%ADMOIST   ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%ADMOIST  = 0.0_fp
                                                
     ALLOCATE( State_Met%AIRDEN    ( IM, JM, LM   ), STAT=RC )  
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%AIRDEN   = 0.0_fp
+    
+    ALLOCATE( State_Met%MAIRDEN    ( IM, JM, LM   ), STAT=RC )  
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%MAIRDEN   = 0.0_fp
                               
     ALLOCATE( State_Met%AIRVOL    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
@@ -650,6 +713,10 @@ CONTAINS
     ALLOCATE( State_Met%DTRAIN    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%DTRAIN   = 0.0_fp
+
+    ALLOCATE( State_Met%MOISTMW ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%MOISTMW = 0.0_fp
                                                
     ALLOCATE( State_Met%MOISTQ    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
@@ -666,10 +733,26 @@ CONTAINS
     ALLOCATE( State_Met%PEDGE     ( IM, JM, LM+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%PEDGE    = 0.0_fp
-                                               
+
+    ALLOCATE( State_Met%PEDGE_DRY ( IM, JM, LM+1 ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%PEDGE_DRY = 0.0_fp
+
     ALLOCATE( State_Met%PMID      ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%PMID     = 0.0_fp
+
+    ALLOCATE( State_Met%PMID_DRY   ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%PMID_DRY  = 0.0_fp
+
+    ALLOCATE( State_Met%PMEAN      ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%PMEAN     = 0.0_fp
+
+    ALLOCATE( State_Met%PMEAN_DRY   ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%PMEAN_DRY  = 0.0_fp
 
     ALLOCATE( State_Met%PV        ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -694,6 +777,10 @@ CONTAINS
     ALLOCATE( State_Met%T         ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%T        = 0.0_fp
+
+    ALLOCATE( State_Met%TV        ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%TV       = 0.0_fp
                                                
     ALLOCATE( State_Met%TAUCLI    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
@@ -774,14 +861,14 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%ZMMU     = 0.0_fp
 
-#elif defined( GEOS_FP ) || defined( MERRA )
+#elif defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
 
     !=======================================================================
-    ! GEOS-5.7.x / MERRA met fields
+    ! MERRA, GEOS-FP, and MERRA2 met fields
     !=======================================================================
 
     ! Pick the proper vertical dimension
-#if defined( GEOS_FP )
+#if defined( GEOS_FP ) || defined( MERRA2 )
     LX = LM + 1           ! For fields that are on level edges
 #else
     LX = LM               ! For fields that are on level centers
@@ -859,6 +946,14 @@ CONTAINS
     ALLOCATE( State_Met%XLAI2     ( IM, JM, NTYPE ), STAT=RC )        
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%XLAI2    = 0.0_fp
+
+    ALLOCATE( State_Met%XCHLR      ( IM, JM, NTYPE ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%XCHLR     = 0.0_fp
+
+    ALLOCATE( State_Met%XCHLR2     ( IM, JM, NTYPE ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%XCHLR2    = 0.0_fp
 
   END SUBROUTINE Init_GIGC_State_Met
 !EOC
@@ -963,7 +1058,9 @@ CONTAINS
 
     ! 3-D fields
     IF ( ASSOCIATED( State_Met%AD         )) DEALLOCATE( State_Met%AD         )
+    IF ( ASSOCIATED( State_Met%ADMOIST    )) DEALLOCATE( State_Met%ADMOIST    )
     IF ( ASSOCIATED( State_Met%AIRDEN     )) DEALLOCATE( State_Met%AIRDEN     )
+    IF ( ASSOCIATED( State_Met%MAIRDEN    )) DEALLOCATE( State_Met%MAIRDEN    )
     IF ( ASSOCIATED( State_Met%AIRVOL     )) DEALLOCATE( State_Met%AIRVOL     )
     IF ( ASSOCIATED( State_Met%AREA_M2    )) DEALLOCATE( State_Met%AREA_M2    )
     IF ( ASSOCIATED( State_Met%AVGW       )) DEALLOCATE( State_Met%AVGW       )
@@ -976,18 +1073,24 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%DQIDTMST   )) DEALLOCATE( State_Met%DQIDTMST   )
     IF ( ASSOCIATED( State_Met%DQLDTMST   )) DEALLOCATE( State_Met%DQLDTMST   )
     IF ( ASSOCIATED( State_Met%DQVDTMST   )) DEALLOCATE( State_Met%DQVDTMST   )
+    IF ( ASSOCIATED( State_Met%MOISTMW    )) DEALLOCATE( State_Met%MOISTMW    )
     IF ( ASSOCIATED( State_Met%DTRAIN     )) DEALLOCATE( State_Met%DTRAIN     )
     IF ( ASSOCIATED( State_Met%MOISTQ     )) DEALLOCATE( State_Met%MOISTQ     )
     IF ( ASSOCIATED( State_Met%OPTD       )) DEALLOCATE( State_Met%OPTD       )
     IF ( ASSOCIATED( State_Met%OPTDEP     )) DEALLOCATE( State_Met%OPTDEP     )
     IF ( ASSOCIATED( State_Met%PEDGE      )) DEALLOCATE( State_Met%PEDGE      )
+    IF ( ASSOCIATED( State_Met%PEDGE_DRY  )) DEALLOCATE( State_Met%PEDGE_DRY  )
     IF ( ASSOCIATED( State_Met%PMID       )) DEALLOCATE( State_Met%PMID       )
+    IF ( ASSOCIATED( State_Met%PMID_DRY   )) DEALLOCATE( State_Met%PMID_DRY   )
+    IF ( ASSOCIATED( State_Met%PMEAN      )) DEALLOCATE( State_Met%PMEAN      )
+    IF ( ASSOCIATED( State_Met%PMEAN_DRY  )) DEALLOCATE( State_Met%PMEAN_DRY  )
     IF ( ASSOCIATED( State_Met%PV         )) DEALLOCATE( State_Met%PV         )
     IF ( ASSOCIATED( State_Met%QI         )) DEALLOCATE( State_Met%QI         )
     IF ( ASSOCIATED( State_Met%QL         )) DEALLOCATE( State_Met%QL         )
     IF ( ASSOCIATED( State_Met%RH         )) DEALLOCATE( State_Met%RH         )
     IF ( ASSOCIATED( State_Met%SPHU       )) DEALLOCATE( State_Met%SPHU       )
     IF ( ASSOCIATED( State_Met%T          )) DEALLOCATE( State_Met%T          )
+    IF ( ASSOCIATED( State_Met%TV         )) DEALLOCATE( State_Met%TV         )
     IF ( ASSOCIATED( State_Met%TAUCLI     )) DEALLOCATE( State_Met%TAUCLI     )
     IF ( ASSOCIATED( State_Met%TAUCLW     )) DEALLOCATE( State_Met%TAUCLW     ) 
     IF ( ASSOCIATED( State_Met%U          )) DEALLOCATE( State_Met%U          )
@@ -1044,9 +1147,9 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%TO32       )) DEALLOCATE( State_Met%TO32       )
     IF ( ASSOCIATED( State_Met%TTO3       )) DEALLOCATE( State_Met%TTO3       )
 
-#elif defined( GEOS_FP ) || defined( MERRA )
+#elif defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
     !========================================================================
-    ! Fields specific to the GMAO MERRA and GEOS-5.7.x met data products
+    ! Fields specific to the GMAO GEOS-FP, MERRA, and MERRA-2 met products
     !========================================================================
 
     ! 2-D fields
@@ -1089,6 +1192,8 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%IUSE       )) DEALLOCATE( State_Met%IUSE       )
     IF ( ASSOCIATED( State_Met%XLAI       )) DEALLOCATE( State_Met%XLAI       )
     IF ( ASSOCIATED( State_Met%XLAI2      )) DEALLOCATE( State_Met%XLAI2      )
+    IF ( ASSOCIATED( State_Met%XCHLR      )) DEALLOCATE( State_Met%XCHLR      )
+    IF ( ASSOCIATED( State_Met%XCHLR2     )) DEALLOCATE( State_Met%XCHLR2     )
 
    END SUBROUTINE Cleanup_GIGC_State_Met
 !EOC

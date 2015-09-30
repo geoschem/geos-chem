@@ -597,8 +597,8 @@ emissions_mod.o             : emissions_mod.F90                              \
                               bromocarb_mod.o                                \
                               carbon_mod.o            co2_mod.o              \
                               dust_mod.o              global_ch4_mod.o       \
-                              hcoi_gc_main_mod.o      tracerid_mod.o         \
-                              ucx_mod.o 
+                              hcoi_gc_main_mod.o      tomas_mod.o            \
+                              tracerid_mod.o          ucx_mod.o        
 
 exchange_mod.o              : exchange_mod.F                                 \
 	                      tpcore_bc_mod.o         dao_mod.o              \
@@ -752,7 +752,7 @@ main.o                      : main.F                                         \
                               tracerid_mod.o          wetscav_mod.o          \
                               ucx_mod.o               vdiff_mod.o            \
                               emissions_mod.o         cleanup.o              \
-                              mixing_mod.o                                   \
+                              mixing_mod.o            merra2_read_mod.o      \
                               rrtmg_rad_transfer_mod.o
 
 mapping_mod.o               : mapping_mod.F90                              
@@ -776,6 +776,9 @@ merra_cn_mod.o              : merra_cn_mod.F                                 \
                               diag_mod.o
 
 merra_i6_mod.o              : merra_i6_mod.F
+
+merra2_read_mod.o           : merra2_read_mod.F90                            \
+                              dao_mod.o               diag_mod.o
 
 mixing_mod.o                : mixing_mod.F90                                 \
                               chemgrid_mod.o                                 \
@@ -908,7 +911,7 @@ subfun.o                    : subfun.F
 sulfate_mod.o               : sulfate_mod.F                                  \
                               chemgrid_mod.o          comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
-                              drydep_mod.o                                   \
+                              drydep_mod.o            dust_mod.o             \
                               future_emissions_mod.o  get_ndep_mod.o         \
                               pbl_mix_mod.o                                  \
                               wetscav_mod.o           tomas_mod.o            \
@@ -960,7 +963,8 @@ transport_mod.o             : transport_mod.F                                \
                               tpcore_geosfp_window_mod.o                     \
                               tendencies_mod.o                               \
                               pjc_pfix_geos5_window_mod.o                    \
-                              pjc_pfix_geosfp_window_mod.o
+                              pjc_pfix_geosfp_window_mod.o                   \
+                              dao_mod.o
 
 update.o                    : update.F
 

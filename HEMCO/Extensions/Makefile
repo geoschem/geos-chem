@@ -127,6 +127,7 @@ hcox_driver_mod.o           : hcox_driver_mod.F90             \
                               hcox_ch4wetland_mod.o           \
                               hcox_custom_mod.o               \
                               hcox_dustdead_mod.o             \
+                              hcox_tomas_dustdead_mod.o       \
                               hcox_dustginoux_mod.o           \
                               hcox_finn_mod.o                 \
                               hcox_gc_POPs_mod.o              \
@@ -140,7 +141,8 @@ hcox_driver_mod.o           : hcox_driver_mod.F90             \
                               hcox_seasalt_mod.o              \
                               hcox_soilnox_mod.o              \
                               hcox_state_mod.o		      \
-                              hcox_tomas_seasalt_mod.o       
+                              hcox_tomas_seasalt_mod.o        
+
 
 hcox_dustdead_mod.o         : hcox_dustdead_mod.F             \
                               hcox_state_mod.o		      
@@ -193,6 +195,9 @@ hcox_tomas_seasalt_mod.o    : hcox_tomas_seasalt_mod.F90      \
                               hcox_state_mod.o
 
 hcox_tools_mod.o            : hcox_tools_mod.F90
+
+hcox_tomas_dustdead_mod.o   : hcox_tomas_dustdead_mod.F       \
+                              hcox_state_mod.o
 
 ocean_toolbox_mod.o         : ocean_toolbox_mod.F90
 

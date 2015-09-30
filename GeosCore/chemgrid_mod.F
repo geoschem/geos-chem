@@ -751,7 +751,6 @@
 !
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 
       USE CMN_SIZE_MOD             ! Size parameters
 !
@@ -770,6 +769,8 @@
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  10 Sep 2010 - R. Yantosca - Update comments, remove obsolete documentation
 !  21 Feb 2014 - M. Sulprizio- Now pass State_Met object via the arg list
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -795,7 +796,7 @@
          DO
 
             ! Pressure [hPa] at the bottom edge of grid box (I,J,L) 
-            PRESS_BEDGE = GET_PEDGE( I, J, L )
+            PRESS_BEDGE = State_Met%PEDGE( I, J, L )
 
             ! Break out of this loop if we encounter the box (I,J,L_TP)
             ! where the tropopause occurs.  This box is partially in the
@@ -854,7 +855,6 @@
 ! !USES:
 !
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
 !
 ! !INPUT PARAMETERS: 
 !
@@ -875,6 +875,8 @@
 !  (1 ) Modified for variable tropopause (phs, 9/14/06)
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  21 Feb 2014 - M. Sulprizio- Now pass State_Met object via the arg list
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -889,7 +891,7 @@
       IF ( LVARTROP ) THEN
 
          ! Get bottom pressure edge
-         PRESS_BEDGE = GET_PEDGE(I,J,L)
+         PRESS_BEDGE = State_Met%PEDGE(I,J,L)
 
          ! Check against actual tropopause pressure
          IS_TROP     = ( PRESS_BEDGE > State_Met%TROPP(I,J) )
@@ -1167,8 +1169,6 @@
       USE CMN_DIAG_MOD             ! Diagnostic switches
       USE DIAG_MOD,           ONLY : AD55
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1218,6 +1218,9 @@
 !  10 Sep 2010 - R. Yantosca - Renamed to DIAG_TROPOPAUSE and bundled into
 !                              tropopause_mod.f
 !  21 Feb 2014 - M. Sulprizio- Now pass State_Met object via the arg list
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
+!                              State_Met%PEDGE and State_Met%PMID.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1259,8 +1262,8 @@
 
             ! Get the pressures [hPa] at the bottom and top edges
             ! of the grid box in which the tropopause occurs
-            Pb   = GET_PEDGE( I, J, L_TP   )  
-            Pt   = GET_PEDGE( I, J, L_TP+1 )
+            Pb   = State_Met%PEDGE( I, J, L_TP   )  
+            Pt   = State_Met%PEDGE( I, J, L_TP+1 )
 
             ! FRAC is the fraction of the grid box (I,J,L_TP) 
             ! that lies totally within the troposphere
@@ -1349,7 +1352,7 @@
             ! tropopause level.  Archive the pressure at the midpoint
             ! of the level in which the tropopause occurs.  NOTE: this may
             ! result in lower minimum tropopause pressure than reality.
-            AD55(I,J,3) = AD55(I,J,3) + GET_PCENTER(I,J,L)
+            AD55(I,J,3) = AD55(I,J,3) + State_Met%PMID(I,J,L)
 
          ENDDO
          ENDDO

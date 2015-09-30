@@ -1593,6 +1593,18 @@ CONTAINS
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7167603d0
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Add placeholder values for the MERRA2 0.5 x 0.625 grids.
+!%%% For now, just copy the 0.5 x 0.666 values.  
+!%%% Replace these with the correct values once we have enough met on disk
+!%%% (bmy, 8/12/15)
+#elif defined( GRID05x0625   ) && defined( NESTED_CH )
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 8.7549280d0
+
+#elif defined( GRID05x0625   ) && defined( NESTED_NA )
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.9685368d0
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 #endif
 
     ! Are we using GEOS 5.2.0 or GEOS 5.1.0?
@@ -1701,6 +1713,27 @@ CONTAINS
          ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
        BETA = ANN_AVG_FLASHRATE / 720.10258d0
     ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Extend the ifdefs for MERRA2 meteorology
+!%%% Add placeholder values for now.  Replace these with the correct 
+!%%% values once we have enough MERRA2 met on disk (bmy, 8/12/15)
+!%%%
+#elif defined( MERRA2 ) && defined( GRID2x25 )
+
+    !---------------------------------------
+    ! MERRA2: 2 x 2.5 global simulation
+    !---------------------------------------
+    BETA = ANN_AVG_FLASHRATE / 253.55888d0
+
+#elif defined( MERRA2 ) && defined( GRID4x5 )
+
+    !---------------------------------------
+    ! MERRA2: 4 x 5 global simulation
+    !---------------------------------------
+    BETA = ANN_AVG_FLASHRATE / 76.019042d0
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #elif defined( MERRA ) && defined( GRID2x25 )
 

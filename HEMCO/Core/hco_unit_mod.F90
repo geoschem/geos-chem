@@ -46,6 +46,7 @@ MODULE HCO_Unit_Mod
 !  13 Mar 2015 - R. Yantosca - Add m and m2 to the "unitless" list
 !  16 Mar 2015 - R. Yantosca - Also allow "kg m-2 s-1" and similar units
 !  16 Mar 2015 - R. Yantosca - Add dobsons and dobsons/day units
+!  16 Jun 2015 - R. Yantosca - Add % and percent to the unitless list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -67,7 +68,7 @@ MODULE HCO_Unit_Mod
   ! add more units if you don't want HEMCO to attempt to convert data
   ! in these units.
   ! All characters in this list should be lower case!
-  INTEGER,           PARAMETER :: NUL = 33
+  INTEGER,           PARAMETER :: NUL = 34
   CHARACTER(LEN=15), PARAMETER :: UL(NUL) = (/ '1',             &
                                                'count',         &
                                                'unitless',      &
@@ -99,8 +100,9 @@ MODULE HCO_Unit_Mod
                                                'dobsons',       &
                                                'dobsons/day',   &
                                                'pa',            &
-                                               'percent',       &
-                                               'hpa'             /)
+                                               'hpa',           &
+                                               '%',             &
+                                               'percent'      /)
 
   ! Accepted units for data on HEMCO standard units. No unit conversion 
   ! is applied to data with any of these units.

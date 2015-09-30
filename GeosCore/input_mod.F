@@ -235,6 +235,7 @@
 !                              by the INIT_GIGC_INPUT_OPT routine
 !  15 Apr 2015 - R. Yantosca - Also define Input_Opt%ITS_A_NESTED_GRID here
 !                              so that we can pass it to INITIALIZE_GEOS_GRID
+!  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -264,12 +265,6 @@
 
       ! Assume success
       RC       = GIGC_SUCCESS
-
-#if defined( ESMF_ )
-      ! We need to add the ".rc" extension to the "input.geos" file
-      ! so that GEOS-5 will copy it to the proper run directory.
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
 
       ! Open file
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
@@ -702,6 +697,9 @@
 !                              to ACCEPT_EXTERNAL_DATE_TIME
 !  19 May 2014 - C. Keller   - Now read HEMCO configuration file.
 !  23 Jun 2014 - R. Yantosca - Remove references to logical_mod.F
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2
+!  12 Aug 2015 - R. Yantosca - Add support for 05x0625 grids
+!  13 Aug 2015 - R. Yantosca - Bug fix: prefix RES_DIR in front of MERRA2_DIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -775,6 +773,10 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%MERRA_DIR
 
+      ! MERRA2 subdir
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%MERRA2_DIR
+
       ! 1x1  dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
 !      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%DATA_DIR_1x1
@@ -826,6 +828,14 @@
       Input_Opt%RES_DIR = 'GEOS_1x1.25/'
 #elif defined( GRID1x1 ) 
       Input_Opt%RES_DIR = 'GEOS_1x1/'
+#elif defined( GRID05x0625 ) && defined( NESTED_CH )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_CH/'
+#elif defined( GRID05x0625 ) && defined( NESTED_EU )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_EU/'
+#elif defined( GRID05x0625 ) && defined( NESTED_NA )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_NA/'
+#elif defined( GRID05x0625 ) && defined( NESTED_SE )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_SE/'
 #elif defined( GRID05x0666 ) && defined( NESTED_CH )
       Input_Opt%RES_DIR = 'GEOS_0.5x0.666_CH/'
 #elif defined( GRID05x0666 ) && defined( NESTED_EU )
@@ -863,6 +873,9 @@
       Input_Opt%MERRA_DIR  =  TRIM( Input_Opt%RES_DIR     ) //
      &                        TRIM( Input_Opt%MERRA_DIR   )
 
+      Input_Opt%MERRA2_DIR =  TRIM( Input_Opt%RES_DIR     ) //
+     &                        TRIM( Input_Opt%MERRA2_DIR  )
+
 !##############################################################################
 
       ! Temp dir
@@ -892,7 +905,7 @@
       !=================================================================
       ! Add safety checks for logical switches
       !=================================================================
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       ! Turn unzipping off for MERRA met fields
       LUNZIP = .FALSE. 
 #endif
@@ -1471,7 +1484,7 @@
          ! Save tracer molecular wt [kg/mole]
          Input_Opt%TRACER_MW_KG(T) = Input_Opt%TRACER_MW_G(T) * 1e-3_fp
 
-         ! Ratio of MW air / MW tracer 
+         ! Ratio of MW dry air / MW tracer 
          Input_Opt%TCVV(T) = 28.97e+0_fp / Input_Opt%TRACER_MW_G(T)
 
          ! Molecules tracer / kg tracer
@@ -1695,32 +1708,11 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE UCX_MOD,      ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
-      USE TRACERID_MOD, ONLY : IDTDMS,   IDTSO2,   IDTSO4,  IDTSO4s 
-      USE TRACERID_MOD, ONLY : IDTMSA,   IDTNH3,   IDTNH4,  IDTNITs 
-      USE TRACERID_MOD, ONLY : IDTAS,    IDTAHS,   IDTLET,  IDTNH4aq 
-      USE TRACERID_MOD, ONLY : IDTSO4aq, IDTBCPO,  IDTBCPI, IDTOCPO 
-      USE TRACERID_MOD, ONLY : IDTOCPI
-      USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
-      USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
-      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
-      ! SOAupdate: remove old tracers and add new mtp (hotp 5/24/10)
-      USE TRACERID_MOD, ONLY : IDTMTPA,  IDTLIMO,  IDTMTPO
-      USE TRACERID_MOD, ONLY : IDTBENZ,  IDTTOLU,  IDTXYLE
-      USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD, ONLY : IDTASOA1, IDTASOA2, IDTASOA3, IDTASOAN
-      ! semivolpoa : add POA (hotp 8/23/09)
-      ! POA now 1 and 2 (hotp 10/11/09), and NAP (hotp 7/28/10)
-      USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOA2,  IDTPOG1,  IDTPOG2
-      USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOA2, IDTOPOG1, IDTOPOG2
-      USE TRACERID_MOD, ONLY : IDTNAP
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#if defined( TOMAS )
-      USE TRACERID_MOD,       ONLY : IDTDUST1
-#endif
+      USE TRACERID_MOD
+      USE UCX_MOD,            ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
 !
 ! !INPUT PARAMETERS:
 !
@@ -1754,6 +1746,8 @@
 !  11 Apr 2013 - S.D. Eastham- Added gravitational settling flag
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
+!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
+!                              aerosols (T.D. Fairlie)
 !  16 Apr 2014 - M. Sulprizio- Now read path for PSC restart file
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
@@ -1761,6 +1755,7 @@
 !                              emissions, POA emissions scale, and the PSC
 !                              restart file. These options are now handled
 !                              by HEMCO.
+!  08 Jul 2015 - E. Lundgren - Added LMPOA option for marine organic aerosols
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1768,11 +1763,11 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LSULF,      LCARB,      LSOA
-      LOGICAL            :: LSVPOA,     LDUST
+      LOGICAL            :: LSULF,      LCARB,    LBRC,  LSOA
+      LOGICAL            :: LSVPOA,     LDUST,    LDSTUP
       LOGICAL            :: LSSALT,     LCRYST,     LDICARB
       LOGICAL            :: LGRAVSTRAT, LHOMNUCNAT, LSOLIDPSC
-      LOGICAL            :: LPSCCHEM,   LSTRATOD
+      LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA
       INTEGER            :: N,          T,          I 
       CHARACTER(LEN=255) :: MSG,        LOCATION
 
@@ -1792,81 +1787,94 @@
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
-      ! Use online sulfate aerosols 
+      ! Use online sulfate aerosols? 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:1' )
       READ( SUBSTRS(1:N), * ) LSULF
 
-      ! Use crystalline sulfate aerosols  
+      ! Use crystalline sulfate aerosols?  
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:2' )
       READ( SUBSTRS(1:N), * ) LCRYST
 
-      ! Use online carbon aerosols 
+      ! Use online carbon aerosols? 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:3' )
       READ( SUBSTRS(1:N), * ) LCARB
+      
+      ! Use brown carbon aerosols? 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:4' )
+      READ( SUBSTRS(1:N), * ) LBRC
 
       ! Use secondary organic aerosols?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:5' )
       READ( SUBSTRS(1:N), * ) LSOA
 
       ! SOAupdate: Add Semi-volatile POA switch (hotp 8/9/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
       READ( SUBSTRS(1:N), * ) LSVPOA
 
-      ! Use online dust aerosols 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:8' )
+      ! Use online dust aerosols ?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
       READ( SUBSTRS(1:N), * ) LDUST
 
+      !tdf
+      ! Use SO2 and HNO3 uptake on dust aerosols 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:9.5' )
+      READ( SUBSTRS(1:N), * ) LDSTUP
+
       ! Use online sea-salt aerosols?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:8' )
       READ( SUBSTRS(1:N), * ) LSSALT      
 
       ! Accum mode seasalt radii bin edges [um]
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:11' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:9' )
       DO T = 1, N
          READ( SUBSTRS(T), * ) Input_Opt%SALA_REDGE_um(T)
       ENDDO
 
       ! Coarse mode seasalt radii bin edges [um]
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:10' )
       DO T = 1, N
          READ( SUBSTRS(T), * ) Input_Opt%SALC_REDGE_um(T)
       ENDDO
 
+      ! Use marine organic aerosols?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:11' )
+      READ( SUBSTRS(1:N), * ) LMPOA
+
       ! Switch to comment the SOG condensation in carbon_mod.f (ccc, 3/10/09)
       ! Use online dicarbonyl chemistry 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:12' )
       READ( SUBSTRS(1:N), * ) LDICARB
 
       ! Apply gravitational settling in stratosphere?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:13' )
       READ( SUBSTRS(1:N), * ) LGRAVSTRAT  
 
       ! Use solid polar stratospheric clouds (PSCs)?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:14' )
       READ( SUBSTRS(1:N), * ) LSOLIDPSC   
 
       ! Allow homogeneous nucleation of NAT?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15' )
       READ( SUBSTRS(1:N), * ) LHOMNUCNAT 
 
       ! NAT supercooling requirement (K)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:16' )
       READ( SUBSTRS(1:N), * ) T_NAT_SUPERCOOL
 
       ! Ice supersaturation ratio requirement
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:17' )
       READ( SUBSTRS(1:N), * ) P_ICE_SUPERSAT
 
       ! Perform PSC-related heterogeneous chemistry?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:18' )
       READ( SUBSTRS(1:N), * ) LPSCCHEM 
 
       ! Include stratospheric aerosols optical depths?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:19' )
       READ( SUBSTRS(1:N), * ) LSTRATOD
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:21' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:20' )
 
       !=================================================================
       ! Error checks
@@ -1885,9 +1893,11 @@
          LSULF  = .FALSE.
          LCRYST = .FALSE.
          LCARB  = .FALSE.
+         LBRC   = .FALSE.
          LSOA   = .FALSE.
          LDUST  = .FALSE.
          LSSALT = .FALSE.
+         LMPOA  = .FALSE.
          LSVPOA = .FALSE.
       ENDIF
 
@@ -1909,6 +1919,27 @@
       ELSE
          IF ( I > 0 ) THEN
             MSG = 'Cannot use ONLINE SEASALT AEROSOLS if LSSALT=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      !------------------------------------
+      ! Error check MARINE ORGANIC AEROSOLS
+      !------------------------------------
+      I = IDTMOPO + IDTMOPI
+
+      IF ( LMPOA ) THEN
+         IF ( .not. LSSALT ) THEN
+            MSG = 'LMPOA=T but LSSALT=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+         IF ( I == 0 ) THEN
+            MSG = 'LMPOA=T but MARINE ORGANIC AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use MARINE ORGANIC AEROSOLS if LMPOA=F!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ENDIF
@@ -2048,16 +2079,13 @@
       !---------------------------------
       ! Error check DUST AEROSOLS
       !---------------------------------
+! JKODROS - Uncomment this if the dust fixes are back working. 
 #if defined( TOMAS )
-
       ! For TOMAS only: If DUST1 is present, the other dust tracers are too
       I = IDTDUST1
-
 #else
-
       ! Non-TOMAS simulations: Need all DST1-DST4 tracers
       I = IDTDST1 + IDTDST2 + IDTDST3 + IDTDST4
-
 #endif
 
       IF ( LDUST ) THEN
@@ -2068,6 +2096,27 @@
       ELSE
          IF ( I > 0 ) THEN
             MSG = 'Cannot use ONLINE DUST AEROSOLS if LDUST=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      !--------------------------------------
+      ! Error check DUST NITRATE    AEROSOLS
+      !             DUST SULFATE    AEROSOLS
+      !             DUST ALKALINITY AEROSOLS
+      !--------------------------------------
+      I = IDTNITd1 + IDTNITd2 + IDTNITd3 + IDTNITd4 +
+     &    IDTSO4d1 + IDTSO4d2 + IDTSO4d3 + IDTSO4d4 +
+     &    IDTDAL1  + IDTDAL2  + IDTDAL3  + IDTDAL4
+
+      IF ( LDSTUP ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LDSTUP=T but COATED DUST AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use COATED DUST AEROSOLS if LDSTUP=F!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ENDIF
@@ -2095,10 +2144,13 @@
       Input_Opt%LSULF              = LSULF  
       Input_Opt%LCRYST             = LCRYST
       Input_Opt%LCARB              = LCARB
+      Input_Opt%LBRC               = LBRC
       Input_Opt%LSOA               = LSOA 
       Input_Opt%LSVPOA             = LSVPOA
       Input_Opt%LDUST              = LDUST 
+      Input_Opt%LDSTUP             = LDSTUP
       Input_Opt%LSSALT             = LSSALT
+      Input_Opt%LMPOA              = LMPOA 
       Input_Opt%LDICARB            = LDICARB  
       Input_Opt%LGRAVSTRAT         = LGRAVSTRAT
       Input_Opt%LSOLIDPSC          = LSOLIDPSC
@@ -2120,9 +2172,12 @@
          WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ', LSULF
          WRITE( 6, 100     ) 'Online CRYST & AQ AEROSOLS? : ', LCRYST
          WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', LCARB
+         WRITE( 6, 100     ) 'Brown Carbon Aerosol?       : ', LBRC
          WRITE( 6, 100     ) 'Online 2dy ORGANIC AEROSOLS?: ', LSOA
          WRITE( 6, 100     ) 'Semivolatile POA?           : ', LSVPOA
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
+         WRITE( 6, 100     ) 'Acid uptake on dust?        : ', LDSTUP
+
          WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
          WRITE( 6, 110     ) 'Accum  SEA SALT radii [um]  : ', 
      &                        Input_Opt%SALA_REDGE_um(1), 
@@ -2130,6 +2185,7 @@
          WRITE( 6, 110     ) 'Coarse SEA SALT radii [um]  : ',
      &                        Input_Opt%SALC_REDGE_um(1), 
      &                        Input_Opt%SALC_REDGE_um(2)
+         WRITE( 6, 100     ) 'MARINE ORGANIC AEROSOLS?    : ', LMPOA
          WRITE( 6, 100     ) 'Settle strat. aerosols?     : ',LGRAVSTRAT
          WRITE( 6, 100     ) 'Online SOLID PSC aerosols?  : ',LSOLIDPSC
          WRITE( 6, 100     ) 'Allow hom. NAT nucleation?  : ',LHOMNUCNAT
@@ -2415,6 +2471,7 @@
 !  25 Jun 2014 - R. Yantosca - Move call to INIT_MODIS_LAIT to GIGC_INIT_EXTRA
 !  04 Sep 2014 - R. Yantosca - Bug fix: Now use Input_Opt%OTDLOC since we have
 !                              now removed logical_mod.F
+!  24 Jun 2015 - R. Yantosca - Now always turn off emissions for mass cons test
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2699,6 +2756,28 @@
          CALL ERROR_STOP( MSG, LOC )
        ENDIF
 
+#endif
+
+#if defined( MASSCONS )
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%  MASS CONSERVATION TEST:                                  %%%
+      !%%%  Always turn off emissions for the mass conservation      %%%
+      !%%%  test.  (ewl, 6/24/15)                                    %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+      ! Reset quantities
+      LEMIS      = .FALSE.
+
+      ! Print info to stdout stating that rint results
+      WRITE( 6, '(a)' )
+      WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+      WRITE( 6, 200   ) 
+      WRITE( 6, 205   )
+      WRITE( 6, 210   )
+      WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+ 200  FORMAT( '%%% MASS CONSERVATION TEST'                             )
+ 205  FORMAT( '%%% Automatically reset these EMISSIONS MENU settings:' )
+ 210  FORMAT( '%%% LEMIS is now FALSE'                                 )
 #endif
 
       !=================================================================
@@ -3712,7 +3791,7 @@
       ! Also pass the chemistry timestep value directly to module
       ! GeosUtil/time_mod.F via subroutine ACCEPT_EXTERNAL_DATE_TIME.
       !
-      ! Ideallly it would be good to have one single version of 
+      ! Ideally it would be good to have one single version of 
       ! "input.geos" that can double as the GEOS-Chem input file as 
       ! well as the ESMF resource.  We may be a way off from that.
       ! One potential solution is to use a Perl script to generate
@@ -3728,6 +3807,9 @@
       !-----------------------------------------------------------------
       
       ! Save to local variables for printing below
+      ! In GCHP, this is irrelevant since dynamics is a separate ESMF
+      ! component. It's settings cannot be controlled through the
+      ! chemistry component (where we are now) - MSL.
       TS_DYN                = Input_Opt%TS_DYN
 #else
       !-----------------------------------------------------------------
@@ -3742,9 +3824,11 @@
 #endif
 
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error
+      IF ( .not. Input_Opt%HPC ) THEN
       IF ( Input_Opt%TS_DYN > MAX_DYN .and. LTRAN ) THEN
-         MSG = 'Transport timestep is too big!'
+         write(*,*) '<>', Input_Opt%TS_DYN, Input_Opt%HPC
          CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
       ENDIF
 
       ! Return success
@@ -3830,6 +3914,7 @@
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  01 Mar 2013 - R. Yantosca - Now set TS_CONV to the same value as TS_DYN
 !                              when connecting to the GEOS-5 GCM. 
+!  12 Aug 2015 - R. Yantosca - Now allow non-local PBL mixing for MERRA2 met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3877,13 +3962,13 @@
       ! Further error checks and initializations
       !=================================================================
 
-#if !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
+#if !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
       ! The non-local PBL scheme is valid only with GEOS-5/MERRA/GEOS-FP
       IF ( LNLPBL ) THEN
          IF( am_I_Root ) THEN
             WRITE(6,*) REPEAT( '=', 79 )
             WRITE(6,*) 'The non-local PBL scheme is only valid for'
-            WRITE(6,*) 'GEOS-5, GEOS-FP, and MERRA met fields!'
+            WRITE(6,*) 'GEOS-5, GEOS-FP, MERRA, and MERRA2 met fields!'
             WRITE(6,*) 'LNLPBL is automatically turned to false !'
             WRITE(6,*) REPEAT( '=', 79 )
          ENDIF
@@ -4367,7 +4452,7 @@
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
 
       USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! NDxx flags
+      USE CMN_DIAG_MOD       ! NDxx flags, TINDEX, TCOUNT, TMAX
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -4531,6 +4616,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:11' )
       READ( SUBSTRS(1), * ) ND09
+      ND09 = 0
       CALL SET_TINDEX( am_I_Root, 
      &     09, ND09, SUBSTRS(2:N), N-1, N_TRACERS+PD09 )
 
@@ -5665,6 +5751,34 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd49_menu:8' )
+
+#if defined( MASSCONS )
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%  MASS CONSERVATION TEST:                                  %%%
+      !%%%  Always turn on ND49 for the mass conservation test.      %%%
+      !%%%  Also specify a single tracer for ND49 (in this case,     %%%
+      !%%%  it will be total CO2). (ewl, 6/24/15)                    %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+      ! Reset quantities: Turn on ND49 but with 1 tracer
+      DO_ND49    = .TRUE.
+      N_ND49     = 1
+      TRACERS    = 0
+      TRACERS(1) = 1
+
+      ! Print info to stdout stating that we have changed some quantities
+      WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+      WRITE( 6, 200   ) 
+      WRITE( 6, 205   )
+      WRITE( 6, 210   )
+      WRITE( 6, 215   )
+      WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+ 200  FORMAT( '%%% MASS CONSERVATION TEST'                         )
+ 205  FORMAT( '%%% Automatically reset these ND49 MENU settings: ' )
+ 210  FORMAT( '%%% DO_ND49 is now TRUE'                            )
+ 215  FORMAT( '%%% TRACERS is now 1 (i.e. Total CO2 only)'         )
+#endif
+
 
       !=================================================================
       ! Set fields of Input Options object
@@ -7724,6 +7838,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  20 Jun 2014 - R. Yantosca - Now use fields from Input_Opt
 !  05 Mar 2015 - R. Yantosca - Now also check CHEM_INPUTS_DIR
+!  12 Aug 2015 - R. Yantosca - Now validate Input_Opt%MERRA2_DIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7787,7 +7902,6 @@
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
-
       ! Check GEOS-4 met field directory (ending date)
       DIR = Input_Opt%GEOS_4_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
@@ -7824,28 +7938,41 @@
 
 #elif defined( MERRA )
 
-      ! Check GEOS-5 met field directory (starting date)
+      ! Check MERRA met field directory (starting date)
       DIR = Input_Opt%MERRA_DIR
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
-      ! Check GEOS-5 met field directory (ending date)
+      ! Check MERRA met field directory (ending date)
       DIR = Input_Opt%MERRA_DIR
+      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
+
+#elif defined( MERRA2 )
+
+      ! Check MERRA2 met field directory (starting date)
+      DIR = Input_Opt%MERRA2_DIR
+      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
+
+      ! Check MERRA2 met field directory (ending date)
+      DIR = Input_Opt%MERRA2_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
 #elif defined( GCAP )
 
-      ! Check GEOS-5 met field directory (starting date)
+      ! Check GCAP met field directory (starting date)
       DIR = Input_Opt%GCAP_DIR
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
-
-      ! Check GEOS-5 met field directory (ending date)
+      ! Check GCAP met field directory (ending date)
       DIR = Input_Opt%GCAP_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
@@ -8333,7 +8460,7 @@
 
       ! Initialize "aerosol_mod.F"
       IF ( Input_Opt%LSULF .or. Input_Opt%LCARB   .or. 
-     &     Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
+     &     Input_Opt%LDUST .or. Input_Opt%LSSALT) THEN
          CALL Init_Aerosol( am_I_Root, Input_Opt, RC )
          IF ( RC /= GIGC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_AEROSOL' )

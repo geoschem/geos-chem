@@ -183,7 +183,7 @@ CONTAINS
 !
     LOGICAL                         :: LSTRAT,  FOUND
     INTEGER                         :: nHcoSpc, HMRC
-    CHARACTER(LEN=255)              :: OptName, LOC
+    CHARACTER(LEN=255)              :: OptName, LOC, MSG
 
     !=================================================================
     ! HCOI_GC_INIT begins here!
@@ -335,7 +335,7 @@ CONTAINS
     IF( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC )
 
     !-----------------------------------------------------------------
-    ! Update logical switches in Input_Opt 
+    ! Update and check logical switches in Input_Opt 
     !-----------------------------------------------------------------
 
     ! Soil NOx
@@ -343,14 +343,36 @@ CONTAINS
 
     ! Ginoux dust emissions
     IF ( ExtState%DustGinoux ) THEN
-       Input_Opt%LDUST      = .TRUE.
+       IF ( .not. Input_Opt%LDUST ) THEN
+          MSG = 'DustGinoux is on in HEMCO but LDUST=F in input.geos'
+          CALL ERROR_STOP( MSG, LOC )
+       ENDIF
        Input_Opt%LDEAD      = .FALSE.
     ENDIF
 
     ! DEAD dust emissions
     IF ( ExtState%DustDead ) THEN
-       Input_Opt%LDUST      = .TRUE.
+       IF ( .not. Input_Opt%LDUST ) THEN
+          MSG = 'DustDead is on in HEMCO but LDUST=F in input.geos'
+          CALL ERROR_STOP( MSG, LOC )
+       ENDIF
        Input_Opt%LDEAD      = .TRUE.
+    ENDIF
+
+    ! Dust alkalinity
+    IF ( ExtState%DustAlk ) THEN
+       IF ( .not. Input_Opt%LDSTUP ) THEN
+          MSG = 'DustAlk is on in HEMCO but LDSTUP=F in input.geos'
+          CALL ERROR_STOP( MSG, LOC )
+       ENDIF
+    ENDIF
+
+    ! Marine organic aerosols
+    IF ( ExtState%MarinePOA ) THEN
+       IF ( .not. Input_Opt%LMPOA ) THEN
+          MSG = 'MarinePOA is on in HEMCO but LMPOA=F in input.geos'
+          CALL ERROR_STOP( MSG, LOC )
+       ENDIF
     ENDIF
 
     !-----------------------------------------------------------------
@@ -1005,9 +1027,10 @@ CONTAINS
 #if !defined(ESMF_)
     USE MODIS_LAI_MOD,         ONLY : GC_LAI
 #endif
+    USE MODIS_LAI_MOD,         ONLY : GC_CHLR
 
 #if defined(ESMF_)
-    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
+    USE HCOI_ESMF_MOD,         ONLY : HCO_SetExtState_ESMF
 #endif
 
 !
@@ -1167,7 +1190,7 @@ CONTAINS
          'FRLANDIC', HCRC,      FIRST,    State_Met%FRLANDIC  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
-    ! Use 'offline' LAI in standard GEOS-Chem
+    ! Use 'offline' MODIS LAI in standard GEOS-Chem
 #if defined(ESMF_)
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%LAI, &
               'LAI', HCRC,      FIRST,    State_Met%LAI  )
@@ -1177,6 +1200,11 @@ CONTAINS
               'LAI', HCRC,      FIRST,    GC_LAI         )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 #endif
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%CHLR, &
+              'CHLR', HCRC,      FIRST,   GC_CHLR         )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
 
     ! ----------------------------------------------------------------
     ! 3D fields 
@@ -1456,7 +1484,6 @@ CONTAINS
     USE GIGC_State_Met_Mod,    ONLY : MetState
     USE HCO_GeoTools_MOD,      ONLY : HCO_CalcVertGrid
     USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
-    USE PRESSURE_MOD,          ONLY : GET_PEDGE
 !
 ! !INPUT PARAMETERS:
 !
@@ -1476,7 +1503,6 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER             :: I, J, L
     REAL(hp), POINTER   :: PSFC    (:,:  ) => NULL()
     REAL(hp), POINTER   :: ZSFC    (:,:  ) => NULL()    
     REAL(hp), POINTER   :: TK      (:,:,:) => NULL()    
@@ -1492,21 +1518,9 @@ CONTAINS
     BXHEIGHT => State_Met%BXHEIGHT
     TK       => State_Met%T
 
-    !ALLOCATE(PEDGE(IIPAR,JJPAR,LLPAR+1))
+    ! surface pressure in Pa
     ALLOCATE(PSFC(IIPAR,JJPAR))
-
-!$OMP PARALLEL DO                                                 &
-!$OMP DEFAULT( SHARED )                                           &
-!$OMP PRIVATE( I, J, L )
-    DO L = 1, LLPAR+1
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
-       IF ( L == 1 ) PSFC(I,J) = GET_PEDGE(I,J,1) * 100.0_hp
-!       PEDGE(I,J,L) = GET_PEDGE(I,J,L) * 100.0_hp
-    ENDDO
-    ENDDO
-    ENDDO
-!$OMP END PARALLEL DO
+    PSFC(:,:) = State_Met%PEDGE(:,:,1) * 100.0_hp
 
     ! Calculate missing quantities
     CALL HCO_CalcVertGrid( am_I_Root, HcoState, PSFC,    &
@@ -1516,33 +1530,11 @@ CONTAINS
     ZSFC     => NULL()
     BXHEIGHT => NULL()
     TK       => NULL()
-    IF ( ASSOCIATED(PEDGE) ) DEALLOCATE(PEDGE) 
-    PEDGE    => NULL()
     IF ( ASSOCIATED(PSFC) ) DEALLOCATE(PSFC) 
     PSFC     => NULL()
 
-!    HcoState%Grid%ZSFC%Val       => State_Met%PHIS      ! Surface geopotential height
-!    HcoState%Grid%BXHEIGHT_M%Val => State_Met%BXHEIGHT  ! Grid box heights
-
-!!$OMP PARALLEL DO                                                 &
-!!$OMP DEFAULT( SHARED )                                           &
-!!$OMP PRIVATE( I, J, L )
-!    DO L = 1, LLPAR
-!    DO J = 1, JJPAR
-!    DO I = 1, IIPAR
-!
-!       ! Get pressure edges [Pa] and pass to HEMCO grid. 
-!       HcoState%Grid%PEDGE%Val(I,J,L) = GET_PEDGE(I,J,L) * 100.0_hp
-!       IF ( L==LLPAR ) THEN
-!          HcoState%Grid%PEDGE%Val(I,J,L+1) = GET_PEDGE(I,J,L+1) * 100.0_hp
-!       ENDIF
-!    ENDDO
-!    ENDDO
-!    ENDDO
-!!$OMP END PARALLEL DO
-
-!    ! Return w/ success
-!    RC = HCO_SUCCESS
+    ! Return w/ success
+    RC = HCO_SUCCESS
 
   END SUBROUTINE GridEdge_Set
 !EOC

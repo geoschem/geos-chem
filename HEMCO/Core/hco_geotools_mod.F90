@@ -61,7 +61,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: HCO_LandType_Sp
+! !IROUTINE: HCO_LandType_Sp
 !
 ! !DESCRIPTION: Function HCO\_LANDTYPE returns the land type based upon 
 !  the land water index (0=water,1=land,2=ice) and the surface albedo.
@@ -120,7 +120,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: HCO_LandType_Dp 
+! !IROUTINE: HCO_LandType_Dp 
 !
 ! !DESCRIPTION: Function HCO\_LandType\_Dp returns the land type based upon 
 ! the land water index (0=water,1=land,2=ice) and the surface albedo.
@@ -179,7 +179,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: HCO_ValidateLon_Sp
+! !IROUTINE: HCO_ValidateLon_Sp
 !
 ! !DESCRIPTION: Subroutine HCO\_ValidateLon\_Sp ensures that the passed 
 ! single precision longitude axis LON is steadily increasing.
@@ -256,7 +256,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: HCO_ValidateLon_Dp
+! !IROUTINE: HCO_ValidateLon_Dp
 !
 ! !DESCRIPTION: Subroutine HCO\_ValidateLon\_Sp ensures that the passed 
 ! double precision longitude axis LON is steadily increasing.
@@ -331,7 +331,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !SUBROUTINE: HCO_GetSUNCOS
+! !IROUTINE: HCO_GetSUNCOS
 !
 ! !DESCRIPTION: Subroutine HCO\_GetSUNCOS calculates the solar zenith angle
 ! for the given date.
@@ -362,6 +362,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 May 2015 - C. Keller - Initial version, based on GEOS-Chem's dao_mod.F.
+!  10 Jul 2015 - R. Yantosca - Corrected issues in ProTeX header
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -488,7 +489,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !SUBROUTINE: HCO_GetHorzIJIndex
+! !IROUTINE: HCO_GetHorzIJIndex
 !
 ! !DESCRIPTION: Function HCO\_GetHorzIJIndex returns the grid box index for 
 !  the given longitude (deg E, -180...180), and latitude (deg N, -90...90).
@@ -523,6 +524,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY:
 !  04 Jun 2015 - C. Keller - Initial version
+!  10 Jul 2015 - R. Yantosca - Corrected issues in ProTeX header
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -562,7 +564,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !SUBROUTINE: HCO_GetHorzIJIndex
+! !IROUTINE: HCO_GetHorzIJIndex
 !
 ! !DESCRIPTION: Function HCO\_GetHorzIJIndex returns the grid box index for 
 !  the given longitude (deg E, -180...180), and latitude (deg N, -90...90).
@@ -572,7 +574,7 @@ CONTAINS
 !
   SUBROUTINE HCO_GetHorzIJIndex( am_I_Root, HcoState, N, Lon, Lat, idx, jdx, RC ) 
 !
-! !USES
+! !USES:
 !
     USE HCO_STATE_MOD,   ONLY : HCO_STATE
 !
@@ -594,6 +596,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY:
 !  04 Jun 2015 - C. Keller - Initial version
+!  10 Jul 2015 - R. Yantosca - Corrected issues in ProTeX header
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -16,6 +16,7 @@
 ! !USES:
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE GEOS_TIMERS      ! For optional timing of components
 
       IMPLICIT NONE
       PRIVATE
@@ -92,7 +93,6 @@
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
       USE COMODE_LOOP_MOD     
-      USE DRYDEP_MOD,         ONLY : DRYFLXRnPbBe
       USE DUST_MOD,           ONLY : CHEMDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -221,6 +221,7 @@
 !  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  08 May 2015 - C. Keller   - Added WRITE_STATE_PSC.
 !  18 May 2015 - R. Yantosca - Remove DIAG_STATE_PSC, that is not used anymore
+!  15 Jun 2015 - R. Yantosca - Removed calls to DRYFLXRnPbBe, that's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -350,16 +351,27 @@
             CALL READ_PSC_FILE( am_I_Root, RC )
             IF ( RC /= GIGC_SUCCESS ) RETURN
 #endif
-            
+            RC = GEOS_Timer_Start ( "Chemistry-Gas-Phase" )
+
             ! Call gas-phase chemistry
             CALL CHEMDR
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
+            RC = GEOS_Timer_End ( "Chemistry-Gas-Phase" )
+
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 
+
+               RC = GEOS_Timer_Start ( "Chemistry-Stratospheric" )
+
                CALL DO_STRAT_CHEM
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+               RC = GEOS_Timer_End ( "Chemistry-Stratospheric" )
+
             ENDIF
+
+            RC = GEOS_Timer_Start( "Aerosols" )
 
             ! Do seasalt aerosol chemistry
             IF ( LSSALT ) THEN
@@ -373,21 +385,31 @@
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #endif
 
+            RC = GEOS_Timer_End( "Aerosols" )
+
             ! Also do sulfate chemistry
             IF ( LSULF ) THEN
+
+               RC = GEOS_Timer_Start ( "Chemistry-Sulfate" )
 
                ! Do sulfate chemistry
                CALL CHEMSULFATE
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
+               RC = GEOS_Timer_End ( "Chemistry-Sulfate" )
+
                ! Do aerosol thermodynamic equilibrium
                IF ( LSSALT ) THEN
+
+                  RC = GEOS_Timer_Start( "Aerosols" )
 
 #if   !defined( NO_ISORROPIA )
                   ! ISOROPIA takes Na+, Cl- into account
                   CALL DO_ISOROPIAII
      &               ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #endif
+
+                  RC = GEOS_Timer_End( "Aerosols" )
 
                ELSE
 
@@ -399,12 +421,13 @@
 
             ENDIF
 
+            RC = GEOS_Timer_Start( "Aerosols" )
+
             ! Do carbonaceous aerosol chemistry
             IF ( LCARB ) THEN
                CALL CHEMCARBON
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
-
 
             ! Do dust aerosol chemistry
             IF ( LDUST .AND. IDTDST1 > 0 ) THEN
@@ -419,6 +442,8 @@
      &             ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 #endif
+
+            RC = GEOS_Timer_End( "Aerosols" )
 
             ! ND43 chemical production
             CALL DIAGOH()
@@ -437,6 +462,8 @@
          !---------------------------------
          ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
+            RC = GEOS_Timer_Start( "Aerosols" )
+
             ! Define loop index and other SMVGEAR arrays
             ! N_TROP, the # of trop boxes, is returned
             CALL AEROSOL_RURALBOX( N_TROP,    am_I_Root, 
@@ -452,6 +479,7 @@
  
                ! Reset first-time flag
                FIRST = .FALSE.
+
             ENDIF
  
             ! Compute aerosol & dust concentrations [kg/m3]
@@ -465,6 +493,7 @@
             WAVELENGTH = 0
             CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
      &                  MONTH,     YEAR,      WAVELENGTH      )
+
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
             IF ( LSULF ) THEN
                IF ( LSSALT ) THEN
@@ -519,7 +548,9 @@
      &             ( am_I_Root, Input_Opt,  State_Met, 
      &               SOILDUST,  WAVELENGTH, RC         )
             ENDIF
- 
+
+            RC = GEOS_Timer_End( "Aerosols" )
+
          !---------------------------------
          ! Rn-Pb-Be
          !---------------------------------                 
@@ -527,30 +558,6 @@
             CALL CHEMRnPbBe 
      &         (  am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-!            ! Modified for non-local PBL mixing (jintai, bmy, 8/1/13)
-             ! This is now done in mixing_mod.F90 (ckeller, 3/5/15)
-!            IF ( .not. Input_Opt%LNLPBL ) THEN
-!               CALL DRYFLXRnPbBe
-!     &            ( am_I_Root, Input_Opt, State_Chm, RC )
-!            ENDIF
-
-!-----------------------------------------------------------------------------
-! These simulations are now obsolete.  You can reactivate them if you want.
-!         !---------------------------------
-!         ! CH3I
-!         !---------------------------------
-!         ELSE IF ( IT_IS_A_CH3I_SIM ) THEN
-!            CALL CHEMCH3I
-!     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-! 
-!         !---------------------------------            
-!         ! HCN
-!         !---------------------------------
-!         ELSE IF ( IT_IS_A_HCN_SIM ) THEN
-!            CALL CHEM_HCN_CH3CN
-!     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!-----------------------------------------------------------------------------
- 
          !---------------------------------
          ! Tagged O3
          !---------------------------------
@@ -607,30 +614,13 @@
             CALL CHEMPOPS
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-!-----------------------------------------------------------------------------
-! This simulation is now obsolete.  You can reactivate it if you want.
-!         !---------------------------------
-!         ! Offline H2/HD
-!         !---------------------------------
-!         ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
-!            CALL CHEM_H2_HD
-!     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!
-!            CALL DRYFLXH2HD( State_Met, State_Chm )
-!
-!            ! Call linearized stratospheric scheme
-!            IF ( LSCHEM ) THEN 
-!               CALL DO_STRAT_CHEM
-!     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!            ENDIF
-!-----------------------------------------------------------------------------
-
          ENDIF
 
          !### Debug
          IF ( LPRT .and. am_I_Root ) THEN
             CALL DEBUG_MSG( '### MAIN: a CHEMISTRY' )
          ENDIF
+
       ENDIF
       
       !-----------------------------------------------------------------
@@ -1191,6 +1181,7 @@
 !
       TYPE(ChmState), INTENT(INOUT)  :: State_Chm   ! Chemistry State object
       INTEGER,        INTENT(INOUT)  :: RC          ! Success or failure?
+     
 !
 ! !REVISION HISTORY: 
 !  19 May 2014 - C. Keller - Initial version (stripped from do_chemistry
@@ -1216,7 +1207,7 @@
          ! Init chem mechanism and photolysis
          CALL READER  ( FIRST, am_I_Root                           )
          CALL READCHEM(        am_I_Root, Input_Opt,            RC )
-         CALL INIT_FJX(        am_I_Root, Input_Opt,            RC )
+         CALL INIT_FJX(        am_I_Root, Input_Opt,  RC           )
          CALL SETTRACE(        am_I_Root, Input_Opt, State_Chm, RC )
 
          ! Reset NCS with NCSURBAN

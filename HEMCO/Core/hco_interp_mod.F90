@@ -529,7 +529,7 @@ CONTAINS
 !
 ! !IROUTINE: ModelLev_Interpolate
 !
-! !DESCRIPTION: Subroutine ModelLev\Interpolate puts 3D data from an
+! !DESCRIPTION: Subroutine ModelLev\_Interpolate puts 3D data from an
 ! arbitrary number of model levels onto the vertical levels of the simulation
 ! grid. Since the input data is already on model levels, this is only to
 ! inflate/collapse fields between native/reduced vertical levels, e.g. from
@@ -594,6 +594,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  30 Dec 2014 - C. Keller   - Initial version
 !  24 Feb 2015 - R. Yantosca - Now exit if vertical interpolation isn't needed
+!  12 Aug 2015 - R. Yantosca - Vertically remap MERRA2 as we do for GEOS-FP
 !  24 Sep 2015 - C. Keller   - Added interpolation on edges.
 !EOP
 !------------------------------------------------------------------------------
@@ -1018,9 +1019,10 @@ CONTAINS
        ENDIF
 
     !===================================================================
-    ! GEOS-5 mapping
+    ! GEOS-5 / GEOS-FP / MERRA / MERRA2 mapping
+    ! These all use the same vertical grid, 72 native vertical layers
     !===================================================================
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
        !----------------------------------------------------------------
        ! Native GEOS-5

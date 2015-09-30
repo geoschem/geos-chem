@@ -17,6 +17,8 @@
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
+      USE inquireMod, ONLY : findFreeLUN ! (ewl, 6/16/15)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -207,6 +209,7 @@
 !
       USE BPCH2_MOD,          ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
       USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
+      USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -221,7 +224,6 @@
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE TRACER_MOD,         ONLY : XNUMOLAIR
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
@@ -284,8 +286,12 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
 !  15 Apr 2015 - M. Sulprizio- Comment out emission diagnostics for now. These
 !                              are now handled by the HEMCO.
+!  24 Jun 2015 - E. Lundgren - Add code to print out mass conservation output,
+!                              blocked off by #if defined( MASSCONS )
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -299,7 +305,7 @@
       LOGICAL                  :: LINTERP
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
       INTEGER                  :: N,    R,     H,    W, X, Y
-      INTEGER                  :: NHMS, TS_DIAG
+      INTEGER                  :: NYMD, NHMS,  TS_DIAG
       INTEGER                  :: ISPC
       REAL(f8)                 :: TAU
       REAL(fp)                 :: TMP, SCALEAODnm
@@ -308,6 +314,15 @@
       CHARACTER(LEN=40)        :: CATEGORY
       CHARACTER(LEN=40)        :: UNIT
       CHARACTER(LEN=255)       :: FILENAME
+
+#if defined( MASSCONS )
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%  MASS CONSERVATION TEST:                                  %%%
+      !%%%  Define extra quantities for mass conservation printout   %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      INTEGER                  :: IU_TRCR
+      REAL(fp)                 :: TOTALMASS
+#endif
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER                  :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
@@ -334,6 +349,17 @@
       DO_DIAG_WRITE = Input_Opt%DO_DIAG_WRITE
       N_TRACERS     = Input_Opt%N_TRACERS
       TCVV          = Input_Opt%TCVV(1:N_TRACERS)
+
+#if defined( MASSCONS )
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%  MASS CONSERVATION TEST:                                  %%%
+      !%%%  If we are just printing out mass conservation, we can    %%%
+      !%%%  prevent writing to the timeseries bpch file.  We are     %%%
+      !%%%  only interested in printing out the sum of tracers.      %%%
+      !%%%  (ewl, 6/24/15)                                           %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      DO_DIAG_WRITE = .FALSE.
+#endif
 
       ! Initialize pointers
       STT          => State_Chm%Tracers
@@ -429,7 +455,15 @@
             UNIT     = ''           ! Let GAMAP pick the unit
             GMNL     = ND49_NL
             GMTRC    = N
-      
+            
+#if defined( MASSCONS )
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%%  MASS CONSERVATION TEST (ewl, 6/24/15)              %%%
+            !%%%  Declare a variable for total mass of tracer.       %%%
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            TOTALMASS = 0.0e+0_fp
+#endif
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -439,11 +473,65 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+
+#if defined( MASSCONS ) 
+               !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               !%%%  MASS CONSERVATION TEST (ewl, 6/24/15)           %%%
+               !%%%  Archive output in kg (not v/v) for printout     %%%
+               !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               Q(X,Y,K) = STT(I,J,L,N)
+#else
+               ! Normal ND49 output, archive in v/v
                Q(X,Y,K) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
+#endif
+               
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( MASSCONS )
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%%  MASS CONSERVATION TEST (ewl, 6/16/15)              %%%
+            !%%%  Sum the mass and write out to an ASCII file        %%%
+            !%%%  Use the filename from Input_Opt%ND49_FILE          %%%
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+            ! Sum the mass of tracer in kg
+            TOTALMASS = SUM( Q )
+
+            ! Find a free file LUN
+            IU_TRCR   = findFreeLUN()
+
+            ! Get the timestamp string
+            STAMP     = TIMESTAMP_STRING()
+
+            ! Print info that we are opening the file 
+            WRITE( 6, 300 ) TRIM( Input_Opt%ND49_FILE ), IU_TRCR
+ 300        FORMAT( 'DIAG49_MOD: Opening ', a ', on unit', i4 )
+
+            ! Open the output file in append mode
+            OPEN( IU_TRCR, FILE   = TRIM( Input_Opt%ND49_FILE ),
+     &                     STATUS = 'UNKNOWN', 
+     &                     ACCESS = "APPEND", 
+     &                     IOSTAT = IOS )
+
+            ! Stop if we can't append to the file
+            IF ( IOS > 0 ) THEN
+               CALL IOERROR( IOS, IU_TRCR, 'diag49: masscons #1' )
+            ENDIF
+
+            ! Write tracer mass, date, and time
+            WRITE( IU_TRCR, *, IOSTAT=IOS ) TOTALMASS, ' : ',  STAMP
+
+            ! Stop if we can't write to the file
+            IF ( IOS > 0 ) THEN
+               CALL IOERROR( IOS, IU_TRCR, 'diag49: masscons #2' )
+            ENDIF
+
+            ! Close file
+            CLOSE( IU_TRCR )
+#endif            
 
          ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
 
@@ -637,7 +725,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = GET_PEDGE( I, J, State_Met%CLDTOPS(I,J) )
+               Q(X,Y,K) = State_Met%PEDGE(I,J,State_Met%CLDTOPS(I,J))
             ENDDO
             ENDDO
             ENDDO
@@ -782,7 +870,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = GET_PEDGE(I,J,K)
+               Q(X,Y,K) = State_Met%PEDGE(I,J,K)
             ENDDO
             ENDDO
             ENDDO

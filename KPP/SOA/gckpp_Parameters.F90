@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Parameters.f90
-! Time                 : Tue Oct  1 13:33:03 2013
+! Time                 : Tue Jul  7 16:19:23 2015
 ! Working directory    : /home/mpayer/KPP
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -38,19 +38,19 @@ MODULE gckpp_Parameters
 ! NFIX - Number of Fixed species
   INTEGER, PARAMETER :: NFIX = 11 
 ! NREACT - Number of reactions
-  INTEGER, PARAMETER :: NREACT = 417 
+  INTEGER, PARAMETER :: NREACT = 415 
 ! NVARST - Starting of variables in conc. vect.
   INTEGER, PARAMETER :: NVARST = 1 
 ! NFIXST - Starting of fixed in conc. vect.
   INTEGER, PARAMETER :: NFIXST = 154 
 ! NONZERO - Number of nonzero entries in Jacobian
-  INTEGER, PARAMETER :: NONZERO = 1408 
+  INTEGER, PARAMETER :: NONZERO = 1406 
 ! LU_NONZERO - Number of nonzero entries in LU factoriz. of Jacobian
-  INTEGER, PARAMETER :: LU_NONZERO = 1655 
+  INTEGER, PARAMETER :: LU_NONZERO = 1649 
 ! CNVAR - (NVAR+1) Number of elements in compressed row format
   INTEGER, PARAMETER :: CNVAR = 154 
 ! CNEQN - (NREACT+1) Number stoicm elements in compressed col format
-  INTEGER, PARAMETER :: CNEQN = 418 
+  INTEGER, PARAMETER :: CNEQN = 416 
 ! NHESS - Length of Sparse Hessian
   INTEGER, PARAMETER :: NHESS = 1249 
 ! NLOOKAT - Number of species to look at
@@ -120,12 +120,12 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: ind_BRO2 = 55 
   INTEGER, PARAMETER :: ind_TRO2 = 56 
   INTEGER, PARAMETER :: ind_XRO2 = 57 
-  INTEGER, PARAMETER :: ind_PAN = 58 
-  INTEGER, PARAMETER :: ind_ALK4 = 59 
-  INTEGER, PARAMETER :: ind_H2O2 = 60 
-  INTEGER, PARAMETER :: ind_HNO2 = 61 
-  INTEGER, PARAMETER :: ind_MAP = 62 
-  INTEGER, PARAMETER :: ind_N2O5 = 63 
+  INTEGER, PARAMETER :: ind_N2O5 = 58 
+  INTEGER, PARAMETER :: ind_PAN = 59 
+  INTEGER, PARAMETER :: ind_ALK4 = 60 
+  INTEGER, PARAMETER :: ind_H2O2 = 61 
+  INTEGER, PARAMETER :: ind_HNO2 = 62 
+  INTEGER, PARAMETER :: ind_MAP = 63 
   INTEGER, PARAMETER :: ind_MPN = 64 
   INTEGER, PARAMETER :: ind_RA3P = 65 
   INTEGER, PARAMETER :: ind_RB3P = 66 
@@ -143,8 +143,8 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: ind_MRP = 78 
   INTEGER, PARAMETER :: ind_BrNO3 = 79 
   INTEGER, PARAMETER :: ind_ETHLN = 80 
-  INTEGER, PARAMETER :: ind_C2H6 = 81 
-  INTEGER, PARAMETER :: ind_PRPN = 82 
+  INTEGER, PARAMETER :: ind_PRPN = 81 
+  INTEGER, PARAMETER :: ind_C2H6 = 82 
   INTEGER, PARAMETER :: ind_R4P = 83 
   INTEGER, PARAMETER :: ind_ATOOH = 84 
   INTEGER, PARAMETER :: ind_RIP = 85 
@@ -159,10 +159,10 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: ind_PRPE = 94 
   INTEGER, PARAMETER :: ind_IEPOXOO = 95 
   INTEGER, PARAMETER :: ind_MACRNO2 = 96 
-  INTEGER, PARAMETER :: ind_PMN = 97 
-  INTEGER, PARAMETER :: ind_MOBAOO = 98 
-  INTEGER, PARAMETER :: ind_ROH = 99 
-  INTEGER, PARAMETER :: ind_DIBOO = 100 
+  INTEGER, PARAMETER :: ind_MOBAOO = 97 
+  INTEGER, PARAMETER :: ind_ROH = 98 
+  INTEGER, PARAMETER :: ind_DIBOO = 99 
+  INTEGER, PARAMETER :: ind_PMN = 100 
   INTEGER, PARAMETER :: ind_MVKN = 101 
   INTEGER, PARAMETER :: ind_ACET = 102 
   INTEGER, PARAMETER :: ind_ISNOHOO = 103 
@@ -178,43 +178,43 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: ind_MAOPO2 = 113 
   INTEGER, PARAMETER :: ind_MRO2 = 114 
   INTEGER, PARAMETER :: ind_VRO2 = 115 
-  INTEGER, PARAMETER :: ind_ISNOOA = 116 
-  INTEGER, PARAMETER :: ind_HC5 = 117 
-  INTEGER, PARAMETER :: ind_GLYX = 118 
+  INTEGER, PARAMETER :: ind_HC5 = 116 
+  INTEGER, PARAMETER :: ind_GLYX = 117 
+  INTEGER, PARAMETER :: ind_ISNOOA = 118 
   INTEGER, PARAMETER :: ind_MAN2 = 119 
   INTEGER, PARAMETER :: ind_PRN1 = 120 
   INTEGER, PARAMETER :: ind_B3O2 = 121 
   INTEGER, PARAMETER :: ind_PO2 = 122 
-  INTEGER, PARAMETER :: ind_KO2 = 123 
-  INTEGER, PARAMETER :: ind_ETO2 = 124 
-  INTEGER, PARAMETER :: ind_RCO3 = 125 
-  INTEGER, PARAMETER :: ind_HAC = 126 
+  INTEGER, PARAMETER :: ind_MGLY = 123 
+  INTEGER, PARAMETER :: ind_KO2 = 124 
+  INTEGER, PARAMETER :: ind_ETO2 = 125 
+  INTEGER, PARAMETER :: ind_RCO3 = 126 
   INTEGER, PARAMETER :: ind_ATO2 = 127 
-  INTEGER, PARAMETER :: ind_R4N1 = 128 
+  INTEGER, PARAMETER :: ind_ISOPNBO2 = 128 
   INTEGER, PARAMETER :: ind_ISN1 = 129 
   INTEGER, PARAMETER :: ind_CH2O = 130 
-  INTEGER, PARAMETER :: ind_HC5OO = 131 
-  INTEGER, PARAMETER :: ind_MGLY = 132 
-  INTEGER, PARAMETER :: ind_MVK = 133 
+  INTEGER, PARAMETER :: ind_ALD2 = 131 
+  INTEGER, PARAMETER :: ind_MVK = 132 
+  INTEGER, PARAMETER :: ind_HC5OO = 133 
   INTEGER, PARAMETER :: ind_RIO2 = 134 
-  INTEGER, PARAMETER :: ind_ISOPNBO2 = 135 
-  INTEGER, PARAMETER :: ind_ISOPNDO2 = 136 
-  INTEGER, PARAMETER :: ind_ALD2 = 137 
+  INTEGER, PARAMETER :: ind_ISOPNDO2 = 135 
+  INTEGER, PARAMETER :: ind_HAC = 136 
+  INTEGER, PARAMETER :: ind_R4O2 = 137 
   INTEGER, PARAMETER :: ind_INO2 = 138 
   INTEGER, PARAMETER :: ind_MACR = 139 
-  INTEGER, PARAMETER :: ind_R4O2 = 140 
+  INTEGER, PARAMETER :: ind_R4N1 = 140 
   INTEGER, PARAMETER :: ind_MAO3 = 141 
   INTEGER, PARAMETER :: ind_RCHO = 142 
-  INTEGER, PARAMETER :: ind_NO3 = 143 
-  INTEGER, PARAMETER :: ind_HO2 = 144 
+  INTEGER, PARAMETER :: ind_NO = 143 
+  INTEGER, PARAMETER :: ind_R4N2 = 144 
   INTEGER, PARAMETER :: ind_O3 = 145 
-  INTEGER, PARAMETER :: ind_OH = 146 
-  INTEGER, PARAMETER :: ind_R4N2 = 147 
+  INTEGER, PARAMETER :: ind_HO2 = 146 
+  INTEGER, PARAMETER :: ind_OH = 147 
   INTEGER, PARAMETER :: ind_MCO3 = 148 
   INTEGER, PARAMETER :: ind_MEK = 149 
   INTEGER, PARAMETER :: ind_Br = 150 
   INTEGER, PARAMETER :: ind_MO2 = 151 
-  INTEGER, PARAMETER :: ind_NO = 152 
+  INTEGER, PARAMETER :: ind_NO3 = 152 
   INTEGER, PARAMETER :: ind_NO2 = 153 
 
 ! Index declaration for fixed species in C
@@ -248,10 +248,10 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: indf_DUMMY = 11 
 
 ! NJVRP - Length of sparse Jacobian JVRP
-  INTEGER, PARAMETER :: NJVRP = 658 
+  INTEGER, PARAMETER :: NJVRP = 656 
 
 ! NSTOICM - Length of Sparse Stoichiometric Matrix
-  INTEGER, PARAMETER :: NSTOICM = 1762 
+  INTEGER, PARAMETER :: NSTOICM = 1756 
 
 END MODULE gckpp_Parameters
 

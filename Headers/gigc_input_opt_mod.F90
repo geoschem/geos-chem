@@ -36,6 +36,11 @@ MODULE GIGC_Input_Opt_Mod
      ! General Runtime & Distributed Comp Info
      !----------------------------------------
      INTEGER                     :: NPES      ! Number of MPI procs
+     INTEGER                     :: myCpu     ! Local MPI process handle
+     INTEGER                     :: MPICOMM   ! MPI Communicator Handle
+     LOGICAL                     :: HPC       ! Is this an HPC (ESMF or otherwise) sim?
+     LOGICAL                     :: RootCPU   ! Is this the root cpu?
+     
 
      !----------------------------------------
      ! SIZE PARAMETER fields
@@ -45,7 +50,6 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: MAX_MEMB
      INTEGER                     :: MAX_FAMS
      INTEGER                     :: MAX_DEP
-
 
      !----------------------------------------
      ! SIMULATION MENU fields 
@@ -66,6 +70,7 @@ MODULE GIGC_Input_Opt_Mod
      CHARACTER(LEN=255)          :: GEOS_5_DIR         
      CHARACTER(LEN=255)          :: GEOS_FP_DIR        
      CHARACTER(LEN=255)          :: MERRA_DIR          
+     CHARACTER(LEN=255)          :: MERRA2_DIR          
      CHARACTER(LEN=255)          :: DATA_DIR_1x1       
      CHARACTER(LEN=255)          :: TEMP_DIR           
      LOGICAL                     :: LUNZIP             
@@ -113,12 +118,15 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      LOGICAL                     :: LSULF              
      LOGICAL                     :: LCRYST             
-     LOGICAL                     :: LCARB              
-     LOGICAL                     :: LSOA               
+     LOGICAL                     :: LCARB
+     LOGICAL                     :: LBRC              
+     LOGICAL                     :: LSOA
+     LOGICAL                     :: LMPOA
      LOGICAL                     :: LSVPOA
      LOGICAL                     :: LDUST              
      LOGICAL                     :: LDEAD              
      LOGICAL                     :: LSSALT             
+     LOGICAL                     :: LDSTUP
      LOGICAL                     :: LDICARB            
      REAL(fp),           POINTER :: SALA_REDGE_um(:)   
      REAL(fp),           POINTER :: SALC_REDGE_um(:)   
@@ -628,7 +636,6 @@ MODULE GIGC_Input_Opt_Mod
      ! Fields for interface to GEOS-5 GCM
      !----------------------------------------
      LOGICAL                     :: haveImpRst
-     INTEGER                     :: myCpu
 
      !----------------------------------------
      ! Fields for LINOZ strat chem
@@ -672,6 +679,7 @@ MODULE GIGC_Input_Opt_Mod
 !                              remove LAIRNOX field
 !  13 Aug 2013 - M. Sulprizio- Add extra fields for semivolatile POA (H. Pye)
 !  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
+!  17 Sep 2013 - M. Sulprizio- Add LDSTUP flag for acid uptake on dust aerosols
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LMFCT for flux correction
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LAVHRRLAI and LMODISLAI
@@ -687,6 +695,7 @@ MODULE GIGC_Input_Opt_Mod
 !  09 Apr 2015 - M. Sulprizio- Removed fields for NAPEMISS, POAEMISSSCALE,
 !                              and PST_RST_FILE. These options are now handled
 !                              by HEMCO.
+!  11 Aug 2015 - R. Yantosca - Add MERRA2_DIR field to OptInput
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -757,6 +766,9 @@ CONTAINS
 !  22 Jul 2013 - M. Sulprizio- Add extra fields for RCP emissions
 !  07 Aug 2013 - M. Sulprizio- Add extra fields for SOA + SVPOA simulation
 !  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
+!  12 Sep 2013 - M. Sulprizio- Double size of IDDEP to account for dust
+!                              alkalinity (tdf 04/10/08)
+!  17 Sep 2013 - M. Sulprizio- Add LDSTUP flag for acid uptake on dust aerosols
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
 !  25 Jun 2014 - R. Yantosca - Now initialize Input_Opt%SIM_TYPE field
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
@@ -775,6 +787,14 @@ CONTAINS
     ! Assume success
     RC                               = GIGC_SUCCESS
 
+    !----------------------------------------
+    ! General Runtime & Distributed Comp Info
+    !----------------------------------------
+    Input_Opt%NPES                   = 1       ! Assume Serial Sim.
+    Input_Opt%HPC                    = .false. ! Assume Serial Sim.
+    Input_Opt%myCpu                  = -1
+    Input_Opt%RootCPU                = .false.
+    
     !----------------------------------------
     ! SIZE PARAMETER fields 
     !----------------------------------------
@@ -804,6 +824,7 @@ CONTAINS
     Input_Opt%GEOS_5_DIR             = './'
     Input_Opt%GEOS_FP_DIR            = './'
     Input_Opt%MERRA_DIR              = './'
+    Input_Opt%MERRA2_DIR             = './'
     Input_Opt%DATA_DIR_1x1           = './'      ! NOTE: Now deprecated!
     Input_Opt%TEMP_DIR               = './'
     Input_Opt%LUNZIP                 = .FALSE.   ! NOTE: Now deprecated!
@@ -866,10 +887,13 @@ CONTAINS
     Input_Opt%LSULF                  = .FALSE.
     Input_Opt%LCRYST                 = .FALSE.
     Input_Opt%LCARB                  = .FALSE.
+    Input_Opt%LBRC                   = .FALSE.
     Input_Opt%LSOA                   = .FALSE.
+    Input_Opt%LMPOA                  = .FALSE.
     Input_Opt%LSVPOA                 = .FALSE.
     Input_Opt%LDUST                  = .FALSE.
     Input_Opt%LDEAD                  = .FALSE.
+    Input_Opt%LDSTUP                 = .FALSE.
     Input_Opt%LSSALT                 = .FALSE.
     Input_Opt%LDICARB                = .FALSE.
     Input_Opt%SALA_REDGE_um          = 0e+0_fp
@@ -1392,19 +1416,20 @@ CONTAINS
     ! Fields for DRYDEP and DUST based on
     ! input from the file "input.geos"
     !----------------------------------------
-    ALLOCATE( Input_Opt%NDVZIND ( MAX_DEP  ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%DEPNAME ( MAX_DEP  ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%IDEP    ( NVEGTYPE ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%IDDEP   ( NDSTBIN  ), STAT=RC ) ! Dust_mod
-    ALLOCATE( Input_Opt%DUSTREFF( NDSTBIN  ), STAT=RC ) ! Dust_mod
-    ALLOCATE( Input_Opt%DUSTDEN ( NDSTBIN  ), STAT=RC ) ! Dust_mod
-    ALLOCATE( Input_Opt%NTRAIND ( MAX_DEP  ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%F0      ( MAX_DEP  ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%HSTAR   ( MAX_DEP  ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%AIROSOL ( MAX_DEP  ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%XMW     ( MAX_DEP  ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%A_RADI  ( MAX_DEP  ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%A_DEN   ( MAX_DEP  ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%NDVZIND ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%DEPNAME ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%IDEP    ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ! Double size of IDDEP to account for dust alkalinity   tdf 04/10/08
+    ALLOCATE( Input_Opt%IDDEP   ( NDSTBIN*2 ), STAT=RC ) ! Dust_mod
+    ALLOCATE( Input_Opt%DUSTREFF( NDSTBIN ),   STAT=RC ) ! Dust_mod
+    ALLOCATE( Input_Opt%DUSTDEN ( NDSTBIN ),   STAT=RC ) ! Dust_mod
+    ALLOCATE( Input_Opt%NTRAIND ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%F0      ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%HSTAR   ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%AIROSOL ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%XMW     ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%A_RADI  ( MAX_DEP ),   STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%A_DEN   ( MAX_DEP ),   STAT=RC ) ! Drydep
 
     Input_Opt%N_DUST_BINS            = NDSTBIN
     Input_Opt%NUMDEP                 = 0
@@ -1425,7 +1450,6 @@ CONTAINS
     ! Fields for interface to GEOS-5 GCM
     !----------------------------------------
     Input_Opt%haveImpRst             = .FALSE.
-    Input_Opt%myCpu                  = -1
 
 
     !----------------------------------------

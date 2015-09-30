@@ -76,6 +76,7 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  19 Dec 2014 - R. Yantosca - Now perform internal computations w/ REAL*8
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -136,7 +137,7 @@
       ! ----------------------------------------------
 
       ! IWC in [g/cm3]
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       iwc = CLDF(I,J,L) * QI * AD(I,J,L) / AIRVOL(I,J,L)
       iwc = iwc / 1.e+3_f8
 #else
@@ -279,7 +280,7 @@
       ! store the volume of air [cm3]
       XAIRCM3 = AIRVOL(I,J,L) * (100.e+0_f8)**3
 
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_F8 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       ! get the volume of cloud ice [cm3]
       Vc = CLDF(I,J,L) * QI * AD(I,J,L) / dens_ice
 #else

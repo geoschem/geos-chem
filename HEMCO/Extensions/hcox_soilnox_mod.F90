@@ -673,9 +673,6 @@ CONTAINS
     ! Get global scale factor
     FERT_SCALE = HCOX_SoilNOx_GetFertScale()
 
-    ! tesiting only
-    write(*,*) 'soilnox debug 1'
-  
     ! Get HEMCO species IDs
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -686,22 +683,13 @@ CONTAINS
     ENDIF
     IDTNO = HcoIDs(1)
 
-    ! tesiting only
-    write(*,*) 'soilnox debug 2', ExtNr, nSpc
-  
     ! Get species scale factor
     CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'Scaling', 1.0_sp, SpcScalVal, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! tesiting only
-    write(*,*) 'soilnox debug 3'
-  
     CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'ScaleField', HCOX_NOSCALE, SpcScalFldNme, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! tesiting only
-    write(*,*) 'soilnox debug 4'
-  
     ! Verbose mode
     IF ( am_I_Root ) THEN
        MSG = 'Use soil NOx emissions (extension module)'

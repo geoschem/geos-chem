@@ -35,6 +35,7 @@
 #  20 Aug 2013 - R. Yantosca - Remove GeosTomas directory, that is obsolete
 #  09 Jul 2014 - R. Yantosca - Now build HEMCO documentation
 #  21 Jul 2014 - R. Yantosca - Now look for HEMCO modules in subdirectories
+#  10 Jul 2015 - R. Yantosca - Added GCRT directory
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -52,6 +53,7 @@ BPCH  :=$(ROOT)/GeosBpch
 CORE  :=$(ROOT)/GeosCore
 DOC   :=$(ROOT)/doc
 ESMF  :=$(ROOT)/ESMF
+GCRT  :=$(ROOT)/GCRT
 GTMM  :=$(ROOT)/GTMM
 HCO   :=$(ROOT)/HEMCO/Core
 HCOI  :=$(ROOT)/HEMCO/Interfaces

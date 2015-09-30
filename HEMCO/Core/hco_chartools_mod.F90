@@ -38,7 +38,9 @@ MODULE HCO_CharTools_Mod
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  11 Jul 2014 - C. Keller   - Characters added
 !  17 Oct 2014 - C. Keller   - Added parser and tokens ROOT, MET, and RES.
-!  20 Sep 2015 - C. Keller   _ Moved tokens to hco_extlist_mod.F90 
+!  12 Aug 2015 - R. Yantosca - Add new value of DEF_MET for MERRA2
+!  12 Aug 2015 - R. Yantosca - Add new value of DEF_RES for 0.5 x 0.625 grids
+!  20 Sep 2015 - C. Keller   - Moved tokens to hco_extlist_mod.F90 
 !EOP
 !------------------------------------------------------------------------------
 !BOC

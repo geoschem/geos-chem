@@ -94,7 +94,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
       USE TOMS_MOD,           ONLY : GET_OVERHEAD_O3
@@ -206,8 +205,13 @@
 !  05 Mar 2014 - R. Yantosca - Cosmetic changes
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE. 
+!                              Remove dependency on pressure_mod and 
+!                              redundant PEDGE pre-preprocessor block if 
+!                              EXTERNAL_GRID.
 !  09 Apr 2015 - R. Yantosca - Bug fixes: Add missing vars to !$OMP+PRIVATE
 !                              clause and error check for JLOOP > 0
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as for GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -307,17 +311,10 @@
             ! Cosine of solar zenith angle [unitless] at (NLON,NLAT)
             CSZA            = State_Met%SUNCOSmid(NLON,NLAT)
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            ! Define the P array here, using GCM pressures
+            ! Define the P array here
             DO L = 1, LLPAR+1
                P_CTM(L)     = State_Met%PEDGE( NLON, NLAT, L )
             ENDDO
-#else
-            ! Define the P array here, using Ap and Bp from GEOS-Chem
-            DO L = 1, LLPAR+1
-               P_CTM(L)     = GET_PEDGE( NLON, NLAT, L )
-            ENDDO
-#endif
 
             ! Top edge of P_CTM is top of atmosphere (bmy, 2/13/07)
             P_CTM(LLPAR+2)  = 0e+0_fp
@@ -383,13 +380,13 @@
             ! Directly use OPTDEPTH = TAUCLD * CLDTOT
             !===========================================================
 
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
             ! Column cloud fraction (not less than zero)
             CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
             WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
                
-            ! NOTE: For GEOS-5, GEOS-FP, and MERRA met fields, the optical
+            ! For GEOS-5, GEOS-FP, MERRA, and MERRA2 met fields, the optical
             ! depth is the in-cloud optical depth.  At this point it has 
             ! NOT been multiplied by cloud fraction yet.  Therefore, we can
             ! just apply the ! we can just apply the linear overlap formula 
@@ -417,7 +414,7 @@
             CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
             WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
                
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
             ! NOTE: For GEOS-5, GEOS-FP, and MERRA met fields, the optical
             ! depth is the in-cloud optical depth.  At this point it has 
@@ -1654,6 +1651,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+               
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1698,11 +1696,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in fast-J X-sections (spectral data)
       FILENAME = 'FJX_spec.dat'
 
-#if defined( ESMF_ )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
-
       ! Echo info
       IF ( am_I_Root ) THEN
          WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
@@ -1723,20 +1716,15 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in 5-wavelength scattering data
       FILENAME = 'jv_spec_mie.dat'
 
-#if defined( ESMF_ )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
-
       ! Echo info
       IF ( am_I_Root ) THEN
          WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
       ENDIF
 
-      call RD_MIE(JXUNIT,TRIM( FILENAME ), am_I_Root)
+      call RD_MIE(JXUNIT,TRIM( FILENAME ), am_I_Root, Input_Opt )
 
       ! Read in AOD data
-      call RD_AOD(JXUNIT, am_I_Root)
+      call RD_AOD(JXUNIT, am_I_Root, Input_Opt )
 
       ! Set up MIEDX array to interpret between GC and FJX aerosol indexing
       call SET_AER(am_I_Root)
@@ -1752,11 +1740,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in photolysis rates used in chemistry code and mapping onto FJX J's
       ! CTM call:  read in J-values names and link to fast-JX names
       FILENAME = 'FJX_j2j.dat'
-
-#if defined( ESMF_ )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
 
       ! Echo info
       IF ( am_I_Root ) THEN
@@ -2063,17 +2046,20 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_MIE(NUN,NAMFIL,am_I_Root)
+      SUBROUTINE RD_MIE(NUN,NAMFIL,am_I_Root, Input_Opt )
 !
 ! !USES:
 !
-      USE FILE_MOD,   ONLY : IOERROR
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,      INTENT(IN) :: NUN
-      CHARACTER(*), INTENT(IN) :: NAMFIL
-      LOGICAL,      INTENT(IN) :: am_I_Root
+      INTEGER,        INTENT(IN) :: NUN
+      CHARACTER(*),   INTENT(IN) :: NAMFIL
+      LOGICAL,        INTENT(IN) :: am_I_Root
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+      
 !
 ! !OUTPUT VARIABLES:
 !
@@ -2092,6 +2078,8 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Adapted from GEOS-Chem v9-1-3
+!  25 Jun 2015 - M. Sulprizio  - Add brown carbon optical properties from 
+!                                M. Hammer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2100,10 +2088,21 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
       INTEGER  I, J, K, NK
       CHARACTER*78 TITLE0
+      LOGICAL      :: LBRC
+      CHARACTER*20, DIMENSION(7) :: TITLEAAt
+      REAL(fp)     :: QAAt(5,63)
+      REAL(fp)     :: WAAt(5,63)
+      REAL(fp)     :: PAAt(8,5,63)
+      REAL(fp)     :: RAAt(5,63)
+      REAL(fp)     :: SAAt(5,63)
+      INTEGER      :: NAAt
 
       !=================================================================
       ! RD_MIE begins here!
       !=================================================================
+
+      ! Copy fields from Input_Opt
+      LBRC = Input_Opt%LBRC
 
       open (NUN,FILE=NAMFIL,status='old',form='formatted')
 
@@ -2112,17 +2111,42 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       IF  ( am_I_Root ) WRITE( 6, '(1X,A)' ) TITLE0
       READ( NUN,'(A)' ) TITLE0
 
-!---Read aerosol phase functions:
+     
+      !---Read aerosol phase functions:
+     
       read(NUN,'(A10,I5,/)') TITLE0,NAA
+ 
       NK=5
       do j=1,NAA
-        read(NUN,110) TITLEAA(j)
-        do k=1,NK
-          read(NUN,*) WAA(k,j),QAA(k,j),RAA(k,j),SAA(k,j),
+         read(NUN,110) TITLEAA(j)
+         do k=1,NK
+            read(NUN,*) WAA(k,j),QAA(k,j),RAA(k,j),SAA(k,j),
      &                                             (PAA(i,k,j),i=1,8)
-        enddo
+       
+         enddo
       enddo
 
+      IF (LBRC) THEN
+         NAAt=63 
+         do j= 57, NAAt
+            read(NUN,110) TITLEAAt(j)
+            do k=1,NK
+             read(NUN,*) WAAt(k,j),QAAt(k,j),RAAt(k,j),SAAt(k,j),
+     &              (PAAt(i,k,j),i=1,8)
+       
+            enddo
+         enddo
+       
+         do j= 36, 42
+            TITLEAA(j) = TITLEAAt(j+21)
+            WAA(:,j) = WAAt(:,j+21)
+            QAA(:,j) = QAAt(:,j+21)
+            RAA(:,j) = RAAt(:,j+21)
+            SAA(:,j) = SAAt(:,j+21)
+            PAA(:,:,j) = PAAt(:,:,j+21)
+         enddo
+      ENDIF  
+      
       close(NUN)
 
       IF ( am_I_Root ) THEN 
@@ -2153,18 +2177,19 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_AOD( NJ1, am_I_Root )
+      SUBROUTINE RD_AOD( NJ1, am_I_Root, Input_Opt )
 !
 ! !USES:
 !
-      USE FILE_MOD,   ONLY : IOERROR
-
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       IMPLICIT NONE
 
 !
 ! !INPUT PARAMETERS:
 !     
       INTEGER,          INTENT(IN) :: NJ1         ! Unit # of file to open
+      TYPE(OptInput),   INTENT(IN) :: Input_Opt   ! Input Options object
       LOGICAL,          INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -2199,6 +2224,9 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !  12 May 2015 - R. Yantosca   - Bug fix: For PGI compiler, you need to have
 !                                exactly as many elements in the DATA statement
 !                                as there are elements in the SPECFIL array.
+!  25 Jun 2015 - M. Sulprizio  - Add brown carbon optical properties from 
+!                                M. Hammer 
+!  04 Aug 2015 - M. Long       - Removed ".rc" file specifier. Not necessary.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2213,6 +2241,8 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       CHARACTER*30      :: SPECFIL(6)
 #endif
       CHARACTER(LEN=30) :: THISFILE
+           
+      LOGICAL           :: LBRC
 
       CHARACTER*78 TITLE0
 
@@ -2220,9 +2250,13 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! RD_AOD begins here!
       !================================================================
 
+      ! Copy fields from Input_Opt
+      LBRC = Input_Opt%LBRC
+            
       ! aerosol_mod.F expects aerosol in this order now
       ! extra two LUT dat files for strat H2SO4 and NAT particles
-      DATA SPECFIL /"so4.dat","soot.dat","org.dat","ssa.dat","ssc.dat",
+             
+       DATA SPECFIL /"so4.dat","soot.dat","org.dat","ssa.dat","ssc.dat",
 #if defined( UCX )
       ! Treating strat sulfate with GADS data but modified to match
       ! the old Fast-J values size (r=0.09um, sg=0.6) - I think there's
@@ -2238,11 +2272,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       !array of filenames
       DO k = 1, NSPAA
 
-       ! mirror file. Need to append '.rc' in ESMF environment. (ckeller, 4/1/15)
        THISFILE = SPECFIL(k)
-#if defined( ESMF_ )
-       THISFILE = TRIM(THISFILE) // '.rc'
-#endif
 
        ! open file
        OPEN( NJ1, FILE=TRIM( THISFILE ), STATUS='OLD', IOSTAT=IOS )
@@ -2871,7 +2901,7 @@ c                        or         99.0                 80 km
          PPJ(L) = P_COL(L)
          T_INPUT(L) = T_COL(L)
       ENDDO
-      
+
       ! Ensure TOA pressure is zero
       PPJ(L1_+1) = 0.e+0_fp
       T_INPUT(L1_+1) = T_CLIM(L1_)
@@ -4041,6 +4071,7 @@ C---Always does PL(2) = P[1]
       Z_CLIM(1) = 0.e+0_fp
       DO I = 1, L_   
          SCALEH = 1.3806e-19_fp * MASFAC * T_CLIM(I)
+
          Z_CLIM(I+1) = Z_CLIM(I) - 
      &        ( LOG( P_CTM(I+1) / P_CTM(I) ) * SCALEH )
       ENDDO

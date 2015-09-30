@@ -890,7 +890,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Schmidt_gG
+! !IROUTINE: Schmidt_G
 !
 ! !DESCRIPTION: Schmidt\_G returns the schmidt number of the gas in the air.
 !\\
@@ -929,4 +929,3 @@ CONTAINS
   END FUNCTION Schmidt_G
 !EOC
 END MODULE Ocean_ToolBox_Mod
-!EOM
