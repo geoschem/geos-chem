@@ -1021,6 +1021,8 @@
 !  25 Sep 2015 - R. Yantosca - Move the computation of the Ki rate (Eq. 1 from
 !                              Jacob et al 2000) into routine COMPUTE_Ki
 !  25 Sep 2015 - R. Yantosca - Remove T pointer, it's not needed here
+!  30 Sep 2015 - R. Yantosca - Now use ThisSpc%WD_Is_HNO3 and ThisSpc%WD_Is_SO2
+!                              to flag the special cases of HNO3 & SO2 wetdep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1074,22 +1076,11 @@
       KcScale    = ThisSpc%WD_KcScaleFac
 
       !=================================================================
-      ! %%% SPECIAL CASE #1: %%%
-      ! HNO3 scavenges like an aerosol although it is considered
-      ! to be a gas-phase species elsewhere (e.g. dry deposition)
-      !=================================================================
-      IF ( N == IDTHNO3 ) THEN
-         
-         ! NOTE: HNO3 drydeps like gas, wetdeps like aerosol
-         CALL F_AEROSOL( KC, KcScale, State_Met, F )
-         ISOL = GET_ISOL( N, N_TRACERS ) 
-
-      !=================================================================
-      ! %%% SPECIAL CASE #2: %%%
+      ! %%% SPECIAL CASE %%%
       ! SO2 scavenges like an aerosol although it is considered
       ! to be a gas-phase species elsewhere (e.g. dry deposition)
       !=================================================================
-      ELSE IF ( N == IDTSO2 ) THEN
+      IF ( ThisSpc%WD_Is_SO2 ) THEN
 
          ! Compute fraction of SO2 scavenged
          CALL F_AEROSOL( KC, KcScale, State_Met, F )
@@ -1143,8 +1134,13 @@
 
          !--------------------------------------------------------------
          ! Soluble gas-phase species
+         !
+         ! NOTE: HNO3 scavenges like an aerosol, although it is
+         ! considered a gas-phase species elsewhere.  Compute the
+         ! fraction of HNO3 scavenged out of the column further down
+         ! in the last ELSE block.
          !--------------------------------------------------------------
-         IF ( ThisSpc%Is_Gas ) THEN
+         IF ( ThisSpc%Is_Gas .and. ( .not. ThisSpc%WD_Is_HNO3 ) ) THEN
 
             ! No scavenging at the surface
             F(:,:,1) = 0.0_fp
@@ -1239,6 +1235,7 @@
 
             !-----------------------------------------------------------
             ! Soluble aerosol species (non-size-resolved)
+            ! including the special case of HNO3
             !-----------------------------------------------------------
             ELSE
 
@@ -1664,6 +1661,8 @@
 !                              rate of scavenging (Eq. 1, Jacob et al 2000)
 !  25 Sep 2015 - R. Yantosca - Now define THREADPRIVATE pointers
 !  28 Sep 2015 - R. Yantosca - Needed to add special case for HNO3
+!  30 Sep 2015 - R. Yantosca - Now use ThisSpc%WD_Is_HNO3 and ThisSpc%WD_Is_SO2
+!                              to flag the special cases of HNO3 & SO2 wetdep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1701,25 +1700,11 @@
       ThisSpc  => State_Chm%SpcData(N)%Info
 
       !=================================================================
-      ! %%% SPECIAL CASE #1: %%%
-      ! HNO3 scavenges like an aerosol although it is considered
-      ! to be a gas-phase species elsewhere (e.g. dry deposition)
-      !=================================================================
-      IF ( N == IDTHNO3 ) THEN
-
-         ! Compute rainout fraction for aerosol tracres
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-         ! Apply temperature-dependent rainout efficiencies
-         ! This accounts for impaction scavenging of certain aerosols
-         CALL APPLY_RAINOUT_EFF( p_T, ThisSpc, RAINFRAC )
-
-      !=================================================================
-      ! %%% SPECIAL CASE #2: %%%
+      ! %%% SPECIAL CASE %%%
       ! SO2 scavenges like an aerosol although it is considered
       ! to be a gas-phase species elsewhere (e.g. dry deposition)
       !=================================================================
-      ELSE IF ( N == IDTSO2 ) THEN
+      IF ( ThisSpc%WD_Is_SO2 ) THEN
   
          ! Update SO2 and H2O2
          IF ( SO2s(I,J,L) > TINY_FP ) THEN 
@@ -1754,8 +1739,9 @@
 
       !=================================================================
       ! Compute rainout fraction for soluble gas-phase species
+      ! (except for HNO3, which scavenges like an aerosol)
       !=================================================================
-      ELSE IF ( ThisSpc%Is_Gas ) THEN 
+      ELSE IF ( ThisSpc%Is_Gas .and. ( .not. ThisSpc%WD_Is_HNO3 ) ) THEN 
 
          ! Compute Ki, the loss rate of a gas-phase species from
          ! the convective updraft (Eq. 1, Jacob et al, 2000)
@@ -1769,7 +1755,7 @@
 
       !=================================================================
       ! Compute rainout fraction for aerosol species
-      ! (except for special cases HNO3 and SO2, which are done above)
+      ! (including HNO3, which scavenges like an aerosol)
       !=================================================================
       ELSE
 
@@ -2040,6 +2026,8 @@
 !  23 Jun 2015 - E. Lundgren - Adjust 5/12/15 TOMAS bug fix to convert
 !                              kg/kg total air <-> kg for new convection units
 !  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
+!  30 Sep 2015 - R. Yantosca - Now use ThisSpc%WD_Is_HNO3 and ThisSpc%WD_Is_SO2
+!                              to flag the special cases of HNO3 & SO2 wetdep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2062,18 +2050,20 @@
       !=================================================================
 
       ! Assume success
-      RC                =  GIGC_SUCCESS
+      RC      =  GIGC_SUCCESS
 
       ! DZ is the height of the grid box in cm
-      DZ                =  BXHEIGHT * 1e+2_fp
+      DZ      =  BXHEIGHT * 1e+2_fp
 
       ! Get info about Nth species from the species database
-      ThisSpc           => State_Chm%SpcData(N)%Info
+      ThisSpc => State_Chm%SpcData(N)%Info
       
       !=================================================================
-      ! HNO3 (aerosol)
+      ! %%% SPECIAL CASE %%%
+      ! HNO3 scavenges like an aerosol although it is considered
+      ! to be a gas-phase species elsewhere (e.g. dry deposition)
       !=================================================================
-      IF ( N == IDTHNO3 ) THEN      
+      IF ( ThisSpc%WD_Is_HNO3 ) THEN
 
          ! Washout is a kinetic process
          KIN      = .TRUE.
@@ -2082,9 +2072,11 @@
          WASHFRAC = WASHFRAC_HNO3( DT, F, PP, TK )
 
       !=================================================================
-      ! SO2 (aerosol treatment)
+      ! %%% SPECIAL CASE %%%
+      ! SO2 scavenges like an aerosol although it is considered
+      ! to be a gas-phase species elsewhere (e.g. dry deposition)
       !=================================================================
-      ELSE IF ( N == IDTSO2 ) THEN
+      ELSE IF ( ThisSpc%WD_Is_SO2 ) THEN
 
          ! NOTE: Even though SO2 is not an aerosol we treat it as SO4 in
          ! wet scavenging.  When evaporation occurs, it returns to SO4.
@@ -2104,7 +2096,6 @@
                   
             ! Deplete H2O2s the same as SO2s (dkh, rjp, bmy, 11/17/05)
             H2O2s = H2O2s - ( SO2s * WASHFRAC )
-            !H2O2s = MAX( H2O2s, EPSILON )
             H2O2s = MAX( H2O2s, TINY_FP )
 
          ELSE
@@ -2114,19 +2105,20 @@
          
          ! Update saved SO2 concentration 
          SO2s = SO2s * ( 1e+0_fp - WASHFRAC )
-         !SO2s = MAX( SO2s, EPSILON ) 
          SO2s = MAX( SO2s, TINY_FP ) 
 
+      !=================================================================
+      ! All other species
+      !=================================================================
       ELSE
 
-         !=================================================================
-         ! All other species
-         !=================================================================
+         !--------------------------------------------------------------
+         ! Washout for gas-phase species 
+         ! (except HNO3 and SO2, which scavenge like aerosols, 
+         ! and therefore are handled above)
+         !--------------------------------------------------------------
          IF ( ThisSpc%Is_Gas ) THEN
 
-            !-----------------------------------------------------------
-            ! Washout for gas-phase species other than HNO3, SO2
-            !-----------------------------------------------------------
 
             ! Get  Henry's law parameters
             K0  = ThisSpc%Henry_K0
@@ -2147,12 +2139,12 @@
 
          ELSE
 
+            !-----------------------------------------------------------
+            ! Washout for size-resolved aerosol species or
+            ! size-resolved aerosol number (e.g. from TOMAS)
+            !-----------------------------------------------------------
             IF ( ThisSpc%MP_SizeResAer .or. ThisSpc%MP_SizeResNum ) THEN
 
-               !--------------------------------------------------------
-               ! Washout for size-resolved aerosol species or
-               ! size-resolved aerosol number (e.g. from TOMAS)
-               !--------------------------------------------------------
 #if defined( TOMAS )
                !%%% This will break the TOMAS code.
                !%%% Handle this later (bmy, 9/25/15)
@@ -2161,11 +2153,10 @@
      &            ( DT, F, PP, TK, N, I, J, L, State_Met, State_Chm )
 #endif
 
+            !-----------------------------------------------------------
+            ! Washout for coarse aerosol species (Reff >= 1um)
+            !-----------------------------------------------------------
             ELSE IF ( ThisSpc%WD_CoarseAer ) THEN
-
-               !--------------------------------------------------------
-               ! Washout for coarse aerosol species (Reff >= 1um)
-               !--------------------------------------------------------
                
                ! Washout is a kinetic process
                KIN      = .TRUE.
@@ -2173,11 +2164,10 @@
                ! Compute washout fraction
                WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
 
+            !-----------------------------------------------------------
+            ! Washout for fine-aerosol species (Reff < 1um)
+            !-----------------------------------------------------------
             ELSE
-
-               !--------------------------------------------------------
-               ! Washout for fine-aerosol species (Reff < 1um)
-               !--------------------------------------------------------
 
                ! Washout is a kinetic process
                KIN      = .TRUE.
@@ -2188,7 +2178,6 @@
             ENDIF
 
          ENDIF
-
 
       ENDIF
 

@@ -416,11 +416,18 @@ CONTAINS
     INTEGER,          INTENT(OUT) :: RC            ! Return code
 ! 
 ! !REMARKS:
-!  (1) If Fullname   is not specified, it will use the value assigned to Name.
-!  (2) If EmMw_g     is not specified, it will use the value assigned to MW_g.
-!  (3) If MolecRatio is not specified, it will be set to 1.
-!  (4) If WD_RainoutEff is not specified, it will default to WD_AerScavEff.
-!  (4) All other fields, if not specified, will be set to -999 (missing value).
+!  (1 ) If Fullname is not specified, it will use the value assigned to Name.
+!  (2 ) If EmMw_g is not specified, it will use the value assigned to MW_g.
+!  (3 ) If MolecRatio is not specified, it will be set to 1.
+!  (4 ) WD_Is_HNO3 is automatically set according to Name.
+!  (5 ) WD_Is_SO2 is automatically set according to Name.
+!  (6 ) All other fields, if not specified, will be set to MISSING
+!  (7 ) If Is_Gas = T, aerosol-specific fields will be set to MISSING.
+!        (except for HNO3 and SO2, which wet scavenge as aerosols).
+!  (8 ) If Is_Gas = F, gas-phase specific-fields will be set to MISSING.
+!  (9 ) If Is_Advected = T, this will automatically update AdvectId.
+!  (10) If Is_Drydep = T, this will automatically update DryDepId.
+!  (11) If Is_Wetdep = T, this will automatically update WetDepId.
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2013 - C. Keller   - Adapted from gigc_state_chm_mod.F90
