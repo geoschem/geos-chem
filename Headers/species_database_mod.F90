@@ -105,6 +105,8 @@ CONTAINS
 !  02 Sep 2015 - R. Yantosca - Corrected typos for some SOA species
 !  24 Sep 2015 - R. Yantosca - WD_RainoutEff is now a 3-element vector
 !  24 Sep 2015 - R. Yantosca - Add WD_KcScaleFAc, a 3-element vector
+!  30 Sep 2015 - R. Yantosca - DD_A_Density is renamed to Density
+!  30 Sep 2015 - R. Yantosca - DD_A_Radius is renamed to Radius
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -112,9 +114,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER             :: C,        N,   nSpecies
-    REAL(fp)            :: A_Radius, KOA, MW_g   
-    REAL(fp)            :: K0,       CR,  HStar
+    INTEGER             :: C,      N,   nSpecies
+    REAL(fp)            :: Radius, KOA, MW_g   
+    REAL(fp)            :: K0,     CR,  HStar
 
     ! Arrays
     REAL(fp)            :: KcScale(3)
@@ -139,8 +141,12 @@ CONTAINS
     ! Init_Species_Database begins here!
     !=======================================================================
 
+    ! Initialize
+    DryDepID_PAN  = 0
+    DryDepID_HNO3 = 0
+
     ! Number of species
-    nSpecies = Input_Opt%N_TRACERS
+    nSpecies      = Input_Opt%N_TRACERS
 
     ! Initialize the species vector
     CALL SpcData_Init( am_I_Root, nSpecies, SpcData, RC )
@@ -155,6 +161,7 @@ CONTAINS
        ! Translate species name to uppercase
        NameAllCaps = TRIM( Input_Opt%TRACER_NAME(N) )
        CALL TranUc( NameAllCaps )
+       print*, '### NameAllCaps: ', TRIM( NameAllCaps )
 
        ! Test for species name
        SELECT CASE( TRIM ( NameAllCaps ) )
@@ -801,8 +808,8 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
-                              DD_A_Density  = 2500.0_fp,                    &
-                              DD_A_Radius   = 7.3e-7_fp,                    &
+                              Density       = 2500.0_fp,                    &
+                              Radius        = 7.3e-7_fp,                    &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -839,8 +846,8 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
-                              DD_A_Density  = 2650.0_fp,                    &
-                              DD_A_Radius   = 1.4e-6_fp,                    &
+                              Density       = 2650.0_fp,                    &
+                              Radius        = 1.4e-6_fp,                    &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -878,8 +885,8 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
-                              DD_A_Density  = 2650.0_fp,                    &
-                              DD_A_Radius   = 2.4e-6_fp,                    &
+                              Density       = 2650.0_fp,                    &
+                              Radius        = 2.4e-6_fp,                    &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -918,8 +925,8 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
-                              DD_A_Density  = 2650.0_fp,                    &
-                              DD_A_Radius   = 4.50e-6_fp,                   &
+                              Density       = 2650.0_fp,                    &
+                              Radius        = 4.50e-6_fp,                   &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -1793,7 +1800,7 @@ CONTAINS
           CASE( 'NITS' )
              
              Fullname = 'Inorganic nitrates on surface of seasalt aerosol'
-             A_Radius = ( Input_Opt%SALC_REDGE_um(1) +                      &
+             Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
                           Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
 
              ! When 237 K <= T < 258 K:
@@ -1812,8 +1819,8 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
-                              DD_A_Density  = 2200.0_fp,                    &
-                              DD_A_Radius   = A_Radius,                     &
+                              Density       = 2200.0_fp,                    &
+                              Radius        = Radius,                       &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -2223,7 +2230,7 @@ CONTAINS
 
           CASE( 'SALA' )
              FullName = 'Accumulation mode sea salt aerosol'
-             A_Radius = ( Input_Opt%SALA_REDGE_um(1) +                      &
+             Radius   = ( Input_Opt%SALA_REDGE_um(1) +                      &
                           Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
 
              ! When 237 K <= T < 258 K:
@@ -2242,8 +2249,8 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
-                              DD_A_Density  = 2200.0_fp,                    &
-                              DD_A_Radius   = A_Radius,                     &
+                              Density       = 2200.0_fp,                    &
+                              Radius        = Radius,                       &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -2253,7 +2260,7 @@ CONTAINS
 
           CASE( 'SALC' )
              FullName = 'Coarse mode sea salt aerosol'
-             A_Radius = ( Input_Opt%SALC_REDGE_um(1) +                      &
+             Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
                           Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
  
              ! When 237 K <= T < 258 K:
@@ -2272,8 +2279,8 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
-                              DD_A_Density  = 2200.0_fp,                    &
-                              DD_A_Radius   = A_Radius,                     &
+                              Density       = 2200.0_fp,                    &
+                              Radius        = Radius,                       &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -2344,7 +2351,7 @@ CONTAINS
 
           CASE( 'SO4S' )
              Fullname = 'Sulfate on surface of seasalt aerosol'
-             A_Radius = ( Input_Opt%SALC_REDGE_um(1) +                      &
+             Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
                           Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
 
              ! When 237 K <= T < 258 K:
@@ -2363,8 +2370,8 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
-                              DD_A_Density  = 2200.0_fp,                    &
-                              DD_A_Radius   = A_Radius,                     &
+                              Density       = 2200.0_fp,                    &
+                              Radius        = Radius,                       &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &

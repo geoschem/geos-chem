@@ -59,33 +59,29 @@ MODULE Species_Mod
   TYPE, PUBLIC :: Species
 
      ! Indices
-     INTEGER            :: ModelID       ! Model species ID
-     INTEGER            :: AdvectID      ! Advection index
-     INTEGER            :: DryDepID      ! Dry deposition index
-     INTEGER            :: WetDepID      ! Wet deposition index
+     INTEGER            :: ModelID          ! Model species ID
+     INTEGER            :: AdvectID         ! Advection index
+     INTEGER            :: DryDepID         ! Dry deposition index
+     INTEGER            :: WetDepID         ! Wet deposition index
 
      ! Names
-     CHARACTER(LEN=31)  :: Name          ! Short name
-     CHARACTER(LEN=80)  :: FullName      ! Long name
+     CHARACTER(LEN=31)  :: Name             ! Short name
+     CHARACTER(LEN=80)  :: FullName         ! Long name
 
      ! Logical switches
-     LOGICAL            :: Is_Gas        ! Is it a gas?  If not, aerosol.
-     LOGICAL            :: Is_Advected   ! Is it advected?
-     LOGICAL            :: Is_DryDep     ! Is it dry-deposited?
-     LOGICAL            :: Is_WetDep     ! Is it wet-deposited?
+     LOGICAL            :: Is_Gas           ! Is it a gas?  If not, aerosol.
+     LOGICAL            :: Is_Advected      ! Is it advected?
+     LOGICAL            :: Is_DryDep        ! Is it dry-deposited?
+     LOGICAL            :: Is_WetDep        ! Is it wet-deposited?
 
-     ! Molecular weights and conversion factors
-     REAL(fp)           :: MW_g          ! Species molecular weight  [g/mole]
-     REAL(fp)           :: EmMW_g        ! Emitted molecular weight  [g/mole]
-     REAL(fp)           :: MolecRatio    ! Molecule emission ratio   [1     ] 
-     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-     !%%% NOTE: These parameters are kept for backwards compatibility 
-     !%%% but will be removed when the new unit conversion modifications
-     !%%% are introduced into GEOS-Chem. (bmy, 9/2/15)
-     !%%%
-     REAL(fp)           :: TCVV          ! Mol. Wt. dry air / Mol. wt. species
-     REAL(fp)           :: XNUMOL        ! Molecules species / kg species
-     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+     ! Molecular weights
+     REAL(fp)           :: MW_g             ! Species molecular weight [g/mol]
+     REAL(fp)           :: EmMW_g           ! Emitted molecular weight [g/mol]
+     REAL(fp)           :: MolecRatio       ! Mol carbon / mol species [1    ] 
+
+     ! Density and radius
+     REAL(fp)           :: Density          ! Density [kg/m3]
+     REAL(fp)           :: Radius           ! Radius  [m]
 
      ! Henry's law parameters
      REAL(f8)           :: Henry_K0         ! Liq./gas Henry const [M/atm ]
@@ -93,8 +89,6 @@ MODULE Species_Mod
      REAL(f8)           :: Henry_PKA        ! pKa for Henry const. correction
 
      ! Drydep parameters
-     REAL(fp)           :: DD_A_Density     ! Aerosol density [kg/m3]
-     REAL(fp)           :: DD_A_Radius      ! Aerosol radius  [um]
      REAL(fp)           :: DD_F0            ! F0 (reactivity) factor [1]
      REAL(fp)           :: DD_KOA           ! KOA factor for POPG
      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -109,17 +103,21 @@ MODULE Species_Mod
      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
      
      ! Wetdep parameters, gas-phase species
-     REAL(fp)           :: WD_RetFactor     ! Retention factor [1]
      LOGICAL            :: WD_LiqAndGas     ! Consider liquid and gas phases?
      REAL(fp)           :: WD_ConvFacI2G    ! Conv. factor for ice/gas ratio 
+     REAL(fp)           :: WD_RetFactor     ! Retention factor [1]
 
      ! Wetdep parameters, aerosol-phase species
-     REAL(fp)           :: WD_AerScavEff    ! Aerosol scavenging efficiency
+     LOGICAL            :: WD_Is_HNO3       ! Flag to denote HNO3 wetdep
+     LOGICAL            :: WD_Is_SO2        ! Flag to denote SO2 wetdep
      LOGICAL            :: WD_CoarseAer     ! T=coarse aerosol; F=fine aerosol
-     REAL(fp)           :: WD_KcScaleFac(3) ! Factor used to multiply Kc rate
+     REAL(fp)           :: WD_AerScavEff    ! Aerosol scavenging efficiency
+     REAL(fp)           :: WD_KcScaleFac(3) ! Temperature-dependent scale 
+                                            !  factors to multiply Kc rate
                                             !  (conv of condensate -> precip)
                                             !  in F_AEROSOL (wetscav_mod.F)
-     REAL(fp)           :: WD_RainoutEff(3) ! Updraft scavenging efficiency
+     REAL(fp)           :: WD_RainoutEff(3) ! Temperature-dependent scale
+                                            !  factors for rainout efficiency
 
      ! Microphysics parameters
      LOGICAL            :: MP_SizeResAer    ! T=size-resolved aerosol (TOMAS)
@@ -157,6 +155,10 @@ MODULE Species_Mod
 !  24 Sep 2015 - R. Yantosca - Rename WD_ConvFactor to WD_ConvFacI2G
 !  25 Sep 2015 - R. Yantosca - Rename WD_SizeResAer to MP_SizeResAer
 !  25 Sep 2015 - R. Yantosca - Add MP_SizeResBin for microphysics size bins
+!  30 Sep 2015 - R. Yantosca - Renamed DD_A_Density to Density
+!  30 Sep 2015 - R. Yantosca - Renamed DD_A_Radius to Radius
+!  30 Sep 2015 - R. Yantosca - Added WD_Is_HNO3 and WD_Is_SO2 fields to flag
+!                              special cases of HNO3 and SO2 wet deposition
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -351,7 +353,7 @@ CONTAINS
                          DryDepID,      Name,          FullName,       &
                          MW_g,          EmMW_g,        MolecRatio,     &
                          Henry_K0,      Henry_CR,      Henry_PKA,      &
-                         DD_A_Density,  DD_A_Radius,   DD_F0,          &
+                         Density,       Radius,        DD_F0,          &
                          DD_KOA,        DD_HStar_Old,  MP_SizeResAer,  &
                          MP_SizeResNum, WD_RetFactor,  WD_LiqAndGas,   &
                          WD_ConvFacI2G, WD_AerScavEff, WD_KcScaleFac,  &
@@ -375,10 +377,10 @@ CONTAINS
     REAL(fp),         OPTIONAL    :: MolecRatio       ! Molec ratio
     REAL(f8),         OPTIONAL    :: Henry_K0         ! Henry's law K0 [M/atm]
     REAL(f8),         OPTIONAL    :: Henry_CR         ! Henry's law CR [K]
-    REAL(f8),         OPTIONAL    :: Henry_PKA        ! Henry's law pKa
-    REAL(fp),         OPTIONAL    :: DD_A_Density     ! Aerosol density [kg/m3]
-    REAL(fp),         OPTIONAL    :: DD_A_Radius      ! Aerosol radius [m]
-    REAL(fp),         OPTIONAL    :: DD_F0            ! Drydep reactivity
+    REAL(f8),         OPTIONAL    :: Henry_PKA        ! Henry's law pKa [1]
+    REAL(fp),         OPTIONAL    :: Density          ! Density [kg/m3]
+    REAL(fp),         OPTIONAL    :: Radius           ! Radius [m]
+    REAL(fp),         OPTIONAL    :: DD_F0            ! Drydep reactivity [1]
     REAL(fp),         OPTIONAL    :: DD_KOA           ! Drydep KOA parameter
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     !%%% NOTE: We will eventually replace this with the common Henry's law
@@ -506,21 +508,21 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------------
-    ! Aerosol radius for drydep
+    ! Radius [m]
     !---------------------------------------------------------------------
-    IF ( PRESENT( DD_A_Radius ) ) THEN
-       ThisSpc%DD_A_Radius = DD_A_Radius
+    IF ( PRESENT( Radius ) ) THEN
+       ThisSpc%Radius = Radius
     ELSE
-       ThisSpc%DD_A_Radius = MISSING
+       ThisSpc%Radius = MISSING
     ENDIF
 
     !---------------------------------------------------------------------
-    ! Aerosol density for drydep
+    ! Density [kg/m3]
     !---------------------------------------------------------------------
-    IF ( PRESENT( DD_A_Density ) ) THEN
-       ThisSpc%DD_A_Density = DD_A_Density
+    IF ( PRESENT( Density ) ) THEN
+       ThisSpc%Density = Density
     ELSE
-       ThisSpc%DD_A_Density = MISSING
+       ThisSpc%Density = MISSING
     ENDIF
 
     !---------------------------------------------------------------------
@@ -741,27 +743,13 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------------
-    ! Conversion factors based on emitted molecular weight  
-    ! These are mostly for backwards compatibility w/ existing code
-    !
-    ! NOTE: We have to use the emitted molecular weight EmMw_g instead
-    ! of the actual molecular weight.  This will provide the proper
-    ! unit conversion for species like ISOP which are emitted and
-    ! transported as equivalent carbons.
-    !
-    ! These will be removed from GEOS-Chem once the new unit conversion
-    ! routines are brought into the the code. (bmy, 9/2/15)
-    !---------------------------------------------------------------------
-    
-    ! Ratio of MW of dry air per emitted MW Of species
-    ThisSpc%TCVV   = AIRMW / ThisSpc%EmMw_g
-
-    ! Molecules species per kg of species
-    ThisSpc%XNUMOL = AVO   / ( ThisSpc%EmMw_g * 1e-3_fp ) 
-
-    !---------------------------------------------------------------------
     ! Sanity checks
     !---------------------------------------------------------------------
+
+    ! Assume the species is not HNO3 or SO2 at first
+    ThisSpc%WD_Is_HNO3 = .FALSE.
+    ThisSpc%WD_Is_SO2  = .FALSE.
+
     IF ( ThisSpc%Is_Gas ) THEN
 
        ! If this is a gas, then zero out all aerosol fields ...
@@ -771,8 +759,10 @@ CONTAINS
        
        ! ... except for those species that wetdep like aerosols
        SELECT CASE( TRIM( ThisSpc%Name ) )
-          CASE( 'SO2', 'HNO3' )
-             ! Do nothing
+          CASE( 'HNO3' )
+             ThisSpc%WD_Is_HNO3 = .TRUE.
+          CASE( 'SO2' )
+             ThisSpc%WD_Is_SO2  = .TRUE.
           CASE DEFAULT 
              ThisSpc%WD_AerScavEff    = MISSING
              ThisSpc%WD_KcScaleFac(:) = MISSING
@@ -829,9 +819,9 @@ CONTAINS
     !=====================================================================
     IF ( am_I_Root ) THEN
 
-       !-----------------------
+       !-------------------------
        ! Print general info
-       !-----------------------
+       !-------------------------
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )  
        WRITE( 6, 100 ) 'Species ID           ',  ThisSpc%ModelID
        WRITE( 6, 110 ) 'Name                 ',  TRIM( ThisSpc%Name     )
@@ -842,9 +832,20 @@ CONTAINS
        WRITE( 6, 130 ) 'Is it a gas?         ',  ThisSpc%Is_Gas
        WRITE( 6, 130 ) 'Is it advected?      ',  ThisSpc%Is_Advected
 
-       !-----------------------
-       ! Print Henry's info
-       !-----------------------
+       !-------------------------
+       ! Print density & radius
+       !-------------------------
+       IF ( ThisSpc%Density > ZERO ) THEN
+          WRITE( 6, 120 ) 'Density [kg/m3]      ',  ThisSpc%Density
+       ENDIF
+
+       IF ( ThisSpc%Radius > ZERO ) THEN
+          WRITE( 6, 120 ) 'Radius [m]           ',  ThisSpc%Radius
+       ENDIF
+
+       !-------------------------
+       ! Print Henry's Law info
+       !-------------------------
        IF ( ThisSpc%Henry_K0 > ZERO_R8 ) THEN
           WRITE( 6, 120 ) 'Henry''s law K0       ', ThisSpc%Henry_K0
        ENDIF
@@ -857,21 +858,13 @@ CONTAINS
           WRITE( 6, 120 ) 'Henry''s law pKa      ', ThisSpc%Henry_pKa
        ENDIF
 
-       !-----------------------
+       !-------------------------
        ! Print drydep info
-       !-----------------------
+       !-------------------------
        WRITE( 6, 130 ) 'Is it dry deposited? ',  ThisSpc%Is_DryDep
 
        IF ( ThisSpc%Is_DryDep ) THEN
           WRITE( 6, 100 ) ' -> Drydep index:    ',  ThisSpc%DryDepID
-
-          IF ( ThisSpc%DD_A_Density > ZERO ) THEN
-             WRITE( 6, 120 ) ' -> A_DENSITY        ',  ThisSpc%DD_A_Density
-          ENDIF
-
-          IF ( ThisSpc%DD_A_Radius > ZERO ) THEN
-             WRITE( 6, 120 ) ' -> A_RADIUS         ',  ThisSpc%DD_A_Radius
-          ENDIF
 
           IF ( ThisSpc%DD_F0 > ZERO ) THEN
              WRITE( 6, 120 ) ' -> F0 parameter     ',  ThisSpc%DD_F0
@@ -886,28 +879,52 @@ CONTAINS
           ENDIF
        ENDIF
 
-       !-----------------------
+       !-------------------------
        ! Print wetdep info
-       !-----------------------
+       !-------------------------
        WRITE( 6, 130 ) 'Is it wet deposited? ',  ThisSpc%Is_WetDep
 
        IF ( ThisSpc%Is_WetDep ) THEN
           WRITE( 6, 100 ) ' -> Wetdep index:    ',  ThisSpc%WetDepID
 
+          IF ( ThisSpc%WD_LiqAndGas ) THEN
+             WRITE( 6, 130 ) ' -> Liq & gas phases ', ThisSpc%WD_LiqAndGas
+             WRITE( 6, 120 ) ' -> Conv factor I2G  ', ThisSpc%WD_ConvFacI2G
+          ENDIF
+
           IF ( ThisSpc%WD_RetFactor > ZERO ) THEN
              WRITE( 6, 120 ) ' -> Ret. Factor      ', ThisSpc%WD_RetFactor
+          ENDIF
+
+          IF ( ThisSpc%WD_CoarseAer ) THEN
+             WRITE( 6, 130 ) ' -> Coarse aerosol?', ThisSpc%WD_CoarseAer
           ENDIF
 
           IF ( ThisSpc%WD_AerScavEff > ZERO ) THEN
              WRITE( 6, 120 ) ' -> Scav. Effeciency ', ThisSpc%WD_AerScavEff
           ENDIF
+
+          IF ( SUM( ThisSpc%WD_KcScaleFac ) > ZERO ) THEN
+             WRITE( 6, 140 ) ' -> Scav. Effeciency ', ThisSpc%WD_KcScaleFac
+          ENDIF
+
+          IF ( SUM( ThisSpc%WD_RainoutEff ) > ZERO ) THEN
+             WRITE( 6, 140 ) ' -> Scav. Effeciency ', ThisSpc%WD_RainoutEff
+          ENDIF
+
        ENDIF
 
+       !-------------------------
+       ! Print microphys info
+       !-------------------------
+
+
        ! Format statements
- 100   FORMAT( a, ' : ', i5     )
- 110   FORMAT( a, ' : ', a      )
- 120   FORMAT( a, ' : ', es13.6 )
- 130   FORMAT( a, ' : ', L1     )
+ 100   FORMAT( a, ' : ', i5          )
+ 110   FORMAT( a, ' : ', a           )
+ 120   FORMAT( a, ' : ', es13.6      )
+ 130   FORMAT( a, ' : ', L1          )
+ 140   FORMAT( a, ' : ', 3(f5.1, 1x) )
     ENDIF
 
   END SUBROUTINE Spc_Print

@@ -2208,6 +2208,8 @@
 !                              aerosols (T.D. Fairlie)
 !  23 Sep 2015 - R. Yantosca - Now accept State_Chm as an argument so that
 !                              we can use the species database
+!  30 Sep 2015 - R. Yantosca - DD_A_Density is now renamed to Density
+!  30 Sep 2015 - R. Yantosca - DD_A_Radius is now renamed to Radius
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2309,18 +2311,6 @@
       ! INITIALIZATION SECTION FOR STANDARD GEOS-CHEM SIMULATION
       !=================================================================
 
-!-----------------------------------------------------------------------------
-! Now get these values from the species database to avoid hardwiring
-! (bmy, 9/23/15)
-!      ! Dust radii
-!      Input_Opt%DUSTREFF(1:NDSTBIN) = (/ 0.73e-6_fp, 1.4e-6_fp,  
-!     &                                   2.4e-6_fp,  4.5e-6_fp  /)
-!
-!      ! Dust density
-!      Input_Opt%DUSTDEN(1:NDSTBIN) = (/ 2500.e+0_fp, 2650.e+0_fp, 
-!     &                                  2650.e+0_fp, 2650.e+0_fp /)
-!-----------------------------------------------------------------------------
-
       ! Loop over all species  
       DO N = 1, State_Chm%nSpecies
 
@@ -2330,20 +2320,20 @@
          ! Assign eahc species parameters from the species database
          SELECT CASE( TRIM( ThisSpc%Name ) )
             CASE( 'DST1' )
-               Input_Opt%DUSTDEN (1) = ThisSpc%DD_A_Density
-               Input_Opt%DUSTREFF(1) = ThisSpc%DD_A_Radius
+               Input_Opt%DUSTDEN (1) = ThisSpc%Density
+               Input_Opt%DUSTREFF(1) = ThisSpc%Radius
                DRYDST1               = ThisSpc%DryDepId
             CASE( 'DST2' )
-               Input_Opt%DUSTDEN (2) = ThisSpc%DD_A_Density
-               Input_Opt%DUSTREFF(2) = ThisSpc%DD_A_Radius
+               Input_Opt%DUSTDEN (2) = ThisSpc%Density
+               Input_Opt%DUSTREFF(2) = ThisSpc%Radius
                DRYDST2               = ThisSpc%DryDepId
             CASE( 'DST3' )
-               Input_Opt%DUSTDEN (3) = ThisSpc%DD_A_Density
-               Input_Opt%DUSTREFF(3) = ThisSpc%DD_A_Radius
+               Input_Opt%DUSTDEN (3) = ThisSpc%Density
+               Input_Opt%DUSTREFF(3) = ThisSpc%Radius
                DRYDST3               = ThisSpc%DryDepId
             CASE( 'DST4' )
-               Input_Opt%DUSTDEN (4) = ThisSpc%DD_A_Density
-               Input_Opt%DUSTREFF(4) = ThisSpc%DD_A_Radius
+               Input_Opt%DUSTDEN (4) = ThisSpc%Density
+               Input_Opt%DUSTREFF(4) = ThisSpc%Radius
                DRYDST4               = ThisSpc%DryDepId
             CASE( 'DSTAL1' )
                DRYDAL1               = ThisSpc%DryDepId
@@ -2372,40 +2362,6 @@
 
       ! Find drydep species in DEPSAV
       IF( Input_Opt%LDRYD ) THEN
-!-----------------------------------------------------------------------------
-!         DO N = 1, Input_Opt%NUMDEP
-!            SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
-!               CASE ( 'DST1' )
-!                  DRYDST1 = N
-!               CASE ( 'DST2' )
-!                  DRYDST2 = N
-!               CASE ( 'DST3' )
-!                  DRYDST3 = N
-!               CASE ( 'DST4' )
-!                  DRYDST4 = N
-!               ! Include dust alkalinity tracers               tdf 04/10/08
-!               CASE ( 'DSTAL1' )
-!                  DRYDAL1 = N
-!               CASE ( 'DSTAL2' )
-!                  DRYDAL2 = N
-!               CASE ( 'DSTAL3' )
-!                  DRYDAL3 = N
-!               CASE ( 'DSTAL4' )
-!                  DRYDAL4 = N
-!               ! Include dust sulfate tracers                  tdf 06/16/08
-!               CASE ( 'SO4D1' )
-!                  DRYSO4D1 = N
-!               CASE ( 'SO4D2' )
-!                  DRYSO4D2 = N
-!               CASE ( 'SO4D3' )
-!                  DRYSO4D3 = N
-!               CASE ( 'SO4D4' )
-!                  DRYSO4D4 = N
-!               CASE DEFAULT
-!                  ! Nothing
-!            END SELECT        
-!         ENDDO
-!-----------------------------------------------------------------------------
 
          ! This may lead to out of bounds errors
          Input_Opt%IDDEP(1) = DRYDST1

@@ -995,6 +995,7 @@
 !  12 Jun 2015 - R. Yantosca - Remove obsolete, commented-out code
 !  23 Sep 2015 - R. Yantosca - Now accept State_Chm as an argument so that
 !                              we can use the species database
+!  30 Sep 2015 - R. Yantosca - DD_A_Density is renamed to Density
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1043,10 +1044,10 @@
             SELECT CASE ( TRIM( ThisSpc%Name ) )
                CASE ( 'SALA' )
                   IDDEP(1)  = ThisSpc%DryDepID
-                  SS_DEN(1) = ThisSpc%DD_A_Density
+                  SS_DEN(1) = ThisSpc%Density
                CASE ( 'SALC' )
                   IDDEP(2)  = ThisSpc%DryDepID
-                  SS_DEN(2) = ThisSpc%DD_A_Density
+                  SS_DEN(2) = ThisSpc%Density
                CASE DEFAULT
                   ! Nothing
             END SELECT        
@@ -1088,12 +1089,6 @@
       !=================================================================
       ! CLEANUP_SEASALT begins here!
       !=================================================================
-!      IF ( ALLOCATED( REDGE    ) ) DEALLOCATE( REDGE    )
-!      IF ( ALLOCATED( RMID     ) ) DEALLOCATE( RMID     )
-!      IF ( ALLOCATED( SRC      ) ) DEALLOCATE( SRC      )
-!      IF ( ALLOCATED( SRC_N    ) ) DEALLOCATE( SRC_N    )
-!      IF ( ALLOCATED( ALK_EMIS ) ) DEALLOCATE( ALK_EMIS )
-!      IF ( ALLOCATED( N_DENS   ) ) DEALLOCATE( N_DENS   )      
       IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
       IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
 

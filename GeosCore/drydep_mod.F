@@ -4005,6 +4005,8 @@
 !  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !  22 Sep 2015 - R. Yantosca - Now allocate internal variables that used 
 !                              to be of size MAXDEP.
+!  30 Sep 2015 - R. Yantosca - DD_A_Density is renamed to Density
+!  30 Sep 2015 - R. Yantosca - DD_A_Radius is renamed to Radius
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4203,14 +4205,14 @@
                   XMW(NUMDEP)       = DBLE( ThisSpc%EmMW_g * 1e-3_fp )
                   AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas )
 
-                  ! Only copy DD_A_DENSITY if it's not a missing value
-                  IF ( ThisSpc%DD_A_Density > 0.0_fp ) THEN
-                     A_DEN(NUMDEP)  = DBLE( ThisSpc%DD_A_Density     )
+                  ! Only copy DENSITY if it's not a missing value
+                  IF ( ThisSpc%Density > 0.0_fp ) THEN
+                     A_DEN(NUMDEP)  = DBLE( ThisSpc%Density          )
                   ENDIF
 
-                  ! Only copy DD_A_RADIUS if it's not a missing value
-                  IF ( ThisSpc%DD_A_Radius > 0.0_fp ) THEN
-                     A_RADI(NUMDEP) = DBLE( ThisSpc%DD_A_Radius      )
+                  ! Only copy RADIUS if it's not a missing value
+                  IF ( ThisSpc%Radius > 0.0_fp ) THEN
+                     A_RADI(NUMDEP) = DBLE( ThisSpc%Radius           )
                   ENDIF
 
                   !-----------------------------------------------------
@@ -4284,7 +4286,7 @@
       ENDDO
  
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%%% NOTE: This can be made local to mercury_mod.F (bmy, 9/21/15)   
+!%%%% NOTE: This can eventually be made local to mercury_mod.F (bmy, 9/21/15)   
       !=================================================================
       ! Additional variables required for mercury simultion
       ! Locate the drydep species w/in the DEPSAV array
