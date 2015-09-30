@@ -6,7 +6,13 @@
 ! !MODULE: tendencies_mod.F90
 !
 ! !DESCRIPTION: Module tendencies\_mod.F90 is a module to define, archive and
-! write tracer tendencies. 
+! write tracer tendencies. This module is still under development and only
+! active if the DEVEL compiler flag is enabled. Also, the tracers to be
+! diagnosed as well as the processes for which tendencies shall be calculated
+! are currently hardcoded below. If enabled, this module will calculate 
+! concentration tendencies for all defined species and processes (as set
+! below) and write those into netCDF diagnostics. All tendencies will be
+! given as v/v/s.
 !
 ! !INTERFACE:
 !
@@ -48,11 +54,11 @@ MODULE Tendencies_Mod
 !
 ! !DEFINED PARAMETERS:
 !
-  ! Tendencies species - hardcoded for now
+  ! Tendency species - hardcoded for now
   INTEGER, PARAMETER            :: NTEND          = 1
   CHARACTER(LEN=15), PARAMETER  :: TENDSPC(NTEND) = (/ 'O3' /) 
 
-  ! Switches - hardcoded for now
+  ! Processes for which tendencies shall be calculated - hardcoded for now
   LOGICAL, PARAMETER            :: DO_ADV = .TRUE.
   LOGICAL, PARAMETER            :: DO_CNV = .TRUE.
   LOGICAL, PARAMETER            :: DO_CHM = .TRUE.

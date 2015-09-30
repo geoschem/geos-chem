@@ -515,7 +515,7 @@ CONTAINS
     !=======================================================================
     ! Define pressure edges [Pa] on HEMCO grid.
     !=======================================================================
-    CALL GridEdge_Set ( State_Met, HMRC )
+    CALL GridEdge_Set ( am_I_Root, State_Met, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP('GridEdge_Update', LOC )
        RETURN 
@@ -1449,16 +1449,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GridEdge_Set ( State_Met, RC )
+  SUBROUTINE GridEdge_Set ( am_I_Root, State_Met, RC )
 !
 ! !USES:
 !
     USE GIGC_State_Met_Mod,    ONLY : MetState
+    USE HCO_GeoTools_MOD,      ONLY : HCO_CalcVertGrid
     USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
     USE PRESSURE_MOD,          ONLY : GET_PEDGE
-
+!
 ! !INPUT PARAMETERS:
 !
+    LOGICAL,          INTENT(IN   )  :: am_I_Root 
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1467,37 +1469,80 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  08 Oct 2014 - C. Keller   - Initial version
+!  28 Sep 2015 - C. Keller   - Now call HCO_CalcVertGrid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER  :: I, J, L
+    INTEGER             :: I, J, L
+    REAL(hp), POINTER   :: PSFC    (:,:  ) => NULL()
+    REAL(hp), POINTER   :: ZSFC    (:,:  ) => NULL()    
+    REAL(hp), POINTER   :: TK      (:,:,:) => NULL()    
+    REAL(hp), POINTER   :: BXHEIGHT(:,:,:) => NULL()    
+    REAL(hp), POINTER   :: PEDGE   (:,:,:) => NULL()    
 
     !=================================================================
     ! GridEdge_Set begins here
     !=================================================================
 
+    ! Pointers to fields 
+    ZSFC     => State_Met%PHIS
+    BXHEIGHT => State_Met%BXHEIGHT
+    TK       => State_Met%T
+
+    !ALLOCATE(PEDGE(IIPAR,JJPAR,LLPAR+1))
+    ALLOCATE(PSFC(IIPAR,JJPAR))
+
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
 !$OMP PRIVATE( I, J, L )
-    DO L = 1, LLPAR
+    DO L = 1, LLPAR+1
     DO J = 1, JJPAR
     DO I = 1, IIPAR
-
-       ! Get pressure edges [Pa] and pass to HEMCO grid. 
-       HcoState%Grid%PEDGE%Val(I,J,L) = GET_PEDGE(I,J,L) * 100.0_hp
-       IF ( L==LLPAR ) THEN
-          HcoState%Grid%PEDGE%Val(I,J,L+1) = GET_PEDGE(I,J,L+1) * 100.0_hp
-       ENDIF
+       IF ( L == 1 ) PSFC(I,J) = GET_PEDGE(I,J,1) * 100.0_hp
+!       PEDGE(I,J,L) = GET_PEDGE(I,J,L) * 100.0_hp
     ENDDO
     ENDDO
     ENDDO
 !$OMP END PARALLEL DO
 
-    ! Return w/ success
-    RC = HCO_SUCCESS
+    ! Calculate missing quantities
+    CALL HCO_CalcVertGrid( am_I_Root, HcoState, PSFC,    &
+                           ZSFC,  TK, BXHEIGHT, PEDGE, RC )
+
+    ! Nullify local pointers
+    ZSFC     => NULL()
+    BXHEIGHT => NULL()
+    TK       => NULL()
+    IF ( ASSOCIATED(PEDGE) ) DEALLOCATE(PEDGE) 
+    PEDGE    => NULL()
+    IF ( ASSOCIATED(PSFC) ) DEALLOCATE(PSFC) 
+    PSFC     => NULL()
+
+!    HcoState%Grid%ZSFC%Val       => State_Met%PHIS      ! Surface geopotential height
+!    HcoState%Grid%BXHEIGHT_M%Val => State_Met%BXHEIGHT  ! Grid box heights
+
+!!$OMP PARALLEL DO                                                 &
+!!$OMP DEFAULT( SHARED )                                           &
+!!$OMP PRIVATE( I, J, L )
+!    DO L = 1, LLPAR
+!    DO J = 1, JJPAR
+!    DO I = 1, IIPAR
+!
+!       ! Get pressure edges [Pa] and pass to HEMCO grid. 
+!       HcoState%Grid%PEDGE%Val(I,J,L) = GET_PEDGE(I,J,L) * 100.0_hp
+!       IF ( L==LLPAR ) THEN
+!          HcoState%Grid%PEDGE%Val(I,J,L+1) = GET_PEDGE(I,J,L+1) * 100.0_hp
+!       ENDIF
+!    ENDDO
+!    ENDDO
+!    ENDDO
+!!$OMP END PARALLEL DO
+
+!    ! Return w/ success
+!    RC = HCO_SUCCESS
 
   END SUBROUTINE GridEdge_Set
 !EOC
@@ -1918,6 +1963,8 @@ CONTAINS
     USE GRID_MOD,           ONLY : XEDGE, YEDGE, YSIN
     USE GRID_MOD,           ONLY : AREA_M2
     USE HCO_ARR_MOD,        ONLY : HCO_ArrInit
+    USE HCO_VERTGRID_MOD,   ONLY : HCO_VertGrid_Define
+    USE PRESSURE_MOD,       ONLY : GET_AP, GET_BP
 !
 ! !INPUT ARGUMENTS:
 !
@@ -1938,6 +1985,8 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
+    INTEGER                :: L
+    REAL(hp), ALLOCATABLE  :: Ap(:), Bp(:)
 
     !=================================================================
     ! SET_GRID begins here
@@ -1955,6 +2004,21 @@ CONTAINS
     HcoState%NY = JJPAR
     HcoState%NZ = LLPAR
 
+    ! Initialize the vertical grid. Pass Ap, Bp values from GEOS-Chem grid.
+    ALLOCATE(Ap(LLPAR+1),Bp(LLPAR+1))
+    DO L = 1, LLPAR+1
+       Ap(L) = GET_AP(L) * 100_hp ! hPa to Pa 
+       Bp(L) = GET_BP(L)          ! unitless
+    ENDDO
+
+    CALL HCO_VertGrid_Define( am_I_Root,                        &
+                              zGrid      = HcoState%Grid%zGrid, &
+                              nz         = LLPAR,               &
+                              Ap         = Ap,                  & 
+                              Bp         = Bp,                  & 
+                              RC         = RC                    )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Set pointers to grid variables
     HcoState%Grid%XMID%Val       => XMID   (:,:,1)
     HcoState%Grid%YMID%Val       => YMID   (:,:,1)
@@ -1962,12 +2026,12 @@ CONTAINS
     HcoState%Grid%YEDGE%Val      => YEDGE  (:,:,1)
     HcoState%Grid%YSIN%Val       => YSIN   (:,:,1)
     HcoState%Grid%AREA_M2%Val    => AREA_M2(:,:,1)
-    HcoState%Grid%ZSFC%Val       => State_Met%PHIS      ! Surface geopotential height
-    HcoState%Grid%BXHEIGHT_M%Val => State_Met%BXHEIGHT  ! Grid box heights
+!    HcoState%Grid%ZSFC%Val       => State_Met%PHIS      ! Surface geopotential height
+!    HcoState%Grid%BXHEIGHT_M%Val => State_Met%BXHEIGHT  ! Grid box heights
 
-    ! Allocate PEDGE. Will be updated every time step!
-    CALL HCO_ArrInit( HcoState%Grid%PEDGE, HcoState%NX, HcoState%NY, HcoState%NZ+1, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+!    ! Allocate PEDGE. Will be updated every time step!
+!    CALL HCO_ArrInit( HcoState%Grid%PEDGE, HcoState%NX, HcoState%NY, HcoState%NZ+1, RC )
+!    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
     RC = HCO_SUCCESS

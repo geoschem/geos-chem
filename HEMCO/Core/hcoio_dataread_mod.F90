@@ -375,7 +375,7 @@ CONTAINS
     USE HCO_FileData_Mod,   ONLY : FileData_Cleanup
     USE HCOIO_MESSY_MOD,    ONLY : HCO_MESSY_REGRID
     USE HCO_INTERP_MOD,     ONLY : REGRID_MAPA2A 
-    USE HCO_INTERP_MOD,     ONLY : ModelLev_Interpolate 
+    USE HCO_INTERP_MOD,     ONLY : ModelLev_Check
     USE HCO_CLOCK_MOD,      ONLY : HcoClock_Get
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
     USE HCO_EXTLIST_MOD,    ONLY : HCO_GetOpt
@@ -644,17 +644,18 @@ CONTAINS
        IF ( Lct%Dct%Dta%Levels == 0 ) THEN
           IsModelLevel = NC_ISMODELLEVEL( ncLun, LevName )
 
+          ! Further check if the given number of vertical levels should be
+          ! treated as model levels. This is the case if e.g. the nuber of
+          ! levels found on the file exactly matches the number of vertical
+          ! levels of the grid. Some of these assumptions are rather arbitrary. 
+          ! IsModelLev will stay True if is was set so in NC_ISMODELLEVEL
+          ! above. (ckeller, 9/29/15)
+          CALL ModelLev_Check( am_I_Root, HcoState, nlev, IsModelLevel, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
           ! Set level indeces to be read
           lev1 = 1
           lev2 = nlev
-
-          ! If # of levels are exactly # of simulation levels, assume that 
-          ! they are on model levels. 
-          ! This should probably be removed eventually, as it's better to 
-          ! explicitly state model levels via the level long name 
-          ! "GEOS-Chem level" (see above)!
-          ! (ckeller, 12/12/14).
-          IF ( nlev == HcoState%NZ ) IsModelLevel = .TRUE.
 
        ! If levels are explicitly given:
        ELSE

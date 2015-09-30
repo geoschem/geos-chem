@@ -32,6 +32,7 @@ MODULE HCO_Interp_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+  PUBLIC  :: ModelLev_Check
   PUBLIC  :: ModelLev_Interpolate
   PUBLIC  :: REGRID_MAPA2A
 !
@@ -425,6 +426,107 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: ModelLev_Check
+!
+! !DESCRIPTION: Subroutine ModelLev\_Check checks if the passed number of
+! vertical levels indicates that these are model levels or not.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ModelLev_Check ( am_I_Root, HcoState, nLev, IsModelLev, RC ) 
+!
+! !USES:
+!
+    USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root         ! Are we on the root CPU?
+    TYPE(HCO_State),  POINTER        :: HcoState          ! HEMCO state object
+    INTEGER,          INTENT(IN   )  :: nlev              ! number of levels 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(INOUT)  :: IsModelLev        ! Are these model levels? 
+    INTEGER,          INTENT(INOUT)  :: RC                ! Success or failure?
+!
+! !REVISION HISTORY:
+!  29 Sep 2015 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                 :: nz
+
+    !=================================================================
+    ! ModelLev_Check begins here
+    !=================================================================
+
+    ! Assume success until otherwise
+    RC = HCO_SUCCESS
+
+    ! If IsModelLev is already TRUE, nothing to do
+    IF ( IsModelLev ) RETURN
+
+    ! Shadow number of vertical levels on grid
+    nz = HcoState%NZ
+
+    ! Assume model levels if input data levels correspond to # of grid
+    ! levels or levels + 1 (edges)
+    IF ( nlev == nz .OR. nlev == nz + 1 ) THEN
+       IsModelLev = .TRUE.
+       RETURN
+    ENDIF 
+
+    ! Other supported levels that depend on compiler flags
+#if defined( GEOS_4 )
+       ! Full grid
+       IF ( nz == 55 ) THEN
+          IF ( nlev == 72 .OR. & 
+               nlev == 73 .OR. &
+               nlev <= 48       ) THEN
+             IsModelLev = .TRUE.
+          ENDIF
+
+       ! Reduced grid
+       ELSEIF ( nz == 30 ) THEN
+          IF ( nlev == 72 .OR. & 
+               nlev == 73 .OR. &
+               nlev == 55 .OR. &
+               nlev == 56 .OR. &
+               nlev <= 48       ) THEN
+             IsModelLev = .TRUE.
+          ENDIF
+       ENDIF
+
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+       ! Full grid
+       IF ( nz == 72 ) THEN
+          IF ( nlev <= 73 ) THEN
+             IsModelLev = .TRUE.
+          ENDIF
+
+       ! Reduced grid
+       ELSEIF ( nz == 47 ) THEN
+          IF ( nlev == 72 .OR. & 
+               nlev == 73 .OR. &
+               nlev <= 47       ) THEN 
+             IsModelLev = .TRUE.
+          ENDIF
+       ENDIF
+#endif
+   
+
+  END SUBROUTINE ModelLev_Check 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: ModelLev_Interpolate
 !
 ! !DESCRIPTION: Subroutine ModelLev\Interpolate puts 3D data from an
@@ -620,7 +722,7 @@ CONTAINS
 
           ! Input data has 73 levels --> assume to be native GEOS-5 levels
           ! on edges
-          ELSEIF ( nlev == 72 ) THEN
+          ELSEIF ( nlev == 73 ) THEN
              nz   = nz + 1
              nout = nz
              NL   = 0

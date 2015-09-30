@@ -27,6 +27,7 @@ MODULE HCO_GeoTools_Mod
   PUBLIC :: HCO_ValidateLon
   PUBLIC :: HCO_GetSUNCOS
   PUBLIC :: HCO_GetHorzIJIndex
+  PUBLIC :: HCO_CalcVertGrid
 
   INTERFACE HCO_LandType
      MODULE PROCEDURE HCO_LandType_Dp
@@ -676,5 +677,538 @@ CONTAINS
   END SUBROUTINE HCO_GetHorzIJIndex 
 !EOC
 #endif
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !SUBROUTINE: HCO_CalcVertGrid
+!
+! !DESCRIPTION: Function HCO\_CalcVertGrid calculates the vertical grid 
+!  quantities surface pressure PSFC [Pa], surface geopotential height ZSFC
+!  [m], grid box height BXHEIGHT [m], and pressure edges PEDGE [Pa]. Any of
+!  these fields can be passed explicitly to the routine, in which case these
+!  fields are being used. If not passed through the routine (i.e. if the 
+!  corresponding input argument pointer is nullified), the field is searched
+!  in the HEMCO configuration file. If not found in the configuration file, 
+!  the field is approximated from other quantities (if possible). For example,
+!  if surface pressures are provided (either passed as argument or in the 
+!  HEMCO configuration file as field PSFC), pressure edges are calculated
+!  from PSFC and the vertical grid coordinates (Ap and Bp for a hybrid sigma
+!  coordinate system). The temperature field TK [K] is needed to approximate
+!  box heights and/or geopotential height (via the hydrostatic equation).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_CalcVertGrid ( am_I_Root, HcoState, PSFC,    &
+                                ZSFC,  TK, BXHEIGHT, PEDGE, RC ) 
+!
+! !USES
+!
+    USE HCO_Arr_Mod,      ONLY : HCO_ArrAssert
+    USE HCO_STATE_MOD,    ONLY : HCO_STATE
+    USE HCO_CALC_MOD,     ONLY : HCO_EvalFld
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   )  :: am_I_Root       ! Root CPU? 
+    TYPE(HCO_State), POINTER        :: HcoState        ! HEMCO state object
+    REAL(hp),        POINTER        :: PSFC(:,:)       ! surface pressure (Pa)
+    REAL(hp),        POINTER        :: ZSFC(:,:)       ! surface geopotential height (m) 
+    REAL(hp),        POINTER        :: TK  (:,:,:)     ! air temperature (K) 
+    REAL(hp),        POINTER        :: BXHEIGHT(:,:,:) ! grid box height (m) 
+    REAL(hp),        POINTER        :: PEDGE(:,:,:)    ! pressure edges (Pa) 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(INOUT)  :: RC
+! 
+! !REVISION HISTORY:
+!  28 Sep 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                       :: NX, NY, NZ
+    INTEGER                       :: I,  J,  L
+    LOGICAL                       :: Verb 
+    LOGICAL                       :: FoundPSFC
+    LOGICAL                       :: FoundZSFC
+    LOGICAL                       :: FoundTK
+    LOGICAL                       :: FoundPEDGE
+    LOGICAL                       :: FoundBXHEIGHT
+    LOGICAL                       :: ERRBX, ERRZSFC 
+    REAL(hp)                      :: P1, P2
+    REAL(hp), ALLOCATABLE, TARGET :: TmpTK(:,:,:)
+    REAL(hp), POINTER             :: ThisTK(:,:,:) => NULL()
+    CHARACTER(LEN=255)            :: MSG
+    CHARACTER(LEN=255)            :: LOC = 'HCO_CalcVertGrid (hco_geotools_mod.F90)'
+
+    LOGICAL, SAVE                 :: FIRST         = .TRUE.
+    LOGICAL, SAVE                 :: EVAL_PSFC     = .TRUE.
+    LOGICAL, SAVE                 :: EVAL_ZSFC     = .TRUE.
+    LOGICAL, SAVE                 :: EVAL_TK       = .TRUE.
+    LOGICAL, SAVE                 :: EVAL_PEDGE    = .TRUE.
+    LOGICAL, SAVE                 :: EVAL_BXHEIGHT = .TRUE.
+
+    !-------------------------------
+    ! HCO_CalcVertGrid begins here
+    !-------------------------------
+
+    ! Init
+    Verb          = .FALSE.
+    FoundPSFC     = .FALSE.
+    FoundZSFC     = .FALSE.
+    FoundTK       = .FALSE.
+    FoundPEDGE    = .FALSE.
+    FoundBXHEIGHT = .FALSE.
+
+    ! Verbose statements
+    IF ( am_I_Root .AND. FIRST .AND. HCO_IsVerb(2) ) THEN
+       Verb = .TRUE.
+    ENDIF
+    IF ( Verb ) THEN
+       MSG = 'Details about vertical grid calculations (only shown on first time step):'
+       CALL HCO_MSG(MSG,SEP1='-')
+       MSG = '1. Input data availability: '
+       CALL HCO_MSG(MSG,SEP1=' ')
+    ENDIF
+
+    ! ------------------------------------------------------------------
+    ! TK  
+    ! ------------------------------------------------------------------
+
+    ! If associated, make sure that array size is correct
+    ! and pass to HEMCO surface pressure field
+    IF ( ASSOCIATED(TK) ) THEN
+       NX = SIZE(TK,1)
+       NY = SIZE(TK,2)
+       NZ = SIZE(TK,3)
+       IF ( NX /= HcoState%NX .OR. NY /= HcoState%NY .OR. &
+            NZ /= HcoState%NZ ) THEN
+          WRITE(MSG,*) 'Wrong TK array size: ', NX, NY, NZ, &
+                       '; should be: ', HcoState%NX, HcoState%NY, HcoState%NZ
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN 
+       ENDIF
+
+       ! TK is not a field in grid, so don't pass
+       ThisTK  => TK
+       FoundTK = .TRUE.
+
+       ! Verbose
+       IF ( Verb ) THEN 
+          WRITE(MSG,*) ' - Temperature field TK obtained from model interface (min,max): ', MINVAL(ThisTK), MAXVAL(ThisTK)
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+    ELSEIF ( EVAL_TK ) THEN
+       ALLOCATE(TmpTK(HcoState%NX,HcoState%NY,HcoState%NZ))
+       CALL HCO_EvalFld ( am_I_Root, HcoState, 'TK', TmpTK, RC, FOUND=FoundTK )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       EVAL_TK = FoundTK
+       IF ( FoundTK ) ThisTK => TmpTk
+
+       ! Verbose
+       IF ( Verb ) THEN
+          IF ( FoundTK ) THEN
+             WRITE(MSG,*) ' - Temperature field TK obtained from configuration file (min,max): ', MINVAL(ThisTK), MAXVAL(ThisTK)
+             CALL HCO_MSG(MSG)
+          ELSE
+             WRITE(MSG,*) ' - No temperature field TK found - some vertical grid calculations may not be performed...'
+             CALL HCO_MSG(MSG)
+          ENDIF
+       ENDIF
+    ENDIF
+
+    ! ------------------------------------------------------------------
+    ! PSFC
+    ! ------------------------------------------------------------------
+    CALL HCO_ArrAssert( HcoState%Grid%PSFC, HcoState%NX, HcoState%NY, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! If associated, make sure that array size is correct
+    ! and pass to HEMCO surface pressure field
+    IF ( ASSOCIATED(PSFC) ) THEN
+       NX = SIZE(PSFC,1)
+       NY = SIZE(PSFC,2)
+       IF ( NX /= HcoState%NX .OR. NY /= HcoState%NY ) THEN
+          WRITE(MSG,*) 'Wrong PSFC array size: ', NX, NY, &
+                       '; should be: ', HcoState%NX, HcoState%NY
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN 
+       ENDIF
+   
+       ! Pass to HcoState array
+       HcoState%Grid%PSFC%Val = PSFC
+       FoundPSFC              = .TRUE.
+
+       ! Verbose 
+       IF ( Verb ) THEN
+          WRITE(MSG,*) ' - Surface pressure PSFC obtained from model interface (min, max): ', MINVAL(HcoState%Grid%PSFC%Val), MAXVAL(HcoState%Grid%PSFC%VAL)
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+    ! Otherwise, try to read from HEMCO configuration file
+    ELSEIF ( EVAL_PSFC ) THEN
+       CALL HCO_EvalFld ( am_I_Root, HcoState, 'PSFC', HcoState%Grid%PSFC%Val, RC, FOUND=FoundPSFC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       EVAL_PSFC = FoundPSFC
+
+       ! Verbose 
+       IF ( Verb ) THEN
+          IF ( FoundPSFC ) THEN
+             WRITE(MSG,*) ' - Surface pressure PSFC obtained from configuration file (min, max): ', MINVAL(HcoState%Grid%PSFC%Val), MAXVAL(HcoState%Grid%PSFC%VAL)
+             CALL HCO_MSG(MSG)
+          ELSE
+             MSG = ' - Surface pressure PSFC not found. Will attempt to calculate it.'
+             CALL HCO_MSG(MSG)
+          ENDIF
+       ENDIF
+    ENDIF
+
+    ! ------------------------------------------------------------------
+    ! ZSFC
+    ! ------------------------------------------------------------------
+    CALL HCO_ArrAssert( HcoState%Grid%ZSFC, HcoState%NX, HcoState%NY, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! If associated, make sure that array size is correct
+    ! and pass to HEMCO surface pressure field
+    IF ( ASSOCIATED(ZSFC) ) THEN
+       NX = SIZE(ZSFC,1)
+       NY = SIZE(ZSFC,2)
+       IF ( NX /= HcoState%NX .OR. NY /= HcoState%NY ) THEN
+          WRITE(MSG,*) 'Wrong ZSFC array size: ', NX, NY, &
+                       '; should be: ', HcoState%NX, HcoState%NY
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN 
+       ENDIF
+   
+       ! Pass to HcoState array
+       HcoState%Grid%ZSFC%Val = ZSFC
+       FoundZSFC              = .TRUE.
+
+       ! Verbose 
+       IF ( Verb ) THEN
+          WRITE(MSG,*) ' - Surface geopotential height ZSFC obtained from model interface (min, max): ', MINVAL(HcoState%Grid%ZSFC%Val), MAXVAL(HcoState%Grid%ZSFC%VAL)
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+    ! Otherwise, try to read from HEMCO configuration file
+    ELSEIF ( EVAL_ZSFC ) THEN
+       CALL HCO_EvalFld ( am_I_Root, HcoState, 'ZSFC', HcoState%Grid%ZSFC%Val, RC, FOUND=FoundZSFC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       EVAL_ZSFC = FoundZSFC
+
+       ! Verbose 
+       IF ( Verb ) THEN
+          IF ( FoundZSFC ) THEN
+             WRITE(MSG,*) ' - Surface geopotential height ZSFC obtained from configuration file (min, max): ', MINVAL(HcoState%Grid%ZSFC%Val), MAXVAL(HcoState%Grid%ZSFC%VAL)
+             CALL HCO_MSG(MSG)
+          ELSE
+             MSG = ' - Surface geopotential height ZSFC not found. Will attempt to calculate it.'
+             CALL HCO_MSG(MSG)
+          ENDIF
+       ENDIF
+    ENDIF
+
+    ! ------------------------------------------------------------------
+    ! PEDGE 
+    ! ------------------------------------------------------------------
+    CALL HCO_ArrAssert( HcoState%Grid%PEDGE, HcoState%NX, &
+                        HcoState%NY,         HcoState%NZ+1, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    IF ( ASSOCIATED( PEDGE ) ) THEN
+
+       NX = SIZE(PEDGE,1)
+       NY = SIZE(PEDGE,2)
+       NZ = SIZE(PEDGE,3)
+       IF ( NX /= HcoState%NX .OR. NY /= HcoState%NY .OR. &
+            NZ /= (HcoState%NZ + 1) ) THEN
+          WRITE(MSG,*) 'Wrong PEDGE array size: ', NX, NY, NZ, &
+                       '; should be: ', HcoState%NX, HcoState%NY, HcoState%NZ+1
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN 
+       ENDIF
+
+       HcoState%Grid%PEDGE%Val = PEDGE
+       FoundPEDGE = .TRUE.
+
+       ! Verbose 
+       IF ( Verb ) THEN
+          WRITE(MSG,*) ' - Pressure edges PEDGE obtained from model interface (min, max): ', MINVAL(HcoState%Grid%PEDGE%Val), MAXVAL(HcoState%Grid%PEDGE%VAL)
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+    ELSEIF ( EVAL_PEDGE ) THEN
+       CALL HCO_EvalFld ( am_I_Root, HcoState, 'PEDGE', &
+                          HcoState%Grid%PEDGE%Val, RC, FOUND=FoundPEDGE )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       EVAL_PEDGE = FoundPEDGE
+
+       ! Verbose 
+       IF ( Verb ) THEN
+          IF ( FoundPEDGE ) THEN
+             WRITE(MSG,*) ' - Pressure edges PEDGE obtained from configuration file (min, max): ', MINVAL(HcoState%Grid%PEDGE%Val), MAXVAL(HcoState%Grid%PEDGE%VAL)
+             CALL HCO_MSG(MSG)
+          ELSE
+             MSG = ' - Pressure edges PEDGE not found. Will attempt to calculate it.'
+             CALL HCO_MSG(MSG)
+          ENDIF
+       ENDIF
+    ENDIF
+
+    ! ------------------------------------------------------------------
+    ! BXHEIGHT 
+    ! ------------------------------------------------------------------
+    CALL HCO_ArrAssert( HcoState%Grid%BXHEIGHT_M, HcoState%NX, &
+                        HcoState%NY,              HcoState%NZ, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    IF ( ASSOCIATED( BXHEIGHT ) ) THEN
+
+       NX = SIZE(BXHEIGHT,1)
+       NY = SIZE(BXHEIGHT,2)
+       NZ = SIZE(BXHEIGHT,3)
+       IF ( NX /= HcoState%NX .OR. NY /= HcoState%NY .OR. &
+            NZ /= HcoState%NZ ) THEN
+          WRITE(MSG,*) 'Wrong BXHEIGHT array size: ', NX, NY, NZ, &
+                       '; should be: ', HcoState%NX, HcoState%NY, HcoState%NZ
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN 
+       ENDIF
+
+       HcoState%Grid%BXHEIGHT_M%Val = BXHEIGHT
+       FoundBXHEIGHT = .TRUE.
+
+       ! Verbose 
+       IF ( Verb ) THEN
+          WRITE(MSG,*) ' - Boxheights BXHEIGHT_M obtained from model interface (min, max): ', MINVAL(HcoState%Grid%BXHEIGHT_M%Val), MAXVAL(HcoState%Grid%BXHEIGHT_M%VAL)
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+    ! Otherwise, try to read from HEMCO configuration file
+    ELSEIF ( EVAL_BXHEIGHT ) THEN
+       CALL HCO_EvalFld ( am_I_Root, HcoState, 'BXHEIGHT_M', &
+                          HcoState%Grid%BXHEIGHT_M%Val, RC, FOUND=FoundBXHEIGHT )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       EVAL_BXHEIGHT = FoundBXHEIGHT
+
+       ! Verbose 
+       IF ( Verb ) THEN
+          IF ( FoundBXHEIGHT ) THEN
+             WRITE(MSG,*) ' - Boxheights BXHEIGHT_M obtained from configuration file (min, max): ', MINVAL(HcoState%Grid%BXHEIGHT_M%Val), MAXVAL(HcoState%Grid%BXHEIGHT_M%VAL)
+             CALL HCO_MSG(MSG)
+          ELSE
+             MSG = ' - Boxheights BXHEIGHT_M not found. Will attempt to calculate it.'
+             CALL HCO_MSG(MSG)
+          ENDIF
+       ENDIF
+    ENDIF
+
+    ! ------------------------------------------------------------------
+    ! Calculate various quantities: the goal is to have the following
+    ! quantities defined: ZSFC, PSFC, PEDGE, BXHEIGHT_M.
+    ! - If PEDGE is not yet defined, it is calculated from surface 
+    !   pressure (PSFC).
+    ! - If BXHEIGHT is not yet defined, it is calculated from PEDGE 
+    !   and TK.
+    ! - If PSFC is not yet defined, it is set to the first level of
+    !   PEDGE (if defined) or uniformly set to 101325 Pa. 
+    ! - If ZSFC is not yet defined, it is calculated from PSFC and TK.
+    ! - If TK is not defined, no attempt is made to initialize it to 
+    !   a useful quantity. Calculations that require TK are omitted.
+    ! ------------------------------------------------------------------
+  
+    ! Verbose
+    IF ( Verb ) THEN 
+       MSG = '2. Grid calculations: '
+       CALL HCO_MSG(MSG,SEP1=' ')
+    ENDIF
+
+    ! Set PSFC
+    IF ( .NOT. FoundPSFC ) THEN
+       IF ( FoundPEDGE ) THEN
+          HcoState%Grid%PSFC%Val(:,:) = HcoState%Grid%PEDGE%Val(:,:,1)
+
+          ! Verbose
+          IF ( Verb ) THEN
+             MSG = ' - Surface pressure set to surface pressure edge.'
+             CALL HCO_MSG(MSG)
+          ENDIF          
+       ELSE
+          HcoState%Grid%PSFC%Val(:,:) = 101325.0_hp
+          IF ( FIRST .AND. am_I_Root ) THEN
+             MSG = 'Surface pressure PSFC uniformly set to 101325 Pa! ' // &
+                   'This may affect the accuracy of vertical grid '     // &
+                   'quantities. It is recommended you provide PSFC via '// &
+                   'the model-HEMCO interface or the HEMCO configuration file!'
+             CALL HCO_WARNING( MSG, RC, THISLOC=LOC, WARNLEV=1 )
+          ENDIF
+
+          ! Verbose
+          IF ( Verb ) THEN
+             MSG = ' - Surface pressure uniformly set to 101325.0 Pa.'
+             CALL HCO_MSG(MSG)
+          ENDIF          
+       ENDIF
+       FoundPSFC = .TRUE.
+    ENDIF
+
+    ! Set PEDGE
+    IF ( .NOT. FoundPEDGE ) THEN
+!$OMP PARALLEL DO                                                      &
+!$OMP DEFAULT( SHARED )                                                &
+!$OMP PRIVATE( I, J, L )                                               &
+!$OMP SCHEDULE( DYNAMIC )
+       DO L = 1, HcoState%NZ+1
+       DO J = 1, HcoState%NY
+       DO I = 1, HcoState%NX
+          HcoState%Grid%PEDGE%Val(I,J,L) &
+           = HcoState%Grid%zGrid%AP(L)   &
+           + ( HcoState%Grid%zGrid%BP(L) &
+             * HcoState%Grid%PSFC%Val(I,J) )
+       ENDDO
+       ENDDO
+       ENDDO
+!$OMP END PARALLEL DO
+       FoundPEDGE = .TRUE.
+
+       ! Verbose
+       IF ( Verb ) THEN
+          WRITE(MSG,*) ' - PEDGE calculated from PSFC, Ap, and Bp (min, max): ', & 
+             MINVAL(HcoState%Grid%PEDGE%Val), MAXVAL(HcoState%Grid%PEDGE%Val)
+          CALL HCO_MSG(MSG)
+       ENDIF          
+    ENDIF
+
+    ! Set surface height and/or grid box height
+    IF ( .NOT. FoundZSFC .OR. .NOT. FoundBXHEIGHT ) THEN
+       IF ( FoundTK .AND. FoundPEDGE ) THEN
+
+          ! Initialize error flags
+          ERRZSFC = .FALSE.
+          ERRBX   = .FALSE.
+
+!$OMP PARALLEL DO                                                      &
+!$OMP DEFAULT( SHARED )                                                &
+!$OMP PRIVATE( I, J, L, P1, P2 )                                       &
+!$OMP SCHEDULE( DYNAMIC )
+          DO L = 1, HcoState%NZ
+          DO J = 1, HcoState%NY
+          DO I = 1, HcoState%NX
+
+             ! BOXHEIGHT (hydrostatic equation)
+             IF ( .NOT. FoundBXHEIGHT ) THEN
+                P1 = HcoState%Grid%PEDGE%Val(I,J,L)
+                P2 = HcoState%Grid%PEDGE%Val(I,J,L+1)
+                IF ( P2 == 0.0_hp ) THEN
+                   ERRBX = .TRUE.
+                ELSE
+                   HcoState%Grid%BXHEIGHT_M%Val(I,J,L) = HcoState%Phys%Rdg0 &
+                                                       * ThisTK(I,J,1)      &
+                                                       * LOG( P1 / P2 )
+                ENDIF
+             ENDIF
+
+             ! ZSFC
+             IF ( L == 1 .AND. .NOT. FoundZSFC ) THEN
+                P1 = 101325.0_hp
+                P2 = HcoState%Grid%PEDGE%Val(I,J,1)
+                IF ( P2 == 0.0_hp ) THEN
+                   ERRZSFC = .TRUE.
+                ELSE
+                   HcoState%Grid%ZSFC%Val(I,J) = HcoState%Phys%Rdg0 &
+                                               * ThisTK(I,J,1)      &
+                                               * LOG( P1 / P2 )
+                ENDIF
+             ENDIF
+          ENDDO
+          ENDDO
+          ENDDO
+!$OMP END PARALLEL DO
+
+          IF ( ERRZSFC ) THEN
+             MSG = 'Cannot calculate surface geopotential heights - at least one ' // &
+                   'surface pressure value is zero! You can either provide an '    // &
+                   'updated pressure edge field (PEDGE) or add a field with the '  // &
+                   'surface geopotential height to your configuration file (ZSFC)'
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ELSE 
+             FoundZSFC = .TRUE.
+
+             ! Verbose
+             IF ( Verb ) THEN
+                WRITE(MSG,*) ' - ZSFC calculated from PSFC and T (min, max): ', & 
+                   MINVAL(HcoState%Grid%ZSFC%Val), MAXVAL(HcoState%Grid%ZSFC%Val)
+                CALL HCO_MSG(MSG)
+             ENDIF          
+          ENDIF
+
+          IF ( ERRBX ) THEN
+             MSG = 'Cannot calculate grid box heights - at least one ' // &
+                   'pressure value is zero! You can either provide an '    // &
+                   'updated pressure edge field (PEDGE) or add a field with the '  // &
+                   'grid box heights to your configuration file (BOXHEIGHT_M)'
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ELSE 
+             FoundZSFC = .TRUE.
+
+             ! Verbose
+             IF ( Verb ) THEN
+                WRITE(MSG,*) ' - Boxheights calculated from PEDGE and T (min, max): ', & 
+                   MINVAL(HcoState%Grid%BXHEIGHT_M%Val), MAXVAL(HcoState%Grid%BXHEIGHT_M%Val) 
+                CALL HCO_MSG(MSG)
+             ENDIF
+          ENDIF
+
+       ! PEDGE and/or TK not defined
+       ELSE
+          IF ( .NOT. FoundZSFC .AND. FIRST .AND. am_I_Root ) THEN
+             MSG = 'Cannot set surface height ZSFC. This may cause '      // &
+                   'some extensions to fail. HEMCO tries to calculate '   // &
+                   'ZSFC from surface pressure and air temperature, but ' // &
+                   'at least one of these variables seem to be missing.'
+             CALL HCO_WARNING( MSG, RC, THISLOC=LOC, WARNLEV=1 )
+          ENDIF
+          IF ( .NOT. FoundBXHEIGHT .AND. FIRST .AND. am_I_Root ) THEN
+             MSG = 'Cannot set boxheights BXHEIGHT_M. This may cause '      // &
+                   'some extensions to fail. HEMCO tries to calculate '     // &
+                   'BXHEIGHT from pressure edges and air temperature, but ' // &
+                   'at least one of these variables seem to be missing.'
+             CALL HCO_WARNING( MSG, RC, THISLOC=LOC, WARNLEV=1 )
+          ENDIF
+       ENDIF
+    ENDIF 
+
+    ! ------------------------------------------------------------------
+    ! Wrap up and leave 
+    ! ------------------------------------------------------------------
+
+    ! Verbose
+    IF ( Verb ) THEN
+       WRITE(MSG,*) 'Vertical grid calculations done.'
+       CALL HCO_MSG(MSG,SEP2='-')
+    ENDIF
+
+    ! Cleanup
+    ThisTK => NULL()
+    IF ( ALLOCATED(TmpTK) ) DEALLOCATE(TmpTK)
+
+    ! Update first flag
+    FIRST = .FALSE.
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_CalcVertGrid
+!EOC
 END MODULE HCO_GeoTools_Mod
 !EOM

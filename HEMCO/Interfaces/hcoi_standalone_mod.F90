@@ -639,7 +639,15 @@ CONTAINS
     CALL GetExtOpt ( CoreNr, 'SpecFile', OptValChar=MySpecFile, &
                      Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( FOUND ) SpecFile = MySpecFile
+    IF ( FOUND ) THEN
+       SpecFile = MySpecFile
+    ELSE
+       MSG = 'Please provide filename with species definitions ' // &
+             'in the configuration file settings, e.g. ' // &
+             'SpecFile: MySpecies.rc'
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
 
     ! Find a free file LUN
     IU_FILE = findFreeLUN()
@@ -718,7 +726,7 @@ CONTAINS
        ! molecular coefficient, and Henry coefficients K0, CR, pKa (in this
        ! order).
        DO I = 1, 8
-   
+  
           ! Get lower and upper index of species ID (first entry in row).
           ! Skip all leading spaces.
           UPP = LOW
@@ -730,12 +738,24 @@ CONTAINS
                 CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
-             UPP = NextCharPos( TRIM(DUM), TRIM(HCO_GetOpt('Space')), LOW )
+             UPP = NextCharPos( TRIM(DUM), HCO_SPC, LOW )
              IF ( UPP < 0 ) UPP = LNG
           ENDDO
    
           UPP = UPP - 1 ! Don't read space
-   
+
+          ! Error check
+          IF ( UPP > LNG ) THEN
+             WRITE(MSG,*) 'Error reading species property ', I, &
+                          ' on line ', TRIM(DUM), '. Each ', &
+                          'species definition line is expected ', &
+                          'to have 8 entries (ID, Name, MW, MWemis, ', &
+                          'MOLECRATIO, K0, CR, PKA, e.g.: ', &
+                          '1 CO   28.0 28.0 1.0 0.0 0.0 0.0'
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC ) 
+             RETURN
+          ENDIF
+ 
           ! Read into vector
           SELECT CASE ( I ) 
              CASE ( 1 )
@@ -798,8 +818,9 @@ CONTAINS
 ! !USES:
 !
 !    USE Grid_Mod,        ONLY : DoGridComputation
-    USE inquireMod,      ONLY : findFreeLUN
-    USE HCO_ExtList_Mod, ONLY : HCO_GetOpt, GetExtOpt, CoreNr
+    USE inquireMod,      ONLY  : findFreeLUN
+    USE HCO_ExtList_Mod, ONLY  : HCO_GetOpt, GetExtOpt, CoreNr
+    USE HCO_VertGrid_Mod, ONLY : HCO_VertGrid_Define
 !
 ! !INPUT PARAMETERS:
 !
@@ -831,6 +852,7 @@ CONTAINS
     REAL(hp)              :: DVAL
     REAL(hp)              :: DLON, DLAT
     REAL(hp)              :: PI_180, YDGR, YSN, SIN_DELTA, AM2 
+    REAL(hp), ALLOCATABLE :: Ap(:), Bp(:)
     LOGICAL               :: FOUND,   EOF
     CHARACTER(LEN=255)    :: LOC 
     CHARACTER(LEN=  1)    :: COL 
@@ -971,25 +993,29 @@ CONTAINS
     ! ------------------------------------------------------------------
     ! Now that sizes are known, allocate all arrays
     ! ------------------------------------------------------------------
-    ALLOCATE ( XMID     (NX,  NY,  1) )
-    ALLOCATE ( YMID     (NX,  NY,  1) )
-    ALLOCATE ( XEDGE    (NX+1,NY,  1) )
-    ALLOCATE ( YEDGE    (NX,  NY+1,1) )
-    ALLOCATE ( YSIN     (NX,  NY+1,1) )
-    ALLOCATE ( AREA_M2  (NX,  NY,  1) )
+    ALLOCATE ( XMID     (NX,  NY,  1   ) )
+    ALLOCATE ( YMID     (NX,  NY,  1   ) )
+    ALLOCATE ( XEDGE    (NX+1,NY,  1   ) )
+    ALLOCATE ( YEDGE    (NX,  NY+1,1   ) )
+    ALLOCATE ( YSIN     (NX,  NY+1,1   ) )
+    ALLOCATE ( AREA_M2  (NX,  NY,  1   ) )
+    ALLOCATE ( AP       (          NZ+1) )
+    ALLOCATE ( BP       (          NZ+1) )
     YSIN      = HCO_MISSVAL
     AREA_M2   = HCO_MISSVAL
     XMID      = HCO_MISSVAL
     YMID      = HCO_MISSVAL
     XEDGE     = HCO_MISSVAL
     YEDGE     = HCO_MISSVAL
+    AP        = HCO_MISSVAL
+    BP        = HCO_MISSVAL
 
     ! ------------------------------------------------------------------
     ! Check if grid box edges and/or midpoints are explicitly given.
     ! Those need be provided on one line, e.g.:
     ! YEDGE: -90.0 -89.0 -86.0 ... 86.0 89.0 90.0
     ! ------------------------------------------------------------------
-    DO N = 1, 4 ! check for XEDGE, YEDGE, XMID, YMID
+    DO N = 1, 6 ! check for XEDGE, YEDGE, XMID, YMID
 
        ! Try to read line
        CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
@@ -1010,6 +1036,9 @@ CONTAINS
        ELSEIF ( DUM(1:4) == 'XMID' .OR. DUM(1:4) == 'YMID' ) THEN 
           LNG = LEN(TRIM(DUM))
           STRT = 6 ! Start at string position 6 (e.g. 'XMID: XXX')
+       ELSEIF ( DUM(1:2) == 'AP' .OR. DUM(1:2) == 'BP' ) THEN 
+          LNG = LEN(TRIM(DUM))
+          STRT = 4 ! Start at string position 4 (e.g. 'AP: XXX')
        ENDIF
 
        IF ( LNG > 0 ) THEN
@@ -1023,7 +1052,7 @@ CONTAINS
 
              ! Need to evaluate if this is the last string character and/or 
              ! whitespace character
-             IF ( TRIM(DUM(J:J)) == TRIM(HCO_GetOpt('Space')) ) THEN 
+             IF ( TRIM(DUM(J:J)) == HCO_SPC ) THEN 
 
                 ! If the lower substring bound is not set yet, assume that this
                 ! is a lower substring bound, and continue search for upper bound
@@ -1085,6 +1114,24 @@ CONTAINS
                       RETURN
                    ENDIF 
                    YMID(:,I,1) = DVAL
+
+                ! Pass to Ap  
+                ELSEIF ( TRIM(DUM(1:2)) == 'AP' ) THEN
+                   IF ( I > (NZ+1) ) THEN
+                      WRITE(MSG,*) 'More than ', NZ+1, ' Ap values found in ', TRIM(DUM)
+                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      RETURN
+                   ENDIF 
+                   AP(I) = DVAL
+             
+                ! Pass to Bp  
+                ELSEIF ( TRIM(DUM(1:2)) == 'BP' ) THEN
+                   IF ( I > (NZ+1) ) THEN
+                      WRITE(MSG,*) 'More than ', NZ+1, ' Bp values found in ', TRIM(DUM)
+                      CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                      RETURN
+                   ENDIF 
+                   BP(I) = DVAL
                 ENDIF
              
                 ! Update bounds 
@@ -1113,9 +1160,32 @@ CONTAINS
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
+          IF ( TRIM(DUM(1:2)) == 'AP' .AND. I /= NZ+1 ) THEN
+             WRITE(MSG,*) 'Error reading AP: exactly ', NZ+1, ' values must be given: ', TRIM(DUM)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          IF ( TRIM(DUM(1:2)) == 'BP' .AND. I /= NZ+1 ) THEN
+             WRITE(MSG,*) 'Error reading BP: exactly ', NZ+1, ' values must be given: ', TRIM(DUM)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
 
        ENDIF
     ENDDO
+
+    ! Error check: if AP is given, Bp must be given as well
+    IF ( ALL(AP==HCO_MISSVAL) .AND. .NOT. ALL(BP==HCO_MISSVAL) ) THEN
+       WRITE(MSG,*) 'At least a few AP values are missing, please provide exactly ', &
+                    NZ+1, 'AP and BP values.'
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ELSEIF ( .NOT. ALL(AP==HCO_MISSVAL) .AND. ALL(BP==HCO_MISSVAL) ) THEN
+       WRITE(MSG,*) 'At least a few BP values are missing, please provide exactly ', &
+                    NZ+1, 'AP and BP values.'
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
 
     ! ------------------------------------------------------------------
     ! Close file
@@ -1223,6 +1293,15 @@ CONTAINS
     HcoState%NY = NY
     HcoState%NZ = NZ 
 
+    ! Vertical grid definition
+    IF ( ANY(AP/=HCO_MISSVAL) ) THEN
+       CALL HCO_VertGrid_Define( am_I_Root, HcoState%Grid%zGrid, NZ, &
+                                 Ap=Ap, Bp=Bp, RC=RC )
+    ELSE
+       CALL HCO_VertGrid_Define( am_I_Root, HcoState%Grid%zGrid, NZ, RC=RC )
+    ENDIF
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Set pointers to grid variables
     HcoState%Grid%XMID%Val       => XMID   (:,:,1)
     HcoState%Grid%YMID%Val       => YMID   (:,:,1)
@@ -1236,6 +1315,7 @@ CONTAINS
     HcoState%Grid%PEDGE%Val      => NULL()
     HcoState%Grid%BXHEIGHT_M%Val => NULL()
     HcoState%Grid%ZSFC%Val       => NULL()
+    HcoState%Grid%PSFC%Val       => NULL()
 
     ! Write grid information to log-file
     WRITE(MSG,*) 'HEMCO grid definitions:'
@@ -1251,6 +1331,10 @@ CONTAINS
     CALL HCO_MSG(MSG)
     WRITE(MSG,*) ' --> Lat range [deg N]        : ', YMIN, YMAX
     CALL HCO_MSG(MSG)
+
+    ! Cleanup
+    IF ( ALLOCATED(AP) ) DEALLOCATE(AP)
+    IF ( ALLOCATED(BP) ) DEALLOCATE(BP)
 
     ! Return w/ success
     RC = HCO_SUCCESS
@@ -1304,7 +1388,7 @@ CONTAINS
 
     ! For error handling
     LOC = 'Get_nnMatch (hco_standalone_mod.F90)'
-    
+   
     ! Extract number of HEMCO species and corresponding species names 
     ! as read from the HEMCO config. file.
     nHcoSpec = Config_GetnSpecies ( ) 
@@ -1729,8 +1813,8 @@ CONTAINS
 ! !USES:
 !
     USE HCO_ARR_MOD,        ONLY : HCO_ArrAssert
-    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
     USE HCO_GEOTOOLS_MOD,   ONLY : HCO_GetSUNCOS
+    USE HCO_GEOTOOLS_MOD,   ONLY : HCO_CalcVertGrid
     USE HCOX_STATE_MOD,     ONLY : ExtDat_Set
 !
 ! !INPUT PARAMETERS:
@@ -1750,13 +1834,12 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER                       :: I,  J,  L 
-    INTEGER                       :: NX, NY, NZ
-    REAL(sp), POINTER             :: Ptr3D(:,:,:) => NULL()
-    REAL(sp), POINTER             :: Ptr2D(:,:  ) => NULL()
-    REAL(hp)                      :: P1, P2
+    REAL(hp), POINTER             :: PSFC(:,:  )  => NULL()
+    REAL(hp), POINTER             :: ZSFC(:,:  )  => NULL()
+    REAL(hp), POINTER             :: TK  (:,:,:)  => NULL()
+    REAL(hp), POINTER             :: BXHEIGHT(:,:,:)  => NULL()
+    REAL(hp), POINTER             :: PEDGE(:,:,:)  => NULL()
     CHARACTER(LEN=255)            :: MSG
-    LOGICAL                       :: ERR, FOUND
     LOGICAL, SAVE                 :: FIRST = .TRUE.
     CHARACTER(LEN=255), PARAMETER :: LOC = 'ExtState_SetFields (hcoi_standalone_mod.F90)'
 
@@ -1767,50 +1850,6 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER( LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-    !-----------------------------------------------------------------
-    ! Try to get pressure edges from external file.
-    !-----------------------------------------------------------------
-    CALL HCO_GetPtr( am_I_Root, 'PEDGE', Ptr3D, RC, FOUND=FOUND )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! If found, copy to pressure edge array
-    IF ( FOUND ) THEN
-
-       ! On first call, check array size dimensions. These are 
-       ! expected to correspond to the HEMCO grid (NX, NY, NZ+1).
-       IF ( FIRST ) THEN
-          NX = SIZE(Ptr3D,1)
-          NY = SIZE(Ptr3D,2)
-          NZ = SIZE(Ptr3D,3)
-
-          ! Make sure size dimensions are correct
-          IF ( ( NX /=  HcoState%NX    ) .OR. &
-               ( NY /=  HcoState%NY    ) .OR. &
-               ( NZ /= (HcoState%NZ+1) )       ) THEN
-             WRITE(MSG,*) 'Dimensions of field PEDGE do not correspond ', &
-                          'to simulation grid: Expected dimensions: ',       &
-                          HcoState%NX, HcoState%NY, HcoState%NZ+1,           &
-                          '; dimensions of PEDGE: ', NX, NY, NZ
-             CALL HCO_ERROR( MSG, RC )
-             RETURN     
-          ENDIF
-
-          CALL HCO_ArrAssert( HcoState%Grid%PEDGE, NX, NY, NZ, RC ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF 
-       HcoState%Grid%PEDGE%Val = Ptr3D
-       Ptr3D => NULL()
-
-    ! If not found, prompt a warning on the first call.
-    ELSE
-       IF ( FIRST ) THEN
-          MSG = 'PEDGE is not a field in HEMCO configuration file '      // &
-                '- cannot fill pressure edges. This may cause problems ' // &
-                'in vertical interpolation and/or some of the extensions!'
-          CALL HCO_WARNING ( MSG, RC, WarnLev=1 )
-       ENDIF
-    ENDIF
 
     !-----------------------------------------------------------------
     ! 2D fields 
@@ -1941,6 +1980,27 @@ CONTAINS
     !-----------------------------------------------------------------
 
     !-----------------------------------------------------------------
+    ! Check for vertical grid update. This will try to read the 
+    ! vertical grid quantities from disk or calculate them from other
+    ! quantities read from disk. 
+    !-----------------------------------------------------------------
+
+    ! Eventually get temperature from disk
+    IF ( ExtState%TK%DoUse ) TK => ExtState%TK%Arr%Val
+
+    ! Attempt to calculate vertical grid quantities
+    CALL HCO_CalcVertGrid( am_I_Root, HcoState, PSFC,    &
+                           ZSFC,  TK, BXHEIGHT, PEDGE, RC  )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Reset pointers
+    PSFC     => NULL()
+    ZSFC     => NULL()
+    TK       => NULL()
+    BXHEIGHT => NULL()
+    PEDGE    => NULL()
+
+    !-----------------------------------------------------------------
     ! If needed, calculate SUNCOS values
     !-----------------------------------------------------------------
     IF ( ExtState%SUNCOS%DoUse ) THEN
@@ -1951,210 +2011,6 @@ CONTAINS
 
        CALL HCO_GetSUNCOS( am_I_Root, HcoState, ExtState%SUNCOS%Arr%Val, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------
-    ! Grid box heights in meters. First try to get them from an 
-    ! external file. If not defined in there, try to calculate them
-    ! from grid box pressure edges and temperature via the hydrostatic
-    ! equation.
-    !-----------------------------------------------------------------
-    CALL HCO_GetPtr( am_I_Root, 'BXHEIGHT_M', Ptr3D, RC, FOUND=FOUND )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! If found, copy to pressure edge array
-    IF ( FOUND ) THEN
-
-       ! On first call, check array size dimensions. These are 
-       ! expected to correspond to the HEMCO grid (NX, NY, NZ).
-       IF ( FIRST ) THEN
-          NX = SIZE(Ptr3D,1)
-          NY = SIZE(Ptr3D,2)
-          NZ = SIZE(Ptr3D,3)
-
-          ! Make sure size dimensions are correct
-          IF ( ( NX /=  HcoState%NX  ) .OR. &
-               ( NY /=  HcoState%NY  ) .OR. &
-               ( NZ /= (HcoState%NZ) )       ) THEN
-             WRITE(MSG,*) 'Dimensions of field BXHEIGHT_M do not correspond ', &
-                          'to simulation grid: Expected dimensions: ',         &
-                          HcoState%NX, HcoState%NY, HcoState%NZ,               &
-                          '; dimensions of BXHEIGHT_M: ', NX, NY, NZ
-             CALL HCO_ERROR( MSG, RC )
-             RETURN     
-          ENDIF
-
-          CALL HCO_ArrAssert( HcoState%Grid%BXHEIGHT_M, NX, NY, NZ, RC ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF 
-       HcoState%Grid%BXHEIGHT_M%Val = Ptr3D
-       Ptr3D => NULL()
-
-       ! Verbose
-       IF ( FIRST .AND. Hco_IsVerb(1) ) THEN
-          MSG = 'Grid box heights read from field BXHEIGHT_M'
-          CALL HCO_MSG(MSG,SEP1=' ',SEP2=' ')
-       ENDIF
-
-    ! If not found, check if we can calculate it from pressure edges and temperature
-    ELSEIF ( ExtState%TK%DoUse .AND. ASSOCIATED(HcoState%Grid%PEDGE%Val) ) THEN
-
-       ! Make sure array is defined
-       CALL HCO_ArrAssert( HcoState%Grid%BXHEIGHT_M, HcoState%NX,   &
-                           HcoState%NY,              HcoState%NZ, RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-       ! Assume no error until otherwise
-       ERR = .FALSE.
-
-       ! Calculate box heights
-!$OMP PARALLEL DO                                                      &
-!$OMP DEFAULT( SHARED )                                                &
-!$OMP PRIVATE( I, J, L, P1, P2 )                                       & 
-!$OMP SCHEDULE( DYNAMIC )
-       DO L = 1, HcoState%NZ
-       DO J = 1, HcoState%NY
-       DO I = 1, HcoState%NX
-       
-          ! Pressure at bottom and top edge [hPa]
-          P1 = HcoState%Grid%PEDGE%Val(I,J,L)
-          P2 = HcoState%Grid%PEDGE%Val(I,J,L+1)
-
-          ! Box height
-          IF ( P2 == 0.0_hp ) THEN
-             ERR = .TRUE.
-          ELSE
-             HcoState%Grid%BXHEIGHT_M%Val(I,J,L) = HcoState%Phys%Rdg0 &
-                                                 * ExtState%TK%Arr%Val(I,J,L) &
-                                                 * LOG( P1 / P2 )
-          ENDIF
-       ENDDO !I
-       ENDDO !J
-       ENDDO !L
-!$OMP END PARALLEL DO
-
-       ! Error check
-       IF ( ERR ) THEN
-          MSG = 'Cannot calculate grid box heights - at least one pressure edge ' // &
-                'value is zero! You can either provide an updated pressure edge ' // &
-                'field (PEDGE) or add a field with the grid box heigths to your ' // &
-                'configuration file (BXHEIGHT_M)'
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       ! Verbose
-       IF ( FIRST .AND. Hco_IsVerb(1) ) THEN
-          MSG = 'Grid box heights approximated from hydrostatic equation'
-          CALL HCO_MSG(MSG,SEP1=' ',SEP2=' ')
-       ENDIF
-
-    ! Otherwise, prompt a warning on the first call 
-    ELSE
-       IF ( FIRST ) THEN
-          MSG = 'BXHEIGHT_M is not a field in HEMCO configuration file '   // &
-                '- cannot fill grid box heights. This may cause problems ' // &
-                'in some of the extensions (if so, they will crash)!'
-          CALL HCO_WARNING ( MSG, RC, WarnLev=1 )
-       ENDIF
-    ENDIF
-
-    !-----------------------------------------------------------------
-    ! Surface geopotential height 
-    !-----------------------------------------------------------------
-    CALL HCO_GetPtr( am_I_Root, 'ZSFC', Ptr2D, RC, FOUND=FOUND )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! If found, copy to pressure edge array
-    IF ( FOUND ) THEN
-
-       ! On first call, check array size dimensions. These are 
-       ! expected to correspond to the HEMCO grid (NX, NY, NZ).
-       IF ( FIRST ) THEN
-          NX = SIZE(Ptr2D,1)
-          NY = SIZE(Ptr2D,2)
-
-          ! Make sure size dimensions are correct
-          IF ( ( NX /=  HcoState%NX  ) .OR. &
-               ( NY /=  HcoState%NY  )       ) THEN
-             WRITE(MSG,*) 'Dimensions of field ZSFC do not correspond ', &
-                          'to simulation grid: Expected dimensions: ',         &
-                          HcoState%NX, HcoState%NY,                            &
-                          '; dimensions of ZSFC: ', NX, NY
-             CALL HCO_ERROR( MSG, RC )
-             RETURN     
-          ENDIF
-
-          CALL HCO_ArrAssert( HcoState%Grid%ZSFC, NX, NY, RC ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF 
-       HcoState%Grid%ZSFC%Val = Ptr2D
-       Ptr2D => NULL()
-
-       ! Verbose
-       IF ( FIRST .AND. Hco_IsVerb(1) ) THEN
-          MSG = 'Surface geopotential heights read from field ZSFC'
-          CALL HCO_MSG(MSG,SEP1=' ',SEP2=' ')
-       ENDIF
-
-    ! If not found, check if we can calculate it from pressure edges and temperature
-    ELSEIF ( ExtState%TK%DoUse .AND. ASSOCIATED(HcoState%Grid%PEDGE%Val) ) THEN
-
-       ! Make sure array is defined
-       CALL HCO_ArrAssert( HcoState%Grid%ZSFC, HcoState%NX, HcoState%NY, RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-       ! Assume no error until otherwise
-       ERR = .FALSE.
-
-       ! Approximate geopotential heights
-!$OMP PARALLEL DO                                                      &
-!$OMP DEFAULT( SHARED )                                                &
-!$OMP PRIVATE( I, J, P1, P2 )                                       & 
-!$OMP SCHEDULE( DYNAMIC )
-       DO J = 1, HcoState%NY
-       DO I = 1, HcoState%NX
-       
-          ! Pressure at bottom and top edge [Pa]
-          P1 = 101325.0
-          P2 = HcoState%Grid%PEDGE%Val(I,J,1)
-
-          ! Box height
-          IF ( P2 == 0.0_hp ) THEN
-             ERR = .TRUE.
-          ELSE
-             HcoState%Grid%ZSFC%Val(I,J) = HcoState%Phys%Rdg0 &
-                                         * ExtState%TK%Arr%Val(I,J,1) &
-                                         * LOG( P1 / P2 )
-          ENDIF
-       ENDDO !I
-       ENDDO !J
-!$OMP END PARALLEL DO
-
-       ! Error check
-       IF ( ERR ) THEN
-          MSG = 'Cannot calculate surface geopotential heights - at least one ' // &
-                'surface pressure value is zero! You can either provide an '    // &
-                'updated pressure edge field (PEDGE) or add a field with the '  // &
-                'surface geopotential height to your configuration file (ZSFC)'
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       ! Verbose
-       IF ( FIRST .AND. Hco_IsVerb(1) ) THEN
-          MSG = 'Geopotential heights approximated from hydrostatic equation'
-          CALL HCO_MSG(MSG,SEP1=' ',SEP2=' ')
-       ENDIF
-
-    ! Otherwise, prompt a warning on the first call 
-    ELSE
-       IF ( FIRST ) THEN
-          MSG = 'ZSFC is not a field in HEMCO configuration file '   // &
-                '- cannot define surface geopotential height. This may cause ' // &
-                'problems in some of the extensions (if so, they will crash)!'
-          CALL HCO_WARNING ( MSG, RC, WarnLev=1 )
-       ENDIF
     ENDIF
 
     !-----------------------------------------------------------------
