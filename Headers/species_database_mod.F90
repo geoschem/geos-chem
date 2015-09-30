@@ -149,7 +149,7 @@ CONTAINS
        CALL EXIT( -999 )
     ENDIF
     
-    ! Loop over tracers
+    ! Loop over all species
     DO N = 1, nSpecies
 
        ! Translate species name to uppercase
@@ -447,7 +447,6 @@ CONTAINS
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
                               RC            = RC )
-
 
           CASE( 'C2H6' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2281,19 +2280,6 @@ CONTAINS
                               WD_CoarseAer  = T,                            &
                               WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
-
-          CASE( 'SESQ' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Sesquiterpene',              &
-                              MW_g          = 150.0_fp,                     &
-                              Is_Advected   = T,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
                               RC            = RC )
 
           CASE( 'SO2' )
