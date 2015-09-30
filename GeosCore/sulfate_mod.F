@@ -477,7 +477,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD                   
-      USE DAO_MOD,            ONLY : CONVERT_UNITS
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
@@ -498,6 +497,7 @@
       USE TRACERID_MOD,       ONLY : IDTNITd1, IDTNITd2
       USE TRACERID_MOD,       ONLY : IDTNITd3, IDTNITd4
       USE UCX_MOD,            ONLY : SETTLE_STRAT_AER
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -558,6 +558,7 @@
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !  18 Sep 2014 - M. Sulprizio- Get oxidant fields for offline aerosol
 !                              simulation from HEMCO
+!  30 Sep 2015 - E. Lundgren - Now use UNITCONV_MOD conversion routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -579,8 +580,6 @@
       LOGICAL           :: LPRT
       LOGICAL           :: LGRAVSTRAT
       LOGICAL           :: LDSTUP
-      INTEGER           :: N_TRACERS
-      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -609,8 +608,6 @@
       LPRT                 = Input_Opt%LPRT
       LGRAVSTRAT           = Input_Opt%LGRAVSTRAT
       LDSTUP               = Input_Opt%LDSTUP
-      N_TRACERS            = Input_Opt%N_TRACERS
-      TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -784,7 +781,8 @@
 #endif
 
       ! Convert all tracers in STT from [kg] -> [v/v]
-      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT )
+      CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,
+     &                          State_Met, State_Chm, RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
       ENDIF
@@ -856,7 +854,8 @@
       ENDIF
 
       ! Convert STT from [v/v] -> [kg]
-      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT )
+      CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt, 
+     &                          State_Met, State_Chm, RC )
 
       ! Free pointer
       NULLIFY( STT )
@@ -5931,11 +5930,11 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
-      USE DAO_MOD,            ONLY : CONVERT_UNITS 
       USE GIGC_Input_Opt_Mod, ONLY : OptINput 
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN
+      USE UNITCONV_MOD
 ! JKodros (6/2/15 - Allow for different TOMAS bin lengths)
 # if   defined( TOMAS12 )
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTNK5
@@ -5976,6 +5975,7 @@
 !  31 May 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm
 !                              and RC arguments
 !  31 May 2013 - R. Yantosca - Now pass State_Chm to TOMAS routines
+!  30 Sep 2015 - E. Lundgren - Now use UNITCONV_MOD conversion routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5988,27 +5988,18 @@
       REAL(fp)          :: SO4OXID
 
       ! For values from Input_Opt
-      INTEGER           :: N_TRACERS
-      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
       REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
-
-      ! Pointers
-      REAL(fp), POINTER :: AD(:,:,:)
 
       !=================================================================
       ! CHEM_SO4_AQ begins here!
       !=================================================================
  
       ! Copy values from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
-      ! Initialize pointers
-      AD     => State_Met%AD
-
       ! Convert STT from [v/v] -> [kg] 
-      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, State_Chm%Tracers )
+      CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt,
+     &                          State_Met, State_Chm, RC ) 
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -6022,7 +6013,8 @@
          ! Skip non-chemistry boxes
          IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
-         SO4OXID = PSO4_SO2AQ(I,J,L) * AD(I,J,L)/ TCVV(IDTSO4)
+         SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L)
+     &               / Input_Opt%TCVV(IDTSO4)
 
          IF ( SO4OXID > 0e+0_fp ) THEN
 ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin length being used)
@@ -6063,7 +6055,8 @@
 !$OMP END PARALLEL DO
 
        ! Convert STT from [kg] -> [v/v] 
-      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, State_Chm%Tracers )
+      CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,
+     &                          State_Met, State_Chm, RC ) 
       
       ! Free pointers
       NULLIFY( AD )

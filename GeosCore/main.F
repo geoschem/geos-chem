@@ -1123,7 +1123,7 @@
 
          ! Convert tracer concentrations to [kg/m2] before the air
          ! quantity update in order to conserve tracer mass (ewl, 9/17/15)
-         CALL Convert_KgKgDry_to_Kgm2( am_I_Root, N_TRACERS,            
+         CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,            
      &                                     State_Met, State_Chm, RC )
 
          ! Compute updated airmass quantities at each grid box 
@@ -1146,7 +1146,7 @@
 
          ! Convert tracer concentrations back to mixing ratio after
          ! the air quantity updates (ewl, 9/17/15)
-         CALL Convert_Kgm2_to_KgKgDry( am_I_Root, N_TRACERS,             
+         CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,             
      &                                     State_Met, State_Chm, RC )
 
          ! Compute the cosine of the solar zenith angle array
@@ -1441,7 +1441,7 @@
                ! kg/m2 for more tracer mass conservation. In some cases 
                ! SET_H2O_TRAC updates State_Met%SPHU and calls AIRQNT 
                ! (ewl, 9/17/15)
-               CALL Convert_KgKgDry_to_Kgm2( am_I_Root, N_TRACERS,             
+               CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,             
      &                                       State_Met, State_Chm, RC )
 
                CALL SET_H2O_TRAC( am_I_Root, (.not. LUCX), Input_Opt ,
@@ -1449,7 +1449,7 @@
 
                ! Convert tracer concentrations back to mixing ratio after
                ! the air quantity update in SET_H2O_TRAC (ewl, 9/17/15)
-               CALL Convert_Kgm2_to_KgKgDry( am_I_Root, N_TRACERS,  
+               CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,  
      &                                       State_Met, State_Chm, RC )
             ENDIF
 

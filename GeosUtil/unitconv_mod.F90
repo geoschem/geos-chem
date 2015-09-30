@@ -39,7 +39,7 @@ MODULE UnitConv_Mod
   PUBLIC  :: Convert_KgKgDry_to_KgKgTotal
   PUBLIC  :: Convert_KgKgTotal_to_KgKgDry
 
-  ! v/v dry air <-> v/v total air (not currently used)
+  ! v/v dry air <-> v/v total air
   PUBLIC  :: Convert_VVDry_to_VVTotal
   PUBLIC  :: Convert_VVTotal_to_VVDry
 
@@ -60,11 +60,12 @@ MODULE UnitConv_Mod
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   ! kg/kg dry air <-> kg/m2
+  ! Used for wet deposition
   PUBLIC  :: Convert_KgKgDry_to_Kgm2
   PUBLIC  :: Convert_kgm2_to_KgKgDry
 
   !%%%%%%%%%%%%%%%%
-  ! AREA-DEPENDENT
+  ! AREA-DEPENDENT (temporary routines)
   !%%%%%%%%%%%%%%%%
 
   ! kg/kg dry air <-> molec/cm3 dry air
@@ -72,16 +73,22 @@ MODULE UnitConv_Mod
   PUBLIC  :: Convert_KgKgDry_to_MND
   PUBLIC  :: Convert_MND_to_KgKgDry
 
-  ! kg/kg total air <-> kg/grid box (State_Chm%TRACERS, single tracer only)
-  PUBLIC  :: Convert_KgKgTotal_to_Kg
-  PUBLIC  :: Convert_Kg_to_KgKgTotal
+  ! v/v dry air <-> kg/grid box (State_Chm%TRACERS)
+  ! Temporarily replaces legacy CONVERT_UNITS
+  PUBLIC  :: Convert_VVDry_to_Kg
+  PUBLIC  :: Convert_Kg_to_VVDry
 
   ! kg/kg dry air <-> kg/grid box (State_Chm%TRACERS)
   PUBLIC  :: Convert_KgKgDry_to_Kg
   PUBLIC  :: Convert_Kg_to_KgKgDry
 
-  ! kg <-> kg/m2 (State_Chm%TRACERS)
-  ! (area-dependent, eventually remove)
+  ! kg/kg total air <-> kg/grid box (State_Chm%TRACERS, single box only)
+  ! Used for TOMAS compatibility in WASHOUT within wetscav_mod
+  PUBLIC  :: Convert_KgKgTotal_to_Kg
+  PUBLIC  :: Convert_Kg_to_KgKgTotal
+
+  ! kg <-> kg/m2 (State_Chm%TRACERS, single box only)
+  ! Used for TOMAS compatibility in WASHOUT within wetscav_mod
   PUBLIC  :: Convert_Kg_to_Kgm2
   PUBLIC  :: Convert_Kgm2_to_Kg 
 !
@@ -92,6 +99,8 @@ MODULE UnitConv_Mod
 ! !REVISION HISTORY:
 !  23 Jun 2015 - E. Lundgren - Initial version
 !  13 Aug 2015 - E. Lundgren - Add tracer unit error handling
+!  29 Sep 2015 - E. Lundgren - Adjust some of the unit conversions to/from kg
+!                              to be for a single grid box for TOMAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -329,18 +338,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Convert_VVDry_to_VVTotal( am_I_Root, N_TRACERS, &
+  SUBROUTINE Convert_VVDry_to_VVTotal( am_I_Root, Input_Opt, &
                                        State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -404,7 +414,7 @@ CONTAINS
     !$OMP PARALLEL DO           &
     !$OMP DEFAULT( SHARED     ) &
     !$OMP PRIVATE( I, J, L, N ) 
-    DO N = 1, N_TRACERS
+    DO N = 1, Input_Opt%N_TRACERS
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
@@ -436,18 +446,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Convert_VVTotal_to_VVDry( am_I_Root, N_TRACERS, &
+    SUBROUTINE Convert_VVTotal_to_VVDry( am_I_Root, Input_Opt, &
                                          State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
+  USE GIGC_Input_Opt_Mod, ONLY : OptInput
   USE GIGC_State_Met_Mod, ONLY : MetState
   USE GIGC_State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -511,7 +522,7 @@ CONTAINS
     !$OMP PARALLEL DO           &
     !$OMP DEFAULT( SHARED     ) &
     !$OMP PRIVATE( I, J, L, N ) 
-    DO N = 1, N_TRACERS
+    DO N = 1, Input_Opt%N_TRACERS
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
@@ -543,7 +554,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Convert_KgKgDry_to_VVDry( am_I_Root, N_TRACERS, Input_Opt, &
+  SUBROUTINE Convert_KgKgDry_to_VVDry( am_I_Root, Input_Opt, &
                                        State_Chm, RC ) 
 !
 ! USES: 
@@ -554,7 +565,6 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -569,6 +579,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
+!  30 Sep 2015 - E. Lundgren - Remove N_TRACERS from arguments list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -622,7 +633,7 @@ CONTAINS
     !$OMP PARALLEL DO           &
     !$OMP DEFAULT( SHARED     ) &
     !$OMP PRIVATE( I, J, L, N ) 
-    DO N = 1, N_TRACERS
+    DO N = 1, Input_Opt%N_TRACERS
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
@@ -653,7 +664,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Convert_VVDry_to_KgKgDry( am_I_Root, N_TRACERS, Input_Opt, &
+  SUBROUTINE Convert_VVDry_to_KgKgDry( am_I_Root, Input_Opt, &
                                        State_Chm, RC ) 
 !
 ! USES: 
@@ -664,7 +675,6 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -679,6 +689,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
+!  30 Sep 2015 - E. Lundgren - Remove N_TRACERS from arguments list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -732,7 +743,7 @@ CONTAINS
       !$OMP PARALLEL DO           &
       !$OMP DEFAULT( SHARED     ) &
       !$OMP PRIVATE( I, J, L, N ) 
-      DO N = 1, N_TRACERS
+      DO N = 1, Input_Opt%N_TRACERS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -992,11 +1003,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Convert_KgKgDry_to_Kgm2( am_I_Root, N_TRACERS, State_Met,  &
+  SUBROUTINE Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt, State_Met,  &
                                       State_Chm, RC             )
 !
 ! !USES:
 !
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE CMN_GCTM_MOD
@@ -1005,7 +1017,7 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
-    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology state object
 
 !
@@ -1021,6 +1033,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  14 Aug 2015 - E. Lundgren - Initial version
+!  30 Sep 2015 - E. Lundgren - Remove N_TRACERS from arguments list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1069,7 +1082,7 @@ CONTAINS
     !$OMP PARALLEL DO        &
     !$OMP DEFAULT( SHARED  ) &
     !$OMP PRIVATE( I, J, L, SPHU_kgkg ) 
-    DO N = 1, N_TRACERS
+    DO N = 1, Input_Opt%N_TRACERS
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
@@ -1114,11 +1127,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Convert_Kgm2_to_KgKgDry( am_I_Root, N_TRACERS, State_Met, &
+  SUBROUTINE Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt, State_Met, &
                                       State_Chm, RC          )
 !
 ! !USES:
 !
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE CMN_GCTM_MOD
@@ -1126,7 +1140,7 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1141,6 +1155,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  14 Aug 2015 - E. Lundgren - Initial version
+!  30 Sep 2015 - E. Lundgren - Replace N_TRACERS with Input_Opt in args list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1189,7 +1204,7 @@ CONTAINS
     !$OMP PARALLEL DO           &
     !$OMP DEFAULT( SHARED     ) &
     !$OMP PRIVATE( I, J, L, N, SPHU_kgkg ) 
-    DO N = 1, N_TRACERS
+    DO N = 1, Input_Opt%N_TRACERS
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
@@ -1456,28 +1471,28 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convert_kgkgtotal_to_kg
+! !IROUTINE: convert_vvdry_to_kg
 !
-! !DESCRIPTION: Subroutine Convert\_KgKgTotal\_to\_Kg converts the units of 
-!  tracer concentrations from moist mass mixing ratio 
-!  [kg tracer/kg total (wet) air] to tracer mass per grid box [kg] for
-!  a single tracer. 
+! !DESCRIPTION: Subroutine Convert\_VVDry\_to\_Kg converts the units of 
+!  tracer concentrations from dry volume mixing ratio 
+!  [mol tracer/mol dry air] to tracer mass per grid box [kg]. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Convert_KgKgTotal_to_Kg( am_I_Root, N           ,    &
-                                      State_Met, State_Chm, RC   ) 
+  SUBROUTINE Convert_VVDry_to_Kg( am_I_Root, Input_Opt,    &
+                                    State_Met, State_Chm, RC   ) 
 !
 ! !USES:
 !
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-    INTEGER,        INTENT(IN)    :: N           ! Tracer ID
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1490,22 +1505,23 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
+! This routine replaces legacy routine CONVERT_UNITS and will be removed
+! once GEOS-Chem is entirely area independent
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
-!  24 Sep 2015 - E. Lundgren - Now convert for a single tracer    
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: I, J, L
+    INTEGER :: I, J, L, N
     CHARACTER(LEN=255) :: MSG, LOC
 
-    !=================================================================
-    ! Convert_KgKgTotal_to_Kg begins here!
-    !=================================================================
+    !====================================================================
+    ! Convert_KgKgDry_to_Kg begins here!
+    !====================================================================
 
     ! Assume success
     RC        =  GIGC_SUCCESS
@@ -1513,109 +1529,114 @@ CONTAINS
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
-    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg total' ) THEN
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'v/v dry' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
-       LOC = 'Routine Convert_KgKgTotal_to_Kg in unitconv_mod.F90'
+       LOC = 'Routine Convert_VVDry_to_Kg in unitconv_mod.F90'
        CALL GIGC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
 
-    !==============================================================
+    !====================================================================
     !
     !  The conversion is as follows:
     !
-    !   kg tracer(N)            
-    !   -----------  *  kg total air       
-    !   kg total air                   
+    !   mol tracer(N)                g/mol tracer(N)
+    !   -----------  *  kg dry air * --------------      
+    !   mol dry air                  g/mol dry air
     !
-    !   = mass mixing ratio * total air mass  
+    !   = volume mixing ratio * dry air mass * MW tracer(N) / MW dry air 
     !   
     !   = kg tracer(N)
     !
     ! Therefore, with:
     !
-    !  ADMOIST(I,J,L)   = grid box total air mass [kg] (wet)
+    !  AD(I,J,L)   = grid box dry air mass [kg]
+    !  TCVV(N)     = ratio of dry air and tracer molecular weights
     !     
     ! the conversion is:
     ! 
     !  TRACERS(I,J,L,N) [kg]
     !
-    !    = TRACERS(I,J,L,N) [kg/kg] * ADMOIST(I,J,L)
+    !    = TRACERS(I,J,L,N) [v/v] * AD(I,J,L) / TCVV (N)
     !                   
-    !==============================================================
+    !====================================================================
 
     !$OMP PARALLEL DO           &
     !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L ) 
+    !$OMP PRIVATE( I, J, L, N ) 
+    DO N = 1, Input_Opt%N_TRACERS
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)  &
-                                  * State_Met%ADMOIST(I,J,L)
+                                  * State_Met%AD(I,J,L)         &
+                                  / Input_Opt%TCVV(N)
+    ENDDO
     ENDDO
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
 
     ! Update tracer units
-    State_Chm%Trac_Units = 'kg (single tracer)'
+    State_Chm%Trac_Units = 'kg'
 
-  END SUBROUTINE Convert_KgKgTotal_to_Kg
+  END SUBROUTINE Convert_VVDry_to_Kg
 !EOC
-
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convert_kg_to_kgkgtotal
+! !IROUTINE: convert_kg_to_vvdry
 !
-! !DESCRIPTION: Subroutine Convert\_Kg\_to\_KgKgTotal converts the units of 
-!  tracer concentrations from tracer mass per grid box [kg] to mass 
-!  mixing ratio [kg tracer/kg total (wet) air]. 
+! !DESCRIPTION: Subroutine Convert\_Kg\_to\_VVDry converts the units of 
+!  tracer concentrations from tracer mass per grid box [kg] to dry volume 
+!  mixing ratio [mol tracer/mol dry air].  
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Convert_Kg_to_KgKgTotal( am_I_Root, N,    &
-                                      State_Met, State_Chm, RC   ) 
+  SUBROUTINE Convert_Kg_to_VVDry( am_I_Root, Input_Opt,   &
+                                    State_Met, State_Chm, RC   ) 
 !
 ! !USES:
 !
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-    INTEGER,        INTENT(IN)    :: N           ! Tracer id
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    ! Object containing tracer concentration
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object 
 !
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
+! This routine replaces legacy routine CONVERT_UNITS and will be removed
+! once GEOS-Chem is entirely area independent
 !
 ! !REVISION HISTORY: 
 !  08 Jan 2015 - E. Lundgren - Initial version
-!  24 Sep 2015 - E. Lundgren - Now convert for a single tracer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: I, J, L
+    INTEGER :: I, J, L, N
+    INTEGER :: N_TRACERS
     CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
-    ! Convert_Kg_to_KgKgTotal begins here!
+    ! Convert_Kg_to_VVDry begins here!
     !====================================================================
 
     ! Assume success
@@ -1624,9 +1645,9 @@ CONTAINS
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
     ! to calling routine. 
-    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg (single tracer)' ) THEN
+    IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
        MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Trac_Units )
-       LOC = 'Routine Convert_Kg_to_KgKgTotal in unitconv_mod.F90'
+       LOC = 'Routine Convert_Kg_to_VVDry in unitconv_mod.F90'
        CALL GIGC_Error( MSG, RC, LOC )
        RETURN
     ENDIF
@@ -1635,43 +1656,47 @@ CONTAINS
     !
     !  The conversion is as follows:
     !
-    !                         1          
-    !   kg tracer(N)  * --------------      
-    !                    kg total air              
+    !                         1           g/mol dry air
+    !   kg tracer(N)  * --------------  * --------------    
+    !                    kg dry air       g/mol tracer(N)      
     !
-    !   = kg tracer(N) / total air mass
+    !   = kg tracer(N) / dry air mass * MW dry air / MW tracer(N)
     !   
-    !   = mass mixing ratio
+    !   = volume mixing ratio
     !
     ! Therefore, with:
     !
-    !  ADMOIST(I,J,L)    = grid box total air mass [kg] (wet)
+    !  AD(I,J,L)    = grid box dry air mass [kg]
+    !  TCVV(N)      = ratio of dry air and tracer molecular weights
     !     
     ! the conversion is:
     ! 
-    !  TRACERS(I,J,L,N) [kg/kg]
+    !  TRACERS(I,J,L,N) [v/v]
     !
-    !    = TRACERS(I,J,L,N) [kg] / ADMOIST(I,J,L) 
+    !    = TRACERS(I,J,L,N) [kg] * TCVV(N) / AD(I,J,L) 
     !                   
     !====================================================================
 
     !$OMP PARALLEL DO           &
     !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L ) 
+    !$OMP PRIVATE( I, J, L, N ) 
+    DO N = 1, Input_Opt%N_TRACERS
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
-       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) &
-                                  / State_Met%ADMOIST(I,J,L)
+       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)  &
+                                  * Input_Opt%TCVV(N)           &
+                                  / State_Met%AD(I,J,L)
+    ENDDO
     ENDDO
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
 
     ! Update tracer units
-    State_Chm%Trac_Units = 'kg/kg total'
+    State_Chm%Trac_Units = 'v/v dry'
 
-  END SUBROUTINE Convert_Kg_to_KgKgTotal
+  END SUBROUTINE Convert_Kg_to_VVDry 
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1899,16 +1924,222 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convert_kg_to_kgm2
+! !IROUTINE: convert_kgkgtotal_to_kg
 !
-! !DESCRIPTION: Subroutine Convert\_Kg\_to\_kgm2 converts the units of 
-! mass [kg] to area density [kg/m2].  
+! !DESCRIPTION: Subroutine Convert\_KgKgTotal\_to\_Kg converts the units of 
+!  tracer concentrations from moist mass mixing ratio [kg tracer/kg total 
+!  (wet) air] to tracer mass per grid box [kg] for a single grid box. 
+!  This routine is temporary during the unit transition of TOMAS to 
+!  area-independence.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Convert_Kg_to_Kgm2( am_I_Root, N_TRACERS, State_Met,  &
-                                      State_Chm, RC             )
+  SUBROUTINE Convert_KgKgTotal_to_Kg( am_I_Root, I, J, L, N_TRACERS,    &
+                                      State_Met, State_Chm, RC   ) 
+!
+! !USES:
+!
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    INTEGER,        INTENT(IN)    :: I, J, L     ! Grid box indexes
+    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    ! Object containing tracer concentration
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  This routine is temporary and is only used for local conversion of tracer 
+!  concentrations for use in TOMAS within wetscav_mod routine WASHOUT. 
+!  That routine is called within a parallel do loop and therefore units can
+!  only be converted per grid box to avoid excessive computation time. Also,
+!  State_Chm%Trac_Units cannot be changed within the parallel do loop without
+!  causing problems. It is therefore left out of this routine.
+!
+! !REVISION HISTORY: 
+!  08 Jan 2015 - E. Lundgren - Initial version
+!  29 Sep 2015 - E. Lundgren - Now convert for a single grid box 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: N
+    CHARACTER(LEN=255) :: MSG, LOC
+
+    !=================================================================
+    ! Convert_KgKgTotal_to_Kg begins here!
+    !=================================================================
+
+    ! Assume success
+    RC        =  GIGC_SUCCESS
+
+    !==============================================================
+    !
+    !  The conversion is as follows:
+    !
+    !   kg tracer(N)            
+    !   -----------  *  kg total air       
+    !   kg total air                   
+    !
+    !   = mass mixing ratio * total air mass  
+    !   
+    !   = kg tracer(N)
+    !
+    ! Therefore, with:
+    !
+    !  ADMOIST(I,J,L)   = grid box total air mass [kg] (wet)
+    !     
+    ! the conversion is:
+    ! 
+    !  TRACERS(I,J,L,N) [kg]
+    !
+    !    = TRACERS(I,J,L,N) [kg/kg] * ADMOIST(I,J,L)
+    !                   
+    !==============================================================
+
+    !$OMP PARALLEL DO           &
+    !$OMP DEFAULT( SHARED     ) &
+    !$OMP PRIVATE( N ) 
+    DO N = 1, N_TRACERS
+       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)  &
+                                  * State_Met%ADMOIST(I,J,L)
+    ENDDO
+    !$OMP END PARALLEL DO
+
+  END SUBROUTINE Convert_KgKgTotal_to_Kg
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: convert_kg_to_kgkgtotal
+!
+! !DESCRIPTION: Subroutine Convert\_Kg\_to\_KgKgTotal converts the units of 
+!  tracer concentrations from tracer mass per grid box [kg] to mass 
+!  mixing ratio [kg tracer/kg total (wet) air] for a single grid box.
+!  This routine is temporary during the unit transition of TOMAS to 
+!  area-independence.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Convert_Kg_to_KgKgTotal( am_I_Root, I, J, L, N_TRACERS,    &
+                                      State_Met, State_Chm, RC   ) 
+!
+! !USES:
+!
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    INTEGER,        INTENT(IN)    :: I, J, L     ! Grid box indexes
+    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    ! Object containing tracer concentration
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  This routine is temporary and is only used for local conversion of tracer 
+!  concentrations for use in TOMAS within wetscav_mod routine WASHOUT. 
+!  That routine is called within a parallel do loop and therefore units can
+!  only be converted per grid box to avoid excessive computation time. Also,
+!  State_Chm%Trac_Units cannot be changed within the parallel do loop without
+!  causing problems. It is therefore left out of this routine.
+!
+! !REVISION HISTORY: 
+!  08 Jan 2015 - E. Lundgren - Initial version
+!  29 Sep 2015 - E. Lundgren - Now convert for a single grid box
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: N
+    CHARACTER(LEN=255) :: MSG, LOC
+
+    !====================================================================
+    ! Convert_Kg_to_KgKgTotal begins here!
+    !====================================================================
+
+    ! Assume success
+    RC        =  GIGC_SUCCESS
+
+    !====================================================================
+    !
+    !  The conversion is as follows:
+    !
+    !                         1          
+    !   kg tracer(N)  * --------------      
+    !                    kg total air              
+    !
+    !   = kg tracer(N) / total air mass
+    !   
+    !   = mass mixing ratio
+    !
+    ! Therefore, with:
+    !
+    !  ADMOIST(I,J,L)    = grid box total air mass [kg] (wet)
+    !     
+    ! the conversion is:
+    ! 
+    !  TRACERS(I,J,L,N) [kg/kg]
+    !
+    !    = TRACERS(I,J,L,N) [kg] / ADMOIST(I,J,L) 
+    !                   
+    !====================================================================
+
+    !$OMP PARALLEL DO           &
+    !$OMP DEFAULT( SHARED     ) &
+    !$OMP PRIVATE( N ) 
+    DO N = 1, N_TRACERS
+       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) &
+                                  / State_Met%ADMOIST(I,J,L)
+    ENDDO
+    !$OMP END PARALLEL DO
+
+  END SUBROUTINE Convert_Kg_to_KgKgTotal
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: convert_kg_to_kgm2
+!
+! !DESCRIPTION: Subroutine Convert\_Kg\_to\_kgm2 converts the units of 
+! mass [kg] to area density [kg/m2] for a single grid box.  This routine is
+!  temporary during the unit transition of TOMAS to area-independence. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Convert_Kg_to_Kgm2( am_I_Root, I, J, L, N_TRACERS,      &
+                                 State_Met, State_Chm, RC        )
 !
 ! !USES:
 !
@@ -1919,7 +2150,8 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
-    INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
+    INTEGER,        INTENT(IN)    :: I, J, L       ! Grid box indexes
+    INTEGER,        INTENT(IN)    :: N_TRACERS     ! Number of tracers
     TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology state object
 
 !
@@ -1932,16 +2164,23 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC            ! Success or failure?
 !
 ! !REMARKS:
+!  This routine is temporary and is only used for local conversion of tracer 
+!  concentrations for use in TOMAS within wetscav_mod routine WASHOUT. 
+!  That routine is called within a parallel do loop and therefore units can
+!  only be converted per grid box to avoid excessive computation time. Also,
+!  State_Chm%Trac_Units cannot be changed within the parallel do loop without
+!  causing problems. It is therefore left out of this routine.
 !
 ! !REVISION HISTORY: 
 !  14 Aug 2015 - E. Lundgren - Initial version
+!  29 Sep 2015 - E. Lundgren - Now convert for a single grid box only
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: I, J, L, N
+    INTEGER :: N
     CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
@@ -1959,16 +2198,10 @@ CONTAINS
 
     !$OMP PARALLEL DO        &
     !$OMP DEFAULT( SHARED  ) &
-    !$OMP PRIVATE( I, J, L, N ) 
+    !$OMP PRIVATE( N ) 
     DO N = 1, N_TRACERS
-    DO L = 1, LLPAR
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)    &
                                      / State_Met%AREA_M2(I,J,1)
-    ENDDO
-    ENDDO
-    ENDDO
     ENDDO
     !$OMP END PARALLEL DO
 
@@ -1982,13 +2215,14 @@ CONTAINS
 ! !IROUTINE: convert_kgm2_to_kg
 !
 ! !DESCRIPTION: Subroutine Convert\_Kgm2\_to\_Kg converts the units of area 
-!  density [kg/m2] to mass [kg].  
+!  density [kg/m2] to mass [kg] for a single grid box. This routine is
+!  temporary during the unit transition of TOMAS to area-independence.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Convert_Kgm2_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
-                                      State_Chm, RC             )
+  SUBROUTINE Convert_Kgm2_to_Kg( am_I_Root, I, J, L, N_TRACERS,   &
+                                 State_Met, State_Chm, RC        )
 !
 ! !USES:
 !
@@ -1999,6 +2233,7 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
+    INTEGER,        INTENT(IN)    :: I, J, L       ! Grid box indexes
     INTEGER,        INTENT(IN)    :: N_TRACERS   ! Number of tracers
     TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology state object
 
@@ -2012,16 +2247,23 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC            ! Success or failure?
 !
 ! !REMARKS:
+!  This routine is temporary and is only used for local conversion of tracer 
+!  concentrations for use in TOMAS within wetscav_mod routine WASHOUT. 
+!  That routine is called within a parallel do loop and therefore units can
+!  only be converted per grid box to avoid excessive computation time. Also,
+!  State_Chm%Trac_Units cannot be changed within the parallel do loop without
+!  causing problems. It is therefore left out of this routine.
 !
 ! !REVISION HISTORY: 
 !  14 Aug 2015 - E. Lundgren - Initial version
+!  29 Sep 2015 - E. Lundgren - Now convert for a single grid box only
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, J, L, N
+    INTEGER            :: N
     CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
@@ -2039,16 +2281,10 @@ CONTAINS
 
     !$OMP PARALLEL DO        &
     !$OMP DEFAULT( SHARED  ) &
-    !$OMP PRIVATE( I, J, L, N ) 
+    !$OMP PRIVATE( N ) 
     DO N = 1, N_TRACERS
-    DO L = 1, LLPAR
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
        State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)    &
                                      * State_Met%AREA_M2(I,J,1)
-    ENDDO
-    ENDDO
-    ENDDO
     ENDDO
     !$OMP END PARALLEL DO
 

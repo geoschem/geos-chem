@@ -101,6 +101,7 @@
       !debug
       integer   :: ii, jj , ix, jx, bb, ll
       data ii,jj, ix, jx, bb, ll /55, 29, 55, 29, 1, 1 /
+      CHARACTER(LEN=255) :: LOC, MSG
 
       ! For fields from Input_Opt
       LOGICAL         :: LPRT
@@ -118,6 +119,13 @@
 
       ! Assume success
       RC        = GIGC_SUCCESS
+
+      ! Check that tracer units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+         LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
+         CALL GIGC_Error( MSG, RC, LOC )
+      ENDIF
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM    = GET_TS_CHEM() * 60d0
@@ -504,6 +512,14 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
       NULLIFY( STT      )
       NULLIFY( BXHEIGHT )
       NULLIFY( T        )
+
+      ! Check that tracer units are still in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect tracer units at end of routine: ' 
+     &            // TRIM(State_Chm%Trac_Units)
+         LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
+         CALL GIGC_Error( MSG, RC, LOC )
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE AERO_DRYDEP

@@ -190,7 +190,6 @@ CONTAINS
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE CMN_SIZE_MOD
-    USE DAO_MOD,            ONLY : CONVERT_UNITS
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
     USE GIGC_ErrCode_Mod
@@ -204,6 +203,7 @@ CONTAINS
     USE TRACERID_MOD,       ONLY : IDTCHBr3
     USE TRACERID_MOD,       ONLY : IDTCH2Br2
     USE TRACERID_MOD,       ONLY : IDTCH3Br
+    USE UNITCONV_MOD
 
     IMPLICIT NONE
 !
@@ -246,6 +246,7 @@ CONTAINS
 !  30 Dec 2014 - C. Keller   - Now get Bry data through HEMCO.
 !  24 Mar 2015 - E. Lundgren - Replace dependency on tracer_mod with
 !                              CMN_GTCM_MOD for XNUMOLAIR
+!  30 Sep 2015 - E. Lundgren - Now use UNITCONV_MOD for unit conversion
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -600,7 +601,9 @@ CONTAINS
        ! Intial conditions
        STT0(:,:,:,:) = STT(:,:,:,:)
 
-       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
+       ! Convert units: kg -> v/v
+       CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,     &
+                                 State_Met, State_Chm, RC=errCode )
 
        IF ( LLINOZ ) THEN
           CALL Do_Linoz( am_I_Root, Input_Opt,             &
@@ -610,7 +613,9 @@ CONTAINS
                          State_Met, State_Chm, RC=errCode )
        ENDIF
 
-       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
+       ! Convert units: v/v -> kg
+       CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt,     &
+                                 State_Met, State_Chm, RC=errCode )
 
        ! Add to tropopause level aggregator for later determining STE flux
        TpauseL_CNT = TpauseL_CNT + 1e+0_fp

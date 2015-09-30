@@ -254,11 +254,15 @@
       CALL CHECKMN( 0,         0,         0,     Input_Opt, 
      &              State_Met, State_Chm, 'Before Aerodrydep', RC)
 
+! in kg
+
       ! Do dry deposition
       IF ( Input_Opt%LDRYD ) THEN
          CALL AERO_DRYDEP
      &        ( am_I_Root, Input_Opt, State_Met, State_Chm,RC )
       ENDIF
+
+! not in kg
 
 #if defined ( DEBUG ) 
       print *, 'call checkmn in tomas_mod:229'
@@ -3407,7 +3411,7 @@ Cjrp      endif
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
          MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
          LOC = 'Routine AQOXID in tomas_mod.F'
-         CALL GIGC_Error( MSG, RC, LOC )
+         CALL ERROR_STOP( MSG, LOC )
       ENDIF
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -3713,10 +3717,9 @@ Cjrp      endif
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
          MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
          LOC = 'Routine SOACOND in tomas_mod.F'
-         CALL GIGC_Error( MSG, RC, LOC )
+         CALL ERROR_STOP( MSG, LOC )
       ENDIF
-
-      
+ 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
@@ -6223,7 +6226,7 @@ c         SRTH2O = ICOMP
 !------------------------------------------------------------------------------
 
       SUBROUTINE GETFRACTION
-     &   ( I, J, L, N, LS, FRACTION, SOLFRAC, STT )
+     &   ( I, J, L, N, LS, State_Met, FRACTION, SOLFRAC, State_Chm )
 
 !
 !******************************************************************************
@@ -6240,6 +6243,8 @@ c         SRTH2O = ICOMP
 !                     given grid box
 !
 !  NOTES:
+!  Now pass State_Chm instead of STT array, and pass State_Met to enable
+!  local tracer concentration unit conversion (ewl, 9/29/15)
 !******************************************************************************
 
       ! Reference to F90 modules
@@ -6248,12 +6253,16 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1, IDTECOB1
       USE TRACERID_MOD, ONLY : IDTNK1,   IDTSF1,   IDTSS1,   IDTDUST1
       USE CMN_SIZE_MOD      ! Size parameters
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE GIGC_State_Chm_Mod, ONLY : ChmState          ! Chemistry State object
+      USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
 
       ! Arguments
       INTEGER,        INTENT(IN)    :: I, J, L, N
       LOGICAL,        INTENT(IN)    :: LS
+      TYPE(MetState), INTENT(IN)    :: State_Met    ! Met State object
       REAL(fp),       INTENT(OUT)   :: FRACTION, SOLFRAC
-      REAL(fp),       INTENT(INOUT) :: STT(:,:,:,:)            ! Tracer array
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
 
       ! Local variables
       REAL*4                 ::  MECIL, MOCIL, MOCOB, MSO4, MNACL, MTOT
@@ -6263,10 +6272,41 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       INTEGER                ::  GETBINACT
       INTEGER                ::  BIN
       INTEGER                ::  OFFSET
+      CHARACTER(LEN=255)     ::  MSG, LOC
+      REAL(fp)               ::  UNITFACTOR
+
+      ! Pointers
+      ! We need to define local array to hold tracer concentraiton values 
+      ! from the Chemistry State (State_Chm) object (ewl, 9/29/15)
+      REAL(fp), POINTER      :: STT(:,:,:,:)
 
       !=================================================================
       ! GETFRACTION begins here
       !=================================================================
+
+!      ! Check that tracer units are in [kg] (ewl, 8/13/15)
+!      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+!         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+!         LOC = 'Routine GETFRACTION in tomas_mod.F'
+!         CALL ERROR_STOP( MSG, LOC )
+!      ENDIF
+
+      ! Determine factor used to convert STT to units of [kg] locally
+      ! (ewl, 9/29/15)
+      IF ( TRIM( State_Chm%Trac_Units ) == 'kg/m2' ) THEN
+         UNITFACTOR = State_Met%AREA_M2( I, J, 1 )
+      ELSE IF (  TRIM( State_Chm%Trac_Units ) == 'kg/kg total' ) THEN
+         UNITFACTOR = State_Met%ADMOIST( I, J, L )
+      ELSE 
+         MSG = 'Unexpected tracer units: ' // TRIM(State_Chm%Trac_Units)
+         LOC = 'Routine GETFRACTION in tomas_mod.F'      
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF 
+         
+      ! Initialize GEOS-Chem tracer array from Chemistry State object.
+      ! Units are now [kg/m2] in wet deposition and [kg/kg total air] in 
+      ! convection (ewl, 9/29/15)
+      STT => State_Chm%Tracers
 
       BIN = N - IDTNK1 + 1
       IF ( BIN > IBINS ) THEN
@@ -6282,14 +6322,15 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       MDUST = 0.E0
 
       IF ( IDTECIL1 > 0 .AND.IDTOCIL1 > 0 .AND. IDTOCOB1 > 0 ) THEN
-         MECIL = STT(I,J,L,IDTECIL1-1+BIN)
-         MOCIL = STT(I,J,L,IDTOCIL1-1+BIN)
-         MOCOB = STT(I,J,L,IDTOCOB1-1+BIN)
+         MECIL = STT(I,J,L,IDTECIL1-1+BIN) * UNITFACTOR
+         MOCIL = STT(I,J,L,IDTOCIL1-1+BIN) * UNITFACTOR
+         MOCOB = STT(I,J,L,IDTOCOB1-1+BIN) * UNITFACTOR
       ENDIF
-      IF ( IDTDUST1 > 0 ) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
+      IF ( IDTDUST1 > 0 ) MDUST = STT(I,J,L,IDTDUST1-1+BIN) * UNITFACTOR
       !account for ammonium sulfate
       IF ( IDTSF1 > 0 ) MSO4  = STT(I,J,L,IDTSF1-1+BIN) * 1.2 
-      IF ( IDTSS1 > 0 ) MNACL = STT(I,J,L,IDTSS1-1+BIN)
+     &                          * UNITFACTOR
+      IF ( IDTSS1 > 0 ) MNACL = STT(I,J,L,IDTSS1-1+BIN) * UNITFACTOR
       MTOT  = MECIL + MOCIL + MOCOB + MSO4 + MNACL + MDUST + 1.e-20
       XOCIL = MOCIL / MTOT
       XSO4  = MSO4  / MTOT
@@ -6337,11 +6378,12 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
 
       ! Calculate the soluble fraction of mass
       MECOB = 0.E0
-      IF ( IDTECOB1 > 0 ) MECOB = STT(I,J,L,IDTECOB1-1+BIN)
+      IF ( IDTECOB1 > 0 ) MECOB = STT(I,J,L,IDTECOB1-1+BIN) * UNITFACTOR
       SOLFRAC = MTOT / ( MTOT + MECOB ) 
 
-      ! Return to calling program
-      RETURN
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE GETFRACTION
       
 !------------------------------------------------------------------------------
@@ -6406,7 +6448,7 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
          MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
          LOC = 'Routine GETACTBIN in tomas_mod.F'
-         CALL GIGC_Error( MSG, RC, LOC )
+         CALL ERROR_STOP( MSG, LOC )
       ENDIF
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -6602,18 +6644,21 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       REAL(fp), POINTER   :: STT(:,:,:,:)
 
       !========================================================================
-      ! EZWATEREQM begins here!
+      ! EZWATEREQM2 begins here!
       !========================================================================
 
       ! Assume success
       RC                =  GIGC_SUCCESS
 
-      ! Check that tracer units are in [kg] (ewl, 8/13/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
-         LOC = 'Routine EZWATEREQM2 in tomas_mod.F'
-         CALL GIGC_Error( MSG, RC, LOC )
-      ENDIF
+! Comment out since called within parallel do loop (when washout called 
+! in convection)
+!      ! Check that tracer units are in [kg]  (ewl, 8/13/15)
+!      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' .AND.
+!     &     TRIM( State_Chm%Trac_Units ) /= 'kg (single box)' ) THEN
+!         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+!         LOC = 'Routine EZWATEREQM2 in tomas_mod.F'
+!         CALL ERROR_STOP( MSG, LOC )
+!      ENDIF
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -6776,6 +6821,7 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       REAL(fp)            :: MSO4, MNACL, MH2O
       REAL(fp)            :: MECIL, MECOB, MOCIL, MOCOB, MDUST
       LOGICAL             :: UNITCONV = .FALSE.
+      CHARACTER(LEN=255)  :: MSG, LOC
 
       ! Pointers
       ! Define a local array to hold tracer concentration values from the 
@@ -6800,17 +6846,26 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg dry' ) THEN
          CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met, 
      &                               State_Chm, RC ) 
+         UNITCONV = .TRUE.
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL GIGC_Error('Unit conversion error', RC, 
      &                      'Routine AERO_DIADEN in tomas_mod.F')
             RETURN
          ENDIF 
-         UNITCONV = .TRUE.
       ELSE IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
          CALL GIGC_Error('Incorrect tracer units for TOMAS: ' // 
      &                   TRIM( State_Chm%Trac_Units ), RC, 
      &                   'Routine AERO_DIADEN in tomas_mod.F')
          RETURN
+      ELSE
+         UNITCONV = .FALSE.
+      ENDIF
+
+      ! Check that tracer units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+         LOC = 'Routine AERO_DIADEN in tomas_mod.F'
+         CALL GIGC_Error( MSG, RC, LOC )
       ENDIF
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -6878,6 +6933,14 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Check that tracer units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect tracer units at end of AERO_DIADEN: '
+     &           // TRIM(State_Chm%Trac_Units)
+         LOC = 'Routine AERO_DIADEN in tomas_mod.F'
+         CALL GIGC_Error( MSG, RC, LOC )
+      ENDIF
+
       ! If units were originally [kg/kg dry], convert [kg] back to mixing 
       ! ratio (ewl, 8/12/15)
       IF ( UNITCONV ) THEN
@@ -6889,7 +6952,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
             RETURN
          ENDIF 
       ENDIF
-
+      
       ! Free pointer
       NULLIFY( STT )
 
@@ -6985,14 +7048,11 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ERRORSWITCH = .FALSE.
 
-      ! Check that tracer units are in [kg]. While tracer units
-      ! are now generally [kg/kg] in GEOS-Chem, they are converted to 
-      ! kg for TOMAS elsewhere in tomas_mod prior to calling this subroutine 
-      ! (ewl, 8/13/15)
+      ! Check that tracer units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
          MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
          LOC = 'Routine CHECKMN in tomas_mod.F'
-         CALL GIGC_Error( MSG, RC, LOC )
+         CALL ERROR_STOP( MSG, LOC )
       ENDIF
 
       ! Check throughout all grid boxes
@@ -8510,12 +8570,16 @@ Cpja Perform some numerical checks on dmdt_int
       ! Assume success
       RC                =  GIGC_SUCCESS
 
-      ! Check that tracer units are in [kg] (ewl, 8/13/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
-         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
-         LOC = 'Routine GET_DP in tomas_mod.F'
-         CALL GIGC_Error( MSG, RC, LOC )
-      ENDIF
+! Comment out since called from WASHFRAC_SIZE_AEROSOL in WASHOUT and
+! ultimately called within parallel do loop so tracer units string can not 
+! be changed.
+!      ! Check that tracer units are in [kg] (ewl, 8/13/15)
+!      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg'  .AND.
+!     &     TRIM( State_Chm%Trac_Units ) /= 'kg (single box)' ) THEN
+!         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+!         LOC = 'Routine GET_DP in tomas_mod.F'
+!         CALL ERROR_STOP( MSG, LOC )
+!      ENDIF
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
