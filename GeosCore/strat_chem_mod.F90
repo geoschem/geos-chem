@@ -329,9 +329,6 @@ CONTAINS
     ! concentrations at model initialization if necessary
     LRESET = (FIRST.AND.LBRGCCM)
 
-    ! Set first-time flag to false
-    FIRST = .FALSE.    
-
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
     ENDIF
@@ -431,14 +428,13 @@ CONTAINS
           CALL Do_Synoz( am_I_Root, Input_Opt,             &
                          State_Met, State_Chm, RC=errCode )
        ENDIF
-
+ 
        ! Put ozone back to kg
        STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * AD / TCVV( IDTO3 )
 
        ! Put tendency into diagnostic array [kg box-1]
        SCHEM_TEND(:,:,:,IDTO3) = SCHEM_TEND(:,:,:,IDTO3) + &
                                                   ( STT(:,:,:,IDTO3) - BEFORE )
-
 
        !========================================
        ! Reactions with OH
@@ -645,6 +641,9 @@ CONTAINS
        CALL GEOS_CHEM_STOP
        
     ENDIF
+
+    ! Set first-time flag to false
+    FIRST = .FALSE.    
 
     ! Free pointer
     NULLIFY( STT )
@@ -1052,7 +1051,6 @@ CONTAINS
                Input_Opt%TRACER_MW_KG(N)*1e+3_fp,           & ! g/mol
                STE*1e-9_fp                                    ! Tg a-1
        ENDIF
-
     ENDDO
 
 120 FORMAT( 2x,a8,':',4x,e11.3,4x,f9.1,4x,f11.4 )

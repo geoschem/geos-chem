@@ -112,10 +112,12 @@ debug:
 drydep_toolbox_mod.o        : drydep_toolbox_mod.F90
 
 hcox_aerocom_mod.o          : hcox_aerocom_mod.F90            \
-                              hcox_state_mod.o		      
+                              hcox_state_mod.o		      \
+                              hcox_tools_mod.o
 
 hcox_ch4wetland_mod.o       : hcox_ch4wetland_mod.F90         \
-                              hcox_state_mod.o		      
+                              hcox_state_mod.o		      \
+                              hcox_tools_mod.o
 
 hcox_custom_mod.o           : hcox_custom_mod.F90             \
                               hcox_state_mod.o		      
@@ -157,14 +159,17 @@ hcox_gc_RnPbBe_mod.o        : hcox_gc_RnPbBe_mod.F90          \
 hcox_gfed_mod.o             : hcox_gfed_mod.F90               \
                               hcox_gfed_include_gfed3.H       \
                               hcox_gfed_include_gfed4.H       \
-                              hcox_state_mod.o		      
+                              hcox_state_mod.o		      \
+                              hcox_tools_mod.o
 
 hcox_finn_mod.o             : hcox_finn_mod.F90               \
                               hcox_finn_include.H             \
-                              hcox_state_mod.o		      
+                              hcox_state_mod.o		      \
+                              hcox_tools_mod.o
 
 hcox_lightnox_mod.o         : hcox_lightnox_mod.F90           \
-                              hcox_state_mod.o
+                              hcox_state_mod.o                \
+                              hcox_tools_mod.o
 
 hcox_megan_mod.o            : hcox_megan_mod.F                \
                               hcox_state_mod.o
@@ -181,12 +186,15 @@ hcox_seasalt_mod.o          : hcox_seasalt_mod.F90            \
 
 hcox_soilnox_mod.o          : hcox_soilnox_mod.F90            \
                               hcox_state_mod.o                \
+                              hcox_tools_mod.o                \
                               drydep_toolbox_mod.o
 
 hcox_state_mod.o            : hcox_state_mod.F90
 
 hcox_tomas_seasalt_mod.o    : hcox_tomas_seasalt_mod.F90      \
                               hcox_state_mod.o
+
+hcox_tools_mod.o            : hcox_tools_mod.F90
 
 hcox_tomas_dustdead_mod.o   : hcox_tomas_dustdead_mod.F       \
                               hcox_state_mod.o

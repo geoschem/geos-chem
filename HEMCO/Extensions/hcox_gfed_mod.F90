@@ -21,6 +21,7 @@ MODULE HCOX_GFED_MOD
 ! 
   USE HCO_ERROR_MOD
   USE HCO_DIAGN_MOD
+  USE HCOX_TOOLS_MOD
   USE HCO_STATE_MOD,  ONLY : HCO_State
   USE HCOX_State_MOD, ONLY : Ext_State
 
@@ -38,7 +39,26 @@ MODULE HCOX_GFED_MOD
 !  multiplied by daily and 3hourly fractions (if necessary), and then
 !  multiplied by the appropriate emission factors to produce biomass
 !  burning emissions.
-!                                                                             .
+!
+! All species to be used must be listed in the settings section of the HEMCO
+! configuration file. For every listed species, individual scale factors as 
+! well as masks can be defined. For example, to scale FINN CO emissions by a 
+! factor of 1.05 and restrict them to North America, as well as to scale NO
+! emissions by a factor of 1.5: 
+!
+!111     GFED              : on    NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C3H8/CH2O/C2H6/SO2/NH3/BCPI/BCPO/OCPI/OCPO
+!    --> GFED3             :       false
+!    --> GFED4             :       true
+!    --> GFED_daily        :       false
+!    --> GFED_3hourly      :       false
+!    --> hydrophilic BC    :       0.2
+!    --> hydrophilic OC    :       0.5
+!    --> Mask_CO           :       NAMASK 
+!    --> Scaling_CO        :       1.05 
+!    --> Scaling_NO        :       1.5 
+!
+! Field NAMASK must be defined in section mask of the HEMCO configuration file.
+!                                                                             
 !  References:
 !  ============================================================================
 !  (1 ) Original GFED3 database from Guido van der Werf 
@@ -110,11 +130,15 @@ MODULE HCOX_GFED_MOD
   ! SpcNames : Names of all used GFED species
   ! HcoIDs   : HEMCO species IDs of all used GFED species 
   ! gfedIDs  : Index of used GFED species in scale factor table 
+  ! SpcScal  : Additional scaling factors assigned to species through
+  !            the HEMCO configuration file (e.g. Scaling_CO). 
   !=================================================================
   INTEGER                        :: nSpc
   CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
+  CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
   INTEGER,           ALLOCATABLE :: HcoIDs(:)
   INTEGER,           ALLOCATABLE :: GfedIDs(:)
+  REAL(sp),          ALLOCATABLE :: SpcScal(:)
 
   !=================================================================
   ! SCALE FACTORS 
@@ -141,11 +165,8 @@ MODULE HCOX_GFED_MOD
   REAL(hp), ALLOCATABLE, TARGET  :: GFED3_EMFAC(:,:)
   REAL(hp), ALLOCATABLE, TARGET  :: GFED4_EMFAC(:,:)
   REAL(hp),              POINTER :: GFED_EMFAC (:,:) => NULL()
-  REAL(sp)                       :: COScale
   REAL(sp)                       :: OCPIfrac 
   REAL(sp)                       :: BCPIfrac
-  REAL(sp)                       :: POASCALE
-  REAL(sp)                       :: NAPSCALE
 
   !=================================================================
   ! DATA ARRAY POINTERS 
@@ -208,7 +229,7 @@ CONTAINS
 !
     LOGICAL, SAVE       :: FIRST = .TRUE.
     INTEGER             :: N, M
-    REAL(sp), POINTER   :: TMPPTR(:,:) => NULL()
+    REAL(sp), POINTER   :: TmpPtr(:,:)  => NULL()
     CHARACTER(LEN=63)   :: MSG
 
     REAL(hp), TARGET    :: SpcArr(HcoState%NX,HcoState%NY)
@@ -330,9 +351,6 @@ CONTAINS
           ! of the humid tropical forest mask. This makes the calculation
           ! less dependent on model resolution. (ckeller, 4/3/15) 
           IF ( M == 2 .AND. IsGFED3 ) THEN
-!             WHERE ( HUMTROP == 0.0_hp ) 
-!                TypArr = TmpPtr * GFED_EMFAC(GfedIDs(N),6)
-!             END WHERE
              TypArr = TmpPtr *         HUMTROP  * GFED_EMFAC(GfedIDs(N),M) &
                     + TmpPtr * (1.0_sp-HUMTROP) * GFED_EMFAC(GfedIDs(N),6)
           ELSE
@@ -361,9 +379,9 @@ CONTAINS
        ENDDO !M
 
        ! Apply species specific scale factors
+       SpcArr = SpcArr * SpcScal(N)
+
        SELECT CASE ( SpcNames(N) ) 
-          CASE ( 'CO' )
-             SpcArr = SpcArr * COScale        
           CASE ( 'OCPI' )
              SpcArr = SpcArr * OCPIfrac
           CASE ( 'OCPO' )
@@ -372,11 +390,11 @@ CONTAINS
              SpcArr = SpcArr * BCPIfrac
           CASE ( 'BCPO' )
              SpcArr = SpcArr * (1.0_sp - BCPIfrac)
-          CASE ( 'POA1' )
-             SpcArr = POASCALE * SpcArr
-          CASE ( 'NAP' )
-             SpcArr = NAPSCALE * SpcArr
        END SELECT
+
+       ! Check for masking
+       CALL HCOX_SCALE( am_I_Root, HcoState, SpcArr, TRIM(SpcScalFldNme(N)), RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Add flux to HEMCO emission array
        CALL HCO_EmisAdd( am_I_Root, HcoState, SpcArr, HcoIDs(N), RC, ExtNr=ExtNr ) 
@@ -417,6 +435,7 @@ CONTAINS
     USE HCO_STATE_MOD,          ONLY : HCO_GetHcoID
     USE HCO_STATE_MOD,          ONLY : HCO_GetExtHcoID
     USE HCO_ExtList_Mod,        ONLY : GetExtNr, GetExtOpt
+    USE HCO_ExtList_Mod,        ONLY : GetExtSpcVal
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -445,7 +464,7 @@ CONTAINS
 !
     CHARACTER(LEN=255) :: MSG, ScalFile
     INTEGER            :: tmpNr, AS, IU_FILE, IOS
-    INTEGER            :: N, M, NDUM
+    INTEGER            :: N, M, NDUM, NCHAR
     CHARACTER(LEN=31)  :: tmpName
     CHARACTER(LEN=31)  :: SpcName
     LOGICAL            :: FOUND, Matched
@@ -493,11 +512,9 @@ CONTAINS
 
     ! ---------------------------------------------------------------------- 
     ! Get settings
-    ! The CO scale factor (to account for oxidation from VOCs) as well as 
-    ! the speciation of carbon aerosols into hydrophilic and hydrophobic
+    ! The speciation of carbon aerosols into hydrophilic and hydrophobic
     ! fractions can be specified in the configuration file, e.g.:
     ! 100     GFED           : on    NO/CO/OCPI/OCPO/BCPI/BCPO
-    !    --> CO scale factor :       1.05
     !    --> hydrophilic BC  :       0.2
     !    --> hydrophilic OC  :       0.5
     !
@@ -506,16 +523,6 @@ CONTAINS
     ! corresponding species (CO, BCPI/BCPO, OCPI/OCPO) are listed as species
     ! to be used.
     ! ---------------------------------------------------------------------- 
- 
-    ! Try to read CO scale factor. Defaults to 1.0
-    CALL GetExtOpt ( ExtNr, 'CO scale factor', &
-                     OptValSp=ValSp, FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( .NOT. FOUND ) THEN
-       COScale = 1.0
-    ELSE
-       COScale = ValSp
-    ENDIF
 
     ! Try to read hydrophilic fractions of BC. Defaults to 0.2.
     CALL GetExtOpt ( ExtNr, 'hydrophilic BC', &
@@ -609,8 +616,6 @@ CONTAINS
        CALL HCO_MSG( MSG )
        WRITE(MSG,*) '   - Use hourly scale factors: ', Do3Hr
        CALL HCO_MSG( MSG )
-       WRITE(MSG,*) '   - CO scale factor         : ', COScale
-       CALL HCO_MSG( MSG )
        WRITE(MSG,*) '   - Hydrophilic OC fraction : ', OCPIfrac
        CALL HCO_MSG( MSG )
        WRITE(MSG,*) '   - Hydrophilic BC fraction : ', BCPIfrac
@@ -623,6 +628,32 @@ CONTAINS
     IF ( nSpc == 0 ) THEN
        MSG = 'No GFED species specified'
        CALL HCO_ERROR ( MSG, RC ) 
+       RETURN
+    ENDIF
+
+    ! Get species scale factors
+    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'Scaling', 1.0_sp, SpcScal, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Get species mask fields
+    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'ScaleField', HCOX_NOSCALE, SpcScalFldNme, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Error trap: in previous versions, CO, POA and NAP scale factor were given as
+    ! 'CO scale factor', etc. Make sure those attributes do not exist any more!
+    CALL GetExtOpt ( ExtNr, 'CO scale factor', OptValSp=ValSp, FOUND=FOUND, RC=RC )
+    IF ( .NOT. FOUND ) THEN
+       CALL GetExtOpt ( ExtNr, 'POA scale factor', OptValSp=ValSp, FOUND=FOUND, RC=RC )
+    ENDIF
+    IF ( .NOT. FOUND ) THEN
+       CALL GetExtOpt ( ExtNr, 'NAP scale factor', OptValSp=ValSp, FOUND=FOUND, RC=RC )
+    ENDIF
+    IF ( FOUND ) THEN
+       MSG = 'Found old definition of CO, POA and/or NAP scale factor! '  // & 
+             'This version of HEMCO expects species scale factors to be ' // &
+             'set as `Scaling_XX` instead of `XX scale factor`. '         // &
+             'Please update the GFED settings section accordingly.'
+       CALL HCO_ERROR ( MSG, RC )
        RETURN
     ENDIF
 
@@ -641,18 +672,22 @@ CONTAINS
        ! SpcName is the GFED species name to be searched. Adjust
        ! if necessary.
        SpcName = SpcNames(N)
-       SELECT CASE ( TRIM(SpcName) )
-          CASE ( 'CO2bb' )
+       NCHAR   = LEN(SpcName)
+       IF ( NCHAR > 3 ) THEN
+          IF ( SpcName(1:3) == 'CO2' ) THEN
              SpcName = 'CO2'
-          CASE ( 'CH4_bb', 'CH4_tot' )
+          ELSEIF ( SpcName(1:3) == 'CH4' ) THEN
              SpcName = 'CH4'
-          CASE ( 'BC', 'BCPI', 'BCPO' )
-             SpcName = 'BC'
-          CASE ( 'OC', 'OCPI', 'OCPO', 'POA1' )
-             SpcName = 'OC'
-          CASE ( 'NAP' )
+          ELSEIF ( SpcName(1:3) == 'CO_' ) THEN
              SpcName = 'CO'
-       END SELECT
+          ELSEIF ( SpcName(1:2) == 'BC' ) THEN
+             SpcName = 'BC'
+          ELSEIF ( SpcName(1:2) == 'OC' ) THEN
+             SpcName = 'OC'
+          ENDIF
+       ENDIF
+       IF ( TRIM(SpcName) == 'POA1' ) SpcName = 'OC'
+       IF ( TRIM(SpcName) == 'NAP'  ) SpcName = 'CO'
 
        ! Search for matching GFED species by name
        Matched = .FALSE.
@@ -664,7 +699,12 @@ CONTAINS
 
              ! Verbose
              IF ( am_I_Root ) THEN
-                MSG = '   - Use GFED species ' // TRIM(GFED_SPEC_NAME(M))
+                MSG = '   - Emit GFED species ' // TRIM(GFED_SPEC_NAME(M)) // &
+                      '     as model species ' // TRIM(SpcNames(N))
+                CALL HCO_MSG( MSG )
+                WRITE(MSG,*) '     --> Will use scale factor: ', SpcScal(N)
+                CALL HCO_MSG( MSG )
+                WRITE(MSG,*) '     --> Will use scale field : ', TRIM(SpcScalFldNme(N))
                 CALL HCO_MSG( MSG )
              ENDIF
              EXIT ! go to next species
@@ -675,37 +715,6 @@ CONTAINS
           CALL HCO_ERROR( MSG, RC )
           RETURN
        ENDIF
-
-       ! For tracer POA1, the POA scale factor must be defined in the HEMCO 
-       ! configuration file. This is the factor by which OC emissions will
-       ! be scaled.
-       IF ( TRIM(SpcNames(N)) == 'POA1' ) THEN
-          CALL GetExtOpt ( ExtNr, 'POA scale factor', &
-                           OptValSp=ValSp, FOUND=FOUND, RC=RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          IF ( .NOT. FOUND ) THEN
-             MSG = 'You must specify a POA scale factor for species POA1'
-             CALL HCO_ERROR( MSG, RC )
-             RETURN
-          ENDIF
-          POASCALE = ValSp
-       ENDIF
-
-       ! For tracer NAP, the NAP scale factor must be defined in the HEMCO 
-       ! configuration file. This is the factor by which CO emissions will
-       ! be scaled.
-       IF ( TRIM(SpcNames(N)) == 'NAP' ) THEN
-          CALL GetExtOpt ( ExtNr, 'NAP scale factor', &
-                           OptValSp=ValSp, FOUND=FOUND, RC=RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          IF ( .NOT. FOUND ) THEN
-             MSG = 'You must specify a NAP scale factor for species NAP'
-             CALL HCO_ERROR( MSG, RC )
-             RETURN
-          ENDIF
-          NAPSCALE = ValSp
-       ENDIF
-
     ENDDO !N
 
     ! Enable module
@@ -758,11 +767,13 @@ CONTAINS
     GFED_EMFAC => NULL()
 
     ! Cleanup module arrays
-    IF ( ALLOCATED( GFED3_EMFAC ) ) DEALLOCATE( GFED3_EMFAC )
-    IF ( ALLOCATED( GFED4_EMFAC ) ) DEALLOCATE( GFED4_EMFAC )
-    IF ( ALLOCATED( GfedIDs     ) ) DEALLOCATE( GfedIds     )
-    IF ( ALLOCATED( HcoIDs      ) ) DEALLOCATE( HcoIDs      )
-    IF ( ALLOCATED( SpcNames    ) ) DEALLOCATE( SpcNames    )
+    IF ( ALLOCATED( GFED3_EMFAC  ) ) DEALLOCATE( GFED3_EMFAC  )
+    IF ( ALLOCATED( GFED4_EMFAC  ) ) DEALLOCATE( GFED4_EMFAC  )
+    IF ( ALLOCATED( GfedIDs      ) ) DEALLOCATE( GfedIds      )
+    IF ( ALLOCATED( HcoIDs       ) ) DEALLOCATE( HcoIDs       )
+    IF ( ALLOCATED( SpcNames     ) ) DEALLOCATE( SpcNames     )
+    IF ( ALLOCATED( SpcScal      ) ) DEALLOCATE( SpcScal      )
+    IF ( ALLOCATED( SpcScalFldNme) ) DEALLOCATE( SpcScalFldNme)
 
   END SUBROUTINE HCOX_GFED_Final
 !EOC

@@ -52,10 +52,16 @@
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE CMN_GCTM_MOD
+    
+      USE COMODE_LOOP_MOD,    ONLY : NAMEGAS, NTSPEC, NCSURBAN
 
       USE PRECISION_MOD
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE HCO_ERROR_MOD
+      USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
+# if  defined( DEVEL ) 
+      USE DIAGNOSTICS_MOD,    ONLY : DiagnSpec
+#endif
 
       IMPLICIT NONE
 !
@@ -171,8 +177,12 @@
       REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! For netCDF diagnostics via HEMCO
-      INTEGER            :: HCRC
+      INTEGER            :: TPL, HCRC
+      REAL(fp)           :: PRESS
       REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+      REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
+      REAL(fp)           :: Arr3D(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: Arr2D(IIPAR,JJPAR)
       CHARACTER(LEN=255) :: DiagnName
 
       !=================================================================
@@ -597,8 +607,40 @@
                ENDIF
             ENDIF
          ENDDO
-      ENDIF
 
+         IF ( DiagnSpec ) THEN
+
+            ! Loop over all species
+            DO N = 1, NTSPEC(NCSURBAN)
+   
+               ! Construct diagnostic name
+               IF ( TRIM(NAMEGAS(N)) == '' ) CYCLE
+               DiagnName = 'SPECIES_CONC_' // TRIM(NAMEGAS(N)) 
+         
+               ! Get value in #/cm3
+               Ptr3D => State_Chm%Species(:,:,:,N)
+   
+               ! Update the deposition velocity diagostics
+               CALL Diagn_Update( am_I_Root,
+     &                            cName   = TRIM( DiagnName ),
+     &                            Array3D = Ptr3D,
+     &                            COL     = Input_Opt%DIAG_COLLECTION,
+     &                            RC      = HCRC )
+   
+               ! Free the pointer
+               Ptr3D => NULL()
+   
+               ! STOP wieth error if the diagnostics were unsuccessful
+               IF ( HCRC /= HCO_SUCCESS ) THEN
+                  CALL ERROR_STOP(
+     &                    'Cannot update SPECIES_CONC diag diagnostics',
+     &                    'DIAG1 (diag1.F)')
+               ENDIF
+            ENDDO
+   
+         ENDIF ! DiagnSpec
+      ENDIF !ND45
+   
       !================================================================= 
       ! ND68: 1:  BXHEIGHT     - box height [m] 
       !       2:  AD           - dry air mass [kg]
@@ -618,8 +660,8 @@
 
       IF ( ND68 > 0 ) THEN
 
-         ! There are 16 diagnostics
-         DO I = 1,16
+         ! There are 13 diagnostics
+         DO I = 1,13
 
             ! Construct diagnostic name and get proper array
             SELECT CASE ( I ) 
@@ -683,7 +725,29 @@
                ENDIF
             ENDIF   
          ENDDO
-      ENDIF
+
+         ! Now also add TROPP_PRESSURE and TROPP_LEVEL
+         DiagnName = 'TROPP_PRESSURE'
+         Ptr2D => State_Met%TROPP
+         CALL Diagn_Update( am_I_Root, cName=DiagnName, 
+     &      Array2D=Ptr2D, COL=Input_Opt%DIAG_COLLECTION, RC=HCRC )
+         Ptr2D => NULL()
+         
+         DiagnName = 'TROPP_LEVEL'
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, TPL )
+         DO J=1,JJPAR
+         DO I=1,IIPAR
+            TPL        = GET_TPAUSE_LEVEL( I, J, State_Met )
+            Arr2D(I,J) = TPL
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO   
+         CALL Diagn_Update( am_I_Root, cName=DiagnName, 
+     &      Array2D=Arr2D, COL=Input_Opt%DIAG_COLLECTION, RC=HCRC )
+ 
+      ENDIF ! ND68
 #endif
 
       END SUBROUTINE DIAG1

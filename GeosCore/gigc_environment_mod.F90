@@ -132,6 +132,7 @@ CONTAINS
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_NOX_mod.F
 !  25 Jul 2014 - R. Yantosca - Remove reference to obsolete commsoil_mod.F90
 !  25 Jul 2014 - R. Yantosca - Now call INIT_GET_NDEP (GeosCore/get_ndep_mod.F)
+!  04 Aug 2015 - C. Keller   - Now pass LLTROP and LLSTRAT to INIT_CMN_SIZE.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

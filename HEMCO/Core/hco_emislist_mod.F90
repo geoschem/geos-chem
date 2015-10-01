@@ -922,7 +922,7 @@ CONTAINS
     ! return an error if container not found but only pass the FOUND
     ! argument to the caller routine. Otherwise, exit with error. 
     IF ( .NOT. FND ) THEN
-       IF ( PRESENT(FOUND) ) THEN
+       IF ( PRESENT(FOUND) .OR. PRESENT(FILLED) ) THEN
           Ptr2D => NULL()
           RC    = HCO_SUCCESS
           RETURN
@@ -974,7 +974,7 @@ CONTAINS
 ! !IROUTINE: EmisList_NextCont
 !
 ! !DESCRIPTION: Subroutine EmisList\_NextCont is a simple wrapper routine 
-! to get the next/first pointer of the ConfigList. See ListCont\_NextCont 
+! to get the next/first pointer of EmisList. See ListCont\_NextCont 
 ! for more details. 
 !\\
 !\\

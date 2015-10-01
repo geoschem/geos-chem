@@ -96,10 +96,12 @@ MODULE HCO_Error_Mod
   ! the simulation date is outside of the datetime range of the
   ! source data. See data reading routine (hcoio_dataread_mod.F90)
   ! for more details. 
-  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_CYCLE = 1
-  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_RANGE = 2
-  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_EXACT = 3
-  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_INTER = 4
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_CYCLE    = 1
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_RANGE    = 2
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_EXACT    = 3
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_INTER    = 4
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_AVERG    = 5
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_RANGEAVG = 6
 
   ! Data container update flags. At the moment, those only indicate
   ! if a container gets updated every time step or based upon the 
@@ -113,8 +115,8 @@ MODULE HCO_Error_Mod
   INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_SCAL = 2
   INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_MASK = 3
 
-  ! HEMCO version number. Only increase after significant changes
-  CHARACTER(LEN=12), PARAMETER, PUBLIC :: HCO_VERSION = 'v1.1.005'
+  ! HEMCO version number.
+  CHARACTER(LEN=12), PARAMETER, PUBLIC :: HCO_VERSION = 'v1.1.010'
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller   - Initialization
@@ -128,15 +130,15 @@ MODULE HCO_Error_Mod
 ! !PRIVATE VARIABLES:
 !
   TYPE :: HcoErr
-     LOGICAL                     :: IsRoot
-     LOGICAL                     :: LogIsOpen
-     INTEGER                     :: Warnings 
-     INTEGER                     :: Verbose
-     INTEGER                     :: nWarnings
-     INTEGER                     :: CurrLoc
-     CHARACTER(LEN=255), POINTER :: Loc(:)
-     CHARACTER(LEN=255)          :: LogFile
-     INTEGER                     :: Lun
+     LOGICAL                     :: IsRoot    =  .FALSE.
+     LOGICAL                     :: LogIsOpen =  .FALSE.
+     INTEGER                     :: Warnings  =  0
+     INTEGER                     :: Verbose   =  0
+     INTEGER                     :: nWarnings =  0
+     INTEGER                     :: CurrLoc   =  -1
+     CHARACTER(LEN=255), POINTER :: Loc(:)    => NULL()
+     CHARACTER(LEN=255)          :: LogFile   =  ''
+     INTEGER                     :: Lun       =  -1
   END TYPE HcoErr
 
   ! MAXNEST is the maximum accepted subroutines nesting level.
@@ -327,7 +329,7 @@ CONTAINS
        IsOpen = .FALSE.
     ELSE
        IsOpen = Err%LogIsOpen
-       
+      
        ! Don't print if this is not the root CPU
        IF ( .NOT. Err%IsRoot ) RETURN
 

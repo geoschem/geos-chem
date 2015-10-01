@@ -723,8 +723,8 @@ CONTAINS
     LOGICAL,  INTENT(IN)   :: am_I_Root      ! Root CPU?
     INTEGER,  INTENT(IN)   :: NX             ! # of lons
     INTEGER,  INTENT(IN)   :: NY             ! # of lats
-    REAL(f4), INTENT(IN)   :: lonCtr(NX,NY)  ! Lon ctrs [deg]
-    REAL(f4), INTENT(IN)   :: latCtr(NX,NY)  ! Lat ctrs [deg]
+    REAL(f4), INTENT(IN)   :: lonCtr(NX,NY)  ! Lon ctrs [rad]
+    REAL(f4), INTENT(IN)   :: latCtr(NX,NY)  ! Lat ctrs [rad]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -734,6 +734,8 @@ CONTAINS
 !  02 Jan 2014 - C. Keller   - Initial version
 !  26 Mar 2015 - R. Yantosca - Fix apparent optimization error by using 
 !                              scalars in call to the SIN function
+!  03 Sep 2015 - C. Keller   - Bug fix: need to explicitly calculate adjacent
+!                              mid-point to calculate first xedge and yedge. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -742,7 +744,7 @@ CONTAINS
 !
     INTEGER            :: I,         J,        L
     INTEGER            :: NI,        NJ,       NL
-    REAL(fp)           :: YEDGE_VAL, YSIN_VAL
+    REAL(fp)           :: YEDGE_VAL, YSIN_VAL, TMP
     CHARACTER(LEN=255) :: MSG
 
     !======================================================================
@@ -778,13 +780,15 @@ CONTAINS
 
        ! Edges: approximate from neighboring mid points.
        IF ( I == 1 ) THEN
-          XEDGE(I,J,L) = XMID(I,J,L) - ( ( XMID(I+1,J,L) - XMID(I,J,L) ) / 2.0_f4 )
+          TMP           = RoundOff( lonCtr(I+1,J) / PI_180, 4 )
+          XEDGE(I,J,L)  = XMID(I,J,L) - ( ( TMP - XMID(I,J,L) ) / 2.0_f4 )
        ELSE
           XEDGE(I,J,L) = ( XMID(I,J,L) + XMID(I-1,J,L) ) / 2.0_f4
        ENDIF
 
        IF ( J == 1 ) THEN
-          YEDGE(I,J,L) = YMID(I,J,L) - ( ( YMID(I,J+1,L) - YMID(I,J,L) ) / 2.0_f4 )
+          TMP          = RoundOff( latCtr(I,J+1) / PI_180, 4 )
+          YEDGE(I,J,L) = YMID(I,J,L) - ( ( TMP - YMID(I,J,L) ) / 2.0_f4 )
        ELSE
           YEDGE(I,J,L) = ( YMID(I,J,L) + YMID(I,J-1,L) ) / 2.0_f4
        ENDIF
