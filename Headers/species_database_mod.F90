@@ -75,7 +75,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-    TYPE(SpcPtr),   POINTER     :: SpcData(:)    ! Vector with species info
+    TYPE(SpcPtr),   POINTER     :: SpcData(:)   ! Vector with species info
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -107,6 +107,8 @@ CONTAINS
 !  24 Sep 2015 - R. Yantosca - Add WD_KcScaleFAc, a 3-element vector
 !  30 Sep 2015 - R. Yantosca - DD_A_Density is renamed to Density
 !  30 Sep 2015 - R. Yantosca - DD_A_Radius is renamed to Radius
+!  01 Oct 2015 - R. Yantosca - Added DD_DvzMinVal field to put a minimum
+!                              deposition velocity for sulfate aerosols
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -119,6 +121,7 @@ CONTAINS
     REAL(fp)            :: K0,     CR,  HStar
 
     ! Arrays
+    REAL(fp)            :: DvzMinVal(2)
     REAL(fp)            :: KcScale(3)
     REAL(fp)            :: RainEff(3)
 
@@ -1597,6 +1600,12 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
+             ! Enforce minimum dry deposition velocity (Vd) for MSA
+             ! (cf. Mian Chin's GOCART model)
+             ! Minimum Vd over snow/ice : 0.01 cm/s
+             ! Minimum Vd over land     : 0.01 cm/s
+             DvzMinVal = (/ 0.01_fp, 0.01_fp /) 
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1607,6 +1616,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              DD_DvzMinVal  = DvzMinVal,                    &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -1726,6 +1736,13 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'NH3' )
+
+             ! Enforce minimum dry deposition velocity (Vd) for NH3
+             ! (cf. Mian Chin's GOCART model)
+             ! Minimum Vd over snow/ice : 0.2 cm/s
+             ! Minimum Vd over land     : 0.3 cm/s
+             DvzMinVal = (/ 0.2_fp, 0.3_fp /) 
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1736,6 +1753,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              DD_DvzMinVal  = DvzMinVal,                    &
                               DD_F0         = 0.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 5.90e-1_f8 * To_M_atm,        &
@@ -1758,6 +1776,12 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
+             ! Enforce minimum dry deposition velocity (Vd) for NH4
+             ! (cf. Mian Chin's GOCART model)
+             ! Minimum Vd over snow/ice : 0.01 cm/s
+             ! Minimum Vd over land     : 0.01 cm/s
+             DvzMinVal = (/ 0.01_fp, 0.01_fp /) 
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1768,6 +1792,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              DD_DvzMinVal  = DvzMinVal,                    &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -1783,6 +1808,12 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
+             ! Enforce minimum dry deposition velocity (Vd) for NIT
+             ! (cf. Mian Chin's GOCART model)
+             ! Minimum Vd over snow/ice : 0.01 cm/s
+             ! Minimum Vd over land     : 0.01 cm/s
+             DvzMinVal = (/ 0.01_fp, 0.01_fp /) 
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1793,6 +1824,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              DD_DvzMinVal  = DvzMinVal,                    &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -2305,8 +2337,14 @@ CONTAINS
              ! When 237 K <= T < 258 K:
              ! (1) Halve the Kc (cloud condensate -> precip) rate
              ! (2) Turn off rainout
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             RainEff   = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             ! Enforce minimum dry deposition velocity (Vd) for SO2
+             ! (cf. Mian Chin's GOCART model)
+             ! Minimum Vd over snow/ice : 0.2 cm/s
+             ! Minimum Vd over land     : 0.3 cm/s
+             DvzMinVal = (/ 0.2_fp, 0.3_fp /) 
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -2318,6 +2356,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              DD_DvzMinVal  = DvzMinVal,                    &
                               DD_F0         = 0.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 1.30e-2_f8 * To_M_atm,        &
@@ -2335,8 +2374,14 @@ CONTAINS
              ! When 237 K <= T < 258 K:
              ! (1) Halve the Kc (cloud condensate -> precip) rate
              ! (2) Turn off rainout
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+             KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             RainEff   = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
+             ! Enforce minimum dry deposition velocity (Vd) for SO4
+             ! (cf. Mian Chin's GOCART model)
+             ! Minimum Vd over snow/ice : 0.01 cm/s
+             ! Minimum Vd over land     : 0.01 cm/s
+             DvzMinVal = (/ 0.01_fp, 0.01_fp /) 
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -2348,6 +2393,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              DD_DvzMinVal  = DvzMinVal,                    &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &

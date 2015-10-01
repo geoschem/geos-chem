@@ -91,6 +91,7 @@ MODULE Species_Mod
      ! Drydep parameters
      LOGICAL            :: DD_AeroDryDep    ! Use AERO_SFCRSII for drydep?
      LOGICAL            :: DD_DustDryDep    ! Use DUST_SFCRSII for drydep?
+     REAL(fp)           :: DD_DvzMinVal(2)  ! Sets min val for Vd for aerosols
      REAL(fp)           :: DD_F0            ! F0 (reactivity) factor [1]
      REAL(fp)           :: DD_KOA           ! KOA factor for POPG
      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -161,6 +162,7 @@ MODULE Species_Mod
 !  30 Sep 2015 - R. Yantosca - Renamed DD_A_Radius to Radius
 !  30 Sep 2015 - R. Yantosca - Added WD_Is_HNO3 and WD_Is_SO2 fields to flag
 !                              special cases of HNO3 and SO2 wet deposition
+!  01 Oct 2015 - R. Yantosca - Add field DD_DvzMinVal
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -356,12 +358,13 @@ CONTAINS
                          MW_g,          EmMW_g,        MolecRatio,     &
                          Henry_K0,      Henry_CR,      Henry_PKA,      &
                          Density,       Radius,        DD_AeroDryDep,  &
-                         DD_DustDryDep, DD_F0,         DD_KOA,         &
-                         DD_HStar_Old,  MP_SizeResAer, MP_SizeResNum,  &
-                         WD_RetFactor,  WD_LiqAndGas,  WD_ConvFacI2G,  &
-                         WD_AerScavEff, WD_KcScaleFac, WD_RainoutEff,  &
-                         WD_CoarseAer,  Is_Advected,   Is_Gas,         &
-                         Is_Drydep,     Is_Wetdep,     RC             )
+                         DD_DustDryDep, DD_DvzMinVal,  DD_F0,          &
+                         DD_KOA,        DD_HStar_Old,  MP_SizeResAer,  &
+                         MP_SizeResNum, WD_RetFactor,  WD_LiqAndGas,   &
+                         WD_ConvFacI2G, WD_AerScavEff, WD_KcScaleFac,  &
+                         WD_RainoutEff, WD_CoarseAer,  Is_Advected,    &
+                         Is_Gas,        Is_Drydep,     Is_Wetdep,      &
+                         RC                                           )
 !
 ! !USES:
 !
@@ -384,6 +387,7 @@ CONTAINS
     REAL(fp),         OPTIONAL    :: Radius           ! Radius [m]
     LOGICAL,          OPTIONAL    :: DD_AeroDryDep    ! Use AERO_SFCRSII?
     LOGICAL,          OPTIONAL    :: DD_DustDryDep    ! Use DUST_SFCRSII?
+    REAL(fp),         OPTIONAL    :: DD_DvzMinVal(2)  ! Set min Vd for aerosols
     REAL(fp),         OPTIONAL    :: DD_F0            ! Drydep reactivity [1]
     REAL(fp),         OPTIONAL    :: DD_KOA           ! Drydep KOA parameter
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -563,6 +567,15 @@ CONTAINS
        ThisSpc%DD_F0 = DD_F0
     ELSE
        ThisSpc%DD_F0 = MISSING
+    ENDIF
+
+    !---------------------------------------------------------------------
+    ! Mimimum value for DVZ (used for aerosols)
+    !---------------------------------------------------------------------
+    IF ( PRESENT( DD_DvzMinVal ) ) THEN
+       ThisSpc%DD_DvzMinVal(:) = DD_DvzMinVal(:)
+    ELSE
+       ThisSpc%DD_DvzMinVal(:) = MISSING
     ENDIF
 
     !---------------------------------------------------------------------

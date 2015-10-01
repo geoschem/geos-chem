@@ -42,7 +42,6 @@
 !
       PUBLIC :: CLEANUP_DRYDEP     
       PUBLIC :: DO_DRYDEP
-      PUBLIC :: DVZ_MINVAL         
       PUBLIC :: INIT_DRYDEP
       PUBLIC :: INIT_WEIGHTSS
 !
@@ -190,15 +189,13 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE
 !  03 Mar 2015 - C. Keller   - Disabled DRYFLX. Now done in mixing_mod.F90
 !  15 Jun 2015 - R. Yantosca - Disabled DRYFLXRnPbBe, also done in mixing_mod
+!  01 Oct 2015 - R. Yantosca - Remove DVZ_MINVAL function
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      ! SOAupdate: 55 to 105 jje (8/19/2010)
-      ! Marine organic aerosols update: 105 to 107 (ewl, 7/8/15)
-!      INTEGER,  PARAMETER :: MAXDEP    = 107       ! Max # of depositing species
       REAL(f8), PARAMETER :: XCKMAN    = 0.4e+0_f8 ! Von Karman's constant
       INTEGER,  PARAMETER :: NR_MAX    = 200       ! # of seasalt bins 
       INTEGER,  PARAMETER :: NDRYDTYPE = 11        ! # of drydep land types
@@ -317,6 +314,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_ERROR_MOD
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+      USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -393,6 +391,8 @@
 !                              facilitates connection to the GEOS-5 GCM.   
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt & State_Chm to DEPVEL
 !  15 Jan 2015 - R. Yantosca - Add new netCDF diagnostics structure
+!  01 Oct 2015 - R. Yantosca - Remove DVZ_MINVAL; now use species database
+!                              to set the minimum drydep velocity for aerosols
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -440,6 +440,9 @@
       REAL(hp), POINTER :: Ptr2D(:,:) => NULL()
 #endif
 
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc => NULL()
+
       !=================================================================
       ! DO_DRYDEP begins here!
       !=================================================================
@@ -476,16 +479,16 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, THIK, N, NN, NDVZ, DVZ )
+!$OMP+PRIVATE( I, J, IJLOOP, THIK, N, NN, NDVZ, DVZ, ThisSpc )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! 1-D grid box index
-         IJLOOP  = ( (J-1) * IIPAR ) + I
+         IJLOOP = ( (J-1) * IIPAR ) + I
 
          ! THIK = thickness of surface layer [m]
-         THIK    = State_Met%BXHEIGHT(I,J,1)
-         
+         THIK   = State_Met%BXHEIGHT(I,J,1)
+
          ! Now we calculate drydep throughout the entire PBL.  
          ! Make sure that the PBL depth is greater than or equal 
          ! to the thickness of the 1st layer (rjp, bmy, 7/21/03)
@@ -500,6 +503,9 @@
             ! GEOS-CHEM tracer number
             NN   = NTRAIND(N)
 
+            ! Get info about this species from the database
+            ThisSpc => State_Chm%SpcData(NN)%Info
+
             ! Index of drydep species in the DVEL array 
             ! as passed back from subroutine DEPVEL
             NDVZ = NDVZIND(N)
@@ -508,8 +514,12 @@
             DVZ  = DVEL(IJLOOP,NDVZ) * 100.e+0_f8
 
             ! Set minimum velocity for sulfate tracers
-            DVZ  = DVZ_MINVAL( NN, LSNOW(IJLOOP), DVZ )
-            
+            IF ( LSNOW(IJLOOP) ) THEN 
+               DVZ = MAX( DVZ, ThisSpc%DD_DvzMinVal(1) )  ! Min Vd over snow
+            ELSE
+               DVZ = MAX( DVZ, ThisSpc%DD_DvzMinVal(2) )  ! Min Vd over land
+            ENDIF
+
             ! For ACET, we need to only do drydep over the land
             ! and not over the oceans.
             IF ( NN == IDTACET ) THEN
@@ -549,6 +559,9 @@
                AD44(I,J,N,2) = AD44(I,J,N,2) + DVZ
             ENDIF
 #endif
+
+            ! Free pointer
+            ThisSpc => NULL()
          ENDDO
       ENDDO
       ENDDO
@@ -602,77 +615,6 @@
       ENDIF
 
       END SUBROUTINE DO_DRYDEP
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: dvz_minval
-!
-! !DESCRIPTION: Function DVZ\_MINVAL sets minimum values for drydep velocities 
-!  for SULFATE TRACERS, according to Mian Chin's GOCART model. (rjp, bmy, 
-!  11/21/02, 10/3/05)
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION DVZ_MINVAL( N, LSNOW, DVZ ) RESULT( NEWDVZ )
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,  INTENT(IN) :: N      ! Tracer number
-      LOGICAL,  INTENT(IN) :: LSNOW  ! Flag for denoting snow/ice
-      REAL(f8), INTENT(IN) :: DVZ    ! Deposition velocity [cm/s]
-!
-! !RETURN VALUE:
-!
-      REAL(f8)             :: NEWDVZ
-!
-! !REVISION HISTORY: 
-!  (1 ) Don't put a min drydep value on H2O2 for offline run (rjp, bmy,3/31/03)
-!  (2 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
-!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-      !=================================================================
-      ! DVZ_MINVAL begins here!
-      !=================================================================
-
-      !---------------------------------------
-      ! SO2, NH3, offline H2O2
-      ! Min Vd = 2.0e-1 [cm/s] over ice/snow
-      !        = 3.0e-1 [cm/s] over land
-      !---------------------------------------
-      IF ( N == IDTSO2 .or. N == IDTNH3 ) THEN 
-
-         IF ( LSNOW ) THEN
-            NEWDVZ = MAX( DVZ, 2.0e-1_f8 )       
-         ELSE
-            NEWDVZ = MAX( DVZ, 3.0e-1_f8 )
-         ENDIF
-
-      !---------------------------------------
-      ! SO4, MSA, NH4, NIT
-      ! Min Vd = 1.0e-2 [cm/s] 
-      !---------------------------------------         
-      ELSE IF ( N == IDTSO4 .or. N == IDTMSA  .or.
-     &          N == IDTNH4 .or. N == IDTNIT ) THEN
-
-         NEWDVZ = MAX( DVZ, 1.0e-2_f8 )
-
-      !---------------------------------------
-      ! Other drydep species: do nothing
-      !---------------------------------------         
-      ELSE
-         NEWDVZ = DVZ
-
-      ENDIF
-
-      END FUNCTION DVZ_MINVAL
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
