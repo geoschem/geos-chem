@@ -30,9 +30,8 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
 #if   defined( TOMAS )
       USE TOMAS_MOD                             ! For TOMAS microphysics
-#endif
       USE TRACERID_MOD
-
+#endif
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -190,6 +189,7 @@
 !  03 Mar 2015 - C. Keller   - Disabled DRYFLX. Now done in mixing_mod.F90
 !  15 Jun 2015 - R. Yantosca - Disabled DRYFLXRnPbBe, also done in mixing_mod
 !  01 Oct 2015 - R. Yantosca - Remove DVZ_MINVAL function
+!  01 Oct 2015 - R. Yantosca - Added PRIVATE flag ID_ACET
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -243,8 +243,8 @@
 
       ! Scalars
       INTEGER                        :: NUMDEP,   NWATER
-!      INTEGER                        :: DRYDHNO3, DRYDNO2, DRYDPAN, DRYDH2O2
       INTEGER                        :: DRYHg0,   DRYHg2,  DryHgP
+      INTEGER                        :: ID_ACET
 
       ! Arrays for Baldocchi drydep polynomial coefficients
       REAL(fp), TARGET               :: DRYCOEFF(NPOLY    )
@@ -393,6 +393,11 @@
 !  15 Jan 2015 - R. Yantosca - Add new netCDF diagnostics structure
 !  01 Oct 2015 - R. Yantosca - Remove DVZ_MINVAL; now use species database
 !                              to set the minimum drydep velocity for aerosols
+!  01 Oct 2015 - R. Yantosca - Now use species database to set Vd for aerosols
+!                              over snow/ice; combine with the prior update to
+!                              enforce a minimum Vd for aerosol species
+!  01 Oct 2015 - R. Yantosca - Remove references to tracerid_mod.F (except
+!                              for TOMAS for now)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -501,46 +506,73 @@
          DO N = 1, NUMDEP
 
             ! GEOS-CHEM tracer number
-            NN   = NTRAIND(N)
+            NN      =  NTRAIND(N)
 
             ! Get info about this species from the database
             ThisSpc => State_Chm%SpcData(NN)%Info
 
             ! Index of drydep species in the DVEL array 
             ! as passed back from subroutine DEPVEL
-            NDVZ = NDVZIND(N)
+            NDVZ    =  NDVZIND(N)
 
             ! Dry deposition velocity [cm/s]
-            DVZ  = DVEL(IJLOOP,NDVZ) * 100.e+0_f8
+            DVZ     =  DVEL(IJLOOP,NDVZ) * 100.e+0_f8
 
-            ! Set minimum velocity for sulfate tracers
+            !-----------------------------------------------------------
+            ! Special treatment for snow vs. ice
+            !-----------------------------------------------------------
             IF ( LSNOW(IJLOOP) ) THEN 
-               DVZ = MAX( DVZ, ThisSpc%DD_DvzMinVal(1) )  ! Min Vd over snow
+               
+               !-------------------------------------
+               ! %%% SURFACE IS SNOW OR ICE %%%
+               !-------------------------------------
+               IF ( ThisSpc%DD_DvzAerSnow > 0.0_fp ) THEN
+
+                  ! For most aerosol tracers (basically everything
+                  ! except sea salt and dust species), we just set
+                  ! the deposition velocity over snow to a fixed value.
+                  ! (Modification by Jenny Fisher, dated 8/1/11)
+                  DVZ = DBLE( ThisSpc%DD_DvzAerSnow )
+
+               ELSE
+                  
+                  ! Otherwise, enforce a minimum drydep velocity over snow
+                  ! (cf. the GOCART model).  NOTE: In practice this will 
+                  ! only apply to the species SO2, SO4, MSA, NH3, NH4, NIT.
+                  DVZ = MAX( DVZ, DBLE( ThisSpc%DD_DvzMinVal(1) ) )
+
+               ENDIF
+
             ELSE
-               DVZ = MAX( DVZ, ThisSpc%DD_DvzMinVal(2) )  ! Min Vd over land
+
+               !-------------------------------------
+               ! %%% SURFACE IS NOT SNOW OR ICE %%%
+               !-------------------------------------
+
+               ! Enforce a minimum drydep velocity over land (cf. the 
+               ! GOCART model).  NOTE: In practice this will only apply 
+               ! to the species SO2, SO4, MSA, NH3, NH4, NIT.
+               DVZ = MAX( DVZ, DBLE( ThisSpc%DD_DvzMinVal(2) ) ) 
+
             ENDIF
+
+            !-----------------------------------------------------------
+            ! Special treatment for ACETONE
+            !-----------------------------------------------------------
 
             ! For ACET, we need to only do drydep over the land
             ! and not over the oceans.
-            IF ( NN == IDTACET ) THEN
-
+            IF ( NN == ID_ACET ) THEN
                IF ( IS_LAND( I, J, State_Met ) ) THEN
                   DVZ = 0.1e+0_f8
                ELSE
                   DVZ = 0e+0_f8
                ENDIF
-
             ENDIF
 
-            ! Set Vd for aerosol tracers over snow/ice (J. Fisher, 8/1/11)
-            !%%% SHOULD WE ALSO DO THIS FOR THE DSTAL1 TRACERS ETC?
-            IF ( ( AIROSOL(N)    ) .and. ( LSNOW(IJLOOP) )  .and. 
-     &           ( NN /= IDTSALA ) .and. ( NN /= IDTSALC )  .and.
-     &           ( NN /= IDTSO4s ) .and. ( NN /= IDTNITs )  .and.
-     &           ( NN /= IDTDST1 ) .and. ( NN /= IDTDST2 )  .and.
-     &           ( NN /= IDTDST3 ) .and. ( NN /= IDTDST4 ) ) THEN
-               DVZ = 3.0e-2_f8
-            ENDIF
+            !-----------------------------------------------------------
+            ! Compute drydep frequency and update diagnostics
+            !-----------------------------------------------------------
 
             ! Dry deposition frequency [1/s]
             DEPSAV(I,J,N) = ( DVZ / 100.e+0_f8 ) / THIK
@@ -549,7 +581,6 @@
             ! Need to save dep velocity into 2-D array for netCDF diags
             ! Now save out frequency instead of velocity. We can change
             ! that if needed (ckeller, 3/11/15).
-            ! SAVE_DEPVEL(I,J,N) = DVZ
             SAVE_DEPVEL(I,J,N) = DEPSAV(I,J,N) 
 #endif
 
@@ -3892,16 +3923,19 @@
       !=================================================================
       
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC      = GIGC_SUCCESS
      
       ! Is this a mercury simulation?
-      IS_Hg  = Input_Opt%ITS_A_MERCURY_SIM
+      IS_Hg   = Input_Opt%ITS_A_MERCURY_SIM
 
       ! ARe we using drydep?
-      LDRYD  = Input_Opt%LDRYD
+      LDRYD   = Input_Opt%LDRYD
 
       ! Count of drydep species
-      NUMDEP = 0
+      NUMDEP  = 0
+
+      ! Flag to identify acetone
+      ID_ACET = 0
 
       !===================================================================
       ! Arrays that hold information about dry-depositing species
@@ -4017,7 +4051,7 @@
                   HSTAR(NUMDEP)   = DBLE( ThisSpc%DD_Hstar_old     )
                   F0(NUMDEP)      = DBLE( ThisSpc%DD_F0            )
                   XMW(NUMDEP)     = DBLE( ThisSpc%EmMW_g * 1e-3_fp )
-                  AIROSOL(NUMDEP) = ( .not. ThisSpc%Is_Gas )
+                  AIROSOL(NUMDEP) = ( .not. ThisSpc%Is_Gas         )
                   
                   ! Second species: ISOPNB
                   NUMDEP          = NUMDEP + 1
@@ -4027,7 +4061,7 @@
                   HSTAR(NUMDEP)   = DBLE( ThisSpc%DD_Hstar_old     )
                   F0(NUMDEP)      = DBLE( ThisSpc%DD_F0            )
                   XMW(NUMDEP)     = DBLE( ThisSpc%EmMW_g * 1e-3_fp )
-                  AIROSOL(NUMDEP) = ( .not. ThisSpc%Is_Gas )
+                  AIROSOL(NUMDEP) = ( .not. ThisSpc%Is_Gas         )
 
                !-------------------------------------------------------
                ! Special case: MMN family tracer
@@ -4042,7 +4076,7 @@
                   HSTAR(NUMDEP)     = DBLE( ThisSpc%DD_Hstar_old     )
                   F0(NUMDEP)        = DBLE( ThisSpc%DD_F0            )
                   XMW(NUMDEP)       = DBLE( ThisSpc%EmMW_g * 1e-3_fp )
-                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas )
+                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas         )
                   
                   ! Second species: MVKN
                   NUMDEP            = NUMDEP + 1
@@ -4052,7 +4086,7 @@
                   HSTAR(NUMDEP)     = DBLE( ThisSpc%DD_Hstar_old     )
                   F0(NUMDEP)        = DBLE( ThisSpc%DD_F0            )
                   XMW(NUMDEP)       = DBLE( ThisSpc%EmMW_g * 1e-3_fp )
-                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas )
+                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas         )
 
                !-------------------------------------------------------
                ! All other tracers
@@ -4060,14 +4094,14 @@
                CASE DEFAULT
 
                   NUMDEP            = NUMDEP + 1
-                  NTRAIND(NUMDEP)   = ThisSpc%AdvectId
+                  NTRAIND(NUMDEP)   = ThisSpc%ModelID
                   NDVZIND(NUMDEP)   = ThisSpc%DryDepID
                   DEPNAME(NUMDEP)   = TRIM( ThisSpc%Name )
                   HSTAR(NUMDEP)     = DBLE( ThisSpc%DD_Hstar_old     )
                   F0(NUMDEP)        = DBLE( ThisSpc%DD_F0            )
                   KOA(NUMDEP)       = DBLE( ThisSpc%DD_KOA           )
                   XMW(NUMDEP)       = DBLE( ThisSpc%EmMW_g * 1e-3_fp )
-                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas )
+                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas         )
 
                   ! Only copy DENSITY if it's not a missing value
                   IF ( ThisSpc%Density > 0.0_fp ) THEN
@@ -4091,7 +4125,8 @@
                         ! (0.012 kg/mol).  This may be historical, but
                         ! we should find out why.
                         XMW(NUMDEP)     = 58e-3_f8
-
+                        ID_ACET         = ThisSpc%ModelId
+                        
                      CASE( 'ALD2' )
                         ! XMW for ACET is set to 0.044 kg/mol, but it is 
                         ! emitted/ transported as equivalent carbons 
