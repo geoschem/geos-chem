@@ -916,7 +916,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE Species_Mod,        ONLY : Species
-      USE Tracerid_Mod
 #if defined( TOMAS )
       USE Tomas_Mod,          ONLY : GetFraction
 #endif
@@ -1580,7 +1579,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE Species_Mod,        ONLY : Species
-      USE Tracerid_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1909,7 +1907,6 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE TRACERID_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -2119,8 +2116,7 @@
          !--------------------------------------------------------------
          IF ( ThisSpc%Is_Gas ) THEN
 
-
-            ! Get  Henry's law parameters
+            ! Get Henry's law parameters
             K0  = ThisSpc%Henry_K0
             CR  = ThisSpc%Henry_CR
             !pKa = ThisSpc%Henry_pKa       !  Leave for future use
@@ -2381,7 +2377,6 @@
 !
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTNK1
       USE TOMAS_MOD,          ONLY : IBINS, GETDP, STRATSCAV
 !
 ! !INPUT PARAMETERS:
@@ -2420,12 +2415,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)             :: DPAERO          ! Average diameter of particle 
-      REAL(fp)             :: SCAVR !Below-cloud scavenging coefficient (per cm rain)
-      REAL(fp), SAVE       :: SCAVRSAVE(IBINS)
-      INTEGER            :: BIN 
+      REAL(fp)       :: DPAERO          ! Average diameter of particle 
+      REAL(fp)       :: SCAVR !Below-cloud scavenging coefficient (per cm rain)
+      REAL(fp), SAVE :: SCAVRSAVE(IBINS)
+      INTEGER        :; BIN 
       
-
       !=================================================================
       ! WASHFRAC_SIZE_AEROSOL begins here!
       !=================================================================
