@@ -423,7 +423,7 @@
 
       ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg total  air before advection (ewl, 6/15/15)
-      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, N_TRACERS, 
+      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt, 
      &                                   State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
@@ -447,7 +447,7 @@
 
       ! Convert tracer concentration from kg/kg wet air to 
       ! kg/kg dry air after advection (ewl, 6/15/15)
-      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, N_TRACERS, 
+      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt, 
      &                                   State_Met, State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
@@ -659,7 +659,7 @@
 
       ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg total air before advection (ewl, 6/15/15)
-      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
      &                                    State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
@@ -683,7 +683,7 @@
 
       ! Convert tracer concentration from kg/kg total air to 
       ! kg/kg dry air after advection (ewl, 6/15/15)
-      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
      &                                    State_Met, State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
@@ -903,7 +903,7 @@
 
       ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg moist air before advection (ewl, 6/15/15)
-      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
      &                                   State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
@@ -927,7 +927,7 @@
 
       ! Convert tracer concentration from kg/kg wet air to 
       ! kg/kg dry air after advection (ewl, 6/15/15)
-      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
      &                                    State_Met, State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
@@ -1193,7 +1193,7 @@
 
       ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg moist air before advection (ewl, 6/15/15)
-      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
      &                                   State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
@@ -1217,7 +1217,7 @@
 
       ! Convert tracer concentration from kg/kg wet air to 
       ! kg/kg dry air after advection (ewl, 6/15/15)
-      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
      &                                    State_Met, State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
@@ -1348,7 +1348,6 @@
 
       ! For fields from Input_Opt
       LOGICAL :: LTRAN
-      INTEGER :: N_TRACERS
 
       !=================================================================
       ! Initialize
@@ -1359,7 +1358,6 @@
 
       ! Copy values from Input_Opt
       LTRAN     = Input_Opt%LTRAN
-      N_TRACERS = Input_Opt%N_TRACERS
 
       !=================================================================
       ! Allocate arrays for TPCORE vertical coordinates 
@@ -1487,7 +1485,6 @@
 !
       ! Scalars
       LOGICAL  :: LTRAN
-      INTEGER  :: N_TRACERS
       INTEGER  :: J, K, L, N_DYN
       REAL(fp) :: REAL_N_DYN
 
@@ -1504,7 +1501,6 @@
 
       ! Copy values from Input_Opt
       LTRAN     = Input_Opt%LTRAN
-      N_TRACERS = Input_Opt%N_TRACERS
 
       !=================================================================
       ! Allocate arrays for TPCORE vertical coordinates
@@ -1632,7 +1628,6 @@
 !
       ! Scalars
       LOGICAL  :: LTRAN
-      INTEGER  :: N_TRACERS
       INTEGER  :: BUFF_SIZE
       INTEGER  :: J,     K,     L,     N_DYN
       INTEGER  :: IM_W1, JM_W1, I0_W1, J0_W1
@@ -1650,7 +1645,6 @@
 
       ! Copy values from Input_Opt
       LTRAN     = Input_Opt%LTRAN
-      N_TRACERS = Input_Opt%N_TRACERS
 
       ! Cast N_DYN to flexible precision
 #if defined( USE_REAL8 )

@@ -231,7 +231,6 @@
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER       :: N_TRACERS
       INTEGER       :: N_TROP
       INTEGER       :: MONTH
       INTEGER       :: YEAR
@@ -276,7 +275,6 @@
       RC                       = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS                = Input_Opt%N_TRACERS
       LCARB                    = Input_Opt%LCARB                        
       LCHEM                    = Input_Opt%LCHEM
       LCRYST                   = Input_Opt%LCRYST
@@ -322,7 +320,7 @@
       !-----------------------------------------------------------------
 
       ! Convert tracer units from [kg/kg] to [kg] for chemistry (ewl, 8/12/15)
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
      &                            State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
@@ -653,7 +651,7 @@
       ! to [kg/kg dry air] at the end (not [v/v]). (ewl, 8/13/15)
       !-----------------------------------------------------------------
       ! Convert tracer units back to [kg/kg] after chemistry (ewl, 8/12/15)
-      CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
      &                            State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
@@ -1078,7 +1076,7 @@
       LOGICAL :: IT_IS_AN_AEROSOL_SIM
       LOGICAL :: LCARB, LCHEM,  LCRYST,     LDUST
       LOGICAL :: LPRT,  LSSALT, LSULF,      LSOA
-      INTEGER :: MONTH, YEAR,   WAVELENGTH, N_TRACERS
+      INTEGER :: MONTH, YEAR,   WAVELENGTH
 
       !=================================================================
       ! RECOMPUTE_OD begins here!
@@ -1102,7 +1100,6 @@
       LSOA                 = Input_Opt%LSOA
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM 
-      N_TRACERS            = Input_Opt%N_TRACERS
 
       ! First make sure chemistry is turned on
       IF ( LCHEM ) THEN

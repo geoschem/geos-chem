@@ -162,7 +162,6 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER   :: N_TRACERS
  
     !=================================================================
     ! EMISSIONS_RUN begins here!
@@ -171,36 +170,12 @@ CONTAINS
     ! Assume success
     RC = GIGC_SUCCESS
 
-    ! Set number of tracers for unit conversion call (ewl, 8/12/15)
-    N_TRACERS = Input_Opt%N_TRACERS
-
-!    ! Convert tracer units to [kg] for HEMCO (ewl, 8/12/15)
-!    CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
-!                                State_Chm, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL GIGC_Error('Unit conversion error', RC, &
-!                       'Routine EMISSIONS_RUN in emissions_mod.F')
-!       RETURN
-!    ENDIF                         
-
-
     ! Run HEMCO. Phase 1 will only update the HEMCO clock and the 
     ! HEMCO data list, phase 2 will perform the emission calculations.
     CALL HCOI_GC_RUN( am_I_Root, Input_Opt, State_Met, State_Chm, & 
                       EmisTime,  Phase,     RC                     ) 
     IF ( RC /= GIGC_SUCCESS ) RETURN 
 
-!! new
-!    ! Convert tracer units to [kg/kg] (ewl, 8/12/15)
-!    CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  &
-!                                State_Chm, RC ) 
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL GIGC_Error('Unit conversion error', RC, &
-!                       'Routine EMISSIONS_RUN in emissions_mod.F')
-!       RETURN
-!    ENDIF                         
-!! end new (ewl)
- 
     ! The following only needs to be done in phase 2
     IF ( Phase /= 1 ) THEN 
 
@@ -248,7 +223,7 @@ CONTAINS
 ! new
        ! Convert tracer units back to [kg] for Hg (ewl, 8/12/15)
        ! (keep Hg in Kg for now)
-       CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
+       CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  &
                                    State_Chm, RC ) 
        IF ( RC /= GIGC_SUCCESS ) THEN
           CALL GIGC_Error('Unit conversion error', RC, &
@@ -264,7 +239,7 @@ CONTAINS
 
 ! new
        ! Convert tracer units to [kg/kg] (ewl, 8/12/15)
-       CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  &
+       CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  &
                                    State_Chm, RC ) 
        IF ( RC /= GIGC_SUCCESS ) THEN
           CALL GIGC_Error('Unit conversion error', RC, &

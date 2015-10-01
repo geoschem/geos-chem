@@ -257,14 +257,6 @@
 !
 ! !LOCAL VARIABLES:
 !     
-      INTEGER         :: N_TRACERS
-      REAL*8          :: TCVV(Input_Opt%N_TRACERS)
-      REAL*8, POINTER :: STT(:,:,:,:)
-
-      N_TRACERS =  Input_Opt%N_TRACERS
-      TCVV      =  Input_Opt%TCVV(1:N_TRACERS)
-      STT       => State_Chm%Tracers
-
       WRITE (*,*) "@@@@@@@@@@@@@@ EXCHANGE_GLOBAL_POST"
       CALL DONE_LOCK_ME_UP()
       CALL WAIT_FOR_UNLOCK()
@@ -272,7 +264,7 @@
       IF ( IS_EXCHANGE ) THEN
 
          ! Convert tracer units from [kg/kg dry] to [kg] (ewl, 8/13/15)
-         CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS,            
+         CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt,            
      &                                     State_Met, State_Chm, RC )
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL GIGC_Error('Unit conversion error', RC, 
@@ -300,7 +292,7 @@
 # endif
 
          ! Convert tracer units back to kg/kg (ewl, 8/13/15)
-         CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS,            
+         CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt,            
      &                               State_Met, State_Chm, RC )
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL GIGC_Error('Unit conversion error', RC, 
@@ -401,18 +393,10 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER          :: N_TRACERS
-      REAL*8           :: TCVV(Input_Opt%N_TRACERS)
-      REAL*8,  POINTER :: STT(:,:,:,:)
-
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
-      STT => State_Chm%Tracers
-
       WRITE (*,*) "@@@@@@@@@@@@@@ EXCHANGE_NESTED_POST"
 
       ! Convert tracer units from [kg/kg dry] to [kg] (ewl, 8/13/15)
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS,            
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt,            
      &                                     State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
@@ -429,7 +413,7 @@
 
 
       ! Convert tracer units back to kg/kg (ewl, 8/13/15)
-      CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS,            
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt,            
      &                               State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 

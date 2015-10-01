@@ -4540,7 +4540,6 @@
 #if defined( TOMAS )
       LOGICAL           :: UNITCHANGE_KGKG ! flag for STT units kg/kg
       LOGICAL           :: UNITCHANGE_KGM2 ! flag for STT units kg/m2 
-      INTEGER           :: N_TRACERS
 #endif
 
       !=================================================================
@@ -4555,9 +4554,6 @@
       RC        =  GIGC_SUCCESS
 
 #if defined( TOMAS )
-      ! Define fields for STT unit conversion if necessary for TOMAS
-      N_TRACERS =  Input_Opt%N_TRACERS
-
       ! Convert tracer concentration units to [kg] if not already
       ! since TOMAS functions and routines expect [kg]. Units are
       ! kg/kg total air if WASHOUT is called from convection and are
@@ -4568,14 +4564,12 @@
       UNITCHANGE_KGM2 = .FALSE.
       IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg total' ) THEN
          UNITCHANGE_KGKG = .TRUE.
-         CALL Convert_KgKgTotal_to_Kg( am_I_Root, I, J, L, N_TRACERS, 
+         CALL Convert_KgKgTotal_to_Kg( am_I_Root, I, J, L, Input_Opt, 
      &                                 State_Met, State_Chm, RC )
       ELSE IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/m2' ) THEN
          UNITCHANGE_KGM2 = .TRUE.
-         CALL Convert_Kgm2_to_Kg( am_I_Root, I, J, L, N_TRACERS, 
+         CALL Convert_Kgm2_to_Kg( am_I_Root, I, J, L, Input_Opt, 
      &                            State_Met, State_Chm, RC )
-         PRINT *, "converted kg/m2 to kg in washout"
-         PRINT *, "units now: ", State_Chm%Trac_Units
       ELSE
          CALL ERROR_STOP('Incorrect initial tracer units:' // 
      &                   State_Chm%Trac_Units, 
@@ -5145,13 +5139,11 @@
       ! Convert State_Chm%Tracers units back to original units 
       ! if conversion occurred at start of WASHOUT (ewl, 5/12/15)
       IF ( UNITCHANGE_KGKG ) THEN
-         CALL Convert_Kg_to_KgKgTotal( am_I_Root, I, J, L, N_TRACERS, 
+         CALL Convert_Kg_to_KgKgTotal( am_I_Root, I, J, L, Input_Opt, 
      &                                 State_Met, State_Chm, RC )
       ELSE IF ( UNITCHANGE_KGM2 ) THEN
-         CALL Convert_Kg_to_Kgm2( am_I_Root, I, J, L, N_TRACERS, 
+         CALL Convert_Kg_to_Kgm2( am_I_Root, I, J, L, Input_Opt, 
      &                            State_Met, State_Chm, RC )
-         PRINT *, "converted kg to kg/m2 in washout"
-         PRINT *, "units now: ", State_Chm%Trac_Units
       ENDIF
 
       ! Check that tracer units are as expected (ewl, 9/29/15)
@@ -6201,8 +6193,8 @@
                ! Re-evaporate all of the rain
                CALL DO_COMPLETE_REEVAP( am_I_Root, LS,        I, J, L,         
      &                                  IDX,       ERRMSG,    DT,
-     &                                  DSTT,      State_Met, State_Chm,
-     &                                  RC                             )
+     &                                  DSTT,      Input_Opt, State_Met, 
+     &                                  State_Chm, RC        )
             ENDIF 
 
             ! Save FTOP for next level
@@ -6771,8 +6763,8 @@
 ! Re-evaporate all of the rain
                CALL DO_COMPLETE_REEVAP( am_I_Root, LS,        I, J, L,         
      &                                  IDX,       ERRMSG,    DT,
-     &                                  DSTT,      State_Met, State_Chm,
-     &                                  RC                             )
+     &                                  DSTT,      Input_Opt, State_Met, 
+     &                                  State_Chm, RC       )
             ENDIF 
 
             ! Save FTOP for next level
@@ -7310,7 +7302,7 @@
       USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
       USE DIAG_MOD,           ONLY : CT17              ! ND17 diag counter
       USE DIAG_MOD,           ONLY : CT18              ! ND18 diag counter
-      USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
+      USE ERROR_MOD
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
       USE GIGC_Input_Opt_Mod, ONLY : OptInput          ! Input options
       USE GIGC_State_Chm_Mod, ONLY : ChmState          ! Chemistry State object
@@ -7456,8 +7448,10 @@
       REAL(fp), POINTER      :: STT(:,:,:,:)
 
 #if defined( TOMAS )
-      REAL(fp)  :: REEVAPSO2  !(win, 7/16/09)
-      INTEGER   :: KMIN       !(win, 7/16/09)
+      REAL(fp)           :: REEVAPSO2  !(win, 7/16/09)
+      INTEGER            :: KMIN       !(win, 7/16/09)
+      CHARACTER(LEN=255) :: MSG, LOC   !(ewl, 10/1/15)
+
 #endif
 
       !=================================================================
@@ -7598,7 +7592,7 @@
 
 #if defined( TOMAS )
 !added for TOMAS (win, 7/16/09)
-            ! Save the amout of SO4 [kg S] added via aqueous 
+            ! Save the amout of SO4 [kg S/m2] added via aqueous 
             ! chem to ND05(6) diagnostic assuming it's all 
             ! by reacting with H2O2 (win, 7/16/09)
             IF ( ND05 > 0 .and. L <= LD05 ) 
@@ -7633,12 +7627,21 @@
                ENDIF
 
                ! ***NOTE*** Tracer concentration units are currently in
-               ! [kg/m2] which is incompatible with TOMAS. Work needs to
-               ! be done to reconcile new units with TOMAS code which
-               ! expects [kg] (ewl, 9/22/15)
-               REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp
+               ! [kg/m2] which is incompatible with TOMAS. Units are
+               ! therefore converted to [kg] locally within AQOXID.
+               ! GAINED is now [kg/m2] ans so is multiplied
+               ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
+               IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/m2' ) THEN
+                  REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp
+     &                        * State_Met%AREA_M2(I,J,1)
+               ELSE
+                  MSG = 'Unexpected tracer units: ' 
+     &                            // TRIM( State_Chm%Trac_Units )
+                  LOC = 'Routine DO_WASHOUT_ONLY in wetscav_mod.F'
+                  CALL ERROR_STOP( MSG, LOC )
+               ENDIF
                CALL AQOXID( am_I_Root, REEVAPSO2, KMIN, I, J, L, 
-     &                      State_Met, State_Chm, RC  )
+     &                      Input_Opt, State_Met, State_Chm, RC  )
             ENDIF
 !end -added for TOMAS  (win, 7/16/09)
 #endif
@@ -7771,8 +7774,8 @@
 !
       SUBROUTINE DO_COMPLETE_REEVAP( am_I_Root, LS,        I, J, L,
      &                               IDX,       ERRMSG,    DT,             
-     &                               DSTT,      State_Met, State_Chm,
-     &                               RC                              )
+     &                               DSTT,      Input_Opt, State_Met, 
+     &                               State_Chm, RC                   )
 !     
 ! !USES:
 !
@@ -7787,8 +7790,9 @@
       USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
       USE DIAG_MOD,           ONLY : CT17              ! ND17 diag counter
       USE DIAG_MOD,           ONLY : CT18              ! ND18 diag counter
-      USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
+      USE ERROR_MOD
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTSO2            ! ID flag for SO2
@@ -7811,6 +7815,7 @@
       INTEGER,          INTENT(IN)    :: IDX         ! ND38 index
       CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG      ! Error message
       REAL(fp),         INTENT(IN)    :: DT          ! Rainout timestep [s]
+      TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input options
       TYPE(MetState),   INTENT(IN)    :: State_Met   ! sfarina Required for
                                                      ! TOMAS routines
 !
@@ -7833,7 +7838,8 @@
 !  16 Sep 2010 - R. Yantosca - Initial version
 !  22 Sep 2015 - E. Lundgren - Incoming tracer units are now kg/m2 (prev kg)
 !  24 Sep 2015 - E. Lundgren - Now pass am_I_Root and RC as arguments and  
-!                              local pointer for STT array [kg/m2]   
+!                              local pointer for STT array [kg/m2] 
+!  30 Sep 2015 - E. Lundgren - Now pass Input_Opt for use in TOMAS AQOXID  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7850,8 +7856,9 @@
 
 
 #if defined( TOMAS )
-      REAL(fp)  :: REEVAPSO2  !(win, 7/16/09)
-      INTEGER   :: KMIN       !(win, 7/16/09)
+      REAL(fp)           :: REEVAPSO2  !(win, 7/16/09)
+      INTEGER            :: KMIN       !(win, 7/16/09)
+      CHARACTER(LEN=255) :: MSG, LOC   !(ewl, 10/1/15)
 #endif
 
       !=================================================================
@@ -7923,12 +7930,25 @@
                         ENDIF
 
                ! ***NOTE*** Tracer concentration units are currently in
-               ! [kg/m2] which is incompatible with TOMAS. Work needs to
-               ! be done to reconcile new units with TOMAS code which
-               ! expects [kg] (ewl, 9/22/15)
-                        REEVAPSO2 =  - ( WETLOSS * 96e+0_fp / 64e+0_fp )
+               ! [kg/m2] which is incompatible with TOMAS. Units are
+               ! therefore converted to [kg] locally within AQOXID.
+               ! WETLOSS is now [kg/m2] and so is multiplied
+               ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
+                        IF ( TRIM( State_Chm%Trac_Units ) .eq.
+     &                                          'kg/m2' ) THEN
+                           REEVAPSO2 =  - ( WETLOSS * 96e+0_fp 
+     &                                  / 64e+0_fp )
+     &                                  * State_Met%AREA_M2(I,J,1)
+                        ELSE
+                           MSG = 'Unexpected tracer units: ' 
+     &                            // TRIM(State_Chm%Trac_Units)
+                           LOC = 'Routine DO_COMPLETE_REEVAP' 
+     &                           // 'in wetscav_mod.F'
+                           CALL ERROR_STOP( MSG, LOC )
+                        ENDIF
                         CALL AQOXID( am_I_Root, REEVAPSO2, KMIN, I, J, 
-     &                               L, State_Met, State_Chm, RC )
+     &                               L, Input_Opt, State_Met, 
+     &                               State_Chm, RC )
                      ENDIF
 !end- added for TOMAS (win, 7/16/09)
 #endif

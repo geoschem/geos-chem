@@ -479,7 +479,7 @@
       TRACER_MW_G = Input_Opt%TRACER_MW_G(1:N_TRACERS)
 
       ! Convert tracer units to [kg] for RRTMG (ewl, 8/12/15)
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
      &                            State_Chm, RC ) 
 
       !=================================================================
@@ -1562,7 +1562,7 @@
 !$OMP END PARALLEL DO
 
       ! Convert tracer units to [kg] for RRTMG (ewl, 8/12/15)
-      CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
      &                            State_Chm, RC ) 
 
 !EOC

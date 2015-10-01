@@ -997,7 +997,7 @@ CONTAINS
 
     ! Convert State_Chm%TRACERS from [kg/kg dry air] to [kg] so that
     ! units are consistently mixing ratio in main (ewl, 8/10/15)
-    CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
+    CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  &
                                 State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL GIGC_Error('Unit conversion error', RC, &
@@ -1096,7 +1096,7 @@ CONTAINS
 
     ! Convert State_Chm%TRACERS from [kg] back to [kg/kg dry air] 
     ! (ewl, 8/10/15)
-    CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  &
+    CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  &
                                 State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL GIGC_Error('Unit conversion error', RC, &
@@ -1399,7 +1399,7 @@ CONTAINS
     ! that initial state of atmosphere is in same units as
     ! chemistry ([kg]), and then convert back after MInit is assigned 
     ! (ewl, 8/10/15)
-    CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  &
+    CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  &
                                 State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL GIGC_Error('Unit conversion error', RC, &
@@ -1409,7 +1409,7 @@ CONTAINS
     
     MInit = STT
     
-    CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  &
+    CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  &
                                 State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL GIGC_Error('Unit conversion error', RC, &

@@ -920,7 +920,6 @@
       INTEGER       :: TID, I, J, L
       REAL*8        :: MK_TEMP(IBINS)
       INTEGER       :: ii=53, jj=29, ll=1
-      INTEGER       :: N_TRACERS
       
       ! Pointers
       ! We need to define local arrays to hold corresponding values
@@ -931,13 +930,10 @@
       ! EMISSSULFATETOMAS begins here!
       !=================================================================
 
-      ! Set number of tracers for unit conversion (ewl, 9/11/15)
-      N_TRACERS = Input_Opt%N_TRACERS
-
       ! Convert State_Chm%Tracers from [kg/kg dry air] to [kg] for TOMAS.
       ! This will be removed once TOMAS uses mixing ratio instead of mass 
       ! as tracer units (ewl, 9/11/15)
-      CALL Convert_KgKgDry_to_Kg( am_I_Root, N_TRACERS, State_Met,  
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
      &                            State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
@@ -997,7 +993,7 @@
       NULLIFY( STT )
 
       ! Convert State_Chm%Tracers back to kg (ewl, 9/11/15)
-      CALL Convert_Kg_to_KgKgDry( am_I_Root, N_TRACERS, State_Met,  
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
      &                             State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
@@ -5995,7 +5991,7 @@
       !=================================================================
  
       ! Copy values from Input_Opt
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+      XNUMOL    = Input_Opt%XNUMOL(1:Input_Opt%N_TRACERS)
 
       ! Convert STT from [v/v] -> [kg] 
       CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt,
@@ -6046,8 +6042,8 @@
 
             KMIN = ( BINACT1 + BINACT2 )/ 2.
 
-            CALL AQOXID( am_I_Root, SO4OXID, KMIN, I, J, L, State_Met,
-     &                   State_Chm, RC )
+            CALL AQOXID( am_I_Root, SO4OXID, KMIN, I, J, L, Input_Opt,
+     &                   State_Met, State_Chm, RC )
          ENDIF
       ENDDO
       ENDDO
@@ -6058,9 +6054,6 @@
       CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,
      &                          State_Met, State_Chm, RC ) 
       
-      ! Free pointers
-      NULLIFY( AD )
-
       END SUBROUTINE CHEM_SO4_AQ
 !EOC
 #endif

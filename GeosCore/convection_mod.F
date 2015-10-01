@@ -256,7 +256,7 @@
 
       ! Convert State_Chm%Tracers from [kg/kg dry air] to 
       ! [kg/kg total air] prior to convection (ewl, 8/10/15)
-      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
      &                                   State_Met, State_Chm, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
@@ -513,7 +513,7 @@
 
       ! Convert tracer concentration from kg/kg total air to 
       ! kg/kg dry air after convection (ewl, 8/10/15)
-      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
      &                                   State_Met, State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
          CALL GIGC_Error('Unit conversion error', RC, 
