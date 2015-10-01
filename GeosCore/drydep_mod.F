@@ -28,10 +28,10 @@
       USE GRID_MOD,       ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
       USE PBL_MIX_MOD                           ! Boundary layer quantities
       USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
-      USE TRACERID_MOD                          ! Tracer ID flags
 #if   defined( TOMAS )
       USE TOMAS_MOD                             ! For TOMAS microphysics
 #endif
+      USE TRACERID_MOD
 
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
@@ -277,7 +277,7 @@
       REAL(f8),          ALLOCATABLE :: KOA     (:    ) ! POP's KOA
       REAL(f8),          ALLOCATABLE :: F0      (:    ) ! Reactivity factor [1]
       REAL(f8),          ALLOCATABLE :: XMW     (:    ) ! Mol wt. [kg/mol]
-      REAL(f8),          ALLOCATABLE :: A_RADI  (:    ) ! Aer radius [um]
+      REAL(f8),          ALLOCATABLE :: A_RADI  (:    ) ! Aer radius [m]
       REAL(f8),          ALLOCATABLE :: A_DEN   (:    ) ! Aer density [kg/m3]
       CHARACTER(LEN=14), ALLOCATABLE :: DEPNAME (:    ) ! Species name
 
@@ -456,13 +456,6 @@
       PBL_DRYDEP = Input_Opt%PBL_DRYDEP
       LPRT       = Input_Opt%LPRT
 
-! Why do we do this???
-!      ! Be careful only to copy NUMDEP values from Input_Opt%NDVZIND
-!      ! to the NDVZIND local array.  This will prevent an OOB error.
-!      DO N = 1, Input_Opt%NUMDEP
-!         NDVZIND(N) = Input_Opt%NDVZIND(N)
-!      ENDDO
-
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)
@@ -530,6 +523,7 @@
             ENDIF
 
             ! Set Vd for aerosol tracers over snow/ice (J. Fisher, 8/1/11)
+            !%%% SHOULD WE ALSO DO THIS FOR THE DSTAL1 TRACERS ETC?
             IF ( ( AIROSOL(N)    ) .and. ( LSNOW(IJLOOP) )  .and. 
      &           ( NN /= IDTSALA ) .and. ( NN /= IDTSALC )  .and.
      &           ( NN /= IDTSO4s ) .and. ( NN /= IDTNITs )  .and.
@@ -891,10 +885,11 @@
 !
 ! !USES:
 !
+      USE Drydep_Toolbox_Mod, ONLY : BioFit
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE DRYDEP_TOOLBOX_MOD, ONLY : BIOFIT
+      USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
@@ -1163,6 +1158,10 @@
       REAL(fp)          :: SUNCOS_FP
       REAL(fp)          :: CFRAC_FP
 
+      ! For the species database
+      INTEGER                :: SpcId
+      TYPE(Species), POINTER :: ThisSpc => NULL()
+
       !=================================================================
       ! DEPVEL begins here!
       !=================================================================
@@ -1245,6 +1244,7 @@
 !$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
 !$OMP+PRIVATE( C1X,    VK,     I,      J,      IW             )
 !$OMP+PRIVATE( DIAM,   DEN,    XLAI_FP, SUNCOS_FP, CFRAC_FP   )
+!$OMP+PRIVATe( SpcId,  ThisSpc                                )
 #if defined( TOMAS )
 !$OMP+PRIVATE( BIN                                            )
 #endif
@@ -1457,173 +1457,79 @@
 !** equations (15)-(17) of Walcek et al. [1986]
  155           IF (.NOT. AIROSOL(K)) GOTO 160
 
-              !===========================================================
-              ! The difference between sea-salt and dust tracers below
-              ! is whether or not we account for hygroscopic growth.
-              ! Seasalt (yes), Dust (no)  (bec, bmy, 4/13/05 )
-              !===========================================================
+!-----------------------------------------------------------------------------
+! Prior to 9/30/15:
+! Use fields from the species database instead of string tests (bmy, 9/30/15) 
+! Leave the TOMAS code here for reference
+!
+!#if   defined( TOMAS )
+!               ! (win, 7/15/09)
+!               ELSE IF ( ( NTRAIND(K) >= IDTNK1  )   .AND.
+!     &                   ( NTRAIND(K) <  IDTNK1+IBINS ) ) THEN
+!
+!                  !=====================================================
+!                  ! Use size-resolved dry deposition calculations for 
+!                  ! size-resolved aerosols.  Choose to use DUST_SFCRSII
+!                  ! because these aerosol have diameter and density 
+!                  ! calculation that takes hygroscopic growth into 
+!                  ! account already, thus no need for such calculation
+!                  ! like in AERO_SFCRSII.  (win, 7/19/07)
+!                  !=====================================================     
+!
+!                  ! Get current aerosol diameter and density
+!                  ! NOTE: In TOMAS the aerosol diameter and density
+!                  ! evolves with time.  We have to save these in the 
+!                  ! DIAM and DEN variables so that we can hold these
+!                  ! PRIVATE for the parallel loop.
+!                  BIN  = NTRAIND(K) - IDTNK1 + 1
+!                  DIAM = SIZ_DIA( IJLOOP, BIN )     ! Diameter [m]
+!                  DEN  = SIZ_DEN( IJLOOP, BIN )     ! Density  [kg/m3]
+!
+!                  ! [Zhang et al., 2001]
+!                  ! Now pass DIAM, DEN as arguments (bmy, 1/31/14)
+!                  RSURFC(K,LDT) = DUST_SFCRSII( K, II, 
+!     &                                     PRESSU(IJLOOP)*1e-3_f8,
+!     &                                          TEMPK, 
+!     &                                          USTAR(IJLOOP),   
+!     &                                          DIAM, 
+!     &                                          DEN )
+!#endif
+!-----------------------------------------------------------------------------
 
-               IF ( ( DEPNAME(K) == 'SALA' )  .OR. 
-     &              ( DEPNAME(K) == 'SALC' )  .OR. 
-     &              ( DEPNAME(K) == 'SO4S' )  .OR. 
-     &              ( DEPNAME(K) == 'NITS' ) ) THEN 
+               ! Get information about this species from the database
+               SpcId   =  NTRAIND(K)
+               ThisSpc => State_Chm%SpcData(SpcId)%Info
+
+               IF ( ThisSpc%DD_AeroDryDep ) THEN
 
                   !=====================================================
                   ! Use size-resolved dry deposition calculations for 
                   ! seasalt aerosols.  We need to account for the
                   ! hygroscopic growth of the aerosol particles.
-                  ! (rjp, bec, bmy, 4/13/05)
                   !=====================================================
 
-!---------------------------------------------------------------------------
-! NOTE: We need to add a new subroutine if you want to use the
-!       Seinfeld 1986 mechanism (bec, bmy, 4/13/05)
-!                  ! [Seinfeld, 1986] 
-!                  RSURFC(K,LDT) = 
-!     &             AERO_sfcRsI(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
-!---------------------------------------------------------------------------
-
                   ! [Zhang et al., 2001]
-                  RSURFC(K,LDT) = 
-     &               AERO_SFCRSII( K,     II,   PRESSU(IJLOOP)*1e-3_f8, 
-     &                             TEMPK, USTAR(IJLOOP), RHB(IJLOOP),
-     &                             W10(IJLOOP), Input_Opt )
+                  RSURFC(K,LDT) = AERO_SFCRSII( K,     
+     &                                          II,   
+     &                                          PRESSU(IJLOOP)*1e-3_f8, 
+     &                                          TEMPK, 
+     &                                          USTAR(IJLOOP), 
+     &                                          RHB(IJLOOP),
+     &                                          W10(IJLOOP), 
+     &                                          Input_Opt )
 
-               ELSE IF ( ( DEPNAME(K) == 'DST1' )  .OR. 
-     &                   ( DEPNAME(K) == 'DST2' )  .OR. 
-     &                   ( DEPNAME(K) == 'DST3' )  .OR. 
-     &                   ( DEPNAME(K) == 'DST4' ) ) THEN 
+               ELSE IF ( ThisSpc%DD_DustDryDep ) THEN
 
                   !=====================================================
                   ! Use size-resolved dry deposition calculations for 
                   ! dust aerosols only.  Do not account for hygroscopic
                   ! growth of the dust aerosol particles.
-                  ! (rjp, bec, bmy, 4/13/05)
-                  !=====================================================     
+                  !=====================================================  
+#if defined( TOMAS ) 
 
-!                  ! [Seinfeld, 1986] 
-!                  RSURFC(K,LDT) = 
-!     &             DUST_sfcRsI(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
-
-                  ! Particle diameter [m]
-                  DIAM  = A_RADI(K) * 2.e+0_f8 
-
-                  ! Particle density [kg/m3]
-                  DEN   = A_DEN(K) 
-
-                  ! [Zhang et al., 2001]
-                  ! Now pass DIAM, DEN as arguments (bmy, 1/31/14)
-                  RSURFC(K,LDT) = DUST_SFCRSII( K, II, 
-     &                            PRESSU(IJLOOP)*1e-3_f8, 
-     &                            TEMPK, 
-     &                            USTAR(IJLOOP),
-     &                            DIAM,  
-     &                            DEN )
-
-               ELSE IF ( ( DEPNAME(K) == 'DSTAL1' )  .OR.
-     &                   ( DEPNAME(K) == 'DSTAL2' )  .OR.
-     &                   ( DEPNAME(K) == 'DSTAL3' )  .OR.
-     &                   ( DEPNAME(K) == 'DSTAL4' ) ) THEN
-
-                  !=====================================================
-                  ! Use size-resolved dry deposition calculations for
-                  ! dust alkalinity only.  Do not account for hygroscopic
-                  ! growth of the dust aerosol particles.
-                  ! (tdf 4/30/08)
-                  !=====================================================
-
-!                  ! [Seinfeld, 1986]
-!                  RSURFC(K,LDT) =
-!     &             DUST_sfcRsI(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
-
-                  ! Particle diameter [m]
-                  DIAM  = A_RADI(K) * 2.e+0_f8 
-
-                  ! Particle density [kg/m3]
-                  DEN   = A_DEN(K) 
-
-                  ! [Zhang et al., 2001]
-                  RSURFC(K,LDT) = DUST_SFCRSII(K, II,
-     &                            PRESSU(IJLOOP)*1e-3_fp,
-     &                            TEMPK,
-     &                            USTAR(IJLOOP),
-     &                            DIAM,  
-     &                            DEN )
-
-               ELSE IF ( ( DEPNAME(K) == 'NITD1' )  .OR.
-     &                   ( DEPNAME(K) == 'NITD2' )  .OR.
-     &                   ( DEPNAME(K) == 'NITD3' )  .OR.
-     &                   ( DEPNAME(K) == 'NITD4' ) ) THEN
-
-                  !=====================================================
-                  ! Use size-resolved dry deposition calculations for
-                  ! dust alkalinity only.  Do not account for hygroscopic
-                  ! growth of the dust aerosol particles.
-                  ! (tdf 4/30/08)
-                  !=====================================================
-
-!                  ! [Seinfeld, 1986]
-!                  RSURFC(K,LDT) =
-!     &             DUST_sfcRsI(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
-
-                  ! Particle diameter [m]
-                  DIAM  = A_RADI(K) * 2.e+0_f8 
-
-                  ! Particle density [kg/m3]
-                  DEN   = A_DEN(K) 
-
-                  ! [Zhang et al., 2001]
-                  RSURFC(K,LDT) = DUST_SFCRSII(K, II,
-     &                            PRESSU(IJLOOP)*1e-3_fp,
-     &                            TEMPK,
-     &                            USTAR(IJLOOP),
-     &                            DIAM,  
-     &                            DEN )
-
-               ELSE IF ( ( DEPNAME(K) == 'SO4D1' )  .OR.
-     &                   ( DEPNAME(K) == 'SO4D2' )  .OR.
-     &                   ( DEPNAME(K) == 'SO4D3' )  .OR.
-     &                   ( DEPNAME(K) == 'SO4D4' ) ) THEN
-
-                  !=====================================================
-                  ! Use size-resolved dry deposition calculations for
-                  ! dust alkalinity only.  Do not account for hygroscopic
-                  ! growth of the dust aerosol particles.
-                  ! (tdf 4/30/08)
-                  !=====================================================
-
-!                  ! [Seinfeld, 1986]
-!                  RSURFC(K,LDT) =
-!     &             DUST_sfcRsI(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
-
-                  ! Particle diameter [m]
-                  DIAM  = A_RADI(K) * 2.e+0_f8 
-
-                  ! Particle density [kg/m3]
-                  DEN   = A_DEN(K) 
-
-                  ! [Zhang et al., 2001]
-                  RSURFC(K,LDT) = DUST_SFCRSII(K, II,
-     &                            PRESSU(IJLOOP)*1e-3_fp,
-     &                            TEMPK,
-     &                            USTAR(IJLOOP),
-     &                            DIAM,  
-     &                            DEN )
-
-
-#if   defined( TOMAS )
-               ! (win, 7/15/09)
-               ELSE IF ( ( NTRAIND(K) >= IDTNK1  )   .AND.
-     &                   ( NTRAIND(K) <  IDTNK1+IBINS ) ) THEN
-
-                  !=====================================================
-                  ! Use size-resolved dry deposition calculations for 
-                  ! size-resolved aerosols.  Choose to use DUST_SFCRSII
-                  ! because these aerosol have diameter and density 
-                  ! calculation that takes hygroscopic growth into 
-                  ! account already, thus no need for such calculation
-                  ! like in AERO_SFCRSII.  (win, 7/19/07)
-                  !=====================================================     
+                  !-------------------------------
+                  !%%% TOMAS SIMULATIONS %%%
+                  !-------------------------------
 
                   ! Get current aerosol diameter and density
                   ! NOTE: In TOMAS the aerosol diameter and density
@@ -1634,15 +1540,27 @@
                   DIAM = SIZ_DIA( IJLOOP, BIN )     ! Diameter [m]
                   DEN  = SIZ_DEN( IJLOOP, BIN )     ! Density  [kg/m3]
 
-                  ! [Zhang et al., 2001]
-                  ! Now pass DIAM, DEN as arguments (bmy, 1/31/14)
-                  RSURFC(K,LDT) = DUST_SFCRSII( K, II, 
-     &                                     PRESSU(IJLOOP)*1e-3_f8,
-     &                                          TEMPK, 
-     &                                          USTAR(IJLOOP),   
-     &                                          DIAM, 
-     &                                          DEN )
+#else
+                  !-------------------------------
+                  !%%% NON-TOMAS SIMULATIONS %%%
+                  !-------------------------------
+
+                  ! Particle diameter, convert [m] -> [um]
+                  DIAM  = A_RADI(K) * 2.e+0_f8 
+
+                  ! Particle density [kg/m3]
+                  DEN   = A_DEN(K)             
+
 #endif
+
+                  ! [Zhang et al., 2001]
+                  RSURFC(K,LDT) = DUST_SFCRSII( K, 
+     &                                          II,
+     &                                          PRESSU(IJLOOP)*1e-3_f8,
+     &                                          TEMPK,
+     &                                          USTAR(IJLOOP),
+     &                                          DIAM,  
+     &                                          DEN )
 
                ELSE 
 
@@ -1676,6 +1594,10 @@
 
 !                  RSURFC(K,LDT) = 1.D0/MIN(VDS, DBLE(IVSMAX(II))/1.D4)
                ENDIF
+
+               ! Free pointer
+               ThisSpc => NULL()
+
  160        CONTINUE
 !*
  170     CONTINUE

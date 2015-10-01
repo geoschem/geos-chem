@@ -89,6 +89,8 @@ MODULE Species_Mod
      REAL(f8)           :: Henry_PKA        ! pKa for Henry const. correction
 
      ! Drydep parameters
+     LOGICAL            :: DD_AeroDryDep    ! Use AERO_SFCRSII for drydep?
+     LOGICAL            :: DD_DustDryDep    ! Use DUST_SFCRSII for drydep?
      REAL(fp)           :: DD_F0            ! F0 (reactivity) factor [1]
      REAL(fp)           :: DD_KOA           ! KOA factor for POPG
      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -353,13 +355,13 @@ CONTAINS
                          DryDepID,      Name,          FullName,       &
                          MW_g,          EmMW_g,        MolecRatio,     &
                          Henry_K0,      Henry_CR,      Henry_PKA,      &
-                         Density,       Radius,        DD_F0,          &
-                         DD_KOA,        DD_HStar_Old,  MP_SizeResAer,  &
-                         MP_SizeResNum, WD_RetFactor,  WD_LiqAndGas,   &
-                         WD_ConvFacI2G, WD_AerScavEff, WD_KcScaleFac,  &
-                         WD_RainoutEff, WD_CoarseAer,  Is_Advected,    &
-                         Is_Gas,        Is_Drydep,     Is_Wetdep,      &
-                         RC                                           )
+                         Density,       Radius,        DD_AeroDryDep,  &
+                         DD_DustDryDep, DD_F0,         DD_KOA,         &
+                         DD_HStar_Old,  MP_SizeResAer, MP_SizeResNum,  &
+                         WD_RetFactor,  WD_LiqAndGas,  WD_ConvFacI2G,  &
+                         WD_AerScavEff, WD_KcScaleFac, WD_RainoutEff,  &
+                         WD_CoarseAer,  Is_Advected,   Is_Gas,         &
+                         Is_Drydep,     Is_Wetdep,     RC             )
 !
 ! !USES:
 !
@@ -380,6 +382,8 @@ CONTAINS
     REAL(f8),         OPTIONAL    :: Henry_PKA        ! Henry's law pKa [1]
     REAL(fp),         OPTIONAL    :: Density          ! Density [kg/m3]
     REAL(fp),         OPTIONAL    :: Radius           ! Radius [m]
+    LOGICAL,          OPTIONAL    :: DD_AeroDryDep    ! Use AERO_SFCRSII?
+    LOGICAL,          OPTIONAL    :: DD_DustDryDep    ! Use DUST_SFCRSII?
     REAL(fp),         OPTIONAL    :: DD_F0            ! Drydep reactivity [1]
     REAL(fp),         OPTIONAL    :: DD_KOA           ! Drydep KOA parameter
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -530,6 +534,26 @@ CONTAINS
        ThisSpc%Density = Density
     ELSE
        ThisSpc%Density = MISSING
+    ENDIF
+
+    !---------------------------------------------------------------------
+    ! DD_AeroDryDep: call routine AERO_SFCRSII to do drydep
+    ! (i.e. special drydep handling for sea salt species)
+    !---------------------------------------------------------------------
+    IF ( PRESENT( DD_AeroDryDep ) ) THEN
+       ThisSpc%DD_AeroDryDep = DD_AeroDryDep
+    ELSE
+       ThisSpc%DD_AeroDryDep = .FALSE.
+    ENDIF
+
+    !---------------------------------------------------------------------
+    ! DD_DustDryDep: call routine DUST_SFCRSII to do drydep
+    ! (i.e. special drydep handling for dust species)
+    !---------------------------------------------------------------------
+    IF ( PRESENT( DD_DustDryDep ) ) THEN
+       ThisSpc%DD_DustDryDep = DD_DustDryDep
+    ELSE
+       ThisSpc%DD_DustDryDep = .FALSE.
     ENDIF
 
     !---------------------------------------------------------------------

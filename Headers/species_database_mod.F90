@@ -161,7 +161,6 @@ CONTAINS
        ! Translate species name to uppercase
        NameAllCaps = TRIM( Input_Opt%TRACER_NAME(N) )
        CALL TranUc( NameAllCaps )
-       print*, '### NameAllCaps: ', TRIM( NameAllCaps )
 
        ! Test for species name
        SELECT CASE( TRIM ( NameAllCaps ) )
@@ -810,6 +809,7 @@ CONTAINS
                               Is_Wetdep     = T,                            &
                               Density       = 2500.0_fp,                    &
                               Radius        = 7.3e-7_fp,                    &
+                              DD_DustDryDep = T,                            &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -848,6 +848,7 @@ CONTAINS
                               Is_Wetdep     = T,                            &
                               Density       = 2650.0_fp,                    &
                               Radius        = 1.4e-6_fp,                    &
+                              DD_DustDryDep = T,                            &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -887,6 +888,7 @@ CONTAINS
                               Is_Wetdep     = T,                            &
                               Density       = 2650.0_fp,                    &
                               Radius        = 2.4e-6_fp,                    &
+                              DD_DustDryDep = T,                            &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -927,6 +929,7 @@ CONTAINS
                               Is_Wetdep     = T,                            &
                               Density       = 2650.0_fp,                    &
                               Radius        = 4.50e-6_fp,                   &
+                              DD_DustDryDep = T,                            &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -1821,6 +1824,7 @@ CONTAINS
                               Is_Wetdep     = T,                            &
                               Density       = 2200.0_fp,                    &
                               Radius        = Radius,                       &
+                              DD_AeroDryDep = T,                            &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -2251,6 +2255,7 @@ CONTAINS
                               Is_Wetdep     = T,                            &
                               Density       = 2200.0_fp,                    &
                               Radius        = Radius,                       &
+                              DD_AeroDryDep = T,                            &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -2281,6 +2286,7 @@ CONTAINS
                               Is_Wetdep     = T,                            &
                               Density       = 2200.0_fp,                    &
                               Radius        = Radius,                       &
+                              DD_AeroDryDep = T,                            &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -2372,6 +2378,7 @@ CONTAINS
                               Is_Wetdep     = T,                            &
                               Density       = 2200.0_fp,                    &
                               Radius        = Radius,                       &
+                              DD_AeroDryDep = T,                            &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_Old  = 0.0_fp,                       &
                               WD_AerScavEff = 1.0_fp,                       &
@@ -2944,6 +2951,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              DD_DustDryDep = T,                            &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               MP_SizeResNum = T,                            &
