@@ -1244,12 +1244,18 @@ CONTAINS
                'TK', HCRC,      FIRST,    State_Met%T   )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
+    ! Air mass [kg/grid box]
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%AIR, &
               'AIR', HCRC,      FIRST,    State_Met%AD   )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%AIRVOL, &
            'AIRVOL', HCRC,      FIRST,    State_Met%AIRVOL  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    ! Dry air density [kg/m3]
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%AIRDEN, &
+           'AIRDEN', HCRC,      FIRST,    State_Met%AIRDEN  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
  
     ! ----------------------------------------------------------------
