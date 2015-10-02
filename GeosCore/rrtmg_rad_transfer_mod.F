@@ -139,6 +139,7 @@
       USE COMODE_MOD,          ONLY : AIRDENS,        CSPEC,       JLOP
       USE COMODE_LOOP_MOD,     ONLY : ICH4, AVG, WTAIR
       USE DIAG_MOD,            ONLY : AD72
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,  ONLY : OptInput
       USE GIGC_State_Met_Mod,  ONLY : MetState
       USE GIGC_State_Chm_Mod,  ONLY : ChmState
@@ -159,13 +160,16 @@
       INTEGER,        INTENT(IN)    :: ISEED  
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       INTEGER,        INTENT(INOUT) :: ICLD        ! CLOUD FLAG FOR RRTMG
                                                    ! 0-NOCLOUD, 1-GREY CLOUD
-      INTEGER,        INTENT(INOUT) :: RC          ! Failure or success
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Failure or success
 !
 ! !REMARKS:
 !  THIS ROUTINE PASSES INPUTS TO THE RRTMG DRIVER ROUTINE "RAD_DRIVER"
