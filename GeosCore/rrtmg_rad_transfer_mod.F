@@ -485,6 +485,11 @@
       ! Convert tracer units to [kg] for RRTMG (ewl, 8/12/15)
       CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
      &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC=errCode,     
+     &                   'DO_RRTMG_RAD_TRANSFER')
+         RETURN
+      ENDIF
 
       !=================================================================
       ! PREPARE INPUTS FOR RAD_DRIVER
@@ -1565,9 +1570,14 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Convert tracer units to [kg] for RRTMG (ewl, 8/12/15)
+      ! Convert tracer units back to [kg/kg] after RRTMG (ewl, 8/12/15)
       CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
      &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC=errCode,     
+     &                   'DO_RRTMG_RAD_TRANSFER')
+         RETURN
+      ENDIF
 
 !EOC
       END SUBROUTINE DO_RRTMG_RAD_TRANSFER

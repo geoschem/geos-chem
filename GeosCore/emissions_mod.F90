@@ -125,7 +125,6 @@ CONTAINS
     USE TRACERID_MOD,       ONLY : IDTCH3Br, IDTBrO
     USE BROMOCARB_MOD,      ONLY : SET_BRO
     USE BROMOCARB_MOD,      ONLY : SET_CH3BR
-    USE UNITCONV_MOD
 
     ! Use old mercury code for now (ckeller, 09/23/2014)
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
@@ -154,8 +153,6 @@ CONTAINS
 !  13 Nov 2014 - C. Keller    - Added EMISSCARBON (for SESQ and POA)
 !  21 Nov 2014 - C. Keller    - Added EMISSVOC to prevent VOC build-up
 !                               above tropopause
-!  23 Sep 2015 - E. Lundgren  - Incoming tracer units are now [kg/kg] and
-!                               are converted to [kg] for Hg emissions only
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -220,33 +217,10 @@ CONTAINS
        ENDIF
 #endif
 
-! new
-       ! Convert tracer units back to [kg] for Hg (ewl, 8/12/15)
-       ! (keep Hg in Kg for now)
-       CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  &
-                                   State_Chm, RC ) 
-       IF ( RC /= GIGC_SUCCESS ) THEN
-          CALL GIGC_Error('Unit conversion error', RC, &
-                          'Routine EMISSIONS_RUN in emissions_mod.F')
-          RETURN
-       ENDIF                         
-! end new (ewl)
-
        ! For mercury, use old emissions code for now
        IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
           CALL EMISSMERCURY ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
        ENDIF
-
-! new
-       ! Convert tracer units to [kg/kg] (ewl, 8/12/15)
-       CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  &
-                                   State_Chm, RC ) 
-       IF ( RC /= GIGC_SUCCESS ) THEN
-          CALL GIGC_Error('Unit conversion error', RC, &
-                          'Routine EMISSIONS_RUN in emissions_mod.F')
-          RETURN
-       ENDIF                         
-! end new (ewl)
 
        ! Prescribe some concentrations if needed
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
