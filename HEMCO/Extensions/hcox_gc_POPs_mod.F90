@@ -755,7 +755,7 @@ CONTAINS
             TK = ExtState%TK%Arr%Val(I,J,1)
 
             ! Get gas phase air POP concentration at surface in mol/m3
-            ! ExtState%POPG is in units of kg/kg dry air 
+            ! ExtState%POPG is now in units of kg/kg dry air (ewl, 10/2/15) 
             POPG = MAX( ExtState%POPG%Arr%Val(I,J,1), SMALLNUM )
 
 ! old
@@ -764,7 +764,7 @@ CONTAINS
 !            !WRITE(6,*) 'POPG (mol/m3) =', POPG
 ! new
 !            ! (kg trc/kg dry air) / (0.178 kg trc/mol) * (kg dry air/m3)
-            POPG = POPG / MW / ExtState%AIRDEN%Arr%Val(I,J,1) ! mol/m3
+            POPG = POPG / MW * ExtState%AIRDEN%Arr%Val(I,J,1) ! mol/m3
 
             ! Grid box surface area [m2]
             AREA_M2   = HcoState%Grid%AREA_M2%Val(I,J)
@@ -1117,14 +1117,15 @@ CONTAINS
                PRESS = PRESS / 1013.25e+0_hp
 
                ! Get gas phase air POP concentration at surface in mol/m3
-               POPG = MAX( ExtState%POPG%Arr%Val(I,J,1), SMALLNUM ) ![kg in gridbox]
+               ! ExtState%POPG is now in units of kg/kg dry air (ewl, 10/2/15) 
+               POPG = MAX( ExtState%POPG%Arr%Val(I,J,1), SMALLNUM )
 
 ! old
 !               ! kg / (kg/mol) /m3 in gridbox
 !               POPG = POPG / MWPOP / ExtState%AIRVOL%Arr%Val(I,J,1) ! mol/m3
 ! new
                ! (kg trc/kg dry air) / (kg trc/mol) * (kg dry air/m3)
-               POPG = POPG / MWPOP / ExtState%AIRDEN%Arr%Val(I,J,1) ! mol/m3
+               POPG = POPG / MWPOP * ExtState%AIRDEN%Arr%Val(I,J,1) ! mol/m3
 
 
                ! Grid box surface area [m2]
@@ -1477,14 +1478,15 @@ CONTAINS
                TK = ExtState%TK%Arr%Val(I,J,1)
 
                ! Get gas phase air POP concentration at surface in mol/m3
-               POPG = MAX( ExtState%POPG%Arr%Val(I,J,1), SMALLNUM ) ![kg in gridbox]
+               ! ExtState%POPG is now in units of kg/kg dry air (ewl, 10/2/15) 
+               POPG = MAX( ExtState%POPG%Arr%Val(I,J,1), SMALLNUM )
 
 ! old
 !               ! kg / (0.178 kg/mol) /m3 in gridbox
 !               POPG = POPG / MW / ExtState%AIRVOL%Arr%Val(I,J,1) ! mol/m3
 ! new
                ! (kg trc/kg dry air) / (kg trc/mol) * (kg dry air/m3)
-               POPG = POPG / MW / ExtState%AIRDEN%Arr%Val(I,J,1) ! mol/m3
+               POPG = POPG / MW * ExtState%AIRDEN%Arr%Val(I,J,1) ! mol/m3
 
 
                ! Grid box surface area [m2]
@@ -1934,7 +1936,8 @@ CONTAINS
     ! Activate met fields required by this extension
     ExtState%POPG%DoUse        = .TRUE.
     ExtState%ALBD%DoUse        = .TRUE. 
-    ExtState%AIRVOL%DoUse      = .TRUE. 
+    ExtState%AIRVOL%DoUse      = .TRUE.
+    ExtState%AIRDEN%DoUse      = .TRUE. 
     ExtState%FRAC_OF_PBL%DoUse = .TRUE. 
     ExtState%FRLAKE%DoUse      = .TRUE.
     ExtState%LAI%DoUse         = .TRUE.
