@@ -477,8 +477,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD                   
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -783,6 +782,11 @@
       ! Convert all tracers in STT from [kg] -> [v/v]
       CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,
      &                          State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'CHEM_SULFATE in sulfate_mod.F')
+         RETURN
+      ENDIF
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
       ENDIF
@@ -856,6 +860,11 @@
       ! Convert STT from [v/v] -> [kg]
       CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt, 
      &                          State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'CHEM_SULFATE in sulfate_mod.F')
+         RETURN
+      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -2020,7 +2029,7 @@
       IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
       XNUMOL      = Input_Opt%XNUMOL
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -2336,7 +2345,7 @@
       TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT    => State_Chm%Tracers
 
@@ -2639,7 +2648,7 @@
       XNUMOL      = Input_Opt%XNUMOL(1:N_TRACERS)
       LDSTUP      = Input_Opt%LDSTUP
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -5996,6 +6005,11 @@
       ! Convert STT from [v/v] -> [kg] 
       CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt,
      &                          State_Met, State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'CHEM_SO4_AQ in sulfate_mod.F')
+         RETURN
+      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -6053,6 +6067,11 @@
        ! Convert STT from [kg] -> [v/v] 
       CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,
      &                          State_Met, State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'CHEM_SO4_AQ in sulfate_mod.F')
+         RETURN
+      ENDIF
       
       END SUBROUTINE CHEM_SO4_AQ
 !EOC
@@ -6161,7 +6180,7 @@
       ! Assume success
       RC  = GIGC_SUCCESS
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -6328,7 +6347,7 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       LDSTUP    = Input_Opt%LDSTUP
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 

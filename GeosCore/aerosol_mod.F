@@ -444,7 +444,7 @@
       LOGICAL             :: LSOA
       LOGICAL             :: LSSALT
       LOGICAL             :: LSULF
-      LOGICAL             :: UNITCONVERSION = .FALSE.
+      LOGICAL             :: UNITCONVERSION
 
       ! Pointers
       REAL(fp), POINTER   :: STT(:,:,:,:)
@@ -467,6 +467,7 @@
       ! If tracer units are 'kg/kg dry', convert to [kg] for this routine.
       ! Otherwise, if tracer units are not 'kg', throw an error to the 
       ! calling routine (ewl, 8/12/15)
+      UNITCONVERSION = .FALSE.
       IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg dry' ) THEN
          CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met, 
      &                               State_Chm, RC )  

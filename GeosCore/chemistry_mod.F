@@ -97,7 +97,7 @@
       USE COMODE_LOOP_MOD     
       USE DUST_MOD,           ONLY : CHEMDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
-      USE ERROR_MOD,          ONLY : DEBUG_MSG, GIGC_ERROR
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -302,8 +302,8 @@
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
-      ! NOTE: State_Chm%TRACERS needs to enter this routine with
-      ! units of [kg].  If we are calling this routine from the 
+      ! NOTE (pre-8/14/15): State_Chm%TRACERS needs to enter this routine
+      ! with units of [kg].  If we are calling this routine from the 
       ! traditional "main.F" driver, then the tracers are already in
       ! [kg] and no further unit conversion is necessary.  If on the
       ! other hand we are calling this routine from the ESMF interface,
@@ -311,10 +311,10 @@
       ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90).
       ! (bmy, 4/4/13) 
       !
-      ! Now DO_CHEMISTRY is passed tracer concentration in units of 
-      ! kg/kg and must be converted to kg at the start of the routine.
-      ! Units are then converted back to kg/kg at the end. To work in
-      ! an ESMF environment, GIGC_Do_Chem (in ESMF/gigc_chemdr.F90)
+      ! (post-8/14/15) Now DO_CHEMISTRY is passed tracer concentration in 
+      ! units of kg/kg and must be converted to kg at the start of the
+      ! routine. Units are then converted back to kg/kg at the end. To work
+      ! in an ESMF environment, GIGC_Do_Chem (in ESMF/gigc_chemdr.F90)
       ! will need to be updated to convert State_Chm%TRACERS from [v/v]
       ! to [kg/kg dry air]. (ewl, 8/13/15)
       !-----------------------------------------------------------------
@@ -363,6 +363,12 @@
             CALL CHEMDR
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
+            ! Check units (ewl, 10/5/15)
+            IF (TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+               CALL ERROR_STOP('Incorrect tracer units after CHEMDR', 
+     &                      'DO_CHEMISTRY in chemistry_mod.F')
+            ENDIF  
+
             RC = GEOS_Timer_End ( "Chemistry-Gas-Phase" )
 
             ! Call linearized stratospheric scheme
@@ -372,6 +378,13 @@
 
                CALL DO_STRAT_CHEM
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+               ! Check units (ewl, 10/5/15)
+               IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+                  CALL ERROR_STOP('Incorrect tracer units after'
+     &                             // ' DO_STRAT_CHEM', 
+     &                      'DO_CHEMISTRY in chemistry_mod.F')
+               ENDIF  
 
                RC = GEOS_Timer_End ( "Chemistry-Stratospheric" )
 
@@ -401,6 +414,13 @@
                ! Do sulfate chemistry
                CALL CHEMSULFATE
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+               ! Check units (ewl, 10/5/15)
+               IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+                  CALL ERROR_STOP('Incorrect tracer units after'
+     &                             // ' CHEMSULFATE', 
+     &                      'DO_CHEMISTRY in chemistry_mod.F')
+               ENDIF  
 
                RC = GEOS_Timer_End ( "Chemistry-Sulfate" )
 
@@ -448,6 +468,14 @@
      &             ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
                IF ( RC /= GIGC_SUCCESS ) RETURN
             ENDIF
+
+            ! Check units (ewl, 10/5/15)
+            IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+               CALL ERROR_STOP('Incorrect tracer units after'
+     &                             // ' DO_TOMAS', 
+     &                      'DO_CHEMISTRY in chemistry_mod.F')
+            ENDIF  
+
 #endif
 
             RC = GEOS_Timer_End( "Aerosols" )
@@ -475,7 +503,7 @@
             ! N_TROP, the # of trop boxes, is returned
             CALL AEROSOL_RURALBOX( N_TROP,    am_I_Root, 
      &                             Input_Opt, State_Met  )
- 
+
             ! Initialize FAST-JX quantities for computing AOD's
             IF ( FIRST ) THEN
 
@@ -493,6 +521,13 @@
             ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
             CALL AEROSOL_CONC
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+            ! Check units (ewl, 10/5/15)
+            IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+               CALL ERROR_STOP('Incorrect tracer units after'
+     &                             // ' AEROSOL_CONC', 
+     &                      'DO_CHEMISTRY in chemistry_mod.F')
+            ENDIF  
 
             ! Compute AOD's and surface areas at 999 nm
             MONTH      = 0

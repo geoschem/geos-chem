@@ -190,8 +190,7 @@ CONTAINS
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE CMN_SIZE_MOD
-    USE ERROR_MOD,          ONLY : DEBUG_MSG
-    USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+    USE ERROR_MOD
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -601,21 +600,32 @@ CONTAINS
        ! Intial conditions
        STT0(:,:,:,:) = STT(:,:,:,:)
 
-       ! Convert units: kg -> v/v
+       ! Convert units from [kg] to [v/v dry air] for Linoz and Synoz
+       ! (ewl, 10/05/15)
        CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,     &
-                                 State_Met, State_Chm, RC=errCode )
+                                 State_Met, State_Chm, errCode )
+       IF ( errCode /= GIGC_SUCCESS ) THEN
+          CALL GIGC_Error('Unit conversion error', errCode,    &
+                          'DO_STRAT_CHEM in strat_chem_mod.F')
+          RETURN
+       ENDIF
 
        IF ( LLINOZ ) THEN
           CALL Do_Linoz( am_I_Root, Input_Opt,             &
-                         State_Met, State_Chm, RC=errCode )
+                         State_Met, State_Chm, errCode )
        ELSE 
           CALL Do_Synoz( am_I_Root, Input_Opt,             &
-                         State_Met, State_Chm, RC=errCode )
+                         State_Met, State_Chm, errCode )
        ENDIF
 
-       ! Convert units: v/v -> kg
+       ! Convert units back to [kg] after Linoz and Synoz (ewl, 10/05/15)
        CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt,     &
-                                 State_Met, State_Chm, RC=errCode )
+                                 State_Met, State_Chm, errCode )
+       IF ( errCode /= GIGC_SUCCESS ) THEN
+          CALL GIGC_Error('Unit conversion error', errCode,     &
+                          'DO_STRAT_CHEM in strat_chem_mod.F')
+          RETURN
+       ENDIF
 
        ! Add to tropopause level aggregator for later determining STE flux
        TpauseL_CNT = TpauseL_CNT + 1e+0_fp
@@ -1724,7 +1734,7 @@ CONTAINS
     ! lower pressure !PHS
     P70mb = 70e+0_fp
 
-    ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+    ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
     ! (mpayer, 12/6/12)
     STT => State_Chm%Tracers
 

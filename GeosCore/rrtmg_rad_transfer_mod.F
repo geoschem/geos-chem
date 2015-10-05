@@ -139,6 +139,7 @@
       USE COMODE_MOD,          ONLY : AIRDENS,        CSPEC,       JLOP
       USE COMODE_LOOP_MOD,     ONLY : ICH4, AVG, WTAIR
       USE DIAG_MOD,            ONLY : AD72
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,  ONLY : OptInput
       USE GIGC_State_Met_Mod,  ONLY : MetState
@@ -486,7 +487,7 @@
       CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
      &                            State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC=errCode,     
+         CALL GIGC_Error('Unit conversion error', RC,     
      &                   'DO_RRTMG_RAD_TRANSFER')
          RETURN
       ENDIF
@@ -1574,7 +1575,7 @@
       CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
      &                            State_Chm, RC ) 
       IF ( RC /= GIGC_SUCCESS ) THEN
-         CALL GIGC_Error('Unit conversion error', RC=errCode,     
+         CALL GIGC_Error('Unit conversion error', RC,     
      &                   'DO_RRTMG_RAD_TRANSFER')
          RETURN
       ENDIF

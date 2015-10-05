@@ -2867,7 +2867,7 @@ contains
     ! Assume success
     RC  =  GIGC_SUCCESS
 
-    ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+    ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
     ! (mpayer, 12/6/12)
     STT => State_Chm%Tracers
 
