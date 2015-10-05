@@ -1038,17 +1038,17 @@
       REAL(fp)                     :: KcScale(3)
 
       ! Pointers
-      REAL(fp),      POINTER       :: p_C_H2O  => NULL()
-      REAL(fp),      POINTER       :: p_CLDICE => NULL()
-      REAL(fp),      POINTER       :: p_CLDLIQ => NULL()
-      REAL(fp),      POINTER       :: p_T      => NULL()
+      REAL(fp),      POINTER, SAVE :: p_C_H2O  => NULL()
+      REAL(fp),      POINTER, SAVE :: p_CLDICE => NULL()
+      REAL(fp),      POINTER, SAVE :: p_CLDLIQ => NULL()
+      REAL(fp),      POINTER, SAVE :: p_T      => NULL()
 
-      ! Objects.
+      ! Objects
       TYPE(Species), POINTER, SAVE :: ThisSpc  => NULL()
 #if defined( GEOS_4 ) || defined( GEOS_5 )
-      ! For GEOS-4, and GEOS-5, we need to make this THREADPRIVATE
+      ! For GEOS-4, and GEOS-5, make pointers and objects THREADPRIVATE
       ! because COMPUTE_F is called from a parallel loop (bmy, 10/5/15)
-!$OMP THREADPRIVATE( ThisSpc )
+!$OMP THREADPRIVATE( p_C_H2O, p_CLDICE, p_CLDLIQ, p_T, ThisSpc )
 #endif
 !
 ! !DEFINED PARAMETERS:
