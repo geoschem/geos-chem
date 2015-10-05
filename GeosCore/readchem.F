@@ -55,12 +55,14 @@
 !                              initialize NKHAC, NKMCO3, NKGLYC. (S.D. Eastham)
 !  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
+!  22 Sep 2015 - R. Yantosca - Use NUMDEP instead of MAXDEP
 !  23 Sep 2015 - E. Lundgren - Add Criegee chemistry (E. Marais, D. Millet)
 !******************************************************************************
 !
 ! !USES:
 !
-      USE DRYDEP_MOD,         ONLY : MAXDEP
+!      USE DRYDEP_MOD,         ONLY : MAXDEP
+      USE DRYDEP_MOD,         ONLY : NUMDEP
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE DIAG_PL_MOD,        ONLY : SETJFAM, SETPL
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -956,12 +958,18 @@
             NK                 = NRATCUR(NCS)
             IF (XINP(NPRODLO).EQ.'DRYDEP') THEN
                NDRYDEP(NCS)           = NDRYDEP(NCS) + 1
-               IF (NDRYDEP(NCS) .GT. MAXDEP) THEN
-                  WRITE(*,*) 'ERROR NDRYDEP Greater then MAXDEP',
-     x                 ' NDRYDEP(NCS)=',NDRYDEP(NCS),'MAXDEP=',MAXDEP
-                  IF ( am_I_Root ) WRITE( 6, '(a)' ) 'STOP 125'
-                  CALL GEOS_CHEM_STOP
-               ENDIF
+!------------------------------------------------------------------------------
+!               IF (NDRYDEP(NCS) .GT. MAXDEP) THEN
+!                  WRITE(*,*) 'ERROR NDRYDEP Greater then MAXDEP',
+!     x                 ' NDRYDEP(NCS)=',NDRYDEP(NCS),'MAXDEP=',MAXDEP
+!------------------------------------------------------------------------------
+! Disable this test for now
+!               IF (NDRYDEP(NCS) .GT. NUMDEP) THEN
+!                  WRITE(*,*) 'ERROR NDRYDEP Greater then NUMDEP',
+!     x                 ' NDRYDEP(NCS)=',NDRYDEP(NCS),'MAXDEP=',NUMDEP
+!                  IF ( am_I_Root ) WRITE( 6, '(a)' ) 'STOP 125'
+!                  CALL GEOS_CHEM_STOP
+!               ENDIF
                NKDRY(NDRYDEP(NCS),NCS)   = NK
             ENDIF
          ENDIF

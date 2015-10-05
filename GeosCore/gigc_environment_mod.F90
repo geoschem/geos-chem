@@ -33,10 +33,6 @@ MODULE GIGC_Environment_Mod
   PUBLIC  :: GIGC_Allocate_All
   PUBLIC  :: GIGC_Init_All
 !
-! !PRIVATE MEMBER FUNCTIONS:
-!
-  PRIVATE :: Get_nSchm_nSchmBry
-!
 ! !REMARKS:
 !  For consistency, we should probably move the met state initialization
 !  to the same module where the met state derived type is contained.
@@ -48,6 +44,8 @@ MODULE GIGC_Environment_Mod
 !                              handled in Headers/gigc_state_met_mod.F90
 !  22 Oct 2012 - R. Yantosca - Renamed to gigc_environment_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  28 Aug 2015 - R. Yantosca - Remove Get_nSchm_nSchmBry; stratospheric 
+!                              chemistry fields are now read by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -269,14 +267,15 @@ CONTAINS
 !  01 Nov 2012 - R. Yantosca - Now use LSCHEM from logical_mod.F
 !  09 Nov 2012 - R. Yantosca - Now pass Input Options object for GIGC
 !  26 Feb 2013 - R. Yantosca - Now pass Input_Opt to Init_GIGC_State_Chm
+!  28 Aug 2015 - R. Yantosca - Remove strat-chem options from call to 
+!                              Init_GIGC_State_Chm; this is done by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES
 !
-    INTEGER :: nSchm, nSchmBry, N_TRACERS
-    LOGICAL :: LSCHM
+    INTEGER :: N_TRACERS
 
     !=======================================================================
     ! Copy fields from Input_Opt to local variables
@@ -302,62 +301,13 @@ CONTAINS
     ! Initialize object for chemical state
     !=======================================================================
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) 
-
-    !-----------------------------------------------------------------------
-    !           %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-    !
-    ! At present, we have not included stratospheric chemistry in when
-    ! connecting to the ESMF interface.  We will have to include all strat
-    ! chem species via the ESMF import state.  For now just set nsChm
-    ! and nSchmBry to default values. (bmy, 11/1/12)
-    !-----------------------------------------------------------------------
-    nSchm    = 1
-    nSchmBry = 1
-
-#else
-
-    !-----------------------------------------------------------------------
-    !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-    !
-    ! We can test the grid-independent implementation of stratospheric
-    ! chemistry when compiling the traditional GEOS-Chem with DEVEL=yes.
-    ! In this case, we need to pre-compute the # of strat chem species
-    ! (nSchm) and the number of bromine species (nSchmBry) so that we can
-    ! allocate the corresponding fields of the chemistry state.
-    ! (bmy, 11/1/12)
-    !-----------------------------------------------------------------------
-! Comment out for now, leave for future expansion (bmy, 11/20/12)
-!    IF ( Input_Opt%LSCHEM ) THEN
-!
-!       ! Strat chem is turned on, find out the # of stratospheric 
-!       ! chemistry species for which we need to read rates from disk.
-!       ! NOTE: Bromine species are handled specially.
-!       CALL Get_nSchm_nSchmBry( am_I_Root  = am_I_Root,  &  ! Root CPU (Y/N)?
-!                                nSchm      = nSchm,      &  ! # strat chem spec
-!                                nSchmBry   = nSchmBry,   &  ! # strat chem spec
-!                                RC         = RC         )   ! Success or failure
-!
-!    ELSE
-!
-       ! Strat chem is turned off
-       nSchm    = 0
-       nSchmBry = 0
-!
-!    ENDIF
-
-#endif
-
     ! Initialize chemistry state
     CALL Init_GIGC_State_Chm(  am_I_Root  = am_I_Root,  &  ! Root CPU (Y/N)?
                                IM         = IIPAR,      &  ! # of lons
                                JM         = JJPAR,      &  ! # of lats
                                LM         = LLPAR,      &  ! # of levels
                                nTracers   = N_TRACERS,  &  ! # of tracers
-                               nBioMax    = NBIOMAX,    &  ! # biomass species
                                nSpecies   = IGAS,       &  ! # chemical species
-                               nSchm      = nSchm,      &  ! # strat chem spec
-                               nSchmBry   = nSchmBry,   &  ! # bromine species
                                Input_Opt  = Input_Opt,  &  ! Input Options
                                State_Chm  = State_Chm,  &  ! Chemistry State
                                RC         = RC         )   ! Success or failure
@@ -366,160 +316,5 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
   END SUBROUTINE GIGC_Init_All
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_nSchm_nSchmBry
-!
-! !DESCRIPTION: Subroutine Get\_nSchm\_nSchmBry finds out the \# of 
-!  stratospheric chemistry tracers and bromine tracers so that we can
-!  allocate the various Schm\_* fields in the Chemistry State object.
-!\\
-!\\
-! !INTERFACE:
-!      
-  SUBROUTINE Get_nSchm_nSchmBry( am_I_Root, Input_Opt, nSchm, nSchmBry, RC )
-!
-! !USES:
-!
-    USE CMN_SIZE_MOD
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE TIME_MOD,           ONLY : GET_TAU, GET_NYMD, GET_NHMS, GET_TS_CHEM
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT) :: nSchm       ! # of strat chem species
-    INTEGER,        INTENT(OUT) :: nSchmBry    ! # of strat chem Bry species
-    INTEGER,        INTENT(OUT) :: RC          ! Success or failure
-! 
-! !REVISION HISTORY:
-!  01 Feb 2011 - L. Murray   - Initial version
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  26 Oct 2012 - R. Yantosca - Now pass Chemistry State object for GIGC
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    CHARACTER(LEN=255) :: GMI_name, GC_Name
-    CHARACTER(LEN=255) :: GMI_TrName(120)
-    INTEGER            :: AS, N, NN
-
-    !=================================================================
-    ! INIT_STRAT_CHEM begins here!
-    !=================================================================
-
-    ! Assume success
-    RC         = GIGC_SUCCESS
-
-    ! Initialize counters, initial times, mapping arrays
-    nsChm      = 0
-    nSchmBry   = 0
-
-    ! List of available tracers with archived monthly climatological
-    ! production rates, loss frequencies, and mixing ratios from the 
-    ! GMI Combo model (tracer names here are as used in GMI).
-    GMI_TrName = (/ &
-             'A3O2',     'ACET',   'ACTA',   'ALD2',    'ALK4',  'ATO2', &
-             'B3O2',       'Br',   'BrCl',    'BrO',  'BrONO2',  'C2H6', &
-             'C3H8',     'CCl4', 'CF2Br2', 'CF2Cl2', 'CF2ClBr', 'CF3Br', &
-           'CFC113',   'CFC114', 'CFC115',  'CFCl3',    'CH2O', 'CH3Br', &
-          'CH3CCl3',    'CH3Cl',    'CH4',     'CO',      'Cl',   'Cl2', &
-            'Cl2O2',      'ClO', 'ClONO2',    'EOH',    'ETO2',   'ETP', &
-             'GCO3',     'GLYC',   'GLYX',     'GP',    'GPAN',     'H', &
-               'H2',    'H2402',    'H2O',   'H2O2',     'HAC',   'HBr', &
-         'HCFC141b', 'HCFC142b', 'HCFC22',  'HCOOH',     'HCl',  'HNO2', &
-             'HNO3',     'HNO4',    'HO2',   'HOBr',    'HOCl',  'IALD', &
-             'IAO2',      'IAP',   'INO2',   'INPN',    'ISN1',  'ISNP', &
-             'ISOP',      'KO2',   'MACR',   'MAN2',    'MAO3',  'MAOP', &
-              'MAP',     'MCO3',    'MEK',   'MGLY',     'MO2',   'MOH', &
-               'MP',     'MRO2',    'MRP',    'MVK',    'MVN2',     'N', &
-              'N2O',     'N2O5',     'NO',    'NO2',     'NO3',   'NOx', &
-                'O',      'O1D',     'O3',   'OClO',      'OH',    'Ox', &
-              'PAN',      'PMN',    'PO2',     'PP',     'PPN',  'PRN1', &
-             'PRPE',     'PRPN',   'R4N1',   'R4N2',    'R4O2',   'R4P', &
-             'RA3P',     'RB3P',   'RCHO',   'RCO3',   'RCOOH',  'RIO1', &
-             'RIO2',      'RIP',    'ROH',     'RP',    'VRO2',   'VRP'    /)
-
-    !=====================================================================
-    ! Determine the number of stratospheric species & bromine species
-    ! defined as GEOS-Chem advected tracers
-    !=====================================================================
-
-    ! Loop over all GEOS-Chem advected tracers
-    DO N = 1, Input_Opt%N_TRACERS
-
-       ! GEOS-Chem advected tracer name
-       GC_Name = Input_Opt%TRACER_NAME(N) 
-    
-       !---------------------------------------------------------------
-       ! For now, guarantee that GMI prod/loss rates are not used for  
-       ! any bromine species
-       !---------------------------------------------------------------
-       IF ( ( TRIM( GC_Name ) ==      'Br' )   .or. &
-            ( TRIM( GC_Name ) ==    'BrCl' )   .or. &
-            ( TRIM( GC_Name ) ==     'BrO' )   .or. &
-            ( TRIM( GC_Name ) ==  'BrONO2' )   .or. &
-            ( TRIM( GC_Name ) ==  'CF2Br2' )   .or. &
-            ( TRIM( GC_Name ) == 'CF2ClBr' )   .or. &
-            ( TRIM( GC_Name ) ==   'CF3Br' )   .or. &
-            ( TRIM( GC_Name ) ==   'CH3Br' )   .or. &
-            ( TRIM( GC_Name ) ==     'HBr' )   .or. &
-            ( TRIM( GC_Name ) ==    'HOBr' ) ) THEN
-
-          ! Increment # of Bromine tracers
-          nSchmBry = nSchmBry + 1
-
-          ! Skip to next GEOS-Chem tracer
-          CYCLE
-       ENDIF
-
-       ! Loop over all possible stratospheric species
-       DO NN = 1, SIZE( GMI_TrName )     
-
-          ! Stratospheric species name according to GMI
-          GMI_Name = TRIM( GMI_TrName(NN) )
-
-          ! Some species names don't exactly match GEOS-Chem names
-          !IF ( TRIM(GMI_TrName(NN)) .eq. 'BrONO2' ) GMI_Name = 'BrNO3'
-          
-          !---------------------------------------------------------------
-          ! Increment nSchm for each match 
-          !---------------------------------------------------------------
-          IF ( TRIM( GC_Name ) == TRIM( GMI_Name ) ) THEN
-                
-             IF ( Input_Opt%LLINOZ .and. ( TRIM( GC_Name ) == 'Ox' ) ) THEN
-                IF ( am_I_Root ) THEN
-                   WRITE( 6, '(a)' ) TRIM( GC_Name ) // ' (via Linoz)'
-                ENDIF
-             ELSE IF ( TRIM( GC_Name ) == 'Ox' ) THEN
-                IF ( am_I_Root ) THEN
-                   WRITE( 6, '(a)' ) TRIM( GC_Name ) // ' (via Synoz)'
-                ENDIF
-             ELSE
-                IF ( am_I_Root ) THEN
-                   WRITE( 6, '(a)' ) TRIM( GC_Name ) //' (via GMI rates)'
-                ENDIF
-             ENDIF
-             
-             nSchm = nSchm + 1
-             EXIT
-          ENDIF
-          
-       ENDDO
-    ENDDO
-
-  END SUBROUTINE Get_nSchm_nSchmBry
 !EOC
 END MODULE GIGC_Environment_Mod

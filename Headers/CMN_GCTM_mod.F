@@ -22,7 +22,7 @@
 !
 ! !DEFINED PARAMETERS: 
 !
-      ! AIRMW : Molecular weight of air [g/mol]
+      ! AIRMW : Molecular weight of dry air [g/mol]
       REAL(fp), PARAMETER :: AIRMW    = 28.97e+0_fp
 
       ! H2OMW : Molecular weight of water [g/mol]

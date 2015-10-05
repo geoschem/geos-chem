@@ -69,7 +69,15 @@
       REAL(f4), POINTER     :: C_BC(:,:,:) => NULL()
       REAL(f4), POINTER     :: O3(:,:,:)   => NULL()
       REAL(f4), POINTER     :: OH(:,:,:)   => NULL()
-
+!
+! !PRIVATE TYPES:
+!
+      INTEGER,  PRIVATE     :: DRYPOPG
+      INTEGER,  PRIVATE     :: DRYPOPP_BCPI
+      INTEGER,  PRIVATE     :: DRYPOPP_BCPO
+      INTEGER,  PRIVATE     :: DRYPOPP_OCPI
+      INTEGER,  PRIVATE     :: DRYPOPP_OCPO
+      
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
@@ -95,9 +103,6 @@
 !
       USE CMN_SIZE_MOD
       USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE DRYDEP_MOD,         ONLY : DRYPOPG
-      USE DRYDEP_MOD,         ONLY : DRYPOPP_OCPO, DRYPOPP_BCPO
-      USE DRYDEP_MOD,         ONLY : DRYPOPP_OCPI, DRYPOPP_BCPI
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
@@ -1782,7 +1787,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_POPS( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_POPS( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -1791,15 +1796,18 @@
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Species_Mod,        Only : Species
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  20 Sep 2010 - N.E. Selin  - Initial Version based on INIT_MERCURY
@@ -1808,17 +1816,21 @@
 !  10 Sep 2014 - M. Sulprizio- Remove calls to GET_GLOBAL_OC and GET_GLOBAL_BC,
 !                              these fields are now read in HEMCO
 !  10 Mar 2015 - R. Yantosca - Now always allocate ZERO_DVEL
+!  21 Sep 2015 - R. Yantosca - Now takes State_Chm as an argument, so that
+!                              we can take advantage of the species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER       :: AS
+      ! Scalars
+      INTEGER                :: AS,    N
+      LOGICAL                :: LDRYD, LNLPBL, LPRT
 
-      ! For fields from Input_Opt
-      LOGICAL       :: LDRYD, LNLPBL, LPRT
-
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc
+      
       !=================================================================
       ! INIT_POPS begins here!
       !=================================================================
@@ -1853,6 +1865,47 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZERO_DVEL' )
       ZERO_DVEL = 0e+0_fp
 
+      !=================================================================
+      ! Additional variables required for pops simultion (following hg)
+      ! Locate the drydep species w/in the DEPSAV array
+      !=================================================================
+
+      ! Initialize flags
+      DRYPOPG      = 0
+      DRYPOPP_OCPO = 0
+      DRYPOPP_BCPO = 0
+      DRYPOPP_OCPI = 0
+      DRYPOPP_BCPI = 0
+
+      ! If drydep is turned on ...
+      IF ( LDRYD ) THEN
+         
+         ! Loop over all species
+         DO N = 1, State_Chm%nSpecies
+
+            ! Get info about this species from the database
+            ThisSpc => State_Chm%SpcData(N)%Info
+            
+            SELECT CASE ( TRIM( ThisSpc%Name ) )
+               CASE( 'POPG' )
+                  DRYPOPG      = ThisSpc%DryDepId
+               CASE( 'POPPOCPO' )
+                  DRYPOPP_OCPO = ThisSpc%DryDepId
+               CASE( 'POPPBCPO' )
+                  DRYPOPP_BCPO = ThisSpc%DryDepId
+               CASE( 'POPPOCPI' )
+                  DRYPOPP_OCPI = ThisSpc%DryDepId
+               CASE( 'POPPBCPI' )
+                  DRYPOPP_BCPI = ThisSpc%DryDepId
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+
+            ! Free pointer
+            ThisSpc => NULL()
+         ENDDO
+      ENDIF
+       
       END SUBROUTINE INIT_POPS
 !EOC
 !------------------------------------------------------------------------------
