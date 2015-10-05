@@ -1022,6 +1022,8 @@
 !  25 Sep 2015 - R. Yantosca - Remove T pointer, it's not needed here
 !  30 Sep 2015 - R. Yantosca - Now use ThisSpc%WD_Is_HNO3 and ThisSpc%WD_Is_SO2
 !                              to flag the special cases of HNO3 & SO2 wetdep
+!   5 Oct 2015 - R. Yantosca - Need to make ThisSpc !$OMP THREADPRIVATE
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1029,25 +1031,30 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER                :: N_TRACERS, I, J, L
-      REAL(fp)               :: SO2LOSS,   Ki
+      INTEGER                      :: N_TRACERS, I, J, L
+      REAL(fp)                     :: SO2LOSS,   Ki
 
       ! Arrays
-      REAL(fp)               :: KcScale(3)
+      REAL(fp)                     :: KcScale(3)
 
       ! Pointers
-      REAL(fp),      POINTER :: p_C_H2O  => NULL()
-      REAL(fp),      POINTER :: p_CLDICE => NULL()
-      REAL(fp),      POINTER :: p_CLDLIQ => NULL()
-      REAL(fp),      POINTER :: p_T      => NULL()
+      REAL(fp),      POINTER       :: p_C_H2O  => NULL()
+      REAL(fp),      POINTER       :: p_CLDICE => NULL()
+      REAL(fp),      POINTER       :: p_CLDLIQ => NULL()
+      REAL(fp),      POINTER       :: p_T      => NULL()
 
-      ! Objects
-      TYPE(Species), POINTER :: ThisSpc  => NULL()
+      ! Objects.
+      TYPE(Species), POINTER, SAVE :: ThisSpc  => NULL()
+#if defined( GEOS_4 ) || defined( GEOS_5 )
+      ! For GEOS-4, and GEOS-5, we need to make this THREADPRIVATE
+      ! because COMPUTE_F is called from a parallel loop (bmy, 10/5/15)
+!$OMP THREADPRIVATE( ThisSpc )
+#endif
 !
 ! !DEFINED PARAMETERS:
 !
       ! Kc is the conversion rate from cloud condensate to precip [s^-1]
-      REAL(fp),  PARAMETER   :: Kc = 5e-3_fp
+      REAL(fp),      PARAMETER     :: Kc = 5e-3_fp
 
       !=================================================================
       ! COMPUTE_F begins here!
