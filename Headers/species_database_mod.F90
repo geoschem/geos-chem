@@ -1928,13 +1928,59 @@ CONTAINS
 #endif									    
                               RC            = RC )
 
+          CASE( 'O3',     'O3STRAT', 'O3UT',   'O3MT',   'O3ROW',           &
+                'O3PCBL', 'O3NABL',  'O3ATBL', 'O3EUBL', 'O3AFBL',          &
+                'O3ASBL', 'O3INIT',  'O3USA',  'O3STRT'            )
 
-          CASE( 'O3' )
+             ! Now include both total and tagged ozone tracers (bmy, 10/5/15)
+             ! All of these have identical properties except for the names
+             SELECT CASE( TRIM( NameAllCaps ) )
+                CASE( 'O3' )
+                   FullName ='Ozone'
+                   Name     = 'O3'
+                CASE ( 'O3STRAT', 'O3STRT' )
+                   FullName = 'Ozone produced in the stratosphere'
+                   Name     = 'O3Strat'
+                CASE( 'O3UT' )
+                   FullName = 'Ozone produced in the upper tropopshere'
+                   Name     = 'O3UT'
+                CASE( 'O3MT' )
+                   FullName = 'Ozone produced in the middle troposphere'
+                   Name     = 'O3MT'
+                CASE( 'O3ROW' )
+                   FullName = 'Ozone produced in the rest of the world'
+                   Name     = 'O3ROW'
+                CASE( 'O3PCBL' )
+                   FullName = 'Ozone produced in the Pacific Ocean boundary layer'
+                   Name     = 'O3PcBL'
+                CASE( 'O3NABL' )
+                   FullName = 'Ozone produced in the North American boundary layer'
+                   Name     = 'O3NaBL'
+                CASE( 'O3ATBL' )
+                   FullName = 'Ozone produced in the Atlantic Ocean boundary layer'
+                   Name     = 'O3AtBL'
+                CASE( 'O3EUBL' )
+                   FullName = 'Ozone produced in the European boundary layer'
+                   Name     = 'O3EuBL'
+                CASE( 'O3AFBL' )
+                   FullName = 'Ozone produced in the African boundary layer'
+                   Name     = 'O3AfBL'
+                CASE( 'O3ASBL' )
+                   FullName = 'Ozone produced in the Asian boundary layer'
+                   Name     = ''
+                CASE( 'O3INIT' )
+                   FullName = 'Ozone from the initial condition'
+                   Name     = 'O3Init'
+                CASE( 'O3USA' )
+                   FullName = 'Ozone produced over the United States'
+                   Name     = 'O3USA'
+             END SELECT
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Ozone',                      &
+                              Name          = Name,                         &
+                              FullName      = FullName,                     &
                               MW_g          = 48.0_fp,                      &
                               Is_Advected   = T,                            &
                               Is_Gas        = T,                            &
