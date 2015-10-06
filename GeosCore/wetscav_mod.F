@@ -1022,8 +1022,8 @@
 !  25 Sep 2015 - R. Yantosca - Remove T pointer, it's not needed here
 !  30 Sep 2015 - R. Yantosca - Now use ThisSpc%WD_Is_HNO3 and ThisSpc%WD_Is_SO2
 !                              to flag the special cases of HNO3 & SO2 wetdep
-!   5 Oct 2015 - R. Yantosca - Need to make ThisSpc !$OMP THREADPRIVATE
-
+!  05 Oct 2015 - R. Yantosca - Need to make ThisSpc !$OMP THREADPRIVATE
+!  06 Oct 2015 - R. Yantosca - Add missing variables for TOMAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1033,6 +1033,9 @@
       ! Scalars
       INTEGER                      :: N_TRACERS, I, J, L
       REAL(fp)                     :: SO2LOSS,   Ki
+#if defined( TOMAS )
+      REAL(fp)                     :: SOLFRAC,   XFRAC
+#endif
 
       ! Arrays
       REAL(fp)                     :: KcScale(3)
@@ -2425,7 +2428,7 @@
       REAL(fp)       :: DPAERO          ! Average diameter of particle 
       REAL(fp)       :: SCAVR !Below-cloud scavenging coefficient (per cm rain)
       REAL(fp), SAVE :: SCAVRSAVE(IBINS)
-      INTEGER        :; BIN 
+      INTEGER        :: BIN 
       
       !=================================================================
       ! WASHFRAC_SIZE_AEROSOL begins here!

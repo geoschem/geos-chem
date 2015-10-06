@@ -2295,7 +2295,7 @@
          ! Match dry depositing tracer in drydep list with NK1-NK30
          DO BIN = 1, IBINS
          DO N   = 1, Input_Opt%NUMDEP
-            IF ( NTRAIND(N) == ( IDTNK1-1+BIN ) )THEN
+            IF ( Input_Opt%NTRAIND(N) == ( IDTNK1-1+BIN ) )THEN
                Input_Opt%IDDEP(BIN) = N
                GOTO 100
             ENDIF            
