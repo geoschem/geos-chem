@@ -5935,6 +5935,8 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
+      USE ERROR_MOD
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptINput 
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -5999,6 +6001,9 @@
       ! CHEM_SO4_AQ begins here!
       !=================================================================
  
+      ! Assume success
+      RC  = GIGC_SUCCESS
+
       ! Copy values from Input_Opt
       XNUMOL    = Input_Opt%XNUMOL(1:Input_Opt%N_TRACERS)
 
