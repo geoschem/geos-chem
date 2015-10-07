@@ -3049,8 +3049,8 @@ CONTAINS
                               MW_g          = 18.0_fp,                      &
                               Is_Advected   = T,                            &
                               Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
@@ -3095,7 +3095,7 @@ CONTAINS
                               MW_g          = 100.0_fp,                     &
                               Is_Advected   = T,                            &
                               Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
+                              Is_Drydep     = F,                            &
                               Is_Wetdep     = T,                            &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
@@ -3138,7 +3138,7 @@ CONTAINS
                               MW_g          = 12.0_fp,                      &
                               Is_Advected   = T,                            &
                               Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
+                              Is_Drydep     = F,                            &
                               Is_Wetdep     = T,                            &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
@@ -3181,8 +3181,8 @@ CONTAINS
                               MW_g          = 12.0_fp,                      &
                               Is_Advected   = T,                            &
                               Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
@@ -3282,7 +3282,7 @@ CONTAINS
                               MW_g          = 12.0_fp,                      &
                               Is_Advected   = T,                            &
                               Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
+                              Is_Drydep     = F,                            &
                               Is_Wetdep     = T,                            &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
@@ -3325,7 +3325,7 @@ CONTAINS
                               MW_g          = 12.0_fp,                      &
                               Is_Advected   = T,                            &
                               Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
+                              Is_Drydep     = F,                            &
                               Is_Wetdep     = T,                            &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
@@ -3366,7 +3366,7 @@ CONTAINS
                               MW_g          = 96.0_fp,                      &
                               Is_Advected   = T,                            &
                               Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
+                              Is_Drydep     = F,                            &
                               Is_Wetdep     = T,                            &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
@@ -3406,7 +3406,7 @@ CONTAINS
                               MW_g          = 58.5_fp,                      &
                               Is_Advected   = T,                            &
                               Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
+                              Is_Drydep     = F,                            &
                               Is_Wetdep     = T,                            &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
