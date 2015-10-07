@@ -82,9 +82,15 @@ CONTAINS
     INTEGER,        INTENT(OUT) :: RC           ! Success or failure?
 !
 ! !REMARKS:
+!  For detailed information about the species database (and the physical
+!  properties that are specified there), please see the following GEOS-Chem
+!  wiki pages:
+!
+!    (1) wiki.geos-chem.org/GEOS_Chem_species_database
+!    (2) wiki.geos-chem.org/Physical_properties_of_GEOS-Chem_species
+!
 !  References for the new Henry's law constants:
 !    (1) Sander et al [2015]: http://henrys-law.org
-!    (2) http://wiki.geos-chem.org/Physical_properties_of_GEOS-Chem_species
 !
 !  The Hcp (aka K0) parameter listed on the wiki page:
 !
@@ -176,11 +182,6 @@ CONTAINS
           !
           ! CH4 is also contained here, as it is part of the benchmark
           ! and UCX mechanisms.
-          !
-          ! NOTE: Rainout efficiency is a 3-element vector:
-          ! Element 1: Efficiency when T < 237 K.
-          ! Element 2: Efficiency when 237 K <= T < 258 K
-          ! Element 3: Efficiency when T > 258 K.
           !==================================================================
 
           CASE( 'ACET' )
@@ -3014,7 +3015,183 @@ CONTAINS
           !==================================================================
           ! Species for the TOMAS microphysics simulations
           !==================================================================
-             
+
+          CASE( 'AW1',  'AW2',  'AW3',  'AW4',  'AW5',  'AW6',  'AW7',      &
+                'AW8',  'AW9',  'AW10', 'AW11', 'AW12', 'AW13', 'AW14',     &
+                'AW15', 'AW16', 'AW17', 'AW18', 'AW19', 'AW20', 'AW21',     &
+                'AW22', 'AW23', 'AW24', 'AW25', 'AW26', 'AW27', 'AW28',     &
+                'AW29', 'AW30', 'AW31', 'AW32', 'AW33', 'AW34', 'AW35',     &
+                'AW36', 'AW37', 'AW38', 'AW39', 'AW40'  )
+
+             ! Add TOMAS bin number to full name
+             FullName = 'Aerosol water, size bin ='
+             C        = LEN_TRIM( NameAllCaps )
+             IF ( C == 3 ) THEN
+                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
+             ELSE
+                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
+             ENDIF
+
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             !
+             !%%% NOTE: Should these be considered "IN" as well?      %%%
+             !%%% Ask the TOMAS team for clarification (bmy, 9/24/15) %%%
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 18.0_fp,                      &
+                              Is_Advected   = T,                            &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 0.0_fp,                       &
+                              MP_SizeResAer = T,                            &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'DUST1',  'DUST2',  'DUST3',  'DUST4',  'DUST5',            &
+                'DUST6',  'DUST7',  'DUST8',  'DUST9',  'DUST10',           &
+                'DUST11', 'DUST12', 'DUST13', 'DUST14', 'DUST15',           &
+                'DUST16', 'DUST17', 'DUST18', 'DUST19', 'DUST20',           &
+                'DUST21', 'DUST22', 'DUST23', 'DUST24', 'DUST25',           &
+                'DUST26', 'DUST27', 'DUST28', 'DUST29', 'DUST30',           &
+                'DUST31', 'DUST32', 'DUST33', 'DUST34', 'DUST35',           &
+                'DUST36', 'DUST37', 'DUST38', 'DUST39', 'DUST40'  )
+ 
+             ! Add TOMAS bin number to full name
+             FullName = 'Hydrophilic organic carbon, size bin ='
+             C        = LEN_TRIM( NameAllCaps )
+             IF ( C == 5 ) THEN
+                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
+             ELSE
+                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
+             ENDIF
+
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             !
+             !%%% NOTE: Should these be considered "IN" as well?      %%%
+             !%%% Ask the TOMAS team for clarification (bmy, 9/24/15) %%%
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 100.0_fp,                     &
+                              Is_Advected   = T,                            &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 0.0_fp,                       &
+                              MP_SizeResAer = T,                            &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'ECIL1',  'ECIL2',  'ECIL3',  'ECIL4',  'ECIL5',            &
+                'ECIL6',  'ECIL7',  'ECIL8',  'ECIL9',  'ECIL10',           &
+                'ECIL11', 'ECIL12', 'ECIL13', 'ECIL14', 'ECIL15',           &
+                'ECIL16', 'ECIL17', 'ECIL18', 'ECIL19', 'ECIL20',           &
+                'ECIL21', 'ECIL22', 'ECIL23', 'ECIL24', 'ECIL25',           &
+                'ECIL26', 'ECIL27', 'ECIL28', 'ECIL29', 'ECIL30',           &
+                'ECIL31', 'ECIL32', 'ECIL33', 'ECIL34', 'ECIL35',           &
+                'ECIL36', 'ECIL37', 'ECIL38', 'ECIL39', 'ECIL40'  )
+ 
+             ! Add TOMAS bin number to full name
+             FullName = 'Hydrophilic elemental carbon, size bin ='
+             C        = LEN_TRIM( NameAllCaps )
+             IF ( C == 5 ) THEN 
+                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
+             ELSE
+                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
+             ENDIF
+
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 12.0_fp,                      &
+                              Is_Advected   = T,                            &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 0.0_fp,                       &
+                              MP_SizeResAer = T,                            &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'ECOB1',  'ECOB2',  'ECOB3',  'ECOB4',  'ECOB5',            &
+                'ECOB6',  'ECOB7',  'ECOB8',  'ECOB9',  'ECOB10',           &
+                'ECOB11', 'ECOB12', 'ECOB13', 'ECOB14', 'ECOB15',           &
+                'ECOB16', 'ECOB17', 'ECOB18', 'ECOB19', 'ECOB20',           &
+                'ECOB21', 'ECOB22', 'ECOB23', 'ECOB24', 'ECOB25',           &
+                'ECOB26', 'ECOB27', 'ECOB28', 'ECOB29', 'ECOB30',           &
+                'ECOB31', 'ECOB32', 'ECOB33', 'ECOB34', 'ECOB35',           &
+                'ECOB36', 'ECOB37', 'ECOB38', 'ECOB39', 'ECOB40'  )
+ 
+             ! Add TOMAS bin number to full name
+             FullName = 'Hydrophobic elemental carbon, size bin ='
+             C        = LEN_TRIM( NameAllCaps )
+             IF ( C == 5 ) THEN 
+                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
+             ELSE
+                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
+             ENDIF
+
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 12.0_fp,                      &
+                              Is_Advected   = T,                            &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 0.0_fp,                       &
+                              MP_SizeResAer = T,                            &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
           CASE( 'H2SO4' )
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -3068,6 +3245,92 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 0.0_fp,                       &
                               MP_SizeResNum = T,                            &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'OCIL1',  'OCIL2',  'OCIL3',  'OCIL4',  'OCIL5',            &
+                'OCIL6',  'OCIL7',  'OCIL8',  'OCIL9',  'OCIL10',           &
+                'OCIL11', 'OCIL12', 'OCIL13', 'OCIL14', 'OCIL15',           &
+                'OCIL16', 'OCIL17', 'OCIL18', 'OCIL19', 'OCIL20',           &
+                'OCIL21', 'OCIL22', 'OCIL23', 'OCIL24', 'OCIL25',           &
+                'OCIL26', 'OCIL27', 'OCIL28', 'OCIL29', 'OCIL30',           &
+                'OCIL31', 'OCIL32', 'OCIL33', 'OCIL34', 'OCIL35',           &
+                'OCIL36', 'OCIL37', 'OCIL38', 'OCIL39', 'OCIL40'  )
+ 
+             ! Add TOMAS bin number to full name
+             FullName = 'Hydrophilic organic carbon, size bin ='
+             C        = LEN_TRIM( NameAllCaps )
+             IF ( C == 5 ) THEN 
+                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
+             ELSE
+                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
+             ENDIF
+
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 12.0_fp,                      &
+                              Is_Advected   = T,                            &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 0.0_fp,                       &
+                              MP_SizeResAer = T,                            &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'OCOB1',  'OCOB2',  'OCOB3',  'OCOB4',  'OCOB5',            &
+                'OCOB6',  'OCOB7',  'OCOB8',  'OCOB9',  'OCOB10',           &
+                'OCOB11', 'OCOB12', 'OCOB13', 'OCOB14', 'OCOB15',           &
+                'OCOB16', 'OCOB17', 'OCOB18', 'OCOB19', 'OCOB20',           &
+                'OCOB21', 'OCOB22', 'OCOB23', 'OCOB24', 'OCOB25',           &
+                'OCOB26', 'OCOB27', 'OCOB28', 'OCOB29', 'OCOB30',           &
+                'OCOB31', 'OCOB32', 'OCOB33', 'OCOB34', 'OCOB35',           &
+                'OCOB36', 'OCOB37', 'OCOB38', 'OCOB39', 'OCOB40'  )
+ 
+             ! Add TOMAS bin number to full name
+             FullName = 'Hydrophobic organic carbon, size bin ='
+             C        = LEN_TRIM( NameAllCaps )
+             IF ( C == 5 ) THEN 
+                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
+             ELSE
+                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
+             ENDIF
+
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              MW_g          = 12.0_fp,                      &
+                              Is_Advected   = T,                            &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 0.0_fp,                       &
+                              MP_SizeResAer = T,                            &
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
@@ -3141,138 +3404,6 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = FullName,                     &
                               MW_g          = 58.5_fp,                      &
-                              Is_Advected   = T,                            &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              MP_SizeResAer = T,                            &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
-
-          CASE( 'ECIL1',  'ECIL2',  'ECIL3',  'ECIL4',  'ECIL5',            &
-                'ECIL6',  'ECIL7',  'ECIL8',  'ECIL9',  'ECIL10',           &
-                'ECIL11', 'ECIL12', 'ECIL13', 'ECIL14', 'ECIL15',           &
-                'ECIL16', 'ECIL17', 'ECIL18', 'ECIL19', 'ECIL20',           &
-                'ECIL21', 'ECIL22', 'ECIL23', 'ECIL24', 'ECIL25',           &
-                'ECIL26', 'ECIL27', 'ECIL28', 'ECIL29', 'ECIL30',           &
-                'ECIL31', 'ECIL32', 'ECIL33', 'ECIL34', 'ECIL35',           &
-                'ECIL36', 'ECIL37', 'ECIL38', 'ECIL39', 'ECIL40'  )
- 
-             ! Add TOMAS bin number to full name
-             FullName = 'Hydrophobic elemental carbon, size bin ='
-             C        = LEN_TRIM( NameAllCaps )
-             IF ( C == 5 ) THEN 
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
-             ELSE
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
-             ENDIF
-
-             ! When 237 K <= T < 258 K:
-             ! (1) Halve the Kc (cloud condensate -> precip) rate
-             ! (2) Turn off rainout
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
-
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              MW_g          = 12.0_fp,                      &
-                              Is_Advected   = T,                            &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              MP_SizeResAer = T,                            &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
-
-          CASE( 'OCIL1',  'OCIL2',  'OCIL3',  'OCIL4',  'OCIL5',            &
-                'OCIL6',  'OCIL7',  'OCIL8',  'OCIL9',  'OCIL10',           &
-                'OCIL11', 'OCIL12', 'OCIL13', 'OCIL14', 'OCIL15',           &
-                'OCIL16', 'OCIL17', 'OCIL18', 'OCIL19', 'OCIL20',           &
-                'OCIL21', 'OCIL22', 'OCIL23', 'OCIL24', 'OCIL25',           &
-                'OCIL26', 'OCIL27', 'OCIL28', 'OCIL29', 'OCIL30',           &
-                'OCIL31', 'OCIL32', 'OCIL33', 'OCIL34', 'OCIL35',           &
-                'OCIL36', 'OCIL37', 'OCIL38', 'OCIL39', 'OCIL40'  )
- 
-             ! Add TOMAS bin number to full name
-             FullName = 'Hydrophilic organic carbon, size bin ='
-             C        = LEN_TRIM( NameAllCaps )
-             IF ( C == 5 ) THEN 
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
-             ELSE
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
-             ENDIF
-
-             ! When 237 K <= T < 258 K:
-             ! (1) Halve the Kc (cloud condensate -> precip) rate
-             ! (2) Turn off rainout
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
-
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              MW_g          = 12.0_fp,                      &
-                              Is_Advected   = T,                            &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              MP_SizeResAer = T,                            &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
-
-          CASE( 'DUST1',  'DUST2',  'DUST3',  'DUST4',  'DUST5',            &
-                'DUST6',  'DUST7',  'DUST8',  'DUST9',  'DUST10',           &
-                'DUST11', 'DUST12', 'DUST13', 'DUST14', 'DUST15',           &
-                'DUST16', 'DUST17', 'DUST18', 'DUST19', 'DUST20',           &
-                'DUST21', 'DUST22', 'DUST23', 'DUST24', 'DUST25',           &
-                'DUST26', 'DUST27', 'DUST28', 'DUST29', 'DUST30',           &
-                'DUST31', 'DUST32', 'DUST33', 'DUST34', 'DUST35',           &
-                'DUST36', 'DUST37', 'DUST38', 'DUST39', 'DUST40'  )
- 
-             ! Add TOMAS bin number to full name
-             FullName = 'Hydrophilic organic carbon, size bin ='
-             C        = LEN_TRIM( NameAllCaps )
-             IF ( C == 5 ) THEN 
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
-             ELSE
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
-             ENDIF
-
-             ! When 237 K <= T < 258 K:
-             ! (1) Halve the Kc (cloud condensate -> precip) rate
-             ! (2) Turn off rainout
-             !
-             !%%% NOTE: Should these be considered "IN" as well?      %%%
-             !%%% Ask the TOMAS team for clarification (bmy, 9/24/15) %%%
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
-
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              MW_g          = 100.0_fp,                     &
                               Is_Advected   = T,                            &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
