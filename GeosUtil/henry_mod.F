@@ -53,7 +53,7 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-! !PRIVATE TYPES:
+! !DEFINED PARAMETERS:
 !
       ! Parameter
       REAL(fp),  PARAMETER    :: TREF = 298.15e+0_fp    ![K]

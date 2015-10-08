@@ -351,28 +351,41 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Init
-    SOURCE(:,:) = 0d0
-    SINK  (:,:) = 0d0
+    SOURCE  = 0.0_hp
+    SINK    = 0.0_hp
 
     ! Extract Henry coefficients
-    K0  = HcoState%Spc(HcoID)%HenryK0
-    CR  = HcoState%Spc(HcoID)%HenryCR
-    PKA = HcoState%Spc(HcoID)%HenryPKA
+    K0      = HcoState%Spc(HcoID)%HenryK0
+    CR      = HcoState%Spc(HcoID)%HenryCR
+    PKA     = HcoState%Spc(HcoID)%HenryPKA
+
+    ! molecular weight [g/mol]
+    ! Use real species molecular weight and not the emitted 
+    ! molecular weight. The molecular weight is only needed to
+    ! calculate the air-side Schmidt number, which should be 
+    ! using the actual species MW.
+    MW      = HcoState%Spc(HcoID)%MW_g
+
+    ! Liquid molar volume at boiling point [cm3/mol]
+    VB      = OcSpecs(OcID)%LiqVol
+
+    ! Get parameterization type for Schmidt number in water 
+    SCW     = OcSpecs(OcID)%SCWPAR
 
     ! Model surface layer
-    L = 1
+    L       = 1
 
     ! Write out original warning status
     OLDWARN = WARN
 
     ! Loop over all grid boxes. Only emit into lowest layer
 
-!$OMP PARALLEL DO                                                   &
-!$OMP DEFAULT( SHARED )                                             &
-!$OMP PRIVATE( I,           J,        N,        TK                ) &
-!$OMP PRIVATE( TC,          P,        MW,       VB                ) &
-!$OMP PRIVATE( V,           KH,       RC,       HEFF,   SCW       ) &
-!$OMP PRIVATE( KG,          IJSRC,    PBL_MAX,  DEP_HEIGHT        ) &
+!$OMP PARALLEL DO                                  &
+!$OMP DEFAULT( SHARED )                            &
+!$OMP PRIVATE( I,   J,     N,        TK          ) &
+!$OMP PRIVATE( TC,  P                            ) &
+!$OMP PRIVATE( V,   KH,    RC,       HEFF        ) &
+!$OMP PRIVATE( KG,  IJSRC, PBL_MAX,  DEP_HEIGHT  ) &
 !$OMP SCHEDULE( DYNAMIC )
 
     DO J = 1, HcoState%NY
@@ -416,19 +429,24 @@ CONTAINS
           ! surface pressure [Pa]
           P = HcoState%Grid%PEDGE%Val(I,J,L)
 
-          ! molecular weight [g/mol]
-          ! Use real species molecular weight and not the emitted 
-          ! molecular weight. The molecular weight is only needed to
-          ! calculate the air-side Schmidt number, which should be 
-          ! using the actual species MW.
-          MW = HcoState%Spc(HcoID)%MW_g
-
-          ! Liquid molar volume at boiling point [cm3/mol]
-          VB = OcSpecs(OcID)%LiqVol
-
-          ! Salinity [ppt]
-          ! Set to constant value for now!
+!-----------------------------------------------------------------------------
+! Prior to 10/8/15:
+! Pull these out of the parallel loop, they don't depend on (I,J)
+! (bmy, 10/8/15)
+!          ! molecular weight [g/mol]
+!          ! Use real species molecular weight and not the emitted 
+!          ! molecular weight. The molecular weight is only needed to
+!          ! calculate the air-side Schmidt number, which should be 
+!          ! using the actual species MW.
+!          MW = HcoState%Spc(HcoID)%MW_g
+!
+!          ! Liquid molar volume at boiling point [cm3/mol]
+!          VB = OcSpecs(OcID)%LiqVol
+!
+!          ! Salinity [ppt]
+!          ! Set to constant value for now!
 !          S = 35d0 
+!-----------------------------------------------------------------------------
 
           ! 10-m wind speed [m/s] 
           V = ExtState%U10M%Arr%Val(I,J)**2 + &
@@ -456,8 +474,13 @@ CONTAINS
           KH   = 1d0 / KH
           HEFF = 1d0 / HEFF
 
-          ! Get parameterization type for Schmidt number in water 
-          SCW = OcSpecs(OcID)%SCWPAR
+!-----------------------------------------------------------------------------
+! Prior to 10/8/15:
+! Pull these out of the parallel loop, they don't depend on (I,J)
+! (bmy, 10/8/15)
+!          ! Get parameterization type for Schmidt number in water 
+!          SCW = OcSpecs(OcID)%SCWPAR
+!-----------------------------------------------------------------------------
 
           !-----------------------------------------------------------
           ! Calculate exchange velocity KG in [m s-1]
@@ -519,6 +542,7 @@ CONTAINS
     ENDDO !I
     ENDDO !J
 !$OMP END PARALLEL DO
+
 
     ! Check exit status
     IF ( RC /= HCO_SUCCESS ) THEN
