@@ -380,12 +380,11 @@ CONTAINS
 
     ! Loop over all grid boxes. Only emit into lowest layer
 
-!$OMP PARALLEL DO                                  &
-!$OMP DEFAULT( SHARED )                            &
-!$OMP PRIVATE( I,   J,     N,        TK          ) &
-!$OMP PRIVATE( TC,  P                            ) &
-!$OMP PRIVATE( V,   KH,    RC,       HEFF        ) &
-!$OMP PRIVATE( KG,  IJSRC, PBL_MAX,  DEP_HEIGHT  ) &
+!$OMP PARALLEL DO                                     &
+!$OMP DEFAULT( SHARED )                               &
+!$OMP PRIVATE( I,  J,     N,        TK,        TC   ) & 
+!$OMP PRIVATE( P   V,     KH,       RC,        HEFF ) &
+!$OMP PRIVATE( KG, IJSRC, PBL_MAX,  DEP_HEIGHT      ) &
 !$OMP SCHEDULE( DYNAMIC )
 
     DO J = 1, HcoState%NY
