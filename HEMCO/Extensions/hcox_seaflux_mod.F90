@@ -383,7 +383,7 @@ CONTAINS
 !$OMP PARALLEL DO                                     &
 !$OMP DEFAULT( SHARED )                               &
 !$OMP PRIVATE( I,  J,     N,        TK,        TC   ) & 
-!$OMP PRIVATE( P   V,     KH,       RC,        HEFF ) &
+!$OMP PRIVATE( P,  V,     KH,       RC,        HEFF ) &
 !$OMP PRIVATE( KG, IJSRC, PBL_MAX,  DEP_HEIGHT      ) &
 !$OMP SCHEDULE( DYNAMIC )
 
