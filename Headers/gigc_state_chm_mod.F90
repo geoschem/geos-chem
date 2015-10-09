@@ -344,6 +344,7 @@ CONTAINS
 !  28 Aug 2015 - R. Yantosca - Remove stratospheric chemistry fields; 
 !                              these are all now read in via HEMCO
 !  28 Aug 2015 - R. Yantosca - Also initialize the species database object
+!  09 Oct 2015 - R. Yantosca - Bug fix: set State_Chm%SpcData to NULL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -406,6 +407,9 @@ CONTAINS
     State_Chm%nAdvect     = 0
     State_Chm%nDryDep     = 0
     State_Chm%nWetDep     = 0
+
+    ! Species database
+    State_Chm%SpcData     => NULL()
 
     ! Advected tracers
     State_Chm%Trac_Id     = 0
