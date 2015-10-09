@@ -3203,7 +3203,7 @@ CONTAINS
                               Is_Advected   = T,                            &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
+                              Is_Wetdep     = T,                            &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 1.00e+5_fp,                   &
                               RC            = RC )

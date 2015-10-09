@@ -315,13 +315,15 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2013 - C. Keller   - Adapted from gigc_state_chm_mod.F90
 !  22 Jul 2015 - R. Yantosca - Cosmetic changes
+!  08 Oct 2015 - R. Yantosca - Bug fix, make sure the size of SpecDb
+!                              is zero before deallocating each element
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: N
+    INTEGER :: N, nSpecies
 
     !=====================================================================
     ! SpcData_Cleanup begins here!
@@ -330,13 +332,22 @@ CONTAINS
     ! Check if already allocated
     IF ( ASSOCIATED( SpecDB ) ) THEN
 
-       ! Nullify each species pointer
-       DO N = 1, SIZE( SpecDB )
-          IF( ASSOCIATED( SpecDB(N)%Info ) ) THEN
-             DEALLOCATE( SpecDB(N)%Info )
-          ENDIF
-       ENDDO
-       DEALLOCATE( SpecDB )
+       ! First get the size of the SpecDb object
+       nSpecies = SIZE( SpecDb )
+
+       ! If there are more than 0 elements ...
+       IF ( nSpecies > 0 ) THEN 
+
+          ! Nullify each entry in the species database
+          DO N = 1, nSpecies
+             IF( ASSOCIATED( SpecDB(N)%Info ) ) THEN
+                DEALLOCATE( SpecDB(N)%Info )
+             ENDIF
+          ENDDO
+
+          ! And free the object's memory
+          DEALLOCATE( SpecDB )
+       ENDIF
     ENDIF
 
   END SUBROUTINE SpcData_Cleanup
