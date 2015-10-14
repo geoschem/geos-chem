@@ -38,6 +38,10 @@
 !       model time is outside of the source file range. If CycleFlag is
 !       set to 3, an error is returned if none of the file time slices
 !       matches the model time. 
+! \item MustFind: if yes, the code returns with an error if no field
+!       can be found for the given simulation time (and according to
+!       the cycle flag and time attribute settings). Only of relevance
+!       for cycle flags range and exact.
 ! \item UpdtFlag: determines the update frequency of the data. This is
 !       currently only used to distinguish containers that are updated
 !       on every time step (always) or according to the frequency 
@@ -114,7 +118,8 @@ MODULE HCO_FileData_Mod
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  21 Aug 2014 - C. Keller   - Added concentration
-!  23 Dec 2-14 - C. Keller   - Added argument IsInList
+!  23 Dec 2014 - C. Keller   - Added argument IsInList
+!  06 Oct 2015 - C. Keller   - Added argument MustFind 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -132,6 +137,7 @@ MODULE HCO_FileData_Mod
      INTEGER                     :: ncDys(2)  ! day range
      INTEGER                     :: ncHrs(2)  ! hour range
      INTEGER                     :: CycleFlag ! cycle flag
+     LOGICAL                     :: MustFind  ! file must be found
      INTEGER                     :: UpdtFlag  ! update flag 
      LOGICAL                     :: ncRead    ! read from source?
      TYPE(Arr3D_SP),     POINTER :: V3(:)     ! vector of 3D fields
@@ -225,6 +231,7 @@ CONTAINS
     NewFDta%ncHrs(:)     = -999
     NewFDta%CycleFlag    = HCO_CFLAG_CYCLE
     NewFDta%UpdtFlag     = HCO_UFLAG_FROMFILE
+    NewFDta%MustFind     = .FALSE.
     NewFDta%ncRead       = .TRUE.
     NewFDta%Cover        = -999 
     NewFDta%DeltaT       = 0
