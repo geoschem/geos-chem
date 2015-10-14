@@ -494,6 +494,8 @@ CONTAINS
 !  13 Mar 2015 - C. Keller - Added include files (nested configuration files)
 !                            and CFDIR argument.
 !  23 Sep 2015 - C. Keller - Added cycle flags 'A' and 'RA' (for averaging).
+!  06 Oct 2015 - C. Keller - Added cycle flags 'EF' and 'RF' (fields must be 
+!                            found).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -800,16 +802,25 @@ CONTAINS
 #endif
 
           ! Set time cycling behaviour. Possible values are: 
-          ! - "C": cycling --> Default
-          ! - "R": range
-          ! - "E": exact
-          ! - "I": interpolate 
-          ! - "A": average
+          ! - "C" : cycling --> Default
+          ! - "R" : range
+          ! - "RF": range forced (error if not in range)
+          ! - "E" : exact
+          ! - "EF": exact forced (error if not exist)
+          ! - "I" : interpolate 
+          ! - "A" : average
           ! - "RA": range, average outside 
+          Dta%MustFind  = .FALSE.
           IF ( TRIM(TmCycle) == "R" ) THEN
              Dta%CycleFlag = HCO_CFLAG_RANGE
+          ELSEIF ( TRIM(TmCycle) == "RF" ) THEN
+             Dta%CycleFlag = HCO_CFLAG_RANGE
+             Dta%MustFind  = .TRUE.
           ELSEIF ( TRIM(TmCycle) == "E" ) THEN
              Dta%CycleFlag = HCO_CFLAG_EXACT
+          ELSEIF ( TRIM(TmCycle) == "EF" ) THEN
+             Dta%CycleFlag = HCO_CFLAG_EXACT
+             Dta%MustFind  = .TRUE.
           ELSEIF ( TRIM(TmCycle) == "I" ) THEN
              Dta%CycleFlag = HCO_CFLAG_INTER
           ELSEIF ( TRIM(TmCycle) == "C" ) THEN

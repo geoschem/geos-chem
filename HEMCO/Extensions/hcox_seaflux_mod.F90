@@ -304,13 +304,15 @@ CONTAINS
 !  climatologies for these parameter at some point nevertheless!
 !
 ! !REVISION HISTORY: 
-!  16 Apr 2013 - C. Keller - Initial version
-!  15 Aug 2014 - C. Keller - Now restrict calculations to temperatures above
-!                            10 deg C.
-!  03 Oct 2014 - C. Keller - Added surface temperature limit of 45 degrees C
-!                            to avoid negative Schmidt numbers.
-!  07 Oct 2014 - C. Keller - Now use skin temperature instead of air temperature
-!  06 Mar 2015 - C. Keller - Now calculate deposition rate over entire PBL.
+!  16 Apr 2013 - C. Keller   - Initial version
+!  15 Aug 2014 - C. Keller   - Now restrict calculations to temperatures above
+!                              10 deg C.
+!  03 Oct 2014 - C. Keller   - Added surface temperature limit of 45 degrees C
+!                              to avoid negative Schmidt numbers.
+!  07 Oct 2014 - C. Keller   - Now use skin temperature instead of air temperature
+!  06 Mar 2015 - C. Keller   - Now calculate deposition rate over entire PBL.
+!  14 Oct 2015 - R. Yantosca - Pulled variables MW, VB, SCW out of the parallel 
+!                              loop.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -359,6 +361,19 @@ CONTAINS
     CR  = HcoState%Spc(HcoID)%HenryCR
     PKA = HcoState%Spc(HcoID)%HenryPKA
 
+    ! Molecular weight [g/mol]
+    ! Use real species molecular weight and not the emitted 
+    ! molecular weight. The molecular weight is only needed to
+    ! calculate the air-side Schmidt number, which should be 
+    ! using the actual species MW.
+    MW = HcoState%Spc(HcoID)%MW_g
+
+    ! Liquid molar volume at boiling point [cm3/mol]
+    VB = OcSpecs(OcID)%LiqVol
+
+    ! Get parameterization type for Schmidt number in water 
+    SCW = OcSpecs(OcID)%SCWPAR
+
     ! Model surface layer
     L = 1
 
@@ -370,8 +385,8 @@ CONTAINS
 !$OMP PARALLEL DO                                                   &
 !$OMP DEFAULT( SHARED )                                             &
 !$OMP PRIVATE( I,           J,        N,        TK                ) &
-!$OMP PRIVATE( TC,          P,        MW,       VB                ) &
-!$OMP PRIVATE( V,           KH,       RC,       HEFF,   SCW       ) &
+!$OMP PRIVATE( TC,          P,                                    ) &
+!$OMP PRIVATE( V,           KH,       RC,       HEFF              ) &
 !$OMP PRIVATE( KG,          IJSRC,    PBL_MAX,  DEP_HEIGHT        ) &
 !$OMP SCHEDULE( DYNAMIC )
 
@@ -416,16 +431,6 @@ CONTAINS
           ! surface pressure [Pa]
           P = HcoState%Grid%PEDGE%Val(I,J,L)
 
-          ! molecular weight [g/mol]
-          ! Use real species molecular weight and not the emitted 
-          ! molecular weight. The molecular weight is only needed to
-          ! calculate the air-side Schmidt number, which should be 
-          ! using the actual species MW.
-          MW = HcoState%Spc(HcoID)%MW_g
-
-          ! Liquid molar volume at boiling point [cm3/mol]
-          VB = OcSpecs(OcID)%LiqVol
-
           ! Salinity [ppt]
           ! Set to constant value for now!
 !          S = 35d0 
@@ -455,9 +460,6 @@ CONTAINS
           ! Gas over liquid
           KH   = 1d0 / KH
           HEFF = 1d0 / HEFF
-
-          ! Get parameterization type for Schmidt number in water 
-          SCW = OcSpecs(OcID)%SCWPAR
 
           !-----------------------------------------------------------
           ! Calculate exchange velocity KG in [m s-1]

@@ -365,6 +365,7 @@ CONTAINS
     USE Ncdf_Mod,           ONLY : NC_Get_Grid_Edges
     USE Ncdf_Mod,           ONLY : NC_Get_Sigma_Levels
     USE Ncdf_Mod,           ONLY : NC_ISMODELLEVEL
+    USE CHARPAK_MOD,        ONLY : TRANLC
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_Change
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_ScalCheck
     USE HCO_Unit_Mod,       ONLY : HCO_IsUnitless
@@ -414,6 +415,8 @@ CONTAINS
 !  13 Jul 2015 - C. Keller   - Write data into diagnostics right after reading
 !                              (if a diagnostics with the same name exists).
 !  23 Sep 2015 - C. Keller   - Support time averaging (cycle flags A and RA).
+!  06 Oct 2015 - C. Keller   - Support additional horizontal coordinates. Added
+!                              MustFind error checks (cycle flags EF and RF).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -448,6 +451,7 @@ CONTAINS
     LOGICAL                       :: KeepSpec
     LOGICAL                       :: FOUND
     LOGICAL                       :: IsModelLevel
+    LOGICAL                       :: DoReturn 
     INTEGER                       :: UnitTolerance
     INTEGER                       :: AreaFlag, TimeFlag 
     INTEGER                       :: YMDha, YMDhb, YMDh1 
@@ -486,14 +490,33 @@ CONTAINS
     IF ( .NOT. FOUND ) THEN 
        IF ( ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) .OR.      & 
             ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT )     ) THEN
-          CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE. )
-          MSG = 'No valid file found for current simulation time - data '// &
-                'will be ignored - ' // TRIM(Lct%Dct%cName) 
-          CALL HCO_WARNING ( MSG, RC, WARNLEV=1 )
-          CALL HCO_LEAVE ( RC ) 
-          RETURN
-       ELSE
-          MSG = 'File does not exist: ' // TRIM(srcFile)
+
+          ! If MustFind flag is enabled, return with error if field is not
+          ! found
+          IF ( Lct%Dct%Dta%MustFind ) THEN
+             MSG = 'Cannot find file for current simulation time: ' // &
+                   TRIM(Lct%Dct%Dta%ncFile) // ' - Cannot get field ' // &
+                   TRIM(Lct%Dct%cName) // '. Please check file name ' // &
+                   'and time (incl. time range flag) in the config. file'
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+
+          ! If MustFind flag is not enabled, ignore this field and return
+          ! with a warning.
+          ELSE       
+             CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE. )
+             MSG = 'No valid file found for current simulation time - data '// &
+                   'will be ignored for time being - ' // TRIM(Lct%Dct%cName) 
+             CALL HCO_WARNING ( MSG, RC, WARNLEV=1 )
+             CALL HCO_LEAVE ( RC ) 
+             RETURN
+          ENDIF
+
+       ELSE 
+          MSG = 'Cannot find file for current simulation time: ' // &
+                TRIM(Lct%Dct%Dta%ncFile) // ' - Cannot get field ' // &
+                TRIM(Lct%Dct%cName) // '. Please check file name ' // &
+                'and time (incl. time range flag) in the config. file'
           CALL HCO_ERROR( MSG, RC )
           RETURN
        ENDIF
@@ -556,23 +579,38 @@ CONTAINS
     ! with error!
     !-----------------------------------------------------------------
     IF ( tidx1 < 0 ) THEN
+       DoReturn = .FALSE.
        IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_CYCLE ) THEN
-          MSG = 'Invalid time index: ' // TRIM(srcFile)
+          MSG = 'Invalid time index in ' // TRIM(srcFile)
           CALL HCO_ERROR( MSG, RC )
-          RETURN
+          DoReturn = .TRUE.
        ELSEIF ( ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) .OR.      & 
                 ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT )     ) THEN
-          CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE.)
-          MSG = 'Simulation time is outside of time range provided for '//&
-               TRIM(Lct%Dct%cName) // ' - data is ignored!'
-          CALL HCO_WARNING ( MSG, RC, WARNLEV=1 )
+          IF ( Lct%Dct%Dta%MustFind ) THEN
+             MSG = 'Cannot find field with valid time stamp in ' // &
+                   TRIM(srcFile) // ' - Cannot get field ' // &
+                   TRIM(Lct%Dct%cName) // '. Please check file name ' // &
+                   'and time (incl. time range flag) in the config. file'
+             CALL HCO_ERROR( MSG, RC )
+             DoReturn = .TRUE.
+          ELSE
+             CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE.)
+             MSG = 'Simulation time is outside of time range provided for '//&
+                  TRIM(Lct%Dct%cName) // ' - field is ignored for the time being!'
+             CALL HCO_WARNING ( MSG, RC, WARNLEV=1 )
+             DoReturn = .TRUE.
+             CALL HCO_LEAVE ( RC ) 
+          ENDIF
+       ENDIF
+
+       ! Eventually return here
+       IF ( DoReturn ) THEN
           IF ( CloseFile ) THEN
              CALL NC_CLOSE ( ncLun )
              LUN = -1
           ELSE
              LUN = ncLUN
           ENDIF
-          CALL HCO_LEAVE ( RC ) 
           RETURN
        ENDIF
     ENDIF
@@ -583,28 +621,82 @@ CONTAINS
 
     ! Extract longitude midpoints
     CALL NC_READ_VAR ( ncLun, 'lon', nlon, thisUnit, LonMid, NCRC )
-    IF ( NCRC /= 0 .OR. nlon == 0 ) THEN
-       CALL HCO_ERROR( 'NC_READ_LON', RC )
+    IF ( NCRC /= 0 ) THEN
+       CALL HCO_ERROR( 'NC_READ_VAR: lon', RC )
        RETURN 
     ENDIF
-    IF ( INDEX( thisUnit, 'degrees_east' ) == 0 ) THEN
-       MSG = 'illegal longitude unit in ' // &
-            TRIM(srcFile)
+
+    IF ( nlon == 0 ) THEN
+       CALL NC_READ_VAR ( ncLun, 'longitude', nlon, thisUnit, LonMid, NCRC )
+    ENDIF
+    IF ( NCRC /= 0 ) THEN
+       CALL HCO_ERROR( 'NC_READ_VAR: longitude', RC )
+       RETURN 
+    ENDIF
+
+    IF ( nlon == 0 ) THEN
+       CALL NC_READ_VAR ( ncLun, 'Longitude', nlon, thisUnit, LonMid, NCRC )
+    ENDIF
+    IF ( NCRC /= 0 ) THEN
+       CALL HCO_ERROR( 'NC_READ_LON: Longitude', RC )
+       RETURN 
+    ENDIF
+
+    IF ( nlon == 0 ) THEN
+       MSG = 'Cannot find longitude variable in ' // TRIM(srcFile) // &
+             ' - Must be one of `lon`, `longitude`, `Longitude`'
        CALL HCO_ERROR ( MSG, RC )
        RETURN
     ENDIF
+
+    ! Unit must be degrees_east
+    CALL TRANLC( thisUnit)  
+    IF ( INDEX( thisUnit, 'degrees_east' ) == 0 ) THEN
+       MSG = 'illegal longitude unit in ' // TRIM(srcFile) // &
+             ' - Must be `degrees_east`.'
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+    ENDIF
+
     ! Make sure longitude is steadily increasing.
     CALL HCO_ValidateLon( nlon, LonMid, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     
     ! Extract latitude midpoints
     CALL NC_READ_VAR ( ncLun, 'lat', nlat, thisUnit, LatMid, NCRC )
-    IF ( NCRC /= 0 .OR. nlat == 0 ) THEN
-       CALL HCO_ERROR( 'NC_READ_LAT', RC )
+    IF ( NCRC /= 0 ) THEN
+       CALL HCO_ERROR( 'NC_READ_LON: lat', RC )
        RETURN 
     ENDIF
+
+    IF ( nlat == 0 ) THEN
+       CALL NC_READ_VAR ( ncLun, 'latitude', nlat, thisUnit, LatMid, NCRC )
+    ENDIF
+    IF ( NCRC /= 0 ) THEN
+       CALL HCO_ERROR( 'NC_READ_LON: latitude', RC )
+       RETURN 
+    ENDIF
+
+    IF ( nlat == 0 ) THEN
+       CALL NC_READ_VAR ( ncLun, 'Latitude', nlat, thisUnit, LatMid, NCRC )
+    ENDIF
+    IF ( NCRC /= 0 ) THEN
+       CALL HCO_ERROR( 'NC_READ_LON: Latitude', RC )
+       RETURN 
+    ENDIF
+
+    IF ( nlat == 0 ) THEN
+       MSG = 'Cannot find latitude variable in ' // TRIM(srcFile) // &
+             ' - Must be one of `lat`, `latitude`, `Latitude`'
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+    ENDIF
+
+    ! Unit must be degrees_north
+    CALL TRANLC( thisUnit)  
     IF ( INDEX( thisUnit, 'degrees_north' ) == 0 ) THEN
-       MSG = 'illegal latitude unit in ' // TRIM(srcFile)
+       MSG = 'illegal latitude unit in ' // TRIM(srcFile) // &
+             ' - Must be `degrees_north`.'
        CALL HCO_ERROR ( MSG, RC )
        RETURN
     ENDIF
@@ -630,8 +722,8 @@ CONTAINS
 
        ! Error check
        IF ( nlev == 0 ) THEN
-          MSG = 'Source data of '//TRIM(Lct%Dct%cName)//' is not 3D: '//&
-                TRIM(srcFile)
+          MSG = 'Cannot find vertical coordinate variable in ' // &
+                 TRIM(SrcFile) // ' - Must be one of `lat`, `height`.'
           CALL HCO_ERROR( MSG, RC )
           RETURN
        ENDIF
