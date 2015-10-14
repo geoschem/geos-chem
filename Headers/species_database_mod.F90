@@ -115,6 +115,7 @@ CONTAINS
 !  30 Sep 2015 - R. Yantosca - DD_A_Radius is renamed to Radius
 !  01 Oct 2015 - R. Yantosca - Added DD_DvzMinVal field to put a minimum
 !                              deposition velocity for sulfate aerosols
+!  14 Oct 2015 - E. Lundgren - Treat H2SO4 as an aerosol for TOMAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3193,6 +3194,18 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'H2SO4' )
+
+             !%%% NOTE: The TOMAS H2SO4 species dry-deposits like a gas, 
+             !%%% wet-deposits as an aerosol.  So we need to give this
+             !%%% both gas and aerosol properties (ewl, bmy, 10/13/15)
+             !
+             ! Treat H2SO4 as an aerosol for TOMAS
+             ! When 237 K <= T < 258 K:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -3206,6 +3219,10 @@ CONTAINS
                               Is_Wetdep     = T,                            &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 1.00e+5_fp,                   &
+                              MP_SizeResAer = T,                            &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'NK1',  'NK2',  'NK3',  'NK4',  'NK5',  'NK6',  'NK7',      &

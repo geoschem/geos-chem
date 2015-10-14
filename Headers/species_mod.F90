@@ -821,18 +821,27 @@ CONTAINS
     IF ( ThisSpc%Is_Gas ) THEN
 
        ! If this is a gas, then zero out all aerosol fields ...
-       ThisSpc%DD_DvzAerSnow = MISSING
-       ThisSpc%MP_SizeResAer = .FALSE.
-       ThisSpc%MP_SizeResNum = .FALSE.
-       ThisSpc%WD_CoarseAer  = .FALSE.
-       
        ! ... except for those species that wetdep like aerosols
        SELECT CASE( TRIM( ThisSpc%Name ) )
+          CASE( 'H2SO4' )
+             ! Do nothing
           CASE( 'HNO3' )
-             ThisSpc%WD_Is_HNO3 = .TRUE.
+             ThisSpc%DD_DvzAerSnow    = MISSING
+             ThisSpc%MP_SizeResAer    = .FALSE.
+             ThisSpc%MP_SizeResNum    = .FALSE.
+             ThisSpc%WD_CoarseAer     = .FALSE.
+             ThisSpc%WD_Is_HNO3       = .TRUE.   ! Set flag for HNO3
           CASE( 'SO2' )
-             ThisSpc%WD_Is_SO2  = .TRUE.
+             ThisSpc%DD_DvzAerSnow    = MISSING
+             ThisSpc%MP_SizeResAer    = .FALSE.
+             ThisSpc%MP_SizeResNum    = .FALSE.
+             ThisSpc%WD_CoarseAer     = .FALSE.
+             ThisSpc%WD_Is_SO2        = .TRUE.   ! Set flag for SO2
           CASE DEFAULT 
+             ThisSpc%DD_DvzAerSnow    = MISSING
+             ThisSpc%MP_SizeResAer    = .FALSE.
+             ThisSpc%MP_SizeResNum    = .FALSE.
+             ThisSpc%WD_CoarseAer     = .FALSE.
              ThisSpc%WD_AerScavEff    = MISSING
              ThisSpc%WD_KcScaleFac(:) = MISSING
              ThisSpc%WD_RainoutEff(:) = MISSING
