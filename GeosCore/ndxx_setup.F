@@ -858,8 +858,22 @@
 
       IF ( ND44 > 0 ) THEN
 
+#if   defined( TOMAS )
+
+         ! add space in diag array for TOMAS aerosol mass (win, 7/14/09)
+         ! Now use State_Chm%nDryDep for # dry depositing species
+         ! (ewl, 10/14/15)
+         IF ( IDTNK1 > 1 ) THEN
+            NMAX = State_Chm%nDryDep + ( ICOMP - IDIAG )* IBINS
+         ELSE
+            NMAX = State_Chm%nDryDep
+         ENDIF
+#else
+
          ! Number of dry depositing species
          NMAX = State_Chm%nDryDep
+
+#endif
 
          ! Allocate AD44 array
          ALLOCATE( AD44( IIPAR, JJPAR, NMAX, 2 ), STAT=AS )
