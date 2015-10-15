@@ -154,6 +154,8 @@
 !  12 Jun 2015 - R. Yantosca   - Now remove orphaned ND44 variables
 !  12 Jun 2015 - R. Yantosca   - Remove CHEM_NH3 and CHEM_NH4 routines
 !                                because drydep is now done in mixing_mod.F90
+!  23 Sep 2015 - R. Yantosca   - Remove DRY* flags for most species except
+!                                for those used in GRAV_SETTLING
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -190,20 +192,8 @@
       ! MODULE VARIABLES:
       !
       ! DMSo       : DMS oceanic emissions            [v/v/timestep]
-      ! DRYH2O2    : Pointer to H2O2  in DEPVEL array [unitless] 
-      ! DRYSO2     : Pointer to SO2   in DEPVEL array [unitless]
-      ! DRYSO4     : Pointer to SO4   in DEPVEL array [unitless]
       ! DRYSO4s    : Pointer to SO4s  in DEPVEL array [unitless]
-      ! DRYMSA     : Pointer to MSA   in DEPVEL array [unitless]
-      ! DRYNH3     : Pointer to NH3   in DEPVEL array [unitless]
-      ! DRYNH4     : Pointer to NH4   in DEPVEL array [unitless]
-      ! DRYNIT     : Pointer to NIT   in DEPVEL array [unitless]
       ! DRYNITs    : Pointer to NITs  in DEPVEL array [unitless]
-      ! DRYSO4aq   : Pointer to SO4aq in DEPVEL array [unitless]
-      ! DRYAS      : Pointer to AS    in DEPVEL array [unitless]  
-      ! DRYAHS     : Pointer to AHS   in DEPVEL array [unitless]
-      ! DRYLET     : Pointer to LET   in DEPVEL array [unitless]
-      ! DRYNH4aq   : Pointer to NH4aq in DEPVEL array [unitless]
       !
       !%%% NOTE: THESE ARE NOW OBTAINED VIA HEMCO (bmy, 5/22/15) %%%%%%%%%%%
       !% ENH3_an    : NH3 anthropogenic emissions      [kg NH3/box/s]
@@ -265,12 +255,6 @@
       REAL(fp),  ALLOCATABLE :: SO4_BIOF(:,:)
 #endif
 
-      ! Pointers to drydep species w/in DEPSAV
-      INTEGER                :: DRYSO2,  DRYSO4,   DRYMSA,  DRYNH3  
-      INTEGER                :: DRYNH4,  DRYNIT,   DRYSO4s, DRYNITs
-      INTEGER                :: DRYH2O2, DRYSO4aq, DRYAS,   DRYAHS
-      INTEGER                :: DRYLET,  DRYNH4aq
-
       ! These are pointers to fields in the HEMCO data structure.
       ! Declare these with REAL(fp), aka REAL*4. (bmy, 3/4/15)
       REAL(f4), POINTER      :: O3m(:,:,:)      => NULL()
@@ -284,8 +268,9 @@
 
       ! Emission timestep (imported from HEMCO)
       REAL(fp)               :: TS_EMIS
-
-      !tdf Added pointers to nitrate and sulfate on dust (04/08/08)
+      
+      ! Flags to drydep indices for certain species
+      INTEGER                :: DRYSO4s,  DRYNITs
       INTEGER                :: DRYNITd1, DRYNITd2, DRYNITd3, DRYNITd4
       INTEGER                :: DRYSO4d1, DRYSO4d2, DRYSO4d3, DRYSO4d4
 
@@ -2304,7 +2289,8 @@
 !  18 Sep 2014 - M. Sulprizio- Now get J(H2O2) and PH2O2m from HEMCO
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
-!EOP
+!  23 Sep 2015 - R. Yantosca - Remove reference to obsolete DRYH2O2 flag
+!EOC
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -2335,7 +2321,7 @@
       !=================================================================
       ! CHEM_H2O2 begins here!
       !=================================================================
-      IF ( IDTH2O2 == 0 .or. DRYH2O2 == 0 ) RETURN 
+      IF ( IDTH2O2 == 0 ) RETURN 
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -2565,6 +2551,7 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
+!  23 Sep 2015 - R. Yantosca - Remove reference to obsolete DRYSO2 flag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2635,7 +2622,7 @@
       ! CHEM_SO2 begins here!
       !=================================================================
 
-      IF ( IDTH2O2 == 0 .or. IDTSO2 == 0 .or. DRYSO2 == 0 ) RETURN
+      IF ( IDTH2O2 == 0 .or. IDTSO2 == 0 ) RETURN
 
       ! Assume success
       RC          = GIGC_SUCCESS
@@ -5763,6 +5750,7 @@
 !  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
 !  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
 !                              so we can greatly collapse this code
+!  23 Sep 2015 - R. Yantosca - Remove references to DRYSO4 and DRYSO4s
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5792,7 +5780,6 @@
 
       ! Return if tracers are not defined
       IF ( IDTSO4 == 0 .or. IDTSO4s == 0 ) RETURN
-      IF ( DRYSO4 == 0 .or. DRYSO4s == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -6164,6 +6151,7 @@
 !  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
 !  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
 !                              so we can greatly collapse this code
+!  23 Sep 2015 - R. Yantosca - Remove references to obsolete DRYMSA flag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6180,7 +6168,7 @@
       !=================================================================
       ! CHEM_MSA begins here!
       !=================================================================
-      IF ( IDTMSA == 0 .or. DRYMSA == 0 ) RETURN
+      IF ( IDTMSA == 0 ) RETURN
 
       ! Assume success
       RC  = GIGC_SUCCESS
@@ -6314,6 +6302,7 @@
 !  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
 !  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
 !                              so we can greatly collapse this code
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRYNIT, DRYNITs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6344,7 +6333,6 @@
 
       ! Return if tracers are not defined
       IF ( IDTNIT == 0 .or. IDTNITs == 0 ) RETURN
-      IF ( DRYNIT == 0 .or. DRYNITs == 0 ) RETURN
 
       ! Assume success
       RC  = GIGC_SUCCESS
@@ -7467,20 +7455,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_SULFATE( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_SULFATE( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -7521,7 +7511,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: AS, I, J, N
+      ! Scalars
+      INTEGER :: AS, I, J, N
+
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc => NULL()
 
       !=================================================================
       ! INIT_SULFATE begins here!
@@ -7621,28 +7615,12 @@
       !=================================================================
 
       ! Initialize flags
-      DRYH2O2  = 0
-      DRYSO2   = 0
-      DRYSO4   = 0
       DRYSO4s  = 0
-      DRYMSA   = 0
-      DRYNH3   = 0
-      DRYNH4   = 0
-      DRYNIT   = 0
-      DRYSO4s  = 0
-      DRYAS    = 0
-      DRYAHS   = 0
-      DRYLET   = 0
-      DRYSO4aq = 0
-      DRYNH4aq = 0  
-
-      !tdf dust-sulfate flags
+      DRYNITs  = 0
       DRYSO4d1 = 0
       DRYSO4d2 = 0
       DRYSO4d3 = 0
       DRYSO4d4 = 0
-
-      !tdf dust-nitrate flags
       DRYNITd1 = 0
       DRYNITd2 = 0
       DRYNITd3 = 0
@@ -7650,57 +7628,41 @@
 
       ! Locate position of each tracer in DEPSAV
       IF ( Input_Opt%LDRYD ) THEN
-         DO N = 1, Input_Opt%NUMDEP
-            SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
-               CASE ( 'H2O2'   )
-                  DRYH2O2  = N
-               CASE ( 'SO2'   )
-                  DRYSO2   = N
-               CASE ( 'SO4'   )
-                  DRYSO4   = N
-               CASE ( 'SO4S'   )
-                  DRYSO4s  = N
-               CASE ( 'MSA'   )
-                  DRYMSA   = N
-               CASE ( 'NH3'   )
-                  DRYNH3   = N
-               CASE ( 'NH4'   )
-                  DRYNH4   = N
-               CASE ( 'NIT'   )
-                  DRYNIT   = N
-               CASE ( 'NITS'   )
-                  DRYNITs  = N
-               CASE ( 'AS'    )
-                  DRYAS    = N
-               CASE ( 'AHS'   )
-                  DRYAHS   = N
-               CASE ( 'LET'   )
-                  DRYLET   = N
-               CASE ( 'SO4aq' )
-                  DRYSO4aq = N
-               CASE ( 'NH4aq' )
-                  DRYNH4aq = N
-               !tdf dust-sulfate
+
+         ! Loop over all species
+         DO N = 1, State_Chm%nSpecies
+
+            ! Get info for each species from the species database
+            ThisSpc => State_Chm%SpcData(N)%Info
+
+            ! Save dry deposition indices for selected species
+            SELECT CASE ( TRIM( ThisSpc%Name ) )
+               CASE ( 'SO4s'   )
+                  DRYSO4s  = ThisSpc%DryDepId
+               CASE ( 'NITs'   )
+                  DRYNITs  = ThisSpc%DryDepId
                CASE ( 'SO4D1' )
-                  DRYSO4d1 = N
+                  DRYSO4d1 = ThisSpc%DryDepId
                CASE ( 'SO4D2' )
-                  DRYSO4d2 = N
+                  DRYSO4d2 = ThisSpc%DryDepId
                CASE ( 'SO4D3' )
-                  DRYSO4d3 = N
+                  DRYSO4d3 = ThisSpc%DryDepId
                CASE ( 'SO4D4' )
-                  DRYSO4d4 = N
-               !tdf dust-nitrate
+                  DRYSO4d4 = ThisSpc%DryDepId
                CASE ( 'NITD1' )
-                  DRYNITd1 = N
+                  DRYNITd1 = ThisSpc%DryDepId
                CASE ( 'NITD2' )
-                  DRYNITd2 = N
+                  DRYNITd2 = ThisSpc%DryDepId
                CASE ( 'NITD3' )
-                  DRYNITd3 = N
+                  DRYNITd3 = ThisSpc%DryDepId
                CASE ( 'NITD4' )
-                  DRYNITd4 = N
+                  DRYNITd4 = ThisSpc%DryDepId
                CASE DEFAULT
                   ! Nothing
-            END SELECT        
+            END SELECT  
+
+            ! Free pointer
+            ThisSpc => NULL()
          ENDDO
       ENDIF
 

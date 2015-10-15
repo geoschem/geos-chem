@@ -77,6 +77,8 @@ MODULE HCOI_GC_Main_Mod
 !  11 Mar 2015 - R. Yantosca - Now move computation of SUMCOSZA here from 
 !                              the obsolete global_oh_mod.F.  Add routines
 !                              GET_SZAFACT and CALC_SUMCOSA.
+!  01 Sep 2015 - R. Yantosca - Remove routine SetSpcMw; we now get parameters
+!                              for species from the species database object.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -133,13 +135,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_Init( am_I_Root, Input_Opt, State_Met, RC ) 
+  SUBROUTINE HCOI_GC_Init( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE TIME_MOD,           ONLY : GET_TS_EMIS, GET_TS_DYN
     USE TIME_MOD,           ONLY : GET_TS_CHEM
     USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -160,6 +163,7 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
+    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -173,7 +177,6 @@ CONTAINS
 !  30 Sep 2014 - R. Yantosca  - Now pass fields for aerosol and microphysics
 !                               options to extensions via HcoState
 !  13 Feb 2015 - C. Keller    - Now read configuration file in two steps.
-!  11 Sep 2015 - E. Lundgren  - Remove State_Chm as passed arg since not used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -243,8 +246,9 @@ CONTAINS
     ! the HEMCO configuration file and GEOS-Chem. However, additional
     ! species can be defined, e.g. those not transported in GEOS-Chem
     ! (e.g. SESQ) or tagged species (e.g. specialty simulations).
-    CALL SetHcoSpecies ( am_I_Root, Input_Opt, HcoState, & 
-                         nHcoSpc,   1,         HMRC       )
+    CALL SetHcoSpecies ( am_I_Root, Input_Opt, State_Chm, &
+                         HcoState,  nHcoSpc,   1,         &
+                         HMRC                            )
 !    CALL Get_nHcoSpc( am_I_Root, Input_Opt, nHcoSpc, HMRC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'SetHcoSpecies-1', LOC )
 
@@ -257,8 +261,9 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Register species. This will define all species properties
     ! (names, molecular weights, etc.) of the HEMCO species.
-    CALL SetHcoSpecies ( am_I_Root, Input_Opt, HcoState, & 
-                         nHcoSpc,   2,         HMRC       )
+    CALL SetHcoSpecies ( am_I_Root, Input_Opt, State_Chm,  &
+                         HcoState,  nHcoSpc,   2,          &
+                         HMRC                             )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'SetHcoSpecies-2', LOC )
 
     !-----------------------------------------------------------------
@@ -1583,42 +1588,60 @@ CONTAINS
 ! needs to be done after initialization of the HEMCO state object.
 ! !INTERFACE:
 !
-  SUBROUTINE SetHcoSpecies( am_I_Root, Input_Opt, HcoState, &
-                            nSpec,     Phase,     RC         )
+  SUBROUTINE SetHcoSpecies( am_I_Root, Input_Opt, State_Chm,  &
+                            HcoState,  nSpec,     Phase,      &
+                            RC                               )
 !
 ! !USES:
 !
+    USE GIGC_State_Chm_Mod,    ONLY : ChmState
     USE GIGC_State_Chm_Mod,    ONLY : Get_Indx
     USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-    USE HENRY_COEFFS,          ONLY : Get_Henry_Constant
     USE HCO_LogFile_Mod,       ONLY : HCO_SPEC2LOG
+    USE Species_Mod,           ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )   :: am_I_Root
-    INTEGER,          INTENT(IN   )   :: Phase 
+    LOGICAL,          INTENT(IN   )   :: am_I_Root  ! Are we on the root CPU
+    INTEGER,          INTENT(IN   )   :: Phase      ! 1=Init, 2=Run 
+    TYPE(ChmState),   INTENT(IN   )   :: State_Chm  ! Chemistry State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(OptInput),   INTENT(INOUT)   :: Input_Opt  ! Input Options object
     TYPE(Hco_State),  POINTER         :: HcoState   ! HEMCO state
-    INTEGER,          INTENT(INOUT)   :: nSpec
-    INTEGER,          INTENT(INOUT)   :: RC
+    INTEGER,          INTENT(INOUT)   :: nSpec      ! # of species for HEMCO
+    INTEGER,          INTENT(INOUT)   :: RC         ! Success or failure?
+!
+! !REMARKS:
+!  (1) We now get physical parameters for species from the species database,
+!       which is part of the State_Chm object.  
+!  (2) In the future, it will be easier to specify non-advected species
+!       like SESQ and the CO2 regional tracers from the species database.
+!       The species database flags if a tracer is advected or not.
 !
 ! !REVISION HISTORY:
 !  06 Mar 2015 - C. Keller   - Initial Version
+!  01 Sep 2015 - R. Yantosca - Remove reference to GET_HENRY_CONSTANT; we now
+!                              get Henry constants from the species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER            :: nSpc
-    INTEGER            :: N,  IDTLIMO
-    REAL(dp)           :: K0, CR,  pKa
-    CHARACTER(LEN= 31) :: ThisName
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'SetHcoSpecies (hcoi_gc_main_mod.F90)'
+    ! Scalars
+    INTEGER                :: nSpc
+    INTEGER                :: N,  IDTLIMO
+    REAL(dp)               :: K0, CR,  pKa
+
+    ! Strings
+    CHARACTER(LEN= 31)     :: ThisName
+    CHARACTER(LEN=255)     :: MSG
+    CHARACTER(LEN=255)     :: LOC = 'SetHcoSpecies (hcoi_gc_main_mod.F90)'
+
+    ! Pointers
+    TYPE(Species), POINTER :: ThisSpc
 
     !=================================================================
     ! SetHcoSpecies begins here
@@ -1668,26 +1691,40 @@ CONTAINS
 
           DO N = 1, Input_Opt%N_TRACERS
 
+             ! Get info for this species from the species database
+             ThisSpc => State_Chm%SpcData(N)%Info
+
              ! Model ID and species name 
-             HcoState%Spc(N)%ModID      = Input_Opt%ID_TRACER(N)
-             HcoState%Spc(N)%SpcName    = Input_Opt%TRACER_NAME(N)
-  
-             ! Get species molecular weight, emitted molecular weight,
-             ! and molecule emission ratio (molecules of emitted 
-             ! compound / molecules of species). For now, hardcode
-             ! the species MW for some species (VOCs), since GEOS-Chem
-             ! doesn't carry them.
-             CALL SetSpcMW ( am_I_Root, Input_Opt, HcoState, N, N, RC )
-             IF ( RC /= HCO_SUCCESS ) RETURN
- 
-             ! Set Henry coefficients
-             CALL GET_HENRY_CONSTANT ( TRIM(HcoState%Spc(N)%SpcName), K0, CR, pKa, RC )
-             HcoState%Spc(N)%HenryK0    = K0 
-             HcoState%Spc(N)%HenryCR    = CR 
-             HcoState%Spc(N)%HenryPKA   = PKA
+             HcoState%Spc(N)%ModID      = ThisSpc%ModelID
+             HcoState%Spc(N)%SpcName    = TRIM( ThisSpc%Name )
+             
+             ! Actual molecular weight of species [g/mol]
+             HcoState%Spc(N)%MW_g       = ThisSpc%MW_g
+             
+             ! Emitted molecular weight of species [g/mol].  
+             ! Some hydrocarbon species (like ISOP) are emitted and 
+             ! transported as a number of equivalent carbon atoms.
+             ! For these species, the emitted molecular weight will 
+             ! be 12.0 (the weight of 1 carbon atom).
+             HcoState%Spc(N)%EmMW_g     = ThisSpc%EmMw_g
+
+             ! Emitted molecules per molecules of species [1].  
+             ! For most species, this will be 1.0.  For hydrocarbon 
+             ! species (like ISOP) that are emitted and transported
+             ! as equivalent carbon atoms, this will be be the number
+             ! of moles carbon per mole species.
+             HcoState%Spc(N)%MolecRatio = ThisSpc%MolecRatio
+   
+             ! Set Henry's law coefficients
+             HcoState%Spc(N)%HenryK0    = ThisSpc%Henry_K0   ! [M/atm]
+             HcoState%Spc(N)%HenryCR    = ThisSpc%Henry_CR   ! [K    ]
+             HcoState%Spc(N)%HenryPKA   = ThisSpc%Henry_pKa  ! [1    ]
 
              ! Write to logfile
              IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, N )
+
+             ! Free pointer memory
+             ThisSpc => NULL()
           ENDDO      
       
           ! Eventually add SESQ. This is the last entry
@@ -1733,9 +1770,11 @@ CONTAINS
              RETURN
           ENDIF
 
-          ! Henry constants are the same for all tracers
-          CALL GET_HENRY_CONSTANT ( 'CO2', K0, CR, pKa, RC )
-   
+          ! Get info about the total CO2 species (i.e. N=1) from the 
+          ! species database object.  All tagged CO2 species will
+          ! have the same properties as the total CO2 species.
+          ThisSpc => State_Chm%SpcData(1)%Info
+ 
           ! Assign variables
           DO N = 1, nSpec 
       
@@ -1772,27 +1811,33 @@ CONTAINS
                    RETURN
    
              END SELECT
- 
+
              ! Model ID and species name 
-             HcoState%Spc(N)%ModID      = N 
-             HcoState%Spc(N)%SpcName    = ThisName
+             HcoState%Spc(N)%ModID      = N
+             HcoState%Spc(N)%SpcName    = TRIM( ThisName )
    
              ! Molecular weights of species & emitted species.
-             HcoState%Spc(N)%MW_g       = Input_Opt%Tracer_MW_G(N) 
-             HcoState%Spc(N)%EmMW_g     = Input_Opt%Tracer_MW_G(N) 
-   
-             ! Emitted molecules per molecule of species.
-             HcoState%Spc(N)%MolecRatio = 1.0_hp
-   
+             ! NOTE: Use Input_Opt%Tracer_MW_G to replicate the 
+             ! prior behavior.  The MW's of the tagged species in 
+             ! the prior code all have MW_g = 0 and EmMW_g = 0.
+             ! Ask Christoph about this. (bmy, 9/1/15)
+             HcoState%Spc(N)%MW_g       = Input_Opt%Tracer_MW_G(N) ! [g/mol]
+             HcoState%Spc(N)%EmMW_g     = Input_Opt%Tracer_MW_G(N) ! [g/mol]
+             HcoState%Spc(N)%MolecRatio = ThisSpc%MolecRatio       ! [1    ]
+ 
              ! Set Henry coefficients
-             HcoState%Spc(N)%HenryK0    = K0 
-             HcoState%Spc(N)%HenryCR    = CR 
-             HcoState%Spc(N)%HenryPKA   = PKA
+             HcoState%Spc(N)%HenryK0    = ThisSpc%Henry_K0         ! [M/atm]
+             HcoState%Spc(N)%HenryCR    = ThisSpc%Henry_CR         ! [K    ]
+             HcoState%Spc(N)%HenryPKA   = ThisSpc%Henry_PKA        ! [1    ]
 
              ! Write to logfile
              IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, N )
+
           ENDDO
           IF ( am_I_Root ) CALL HCO_MSG(SEP1='-')
+
+          ! Free pointer
+          ThisSpc => NULL()
 
        ENDIF ! Phase = 2
 
@@ -1812,150 +1857,6 @@ CONTAINS
     RC = HCO_SUCCESS
 
     END SUBROUTINE SetHcoSpecies 
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: SetSpcMW
-!
-! !DESCRIPTION: Subroutine SetSpcMW sets the species molecular weight, the
-! emitted molecular weight, and the molecular ratio of a HEMCO species. 
-! The species molecular weight is the real molecular weight of the species
-! of interest, whereas the emitted molecular weight is the MW of the emitted
-! quantity (e.g. 12 gC/mol if species is emitted as kgC). The molecular ratio
-! is the ratio of emitted molecules per molecules of species (e.g. three 
-! molecules of carbon per molecule of species).
-!\\
-!\\
-! The quantities defined here are used for unit conversion. HEMCO will 
-! attempt to convert input data onto kg emitted species/m2/s (kg emitted 
-! species/m3 for concentrations) based on the species properties set here,
-! the data units found in the data file, and the srcUnit attribute set in
-! the HEMCO configuration file. More details on input data unit conversion 
-! are given in hcoio\_dataread\_mod.F90.
-!\\
-!\\
-! Currently, GEOS-Chem does not carry the 'real' species molecular weight,
-! only the emitted molecular weight. The species molecular weight therefore
-! gets hardcoded here unit there is a more flexible species structure in 
-! place in GEOS-Chem.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE SetSpcMW( am_I_Root, Input_Opt, HcoState, N, M, RC )
-!
-! !USES:
-!
-    USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )   :: am_I_Root  ! Root CPU
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(OptInput),   INTENT(INOUT)   :: Input_Opt  ! Input Options object
-    TYPE(Hco_State),  POINTER         :: HcoState   ! HEMCO state
-    INTEGER,          INTENT(IN   )   :: N          ! species index in Input_Opt
-    INTEGER,          INTENT(IN   )   :: M          ! species index in HcoState
-    INTEGER,          INTENT(INOUT)   :: RC         ! Return code
-!
-! !REVISION HISTORY:
-!  30 Mar 2015 - C. Keller   - Initial Version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! LOCAL VARIABLES:
-!
-    INTEGER            :: ID_EMIT
-    CHARACTER(LEN=255) :: MSG
-
-    !=================================================================
-    ! SetSpcMW begins here
-    !=================================================================
-
-    ! Molecular weights of species & emitted species.
-    HcoState%Spc(M)%EmMW_g = Input_Opt%Tracer_MW_G(N) 
-   
-    ! Emitted molecules per molecule of species.
-    ID_EMIT = Input_Opt%ID_EMITTED(N)
-    IF ( ID_EMIT <= 0 ) THEN
-       HcoState%Spc(M)%MolecRatio = 1.0_hp
-    ELSE
-       HcoState%Spc(M)%MolecRatio = Input_Opt%TRACER_COEFF(N,ID_EMIT)
-    ENDIF
-
-    ! Set species MW for GEOS-Chem tracers transported (and emitted) 
-    ! in units other than molecules of species. 
-    SELECT CASE ( TRIM(Input_Opt%TRACER_NAME(N)) )
-       CASE ( 'ALK4' )
-          HcoState%Spc(M)%MW_g = 58.12_hp ! Butane
-       CASE ( 'ISOP' )
-          HcoState%Spc(M)%MW_g = 68.12_hp
-       CASE ( 'ACET' )
-          HcoState%Spc(M)%MW_g = 58.08_hp 
-       CASE ( 'MEK' )
-          HcoState%Spc(M)%MW_g = 72.11_hp
-       CASE ( 'ALD2' )
-          HcoState%Spc(M)%MW_g = 44.05_hp
-       CASE ( 'PRPE' )
-          HcoState%Spc(M)%MW_g = 42.08_hp ! Propene
-       CASE ( 'C3H8' )
-          HcoState%Spc(M)%MW_g = 44.10_hp
-       CASE ( 'C2H6' )
-          HcoState%Spc(M)%MW_g = 30.07_hp
-       CASE ( 'BCPI' )
-          HcoState%Spc(M)%MW_g = 12.01_hp
-       CASE ( 'OCPI' )
-          HcoState%Spc(M)%MW_g = 12.01_hp
-       CASE ( 'BCPO' )
-          HcoState%Spc(M)%MW_g = 12.01_hp
-       CASE ( 'OCPO' )
-          HcoState%Spc(M)%MW_g = 12.01_hp
-       CASE ( 'POA1' )
-          HcoState%Spc(M)%MW_g = 12.01_hp ! ??
-       CASE ( 'POG1' )
-          HcoState%Spc(M)%MW_g = 12.01_hp ! ??
-       CASE ( 'BENZ' )
-          HcoState%Spc(M)%MW_g = 78.11_hp
-       CASE ( 'TOLU' )
-          HcoState%Spc(M)%MW_g = 92.14_hp
-       CASE ( 'XYLE' )
-          HcoState%Spc(M)%MW_g = 106.16_hp
-       CASE ( 'NAP' )
-          HcoState%Spc(M)%MW_g = 128.27_hp ! Naphtalene
-       CASE ( 'POG2' )
-          HcoState%Spc(M)%MW_g = 12.01_hp  ! ??
-       CASE ( 'POA2' )
-          HcoState%Spc(M)%MW_g = 12.01_hp  ! ??
-       CASE ( 'OPOG1' )
-          HcoState%Spc(M)%MW_g = 12.01_hp  ! ??
-       CASE ( 'OPOG2' )
-          HcoState%Spc(M)%MW_g = 12.01_hp  ! ??
-       CASE ( 'OPOA1' )
-          HcoState%Spc(M)%MW_g = 12.01_hp  ! ??
-       CASE ( 'OPOA2' )
-          HcoState%Spc(M)%MW_g = 12.01_hp  ! ??
-       CASE ( 'MONX' )
-          HcoState%Spc(M)%MW_g = 136.0_hp  ! C10H16 
-       CASE ( 'C2H4' )
-          HcoState%Spc(M)%MW_g = 28.05_hp  
-       CASE ( 'C2H2' )
-          HcoState%Spc(M)%MW_g = 26.04_hp  
-       CASE ( 'MBO' )
-          HcoState%Spc(M)%MW_g = 86.13_hp 
-       CASE DEFAULT
-          HcoState%Spc(M)%MW_g = Input_Opt%Tracer_MW_G(N) 
-    END SELECT
-
-    ! Return w/ success
-    RC = HCO_SUCCESS
-
-    END SUBROUTINE SetSpcMW
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

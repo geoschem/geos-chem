@@ -148,6 +148,7 @@
 #                              HEMCO makes these obsolete.
 #  04 Jun 2015 - R. Yantosca - Add wipeout target to remove any leftover
 #                              library, module, or executable files
+#  03 Sep 2015 - R. Yantosca - Add gamap_mod.o dependency to input_mod.o
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -558,8 +559,7 @@ diagnostics_mod.o           : diagnostics_mod.F90                            \
                               drydep_mod.o                                   \
                               hcoi_gc_main_mod.o                             \
                               tracer_mod.o                                   \
-                              tracerid_mod.o                                 \
-                              wetscav_mod.o
+                              tracerid_mod.o
 
 diag_2pm.o                  : diag_2pm.F                                     \
                               chemgrid_mod.o          diag_mod.o
@@ -699,7 +699,7 @@ input_mod.o                 : input_mod.F                                    \
                               tracer_mod.o            transport_mod.o        \
                               wetscav_mod.o           tagged_co_mod.o        \
                               tagged_ox_mod.o         global_ch4_mod.o       \
-                              c2h6_mod.o
+                              c2h6_mod.o              gamap_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               chemgrid_mod.o          tracerid_mod.o
@@ -881,6 +881,8 @@ setemis.o                   : setemis.F                                      \
                               chemgrid_mod.o          comode_mod.o           \
                               pbl_mix_mod.o           tracerid_mod.o         \
                               hcoi_gc_main_mod.o
+
+species_database_mod.o      : species_database_mod.F90
 
 ucx_mod.o                   : ucx_mod.F                                      \
                               chemgrid_mod.o          global_ch4_mod.o       \

@@ -281,6 +281,7 @@
 !  31 Mar 2015 - E. Lundgren - Move post-transport AIRQNT call to transport_mod 
 !  16 Apr 2015 - R. Yantosca - Remove call to INIT_DAO; it's obsolete
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
+!  03 Sep 2015 - R. Yantosca - Now call SETUP_WETSCAV instead of INIT_WETSCAV
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -426,7 +427,12 @@
       Input_Opt%MAX_TRCS      = NNPAR
       Input_Opt%MAX_MEMB      = 15
       Input_Opt%MAX_FAMS      = MAXFAM
-      Input_Opt%MAX_DEP       = MAXDEP
+!---------------------------------------------------
+! Prior to 9/22/15:
+! Now use NNPAR as a place holdeer (bmy, 9/22/15)
+!      Input_Opt%MAX_DEP       = MAXDEP
+!---------------------------------------------------
+      Input_Opt%MAX_DEP       = NNPAR
       Input_Opt%LINOZ_NLEVELS = 25
       Input_Opt%LINOZ_NLAT    = 18
       Input_Opt%LINOZ_NMONTHS = 12
@@ -518,11 +524,11 @@
       ! Set a flag to denote if we should print ND70 debug output
       prtDebug            = ( LPRT .and. am_I_Root )
       
-      ! Debug output
+      ! Debug outputg
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
 
       !-----------------------------------------------------------------
-      ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
+      ! %%%% REPLICATING GCHP FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !
       ! To replicate the functionality of the ESMF interface, we must
       ! initialize the Meteorology State (i.e. State_Met) and the
@@ -546,13 +552,14 @@
       !
       CALL GIGC_Init_All
      &   ( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+
       !
       ! Also allocate arrays in GEOS-Chem modules that have not yet
       ! been initialized (i.e. SEASALT_MOD, CARBON_MOD,  DUST_MOD, 
       ! SULFATE_MOD).  This removes the init calls from the run stage,
       ! which is required when connecting to the GEOS-5 GCM w/ ESMF.
       ! (bmy, 3/4/13)
-      CALL GIGC_Init_Extra( am_I_Root, Input_Opt, RC )
+      CALL GIGC_Init_Extra( am_I_Root, Input_Opt, State_Chm, RC )
       !
       ! Assign values to the TRAC_NAME, TRAC_ID, SMVG_ID fields
       ! of the State_Chm object.  NOTE: This has to be done after
@@ -1258,21 +1265,31 @@
                IF ( RC /= GIGC_SUCCESS ) THEN
                   CALL ERROR_STOP('Error in DO_TRANSPORT!', 'main.F')
                ENDIF
+
+               !### Debug
+               IF ( prtDebug ) THEN 
+                  CALL DEBUG_MSG( '### MAIN: a DO_TRANSPORT' )
+               ENDIF
             ENDIF
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
 #if defined ( TOMAS )
-            ! ... TOMAS microphysics: Always call INIT_WETSCAV ...
-            CALL INIT_WETSCAV
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            ! ... TOMAS microphysics: Always call SETUP_WETSCAV ...
+            CALL SETUP_WETSCAV
+     &           ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
 #else 
             ! ... Standard GEOS-Chem: Call INIT_WETSCAV if   ...
             ! ... convection or wet scavenging or chemistry are turned on ...
             IF ( LCONV .or. LWETD .or. LCHEM ) THEN
-               CALL INIT_WETSCAV
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL SETUP_WETSCAV
+     &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+               !### Debug
+               IF ( prtDebug ) THEN 
+                  CALL DEBUG_MSG( '### MAIN: a SETUP_WETSCAV' )
+               ENDIF
             ENDIF
 
 #endif
@@ -1293,6 +1310,11 @@
          ! (ckeller, 3/5/15) 
          !--------------------------------------------------------------
          CALL COMPUTE_PBL_HEIGHT ( State_Met )
+
+         !### Debug
+         IF ( prtDebug ) THEN 
+            CALL DEBUG_MSG( '### MAIN: a COMPUTE_PBL_HEIGHT' )
+         ENDIF
 
          !--------------------------------------------------------------
          ! Test for emission timestep
@@ -1321,6 +1343,10 @@
 
                RC = GEOS_Timer_End ( "Deposition" )
 
+               !### Debug
+               IF ( prtDebug ) THEN 
+                  CALL DEBUG_MSG( '### MAIN: a DO_DRYDEP' )
+               ENDIF
             ENDIF
 
             !===========================================================
