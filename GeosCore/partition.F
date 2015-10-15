@@ -93,6 +93,7 @@
       REAL(fp)  :: CONCTMP, CONCNOX, SUM, SUM1
       REAL(fp)  :: CSAVE( ITLOOP, IGAS )
       REAL(fp)  :: QTEMP
+      REAL(fp)  :: DEF
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -214,7 +215,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, JLOOP, CONCTMP, SUM, KK, JJ, SUM1, CONCNOX )
-!$OMP+PRIVATE( QTEMP )
+!$OMP+PRIVATE( DEF, QTEMP )
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, NPVERT
          DO J = 1, NLAT
@@ -265,14 +266,22 @@
                ! in the tracer N.  The value QTEMP*CONCTMP is the 
                ! concentration of the member species itself, and that
                ! needs to be saved into CSPEC.
-               !
+               ! 
+               ! DEF is the default fraction (used if concentration
+               ! is zero). It is a combination of the number of member
+               ! species for this tracer as well as the molecules of 
+               ! species per molecules of tracer. (ckeller, 10/15/15).
+               DEF =  ( 1e+0_fp / NMEMBER(N)      ) 
+     &             *  ( 1e+0_fp / REAL(CTRMB(N,KK)+1,KIND=fp) )
+
                ! In the partitioning, now be sure to perform a safe
                ! floating point division of CSAVE/SUM.  Return the value
                ! 1/NMEMBER(N) if the division can't be done, i.e. do a
                ! uniform paritioning among all member species of the
                ! given tracer. (phs, bmy, 2/26/08)
                QTEMP = SAFE_DIV( CSAVE(JLOOP,CSAVEID(JJ)),
-     &                           SUM, 1e+0_fp/NMEMBER(N) )
+     &                           SUM, DEF ) 
+!!!     &                           SUM, 1e+0_fp/NMEMBER(N) )
                      
                ! Store the concentration of member species KK
                ! into the CSPEC array.  Do not allow underflow!

@@ -128,6 +128,7 @@
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
+!  15 Oct 2015 - C. Keller   - Empty CSPEC before refilling.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -175,6 +176,11 @@
       ! NOTE: May only need to do this for traditional G-C runs
       CSPEC_FULL => State_Chm%Species
 
+      ! Empty CSPEC before refilling. This is required to make sure that
+      ! all gridboxes outside the chemistry grid are zero and do not carry
+      ! over values from previous time steps. (ckeller, 10/15/15)
+      CSPEC(:,:) = 0.0d0
+    
       !=================================================================
       ! First time through here, copy initial conditions from QBKCHEM
       ! to CSPEC() for each grid box.  QBKCHEM stores the default
