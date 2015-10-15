@@ -2191,11 +2191,9 @@
             IF ( ThisSpc%MP_SizeResAer .or. ThisSpc%MP_SizeResNum ) THEN
 
 #if defined( TOMAS )
-               !%%% This will break the TOMAS code.
-               !%%% Handle this later (bmy, 9/25/15)
                KIN      = .TRUE.
-               WASHFRAC = WASHFRAC_SIZE_AEROSOL
-     &            ( DT, F, PP, TK, N, I, J, L, State_Met, State_Chm )
+               CALL WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+     &                             State_Met, State_Chm, WASHFRAC, RC )
 #endif
 
             !-----------------------------------------------------------
