@@ -1034,6 +1034,7 @@
 !                              to flag the special cases of HNO3 & SO2 wetdep
 !  05 Oct 2015 - R. Yantosca - Need to make ThisSpc !$OMP THREADPRIVATE
 !  06 Oct 2015 - R. Yantosca - Add missing variables for TOMAS
+!  16 Oct 2015 - E. Lundgren - Consolidate remaining embedded ifelse blocks
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1146,133 +1147,129 @@
          ENDDO
 
       !=================================================================
-      ! For all other species that do not require special handling,
-      ! compute the fraction of species scavenged in updrafts.
+      ! For all other species, compute the fraction of species 
+      ! scavenged in updrafts.
       !=================================================================
-      ELSE 
 
-         !--------------------------------------------------------------
-         ! Soluble gas-phase species
-         !
-         ! NOTE: HNO3 scavenges like an aerosol, although it is
-         ! considered a gas-phase species elsewhere.  Compute the
-         ! fraction of HNO3 scavenged out of the column further down
-         ! in the last ELSE block.
-         !--------------------------------------------------------------
-         IF ( ThisSpc%Is_Gas .and. ( .not. ThisSpc%WD_Is_HNO3 ) ) THEN
+      !--------------------------------------------------------------
+      ! Soluble gas-phase species
+      !
+      ! NOTE: HNO3 scavenges like an aerosol, although it is
+      ! considered a gas-phase species elsewhere.  Compute the
+      ! fraction of HNO3 scavenged out of the column further down
+      ! in the last ELSE block.
+      !--------------------------------------------------------------
+      ELSE IF ( ThisSpc%Is_Gas .and. ( .not. ThisSpc%WD_Is_HNO3 ) ) THEN
 
-            ! No scavenging at the surface
-            F(:,:,1) = 0.0_fp
+         ! No scavenging at the surface
+         F(:,:,1) = 0.0_fp
 
-            ! Start scavenging at level 2
-            DO L = 2, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+         ! Start scavenging at level 2
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-               ! Set pointers
-               p_C_H2O  => C_H2O (I,J,L)
-               p_CLDICE => CLDICE(I,J,L)
-               p_CLDLIQ => CLDLIQ(I,J,L)
-               p_T      => State_Met%T(I,J,L)
+            ! Set pointers
+            p_C_H2O  => C_H2O (I,J,L)
+            p_CLDICE => CLDICE(I,J,L)
+            p_CLDLIQ => CLDLIQ(I,J,L)
+            p_T      => State_Met%T(I,J,L)
 
-               ! Compute Ki, the loss rate of a gas-phase species from
-               ! the convective updraft (Eq. 1, Jacob et al, 2000)
-               CALL COMPUTE_Ki( ThisSpc,  p_C_H2O, p_CLDICE,
-     &                          p_CLDLIQ, Kc,      p_T,      Ki )
+            ! Compute Ki, the loss rate of a gas-phase species from
+            ! the convective updraft (Eq. 1, Jacob et al, 2000)
+            CALL COMPUTE_Ki( ThisSpc,  p_C_H2O, p_CLDICE,
+     &                       p_CLDLIQ, Kc,      p_T,      Ki )
 
-               ! Free pointers
-               p_C_H2O  => NULL()
-               p_CLDICE => NULL()
-               p_CLDLIQ => NULL()
-               p_T      => NULL()
+            ! Free pointers
+            p_C_H2O  => NULL()
+            p_CLDICE => NULL()
+            p_CLDLIQ => NULL()
+            p_T      => NULL()
 
-               ! Compute F, the fraction of scavenged H2O2.
-               ! (Eq. 2, Jacob et al, 2000)
-               F(I,J,L) = GET_F( State_Met, I, J, L, Ki )
+            ! Compute F, the fraction of scavenged H2O2.
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = GET_F( State_Met, I, J, L, Ki )
 
-            ENDDO
-            ENDDO
-            ENDDO
-            
-            ! ND38 index
-            ISOL = GET_ISOL( N, N_TRACERS )
+         ENDDO
+         ENDDO
+         ENDDO
+         
+         ! ND38 index
+         ISOL = GET_ISOL( N, N_TRACERS )
 
-         ELSE
-
-            !-----------------------------------------------------------
-            ! Size-resolved soluble aerosol species
-            ! (Microphysics simulations only)
-            !-----------------------------------------------------------
-            IF ( ThisSpc%MP_SizeResAer ) THEN
+      !-----------------------------------------------------------
+      ! Size-resolved soluble aerosol species
+      ! (Microphysics simulations only)
+      !-----------------------------------------------------------
+      ELSE IF ( ThisSpc%MP_SizeResAer ) THEN
 
 #if defined( TOMAS )
-               ! Get the fraction of tracer scavenged in updrafts
-               ! NOTE: The surface layer F(:,:,1) will be returned
-               ! as zero, to shut off scavenging at the surface
-               CALL F_AEROSOL( KC, KcScale, State_Met, F )
+         ! Get the fraction of tracer scavenged in updrafts
+         ! NOTE: The surface layer F(:,:,1) will be returned
+         ! as zero, to shut off scavenging at the surface
+         CALL F_AEROSOL( KC, KcScale, State_Met, F )
 
-               ! Adjust F for size-resolved aerosol (multiply by XFRAC)
-               DO L = 2, LLPAR
-               DO J = 1, JJPAR
-               DO I = 1, IIPAR
-                  CALL GETFRACTION( I, J, L, N, .FALSE., State_Met,
-     &                              XFRAC,      SOLFRAC, State_Chm )
-                  F(I,J,L) = XFRAC * F(I,J,L)
-               ENDDO
-               ENDDO
-               ENDDO
-               ISOL = GET_ISOL( N, N_TRACERS )
+         ! Adjust F for size-resolved aerosol (multiply by XFRAC)
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            CALL GETFRACTION( I, J, L, N, .FALSE., State_Met,
+     &                        XFRAC,      SOLFRAC, State_Chm )
+            F(I,J,L) = XFRAC * F(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+         ISOL = GET_ISOL( N, N_TRACERS )
 #endif
 
-            !-----------------------------------------------------------
-            ! Size-resolved aerosol number
-            ! (Microphysics simulations only)
-            !-----------------------------------------------------------
-            ELSE IF ( ThisSpc%MP_SizeResNum ) THEN
+      !-----------------------------------------------------------
+      ! Size-resolved aerosol number
+      ! (Microphysics simulations only)
+      !-----------------------------------------------------------
+      ELSE IF ( ThisSpc%MP_SizeResNum ) THEN
 
 #if defined( TOMAS )
-               ! Get the fraction of tracer scavenged in updrafts
-               ! NOTE: The surface layer F(:,:,1) will be returned
-               ! as zero, to shut off scavenging at the surface
-               CALL F_AEROSOL( KC, KcScale, State_Met, F )
+         ! Get the fraction of tracer scavenged in updrafts
+         ! NOTE: The surface layer F(:,:,1) will be returned
+         ! as zero, to shut off scavenging at the surface
+         CALL F_AEROSOL( KC, KcScale, State_Met, F )
 
-               ! Adjust F for size-resolved aerosol number
-               ! (multiply by XFRAC * SOLFRAC)
-               DO L = 2, LLPAR
-               DO J = 1, JJPAR
-               DO I = 1, IIPAR
-                  CALL GETFRACTION( I, J, L, N, .FALSE., State_Met,
+         ! Adjust F for size-resolved aerosol number
+         ! (multiply by XFRAC * SOLFRAC)
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            CALL GETFRACTION( I, J, L, N, .FALSE., State_Met,
      &                              XFRAC,      SOLFRAC, State_Chm )
-                  F(I,J,L) = XFRAC * SOLFRAC * F(I,J,L)
-               ENDDO
-               ENDDO
-               ENDDO
-               ISOL = GET_ISOL( N, N_TRACERS )
+            F(I,J,L) = XFRAC * SOLFRAC * F(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+         ISOL = GET_ISOL( N, N_TRACERS )
 #endif
 
-            !-----------------------------------------------------------
-            ! Soluble aerosol species (non-size-resolved)
-            ! including the special case of HNO3
-            !-----------------------------------------------------------
-            ELSE
+      !-----------------------------------------------------------
+      ! Soluble aerosol species (non-size-resolved)
+      ! including the special case of HNO3 as well as H2SO4
+      ! if using TOMAS microphysics
+      !-----------------------------------------------------------
+      ELSE
 
-               ! Get the fraction of tracer scavenged in updrafts
-               ! NOTE: The surface layer F(:,:,1) will be returned
-               ! as zero, to shut off scavenging at the surface
-               CALL F_AEROSOL( KC, KcScale, State_Met, F )
+         ! Get the fraction of tracer scavenged in updrafts
+         ! NOTE: The surface layer F(:,:,1) will be returned
+         ! as zero, to shut off scavenging at the surface
+         CALL F_AEROSOL( KC, KcScale, State_Met, F )
 
-               ! Multiply by the aerosol scavenging efficiency
-               ! For most species this is 1.0
-               ! For SOA species this is usually 0.8
-               IF ( ThisSpc%WD_AerScavEff > 0.0_fp ) THEN
-                  F = F * ThisSpc%WD_AerScavEff
-               ENDIF
-
-               ! Wetdep species index for ND38 diagnostic
-               ISOL = GET_ISOL( N, N_TRACERS )
-
-            ENDIF
+         ! Multiply by the aerosol scavenging efficiency
+         ! For most species this is 1.0
+         ! For SOA species this is usually 0.8
+         IF ( ThisSpc%WD_AerScavEff > 0.0_fp ) THEN
+            F = F * ThisSpc%WD_AerScavEff
          ENDIF
+
+         ! Wetdep species index for ND38 diagnostic
+         ISOL = GET_ISOL( N, N_TRACERS )
+
       ENDIF
 
       ! Nullify pointers
@@ -1679,6 +1676,8 @@
 !  28 Sep 2015 - R. Yantosca - Needed to add special case for HNO3
 !  30 Sep 2015 - R. Yantosca - Now use ThisSpc%WD_Is_HNO3 and ThisSpc%WD_Is_SO2
 !                              to flag the special cases of HNO3 & SO2 wetdep
+!  16 Oct 2015 - E. Lundgren - Use ThisSpc%WD_Is_H2SO4 to treat H2SO4 as
+!                              aerosol for wetdep (for microphysics)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1755,9 +1754,10 @@
 
       !=================================================================
       ! Compute rainout fraction for soluble gas-phase species
-      ! (except for HNO3, which scavenges like an aerosol)
+      ! (except for HNO3 and H2SO4 which scavenge like aerosols)
       !=================================================================
-      ELSE IF ( ThisSpc%Is_Gas .and. ( .not. ThisSpc%WD_Is_HNO3 ) ) THEN 
+      ELSE IF ( ThisSpc%Is_Gas .and. ( .not. ThisSpc%WD_Is_HNO3 ) 
+     &          .and. ( .not. ThisSpc%WD_Is_H2SO4 ) ) THEN  
 
          ! Compute Ki, the loss rate of a gas-phase species from
          ! the convective updraft (Eq. 1, Jacob et al, 2000)
@@ -1771,7 +1771,7 @@
 
       !=================================================================
       ! Compute rainout fraction for aerosol species
-      ! (including HNO3, which scavenges like an aerosol)
+      ! (including HNO3 and H2SO4 which scavenge like aerosols)
       !=================================================================
       ELSE
 
@@ -2044,6 +2044,8 @@
 !  22 Sep 2015 - E. Lundgren - Add kg/m2 <-> kg conversion for TOMAS
 !  30 Sep 2015 - R. Yantosca - Now use ThisSpc%WD_Is_HNO3 and ThisSpc%WD_Is_SO2
 !                              to flag the special cases of HNO3 & SO2 wetdep
+!  16 Oct 2015 - E. Lundgren - Use ThisSpc%WD_Is_H2SO4 to treat H2SO4 as aerosol
+!                              for wetdep, and consolidate ifelse blocks
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2156,71 +2158,70 @@
       !=================================================================
       ! All other species
       !=================================================================
-      ELSE
 
-         !--------------------------------------------------------------
-         ! Washout for gas-phase species 
-         ! (except HNO3 and SO2, which scavenge like aerosols, 
-         ! and therefore are handled above)
-         !--------------------------------------------------------------
-         IF ( ThisSpc%Is_Gas ) THEN
+      !--------------------------------------------------------------
+      ! Washout for gas-phase species 
+      ! (except H2SO4, NO3, and SO2, which scavenge like aerosols; 
+      ! NO3 and SO2 are handled above and H2SO4 is handled in TOMAS 
+      ! block further below)
+      !--------------------------------------------------------------
+      ELSE IF ( ThisSpc%Is_Gas .and.
+     &        ( .not. ThisSpc%WD_Is_H2SO4 ) ) THEN
 
-            ! Get Henry's law parameters
-            K0  = ThisSpc%Henry_K0
-            CR  = ThisSpc%Henry_CR
-            !pKa = ThisSpc%Henry_pKa       !  Leave for future use
+         ! Get Henry's law parameters
+         K0  = ThisSpc%Henry_K0
+         CR  = ThisSpc%Henry_CR
+         !pKa = ThisSpc%Henry_pKa       !  Leave for future use
 
-            ! NOTE: The routine WASHFRAC_LIQ_GAS assumes that the
-            ! Henry's CR parameter is negative.  The CR value stored
-            ! in the species database is positive, so flip the sign.
-            CR  = -CR
+         ! NOTE: The routine WASHFRAC_LIQ_GAS assumes that the
+         ! Henry's CR parameter is negative.  The CR value stored
+         ! in the species database is positive, so flip the sign.
+         CR  = -CR
 
-            ! Washout is an equilibrium process
-            KIN = .FALSE.
-            
-            ! Get the washout fraction for this species
-            CALL WASHFRAC_LIQ_GAS( K0, CR, PP,       DT, F, 
-     &                             DZ, TK, WASHFRAC, KIN    )
+         ! Washout is an equilibrium process
+         KIN = .FALSE.
+         
+         ! Get the washout fraction for this species
+         CALL WASHFRAC_LIQ_GAS( K0, CR, PP,       DT, F, 
+     &                          DZ, TK, WASHFRAC, KIN    )
 
-         ELSE
-
-            !-----------------------------------------------------------
-            ! Washout for size-resolved aerosol species or
-            ! size-resolved aerosol number (e.g. from TOMAS)
-            !-----------------------------------------------------------
-            IF ( ThisSpc%MP_SizeResAer .or. ThisSpc%MP_SizeResNum ) THEN
+      !-----------------------------------------------------------
+      ! Washout for size-resolved aerosol species or
+      ! size-resolved aerosol number (e.g. from TOMAS)
+      ! NOTE: treat H2SO4 as an aerosol for wetdep in TOMAS
+      !-----------------------------------------------------------
+      ELSE IF ( ThisSpc%MP_SizeResAer .or. ThisSpc%MP_SizeResNum ) THEN
 
 #if defined( TOMAS )
-               KIN      = .TRUE.
-               CALL WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+         ! Washout is a kinetic process
+         KIN      = .TRUE.
+
+         ! Compute washout fraction
+         CALL WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
      &                             State_Met, State_Chm, WASHFRAC, RC )
 #endif
 
-            !-----------------------------------------------------------
-            ! Washout for coarse aerosol species (Reff >= 1um)
-            !-----------------------------------------------------------
-            ELSE IF ( ThisSpc%WD_CoarseAer ) THEN
-               
-               ! Washout is a kinetic process
-               KIN      = .TRUE.
+      !-----------------------------------------------------------
+      ! Washout for coarse aerosol species (Reff >= 1um)
+      !-----------------------------------------------------------
+      ELSE IF ( ThisSpc%WD_CoarseAer ) THEN
+         
+         ! Washout is a kinetic process
+         KIN      = .TRUE.
 
-               ! Compute washout fraction
-               WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+         ! Compute washout fraction
+         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
 
-            !-----------------------------------------------------------
-            ! Washout for fine-aerosol species (Reff < 1um)
-            !-----------------------------------------------------------
-            ELSE
+      !-----------------------------------------------------------
+      ! Washout for fine-aerosol species (Reff < 1um)
+      !-----------------------------------------------------------
+      ELSE
 
-               ! Washout is a kinetic process
-               KIN      = .TRUE.
+         ! Washout is a kinetic process
+         KIN      = .TRUE.
 
-               ! Compute washout fraction
-               WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
-
-            ENDIF
-
-         ENDIF
+         ! Compute washout fraction
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       ENDIF
 
