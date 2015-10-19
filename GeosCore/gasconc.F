@@ -139,7 +139,7 @@
       LOGICAL :: LVARTROP
       INTEGER :: IX, IY, IZ, N, NK, JJ
       INTEGER :: JGAS,JLOOP,NGASMIX,JALTS,K,J,NM,L,JN,MLOOP,I
-      INTEGER :: IPCOMPAR,JRUN,JNEW,JOLD,NGCOUNT,IAVG,KN,SUM,SUM1
+      INTEGER :: IPCOMPAR,JRUN,JNEW,JOLD,NGCOUNT,IAVG,KN !,SUM,SUM1
       REAL(fp)  :: PMBCEN,PBELOW,PABOVE,ALNPRES,PS,ALNCONC,AVMIX,S1CON
       REAL(fp)  :: S2CON,GRCONC1,GRCONC2,GRCONC3,SUMRMS,SUMFRACS,QNEW
       REAL(fp)  :: QACC,FRACDIF,FRACABS,AVGERR,RMSCUR
@@ -175,12 +175,7 @@
       ! (mpayer, 12/6/12)
       ! NOTE: May only need to do this for traditional G-C runs
       CSPEC_FULL => State_Chm%Species
-
-      ! Empty CSPEC before refilling. This is required to make sure that
-      ! all gridboxes outside the chemistry grid are zero and do not carry
-      ! over values from previous time steps. (ckeller, 10/15/15)
-      CSPEC(:,:) = 0.0d0
-    
+ 
       !=================================================================
       ! First time through here, copy initial conditions from QBKCHEM
       ! to CSPEC() for each grid box.  QBKCHEM stores the default
@@ -321,6 +316,12 @@
       ! chemistry routines to function properly.  Therefore, call
       ! COPY_FULL_CHEMGRID from chemgrid_mod.F every time.
       !-----------------------------------------------------------------
+
+      ! Empty CSPEC before refilling. This is required to make sure that
+      ! all gridboxes outside the chemistry grid are zero and do not carry
+      ! over values from previous time steps. (ckeller, 10/15/15)
+      CSPEC(:,:) = 0.0d0
+
       CALL COPY_FULL_CHEMGRID( State_Chm )
 
 #else

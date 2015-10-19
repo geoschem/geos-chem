@@ -17,7 +17,9 @@
 ! !USES:
 !
       USE COMODE_MOD,         ONLY : CSPEC,     JLOP,       VOLUME
+#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE COMODE_MOD,         ONLY : JLOP_PREVIOUS
+#endif
       USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP, SAFE_DIV
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD,       ONLY : IDTRMB
@@ -88,8 +90,8 @@
       INTEGER :: CSAVEID(IGAS)
       INTEGER :: CSAVEID_JJ(IGAS)
       INTEGER :: CS, IDNUM, AS 
-      INTEGER :: LTEST
       INTEGER :: JLOOP_P 
+      INTEGER :: LTEST 
       REAL(fp)  :: CONCTMP, CONCNOX, SUM, SUM1
       REAL(fp)  :: CSAVE( ITLOOP, IGAS )
       REAL(fp)  :: QTEMP
@@ -144,9 +146,20 @@
          ! at the current chemistry timestep
          IF ( JLOOP == 0 ) CYCLE
 
+         ! JLOP_PREVIOUS fix: Since RURALBOX and COPY_FULL_CHEMGRID are 
+         ! called before PARTITION, the CSPEC array at the beginning of
+         ! partition already contains current concentrations ordered in
+         ! current SMVGEAR grid indeces (--> current JLOP). It thus seems
+         ! wrong to archive concentrations into CSAVE based upon the 
+         ! previous date JLOP values (as archived in JLOP_PREVIOUS). 
+         ! Better use current date JLOP values. 
+         ! (ckeller, 10/19/15).
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+         JLOOP_P = JLOOP
+#else
          ! 1-D index for SMVGEAR/KPP arrays corresponding to 
          ! grid box (I,J,L) @ previous chemistry timestep
-	 JLOOP_P = JLOP_PREVIOUS(I,J,L)
+         JLOOP_P = JLOP_PREVIOUS(I,J,L)
 
          ! If the grid box (I,J,L) was in the stratosphere 
          ! at the  previous timestep, then  ...
@@ -180,7 +193,8 @@
             ENDDO
             
          ENDIF
-		    
+#endif
+
          ! Archive into the CSAVE array the concentration of each species
          ! in the CSPEC array at the previous chemistry timestep at index
          ! JLOOP_P.  JLOOP_P is guaranteed to be a tropopsheric box.  This

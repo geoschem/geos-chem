@@ -147,6 +147,9 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE and
 !                              GET_PCENTER with State_Met%PMID.
 !  16 Apr 2015 - E. Lundgren - Add new State_Met variables to ND68
+!  19 Oct 2015 - C. Keller   - Now use Input_Opt%ND68 instead of ND68;
+!                              Rename AIRDEN diagnostics to AIRDENSITY to
+!                              avoid name conflict with GEOS-5 model.
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -470,7 +473,7 @@
       !       12: PMID_DRY     - dry air partial pressure at PMID [hPa]
       !       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
       !================================================================= 
-      IF ( ND68 > 0 ) THEN
+      IF ( Input_Opt%ND68 > 0 ) THEN
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -645,9 +648,9 @@
       ! ND68: 1:  BXHEIGHT     - box height [m] 
       !       2:  AD           - dry air mass [kg]
       !       3:  AVGW         - mol H2O / mol dry air [v/v]
-      !       4:  AIRDEN       - dry air number mass density [kg/m3]
+      !       4:  AIRDENSITY   - dry air number mass density [kg/m3]
       !                          (Note this is different units than bpch)
-      !       5:  MAIRDEN      - moist air mass density [kg/m3]
+      !       5:  MAIRDENSITY  - moist air mass density [kg/m3]
       !       6:  T            - temperature [K]
       !       7:  TV           - virtual temperature [K]
       !       8:  PMID         - arithmetic mean pressure [hPa]
@@ -658,7 +661,7 @@
       !       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
       !================================================================= 
 
-      IF ( ND68 > 0 ) THEN
+      IF ( Input_Opt%ND68 > 0 ) THEN
 
          ! There are 13 diagnostics
          DO I = 1,13
@@ -675,10 +678,10 @@
                   DiagnName = 'AVGW'
                   Ptr3D => State_Met%AVGW
                CASE ( 4 ) 
-                  DiagnName = 'AIRDEN'
+                  DiagnName = 'AIRDENSITY'
                   Ptr3D => State_Met%AIRDEN
                CASE ( 5 ) 
-                  DiagnName = 'MAIRDEN'
+                  DiagnName = 'MAIRDENSITY'
                   Ptr3D => State_Met%MAIRDEN
                CASE ( 6 ) 
                   DiagnName = 'T'

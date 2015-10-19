@@ -572,6 +572,8 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  24 Feb 2015 - C. Keller   - Initial version
+!  19 Oct 2015 - C. Keller   - Rename AIRDEN to AIRDENSITY to
+!                              avoid name conflict with GEOS-5 model.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -619,7 +621,7 @@ CONTAINS
              ScaleFact = 1.0_hp
              SpaceDim  = 3
           CASE ( 3 )
-             DiagnName = 'AIRDEN'
+             DiagnName = 'AIRDENSITY'
              OutUnit   = 'kg m-3'
              ScaleFact = 1.0_hp
              SpaceDim  = 3
