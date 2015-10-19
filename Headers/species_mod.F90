@@ -112,6 +112,7 @@ MODULE Species_Mod
      REAL(fp)           :: WD_RetFactor     ! Retention factor [1]
 
      ! Wetdep parameters, aerosol-phase species
+     LOGICAL            :: WD_Is_H2SO4      ! Flag to denote H2SO4 wetdep
      LOGICAL            :: WD_Is_HNO3       ! Flag to denote HNO3 wetdep
      LOGICAL            :: WD_Is_SO2        ! Flag to denote SO2 wetdep
      LOGICAL            :: WD_CoarseAer     ! T=coarse aerosol; F=fine aerosol
@@ -164,6 +165,8 @@ MODULE Species_Mod
 !  30 Sep 2015 - R. Yantosca - Added WD_Is_HNO3 and WD_Is_SO2 fields to flag
 !                              special cases of HNO3 and SO2 wet deposition
 !  01 Oct 2015 - R. Yantosca - Add field DD_DvzMinVal
+!  16 Oct 2015 - E. Lundgren - Add WD_Is_H2SO4 field to flag special case of
+!                              H2SO4 wet deposition for microphysics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -814,7 +817,8 @@ CONTAINS
     ! Sanity checks
     !---------------------------------------------------------------------
 
-    ! Assume the species is not HNO3 or SO2 at first
+    ! Assume the species is not H2SO4, HNO3, or SO2 at first
+    ThisSpc%WD_Is_H2SO4 = .FALSE.
     ThisSpc%WD_Is_HNO3 = .FALSE.
     ThisSpc%WD_Is_SO2  = .FALSE.
 
@@ -824,7 +828,7 @@ CONTAINS
        ! ... except for those species that wetdep like aerosols
        SELECT CASE( TRIM( ThisSpc%Name ) )
           CASE( 'H2SO4' )
-             ! Do nothing
+             ThisSpc%WD_Is_H2SO4      = .TRUE.   ! Set flag for H2SO4
           CASE( 'HNO3' )
              ThisSpc%DD_DvzAerSnow    = MISSING
              ThisSpc%MP_SizeResAer    = .FALSE.
