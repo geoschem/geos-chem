@@ -323,6 +323,8 @@ SUBROUTINE Shuffle_user2kpp ( V_USER, V )
   V(107) = V_USER(157)
   V(110) = V_USER(158)
   V(99) = V_USER(159)
+  V(42) = 1d-99
+  V(43) = 1d-99
       
 END SUBROUTINE Shuffle_user2kpp
 
