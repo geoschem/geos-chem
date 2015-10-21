@@ -1049,8 +1049,8 @@
 
       ! Objects
       TYPE(Species), POINTER, SAVE :: ThisSpc  => NULL()
-#if defined( GEOS_4 ) || defined( GEOS_5 )
-      ! For GEOS-4, and GEOS-5, make pointers and objects THREADPRIVATE
+#if defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
+      ! For GEOS-4, GEOS-5, and GCAP make pointers and objects THREADPRIVATE
       ! because COMPUTE_F is called from a parallel loop (bmy, 10/5/15)
 !$OMP THREADPRIVATE( p_C_H2O, p_CLDICE, p_CLDLIQ, p_T, ThisSpc )
 #endif
