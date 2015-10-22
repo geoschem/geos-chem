@@ -268,6 +268,8 @@
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally\
 !  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
 !  25 Sep 2015 - E. Lundgren - Fix bug in setting X upper bound for ITS_IN_EUR
+!  22 Oct 2015 - E. Lundgren - Fix PBLTOP and MTTOP levels for 750 hPa and
+!                              350 hPa for GEOS-5, MERRA, GEOS-FP and MERRA2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -305,8 +307,8 @@
       PBLTOP = 5
       MTTOP  = 10
 #elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-      PBLTOP = 5
-      MTTOP  = 10
+      PBLTOP = 16
+      MTTOP  = 27
 #endif
 
 #if defined( USE_ALL_TAGO3_TRACERS )
