@@ -173,6 +173,27 @@
 !
       ! TINY number
       REAL(fp), PARAMETER           :: TINY_FP = TINY(1.0_fp)
+
+#if defined( GEOS_FP ) || defined( MERRA2 )
+      !----------------------------------------------------------------------
+      ! %%%%% For GEOS-FP and MERRA-2 met fields %%%%%
+      !
+      ! Use condensed water content (L+W) =1.5e-6 cm3/cm3 (= 1.5e-3 kg/m3).
+      ! This is part of the "quick fix" by Hongyu Liu and Bo Zhang to fix
+      ! low tropospheric 210Pb lifetimes with GEOS-FP/MERRA2.  See:
+      !
+      ! http://wiki.geos-chem.org/Wet_deposition#Low_tropospheric_210Pb_lifetime_against_deposition_in_v11-01b
+      !----------------------------------------------------------------------
+      REAL(fp), PARAMETER           :: COND_WATER_CONTENT = 1.5e-6_fp
+#else
+      !----------------------------------------------------------------------
+      ! %%%%% For all other met fields %%%%%
+      !
+      ! Use condensed water content (L+W) =1.0e-6 cm3/cm3 (= 1.0e-3 kg/m3).
+      ! which was recommended by Qiaoqiao Wang et al (2014).
+      !---------------------------------------------------------------------- 
+      REAL(fp), PARAMETER           :: COND_WATER_CONTENT = 1.0e-6_fp
+#endif
 !
 ! !LOCAL VARIABLES:
 !
@@ -3852,7 +3873,7 @@
 ! !INPUT PARAMETERS: 
 !
       REAL(fp), INTENT(IN) :: Q        ! Rate of precipitation formation 
-                                     !  [cm3 H2O/cm3 air/s]
+                                       !  [cm3 H2O/cm3 air/s]
 !
 ! !RETURN VALUE:
 !
@@ -3863,6 +3884,7 @@
 !  (1 ) Now made into a MODULE routine since we cannot call internal routines
 !        from w/in a parallel loop.  Updated comments. (bmy, 3/18/04)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  23 Oct 2015 - R. Yantosca - Now use parameter COND_WATER_CONTENT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3871,12 +3893,11 @@
       !==================================================================
 
       ! Compute rainout rate constant K in s^-1 (Eq. 12, Jacob et al, 2000).
-      ! 1.0d-4 = K_MIN, a minimum value for K_RAIN 
-!      ! 1.5d-6 = L + W, the condensed water content (liq + ice) in the cloud
-!      K_RAIN = 1.0d-4 + ( Q / 1.5d-6 ) 
-      !tunable parameter (qq,10/14/2011)
-      ! 1.0d-6 = L + W, the condensed water content (liq + ice) in the cloud
-      K_RAIN = 1.0e-4_fp + ( Q / 1.0e-6_fp ) 
+      ! (1) 1.0d-4             = K_MIN, a minimum value for K_RAIN
+      ! (2) COND_WATER_CONTENT = L + W [cm3/cm3], the condensed water
+      !                          content (liquid + ice)  in the cloud, 
+      !                          (cf. Jacob et al 2000, Eq. 12)
+      K_RAIN = 1.0e-4_fp + ( Q / COND_WATER_CONTENT )
       
       END FUNCTION LS_K_RAIN
 !EOC
@@ -3898,20 +3919,21 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp), INTENT(IN) :: Q         ! Rate of precipitation formation 
-                                      !  [cm3 H2O/cm3 air/s]
-      REAL(fp), INTENT(IN) :: K_RAIN    ! 1st order rainout rate constant [1/s]
+      REAL(fp), INTENT(IN) :: Q        ! Rate of precipitation formation 
+                                       !  [cm3 H2O/cm3 air/s]
+      REAL(fp), INTENT(IN) :: K_RAIN   ! 1st order rainout rate constant [1/s]
 !
 ! !REMARKS:
 ! 
-      REAL(fp)             :: F_PRIME   ! Fraction of grid box undergoing 
-                                      !  large-scale precipitation [unitless]
+      REAL(fp)             :: F_PRIME  ! Fraction of grid box undergoing 
+                                       !  large-scale precipitation [unitless]
 ! 
 ! !REVISION HISTORY: 
 !  18 Mar 2004 - R. Yantosca - Initial version
 !  (1 ) Now made into a MODULE routine since we cannot call internal routines
 !        from w/in a parallel loop.  Updated comments. (bmy, 3/18/04)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  23 Oct 2015 - R. Yantosca - Now use COND_WATER_CONTENT parameter
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3920,11 +3942,10 @@
       !=================================================================
 
       ! Compute F', the area of the grid box undergoing precipitation
-!      ! 1.5d-6 = L + W, the condensed water content [cm3 H2O/cm3 air]
-!      F_PRIME = Q / ( K_RAIN * 1.0d-6 )
-      !tunable parameter (qq,10/14/2011)
-      ! 1.0d-6 = L + W, the condensed water content [cm3 H2O/cm3 air]
-      F_PRIME = Q / ( K_RAIN * 1.0e-6_fp )
+      ! COND_WATER_CONTENT = L + W [cm3/cm3], the condensed water
+      !                      content (liquid + ice)  in the cloud 
+      !                      (cf. Jacob et al 2000, Eq. 12)
+      F_PRIME = Q / ( K_RAIN * COND_WATER_CONTENT )
 
       END FUNCTION LS_F_PRIME
 !EOC

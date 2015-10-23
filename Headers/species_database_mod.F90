@@ -102,6 +102,12 @@ CONTAINS
 !  multiply by the proper conversion factor (9.86923e-3) to convert
 !  [mol m-3 Pa-1] to [M atm-1].
 !
+!  Hongyu Liu and Bo Zhang recommend to turn off cold cloud scavenging
+!  for aerosols (i.e. set the rainout efficiency to zero when T < 258 K) 
+!  for simulations done with GEOS-FP or MERRA2 met fields.  See this wiki 
+!  post for more information about this fix:
+!    http://www.geos-chem.org/Wet_deposition#Low_tropospheric_210Pb_lifetime_against_deposition_in_v11-01b
+!
 !  ALSO NOTE: For now we are using this to define the tracers but we will
 !  eventually extend this to the number of species. (bmy, 7/22/15)
 !
@@ -116,6 +122,8 @@ CONTAINS
 !  01 Oct 2015 - R. Yantosca - Added DD_DvzMinVal field to put a minimum
 !                              deposition velocity for sulfate aerosols
 !  14 Oct 2015 - E. Lundgren - Treat H2SO4 as an aerosol for TOMAS
+!  23 Oct 2015 - R. Yantosca - Set rainout efficiency=0 when T < 258 K
+!                              for GEOS-FP and MERRA2 simulations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -259,7 +267,7 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff = (/ 0.0_fp, 0.0_fp, 0.8_fp /)
@@ -322,7 +330,7 @@ CONTAINS
                    KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
                    ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-                   ! Otherwise, turn off rainout when 237 K <= T < 258K.
+                   ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
                    RainEff  = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
 #else
@@ -336,10 +344,14 @@ CONTAINS
                    ! for the temperature range T > 258 K
                    KcScale  = (/ 1.0_fp, 1.0_fp, 0.5_fp /)
 
-                   ! But because hydrophobic BC (which normally has a
-                   ! rainout efficiency of zero) is considered to be IN,
-                   ! it can be rained out when T < 258K.
+                   ! For GEOS-FP & MERRA2, turn off rainout when T < 258 K.
+                   ! For all other met fields: allow rainout of BCPO
+                   ! when T < 258 K, because BCPO is considered to be IN.
+#if defined( GEOS_FP ) || defined( MERRA2 ) 
+                   RainEff  = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+#else
                    RainEff  = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+#endif
 
              END SELECT
 
@@ -809,10 +821,17 @@ CONTAINS
                    FullName = 'Sulfate on dust, Reff = 0.7 microns'
              END SELECT
 
-             ! Dust species are considered to be IN (ice nuclei),
-             ! so we allow scavenging to occur at all temperatures.
+             ! Do not reduce the Kc (cloud condensate -> precip) rate
              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+
+             ! For GEOS-FP & MERRA2: turn off rainout when T < 258 K.
+             ! For all other met fields: allow rainout of dust when 
+             ! T < 258K, becasue dust is considered to be IN.
+#if defined( GEOS_FP ) || defined( MERRA2 )
+             RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+#else
              RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+#endif
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -848,10 +867,17 @@ CONTAINS
                    FullName = 'Sulfate on dust, Reff = 1.4 microns'
              END SELECT
 
-             ! Dust species are considered to be IN (ice nuclei),
-             ! so we allow scavenging to occur at all temperatures.
+             ! Do not reduce the Kc (cloud condensate -> precip) rate
              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+
+             ! For GEOS-FP & MERRA2: turn off rainout when T < 258 K.
+             ! For all other met fields: allow rainout of dust when 
+             ! T < 258K, becasue dust is considered to be IN.
+#if defined( GEOS_FP ) || defined( MERRA2 )
+             RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+#else
              RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+#endif
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -888,10 +914,17 @@ CONTAINS
                    FullName = 'Sulfate on dust, Reff = 2.4 microns'
              END SELECT
 
-             ! Dust species are considered to be IN (ice nuclei),
-             ! so we allow scavenging to occur at all temperatures
+             ! Do not reduce the Kc (cloud condensate -> precip) rate
              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+
+             ! For GEOS-FP & MERRA2: turn off rainout when T < 258 K.
+             ! For all other met fields: allow rainout of dust when 
+             ! T < 258K, becasue dust is considered to be IN.
+#if defined( GEOS_FP ) || defined( MERRA2 )
+             RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+#else
              RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+#endif
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -929,10 +962,17 @@ CONTAINS
                    Name     = 'Sulfate on dust, Reff = 4.5 microns'
              END SELECT
 
-             ! Dust species are considered to be IN (ice nuclei),
-             ! so we allow scavenging to occur at all temperatures
+             ! Do not reduce the Kc (cloud condensate -> precip) rate
              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+
+             ! For GEOS-FP & MERRA2: turn off rainout when T < 258 K.
+             ! For all other met fields: allow rainout of dust when 
+             ! T < 258K, becasue dust is considered to be IN.
+#if defined( GEOS_FP ) || defined( MERRA2 )
+             RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+#else
              RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+#endif
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -1140,11 +1180,21 @@ CONTAINS
 
           CASE( 'HNO3' )
 
-             ! NOTE: HNO3 dry-deposits like a gas, but wet-deposits/scavenges
-             ! like an aerosol.  Therefore we need to define HNO3 with both
-             ! gas-phase and aerosol parameters. (bmy, 9/28/15)
+             !%%% NOTE: HNO3 dry-deposits like a gas, but wet-deposits
+             !%%% like an aerosol.  Therefore we need to define HNO3 
+             !%%% with both gas-phase and aerosol parameters. (bmy, 9/28/15)
+
+             ! Do not reduce the Kc (cloud condensate -> precip) rate
              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+
+             ! For GEOS-FP & MERRA2: turn off rainout when T < 258 K.
+             ! For all other met fields: allow rainout of HNO3 when 
+             ! T < 258K, becasue dust is considered to be IN.
+#if defined( GEOS_FP ) || defined( MERRA2 )
+             RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+#else
              RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+#endif
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -1316,7 +1366,7 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff = (/ 0.0_fp, 0.0_fp, 0.8_fp /)
@@ -1536,7 +1586,7 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
 #else
@@ -1627,7 +1677,7 @@ CONTAINS
              KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff   = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
 #else
@@ -1811,7 +1861,7 @@ CONTAINS
              KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff   = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
 #else
@@ -1850,7 +1900,7 @@ CONTAINS
              KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff   = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
 #else
@@ -1893,7 +1943,7 @@ CONTAINS
              KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff  = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
 #else
@@ -2056,7 +2106,7 @@ CONTAINS
                    KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
                    ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-                   ! Otherwise, turn off rainout when 237 K <= T < 258K.
+                   ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
                    RainEff  = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
 #else
@@ -2068,7 +2118,7 @@ CONTAINS
 
                    ! For all temperatures:
                    ! (1) Halve the Kc (cloud condensate -> precip) rate
-                   ! (2) Turn off rainout
+                   ! (2) Turn off rainout (OCPO is hydrophobic)
                    KcScale  = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
                    RainEff  = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
 
@@ -2101,7 +2151,7 @@ CONTAINS
              KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff  = (/ 0.0_fp, 0.0_fp, 0.8_fp /) 
@@ -2390,7 +2440,7 @@ CONTAINS
              KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff  = (/ 0.0_fp, 0.0_fp, 1.0_fp /)   
 #else
@@ -2427,7 +2477,7 @@ CONTAINS
              KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff  = (/ 0.0_fp, 0.0_fp, 1.0_fp /) 
 #else
@@ -2457,16 +2507,16 @@ CONTAINS
 
           CASE( 'SO2' )
 
-             ! NOTE: SO2 dry-deposits like a gas but wet-deposits/scavenges
-             ! like an aerosol.  Therefore, we need to define SO2 with both
-             ! both gas-phase and aerosol parameters. (bmy, 9/28/15)
-             !
+             !%%% NOTE: SO2 dry-deposits like a gas but wet-deposits
+             !%%% like an aerosol.  Therefore, we need to define SO2 with
+             !%%% both gas-phase and aerosol parameters. (bmy, 9/28/15)
+
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
              KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
  
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff   = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
 #else
@@ -2510,7 +2560,7 @@ CONTAINS
              KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff   = (/ 0.0_fp, 0.0_fp, 1.0_fp /)   
 #else
@@ -2552,7 +2602,7 @@ CONTAINS
              KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff  = (/ 0.0_fp, 0.0_fp, 1.0_fp /)   
 #else
@@ -2602,7 +2652,7 @@ CONTAINS
              KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff  = (/ 0.0_fp, 0.0_fp, 0.8_fp /)   
@@ -2686,7 +2736,7 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)   
 #else
@@ -2718,7 +2768,7 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)   
 #else
@@ -2965,17 +3015,21 @@ CONTAINS
                    ! for the temperature range 237 K <= T < 258 K.
                    KcScale  = (/ 1.0_fp, 1.0_fp, 0.5_fp /)
 
-                   ! Because POPS on hydrophobic BC (which normally has
-                   ! a rainout efficiency of zero) is considered to be IN,
-                   ! it can be rained out when T < 258K.
+                   ! For GEOS-FP & MERRA2: Turn off rainout when T < 258 K.
+                   ! For all other met fields: allow rainout of POPPBCPO
+                   ! when T < 258 K, because POPPBCPO is considered to be IN.
+#if defined( GEOS_FP ) || defined( MERRA2 )
+                   RainEff  = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+#else                   
                    RainEff  = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+#endif
 
                 CASE( 'POPPOCPO' )
                    FullName = TRIM( FullName ) // ' hydrophobic organic carbon'
 
                    ! For all temperatures:
                    ! (1) Halve the Kc (cloud condensate -> precip) rate
-                   ! (2) Turn off rainout
+                   ! (2) Turn off rainout (it's hydrophobic)
                    KcScale  = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
                    RainEff  = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
 
@@ -3014,7 +3068,7 @@ CONTAINS
                    FullName = 'Benzo(a)pyrene particles on'
              END SELECT
 
-             ! ... and the names and rainout efficiencies.
+             ! ... and the names
              SELECT CASE( TRIM( NameAllCaps ) ) 
                 CASE( 'POPPBCPI' ) 
                    FullName = TRIM( FullName ) // ' hydrophilic black carbon'
@@ -3027,7 +3081,7 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
 #else
@@ -3131,15 +3185,12 @@ CONTAINS
                 FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
              ENDIF
 
-             !%%% NOTE: Should these be considered "IN" as well?      %%%
-             !%%% Ask the TOMAS team for clarification (bmy, 9/24/15) %%%
-
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 )
              RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
 #else
@@ -3183,15 +3234,12 @@ CONTAINS
                 FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
              ENDIF
 
-             !%%% NOTE: Should these be considered "IN" as well?      %%%
-             !%%% Ask the TOMAS team for clarification (bmy, 9/24/15) %%%
-
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)   
 #else
@@ -3235,16 +3283,12 @@ CONTAINS
                 FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
              ENDIF
 
-
-             !%%% NOTE: Should these be considered "IN" as well?      %%%
-             !%%% Ask the TOMAS team for clarification (bmy, 9/24/15) %%%
-
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)   
 #else
@@ -3293,7 +3337,7 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)   
 #else
@@ -3330,7 +3374,7 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
 #else
@@ -3377,7 +3421,7 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 )
              RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)               
 #else 
@@ -3427,7 +3471,7 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)   
 #else
@@ -3476,7 +3520,7 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 )
              RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)   
 #else
@@ -3523,7 +3567,7 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)   
 #else
@@ -3570,7 +3614,7 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout when 237 K <= T < 258K.
+             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)   
 #else
