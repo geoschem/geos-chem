@@ -2736,11 +2736,11 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
+             ! Otherwise, allow Pb210 to be rained out at all temperatures.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)   
 #else
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 #endif
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
@@ -2768,11 +2768,11 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! For GEOS-FP and MERRA2, turn off rainout when T < 258K.
-             ! Otherwise, turn off rainout only when 237 K <= T < 258K.
+             ! Otherwise, allow Be7 to be rained out at all temperatures.
 #if defined( GEOS_FP ) || defined( MERRA2 ) 
              RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)   
 #else
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 #endif
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
