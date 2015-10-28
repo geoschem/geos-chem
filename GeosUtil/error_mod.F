@@ -757,7 +757,7 @@
 !
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GEOS_TIMERS
+      USE GEOS_TIMERS_MOD
 #if defined( ESMF_ )
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%

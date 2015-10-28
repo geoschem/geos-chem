@@ -43,7 +43,7 @@
       USE TRACER_MOD            ! For error-checking the tracer array
       USE REGRID_A2A_MOD        ! For horizontal regridding
       USE UNITCONV_MOD          ! For gas concentration unit conversion
-      USE GEOS_TIMERS           ! For optional timing of components
+      USE GEOS_TIMERS_MOD       ! For GEOS-Chem timers (optional)
       
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules

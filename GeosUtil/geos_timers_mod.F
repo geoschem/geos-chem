@@ -3,15 +3,15 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: geos_timers
+! !MODULE: geos_timers_mod
 !
-! !DESCRIPTION: Module GEOS\_TIMERS is used to track and time how long
+! !DESCRIPTION: Module GEOS\_TIMERS\_MOD is used to track and time how long
 ! specified parts of GEOS-Chem take to run.
 !\\
 !\\
 ! !INTERFACE:
 !
-      MODULE GEOS_TIMERS
+      MODULE GEOS_TIMERS_MOD
 !
 ! !USES:
 ! 
@@ -739,7 +739,7 @@
 !
 ! !IROUTINE: GEOS_Timer_TimePrint
 !
-! !DESCRIPTION: Formats the time and prints it out to the log file.
+! !DESCRIPTION: Formats the time and writes it out to the log file.
 !\\
 !\\
 ! !INTERFACE:
@@ -834,6 +834,7 @@
       SecsLeft = SecsLeft * 1000
       TotalMS = INT(SecsLeft)
 
+      ! Write timers to log file in DD-hh:mm:ss.SSS format
       WRITE( DD, '(i2.2)' ) TotalDays
       WRITE( HH, '(i2.2)' ) TotalHours
       WRITE( MM, '(i2.2)' ) TotalMins
@@ -845,6 +846,5 @@
  130  FORMAT(2x,a30,':',2x,a2,'-',a2,':',a2,':',a2,'.',a3)
 
       END SUBROUTINE GEOS_Timer_TimePrint
-
 !EOC
-      END MODULE GEOS_TIMERS
+      END MODULE GEOS_TIMERS_MOD

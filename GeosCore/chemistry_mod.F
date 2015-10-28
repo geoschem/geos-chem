@@ -16,7 +16,7 @@
 ! !USES:
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-      USE GEOS_TIMERS      ! For optional timing of components
+      USE GEOS_TIMERS_MOD  ! For GEOS-Chem timers (optional)
 
       IMPLICIT NONE
       PRIVATE
