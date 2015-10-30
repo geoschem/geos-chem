@@ -142,6 +142,7 @@
 !  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod
 !  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
 !  16 Apr 2015 - E. Lundgren - Add new State_Met variables to ND68
+!  28 Oct 2015 - E. Lundgren - Reduce number of State_Met variables in ND68
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -465,11 +466,9 @@
       !       6:  T            - temperature [K]
       !       7:  TV           - virtual temperature [K]
       !       8:  PMID         - arithmetic mean pressure [hPa]
-      !       9:  PMEAN        - altitude-weighted mean pressure [hPa]
-      !       10: PEDGE        - level pressure (bottom edge) [hPa]
-      !       11: RH           - relative humidity [%]
-      !       12: PMID_DRY     - dry air partial pressure at PMID [hPa]
-      !       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
+      !       9:  PEDGE        - level pressure (bottom edge) [hPa]
+      !       10: RH           - relative humidity [%]
+      !       11: PMID_DRY     - dry air partial pressure at PMID [hPa]
       !================================================================= 
       IF ( ND68 > 0 ) THEN
 
@@ -488,11 +487,9 @@
             AD68(I,J,L,6)  = AD68(I,J,L,6)  + State_Met%T(I,J,L)
             AD68(I,J,L,7)  = AD68(I,J,L,7)  + State_Met%TV(I,J,L)
             AD68(I,J,L,8)  = AD68(I,J,L,8)  + State_Met%PMID(I,J,L)
-            AD68(I,J,L,9)  = AD68(I,J,L,9)  + State_Met%PMEAN(I,J,L)
-            AD68(I,J,L,10) = AD68(I,J,L,10) + State_Met%PEDGE(I,J,L)
-            AD68(I,J,L,11) = AD68(I,J,L,11) + State_Met%RH(I,J,L)
-            AD68(I,J,L,12) = AD68(I,J,L,12) + State_Met%PMID_DRY(I,J,L)
-            AD68(I,J,L,13) = AD68(I,J,L,13) + State_Met%PMEAN_DRY(I,J,L)
+            AD68(I,J,L,9)  = AD68(I,J,L,9)  + State_Met%PEDGE(I,J,L)
+            AD68(I,J,L,10) = AD68(I,J,L,10) + State_Met%RH(I,J,L)
+            AD68(I,J,L,11) = AD68(I,J,L,11) + State_Met%PMID_DRY(I,J,L)
          ENDDO
          ENDDO
          ENDDO
