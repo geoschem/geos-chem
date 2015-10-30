@@ -2817,6 +2817,7 @@ contains
     USE PBL_MIX_MOD,        ONLY : INIT_PBL_MIX
     USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
+    USE DAO_MOD,            ONLY : AIRQNT
 
     IMPLICIT NONE
 !
@@ -2847,6 +2848,8 @@ contains
 !  01 Aug 2013 - R. Yantosca - Now pass the Input_Opt object to VDIFFDR
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  22 Aug 2014 - R. Yantosca - Renamed DO_TURBDAY to DO_VDIFF for clarity
+!  28 Oct 2015 - E. Lundgren - Update air quantities and tracer concentrations
+!                              after humidity update in VDIFFDR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2885,10 +2888,23 @@ contains
 
     ! Do mixing of tracers in the PBL (if necessary)
     IF ( DO_VDIFF ) THEN
+
+       ! Set previous specific humidity to current specific humidity 
+       ! prior to humidity update in vdiffdr (ewl, 10/28/15)
+       State_Met%SPHU_prev = State_Met%SPHU
+
        CALL VDIFFDR( am_I_Root, STT, Input_Opt, State_Met, State_Chm )
        IF( LPRT .and. am_I_Root ) THEN
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
        ENDIF
+
+       ! Update air quantities and tracer concentrations with updated
+       ! specific humidity (ewl, 10/28/15)
+       CALL AIRQNT( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                    RC, update_mixing_ratio=.FALSE. )
+       ! EWL NOTE: Temporarily do not update mixing ratio here to 
+       ! compare to previous results.
+
     ENDIF
 
     ! Free pointer

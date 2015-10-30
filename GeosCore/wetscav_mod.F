@@ -2995,6 +2995,10 @@
       ! Is this a mercury simulation?
       IS_Hg = ( ITS_A_MERCURY_SIM )
 
+         ! DEBUGGING (ewl)
+         PRINT *, "Convert to kg/m2 at start of WETDEP_MERRA"
+         ! END DEBUGGING
+
       ! Convert tracer concentration from mixing ratio (kg/kg dry air) to
       ! mass per unit area (kg/m2) for wet deposition since computation is
       ! done per column (ewl, 9/8/15)
@@ -3373,6 +3377,10 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+         ! DEBUGGING (ewl)
+         PRINT *, "Convert back to kg/kg at end of WETDEP"
+         ! END DEBUGGING
+
       ! Convert tracer units back to mixing ratio (ewl, 9/8/15)
       CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,           
      &                               State_Met, State_Chm, RC )   
@@ -3599,6 +3607,10 @@
 
       ! Is this a mercury simulation?
       IS_Hg = ITS_A_MERCURY_SIM
+
+         ! DEBUGGING (ewl)
+         PRINT *, "Convert to kg/m2 at start of WETDEP_MERRA"
+         ! END DEBUGGING
 
       ! Convert tracer concentration from mixing ratio (kg/kg dry air) to
       ! mass per unit area (kg/m2) for wet deposition since computation is
@@ -3939,6 +3951,10 @@
       ENDDO	
       ENDDO	
 !$OMP END PARALLEL DO
+
+         ! DEBUGGING (ewl)
+         PRINT *, "Convert back to kg/kg at end of WETDEP_MERRA"
+         ! END DEBUGGING
 
       ! Convert tracer concentration back to kg/kg dry air (ewl, 9/8/15)
       CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,

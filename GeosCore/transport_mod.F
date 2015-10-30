@@ -467,7 +467,9 @@
       CALL SET_FLOATING_PRESSURE( P_TP2 )
 
       ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
-      CALL AIRQNT( am_I_Root, State_Met, RC )
+      ! Do not update tracer mixing ratio
+      CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
+     &             update_mixing_ratio=.FALSE. )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
@@ -703,7 +705,9 @@
       CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
 
       ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
-      CALL AIRQNT( am_I_Root, State_Met, RC )
+      ! Do not update tracer mixing ratio
+      CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
+     &             update_mixing_ratio=.FALSE. )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### GCAP_GLOB_ADV: a TPCORE' ) 
@@ -947,7 +951,9 @@
       CALL SET_FLOATING_PRESSURE( P_TP2 )
 
       ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
-      CALL AIRQNT( am_I_Root, State_Met, RC )
+      ! Do not update tracer mixing ratio
+      CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
+     &             update_mixing_ratio=.FALSE. )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G5_NESTED_ADV: a TPCORE' )
@@ -1240,7 +1246,9 @@
       CALL SET_FLOATING_PRESSURE( P_TP2 )
 
       ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
-      CALL AIRQNT( am_I_Root, State_Met, RC )
+      ! Do not update tracer mixing ratio
+      CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
+     &             update_mixing_ratio=.FALSE. )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G5_NESTED_ADV: a TPCORE' )

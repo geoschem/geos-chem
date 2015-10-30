@@ -1637,7 +1637,7 @@ CONTAINS
 !  29 Oct 2013 - R. Yantosca - Now read T_FULLGRID_1 for offline simulations
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
-!  12 Jun 2015 - E. Lundgren - Initialize State_MET%SPHU with State_Met%SPHU1
+!  12 Jun 2015 - E. Lundgren - Initialize State_Met%SPHU with State_Met%SPHU1
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1770,11 +1770,12 @@ CONTAINS
     ENDWHERE
 
     ! Initialize State_Met%T to State_Met%TMPU1 and State_Met%SPHU to
-    ! State_Met%SPHU1.  At the next met field read, we will interpolate 
-    ! State_Met%T from the values of State_Met vars TMPU1 and TMPU2
-    ! and State_Met%SPHU from the values of State_Met vars SPHU1 and SPHU2. 
-    State_Met%T = State_Met%TMPU1
-    State_Met%SPHU = State_Met%SPHU1
+    ! State_Met%SPHU1.  After all future MET field reads (geosfp_read_i3_2)
+    ! we will interpolate State_Met%T from the values of State_Met vars 
+    ! TMPU1 and TMPU2 and State_Met%SPHU from the values of State_Met vars 
+    ! SPHU1 and SPHU2. 
+    State_Met%T         = State_Met%TMPU1
+    State_Met%SPHU      = State_Met%SPHU1
 
     !======================================================================
     ! Diagnostics, cleanup, and quit

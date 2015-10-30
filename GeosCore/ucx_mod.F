@@ -5504,7 +5504,7 @@
 !  29 Apr 2015 - E. Lundgren   - Replace RH calculation method with Nordquist,
 !                                1973 and call AirQnt if moisture vars
 !                                are updated using H2O tracer concentration
-!  16 Sep 2015 - E. Lundgren   - Tracer units are now kg/m2 (prev kg)
+!  28 Oct 2015 - E. Lundgren   - Tracer units are now kg/kg dry air
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5514,7 +5514,6 @@
       INTEGER           :: I,J,L
 
       LOGICAL           :: READ_SPHU
-      LOGICAL           :: RESET_MOISTURE = .FALSE.
       REAL(fp)          :: SPHU_kgkg, H2OVV_moist, Ev_mid
       REAL(fp)          :: Esat, EsatA, EsatB, EsatC, EsatD
       CHARACTER(LEN=255):: MSG, LOC
@@ -5545,18 +5544,35 @@
       ! SET_H2O_TRAC begins here!
       !=================================================================
 
+      ! Assume success
+      RC  = GIGC_SUCCESS   
+
       ! Copy fields from INPUT_OPT
       LACTIVEH2O = Input_Opt%LACTIVEH2O
 
-      ! Check that tracer concentration units are in [kg/m2] (ewl, 9/18/15)
-      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/m2' ) THEN
+
+         ! DEBUGGING (ewl)
+         PRINT *, "before SET_H2O_TRAC update"
+         PRINT *, "Tracer conc in kg/kg: ", State_Chm%TRACERS(20,20,2,3)
+         ! END DEBUGGING
+
+      ! Check that tracer concentration units are as expected
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
          MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
          LOC = 'UCX_MOD: SET_H2O_TRAC'
          CALL GIGC_Error( TRIM(MSG), RC, TRIM(LOC) )
       ENDIF
 
-      ! Initialize GEOS-Chem tracer array [kg/m2]
+      ! Initialize GEOS-Chem tracer array [kg/kg dry]
       STT => State_Chm%Tracers
+
+      ! If specific humidity will be updated, set previous humidity to
+      ! to current humidity prior to change. This is used to preserve
+      ! tracer mass in mixing ratio update following moisture change
+      ! (ewl, 10/29/15)
+      IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
+         State_Met%SPHU_prev = State_Met%SPHU
+      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -5575,25 +5591,26 @@
 ! legacy: Tracer units in [kg] (commented out by ewl, 9/17/15)
 !            STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
 !     &                          State_Met%ADMOIST(I,J,L)
-! new: [kg/m2] - results in no differences but uses mass and area
+! new: [kg/kg dry] - for now, use ratio of masses
              STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
      &                          ( State_Met%ADMOIST(I,J,L)
-     &                            / State_Met%AREA_M2(I,J,1) )!
-! new: [kg/m2] - area-independent - results in differences, not sure why yet.
-            ! Tracer units are [kg/m2] while specific
-            ! humidity is [kg/kg total air] (ewl, 8/10/15)
-!            STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
-!     &                          * ( State_Met%DELP(I,J,L) * g0_100 )
+     &                            / State_Met%AD(I,J,1) )
 !end new (ewl)
 
          ELSE
 
             ! Calculate specific humidity [g/kg total air] from 
-            ! transported H2O [kg/m2] (ewl, 9/17/15)
+            ! transported H2O [kg/kg dry] (ewl, 9/17/15)
+! legacy: Tracer units in [kg]
 !            SPHU = STT(I,J,L,IDTH2O) * 1.e+3_fp 
 !     &               / State_Met%ADMOIST(I,J,L) ! when STT units were [kg]
-            SPHU_kgkg = STT(I,J,L,IDTH2O) * ( 1.0e+0_fp
-     &                  / ( State_Met%DELP(I,J,L) * g0_100 ) ) ! STT now [kg/m2]
+! new: tracer units in [kg/kg dry]. For now, use ratio of masses.
+            SPHU_kgkg = STT(I,J,L,IDTH2O) * State_Met%AD(I,J,L)
+     &                  / State_Met%ADMOIST(I,J,L)
+
+            ! Set previous humidity to current humidity prior to update
+            ! (ewl, 10/28/15)
+            State_Met%SPHU_prev(I,J,L) = State_Met%SPHU(I,J,L)
 
             ! Set State_Met specific humidity [g/kg]
             State_Met%SPHU(I,J,L) = SPHU_kgkg * 1.e+3_fp
@@ -5620,22 +5637,22 @@
             ! Set State_Met relative humidity [%]
             State_Met%RH(I,J,L) = ( Ev_mid / Esat ) * 100e+0_fp 
 
-            ! Set RESET_MOISTURE flag to indicate SPHU and RH were updated
-            IF ( .not. RESET_MOISTURE ) THEN
-               RESET_MOISTURE = .TRUE.
-            ENDIF
-
          ENDIF
       ENDDO ! L
       ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
 
-      ! If moisture values were updated for at least one grid box,
-      ! call AIRQNT to update all moist-dependent air quantities
-      ! with the new moisture content (ewl, 4/29/15) 
-      IF ( RESET_MOISTURE ) THEN
-         CALL AIRQNT( am_I_Root, State_Met, RC )
+      ! If humidity was updated, update all moist-dependent air quantities
+      ! and tracer mixing ratio with the new moisture content (ewl, 4/29/15) 
+      IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
+         CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
+     &                update_mixing_ratio=.TRUE. )
+
+         ! DEBUGGING (ewl)
+         PRINT *, "after SET_H2O_TRAC update"
+         PRINT *, "Tracer conc in kg/kg: ", State_Chm%TRACERS(20,20,2,3)
+         ! END DEBUGGING
       ENDIF
 
       ! Free pointer

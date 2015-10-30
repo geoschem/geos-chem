@@ -146,7 +146,7 @@ CONTAINS
 !  04 Mar 2015 - C. Keller    - Initial version 
 !  12 Aug 2015 - E. Lundgren  - Input tracer units are now [kg/kg] and 
 !                               are converted to [v/v] for mixing
-!  30 Sep 2014 - E. Lundgren  - Remove conversion to [kg] for DO_TEND
+!  30 Sep 2014 - E. Lundgren  - Move unit conversion for DO_TEND to DO_TEND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -352,6 +352,11 @@ CONTAINS
     ! v/v --> kg/m2
     CALL Convert_VVDry_to_KgKgDry( am_I_Root, Input_Opt,  &
                                    State_Chm, RC )
+
+         ! DEBUGGING (ewl)
+         PRINT *, "Convert to kg/m2 at start of DO_TEND"
+         ! END DEBUGGING
+
     CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,   &
                                   State_Met, State_Chm, RC )
 
@@ -703,6 +708,10 @@ CONTAINS
        ENDIF
     ENDDO
 #endif
+
+         ! DEBUGGING (ewl)
+         PRINT *, "Convert back to kg/kg at end of DO_TEND"
+         ! END DEBUGGING
 
     ! Convert State_Chm%TRACERS back: kg/m2 --> v/v (ewl, 9/30/15)
     CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,   &

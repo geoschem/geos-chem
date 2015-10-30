@@ -1056,6 +1056,7 @@ CONTAINS
     INTEGER            :: I, J, L, N
     CHARACTER(LEN=255) :: MSG, LOC
     REAL(fp)           :: SPHU_kgkg
+    REAL(fp)           :: temp
 
     !====================================================================
     ! Convert_KgKgDry_to_Kgm2 begins here!
@@ -1103,17 +1104,41 @@ CONTAINS
        ! Convert specific humidity from [g/kg] to [kg/kg]
        SPHU_kgkg = State_Met%SPHU(I,J,L) * 1.0e-3_fp 
 
+! DEBUGGING (ewl)
+       IF ( I == 20 .and. J == 20 .and. L == 2 .and. N == 3 ) THEN
+          ! Equivalent area-dependent conversion
+          temp = State_Chm%TRACERS(I,J,L,N) * ( State_Met%AD(I,J,L)      &
+                                        / State_Met%AREA_M2(I,J,1) ) 
+          PRINT *,"Tracer conc in kg/kg: ", State_Chm%TRACERS(I,J,L,N)
+       ENDIF
+! END DEBUGGING
+
+
        ! Area-independent conversion results in +/-1e-5% precision diffs
        ! while equivalent area-dependent conversion below does not
-!       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)         &
-!                                    * ( ( 1.0e+0_fp - SPHU_kgkg )      &
-!                                    * ( g0_100                         &
-!                                    * State_Met%DELP(I,J,L) ) )          
+       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
+                                    * ( ( 1.0e+0_fp - SPHU_kgkg )       &
+                                    * ( g0_100                          &
+                                    * State_Met%DELP(I,J,L) ) )           
+   
 
 !       ! Equivalent area-dependent conversion
-       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
-                                    * ( State_Met%AD(I,J,L)             &
-                                        / State_Met%AREA_M2(I,J,1) ) 
+!       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
+!                                    * ( State_Met%AD(I,J,L)             &
+!                                        / State_Met%AREA_M2(I,J,1) ) 
+
+! DEBUGGING (ewl)
+       IF ( I == 20 .and. J == 20 .and. L == 2 .and. N == 3 ) THEN       
+          PRINT *, "(20,20,2,3)"
+          PRINT *, "AD: ", State_Met%AD(I,J,L)
+          PRINT *, "DELP: ", State_Met%DELP(I,J,L)
+          PRINT *, "SPHU: ", SPHU_kgkg
+          PRINT *, "kg/m2 using DELP and SPHU: ",                       &
+                     State_Chm%TRACERS(I,J,L,N)
+          PRINT *, "kg/m2 using AREA_M2 and AD: ", temp
+          PRINT *, " "
+       ENDIF
+! END DEBUGGING
 
     ENDDO
     ENDDO
@@ -1178,6 +1203,7 @@ CONTAINS
     INTEGER            :: I, J, L, N
     CHARACTER(LEN=255) :: MSG, LOC
     REAL(fp)           :: SPHU_kgkg
+    REAL(fp)           :: temp
 
     !====================================================================
     ! Convert_Kgm2_to_KgKgDry begins here!
@@ -1225,18 +1251,40 @@ CONTAINS
        ! Convert specific humidity from [g/kg] to [kg/kg]
        SPHU_kgkg = State_Met%SPHU(I,J,L) * 1.0e-3_fp 
 
+! DEBUGGING (ewl)
+       IF ( I == 20 .and. J == 20 .and. L == 2 .and. N == 3 ) THEN
+          ! Equivalent area-dependent conversion
+          temp = State_Chm%TRACERS(I,J,L,N) / ( State_Met%AD(I,J,L)      &
+                                        / State_Met%AREA_M2(I,J,1) ) 
+          PRINT *, "Tracer conc in kg/kg: ", State_Chm%TRACERS(I,J,L,N)
+       ENDIF
+! END DEBUGGING
+
        ! Area-independent conversion results in +/-1e-5% precision diffs
        ! while equivalent area-dependent conversion below does not
-!       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
-!                                    * ( 1.0e+0_fp                       &      
-!                                    / ( ( 1.0e+0_fp - SPHU_kgkg )       &
-!                                    * ( g0_100                          &
-!                                    * State_Met%DELP(I,J,L) ) ) )          
+       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
+                                    * ( 1.0e+0_fp                       &      
+                                    / ( ( 1.0e+0_fp - SPHU_kgkg )       &
+                                    * ( g0_100                          &
+                                    * State_Met%DELP(I,J,L) ) ) )          
 
        ! Equivalent area-dependent conversion
-       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
-                                  / ( State_Met%AD(I,J,L)               &
-                                      / State_Met%AREA_M2(I,J,1) )    
+!       State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)          &
+!                                  / ( State_Met%AD(I,J,L)               &
+!                                      / State_Met%AREA_M2(I,J,1) )    
+
+! DEBUGGING (ewl)
+       IF ( I == 20 .and. J == 20 .and. L == 2 .and. N == 3 ) THEN
+          PRINT *, "(20,20,2,3)"
+          PRINT *, "AD: ", State_Met%AD(I,J,L)
+          PRINT *, "DELP: ", State_Met%DELP(I,J,L)
+          PRINT *, "SPHU: ", SPHU_kgkg
+          PRINT *, "kg/kg dry using DELP and SPHU: ",                   &
+                     State_Chm%TRACERS(I,J,L,N)
+          PRINT *, "kg/kg dry using AREA_M2 and AD: ", temp
+          PRINT *, " "
+       ENDIF
+! END DEBUGGING
 
     ENDDO
     ENDDO
