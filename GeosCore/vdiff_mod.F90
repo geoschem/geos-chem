@@ -2900,10 +2900,11 @@ contains
 
        ! Update air quantities and tracer concentrations with updated
        ! specific humidity (ewl, 10/28/15)
+       ! NOTE: Prior to October 2015, air quantities were not updated
+       ! with specific humidity modified in VDIFFDR at this point in
+       ! the model
        CALL AIRQNT( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                    RC, update_mixing_ratio=.FALSE. )
-       ! EWL NOTE: Temporarily do not update mixing ratio here to 
-       ! compare to previous results.
+                    RC, update_mixing_ratio=.TRUE. )
 
     ENDIF
 
