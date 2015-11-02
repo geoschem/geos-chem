@@ -493,9 +493,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_READ_ARR( fID,   ncVar,   lon1,    lon2,  lat1,    &
-                          lat2,  lev1,    lev2,    time1, time2,   & 
-                          ncArr, VarUnit, MissVal, wgt1,  wgt2,  RC ) 
+  SUBROUTINE NC_READ_ARR( fID,    ncVar,   lon1,    lon2,  lat1,  &
+                          lat2,   lev1,    lev2,    time1, time2, & 
+                          ncArr,  VarUnit, MissVal, wgt1,  wgt2,  &
+                          ArbIdx, RC                               ) 
 !
 ! !USES:
 !
@@ -515,6 +516,7 @@ CONTAINS
     REAL*4,           INTENT(IN ), OPTIONAL :: MissVal
     REAL*4,           INTENT(IN ), OPTIONAL :: wgt1 
     REAL*4,           INTENT(IN ), OPTIONAL :: wgt2
+    INTEGER,          INTENT(IN ), OPTIONAL :: ArbIdx      ! Index of arbitrary additional dimension (-1 if none) 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -535,6 +537,7 @@ CONTAINS
 !                            optional dimensions level and time.
 !  18 Apr 2012 - C. Keller - Now also read & apply offset and scale factor
 !  27 Feb 2015 - C. Keller - Added weights.
+!  22 Sep 2015 - C. Keller - Added arbitrary dimension index.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -553,14 +556,20 @@ CONTAINS
     REAL*8                 :: corr      ! netCDF attribute value 
 
     ! Arrays for netCDF start and count values
-    INTEGER                :: l1,    l2
-    INTEGER                :: nlon,  nlat, nlev, ntime
+    INTEGER                :: I, nRead, l1, l2
+    INTEGER                :: ndims
+    INTEGER                :: nlon,  nlat, nlev, ntime, arbdim 
     INTEGER                :: nclev, nctime
+    INTEGER                :: s1, s2, s3, s4, s5
+    INTEGER                :: n1, n2, n3, n4, n5
+    INTEGER                :: nt, st, tdim, sti, nti
     INTEGER                :: st2d(2), ct2d(2)   ! For 2D arrays 
     INTEGER                :: st3d(3), ct3d(3)   ! For 3D arrays 
     INTEGER                :: st4d(4), ct4d(4)   ! For 4D arrays 
+    INTEGER                :: st5d(5), ct5d(5)   ! For 5D arrays 
 
     ! Temporary arrays
+    REAL*4, ALLOCATABLE    :: TMPARR_5D(:,:,:,:,:)
     REAL*4, ALLOCATABLE    :: TMPARR_4D(:,:,:,:)
     REAL*4, ALLOCATABLE    :: TMPARR_3D(:,:,:)
     REAL*4, ALLOCATABLE    :: TMPARR_2D(:,:)
@@ -568,7 +577,6 @@ CONTAINS
     ! Logicals
     LOGICAL                :: FlipZ
     LOGICAL                :: ReadAtt
-    LOGICAL                :: DONE 
 
     ! Missing value
     REAL*8                 :: miss8
@@ -609,11 +617,11 @@ CONTAINS
        ApplyWeights = .FALSE.
     ENDIF
 
-    ! horizontal dimensions to read 
+    ! # of horizontal dimensions to read 
     nLon = lon2 - lon1 + 1
     nLat = lat2 - lat1 + 1
 
-    ! vertical levels
+    ! # of vertical levels
     FlipZ = .FALSE. ! Flip z-axis?
     l1    = lev1    ! Lower level to be read
     l2    = lev2    ! Upper level to be read
@@ -634,6 +642,7 @@ CONTAINS
        nLev = 0
     ENDIF
 
+    ! # of time slices
     ! read all time slices time1:time2:
     IF ( time1 > 0 .AND. weight1 < 0.0 ) THEN
        ntime = time2 - time1 + 1
@@ -642,111 +651,271 @@ CONTAINS
        ntime = 0
     ENDIF
 
+    ! # of arbitrary other dimensions
+    arbdim = -1
+    IF ( PRESENT(ArbIdx) ) THEN
+       IF ( ArbIdx > 0 ) THEN
+          arbdim = ArbIdx
+       ENDIF
+    ENDIF
+
     ! Set dimensions of output array
     ! --> must have at least dimension 1
     nclev  = max(nlev ,1)
     nctime = max(ntime,1)
- 
+
+    ! set total number of dimensions to be read. This is at least 2 and 
+    ! at most 5.
+    ndims = 2
+    if ( nlev   > 0 ) ndims = ndims + 1
+    if ( ntime  > 0 ) ndims = ndims + 1
+    if ( arbdim > 0 ) ndims = ndims + 1
+
     !----------------------------------------
     ! Read array
     !----------------------------------------
 
-    ! Are we done?
-    DONE = .FALSE.
-
     ! Variable name
     v_name = TRIM(ncVar)
    
-    ! Allocate the array
+    ! Allocate the output array
     ALLOCATE ( ncArr( nLon, nLat, ncLev, ncTime ) )
     ncArr = 0.0
 
+    ! Define number of required reads and time dimension on temporary array
+    nRead = 1
+    IF ( ntime > 0 ) THEN 
+       IF ( ApplyWeights ) THEN
+          nRead = 2
+          nt    = 2
+       ELSE
+          nRead = 1
+          nt    = ntime
+       ENDIF
+    ENDIF
+
+    !----------------------------------------
+    ! Read 5D array:
+    IF ( ndims == 5 ) THEN
+
+       ! Allocate arrays
+       ALLOCATE ( TMPARR_5D( nlon, nlat, nlev, nt, 1 ) )
+
+       ! Set default start/end indeces
+       s1 = lon1
+       n1 = nlon
+       s2 = lat1
+       n2 = nlat
+       s3 = l1
+       n3 = nlev
+       s5 = arbdim
+       n5 = 1
+
+       ! Read arrays from file
+       DO I = 1, nRead
+
+          ! time index
+          IF ( .NOT. ApplyWeights ) THEN
+             s4 = time1
+             n4 = ntime
+          ELSE
+             IF ( I == 1 ) THEN
+                s4 = time1
+             ELSE
+                s4 = time2
+             ENDIF
+             n4 = 1     
+          ENDIF
+
+          st5d = (/ s1, s2, s3, s4, s5 /) 
+          ct5d = (/ n1, n2, n3, n4, n5 /)
+          CALL NcRd( TMPARR_5D, fId, TRIM(v_name), st5d, ct5d )
+       ENDDO
+
+       ! Pass to output array. Eventually apply time weights.
+       IF ( ApplyWeights ) THEN
+          ncArr(:,:,:,1) = TMPARR_5D(:,:,:,1,1) * weight1 &
+                         + TMPARR_5D(:,:,:,2,1) * weight2
+       ELSE   
+          ncArr(:,:,:,:) = TMPARR_5D(:,:,:,:,1)
+       ENDIF
+
+       ! Cleanup
+       DEALLOCATE(TMPARR_5D)
+    ENDIF
+
+    !----------------------------------------
     ! Read 4D array:
-    ! ==> multiple time slices
-    IF ( (nLev>0) .AND. (nTime>0) ) THEN
-       st4d = (/ lon1, lat1, l1,   time1 /)
-       ct4d = (/ nlon, nlat, nlev, ntime /)
-       CALL NcRd( ncArr, fId, TRIM(v_name), st4d, ct4d )
-       DONE = .TRUE.
-    ENDIF 
+    ! This can be: 
+    ! - lon,lat,lev,time
+    ! - lon,lat,lev,arb
+    ! - lon,lat,time,arb
+    IF ( ndims == 4 ) THEN
 
-    ! ==> interpolate between two time slices (level defined)
-    IF ( .NOT. DONE .AND. (nLev>0) .AND. ApplyWeights ) THEN
-       ALLOCATE ( TMPARR_4D( nLon, nLat, nLev, 2 ) )
+       ! Allocate temporary array
+       s1    = lon1
+       n1    = nlon
+       s2    = lat1
+       n2    = nlat
+       tdim  = -1
 
-       ! read first slice
-       st4d = (/ lon1, lat1, l1,   time1 /)
-       ct4d = (/ nlon, nlat, nlev, 1     /)
-       CALL NcRd( TMPARR_4D(:,:,:,1:1), fId, TRIM(v_name), st4d, ct4d )
+       ! 3rd and 4th dim
 
-       ! read second slice
-       st4d = (/ lon1, lat1, l1,   time2 /)
-       ct4d = (/ nlon, nlat, nlev, 1     /)
-       CALL NcRd( TMPARR_4D(:,:,:,2:2), fId, TRIM(v_name), st4d, ct4d )
+       ! lev is defined
+       IF ( nlev > 0 ) THEN 
+          s3   = l1
+          n3   = nlev
+          ! plus time...
+          IF ( ntime > 0 ) THEN
+             n4   = nt
+             tdim = 4
+          ! ... or plus arbitrary dim
+          ELSE
+             s4 = arbdim
+             n4 = 1
+          ENDIF
 
-       ! Pass to output array, apply weights
-       ncArr(:,:,:,1) = TMPARR_4D(:,:,:,1) * weight1 &
-                      + TMPARR_4D(:,:,:,2) * weight2
+       ! lev not defined: time + arbitrary dim
+       ELSE
+          n3 = nt
+          tdim = 3
+          s4 = arbdim
+          n4 = 1
+       ENDIF
 
+       ALLOCATE ( TMPARR_4D(n1,n2,n3,n4) )
+
+       ! Read arrays from file
+       DO I = 1, nRead
+
+          ! time index
+          IF ( .NOT. ApplyWeights ) THEN
+             sti = time1
+             nti = ntime
+          ELSE
+             IF ( I == 1 ) THEN
+                sti = time1
+             ELSE
+                sti = time2
+             ENDIF
+             nti = 1     
+          ENDIF
+
+          ! need to adjust time index: this is either 3rd or 4th dimension:
+          IF ( tdim == 3 ) THEN
+             s3 = sti
+             n3 = nti
+          ELSEIF ( tdim == 4 ) THEN
+             s4 = sti
+             n4 = nti
+          ENDIF
+
+          st4d = (/ s1, s2, s3, s4 /) 
+          ct4d = (/ n1, n2, n3, n4 /)
+
+          ! Read data from disk
+          CALL NcRd( TMPARR_4D, fId, TRIM(v_name), st4d, ct4d )
+
+       ENDDO
+
+       ! Pass to output array. Eventually apply time weights.
+       IF ( ApplyWeights ) THEN
+          IF ( tdim == 3 ) THEN 
+             ncArr(:,:,:,1) = TMPARR_4D(:,:,1,:) * weight1 &
+                            + TMPARR_4D(:,:,2,:) * weight2
+          ELSEIF ( tdim == 4 ) THEN
+             ncArr(:,:,:,1) = TMPARR_4D(:,:,:,1) * weight1 &
+                            + TMPARR_4D(:,:,:,2) * weight2
+          ENDIF
+       ELSE
+          ncArr(:,:,:,:) = TMPARR_4D(:,:,:,:)
+       ENDIF
+
+       ! Cleanup
        DEALLOCATE(TMPARR_4D)
-       DONE = .TRUE.
     ENDIF
-    
 
+    !----------------------------------------
     ! Read 3D array:
-    ! ==> level defined but not time:
-    IF ( .NOT. DONE .AND. nLev>0 ) THEN
-       ALLOCATE ( TMPARR_3D( nLon, nLat, nLev ) )
-       st3d = (/ lon1, lat1, l1   /)
-       ct3d = (/ nlon, nlat, nlev /)
-       CALL NcRd( TMPARR_3D, fId, TRIM(v_name), st3d, ct3d )
-       ncArr(:,:,:,1) = TMPARR_3D(:,:,:)
+    ! This can be: 
+    ! - lon,lat,lev
+    ! - lon,lat,time
+    ! - lon,lat,arb
+    IF ( ndims == 3 ) THEN
+
+       ! Allocate temporary array
+       s1    = lon1
+       n1    = nlon
+       s2    = lat1
+       n2    = nlat
+       tdim  = -1
+
+       ! 3rd dim:
+       ! - lev is defined:
+       IF ( nlev > 0 ) THEN 
+          s3   = l1
+          n3   = nlev
+       ! - time is defined: 
+       ELSEIF ( ntime > 0 ) THEN
+          n3   = nt
+          tdim = 3
+       ! - arbitrary dimension is defined:
+       ELSEIF ( arbdim > 0 ) THEN
+          s3   = arbdim
+          n3   = 1
+       ENDIF
+
+       ALLOCATE ( TMPARR_3D(n1,n2,n3) )
+
+       ! Read arrays from file
+       DO I = 1, nRead
+
+          ! time index
+          IF ( tdim  == 3 ) THEN
+             IF ( .NOT. ApplyWeights ) THEN
+                s3 = time1
+                n3 = ntime
+             ELSE
+                IF ( I == 1 ) THEN
+                   s3 = time1
+                ELSE
+                   s3 = time2
+                ENDIF
+                n3 = 1     
+             ENDIF
+          ENDIF
+
+          st3d = (/ s1, s2, s3 /) 
+          ct3d = (/ n1, n2, n3 /)
+          CALL NcRd( TMPARR_3D, fId, TRIM(v_name), st3d, ct3d )
+
+       ENDDO
+
+       ! Pass to output array. Eventually apply time weights.
+       IF ( ApplyWeights ) THEN
+          ncArr(:,:,1,1) = TMPARR_3D(:,:,1) * weight1 &
+                         + TMPARR_3D(:,:,2) * weight2
+       ELSE
+          IF ( tdim == 3 ) THEN
+             ncArr(:,:,1,:) = TMPARR_3D(:,:,:)
+          ELSE
+             ncArr(:,:,:,1) = TMPARR_3D(:,:,:)
+          ENDIF
+       ENDIF
+
+       ! Cleanup
        DEALLOCATE(TMPARR_3D)
-       DONE = .TRUE.
     ENDIF
 
-    ! ==> time defined but not level:
-    IF ( .NOT. DONE .AND. nTime>0 ) THEN
-       ALLOCATE ( TMPARR_3D( nLon, nLat, nTime ) ) 
-       st3d   = (/ lon1, lat1, time1 /)
-       ct3d   = (/ nlon, nlat, ntime /)
-       CALL NcRd( TMPARR_3D, fId, TRIM(v_name), st3d, ct3d )
-       ncArr(:,:,1,:) = TMPARR_3D(:,:,:)
-       DEALLOCATE(TMPARR_3D)
-       DONE = .TRUE.
-    ENDIF
-
-    ! ==> interpolate between two time slices (no levels) 
-    IF ( .NOT. DONE .AND. ApplyWeights ) THEN
-       ALLOCATE ( TMPARR_3D( nLon, nLat, 2 ) )
-
-       ! read first slice
-       st3d = (/ lon1, lat1, time1 /)
-       ct3d = (/ nlon, nlat, 1     /)
-       CALL NcRd( TMPARR_3D(:,:,1:1), fId, TRIM(v_name), st3d, ct3d )
-
-       ! read second slice
-       st3d = (/ lon1, lat1, time2 /)
-       ct3d = (/ nlon, nlat, 1     /)
-       CALL NcRd( TMPARR_3D(:,:,2:2), fId, TRIM(v_name), st3d, ct3d )
-
-       ! Pass to output array, apply weights
-       ncArr(:,:,1,1) = TMPARR_3D(:,:,1) * weight1 &
-                      + TMPARR_3D(:,:,2) * weight2
-
-       DEALLOCATE(TMPARR_3D)
-       DONE = .TRUE.
-    ENDIF
-
-    ! Otherwise, read a 2D array (lon and lat only):
-    IF ( .NOT. DONE ) THEN 
+    !----------------------------------------
+    ! Read a 2D array (lon and lat only):
+    IF ( ndims == 2 ) THEN 
        ALLOCATE ( TMPARR_2D( nLon, nLat ) )
        st2d   = (/ lon1, lat1 /)
        ct2d   = (/ nlon, nlat /)
        CALL NcRd( TMPARR_2D, fId, TRIM(v_name), st2d, ct2d )
        ncArr(:,:,1,1) = TMPARR_2D(:,:)
        DEALLOCATE(TMPARR_2D)
-       DONE = .TRUE.
     ENDIF
 
     ! ------------------------------------------

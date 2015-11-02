@@ -1286,6 +1286,7 @@
      &           ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
 #else 
+
             ! ... Standard GEOS-Chem: Call INIT_WETSCAV if   ...
             ! ... convection or wet scavenging or chemistry are turned on ...
             IF ( LCONV .or. LWETD .or. LCHEM ) THEN
@@ -1337,7 +1338,7 @@
 
             ! Increment emission counter
             CALL SET_CT_EMIS( INCREMENT=.TRUE. )
-
+     
             !===========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================
@@ -1434,6 +1435,7 @@
             !===========================================================
             !        ***** C L O U D   C O N V E C T I O N *****
             !===========================================================
+
             IF ( LCONV ) THEN
             
                ! Call the appropriate convection routine
@@ -1686,6 +1688,12 @@
          ENDIF
 #endif
 
+         ! Eventually write dobson columns into diagnostics array
+#if defined(DEVEL)
+         CALL CalcDobsonColumn ( am_I_Root, Input_Opt,
+     &                           State_Met, State_Chm, RC )
+#endif
+
          !==============================================================
          !   ***** I N C R E M E N T   E L A P S E D   T I M E *****
          !============================================================== 
@@ -1819,7 +1827,7 @@
          !   IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a ND52' )
          !ENDIF
 
-!#if dfined( DEVEL )
+!#if defined( DEVEL )
 !         ! Write diagnostic data to the GEOS-Chem diagnostics netCDF file.
 !         ! Each diagnostic has a specified averaging period specified 
 !         ! in Input_Opt. (ckeller, bmy, 1/15/15)

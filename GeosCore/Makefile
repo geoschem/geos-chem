@@ -489,6 +489,7 @@ convection_mod.o            : convection_mod.F                               \
                               diag_mod.o              depo_mercury_mod.o     \
                               fvdas_convect_mod.o     wetscav_mod.o          \
                               gcap_convect_mod.o      mercury_mod.o          \
+                              tendencies_mod.o                               \
                               tracer_mod.o            tracerid_mod.o
 
 dao_mod.o                   : dao_mod.F                              
@@ -507,6 +508,7 @@ diag04_mod.o                : diag04_mod.F
 diag1.o                     : diag1.F                                        \
                               chemgrid_mod.o          dao_mod.o              \
                               diag03_mod.o            diag_mod.o             \
+                              diagnostics_mod.o                              \
                               tracer_mod.o            tracerid_mod.o
 
 diag3.o                     : diag3.F                                        \
@@ -556,8 +558,10 @@ diag63_mod.o                : diag63_mod.F                                   \
                               tracerid_mod.o          hcoi_gc_main_mod.o
 
 diagnostics_mod.o           : diagnostics_mod.F90                            \
+                              chemgrid_mod.o                                 \
                               drydep_mod.o                                   \
                               hcoi_gc_main_mod.o                             \
+                              tendencies_mod.o                               \
                               tracer_mod.o                                   \
                               tracerid_mod.o
 
@@ -785,6 +789,7 @@ mixing_mod.o                : mixing_mod.F90                                 \
                               get_ndep_mod.o                                 \
                               pbl_mix_mod.o                                  \
                               tracerid_mod.o                                 \
+                              tendencies_mod.o                               \
                               vdiff_mod.o                                    
 
 modis_lai_mod.o             : modis_lai_mod.F90       mapping_mod.o
@@ -815,6 +820,7 @@ partition.o                 : partition.F                                    \
                               comode_mod.o            tracerid_mod.o
 
 pbl_mix_mod.o               : pbl_mix_mod.F                                  \
+                              tendencies_mod.o                               \
                               diag_mod.o              tracer_mod.o
 
 pderiv.o                    : pderiv.F
@@ -929,6 +935,8 @@ tagged_ox_mod.o             : tagged_ox_mod.F                                \
 
 tcorr.o                     : tcorr.F
 
+tendencies_mod.o            : tendencies_mod.F90
+
 toms_mod.o                  : toms_mod.F
 
 tpcore_bc_mod.o             : tpcore_bc_mod.F                                \
@@ -955,6 +963,7 @@ transport_mod.o             : transport_mod.F                                \
                               tracer_mod.o                                   \
                               tpcore_geos5_window_mod.o                      \
                               tpcore_geosfp_window_mod.o                     \
+                              tendencies_mod.o                               \
                               pjc_pfix_geos5_window_mod.o                    \
                               pjc_pfix_geosfp_window_mod.o                   \
                               dao_mod.o
@@ -974,6 +983,7 @@ vdiff_mod.o                 : vdiff_mod.F90                                  \
                               drydep_mod.o            ocean_mercury_mod.o    \
                               pbl_mix_mod.o           vdiff_pre_mod.o        \
                               tracer_mod.o            tracerid_mod.o         \
+                              tendencies_mod.o                               \
                               hcoi_gc_main_mod.o      global_ch4_mod.o       \
                               mercury_mod.o      
 
@@ -981,6 +991,7 @@ wetscav_mod.o               : wetscav_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               depo_mercury_mod.o      get_ndep_mod.o         \
                               tracerid_mod.o          tracer_mod.o           \
+                              tendencies_mod.o                               \
                               tomas_mod.o
 
 ###############################################################################

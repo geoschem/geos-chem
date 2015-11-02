@@ -38,6 +38,10 @@
 !       model time is outside of the source file range. If CycleFlag is
 !       set to 3, an error is returned if none of the file time slices
 !       matches the model time. 
+! \item MustFind: if yes, the code returns with an error if no field
+!       can be found for the given simulation time (and according to
+!       the cycle flag and time attribute settings). Only of relevance
+!       for cycle flags range and exact.
 ! \item UpdtFlag: determines the update frequency of the data. This is
 !       currently only used to distinguish containers that are updated
 !       on every time step (always) or according to the frequency 
@@ -47,6 +51,8 @@
 !       data is directly specified in the configuration file. For
 !       internal use only. 
 ! \item OrigUnit: original unit of data.
+! \item ArbDimName: name of additional (arbitrary) file dimension.
+! \item ArbDimVal : desired value of arbitrary dimension.
 ! \item IsConc: Set to true if data is concentration. Concentration 
 !       data will be added to the concentration array instead of the
 !       emission array.
@@ -112,7 +118,8 @@ MODULE HCO_FileData_Mod
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  21 Aug 2014 - C. Keller   - Added concentration
-!  23 Dec 2-14 - C. Keller   - Added argument IsInList
+!  23 Dec 2014 - C. Keller   - Added argument IsInList
+!  06 Oct 2015 - C. Keller   - Added argument MustFind 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -130,12 +137,15 @@ MODULE HCO_FileData_Mod
      INTEGER                     :: ncDys(2)  ! day range
      INTEGER                     :: ncHrs(2)  ! hour range
      INTEGER                     :: CycleFlag ! cycle flag
+     LOGICAL                     :: MustFind  ! file must be found
      INTEGER                     :: UpdtFlag  ! update flag 
      LOGICAL                     :: ncRead    ! read from source?
      TYPE(Arr3D_SP),     POINTER :: V3(:)     ! vector of 3D fields
      TYPE(Arr2D_SP),     POINTER :: V2(:)     ! vector of 2D fields
      TYPE(TimeIdx),      POINTER :: tIDx      ! for time slice indexing 
      CHARACTER(LEN= 31)          :: OrigUnit  ! original data units 
+     CHARACTER(LEN= 63)          :: ArbDimName! name of additional dimension 
+     CHARACTER(LEN= 63)          :: ArbDimVal ! desired value of additional dimension 
      INTEGER                     :: Cover     ! data coverage
      INTEGER                     :: SpaceDim  ! space dimension: 1, 2 or 3 
      INTEGER                     :: Levels    ! vertical level handling 
@@ -221,6 +231,7 @@ CONTAINS
     NewFDta%ncHrs(:)     = -999
     NewFDta%CycleFlag    = HCO_CFLAG_CYCLE
     NewFDta%UpdtFlag     = HCO_UFLAG_FROMFILE
+    NewFDta%MustFind     = .FALSE.
     NewFDta%ncRead       = .TRUE.
     NewFDta%Cover        = -999 
     NewFDta%DeltaT       = 0
@@ -229,6 +240,8 @@ CONTAINS
     NewFDta%Levels       = 0
     NewFDta%Lev2D        = 1
     NewFDta%OrigUnit     = ''
+    NewFDta%ArbDimName   = 'none'
+    NewFDta%ArbDimVal    = ''
     NewFDta%IsLocTime    = .FALSE.
     NewFDta%IsConc       = .FALSE.
     NewFDta%DoShare      = .FALSE.

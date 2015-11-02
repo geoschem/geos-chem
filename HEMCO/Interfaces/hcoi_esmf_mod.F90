@@ -95,7 +95,8 @@ CONTAINS
       INTEGER,             INTENT(  OUT)   :: RC
 !
 ! !REVISION HISTORY:
-!  29 Aug 2013 - C. Keller - Initial version
+!  29 Aug 2013 - C. Keller - Initial version.
+!  10 Sep 2015 - C. Keller - Added RESTART=MAPL_RestartSkip.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -168,6 +169,7 @@ CONTAINS
                UNITS      = TRIM(CurrCont%Dct%Dta%OrigUnit), &
                DIMS       = MAPL_DimsHorzOnly,               &
                VLOCATION  = MAPL_VLocationNone,              &
+               RESTART    = MAPL_RestartSkip,                &
                RC         = STATUS                            )
 
             ! Error trap
@@ -185,6 +187,7 @@ CONTAINS
                UNITS      = TRIM(CurrCont%Dct%Dta%OrigUnit), &
                DIMS       = MAPL_DimsHorzVert,               &
                VLOCATION  = MAPL_VLocationCenter,            &
+               RESTART    = MAPL_RestartSkip,                &
                RC         = STATUS                            )
 
             ! Error trap

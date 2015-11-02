@@ -416,7 +416,7 @@
       !=================================================================
       ! Open and read data from the netCDF file
       !=================================================================
-    
+
       ! Create filename
       FILENAME = TRIM( Input_Opt%CHEM_INPUTS_DIR )      // 
      &           'ann_mean_trop_200202/ann_mean_trop.'  //

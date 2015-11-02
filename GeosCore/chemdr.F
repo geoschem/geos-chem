@@ -383,7 +383,11 @@
 
       ! For the first chemistry timestep only, save JLOP into 
       ! JLOP_PREVIOUS, because there is no previous timestep.
-      IF ( FIRSTCHEM ) THEN
+      ! Now explicitly check if JLOP_PREVIOUS is all zero and only set it 
+      ! to JLOP in these cases. This allows us to use archived JLOP_PREVIOUS
+      ! arrays for warm restart simulations (ckeller, 6/26/15).
+      !IF ( FIRSTCHEM ) THEN
+      IF ( SUM(JLOP_PREVIOUS) == 0 ) THEN
          JLOP_PREVIOUS = JLOP
       ENDIF
 

@@ -1800,7 +1800,7 @@ CONTAINS
     ! to be used. Remapping will be restricted to this
     ! domain. This procedure allows remapping of nested
     ! domains onto larger (e.g. global) domains. 
-    ! ckeller, 2/11/15).
+    ! ckeller, (2/11/15).
     !===================================================================
     minlon = minval(lon1)
     maxlon = maxval(lon1)

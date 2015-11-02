@@ -350,6 +350,7 @@
 !   9 Mar 2015 - R. Yantosca - Bug fix: add EMIS_ALD2 to $OMP PRIVATE clause
 !  08 May 2015 - C. Keller   - Now read/write restart variables from here to
 !                              accomodate replay runs in GEOS-5.
+!  30 Sep 2015 - C. Keller   - Now add OCPI flux to BIOGENIC_OCPI diagnostics.
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -1359,6 +1360,13 @@
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXOCPI', RC )
             RETURN 
          ENDIF
+
+         ! Also archive the BIOGENIC_OCPI diagnostic (ckeller, 9/30/15)
+         DiagnName =  'BIOGENIC_OCPI'
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
+     &      cName=TRIM(DiagnName), Array2D=FLUXOCPI, RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN
+         Arr2D => NULL()
       ENDIF
 
       ! ----------------------------------------------------------------

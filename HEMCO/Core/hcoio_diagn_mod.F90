@@ -244,10 +244,11 @@ CONTAINS
     INTEGER                   :: VarCt
     INTEGER                   :: nLon, nLat, nLev, nTime 
     INTEGER                   :: Prc
-    INTEGER                   :: ResetFlag, MinResetFlag
-    LOGICAL                   :: EOI, PrevTime
+    INTEGER                   :: lymd, lhms 
+    LOGICAL                   :: EOI, DoWrite, PrevTime
  
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DIAGN_WRITEOUT (hcoio_diagn_mod.F90)' 
+
     !=================================================================
     ! HCOIO_DIAGN_WRITEOUT begins here!
     !=================================================================
@@ -259,27 +260,36 @@ CONTAINS
     ! Collection number
     PS = HcoDiagnIDDefault
     IF ( PRESENT(COL) ) PS = COL
-
-    ! Get prefix and reset frequency of this diagnostics collection
-    CALL DiagnCollection_Get( PS, Prefix=PFX, ResetFlag=ResetFlag, RC=RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Check if there is at least one diagnostics to write:
-    ! If current time stamp is not at the end of an interval - or
-    ! if there is no diagnostics container in the list with a reset
-    ! flag smaller or equal to MinResetFlag - there will be no matching
-    ! container whatsoever. Can leave right here.
-    ! EOI is the end-of-interval flag that will be used by routine
-    ! Diagn_Get. If set to true, only the containers at the end of
-    ! their averaging interval are returned.
+   
+    ! Check if it's time to write out this collection. Also set the 
+    ! end-of-interval EOI flag accordingly. This will be used lateron
+    ! when calling Diagn_Get. Since all diagnostic containers in a 
+    ! given collection have the same output frequency, this is somewhat
+    ! redundant (because we already check here if it is time to write 
+    ! out this particular collection). Keep it here for backwards 
+    ! consistency (ckeller, 8/6/2015).
     IF ( ForceWrite ) THEN
-       MinResetFlag = -1
-       EOI = .FALSE.
+       DoWrite = .TRUE.
+       EOI     = .FALSE.
     ELSE
-       MinResetFlag = HcoClock_GetMinResetFlag()
-       EOI = .TRUE.
+       DoWrite = DiagnCollection_IsTimeToWrite( PS )
+       EOI     = .TRUE.
     ENDIF
-    IF ( MinResetFlag > ResetFlag ) RETURN
+
+    ! Create current time stamps (to be used to archive time stamps) 
+    CALL HcoClock_Get(sYYYY=YYYY,sMM=MM,sDD=DD,sH=h,sM=m,sS=s,RC=RC)
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    lymd = YYYY*10000 + MM*100 + DD
+    lhms = h   *10000 + m *100 + s
+
+    ! Leave here if it's not time to write diagnostics. On the first 
+    ! time step, set lastYMD and LastHMS to current dates.
+    IF ( .NOT. DoWrite ) THEN
+       IF ( .NOT. DiagnCollection_LastTimesSet(PS) ) THEN
+          CALL DiagnCollection_Set ( COL=PS, LastYMD=lymd, LastHMS=lhms, RC=RC ) 
+       ENDIF
+       RETURN
+    ENDIF 
 
     ! Inherit precision from HEMCO 
     Prc = HP
@@ -298,7 +308,7 @@ CONTAINS
     ! Use HEMCO clock to create timestamp used in filename. Use previous
     ! time step if this option is selected.
     IF ( .NOT. PrevTime ) THEN
-       CALL HcoClock_Get(cYYYY=YYYY,cMM=MM,cDD=DD,cH=h,cM=m,cS=s,RC=RC)
+       CALL HcoClock_Get(sYYYY=YYYY,sMM=MM,sDD=DD,sH=h,sM=m,sS=s,RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
     ELSE
        CALL HcoClock_Get(pYYYY=YYYY,pMM=MM,pDD=DD,pH=h,pM=m,pS=s,RC=RC)
@@ -331,6 +341,9 @@ CONTAINS
     ! Get prefix
     IF ( PRESENT(PREFIX) ) THEN
        Pfx = PREFIX
+    ELSE
+       CALL DiagnCollection_Get( PS, PREFIX=Pfx, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
     ncFile = TRIM(Pfx)//'.'//Yrs//Mts//Dys//hrs//mns//'.nc'
 
@@ -470,14 +483,19 @@ CONTAINS
     ENDDO
 
     !-----------------------------------------------------------------
-    ! Close file
+    ! Cleanup
     !-----------------------------------------------------------------
+
+    ! Close file
     CALL NC_CLOSE ( fId )
 
-    ! Cleanup
+    ! Cleanup local variables 
     Deallocate(Arr3D,Arr4D)
     ThisDiagn => NULL()
-    
+   
+    ! Archive time stamp 
+    CALL DiagnCollection_Set ( COL=PS, LastYMD=lymd, LastHMS=lhms, RC=RC ) 
+
     ! Return 
     RC = HCO_SUCCESS
 
@@ -524,7 +542,6 @@ CONTAINS
     USE ESMF
     USE MAPL_MOD
     USE HCO_State_Mod, ONLY : HCO_State
-    USE HCO_Clock_Mod, ONLY : HcoClock_GetMinResetFlag
 
 # include "MAPL_Generic.h"
 !
@@ -555,7 +572,6 @@ CONTAINS
     TYPE(DiagnCont), POINTER  :: ThisDiagn => NULL()
     INTEGER                   :: PS, FLAG, STAT
     CHARACTER(LEN=255)        :: MSG
-    INTEGER                   :: MinResetFlag
     LOGICAL                   :: EOI, PrevTime
     REAL, POINTER             :: Ptr2D(:,:)   => NULL()
     REAL, POINTER             :: Ptr3D(:,:,:) => NULL()
@@ -581,6 +597,14 @@ CONTAINS
     ! is scheduled through MAPL History!
     EOI = .FALSE.
 
+!    ! Check if it's time to write out this collection 
+!    IF ( ForceWrite ) THEN
+!       DoWrite = .TRUE.
+!    ELSE
+!       DoWrite = DiagnCollection_IsTimeToWrite( PS ) 
+!    ENDIF
+!    IF ( .NOT. DoWrite ) RETURN
+ 
     ! Get PrevTime flag from input argument or set to default (=> TRUE)
     IF ( PRESENT(UsePrevTime) ) THEN
        PrevTime = UsePrevTime

@@ -116,6 +116,7 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTISOP
       USE TRACERID_MOD,       ONLY : IDTDST1
+      USE TENDENCIES_MOD
 #if defined (UCX )
       USE UCX_MOD,            ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
       USE UCX_MOD,            ONLY : READ_PSC_FILE
@@ -260,6 +261,9 @@
       ! SAVEd variables
       LOGICAL, SAVE :: FIRST = .TRUE.
 
+      ! Chemistry time step in seconds
+      REAL(fp)      :: DT_TEND
+
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
@@ -319,6 +323,14 @@
       IF ( .not. IT_IS_A_CH4_SIM ) THEN
          CALL OPTDEPTH( am_I_Root, Input_Opt, State_Met, RC )
       ENDIF
+
+      !=================================================================
+      ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
+      !=================================================================
+#if defined( DEVEL )
+      CALL TENDENCIES_STAGE1( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 3, .FALSE., RC )
+#endif
 
       !=================================================================
       ! If LCHEM=T then call the chemistry subroutines
@@ -628,6 +640,16 @@
       ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90).
       ! (bmy, 4/4/13) 
       !-----------------------------------------------------------------
+
+      !=================================================================
+      ! Calculate tendencies and write to diagnostics 
+      ! (ckeller,7/15/2015)
+      !=================================================================
+#if defined( DEVEL )
+      DT_TEND = GET_TS_CHEM() * 60.0_fp
+      CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 3, .FALSE., DT_TEND, RC )
+#endif
 
       ! Free pointer
       NULLIFY( STT )
