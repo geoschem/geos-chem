@@ -5550,12 +5550,6 @@
       ! Copy fields from INPUT_OPT
       LACTIVEH2O = Input_Opt%LACTIVEH2O
 
-
-         ! DEBUGGING (ewl)
-         PRINT *, "before SET_H2O_TRAC update"
-         PRINT *, "Tracer conc in kg/kg: ", State_Chm%TRACERS(20,20,2,3)
-         ! END DEBUGGING
-
       ! Check that tracer concentration units are as expected
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
          MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
@@ -5648,11 +5642,6 @@
       IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
          CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
      &                update_mixing_ratio=.TRUE. )
-
-         ! DEBUGGING (ewl)
-         PRINT *, "after SET_H2O_TRAC update"
-         PRINT *, "Tracer conc in kg/kg: ", State_Chm%TRACERS(20,20,2,3)
-         ! END DEBUGGING
       ENDIF
 
       ! Free pointer

@@ -353,10 +353,6 @@ CONTAINS
     CALL Convert_VVDry_to_KgKgDry( am_I_Root, Input_Opt,  &
                                    State_Chm, RC )
 
-         ! DEBUGGING (ewl)
-         PRINT *, "Convert to kg/m2 at start of DO_TEND"
-         ! END DEBUGGING
-
     CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,   &
                                   State_Met, State_Chm, RC )
 
@@ -708,10 +704,6 @@ CONTAINS
        ENDIF
     ENDDO
 #endif
-
-         ! DEBUGGING (ewl)
-         PRINT *, "Convert back to kg/kg at end of DO_TEND"
-         ! END DEBUGGING
 
     ! Convert State_Chm%TRACERS back: kg/m2 --> v/v (ewl, 9/30/15)
     CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,   &

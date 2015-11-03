@@ -659,13 +659,6 @@
      &             update_mixing_ratio=.FALSE. )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
 
-      ! DEBUGGING (ewl)
-      PRINT *, "Initialization"
-      PRINT *, "AD: ", State_Met%AD(20,20,2)
-      PRINT *, "DELP: ", State_Met%DELP(20,20,2)
-      PRINT *, "SPHU: ", State_Met%SPHU(20,20,2)
-      ! END DEBUGGING
-
       ! Initialize the derived type object containing
       ! mapping information for the MODIS LAI routines
       IF ( USE_OLSON_2001 ) THEN
@@ -1123,15 +1116,6 @@
          !   ***** I N T E R P O L A T E   Q U A N T I T I E S *****   
          !==============================================================
 
-         ! DEBUGGING (ewl)
-!         PRINT *, "Convert to kg/m2 before AIRQNT and SET_H2O_TRAC"
-         ! END DEBUGGING
-
-         ! Convert tracer concentrations to [kg/m2] before the air
-         ! quantity update in order to conserve tracer mass (ewl, 9/17/15)
-!         CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,            
-!     &                                     State_Met, State_Chm, RC )
-         
          ! Interpolate I-6 fields to current dynamic timestep, 
          ! based on their values at NSEC and NSEC+N_DYN
          CALL INTERP( NSECb, ELAPSED_TODAY,
@@ -1167,15 +1151,6 @@
             ! Only force strat once if using UCX
             IF (LSETH2O) LSETH2O = .FALSE.
          ENDIF
-
-         ! DEBUGGING (ewl)
-!         PRINT *, "Convert back to kg/kg after AIRQNT and SET_H2O_TRAC"
-         ! END DEBUGGING
-
-         ! Convert tracer concentrations back to mixing ratio after
-         ! the air quantity updates (ewl, 9/17/15)
-!         CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,             
-!     &                                     State_Met, State_Chm, RC )
 
          ! Compute the cosine of the solar zenith angle array
          ! State_Met%SUNCOS     = at the current time
@@ -1276,20 +1251,6 @@
 #endif
 !-----------------------------------------------------------------------------
 
-! DEBUGGING (ewl)
-          PRINT *, "Before transport"  
-          PRINT *, "(20,20,2,3)"
-          PRINT *, "AD: ", State_Met%AD(20,20,2)
-          PRINT *, "DELP: ", State_Met%DELP(20,20,2)
-          PRINT *, "SPHU: ", State_Met%SPHU(20,20,2)
-         CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,            
-     &                                     State_Met, State_Chm, RC )
-         CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,            
-     &                                     State_Met, State_Chm, RC )
-
-          PRINT *, " "
-! END DEBUGGING
-
             ! Call the appropriate version of TPCORE
             ! NOTE: Tracer concentration units are converted locally
             ! within transport to [kg/kg total air] for advection 
@@ -1306,21 +1267,6 @@
                   CALL DEBUG_MSG( '### MAIN: a DO_TRANSPORT' )
                ENDIF
             ENDIF
-
-! DEBUGGING (ewl)
-          PRINT *, "After transport"  
-          PRINT *, "(20,20,2,3)"
-          PRINT *, "AD: ", State_Met%AD(20,20,2)
-          PRINT *, "DELP: ", State_Met%DELP(20,20,2)
-          PRINT *, "SPHU: ", State_Met%SPHU(20,20,2)
-         CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,            
-     &                                     State_Met, State_Chm, RC )
-         CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,            
-     &                                     State_Met, State_Chm, RC )
-
-          PRINT *, " "
-! END DEBUGGING
-
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
@@ -1365,15 +1311,6 @@
          IF ( prtDebug ) THEN 
             CALL DEBUG_MSG( '### MAIN: a COMPUTE_PBL_HEIGHT' )
          ENDIF
-
-! DEBUGGING (ewl)
-          PRINT *, "Before emissions"  
-          PRINT *, "(20,20,2,3)"
-          PRINT *, "AD: ", State_Met%AD(20,20,2)
-          PRINT *, "DELP: ", State_Met%DELP(20,20,2)
-          PRINT *, "SPHU: ", State_Met%SPHU(20,20,2)
-          PRINT *, " "
-! END DEBUGGING
 
          !--------------------------------------------------------------
          ! Test for emission timestep
@@ -1437,16 +1374,6 @@
             RC = GEOS_Timer_End ( "Emissions" )
 
          ENDIF
-
-! DEBUGGING (ewl)
-          PRINT *, "After emissions transport / before mixing"  
-          PRINT *, "(20,20,2,3)"
-          PRINT *, "AD: ", State_Met%AD(20,20,2)
-          PRINT *, "DELP: ", State_Met%DELP(20,20,2)
-          PRINT *, "SPHU: ", State_Met%SPHU(20,20,2)
-          PRINT *, " "
-! END DEBUGGING
-
 
          !-------------------------------
          ! Test for convection timestep
@@ -1532,28 +1459,9 @@
             ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
             IF (IDTH2O.ne.0) THEN
 
-         ! DEBUGGING (ewl)
-         PRINT *, "Convert to kg/m2 before SET_H2O_TRAC"
-         ! END DEBUGGING
-
-               ! Convert tracer concentrations from mixing ratio to
-               ! kg/m2 for more tracer mass conservation. In some cases 
-               ! SET_H2O_TRAC updates State_Met%SPHU and calls AIRQNT 
-               ! (ewl, 9/17/15)
-!               CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,             
-!     &                                       State_Met, State_Chm, RC )
-
                CALL SET_H2O_TRAC( am_I_Root, (.not. LUCX), Input_Opt ,
      &                            State_Met, State_Chm, RC )
 
-         ! DEBUGGING (ewl)
-         PRINT *, "Convert back to kg/m2 after SET_H2O_TRAC"
-         ! END DEBUGGING
-
-               ! Convert tracer concentrations back to mixing ratio after
-               ! the air quantity update in SET_H2O_TRAC (ewl, 9/17/15)
-!               CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,  
-!     &                                       State_Met, State_Chm, RC )
             ENDIF
 
             ! Do GEOS-Chem chemistry
