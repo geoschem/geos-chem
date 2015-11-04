@@ -46,6 +46,9 @@
 #elif defined( GRID05x0666 )
       REAL(fpp), PARAMETER :: DISIZE = 2e+0_fpp/3e+0_fpp
       REAL(fpp), PARAMETER :: DJSIZE = 0.5e+0_fpp
+#elif defined( GRID05x0625 )
+      REAL(fpp), PARAMETER :: DISIZE = 0.625e+0_fpp
+      REAL(fpp), PARAMETER :: DJSIZE = 0.5e+0_fpp
 #elif defined( GRID025x03125)
       REAL(fpp), PARAMETER :: DISIZE = 0.3125e+0_fpp
       REAL(fpp), PARAMETER :: DJSIZE = 0.25e+0_fpp

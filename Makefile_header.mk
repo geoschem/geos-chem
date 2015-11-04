@@ -586,7 +586,7 @@ ifndef NO_GRID_NEEDED
   endif
 
   # %%%%% ERROR CHECK!  Make sure our GRID selection is valid! %%%%%
-  REGEXP             := ((\-DGRID)?4x5|2x25|1x125|05x0666|025x03125)
+  REGEXP             := ((\-DGRID)?4x5|2x25|1x125|05x0666|05x0625|025x03125)
   ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
     $(error $(ERR_GRID))
   endif
