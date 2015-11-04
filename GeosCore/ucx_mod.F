@@ -5550,12 +5550,6 @@
       ! Copy fields from INPUT_OPT
       LACTIVEH2O = Input_Opt%LACTIVEH2O
 
-
-         ! DEBUGGING (ewl)
-         PRINT *, "before SET_H2O_TRAC update"
-         PRINT *, "Tracer conc in kg/kg: ", State_Chm%TRACERS(20,20,2,3)
-         ! END DEBUGGING
-
       ! Check that tracer concentration units are as expected
       IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
          MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
@@ -5587,24 +5581,17 @@
      &                 SETSTRAT .or. ( .not. LACTIVEH2O )  )
 
          IF ( READ_SPHU ) THEN
-
-! legacy: Tracer units in [kg] (commented out by ewl, 9/17/15)
-!            STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
-!     &                          State_Met%ADMOIST(I,J,L)
-! new: [kg/kg dry] - for now, use ratio of masses
-             STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
+            
+            ! Set H2O tracer concentration [kg/kg dry] using SPHU 
+            ! (ewl, 11/4/15)
+            STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
      &                          ( State_Met%ADMOIST(I,J,L)
-     &                            / State_Met%AD(I,J,1) )
-!end new (ewl)
+     &                            / State_Met%AD(I,J,L) )
 
          ELSE
 
             ! Calculate specific humidity [g/kg total air] from 
             ! transported H2O [kg/kg dry] (ewl, 9/17/15)
-! legacy: Tracer units in [kg]
-!            SPHU = STT(I,J,L,IDTH2O) * 1.e+3_fp 
-!     &               / State_Met%ADMOIST(I,J,L) ! when STT units were [kg]
-! new: tracer units in [kg/kg dry]. For now, use ratio of masses.
             SPHU_kgkg = STT(I,J,L,IDTH2O) * State_Met%AD(I,J,L)
      &                  / State_Met%ADMOIST(I,J,L)
 
@@ -5648,11 +5635,6 @@
       IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
          CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
      &                update_mixing_ratio=.TRUE. )
-
-         ! DEBUGGING (ewl)
-         PRINT *, "after SET_H2O_TRAC update"
-         PRINT *, "Tracer conc in kg/kg: ", State_Chm%TRACERS(20,20,2,3)
-         ! END DEBUGGING
       ENDIF
 
       ! Free pointer
