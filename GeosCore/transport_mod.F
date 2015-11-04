@@ -26,16 +26,24 @@
       PUBLIC  :: CLEANUP_TRANSPORT
       PUBLIC  :: DO_TRANSPORT
       PUBLIC  :: INIT_TRANSPORT
-      PUBLIC  :: INIT_GEOS5_WINDOW_TRANSPORT
-      PUBLIC  :: INIT_GEOSFP_WINDOW_TRANSPORT
+!------------------------------------------------------------------------------
+! Prior to 11/4/15:
+!      PUBLIC  :: INIT_GEOS5_WINDOW_TRANSPORT
+!      PUBLIC  :: INIT_GEOSFP_WINDOW_TRANSPORT
+!------------------------------------------------------------------------------
+      PUBLIC  :: INIT_WINDOW_TRANSPORT
       PUBLIC  :: SET_TRANSPORT
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: GEOS4_GEOS5_GLOBAL_ADV      
       PRIVATE :: GCAP_GLOBAL_ADV             
-      PRIVATE :: DO_GEOS5_WINDOW_TRANSPORT
-      PRIVATE :: DO_GEOSFP_WINDOW_TRANSPORT      
+!------------------------------------------------------------------------------
+! Prior to 11/4/15:
+!      PRIVATE :: DO_GEOS5_WINDOW_TRANSPORT
+!      PRIVATE :: DO_GEOSFP_WINDOW_TRANSPORT      
+!------------------------------------------------------------------------------
+      PRIVATE :: DO_WINDOW_TRANSPORT
 !
 ! !REVISION HISTORY:
 !  10 Mar 2003 - Y. Wang, R. Yantosca - Initial version
@@ -176,17 +184,27 @@
       ! First-time initialization
       IF ( FIRST ) THEN 
 
-#if   defined( GRID05x0666 )
+!------------------------------------------------------------------------------
+! Prior to 11/4/15:
+! Use single routine INIT_WINDOW_TRANSPORT for all nested grids (mps, 11/4/15)
+!if   defined( GRID05x0666 )
+!
+!     ! GEOS-5.2.0 nested simulations
+!     CALL INIT_GEOS5_WINDOW_TRANSPORT
+!    &   ( am_I_Root, Input_Opt, RC )
+!
+!elif defined( GRID025x03125 )
+!
+!     ! GEOS-FP nested grids
+!     CALL INIT_GEOSFP_WINDOW_TRANSPORT
+!    &     ( am_I_Root, Input_Opt, RC )    
+!------------------------------------------------------------------------------
+#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125 )
 
-      ! GEOS-5.2.0 nested simulations
-      CALL INIT_GEOS5_WINDOW_TRANSPORT
-     &   ( am_I_Root, Input_Opt, RC )
+      ! All nested grid simulations
+      CALL INIT_WINDOW_TRANSPORT
+     &     ( am_I_Root, Input_Opt, RC ) 
 
-#elif defined( GRID025x03125 )
-
-      ! GEOS-5.7.2 (aka "FP") nested grids
-      CALL INIT_GEOSFP_WINDOW_TRANSPORT
-     &     ( am_I_Root, Input_Opt, RC )    
 #else
 
       ! All global simulations
@@ -194,7 +212,9 @@
      &     ( am_I_Root, Input_Opt, RC )    
 
 #endif
+
          FIRST = .FALSE.
+
       ENDIF
 
       !=================================================================
@@ -203,16 +223,27 @@
       !=================================================================
       IF ( ITS_A_NESTED_GRID() ) THEN
 
-#if defined(  GRID025x03125 )
+!------------------------------------------------------------------------------
+! Prior to 11/4/15:
+! Use single routine DO_WINDOW_TRANSPORT for all nested grids (mps, 11/4/15)
+!#if defined(  GRID025x03125 )
+!
+!         ! Nested-grid simulation with GEOS-5.7-x met
+!         CALL DO_GEOSFP_WINDOW_TRANSPORT
+!     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!
+!#elif defined( GRID05x0666 )
+!
+!         ! Nested-grid simulation with GEOS-5.2.0 met
+!         CALL DO_GEOS5_WINDOW_TRANSPORT
+!     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!
+!#endif
+!------------------------------------------------------------------------------
+#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125 )
 
-         ! Nested-grid simulation with GEOS 5.7-x met
-         CALL DO_GEOSFP_WINDOW_TRANSPORT
-     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-
-#elif defined( GRID05x0666 )
-
-         ! Nested-grid simulation with GEOS-5.2.0 met
-         CALL DO_GEOS5_WINDOW_TRANSPORT
+         ! Nested-grid simulation with GEOS-5/GEOS-FP/MERRA2 met
+         CALL DO_WINDOW_TRANSPORT
      &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
 #endif
@@ -693,258 +724,264 @@
       
       END SUBROUTINE GCAP_GLOBAL_ADV
 !EOC
+!==============================================================================
+! Prior to 11/4/15:
+! Create a single routine DO_WINDOW_TRANSPORT that can be used for all nested
+! grid simulations (mps, 11/4/15)
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: do_geos5_window_transport
+!!
+!! !DESCRIPTION: Subroutine DO\_GEOS5\_WINDOW\_TRANSPORT is the driver program 
+!!  for the proper TPCORE program for the GEOS-5 nested-grid simulations. 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT( am_I_Root, Input_Opt,
+!     &                                      State_Met, State_Chm, RC )
+!!
+!! !USES:
+!!
+!      ! References to F90 modules
+!      USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
+!      USE ERROR_MOD,                 ONLY : IT_IS_NAN,     DEBUG_MSG
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod,        ONLY : OptInput
+!      USE GIGC_State_Chm_Mod,        ONLY : ChmState
+!      USE GIGC_State_Met_Mod,        ONLY : MetState
+!      USE GRID_MOD,                  ONLY : GET_XOFFSET,   GET_YOFFSET 
+!      USE PJC_PFIX_GEOS5_WINDOW_MOD, ONLY : DO_PJC_PFIX_GEOS5_WINDOW
+!      USE PRESSURE_MOD,              ONLY : SET_FLOATING_PRESSURE
+!      USE DAO_MOD,                   ONLY : AIRQNT
+!      USE TIME_MOD,                  ONLY : GET_TS_DYN
+!      USE TPCORE_BC_MOD,             ONLY : I0_W, J0_W, I1_W, J1_W
+!      USE TPCORE_BC_MOD,             ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
+!      USE TPCORE_BC_MOD,             ONLY : DO_WINDOW_TPCORE_BC
+!      USE TPCORE_GEOS5_WINDOW_MOD,   ONLY : TPCORE_GEOS5_WINDOW
+!      USE UNITCONV_MOD
+!#if   defined( APM )
+!      USE TRACER_MOD,                ONLY : N_APMTRA
+!#endif
+!
+!      USE CMN_SIZE_MOD                    ! Size parameters
+!      USE CMN_DIAG_MOD                    ! NDxx flags
+!      USE CMN_GCTM_MOD                    ! Physical constants
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!! 
+!! !REVISION HISTORY: 
+!!  10 Mar 2003 - R. Yantosca - Initial version
+!
+!!  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
+!!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!!  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!!  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
+!!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!!                              derived type object
+!!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!!  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
+!!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!!  26 Mar 2015 - E. Lundgren - Pass State_Met to get_air_mass for dry mass calc
+!!  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
+!!  15 Jun 2015 - E. Lundgren - Tracer units in advection are now kg/kg total air
+!!                              (previously v/v)
+!!  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
+!!                              concentration prior to advection
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER            :: I0,J0
+!      INTEGER            :: I, J, L, L2, N, N_DYN, N_TOT_TRC
+!      REAL(fp)           :: D_DYN
+!      REAL(fp)           :: P_TP1(IIPAR,JJPAR)
+!      REAL(fp)           :: P_TP2(IIPAR,JJPAR)
+!      REAL(fp)           :: P_TEMP(IIPAR,JJPAR)
+!      REAL(fp),  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR)
+!      REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR)
+!
+!      ! Pointers
+!      REAL(fp),  POINTER :: p_UWND   (:,:,:  )
+!      REAL(fp),  POINTER :: p_VWND   (:,:,:  )
+!      REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
+!      REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
+!      REAL(fp),  POINTER :: p_STT    (:,:,:,:)
+!
+!      ! For fields from Input_Opt
+!      LOGICAL            :: LFILL
+!      LOGICAL            :: LPRT
+!      LOGICAL            :: LWINDO
+!      INTEGER            :: N_TRACERS
+!
+!      !=================================================================
+!      ! DO_GEOS5_WINDOW_TRANSPORT begins here!
+!      !=================================================================
+!
+!      ! Assume success
+!      RC        =  GIGC_SUCCESS
+!
+!      ! Copy values from Input_Opt
+!      LFILL     = Input_Opt%LFILL
+!      LPRT      = Input_Opt%LPRT
+!      LWINDO    = Input_Opt%LWINDO
+!      N_TRACERS = Input_Opt%N_TRACERS
+!
+!      ! Pick the proper # of tracers
+!#if   defined( APM )
+!      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
+!#else
+!      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
+!#endif
+!
+!      ! Get nested-grid lon/lat offsets [# boxes]
+!      I0    = GET_XOFFSET( GLOBAL=.TRUE. )
+!      J0    = GET_YOFFSET( GLOBAL=.TRUE. )
+!
+!      ! Dynamic timestep [s]
+!      N_DYN = GET_TS_DYN() * 60
+!      D_DYN = DBLE( N_DYN )
+!
+!      !=================================================================
+!      ! Prepare variables for calls to PJC pressure-fixer and TPCORE
+!      !
+!      ! For GEOS-4 and GEOS-5 (hybrid grids), the pressure at the
+!      ! bottom edge of grid box (I,J,L) is given by:
+!      !
+!      !    P(I,J,L) = Ap(L) + [ Bp(L) * Psurface(I,J) ]
+!      !
+!      ! where Psurface is the true surface pressure (i.e. not PS-PTOP).
+!      ! and Ap(L), Bp(L) define the vertical grid (see pressure_mod.f)
+!      !=================================================================
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!         ! True surface pressure at midpoint of dynamic timestep [hPa]
+!         P_TP1(I,J) = State_Met%PEDGE(I,J,1)
+!
+!         ! True surface pressure at end of dynamic timestep [hPa]
+!         P_TP2(I,J) = State_Met%PSC2(I,J)
+!  
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!      !=================================================================
+!      ! Call the PJC/LLNL pressure fixer to get the adjusted air
+!      ! masses XMASS and YMASS.  XMASS and YMASS need to be passed to
+!      ! TPCORE_FVDAS in order to ensure mass conservation.
+!      !=================================================================
+!      XMASS = 0e+0_fp !(dan)
+!      YMASS = 0e+0_fp
+!
+!      ! NOTE: P_TP1 and P_TP2 are the true surface pressures!
+!      CALL DO_PJC_PFIX_GEOS5_WINDOW( D_DYN,
+!     &                               P_TP1,        P_TP2,
+!     &                               State_Met%U,  State_Met%V,
+!     &                               XMASS,        YMASS )
+!
+!      IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a GET_TRA_MASS' )
+!
+!      ! Impose TPCORE boundary conditions @ edges of nested grid
+!      CALL DO_WINDOW_TPCORE_BC
+!     &   ( am_I_Root, Input_Opt, State_Chm, RC )
+!
+!      IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a DO_WIN_TP_BC' )
+!
+!      ! Flip array indices in the vertical using pointer storage
+!      p_UWND  => State_Met%U        (:,:,LLPAR:1:-1  )
+!      p_VWND  => State_Met%V        (:,:,LLPAR:1:-1  )
+!      p_STT   => State_Chm%Tracers  (:,:,LLPAR:1:-1,:)
+!      p_XMASS => XMASS              (:,:,LLPAR:1:-1  )
+!      p_YMASS => YMASS              (:,:,LLPAR:1:-1  )
+!
+!      IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a array flip' )
+!
+!      ! Convert tracer concentration from mol/mol dry air to 
+!      ! kg/kg moist air before advection (ewl, 6/15/15)
+!      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
+!     &                                Input_Opt, State_Chm, RC)
+!      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
+!     &                                   State_Met, State_Chm, RC )
+!
+!      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
+!      ! are incremented upside-down (level 1 = top of the atmosphere).
+!      ! The levels order is reversed only when written out in diag3.f
+!      ! (ccc, 3/8/10)
+!      ! Do the advection
+!      CALL TPCORE_GEOS5_WINDOW( D_DYN,    Re,        IIPAR,    JJPAR,
+!     &                          LLPAR,    JFIRST,    JLAST,    NG,
+!     &                          MG,       N_TOT_TRC, Ap,       Bp,
+!     &                          p_UWND,   p_VWND,    P_TP1,    P_TP2,
+!     &                          P_TEMP,   p_STT,     IORD,     JORD,
+!     &                          KORD,     N_ADJ,     p_XMASS,  p_YMASS,
+!     &                          MASSFLEW, MASSFLNS,  MASSFLUP, A_M2,
+!     &                          ND24,      ND25,     ND26 )
+!
+!      ! Convert tracer concentration from kg/kg wet air to 
+!      ! mol/mol dry air after advection (ewl, 6/15/15)
+!      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
+!     &                                    State_Met, State_Chm, RC ) 
+!      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
+!     &                                Input_Opt, State_Chm, RC)
+!
+!      ! Free pointer memory
+!      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS ) 
+!
+!      !=================================================================
+!      ! Reset surface pressure and ensure mass conservation
+!      !=================================================================
+!
+!      ! Reset the floating surface pressure with P_TP2, the "true"
+!      ! surface pressure at the end of the dynamic timestep.
+!      CALL SET_FLOATING_PRESSURE( P_TP2 )
+!
+!      ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
+!      CALL AIRQNT( am_I_Root, State_Met, RC )
+!
+!      !### Debug
+!      IF ( LPRT ) CALL DEBUG_MSG( '### G5_NESTED_ADV: a TPCORE' )
+!
+!      END SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT
+!!EOC
+!==============================================================================
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: do_geos5_window_transport
+! !IROUTINE: do_window_transport
 !
-! !DESCRIPTION: Subroutine DO\_GEOS5\_WINDOW\_TRANSPORT is the driver program 
-!  for the proper TPCORE program for the GEOS-5 nested-grid simulations. 
+! !DESCRIPTION: Subroutine DO\_WINDOW\_TRANSPORT is the driver program 
+!  for the proper TPCORE program for the GEOS-5/GEOS-FP/MERRA2 nested-grid
+!  simulations. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT( am_I_Root, Input_Opt,
-     &                                      State_Met, State_Chm, RC )
-!
-! !USES:
-!
-      ! References to F90 modules
-      USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
-      USE ERROR_MOD,                 ONLY : IT_IS_NAN,     DEBUG_MSG
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,        ONLY : OptInput
-      USE GIGC_State_Chm_Mod,        ONLY : ChmState
-      USE GIGC_State_Met_Mod,        ONLY : MetState
-      USE GRID_MOD,                  ONLY : GET_XOFFSET,   GET_YOFFSET 
-      USE PJC_PFIX_GEOS5_WINDOW_MOD, ONLY : DO_PJC_PFIX_GEOS5_WINDOW
-      USE PRESSURE_MOD,              ONLY : SET_FLOATING_PRESSURE
-      USE DAO_MOD,                   ONLY : AIRQNT
-      USE TIME_MOD,                  ONLY : GET_TS_DYN
-      USE TPCORE_BC_MOD,             ONLY : I0_W, J0_W, I1_W, J1_W
-      USE TPCORE_BC_MOD,             ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
-      USE TPCORE_BC_MOD,             ONLY : DO_WINDOW_TPCORE_BC
-      USE TPCORE_GEOS5_WINDOW_MOD,   ONLY : TPCORE_GEOS5_WINDOW
-      USE UNITCONV_MOD
-#if   defined( APM )
-      USE TRACER_MOD,                ONLY : N_APMTRA
-#endif
-
-      USE CMN_SIZE_MOD                    ! Size parameters
-      USE CMN_DIAG_MOD                    ! NDxx flags
-      USE CMN_GCTM_MOD                    ! Physical constants
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
-!  10 Mar 2003 - R. Yantosca - Initial version
-
-!  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
-!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
-!  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
-!  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
-!  26 Mar 2015 - E. Lundgren - Pass State_Met to get_air_mass for dry mass calc
-!  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
-!  15 Jun 2015 - E. Lundgren - Tracer units in advection are now kg/kg total air
-!                              (previously v/v)
-!  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
-!                              concentration prior to advection
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER            :: I0,J0
-      INTEGER            :: I, J, L, L2, N, N_DYN, N_TOT_TRC
-      REAL(fp)           :: D_DYN
-      REAL(fp)           :: P_TP1(IIPAR,JJPAR)
-      REAL(fp)           :: P_TP2(IIPAR,JJPAR)
-      REAL(fp)           :: P_TEMP(IIPAR,JJPAR)
-      REAL(fp),  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR)
-      REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR)
-
-      ! Pointers
-      REAL(fp),  POINTER :: p_UWND   (:,:,:  )
-      REAL(fp),  POINTER :: p_VWND   (:,:,:  )
-      REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
-      REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
-      REAL(fp),  POINTER :: p_STT    (:,:,:,:)
-
-      ! For fields from Input_Opt
-      LOGICAL            :: LFILL
-      LOGICAL            :: LPRT
-      LOGICAL            :: LWINDO
-      INTEGER            :: N_TRACERS
-
-      !=================================================================
-      ! DO_GEOS5_WINDOW_TRANSPORT begins here!
-      !=================================================================
-
-      ! Assume success
-      RC        =  GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      LFILL     = Input_Opt%LFILL
-      LPRT      = Input_Opt%LPRT
-      LWINDO    = Input_Opt%LWINDO
-      N_TRACERS = Input_Opt%N_TRACERS
-
-      ! Pick the proper # of tracers
-#if   defined( APM )
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
-#else
-      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
-#endif
-
-      ! Get nested-grid lon/lat offsets [# boxes]
-      I0    = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0    = GET_YOFFSET( GLOBAL=.TRUE. )
-
-      ! Dynamic timestep [s]
-      N_DYN = GET_TS_DYN() * 60
-      D_DYN = DBLE( N_DYN )
-
-      !=================================================================
-      ! Prepare variables for calls to PJC pressure-fixer and TPCORE
-      !
-      ! For GEOS-4 and GEOS-5 (hybrid grids), the pressure at the
-      ! bottom edge of grid box (I,J,L) is given by:
-      !
-      !    P(I,J,L) = Ap(L) + [ Bp(L) * Psurface(I,J) ]
-      !
-      ! where Psurface is the true surface pressure (i.e. not PS-PTOP).
-      ! and Ap(L), Bp(L) define the vertical grid (see pressure_mod.f)
-      !=================================================================
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! True surface pressure at midpoint of dynamic timestep [hPa]
-         P_TP1(I,J) = State_Met%PEDGE(I,J,1)
-
-         ! True surface pressure at end of dynamic timestep [hPa]
-         P_TP2(I,J) = State_Met%PSC2(I,J)
-  
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      !=================================================================
-      ! Call the PJC/LLNL pressure fixer to get the adjusted air
-      ! masses XMASS and YMASS.  XMASS and YMASS need to be passed to
-      ! TPCORE_FVDAS in order to ensure mass conservation.
-      !=================================================================
-      XMASS = 0e+0_fp !(dan)
-      YMASS = 0e+0_fp
-
-      ! NOTE: P_TP1 and P_TP2 are the true surface pressures!
-      CALL DO_PJC_PFIX_GEOS5_WINDOW( D_DYN,
-     &                               P_TP1,        P_TP2,
-     &                               State_Met%U,  State_Met%V,
-     &                               XMASS,        YMASS )
-
-      IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a GET_TRA_MASS' )
-
-      ! Impose TPCORE boundary conditions @ edges of nested grid
-      CALL DO_WINDOW_TPCORE_BC
-     &   ( am_I_Root, Input_Opt, State_Chm, RC )
-
-      IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a DO_WIN_TP_BC' )
-
-      ! Flip array indices in the vertical using pointer storage
-      p_UWND  => State_Met%U        (:,:,LLPAR:1:-1  )
-      p_VWND  => State_Met%V        (:,:,LLPAR:1:-1  )
-      p_STT   => State_Chm%Tracers  (:,:,LLPAR:1:-1,:)
-      p_XMASS => XMASS              (:,:,LLPAR:1:-1  )
-      p_YMASS => YMASS              (:,:,LLPAR:1:-1  )
-
-      IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a array flip' )
-
-      ! Convert tracer concentration from mol/mol dry air to 
-      ! kg/kg moist air before advection (ewl, 6/15/15)
-      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
-     &                                Input_Opt, State_Chm, RC)
-      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
-     &                                   State_Met, State_Chm, RC )
-
-      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
-      ! are incremented upside-down (level 1 = top of the atmosphere).
-      ! The levels order is reversed only when written out in diag3.f
-      ! (ccc, 3/8/10)
-      ! Do the advection
-      CALL TPCORE_GEOS5_WINDOW( D_DYN,    Re,        IIPAR,    JJPAR,
-     &                          LLPAR,    JFIRST,    JLAST,    NG,
-     &                          MG,       N_TOT_TRC, Ap,       Bp,
-     &                          p_UWND,   p_VWND,    P_TP1,    P_TP2,
-     &                          P_TEMP,   p_STT,     IORD,     JORD,
-     &                          KORD,     N_ADJ,     p_XMASS,  p_YMASS,
-     &                          MASSFLEW, MASSFLNS,  MASSFLUP, A_M2,
-     &                          ND24,      ND25,     ND26 )
-
-      ! Convert tracer concentration from kg/kg wet air to 
-      ! mol/mol dry air after advection (ewl, 6/15/15)
-      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
-     &                                    State_Met, State_Chm, RC ) 
-      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
-     &                                Input_Opt, State_Chm, RC)
-
-      ! Free pointer memory
-      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS ) 
-
-      !=================================================================
-      ! Reset surface pressure and ensure mass conservation
-      !=================================================================
-
-      ! Reset the floating surface pressure with P_TP2, the "true"
-      ! surface pressure at the end of the dynamic timestep.
-      CALL SET_FLOATING_PRESSURE( P_TP2 )
-
-      ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
-      CALL AIRQNT( am_I_Root, State_Met, RC )
-
-      !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### G5_NESTED_ADV: a TPCORE' )
-
-      END SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: do_geosfp_window_transport
-!
-! !DESCRIPTION: Subroutine DO\_GEOSFP\_WINDOW\_TRANSPORT is the driver program 
-!  for the proper TPCORE program for the GEOS-5 nested-grid simulations. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE DO_GEOSFP_WINDOW_TRANSPORT( am_I_Root, Input_Opt,
-     &                                       State_Met, State_Chm, RC )
+      SUBROUTINE DO_WINDOW_TRANSPORT( am_I_Root, Input_Opt,
+     &                                State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -956,14 +993,14 @@
       USE GIGC_Input_Opt_Mod,        ONLY : OptInput
       USE GIGC_State_Chm_Mod,        ONLY : ChmState
       USE GIGC_State_Met_Mod,        ONLY : MetState
-      USE PJC_PFIX_GEOSFP_WINDOW_MOD,ONLY : DO_PJC_PFIX_GEOSFP_WINDOW
+      USE PJC_PFIX_WINDOW_MOD,       ONLY : DO_PJC_PFIX_WINDOW
       USE PRESSURE_MOD,              ONLY : SET_FLOATING_PRESSURE
       USE DAO_MOD,                   ONLY : AIRQNT
       USE TIME_MOD,                  ONLY : GET_TS_DYN
       USE TPCORE_BC_MOD,             ONLY : I0_W, J0_W, I1_W, J1_W
       USE TPCORE_BC_MOD,             ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
       USE TPCORE_BC_MOD,             ONLY : DO_WINDOW_TPCORE_BC 
-      USE TPCORE_GEOSFP_WINDOW_MOD,  ONLY : TPCORE_GEOSFP_WINDOW
+      USE TPCORE_WINDOW_MOD,         ONLY : TPCORE_WINDOW
       USE UNITCONV_MOD
 #if   defined( APM )
       USE TRACER_MOD,                ONLY : N_APMTRA
@@ -989,7 +1026,6 @@
 !
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
-
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
@@ -1003,6 +1039,8 @@
 !                              (previously v/v)
 !  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
 !                              concentration prior to advection
+!  04 Nov 2015 - M. Sulprizio- Rename from DO_GEOSFP_WINDOW_TRANSPORT to
+!                              DO_WINDOW_TRANSPORT for use with all nested grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1040,7 +1078,7 @@
       INTEGER            :: N_TRACERS
 
       !=================================================================
-      ! DO_GEOSFP_FVDAS_WINDOW_TRANSPORT begins here!
+      ! DO_FVDAS_WINDOW_TRANSPORT begins here!
       !=================================================================
 
       ! Assume success
@@ -1110,12 +1148,12 @@
       XMASS = 0e+0_fp !(dan)
       YMASS = 0e+0_fp
       ! NOTE: P_TP1 and P_TP2 are the true surface pressures!  
-      CALL DO_PJC_PFIX_GEOSFP_WINDOW( D_DYN,
-     &                                P_TP1,        P_TP2,
-     &                                State_Met%U,  State_Met%V,
-     &                                XMASS,        YMASS )
+      CALL DO_PJC_PFIX_WINDOW( D_DYN,
+     &                         P_TP1,        P_TP2,
+     &                         State_Met%U,  State_Met%V,
+     &                         XMASS,        YMASS )
 
-      IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a GET_TRA_MASS' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### FVDAS_WINDOW: a PJC_PFIX_WINDOW')
 
       ! Impose TPCORE boundary conditions @ edges of nested grid
       CALL DO_WINDOW_TPCORE_BC( am_I_Root, Input_Opt, State_Chm, RC )
@@ -1178,7 +1216,7 @@
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
       ! Do the advection
-      CALL TPCORE_GEOSFP_WINDOW( 
+      CALL TPCORE_WINDOW( 
      &      D_DYN,   Re,       IM_W1,   JM_W1,   LLPAR, 
      &      JFIRST,  JLAST,    NG,      MG,      N_TOT_TRC, 
      &      Ap,      Bp,       p_UWND,  p_VWND,  p_P_TP1, 
@@ -1213,7 +1251,7 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G5_NESTED_ADV: a TPCORE' )
 
-      END SUBROUTINE DO_GEOSFP_WINDOW_TRANSPORT
+      END SUBROUTINE DO_WINDOW_TRANSPORT
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1394,166 +1432,168 @@
 
       END SUBROUTINE INIT_TRANSPORT
 !EOC
+!==============================================================================
+! Prior to 11/4/15:
+! Use single routine INIT_WINDOW_TRANSPORT for all nested grids (mps, 11/4/15)
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: init_geos5_window_transport
+!
+!!
+!! !DESCRIPTION: Subroutine INIT\_GEOS5\_WINDOW\_TRANSPORT initializes all 
+!!  module variables and arrays for the GEOS-5 nested grid simulation.  
+!!  This routine is only called if we are using the GEOS-5 nested grid 
+!!  simulation.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE INIT_GEOS5_WINDOW_TRANSPORT( am_I_Root, Input_Opt, RC )
+!!
+!! !USES:
+!!
+!      USE ERROR_MOD,               ONLY : ALLOC_ERR
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod,      ONLY : OptInput
+!      USE GRID_MOD,                ONLY : GET_AREA_M2
+!      USE GRID_MOD,                ONLY : GET_YMID_R_W
+!      USE PRESSURE_MOD,            ONLY : GET_AP, GET_BP
+!      USE TIME_MOD,                ONLY : GET_TS_DYN
+!      USE TPCORE_FVDAS_MOD,        ONLY : INIT_TPCORE
+!      USE TPCORE_BC_MOD,           ONLY : I0_W, J0_W, I1_W, J1_W
+!      USE TPCORE_BC_MOD,           ONLY : I2_W, J2_W, IM_W, JM_W
+!      USE TPCORE_BC_MOD,           ONLY : IGZD, INIT_TPCORE_BC
+!      USE TPCORE_GEOS5_WINDOW_MOD, ONLY : INIT_GEOS5_WINDOW
+!
+!      USE CMN_SIZE_MOD                ! Size parameters
+!      USE CMN_GCTM_MOD                ! Re
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!! 
+!! !REVISION HISTORY: 
+!!  06 Jun 2008 - D. Chen & R. Yantosca - Initial version
+!!  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
+!!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
+!!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!!  05 Dec 2014 - M. Yannetti - Added REAL_N_DYN
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      ! Scalars
+!      LOGICAL  :: LTRAN
+!      INTEGER  :: N_TRACERS
+!      INTEGER  :: J, K, L, N_DYN
+!      REAL(fp) :: REAL_N_DYN
+!
+!      ! Arrays
+!      REAL(fp) :: YMID_R_W(0:JJPAR+1)
+!
+!
+!      !=================================================================
+!      ! Initialize
+!      !=================================================================
+!
+!      ! Assume success
+!      RC        =  GIGC_SUCCESS
+!
+!      ! Copy values from Input_Opt
+!      LTRAN     = Input_Opt%LTRAN
+!      N_TRACERS = Input_Opt%N_TRACERS
+!
+!      !=================================================================
+!      ! Allocate arrays for TPCORE vertical coordinates
+!      ! GEOS-5 nested grid simulation only!!!
+!      !
+!      ! For fvDAS TPCORE with for GEOS-5 met fields:
+!      !
+!      !    P(I,J,L) = Ap(L) + ( Bp(L) * Psurf(I,J) )
+!      !
+!      ! Also here Ap, Bp will be flipped since both TPCORE versions
+!      ! index levels from the atm. top downwards (bdf, bmy, 10/30/07)
+!      !=================================================================
+!      ALLOCATE( Ap( LLPAR+1 ), STAT=RC )
+!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Ap' )
+!
+!      ALLOCATE( Bp( LLPAR+1 ), STAT=RC )
+!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Bp' )
+!
+!      ! Flip Ap and Bp for TPCORE
+!      DO L = 1, LLPAR+1
+!
+!         ! As L runs from the surface up,
+!         ! K runs from the top down
+!         K = ( LLPAR + 1 ) - L + 1
+!
+!         Ap(L) = GET_AP(K)
+!         Bp(L) = GET_BP(K)
+!      ENDDO
+!
+!      !=================================================================
+!      ! Allocate arrays for surface area and layer thickness
+!      !=================================================================
+!      ALLOCATE( A_M2( JJPAR ), STAT=RC )
+!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'A_M2' )
+!
+!      ! Surface area [m2]
+!      DO J = 1, JJPAR
+!         A_M2(J) = GET_AREA_M2( 1, J, 1 )
+!      ENDDO
+!
+!      !=================================================================
+!      ! Additional setup for the GEOS-4/fvDAS version of TPCORE
+!      !====================f=============================================
+!
+!      ! Initialize
+!      N_DYN = GET_TS_DYN() * 60
+!      N_ADJ = 0
+!      NG    = 0
+!      MG    = 0
+!
+!      ! YMID_R is latitude of grid box center [radians]
+!      DO J =0, JJPAR+1
+!         YMID_R_W(J) = GET_YMID_R_W( 1, J, 1 )
+!      ENDDO
+!
+!      REAL_N_DYN = N_DYN
+!
+!      ! Call INIT routine from "tpcore_geos5_fvdas_window_mod.f"
+!      CALL INIT_GEOS5_WINDOW( IIPAR, JJPAR,    LLPAR, JFIRST, 
+!     &                        JLAST, NG,       MG,    REAL_N_DYN , 
+!     &                        Re,    YMID_R_W )
+!
+!      END SUBROUTINE INIT_GEOS5_WINDOW_TRANSPORT
+!!EOC
+!==============================================================================
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_geos5_window_transport
-
+! !IROUTINE: init_window_transport
 !
-! !DESCRIPTION: Subroutine INIT\_GEOS5\_WINDOW\_TRANSPORT initializes all 
-!  module variables and arrays for the GEOS-5 nested grid simulation.  
-!  This routine is only called if we are using the GEOS-5 nested grid 
+! !DESCRIPTION: Subroutine INIT\_WINDOW\_TRANSPORT initializes all 
+!  module variables and arrays for the GEOS-5/GEOS-FP/MERRA2 nested grid
 !  simulation.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GEOS5_WINDOW_TRANSPORT( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE ERROR_MOD,               ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,      ONLY : OptInput
-      USE GRID_MOD,                ONLY : GET_AREA_M2
-      USE GRID_MOD,                ONLY : GET_YMID_R_W
-      USE PRESSURE_MOD,            ONLY : GET_AP, GET_BP
-      USE TIME_MOD,                ONLY : GET_TS_DYN
-      USE TPCORE_FVDAS_MOD,        ONLY : INIT_TPCORE
-      USE TPCORE_BC_MOD,           ONLY : I0_W, J0_W, I1_W, J1_W
-      USE TPCORE_BC_MOD,           ONLY : I2_W, J2_W, IM_W, JM_W
-      USE TPCORE_BC_MOD,           ONLY : IGZD, INIT_TPCORE_BC
-      USE TPCORE_GEOS5_WINDOW_MOD, ONLY : INIT_GEOS5_WINDOW
-
-      USE CMN_SIZE_MOD                ! Size parameters
-      USE CMN_GCTM_MOD                ! Re
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
-!  06 Jun 2008 - D. Chen & R. Yantosca - Initial version
-!  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
-!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!  05 Dec 2014 - M. Yannetti - Added REAL_N_DYN
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      LOGICAL  :: LTRAN
-      INTEGER  :: N_TRACERS
-      INTEGER  :: J, K, L, N_DYN
-      REAL(fp) :: REAL_N_DYN
-
-      ! Arrays
-      REAL(fp) :: YMID_R_W(0:JJPAR+1)
-
-
-      !=================================================================
-      ! Initialize
-      !=================================================================
-
-      ! Assume success
-      RC        =  GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      LTRAN     = Input_Opt%LTRAN
-      N_TRACERS = Input_Opt%N_TRACERS
-
-      !=================================================================
-      ! Allocate arrays for TPCORE vertical coordinates
-      ! GEOS-5 nested grid simulation only!!!
-      !
-      ! For fvDAS TPCORE with for GEOS-5 met fields:
-      !
-      !    P(I,J,L) = Ap(L) + ( Bp(L) * Psurf(I,J) )
-      !
-      ! Also here Ap, Bp will be flipped since both TPCORE versions
-      ! index levels from the atm. top downwards (bdf, bmy, 10/30/07)
-      !=================================================================
-      ALLOCATE( Ap( LLPAR+1 ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Ap' )
-
-      ALLOCATE( Bp( LLPAR+1 ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Bp' )
-
-      ! Flip Ap and Bp for TPCORE
-      DO L = 1, LLPAR+1
-
-         ! As L runs from the surface up,
-         ! K runs from the top down
-         K = ( LLPAR + 1 ) - L + 1
-
-         Ap(L) = GET_AP(K)
-         Bp(L) = GET_BP(K)
-      ENDDO
-
-      !=================================================================
-      ! Allocate arrays for surface area and layer thickness
-      !=================================================================
-      ALLOCATE( A_M2( JJPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'A_M2' )
-
-      ! Surface area [m2]
-      DO J = 1, JJPAR
-         A_M2(J) = GET_AREA_M2( 1, J, 1 )
-      ENDDO
-
-      !=================================================================
-      ! Additional setup for the GEOS-4/fvDAS version of TPCORE
-      !====================f=============================================
-
-      ! Initialize
-      N_DYN = GET_TS_DYN() * 60
-      N_ADJ = 0
-      NG    = 0
-      MG    = 0
-
-      ! YMID_R is latitude of grid box center [radians]
-      DO J =0, JJPAR+1
-         YMID_R_W(J) = GET_YMID_R_W( 1, J, 1 )
-      ENDDO
-
-      REAL_N_DYN = N_DYN
-
-      ! Call INIT routine from "tpcore_geos5_fvdas_window_mod.f"
-      CALL INIT_GEOS5_WINDOW( IIPAR, JJPAR,    LLPAR, JFIRST, 
-     &                        JLAST, NG,       MG,    REAL_N_DYN , 
-     &                        Re,    YMID_R_W )
-
-      END SUBROUTINE INIT_GEOS5_WINDOW_TRANSPORT
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_geosfp_window_transport
-
-!
-! !DESCRIPTION: Subroutine INIT\_GEOSFP\_WINDOW\_TRANSPORT initializes all 
-!  module variables and arrays for the GEOS-57 nested grid simulation.  
-!  This routine is only called if we are using the GEOS-57 nested grid 
-!  simulation.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INIT_GEOSFP_WINDOW_TRANSPORT( am_I_Root,Input_Opt,RC )
+      SUBROUTINE INIT_WINDOW_TRANSPORT( am_I_Root,Input_Opt,RC )
 !
 ! !USES:    
 !
@@ -1568,10 +1608,10 @@
       USE TPCORE_BC_MOD,           ONLY : I0_W, J0_W, I1_W, J1_W
       USE TPCORE_BC_MOD,           ONLY : I2_W, J2_W, IM_W, JM_W
       USE TPCORE_BC_MOD,           ONLY : IGZD, INIT_TPCORE_BC
-      USE TPCORE_GEOSFP_WINDOW_MOD,ONLY : INIT_GEOSFP_WINDOW
+      USE TPCORE_WINDOW_MOD,       ONLY : INIT_WINDOW
 
-      USE CMN_SIZE_MOD                ! Size parameters
-      USE CMN_GCTM_MOD                ! Re
+      USE CMN_SIZE_MOD                  ! Size parameters
+      USE CMN_GCTM_MOD                  ! Re
 
 !
 ! !INPUT PARAMETERS:
@@ -1592,6 +1632,9 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  26 Sep 2013 - R. Yantosca - Renamed to INIT_GEOSFP_WINDOW_TRANSPORT
 !  05 Dec 2014 - M. Yannetti - Added REAL_N_DYN
+!  04 Nov 2015 - M. Sulprizio- Renamed from INIT_GEOSFP_WINDOW_TRANSPORT to
+!                              INIT_WINDOW_TRANSPORT for use with all nested
+!                              grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1629,9 +1672,9 @@
 
       !=================================================================
       ! Allocate arrays for TPCORE vertical coordinates
-      ! GEOS-5 nested grid simulation only!!!
+      ! GEOS-5/GEOS-FP/MERRA2 nested grid simulation only!!!
       !
-      ! For fvDAS TPCORE with for GEOS-5 met fields:
+      ! For fvDAS TPCORE with for GEOS-5/GEOS-FP/MERRA2 met fields:
       !
       !    P(I,J,L) = Ap(L) + ( Bp(L) * Psurf(I,J) )
       !
@@ -1692,18 +1735,18 @@
 
       ! Call INIT routine from "tpcore_geosfp_fvdas_window_mod.f"
       ! subroutine "init_geosfp_windows" is in "tpcore_geosfp_window_mod.F90"
-      CALL INIT_GEOSFP_WINDOW( IM_W1, 
-     &                         JM_W1,    
-     &                         LLPAR, 
-     &                         JFIRST, 
-     &                         JLAST, 
-     &                         NG,       
-     &                         MG,    
-     &                         REAL_N_DYN,
-     &                         Re,  
-     &                         YMID_R_W( J0_W1:(J0_W1+JM_W1+1) ) )
+      CALL INIT_WINDOW( IM_W1, 
+     &                  JM_W1,    
+     &                  LLPAR, 
+     &                  JFIRST, 
+     &                  JLAST, 
+     &                  NG,       
+     &                  MG,    
+     &                  REAL_N_DYN,
+     &                  Re,  
+     &                  YMID_R_W( J0_W1:(J0_W1+JM_W1+1) ) )
 
-      END SUBROUTINE INIT_GEOSFP_WINDOW_TRANSPORT
+      END SUBROUTINE INIT_WINDOW_TRANSPORT
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

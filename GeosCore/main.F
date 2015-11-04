@@ -1576,16 +1576,8 @@
          ENDIF 
 
          ! Check STT (tracers) (yxw)   
-#if   defined( GEOS_5 ) && defined( GRID05x0666 )
-         CALL CHECK_STT_05x0666( State_Chm, 
-     &                           'end of chem section, before wetdep' )
-#endif 
-#if   defined( GEOS_FP) && defined( GRID025x03125)
-         CALL CHECK_STT_025x03125( State_Chm, 'after chemistry' )
-#endif 
-
-#if defined( USE_TIMERS )
-         CALL GEOS_Timer_End( "All chemistry", RC )
+#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125 )
+         CALL CHECK_STT_NESTED( State_Chm, 'after chemistry' )
 #endif
 
          !==============================================================
@@ -1840,14 +1832,9 @@
          ! Sometimes tracers in the stratosphere can be negative at 
          ! the nested-grid domain edges. Force them to be zero before
          ! CHECK_STT (yxw)
-#if   defined( GEOS_5 ) && defined( GRID05x0666 )
-            CALL CHECK_STT_05x0666( State_Chm, 'after dynamics step' )
+#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125)
+            CALL CHECK_STT_NESTED( State_Chm, 'after dynamics step' )
 #endif
-#if   defined( GEOS_FP) && defined( GRID025x03125)
-         CALL CHECK_STT_025x03125( State_Chm, 'after dynamics step' )
-#endif 
-
-
             CALL CHECK_STT( State_Chm, 'End of Dynamic Loop' )
          ENDIF
 

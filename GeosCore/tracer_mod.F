@@ -24,8 +24,7 @@
 ! !PUBLIC MEMBER FUNCTIONS: 
 !
       PUBLIC :: CHECK_STT
-      PUBLIC :: CHECK_STT_05x0666
-      PUBLIC :: CHECK_STT_025x03125
+      PUBLIC :: CHECK_STT_NESTED
       PUBLIC :: INIT_TRACER
 !
 ! !DEFINED PARAMETERS:
@@ -217,16 +216,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: check_stt_05x0666
+! !IROUTINE: check_stt_NESTED
 !
-! !DESCRIPTION: Subroutine CHECK\_STT\_05x0666 checks the STT tracer array for
+! !DESCRIPTION: Subroutine CHECK\_STT\_NESTED checks the STT tracer array for
 !  negative values, NaN values, or Infinity values.  If any of these are found,
 !  the STT array will be set to a specified value.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_STT_05x0666( State_Chm, LOCATION )
+      SUBROUTINE CHECK_STT_NESTED( State_Chm, LOCATION )
 !
 ! !USES:
 !
@@ -247,6 +246,8 @@
 !  05 Mar 2012 - M. Payer    - Initial version based on CHECK_STT and updates
 !                              for nested grid by Yuxuan Wang.
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!  26 Oct 2015 - M. Sulprizio- Rename from CHECK_STT_05x0666 to CHECK_STT_NESTED
+!                              for use with all nested grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -261,7 +262,7 @@
       REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
-      ! CHECK_STT_05x0666 begins here!
+      ! CHECK_STT_NESTED begins here!
       !=================================================================
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -322,122 +323,7 @@
 
  100  FORMAT( ' STT(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
 
-      END SUBROUTINE CHECK_STT_05x0666
-!EOC
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: check_stt_025x03125
-!
-! !DESCRIPTION: Subroutine CHECK\_STT\_025x03125 checks the STT tracer 
-!  array for negative values, NaN values, or Infinity values.  If any of 
-!  these are found, the STT array will be set to a specified value.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CHECK_STT_025x03125( State_Chm, LOCATION )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE ERROR_MOD,          ONLY : IT_IS_NAN
-      USE ERROR_MOD,          ONLY : IT_IS_FINITE
-!
-! !INPUT PARAMETERS: 
-!
-      CHARACTER(LEN=*), INTENT(IN)    :: LOCATION
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
-! 
-! !REVISION HISTORY:
-!  05 Mar 2012 - M. Payer    - Initial version based on CHECK_STT and updates
-!                              for nested grid by Yuxuan Wang.
-!  05 Mar 2012 - M. Payer    - Added ProTeX headers
-!  07 Jun 2013 - R. Yantosca - Now pass State_Chm object via the arg list
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER         :: I, J, L, N
-      
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
-
-      !=================================================================
-      ! CHECK_STT_05x0666 begins here!
-      !=================================================================
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
-
-      ! Loop over grid boxes
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, N_TRACERS
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         !---------------------------
-         ! Check for Negatives
-         !---------------------------
-!clb         STT (I,J,L,N)=ABS(STT(I,J,L,N))
-         IF ( STT(I,J,L,N) < 0e+0_fp ) THEN
-!$OMP CRITICAL
-            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
-            PRINT*, 'Neg STT ' // TRIM( LOCATION ) //
-     &              '. SET STT TO BE ZERO.'
-            STT(I,J,L,N) = 0e+0_fp
-!$OMP END CRITICAL
-
-         !---------------------------
-         ! Check for NaN's
-         !---------------------------
-         ELSE IF ( IT_IS_NAN( STT(I,J,L,N) ) ) THEN
-!$OMP CRITICAL
-            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
-            PRINT*, 'NaN STT ' // TRIM( LOCATION ) //
-     &              '. SET STT TO BE LOWER LEVEL.'
-            STT(I,J,L,N) = STT(I,J,L-1,N)
-!$OMP END CRITICAL
-
-         !----------------------------
-         ! Check STT's for Infinities
-         !----------------------------
-         ELSE IF ( .not. IT_IS_FINITE( STT(I,J,L,N) ) ) THEN
-!$OMP CRITICAL
-            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
-            PRINT*, 'Inf STT ' // TRIM( LOCATION ) //
-     &              '. SET STT TO BE LOWER LEVEL.'
-            STT(I,J,L,N) =  STT(I,J,L-1,N)
-!$OMP END CRITICAL
-
-         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
- 100  FORMAT( ' STT(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
-
-      ! Free pointer memory
-      NULLIFY( STT )
-
-      END SUBROUTINE CHECK_STT_025x03125
+      END SUBROUTINE CHECK_STT_NESTED
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
