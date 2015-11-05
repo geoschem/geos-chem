@@ -26,13 +26,11 @@
 ! \item PARDF\_DAVG: diffuse radiation (10 day average)
 ! \item T\_PREVDAY: temperature (1 day average) 
 ! \end{itemize}
-! These variables are automatically searched for on the first run
-! call. If not defined, the current tempeature/radiation value is 
-! used instead. Especially for the radiation (PARDR and PARDF), this 
-! may result in very different average values - which in turn may 
-! result in local differences of >50%. HEMCO emissions are identical 
-! to original GEOS-Chem emissions once we pass the first 10 days 
-! (ckeller, 10/8/2013).
+! These variables are automatically searched for on the first call of
+! the run call. If not defined, default values will be used. The values
+! of T\_DAVG, T\_PREVDAY, PARDR\_DAVG, and PARDF\_DAVG are continuously
+! updated at the end of the run sequence, e.g. they represent the 
+! instantaneous running average. 
 !\\
 !\\
 ! A similar procedure is also applied to the leaf area index variables.
@@ -104,8 +102,8 @@
 !
       PRIVATE :: GET_MEGAN_EMISSIONS  ! dbm, new MEGAN driver routine
                                       ! for all compounds (6/21/2012)
-      PRIVATE :: UPDATE_HCOT_DAY      
-      PRIVATE :: UPDATE_HCOT_15_AVG   
+!      PRIVATE :: UPDATE_T_DAY      
+!      PRIVATE :: UPDATE_T_15_AVG   
       PRIVATE :: GET_MEGAN_PARAMS
       PRIVATE :: GET_MEGAN_AEF
       PRIVATE :: GET_GAMMA_PAR_PCEEA
@@ -178,6 +176,7 @@
 !                              diagnostics for consistency with pre-HEMCO code.
 !  10 Jun 2015 - M. Sulprizio- Bug fix for SOA simulation: Now convert AEFs for
 !                              sesquiterpenes to kg/m2/s.
+!  05 Nov 2015 - C. Keller   - Reorganize restart variables to running averages.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -270,22 +269,28 @@
       ! Past light & temperature conditions (mpb,2009)
       ! (1) Temperature at 2m (TS):
 !      REAL(hp), ALLOCATABLE, TARGET :: HCOT_DAILY(:,:)       ! Daily averaged sfc temp
-      REAL(sp), POINTER             :: T_PREVDAY(:,:)        ! Pointer to previous day T.
-      REAL(sp), ALLOCATABLE, TARGET :: HCOT_DAY(:,:,:)       ! Holds 1 day of sfc temp data
-      REAL(sp), ALLOCATABLE, TARGET :: HCOT_15(:,:,:)        ! Holds 15 days of daily avg T
-      REAL(sp), ALLOCATABLE, TARGET :: HCOT_15_AVG(:,:)      ! Sfc temp avg'd over NUM_DAYS
+!      REAL(sp), POINTER             :: T_PREVDAY(:,:)        ! Pointer to previous day T.
+!      REAL(sp), ALLOCATABLE, TARGET :: T_DAY(:,:,:)       ! Holds 1 day of sfc temp data
+!      REAL(sp), ALLOCATABLE, TARGET :: T_15(:,:,:)        ! Holds 15 days of daily avg T
+!      REAL(sp), ALLOCATABLE, TARGET :: T_15_AVG(:,:)      ! Sfc temp avg'd over NUM_DAYS
+!
+!      ! (2) PAR Direct: 
+!!      REAL(hp), ALLOCATABLE, TARGET :: PARDR_DAILY(:,:)   ! Average daily PARDR
+!      REAL(sp), ALLOCATABLE, TARGET :: PARDR_DAY(:,:,:)   ! Holds 1 day of PARDR data
+!      REAL(sp), ALLOCATABLE, TARGET :: PARDR_15(:,:,:)    ! 10 days of daily avg'd PARDR
+!      REAL(sp), ALLOCATABLE, TARGET :: PARDR_15_AVG(:,:)  ! PARDR averaged over NUM_DAYS
+!
+!      ! (3) PAR Diffuse: 
+!!      REAL(hp), ALLOCATABLE, TARGET :: PARDF_DAILY(:,:)   ! Average daily PARDR
+!      REAL(sp), ALLOCATABLE, TARGET :: PARDF_DAY(:,:,:)   ! Holds 1-day of PARDR data
+!      REAL(sp), ALLOCATABLE, TARGET :: PARDF_15(:,:,:)    ! 10 days of daily avg'd PARDR 
+!      REAL(sp), ALLOCATABLE, TARGET :: PARDF_15_AVG(:,:)  ! PARDF averaged over NUM_DAYS
 
-      ! (2) PAR Direct: 
-!      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDR_DAILY(:,:)   ! Average daily PARDR
-      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDR_DAY(:,:,:)   ! Holds 1 day of PARDR data
-      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDR_15(:,:,:)    ! 10 days of daily avg'd PARDR
-      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDR_15_AVG(:,:)  ! PARDR averaged over NUM_DAYS
-
-      ! (3) PAR Diffuse: 
-!      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDF_DAILY(:,:)   ! Average daily PARDR
-      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDF_DAY(:,:,:)   ! Holds 1-day of PARDR data
-      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDF_15(:,:,:)    ! 10 days of daily avg'd PARDR 
-      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDF_15_AVG(:,:)  ! PARDF averaged over NUM_DAYS
+      ! New restart variables (ckeller, 11/05/2015)
+      REAL(sp), ALLOCATABLE         :: T_LASTXDAYS    (:,:)  ! Avg. temperature of last NUM_DAYS
+      REAL(sp), ALLOCATABLE         :: T_LAST24H      (:,:)  ! Avg. temperature of last 24 hours
+      REAL(sp), ALLOCATABLE         :: PARDF_LASTXDAYS(:,:)  ! Avg. PARDF of last NUM_DAYS
+      REAL(sp), ALLOCATABLE         :: PARDR_LASTXDAYS(:,:)  ! Avg. PARDR of last NUM_DAYS
 
       ! previous LAI values (ckeller, 10/09/2014)
       REAL(sp), ALLOCATABLE, TARGET :: LAI_PREVSTEP(:,:)     ! LAI of prev. time step
@@ -365,6 +370,11 @@
       REAL(hp)            :: X, Y 
       REAL(hp)            :: DIURFACT, DIURORVC
       REAL(hp)            :: TMP
+      REAL(hp)            :: TS_EMIS
+      REAL(hp)            :: DNEWFRAC 
+      REAL(hp)            :: DOLDFRAC
+      REAL(hp)            :: HNEWFRAC 
+      REAL(hp)            :: HOLDFRAC
       LOGICAL             :: ERR
       LOGICAL             :: FIRST, IsNewHour, IsNewDay 
 
@@ -494,6 +504,17 @@
       ! Set to 1 day since we know that LAI is updated every day.
       DAYS_BTW_M = 1
 
+      ! Calculate weights for running means of historic variables
+      ! DNEWFRAC and DOLDFRAC are the weights given to the current
+      ! and existing value, respectively, when updating running means
+      ! over the last X days. HNEWFRAC and HOLDFRAC are the same but
+      ! for the 24H means. (ckeller, 11/05/2015)
+      TS_EMIS  = HcoState%TS_EMIS
+      DNEWFRAC = TS_EMIS / ( NUM_DAYS * 24.0_hp * 3600.0_hp )
+      DOLDFRAC = 1.0_hp - DNEWFRAC
+      HNEWFRAC = TS_EMIS / ( 24.0_hp * 3600.0_hp )
+      HOLDFRAC = 1.0_hp - HNEWFRAC
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J,      EMIS_ISOP, EMIS_MBOX, EMIS_APIN, EMIS_BPIN   )
@@ -536,36 +557,36 @@
          EMIS_OSQT  = 0.0_hp
 
          !-----------------------------------------------------------------
-         ! Update internal temperature arrays 
+         ! Update historical temperature / radiation values
          !-----------------------------------------------------------------
    
-         ! Arrays holding hourly temperature bins. Update every hour. 
-         ! For now, all historical values are set to the current values
-         ! on first call. This avoids reading all met-fields of the past
-         ! 10 days, but introduces errors in the MEGAN emissions of the
-         ! first 10 days.
-         IF ( IsNewHour .AND. .NOT. FIRST ) THEN 
-            CALL UPDATE_HCOT_DAY ( HcoState, ExtState, I, J, RC )
-            IF ( RC /= HCO_SUCCESS ) THEN
-               CALL HCO_ERROR( 'UPDATE_HCOT_DAY', RC )
-               ERR = .TRUE.
-               EXIT
-            ENDIF
-         ENDIF
-   
-         ! Arrays holding the daily temperatures. Update every new day
-         ! or on first call. 
-         ! This routine relies on the arrays filled in UPDATE_HCOT_DAY, so
-         ! make sure it's called afterwards!
-         IF ( IsNewDay .AND. .NOT. FIRST ) THEN
-            CALL UPDATE_HCOT_15_AVG ( HcoState, I, J, RC )
-            IF ( RC /= HCO_SUCCESS ) THEN
-               CALL HCO_ERROR( 'UPDATE_HCOT_15_AVG', RC )
-               ERR = .TRUE.
-               EXIT
-            ENDIF
-         ENDIF
-
+!         ! Arrays holding hourly temperature bins. Update every hour. 
+!         ! For now, all historical values are set to the current values
+!         ! on first call. This avoids reading all met-fields of the past
+!         ! 10 days, but introduces errors in the MEGAN emissions of the
+!         ! first 10 days.
+!         IF ( IsNewHour .AND. .NOT. FIRST ) THEN 
+!            CALL UPDATE_T_DAY ( HcoState, ExtState, I, J, RC )
+!            IF ( RC /= HCO_SUCCESS ) THEN
+!               CALL HCO_ERROR( 'UPDATE_T_DAY', RC )
+!               ERR = .TRUE.
+!               EXIT
+!            ENDIF
+!         ENDIF
+!   
+!         ! Arrays holding the daily temperatures. Update every new day
+!         ! or on first call. 
+!         ! This routine relies on the arrays filled in UPDATE_T_DAY, so
+!         ! make sure it's called afterwards!
+!         IF ( IsNewDay .AND. .NOT. FIRST ) THEN
+!            CALL UPDATE_T_15_AVG ( HcoState, I, J, RC )
+!            IF ( RC /= HCO_SUCCESS ) THEN
+!               CALL HCO_ERROR( 'UPDATE_T_15_AVG', RC )
+!               ERR = .TRUE.
+!               EXIT
+!            ENDIF
+!         ENDIF
+ 
          !--------------------------------------------------------------
          ! Calculate VOC emissions 
          !
@@ -1210,6 +1231,35 @@
             ENDIF
          ENDIF
 
+         !-----------------------------------------------------------------
+         ! Update historical temperature / radiation values
+         !-----------------------------------------------------------------
+         ! Do this now on every time step. The arrays are simply the
+         ! the running means over the intentend time window (24 hours
+         ! and NUM_DAYS, respectively). This hugely faciliates warm
+         ! model restarts, irrespective of simulation start/end dates
+         ! and times. It also makes sure that all environmental
+         ! variables are incorporated into the time averages (e.g. if
+         ! emission time step is less than 60 minutes, all values will
+         ! be used to calculate the daily mean).  
+         ! (ckeller, 11/05/2015)
+
+         ! Updated temperature of last 24 hours
+         T_LAST24H(I,J) = ( HOLDFRAC * T_LAST24H(I,J)            )
+     &                  + ( HNEWFRAC * ExtState%T2M%Arr%Val(I,J) )
+
+         ! Updated temperature of last NUM_DAYS
+         T_LASTXDAYS(I,J) = ( DOLDFRAC * T_LASTXDAYS(I,J)          )
+     &                    + ( DNEWFRAC * ExtState%T2M%Arr%Val(I,J) )
+
+         ! Updated direct radiation of last NUM_DAYS
+         PARDR_LASTXDAYS(I,J) = ( DOLDFRAC * PARDR_LASTXDAYS(I,J)    )
+     &                      + ( DNEWFRAC * ExtState%PARDR%Arr%Val(I,J) )
+
+         ! Updated diffuse radiation of last NUM_DAYS
+         PARDF_LASTXDAYS(I,J) = ( DOLDFRAC * PARDF_LASTXDAYS(I,J)    )
+     &                      + ( DNEWFRAC * ExtState%PARDF%Arr%Val(I,J) )
+
       ENDDO !I
       ENDDO !J
 !$OMP END PARALLEL DO
@@ -1559,29 +1609,49 @@
       ! Eventually copy internal values to ESMF internal state object
       ! ----------------------------------------------------------------
 
-      ! LAI_PREVDAY
-      CALL HCO_RestartWrite( am_I_Root, HcoState, 
-     &                       'LAI_PREVDAY', LAI_PREVDAY, RC ) 
+!      ! LAI_PREVDAY
+!      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+!     &                       'LAI_PREVDAY', LAI_PREVDAY, RC ) 
+!      IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!      ! T_DAVG
+!      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+!     &                       'T_DAVG', T_15_AVG, RC ) 
+!      IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!      ! T_PREVDAY
+!      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+!     &                       'T_PREVDAY', T_15(:,:,1), RC ) 
+!      IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!      ! PARDR_DAVG
+!      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+!     &                       'PARDR_DAVG', PARDR_15_AVG, RC ) 
+!      IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!      ! PARDF_DAVG
+!      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+!     &                       'PARDF_DAVG', PARDF_15_AVG, RC ) 
+!      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! T_LAST24H 
+      CALL HCO_RestartWrite( am_I_Root,    HcoState, 
+     &                       'T_PREVDAY',  T_LAST24H, RC ) 
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! T_DAVG
-      CALL HCO_RestartWrite( am_I_Root, HcoState, 
-     &                       'T_DAVG', HCOT_15_AVG, RC ) 
+      ! T_LASTXDAYS 
+      CALL HCO_RestartWrite( am_I_Root,    HcoState, 
+     &                       'T_DAVG',     T_LASTXDAYS, RC ) 
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! T_PREVDAY
-      CALL HCO_RestartWrite( am_I_Root, HcoState, 
-     &                       'T_PREVDAY', HCOT_15(:,:,1), RC ) 
+      ! PARDR_LASTXDAYS 
+      CALL HCO_RestartWrite( am_I_Root,    HcoState, 
+     &                       'PARDR_DAVG', PARDR_LASTXDAYS, RC ) 
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! PARDR_DAVG
-      CALL HCO_RestartWrite( am_I_Root, HcoState, 
-     &                       'PARDR_DAVG', HCOPARDR_15_AVG, RC ) 
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      ! PARDF_DAVG
-      CALL HCO_RestartWrite( am_I_Root, HcoState, 
-     &                       'PARDF_DAVG', HCOPARDF_15_AVG, RC ) 
+      ! PARDF_LASTXDAYS 
+      CALL HCO_RestartWrite( am_I_Root,    HcoState, 
+     &                       'PARDF_DAVG', PARDF_LASTXDAYS, RC ) 
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       !=================================================================
@@ -1748,8 +1818,10 @@
 
             GAMMA_PAR = GET_GAMMA_PAR_PCEEA(HcoState, ExtState, I, J, 
      &                                      Q_DIR_2,  Q_DIFF_2,
-     &                                      HCOPARDR_15_AVG(I,J),
-     &                                      HCOPARDF_15_AVG(I,J)  )
+     &                                      PARDR_LASTXDAYS(I,J), 
+     &                                      PARDF_LASTXDAYS(I,J) )
+!     &                                      PARDR_15_AVG(I,J),
+!     &                                      PARDF_15_AVG(I,J)  )
 
          ELSE             
  
@@ -1768,8 +1840,10 @@
          ! GAMMA_T_LD (temperature activity factor for
          ! light-dependent fraction)
          ! --------------------------------------------------
-         GAMMA_T_LD = GET_GAMMA_T_LD( TS, HCOT_15_AVG(I,J), 
-     &        HCOT_15(I,J,1), CT1, CEO )
+         GAMMA_T_LD = GET_GAMMA_T_LD( TS, T_LASTXDAYS(I,J), 
+     &        T_LAST24H(I,J), CT1, CEO )
+!         GAMMA_T_LD = GET_GAMMA_T_LD( TS, T_15_AVG(I,J), 
+!     &        T_15(I,J,1), CT1, CEO )
 
          ! --------------------------------------------------
          ! GAMMA_LAI (leaf area index activity factor)
@@ -1780,7 +1854,8 @@
          ! GAMMA_AGE (leaf age activity factor)
          ! --------------------------------------------------
          GAMMA_AGE = GET_GAMMA_AGE( MISOLAI, PMISOLAI, 
-     &        D_BTW_M, HCOT_15_AVG(I,J), ANEW, AGRO, AMAT, AOLD )
+     &        D_BTW_M, T_LASTXDAYS(I,J), ANEW, AGRO, AMAT, AOLD )
+!     &        D_BTW_M, T_15_AVG(I,J), ANEW, AGRO, AMAT, AOLD )
 
          ! --------------------------------------------------
          ! GAMMA_SM (soil moisture activity factor)
@@ -1824,10 +1899,10 @@
 !         write(*,*) 'GAMMA_PAR      : ', GAMMA_PAR
 !         write(*,*) 'GAMMA_SM       : ', GAMMA_SM
 !         write(*,*) 'TS             : ', TS
-!         write(*,*) 'HCOT_15_AVG    : ', HCOT_15_AVG(I,J)
+!         write(*,*) 'T_15_AVG    : ', T_15_AVG(I,J)
 !         write(*,*) 'HCOT_DAILY     : ', HCOT_DAILY(I,J)
-!         write(*,*) 'HCOPARDR_15_AVG: ', HCOPARDR_15_AVG(I,J)
-!         write(*,*) 'HCOPARDF_15_AVG: ', HCOPARDF_15_AVG(I,J)
+!         write(*,*) 'PARDR_15_AVG: ', PARDR_15_AVG(I,J)
+!         write(*,*) 'PARDF_15_AVG: ', PARDF_15_AVG(I,J)
 !         write(*,*) 'ISOLAI         : ', ISOLAI
 !         write(*,*) 'MISOLAI        : ', MISOLAI
 !         write(*,*) 'PMISOLAI       : ', PMISOLAI
@@ -2209,8 +2284,8 @@
 ! !INTERFACE:
 !
       FUNCTION GET_GAMMA_PAR_PCEEA( HcoState, ExtState, I, J, Q_DIR_2, 
-     &                              Q_DIFF_2, HCOPARDR_AVG_SIM, 
-     &                              HCOPARDF_AVG_SIM )
+     &                              Q_DIFF_2, PARDR_AVG_SIM, 
+     &                              PARDF_AVG_SIM )
      &              RESULT( GAMMA_P_PCEEA )
 !
 ! !USES:
@@ -2222,8 +2297,8 @@
       TYPE(HCO_State), POINTER    :: HcoState
       TYPE(Ext_State), POINTER    :: ExtState
       INTEGER,         INTENT(IN) :: I,  J             ! Lon & lat indices 
-      REAL(sp),        INTENT(IN) :: HCOPARDR_AVG_SIM  ! Avg direct PAR [W/m2]
-      REAL(sp),        INTENT(IN) :: HCOPARDF_AVG_SIM  ! Avg diffuse PAR [W/m2]
+      REAL(sp),        INTENT(IN) :: PARDR_AVG_SIM     ! Avg direct PAR [W/m2]
+      REAL(sp),        INTENT(IN) :: PARDF_AVG_SIM     ! Avg diffuse PAR [W/m2]
       REAL(hp),        INTENT(IN) :: Q_DIR_2           ! Direct PAR [umol/m2/s]
       REAL(hp),        INTENT(IN) :: Q_DIFF_2          ! Diffuse PAR [umol/m2/s]
 !
@@ -2252,8 +2327,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(hp)   :: mmHCOPARDR_DAILY
-      REAL(hp)   :: mmHCOPARDF_DAILY
+      REAL(hp)   :: mmPARDR_DAILY
+      REAL(hp)   :: mmPARDF_DAILY
       REAL(hp)   :: PAC_DAILY, PAC_INSTANT, C_PPFD
       REAL(hp)   :: PTOA, PHI
       REAL(hp)   :: BETA,   SINbeta 
@@ -2271,11 +2346,11 @@
       PTOA     = 0.0_hp
 
       ! Convert past light conditions to micromol/m2/s 
-      mmHCOPARDR_DAILY   = HCOPARDR_AVG_SIM  * WM2_TO_UMOLM2S
-      mmHCOPARDF_DAILY   = HCOPARDF_AVG_SIM  * WM2_TO_UMOLM2S
+      mmPARDR_DAILY   = PARDR_AVG_SIM  * WM2_TO_UMOLM2S
+      mmPARDF_DAILY   = PARDF_AVG_SIM  * WM2_TO_UMOLM2S
 
       ! Work out the light at the top of the canopy.
-      PAC_DAILY    = mmHCOPARDR_DAILY + mmHCOPARDF_DAILY
+      PAC_DAILY    = mmPARDR_DAILY + mmPARDF_DAILY
       PAC_INSTANT  = Q_DIR_2       +  Q_DIFF_2
 
       ! Get latitude
@@ -3040,271 +3115,287 @@
       ! FILL_RESTART_VARS begins here!
       !=================================================================
 
-      ! On first call, see if there are restart variables available for
-      ! historic values of temperature and irradiation. If so, fill the
-      ! daily arrays with those average values to start with. If not,
-      ! simply use the current values.
-      ! The same procedure is applied to the 15 day average values. For
-      ! temperature, we also restart previous day temperature so that
-      ! we can determine a trend in the daily average temperatures
-      ! (between the long term daily averages and the most recent daily
-      ! average).
-      ! We now first call HCO_CopyFromInt_ESMF to check if the variable
-      ! is found in the (ESMF) internal state object. In an non-ESMF
-      ! environment, this call will always return FND=.FALSE.
-      ! (ckeller, 3/9/15).
+!      ! On first call, see if there are restart variables available for
+!      ! historic values of temperature and irradiation. If so, fill the
+!      ! daily arrays with those average values to start with. If not,
+!      ! simply use the current values.
+!      ! The same procedure is applied to the 15 day average values. For
+!      ! temperature, we also restart previous day temperature so that
+!      ! we can determine a trend in the daily average temperatures
+!      ! (between the long term daily averages and the most recent daily
+!      ! average).
+!      ! We now first call HCO_CopyFromInt_ESMF to check if the variable
+!      ! is found in the (ESMF) internal state object. In an non-ESMF
+!      ! environment, this call will always return FND=.FALSE.
+!      ! (ckeller, 3/9/15).
+!
+!      !-----------------------------------------------------------------
+!      ! LAI
+!      !-----------------------------------------------------------------
+!      CALL HCO_RestartGet( am_I_Root,     HcoState, 
+!     &                     'LAI_PREVDAY', LAI_PREVDAY, RC, FILLED=FND )
+!
+!      ! Default value
+!      IF ( .NOT. FND ) THEN
+!         LAI_PREVDAY = ExtState%LAI%Arr%Val
+!      ENDIF
+!
+!      !-----------------------------------------------------------------
+!      ! TEMPERATURE
+!      !-----------------------------------------------------------------
+!      CALL HCO_RestartGet( am_I_Root, HcoState, 
+!     &                    'T_DAVG',  T_15_AVG, RC, FILLED=FND )
+!
+!      ! Default value
+!      IF ( .NOT. FND ) THEN
+!         T_15_AVG = ExtState%T2M%Arr%Val
+!      ENDIF
+!
+!      ! Set all daily averages to this value. 
+!      DO I = 1, NUM_DAYS
+!         T_15(:,:,I) = T_15_AVG 
+!      ENDDO 
+!
+!      ! -------------------------------------------------------------
+!      ! Check for most recent daily average. This will overwrite the
+!      ! first slice of T_15.
+!      CALL HCO_RestartGet( am_I_Root,   HcoState, 
+!     &                    'T_PREVDAY', T_15(:,:,1), RC, FILLED=FND )
+!
+!      ! Default value
+!      IF ( .NOT. FND ) THEN
+!         T_15(:,:,1) = T_15_AVG
+!      ENDIF
+!
+!      ! Set hourly variables
+!      DO I = 1, DAY_DIM 
+!         T_DAY(:,:,I) = T_15(:,:,1)
+!      ENDDO
+!
+!      !-----------------------------------------------------------------
+!      ! DIRECT RADIATION ( PARDR )
+!      !-----------------------------------------------------------------
+!      CALL HCO_RestartGet( am_I_Root,    HcoState, 
+!     &                    'PARDR_DAVG', PARDR_15_AVG, RC, FILLED=FND)
+!
+!      ! Default value
+!      IF ( .NOT. FND ) THEN
+!         PARDR_15_AVG = ExtState%PARDR%Arr%Val
+!      ENDIF
+!
+!      ! Set daily averages
+!      DO I = 1, NUM_DAYS
+!         PARDR_15(:,:,I) = PARDR_15_AVG
+!      ENDDO 
+!
+!      ! Set hourly variables
+!      DO I = 1, DAY_DIM 
+!         PARDR_DAY(:,:,I) = PARDR_15(:,:,1) 
+!      ENDDO
+!
+!      !-----------------------------------------------------------------
+!      ! DIFFUSE RADIATION ( PARDF )
+!      !-----------------------------------------------------------------
+!      CALL HCO_RestartGet( am_I_Root,    HcoState, 
+!     &                    'PARDF_DAVG', PARDF_15_AVG, RC, FILLED=FND)
+!
+!      ! Default value
+!      IF ( .NOT. FND ) THEN
+!         PARDF_15_AVG = ExtState%PARDF%Arr%Val
+!      ENDIF
+!
+!      ! Set daily averages
+!      DO I = 1, NUM_DAYS
+!         PARDF_15(:,:,I) = PARDF_15_AVG
+!      ENDDO 
+!
+!      ! Set hourly variables
+!      DO I = 1, DAY_DIM 
+!         PARDF_DAY(:,:,I) = PARDF_15(:,:,1)
+!      ENDDO
 
-      !-----------------------------------------------------------------
-      ! LAI
-      !-----------------------------------------------------------------
-      CALL HCO_RestartGet( am_I_Root,     HcoState, 
-     &                     'LAI_PREVDAY', LAI_PREVDAY, RC, FILLED=FND )
+      ! Temperature over last 24 hours
+      CALL HCO_RestartGet( am_I_Root, HcoState, 'T_PREVDAY',
+     &                     T_LAST24H, RC,       DefVal = 288.15 )
 
-      ! Default value
-      IF ( .NOT. FND ) THEN
-         LAI_PREVDAY = ExtState%LAI%Arr%Val
-      ENDIF
+      ! Temperature over last X days 
+      CALL HCO_RestartGet( am_I_Root,   HcoState, 'T_DAVG',
+     &                     T_LASTXDAYS, RC,       DefVal = 288.15 )
 
-      !-----------------------------------------------------------------
-      ! TEMPERATURE
-      !-----------------------------------------------------------------
-      CALL HCO_RestartGet( am_I_Root, HcoState, 
-     &                    'T_DAVG',  HCOT_15_AVG, RC, FILLED=FND )
+      ! Direct radiation (PARDR) over last X days 
+      CALL HCO_RestartGet( am_I_Root,       HcoState, 'PARDR_DAVG',
+     &                     PARDR_LASTXDAYS, RC,       DefVal = 30.0 )
 
-      ! Default value
-      IF ( .NOT. FND ) THEN
-         HCOT_15_AVG = ExtState%T2M%Arr%Val
-      ENDIF
-
-      ! Set all daily averages to this value. 
-      DO I = 1, NUM_DAYS
-         HCOT_15(:,:,I) = HCOT_15_AVG 
-      ENDDO 
-
-      ! -------------------------------------------------------------
-      ! Check for most recent daily average. This will overwrite the
-      ! first slice of HCOT_15.
-      CALL HCO_RestartGet( am_I_Root,   HcoState, 
-     &                    'T_PREVDAY', HCOT_15(:,:,1), RC, FILLED=FND )
-
-      ! Default value
-      IF ( .NOT. FND ) THEN
-         HCOT_15(:,:,1) = HCOT_15_AVG
-      ENDIF
-
-      ! Set hourly variables
-      DO I = 1, DAY_DIM 
-         HCOT_DAY(:,:,I) = HCOT_15(:,:,1)
-      ENDDO
-
-      !-----------------------------------------------------------------
-      ! DIRECT RADIATION ( PARDR )
-      !-----------------------------------------------------------------
-      CALL HCO_RestartGet( am_I_Root,    HcoState, 
-     &                    'PARDR_DAVG', HCOPARDR_15_AVG, RC, FILLED=FND)
-
-      ! Default value
-      IF ( .NOT. FND ) THEN
-         HCOPARDR_15_AVG = ExtState%PARDR%Arr%Val
-      ENDIF
-
-      ! Set daily averages
-      DO I = 1, NUM_DAYS
-         HCOPARDR_15(:,:,I) = HCOPARDR_15_AVG
-      ENDDO 
-
-      ! Set hourly variables
-      DO I = 1, DAY_DIM 
-         HCOPARDR_DAY(:,:,I) = HCOPARDR_15(:,:,1) 
-      ENDDO
-
-      !-----------------------------------------------------------------
-      ! DIFFUSE RADIATION ( PARDF )
-      !-----------------------------------------------------------------
-      CALL HCO_RestartGet( am_I_Root,    HcoState, 
-     &                    'PARDF_DAVG', HCOPARDF_15_AVG, RC, FILLED=FND)
-
-      ! Default value
-      IF ( .NOT. FND ) THEN
-         HCOPARDF_15_AVG = ExtState%PARDF%Arr%Val
-      ENDIF
-
-      ! Set daily averages
-      DO I = 1, NUM_DAYS
-         HCOPARDF_15(:,:,I) = HCOPARDF_15_AVG
-      ENDDO 
-
-      ! Set hourly variables
-      DO I = 1, DAY_DIM 
-         HCOPARDF_DAY(:,:,I) = HCOPARDF_15(:,:,1)
-      ENDDO
+      ! Diffuse radiation (PARDF) over last X days 
+      CALL HCO_RestartGet( am_I_Root,       HcoState, 'PARDF_DAVG',
+     &                     PARDF_LASTXDAYS, RC,       DefVal = 48.0 )
 
       ! Return w/ success
       RC = HCO_SUCCESS
-       
+        
       END SUBROUTINE FILL_RESTART_VARS 
 !EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: Update_HCOT_Day
+!!
+!! !DESCRIPTION: Subroutine Update\_HCOT\_Day must be called every time the 
+!!  A-3 fields are updated. Each 3h TS value for each gridbox is moved up one 
+!!  spot in the matrix and the current value is put in the last spot.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE UPDATE_T_DAY( HcoState, ExtState, I, J, RC )
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      TYPE(HCO_State), POINTER        :: HcoState 
+!      TYPE(Ext_State), POINTER        :: ExtState
+!      INTEGER,         INTENT(IN   )  :: I 
+!      INTEGER,         INTENT(IN   )  :: J 
+!!
+!! !INPUT/OUTPUT PARAMETERS: 
+!!
+!      INTEGER,         INTENT(INOUT)  :: RC
+!! 
+!! !REVISION HISTORY: 
+!!  (1 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
+!!        met field. TS is the surface air temperature, which should be 
+!!        carefully distinguished from TSKIN. (tmf, 11/20/04)
+!!  (2 ) In GEOS4, TS are originally T2M in the A3 files, read in 
+!!        'a3_read_mod.f'. 
+!!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!!                              derived type object
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER           :: D
 !
-! !IROUTINE: Update_HCOT_Day
+!      !=================================================================
+!      ! UPDATE_T_DAY begins here!
+!      !=================================================================
 !
-! !DESCRIPTION: Subroutine Update\_HCOT\_Day must be called every time the 
-!  A-3 fields are updated. Each 3h TS value for each gridbox is moved up one 
-!  spot in the matrix and the current value is put in the last spot.
-!\\
-!\\
-! !INTERFACE:
+!      ! Move each day up
+!      DO D = DAY_DIM, 2, -1
+!         ! Need PAR as well as Temp  (mpb,2009)
+!         T_DAY(I,J,D)     = T_DAY(I,J,D-1)
+!         PARDR_DAY(I,J,D) = PARDR_DAY(I,J,D-1)
+!         PARDF_DAY(I,J,D) = PARDF_DAY(I,J,D-1)
+!      ENDDO
+!      
+!      ! Store 
+!      T_DAY(I,J,1)     = ExtState%T2M%Arr%Val(I,J)
+!      PARDF_DAY(I,J,1) = ExtState%PARDF%Arr%Val(I,J)
+!      PARDR_DAY(I,J,1) = ExtState%PARDR%Arr%Val(I,J)
 !
-      SUBROUTINE UPDATE_HCOT_DAY( HcoState, ExtState, I, J, RC )
+!      ! Return w/ success
+!      RC = HCO_SUCCESS
+!       
+!      END SUBROUTINE UPDATE_T_DAY
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: Update_T_15_Avg
+!!
+!! !DESCRIPTION: Subroutine Update\_HCOT\_15\_Avg should be called at the 
+!!  beginning of each day. It loops through the gridboxes doing the following:
+!!
+!!  \begin{enumerate}
+!!  \item Average T\_DAY over the 8 TS values during the day.  
+!!  \item Push the daily average TS values through T\_15, throwing out the 
+!!        oldest and putting the newest (the T\_DAY average) in the last spot 
+!!  \item Get T\_15\_AVG by averaging T\_15 over the 15 day period. 
+!!  \end{enumerate}
+!!
+!! !INTERFACE:
+!!
+!      SUBROUTINE UPDATE_T_15_AVG ( HcoState, I, J, RC )
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      TYPE(HCO_State), POINTER       :: HcoState
+!      INTEGER,         INTENT(IN   ) :: I 
+!      INTEGER,         INTENT(IN   ) :: J 
+!!
+!! !INPUT/OUTPUT PARAMETERS: 
+!!
+!      INTEGER,         INTENT(INOUT) :: RC
+!! 
+!! !REVISION HISTORY: 
+!!  01 Oct 1995 - M. Prather  - Initial version
+!!  (1 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
+!!        met field. TS is the surface air temperature, which should be 
+!!        carefully distinguished from TSKIN. (tmf, 11/20/04)
+!!  (2 ) In GEOS4, TS are originally T2M in the A3 files, read in 
+!!        'a3_read_mod.f'. 
+!!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER           :: D
+!      REAL(hp)          :: D_DIM, D_DAYS, TMP_T
+!      REAL(hp)          :: TMP_PARDR , TMP_PARDF ! (mpb,2009)
 !
-! !INPUT PARAMETERS: 
+!      !=================================================================
+!      ! UPDATE_T_15_AVG begins here!
+!      !=================================================================
 !
-      TYPE(HCO_State), POINTER        :: HcoState 
-      TYPE(Ext_State), POINTER        :: ExtState
-      INTEGER,         INTENT(IN   )  :: I 
-      INTEGER,         INTENT(IN   )  :: J 
+!      ! Convert to REAL*8
+!      D_DIM  = REAL( DAY_DIM , KIND=hp )
+!      D_DAYS = REAL( NUM_DAYS, KIND=hp )
 !
-! !INPUT/OUTPUT PARAMETERS: 
+!      ! Average T_DAY over the TS values during the day.
+!      TMP_T = SUM( T_DAY(I,J,:) ) / D_DIM
+!         
+!      ! Do the same for light (mpb,2009)
+!      TMP_PARDR = SUM( PARDR_DAY(I,J,:) ) / D_DIM
+!      TMP_PARDF = SUM( PARDF_DAY(I,J,:) ) / D_DIM
 !
-      INTEGER,         INTENT(INOUT)  :: RC
-! 
-! !REVISION HISTORY: 
-!  (1 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
-!        met field. TS is the surface air temperature, which should be 
-!        carefully distinguished from TSKIN. (tmf, 11/20/04)
-!  (2 ) In GEOS4, TS are originally T2M in the A3 files, read in 
-!        'a3_read_mod.f'. 
-!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      ! Push the daily average TS values through T_15,
+!      ! throwing out the oldest 
+!      DO D = NUM_DAYS, 2, -1
+!         T_15(I,J,D)     = T_15(I,J,D-1)
+!         PARDR_15(I,J,D) = PARDR_15(I,J,D-1)
+!         PARDF_15(I,J,D) = PARDF_15(I,J,D-1)
+!      ENDDO
 !
-! !LOCAL VARIABLES:
+!      ! Put the newest daily average TS value in the first spot
+!      T_15(I,J,1) = TMP_T
 !
-      INTEGER           :: D
-
-      !=================================================================
-      ! UPDATE_HCOT_DAY begins here!
-      !=================================================================
-
-      ! Move each day up
-      DO D = DAY_DIM, 2, -1
-         ! Need PAR as well as Temp  (mpb,2009)
-         HCOT_DAY(I,J,D)     = HCOT_DAY(I,J,D-1)
-         HCOPARDR_DAY(I,J,D) = HCOPARDR_DAY(I,J,D-1)
-         HCOPARDF_DAY(I,J,D) = HCOPARDF_DAY(I,J,D-1)
-      ENDDO
-      
-      ! Store 
-      HCOT_DAY(I,J,1)     = ExtState%T2M%Arr%Val(I,J)
-      HCOPARDF_DAY(I,J,1) = ExtState%PARDF%Arr%Val(I,J)
-      HCOPARDR_DAY(I,J,1) = ExtState%PARDR%Arr%Val(I,J)
-
-      ! Return w/ success
-      RC = HCO_SUCCESS
-       
-      END SUBROUTINE UPDATE_HCOT_DAY
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
+!      ! Get T_15_AVG by averaging T_15 over the 15 day period.
+!      T_15_AVG(I,J) = SUM( T_15(I,J,:) ) / D_DAYS 
 !
-! !IROUTINE: Update_HCOT_15_Avg
+!      ! Assign daily average temperature to HCOT_DAILY (mpb,2009)
+!      ! HCOT_DAILY(I,J)  = TMP_T
 !
-! !DESCRIPTION: Subroutine Update\_HCOT\_15\_Avg should be called at the 
-!  beginning of each day. It loops through the gridboxes doing the following:
+!      ! Repeat for PAR diffuse & direct (mpb,2009)
+!      PARDR_15(I,J,1)   = TMP_PARDR
+!      PARDR_15_AVG(I,J) = SUM( PARDR_15(I,J,:) ) / D_DAYS 
+!      ! PARDR_DAILY(I,J)  = TMP_PARDR
 !
-!  \begin{enumerate}
-!  \item Average T\_DAY over the 8 TS values during the day.  
-!  \item Push the daily average TS values through T\_15, throwing out the 
-!        oldest and putting the newest (the T\_DAY average) in the last spot 
-!  \item Get T\_15\_AVG by averaging T\_15 over the 15 day period. 
-!  \end{enumerate}
+!      PARDF_15(I,J,1)   = TMP_PARDF
+!      PARDF_15_AVG(I,J) = SUM( PARDF_15(I,J,:) ) / D_DAYS 
+!      ! PARDF_DAILY(I,J)  = TMP_PARDF
 !
-! !INTERFACE:
+!      ! Return w/ success 
+!      RC = HCO_SUCCESS
 !
-      SUBROUTINE UPDATE_HCOT_15_AVG ( HcoState, I, J, RC )
-!
-! !INPUT PARAMETERS: 
-!
-      TYPE(HCO_State), POINTER       :: HcoState
-      INTEGER,         INTENT(IN   ) :: I 
-      INTEGER,         INTENT(IN   ) :: J 
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      INTEGER,         INTENT(INOUT) :: RC
-! 
-! !REVISION HISTORY: 
-!  01 Oct 1995 - M. Prather  - Initial version
-!  (1 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
-!        met field. TS is the surface air temperature, which should be 
-!        carefully distinguished from TSKIN. (tmf, 11/20/04)
-!  (2 ) In GEOS4, TS are originally T2M in the A3 files, read in 
-!        'a3_read_mod.f'. 
-!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER           :: D
-      REAL(hp)          :: D_DIM, D_DAYS, TMP_T
-      REAL(hp)          :: TMP_PARDR , TMP_PARDF ! (mpb,2009)
-
-      !=================================================================
-      ! UPDATE_HCOT_15_AVG begins here!
-      !=================================================================
-
-      ! Convert to REAL*8
-      D_DIM  = REAL( DAY_DIM , KIND=hp )
-      D_DAYS = REAL( NUM_DAYS, KIND=hp )
-
-      ! Average HCOT_DAY over the TS values during the day.
-      TMP_T = SUM( HCOT_DAY(I,J,:) ) / D_DIM
-         
-      ! Do the same for light (mpb,2009)
-      TMP_PARDR = SUM( HCOPARDR_DAY(I,J,:) ) / D_DIM
-      TMP_PARDF = SUM( HCOPARDF_DAY(I,J,:) ) / D_DIM
-
-      ! Push the daily average TS values through HCOT_15,
-      ! throwing out the oldest 
-      DO D = NUM_DAYS, 2, -1
-         HCOT_15(I,J,D)     = HCOT_15(I,J,D-1)
-         HCOPARDR_15(I,J,D) = HCOPARDR_15(I,J,D-1)
-         HCOPARDF_15(I,J,D) = HCOPARDF_15(I,J,D-1)
-      ENDDO
-
-      ! Put the newest daily average TS value in the first spot
-      HCOT_15(I,J,1) = TMP_T
-
-      ! Get HCOT_15_AVG by averaging HCOT_15 over the 15 day period.
-      HCOT_15_AVG(I,J) = SUM( HCOT_15(I,J,:) ) / D_DAYS 
-
-      ! Assign daily average temperature to HCOT_DAILY (mpb,2009)
-      ! HCOT_DAILY(I,J)  = TMP_T
-
-      ! Repeat for PAR diffuse & direct (mpb,2009)
-      HCOPARDR_15(I,J,1)   = TMP_PARDR
-      HCOPARDR_15_AVG(I,J) = SUM( HCOPARDR_15(I,J,:) ) / D_DAYS 
-      ! HCOPARDR_DAILY(I,J)  = TMP_PARDR
-
-      HCOPARDF_15(I,J,1)   = TMP_PARDF
-      HCOPARDF_15_AVG(I,J) = SUM( HCOPARDF_15(I,J,:) ) / D_DAYS 
-      ! HCOPARDF_DAILY(I,J)  = TMP_PARDF
-
-      ! Return w/ success 
-      RC = HCO_SUCCESS
-
-      END SUBROUTINE UPDATE_HCOT_15_AVG
-!EOC
+!      END SUBROUTINE UPDATE_T_15_AVG
+!!EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -3888,7 +3979,7 @@
 !  01 Sep 2010 - R. Yantosca - Now read in NUM_DAYS of sfc temp data (this had
 !                              been hardwired to 15 days previously)
 !  07 Feb 2011 - R. Yantosca - Fix typos: make sure to zero out the proper 
-!                              HCOPARDF_* and HCOPARDR_* arrays after allocation
+!                              PARDF_* and PARDR_* arrays after allocation
 !  22 Nov 2011 - R. Yantosca - Do not use erroneous AEF's for nested grids
 !  08 Feb 2012 - R. Yantosca - Now read surface temperature for GEOS-5.7.x
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
@@ -4134,28 +4225,28 @@
       NX = HcoState%NX
       NY = HcoState%NY
 
-      ! Allocate arrays
-      ALLOCATE( HCOT_DAY( NX, NY, DAY_DIM ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOT_DAY', RC )
-        RETURN
-      ENDIF
-      HCOT_DAY = 0.0_sp
-
-      ALLOCATE( HCOT_15( NX, NY, NUM_DAYS ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOT_15', RC )
-        RETURN
-      ENDIF
-      HCOT_15 = 0.0_sp
-      T_PREVDAY => HCOT_15(:,:,1)
-
-      ALLOCATE( HCOT_15_AVG( NX, NY ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOT_15_AVG', RC )
-        RETURN
-      ENDIF
-      HCOT_15_AVG = 0.0_sp
+!      ! Allocate arrays
+!      ALLOCATE( T_DAY( NX, NY, DAY_DIM ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'T_DAY', RC )
+!        RETURN
+!      ENDIF
+!      T_DAY = 0.0_sp
+!
+!      ALLOCATE( T_15( NX, NY, NUM_DAYS ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'T_15', RC )
+!        RETURN
+!      ENDIF
+!      T_15 = 0.0_sp
+!      T_PREVDAY => T_15(:,:,1)
+!
+!      ALLOCATE( T_15_AVG( NX, NY ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'T_15_AVG', RC )
+!        RETURN
+!      ENDIF
+!      T_15_AVG = 0.0_sp
 
 !      ! Daily averaged temperature (mpb,2009)
 !      ALLOCATE( HCOT_DAILY( NX, NY ), STAT=AS )
@@ -4165,64 +4256,92 @@
 !      ENDIF
 !      HCOT_DAILY = 0.0_hp
  
-      ! Allocate arrays for light (mpb,2009)
-      ! -- Direct --
-      ALLOCATE( HCOPARDR_DAY( NX, NY, DAY_DIM ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOPARDR_DAY', RC )
-        RETURN
-      ENDIF
-      HCOPARDR_DAY = 0.0_sp
-
-      ALLOCATE( HCOPARDR_15( NX, NY, NUM_DAYS ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOPARDR_15', RC )
-        RETURN
-      ENDIF
-      HCOPARDR_15 = 0.0_sp
-
-      ALLOCATE( HCOPARDR_15_AVG( NX, NY ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOPARDR_15_AVG', RC )
-        RETURN
-      ENDIF
-      HCOPARDR_15_AVG = 0.0_sp
-
-!      ALLOCATE( HCOPARDR_DAILY( NX, NY ), STAT=AS )
+!      ! Allocate arrays for light (mpb,2009)
+!      ! -- Direct --
+!      ALLOCATE( PARDR_DAY( NX, NY, DAY_DIM ), STAT=AS )
 !      IF ( AS /= 0 ) THEN 
-!        CALL HCO_ERROR( 'HCOPARDR_DAILY', RC )
+!        CALL HCO_ERROR( 'PARDR_DAY', RC )
 !        RETURN
 !      ENDIF
-!      HCOPARDR_DAILY = 0.0_hp
+!      PARDR_DAY = 0.0_sp
+!
+!      ALLOCATE( PARDR_15( NX, NY, NUM_DAYS ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'PARDR_15', RC )
+!        RETURN
+!      ENDIF
+!      PARDR_15 = 0.0_sp
+!
+!      ALLOCATE( PARDR_15_AVG( NX, NY ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'PARDR_15_AVG', RC )
+!        RETURN
+!      ENDIF
+!      PARDR_15_AVG = 0.0_sp
+
+!      ALLOCATE( PARDR_DAILY( NX, NY ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'PARDR_DAILY', RC )
+!        RETURN
+!      ENDIF
+!      PARDR_DAILY = 0.0_hp
  
-      ! -- Diffuse --
-      ALLOCATE( HCOPARDF_DAY( NX, NY, DAY_DIM ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOPARDF_DAY', RC )
-        RETURN
-      ENDIF
-      HCOPARDF_DAY = 0.0_sp
-
-      ALLOCATE( HCOPARDF_15( NX, NY, NUM_DAYS ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOPARDF_15', RC )
-        RETURN
-      ENDIF
-      HCOPARDF_15 = 0.0_sp
-
-      ALLOCATE( HCOPARDF_15_AVG( NX, NY ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOPARDF_15_AVG', RC )
-        RETURN
-      ENDIF
-      HCOPARDF_15_AVG = 0.0_sp
-
-!      ALLOCATE( HCOPARDF_DAILY( NX, NY ), STAT=AS )
+!      ! -- Diffuse --
+!      ALLOCATE( PARDF_DAY( NX, NY, DAY_DIM ), STAT=AS )
 !      IF ( AS /= 0 ) THEN 
-!        CALL HCO_ERROR( 'HCOPARDF_DAILY', RC )
+!        CALL HCO_ERROR( 'PARDF_DAY', RC )
 !        RETURN
 !      ENDIF
-!      HCOPARDF_DAILY = 0d0
+!      PARDF_DAY = 0.0_sp
+!
+!      ALLOCATE( PARDF_15( NX, NY, NUM_DAYS ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'PARDF_15', RC )
+!        RETURN
+!      ENDIF
+!      PARDF_15 = 0.0_sp
+!
+!      ALLOCATE( PARDF_15_AVG( NX, NY ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'PARDF_15_AVG', RC )
+!        RETURN
+!      ENDIF
+!      PARDF_15_AVG = 0.0_sp
+!
+!      ALLOCATE( PARDF_DAILY( NX, NY ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'PARDF_DAILY', RC )
+!        RETURN
+!      ENDIF
+!      PARDF_DAILY = 0d0
+
+      ALLOCATE( T_LAST24H( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'T_LAST24H', RC )
+         RETURN
+      ENDIF
+      T_LAST24H = 0.0_hp
+
+      ALLOCATE( T_LASTXDAYS( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'T_LASTXDAYS', RC )
+         RETURN
+      ENDIF
+      T_LASTXDAYS = 0.0_hp
+
+      ALLOCATE( PARDR_LASTXDAYS( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'PARDR_LASTXDAYS', RC )
+         RETURN
+      ENDIF
+      PARDR_LASTXDAYS = 0.0_hp
+
+      ALLOCATE( PARDF_LASTXDAYS( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'PARDF_LASTXDAYS', RC )
+         RETURN
+      ENDIF
+      PARDF_LASTXDAYS = 0.0_hp
 
       ! LAI from previous time step
       ALLOCATE( LAI_PREVSTEP( NX, NY ), STAT=AS )
@@ -4376,26 +4495,42 @@
       ! Initialize internal diagnostics. These are the restart variables
       ! that can be used for a 'warm' start of MEGAN.
       !=================================================================
-      CALL HCO_RestartDefine ( am_I_Root, HcoState, 
-     &                         'T_DAVG',  HCOT_15_AVG, 'K', RC )
+!      CALL HCO_RestartDefine ( am_I_Root, HcoState, 
+!     &                         'T_DAVG',  T_15_AVG, 'K', RC )
+!      IF ( RC /= HCO_SUCCESS ) RETURN
+!   
+!      CALL HCO_RestartDefine ( am_I_Root,   HcoState, 
+!     &                         'T_PREVDAY', T_PREVDAY, 'K', RC )
+!      IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!      CALL HCO_RestartDefine ( am_I_Root,     HcoState, 
+!     &                         'LAI_PREVDAY', LAI_PREVDAY, '1', RC )
+!      IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!      CALL HCO_RestartDefine ( am_I_Root,    HcoState, 
+!     &                         'PARDR_DAVG', PARDR_15_AVG, 
+!     &                         'W/m2',       RC )
+!
+!      CALL HCO_RestartDefine ( am_I_Root,    HcoState, 
+!     &                         'PARDF_DAVG', PARDF_15_AVG, 
+!     &                         'W/m2',       RC )
+
+      CALL HCO_RestartDefine ( am_I_Root,       HcoState, 'T_PREVDAY',  
+     &                         T_LAST24H,       'K',      RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
-   
-      CALL HCO_RestartDefine ( am_I_Root,   HcoState, 
-     &                         'T_PREVDAY', T_PREVDAY, 'K', RC )
+
+      CALL HCO_RestartDefine ( am_I_Root,       HcoState, 'T_DAVG',   
+     &                         T_LASTXDAYS,     'K',      RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
-
-      CALL HCO_RestartDefine ( am_I_Root,     HcoState, 
-     &                         'LAI_PREVDAY', LAI_PREVDAY, '1', RC )
+ 
+      CALL HCO_RestartDefine ( am_I_Root,       HcoState, 'PARDR_DAVG',
+     &                         PARDR_LASTXDAYS, 'W/m2',   RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
-
-      CALL HCO_RestartDefine ( am_I_Root,    HcoState, 
-     &                         'PARDR_DAVG', HCOPARDR_15_AVG, 
-     &                         'W/m2',       RC )
-
-      CALL HCO_RestartDefine ( am_I_Root,    HcoState, 
-     &                         'PARDF_DAVG', HCOPARDF_15_AVG, 
-     &                         'W/m2',       RC )
-
+ 
+      CALL HCO_RestartDefine ( am_I_Root,       HcoState, 'PARDF_DAVG',
+     &                         PARDF_LASTXDAYS, 'W/m2',   RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+  
       !=================================================================
       ! The original MEGAN code used to read the emission factors here.
       ! We now get the emisson factors through HEMCO, hence no need to
@@ -4484,21 +4619,25 @@
       AEF_SABI  => NULL()
 
       ! Cleanup module arrays
-      T_PREVDAY => NULL()
-      IF ( ALLOCATED( HCOT_DAY        ) ) DEALLOCATE( HCOT_DAY        )
-      IF ( ALLOCATED( HCOT_15         ) ) DEALLOCATE( HCOT_15         )
-      IF ( ALLOCATED( HCOT_15_AVG     ) ) DEALLOCATE( HCOT_15_AVG     )
+!      T_PREVDAY => NULL()
+!      IF ( ALLOCATED( T_DAY           ) ) DEALLOCATE( T_DAY           )
+!      IF ( ALLOCATED( T_15            ) ) DEALLOCATE( T_15            )
+!      IF ( ALLOCATED( T_15_AVG        ) ) DEALLOCATE( T_15_AVG        )
 !      IF ( ALLOCATED( HCOT_DAILY      ) ) DEALLOCATE( HCOT_DAILY      )
-      IF ( ALLOCATED( HCOPARDR_DAY    ) ) DEALLOCATE( HCOPARDR_DAY    )
-      IF ( ALLOCATED( HCOPARDR_15     ) ) DEALLOCATE( HCOPARDR_15     )
-      IF ( ALLOCATED( HCOPARDR_15_AVG ) ) DEALLOCATE( HCOPARDR_15_AVG )
-!      IF ( ALLOCATED( HCOPARDR_DAILY  ) ) DEALLOCATE( HCOPARDR_DAILY  )
-      IF ( ALLOCATED( HCOPARDF_DAY    ) ) DEALLOCATE( HCOPARDF_DAY    )
-      IF ( ALLOCATED( HCOPARDF_15     ) ) DEALLOCATE( HCOPARDF_15     )
-      IF ( ALLOCATED( HCOPARDF_15_AVG ) ) DEALLOCATE( HCOPARDF_15_AVG )
-!      IF ( ALLOCATED( HCOPARDF_DAILY  ) ) DEALLOCATE( HCOPARDF_DAILY  )
+!      IF ( ALLOCATED( PARDR_DAY       ) ) DEALLOCATE( PARDR_DAY       )
+!      IF ( ALLOCATED( PARDR_15        ) ) DEALLOCATE( PARDR_15        )
+!      IF ( ALLOCATED( PARDR_15_AVG    ) ) DEALLOCATE( PARDR_15_AVG    )
+!      IF ( ALLOCATED( PARDR_DAILY  ) ) DEALLOCATE( PARDR_DAILY  )
+!      IF ( ALLOCATED( PARDF_DAY       ) ) DEALLOCATE( PARDF_DAY       )
+!      IF ( ALLOCATED( PARDF_15        ) ) DEALLOCATE( PARDF_15        )
+!      IF ( ALLOCATED( PARDF_15_AVG    ) ) DEALLOCATE( PARDF_15_AVG    )
+!      IF ( ALLOCATED( PARDF_DAILY  ) ) DEALLOCATE( PARDF_DAILY  )
       IF ( ALLOCATED( LAI_PREVSTEP    ) ) DEALLOCATE( LAI_PREVSTEP    )
       IF ( ALLOCATED( LAI_PREVDAY     ) ) DEALLOCATE( LAI_PREVDAY     )
+      IF ( ALLOCATED( T_LASTXDAYS     ) ) DEALLOCATE( T_LASTXDAYS     )
+      IF ( ALLOCATED( T_LAST24H       ) ) DEALLOCATE( T_LAST24H       )
+      IF ( ALLOCATED( PARDF_LASTXDAYS ) ) DEALLOCATE( PARDF_LASTXDAYS )
+      IF ( ALLOCATED( PARDR_LASTXDAYS ) ) DEALLOCATE( PARDR_LASTXDAYS )
       IF ( ALLOCATED( NORM_FAC        ) ) DEALLOCATE( NORM_FAC        )
       IF ( ALLOCATED( AEF_APIN        ) ) DEALLOCATE( AEF_APIN        )
       IF ( ALLOCATED( AEF_MYRC        ) ) DEALLOCATE( AEF_MYRC        )
