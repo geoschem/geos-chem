@@ -327,8 +327,8 @@
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
 #if defined( DEVEL )
-      CALL TENDENCIES_STAGE1( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, 3, .FALSE., RC )
+      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
+     &                  State_Chm, 'CHEM', .FALSE., RC )
 #endif
 
       !=================================================================
@@ -642,8 +642,8 @@
       !=================================================================
 #if defined( DEVEL )
       DT_TEND = GET_TS_CHEM() * 60.0_fp
-      CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, 3, .FALSE., DT_TEND, RC )
+      CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
+     &                  State_Chm, 'CHEM', .FALSE., DT_TEND, RC )
 #endif
 
       ! Free pointer

@@ -202,8 +202,8 @@
          ! Archive tracer concentrations for tendencies. Tracers are 
          ! already in v/v (ckeller, 7/15/2015)
 #if defined( DEVEL ) 
-         CALL TENDENCIES_STAGE1( am_I_Root, Input_Opt, State_Met,
-     &                           State_Chm, 4, .TRUE., RC )
+         CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met,
+     &                     State_Chm, 'PBLMIX', .TRUE., RC )
 #endif
 
          ! Do complete mixing of tracers in the PBL (if necessary)
@@ -213,8 +213,8 @@
          ! Archive tracer concentrations for tendencies (ckeller, 7/15/2015)
 #if defined( DEVEL ) 
          DT_TEND = GET_TS_CONV() * 60.0_fp
-         CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met,
-     &                           State_Chm, 4, .TRUE., DT_TEND, RC )
+         CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met,
+     &                     State_Chm, 'PBLMIX', .TRUE., DT_TEND, RC )
 #endif
       ENDIF
 

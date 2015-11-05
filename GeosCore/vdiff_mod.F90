@@ -2069,8 +2069,8 @@ contains
     ! Archive concentrations for tendencies calculations. Tracers array
     ! is already in v/v (ckeller, 7/15/2015).
 #if defined(DEVEL)
-    CALL TENDENCIES_STAGE1( am_I_Root, Input_Opt, State_Met, &
-                            State_Chm, 4, .TRUE., RC )
+    CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
+                      State_Chm, 'PBLMIX', .TRUE., RC )
 #endif
 
 ! (Turn off parallelization for now, skim 6/20/12)
@@ -2795,8 +2795,8 @@ contains
 
     ! Compute tendencies and write to diagnostics (ckeller, 7/15/2015)
 #if defined(DEVEL)
-    CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met, &
-                            State_Chm, 4, .TRUE., dtime, RC )
+    CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, &
+                      State_Chm, 'PBLMIX', .TRUE., dtime, RC )
 #endif
 
 !      !### Debug

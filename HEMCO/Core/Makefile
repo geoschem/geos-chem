@@ -122,6 +122,7 @@ hco_chartools_mod.o    : hco_chartools_mod.F90   \
 hco_clock_mod.o        : hco_clock_mod.F90       \
                          hco_emislist_mod.o      \
                          hco_error_mod.o         \
+	                 hco_extlist_mod.o       \
                          hco_state_mod.o
 
 hco_config_mod.o       : hco_config_mod.F90      \

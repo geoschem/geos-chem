@@ -88,7 +88,7 @@ CONTAINS
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
     USE GRID_MOD,           ONLY : AREA_M2
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE TENDENCIES_MOD,     ONLY : TENDENCIES_INIT
+    USE TENDENCIES_MOD,     ONLY : TEND_INIT
 !
 ! !INPUT PARAMETERS:
 !
@@ -224,7 +224,7 @@ CONTAINS
     ENDIF
 
     ! Initialize tendencies
-    CALL TENDENCIES_INIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+    CALL TEND_INIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in TENDENCIES_INIT', LOC ) 
     ENDIF
@@ -251,7 +251,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE TENDENCIES_MOD,     ONLY : TENDENCIES_CLEANUP
+    USE TENDENCIES_MOD,     ONLY : TEND_CLEANUP
 !
 ! !INPUT PARAMETERS:
 !
@@ -271,7 +271,7 @@ CONTAINS
 
 !    ! Finalize diagnostics
 !    CALL DiagnCollection_Cleanup( COL = Input_Opt%DIAG_COLLECTION )
-    CALL TENDENCIES_CLEANUP
+    CALL TEND_CLEANUP()
 
     ! Return with success
     RC = GIGC_SUCCESS

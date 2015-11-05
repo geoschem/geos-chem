@@ -933,7 +933,8 @@ tagged_ox_mod.o             : tagged_ox_mod.F                                \
 
 tcorr.o                     : tcorr.F
 
-tendencies_mod.o            : tendencies_mod.F90
+tendencies_mod.o            : tendencies_mod.F90                             \
+                              tracerid_mod.o
 
 toms_mod.o                  : toms_mod.F
 

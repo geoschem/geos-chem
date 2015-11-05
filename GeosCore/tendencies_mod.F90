@@ -10,9 +10,51 @@
 ! active if the DEVEL compiler flag is enabled. Also, the tracers to be
 ! diagnosed as well as the processes for which tendencies shall be calculated
 ! are currently hardcoded below. If enabled, this module will calculate 
-! concentration tendencies for all defined species and processes (as set
-! below) and write those into netCDF diagnostics. All tendencies will be
-! given as v/v/s.
+! concentration tendencies for all defined species and processes and write 
+! these into netCDF diagnostics. All tendencies are given as v/v/s.
+!\\
+!\\
+! Tracer tendencies can be archived for as many processes are desired. For 
+! each tendency process, an own instance of a tendency class has to be 
+! defined (subroutine Tend\_CreateClass) and all active tracers for this class
+! need be defined via subroutine Tend\_Add. Once a tendencies class is defined,
+! the entry and exit 'checkpoint' of this tendency need be manually set in the
+! code (subroutines Tend\_Stage1 and Tend\_Stage2).
+!\\
+!\\
+! For example, suppose there is routine PROCESS in module example_mod.F90 and 
+! we are interested in the tracer tendencies of O3 and CO by this process. We
+! can then define a new tendency class (named 'PROCESS') during initialization
+! of the tendencies (i.e. in tend\_init):
+!
+!    ! Create new class
+!    CALL Tend_CreateClass( am_I_Root, Input_Opt, 'PROCESS', RC )
+!    IF ( RC /= GIGC_SUCCESS ) RETURN
+!
+! The second step is to assign the tracers of interest to this tendency class:
+!
+!    ! Add species to classes
+!    CALL Tend_Add ( am_I_Root, Input_Opt, 'PROCESS', IDTO3, RC )
+!    IF ( RC /= GIGC_SUCCESS ) RETURN
+!    CALL Tend_Add ( am_I_Root, Input_Opt, 'PROCESS', IDTCO, RC )
+!    IF ( RC /= GIGC_SUCCESS ) RETURN
+!
+! The last step then involves the definition of the entry and exit points of
+! the tendencies, e.g. the interval in between the tendencies shall be 
+! calculated. To do so, we can wrap the Tend\_Stage routines around the 
+! process of interest, e.g. in module example_mod.F90:
+!
+! CALL Tend\_Stage1 ( ... TendName='PROCESS', ... )
+! CALL PROCESS ( ... )
+! CALL Tend\_Stage2 ( ..., TendName='PROCESS', ... ) 
+!\\
+!\\
+! The following six tendency classes are implemented by default: ADV (transport),
+! CONV (convection), CHEM (chemistry), WETD (wet deposition), PBLMIX (PBL mixing, 
+! includes emissions and dry deposition below PBL if non-local PBL is enabled),
+! FLUX (emissions and dry depositions not coverd in PBLMIX).
+! Subroutine Tend\_Init contains some example tendencies that are calculated 
+! if flag 'DoTend' (subroutine Tend\_Init) is enabled. 
 !
 ! !INTERFACE:
 !
@@ -34,40 +76,49 @@ MODULE Tendencies_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-
   ! All of the following is currently only active in development mode:
 #if defined( DEVEL )
-  PUBLIC :: Tendencies_Init   
-  PUBLIC :: Tendencies_Stage1
-  PUBLIC :: Tendencies_Stage2
-  PUBLIC :: Tendencies_Cleanup
+  PUBLIC :: Tend_Init
+  PUBLIC :: Tend_CreateClass
+  PUBLIC :: Tend_Add
+  PUBLIC :: Tend_Stage1
+  PUBLIC :: Tend_Stage2
+  PUBLIC :: Tend_Get
+  PUBLIC :: Tend_Cleanup
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  REAL(f4), ALLOCATABLE, TARGET :: TendAdv(:,:,:,:)
-  REAL(f4), ALLOCATABLE, TARGET :: TendCnv(:,:,:,:)
-  REAL(f4), ALLOCATABLE, TARGET :: TendChm(:,:,:,:)
-  REAL(f4), ALLOCATABLE, TARGET :: TendTrb(:,:,:,:)
-  REAL(f4), ALLOCATABLE, TARGET :: TendSfc(:,:,:,:)
-  REAL(f4), ALLOCATABLE, TARGET :: TendWet(:,:,:,:)
-  INTEGER,  ALLOCATABLE         :: TendIds(:)
+  PRIVATE :: Tend_FindClass
 !
-! !DEFINED PARAMETERS:
+! !MODULE VARIABLES
 !
-  ! Tendency species - hardcoded for now
-  INTEGER, PARAMETER            :: NTEND          = 1
-  CHARACTER(LEN=15), PARAMETER  :: TENDSPC(NTEND) = (/ 'O3' /) 
+  ! maximum string length of tendency name
+  INTEGER, PARAMETER   :: MAXSTR = 31 
 
-  ! Processes for which tendencies shall be calculated - hardcoded for now
-  LOGICAL, PARAMETER            :: DO_ADV = .TRUE.
-  LOGICAL, PARAMETER            :: DO_CNV = .TRUE.
-  LOGICAL, PARAMETER            :: DO_CHM = .TRUE.
-  LOGICAL, PARAMETER            :: DO_TRB = .TRUE.
-  LOGICAL, PARAMETER            :: DO_SFC = .TRUE.
-  LOGICAL, PARAMETER            :: DO_WET = .TRUE.
+  ! Number of GEOS-Chem tracers
+  INTEGER              :: nSpc = 0
+
+  ! vector of tendency arrays
+  TYPE :: TendArr
+     REAL(f4),       POINTER   :: Arr(:,:,:) => NULL()
+  END TYPE TendArr
+
+  ! type holding tendencies of one type (class). Will
+  ! be linked together via linked list.
+  TYPE :: TendClass
+     CHARACTER(LEN=MAXSTR)     :: TendName
+     INTEGER                   :: Stage
+     INTEGER,         POINTER  :: SpcInUse(:) => NULL()
+     TYPE(TendArr),   POINTER  :: Tendency(:) => NULL()
+     TYPE(TendClass), POINTER  :: NextTend    => NULL()
+  END TYPE TendClass
+
+  ! Tendency class linked list
+  TYPE(TendClass),   POINTER   :: TendList    => NULL()
 !
 ! !REVISION HISTORY:
 !  14 Jul 2015 - C. Keller   - Initial version. 
+!  26 Oct 2015 - C. Keller   - Now organize in linked list for more flexibility.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -77,181 +128,443 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Tendencies_Init 
+! !IROUTINE: Tend_Init
 !
-! !DESCRIPTION: Subroutine Tendencies\_Init initializes the tendencies 
-! diagnostics. 
+! !DESCRIPTION: Subroutine Tend\_Init is the wrapper routine to initialize the
+! tendencies. At the moment, all tendencies are hardcoded and tendencies will 
+! only be written if the manual flag `DoTend` is enabled. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tendencies_Init( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+  SUBROUTINE Tend_Init ( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
-    USE GIGC_State_Chm_Mod, ONLY : Get_Indx
+    USE TRACERID_MOD,  ONLY : IDTO3, IDTCO
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN   ) :: Input_Opt  ! Input opts
-    TYPE(MetState),   INTENT(IN   ) :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry state 
+    TYPE(MetState),   INTENT(IN   ) :: State_Met  ! met. state 
+    TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! chm. state 
 !
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(OUT)   :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  14 Jul 2015 - C. Keller   - Initial version 
+!  26 Oct 2015 - C. Keller   - Initial version 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: AS
-    INTEGER            :: cID, Collection, I, N
-    LOGICAL            :: SKIP
-    CHARACTER(LEN=60)  :: DiagnName
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'TENDENCIES_INIT (tendencies_mod.F)' 
-    
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: LOC = 'Tend_Init (tendencies_mod.F)' 
+   
+    ! Set this to .TRUE. to enable some test diagnostics
+    LOGICAL, PARAMETER       :: DoTend = .FALSE.
+ 
     !=======================================================================
-    ! TENDENCIES_INIT begins here!
+    ! Tend_Init begins here!
     !=======================================================================
 
     ! Assume successful return
     RC = GIGC_SUCCESS
 
-    ! Get diagnostic parameters from the Input_Opt object
-    Collection = Input_Opt%DIAG_COLLECTION
-    
-    ! Initialize arrays
-    ALLOCATE( TendIds(NTEND), STAT = AS )
-    IF ( AS==0 .AND. DO_ADV ) THEN
-       ALLOCATE( TendAdv(IIPAR,JJPAR,LLPAR,NTEND), STAT = AS )
-    ENDIF
-    IF ( AS==0 .AND. DO_CNV ) THEN
-       ALLOCATE( TendCnv(IIPAR,JJPAR,LLPAR,NTEND), STAT = AS )
-    ENDIF
-    IF ( AS==0 .AND. DO_CHM ) THEN
-       ALLOCATE( TendChm(IIPAR,JJPAR,LLPAR,NTEND), STAT = AS )
-    ENDIF
-    IF ( AS==0 .AND. DO_TRB ) THEN
-       ALLOCATE( TendTrb(IIPAR,JJPAR,LLPAR,NTEND), STAT = AS )
-    ENDIF
-    IF ( AS==0 .AND. DO_SFC ) THEN
-       ALLOCATE( TendSfc(IIPAR,JJPAR,LLPAR,NTEND), STAT = AS )
-    ENDIF
-    IF ( AS==0 .AND. DO_WET ) THEN
-       ALLOCATE( TendWet(IIPAR,JJPAR,LLPAR,NTEND), STAT = AS )
-    ENDIF
-    IF ( AS /= 0 ) THEN
-       CALL ERROR_STOP ( 'Tendencies allocation error', LOC )
-       RC = GIGC_FAILURE
-       RETURN
-    ENDIF
+    ! Execute only if DoTend is enabled
+    IF ( DoTend ) THEN
 
-    IF( ALLOCATED(TendAdv) ) TendAdv = -999.0_f4 
-    IF( ALLOCATED(TendCnv) ) TendCnv = -999.0_f4 
-    IF( ALLOCATED(TendChm) ) TendChm = -999.0_f4 
-    IF( ALLOCATED(TendTrb) ) TendTrb = -999.0_f4 
-    IF( ALLOCATED(TendSfc) ) TendSfc = -999.0_f4 
-    IF( ALLOCATED(TendWet) ) TendWet = -999.0_f4 
+    ! Define classes
+    CALL Tend_CreateClass( am_I_Root, Input_Opt, 'CHEM', RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    CALL Tend_CreateClass( am_I_Root, Input_Opt, 'ADV' , RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    CALL Tend_CreateClass( am_I_Root, Input_Opt, 'CONV', RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    CALL Tend_CreateClass( am_I_Root, Input_Opt, 'WETD', RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    CALL Tend_CreateClass( am_I_Root, Input_Opt, 'FLUX', RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    CALL Tend_CreateClass( am_I_Root, Input_Opt, 'PBLMIX', RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ! Loop over # of tendencies species
-    DO I = 1, NTEND 
-    
-       ! Get tendencies species index
-       TendIds(I) = Get_Indx( TRIM(TendSpc(I)), Input_Opt%ID_TRACER, Input_Opt%TRACER_NAME )
-       IF ( TendIds(I) <= 0 ) THEN
-          IF ( am_I_Root ) THEN
-             WRITE(*,*) ''
-             WRITE(*,*) 'WARNING: cannot write tendencies - this is not a tracer: ', TRIM(TendSpc(I))
-             WRITE(*,*) ''
-          ENDIF
-          CYCLE
-       ENDIF 
+    ! Add species to classes
+    CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM', IDTO3, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM', IDTCO, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    CALL Tend_Add ( am_I_Root, Input_Opt, 'CONV', IDTCO, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    CALL Tend_Add ( am_I_Root, Input_Opt, 'DRYD', IDTO3, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    CALL Tend_Add ( am_I_Root, Input_Opt, 'ADV', IDTO3, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
 
-       !----------------------------------------------------------------
-       ! Create containers for tendencies 
-       !----------------------------------------------------------------
-       DO N = 1, 6
+    ENDIF ! test toggle
 
-          ! Diagnostic name and unique ID
-          SELECT CASE ( N ) 
-             CASE ( 1 ) 
-                DiagnName = 'TEND_ADV_' // TRIM( Input_Opt%TRACER_NAME( TendIds(I) ) )
-                cID       = 731000 + TendIDs(I)
-                SKIP      = .NOT. DO_ADV
-             CASE ( 2 ) 
-                DiagnName = 'TEND_CONV_' // TRIM( Input_Opt%TRACER_NAME( TendIds(I) ) )
-                cID       = 732000 + TendIDs(I)
-                SKIP      = .NOT. DO_CNV
-             CASE ( 3 ) 
-                DiagnName = 'TEND_CHEM_' // TRIM( Input_Opt%TRACER_NAME( TendIds(I) ) )
-                cID       = 733000 + TendIDs(I)
-                SKIP      = .NOT. DO_CHM
-             CASE ( 4 ) 
-                DiagnName = 'TEND_TURB_' // TRIM( Input_Opt%TRACER_NAME( TendIds(I) ) )
-                cID       = 734000 + TendIDs(I)
-                SKIP      = .NOT. DO_TRB
-             CASE ( 5 ) 
-                DiagnName = 'TEND_SURF_' // TRIM( Input_Opt%TRACER_NAME( TendIds(I) ) )
-                cID       = 735000 + TendIDs(I)
-                SKIP      = .NOT. DO_SFC
-             CASE ( 6 ) 
-                DiagnName = 'TEND_WETD_' // TRIM( Input_Opt%TRACER_NAME( TendIds(I) ) )
-                cID       = 736000 + TendIDs(I)
-                SKIP      = .NOT. DO_WET
-          END SELECT
-
-          ! Skip if not used
-          IF ( SKIP ) CYCLE
-
-          ! Create container
-          CALL Diagn_Create( am_I_Root,                     &
-                             Col       = Collection,        & 
-                             cID       = cID,               &
-                             cName     = TRIM( DiagnName ), &
-                             AutoFill  = 0,                 &
-                             ExtNr     = -1,                &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = -1,                &
-                             SpaceDim  =  3,                &
-                             OutUnit   = 'v/v/s',           &
-                             OutOper   = 'Mean',            &
-                             OkIfExist = .TRUE.,            &
-                             RC        = RC )
-   
-          IF ( RC /= HCO_SUCCESS ) THEN
-             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-             CALL ERROR_STOP( MSG, LOC ) 
-          ENDIF
- 
-       ENDDO !N
-    ENDDO !I
-
-  END SUBROUTINE Tendencies_Init 
+  END SUBROUTINE Tend_Init
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Tendencies_Stage1
+! !IROUTINE: Tend_CreateClass 
 !
-! !DESCRIPTION: Subroutine Tendencies\_Stage1 archives the current tracer 
+! !DESCRIPTION: Subroutine Tend\_CreateClass creates a new tendency class. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Tend_CreateClass ( am_I_Root, Input_Opt, TendName, RC ) 
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
+    TYPE(OptInput),   INTENT(IN   ) :: Input_Opt  ! Input opts
+    CHARACTER(LEN=*), INTENT(IN   ) :: TendName   ! tendency class name
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)   :: RC         ! Failure or success
+!
+! !REVISION HISTORY: 
+!  26 Oct 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    TYPE(TendClass), POINTER :: NewTend => NULL()
+    LOGICAL                  :: FOUND
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: LOC = 'Tend_CreateClass (tendencies_mod.F)' 
+    
+    !=======================================================================
+    ! Tend_CreateClass begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Check if class already exists
+    CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    IF ( .NOT. FOUND ) THEN 
+
+       ! Eventually set local # of tracers variable
+       IF ( nSpc <= 0 ) THEN
+          nSpc = Input_Opt%N_TRACERS
+       ENDIF
+
+       ! Initialize class
+       ALLOCATE(NewTend)
+
+       ! Set tendency class name
+       NewTend%TendName = TRIM(TendName)
+
+       ! Initialize stage
+       newTend%Stage    = -1
+
+       ! Initialize vector with species flags
+       ALLOCATE(NewTend%SpcInUse(nSpc))
+       NewTend%SpcInUse(:) = 0
+
+       ! Initialize tendency arrays (only allocated when needed)
+       ALLOCATE(NewTend%Tendency(nSpc))
+
+       ! Add tendency class to linked list
+       NewTend%NextTend => TendList
+       TendList         => NewTend 
+    ENDIF
+
+  END SUBROUTINE Tend_CreateClass
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Tend_FindClass
+!
+! !DESCRIPTION: Subroutine Tend\_FindClass searches for a tendency class. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Tend_FindClass ( am_I_Root, TendName, FOUND, RC, ThisTend ) 
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )          :: am_I_Root  ! Are we on the root CPU?
+    CHARACTER(LEN=*), INTENT(IN   )          :: TendName   ! tendency class name
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(  OUT)          :: FOUND      ! class found
+    INTEGER,          INTENT(  OUT)          :: RC         ! Failure or success
+    TYPE(TendClass),  POINTER,      OPTIONAL :: ThisTend   ! Pointer to this class
+!
+! !REVISION HISTORY: 
+!  26 Oct 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    TYPE(TendClass), POINTER :: TmpTend => NULL()
+    
+    !=======================================================================
+    ! Tend_FindClass begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Init
+    FOUND = .FALSE.
+
+    ! Loop through linked list and search for class with same name
+    TmpTend => TendList
+    DO WHILE ( ASSOCIATED(TmpTend) ) 
+    
+       ! Is this the tendency of interest?  
+       IF ( TRIM(TmpTend%TendName) == TRIM(TendName) ) THEN
+          FOUND = .TRUE.
+          EXIT
+       ENDIF
+ 
+       ! Advance in list
+       TmpTend => TmpTend%NextTend
+    END DO
+
+    ! Eventually 
+    IF ( PRESENT(ThisTend) ) ThisTend => TmpTend
+
+    ! Cleanup
+    TmpTend => NULL()
+
+  END SUBROUTINE Tend_FindClass
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Tend_Cleanup
+!
+! !DESCRIPTION: Subroutine Tend\_Cleanup cleans up the tendencies linked list. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Tend_Cleanup ( ) 
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+!
+! !REVISION HISTORY: 
+!  26 Oct 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                  :: I
+    TYPE(TendClass), POINTER :: ThisTend => NULL()
+    TYPE(TendClass), POINTER :: NextTend => NULL()
+    
+    !=======================================================================
+    ! Tend_Cleanup begins here!
+    !=======================================================================
+
+    ! Loop through linked list and search for class with same name
+    ThisTend => TendList
+    DO WHILE ( ASSOCIATED(ThisTend) ) 
+   
+       ! Get pointer to next tendency
+       NextTend => ThisTend%NextTend
+
+       ! Cleanup every array
+       DO I = 1, nSpc
+          IF ( ASSOCIATED(ThisTend%Tendency(I)%Arr) ) THEN
+             DEALLOCATE( ThisTend%Tendency(I)%Arr)
+          ENDIF
+       ENDDO
+       DEALLOCATE(ThisTend%Tendency)
+       DEALLOCATE(ThisTend%SpcInUse)
+
+       ! Cleanup
+       ThisTend%NextTend => NULL()
+       NULLIFY(ThisTend)
+ 
+       ! Advance in list
+       ThisTend => NextTend
+    END DO
+
+    ! Cleanup
+    ThisTend => NULL()
+    NextTend => NULL()
+    nSpc = 0
+
+  END SUBROUTINE Tend_Cleanup
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Tend_Add
+!
+! !DESCRIPTION: Subroutine Tend\_Add adds a species to a tendency class. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Tend_Add ( am_I_Root, Input_Opt, TendName, TrcID, RC, CreateClass )
+!
+! !USES:
+!
+    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root   ! Are we on the root CPU?
+    TYPE(OptInput),   INTENT(IN   )           :: Input_Opt   ! Input opts
+    CHARACTER(LEN=*), INTENT(IN   )           :: TendName    ! Tendency class name 
+    INTEGER,          INTENT(IN   )           :: TrcID       ! Tracer ID 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: CreateClass ! Create class if missing?
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(  OUT)           :: RC          ! Failure or success
+!
+! !REVISION HISTORY: 
+!  14 Jul 2015 - C. Keller   - Initial version 
+!  26 Oct 2015 - C. Keller   - Update for linked list 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                  :: AS
+    INTEGER                  :: Collection
+    LOGICAL                  :: FOUND 
+    TYPE(TendClass), POINTER :: ThisTend => NULL()
+    CHARACTER(LEN=63)        :: DiagnName
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: LOC = 'Tend_Add (tendencies_mod.F)' 
+    
+    !=======================================================================
+    ! Tend_Add begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Ignore invalid tracer IDs
+    IF ( TrcID <= 0 ) RETURN
+
+    ! Search for diagnostics class
+    CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend ) 
+
+    ! Eventually create this class if it does not exist yet
+    IF ( .NOT. FOUND .AND. PRESENT( CreateClass ) ) THEN
+       IF ( CreateClass ) THEN
+          ! Create class
+          CALL Tend_CreateClass( am_I_Root, Input_Opt, TendName, RC )
+          IF ( RC /= GIGC_SUCCESS ) RETURN
+          ! Get pointer to class object 
+          CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend ) 
+       ENDIF
+    ENDIF
+
+    ! Return here if class not found
+    IF ( .NOT. FOUND ) RETURN
+
+    ! Tracer ID must not exceed # of tendency tracers
+    IF ( TrcID > nSpc ) THEN
+       WRITE(MSG,*) 'Tracer ID exceeds number of tendency tracers: ', TrcID, ' > ', nSpc
+       CALL ERROR_STOP( MSG, LOC ) 
+       RETURN
+    ENDIF 
+ 
+    ! Name of diagnostics 
+    DiagnName = 'TEND_' // TRIM(TendName) // '_' //   &
+                TRIM( Input_Opt%TRACER_NAME( TrcID ) )
+
+    ! Mark tracer as being used
+    ThisTend%SpcInUse(TrcID) = 1
+
+    ! Make sure array is allocated
+    IF ( .NOT. ASSOCIATED(ThisTend%Tendency(TrcID)%Arr) ) THEN
+       ALLOCATE(ThisTend%Tendency(TrcID)%Arr(IIPAR,JJPAR,LLPAR),STAT=AS)
+       IF ( AS /= 0 ) THEN
+          MSG = 'Tendency allocation error: ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC ) 
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+
+    ! Create container for tendency
+    CALL Diagn_Create( am_I_Root,                     &
+                       Col       = Collection,        & 
+!                       cID       = cID,               &
+                       cName     = TRIM( DiagnName ), &
+                       AutoFill  = 0,                 &
+                       ExtNr     = -1,                &
+                       Cat       = -1,                &
+                       Hier      = -1,                &
+                       HcoID     = -1,                &
+                       SpaceDim  =  3,                &
+                       OutUnit   = 'v/v/s',           &
+                       OutOper   = 'Mean',            &
+                       OkIfExist = .TRUE.,            &
+                       RC        = RC )
+   
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+       CALL ERROR_STOP( MSG, LOC ) 
+    ENDIF
+
+  END SUBROUTINE Tend_Add
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Tend_Stage1
+!
+! !DESCRIPTION: Subroutine Tend\_Stage1 archives the current tracer 
 ! concentrations into the local tendency arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tendencies_Stage1( am_I_Root, Input_Opt, State_Met, &
-                                State_Chm, TendType,  IsInvv,    RC ) 
+  SUBROUTINE Tend_Stage1( am_I_Root, Input_Opt, State_Met, &
+                          State_Chm, TendName,  IsInvv,    RC ) 
 !
 ! !USES:
 !
@@ -262,8 +575,8 @@ CONTAINS
     TYPE(OptInput),   INTENT(IN   ) :: Input_Opt  ! Input opts
     TYPE(MetState),   INTENT(IN   ) :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry state 
-    INTEGER,          INTENT(IN   ) :: TendType   ! 1=Adv; 2=Conv; 3=Chem
-    LOGICAL,          INTENT(IN   ) :: IsInvv     ! Is tracer in v/v? 
+    CHARACTER(LEN=*), INTENT(IN   ) :: TendName   ! tendency name 
+    LOGICAL,          INTENT(IN   ) :: IsInvv     ! Is STT in v/v? 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -271,84 +584,75 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  14 Jul 2015 - C. Keller   - Initial version 
+!  26 Oct 2015 - C. Keller   - Update to include tendency classes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I
-    REAL(f4), POINTER  :: Ptr3D(:,:,:) => NULL()
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'TENDENCIES_STAGE1 (tendencies_mod.F)' 
+    INTEGER                  :: I
+    LOGICAL                  :: FOUND 
+    REAL(f4), POINTER        :: Ptr3D(:,:,:) => NULL()
+    TYPE(TendClass), POINTER :: ThisTend => NULL()
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: LOC = 'TEND_STAGE1 (tendencies_mod.F)' 
     
     !=======================================================================
-    ! TENDENCIES_STAGE1 begins here!
+    ! TEND_STAGE1 begins here!
     !=======================================================================
 
     ! Assume successful return
     RC = GIGC_SUCCESS
 
-    ! Check if this diagnostics type is indeed defined
-    IF ( TendType == 1 .AND. .NOT. DO_ADV ) RETURN
-    IF ( TendType == 2 .AND. .NOT. DO_CNV ) RETURN
-    IF ( TendType == 3 .AND. .NOT. DO_CHM ) RETURN
-    IF ( TendType == 4 .AND. .NOT. DO_TRB ) RETURN
-    IF ( TendType == 5 .AND. .NOT. DO_SFC ) RETURN
-    IF ( TendType == 6 .AND. .NOT. DO_WET ) RETURN
+    ! Find tendency class
+    CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend )
+    IF ( .NOT. FOUND .OR. .NOT. ASSOCIATED(ThisTend) ) RETURN
 
     ! Loop over # of tendencies species
-    DO I = 1, NTEND 
-    
-       IF ( TendIds(I) <= 0 ) THEN
-          CYCLE
-       ENDIF 
+    DO I = 1, nSpc 
+
+       ! Skip if tracer is not in use    
+       IF ( ThisTend%SpcInUse(I) <= 0 ) CYCLE
 
        ! Get pointer to 3D array to be filled 
-       IF ( TendType == 1 ) THEN
-          Ptr3D => TendAdv(:,:,:,I) 
-       ELSEIF ( TendType == 2 ) THEN
-          Ptr3D => TendCnv(:,:,:,I) 
-       ELSEIF ( TendType == 3 ) THEN
-          Ptr3D => TendChm(:,:,:,I) 
-       ELSEIF ( TendType == 4 ) THEN
-          Ptr3D => TendTrb(:,:,:,I) 
-       ELSEIF ( TendType == 5 ) THEN
-          Ptr3D => TendSfc(:,:,:,I) 
-       ELSEIF ( TendType == 6 ) THEN
-          Ptr3D => TendWet(:,:,:,I) 
-       ENDIF
+       Ptr3D => ThisTend%Tendency(I)%Arr
 
        ! Fill 3D array with current values. Make sure it's in v/v
        IF ( IsInvv ) THEN
-          Ptr3D = State_Chm%Tracers(:,:,:,TendIds(I))
+          Ptr3D = State_Chm%Tracers(:,:,:,I)
        ELSE
-          Ptr3D = State_Chm%Tracers(:,:,:,TendIds(I)) &
-                * Input_Opt%TCVV(TendIds(I)) / State_Met%AD(:,:,:)
+          Ptr3D = State_Chm%Tracers(:,:,:,I) &
+                * Input_Opt%TCVV(I) / State_Met%AD(:,:,:)
        ENDIF
 
        ! Cleanup
        Ptr3D => NULL()
-
     ENDDO !I
 
-  END SUBROUTINE Tendencies_Stage1
+    ! Update stage 
+    ThisTend%Stage = 1
+
+    ! Cleanup
+    ThisTend => NULL()
+
+  END SUBROUTINE Tend_Stage1
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Tendencies_Stage2
+! !IROUTINE: Tend_Stage2
 !
-! !DESCRIPTION: Subroutine Tendencies\_Stage2 calculates the tendencies and 
+! !DESCRIPTION: Subroutine Tend_Stage2 calculates the tendencies and 
 ! writes them into the diagnostics arrays. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tendencies_Stage2( am_I_Root, Input_Opt, State_Met, &
-                                State_Chm, TendType,  IsInvv, DT, RC ) 
+  SUBROUTINE Tend_Stage2( am_I_Root, Input_Opt, State_Met, &
+                          State_Chm, TendName,  IsInvv, DT, RC ) 
 !
 ! !USES:
 !
@@ -360,7 +664,7 @@ CONTAINS
     TYPE(OptInput),   INTENT(IN   ) :: Input_Opt  ! Input opts
     TYPE(MetState),   INTENT(IN   ) :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry state 
-    INTEGER,          INTENT(IN   ) :: TendType   ! 1=Adv; 2=Conv; 3=Chem
+    CHARACTER(LEN=*), INTENT(IN   ) :: TendName   ! tendency name 
     LOGICAL,          INTENT(IN   ) :: IsInvv     ! Is tracer in v/v? 
     REAL(fp),         INTENT(IN   ) :: DT         ! delta time, in seconds 
 !
@@ -370,81 +674,72 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  14 Jul 2015 - C. Keller   - Initial version 
+!  26 Oct 2015 - C. Keller   - Update to include tendency classes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: cID, I
-    REAL(f4), POINTER  :: Ptr3D(:,:,:) => NULL()
-    REAL(f4)           :: TEND(IIPAR,JJPAR,LLPAR)
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'TENDENCIES_STAGE2 (tendencies_mod.F)' 
+    LOGICAL                  :: ZeroTend
+    LOGICAL                  :: FOUND
+    INTEGER                  :: cID, I
+    REAL(f4), POINTER        :: Ptr3D(:,:,:) => NULL()
+    REAL(f4)                 :: TEND(IIPAR,JJPAR,LLPAR)
+    TYPE(TendClass), POINTER :: ThisTend => NULL()
+    CHARACTER(LEN=63)        :: DiagnName
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: LOC = 'TEND_STAGE2 (tendencies_mod.F)' 
    
     !=======================================================================
-    ! TENDENCIES_STAGE2 begins here!
+    ! TEND_STAGE2 begins here!
     !=======================================================================
 
     ! Assume successful return
     RC = GIGC_SUCCESS
 
-    ! Check if this diagnostics type is indeed defined
-    IF ( TendType == 1 .AND. .NOT. DO_ADV ) RETURN
-    IF ( TendType == 2 .AND. .NOT. DO_CNV ) RETURN
-    IF ( TendType == 3 .AND. .NOT. DO_CHM ) RETURN
-    IF ( TendType == 4 .AND. .NOT. DO_TRB ) RETURN
-    IF ( TendType == 5 .AND. .NOT. DO_SFC ) RETURN
-    IF ( TendType == 6 .AND. .NOT. DO_WET ) RETURN
+    ! Find tendency class
+    CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend )
+    IF ( .NOT. FOUND .OR. .NOT. ASSOCIATED(ThisTend) ) RETURN
+
+    ! Error check: stage 2 must be called after stage 1
+    ZeroTend = .FALSE.
+    IF ( ThisTend%Stage /= 1 ) THEN
+       IF ( am_I_Root ) THEN
+          WRITE(*,*) 'Warning: cannot do tendency stage 2 - stage 1 not yet called: ', TRIM(TendName) 
+       ENDIF
+       ZeroTend = .TRUE.
+    ENDIF
 
     ! Loop over # of tendencies species
-    DO I = 1, NTEND 
-    
-       IF ( TendIds(I) <= 0 ) THEN
-          CYCLE
-       ENDIF 
+    DO I = 1, nSpc 
 
-       ! Get pointer to 3D array, define time interval, and get diagnostics ID 
-       IF ( TendType == 1 ) THEN
-          Ptr3D => TendAdv(:,:,:,I)
-          cID   = 731000 + TendIds(I)
-       ELSEIF ( TendType == 2 ) THEN
-          Ptr3D => TendCnv(:,:,:,I) 
-          cID   = 732000 + TendIds(I)
-       ELSEIF ( TendType == 3 ) THEN
-          Ptr3D => TendChm(:,:,:,I) 
-          cID   = 733000 + TendIds(I)
-       ELSEIF ( TendType == 4 ) THEN
-          Ptr3D => TendTrb(:,:,:,I) 
-          cID   = 734000 + TendIds(I)
-       ELSEIF ( TendType == 5 ) THEN
-          Ptr3D => TendSfc(:,:,:,I) 
-          cID   = 735000 + TendIds(I)
-       ELSEIF ( TendType == 6 ) THEN
-          Ptr3D => TendWet(:,:,:,I) 
-          cID   = 736000 + TendIds(I)
-       ENDIF
+       ! Skip if not used    
+       IF ( ThisTend%SpcInUse(I) <= 0 ) CYCLE
 
-       ! Error check: stage 2 must be called after stage 1
-       IF ( ALL ( Ptr3D == -999.0_f4 ) ) THEN
-          IF ( am_I_Root ) THEN
-             WRITE(*,*) 'Warning: cannot do tendency stage 2 - stage 1 not yet called: ', TendType
-          ENDIF
-          CYCLE
-       ENDIF
+       ! Name of diagnostics 
+       DiagnName = 'TEND_' // TRIM(ThisTend%TendName) // '_' //   &
+                   TRIM( Input_Opt%TRACER_NAME(I) )
+
+       ! Get pointer to 3D array, define time interval
+       Ptr3D => ThisTend%Tendency(I)%Arr 
 
        ! Calculate tendency in v/v/s
-       IF ( IsInvv ) THEN
-          Tend = ( State_Chm%Tracers(:,:,:,TendIds(I)) - Ptr3D(:,:,:) ) / DT
+       IF ( ZeroTend ) THEN
+          Tend = 0.0_f4
        ELSE
-          Tend = ( ( State_Chm%Tracers(:,:,:,TendIds(I))                &
-                   * Input_Opt%TCVV(TendIds(I)) / State_Met%AD(:,:,:) ) &
-                   - Ptr3D(:,:,:) ) / DT
+          IF ( IsInvv ) THEN
+             Tend = ( State_Chm%Tracers(:,:,:,I) - Ptr3D(:,:,:) ) / DT
+          ELSE
+             Tend = ( ( State_Chm%Tracers(:,:,:,I)                &
+                      * Input_Opt%TCVV(I) / State_Met%AD(:,:,:) ) &
+                      - Ptr3D(:,:,:) ) / DT
+          ENDIF
        ENDIF
 
        ! Update diagnostics array
-       CALL Diagn_Update( am_I_Root, cID=cID, Array3D=Tend, &
-                          COL=Input_Opt%DIAG_COLLECTION, RC=RC )
+       CALL Diagn_Update( am_I_Root, cName=DiagnName, Array3D=Tend, &
+                          COL=Input_Opt%DIAG_COLLECTION, RC=RC       )
        IF ( RC /= HCO_SUCCESS ) THEN 
           WRITE(MSG,*) 'Error in updating diagnostics with ID ', cID
           CALL ERROR_STOP ( MSG, LOC )
@@ -452,47 +747,95 @@ CONTAINS
           RETURN
        ENDIF
 
-       ! Reset and cleanup
-       Ptr3D = -999.0_f4
+       ! Update values 
+       Ptr3D = Tend 
        Ptr3D => NULL()
 
     ENDDO !I
 
-  END SUBROUTINE Tendencies_Stage2
+    ! Update stage 
+    ThisTend%Stage = 2
+
+    ! Cleanup
+    ThisTend => NULL()
+
+  END SUBROUTINE Tend_Stage2
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Tendencies_Cleanup
+! !IROUTINE: Tend_Get
 !
-! !DESCRIPTION: Subroutine Tendencies\_Cleanup cleans up the tendencies module.
+! !DESCRIPTION: Subroutine Tend_Get returns the current tendency for the 
+! given tracer and tendency class. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tendencies_Cleanup
+  SUBROUTINE Tend_Get( am_I_Root, Input_Opt, TendName, TrcID, Stage, Tend, RC ) 
+!
+! !USES:
+!
+    USE CMN_SIZE_MOD,      ONLY : IIPAR, JJPAR, LLPAR
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+    TYPE(OptInput),   INTENT(IN   ) :: Input_Opt   ! Input opts
+    CHARACTER(LEN=*), INTENT(IN   ) :: TendName    ! tendency name 
+    INTEGER,          INTENT(IN   ) :: TrcID       ! Tracer ID 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(  OUT) :: Stage       ! Stage of tendency:
+                                                   ! 0=does not exist; 1=stage 1; 2=stage 2 
+    REAL(f4),         POINTER       :: Tend(:,:,:) ! Tendency array
+    INTEGER,          INTENT(OUT)   :: RC          ! Failure or success
 !
 ! !REVISION HISTORY: 
 !  14 Jul 2015 - C. Keller   - Initial version 
+!  26 Oct 2015 - C. Keller   - Update to include tendency classes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL                  :: FOUND
+    INTEGER                  :: cID, I
+    TYPE(TendClass), POINTER :: ThisTend => NULL()
+    CHARACTER(LEN=63)        :: DiagnName
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: LOC = 'TEND_GET (tendencies_mod.F)' 
+   
     !=======================================================================
-    ! TENDENCIES_CLEANUP begins here!
+    ! TEND_GET begins here!
     !=======================================================================
 
-    IF ( ALLOCATED( TendAdv ) ) DEALLOCATE( TendAdv )
-    IF ( ALLOCATED( TendCnv ) ) DEALLOCATE( TendCnv )
-    IF ( ALLOCATED( TendChm ) ) DEALLOCATE( TendChm )
-    IF ( ALLOCATED( TendTrb ) ) DEALLOCATE( TendTrb )
-    IF ( ALLOCATED( TendSfc ) ) DEALLOCATE( TendSfc )
-    IF ( ALLOCATED( TendWet ) ) DEALLOCATE( TendWet )
-    IF ( ALLOCATED( TendIds ) ) DEALLOCATE( TendIds )
+    ! Assume successful return
+    RC = GIGC_SUCCESS
 
-  END SUBROUTINE Tendencies_Cleanup
+    ! Init
+    Tend  => NULL()
+    Stage =  0
+
+    ! Find tendency class
+    CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend )
+    IF ( .NOT. FOUND .OR. .NOT. ASSOCIATED(ThisTend) ) RETURN
+
+    ! Skip if not used    
+    IF ( ThisTend%SpcInUse(TrcID) <= 0 ) RETURN 
+
+    ! Get pointer to tendency
+    Tend  => ThisTend%Tendency(TrcID)%Arr
+    Stage =  ThisTend%Stage
+
+    ! Cleanup
+    ThisTend => NULL()
+
+  END SUBROUTINE Tend_Get
 !EOC
 #endif
 END MODULE Tendencies_Mod
