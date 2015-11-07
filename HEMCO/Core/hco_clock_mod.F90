@@ -77,7 +77,6 @@ MODULE HCO_Clock_Mod
   PUBLIC :: HcoClock_NewHour
   PUBLIC :: HcoClock_First
   PUBLIC :: HcoClock_Rewind
-  PUBLIC :: HcoClock_GetMinResetFlag
   PUBLIC :: HcoClock_CalcDOY
   PUBLIC :: HcoClock_Increase
   PUBLIC :: HcoClock_EmissionsDone
@@ -103,15 +102,6 @@ MODULE HCO_Clock_Mod
 !
 ! !DEFINED PARAMETERS:
 !
-  ! Reset flags used by diagnostics. These are used to identify
-  ! the diagnostics that are at the end of their averaging interval.
-  INTEGER, PARAMETER, PUBLIC  :: ResetFlagManually = -1
-  INTEGER, PARAMETER, PUBLIC  :: ResetFlagEnd      =  0
-  INTEGER, PARAMETER, PUBLIC  :: ResetFlagAnnually =  1
-  INTEGER, PARAMETER, PUBLIC  :: ResetFlagMonthly  =  10
-  INTEGER, PARAMETER, PUBLIC  :: ResetFlagDaily    =  100
-  INTEGER, PARAMETER, PUBLIC  :: ResetFlagHourly   =  1000
-  INTEGER, PARAMETER, PUBLIC  :: ResetFlagAlways   =  10000
 !
 ! !PRIVATE TYPES:
 !
@@ -188,12 +178,6 @@ MODULE HCO_Clock_Mod
 !
   ! HcoClock is the variable for the HEMCO clock object 
   TYPE(HCO_Clock),    POINTER :: HcoClock => NULL()
-
-  ! Current minimum reset flag. This value will be reevaluated on 
-  ! every time step. If we enter a new month, for instance, it will
-  ! be set to ResetFlagMonthly, so that all diagnostics with a reset
-  ! flag equal or higher than this value will be written to disk.
-  INTEGER                     :: CurrMinResetFlag  = ResetFlagAlways + 1
 
   ! Midmonth days for a regular year.
   ! These can be used to obtain the mid-month day of the current month.
@@ -611,12 +595,6 @@ CONTAINS
        ! Update counter
        ! ----------------------------------------------------------------
        HcoClock%nSteps = HcoClock%nSteps + 1
-
-       ! ----------------------------------------------------------------
-       ! Update diagnostics reset flag
-       ! Needs to be done after updating the counter 
-       ! ----------------------------------------------------------------
-       CurrMinResetFlag = HcoClock_SetMinResetFlag()
 
     ENDIF !New time step
  
@@ -1298,9 +1276,6 @@ CONTAINS
     ENDIF
     HcoClock => NULL()
 
-    ! Reset current minimum reset flag to default (initial) value
-    CurrMinResetFlag  = ResetFlagAlways + 1
-
     ! Make sure TIMEZONES array does not point to any content any more.
     TIMEZONES => NULL()
 
@@ -1425,97 +1400,6 @@ CONTAINS
     END SELECT
 
   END FUNCTION Get_LastDayOfMonth
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HcoClock_SetMinResetFlag
-!
-! !DESCRIPTION: Function HcoClock\_SetMinResetFlag sets the minimum ResetFlag
-! for the current HEMCO time, as used by the HEMCO diagnostics. 
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION HcoClock_SetMinResetFlag() RESULT ( MinResetFlag ) 
-!
-! !RETURN VALUE:
-!
-    INTEGER :: MinResetFlag 
-!
-! !REVISION HISTORY: 
-!  13 Jan 2014 - C. Keller   - Initial version 
-!  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
-!  12 May 2015 - R. Yantosca - Bug fix: PGI expects routine name to end w/ ()
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    !-----------------------------------
-    ! HCOCLOCK_SETMINRESETFLAG begins here! 
-    !-----------------------------------
-
-    MinResetFlag = ResetFlagAlways
-
-    ! MinResetFlag is the smallest ResetFlag number that has to
-    ! be considered for the current time stamp. ResetFlag increases
-    ! with reset frequency (1 = annually, 2 = monthly, etc.), so 
-    ! if MinResetFlag is 2 (new month), all containers with 
-    ! ResetFlag 2, 3, and 4 (monthly, daily, hourly) should be 
-    ! considered.
-    IF ( HcoClock_First( .FALSE. ) ) THEN
-       ! MinResetFlag should be default on first HEMCO call! 
-    ELSEIF ( HcoClock_NewYear( .FALSE. ) ) THEN
-       MinResetFlag = ResetFlagAnnually 
-    ELSEIF ( HcoClock_NewMonth( .FALSE. ) ) THEN
-       MinResetFlag = ResetFlagMonthly
-    ELSEIF ( HcoClock_NewDay( .FALSE. ) ) THEN
-       MinResetFlag = ResetFlagDaily
-    ELSEIF ( HcoClock_NewHour( .FALSE. ) ) THEN
-       MinResetFlag = ResetFlagHourly
-    ENDIF
-
-  END FUNCTION HcoClock_SetMinResetFlag
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HcoClock_GetMinResetFlag
-!
-! !DESCRIPTION: Function HcoClock\_GetMinResetFlag returns the minimum 
-! ResetFlag for the current HEMCO time, as used by the HEMCO diagnostics. 
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION HcoClock_GetMinResetFlag() RESULT ( MinResetFlag ) 
-!
-! !RETURN VALUE:
-!
-    INTEGER :: MinResetFlag 
-!
-! !REVISION HISTORY: 
-!  13 Jan 2014 - C. Keller   - Initial version 
-!  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
-!  12 May 2015 - R. Yantosca - Bug fix: PGI expects routine name to end w/ ()
-
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    !-----------------------------------
-    ! HCOCLOCK_GETMINRESETFLAG begins here! 
-    !-----------------------------------
-
-    MinResetFlag = CurrMinResetFlag 
-
-  END FUNCTION HcoClock_GetMinResetFlag
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

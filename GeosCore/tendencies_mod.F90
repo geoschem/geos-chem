@@ -166,7 +166,7 @@ CONTAINS
     CHARACTER(LEN=255)       :: LOC = 'Tend_Init (tendencies_mod.F)' 
    
     ! Set this to .TRUE. to enable some test diagnostics
-    LOGICAL, PARAMETER       :: DoTend = .FALSE.
+    LOGICAL, PARAMETER       :: DoTend = .TRUE.
  
     !=======================================================================
     ! Tend_Init begins here!

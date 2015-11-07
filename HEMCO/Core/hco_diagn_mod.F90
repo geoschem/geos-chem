@@ -110,7 +110,7 @@ MODULE HCO_Diagn_Mod
 !
   USE HCO_Error_Mod
   USE HCO_Arr_Mod
-  USE HCO_Clock_Mod  ! Contains all the reset flags
+  USE HCO_Clock_Mod 
 
   IMPLICIT NONE
   PRIVATE
@@ -164,6 +164,9 @@ MODULE HCO_Diagn_Mod
 !  09 Jan 2015 - C. Keller   - Added diagnostics collections
 !  03 Apr 2015 - C. Keller   - Now tie output frequency to collection instead
 !                              of individual diagnostic containers.
+!  06 Nov 2015 - C. Keller   - Added argument OutTimeStamp to collection to 
+!                              control the file output time stamp (beginning, 
+!                              middle, end of diagnostics interval).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -215,9 +218,6 @@ MODULE HCO_Diagn_Mod
   ! AF_LevelDefined: Set to true if there is at least one autofill 
   !                  diagnostics at the given level (1-4).
   ! PREFIX         : Prefix to be used for diagnostics output file name.
-  ! WriteFreq      : Output write frequency
-  ! ResetFlag      : Reset flag of this collection. Will be determined 
-  !                  based on WriteFreq.
   ! NX, NY, NZ     : Grid dimensions.
   ! TS             : Time step. This is only of relevance for emission 
   !                  diagnostics that are internally converted from
@@ -231,8 +231,6 @@ MODULE HCO_Diagn_Mod
      LOGICAL                        :: AF_LevelDefined(4) =  .FALSE.
      INTEGER                        :: CollectionID       = -1
      CHARACTER(LEN=255)             :: PREFIX             =  ''
-     CHARACTER(LEN=31)              :: WriteFreq          = ''
-     INTEGER                        :: ResetFlag          =  ResetFlagManually 
      INTEGER                        :: NX                 =  0
      INTEGER                        :: NY                 =  0
      INTEGER                        :: NZ                 =  0
@@ -240,6 +238,7 @@ MODULE HCO_Diagn_Mod
      INTEGER                        :: deltaHMS           =  0
      INTEGER                        :: lastYMD            = -1
      INTEGER                        :: lastHMS            = -1
+     INTEGER                        :: OutTimeStamp       = -1
      REAL(sp)                       :: TS                 =  0       ! Time step
      REAL(hp),              POINTER :: AREA_M2(:,:)       => NULL()
      TYPE(DiagnCollection), POINTER :: NextCollection     => NULL()
@@ -268,6 +267,14 @@ MODULE HCO_Diagn_Mod
   INTEGER, PARAMETER             :: AvgFlagSum      = 2
   INTEGER, PARAMETER             :: AvgFlagCumulSum = 3
   INTEGER, PARAMETER             :: AvgFlagInst     = 4
+
+  ! Parameter for output time stamp. This is the time stamp that will be used
+  ! on the output file. End means the simulation date at output time is used,
+  ! 'Mid' uses the midpoint of the diagnostics windows, 'Start' uses the 
+  ! beginning of the window. 
+  INTEGER, PARAMETER, PUBLIC     :: HcoDiagnStart   = 1
+  INTEGER, PARAMETER, PUBLIC     :: HcoDiagnMid     = 2
+  INTEGER, PARAMETER, PUBLIC     :: HcoDiagnEnd     = 3
 
 CONTAINS
 !EOC
@@ -378,6 +385,7 @@ CONTAINS
     USE HCO_STATE_MOD,   ONLY : HCO_State
     USE HCO_ExtList_Mod, ONLY : GetExtOpt
     USE HCO_ExtList_Mod, ONLY : CoreNr 
+    USE CHARPAK_MOD,     ONLY : TRANLC
 !
 ! !INPUT PARAMETERS:
 !
@@ -392,6 +400,7 @@ CONTAINS
 !  03 Apr 2015 - C. Keller   - Initial version 
 !  10 Apr 2015 - C. Keller   - Now create diagnostics based on entries 
 !                              in the HEMCO diagnostics definition file.
+!  06 Nov 2015 - C. Keller   - Added OutTimeStamp.
 !EOP
 !-----------------------------------------------------------------------
 !BOC
@@ -400,8 +409,9 @@ CONTAINS
 !
     INTEGER             :: CollectionID
     INTEGER             :: deltaYMD, deltaHMS 
+    INTEGER             :: OutTimeStamp
     LOGICAL             :: FOUND
-    CHARACTER(LEN=255)  :: LOC, DiagnPrefix
+    CHARACTER(LEN=255)  :: MSG, LOC, DiagnPrefix, OutTimeStampChar 
 
     !=================================================================
     ! HCODIAGN_INIT begins here!
@@ -424,17 +434,43 @@ CONTAINS
        DiagnPrefix = 'HEMCO_Diagnostics'
     ENDIF
 
-    CALL DiagnCollection_Create( am_I_Root,                             &
-                                 NX        = HcoState%NX,               &
-                                 NY        = HcoState%NY,               &
-                                 NZ        = HcoState%NZ,               &
-                                 TS        = HcoState%TS_EMIS,          &
-                                 AM2       = HcoState%Grid%AREA_M2%Val, &
-                                 COL       = CollectionID,              & 
-                                 PREFIX    = TRIM(DiagnPrefix),         &
-                                 deltaYMD  = deltaYMD,                  & 
-                                 deltaHMS  = deltaHMS,                  & 
-                                 RC        = RC                          )
+    ! Output time stamp location
+    CALL GetExtOpt ( CoreNr, 'DiagnTimeStamp', OptValChar=OutTimeStampChar, &
+                     FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND ) THEN
+       OutTimeStamp = HcoDiagnEnd
+    ELSE
+       CALL TRANLC( OutTimeStampChar )
+       IF (     TRIM(OutTimeStampChar) == 'start' ) THEN
+          OutTimeStamp = HcoDiagnStart
+
+       ELSEIF ( TRIM(OutTimeStampChar) == 'mid'   ) THEN
+          OutTimeStamp = HcoDiagnMid
+
+       ELSEIF ( TRIM(OutTimeStampChar) == 'end'   ) THEN
+          OutTimeStamp = HcoDiagnEnd
+
+       ELSE
+          WRITE(MSG,*) 'Unrecognized output time stamp location: ', &
+             TRIM(OutTimeStampChar), ' - will use default (end)'
+          CALL HCO_WARNING(MSG,RC,THISLOC=LOC,WARNLEV=1)
+          OutTimeStamp = HcoDiagnEnd
+       ENDIF 
+    ENDIF
+
+    CALL DiagnCollection_Create( am_I_Root,                                &
+                                 NX           = HcoState%NX,               &
+                                 NY           = HcoState%NY,               &
+                                 NZ           = HcoState%NZ,               &
+                                 TS           = HcoState%TS_EMIS,          &
+                                 AM2          = HcoState%Grid%AREA_M2%Val, &
+                                 COL          = CollectionID,              & 
+                                 PREFIX       = TRIM(DiagnPrefix),         &
+                                 deltaYMD     = deltaYMD,                  & 
+                                 deltaHMS     = deltaHMS,                  & 
+                                 OutTimeStamp = OutTimeStamp,              & 
+                                 RC           = RC                          )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Pass this collection ID to fixed variable for easy further 
@@ -451,17 +487,18 @@ CONTAINS
     deltaYMD = 99999999
     deltaHMS = 999999
 #endif
-    CALL DiagnCollection_Create( am_I_Root,                             &
-                                 NX        = HcoState%NX,               &
-                                 NY        = HcoState%NY,               &
-                                 NZ        = HcoState%NZ,               &
-                                 TS        = HcoState%TS_EMIS,          &
-                                 AM2       = HcoState%Grid%AREA_M2%Val, &
-                                 COL       = CollectionID,              & 
-                                 PREFIX    = 'HEMCO_restart',           &
-                                 deltaYMD  = deltaYMD,                  & 
-                                 deltaHMS  = deltaHMS,                  & 
-                                 RC        = RC                          )
+    CALL DiagnCollection_Create( am_I_Root,                                &
+                                 NX           = HcoState%NX,               &
+                                 NY           = HcoState%NY,               &
+                                 NZ           = HcoState%NZ,               &
+                                 TS           = HcoState%TS_EMIS,          &
+                                 AM2          = HcoState%Grid%AREA_M2%Val, &
+                                 COL          = CollectionID,              & 
+                                 PREFIX       = 'HEMCO_restart',           &
+                                 deltaYMD     = deltaYMD,                  & 
+                                 deltaHMS     = deltaHMS,                  & 
+                                 OutTimeStamp = HcoDiagnEnd,               & 
+                                 RC           = RC                          )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Pass this collection ID to fixed variable for easy further 
@@ -1377,7 +1414,7 @@ CONTAINS
     INTEGER                        :: DgncID,  DgnExtNr, DgnCat
     INTEGER                        :: iHier,   iExt,     iCat
     INTEGER                        :: DgnHier, DgnHcoID
-    INTEGER                        :: MinResetFlag, ThisUpdateID
+    INTEGER                        :: ThisUpdateID
     INTEGER                        :: AutoFlag
     INTEGER                        :: CNT
     INTEGER                        :: MnDgnLev, OrigDgnLev, ThisDgnLev 
@@ -1430,8 +1467,7 @@ CONTAINS
     IF ( PRESENT(PosOnly ) ) OnlyPos  = PosOnly
     IF ( PRESENT(AutoFill) ) AutoFlag = AutoFill
 
-    ! Get current minimum reset flag as well as the update time ID.
-    MinResetFlag = HcoClock_GetMinResetFlag()
+    ! Get the update time ID.
     CALL HcoClock_Get( nSteps = ThisUpdateID, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1462,7 +1498,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Get maximum reset flag
+    ! Set diagnostics level
     IF ( PRESENT(MinDiagnLev) ) THEN
        MnDgnLev = MinDiagnLev
     ELSE
@@ -1536,23 +1572,6 @@ CONTAINS
           IsNewTS = .TRUE.
           IF ( ThisDiagn%LastUpdateID == ThisUpdateID ) IsNewTS = .FALSE. 
    
-          !----------------------------------------------------------------------
-          ! Sanity check: if data is beyond its averaging interval, it should
-          ! be in output format. Otherwise, the content of this diagnostics has 
-          ! never been passed to the output yet (via routine Diagn\_Get) and 
-          ! will thus be lost!
-          !----------------------------------------------------------------------
-          !IF ( (ThisDiagn%ResetFlag >= MinResetFlag) &
-          IF ( (ThisColl%ResetFlag >= MinResetFlag) &
-               .AND. .NOT. ThisDiagn%IsOutFormat     &
-               .AND.      (ThisDiagn%Counter > 0)    &
-               .AND.       IsNewTS                    ) THEN
-             MSG = 'Diagnostics is at end of its output interval '    // &
-                   'but was not passed to output - data may be lost ' // &
-                   'or diagnostics may be wrong: ' // TRIM(ThisDiagn%cName)
-             CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
-          ENDIF
- 
           !----------------------------------------------------------------------
           ! If data is in output format, set counter to zero. This will make
           ! sure that the new data is not added to the existing data.
@@ -1918,7 +1937,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     TYPE(DiagnCollection), POINTER :: ThisColl => NULL()
-!    INTEGER                        :: MinResetFlag
     INTEGER                        :: PS, AF
     LOGICAL                        :: TimeToWrite
     LOGICAL                        :: FOUND, CF
@@ -1944,24 +1962,6 @@ CONTAINS
     ! Check if diagnostics with counter = 0 shall be skipped
     SKIPZERO = .FALSE.
     IF ( PRESENT(SkipZeroCount) ) SKIPZERO = SkipZeroCount
-
-!    ! Get minimum reset flag for current time. Set reset flag to -1 if
-!    ! EndOFIntvOnly flag is disabled. This will make sure that all 
-!    ! diagnostics are considered.
-!    IF ( .NOT. EndOfIntvOnly ) THEN
-!       MinResetFlag = ResetFlagManually
-!    ELSE
-!       MinResetFlag = HcoClock_GetMinResetFlag()
-!    ENDIF
-!
-!    ! If current time stamp is not at the end of an interval - or if 
-!    ! there is no diagnostics container in the list with a reset flag 
-!    ! smaller or equal to MinResetFlag - there will be no matching 
-!    ! container whatsoever. Can leave right here.
-!    IF ( MinResetFlag > ThisColl%ResetFlag ) THEN
-!       DgnCont => NULL()
-!       RETURN
-!    ENDIF
 
     IF ( EndOfIntvOnly ) THEN
        TimeToWrite =  DiagnCollection_IsTimeToWrite( PS )
@@ -2278,10 +2278,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCollection_Get( COL,         InUse,     Prefix, WriteFreq, &
-                                  ResetFlag,   nnDiagn,   DeltaYMD,       &
-                                  LastYMD, DeltaHMS, LastHMS,         &
-                                  RC )
+  SUBROUTINE DiagnCollection_Get( COL,          InUse,    Prefix,            &
+                                  nnDiagn,      DeltaYMD,                    &
+                                  LastYMD,      DeltaHMS, LastHMS,           &
+                                  OutTimeStamp, RC                             )
 !
 ! !INPUT ARGUMENTS:
 !
@@ -2291,13 +2291,12 @@ CONTAINS
 !
     LOGICAL,          INTENT(OUT), OPTIONAL :: InUse 
     CHARACTER(LEN=*), INTENT(OUT), OPTIONAL :: Prefix
-    CHARACTER(LEN=*), INTENT(OUT), OPTIONAL :: WriteFreq 
-    INTEGER,          INTENT(OUT), OPTIONAL :: ResetFlag 
     INTEGER,          INTENT(OUT), OPTIONAL :: nnDiagn 
     INTEGER,          INTENT(OUT), OPTIONAL :: DeltaYMD 
     INTEGER,          INTENT(OUT), OPTIONAL :: LastYMD 
     INTEGER,          INTENT(OUT), OPTIONAL :: DeltaHMS
     INTEGER,          INTENT(OUT), OPTIONAL :: LastHMS
+    INTEGER,          INTENT(OUT), OPTIONAL :: OutTimeStamp 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2320,15 +2319,14 @@ CONTAINS
     !======================================================================
 
     ! Init
-    IF ( PRESENT(Prefix   ) ) Prefix    = ''
-    IF ( PRESENT(WriteFreq) ) WriteFreq = ''
-    IF ( PRESENT(ResetFlag) ) ResetFlag = -999
-    IF ( PRESENT(InUse    ) ) InUse     = .FALSE. 
-    IF ( PRESENT(nnDiagn  ) ) nnDiagn   = 0 
-    IF ( PRESENT(DeltaYMD) ) DeltaYMD = 0 
-    IF ( PRESENT(LastYMD) ) LastYMD = -1 
-    IF ( PRESENT(DeltaHMS) ) DeltaHMS = 0 
-    IF ( PRESENT(LastHMS) ) LastHMS = -1 
+    IF ( PRESENT(Prefix      ) ) Prefix       = ''
+    IF ( PRESENT(InUse       ) ) InUse        = .FALSE. 
+    IF ( PRESENT(nnDiagn     ) ) nnDiagn      = 0 
+    IF ( PRESENT(DeltaYMD    ) ) DeltaYMD     = 0 
+    IF ( PRESENT(LastYMD     ) ) LastYMD      = -1 
+    IF ( PRESENT(DeltaHMS    ) ) DeltaHMS     = 0 
+    IF ( PRESENT(LastHMS     ) ) LastHMS      = -1 
+    IF ( PRESENT(OutTimeStamp) ) OutTimeStamp = -1 
 
     ! Get collection number
     CALL DiagnCollection_DefineID( PS, RC, COL=COL, InUse=FOUND, ThisColl=ThisColl )
@@ -2340,27 +2338,13 @@ CONTAINS
 
     ! Get variables from collection 
     IF ( FOUND ) THEN
-       IF ( PRESENT(Prefix) ) THEN
-          Prefix = ThisColl%PREFIX
-       ENDIF
-   
-       IF ( PRESENT(WriteFreq) ) THEN
-          WriteFreq = ThisColl%WriteFreq
-       ENDIF
-   
-       IF ( PRESENT(ResetFlag) ) THEN
-          ResetFlag = ThisColl%ResetFlag
-       ENDIF
-
-       IF ( PRESENT(nnDiagn) ) THEN
-          nnDiagn = ThisColl%nnDiagn
-       ENDIF
-
-       IF ( PRESENT(DeltaYMD) ) DeltaYMD = ThisColl%DeltaYMD
-       IF ( PRESENT(LastYMD) ) LastYMD = ThisColl%LastYMD
-       IF ( PRESENT(DeltaHMS  ) ) DeltaHMS   = ThisColl%DeltaHMS  
-       IF ( PRESENT(LastHMS  ) ) LastHMS   = ThisColl%LastHMS  
-          
+       IF ( PRESENT(Prefix       ) ) Prefix       = ThisColl%PREFIX
+       IF ( PRESENT(nnDiagn      ) ) nnDiagn      = ThisColl%nnDiagn
+       IF ( PRESENT(DeltaYMD     ) ) DeltaYMD     = ThisColl%DeltaYMD
+       IF ( PRESENT(LastYMD      ) ) LastYMD      = ThisColl%LastYMD
+       IF ( PRESENT(DeltaHMS     ) ) DeltaHMS     = ThisColl%DeltaHMS  
+       IF ( PRESENT(LastHMS      ) ) LastHMS      = ThisColl%LastHMS  
+       IF ( PRESENT(OutTimeStamp ) ) OutTimeStamp = ThisColl%OutTimestamp
     ENDIF
    
     ! Cleanup
@@ -3209,7 +3193,6 @@ CONTAINS
 !
     TYPE(DiagnCollection), POINTER    :: ThisColl => NULL()
     CHARACTER(LEN=255)                :: MSG 
-    CHARACTER(LEN= 31)                :: WriteFreq 
     INTEGER                           :: RC, PS, nx, ny, nz
     REAL(sp)                          :: sm
 
@@ -3248,9 +3231,6 @@ CONTAINS
     ! Eventually add details
     IF ( HCO_IsVerb( VerbNr ) ) THEN
 
-       ! Write frequency
-       WriteFreq = ThisColl%WriteFreq
-
        ! General information
        WRITE(MSG,*) '   --> Collection         : ', Dgn%CollectionID
        CALL HCO_MSG(MSG)
@@ -3273,8 +3253,6 @@ CONTAINS
        WRITE(MSG,*) '   --> Output unit        : ', TRIM(Dgn%OutUnit)
        CALL HCO_MSG(MSG)
        WRITE(MSG,*) '   --> Uniform scaling    : ', Dgn%ScaleFact
-       CALL HCO_MSG(MSG)
-       WRITE(MSG,*) '   --> Write frequency    : ', TRIM(WriteFreq)
        CALL HCO_MSG(MSG)
        WRITE(MSG,*) '   --> Current array sum  : ', sm
        CALL HCO_MSG(MSG)
@@ -3304,25 +3282,26 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCollection_Create ( am_I_Root, NX,      NY, NZ,    &
-                                      TS,   AM2, PREFIX,  WriteFreq, &
-                                      deltaYMD, deltaHMS, RC, COL )
+  SUBROUTINE DiagnCollection_Create ( am_I_Root, NX,      NY, NZ,       &
+                                      TS,   AM2, PREFIX,                &
+                                      deltaYMD, deltaHMS, OutTimeStamp, &
+                                      RC,       COL )
 !
 ! !USES:
 !
 !
 ! !INPUT ARGUMENTS:
 !
-    LOGICAL,            INTENT(IN)           :: am_I_Root  ! Root CPU?
-    INTEGER,            INTENT(IN)           :: NX         ! # of lons
-    INTEGER,            INTENT(IN)           :: NY         ! # of lats
-    INTEGER,            INTENT(IN)           :: NZ         ! # of levels
-    REAL(sp),           INTENT(IN)           :: TS         ! timestep [s] 
-    REAL(hp),           POINTER              :: AM2(:,:)   ! grid box areas [m2]
-    CHARACTER(LEN=*),   INTENT(IN)           :: PREFIX     ! Output prefix
-    CHARACTER(LEN=*),   INTENT(IN), OPTIONAL :: WriteFreq  ! Output frequency 
-    INTEGER,            INTENT(IN), OPTIONAL :: deltaYMD   ! Output frequency
-    INTEGER,            INTENT(IN), OPTIONAL :: deltaHMS   ! Output frequency
+    LOGICAL,            INTENT(IN)           :: am_I_Root    ! Root CPU?
+    INTEGER,            INTENT(IN)           :: NX           ! # of lons
+    INTEGER,            INTENT(IN)           :: NY           ! # of lats
+    INTEGER,            INTENT(IN)           :: NZ           ! # of levels
+    REAL(sp),           INTENT(IN)           :: TS           ! timestep [s] 
+    REAL(hp),           POINTER              :: AM2(:,:)     ! grid box areas [m2]
+    CHARACTER(LEN=*),   INTENT(IN)           :: PREFIX       ! Output prefix
+    INTEGER,            INTENT(IN), OPTIONAL :: deltaYMD     ! Output frequency
+    INTEGER,            INTENT(IN), OPTIONAL :: deltaHMS     ! Output frequency
+    INTEGER,            INTENT(IN), OPTIONAL :: OutTimeStamp ! Output time stamp 
 !
 ! !OUTPUT ARGUMENTS:
 !
@@ -3333,7 +3312,8 @@ CONTAINS
     INTEGER,            INTENT(INOUT)        :: RC         ! Return code
 !
 ! !REVISION HISTORY:
-!  08 Jan 2015 - C. Keller - Initial version
+!  08 Jan 2015 - C. Keller   - Initial version
+!  06 Nov 2015 - C. Keller   - Added OutTimeStamp.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3362,45 +3342,6 @@ CONTAINS
     ! Set prefix
     NewCollection%PREFIX = TRIM(PREFIX)
 
-!    ! Determine output frequency
-!    IF ( TRIM(WriteFreq) == 'Annually' ) THEN
-!       NewCollection%ResetFlag = ResetFlagAnnually 
-!
-!    ! Write out every month
-!    ELSEIF ( TRIM(WriteFreq) == 'Monthly' ) THEN
-!       NewCollection%ResetFlag = ResetFlagMonthly
-!         
-!    ! Write out every day
-!    ELSEIF ( TRIM(WriteFreq) == 'Daily' ) THEN
-!       NewCollection%ResetFlag = ResetFlagDaily
-!
-!    ! Write out every hour
-!    ELSEIF ( TRIM(WriteFreq) == 'Hourly' ) THEN
-!       NewCollection%ResetFlag = ResetFlagHourly
-!
-!    ! Write out all the time 
-!!    ELSEIF ( TRIM(WriteFreq) == 'Always' ) THEN
-!       NewCollection%ResetFlag = ResetFlagAlways
-!
-!    ! Write out only at end of simulation
-!    ELSEIF ( TRIM(WriteFreq) == 'End' ) THEN
-!       NewCollection%ResetFlag = ResetFlagEnd
-!
-!    ! Manually write out.
-!    ELSEIF ( TRIM(WriteFreq) == 'Manual' ) THEN
-!       NewCollection%ResetFlag = ResetFlagManually
-!
-!    ! Error otherwise
-!    ELSE
-!       MSG = 'Illegal averaging interval: ' // TRIM(WriteFreq) // &
-!             ' - cannot create diagnostics ' // TRIM(NewCollection%PREFIX)
-!       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-!       RETURN
-!    ENDIF
-!    NewCollection%WriteFreq = TRIM(WriteFreq)
-    NewCollection%WriteFreq = 'Dummy'
-    NewCollection%ResetFlag = -999
-
     ! Add to collections list. Put at the beginning
     NewCollection%NextCollection => Collections
     Collections                  => NewCollection
@@ -3414,6 +3355,25 @@ CONTAINS
     IF ( PRESENT(DeltaYMD ) ) NewCollection%DeltaYMD = DeltaYMD
     IF ( PRESENT(DeltaHMS ) ) NewCollection%DeltaHMS = DeltaHMS
 
+    ! Determine output time stamp
+    IF ( PRESENT(OutTimeStamp) ) THEN
+       ! Make sure it's one of the valid values
+       IF ( OutTimeStamp == HcoDiagnStart .OR. &
+            OutTimeStamp == HcoDiagnMid   .OR. &
+            OutTimeStamp == HcoDiagnEnd         ) THEN
+          NewCollection%OutTimeStamp = OutTimeStamp
+       ELSE
+          WRITE(MSG,*) 'Error when creating diagnostics collection ',    &
+             TRIM(NewCollection%PREFIX), ' the specified output time ',  &
+             'stamp of ', OutTimeStamp, ' is invalid, must be one of: ', &
+             HcoDiagnStart, HcoDiagnMid, HcoDiagnEnd
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+    ELSE
+       NewCollection%OutTimeStamp = HcoDiagnEnd
+    ENDIF
+
     ! verbose
     IF ( HCO_IsVerb( 1 ) ) THEN
        MSG = 'Created diagnostics collection: '
@@ -3422,7 +3382,8 @@ CONTAINS
        CALL HCO_MSG(MSG)
        WRITE(MSG,'(a21,a)' ) ' - PREFIX         : ', TRIM(NewCollection%PREFIX)
        CALL HCO_MSG(MSG)
-       WRITE(MSG,'(a21,a)' ) ' - Output interval: ', TRIM(NewCollection%WriteFreq)
+       WRITE(MSG,'(a21,i8,a1,i6)' ) ' - Output interval: ', NewCollection%DeltaYMD, &
+                                    ' ',                    NewCollection%DeltaHMS
        CALL HCO_MSG(MSG)
     ENDIF
 
