@@ -80,6 +80,7 @@ MODULE HCO_Clock_Mod
   PUBLIC :: HcoClock_CalcDOY
   PUBLIC :: HcoClock_Increase
   PUBLIC :: HcoClock_EmissionsDone
+  PUBLIC :: Get_LastDayOfMonth 
 !
 ! !REMARKS:
 !  The current local time implementation assumes a regular grid,

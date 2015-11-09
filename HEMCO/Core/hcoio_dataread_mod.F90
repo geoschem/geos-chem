@@ -3622,6 +3622,7 @@ CONTAINS
     USE HCO_TIDX_MOD,         ONLY : tIDx_IsInRange 
     USE HCO_CHARTOOLS_MOD,    ONLY : HCO_CharParse
     USE HCO_CLOCK_MOD,        ONLY : HcoClock_Get
+    USE HCO_CLOCK_MOD,        ONLY : Get_LastDayOfMonth
 !
 ! !INPUT PARAMETERS:
 !
@@ -3645,6 +3646,7 @@ CONTAINS
 !  01 Oct 2014 - C. Keller - Initial version
 !  23 Feb 2015 - C. Keller - Now check for negative return values in
 !                            HCO_GetPrefTimeAttr 
+!  06 Nov 2015 - C. Keller - Bug fix: restrict day to last day of month.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3859,6 +3861,9 @@ CONTAINS
                 prefMt = 1 
                 prefYr = prefYr + 1
              ENDIF
+
+             ! Make sure day does not exceed max. number of days in this month
+             prefDy = MIN( prefDy, Get_LastDayOfMonth( prefMt, prefYr ) )
  
              ! Mirror original file          
              srcFile = Lct%Dct%Dta%ncFile
