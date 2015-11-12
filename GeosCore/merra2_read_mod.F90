@@ -105,9 +105,6 @@ CONTAINS
     resString = '1x1.nc4'
 
 #elif defined( GRID05x0666 )
-    resString = '05x0625.nc4'
-
-#elif defined( GRID05x0666 )
     resString = '05x0666.nc4'
 
 #elif defined( GRID05x0625 ) && defined( NESTED_CH )

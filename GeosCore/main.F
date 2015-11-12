@@ -2019,6 +2019,12 @@
      &    '   S T A R T I N G   0.5 x 0.666   G E O S -- C H E M   ' //
      &    REPEAT( '*', 13 )
 
+#elif defined( GRID05x0625 )
+      WRITE( 6, '(a)' ) 
+     &    REPEAT( '*', 13 )                                          // 
+     &    '   S T A R T I N G   0.5 x 0.625   G E O S -- C H E M   ' //
+     &    REPEAT( '*', 13 )
+
 #elif defined( GRID025x03125 )
       WRITE( 6, '(a)' ) 
      &    REPEAT( '*', 13 )                                          // 

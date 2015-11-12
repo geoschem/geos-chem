@@ -1407,7 +1407,7 @@ c     --------------------------------------
 #if   defined( GRID025x03125 )
         dl    = 2.0e+0_fp * PI /1152e+0_fp
         dp    = PI /720e+0_fp
-#elif defined( GEOS05x0625 )
+#elif defined( GRID05x0625 )
         dl    = 2.0e+0_fp * PI /576e+0_fp
         dp    = PI /360e+0_fp
 #elif defined( GRID05x0666 )

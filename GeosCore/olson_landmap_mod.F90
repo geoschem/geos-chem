@@ -272,7 +272,7 @@ CONTAINS
 ! that are too far away from the GEOS-CHEM GRID BOX.  This can speed up
 ! the Olson computation by a factor of 100 or more!
 !
-#if defined( GRID05x0666 ) || defined( GRID025x03125 )
+#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125 )
     REAL(fp), PARAMETER :: latThresh = 1e+0_fp   ! Lat threshold, nested grid
     REAL(fp), PARAMETER :: lonThresh = 1e+0_fp   ! Lon threshold, nested grid
 #else
