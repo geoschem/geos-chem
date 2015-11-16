@@ -274,8 +274,7 @@
 !  02 Jul 2013 - R. Yantosca - Bug fix: add State_Chm to WETDEP calls for
 !                              met other than MERRA, GEOS-5.7 or GEOS-5
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  08 Aug 2015 - E. Lundgren - Tracer units are now input as [kg/kg] and ND39
-!                              has units [kg/m2/s] (previously [kg/s])
+!  08 Aug 2015 - E. Lundgren - Tracer units are now input as [kg/kg]
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
@@ -408,13 +407,13 @@
             ! Is this a tracer selected for diagnostics?
             IF ( ANY( Input_Opt%TINDEX(39,:) == N ) ) THEN
 
-               ! Loss rate [kg/m2/s] (previously kg/s)
-               ! Convert kg/kg/s to kg/m2/s so that the vertical
+               ! Loss rate [kg/s] (eventually will be kg/m2/s)
+               ! Convert kg/kg/s to kg/s so that the vertical
                ! sum makes physical sense (ewl, 8/14/15)
                TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N) )
      &                 * State_Met%DELP * 1.e+2_fp 
      &                 * ( 1.e+0_fp - 1.e-3_fp * State_Met%SPHU ) 
-     &                 / ( G0_100 * DT ) 
+     &                 / ( G0_100 * DT ) * State_Met%AREA_M2(I,J,1) 
 
                TMP2D = SUM(TMP3D,DIM=3)
 
@@ -4306,10 +4305,12 @@
          ENDIF
 
 #if !defined(NO_BPCH)
-         ! ND39 diag -- save rainout losses in [kg/m2/s]
+         ! ND39 diag -- save rainout losses in [kg/s] 
+         ! NOTE: eventually change this to kg/m2/s (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
+     &                       * State_Met%AREA_M2(I,J,1)
          ENDIF
 #endif
 
@@ -4800,10 +4801,13 @@
          ENDIF
 
 #if !defined(NO_BPCH)
-         ! ND39 diag -- save rainout losses in [kg/m2/s]
+         ! ND39 diag -- save rainout losses in [kg/s]
+         ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
+     &                       * State_Met%AREA_M2(I,J,1)
+
          ENDIF
 #endif
 
@@ -5053,10 +5057,13 @@
          !--------------------------------------------------------------
 
 #if !defined(NO_BPCH)
-         ! ND39 diag -- save rainout losses in [kg/m2s]
+         ! ND39 diag -- save rainout losses in [kg/s]
+         ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + ( WETLOSS / DT )
+     &                       * State_Met%AREA_M2(I,J,1)
+
          ENDIF
 #endif
 
@@ -5274,10 +5281,12 @@
          ENDIF
 
 #if !defined(NO_BPCH)
-         ! ND39 diag -- save washout loss in [kg/m2/s] 
+         ! ND39 diag -- save washout loss in [kg/s]
+         ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
+     &                       * State_Met%AREA_M2(I,J,1)
          ENDIF
 #endif
 
