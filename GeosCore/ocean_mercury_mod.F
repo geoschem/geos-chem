@@ -4337,8 +4337,8 @@
       REAL(fpp), DIMENSION(31) :: RSCF_05, RSCF_06, RSCF_07 
       REAL(fpp), DIMENSION(31) :: RSCF_08, RSCF_09, RSCF_10 
       REAL(fpp), DIMENSION(31) :: NSCF
-      REAL(fpp), DIMENSION(12) :: RIVERFLOW
-      REAL(fpp)                :: NPP_SCF
+!      REAL(fpp), DIMENSION(12) :: RIVERFLOW
+!      REAL(fpp)                :: NPP_SCF
 
       !=================================================================
       ! INIT_OCEAN_MERCURY begins here!
