@@ -2103,6 +2103,10 @@
 !                              (previously v/v)
 !  22 Jun 2015 - E. Lundgren - Move QB_NUM calculation to within timestep loop
 !  12 Aug 2015 - R. Yantosca - Treat MERRA2 in same way as we do for GEOS-FP
+!  14 Sep 2015 - E. Lundgren - Apply bug fixes provided by Viral Shah:
+!                              -- Prevent ALPHA > 1 in washout of aerosols 
+!                              -- Add tracer GAINED to Q before WETLOSS
+!                                 calculation in aerosol washout
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2719,12 +2723,47 @@
                      !   PDOWN is in units of [cm3/cm2/s]
                      !   Factor of 10 in denom for unit conversion
                      !     1000 kg/m3 * 0.01 m/cm = 10 kg/m2/cm
-                     ALPHA   = REEVAPCN(K) * BMASS(K)
-     &                           / ( PDOWN(K+1) * 10e+0_fp )
+                      
+!                    ! Prior to 9/14/15 - the value of ALPHA, which should be 
+!                    ! less than or equal to 1, is sometimes much higher than 
+!                    ! 1. Since ALPHA is used to calculate resuspension of 
+!                    ! precipitating mass from above, these high values of      
+!                    ! ALPHA lead to a gain in tracer mass at the lower levels 
+!                    ! in excess of what is coming from above (V. Shah, 9/14/15)
+!                    ALPHA   = REEVAPCN(K) * BMASS(K)
+!     &                          / ( PDOWN(K+1) * 10e+0_fp )
+!                    ! ALPHA2 is the fraction of the rained-out aerosols
+!                    ! that gets resuspended in grid box (I,J,L)
+!                    ALPHA2  = 0.5e+0_fp * ALPHA
 
-                     ! ALPHA2 is the fraction of the rained-out aerosols
-                     ! that gets resuspended in grid box (I,J,L)
-                     ALPHA2  = 0.5e+0_fp * ALPHA
+                     ! %%%% CASE 1 %%%%
+                     ! Partial re-evaporation. Less precip is leaving
+                     ! the grid box then entered from above (V. Shah, 9/14/15)
+                     IF ( PDOWN(K+1) > PDOWN(K) .AND.
+     &                    PDOWN(K)   > TINYNUM        ) THEN
+
+                        ! Define ALPHA, the fraction of raindrops that
+                        ! re-evaporate when falling from grid box
+                        ! (I,J,L+1) to (I,J,L)
+                        ALPHA = REEVAPCN(K) * BMASS(K)
+     &                          / ( PDOWN(K+1) * 10e+0_fp  )   
+
+                        ! For safety
+                        ALPHA = MIN( ALPHA, 1e+0_fp ) 
+
+                        ! ALPHA2 is the fraction of the rained-out aerosols
+                        ! that gets resuspended in grid box (I,J,L)
+                        ALPHA2  = 0.5e+0_fp * ALPHA
+
+                     ENDIF
+
+                     ! %%%% CASE 2 %%%%
+                     ! Total re-evaporation. Precip entered from above,
+                     ! but no precip is leaving grid box (ALPHA = 2 so
+                     ! that  ALPHA2 = 1) (V. Shah, 9/14/15)
+                     IF ( PDOWN(K) < TINYNUM ) THEN
+                        ALPHA2 = 1e+0_fp
+                     ENDIF
 
                      ! GAINED is the rained out aerosol coming down from 
                      ! grid box (I,J,L+1) that will evaporate and re-enter 
@@ -2732,7 +2771,13 @@
                      ! [kg tracer/m2/timestep]
                      GAINED  = T0_SUM * ALPHA2
 
-                     WETLOSS = Q(K,IC) * BMASS(K) * WASHFRAC - GAINED
+                     ! Amount of aerosol lost to washout in grid box [kg/m2]
+                     ! (V. Shah, 9/14/15)
+!                    ! Prior to 9/14/15 - the amount of tracer GAINED is 
+!                    ! (mistakenly) not added to Q before WETLOSS is calculated
+!                    !   WETLOSS = Q(K,IC) * BMASS(K) * WASHFRAC - GAINED
+                     WETLOSS = ( Q(K,IC) * BMASS(K) + GAINED ) *
+     &                         WASHFRAC - GAINED
 
                      ! LOST is the rained out aerosol coming down from
                      ! grid box (I,J,L+1) that will remain in the liquid

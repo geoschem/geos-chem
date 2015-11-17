@@ -1347,6 +1347,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!  23 Oct 2015 - E. Lundgren - Fix index for dust in ODAER/LUT arrays if UCX on
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1355,7 +1356,7 @@
 !
       LOGICAL             :: LINTERP
       INTEGER             :: I, J, JLOOP, L, N, NOUT, W
-      INTEGER             :: IWV, IIWV, NWVS
+      INTEGER             :: IWV, IIWV, NWVS, IDST
       INTEGER, SAVE       :: MONTH_LAST = -999
       LOGICAL, SAVE       :: DO_DIAG = .FALSE.
       REAL(f4)            :: TEMP(IIPAR,JJPAR,LGLOB)
@@ -1372,10 +1373,16 @@
 
       !=================================================================
       ! RDUST begins here!
-      !
+      !=================================================================
+
+      ! Index for dust in ODAER and LUT arrays
+      IDST      = 6 
+#if defined( UCX )
+      IDST      = 8
+#endif
+
       ! Read aerosol data from the binary punch file during the first 
       ! chemistry timestep and, after that, at the start of each month.
-      !=================================================================
       IF ( THISMONTH /= MONTH_LAST .or. DO_DIAG ) THEN
          
          ! Get TAU0 value used to index the punch file
@@ -1495,8 +1502,9 @@
             ! dust stored in the 6th species bin of LUT variables
             ODMDUST(I,J,L,IWV,N) = 0.75e+0_fp *
      &                             State_Met%BXHEIGHT(I,J,L) *
-     &                             DUST(I,J,L,N) * QQAA(IWV,N,6)  /
-     &                           ( MSDENS(N) * RDAA(N,6) * 1.0e-6_fp )
+     &                             DUST(I,J,L,N) * QQAA(IWV,N,IDST)  /
+     &                           ( MSDENS(N) * RDAA(N,IDST) * 
+     &                             1.0e-6_fp )
 
 #if defined ( RRTMG )
             !add dust optics to the RT code arrays
@@ -1504,8 +1512,8 @@
             !will keep this way for uniformity for now but
             !possibly could deal with SSA and ASYM in RT module
             RTODAER(I,J,L,IWV,NAER+4+N) = ODMDUST(I,J,L,IWV,N)
-            RTSSAER(I,J,L,IWV,NAER+4+N) = SSAA(IWV,N,6)
-            RTASYMAER(I,J,L,IWV,NAER+4+N) = ASYMAA(IWV,N,6)
+            RTSSAER(I,J,L,IWV,NAER+4+N) = SSAA(IWV,N,IDST)
+            RTASYMAER(I,J,L,IWV,NAER+4+N) = ASYMAA(IWV,N,IDST)
 #endif
 
          ENDDO

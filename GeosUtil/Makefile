@@ -169,7 +169,7 @@ bpch2_mod.o       : bpch2_mod.F           \
 charpak_mod.o     : charpak_mod.F
 
 error_mod.o       : error_mod.F           \
-                    geos_timers.o
+                    geos_timers_mod.o
 
 file_mod.o        : file_mod.F            \
                     error_mod.o
@@ -206,7 +206,7 @@ transfer_mod.o    : transfer_mod.F        \
 unitconv_mod.o	  : unitconv_mod.F90      \
                     error_mod.o
 
-geos_timers.o     : geos_timers.F         
+geos_timers_mod.o : geos_timers_mod.F
 
 #%%% NOTE: THIS IS NOW OBSOLETE, WE SHOULD REMOVE IT %%% 
 # NOTE: if HDF5=yes then we need to also look for the hdf5.mod 

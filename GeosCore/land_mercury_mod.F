@@ -634,10 +634,22 @@
             DRYSOIL_HG = DRYSOIL_PREIND_HG * EHg0_dist(I,J)           
 
             ! Soil emissions, ng /m2 /h
+            ! NOTE: State_Met%RADSWG is net radiation at ground for all
+            ! MET fields except GEOS-FP and MERRA2. For those data sets,
+            ! net radiation was not processed and therefore we use
+            ! incident radiation at ground. We split them up below for
+            ! clarity, using the new SWGDN field for incident radiation.
+            ! SWGDN is also available for MERRA but we do not use it
+            ! here to preserve the legacy method (ewl, 9/23/15)
+#if defined( GEOS_FP ) || defined( MERRA2 )
+            SOIL_EMIS = 
+     &           EXP( 0.0011 * State_Met%SWGDN(I,J) * LIGHTFRAC ) *
+     &           DRYSOIL_HG * SOIL_EMIS_FAC
+#else
             SOIL_EMIS = 
      &           EXP( 0.0011 * State_Met%RADSWG(I,J) * LIGHTFRAC ) *
      &           DRYSOIL_HG * SOIL_EMIS_FAC
-     
+#endif     
             ! Grid box surface area [m2]
             AREA_M2   = GET_AREA_M2( I, J, 1 )
  
@@ -805,11 +817,13 @@
          ! flux is available for GMAO but is not stored globally 
          ! (ewl, 8/26/15)
 ! KLUDGE: can't get SWGDN in State_Met; add this later (jaf)
-!#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-!         SWRAD = State_Met%SWGDN(I,J)
-!#else       
+! Use incident radiation at ground (State_Met%SWGDN) where available. 
+! Otherwise, use net radiation at ground (State_Met%RADSWG)
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+         SWRAD = State_Met%SWGDN(I,J)
+#else       
          SWRAD = State_Met%RADSWG(I,J)
-!#endif
+#endif
 ! END KLUDGE
 
          ! Compute K_EMIT

@@ -1844,13 +1844,11 @@
          J2_BC_NA = 39                       ! 4x5  lat index, UR corner
 
 #elif defined( MERRA2 )
-         !%%%%% NOTE: These are placeholder values 
-         !%%%%% We will need to update these accordingly! (bmy, 8/12/15)
-         !%%%%% 4x5 BC REGION FOR NORTH AMERICA NESTED GRID (GEOS_FP)
-         I1_BC_NA = 11                       ! 4x5  lon index, LL corner
+         !%%%%% 4x5 BC REGION FOR NORTH AMERICA NESTED GRID (MERRA2)
+         I1_BC_NA = 9                        ! 4x5  lon index, LL corner
          J1_BC_NA = 26                       ! 4x5  lat index, LL corner
-         I2_BC_NA = 25                       ! 4x5  lon index, UR corner
-         J2_BC_NA = 39                       ! 4x5  lat index, UR corner
+         I2_BC_NA = 29                       ! 4x5  lon index, UR corner
+         J2_BC_NA = 41                       ! 4x5  lat index, UR corner
 
 #else
          !%%%%% 4x5 BC REGION FOR NORTH AMERICA NESTED GRID %%%%%
@@ -1874,13 +1872,11 @@
          J2_BC_NA = 76                       ! 2x25 lat index, UR corner
 
 #elif defined( MERRA2 )
-         !%%%%% NOTE: These are placeholder values 
-         !%%%%% We will need to update these accordingly! (bmy, 8/12/15)
-         !%%%%% 2x25 BC REGION FOR NORTH AMERICA NESTED GRID (GEOS_FP)
-         I1_BC_NA = 21                       ! 2x25 lon index, LL corner
+         !%%%%% 2x25 BC REGION FOR NORTH AMERICA NESTED GRID (MERRA2)
+         I1_BC_NA = 17                       ! 2x25 lon index, LL corner
          J1_BC_NA = 51                       ! 2x25 lat index, LL corner
-         I2_BC_NA = 49                       ! 2x25 lon index, UR corner
-         J2_BC_NA = 76                       ! 2x25 lat index, UR corner
+         I2_BC_NA = 57                       ! 2x25 lon index, UR corner
+         J2_BC_NA = 81                       ! 2x25 lat index, UR corner
 
 #else
          !%%%%% 2x25 BC REGION FOR NORTH AMERICA NESTED GRID %%%%%
@@ -1952,13 +1948,11 @@
          J2_BC_CH = 37                       ! 4x5 lat index, UR corner
 
 #elif defined( MERRA2 )
-         !%%%%% NOTE: THESE ARE PLACEHOLDER VALUES! %%%%%
-         !%%%%% Need to update these accordingly (bmy, 8/12/15)
          !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
          !%%%%% NESTED CHINA GRID (MERRA2 only)        %%%%%
-         I1_BC_CH = 51                       ! 4x5 lon index, LL corner
-         J1_BC_CH = 27                       ! 4x5 lat index, LL corner
-         I2_BC_CH = 65                       ! 4x5 lon index, UR corner
+         I1_BC_CH = 49                       ! 4x5 lon index, LL corner
+         J1_BC_CH = 21                       ! 4x5 lat index, LL corner
+         I2_BC_CH = 67                       ! 4x5 lon index, UR corner
          J2_BC_CH = 37                       ! 4x5 lat index, UR corner
 
 #else
@@ -1989,13 +1983,11 @@
 
 #elif defined( MERRA2 )
 
-         !%%%%% NOTE: THESE ARE PLACEHOLDER VALUES! 
-         !%%%%% Need to update these accordingly (bmy, 8/12/15)
          !%%%%% 2x25 BC REGION FOR "GEOS-Chem CLASSIC" %%%%%
-         !%%%%% NESTED CHINA GRID (GEOS-FP only)       %%%%%
-         I1_BC_CH = 101                      ! 2x25 lon index, LL corner
-         J1_BC_CH = 53                       ! 2x25 lat index, LL corner
-         I2_BC_CH = 129                      ! 2x25 lon index, UR corner
+         !%%%%% NESTED CHINA GRID (MERRA2 only)       %%%%%
+         I1_BC_CH = 97                       ! 2x25 lon index, LL corner
+         J1_BC_CH = 41                       ! 2x25 lat index, LL corner
+         I2_BC_CH = 133                      ! 2x25 lon index, UR corner
          J2_BC_CH = 74                       ! 2x25 lat index, UR corner
 
 #else

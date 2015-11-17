@@ -757,7 +757,7 @@
 !
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GEOS_TIMERS
+      USE GEOS_TIMERS_MOD
 #if defined( ESMF_ )
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
@@ -783,10 +783,16 @@
 !
 ! !LOCAL VARIABLES
 !
-      INTEGER :: RC
+      INTEGER :: RC          ! Success / Failure
+      LOGICAL :: am_I_Root   ! Is this the root CPU? 
 
-      RC = GEOS_Timer_StopAll()
-      RC = GEOS_Timer_PrintAll()  
+      ! Only write to stdout if we are on the root CPU
+      am_I_Root = .TRUE. 
+
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_StopAll( RC )
+      CALL GEOS_Timer_PrintAll( am_I_Root, RC )  
+#endif
 
 #if defined( ESMF_ )
 

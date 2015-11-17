@@ -421,6 +421,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  12 Aug 2015 - R. Yantosca - Initial version, based on geosfp_read_mod.F90
+!  23 Sep 2015 - E. Lundgren - Now assign SWGDN to State_Met SWGDN not RADSWG
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -694,7 +695,7 @@ CONTAINS
     ! Read SWGDN
     v_name = "SWGDN"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    State_Met%RADSWG = Q
+    State_Met%SWGDN  = Q
 
     ! Read TO3
     v_name = "TO3"
@@ -764,7 +765,7 @@ CONTAINS
     ! ND67 diagnostic: surface fields
     IF ( ND67 > 0 ) THEN
        AD67(:,:,1 ) = AD67(:,:,1 ) + State_Met%HFLUX    ! Sens heat flux [W/m2]
-       AD67(:,:,2 ) = AD67(:,:,2 ) + State_Met%RADSWG   ! SW rad @ sfc [W/m2]
+       AD67(:,:,2 ) = AD67(:,:,2 ) + State_Met%SWGDN    ! SW rad @ sfc [W/m2]
        AD67(:,:,3 ) = AD67(:,:,3 ) + State_Met%PRECTOT  ! Tot prec [kg/m2/s]
        AD67(:,:,4 ) = AD67(:,:,4 ) + State_Met%PRECCON  ! Sfc conv prec[kg/m2/s]
        AD67(:,:,5 ) = AD67(:,:,5 ) + State_Met%TS       ! T @ 2m height [K]

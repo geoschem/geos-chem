@@ -56,6 +56,7 @@
 !  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
 !  22 Sep 2015 - R. Yantosca - Use NUMDEP instead of MAXDEP
+!  23 Sep 2015 - E. Lundgren - Add Criegee chemistry (E. Marais, D. Millet)
 !******************************************************************************
 !
 ! !USES:
@@ -1206,6 +1207,13 @@
                ENDIF
                IF (SPECL(1).EQ.'Z') THEN
                   NKSPECZ(NCS) = NK
+               ENDIF
+
+               ! Criegee chemistry (eam, dbm)
+               IF ( SPECL(1) .eq. '@' ) THEN
+                  WRITE (6,*) '@@@', NCS
+                  NNADDAT(NCS)=NNADDAT(NCS)+1
+                  NKSPECAT(NNADDAT(NCS),NCS) = NK
                ENDIF
 !
 ! *********************************************************************

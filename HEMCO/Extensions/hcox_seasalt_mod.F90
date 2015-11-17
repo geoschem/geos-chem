@@ -161,6 +161,7 @@ CONTAINS
 !                              derived type object
 !  15 Dec 2013 - C. Keller   - Now a HEMCO extension 
 !  09 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
+!  22 Oct 2015 - E. Lundgren - Bug fix: include CHLR in OMP PRIVATE statement
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -216,7 +217,7 @@ CONTAINS
 !$OMP DEFAULT( SHARED )                                                &
 !$OMP PRIVATE( I, J, A_M2, W10M, SST, SCALE, SSA_BR2, N              ) &
 !$OMP PRIVATE( SALT, SALT_N, R, SALT_NR, BR2_NR, RC                  ) & 
-!$OMP PRIVATE( OMSS1, OMSS2                                          ) & 
+!$OMP PRIVATE( OMSS1, OMSS2, CHLR                                    ) & 
 !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over surface boxes 
