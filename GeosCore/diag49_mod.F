@@ -294,6 +294,7 @@
 !                              are now handled by the HEMCO.
 !  24 Jun 2015 - E. Lundgren - Add code to print out mass conservation output,
 !                              blocked off by #if defined( MASSCONS )
+!  17 Nov 2015 - E. Lundgren - Bug fix in masscons kg calculation: use AD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -337,7 +338,7 @@
  
       ! Pointers
       REAL(fp), POINTER          :: STT(:,:,:,:)
-!      REAL(fp), POINTER          :: AD(:,:,:)
+      REAL(fp), POINTER          :: AD(:,:,:)
 
       !=================================================================
       ! DIAG49 begins here!
@@ -365,7 +366,7 @@
 
       ! Initialize pointers
       STT          => State_Chm%Tracers
-!      AD           => State_Met%AD
+      AD           => State_Met%AD
 
       ! Set logical flags on first timestep
       IF ( FIRST ) THEN
@@ -481,7 +482,7 @@
                !%%%  MASS CONSERVATION TEST (ewl, 6/24/15)           %%%
                !%%%  Archive output in kg (not v/v) for printout     %%%
                !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-               Q(X,Y,K) = STT(I,J,L,N)
+               Q(X,Y,K) = STT(I,J,L,N) * State_Met%AD(I,J,L)
 #else
                ! Normal ND49 output, archive in v/v
 !               Q(X,Y,K) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
