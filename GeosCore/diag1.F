@@ -36,8 +36,8 @@
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
       USE TRACER_MOD,         ONLY : XNUMOLAIR
-      USE TRACERID_MOD,       ONLY : IDTO3
       USE TRACERID_MOD,       ONLY : ID_HG2, ID_HGP, ID_Hg_TOT
+      USE TRACERID_MOD,       ONLY : IDTPASV
       USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
 
       ! For ND71
@@ -159,7 +159,7 @@
      &                             Input_Opt%N_TRACERS+N_APMTRA)
 #else 
       REAL(fp), TARGET   :: STT_VV(IIPAR,JJPAR,LLPAR,
-     &                             Input_Opt%N_TRACERS)
+     &                             Input_Opt%N_TRACERS+2)
 #endif 
 
       ! For FP potential temperature (hotp 7/31/09)
@@ -208,9 +208,31 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
+
+            ! Tracer conc. in v/v dry air
             STT_VV(I,J,L,N) = 
      &         MAX( State_Chm%Tracers(I,J,L,N) * TCVV(N) /
      &              State_Met%AD(I,J,L), 0e+0_fp )
+
+            IF ( N == IDTPASV ) THEN
+
+               ! Also express tracer conc. in v/v total air (mps, 11/18/15)
+               STT_VV(I,J,L,N+1) =
+     &            MAX( State_Chm%Tracers(I,J,L,N) *
+     &                 State_Met%MOISTMW(I,J,L)   /
+     &               ( State_Met%ADMOIST(I,J,L)   *
+     &                 Input_Opt%TRACER_MW_KG(N)  ) ,
+     &                 0e+0_fp )
+
+
+               ! Also express tracer conc. in kg/kg total air (mps, 11/18/15)
+               STT_VV(I,J,L,N+2) =
+     &            MAX( State_Chm%Tracers(I,J,L,N) /
+     &                 State_Met%ADMOIST(I,J,L)   ,
+     &                 0e+0_fp )
+
+            ENDIF
+
          ENDDO
          ENDDO
          ENDDO
@@ -355,7 +377,20 @@
             DO J = 1, JJPAR 
             DO I = 1, IIPAR
                AD45(I,J,L,N) = AD45(I,J,L,N) + 
-     &              STT_VV(I,J,L,N) * LTOTH(I,J)
+     &                         STT_VV(I,J,L,N) * LTOTH(I,J)
+
+               IF ( N == IDTPASV ) THEN
+
+                  ! Also save passive tracer in v/v total air (mps, 11/18/15)
+                  AD45(I,J,L,N+1) = AD45(I,J,L,N+1) + 
+     &                              STT_VV(I,J,L,N+1) * LTOTH(I,J)
+
+                  ! Also save passive tracer in kg/kg total air (mps, 11/18/15)
+                  AD45(I,J,L,N+2) = AD45(I,J,L,N+2) + 
+     &                              STT_VV(I,J,L,N+2) * LTOTH(I,J)
+
+               ENDIF
+
             ENDDO
             ENDDO
             ENDDO
@@ -381,6 +416,17 @@
             DO J = 1, JJPAR
             DO I = 1, IIPAR
                AD47(I,J,L,N) = AD47(I,J,L,N) + STT_VV(I,J,L,N) 
+
+               IF ( N == IDTPASV ) THEN
+
+                  ! Also save passive tracer in v/v total air (mps, 11/18/15)
+                  AD47(I,J,L,N+1) = AD47(I,J,L,N+1) + STT_VV(I,J,L,N+1)
+
+                  ! Also save passive tracer in kg/kg total air (mps, 11/18/15)
+                  AD47(I,J,L,N+2) = AD47(I,J,L,N+2) + STT_VV(I,J,L,N+2)
+
+               ENDIF
+
             ENDDO   
             ENDDO
             ENDDO
@@ -572,19 +618,82 @@
             ! then archive the latest depvel data into the diagnostic structure
             IF ( ANY( Input_Opt%TINDEX(45,:) == N ) ) THEN
 
-               ! Construct diagnostic name
-               DiagnName = 'TRACER_CONC_' // 
-     &                      TRIM( Input_Opt%TRACER_NAME(N) )
+               IF ( N == IDTPASV ) THEN
 
-               ! Point to the proper slice of the DEPSAV array
-               Ptr3D => STT_VV(:,:,:,N)
+                  !-------------------------------------
+                  ! Passive tracer in v/v dry air
+                  !-------------------------------------
 
-               ! Update the deposition velocity diagostics
-               CALL Diagn_Update( am_I_Root,
-     &                            cName   = TRIM( DiagnName ),
-     &                            Array3D = Ptr3D,
-     &                            COL     = Input_Opt%DIAG_COLLECTION,
-     &                            RC      = HCRC )
+                  ! Construct diagnostic name
+                  DiagnName = 'TRACER_CONC_' // 
+     &                         TRIM( Input_Opt%TRACER_NAME(N) ) //
+     &                        '_VVDry'
+
+                  ! Point to the proper slice of the DEPSAV array
+                  Ptr3D => STT_VV(:,:,:,N)
+
+                  ! Update the deposition velocity diagostics
+                  CALL Diagn_Update( am_I_Root,
+     &                               cName   = TRIM( DiagnName ),
+     &                               Array3D = Ptr3D,
+     &                               COL     = Input_Opt%DIAG_COLLECTION,
+     &                               RC      = HCRC )
+
+                  !-------------------------------------
+                  ! Passive tracer in v/v total air
+                  !-------------------------------------
+
+                  ! Construct diagnostic name
+                  DiagnName = 'TRACER_CONC_' // 
+     &                         TRIM( Input_Opt%TRACER_NAME(N) ) //
+     &                        '_VVTotal'
+
+                  ! Point to the proper slice of the DEPSAV array
+                  Ptr3D => STT_VV(:,:,:,N+1)
+
+                  ! Update the deposition velocity diagostics
+                  CALL Diagn_Update( am_I_Root,
+     &                               cName   = TRIM( DiagnName ),
+     &                               Array3D = Ptr3D,
+     &                               COL     = Input_Opt%DIAG_COLLECTION,
+     &                               RC      = HCRC )
+
+                  !-------------------------------------
+                  ! Passive tracer in kg/kg total air
+                  !-------------------------------------
+
+                  ! Construct diagnostic name
+                  DiagnName = 'TRACER_CONC_' // 
+     &                         TRIM( Input_Opt%TRACER_NAME(N) ) //
+     &                        '_KgKgTotal'
+
+                  ! Point to the proper slice of the DEPSAV array
+                  Ptr3D => STT_VV(:,:,:,N+2)
+
+                  ! Update the deposition velocity diagostics
+                  CALL Diagn_Update( am_I_Root,
+     &                               cName   = TRIM( DiagnName ),
+     &                               Array3D = Ptr3D,
+     &                               COL     = Input_Opt%DIAG_COLLECTION,
+     &                               RC      = HCRC )
+
+               ELSE
+
+                  ! Construct diagnostic name
+                  DiagnName = 'TRACER_CONC_' // 
+     &                         TRIM( Input_Opt%TRACER_NAME(N) )
+
+                  ! Point to the proper slice of the DEPSAV array
+                  Ptr3D => STT_VV(:,:,:,N)
+
+                  ! Update the deposition velocity diagostics
+                  CALL Diagn_Update( am_I_Root,
+     &                               cName   = TRIM( DiagnName ),
+     &                               Array3D = Ptr3D,
+     &                               COL     = Input_Opt%DIAG_COLLECTION,
+     &                               RC      = HCRC )
+
+               ENDIF
 
                ! Free the pointer
                Ptr3D => NULL()

@@ -124,6 +124,7 @@ CONTAINS
 !  14 Oct 2015 - E. Lundgren - Treat H2SO4 as an aerosol for TOMAS
 !  23 Oct 2015 - R. Yantosca - Set rainout efficiency=0 when T < 258 K
 !                              for GEOS-FP and MERRA2 simulations
+!  18 Nov 2015 - M. Sulprizio- Add passive tracers PASV to RnPbBe simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2793,6 +2794,19 @@ CONTAINS
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
+          CASE( 'PASV' )
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              Name          = 'PASV',                       &
+                              FullName      = 'Passive tracer',             &
+                              MW_g          = 1.0_fp,                       &
+                              Is_Advected   = T,                            &
+                              Is_Gas        = T,                            &
+                              Is_Drydep     = F,                            &
+                              Is_Wetdep     = F,                            &
+                              RC            = RC )
+
           !==================================================================
           ! Species for the Hg specialty simulation
           !==================================================================
@@ -3652,7 +3666,7 @@ CONTAINS
              WRITE( 6, 120 )
  100         FORMAT( 'Species ', a, ' not found in the data base!'      )
  110         FORMAT( 'Please add the information to the CASE statement' )
- 120         FORMAT( 'in module species_database_mod.F90!'              )
+ 120         FORMAT( 'in module Headers/species_database_mod.F90!'      )
              RC = -1
              RETURN
 

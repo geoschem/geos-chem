@@ -1885,10 +1885,47 @@
             UNIT(T,45)  = 'pptv'
             SCALE(T,45) = 1.0e+12
          ENDIF
+
+         ! For passive tracer (mps, 11/18/15)
+         IF ( TRIM(Input_Opt%TRACER_NAME(T)) == 'PASV' ) THEN
+
+            ! Store quantities for each tracer
+            NAME (T,  45) = Input_Opt%TRACER_NAME(T)
+            FNAME(T,  45) = TRIM( NAME(T,45) ) // ' tracer'
+            MOLC (T,  45) = INT( Input_Opt%TRACER_COEFF(T,1) )
+            SCALE(T,  45) = 1.0e+9
+            INDEX(T,  45) = T
+            MWT  (T,  45) = Input_Opt%TRACER_MW_KG(T) 
+            UNIT (T,  45) = 'ppbv dry air'
+
+            ! Store quantities for each tracer
+            NAME (T+1,45) = Input_Opt%TRACER_NAME(T)
+            FNAME(T+1,45) = TRIM( NAME(T,45) ) // ' tracer'
+            MOLC (T+1,45) = INT( Input_Opt%TRACER_COEFF(T,1) )
+            SCALE(T+1,45) = 1.0e+9
+            INDEX(T+1,45) = T
+            MWT  (T+1,45) = Input_Opt%TRACER_MW_KG(T) 
+            UNIT (T+1,45) = 'ppbv total air'
+
+            ! Store quantities for each tracer
+            NAME (T+2,45) = Input_Opt%TRACER_NAME(T)
+            FNAME(T+2,45) = TRIM( NAME(T,45) ) // ' tracer'
+            MOLC (T+2,45) = INT( Input_Opt%TRACER_COEFF(T,1) )
+            SCALE(T+2,45) = 1.0e+0
+            INDEX(T+2,45) = T
+            MWT  (T+2,45) = Input_Opt%TRACER_MW_KG(T) 
+            UNIT (T+2,45) = 'kg/kg total air'
+
+         ENDIF
+
       ENDDO
 
       ! Number of ND45 tracers 
-      NTRAC(45) = Input_Opt%N_TRACERS
+      IF ( IDTPASV > 0 ) THEN
+         NTRAC(45) = Input_Opt%N_TRACERS+2
+      ELSE
+         NTRAC(45) = Input_Opt%N_TRACERS
+      ENDIF
 
       !-------------------------------------
       ! Hg source, production & loss (ND03)
