@@ -2378,7 +2378,7 @@ CONTAINS
        wgt1  = 1.0_sp
        wgt2  = 0.0_sp
 
-    ! If the originally wnated datetime is beyond the available data
+    ! If the originally wanted datetime is beyond the available data
     ! range, set tidx2 to tidx1 but leave weights in their original 
     ! values (-1.0). The reason is that we will attempt to interpolate
     ! between a second file, which is only done if the weights are 
@@ -2418,9 +2418,7 @@ CONTAINS
  
           ! Check if there is a time slice with that date
           DO I = tidx1,nTime
-             write(*,*) 'comparing against ', availYMDh(I)
              IF ( tmpYMDh == availYMDh(I) ) THEN
-                write(*,*) 'match!!'
                 tidx2 = I
                 EXIT
              ENDIF
