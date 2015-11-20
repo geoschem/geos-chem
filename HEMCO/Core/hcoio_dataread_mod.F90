@@ -2378,7 +2378,7 @@ CONTAINS
        wgt1  = 1.0_sp
        wgt2  = 0.0_sp
 
-    ! If the originally wnated datetime is beyond the available data
+    ! If the originally wanted datetime is beyond the available data
     ! range, set tidx2 to tidx1 but leave weights in their original 
     ! values (-1.0). The reason is that we will attempt to interpolate
     ! between a second file, which is only done if the weights are 
@@ -2418,9 +2418,7 @@ CONTAINS
  
           ! Check if there is a time slice with that date
           DO I = tidx1,nTime
-             write(*,*) 'comparing against ', availYMDh(I)
              IF ( tmpYMDh == availYMDh(I) ) THEN
-                write(*,*) 'match!!'
                 tidx2 = I
                 EXIT
              ENDIF
@@ -3039,6 +3037,7 @@ CONTAINS
 
        ! Fill array: 1.0 within grid box, 0.0 outside.
        CALL FillMaskBox ( am_I_Root, HcoState, Lct, Vals, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Data is 2D
        Lct%Dct%Dta%SpaceDim = 2
@@ -3440,15 +3439,19 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  29 Dec 2014 - C. Keller - Initial version
+!  19 Nov 2015 - C. Keller - Now support grid point masks
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 ! 
 ! !LOCAL VARIABLES:
 !
+    LOGICAL            :: GridPoint
     INTEGER            :: I, J
     REAL(hp)           :: LON1, LON2, LAT1, LAT2
+    REAL(hp)           :: XDG1, XDG2, YDG1, YDG2
     REAL(hp)           :: ILON, ILAT 
+    CHARACTER(LEN=255) :: MSG 
     CHARACTER(LEN=255) :: LOC = 'FillMaskBox (HCOIO_DataRead_Mod.F90)'
 
     !=================================================================
@@ -3461,25 +3464,58 @@ CONTAINS
     LON2 = VALS(3)
     LAT2 = VALS(4)
 
+    ! Check if this is mask is a point. In this case, we need the grid
+    ! box edges being defined.
+    GridPoint = .FALSE.
+    IF ( ( LON1 == LON2 ) .AND. ( LAT1 == LAT2 ) ) THEN
+       IF ( .NOT. ASSOCIATED(HcoState%Grid%XEDGE%Val) .OR. &
+            .NOT. ASSOCIATED(HcoState%Grid%YEDGE%Val)       ) THEN
+          MSG = 'Cannot evaluate grid point mask - need grid box '   // &
+                'edges for this. This error occurs if a mask covers '// &
+                'a fixed grid point (e.g. lon1=lon2 and lat1=lat2) ' // &
+                'but HEMCO grid edges are not defined.'
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF 
+       GridPoint = .TRUE.
+    ENDIF
+
     ! Check for every grid box if mid point is within mask region. 
     ! Set to 1.0 if this is the case.
-!$OMP PARALLEL DO                  &
-!$OMP DEFAULT( SHARED           )  &
-!$OMP PRIVATE( I, J, ILON, ILAT )  &
-!$OMP SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO                        &
+!$OMP DEFAULT( SHARED                 )  &
+!$OMP PRIVATE( I, J, ILON, ILAT       )  &
+!$OMP PRIVATE( XDG1, XDG2, YDG1, YDG2 )  &
+!$OMP SCHEDULE( DYNAMIC               )
     DO J = 1, HcoState%NY
     DO I = 1, HcoState%NX
 
-       ! Get longitude and latitude at this grid box
-       ILON = HcoState%Grid%XMID%Val(I,J)
-       IF ( ILON >= 180.0_hp ) ILON = ILON - 360.0_hp
+       ! If it's a grid point, check if it's within this
+       ! grid box
+       IF ( GridPoint ) THEN
+          XDG1 = HcoState%Grid%XEDGE%Val(I  ,J  )
+          XDG2 = HcoState%Grid%XEDGE%Val(I+1,J  )
+          YDG1 = HcoState%Grid%YEDGE%Val(I  ,J  )
+          YDG2 = HcoState%Grid%YEDGE%Val(I  ,J+1)
+          IF ( XDG1 >= 180.0_hp ) XDG1 = XDG1 - 360.0_hp
+          IF ( XDG2 >= 180.0_hp ) XDG2 = XDG2 - 360.0_hp
 
-       ILAT = HcoState%Grid%YMID%Val(I,J)
+          IF ( LON1 >= XDG1 .AND. LON1 <= XDG2 .AND. &
+               LAT1 >= YDG1 .AND. LAT1 <= YDG2        ) THEN
+             Lct%Dct%Dta%V2(1)%Val(I,J) = 1.0_sp
+          ENDIF
 
        ! Check if mid point is within mask region    
-       IF ( ILON >= LON1 .AND. ILON <= LON2 .AND. &
-            ILAT >= LAT1 .AND. ILAT <= LAT2        ) THEN 
-          Lct%Dct%Dta%V2(1)%Val(I,J) = 1.0_sp
+       ELSE
+          ! Get longitude and latitude at this grid box
+          ILON = HcoState%Grid%XMID%Val(I,J)
+          ILAT = HcoState%Grid%YMID%Val(I,J)
+          IF ( ILON >= 180.0_hp ) ILON = ILON - 360.0_hp
+
+          IF ( ILON >= LON1 .AND. ILON <= LON2 .AND. &
+               ILAT >= LAT1 .AND. ILAT <= LAT2        ) THEN 
+             Lct%Dct%Dta%V2(1)%Val(I,J) = 1.0_sp
+          ENDIF 
        ENDIF 
 
     ENDDO
@@ -3622,6 +3658,7 @@ CONTAINS
     USE HCO_TIDX_MOD,         ONLY : tIDx_IsInRange 
     USE HCO_CHARTOOLS_MOD,    ONLY : HCO_CharParse
     USE HCO_CLOCK_MOD,        ONLY : HcoClock_Get
+    USE HCO_CLOCK_MOD,        ONLY : Get_LastDayOfMonth
 !
 ! !INPUT PARAMETERS:
 !
@@ -3645,6 +3682,7 @@ CONTAINS
 !  01 Oct 2014 - C. Keller - Initial version
 !  23 Feb 2015 - C. Keller - Now check for negative return values in
 !                            HCO_GetPrefTimeAttr 
+!  06 Nov 2015 - C. Keller - Bug fix: restrict day to last day of month.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3859,6 +3897,9 @@ CONTAINS
                 prefMt = 1 
                 prefYr = prefYr + 1
              ENDIF
+
+             ! Make sure day does not exceed max. number of days in this month
+             prefDy = MIN( prefDy, Get_LastDayOfMonth( prefMt, prefYr ) )
  
              ! Mirror original file          
              srcFile = Lct%Dct%Dta%ncFile

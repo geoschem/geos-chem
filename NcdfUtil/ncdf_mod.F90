@@ -538,6 +538,7 @@ CONTAINS
 !  18 Apr 2012 - C. Keller - Now also read & apply offset and scale factor
 !  27 Feb 2015 - C. Keller - Added weights.
 !  22 Sep 2015 - C. Keller - Added arbitrary dimension index.
+!  20 Nov 2015 - C. Keller - Bug fix: now read times if weights need be applied.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -646,7 +647,10 @@ CONTAINS
     ! read all time slices time1:time2:
     IF ( time1 > 0 .AND. weight1 < 0.0 ) THEN
        ntime = time2 - time1 + 1
-    ! read only one time slice, or interpolate amongst two slices:
+    ! Interpolate amongs 2 time slices:
+    ELSEIF ( ApplyWeights ) THEN
+       ntime = 1
+    ! no time dimension:
     ELSE
        ntime = 0
     ENDIF
@@ -1062,7 +1066,7 @@ CONTAINS
 !
     CHARACTER(LEN=255)  :: ncUnit
     INTEGER, POINTER    :: tVec(:) => NULL()
-    INTEGER             :: refYr, refMt, refDy, refHr, refMn
+    INTEGER             :: refYr, refMt, refDy, refHr, refMn, refSc
     INTEGER             :: T, YYYYMMDD, hhmmss 
     REAL*8              :: realrefDy, refJulday, tJulday
 
@@ -1084,9 +1088,12 @@ CONTAINS
 
     ! Get reference date in julian days
     CALL NC_GET_REFDATETIME ( ncUnit, refYr, refMt, &
-                              refDy,  refHr, refMn, RC ) 
+                              refDy,  refHr, refMn, refSc, RC ) 
     IF ( RC /= 0 ) RETURN
-    realrefDy = refDy + ( MAX(0,refHr) / 24d0 ) + ( MAX(0,refMn) / 1440d0 )
+    realrefDy =         refDy              &
+              + ( MAX(0,refHr) / 24d0    ) &
+              + ( MAX(0,refMn) / 1440d0  ) &
+              + ( MAX(0,refSc) / 86400d0 )
     refJulday = JULDAY ( refYr, refMt, realrefDy )
 
     ! NOTE: It seems that there is an issue with reference dates
@@ -1147,7 +1154,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_GET_REFDATETIME( tUnit, tYr, tMt, tDy, tHr, tMn, RC ) 
+  SUBROUTINE NC_GET_REFDATETIME( tUnit, tYr, tMt, tDy, tHr, tMn, tSc, RC ) 
 !
 ! !USES:
 !
@@ -1165,6 +1172,7 @@ CONTAINS
     INTEGER,          INTENT(OUT)    :: tDy
     INTEGER,          INTENT(OUT)    :: tHr
     INTEGER,          INTENT(OUT)    :: tMn
+    INTEGER,          INTENT(OUT)    :: tSc
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1175,6 +1183,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  18 Jan 2012 - C. Keller - Initial version
 !  09 Oct 2014 - C. Keller - Now also support 'minutes since ...'
+!  20 Nov 2015 - C. Keller - Now also support 'seconds since ...'
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1220,6 +1229,12 @@ CONTAINS
     ! 'minutes since YYYY-M-D h:m:s'
     ELSEIF ( MIRRUNIT(1:13) == 'minutes since' ) THEN
        TTYPE  = 3
+       L1     = 15
+       MINLEN = 28
+
+    ! 'seconds since YYYY-M-D h:m:s'
+    ELSEIF ( MIRRUNIT(1:13) == 'seconds since' ) THEN
+       TTYPE  = 4
        L1     = 15
        MINLEN = 28
 
@@ -1278,7 +1293,7 @@ CONTAINS
        RC = -999; RETURN
     ENDIF
 
-    ! Get reference hour only if 'hours since... or minutes since...'
+    ! Get reference hour only if 'hours/minutes/seconds since'.
     IF ( TTYPE > 1 ) THEN
 
        ! Reference hour
@@ -1316,6 +1331,26 @@ CONTAINS
     ELSE 
        ! Set reference minute to -1
        tMn = -1
+    ENDIF
+
+    ! Get reference minute only if 'seconds since...'
+    IF ( TTYPE>3 ) THEN
+
+       ! Reference second
+       L1 = L2 + 2
+       DO I=L1,STRLEN
+          IF(tUnit(I:I) == ':') EXIT 
+       ENDDO
+       L2 = I-1
+       READ( tUnit(L1:L2), '(i)', IOSTAT=STAT ) tSc
+       IF ( STAT /= 0 ) THEN
+          PRINT *, 'Invalid second in ', TRIM(tUnit)
+          RC = -999; RETURN
+       ENDIF
+ 
+    ELSE 
+       ! Set reference second to -1
+       tSc = -1
     ENDIF
 
     ! Return w/ success

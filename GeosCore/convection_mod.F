@@ -255,8 +255,8 @@
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
 #if defined( DEVEL )
-      CALL TENDENCIES_STAGE1( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, 2, .TRUE., RC )
+      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
+     &                  State_Chm, 'CONV', .TRUE., RC )
 #endif
 
       ! Assume success
@@ -532,8 +532,8 @@
       !=================================================================
 #if defined( DEVEL )
       DT_TEND = GET_TS_CONV() * 60.0_fp
-      CALL TENDENCIES_STAGE2( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, 2, .TRUE., DT_TEND, RC )
+      CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
+     &                  State_Chm, 'CONV', .TRUE., DT_TEND, RC )
 #endif
 
       END SUBROUTINE DO_CONVECTION

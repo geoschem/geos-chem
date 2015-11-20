@@ -217,6 +217,8 @@ CONTAINS
 !  19 Feb 2015 - C. Keller   - Added optional argument OnlyIfFirst
 !  23 Feb 2015 - R. Yantosca - Now make Arr1D REAL(sp) so that we can write
 !                              out lon & lat as float instead of double
+!  06 Nov 2015 - C. Keller   - Output time stamp is now determined from 
+!                              variable OutTimeStamp.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -305,16 +307,6 @@ CONTAINS
     ! Create output file
     !-----------------------------------------------------------------
 
-    ! Use HEMCO clock to create timestamp used in filename. Use previous
-    ! time step if this option is selected.
-    IF ( .NOT. PrevTime ) THEN
-       CALL HcoClock_Get(sYYYY=YYYY,sMM=MM,sDD=DD,sH=h,sM=m,sS=s,RC=RC)
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ELSE
-       CALL HcoClock_Get(pYYYY=YYYY,pMM=MM,pDD=DD,pH=h,pM=m,pS=s,RC=RC)
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
     ! Define grid dimensions
     nLon  = HcoState%NX
     nLat  = HcoState%NY
@@ -330,7 +322,10 @@ CONTAINS
     ! Construct filename: diagnostics will be written into file
     ! PREFIX.YYYYMMDDhm.nc, where PREFIX is the input argument or
     ! (if not present) obtained from the HEMCO configuration file.
-  
+ 
+    CALL ConstructTimeStamp ( am_I_Root, PS, PrevTime, YYYY, MM, DD, h, m, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+ 
     ! Write datetime
     WRITE( Yrs, '(i4.4)' ) YYYY
     WRITE( Mts, '(i2.2)' ) MM
@@ -673,5 +668,138 @@ CONTAINS
   END SUBROUTINE HCOIO_DiagN_WriteOut
 !EOC
 #endif
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ConstructTimeStamp 
+!
+! !DESCRIPTION: Subroutine ConstructTimeStamp is a helper routine to construct
+! the time stamp of a given diagnostics collection. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ConstructTimeStamp ( am_I_Root, PS, PrevTime, Yr, Mt, Dy, hr, mn, RC )
+!
+! !USES:
+!
+    USE HCO_Clock_Mod
+    USE JULDAY_MOD
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   )    :: am_I_Root    ! Root CPU?
+    INTEGER,         INTENT(IN   )    :: PS           ! collecion ID
+    LOGICAL,         INTENT(IN   )    :: PrevTime     ! Use previous time? 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(INOUT)    :: RC           ! Return code
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(  OUT)    :: Yr 
+    INTEGER,         INTENT(  OUT)    :: Mt 
+    INTEGER,         INTENT(  OUT)    :: Dy 
+    INTEGER,         INTENT(  OUT)    :: hr
+    INTEGER,         INTENT(  OUT)    :: mn
+!
+! !REVISION HISTORY: 
+!  06 Nov 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: Y2, M2, D2, h2, n2, s2
+    INTEGER            :: Y1, M1, D1, h1, n1, s1
+    INTEGER            :: LastYMD, LastHMS
+    INTEGER            :: YYYYMMDD, HHMMSS
+    INTEGER            :: OutTimeStamp
+    REAL(dp)           :: DAY, UTC, JD1, JD2, JDMID
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'ConstuctTimeStamp (hcoi_diagn_mod.F90)'
+
+    !=================================================================
+    ! ConstructTimeStamp begins here!
+    !=================================================================
+
+    ! Use HEMCO clock to create timestamp used in filename. Use previous
+    ! time step if this option is selected.
+    IF ( .NOT. PrevTime ) THEN
+       CALL HcoClock_Get(sYYYY=Y2,sMM=M2,sDD=D2,sH=h2,sM=n2,sS=s2,RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ELSE
+       CALL HcoClock_Get(pYYYY=Y2,pMM=M2,pDD=D2,pH=h2,pM=n2,pS=s2,RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
+
+    ! Get timestamp location for this collection
+    CALL DiagnCollection_Get( PS, OutTimeStamp=OutTimeStamp, &
+                              LastYMD=LastYMD, LastHMS=LastHMS, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Determine dates to be used:
+
+    ! To use start date
+    IF ( OutTimeStamp == HcoDiagnStart ) THEN
+       Yr = FLOOR( MOD(LastYMD*1.d0, 100000000.d0 ) / 1.0d4 )
+       Mt = FLOOR( MOD(LastYMD*1.d0, 10000.d0     ) / 1.0d2 )
+       Dy = FLOOR( MOD(LastYMD*1.d0, 100.d0       ) / 1.0d0 )
+       Hr = FLOOR( MOD(LastHMS*1.d0, 1000000.d0   ) / 1.0d4 )
+       Mn = FLOOR( MOD(LastHMS*1.d0, 10000.d0     ) / 1.0d2 )
+
+    ! Use mid point
+    ELSEIF ( OutTimeStamp == HcoDiagnMid ) THEN
+
+       ! Julian day of start interval:
+       Y1 = FLOOR( MOD(LastYMD*1.d0, 100000000.d0 ) / 1.0d4 )
+       M1 = FLOOR( MOD(LastYMD*1.d0, 10000.d0     ) / 1.0d2 )
+       D1 = FLOOR( MOD(LastYMD*1.d0, 100.d0       ) / 1.0d0 )
+       h1 = FLOOR( MOD(LastHMS*1.d0, 1000000.d0   ) / 1.0d4 )
+       n1 = FLOOR( MOD(LastHMS*1.d0, 10000.d0     ) / 1.0d2 )
+       s1 = FLOOR( MOD(LastHMS*1.d0, 100.d0       ) / 1.0d0 )
+
+       UTC = ( REAL(h1,dp) / 24.0_dp    ) + &
+             ( REAL(n1,dp) / 1440.0_dp  ) + &
+             ( REAL(s1,dp) / 86400.0_dp ) 
+       DAY = REAL(D1,dp) + UTC
+       JD1 = JULDAY( Y1, M1, DAY )
+
+       ! Julian day of end interval:
+       UTC = ( REAL(h2,dp) / 24.0_dp    ) + &
+             ( REAL(n2,dp) / 1440.0_dp  ) + &
+             ( REAL(s2,dp) / 86400.0_dp ) 
+       DAY = REAL(D2,dp) + UTC
+       JD2 = JULDAY( Y2, M2, DAY )
+
+       ! Julian day in the middle
+       JDMID = ( JD1 + JD2 ) / 2.0_dp
+
+       ! Tranlate back into dates
+       CALL CALDATE( JDMID, YYYYMMDD, HHMMSS )
+       Yr = FLOOR ( MOD( YYYYMMDD, 100000000) / 1.0e4_dp )
+       Mt = FLOOR ( MOD( YYYYMMDD, 10000    ) / 1.0e2_dp )
+       Dy = FLOOR ( MOD( YYYYMMDD, 100      ) / 1.0e0_dp )
+       Hr = FLOOR ( MOD(   HHMMSS, 1000000  ) / 1.0e4_dp )
+       Mn = FLOOR ( MOD(   HHMMSS, 10000    ) / 1.0e2_dp )
+ 
+    ! Otherwise, use end date
+    ELSE
+       Yr = Y2
+       Mt = M2
+       Dy = D2
+       Hr = h2
+       Mn = n2
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE ConstructTimeStamp 
+!EOC
 END MODULE HCOIO_Diagn_Mod
 

@@ -89,7 +89,7 @@ CONTAINS
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
     USE GRID_MOD,           ONLY : AREA_M2
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE TENDENCIES_MOD,     ONLY : TENDENCIES_INIT
+    USE TENDENCIES_MOD,     ONLY : TEND_INIT
 !
 ! !INPUT PARAMETERS:
 !
@@ -108,6 +108,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  09 Jan 2015 - C. Keller   - Initial version 
 !  25 Mar 2015 - C. Keller   - Moved UCX initialization to UCX_mod.F
+!  06 Nov 2015 - C. Keller   - Added argument OutTimeStamp
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -141,17 +142,18 @@ CONTAINS
     CALL DiagnCollection_GetDefaultDelta ( am_I_Root, deltaYMD, deltaHMS, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL DiagnCollection_Create( am_I_Root,                     &
-                                 NX          = IIPAR,           &
-                                 NY          = JJPAR,           &
-                                 NZ          = LLPAR,           &
-                                 TS          = TS,              &
-                                 AM2         = AM2,             &
-                                 PREFIX      = DGN,             &
-                                 deltaYMD    = deltaYMD,        &
-                                 deltaHMS    = deltaHMS,        &
-                                 COL         = CollectionID,    &
-                                 RC          = RC         )
+    CALL DiagnCollection_Create( am_I_Root,                      &
+                                 NX           = IIPAR,           &
+                                 NY           = JJPAR,           &
+                                 NZ           = LLPAR,           &
+                                 TS           = TS,              &
+                                 AM2          = AM2,             &
+                                 PREFIX       = DGN,             &
+                                 deltaYMD     = deltaYMD,        &
+                                 deltaHMS     = deltaHMS,        &
+                                 COL          = CollectionID,    &
+                                 OutTimeStamp = HcoDiagnEnd,     &
+                                 RC           = RC                )
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in creating diagnostics collection '//TRIM(DGN), LOC ) 
     ENDIF
@@ -228,7 +230,7 @@ CONTAINS
     ENDIF
 
     ! Initialize tendencies
-    CALL TENDENCIES_INIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+    CALL TEND_INIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in TENDENCIES_INIT', LOC ) 
     ENDIF
@@ -255,7 +257,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE TENDENCIES_MOD,     ONLY : TENDENCIES_CLEANUP
+    USE TENDENCIES_MOD,     ONLY : TEND_CLEANUP
 !
 ! !INPUT PARAMETERS:
 !
@@ -275,7 +277,7 @@ CONTAINS
 
 !    ! Finalize diagnostics
 !    CALL DiagnCollection_Cleanup( COL = Input_Opt%DIAG_COLLECTION )
-    CALL TENDENCIES_CLEANUP
+    CALL TEND_CLEANUP()
 
     ! Return with success
     RC = GIGC_SUCCESS
@@ -576,6 +578,8 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  24 Feb 2015 - C. Keller   - Initial version
+!  19 Oct 2015 - C. Keller   - Rename AIRDEN to AIRDENSITY to
+!                              avoid name conflict with GEOS-5 model.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -623,7 +627,7 @@ CONTAINS
              ScaleFact = 1.0_hp
              SpaceDim  = 3
           CASE ( 3 )
-             DiagnName = 'AIRDEN'
+             DiagnName = 'AIRDENSITY'
              OutUnit   = 'kg m-3'
              ScaleFact = 1.0_hp
              SpaceDim  = 3
