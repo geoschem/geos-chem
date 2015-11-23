@@ -3652,7 +3652,7 @@ CONTAINS
     IF ( PRESENT(SpecNames) ) THEN
        IF ( .NOT. ASSOCIATED(SpecNames) ) THEN
           IF ( N <= 0 ) THEN
-             CALL HCO_ERROR ( 'Cannot allocate SpecNames', RC, THISLOC=LOC )
+             CALL HCO_ERROR ( 'Cannot allocate SpecNames - N is size 0 or smaller', RC, THISLOC=LOC )
              RETURN
           ENDIF
           ALLOCATE(SpecNames(N), STAT=AS )
