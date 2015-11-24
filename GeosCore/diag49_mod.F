@@ -227,6 +227,7 @@
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
+      USE TRACERID_MOD,       ONLY : IDTPASV
 
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
@@ -315,14 +316,12 @@
       CHARACTER(LEN=40)        :: UNIT
       CHARACTER(LEN=255)       :: FILENAME
 
-#if defined( MASSCONS )
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%%  MASS CONSERVATION TEST:                                  %%%
       !%%%  Define extra quantities for mass conservation printout   %%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       INTEGER                  :: IU_TRCR
       REAL(fp)                 :: TOTALMASS
-#endif
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER                  :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
@@ -337,6 +336,9 @@
       REAL(fp), POINTER        :: STT(:,:,:,:)
       REAL(fp), POINTER        :: AD(:,:,:)
 
+      ! For mass conservation tests
+      LOGICAL                  :: DO_MASSCONS
+      
       !=================================================================
       ! DIAG49 begins here!
       !=================================================================
@@ -351,6 +353,11 @@
       TCVV          = Input_Opt%TCVV(1:N_TRACERS)
 
 #if defined( MASSCONS )
+      DO_MASSCONS   = .TRUE.
+#else
+      DO_MASSCONS   = .FALSE.
+#endif
+      
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%%  MASS CONSERVATION TEST:                                  %%%
       !%%%  If we are just printing out mass conservation, we can    %%%
@@ -358,8 +365,9 @@
       !%%%  only interested in printing out the sum of tracers.      %%%
       !%%%  (ewl, 6/24/15)                                           %%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      DO_DIAG_WRITE = .FALSE.
-#endif
+      IF ( DO_MASSCONS .or. IDTPASV > 0 ) THEN
+         DO_DIAG_WRITE = .FALSE.
+      ENDIF
 
       ! Initialize pointers
       STT          => State_Chm%Tracers
@@ -456,13 +464,13 @@
             GMNL     = ND49_NL
             GMTRC    = N
             
-#if defined( MASSCONS )
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%%  MASS CONSERVATION TEST (ewl, 6/24/15)              %%%
             !%%%  Declare a variable for total mass of tracer.       %%%
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            TOTALMASS = 0.0e+0_fp
-#endif
+            IF ( DO_MASSCONS .or. IDTPASV > 0 ) THEN
+               TOTALMASS = 0.0e+0_fp
+            ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -474,64 +482,65 @@
             DO X = 1, ND49_NI
                I = GET_I( X )
 
-#if defined( MASSCONS ) 
                !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                !%%%  MASS CONSERVATION TEST (ewl, 6/24/15)           %%%
                !%%%  Archive output in kg (not v/v) for printout     %%%
                !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-               Q(X,Y,K) = STT(I,J,L,N)
-#else
-               ! Normal ND49 output, archive in v/v
-               Q(X,Y,K) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
-#endif
+               IF ( DO_MASSCONS .or. IDTPASV > 0 ) THEN
+                  Q(X,Y,K) = STT(I,J,L,N)
+               ELSE
+                  ! Normal ND49 output, archive in v/v
+                  Q(X,Y,K) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
+               ENDIF
                
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( MASSCONS )
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%%  MASS CONSERVATION TEST (ewl, 6/16/15)              %%%
             !%%%  Sum the mass and write out to an ASCII file        %%%
             !%%%  Use the filename from Input_Opt%ND49_FILE          %%%
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            IF ( DO_MASSCONS .or. IDTPASV > 0 ) THEN
 
-            ! Sum the mass of tracer in kg
-            TOTALMASS = SUM( Q )
+               ! Sum the mass of tracer in kg
+               TOTALMASS = SUM( Q )
 
-            ! Find a free file LUN
-            IU_TRCR   = findFreeLUN()
+               ! Find a free file LUN
+               IU_TRCR   = findFreeLUN()
 
-            ! Get the timestamp string
-            STAMP     = TIMESTAMP_STRING()
+               ! Get the timestamp string
+               STAMP     = TIMESTAMP_STRING()
 
-            ! Print info that we are opening the file 
-            WRITE( 6, 300 ) TRIM( Input_Opt%ND49_FILE ), IU_TRCR
- 300        FORMAT( 'DIAG49_MOD: Opening ', a ', on unit', i4 )
+               ! Print info that we are opening the file 
+               WRITE( 6, 300 ) TRIM( Input_Opt%ND49_FILE ), IU_TRCR
+ 300           FORMAT( 'DIAG49_MOD: Opening ', a ', on unit', i4 )
 
-            ! Open the output file in append mode
-            OPEN( IU_TRCR, FILE   = TRIM( Input_Opt%ND49_FILE ),
-     &                     STATUS = 'UNKNOWN', 
-     &                     ACCESS = "APPEND", 
-     &                     IOSTAT = IOS )
+               ! Open the output file in append mode
+               OPEN( IU_TRCR, FILE   = TRIM( Input_Opt%ND49_FILE ),
+     &                        STATUS = 'UNKNOWN', 
+     &                        ACCESS = "APPEND", 
+     &                        IOSTAT = IOS )
 
-            ! Stop if we can't append to the file
-            IF ( IOS > 0 ) THEN
-               CALL IOERROR( IOS, IU_TRCR, 'diag49: masscons #1' )
+               ! Stop if we can't append to the file
+               IF ( IOS > 0 ) THEN
+                  CALL IOERROR( IOS, IU_TRCR, 'diag49: masscons #1' )
+               ENDIF
+
+               ! Write tracer mass, date, and time
+               WRITE( IU_TRCR, *, IOSTAT=IOS ) STAMP, ' : ', TOTALMASS
+
+               ! Stop if we can't write to the file
+               IF ( IOS > 0 ) THEN
+                  CALL IOERROR( IOS, IU_TRCR, 'diag49: masscons #2' )
+               ENDIF
+
+               ! Close file
+               CLOSE( IU_TRCR )
+
             ENDIF
-
-            ! Write tracer mass, date, and time
-            WRITE( IU_TRCR, *, IOSTAT=IOS ) TOTALMASS, ' : ',  STAMP
-
-            ! Stop if we can't write to the file
-            IF ( IOS > 0 ) THEN
-               CALL IOERROR( IOS, IU_TRCR, 'diag49: masscons #2' )
-            ENDIF
-
-            ! Close file
-            CLOSE( IU_TRCR )
-#endif            
 
          ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
 
