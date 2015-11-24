@@ -539,6 +539,7 @@ CONTAINS
 !  27 Feb 2015 - C. Keller - Added weights.
 !  22 Sep 2015 - C. Keller - Added arbitrary dimension index.
 !  20 Nov 2015 - C. Keller - Bug fix: now read times if weights need be applied.
+!  23 Nov 2015 - C. Keller - Initialize all temporary arrays to 0.0 when allocating 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -704,6 +705,7 @@ CONTAINS
 
        ! Allocate arrays
        ALLOCATE ( TMPARR_5D( nlon, nlat, nlev, nt, 1 ) )
+       TMPARR_5D = 0.0
 
        ! Set default start/end indeces
        s1 = lon1
@@ -788,6 +790,7 @@ CONTAINS
        ENDIF
 
        ALLOCATE ( TMPARR_4D(n1,n2,n3,n4) )
+       TMPARR_4D = 0.0
 
        ! Read arrays from file
        DO I = 1, nRead
@@ -870,6 +873,7 @@ CONTAINS
        ENDIF
 
        ALLOCATE ( TMPARR_3D(n1,n2,n3) )
+       TMPARR_3D = 0.0
 
        ! Read arrays from file
        DO I = 1, nRead
@@ -892,7 +896,6 @@ CONTAINS
           st3d = (/ s1, s2, s3 /) 
           ct3d = (/ n1, n2, n3 /)
           CALL NcRd( TMPARR_3D, fId, TRIM(v_name), st3d, ct3d )
-
        ENDDO
 
        ! Pass to output array. Eventually apply time weights.
@@ -915,8 +918,9 @@ CONTAINS
     ! Read a 2D array (lon and lat only):
     IF ( ndims == 2 ) THEN 
        ALLOCATE ( TMPARR_2D( nLon, nLat ) )
-       st2d   = (/ lon1, lat1 /)
-       ct2d   = (/ nlon, nlat /)
+       TMPARR_2D = 0.0
+       st2d      = (/ lon1, lat1 /)
+       ct2d      = (/ nlon, nlat /)
        CALL NcRd( TMPARR_2D, fId, TRIM(v_name), st2d, ct2d )
        ncArr(:,:,1,1) = TMPARR_2D(:,:)
        DEALLOCATE(TMPARR_2D)

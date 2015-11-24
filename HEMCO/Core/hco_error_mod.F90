@@ -116,15 +116,13 @@ MODULE HCO_Error_Mod
   INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_MASK = 3
 
   ! HEMCO version number.
-  CHARACTER(LEN=12), PARAMETER, PUBLIC :: HCO_VERSION = 'v1.1.013'
+  CHARACTER(LEN=12), PARAMETER, PUBLIC :: HCO_VERSION = 'v1.1.014'
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller   - Initialization
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  03 Mar 2015 - C. Keller   - Added HCO_CFLAG_* and HCO_DCTTYPE_*
-!  24 Sep 2015 - C. Keller   - Upgrade to v1.1.010.
-!  06 Oct 2015 - C. Keller   - Upgrade to v1.1.011.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
