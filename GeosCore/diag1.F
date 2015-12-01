@@ -221,7 +221,7 @@
      &            MAX( State_Chm%Tracers(I,J,L,N) *
      &                 State_Met%MOISTMW(I,J,L)   /
      &               ( State_Met%ADMOIST(I,J,L)   *
-     &                 Input_Opt%TRACER_MW_KG(N)  ) ,
+     &                 Input_Opt%TRACER_MW_G(N)  ) ,
      &                 0e+0_fp )
 
 
