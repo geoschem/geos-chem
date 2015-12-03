@@ -52,6 +52,7 @@ MODULE GeosFp_Read_Mod
   PUBLIC  :: GeosFp_Read_A3
   PUBLIC  :: GeosFp_Read_I3_1
   PUBLIC  :: GeosFp_Read_I3_2
+  PUBLIC  :: Cleanup_GeosFp_Read
 !
 ! !REMARKS:
 !  Assumes that you have a netCDF library (either v3 or v4) installed on 
@@ -68,9 +69,24 @@ MODULE GeosFp_Read_Mod
 !  26 Sep 2013 - R. Yantosca - Renamed to geosfp_read_mod.F90
 !  14 Jan 2014 - R. Yantosca - Remove "define GEOS572_FILES #ifdef blocks
 !  14 Aug 2014 - R. Yantosca - Compute CLDTOPS field in GeosFp_Read_A3mstE
+!  03 Dec 2015 - R. Yantosca - Add file ID's as module variables
+!  03 Dec 2015 - R. Yantosca - Add CLEANUP_GEOSFP_READ to close any open 
+!                              netCDF files left at the end of a simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+  ! netCDF file ID's
+  INTEGER :: fA1
+  INTEGER :: fA3cld
+  INTEGER :: fA3dyn
+  INTEGER :: fA3mstC
+  INTEGER :: fA3mstE
+  INTEGER :: fI3_1
+  INTEGER :: fI3_2
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -292,7 +308,7 @@ CONTAINS
     REAL*4             :: Q(IIPAR,JJPAR)     ! Temporary data arrray
 
     !======================================================================
-    ! Open the netCDF file
+    ! Open the netCDF file.  We only read this file once, at startup.
     !======================================================================
 
     ! Name of this routine (for error printout)
@@ -447,6 +463,7 @@ CONTAINS
 !  04 Dec 2013 - R. Yantosca - Now comment out GEOS-FP BL height correction
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  23 Sep 2015 - E. Lundgren - Now assign SWGDN to State_Met SWGDN not RADSWG
+!  03 Dec 2015 - R. Yantosca - Now open file only once per day
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -454,7 +471,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: fId                ! netCDF file ID
     INTEGER            :: X, Y, T            ! netCDF file dimensions
     INTEGER            :: I, J               ! Do-loop indices
     INTEGER            :: time_index         ! Read this time slice of data
@@ -466,18 +482,18 @@ CONTAINS
     CHARACTER(LEN=255) :: caller             ! Name of this routine
 
     ! Saved scalars
+    INTEGER, SAVE      :: fId      = -1      ! netCDF file ID
     INTEGER, SAVE      :: lastDate = -1      ! Stores last YYYYMMDD value
     INTEGER, SAVE      :: lastTime = -1      ! Stores last hhmmss value
-                                             
+    LOGICAL, SAVE      :: first    = .TRUE.  ! First time reading data?
+                
     ! Arrays                                 
     INTEGER            :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays 
     REAL*4             :: Q(IIPAR,JJPAR)     ! Temporary data arrray
 
     !======================================================================
-    ! Open the netCDF file
-    !======================================================================
-
     ! Skip if we have already read data for this date & time
+    !======================================================================
     IF ( YYYYMMDD == lastDate .and. HHMMSS == lastTime ) THEN
        stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
        WRITE( 6, 20 ) stamp
@@ -486,47 +502,60 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Name of this routine (for error printout)
-    caller  = "GEOSFP_READ_A1 (geosfp_read_mod.F90)"
-
-    ! Replace time & date tokens in the file name
-    dir     = TRIM( Input_Opt%GEOS_FP_DIR )
-    CALL Expand_Date( dir, YYYYMMDD, HHMMSS )
-
-    ! Replace time & date tokens in the file name
-    nc_file = Get_Resolution_String()
-    nc_file = 'GEOSFP.YYYYMMDD.A1.' // TRIM( nc_file )
-    CALL Expand_Date( nc_file, YYYYMMDD, HHMMSS )
-
-    ! Construct complete file path
-    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-    
-    ! Open netCDF file
-    CALL NcOp_Rd( fId, TRIM( nc_file ) )
-
-    ! Read the dimensions from the netCDF file
-    CALL NcGet_DimLen( fId, 'lon',   X )
-    CALL NcGet_DimLen( fId, 'lat',   Y )
-    CALL NcGet_DimLen( fId, 'time',  T )
-
-    ! Make sure the dimensions of the file are valid
-    CALL Check_Dimensions( lon=X,            lat=Y,        time=T,  &
-                           time_expected=24, caller=caller         )
-    
     !======================================================================
-    ! Read data from the netCDF file
+    ! Select the proper time slice
     !======================================================================
-    
+
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 10000 ) + 1
 
     ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > T ) THEN
+    IF ( time_index < 1 .or. time_index > 24 ) THEN
        WRITE( 6, 100 ) time_index
  100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 24!' )
        CALL Error_Stop( errMsg, caller )
     ENDIF
 
+    !======================================================================
+    ! Open the netCDF file only when necessary
+    !======================================================================
+    IF ( time_index == 1 .or. first ) THEN 
+
+       ! Name of this routine (for error printout)
+       caller  = "GEOSFP_READ_A1 (geosfp_read_mod.F90)"
+
+       ! replace time & date tokens in the file name
+       dir     = TRIM( Input_Opt%GEOS_FP_DIR )
+       CALL Expand_Date( dir, YYYYMMDD, HHMMSS )
+
+       ! Replace time & date tokens in the file name
+       nc_file = Get_Resolution_String()
+       nc_file = 'GEOSFP.YYYYMMDD.A1.' // TRIM( nc_file )
+       CALL Expand_Date( nc_file, YYYYMMDD, HHMMSS )
+
+       ! Construct complete file path
+       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    
+       ! Open netCDF file
+       CALL NcOp_Rd( fId, TRIM( nc_file ) )
+
+       ! Read the dimensions from the netCDF file
+       CALL NcGet_DimLen( fId, 'lon',   X )
+       CALL NcGet_DimLen( fId, 'lat',   Y )
+       CALL NcGet_DimLen( fId, 'time',  T )
+
+       ! Make sure the dimensions of the file are valid
+       CALL Check_Dimensions( lon=X,            lat=Y,        time=T,  &
+                              time_expected=24, caller=caller         )
+
+       ! Reset first-time flag
+       first = .FALSE.
+    ENDIF
+
+    !======================================================================
+    ! Read data from the netCDF file
+    !======================================================================
+    
     ! netCDF start & count indices
     st3d      = (/ 1,     1,     time_index /)      
     ct3d      = (/ IIPAR, JJPAR, 1          /)
@@ -771,8 +800,12 @@ CONTAINS
     ! Diagnostics, cleanup, and quit
     !======================================================================
 
-    ! Close netCDF file
-    CALL NcCl( fId )
+    ! Close netCDF file (only if it's last time slice)
+    IF ( time_index == 24 ) THEN
+       print*, '### before close A1: ', fId
+       CALL NcCl( fId )
+       print*, '### after close A1: ', fId
+    ENDIF
 
     ! Increment the # of times A1 fields are read from disk
     CALL Set_Ct_A1( INCREMENT=.TRUE. )
@@ -951,6 +984,7 @@ CONTAINS
 !  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3Cld
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_A6 with TRANSFER_3D
+!  03 Dec 2015 - R. Yantosca - Now open file only once per day
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -958,7 +992,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: fId                      ! netCDF file ID
     INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
     INTEGER            :: time_index               ! Read this slice of data
     CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
@@ -967,57 +1000,70 @@ CONTAINS
     CHARACTER(LEN=255) :: dir                      ! Data directory path
     CHARACTER(LEN=255) :: errMsg                   ! Error message
     CHARACTER(LEN=255) :: caller                   ! Name of this routine
-                                             
+           
+    ! SAVEd scalars
+    INTEGER, SAVE      :: fId   = -1               ! netCDF file ID
+    LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
+                                  
     ! Arrays                                 
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Q(IIPAR,JJPAR,LGLOB)     ! Temporary data arrray
 
     !======================================================================
-    ! Open the netCDF file
+    ! Select the proper time slice
     !======================================================================
 
-    ! Name of this routine (for error printout)
-    caller  = "GEOSFP_READ_A3cld (geosfp_read_mod.F90)"
-
-    ! Replace time & date tokens in the file name
-    dir     = TRIM( Input_Opt%GEOS_FP_DIR )
-    CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
-
-    ! Replace time & date tokens in the file name
-    nc_file = Get_Resolution_String()
-    nc_file = 'GEOSFP.YYYYMMDD.A3cld.' // TRIM( nc_file )
-    CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
-
-    ! Construct complete file path
-    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-    
-    ! Open netCDF file
-    CALL NcOp_Rd( fId, TRIM( nc_file ) )
-
-    ! Read the dimensions from the netCDF file
-    CALL NcGet_DimLen( fId, 'lon',   X )
-    CALL NcGet_DimLen( fId, 'lat',   Y )
-    CALL NcGet_DimLen( fId, 'lev',   Z )
-    CALL NcGet_DimLen( fId, 'time',  T )
-
-    ! Make sure the dimensions of the file are valid
-    CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
-                           time=T, time_expected=8, caller=caller )
-
-    !======================================================================
-    ! Read data from the netCDF file
-    !======================================================================
-    
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
     ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > T ) THEN
+    IF ( time_index < 1 .or. time_index > 8 ) THEN
        WRITE( 6, 100 ) time_index
  100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
        CALL ERROR_STOP( errMsg, caller )
     ENDIF
 
+    !======================================================================
+    ! Open the netCDF file only when necessary
+    !======================================================================
+    IF ( time_index == 1 .or. first ) THEN
+
+       ! Name of this routine (for error printout)
+       caller  = "GEOSFP_READ_A3cld (geosfp_read_mod.F90)"
+
+       ! Replace time & date tokens in the file name
+       dir     = TRIM( Input_Opt%GEOS_FP_DIR )
+       CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
+
+       ! Replace time & date tokens in the file name
+       nc_file = Get_Resolution_String()
+       nc_file = 'GEOSFP.YYYYMMDD.A3cld.' // TRIM( nc_file )
+       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
+
+       ! Construct complete file path
+       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+
+       ! Open netCDF file
+       CALL NcOp_Rd( fId, TRIM( nc_file ) )
+
+       ! Read the dimensions from the netCDF file
+       CALL NcGet_DimLen( fId, 'lon',   X )
+       CALL NcGet_DimLen( fId, 'lat',   Y )
+       CALL NcGet_DimLen( fId, 'lev',   Z )
+       CALL NcGet_DimLen( fId, 'time',  T )
+
+       ! Make sure the dimensions of the file are valid
+       CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
+                              time=T, time_expected=8, caller=caller )
+
+       ! Reset first-time flag
+       first = .FALSE.
+    ENDIF
+
+    !======================================================================
+    ! Read data from the netCDF file
+    !======================================================================
+    
     ! netCDF start & count indices
     st4d      = (/ 1,     1,     1,     time_index /)      
     ct4d      = (/ IIPAR, JJPAR, LGLOB, 1          /)
@@ -1061,8 +1107,10 @@ CONTAINS
     ! Diagnostics, cleanup, and quit
     !======================================================================
 
-    ! Close netCDF file
-    CALL NcCl( fId )
+    ! Close netCDF file (only if it's the last time slice)
+    IF ( time_index == 8 ) THEN
+       CALL NcCl( fId )
+    ENDIF
 
   END SUBROUTINE GeosFp_Read_A3cld
 !EOC
@@ -1117,6 +1165,7 @@ CONTAINS
 !  15 Nov 2013 - R. Yantosca - Now convert RH from [1] to [%], in order
 !                              to be consistent with GEOS-Chem convention
 !  14 Aug 2014 - R. Yantosca - Now compute CLDTOPS in GeosFP_Read_A3mstE
+!  03 Dec 2015 - R. Yantosca - Now open file only once per day
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1124,7 +1173,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: fId                      ! netCDF file ID
     INTEGER            :: I, J, L                  ! Loop indices
     INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
     INTEGER            :: time_index               ! Read this slice of data
@@ -1134,62 +1182,71 @@ CONTAINS
     CHARACTER(LEN=255) :: dir                      ! Data directory path
     CHARACTER(LEN=255) :: errMsg                   ! Error message
     CHARACTER(LEN=255) :: caller                   ! Name of this routine
-                                             
+
+    ! SAVEd scalars
+    INTEGER, SAVE      :: fId   = -1               ! netCDF file ID
+    LOGICAL, SAVE      :: first = .TRUE.           ! First time we read data?
+        
     ! Arrays                                 
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Q (IIPAR,JJPAR,LGLOB  )  ! Temporary data arrray
     REAL*4             :: Qe(IIPAR,JJPAR,LGLOB+1)  ! Temporary data arrray
 
     !======================================================================
-    ! Open the netCDF file
+    ! Select the proper time slice
     !======================================================================
 
-    ! Name of this routine (for error printout)
-    caller  = "GEOSFP_READ_A3dyn (geosfp_read_mod.F90)"
-
-    ! Replace time & date tokens in the file name
-    dir     = TRIM( Input_Opt%GEOS_FP_DIR )
-    CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
-
-    ! Replace time & date tokens in the file name
-    nc_file = Get_Resolution_String()
-    nc_file = 'GEOSFP.YYYYMMDD.A3dyn.' // TRIM( nc_file )
-    CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
-
-    ! Construct complete file path
-    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-    
-    ! Open netCDF file
-    CALL NcOp_Rd( fId, TRIM( nc_file ) )
-
-    ! Read the dimensions from the netCDF file
-    CALL NcGet_DimLen( fId, 'lon',   X )
-    CALL NcGet_DimLen( fId, 'lat',   Y )
-    CALL NcGet_DimLen( fId, 'lev',   Z )
-    CALL NcGet_DimLen( fId, 'time',  T )
-
-    ! Make sure the dimensions of the file are valid
-    CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
-                           time=T, time_expected=8, caller=caller )
-
-    !======================================================================
-    ! Read data from the netCDF file
-    !======================================================================
-    
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
     ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > T ) THEN
+    IF ( time_index < 1 .or. time_index > 8 ) THEN
        WRITE( 6, 100 ) time_index
  100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
        CALL ERROR_STOP( errMsg, 'GEOS57_READ_A1 (geos57_read_mod.F90)' )
     ENDIF
 
-    !--------------------------------
-    ! Read data on level centers
-    !--------------------------------
+    !======================================================================
+    ! Open the netCDF file only when necessary
+    !======================================================================
+    IF ( time_index == 1 .or. first ) THEN
 
+       ! Name of this routine (for error printout)
+       caller  = "GEOSFP_READ_A3dyn (geosfp_read_mod.F90)"
+
+       ! Replace time & date tokens in the file name
+       dir     = TRIM( Input_Opt%GEOS_FP_DIR )
+       CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
+
+       ! Replace time & date tokens in the file name
+       nc_file = Get_Resolution_String()
+       nc_file = 'GEOSFP.YYYYMMDD.A3dyn.' // TRIM( nc_file )
+       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
+
+       ! Construct complete file path
+       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+
+       ! Open netCDF file
+       CALL NcOp_Rd( fId, TRIM( nc_file ) )
+
+       ! Read the dimensions from the netCDF file
+       CALL NcGet_DimLen( fId, 'lon',   X )
+       CALL NcGet_DimLen( fId, 'lat',   Y )
+       CALL NcGet_DimLen( fId, 'lev',   Z )
+       CALL NcGet_DimLen( fId, 'time',  T )
+
+       ! Make sure the dimensions of the file are valid
+       CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
+                              time=T, time_expected=8, caller=caller )
+
+       ! Reset first-time flag
+       first = .FALSE.
+    ENDIF
+
+    !======================================================================
+    ! Read data from the netCDF file (only when necessary)
+    !======================================================================
+    
     ! netCDF start & count indices
     st4d      = (/ 1,     1,     1,     time_index /)      
     ct4d      = (/ IIPAR, JJPAR, LGLOB, 1          /)
@@ -1243,8 +1300,10 @@ CONTAINS
        AD67(:,:,16) = AD67(:,:,16) + State_Met%CLDTOPS         ! [levels]
     ENDIF
 
-    ! Close netCDF file
-    CALL NcCl( fId )
+    ! Close netCDF file (only on last time slice)
+    IF ( time_index == 8 ) THEN
+       CALL NcCl( fId )
+    ENDIF
 
   END SUBROUTINE GeosFp_Read_A3dyn
 !EOC
@@ -1297,6 +1356,7 @@ CONTAINS
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3mstC
+!  03 Dec 2015 - R. Yantosca - Now open file only once per day
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1304,7 +1364,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: fId                      ! netCDF file ID
     INTEGER            :: I, J, L                  ! Loop indices
     INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
     INTEGER            :: time_index               ! Read this slice of data
@@ -1314,57 +1373,70 @@ CONTAINS
     CHARACTER(LEN=255) :: dir                      ! Data directory path
     CHARACTER(LEN=255) :: errMsg                   ! Error message
     CHARACTER(LEN=255) :: caller                   ! Name of this routine
+
+    ! SAVEd scalars
+    INTEGER, SAVE      :: fId   = -1               ! netCDF file ID
+    LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
                                     
     ! Arrays                                 
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Q (IIPAR,JJPAR,LGLOB)    ! Temporary data arrray
 
     !======================================================================
-    ! Open the netCDF file
+    ! Select the proper time slice
     !======================================================================
 
-    ! Name of this routine (for error printout)
-    caller  = "GEOSFP_READ_A3mstC (geosfp_read_mod.F90)"
-
-    ! Replace time & date tokens in the file name
-    dir     = TRIM( Input_Opt%GEOS_FP_DIR )
-    CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
-
-    ! Replace time & date tokens in the file name
-    nc_file = Get_Resolution_String()
-    nc_file = 'GEOSFP.YYYYMMDD.A3mstC.' // TRIM( nc_file )
-    CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
-
-    ! Construct complete file path
-    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-    
-    ! Open netCDF file
-    CALL NcOp_Rd( fId, TRIM( nc_file ) )
-
-    ! Read the dimensions from the netCDF file
-    CALL NcGet_DimLen( fId, 'lon',   X )
-    CALL NcGet_DimLen( fId, 'lat',   Y )
-    CALL NcGet_DimLen( fId, 'lev',   Z )
-    CALL NcGet_DimLen( fId, 'time',  T )
-
-    ! Make sure the dimensions of the file are valid
-    CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
-                           time=T, time_expected=8, caller=caller )
-
-    !======================================================================
-    ! Read data from the netCDF file
-    !======================================================================
-    
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
     ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > T ) THEN
+    IF ( time_index < 1 .or. time_index > 8 ) THEN
        WRITE( 6, 100 ) time_index
  100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
        CALL Error_Stop( errMsg, caller )
     ENDIF
 
+    !======================================================================
+    ! Open the netCDF file only when necessary
+    !======================================================================
+    IF ( time_index == 1 .or. first ) THEN
+
+       ! Name of this routine (for error printout)
+       caller  = "GEOSFP_READ_A3mstC (geosfp_read_mod.F90)"
+
+       ! Replace time & date tokens in the file name
+       dir     = TRIM( Input_Opt%GEOS_FP_DIR )
+       CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
+
+       ! Replace time & date tokens in the file name
+       nc_file = Get_Resolution_String()
+       nc_file = 'GEOSFP.YYYYMMDD.A3mstC.' // TRIM( nc_file )
+       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
+
+       ! Construct complete file path
+       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    
+       ! Open netCDF file
+       CALL NcOp_Rd( fId, TRIM( nc_file ) )
+
+       ! Read the dimensions from the netCDF file
+       CALL NcGet_DimLen( fId, 'lon',   X )
+       CALL NcGet_DimLen( fId, 'lat',   Y )
+       CALL NcGet_DimLen( fId, 'lev',   Z )
+       CALL NcGet_DimLen( fId, 'time',  T )
+
+       ! Make sure the dimensions of the file are valid
+       CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
+                              time=T, time_expected=8, caller=caller )
+
+       ! Reset first-time flag
+       first = .FALSE.
+    ENDIF
+
+    !======================================================================
+    ! Read data from the netCDF file
+    !======================================================================
+    
     ! netCDF start & count indices
     st4d      = (/ 1,     1,     1,     time_index /)      
     ct4d      = (/ IIPAR, JJPAR, LGLOB, 1          /)
@@ -1398,10 +1470,12 @@ CONTAINS
     ! Cleanup and quit
     !======================================================================
 
-    ! Close netCDF file
-    CALL NcCl( fId )
+    ! Close netCDF file (only if it's the last time slice)
+    IF ( time_index == 8 ) THEN
+       CALL NcCl( fId )
+    ENDIF
 
-  END SUBROUTINE GeosFp_read_A3mstC
+  END SUBROUTINE GeosFp_Read_A3mstC
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1417,7 +1491,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GeosFp_read_A3mstE( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE GeosFp_Read_A3mstE( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
 !
@@ -1454,6 +1528,7 @@ CONTAINS
 !  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3mstE
 !  26 Sep 2013 - R. Yantosca - Now read CMFMC from GEOSFP*.nc files
 !  14 Aug 2014 - R. Yantosca - Now compute CLDTOPS here; it depends on CMFMC
+!  03 Dec 2015 - R. Yantosca - Now open file only once per day
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1461,7 +1536,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: fId                      ! netCDF file ID
     INTEGER            :: I, J, L                  ! Loop indices
     INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
     INTEGER            :: time_index               ! Read this slice of data
@@ -1471,56 +1545,69 @@ CONTAINS
     CHARACTER(LEN=255) :: dir                      ! Data directory path
     CHARACTER(LEN=255) :: errMsg                   ! Error message
     CHARACTER(LEN=255) :: caller                   ! Name of this routine
+
+    ! SAVEd scalars
+    INTEGER, SAVE      :: fId   = -1               ! netCDF file ID
+    LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
                                              
     ! Arrays                                 
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Qe(IIPAR,JJPAR,LGLOB+1)  ! Temporary data arrray
 
     !======================================================================
-    ! Open the netCDF file
+    ! Select the proper time slice
     !======================================================================
 
-    ! Name of this routine (for error printout)
-    caller  = "GEOSFP_READ_A3mstE (geosfp_read_mod.F90)"
-
-    ! Replace time & date tokens in the file name
-    dir     = TRIM( Input_Opt%GEOS_FP_DIR )
-    CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
-
-    ! Replace time & date tokens in the file name
-    nc_file = Get_Resolution_String()
-    nc_file = 'GEOSFP.YYYYMMDD.A3mstE.' // TRIM( nc_file )
-    CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
-
-    ! Construct complete file path
-    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-    
-    ! Open netCDF file
-    CALL NcOp_Rd( fId, TRIM( nc_file ) )
-
-    ! Read the dimensions from the netCDF file
-    CALL NcGet_DimLen( fId, 'lon',   X )
-    CALL NcGet_DimLen( fId, 'lat',   Y )
-    CALL NcGet_DimLen( fId, 'lev',   Z )
-    CALL NcGet_DimLen( fId, 'time',  T )
-
-    ! Make sure the dimensions of the file are valid
-    CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z-1,       &
-                           time=T, time_expected=8, caller=caller )
-
-    !======================================================================
-    ! Read data from the netCDF file
-    !======================================================================
-    
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
     ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > T ) THEN
+    IF ( time_index < 1 .or. time_index > 8 ) THEN
        WRITE( 6, 100 ) time_index
  100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
-       CALL ERROR_STOP( errMsg, caller )
+       CALL Error_Stop( errMsg, caller )
     ENDIF
+
+    !======================================================================
+    ! Open the netCDF file only when necessary
+    !======================================================================
+    IF ( time_index == 1 .or. first ) THEN
+
+       ! Name of this routine (for error printout)
+       caller  = "GEOSFP_READ_A3mstE (geosfp_read_mod.F90)"
+
+       ! Replace time & date tokens in the file name
+       dir     = TRIM( Input_Opt%GEOS_FP_DIR )
+       CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
+
+       ! Replace time & date tokens in the file name
+       nc_file = Get_Resolution_String()
+       nc_file = 'GEOSFP.YYYYMMDD.A3mstE.' // TRIM( nc_file )
+       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
+
+       ! Construct complete file path
+       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    
+       ! Open netCDF file
+       CALL NcOp_Rd( fId, TRIM( nc_file ) )
+
+       ! Read the dimensions from the netCDF file
+       CALL NcGet_DimLen( fId, 'lon',   X )
+       CALL NcGet_DimLen( fId, 'lat',   Y )
+       CALL NcGet_DimLen( fId, 'lev',   Z )
+       CALL NcGet_DimLen( fId, 'time',  T )
+
+       ! Make sure the dimensions of the file are valid
+       CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z-1,       &
+                              time=T, time_expected=8, caller=caller )
+
+       ! Reset first-time flag
+       first = .FALSE.
+    ENDIF
+
+    !======================================================================
+    ! Read data from the netCDF file
+    !======================================================================
 
     ! netCDF start & count indices
     st4d      = (/ 1,     1,     1,       time_index /)      
@@ -1578,8 +1665,10 @@ CONTAINS
        AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) + State_Met%CMFMC(:,:,1:LD66)
     ENDIF
 
-    ! Close netCDF file
-    CALL NcCl( fId )
+    ! Close netCDF file (only if it's the last time slice)
+    IF ( time_index == 8 ) THEN
+       CALL NcCl( fId )
+    ENDIF
 
   END SUBROUTINE GeosFp_Read_A3mstE
 !EOC
@@ -1639,6 +1728,7 @@ CONTAINS
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
 !  12 Jun 2015 - E. Lundgren - Initialize State_MET%SPHU with State_Met%SPHU1
+!  03 Dec 2015 - R. Yantosca - Now open file only once per day
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1646,7 +1736,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: fId                      ! netCDF file ID
     INTEGER            :: I, J, L                  ! Loop indices
     INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
     INTEGER            :: time_index               ! Read this slice of data
@@ -1656,7 +1745,11 @@ CONTAINS
     CHARACTER(LEN=255) :: dir                      ! Data directory path
     CHARACTER(LEN=255) :: errMsg                   ! Error message
     CHARACTER(LEN=255) :: caller                   ! Name of this routine
-                                    
+
+    ! SAVEd scalars
+    INTEGER, SAVE      :: fId   = -1               ! netCDF file ID
+    LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
+                                        
     ! Arrays                                 
     INTEGER            :: st3d(3), ct3d(3)         ! Start & count indices
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
@@ -1664,50 +1757,59 @@ CONTAINS
     REAL*4             :: Q3(IIPAR,JJPAR,LGLOB)    ! 3D temporary data arrray
 
     !======================================================================
-    ! Open the netCDF file
+    ! Select the proper time slice
     !======================================================================
 
-    ! Name of this routine (for error printout)
-    caller  = "GEOSFP_READ_I3_1 (geosfp_read_mod.F90)"
-
-    ! Replace time & date tokens in the file name
-    dir     = TRIM( Input_Opt%GEOS_FP_DIR )
-    CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
-
-    ! Replace time & date tokens in the file name
-    nc_file = Get_Resolution_String()
-    nc_file = 'GEOSFP.YYYYMMDD.I3.' // TRIM( nc_file )
-    CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
-
-    ! Construct complete file path
-    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-
-    ! Open netCDF file
-    CALL NcOp_Rd( fId, TRIM( nc_file ) )
-
-    ! Read the dimensions from the netCDF file
-    CALL NcGet_DimLen( fId, 'lon',   X )
-    CALL NcGet_DimLen( fId, 'lat',   Y )
-    CALL NcGet_DimLen( fId, 'lev',   Z )
-    CALL NcGet_DimLen( fId, 'time',  T )
-
-    ! Make sure the dimensions of the file are valid
-    CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
-                           time=T, time_expected=8, caller=caller )
-
-    !======================================================================
-    ! Read data from the netCDF file
-    !======================================================================
-    
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
     ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > T ) THEN
+    IF ( time_index < 1 .or. time_index > 8 ) THEN
        WRITE( 6, 100 ) time_index
  100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
        CALL Error_Stop( errMsg, caller )
     ENDIF
+
+    !======================================================================
+    ! Open the netCDF file only when necessary
+    !======================================================================
+    IF ( time_index == 1 .or. first ) THEN
+
+       ! Name of this routine (for error printout)
+       caller  = "GEOSFP_READ_I3_1 (geosfp_read_mod.F90)"
+
+       ! Replace time & date tokens in the file name
+       dir     = TRIM( Input_Opt%GEOS_FP_DIR )
+       CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
+
+       ! Replace time & date tokens in the file name
+       nc_file = Get_Resolution_String()
+       nc_file = 'GEOSFP.YYYYMMDD.I3.' // TRIM( nc_file )
+       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
+
+       ! Construct complete file path
+       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+
+       ! Open netCDF file
+       CALL NcOp_Rd( fId, TRIM( nc_file ) )
+
+       ! Read the dimensions from the netCDF file
+       CALL NcGet_DimLen( fId, 'lon',   X )
+       CALL NcGet_DimLen( fId, 'lat',   Y )
+       CALL NcGet_DimLen( fId, 'lev',   Z )
+       CALL NcGet_DimLen( fId, 'time',  T )
+
+       ! Make sure the dimensions of the file are valid
+       CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
+                              time=T, time_expected=8, caller=caller )
+       
+       ! Reset first-time flag
+       first = .FALSE.
+    ENDIF
+
+    !======================================================================
+    ! Read data from the netCDF file
+    !======================================================================
     
     !-------------------------------------------------
     ! Read 3D data (2D spatial + 1D time )
@@ -1782,8 +1884,10 @@ CONTAINS
     ! Diagnostics, cleanup, and quit
     !======================================================================
 
-    ! Close netCDF file
-    CALL NcCl( fId )
+    ! Close netCDF file (only when it's the last time slice)
+    IF ( time_index == 8 ) THEN
+       CALL NcCl( fId )
+    ENDIF
 
     ! Increment the # of times I3 fields have been read
     CALL Set_Ct_I3( INCREMENT=.TRUE. )
@@ -1847,6 +1951,7 @@ CONTAINS
 !  26 Sep 2013 - R. Yantosca - Rename to GeosFp_Read_I3_2
 !  29 Oct 2013 - R. Yantosca - Now read T_FULLGRID_2 for offline simulations
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  03 Dec 2015 - R. Yantosca - Now open file only once per day
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1854,7 +1959,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: fId                      ! netCDF file ID
     INTEGER            :: I, J, L                  ! Loop indices
     INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
     INTEGER            :: time_index               ! Read this slice of data
@@ -1864,6 +1968,10 @@ CONTAINS
     CHARACTER(LEN=255) :: dir                      ! Data directory path
     CHARACTER(LEN=255) :: errMsg                   ! Error message
     CHARACTER(LEN=255) :: caller                   ! Name of this routine
+
+    ! SAVEd scalars
+    INTEGER, SAVE      :: fId   = -1               ! netCDF file ID
+    INTEGER, SAVE      :: first = .TRUE.           ! First time reading data?
                                     
     ! Arrays                                 
     INTEGER            :: st3d(3), ct3d(3)         ! Start & count indices
@@ -1872,50 +1980,58 @@ CONTAINS
     REAL*4             :: Q3(IIPAR,JJPAR,LGLOB)    ! 3D temporary data arrray
 
     !======================================================================
-    ! Open the netCDF file
+    ! Select the proper time slice
     !======================================================================
 
-    ! Name of this routine (for error printout)
-    caller  = "GEOSFP_READ_I3_2 (geosfp_read_mod.F90)"
-
-    ! Replace time & date tokens in the file name
-    dir     = TRIM( Input_Opt%GEOS_FP_DIR )
-    CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
-
-    ! Replace time & date tokens in the file name
-    nc_file = Get_Resolution_String()
-    nc_file = 'GEOSFP.YYYYMMDD.I3.' // TRIM( nc_file )
-    CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
-
-    ! Construct complete file path
-    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-
-    ! Open netCDF file
-    CALL NcOp_Rd( fId, TRIM( nc_file ) )
-
-    ! Read the dimensions from the netCDF file
-    CALL NcGet_DimLen( fId, 'lon',   X )
-    CALL NcGet_DimLen( fId, 'lat',   Y )
-    CALL NcGet_DimLen( fId, 'lev',   Z )
-    CALL NcGet_DimLen( fId, 'time',  T )
-
-    ! Make sure the dimensions of the file are valid
-    CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
-                           time=T, time_expected=8, caller=caller )
-
-    !======================================================================
-    ! Read data from the netCDF file
-    !======================================================================
-    
     ! Find the proper time-slice to read from disk
     time_index = ( HHMMSS / 030000 ) + 1
 
     ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > T ) THEN
+    IF ( time_index < 1 .or. time_index > 8 ) THEN
        WRITE( 6, 100 ) time_index
  100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
        CALL Error_Stop( errMsg, caller )
     ENDIF
+
+    !======================================================================
+    ! Open the netCDF file
+    !======================================================================
+    IF ( time_index == 1 .or. first ) THEN
+
+       ! Name of this routine (for error printout)
+       caller  = "GEOSFP_READ_I3_2 (geosfp_read_mod.F90)"
+
+       ! Replace time & date tokens in the file name
+       dir     = TRIM( Input_Opt%GEOS_FP_DIR )
+       CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
+
+       ! Replace time & date tokens in the file name
+       nc_file = Get_Resolution_String()
+       nc_file = 'GEOSFP.YYYYMMDD.I3.' // TRIM( nc_file )
+       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
+
+       ! Construct complete file path
+       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+
+       ! Open netCDF file
+       CALL NcOp_Rd( fId, TRIM( nc_file ) )
+
+       ! Read the dimensions from the netCDF file
+       CALL NcGet_DimLen( fId, 'lon',   X )
+       CALL NcGet_DimLen( fId, 'lat',   Y )
+       CALL NcGet_DimLen( fId, 'lev',   Z )
+       CALL NcGet_DimLen( fId, 'time',  T )
+
+       ! Make sure the dimensions of the file are valid
+       CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
+                              time=T, time_expected=8, caller=caller )
+
+       first = .FALSE.
+    ENDIF
+
+    !======================================================================
+    ! Read data from the netCDF file
+    !======================================================================
     
     !-------------------------------------------------
     ! Read 3D data (2D spatial + 1D time )
@@ -1982,8 +2098,10 @@ CONTAINS
     ! Diagnostics, cleanup, and quit
     !======================================================================
 
-    ! Close netCDF file
-    CALL NcCl( fId )
+    ! Close netCDF file (only when it's the last time slice)
+    IF ( time_index == 8 ) THEN
+       CALL NcCl( fId )
+    ENDIF
 
     ! Increment the # of times I3 fields have been read
     CALL Set_Ct_I3( INCREMENT=.TRUE. )
@@ -1995,5 +2113,38 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE GeosFp_Read_I3_2
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_geosfp_read
+!
+! !DESCRIPTION: Closes any open netCDF files at the end of a simulation.
+!  This can occur if the simulation ends at a time other than 00:00 GMT.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Cleanup_GeosFp_Read()
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! If the netCDF file ID is greater than zero, 
+    ! then it's open and we need to close it.
+    !IF ( fA1     > 0 ) CALL NcCl( fA1     )
+    !IF ( fA3cld  > 0 ) CALL NcCl( fA3cld  )
+    !IF ( fA3dyn  > 0 ) CALL NcCl( fA3dyn  )
+    !IF ( fA3mstC > 0 ) CALL NcCl( fA3mstC )
+    !IF ( fA3mstE > 0 ) CALL NcCl( fA3mstE )
+    !IF ( fI3_1   > 0 ) CALL NcCl( fI3_1   )
+    !IF ( fI3_2   > 0 ) CALL NcCl( fI3_2   )
+
+  END SUBROUTINE Cleanup_GeosFp_Read
 !EOC
 END MODULE GeosFp_Read_Mod

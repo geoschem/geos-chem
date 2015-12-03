@@ -149,6 +149,8 @@
 #  04 Jun 2015 - R. Yantosca - Add wipeout target to remove any leftover
 #                              library, module, or executable files
 #  03 Sep 2015 - R. Yantosca - Add gamap_mod.o dependency to input_mod.o
+#  03 Dec 2015 - R. Yantosca - cleanup.o now depends on geosfp_read_mod.o
+#                              and merra2_read_mod.o
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -473,6 +475,7 @@ cleanup.o                   : cleanup.F                                      \
                               toms_mod.o              tracer_mod.o           \
                               transport_mod.o         ucx_mod.o              \
                               uvalbedo_mod.o          tpcore_fvdas_mod.o     \
+                              geosfp_read_mod.o       merra2_read_mod.o      \
                               tpcore_geos5_window_mod.o                      \
                               tpcore_geosfp_window_mod.o                     \
                               rrtmg_rad_transfer_mod.o
