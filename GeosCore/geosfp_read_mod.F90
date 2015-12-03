@@ -2029,6 +2029,7 @@ CONTAINS
        CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
                               time=T, time_expected=8, caller=caller )
 
+       ! Reset the first-time flag
        first = .FALSE.
     ENDIF
 

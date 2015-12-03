@@ -46,7 +46,7 @@
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
       USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
       USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
-!      USE MERRA2_READ_MOD,         ONLY : CLEANUP_MERRA2_READ
+      USE MERRA2_READ_MOD,         ONLY : CLEANUP_MERRA2_READ
       USE PBL_MIX_MOD,             ONLY : CLEANUP_PBL_MIX
       USE PJC_PFIX_MOD,            ONLY : CLEANUP_PJC_PFIX
       USE PLANEFLIGHT_MOD,         ONLY : CLEANUP_PLANEFLIGHT
@@ -350,8 +350,11 @@
       CALL Cleanup_CMN_FJX    ( am_I_Root, RC )
 
       ! Close GEOS-FP or MERRA2 met field files that may still be open
+#if defined( GEOS_FP )
       CALL Cleanup_GeosFp_Read()
-!     CALL Cleanup_Merra2_Read()
-
+#elif defined( MERRA2 )
+      CALL Cleanup_Merra2_Read()
+#endif
+      
       END SUBROUTINE CLEANUP
 !EOC
