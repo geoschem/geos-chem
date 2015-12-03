@@ -2304,6 +2304,7 @@ CONTAINS
 !  25 Mar 2015 - C. Keller   - Added switch for STATE_PSC (for UCX)
 !  27 Aug 2015 - E. Lundgren - Now always read TOMS for mercury simulation when
 !                              photo-reducible HgII(aq) to UV-B radiation is on
+!  03 Dec 2015 - R. Yantosca - Bug fix: pass am_I_Root to AddExtOpt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2486,7 +2487,7 @@ CONTAINS
     ELSE
        OptName = '+TOMS_SBUV_O3+ : false'          
     ENDIF
-    CALL AddExtOpt( TRIM(OptName), CoreNr, RC ) 
+    CALL AddExtOpt( am_I_Root, TRIM(OptName), CoreNr, RC ) 
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP( 'AddExtOpt GEOS-FP +TOMS_SBUV_O3+', LOC )
     ENDIF
