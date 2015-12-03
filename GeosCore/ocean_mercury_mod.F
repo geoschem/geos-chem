@@ -192,6 +192,8 @@
       ! For Arctic rivers (jaf, 12/8/11)
       REAL(fpp)   :: RIVERFLOW(12)
       REAL(fpp)   :: dFLOW
+      REAL(fpp)   :: dFLOW1
+      REAL(fpp)   :: dFLOW2
       REAL(fpp)   :: FLOWNOW 
 
       ! Arrays
@@ -1161,9 +1163,11 @@
       !-----------------------------------------------
       
       dMLD = dMLD1 
+      dFLOW = dFLOW1 
 
       IF ( ITS_MIDMONTH() ) THEN
          dMLD = dMLD2
+         dFLOW = dFLOW2
       ENDIF
 
       ! Emission timestep [s]
@@ -2312,13 +2316,19 @@
 
       ! Add time variables to get correct number of seconds per month
       ! and prevent negative flow later (jaf, 12/8/11)
-      INTEGER	   :: DAYS_IN_MONTH, LASTMONTH
+      INTEGER	   :: LASTMONTH, DAYS_IN_LAST_MONTH
+      INTEGER	   :: NEXTMONTH, DAYS_IN_THIS_MONTH
       INTEGER	   :: M(12) = (/ 31, 28, 31, 30, 31, 30,
      &                           31, 31, 30, 31, 30, 31 /)
+      REAL*8,  PARAMETER :: SEC_PER_DAY = 3.6e+3_fpp * 24e+0_fpp
 
       ! Moved from ocean_mercury_flux (jaf,3/20/13)
       REAL*8,  PARAMETER   :: NPPMINNUM   = 5e-2_fpp
       REAL*8,  PARAMETER   :: CHLMINNUM   = 1e-1_fpp
+
+      ! Arctic MLD parameters
+      REAL*8,  PARAMETER   :: ArcticMLD_summer = 15e+2_fpp
+      REAL*8,  PARAMETER   :: ArcticMLD_other  = 20e+2_fpp
 
       ! Strings
       CHARACTER(LEN=255) :: 
@@ -2338,11 +2348,21 @@
          LASTMONTH = THISMONTH - 1
       ENDIF
 
-      ! Calculate days in this month (jaf, 12/8/11)
+      ! Get the next month
+      NEXTMONTH = MOD( THISMONTH, 12 ) +1
+
+      ! Calculate days in last month (jaf, 12/8/11)
       IF ( LASTMONTH == 2 .and. ITS_A_LEAPYEAR( THISYEAR ) ) THEN
-         DAYS_IN_MONTH = M(LASTMONTH) + 1
+         DAYS_IN_LAST_MONTH = M(LASTMONTH) + 1
       ELSE
-         DAYS_IN_MONTH = M(LASTMONTH)
+         DAYS_IN_LAST_MONTH = M(LASTMONTH)
+      ENDIF
+
+      ! Calculate days in this month (jaf, 12/8/11)
+      IF ( THISMONTH == 2 .and. ITS_A_LEAPYEAR( THISYEAR ) ) THEN
+         DAYS_IN_THIS_MONTH = M(THISMONTH) + 1
+      ELSE
+         DAYS_IN_THIS_MONTH = M(THISMONTH)
       ENDIF
 
       !-----------------------------------------------------------------
@@ -2448,10 +2468,36 @@
      &                                    X <= 0e+0_fpp ) ) ) THEN
                SELECT CASE ( THISMONTH )
                   CASE( 7, 8, 9 ) ! summer
-                      MLD(I,J) = 15e+2_fpp
+                      MLD(I,J) = ArcticMLD_summer
                   CASE DEFAULT    ! rest of year
-                      MLD(I,J) = 20e+2_fpp
+                      MLD(I,J) = ArcticMLD_other
                END SELECT
+
+               ! Also set up MLD tendency in cm/s for each half month
+               ! Months with change are 6-7, 9-10
+               SELECT CASE ( THISMONTH )
+                   CASE( 6 ) ! june
+                      dMLD1(I,J) = 0e+0_fpp
+                      dMLD2(I,J) = (ArcticMLD_summer - ArcticMLD_other)/
+     &                             ( SEC_PER_DAY * DAYS_IN_LAST_MONTH )
+                   CASE( 7 ) ! july
+                      dMLD1(I,J) = (ArcticMLD_summer - ArcticMLD_other)/
+     &                             ( SEC_PER_DAY * DAYS_IN_LAST_MONTH )
+                      dMLD2(I,J) = 0e+0_fpp
+                  CASE( 9 ) ! september
+                      dMLD1(I,J) = 0e+0_fpp 
+                      dMLD2(I,J) = (ArcticMLD_other - ArcticMLD_summer)/
+     &                             ( SEC_PER_DAY * DAYS_IN_LAST_MONTH )
+                   CASE ( 10 ) ! october
+                      dMLD1(I,J) = (ArcticMLD_other - ArcticMLD_summer)/
+     &                             ( SEC_PER_DAY * DAYS_IN_LAST_MONTH )
+                      dMLD2(I,J) = 0e+0_fpp
+                   CASE DEFAULT ! rest of year
+                      dMLD1(I,J) = 0e+0_fpp
+                      dMLD2(I,J) = 0e+0_fpp
+               END SELECT
+
+
           ENDIF
 
          ! Added NPP for the Arctic from Jin et al. 2012. (anls)
@@ -2476,28 +2522,15 @@
       !-------------------------------------------------
       ! River flow
       !-------------------------------------------------
+      dFLOW1 = ( RIVERFLOW(THISMONTH) - RIVERFLOW(LASTMONTH) ) /
+     &         ( SEC_PER_DAY * DAYS_IN_LAST_MONTH )
+      dFLOW2 = ( RIVERFLOW(NEXTMONTH) - RIVERFLOW(THISMONTH) ) /
+     &         ( SEC_PER_DAY * DAYS_IN_THIS_MONTH )
 
-      ! Get the last month (jaf, 12/8/11)
-      IF ( THISMONTH == 1 ) THEN
-         LASTMONTH = 12
-      ELSE
-         LASTMONTH = THISMONTH - 1
-      ENDIF
-
-      ! Calculate days in this month (jaf, 12/8/11)
-      IF ( LASTMONTH == 2 .and. ITS_A_LEAPYEAR( THISYEAR ) ) THEN
-         DAYS_IN_MONTH = M(LASTMONTH) + 1
-      ELSE
-         DAYS_IN_MONTH = M(LASTMONTH)
-      ENDIF
-
-      ! Set dFLOW, FLOWNOW first time (jaf, 12/8/11)
+      ! Set FLOWNOW first time (jaf, 12/8/11)
       IF ( FIRST ) THEN
-         dFLOW = ( RIVERFLOW(THISMONTH) - RIVERFLOW(LASTMONTH) ) /
-     &           ( 3.6e+3_fpp * 24e+0_fpp * DAYS_IN_MONTH )
          FLOWNOW = RIVERFLOW(LASTMONTH) + dFLOW *
-     &             ( DAYS_IN_MONTH - 15 ) * 3.6e+3_fpp * 
-     &               24e+0_fpp
+     &             SEC_PER_DAY * ( DAYS_IN_LAST_MONTH - 15 )
          FIRST = .FALSE.
       ENDIF
 
@@ -2600,8 +2633,6 @@
 ! 100     FORMAT( '     - GET_MLD_FOR_NEXT_MONTH: Reading ', a )  
 !      ENDIF
 !
-!      ! Get the next month
-!      NEXTMONTH = MOD( THISMONTH, 12 ) +1
 !
 !      ! TAU0 value for next month (uses year 1985)
 !      TAU       = GET_TAU0( NEXTMONTH, 1, 1985 )
