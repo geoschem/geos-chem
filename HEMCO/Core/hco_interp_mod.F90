@@ -979,7 +979,6 @@ CONTAINS
                 CALL COLLAPSE( Lct, REGR_4D, 28, 61, 4, T, 5 )
                 CALL COLLAPSE( Lct, REGR_4D, 29, 65, 4, T, 5 )
                 CALL COLLAPSE( Lct, REGR_4D, 30, 69, 4, T, 5 )
-             ENDIF
 
              ! Native GEOS-5 onto reduced GEOS-4
              ! Can use same mapping as for native GEOS-5 onto reduced GEOS-5,
