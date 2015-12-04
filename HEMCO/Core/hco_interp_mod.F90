@@ -789,7 +789,8 @@ CONTAINS
              ELSEIF ( NL == 0 .AND. nlev == 73 ) THEN
                 DO L = 13, 56
                    Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L+17,T)
-
+                ENDDO
+                   
              ! Reduced GEOS-5 onto native GEOS-4
              ! Use the same mappings as for reduced GEOS-5 to native GEOS-5,
              ! but start at appropriate levels
