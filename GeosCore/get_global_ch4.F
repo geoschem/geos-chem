@@ -400,6 +400,7 @@
       !=================================================================
       ! Print the latitudinal CH4 gradient for this year to stdout
       !=================================================================
+#if !defined ( ESMF_ ) 
 !$OMP CRITICAL
       IF ( am_I_Root ) THEN
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -424,6 +425,7 @@
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       ENDIF
 !$OMP END CRITICAL
+#endif
 
       ! Return to calling program
       END SUBROUTINE GET_GLOBAL_CH4

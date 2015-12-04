@@ -789,6 +789,7 @@ CONTAINS
              ELSEIF ( NL == 0 .AND. nlev == 73 ) THEN
                 DO L = 13, 56
                    Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L+17,T)
+                ENDDO
 
              ! Reduced GEOS-5 onto native GEOS-4
              ! Use the same mappings as for reduced GEOS-5 to native GEOS-5,
@@ -978,7 +979,7 @@ CONTAINS
                 CALL COLLAPSE( Lct, REGR_4D, 28, 61, 4, T, 5 )
                 CALL COLLAPSE( Lct, REGR_4D, 29, 65, 4, T, 5 )
                 CALL COLLAPSE( Lct, REGR_4D, 30, 69, 4, T, 5 )
-             ENDIF
+             !ENDIF
 
              ! Native GEOS-5 onto reduced GEOS-4
              ! Can use same mapping as for native GEOS-5 onto reduced GEOS-5,
