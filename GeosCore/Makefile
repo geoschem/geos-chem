@@ -148,6 +148,9 @@
 #                              HEMCO makes these obsolete.
 #  04 Jun 2015 - R. Yantosca - Add wipeout target to remove any leftover
 #                              library, module, or executable files
+#  03 Sep 2015 - R. Yantosca - Add gamap_mod.o dependency to input_mod.o
+#  03 Dec 2015 - R. Yantosca - cleanup.o now depends on geosfp_read_mod.o
+#                              and merra2_read_mod.o
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -472,6 +475,7 @@ cleanup.o                   : cleanup.F                                      \
                               toms_mod.o              tracer_mod.o           \
                               transport_mod.o         ucx_mod.o              \
                               uvalbedo_mod.o          tpcore_fvdas_mod.o     \
+                              geosfp_read_mod.o       merra2_read_mod.o      \
                               tpcore_geos5_window_mod.o                      \
                               tpcore_geosfp_window_mod.o                     \
                               rrtmg_rad_transfer_mod.o
@@ -497,7 +501,7 @@ decomp.o                    : decomp.F
 
 depo_mercury_mod.o          : depo_mercury_mod.F                             \
                               dao_mod.o               diag_mod.o             \
-                              tracerid_mod.o         
+                              diag03_mod.o            tracerid_mod.o         
 
 diag03_mod.o                : diag03_mod.F                                   \
                               tracerid_mod.o
@@ -562,8 +566,7 @@ diagnostics_mod.o           : diagnostics_mod.F90                            \
                               hcoi_gc_main_mod.o                             \
                               tendencies_mod.o                               \
                               tracer_mod.o                                   \
-                              tracerid_mod.o                                 \
-                              wetscav_mod.o
+                              tracerid_mod.o
 
 diag_2pm.o                  : diag_2pm.F                                     \
                               chemgrid_mod.o          diag_mod.o
@@ -594,10 +597,10 @@ dust_mod.o                  : dust_mod.F                                     \
                               tomas_mod.o             tracerid_mod.o
 
 emissions_mod.o             : emissions_mod.F90                              \
-                              bromocarb_mod.o                                \
-                              carbon_mod.o            co2_mod.o              \
-                              dust_mod.o              global_ch4_mod.o       \
-                              hcoi_gc_main_mod.o      tomas_mod.o            \
+                              bromocarb_mod.o         carbon_mod.o           \
+                              co2_mod.o               global_ch4_mod.o       \
+                              hcoi_gc_main_mod.o      mercury_mod.o          \
+                              sulfate_mod.o           tomas_mod.o            \
                               tracerid_mod.o          ucx_mod.o        
 
 exchange_mod.o              : exchange_mod.F                                 \
@@ -703,7 +706,7 @@ input_mod.o                 : input_mod.F                                    \
                               tracer_mod.o            transport_mod.o        \
                               wetscav_mod.o           tagged_co_mod.o        \
                               tagged_ox_mod.o         global_ch4_mod.o       \
-                              c2h6_mod.o
+                              c2h6_mod.o              gamap_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               chemgrid_mod.o          tracerid_mod.o
@@ -805,8 +808,8 @@ ndxx_setup.o                : ndxx_setup.F                                   \
 
 ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
                               dao_mod.o               depo_mercury_mod.o     \
-                              diag03_mod.o            tracerid_mod.o
-
+                              diag03_mod.o            tracerid_mod.o         \
+                              toms_mod.o
 
 ohsave.o                    : ohsave.F                                       \
                               comode_mod.o            tracerid_mod.o
@@ -887,6 +890,8 @@ setemis.o                   : setemis.F                                      \
                               chemgrid_mod.o          comode_mod.o           \
                               pbl_mix_mod.o           tracerid_mod.o         \
                               hcoi_gc_main_mod.o
+
+species_database_mod.o      : species_database_mod.F90
 
 ucx_mod.o                   : ucx_mod.F                                      \
                               chemgrid_mod.o          global_ch4_mod.o       \

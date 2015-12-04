@@ -570,9 +570,12 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: USE_CHECKS
      LOGICAL                     :: LDYNOCEAN
      LOGICAL                     :: LPREINDHG
-     CHARACTER(LEN=255)          :: Hg_RST_FILE
+     CHARACTER(LEN=255)          :: IN_HG_RST_FILE
+     CHARACTER(LEN=255)          :: OUT_HG_RST_FILE
      LOGICAL                     :: LGTMM
      CHARACTER(LEN=255)          :: GTMM_RST_FILE
+     LOGICAL                     :: LARCTICRIV
+     LOGICAL                     :: LKRedUV
 
      !----------------------------------------
      ! CH4 MENU fields
@@ -1371,7 +1374,8 @@ CONTAINS
     Input_Opt%USE_CHECKS             = .FALSE.
     Input_Opt%LDYNOCEAN              = .FALSE.
     Input_Opt%LPREINDHG              = .FALSE.
-    Input_Opt%Hg_RST_FILE            = ''
+    Input_Opt%IN_HG_RST_FILE         = ''
+    Input_Opt%OUT_HG_RST_FILE        = ''
     Input_Opt%LGTMM                  = .FALSE.
     Input_Opt%GTMM_RST_FILE          = ''
 

@@ -43,7 +43,7 @@
       USE TRACER_MOD            ! For error-checking the tracer array
       USE REGRID_A2A_MOD        ! For horizontal regridding
       USE UNITCONV_MOD          ! For gas concentration unit conversion
-      USE GEOS_TIMERS           ! For optional timing of components
+      USE GEOS_TIMERS_MOD       ! For GEOS-Chem timers (optional)
       
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
@@ -279,6 +279,7 @@
 !  31 Mar 2015 - E. Lundgren - Move post-transport AIRQNT call to transport_mod 
 !  16 Apr 2015 - R. Yantosca - Remove call to INIT_DAO; it's obsolete
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
+!  03 Sep 2015 - R. Yantosca - Now call SETUP_WETSCAV instead of INIT_WETSCAV
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -424,7 +425,12 @@
       Input_Opt%MAX_TRCS      = NNPAR
       Input_Opt%MAX_MEMB      = 15
       Input_Opt%MAX_FAMS      = MAXFAM
-      Input_Opt%MAX_DEP       = MAXDEP
+!---------------------------------------------------
+! Prior to 9/22/15:
+! Now use NNPAR as a place holdeer (bmy, 9/22/15)
+!      Input_Opt%MAX_DEP       = MAXDEP
+!---------------------------------------------------
+      Input_Opt%MAX_DEP       = NNPAR
       Input_Opt%LINOZ_NLEVELS = 25
       Input_Opt%LINOZ_NLAT    = 18
       Input_Opt%LINOZ_NMONTHS = 12
@@ -449,23 +455,26 @@
       !            ***** I N I T I A L I Z A T I O N *****
       !=================================================================
 
+#if defined( USE_TIMERS )
       ! Call timer initilization
-      CALL GEOS_Timer_Setup ( 1 )
-      RC = GEOS_Timer_Add ( "Initialization" )
-      RC = GEOS_Timer_Add ( "Timesteps" )
-      RC = GEOS_Timer_Add ( "HEMCO" )
-      RC = GEOS_Timer_Add ( "Chemistry" )
-      RC = GEOS_Timer_Add ( "Chemistry-Stratospheric" )
-      RC = GEOS_Timer_Add ( "Chemistry-Gas-Phase" )
-      RC = GEOS_Timer_Add ( "Chemistry-Sulfate" )
-      RC = GEOS_Timer_Add ( "Aerosols" )
-      RC = GEOS_Timer_Add ( "Transport" )
-      RC = GEOS_Timer_Add ( "Convection" )
-      RC = GEOS_Timer_Add ( "Emissions" )
-      RC = GEOS_Timer_Add ( "Deposition" )
-      RC = GEOS_Timer_Add ( "Radiation" )
-      RC = GEOS_Timer_Add ( "Diagnostics" )
-      RC = GEOS_Timer_Start ( "Initialization" )
+      CALL GEOS_Timer_Setup( 1 )
+      CALL GEOS_Timer_Add( "GEOS-Chem",           RC )
+      CALL GEOS_Timer_Add( "Initialization",      RC )
+      CALL GEOS_Timer_Add( "Timesteps",           RC )
+      CALL GEOS_Timer_Add( "HEMCO",               RC )
+      CALL GEOS_Timer_Add( "All chemistry",       RC )
+      CALL GEOS_Timer_Add( "=> Strat chem",       RC )
+      CALL GEOS_Timer_Add( "=> Gas-phase chem",   RC )
+      CALL GEOS_Timer_Add( "=> All aerosol chem", RC )
+      CALL GEOS_Timer_Add( "Transport",           RC )
+      CALL GEOS_Timer_Add( "Convection",          RC )
+      CALL GEOS_Timer_Add( "Dry deposition",      RC )
+      CALL GEOS_Timer_Add( "Wet deposition",      RC )
+      CALL GEOS_Timer_Add( "RRTMG",               RC )
+      CALL GEOS_Timer_Add( "Diagnostics",         RC )
+      CALL GEOS_Timer_Start( "GEOS-Chem",         RC )
+      CALL GEOS_Timer_Start( "Initialization",    RC )
+#endif
 
       ! Read input file and call init routines from other modules
       CALL Read_Input_File( am_I_Root, Input_Opt, RC ) 
@@ -516,11 +525,11 @@
       ! Set a flag to denote if we should print ND70 debug output
       prtDebug            = ( LPRT .and. am_I_Root )
       
-      ! Debug output
+      ! Debug outputg
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
 
       !-----------------------------------------------------------------
-      ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
+      ! %%%% REPLICATING GCHP FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !
       ! To replicate the functionality of the ESMF interface, we must
       ! initialize the Meteorology State (i.e. State_Met) and the
@@ -544,13 +553,14 @@
       !
       CALL GIGC_Init_All
      &   ( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+
       !
       ! Also allocate arrays in GEOS-Chem modules that have not yet
       ! been initialized (i.e. SEASALT_MOD, CARBON_MOD,  DUST_MOD, 
       ! SULFATE_MOD).  This removes the init calls from the run stage,
       ! which is required when connecting to the GEOS-5 GCM w/ ESMF.
       ! (bmy, 3/4/13)
-      CALL GIGC_Init_Extra( am_I_Root, Input_Opt, RC )
+      CALL GIGC_Init_Extra( am_I_Root, Input_Opt, State_Chm, RC )
       !
       ! Assign values to the TRAC_NAME, TRAC_ID, SMVG_ID fields
       ! of the State_Chm object.  NOTE: This has to be done after
@@ -687,7 +697,9 @@
       ! 
       ! This call will also initialize the three built-in HEMCO 
       ! diagnostics (default, manual, restart).
-      RC = GEOS_Timer_Start ( "HEMCO" )
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_Start( "HEMCO", RC )
+#endif
 
       CALL EMISSIONS_INIT( am_I_Root, Input_Opt,
      &                     State_Met, State_Chm, RC )
@@ -697,7 +709,9 @@
          CALL ERROR_STOP( 'Error in EMISSIONS_INIT!', 'main.F' )
       ENDIF
 
-      RC = GEOS_Timer_End ( "HEMCO" )
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_End ( "HEMCO", RC )
+#endif
 
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
@@ -775,13 +789,17 @@
      &                       State_Met, State_Chm, RC )
 #endif 
 
-      RC = GEOS_Timer_End ( "Initialization" )
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_End( "Initialization", RC )
+#endif
 
       !=================================================================
       !      ***** 6 - H O U R   T I M E S T E P   L O O P  *****
       !=================================================================      
  
-      RC = GEOS_Timer_Start ( "Timesteps" )
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_Start( "Timesteps", RC )
+#endif
 
       ! Echo message before first timestep
       WRITE( 6, '(a)' )
@@ -851,7 +869,9 @@
          !    and before using any of the HEMCO data list fields.
          !    (ckeller, 4/1/15)
          !==============================================================
-         RC = GEOS_Timer_Start ( "HEMCO" )
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "HEMCO", RC )
+#endif
 
          CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, 
      &                       State_Chm, ITS_TIME_FOR_EMIS(), 1, RC )
@@ -859,15 +879,18 @@
          !==============================================================
          !   ***** W R I T E   D I A G N O S T I C   F I L E S *****
          !==============================================================
-         RC = GEOS_Timer_Start ( "Diagnostics" )
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "Diagnostics", RC )
+#endif
 
          ! Write HEMCO diagnostics as well as new GEOS-Chem diagnostics
          ! (the latter is currently only defined in development mode)
          ! (ckeller, 4/1/15). 
          CALL Diagnostics_Write( am_I_Root, Input_Opt, .FALSE., RC)
 
-         RC = GEOS_Timer_End ( "HEMCO" )
-
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "HEMCO", RC )
+#endif
          ! Original diagnostics
          IF ( ITS_TIME_FOR_BPCH() ) THEN
             
@@ -909,11 +932,17 @@
      &                                  NHMS,      State_Chm, RC    )
                ENDIF 
 
+#if defined( USE_TIMERS )
+               CALL GEOS_Timer_Start( "HEMCO", RC )
+#endif
+
                ! Force the output of a HEMCO restart file. 
                ! (ckeller, 4/1/15)
-               RC = GEOS_Timer_Start ( "HEMCO" )
                CALL Diagnostics_Write( am_I_Root, Input_Opt, .TRUE., RC)
-               RC = GEOS_Timer_End ( "HEMCO" )
+
+#if defined( USE_TIMERS )
+               CALL GEOS_Timer_End( "HEMCO", RC )
+#endif
 
                !### Debug
                IF ( prtDebug ) THEN
@@ -934,7 +963,9 @@
 
          ENDIF
 
-         RC = GEOS_Timer_End ( "Diagnostics" )
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "Diagnostics", RC )
+#endif
 
          !=============================================================
          !   ***** W R I T E   MERCURY RESTART  F I L E *****
@@ -1200,7 +1231,9 @@
          !==============================================================
          IF ( ITS_TIME_FOR_DYN() ) THEN
 
-            RC = GEOS_Timer_Start ( "Transport" )
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_Start( "Transport", RC )
+#endif
 
             ! Output BC's
             ! Save boundary conditions (global grid) for future nested run
@@ -1238,27 +1271,39 @@
             IF ( LTRAN ) THEN 
                CALL DO_TRANSPORT
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+               !### Debug
+               IF ( prtDebug ) THEN 
+                  CALL DEBUG_MSG( '### MAIN: a DO_TRANSPORT' )
+               ENDIF
             ENDIF
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
 #if defined ( TOMAS )
-            ! ... TOMAS microphysics: Always call INIT_WETSCAV ...
-            CALL INIT_WETSCAV
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            ! ... TOMAS microphysics: Always call SETUP_WETSCAV ...
+            CALL SETUP_WETSCAV
+     &           ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
 #else 
 
             ! ... Standard GEOS-Chem: Call INIT_WETSCAV if   ...
             ! ... convection or wet scavenging or chemistry are turned on ...
             IF ( LCONV .or. LWETD .or. LCHEM ) THEN
-               CALL INIT_WETSCAV
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL SETUP_WETSCAV
+     &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+               !### Debug
+               IF ( prtDebug ) THEN 
+                  CALL DEBUG_MSG( '### MAIN: a SETUP_WETSCAV' )
+               ENDIF
             ENDIF
 
 #endif
 
-            RC = GEOS_Timer_End ( "Transport" )
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_End( "Transport", RC )
+#endif
 
          ENDIF
 
@@ -1275,14 +1320,17 @@
          !--------------------------------------------------------------
          CALL COMPUTE_PBL_HEIGHT ( State_Met )
 
+         !### Debug
+         IF ( prtDebug ) THEN 
+            CALL DEBUG_MSG( '### MAIN: a COMPUTE_PBL_HEIGHT' )
+         ENDIF
+
          !--------------------------------------------------------------
          ! Test for emission timestep
          ! Now always do emissions here, even for full-mixing
          ! (ckeller, 3/5/15)
          !--------------------------------------------------------------
          IF ( ITS_TIME_FOR_EMIS() ) THEN
-
-            RC = GEOS_Timer_Start ( "Emissions" )
 
             IF ( ITS_TIME_FOR_UNIT() )  ! v/v -> kg
      &         CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV,
@@ -1296,13 +1344,21 @@
             !===========================================================
             IF ( LDRYD ) THEN
 
-               RC = GEOS_Timer_Start ( "Deposition" )
+#if defined( USE_TIMERS )
+               CALL GEOS_Timer_Start( "Dry deposition", RC )
+#endif
 
                CALL DO_DRYDEP( am_I_Root, Input_Opt, 
      &                         State_Met, State_Chm, RC )
 
-               RC = GEOS_Timer_End ( "Deposition" )
+#if defined( USE_TIMERS )
+               CALL GEOS_Timer_End ( "Dry deposition", RC )
+#endif
 
+               !### Debug
+               IF ( prtDebug ) THEN 
+                  CALL DEBUG_MSG( '### MAIN: a DO_DRYDEP' )
+               ENDIF
             ENDIF
 
             !===========================================================
@@ -1315,12 +1371,14 @@
             ! http://wiki-geos-chem.org/Distributing_emissions_in_the_PBL
             !===========================================================
 
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_Start( "HEMCO", RC )
+#endif
+
             ! EMISSIONS_RUN will call HEMCO run phase 2. HEMCO run phase
             ! only calculates emissions. All data has been read to disk
             ! in phase 1 at the beginning of the time step. 
             ! (ckeller, 4/1/15)
-            RC = GEOS_Timer_Start ( "HEMCO" )
-
             CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, 
      &                          State_Chm, ITS_TIME_FOR_EMIS(), 2, RC )
 
@@ -1329,14 +1387,15 @@
                CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
             ENDIF
 
-            RC = GEOS_Timer_End ( "HEMCO" )
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_End( "HEMCO", RC )
+#endif
 
             ! Unit conversion
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRACERS, Input_Opt%TCVV, 
      &                             State_Met%AD, State_Chm%TRACERS )! kg->v/v
 
-            RC = GEOS_Timer_End ( "Emissions" )
 
          ENDIF
 
@@ -1345,7 +1404,9 @@
          !-------------------------------
          IF ( ITS_TIME_FOR_CONV() ) THEN
 
-            RC = GEOS_Timer_Start ( "Convection" )
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_Start( "Convection", RC )
+#endif
 
             ! Increment the convection timestep
             CALL SET_CT_CONV( INCREMENT=.TRUE. )
@@ -1387,7 +1448,9 @@
                ENDIF
             ENDIF 
 
-            RC = GEOS_Timer_End ( "Convection" )
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_End( "Convection", RC )
+#endif
 
          ENDIF 
 
@@ -1426,12 +1489,15 @@
 !            !===========================================================
 !!            IF ( LEMIS ) THEN
 !               
+!#if defined( USE_TIMERS )
+!               CALL GEOS_Timer_Start ( "HEMCO", RC )
+!#endif
+!
 !               ! Call the HEMCO emissions modules
 !               ! Always call HEMCO, even if LEMIS is set to FALSE. 
 !               ! This is to make sure that HEMCO can still be used to read
 !               ! non-emission data such as stratospheric Bry fields. 
 !               ! (ckeller, 1/12/15).
-!               RC = GEOS_Timer_Start ( "HEMCO" )
 !               CALL EMISSIONS_RUN ( am_I_Root, Input_Opt, 
 !     &                              State_Met, State_Chm, RC )
 !
@@ -1440,7 +1506,9 @@
 !                  CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
 !               ENDIF
 !
-!               RC = GEOS_Timer_End ( "HEMCO" )
+!#if defined( USE_TIMERS )
+!               CALL GEOS_Timer_End ( "HEMCO", RC )
+!#endif
 !
 !               !### Debug
 !               IF ( prtDebug ) THEN 
@@ -1479,7 +1547,9 @@
          !               ***** C H E M I S T R Y *****
          !============================================================== 
 
-         RC = GEOS_Timer_Start ( "Chemistry" )
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "All chemistry", RC )
+#endif
 
          ! Get the overhead column O3 for use with FAST-J
          ! NOTE: Move to CHEMISTRY section.  This now has to come after
@@ -1516,20 +1586,26 @@
          CALL CHECK_STT_025x03125( State_Chm, 'after chemistry' )
 #endif 
 
-         RC = GEOS_Timer_End ( "Chemistry" )
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "All chemistry", RC )
+#endif
 
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
          IF ( LWETD .and. ITS_TIME_FOR_DYN() ) THEN
 
-            RC = GEOS_Timer_Start ( "Deposition" )
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_Start( "Wet deposition", RC )
+#endif
 
             ! Do wet deposition
             CALL DO_WETDEP
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-            RC = GEOS_Timer_End ( "Deposition" )
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_End( "Wet deposition", RC )
+#endif
 
          ENDIF
 
@@ -1552,7 +1628,9 @@
          IF ( Input_opt%LRAD ) THEN 
             IF ( ITS_TIME_FOR_RT() ) THEN
 
-               RC = GEOS_Timer_Start ( "Radiation" )
+#if defined( USE_TIMERS )
+               CALL GEOS_Timer_Start( "RRTMG", RC )
+#endif
 
                ! Splash page
                IF ( am_I_Root .and. FIRST_RT ) THEN
@@ -1602,7 +1680,9 @@
                   CALL DEBUG_MSG( '### MAIN: a DO_RRTMG_RAD_TRANSFER' )
                ENDIF
 
-               RC = GEOS_Timer_End ( "Radiation" )
+#if defined( USE_TIMERS )
+               CALL GEOS_Timer_End( "RRTMG", RC )
+#endif
 
             ENDIF
          ENDIF
@@ -1621,7 +1701,9 @@
          ! Need to save timestamps for filenames.
          ! (ccc, 5/13/09)
 
-         RC = GEOS_Timer_Start ( "Diagnostics" )
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "Diagnostics", RC )
+#endif
 
          ! Plane following diagnostic
          IF ( ND40 > 0 .and. DO_DIAG_WRITE ) THEN 
@@ -1777,7 +1859,9 @@
             CALL CHECK_STT( State_Chm, 'End of Dynamic Loop' )
          ENDIF
 
-         RC = GEOS_Timer_End ( "Diagnostics" )
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "Diagnostics", RC )
+#endif
 
       ENDDO
 
@@ -1833,7 +1917,9 @@
          CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.FALSE. )
       ENDIF
 
-      RC = GEOS_Timer_End ( "Timesteps" )
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_End ( "Timesteps", RC )
+#endif
 
       ! Close all files
       CALL CLOSE_FILES
@@ -1877,7 +1963,10 @@
 
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLEANUP' )
 
-      RC = GEOS_Timer_PrintAll ()
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_End( "GEOS-Chem", RC )
+      CALL GEOS_Timer_PrintAll( am_I_Root, RC )
+#endif
 
       ! Print ending time of simulation
       CALL DISPLAY_END_TIME
@@ -1990,6 +2079,8 @@
       WRITE( 6, '(a)' ) 'Using GMAO GEOS-FP met fields'
 #elif defined( MERRA )
       WRITE( 6, '(a)' ) 'Using GMAO MERRA met fields'
+#elif defined( MERRA2 )
+      WRITE( 6, '(a)' ) 'Using GMAO MERRA2 met fields'
 #elif defined( GCAP  )
       WRITE( 6, '(a)' ) 'Using GCAP/GISS met fields'
 #endif

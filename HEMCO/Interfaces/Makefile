@@ -84,7 +84,6 @@ clean:
 	@rm -f $(BIN)/$(EXE)
 
 exe: 
-	@echo "LINK: $(LINK_HCO)"
 	$(LD) $(OBJECTS) $(LINK_HCO) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 

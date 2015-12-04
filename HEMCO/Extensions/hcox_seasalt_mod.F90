@@ -163,6 +163,7 @@ CONTAINS
 !  09 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !  19 Oct 2015 - C. Keller   - Now pass I and J index to EMIT_SSABr2 to support
 !                              curvilinear grids.
+!  22 Oct 2015 - E. Lundgren - Bug fix: include CHLR in OMP PRIVATE statement
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -218,7 +219,7 @@ CONTAINS
 !$OMP DEFAULT( SHARED )                                                &
 !$OMP PRIVATE( I, J, A_M2, W10M, SST, SCALE, SSA_BR2, N              ) &
 !$OMP PRIVATE( SALT, SALT_N, R, SALT_NR, BR2_NR, RC                  ) & 
-!$OMP PRIVATE( OMSS1, OMSS2                                          ) & 
+!$OMP PRIVATE( OMSS1, OMSS2, CHLR                                    ) & 
 !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over surface boxes 

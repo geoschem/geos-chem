@@ -116,6 +116,7 @@
       PRIVATE :: SOLAR_ANGLE
       PRIVATE :: FILL_RESTART_VARS 
       PRIVATE :: CALC_AEF
+      PRIVATE :: GET_GAMMA_CO2  ! (Tai, Jan 2013)
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Original code (biogen_em_mod.f) by Dorian Abbot (6/2003).  Updated to 
@@ -176,6 +177,8 @@
 !                              diagnostics for consistency with pre-HEMCO code.
 !  10 Jun 2015 - M. Sulprizio- Bug fix for SOA simulation: Now convert AEFs for
 !                              sesquiterpenes to kg/m2/s.
+!  15 Sep 2015 - M. Sulprizio- Add CO2 inhibition effect on isoprene emissions
+!                              from Amos Tai (Jan 2013)
 !  05 Nov 2015 - C. Keller   - Reorganize restart variables to running averages.
 !EOP
 !------------------------------------------------------------------------------
@@ -183,10 +186,12 @@
 !
 ! !MODULE VARIABLES:
 ! 
-      INTEGER                 :: ExtNr
-      INTEGER                 :: ExtNrMono 
-      INTEGER                 :: ExtNrSoa
-      REAL(hp)                :: ISOP_SCALING
+      INTEGER                 :: ExtNr        ! Extension number for MEGAN
+      INTEGER                 :: ExtNrMono    ! Extension number for MEGAN_Mono
+      INTEGER                 :: ExtNrSoa     ! Extension number for MEGAN_SOA
+      REAL(hp)                :: ISOP_SCALING ! Isoprene emissions scaling
+      REAL(hp)                :: GLOBCO2      ! Global CO2 conc (ppmv)
+      LOGICAL                 :: LISOPCO2     ! Include CO2 inhibition of ISOP?
 
       ! Physical parameter
       REAL(hp)                :: D2RAD  ! Degrees to radians 
@@ -1733,6 +1738,8 @@
 !  11 Apr 2012 - R. Yantosca - Cosmetic changes
 !  26 Jan 2015 - M. Sulprizio- Update from D. Millet (21 Jun 2012): New driver
 !                              routine for all MEGAN compounds
+!  15 Sep 2015 - M. Sulprizio- Add CO2 inhibition effect on isoprene emissions
+!                              from Amos Tai (Jan 2013)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1745,6 +1752,7 @@
       REAL(hp)  :: GAMMA_T_LD
       REAL(hp)  :: GAMMA_T_LI
       REAL(hp)  :: GAMMA_SM
+      REAL(hp)  :: GAMMA_CO2  ! (Tai, Jan 2013)
       REAL(hp)  :: AEF
       REAL(hp)  :: D_BTW_M
       REAL(hp)  :: TS, SUNCOS
@@ -1766,6 +1774,7 @@
       GAMMA_T_LI = 0.0_hp
       GAMMA_PAR  = 0.0_hp
       GAMMA_SM   = 0.0_hp
+      GAMMA_CO2  = 0.0_hp  ! (Tai, Jan 2013)
       BETA       = 0.0_hp
       AEF        = 0.0_hp
       LDF        = 0.0_hp
@@ -1862,6 +1871,13 @@
          ! --------------------------------------------------
          GAMMA_SM = GET_GAMMA_SM( ExtState, I, J, CMPD )
 
+         ! CO2 inhibition of isoprene (Tai, Jan 2013)
+         IF ( LISOPCO2 ) THEN
+            GAMMA_CO2 = GET_GAMMA_CO2( GLOBCO2 )
+         ELSE
+            GAMMA_CO2 = 1.0_hp
+         ENDIF
+
       ELSE
 
          ! set activity factors to zero
@@ -1871,6 +1887,7 @@
          GAMMA_LAI  = 0.0_hp
          GAMMA_AGE  = 0.0_hp
          GAMMA_SM   = 0.0_hp
+         GAMMA_CO2  = 0.0_hp  ! (Tai, Jan 2013)
 
       END IF
 
@@ -1878,10 +1895,22 @@
       ! Units here are kgC/m2/s or kg/m2/s as appropriate for the compound.
       ! Normalization factor ensures product of GAMMA values is 1.0 under
       !  standard conditions. 
-      MEGAN_EMIS = NORM_FAC(1) * AEF * GAMMA_AGE * GAMMA_SM * GAMMA_LAI
-     &           * ((1.0_hp - LDF) * GAMMA_T_LI +
-     &             (LDF * GAMMA_PAR * GAMMA_T_LD))
-
+      IF ( CMPD == 'ISOP' ) THEN
+         ! Only apply CO2 inhibition to isoprene (mps, 9/15/15)
+         ! Amos Tai wrote: 
+         !  In my opinion, we should not apply the CO2 inhibition factor on
+         !  other monoterpene species yet, because the empirical data I've used
+         !  are for isoprene emissions only. But we generally agree that CO2
+         !  inhibition should affect monoterpenes too, so we'll leave room for
+         !  future incorporation when new data arise.
+         MEGAN_EMIS = NORM_FAC(1) * AEF * GAMMA_AGE * GAMMA_SM *
+     &                GAMMA_LAI * ((1.0_hp - LDF) * GAMMA_T_LI +
+     &                (LDF * GAMMA_PAR * GAMMA_T_LD)) * GAMMA_CO2
+      ELSE
+         MEGAN_EMIS = NORM_FAC(1) * AEF * GAMMA_AGE * GAMMA_SM *
+     &                GAMMA_LAI * ((1.0_hp - LDF) * GAMMA_T_LI +
+     &                (LDF * GAMMA_PAR * GAMMA_T_LD))
+      ENDIF
 
 !      ! testing only
 !      if ( i==ix .and. j==iy ) then
@@ -2923,6 +2952,139 @@
       ! return to calling program
       END FUNCTION GET_GAMMA_SM
 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_gamma_co2
+!
+! !DESCRIPTION: Function GET\_GAMMA\_CO2 computes the CO2 activity factor  
+!  associated with CO2 inhibition of isoprene emission. Called from
+!  GET\_MEGAN\_EMISSIONS only.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_GAMMA_CO2( CO2a ) RESULT( GAMMA_CO2 )
+!
+! !INPUT PARAMETERS: 
+      REAL(hp), INTENT(IN) :: CO2a       ! Atmospheric CO2 conc [ppmv]
+!
+! !RETURN VALUE:
+      REAL(hp)             :: GAMMA_CO2  ! CO2 activity factor [unitless]
+!
+! !LOCAL VARIABLES:
+      REAL(hp)             :: CO2i       ! Intercellular CO2 conc [ppmv]
+      REAL(hp)             :: ISMAXi     ! Asymptote for intercellular CO2
+      REAL(hp)             :: HEXPi      ! Exponent for intercellular CO2
+      REAL(hp)             :: CSTARi     ! Scaling coef for intercellular CO2
+      REAL(hp)             :: ISMAXa     ! Asymptote for atmospheric CO2
+      REAL(hp)             :: HEXPa      ! Exponent for atmospheric CO2
+      REAL(hp)             :: CSTARa     ! Scaling coef for atmospheric CO2
+      LOGICAL              :: LPOSSELL   ! Use Possell & Hewitt (2011)?
+      LOGICAL              :: LWILKINSON ! Use Wilkinson et al. (2009)?
+
+!
+! !REMARKS:
+!  References:
+!  ============================================================================
+!  (1 ) Heald, C. L., Wilkinson, M. J., Monson, R. K., Alo, C. A., 
+!       Wang, G. L., and Guenther, A.: Response of isoprene emission 
+!       to ambient co(2) changes and implications for global budgets, 
+!       Global Change Biology, 15, 1127-1140, 2009.
+!  (2 ) Wilkinson, M. J., Monson, R. K., Trahan, N., Lee, S., Brown, E.,
+!       Jackson, R. B., Polley, H. W., Fay, P. A., and Fall, R.: Leaf 
+!       isoprene emission rate as a function of atmospheric CO2 
+!       concentration, Global Change Biology, 15, 1189-1200, 2009.
+!  (3 ) Possell, M., and Hewitt, C. N.: Isoprene emissions from plants 
+!       are mediated by atmospheric co2 concentrations, Global Change 
+!       Biology, 17, 1595-1610, 2011.
+! 
+! !REVISION HISTORY: 
+!  (1 ) Implemented in the standard code by A. Tai (Jun 2012).
+!  15 Sep 2015 - M. Sulprizio- Implemented into hcox_megan_mod.F
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      !----------------------------------------------------------
+      ! Choose between two alternative CO2 inhibition schemes
+      !----------------------------------------------------------
+
+      ! Empirical relationship of Possell & Hewitt (2011) based on nine
+      ! experimental studies including Wilkinson et al. (2009). This is
+      ! especially recommended for sub-ambient CO2 concentrations:
+      LPOSSELL    = .TRUE.   ! Default option
+
+      ! Semi-process-based parameterization of Wilkinson et al. (2009),
+      ! taking into account of sensitivity to intercellular CO2
+      ! fluctuation, which is here set as a constant fraction of 
+      ! atmospheric CO2:
+      LWILKINSON  = .FALSE.   ! Set .TRUE. only if LPOSSELL = .FALSE.
+
+      !-----------------------
+      ! Compute GAMMA_CO2
+      !-----------------------
+      
+      IF ( LPOSSELL ) THEN
+
+         ! Use empirical relationship of Possell & Hewitt (2011):
+         GAMMA_CO2 = 8.9406_hp / 
+     &               ( 1.0_hp + 8.9406_hp * 0.0024_hp * CO2a )
+
+      ELSEIF ( LWILKINSON ) THEN
+
+         ! Use parameterization of Wilkinson et al. (2009):
+
+         ! Parameters for intercellular CO2 using linear interpolation:
+         IF ( CO2a <= 600.0_hp ) THEN
+            ISMAXi = 1.036_hp  - (1.036_hp - 1.072_hp) / 
+     &               (600.0_hp - 400.0_hp) * (600.0_hp - CO2a)
+            HEXPi  = 2.0125_hp - (2.0125_hp - 1.7000_hp) /
+     &               (600.0_hp - 400.0_hp) * (600.0_hp - CO2a)
+            CSTARi = 1150.0_hp - (1150.0_hp - 1218.0_hp) /
+     &               (600.0_hp - 400.0_hp) * (600.0_hp - CO2a)
+         ELSEIF ( CO2a > 600.0_hp .AND. CO2a < 800.0_hp ) THEN
+            ISMAXi = 1.046_hp  - (1.046_hp - 1.036_hp) /
+     &               (800.0_hp - 600.0_hp) * (800.0_hp - CO2a)
+            HEXPi  = 1.5380_hp - (1.5380_hp - 2.0125_hp) /
+     &               (800.0_hp - 600.0_hp) * (800.0_hp - CO2a)
+            CSTARi = 2025.0_hp - (2025.0_hp - 1150.0_hp) /
+     &               (800.0_hp - 600.0_hp) * (800.0_hp - CO2a)
+         ELSE
+            ISMAXi = 1.014_hp - (1.014_hp - 1.046_hp) /
+     &               (1200.0_hp - 800.0_hp) * (1200.0_hp - CO2a)
+            HEXPi  = 2.8610_hp - (2.8610_hp - 1.5380_hp) /
+     &               (1200.0_hp - 800.0_hp) * (1200.0_hp - CO2a)
+            CSTARi = 1525.0_hp - (1525.0_hp - 2025.0_hp) /
+     &               (1200.0_hp - 800.0_hp) * (1200.0_hp - CO2a)
+         ENDIF
+      
+         ! Parameters for atmospheric CO2:
+         ISMAXa    = 1.344_hp
+         HEXPa     = 1.4614_hp
+         CSTARa    = 585.0_hp
+
+         ! For now, set CO2_Ci = 0.7d0 * CO2_Ca as recommended by Heald
+         ! et al. (2009):
+         CO2i      = 0.7_hp * CO2a
+
+         ! Compute GAMMA_CO2:
+         GAMMA_CO2 = ( ISMAXi -  ISMAXi * CO2i**HEXPi / 
+     &                ( CSTARi**HEXPi + CO2i**HEXPi ) ) 
+     &                * ( ISMAXa - ISMAXa * ( 0.7_hp * CO2a )**HEXPa /
+     &                ( CSTARa**HEXPa + ( 0.7_hp * CO2a )**HEXPa ) )
+
+      ELSE
+
+         ! No CO2 inhibition scheme is used; GAMMA_CO2 set to unity:
+         GAMMA_CO2 = 1.0_hp
+
+      ENDIF
+
+      END FUNCTION GET_GAMMA_CO2
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -4024,6 +4186,23 @@
       CALL GetExtOpt ( ExtNr, 'Isoprene scaling', 
      &                 OptValHp=ISOP_SCALING, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
+      CALL GetExtOpt ( ExtNr, 'CO2 inhibition', 
+     &                 OptValBool=LISOPCO2, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+      CALL GetExtOpt ( ExtNr, 'CO2 conc (ppmv)', 
+     &                 OptValHp=GLOBCO2, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! Check GLOBCO2 if CO2 inhibition is turned on (LISOPCO2 = .TRUE.)
+      ! GLOBCO2 should be between 150-1250 ppmv. Isoprene response to
+      ! CO2 outside this range has no empirical basis. (Tai, Jan 2013)
+      IF ( LISOPCO2 ) THEN
+         IF ( GLOBCO2 < 150.0_hp .OR. GLOBCO2 > 1250.0_hp ) THEN
+            MSG = 'Global CO2 outside valid range of 150-1250 ppmv!'
+            CALL HCO_ERROR( MSG, RC )
+            RETURN
+         ENDIF
+      ENDIF
 
       ! Verbose mode
       IF ( am_I_Root ) THEN
@@ -4075,6 +4254,12 @@
       ! Verbose mode
       IF ( am_I_Root ) THEN
          WRITE(MSG,*) ' --> Isoprene scale factor is ', ISOP_SCALING
+         CALL HCO_MSG( MSG )
+         WRITE(MSG,*) ' --> Use CO2 inhibition on isoprene option ', 
+     &                LISOPCO2
+         CALL HCO_MSG( MSG )
+         WRITE(MSG,*) ' --> Global atmospheric CO2 concentration : ', 
+     &                GLOBCO2, ' ppmv'
          CALL HCO_MSG( MSG )
       ENDIF
 

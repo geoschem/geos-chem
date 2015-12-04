@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Initialize.f90
-! Time                 : Tue Jul  7 16:19:23 2015
+! Time                 : Mon Oct 19 13:19:44 2015
 ! Working directory    : /home/mpayer/KPP
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -43,22 +43,13 @@ SUBROUTINE Initialize ( )
   USE gckpp_Global
   USE gckpp_Util,     ONLY : Shuffle_user2kpp
   USE gckpp_Monitor
-  
+
   INTEGER :: i
-  
+
   CALL Shuffle_user2kpp(V_CSPEC,VAR)
-  
+   
   DO i = 1, NFIX
      FIX(i) = 1.d0
-  END DO
-  
-  ! these two loops are for the adjoint only
-  DO I =1, NVAR
-     C(I)=VAR(I)
-  ENDDO
-  
-  DO I = 1, NFIX
-     C(NVAR+I) = FIX(I)
   END DO
 
 END SUBROUTINE Initialize

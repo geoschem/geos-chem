@@ -90,6 +90,8 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  09 Apr 2014 - R. Yantosca - Increase MAXCAT to 160 
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  06 Aug 2015 - J. Fisher   - Add non-reducible snowpack Hg reservoir
+!                              (orig. 29/11/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -142,18 +144,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_GAMAP( am_I_Root, Input_Opt, RC )
+      SUBROUTINE DO_GAMAP( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : SYSTEM_TIMESTAMP
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -165,6 +169,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  25 Jun 2014 - R. Yantosca - Now get SIM_NAME from Input_Opt
 !  25 Jun 2014 - R. Yantosca - Remove all references to tracer_mod.F
+!  03 Sep 2015 - R. Yantosca - Now get State_Chm as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -176,7 +181,7 @@
       RC = GIGC_SUCCESS
 
       ! Allocate and initialize variables
-      CALL INIT_GAMAP( am_I_Root, Input_Opt, RC )
+      CALL INIT_GAMAP( am_I_Root, Input_Opt, State_Chm, RC )
 
       ! Create a timestamp with the system date & time
       STAMP    = SYSTEM_TIMESTAMP()
@@ -188,7 +193,7 @@
       CALL CREATE_DINFO()
 
       ! Write "tracerinfo.dat" file
-      CALL CREATE_TINFO( am_I_Root, Input_Opt, RC )
+      CALL CREATE_TINFO( am_I_Root, Input_Opt, State_Chm, RC )
 
       ! Deallocate variables
       CALL CLEANUP_GAMAP
@@ -306,18 +311,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CREATE_TINFO( am_I_Root, Input_Opt, RC )
+      SUBROUTINE CREATE_TINFO( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-      USE FILE_MOD,    ONLY : IOERROR
+      USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -867,6 +874,8 @@
 !  03 Sep 2013 - R. Yantosca - Restored PS-PTOP to avoid issues when using
 !                              diaginfo.dat, tracerinfo.dat w/ REGRIDH_RESTART
 !  30 Jan 2014 - R. Yantosca - Add ND60 TOMAS diagnostic catetories
+!  06 Aug 2015 - J. Fisher   - Add non-reducible snowpack Hg reservoir
+!                              (orig. 29/11/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1612,8 +1621,24 @@
       ! For mercury simulation only so we can use same spacing. (ccc, 5/21/10)
       N           = N + 1
       CATEGORY(N) = 'SNOW-HG'
-      DESCRIPT(N) = 'Hg mass in snow and ice'
+      DESCRIPT(N) = 'Reducible Hg mass in ocean snow and ice'
       OFFSET(N)   = SPACING * 49
+
+      ! Non-reducible snow Hg reservoir
+      N           = N + 1
+      CATEGORY(N) = 'SNOW-HGN'
+      DESCRIPT(N) = 'Non-reducible Hg mass in ocean snow and ice'
+      OFFSET(N)   = SPACING * 50 
+
+      N           = N + 1
+      CATEGORY(N) = 'SNHG-LN'
+      DESCRIPT(N) = 'Reducible Hg mass in land snow and ice'
+      OFFSET(N)   = SPACING * 51
+
+      N           = N + 1
+      CATEGORY(N) = 'SNHGN-LN'
+      DESCRIPT(N) = 'Non-reducible Hg mass in snow and ice'
+      OFFSET(N)   = SPACING * 52
 
 !(FP 06/19/2009)
       N           = N + 1
@@ -1693,7 +1718,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TRACERINFO( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_TRACERINFO( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -1717,9 +1742,10 @@
       USE DRYDEP_MOD,         ONLY : DEPNAME,     NUMDEP,    NTRAIND
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD
-      USE WETSCAV_MOD,        ONLY : GET_WETDEP_IDWETD
       USE WETSCAV_MOD,        ONLY : GET_WETDEP_NSOL
+      USE WETSCAV_MOD,        ONLY : GET_WETDEP_IDWETD
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
 #endif
@@ -1728,6 +1754,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1789,6 +1816,7 @@
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to GET_FAM_MWT function
 !  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND71 to ND72 to
 !                              avoid conflicts with hourly max ppbv diagnostic.
+!  12 Aug 2015 - J. Fisher   - Add cryosphere Hg diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1972,6 +2000,22 @@
                   NAME (T,03) = 'Hg0_snow'
                   FNAME(T,03) = 'Snow emission of Hg'
                   INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 19 )
+                  NAME (T,03) = 'Hg_sn_oc'
+                  FNAME(T,03) = 'Snow Hg2 delivered to ocean'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 20 )
+                  NAME (T,03) = 'Hgdep_oc'
+                  FNAME(T,03) = 'HgII/HgP dep to open ocean'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 21 )
+                  NAME (T,03) = 'Hgdep_sn'
+                  FNAME(T,03) = 'HgII/HgP dep to snow/ice'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 22 ) 
+                  NAME (T,03) = 'Hg2_riv'
+                  FNAME(T,03) = 'Hg2 from rivers'
+                  INDEX(T,03) = T + ( SPACING * 34 ) 
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -2033,6 +2077,21 @@
                   FNAME(T,03) = 'Reactive gaseous mercury'
                   UNIT (T,03) = 'pptv'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
+               CASE( 11 )
+                  NAME (T,03) = 'Br_pol'
+                  FNAME(T,03) = 'Polar Br concentration'
+                  UNIT (T,03) = 'pptv'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 12 )
+                  NAME (T,03) = 'BrO_pol' 
+                  FNAME(T,03) = 'Polar BrO concentration'
+                  UNIT (T,03) = 'pptv'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 13 )
+                  NAME (T,03) = 'O3_pol'
+                  FNAME(T,03) = 'Polar O3 concentration'
+                  UNIT (T,03) = 'ppbv'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -2073,10 +2132,57 @@
             MWT  (T,03) = 201e-3
             SCALE(T,03) = 1e0
 
-
             NAME (T,03) = 'Snow_Hg'
             FNAME(T,03) = 'Tot. Hg in snowpack'
             INDEX(T,03) = ( N ) + ( SPACING * 49 )
+         ENDDO
+
+         ! Loop over tracers for SNOW-HGN (jaf, 6/17/11)
+         DO N = 1, 1
+
+            T = N + PD03 + PD03_PL + Input_Opt%N_TRACERS + 1
+
+            ! Define quantities
+            UNIT (T,03) = 'kg'
+            MOLC (T,03) = 1
+            MWT  (T,03) = 201e-3
+            SCALE(T,03) = 1e0
+
+            NAME (T,03) = 'Snow_HgN'
+            FNAME(T,03) = 'Tot. non-reducible Hg in snow on ocean'
+            INDEX(T,03) = ( N ) + ( SPACING * 50 )
+         ENDDO
+         
+         ! Loop over tracers for SNOW-HG-LN
+         DO N = 1, 1
+
+            T = N + PD03 + PD03_PL + Input_Opt%N_TRACERS + 2
+
+            ! Define quantities
+            UNIT (T,03) = 'kg'
+            MOLC (T,03) = 1
+            MWT  (T,03) = 201e-3
+            SCALE(T,03) = 1e0
+
+            NAME (T,03) = 'SnHg_ln'
+            FNAME(T,03) = 'Tot. reducible Hg in snow on land'
+            INDEX(T,03) = ( N ) + ( SPACING * 51 )
+         ENDDO
+
+         ! Loop over tracers for SNOW-HGN-LN
+         DO N = 1, 1
+
+            T = N + PD03 + PD03_PL + Input_Opt%N_TRACERS + 3
+
+            ! Define quantities
+            UNIT (T,03) = 'kg'
+            MOLC (T,03) = 1
+            MWT  (T,03) = 201e-3
+            SCALE(T,03) = 1e0
+
+            NAME (T,03) = 'SnHgN_ln'
+            FNAME(T,03) = 'Tot. non-reducible Hg in snow on land'
+            INDEX(T,03) = ( N ) + ( SPACING * 52 )
          ENDDO
          
          ! Total max number of tracers for DIAG 03.
@@ -6573,45 +6679,117 @@
                   FNAME(T,53) = 'POP total emissions'
                   INDEX(T,53) = T + ( SPACING * 52 )
                CASE( 2  )
-                  NAME (T,53) = 'POPPOC'
-                  FNAME(T,53) = 'POPPOC emissions'
+                  NAME (T,53) = 'OCPO em'
+                  FNAME(T,53) = 'POPPOCPO emissions'
                   INDEX(T,53) = T + ( SPACING * 52 )
                CASE( 3  )
-                  NAME (T,53) = 'POPPBC'
-                  FNAME(T,53) = 'POPPBC emissions'
+                  NAME (T,53) = 'BCPO em'
+                  FNAME(T,53) = 'POPPBCPO emissions'
                   INDEX(T,53) = T + ( SPACING * 52 )
                CASE( 4  )
-                  NAME (T,53) = 'POPG'
+                  NAME (T,53) = 'G em'
                   FNAME(T,53) = 'POPG emissions'
                   INDEX(T,53) = T + ( SPACING * 52 )
                CASE( 5  )
-                  NAME (T,53) = 'POPPOC'
-                  FNAME(T,53) = 'Gross POPPOC lost to gas'
-                  INDEX(T,53) = T + ( SPACING * 53 )
+                  NAME (T,53) = 'kgGsoil'
+                  FNAME(T,53) = '2nd em from soil'
+                  INDEX(T,53) = T + ( SPACING * 52 )
                CASE( 6  )
-                  NAME (T,53) = 'POPPOC'
-                  FNAME(T,53) = 'Gross POPPOC formed from gas'
-                  INDEX(T,53) = T + ( SPACING * 53 )
+                  NAME (T,53) = 'kgGlake'
+                  FNAME(T,53) = '2nd em from lakes'
+                  INDEX(T,53) = T + ( SPACING * 52 )
                CASE( 7  )
-                  NAME (T,53) = 'POPPBC'
-                  FNAME(T,53) = 'Gross POPPBC lost to gas'
-                  INDEX(T,53) = T + ( SPACING * 53 )
+                  NAME (T,53) = 'kgGleaf'
+                  FNAME(T,53) = '2nd em from leaves'
+                  INDEX(T,53) = T + ( SPACING * 52 )
                CASE( 8  )
-                  NAME (T,53) = 'POPPBC'
-                  FNAME(T,53) = 'Gross POPPBC formed from gas'
-                  INDEX(T,53) = T + ( SPACING * 53 )
+                  NAME (T,53) = 'soi2air'
+                  FNAME(T,53) = 'Diff flux from soil'
+                  INDEX(T,53) = T + ( SPACING * 52 )
                CASE( 9  )
-                  NAME (T,53) = 'POPG'
-                  FNAME(T,53) = 'POPG oxidized by OH'
-                  INDEX(T,53) = T + ( SPACING * 53 )
+                  NAME (T,53) = 'air2soi'
+                  FNAME(T,53) = 'Diff flux to soil'
+                  INDEX(T,53) = T + ( SPACING * 52 )
                CASE( 10  )
-                  NAME (T,53) = 'POPPOC'
-                  FNAME(T,53) = 'POPPOC oxidized by O3'
-                  INDEX(T,53) = T + ( SPACING * 53 )
+                  NAME (T,53) = 'lak2air'
+                  FNAME(T,53) = 'Diff flux from lakes'
+                  INDEX(T,53) = T + ( SPACING * 52 )
                CASE( 11  )
-                  NAME (T,53) = 'POPPBC'
-                  FNAME(T,53) = 'POPPBC oxidized by O3'
-                  INDEX(T,53) = T + ( SPACING * 53 )
+                  NAME (T,53) = 'air2lak'
+                  FNAME(T,53) = 'Diff flux to lakes'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 12  )
+                  NAME (T,53) = 'lea2air'
+                  FNAME(T,53) = 'Diff flux from vegetation'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 13  )
+                  NAME (T,53) = 'air2lea'
+                  FNAME(T,53) = 'Diff flux to vegetation'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 14  )
+                  NAME (T,53) = 'soi/air'
+                  FNAME(T,53) = 'Soil fug/air fug'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 15  )
+                  NAME (T,53) = 'lak/air'
+                  FNAME(T,53) = 'Lake fug/air fug'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 16  )
+                  NAME (T,53) = 'lae/air'
+                  FNAME(T,53) = 'Leaf fug/air fug'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 17  )
+                  NAME (T,53) = 'OCPO2G'
+                  FNAME(T,53) = 'Gross POPPOCPO lost to gas'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 18  )
+                  NAME (T,53) = 'G2OCPO'
+                  FNAME(T,53) = 'Gross POPPOCPO formed from gas'
+                  INDEX(T,53) = T - 16+ ( SPACING * 53 )
+               CASE( 19  )
+                  NAME (T,53) = 'BCPO2G'
+                  FNAME(T,53) = 'Gross POPPBCPO lost to gas'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 20  )
+                  NAME (T,53) = 'G2BCPO'
+                  FNAME(T,53) = 'Gross POPPBC formed from gas'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 21  )
+                  NAME (T,53) = 'OHoxG'
+                  FNAME(T,53) = 'POPG oxidized by OH'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 22  )
+                  NAME (T,53) = 'O3oxOCPO'
+                  FNAME(T,53) = 'POPOCPO oxidized by O3'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 23  )
+                  NAME (T,53) = 'O3oxOCPI'
+                  FNAME(T,53) = 'POPOCPI oxidized by O3'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 24  )
+                  NAME (T,53) = 'O3oxBCPO'
+                  FNAME(T,53) = 'POPBCPO oxidized by O3'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 25  )
+                  NAME (T,53) = 'O3oxBCPI'
+                  FNAME(T,53) = 'POPBCPI oxidized by O3'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 26  )
+                  NAME (T,53) = 'NO3xOCPO'
+                  FNAME(T,53) = 'POPOCPO oxidized by NO3'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 27  )
+                  NAME (T,53) = 'NO3xOCPI'
+                  FNAME(T,53) = 'POPOCPI oxidized by NO3'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 28  )
+                  NAME (T,53) = 'NO3xBCPO'
+                  FNAME(T,53) = 'POPBCPO oxidized by NO3'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 29  )
+                  NAME (T,53) = 'NO3xBCPI'
+                  FNAME(T,53) = 'POPBCPI oxidized by NO3'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
             END SELECT
          ENDDO
       ENDIF
@@ -7034,7 +7212,7 @@
 #if   defined( GEOS_4 )
                   NAME(T,66) = 'ZMMU'
                   UNIT(T,66) = 'Pa/s'
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
                   NAME(T,66) = 'CMFMC'
                   UNIT(T,66) = 'kg/m2/s'
 #else
@@ -7413,7 +7591,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GAMAP( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_GAMAP( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -7421,6 +7599,7 @@
       USE TIME_MOD,    ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE HDF_MOD,     ONLY : INIT_HDF
       USE HDF_MOD,     ONLY : HDFCATEGORY
       USE HDF_MOD,     ONLY : HDFDESCRIPT
@@ -7435,6 +7614,7 @@
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -7581,7 +7761,7 @@
       CALL INIT_DIAGINFO
 
       ! Initialize arrays for "tracerinfo.dat"
-      CALL INIT_TRACERINFO( am_I_Root, Input_Opt, RC )
+      CALL INIT_TRACERINFO( am_I_Root, Input_Opt, State_Chm, RC )
 
       ! Store values for hdf output
       IF ( Input_Opt%LND50_HDF    .or. 

@@ -254,24 +254,6 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL               :: USE_BOND_BIOBURN = .FALSE.
-      INTEGER               :: DRYBCPI, DRYOCPI, DRYBCPO, DRYOCPO
-      ! SOAupdate: update dry deposited species (hotp 5/20/10)
-      INTEGER               :: DRYPOA1,  DRYPOA2,  DRYPOG1,  DRYPOG2
-      INTEGER               :: DRYOPOA1, DRYOPOA2, DRYOPOG1, DRYOPOG2
-      INTEGER               :: DRYMTPA,  DRYLIMO,  DRYMTPO
-      INTEGER               :: DRYTSOA1, DRYTSOG1
-      INTEGER               :: DRYTSOA2, DRYTSOG2
-      INTEGER               :: DRYTSOA3, DRYTSOG3
-      INTEGER               :: DRYTSOA0, DRYTSOG0
-      INTEGER               :: DRYISOA1, DRYISOG1
-      INTEGER               :: DRYISOA2, DRYISOG2
-      INTEGER               :: DRYISOA3, DRYISOG3
-      INTEGER               :: DRYASOAN
-      INTEGER               :: DRYASOA1, DRYASOG1
-      INTEGER               :: DRYASOA2, DRYASOG2
-      INTEGER               :: DRYASOA3, DRYASOG3
-      INTEGER               :: DRYSOAG,  DRYSOAM
       INTEGER               :: I1_NA,    J1_NA
       INTEGER               :: I2_NA,    J2_NA
       ! Rate constant for RO2+NO and RO2+HO2
@@ -577,50 +559,6 @@
 
          ! Reset first-time flag
          FIRSTCHEM = .FALSE.
-
-         ! Debug info (hotp 5/17/10)
-         !IF ( prtDebug ) THEN
-         !   print*,'The following species have been identified'
-         !   print*,'as dry dep species in CHEMCARBON (carbon_mod.f)'
-         !   print*, 'ASOAN ', DEPNAME(DRYASOAN)
-         !   print*, 'ASOA1 ', DEPNAME(DRYASOA1)
-         !   print*, 'ASOA2 ', DEPNAME(DRYASOA2)
-         !   print*, 'ASOA3 ', DEPNAME(DRYASOA3)
-         !   print*, 'ASOG1 ', DEPNAME(DRYASOG1)
-         !   print*, 'ASOG2 ', DEPNAME(DRYASOG2)
-         !   print*, 'ASOG3 ', DEPNAME(DRYASOG3)
-         !   IF ( IDTPOA1 > 0 ) THEN
-         !      print*, 'POA1  ', DEPNAME(DRYPOA1)
-         !      print*, 'POA2  ', DEPNAME(DRYPOA2)
-         !      print*, 'POG1  ', DEPNAME(DRYPOG1)
-         !      print*, 'POG2  ', DEPNAME(DRYPOG2)
-         !      print*, 'OPOA1 ', DEPNAME(DRYOPOA1)
-         !      print*, 'OPOA2 ', DEPNAME(DRYOPOA2)
-         !      print*, 'OPOG1 ', DEPNAME(DRYOPOG1)
-         !      print*, 'OPOG2 ', DEPNAME(DRYOPOG2)
-         !   ENDIF
-         !   ! isoprene semivols (hotp 5/20/10)
-         !   print*, 'ISOA1 ', DEPNAME(DRYISOA1)
-         !   print*, 'ISOA2 ', DEPNAME(DRYISOA2)
-         !   print*, 'ISOA3 ', DEPNAME(DRYISOA3)
-         !   print*, 'ISOG1 ', DEPNAME(DRYISOG1)
-         !   print*, 'ISOG2 ', DEPNAME(DRYISOG2)
-         !   print*, 'ISOG3 ', DEPNAME(DRYISOG3)
-         !   ! mono+sesq semivols (hotp 5/20/10)
-         !   print*, 'TSOA1 ', DEPNAME(DRYTSOA1)
-         !   print*, 'TSOA2 ', DEPNAME(DRYTSOA2)
-         !   print*, 'TSOA3 ', DEPNAME(DRYTSOA3)
-         !   print*, 'TSOA0 ', DEPNAME(DRYTSOA0)
-         !   print*, 'TSOG1 ', DEPNAME(DRYTSOG1)
-         !   print*, 'TSOG2 ', DEPNAME(DRYTSOG2)
-         !   print*, 'TSOG3 ', DEPNAME(DRYTSOG3)
-         !   print*, 'TSOG0 ', DEPNAME(DRYTSOG0)
-         !   ! gas precursors (hotp 5/20/10)
-         !   print*, 'MTPA  ', DEPNAME(DRYMTPA) 
-         !   print*, 'LIMO  ', DEPNAME(DRYLIMO) 
-         !   print*, 'MTPO  ', DEPNAME(DRYMTPO) 
-         !ENDIF
-
       ENDIF
 
       !=================================================================
@@ -816,6 +754,7 @@
 !  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
 !  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
 !                              so we can greatly collapse this code
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRYBCPO, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -835,7 +774,7 @@
       !=================================================================
 
       ! Return if BCPO isn't defined
-      IF ( IDTBCPO == 0 .or. DRYBCPO == 0 ) RETURN
+      IF ( IDTBCPO == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -954,6 +893,7 @@
 !  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
 !  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
 !                              so we can greatly collapse this code
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRYBCPI, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -969,7 +909,7 @@
       !=================================================================
 
       ! Return if BCPI isn't defined
-      IF ( IDTBCPI == 0 .or. DRYBCPI == 0 ) RETURN
+      IF ( IDTBCPI == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -1062,6 +1002,7 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
 !  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRYOCPO, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1081,7 +1022,7 @@
       !=================================================================
 
       ! Return if OCPO isn't defined
-      IF ( IDTOCPO == 0 .or. DRYOCPO == 0 ) RETURN
+      IF ( IDTOCPO == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -1200,6 +1141,7 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
 !  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRYOCPI, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1213,7 +1155,7 @@
       !=================================================================
       ! CHEM_OCPI begins here!
       !=================================================================
-      IF ( IDTOCPI == 0 .or. DRYOCPI == 0 ) RETURN
+      IF ( IDTOCPI == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -8855,6 +8797,8 @@ ccc
 !                              by NESTED_NA
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  11 Aug 2015 - R. Yantosca - Add support for MERRA2 data
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRY* flags, they're obsolete
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9110,147 +9054,6 @@ ccc
 
 #endif
 #endif
-          
-      !=================================================================
-      ! Find drydep species in DEPSAV
-      !=================================================================
-
-      ! Initialize flags
-      DRYBCPI  = 0
-      DRYOCPI  = 0
-      DRYBCPO  = 0
-      DRYOCPO  = 0
-      DRYPOA1  = 0
-      DRYPOA2  = 0
-      DRYPOG1  = 0
-      DRYPOG2  = 0
-      DRYOPOA1 = 0
-      DRYOPOA2 = 0
-      DRYOPOG1 = 0
-      DRYOPOG2 = 0
-      DRYMTPA  = 0
-      DRYLIMO  = 0
-      DRYMTPO  = 0
-      DRYTSOA1 = 0
-      DRYTSOG1 = 0
-      DRYTSOA2 = 0
-      DRYTSOG2 = 0
-      DRYTSOA3 = 0
-      DRYTSOG3 = 0
-      DRYTSOA0 = 0
-      DRYTSOG0 = 0
-      DRYISOA1 = 0
-      DRYISOG1 = 0
-      DRYISOA2 = 0
-      DRYISOG2 = 0
-      DRYISOA3 = 0
-      DRYISOG3 = 0
-      DRYASOAN = 0
-      DRYASOA1 = 0
-      DRYASOG1 = 0
-      DRYASOA2 = 0
-      DRYASOG2 = 0
-      DRYASOA3 = 0
-      DRYASOG3 = 0
-      DRYSOAG  = 0
-      DRYSOAM  = 0
-
-      ! Locate drydep indices for each carbon or SOA aerosol 
-      ! in the list of dry depositing species.
-      IF ( Input_Opt%LDRYD ) THEN
-         DO N = 1, Input_Opt%NUMDEP
-            SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
-               CASE ( 'BCPI' )
-                  DRYBCPI = N
-               CASE ( 'OCPI' )
-                  DRYOCPI = N
-               CASE ( 'BCPO' )
-                  DRYBCPO = N
-               CASE ( 'OCPO' )
-                  DRYOCPO = N
-               ! semivolpoa: add POA (hotp 2/26/09)
-               CASE ( 'POA1'  )
-                  DRYPOA1  = N
-               CASE ( 'POA2'  )
-                  DRYPOA2  = N
-               ! semivolpoa2: add POG (hotp 3/2/09)
-               CASE ( 'POG1'  )
-                  DRYPOG1  = N
-               CASE ( 'POG2'  )
-                  DRYPOG2  = N
-               ! semivolpoa4opoa: add OPOA and OPOG (hotp 3/18/09)
-               CASE ( 'OPOA1' )
-                  DRYOPOA1 = N
-               CASE ( 'OPOA2' )
-                  DRYOPOA2 = N
-               CASE ( 'OPOG1' )
-                  DRYOPOG1 = N
-               CASE ( 'OPOG2' )
-                  DRYOPOG2 = N
-               ! Lumped arom/IVOC (hotp 5/13/10)
-               CASE ( 'ASOAN' )
-                  DRYASOAN = N 
-               CASE ( 'ASOA1' )
-                  DRYASOA1 = N 
-               CASE ( 'ASOA2' )
-                  DRYASOA2 = N 
-               CASE ( 'ASOA3' )
-                  DRYASOA3 = N 
-               CASE ( 'ASOG1' )
-                  DRYASOG1 = N 
-               CASE ( 'ASOG2' )
-                  DRYASOG2 = N 
-               CASE ( 'ASOG3' )
-                  DRYASOG3 = N
-               ! removed ALPH,LIMO,ALCO,SOA1-4,SOG1-4
-               ! and replaced with new mtp (hotp 5/20/10)
-               ! precursors
-               CASE ( 'MTPA' )
-                  DRYMTPA = N 
-               CASE ( 'LIMO' )
-                  DRYLIMO = N 
-               CASE ( 'MTPO' )
-                  DRYMTPO = N 
-               ! terpenes (hotp 7/29/10)
-               CASE ( 'TSOA1' )
-                  DRYTSOA1 = N 
-               CASE ( 'TSOA2' )
-                  DRYTSOA2 = N 
-               CASE ( 'TSOA3' )
-                  DRYTSOA3 = N 
-               CASE ( 'TSOA0' )
-                  DRYTSOA0 = N 
-               CASE ( 'TSOG1' )
-                  DRYTSOG1 = N 
-               CASE ( 'TSOG2' )
-                  DRYTSOG2 = N 
-               CASE ( 'TSOG3' )
-                  DRYTSOG3 = N 
-               CASE ( 'TSOG0' )
-                  DRYTSOG0 = N
-               ! isoprene (hotp 7/29/10)
-               CASE ( 'ISOA1' )
-                  DRYISOA1 = N 
-               CASE ( 'ISOA2' )
-                  DRYISOA2 = N 
-               CASE ( 'ISOA3' )
-                  DRYISOA3 = N 
-               CASE ( 'ISOG1' )
-                  DRYISOG1 = N 
-               CASE ( 'ISOG2' )
-                  DRYISOG2 = N 
-               CASE ( 'ISOG3' )
-                  DRYISOG3 = N
-               CASE ( 'SOAG' )
-                  DRYSOAG = N
-               CASE ( 'SOAM' )
-                  DRYSOAM = N
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT        
-         ENDDO
-      ENDIF
-
       END SUBROUTINE INIT_CARBON
 !EOC
 !------------------------------------------------------------------------------

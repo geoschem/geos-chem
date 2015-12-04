@@ -81,6 +81,8 @@
 !                              uptake on mineral dust (tdf 8/13/2K8)
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LMFCT for flux correction
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LAVHRRLAI and LMODISLAI
+!  12 Aug 2015 - J. Fisher   - Added LARCTICRIV for Hg simulation
+!  17 Aug 2015 - J. Fisher   - Added LKRedUV for Hg simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -257,6 +259,8 @@
       LOGICAL :: LDYNOCEAN       ! Use dynamic ocean Hg model?
       LOGICAL :: LPREINDHG       ! Preindustrial mercury simulation (eds)
       LOGICAL :: LGTMM           ! GTMM soil model (ccc, 9/16/09)
+      LOGICAL :: LARCTICRIV      ! Arctic river Hg
+      LOGICAL :: LKRedUV         ! Tie reducible Hg(aq) to UV?
 
       !%%%% For the CH4 offline simulation only %%%%
       LOGICAL :: LGAO            ! Use gas & oil emissions?

@@ -30,6 +30,7 @@
       PUBLIC  :: ALLOC_ERR
       PUBLIC  :: CHECK_VALUE
       PUBLIC  :: DEBUG_MSG
+      PUBLIC  :: GIGC_ERROR
       PUBLIC  :: ERROR_STOP
       PUBLIC  :: GEOS_CHEM_STOP
       PUBLIC  :: IS_SAFE_DIV
@@ -131,6 +132,8 @@
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD 
 !  19 Dec 2014 - R. Yantosca - Now overload IS_SAFE_DIV w/ REAL*4 and REAL*8 
 !                              module procedures to facilitate flex precision
+!  13 Aug 2015 - E. Lundgren - Add GIGC_ERROR which sets RC to GIGC_FAILURE
+!                              and print msg and location to log
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -642,6 +645,57 @@
       END SUBROUTINE CHECK_DBLE_VALUE
 !EOC
 !------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GIGC_Error
+!
+! !DESCRIPTION: Subroutine GIGC\_Error prints an error message and sets RC to 
+! GIGC\_FAILURE. Note that this routine does not stop a run, but it will cause 
+! a stop at a higher level if you add a catch for RC /= GIGC_SUCCESS. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GIGC_Error( ErrMsg, RC, ThisLoc )
+!
+! !INPUT PARAMETERS:
+!
+      CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg 
+      CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: ThisLoc 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,          INTENT(INOUT)            :: RC 
+!
+! !REVISION HISTORY:
+!  13 Aug 2015 - E. Lundgren - Initial version, based on C. Keller's HCO_ERROR
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      CHARACTER(LEN=255) :: MSG
+
+      !======================================================================
+      ! GIGC_ERROR begins here 
+      !======================================================================
+
+      ! Print error message to log
+      MSG =  'GEOS-Chem ERROR: ' // TRIM(ErrMsg)
+      WRITE(6,*) MSG
+      
+      ! Print error location to log
+      IF ( PRESENT(ThisLoc) ) THEN
+         MSG = 'ERROR LOCATION: ' // TRIM( ThisLoc )
+         WRITE(6,*) ThisLoc
+      ENDIF
+      
+      ! Return with error
+      RC = GIGC_FAILURE 
+
+      END SUBROUTINE GIGC_Error
+!EOC
+!------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -703,6 +757,7 @@
 !
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GEOS_TIMERS_MOD
 #if defined( ESMF_ )
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
@@ -721,13 +776,23 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  12 Mar 2013 - R. Yantosca - Now use GEOS-5 style traceback when using ESMF
 !   8 Jul 2014 - R. Yantosca - Now call cleanup.F with shadow variables
+!  11 Aug 2015 - M. Yannetti - Now calls all timers to stop.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES
 !
-      INTEGER :: RC
+      INTEGER :: RC          ! Success / Failure
+      LOGICAL :: am_I_Root   ! Is this the root CPU? 
+
+      ! Only write to stdout if we are on the root CPU
+      am_I_Root = .TRUE. 
+
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_StopAll( RC )
+      CALL GEOS_Timer_PrintAll( am_I_Root, RC )  
+#endif
 
 #if defined( ESMF_ )
 

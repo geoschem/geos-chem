@@ -1339,6 +1339,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!  23 Oct 2015 - E. Lundgren - Fix index for dust in ODAER/LUT arrays if UCX on
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1347,7 +1348,7 @@
 !
       LOGICAL             :: LINTERP
       INTEGER             :: I, J, JLOOP, L, N, NOUT, W
-      INTEGER             :: IWV, IIWV, NWVS
+      INTEGER             :: IWV, IIWV, NWVS, IDST
       INTEGER, SAVE       :: MONTH_LAST = -999
       LOGICAL, SAVE       :: DO_DIAG = .FALSE.
       REAL(f4)            :: TEMP(IIPAR,JJPAR,LGLOB)
@@ -1364,10 +1365,16 @@
 
       !=================================================================
       ! RDUST begins here!
-      !
+      !=================================================================
+
+      ! Index for dust in ODAER and LUT arrays
+      IDST      = 6 
+#if defined( UCX )
+      IDST      = 8
+#endif
+
       ! Read aerosol data from the binary punch file during the first 
       ! chemistry timestep and, after that, at the start of each month.
-      !=================================================================
       IF ( THISMONTH /= MONTH_LAST .or. DO_DIAG ) THEN
          
          ! Get TAU0 value used to index the punch file
@@ -1487,8 +1494,9 @@
             ! dust stored in the 6th species bin of LUT variables
             ODMDUST(I,J,L,IWV,N) = 0.75e+0_fp *
      &                             State_Met%BXHEIGHT(I,J,L) *
-     &                             DUST(I,J,L,N) * QQAA(IWV,N,6)  /
-     &                           ( MSDENS(N) * RDAA(N,6) * 1.0e-6_fp )
+     &                             DUST(I,J,L,N) * QQAA(IWV,N,IDST)  /
+     &                           ( MSDENS(N) * RDAA(N,IDST) * 
+     &                             1.0e-6_fp )
 
 #if defined ( RRTMG )
             !add dust optics to the RT code arrays
@@ -1496,8 +1504,8 @@
             !will keep this way for uniformity for now but
             !possibly could deal with SSA and ASYM in RT module
             RTODAER(I,J,L,IWV,NAER+4+N) = ODMDUST(I,J,L,IWV,N)
-            RTSSAER(I,J,L,IWV,NAER+4+N) = SSAA(IWV,N,6)
-            RTASYMAER(I,J,L,IWV,NAER+4+N) = ASYMAA(IWV,N,6)
+            RTSSAER(I,J,L,IWV,NAER+4+N) = SSAA(IWV,N,IDST)
+            RTASYMAER(I,J,L,IWV,NAER+4+N) = ASYMAA(IWV,N,IDST)
 #endif
 
          ENDDO
@@ -2169,15 +2177,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DUST( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_DUST( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DRYDEP_MOD,         ONLY : NTRAIND
+!      USE DRYDEP_MOD,         ONLY : NTRAIND
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Species_Mod,        ONLY : Species
 #if   defined( TOMAS )
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE TOMAS_MOD,          ONLY : IBINS, Xk
@@ -2187,6 +2197,7 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2203,6 +2214,10 @@
 !  26 Feb 2013 - M. Long     - Now use fields from Input_Opt
 !  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
 !                              aerosols (T.D. Fairlie)
+!  23 Sep 2015 - R. Yantosca - Now accept State_Chm as an argument so that
+!                              we can use the species database
+!  30 Sep 2015 - R. Yantosca - DD_A_Density is now renamed to Density
+!  30 Sep 2015 - R. Yantosca - DD_A_Radius is now renamed to Radius
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2216,21 +2231,10 @@
       INTEGER            :: I
       INTEGER            :: BIN
       REAL(fp),  PARAMETER :: PI = 3.14159265e+0_fp  !(win, 7/17/09)
-!------------------------------------------------------------------------------
-! Prior to 9/29/14:
-! This is now defined in hcox_dustginoux_mod.F90
-!      INTEGER            :: ACTMODEBINS        !(scf, 2/27/13)
-!
-!# if   defined( TOMAS40 )
-!      ACTMODEBINS = 10  !10 activation mode size bins
-!# elif defined( TOMAS15 )
-!      ACTMODEBINS = 3   !3  activation mode size bins
-!# else
-!      ACTMODEBINS = 0   !no bins < 10nm
-!# endif
-!------------------------------------------------------------------------------
-
 #endif
+
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc => NULL()
 
       !=================================================================
       ! INIT_DUST begins here!
@@ -2296,86 +2300,10 @@
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( .not. LDEAD ) THEN
 
-!------------------------------------------------------------------------------
-! This is now defined in hcox_dustginoux_mod.F90
-!
-!         ! Allocate the FRAC_S array
-!         ALLOCATE( FRAC_S( NDSTBIN ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRAC_S' )
-!         
-!         IF ( NDSTBIN == 4 ) THEN
-!
-!            ! 4 dust bins
-!            FRAC_S(1) = 0.095d0
-!            FRAC_S(2) =   0.3d0
-!            FRAC_S(3) =   0.3d0
-!            FRAC_S(4) =   0.3d0
-!
-!         ELSE IF ( NDSTBIN == IBINS ) THEN
-!
-!            DO I = 1, IBINS
-!               FRAC_S( I )  = 0.00d-00 !scf initialize
-!                                       !first few bins in TOMAS15/40 frac_s = 0.0d0
-!            ENDDO
-!
-!# if  defined( TOMAS12 ) || defined( TOMAS15 )
-!
-!            FRAC_S(ACTMODEBINS + 1  )  = 7.33E-10
-!            FRAC_S(ACTMODEBINS + 2  )  = 2.032E-08
-!            FRAC_S(ACTMODEBINS + 3  )  = 3.849E-07
-!            FRAC_S(ACTMODEBINS + 4  )  = 5.01E-06
-!            FRAC_S(ACTMODEBINS + 5  )  = 4.45E-05
-!            FRAC_S(ACTMODEBINS + 6  )  = 2.714E-04
-!            FRAC_S(ACTMODEBINS + 7  )  = 1.133E-03
-!            FRAC_S(ACTMODEBINS + 8  )  = 3.27E-03
-!            FRAC_S(ACTMODEBINS + 9  )  = 6.81E-03
-!            FRAC_S(ACTMODEBINS + 10 )  = 1.276E-02
-!            FRAC_S(ACTMODEBINS + 11 )  = 2.155E-01
-!            FRAC_S(ACTMODEBINS + 12 )  = 6.085E-01
-!
-!# else
-!! else TOMAS30 or 40
-!
-!            FRAC_S( ACTMODEBINS +  1 )  = 1.05d-10
-!            FRAC_S( ACTMODEBINS +  2 )  = 6.28d-10
-!            FRAC_S( ACTMODEBINS +  3 )  = 3.42d-09
-!            FRAC_S( ACTMODEBINS +  4 )  = 1.69d-08
-!            FRAC_S( ACTMODEBINS +  5 )  = 7.59d-08
-!            FRAC_S( ACTMODEBINS +  6 )  = 3.09d-07
-!            FRAC_S( ACTMODEBINS +  7 )  = 1.15d-06
-!            FRAC_S( ACTMODEBINS +  8 )  = 3.86d-06
-!            FRAC_S( ACTMODEBINS +  9 )  = 1.18d-05
-!            FRAC_S( ACTMODEBINS + 10 )  = 3.27d-05
-!            FRAC_S( ACTMODEBINS + 11 )  = 8.24d-05
-!            FRAC_S( ACTMODEBINS + 12 )  = 1.89d-04
-!            FRAC_S( ACTMODEBINS + 13 )  = 3.92d-04
-!            FRAC_S( ACTMODEBINS + 14 )  = 7.41d-04
-!            FRAC_S( ACTMODEBINS + 15 )  = 1.27d-03
-!            FRAC_S( ACTMODEBINS + 16 )  = 2.00d-03
-!            FRAC_S( ACTMODEBINS + 17 )  = 2.89d-03
-!            FRAC_S( ACTMODEBINS + 18 )  = 3.92d-03
-!            FRAC_S( ACTMODEBINS + 19 )  = 5.26d-03
-!            FRAC_S( ACTMODEBINS + 20 )  = 7.50d-03
-!            FRAC_S( ACTMODEBINS + 21 )  = 1.20d-02
-!            FRAC_S( ACTMODEBINS + 22 )  = 2.08d-02
-!            FRAC_S( ACTMODEBINS + 23 )  = 3.62d-02
-!            FRAC_S( ACTMODEBINS + 24 )  = 5.91d-02
-!            FRAC_S( ACTMODEBINS + 25 )  = 8.74d-02
-!            FRAC_S( ACTMODEBINS + 26 )  = 1.15d-01
-!            FRAC_S( ACTMODEBINS + 27 )  = 1.34d-01
-!            FRAC_S( ACTMODEBINS + 28 )  = 1.37d-01
-!            FRAC_S( ACTMODEBINS + 29 )  = 1.24d-01
-!            FRAC_S( ACTMODEBINS + 30 )  = 9.85d-02
-!
-!# endif
-!
-!         ENDIF
-!------------------------------------------------------------------------------
-
          ! Match dry depositing tracer in drydep list with NK1-NK30
          DO BIN = 1, IBINS
          DO N   = 1, Input_Opt%NUMDEP
-            IF ( NTRAIND(N) == ( IDTNK1-1+BIN ) )THEN
+            IF ( Input_Opt%NTRAIND(N) == ( IDTNK1-1+BIN ) )THEN
                Input_Opt%IDDEP(BIN) = N
                GOTO 100
             ENDIF            
@@ -2391,48 +2319,57 @@
       ! INITIALIZATION SECTION FOR STANDARD GEOS-CHEM SIMULATION
       !=================================================================
 
-      ! Dust radii
-      Input_Opt%DUSTREFF(1:NDSTBIN) = (/ 0.73e-6_fp, 1.4e-6_fp,  
-     &                                   2.4e-6_fp,  4.5e-6_fp  /)
+      ! Loop over all species  
+      DO N = 1, State_Chm%nSpecies
 
-      ! Dust density
-      Input_Opt%DUSTDEN(1:NDSTBIN) = (/ 2500.e+0_fp, 2650.e+0_fp, 
-     &                                  2650.e+0_fp, 2650.e+0_fp /)
+         ! Get info about this species from the species database
+         ThisSpc => State_Chm%SpcData(N)%Info
+
+         ! Assign eahc species parameters from the species database
+         SELECT CASE( TRIM( ThisSpc%Name ) )
+            CASE( 'DST1' )
+               Input_Opt%DUSTDEN (1) = ThisSpc%Density
+               Input_Opt%DUSTREFF(1) = ThisSpc%Radius
+               DRYDST1               = ThisSpc%DryDepId
+            CASE( 'DST2' )
+               Input_Opt%DUSTDEN (2) = ThisSpc%Density
+               Input_Opt%DUSTREFF(2) = ThisSpc%Radius
+               DRYDST2               = ThisSpc%DryDepId
+            CASE( 'DST3' )
+               Input_Opt%DUSTDEN (3) = ThisSpc%Density
+               Input_Opt%DUSTREFF(3) = ThisSpc%Radius
+               DRYDST3               = ThisSpc%DryDepId
+            CASE( 'DST4' )
+               Input_Opt%DUSTDEN (4) = ThisSpc%Density
+               Input_Opt%DUSTREFF(4) = ThisSpc%Radius
+               DRYDST4               = ThisSpc%DryDepId
+            CASE( 'DSTAL1' )
+               DRYDAL1               = ThisSpc%DryDepId
+            CASE( 'DSTAL2' )
+               DRYDAL2               = ThisSpc%DryDepId
+            CASE( 'DSTAL3' )
+               DRYDAL3               = ThisSpc%DryDepId
+            CASE( 'DSTAL4' )
+               DRYDAL4               = ThisSpc%DryDepId
+            CASE( 'SO4D1'  )
+               DRYSO4D1              = ThisSpc%DryDepId
+            CASE( 'SO4D2'  )
+               DRYSO4D1              = ThisSpc%DryDepId
+            CASE( 'SO4D3'  )
+               DRYSO4D1              = ThisSpc%DryDepId
+            CASE( 'SO4D4'  )
+               DRYSO4D1              = ThisSpc%DryDepId
+            CASE DEFAULT
+               ! Nothing
+         END SELECT
+
+         ! Free pointers
+         ThisSpc => NULL()
+         
+      ENDDO
 
       ! Find drydep species in DEPSAV
       IF( Input_Opt%LDRYD ) THEN
-         DO N = 1, Input_Opt%NUMDEP
-            SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
-               CASE ( 'DST1' )
-                  DRYDST1 = N
-               CASE ( 'DST2' )
-                  DRYDST2 = N
-               CASE ( 'DST3' )
-                  DRYDST3 = N
-               CASE ( 'DST4' )
-                  DRYDST4 = N
-               ! Include dust alkalinity tracers               tdf 04/10/08
-               CASE ( 'DSTAL1' )
-                  DRYDAL1 = N
-               CASE ( 'DSTAL2' )
-                  DRYDAL2 = N
-               CASE ( 'DSTAL3' )
-                  DRYDAL3 = N
-               CASE ( 'DSTAL4' )
-                  DRYDAL4 = N
-               ! Include dust sulfate tracers                  tdf 06/16/08
-               CASE ( 'SO4D1' )
-                  DRYSO4D1 = N
-               CASE ( 'SO4D2' )
-                  DRYSO4D2 = N
-               CASE ( 'SO4D3' )
-                  DRYSO4D3 = N
-               CASE ( 'SO4D4' )
-                  DRYSO4D4 = N
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT        
-         ENDDO
 
          ! This may lead to out of bounds errors
          Input_Opt%IDDEP(1) = DRYDST1

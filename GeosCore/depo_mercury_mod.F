@@ -38,8 +38,12 @@
 !  
       PUBLIC :: DD_HG2, DD_HGP, WD_HG2, WD_HGP
       PUBLIC :: HG2mth_wd, HG0mth_dd, HG2mth_dd
-      PUBLIC :: SNOW_HG
+      PUBLIC :: SNOW_HG_OC
+      PUBLIC :: SNOW_HG_LN
+      PUBLIC :: SNOW_HG_STORED_OC
+      PUBLIC :: SNOW_HG_STORED_LN
       PUBLIC :: LHGSNOW
+
       REAL(fp),  ALLOCATABLE :: DD_Hg2(:,:,:)
       REAL(fp),  ALLOCATABLE :: DD_HgP(:,:,:)
       REAL(fp),  ALLOCATABLE :: WD_Hg2(:,:,:)
@@ -47,9 +51,12 @@
       REAL(fp),  ALLOCATABLE :: HG0mth_dd(:,:)
       REAL(fp),  ALLOCATABLE :: HG2mth_dd(:,:)
       REAL(fp),  ALLOCATABLE :: HG2mth_wd(:,:)
-      REAL(fp),  ALLOCATABLE :: SNOW_HG(:,:,:) !CDH Hg stored in snow+ice
+      REAL(fp),  ALLOCATABLE :: SNOW_HG_OC(:,:,:)
+      REAL(fp),  ALLOCATABLE :: SNOW_HG_LN(:,:,:)
+      REAL(fp),  ALLOCATABLE :: SNOW_HG_STORED_OC(:,:,:)
+      REAL(fp),  ALLOCATABLE :: SNOW_HG_STORED_LN(:,:,:)
       REAL(fp),  ALLOCATABLE :: Hg0dryGEOS(:,:), HgIIdryGEOS(:,:), 
-     &                        HgIIwetGEOS(:,:)
+     &                          HgIIwetGEOS(:,:)
 !
 ! !PRIVATE DATA MEMBERS:
 !
@@ -62,6 +69,9 @@
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
+!  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig.
+!                              29/11/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -300,6 +310,7 @@
 ! !USES:
 !
       USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
+      USE DIAG03_MOD,         ONLY : AD03, ND03
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : GET_Hg2_CAT, GET_HgP_CAT
       USE TRACERID_MOD,       ONLY : IS_Hg2,      IS_HgP
@@ -323,6 +334,9 @@
 !                              derived type object
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
+!  06 Aug 2015 - J. Fisher   - Store reservoir of non-reducible Hg in snowpack
+!                              (orig. 29/11/11)
 !  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
@@ -331,7 +345,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Local variables
-      REAL(fp)  :: FRAC_SNOW_OR_ICE 
+      REAL(fp)  :: FRAC_SNOW_OR_ICE, FRAC_O
       LOGICAL :: IS_SNOW_OR_ICE 
       INTEGER :: NN
 
@@ -364,17 +378,29 @@
      &                        State_Met%FRLANDIC(I,J), 1e+0_fp)
       IS_SNOW_OR_ICE   = ( FRAC_SNOW_OR_ICE > 0e+0_fp )
 
+      ! Ocean fraction (vs land)
+      FRAC_O = State_Met%FROCEAN(I,J)
+
 #elif defined( GEOS_5 )
       ! Use GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
       IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, State_Met     )) .OR. 
      &                    ( IS_LAND( I, J, State_Met     )  .AND. 
      &                      State_Met%SNOMAS(I,J) > 10e+0_fp ))
 
+      ! Ocean fraction (vs land)
+      FRAC_O = State_Met%FROCEAN(I,J)
+
 #else
       ! Use GEOS1-4 snow height (water equivalent) in mm
       IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, State_Met     )) .OR. 
      &                    ( IS_LAND( I, J, State_Met     )  .AND. 
      &                      State_Met%SNOW(I,J)   > 10e+0_fp ))
+
+      ! Ocean fraction (vs land)
+      ! NOTE: GEOS-4 and GCAP don't have an equivalent field for FRLAND
+      ! so FRAC_O will be set to 1
+      FRAC_O = 1e+0_fp - State_Met%FRLAND(I,J)
+
 #endif 
 
       ! Check if there is snow on the ground, or if this is sea ice
@@ -383,8 +409,35 @@
          ! Add 60% of deposition to surface (i.e. assume 40% accumulates
          ! in surface) multiplied by the fraction of the box that is 
          ! snow or ice (i.e. 1 for all met fields but MERRA and GEOS-5.7.x)
-         SNOW_HG(I,J,NN) = SNOW_HG(I,J,NN) + 
-     &           FRAC_SNOW_OR_ICE * MAX( 0.6e+0_fp*DEP_HG2, 0e0_fp )
+         SNOW_HG_OC(I,J,NN) = SNOW_HG_OC(I,J,NN) +
+     &                        FRAC_O * FRAC_SNOW_OR_ICE *
+     &                        MAX( 0.6e+0_fp*DEP_HG2, 0e+0_fp )
+
+         ! Add remaining deposited Hg to reservoir for delivery to ocean
+         ! when snow melts later (jaf, 6/17/11)
+         ! This is Hg in snowpack over ocean that CANNOT be
+         ! re-emitted to atmosphere
+         SNOW_HG_STORED_OC(I,J,NN) = SNOW_HG_STORED_OC(I,J,NN) +
+     &                               FRAC_O * FRAC_SNOW_OR_ICE *
+     &                               MAX( 0.4e+0_fp*DEP_HG2, 0e+0_fp )
+
+         ! This is Hg in snowpack over land that can potentially be
+         ! re-emitted to atmosphere
+         SNOW_HG_LN(I,J,NN) = SNOW_HG_LN(I,J,NN) +
+     &                        (1e+0_fp - FRAC_O) * FRAC_SNOW_OR_ICE *
+     &                        MAX( 0.6e+0_fp*DEP_HG2, 0e+0_fp )
+
+         ! This is Hg in snowpack over land that CANNOT be
+         ! re-emitted to atmosphere
+         SNOW_HG_STORED_LN(I,J,NN) = SNOW_HG_STORED_LN(I,J,NN) +
+     &                               ( 1e+0_fp - FRAC_O ) *
+     7                               FRAC_SNOW_OR_ICE
+     &                               * MAX( 0.4e+0_fp*DEP_HG2, 0e+0_fp )
+
+         ! Store diagnostic of TOTAL HgII/HgP deposition to snow/ice
+         IF ( ND03 > 0 ) AD03(I,J,21,1) = AD03(I,J,21,1)   +
+     &                                    FRAC_SNOW_OR_ICE *
+     &                                    MAX(DEP_HG2, 0e+0_fp) 
 
       ENDIF
 
@@ -927,6 +980,8 @@
 ! !REVISION HISTORY:
 !  23 Apr 2010 - C. Carouge  - Moved arrays allocation from ocean_mercury_mod.f
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
+!  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig. 29/11/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -953,9 +1008,21 @@
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'WD_HgP' )
       WD_HgP = 0e+0_fp
 
-      ALLOCATE( SNOW_HG( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SNOW_HG' )
-      SNOW_HG = 0e+0_fp
+      ALLOCATE( SNOW_HG_OC( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SNOW_HG_OC' )
+      SNOW_HG_OC = 0e+0_fp
+
+      ALLOCATE( SNOW_HG_LN( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SNOW_HG_LN' )
+      SNOW_HG_LN = 0e+0_fp
+
+      ALLOCATE( SNOW_HG_STORED_OC( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SNOW_HG_STORED_OC' )
+      SNOW_HG_STORED_OC = 0e+0_fp
+
+      ALLOCATE( SNOW_HG_STORED_LN( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SNOW_HG_STORED_LN' )
+      SNOW_HG_STORED_LN = 0e+0_fp
 
       IF ( Input_Opt%LGTMM ) THEN
          ALLOCATE( HG0mth_dd( IIPAR, JJPAR ), STAT=RC )
@@ -989,6 +1056,8 @@
 !
 ! !REVISION HISTORY:
 !  23 Apr 2010 - C. Carouge - Moved from ocean_mercury_mod.f
+!  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
+!  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig. 29/11/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -997,7 +1066,12 @@
       IF ( ALLOCATED( DD_HgP      ) ) DEALLOCATE( DD_HgP      )
       IF ( ALLOCATED( WD_Hg2      ) ) DEALLOCATE( WD_Hg2      )
       IF ( ALLOCATED( WD_HgP      ) ) DEALLOCATE( WD_HgP      )
-      IF ( ALLOCATED( SNOW_HG     ) ) DEALLOCATE( SNOW_HG     )
+      IF ( ALLOCATED( SNOW_HG_OC  ) ) DEALLOCATE( SNOW_HG_OC  )
+      IF ( ALLOCATED( SNOW_HG_LN  ) ) DEALLOCATE( SNOW_HG_LN  )
+      IF ( ALLOCATED( SNOW_HG_STORED_OC  ) ) 
+     &     DEALLOCATE( SNOW_HG_STORED_OC  )
+      IF ( ALLOCATED( SNOW_HG_STORED_LN  ) ) 
+     &     DEALLOCATE( SNOW_HG_STORED_LN  )
       IF ( ALLOCATED( HG0mth_dd   ) ) DEALLOCATE( HG0mth_dd   )
       IF ( ALLOCATED( HG2mth_dd   ) ) DEALLOCATE( HG2mth_dd   )
       IF ( ALLOCATED( HG2mth_wd   ) ) DEALLOCATE( HG2mth_wd   )

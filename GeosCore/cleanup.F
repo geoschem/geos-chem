@@ -34,6 +34,7 @@
       USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
       USE DUST_MOD,                ONLY : CLEANUP_DUST
       USE ERROR_MOD,               ONLY : DEBUG_MSG
+      USE GEOSFP_READ_MOD,         ONLY : CLEANUP_GEOSFP_READ
       USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GRID_MOD,                ONLY : CLEANUP_GRID
@@ -45,6 +46,7 @@
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
       USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
       USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
+      USE MERRA2_READ_MOD,         ONLY : CLEANUP_MERRA2_READ
       USE PBL_MIX_MOD,             ONLY : CLEANUP_PBL_MIX
       USE PJC_PFIX_MOD,            ONLY : CLEANUP_PJC_PFIX
       USE PLANEFLIGHT_MOD,         ONLY : CLEANUP_PLANEFLIGHT
@@ -193,6 +195,8 @@
 !  (46) Added call to CLEANUP_GLOBAL_BC, which deallocates arrays from
 !       "global_bc_mod.f"  (clf, 2/28/2011) 
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2011 - C. Friedman - Added call to CLEANUP_GLOBAL_OC, which 
+!                              deallocates arrays from "global_oc_mod.f"
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
 !  19 Mar 2012 - M. Payer    - Remove call to CLEANUP_ACETONE. It is no longer
@@ -207,6 +211,7 @@
 !                              removed all allocatable arrays from dao_mod.F
 !  03 Dec 2012 - R. Yantosca - Now call Cleanup_CMN_SIZE
 !  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
+!  06 Mar 2013 - H. Amos     - Merge C. Friedman's PAH code
 !  14 Mar 2013 - M. Payer    - Restore reference to CLEANUP_DAO. Some arrays
 !                              have been restored to dao_mod.F for use in
 !                              the vertical regridding of OH for offline
@@ -344,5 +349,12 @@
       CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
       CALL Cleanup_CMN_FJX    ( am_I_Root, RC )
 
+      ! Close GEOS-FP or MERRA2 met field files that may still be open
+#if defined( GEOS_FP )
+      CALL Cleanup_GeosFp_Read()
+#elif defined( MERRA2 )
+      CALL Cleanup_Merra2_Read()
+#endif
+      
       END SUBROUTINE CLEANUP
 !EOC

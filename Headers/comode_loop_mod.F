@@ -138,7 +138,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  22 May 2015 - R. Yantosca -  
-
+!  23 Sep 2015 - E. Lundgren - Add Criegee chemistry (E. Marais, D. Millet)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -411,6 +411,7 @@
       ! Added NKO2PHOT to flag the O2 photolysis reaction (SDE 03/28/13)
       ! Added NKSO4PHOT to flag the H2SO4 photolysis reaction (SDE 04/11/13)
       ! Added NKPSC to flag PSC heterogeneous reactions (SDE 04/17/13)
+      ! Added NNADDAT for Criegee intermediates (eam, dbm, 9/23/15)
       INTEGER            NNADD1,        NNADDA(ICS),  NNADDB(  ICS), 
      &                   NNADDC(ICS),   NNADDD(ICS),  NNADDK(  ICS), 
      &                   NNADDV(ICS),   NNADDZ,       
@@ -423,8 +424,9 @@
      &                   NKBrNO3,       NKHOBr,       NK1HBr, 
      &                   NK2HOBr,       NK2HBr,       NNRO2HO2(ICS),
      &                   NKO2PHOT(ICS), NKSO4PHOT(ICS),
-     &                   NKPSC(ICS,11), NKO3PPHOT(ICS)
-     
+     &                   NKPSC(ICS,11), NKO3PPHOT(ICS),
+     &                   NNADDAT(ICS) 
+    
       ! SDE 05/14/13: Tracking O1D, O3P, N and H
       INTEGER ::         IO1D, IO3P, INATOM, IHATOM, INO
       INTEGER ::         NKNOPHOT
@@ -467,6 +469,7 @@
       ! Add NKSPECG for DMS+OH+O2 rxn (bdf, bmy, 4/18/03)
       ! Added NKSPECF, NKSPECH to /IDICS/ for C2H4 chemistry (tmf, 3/6/09) 
       ! Added NKSPECRO2HO2 for RO2+HO2 (jmao, 11/17/2012)
+      ! Added NKSPECAT for Criegee intermediates (eam, dbm, 9/23/15)
       INTEGER ::
      &  NMOTH(   ICS), NTSPEC( ICS), JPHOTRAT(ICS),
      &  ISGAINR( ICS), ISPORL( ICS), NOGAINE( ICS),   NOUSE(    ICS),
@@ -480,7 +483,8 @@
      &  NKSPECA(  MAXGL3,ICS), NKSPECB(  MAXGL3,ICS),
      &  NKSPECC(MAXGL3,ICS),NKSPECD(MAXGL3,ICS),NKSPECK(MAXGL3,ICS),
      &  NKSPECG(MAXGL2,ICS),NKSPECRO2HO2(MAXGL3,ICS),
-     &  NKSPECF(MAXGL3,ICS), NKSPECH(MAXGL3,ICS)
+     &  NKSPECF(MAXGL3,ICS), NKSPECH(MAXGL3,ICS),
+     &  NKSPECAT(MAXGL3,ICS)
 
       ! re-define some nkspec* arrays for harvard chem mechanism (bdf)
       INTEGER ::        NOLOSP(ICP),    NGNFRAC(ICP),    NOLOSRAT(ICP), 

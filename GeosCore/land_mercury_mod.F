@@ -634,10 +634,22 @@
             DRYSOIL_HG = DRYSOIL_PREIND_HG * EHg0_dist(I,J)           
 
             ! Soil emissions, ng /m2 /h
+            ! NOTE: State_Met%RADSWG is net radiation at ground for all
+            ! MET fields except GEOS-FP and MERRA2. For those data sets,
+            ! net radiation was not processed and therefore we use
+            ! incident radiation at ground. We split them up below for
+            ! clarity, using the new SWGDN field for incident radiation.
+            ! SWGDN is also available for MERRA but we do not use it
+            ! here to preserve the legacy method (ewl, 9/23/15)
+#if defined( GEOS_FP ) || defined( MERRA2 )
+            SOIL_EMIS = 
+     &           EXP( 0.0011 * State_Met%SWGDN(I,J) * LIGHTFRAC ) *
+     &           DRYSOIL_HG * SOIL_EMIS_FAC
+#else
             SOIL_EMIS = 
      &           EXP( 0.0011 * State_Met%RADSWG(I,J) * LIGHTFRAC ) *
      &           DRYSOIL_HG * SOIL_EMIS_FAC
-     
+#endif     
             ! Grid box surface area [m2]
             AREA_M2   = GET_AREA_M2( I, J, 1 )
  
@@ -678,7 +690,7 @@
 !
 ! !USES:
 !
-      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC, SNOW_HG_LN
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TRACERID_MOD,       ONLY : N_Hg_CATS
@@ -704,10 +716,22 @@
 !  These time constants reflect the time scales of emission observed in the 
 !  Arctic and in field studies. Holmes et al 2010
 ! 
+!  Formulation from Holmes et al. 2010 is now obsolete. Instead, emissions
+!  from snow are tied to solar radiation, not temperature. Effective rate
+!  constant is in the mid-range of values estimated by Durnford and Dastoor
+!  (2011) and consistent with surface air Hg0 observations, as described in
+!  Fisher et al. (2011, in review).
+!
+!  Note that only MERRA provides incident shortwave radiation; other met
+!  fields only provide *net* shortwave radiation. The parameterization was
+!  designed and tested using MERRA, and therefore may not work as well with
+!  other met fields
+! 
 ! !REVISION HISTORY: 
 !  15 Sep 2009 - C. Holmes, S. Carouge - Initial version
 !  30 Aug 2010 - R. Yantosca - Added ProTex headers
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
+!  18 Nov 2011 - J. Fisher   - Update to radiation-dependent formulation
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
@@ -718,8 +742,15 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: I, J, NN, JLOOP
-      REAL(fp) :: DTSRCE, SNOW_HG_NEW, K_EMIT
+      INTEGER       :: I, J, NN, JLOOP, MONTH
+      LOGICAL, SAVE :: FIRSTTIME = .TRUE.
+      REAL(fp)      :: DTSRCE, SNOW_HG_OC_NEW, K_EMIT, SWRAD
+      REAL(fp)      :: SNOW_HG_LN_NEW, FLUX_TMP
+      ! For solar flux dependent photo-reduction (jaf, 11/18/11)
+      ! This is in units of m2/W/s so that when multiplied by SWRAD we
+      ! end up with units of 1/s. This corresponds to k ~0.001 1/h
+      ! when SWRAD = 100 W/m2
+      REAL(fp), PARAMETER :: K_EMIT_0 = 2.5e-9_fp
 
       !=================================================================
       ! SNOWPACK_MERCURY_FLUX begins here!
@@ -734,61 +765,113 @@
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60e+0_fp      
 
+! Warning for non-MERRA (jaf, 6/19/13)
+! NOTE:  Incident shortwave radiation is currently only available for
+! GEOS-FP and MERRA-2 in GEOS-Chem. It is available from MERRA data sets
+! but is not currently stored in State_Met (ewl, 9/14/15) 
+      IF ( FIRSTTIME ) THEN 
+#if !defined( MERRA2 ) || !defined( GEOS_FP )
+         WRITE( 6, * ) 'WARNING: Snow emission parameterization '//
+     &        'designed for use with incident '
+         WRITE( 6, * ) 'shortwave radiation. Only net shortwave '//
+     &        'radiation available.'
+#endif
+         FIRSTTIME = .FALSE.
+      ENDIF
+
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, NN, SNOW_HG_NEW, K_EMIT )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Zero for safety's sake
-         K_EMIT      = 0.0e+0+fp
-         SNOW_HG_NEW = 0.0e+0_fp
+!$OMP+PRIVATE( I, J, NN )
+!$OMP+PRIVATE( SNOW_HG_OC_NEW, JLOOP, K_EMIT, SWRAD, SNOW_HG_LN_NEW )
+!$OMP+PRIVATE( FLUX_TMP )
+      DO J  = 1, JJPAR
+      DO I  = 1, IIPAR
 
          ! If the sun is set, then no emissions, go to next box
          IF ( State_Met%SUNCOS(I,J) < 0e+0_fp ) CYCLE 
 
-         ! Decrease residence time to 1 week when T > -3C
-         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
-         ! Emit Hg(0) at a steady rate, based on 180 d residence
-         ! time in snowpack, based on cycle observed at Alert 
-         ! (e.g. Steffen et al. 2008)
-         IF ( State_Met%T(I,J,1) > 270e+0_fp) THEN
+         !----------------------------------------------------------
+         ! Prior to 11/18/11, Holmes (2010) parameterization (jaf)
+         !! Decrease residence time to 1 week when T > -3C
+         !! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+         !! Emit Hg(0) at a steady rate, based on 180 d residence
+         !! time in snowpack, based on cycle observed at Alert 
+         !! (e.g. Steffen et al. 2008)
+         !IF ( State_Met%T(I,J,1) > 270D0) THEN
+         !   ! NOW USE 3 weeks for broader summer peak
+         !   !K_EMIT = 1.6D-6
+         !   K_EMIT = 5D-7
+         !ELSE
+         !   K_EMIT = 6D-8
+         !ENDIF
+         !----------------------------------------------------------
 
-            ! NOW USE 3 weeks for broader summer peak
-            !K_EMIT = 1.6D-6
-            K_EMIT = 5e-7_fp
+         ! Zero variables
+         K_EMIT = 0e+0_fp
+         SWRAD  = 0e+0_fp
 
-         ELSE
+         ! Set solar radiation @ ground
+         ! NOTE: State_Met%RADSWG represents surface incident shortwave
+         ! flux for GEOS-FP and MERRA-2 and net shortwave radiation at 
+         ! ground for all other MET fields. Surface incident shortwave
+         ! flux is available for GMAO but is not stored globally 
+         ! (ewl, 8/26/15)
+! KLUDGE: can't get SWGDN in State_Met; add this later (jaf)
+! Use incident radiation at ground (State_Met%SWGDN) where available. 
+! Otherwise, use net radiation at ground (State_Met%RADSWG)
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+         SWRAD = State_Met%SWGDN(I,J)
+#else       
+         SWRAD = State_Met%RADSWG(I,J)
+#endif
+! END KLUDGE
 
-            ! Emit Hg(0) at a steady rate, based on 180 d residence
-            ! time in snowpack, based on cycle observed at Alert 
-            ! (e.g. Steffen et al. 2008)
-            K_EMIT = 6e-8_fp
+         ! Compute K_EMIT
+         K_EMIT = K_EMIT_0 * SWRAD
 
-         ENDIF
+         ! SWRAD can be very small at edge of sunlit zone, probably due to
+         ! averaging. This can make K_EMIT unrealistically small (e.g.:
+         ! 1d-13 * 1d-9 ~ 1d-22). In IF statement below, we only use & save
+         ! K_EMIT if it is >= K_EMIT_0 (jaf, 5/19/11)
+         IF ( K_EMIT >= K_EMIT_0 ) THEN
 
          ! Loop over # of categories 
          DO NN = 1, N_Hg_CATS
 
+            ! Zero temporary reservoir on each iteration
+            FLUX_TMP = 0D0
+
             ! Check if there is Hg that could be emitted
-            IF ( SNOW_HG(I,J,NN) > 0e+0_fp ) THEN
+            IF ( SNOW_HG_OC(I,J,NN) > 0e+0_fp ) THEN
 
                ! New mass of snow in Hg
-               SNOW_HG_NEW = SNOW_HG(I,J,NN) * EXP( -K_EMIT * DTSRCE )
+               SNOW_HG_OC_NEW = SNOW_HG_OC(I,J,NN) * EXP(-K_EMIT*DTSRCE)
 
-               ! Not less than zero
-               FLUX(I,J,NN) = MAX( SNOW_HG(I,J,NN) - SNOW_HG_NEW,
-     &                             0e+0_fp )
+               FLUX_TMP = MAX(SNOW_HG_OC(I,J,NN) - 
+     &                    SNOW_HG_OC_NEW, 0e+0_fp)
 
-               ! Convert mass -> flux
-               FLUX(I,J,NN) = FLUX(I,J,NN) / DTSRCE
+               SNOW_HG_OC(I,J,NN) = SNOW_HG_OC_NEW
 
-               ! Save back into array
-               SNOW_HG(I,J,NN) = SNOW_HG_NEW
+            ENDIF !SNOW_HG_OC > 0
 
-            ENDIF
+            ! Check if there is Hg in land snow that could be emitted
+            IF ( SNOW_HG_LN(I,J,NN) > 0e+0_fp ) THEN
 
-         ENDDO
+               ! New mass of snow in Hg
+               SNOW_HG_LN_NEW = SNOW_HG_LN(I,J,NN) * EXP(-K_EMIT*DTSRCE)
+
+               FLUX_TMP = FLUX_TMP +
+     &                    MAX(SNOW_HG_LN(I,J,NN)-SNOW_HG_LN_NEW,0D0)
+
+               SNOW_HG_LN(I,J,NN) = SNOW_HG_LN_NEW
+
+            ENDIF !SNOW_HG_LN > 0
+
+            ! Convert mass -> flux
+            FLUX(I,J,NN) = FLUX_TMP / DTSRCE
+
+         ENDDO !Loop over NN
+         ENDIF !K_EMIT >= K_EMIT_0
 
       ENDDO
       ENDDO

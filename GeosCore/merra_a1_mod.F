@@ -310,6 +310,7 @@
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
 !  15 Nov 2012 - R. Yantosca - Remove reference to dao_mod.F module arrays
+!  22 Sep 2015 - E. Lundgren - Now also read SWGDN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -371,6 +372,7 @@
      &              SLP       = State_Met%SLP,
      &              SNODP     = State_Met%SNODP,
      &              SNOMAS    = State_Met%SNOMAS,
+     &              SWGDN     = State_Met%SWGDN,
      &              SWGNT     = State_Met%RADSWG,
      &              TROPPT    = State_Met%TROPP,
      &              T2M       = State_Met%TS,
@@ -408,9 +410,9 @@
      &                    PRECSNO,  SEAICE00, SEAICE10, SEAICE20, 
      &                    SEAICE30, SEAICE40, SEAICE50, SEAICE60, 
      &                    SEAICE70, SEAICE80, SEAICE90, SLP,      
-     &                    SNODP,    SNOMAS,   SWGNT,    TROPPT,   
-     &                    T2M,      TS,       U10M,     USTAR,    
-     &                    V10M,     Z0M                           )
+     &                    SNODP,    SNOMAS,   SWGDN,    SWGNT,    
+     &                    TROPPT,   T2M,      TS,       U10M,     
+     &                    USTAR,    V10M,     Z0M                )
 !
 ! !USES:
 !
@@ -464,7 +466,9 @@
       REAL(fp),  INTENT(OUT) :: SLP     (IIPAR,JJPAR)  ! Sea level pressure [hPa]
       REAL(fp),  INTENT(OUT) :: SNODP   (IIPAR,JJPAR)  ! Snow depth [m]
       REAL(fp),  INTENT(OUT) :: SNOMAS  (IIPAR,JJPAR)  ! Snow mass [kg/m2]
-      REAL(fp),  INTENT(OUT) :: SWGNT   (IIPAR,JJPAR)  ! SW rad @ sfc [W/m2] 
+      REAL(fp),  INTENT(OUT) :: SWGDN   (IIPAR,JJPAR)  ! Incident SW rad @ sfc 
+                                                       ! [W/m2] 
+      REAL(fp),  INTENT(OUT) :: SWGNT   (IIPAR,JJPAR)  ! Net SW rad @ sfc [W/m2]
       REAL(fp),  INTENT(OUT) :: TROPPT  (IIPAR,JJPAR)  ! T'pause pressure [hPa]
       REAL(fp),  INTENT(OUT) :: T2M     (IIPAR,JJPAR)  ! T @ 2m height [K]
       REAL(fp),  INTENT(OUT) :: TS      (IIPAR,JJPAR)  ! Sfc skin T [K]
@@ -483,6 +487,7 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  22 Sep 2015 - E. Lundgren - Now save SWGDN globally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -496,7 +501,6 @@
 
       ! Arrays
       REAL*4            :: Q2   (IIPAR,JJPAR)
-      REAL*4            :: SWGDN(IIPAR,JJPAR)
 
       !=================================================================
       ! READ_A1 begins here!      
@@ -935,11 +939,23 @@
                ENDIF  
 
             !-------------------------------------
+            ! SWGDN: Incident SW radiation @ ground
+            !-------------------------------------
+            CASE ( 'SWGDN' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:36' )
+             
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  SWGDN  = Q2
+                  NFOUND = NFOUND + 1
+               ENDIF 
+
+            !-------------------------------------
             ! SWGNT: Net SW radiation @ ground
             !-------------------------------------
             CASE ( 'SWGNT' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:36' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:37' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   SWGNT  = Q2
@@ -951,7 +967,7 @@
             !-------------------------------------
             CASE ( 'TROPPT' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:37' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:38' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   TROPPT = Q2
@@ -963,7 +979,7 @@
             !-------------------------------------
             CASE ( 'TS' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:38' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:39' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   TS     = Q2
@@ -975,7 +991,7 @@
             !-------------------------------------
             CASE ( 'T2M' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:39' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:40' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   T2M    = Q2
@@ -987,7 +1003,7 @@
             !-------------------------------------
             CASE ( 'U10M' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:40' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:41' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   U10M   = Q2
@@ -999,7 +1015,7 @@
             !-------------------------------------
             CASE ( 'USTAR' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:41' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:42' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   USTAR  = Q2
@@ -1011,7 +1027,7 @@
             !-------------------------------------
             CASE ( 'V10M' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:42' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:43' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   V10M   = Q2
@@ -1023,24 +1039,12 @@
             !-------------------------------------
             CASE ( 'Z0M' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:43' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:44' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   Z0M    = Q2
                   NFOUND = NFOUND + 1
                ENDIF 
-
-            !-------------------------------------
-            ! Save SWGDN locally for ND67 diag
-            !-------------------------------------
-            CASE ( 'SWGDN' )
-               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:44' )
-             
-               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  SWGDN  = Q2
-                  NFOUND = NFOUND + 1
-               ENDIF
 
             !-------------------------------------
             ! Skip over these fields for now:
