@@ -1614,11 +1614,11 @@
       ! Eventually copy internal values to ESMF internal state object
       ! ----------------------------------------------------------------
 
-!      ! LAI_PREVDAY
-!      CALL HCO_RestartWrite( am_I_Root, HcoState, 
-!     &                       'LAI_PREVDAY', LAI_PREVDAY, RC ) 
-!      IF ( RC /= HCO_SUCCESS ) RETURN
-!
+      ! LAI_PREVDAY
+      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+     &                       'LAI_PREVDAY', LAI_PREVDAY, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
 !      ! T_DAVG
 !      CALL HCO_RestartWrite( am_I_Root, HcoState, 
 !     &                       'T_DAVG', T_15_AVG, RC ) 
@@ -3277,31 +3277,31 @@
       ! FILL_RESTART_VARS begins here!
       !=================================================================
 
-!      ! On first call, see if there are restart variables available for
-!      ! historic values of temperature and irradiation. If so, fill the
-!      ! daily arrays with those average values to start with. If not,
-!      ! simply use the current values.
-!      ! The same procedure is applied to the 15 day average values. For
-!      ! temperature, we also restart previous day temperature so that
-!      ! we can determine a trend in the daily average temperatures
-!      ! (between the long term daily averages and the most recent daily
-!      ! average).
-!      ! We now first call HCO_CopyFromInt_ESMF to check if the variable
-!      ! is found in the (ESMF) internal state object. In an non-ESMF
-!      ! environment, this call will always return FND=.FALSE.
-!      ! (ckeller, 3/9/15).
-!
-!      !-----------------------------------------------------------------
-!      ! LAI
-!      !-----------------------------------------------------------------
-!      CALL HCO_RestartGet( am_I_Root,     HcoState, 
-!     &                     'LAI_PREVDAY', LAI_PREVDAY, RC, FILLED=FND )
-!
-!      ! Default value
-!      IF ( .NOT. FND ) THEN
-!         LAI_PREVDAY = ExtState%LAI%Arr%Val
-!      ENDIF
-!
+      ! On first call, see if there are restart variables available for
+      ! historic values of temperature and irradiation. If so, fill the
+      ! daily arrays with those average values to start with. If not,
+      ! simply use the current values.
+      ! The same procedure is applied to the 15 day average values. For
+      ! temperature, we also restart previous day temperature so that
+      ! we can determine a trend in the daily average temperatures
+      ! (between the long term daily averages and the most recent daily
+      ! average).
+      ! We now first call HCO_CopyFromInt_ESMF to check if the variable
+      ! is found in the (ESMF) internal state object. In an non-ESMF
+      ! environment, this call will always return FND=.FALSE.
+      ! (ckeller, 3/9/15).
+
+      !-----------------------------------------------------------------
+      ! LAI
+      !-----------------------------------------------------------------
+      CALL HCO_RestartGet( am_I_Root,     HcoState, 
+     &                     'LAI_PREVDAY', LAI_PREVDAY, RC, FILLED=FND )
+
+      ! Default value
+      IF ( .NOT. FND ) THEN
+         LAI_PREVDAY = ExtState%LAI%Arr%Val
+      ENDIF
+
 !      !-----------------------------------------------------------------
 !      ! TEMPERATURE
 !      !-----------------------------------------------------------------
@@ -4688,10 +4688,10 @@
 !     &                         'T_PREVDAY', T_PREVDAY, 'K', RC )
 !      IF ( RC /= HCO_SUCCESS ) RETURN
 !
-!      CALL HCO_RestartDefine ( am_I_Root,     HcoState, 
-!     &                         'LAI_PREVDAY', LAI_PREVDAY, '1', RC )
-!      IF ( RC /= HCO_SUCCESS ) RETURN
-!
+      CALL HCO_RestartDefine ( am_I_Root,     HcoState, 
+     &                         'LAI_PREVDAY', LAI_PREVDAY, '1', RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
 !      CALL HCO_RestartDefine ( am_I_Root,    HcoState, 
 !     &                         'PARDR_DAVG', PARDR_15_AVG, 
 !     &                         'W/m2',       RC )
