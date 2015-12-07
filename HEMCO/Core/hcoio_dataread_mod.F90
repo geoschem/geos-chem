@@ -455,8 +455,8 @@ CONTAINS
     LOGICAL                       :: DoReturn 
     INTEGER                       :: UnitTolerance
     INTEGER                       :: AreaFlag, TimeFlag 
-    INTEGER                       :: YMDha, YMDhb, YMDh1 
-    INTEGER                       :: oYMDh1, oYMDh2
+    INTEGER(8)                    :: YMDha, YMDhb, YMDh1 
+    INTEGER(8)                    :: oYMDh1, oYMDh2
     INTEGER                       :: cYr, cMt, cDy, cHr, Yr1, Yr2
     INTEGER                       :: nYears, iYear 
  
@@ -1466,12 +1466,18 @@ CONTAINS
     ! Add to diagnostics (if it exists)
     !-----------------------------------------------------------------
     IF ( HcoState%Options%Field2Diagn ) THEN
-       IF ( Lct%Dct%Dta%SpaceDim == 3 .AND. ASSOCIATED(Lct%Dct%Dta%V3(1)%Val) ) THEN
-          CALL Diagn_Update ( am_I_Root, cName=TRIM(Lct%Dct%cName), &
-                              Array3D=Lct%Dct%Dta%V3(1)%Val, COL=-1, RC=RC )
-       ELSEIF ( Lct%Dct%Dta%SpaceDim == 2 .AND. ASSOCIATED(Lct%Dct%Dta%V2(1)%Val) ) THEN
-          CALL Diagn_Update ( am_I_Root, cName=TRIM(Lct%Dct%cName), &
-                              Array2D=Lct%Dct%Dta%V2(1)%Val, COL=-1, RC=RC )
+       IF ( Lct%Dct%Dta%SpaceDim == 3 .AND. ASSOCIATED(Lct%Dct%Dta%V3) ) THEN
+          IF ( ASSOCIATED(Lct%Dct%Dta%V3(1)%Val) ) THEN
+             CALL Diagn_Update ( am_I_Root, cName=TRIM(Lct%Dct%cName), &
+                                 Array3D=Lct%Dct%Dta%V3(1)%Val, COL=-1, RC=RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+          ENDIF
+       ELSEIF ( Lct%Dct%Dta%SpaceDim == 2 .AND. ASSOCIATED(Lct%Dct%Dta%V2) ) THEN
+          IF ( ASSOCIATED(Lct%Dct%Dta%V2(1)%Val) ) THEN
+             CALL Diagn_Update ( am_I_Root, cName=TRIM(Lct%Dct%cName), &
+                                 Array2D=Lct%Dct%Dta%V2(1)%Val, COL=-1, RC=RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+          ENDIF
        ENDIF
     ENDIF
 
@@ -1542,9 +1548,9 @@ CONTAINS
     INTEGER,          INTENT(  OUT)            :: tidx2     ! upper time idx
     REAL(sp),         INTENT(  OUT)            :: wgt1      ! weight to tidx1
     REAL(sp),         INTENT(  OUT)            :: wgt2      ! weight to tidx2
-    INTEGER,          INTENT(  OUT)            :: oYMDh     ! preferred time slice 
-    INTEGER,          INTENT(  OUT)            :: YMDh      ! selected time slice 
-    INTEGER,          INTENT(  OUT)            :: YMDh1     ! 1st time slice in file 
+    INTEGER(8),       INTENT(  OUT)            :: oYMDh     ! preferred time slice 
+    INTEGER(8),       INTENT(  OUT)            :: YMDh      ! selected time slice 
+    INTEGER(8),       INTENT(  OUT)            :: YMDh1     ! 1st time slice in file 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1565,8 +1571,8 @@ CONTAINS
     INTEGER               :: nTime,  T, CNT, NCRC 
     INTEGER               :: prefYr, prefMt, prefDy, prefHr, prefMn
     INTEGER               :: refYear
-    INTEGER               :: origYMDh, prefYMDh
-    INTEGER, POINTER      :: availYMDh(:) => NULL() 
+    INTEGER(8)            :: origYMDh, prefYMDh
+    INTEGER(8), POINTER   :: availYMDh(:) => NULL() 
     LOGICAL               :: ExitSearch 
     LOGICAL               :: verb
 
@@ -2001,8 +2007,8 @@ CONTAINS
 !
     TYPE(ListCont),   POINTER      :: Lct 
     INTEGER,          INTENT(IN)   :: N
-    INTEGER,          INTENT(IN)   :: availYMDh(N)
-    INTEGER,          INTENT(IN)   :: prefYMDh
+    INTEGER(8),       INTENT(IN)   :: availYMDh(N)
+    INTEGER(8),       INTENT(IN)   :: prefYMDh
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2064,14 +2070,14 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN)     :: N
-    INTEGER, INTENT(IN)     :: availYMDh(N)
-    INTEGER, INTENT(IN)     :: level
-    INTEGER, INTENT(IN)     :: tidx1
+    INTEGER   , INTENT(IN)     :: N
+    INTEGER(8), INTENT(IN)     :: availYMDh(N)
+    INTEGER   , INTENT(IN)     :: level
+    INTEGER   , INTENT(IN)     :: tidx1
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(INOUT)  :: prefYMDh
+    INTEGER(8), INTENT(INOUT)  :: prefYMDh
 !
 ! !REVISION HISTORY:
 !  13 Mar 2013 - C. Keller - Initial version
@@ -2084,9 +2090,9 @@ CONTAINS
 !
     
     INTEGER          :: I, IMIN, IMAX
-    INTEGER          :: origYr,  origMt,  origDy, origHr
-    INTEGER          :: refAttr, tmpAttr, newAttr
-    INTEGER          :: iDiff,   minDiff
+    INTEGER(8)       :: origYr,  origMt,  origDy, origHr
+    INTEGER(8)       :: refAttr, tmpAttr, newAttr
+    INTEGER(8)       :: iDiff,   minDiff
     INTEGER(8)       :: modVal
     REAL(dp)         :: div
 
@@ -2198,13 +2204,13 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN)  :: N
-    INTEGER, INTENT(IN)  :: availYMDh(N)
-    INTEGER, INTENT(IN)  :: tidx1 
+    INTEGER   , INTENT(IN)  :: N
+    INTEGER(8), INTENT(IN)  :: availYMDh(N)
+    INTEGER   , INTENT(IN)  :: tidx1 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(OUT) :: tidx2 
+    INTEGER   , INTENT(OUT) :: tidx2 
 !
 ! !REVISION HISTORY:
 !  13 Mar 2013 - C. Keller - Initial version
@@ -2262,10 +2268,10 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN)  :: prefYMDh 
-    INTEGER, INTENT(IN)  :: availYMDh(nTime)
-    INTEGER, INTENT(IN)  :: nTime
-    INTEGER, INTENT(IN)  :: ctidx1
+    INTEGER(8), INTENT(IN)  :: prefYMDh 
+    INTEGER(8), INTENT(IN)  :: availYMDh(nTime)
+    INTEGER,    INTENT(IN)  :: nTime
+    INTEGER,    INTENT(IN)  :: ctidx1
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2338,9 +2344,9 @@ CONTAINS
     LOGICAL,          INTENT(IN)    :: am_I_Root
     TYPE(ListCont),   POINTER       :: Lct
     INTEGER,          INTENT(IN)    :: nTime
-    INTEGER,          INTENT(IN)    :: availYMDh(nTime)
-    INTEGER,          INTENT(IN)    :: prefYMDh
-    INTEGER,          INTENT(IN)    :: origYMDh
+    INTEGER(8),       INTENT(IN)    :: availYMDh(nTime)
+    INTEGER(8),       INTENT(IN)    :: prefYMDh
+    INTEGER(8),       INTENT(IN)    :: origYMDh
     INTEGER,          INTENT(IN)    :: tidx1
 !
 ! !OUTPUT PARAMETERS:
@@ -2512,7 +2518,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,          INTENT(IN   )   :: int1, int2, cur 
+    INTEGER(8),       INTENT(IN   )   :: int1, int2, cur 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2567,11 +2573,11 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN)  :: YMDh
+    INTEGER(8), INTENT(IN)  :: YMDh
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER              :: hrs
+    INTEGER                 :: hrs
 !
 ! !REVISION HISTORY:
 !  26 Jan 2015 - C. Keller - Initial version

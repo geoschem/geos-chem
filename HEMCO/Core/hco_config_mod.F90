@@ -2186,7 +2186,9 @@ CONTAINS
 ! container contents! 
 !
 ! !REVISION HISTORY:
-!  11 Apr 2013 - C. Keller: Initialization
+!  11 Apr 2013 - C. Keller - Initialization
+!  07 Dec 2015 - C. Keller - Make sure emissions with limited time range do
+!                            never erase lower hierarchy base emissions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2330,6 +2332,19 @@ CONTAINS
 
        ! Advance to next container if lower hierarchy
        IF ( tmpLct%Dct%Hier < Hier ) THEN
+          CALL GetNextCont ( tmpLct, FLAG1 ); CYCLE
+       ENDIF
+
+       ! Advance to next container if this container has limited time 
+       ! coverage. Emissions with limited time coverage may not be used
+       ! during all of the simulation time, so it's important to keep the
+       ! lower hierarchy emission fields in memory in case that those need
+       ! to be used instead (e.g. if EDGAR shall only be used between years
+       ! 2005 and 2013, we should keep GEIA in case that we are outside of
+       ! that time window). 
+       IF ( ( tmpLct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE    ) .OR. &
+            ( tmpLct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT    ) .OR. &
+            ( tmpLct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGEAVG )      ) THEN 
           CALL GetNextCont ( tmpLct, FLAG1 ); CYCLE
        ENDIF
 

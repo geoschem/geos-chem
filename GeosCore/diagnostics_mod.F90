@@ -129,9 +129,6 @@ CONTAINS
     AM2    => AREA_M2(:,:,1)
     TS     =  GET_TS_CHEM() * 60.0_sp
 
-    ! Save number of wet-depositing species for later use
-    nWetDep = State_Chm%nWetDep
-
     !-----------------------------------------------------------------------
     ! Create diagnostics collection for GEOS-Chem.  This will keep the
     ! GEOS-Chem diagostics separate from the HEMCO diagnostics.
