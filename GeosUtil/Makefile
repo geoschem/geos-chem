@@ -68,6 +68,7 @@
 #  23 Jul 2014 - R. Yantosca - Removed global_grid_mod.F90; it's obsolete
 #  08 Jan 2015 - E. Lundgren - Add module for unit conversion
 #  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
+#  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -119,7 +120,7 @@ LIBRARY   :=libGeosUtil.a
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean help debug
+.PHONY: clean help debug slowclean
 
 lib: $(OBJECTS)
 	$(AR) crs $(LIBRARY) $(OBJECTS)
@@ -127,6 +128,10 @@ lib: $(OBJECTS)
 
 clean:
 	@echo "===> Making clean in directory: GeosUtil <==="
+	@rm -f *.o *.mod *.a *.x
+
+slowclean:
+	@echo "===> Making slowclean in directory: GeosUtil <==="
 	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 help:

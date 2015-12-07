@@ -26,6 +26,7 @@
 #  01 Oct 2014 - R. Yantosca - Add hcox_tomas_seasalt_mod.F90
 #  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
 #  04 Jun 2015 - R. Yantosca - Remove EF_MGN20.F, this isn't used anymore
+#  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -69,7 +70,7 @@ LIBRARY :=libHCOX.a
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean debug
+.PHONY: clean debug slowclean
 
 all: lib
 
@@ -79,6 +80,10 @@ lib: $(OBJECTS)
 
 clean:
 	@echo "===> Making clean in directory: HEMCO/Extensions <==="
+	@rm -f *.o *.mod *.a *.x
+
+slowclean:
+	@echo "===> Making slowclean in directory: HEMCO/Extensions <==="
 	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 debug:

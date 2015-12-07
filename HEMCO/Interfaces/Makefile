@@ -21,6 +21,7 @@
 #  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
 #  10 Jun 2015 - R. Yantosca - Also place a copy of the executable in bin
 #  23 Jun 2015 - M. Sulprizio- Remove executable from bin with "make clean"
+#  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -65,7 +66,7 @@ EXE     :=hemco_standalone.x
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean debug check
+.PHONY: clean debug check slowclean
 
 all: 
 	@${MAKE} lib
@@ -80,6 +81,10 @@ lib: $(OBJECTS)
 
 clean:
 	@echo "===> Making clean in directory: HEMCO/Interfaces <==="
+	@rm -f *.o *.mod *.a *.x $(EXE) $(BIN)/$(EXE)
+
+slowclean:
+	@echo "===> Making slowclean in directory: HEMCO/Interfaces <==="
 	@rm -f *.x *$(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 	@rm -f $(BIN)/$(EXE)
 

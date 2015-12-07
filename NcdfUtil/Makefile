@@ -189,7 +189,7 @@ TestNcdfUtil.o           : TestNcdfUtil.F90             \
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean help libnc ncdfcheck test
+.PHONY: clean help libnc ncdfcheck slowclean test
 
 libnc: $(OBJECTS)
 	$(AR) crs $(LIBRARY) $(OBJlib)
@@ -206,6 +206,10 @@ test: ncdfcheck
 
 clean:
 	@echo "===> Making clean in directory: NcdfUtil <==="
+	@rm -f *.o *.mod *.x *.a $(EXE)
+
+slowclean:
+	@echo "===> Making slowclean in directory: NcdfUtil <==="
 	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 	@rm -f $(OBJECTSx) $(MODULESx) $(EXE)
 

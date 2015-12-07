@@ -151,6 +151,8 @@
 #  03 Sep 2015 - R. Yantosca - Add gamap_mod.o dependency to input_mod.o
 #  03 Dec 2015 - R. Yantosca - cleanup.o now depends on geosfp_read_mod.o
 #                              and merra2_read_mod.o
+#  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
+#  07 Dec 2015 - R. Yantosca - Add "realclean_except_rrtmg" target
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -211,6 +213,7 @@ LIBRARY :=libcore.a
 ###############################################################################
 
 .PHONY: clean realclean doc docclean help distclean tauclean wipeout
+.PHONY: slowclean slowrealclean
 
 all:                                               # Build libraries
 	@$(MAKE) lib                               #  and the executable
@@ -300,6 +303,10 @@ tomexe:                                            # Build executable
 
 clean:                                             # Remove files here
 	@echo "===> Making clean in directory: GeosCore <==="
+	@rm -f *.o *.mod *.a *.x $(EXE) $(TOM)
+
+slowclean:                                         # Remove files here
+	@echo "===> Making slowclean in directory: GeosCore <==="
 	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 	@rm -f $(EXE) $(BIN)/$(EXE)
 	@rm -f $(TOM) $(BIN)/$(TOM)
@@ -322,13 +329,29 @@ endif
 	@$(MAKE) -C $(UTIL)  clean
 	@$(MAKE) docclean
 ifeq ($(HPC),yes)
-	@$(MAKE) -C $(GIGC) clean
+	@$(MAKE) -C $(GIGC)  clean
 endif
+	@$(MAKE) wipeout
 
 wipeout:
 	rm -f $(LIB)/*.a
 	rm -f $(MOD)/*.mod
-	rm -f $(BIN)/geos*
+	rm -f $(BIN)/geos* $(BIN)/*.x
+
+realclean_except_rrtmg:                            # Don't realclean RRTMG
+	@$(MAKE) slowclean
+	@$(MAKE) -C $(APM)   clean
+	@$(MAKE) -C $(GTMM)  slowclean
+	@$(MAKE) -C $(HEMCO) slowclean
+	@$(MAKE) -C $(HDR)   slowclean
+	@$(MAKE) -C $(ISO)   slowclean
+	@$(MAKE) -C $(KPP)   slowrealclean
+	@$(MAKE) -C $(NCDF)  slowclean
+	@$(MAKE) -C $(UTIL)  slowclean
+	@$(MAKE) docclean
+ifeq ($(HPC),yes)
+	@$(MAKE) -C $(GIGC) clean
+endif
 
 doc:                                               # Build documentation
 	@$(MAKE) -C $(DOC) doc

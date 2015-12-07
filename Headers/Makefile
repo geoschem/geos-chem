@@ -54,6 +54,7 @@
 #  04 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
 #  04 Jun 2015 - R. Yantosca - Add debug target, remove help
 #  28 Aug 2015 - R. Yantosca - Add species_mod.F90
+#  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -94,7 +95,7 @@ LIBRARY :=libHeaders.a
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean debug
+.PHONY: clean debug slowclean
 
 lib: $(OBJECTS)
 	$(AR) crs $(LIBRARY) $(OBJECTS)
@@ -102,6 +103,10 @@ lib: $(OBJECTS)
 
 clean:
 	@echo "===> Making clean in directory: Headers <==="
+	@rm -f *.o *mod. *.a *.x
+
+slowclean:
+	@echo "===> Making slowclean in directory: Headers <==="
 	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 debug:

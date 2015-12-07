@@ -40,6 +40,7 @@
 #                              "make -C int" calls
 #  21 Sep 2009 - C. Carouge  - Adapted to use with GTMM model. 
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
+#  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -85,7 +86,7 @@ EXEFILE :=gtmm
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean gtmm debug
+.PHONY: clean gtmm debug slowclean
 
 lib: $(OBJECTS)
 	$(AR) crs $(LIBRARY) $(OBJECTS)
@@ -100,6 +101,10 @@ exe:
 
 clean:
 	@echo "===> Making clean in directory: GTMM <==="
+	@rm -f *.o *.mod *.a *.x $(EXEFILE)
+
+slowclean:
+	@echo "===> Making slowclean in directory: GTMM <==="
 	@rm -f *$(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY) $(EXEFILE)
 
 debug:

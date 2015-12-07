@@ -20,6 +20,7 @@
 #  21 Jul 2014 - R. Yantosca - Initial version, based on HEMCO standalone
 #                              and modified specifically for GEOS-Chem
 #  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
+#  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -71,6 +72,10 @@ lib: $(OBJECTS)
 
 clean:
 	@echo "===> Making clean in directory: HEMCO/Core <==="
+	@rm -f *.o *.mod *.a *.x
+
+slowclean:
+	@echo "===> Making slowclean in directory: HEMCO/Core <==="
 	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 debug:

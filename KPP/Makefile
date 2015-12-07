@@ -65,6 +65,9 @@
 #  29 May 2015 - R. Yantosca - Add tropchem as a synonym for NOX_Ox_HC_Aer_Br
 #  29 May 2015 - R. Yantosca - Now use KPP_CHEM instead of CHEM.  CHEM is an
 #                              environment variable and can't be reset.
+#  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
+#  07 Dec 2015 - R. Yantosca - Also add the slowrealclean target, which can
+#                              be used for cleaning everything except RRTMG
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -107,7 +110,7 @@ SOLVER_TFILE :=./$(KPP_CHEM)/gckpp_Integrator.F90
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: all lib kppintegrator clean realclean doc help
+.PHONY: all lib kppintegrator clean realclean doc help slowclean slowrealclean
 
 all: lib
 
@@ -124,12 +127,22 @@ kppintegrator:
 clean:
 	@$(MAKE) -C $(KPP_CHEM) clean
 
+slowclean:
+	@$(MAKE) -C $(KPP_CHEM) slowclean
+
 realclean:
 	@$(MAKE) -C benchmark        clean
 	@$(MAKE) -C SOA              clean
 	@$(MAKE) -C SOA_SVPOA        clean
 	@$(MAKE) -C UCX              clean
 	@$(MAKE) -C NOx_Ox_HC_Aer_Br clean
+
+slowrealclean:
+	@$(MAKE) -C benchmark        slowclean
+	@$(MAKE) -C SOA              slowclean
+	@$(MAKE) -C SOA_SVPOA        slowclean
+	@$(MAKE) -C UCX              slowclean
+	@$(MAKE) -C NOx_Ox_HC_Aer_Br slowclean
 
 help:
 	@$(MAKE) -C $(HELP) 

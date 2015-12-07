@@ -46,6 +46,7 @@
 #  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
 #  04 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
 #  04 Jun 2015 - R. Yantosca - Add debug target, remove help
+#  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -81,7 +82,7 @@ LIBRARY :=libKpp.a
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean debug
+.PHONY: clean debug slowclean
 
 lib: $(OBJECTS)
 	$(AR) crs $(LIBRARY) $(OBJECTS)
@@ -89,6 +90,10 @@ lib: $(OBJECTS)
 
 clean:
 	@echo "===> Making clean in directory: KPP/SOA <==="
+	@rm -f *.o *.mod *.a *.x
+
+slowclean:
+	@echo "===> Making slowclean in directory: KPP/SOA <==="
 	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 debug:
