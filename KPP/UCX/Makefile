@@ -87,11 +87,11 @@ lib: $(OBJECTS)
 	mv $(LIBRARY) $(LIB)
 
 clean:
-	@echo "===> Making clean in directory: Headers <==="
+	@echo "===> Making clean in directory: KPP/UCX <==="
 	@rm -f *.o *.mod *.a *.x
 
 slowclean:
-	@echo "===> Making slowclean in directory: Headers <==="
+	@echo "===> Making slowclean in directory: KPP/UCX <==="
 	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 debug:

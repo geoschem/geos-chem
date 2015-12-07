@@ -89,11 +89,11 @@ lib: $(OBJECTS)
 	mv $(LIBRARY) $(LIB)
 
 clean:
-	@echo "===> Making clean in directory: KPP/SOA <==="
+	@echo "===> Making clean in directory: KPP/SOA_SVPOA <==="
 	@rm -f *.o *.mod *.a *.x
 
 slowclean:
-	@echo "===> Making slowclean in directory: KPP/SOA <==="
+	@echo "===> Making slowclean in directory: KPP/SOA_SVPOA <==="
 	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 debug:
