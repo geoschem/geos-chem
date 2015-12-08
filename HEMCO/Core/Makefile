@@ -62,7 +62,7 @@ LIBRARY :=libHCO.a
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean debug
+.PHONY: clean debug slowclean
 
 all: lib
 

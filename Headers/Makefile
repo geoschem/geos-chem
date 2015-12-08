@@ -103,7 +103,7 @@ lib: $(OBJECTS)
 
 clean:
 	@echo "===> Making clean in directory: Headers <==="
-	@rm -f *.o *mod. *.a *.x
+	@rm -f *.o *.mod *.a *.x
 
 slowclean:
 	@echo "===> Making slowclean in directory: Headers <==="
