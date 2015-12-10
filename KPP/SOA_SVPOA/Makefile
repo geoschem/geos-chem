@@ -47,6 +47,7 @@
 #  04 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
 #  04 Jun 2015 - R. Yantosca - Add debug target, remove help
 #  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
+#  10 Dec 2015 - R. Yantosca - Add missing dependency for gckpp_StochiomSP.o
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -170,6 +171,8 @@ gckpp_Rates.o         : gckpp_Parameters.o      \
 
 gckpp_Stoichiom.o     : gckpp_Parameters.o      \
                         gckpp_StoichiomSP.o
+
+gckpp_StoichiomSP.o   : gckpp_Precision.o 
 
 gckpp_Util.o          : gckpp_Parameters.o      \
                         gckpp_Global.o          \
