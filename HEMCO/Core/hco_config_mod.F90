@@ -158,6 +158,8 @@ CONTAINS
 !                              us handle extra-long species lists
 !  13 Feb 2015 - C. Keller   - Removed section extension data: these are now
 !                              listed in section base emissions.
+!  11 Dec 2015 - C. Keller   - Read settings and extension switches even for
+!                              nested configuration files.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -241,7 +243,7 @@ CONTAINS
     ! Note: cannot use HCO_GetOpt('Wildcard') for species here because 
     ! this is linked to the core extension... 
     IF ( .NOT. ExtNrInUse( CoreNr ) ) THEN
-       CALL AddExt ( am_I_Root, 'CORE', CoreNr, 'all', RC )
+       CALL AddExt ( am_I_Root, 'CORE', CoreNr, .TRUE., 'all', RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           WRITE(*,*) 'Error adding CORE extension' 
           RC = HCO_FAIL
@@ -266,7 +268,7 @@ CONTAINS
        ! Read settings if this is beginning of settings section 
        IF ( INDEX ( LINE, 'BEGIN SECTION SETTINGS' ) > 0 ) THEN
 
-          IF ( PHASE < 2 .AND. .NOT. Nest ) THEN
+          IF ( PHASE < 2 ) THEN
              CALL ReadSettings( AIR, IU_HCO, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
@@ -1412,6 +1414,7 @@ CONTAINS
 !
     USE CHARPAK_Mod,        ONLY : STRREPL, STRSPLIT, TRANLC
     USE HCO_EXTLIST_MOD,    ONLY : AddExt, AddExtOpt, HCO_GetOpt
+    USE HCO_EXTLIST_MOD,    ONLY : GetExtNr
 !
 ! !INPUT PARAMETERS:
 !
@@ -1430,6 +1433,9 @@ CONTAINS
 !  21 Apr 2015 - R. Yantosca - Bug fix: now look for END_SECTION before
 !                              testing if the line is a comment.  This will
 !                              allow for tags labeled "### END SECTION".
+!  12 Dec 2015 - C. Keller   - Added argument IgnoreIfExist to AddExtOpt to
+!                              make sure that nested configuration files do
+!                              use the settings set at highest level. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1437,7 +1443,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER               :: I, N, Idx, ExtNr
-    LOGICAL               :: Enabled
+    LOGICAL               :: Enabled, NewExt
     CHARACTER(LEN=255)    :: LOC
     CHARACTER(LEN=1023)   :: OPTS
     CHARACTER(LEN=2047)   :: LINE
@@ -1473,11 +1479,17 @@ CONTAINS
        IF ( INDEX(LINE,'-->') > 0 ) THEN
           ! Only add if extension is defined!
           IF ( ExtNr >= 0 .AND. Enabled ) THEN 
-             CALL AddExtOpt( am_I_Root, TRIM(LINE), ExtNr, RC )
+             CALL AddExtOpt( am_I_Root, TRIM(LINE), ExtNr, RC, &
+                             IgnoreIfExist=.TRUE. )
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
           CYCLE
        ENDIF
+
+       ! ---------------------------------------------------------------------
+       ! If the line is not an extension option, treat it as an extension
+       ! definition (e.g. 108 MEGAN : on ISOP/ACET/PRPE/C2H4/ALD2)
+       ! ---------------------------------------------------------------------
 
        ! Split character string
        CALL STRREPL ( LINE, HCO_TAB, HCO_TAB )
@@ -1485,43 +1497,65 @@ CONTAINS
 
        ! Jump to next line if this line is empty
        IF ( N <= 1 ) CYCLE
-        
-       ! Check for on-switch. This is either the 
-       ! 3rd or the 4th substring, depending on the
-       ! location of the colon sign!
-       IF ( TRIM(SUBSTR(3)) /= ':' ) THEN
-          idx = 3
-       ELSE
-          idx = 4
-       ENDIF
-       CALL TRANLC( TRIM(SUBSTR(idx)) )
-       IF ( TRIM(SUBSTR(idx)) == 'on' ) THEN 
+
+       ! Check if extension already exists, e.g. if this is a nested HEMCO configuration
+       ! file and the same extension has already been defined. In that case, use the 
+       ! on/off toggle that has already been defined.
+       ExtNr = GetExtNr( TRIM(SUBSTR(2)) ) 
+       
+       ! Three possibilities: 
+       ! - ExtNr is -999              --> extension does not yet exist
+       ! - ExtNr is a positive number --> extension exists and is enabled 
+       ! - ExtNr is -1                --> extension exists and is disabled
+       IF ( ExtNr == -999 ) THEN
+          NewExt = .TRUE. 
+       ELSEIF ( ExtNr >= 0 ) THEN
+          NewExt  = .FALSE. 
           Enabled = .TRUE.
        ELSE
+          NewExt  = .FALSE. 
           Enabled = .FALSE.
        ENDIF
 
-       ! Register extension if enabled
-       IF ( Enabled ) THEN
-
+       ! The following needs to be done for new extensions only
+       IF ( NewExt ) THEN
+        
+          ! Check for on-switch. This is either the 
+          ! 3rd or the 4th substring, depending on the
+          ! location of the colon sign!
+          IF ( TRIM(SUBSTR(3)) /= ':' ) THEN
+             idx = 3
+          ELSE
+             idx = 4
+          ENDIF
+          CALL TRANLC( TRIM(SUBSTR(idx)) )
+          IF ( TRIM(SUBSTR(idx)) == 'on' ) THEN 
+             Enabled = .TRUE.
+          ELSE
+             Enabled = .FALSE.
+          ENDIF
+   
           ! Register extension name, number and species
           ! idx is the position of the species names
           idx = idx+1 
           READ( SUBSTR(1), * ) ExtNr
-          CALL AddExt ( am_I_Root, TRIM(SUBSTR(2)), ExtNr, SUBSTR(idx), RC )
+          CALL AddExt ( am_I_Root, TRIM(SUBSTR(2)), ExtNr, Enabled, SUBSTR(idx), RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-
+   
           ! Register species (specNames)
-          CALL STRSPLIT( SUBSTR(idx), HCO_GetOpt('Separator'), SPECS, N ) 
-          IF ( N < 1 ) THEN
-             CALL HCO_ERROR ( 'No species defined', RC, THISLOC=LOC )
-             RETURN
+          IF ( Enabled ) THEN
+   
+             CALL STRSPLIT( SUBSTR(idx), HCO_GetOpt('Separator'), SPECS, N ) 
+             IF ( N < 1 ) THEN
+                CALL HCO_ERROR ( 'No species defined', RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+             DO I = 1, N
+                CALL SpecName_Register ( SPECS(I), RC )
+                IF ( RC /= HCO_SUCCESS ) RETURN
+             ENDDO
           ENDIF
-          DO I = 1, N
-             CALL SpecName_Register ( SPECS(I), RC )
-             IF ( RC /= HCO_SUCCESS ) RETURN
-          ENDDO
-       ENDIF
+       ENDIF ! NextExt
     ENDDO
 
     ! Leave w/ success
@@ -1567,6 +1601,9 @@ CONTAINS
 !  21 Apr 2015 - R. Yantosca - Bug fix: now look for END_SECTION before
 !                              testing if the line is a comment.  This will
 !                              allow for tags labeled "### END SECTION".
+!  12 Dec 2015 - C. Keller   - Added argument IgnoreIfExist to AddExtOpt to
+!                              make sure that nested configuration files do
+!                              use the settings set at highest level. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1579,6 +1616,8 @@ CONTAINS
     CHARACTER(LEN=255)    :: LINE, LOC
     CHARACTER(LEN=255)    :: LogFile
     CHARACTER(LEN=255)    :: DiagnPrefix
+    LOGICAL               :: FOUND
+    LOGICAL, SAVE         :: FIRST = .TRUE. 
 
     !======================================================================
     ! ReadSettings begins here
@@ -1586,11 +1625,6 @@ CONTAINS
 
     ! Enter
     LOC = 'ReadSettings (hco_config_mod.F90)'
-
-    ! Defaults
-    LogFile   = 'HEMCO.log'
-    verb      = -1
-    warn      =  1
 
     !-----------------------------------------------------------------------
     ! Read settings and add them as options to core extensions
@@ -1616,47 +1650,63 @@ CONTAINS
        IF ( TRIM(LINE) == '' ) CYCLE
 
        ! Add this option to HEMCO core 
-       CALL AddExtOpt ( am_I_Root, TRIM(LINE), CoreNr, RC )
+       CALL AddExtOpt ( am_I_Root, TRIM(LINE), CoreNr, RC, &
+          IgnoreIfExist=.TRUE. )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     ENDDO
 
     !-----------------------------------------------------------------------
     ! Extract values to initialize error module and set some further
-    ! HEMCO variables. 
+    ! HEMCO variables. Only the first time the settings are read (settings
+    ! can be read multiple times if nested HEMCO configuration files are
+    ! used) 
     !-----------------------------------------------------------------------
 
-    ! Verbose mode?
-    CALL GetExtOpt( CoreNr, 'Verbose', OptValInt=verb, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( FIRST ) THEN
 
-    ! Logfile to write into
-    CALL GetExtOpt( CoreNr, 'Logfile', OptValChar=Logfile, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Verbose mode?
+       CALL GetExtOpt( CoreNr, 'Verbose', OptValInt=verb, FOUND=FOUND, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( .NOT. FOUND ) THEN
+          verb = 3
+          WRITE(*,*) 'Setting `Verbose` not found in HEMCO logfile - use 3'
+       ENDIF
+   
+       ! Logfile to write into
+       CALL GetExtOpt( CoreNr, 'Logfile', OptValChar=Logfile, FOUND=FOUND, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( .NOT. FOUND ) THEN
+          LogFile = 'HEMCO.log' 
+          WRITE(*,*) 'Setting `Logfile` not found in HEMCO logfile - use `HEMCO.log`'
+       ENDIF
+   
+       ! Prompt warnings to logfile? 
+       CALL GetExtOpt( CoreNr, 'Warnings', OptValInt=warn, FOUND=FOUND, RC=RC  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( .NOT. FOUND ) THEN
+          warn = 3
+          WRITE(*,*) 'Setting `Warnings` not found in HEMCO logfile - use 3' 
+       ENDIF
 
-    ! Prompt warnings to logfile? 
-    CALL GetExtOpt( CoreNr, 'Warnings', OptValInt=warn, RC=RC  )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Initialize (standard) HEMCO tokens
+       CALL HCO_SetDefaultToken ( am_I_Root, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Initialize (standard) HEMCO tokens
-    CALL HCO_SetDefaultToken ( am_I_Root, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! If LogFile is equal to wildcard character, set LogFile to asterik 
-    ! character. This will ensure that all output is written to standard
-    ! output!
-    IF ( TRIM(LogFile) == HCO_GetOpt('Wildcard') ) LogFile = '*'
-
-    ! We should now have everything to define the HEMCO error settings
-    CALL HCO_ERROR_SET ( am_I_Root, LogFile, verb, warn, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Call the chartool routines that may be defined
-    ! in the settings. This is to make sure that they
-    ! are correctly initialized.
-!    CALL HCO_Char_Set( RC )
-!    IF ( RC /= HCO_SUCCESS ) RETURN
-
+       ! If LogFile is equal to wildcard character, set LogFile to asterik 
+       ! character. This will ensure that all output is written to standard
+       ! output!
+       IF ( TRIM(LogFile) == HCO_GetOpt('Wildcard') ) LogFile = '*'
+   
+       ! We should now have everything to define the HEMCO error settings
+       CALL HCO_ERROR_SET ( am_I_Root, LogFile, verb, warn, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+       ! Update first flag
+       FIRST = .FALSE.
+ 
+    ENDIF
+ 
     ! Leave w/ success
     RC = HCO_SUCCESS
 
@@ -2186,7 +2236,9 @@ CONTAINS
 ! container contents! 
 !
 ! !REVISION HISTORY:
-!  11 Apr 2013 - C. Keller: Initialization
+!  11 Apr 2013 - C. Keller - Initialization
+!  07 Dec 2015 - C. Keller - Make sure emissions with limited time range do
+!                            never erase lower hierarchy base emissions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2330,6 +2382,19 @@ CONTAINS
 
        ! Advance to next container if lower hierarchy
        IF ( tmpLct%Dct%Hier < Hier ) THEN
+          CALL GetNextCont ( tmpLct, FLAG1 ); CYCLE
+       ENDIF
+
+       ! Advance to next container if this container has limited time 
+       ! coverage. Emissions with limited time coverage may not be used
+       ! during all of the simulation time, so it's important to keep the
+       ! lower hierarchy emission fields in memory in case that those need
+       ! to be used instead (e.g. if EDGAR shall only be used between years
+       ! 2005 and 2013, we should keep GEIA in case that we are outside of
+       ! that time window). 
+       IF ( ( tmpLct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE    ) .OR. &
+            ( tmpLct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT    ) .OR. &
+            ( tmpLct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGEAVG )      ) THEN 
           CALL GetNextCont ( tmpLct, FLAG1 ); CYCLE
        ENDIF
 

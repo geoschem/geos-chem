@@ -1049,7 +1049,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          POINTER                 :: all_YYYYMMDDhh(:)
+    INTEGER(8),       POINTER                 :: all_YYYYMMDDhh(:)
     CHARACTER(LEN=*), INTENT(  OUT), OPTIONAL :: timeUnit
     INTEGER,          INTENT(  OUT), OPTIONAL :: refYear 
 !

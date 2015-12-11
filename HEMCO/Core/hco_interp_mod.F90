@@ -596,6 +596,7 @@ CONTAINS
 !  24 Feb 2015 - R. Yantosca - Now exit if vertical interpolation isn't needed
 !  12 Aug 2015 - R. Yantosca - Vertically remap MERRA2 as we do for GEOS-FP
 !  24 Sep 2015 - C. Keller   - Added interpolation on edges.
+!  06 Dec 2015 - C. Keller   - Pass # of GEOS-5 levels to be mapped onto GEOS-4
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -606,6 +607,7 @@ CONTAINS
     INTEGER                 :: minlev, nlev, nout
     INTEGER                 :: L, T, NL
     INTEGER                 :: OS 
+    INTEGER                 :: G5T4
     LOGICAL                 :: verb, infl, clps
     LOGICAL                 :: DONE
     CHARACTER(LEN=255)      :: MSG
@@ -629,6 +631,10 @@ CONTAINS
     nx = HcoState%NX
     ny = HcoState%NY
     nz = HcoState%NZ
+
+    ! Variable G5T4 is the # of GEOS-5 levels that need to be mapped 
+    ! onto GEOS-4 levels.
+    G5T4 = 0
 
     ! Input data must be on horizontal HEMCO grid
     IF ( SIZE(REGR_4D,1) /= nx ) THEN
@@ -720,6 +726,7 @@ CONTAINS
           ELSEIF ( nlev == 72 ) THEN
              nout = nz
              NL   = 0
+             G5T4 = 28
 
           ! Input data has 73 levels --> assume to be native GEOS-5 levels
           ! on edges
@@ -727,10 +734,18 @@ CONTAINS
              nz   = nz + 1
              nout = nz
              NL   = 0
+             G5T4 = 29
 
           ! 48 levels or less: assume to be reduced GEOS-5 levels (mid-points)
           ELSEIF ( nlev <= 48 ) THEN
-             IF ( nlev == 48 ) nz = nz + 1
+             ! 48 levels: reduced GEOS-5 levels (edges)
+             IF ( nlev == 48 ) THEN
+                nz = nz + 1
+                G5T4 = 29
+             ! 47 levels and less: reduced GEOS-5 levels (mid-points)
+             ELSE
+                G5T4 = 28
+             ENDIF
              nout = nz
              NL   = 0
 
@@ -757,7 +772,7 @@ CONTAINS
              ! For GEOS-5 to GEOS-4 conversion, need to remap lowest
              ! 29 GEOS-5 levels onto lowest 12 GEOS-4 levels.
              ELSE
-                CALL GEOS5_TO_GEOS4_LOWLEV( Lct, REGR_4D, T, RC )
+                CALL GEOS5_TO_GEOS4_LOWLEV( Lct, REGR_4D, G5T4, T, RC )
                 IF ( RC /= HCO_SUCCESS ) RETURN
              ENDIF
 
@@ -883,16 +898,25 @@ CONTAINS
           ELSEIF ( nlev == 72 ) THEN
              nout = nz
              NL   = 0
+             G5T4 = 28
 
           ! Input data has 73 levels --> assume to be native GEOS-5 edges 
           ELSEIF ( nlev == 73 ) THEN
              nz   = nz + 1
              nout = nz
              NL   = 0
+             G5T4 = 29
 
           ! 47 levels or less: assume to be reduced GEOS-5 levels
           ELSEIF ( nlev <= 48 ) THEN
-             IF ( nlev == 48 ) nz = nz + 1
+             ! 48 levels: reduced GEOS-5 levels (edges)
+             IF ( nlev == 48 ) THEN
+                nz = nz + 1
+                G5T4 = 29
+             ! 47 levels and less: reduced GEOS-5 levels (mid-points)
+             ELSE
+                G5T4 = 28
+             ENDIF
              nout = nz
              NL   = 0
 
@@ -919,11 +943,11 @@ CONTAINS
              ! For GEOS-5 to GEOS-4 conversion, need to remap lowest
              ! 29 GEOS-5 levels onto lowest 12 GEOS-4 levels.
              ELSE
-                CALL GEOS5_TO_GEOS4_LOWLEV( Lct, REGR_4D, T, RC )
+                CALL GEOS5_TO_GEOS4_LOWLEV( Lct, REGR_4D, G5T4, T, RC )
                 IF ( RC /= HCO_SUCCESS ) RETURN
              ENDIF
 
-            ! Collapse from native GEOS-4 onto reduced GEOS-4
+             ! Collapse from native GEOS-4 onto reduced GEOS-4
              IF ( ( NL == 20 .AND. nlev == 55 ) .OR. & 
                   ( NL == 21 .AND. nlev == 56 )       ) THEN
                 ! two levels:
@@ -1246,12 +1270,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS5_TO_GEOS4_LOWLEV( Lct, REGR_4D, T, RC )
+  SUBROUTINE GEOS5_TO_GEOS4_LOWLEV( Lct, REGR_4D, NZ, T, RC )
 !
 ! !INPUT PARAMETERS:
 !
     REAL(sp),         POINTER        :: REGR_4D(:,:,:,:)  ! 4D input data
-    INTEGER,          INTENT(IN)     :: T
+    INTEGER,          INTENT(IN)     :: T                 ! Time index
+    INTEGER,          INTENT(IN)     :: NZ                ! # of vertical levels to remap. Must be 28 or 29
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1261,11 +1286,11 @@ CONTAINS
 ! !REVISION HISTORY:
 !  07 Jan 2015 - C. Keller   - Initial version.
 !  24 Sep 2015 - C. Keller   - Added option to interpolate edges. 
+!  06 Dec 2015 - C. Keller   - Added input argument NZ
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    INTEGER  :: NZ
-    REAL(hp) :: WGHT
+    REAL(hp)           :: WGHT
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'GEOS5_TO_GEOS4_LOWLEV (hco_interp_mod.F90)'
 
@@ -1273,13 +1298,20 @@ CONTAINS
     ! GEOS5_TO_GEOS4_LOWLEV begins here
     !=================================================================
 
-    ! Number of levels in output array
-    NZ = SIZE(REGR_4D,3)
-    IF ( NZ < 28 ) THEN
-       MSG = 'This GEOS-5 field has less than 28 levels: '//TRIM(Lct%Dct%cName)
+    ! Check number of levels to be used 
+    IF ( NZ /= 28 .AND. NZ /= 29 ) THEN
+       MSG = 'Cannot map GEOS-5 onto GEOS-4 data, number of levels must be 28 or 29: '//TRIM(Lct%Dct%cName)
        CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
+
+    ! Error check: make sure array REGR_4D has at least NZ levels
+    IF ( SIZE(REGR_4D,3) < NZ ) THEN
+       WRITE(MSG,*) 'Cannot map GEOS-5 onto GEOS-4 data, original data has not enough levels: ', &
+          TRIM(Lct%Dct%cName), ' --> ', SIZE(REGR_4D,3), ' smaller than ', NZ
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF 
 
     ! Map 28 GEOS-5 levels onto 11 GEOS-4 levels (grid midpoints):
     IF ( NZ == 28 ) THEN 
