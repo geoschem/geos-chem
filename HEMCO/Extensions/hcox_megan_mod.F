@@ -15,22 +15,24 @@
 !\\
 !\\
 ! MEGAN calculates gamma activity factor based upon temperature and 
-! radiation information from the past 10 days. In the original GEOS-Chem 
+! radiation information from the past. In the original GEOS-Chem 
 ! code, the initial 10-d averages were explicitly calculated during 
 ! initialization of MEGAN. This is not feasible in an ESMF environment,
 ! and the following restart variables can now be provided through the 
 ! HEMCO configuration file:
 ! \begin{itemize}
-! \item T\_DAVG: temperature (10 day average) 
-! \item PARDR\_DAVG: direct radiation (10 day average) 
-! \item PARDF\_DAVG: diffuse radiation (10 day average)
-! \item T\_PREVDAY: temperature (1 day average) 
+! \item T\_DAVG: long-term historical temperature 
+! \item PARDR\_DAVG: long-term historical direct radiation 
+! \item PARDF\_DAVG: long-term historical diffuse radiation 
+! \item T\_PREVDAY: short-term historical temperature
 ! \end{itemize}
 ! These variables are automatically searched for on the first call of
 ! the run call. If not defined, default values will be used. The values
 ! of T\_DAVG, T\_PREVDAY, PARDR\_DAVG, and PARDF\_DAVG are continuously
 ! updated at the end of the run sequence, e.g. they represent the 
-! instantaneous running average. 
+! instantaneous running average. The e-folding times to be used when
+! calculating the short=term and long-term running averages are defined 
+! as module parameter below (parameter TAU_HOURS and TAU_DAYS) 
 !\\
 !\\
 ! A similar procedure is also applied to the leaf area index variables.
@@ -38,12 +40,12 @@
 ! LAI (LAI\_CM), previous month LAI (LAI\_PM), and instantaneous LAI (LAI), 
 ! which was a daily interpolation of LAI\_CM and next month' LAI, (LAI\_NM). 
 ! The HEMCO implementation uses only the instantaneous LAI, assuming it is
-! updated every day. The previous day LAI is kept in memory and used to
-! determine the LAI change over time (used to calculate the gamma leaf age).
+! updated every day. The short term historical LAI is kept in memory and 
+! used to determine the LAI change over time (used to calculate the gamma 
+! leaf age). It is also updated on every time step.
 ! For the first simulation day, the previous' day LAI is taken from the 
 ! restart file (field LAI\_PREVDAY). If no restart variable is defined, a 
-! LAI change of zero is assumed.
-! (ckeller, 10/9/2014)
+! LAI change of zero is assumed (ckeller, 10/9/2014).
 !\\
 !\\
 ! !References:
@@ -180,6 +182,7 @@
 !  15 Sep 2015 - M. Sulprizio- Add CO2 inhibition effect on isoprene emissions
 !                              from Amos Tai (Jan 2013)
 !  05 Nov 2015 - C. Keller   - Reorganize restart variables to running averages.
+!  08 Dec 2015 - C. Keller   - Now treat previous' day LAI as running avg, too.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -266,9 +269,13 @@
       REAL(hp), ALLOCATABLE   :: NORM_FAC(:)
 
       ! Scalars
-      INTEGER,  PARAMETER  :: DAY_DIM        = 24       ! # of 1-hr periods/day
+!      INTEGER,  PARAMETER  :: DAY_DIM        = 24       ! # of 1-hr periods/day
 !      INTEGER, PARAMETER  :: DAY_DIM        = 8        ! # of 3-hr periods/day
-      INTEGER,  PARAMETER  :: NUM_DAYS       = 10       ! # of days to avg 
+      !INTEGER,  PARAMETER  :: NUM_DAYS       = 10       ! # of days to avg 
+      REAL(hp), PARAMETER  :: TAU_DAYS       = 5.0_hp   ! e-folding time to be applied to
+                                                        ! long-term past conditions (in days) 
+      REAL(hp), PARAMETER  :: TAU_HOURS      = 12.0_hp  ! e-folding time to be applied to
+                                                        ! short-term past conditions (in hours)
       REAL(hp), PARAMETER  :: WM2_TO_UMOLM2S = 4.766_hp ! W/m2 -> umol/m2/s
 
       ! Past light & temperature conditions (mpb,2009)
@@ -298,7 +305,7 @@
       REAL(sp), ALLOCATABLE         :: PARDR_LASTXDAYS(:,:)  ! Avg. PARDR of last NUM_DAYS
 
       ! previous LAI values (ckeller, 10/09/2014)
-      REAL(sp), ALLOCATABLE, TARGET :: LAI_PREVSTEP(:,:)     ! LAI of prev. time step
+!      REAL(sp), ALLOCATABLE, TARGET :: LAI_PREVSTEP(:,:)     ! LAI of prev. time step
       REAL(sp), ALLOCATABLE, TARGET :: LAI_PREVDAY(:,:)      ! LAI of prev. day
 
       ! Days between mid-months (updated by HEMCO clock)
@@ -356,6 +363,7 @@
 !  08 May 2015 - C. Keller   - Now read/write restart variables from here to
 !                              accomodate replay runs in GEOS-5.
 !  30 Sep 2015 - C. Keller   - Now add OCPI flux to BIOGENIC_OCPI diagnostics.
+!  12 Dec 2015 - C. Keller   - Apply e-folding times to past conditions.
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -499,12 +507,14 @@
       IF ( FIRST .OR. HcoClock_Rewind( .TRUE. ) ) THEN
          CALL FILL_RESTART_VARS( am_I_Root, HcoState, ExtState, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
-
-      ! On a new day, copy previous LAI values to array that holds
-      ! previous day LAI.
-      ELSEIF ( IsNewDay ) THEN
-         LAI_PREVDAY = LAI_PREVSTEP
       ENDIF
+
+      ! LAI_PREVDAY is now continuously updated (ckeller, 12/8/15)
+!      ! On a new day, copy previous LAI values to array that holds
+!      ! previous day LAI.
+!      ELSEIF ( IsNewDay ) THEN
+!         LAI_PREVDAY = LAI_PREVSTEP
+!      ENDIF
 
       ! Set to 1 day since we know that LAI is updated every day.
       DAYS_BTW_M = 1
@@ -515,9 +525,9 @@
       ! over the last X days. HNEWFRAC and HOLDFRAC are the same but
       ! for the 24H means. (ckeller, 11/05/2015)
       TS_EMIS  = HcoState%TS_EMIS
-      DNEWFRAC = TS_EMIS / ( NUM_DAYS * 24.0_hp * 3600.0_hp )
+      DNEWFRAC = TS_EMIS / ( TAU_DAYS * 24.0_hp * 3600.0_hp )
       DOLDFRAC = 1.0_hp - DNEWFRAC
-      HNEWFRAC = TS_EMIS / ( 24.0_hp * 3600.0_hp )
+      HNEWFRAC = TS_EMIS / ( TAU_HOURS * 3600.0_hp )
       HOLDFRAC = 1.0_hp - HNEWFRAC
 
 !$OMP PARALLEL DO
@@ -1249,6 +1259,10 @@
          ! be used to calculate the daily mean).  
          ! (ckeller, 11/05/2015)
 
+         ! Updated LAI of last 24 hours 
+         LAI_PREVDAY(I,J) = ( HOLDFRAC * LAI_PREVDAY(I,J)          )
+     &                    + ( HNEWFRAC * ExtState%LAI%Arr%Val(I,J) )
+
          ! Updated temperature of last 24 hours
          T_LAST24H(I,J) = ( HOLDFRAC * T_LAST24H(I,J)            )
      &                  + ( HNEWFRAC * ExtState%T2M%Arr%Val(I,J) )
@@ -1268,7 +1282,6 @@
       ENDDO !I
       ENDDO !J
 !$OMP END PARALLEL DO
-
       IF ( ERR ) THEN
          RC = HCO_FAIL
          RETURN
@@ -1675,8 +1688,9 @@
 !      write(*,*) 'total OCPI: ', SUM(FLUXOCPI)
 !      write(*,*) ''
 
-      ! Keep LAI in memory (ckeller, 10/9/2014)
-      LAI_PREVSTEP = ExtState%LAI%Arr%Val
+!      ! Keep LAI in memory (ckeller, 10/9/2014)
+       ! LAI_PREVDAY is now continuously being updated (ckeller, 12/8/15)
+!      LAI_PREVSTEP = ExtState%LAI%Arr%Val
 
       ! Return w/ success
       CALL HCO_LEAVE ( RC )
@@ -4529,12 +4543,13 @@
       PARDF_LASTXDAYS = 0.0_hp
 
       ! LAI from previous time step
-      ALLOCATE( LAI_PREVSTEP( NX, NY ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'LAI_PREVSTEP', RC )
-        RETURN
-      ENDIF
-      LAI_PREVSTEP = 0.0_sp
+      ! LAI_PREVDAY is now continuously being updated (ckeller, 12/8/15)
+!      ALLOCATE( LAI_PREVSTEP( NX, NY ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'LAI_PREVSTEP', RC )
+!        RETURN
+!      ENDIF
+!      LAI_PREVSTEP = 0.0_sp
 
       ALLOCATE( LAI_PREVDAY( NX, NY ), STAT=AS )
       IF ( AS /= 0 ) THEN 
@@ -4687,7 +4702,7 @@
 !      CALL HCO_RestartDefine ( am_I_Root,   HcoState, 
 !     &                         'T_PREVDAY', T_PREVDAY, 'K', RC )
 !      IF ( RC /= HCO_SUCCESS ) RETURN
-!
+ 
       CALL HCO_RestartDefine ( am_I_Root,     HcoState, 
      &                         'LAI_PREVDAY', LAI_PREVDAY, '1', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4817,7 +4832,7 @@
 !      IF ( ALLOCATED( PARDF_15        ) ) DEALLOCATE( PARDF_15        )
 !      IF ( ALLOCATED( PARDF_15_AVG    ) ) DEALLOCATE( PARDF_15_AVG    )
 !      IF ( ALLOCATED( PARDF_DAILY  ) ) DEALLOCATE( PARDF_DAILY  )
-      IF ( ALLOCATED( LAI_PREVSTEP    ) ) DEALLOCATE( LAI_PREVSTEP    )
+!      IF ( ALLOCATED( LAI_PREVSTEP    ) ) DEALLOCATE( LAI_PREVSTEP    )
       IF ( ALLOCATED( LAI_PREVDAY     ) ) DEALLOCATE( LAI_PREVDAY     )
       IF ( ALLOCATED( T_LASTXDAYS     ) ) DEALLOCATE( T_LASTXDAYS     )
       IF ( ALLOCATED( T_LAST24H       ) ) DEALLOCATE( T_LAST24H       )
