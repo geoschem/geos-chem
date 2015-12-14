@@ -818,7 +818,7 @@ CONTAINS
        ! Verbose
        IF ( Verb ) THEN
           IF ( FoundTK ) THEN
-             WRITE(MSG,*) ' - Temperature field TK obtained from configuration file (min,max): ', MINVAL(ThisTK), MAXVAL(ThisTK)
+             WRITE(MSG,*) ' - Temperature field TK [K] obtained from configuration file (min,max): ', MINVAL(ThisTK), MAXVAL(ThisTK)
              CALL HCO_MSG(MSG)
           ELSE
              WRITE(MSG,*) ' - No temperature field TK found - some vertical grid calculations may not be performed...'
@@ -851,7 +851,7 @@ CONTAINS
 
        ! Verbose 
        IF ( Verb ) THEN
-          WRITE(MSG,*) ' - Surface pressure PSFC obtained from model interface (min, max): ', MINVAL(HcoState%Grid%PSFC%Val), MAXVAL(HcoState%Grid%PSFC%VAL)
+          WRITE(MSG,*) ' - Surface pressure PSFC [Pa] obtained from model interface (min, max): ', MINVAL(HcoState%Grid%PSFC%Val), MAXVAL(HcoState%Grid%PSFC%VAL)
           CALL HCO_MSG(MSG)
        ENDIF
 
@@ -864,7 +864,7 @@ CONTAINS
        ! Verbose 
        IF ( Verb ) THEN
           IF ( FoundPSFC ) THEN
-             WRITE(MSG,*) ' - Surface pressure PSFC obtained from configuration file (min, max): ', MINVAL(HcoState%Grid%PSFC%Val), MAXVAL(HcoState%Grid%PSFC%VAL)
+             WRITE(MSG,*) ' - Surface pressure PSFC [Pa] obtained from configuration file (min, max): ', MINVAL(HcoState%Grid%PSFC%Val), MAXVAL(HcoState%Grid%PSFC%VAL)
              CALL HCO_MSG(MSG)
           ELSE
              MSG = ' - Surface pressure PSFC not found. Will attempt to calculate it.'
@@ -897,7 +897,7 @@ CONTAINS
 
        ! Verbose 
        IF ( Verb ) THEN
-          WRITE(MSG,*) ' - Surface geopotential height ZSFC obtained from model interface (min, max): ', MINVAL(HcoState%Grid%ZSFC%Val), MAXVAL(HcoState%Grid%ZSFC%VAL)
+          WRITE(MSG,*) ' - Surface geopotential height ZSFC [m] obtained from model interface (min, max): ', MINVAL(HcoState%Grid%ZSFC%Val), MAXVAL(HcoState%Grid%ZSFC%VAL)
           CALL HCO_MSG(MSG)
        ENDIF
 
@@ -910,7 +910,7 @@ CONTAINS
        ! Verbose 
        IF ( Verb ) THEN
           IF ( FoundZSFC ) THEN
-             WRITE(MSG,*) ' - Surface geopotential height ZSFC obtained from configuration file (min, max): ', MINVAL(HcoState%Grid%ZSFC%Val), MAXVAL(HcoState%Grid%ZSFC%VAL)
+             WRITE(MSG,*) ' - Surface geopotential height ZSFC [m] obtained from configuration file (min, max): ', MINVAL(HcoState%Grid%ZSFC%Val), MAXVAL(HcoState%Grid%ZSFC%VAL)
              CALL HCO_MSG(MSG)
           ELSE
              MSG = ' - Surface geopotential height ZSFC not found. Will attempt to calculate it.'

@@ -186,7 +186,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AddExt( am_I_Root, ExtName, ExtNr, Spcs, RC ) 
+  SUBROUTINE AddExt( am_I_Root, ExtName, ExtNr, InUse, Spcs, RC ) 
 !
 ! !USES:
 !
@@ -197,6 +197,7 @@ CONTAINS
     LOGICAL,          INTENT(IN   ) :: am_I_Root 
     CHARACTER(LEN=*), INTENT(IN   ) :: ExtName 
     INTEGER,          INTENT(IN   ) :: ExtNr
+    LOGICAL,          INTENT(IN   ) :: InUse 
     CHARACTER(LEN=*), INTENT(IN   ) :: Spcs
 !
 ! !INPUT/OUTPUT PARAMETERS::
@@ -205,7 +206,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Oct 2013 - C. Keller - Initial version
-!  20 Sep 2015 - C. Keller - Options are now linked list.
+!  20 Sep 2015 - C. Keller - Options are now linked list
+!  12 Dec 2015 - C. Keller - Added argument InUse
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -247,12 +249,17 @@ CONTAINS
     ALLOCATE ( NewExt )
     NewExt%NextExt => NULL()
 
-    ! Set extension name and nr
+    ! Set extension name
     NewExt%ExtName = lcName
-    NewExt%ExtNr   = ExtNr
 
-    ! Extension species 
-    NewExt%Spcs    = Spcs
+    ! Set extension number and species. Set to invalid values if not used.
+    IF ( InUse ) THEN
+       NewExt%ExtNr = ExtNr
+       NewExt%Spcs  = Spcs
+    ELSE
+       NewExt%ExtNr = -1
+       NewExt%Spcs  = 'None'
+    ENDIF
 
     ! Initialize extension options. These will be filled lateron
     NewExt%Opts    => NULL()
@@ -279,7 +286,7 @@ CONTAINS
     ENDIF
 
     ! Verbose
-    IF ( am_I_Root .AND. HCO_IsVerb(2) ) THEN
+    IF ( am_I_Root .AND. HCO_IsVerb(2) .AND. InUse ) THEN
        WRITE(MSG,*) 'Added HEMCO extension: ', TRIM(ExtName), ExtNr
        CALL HCO_MSG(MSG)
     ENDIF
@@ -309,7 +316,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AddExtOpt( am_I_Root, Opt, ExtNr, RC ) 
+  SUBROUTINE AddExtOpt( am_I_Root, Opt, ExtNr, RC, IgnoreIfExist ) 
 !
 ! !USES:
 !
@@ -317,17 +324,19 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )      :: am_I_Root ! Root CPU? 
-    CHARACTER(LEN=*), INTENT(IN   )      :: Opt       ! Option name & value 
-    INTEGER,          INTENT(IN   )      :: ExtNr     ! Add to this extension
+    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU? 
+    CHARACTER(LEN=*), INTENT(IN   )           :: Opt            ! Option name & value 
+    INTEGER,          INTENT(IN   )           :: ExtNr          ! Add to this extension
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: IgnoreIfExist  ! Ignore this entry if it exists already?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)      :: RC
+    INTEGER,          INTENT(INOUT)           :: RC
 !
 ! !REVISION HISTORY:
 !  03 Oct 2013 - C. Keller - Initial version
-!  20 Sep 2015 - C. Keller - Options are now linked list.
+!  20 Sep 2015 - C. Keller - Options are now linked list
+!  12 Dec 2015 - C. Keller - Added argument IgnoreIfExist
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -366,7 +375,8 @@ CONTAINS
     ENDIF
 
     ! Pass to options
-    CALL HCO_AddOpt( am_I_Root, OptName, OptValue, ExtNr, RC )
+    CALL HCO_AddOpt( am_I_Root, OptName, OptValue, ExtNr, RC, &
+                     IgnoreIfExist=IgnoreIfExist )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Cleanup and leave
@@ -505,10 +515,6 @@ CONTAINS
        ELSE
           OptValChar = ''
        ENDIF
-    ELSE
-       MSG = 'Invalid option output element: ' // TRIM(OptName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
     ENDIF
 
     ! Cleanup and leave
@@ -1143,22 +1149,25 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_AddOpt ( am_I_Root, OptName, OptValue, ExtNr, RC, VERB )
+  SUBROUTINE HCO_AddOpt ( am_I_Root, OptName, OptValue, ExtNr, RC, &
+                          VERB,      IgnoreIfExist )
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root  ! Root CPU?
-    CHARACTER(LEN=*), INTENT(IN   )           :: OptName    ! OptName
-    CHARACTER(LEN=*), INTENT(IN   )           :: OptValue   ! OptValue
-    INTEGER,          INTENT(IN   )           :: ExtNr      ! Extension Nr. 
-    LOGICAL,          INTENT(IN   ), OPTIONAL :: VERB       ! Verbose on
+    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    CHARACTER(LEN=*), INTENT(IN   )           :: OptName        ! OptName
+    CHARACTER(LEN=*), INTENT(IN   )           :: OptValue       ! OptValue
+    INTEGER,          INTENT(IN   )           :: ExtNr          ! Extension Nr. 
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: VERB           ! Verbose on
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: IgnoreIfExist  ! Ignore if already exists 
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)           :: RC         ! Return code 
+    INTEGER,          INTENT(INOUT)           :: RC             ! Return code 
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2015 - C. Keller - Initial version 
+!  12 Dec 2015 - C. Keller - Added argument IgnoreIfExist 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1167,9 +1176,10 @@ CONTAINS
 !
     TYPE(Ext), POINTER      :: ThisExt => NULL()
     TYPE(Opt), POINTER      :: NewOpt => NULL()
-    CHARACTER(LEN=OPTLEN) :: DUM
+    CHARACTER(LEN=OPTLEN)   :: DUM
     LOGICAL                 :: Exists
     LOGICAL                 :: VRB
+    LOGICAL                 :: Ignore 
     CHARACTER(LEN=255)      :: MSG
     CHARACTER(LEN=255)      :: LOC = 'HCO_AddOpt (hco_chartools_mod.F90)' 
 
@@ -1177,24 +1187,44 @@ CONTAINS
     ! HCO_AddOpt begins here!
     !=================================================================
 
+    ! Init optional variables
+    VRB    = .TRUE.
+    Ignore = .FALSE. 
+    IF ( PRESENT(VERB)          ) VRB    = VERB
+    IF ( PRESENT(IgnoreIfExist) ) Ignore = IgnoreIfExist
+
     ! Check if this option already exists
     DUM = HCO_GetOpt( OptName, ExtNr=ExtNr )
 
     ! If option already exists...
     IF ( TRIM(DUM) /= TRIM(EMPTYOPT) ) THEN
-       IF ( TRIM(DUM) /= TRIM(OptValue) ) THEN
-          MSG = 'Cannot add option pair: '//TRIM(OptName)//': '//TRIM(OptValue) &
-             // ' - option already exists: '//TRIM(OptName)//': '//TRIM(DUM)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-    ENDIF
 
-    ! Init verbose flag
-    IF ( PRESENT(VERB) ) THEN
-       VRB = VERB
-    ELSE
-       VRB = .TRUE.
+       ! Can leave here if we shall ignore the option if it already exists
+       IF ( Ignore ) THEN
+
+          ! If option exists and is the same, nothing to do 
+          IF ( TRIM(DUM) /= ADJUSTL(TRIM(OptValue)) ) THEN
+             WRITE(*,*) 'Option is already defined - use original value of ', &
+                        TRIM(DUM), ' and ignore the following value: ',       &
+                        TRIM(OptName), ': ', TRIM(OptValue)
+          ENDIF
+          RC = HCO_SUCCESS
+          RETURN
+
+       ! If ignore flag is false:
+       ELSE
+          ! Error if values are not the same
+          IF ( TRIM(DUM) /= ADJUSTL(TRIM(OptValue)) ) THEN
+             MSG = 'Cannot add option pair: '//TRIM(OptName)//': '//TRIM(OptValue) &
+                // ' - option already exists: '//TRIM(OptName)//': '//TRIM(DUM)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ! Return with no error if values are the same
+          ELSE
+             RC = HCO_SUCCESS
+             RETURN
+          ENDIF
+       ENDIF
     ENDIF
 
     ! Find extension of interest 
@@ -1207,7 +1237,7 @@ CONTAINS
     IF ( .NOT. ASSOCIATED( ThisExt ) ) THEN
        WRITE(MSG,*) 'Cannot add option to extension Nr. ', ExtNr
        MSG = TRIM(MSG) // '. Make sure this extension is activated!'
-       CALL HCO_ERROR(MSG,RC,THISLOC='AddExtOpt (hco_extlist_mod)')
+       CALL HCO_ERROR(MSG,RC,THISLOC='AddOpt (hco_extlist_mod)')
        RETURN
     ENDIF
 
@@ -1288,7 +1318,7 @@ CONTAINS
     ELSE
        ThisExtNr = -999
     ENDIF
- 
+
     ! Find extension of interest 
     ThisExt => ExtList
     DO WHILE ( ASSOCIATED ( ThisExt ) ) 
@@ -1305,7 +1335,7 @@ CONTAINS
        DO WHILE ( ASSOCIATED(ThisOpt) ) 
 
           ! Check if this is the token of interest
-          IF ( TRIM(ThisOpt%OptName) == TRIM(OptName) ) THEN
+          IF ( TRIM(ThisOpt%OptName) == ADJUSTL(TRIM(OptName)) ) THEN
              OptValue = ADJUSTL( TRIM(ThisOpt%OptValue) )
              OptFound = .TRUE.
              EXIT

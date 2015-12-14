@@ -797,7 +797,7 @@ CONTAINS
 
     ! Verbose 
     IF ( HCO_IsVerb(2) ) THEN
-       write(MSG,*) 'Calculate emissions for ', TRIM(BaseDct%cName)
+       WRITE(MSG,*) 'Evaluate field ', TRIM(BaseDct%cName)
        CALL HCO_MSG(MSG,SEP1=' ')
     ENDIF
 
