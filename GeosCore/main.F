@@ -1347,10 +1347,6 @@
          !--------------------------------------------------------------
          IF ( ITS_TIME_FOR_EMIS() ) THEN
 
-            IF ( ITS_TIME_FOR_UNIT() )  ! v/v -> kg
-     &         CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV,
-     &                             State_Met%AD, State_Chm%TRACERS )
-
             ! Increment emission counter
             CALL SET_CT_EMIS( INCREMENT=.TRUE. )
 
