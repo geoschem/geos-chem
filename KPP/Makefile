@@ -115,11 +115,11 @@ lib: kppintegrator
 	@$(MAKE) -C $(KPP_CHEM)
 
 kppintegrator:
-	@diff $(SOLVER_SFILE) $(SOLVER_TFILE) ;\
-	if [ $$? == 1 ] ; then   \
-		echo " copy $(SOLVER_SFILE) --> $(SOLVER_TFILE)";\
-		cp $(SOLVER_SFILE) $(SOLVER_TFILE) ;    \
-	fi
+#	@diff $(SOLVER_SFILE) $(SOLVER_TFILE) ;\
+#	if [ $$? == 1 ] ; then   \
+#		echo " copy $(SOLVER_SFILE) --> $(SOLVER_TFILE)";\
+#		cp $(SOLVER_SFILE) $(SOLVER_TFILE) ;    \
+#	fi
 
 clean:
 	@$(MAKE) -C $(KPP_CHEM) clean
@@ -130,6 +130,7 @@ realclean:
 	@$(MAKE) -C SOA_SVPOA        clean
 	@$(MAKE) -C UCX              clean
 	@$(MAKE) -C NOx_Ox_HC_Aer_Br clean
+	@$(MAKE) -C TempFlex clean
 
 help:
 	@$(MAKE) -C $(HELP) 

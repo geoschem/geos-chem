@@ -359,20 +359,20 @@ endif
 # %%%%% Test if CHEM=NOx_Ox_HC_Aer_Br %%%%%
 REGEXP               :=(^[Nn][Oo][Xx]_[Oo][Xx]_[Hh][Cc]_[Aa][Ee][Rr]_[Bb][Rr])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=NOx_Ox_HC_Aer_Br
+  KPP_CHEM           :=TempFlex
   IS_CHEM_SET        :=1
 endif
 
 # %%%%% Test if CHEM=tropchem (synonym for NOx_Ox_HC_Aer_Br) %%%%%
 REGEXP               :=(^[Tt][Rr][Oo][Pp][Cc][Hh][Ee][Mm])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=NOx_Ox_HC_Aer_Br
+  KPP_CHEM           :=TempFlex
   IS_CHEM_SET        :=1
 endif
 
 # %%%%%  Default setting: CHEM=benchmark %%%%%
 ifeq ($(IS_CHEM_SET),0)
-  KPP_CHEM           :=benchmark
+  KPP_CHEM           :=TempFlex
   IS_CHEM_SET        :=1
 endif
 

@@ -51,6 +51,11 @@ MODULE GIGC_State_Chm_Mod
      CHARACTER(LEN=14), POINTER :: Spec_Name  (:      )  ! Species names
      REAL(fp),          POINTER :: Species    (:,:,:,:)  ! Species [molec/cm3]
 
+     ! Aerosol quantities
+     REAL(fp),          POINTER :: AeroArea   (:,:,:,:)  ! Aerosol Area [cm2/cm3]
+     REAL(fp),          POINTER :: AeroRadi   (:,:,:,:)  ! Aerosol Radius [cm]
+     INTEGER                    :: nAero                 ! Number of Aerosol Types
+
 #if defined( ESMF_ )
      ! Chemical rates & rate parameters
      INTEGER,           POINTER :: JLOP       (:,:,:  )  ! 1-D SMVGEAR index
@@ -343,7 +348,8 @@ CONTAINS
 !
   SUBROUTINE Init_GIGC_State_Chm( am_I_Root, IM,        JM,        LM,     &  
                                   nTracers,  nBioMax,   nSpecies,  nSchm,  &    
-                                  nSchmBry,  Input_Opt, State_Chm, RC      )
+                                  nSchmBry,  Input_Opt, State_Chm, nAerosol, &
+                                  RC      )
 !
 ! !USES:
 !
@@ -361,6 +367,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: nTracers    ! # advected tracers
     INTEGER,        INTENT(IN)    :: nBioMax     ! # biomass burning tracers
     INTEGER,        INTENT(IN)    :: nSpecies    ! # chemical species  
+    INTEGER,        INTENT(IN)    :: nAerosol    ! # aerosol species
     INTEGER,        INTENT(IN)    :: nSchm       ! # of strat chem species
     INTEGER,        INTENT(IN)    :: nSchmBry    ! # of Bry species, strat chm
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
@@ -423,6 +430,18 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     ALLOCATE( State_Chm%Species       ( IM, JM, LM, nSpecies   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    !=====================================================================
+    ! Allocate aerosol fields
+    !=====================================================================
+
+    State_Chm%nAero = nAerosol
+
+    ALLOCATE( State_Chm%AeroArea      ( IM, JM, LM, nAerosol   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    ALLOCATE( State_Chm%AeroRadi      ( IM, JM, LM, nAerosol   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
 #if defined( ESMF_ )

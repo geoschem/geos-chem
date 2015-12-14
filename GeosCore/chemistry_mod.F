@@ -25,9 +25,6 @@
 !
       PUBLIC :: INIT_CHEMISTRY
       PUBLIC :: DO_CHEMISTRY
-#if defined( USE_REAL8 )
-      PUBLIC :: GCKPP_DRIVER
-#endif
       PUBLIC :: RECOMPUTE_OD
 !
 ! !REVISION HISTORY: 
@@ -227,7 +224,7 @@
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER       :: N_TRACERS
+      INTEGER       :: N_TRACERS, N
       INTEGER       :: N_TROP
       INTEGER       :: MONTH
       INTEGER       :: YEAR
@@ -342,7 +339,7 @@
             RC = GEOS_Timer_Start ( "Chemistry-Gas-Phase" )
 
             ! Call gas-phase chemistry
-            CALL CHEMDR
+            CALL FLEX_CHEMDR
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
             RC = GEOS_Timer_End ( "Chemistry-Gas-Phase" )
@@ -629,353 +626,6 @@
     
       END SUBROUTINE DO_CHEMISTRY
 !EOC
-#if defined( USE_REAL8 )
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gckpp_driver
-!
-! !DESCRIPTION: Subroutine GCKPP\_DRIVER is the driver routine to perform 
-!  integration with the full KPP chemistry mechanism.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GCKPP_DRIVER( KTLOOP, JLOOPLO, R_KPP, NSPEC_GC,
-     &                         Input_Opt ) 
-!
-! !USES:
-!
-      USE COMODE_MOD,           ONLY : JLOP,   CSPEC
-      USE COMODE_MOD,           ONLY : IXSAVE, IYSAVE,    IZSAVE
-      USE GCKPP_COMODE_MOD,     ONLY : HSAVE_KPP 
-      USE TIME_MOD,             ONLY : GET_TS_CHEM
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-      USE GCKPP_UTIL,           ONLY : SHUFFLE_KPP2USER
-      USE GCKPP_INITIALIZE,     ONLY : INITIALIZE
-      USE GCKPP_MODEL
-      USE GCKPP_GLOBAL    
-      USE GCKPP_RATES,          ONLY : UPDATE_RCONST
-      USE GCKPP_MONITOR,        ONLY : SPC_NAMES
-      USE GCKPP_FUNCTION
-      USE ERROR_MOD,            ONLY : ERROR_STOP
-      USE GCKPP_INTEGRATOR,     ONLY : NHNEW, NHEXIT, INTEGRATE
-      USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,        INTENT(IN) :: KTLOOP       ! Local loop index
-      INTEGER,        INTENT(IN) :: JLOOPLO      ! JLOOPLO + KLOOP = JLOOP
-      REAL(fp),       INTENT(IN) :: R_KPP(:,:)   ! Array of reaction rates
-      INTEGER,        INTENT(IN) :: NSPEC_GC     ! # of active chemical species
-      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input Options object
-!
-! !REMARKS:
-!  ############################################################################
-!  ###   NOTE: THIS ROUTINE WILL BE REPLACED WHEN FLEXCHEM IS ADDED TO    #####
-!  ###   GEOS-CHEM IN THE VERSION FOLLOWING GEOS-CHEM v10-01!             #####
-!  ############################################################################
-!
-!  Variables used to pass the last/first step size b/w call 
-!                                                                             .
-!  For Rosenbrock:
-!  ----------------
-!      Nhexit=2, Nhnew = 3
-!  OUT    
-!      RSTATUS(2)  -> Hexit, last accepted step before exit
-!      RSTATUS(3)  -> Hnew, last predicted step (not yet taken)
-!      For multiple restarts, use Hnew as Hstart in the subsequent run
-!  IN
-!      RCNTRL(3)   -> Hstart, starting value for the integration step size
-!                                                                             .
-!                                                                             .
-!  For LSODE:
-!  ------------
-!  OUT
-!      RSTATUS(1)  -> Texit, the time corresponding to the
-!                     computed Y upon return
-!      RSTATUS(2)  -> Hexit, last predicted step before exit
-!      For multiple restarts, use Hexit as Hstart in the following run
-!
-!  IN      
-!      RCNTRL(3)  -> Hstart, starting value for the integration step size
-!                                                                             .
-!                                                                             .
-!  For RADAU5:
-!  ------------
-!  OUT
-!      RSTATUS(1)  -> final time     
-!  IN      
-!      RCNTRL(3)   -> not used
-!                                                                             .
-!                                                                             .
-! For RUNGE-KUTTA
-! ---------------
-! OUT
-!     same as Rosenbrock
-! 
-! !REVISION HISTORY: 
-!  24 Jan 2008 - Kumaresh    - Based on Daven Henze's GCKPP_DRIVER.
-!  16 Sep 2009 - R. Yantosca - Commented, and updated to call various 
-!  03 Dec 2009 - C. Carouge  - Use CSPEC instead of CSPEC_FOR_KPP 
-!                              to save memory space
-!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  20 Jan 2010 - C. Carouge  - Now call GCKPP_DRIVER from physproc.f to save 
-!                              memory. 
-!  20 Jan 2010 - C. Carouge  - Now use the # of active species from GC to 
-!                              update CSPEC and not the of variable species 
-!                              from KPP.
-!  12 Apr 2013 - R. Yantosca - If -DDEVEL is used, when the chemistry can't
-!                              converge, we shall increase the tolerances
-!                              by a factor of 2 and try again.  This is often
-!                              needed to run GEOS-Chem in the GEOS-5 GCM.
-!  01 Apr 2015 - R. Yantosca - Skip chemistry in the nested-grid buffer zone
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL(fp)        :: T, TIN, TOUT
-      INTEGER       :: ICNTRL(20)
-      REAL(kind=dp) :: RCNTRL(20)
-      INTEGER       :: ISTATUS(20)
-      INTEGER       :: I, J, L, N, KLOOP, IERR
-      REAL(kind=dp) :: RSTATE(20)
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      CHARACTER(LEN=255) :: ERR_MSG
-
-      !=================================================================
-
-      STEPMIN = 0.0e+0_fp
-      STEPMAX = 0.0e+0_fp
-
-      ! Suggested tolerance for Rosenbrock solvers
-      DO i=1,NVAR
-#if defined (UCX )
-         RTOL(i) = 2.e-2_fp
-#else
-         RTOL(i) = 2.e-1_fp
-#endif
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: This update was made in the SEAC4RS code.  Leave here in case we
-!%%% need to restore this. (bmy, 9/25/13)
-!         RTOL(i) = 5.d-2
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         ATOL(i) = 1.e-2_fp
-      END DO
-      
-      ! for LSODE
-!      DO i=1,NVAR
-!         RTOL(i) = 1.0d-3
-!         ATOL(i) = 1.0d6
-!      END DO
-
-      
-      ! Set parameters to default. See comments in Integrator module for
-      ! a list of the defaults.
-      ICNTRL(:) = 0
-      RCNTRL(:) = 0.e+0_fp
-
-      ! Change some parameters from the default to new values
-      ICNTRL(1) = 1             ! Autonomous
-      ICNTRL(2) = 0             ! Nonautonomous
-
-      ! Select Integrator
-      !    ICNTRL(3)  -> selection of a particular method.
-      !                  For Rosenbrock, options are:
-      !        = 0 :  default method is Rodas3
-      !        = 1 :  method is  Ros2
-      !        = 2 :  method is  Ros3 
-      !        = 3 :  method is  Ros4 
-      !        = 4 :  method is  Rodas3
-      !        = 5:   method is  Rodas4
-      ICNTRL(3) = 4    
-      ICNTRL(7) = 1 ! No adjoint
-
-      IF(FIRST)THEN
-
-         RSTATE(Nhexit) = 0e+0_fp
-
-         FIRST = .FALSE. 
-
-      ENDIF
-
-      ! GET TS_CHEM and convert it to seconds. 
-      DT = GET_TS_CHEM() * 60e+0_fp
-
-      ! Set time parameters. 
-      T = 0e+0_fp
-      TIN = T
-      TOUT = T + DT
-
-      !=================================================================
-      ! Solve Chemistry
-      !=================================================================
- 100  format('No. of function calls:', i6, /,
-     &       'No. of jacobian calls:', i6, /,
-     &       'No. of steps:         ', i6, /,
-     &       'No. of accepted steps:', i6, /,
-     &       'No. of rejected steps ', i6, /,
-     $       '       (except at very beginning)',          /,
-     &       'No. of LU decompositions:             ', i6, /,
-     &       'No. of forward/backward substitutions:', i6, /,
-     &       'No. of singular matrix decompositions:', i6, /,
-     &       /,
-     &       'Texit, the time corresponding to the      ',        /,
-     &       '       computed Y upon return:            ', f11.4, /,
-     &       'Hexit, last accepted step before exit:    ', f11.4, /,
-     &       'Hnew, last predicted step (not yet taken):', f11.4 )
-
-
-      DO KLOOP = 1, KTLOOP
-
-         ! 1D grid box index on the global grid
-         JLOOP         = JLOOPLO+KLOOP
-           
-         ! Get 3D coords from SMVGEAR's 1D coords
-         I = IXSAVE(JLOOP)
-         J = IYSAVE(JLOOP)
-         L = IZSAVE(JLOOP)
-
-         ! Skipping buffer zone (lzh, 08/10/2014)
-         IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
-           IF ( J <=         Input_Opt%NESTED_J0W ) CYCLE
-           IF ( J >  JJPAR - Input_Opt%NESTED_J0E ) CYCLE
-           IF ( I <=         Input_Opt%NESTED_I0W ) CYCLE
-           IF ( I >  IIPAR - Input_Opt%NESTED_I0E ) CYCLE
-         ENDIF
-
-         ! Pass tracer concentrations from CSPEC to KPP working vector V_CSPEC
-         DO N =1, NVAR
-            V_CSPEC(N) = CSPEC(JLOOP,N)
-         END DO
-
-         ! Pass tracer concentrations from V_CSPEC to KPP working vector VAR.
-         ! This also initializes the constant rate constants FIX.
-         CALL Initialize()
-
-
-         ! starting value for integration time step
-         RCNTRL(3) = HSAVE_KPP(I,J,L)
-
-         ! 1D grid box index in the KTLOOP subset.
-         ! R_KPP is only defined on KTLOOP boxes (ccc, 12/3/09)
-         JLOOP = KLOOP
-         CALL Update_RCONST(R_KPP)
-         
-         ! 1D grid box index on the global grid
-         JLOOP = JLOOPLO+KLOOP
-
-
-         ! Integrate FWD -- phs --
-         call integrate(TIN, TOUT, ICNTRL, RCNTRL, ISTATUS,
-     $        RSTATE, IERR)
-         
-         ! Try another time if it failed
-         IF ( IERR < 0 ) THEN
-#if defined( KPP_SOLVE_ALWAYS )
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            !%%% For KPP tolerance fix (mlong, 4/12/13) %%%
-            !%%% Re-entry point for non-convergence     %%%
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- 123        CONTINUE
-#endif
-            write(6,*) ''
-            write(6,100) istatus(1:8),rstate(1:3)
-            write(6,*) ''
-            write(ERR_MSG,'(a, i3)') 'Integrator error code :',IERR
-            write(6,*)  'JLOOP, I, J, L ', JLOOP, I, J, L
-
-            ! Reset first time step and start concentrations
-            RCNTRL(3)  = 0e+0_fp
-            CALL Initialize( )  ! v2.1 
-
-            ! 1D grid box index in the KTLOOP subset.
-            ! R_KPP is only defined on KTLOOP boxes (ccc, 12/3/09)
-            JLOOP = KLOOP
-            CALL Update_RCONST(R_KPP)
-
-            ! 1D grid box index on the global grid
-            JLOOP = JLOOPLO+KLOOP
-
-#if defined( KPP_SOLVE_ALWAYS )
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            !%%% FOR KPP TOLERANCE FIX (mlong, 4/13/12) %%%
-            !%%% Increase tolerances by factor of 2     %%%
-            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-           !RTOL = 2d0 * RTOL    ! Relative
-            ATOL = 2e+0_fp * ATOL    ! Absolute
-#endif
-
-            call Integrate( TIN,    TOUT,    ICNTRL, 
-     &                      RCNTRL, ISTATUS, RSTATE, IERR )
-            IF ( IERR < 0 ) THEN 
-#if defined( KPP_SOLVE_ALWAYS )
-               !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-               !%%% FOR KPP TOLERANCE FIX (mlong, 4/13/12) %%%
-               !%%% Try to solve again; don't quit the run %%%
-               !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-               GOTO 123
-#endif
-               print*, 'failed twice !!! '
-               CALL ERROR_STOP(ERR_MSG, 'INTEGRATE_KPP')
-            ENDIF
-                            
-         ENDIF
-
-!--------- using the adjoint integrator (limited to Rosenbrock)           
-!adj!           ! using adjoint integrator           
-!adj!           CALL INTEGRATE_ADJ( 1, VAR, VAR_ADJ, TIN, TOUT,ATOL, 
-!adj!     &        RTOL, ICNTRL, RCNTRL, ISTATUS, RSTATE)
-!adj!
-!adj!
-!adj!           ! Update the printout and functionality (dkh, 07/28/09)
-!adj!           IF ( ISTATUS(NIERR) < 0 ) THEN 
-!adj!              print*, 'KPP Integrator failed.  Trying again' 
-!adj!              print*, 'IERR = ', RSTATE(20)
-!adj!              print*, 'RSTAT = ', RSTATE
-!adj!              print*, 'ISTAT = ', ISTATUS
-!adj!              print*, 'RCNTRL = ', RCNTRL
-!adj!              print*, 'ICNTRL = ', ICNTRL
-!adj!              print*, 'JLOOP, I, J, L ', JLOOP, I, J, L
-!adj!              rcntrl(3)  = 0d0
-!adj!              CALL Initialize( ) ! v2.1 
-!adj!              CALL Update_RCONST()
-!adj!              CALL INTEGRATE_ADJ( 1, VAR, VAR_ADJ, TIN, TOUT,
-!adj!     &             ATOL, RTOL, ICNTRL, RCNTRL, ISTATUS, RSTATE)
-!adj!              IF ( ISTATUS(NIERR) < 0 ) THEN
-!adj!                 print*, 'failed twice !!! '
-!adj!                 CALL ERROR_STOP('IERR < 0 ', 'INTEGRATE_ADJ')
-!adj!              ENDIF
-!adj!           ENDIF
-!--------- using the adjoint integrator (limited to Rosenbrock)           
-
-
-         ! Set negative values to SMAL2
-         DO N = 1, NVAR
-            VAR(N) = MAX(VAR(N),SMAL2)
-         ENDDO
-
-         ! save next integration time step
-         HSAVE_KPP(I,J,L) = RSTATE(Nhnew)
-
-         ! Pass KPP concentrations from VAR to V_CSPEC
-         CALL Shuffle_kpp2user(VAR,V_CSPEC)  
-
-         ! Pass KPP concentrations V_CSPEC to geos-chem CSPEC
-         DO N =1, NSPEC_GC
-            CSPEC(JLOOP,N) = V_CSPEC(N)
-         ENDDO
-
-      ENDDO
-
-      ! Return to calling program
-      END SUBROUTINE GCKPP_DRIVER
-#endif
-!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1083,10 +733,9 @@
 
                ! Calculate the AOD at the wavelength specified in jv_spec_aod
                WAVELENGTH = 1
-              write(6,*) 'before RDAER, AOD'
                CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
      &                     MONTH,     YEAR,      WAVELENGTH      )
-               write(6,*) 'after RDAER, AOD'
+
                !### Debug
                IF ( LPRT .and. am_I_Root ) THEN 
                   CALL DEBUG_MSG( '### RECOMPUTE_OD: after RDAER' )
@@ -1153,10 +802,10 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)     :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)     :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+      TYPE(OptInput), INTENT(INOUT)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(INOUT)  :: State_Chm   ! Chemistry State object
       INTEGER,        INTENT(INOUT)  :: RC          ! Success or failure?
      
@@ -1189,7 +838,8 @@
          CALL SETTRACE(        am_I_Root, Input_Opt, State_Chm, RC )
 
          ! Reset NCS with NCSURBAN
-         NCS     = NCSURBAN
+         NCS                 = NCSURBAN
+         Input_Opt%N_SPECIES = NGAS
 
          ! Adjust first flag
          FIRST = .FALSE.

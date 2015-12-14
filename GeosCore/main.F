@@ -52,7 +52,7 @@
       USE CHEMISTRY_MOD         ! Driver routines for chemistry
       USE COMODE_MOD            ! Allocatable arrays for SMVGEAR solver
       USE COMODE_LOOP_MOD       ! Formerly common-block arrays for SMVGEAR
-      USE GCKPP_COMODE_MOD      ! For the KPP chemical solver
+!      USE GCKPP_COMODE_MOD      ! For the KPP chemical solver
       USE GLOBAL_CH4_MOD        ! For offline CH4 simulation
       USE MERCURY_MOD           ! For offline Hg simulation (driver)
       USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
@@ -60,6 +60,7 @@
       USE TOMS_MOD              ! For overhead O3 columns (for FAST-J)
       USE UCX_MOD               ! For unified trop-strat chemistry (SDE)
       USE UVALBEDO_MOD          ! For reading UV albedoes (for FAST-J)
+      USE FLEXCHEM_SETUP_MOD    ! For initializing KPP/KPPA chem. routines
 
       !-----------------------------------------------------------------
       ! GEOS-Chem deposition modules
@@ -605,14 +606,14 @@
      &        ITS_AN_AEROSOL_SIM ) THEN
             CALL INIT_COMODE( am_I_Root, Input_Opt, RC )
          ENDIF
-         IF ( LKPP ) THEN
-            CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,  JJPAR,   
-     &                              LLCHEM,    ITLOOP, NMTRATE, 
-     &                              IGAS,      RC )
-         ENDIF
-         IF ( RC == 1 )
-     $        CALL ERROR_STOP( "Alloc error", "INIT_GCKPP_COMODE" )
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_COMODE' )
+!         IF ( LKPP ) THEN
+!            CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,  JJPAR,   
+!     &                              LLCHEM,    ITLOOP, NMTRATE, 
+!     &                              IGAS,      RC )
+!         ENDIF
+!         IF ( RC == 1 )
+!     $        CALL ERROR_STOP( "Alloc error", "INIT_GCKPP_COMODE" )
+!         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_COMODE' )
       ENDIF
          
       ! Added to read input file for linoz strat (dbj, jliu, bmy, 10/16/09)
@@ -700,6 +701,29 @@
       RC = GEOS_Timer_End ( "HEMCO" )
 
       !=================================================================
+      !      ***** INITIALIZE DIAGNOSTICS ***** 
+      !=================================================================      
+
+      ! Initialize diagnostics other than the default HEMCO diagnostics
+      ! initialized above (ckeller, 1/13/15).
+      CALL Diagnostics_Init( am_I_Root, Input_Opt, 
+     &                       State_Met, State_Chm, RC )
+
+
+      write(*,'(a,e8.1)') '<> 1', State_Chm%Species(10,10,10,66)
+
+      ! MSL - Flexchem
+      ! Initialize photochemistry & tracer->species mapping
+      ! For FULLCHEM, INPHOT was previously done in chemdr, 
+      ! but chemdr is gone.
+      IF ( ITS_A_FULLCHEM_SIM ) THEN
+         CALL INIT_FLEXCHEM( Input_Opt, State_Chm, am_I_Root, RC )           
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_FLEXCHEM' )
+      ENDIF
+      ! MSL ----------
+
+      write(*,'(a,e8.1)') '<> 2', State_Chm%Species(10,10,10,66)
+      !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
 
@@ -713,13 +737,13 @@
          !CALL INIT_UCX( am_I_Root, Input_Opt, NYMDb, NHMSb )
          CALL INIT_UCX( am_I_Root, Input_Opt )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
-      ENDIF
-
-      ! Set simple initial tracer conditions
-      CALL SET_INITIAL_MIXRATIOS( am_I_Root, Input_Opt, State_Met,
-     &                            State_Chm )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### MAIN: a SET_INITIAL_MIXRATIOS' )
+         
+         ! Set simple initial tracer conditions
+         CALL SET_INITIAL_MIXRATIOS( am_I_Root, Input_Opt, State_Met,
+     &        State_Chm )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### MAIN: a SET_INITIAL_MIXRATIOS' )
+         ENDIF
       ENDIF
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
@@ -740,6 +764,7 @@
          CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.TRUE. )
       ENDIF
 
+      write(*,'(a,e8.1)') '<> 3', State_Chm%Species(10,10,10,66)
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION
 ! This is only invoked when compiling GEOS-Chem with COUPLE=y
@@ -764,16 +789,6 @@
 
 !-----------------------------------------------------------------------------
 
-      !=================================================================
-      !      ***** INITIALIZE DIAGNOSTICS ***** 
-      !=================================================================      
-
-#if defined( DEVEL )
-      ! Initialize diagnostics other than the default HEMCO diagnostics
-      ! initialized above (ckeller, 1/13/15).
-      CALL Diagnostics_Init( am_I_Root, Input_Opt, 
-     &                       State_Met, State_Chm, RC )
-#endif 
 
       RC = GEOS_Timer_End ( "Initialization" )
 
@@ -866,6 +881,8 @@
          ! (ckeller, 4/1/15). 
          CALL Diagnostics_Write( am_I_Root, Input_Opt, .FALSE., RC)
 
+         write(*,'(a,e8.1)') '<> 4', State_Chm%Species(10,10,10,66)
+      
          RC = GEOS_Timer_End ( "HEMCO" )
 
          ! Original diagnostics
@@ -936,6 +953,8 @@
 
          RC = GEOS_Timer_End ( "Diagnostics" )
 
+      write(*,'(a,e8.1)') '<> 5', State_Chm%Species(10,10,10,66)
+      
          !=============================================================
          !   ***** W R I T E   MERCURY RESTART  F I L E *****
          !     ***** MUST be done after call to diag3 *****
@@ -1106,6 +1125,7 @@
          ! (Need to double-check that LMIN, Lmax are not used before-phs) 
          IF ( LVARTROP ) CALL CHECK_VAR_TROP( State_Met )
 
+      write(*,'(a,e8.1)') '<> 6', State_Chm%Species(10,10,10,66)
          ! If we are not doing transport, then make sure that
          ! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)
          IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( State_Met%PSC2 )
@@ -1320,6 +1340,8 @@
             ! (ckeller, 4/1/15)
             RC = GEOS_Timer_Start ( "HEMCO" )
 
+      write(*,'(a,e8.1)') '<> 7', State_Chm%Species(10,10,10,66)
+
             CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, 
      &                          State_Chm, ITS_TIME_FOR_EMIS(), 2, RC )
 
@@ -1499,11 +1521,13 @@
      &                            State_Met, State_Chm, RC )
             ENDIF
 
+      write(*,'(a,e8.1)') '<> 8', State_Chm%Species(10,10,10,66)
             ! Do GEOS-Chem chemistry
             CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
      &                         State_Chm, State_Met, RC ) 
 
          ENDIF 
+      write(*,'(a,e8.1)') '<> 9', State_Chm%Species(10,10,10,66)
 
          ! Check STT (tracers) (yxw)   
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )

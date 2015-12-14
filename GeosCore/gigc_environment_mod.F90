@@ -229,6 +229,7 @@ CONTAINS
 ! !USES:
 !
     USE CMN_Size_Mod,       ONLY : IIPAR, JJPAR, LLPAR, NBIOMAX
+    USE CMN_SIZE_Mod,       ONLY : NDUST, NAER
     USE Comode_Loop_Mod,    ONLY : IGAS
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod
@@ -354,6 +355,7 @@ CONTAINS
                                JM         = JJPAR,      &  ! # of lats
                                LM         = LLPAR,      &  ! # of levels
                                nTracers   = N_TRACERS,  &  ! # of tracers
+                               nAerosol   = NDUST+NAER, &  ! # of aerosol types
                                nBioMax    = NBIOMAX,    &  ! # biomass species
                                nSpecies   = IGAS,       &  ! # chemical species
                                nSchm      = nSchm,      &  ! # strat chem spec

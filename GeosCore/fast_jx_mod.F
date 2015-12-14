@@ -31,6 +31,7 @@
       PUBLIC  :: INIT_FJX
       PUBLIC  :: FAST_JX
       PUBLIC  :: FJXFUNC
+      PUBLIC  :: PHOTRATE_ADJ
 
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -4654,5 +4655,99 @@ c  Ensure all 'AN_' types are valid selections
  140  FORMAT( '%% Successfully closed file!'                 )
 
       END SUBROUTINE RD_PROF_NC
+!EOC
+      SUBROUTINE PHOTRATE_ADJ( am_I_root, State_Met, 
+     &                         State_Chm, Input_Opt, 
+     &                         I, J, L, C_H2O, AD, RC )
+      
+      USE COMODE_Loop_Mod
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE Precision_Mod,      ONLY : fp
+      
+!     
+!     !INPUT PARAMETERS:
+!     
+      LOGICAL,        INTENT(IN)    :: am_I_Root ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
+      INTEGER,        INTENT(IN)    :: I,J,L
+      REAL(kind=fp),  INTENT(IN)    :: C_H2O, AD
+!     
+!     !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
+!
+!     !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC ! Success or failure
+!
+!     !LOCAL PARAMETERS:
+!
+         
+!==============================================================
+! SPECIAL TREATMENT FOR O3+hv -> OH+OH (trop-only simulation)
+!                    or O3+hv -> O+O2  (UCX simulation)
+!
+! [O1D]ss=J[O3]/(k[H2O]+k[N2]+k[O2])
+! SO, THE EFFECTIVE J-VALUE IS J*k[H2O]/(k[H2O]+k[N2]+k[O2])
+!
+! We don't want to do this if strat-chem is in use, as all
+! the intermediate reactions are included - this would be
+! double-counting (SDE 04/01/13)
+!==============================================================
+!========================================================
+! Change rate of O(1D)+ N2 to be 3.1e-11 at 298K rather
+! than 2.6e-11.  The temperature dependence remains the
+! same, so the constant changes from 1.8e-11 to 2.14e-11
+! according to Heard, pers. comm.,2002. (amf, bmy, 1/7/02)
+!========================================================
+! Change the rate of O(1D)+H2O from 2.2e-10 to 1.45e-10*
+! exp(89/temp) on the basis of Dunlea and Ravishankara
+! 'Measurement of the Rate coefficient for the reaction 
+! of O(1D) with H2O and re-evaluation of the atmospheric
+! OH Production Rate'.  One of the RSC Journals
+! (mje 4/5/04)
+!========================================================
+! Updated from JPL2006, the difference is pretty small.
+! (jmao,02/26/2009)
+!========================================================
+! Additional update from JPL 10-6 for reaction of
+! O3 + hv --> HO2 + OH and O1D + H2:
+! Includes calculation of k[O3], where
+! k[O3]  = J[O3]*1.2e-10/k[O1D], where
+! k[O1D] = ([O1D]*[H2]+[O1D]*[H2O])/
+!          ([O1D]*[H2]+[O1D]*[H2O]+[O1D][N2]+[O1D][O2])
+! (bhh, jmao, eam, 7/18/11)
+!========================================================
+            ITEMPK    = 1._fp/State_Met%T(I,J,L)
+! Also consider O3 + hv --> HO2 + OH (bhh, jmao, eam, 7/18/11)
+            IF (I .eq. 1 .and. J .eq. 23 .and. L .eq. 1) THEN
+               write(*,'(a,E8.2)') 'ZPJ(3) before: ', ZPJ(L,3,I,J)
+               write(*,'(a,E8.2)') 'ZPJ(103) before: ', ZPJ(L,103,I,J)
+            ENDIF
+
+            RO1DplH2O = 1.63e-10_fp * EXP( 60.e+0_fp*ITEMPK) *
+     $           C_H2O
+            RO1DplH2  = 1.2e-10 * 0.5000e-6_fp * AD
+            RO1D      = (RO1DplH2O + RO1DplH2 +
+     $           2.15e-11_fp * EXP(110.e+0_fp*ITEMPK) 
+     $           * 0.7808e+0_fp  * AD +
+     $           3.30e-11_fp * EXP( 55.e+0_fp*ITEMPK) 
+     $           * 0.2095e+0_fp  * AD)
+            ZPJ(L,3,I,J) = ZPJ(L,3,I,J) *
+     $           RO1DplH2O / RO1D
+            ZPJ(L,103,I,J) = ZPJ(L,103,I,J) *
+     $           RO1DplH2 / RO1D
+      
+            IF (I .eq. 1 .and. J .eq. 23 .and. L .eq. 1) THEN
+               write(*,'(a,E8.2)') 'ZPJ(3) after: ', ZPJ(L,3,I,J)
+               write(*,'(a,E8.2)' ) 'ZPJ(103) after: ', ZPJ(L,103,I,J)
+               write(*,'(3E8.2)') RO1DplH2O, RO1DplH2, RO1D
+            ENDIF
+
+      END SUBROUTINE PHOTRATE_ADJ
 !EOC
       END MODULE FAST_JX_MOD

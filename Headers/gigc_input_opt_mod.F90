@@ -78,7 +78,8 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      ! TRACER MENU fields
      !----------------------------------------
-     INTEGER                     :: N_TRACERS          
+     INTEGER                     :: N_TRACERS
+     INTEGER                     :: N_SPECIES
      INTEGER,            POINTER :: ID_TRACER(:)       
      CHARACTER(LEN=255), POINTER :: TRACER_NAME(:)     
      REAL(fp),           POINTER :: TRACER_MW_G(:)     

@@ -4880,8 +4880,8 @@
       READ( SUBSTRS(1:N), * ) HR1_OTH, HR2_OTH
 
       ! For netCDF diagnostics
-      Input_Opt%ND45_OUTPUT_FREQ = 'Daily'   ! Note, can change later
-      Input_Opt%ND45_OUTPUT_TYPE = 'Mean'
+      Input_Opt%ND45_OUTPUT_FREQ = 'Always'
+      Input_Opt%ND45_OUTPUT_TYPE = 'Instantaneous'
 
       !--------------------------
       ! ND46: Biogenic sources

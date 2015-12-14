@@ -244,8 +244,8 @@ endif
 lib:                                               # Build all G-C libraries
 	@$(MAKE) libnc
 	@$(MAKE) libheaders         		  
-	@$(MAKE) libkpp             		  
 	@$(MAKE) libutil 
+	@$(MAKE) libkpp
 	@$(MAKE) libhemco
 	@$(MAKE) libiso
 	@$(MAKE) librad
@@ -408,13 +408,6 @@ c2h6_mod.o                  : c2h6_mod.F                                     \
                               diag_mod.o              tracer_mod.o           \
                               tracerid_mod.o
 
-calcrate.o                  : calcrate.F                                     \
-                              comode_mod.o            dao_mod.o              \
-                              diag_mod.o              drydep_mod.o           \
-                              pbl_mix_mod.o           planeflight_mod.o      \
-                              tracerid_mod.o          cldice_HBrHOBr_rxn.o   \
-                              ucx_mod.o               hcoi_gc_main_mod.o
-
 carbon_mod.o                : carbon_mod.F                                   \
                               chemgrid_mod.o                                 \
                               comode_mod.o            dao_mod.o              \
@@ -423,14 +416,6 @@ carbon_mod.o                : carbon_mod.F                                   \
                               tomas_mod.o             tracer_mod.o           \
                               tracerid_mod.o          vdiff_pre_mod.o        \
                               hcoi_gc_main_mod.o
-
-chemdr.o                    : chemdr.F                                       \
-                              aerosol_mod.o           chemgrid_mod.o         \
-                              comode_mod.o            dao_mod.o              \
-                              diag_oh_mod.o           diag_pl_mod.o          \
-                              dust_mod.o              future_emissions_mod.o \
-                              planeflight_mod.o       restart_mod.o          \
-                              tracerid_mod.o
 
 chemgrid_mod.o              : chemgrid_mod.F                                 \
                               comode_mod.o            dao_mod.o              \
@@ -604,6 +589,22 @@ fast_jx_mod.o               : fast_jx_mod.F                                  \
                               chemgrid_mod.o          dao_mod.o              \
                               toms_mod.o              tracerid_mod.o
 
+flex_chemdr.o               : aerosol_mod.o           comode_mod.o           \
+                              dao_mod.o               diag_oh_mod.o          \
+                              diag_pl_mod.o           future_emissions_mod.o \
+                              dust_mod.o              flexchem_setup_mod.o   \
+                              planeflight_mod.o       restart_mod.o          \
+                              tracer_mod.o            tracerid_mod.o         \
+                              uvalbedo_mod.o          \
+                              fast_jx_mod.o \
+                              ../KPP/TempFlex/gckpp_Global.o                \
+                              ../KPP/TempFlex/gckpp_Rates.o                \
+
+flexchem_setup_mod.o        : flexchem_setup_mod.F90 \
+                              ../KPP/TempFlex/gckpp_Monitor.o                \
+                              ../KPP/TempFlex/gckpp_Parameters.o             \
+                              ../KPP/TempFlex/gckpp_Precision.o
+
 future_emissions_mod.o      : future_emissions_mod.F
 
 fvdas_convect_mod.o         : fvdas_convect_mod.F                            \
@@ -749,7 +750,8 @@ main.o                      : main.F                                         \
                               ucx_mod.o               vdiff_mod.o            \
                               emissions_mod.o         cleanup.o              \
                               mixing_mod.o                                   \
-                              rrtmg_rad_transfer_mod.o
+                              rrtmg_rad_transfer_mod.o                       \
+	                      flexchem_setup_mod.o
 
 mapping_mod.o               : mapping_mod.F90                              
 
@@ -815,9 +817,6 @@ pbl_mix_mod.o               : pbl_mix_mod.F                                  \
                               diag_mod.o              tracer_mod.o
 
 pderiv.o                    : pderiv.F
-
-physproc.o                  : physproc.F                                     \
-                              comode_mod.o            chemistry_mod.o
 
 pjc_pfix_geos5_window_mod.o : pjc_pfix_geos5_window_mod.F
 
@@ -886,9 +885,6 @@ ucx_mod.o                   : ucx_mod.F                                      \
                               tracerid_mod.o          future_emissions_mod.o
 
 setmodel.o                  : setmodel.F
-
-smvgear.o                   : smvgear.F                                      \
-                              comode_mod.o
 
 soil_nox_mod.o              : soil_nox_mod.F
 

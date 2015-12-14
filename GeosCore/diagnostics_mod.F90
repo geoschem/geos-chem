@@ -43,6 +43,8 @@ MODULE Diagnostics_Mod
   PRIVATE :: DiagInit_Tracer_Conc
   PRIVATE :: DiagInit_Tracer_Emis
   PRIVATE :: DiagInit_GridBox
+  PRIVATE :: DiagInit_KPP_Rates
+  PRIVATE :: DiagInit_KPP_Spec
 !
 ! !DEFINED PARAMETERS:
 !
@@ -130,7 +132,7 @@ CONTAINS
 #if defined(ESMF_)
     WriteFreq = 'Always' 
 #else
-    WriteFreq = 'Daily' 
+    WriteFreq = 'Always'
 #endif
 
     CALL DiagnCollection_Create( am_I_Root,                   &
@@ -193,11 +195,11 @@ CONTAINS
        CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
     ENDIF
 
-    ! Tracer concentration diagnostics (ND45)
-    CALL DIAGINIT_TRACER_CONC( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_CONC', LOC ) 
-    ENDIF
+!    ! Tracer concentration diagnostics (ND45)
+!    CALL DIAGINIT_TRACER_CONC( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_CONC', LOC ) 
+!    ENDIF
 
     ! Grid box quantities (ND68)
     CALL DIAGINIT_GRIDBOX( am_I_Root, Input_Opt, State_Met, RC )
@@ -206,10 +208,22 @@ CONTAINS
     ENDIF
 
     ! Tracer emission diagnostics (NEW)
-    CALL DIAGINIT_TRACER_EMIS( am_I_Root, Input_Opt, State_Met, RC )
+!    CALL DIAGINIT_TRACER_EMIS( am_I_Root, Input_Opt, State_Met, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_EMIS', LOC ) 
+!    ENDIF
+
+    ! KPP diagnostics
+!    CALL DIAGINIT_KPP_RATES( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_KPP', LOC ) 
+!    ENDIF
+
+    CALL DIAGINIT_KPP_SPEC( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_EMIS', LOC ) 
+       CALL ERROR_STOP( 'Error in DIAGINIT_KPP', LOC ) 
     ENDIF
+
     ! Leave with success
     RC = GIGC_SUCCESS
 
@@ -924,6 +938,192 @@ CONTAINS
     ENDDO !N
 
   END SUBROUTINE DIAGINIT_WETDEP_LOSS
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_KPP_rates
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_KPP initializes the KPP-based
+! diagnostics arrays. It is associated (at this point) with the
+! ND45 diagnostic.
+!
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_KPP_Rates( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE gckpp_Parameters
+    USE gckpp_Monitor
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  09 Nov 2016 - M. Long     - Initial version, designed to output
+!                              ALL reaction rates (including Phot. & HET)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: cID,      Collection, D, N
+    CHARACTER(LEN=15)  :: OutOper
+    CHARACTER(LEN=155) :: DiagnName,DiagnNameBase
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_KPP (diagnostics_mod.F)' 
+    
+    !=======================================================================
+    ! DIAGINIT_DRYDEP begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND45_OUTPUT_TYPE
+
+    ! Loop over # of rates
+    DO D = 1, NREACT
+       !----------------------------------------------------------------
+       ! Create containers for reaction rates (mcl/cc/s)
+       ! CURRENTLY initializes ALL rates.
+       !----------------------------------------------------------------
+
+       ! Diagnostic name
+       DiagnNameBase = TRIM( ADJUSTL(EQN_NAMES(D)) )
+       write(DiagnName,'(a)')'RR_' // TRIM(DiagnNameBase)
+       
+       ! Create container
+          ! Create container
+          CALL Diagn_Create( am_I_Root,       &
+               Col       = Collection,        & 
+               cName     = TRIM( DiagnName ), &
+               AutoFill  = 0,                 &
+               ExtNr     = -1,                &
+               Cat       = -1,                &
+               Hier      = -1,                &
+               HcoID     = -1,                &
+               SpaceDim  =  3,                &
+               LevIDx    = -1,                &
+               OutUnit   = 'cm-3 s-1',        &
+               OutOper   = TRIM( OutOper   ), &
+               RC        = RC )
+       
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF
+       
+    ENDDO
+ 
+  END SUBROUTINE DiagInit_KPP_Rates
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_KPP_Spec
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_KPP initializes the KPP-based
+! diagnostics arrays. It is associated (at this point) with the
+! ND45 diagnostic.
+!
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_KPP_Spec( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE gckpp_Parameters
+    USE gckpp_Monitor
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  09 Nov 2016 - M. Long     - Initial version, designed to output
+!                              ALL reaction rates (including Phot. & HET)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: cID,      Collection, D, N
+    CHARACTER(LEN=15)  :: OutOper
+    CHARACTER(LEN=155) :: DiagnName,DiagnNameBase
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_KPP (diagnostics_mod.F)' 
+    
+    !=======================================================================
+    ! DIAGINIT_DRYDEP begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND45_OUTPUT_TYPE
+
+    ! Loop over # of rates
+    DO D = 1, NSPEC
+       !----------------------------------------------------------------
+       ! Create containers for reaction rates (mcl/cc/s)
+       ! CURRENTLY initializes ALL rates.
+       !----------------------------------------------------------------
+
+       ! Diagnostic name
+       DiagnNameBase = TRIM( ADJUSTL(SPC_NAMES(D)) )
+       write(DiagnName,'(a)')'SPC_' // TRIM(DiagnNameBase)
+       
+       ! Create container
+          ! Create container
+          CALL Diagn_Create( am_I_Root,       &
+               Col       = Collection,        & 
+               cName     = TRIM( DiagnName ), &
+               AutoFill  = 0,                 &
+               ExtNr     = -1,                &
+               Cat       = -1,                &
+               Hier      = -1,                &
+               HcoID     = -1,                &
+               SpaceDim  =  3,                &
+               LevIDx    = -1,                &
+               OutUnit   = 'cm-3',            &
+               OutOper   = TRIM( OutOper   ), &
+               RC        = RC )
+       
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF
+       
+    ENDDO
+ 
+  END SUBROUTINE DiagInit_KPP_Spec
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

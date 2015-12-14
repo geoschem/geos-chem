@@ -144,6 +144,7 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: HKETA     (:,:,:) ! Hack conv mass flux [kg/m2/s]
      REAL(fp), POINTER :: MOISTQ    (:,:,:) ! Tendency in sp. humidity 
                                             ! [kg/kg moist air/s]
+     REAL(fp), POINTER :: NUMDEN    (:,:,:) ! Air number density [mcl/cm3]
      REAL(fp), POINTER :: OPTD      (:,:,:) ! Visible optical depth [1]
      REAL(fp), POINTER :: OPTDEP    (:,:,:) ! Visible optical depth [1]
      REAL(fp), POINTER :: PEDGE     (:,:,:) ! Wet air pressure [hPa] @ level 
@@ -713,11 +714,15 @@ CONTAINS
     ALLOCATE( State_Met%MOISTMW ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%MOISTMW = 0.0_fp
-                                               
+
     ALLOCATE( State_Met%MOISTQ    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%MOISTQ   = 0.0_fp
-                                               
+
+    ALLOCATE( State_Met%NUMDEN    ( IM, JM, LM   ), STAT=RC )  
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%NUMDEN   = 0.0_fp
+
     ALLOCATE( State_Met%OPTD      ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%OPTD     = 0.0_fp
@@ -1072,6 +1077,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%MOISTMW    )) DEALLOCATE( State_Met%MOISTMW    )
     IF ( ASSOCIATED( State_Met%DTRAIN     )) DEALLOCATE( State_Met%DTRAIN     )
     IF ( ASSOCIATED( State_Met%MOISTQ     )) DEALLOCATE( State_Met%MOISTQ     )
+    IF ( ASSOCIATED( State_Met%NUMDEN     )) DEALLOCATE( State_Met%NUMDEN     )
     IF ( ASSOCIATED( State_Met%OPTD       )) DEALLOCATE( State_Met%OPTD       )
     IF ( ASSOCIATED( State_Met%OPTDEP     )) DEALLOCATE( State_Met%OPTDEP     )
     IF ( ASSOCIATED( State_Met%PEDGE      )) DEALLOCATE( State_Met%PEDGE      )
