@@ -76,6 +76,7 @@
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !  07 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
+!  18 Nov 2015 - M. Sulprizio- Add passive tracer IDTPASV to RnPbBe simulation
 !******************************************************************************
 !
       ! for CTM tracers
@@ -167,6 +168,7 @@
       INTEGER            :: IDTPYPAN,IDTMAP
       INTEGER            :: IDTAP
       INTEGER            :: IDTMPN
+      INTEGER            :: IDTPASV
 
       ! Hydrophobic and hydrophilic marine organic aerosols (ewl, 7/7/15)
       INTEGER            :: IDTMOPO, IDTMOPI
@@ -1124,6 +1126,10 @@
 
             CASE ( 'BE7' )
                IDTBE7   = N
+
+            ! Passive tracer (mps, 11/18/15)
+            CASE ( 'PASV' )
+               IDTPASV  = N
 
             !--------------------------------
             ! CH3I and HCN tracers
@@ -3693,6 +3699,7 @@
       IDTRN     = 0
       IDTPB     = 0
       IDTBE7    = 0
+      IDTPASV   = 0
       IDTGLYX   = 0
       IDTMGLY   = 0
       IDTBENZ   = 0

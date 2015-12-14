@@ -174,26 +174,9 @@
       ! TINY number
       REAL(fp), PARAMETER           :: TINY_FP = TINY(1.0_fp)
 
-#if defined( GEOS_FP ) || defined( MERRA2 )
-      !----------------------------------------------------------------------
-      ! %%%%% For GEOS-FP and MERRA-2 met fields %%%%%
-      !
-      ! Use condensed water content (L+W) =1.5e-6 cm3/cm3 (= 1.5e-3 kg/m3).
-      ! This is part of the "quick fix" by Hongyu Liu and Bo Zhang to fix
-      ! low tropospheric 210Pb lifetimes with GEOS-FP/MERRA2.  See:
-      !
-      ! http://wiki.geos-chem.org/Wet_deposition#Low_tropospheric_210Pb_lifetime_against_deposition_in_v11-01b
-      !----------------------------------------------------------------------
-      REAL(fp), PARAMETER           :: COND_WATER_CONTENT = 1.5e-6_fp
-#else
-      !----------------------------------------------------------------------
-      ! %%%%% For all other met fields %%%%%
-      !
       ! Use condensed water content (L+W) =1.0e-6 cm3/cm3 (= 1.0e-3 kg/m3).
       ! which was recommended by Qiaoqiao Wang et al (2014).
-      !---------------------------------------------------------------------- 
       REAL(fp), PARAMETER           :: COND_WATER_CONTENT = 1.0e-6_fp
-#endif
 !
 ! !LOCAL VARIABLES:
 !
