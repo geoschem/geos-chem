@@ -181,6 +181,8 @@
 #                              custom nested grids
 #  11 Aug 2015 - R. Yantosca - Add MERRA2 as a met field option
 #  24 Aug 2015 - R. Yantosca - Bug fix: Add missing | when testing USER_DEFS
+#  07 Dec 2015 - R. Yantosca - Add "realclean_except_rrtmg" target that
+#                              replaces the RRTMG_CLEAN variabe
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -401,19 +403,6 @@ ifeq ($(shell [[ "$(RRTMG)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DRRTMG
 endif
 
-# %%%%% Give users the option to make realclean except for RRTMG   %%%%%
-# %%%%% if they set variables  RRTMG_NOCLEAN=y or RRTMG_NO_CLEAN=y %%%%%
-# %%%%% This should help reduce the amount of time to recompile.   %%%%%
-RRTMG_CLEAN          :=1
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(RRTMG_NO_CLEAN)" =~ $(REGEXP) ]] && echo true),true)
-  RRTMG_CLEAN        :=0
-endif
-ifeq ($(shell [[ "$(RRTMG_NOCLEAN)" =~ $(REGEXP) ]] && echo true),true)
-  RRTMG_CLEAN        :=0
-endif
-
-
 #------------------------------------------------------------------------------
 # Met field settings
 #------------------------------------------------------------------------------
@@ -422,7 +411,7 @@ endif
 # to compile with "clean", "distclean", "realclean", "doc", "help",
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of MET.
 ifndef MET
-  REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout.|baselib.)
+  REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout|wipeout.|baselib.)
   ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ $(REGEXP) ]] && echo true),true)
     NO_MET_NEEDED    :=1
   else
@@ -498,7 +487,7 @@ endif  # NO_MET_NEEDED
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of GRID.
 ifndef NO_GRID_NEEDED
   ifndef GRID
-    REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout.|baselib.|^wipeout)
+    REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout|wipeout.|baselib.|^wipeout)
     ifeq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
       NO_GRID_NEEDED :=1
     else

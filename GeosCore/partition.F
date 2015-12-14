@@ -17,7 +17,9 @@
 ! !USES:
 !
       USE COMODE_MOD,         ONLY : CSPEC,     JLOP,       VOLUME
+#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE COMODE_MOD,         ONLY : JLOP_PREVIOUS
+#endif
       USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP, SAFE_DIV
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD,       ONLY : IDTRMB
@@ -88,11 +90,12 @@
       INTEGER :: CSAVEID(IGAS)
       INTEGER :: CSAVEID_JJ(IGAS)
       INTEGER :: CS, IDNUM, AS 
-      INTEGER :: LTEST
       INTEGER :: JLOOP_P 
+      INTEGER :: LTEST 
       REAL(fp)  :: CONCTMP, CONCNOX, SUM, SUM1
       REAL(fp)  :: CSAVE( ITLOOP, IGAS )
       REAL(fp)  :: QTEMP
+      REAL(fp)  :: DEF
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -143,9 +146,20 @@
          ! at the current chemistry timestep
          IF ( JLOOP == 0 ) CYCLE
 
+         ! JLOP_PREVIOUS fix: Since RURALBOX and COPY_FULL_CHEMGRID are 
+         ! called before PARTITION, the CSPEC array at the beginning of
+         ! partition already contains current concentrations ordered in
+         ! current SMVGEAR grid indeces (--> current JLOP). It thus seems
+         ! wrong to archive concentrations into CSAVE based upon the 
+         ! previous date JLOP values (as archived in JLOP_PREVIOUS). 
+         ! Better use current date JLOP values. 
+         ! (ckeller, 10/19/15).
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+         JLOOP_P = JLOOP
+#else
          ! 1-D index for SMVGEAR/KPP arrays corresponding to 
          ! grid box (I,J,L) @ previous chemistry timestep
-	 JLOOP_P = JLOP_PREVIOUS(I,J,L)
+         JLOOP_P = JLOP_PREVIOUS(I,J,L)
 
          ! If the grid box (I,J,L) was in the stratosphere 
          ! at the  previous timestep, then  ...
@@ -179,7 +193,8 @@
             ENDDO
             
          ENDIF
-		    
+#endif
+
          ! Archive into the CSAVE array the concentration of each species
          ! in the CSPEC array at the previous chemistry timestep at index
          ! JLOOP_P.  JLOOP_P is guaranteed to be a tropopsheric box.  This
@@ -214,7 +229,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, JLOOP, CONCTMP, SUM, KK, JJ, SUM1, CONCNOX )
-!$OMP+PRIVATE( QTEMP )
+!$OMP+PRIVATE( DEF, QTEMP )
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, NPVERT
          DO J = 1, NLAT
@@ -265,14 +280,22 @@
                ! in the tracer N.  The value QTEMP*CONCTMP is the 
                ! concentration of the member species itself, and that
                ! needs to be saved into CSPEC.
-               !
+               ! 
+               ! DEF is the default fraction (used if concentration
+               ! is zero). It is a combination of the number of member
+               ! species for this tracer as well as the molecules of 
+               ! species per molecules of tracer. (ckeller, 10/15/15).
+               DEF =  ( 1e+0_fp / NMEMBER(N)      ) 
+     &             *  ( 1e+0_fp / REAL(CTRMB(N,KK)+1,KIND=fp) )
+
                ! In the partitioning, now be sure to perform a safe
                ! floating point division of CSAVE/SUM.  Return the value
                ! 1/NMEMBER(N) if the division can't be done, i.e. do a
                ! uniform paritioning among all member species of the
                ! given tracer. (phs, bmy, 2/26/08)
                QTEMP = SAFE_DIV( CSAVE(JLOOP,CSAVEID(JJ)),
-     &                           SUM, 1e+0_fp/NMEMBER(N) )
+     &                           SUM, DEF ) 
+!!!     &                           SUM, 1e+0_fp/NMEMBER(N) )
                      
                ! Store the concentration of member species KK
                ! into the CSPEC array.  Do not allow underflow!

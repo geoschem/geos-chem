@@ -52,7 +52,7 @@ include $(ROOT)/Makefile_header.mk
 ###############################################################################
 
 .PHONY: all check clean distclean debug test
-.PHONY: exe
+.PHONY: exe slowclean
 
 #-----------------------------------------
 # Targets for building code
@@ -68,6 +68,11 @@ clean:
 	@$(MAKE) -C $(HCO)  clean
 	@$(MAKE) -C $(HCOI) clean
 	@$(MAKE) -C $(HCOX) clean
+
+slowclean:
+	@$(MAKE) -C $(HCO)  slowclean
+	@$(MAKE) -C $(HCOI) slowclean
+	@$(MAKE) -C $(HCOX) slowclean
 
 exe: check
 

@@ -1941,6 +1941,7 @@
       NULLIFY( ILAND )
       NULLIFY( IUSE  )
       NULLIFY( XLAI  )
+      IDEP => NULL()
 
       END SUBROUTINE DEPVEL
 !EOC
@@ -4315,7 +4316,8 @@
       ! Save Olson indices in INDOLSON array, in order to avoid
       ! confusion w/ previously-assinged variable name IOLSON
       CALL READ_DRYDEP_INPUTS( am_I_Root, Input_Opt, 
-     &                         DRYCOEFF,  INDOLSON, Input_Opt%IDEP,    
+     &                         DRYCOEFF,  INDOLSON, 
+     &                         Input_Opt%IDEP(1:NVEGTYPE),    
      &                         IWATER,    NWATER,   IZO,      
      &                         IDRYDEP,   IRI,      IRLU,     
      &                         IRAC,      IRGSS,    IRGSO, 

@@ -217,6 +217,8 @@ CONTAINS
 !  19 Feb 2015 - C. Keller   - Added optional argument OnlyIfFirst
 !  23 Feb 2015 - R. Yantosca - Now make Arr1D REAL(sp) so that we can write
 !                              out lon & lat as float instead of double
+!  06 Nov 2015 - C. Keller   - Output time stamp is now determined from 
+!                              variable OutTimeStamp.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -244,10 +246,11 @@ CONTAINS
     INTEGER                   :: VarCt
     INTEGER                   :: nLon, nLat, nLev, nTime 
     INTEGER                   :: Prc
-    INTEGER                   :: ResetFlag, MinResetFlag
-    LOGICAL                   :: EOI, PrevTime
+    INTEGER                   :: lymd, lhms 
+    LOGICAL                   :: EOI, DoWrite, PrevTime
  
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DIAGN_WRITEOUT (hcoio_diagn_mod.F90)' 
+
     !=================================================================
     ! HCOIO_DIAGN_WRITEOUT begins here!
     !=================================================================
@@ -259,27 +262,36 @@ CONTAINS
     ! Collection number
     PS = HcoDiagnIDDefault
     IF ( PRESENT(COL) ) PS = COL
-
-    ! Get prefix and reset frequency of this diagnostics collection
-    CALL DiagnCollection_Get( PS, Prefix=PFX, ResetFlag=ResetFlag, RC=RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Check if there is at least one diagnostics to write:
-    ! If current time stamp is not at the end of an interval - or
-    ! if there is no diagnostics container in the list with a reset
-    ! flag smaller or equal to MinResetFlag - there will be no matching
-    ! container whatsoever. Can leave right here.
-    ! EOI is the end-of-interval flag that will be used by routine
-    ! Diagn_Get. If set to true, only the containers at the end of
-    ! their averaging interval are returned.
+   
+    ! Check if it's time to write out this collection. Also set the 
+    ! end-of-interval EOI flag accordingly. This will be used lateron
+    ! when calling Diagn_Get. Since all diagnostic containers in a 
+    ! given collection have the same output frequency, this is somewhat
+    ! redundant (because we already check here if it is time to write 
+    ! out this particular collection). Keep it here for backwards 
+    ! consistency (ckeller, 8/6/2015).
     IF ( ForceWrite ) THEN
-       MinResetFlag = -1
-       EOI = .FALSE.
+       DoWrite = .TRUE.
+       EOI     = .FALSE.
     ELSE
-       MinResetFlag = HcoClock_GetMinResetFlag()
-       EOI = .TRUE.
+       DoWrite = DiagnCollection_IsTimeToWrite( PS )
+       EOI     = .TRUE.
     ENDIF
-    IF ( MinResetFlag > ResetFlag ) RETURN
+
+    ! Create current time stamps (to be used to archive time stamps) 
+    CALL HcoClock_Get(sYYYY=YYYY,sMM=MM,sDD=DD,sH=h,sM=m,sS=s,RC=RC)
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    lymd = YYYY*10000 + MM*100 + DD
+    lhms = h   *10000 + m *100 + s
+
+    ! Leave here if it's not time to write diagnostics. On the first 
+    ! time step, set lastYMD and LastHMS to current dates.
+    IF ( .NOT. DoWrite ) THEN
+       IF ( .NOT. DiagnCollection_LastTimesSet(PS) ) THEN
+          CALL DiagnCollection_Set ( COL=PS, LastYMD=lymd, LastHMS=lhms, RC=RC ) 
+       ENDIF
+       RETURN
+    ENDIF 
 
     ! Inherit precision from HEMCO 
     Prc = HP
@@ -294,16 +306,6 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Create output file
     !-----------------------------------------------------------------
-
-    ! Use HEMCO clock to create timestamp used in filename. Use previous
-    ! time step if this option is selected.
-    IF ( .NOT. PrevTime ) THEN
-       CALL HcoClock_Get(cYYYY=YYYY,cMM=MM,cDD=DD,cH=h,cM=m,cS=s,RC=RC)
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ELSE
-       CALL HcoClock_Get(pYYYY=YYYY,pMM=MM,pDD=DD,pH=h,pM=m,pS=s,RC=RC)
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
 
     ! Define grid dimensions
     nLon  = HcoState%NX
@@ -320,7 +322,10 @@ CONTAINS
     ! Construct filename: diagnostics will be written into file
     ! PREFIX.YYYYMMDDhm.nc, where PREFIX is the input argument or
     ! (if not present) obtained from the HEMCO configuration file.
-  
+ 
+    CALL ConstructTimeStamp ( am_I_Root, PS, PrevTime, YYYY, MM, DD, h, m, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+ 
     ! Write datetime
     WRITE( Yrs, '(i4.4)' ) YYYY
     WRITE( Mts, '(i2.2)' ) MM
@@ -331,6 +336,9 @@ CONTAINS
     ! Get prefix
     IF ( PRESENT(PREFIX) ) THEN
        Pfx = PREFIX
+    ELSE
+       CALL DiagnCollection_Get( PS, PREFIX=Pfx, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
     ncFile = TRIM(Pfx)//'.'//Yrs//Mts//Dys//hrs//mns//'.nc'
 
@@ -470,14 +478,19 @@ CONTAINS
     ENDDO
 
     !-----------------------------------------------------------------
-    ! Close file
+    ! Cleanup
     !-----------------------------------------------------------------
+
+    ! Close file
     CALL NC_CLOSE ( fId )
 
-    ! Cleanup
+    ! Cleanup local variables 
     Deallocate(Arr3D,Arr4D)
     ThisDiagn => NULL()
-    
+   
+    ! Archive time stamp 
+    CALL DiagnCollection_Set ( COL=PS, LastYMD=lymd, LastHMS=lhms, RC=RC ) 
+
     ! Return 
     RC = HCO_SUCCESS
 
@@ -524,7 +537,6 @@ CONTAINS
     USE ESMF
     USE MAPL_MOD
     USE HCO_State_Mod, ONLY : HCO_State
-    USE HCO_Clock_Mod, ONLY : HcoClock_GetMinResetFlag
 
 # include "MAPL_Generic.h"
 !
@@ -555,7 +567,6 @@ CONTAINS
     TYPE(DiagnCont), POINTER  :: ThisDiagn => NULL()
     INTEGER                   :: PS, FLAG, STAT
     CHARACTER(LEN=255)        :: MSG
-    INTEGER                   :: MinResetFlag
     LOGICAL                   :: EOI, PrevTime
     REAL, POINTER             :: Ptr2D(:,:)   => NULL()
     REAL, POINTER             :: Ptr3D(:,:,:) => NULL()
@@ -581,6 +592,14 @@ CONTAINS
     ! is scheduled through MAPL History!
     EOI = .FALSE.
 
+!    ! Check if it's time to write out this collection 
+!    IF ( ForceWrite ) THEN
+!       DoWrite = .TRUE.
+!    ELSE
+!       DoWrite = DiagnCollection_IsTimeToWrite( PS ) 
+!    ENDIF
+!    IF ( .NOT. DoWrite ) RETURN
+ 
     ! Get PrevTime flag from input argument or set to default (=> TRUE)
     IF ( PRESENT(UsePrevTime) ) THEN
        PrevTime = UsePrevTime
@@ -649,5 +668,138 @@ CONTAINS
   END SUBROUTINE HCOIO_DiagN_WriteOut
 !EOC
 #endif
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ConstructTimeStamp 
+!
+! !DESCRIPTION: Subroutine ConstructTimeStamp is a helper routine to construct
+! the time stamp of a given diagnostics collection. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ConstructTimeStamp ( am_I_Root, PS, PrevTime, Yr, Mt, Dy, hr, mn, RC )
+!
+! !USES:
+!
+    USE HCO_Clock_Mod
+    USE JULDAY_MOD
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   )    :: am_I_Root    ! Root CPU?
+    INTEGER,         INTENT(IN   )    :: PS           ! collecion ID
+    LOGICAL,         INTENT(IN   )    :: PrevTime     ! Use previous time? 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(INOUT)    :: RC           ! Return code
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(  OUT)    :: Yr 
+    INTEGER,         INTENT(  OUT)    :: Mt 
+    INTEGER,         INTENT(  OUT)    :: Dy 
+    INTEGER,         INTENT(  OUT)    :: hr
+    INTEGER,         INTENT(  OUT)    :: mn
+!
+! !REVISION HISTORY: 
+!  06 Nov 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: Y2, M2, D2, h2, n2, s2
+    INTEGER            :: Y1, M1, D1, h1, n1, s1
+    INTEGER            :: LastYMD, LastHMS
+    INTEGER            :: YYYYMMDD, HHMMSS
+    INTEGER            :: OutTimeStamp
+    REAL(dp)           :: DAY, UTC, JD1, JD2, JDMID
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'ConstuctTimeStamp (hcoi_diagn_mod.F90)'
+
+    !=================================================================
+    ! ConstructTimeStamp begins here!
+    !=================================================================
+
+    ! Use HEMCO clock to create timestamp used in filename. Use previous
+    ! time step if this option is selected.
+    IF ( .NOT. PrevTime ) THEN
+       CALL HcoClock_Get(sYYYY=Y2,sMM=M2,sDD=D2,sH=h2,sM=n2,sS=s2,RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ELSE
+       CALL HcoClock_Get(pYYYY=Y2,pMM=M2,pDD=D2,pH=h2,pM=n2,pS=s2,RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
+
+    ! Get timestamp location for this collection
+    CALL DiagnCollection_Get( PS, OutTimeStamp=OutTimeStamp, &
+                              LastYMD=LastYMD, LastHMS=LastHMS, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Determine dates to be used:
+
+    ! To use start date
+    IF ( OutTimeStamp == HcoDiagnStart ) THEN
+       Yr = FLOOR( MOD(LastYMD*1.d0, 100000000.d0 ) / 1.0d4 )
+       Mt = FLOOR( MOD(LastYMD*1.d0, 10000.d0     ) / 1.0d2 )
+       Dy = FLOOR( MOD(LastYMD*1.d0, 100.d0       ) / 1.0d0 )
+       Hr = FLOOR( MOD(LastHMS*1.d0, 1000000.d0   ) / 1.0d4 )
+       Mn = FLOOR( MOD(LastHMS*1.d0, 10000.d0     ) / 1.0d2 )
+
+    ! Use mid point
+    ELSEIF ( OutTimeStamp == HcoDiagnMid ) THEN
+
+       ! Julian day of start interval:
+       Y1 = FLOOR( MOD(LastYMD*1.d0, 100000000.d0 ) / 1.0d4 )
+       M1 = FLOOR( MOD(LastYMD*1.d0, 10000.d0     ) / 1.0d2 )
+       D1 = FLOOR( MOD(LastYMD*1.d0, 100.d0       ) / 1.0d0 )
+       h1 = FLOOR( MOD(LastHMS*1.d0, 1000000.d0   ) / 1.0d4 )
+       n1 = FLOOR( MOD(LastHMS*1.d0, 10000.d0     ) / 1.0d2 )
+       s1 = FLOOR( MOD(LastHMS*1.d0, 100.d0       ) / 1.0d0 )
+
+       UTC = ( REAL(h1,dp) / 24.0_dp    ) + &
+             ( REAL(n1,dp) / 1440.0_dp  ) + &
+             ( REAL(s1,dp) / 86400.0_dp ) 
+       DAY = REAL(D1,dp) + UTC
+       JD1 = JULDAY( Y1, M1, DAY )
+
+       ! Julian day of end interval:
+       UTC = ( REAL(h2,dp) / 24.0_dp    ) + &
+             ( REAL(n2,dp) / 1440.0_dp  ) + &
+             ( REAL(s2,dp) / 86400.0_dp ) 
+       DAY = REAL(D2,dp) + UTC
+       JD2 = JULDAY( Y2, M2, DAY )
+
+       ! Julian day in the middle
+       JDMID = ( JD1 + JD2 ) / 2.0_dp
+
+       ! Tranlate back into dates
+       CALL CALDATE( JDMID, YYYYMMDD, HHMMSS )
+       Yr = FLOOR ( MOD( YYYYMMDD, 100000000) / 1.0e4_dp )
+       Mt = FLOOR ( MOD( YYYYMMDD, 10000    ) / 1.0e2_dp )
+       Dy = FLOOR ( MOD( YYYYMMDD, 100      ) / 1.0e0_dp )
+       Hr = FLOOR ( MOD(   HHMMSS, 1000000  ) / 1.0e4_dp )
+       Mn = FLOOR ( MOD(   HHMMSS, 10000    ) / 1.0e2_dp )
+ 
+    ! Otherwise, use end date
+    ELSE
+       Yr = Y2
+       Mt = M2
+       Dy = D2
+       Hr = h2
+       Mn = n2
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE ConstructTimeStamp 
+!EOC
 END MODULE HCOIO_Diagn_Mod
 

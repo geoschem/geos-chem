@@ -34,6 +34,7 @@
       USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
       USE DUST_MOD,                ONLY : CLEANUP_DUST
       USE ERROR_MOD,               ONLY : DEBUG_MSG
+      USE GEOSFP_READ_MOD,         ONLY : CLEANUP_GEOSFP_READ
       USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GRID_MOD,                ONLY : CLEANUP_GRID
@@ -45,6 +46,7 @@
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
       USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
       USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
+      USE MERRA2_READ_MOD,         ONLY : CLEANUP_MERRA2_READ
       USE PBL_MIX_MOD,             ONLY : CLEANUP_PBL_MIX
       USE PJC_PFIX_MOD,            ONLY : CLEANUP_PJC_PFIX
       USE PLANEFLIGHT_MOD,         ONLY : CLEANUP_PLANEFLIGHT
@@ -347,5 +349,12 @@
       CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
       CALL Cleanup_CMN_FJX    ( am_I_Root, RC )
 
+      ! Close GEOS-FP or MERRA2 met field files that may still be open
+#if defined( GEOS_FP )
+      CALL Cleanup_GeosFp_Read()
+#elif defined( MERRA2 )
+      CALL Cleanup_Merra2_Read()
+#endif
+      
       END SUBROUTINE CLEANUP
 !EOC

@@ -106,6 +106,7 @@
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE TRACERID_MOD
       USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE TIME_MOD,           ONLY : GET_TS_CONV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
@@ -118,6 +119,7 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
+      USE TENDENCIES_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -192,6 +194,9 @@
       ! Scalars
       INTEGER           :: N_TOT_TRC             ! # of tracers to convect
       INTEGER           :: N_TRACERS
+      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+      REAL(fp)          :: DT_TEND
 
       ! Pointers
       ! Define local arrays to hold corresponding values 
@@ -245,6 +250,14 @@
       !=================================================================
       ! DO_CONVECT begins here!
       !=================================================================
+
+      !=================================================================
+      ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
+      !=================================================================
+#if defined( DEVEL )
+      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
+     &                  State_Chm, 'CONV', .TRUE., RC )
+#endif
 
       ! Assume success
       RC        =  GIGC_SUCCESS
@@ -512,6 +525,16 @@
      &                                   State_Met, State_Chm, RC ) 
       CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
      &                               Input_Opt, State_Chm, RC)
+
+      !=================================================================
+      ! Calculate tendencies and write to diagnostics 
+      ! (ckeller,7/15/2015)
+      !=================================================================
+#if defined( DEVEL )
+      DT_TEND = GET_TS_CONV() * 60.0_fp
+      CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
+     &                  State_Chm, 'CONV', .TRUE., DT_TEND, RC )
+#endif
 
       END SUBROUTINE DO_CONVECTION
 !EOC

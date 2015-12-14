@@ -43,6 +43,7 @@
 #  04 Jun 2015 - R. Yantosca     - Remove *.mod, *.a files with "make clean"
 #  04 Jun 2015 - R. Yantosca     - Update debug target, remove help
 #  04 Jun 2015 - R. Yantosca     - Manually remove mersennetwister.mod
+#  07 Dec 2015 - R. Yantosca     - Restore fast "clean" command; add "slowclean"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -91,7 +92,7 @@ LIBRARY :=librad.a
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean debug
+.PHONY: clean debug slowclean
 
 lib: $(OBJECTS)
 	$(AR) crs $(LIBRARY) $(OBJECTS)
@@ -99,6 +100,10 @@ lib: $(OBJECTS)
 
 clean:
 	@echo "===> Making clean in directory: GeosRad <==="
+	@rm -f *.o *.mod *.a *.x
+
+slowclean:
+	@echo "===> Making slowclean in directory: GeosRad <==="
 	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 debug:

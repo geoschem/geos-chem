@@ -52,10 +52,16 @@
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE CMN_GCTM_MOD
+    
+      USE COMODE_LOOP_MOD,    ONLY : NAMEGAS, NTSPEC, NCSURBAN
 
       USE PRECISION_MOD
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE HCO_ERROR_MOD
+      USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
+# if  defined( DEVEL ) 
+      USE DIAGNOSTICS_MOD,    ONLY : DiagnSpec
+#endif
 
       IMPLICIT NONE
 !
@@ -141,6 +147,9 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE and
 !                              GET_PCENTER with State_Met%PMID.
 !  16 Apr 2015 - E. Lundgren - Add new State_Met variables to ND68
+!  19 Oct 2015 - C. Keller   - Now use Input_Opt%ND68 instead of ND68;
+!                              Rename AIRDEN diagnostics to AIRDENSITY to
+!                              avoid name conflict with GEOS-5 model.
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -171,8 +180,12 @@
       REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! For netCDF diagnostics via HEMCO
-      INTEGER            :: HCRC
+      INTEGER            :: TPL, HCRC
+      REAL(fp)           :: PRESS
       REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+      REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
+      REAL(fp)           :: Arr3D(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: Arr2D(IIPAR,JJPAR)
       CHARACTER(LEN=255) :: DiagnName
 
       !=================================================================
@@ -506,7 +519,7 @@
       !       12: PMID_DRY     - dry air partial pressure at PMID [hPa]
       !       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
       !================================================================= 
-      IF ( ND68 > 0 ) THEN
+      IF ( Input_Opt%ND68 > 0 ) THEN
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -706,15 +719,47 @@
                ENDIF
             ENDIF
          ENDDO
-      ENDIF
 
+         IF ( DiagnSpec ) THEN
+
+            ! Loop over all species
+            DO N = 1, NTSPEC(NCSURBAN)
+   
+               ! Construct diagnostic name
+               IF ( TRIM(NAMEGAS(N)) == '' ) CYCLE
+               DiagnName = 'SPECIES_CONC_' // TRIM(NAMEGAS(N)) 
+         
+               ! Get value in #/cm3
+               Ptr3D => State_Chm%Species(:,:,:,N)
+   
+               ! Update the deposition velocity diagostics
+               CALL Diagn_Update( am_I_Root,
+     &                            cName   = TRIM( DiagnName ),
+     &                            Array3D = Ptr3D,
+     &                            COL     = Input_Opt%DIAG_COLLECTION,
+     &                            RC      = HCRC )
+   
+               ! Free the pointer
+               Ptr3D => NULL()
+   
+               ! STOP wieth error if the diagnostics were unsuccessful
+               IF ( HCRC /= HCO_SUCCESS ) THEN
+                  CALL ERROR_STOP(
+     &                    'Cannot update SPECIES_CONC diag diagnostics',
+     &                    'DIAG1 (diag1.F)')
+               ENDIF
+            ENDDO
+   
+         ENDIF ! DiagnSpec
+      ENDIF !ND45
+   
       !================================================================= 
       ! ND68: 1:  BXHEIGHT     - box height [m] 
       !       2:  AD           - dry air mass [kg]
       !       3:  AVGW         - mol H2O / mol dry air [v/v]
-      !       4:  AIRDEN       - dry air number mass density [kg/m3]
+      !       4:  AIRDENSITY   - dry air number mass density [kg/m3]
       !                          (Note this is different units than bpch)
-      !       5:  MAIRDEN      - moist air mass density [kg/m3]
+      !       5:  MAIRDENSITY  - moist air mass density [kg/m3]
       !       6:  T            - temperature [K]
       !       7:  TV           - virtual temperature [K]
       !       8:  PMID         - arithmetic mean pressure [hPa]
@@ -725,10 +770,10 @@
       !       13: PMEAN_DRY    - dry air partial pressure at PMEAN [hPa]
       !================================================================= 
 
-      IF ( ND68 > 0 ) THEN
+      IF ( Input_Opt%ND68 > 0 ) THEN
 
-         ! There are 16 diagnostics
-         DO I = 1,16
+         ! There are 13 diagnostics
+         DO I = 1,13
 
             ! Construct diagnostic name and get proper array
             SELECT CASE ( I ) 
@@ -742,10 +787,10 @@
                   DiagnName = 'AVGW'
                   Ptr3D => State_Met%AVGW
                CASE ( 4 ) 
-                  DiagnName = 'AIRDEN'
+                  DiagnName = 'AIRDENSITY'
                   Ptr3D => State_Met%AIRDEN
                CASE ( 5 ) 
-                  DiagnName = 'MAIRDEN'
+                  DiagnName = 'MAIRDENSITY'
                   Ptr3D => State_Met%MAIRDEN
                CASE ( 6 ) 
                   DiagnName = 'T'
@@ -792,7 +837,29 @@
                ENDIF
             ENDIF   
          ENDDO
-      ENDIF
+
+         ! Now also add TROPP_PRESSURE and TROPP_LEVEL
+         DiagnName = 'TROPP_PRESSURE'
+         Ptr2D => State_Met%TROPP
+         CALL Diagn_Update( am_I_Root, cName=DiagnName, 
+     &      Array2D=Ptr2D, COL=Input_Opt%DIAG_COLLECTION, RC=HCRC )
+         Ptr2D => NULL()
+         
+         DiagnName = 'TROPP_LEVEL'
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, TPL )
+         DO J=1,JJPAR
+         DO I=1,IIPAR
+            TPL        = GET_TPAUSE_LEVEL( I, J, State_Met )
+            Arr2D(I,J) = TPL
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO   
+         CALL Diagn_Update( am_I_Root, cName=DiagnName, 
+     &      Array2D=Arr2D, COL=Input_Opt%DIAG_COLLECTION, RC=HCRC )
+ 
+      ENDIF ! ND68
 #endif
 
       END SUBROUTINE DIAG1

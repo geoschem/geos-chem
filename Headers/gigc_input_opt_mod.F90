@@ -722,7 +722,7 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
-    USE CMN_SIZE_Mod,     ONLY : NDSTBIN
+    USE CMN_SIZE_Mod,     ONLY : NDSTBIN, NVEGTYPE
 !
 ! !INPUT PARAMETERS: 
 !
@@ -778,6 +778,7 @@ CONTAINS
 !  05 Mar 2015 - R. Yantosca - Added RES_DIR, CHEM_INPUTS_DIR fields
 !  06 Mar 2015 - R. Yantosca - Now initialize directory names with './'
 !  01 Apr 2015 - R. Yantosca - Now initialize extra nested-grid fields
+!  10 Jul 2015 - C. Keller   - Now set size of IDEP to NVEGTYPE 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1438,6 +1439,7 @@ CONTAINS
     Input_Opt%NUMDEP                 = 0
     Input_Opt%NDVZIND                = 0
     Input_Opt%IDDEP                  = 0
+    Input_Opt%IDEP                   = 0
     Input_Opt%DUSTREFF               = 0e+0_fp
     Input_Opt%DUSTDEN                = 0e+0_fp
     Input_Opt%DEPNAME                = ''

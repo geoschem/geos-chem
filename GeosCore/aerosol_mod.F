@@ -922,6 +922,7 @@
 !                              so that we cycle if JLOOP <= 0
 !  24 Jun 2015 - M. Sulprizio- Update organic aerosol density MSDENS(3) from
 !                              1800 to 1300 kg/m3 (E. Marais, M. Hammer)
+!  15 Oct 2015 - C. Keller   - Empty ODAER before refilling.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1188,6 +1189,11 @@
 
       !set default values for RH index array
       IRHARR(:,:,:)=1
+
+      ! Empty ODAER before refilling. This is required to make sure that
+      ! all gridboxes outside the chemistry grid are zero and do not carry
+      ! over values from previous time steps. (ckeller, 10/15/15)
+      ODAER(:,:,:,:,:) = 0.0d0
 
       ! DAR 09/2013
       ! There are two ways RDAER can be called:

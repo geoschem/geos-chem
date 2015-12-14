@@ -27,7 +27,9 @@
       USE COMODE_MOD,           ONLY : CSPEC
       USE COMODE_MOD,           ONLY : ERADIUS
       USE COMODE_MOD,           ONLY : JLOP
+#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE COMODE_MOD,           ONLY : JLOP_PREVIOUS
+#endif
       USE COMODE_MOD,           ONLY : TAREA
       USE COMODE_LOOP_MOD
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
@@ -373,19 +375,26 @@
       NLOOP  = NLAT  * NLONG
       NTLOOP = NLOOP * NVERT
 
+#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !vartrop fix (dkh, 05/08/11)
       !Save a copy of JLOP from the previous time step before re-ordering
       !the grid mappings.
       JLOP_PREVIOUS(:,:,:) = JLOP(:,:,:)
+#endif
 
       ! Locate the tropopsheric boxes
       CALL RURALBOX( State_Met )
 
       ! For the first chemistry timestep only, save JLOP into 
       ! JLOP_PREVIOUS, because there is no previous timestep.
+      ! Now explicitly check if JLOP_PREVIOUS is all zero and only set it 
+      ! to JLOP in these cases. This allows us to use archived JLOP_PREVIOUS
+      ! arrays for warm restart simulations (ckeller, 6/26/15).
+#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       IF ( FIRSTCHEM ) THEN
          JLOP_PREVIOUS = JLOP
       ENDIF
+#endif
 
       !### Debug
       IF ( prtDebug ) THEN

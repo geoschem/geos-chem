@@ -163,7 +163,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE HCO_EmisAdd_3D_Dp( am_I_Root, HcoState, Arr3D, HcoID, &
-                                RC,        ExtNr,    Cat,   Hier    )
+                                RC,        ExtNr,    Cat,   Hier,  &
+                                MinDiagnLev )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
@@ -180,6 +181,7 @@ CONTAINS
     INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr 
     INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
     INTEGER,         INTENT(IN   ), OPTIONAL :: Hier
+    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev 
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
@@ -223,7 +225,8 @@ CONTAINS
 
     ! Check for diagnostics
     CALL DiagnCheck( am_I_Root, HcoState,    ExtNr=ExtNr, Cat=Cat, &
-                     Hier=Hier, HcoID=HcoID, Arr3D=Arr3D, RC=RC     )
+                     Hier=Hier, HcoID=HcoID, Arr3D=Arr3D,          &
+                     MinDiagnLev=MinDiagnLev, RC=RC     )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
@@ -248,7 +251,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE HCO_EmisAdd_3D_Sp ( am_I_Root, HcoState, Arr3D, HcoID, &
-                                 RC,        ExtNr,    Cat,   Hier    )
+                                 RC,        ExtNr,    Cat,   Hier,  &
+                                 MinDiagnLev )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
@@ -265,6 +269,7 @@ CONTAINS
     INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr 
     INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
     INTEGER,         INTENT(IN   ), OPTIONAL :: Hier
+    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev 
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
@@ -308,7 +313,8 @@ CONTAINS
 
     ! Check for diagnostics
     CALL DiagnCheck( am_I_Root, HcoState,    ExtNr=ExtNr,   Cat=Cat, &
-                     Hier=Hier, HcoID=HcoID, Arr3Dsp=Arr3D, RC=RC     )
+                     Hier=Hier, HcoID=HcoID, Arr3Dsp=Arr3D,          & 
+                     MinDiagnLev=MinDiagnLev, RC=RC     )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
@@ -333,7 +339,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE HCO_EmisAdd_2D_Dp( am_I_Root, HcoState, Arr2D, HcoID, &
-                                RC,        ExtNr,    Cat,   Hier    )
+                                RC,        ExtNr,    Cat,   Hier,  &
+                                MinDiagnLev )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
@@ -348,6 +355,7 @@ CONTAINS
     INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr 
     INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
     INTEGER,         INTENT(IN   ), OPTIONAL :: Hier
+    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev 
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
@@ -391,7 +399,8 @@ CONTAINS
 
     ! Check for diagnostics
     CALL DiagnCheck( am_I_Root, HcoState,    ExtNr=ExtNr, Cat=Cat, &
-                     Hier=Hier, HcoID=HcoID, Arr2D=Arr2D, RC=RC     )
+                     Hier=Hier, HcoID=HcoID, Arr2D=Arr2D,          & 
+                     MinDiagnLev=MinDiagnLev, RC=RC     )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
@@ -416,7 +425,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE HCO_EmisAdd_2D_Sp( am_I_Root, HcoState, Arr2D, HcoID, &
-                                RC,        ExtNr,    Cat,   Hier    )
+                                RC,        ExtNr,    Cat,   Hier,  &
+                                MinDiagnLev )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -432,6 +442,7 @@ CONTAINS
     INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr 
     INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
     INTEGER,         INTENT(IN   ), OPTIONAL :: Hier
+    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev 
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
@@ -475,7 +486,8 @@ CONTAINS
 
     ! Check for diagnostics
     CALL DiagnCheck( am_I_Root, HcoState,    ExtNr=ExtNr,   Cat=Cat, &
-                     Hier=Hier, HcoID=HcoID, Arr2Dsp=Arr2D, RC=RC     )
+                     Hier=Hier, HcoID=HcoID, Arr2Dsp=Arr2D,          & 
+                     MinDiagnLev=MinDiagnLev, RC=RC     )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
@@ -911,7 +923,7 @@ CONTAINS
 !
   SUBROUTINE DiagnCheck( am_I_Root, HcoState, ExtNr,   Cat,     &
                          Hier,      HcoID,    Arr3D,   Arr3Dsp, &
-                         Arr2D,     Arr2Dsp,  RC    ) 
+                         Arr2D,     Arr2Dsp,  MinDiagnLev,  RC   ) 
 !
 ! !USES:
 !
@@ -924,6 +936,7 @@ CONTAINS
     INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr 
     INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
     INTEGER,         INTENT(IN   ), OPTIONAL :: Hier
+    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
@@ -987,34 +1000,42 @@ CONTAINS
        ENDIF
     ENDIF
 
+    IF ( PRESENT(MinDiagnLev) ) THEN
+       AFL = MIN(AFL,MinDiagnLev)
+    ENDIF
+
     ! Check if we need to call diagnostics
     IF ( Diagn_AutoFillLevelDefined(AFL) ) THEN 
    
        ! 3D HP array
        IF ( PRESENT(Arr3D) ) THEN
           CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
-                             HcoID=HcoID, AutoFill=1, Array3D=Arr3D, RC=RC )
+                             HcoID=HcoID, AutoFill=1, Array3D=Arr3D, &
+                             MinDiagnLev=MinDiagnLev, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF
 
        ! 3D SP array
        IF ( PRESENT(Arr3Dsp) ) THEN
           CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
-                             HcoID=HcoID, AutoFill=1, Array3D=Arr3Dsp, RC=RC )
+                             HcoID=HcoID, AutoFill=1, Array3D=Arr3Dsp, &
+                             MinDiagnLev=MinDiagnLev, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF
 
        ! 2D HP array
        IF ( PRESENT(Arr2D) ) THEN
           CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
-                             HcoID=HcoID, AutoFill=1, Array2D=Arr2D, RC=RC )
+                             HcoID=HcoID, AutoFill=1, Array2D=Arr2D, & 
+                             MinDiagnLev=MinDiagnLev, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF
 
        ! 2D SP array
        IF ( PRESENT(Arr2Dsp) ) THEN
           CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
-                             HcoID=HcoID, AutoFill=1, Array2D=Arr2Dsp, RC=RC )
+                             HcoID=HcoID, AutoFill=1, Array2D=Arr2Dsp, & 
+                             MinDiagnLev=MinDiagnLev, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN          
        ENDIF
 
