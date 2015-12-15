@@ -4068,11 +4068,6 @@
                   DEPNAME(NUMDEP) = 'ISOPND'
                   HSTAR(NUMDEP)   = DBLE( ThisSpc%DD_Hstar_old     )
                   F0(NUMDEP)      = DBLE( ThisSpc%DD_F0            )
-!------------------------------------------------------------------------------
-! Prior to 12/14/15:
-! Use actual MW, which is needed for the Schmidt # calculation (bmy, 12/14/15)
-!                  XMW(NUMDEP)     = DBLE( ThisSpc%EmMW_g * 1e-3_fp )
-!------------------------------------------------------------------------------
                   XMW(NUMDEP)     = DBLE( ThisSpc%MW_g * 1e-3_fp   )
                   AIROSOL(NUMDEP) = ( .not. ThisSpc%Is_Gas         )
                   
@@ -4083,11 +4078,6 @@
                   DEPNAME(NUMDEP) = 'ISOPNB'
                   HSTAR(NUMDEP)   = DBLE( ThisSpc%DD_Hstar_old     )
                   F0(NUMDEP)      = DBLE( ThisSpc%DD_F0            )
-!------------------------------------------------------------------------------
-! Prior to 12/14/15:
-! Use actual MW, which is needed for the Schmidt # calculation (bmy, 12/14/15)
-!                  XMW(NUMDEP)     = DBLE( ThisSpc%EmMW_g * 1e-3_fp )
-!------------------------------------------------------------------------------
                   XMW(NUMDEP)     = DBLE( ThisSpc%MW_g * 1e-3_fp   )
                   AIROSOL(NUMDEP) = ( .not. ThisSpc%Is_Gas         )
 
@@ -4101,30 +4091,20 @@
                   NTRAIND(NUMDEP)   = ThisSpc%ModelID
                   NDVZIND(NUMDEP)   = ThisSpc%DryDepID
                   DEPNAME(NUMDEP)   = 'MACRN'
-                  HSTAR(NUMDEP)     = DBLE( ThisSpc%DD_Hstar_old     )
-                  F0(NUMDEP)        = DBLE( ThisSpc%DD_F0            )
-!------------------------------------------------------------------------------
-! Prior to 12/14/15:
-! Use actual MW, which is needed for the Schmidt # calculation (bmy, 12/14/15)
-!                  XMW(NUMDEP)       = DBLE( ThisSpc%EmMW_g * 1e-3_fp )
-!------------------------------------------------------------------------------
-                  XMW(NUMDEP)       = DBLE( ThisSpc%MW_g * 1e-3_fp   )
-                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas         )
+                  HSTAR(NUMDEP)     = DBLE( ThisSpc%DD_Hstar_old   )
+                  F0(NUMDEP)        = DBLE( ThisSpc%DD_F0          )
+                  XMW(NUMDEP)       = DBLE( ThisSpc%MW_g * 1e-3_fp )
+                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas       )
                   
                   ! Second species: MVKN
                   NUMDEP            = NUMDEP + 1
                   NTRAIND(NUMDEP)   = ThisSpc%ModelID
                   NDVZIND(NUMDEP)   = ThisSpc%DryDepID + 1
                   DEPNAME(NUMDEP)   = 'MVKN'
-                  HSTAR(NUMDEP)     = DBLE( ThisSpc%DD_Hstar_old     )
-                  F0(NUMDEP)        = DBLE( ThisSpc%DD_F0            )
-!------------------------------------------------------------------------------
-! Prior to 12/14/15:
-! Use actual MW, which is needed for the Schmidt # calculation (bmy, 12/14/15)
-!                  XMW(NUMDEP)       = DBLE( ThisSpc%EmMW_g * 1e-3_fp )
-!------------------------------------------------------------------------------
-                  XMW(NUMDEP)       = DBLE( ThisSpc%MW_g * 1e-3_fp   )
-                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas         )
+                  HSTAR(NUMDEP)     = DBLE( ThisSpc%DD_Hstar_old   )
+                  F0(NUMDEP)        = DBLE( ThisSpc%DD_F0          )
+                  XMW(NUMDEP)       = DBLE( ThisSpc%MW_g * 1e-3_fp )
+                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas       )
 
                !-------------------------------------------------------
                ! All other tracers
@@ -4135,112 +4115,45 @@
                   NTRAIND(NUMDEP)   = ThisSpc%ModelID
                   NDVZIND(NUMDEP)   = ThisSpc%DryDepID
                   DEPNAME(NUMDEP)   = TRIM( ThisSpc%Name )
-                  HSTAR(NUMDEP)     = DBLE( ThisSpc%DD_Hstar_old     )
-                  F0(NUMDEP)        = DBLE( ThisSpc%DD_F0            )
-                  KOA(NUMDEP)       = DBLE( ThisSpc%DD_KOA           )
-!------------------------------------------------------------------------------
-! Prior to 12/14/15:
-! Use actual MW, which is needed for the Schmidt # calculation (bmy, 12/14/15)
-!                  XMW(NUMDEP)       = DBLE( ThisSpc%EmMW_g * 1e-3_fp )
-!------------------------------------------------------------------------------
-                  XMW(NUMDEP)       = DBLE( ThisSpc%MW_g * 1e-3_fp   )
-                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas         )
+                  HSTAR(NUMDEP)     = DBLE( ThisSpc%DD_Hstar_old   )
+                  F0(NUMDEP)        = DBLE( ThisSpc%DD_F0          )
+                  KOA(NUMDEP)       = DBLE( ThisSpc%DD_KOA         )
+                  XMW(NUMDEP)       = DBLE( ThisSpc%MW_g * 1e-3_fp )
+                  AIROSOL(NUMDEP)   = ( .not. ThisSpc%Is_Gas       )
 
                   ! Only copy DENSITY if it's not a missing value
                   IF ( ThisSpc%Density > 0.0_fp ) THEN
-                     A_DEN(NUMDEP)  = DBLE( ThisSpc%Density          )
+                     A_DEN(NUMDEP)  = DBLE( ThisSpc%Density        )
                   ENDIF
 
                   ! Only copy RADIUS if it's not a missing value
                   IF ( ThisSpc%Radius > 0.0_fp ) THEN
-                     A_RADI(NUMDEP) = DBLE( ThisSpc%Radius           )
+                     A_RADI(NUMDEP) = DBLE( ThisSpc%Radius         )
                   ENDIF
 
                   !-----------------------------------------------------
-                  ! Kludges to match behavior of prior code
-                  ! These are necessary to pass difference tests
+                  ! Kludges to match behavior of older code
                   !-----------------------------------------------------
                   SELECT CASE ( TRIM( ThisSpc%Name ) ) 
 
                      CASE( 'ACET' )
-!-----------------------------------------------------------------------------
-! Prior to 12/15/15:
-! Now use the actual molecular weight for acetone (bmy, 12/15/15)
-!                        ! XMW for ACET is set to 0.058 kg/mol, but it is 
-!                        ! emitted/ transported as equivalent carbons 
-!                        ! (0.012 kg/mol).  This may be historical, but
-!                        ! we should find out why.
-!                        XMW(NUMDEP)     = 58e-3_f8
-!-----------------------------------------------------------------------------
-                        ID_ACET         = ThisSpc%ModelId
+                        ! Flag the species ID of ACET for use above.
+                        ID_ACET = ThisSpc%ModelId
                         
-!-----------------------------------------------------------------------------
-! Prior to 12/15/15:
-! Now use the actual molecular weight for acetaldehyde (bmy, 12/15/15)
-!                     CASE( 'ALD2' )
-!                        ! XMW for ACET is set to 0.044 kg/mol, but it is 
-!                        ! emitted/ transported as equivalent carbons 
-!                        ! (0.012 kg/mol).  This may be historical, but
-!                        ! we should find out why.
-!                        XMW(NUMDEP)     = 44e-3_f8
-!-----------------------------------------------------------------------------
-
                      CASE( 'NITs', 'NITS' )
-                        ! DEPNAME for NITs has to be in all caps, or else
-                        ! it won't be passed to the aerosol drydep routine.
-                        ! Also XMW is set to 0.036 kg/mol but the molecular
-                        ! weight is given as 0.062 kg/mol.  This needs to
-                        ! be resolved.
+                        ! DEPNAME for NITs has to be in all caps, for
+                        ! backwards compatibility with older code.
                         DEPNAME(NUMDEP) = 'NITS' 
-!------------------------------------------------------------------------------
-! Prior to 12/15/16:
-! Now use the actual MW of NITs (bmy, 12/15/15)
-!                        XMW(NUMDEP)     = 36e-3_f8
-!------------------------------------------------------------------------------
 
                      CASE( 'N2O5', 'PMN', 'PPN', 'R4N2' )
                         ! N2O5 is assigned the Dvel of HNO3
                         ! PMN, PPN, R4N2 are assigned the Dvel of Pan
-                        XMW(NUMDEP)      = 0.0_f8
+                        XMW(NUMDEP) = 0.0_f8
 
                      CASE( 'SO4s', 'SO4S' )
-                        ! DEPNAME for SO4s has to be in all caps, or else
-                        ! it won't be passed to the aerosol drydep routine.
-                        ! Also XMW is set to 0.036 kg/mol but the molecular
-                        ! weight is given as 0.096 kg/mol.  This needs to
-                        ! be resolved.
+                        ! DEPNAME for SO4s has to be in all caps, for 
+                        ! backwards compatibility with older code
                         DEPNAME(NUMDEP) = 'SO4S'
-!------------------------------------------------------------------------------
-! Prior to 12/15/16:
-! Now use the actual MW of SO4s (bmy, 12/15/15)
-!                        XMW(NUMDEP)     = 36e-3_f8
-!
-!------------------------------------------------------------------------------
-! Prior to 12/15/15:
-! Now use the actual MW of SALA and SALC (31.4 g/mole) from the species 
-! database object.  These MW's were changed from 36 g/mole to 31.4 g/mole
-! in the GEOS-Chem v9-02 public release (03 Mar 2014).  At the time, it
-! appeared that only the input.geos file was updated, but not the XMW variable
-! in drydep_mod.F.  NOTE: The older MW of 36 g/mole seems to go back to the
-! GEOS-Chem v7-02-03 (commit "2066ec0", date 10 Feb 2005).
-!                     CASE( 'SALA', 'SALC' )
-!                        ! SALA, SALC were recently given a new molecular
-!                        ! weight of 0.314 kg/mol.  But XMW was unchanged
-!                        ! from the prior value of 0.036 kg/mol.  We
-!                        ! should probably update to the new value.
-!                        XMW(NUMDEP)     = 36e-3_f8
-!
-!------------------------------------------------------------------------------
-! Prior to 12/15/15:
-! Now use the actual MW of MTPO, which is 136.23 (bmy, 12/15/15)
-!                     CASE( 'MTPO' ) 
-!                        ! NOTE: in the prior code XMW was manually set to
-!                        ! 0.136 kg/mol but should have been 0.13623 kg/mol.
-!                        ! This reproduces the proper behavior, and allows
-!                        ! this code to pass difference tests.  We should
-!                        ! update this to the new value soon.
-!                        XMW(NUMDEP)     = 136e-3_f8
-!------------------------------------------------------------------------------
 
                      CASE DEFAULT
                         ! Do nothing
