@@ -1,21 +1,21 @@
-!---------------------------------------------------------------------------
-!     Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
-!     BOP
-!     
-!     !ROUTINE: chemdr
-!     
-!     !DESCRIPTION: Subroutine CHEMDR is the driver subroutine for full chemistry 
-!     with SMVGEAR or KPP.
-!\\   
-!\\   
-!     !INTERFACE:
-!     
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: flex_chemdr
+!
+! !DESCRIPTION: Subroutine FLEX\_CHEMDR is the driver subroutine for
+!  full chemistry with KPP.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE FLEX_CHEMDR( am_I_Root, Input_Opt, 
-     &     State_Met, State_Chm, RC  )
-!     
-!     !USES:
-!     
+     &                        State_Met, State_Chm, RC  )
+!
+! !USES:
+!
       USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
       USE COMODE_MOD,           ONLY : JLOP, TAREA, ERADIUS ! <--!!
       USE FLEXCHEM_SETUP_MOD,   ONLY : STTTOCSPEC, CSPECTOKPP, HSAVE_KPP
@@ -28,6 +28,10 @@
       USE ERROR_MOD,            ONLY : DEBUG_MSG
       USE ERROR_MOD,            ONLY : ERROR_STOP
       USE FAST_JX_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState
+      USE GIGC_State_Met_Mod,   ONLY : MetState
       USE HCO_DIAGN_MOD,        ONLY : Diagn_Update
       USE HCO_ERROR_MOD,        ONLY : HCO_SUCCESS
       USE PRECISION_MOD
@@ -37,61 +41,59 @@
       USE TIME_MOD,             ONLY : GET_YEAR
       USE UCX_MOD,              ONLY : KH=>KHETI_SLA
 
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-      USE GIGC_State_Chm_Mod,   ONLY : ChmState
-      USE GIGC_State_Met_Mod,   ONLY : MetState
-      
-
+      ! mje
       USE GCKPP_HETRATES,       ONLY : SET_HET
-!     mje
-      USE GCKPP_MONITOR,      ONLY : SPC_NAMES
+      USE GCKPP_MONITOR,        ONLY : SPC_NAMES
       USE GCKPP_PARAMETERS
-      USE GCKPP_INTEGRATOR,   ONLY : INTEGRATE, NHnew
+      USE GCKPP_INTEGRATOR,     ONLY : INTEGRATE, NHnew
       USE GCKPP_FUNCTION 
       USE GCKPP_MODEL
       USE GCKPP_GLOBAL
-      USE GCKPP_RATES,        ONLY : UPDATE_RCONST, RCONST
-      USE GCKPP_INITIALIZE,   ONLY : Init_KPP => Initialize
+      USE GCKPP_RATES,          ONLY : UPDATE_RCONST, RCONST
+      USE GCKPP_INITIALIZE,     ONLY : Init_KPP => Initialize
 
       IMPLICIT NONE
-!     
-!     !INPUT PARAMETERS:
-!     
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL,        INTENT(IN)    :: am_I_Root ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
-!     
-!     !INPUT/OUTPUT PARAMETERS:
-!     
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(MetState), INTENT(INOUT) :: State_Met ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
-!     
-!     !OUTPUT PARAMETERS:
-!     
+!
+! !OUTPUT PARAMETERS:
+!
       INTEGER,        INTENT(OUT)   :: RC ! Success or failure
-!     
-!     !LOCAL VARIABLES:
-!     
-
-      INTEGER       :: I, J, L, N, N1, MONTH, YEAR
-      INTEGER       :: WAVELENGTH
-      INTEGER       :: HCRC
-! (mpayer, 12/6/12)
-      INTEGER       :: N_TRACERS
-      LOGICAL       :: prtDebug
-      LOGICAL       :: LDUST
+! 
+! !REVISION HISTORY:
+!  14 Dec 2015 - M.S. Long   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: I, J, L, N, N1, MONTH, YEAR
+      INTEGER             :: WAVELENGTH
+      INTEGER             :: HCRC
+      INTEGER             :: N_TRACERS
+      LOGICAL             :: prtDebug
+      LOGICAL             :: LDUST
       CHARACTER(LEN=155)  :: DiagnName
 
-!     mje Variables for holding rate diagnoastics
-!     mje DERIV: Concentrations derivatives for one box d[X]/dt
-!     mje GLOB_DERIV: Store global values of concentrations devivatives
-!     mje GLOB_RATES: Stores global values of fluxes through each reaction
+      ! mje Variables for holding rate diagnoastics
+      ! mje DERIV: Concentrations derivatives for one box d[X]/dt
+      ! mje GLOB_DERIV: Store global values of concentrations devivatives
+      ! mje GLOB_RATES: Stores global values of fluxes through each reaction
       REAL(kind=dp)       :: DERIV(NSPEC)
       REAL(kind=dp)       :: GLOB_DERIV(IIPAR,JJPAR,LLPAR,NSPEC)
       REAL(kind=dp)       :: GLOB_RATES(IIPAR,JJPAR,LLPAR,NREACT)
       REAL(kind=dp)       :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT)
 
-!     mje KPP variables
+      ! mje KPP variables
       INTEGER             :: IERR
       REAL(kind=fp)       :: T, TIN, TOUT
       REAL(kind=dp)       :: RCNTRL(20)
@@ -99,22 +101,16 @@
       INTEGER             :: ICNTRL(20)
       INTEGER             :: ISTATUS(20)
 
-!     mje Array to hold the molecular mass of the species
+      ! mje Array to hold the molecular mass of the species
       REAL(kind=fp)               :: TCVV(Input_Opt%N_TRACERS)
 
-!     mje CSPEC_FULL holds the concentation of all chemical species
-!     mje It is a pointer to the values rather than an array in itself
-!     mje However we can treat it as a variable and we don't have to map it back
-!     mje back to anything once we are done with it 
+      ! mje CSPEC_FULL holds the concentation of all chemical species
       REAL(kind=fp), POINTER      :: CSPEC_FULL(:,:,:,:)
 
-!     mje STT holds the concentrations of Tracersa
-!     mje It is a point to the values rather than an array in itself 
-!     mje However we can treat it as a variable and we don't have to map it back
-!     mje back to anything once we are done with it 
+      ! mje STT holds the concentrations of Tracers
       REAL(kind=fp), POINTER      :: STT(:,:,:,:)
 
-!     mje Array for bug checking
+      ! mje Array for bug checking
       REAL(kind=fp)               :: AverageVAR(NSPEC)
       REAL(kind=fp)               :: Mass, Start, Finish, rtim, itim
 
@@ -127,16 +123,19 @@
       MONTH     = GET_MONTH()
       YEAR      = GET_YEAR()
 
-!     mje Copy Number of tracers (advected species) into N_TRACERS
+      ! mje Copy Number of tracers (advected species) into N_TRACERS
       N_TRACERS = Input_Opt%N_TRACERS
 
-!     mje Copy the molecular mass of the Tracers into TCVV
-      TCVV       = Input_Opt%TCVV
+      ! mje Copy the molecular mass of the Tracers into TCVV
+      TCVV      = Input_Opt%TCVV
 
-!     mje link the SPEC_FULL Pointer to the State_Chm%Species structure
+      ! mje link the SPEC_FULL Pointer to the State_Chm%Species structure
       CSPEC_FULL => State_Chm%Species
+
+      ! Debug
       write(*,'(a,e8.1)') '<> 8.1', State_Chm%Species(10,10,10,66)
-!     mje link the STT Pointer to the State_Chm%Tracers stucture
+
+      ! mje link the STT Pointer to the State_Chm%Tracers stucture
       STT =>  State_Chm%Tracers
 
       ! Locate the tropopsheric boxes
@@ -214,16 +213,16 @@
       ! Copy aerosol areas into State_Chm
       !  -- Should be moved to AerosolMod once JLOOP is gone
       DO L = 1, LLPAR
-         DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               N = JLOP(I,J,L)
-               State_Chm%AeroArea(I,J,L,:) = TAREA(N,:)
-               State_Chm%AeroRadi(I,J,L,:) = ERADIUS(N,:)
-               State_Met%NUMDEN(I,J,L)     = GET_PCENTER(I,J,L)*1e2*
-     &                            1d-6/(8.314d0*State_Met%T(I,J,L))
-     &                            *6.022d23
-            END DO
-         END DO
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         N = JLOP(I,J,L)
+         State_Chm%AeroArea(I,J,L,:) = TAREA(N,:)
+         State_Chm%AeroRadi(I,J,L,:) = ERADIUS(N,:)
+         State_Met%NUMDEN(I,J,L)     = GET_PCENTER(I,J,L)*1e2*
+     &                                 1d-6/(8.314d0*State_Met%T(I,J,L))
+     &                                 *6.022d23
+      END DO
+      END DO
       END DO
 
 !      DO N=1,N_TRACERS
@@ -231,7 +230,7 @@
 !     &           sum(STT(:,:,1,N)), State_Met%NUMDEN(10,10,1)
 !       ENDDO 
 
-!     mje  STT currently in kg / grid box convert to v/v
+      ! mje  STT currently in kg / grid box convert to v/v
       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT)
 
 !      DO N=1,N_TRACERS
@@ -239,7 +238,7 @@
 !     &           sum(STT(:,:,1,N))
 !       ENDDO 
 
-!     mje now copy STT variables into CSPEC_FULL array 
+      ! mje now copy STT variables into CSPEC_FULL array 
       DO N=1,N_TRACERS
          IF (STTTOCSPEC(N) .NE. 0) THEN 
             CSPEC_FULL(:,:,:,STTTOCSPEC(N))=STT(:,:,:,N)
@@ -254,37 +253,35 @@
       TIN = T
       TOUT = T + DT
 
-!     mje Set up integration convergence conditions
-!      RTOL = 1.d-1
-!      ATOL = 1.d0
+      ! mje Set up integration convergence conditions
+      !RTOL = 1.d-1
+      !ATOL = 1.d0
       RTOL = 2e-1_dp
       ATOL = 1e-2_dp
       
-!     mje Set up internal integrator parameters 
+      ! mje Set up internal integrator parameters 
       ICNTRL = 0
       RCNTRL = 0.
       
       ICNTRL(1) = 1             ! Autonomous
       ICNTRL(2) = 0             ! Nonautonomous
       
-!     Select Integrator
-!     ICNTRL(3)  -> selection of a particular method.
-!     For Rosenbrock, options are:
-!     = 0 :  default method is Rodas3
-!     = 1 :  method is  Ros2
-!     = 2 :  method is  Ros3 
-!     = 3 :  method is  Ros4 
-!     = 4 :  method is  Rodas3
-!     = 5:   method is  Rodas4
+      ! Select Integrator
+      ! ICNTRL(3)  -> selection of a particular method.
+      ! For Rosenbrock, options are:
+      ! = 0 :  default method is Rodas3
+      ! = 1 :  method is  Ros2
+      ! = 2 :  method is  Ros3 
+      ! = 3 :  method is  Ros4 
+      ! = 4 :  method is  Rodas3
+      ! = 5:   method is  Rodas4
       ICNTRL(3) = 4
       ICNTRL(7) = 1             ! No adjoint
 
-!     mje setup some internal diagnostics
-      AVERAGEVAR(:)=0.d0
-      MASS=0.d0
+      ! mje setup some internal diagnostics
+      AVERAGEVAR(:) = 0.d0
+      MASS          = 0.d0
 
-!     mje Loop over all the gridboxes!
-!     mje This is where we will need to put the parallelization loop
       !=================================================================
       ! Solve Chemistry
       !=================================================================
@@ -312,142 +309,153 @@
 !!$OMP+PRIVATE( ITEMPK, RO1D, RO1DplH2O, RO1DplH2, H2O )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
-         DO J = 1, JJPAR
-            DO I = 1, IIPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-!     mje If we are not in the troposphere don't do the chemistry!
-               IF (.not. ITS_IN_THE_CHEMGRID(I,J,L,State_Met)) CYCLE
+         ! mje If we are not in the troposphere don't do the chemistry!
+         IF (.not. ITS_IN_THE_CHEMGRID(I,J,L,State_Met)) CYCLE
 
-               call cpu_time(start)
-               HET(:,:) = 0.
-!               CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt,KH)
+         call cpu_time(start)
+         HET(:,:) = 0.
+!         CALL SET_HET(I,J,L,State_Chm,State_Met,Input_Opt,KH)
 
-!     mje  Set up the physical conditions for the current box
-!     mje These variables are defined by the KPP definition files gckpp.kpp 
-!     mje #INLINE F90_GLOBAL    
-               TEMP   = State_Met%T(I,J,L)
-               PRESS  = GET_PCENTER(I,J,L)
-!     mje Calculate NUMDEN based on ideal gas law (# cm-3)
-               NUMDEN=State_Met%NUMDEN(I,J,L)
-!     mje H2O arrives in g/kg needs to be in mol cm-3 
-               H2O=State_Met%SPHU(I,J,L)*
-     &              (0.21*32d0+0.79*28d0)/(18d0)/1000.
-               H2O=H2O*NUMDEN
-!     Set up te photolysis rates the order here is the order in the Fast-J definition files
-!     I've assumed that these are the same as in the text files but this may have been changed. 
-!     This needs to be checked through more thoroughly
-               CALL PHOTRATE_ADJ( am_I_root, State_Met, 
-     &                         State_Chm, Input_Opt, 
-     &                         I, J, L, H2O, NUMDEN, IERR )
-               PHOTOL(1:JVN_) = 0.!ZPJ(L,1:JVN_,I,J)
-!     mje Set up the initial conditions of the variable species
-!     mje The Integrator works in # cm-3 rather than v/v
-               DO N=1,NSPEC
-                  IF ( CSPECTOKPP(N) .eq. 0) CYCLE
-                  C(N)=CSPEC_FULL(I,J,L,CSPECTOKPP(N))*NUMDEN
-               ENDDO
-               IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-                  write(*,'(a,e8.1)') '<> 8.2.2', C(ind_OH)
-               ENDIF
-!     mje Set up the values of the non-variable speciesa
-!     mje This needs to be interfaced into the GC system better
-               C(ind_CH4)=1770.e-9_dp*NUMDEN
-               C(ind_MOH)=0.5e-9_dp*NUMDEN
-               C(ind_H2) =0.5e-6_dp*NUMDEN
+         ! mje Set up the physical conditions for the current box
+         ! mje These variables are defined by the KPP definition files gckpp.kpp
+         ! mje #INLINE F90_GLOBAL    
+         TEMP   = State_Met%T(I,J,L)
+         PRESS  = GET_PCENTER(I,J,L)
+
+         ! mje Calculate NUMDEN based on ideal gas law (# cm-3)
+         NUMDEN = State_Met%NUMDEN(I,J,L)
+
+         ! mje H2O arrives in g/kg needs to be in mol cm-3 
+         H2O    = State_Met%SPHU(I,J,L)*
+     &            (0.21*32d0+0.79*28d0)/(18d0)/1000.
+         H2O    = H2O * NUMDEN
+
+         ! Set up te photolysis rates the order here is the order in the Fast-J
+         ! definition files
+         ! I've assumed that these are the same as in the text files but this
+         ! may have been changed. 
+         ! This needs to be checked through more thoroughly
+         CALL PHOTRATE_ADJ( am_I_root, State_Met, 
+     &                      State_Chm, Input_Opt, 
+     &                      I, J, L, H2O, NUMDEN, IERR )
+         PHOTOL(1:JVN_) = 0.    !ZPJ(L,1:JVN_,I,J)
+
+         ! mje Set up the initial conditions of the variable species
+         ! mje The Integrator works in # cm-3 rather than v/v
+         DO N=1,NSPEC
+            IF ( CSPECTOKPP(N) .eq. 0) CYCLE
+            C(N)=CSPEC_FULL(I,J,L,CSPECTOKPP(N))*NUMDEN
+         ENDDO
+
+         ! Debug
+         IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
+            write(*,'(a,e8.1)') '<> 8.2.2', C(ind_OH)
+         ENDIF
+
+         ! mje Set up the values of the non-variable species
+         ! mje This needs to be interfaced into the GC system better
+         C(ind_CH4) = 1770.e-9_dp * NUMDEN
+         C(ind_MOH) = 0.5e-9_dp   * NUMDEN
+         C(ind_H2)  = 0.5e-6_dp   * NUMDEN
 
          ! starting value for integration time step
-               RCNTRL(3) = HSAVE_KPP(I,J,L)
+         RCNTRL(3) = HSAVE_KPP(I,J,L)
 
-!     mje  Update KPP's rates
-!               write(*,*) '<> NUMDEN1', NUMDEN
-!               CALL Init_KPP( )
-               CALL Update_RCONST( )
-               call cpu_time(finish)
-               rtim = rtim + finish - start
-               GLOB_RCONST(I,J,L,:) = RCONST(:)
-               
-!     mje Integrate the box forwards
-               call cpu_time(start)
-               call Integrate( TIN,    TOUT,    ICNTRL, 
-     &                         RCNTRL, ISTATUS, RSTATE, IERR )
-               call cpu_time(finish)
-               itim = itim + finish - start
+         ! mje  Update KPP's rates
+!         write(*,*) '<> NUMDEN1', NUMDEN
+!         CALL Init_KPP( )
+         CALL Update_RCONST( )
+         call cpu_time(finish)
+         rtim = rtim + finish - start
+         GLOB_RCONST(I,J,L,:) = RCONST(:)
+
+         ! mje Integrate the box forwards
+         call cpu_time(start)
+         call Integrate( TIN,    TOUT,    ICNTRL, 
+     &                   RCNTRL, ISTATUS, RSTATE, IERR )
+         call cpu_time(finish)
+         itim = itim + finish - start
+
 
          ! Try another time if it failed
-!               IF ( IERR < 0 ) THEN
-!                  write(6,*) ''
-!                  write(6,100) istatus(1:8),rstate(1:3)
-!                  write(6,*) ''
-!                  write(ERR_MSG,'(a,i3)') 'Integrator error code :',IERR
-!                  write(6,*)  'I, J, L ', I, J, L
+!         IF ( IERR < 0 ) THEN
+!            write(6,*) ''
+!            write(6,100) istatus(1:8),rstate(1:3)
+!            write(6,*) ''
+!            write(ERR_MSG,'(a,i3)') 'Integrator error code :',IERR
+!            write(6,*)  'I, J, L ', I, J, L
 !
-!                  ! Reset first time step and start concentrations
-!                  ! Retry the integration with non-optimized
-!                  ! settings
-!                  RCNTRL(3)  = 0e+0_fp
-!!                  CALL Init_KPP( )
-!                  CALL Update_RCONST( )
-!                  call Integrate( TIN,    TOUT,    ICNTRL, 
-!     &                            RCNTRL, ISTATUS, RSTATE, IERR )
-!                  IF ( IERR < 0 ) THEN 
-!                     print*, 'failed twice !!! '
-!!                     CALL ERROR_STOP(ERR_MSG, 'INTEGRATE_KPP')
-!                  ENDIF
-!                  
-!               ENDIF
+!            ! Reset first time step and start concentrations
+!            ! Retry the integration with non-optimized
+!            ! settings
+!            RCNTRL(3)  = 0e+0_fp
+!!            CALL Init_KPP( )
+!            CALL Update_RCONST( )
+!            call Integrate( TIN,    TOUT,    ICNTRL, 
+!     &                      RCNTRL, ISTATUS, RSTATE, IERR )
+!            IF ( IERR < 0 ) THEN 
+!               print*, 'failed twice !!! '
+!!               CALL ERROR_STOP(ERR_MSG, 'INTEGRATE_KPP')
+!            ENDIF
+!            
+!         ENDIF
 
-!     mje calculate some diagnostics
-!     mje calculate d[X]/dt for all the species
-!               CALL FUN(VAR, FIX, RCONST, DERIV)
+         ! mje calculate some diagnostics
+         ! mje calculate d[X]/dt for all the species
+         !CALL FUN(VAR, FIX, RCONST, DERIV)
 
-!     mje Copy d[X]/dt for this box into the global array
-!     mje x Copy Fluxes through each reation into the global array
-!               GLOB_DERIV(I,J,L,:)=DERIV
-!               GLOB_RATES(I,J,L,:)=A
+         ! mje Copy d[X]/dt for this box into the global array
+         ! mje x Copy Fluxes through each reation into the global array
+         !GLOB_DERIV(I,J,L,:)=DERIV
+         !GLOB_RATES(I,J,L,:)=A
 
-!     mje some simple diagnostics to check that things make sense
-!     mje these can be removed once we are happy with everything
-               DO N=1,NSPEC
-                  AVERAGEVAR(N)=AVERAGEVAR(N)+
-     $                 C(N)*State_Met%AD(I,J,L)
-               ENDDO
-               MASS=MASS+State_Met%AD(I,J,L)
-
-
-!     mje Convert concentrations back to v/v
-
-!     mje Check we have no negative values and copy the concentrations calcualted
-!     mje Into the CSPEC_FULL array which is really a pointer to the chemistry structure
-               IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-                  write(*,'(a,e8.1)') '<> 8.2.3', C(ind_OH)
-               ENDIF
-
-               DO N=1,NSPEC
-                  C(N)=MAX(C(N),0E0_dp)
-                  IF ( CSPECTOKPP(N) .eq. 0) CYCLE
-                  CSPEC_FULL(I,J,L,CSPECTOKPP(N))=
-     &                 real(C(N),kind=fp)/NUMDEN
-               ENDDO
-
-               ! save next integration time step
-               HSAVE_KPP(I,J,L) = RSTATE(Nhnew)
-!     mje finish looping over all gridboxes
-               
-            ENDDO
+         ! mje some simple diagnostics to check that things make sense
+         ! mje these can be removed once we are happy with everything
+         DO N=1,NSPEC
+            AVERAGEVAR(N)=AVERAGEVAR(N)+
+     &                    C(N)*State_Met%AD(I,J,L)
          ENDDO
+         MASS=MASS+State_Met%AD(I,J,L)
+
+         ! Debug
+         IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
+            write(*,'(a,e8.1)') '<> 8.2.3', C(ind_OH)
+         ENDIF
+
+         ! mje Convert concentrations back to v/v
+         ! mje Check we have no negative values and copy the concentrations
+         ! mje calculated into the CSPEC_FULL array which is really a pointer
+         ! mje to the chemistry structure
+         DO N=1,NSPEC
+            C(N) = MAX( C(N), 0E0_dp )
+            IF ( CSPECTOKPP(N) .eq. 0) CYCLE
+            CSPEC_FULL(I,J,L,CSPECTOKPP(N))= real(C(N),kind=fp)/NUMDEN
+         ENDDO
+
+         ! save next integration time step
+         HSAVE_KPP(I,J,L) = RSTATE(Nhnew)
+
+      ENDDO
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
       write(*,'(a,F7.3)') 'Flex Rate Time: ', rtim
       write(*,*) 'Flex Intg Time: ', itim
 
+      ! Debug
       write(*,'(a,e8.1)') '<> 8.3', CSPEC_FULL(10,10,10,66)
-!     mje write out tropospheric mass weighted averages
 
+!     mje write out tropospheric mass weighted averages
 !      DO N=1,NSPEC
 !         WRITE (6,*) SPC_NAMES(N), AVERAGEVAR(N)/MASS
 !      ENDDO	
 
-!     mje copy the new values concentration of tracers from the CSPEC_FULL array into the STT array
+      ! mje copy the new values concentration of tracers from the CSPEC_FULL
+      ! array into the STT array
       DO N=1,N_TRACERS
          IF (STTTOCSPEC(N) .NE. 0) THEN
             STT(:,:,:,N)=CSPEC_FULL(:,:,:,STTTOCSPEC(N))
@@ -522,11 +530,11 @@
 !     mje convert the STT array from v/v to kg per grid box
       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT)
 
-!     mje set rid of the pointers created
+      ! mje set rid of the pointers created
       NULLIFY (STT)
       NULLIFY (CSPEC_FULL) 
-      END SUBROUTINE FLEX_CHEMDR
-!     EOC
 
+      END SUBROUTINE FLEX_CHEMDR
+!EOC
 
 

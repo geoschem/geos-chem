@@ -1,49 +1,52 @@
-!$ID$
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE:
+! !MODULE: flexchem_setup_mod
 !
-! !DESCRIPTION:
-!              
+! !DESCRIPTION: Module FLEXCHEM\_SETUP\_MOD 
 !\\
 !\\
 ! !INTERFACE: 
 !
 MODULE FLEXCHEM_SETUP_MOD
-! 
+!
 ! !USES:
-!  
-  
+!
   USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
   IMPLICIT NONE
   PRIVATE
-
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
   PUBLIC :: STTTOCSPEC, CSPECTOKPP
   PUBLIC :: INIT_FLEXCHEM
   PUBLIC :: HSAVE_KPP
-  
-  INTEGER,   ALLOCATABLE :: STTTOCSPEC(:), CSPECTOKPP(:)
-  REAL(fp),  ALLOCATABLE :: HSAVE_KPP(:,:,:) 
 !    
 ! !REVISION HISTORY:
-!   
+!  14 Dec 2015 - M.S. Long   - Initial version
 !EOP
 !------------------------------------------------------------------------------
-    
+!BOC
+!
+! !PRIVATE TYPES:
+!
+  INTEGER,   ALLOCATABLE :: STTTOCSPEC(:)
+  INTEGER,   ALLOCATABLE :: CSPECTOKPP(:)
+  REAL(fp),  ALLOCATABLE :: HSAVE_KPP(:,:,:) 
+
 CONTAINS
-  
+!EOC  
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: INIT_GCKPP_COMODE
+! !IROUTINE: INIT_FLEXCHEM
 !
-! !DESCRIPTION: Subroutine INIT\_GCKPP\_COMODE is used to allocate
+! !DESCRIPTION: Subroutine INIT\_FLEXCHEM is used to allocate
 !               arrays for the KPP solver. 
 !\\
 !\\
@@ -72,7 +75,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !    
-    INTEGER,        INTENT(OUT):: RC
+    INTEGER,        INTENT(OUT)   :: RC        ! Success or failure?
 !    
 ! !REVISION HISTORY:
 !  16 Sep 2009 - P. Le Sager - init
@@ -84,7 +87,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: AS, D, I, N, N1, FOUND
+    INTEGER            :: AS, D, I, N, N1, FOUND
     INTEGER            :: cId, Collection
     CHARACTER(LEN=15)  :: OutOper,  WriteFreq
     CHARACTER(LEN=60)  :: DiagnName
@@ -92,7 +95,8 @@ CONTAINS
     CHARACTER(LEN=255) :: LOC = 'INIT_FLEXCHEM (flexchem_setup_mod.F90)' 
     LOGICAL            :: IT_EXISTS
 
-    RC=0
+    ! Assume success
+    RC = 0
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
@@ -258,8 +262,11 @@ CONTAINS
       ENDIF
 
 100 FORMAT( '     - INIT_FLEXCHEM: Allocating arrays for FLEX_CHEMISTRY' )
+
     ! Return to calling program
     RETURN
-END SUBROUTINE INIT_FLEXCHEM
+
+  END SUBROUTINE INIT_FLEXCHEM
+!EOC
 END MODULE FLEXCHEM_SETUP_MOD
 

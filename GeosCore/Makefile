@@ -601,6 +601,7 @@ flex_chemdr.o               : aerosol_mod.o           comode_mod.o           \
                               ../KPP/TempFlex/gckpp_Rates.o                \
 
 flexchem_setup_mod.o        : flexchem_setup_mod.F90 \
+                              restart_mod.o                                  \
                               ../KPP/TempFlex/gckpp_Monitor.o                \
                               ../KPP/TempFlex/gckpp_Parameters.o             \
                               ../KPP/TempFlex/gckpp_Precision.o
@@ -625,10 +626,6 @@ gamap_mod.o                 : gamap_mod.F                                    \
 ifeq ($(COMPILER),sun)
 	$(F90) -O0 -c $<
 endif
-
-gasconc.o                   : gasconc.F                                      \
-                              chemgrid_mod.o          comode_mod.o           \
-                              drydep_mod.o
 
 gcap_convect_mod.o          : gcap_convect_mod.F                             \
                               diag_mod.o
