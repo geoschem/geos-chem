@@ -182,7 +182,7 @@
       N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
 #endif
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 

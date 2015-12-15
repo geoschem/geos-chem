@@ -214,6 +214,8 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: AD        (:,:,:) ! Dry air mass [kg] in grid box
      REAL(fp), POINTER :: ADMOIST   (:,:,:) ! Moist air mass [kg] in grid box
      REAL(fp), POINTER :: AIRVOL    (:,:,:) ! Grid box volume [m3] (dry air)
+     REAL(fp), POINTER :: DELP_PREV (:,:,:) ! Previous State_Met%DELP
+     REAL(fp), POINTER :: SPHU_PREV (:,:,:) ! Previous State_Met%SPHU
 
      !----------------------------------------------------------------------
      ! Land type and leaf area index (LAI) fields for dry deposition
@@ -256,6 +258,8 @@ MODULE GIGC_State_Met_Mod
 !  08 Jul 2015 - E. Lundgren - Add XCHLR and XCHLR2 for organic marine aerosols
 !  11 Aug 2015 - R. Yantosca - Extend #ifdefs for MERRA2 met fields
 !  22 Sep 2015 - E. Lundgren - Add SWGDN for incident radiation at ground
+!  28 Oct 2015 - E. Lundgren - Add previous delta-P and specific humidity for
+!                              tracer mass conservation in mixing ratio update
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -696,6 +700,10 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%DELP     = 0.0_fp
 
+    ALLOCATE( State_Met%DELP_PREV ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%DELP_PREV= 0.0_fp
+
     ALLOCATE( State_Met%DQRCU     ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%DQRCU    = 0.0_fp
@@ -779,6 +787,10 @@ CONTAINS
     ALLOCATE( State_Met%SPHU      ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%SPHU     = 0.0_fp
+
+    ALLOCATE( State_Met%SPHU_PREV ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%SPHU_PREV= 0.0_fp
                                                
     ALLOCATE( State_Met%T         ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
@@ -1075,6 +1087,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%CLDF       )) DEALLOCATE( State_Met%CLDF       )
     IF ( ASSOCIATED( State_Met%CMFMC      )) DEALLOCATE( State_Met%CMFMC      )
     IF ( ASSOCIATED( State_Met%DELP       )) DEALLOCATE( State_Met%DELP       )
+    IF ( ASSOCIATED( State_Met%DELP_PREV  )) DEALLOCATE( State_Met%DELP_PREV  )
     IF ( ASSOCIATED( State_Met%DQRCU      )) DEALLOCATE( State_Met%DQRCU      )
     IF ( ASSOCIATED( State_Met%DQRLSAN    )) DEALLOCATE( State_Met%DQRLSAN    )
     IF ( ASSOCIATED( State_Met%DQIDTMST   )) DEALLOCATE( State_Met%DQIDTMST   )
@@ -1096,6 +1109,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%QL         )) DEALLOCATE( State_Met%QL         )
     IF ( ASSOCIATED( State_Met%RH         )) DEALLOCATE( State_Met%RH         )
     IF ( ASSOCIATED( State_Met%SPHU       )) DEALLOCATE( State_Met%SPHU       )
+    IF ( ASSOCIATED( State_Met%SPHU_PREV  )) DEALLOCATE( State_Met%SPHU_PREV  )
     IF ( ASSOCIATED( State_Met%T          )) DEALLOCATE( State_Met%T          )
     IF ( ASSOCIATED( State_Met%TV         )) DEALLOCATE( State_Met%TV         )
     IF ( ASSOCIATED( State_Met%TAUCLI     )) DEALLOCATE( State_Met%TAUCLI     )

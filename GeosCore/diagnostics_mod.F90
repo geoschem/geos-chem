@@ -561,7 +561,13 @@ CONTAINS
 !
 ! !USES:
 !
-    USE TRACER_MOD,         ONLY : XNUMOLAIR
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+    USE CMN_GCTM_MOD,       ONLY : XNUMOLAIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -575,6 +581,8 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  24 Feb 2015 - C. Keller   - Initial version
+!  24 Mar 2015 - E. Lundgren - Replace dependency on tracer_mod with
+!                              CMN_GTCM_MOD for XNUMOLAIR
 !  19 Oct 2015 - C. Keller   - Rename AIRDEN to AIRDENSITY to
 !                              avoid name conflict with GEOS-5 model.
 !EOP

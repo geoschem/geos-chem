@@ -223,7 +223,6 @@
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
@@ -232,7 +231,7 @@
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD	           ! SAVEOH
-      USE CMN_GCTM_MOD             ! XTRA2
+      USE CMN_GCTM_MOD             ! XTRA2, XNUMOLAIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -289,10 +288,14 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod.
+!  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod
+!  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg and
+!                              remove AD pointer
 !  15 Apr 2015 - M. Sulprizio- Comment out emission diagnostics for now. These
 !                              are now handled by the HEMCO.
 !  24 Jun 2015 - E. Lundgren - Add code to print out mass conservation output,
 !                              blocked off by #if defined( MASSCONS )
+!  17 Nov 2015 - E. Lundgren - Bug fix in masscons kg calculation: use AD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -333,8 +336,8 @@
       REAL(fp)                 :: TCVV(Input_Opt%N_TRACERS)
  
       ! Pointers
-      REAL(fp), POINTER        :: STT(:,:,:,:)
-      REAL(fp), POINTER        :: AD(:,:,:)
+      REAL(fp), POINTER          :: STT(:,:,:,:)
+      REAL(fp), POINTER          :: AD(:,:,:)
 
       ! For mass conservation tests
       LOGICAL                  :: DO_MASSCONS
@@ -487,10 +490,10 @@
                !%%%  Archive output in kg (not v/v) for printout     %%%
                !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                IF ( DO_MASSCONS .or. IDTPASV > 0 ) THEN
-                  Q(X,Y,K) = STT(I,J,L,N)
+                  Q(X,Y,K) = STT(I,J,L,N) * State_Met%AD(I,J,L)
                ELSE
                   ! Normal ND49 output, archive in v/v
-                  Q(X,Y,K) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
+                  Q(X,Y,K) = STT(I,J,L,N) * TCVV(N)
                ENDIF
                
             ENDDO
@@ -590,50 +593,86 @@
                ! Temp variable for accumulation
                TMP = 0e0_fp
             
+!               ! NO
+!               TMP = TMP + ( TCVV(IDTNO)         *
+!     &                       STT(I,J,L,IDTNO)    /
+!     &                       AD(I,J,L) )
+!
+!               ! NO2
+!               TMP = TMP + ( TCVV(IDTNO2)        *
+!     &                       STT(I,J,L,IDTNO2)   /
+!     &                       AD(I,J,L) )
+!
+!               ! PAN
+!               TMP = TMP + ( TCVV(IDTPAN)        * 
+!     &                       STT(I,J,L,IDTPAN)   / 
+!     &                       AD(I,J,L) )
+!
+!               ! HNO3
+!               TMP = TMP + ( TCVV(IDTHNO3)       *
+!     &                       STT(I,J,L,IDTHNO3)  / 
+!     &                       AD(I,J,L) )
+!            
+!               ! PMN
+!               TMP = TMP + ( TCVV(IDTPMN)        *
+!     &                       STT(I,J,L,IDTPMN)   / 
+!     &                       AD(I,J,L) )
+!
+!               ! PPN
+!               TMP = TMP + ( TCVV(IDTPPN)        * 
+!     &                       STT(I,J,L,IDTPPN)   / 
+!     &                       AD(I,J,L) )
+! 
+!               ! R4N2
+!               TMP = TMP + ( TCVV(IDTR4N2)       *
+!     &                       STT(I,J,L,IDTR4N2)  / 
+!     &                       AD(I,J,L) )
+!            
+!               ! N2O5
+!               TMP = TMP + ( 2e+0_fp * TCVV(IDTN2O5) *
+!     &                       STT(I,J,L,IDTN2O5)  / 
+!     &                       AD(I,J,L) )
+!                        
+!               ! HNO4
+!               TMP = TMP + ( TCVV(IDTHNO4)       *
+!     &                       STT(I,J,L,IDTHNO4)  / 
+!     &                       AD(I,J,L) )
+
                ! NO
                TMP = TMP + ( TCVV(IDTNO)         *
-     &                       STT(I,J,L,IDTNO)    /
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTNO) )
 
                ! NO2
                TMP = TMP + ( TCVV(IDTNO2)        *
-     &                       STT(I,J,L,IDTNO2)   /
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTNO2) )  
 
                ! PAN
                TMP = TMP + ( TCVV(IDTPAN)        * 
-     &                       STT(I,J,L,IDTPAN)   / 
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTPAN) )
 
                ! HNO3
                TMP = TMP + ( TCVV(IDTHNO3)       *
-     &                       STT(I,J,L,IDTHNO3)  / 
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTHNO3) )
             
                ! PMN
                TMP = TMP + ( TCVV(IDTPMN)        *
-     &                       STT(I,J,L,IDTPMN)   / 
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTPMN) )
 
                ! PPN
                TMP = TMP + ( TCVV(IDTPPN)        * 
-     &                       STT(I,J,L,IDTPPN)   / 
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTPPN) )
  
                ! R4N2
                TMP = TMP + ( TCVV(IDTR4N2)       *
-     &                       STT(I,J,L,IDTR4N2)  / 
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTR4N2) )
             
                ! N2O5
                TMP = TMP + ( 2e+0_fp * TCVV(IDTN2O5) *
-     &                       STT(I,J,L,IDTN2O5)  / 
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTN2O5) )
                         
                ! HNO4
                TMP = TMP + ( TCVV(IDTHNO4)       *
-     &                       STT(I,J,L,IDTHNO4)  / 
-     &                       AD(I,J,L) )
+     &                       STT(I,J,L,IDTHNO4) )
 
                ! Save afternoon points
                Q(X,Y,K) = Q(X,Y,K) + TMP
@@ -784,8 +823,10 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+!               Q(X,Y,K) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
+!     &                      TCVV(IDTSALA)      / AD(I,J,L) 
                Q(X,Y,K) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
-     &                      TCVV(IDTSALA)      / AD(I,J,L) 
+     &                      TCVV(IDTSALA)     
             ENDDO
             ENDDO
             ENDDO
@@ -1533,7 +1574,7 @@
 
       ! Free pointers
       NULLIFY( STT )
-      NULLIFY( AD  )
+!      NULLIFY( AD  )
 
       END SUBROUTINE DIAG49
 !EOC

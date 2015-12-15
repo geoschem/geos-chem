@@ -219,7 +219,7 @@ CONTAINS
     IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Config_ReadFile', LOC )
 
     ! Check settings
-    CALL CheckSettings( am_I_Root, Input_Opt, State_Met, State_Chm, HMRC )
+    CALL CheckSettings( am_I_Root, Input_Opt, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'CheckSettings', LOC )
 
     ! Phase 2: read fields
@@ -597,7 +597,7 @@ CONTAINS
           RETURN 
        ENDIF 
    
-       CALL ExtState_UpdateFields( am_I_Root, State_Met, State_Chm, RC )
+       CALL ExtState_UpdateFields( am_I_Root, State_Met, RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN
    
        !=======================================================================
@@ -1261,12 +1261,18 @@ CONTAINS
                'TK', HCRC,      FIRST,    State_Met%T   )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
+    ! Air mass [kg/grid box]
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%AIR, &
               'AIR', HCRC,      FIRST,    State_Met%AD   )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Set( am_I_Root, HcoState, ExtState%AIRVOL, &
            'AIRVOL', HCRC,      FIRST,    State_Met%AIRVOL  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    ! Dry air density [kg/m3]
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%AIRDEN, &
+           'AIRDEN', HCRC,      FIRST,    State_Met%AIRDEN  )
     IF ( HCRC /= HCO_SUCCESS ) RETURN
  
     ! ----------------------------------------------------------------
@@ -1357,32 +1363,27 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_UpdateFields( am_I_Root, State_Met, State_Chm, RC ) 
+  SUBROUTINE ExtState_UpdateFields( am_I_Root, State_Met, RC ) 
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
     USE ERROR_MOD,             ONLY : ERROR_STOP
     USE GIGC_State_Met_Mod,    ONLY : MetState
-    USE GIGC_State_Chm_Mod,    ONLY : ChmState
     USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
-
     USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
-
     USE FAST_JX_MOD,           ONLY : FJXFUNC
     USE COMODE_LOOP_MOD,       ONLY : NCS, JPHOTRAT, NRATES
     USE COMODE_LOOP_MOD,       ONLY : NAMEGAS, IRM
-
     USE HCO_GeoTools_Mod,      ONLY : HCO_GetSUNCOS
 #if defined(ESMF_) 
-    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
+    USE HCOI_ESMF_MOD,         ONLY : HCO_SetExtState_ESMF
 #endif
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1393,6 +1394,7 @@ CONTAINS
 !  20 Aug 2014 - M. Sulprizio- Add PBL_MAX and FRAC_OF_PBL for POPs simulation
 !  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
 !  11 Mar 2015 - R. Yantosca - Now call GET_SZAFACT in this module
+!  11 Sep 2015 - E. Lundgren - Remove State_Chm from passed args since not used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2271,13 +2273,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CheckSettings( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+  SUBROUTINE CheckSettings( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE ERROR_MOD,          ONLY : ERROR_STOP
 
     USE HCO_ExtList_Mod,    ONLY : GetExtNr,  SetExtNr
@@ -2287,8 +2287,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2304,6 +2302,7 @@ CONTAINS
 !  25 Mar 2015 - C. Keller   - Added switch for STATE_PSC (for UCX)
 !  27 Aug 2015 - E. Lundgren - Now always read TOMS for mercury simulation when
 !                              photo-reducible HgII(aq) to UV-B radiation is on
+!  11 Sep 2015 - E. Lundgren - Remove State_Met and State_Chm from passed args
 !  03 Dec 2015 - R. Yantosca - Bug fix: pass am_I_Root to AddExtOpt
 !EOP
 !------------------------------------------------------------------------------

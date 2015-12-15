@@ -35,7 +35,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : ID_HG2, ID_HGP, ID_Hg_TOT
       USE TRACERID_MOD,       ONLY : IDTPASV
       USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
@@ -146,6 +145,8 @@
 !  20 Jan 2015 - R. Yantosca - Added new netCDF diagnostics
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE and
 !                              GET_PCENTER with State_Met%PMID.
+!  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod
+!  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
 !  16 Apr 2015 - E. Lundgren - Add new State_Met variables to ND68
 !  19 Oct 2015 - C. Keller   - Now use Input_Opt%ND68 instead of ND68;
 !                              Rename AIRDEN diagnostics to AIRDENSITY to
@@ -224,24 +225,24 @@
 
             ! Tracer conc. in v/v dry air
             STT_VV(I,J,L,N) = 
-     &         MAX( State_Chm%Tracers(I,J,L,N) * TCVV(N) /
-     &              State_Met%AD(I,J,L), 0e+0_fp )
+     &         MAX( State_Chm%Tracers(I,J,L,N) * TCVV(N),
+     &              0e+0_fp )
 
             IF ( N == IDTPASV ) THEN
 
                ! Also express tracer conc. in v/v total air (mps, 11/18/15)
                STT_VV(I,J,L,N+1) =
      &            MAX( State_Chm%Tracers(I,J,L,N) *
-     &                 State_Met%MOISTMW(I,J,L)   /
-     &               ( State_Met%ADMOIST(I,J,L)   *
-     &                 Input_Opt%TRACER_MW_G(N)  ) ,
+     &                 ( 1.0e+0_fp - State_Met%SPHU(I,J,L) * 1.e-3_fp ) 
+     &                 * State_Met%MOISTMW(I,J,L) 
+     &                 / Input_Opt%TRACER_MW_G(N),
      &                 0e+0_fp )
 
 
                ! Also express tracer conc. in kg/kg total air (mps, 11/18/15)
                STT_VV(I,J,L,N+2) =
-     &            MAX( State_Chm%Tracers(I,J,L,N) /
-     &                 State_Met%ADMOIST(I,J,L)   ,
+     &            MAX( State_Chm%Tracers(I,J,L,N) *
+     &                 ( 1.0e+0_fp - State_Met%SPHU(I,J,L) * 1.e-3_fp ),
      &                 0e+0_fp )
 
             ENDIF
@@ -269,16 +270,22 @@
         DO I = 1, IIPAR
 
           ! Reactive gaseous mercury, RGM
+!          AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
+!     &                      State_Chm%Tracers(I,J,L,ID_Hg2(ID_Hg_tot)) *
+!     &                      TCVV(ID_Hg2(ID_Hg_tot)) /
+!     &                      State_Met%AD(I,J,L) *1e+12_fp
           AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
      &                      State_Chm%Tracers(I,J,L,ID_Hg2(ID_Hg_tot)) *
-     &                      TCVV(ID_Hg2(ID_Hg_tot)) /
-     &                      State_Met%AD(I,J,L) *1e+12_fp
+     &                      TCVV(ID_Hg2(ID_Hg_tot)) * 1e+12_fp
 
           ! Reactive particulate mercury, PBM
+!          AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
+!     &                      State_Chm%Tracers(I,J,L,ID_HgP(ID_Hg_tot)) *
+!     &                      TCVV(ID_HgP(ID_Hg_tot)) / 
+!     &                      State_Met%AD(I,J,L) *1e+12_fp
           AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
      &                      State_Chm%Tracers(I,J,L,ID_HgP(ID_Hg_tot)) *
-     &                      TCVV(ID_HgP(ID_Hg_tot)) / 
-     &                      State_Met%AD(I,J,L) *1e+12_fp
+     &                      TCVV(ID_HgP(ID_Hg_tot)) * 1e+12_fp
                                                        
         ENDDO
         ENDDO

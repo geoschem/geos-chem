@@ -1474,7 +1474,7 @@ cd !----------------------------------------------------------------------------
       USE CMN_SIZE_MOD
       USE DEPO_MERCURY_MOD,   ONLY : RESET_HG_DEP_ARRAYS
       USE DIAG03_MOD,         ONLY : AD03_nat
-      USE ERROR_MOD,          ONLY : DEBUG_MSG, GEOS_CHEM_STOP
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -1486,6 +1486,7 @@ cd !----------------------------------------------------------------------------
       USE OCEAN_MERCURY_MOD,  ONLY : OCEAN_MERCURY_FLUX
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TRACERID_MOD,       ONLY : N_HG_CATS
+      USE UNITCONV_MOD
 !      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE 
 
       ! Added for GTMM (ccc, 11/19/09)
@@ -1524,6 +1525,7 @@ cd !----------------------------------------------------------------------------
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  20 Jun 2014 - R. Yantosca - Now pass Input_Opt to VEGEMIS
 !  23 Jun 2014 - R. Yantosca - Now pass am_I_Root to OCEAN_MERCURY_FLUX
+!  05 Oct 2015 - E. Lundgren - Now convert tracer units to kg locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1555,6 +1557,16 @@ cd !----------------------------------------------------------------------------
       LPREINDHG = Input_Opt%LPREINDHG
       LEMIS     = Input_Opt%LEMIS
       LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
+
+      ! Convert tracer units to [kg] for EMISSMERCURY (ewl, 8/12/15)
+      ! NOTE: This is temporary until mercury code is in [kg/kg dry air]
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
+     &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'Routine EMISSIONS_RUN in emissions_mod.F')
+         RETURN
+      ENDIF                         
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -1685,6 +1697,16 @@ cd !----------------------------------------------------------------------------
       CALL SRCHgP( am_I_Root, Input_Opt, State_Chm, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHgP' )
       
+      ! Convert tracer units back to [kg/kg] after mercury emissions
+      !  (ewl, 8/12/15)
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
+     &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'Routine EMISSMERCURY in mercury_mod.F')
+         RETURN
+      ENDIF  
+
       ! Return to calling program 
       END SUBROUTINE EMISSMERCURY
 !EOC

@@ -16,7 +16,7 @@
 ! 
 ! !USES:
 !
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE PRECISION_MOD      ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -78,6 +78,8 @@
 !  24 Jun 2015 - E. Lundgren - Remove post-advection residual mass correction
 !                              and GET_AIR_MASS function since no longer needed
 !                              when using kg/kg total air in advection
+!  13 Aug 2015 - E. Lundgren - Tracer units are now input as kg/kg dry air 
+!                              (previously v/v)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -133,6 +135,7 @@
       USE TPCORE_BC_MOD,      ONLY : INIT_TPCORE_BC
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TENDENCIES_MOD
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -280,7 +283,7 @@
 ! !USES:
 !
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
-      USE ERROR_MOD,          ONLY : IT_IS_NAN, DEBUG_MSG, SAFE_DIV
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -336,6 +339,7 @@
 !                              (previously v/v)
 !  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
 !                              concentration following advection
+!  13 Aug 2015 - E. lundgren - Remove v/v <-> kg/kg conversion
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -438,12 +442,15 @@
       p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
 
-      ! Convert tracer concentration from mol/mol dry air to 
+      ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg total  air before advection (ewl, 6/15/15)
-      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
-     &                               Input_Opt, State_Chm, RC)
-      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS, 
+      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt, 
      &                                   State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'GEOS4_GEOS5_GLOBAL_ADV in transport_mod.F')
+         RETURN
+      ENDIF 
 
       ! Do the advection
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
@@ -460,11 +467,14 @@
      &                   A_M2,   ND24,      ND25,     ND26 )
 
       ! Convert tracer concentration from kg/kg wet air to 
-      ! mol/mol dry air after advection (ewl, 6/15/15)
-      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS, 
+      ! kg/kg dry air after advection (ewl, 6/15/15)
+      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt, 
      &                                   State_Met, State_Chm, RC ) 
-      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
-     &                               Input_Opt, State_Chm, RC)
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'GEOS4_GEOS5_GLOBAL_ADV in transport_mod.F')
+         RETURN
+      ENDIF 
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
@@ -478,7 +488,9 @@
       CALL SET_FLOATING_PRESSURE( P_TP2 )
 
       ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
-      CALL AIRQNT( am_I_Root, State_Met, RC )
+      ! Do not update tracer mixing ratio
+      CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
+     &             update_mixing_ratio=.FALSE. )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
@@ -504,7 +516,7 @@
 ! !USES:
 !
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
-      USE ERROR_MOD,          ONLY : IT_IS_NAN, DEBUG_MSG, SAFE_DIV
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -559,6 +571,7 @@
 !                              (previously v/v)
 !  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
 !                              concentration following advection
+!  13 Aug 2015 - E. lundgren - Remove v/v <-> kg/kg conversion
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -667,12 +680,15 @@
       p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
 
-      ! Convert tracer concentration from mol/mol dry air to 
+      ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg total air before advection (ewl, 6/15/15)
-      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
-     &                                Input_Opt, State_Chm, RC)
-      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
      &                                    State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'GCAP_GLOBAL_ADV in transport_mod.F')
+         RETURN
+      ENDIF 
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -689,11 +705,14 @@
      &                   A_M2,    ND24,      ND25,     ND26 )
 
       ! Convert tracer concentration from kg/kg total air to 
-      ! mol/mol dry air after advection (ewl, 6/15/15)
-      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
+      ! kg/kg dry air after advection (ewl, 6/15/15)
+      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
      &                                    State_Met, State_Chm, RC ) 
-      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
-     &                                Input_Opt, State_Chm, RC)
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'GCAP_GLOBAL_ADV in transport_mod.F')
+         RETURN
+      ENDIF 
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
@@ -707,7 +726,9 @@
       CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
 
       ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
-      CALL AIRQNT( am_I_Root, State_Met, RC )
+      ! Do not update tracer mixing ratio
+      CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
+     &             update_mixing_ratio=.FALSE. )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### GCAP_GLOB_ADV: a TPCORE' ) 
@@ -734,7 +755,7 @@
 !
       ! References to F90 modules
       USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
-      USE ERROR_MOD,                 ONLY : IT_IS_NAN,     DEBUG_MSG
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,        ONLY : OptInput
       USE GIGC_State_Chm_Mod,        ONLY : ChmState
@@ -789,6 +810,7 @@
 !                              (previously v/v)
 !  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
 !                              concentration prior to advection
+!  13 Aug 2015 - E. lundgren - Remove v/v <-> kg/kg conversion
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -904,12 +926,15 @@
 
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a array flip' )
 
-      ! Convert tracer concentration from mol/mol dry air to 
+      ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg moist air before advection (ewl, 6/15/15)
-      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
-     &                                Input_Opt, State_Chm, RC)
-      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
      &                                   State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'DO_GEOS5_WINDOW_TRANSPORT in transport_mod.F')
+         RETURN
+      ENDIF 
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -926,11 +951,14 @@
      &                          ND24,      ND25,     ND26 )
 
       ! Convert tracer concentration from kg/kg wet air to 
-      ! mol/mol dry air after advection (ewl, 6/15/15)
-      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
+      ! kg/kg dry air after advection (ewl, 6/15/15)
+      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
      &                                    State_Met, State_Chm, RC ) 
-      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
-     &                                Input_Opt, State_Chm, RC)
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'DO_GEOS5_WINDOW_TRANSPORT in transport_mod.F')
+         RETURN
+      ENDIF 
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS ) 
@@ -944,7 +972,9 @@
       CALL SET_FLOATING_PRESSURE( P_TP2 )
 
       ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
-      CALL AIRQNT( am_I_Root, State_Met, RC )
+      ! Do not update tracer mixing ratio
+      CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
+     &             update_mixing_ratio=.FALSE. )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G5_NESTED_ADV: a TPCORE' )
@@ -971,7 +1001,7 @@
 !
       ! References to F90 modules
       USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
-      USE ERROR_MOD,                 ONLY : IT_IS_NAN,     DEBUG_MSG
+      USE ERROR_MOD
       USE GRID_MOD,                  ONLY : GET_XOFFSET,   GET_YOFFSET
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,        ONLY : OptInput
@@ -1024,6 +1054,7 @@
 !                              (previously v/v)
 !  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
 !                              concentration prior to advection
+!  13 Aug 2015 - E. lundgren - Remove v/v <-> kg/kg conversion
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1187,12 +1218,15 @@
 
       p_A_M2  => A_M2( J0_W1+1 : J0_W1+JM_W1                     )
 
-      ! Convert tracer concentration from mol/mol dry air to 
+      ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg moist air before advection (ewl, 6/15/15)
-      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
-     &                                Input_Opt, State_Chm, RC)
-      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
+      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
      &                                   State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                'DO_GEOSFP_WINDOW_TRANSPORT in transport_mod.F')
+         RETURN
+      ENDIF 
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -1209,11 +1243,15 @@
      &      ND26 ) 
 
       ! Convert tracer concentration from kg/kg wet air to 
-      ! mol/mol dry air after advection (ewl, 6/15/15)
-      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
+      ! kg/kg dry air after advection (ewl, 6/15/15)
+      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
      &                                    State_Met, State_Chm, RC ) 
-      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
-     &                                 Input_Opt, State_Chm, RC)
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                'DO_GEOSFP_WINDOW_TRANSPORT in transport_mod.F')
+         RETURN
+      ENDIF 
+
 !=========================================================================
 
       ! Free pointer memory
@@ -1229,7 +1267,9 @@
       CALL SET_FLOATING_PRESSURE( P_TP2 )
 
       ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
-      CALL AIRQNT( am_I_Root, State_Met, RC )
+      ! Do not update tracer mixing ratio
+      CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
+     &             update_mixing_ratio=.FALSE. )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G5_NESTED_ADV: a TPCORE' )
@@ -1337,7 +1377,6 @@
 
       ! For fields from Input_Opt
       LOGICAL :: LTRAN
-      INTEGER :: N_TRACERS
 
       !=================================================================
       ! Initialize
@@ -1348,7 +1387,6 @@
 
       ! Copy values from Input_Opt
       LTRAN     = Input_Opt%LTRAN
-      N_TRACERS = Input_Opt%N_TRACERS
 
       !=================================================================
       ! Allocate arrays for TPCORE vertical coordinates 
@@ -1435,7 +1473,7 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,               ONLY : ALLOC_ERR
+      USE ERROR_MOD,               ONLY : ALLOC_ERR, GIGC_ERROR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,      ONLY : OptInput
       USE GRID_MOD,                ONLY : GET_AREA_M2
@@ -1476,7 +1514,6 @@
 !
       ! Scalars
       LOGICAL  :: LTRAN
-      INTEGER  :: N_TRACERS
       INTEGER  :: J, K, L, N_DYN
       REAL(fp) :: REAL_N_DYN
 
@@ -1493,7 +1530,6 @@
 
       ! Copy values from Input_Opt
       LTRAN     = Input_Opt%LTRAN
-      N_TRACERS = Input_Opt%N_TRACERS
 
       !=================================================================
       ! Allocate arrays for TPCORE vertical coordinates
@@ -1578,7 +1614,7 @@
 !
 ! !USES:    
 !
-      USE ERROR_MOD,               ONLY : ALLOC_ERR
+      USE ERROR_MOD,               ONLY : ALLOC_ERR, GIGC_ERROR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,      ONLY : OptInput
       USE GRID_MOD,                ONLY : GET_AREA_M2
@@ -1621,7 +1657,6 @@
 !
       ! Scalars
       LOGICAL  :: LTRAN
-      INTEGER  :: N_TRACERS
       INTEGER  :: BUFF_SIZE
       INTEGER  :: J,     K,     L,     N_DYN
       INTEGER  :: IM_W1, JM_W1, I0_W1, J0_W1
@@ -1639,7 +1674,6 @@
 
       ! Copy values from Input_Opt
       LTRAN     = Input_Opt%LTRAN
-      N_TRACERS = Input_Opt%N_TRACERS
 
       ! Cast N_DYN to flexible precision
 #if defined( USE_REAL8 )

@@ -112,7 +112,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE ERROR_MOD,          ONLY : GIGC_ERROR
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
     USE CARBON_MOD,         ONLY : EMISSCARBON
 #if defined ( TOMAS )
@@ -138,7 +138,8 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
     LOGICAL,          INTENT(IN   )  :: EmisTime   ! Emissions in this time step? 
-    INTEGER,          INTENT(IN   )  :: Phase      ! Run phase 
+    INTEGER,          INTENT(IN   )  :: Phase      ! Run phase
+ 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -158,7 +159,6 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    LOGICAL   :: IsInVV
  
     !=================================================================
     ! EMISSIONS_RUN begins here!
@@ -172,7 +172,7 @@ CONTAINS
     CALL HCOI_GC_RUN( am_I_Root, Input_Opt, State_Met, State_Chm, & 
                       EmisTime,  Phase,     RC                     ) 
     IF ( RC /= GIGC_SUCCESS ) RETURN 
- 
+
     ! The following only needs to be done in phase 2
     IF ( Phase /= 1 ) THEN 
 
@@ -180,7 +180,7 @@ CONTAINS
        ! emissions calculated in HEMCO (SESQ) are passed to the internal
        ! species array in carbon, as well as to ensure that POA emissions
        ! are correctly treated.
-       CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+       CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN 
 
     ! Call TOMAS emission routines (JKodros 6/2/15)
@@ -189,7 +189,6 @@ CONTAINS
     
        CALL EMISSSULFATETOMAS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #endif
-
    
        ! For CO2 simulation, emissions are not added to STT in mixing_mod.F90 
        ! because the HEMCO CO2 species are not GEOS-Chem tracers. The emissions
@@ -207,14 +206,14 @@ CONTAINS
        ! ND58 diagnostics.
        IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
           ( IDTCH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
-          CALL EMISSCH4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+          CALL EMISSCH4( am_I_Root, Input_Opt, State_Met, RC )
           IF ( RC /= GIGC_SUCCESS ) RETURN 
        ENDIF
    
        ! For UCX, use Seb's routines for stratospheric species for now.
 #if defined( UCX )
        IF ( Input_Opt%LBASICEMIS ) THEN
-          CALL EMISS_BASIC( am_I_Root, Input_Opt, State_Met, State_Chm )
+          CALL EMISS_BASIC( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
        ENDIF
 #endif
 
@@ -226,9 +225,6 @@ CONTAINS
        ! Prescribe some concentrations if needed
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
   
-          ! tracer array is in kg, not v/v
-          IsInVV = .FALSE.
-    
           !========================================================
           !jpp, 2/12/08: putting a call to SET_CH3Br
           !              which is in bromocarb_mod.f
@@ -238,7 +234,7 @@ CONTAINS
           !========================================================
           IF ( Input_Opt%LEMIS .AND. ( IDTCH3Br > 0 ) ) THEN
              CALL SET_CH3BR( am_I_Root, Input_Opt, State_Met, &
-                             IsInVV,    State_Chm, RC )
+                             State_Chm, RC )
           ENDIF
    
           ! ----------------------------------------------------
@@ -247,12 +243,12 @@ CONTAINS
           ! ----------------------------------------------------
           IF ( Input_Opt%LEMIS .AND. ( IDTBrO > 0 ) ) THEN
              CALL SET_BRO( am_I_Root, Input_Opt, State_Met, & 
-                           IsInVV,    State_Chm, RC          )
+                           State_Chm, RC          )
           ENDIF
    
        ENDIF
     ENDIF ! Phase/=1  
- 
+    
     ! Return w/ success
     RC = GIGC_SUCCESS
    

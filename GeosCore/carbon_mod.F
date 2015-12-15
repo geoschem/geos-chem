@@ -5210,11 +5210,11 @@ ccc
 ! defined) are properly passed to the internal arrays. 
 !\\
 !\\
-! POA emissions are expected to be fully calculated by HEMCO, e.g. its emissions
-! need be specified in the HEMCO configuration file. In the original code, the
-! emissions were calculated by scaling anthropogenic, biofuel and biomass burning
-! OC emissions. The same behavior can be achieved in HEMCO by assigning the desired
-! POA tracer name to the given source type, e.g.:
+! POA emissions are expected to be fully calculated by HEMCO, e.g. its 
+! emissions need be specified in the HEMCO configuration file. In the original 
+! code, the emissions were calculated by scaling anthropogenic, biofuel and 
+! biomass burning OC emissions. The same behavior can be achieved in HEMCO 
+! by assigning the desired POA tracer name to the given source type, e.g.:
 !
 !0 BOND\_ANTH .../Bond\_fossil.nc OC 2000/1-12/1/0 C xy kg/m2/s POA1 70/300 1 1
 !
@@ -5222,21 +5222,21 @@ ccc
 ! represent tracer POA1 and POAEMISS(:,:,:,2) represent tracer POG1.
 !\\
 !\\
-! IMPORTANT: the POA emissions scale factor should be applied through HEMCO. In
-! the example above, scale factor 300 represents the scale POA scale factor. The
-! same scale factor should also be applied to the biomass burning extensions.
+! IMPORTANT: the POA emissions scale factor should be applied through HEMCO. 
+! In the example above, scale factor 300 represents the scale POA scale factor.
+! The same scale factor should also be applied to the biomass burning 
+! extensions.
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE EMISSCARBON( am_I_Root, Input_Opt, 
-     &                        State_Met, State_Chm, RC )
+     &                        State_Met, RC )
 !
 ! !USES:
 !
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-      USE GIGC_State_Chm_Mod,    ONLY : ChmState
       USE GIGC_State_Met_Mod,    ONLY : MetState
       USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR
       USE TRACERID_MOD,          ONLY : IDTPOA1, IDTPOG1
@@ -5256,11 +5256,11 @@ ccc
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState),  INTENT(INOUT)  :: State_Chm   ! Chemistry State object
       INTEGER,         INTENT(INOUT)  :: RC          ! Failure?
 ! 
 ! !REVISION HISTORY:
 !  11 Nov 2014 - C. Keller   - Initial version
+!  11 Sep 2015 - E. Lundgren - Remove State_Chm from arguments since not used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5396,8 +5396,8 @@ ccc
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD
+      USE UNITCONV_MOD
 !
 ! TOMAS DIAGNs:
 !
@@ -5442,8 +5442,6 @@ ccc
       REAL(fp)                 :: DTSRCE, AREA_M2
 
       ! Arrays
-      REAL(fp), DIMENSION(7)   :: DBGANTHRO
-      REAL(fp), DIMENSION(3)   :: DBGBIO
       REAL(fp)                 :: BCFF(IIPAR, JJPAR, IBINS, 2)
       REAL(fp)                 :: OCFF(IIPAR, JJPAR, IBINS, 2)
       REAL(fp)                 :: BCBF(IIPAR, JJPAR, IBINS, 2)
@@ -5511,6 +5509,17 @@ ccc
 
       ! Grid box aarea
       AREA = HcoState%Grid%AREA_M2%Val(:,:)
+
+      ! Convert State_Chm%Tracers from [kg/kg dry air] to [kg] for TOMAS.
+      ! This will be removed once TOMAS uses mixing ratio instead of mass 
+      ! as tracer units (ewl, 9/11/15)
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
+     &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                     'Routine EMISSCARBONTOMAS in carbon_mod.F')
+         RETURN
+      ENDIF 
 
       ! ---------BC---------------------------------------------------
       DgnName = 'BCPI_ANTH'
@@ -5739,12 +5748,12 @@ ccc
          TEMPTMS = State_Met%T(I,J,1)
          PRES    = GET_PCENTER(i,j,1)*100.0 ! in Pa
          IF ( TERP_ORGC(I,J) > 0.d0 )
-     &        CALL SOACOND( OC2OM * TERP_ORGC(I,J), I, J, 1,
-     &               BOXVOL, TEMPTMS, PRES, State_Chm )
+     &        CALL SOACOND( am_I_Root, OC2OM * TERP_ORGC(I,J), I, J, 1,
+     &               BOXVOL, TEMPTMS, PRES, State_Chm, RC )
             IF ( xSOA == 1) Then  !JKodros, switch from tomas_mod (6/15)
                IF ( XTRA_ORG_A(I,J) > 0.d0 )  ! (SDD, 01/14)
-     &            CALL SOACOND( XTRA_ORG_A(I,J), I, J, 1,
-     &               BOXVOL, TEMPTMS, PRES, State_Chm )
+     &            CALL SOACOND( am_I_Root, XTRA_ORG_A(I,J), I, J, 1,
+     &               BOXVOL, TEMPTMS, PRES, State_Chm, RC )
 
             ENDIF
       ENDDO
@@ -5753,6 +5762,15 @@ ccc
      &    CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
 
       ENDIF  ! size resolved > 0
+
+      ! Convert State_Chm%Tracers back to kg (ewl, 9/11/15)
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
+     &                             State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'Routine EMISSCARBONTOMAS in carbon_mod.F')
+         RETURN
+      ENDIF  
 
       END SUBROUTINE EMISSCARBONTOMAS
 #endif
@@ -6318,12 +6336,12 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE CMN_GCTM_MOD,       ONLY : XNUMOLAIR
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDO3
 !
 ! !INPUT PARAMETERS: 
@@ -6349,6 +6367,8 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  18 Sep 2014 - M. Sulprizio- Now get O3 for offline aerosol sim from HEMCO
+!  24 Mar 2015 - E. Lundgren - Replace dependency on tracer_mod with
+!                              CMN_GTCM_MOD for XNUMOLAIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC

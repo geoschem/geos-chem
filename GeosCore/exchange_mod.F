@@ -224,9 +224,12 @@
       USE DAO_MOD
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
+      USE ERROR_MOD,          ONLY : GIGC_Error
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -247,27 +250,28 @@
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
+!  13 Aut 2015 - E. Lundgren - Now input tracer conc in kg/kg not v/v.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !     
-      INTEGER         :: N_TRACERS
-      REAL*8          :: TCVV(Input_Opt%N_TRACERS)
-      REAL*8, POINTER :: STT(:,:,:,:)
-
-      N_TRACERS =  Input_Opt%N_TRACERS
-      TCVV      =  Input_Opt%TCVV(1:N_TRACERS)
-      STT       => State_Chm%Tracers
-
       WRITE (*,*) "@@@@@@@@@@@@@@ EXCHANGE_GLOBAL_POST"
       CALL DONE_LOCK_ME_UP()
       CALL WAIT_FOR_UNLOCK()
 
       IF ( IS_EXCHANGE ) THEN
 
-         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT )  !(v/v ->kg)
+         ! Convert tracer units from [kg/kg dry] to [kg] (ewl, 8/13/15)
+         CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt,            
+     &                                     State_Met, State_Chm, RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'EXCHANGE_GLOBAL_POST in exchange_mod.F')
+            RETURN
+         ENDIF 
+
          CALL EX_CONVERT_UNITS_CSPEC
      & ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
      &  1, ILONG, ILAT, IPVERT) !mol/cm3 -> mol
@@ -287,7 +291,15 @@
      &  ( am_I_Root, Input_Opt,State_Met, State_Chm, RC, 3 )
 # endif
 
-         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT )  !(kg -> v/v)
+         ! Convert tracer units back to kg/kg (ewl, 8/13/15)
+         CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt,            
+     &                               State_Met, State_Chm, RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'EXCHANGE_GLOBAL_POST in exchange_mod.F')
+            RETURN
+         ENDIF 
+
          CALL EX_CONVERT_UNITS_CSPEC
      & ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
      &   2, ILONG, ILAT, IPVERT) !mol -> mol/cm3
@@ -345,9 +357,12 @@
       USE DAO_MOD
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
+      USE ERROR_MOD,          ONLY : GIGC_Error
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -370,23 +385,24 @@
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2015 - E. Lundgren - Input tracer conc in kg/kg not v/v
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER          :: N_TRACERS
-      REAL*8           :: TCVV(Input_Opt%N_TRACERS)
-      REAL*8,  POINTER :: STT(:,:,:,:)
-
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
-      STT => State_Chm%Tracers
-
       WRITE (*,*) "@@@@@@@@@@@@@@ EXCHANGE_NESTED_POST"
 
-      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT )  !(V/V -> KG)
+      ! Convert tracer units from [kg/kg dry] to [kg] (ewl, 8/13/15)
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt,            
+     &                                     State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'EXCHANGE_NESTED_POST in exchange_mod.F')
+         RETURN
+      ENDIF 
 
       CALL EX_CONVERT_UNITS_CSPEC
      &  ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
@@ -395,7 +411,15 @@
       CALL EX_DUMP_FOR_GLOBAL
      &        (am_I_Root, Input_Opt,State_Met, State_Chm,RC)
 
-      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT )  !(KG ->V/V)
+
+      ! Convert tracer units back to kg/kg (ewl, 8/13/15)
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt,            
+     &                               State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'EXCHANGE_NESTED_POST in exchange_mod.F')
+         RETURN
+      ENDIF 
 
       CALL EX_CONVERT_UNITS_CSPEC
      &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
@@ -456,7 +480,6 @@
 !
       USE ERROR_MOD
       USE COMODE_MOD
-      USE TRACER_MOD
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
 !
@@ -467,6 +490,7 @@
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Now only print output on the root CPU
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
+!  24 Mar 2015 - E. Lundgren - Remove tracer_mod dependency since unused
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -857,7 +881,6 @@
 ! !USES:
 !
       USE ERROR_MOD
-      USE TRACER_MOD
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -883,6 +906,7 @@
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Now get LPRT from Input_Opt
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
+!  24 Mar 2015 - E. Lundgren - Remove tracer_mod dependency since not used
 !EOP
 !------------------------------------------------------------------------------
 !BOC

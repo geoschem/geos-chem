@@ -2832,7 +2832,7 @@ contains
     USE PBL_MIX_MOD,        ONLY : INIT_PBL_MIX
     USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
-    USE DAO_MOD,            ONLY : AIRQNT, CONVERT_UNITS
+    USE DAO_MOD,            ONLY : AIRQNT
 
     IMPLICIT NONE
 !
@@ -2885,7 +2885,7 @@ contains
     ! Assume success
     RC  =  GIGC_SUCCESS
 
-    ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+    ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
     ! (mpayer, 12/6/12)
     STT => State_Chm%Tracers
 
@@ -2903,18 +2903,23 @@ contains
 
     ! Do mixing of tracers in the PBL (if necessary)
     IF ( DO_VDIFF ) THEN
+
+       ! Set previous specific humidity to current specific humidity 
+       ! prior to humidity update in vdiffdr (ewl, 10/28/15)
+       State_Met%SPHU_prev = State_Met%SPHU
+
        CALL VDIFFDR( am_I_Root, STT, Input_Opt, State_Met, State_Chm )
        IF( LPRT .and. am_I_Root ) THEN
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
        ENDIF
 
-       ! Call AIRQNT to update air quantities with new specific humidity.
-       ! Convert v/v -> kg first to conserve mass (ewl, 11/16/15)
-       CALL CONVERT_UNITS( 2,  Input_Opt%N_TRACERS, Input_Opt%TCVV, &
-                           State_Met%AD, State_Chm%TRACERS )
-       CALL AIRQNT( am_I_Root, State_Met, RC )
-       CALL CONVERT_UNITS( 1,  Input_Opt%N_TRACERS, Input_Opt%TCVV, &
-                           State_Met%AD, State_Chm%TRACERS )
+       ! Update air quantities and tracer concentrations with updated
+       ! specific humidity (ewl, 10/28/15)
+       ! NOTE: Prior to October 2015, air quantities were not updated
+       ! with specific humidity modified in VDIFFDR at this point in
+       ! the model
+       CALL AIRQNT( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                    RC, update_mixing_ratio=.TRUE. )
 
     ENDIF
 

@@ -483,6 +483,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_NYMD,  GET_NHMS
       USE TIME_MOD,           ONLY : GET_TAU,   TIMESTAMP_STRING
+      USE UNITCONV_MOD
 #if   defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
@@ -515,6 +516,9 @@
 !                              instead of from GeosUtil/file_mod.F
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  17 Feb 2014 - E. Lundgren - Move temporary unit change to vol/vol to within
+!                              this subroutine
+!  13 Aug 2015 - E. Lundgren - Tracer units are now [kg/kg dry air]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -583,7 +587,7 @@
       MODELNAME = GET_MODELNAME()
       TAU       = GET_TAU()
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -797,7 +801,7 @@
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-
+!  13 Aug 2014 - E. Lundgren - Tracer units are now [kg/kg dry air]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -834,7 +838,7 @@
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
 #endif
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 

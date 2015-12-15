@@ -308,7 +308,7 @@
       N_TRACERS  = Input_Opt%N_TRACERS
       TCVV       = Input_Opt%TCVV(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg] from State_Chm object
+      ! Initialize GEOS-Chem tracer array [v/v dry air] from State_Chm object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 

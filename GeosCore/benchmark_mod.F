@@ -6,8 +6,8 @@
 ! !MODULE: benchmark_mod
 !
 ! !DESCRIPTION: Module BENCHMARK\_MOD contains routines to save out initial 
-!  and final tracer masses which are needed for GEOS-Chem 1-month benchmark 
-!  simulations
+!  and final tracer mass mixing ratios which are needed for GEOS-Chem 1-month 
+!  benchmark simulations
 !\\
 !\\
 ! !INTERFACE: 
@@ -37,6 +37,7 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  05 Nov 2014 - M. Yannetti - PRECISION_MOD Changed REAL*8 to REAL(fp)
+!  19 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -49,9 +50,9 @@
 !
 ! !ROUTINE: stdrun
 !
-! !DESCRIPTION: Subroutine STDRUN dumps the mass of either O3 [kg] or 222Rn, 
-!  210Pb, and 7Be [kg] at the start \& end of each run.  This is necessary
-!  for GEOS-CHEM benchmarking.
+! !DESCRIPTION: Subroutine STDRUN dumps the mass maxing ratio of either O3 
+!  [kg/kg] or 222Rn, 210Pb, and 7Be [kg/kg] at the start \& end of each run.  
+!  This is necessary for GEOS-CHEM benchmarking.
 !\\
 !\\
 ! !INTERFACE:
@@ -102,6 +103,7 @@
 !  30 May 2013 - R. Yantosca - Now pass Input_Opt object via the arg list
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  17 Dec 2014 - R. Yantosca - Now use State_Chm%TRACERS instead of STT
+!  19 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -136,7 +138,7 @@
       MODELNAME = GET_MODELNAME()
       HALFPOLAR = GET_HALFPOLAR()
       CATEGORY  = 'TCMASS-$'
-      UNIT      = 'kg'
+      UNIT      = 'kg/kg'
       RESERVED  = ''      
       LONRES    = DISIZE
       LATRES    = DJSIZE
@@ -146,10 +148,12 @@
 
       ! Define filename for beginning or end of benchmark run
       IF ( LBEGIN ) THEN
-         TITLE    = 'GEOS-CHEM Benchmark: Initial Tracer Mass'
+         TITLE    = 'GEOS-CHEM Benchmark: Initial Tracer Mass Mixing'
+     &               // ' Ratio'
          FILENAME = INITIAL_FILE
       ELSE
-         TITLE    = 'GEOS-CHEM Benchmark: Final Tracer Mass'
+         TITLE    = 'GEOS-CHEM Benchmark: Final Tracer Mass Mixing'
+     &              // ' Ratio'
          FILENAME = FINAL_FILE
       ENDIF
            
