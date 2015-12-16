@@ -710,19 +710,28 @@
      &                       State_Met, State_Chm, RC )
 
 
-      write(*,'(a,e8.1)') '<> 1', State_Chm%Species(10,10,10,66)
+      ! Debug
+      write(*,'(a,2e12.4)') '<> b INIT_FLEXCHEM',
+     &                     State_Chm%Species(10,10,10,66),
+     &                     State_Chm%Species(10,10,10,62)
 
       ! MSL - Flexchem
       ! Initialize photochemistry & tracer->species mapping
       ! For FULLCHEM, INPHOT was previously done in chemdr, 
       ! but chemdr is gone.
       IF ( ITS_A_FULLCHEM_SIM ) THEN
-         CALL INIT_FLEXCHEM( Input_Opt, State_Chm, am_I_Root, RC )           
+         CALL INIT_FLEXCHEM( Input_Opt, State_Met, State_Chm,
+     &                       am_I_Root, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_FLEXCHEM' )
       ENDIF
       ! MSL ----------
 
-      write(*,'(a,e8.1)') '<> 2', State_Chm%Species(10,10,10,66)
+      ! Debug
+      write(*,'(a,2e12.4)') '<> a INIT_FLEXCHEM',
+     &                     State_Chm%Species(10,10,10,66),
+     &                     State_Chm%Species(10,10,10,62)
+
+
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
@@ -764,7 +773,10 @@
          CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.TRUE. )
       ENDIF
 
-      write(*,'(a,e8.1)') '<> 3', State_Chm%Species(10,10,10,66)
+!         write(*,'(a,2e12.4)') '<> a INITIAL CONDITIONS',
+!     &                        State_Chm%Species(10,10,10,66),
+!     &                        State_Chm%Species(10,10,10,62)
+
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION
 ! This is only invoked when compiling GEOS-Chem with COUPLE=y
@@ -881,7 +893,9 @@
          ! (ckeller, 4/1/15). 
          CALL Diagnostics_Write( am_I_Root, Input_Opt, .FALSE., RC)
 
-         write(*,'(a,e8.1)') '<> 4', State_Chm%Species(10,10,10,66)
+!         write(*,'(a,2e12.4)') '<> a DIAGNOSTICS_WRITE',
+!     &                        State_Chm%Species(10,10,10,66),
+!     &                        State_Chm%Species(10,10,10,62)
       
          RC = GEOS_Timer_End ( "HEMCO" )
 
@@ -953,7 +967,9 @@
 
          RC = GEOS_Timer_End ( "Diagnostics" )
 
-      write(*,'(a,e8.1)') '<> 5', State_Chm%Species(10,10,10,66)
+!         write(*,'(a,2e12.4)') '<> a Diagnostics',
+!     &                        State_Chm%Species(10,10,10,66),
+!     &                        State_Chm%Species(10,10,10,62)
       
          !=============================================================
          !   ***** W R I T E   MERCURY RESTART  F I L E *****
@@ -1125,7 +1141,11 @@
          ! (Need to double-check that LMIN, Lmax are not used before-phs) 
          IF ( LVARTROP ) CALL CHECK_VAR_TROP( State_Met )
 
-      write(*,'(a,e8.1)') '<> 6', State_Chm%Species(10,10,10,66)
+
+!         write(*,'(a,2e12.4)') '<> a INTERP',
+!     &                        State_Chm%Species(10,10,10,66),
+!     &                        State_Chm%Species(10,10,10,62)
+
          ! If we are not doing transport, then make sure that
          ! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)
          IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( State_Met%PSC2 )
@@ -1340,7 +1360,9 @@
             ! (ckeller, 4/1/15)
             RC = GEOS_Timer_Start ( "HEMCO" )
 
-      write(*,'(a,e8.1)') '<> 7', State_Chm%Species(10,10,10,66)
+!         write(*,'(a,2e12.4)') '<> b EMISSIONS_RUN',
+!     &                        State_Chm%Species(10,10,10,66),
+!     &                        State_Chm%Species(10,10,10,62)
 
             CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, 
      &                          State_Chm, ITS_TIME_FOR_EMIS(), 2, RC )
@@ -1521,13 +1543,20 @@
      &                            State_Met, State_Chm, RC )
             ENDIF
 
-      write(*,'(a,e8.1)') '<> 8', State_Chm%Species(10,10,10,66)
+            write(*,'(a,2e12.4)') '<> b DO_CHEMISTRY',
+     &                           State_Chm%Species(10,10,10,66),
+     &                           State_Chm%Species(10,10,10,62)
+
             ! Do GEOS-Chem chemistry
             CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
      &                         State_Chm, State_Met, RC ) 
 
+            write(*,'(a,2e12.4)') '<> a DO_CHEMISTRY',
+     &                           State_Chm%Species(10,10,10,66),
+     &                           State_Chm%Species(10,10,10,62)
+
          ENDIF 
-      write(*,'(a,e8.1)') '<> 9', State_Chm%Species(10,10,10,66)
+
 
          ! Check STT (tracers) (yxw)   
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )

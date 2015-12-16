@@ -18,6 +18,7 @@
 !
       USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
       USE COMODE_MOD,           ONLY : JLOP, TAREA, ERADIUS ! <--!!
+      USE COMODE_LOOP_MOD,      ONLY : BK
       USE FLEXCHEM_SETUP_MOD,   ONLY : STTTOCSPEC, CSPECTOKPP, HSAVE_KPP
       USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_CHEMGRID
       USE CHEMGRID_MOD  ,       ONLY : ITS_IN_THE_NOCHEMGRID
@@ -76,7 +77,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, L, N, N1, MONTH, YEAR
+      INTEGER             :: I, J, L, N, N1, JLOOP, MONTH, YEAR
       INTEGER             :: WAVELENGTH
       INTEGER             :: HCRC
       INTEGER             :: N_TRACERS
@@ -102,19 +103,19 @@
       INTEGER             :: ISTATUS(20)
 
       ! mje Array to hold the molecular mass of the species
-      REAL(kind=fp)               :: TCVV(Input_Opt%N_TRACERS)
+      REAL(kind=fp)       :: TCVV(Input_Opt%N_TRACERS)
 
       ! mje CSPEC_FULL holds the concentation of all chemical species
-      REAL(kind=fp), POINTER      :: CSPEC_FULL(:,:,:,:)
+      REAL(kind=fp), POINTER :: CSPEC_FULL(:,:,:,:)
 
       ! mje STT holds the concentrations of Tracers
-      REAL(kind=fp), POINTER      :: STT(:,:,:,:)
+      REAL(kind=fp), POINTER :: STT(:,:,:,:)
 
       ! mje Array for bug checking
-      REAL(kind=fp)               :: AverageVAR(NSPEC)
-      REAL(kind=fp)               :: Mass, Start, Finish, rtim, itim
+      REAL(kind=fp)       :: AverageVAR(NSPEC)
+      REAL(kind=fp)       :: Mass, Start, Finish, rtim, itim
 
-      CHARACTER(LEN=255) :: ERR_MSG
+      CHARACTER(LEN=255)  :: ERR_MSG
 
       prtDebug = Input_Opt%LPRT
       LDUST    = Input_Opt%LDUST
@@ -133,13 +134,20 @@
       CSPEC_FULL => State_Chm%Species
 
       ! Debug
-      write(*,'(a,e8.1)') '<> 8.1', State_Chm%Species(10,10,10,66)
+      write(*,'(a,2e12.4)') '<> b RURALBOX',
+     &                     State_Chm%Species(10,10,10,66),
+     &                     State_Chm%Species(10,10,10,62)
 
       ! mje link the STT Pointer to the State_Chm%Tracers stucture
       STT =>  State_Chm%Tracers
 
       ! Locate the tropopsheric boxes
       CALL RURALBOX( State_Met )
+
+      ! Debug
+      write(*,'(a,2e12.4)') '<> a RURALBOX',
+     &                     State_Chm%Species(10,10,10,66),
+     &                     State_Chm%Species(10,10,10,62)
 
       !================================================================
       ! Get concentrations of aerosols in [kg/m3] 
@@ -215,42 +223,60 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         N = JLOP(I,J,L)
-         State_Chm%AeroArea(I,J,L,:) = TAREA(N,:)
-         State_Chm%AeroRadi(I,J,L,:) = ERADIUS(N,:)
-         State_Met%NUMDEN(I,J,L)     = GET_PCENTER(I,J,L)*1e2*
-     &                                 1d-6/(8.314d0*State_Met%T(I,J,L))
-     &                                 *6.022d23
+         JLOOP = JLOP(I,J,L)
+         State_Chm%AeroArea(I,J,L,:) = TAREA(JLOOP,:)
+         State_Chm%AeroRadi(I,J,L,:) = ERADIUS(JLOOP,:)
+!------------------------------------------------------------------------------
+! Prior to 12/16/15:
+! Make conversion factor from v/v to molec/cm3 consistent with CONST used
+! in INIT_FLEXCHEM (from the now obsolete GASCONC routine). (mps, 12/16/15)
+!         State_Met%NUMDEN(I,J,L)     = GET_PCENTER(I,J,L)*1e2*
+!     &                                 1d-6/(8.314d0*State_Met%T(I,J,L))
+!     &                                 *6.022d23
+!------------------------------------------------------------------------------
+         State_Met%NUMDEN(I,J,L)     = State_Met%PMID_DRY(I,J,L) *
+     &                                 1000e+0_fp /
+     &                                 ( State_Met%T(I,J,L) * BK )
       END DO
       END DO
       END DO
 
-!      DO N=1,N_TRACERS
-!           write(*,'(3a,2e8.1)')'B: ',TRIM(State_Chm%Trac_Name(N)),': ', 
-!     &           sum(STT(:,:,1,N)), State_Met%NUMDEN(10,10,1)
-!       ENDDO 
+      ! Debug
+      write(*,'(a,2e12.4)') '<> b copy STT to CSPEC_FULL',
+     &                     CSPEC_FULL(10,10,10,66),
+     &                     CSPEC_FULL(10,10,10,62)
+      write(*,*) 'STT = ', STT(10,10,10,1), ' kg'
 
-      ! mje  STT currently in kg / grid box convert to v/v
-      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT)
-
-!      DO N=1,N_TRACERS
-!            write(*,'(3a,e8.1)')'A: ',TRIM(State_Chm%Trac_Name(N)),': ', 
-!     &           sum(STT(:,:,1,N))
-!       ENDDO 
-
-      ! mje now copy STT variables into CSPEC_FULL array 
+      ! Loop over tracers 
       DO N=1,N_TRACERS
+
+         ! Convert STT from kg to molec/cm3
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            STT(I,J,L,N) = STT(I,J,L,N) * Input_Opt%XNUMOL(N) /
+     &                     ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! Copy STT into CSPEC_FULL [molec/cm3]
          IF (STTTOCSPEC(N) .NE. 0) THEN 
             CSPEC_FULL(:,:,:,STTTOCSPEC(N))=STT(:,:,:,N)
          ENDIF
-      ENDDO 
-      write(*,'(a,e8.1)') '<> 8.2', CSPEC_FULL(10,10,10,66)
+      ENDDO
+ 
+      ! Debug
+      write(*,*) 'STT = ', STT(10,10,10,1), ' molec/cm3'
+      write(*,'(a,2e12.4)') '<> a copy STT to CSPEC_FULL',
+     &                     CSPEC_FULL(10,10,10,66),
+     &                     CSPEC_FULL(10,10,10,62)
 
-!     mje Set up conditions for the integration
-!     mje chemical timestep and convert it to seconds.
-      DT = GET_TS_CHEM() * 60d0
-      T = 0d0
-      TIN = T
+      ! mje Set up conditions for the integration
+      ! mje chemical timestep and convert it to seconds.
+      DT   = GET_TS_CHEM() * 60d0
+      T    = 0d0
+      TIN  = T
       TOUT = T + DT
 
       ! mje Set up integration convergence conditions
@@ -344,15 +370,15 @@
          PHOTOL(1:JVN_) = 0.    !ZPJ(L,1:JVN_,I,J)
 
          ! mje Set up the initial conditions of the variable species
-         ! mje The Integrator works in # cm-3 rather than v/v
+         ! mje The Integrator works in # cm-3
          DO N=1,NSPEC
             IF ( CSPECTOKPP(N) .eq. 0) CYCLE
-            C(N)=CSPEC_FULL(I,J,L,CSPECTOKPP(N))*NUMDEN
+            C(N)=CSPEC_FULL(I,J,L,CSPECTOKPP(N))
          ENDDO
 
          ! Debug
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            write(*,'(a,e8.1)') '<> 8.2.2', C(ind_OH)
+            write(*,'(a,2e12.4)') '<> b Integrate', C(ind_OH), C(ind_NO)
          ENDIF
 
          ! mje Set up the values of the non-variable species
@@ -422,17 +448,16 @@
 
          ! Debug
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            write(*,'(a,e8.1)') '<> 8.2.3', C(ind_OH)
+            write(*,'(a,2e12.4)') '<> a Integrate', C(ind_OH), C(ind_NO)
          ENDIF
 
-         ! mje Convert concentrations back to v/v
          ! mje Check we have no negative values and copy the concentrations
          ! mje calculated into the CSPEC_FULL array which is really a pointer
          ! mje to the chemistry structure
          DO N=1,NSPEC
             C(N) = MAX( C(N), 0E0_dp )
             IF ( CSPECTOKPP(N) .eq. 0) CYCLE
-            CSPEC_FULL(I,J,L,CSPECTOKPP(N))= real(C(N),kind=fp)/NUMDEN
+            CSPEC_FULL(I,J,L,CSPECTOKPP(N))= real(C(N),kind=fp)
          ENDDO
 
          ! save next integration time step
@@ -446,20 +471,37 @@
       write(*,'(a,F7.3)') 'Flex Rate Time: ', rtim
       write(*,*) 'Flex Intg Time: ', itim
 
-      ! Debug
-      write(*,'(a,e8.1)') '<> 8.3', CSPEC_FULL(10,10,10,66)
-
 !     mje write out tropospheric mass weighted averages
 !      DO N=1,NSPEC
 !         WRITE (6,*) SPC_NAMES(N), AVERAGEVAR(N)/MASS
 !      ENDDO	
 
-      ! mje copy the new values concentration of tracers from the CSPEC_FULL
-      ! array into the STT array
+      ! Loop over tracers
       DO N=1,N_TRACERS
+
+         ! Copy new tracer concentrations from CSPEC_FULL to STT [molec/cm3]
          IF (STTTOCSPEC(N) .NE. 0) THEN
             STT(:,:,:,N)=CSPEC_FULL(:,:,:,STTTOCSPEC(N))
          ENDIF
+
+         ! Convert STT from molec/cm3 back to kg
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            STT(I,J,L,N) = STT(I,J,L,N) / Input_Opt%XNUMOL(N) *
+     &                     ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
+         ENDDO
+         ENDDO
+         ENDDO
+
+      ENDDO
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! FOR DIAGNOSTIC PURPOSES ONLY:
+      ! mje  STT currently in kg / grid box convert to v/v
+      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT)
+
+      DO N=1,N_TRACERS
 
             ! Construct diagnostic name
             DiagnName = TRIM( Input_Opt%TRACER_NAME(N) )
@@ -478,6 +520,9 @@
      &                          'Flex_Chemdr')
             ENDIF
       ENDDO
+
+      ! mje convert the STT array from v/v to kg / grid box
+      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT)
 
       DO N=1,NSPEC
 
@@ -498,6 +543,7 @@
      &                          'Flex_Chemdr')
             ENDIF
       ENDDO
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !<<      ! Write out Rate values
 !<<      DO N=1,NREACT
@@ -526,9 +572,6 @@
 !<<     &        concentration diagnostics',
 !<<     &        'Flex_Chemdr')
 !<<      ENDIF
-      
-!     mje convert the STT array from v/v to kg per grid box
-      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT)
 
       ! mje set rid of the pointers created
       NULLIFY (STT)

@@ -52,18 +52,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !  
-  SUBROUTINE INIT_FLEXCHEM( Input_Opt, State_Chm, am_I_Root, RC)  
+  SUBROUTINE INIT_FLEXCHEM( Input_Opt, State_Met, State_Chm, am_I_Root, RC)  
 
     USE CMN_SIZE_MOD
-    USE COMODE_LOOP_MOD,    ONLY : QBKGAS, NGAS, NAMEGAS
+    USE COMODE_LOOP_MOD,    ONLY : QBKGAS, NGAS, NAMEGAS, BK, SMAL2
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
     USE HCO_ERROR_MOD
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Met_Mod, ONLY : MetState
     USE gckpp_Global,       ONLY : NSPEC, NREACT
     USE gckpp_Monitor,      ONLY : SPC_NAMES, EQN_NAMES
+    USE PRECISION_MOD
     USE RESTART_MOD,        ONLY : READ_CSPEC_FILE 
     USE TIME_MOD,           ONLY : GET_NYMD, GET_NHMS
 !
@@ -71,6 +73,7 @@ CONTAINS
 !    
     TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
     TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
+    TYPE(MetState), INTENT(IN)    :: State_Met ! Met State object
     LOGICAL,        INTENT(IN)    :: am_I_Root ! Is this the root CPU?
 !
 ! !OUTPUT PARAMETERS:
@@ -87,13 +90,14 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: AS, D, I, N, N1, FOUND
+    INTEGER            :: AS, D, I, J, L, N, N1, FOUND
     INTEGER            :: cId, Collection
     CHARACTER(LEN=15)  :: OutOper,  WriteFreq
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'INIT_FLEXCHEM (flexchem_setup_mod.F90)' 
     LOGICAL            :: IT_EXISTS
+    REAL(fp)           :: CONST
 
     ! Assume success
     RC = 0
@@ -106,12 +110,12 @@ CONTAINS
     IF ( am_I_Root ) WRITE( 6, 100 )
     ALLOCATE( STTTOCSPEC(Input_Opt%N_TRACERS), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    STTTOCSPEC = 0
 
-    IF ( am_I_Root ) WRITE( 6, 100 )
     ALLOCATE( CSPECTOKPP(NSPEC), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    CSPECTOKPP = 0
 
-    IF ( am_I_Root ) WRITE( 6, 100 )
     ALLOCATE( HSAVE_KPP( IIPAR, JJPAR, LLCHEM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     HSAVE_KPP = 0.d0
@@ -120,37 +124,38 @@ CONTAINS
 !     mje This is easier as we don't advect families any more
     DO N=1,Input_Opt%N_TRACERS
        FOUND=0
-       STTTOCSPEC(N)=0
-       DO N1=1,NSPEC
-          IF (ADJUSTL(TRIM(SPC_NAMES(N1))) == &
+       DO N1=1,Input_Opt%N_SPECIES
+          IF ( ADJUSTL(TRIM(NAMEGAS(N1))) == &
                ADJUSTL(TRIM(Input_Opt%TRACER_NAME(N)))) THEN
              STTTOCSPEC(N)=N1
              FOUND=1
           ENDIF
        ENDDO
        IF (FOUND .NE. 1) THEN
-          WRITE (6,*) TRIM(Input_Opt%TRACER_NAME(N)),' Not a species'
+          WRITE (6,'(a8,a17)') TRIM(Input_Opt%TRACER_NAME(N)), &
+             ' is not a species'
        ENDIF
     ENDDO
 
 !   MSL - Create vector to map species in CSPEC order, defined
 !         in READCHEM, to KPP's order, as seen in gckpp_Parameters.F90
-    CSPECTOKPP=0
     DO N=1,Input_Opt%N_SPECIES
        FOUND=0
        DO N1=1,NSPEC
           IF (ADJUSTL(TRIM(SPC_NAMES(N1))) == &
-               ADJUSTL(TRIM(NAMEGAS(N)))) THEN
+              ADJUSTL(TRIM(NAMEGAS(N)))) THEN
              CSPECTOKPP(N1)=N
              FOUND=1
              EXIT
           ENDIF
        ENDDO
        IF (FOUND .NE. 1) THEN
-          WRITE (6,*) TRIM(NAMEGAS(N)),' NOT FOUND IN KPP'
+          WRITE (6,'(a8,a17)') TRIM(NAMEGAS(N)),   &
+             ' NOT found in KPP'
        ENDIF
        IF (FOUND .EQ. 1) THEN
-          WRITE (6,*) TRIM(NAMEGAS(N)),' FOUND IN KPP WITH INDEX ', NSPEC
+          WRITE (6,'(a8,a29,I4)') TRIM(NAMEGAS(N)), &
+             ' was found in KPP with index ', N1
        ENDIF
     ENDDO
 
@@ -165,6 +170,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 
     IF ( Input_Opt%LSVCSPEC ) THEN
+
        ! Read the CSPEC restart file.  If not found, then 
        ! return IT_EXISTS = .FALSE.
        CALL READ_CSPEC_FILE( am_I_Root,  Input_Opt, GET_NYMD(),  &
@@ -173,47 +179,116 @@ CONTAINS
        IF ( .not. IT_EXISTS ) THEN 
           
           !-----------------------------------------------------------
-          ! (2) Initialize CSPEC with default values from globchem.dat.
+          ! No CSPEC restart file found 
+          ! Initialize species with default values from globchem.dat
           !-----------------------------------------------------------
+
           IF ( am_I_Root ) THEN
-             WRITE(6,*) '    - CHEMDR: CSPEC restart not found, use background values'
+             WRITE(6,*) '    - FLEXCHEM_SETUP: CSPEC restart not found. ', &
+                'Initialize species to background values from globchem.dat.'
           ENDIF
           
+          ! Loop over species
           DO N=1,Input_Opt%N_SPECIES
              FOUND=0
              DO N1=1,NSPEC
-                IF (ADJUSTL(TRIM(SPC_NAMES(N1))) == &
-                     ADJUSTL(TRIM(NAMEGAS(N)))) THEN
+
+                IF ( ADJUSTL(TRIM(SPC_NAMES(N1))) == &
+                     ADJUSTL(TRIM(NAMEGAS(N)   )) ) THEN
+
                    FOUND=1
-                   State_Chm%Species(:,:,:,N) = QBKGAS(N) ! Is this mol/mol?
+
+                   ! Loop over grid boxes
+                   DO L = 1, LLCHEM 
+                   DO J = 1, JJPAR
+                   DO I = 1, IIPAR
+
+                      ! Conversion factor
+                      CONST = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp / &
+                            ( State_Met%T(I,J,L) * BK )
+
+                      ! Copy default background conc. from globchem.dat
+                      ! Convert from v/v to molec/cm3
+                      State_Chm%Species(I,J,L,N) = QBKGAS(N) * CONST
+
+                      ! Make sure concentration is not negative (SMAL2 = 1d-99)
+                      State_Chm%Species(I,J,L,N) = &
+                         MAX(State_Chm%Species(I,J,L,N),SMAL2)
+
+                  ENDDO
+                  ENDDO
+                  ENDDO
+
                 ENDIF
                 IF (FOUND .EQ. 1) THEN
-                   WRITE (6,*) TRIM(SPC_NAMES(N1)),' initialized to', QBKGAS(N), &
-                        TRIM(NAMEGAS(N))
+                   WRITE (6,'(a8,a16,e10.3,a4)') TRIM(SPC_NAMES(N1)), &
+                                  ' initialized to ', QBKGAS(N), ' v/v'
                    EXIT
                 ENDIF
+
              ENDDO
              IF (FOUND .NE. 1) &
-                WRITE (6,*) TRIM(SPC_NAMES(N1)),' NOT initialized'
+                WRITE (6,'(a8,a16)') TRIM(NAMEGAS(N)),' NOT initialized'
           ENDDO
+
        ENDIF
-    ELSE ! No CSPEC file specified in input.geod. Set background values
+
+    ELSE
+
+       !-----------------------------------------------------------
+       ! No CSPEC restart file specified in input.geos
+       ! Initialize species with default values from globchem.dat
+       !-----------------------------------------------------------
+
+       IF ( am_I_Root ) THEN
+          WRITE(6,*) '    - FLEXCHEM_SETUP: Not using CSPEC restart. ', &
+             'Initialize species to background values from globchem.dat.'
+       ENDIF
+
+       ! Loop over species
        DO N=1,Input_Opt%N_SPECIES
           FOUND=0
           IF ( (ADJUSTL(TRIM(NAMEGAS(N)))) .eq. "" ) CYCLE
           DO N1=1,NSPEC
-             IF (ADJUSTL(TRIM(SPC_NAMES(N1))) == &
-                  ADJUSTL(TRIM(NAMEGAS(N)))) THEN
+
+             IF ( ADJUSTL(TRIM(SPC_NAMES(N1))) == &
+                  ADJUSTL(TRIM(NAMEGAS(N)   )) ) THEN
+
                 FOUND=1
-                State_Chm%Species(:,:,:,N) = QBKGAS(N) ! Is this mol/mol?
+
+                ! Loop over grid boxes
+                DO L = 1, LLCHEM 
+                DO J = 1, JJPAR
+                DO I = 1, IIPAR
+
+                   ! Conversion factor
+                   CONST = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp / &
+                         ( State_Met%T(I,J,L) * BK )
+
+                   ! Copy default background conc. from globchem.dat
+                   ! Convert from v/v to molec/cm3
+                   State_Chm%Species(I,J,L,N) = QBKGAS(N) * CONST
+
+                   ! Make sure concentration is not negative (SMAL2 = 1d-99)
+                   State_Chm%Species(I,J,L,N) = &
+                      MAX(State_Chm%Species(I,J,L,N),SMAL2)
+
+                ENDDO
+                ENDDO
+                ENDDO
+
              ENDIF
              IF (FOUND .EQ. 1) THEN
-                WRITE (6,'(2a,e8.1)') TRIM(SPC_NAMES(N1)),' initialized to ', QBKGAS(N)
+                WRITE (6,'(a8,a16,e10.3,a4)') TRIM(SPC_NAMES(N1)), &
+                               ' initialized to ', QBKGAS(N), ' v/v'
                 EXIT
              ENDIF
+
           ENDDO
+
           IF (FOUND .NE. 1) &
-               WRITE (6,*) TRIM(NAMEGAS(N)),' NOT initialized'
+               WRITE (6,'(a8,a16)') TRIM(NAMEGAS(N)),' NOT initialized'
+
        ENDDO
     ENDIF
     
