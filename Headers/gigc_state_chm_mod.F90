@@ -493,7 +493,7 @@ CONTAINS
                 ! Also flag which is the emitted tracer
                 IF ( Input_Opt%ID_EMITTED(N) == C ) THEN
                    WRITE( 6,110 ) Input_Opt%TRACER_COEFF(N,C), &
-                                  Input_Opt%TRACER_CONST(T,C)
+                                  Input_Opt%TRACER_CONST(N,C)
                 ELSE
                    WRITE( 6,120 ) Input_Opt%TRACER_COEFF(N,C), &
                                   Input_Opt%TRACER_CONST(N,C)
