@@ -425,11 +425,6 @@
       Input_Opt%MAX_TRCS      = NNPAR
       Input_Opt%MAX_MEMB      = 15
       Input_Opt%MAX_FAMS      = MAXFAM
-!---------------------------------------------------
-! Prior to 9/22/15:
-! Now use NNPAR as a place holdeer (bmy, 9/22/15)
-!      Input_Opt%MAX_DEP       = MAXDEP
-!---------------------------------------------------
       Input_Opt%MAX_DEP       = NNPAR
       Input_Opt%LINOZ_NLEVELS = 25
       Input_Opt%LINOZ_NLAT    = 18
