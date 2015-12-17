@@ -227,17 +227,18 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE CMN_GCTM_MOD
+      USE ERROR_MOD 
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TENDENCIES_MOD
       USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE UNITCONV_MOD
 
 #if   defined ( DEVEL )
       USE HCO_ERROR_MOD
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
 !
@@ -278,6 +279,7 @@
 !  02 Jul 2013 - R. Yantosca - Bug fix: add State_Chm to WETDEP calls for
 !                              met other than MERRA, GEOS-5.7 or GEOS-5
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  08 Aug 2015 - E. Lundgren - Tracer units are now input as [kg/kg]
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
@@ -332,7 +334,6 @@
          BEFORE = State_Chm%Tracers
       ENDIF
 #endif
-
 
 #if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
@@ -396,6 +397,7 @@
      &             State_Chm, RC, LS=.FALSE. )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
 
+
 #endif
 
       !---------------------
@@ -416,9 +418,14 @@
             ! Is this a tracer selected for diagnostics?
             IF ( ANY( Input_Opt%TINDEX(39,:) == N ) ) THEN
 
-               ! Loss rate (kg/s)
-               TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N) ) 
-     &             / DT 
+               ! Loss rate [kg/s] (eventually will be kg/m2/s)
+               ! Convert kg/kg/s to kg/s so that the vertical
+               ! sum makes physical sense (ewl, 8/14/15)
+               TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N) )
+     &                 * State_Met%DELP * 1.e+2_fp 
+     &                 * ( 1.e+0_fp - 1.e-3_fp * State_Met%SPHU ) 
+     &                 / ( G0_100 * DT ) * State_Met%AREA_M2(I,J,1) 
+
                TMP2D = SUM(TMP3D,DIM=3)
 
                ! Update diagnostics
@@ -936,6 +943,7 @@
 ! !USES:
 !
       USE CMN_Size_Mod
+      USE Error_Mod
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -1033,15 +1041,12 @@
 !  19 Dec 2014 - M. Sulprizio- Add bug fixes for CONV_H2O2 and CONV_NH3 from
 !                              Duncan Fairlie. The square root term should be
 !                              inverted to be consistent with Mari et al (2000).
-!  12 May 2015 - E. Lundgren - Change tracer units from v/v -> kg for TOMAS if
-!                              not already in kg (ie. called from convection)
 !  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
-!  23 Jun 2015 - E. Lundgren - Adjust 5/12/15 TOMAS bug fix to convert
-!                              kg/kg total air <-> kg for new convection units
 !  23 Jun 2015 - M. Sulprizio- Add impaction scavenging for hydrophobic BC and
 !                              homogeneous IN removal from Qiaoqiao Wang
 !  04 Sep 2015 - R. Yantosca - Use species database to radically simplify
 !                              the structure of this routine.
+!  24 Sep 2015 - E. Lundgren - Convert kg/kg total air <-> kg for TOMAS
 !  25 Sep 2015 - R. Yantosca - Move the computation of the Ki rate (Eq. 1 from
 !                              Jacob et al 2000) into routine COMPUTE_Ki
 !  25 Sep 2015 - R. Yantosca - Remove T pointer, it's not needed here
@@ -1228,9 +1233,8 @@
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            CALL GETFRACTION( I,        J,               L,
-     &                        N,       .FALSE.,          XFRAC,
-     &                        SOLFRAC,  State_Chm%Tracers       )
+            CALL GETFRACTION( I, J, L, N, .FALSE., State_Met,
+     &                        XFRAC,      SOLFRAC, State_Chm )
             F(I,J,L) = XFRAC * F(I,J,L)
          ENDDO
          ENDDO
@@ -1255,9 +1259,8 @@
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            CALL GETFRACTION( I,        J,               L,
-     &                        N,       .FALSE.,          XFRAC,
-     &                        SOLFRAC,  State_Chm%Tracers       )
+            CALL GETFRACTION( I, J, L, N, .FALSE., State_Met,
+     &                              XFRAC,      SOLFRAC, State_Chm )
             F(I,J,L) = XFRAC * SOLFRAC * F(I,J,L)
          ENDDO
          ENDDO
@@ -1949,7 +1952,7 @@
 
 #if defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS,    ICOMP
-      USE DAO_MOD,            ONLY : CONVERT_UNITS
+      USE ERROR_MOD
       USE UNITCONV_MOD
 #endif
 !
@@ -2058,6 +2061,7 @@
 !  23 Jun 2015 - E. Lundgren - Adjust 5/12/15 TOMAS bug fix to convert
 !                              kg/kg total air <-> kg for new convection units
 !  08 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
+!  22 Sep 2015 - E. Lundgren - Add kg/m2 <-> kg conversion for TOMAS
 !  30 Sep 2015 - R. Yantosca - Now use ThisSpc%WD_Is_HNO3 and ThisSpc%WD_Is_SO2
 !                              to flag the special cases of HNO3 & SO2 wetdep
 !  16 Oct 2015 - E. Lundgren - Use ThisSpc%WD_Is_H2SO4 to treat H2SO4 as aerosol
@@ -2068,6 +2072,11 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( TOMAS )
+      LOGICAL           :: UNITCHANGE_KGKG ! flag for STT units kg/kg
+      LOGICAL           :: UNITCHANGE_KGM2 ! flag for STT units kg/m2 
+#endif
+
       ! Scalars
       REAL(fp)               :: L2G, DZ, SO2LOSS
       REAL(fp)               :: K0,  CR, pKa
@@ -2085,6 +2094,31 @@
 
       ! Assume success
       RC      =  GIGC_SUCCESS
+
+#if defined( TOMAS )
+      ! Convert tracer concentration units to [kg] if not already
+      ! since TOMAS functions and routines expect [kg]. Units are
+      ! kg/kg total air if WASHOUT is called from convection and are
+      ! kg/m2 is called from DO_WASHOUT_ONLY. Since WASHOUT is called
+      ! within an (I,J,L) loop, only convert units for a single grid
+      ! box. Otherwise, run will take too long (ewl, 9/22/15)
+      UNITCHANGE_KGKG = .FALSE.
+      UNITCHANGE_KGM2 = .FALSE.
+      IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/kg total' ) THEN
+         UNITCHANGE_KGKG = .TRUE.
+         CALL Convert_KgKgTotal_to_Kg( am_I_Root, I, J, L, Input_Opt, 
+     &                                 State_Met, State_Chm, RC )
+      ELSE IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/m2' ) THEN
+         UNITCHANGE_KGM2 = .TRUE.
+         CALL Convert_Kgm2_to_Kg( am_I_Root, I, J, L, Input_Opt, 
+     &                            State_Met, State_Chm, RC )
+      ELSE
+         CALL ERROR_STOP('Incorrect initial tracer units:' // 
+     &                   State_Chm%Trac_Units, 
+     &                   'Routine WASHOUT in wetscav_mod')
+         RETURN
+      ENDIF
+#endif
 
       ! DZ is the height of the grid box in cm
       DZ      =  BXHEIGHT * 1e+2_fp
@@ -2183,8 +2217,8 @@
          KIN      = .TRUE.
 
          ! Compute washout fraction
-         WASHFRAC = WASHFRAC_SIZE_AEROSOL
-     &            ( DT, F, PP, TK, N, I, J, L, State_Met, State_Chm )
+         CALL WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+     &                             State_Met, State_Chm, WASHFRAC, RC )
 #endif
 
       !-----------------------------------------------------------
@@ -2210,6 +2244,26 @@
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       ENDIF
+
+#if defined( TOMAS )
+      ! Convert State_Chm%Tracers units back to original units 
+      ! if conversion occurred at start of WASHOUT (ewl, 5/12/15)
+      IF ( UNITCHANGE_KGKG ) THEN
+         CALL Convert_Kg_to_KgKgTotal( am_I_Root, I, J, L, Input_Opt, 
+     &                                 State_Met, State_Chm, RC )
+      ELSE IF ( UNITCHANGE_KGM2 ) THEN
+         CALL Convert_Kg_to_Kgm2( am_I_Root, I, J, L, Input_Opt, 
+     &                            State_Met, State_Chm, RC )
+      ENDIF
+
+      ! Check that tracer units are as expected (ewl, 9/29/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg total' .AND.
+     &     TRIM( State_Chm%Trac_Units ) /= 'kg/m2' ) THEN
+         CALL ERROR_STOP('Incorrect final tracer units:' // 
+     &                    State_Chm%Trac_Units,  
+     &                   'Routine WASHOUT in wetscav_mod')
+      ENDIF
+#endif
 
       ! Free pointer
       ThisSpc => NULL()
@@ -2396,19 +2450,21 @@
 !
 ! !IROUTINE: washfrac_size_aerosol
 !
-! !DESCRIPTION: Function WASHFRAC\_SIZE\_AEROSOL returns the fraction of 
+! !DESCRIPTION: Subroutine WASHFRAC\_SIZE\_AEROSOL retrieves fraction of 
 !  soluble aerosol tracer lost to washout. Size resolved version for TOMAS.
 !\\
 !\\
 ! !INTERFACE:
 !
 
-      FUNCTION WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-     &                                State_Met, State_Chm ) 
-     &         RESULT( WASHFRAC )
+      SUBROUTINE WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+     &                                  State_Met, State_Chm, WASHFRAC,
+     &                                  RC ) 
 !
 ! !USES:
 !
+      USE ERROR_MOD
+      USE GIGC_ErrCode_Mod
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TOMAS_MOD,          ONLY : IBINS, GETDP, STRATSCAV
@@ -2433,16 +2489,18 @@
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
 !
-! !RETURN VALUE:
+! !OUTPUT PARAMETERS:
 !
-      REAL(fp)                      :: WASHFRAC   ! Fraction of tracer
+      REAL(fp),       INTENT(OUT)   :: WASHFRAC   ! Fraction of tracer 
                                                   !  lost to washout [1]
+      INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  31 May 2013 - R. Yantosca - Now accept State_Met, State_Chm as arguments
 !  04 Sep 2013 - R. Yantosca - Bug fix: Prevent div-by-zero if F=0.  Because F 
 !                              multiplies the whole expression for WASHFRAC,
 !                              WASHFRAC=0 whenever F=0 anyway.
+!  24 Sep 2015 - E. Lundgren - Function is now a subroutine and outputs RC      
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2483,7 +2541,7 @@
 !         ENDIF
 !---------------------------------------------------------------
 
-            DPAERO = GETDP( I, J, L, N, State_Met, State_Chm )
+            DPAERO = GETDP( I, J, L, N, State_Met, State_Chm, RC )
             ! External function stratscav returns the scavenging rate (mm^-1)
             ! Let scavr has a unit of cm^-1
             SCAVR = 10.e+0_fp* STRATSCAV( DPAERO )
@@ -2505,7 +2563,7 @@
       ENDIF
 
       ! Return to calling program
-      END FUNCTION WASHFRAC_SIZE_AEROSOL
+      END SUBROUTINE WASHFRAC_SIZE_AEROSOL
 !EOC
 #endif
 !------------------------------------------------------------------------------
@@ -2716,6 +2774,7 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
@@ -2729,6 +2788,7 @@
       USE TRACERID_MOD,       ONLY : IDTSO4
       USE TRACERID_MOD,       ONLY : IS_Hg2
       USE TRACERID_MOD,       ONLY : IS_HgP
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2910,9 +2970,12 @@
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  27 May 2011 - R. Yantosca - Now pass F_RAINOUT to DO_WASHOUT_ONLY
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
+!  02 Apr 2015 - E. Lundgren - Move tracer unit conversion from kg/kg to kg
+!                              to within this routine
 !  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
 !  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
 !                              whether the dynamic ocean is used
+!  22 Sep 2015 - E. Lundgren - Tracer units now converted to kg/m2 from kg/kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2952,7 +3015,18 @@
       ! Is this a mercury simulation?
       IS_Hg = ( ITS_A_MERCURY_SIM )
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Convert tracer concentration from mixing ratio (kg/kg dry air) to
+      ! mass per unit area (kg/m2) for wet deposition since computation is
+      ! done per column (ewl, 9/8/15)
+      CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,           
+     &                               State_Met, State_Chm, RC )   
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                      'WETDEP in wetscav_mod.F')
+         RETURN
+      ENDIF  
+
+      ! Initialize GEOS-Chem tracer array [kg/m2] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -3034,10 +3108,11 @@
             ! Only compute rainout if F > 0. 
             ! This helps to eliminate unnecessary CPU cycles.
             IF ( F > 0e+0_fp ) THEN 
-               CALL DO_RAINOUT_ONLY( LS,  I,      J,    L,   
-     &                               IDX, ERRMSG, F,    K_RAIN, 
-     &                               DT,  STT,    DSTT, Input_opt,
-     &                               State_Met,   State_Chm )
+               CALL DO_RAINOUT_ONLY( am_I_Root, LS,        I, J, L,         
+     &                               IDX,       ERRMSG,    F,    
+     &                               K_RAIN,    DT,        DSTT,   
+     &                               Input_Opt, State_Met, State_Chm,
+     &                               RC                              )
             ENDIF
 
             ! Save FTOP for the next lower level 
@@ -3156,10 +3231,11 @@
                ERRMSG = 'RAINOUT: Middle levels'
 
                ! Do rainout if we meet the above criteria
-               CALL DO_RAINOUT_ONLY( LS,  I,      J,         L,   
-     &                               IDX, ERRMSG, F_RAINOUT, K_RAIN,  
-     &                               DT,  STT,    DSTT,      Input_Opt,
-     &                               State_Met,   State_Chm )
+               CALL DO_RAINOUT_ONLY( am_I_Root, LS,        I, J, L, 
+     &                               IDX,       ERRMSG,    F_RAINOUT, 
+     &                               K_RAIN,    DT,        DSTT,      
+     &                               Input_Opt, State_Met, State_Chm,
+     &                               RC                              )
             ENDIF
 
             !==============================================================
@@ -3195,12 +3271,12 @@
                ERRMSG = 'WASHOUT: Middle levels'
 
                ! Do the washout
-               CALL DO_WASHOUT_ONLY( am_I_Root, LS,        I,    J,     
-     &                               L,         IDX,  ERRMSG, 
-     &                               QDOWN,     Q,    F_WASHOUT, 
-     &                               F_RAINOUT, DT,   PDOWN,     
-     &                               STT,       DSTT, Input_Opt,
-     &                               State_Met, State_Chm, RC )
+               CALL DO_WASHOUT_ONLY( am_I_Root, LS,        I, J, L,         
+     &                               IDX,       ERRMSG,    QDOWN,     
+     &                               Q,         F_WASHOUT, F_RAINOUT, 
+     &                               DT,        PDOWN,     DSTT,      
+     &                               Input_Opt, State_Met, State_Chm, 
+     &                               RC                              )
             ENDIF
 
             !===========================================================
@@ -3224,9 +3300,10 @@
                ERRMSG = 'RESUSPENSION in middle levels'
 
                ! Re-evaporate all of the rain
-               CALL DO_COMPLETE_REEVAP( LS,  I,      J,  L,  
-     &                                  IDX, ERRMSG, DT, STT, DSTT, 
-     &                                  State_Met, State_Chm )
+               CALL DO_COMPLETE_REEVAP( am_I_Root, LS,        I, J, L,         
+     &                                  IDX,       ERRMSG,    DT,
+     &                                  DSTT,      Input_Opt, State_Met, 
+     &                                  State_Chm, RC        )
             ENDIF 
 
             ! Save FTOP for next level
@@ -3265,10 +3342,11 @@
 
             ! Only compute washout if F > 0.
             IF ( F > 0e+0_fp ) THEN
-               CALL DO_WASHOUT_AT_SFC( am_I_Root, LS,  I,      J,    L,         
-     &                                 IDX, ERRMSG, QDOWN, F,   
-     &                                 DT,  STT,    DSTT,  Input_Opt,
-     &                                 State_Met,   State_Chm, RC     )
+               CALL DO_WASHOUT_AT_SFC( am_I_Root, LS,        I, J, L,         
+     &                                 IDX,       ERRMSG,    QDOWN,   
+     &                                 F,         DT,        DSTT,  
+     &                                 Input_Opt, State_Met, State_Chm, 
+     &                                 RC                             )
             ENDIF    
          ENDIF
 
@@ -3315,6 +3393,15 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Convert tracer units back to mixing ratio (ewl, 9/8/15)
+      CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,           
+     &                               State_Met, State_Chm, RC )   
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                      'WETDEP in wetscav_mod.F')
+         RETURN
+      ENDIF  
+
       ! Free pointer
       NULLIFY( STT )
 
@@ -3342,10 +3429,11 @@
 !
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE GIGC_ErrCode_Mod
+      USE ERROR_MOD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -3354,6 +3442,7 @@
       USE TRACERID_MOD,       ONLY : IDTSO4
       USE TRACERID_MOD,       ONLY : IS_Hg2
       USE TRACERID_MOD,       ONLY : IS_HgP
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3486,6 +3575,8 @@
 !  27 May 2011 - R. Yantosca - Now pass F_RAINOUT to DO_WASHOUT_ONLY
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !  01 Apr 2015 - L. Zhang    - Don't do wetdep in nested-grid buffer zone
+!  02 Apr 2015 - E. Lundgren - Move tracer unit conversion from kg/kg to kg
+!                              to within this routine
 !  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
 !  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
 !                              whether the dynamic ocean is used
@@ -3528,6 +3619,17 @@
 
       ! Is this a mercury simulation?
       IS_Hg = ITS_A_MERCURY_SIM
+
+      ! Convert tracer concentration from mixing ratio (kg/kg dry air) to
+      ! mass per unit area (kg/m2) for wet deposition since computation is
+      ! done per column (ewl, 9/8/15)
+      CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,
+     &                               State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                      'WETDEP_MERRA in wetscav_mod.F')
+         RETURN
+      ENDIF  
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -3609,10 +3711,11 @@
             ! Only compute rainout if F > 0. 
             ! This helps to eliminate unnecessary CPU cycles.
             IF ( F > 0e+0_fp ) THEN 
-               CALL DO_RAINOUT_ONLY( LS,  I,      J,    L,   
-     &                               IDX, ERRMSG, F,    K_RAIN, 
-     &                               DT,  STT,    DSTT, Input_Opt,
-     &                               State_Met,   State_Chm )
+               CALL DO_RAINOUT_ONLY( am_I_Root, LS,        I, J, L,         
+     &                               IDX,       ERRMSG,    F,    
+     &                               K_RAIN,    DT,        DSTT,   
+     &                               Input_Opt, State_Met, State_Chm,   
+     &                               RC                              )
             ENDIF
 
             ! Save FTOP for the next lower level 
@@ -3717,10 +3820,11 @@
                ERRMSG = 'RAINOUT'
 
                ! Do rainout if we meet the above criteria
-               CALL DO_RAINOUT_ONLY( LS,  I,      J,         L,   
-     &                               IDX, ERRMSG, F_RAINOUT, K_RAIN,  
-     &                               DT,  STT,    DSTT,      Input_Opt,
-     &                               State_Met,   State_Chm )
+               CALL DO_RAINOUT_ONLY( am_I_Root, LS,        I, J, L,         
+     &                               IDX,       ERRMSG,    F_RAINOUT, 
+     &                               K_RAIN,    DT,        DSTT,   
+     &                               Input_Opt, State_Met, State_Chm,   
+     &                               RC                              )
             ENDIF  
 
             IF ( IS_WASHOUT ) THEN 
@@ -3733,12 +3837,12 @@
                ERRMSG = 'WASHOUT'
 
                ! Do the washout
-               CALL DO_WASHOUT_ONLY( am_I_Root, LS,        I,    J,     
-     &                               L,         IDX,  ERRMSG,   
-     &                               QDOWN,     Q,    F_WASHOUT, 
-     &                               F_RAINOUT, DT,   PDOWN,     
-     &                               STT,       DSTT, Input_Opt,
-     &                               State_Met, State_Chm, RC )
+               CALL DO_WASHOUT_ONLY( am_I_Root, LS,        I, J, L,    
+     &                               IDX,       ERRMSG,    QDOWN,     
+     &                               Q,         F_WASHOUT, F_RAINOUT, 
+     &                               DT,        PDOWN,     DSTT,      
+     &                               Input_Opt, State_Met, State_Chm, 
+     &                               RC                              )
 
             ENDIF
 
@@ -3765,10 +3869,11 @@
                ! Error message
                ERRMSG = 'RESUSPENSION in middle levels'
 
-               ! Re-evaporate all of the rain
-               CALL DO_COMPLETE_REEVAP( LS,  I,      J,  L,  
-     &                                  IDX, ERRMSG, DT, STT, DSTT, 
-     &                                  State_Met, State_Chm )
+! Re-evaporate all of the rain
+               CALL DO_COMPLETE_REEVAP( am_I_Root, LS,        I, J, L,         
+     &                                  IDX,       ERRMSG,    DT,
+     &                                  DSTT,      Input_Opt, State_Met, 
+     &                                  State_Chm, RC       )
             ENDIF 
 
             ! Save FTOP for next level
@@ -3803,10 +3908,11 @@
 
             ! Only compute washout if F > 0.
             IF ( F > 0e+0_fp ) THEN
-               CALL DO_WASHOUT_AT_SFC( am_I_Root, LS,  I,      J,   L,         
-     &                                 IDX, ERRMSG, QDOWN, F,   
-     &                                 DT,  STT,    DSTT,  Input_Opt,
-     &                                 State_Met,   State_Chm, RC    )
+               CALL DO_WASHOUT_AT_SFC( am_I_Root, LS,        I, J, L,
+     &                                 IDX,       ERRMSG,    QDOWN,     
+     &                                 F,         DT,        DSTT,      
+     &                                 Input_Opt, State_Met, State_Chm, 
+     &                                 RC                              )
 
             ENDIF    
          ENDIF
@@ -3853,6 +3959,15 @@
       ENDDO	
       ENDDO	
 !$OMP END PARALLEL DO
+
+      ! Convert tracer concentration back to kg/kg dry air (ewl, 9/8/15)
+      CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,
+     &                               State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                      'WETDEP_MERRA in wetscav_mod.F')
+         RETURN
+      ENDIF  
 
       ! Free pointer
       NULLIFY( STT )
@@ -4021,10 +4136,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_RAINOUT_ONLY( LS,  I,      J,         L,   
-     &                            IDX, ERRMSG, F_RAINOUT, K_RAIN, 
-     &                            DT,  STT,    DSTT,      Input_Opt,
-     &                            State_Met,   State_Chm )
+      SUBROUTINE DO_RAINOUT_ONLY( am_I_Root, LS,        I, J, L,
+     &                            IDX,       ERRMSG,    F_RAINOUT, 
+     &                            K_RAIN,    DT,        DSTT,   
+     &                            Input_Opt, State_Met, State_Chm,   
+     &                            RC                              )
 !
 ! !USES:
 !
@@ -4053,6 +4169,7 @@
 !
 ! !INPUT PARAMETERS: 
 !     
+      LOGICAL,          INTENT(IN)    :: am_I_Root     ! Are we on root CPU?    
       LOGICAL,          INTENT(IN)    :: LS            ! =T denotes LS precip
       INTEGER,          INTENT(IN)    :: I             ! Longitude index
       INTEGER,          INTENT(IN)    :: J             ! Latitude index
@@ -4068,14 +4185,16 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
       REAL(fp),         INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,          INTENT(OUT)   :: RC            ! Success or failure?    
 ! 
 ! !REMARKS:
 !  The modifications for the MERRA met fields require calling this same 
 !  sequence of code more than once.  The expedient solution was to just move
-!  the relevant code into this this subroutine.
+!  the relevant code into this subroutine.
 !                                                                             .
 !  An IF statement in WETDEP decides if this rainout is to be done (and thus
 !  if this routine will be called.  The criteria for rainout is:
@@ -4095,6 +4214,10 @@
 ! !REVISION HISTORY: 
 !  16 Sep 2010 - R. Yantosca - Initial version
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
+!  22 Sep 2015 - E. Lundgren - Input STT is now in kg/m2 (prev kg)
+!  24 Sep 2015 - E. Lundgren - Now pass am_I_Root and RC as arguments 
+!  29 Sep 2015 - E. Lundgren - Now pass State_Chm as argument and use 
+!                              local pointer for STT array [kg/m2]     
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4103,6 +4226,11 @@
 !
       INTEGER  :: N,        NN
       REAL(fp) :: RAINFRAC, WETLOSS
+
+      ! Pointers
+      ! We need to define local array to hold tracer concentraiton values 
+      ! from the Chemistry State (State_Chm) object [kg/m2] (ewl, 9/29/15)
+      REAL(fp), POINTER      :: STT(:,:,:,:)
 
 #if defined( TOMAS )
       ! Scavenging fraction of 30-bin aerosols (win, 7/16/09)
@@ -4113,6 +4241,10 @@
       !=================================================================
       ! DO_RAINOUT_ONLY begins here!
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array from Chemistry State object
+      ! [kg/m2] (ewl, 9/29/15)
+      STT => State_Chm%Tracers
 
       ! ND16 diagnostic...save F 
       IF ( ND16 > 0 .and. L <= LD16 ) THEN
@@ -4142,19 +4274,25 @@
 #if defined( TOMAS )
          IF ( IDTNK1 > 0 ) THEN
             IF ( N >= IDTNK1 .and. N < IDTNK1 + IBINS ) THEN  
-               CALL GETFRACTION( I, J, L, N, LS, XFRAC, SOLFRAC, STT ) 
+
+               CALL GETFRACTION( I, J, L, N, LS, State_Met, XFRAC, 
+     &                           SOLFRAC, State_Chm )
+ 
                RAINFRAC = RAINFRAC * XFRAC * SOLFRAC
              ELSE IF ( N >= IDTSF1 .and. N < IDTDUST1 + IBINS ) THEN
-               CALL GETFRACTION( I, J, L, N, LS, XFRAC, SOLFRAC, STT ) 
+
+               CALL GETFRACTION( I, J, L, N, LS, State_Met, XFRAC,  
+     &                           SOLFRAC, State_Chm ) 
+
                RAINFRAC = RAINFRAC * XFRAC
              ENDIF
           ENDIF
 #endif
-         ! WETLOSS is the amount of tracer in grid box 
-         ! (I,J,L) that is lost to rainout.
+         ! WETLOSS is the amount of tracer in grid box per unit area
+         ! (I,J,L) that is lost to rainout [kg/m2]
          WETLOSS = STT(I,J,L,N) * RAINFRAC
 
-         ! Subtract the rainout loss in grid box (I,J,L) from STT
+         ! Subtract the rainout loss in grid box (I,J,L) from STT [kg/m2]
          STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS
 
          IF ( L == LLPAR ) THEN
@@ -4188,14 +4326,16 @@
          ENDIF
 
 #if !defined(NO_BPCH)
-         ! ND39 diag -- save rainout losses in [kg/s]
+         ! ND39 diag -- save rainout losses in [kg/s] 
+         ! NOTE: eventually change this to kg/m2/s (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
+     &                       * State_Met%AREA_M2(I,J,1)
          ENDIF
 #endif
 
-         ! Archive wet loss in kg/s
+         ! Archive wet loss in kg/m2/s
          IF ( LSOILNOX ) THEN
             CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
          ENDIF
@@ -4227,6 +4367,9 @@
          ENDIF
       ENDDO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE DO_RAINOUT_ONLY
 !EOC
 !------------------------------------------------------------------------------
@@ -4246,11 +4389,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_WASHOUT_ONLY( am_I_Root, LS,        I,    J,  L,
-     &                            IDX,       ERRMSG,    QDOWN,  Q,
-     &                            F_WASHOUT, F_RAINOUT, DT,     PDOWN,
-     &                            STT,       DSTT,      Input_Opt,
-     &                            State_Met, State_Chm, RC, REEVAP )
+      SUBROUTINE DO_WASHOUT_ONLY( am_I_Root, LS,        I, J, L, 
+     &                            IDX,       ERRMSG,    QDOWN,   
+     &                            Q,         F_WASHOUT, F_RAINOUT, 
+     &                            DT,        PDOWN,     DSTT,      
+     &                            Input_Opt, State_Met, State_Chm, 
+     &                            RC,        REEVAP               )
 !
 ! !USES:
 !
@@ -4266,7 +4410,7 @@
       USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
       USE DIAG_MOD,           ONLY : CT17              ! ND17 diag counter
       USE DIAG_MOD,           ONLY : CT18              ! ND18 diag counter
-      USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
+      USE ERROR_MOD
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
       USE GIGC_Input_Opt_Mod, ONLY : OptInput          ! Input options
       USE GIGC_State_Chm_Mod, ONLY : ChmState          ! Chemistry State object
@@ -4278,7 +4422,6 @@
       USE TRACERID_MOD,       ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1
       USE TRACERID_MOD,       ONLY : IDTDUST1
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID
-      USE TOMAS_MOD,          ONLY : GETFRACTION
       USE DIAG_MOD,           ONLY : AD05
 #endif
 !
@@ -4307,8 +4450,8 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
-      REAL(fp),         INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
+      REAL(fp),         INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array 
+                                                       ! [kg/m2]
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
@@ -4393,21 +4536,30 @@
 !  20 May 2015 - M. Sulprizio- Remove WASHFRAC < 1D-3 error trap for MERRA
 !                              following recommendation by Viral Shah
 !  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
+!  22 Sep 2015 - E. Lundgren - Incoming tracer units are now [kg/m2]
+!  29 Sep 2015 - E. Lundgren - Now use local pointer for STT array [kg/m2]   
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL :: KIN,       DO_REEVAP
-      INTEGER :: N,         NN
+      LOGICAL   :: KIN,       DO_REEVAP
+      INTEGER   :: N,         NN
       REAL(fp)  :: ALPHA,     ALPHA2,      GAINED,   LOST
       REAL(fp)  :: MASS_WASH, MASS_NOWASH, WASHFRAC, WETLOSS
       REAL(fp)  :: TK,        TF  
 
+      ! Pointers
+      ! We need to define local array to hold tracer concentraiton values 
+      ! from the Chemistry State (State_Chm) object [kg/m2] (ewl, 9/29/15)
+      REAL(fp), POINTER      :: STT(:,:,:,:)
+
 #if defined( TOMAS )
-      REAL(fp)  :: REEVAPSO2  !(win, 7/16/09)
-      INTEGER :: KMIN       !(win, 7/16/09)
+      REAL(fp)           :: REEVAPSO2  !(win, 7/16/09)
+      INTEGER            :: KMIN       !(win, 7/16/09)
+      CHARACTER(LEN=255) :: MSG, LOC   !(ewl, 10/1/15)
+
 #endif
 
       !=================================================================
@@ -4416,6 +4568,10 @@
 
       ! Assume success
       RC        =  GIGC_SUCCESS
+
+      ! Initialize GEOS-Chem tracer array from Chemistry State object
+      ! [kg/m2] (ewl, 9/29/15)
+      STT => State_Chm%Tracers
 
       ! ND16 diagnostic...save F (fraction of grid box raining)
       IF ( ND16 > 0e+0_fp .and. L <= LD16 ) THEN
@@ -4544,7 +4700,7 @@
 
 #if defined( TOMAS )
 !added for TOMAS (win, 7/16/09)
-            ! Save the amout of SO4 [kg S] added via aqueous 
+            ! Save the amout of SO4 [kg S/m2] added via aqueous 
             ! chem to ND05(6) diagnostic assuming it's all 
             ! by reacting with H2O2 (win, 7/16/09)
             IF ( ND05 > 0 .and. L <= LD05 ) 
@@ -4578,9 +4734,22 @@
 # endif
                ENDIF
 
-               REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp
-               CALL AQOXID( REEVAPSO2, KMIN, I, J, L, 
-     &                      State_Met, State_Chm  )
+               ! ***NOTE*** Tracer concentration units are currently in
+               ! [kg/m2] which is incompatible with TOMAS. Units are
+               ! therefore converted to [kg] locally within AQOXID.
+               ! GAINED is now [kg/m2] ans so is multiplied
+               ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
+               IF ( TRIM( State_Chm%Trac_Units ) .eq. 'kg/m2' ) THEN
+                  REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp
+     &                        * State_Met%AREA_M2(I,J,1)
+               ELSE
+                  MSG = 'Unexpected tracer units: ' 
+     &                            // TRIM( State_Chm%Trac_Units )
+                  LOC = 'Routine DO_WASHOUT_ONLY in wetscav_mod.F'
+                  CALL ERROR_STOP( MSG, LOC )
+               ENDIF
+               CALL AQOXID( am_I_Root, REEVAPSO2, KMIN, I, J, L, 
+     &                      Input_Opt, State_Met, State_Chm, RC  )
             ENDIF
 !end -added for TOMAS  (win, 7/16/09)
 #endif
@@ -4654,13 +4823,16 @@
 
 #if !defined(NO_BPCH)
          ! ND39 diag -- save rainout losses in [kg/s]
+         ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
+     &                       * State_Met%AREA_M2(I,J,1)
+
          ENDIF
 #endif
 
-         ! Archive wet loss in kg/s
+         ! Archive wet loss in kg/m2/s
          IF ( LSOILNOX ) THEN
             CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
          ENDIF
@@ -4692,6 +4864,9 @@
 
          ENDIF
       ENDDO  
+
+      ! Free pointer
+      NULLIFY( STT )
  
       END SUBROUTINE DO_WASHOUT_ONLY
 !EOC
@@ -4708,11 +4883,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_COMPLETE_REEVAP( LS,        I,        J, 
-     &                               L,         IDX,      ERRMSG, 
-     &                               DT,        STT,      DSTT, 
-     &                               State_Met, State_Chm         )
-!
+      SUBROUTINE DO_COMPLETE_REEVAP( am_I_Root, LS,        I, J, L,
+     &                               IDX,       ERRMSG,    DT,             
+     &                               DSTT,      Input_Opt, State_Met, 
+     &                               State_Chm, RC                   )
+!     
 ! !USES:
 !
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
@@ -4726,8 +4901,9 @@
       USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
       USE DIAG_MOD,           ONLY : CT17              ! ND17 diag counter
       USE DIAG_MOD,           ONLY : CT18              ! ND18 diag counter
-      USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
+      USE ERROR_MOD
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTSO2            ! ID flag for SO2
@@ -4741,21 +4917,28 @@
 #endif
 !
 ! !INPUT PARAMETERS: 
-!     
-      LOGICAL,          INTENT(IN)    :: LS            ! =T denotes LS precip
-      INTEGER,          INTENT(IN)    :: I             ! Longitude index
-      INTEGER,          INTENT(IN)    :: J             ! Latitude index
-      INTEGER,          INTENT(IN)    :: L             ! Level index
-      INTEGER,          INTENT(IN)    :: IDX           ! ND38 index
-      CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
-      REAL(fp),           INTENT(IN)    :: DT            ! Rainout timestep [s]
-      TYPE(MetState),   INTENT(IN)    :: State_Met     ! sfarina Required for TOMAS routines
+!
+      LOGICAL,        INTENT(IN)      :: am_I_Root   ! Are we on the root CPU?
+      LOGICAL,          INTENT(IN)    :: LS          ! =T denotes LS precip
+      INTEGER,          INTENT(IN)    :: I           ! Longitude index
+      INTEGER,          INTENT(IN)    :: J           ! Latitude index
+      INTEGER,          INTENT(IN)    :: L           ! Level index
+      INTEGER,          INTENT(IN)    :: IDX         ! ND38 index
+      CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG      ! Error message
+      REAL(fp),         INTENT(IN)    :: DT          ! Rainout timestep [s]
+      TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input options
+      TYPE(MetState),   INTENT(IN)    :: State_Met   ! sfarina Required for
+                                                     ! TOMAS routines
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
-      REAL(fp),           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
-      REAL(fp),           INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
+      REAL(fp),         INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array 
+                                                       ! [kg/m2] 
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)     :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  The modifications for the MERRA met fields require calling this same 
@@ -4764,24 +4947,38 @@
 !
 ! !REVISION HISTORY: 
 !  16 Sep 2010 - R. Yantosca - Initial version
+!  22 Sep 2015 - E. Lundgren - Incoming tracer units are now kg/m2 (prev kg)
+!  24 Sep 2015 - E. Lundgren - Now pass am_I_Root and RC as arguments and  
+!                              local pointer for STT array [kg/m2] 
+!  30 Sep 2015 - E. Lundgren - Now pass Input_Opt for use in TOMAS AQOXID  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N, NN
+      INTEGER   :: N, NN
       REAL(fp)  :: WETLOSS
+
+      ! Pointers
+      ! We need to define local array to hold tracer concentraiton values 
+      ! from the Chemistry State (State_Chm) object [kg/m2] (ewl, 9/29/15)
+      REAL(fp), POINTER      :: STT(:,:,:,:)
 
 
 #if defined( TOMAS )
-      REAL(fp)  :: REEVAPSO2  !(win, 7/16/09)
-      INTEGER :: KMIN       !(win, 7/16/09)
+      REAL(fp)           :: REEVAPSO2  !(win, 7/16/09)
+      INTEGER            :: KMIN       !(win, 7/16/09)
+      CHARACTER(LEN=255) :: MSG, LOC   !(ewl, 10/1/15)
 #endif
 
       !=================================================================
       ! DO_COMPLETE_REEVAP begins here!
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array from Chemistry State object
+      ! [kg/m2] (ewl, 9/29/15)
+      STT => State_Chm%Tracers
 
       ! Loop over wetdep species
       DO NN = 1, NSOL
@@ -4789,7 +4986,7 @@
          ! Tracer # corresponding to the wetdep species #
          N = IDWETD(NN) 
 
-         ! WETLOSS is the amount of tracer in grid box (I,J,L) 
+         ! WETLOSS is the amount of tracer in grid box (I,J,L) per area
          ! that is lost to rainout. (qli, bmy, 10/29/02)
          WETLOSS = -DSTT(NN,L+1,I,J)
 
@@ -4842,9 +5039,27 @@
                            KMIN = 16
 # endif
                         ENDIF
-                        REEVAPSO2 =  - ( WETLOSS * 96e+0_fp / 64e+0_fp )
-                        CALL AQOXID( REEVAPSO2, KMIN, I, J, L,
-     &                               State_Met, State_Chm )
+
+               ! ***NOTE*** Tracer concentration units are currently in
+               ! [kg/m2] which is incompatible with TOMAS. Units are
+               ! therefore converted to [kg] locally within AQOXID.
+               ! WETLOSS is now [kg/m2] and so is multiplied
+               ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
+                        IF ( TRIM( State_Chm%Trac_Units ) .eq.
+     &                                          'kg/m2' ) THEN
+                           REEVAPSO2 =  - ( WETLOSS * 96e+0_fp 
+     &                                  / 64e+0_fp )
+     &                                  * State_Met%AREA_M2(I,J,1)
+                        ELSE
+                           MSG = 'Unexpected tracer units: ' 
+     &                            // TRIM(State_Chm%Trac_Units)
+                           LOC = 'Routine DO_COMPLETE_REEVAP' 
+     &                           // 'in wetscav_mod.F'
+                           CALL ERROR_STOP( MSG, LOC )
+                        ENDIF
+                        CALL AQOXID( am_I_Root, REEVAPSO2, KMIN, I, J, 
+     &                               L, Input_Opt, State_Met, 
+     &                               State_Chm, RC )
                      ENDIF
 !end- added for TOMAS (win, 7/16/09)
 #endif
@@ -4864,13 +5079,16 @@
 
 #if !defined(NO_BPCH)
          ! ND39 diag -- save rainout losses in [kg/s]
+         ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + ( WETLOSS / DT )
+     &                       * State_Met%AREA_M2(I,J,1)
+
          ENDIF
 #endif
 
-         ! Archive wet loss in kg/s
+         ! Archive wet loss in kg/m2/s
          IF ( LSOILNOX ) THEN
             CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
          ENDIF
@@ -4902,6 +5120,9 @@
          ENDIF
       ENDDO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE DO_COMPLETE_REEVAP
 !EOC
 !------------------------------------------------------------------------------
@@ -4917,10 +5138,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_WASHOUT_AT_SFC( am_I_Root, LS,  I,      J,     L,         
-     &                              IDX, ERRMSG, QDOWN, F,   
-     &                              DT,  STT,    DSTT,  Input_Opt,
-     &                              State_Met,   State_Chm, RC      )
+      SUBROUTINE DO_WASHOUT_AT_SFC( am_I_Root, LS,        I, J, L,         
+     &                              IDX,       ERRMSG,    QDOWN,     
+     &                              F,         DT,        DSTT,      
+     &                              Input_Opt, State_Met, State_Chm, 
+     &                              RC                              )
 !
 ! !USES:
 !
@@ -4963,8 +5185,8 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
-      REAL(fp),         INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
+      REAL(fp),         INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array 
+                                                       ! [kg/m2]
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
 ! 
 ! !OUTPUT PARAMETERS:
@@ -4985,6 +5207,8 @@
 !                              derived type object
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !  04 Jun 2015 - E. Lundgren - Now accept am_I_Root and RC as arguments
+!  22 Sep 2015 - E. Lundgren - Tracer units are now kg/m2 (prev kg)
+!  29 Sep 2015 - E. Lundgren - Now use local pointer for STT array [kg/m2]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4996,12 +5220,21 @@
       REAL(fp)  :: WASHFRAC, WETLOSS, TMP
       REAL(fp)  :: TK   
 
+      ! Pointers
+      ! We need to define local array to hold tracer concentraiton values 
+      ! from the Chemistry State (State_Chm) object [kg/m2] (ewl, 9/29/15)
+      REAL(fp), POINTER      :: STT(:,:,:,:)
+
       !=================================================================
       ! DO_WASHOUT_AT_SFC begins here!
       !=================================================================
 
       ! Assume success
       RC        =  GIGC_SUCCESS
+
+      ! Initialize GEOS-Chem tracer array from Chemistry State object
+      ! (ewl, 9/29/15)
+      STT => State_Chm%Tracers
 
       ! ND16 diagnostic...save F 
       IF ( ND16 > 0 .and. L <= LD16 ) THEN
@@ -5043,10 +5276,10 @@
             WETLOSS = STT(I,J,L,N) * WASHFRAC * F
          ENDIF
 
-         ! Subtract WETLOSS from STT
+         ! Subtract WETLOSS from STT [kg/m2]
          STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS     
       
-         ! Add washout losses in grid box (I,J,L=1) to DSTT 
+         ! Add washout losses in grid box (I,J,L=1) to DSTT [kg/m2] 
          ! (added cdh, 4/14/2009)
          DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
 
@@ -5070,13 +5303,16 @@
 
 #if !defined(NO_BPCH)
          ! ND39 diag -- save washout loss in [kg/s]
+         ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
+     &                       * State_Met%AREA_M2(I,J,1)
          ENDIF
 #endif
 
-         ! Archive wet loss in kg/s
+         ! Archive wet loss in kg/m2/s (check source code for this routine
+         ! - ewl )
 !         IF ( LSOILNOX ) THEN
             CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
 !         ENDIF
@@ -5124,6 +5360,9 @@
 
          ENDIF
       ENDDO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE DO_WASHOUT_AT_SFC
 !EOC
@@ -5467,7 +5706,7 @@
 ! !USES:
 !
       USE CMN_Size_Mod
-      USE Error_Mod,          ONLY : Alloc_Err
+      USE Error_Mod
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -5679,6 +5918,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TracerId_Mod
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -5728,6 +5968,7 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
 !  28 Apr 2015 - E. Lundgren - Change PMID_DRY to PMID for Dalton's Law.
+!  13 Aug 2015 - E. Lundgren - Incoming tracer units are now kg/kg dry air
 !  03 Sep 2015 - R. Yantosca - Now allocate IDWETD
 !  03 Sep 2015 - R. Yantosca - Now move array allocation into INIT_WETSCAV
 !  22 Sep 2015 - R. Yantosca - Bug fix: now initialize H2O2s and SO2s on
@@ -5841,14 +6082,22 @@
 
          ! Set H2O2s to the initial H2O2 from STT, so that we will have
          ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
+         ! While State_Chm%TRACERS are now in units of [kg/kg dry air] for
+         ! call to SETUP_WETSCAV, store H2O2s in legacy units [v/v dry air] 
+         ! for now for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( IDTH2O2 > 0 ) THEN
             H2O2s = State_Chm%Tracers(:,:,:,IDTH2O2)
+     &               * Input_Opt%TCVV(IDTH2O2)
          ENDIF
 
          ! Set SO2s to the initial SO2 from STT, so that we will have
          ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
+         ! While State_Chm%TRACERS are now in units of [kg/kg dry air] for 
+         ! call to SETUP_WETSCAV, store SO2s in units [v/v dry air] for now 
+         ! for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( IDTSO2 > 0 ) THEN
             SO2s = State_Chm%Tracers(:,:,:,IDTSO2)
+     &              * Input_Opt%TCVV(IDTSO2)
          ENDIF
 
          ! Reset first-time flag

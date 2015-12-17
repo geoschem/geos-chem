@@ -27,7 +27,6 @@
 !
       PUBLIC  :: AVGPOLE
       PUBLIC  :: AIRQNT
-      PUBLIC  :: CONVERT_UNITS
       PUBLIC  :: COPY_I3_I6_FIELDS
       PUBLIC  :: GET_COSINE_SZA
       PUBLIC  :: GET_OBK
@@ -248,27 +247,38 @@
 ! !IROUTINE: airqnt
 !
 ! !DESCRIPTION: Subroutine AIRQNT sets several members of State\_Met, the
-!  meteorology object of derived type MetState. 
+!  meteorology object of derived type MetState, and optionally updates
+!  the tracer concentrations to conserve tracer mass when air quantities
+!  change. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AIRQNT( am_I_Root, State_Met, RC )
+      SUBROUTINE AIRQNT( am_I_Root, Input_Opt, State_Met, State_Chm, 
+     &                   RC, update_mixing_ratio )
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod,   ONLY : MetState
-      USE GRID_MOD,             ONLY : GET_AREA_M2
-      USE PRESSURE_MOD      
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE GIGC_State_Met_Mod,   ONLY : MetState
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState
+      USE GRID_MOD,             ONLY : GET_AREA_M2
+      USE PRESSURE_MOD    
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,  INTENT(IN)  :: am_I_Root           ! Are we on the root CPU?
+      LOGICAL,        INTENT(IN)           :: am_I_Root  ! On the root CPU?
+      TYPE(OptInput), INTENT(IN)           :: Input_Opt  ! Input options
+      LOGICAL,        INTENT(IN), OPTIONAL :: update_mixing_ratio 
+                                                         ! Update mixing ratio?
+                                                         ! Default is yes
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(INOUT) :: State_Met  ! Obj for met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Obj for met fields
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -296,6 +306,7 @@
 !  (12) BXHEIGHT  (REAL(fp)) : Vertical height of grid box                [m]   
 !  (13) AIRVOL    (REAL(fp)) : Volume of grid box                         [m^3]
 !  (14) MOISTMW   (REAL(fp)) : Molecular weight of moist air in box     [g/mol]
+!  (15) DELP_PREV (REAL(fp)) : Prev delta-P for trcr mixing ratio update  [hPa]
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) AIRQNT is written in Fixed-Form Fortran 90.  Use F90 syntax
@@ -353,16 +364,21 @@
 !  03 Mar 2015 - E. Lundgren - Set State_Met%TV (virtual temperature)
 !  16 Apr 2015 - E. Lundgren - Add new State_Met variables PMEAN, PMEAN_DRY, 
 !                              MOISTMW, and ADMOIST
+!  28 Oct 2015 - E. Lundgren - Pass update_mixing_ratio flag, Input_Opt, and
+!                              State_Chm to optionally update tracer units
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I,  J,  L
+      INTEGER   :: I,  J,  L,  N    
       REAL(fp)  :: PEdge_Top, Esat, Ev_mid, Ev_edge, Ev_mean  
       REAL(fp)  :: EsatA, EsatB, EsatC, EsatD
-      REAL(fp)  :: AREA_M2, SPHU_kgkg, AVGW_moist
+      REAL(fp)  :: AREA_M2, SPHU_kgkg, SPHU_kgkg_prev, AVGW_moist
+
+      ! Error handling
+      CHARACTER(LEN=255) :: MSG, LOC
 
       ! Conversion factors
       REAL(fp), PARAMETER   :: TOFFSET = -2.7315e+2_fp   ! K -> deg C
@@ -393,6 +409,10 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
+      !=============================================================
+      ! Update air quantities
+      !=============================================================  
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -419,6 +439,9 @@
          IF (L == LLPAR) THEN
             State_Met%PEDGE( I,J,L+1 ) = PEdge_Top
          ENDIF
+         
+         ! Set previous pressure difference to current pressure difference
+         State_Met%DELP_PREV( I,J,L ) = State_Met%DELP( I,J,L )
 
          ! Pressure difference between top & bottom edges [hPa]
          State_Met%DELP( I,J,L )   = State_Met%PEDGE( I,J,L ) 
@@ -706,7 +729,7 @@
          !    (2) Specific humidity in GEOS-Chem (SPHU) is stored in [g/kg]
          !
          !==============================================================
-         State_Met%ADMOIST(I,J,L) = State_Met%DELP(I,J,L) * G0_100 
+         State_Met%ADMOIST(I,J,L) = ( State_Met%DELP(I,J,L) * G0_100 ) 
      &                              * AREA_M2 
 
          State_Met%AD(I,J,L) = State_Met%ADMOIST(I,J,L)
@@ -716,6 +739,61 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      !=============================================================
+      ! Update tracer concentrations with updated air quantities
+      ! if update mixing ratio flag indicates to do so
+      !=============================================================  
+
+      ! Update the mixing ratio with new air quantities such that tracer
+      ! mass is conserved if (1) update_mixing_ratio flag is not passed, 
+      ! or (2) update_mixing_ratio flag is passed as true.
+      ! NOTE: The only places where mixing ratio is not currently updated
+      ! following air quantity change is during GEOS-Chem initialization and  
+      ! in transport after the pressure fixer is applied 
+      IF ( .not. PRESENT( update_mixing_ratio )  
+     &               .or. update_mixing_ratio ) THEN
+
+         ! The concentration update formula works only for dry mixing ratios
+         ! (kg/kg or v/v) so check if units are correct
+         IF ( State_Chm%Trac_units == 'kg/kg dry' .or.
+     &        State_Chm%Trac_units == 'v/v dry' ) THEN
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, SPHU_kgkg, SPHU_kgkg_prev )
+            
+            DO N = 1, Input_Opt%N_TRACERS
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+
+               ! Conver specific humidities from [g/kg] to [kg/kg]
+               SPHU_kgkg_prev = State_Met%SPHU_prev(I,J,L) * MCONV
+               SPHU_kgkg  = State_Met%SPHU(I,J,L) * MCONV
+   
+               ! Update concentration by multiplying by previous air kg/m2
+               ! and dividing by new air kg/m2. Note that the acceleration
+               ! due to gravity and the dry air molecular wt cancel out.
+               State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)
+     &                           * ( ( 1.0e+0_fp - SPHU_kgkg_prev )      
+     &                               * State_Met%DELP_prev(I,J,L) )           
+     &                           / ( ( 1.0e+0_fp - SPHU_kgkg )      
+     &                               * State_Met%DELP(I,J,L) )
+
+            ENDDO
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE
+            MSG = 'Incorrect tracer units: ' 
+     &              // TRIM(State_Chm%Trac_Units)
+            LOC = 'DAO_MOD: AIRQNT'
+            CALL GIGC_Error( TRIM(MSG), RC, TRIM(LOC) )
+         ENDIF
+      ENDIF
 
       END SUBROUTINE AIRQNT
 !EOC
@@ -809,6 +887,7 @@
 !  12 May 2015 - E. Lundgren - Fix I3 interpolation bug where time fraction
 !                              spans from 1 to 2, not 0 to 1, for hrs 3 to 6
 !  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
+!  28 Oct 2015 - E. Lundgren - Set previous SPHU to current SPHU before update
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1028,10 +1107,17 @@
          !----------------------------------------------------
          ! Interpolate 3D variables
          !----------------------------------------------------
+
+         ! Interpolate temperature
          State_Met%T   (I,J,L) = State_Met%TMPU1(I,J,L)   +
      &                         ( State_Met%TMPU2(I,J,L)   -
      &                           State_Met%TMPU1(I,J,L) ) * TM
 
+         ! Set previous SPHU to current SPHU prior to interpolateion
+         ! update (ewl, 10/28/15)
+         State_Met%SPHU_prev(I,J,L) = State_Met%SPHU(I,J,L)
+
+         ! Interpolate specific humidity
          State_Met%SPHU(I,J,L) = State_Met%SPHU1(I,J,L)   +
      &                         ( State_Met%SPHU2(I,J,L)   -
      &                           State_Met%SPHU1(I,J,L) ) * TM 
@@ -1842,159 +1928,159 @@
 
       END SUBROUTINE COSSZA
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: convert_units
+!!
+!! !DESCRIPTION: Subroutine CONVERT\_UNITS converts the units of STT from [kg] 
+!!  to [v/v] mixing ratio, or vice versa.  
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE CONVERT_UNITS( IFLAG, N_TRACERS, TCVV, AD, STT ) 
+!!
+!! !USES:
+!!
+!      USE ERROR_MOD,  ONLY : ERROR_STOP
+!!
+!! !INPUT PARAMETERS: 
+!!
 !
-! !IROUTINE: convert_units
+!      ! =1 then convert from [kg ] --> [v/v]
+!      ! =2 then convert from [v/v] --> [kg ]
+!      INTEGER, INTENT(IN)    :: IFLAG
 !
-! !DESCRIPTION: Subroutine CONVERT\_UNITS converts the units of STT from [kg] 
-!  to [v/v] mixing ratio, or vice versa.  
-!\\
-!\\
-! !INTERFACE:
+!      ! Number of tracers
+!      INTEGER, INTENT(IN)    :: N_TRACERS 
 !
-      SUBROUTINE CONVERT_UNITS( IFLAG, N_TRACERS, TCVV, AD, STT ) 
+!      ! Array containing [Air MW / Tracer MW] for tracers
+!      REAL(fp),  INTENT(IN)    :: TCVV(N_TRACERS)
 !
-! !USES:
+!      ! Array containing grid box air masses
+!      REAL(fp),  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      !  Array containing tracer conc. [kg] or [v/v]
+!      REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+!!
+!! !REMARKS
+!!  Most of the GEOS-Chem subroutines require the tracer array STT to be in 
+!!  units of [kg].  However, the cloud convection, PBL mixing, and transport
+!!  routines require STT to be in volume mixing ratio [v/v].   
+!!                                                                             .
+!!  Therefore, we need to call CONVERT_UNITS to convert STT from [kg] to [v/v]
+!!  before calling convection, PBL mixing, or transport.  We also need to
+!!  call CONVERT_UNITS after these routines to make the inverse conversion
+!!  from [v/v] to [kg].
 !
-      USE ERROR_MOD,  ONLY : ERROR_STOP
+!! !REVISION HISTORY: 
+!!  15 Jun 1998 - R. Yantosca - Initial version
+!!  (1 ) CONVERT_UNITS is written in Fixed-Form Fortran 90.
+!!  (2 ) Cosmetic changes, updated comments (bmy, 4/19/00)
+!!  (3 ) Now use SELECT CASE statement.  Also added parallel DO-loops
+!!        with the new Open-MP compiler directives. (bmy, 4/27/00)
+!!  (4 ) Bundled into "dao_mod.f".  Now pass NTRACE, TCVV, AD, STT as args.
+!!        Now use explicit DO-loops for I-J-L w/in parallel loops.  Updated
+!!        comments, cosmetic changes. (bmy, 3/29/02)
+!!  (5 ) Removed obsolete, commented-out code.  Also now use F90 intrinsic
+!!        REPEAT to write a line of "="'s to the screen. (bmy, 6/25/02)
+!!  (6 ) Updated comments.  Now reference ERROR_STOP from "error_mod.f" 
+!!        (bmy, 10/15/02)
+!!  (7 ) Renamed NTRACE to N_TRACERS for consistency (bmy, 7/19/04)
+!!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER :: I, J, L, N
 !
-! !INPUT PARAMETERS: 
+!      !=================================================================
+!      ! CONVERT_UNITS begins here!
+!      !=================================================================
+!      SELECT CASE ( IFLAG )
 !
-
-      ! =1 then convert from [kg ] --> [v/v]
-      ! =2 then convert from [v/v] --> [kg ]
-      INTEGER, INTENT(IN)    :: IFLAG
-
-      ! Number of tracers
-      INTEGER, INTENT(IN)    :: N_TRACERS 
-
-      ! Array containing [Air MW / Tracer MW] for tracers
-      REAL(fp),  INTENT(IN)    :: TCVV(N_TRACERS)
-
-      ! Array containing grid box air masses
-      REAL(fp),  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
+!         !==============================================================
+!         ! IFLAG = 1: Convert from [kg] -> [v/v] 
+!         !
+!         !  The conversion is as follows:
+!         !
+!         !   kg tracer(N)       1        Air mol wt     
+!         !   -----------  * -------- *  -------------   
+!         !        1          kg air     tracer mol wt   
+!         !
+!         !       moles tracer     volume tracer
+!         !   =   ------------  =  -------------
+!         !        moles air        volume air
+!         !
+!         ! Since the volume of a gas depends on the number of moles.
+!         ! Therefore, with:
+!         !
+!         !  TCMASS(N) = mol. wt. of tracer (AMU)
+!         !  TCVV(N)   = 28.97 / TCMASS(N)
+!         !            = mol. wt. of air (AMU) / mol. wt. of tracer (AMU)
+!         !  AD(I,J,L) = mass of air (kg) in grid box (I,J,L)
+!         !     
+!         ! the conversion is:
+!         ! 
+!         !  STT(I,J,L,N) [kg] * TCVV(N) / AD(I,J,L) = STT(I,J,L,N) [v/v]
+!         !==============================================================
+!         CASE ( 1 )
 !
-! !OUTPUT PARAMETERS:
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED ) 
+!!$OMP+PRIVATE( I, J, L, N ) 
+!            DO N = 1, N_TRACERS
+!            DO L = 1, LLPAR
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!               STT(I,J,L,N) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
 !
-      !  Array containing tracer conc. [kg] or [v/v]
-      REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+!         !==============================================================
+!         ! IFLAG = 2: Convert from [v/v] -> [kg] 
+!         !
+!         ! From the above discussion, the reverse unit conversion 
+!         ! is given by:
+!         !
+!         !  STT(I,J,L,N) [v/v] * AD(I,J,L) / TCVV(N) = STT(I,J,L,N) [kg]
+!         !==============================================================
+!         CASE ( 2 )
 !
-! !REMARKS
-!  Most of the GEOS-Chem subroutines require the tracer array STT to be in 
-!  units of [kg].  However, the cloud convection, PBL mixing, and transport
-!  routines require STT to be in volume mixing ratio [v/v].   
-!                                                                             .
-!  Therefore, we need to call CONVERT_UNITS to convert STT from [kg] to [v/v]
-!  before calling convection, PBL mixing, or transport.  We also need to
-!  call CONVERT_UNITS after these routines to make the inverse conversion
-!  from [v/v] to [kg].
-
-! !REVISION HISTORY: 
-!  15 Jun 1998 - R. Yantosca - Initial version
-!  (1 ) CONVERT_UNITS is written in Fixed-Form Fortran 90.
-!  (2 ) Cosmetic changes, updated comments (bmy, 4/19/00)
-!  (3 ) Now use SELECT CASE statement.  Also added parallel DO-loops
-!        with the new Open-MP compiler directives. (bmy, 4/27/00)
-!  (4 ) Bundled into "dao_mod.f".  Now pass NTRACE, TCVV, AD, STT as args.
-!        Now use explicit DO-loops for I-J-L w/in parallel loops.  Updated
-!        comments, cosmetic changes. (bmy, 3/29/02)
-!  (5 ) Removed obsolete, commented-out code.  Also now use F90 intrinsic
-!        REPEAT to write a line of "="'s to the screen. (bmy, 6/25/02)
-!  (6 ) Updated comments.  Now reference ERROR_STOP from "error_mod.f" 
-!        (bmy, 10/15/02)
-!  (7 ) Renamed NTRACE to N_TRACERS for consistency (bmy, 7/19/04)
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!!$OMP PARALLEL DO 
+!!$OMP+DEFAULT( SHARED ) 
+!!$OMP+PRIVATE( I, J, L, N )
+!            DO N = 1, N_TRACERS
+!            DO L = 1, LLPAR
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!               STT(I,J,L,N) = STT(I,J,L,N) * AD(I,J,L) / TCVV(N)
+!            ENDDO     
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
 !
-! !LOCAL VARIABLES:
+!         !==============================================================
+!         ! Otherwise halt with an error message
+!         !==============================================================
+!         CASE DEFAULT
+!            CALL ERROR_STOP( 'Invalid IFLAG value (must be 1 or 2)!', 
+!     &                       'CONVERT_UNITS (dao_mod.f)' )
+!      END SELECT
 !
-      INTEGER :: I, J, L, N
-
-      !=================================================================
-      ! CONVERT_UNITS begins here!
-      !=================================================================
-      SELECT CASE ( IFLAG )
-
-         !==============================================================
-         ! IFLAG = 1: Convert from [kg] -> [v/v] 
-         !
-         !  The conversion is as follows:
-         !
-         !   kg tracer(N)       1        Air mol wt     
-         !   -----------  * -------- *  -------------   
-         !        1          kg air     tracer mol wt   
-         !
-         !       moles tracer     volume tracer
-         !   =   ------------  =  -------------
-         !        moles air        volume air
-         !
-         ! Since the volume of a gas depends on the number of moles.
-         ! Therefore, with:
-         !
-         !  TCMASS(N) = mol. wt. of tracer (AMU)
-         !  TCVV(N)   = 28.97 / TCMASS(N)
-         !            = mol. wt. of air (AMU) / mol. wt. of tracer (AMU)
-         !  AD(I,J,L) = mass of air (kg) in grid box (I,J,L)
-         !     
-         ! the conversion is:
-         ! 
-         !  STT(I,J,L,N) [kg] * TCVV(N) / AD(I,J,L) = STT(I,J,L,N) [v/v]
-         !==============================================================
-         CASE ( 1 )
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, N ) 
-            DO N = 1, N_TRACERS
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               STT(I,J,L,N) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         !==============================================================
-         ! IFLAG = 2: Convert from [v/v] -> [kg] 
-         !
-         ! From the above discussion, the reverse unit conversion 
-         ! is given by:
-         !
-         !  STT(I,J,L,N) [v/v] * AD(I,J,L) / TCVV(N) = STT(I,J,L,N) [kg]
-         !==============================================================
-         CASE ( 2 )
-
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, N )
-            DO N = 1, N_TRACERS
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               STT(I,J,L,N) = STT(I,J,L,N) * AD(I,J,L) / TCVV(N)
-            ENDDO     
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         !==============================================================
-         ! Otherwise halt with an error message
-         !==============================================================
-         CASE DEFAULT
-            CALL ERROR_STOP( 'Invalid IFLAG value (must be 1 or 2)!', 
-     &                       'CONVERT_UNITS (dao_mod.f)' )
-      END SELECT
-
-      ! Return to calling program
-      END SUBROUTINE CONVERT_UNITS
+!      ! Return to calling program
+!      END SUBROUTINE CONVERT_UNITS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

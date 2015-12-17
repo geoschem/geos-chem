@@ -158,15 +158,16 @@ MODULE HCOX_STATE_MOD
      INTEGER,          POINTER :: PBL_MAX     ! Max height of PBL [level]
      TYPE(ExtDat_3R),  POINTER :: CNV_MFC     ! Convective cloud mass flux [kg/m2/s] 
      TYPE(ExtDat_3R),  POINTER :: FRAC_OF_PBL ! Fraction of grid box in PBL
-     TYPE(ExtDat_3R),  POINTER :: SPHU        ! Spec. humidity [kg H2O/kg air] 
+     TYPE(ExtDat_3R),  POINTER :: SPHU        ! Spec. humidity [kg H2O/kg total air] 
      TYPE(ExtDat_3R),  POINTER :: TK          ! Air temperature [K]
-     TYPE(ExtDat_3R),  POINTER :: AIR         ! Air mass [kg]
+     TYPE(ExtDat_3R),  POINTER :: AIR         ! Dry air mass [kg]
      TYPE(ExtDat_3R),  POINTER :: AIRVOL      ! Air volume [m3] 
-     TYPE(ExtDat_3R),  POINTER :: O3          ! O3 mass [kg]
-     TYPE(ExtDat_3R),  POINTER :: NO          ! NO mass [kg]
-     TYPE(ExtDat_3R),  POINTER :: NO2         ! NO2 mass [kg]
-     TYPE(ExtDat_3R),  POINTER :: HNO3        ! HNO3 mass [kg]
-     TYPE(ExtDat_3R),  POINTER :: POPG        ! POPG mass [kg]
+     TYPE(ExtDat_3R),  POINTER :: AIRDEN      ! Dry air density [kg/m3] 
+     TYPE(ExtDat_3R),  POINTER :: O3          ! O3 mass [kg/kg dry air]
+     TYPE(ExtDat_3R),  POINTER :: NO          ! NO mass [kg/kg dry air]
+     TYPE(ExtDat_3R),  POINTER :: NO2         ! NO2 mass [kg/kg dry air]
+     TYPE(ExtDat_3R),  POINTER :: HNO3        ! HNO3 mass [kg/kg dry air]
+     TYPE(ExtDat_3R),  POINTER :: POPG        ! POPG mass [kg/kg dry air]
 
      !----------------------------------------------------------------------
      ! Deposition parameter
@@ -441,6 +442,9 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%AIRVOL, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Init ( ExtState%AIRDEN, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     CALL ExtDat_Init ( ExtState%O3, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -547,6 +551,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%TK         )
        CALL ExtDat_Cleanup( ExtState%AIR        )
        CALL ExtDat_Cleanup( ExtState%AIRVOL     )
+       CALL ExtDat_Cleanup( ExtState%AIRDEN     )
        CALL ExtDat_Cleanup( ExtState%O3         )
        CALL ExtDat_Cleanup( ExtState%NO         )
        CALL ExtDat_Cleanup( ExtState%NO2        )

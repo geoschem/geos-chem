@@ -1957,6 +1957,9 @@ CONTAINS
     CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%AIRVOL, 'AIRVOL', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%AIRDEN, 'AIRDEN', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%O3, 'O3', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 

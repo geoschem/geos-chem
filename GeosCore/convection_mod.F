@@ -94,6 +94,7 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : CONVFLUP
+      USE ERROR_MOD,          ONLY : GIGC_ERROR
       USE UNITCONV_MOD
 #if   !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD38
@@ -184,6 +185,7 @@
 !                              passing State_Met array slice
 !  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
+!  10 Aug 2015 - E. Lundgren - Incoming tracer units are now kg/kg dry air
 !  11 Aug 2015 - R. Yantosca - Added support for MERRA2 data
 !EOP
 !------------------------------------------------------------------------------
@@ -201,8 +203,8 @@
       ! Pointers
       ! Define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. Units are 
-      ! initially v/v dry air but will be converted to
-      ! kg/kg total air for convection (ewl, 23/15)
+      ! initially kg/kg dry air but will be converted to
+      ! kg/kg total air for convection (ewl, 8/10/15)
       REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
@@ -265,12 +267,15 @@
       ! Copy values from Input_Opt
       N_TRACERS         = Input_Opt%N_TRACERS
 
-      ! Convert State_Chm%Tracers from [v/v dry air] to 
-      ! [kg/kg total air] prior to convection (ewl, 6/23/15)
-      CALL Convert_DryVV_to_DryKgKg( am_I_Root, N_TRACERS, 
-     &                               Input_Opt, State_Chm, RC)
-      CALL Convert_DryKgKg_to_MoistKgKg( am_I_Root, N_TRACERS,  
+      ! Convert State_Chm%Tracers from [kg/kg dry air] to 
+      ! [kg/kg total air] prior to convection (ewl, 8/10/15)
+      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
      &                                   State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'DO_CONVECTION in convection_mod.F')
+         RETURN
+      ENDIF  
 
       ! For new diagnostics, archive old species concentration. At the 
       ! moment, the new ND38 diagnostics only returns the total column 
@@ -520,11 +525,14 @@
 #endif
 
       ! Convert tracer concentration from kg/kg total air to 
-      ! mol/mol dry air after convection (ewl, 6/23/15)
-      CALL Convert_MoistKgKg_to_DryKgKg( am_I_Root, N_TRACERS,  
+      ! kg/kg dry air after convection (ewl, 8/10/15)
+      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
      &                                   State_Met, State_Chm, RC ) 
-      CALL Convert_DryKgKg_to_DryVV( am_I_Root, N_TRACERS, 
-     &                               Input_Opt, State_Chm, RC)
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'DO_CONVECTION in convection_mod.F')
+         RETURN
+      ENDIF  
 
       !=================================================================
       ! Calculate tendencies and write to diagnostics 

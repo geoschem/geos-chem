@@ -682,12 +682,12 @@
 
       ! Print error message to log
       MSG =  'GEOS-Chem ERROR: ' // TRIM(ErrMsg)
-      WRITE(6,*) MSG
+      WRITE(6,*) TRIM(MSG)
       
       ! Print error location to log
       IF ( PRESENT(ThisLoc) ) THEN
          MSG = 'ERROR LOCATION: ' // TRIM( ThisLoc )
-         WRITE(6,*) ThisLoc
+         WRITE(6,*) TRIM(ThisLoc)
       ENDIF
       
       ! Return with error

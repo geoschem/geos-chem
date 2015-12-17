@@ -60,6 +60,11 @@
 
       ! RSTARG : Universal gas constant [J/K/mol] 
       REAL(fp), PARAMETER :: RSTARG   = 8.31450e+0_fp
+      
+      ! Molecules dry air per kg dry air
+      ! Keep same precision as in tracer_mod legacy code
+      ! during Unit Conversion testing (ewl, 3/25/15)
+      REAL(fp), PARAMETER :: XNUMOLAIR = AVO / 28.9644e-3_fp
 
 ! !REVISION HISTORY:
 !  25 Jun 2002 - R. Yantosca - Initial version
@@ -69,6 +74,7 @@
 !  23 Jul 2014 - R. Yantosca - List constants in alphabetical order
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  06 Jan 2014 - E. Lundgren - Added constants and clarified comments
+!  24 Mar 2015 - E. Lundgren - Add xnumolair, previously in tracer_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC

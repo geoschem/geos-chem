@@ -263,7 +263,7 @@
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE DRYDEP_MOD,         ONLY : NUMDEP, NTRAIND
-      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -314,6 +314,7 @@
       !debug
       integer           :: ii, jj , ix, jx, bb
       data                 ii,jj, ix, jx, bb /37, 24, 58, 34, 30 /
+      CHARACTER(LEN=255) :: MSG, LOC
 
       ! For values from Input_Opt
       INTEGER           :: N_TRACERS
@@ -330,6 +331,13 @@
 
       ! Assume success
       RC        = GIGC_SUCCESS
+
+      ! Check that tracer units are in [kg] (ewl, 8/13/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg' ) THEN
+         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+         LOC = 'Routine SETTLEDUST in dust_mod.F'
+         CALL GIGC_Error( MSG, RC, LOC )
+      ENDIF
 
       ! Copy values from Input_Opt
       N_TRACERS = Input_Opt%N_TRACERS

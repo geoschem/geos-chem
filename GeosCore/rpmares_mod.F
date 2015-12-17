@@ -116,6 +116,7 @@
 !  05 Mar 2013 - R. Yantosca - Now accept Input_Opt as an argument
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  23 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sim from HEMCO
+!  24 Mar 2014 - E. Lundgren - Remove tracer_mod dependency (not used)
 !******************************************************************************
 !
 ! !USES:
@@ -133,7 +134,6 @@
       USE TRACERID_MOD,       ONLY : IDTSO4,             IDTNH3, IDTNH4 
       USE TRACERID_MOD,       ONLY : IDTNIT,             IDTHNO3 
 #if   defined( APM )          
-      USE TRACER_MOD,         ONLY : N_TRACERS, N_APMTRA
       USE TRACERID_MOD        
       USE APM_INIT_MOD,       ONLY : NSO4
       USE APM_INIT_MOD,       ONLY : IDTCTSO4,IDTSO4BIN1,IDTCTSEA

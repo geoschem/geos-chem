@@ -406,6 +406,7 @@
 !  18 Jun 2014 - S. D. Eastham - Now read data for individual NOx species
 !  24 Nov 2014 - C. Keller     - Update for stratospheric NOy (as suggested by 
 !                                Seb Eastham)
+!  16 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -462,7 +463,7 @@
 
       ! Set module variable
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Initialize GEOS-Chem tracer array [kg/kg]
       STT => State_Chm%Tracers
 
       IF ( am_I_Root ) THEN
@@ -888,7 +889,8 @@
      &                     C3090S, C0030S, C0030N, C3090N,
      &                     am_I_Root, Input_Opt )
 
-         ! Convert from [vv] to [kg CH4/mol air]
+         ! Convert from [vv] to [kg CH4/kg air]
+         ! (ewl, 3/16/15) 
          C3090S = C3090S / TCVV(IDTCH4)
          C0030S = C0030S / TCVV(IDTCH4)
          C0030N = C0030N / TCVV(IDTCH4)
@@ -905,14 +907,15 @@
             YLAT  = GET_YMID( I,J,L )
 
             ! Set CH4 according to latitude
+            ! STT now in [kg/kg] (ewl, 3/16/15)
             IF ( YLAT < -30e+0_fp ) THEN
-               STT(I,J,L,IDTCH4) = C3090S * State_Met%AD(I,J,L)
+               STT(I,J,L,IDTCH4) = C3090S
             ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
-               STT(I,J,L,IDTCH4) = C0030S * State_Met%AD(I,J,L)
+               STT(I,J,L,IDTCH4) = C0030S
             ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
-               STT(I,J,L,IDTCH4) = C0030N * State_Met%AD(I,J,L)
+               STT(I,J,L,IDTCH4) = C0030N
             ELSE
-               STT(I,J,L,IDTCH4) = C3090N * State_Met%AD(I,J,L)
+               STT(I,J,L,IDTCH4) = C3090N
             ENDIF
          ENDDO
          ENDDO
@@ -1763,6 +1766,7 @@
 !  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
 !                                air pressure, with State_Met%PMID and
 !                                remove dependency on PRESSURE_MOD.
+!  19 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1801,7 +1805,7 @@
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV = Input_Opt%TCVV(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Initialize GEOS-Chem tracer array [kg/kg]
       STT => State_Chm%Tracers
 
       ! Filename
@@ -1952,9 +1956,10 @@
                ENDIF
                ! Send to STT (currently kg/box)
                IF (SET_CELL) THEN
-                  ! Convert from [ppbv] to [kg]
-                  TRACMASS = SCALEFAC * TRACMR * State_Met%AD(I,J,L) /
-     &                       TCVV(TRAC_IDX)
+
+                  ! Convert from [ppbv] to [kg/kg] (ewl, 3/19/15)
+                  TRACMASS = SCALEFAC * TRACMR / TCVV(TRAC_IDX)
+
                   IF (TRAC_ADD) THEN
                      STT(I,J,L,TRAC_IDX) = STT(I,J,L,TRAC_IDX)+TRACMASS
                   ELSE
@@ -1986,14 +1991,16 @@
 ! !INTERFACE:
 !
       SUBROUTINE EMISS_BASIC( am_I_Root, Input_Opt, State_Met,
-     &                        State_Chm  )
+     &                        State_Chm, RC  )
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_MONTH
+      USE ERROR_MOD,              ONLY : GIGC_Error
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,     ONLY : OptInput     
+      USE GIGC_State_Chm_Mod,     ONLY : ChmState
+      USE GIGC_State_Met_Mod,     ONLY : MetState
+      USE TIME_MOD,               ONLY : GET_MONTH
 !
 ! !INPUT PARAMETERS:
 !
@@ -2004,6 +2011,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      INTEGER,          INTENT(INOUT)  :: RC       ! Failure or success
 !
 ! !REMARKS:
 !  
@@ -2014,20 +2022,21 @@
 !  14 Feb 2014 - R. Yantosca   - Now parallelize main DO loop
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
+!  10 Sep 2015 - E. Lundgren   - Tracer units are now kg/kg dry air (prev v/v)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: I, J, N, N_EMITTED
+      INTEGER              :: I, J, N, N_EMITTED
       REAL(fp)             :: N2O_MULT,OCS_MULT,CFC_MULT,HCFC_MULT
       REAL(fp)             :: DT_YR
-      CHARACTER(LEN=255) :: OUTMSG
+      CHARACTER(LEN=255)   :: OUTMSG
 
       ! Local variables for quantities from Input_Opt
-      LOGICAL            :: LPRT
-      INTEGER            :: N_TRACERS
+      LOGICAL              :: LPRT
+      INTEGER              :: N_TRACERS
       REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
@@ -2037,12 +2046,23 @@
       ! EMISS_BASIC begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Check that tracer units are in kg/kg dry air (ewl, 9/10/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
+         CALL GIGC_Error( 'Incorrect tracer units: ' //
+     &                    State_Chm%Trac_Units, RC, 
+     &                    'Routine EMISS_BASIC in ucx_mod.F' )
+         RETURN
+      ENDIF
+
+      ! Initialize GEOS-Chem tracer array [kg/kg dry]
       STT => State_Chm%Tracers
 
        ! If not correct hour block and day read in new fields
@@ -2076,9 +2096,8 @@
              DO J = 1, JJPAR
              DO I = 1, IIPAR
            
-                ! Set kg/box using vol/vol (see CONVERT_UNITS in DAO_MOD)
+                ! Set kg/kg dry air using vol/vol (ewl, 9/10/15)
                 STT(I,J,1,N_EMITTED) = GRID_EMIT(J,N)
-     &                               * State_Met%AD(I,J,1)   
      &                               / TCVV(N_EMITTED)
 
              ENDDO
@@ -5447,12 +5466,14 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CMN_SIZE_MOD
       USE CMN_GCTM_MOD
+      USE ERROR_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE DAO_MOD,            ONLY : AIRQNT
       USE TRACERID_MOD,       ONLY : IDTH2O
       USE GIGC_ErrCode_Mod
+      USE UNITCONV_MOD 
 !
 ! !INPUT PARAMETERS:
 !      
@@ -5474,14 +5495,16 @@
 !  14 Feb 2014 - R. Yantosca   - Reordered DO loop for efficiency
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
-!  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER with State_Met%PMID and
-!                                remove dependency on PRESSURE_MOD.
+!  24 Feb 2015 - E. Lundgren   - Replace GET_PCENTER with State_Met%PMID and
+!                                remove dependency on PRESSURE_MOD
+!  24 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg 
 !  29 Apr 2015 - E. Lundgren   - Now pass am_I_Root and RC to SET_H2O_TRAC
 !  29 Apr 2015 - E. Lundgren   - Now use grid box moist air mass ADMOIST 
 !                                with SPHU since AD is now dry air mass
 !  29 Apr 2015 - E. Lundgren   - Replace RH calculation method with Nordquist,
 !                                1973 and call AirQnt if moisture vars
 !                                are updated using H2O tracer concentration
+!  28 Oct 2015 - E. Lundgren   - Tracer units are now kg/kg dry air
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5491,9 +5514,9 @@
       INTEGER           :: I,J,L
 
       LOGICAL           :: READ_SPHU
-      LOGICAL           :: RESET_MOISTURE = .FALSE.
-      REAL(fp)          :: SPHU, H2OVV_moist, Ev_mid
+      REAL(fp)          :: SPHU_kgkg, H2OVV_moist, Ev_mid
       REAL(fp)          :: Esat, EsatA, EsatB, EsatC, EsatD
+      CHARACTER(LEN=255):: MSG, LOC
 
       ! Local variables for quantities from Input_Opt
       LOGICAL           :: LACTIVEH2O
@@ -5514,9 +5537,6 @@
       REAL(fp), PARAMETER   :: ESATP8  = -3.03998e-2_fp
       REAL(fp), PARAMETER   :: ESATP9  = -2.949076e+3_fp
       
-      ! Conversion factors
-      REAL(fp), PARAMETER   :: MCONV   = 1.00e-3_fp ! g -> kg
-
       ! Pointers
       REAL(fp), POINTER   :: STT(:,:,:,:)
 
@@ -5524,35 +5544,63 @@
       ! SET_H2O_TRAC begins here!
       !=================================================================
 
+      ! Assume success
+      RC  = GIGC_SUCCESS   
+
       ! Copy fields from INPUT_OPT
       LACTIVEH2O = Input_Opt%LACTIVEH2O
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Check that tracer concentration units are as expected
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
+         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+         LOC = 'UCX_MOD: SET_H2O_TRAC'
+         CALL GIGC_Error( TRIM(MSG), RC, TRIM(LOC) )
+      ENDIF
+
+      ! Initialize GEOS-Chem tracer array [kg/kg dry]
       STT => State_Chm%Tracers
+
+      ! If specific humidity will be updated, set previous humidity to
+      ! to current humidity prior to change. This is used to preserve
+      ! tracer mass in mixing ratio update following moisture change
+      ! (ewl, 10/29/15)
+      IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
+         State_Met%SPHU_prev = State_Met%SPHU
+      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, READ_SPHU)
-!$OMP+PRIVATE( SPHU, H2OVV_moist, Ev_mid )
+!$OMP+PRIVATE( SPHU_kgkg, H2OVV_moist, Ev_mid )
 !$OMP+PRIVATE( Esat, EsatA, EsatB, EsatC, EsatD )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
          READ_SPHU = ( ITS_IN_THE_TROP( I, J, L, State_Met ) .or.
      &                 SETSTRAT .or. ( .not. LACTIVEH2O )  )
 
          IF ( READ_SPHU ) THEN
+            
+            ! Set H2O tracer concentration [kg/kg dry] using SPHU 
+            ! (ewl, 11/4/15)
             STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
-     &                          State_Met%ADMOIST(I,J,L)
+     &                          ( State_Met%ADMOIST(I,J,L)
+     &                            / State_Met%AD(I,J,L) )
+
          ELSE
 
-            ! Calculate specific humidity [g/kg] from transported H2O
-            ! Use moist air mass for calculating specific humidity
-            SPHU = STT(I,J,L,IDTH2O) * 1.e+3_fp 
-     &               / State_Met%ADMOIST(I,J,L)
+            ! Calculate specific humidity [g/kg total air] from 
+            ! transported H2O [kg/kg dry] (ewl, 9/17/15)
+            SPHU_kgkg = STT(I,J,L,IDTH2O) * State_Met%AD(I,J,L)
+     &                  / State_Met%ADMOIST(I,J,L)
+
+            ! Set previous humidity to current humidity prior to update
+            ! (ewl, 10/28/15)
+            State_Met%SPHU_prev(I,J,L) = State_Met%SPHU(I,J,L)
 
             ! Set State_Met specific humidity [g/kg]
-            State_Met%SPHU(I,J,L) = SPHU
+            State_Met%SPHU(I,J,L) = SPHU_kgkg * 1.e+3_fp
             
             ! Calculate water vapor saturation pressure [hPa] from T
             ! (see local variables above for method reference)
@@ -5565,9 +5613,8 @@
             ! Calculate mol water vapor per mol moist air from SPHU
             ! Note that SPHU must be converted to [kg/kg] to use 1-SPHU
             ! as mass dry air / mass moist air
-            H2OVV_moist = SPHU * MCONV * AIRMW 
-     &                   / ( SPHU * MCONV * AIRMW 
-     &                       + ( 1 - SPHU * MCONV ) * H2OMW )
+            H2OVV_moist = SPHU_kgkg * AIRMW 
+     &               / ( SPHU_kgkg * AIRMW + ( 1 - SPHU_kgkg ) * H2OMW )
    
             ! Calculate water vapor partial pressure at grid box center [hPa]
             ! Note that grid box center is defined as the arithmetic average
@@ -5577,22 +5624,17 @@
             ! Set State_Met relative humidity [%]
             State_Met%RH(I,J,L) = ( Ev_mid / Esat ) * 100e+0_fp 
 
-            ! Set RESET_MOISTURE flag to indicate SPHU and RH were updated
-            IF ( .not. RESET_MOISTURE ) THEN
-               RESET_MOISTURE = .TRUE.
-            ENDIF
-
          ENDIF
       ENDDO ! L
       ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
 
-      ! If at moisture values were updated for at least one grid box,
-      ! call AIRQNT to update all moist-dependent air quantities
-      ! with the new moisture content (ewl, 4/29/15) 
-      IF ( RESET_MOISTURE ) THEN
-         CALL AIRQNT( am_I_Root, State_Met, RC )
+      ! If humidity was updated, update all moist-dependent air quantities
+      ! and tracer mixing ratio with the new moisture content (ewl, 4/29/15) 
+      IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
+         CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
+     &                update_mixing_ratio=.TRUE. )
       ENDIF
 
       ! Free pointer

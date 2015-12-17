@@ -151,6 +151,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE CMN_GCTM_MOD
       USE GIGC_ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE DIAG04_MOD,         ONLY : AD04, ND04
@@ -171,6 +172,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
@@ -201,6 +203,7 @@
 !  27 Aug 2014 - C. Keller   - Now interface with HEMCO.
 !  13 Apr 2015 - R. Nassar   - Some bug fixes for HEMCO implementation, 
 !                              e.g. unit fixes for aviation and chem source
+!  11 Sep 2015 - E. Lundgren - Tracer units are now kg/kg dry air (prev kg)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -400,8 +403,8 @@
       ! Read in monthly, daily or variable emissions fields
       !=================================================================      
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
+      ! Initialize GEOS-Chem tracer array [kg/kg] (dry air) from Chemistry 
+      ! State object (ewl, 9/11/15)
       STT => State_Chm%Tracers
 
       ! Get a pointer to the CO2 production from CO oxidation
@@ -421,8 +424,8 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Grid box surface area [cm2]
-         A_CM2 = HcoState%Grid%AREA_M2%Val( I, J ) * CM2PERM2
+!         ! Grid box surface area [cm2]
+!         A_CM2 = HcoState%Grid%AREA_M2%Val( I, J ) * CM2PERM2
 
          !-------------------------------------------
          ! #1: Total CO2
@@ -440,13 +443,23 @@
                AD04(I,J,1) = AD04(I,J,1) + E_CO2
             ENDIF
 
-            ! Convert from [molec/cm2/s] to [kg]
-            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
+! old
+!            ! Convert from [molec/cm2/s] to [kg]
+!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
+! new
+            ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
+            ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+            ! (ewl, 9/11/15)
+            E_CO2  =  HcoState%Spc(IDff)%Emis%Val(I,J,1)
+     &                * DTSRCE / ( State_Met%DELP(I,J,1) 
+     &                * G0_100 * ( 1.0e+0_fp
+     &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
+! end new (ewl)
 
-            ! Add to Tracer #1: Total CO2 [kg]
+            ! Add to Tracer #1: Total CO2 [kg/kg]
             STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
 
-	     ! Add to Tracer #2: Fossil CO2 [kg]
+	     ! Add to Tracer #2: Fossil CO2 [kg/kg]
             IF ( N_TRACERS > 1 ) THEN
                STT(I,J,1,2)   = STT(I,J,1,2) + E_CO2
 
@@ -457,7 +470,7 @@
                ENDIF
             ENDIF
 
-	     ! Add to Tracer #12: Background with Fossil CO2 [kg]
+	     ! Add to Tracer #12: Background with Fossil CO2 [kg/kg]
             IF ( LFFBKGRD ) THEN
                STT(I,J,1,12)   = STT(I,J,1,12) + E_CO2
             ENDIF
@@ -486,13 +499,23 @@
                AD04(I,J,2) = AD04(I,J,2) + E_CO2
             ENDIF
 
-            ! Convert from [molec/cm2/s] to [kg]
-            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
+! old
+!            ! Convert from [molec/cm2/s] to [kg]
+!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
+! new
+            ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
+            ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+            ! (ewl, 9/11/15)
+            E_CO2  =  HcoState%Spc(IDoc)%Emis%Val(I,J,1)
+     &                * DTSRCE / ( State_Met%DELP(I,J,1) 
+     &                * G0_100 * ( 1.0e+0_fp
+     &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
+! end new (ewl)
 
-            ! Add to Tracer #1: Total CO2 [kg]
+            ! Add to Tracer #1: Total CO2 [kg/kg]
             STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
 
-            ! Add to Tracer #3: Ocean CO2 [kg]
+            ! Add to Tracer #3: Ocean CO2 [kg/kg]
             IF ( N_TRACERS > 2 ) THEN
                STT(I,J,1,3)   = STT(I,J,1,3) + E_CO2   
 
@@ -519,13 +542,23 @@
                AD04(I,J,3) = AD04(I,J,3) + E_CO2
             ENDIF
 
-            ! Convert from [molec/cm2/s] to [kg CO2]
-            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2 
-
-            ! Add to Tracer #1 -- total CO2 [kg CO2]
+! old
+!           ! Convert from [molec/cm2/s] to [kg CO2]
+!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2 
+! new
+            ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
+            ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+            ! (ewl, 9/11/15)
+            E_CO2  =  HcoState%Spc(IDbal)%Emis%Val(I,J,1)
+     &                * DTSRCE / ( State_Met%DELP(I,J,1) 
+     &                * G0_100 * ( 1.0e+0_fp
+     &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
+! end new (ewl)
+ 
+            ! Add to Tracer #1 -- total CO2 [kg/kg]
             STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
 
-            ! Add to Tracer #4 -- Bal Bio CO2 [kg CO2]
+            ! Add to Tracer #4 -- Bal Bio CO2 [kg/kg]
             IF ( N_TRACERS > 3 ) THEN
                STT(I,J,1,4)   = STT(I,J,1,4) + E_CO2
                 
@@ -555,14 +588,23 @@
                IF ( ND04 > 0 ) THEN
                   AD04(I,J,4) = AD04(I,J,4) + E_CO2
                ENDIF
-   
-               ! Convert from [molec/cm2/s] to [kg]
-               E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2 
-   
-               ! Add to Tracer #1: Total CO2 [kg CO2]
+
+! old   
+!               ! Convert from [molec/cm2/s] to [kg]
+!               E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2 
+! new
+               ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
+               ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+               ! (ewl, 9/11/15)
+               E_CO2  =  HcoState%Spc(IDbb)%Emis%Val(I,J,1)
+     &                   * DTSRCE / ( State_Met%DELP(I,J,1) 
+     &                   * G0_100 * ( 1.0e+0_fp
+     &                   - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
+! end new (ewl)   
+               ! Add to Tracer #1: Total CO2 [kg/kg]
                STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
                
-               ! Add to Tracer #5: Biomass burning CO2 [kg CO2]
+               ! Add to Tracer #5: Biomass burning CO2 [kg/kg]
                IF ( N_TRACERS > 4 ) THEN
                   STT(I,J,1,5)   = STT(I,J,1,5) + E_CO2
    
@@ -593,14 +635,24 @@
                IF ( ND04 > 0 ) THEN
                   AD04(I,J,5) = AD04(I,J,5) + E_CO2
                ENDIF
+
+! old   
+!               ! Convert E_CO2 from [molec CO2/cm2/s] to [kg CO2]
+!               E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
+! new
+               ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
+               ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+               ! (ewl, 9/11/15)
+               E_CO2  =  HcoState%Spc(IDbf)%Emis%Val(I,J,1)
+     &                   * DTSRCE / ( State_Met%DELP(I,J,1) 
+     &                   * G0_100 * ( 1.0e+0_fp
+     &                   - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
+! end new (ewl)
    
-               ! Convert E_CO2 from [molec CO2/cm2/s] to [kg CO2]
-               E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
-   
-               ! Add to Tracer #1: Total CO2 [kg CO2]
+               ! Add to Tracer #1: Total CO2 [kg/kg]
                STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
    
-               ! Add to Tracer #6: Biofuel CO2 [kg CO2]
+               ! Add to Tracer #6: Biofuel CO2 [kg/kg]
                IF (N_TRACERS > 5) THEN
                   STT(I,J,1,6)   = STT(I,J,1,6) + E_CO2
    
@@ -628,8 +680,18 @@
                AD04(I,J,6) = AD04(I,J,6) + E_CO2
             ENDIF
 
-            ! Convert from [molec/cm2/s] to [kg]
-            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
+! old
+!            ! Convert from [molec/cm2/s] to [kg]
+!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
+! new
+            ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
+            ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+            ! (ewl, 9/11/15)
+            E_CO2  =  HcoState%Spc(IDnte)%Emis%Val(I,J,1)
+     &                * DTSRCE / ( State_Met%DELP(I,J,1) 
+     &                * G0_100 * ( 1.0e+0_fp
+     &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
+! end new (ewl)
 
             ! Add to Tracer #1: Total CO2 [kg CO2]
             STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
@@ -661,13 +723,23 @@
                AD04(I,J,7) = AD04(I,J,7) + E_CO2
             ENDIF
 
-            ! Convert E_CO2 from [molec CO2/cm2/s] to [kg CO2]
-            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
+! old
+!            ! Convert E_CO2 from [molec CO2/cm2/s] to [kg CO2]
+!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
+! new
+            ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
+            ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+            ! (ewl, 9/11/15)
+            E_CO2  =  HcoState%Spc(IDse)%Emis%Val(I,J,1)
+     &                * DTSRCE / ( State_Met%DELP(I,J,1) 
+     &                * G0_100 * ( 1.0e+0_fp
+     &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
+! end new (ewl)
 
-            ! Add to Tracer #1: Total CO2 [kg CO2]
+            ! Add to Tracer #1: Total CO2 [kg/kg]
             STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
 
-            ! Add to Tracer #8: Ship CO2 [kg CO2]
+            ! Add to Tracer #8: Ship CO2 [kg/kg]
             IF (N_TRACERS > 7) THEN
                STT(I,J,1,8)   = STT(I,J,1,8) + E_CO2
  
@@ -677,7 +749,7 @@
                ENDIF
             ENDIF
 
-	   ! Add to Tracer #12: Background with Fossil CO2 [kg]
+	   ! Add to Tracer #12: Background with Fossil CO2 [kg/kg]
            !-------------------------------------------
 	   !IF ( LFFBKGRD ) THEN
            !   STT(I,J,1,12)   = STT(I,J,1,12) + E_CO2
@@ -705,14 +777,24 @@
                   AD04_plane(I,J,L) = AD04_plane(I,J,L) + E_CO2
                ENDIF
 
-               ! Convert E_CO2 from [molec CO2/cm2/s] to [kg]   
-               ! Unit change in v10
-               E_CO2 = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
+! old
+!               ! Convert E_CO2 from [molec CO2/cm2/s] to [kg]   
+!               ! Unit change in v10
+!               E_CO2 = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
+! new
+               ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
+               ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+               ! (ewl, 9/11/15)
+               E_CO2  =  HcoState%Spc(IDav)%Emis%Val(I,J,L)
+     &                   * DTSRCE / ( State_Met%DELP(I,J,L) 
+     &                   * G0_100 * ( 1.0e+0_fp
+     &                   - State_Met%SPHU(I,J,L) * 1.0e-3_fp ) )        
+! end new (ewl)
 
-               ! Add to Tracer #1: Total CO2 [kg CO2]
+               ! Add to Tracer #1: Total CO2 [kg/kg]
                STT(I,J,L,1)   = STT(I,J,L,1) + E_CO2
 
-               ! Add to Tracer #9: Aviation CO2 [kg CO2]
+               ! Add to Tracer #9: Aviation CO2 [kg/kg]
                IF ( N_TRACERS > 8 ) THEN
                   STT(I,J,L,9) = STT(I,J,L,9) + E_CO2
  
@@ -747,19 +829,29 @@
      &               / DTSRCE
      &               * 100 !per area (cm2) instead of per volume (cm3)
 
-		   ! ND04 diag: CO2 chem source from CO loss (3-D) [molec/cm2/s] !Unit change in v10 
+	       ! ND04 diag: CO2 chem source from CO loss (3-D) [molec/cm2/s] 
+               !Unit change in v10 
                IF ( ND04 > 0 ) THEN
                   AD04_chem(I,J,L) = AD04_chem(I,J,L) + E_CO2
                ENDIF
 
-               ! Convert E_CO2 from [molec CO2/cm2/s] to [kg]   
-               ! Unit change in v10
-               E_CO2 = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
+! old
+!               ! Convert E_CO2 from [molec CO2/cm2/s] to [kg]   
+!               ! Unit change in v10
+!               E_CO2 = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
+! new
+               ! Convert emissions from [molec/cm2/s] to [kg/kg dry air]
+               ! (ewl, 9/11/15)
+               E_CO2  =  E_CO2 * DTSRCE * CM2PERM2 /
+     &                   ( XNUMOL_CO2 * State_Met%DELP(I,J,L) 
+     &                   * G0_100 * ( 1.0e+0_fp
+     &                   - State_Met%SPHU(I,J,L) * 1.0e-3_fp ) )        
+! end new (ewl)
 
-               ! Add to Tracer #1: Total CO2 [kg CO2]
+               ! Add to Tracer #1: Total CO2 [kg/kg]
                STT(I,J,L,1)   = STT(I,J,L,1) + E_CO2
 
-               ! Add to Tracer #10: Chemical Source of CO2 [kg CO2]
+               ! Add to Tracer #10: Chemical Source of CO2 [kg/kg]
                IF (N_TRACERS > 9) THEN
                   STT(I,J,L,10)   = STT(I,J,L,10) + E_CO2
                ENDIF
@@ -783,13 +875,23 @@
                AD04(I,J,10) = AD04(I,J,10) - E_CO2 ! SUBTRACT
             ENDIF
 
-            ! Convert E_CO2 from [molec CO2/cm2/s] to [kg CO2]
-            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
+! old
+!            ! Convert E_CO2 from [molec CO2/cm2/s] to [kg CO2]
+!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
+! new
+            ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
+            ! using method in Convert_Kgm2_to_KgKgDry in unitconv_mod
+            ! (ewl, 9/11/15)
+            E_CO2  =  HcoState%Spc(IDcorr)%Emis%Val(I,J,1)
+     &                * DTSRCE / ( State_Met%DELP(I,J,1) 
+     &                * G0_100 * ( 1.0e+0_fp
+     &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
+! end new (ewl)
 
-            ! Subtract from Tracer #1: Total CO2 [kg CO2]
+            ! Subtract from Tracer #1: Total CO2 [kg/kg]
             STT(I,J,1,1)   = STT(I,J,1,1) - E_CO2
 
-            ! Subtract from Tracer #11: Chem Source Surf Correction [kg CO2]
+            ! Subtract from Tracer #11: Chem Source Surf Correction [kg/kg]
             IF ( N_TRACERS > 10 ) THEN
                STT(I,J,1,11)   = STT(I,J,1,11) - E_CO2
             ENDIF

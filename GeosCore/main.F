@@ -274,8 +274,10 @@
 !  22 Aug 2014 - R. Yantosca - Now save areas [m2] in State_Met%AREA_M2
 !  15 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  06 Jan 2015 - R. Yantosca - Added two-way coupled simulation options
-!  17 Feb 2015 - E. Lundgren - Remove STT and TCVV pointers.
-!  25 Feb 2015 - E. Lundgren - Remove MAKE_RH call since now in AIRQNT.
+!  17 Feb 2015 - E. Lundgren - Remove STT and TCVV pointers
+!  25 Feb 2015 - E. Lundgren - Remove MAKE-RH call since now in AIRQNT
+!  16 Mar 2015 - E. Lundgren - Change tracer main units from kg to kg/kg
+!  24 Mar 2015 - E. Lundgren - Now pass Input_Opt to Check_STT
 !  31 Mar 2015 - E. Lundgren - Move post-transport AIRQNT call to transport_mod 
 !  16 Apr 2015 - R. Yantosca - Remove call to INIT_DAO; it's obsolete
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
@@ -570,9 +572,10 @@
       CALL Fill_Chem_State_Name_IDs( am_I_Root, Input_Opt, State_Chm )
 
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
-      ! to the State_Met%AREA_M2 field.  This will let us convert
-      ! HEMCO emissions [kg/m2/s] to [kg] in various routines 
-      ! without the overhead of many function calls. (bmy, 8/22/14)
+      ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)
+      ! NOTE: Most routines now use either mixing ratio or kg/m2
+      ! and are independent of area. Area will eventually be 
+      ! completely removed for grid-independence (ewl, 9/10/15)
       State_Met%AREA_M2 =  AREA_M2
 
       !-----------------------------------------------------------------
@@ -652,8 +655,11 @@
       CALL SET_FLOATING_PRESSURE( State_Met%PS1 )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
 
-      ! Call AIRQNT to compute air mass quantities
-      CALL AIRQNT( am_I_Root, State_Met, RC )
+      ! Call AIRQNT to compute initial air mass quantities
+      ! Do not update initial tracer concentrations since not read 
+      ! from restart file yet (ewl, 10/28/15)
+      CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
+     &             update_mixing_ratio=.FALSE. )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
 
       ! Initialize the derived type object containing
@@ -718,27 +724,34 @@
       !=================================================================
 
       ! Read initial tracer conditions
+      ! NOTE: Tracer concentrations are read in as [v/v dry air] and converted
+      ! to kg/kg dry air (ewl, 9/18/15)
       CALL READ_RESTART_FILE( NYMDb,     NHMSb, 
      &                        Input_Opt, State_Met, State_Chm )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
+
          !CALL INIT_UCX( am_I_Root, Input_Opt, NYMDb, NHMSb )
          CALL INIT_UCX( am_I_Root, Input_Opt )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
-      ENDIF
 
-      ! Set simple initial tracer conditions
-      CALL SET_INITIAL_MIXRATIOS( am_I_Root, Input_Opt, State_Met,
-     &                            State_Chm )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### MAIN: a SET_INITIAL_MIXRATIOS' )
+         ! Set simple initial tracer conditions
+         CALL SET_INITIAL_MIXRATIOS( am_I_Root, Input_Opt, State_Met,
+     &                               State_Chm )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### MAIN: a SET_INITIAL_MIXRATIOS' )
+         ENDIF
+
       ENDIF
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
+      ! NOTE: Tracer concentration units are converted locally to [v/v dry air]
+      ! for chemistry (ewl, 9/18/15)
       IF ( LSCHEM ) THEN
-         CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, 
+     &                         State_Met, RC )
       ENDIF
 
       ! Read ocean Hg initial conditions (if necessary)
@@ -749,7 +762,7 @@
          ENDIF
       ENDIF
 
-      ! Save initial tracer masses to disk for benchmark runs
+      ! Save initial tracer mixing ratios to disk for benchmark runs
       IF ( LSTDRUN ) THEN 
          CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.TRUE. )
       ENDIF
@@ -893,7 +906,7 @@
 #endif
          ! Original diagnostics
          IF ( ITS_TIME_FOR_BPCH() ) THEN
-            
+
             ! Set time at end of diagnostic timestep
             CALL SET_DIAGe( TAU )
 
@@ -912,9 +925,10 @@
 
                ! Determine and print STE fluxes (ltm, 06/10/12)
                IF ( LSCHEM ) THEN
-                  CALL CALC_STE( am_I_Root, Input_Opt, State_Chm, RC )
+                  CALL CALC_STE( am_I_Root, Input_Opt, State_Chm, 
+     &                           State_Met, RC )
                ENDIF
-
+               
                ! Make atmospheric restart file
                CALL MAKE_RESTART_FILE
      &            ( am_I_Root, Input_Opt, NYMD,      NHMS,     
@@ -1125,7 +1139,7 @@
          !==============================================================
          !   ***** I N T E R P O L A T E   Q U A N T I T I E S *****   
          !==============================================================
-         
+
          ! Interpolate I-6 fields to current dynamic timestep, 
          ! based on their values at NSEC and NSEC+N_DYN
          CALL INTERP( NSECb, ELAPSED_TODAY,
@@ -1141,10 +1155,19 @@
          ! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)
          IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( State_Met%PSC2 )
 
-         ! Compute airmass quantities at each grid box 
-         CALL AIRQNT( am_I_Root, State_Met, RC )
+         ! Compute updated airmass quantities at each grid box 
+         ! and update tracer concentration to conserve tracer mass
+         ! (ewl, 10/28/15)
+         CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
+     &                update_mixing_ratio=.TRUE. )
 
-         ! SDE 05/28/13: Set H2O to tracer if relevant
+         ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant and,
+         ! if LUCX=T and LSETH2O=F and LACTIVEH2O=T, update specific humidity 
+         ! in the stratosphere
+         !
+         ! NOTE: Specific humidity may change in SET_H2O_TRAC and
+         ! therefore this routine may call AIRQNT again to update
+         ! air quantities and tracer concentrations (ewl, 10/28/15)
          IF (IDTH2O.ne.0) THEN
             CALL SET_H2O_TRAC( am_I_Root, 
      &                         ( ( .not. LUCX ) .or. LSETH2O ),
@@ -1214,19 +1237,6 @@
          ENDIF
 
          !==============================================================
-         !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
-         !==============================================================
-         IF ( ITS_TIME_FOR_UNIT() ) THEN
-            CALL CONVERT_UNITS( 1,  N_TRACERS, Input_Opt%TCVV, 
-     &                          State_Met%AD, State_Chm%TRACERS )
-
-            !### Debug
-            IF ( prtDebug ) THEN 
-               CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
-            ENDIF
-         ENDIF
-
-         !==============================================================
          !              ***** T R A N S P O R T *****
          !==============================================================
          IF ( ITS_TIME_FOR_DYN() ) THEN
@@ -1268,9 +1278,15 @@
 !-----------------------------------------------------------------------------
 
             ! Call the appropriate version of TPCORE
+            ! NOTE: Tracer concentration units are converted locally
+            ! within transport to [kg/kg total air] for advection 
+            ! (ewl, 9/18/15)
             IF ( LTRAN ) THEN 
                CALL DO_TRANSPORT
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               IF ( RC /= GIGC_SUCCESS ) THEN
+                  CALL ERROR_STOP('Error in DO_TRANSPORT!', 'main.F')
+               ENDIF
 
                !### Debug
                IF ( prtDebug ) THEN 
@@ -1332,10 +1348,6 @@
          !--------------------------------------------------------------
          IF ( ITS_TIME_FOR_EMIS() ) THEN
 
-            IF ( ITS_TIME_FOR_UNIT() )  ! v/v -> kg
-     &         CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV,
-     &                             State_Met%AD, State_Chm%TRACERS )
-
             ! Increment emission counter
             CALL SET_CT_EMIS( INCREMENT=.TRUE. )
      
@@ -1350,6 +1362,9 @@
 
                CALL DO_DRYDEP( am_I_Root, Input_Opt, 
      &                         State_Met, State_Chm, RC )
+               IF ( RC /= GIGC_SUCCESS ) THEN
+                  CALL ERROR_STOP('Error in DO_DRYDEP!', 'main.F')
+               ENDIF
 
 #if defined( USE_TIMERS )
                CALL GEOS_Timer_End ( "Dry deposition", RC )
@@ -1384,18 +1399,13 @@
 
             ! Stop the run if the HEMCO run sequence dies w/ an error
             IF ( RC /= GIGC_SUCCESS ) THEN
-               CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
+               CALL ERROR_STOP( 'Error in EMISSIONS_RUN after drydep!',
+     &                          'main.F' )
             ENDIF
 
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "HEMCO", RC )
 #endif
-
-            ! Unit conversion
-            IF ( ITS_TIME_FOR_UNIT() )
-     &         CALL CONVERT_UNITS( 1, N_TRACERS, Input_Opt%TCVV, 
-     &                             State_Met%AD, State_Chm%TRACERS )! kg->v/v
-
 
          ENDIF
 
@@ -1424,8 +1434,15 @@
             ! routine. Otherwise, tracer concentrations are first updated
             ! and the full-mixing is then applied.
             ! (ckeller, 3/5/15)
+            ! NOTE: Tracer concentration units are converted locally
+            ! to [v/v dry air] for mixing. Eventually mixing should
+            ! be updated to use [kg/kg total air] (ewl, 9/18/15)
             CALL DO_MIXING ( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
+            IF ( RC /= GIGC_SUCCESS ) THEN
+               CALL ERROR_STOP('Error in DO_MIXING!', 'main.F')
+            ENDIF
+
             IF ( RC /= GIGC_SUCCESS ) THEN
                CALL ERROR_STOP( 'Error in MIX_TRACERS!', 'main.F' )
             ENDIF
@@ -1439,8 +1456,13 @@
             IF ( LCONV ) THEN
             
                ! Call the appropriate convection routine
+               ! NOTE: Tracer concentration units are converted locally
+               ! to [kg/kg total air] for convection (ewl, 9/18/15)
                CALL DO_CONVECTION
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               IF ( RC /= GIGC_SUCCESS ) THEN
+                  CALL ERROR_STOP('Error in DO_CONVECTION!', 'main.F')
+               ENDIF
 
                !### Debug
                IF ( prtDebug ) THEN
@@ -1454,20 +1476,6 @@
 
          ENDIF 
 
-         !==============================================================
-         !    ***** U N I T   C O N V E R S I O N  ( v/v -> kg ) *****
-         !==============================================================
-
-         IF ( ITS_TIME_FOR_UNIT() ) THEN 
-            CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV, 
-     &                          State_Met%AD, State_Chm%TRACERS )
-
-            !### Debug
-            IF ( prtDebug ) THEN 
-               CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:2' )
-            ENDIF
-         ENDIF
-         
 !         !-------------------------------
 !         ! Test for emission timestep
 !         !-------------------------------
@@ -1565,25 +1573,34 @@
             ! Increment chemistry timestep counter
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
 
-            ! SDE 05/28/13: Set H2O to tracer if relevant
+            ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
             IF (IDTH2O.ne.0) THEN
+
                CALL SET_H2O_TRAC( am_I_Root, (.not. LUCX), Input_Opt ,
      &                            State_Met, State_Chm, RC )
+
             ENDIF
 
             ! Do GEOS-Chem chemistry
+            ! NOTE: Tracer concentration units are converted locally
+            ! to [kg] for all of chemistry. We will replace use of [kg] 
+            ! once FlexChem is implemented (ewl, 9/18/15)
             CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
      &                         State_Chm, State_Met, RC ) 
+            IF ( RC /= GIGC_SUCCESS ) THEN
+               CALL ERROR_STOP('Error in DO_CHEMISTRY!', 'main.F')
+            ENDIF
 
          ENDIF 
 
-         ! Check STT (tracers) (yxw)   
+         ! Check State_Chm tracers (yxw)   
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
-         CALL CHECK_STT_05x0666( State_Chm, 
+         CALL CHECK_STT_05x0666( State_Chm, Input_Opt, 
      &                           'end of chem section, before wetdep' )
 #endif 
 #if   defined( GEOS_FP) && defined( GRID025x03125)
-         CALL CHECK_STT_025x03125( State_Chm, 'after chemistry' )
+         CALL CHECK_STT_025x03125( State_Chm, Input_Opt,
+     &                             'after chemistry' )
 #endif 
 
 #if defined( USE_TIMERS )
@@ -1600,8 +1617,14 @@
 #endif
 
             ! Do wet deposition
+            ! NOTE: Tracer concentration units are converted locally
+            ! to [kg/m2] in wet deposition to enable calculations
+            ! along the column (ewl, 9/18/15)
             CALL DO_WETDEP
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            IF ( RC /= GIGC_SUCCESS ) THEN
+               CALL ERROR_STOP('Error in DO_WETDEP!', 'main.F')
+            ENDIF
 
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "Wet deposition", RC )
@@ -1617,14 +1640,19 @@
          ! diagnostic and only on a chemistry timestep.
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
+
             CALL RECOMPUTE_OD
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
          ENDIF
 
 #if defined( RRTMG )
+
          !==============================================================
          !  ***** R R T M G   R A D I A T I V E   T R A N S F E R *****
          !==============================================================
+         ! NOTE: Tracer concentration units are converted locally to
+         ! [kg] in RRTMG. Units should eventually be [kg/kg]  (ewl, 9/18/15)
          IF ( Input_opt%LRAD ) THEN 
             IF ( ITS_TIME_FOR_RT() ) THEN
 
@@ -1657,20 +1685,27 @@
                CALL SET_SPECMASK(0)
 
                !First call for baseline (all aerosol and ozone)
-               CALL DO_RRTMG_RAD_TRANSFER( DAY, MONTH, ICLD, 0, ISEED,
-     &                                     Input_Opt, State_Met,
-     &                                     State_Chm)
+               CALL DO_RRTMG_RAD_TRANSFER( am_I_Root, DAY, MONTH, 
+     &                                     ICLD, 0, ISEED, Input_Opt, 
+     &                                     State_Met, State_Chm, RC)
 
                !Second call with aerosols or ozone if requested
                DO N = 1, NSPECRADMENU
                   IF (LSPECRADMENU(N).EQ.1) THEN
                      !generate mask for species in RT
                      CALL SET_SPECMASK(N)
-                     CALL DO_RRTMG_RAD_TRANSFER(DAY, MONTH, ICLD,
-     &                                          N,   ISEED, Input_Opt,
-     &                                          State_Met, State_Chm )
+                     CALL DO_RRTMG_RAD_TRANSFER( am_I_Root, DAY, MONTH, 
+     &                                           ICLD, N, ISEED, 
+     &                                           Input_Opt, State_Met, 
+     &                                           State_Chm, RC )
                   ENDIF
                ENDDO
+
+               ! Stop the run if DO_RRTMG_RAD_TRANSFER returns an error
+               IF ( RC /= GIGC_SUCCESS ) THEN
+                  CALL ERROR_STOP('Error in DO_RRTMG_RAD_TRANSFER!',
+     &                            'main.F')
+               ENDIF
 
                ! Increment radiation timestep counter
                CALL SET_CT_RAD( INCREMENT=.TRUE. )
@@ -1686,6 +1721,7 @@
 
             ENDIF
          ENDIF
+
 #endif
 
          ! Eventually write dobson columns into diagnostics array
@@ -1849,14 +1885,17 @@
          ! the nested-grid domain edges. Force them to be zero before
          ! CHECK_STT (yxw)
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
-            CALL CHECK_STT_05x0666( State_Chm, 'after dynamics step' )
+            CALL CHECK_STT_05x0666( State_Chm, Input_Opt,
+     &                              'after dynamics step' )
 #endif
 #if   defined( GEOS_FP) && defined( GRID025x03125)
-         CALL CHECK_STT_025x03125( State_Chm, 'after dynamics step' )
+         CALL CHECK_STT_025x03125( State_Chm, Input_Opt,
+     &                             'after dynamics step' )
 #endif 
 
 
-            CALL CHECK_STT( State_Chm, 'End of Dynamic Loop' )
+            CALL CHECK_STT( State_Chm, Input_Opt, 
+     &                      'End of Dynamic Loop' )
          ENDIF
 
 #if defined( USE_TIMERS )
@@ -2472,6 +2511,10 @@
 !
       ! Convenience variable for date & time
       INTEGER :: D(2)
+
+      ! Set previous specific humidity to current specific humdidity 
+      ! prior to MET-field update (ewl, 10/29/15)
+      State_Met%SPHU_prev = State_Met%SPHU
 
 #if   defined( GEOS_FP )
 

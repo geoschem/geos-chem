@@ -59,7 +59,6 @@ CONTAINS
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
     USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
-    USE DAO_MOD,            ONLY : CONVERT_UNITS
 !
 ! !INPUT PARAMETERS:
 !
@@ -123,10 +122,10 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE ERROR_MOD,          ONLY : GIGC_ERROR
     USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
     USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
-    USE DAO_MOD,            ONLY : CONVERT_UNITS
+    USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -146,10 +145,16 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  04 Mar 2015 - C. Keller    - Initial version 
+!  12 Aug 2015 - E. Lundgren  - Input tracer units are now [kg/kg] and 
+!                               are converted to [v/v] for mixing
+!  30 Sep 2014 - E. Lundgren  - Move unit conversion for DO_TEND to DO_TEND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    LOGICAL       :: OnlyAbovePBL
+!
+! LOCAL VARIABLES:
+!
+    LOGICAL   :: OnlyAbovePBL
 
     !=================================================================
     ! DO_MIXING begins here!
@@ -157,6 +162,15 @@ CONTAINS
 
     ! Assume success
     RC = GIGC_SUCCESS
+
+    ! Convert [kg/kg dry air] to [v/v dry air] for mixing (ewl, 8/12/15)
+    CALL Convert_KgKgDry_to_VVDry( am_I_Root, Input_Opt, &
+                                   State_Chm, RC )  
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL GIGC_Error('Unit conversion error', RC, &
+                       'DO_MIXING in mixing_mod.F')
+       RETURN
+    ENDIF  
 
     ! ------------------------------------------------------------------
     ! Do non-local PBL mixing. This will apply the tracer tendencies
@@ -182,19 +196,9 @@ CONTAINS
     ! capped at the tropopause to avoid build-up in stratosphere.
     ! ------------------------------------------------------------------
 
-    ! DO_TEND operates in units of kg. The tracer arrays enters as
-    ! v/v, hence need to convert before and after.
-    ! v/v --> kg
-    CALL CONVERT_UNITS( 2, Input_Opt%N_TRACERS, Input_Opt%TCVV, &
-                        State_Met%AD, State_Chm%Tracers ) 
-
     ! Apply tendencies
     CALL DO_TEND ( am_I_Root, Input_Opt,    State_Met, &
                    State_Chm, OnlyAbovePBL, RC          )
-
-    ! Convert back: kg --> v/v
-    CALL CONVERT_UNITS( 1, Input_Opt%N_TRACERS, Input_Opt%TCVV, &
-                        State_Met%AD, State_Chm%Tracers ) 
 
     ! ------------------------------------------------------------------
     ! Do full pbl mixing. This fully mixes the updated tracer 
@@ -207,6 +211,15 @@ CONTAINS
        CALL DO_PBL_MIX( am_I_Root, Input_Opt%LTURB, Input_Opt, & 
                         State_Met, State_Chm,       RC )
     ENDIF
+
+    ! Convert tracer conc back to [kg/kg dry air] after mixing (ewl, 8/12/15)
+    CALL Convert_VVDry_to_KgKgDry( am_I_Root, Input_Opt, &
+                                   State_Chm, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL GIGC_Error('Unit conversion error', RC, &
+                       'DO_MIXING in mixing_mod.F')
+       RETURN
+    ENDIF  
 
   END SUBROUTINE DO_MIXING 
 !EOC
@@ -240,6 +253,7 @@ CONTAINS
     USE TRACERID_MOD,       ONLY : IDTPRPE, IDTO3,   IDTHNO3
     USE TRACERID_MOD,       ONLY : IDTBrO,  IDTBr2,  IDTBr,   IDTHOBr
     USE TRACERID_MOD,       ONLY : IDTHBr,  IDTBrNO3 
+    USE UNITCONV_MOD
     USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal, GetHcoDiagn
     USE TIME_MOD,           ONLY : GET_TS_DYN
@@ -282,6 +296,8 @@ CONTAINS
 !                              arranged wrongly.  Now corrected.
 !  18 Jun 2015 - C. Keller   - Now restrict all emissions to chemistry grid
 !                              if UCX=false.
+!  30 Sep 2015 - E. Lundgren - Now convert locally to kg/m2 for area-independent
+!                              compatibility between tracer units and flux
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -334,6 +350,19 @@ CONTAINS
     LEMIS      = Input_Opt%LEMIS 
     LDRYD      = Input_Opt%LDRYD 
     PBL_DRYDEP = Input_Opt%PBL_DRYDEP
+
+    ! DO_TEND previously operated in units of kg. The tracer arrays are in
+    ! v/v for mixing, hence needed to convert before and after.
+    ! CALL CONVERT_UNITS( 2, Input_Opt%N_TRACERS, Input_Opt%TCVV, &
+    !                     State_Met%AD, State_Chm%Tracers ) 
+    ! Now use units kg/m2 as State_Chm%TRACERS units in DO_TEND to 
+    ! remove area-dependency (ewl, 9/30/15)
+    ! v/v --> kg/m2
+    CALL Convert_VVDry_to_KgKgDry( am_I_Root, Input_Opt,  &
+                                   State_Chm, RC )
+
+    CALL Convert_KgKgDry_to_Kgm2( am_I_Root, Input_Opt,   &
+                                  State_Met, State_Chm, RC )
 
     ! Get time step [s]
     IF ( PRESENT(DT) ) THEN
@@ -441,9 +470,6 @@ CONTAINS
 
           ! Get PBL_TOP at this grid box
           PBL_TOP = State_Met%PBL_TOP_L(I,J)
-
-          ! Grid box area
-          AREA_M2 = State_Met%AREA_M2(I,J,1)
 
           ! Molecular weight in kg
           MWkg = Input_Opt%TRACER_MW_KG(N)
@@ -563,14 +589,13 @@ CONTAINS
                    FLUX = ( 1.0_fp - FRAC ) * State_Chm%Tracers(I,J,L,N) 
 
                    ! Eventually add PARANOX loss. PNOXLOSS is in kg/m2/s. 
-                   ! Convert to kg.
                    IF ( PNOXLOSS > 0 ) THEN
-                      FLUX = FLUX + ( PNOXLOSS * AREA_M2 * TS )
+                      FLUX = FLUX + ( PNOXLOSS * TS )
                    ENDIF 
 
 #if defined( DEVEL )
                    ! Archive deposition flux in kg/m2/s
-                   DEP(I,J,N) = DEP(I,J,N) + ( FLUX / AREA_M2 / TS )
+                   DEP(I,J,N) = DEP(I,J,N) + ( FLUX / TS )
                    TOTDEP(N)  = TOTDEP(N) + FLUX
 #endif
 !                   IF (AREA_M2 .eq. 0.0_fp) THEN
@@ -590,7 +615,7 @@ CONTAINS
                    !   FLUX = FLUX / MWkg * AVO / TS / ( AREA_M2 * 1.0e4_fp ) ]
                    ! so we the denominator as we had it was wrong.
                    ! Now corrected (elundgren, bmy, 6/12/15)
-                   DENOM = ( MWkg * TS * AREA_M2 * 1.0e+4_fp ) / AVO
+                   DENOM = ( MWkg * TS * 1.0e+4_fp ) / AVO
                    FLUX  = SAFE_DIV( FLUX, DENOM, 0.0e+0_fp ) 
 
                    ! Diagnostics. These are the same as DRYFLX.
@@ -621,8 +646,8 @@ CONTAINS
                 ! Add emissions (if any)
                 IF ( FND .AND. (TMP > 0.0_fp) ) THEN
 
-                   ! Flux: [kg] = [kg m-2 s-1 ] x [s] x [m2]
-                   FLUX = TMP * TS * AREA_M2
+                   ! Flux: [kg/m2] = [kg m-2 s-1 ] x [s]
+                   FLUX = TMP * TS
 
                    ! Add to tracer array
                    State_Chm%Tracers(I,J,L,N) = State_Chm%Tracers(I,J,L,N) & 
@@ -704,6 +729,12 @@ CONTAINS
        ENDIF
     ENDDO
 #endif
+
+    ! Convert State_Chm%TRACERS back: kg/m2 --> v/v (ewl, 9/30/15)
+    CALL Convert_Kgm2_to_KgKgDry( am_I_Root, Input_Opt,   &
+                                  State_Met, State_Chm, RC )
+    CALL Convert_KgKgDry_to_VVDry( am_I_Root, Input_Opt,          &
+                                   State_Chm, RC )
 
   END SUBROUTINE DO_TEND 
 !EOC

@@ -314,6 +314,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_ERROR_MOD
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+      USE UNITCONV_MOD
       USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
@@ -391,6 +392,7 @@
 !                              facilitates connection to the GEOS-5 GCM.   
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt & State_Chm to DEPVEL
 !  15 Jan 2015 - R. Yantosca - Add new netCDF diagnostics structure
+!  12 Aug 2015 - E. Lundgren - Tracer units are now [kg/kg] 
 !  01 Oct 2015 - R. Yantosca - Remove DVZ_MINVAL; now use species database
 !                              to set the minimum drydep velocity for aerosols
 !  01 Oct 2015 - R. Yantosca - Now use species database to set Vd for aerosols
@@ -405,7 +407,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER       :: I,   J,   L,  N, IJLOOP, NN, NDVZ
+      INTEGER       :: I,   J,   L,  N, IJLOOP, NN, NDVZ, N_TRACERS
       REAL(f8)      :: DVZ, THIK
 
       ! Arrays
@@ -452,13 +454,13 @@
       ! DO_DRYDEP begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
 #if defined( DEVEL )
-      ! Zero depositioln velocity array
+      ! Zero deposition velocity array
       SAVE_DEPVEL = 0.0_fp
 #endif
-
-      ! Assume success
-      RC     = GIGC_SUCCESS
       
       ! Copy values from the Input Options object to local variables
       PBL_DRYDEP = Input_Opt%PBL_DRYDEP
@@ -469,15 +471,15 @@
       !  (jaegle 5/11/11, mpayer 1/10/12)
       CALL METERO( State_Met, CZ1,    TC0,     OBK,       CFRAC,  
      &             RADIAT,    AZO,    USTAR,   ZH,        LSNOW, 
-     &             RHB,       PRESSU, W10,     SUNCOS_MID             )
+     &             RHB,       PRESSU, W10,     SUNCOS_MID          )
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
-      CALL DEPVEL( Input_Opt, State_Met, State_Chm,   MAXIJ,  
-     &             RADIAT,    TC0,       SUNCOS_MID,  F0,        
-     &             HSTAR,     XMW,       AIROSOL,     USTAR,      
-     &             CZ1,       OBK,       CFRAC,       ZH,        
-     &             LSNOW,     DVEL,      AZO,         RHB,     
-     &             PRESSU,    W10                                     )
+      CALL DEPVEL( am_I_Root, Input_Opt, State_Met, State_Chm,     
+     &             MAXIJ,     RADIAT,    TC0,       SUNCOS_MID,          
+     &             F0,        HSTAR,     XMW,       AIROSOL,           
+     &             USTAR,     CZ1,       OBK,       CFRAC,               
+     &             ZH,        LSNOW,     DVEL,      AZO,              
+     &             RHB,       PRESSU,    W10,       RC             )
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
@@ -860,12 +862,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DEPVEL( Input_Opt, State_Met, State_Chm, NPTS,   
-     &                   RADIAT,    TEMP,      SUNCOS,    F0,        
-     &                   HSTAR,     XMW,       AIROSOL,   USTAR,  
-     &                   CZ1,       OBK,       CFRAC,     ZH,      
-     &                   LSNOW,     DVEL,      ZO,        RHB,    
-     &                   PRESSU,    W10                          )
+      SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Met, State_Chm,    
+     &                   NPTS,      RADIAT,    TEMP,      SUNCOS,            
+     &                   F0,        HSTAR,     XMW,       AIROSOL,     
+     &                   USTAR,     CZ1,       OBK,       CFRAC,           
+     &                   ZH,        LSNOW,     DVEL,      ZO,            
+     &                   RHB,       PRESSU,    W10,       RC          )
 !
 ! !USES:
 !
@@ -873,10 +875,14 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_ErrCode_Mod
+      USE ERROR_MOD
+      USE DRYDEP_TOOLBOX_MOD, ONLY : BIOFIT
       USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL,        INTENT(IN) :: am_I_Root ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN) :: Input_Opt ! Input Options object
       TYPE(MetState), INTENT(IN) :: State_Met ! Meteorology state object
 
@@ -904,6 +910,7 @@
 !
 ! !OUTPUT PARAMETERS:
 ! 
+      INTEGER,  INTENT(OUT) :: RC                   ! Success or failure?
 !      REAL(f8), INTENT(OUT) :: DVEL(MAXIJ,MAXDEP)   ! Drydep velocity [m/s]
       REAL(f8), INTENT(OUT) :: DVEL(MAXIJ,NUMDEP)   ! Drydep velocity [m/s]
 !
@@ -1044,7 +1051,10 @@
 !  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
 !                              aerosols (T.D. Fairlie)
 !  28 Jan 2014 - R. Yantosca - For TOMAS, don't hold A_RADI and A_DEN PRIVATE
-!  19 May 2014 - C. Keller   - Now call BIOFIT from drydep_toolbox_mod.F
+!  19 May 2014 - C. Keller   - Now call BIOFIT from drydep_toolbox_mod.F\
+!  12 Aug 2015 - E. Lundgren - Now accept am_I_Root and RC as input args
+!  12 Aug 2015 - E. Lundgren - Now pass am_I_Root and RC to AERO_DIADEN 
+!                              to enable unit conversion in that routine
 !  22 Sep 2015 - R. Yantosca - Now use NUMDEP instead of MAXDEP for arrays
 !
 !***********************************************************************
@@ -1150,6 +1160,9 @@
       ! DEPVEL begins here!
       !=================================================================
 
+      ! Assume success
+      RC                =  GIGC_SUCCESS
+
       ! Error check: PBL_DRYDEP must not be used together with non-local
       ! PBL mixing. 
       IF ( Input_Opt%LNLPBL .AND. Input_Opt%PBL_DRYDEP ) THEN 
@@ -1208,10 +1221,17 @@
       ! This is done differently than 2-bin seasalt and 4-bin dust
       ! because at each box the aerosol size&density is different
       ! depending on the internally-mixed composition (win, 7/15/09)
+      !
+      ! Now pass am_I_Root and RC to enable tracer unit conversion to 
+      ! [kg] in TOMAS code (ewl, 8/12/15)
       !=================================================================
       IF ( IDTNK1 > 0 ) THEN
-         CALL AERO_DIADEN( SIZ_DIA,   SIZ_DEN,   1, 
-     &                     Input_Opt, State_Met, State_Chm )
+         CALL AERO_DIADEN( am_I_Root, 1,       Input_Opt, State_Met,
+     &                     State_Chm, SIZ_DIA, SIZ_DEN,   RC        )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP('CALL AERO_DIADEN',
+     &                      'DEPVEL in drydep_mod.F')
+         ENDIF
       ENDIF
 #endif
 

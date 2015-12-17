@@ -7,8 +7,8 @@
 !
 ! !DESCRIPTION: Module RESTART\_MOD contains variables and routines which 
 !  are used to read and write restart files for GEOS-Chem advected tracers
-!  in units of [v/v] mixing ratio) and chemical species (in concentration 
-!  units of [molec/cm3]).
+!  in units of [v/v] mixing ratio, and chemical species in concentration 
+!  units of [molec/cm3]. [v/v] represents moles tracer per moles dry air.
 !\\
 !\\
 ! !INTERFACE:
@@ -88,8 +88,8 @@
 ! !IROUTINE: make_restart_file
 !
 ! !DESCRIPTION: Subroutine MAKE\_RESTART\_FILE creates restart files for 
-!  GEOS-Chem advected tracers [units: v/v].  The file format is GEOS-Chem
-!  binary punch (bpch) format.
+!  GEOS-Chem advected tracers [units: vol tracer /vol dry air].  
+!  The file format is GEOS-Chem binary punch (bpch) format.
 !\\
 !\\
 ! !INTERFACE:
@@ -112,6 +112,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
       USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -160,6 +161,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  17 Feb 2015 - E. Lundgren - Change program main units from kg to kg/kg
 
 !EOP
 !------------------------------------------------------------------------------
@@ -227,8 +229,7 @@
       I0 = GET_XOFFSET( GLOBAL=.TRUE. )
       J0 = GET_YOFFSET( GLOBAL=.TRUE. )
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
+      ! Initialize pointer for Chemistry State object [kg/kg]
       STT => State_Chm%Tracers
 
       !=================================================================
@@ -253,23 +254,26 @@
       !=================================================================
       ! Write each tracer to the restart file
       !=================================================================
+
       DO N = 1, N_TRACERS
-         
-         ! Convert from [kg] to [v/v] and store in the TRACER array
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L)
+
+             ! Convert from mass mixing ratio [kg tracer / kg dry air] to 
+             ! molar mixing ratio [vol tracer / vol dry air] and store in 
+             ! the local TRACER array (elundgren, 2/17/15)
+             TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N)
+            
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
 
-         ! Convert STT from [kg] to [v/v] mixing ratio 
-         ! and store in temporary variable TRACER
          CALL BPCH2( IU_RST,    MODELNAME, LONRES,    LATRES,    
      &               HALFPOLAR, CENTER180, CATEGORY,  N,
      &               UNIT,      TAU,       TAU,       RESERVED,   
@@ -313,7 +317,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE
-
+      USE UNITCONV_MOD
       USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
@@ -364,6 +368,8 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm arguments
 !  16 Dec 2014 - M. Yannetti - Changed ZTAU0 and ZTAU1 to REAL*8
+!  17 Feb 2015 - E. Lundgren - Change main units from kg to kg/kg.
+!                              Write mean kg/kg per tracer to log.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -406,8 +412,7 @@
       NCOUNT(:)     = 0
       TRACER(:,:,:) = 0e0
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
+      ! Initialize pointer for Chemistry State object [kg/kg] (ewl, 2/17/15)
       STT => State_Chm%Tracers
 
       !=================================================================
@@ -473,10 +478,11 @@
             ! (NI=IIPAR; NJ=JJPAR, NL=LLPAR), or stop the run
             CALL CHECK_DIMENSIONS( NI, NJ, NL )
 
-            ! Convert TRACER from its native units to [v/v] mixing ratio
+            ! Convert TRACER from its native units (eg. [ppbv]) to 
+            ! [v/v] mixing ratio, and write min/max to file
             CALL CONVERT_TRACER_TO_VV( NTRACER, TRACER, UNIT )
 
-            ! Convert TRACER from [v/v] to [kg] and copy into STT array
+            ! Convert TRACER from [v/v] to [kg/kg] and copy into STT array
             CALL COPY_STT( NTRACER,   TRACER,   NCOUNT,
      &                     Input_Opt, State_Met, State_Chm )
 
@@ -484,7 +490,7 @@
       ENDDO
 
       !=================================================================
-      ! Examine data blocks, print totals, and return
+      ! Examine data blocks and return
       !=================================================================
 
       ! Check for missing or duplicate data blocks
@@ -493,23 +499,26 @@
       ! Close file
       CLOSE( IU_RST )      
 
-      ! Print totals atmospheric mass for each tracer
+      ! Print mean atmospheric kg/kg for each tracer
       WRITE( 6, 120 )
- 120  FORMAT( /, 'Total atmospheric masses for each tracer: ' ) 
+ 120  FORMAT( /, 'Mean mass mixing ratio for each tracer: ' ) 
+      WRITE( 6, 130 )
+ 130  FORMAT( /, '(in mass mixing ratio units: kg/kg)' ) 
 
       DO N = 1, Input_Opt%N_TRACERS
 
-         ! For tracers in kg C, be sure to use correct unit string
+         ! For carbon, be sure to use correct unit string
          IF ( INT( Input_Opt%TRACER_MW_G(N) + 0.5 ) == 12 ) THEN
-            UNIT = 'kg C'
+            UNIT = 'kg C/kg'
          ELSE
-            UNIT = 'kg  '
+            UNIT = 'kg/kg  '
          ENDIF
 
          ! Print totals
-         WRITE( 6, 130 ) N,                   Input_Opt%TRACER_NAME(N), 
-     &                   SUM( STT(:,:,:,N) ), ADJUSTL( UNIT )
- 130     FORMAT( 'Tracer ', i3, ' (', a10, ') ', es12.5, 1x, a4)
+         WRITE( 6, 140 ) N,                   Input_Opt%TRACER_NAME(N), 
+     &                   SUM( STT(:,:,:,N) ) / (NI*NJ*NL), 
+     &                   ADJUSTL( UNIT )
+ 140     FORMAT( 'Tracer ', i3, ' (', a10, ') ', es12.5, 1x, a7)
       ENDDO
 
       ! Fancy output
@@ -532,7 +541,7 @@
 !
 ! !DESCRIPTION: Subroutine CONVERT\_TRACER\_TO\_VV converts the TRACER array 
 !  from its natural units (e.g. ppbv, ppmv) as read from the restart file to 
-!  v/v mixing ratio. 
+!  v/v mixing ratio. It also writes tracer min and max mixing ratio to file.
 !\\
 !\\
 ! !INTERFACE:
@@ -681,8 +690,8 @@
 !
 ! !IROUTINE: copy_stt
 !
-! !DESCRIPTION: Subroutine COPY\_STT converts tracer concetrations from [v/v] 
-!  to [kg] and then copies the results into the STT tracer array. 
+! !DESCRIPTION: Subroutine COPY\_STT converts tracer concentrations from [v/v] 
+!  to [kg/kg] and then copies the results into the STT tracer array. 
 !\\
 !\\
 ! !INTERFACE:
@@ -722,6 +731,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now pass State_Chm, Input_Opt as arguments
+!  17 Feb 2015 - E. Lundgren - Change units from kg to kg/kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -740,20 +750,24 @@
       ! Exit if N is out of range
       IF ( N < 1 .or. N > Input_Opt%N_TRACERS ) RETURN
 
-      ! Convert from [v/v] to [kg] and store in STT
+      ! Convert tracer concentration from [v/v dry] to [kg/kg dry] and 
+      ! store in State_Chm%Tracers
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         State_Chm%Tracers(I,J,L,N) = TRACER(I,J,L) 
-     &                              * State_Met%AD(I,J,L) 
-     &                              / Input_Opt%TCVV(N) 
+
+         State_Chm%Tracers(I,J,L,N) = TRACER(I,J,L) / Input_Opt%TCVV(N) 
+
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+      
+      ! Set State_Chm units
+      State_Chm%Trac_Units = 'kg/kg dry'
 
       ! Increment the # of records found for tracer N
       NCOUNT(N) = NCOUNT(N) + 1
@@ -984,8 +998,8 @@
       !TMP(:,:,:)   = 0e0
       TMP(:,:,:)   = 1e-30
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
+      ! Initialize GEOS-Chem species array from Chemistry State object
+      ! [# molecules/cm3] (mpayer, 12/6/12)
       CSPEC_FULL => State_Chm%Species
 
       ! Define variables for BINARY PUNCH FILE OUTPUT
@@ -1055,7 +1069,7 @@
          DO I = 1, ILONG
         
             ! fix recommended by pls, save CSPEC_FULL (hotp 2/18/09)
-            ! now set conc no smalle than 1d-30
+            ! now set conc no smaller than 1d-30
             IF ( CSPEC_FULL(I,J,L,N) .LE. 1e-30_fp ) THEN
                  TMP(I,J,L) = 1e-30
             ELSE
@@ -1206,8 +1220,8 @@
       ! use 1e-30 as min (hotp 2/25/09)
       TMP(:,:,:) = 1e-30
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
+      ! Initialize GEOS-Chem species array from Chemistry State object
+      ! [# molecules/cm3] (mpayer, 12/6/12)
       CSPEC_FULL => State_Chm%Species
 
       !=================================================================

@@ -431,7 +431,6 @@
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN,  GET_TS_CHEM 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
       USE TIME_MOD,           ONLY : GET_TS_DIAG,      GET_TS_EMIS
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
@@ -439,7 +438,7 @@
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD               ! SAVEOH
-      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
+      USE CMN_GCTM_MOD             ! SCALE_HEIGHT, XNUMOLAIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -496,7 +495,9 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
-!                              Remove dependency on pressure_mod.
+!  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod
+!  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg and
+!                              remove AD pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -522,8 +523,8 @@
       REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL(fp), POINTER :: STT(:,:,:,:)
-      REAL(fp), POINTER :: AD(:,:,:)
+      REAL(fp), POINTER   :: STT(:,:,:,:)
+!      REAL(fp), POINTER   :: AD(:,:,:)
 
       !=================================================================
       ! ACCUMULATE_DIAG51 begins here!
@@ -648,7 +649,7 @@
 
          ! Initialize pointers
          STT => State_Chm%Tracers
-         AD  => State_Met%AD
+!         AD  => State_Met%AD
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
@@ -679,9 +680,12 @@
                !--------------------------------------
 
                ! Archive afternoon points
+!               Q(X,Y,K,W) = Q(X,Y,K,W) + 
+!     &                      ( STT(I,J,L,N) * TCVV(N) / 
+!     &                        AD(I,J,L)    * GOOD(I) )
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                      ( STT(I,J,L,N) * TCVV(N) / 
-     &                        AD(I,J,L)    * GOOD(I) )
+     &                      ( STT(I,J,L,N) * TCVV(N)
+     &                        * GOOD(I) )
 
             ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
 
@@ -703,40 +707,75 @@
                ! Temp variable for accumulation
                TMP = 0e+0_fp
             
+!               ! NO
+!               TMP = TMP + ( TCVV(IDTNO)         * GOOD(I) *
+!     &                       STT(I,J,L,IDTNO)    / AD(I,J,L) )
+!
+!               ! NO2
+!               TMP = TMP + ( TCVV(IDTNO2)        * GOOD(I) *
+!     &                       STT(I,J,L,IDTNO2)   / AD(I,J,L) )
+!               ! PAN
+!               TMP = TMP + ( TCVV(IDTPAN)        * GOOD(I) *
+!     &                       STT(I,J,L,IDTPAN)   / AD(I,J,L) )
+!
+!               ! HNO3
+!               TMP = TMP + ( TCVV(IDTHNO3)       * GOOD(I) *
+!     &                       STT(I,J,L,IDTHNO3)  / AD(I,J,L) )
+!            
+!               ! PMN
+!               TMP = TMP + ( TCVV(IDTPMN)        * GOOD(I) *
+!     &                       STT(I,J,L,IDTPMN)   / AD(I,J,L) )
+!
+!               ! PPN
+!               TMP = TMP + ( TCVV(IDTPPN)        * GOOD(I) *
+!     &                       STT(I,J,L,IDTPPN)   / AD(I,J,L) )
+! 
+!               ! R4N2
+!               TMP = TMP + ( TCVV(IDTR4N2)       * GOOD(I) *
+!     &                       STT(I,J,L,IDTR4N2)  / AD(I,J,L) )
+!            
+!               ! N2O5
+!               TMP = TMP + ( 2e+0_fp * TCVV(IDTN2O5) * GOOD(I) *
+!     &                       STT(I,J,L,IDTN2O5)  / AD(I,J,L) )
+!                        
+!               ! HNO4
+!               TMP = TMP + ( TCVV(IDTHNO4)       * GOOD(I) *
+!     &                       STT(I,J,L,IDTHNO4)  / AD(I,J,L) )
+
                ! NO
                TMP = TMP + ( TCVV(IDTNO)         * GOOD(I) *
-     &                       STT(I,J,L,IDTNO)    / AD(I,J,L) )
+     &                       STT(I,J,L,IDTNO)    )
 
                ! NO2
                TMP = TMP + ( TCVV(IDTNO2)        * GOOD(I) *
-     &                       STT(I,J,L,IDTNO2)   / AD(I,J,L) )
+     &                       STT(I,J,L,IDTNO2)   )
                ! PAN
                TMP = TMP + ( TCVV(IDTPAN)        * GOOD(I) *
-     &                       STT(I,J,L,IDTPAN)   / AD(I,J,L) )
+     &                       STT(I,J,L,IDTPAN)   )
 
                ! HNO3
                TMP = TMP + ( TCVV(IDTHNO3)       * GOOD(I) *
-     &                       STT(I,J,L,IDTHNO3)  / AD(I,J,L) )
+     &                       STT(I,J,L,IDTHNO3)  )
             
                ! PMN
                TMP = TMP + ( TCVV(IDTPMN)        * GOOD(I) *
-     &                       STT(I,J,L,IDTPMN)   / AD(I,J,L) )
+     &                       STT(I,J,L,IDTPMN)   )
 
                ! PPN
                TMP = TMP + ( TCVV(IDTPPN)        * GOOD(I) *
-     &                       STT(I,J,L,IDTPPN)   / AD(I,J,L) )
+     &                       STT(I,J,L,IDTPPN)   )
  
                ! R4N2
                TMP = TMP + ( TCVV(IDTR4N2)       * GOOD(I) *
-     &                       STT(I,J,L,IDTR4N2)  / AD(I,J,L) )
+     &                       STT(I,J,L,IDTR4N2)  )
             
                ! N2O5
                TMP = TMP + ( 2e+0_fp * TCVV(IDTN2O5) * GOOD(I) *
-     &                       STT(I,J,L,IDTN2O5)  / AD(I,J,L) )
+     &                       STT(I,J,L,IDTN2O5)  )
                         
                ! HNO4
                TMP = TMP + ( TCVV(IDTHNO4)       * GOOD(I) *
-     &                       STT(I,J,L,IDTHNO4)  / AD(I,J,L) )
+     &                       STT(I,J,L,IDTHNO4)  )
 
                ! Save afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
@@ -788,11 +827,15 @@
                !--------------------------------------
                ! TOTAL SEASALT TRACER [v/v]
                !--------------------------------------
+!               Q(X,Y,K,W) = Q(X,Y,K,W) +
+!     &                      ( STT(I,J,L,IDTSALA)   + 
+!     &                        STT(I,J,L,IDTSALC) ) *
+!     &                        TCVV(IDTSALA)        /
+!     &                        AD(I,J,L) * GOOD(I)
                Q(X,Y,K,W) = Q(X,Y,K,W) +
      &                      ( STT(I,J,L,IDTSALA)   + 
      &                        STT(I,J,L,IDTSALC) ) *
-     &                        TCVV(IDTSALA)        /
-     &                        AD(I,J,L) * GOOD(I)
+     &                        TCVV(IDTSALA) * GOOD(I)
 
             ELSE IF ( N == 159 ) THEN
 
@@ -1136,7 +1179,7 @@
 
          ! Free pointers
          NULLIFY( STT )
-         NULLIFY( AD  )
+!         NULLIFY( AD  )
 
       ENDIF
 

@@ -621,6 +621,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  21 Aug 2012 - C.L. Friedman - Initial version based on LAND_MERCURY_MOD
 !  25 Aug 2015 - M. Sulprizio  - Moved to hcox_gc_POPs_mod.F90
+!  02 Oct 2015 - E. Lundgren   - ExtState%POPG is now kg/kg dry air (prev kg)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -670,7 +671,10 @@ CONTAINS
       ! For pyr, 0.20225 kg/mol
       ! For BaP, 0,25231 kg/mol
       REAL(hp)            :: MW
-!
+
+      ! Molecular weight of air
+      REAL(hp), PARAMETER :: MWAIR  = 28.97d0 ! g/mol
+
       ! For PHENANTHRENE:
       ! log KOA_298 = 7.64, or 4.37*10^7 [unitless]
       ! For PYRENE:
@@ -751,11 +755,16 @@ CONTAINS
             TK = ExtState%TK%Arr%Val(I,J,1)
 
             ! Get gas phase air POP concentration at surface in mol/m3
-            POPG = MAX( ExtState%POPG%Arr%Val(I,J,1), SMALLNUM )![kg in gridbox]
+            ! ExtState%POPG is now in units of kg/kg dry air (ewl, 10/2/15) 
+            POPG = MAX( ExtState%POPG%Arr%Val(I,J,1), SMALLNUM )
 
-            ! kg / (0.178 kg/mol) /m3 in gridbox
-            POPG = POPG / MW / ExtState%AIRVOL%Arr%Val(I,J,1) ! mol/m3
-            !WRITE(6,*) 'POPG (mol/m3) =', POPG
+! old
+!            ! kg / (0.178 kg/mol) /m3 in gridbox
+!            POPG = POPG / MW / ExtState%AIRVOL%Arr%Val(I,J,1) ! mol/m3
+!            !WRITE(6,*) 'POPG (mol/m3) =', POPG
+! new
+!            ! (kg trc/kg dry air) / (0.178 kg trc/mol) * (kg dry air/m3)
+            POPG = POPG / MW * ExtState%AIRDEN%Arr%Val(I,J,1) ! mol/m3
 
             ! Grid box surface area [m2]
             AREA_M2   = HcoState%Grid%AREA_M2%Val(I,J)
@@ -959,6 +968,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  21 Aug 2012 - C.L. Friedman - Initial version based on LAND_MERCURY_MOD
 !  25 Aug 2015 - M. Sulprizio  - Moved to hcox_gc_POPs_mod.F90
+!  02 Oct 2015 - E. Lundgren   - ExtState%POPG is now kg/kg dry air (prev kg)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1107,10 +1117,16 @@ CONTAINS
                PRESS = PRESS / 1013.25e+0_hp
 
                ! Get gas phase air POP concentration at surface in mol/m3
-               POPG = MAX( ExtState%POPG%Arr%Val(I,J,1), SMALLNUM ) ![kg in gridbox]
+               ! ExtState%POPG is now in units of kg/kg dry air (ewl, 10/2/15) 
+               POPG = MAX( ExtState%POPG%Arr%Val(I,J,1), SMALLNUM )
 
-               ! kg / (kg/mol) /m3 in gridbox
-               POPG = POPG / MWPOP / ExtState%AIRVOL%Arr%Val(I,J,1) ! mol/m3
+! old
+!               ! kg / (kg/mol) /m3 in gridbox
+!               POPG = POPG / MWPOP / ExtState%AIRVOL%Arr%Val(I,J,1) ! mol/m3
+! new
+               ! (kg trc/kg dry air) / (kg trc/mol) * (kg dry air/m3)
+               POPG = POPG / MWPOP * ExtState%AIRDEN%Arr%Val(I,J,1) ! mol/m3
+
 
                ! Grid box surface area [m2]
                AREA_M2   = HcoState%Grid%AREA_M2%Val(I,J)
@@ -1321,6 +1337,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  21 Aug 2012 - C.L. Friedman - Initial version based on LAND_MERCURY_MOD
 !  25 Aug 2015 - M. Sulprizio  - Moved to hcox_gc_POPs_mod.F90
+!  02 Oct 2015 - E. Lundgren   - ExtState%POPG is now kg/kg dry air (prev kg)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1378,6 +1395,9 @@ CONTAINS
       ! Molecular weight
       ! For phe, 0.17823 kg/mol
       REAL(hp)            :: MW   
+
+      ! Molecular weight of air
+      REAL(hp), PARAMETER :: MWAIR  = 28.97d0 ! g/mol
 
       ! For PHENANTHRENE:
       ! log KOA_298 = 7.64, or 4.37*10^7 [unitless]
@@ -1458,10 +1478,16 @@ CONTAINS
                TK = ExtState%TK%Arr%Val(I,J,1)
 
                ! Get gas phase air POP concentration at surface in mol/m3
-               POPG = MAX( ExtState%POPG%Arr%Val(I,J,1), SMALLNUM ) ![kg in gridbox]
+               ! ExtState%POPG is now in units of kg/kg dry air (ewl, 10/2/15) 
+               POPG = MAX( ExtState%POPG%Arr%Val(I,J,1), SMALLNUM )
 
-               ! kg / (0.178 kg/mol) /m3 in gridbox
-               POPG = POPG / MW / ExtState%AIRVOL%Arr%Val(I,J,1) ! mol/m3
+! old
+!               ! kg / (0.178 kg/mol) /m3 in gridbox
+!               POPG = POPG / MW / ExtState%AIRVOL%Arr%Val(I,J,1) ! mol/m3
+! new
+               ! (kg trc/kg dry air) / (kg trc/mol) * (kg dry air/m3)
+               POPG = POPG / MW * ExtState%AIRDEN%Arr%Val(I,J,1) ! mol/m3
+
 
                ! Grid box surface area [m2]
                AREA_M2   = HcoState%Grid%AREA_M2%Val(I,J)
@@ -1910,7 +1936,8 @@ CONTAINS
     ! Activate met fields required by this extension
     ExtState%POPG%DoUse        = .TRUE.
     ExtState%ALBD%DoUse        = .TRUE. 
-    ExtState%AIRVOL%DoUse      = .TRUE. 
+    ExtState%AIRVOL%DoUse      = .TRUE.
+    ExtState%AIRDEN%DoUse      = .TRUE. 
     ExtState%FRAC_OF_PBL%DoUse = .TRUE. 
     ExtState%FRLAKE%DoUse      = .TRUE.
     ExtState%LAI%DoUse         = .TRUE.
