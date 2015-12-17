@@ -868,20 +868,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COMPUTE_L2G( Kstar298, H298_R, TK, H2OLIQ, L2G )
+      SUBROUTINE COMPUTE_L2G( K0, CR, pKa, TK, H2OLIQ, L2G )
 !
+! !USES:
+!
+      USE Henry_Mod, ONLY : Calc_KH
+      USE Henry_Mod, ONLY : Calc_Heff
+!     
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp), INTENT(IN)  :: KStar298  ! Henry's law constant @ 298 K [M/atm]
-      REAL(fp), INTENT(IN)  :: H298_R    ! Molar heat of formation 
-                                         ! @ 298 K / R [K]
-      REAL(fp), INTENT(IN)  :: TK        ! Temperature [K]
-      REAL(fp), INTENT(IN)  :: H2OLIQ    ! Liquid water content 
-                                         !  [cm3 H2O/cm3 air]
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL(fp), INTENT(OUT) :: L2G       ! Cliq/Cgas ratio [1]
+      REAL(f8), INTENT(IN)  :: K0     ! Henry's solubility constant [M/atm]
+      REAL(f8), INTENT(IN)  :: CR     ! Henry's volatility constant [K] 
+      REAL(f8), INTENT(IN)  :: pKa    ! Henry's pH correction factor [1]
+      REAL(fp), INTENT(IN)  :: TK     ! Temperature [K]
+      REAL(fp), INTENT(IN)  :: H2OLIQ ! Liquid water content [cm3 H2O/cm3 air]
+!                                     
+! !OUTPUT PARAMETERS:                 
+!                                     
+      REAL(fp), INTENT(OUT) :: L2G    ! Cliq/Cgas ratio [1]
 !
 ! !REMARKS:
 !  The ratio Cliq / Cgas is obtained via Henry's law.  The appropriate 
@@ -895,32 +899,36 @@
 !  10-Jan-2011 - H. Amos - Corrected the units on KStar298 from moles/atm
 !                          to M/atm
 !  15-May-2013 - F. Paulot - Fix R constant
+!  08 Dec 2015 - R. Yantosca - Now use functions from henry_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)            :: Kstar
-!
-! !DEFINED PARAMETERS:
-!
-      ! R = universal gas constant [L*atm/moles/K]
-      REAL(fp), PARAMETER :: R = 8.2057e-2_fp
-
-      ! INV_T0 = 1/298 K
-      REAL(fp), PARAMETER :: INV_T0 = 1e+0_fp / 298e+0_fp
+      INTEGER  :: RC
+      REAL(f8) :: HEFF, KH, pH, TK_8
 
       !=================================================================
       ! COMPUTE_L2G begins here!
       !=================================================================
 
-      ! Get Kstar, the effective Henry's law constant for temperature TK
-      Kstar = Kstar298 * EXP( -H298_R * ( ( 1e+0_fp / TK ) - INV_T0 ) )
+      ! Cast temperature to REAL*8
+      TK_8 = TK
+
+      ! For wetdep, we assume a pH of 4.5 for rainwater
+      pH = 4.5_f8
+
+      ! Calculate the Henry's law constant
+      CALL CALC_KH( K0, CR, TK_8, KH, RC )
+
+      ! Calculate effective Henry's law constant, corrected for pH
+      ! (for those species that have a defined pKa value)
+      CALL CALC_HEFF( pKa, pH, KH, HEFF, RC )
 
       ! Use Henry's Law to get the ratio:
       ! [ mixing ratio in liquid phase / mixing ratio in gas phase ]
-      L2G   = Kstar * H2OLIQ * R * TK
+      L2G   = HEFF * H2OLIQ
 
       END SUBROUTINE COMPUTE_L2G
 !EOC
@@ -1339,6 +1347,8 @@
 !
 ! !REVISION HISTORY:
 !  25 Sep 2015 - R. Yantosca - Initial version
+!  08 Dec 2015 - R. Yantosca - Make K0, CR, pKa 8-byte variables for
+!                              compatibility w/ CALC_KH, CALC_HEFF routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1346,8 +1356,9 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      REAL(fp) :: L2G, I2G, C_TOT, F_L, F_I, K0, CR, pKa
-
+      REAL(fp) :: L2G, I2G, C_TOT, F_L, F_I
+      REAL(f8) :: K0, CR, pKa
+      
       !=================================================================
       ! COMPUTE_Ki begins here!
       !=================================================================
@@ -1355,12 +1366,16 @@
       ! Get Henry's law parameters
       K0   = ThisSpc%Henry_K0
       CR   = ThisSpc%Henry_CR
-      !pKa  = ThisSpc%Henry_pKa       !  Leave for future use
+      pKa  = ThisSpc%Henry_pKa
 
-      ! NOTE: The routine COMPUTE_L2G assumes that the
-      ! Henry's CR parameter is negative.  The CR value stored
-      ! in the species database is positive, so flip the sign.
-      CR   = -CR
+!-----------------------------------------------------------------------------
+! Prior to 12/8/15:
+! Disable flipping of sign.  CALC_KH assumes CR is positive (bmy, 12/8/15)    
+!      ! NOTE: The routine COMPUTE_L2G assumes that the
+!      ! Henry's CR parameter is negative.  The CR value stored
+!      ! in the species database is positive, so flip the sign.
+!      CR   = -CR
+!-----------------------------------------------------------------------------
 
       IF ( ThisSpc%WD_LiqAndGas ) THEN
 
@@ -1383,7 +1398,12 @@
       ! Compute liquid to gas ratio for using 
       ! the appropriate parameters for Henry's law
       ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-      CALL COMPUTE_L2G( K0, CR, T, CLDLIQ, L2G )
+!-----------------------------------------------------------------------------
+! Prior to 12/8/15:
+! Now pass the Henry's pKA constant (bmy, 12/8/15)
+!     CALL COMPUTE_L2G( K0, CR, T, CLDLIQ, L2G )
+!-----------------------------------------------------------------------------
+      CALL COMPUTE_L2G( K0, CR, pKa, T, CLDLIQ, L2G )
 
       ! Fraction of species in liquid & ice phases
       ! (Eqs. 4, 5, 6, Jacob et al, 2000)
@@ -2191,19 +2211,29 @@
          ! Get Henry's law parameters
          K0  = ThisSpc%Henry_K0
          CR  = ThisSpc%Henry_CR
-         !pKa = ThisSpc%Henry_pKa       !  Leave for future use
+         pKa = ThisSpc%Henry_pKa
 
-         ! NOTE: The routine WASHFRAC_LIQ_GAS assumes that the
-         ! Henry's CR parameter is negative.  The CR value stored
-         ! in the species database is positive, so flip the sign.
-         CR  = -CR
+!-----------------------------------------------------------------------------
+! Prior to 12/8/15:
+! Disable flipping of sign; CALC_KH assumes positive CR. (bmy, 12/8/15)
+!         ! NOTE: The routine WASHFRAC_LIQ_GAS assumes that the
+!         ! Henry's CR parameter is negative.  The CR value stored
+!         ! in the species database is positive, so flip the sign.
+!         CR  = -CR
+!-----------------------------------------------------------------------------
 
          ! Washout is an equilibrium process
          KIN = .FALSE.
          
          ! Get the washout fraction for this species
-         CALL WASHFRAC_LIQ_GAS( K0, CR, PP,       DT, F, 
-     &                          DZ, TK, WASHFRAC, KIN    )
+!-----------------------------------------------------------------------------
+! Prior to 12/8/15:
+! Now pass Henry's pKa constant to WASHFRAC_LIQ_GAS (bmy, 12/18/15)
+!        CALL WASHFRAC_LIQ_GAS( K0, CR, PP,       DT, F, 
+!     &                          DZ, TK, WASHFRAC, KIN    )
+!-----------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( K0, CR, pKa, PP,       DT,
+     &                          F,  DZ, TK,  WASHFRAC, KIN )
 
       !-----------------------------------------------------------
       ! Washout for size-resolved aerosol species or
@@ -2656,15 +2686,29 @@
 !\\
 ! !INTERFACE:
 ! 
-      SUBROUTINE WASHFRAC_LIQ_GAS( Kstar298, H298_R, PP, DT, 
-     &                             F,        DZ,     TK,
-     &                             WASHFRAC, KIN ) 
-!
+!-----------------------------------------------------------------------------
+! Prior to 12/8/15:
+! Rename    
+!      SUBROUTINE WASHFRAC_LIQ_GAS( Kstar298, H298_R, pKa, PP,
+!     &                             DT,       F,      DZ,  TK,  
+!     &                             WASHFRAC, KIN ) 
+!-----------------------------------------------------------------------------
+      SUBROUTINE WASHFRAC_LIQ_GAS( K0, CR, pKa, PP,       DT,
+     &                             F,  DZ, TK,  WASHFRAC, KIN ) 
+!     
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp), INTENT(IN)  :: Kstar298  ! Effective Henry's law constant
-                                         !  @ 298 K  [moles/atm]
-      REAL(fp), INTENT(IN)  :: H298_R    ! Henry's law coefficient [K]
+!-----------------------------------------------------------------------------
+! Prior to 12/8/15:
+! Now make Henry's law arguments 8-bytes, for compatibility
+! with new functions from henry_mod.F (bmy, 12/8/15)
+!      REAL(fp), INTENT(IN)  :: Kstar298  ! Effective Henry's law constant
+!                                         !  @ 298 K  [moles/atm]
+!      REAL(fp), INTENT(IN)  :: H298_R    ! Henry's law coefficient [K]
+!-----------------------------------------------------------------------------
+      REAL(f8), INTENT(IN)  :: K0        ! Henry's solubility constant [M/atm]
+      REAL(f8), INTENT(IN)  :: CR        ! Henry's volatility constant [K]
+      REAL(f8), INTENT(IN)  :: pKa       ! Henry's pH correction [1]
       REAL(fp), INTENT(IN)  :: PP        ! Precip rate thru bottom of the
                                          !  grid box [cm3 H2O/cm2 air/s]
       REAL(fp), INTENT(IN)  :: DT        ! Timestep for washout event [s]
@@ -2726,7 +2770,12 @@
          ! Compute liquid to gas ratio for H2O2, using the appropriate 
          ! parameters for Henry's law -- also use rainwater content Lp
          ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-         CALL COMPUTE_L2G( Kstar298, H298_R, TK, LP, L2G )
+!----------------------------------------------------------------------------
+! Prior to 12/8/15:
+! Now pass 8-byte K0, CR, pKA arguments to COMPUTE_L2G (bmy, 12/8/15)
+!         CALL COMPUTE_L2G( Kstar298, H298_R, TK, LP, L2G )
+!----------------------------------------------------------------------------
+         CALL COMPUTE_L2G( K0, CR, pKa, TK, LP, L2G )
 
          ! Washout fraction from Henry's law (Eq. 16, Jacob et al, 2000)
          WASHFRAC = L2G / ( 1e+0_fp + L2G )
