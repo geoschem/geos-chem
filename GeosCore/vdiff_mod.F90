@@ -2832,6 +2832,7 @@ contains
     USE PBL_MIX_MOD,        ONLY : INIT_PBL_MIX
     USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
+    USE DAO_MOD,            ONLY : AIRQNT, CONVERT_UNITS
 
     IMPLICIT NONE
 !
@@ -2862,6 +2863,8 @@ contains
 !  01 Aug 2013 - R. Yantosca - Now pass the Input_Opt object to VDIFFDR
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  22 Aug 2014 - R. Yantosca - Renamed DO_TURBDAY to DO_VDIFF for clarity
+!  16 Nov 2015 - E. Lundgren - Update air quantities after VDIFFDR call
+!                              since specific humidity is updated
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2904,6 +2907,15 @@ contains
        IF( LPRT .and. am_I_Root ) THEN
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
        ENDIF
+
+       ! Call AIRQNT to update air quantities with new specific humidity.
+       ! Convert v/v -> kg first to conserve mass (ewl, 11/16/15)
+       CALL CONVERT_UNITS( 2,  Input_Opt%N_TRACERS, Input_Opt%TCVV, &
+                           State_Met%AD, State_Chm%TRACERS )
+       CALL AIRQNT( am_I_Root, State_Met, RC )
+       CALL CONVERT_UNITS( 1,  Input_Opt%N_TRACERS, Input_Opt%TCVV, &
+                           State_Met%AD, State_Chm%TRACERS )
+
     ENDIF
 
     ! Free pointer
