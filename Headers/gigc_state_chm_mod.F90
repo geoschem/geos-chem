@@ -351,13 +351,16 @@ CONTAINS
 !                              these are all now read in via HEMCO
 !  28 Aug 2015 - R. Yantosca - Also initialize the species database object
 !  09 Oct 2015 - R. Yantosca - Bug fix: set State_Chm%SpcData to NULL
+!  16 Dec 2015 - R. Yantosca - Now overwrite the Input_Opt%TRACER_MW_G and
+!                              related fields w/ info from species database
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: N
+    INTEGER  :: N, C
+    REAL(fp) :: EmMW_g
 
     ! Assume success until otherwise
     RC = GIGC_SUCCESS
@@ -435,7 +438,7 @@ CONTAINS
     CALL Init_Species_Database( am_I_Root = am_I_Root,          &
                                 Input_Opt = Input_Opt,          &
                                 SpcData   = State_Chm%SpcData,  &
-                                RC        = RC                 )
+                                RC         = RC                 )
 
     !=====================================================================
     ! Determine the number of advected, drydep, wetdep, and total species
@@ -448,6 +451,74 @@ CONTAINS
     CALL Spc_GetNumSpecies( State_Chm%nAdvect,  &
                             State_Chm%nDryDep,  &
                             State_Chm%nWetDep  )
+
+    !=======================================================================
+    ! Now use the molecular weights from the species database and overwrite
+    ! the molecular weight-related fields of the Input_Opt object.  Also
+    ! echo to screen the TRACER MENU quantities that used to be printed
+    ! in routine READ_INPUT_FILE (in GeosCore/input_mod.F).
+    !=======================================================================
+    IF ( am_I_Root ) THEN
+       WRITE( 6,'(/,a)' ) 'TRACER MENU (==> denotes SMVGEAR emitted species)'
+       WRITE( 6,'(  a)' ) REPEAT( '-', 48 )
+       WRITE( 6,'(  a)' ) '  # Tracer          g/mole'
+    ENDIF
+
+    ! Loop over the number of tracers
+    DO N = 1, Input_Opt%N_TRACERS
+
+       ! Get emitted molecular weight from the species database
+       EmMW_g                    = State_Chm%SpcData(N)%Info%EmMW_g
+
+       ! Now use MW from the species database instead of from the
+       ! input.geos file.  This eliminates discrepancies. (bmy, 12/16/15)
+       Input_Opt%TRACER_MW_g(N)  = EmMW_g
+       Input_Opt%TRACER_MW_kg(N) = EmMW_g * 1e-3_fp
+
+       ! Ratio of MW dry air / MW tracer
+       Input_Opt%TCVV(N)         = 28.97e+0_fp  / Input_Opt%TRACER_MW_G(N)
+
+       ! Molecules tracer / kg tracer
+       Input_Opt%XNUMOL(N)       = 6.022e+23_fp / Input_Opt%TRACER_MW_KG(N)
+
+       ! Print to screen
+       IF ( am_I_Root ) THEN
+
+          ! Write tracer number, name, & mol wt
+          WRITE( 6, 100 ) Input_Opt%ID_TRACER(N),              &
+                          Input_Opt%TRACER_NAME(N),            &
+                          Input_Opt%TRACER_MW_G(N)
+
+          ! If a family tracer (or just a tracer w/ emission)
+          ! then also print info about species
+          IF ( Input_Opt%TRACER_N_CONST(N) > 1   .or.          &
+               Input_Opt%ID_EMITTED(N) > 0     ) THEN
+
+             ! Loop over member species
+             DO C = 1, Input_Opt%TRACER_N_CONST(N)
+
+                ! Also flag which is the emitted tracer
+                IF ( Input_Opt%ID_EMITTED(N) == C ) THEN
+                   WRITE( 6,110 ) Input_Opt%TRACER_COEFF(N,C), &
+                                  Input_Opt%TRACER_CONST(N,C)
+                ELSE
+                   WRITE( 6,120 ) Input_Opt%TRACER_COEFF(N,C), &
+                                  Input_Opt%TRACER_CONST(N,C)
+                ENDIF
+             ENDDO
+          ENDIF
+       ENDIF
+    ENDDO
+
+    ! Echo output
+    IF ( am_I_Root ) THEN
+       WRITE( 6, '(a  )' ) REPEAT( '=', 79 )
+    ENDIF
+
+    ! Format statement
+100 FORMAT( I3, 1x, A10, 6x, F7.2 )
+110 FORMAT( 5x, '===> ', f4.1, 1x, A6  )
+120 FORMAT( 5x, '---> ', f4.1, 1x, A4  )
 
   END SUBROUTINE Init_GIGC_State_Chm
 !EOC

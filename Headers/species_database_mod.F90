@@ -117,6 +117,7 @@ CONTAINS
 !                              deposition velocity for sulfate aerosols
 !  14 Oct 2015 - E. Lundgren - Treat H2SO4 as an aerosol for TOMAS
 !  18 Nov 2015 - M. Sulprizio- Add passive tracers PASV to RnPbBe simulation
+!  16 Dec 2015 - R. Yantosca - Use MW_g = 31.4 g/mol for SO4s and NITs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1861,7 +1862,22 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'NITS' )
-             
+
+             ! NOTE: NITs (NIT on coarse sea salt aerosol) needs to use
+             ! the same molecular weight as coarse sea salt (= 31.4 g/mol)
+             ! instead of NIT (= 62 g/mol).
+             !
+             ! Becky Alexander (beckya@atmos.washington.edu) wrote:
+             !
+             !   "The reason for using sea salt's MW for NITss is that ...
+             !    [it is] ... essentially internally mixed with coarse sea
+             !    salt aerosol (SALC).  As coarse sea salt aerosol likely
+             !    dominates the mass of ... [NITs] ...  it is appropriate
+             !    to use sea salt's MW.  Another explanation is that since
+             !    NITs ... [is ] internally mixed with sea salt, ... [it]
+             !    should be treated identically to SALC in the code for
+             !    all processes.  (15 Dec 2015)
+
              Fullname = 'Inorganic nitrates on surface of seasalt aerosol'
              Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
                           Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
@@ -1878,7 +1894,12 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = 'NITs',                       &
                               FullName      = FullName,                     &
-                              MW_g          = 62.0_fp,                      &
+!-----------------------------------------------------------------------------
+! Prior to 12/15/15:
+! Now use the molecular weight of SALC (bmy, 12/15/15)
+!                              MW_g          = 62.0_fp,                      &
+!-----------------------------------------------------------------------------
+                              MW_g          = 31.4_fp,                      &
                               Is_Advected   = T,                            &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
@@ -2486,6 +2507,22 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'SO4S' )
+
+             ! NOTE: SO4s (SO4 on coarse sea salt aerosol) needs to use
+             ! the same molecular weight as coarse sea salt (= 31.4 g/mol)
+             ! instead of SO4 (= 96 g/mol).
+             !
+             ! Becky Alexander (beckya@atmos.washington.edu) wrote:
+             !
+             !   "The reason for using sea salt's MW for SO4s is that ...
+             !    [it is] ... essentially internally mixed with coarse sea
+             !    salt aerosol (SALC).  As coarse sea salt aerosol likely
+             !    dominates the mass of ... [SO4s] ...  it is appropriate
+             !    to use sea salt's MW.  Another explanation is that since
+             !    SO4s ... [is ] internally mixed with sea salt, ... [it]
+             !    should be treated identically to SALC in the code for
+             !    all processes.  (15 Dec 2015)
+             !
              Fullname = 'Sulfate on surface of seasalt aerosol'
              Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
                           Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
@@ -2502,7 +2539,12 @@ CONTAINS
                               ModelID       = N,                            &
                               Name          = 'SO4s',                       &
                               FullName      = FullName,                     &
-                              MW_g          = 96.0_fp,                      &
+!------------------------------------------------------------------------------
+! Prior to 12/15/15:
+! Now use same molecular weight as SALC (bec, bmy, 12/15/15)
+!                              MW_g          = 96.0_fp,                      &
+!------------------------------------------------------------------------------
+                              MW_g          = 31.4_fp,                      &
                               Is_Advected   = T,                            &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &

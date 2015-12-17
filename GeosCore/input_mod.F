@@ -236,6 +236,7 @@
 !  15 Apr 2015 - R. Yantosca - Also define Input_Opt%ITS_A_NESTED_GRID here
 !                              so that we can pass it to INITIALIZE_GEOS_GRID
 !  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
+!  16 Dec 2015 - R. Yantosca - Now pass State_Chm to READ_TRACER_MENU
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -306,7 +307,7 @@
             CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )             
 
          ELSE IF ( INDEX( LINE, 'TRACER MENU'      ) > 0 ) THEN
-            CALL READ_TRACER_MENU( am_I_Root, Input_Opt, RC )                 
+            CALL READ_TRACER_MENU( am_I_Root, Input_Opt, RC )
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
             CALL READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )              
@@ -434,10 +435,13 @@
       ! Check GEOS-CHEM timesteps
       CALL CHECK_TIME_STEPS( am_I_Root, Input_Opt, RC )
 
-      ! Echo output
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      ENDIF
+      !---------------------------------------------
+      ! Prior to 12/16/15:
+      !! Echo output
+      !IF ( am_I_Root ) THEN
+      !   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      !ENDIF
+      !---------------------------------------------
 
       END SUBROUTINE READ_INPUT_FILE
 !EOC
@@ -1355,6 +1359,7 @@
       LOGICAL            :: LSPLIT
       CHARACTER(LEN=255) :: C1, C2, LINE, NAME
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+      REAL(fp)           :: DUMMY
 
       !=================================================================
       ! READ_TRACER_MENU begins here!
@@ -1485,17 +1490,29 @@
          ! Save tracer name
          Input_Opt%TRACER_NAME(T)  = TRIM( SUBSTRS(2) )
 
-         ! Save tracer molecular wt [g/mole]
-         READ( SUBSTRS(3), * ) Input_Opt%TRACER_MW_G(T) 
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%% These fields will be overwritten with information from the 
+         !%%% GEOS-Chem Species Database.  This will eliminate inconsistencies
+         !%%% caused by multiple definitions of the same quantity.
+         !%%% (bmy, 12/16/15)
+         !%%%
+         !%%%! Save tracer molecular wt [g/mole]
+         !%%%READ( SUBSTRS(3), * ) Input_Opt%TRACER_MW_G(T) 
+         !%%%
+         !%%%! Save tracer molecular wt [kg/mole]
+         !%%%Input_Opt%TRACER_MW_KG(T) = Input_Opt%TRACER_MW_G(T) * 1e-3_fp
+         !%%%
+         !%%%! Ratio of MW dry air / MW tracer 
+         !%%%Input_Opt%TCVV(T) = 28.97e+0_fp / Input_Opt%TRACER_MW_G(T)
+         !%%%
+         !%%%! Molecules tracer / kg tracer
+         !%%%Input_Opt%XNUMOL(T) = 6.022e+23_fp / Input_Opt%TRACER_MW_KG(T)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         ! Save tracer molecular wt [kg/mole]
-         Input_Opt%TRACER_MW_KG(T) = Input_Opt%TRACER_MW_G(T) * 1e-3_fp
-
-         ! Ratio of MW dry air / MW tracer 
-         Input_Opt%TCVV(T) = 28.97e+0_fp / Input_Opt%TRACER_MW_G(T)
-
-         ! Molecules tracer / kg tracer
-         Input_Opt%XNUMOL(T) = 6.022e+23_fp / Input_Opt%TRACER_MW_KG(T)
+         ! Read a dummy placeholder in place of molecular weight
+         ! The molecular weight will be taken from the species database
+         ! in routine INIT_GIGC_STATE_CHM. (bmy, 12/16/15)
+         READ( SUBSTRS(3), * ) DUMMY
          
          !----------------------------------------------------
          ! If this is a family tracer, get member species
@@ -1616,48 +1633,51 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:5' )
 
-      !=================================================================
-      ! Print to screen
-      !=================================================================
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(/,a)' ) 
-     &       'TRACER MENU (==> denotes SMVGEAR emitted species)' 
-         WRITE( 6, '(  a)' ) REPEAT( '-', 48 )
-         WRITE( 6, '(  a)' ) '  # Tracer          g/mole'
-
-         ! Print info about each tracer
-         DO T = 1, Input_Opt%N_TRACERS
-
-            ! Write tracer number, name, & mol wt
-            WRITE( 6, 100 ) Input_Opt%ID_TRACER(T), 
-     &                      Input_Opt%TRACER_NAME(T), 
-     &                      Input_Opt%TRACER_MW_G(T)
-            
-            ! If a family tracer (or just a tracer w/ emission)
-            ! then also print info about species
-            IF ( Input_Opt%TRACER_N_CONST(T) > 1 .or. 
-     &           Input_Opt%ID_EMITTED(T) > 0 ) THEN
-            
-               ! Loop over member species
-               DO C = 1, Input_Opt%TRACER_N_CONST(T)
-
-                   ! Also flag which is the emitted tracer
-                  IF ( Input_Opt%ID_EMITTED(T) == C ) THEN
-                     WRITE( 6,110 ) Input_Opt%TRACER_COEFF(T,C), 
-     &                              Input_Opt%TRACER_CONST(T,C) 
-                  ELSE
-                     WRITE( 6,120 ) Input_Opt%TRACER_COEFF(T,C), 
-     &                              Input_Opt%TRACER_CONST(T,C)
-                  ENDIF
-               ENDDO
-            ENDIF
-         ENDDO
-      ENDIF
-
-      ! Format statement
- 100  FORMAT( I3, 1x, A10, 6x, F6.1 )
- 110  FORMAT( 5x, '===> ', f4.1, 1x, A6  )
- 120  FORMAT( 5x, '---> ', f4.1, 1x, A4  )
+!-----------------------------------------------------------------------------
+!
+!      !=================================================================
+!      ! Print to screen
+!      !=================================================================
+!      IF ( am_I_Root ) THEN
+!         WRITE( 6, '(/,a)' ) 
+!     &       'TRACER MENU (==> denotes SMVGEAR emitted species)' 
+!         WRITE( 6, '(  a)' ) REPEAT( '-', 48 )
+!         WRITE( 6, '(  a)' ) '  # Tracer          g/mole'
+!
+!         ! Print info about each tracer
+!         DO T = 1, Input_Opt%N_TRACERS
+!
+!            ! Write tracer number, name, & mol wt
+!            WRITE( 6, 100 ) Input_Opt%ID_TRACER(T), 
+!     &                      Input_Opt%TRACER_NAME(T), 
+!     &                      Input_Opt%TRACER_MW_G(T)
+!            
+!            ! If a family tracer (or just a tracer w/ emission)
+!            ! then also print info about species
+!            IF ( Input_Opt%TRACER_N_CONST(T) > 1 .or. 
+!     &           Input_Opt%ID_EMITTED(T) > 0 ) THEN
+!            
+!               ! Loop over member species
+!               DO C = 1, Input_Opt%TRACER_N_CONST(T)
+!
+!                   ! Also flag which is the emitted tracer
+!                  IF ( Input_Opt%ID_EMITTED(T) == C ) THEN
+!                     WRITE( 6,110 ) Input_Opt%TRACER_COEFF(T,C), 
+!     &                              Input_Opt%TRACER_CONST(T,C) 
+!                  ELSE
+!                     WRITE( 6,120 ) Input_Opt%TRACER_COEFF(T,C), 
+!     &                              Input_Opt%TRACER_CONST(T,C)
+!                  ENDIF
+!               ENDDO
+!            ENDIF
+!         ENDDO
+!      ENDIF
+!
+!      ! Format statement
+! 100  FORMAT( I3, 1x, A10, 6x, F6.1 )
+! 110  FORMAT( 5x, '===> ', f4.1, 1x, A6  )
+! 120  FORMAT( 5x, '---> ', f4.1, 1x, A4  )
+!-----------------------------------------------------------------------------
 
       !=================================================================
       ! Call setup routines from other F90 modules
