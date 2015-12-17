@@ -497,8 +497,7 @@ cleanup.o                   : cleanup.F                                      \
                               transport_mod.o         ucx_mod.o              \
                               uvalbedo_mod.o          tpcore_fvdas_mod.o     \
                               geosfp_read_mod.o       merra2_read_mod.o      \
-                              tpcore_geos5_window_mod.o                      \
-                              tpcore_geosfp_window_mod.o                     \
+                              tpcore_window_mod.o                            \
                               rrtmg_rad_transfer_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
@@ -852,9 +851,7 @@ pderiv.o                    : pderiv.F
 physproc.o                  : physproc.F                                     \
                               comode_mod.o            chemistry_mod.o
 
-pjc_pfix_geos5_window_mod.o : pjc_pfix_geos5_window_mod.F
-
-pjc_pfix_geosfp_window_mod.o: pjc_pfix_geosfp_window_mod.F
+pjc_pfix_window_mod.o       : pjc_pfix_window_mod.F
 
 pjc_pfix_mod.o              : pjc_pfix_mod.F
 
@@ -967,12 +964,7 @@ toms_mod.o                  : toms_mod.F
 tpcore_bc_mod.o             : tpcore_bc_mod.F                                \
                               tracer_mod.o
 
-tpcore_geos5_window_mod.o   : tpcore_geos5_window_mod.F90
-ifeq ($(PRECISION),8)
-	$(F90) -c $(FREEFORM) $(R8) $<
-endif
-
-tpcore_geosfp_window_mod.o  : tpcore_geosfp_window_mod.F90
+tpcore_window_mod.o         : tpcore_window_mod.F90
 ifeq ($(PRECISION),8)
 	$(F90) -c $(FREEFORM) $(R8) $<
 endif
@@ -985,12 +977,8 @@ tracerid_mod.o              : tracerid_mod.F                                 \
 transport_mod.o             : transport_mod.F                                \
                               diag_mod.o              pjc_pfix_mod.o         \
                               tpcore_bc_mod.o         tpcore_fvdas_mod.o     \
-                              tracer_mod.o                                   \
-                              tpcore_geos5_window_mod.o                      \
-                              tpcore_geosfp_window_mod.o                     \
-                              tendencies_mod.o                               \
-                              pjc_pfix_geos5_window_mod.o                    \
-                              pjc_pfix_geosfp_window_mod.o                   \
+                              tracer_mod.o            tpcore_window_mod.o    \
+                              tendencies_mod.o        pjc_pfix_window_mod.o  \
                               dao_mod.o
 
 update.o                    : update.F

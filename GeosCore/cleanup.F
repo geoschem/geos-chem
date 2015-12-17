@@ -60,8 +60,7 @@
 #endif
       USE TOMS_MOD,                ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
-      USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
-      USE TPCORE_GEOSFP_WINDOW_MOD,ONLY : EXIT_GEOSFP_TPCORE_WINDOW !clb
+      USE TPCORE_WINDOW_MOD,       ONLY : EXIT_TPCORE_WINDOW
       USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
 #if   defined( APM )
@@ -332,11 +331,8 @@
       CALL CLEANUP_MCICA_CLOUDS
 #endif
 
-#if   defined( GEOS_5 ) && defined( GRID05x0666 )
-      CALL EXIT_GEOS5_TPCORE_WINDOW() 
-#elif defined( GEOS_FP) && defined( GRID025x03125)
-      ! clb
-      CALL EXIT_GEOSFP_TPCORE_WINDOW()
+#if   defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125)
+      CALL EXIT_TPCORE_WINDOW() 
 #else
       CALL EXIT_TPCORE()
 #endif

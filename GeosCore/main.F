@@ -1594,13 +1594,9 @@
          ENDIF 
 
          ! Check State_Chm tracers (yxw)   
-#if   defined( GEOS_5 ) && defined( GRID05x0666 )
-         CALL CHECK_STT_05x0666( State_Chm, Input_Opt, 
-     &                           'end of chem section, before wetdep' )
-#endif 
-#if   defined( GEOS_FP) && defined( GRID025x03125)
-         CALL CHECK_STT_025x03125( State_Chm, Input_Opt,
-     &                             'after chemistry' )
+#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125 )
+         CALL CHECK_STT_NESTED( State_Chm, Input_Opt,
+     &                          'after chemistry' )
 #endif 
 
 #if defined( USE_TIMERS )
@@ -1884,18 +1880,13 @@
          ! Sometimes tracers in the stratosphere can be negative at 
          ! the nested-grid domain edges. Force them to be zero before
          ! CHECK_STT (yxw)
-#if   defined( GEOS_5 ) && defined( GRID05x0666 )
-            CALL CHECK_STT_05x0666( State_Chm, Input_Opt,
-     &                              'after dynamics step' )
-#endif
-#if   defined( GEOS_FP) && defined( GRID025x03125)
-         CALL CHECK_STT_025x03125( State_Chm, Input_Opt,
-     &                             'after dynamics step' )
-#endif 
-
-
+#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125)
+            CALL CHECK_STT_NESTED( State_Chm, Input_Opt,
+     &                             'End of Dynamic Loop' )
+#else
             CALL CHECK_STT( State_Chm, Input_Opt, 
      &                      'End of Dynamic Loop' )
+#endif
          ENDIF
 
 #if defined( USE_TIMERS )
@@ -2077,6 +2068,12 @@
       WRITE( 6, '(a)' ) 
      &    REPEAT( '*', 13 )                                          // 
      &    '   S T A R T I N G   0.5 x 0.666   G E O S -- C H E M   ' //
+     &    REPEAT( '*', 13 )
+
+#elif defined( GRID05x0625 )
+      WRITE( 6, '(a)' ) 
+     &    REPEAT( '*', 13 )                                          // 
+     &    '   S T A R T I N G   0.5 x 0.625   G E O S -- C H E M   ' //
      &    REPEAT( '*', 13 )
 
 #elif defined( GRID025x03125 )

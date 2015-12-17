@@ -4888,9 +4888,12 @@
       TSCALE = 2.*3600.    
 #elif defined( GRID05x0666 ) 
       TSCALE = 1.*3600.
+#elif defined( GRID05x0625 )
+      ! Copy the 05x0666 timescale for now
+      TSCALE = 1.*3600.
+#elif defined( GRID025x03125 )
       ! Copy the 05x0666 timescale for now
       ! (skim, 5/20/12)
-#elif defined( GRID025x03125 )
       TSCALE = 1.*3600.
 #endif
         !Prior to 10/28/08 (win)     

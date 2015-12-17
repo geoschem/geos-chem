@@ -1220,6 +1220,16 @@
       DLON          = 2e+0_fp/3e+0_fp    ! Delta-longitude array [degrees]
       DLAT          = 0.5e+0_fp          ! Delta-latitude array [degrees]
 
+#elif defined( GRID05x0625 )
+
+      !-------------------=---------
+      ! Nested 0.5 x 0.625 grids
+      !-----------------------------
+      JSP           = 0                  ! Lat index of S Pole
+      JNP           = 0                  ! Lat index of N pole
+      DLON          = 0.625e+0_fp        ! Delta-longitude array [degrees]
+      DLAT          = 0.5e+0_fp          ! Delta-latitude array [degrees]
+
 #elif defined( GRID025x03125 )
 
       !-----------------------------
@@ -3753,7 +3763,7 @@
       MAX_DYN = 10
 #elif defined( GRID1x1   ) 
       MAX_DYN = 10
-#elif defined( GRID05x0666   )
+#elif defined( GRID05x0666   ) || defined( GRID05x0625 )
       MAX_DYN = 10 
 #elif defined( GRID025x03125 )
       MAX_DYN = 5
