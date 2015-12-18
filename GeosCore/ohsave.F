@@ -11,33 +11,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OHSAVE( SAVEOH, SAVEHO2, SAVEO1D, SAVEO3P )
+      SUBROUTINE OHSAVE( State_Chm )
 !
 ! !USES:
 !
+      USE CMN_O3_MOD,         ONLY : SAVEOH, SAVEHO2, SAVEO1D, SAVEO3P
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,      ONLY : AIRDENS, CSPEC, JLOP
+      USE COMODE_MOD,         ONLY : AIRDENS, JLOP
       USE COMODE_LOOP_MOD
-      USE TRACERID_MOD,    ONLY : IDOH, IDHO2
-      USE TRACERID_MOD,    ONLY : IDO1D, IDO3P
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDOH, IDHO2
+      USE TRACERID_MOD,       ONLY : IDO1D, IDO3P
 
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 !
-! !OUTPUT PARAMETERS:
+! !INPUT PARAMETERS: 
 !
-      ! Array of OH  concentrations [molec/cm3]
-      REAL(fp), INTENT(OUT) :: SAVEOH(IIPAR,JJPAR,LLPAR)
-
-      ! Array of HO2 concentrations [v/v]
-      REAL(fp), INTENT(OUT) :: SAVEHO2(IIPAR,JJPAR,LLPAR)
-
-      ! Array of O1D concentrations (molec/cm3)
-      REAL(fp), INTENT(OUT) :: SAVEO1D(IIPAR,JJPAR,LLPAR)
-
-      ! Array of O3P concentrations (molec/cm3)
-      REAL(fp), INTENT(OUT) :: SAVEO3P(IIPAR,JJPAR,LLPAR)
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY: 
 !  27 Feb 2002 - R. Yantosca - Initial version
@@ -94,9 +86,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, JLOOP )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO 370 L = 1, NPVERT
-      DO 360 J = 1, NLAT
-      DO 350 I = 1, NLONG
+      DO 370 L = 1, LLPAR
+      DO 360 J = 1, JJPAR
+      DO 350 I = 1, IIPAR
 
          ! 1-D grid box index
          JLOOP = JLOP(I,J,L)
@@ -105,17 +97,18 @@
          IF ( JLOOP == 0 ) GOTO 350
 
          ! OH concentration [molec/cm3]
-         SAVEOH(I,J,L)  = CSPEC(JLOOP,IDOH)
+         SAVEOH(I,J,L)  = State_Chm%Species(I,J,L,IDOH)
 
          ! HO2 concentration [v/v] 
-         SAVEHO2(I,J,L) = CSPEC(JLOOP,IDHO2) / AIRDENS(JLOOP)  
+         SAVEHO2(I,J,L) = State_Chm%Species(I,J,L,IDHO2) /
+     &                    AIRDENS(JLOOP)
 
 #if defined( UCX )
          ! O1D concentration [molec/cm3]
-         SAVEO1D(I,J,L) = CSPEC(JLOOP,IDO1D)
+         SAVEO1D(I,J,L) = State_Chm%Species(I,J,L,IDO1D)
 
          ! O3P concentration [molec/cm3]
-         SAVEO3P(I,J,L) = CSPEC(JLOOP,IDO3P)
+         SAVEO3P(I,J,L) = State_Chm%Species(I,J,L,IDO3P)
 #endif
 
  350  CONTINUE

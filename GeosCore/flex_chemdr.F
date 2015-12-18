@@ -19,16 +19,17 @@
       USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
       USE COMODE_MOD,           ONLY : JLOP, TAREA, ERADIUS ! <--!!
       USE COMODE_LOOP_MOD,      ONLY : BK
-      USE FLEXCHEM_SETUP_MOD,   ONLY : STTTOCSPEC, CSPECTOKPP, HSAVE_KPP
       USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_CHEMGRID
       USE CHEMGRID_MOD  ,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
       USE DAO_MOD
+      USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
       USE DUST_MOD
       USE ERROR_MOD,            ONLY : DEBUG_MSG
       USE ERROR_MOD,            ONLY : ERROR_STOP
       USE FAST_JX_MOD
+      USE FLEXCHEM_SETUP_MOD,   ONLY : STTTOCSPEC, CSPECTOKPP, HSAVE_KPP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GIGC_State_Chm_Mod,   ONLY : ChmState
@@ -71,6 +72,7 @@
 ! 
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
+!  18 Dec 2015 - M. Sulprizio- Add calls to OHSAVE and DO_DIAG_OH
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -161,7 +163,7 @@
          CALL CALC_STRAT_AER( am_I_Root, Input_Opt, 
      &                        State_Met, State_Chm, RC )
          IF ( prtDebug ) 
-     &      CALL DEBUG_MSG( '### CHEMDR: after CALC_PSC' )
+     &      CALL DEBUG_MSG( '### FLEX_CHEMDR: after CALC_PSC' )
 #endif
 
          ! Skip this section if all these are turned off
@@ -180,7 +182,7 @@
 
       !### Debug
       IF ( prtDebug ) THEN 
-         CALL DEBUG_MSG( '### CHEMDR: after RDAER' )
+         CALL DEBUG_MSG( '### FLEX_CHEMDR: after RDAER' )
       ENDIF
 
       !=================================================================
@@ -207,7 +209,7 @@
 
       !### Debug
       IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMDR: after RDUST' )
+         CALL DEBUG_MSG( '### FLEX_CHEMDR: after RDUST' )
       ENDIF
 
       !     imje  Calculate photolysis rates
@@ -501,6 +503,27 @@
          ENDDO
 
       ENDDO
+
+      !=================================================================
+      ! Call OHSAVE which saves info on OH AND HO2 concentrations
+      !=================================================================
+      CALL OHSAVE( State_Chm )
+
+      !### Debug
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### FLEX_CHEMDR: after OHSAVE' )
+      ENDIF
+
+      !=================================================================
+      ! Save quantities for computing mean OH lifetime
+      !=================================================================
+      CALL DO_DIAG_OH( State_Chm )
+
+      !### Debug
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### FLEX_CHEMDR: after DO_DIAG_OH' )
+      ENDIF
+
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! FOR DIAGNOSTIC PURPOSES ONLY:

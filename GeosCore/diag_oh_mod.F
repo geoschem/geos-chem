@@ -68,20 +68,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DIAG_OH()
+      SUBROUTINE DO_DIAG_OH( State_Chm )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,     ONLY : AIRDENS, CSPEC, JLOP, T3, VOLUME
+      USE COMODE_MOD,         ONLY : AIRDENS, JLOP, T3, VOLUME
       USE COMODE_LOOP_MOD
-      USE TRACERID_MOD,   ONLY : IDOH
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDOH
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY:
 !  07 Jul 2004 - R. Yantosca - Initial version
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  19 Dec 2014 - R. Yantosca - Use REAL*8 variables to avoid precision loss
 !  19 Dec 2014 - R. Yantosca - Remove FIRST & XLOSS; they aren't used anymore
+!  18 Dec 2015 - M. Sulprizio- Remove references to CSPEC and get OH directly
+!                              from State_Chm%Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -105,9 +112,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, JLOOP, XAIRMASS, XOHMASS, AIRDENS_8, VOLUME_8 )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, NPVERT
-      DO J = 1, NLAT
-      DO I = 1, NLONG
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! 1-D grid box index
          JLOOP = JLOP(I,J,L)
@@ -124,7 +131,7 @@
             AIR_MASS(I,J,L) = AIR_MASS(I,J,L)   + XAIRMASS
 
             ! Sum OH mass term into OH_MASS array
-            XOHMASS         = CSPEC(JLOOP,IDOH) * XAIRMASS
+            XOHMASS         = State_Chm%Species(I,J,L,IDOH) * XAIRMASS
             OH_MASS(I,J,L)  = OH_MASS(I,J,L)    + XOHMASS
 
          ENDIF
@@ -132,7 +139,7 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-         
+
       END SUBROUTINE DO_DIAG_OH
 !EOC
 !------------------------------------------------------------------------------
@@ -236,6 +243,7 @@
       REAL(fp) :: OHCONC, LIFETIME
       
       LOGICAL  :: LPRT
+
       !=================================================================
       ! PRINT_DIAG_OH begins here!
       !=================================================================
