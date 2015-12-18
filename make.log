@@ -1,0 +1,805 @@
+make[1]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+ar crs libNcUtils.a m_do_err_out.o m_netcdf_io_checks.o m_netcdf_io_close.o m_netcdf_io_create.o m_netcdf_io_define.o m_netcdf_io_get_dimlen.o m_netcdf_io_handle_err.o m_netcdf_io_open.o m_netcdf_io_read.o m_netcdf_io_readattr.o m_netcdf_io_write.o ncdf_mod.o
+mv libNcUtils.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+ar crs libHeaders.a CMN_DIAG_mod.o CMN_FJX_MOD.o CMN_GCTM_mod.o CMN_O3_mod.o CMN_SIZE_mod.o comode_loop_mod.o precision_mod.o gigc_errcode_mod.o gigc_input_opt_mod.o gigc_state_chm_mod.o gigc_state_met_mod.o
+mv libHeaders.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+ar crs libGeosUtil.a bpch2_mod.o charpak_mod.o error_mod.o file_mod.o geos_timers.o hdf_mod.o henry_coeffs.o henry_mod.o ifort_errmsg.o julday_mod.o pressure_mod.o time_mod.o transfer_mod.o grid_mod.o inquireMod.o regrid_a2a_mod.o unitconv_mod.o ifort_errmsg.o
+mv libGeosUtil.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+ar crs libKpp.a gckpp_Function.o gckpp_Global.o gckpp_Hessian.o gckpp_HessianSP.o gckpp_HetRates.o gckpp_Initialize.o gckpp_Integrator.o gckpp_Jacobian.o gckpp_JacobianSP.o gckpp_LinearAlgebra.o gckpp_Model.o gckpp_Monitor.o gckpp_Parameters.o gckpp_Precision.o gckpp_Rates.o gckpp_Util.o
+mv libKpp.a ../../lib
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+ar crs libHCO.a hco_arr_mod.o hco_calc_mod.o hco_chartools_mod.o hco_clock_mod.o hco_config_mod.o hco_datacont_mod.o hco_diagn_mod.o hco_driver_mod.o hco_emislist_mod.o hco_error_mod.o hco_extlist_mod.o hco_filedata_mod.o hco_fluxarr_mod.o hco_geotools_mod.o hco_interp_mod.o hcoio_dataread_mod.o hcoio_diagn_mod.o hcoio_messy_mod.o hco_logfile_mod.o hco_readlist_mod.o hco_restart_mod.o hco_state_mod.o hco_tidx_mod.o hco_unit_mod.o messy_ncregrid_base.o messy_ncregrid_mpi.o
+mv libHCO.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+ar crs libHCOX.a hcox_dustdead_mod.o hcox_megan_mod.o hcox_tomas_dustdead_mod.o drydep_toolbox_mod.o hcox_aerocom_mod.o hcox_ch4wetland_mod.o hcox_custom_mod.o hcox_driver_mod.o hcox_dustginoux_mod.o hcox_finn_mod.o hcox_gc_POPs_mod.o hcox_gc_RnPbBe_mod.o hcox_gfed_mod.o hcox_lightnox_mod.o hcox_paranox_mod.o hcox_seaflux_mod.o hcox_seasalt_mod.o hcox_soilnox_mod.o hcox_state_mod.o hcox_tomas_seasalt_mod.o ocean_toolbox_mod.o
+mv libHCOX.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+LINK: -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -o hemco_standalone.x
+cp -f hemco_standalone.x ../../bin
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+ar crs libIsoropia.a isoropiaIIcode.o
+mv libIsoropia.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Nothing to be done for `librad'.
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c sulfate_mod.F
+sulfate_mod.F(6883): error #5082: Syntax error, found END-OF-STATEMENT when expecting one of: ) ,
+      FUNCTION GET_O3( I, J, L, Input_Opt, SC, State_Met ) RESULT( O3_VV
+------------------------------------------------------------------------^
+sulfate_mod.F(6535): error #6451: A dummy argument name is required in this context.   [STATE_CHM]
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+------------------------------------^
+sulfate_mod.F(6706): error #6451: A dummy argument name is required in this context.   [STATE_CHM]
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+-------------------------------------^
+sulfate_mod.F(6891): error #6580: Name in only-list does not exist.   [CHMSTATE]
+      USE GIGC_State_Met_Mod, ONLY : ChmState
+-------------------------------------^
+sulfate_mod.F(6900): error #6457: This derived type name has not been declared.   [CHMSTATE]
+      TYPE(ChmState), INTENT(IN)  :: SC   ! Chemistry State object
+-----------^
+sulfate_mod.F(2030): error #6784: The number of actual arguments cannot be greater than the number of dummy arguments.   [GET_OH]
+         OH     = GET_OH(  I, J, L, Input_Opt, State_Met, State_Chm )
+------------------^
+sulfate_mod.F(2031): error #6784: The number of actual arguments cannot be greater than the number of dummy arguments.   [GET_NO3]
+         XNO3   = GET_NO3( I, J, L, Input_Opt, State_Met, State_Chm )
+------------------^
+sulfate_mod.F(6883): error #6404: This name does not have a type, and must have an explicit type.   [SC]
+      FUNCTION GET_O3( I, J, L, Input_Opt, SC, State_Met ) RESULT( O3_VV
+-------------------------------------------^
+sulfate_mod.F(6939): error #6460: This is not a field name that is defined in the encompassing structure.   [SPECIES]
+            O3_VV = ( SC%Species(I,J,L,IDO3)  * 1e+6_fp   ) / 
+-------------------------^
+compilation aborted for sulfate_mod.F (code 1)
+make[3]: *** [sulfate_mod.o] Error 1
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: *** [lib] Error 2
+make[2]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[1]: *** [all] Error 2
+make[1]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make: *** [all] Error 2
+make[1]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+ar crs libNcUtils.a m_do_err_out.o m_netcdf_io_checks.o m_netcdf_io_close.o m_netcdf_io_create.o m_netcdf_io_define.o m_netcdf_io_get_dimlen.o m_netcdf_io_handle_err.o m_netcdf_io_open.o m_netcdf_io_read.o m_netcdf_io_readattr.o m_netcdf_io_write.o ncdf_mod.o
+mv libNcUtils.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+ar crs libHeaders.a CMN_DIAG_mod.o CMN_FJX_MOD.o CMN_GCTM_mod.o CMN_O3_mod.o CMN_SIZE_mod.o comode_loop_mod.o precision_mod.o gigc_errcode_mod.o gigc_input_opt_mod.o gigc_state_chm_mod.o gigc_state_met_mod.o
+mv libHeaders.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+ar crs libGeosUtil.a bpch2_mod.o charpak_mod.o error_mod.o file_mod.o geos_timers.o hdf_mod.o henry_coeffs.o henry_mod.o ifort_errmsg.o julday_mod.o pressure_mod.o time_mod.o transfer_mod.o grid_mod.o inquireMod.o regrid_a2a_mod.o unitconv_mod.o ifort_errmsg.o
+mv libGeosUtil.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+ar crs libKpp.a gckpp_Function.o gckpp_Global.o gckpp_Hessian.o gckpp_HessianSP.o gckpp_HetRates.o gckpp_Initialize.o gckpp_Integrator.o gckpp_Jacobian.o gckpp_JacobianSP.o gckpp_LinearAlgebra.o gckpp_Model.o gckpp_Monitor.o gckpp_Parameters.o gckpp_Precision.o gckpp_Rates.o gckpp_Util.o
+mv libKpp.a ../../lib
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+ar crs libHCO.a hco_arr_mod.o hco_calc_mod.o hco_chartools_mod.o hco_clock_mod.o hco_config_mod.o hco_datacont_mod.o hco_diagn_mod.o hco_driver_mod.o hco_emislist_mod.o hco_error_mod.o hco_extlist_mod.o hco_filedata_mod.o hco_fluxarr_mod.o hco_geotools_mod.o hco_interp_mod.o hcoio_dataread_mod.o hcoio_diagn_mod.o hcoio_messy_mod.o hco_logfile_mod.o hco_readlist_mod.o hco_restart_mod.o hco_state_mod.o hco_tidx_mod.o hco_unit_mod.o messy_ncregrid_base.o messy_ncregrid_mpi.o
+mv libHCO.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+ar crs libHCOX.a hcox_dustdead_mod.o hcox_megan_mod.o hcox_tomas_dustdead_mod.o drydep_toolbox_mod.o hcox_aerocom_mod.o hcox_ch4wetland_mod.o hcox_custom_mod.o hcox_driver_mod.o hcox_dustginoux_mod.o hcox_finn_mod.o hcox_gc_POPs_mod.o hcox_gc_RnPbBe_mod.o hcox_gfed_mod.o hcox_lightnox_mod.o hcox_paranox_mod.o hcox_seaflux_mod.o hcox_seasalt_mod.o hcox_soilnox_mod.o hcox_state_mod.o hcox_tomas_seasalt_mod.o ocean_toolbox_mod.o
+mv libHCOX.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+LINK: -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -o hemco_standalone.x
+cp -f hemco_standalone.x ../../bin
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+ar crs libIsoropia.a isoropiaIIcode.o
+mv libIsoropia.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Nothing to be done for `librad'.
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c sulfate_mod.F
+sulfate_mod.F(6535): error #6451: A dummy argument name is required in this context.   [STATE_CHM]
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+------------------------------------^
+sulfate_mod.F(6706): error #6451: A dummy argument name is required in this context.   [STATE_CHM]
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+-------------------------------------^
+sulfate_mod.F(6892): error #6580: Name in only-list does not exist.   [CHMSTATE]
+      USE GIGC_State_Met_Mod, ONLY : ChmState
+-------------------------------------^
+sulfate_mod.F(6901): error #6457: This derived type name has not been declared.   [CHMSTATE]
+      TYPE(ChmState), INTENT(IN)  :: SC   ! Chemistry State object
+-----------^
+sulfate_mod.F(2030): error #6784: The number of actual arguments cannot be greater than the number of dummy arguments.   [GET_OH]
+         OH     = GET_OH(  I, J, L, Input_Opt, State_Met, State_Chm )
+------------------^
+sulfate_mod.F(2031): error #6784: The number of actual arguments cannot be greater than the number of dummy arguments.   [GET_NO3]
+         XNO3   = GET_NO3( I, J, L, Input_Opt, State_Met, State_Chm )
+------------------^
+sulfate_mod.F(6883): error #6404: This name does not have a type, and must have an explicit type.   [SC]
+      FUNCTION GET_O3( I, J, L, Input_Opt, SC, State_Met )
+-------------------------------------------^
+sulfate_mod.F(6940): error #6460: This is not a field name that is defined in the encompassing structure.   [SPECIES]
+            O3_VV = ( SC%Species(I,J,L,IDO3)  * 1e+6_fp   ) / 
+-------------------------^
+compilation aborted for sulfate_mod.F (code 1)
+make[3]: *** [sulfate_mod.o] Error 1
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: *** [lib] Error 2
+make[2]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[1]: *** [all] Error 2
+make[1]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make: *** [all] Error 2
+make[1]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+ar crs libNcUtils.a m_do_err_out.o m_netcdf_io_checks.o m_netcdf_io_close.o m_netcdf_io_create.o m_netcdf_io_define.o m_netcdf_io_get_dimlen.o m_netcdf_io_handle_err.o m_netcdf_io_open.o m_netcdf_io_read.o m_netcdf_io_readattr.o m_netcdf_io_write.o ncdf_mod.o
+mv libNcUtils.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+ar crs libHeaders.a CMN_DIAG_mod.o CMN_FJX_MOD.o CMN_GCTM_mod.o CMN_O3_mod.o CMN_SIZE_mod.o comode_loop_mod.o precision_mod.o gigc_errcode_mod.o gigc_input_opt_mod.o gigc_state_chm_mod.o gigc_state_met_mod.o
+mv libHeaders.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+ar crs libGeosUtil.a bpch2_mod.o charpak_mod.o error_mod.o file_mod.o geos_timers.o hdf_mod.o henry_coeffs.o henry_mod.o ifort_errmsg.o julday_mod.o pressure_mod.o time_mod.o transfer_mod.o grid_mod.o inquireMod.o regrid_a2a_mod.o unitconv_mod.o ifort_errmsg.o
+mv libGeosUtil.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+ar crs libKpp.a gckpp_Function.o gckpp_Global.o gckpp_Hessian.o gckpp_HessianSP.o gckpp_HetRates.o gckpp_Initialize.o gckpp_Integrator.o gckpp_Jacobian.o gckpp_JacobianSP.o gckpp_LinearAlgebra.o gckpp_Model.o gckpp_Monitor.o gckpp_Parameters.o gckpp_Precision.o gckpp_Rates.o gckpp_Util.o
+mv libKpp.a ../../lib
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+ar crs libHCO.a hco_arr_mod.o hco_calc_mod.o hco_chartools_mod.o hco_clock_mod.o hco_config_mod.o hco_datacont_mod.o hco_diagn_mod.o hco_driver_mod.o hco_emislist_mod.o hco_error_mod.o hco_extlist_mod.o hco_filedata_mod.o hco_fluxarr_mod.o hco_geotools_mod.o hco_interp_mod.o hcoio_dataread_mod.o hcoio_diagn_mod.o hcoio_messy_mod.o hco_logfile_mod.o hco_readlist_mod.o hco_restart_mod.o hco_state_mod.o hco_tidx_mod.o hco_unit_mod.o messy_ncregrid_base.o messy_ncregrid_mpi.o
+mv libHCO.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+ar crs libHCOX.a hcox_dustdead_mod.o hcox_megan_mod.o hcox_tomas_dustdead_mod.o drydep_toolbox_mod.o hcox_aerocom_mod.o hcox_ch4wetland_mod.o hcox_custom_mod.o hcox_driver_mod.o hcox_dustginoux_mod.o hcox_finn_mod.o hcox_gc_POPs_mod.o hcox_gc_RnPbBe_mod.o hcox_gfed_mod.o hcox_lightnox_mod.o hcox_paranox_mod.o hcox_seaflux_mod.o hcox_seasalt_mod.o hcox_soilnox_mod.o hcox_state_mod.o hcox_tomas_seasalt_mod.o ocean_toolbox_mod.o
+mv libHCOX.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+LINK: -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -o hemco_standalone.x
+cp -f hemco_standalone.x ../../bin
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+ar crs libIsoropia.a isoropiaIIcode.o
+mv libIsoropia.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Nothing to be done for `librad'.
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c sulfate_mod.F
+sulfate_mod.F(6892): error #6580: Name in only-list does not exist.   [CHMSTATE]
+      USE GIGC_State_Met_Mod, ONLY : ChmState
+-------------------------------------^
+sulfate_mod.F(6901): error #6457: This derived type name has not been declared.   [CHMSTATE]
+      TYPE(ChmState), INTENT(IN)  :: SC   ! Chemistry State object
+-----------^
+sulfate_mod.F(6883): error #6404: This name does not have a type, and must have an explicit type.   [SC]
+      FUNCTION GET_O3( I, J, L, Input_Opt, SC, State_Met )
+-------------------------------------------^
+sulfate_mod.F(6940): error #6460: This is not a field name that is defined in the encompassing structure.   [SPECIES]
+            O3_VV = ( SC%Species(I,J,L,IDO3)  * 1e+6_fp   ) / 
+-------------------------^
+compilation aborted for sulfate_mod.F (code 1)
+make[3]: *** [sulfate_mod.o] Error 1
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: *** [lib] Error 2
+make[2]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[1]: *** [all] Error 2
+make[1]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make: *** [all] Error 2
+make[1]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+ar crs libNcUtils.a m_do_err_out.o m_netcdf_io_checks.o m_netcdf_io_close.o m_netcdf_io_create.o m_netcdf_io_define.o m_netcdf_io_get_dimlen.o m_netcdf_io_handle_err.o m_netcdf_io_open.o m_netcdf_io_read.o m_netcdf_io_readattr.o m_netcdf_io_write.o ncdf_mod.o
+mv libNcUtils.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+ar crs libHeaders.a CMN_DIAG_mod.o CMN_FJX_MOD.o CMN_GCTM_mod.o CMN_O3_mod.o CMN_SIZE_mod.o comode_loop_mod.o precision_mod.o gigc_errcode_mod.o gigc_input_opt_mod.o gigc_state_chm_mod.o gigc_state_met_mod.o
+mv libHeaders.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+ar crs libGeosUtil.a bpch2_mod.o charpak_mod.o error_mod.o file_mod.o geos_timers.o hdf_mod.o henry_coeffs.o henry_mod.o ifort_errmsg.o julday_mod.o pressure_mod.o time_mod.o transfer_mod.o grid_mod.o inquireMod.o regrid_a2a_mod.o unitconv_mod.o ifort_errmsg.o
+mv libGeosUtil.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+ar crs libKpp.a gckpp_Function.o gckpp_Global.o gckpp_Hessian.o gckpp_HessianSP.o gckpp_HetRates.o gckpp_Initialize.o gckpp_Integrator.o gckpp_Jacobian.o gckpp_JacobianSP.o gckpp_LinearAlgebra.o gckpp_Model.o gckpp_Monitor.o gckpp_Parameters.o gckpp_Precision.o gckpp_Rates.o gckpp_Util.o
+mv libKpp.a ../../lib
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+ar crs libHCO.a hco_arr_mod.o hco_calc_mod.o hco_chartools_mod.o hco_clock_mod.o hco_config_mod.o hco_datacont_mod.o hco_diagn_mod.o hco_driver_mod.o hco_emislist_mod.o hco_error_mod.o hco_extlist_mod.o hco_filedata_mod.o hco_fluxarr_mod.o hco_geotools_mod.o hco_interp_mod.o hcoio_dataread_mod.o hcoio_diagn_mod.o hcoio_messy_mod.o hco_logfile_mod.o hco_readlist_mod.o hco_restart_mod.o hco_state_mod.o hco_tidx_mod.o hco_unit_mod.o messy_ncregrid_base.o messy_ncregrid_mpi.o
+mv libHCO.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+ar crs libHCOX.a hcox_dustdead_mod.o hcox_megan_mod.o hcox_tomas_dustdead_mod.o drydep_toolbox_mod.o hcox_aerocom_mod.o hcox_ch4wetland_mod.o hcox_custom_mod.o hcox_driver_mod.o hcox_dustginoux_mod.o hcox_finn_mod.o hcox_gc_POPs_mod.o hcox_gc_RnPbBe_mod.o hcox_gfed_mod.o hcox_lightnox_mod.o hcox_paranox_mod.o hcox_seaflux_mod.o hcox_seasalt_mod.o hcox_soilnox_mod.o hcox_state_mod.o hcox_tomas_seasalt_mod.o ocean_toolbox_mod.o
+mv libHCOX.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+LINK: -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -o hemco_standalone.x
+cp -f hemco_standalone.x ../../bin
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+ar crs libIsoropia.a isoropiaIIcode.o
+mv libIsoropia.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Nothing to be done for `librad'.
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c sulfate_mod.F
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c chemistry_mod.F
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c cleanup.F
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c -free flexchem_setup_mod.F90
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c flex_chemdr.F
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c input_mod.F
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c main.F
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 a3_read_mod.o a6_read_mod.o aero_drydep.o aerosol_mod.o backsub.o benchmark_mod.o bromocarb_mod.o c2h6_mod.o carbon_mod.o chemgrid_mod.o chemistry_mod.o cldice_HBrHOBr_rxn.o cleanup.o co2_mod.o comode_mod.o convection_mod.o dao_mod.o decomp.o depo_mercury_mod.o diag03_mod.o diag04_mod.o diag1.o diag_2pm.o diag3.o diag41_mod.o diag42_mod.o diag48_mod.o diag49_mod.o diag50_mod.o diag51b_mod.o diag51_mod.o diag53_mod.o diag56_mod.o diag63_mod.o diag_mod.o diagoh.o diag_oh_mod.o diag_pl_mod.o drydep_mod.o dust_mod.o exchange_mod.o fast_jx_mod.o flex_chemdr.o future_emissions_mod.o fvdas_convect_mod.o gamap_mod.o gcap_convect_mod.o gcap_read_mod.o get_global_ch4.o get_ndep_mod.o global_br_mod.o global_ch4_mod.o i6_read_mod.o initialize.o input_mod.o isoropiaII_mod.o jsparse.o ksparse.o land_mercury_mod.o linoz_mod.o lump.o main.o mercury_mod.o merra_a1_mod.o merra_a3_mod.o merra_cn_mod.o merra_i6_mod.o ndxx_setup.o ocean_mercury_mod.o ohsave.o optdepth_mod.o partition.o pbl_mix_mod.o pderiv.o pjc_pfix_geos5_window_mod.o pjc_pfix_geosfp_window_mod.o pjc_pfix_mod.o planeflight_mod.o pops_mod.o readchem.o reader.o restart_mod.o RnPbBe_mod.o rpmares_mod.o rrtmg_rad_transfer_mod.o ruralbox.o seasalt_mod.o setemdep.o setemis.o setmodel.o set_prof_o3.o subfun.o sulfate_mod.o tagged_co_mod.o tagged_ox_mod.o tomas_mod.o toms_mod.o tpcore_bc_mod.o tracerid_mod.o tracer_mod.o transport_mod.o ucx_mod.o update.o wetscav_mod.o YuIMN_Code.o diagnostics_mod.o emissions_mod.o flexchem_setup_mod.o geosfp_read_mod.o gigc_environment_mod.o hcoi_gc_diagn_mod.o hcoi_gc_main_mod.o mapping_mod.o mixing_mod.o modis_lai_mod.o olson_landmap_mod.o strat_chem_mod.o tomas_tpcore_mod.o tpcore_fvdas_mod.o tpcore_geos5_window_mod.o tpcore_geosfp_window_mod.o uvalbedo_mod.o vdiff_mod.o vdiff_pre_mod.o -L../lib -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -o geos
+cp -f geos ../bin
+make[2]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[1]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[1]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+ar crs libNcUtils.a m_do_err_out.o m_netcdf_io_checks.o m_netcdf_io_close.o m_netcdf_io_create.o m_netcdf_io_define.o m_netcdf_io_get_dimlen.o m_netcdf_io_handle_err.o m_netcdf_io_open.o m_netcdf_io_read.o m_netcdf_io_readattr.o m_netcdf_io_write.o ncdf_mod.o
+mv libNcUtils.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+ar crs libHeaders.a CMN_DIAG_mod.o CMN_FJX_MOD.o CMN_GCTM_mod.o CMN_O3_mod.o CMN_SIZE_mod.o comode_loop_mod.o precision_mod.o gigc_errcode_mod.o gigc_input_opt_mod.o gigc_state_chm_mod.o gigc_state_met_mod.o
+mv libHeaders.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+ar crs libGeosUtil.a bpch2_mod.o charpak_mod.o error_mod.o file_mod.o geos_timers.o hdf_mod.o henry_coeffs.o henry_mod.o ifort_errmsg.o julday_mod.o pressure_mod.o time_mod.o transfer_mod.o grid_mod.o inquireMod.o regrid_a2a_mod.o unitconv_mod.o ifort_errmsg.o
+mv libGeosUtil.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+ar crs libKpp.a gckpp_Function.o gckpp_Global.o gckpp_Hessian.o gckpp_HessianSP.o gckpp_HetRates.o gckpp_Initialize.o gckpp_Integrator.o gckpp_Jacobian.o gckpp_JacobianSP.o gckpp_LinearAlgebra.o gckpp_Model.o gckpp_Monitor.o gckpp_Parameters.o gckpp_Precision.o gckpp_Rates.o gckpp_Util.o
+mv libKpp.a ../../lib
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+ar crs libHCO.a hco_arr_mod.o hco_calc_mod.o hco_chartools_mod.o hco_clock_mod.o hco_config_mod.o hco_datacont_mod.o hco_diagn_mod.o hco_driver_mod.o hco_emislist_mod.o hco_error_mod.o hco_extlist_mod.o hco_filedata_mod.o hco_fluxarr_mod.o hco_geotools_mod.o hco_interp_mod.o hcoio_dataread_mod.o hcoio_diagn_mod.o hcoio_messy_mod.o hco_logfile_mod.o hco_readlist_mod.o hco_restart_mod.o hco_state_mod.o hco_tidx_mod.o hco_unit_mod.o messy_ncregrid_base.o messy_ncregrid_mpi.o
+mv libHCO.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+ar crs libHCOX.a hcox_dustdead_mod.o hcox_megan_mod.o hcox_tomas_dustdead_mod.o drydep_toolbox_mod.o hcox_aerocom_mod.o hcox_ch4wetland_mod.o hcox_custom_mod.o hcox_driver_mod.o hcox_dustginoux_mod.o hcox_finn_mod.o hcox_gc_POPs_mod.o hcox_gc_RnPbBe_mod.o hcox_gfed_mod.o hcox_lightnox_mod.o hcox_paranox_mod.o hcox_seaflux_mod.o hcox_seasalt_mod.o hcox_soilnox_mod.o hcox_state_mod.o hcox_tomas_seasalt_mod.o ocean_toolbox_mod.o
+mv libHCOX.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+LINK: -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -o hemco_standalone.x
+cp -f hemco_standalone.x ../../bin
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+ar crs libIsoropia.a isoropiaIIcode.o
+mv libIsoropia.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Nothing to be done for `librad'.
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c sulfate_mod.F
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c chemistry_mod.F
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c cleanup.F
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c input_mod.F
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c main.F
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 a3_read_mod.o a6_read_mod.o aero_drydep.o aerosol_mod.o backsub.o benchmark_mod.o bromocarb_mod.o c2h6_mod.o carbon_mod.o chemgrid_mod.o chemistry_mod.o cldice_HBrHOBr_rxn.o cleanup.o co2_mod.o comode_mod.o convection_mod.o dao_mod.o decomp.o depo_mercury_mod.o diag03_mod.o diag04_mod.o diag1.o diag_2pm.o diag3.o diag41_mod.o diag42_mod.o diag48_mod.o diag49_mod.o diag50_mod.o diag51b_mod.o diag51_mod.o diag53_mod.o diag56_mod.o diag63_mod.o diag_mod.o diagoh.o diag_oh_mod.o diag_pl_mod.o drydep_mod.o dust_mod.o exchange_mod.o fast_jx_mod.o flex_chemdr.o future_emissions_mod.o fvdas_convect_mod.o gamap_mod.o gcap_convect_mod.o gcap_read_mod.o get_global_ch4.o get_ndep_mod.o global_br_mod.o global_ch4_mod.o i6_read_mod.o initialize.o input_mod.o isoropiaII_mod.o jsparse.o ksparse.o land_mercury_mod.o linoz_mod.o lump.o main.o mercury_mod.o merra_a1_mod.o merra_a3_mod.o merra_cn_mod.o merra_i6_mod.o ndxx_setup.o ocean_mercury_mod.o ohsave.o optdepth_mod.o partition.o pbl_mix_mod.o pderiv.o pjc_pfix_geos5_window_mod.o pjc_pfix_geosfp_window_mod.o pjc_pfix_mod.o planeflight_mod.o pops_mod.o readchem.o reader.o restart_mod.o RnPbBe_mod.o rpmares_mod.o rrtmg_rad_transfer_mod.o ruralbox.o seasalt_mod.o setemdep.o setemis.o setmodel.o set_prof_o3.o subfun.o sulfate_mod.o tagged_co_mod.o tagged_ox_mod.o tomas_mod.o toms_mod.o tpcore_bc_mod.o tracerid_mod.o tracer_mod.o transport_mod.o ucx_mod.o update.o wetscav_mod.o YuIMN_Code.o diagnostics_mod.o emissions_mod.o flexchem_setup_mod.o geosfp_read_mod.o gigc_environment_mod.o hcoi_gc_diagn_mod.o hcoi_gc_main_mod.o mapping_mod.o mixing_mod.o modis_lai_mod.o olson_landmap_mod.o strat_chem_mod.o tomas_tpcore_mod.o tpcore_fvdas_mod.o tpcore_geos5_window_mod.o tpcore_geosfp_window_mod.o uvalbedo_mod.o vdiff_mod.o vdiff_pre_mod.o -L../lib -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -o geos
+cp -f geos ../bin
+make[2]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[1]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[1]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+ar crs libNcUtils.a m_do_err_out.o m_netcdf_io_checks.o m_netcdf_io_close.o m_netcdf_io_create.o m_netcdf_io_define.o m_netcdf_io_get_dimlen.o m_netcdf_io_handle_err.o m_netcdf_io_open.o m_netcdf_io_read.o m_netcdf_io_readattr.o m_netcdf_io_write.o ncdf_mod.o
+mv libNcUtils.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+ar crs libHeaders.a CMN_DIAG_mod.o CMN_FJX_MOD.o CMN_GCTM_mod.o CMN_O3_mod.o CMN_SIZE_mod.o comode_loop_mod.o precision_mod.o gigc_errcode_mod.o gigc_input_opt_mod.o gigc_state_chm_mod.o gigc_state_met_mod.o
+mv libHeaders.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+ar crs libGeosUtil.a bpch2_mod.o charpak_mod.o error_mod.o file_mod.o geos_timers.o hdf_mod.o henry_coeffs.o henry_mod.o ifort_errmsg.o julday_mod.o pressure_mod.o time_mod.o transfer_mod.o grid_mod.o inquireMod.o regrid_a2a_mod.o unitconv_mod.o ifort_errmsg.o
+mv libGeosUtil.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+ar crs libKpp.a gckpp_Function.o gckpp_Global.o gckpp_Hessian.o gckpp_HessianSP.o gckpp_HetRates.o gckpp_Initialize.o gckpp_Integrator.o gckpp_Jacobian.o gckpp_JacobianSP.o gckpp_LinearAlgebra.o gckpp_Model.o gckpp_Monitor.o gckpp_Parameters.o gckpp_Precision.o gckpp_Rates.o gckpp_Util.o
+mv libKpp.a ../../lib
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+ar crs libHCO.a hco_arr_mod.o hco_calc_mod.o hco_chartools_mod.o hco_clock_mod.o hco_config_mod.o hco_datacont_mod.o hco_diagn_mod.o hco_driver_mod.o hco_emislist_mod.o hco_error_mod.o hco_extlist_mod.o hco_filedata_mod.o hco_fluxarr_mod.o hco_geotools_mod.o hco_interp_mod.o hcoio_dataread_mod.o hcoio_diagn_mod.o hcoio_messy_mod.o hco_logfile_mod.o hco_readlist_mod.o hco_restart_mod.o hco_state_mod.o hco_tidx_mod.o hco_unit_mod.o messy_ncregrid_base.o messy_ncregrid_mpi.o
+mv libHCO.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+ar crs libHCOX.a hcox_dustdead_mod.o hcox_megan_mod.o hcox_tomas_dustdead_mod.o drydep_toolbox_mod.o hcox_aerocom_mod.o hcox_ch4wetland_mod.o hcox_custom_mod.o hcox_driver_mod.o hcox_dustginoux_mod.o hcox_finn_mod.o hcox_gc_POPs_mod.o hcox_gc_RnPbBe_mod.o hcox_gfed_mod.o hcox_lightnox_mod.o hcox_paranox_mod.o hcox_seaflux_mod.o hcox_seasalt_mod.o hcox_soilnox_mod.o hcox_state_mod.o hcox_tomas_seasalt_mod.o ocean_toolbox_mod.o
+mv libHCOX.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+LINK: -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -o hemco_standalone.x
+cp -f hemco_standalone.x ../../bin
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+ar crs libIsoropia.a isoropiaIIcode.o
+mv libIsoropia.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Nothing to be done for `librad'.
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Nothing to be done for `libcore'.
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 a3_read_mod.o a6_read_mod.o aero_drydep.o aerosol_mod.o backsub.o benchmark_mod.o bromocarb_mod.o c2h6_mod.o carbon_mod.o chemgrid_mod.o chemistry_mod.o cldice_HBrHOBr_rxn.o cleanup.o co2_mod.o comode_mod.o convection_mod.o dao_mod.o decomp.o depo_mercury_mod.o diag03_mod.o diag04_mod.o diag1.o diag_2pm.o diag3.o diag41_mod.o diag42_mod.o diag48_mod.o diag49_mod.o diag50_mod.o diag51b_mod.o diag51_mod.o diag53_mod.o diag56_mod.o diag63_mod.o diag_mod.o diagoh.o diag_oh_mod.o diag_pl_mod.o drydep_mod.o dust_mod.o exchange_mod.o fast_jx_mod.o flex_chemdr.o future_emissions_mod.o fvdas_convect_mod.o gamap_mod.o gcap_convect_mod.o gcap_read_mod.o get_global_ch4.o get_ndep_mod.o global_br_mod.o global_ch4_mod.o i6_read_mod.o initialize.o input_mod.o isoropiaII_mod.o jsparse.o ksparse.o land_mercury_mod.o linoz_mod.o lump.o main.o mercury_mod.o merra_a1_mod.o merra_a3_mod.o merra_cn_mod.o merra_i6_mod.o ndxx_setup.o ocean_mercury_mod.o ohsave.o optdepth_mod.o partition.o pbl_mix_mod.o pderiv.o pjc_pfix_geos5_window_mod.o pjc_pfix_geosfp_window_mod.o pjc_pfix_mod.o planeflight_mod.o pops_mod.o readchem.o reader.o restart_mod.o RnPbBe_mod.o rpmares_mod.o rrtmg_rad_transfer_mod.o ruralbox.o seasalt_mod.o setemdep.o setemis.o setmodel.o set_prof_o3.o subfun.o sulfate_mod.o tagged_co_mod.o tagged_ox_mod.o tomas_mod.o toms_mod.o tpcore_bc_mod.o tracerid_mod.o tracer_mod.o transport_mod.o ucx_mod.o update.o wetscav_mod.o YuIMN_Code.o diagnostics_mod.o emissions_mod.o flexchem_setup_mod.o geosfp_read_mod.o gigc_environment_mod.o hcoi_gc_diagn_mod.o hcoi_gc_main_mod.o mapping_mod.o mixing_mod.o modis_lai_mod.o olson_landmap_mod.o strat_chem_mod.o tomas_tpcore_mod.o tpcore_fvdas_mod.o tpcore_geos5_window_mod.o tpcore_geosfp_window_mod.o uvalbedo_mod.o vdiff_mod.o vdiff_pre_mod.o -L../lib -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -o geos
+cp -f geos ../bin
+make[2]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[1]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[1]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+ar crs libNcUtils.a m_do_err_out.o m_netcdf_io_checks.o m_netcdf_io_close.o m_netcdf_io_create.o m_netcdf_io_define.o m_netcdf_io_get_dimlen.o m_netcdf_io_handle_err.o m_netcdf_io_open.o m_netcdf_io_read.o m_netcdf_io_readattr.o m_netcdf_io_write.o ncdf_mod.o
+mv libNcUtils.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+ar crs libHeaders.a CMN_DIAG_mod.o CMN_FJX_MOD.o CMN_GCTM_mod.o CMN_O3_mod.o CMN_SIZE_mod.o comode_loop_mod.o precision_mod.o gigc_errcode_mod.o gigc_input_opt_mod.o gigc_state_chm_mod.o gigc_state_met_mod.o
+mv libHeaders.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+ar crs libGeosUtil.a bpch2_mod.o charpak_mod.o error_mod.o file_mod.o geos_timers.o hdf_mod.o henry_coeffs.o henry_mod.o ifort_errmsg.o julday_mod.o pressure_mod.o time_mod.o transfer_mod.o grid_mod.o inquireMod.o regrid_a2a_mod.o unitconv_mod.o ifort_errmsg.o
+mv libGeosUtil.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+ar crs libKpp.a gckpp_Function.o gckpp_Global.o gckpp_Hessian.o gckpp_HessianSP.o gckpp_HetRates.o gckpp_Initialize.o gckpp_Integrator.o gckpp_Jacobian.o gckpp_JacobianSP.o gckpp_LinearAlgebra.o gckpp_Model.o gckpp_Monitor.o gckpp_Parameters.o gckpp_Precision.o gckpp_Rates.o gckpp_Util.o
+mv libKpp.a ../../lib
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+ar crs libHCO.a hco_arr_mod.o hco_calc_mod.o hco_chartools_mod.o hco_clock_mod.o hco_config_mod.o hco_datacont_mod.o hco_diagn_mod.o hco_driver_mod.o hco_emislist_mod.o hco_error_mod.o hco_extlist_mod.o hco_filedata_mod.o hco_fluxarr_mod.o hco_geotools_mod.o hco_interp_mod.o hcoio_dataread_mod.o hcoio_diagn_mod.o hcoio_messy_mod.o hco_logfile_mod.o hco_readlist_mod.o hco_restart_mod.o hco_state_mod.o hco_tidx_mod.o hco_unit_mod.o messy_ncregrid_base.o messy_ncregrid_mpi.o
+mv libHCO.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+ar crs libHCOX.a hcox_dustdead_mod.o hcox_megan_mod.o hcox_tomas_dustdead_mod.o drydep_toolbox_mod.o hcox_aerocom_mod.o hcox_ch4wetland_mod.o hcox_custom_mod.o hcox_driver_mod.o hcox_dustginoux_mod.o hcox_finn_mod.o hcox_gc_POPs_mod.o hcox_gc_RnPbBe_mod.o hcox_gfed_mod.o hcox_lightnox_mod.o hcox_paranox_mod.o hcox_seaflux_mod.o hcox_seasalt_mod.o hcox_soilnox_mod.o hcox_state_mod.o hcox_tomas_seasalt_mod.o ocean_toolbox_mod.o
+mv libHCOX.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+LINK: -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -o hemco_standalone.x
+cp -f hemco_standalone.x ../../bin
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+ar crs libIsoropia.a isoropiaIIcode.o
+mv libIsoropia.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Nothing to be done for `librad'.
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c flex_chemdr.F
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 a3_read_mod.o a6_read_mod.o aero_drydep.o aerosol_mod.o backsub.o benchmark_mod.o bromocarb_mod.o c2h6_mod.o carbon_mod.o chemgrid_mod.o chemistry_mod.o cldice_HBrHOBr_rxn.o cleanup.o co2_mod.o comode_mod.o convection_mod.o dao_mod.o decomp.o depo_mercury_mod.o diag03_mod.o diag04_mod.o diag1.o diag_2pm.o diag3.o diag41_mod.o diag42_mod.o diag48_mod.o diag49_mod.o diag50_mod.o diag51b_mod.o diag51_mod.o diag53_mod.o diag56_mod.o diag63_mod.o diag_mod.o diagoh.o diag_oh_mod.o diag_pl_mod.o drydep_mod.o dust_mod.o exchange_mod.o fast_jx_mod.o flex_chemdr.o future_emissions_mod.o fvdas_convect_mod.o gamap_mod.o gcap_convect_mod.o gcap_read_mod.o get_global_ch4.o get_ndep_mod.o global_br_mod.o global_ch4_mod.o i6_read_mod.o initialize.o input_mod.o isoropiaII_mod.o jsparse.o ksparse.o land_mercury_mod.o linoz_mod.o lump.o main.o mercury_mod.o merra_a1_mod.o merra_a3_mod.o merra_cn_mod.o merra_i6_mod.o ndxx_setup.o ocean_mercury_mod.o ohsave.o optdepth_mod.o partition.o pbl_mix_mod.o pderiv.o pjc_pfix_geos5_window_mod.o pjc_pfix_geosfp_window_mod.o pjc_pfix_mod.o planeflight_mod.o pops_mod.o readchem.o reader.o restart_mod.o RnPbBe_mod.o rpmares_mod.o rrtmg_rad_transfer_mod.o ruralbox.o seasalt_mod.o setemdep.o setemis.o setmodel.o set_prof_o3.o subfun.o sulfate_mod.o tagged_co_mod.o tagged_ox_mod.o tomas_mod.o toms_mod.o tpcore_bc_mod.o tracerid_mod.o tracer_mod.o transport_mod.o ucx_mod.o update.o wetscav_mod.o YuIMN_Code.o diagnostics_mod.o emissions_mod.o flexchem_setup_mod.o geosfp_read_mod.o gigc_environment_mod.o hcoi_gc_diagn_mod.o hcoi_gc_main_mod.o mapping_mod.o mixing_mod.o modis_lai_mod.o olson_landmap_mod.o strat_chem_mod.o tomas_tpcore_mod.o tpcore_fvdas_mod.o tpcore_geos5_window_mod.o tpcore_geosfp_window_mod.o uvalbedo_mod.o vdiff_mod.o vdiff_pre_mod.o -L../lib -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -o geos
+cp -f geos ../bin
+make[2]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[1]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[1]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+ar crs libNcUtils.a m_do_err_out.o m_netcdf_io_checks.o m_netcdf_io_close.o m_netcdf_io_create.o m_netcdf_io_define.o m_netcdf_io_get_dimlen.o m_netcdf_io_handle_err.o m_netcdf_io_open.o m_netcdf_io_read.o m_netcdf_io_readattr.o m_netcdf_io_write.o ncdf_mod.o
+mv libNcUtils.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+ar crs libHeaders.a CMN_DIAG_mod.o CMN_FJX_MOD.o CMN_GCTM_mod.o CMN_O3_mod.o CMN_SIZE_mod.o comode_loop_mod.o precision_mod.o gigc_errcode_mod.o gigc_input_opt_mod.o gigc_state_chm_mod.o gigc_state_met_mod.o
+mv libHeaders.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+ar crs libGeosUtil.a bpch2_mod.o charpak_mod.o error_mod.o file_mod.o geos_timers.o hdf_mod.o henry_coeffs.o henry_mod.o ifort_errmsg.o julday_mod.o pressure_mod.o time_mod.o transfer_mod.o grid_mod.o inquireMod.o regrid_a2a_mod.o unitconv_mod.o ifort_errmsg.o
+mv libGeosUtil.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+ar crs libKpp.a gckpp_Function.o gckpp_Global.o gckpp_Hessian.o gckpp_HessianSP.o gckpp_HetRates.o gckpp_Initialize.o gckpp_Integrator.o gckpp_Jacobian.o gckpp_JacobianSP.o gckpp_LinearAlgebra.o gckpp_Model.o gckpp_Monitor.o gckpp_Parameters.o gckpp_Precision.o gckpp_Rates.o gckpp_Util.o
+mv libKpp.a ../../lib
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+ar crs libHCO.a hco_arr_mod.o hco_calc_mod.o hco_chartools_mod.o hco_clock_mod.o hco_config_mod.o hco_datacont_mod.o hco_diagn_mod.o hco_driver_mod.o hco_emislist_mod.o hco_error_mod.o hco_extlist_mod.o hco_filedata_mod.o hco_fluxarr_mod.o hco_geotools_mod.o hco_interp_mod.o hcoio_dataread_mod.o hcoio_diagn_mod.o hcoio_messy_mod.o hco_logfile_mod.o hco_readlist_mod.o hco_restart_mod.o hco_state_mod.o hco_tidx_mod.o hco_unit_mod.o messy_ncregrid_base.o messy_ncregrid_mpi.o
+mv libHCO.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+ar crs libHCOX.a hcox_dustdead_mod.o hcox_megan_mod.o hcox_tomas_dustdead_mod.o drydep_toolbox_mod.o hcox_aerocom_mod.o hcox_ch4wetland_mod.o hcox_custom_mod.o hcox_driver_mod.o hcox_dustginoux_mod.o hcox_finn_mod.o hcox_gc_POPs_mod.o hcox_gc_RnPbBe_mod.o hcox_gfed_mod.o hcox_lightnox_mod.o hcox_paranox_mod.o hcox_seaflux_mod.o hcox_seasalt_mod.o hcox_soilnox_mod.o hcox_state_mod.o hcox_tomas_seasalt_mod.o ocean_toolbox_mod.o
+mv libHCOX.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+LINK: -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -o hemco_standalone.x
+cp -f hemco_standalone.x ../../bin
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+ar crs libIsoropia.a isoropiaIIcode.o
+mv libIsoropia.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Nothing to be done for `librad'.
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c flex_chemdr.F
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 a3_read_mod.o a6_read_mod.o aero_drydep.o aerosol_mod.o backsub.o benchmark_mod.o bromocarb_mod.o c2h6_mod.o carbon_mod.o chemgrid_mod.o chemistry_mod.o cldice_HBrHOBr_rxn.o cleanup.o co2_mod.o comode_mod.o convection_mod.o dao_mod.o decomp.o depo_mercury_mod.o diag03_mod.o diag04_mod.o diag1.o diag_2pm.o diag3.o diag41_mod.o diag42_mod.o diag48_mod.o diag49_mod.o diag50_mod.o diag51b_mod.o diag51_mod.o diag53_mod.o diag56_mod.o diag63_mod.o diag_mod.o diagoh.o diag_oh_mod.o diag_pl_mod.o drydep_mod.o dust_mod.o exchange_mod.o fast_jx_mod.o flex_chemdr.o future_emissions_mod.o fvdas_convect_mod.o gamap_mod.o gcap_convect_mod.o gcap_read_mod.o get_global_ch4.o get_ndep_mod.o global_br_mod.o global_ch4_mod.o i6_read_mod.o initialize.o input_mod.o isoropiaII_mod.o jsparse.o ksparse.o land_mercury_mod.o linoz_mod.o lump.o main.o mercury_mod.o merra_a1_mod.o merra_a3_mod.o merra_cn_mod.o merra_i6_mod.o ndxx_setup.o ocean_mercury_mod.o ohsave.o optdepth_mod.o partition.o pbl_mix_mod.o pderiv.o pjc_pfix_geos5_window_mod.o pjc_pfix_geosfp_window_mod.o pjc_pfix_mod.o planeflight_mod.o pops_mod.o readchem.o reader.o restart_mod.o RnPbBe_mod.o rpmares_mod.o rrtmg_rad_transfer_mod.o ruralbox.o seasalt_mod.o setemdep.o setemis.o setmodel.o set_prof_o3.o subfun.o sulfate_mod.o tagged_co_mod.o tagged_ox_mod.o tomas_mod.o toms_mod.o tpcore_bc_mod.o tracerid_mod.o tracer_mod.o transport_mod.o ucx_mod.o update.o wetscav_mod.o YuIMN_Code.o diagnostics_mod.o emissions_mod.o flexchem_setup_mod.o geosfp_read_mod.o gigc_environment_mod.o hcoi_gc_diagn_mod.o hcoi_gc_main_mod.o mapping_mod.o mixing_mod.o modis_lai_mod.o olson_landmap_mod.o strat_chem_mod.o tomas_tpcore_mod.o tpcore_fvdas_mod.o tpcore_geos5_window_mod.o tpcore_geosfp_window_mod.o uvalbedo_mod.o vdiff_mod.o vdiff_pre_mod.o -L../lib -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -o geos
+cp -f geos ../bin
+make[2]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[1]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[1]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+ar crs libNcUtils.a m_do_err_out.o m_netcdf_io_checks.o m_netcdf_io_close.o m_netcdf_io_create.o m_netcdf_io_define.o m_netcdf_io_get_dimlen.o m_netcdf_io_handle_err.o m_netcdf_io_open.o m_netcdf_io_read.o m_netcdf_io_readattr.o m_netcdf_io_write.o ncdf_mod.o
+mv libNcUtils.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/NcdfUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+ar crs libHeaders.a CMN_DIAG_mod.o CMN_FJX_MOD.o CMN_GCTM_mod.o CMN_O3_mod.o CMN_SIZE_mod.o comode_loop_mod.o precision_mod.o gigc_errcode_mod.o gigc_input_opt_mod.o gigc_state_chm_mod.o gigc_state_met_mod.o
+mv libHeaders.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/Headers'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+ar crs libGeosUtil.a bpch2_mod.o charpak_mod.o error_mod.o file_mod.o geos_timers.o hdf_mod.o henry_coeffs.o henry_mod.o ifort_errmsg.o julday_mod.o pressure_mod.o time_mod.o transfer_mod.o grid_mod.o inquireMod.o regrid_a2a_mod.o unitconv_mod.o ifort_errmsg.o
+mv libGeosUtil.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosUtil'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+ar crs libKpp.a gckpp_Function.o gckpp_Global.o gckpp_Hessian.o gckpp_HessianSP.o gckpp_HetRates.o gckpp_Initialize.o gckpp_Integrator.o gckpp_Jacobian.o gckpp_JacobianSP.o gckpp_LinearAlgebra.o gckpp_Model.o gckpp_Monitor.o gckpp_Parameters.o gckpp_Precision.o gckpp_Rates.o gckpp_Util.o
+mv libKpp.a ../../lib
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP/TempFlex'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/KPP'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+ar crs libHCO.a hco_arr_mod.o hco_calc_mod.o hco_chartools_mod.o hco_clock_mod.o hco_config_mod.o hco_datacont_mod.o hco_diagn_mod.o hco_driver_mod.o hco_emislist_mod.o hco_error_mod.o hco_extlist_mod.o hco_filedata_mod.o hco_fluxarr_mod.o hco_geotools_mod.o hco_interp_mod.o hcoio_dataread_mod.o hcoio_diagn_mod.o hcoio_messy_mod.o hco_logfile_mod.o hco_readlist_mod.o hco_restart_mod.o hco_state_mod.o hco_tidx_mod.o hco_unit_mod.o messy_ncregrid_base.o messy_ncregrid_mpi.o
+mv libHCO.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Core'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+ar crs libHCOX.a hcox_dustdead_mod.o hcox_megan_mod.o hcox_tomas_dustdead_mod.o drydep_toolbox_mod.o hcox_aerocom_mod.o hcox_ch4wetland_mod.o hcox_custom_mod.o hcox_driver_mod.o hcox_dustginoux_mod.o hcox_finn_mod.o hcox_gc_POPs_mod.o hcox_gc_RnPbBe_mod.o hcox_gfed_mod.o hcox_lightnox_mod.o hcox_paranox_mod.o hcox_seaflux_mod.o hcox_seasalt_mod.o hcox_soilnox_mod.o hcox_state_mod.o hcox_tomas_seasalt_mod.o ocean_toolbox_mod.o
+mv libHCOX.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Extensions'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[5]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[6]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+ar crs libHCOI.a hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o
+mv libHCOI.a ../../lib
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[7]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+LINK: -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 hcoi_esmf_mod.o hcoi_standalone_mod.o hemco_standalone.o -L../../lib -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -o hemco_standalone.x
+cp -f hemco_standalone.x ../../bin
+make[7]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[6]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO/Interfaces'
+make[5]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/HEMCO'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[4]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+ar crs libIsoropia.a isoropiaIIcode.o
+mv libIsoropia.a ../lib
+make[4]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/ISOROPIA'
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Nothing to be done for `librad'.
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[3]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 -module ../mod -I/n/home13/mslong/tools/netcdf-4.1.1-intel/include -c flex_chemdr.F
+make[3]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[2]: Entering directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+ifort -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -fp-model source -openmp -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT -DDEVEL -DGEOS_FP -DGRIDREDUCED -DGRID4x5 -DUSE_REAL8 a3_read_mod.o a6_read_mod.o aero_drydep.o aerosol_mod.o backsub.o benchmark_mod.o bromocarb_mod.o c2h6_mod.o carbon_mod.o chemgrid_mod.o chemistry_mod.o cldice_HBrHOBr_rxn.o cleanup.o co2_mod.o comode_mod.o convection_mod.o dao_mod.o decomp.o depo_mercury_mod.o diag03_mod.o diag04_mod.o diag1.o diag_2pm.o diag3.o diag41_mod.o diag42_mod.o diag48_mod.o diag49_mod.o diag50_mod.o diag51b_mod.o diag51_mod.o diag53_mod.o diag56_mod.o diag63_mod.o diag_mod.o diagoh.o diag_oh_mod.o diag_pl_mod.o drydep_mod.o dust_mod.o exchange_mod.o fast_jx_mod.o flex_chemdr.o future_emissions_mod.o fvdas_convect_mod.o gamap_mod.o gcap_convect_mod.o gcap_read_mod.o get_global_ch4.o get_ndep_mod.o global_br_mod.o global_ch4_mod.o i6_read_mod.o initialize.o input_mod.o isoropiaII_mod.o jsparse.o ksparse.o land_mercury_mod.o linoz_mod.o lump.o main.o mercury_mod.o merra_a1_mod.o merra_a3_mod.o merra_cn_mod.o merra_i6_mod.o ndxx_setup.o ocean_mercury_mod.o ohsave.o optdepth_mod.o partition.o pbl_mix_mod.o pderiv.o pjc_pfix_geos5_window_mod.o pjc_pfix_geosfp_window_mod.o pjc_pfix_mod.o planeflight_mod.o pops_mod.o readchem.o reader.o restart_mod.o RnPbBe_mod.o rpmares_mod.o rrtmg_rad_transfer_mod.o ruralbox.o seasalt_mod.o setemdep.o setemis.o setmodel.o set_prof_o3.o subfun.o sulfate_mod.o tagged_co_mod.o tagged_ox_mod.o tomas_mod.o toms_mod.o tpcore_bc_mod.o tracerid_mod.o tracer_mod.o transport_mod.o ucx_mod.o update.o wetscav_mod.o YuIMN_Code.o diagnostics_mod.o emissions_mod.o flexchem_setup_mod.o geosfp_read_mod.o gigc_environment_mod.o hcoi_gc_diagn_mod.o hcoi_gc_main_mod.o mapping_mod.o mixing_mod.o modis_lai_mod.o olson_landmap_mod.o strat_chem_mod.o tomas_tpcore_mod.o tpcore_fvdas_mod.o tpcore_geos5_window_mod.o tpcore_geosfp_window_mod.o uvalbedo_mod.o vdiff_mod.o vdiff_pre_mod.o -L../lib -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp -lHeaders -lNcUtils -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -L/n/home13/mslong/tools/netcdf-4.1.1-intel/lib -lnetcdf -lhdf5_hl -lhdf5 -lz -lm -lcurl -o geos
+cp -f geos ../bin
+make[2]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'
+make[1]: Leaving directory `/n/home13/mslong/FlexChem/GC_Bleeding_Edge/GeosCore'

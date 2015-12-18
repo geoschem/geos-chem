@@ -255,7 +255,8 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
             STT(I,J,L,N) = STT(I,J,L,N) * Input_Opt%XNUMOL(N) /
-     &                     ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
+     &                     ( State_Met%AIRVOL(I,J,L) * 1e+6_fp *
+     &                        Input_Opt%TRACER_COEFF(N,1) )
          ENDDO
          ENDDO
          ENDDO
@@ -378,7 +379,9 @@
 
          ! Debug
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            write(*,'(a,2e12.4)') '<> b Integrate', C(ind_OH), C(ind_NO)
+            DO N = 1,NSPEC
+               write(*,'(2a,e12.4)') '<> b ', SPC_NAMES(N), C(N)
+            ENDDO
          ENDIF
 
          ! mje Set up the values of the non-variable species
@@ -448,7 +451,9 @@
 
          ! Debug
          IF (I .eq. 10 .and. J .eq. 10 .and. L .eq. 10) THEN
-            write(*,'(a,2e12.4)') '<> a Integrate', C(ind_OH), C(ind_NO)
+            DO N = 1,NSPEC
+               write(*,'(2a,e12.4)') '<> a ', SPC_NAMES(N), C(N)
+            ENDDO
          ENDIF
 
          ! mje Check we have no negative values and copy the concentrations
@@ -489,7 +494,8 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
             STT(I,J,L,N) = STT(I,J,L,N) / Input_Opt%XNUMOL(N) *
-     &                     ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
+     &                     ( State_Met%AIRVOL(I,J,L) * 1e+6_fp *
+     &                        Input_Opt%TRACER_COEFF(N,1) )
          ENDDO
          ENDDO
          ENDDO

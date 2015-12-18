@@ -1884,7 +1884,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTDMS
+      USE TRACERID_MOD,       ONLY : IDTDMS, IDOH, IDNO3
 !
 ! !INPUT PARAMETERS:
 !
@@ -2027,8 +2027,8 @@
          ! Get O2 [molec/cm3], DMS [v/v], OH [molec/cm3], NO3 [molec/cm3]
          O2     = State_Met%AIRDEN(I,J,L) * f * 0.21e+0_fp
          DMS0   = STT(I,J,L,IDTDMS)
-         OH     = GET_OH(  I, J, L, Input_Opt, State_Met )
-         XNO3   = GET_NO3( I, J, L, Input_Opt, State_Met )
+         OH     = GET_OH(  I, J, L, Input_Opt, State_Chm, State_Met )
+         XNO3   = GET_NO3( I, J, L, Input_Opt, State_Chm, State_Met )
 
          !==============================================================
          ! (1) DMS + OH:  RK1 - addition channel  
@@ -2162,8 +2162,12 @@
          ! and NO3 [molec/cm3] back into the CSPEC array of SMVGEAR
          !==============================================================
          IF ( IS_FULLCHEM ) THEN
-            CALL SET_OH( I, J, L, OH )
-            CALL SET_NO3( I, J, L, XNO3 )
+! Replace these calls with direct access to State_Chm%Species
+!            CALL SET_OH( I, J, L, OH )
+!            CALL SET_NO3( I, J, L, XNO3 )
+! MSL - 12/17/2015
+            State_Chm%Species(I,J,L,IDOH  ) = OH
+            State_Chm%Species(I,J,L,IDNO3 ) = XNO3
          ENDIF
       ENDDO
       ENDDO
@@ -2348,7 +2352,7 @@
 
          ! Loss frequenty due to OH oxidation [s-1]
          KOH   = A * EXP( -160.e+0_fp / State_Met%T(I,J,L) ) * 
-     &           GET_OH( I, J, L, Input_Opt, State_Met )
+     &           GET_OH( I, J, L, Input_Opt, State_Chm, State_Met )
 
          ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
          FREQ = 0.e+0_fp
@@ -2679,7 +2683,7 @@
          ! Initial SO2, H2O2 and O3 [v/v]
          SO20   = STT(I,J,L,IDTSO2)         
          H2O20  = STT(I,J,L,IDTH2O2)
-         O3     = GET_O3( I, J, L, Input_Opt, State_Met )
+         O3     = GET_O3( I, J, L, Input_Opt, State_Chm, State_Met )
 
          ! PATM  : Atmospheric pressure in atm
          ! Now use dry air partial pressure (ewl, 4/28/15)
@@ -2699,7 +2703,7 @@
             KK  = K0 * M / Ki
             F1  = ( 1.e+0_fp + ( LOG10( KK ) )**2 )**( -1 )
             RK1 = ( K0 * M / ( 1.e+0_fp + KK ) ) * 0.6e+0_fp**F1 * 
-     &            GET_OH( I, J, L, Input_Opt, State_Met )
+     &            GET_OH( I, J, L, Input_Opt, State_Chm, State_Met )
 
          ELSE 
 
@@ -2745,7 +2749,7 @@
             KK   = K0 * M / Ki
             F1   = ( 1.e+0_fp + ( LOG10( KK ) )**2 )**( -1 )
             RK1  = ( K0 * M / ( 1.e+0_fp + KK ) ) * 0.6e+0_fp**F1 *
-     &             GET_OH( I, J, L, Input_Opt, State_Met)
+     &             GET_OH( I, J, L, Input_Opt, State_Chm, State_Met)
             RKT  =  RK1 * DTCHEM  ! [unitless] (bmy, 6/1/00)
             SO20 = SO2_cd
             H2SO4_cd = SO20 * ( 1.e+0_fp - EXP( -RKT ) ) 
@@ -6509,7 +6513,7 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_OH( I, J, L, Input_Opt, State_Met ) 
+      FUNCTION GET_OH( I, J, L, Input_Opt, State_Chm, State_Met ) 
      &         RESULT( OH_MOLEC_CM3 )
 !
 ! !USES:
@@ -6518,6 +6522,7 @@
       USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDOH
@@ -6527,6 +6532,7 @@
       INTEGER,        INTENT(IN) :: I, J, L     ! Lon, lat, level indices
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY: 
 !  (1 ) We assume SETTRACE has been called to define IDOH (bmy, 11/1/02)
@@ -6565,7 +6571,7 @@
          ! Take OH from the SMVGEAR array CSPEC
          ! OH is defined only in the troposphere
          IF ( JLOOP > 0 ) THEN
-            OH_MOLEC_CM3 = CSPEC(JLOOP,IDOH)
+            OH_MOLEC_CM3 = State_Chm%Species(I,J,L,IDOH)
          ELSE
             OH_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -6678,7 +6684,7 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_NO3( I, J, L, Input_Opt, State_Met ) 
+      FUNCTION GET_NO3( I, J, L, Input_Opt, State_Chm, State_Met ) 
      &         RESULT( NO3_MOLEC_CM3 ) 
 !
 ! !USES:
@@ -6688,6 +6694,7 @@
       USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDNO3
 !
@@ -6696,6 +6703,7 @@
       INTEGER,        INTENT(IN)  :: I, J, L     ! Lon, lat, vertical level
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references ERROR_STOP from "error_mod.f".  We also assume that
@@ -6738,7 +6746,7 @@
          ! Take NO3 from the SMVGEAR array CSPEC
          ! NO3 is defined only in the troposphere
          IF ( JLOOP > 0 ) THEN
-            NO3_MOLEC_CM3 = CSPEC(JLOOP,IDNO3)
+            NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,IDNO3)
          ELSE
             NO3_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -6872,7 +6880,8 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_O3( I, J, L, Input_Opt, State_Met ) RESULT( O3_VV )
+      FUNCTION GET_O3( I, J, L, Input_Opt, SC, State_Met )
+     &                 RESULT( O3_VV )
 !
 ! !USES:
 !
@@ -6880,6 +6889,7 @@
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_MOd, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDO3
@@ -6888,6 +6898,7 @@
 !
       INTEGER,        INTENT(IN)  :: I, J, L     ! Lon, lat, vertical level
       TYPE(OptInput), INTENT(IN)  :: Input_Opt  
+      TYPE(ChmState), INTENT(IN)  :: SC   ! Chemistry State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
@@ -6926,7 +6937,7 @@
          ! Get O3 from CSPEC [molec/cm3] and convert it to [v/v]
          ! O3 data will only be defined below the tropopause
          IF ( JLOOP  > 0 ) THEN
-            O3_VV = ( CSPEC(JLOOP,IDO3)       * 1e+6_fp   ) / 
+            O3_VV = ( SC%Species(I,J,L,IDO3)  * 1e+6_fp   ) / 
      &              ( State_Met%AIRDEN(I,J,L) * XNUMOLAIR )
          ELSE
             O3_VV = 0e+0_fp
