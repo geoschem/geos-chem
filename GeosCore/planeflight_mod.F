@@ -1229,8 +1229,8 @@
       USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE COMODE_LOOP_MOD          ! CSPEC, etc.
-      USE COMODE_MOD,         ONLY : AIRDENS,        CSPEC,       JLOP
-      USE COMODE_MOD,         ONLY : T3,             VOLUME,      ABSHUM
+      USE COMODE_MOD,         ONLY : CSPEC,       JLOP
+      USE COMODE_MOD,         ONLY : ABSHUM
       USE COMODE_MOD,         ONLY : TAREA
 #if   defined( TOMAS )
       USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
@@ -1290,6 +1290,7 @@
 !  12 Jan 2015 - L. Schiferl - Allow for more precision in TAUE computation
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod. 
+!  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1421,7 +1422,8 @@
                      ! Only archive where SMVGEAR chem is done
                      ! Save as mixing ratio [v/v]
                      IF ( JLOOP /= 0 ) THEN
-                        VARI(V) = CSPEC(JLOOP,PVAR(V)) / AIRDENS(JLOOP)
+                        VARI(V) = CSPEC(JLOOP,PVAR(V)) /
+     &                            State_Met%AIRNUMDEN(I,J,L)
                      ENDIF
 
                   ! FP 04/01/2010
@@ -1439,7 +1441,7 @@
                            VARI(V) = VARI(V) + CSPEC(JLOOP,PNOY(N))
                         ENDDO
 
-                        VARI(V) = VARI(V) / AIRDENS(JLOOP)
+                        VARI(V) = VARI(V) / State_Met%AIRNUMDEN(I,J,L)
                      ENDIF
 
                   ! FP 04/01/2010
@@ -1457,7 +1459,7 @@
                            VARI(V) = VARI(V) + CSPEC(JLOOP,P_AN(N))
                         ENDDO
 
-                        VARI(V) = VARI(V) / AIRDENS(JLOOP)
+                        VARI(V) = VARI(V) / State_Met%AIRNUMDEN(I,J,L)
                      ENDIF
 
                   !-------------------------
@@ -1474,7 +1476,8 @@
                               VARI(V) = VARI(V) + CSPEC(JLOOP,PRO2(N))
                            ENDDO
                            
-                           VARI(V) = VARI(V) / AIRDENS(JLOOP)
+                           VARI(V) = VARI(V) /
+     &                               State_Met%AIRNUMDEN(I,J,L)
                         ENDIF
 
                   !--------------------------
@@ -1491,7 +1494,7 @@
                      ! Only archive where SMVGEAR chem is done
                      ! Code skalooched from "calcrate.f"
                         IF ( JLOOP /= 0 ) THEN
-                           TK       = T3(JLOOP)
+                           TK       = State_Met%T(I,J,L)
                            CONSEXP  = 17.2693882e+0_fp * 
      &                                (TK - 273.16e+0_fp) / 
      &                                (TK - 35.86e+0_fp)
@@ -1500,7 +1503,8 @@
      &                              / TK
                            
                            VARI(V)  = ABSHUM(JLOOP) * 
-     &                                VPRESH2O      / AIRDENS(JLOOP)
+     &                                VPRESH2O      /
+     &                                State_Met%AIRNUMDEN(I,J,L)
                         ENDIF
 
                   !--------------------------

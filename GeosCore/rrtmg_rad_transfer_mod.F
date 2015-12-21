@@ -135,7 +135,7 @@
       USE CMN_FJX_MOD,         ONLY : WVAA,       NWVAA
       USE CMN_FJX_MOD,         ONLY : NWVAA0
       USE CMN_GCTM_MOD,        ONLY : AIRMW, PI
-      USE COMODE_MOD,          ONLY : AIRDENS,        CSPEC,       JLOP
+      USE COMODE_MOD,          ONLY : CSPEC,       JLOP
       USE COMODE_LOOP_MOD,     ONLY : ICH4, AVG, WTAIR
       USE DIAG_MOD,            ONLY : AD72
       USE GIGC_Input_Opt_Mod,  ONLY : OptInput
@@ -182,6 +182,7 @@
 !                              (I,J,L) ordering.  This is for the NASA GCM.
 !  02 Jun 2015 - R. Yantosca - Bug fix: Add missing variables to OMP PRIVATE
 !  03 Jun 2015 - R. Yantosca - Now use pointers to avoid array temporaries
+!  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -715,10 +716,12 @@
 
 #else
             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
-             O3VMR(IJLOOP,L)  = CSPEC(JLOOP,IDO3)/AIRDENS(JLOOP)
+             O3VMR(IJLOOP,L)  = CSPEC(JLOOP,IDO3)/
+     &                          State_Met%AIRNUMDEN(I,J,L)
             ENDIF
             IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
-             CH4VMR(IJLOOP,L) = CSPEC(JLOOP,ICH4)/AIRDENS(JLOOP)
+             CH4VMR(IJLOOP,L) = CSPEC(JLOOP,ICH4)/
+     &                          State_Met%AIRNUMDEN(I,J,L)
             ENDIF
             N2OVMR(IJLOOP,L) = N2OCLIM(I,J,L)/1E9
 
@@ -780,8 +783,9 @@
             !GET SCALINGS IF THIS IS THE FIRST LEVEL IN THE STRAT
             IF (FLG_FIRST_STRAT(IJLOOP).EQ.0) THEN
                 FLG_FIRST_STRAT(IJLOOP) = 1
-                CH4SCL(IJLOOP) = (CSPEC(JLOOP,ICH4)/AIRDENS(JLOOP))/
-     &             (CH4CLIM(I,J,L)/1E9)
+                CH4SCL(IJLOOP) = (CSPEC(JLOOP,ICH4)/
+     &                            State_Met%AIRNUMDEN(I,J,L))/
+     &                           (CH4CLIM(I,J,L)/1E9)
             ENDIF
             
             !TES PROFILES INTERPOLATED TO GC GRID WHEN SAVED

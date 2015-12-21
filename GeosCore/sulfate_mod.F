@@ -3438,7 +3438,6 @@
       USE CMN_SIZE_MOD          
       USE COMODE_MOD,         ONLY : CSPEC
       USE COMODE_MOD,         ONLY : JLOP
-      USE COMODE_MOD,         ONLY : VOLUME
       USE DIAG_MOD,           ONLY : AD05
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
@@ -3890,7 +3889,7 @@
 !
       ! References to F90 modules
       USE CMN_SIZE_MOD             ! Size parameters
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE GIGC_ErrCode_Mod
@@ -6886,7 +6885,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_MOd, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState

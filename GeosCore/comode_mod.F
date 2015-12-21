@@ -42,7 +42,6 @@
       ! VOLUME    : array for grid box volume [cm3]
       !======================================================================
       REAL(fp), ALLOCATABLE, PUBLIC :: ABSHUM(:)
-      REAL(fp), ALLOCATABLE, PUBLIC :: AIRDENS(:)
       REAL(fp), ALLOCATABLE, PUBLIC :: CSPEC(:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: CSUMA(:)
       REAL(fp), ALLOCATABLE, PUBLIC :: CSUMC(:)
@@ -53,13 +52,18 @@
       INTEGER,  ALLOCATABLE, PUBLIC :: IZSAVE(:)
       INTEGER,  ALLOCATABLE, PUBLIC :: JLOP(:,:,:)
       INTEGER,  ALLOCATABLE, PUBLIC :: JLOP_PREVIOUS(:,:,:)
-      REAL(fp), ALLOCATABLE, PUBLIC :: PRESS3(:)
       REAL(fp), ALLOCATABLE, PUBLIC :: REMIS(:,:)
-      REAL(fp), ALLOCATABLE, PUBLIC :: T3(:)
       REAL(fp), ALLOCATABLE, PUBLIC :: TAREA(:,:)
-      REAL(fp), ALLOCATABLE, PUBLIC :: VOLUME(:)
       REAL(fp), ALLOCATABLE, PUBLIC :: WTAREA(:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: WERADIUS(:,:)
+!------------------------------------------------------------------------------
+! Prior to 12/21/15:
+! Get these fields directly from State_Met and State_Chm instead (mps, 12/21/15)
+!      REAL(fp), ALLOCATABLE, PUBLIC :: AIRDENS(:)
+!      REAL(fp), ALLOCATABLE, PUBLIC :: PRESS3(:)
+!      REAL(fp), ALLOCATABLE, PUBLIC :: T3(:)
+!      REAL(fp), ALLOCATABLE, PUBLIC :: VOLUME(:)
+!------------------------------------------------------------------------------
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
@@ -94,6 +98,8 @@
 !  04 Apr 2013 - R. Yantosca - Removed CSPEC_FULL (now in State_Chm)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete 
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  21 Dec 2015 - M. Sulprizio- Remove AIRDENS, PRESS3, T3, and VOLUME. Get these
+!                              fields directly from State_Met instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -176,9 +182,12 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ABSHUM' )
          ABSHUM = 0e+0_fp
       
-         ALLOCATE( AIRDENS( ITLOOP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDENS' )
-         AIRDENS = 0e+0_fp      
+!------------------------------------------------------------------------------
+! Prior to 12/21/15:
+!         ALLOCATE( AIRDENS( ITLOOP ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDENS' )
+!         AIRDENS = 0e+0_fp      
+!------------------------------------------------------------------------------
 
          ALLOCATE( CSPEC( ITLOOP, IGAS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC' )
@@ -221,25 +230,34 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP_PREVIOUS' )
          JLOP_PREVIOUS = 0
 
-         ALLOCATE( PRESS3( ITLOOP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRESS3' )
-         PRESS3 = 0e+0_fp
+!------------------------------------------------------------------------------
+! Prior to 12/21/15:
+!         ALLOCATE( PRESS3( ITLOOP ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRESS3' )
+!         PRESS3 = 0e+0_fp
+!------------------------------------------------------------------------------
       
          ALLOCATE( REMIS( ITLOOP, MAXGL3 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'REMIS' )
          REMIS = 0e+0_fp
       
-         ALLOCATE( T3( ITLOOP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'T3' )
-         T3 = 0e+0_fp
+!------------------------------------------------------------------------------
+! Prior to 12/21/15:
+!         ALLOCATE( T3( ITLOOP ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'T3' )
+!         T3 = 0e+0_fp
+!------------------------------------------------------------------------------
 
          ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAREA' )
          TAREA = 0e+0_fp      
       
-         ALLOCATE( VOLUME( ITLOOP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'VOLUME' )
-         VOLUME = 0e+0_fp
+!------------------------------------------------------------------------------
+! Prior to 12/21/15:
+!         ALLOCATE( VOLUME( ITLOOP ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'VOLUME' )
+!         VOLUME = 0e+0_fp
+!------------------------------------------------------------------------------
 
          ALLOCATE( WTAREA( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'WTAREA' )
@@ -260,9 +278,12 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ABSHUM' )
          ABSHUM = 0e+0_fp
       
-         ALLOCATE( AIRDENS( ITLOOP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDENS' )
-         AIRDENS = 0e+0_fp      
+!------------------------------------------------------------------------------
+! Prior to 12/21/15:
+!         ALLOCATE( AIRDENS( ITLOOP ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDENS' )
+!         AIRDENS = 0e+0_fp      
+!------------------------------------------------------------------------------
 
          ALLOCATE( ERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERADIUS' )
@@ -333,7 +354,6 @@
       ! CLEANUP_COMODE begins here!
       !=================================================================
       IF ( ALLOCATED( ABSHUM        ) ) DEALLOCATE( ABSHUM        )
-      IF ( ALLOCATED( AIRDENS       ) ) DEALLOCATE( AIRDENS       )
       IF ( ALLOCATED( CSPEC         ) ) DEALLOCATE( CSPEC         )
       IF ( ALLOCATED( CSUMA         ) ) DEALLOCATE( CSUMA         )
       IF ( ALLOCATED( CSUMC         ) ) DEALLOCATE( CSUMC         )
@@ -344,13 +364,17 @@
       IF ( ALLOCATED( IZSAVE        ) ) DEALLOCATE( IZSAVE        )
       IF ( ALLOCATED( JLOP          ) ) DEALLOCATE( JLOP          )
       IF ( ALLOCATED( JLOP_PREVIOUS ) ) DEALLOCATE( JLOP_PREVIOUS )
-      IF ( ALLOCATED( PRESS3        ) ) DEALLOCATE( PRESS3        )     
       IF ( ALLOCATED( REMIS         ) ) DEALLOCATE( REMIS         )
-      IF ( ALLOCATED( T3            ) ) DEALLOCATE( T3            )     
       IF ( ALLOCATED( TAREA         ) ) DEALLOCATE( TAREA         )
-      IF ( ALLOCATED( VOLUME        ) ) DEALLOCATE( VOLUME        )  
       IF ( ALLOCATED( WTAREA        ) ) DEALLOCATE( WTAREA        )
       IF ( ALLOCATED( WERADIUS      ) ) DEALLOCATE( WERADIUS      )
+!------------------------------------------------------------------------------
+! Prior to 12/21/15:
+!      IF ( ALLOCATED( AIRDENS       ) ) DEALLOCATE( AIRDENS       )
+!      IF ( ALLOCATED( PRESS3        ) ) DEALLOCATE( PRESS3        )     
+!      IF ( ALLOCATED( T3            ) ) DEALLOCATE( T3            )     
+!      IF ( ALLOCATED( VOLUME        ) ) DEALLOCATE( VOLUME        )  
+!------------------------------------------------------------------------------
 
       END SUBROUTINE CLEANUP_COMODE
 !EOC

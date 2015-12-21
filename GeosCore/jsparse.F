@@ -19,7 +19,6 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD, ONLY : T3
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
 
       USE CMN_SIZE_MOD  ! Size parameters

@@ -18,10 +18,9 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS
+      USE COMODE_MOD,         ONLY : ABSHUM
       USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE
       USE COMODE_MOD,         ONLY : IZSAVE, JLOP
-      USE COMODE_MOD,         ONLY : PRESS3, T3,       VOLUME 
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_LOOP_MOD          ! NPVERT
@@ -75,6 +74,9 @@
 !  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
+!  21 Dec 2015 - M. Sulprizio- Remove calculation of VOLUME, AIRDENS, T3, and
+!                              PRESS3. Get these fields directly from State_Met
+!                              instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,22 +187,28 @@
             IYSAVE(JLOOP)  = J
             IZSAVE(JLOOP)  = L                              
 
-            ! get box volume [cm3]
-            VOLUME(JLOOP)  = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-
-            ! get air density in (molecs cm^-3)
-            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
-     &                       VOLUME(JLOOP) * AVG / WTAIR
-
-            ! get temperature
-            T3(JLOOP)      = State_Met%T(I,J,L)
-
-            ! PRESS3 = pressure in bar, multiply mb * 1000
-            PRESS3(JLOOP)  = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp
+!------------------------------------------------------------------------------
+! Prior to 12/21/15:
+! Remove VOLUME, AIRDENS, T3, and PRESS3. Get these fields directly from
+! State_Met instead. (mps, 12/21/15)
+!           ! get box volume [cm3]
+!           VOLUME(JLOOP)  = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+!
+!           ! get air density in (molecs cm^-3)
+!           AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
+!    &                       VOLUME(JLOOP) * AVG / WTAIR
+!
+!           ! get temperature
+!           T3(JLOOP)      = State_Met%T(I,J,L)
+!
+!           ! PRESS3 = pressure in bar, multiply mb * 1000
+!           PRESS3(JLOOP)  = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp
+!------------------------------------------------------------------------------
 
             ! Get relative humidity (here is absolute #H2O/cc air)
             ! AVGW is the mixing ratio of water vapor [v/v]
-            ABSHUM(JLOOP)  = State_Met%AVGW(I,J,L) * AIRDENS(JLOOP)
+            ABSHUM(JLOOP)  = State_Met%AVGW(I,J,L) *
+     &                       State_Met%AIRNUMDEN(I,J,L)
 
             ! Go to next I
  40         CONTINUE           

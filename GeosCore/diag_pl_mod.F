@@ -606,7 +606,7 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE COMODE_LOOP_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput

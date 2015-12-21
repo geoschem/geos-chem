@@ -1339,7 +1339,7 @@
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : WTAREA, WERADIUS 
-      USE COMODE_MOD,         ONLY : AIRDENS, JLOP
+      USE COMODE_MOD,         ONLY : JLOP
       USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD07_SOAGM
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -1373,6 +1373,7 @@
 !                              derived type object
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1471,7 +1472,7 @@
             XSQTEMP = SQRT( XTEMP )
 
             ! Get air density  [molec/cm3]
-            XAD     = AIRDENS( JLOOP )
+            XAD     = State_Met%AIRNUMDEN( I, J, L )
 
             ! Get air volumne [m3]
             XAIRM3   = State_Met%AIRVOL( I, J, L )
@@ -1585,7 +1586,7 @@
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
-      USE COMODE_MOD,         ONLY : AIRDENS, JLOP
+      USE COMODE_MOD,         ONLY : JLOP
       USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD07_SOAGM
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -1620,6 +1621,7 @@
 !   5 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt arguments
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1718,7 +1720,7 @@
             XSQTEMP = SQRT( XTEMP )
 
             ! Get air density  [molec/cm3]
-            XAD     = AIRDENS( JLOOP )
+            XAD     = State_Met%AIRNUMDEN( I, J, L )
 
             ! Get air volumne [m3]
             XAIRM3  = State_Met%AIRVOL( I, J, L )
@@ -3917,10 +3919,10 @@
             ! Get ISOP lost to rxn with OH [kg]
             !DOH = GET_DOH( I, J, L, Input_Opt )
             ! Save as DELHC (hotp 5/22/10)
-            DELHC(1) = GET_DOH( I, J, L, Input_Opt )
+            DELHC(1) = GET_DOH( I, J, L, Input_Opt, State_Met )
 
             ! Get ISOP lost to rxn with NO3 [kgC]
-            DELHC(2) = GET_ISOPNO3( I, J, L, Input_Opt )
+            DELHC(2) = GET_ISOPNO3( I, J, L, Input_Opt, State_Met )
 
             ! Save diagnostic info for bug check (hotp 5/22/10)
             ! convert from kgC to kg
@@ -3958,11 +3960,12 @@
             ! Here, we add the two pathways together and use an
             ! offline branching ratio (BETANO) (hotp 5/22/10)
             NOX = NHIGHNOX ! NOX=1
-            DELHC(NOX) = ( GET_DARO2(I,J,L,1,JHC,Input_Opt) +
-     &                     GET_DARO2(I,J,L,2,JHC,Input_Opt) ) * BETANO
+            DELHC(NOX) = ( GET_DARO2(I,J,L,1,JHC,Input_Opt, State_Met) +
+     &                     GET_DARO2(I,J,L,2,JHC,Input_Opt, State_Met) )
+     &                   * BETANO
             NOX = NLOWNOX  ! NOX=2
-            DELHC(NOX) = ( GET_DARO2(I,J,L,1,JHC,Input_Opt) +
-     &                     GET_DARO2(I,J,L,2,JHC,Input_Opt) )
+            DELHC(NOX) = ( GET_DARO2(I,J,L,1,JHC,Input_Opt, State_Met) +
+     &                     GET_DARO2(I,J,L,2,JHC,Input_Opt, State_Met) )
      &                   * (1e+0_fp-BETANO)
 
             ! Determine SOG yield and add to GM0 (hotp 5/22/10)
@@ -6376,7 +6379,7 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -6507,16 +6510,18 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_DARO2( I, J, L, NOX, JHC, Input_Opt ) RESULT( DARO2 )
+      FUNCTION GET_DARO2( I, J, L, NOX, JHC, Input_Opt, State_Met )
+     &         RESULT( DARO2 )
 !
 ! !USES:
 !
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTBENZ, IDTTOLU, IDTXYLE
       ! NAPSOA: add IVOC surrogate (NAP) (hotp 7/22/09)
       USE TRACERID_MOD,       ONLY : IDTNAP
@@ -6529,6 +6534,7 @@ ccc
       INTEGER,        INTENT(IN)  :: NOX
       INTEGER,        INTENT(IN)  :: JHC
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
@@ -6538,6 +6544,7 @@ ccc
 !  04 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
 !  13 Aug 2013 - M. Sulprizio- Add NAP for SOA + semivolatile POA (H. Pye)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  21 Dec 2015 - M. Sulprizio- Get grid box volume directly from State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6687,7 +6694,7 @@ ccc
             ! CSPEC             : molec ARO2 (lost to HO2 or NO ) / cm3
             ! XNUMOL            : atom C / kg C of ARO2
             ! TRACER_COEFF      : atom C / molec ARO2
-            ! VOLUME            : cm3 / box
+            ! State_Met%AIRVOL  : m3 (converted here to cm3)
             ! ARO2CARB          : kg C of ARO2 / kg ARO2
             ! 
             ! where we use XNUMOL and TRACER_COEFF for the parent aromatic
@@ -6697,7 +6704,7 @@ ccc
             !-----------------------------------------------------------
 
             DARO2 = CSPEC(JLOOP,ILARO2)
-     &            * VOLUME(JLOOP)
+     &            * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
      &            * Input_Opt%TRACER_COEFF(IDTAROM,1)
      &            / ( Input_Opt%XNUMOL(IDTAROM) * ARO2CARB )
 
@@ -6743,15 +6750,16 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_DOH( I, J, L, Input_Opt ) RESULT( DOH )
+      FUNCTION GET_DOH( I, J, L, Input_Opt, State_Met ) RESULT( DOH )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTISOP
 !
 ! !INPUT PARAMETERS: 
@@ -6760,6 +6768,7 @@ ccc
       INTEGER,        INTENT(IN)  :: J           ! Latitude index
       INTEGER,        INTENT(IN)  :: L           ! Altitude index
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
@@ -6768,6 +6777,7 @@ ccc
 ! !REVISION HISTORY:
 !  04 Mar 2013 - R. Yantosca - Now use fields from Input_Opt object
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  21 Dec 2015 - M. Sulprizio- Get grid box volume directly from State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6796,15 +6806,15 @@ ccc
             ! Get DOH from CSPEC [molec/cm3] and 
             ! convert to [kg C isop / box]
             ! 
-            ! CSPEC(JLOOP,ILISOPOH)    : molec isop (lost to OH) / cm3
-            !  XNUMOL(IDTISOP)         : atom C / kg C isop
-            !  TRACER_COEFF(IDTISOP,1) : atom C / molec isop
-            !  VOLUME                  : cm3 / box
+            ! CSPEC             : molec isop (lost to OH) / cm3
+            ! XNUMOL            : atom C / kg C isop
+            ! TRACER_COEFF      : atom C / molec isop
+            ! State_Met%AIRVOL  : m3 (converted here to cm3)
             !-----------------------------------------------------------
-            DOH = CSPEC(JLOOP,ILISOPOH)             * 
-     &            VOLUME(JLOOP)                     * 
-     &            Input_Opt%TRACER_COEFF(IDTISOP,1) / 
-     &            Input_Opt%XNUMOL(IDTISOP) 
+            DOH = CSPEC(JLOOP,ILISOPOH)
+     &          * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
+     &          * Input_Opt%TRACER_COEFF(IDTISOP,1)
+     &          / Input_Opt%XNUMOL(IDTISOP) 
  
          ELSE
 
@@ -8698,14 +8708,16 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_ISOPNO3( I, J, L, Input_Opt ) RESULT( ISOPNO3 )
+      FUNCTION GET_ISOPNO3( I, J, L, Input_Opt, State_Met )
+     &         RESULT( ISOPNO3 )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE TRACERID_MOD,       ONLY : IDTISOP
 !
@@ -8715,6 +8727,7 @@ ccc
       INTEGER,        INTENT(IN) :: J           ! Latitude index
       INTEGER,        INTENT(IN) :: L           ! Altitude index
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE
 !
@@ -8728,6 +8741,7 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
+!  21 Dec 2015 - M. Sulprizio- Get grid box volume directly from State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8757,15 +8771,15 @@ ccc
             ! Get ISOPNO3 from CSPEC [molec/cm3] and 
             ! convert to [kg C isop / box]
             ! 
-            ! CSPEC(JLOOP,ILISOPNO3)   : molec isop (lost to NO3) / cm3
-            !  XNUMOL(IDTISOP)         : atom C / kg C isop
-            !  TRACER_COEFF(IDTISOP,1) : atom C / molec isop
-            !  VOLUME                  : cm3 / box
+            ! CSPEC             : molec isop (lost to NO3) / cm3
+            ! XNUMOL            : atom C / kg C isop
+            ! TRACER_COEFF      : atom C / molec isop
+            ! State_Met%AIRVOL  : m3 (converted here to cm3)
             !-----------------------------------------------------------
-            ISOPNO3 = CSPEC(JLOOP,ILISOPNO3)            * 
-     &                VOLUME(JLOOP)                     * 
-     &                Input_Opt%TRACER_COEFF(IDTISOP,1) / 
-     &                Input_Opt%XNUMOL(IDTISOP) 
+            ISOPNO3 = CSPEC(JLOOP,ILISOPNO3)
+     &              * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
+     &              * Input_Opt%TRACER_COEFF(IDTISOP,1)
+     &              / Input_Opt%XNUMOL(IDTISOP) 
  
          ELSE
 

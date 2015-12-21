@@ -129,7 +129,7 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, IXSAVE   
+      USE COMODE_MOD,         ONLY : ABSHUM, IXSAVE   
       USE COMODE_MOD,         ONLY : IYSAVE, IZSAVE,  JLOP       
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -167,6 +167,8 @@
 !  02 Mar 2015 - E. Lundgren - Remove MAKE_AVGW call. State_Met%AVGW now
 !                              set in AIRQNT within dao_mod.F.
 !  01 Apr 2015 - R. Yantosca - Bug fix: BOXVL needs to be !$OMP PRIVATE
+!  21 Dec 2015 - M. Sulprizio- Remove calculation of BOXVL and AIRDENS. Get
+!                              these fields directly from State_Met instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -176,8 +178,7 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER, SAVE :: N_CHEM_BOXES
       INTEGER       :: I, J, L, JLOOP
-      REAL(fp)        :: CONSEXP, TK, VPRESH2O
-      REAL(fp)        :: BOXVL
+      REAL(fp)      :: CONSEXP, TK, VPRESH2O
       
       !=================================================================
       ! AEROSOL_RURALBOX begins here!
@@ -250,7 +251,7 @@
       N_CHEM = N_CHEM_BOXES
       
       !=================================================================
-      ! Compute AIRDENS and ABSHUM at every timestep
+      ! Compute ABSHUM at every timestep
       !
       ! NOTE: In the full-chemistry simulation, SMVGEAR uses the ABSHUM 
       ! array for both absolute humidity [molec H2O/cm3] and relative 
@@ -277,7 +278,7 @@
       ! Loop over grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, JLOOP, BOXVL, TK, CONSEXP, VPRESH2O )
+!$OMP+PRIVATE( I, J, L, JLOOP, TK, CONSEXP, VPRESH2O )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, NVERT
       DO J = 1, NLAT
@@ -291,15 +292,21 @@
          !----------------------------------
          IF ( JLOOP > 0 ) THEN
 
-            ! Grid box volume [cm3]
-            BOXVL          = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-
-            ! Air density in [molec/cm3]
-            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
-     &                       BOXVL               * AVG  / WTAIR
+!------------------------------------------------------------------------------
+! Prior to 12/21/15:
+! Remove BOXVL and AIRDENS. Get these fields directly from State_Met instead. 
+! (mps, 12/21/15)
+!            ! Grid box volume [cm3]
+!            BOXVL          = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+!
+!            ! Air density in [molec/cm3]
+!            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
+!     &                       BOXVL               * AVG  / WTAIR
+!------------------------------------------------------------------------------
 
             ! ABSHUM = absolute humidity [molec H2O/cm3 air]
-            ABSHUM(JLOOP)  = State_Met%AVGW(I,J,L)  * AIRDENS(JLOOP)
+            ABSHUM(JLOOP)  = State_Met%AVGW(I,J,L)  *
+     &                       State_Met%AIRNUMDEN(I,J,L)
 
             ! Convert ABSHUM to relative humidity [fraction]
             ! using the same algorithm as in "gasconc.f"
