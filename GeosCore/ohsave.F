@@ -11,15 +11,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OHSAVE( State_Chm )
+      SUBROUTINE OHSAVE( State_Met, State_Chm )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_O3_MOD,         ONLY : SAVEOH, SAVEHO2, SAVEO1D, SAVEO3P
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : AIRDENS, JLOP
       USE COMODE_LOOP_MOD
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDOH, IDHO2
       USE TRACERID_MOD,       ONLY : IDO1D, IDO3P
 
@@ -30,6 +31,7 @@
 ! !INPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  27 Feb 2002 - R. Yantosca - Initial version
@@ -58,20 +60,17 @@
 !  31 May 2013 - R. Yantosca - Extra cleanup, remove N_TRACERS, XNUMOL, STT
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L, JLOOP   ! (bmy, 7/20/04)
+      INTEGER :: I, J, L
 
       !=================================================================
       ! OHSAVE begins here!
-      !
-      ! Save info on ozone, OH, and NO concentrations
-      ! for consistency with the old method of doing O3, we'll archive
-      ! the fraction O3/Ox, and the fraction NO/NOx
       !=================================================================
 
       ! Reset because of variable tropopause.  Ensure that data for boxes 
@@ -86,22 +85,19 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, JLOOP )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO 370 L = 1, LLPAR
-      DO 360 J = 1, JJPAR
-      DO 350 I = 1, IIPAR
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         ! 1-D grid box index
-         JLOOP = JLOP(I,J,L)
-
-         ! Cycle if this isn't a valid SMVGEAR gridbox
-         IF ( JLOOP == 0 ) GOTO 350
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          ! OH concentration [molec/cm3]
          SAVEOH(I,J,L)  = State_Chm%Species(I,J,L,IDOH)
 
          ! HO2 concentration [v/v] 
          SAVEHO2(I,J,L) = State_Chm%Species(I,J,L,IDHO2) /
-     &                    AIRDENS(JLOOP)
+     &                    State_Met%AIRNUMDEN(I,J,L)
 
 #if defined( UCX )
          ! O1D concentration [molec/cm3]
@@ -111,9 +107,9 @@
          SAVEO3P(I,J,L) = State_Chm%Species(I,J,L,IDO3P)
 #endif
 
- 350  CONTINUE
- 360  CONTINUE
- 370  CONTINUE
+      ENDDO
+      ENDDO
+      ENDDO
 !$OMP END PARALLEL DO
 
       END SUBROUTINE OHSAVE

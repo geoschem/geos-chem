@@ -711,9 +711,10 @@
 
 
       ! Debug
-      write(*,'(a,2e12.4)') '<> b INIT_FLEXCHEM',
-     &                     State_Chm%Species(10,10,10,66),
-     &                     State_Chm%Species(10,10,10,62)
+      write(*,'(3a,2e12.4)') '<> b INIT_FLEXCHEM ',
+     &            NAMEGAS(66), ' = ', State_Chm%Species(10,10,10,66)
+      write(*,'(3a,2e12.4)') '<> b INIT_FLEXCHEM ',
+     &            NAMEGAS(62), ' = ', State_Chm%Species(10,10,10,62)
 
       ! MSL - Flexchem
       ! Initialize photochemistry & tracer->species mapping
@@ -727,10 +728,10 @@
       ! MSL ----------
 
       ! Debug
-      write(*,'(a,2e12.4)') '<> a INIT_FLEXCHEM',
-     &                     State_Chm%Species(10,10,10,66),
-     &                     State_Chm%Species(10,10,10,62)
-
+      write(*,'(3a,2e12.4)') '<> a INIT_FLEXCHEM ',
+     &            NAMEGAS(66), ' = ', State_Chm%Species(10,10,10,66)
+      write(*,'(3a,2e12.4)') '<> a INIT_FLEXCHEM ',
+     &            NAMEGAS(62), ' = ', State_Chm%Species(10,10,10,62)
 
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
@@ -772,10 +773,6 @@
       IF ( LSTDRUN ) THEN 
          CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.TRUE. )
       ENDIF
-
-!         write(*,'(a,2e12.4)') '<> a INITIAL CONDITIONS',
-!     &                        State_Chm%Species(10,10,10,66),
-!     &                        State_Chm%Species(10,10,10,62)
 
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION
@@ -893,10 +890,6 @@
          ! (ckeller, 4/1/15). 
          CALL Diagnostics_Write( am_I_Root, Input_Opt, .FALSE., RC)
 
-!         write(*,'(a,2e12.4)') '<> a DIAGNOSTICS_WRITE',
-!     &                        State_Chm%Species(10,10,10,66),
-!     &                        State_Chm%Species(10,10,10,62)
-      
          RC = GEOS_Timer_End ( "HEMCO" )
 
          ! Original diagnostics
@@ -967,10 +960,6 @@
 
          RC = GEOS_Timer_End ( "Diagnostics" )
 
-!         write(*,'(a,2e12.4)') '<> a Diagnostics',
-!     &                        State_Chm%Species(10,10,10,66),
-!     &                        State_Chm%Species(10,10,10,62)
-      
          !=============================================================
          !   ***** W R I T E   MERCURY RESTART  F I L E *****
          !     ***** MUST be done after call to diag3 *****
@@ -1140,11 +1129,6 @@
          ! since this is not done with READ_TROPOPAUSE anymore.
          ! (Need to double-check that LMIN, Lmax are not used before-phs) 
          IF ( LVARTROP ) CALL CHECK_VAR_TROP( State_Met )
-
-
-!         write(*,'(a,2e12.4)') '<> a INTERP',
-!     &                        State_Chm%Species(10,10,10,66),
-!     &                        State_Chm%Species(10,10,10,62)
 
          ! If we are not doing transport, then make sure that
          ! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)
@@ -1360,10 +1344,6 @@
             ! (ckeller, 4/1/15)
             RC = GEOS_Timer_Start ( "HEMCO" )
 
-!         write(*,'(a,2e12.4)') '<> b EMISSIONS_RUN',
-!     &                        State_Chm%Species(10,10,10,66),
-!     &                        State_Chm%Species(10,10,10,62)
-
             CALL EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, 
      &                          State_Chm, ITS_TIME_FOR_EMIS(), 2, RC )
 
@@ -1543,17 +1523,20 @@
      &                            State_Met, State_Chm, RC )
             ENDIF
 
-            write(*,'(a,2e12.4)') '<> b DO_CHEMISTRY',
-     &                           State_Chm%Species(10,10,10,66),
-     &                           State_Chm%Species(10,10,10,62)
+            write(*,'(3a,2e12.4)') '<> b DO_CHEMISTRY ',
+     &            NAMEGAS(66), ' = ', State_Chm%Species(10,10,10,66)
+            write(*,'(3a,2e12.4)') '<> b DO_CHEMISTRY ',
+     &            NAMEGAS(62), ' = ', State_Chm%Species(10,10,10,62)
 
             ! Do GEOS-Chem chemistry
             CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
      &                         State_Chm, State_Met, RC ) 
 
-            write(*,'(a,2e12.4)') '<> a DO_CHEMISTRY',
-     &                           State_Chm%Species(10,10,10,66),
-     &                           State_Chm%Species(10,10,10,62)
+
+            write(*,'(3a,2e12.4)') '<> a DO_CHEMISTRY ',
+     &            NAMEGAS(66), ' = ', State_Chm%Species(10,10,10,66)
+            write(*,'(3a,2e12.4)') '<> a DO_CHEMISTRY ',
+     &            NAMEGAS(62), ' = ', State_Chm%Species(10,10,10,62)
 
          ENDIF 
 

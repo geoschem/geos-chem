@@ -553,8 +553,8 @@ diag_2pm.o                  : diag_2pm.F                                     \
 diag_mod.o                  : diag_mod.F
 
 diag_oh_mod.o               : diag_oh_mod.F                                  \
-                              comode_mod.o            tracerid_mod.o         \
-                              tracer_mod.o  
+                              chemgrid_mod.o          comode_mod.o           \
+                              tracerid_mod.o          tracer_mod.o
 
 diag_pl_mod.o               : diag_pl_mod.F                                  \
                               comode_mod.o            tracerid_mod.o         \
@@ -800,7 +800,8 @@ ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
 
 
 ohsave.o                    : ohsave.F                                       \
-                              comode_mod.o            tracerid_mod.o
+                              chemgrid_mod.o          comode_mod.o           \
+                              tracerid_mod.o
 
 olson_landmap_mod.o         : olson_landmap_mod.F90                          \
                               mapping_mod.o

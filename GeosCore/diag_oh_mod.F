@@ -68,19 +68,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DIAG_OH( State_Chm )
+      SUBROUTINE DO_DIAG_OH( State_Met, State_Chm )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : AIRDENS, JLOP, T3, VOLUME
       USE COMODE_LOOP_MOD
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDOH
 !
 ! !INPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY:
 !  07 Jul 2004 - R. Yantosca - Initial version
@@ -89,14 +91,15 @@
 !  19 Dec 2014 - R. Yantosca - Remove FIRST & XLOSS; they aren't used anymore
 !  18 Dec 2015 - M. Sulprizio- Remove references to CSPEC and get OH directly
 !                              from State_Chm%Species
+!  21 Dec 2015 - M. Sulprizio- Get air density and box volume directly from
+!                              State_Met object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: I,          J
-      INTEGER  :: L,          JLOOP
+      INTEGER  :: I, J, L
       REAL(f8) :: AIRDENS_8,  VOLUME_8
       REAL(f8) :: XOHMASS,    XAIRMASS
 
@@ -116,25 +119,25 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! 1-D grid box index
-         JLOOP = JLOP(I,J,L)
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
-         ! Cycle if this isn't a valid SMVGEAR gridbox
-         IF ( JLOOP > 0 ) THEN
-         
-            ! Cast from REAL*8 to avoid underflow
-            AIRDENS_8       = AIRDENS(JLOOP)
-            VOLUME_8        = VOLUME(JLOOP)
+         ! Dry air density [molec/cm3]
+         ! Cast to REAL*8 to avoid underflow
+         AIRDENS_8       = State_Met%AIRNUMDEN(I,J,L)
 
-            ! Sum air mass term into AIR_MASS array
-            XAIRMASS        = AIRDENS_8         * VOLUME_8
-            AIR_MASS(I,J,L) = AIR_MASS(I,J,L)   + XAIRMASS
+         ! Box volume [cm3]
+         ! Cast to REAL*8 to avoid underflow
+         VOLUME_8        = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
-            ! Sum OH mass term into OH_MASS array
-            XOHMASS         = State_Chm%Species(I,J,L,IDOH) * XAIRMASS
-            OH_MASS(I,J,L)  = OH_MASS(I,J,L)    + XOHMASS
+         ! Sum air mass term into AIR_MASS array
+         XAIRMASS        = AIRDENS_8         * VOLUME_8
+         AIR_MASS(I,J,L) = AIR_MASS(I,J,L)   + XAIRMASS
 
-         ENDIF
+         ! Sum OH mass term into OH_MASS array
+         XOHMASS         = State_Chm%Species(I,J,L,IDOH) * XAIRMASS
+         OH_MASS(I,J,L)  = OH_MASS(I,J,L)    + XOHMASS
+
       ENDDO
       ENDDO
       ENDDO

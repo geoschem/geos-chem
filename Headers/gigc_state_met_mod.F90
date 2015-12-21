@@ -121,7 +121,6 @@ MODULE GIGC_State_Met_Mod
      ! 3-D Fields                  
      !----------------------------------------------------------------------
      REAL(fp), POINTER :: AREA_M2   (:,:,:) ! Grid box surface area [cm2]
-     REAL(fp), POINTER :: AIRDEN    (:,:,:) ! Dry air density [kg/m3]
      REAL(fp), POINTER :: CLDF      (:,:,:) ! 3-D cloud fraction [1]
      REAL(fp), POINTER :: CMFMC     (:,:,:) ! Cloud mass flux [kg/m2/s]
      REAL(fp), POINTER :: DETRAINE  (:,:,:) ! Detrainment (entrain plume)[Pa/s]
@@ -206,6 +205,8 @@ MODULE GIGC_State_Met_Mod
                                             ! pressure level (temporary)        
      REAL(fp), POINTER :: TV        (:,:,:) ! Virtual temperature [K]
      REAL(fp), POINTER :: MAIRDEN   (:,:,:) ! Moist air density [kg/m3]
+     REAL(fp), POINTER :: AIRDEN    (:,:,:) ! Dry air density [kg/m3]
+     REAL(fp), POINTER :: AIRNUMDEN (:,:,:) ! Dry air density [molec/m3]
      REAL(fp), POINTER :: AVGW      (:,:,:) ! Water vapor volume mixing ratio
                                             ! [vol H2O / vol dry air]
      REAL(fp), POINTER :: BXHEIGHT  (:,:,:) ! Grid box height [m] (dry air)
@@ -251,6 +252,8 @@ MODULE GIGC_State_Met_Mod
 !                              Add MOISTMW to use TCVV with moist mixing ratio. 
 !  25 May 2015 - C. Keller   - Removed SUNCOSmid5 (now calculated by HEMCO).
 !  08 Jul 2015 - E. Lundgren - Add XCHLR and XCHLR2 for organic marine aerosols
+!  21 Dec 2015 - M. Sulprizio- Add AIRNUMDEN, which is the same as AIRDEN but
+!                              has units molec/cm3 for the chemistry routines.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -658,6 +661,10 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%MAIRDEN   = 0.0_fp
                               
+    ALLOCATE( State_Met%AIRNUMDEN ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%AIRNUMDEN = 0.0_fp
+
     ALLOCATE( State_Met%AIRVOL    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%AIRVOL   = 0.0_fp
@@ -1062,6 +1069,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%ADMOIST    )) DEALLOCATE( State_Met%ADMOIST    )
     IF ( ASSOCIATED( State_Met%AIRDEN     )) DEALLOCATE( State_Met%AIRDEN     )
     IF ( ASSOCIATED( State_Met%MAIRDEN    )) DEALLOCATE( State_Met%MAIRDEN    )
+    IF ( ASSOCIATED( State_Met%AIRNUMDEN  )) DEALLOCATE( State_Met%AIRNUMDEN  )
     IF ( ASSOCIATED( State_Met%AIRVOL     )) DEALLOCATE( State_Met%AIRVOL     )
     IF ( ASSOCIATED( State_Met%AREA_M2    )) DEALLOCATE( State_Met%AREA_M2    )
     IF ( ASSOCIATED( State_Met%AVGW       )) DEALLOCATE( State_Met%AVGW       )

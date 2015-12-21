@@ -18,7 +18,7 @@
 !
       USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
       USE COMODE_MOD,           ONLY : JLOP, TAREA, ERADIUS ! <--!!
-      USE COMODE_LOOP_MOD,      ONLY : BK
+      USE COMODE_LOOP_MOD,      ONLY : BK, NAMEGAS
       USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_CHEMGRID
       USE CHEMGRID_MOD  ,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_FJX_MOD
@@ -136,9 +136,10 @@
       CSPEC_FULL => State_Chm%Species
 
       ! Debug
-      write(*,'(a,2e12.4)') '<> b RURALBOX',
-     &                     State_Chm%Species(10,10,10,66),
-     &                     State_Chm%Species(10,10,10,62)
+      write(*,'(3a,2e12.4)') '<> b RURALBOX ',
+     &            NAMEGAS(66), ' = ', State_Chm%Species(10,10,10,66)
+      write(*,'(3a,2e12.4)') '<> b RURALBOX ',
+     &            NAMEGAS(62), ' = ', State_Chm%Species(10,10,10,62)
 
       ! mje link the STT Pointer to the State_Chm%Tracers stucture
       STT =>  State_Chm%Tracers
@@ -147,9 +148,10 @@
       CALL RURALBOX( State_Met )
 
       ! Debug
-      write(*,'(a,2e12.4)') '<> a RURALBOX',
-     &                     State_Chm%Species(10,10,10,66),
-     &                     State_Chm%Species(10,10,10,62)
+      write(*,'(3a,2e12.4)') '<> a RURALBOX ',
+     &            NAMEGAS(66), ' = ', State_Chm%Species(10,10,10,66)
+      write(*,'(3a,2e12.4)') '<> a RURALBOX ',
+     &            NAMEGAS(62), ' = ', State_Chm%Species(10,10,10,62)
 
       !================================================================
       ! Get concentrations of aerosols in [kg/m3] 
@@ -220,14 +222,22 @@
      &              State_Chm,  RC )
 
       !     imsl  Calculate hetchem rates
-      ! Copy aerosol areas into State_Chm
-      !  -- Should be moved to AerosolMod once JLOOP is gone
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+         ! Get 1-D index
          JLOOP = JLOP(I,J,L)
-         State_Chm%AeroArea(I,J,L,:) = TAREA(JLOOP,:)
-         State_Chm%AeroRadi(I,J,L,:) = ERADIUS(JLOOP,:)
+
+         ! If this is a valid grid box
+         IF ( JLOOP > 0 ) THEN
+
+            ! Copy aerosol areas into State_Chm
+            !  -- Should be moved to AerosolMod once JLOOP is gone
+            State_Chm%AeroArea(I,J,L,:) = TAREA(JLOOP,:)
+            State_Chm%AeroRadi(I,J,L,:) = ERADIUS(JLOOP,:)
+
+         ENDIF
 !------------------------------------------------------------------------------
 ! Prior to 12/16/15:
 ! Make conversion factor from v/v to molec/cm3 consistent with CONST used
@@ -244,9 +254,10 @@
       END DO
 
       ! Debug
-      write(*,'(a,2e12.4)') '<> b copy STT to CSPEC_FULL',
-     &                     CSPEC_FULL(10,10,10,66),
-     &                     CSPEC_FULL(10,10,10,62)
+      write(*,'(3a,2e12.4)') '<> b copy STT to CSPEC_FULL ',
+     &            NAMEGAS(66), ' = ', CSPEC_FULL(10,10,10,66)
+      write(*,'(3a,2e12.4)') '<> b copy STT to CSPEC_FULL ',
+     &            NAMEGAS(62), ' = ', CSPEC_FULL(10,10,10,62)
       write(*,*) 'STT = ', STT(10,10,10,1), ' kg'
 
       ! Loop over tracers 
@@ -271,9 +282,10 @@
  
       ! Debug
       write(*,*) 'STT = ', STT(10,10,10,1), ' molec/cm3'
-      write(*,'(a,2e12.4)') '<> a copy STT to CSPEC_FULL',
-     &                     CSPEC_FULL(10,10,10,66),
-     &                     CSPEC_FULL(10,10,10,62)
+      write(*,'(3a,2e12.4)') '<> a copy STT to CSPEC_FULL ',
+     &            NAMEGAS(66), ' = ', CSPEC_FULL(10,10,10,66)
+      write(*,'(3a,2e12.4)') '<> a copy STT to CSPEC_FULL ',
+     &            NAMEGAS(62), ' = ', CSPEC_FULL(10,10,10,62)
 
       ! mje Set up conditions for the integration
       ! mje chemical timestep and convert it to seconds.
@@ -507,7 +519,7 @@
       !=================================================================
       ! Call OHSAVE which saves info on OH AND HO2 concentrations
       !=================================================================
-      CALL OHSAVE( State_Chm )
+      CALL OHSAVE( State_Met, State_Chm )
 
       !### Debug
       IF ( prtDebug ) THEN
@@ -517,7 +529,7 @@
       !=================================================================
       ! Save quantities for computing mean OH lifetime
       !=================================================================
-      CALL DO_DIAG_OH( State_Chm )
+      CALL DO_DIAG_OH( State_Met, State_Chm )
 
       !### Debug
       IF ( prtDebug ) THEN

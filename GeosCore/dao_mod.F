@@ -594,6 +594,12 @@
      &                             * PCONV * MCONV
      &                             / RSTARG / State_Met%T(I,J,L)
 
+         ! Set grid box dry air density [molec/cm3]
+         ! This is neeed for the chemistry routines
+         State_Met%AIRNUMDEN(I,J,L) = State_Met%PMEAN_DRY(I,J,L) * PCONV
+     &                                / RSTARG / State_Met%T(I,J,L)
+     &                                * AVO * 1e-6_fp
+
          !=============================================================
          ! Set grid box moist molecular weight [g/mol]
          ! This quantity is useful if using TCVV with moist mixing ratio.
