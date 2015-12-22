@@ -714,9 +714,6 @@ land_mercury_mod.o          : land_mercury_mod.F                             \
 linoz_mod.o                 : linoz_mod.F                                    \
                               chemgrid_mod.o          tracerid_mod.o
 
-lump.o                      : lump.F                                         \
-                              comode_mod.o            tracerid_mod.o
-
 main.o                      : main.F                                         \
                               a3_read_mod.o           a6_read_mod.o          \
                               benchmark_mod.o                                \
@@ -807,9 +804,6 @@ olson_landmap_mod.o         : olson_landmap_mod.F90                          \
                               mapping_mod.o
 
 optdepth_mod.o              : optdepth_mod.F          diag_mod.o  
-
-partition.o                 : partition.F                                    \
-                              comode_mod.o            tracerid_mod.o
 
 pbl_mix_mod.o               : pbl_mix_mod.F                                  \
                               diag_mod.o              tracer_mod.o
