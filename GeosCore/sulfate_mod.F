@@ -6493,7 +6493,7 @@
 !
 ! !IROUTINE: get_oh
 !
-! !DESCRIPTION: Function GET\_OH returns OH from State_Chm%Species (for
+! !DESCRIPTION: Function GET\_OH returns OH from State\_Chm%Species (for
 !  coupled runs) or monthly mean OH (for offline runs).  Imposes a diurnal 
 !  variation on OH for offline simulations. (bmy, 12/16/02, 7/20/04)
 !\\
@@ -6607,7 +6607,7 @@
 !
 ! !IROUTINE: get_no3
 !
-! !DESCRIPTION: Function GET\_NO3 returns NO3 from State_Chm%Species (for
+! !DESCRIPTION: Function GET\_NO3 returns NO3 from State\_Chm%Species (for
 !  coupled runs) or monthly mean OH (for offline runs).  For offline runs, the
 !  concentration of NO3 is set to zero during the day. (rjp, bmy, 12/16/02)
 !\\

@@ -653,7 +653,7 @@
 !
 ! !DESCRIPTION: Subroutine GIGC\_Error prints an error message and sets RC to 
 ! GIGC\_FAILURE. Note that this routine does not stop a run, but it will cause 
-! a stop at a higher level if you add a catch for RC /= GIGC_SUCCESS. 
+! a stop at a higher level if you add a catch for RC /= GIGC\_SUCCESS. 
 !\\
 !\\
 ! !INTERFACE:

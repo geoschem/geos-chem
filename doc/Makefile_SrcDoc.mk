@@ -140,6 +140,7 @@ $(CORE)/emissions_mod.F90             \
 $(CORE)/exchange_mod.F                \
 $(CORE)/fast_jx_mod.F                 \
 $(CORE)/gamap_mod.F                   \
+$(CORE)/flexchem_setup_mod.F90        \
 $(CORE)/gcap_read_mod.F               \
 $(CORE)/get_ndep_mod.F                \
 $(CORE)/gigc_environment_mod.F90      \
@@ -185,13 +186,10 @@ $(CORE)/diag1.F                       \
 $(CORE)/diag_2pm.F                    \
 $(CORE)/diag3.F                       \
 $(CORE)/diagoh.F                      \
-$(CORE)/gasconc.F                     \
+$(CORE)/flex_chemdr.F                 \
 $(CORE)/initialize.F                  \
-$(CORE)/lump.F                        \
 $(CORE)/ndxx_setup.F                  \
 $(CORE)/ohsave.F                      \
-$(CORE)/partition.F                   \
-$(CORE)/physproc.F                    \
 $(CORE)/set_prof_o3.F                 \
 $(CORE)/setemdep.F                    \
 $(CORE)/ruralbox.F                    \

@@ -99,7 +99,7 @@
 !
 ! !IROUTINE: GEOS_Timer_Setup
 !
-! !DESCRIPTION: Set up the GEOS_Timer for first use.
+! !DESCRIPTION: Set up the GEOS\_Timer for first use.
 !\\
 !\\
 ! !INTERFACE:
@@ -390,7 +390,7 @@
 !
 ! !IROUTINE: GEOS_Timer_Print
 !
-! !DESCRIPTION: Prints the specified GEOS_Timer by name.
+! !DESCRIPTION: Prints the specified GEOS\_Timer by name.
 !\\
 !\\
 ! !INTERFACE:
@@ -449,7 +449,7 @@
 !
 ! !IROUTINE: GEOS_Timer_PrintAll
 !
-! !DESCRIPTION: Prints all GEOS_Timers.
+! !DESCRIPTION: Prints all GEOS\_Timers.
 !\\
 !\\
 ! !INTERFACE:
@@ -506,7 +506,7 @@
 !
 ! !IROUTINE: GEOS_Timer_StopAll
 !
-! !DESCRIPTION: Stops all GEOS_Timers.
+! !DESCRIPTION: Stops all GEOS\_Timers.
 !\\
 !\\
 ! !INTERFACE:
@@ -570,7 +570,7 @@
 
 ! !IROUTINE: GEOS_Timer_PrintNum
 !
-! !DESCRIPTION: Prints GEOS_Timer by number.
+! !DESCRIPTION: Prints GEOS\_Timer by number.
 !\\
 !\\
 ! !INTERFACE:
@@ -629,7 +629,7 @@
 !
 ! !IROUTINE: GEOS_Timer_Find
 !
-! !DESCRIPTION: Finds the number of the specified GEOS_Timer.
+! !DESCRIPTION: Finds the number of the specified GEOS\_Timer.
 !\\
 !\\
 ! !INTERFACE:

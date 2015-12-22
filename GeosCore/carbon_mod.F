@@ -6108,7 +6108,7 @@ ccc
 !
 ! !IROUTINE: get_oh
 !
-! !DESCRIPTION: Function GET\_OH returns OH from State_Chm%Species (for
+! !DESCRIPTION: Function GET\_OH returns OH from State\_Chm%Species (for
 !  coupled runs) or monthly mean OH (for offline runs).  Imposes a diurnal
 !  variation on OH for offline simulations. (bmy, 7/9/04)
 !\\
@@ -6222,7 +6222,7 @@ ccc
 !
 ! !IROUTINE: get_no3
 !
-! !DESCRIPTION: Function GET\_NO3 returns NO3 from State_Chm%Species (for
+! !DESCRIPTION: Function GET\_NO3 returns NO3 from State\_Chm%Species (for
 !  coupled runs) or monthly mean OH (for offline runs).  For offline runs, the
 !  concentration of NO3 is set to zero during the day. (rjp, bmy, 12/16/02,
 !  7/20/04)
@@ -8531,7 +8531,7 @@ ccc
 !
 ! !IROUTINE: get_no
 !
-! !DESCRIPTION: Function GET\_NO returns NO from State_Chm%Species 
+! !DESCRIPTION: Function GET\_NO returns NO from State\_Chm%Species 
 ! (for coupled runs). (hotp 5/7/2010)
 !\\
 !\\
@@ -8613,7 +8613,7 @@ ccc
 !
 ! !IROUTINE: get_ho2
 !
-! !DESCRIPTION: Function GET\_HO2 returns HO2 from State_Chm%Species
+! !DESCRIPTION: Function GET\_HO2 returns HO2 from State\_Chm%Species
 ! (for coupled runs). Created by Havala Pye (5/7/2010).
 !\\
 !\\
