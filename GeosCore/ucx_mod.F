@@ -3405,7 +3405,6 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
       USE CMN_GCTM_MOD,       ONLY : AIRMW, PI
-      USE COMODE_MOD,         ONLY : CSPEC,JLOP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV
@@ -3527,7 +3526,7 @@
       INTEGER               :: STATE_LOCAL
 
       ! Loop variables
-      INTEGER               :: I, J, L, K, JLOOP
+      INTEGER               :: I, J, L, K
 
       ! SDE 2013-07-07: Debug variables
       REAL(fp)                 :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
@@ -3589,7 +3588,7 @@
 !$OMP+PRIVATE( K,            IS_POLAR,           IS_STRAT      )
 !$OMP+PRIVATE( PCENTER,      PCENTER_PA,         DENAIR        )
 !$OMP+PRIVATE( INVAIR,       PSATHNO3,           PSATH2O       )
-!$OMP+PRIVATE( JLOOP,        VOL_NAT,            VOL_ICE       )
+!$OMP+PRIVATE( VOL_NAT,      VOL_ICE                           )
 !$OMP+PRIVATE( VOL_SLA,      PSATHNO3_SUPERCOOL, TCENTER       )
 !$OMP+PRIVATE( TINV,         IS_VALID                          )
 !$OMP+PRIVATE( RAD_AER_BOX,  RHO_AER_BOX                       )

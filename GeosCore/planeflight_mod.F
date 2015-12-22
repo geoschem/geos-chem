@@ -1226,12 +1226,11 @@
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_TAU0
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE COMODE_LOOP_MOD          ! CSPEC, etc.
-      USE COMODE_MOD,         ONLY : CSPEC,       JLOP
-      USE COMODE_MOD,         ONLY : ABSHUM
-      USE COMODE_MOD,         ONLY : TAREA
+      USE COMODE_LOOP_MOD
+      USE COMODE_MOD,         ONLY : ABSHUM, TAREA
 #if   defined( TOMAS )
       USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
 #endif
@@ -1291,6 +1290,7 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod. 
 !  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met object
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1414,15 +1414,15 @@
                SELECT CASE ( PVAR(V) )
 
                   !-------------------------
-                  ! SMVGEAR species
+                  ! Chemical species
                   !-------------------------
                   !997 and 998 are now special flags for NOy and AN
                   CASE ( 1:996) !( 1:998 )
 
-                     ! Only archive where SMVGEAR chem is done
+                     ! Only archive where chemistry is done
                      ! Save as mixing ratio [v/v]
                      IF ( JLOOP /= 0 ) THEN
-                        VARI(V) = CSPEC(JLOOP,PVAR(V)) /
+                        VARI(V) = State_Chm%Species(I,J,L,PVAR(V)) / 
      &                            State_Met%AIRNUMDEN(I,J,L)
                      ENDIF
 
@@ -1432,16 +1432,19 @@
                   !-------------------------   
                   CASE ( 997 )
 
-                     ! Only archive where SMVGEAR chem is done
+                     ! Only archive where chemistry is done
                      ! Sum all AN contributions, save as [v/v]
                      VARI(V) = 0e+0_fp
 
-                     IF ( JLOOP /= 0 ) THEN 
+                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+
                         DO N = 1, NPNOY
-                           VARI(V) = VARI(V) + CSPEC(JLOOP,PNOY(N))
+                           VARI(V) = VARI(V) +
+     &                               State_Chm%Species(I,J,L,PNOY(N))
                         ENDDO
 
                         VARI(V) = VARI(V) / State_Met%AIRNUMDEN(I,J,L)
+
                      ENDIF
 
                   ! FP 04/01/2010
@@ -1450,16 +1453,19 @@
                   !-------------------------   
                   CASE ( 998 )
 
-                     ! Only archive where SMVGEAR chem is done
+                     ! Only archive where chemistry is done
                      ! Sum all AN contributions, save as [v/v]
                      VARI(V) = 0e+0_fp
-                     IF ( JLOOP /= 0 ) THEN 
+
+                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
 
                         DO N = 1, NPAN
-                           VARI(V) = VARI(V) + CSPEC(JLOOP,P_AN(N))
+                           VARI(V) = VARI(V) +
+     &                               State_Chm%Species(I,J,L,P_AN(N))
                         ENDDO
 
                         VARI(V) = VARI(V) / State_Met%AIRNUMDEN(I,J,L)
+
                      ENDIF
 
                   !-------------------------
@@ -1467,18 +1473,20 @@
                   !-------------------------   
                   CASE ( 999 )
 
-                     ! Only archive where SMVGEAR chem is done
+                     ! Only archive where chemistry is done
                      ! Sum all RO2 contributions, save as [v/v]
                      VARI(V) = 0e+0_fp
                            
-                        IF ( JLOOP /= 0 ) THEN
-                           DO N = 1, NPRO2
-                              VARI(V) = VARI(V) + CSPEC(JLOOP,PRO2(N))
-                           ENDDO
+                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+
+                        DO N = 1, NPRO2
+                           VARI(V) = VARI(V) +
+     &                               State_Chm%Species(I,J,L,PRO2(N))
+                        ENDDO
                            
-                           VARI(V) = VARI(V) /
-     &                               State_Met%AIRNUMDEN(I,J,L)
-                        ENDIF
+                        VARI(V) = VARI(V) / State_Met%AIRNUMDEN(I,J,L)
+
+                     ENDIF
 
                   !--------------------------
                   ! GMAO temperature [K]

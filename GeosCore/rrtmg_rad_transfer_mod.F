@@ -135,7 +135,6 @@
       USE CMN_FJX_MOD,         ONLY : WVAA,       NWVAA
       USE CMN_FJX_MOD,         ONLY : NWVAA0
       USE CMN_GCTM_MOD,        ONLY : AIRMW, PI
-      USE COMODE_MOD,          ONLY : CSPEC,       JLOP
       USE COMODE_LOOP_MOD,     ONLY : ICH4, AVG, WTAIR
       USE DIAG_MOD,            ONLY : AD72
       USE GIGC_Input_Opt_Mod,  ONLY : OptInput
@@ -183,6 +182,7 @@
 !  02 Jun 2015 - R. Yantosca - Bug fix: Add missing variables to OMP PRIVATE
 !  03 Jun 2015 - R. Yantosca - Now use pointers to avoid array temporaries
 !  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met object
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -209,7 +209,7 @@
       !-----------------------------------------------------------------
       ! SCALARS
       !-----------------------------------------------------------------
-      INTEGER                :: I, J ,L, LL, N, NCOL, JLOOP, IJLOOP, W
+      INTEGER                :: I, J ,L, LL, N, NCOL, IJLOOP, W
       INTEGER                :: IL, OMPID, LCHEM
       INTEGER                :: OUTIDX,IOUTWV
       INTEGER                :: IB,IBX,IB_SW,IS,NBNDS,NSPEC
@@ -604,7 +604,7 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,      L,      IJLOOP,  JLOOP    )
+!$OMP+PRIVATE( I,       J,      L,      IJLOOP            )
 !$OMP+PRIVATE( AIR_TMP, YLAT,   O3COL,  O3_CTM,  T_CTM    )
 !$OMP+PRIVATE( P_CTM,   T_CLIM, Z_CLIM, O3_CLIM, AIR_CLIM )
 !$OMP+SCHEDULE( DYNAMIC )
@@ -646,12 +646,7 @@
        O3_CTM          = 0d0
        LCHEM           = GET_CHEMGRID_LEVEL(I,J,State_Met)
        DO L = 1, LCHEM
-          JLOOP        = JLOP(I,J,L)
-
-          ! Make sure JLOOP > 0 to avoid out-of-bounds errors  (bmy, 4/13/15)
-          IF ( JLOOP > 0 ) THEN
-             O3_CTM(L) = CSPEC(JLOOP,IDO3)
-          ENDIF
+          O3_CTM(L)    = State_Chm%Species(I,J,L,IDO3)
        ENDDO
        
       DO L = 1, LLPAR
@@ -682,13 +677,8 @@
 
             ! SET O3, CH4, N2O AND CFC PROFILES
             ! G-C CHEMISTRY IS ONLY DONE IN THE TROP
-            ! THEREFORE CSPEC WILL ONLY BE DEFINED IN THE TROP
-            ! 1-D INDEX FOR CSPEC ARRAY
-            JLOOP = JLOP(I,J,L)
-!            write(6,*) 'JLOOP', JLOOP, I,J,L
-            IF (JLOOP.EQ.0) THEN 
-             JLOOP=1
-            ENDIF
+            ! THEREFORE State_Chm%Species WILL ONLY BE DEFINED IN THE TROP
+
             !IF O3 REQUESTED THEN SPECMASK WILL BE SET TO ZERO
             !SO THAT O3 WILL BE REMOVED RELATIVE TO THE BASELINE CASE
             !(WHEN SPECMASK DEFAULTS TO 1)
@@ -716,11 +706,11 @@
 
 #else
             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
-             O3VMR(IJLOOP,L)  = CSPEC(JLOOP,IDO3)/
+             O3VMR(IJLOOP,L)  = State_Chm%Species(I,J,L,IDO3)/
      &                          State_Met%AIRNUMDEN(I,J,L)
             ENDIF
             IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
-             CH4VMR(IJLOOP,L) = CSPEC(JLOOP,ICH4)/
+             CH4VMR(IJLOOP,L) = State_Chm%Species(I,J,L,ICH4)/
      &                          State_Met%AIRNUMDEN(I,J,L)
             ENDIF
             N2OVMR(IJLOOP,L) = N2OCLIM(I,J,L)/1E9
@@ -783,7 +773,7 @@
             !GET SCALINGS IF THIS IS THE FIRST LEVEL IN THE STRAT
             IF (FLG_FIRST_STRAT(IJLOOP).EQ.0) THEN
                 FLG_FIRST_STRAT(IJLOOP) = 1
-                CH4SCL(IJLOOP) = (CSPEC(JLOOP,ICH4)/
+                CH4SCL(IJLOOP) = (State_Chm%Species(I,J,L,ICH4)/
      &                            State_Met%AIRNUMDEN(I,J,L))/
      &                           (CH4CLIM(I,J,L)/1E9)
             ENDIF

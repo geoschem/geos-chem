@@ -529,11 +529,10 @@
       ! several individual data fields that need to be passed as 
       ! inputs to the chemistry routines.
       !
-      ! Eventually, the Meteorology State will replace all of the 
-      ! individual met field arrays contained in module dao_mod.F.
-      ! Likewise, the Chemistry State will replace the STT tracer array
-      ! and CSPEC chemical species array.  At present (25 Oct 2012),
-      ! we have not yet completed this conversion.
+      ! The Meteorology State has replaced all of the individual
+      ! met field arrays contained in module dao_mod.F. Likewise,
+      ! the Chemistry State has replaced the STT tracer array
+      ! and CSPEC chemical species array.
       !
       ! The Chemistry and Meteorology State objects facilitate using
       ! GEOS-Chem directly from the ESMF interface.  This is the main
@@ -927,7 +926,7 @@
      &               ( NYMD, NHMS, TAU, Input_Opt )
                ENDIF
 
-               ! Save species concentrations (CSPEC_FULL). (dkh, 02/12/09)
+               ! Save species concentrations (State_Chm%Species) (dkh, 02/12/09)
                IF ( LCHEM .and. LSVCSPEC ) THEN 
                   CALL MAKE_CSPEC_FILE( am_I_Root, Input_Opt, NYMD, 
      &                                  NHMS,      State_Chm, RC    )

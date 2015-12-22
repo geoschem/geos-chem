@@ -557,8 +557,8 @@ diag_oh_mod.o               : diag_oh_mod.F                                  \
                               tracerid_mod.o          tracer_mod.o
 
 diag_pl_mod.o               : diag_pl_mod.F                                  \
-                              comode_mod.o            tracerid_mod.o         \
-                              tracer_mod.o
+                              chemgrid_mod.o          comode_mod.o           \
+                              tracerid_mod.o          tracer_mod.o
 
 drydep_mod.o                : drydep_mod.F                                   \
                               comode_mod.o            dao_mod.o              \

@@ -42,7 +42,10 @@
       ! VOLUME    : array for grid box volume [cm3]
       !======================================================================
       REAL(fp), ALLOCATABLE, PUBLIC :: ABSHUM(:)
-      REAL(fp), ALLOCATABLE, PUBLIC :: CSPEC(:,:)
+!------------------------------------------------------------------------------
+! Prior to 12/22/15:
+!      REAL(fp), ALLOCATABLE, PUBLIC :: CSPEC(:,:)
+!------------------------------------------------------------------------------
       REAL(fp), ALLOCATABLE, PUBLIC :: CSUMA(:)
       REAL(fp), ALLOCATABLE, PUBLIC :: CSUMC(:)
       REAL(fp), ALLOCATABLE, PUBLIC :: ERADIUS(:,:)
@@ -100,6 +103,8 @@
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  21 Dec 2015 - M. Sulprizio- Remove AIRDENS, PRESS3, T3, and VOLUME. Get these
 !                              fields directly from State_Met instead.
+!  22 Dec 2015 - M. Sulprizio- Remove CSPEC array. This is now replaced by
+!                              State_Chm%Species.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -188,10 +193,12 @@
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDENS' )
 !         AIRDENS = 0e+0_fp      
 !------------------------------------------------------------------------------
-
-         ALLOCATE( CSPEC( ITLOOP, IGAS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC' )
-         CSPEC = 0e+0_fp
+! Prior to 12/22/15:
+!
+!         ALLOCATE( CSPEC( ITLOOP, IGAS ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC' )
+!         CSPEC = 0e+0_fp
+!------------------------------------------------------------------------------
 
          ALLOCATE( CSUMA( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMA' )
@@ -354,7 +361,10 @@
       ! CLEANUP_COMODE begins here!
       !=================================================================
       IF ( ALLOCATED( ABSHUM        ) ) DEALLOCATE( ABSHUM        )
-      IF ( ALLOCATED( CSPEC         ) ) DEALLOCATE( CSPEC         )
+!------------------------------------------------------------------------------
+! Prior to 12/22/15:
+!      IF ( ALLOCATED( CSPEC         ) ) DEALLOCATE( CSPEC         )
+!------------------------------------------------------------------------------
       IF ( ALLOCATED( CSUMA         ) ) DEALLOCATE( CSUMA         )
       IF ( ALLOCATED( CSUMC         ) ) DEALLOCATE( CSUMC         )
       IF ( ALLOCATED( ERADIUS       ) ) DEALLOCATE( ERADIUS       )

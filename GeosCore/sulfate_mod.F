@@ -2159,13 +2159,9 @@
 
          !==============================================================
          ! For a coupled fullchem/aerosol run, save OH [molec/cm3] 
-         ! and NO3 [molec/cm3] back into the CSPEC array of SMVGEAR
+         ! and NO3 [molec/cm3] back into State_Chm%Species
          !==============================================================
          IF ( IS_FULLCHEM ) THEN
-! Replace these calls with direct access to State_Chm%Species
-!            CALL SET_OH( I, J, L, OH )
-!            CALL SET_NO3( I, J, L, XNO3 )
-! MSL - 12/17/2015
             State_Chm%Species(I,J,L,IDOH  ) = OH
             State_Chm%Species(I,J,L,IDNO3 ) = XNO3
          ENDIF
@@ -2288,7 +2284,7 @@
       ! Scalars
       LOGICAL            :: FIRST     = .TRUE.
       INTEGER, SAVE      :: LASTMONTH = -99
-      INTEGER            :: I, J, L, JLOOP, N_TRACERS
+      INTEGER            :: I, J, L, N_TRACERS
       REAL(fp)           :: DT,    Koh,  DH2O2, M,    F ,   XTAU   
       REAL(fp)           :: H2O20, H2O2, ALPHA, FREQ, PHOTJ
       CHARACTER(LEN=255) :: FILENAME
@@ -2332,7 +2328,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2 )
-!$OMP+PRIVATE( JLOOP, PHOTJ )
+!$OMP+PRIVATE( PHOTJ )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L  = 1, LLPAR
       DO J  = 1, JJPAR
@@ -2356,9 +2352,6 @@
 
          ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
          FREQ = 0.e+0_fp
-
-         ! 1-D grid box index for SUNCOS
-         JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Impose a diurnal variation of jH2O2 by multiplying COS of 
          ! solar zenith angle normalized by maximum solar zenith angle 
@@ -3436,8 +3429,6 @@
       USE CMN_DIAG_MOD             ! ND05, LD05
       USE CMN_GCTM_MOD          
       USE CMN_SIZE_MOD          
-      USE COMODE_MOD,         ONLY : CSPEC
-      USE COMODE_MOD,         ONLY : JLOP
       USE DIAG_MOD,           ONLY : AD05
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
@@ -3525,9 +3516,8 @@
 !
       ! Scalars
       LOGICAL            :: IT_IS_A_FULLCHEM_SIM
-      INTEGER            :: JLOOP,       N_TRACERS
+      INTEGER            :: N_TRACERS
       REAL(fp)           :: SO2_chem,    DTCHEM
-      REAL(fp)           :: O3_cspec,    O3_lost
       REAL(fp)           :: EQ_1_C,      EQ_2_C
       REAL(fp)           :: SO4E,        SO2_new,    SO4F
       REAL(fp)           :: SO2_eq,      N_FLUX_A,   N_FLUX_C
@@ -3889,7 +3879,6 @@
 !
       ! References to F90 modules
       USE CMN_SIZE_MOD             ! Size parameters
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE GIGC_ErrCode_Mod
@@ -3971,7 +3960,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL              :: IT_IS_A_FULLCHEM_SIM
-      INTEGER              :: JLOOP,       N_TRACERS
+      INTEGER              :: N_TRACERS
       INTEGER              :: IBIN
       REAL(fp)             :: EQ1
       REAL(fp)             :: HNO3_gas
@@ -3997,7 +3986,6 @@
       REAL(fp)             :: ALKA_vv,     ALKA_kg,    ALKA_eq
       REAL(fp)             :: END_ALK,     L5A,        L6A,      L7A
       REAL(fp)             :: EQ_BEG
-      REAL(fp)             :: O3_cspec,    O3_lost
 
       ! Arrays
       REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
@@ -6505,7 +6493,7 @@
 !
 ! !IROUTINE: get_oh
 !
-! !DESCRIPTION: Function GET\_OH returns OH from SMVGEAR's CSPEC array (for
+! !DESCRIPTION: Function GET\_OH returns OH from State_Chm%Species (for
 !  coupled runs) or monthly mean OH (for offline runs).  Imposes a diurnal 
 !  variation on OH for offline simulations. (bmy, 12/16/02, 7/20/04)
 !\\
@@ -6517,8 +6505,8 @@
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -6545,13 +6533,14 @@
 !  04 Mar 2013 - R. Yantosca - Now pass Input_Opt%ITS_A_FULLCHEM_SIM and
 !                              Input_Opt%ITS_AN_AEROSOL_SIM
 !  18 Sep 2014 - M. Sulprizio- Now get OH for offline aerosol sim from HEMCO
+!  22 Dec 2015 - M. Sulprizio- Remove references to CSPEC and JLOOP. We now get
+!                              species concentrations from State_Chm%Species.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: JLOOP
       REAL(fp)            :: OH_MOLEC_CM3
  
       !=================================================================
@@ -6564,12 +6553,9 @@
          ! Coupled simulation
          !---------------------
 
-         ! JLOOP = SMVGEAR 1-D grid box index
-         JLOOP = JLOP(I,J,L)
-
-         ! Take OH from the SMVGEAR array CSPEC
-         ! OH is defined only in the troposphere
-         IF ( JLOOP > 0 ) THEN
+         ! Take OH from State_Chm%Species [molec/cm3]
+         ! OH is defined only in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
             OH_MOLEC_CM3 = State_Chm%Species(I,J,L,IDOH)
          ELSE
             OH_MOLEC_CM3 = 0e+0_fp
@@ -6580,9 +6566,6 @@
          !---------------------
          ! Offline simulation
          !---------------------
-
-         ! 1-D grid box index for SUNCOS
-         JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Test for sunlight...
          IF ( State_Met%SUNCOS(I,J) > 0e+0_fp 
@@ -6622,61 +6605,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_oh
-!
-! !DESCRIPTION: Subroutine SET\_OH saves the modified OH value back to
-!  SMVGEAR's CSPEC array for coupled sulfate/aerosol simulations. (bmy, 
-!  12/16/02)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_OH( I, J, L, OH ) 
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE COMODE_MOD,   ONLY : CSPEC, JLOP
-      USE TRACERID_MOD, ONLY : IDOH
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,  INTENT(IN) :: I, J, L ! Indices for lon, lat, vertical level
-      REAL(fp), INTENT(IN) :: OH      ! OH at (I,J,L) to be saved into CSPEC
-!
-! !REVISION HISTORY:
-!  (1 ) We assume SETTRACE has been called to define IDOH (bmy, 12/16/02)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER             :: JLOOP
-
-      !=================================================================
-      ! SET_OH begins here!
-      !=================================================================
-
-      ! JLOOP = SMVGEAR 1-D grid box index
-      JLOOP = JLOP(I,J,L) 
-
-      ! Replace OH into CSPEC(troposphere only)
-      IF ( JLOOP > 0 ) THEN
-         CSPEC(JLOOP,IDOH) = OH
-      ENDIF
-
-      END SUBROUTINE SET_OH
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: get_no3
 !
-! !DESCRIPTION: Function GET\_NO3 returns NO3 from SMVGEAR's CSPEC array (for
+! !DESCRIPTION: Function GET\_NO3 returns NO3 from State_Chm%Species (for
 !  coupled runs) or monthly mean OH (for offline runs).  For offline runs, the
 !  concentration of NO3 is set to zero during the day. (rjp, bmy, 12/16/02)
 !\\
@@ -6688,9 +6619,8 @@
 !
 ! !USES:
 !
-
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -6719,13 +6649,14 @@
 !                              Input_Opt%ITS_AN_AEROSOL_SIM
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  18 Sep 2014 - M. Sulprizio- Now get NO3 for offline aerosol sims from HEMCO
+!  22 Dec 2015 - M. Sulprizio- Remove references to CSPEC and JLOOP. We now get
+!                              species concentrations from State_Chm%Species.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: JLOOP
       REAL(fp) :: NO3_MOLEC_CM3
       REAL(fp) :: BOXVL
 
@@ -6739,12 +6670,9 @@
          ! Coupled simulation
          !--------------------
             
-         ! 1-D SMVGEAR grid box index
-         JLOOP = JLOP(I,J,L)
-
-         ! Take NO3 from the SMVGEAR array CSPEC
-         ! NO3 is defined only in the troposphere
-         IF ( JLOOP > 0 ) THEN
+         ! Take NO3 from State_Chm%Species [molec/cm3]
+         ! NO3 is defined only in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
             NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,IDNO3)
          ELSE
             NO3_MOLEC_CM3 = 0e+0_fp
@@ -6775,9 +6703,6 @@
          ! the monthly mean concentration every 3 hours (as for HNO3) 
          ! since NO3 has a very short lifetime. (rjp, bmy, 12/16/02) 
          !==============================================================
-
-         ! 1-D grid box index for SUNCOS
-         JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Test if daylight
          IF ( State_Met%SUNCOS(I,J) > 0e+0_fp ) THEN
@@ -6818,59 +6743,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_no3
-!
-! !DESCRIPTION: Subroutine SET\_NO3 saves the modified NO3 value back to 
-!  SMVGEAR's CSPEC array for coupled lfate/aerosol simulations. (rjp, bmy, 
-!  12/16/02, 7/20/04)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_NO3( I, J, L, NO3 ) 
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE COMODE_MOD,   ONLY : CSPEC, JLOP
-      USE TRACERID_MOD, ONLY : IDNO3
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,  INTENT(IN) :: I, J, L ! Indices for lon, lat, vertical level
-      REAL(fp), INTENT(IN) :: NO3     ! NO3 at (I,J,L) to be saved into CSPEC
-!
-! !REVISION HISTORY:
-!  (1 ) We assume SETTRACE has been called to define IDNO3. (bmy, 12/16/02)
-!  (2 ) Remove references to "error_mod.f" and CMN (bmy, 7/20/04)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER             :: JLOOP
-
-      !=================================================================
-      ! SET_NO3 begins here!
-      !=================================================================
-
-      ! 1-D grid box index for CSPEC
-      JLOOP = JLOP(I,J,L) 
-
-      ! Replace OH into CSPEC (troposphere only)
-      IF ( JLOOP > 0 ) THEN
-         CSPEC(JLOOP,IDNO3) = NO3
-      ENDIF
-
-      END SUBROUTINE SET_NO3
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: get_o3
 !
 ! !DESCRIPTION: Function GET\_O3 returns monthly mean O3 for offline sulfate
@@ -6879,13 +6751,13 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_O3( I, J, L, Input_Opt, SC, State_Met )
+      FUNCTION GET_O3( I, J, L, Input_Opt, State_Chm, State_Met )
      &                 RESULT( O3_VV )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_MOd, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -6897,7 +6769,7 @@
 !
       INTEGER,        INTENT(IN)  :: I, J, L     ! Lon, lat, vertical level
       TYPE(OptInput), INTENT(IN)  :: Input_Opt  
-      TYPE(ChmState), INTENT(IN)  :: SC   ! Chemistry State object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
@@ -6911,13 +6783,14 @@
 !  04 Mar 2013 - R. Yantosca - Now pass Input_Opt%ITS_A_FULLCHEM_SIM and
 !                              Input_Opt%ITS_AN_AEROSOL_SIM
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  22 Dec 2015 - M. Sulprizio- Remove references to CSPEC and JLOOP. We now get
+!                              species concentrations from State_Chm%Species.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: JLOOP
       REAL(fp)              :: O3_VV
  
       !=================================================================
@@ -6930,13 +6803,10 @@
          ! Coupled simulation
          !--------------------
 
-         ! JLOOP = SMVGEAR 1-D grid box index
-         JLOOP = JLOP(I,J,L)
-
-         ! Get O3 from CSPEC [molec/cm3] and convert it to [v/v]
-         ! O3 data will only be defined below the tropopause
-         IF ( JLOOP  > 0 ) THEN
-            O3_VV = ( SC%Species(I,J,L,IDO3)  * 1e+6_fp   ) / 
+         ! Get O3 from State_Chm%Species [molec/cm3] and convert it to [v/v]
+         ! O3 is defined only in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+            O3_VV = ( State_Chm%Species(I,J,L,IDO3)  * 1e+6_fp   ) / 
      &              ( State_Met%AIRDEN(I,J,L) * XNUMOLAIR )
          ELSE
             O3_VV = 0e+0_fp
@@ -6949,7 +6819,7 @@
          !--------------------
 
          ! Get O3 [v/v] for this gridbox & month
-         ! O3 data will only be defined within the chemistry grid
+         ! O3 is defined only in the chemistry grid
          IF ( L <= LLCHEM ) THEN
             O3_VV = O3m(I,J,L)
          ELSE

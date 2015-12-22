@@ -1667,13 +1667,12 @@
       DESCRIPT(N) = 'Radiative diagnostics'
       OFFSET(N)   = SPACING * 72
 
-! NEED TO DO THAT AT ONE POINT      
-!      ! New for CSPEC
-!      N           = N + 1
-!      CATEGORY(N) = 'IJ-CHK-$'
-!      DESCRIPT(N) = 'species concentrations after chemistry'
-!      OFFSET(N)   = SPACING * 50
-!      
+      ! For species restart file
+      N           = N + 1
+      CATEGORY(N) = 'IJ-CHK-$'
+      DESCRIPT(N) = 'Species concentrations after chemistry'
+      OFFSET(N)   = SPACING * 50
+
       ! Number of categories
       NCATS = N
       

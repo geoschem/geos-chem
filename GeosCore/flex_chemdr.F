@@ -107,9 +107,6 @@
       ! mje Array to hold the molecular mass of the species
       REAL(kind=fp)       :: TCVV(Input_Opt%N_TRACERS)
 
-      ! mje CSPEC_FULL holds the concentation of all chemical species
-      REAL(kind=fp), POINTER :: CSPEC_FULL(:,:,:,:)
-
       ! mje STT holds the concentrations of Tracers
       REAL(kind=fp), POINTER :: STT(:,:,:,:)
 
@@ -131,9 +128,6 @@
 
       ! mje Copy the molecular mass of the Tracers into TCVV
       TCVV      = Input_Opt%TCVV
-
-      ! mje link the SPEC_FULL Pointer to the State_Chm%Species structure
-      CSPEC_FULL => State_Chm%Species
 
       ! Debug
       write(*,'(3a,2e12.4)') '<> b RURALBOX ',
@@ -254,10 +248,10 @@
       END DO
 
       ! Debug
-      write(*,'(3a,2e12.4)') '<> b copy STT to CSPEC_FULL ',
-     &            NAMEGAS(66), ' = ', CSPEC_FULL(10,10,10,66)
-      write(*,'(3a,2e12.4)') '<> b copy STT to CSPEC_FULL ',
-     &            NAMEGAS(62), ' = ', CSPEC_FULL(10,10,10,62)
+      write(*,'(3a,2e12.4)') '<> b copy STT to State_Chm%Species ',
+     &            NAMEGAS(66), ' = ', State_Chm%Species(10,10,10,66)
+      write(*,'(3a,2e12.4)') '<> b copy STT to State_Chm%Species ',
+     &            NAMEGAS(62), ' = ', State_Chm%Species(10,10,10,62)
       write(*,*) 'STT = ', STT(10,10,10,1), ' kg'
 
       ! Loop over tracers 
@@ -274,18 +268,18 @@
          ENDDO
          ENDDO
 
-         ! Copy STT into CSPEC_FULL [molec/cm3]
+         ! Copy STT into State_Chm%Species [molec/cm3]
          IF (STTTOCSPEC(N) .NE. 0) THEN 
-            CSPEC_FULL(:,:,:,STTTOCSPEC(N))=STT(:,:,:,N)
+            State_Chm%Species(:,:,:,STTTOCSPEC(N))=STT(:,:,:,N)
          ENDIF
       ENDDO
  
       ! Debug
       write(*,*) 'STT = ', STT(10,10,10,1), ' molec/cm3'
-      write(*,'(3a,2e12.4)') '<> a copy STT to CSPEC_FULL ',
-     &            NAMEGAS(66), ' = ', CSPEC_FULL(10,10,10,66)
-      write(*,'(3a,2e12.4)') '<> a copy STT to CSPEC_FULL ',
-     &            NAMEGAS(62), ' = ', CSPEC_FULL(10,10,10,62)
+      write(*,'(3a,2e12.4)') '<> a copy STT to State_Chm%Species ',
+     &            NAMEGAS(66), ' = ', State_Chm%Species(10,10,10,66)
+      write(*,'(3a,2e12.4)') '<> a copy STT to State_Chm%Species ',
+     &            NAMEGAS(62), ' = ', State_Chm%Species(10,10,10,62)
 
       ! mje Set up conditions for the integration
       ! mje chemical timestep and convert it to seconds.
@@ -388,7 +382,7 @@
          ! mje The Integrator works in # cm-3
          DO N=1,NSPEC
             IF ( CSPECTOKPP(N) .eq. 0) CYCLE
-            C(N)=CSPEC_FULL(I,J,L,CSPECTOKPP(N))
+            C(N)=State_Chm%Species(I,J,L,CSPECTOKPP(N))
          ENDDO
 
          ! Debug
@@ -471,12 +465,11 @@
          ENDIF
 
          ! mje Check we have no negative values and copy the concentrations
-         ! mje calculated into the CSPEC_FULL array which is really a pointer
-         ! mje to the chemistry structure
+         ! mje calculated into State_Chm%Species
          DO N=1,NSPEC
             C(N) = MAX( C(N), 0E0_dp )
             IF ( CSPECTOKPP(N) .eq. 0) CYCLE
-            CSPEC_FULL(I,J,L,CSPECTOKPP(N))= real(C(N),kind=fp)
+            State_Chm%Species(I,J,L,CSPECTOKPP(N))= real(C(N),kind=fp)
          ENDDO
 
          ! save next integration time step
@@ -498,9 +491,9 @@
       ! Loop over tracers
       DO N=1,N_TRACERS
 
-         ! Copy new tracer concentrations from CSPEC_FULL to STT [molec/cm3]
+         ! Copy new tracer concentrations from State_Chm%Species to STT [molec/cm3]
          IF (STTTOCSPEC(N) .NE. 0) THEN
-            STT(:,:,:,N)=CSPEC_FULL(:,:,:,STTTOCSPEC(N))
+            STT(:,:,:,N)=State_Chm%Species(:,:,:,STTTOCSPEC(N))
          ENDIF
 
          ! Convert STT from molec/cm3 back to kg
@@ -572,10 +565,10 @@
             
             ! Update the deposition velocity diagostics 
             CALL Diagn_Update( am_I_Root,
-     &                        cName   = TRIM( DiagnName ),
-     &                        Array3D = CSPEC_FULL(:,:,:,CSPECTOKPP(N)),
-     &                        COL     = Input_Opt%DIAG_COLLECTION,
-     &                        RC      = HCRC )
+     &                 cName   = TRIM( DiagnName ),
+     &                 Array3D = State_Chm%Species(:,:,:,CSPECTOKPP(N)),
+     &                 COL     = Input_Opt%DIAG_COLLECTION,
+     &                 RC      = HCRC )
 
             ! Stop wieth error if the diagnostics were unsuccessful
             IF ( HCRC /= HCO_SUCCESS ) THEN
@@ -616,7 +609,6 @@
 
       ! mje set rid of the pointers created
       NULLIFY (STT)
-      NULLIFY (CSPEC_FULL) 
 
       END SUBROUTINE FLEX_CHEMDR
 !EOC

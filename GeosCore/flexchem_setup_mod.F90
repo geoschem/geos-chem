@@ -137,7 +137,7 @@ CONTAINS
        ENDIF
     ENDDO
 
-!   MSL - Create vector to map species in CSPEC order, defined
+!   MSL - Create vector to map species in State_Chm%Species order, defined
 !         in READCHEM, to KPP's order, as seen in gckpp_Parameters.F90
     DO N=1,Input_Opt%N_SPECIES
        FOUND=0
@@ -161,7 +161,7 @@ CONTAINS
 
 !------------------------------------------------------------------------------
 ! Initialize Initial Species Concentrations
-! -- If read from a cspec restart file, otherwise
+! -- If read from a species restart file, otherwise
 ! -- Set species to their assigned background concentrations
 !
 ! -- For the time being, we still read in globchem.dat thru READCHEM,
@@ -171,7 +171,7 @@ CONTAINS
 
     IF ( Input_Opt%LSVCSPEC ) THEN
 
-       ! Read the CSPEC restart file.  If not found, then 
+       ! Read the species restart file.  If not found, then 
        ! return IT_EXISTS = .FALSE.
        CALL READ_CSPEC_FILE( am_I_Root,  Input_Opt, GET_NYMD(),  &
                              GET_NHMS(), IT_EXISTS, State_Chm,  RC  )
@@ -179,12 +179,12 @@ CONTAINS
        IF ( .not. IT_EXISTS ) THEN 
           
           !-----------------------------------------------------------
-          ! No CSPEC restart file found 
+          ! No species restart file found 
           ! Initialize species with default values from globchem.dat
           !-----------------------------------------------------------
 
           IF ( am_I_Root ) THEN
-             WRITE(6,*) '    - FLEXCHEM_SETUP: CSPEC restart not found. ', &
+             WRITE(6,*) '    - FLEXCHEM_SETUP: Species restart not found. ', &
                 'Initialize species to background values from globchem.dat.'
           ENDIF
           
@@ -236,12 +236,12 @@ CONTAINS
     ELSE
 
        !-----------------------------------------------------------
-       ! No CSPEC restart file specified in input.geos
+       ! No species restart file specified in input.geos
        ! Initialize species with default values from globchem.dat
        !-----------------------------------------------------------
 
        IF ( am_I_Root ) THEN
-          WRITE(6,*) '    - FLEXCHEM_SETUP: Not using CSPEC restart. ', &
+          WRITE(6,*) '    - FLEXCHEM_SETUP: Not using species restart. ', &
              'Initialize species to background values from globchem.dat.'
        ENDIF
 

@@ -3269,11 +3269,11 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
       READ( SUBSTRS(1:N), * ) TS_CHEM
 
-      ! Read and save CSPEC ?
+      ! Read and save species restart file ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
       READ( SUBSTRS(1:N), * ) LSVCSPEC
 
-      ! Read and save CSPEC ?
+      ! Species restart file name
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:9' )
       READ( SUBSTRS(1:N), '(a)' ) SPEC_RST_FILE
 
@@ -3406,8 +3406,8 @@
          WRITE( 6, 100     ) 'Online strat. H2O?          : ',LACTIVEH2O
          WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', 
      &        Input_Opt%TS_CHEM
-         WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
-         WRITE( 6, 130     ) ' => CSPEC restart file?     : ', 
+         WRITE( 6, 100     ) 'Use species restart?        : ', LSVCSPEC
+         WRITE( 6, 130     ) ' => Species restart file    : ', 
      &        TRIM( SPEC_RST_FILE )
          WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
          WRITE( 6, 100     ) 'Online ozone for FAST-JX?   : ', LO3FJX

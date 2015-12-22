@@ -581,7 +581,7 @@
       IHATOM   = 0
       INO      = 0
 
-      ! Locate positions of O2, H2O, CH4, LISOPOH in CSPEC array
+      ! Locate positions of O2, H2O, CH4, LISOPOH in State_Chm%Species
       DO I = 1, NTSPECGAS
 
          SELECT CASE ( TRIM( NAMEGAS(I) ) )

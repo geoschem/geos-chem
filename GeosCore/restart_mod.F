@@ -879,8 +879,8 @@
 !
 ! !DESCRIPTION: Subroutine MAKE\_CSPEC\_FILE writes GEOS-Chem chemical
 !  species concentrations into a checkpoint file (binary punch file format).
-!  The chemical species are saved into the CSPEC array, which is used by
-!  the SMVGEAR and KPP solvers.
+!  The chemical species are saved into State_Chm%Species, which is used by
+!  the KPP solver.
 !\\
 !\\
 ! !INTERFACE:
@@ -964,11 +964,6 @@
       ! For fields from Input_Opt
       LOGICAL              :: LPRT
 
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
-      REAL(fp), POINTER      :: CSPEC_FULL(:,:,:,:)
-
       !=================================================================
       ! MAKE_CSPEC_FILE begins here!
       !=================================================================
@@ -983,10 +978,6 @@
       ! use minimum value instead of zero hotp 2/25/09
       !TMP(:,:,:)   = 0e0
       TMP(:,:,:)   = 1e-30
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      CSPEC_FULL => State_Chm%Species
 
       ! Define variables for BINARY PUNCH FILE OUTPUT
       TITLE    = 'GEOS-CHEM Checkpoint File: ' // 
@@ -1040,8 +1031,8 @@
       ! prod/loss family species for the ND65 diagnostic (bmy, 7/11/11)
       DO N = 1 , NTSPEC(1)
          
-         ! The IFAM array denotes the index # of species in the CSPEC
-         ! array that are "fake" ND65 prod/loss families.  If we 
+         ! The IFAM array denotes the index # of species in State_Chm%Species
+         ! that are "fake" ND65 prod/loss families.  If we 
          ! encounter one of these, then we can skip it (bmy, 7/11/11)
          IF ( ANY( IFAM == N ) ) THEN
             CYCLE
@@ -1054,12 +1045,12 @@
          DO J = 1, ILAT
          DO I = 1, ILONG
         
-            ! fix recommended by pls, save CSPEC_FULL (hotp 2/18/09)
-            ! now set conc no smalle than 1d-30
-            IF ( CSPEC_FULL(I,J,L,N) .LE. 1e-30_fp ) THEN
+            ! Fix recommended by pls, save State_Chm%Species (hotp 2/18/09)
+            ! Now set conc no smaller than 1d-30
+            IF ( State_Chm%Species(I,J,L,N) .LE. 1e-30_fp ) THEN
                  TMP(I,J,L) = 1e-30
             ELSE
-                 TMP(I,J,L) = CSPEC_FULL(I,J,L,N)
+                 TMP(I,J,L) = State_Chm%Species(I,J,L,N)
             ENDIF
 
          ENDDO
@@ -1070,7 +1061,7 @@
          ! Save the species name to the RESERVED slot of the bpch file
          RESERVED = TRIM( NAMEGAS(N) )
 
-         ! Write the data block to the CSPEC checkpoint file
+         ! Write the data block to the species restart file
          CALL BPCH2( IU_RST,    MODELNAME, LONRES,    LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY,  N,
      &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,
@@ -1081,9 +1072,6 @@
 
       ! Close file
       CLOSE( IU_RST )
-
-      ! Free pointer
-      NULLIFY( CSPEC_FULL )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_CSPEC_FILE: wrote file' )
@@ -1099,8 +1087,8 @@
 !
 ! !DESCRIPTION: Subroutine READ\_CSPEC\_FILE initializes GEOS-Chem chemical
 !  species concentrations from a checkpoint file (binary punch file format).
-!  The chemical species are saved into the CSPEC array, which is used by
-!  the SMVGEAR and KPP solvers.
+!  The chemical species are saved into State_Chm%Species, which is used by
+!  the KPP solver.
 !\\
 !\\
 ! !INTERFACE:
@@ -1137,7 +1125,7 @@
 ! !OUTPUT PARAMETERS: 
 !
 
-      LOGICAL,        INTENT(OUT)   :: IT_EXISTS   ! Does CSPEC restart exist?
+      LOGICAL,        INTENT(OUT)   :: IT_EXISTS   ! Does species restart exist?
       INTEGER,        INTENT(OUT)   :: RC 
 ! 
 ! !REVISION HISTORY: 
@@ -1186,11 +1174,6 @@
       ! For values from Input_Opt
       LOGICAL             :: LPRT
 
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
-      REAL(fp),  POINTER    :: CSPEC_FULL(:,:,:,:)
-
       !=================================================================
       ! READ_CSPEC_FILE begins here!
       !=================================================================
@@ -1205,10 +1188,6 @@
       !TMP(:,:,:) = 0e0
       ! use 1e-30 as min (hotp 2/25/09)
       TMP(:,:,:) = 1e-30
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      CSPEC_FULL => State_Chm%Species
 
       !=================================================================
       ! Open checkpoint file and read top-of-file header
@@ -1231,12 +1210,9 @@
       ENDIF
  100  FORMAT( '     - READ_CSPEC_FILE: Reading ', a, ' on unit ', i4 )
  
-      ! Check to see if cspec restart file exists
+      ! Check to see if species restart file exists
       IT_EXISTS = FILE_EXISTS( FILENAME )
-      IF ( .not. IT_EXISTS ) THEN
-         NULLIFY( CSPEC_FULL )
-         RETURN
-      ENDIF 
+      IF ( .not. IT_EXISTS ) RETURN
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_RST, FILENAME )
@@ -1244,14 +1220,14 @@
       ! Loop over all species in the chemical mechanism
       DO N = 1, NTSPEC(1)
 
-         ! The IFAM array denotes the index # of species in the CSPEC
-         ! array that are "fake" ND65 prod/loss families.  If we 
+         ! The IFAM array denotes the index # of species in State_Chm%Species
+         ! that are "fake" ND65 prod/loss families.  If we 
          ! encounter one of these, then we can skip it.
          IF ( ANY( IFAM == N ) ) THEN
             CYCLE
          ENDIF
 
-         ! Read the values of CSPEC
+         ! Read the model info
          READ( IU_RST, IOSTAT=IOS )
      &       MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
 
@@ -1281,7 +1257,7 @@
      &      CALL IOERROR( IOS,IU_RST,'read_cspec_file:16' )
 
          !==============================================================
-         ! Assign data from the TMP array to CSPEC
+         ! Assign data from the TMP array to State_Chm%Species
          !==============================================================
 
          ! Only process checkpoint data 
@@ -1300,14 +1276,14 @@
      &                          'READ_CSPEC_FILE (restart_mod.f)' )
             ENDIF
 
-            ! Read data from temporary array into CSPEC_FULL
+            ! Read data from temporary array into State_Chm%Species
             ! NOTE: Using N instead of NTRACER will skip over
             ! the "fake" ND65 prod/loss families (bmy, 7/12/11)
-            CSPEC_FULL(:,:,:,N) = TMP(:,:,:)
+            State_Chm%Species(:,:,:,N) = TMP(:,:,:)
 
          ELSE
-            CALL ERROR_STOP(' Restart data is not correct ', 
-     &                   ' reading CSPEC, restart_mod')
+            CALL ERROR_STOP( ' Species restart data is not correct ',
+     &                       ' READ_CSPEC_FILE (restart_mod.F)' )
 
          ENDIF
  
@@ -1317,9 +1293,6 @@
 
       ! Close file
       CLOSE( IU_RST )      
-
-      ! Free pointer
-      NULLIFY( CSPEC_FULL )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### READ_CSPEC_FILE: read file' )

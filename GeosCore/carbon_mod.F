@@ -3787,20 +3787,20 @@
       DTCHEM  = GET_TS_CHEM() * 60e+0_fp 
 
       ! Get offline OH, NO3, O3 concentrations [molec/cm3]
-      OHMC    = GET_OH(  I, J, L, Input_Opt, State_Met ) 
-      TTNO3   = GET_NO3( I, J, L, Input_Opt, State_Met )
-      TTO3    = GET_O3(  I, J, L, Input_Opt, State_Met ) 
+      OHMC    = GET_OH(  I, J, L, Input_Opt, State_Chm, State_Met ) 
+      TTNO3   = GET_NO3( I, J, L, Input_Opt, State_Chm, State_Met )
+      TTO3    = GET_O3(  I, J, L, Input_Opt, State_Chm, State_Met ) 
 
       ! Get RO2+NO, RO2+HO2 branching ratio (hotp 5/7/10)
-      NOTEMP  = GET_NO(  I, J, L, Input_Opt            )
-      HO2TEMP = GET_HO2( I, J, L, Input_Opt            )
+      NOTEMP  = GET_NO(  I, J, L, Input_Opt, State_Chm, State_Met )
+      HO2TEMP = GET_HO2( I, J, L, Input_Opt, State_Chm, State_Met )
 
       IF ( NOTEMP .GT. 0.0 ) THEN
          BETANO  = ( KNO * NOTEMP ) / ( KNO * NOTEMP + KHO2 * HO2TEMP )
       ELSEIF ( HO2TEMP .GT. 0.0 ) THEN
          BETANO = 0.e+0_fp
       ELSE
-         ! default value if no CSPEC value
+         ! default value if no State_Chm%Species value
          BETANO = 0.5e+0_fp
       ENDIF
 
@@ -3919,10 +3919,12 @@
             ! Get ISOP lost to rxn with OH [kg]
             !DOH = GET_DOH( I, J, L, Input_Opt )
             ! Save as DELHC (hotp 5/22/10)
-            DELHC(1) = GET_DOH( I, J, L, Input_Opt, State_Met )
+            DELHC(1) = GET_DOH( I, J, L, Input_Opt, State_Chm,
+     &                          State_Met )
 
             ! Get ISOP lost to rxn with NO3 [kgC]
-            DELHC(2) = GET_ISOPNO3( I, J, L, Input_Opt, State_Met )
+            DELHC(2) = GET_ISOPNO3( I, J, L, Input_Opt, State_Chm,
+     &                              State_Met )
 
             ! Save diagnostic info for bug check (hotp 5/22/10)
             ! convert from kgC to kg
@@ -3960,12 +3962,16 @@
             ! Here, we add the two pathways together and use an
             ! offline branching ratio (BETANO) (hotp 5/22/10)
             NOX = NHIGHNOX ! NOX=1
-            DELHC(NOX) = ( GET_DARO2(I,J,L,1,JHC,Input_Opt, State_Met) +
-     &                     GET_DARO2(I,J,L,2,JHC,Input_Opt, State_Met) )
+            DELHC(NOX) = ( GET_DARO2(I, J, L, 1, JHC, Input_Opt,
+     &                               State_Chm, State_Met) +
+     &                     GET_DARO2(I, J, L, 2, JHC, Input_Opt,
+     &                               State_Chm, State_Met) )
      &                   * BETANO
             NOX = NLOWNOX  ! NOX=2
-            DELHC(NOX) = ( GET_DARO2(I,J,L,1,JHC,Input_Opt, State_Met) +
-     &                     GET_DARO2(I,J,L,2,JHC,Input_Opt, State_Met) )
+            DELHC(NOX) = ( GET_DARO2(I, J, L, 1, JHC, Input_Opt,
+     &                               State_Chm, State_Met) +
+     &                     GET_DARO2(I, J, L, 2, JHC, Input_Opt,
+     &                               State_Chm, State_Met) )
      &                   * (1e+0_fp-BETANO)
 
             ! Determine SOG yield and add to GM0 (hotp 5/22/10)
@@ -4021,7 +4027,8 @@
 
             ! here we oxidize gas phase POA (POG) to OPOG by reaction with OH
             ! use constant KOH = 2e-11 for now (hotp 3/18/09)
-            OHMC        = GET_OH(  I, J, L, Input_Opt, State_Met ) 
+            OHMC        = GET_OH( I, J, L, Input_Opt, State_Chm,
+     &                            State_Met ) 
             RK          = 2.e-11_fp * OHMC
 
             ! Identify IDSV (hotp 5/14/10)
@@ -6101,22 +6108,23 @@ ccc
 !
 ! !IROUTINE: get_oh
 !
-! !DESCRIPTION: Function GET\_OH returns OH from SMVGEAR's CSPEC array (for
+! !DESCRIPTION: Function GET\_OH returns OH from State_Chm%Species (for
 !  coupled runs) or monthly mean OH (for offline runs).  Imposes a diurnal
 !  variation on OH for offline simulations. (bmy, 7/9/04)
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_OH( I, J, L, Input_Opt, State_Met ) 
+      FUNCTION GET_OH( I, J, L, Input_Opt, State_Chm, State_Met ) 
      &         RESULT( OH_MOLEC_CM3 )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDOH
@@ -6127,6 +6135,7 @@ ccc
       INTEGER,        INTENT(IN)  :: J           ! Latitude index
       INTEGER,        INTENT(IN)  :: L           ! Altitude index
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
@@ -6142,14 +6151,13 @@ ccc
 !   4 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  23 Sep 2014 - M. Sulprizio- Now get OH for offline aerosol sim from HEMCO
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: JLOOP
- 
       !=================================================================
       ! GET_OH begins here!
       !=================================================================
@@ -6159,13 +6167,10 @@ ccc
          ! Coupled simulation
          !---------------------
 
-         ! JLOOP = SMVGEAR 1-D grid box index
-         JLOOP = JLOP(I,J,L)
-
-         ! Take OH from the SMVGEAR array CSPEC
-         ! OH is defined only in the troposphere
-         IF ( JLOOP > 0 ) THEN
-            OH_MOLEC_CM3 = CSPEC(JLOOP,IDOH)
+         ! Take OH from State_Chm%Species [molec/cm3]
+         ! OH is defined only in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+            OH_MOLEC_CM3 = State_Chm%Species(I,J,L,IDOH)
          ELSE
             OH_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -6175,9 +6180,6 @@ ccc
          !---------------------
          ! Offline simulation
          !---------------------
-
-         ! 1-D grid box index for SUNCOS
-         JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Test for sunlight...
          IF ( State_Met%SUNCOS(I,J) > 0e+0_fp 
@@ -6220,7 +6222,7 @@ ccc
 !
 ! !IROUTINE: get_no3
 !
-! !DESCRIPTION: Function GET\_NO3 returns NO3 from SMVGEAR's CSPEC array (for
+! !DESCRIPTION: Function GET\_NO3 returns NO3 from State_Chm%Species (for
 !  coupled runs) or monthly mean OH (for offline runs).  For offline runs, the
 !  concentration of NO3 is set to zero during the day. (rjp, bmy, 12/16/02,
 !  7/20/04)
@@ -6228,15 +6230,16 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_NO3( I, J, L, Input_Opt, State_Met ) 
+      FUNCTION GET_NO3( I, J, L, Input_Opt, State_Chm, State_Met ) 
      &         RESULT( NO3_MOLEC_CM3 ) 
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDNO3
 !
@@ -6246,6 +6249,7 @@ ccc
       INTEGER,        INTENT(IN)  :: J           ! Latitude index
       INTEGER,        INTENT(IN)  :: L           ! Altitude index
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
@@ -6265,6 +6269,7 @@ ccc
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_MOD
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  23 Sep 2014 - M. Sulprizio- Now get NO3 for offline aerosol sims from HEMCO
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6275,7 +6280,6 @@ ccc
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER              :: JLOOP
       REAL(fp)             :: BOXVL
 
       !=================================================================
@@ -6287,13 +6291,10 @@ ccc
          ! Fullchem simulation
          !----------------------
 
-         ! 1-D SMVGEAR grid box index
-         JLOOP = JLOP(I,J,L)
-
-         ! Take NO3 from the SMVGEAR array CSPEC
-         ! NO3 is defined only in the troposphere
-         IF ( JLOOP > 0 ) THEN
-            NO3_MOLEC_CM3 = CSPEC(JLOOP,IDNO3)
+         ! Take NO3 from the State_Chm%Species [molec/cm3]
+         ! NO3 is defined only in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+            NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,IDNO3)
          ELSE
             NO3_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -6323,9 +6324,6 @@ ccc
          ! the monthly mean concentration every 3 hours (as for HNO3) 
          ! since NO3 has a very short lifetime. (rjp, bmy, 12/16/02) 
          !==============================================================
-
-         ! 1-D grid box index for SUNCOS
-         JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Test if daylight
          IF ( State_Met%SUNCOS(I,J) > 0e+0_fp ) THEN
@@ -6373,15 +6371,16 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_O3( I, J, L, Input_Opt, State_Met ) 
+      FUNCTION GET_O3( I, J, L, Input_Opt, State_Chm, State_Met ) 
      &         RESULT( O3_MOLEC_CM3 )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACER_MOD,         ONLY : XNUMOLAIR
@@ -6393,6 +6392,7 @@ ccc
       INTEGER,        INTENT(IN)  :: J           ! Latitude index
       INTEGER,        INTENT(IN)  :: L           ! Altitude index
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
@@ -6410,6 +6410,7 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  18 Sep 2014 - M. Sulprizio- Now get O3 for offline aerosol sim from HEMCO
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6420,7 +6421,6 @@ ccc
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: JLOOP
       REAL(fp)             :: BOXVL
 
       !=================================================================
@@ -6432,13 +6432,10 @@ ccc
          ! Coupled simulation
          !--------------------
 
-         ! JLOOP = SMVGEAR 1-D grid box index
-         JLOOP = JLOP(I,J,L)
-
-         ! Get O3 from CSPEC [molec/cm3]
-         ! O3 data will only be defined below the tropopause
-         IF ( JLOOP  > 0 ) THEN
-            O3_MOLEC_CM3 = CSPEC(JLOOP,IDO3)
+         ! Get O3 from State_Chm%Species [molec/cm3]
+         ! O3 is defined only in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+            O3_MOLEC_CM3 = State_Chm%Species(I,J,L,IDO3)
          ELSE
             O3_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -6450,7 +6447,7 @@ ccc
          !--------------------
 
          ! Get O3 [v/v] for this gridbox & month
-         ! O3 data will only be defined below the tropopause
+         ! O3 is defined only in the chemistry grid
          IF ( L <= LLCHEM ) THEN
 
             ! Get O3 [v/v] and convert it to [kg]
@@ -6464,9 +6461,6 @@ ccc
          ELSE
             O3_MOLEC_CM3 = 0e+0_fp
          ENDIF
-
-         ! 1-D grid box index for SUNCOS
-         JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Test for sunlight...
          IF ( State_Met%SUNCOS(I,J) > 0e+0_fp 
@@ -6510,17 +6504,19 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_DARO2( I, J, L, NOX, JHC, Input_Opt, State_Met )
+      FUNCTION GET_DARO2( I, J, L, NOX, JHC, Input_Opt,
+     &                    State_Chm, State_Met )
      &         RESULT( DARO2 )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTBENZ, IDTTOLU, IDTXYLE
       ! NAPSOA: add IVOC surrogate (NAP) (hotp 7/22/09)
@@ -6534,6 +6530,7 @@ ccc
       INTEGER,        INTENT(IN)  :: NOX
       INTEGER,        INTENT(IN)  :: JHC
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
@@ -6545,13 +6542,14 @@ ccc
 !  13 Aug 2013 - M. Sulprizio- Add NAP for SOA + semivolatile POA (H. Pye)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  21 Dec 2015 - M. Sulprizio- Get grid box volume directly from State_Met
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Met%Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: JLOOP, ILARO2, IDTAROM
+      INTEGER  :: ILARO2, IDTAROM
       REAL(fp) :: ARO2CARB
 
       ! For values from Input_Opt
@@ -6570,11 +6568,8 @@ ccc
          ! Coupled simulation
          !--------------------
 
-         ! Get 1-D index from current 3-D position
-         JLOOP = JLOP(I,J,L)
-
-         ! Test if we are in the troposphere
-         IF ( JLOOP > 0 ) THEN
+         ! Test if we are in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
             ! Get information on the 
             ! specified type of aromatic peroxy radical
@@ -6688,10 +6683,10 @@ ccc
             ENDIF
 
             !-----------------------------------------------------------
-            ! Get DARO2 from CSPEC [molec/cm3] and 
+            ! Get DARO2 from State_Chm%Species [molec/cm3] and 
             ! convert to [kg ARO2 / box]
             ! 
-            ! CSPEC             : molec ARO2 (lost to HO2 or NO ) / cm3
+            ! State_Chm%Species : molec ARO2 (lost to HO2 or NO ) / cm3
             ! XNUMOL            : atom C / kg C of ARO2
             ! TRACER_COEFF      : atom C / molec ARO2
             ! State_Met%AIRVOL  : m3 (converted here to cm3)
@@ -6702,8 +6697,7 @@ ccc
             !   atom  C / molec ARO2  = atom C / molec AROM
             !   kg C of ARO2 / atom C = kg C of AROM / atom C
             !-----------------------------------------------------------
-
-            DARO2 = CSPEC(JLOOP,ILARO2)
+            DARO2 = State_Chm%Species(I,J,L,ILARO2)
      &            * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
      &            * Input_Opt%TRACER_COEFF(IDTAROM,1)
      &            / ( Input_Opt%XNUMOL(IDTAROM) * ARO2CARB )
@@ -6750,15 +6744,17 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_DOH( I, J, L, Input_Opt, State_Met ) RESULT( DOH )
+      FUNCTION GET_DOH( I, J, L, Input_Opt, State_Chm, State_Met )
+     &         RESULT( DOH )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTISOP
 !
@@ -6768,7 +6764,8 @@ ccc
       INTEGER,        INTENT(IN)  :: J           ! Latitude index
       INTEGER,        INTENT(IN)  :: L           ! Altitude index
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
@@ -6784,8 +6781,6 @@ ccc
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: JLOOP
-
       !=================================================================
       ! GET_DOH begins here!
       !=================================================================
@@ -6796,22 +6791,19 @@ ccc
          ! Coupled simulation
          !--------------------
 
-         ! Get 1-D index from current 3-D position
-         JLOOP = JLOP(I,J,L)
-
-         ! Test if we are in the troposphere
-         IF ( JLOOP > 0 ) THEN 
+         ! Test if we are in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN 
  
             !-----------------------------------------------------------
-            ! Get DOH from CSPEC [molec/cm3] and 
+            ! Get DOH from State_Chm%Species [molec/cm3] and 
             ! convert to [kg C isop / box]
             ! 
-            ! CSPEC             : molec isop (lost to OH) / cm3
+            ! State_Chm%Species : molec isop (lost to OH) / cm3
             ! XNUMOL            : atom C / kg C isop
             ! TRACER_COEFF      : atom C / molec isop
             ! State_Met%AIRVOL  : m3 (converted here to cm3)
             !-----------------------------------------------------------
-            DOH = CSPEC(JLOOP,ILISOPOH)
+            DOH = State_Chm%Species(I,J,L,ILISOPOH)
      &          * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
      &          * Input_Opt%TRACER_COEFF(IDTISOP,1)
      &          / Input_Opt%XNUMOL(IDTISOP) 
@@ -8539,20 +8531,23 @@ ccc
 !
 ! !IROUTINE: get_no
 !
-! !DESCRIPTION: Function GET\_NO returns NO from SMVGEAR's CSPEC array 
+! !DESCRIPTION: Function GET\_NO returns NO from State_Chm%Species 
 ! (for coupled runs). (hotp 5/7/2010)
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_NO( I, J, L, Input_Opt ) RESULT( NO_MOLEC_CM3 )
+      FUNCTION GET_NO( I, J, L, Input_Opt, State_Chm, State_Met )
+     &         RESULT( NO_MOLEC_CM3 )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDNO
 !
 ! !INPUT PARAMETERS:
@@ -8561,10 +8556,12 @@ ccc
       INTEGER,        INTENT(IN) :: J              ! Latitude index
       INTEGER,        INTENT(IN) :: L              ! Altitude index
       TYPE(OptInput), INTENT(IN) :: Input_Opt      ! Input Options object
+      TYPE(ChmState), INTENT(IN) :: State_Chm      ! Chemistry State object
+      TYPE(MetState), INTENT(IN) :: State_Met      ! Meteorology State object
 !
 ! !RETURN VALUE
 !
-      REAL(fp)                     :: NO_MOLEC_CM3   ! NO conc [molec/cm3]
+      REAL(fp)                   :: NO_MOLEC_CM3   ! NO conc [molec/cm3]
 !
 ! !REVISION HISTORY:
 !  (1 ) We assume SETTRACE has been called to define IDNO (bmy, 11/1/02)
@@ -8573,14 +8570,13 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: JLOOP
- 
       !=================================================================
       ! GET_NO begins here!
       !=================================================================
@@ -8590,13 +8586,10 @@ ccc
          ! Coupled simulation
          !---------------------
 
-         ! JLOOP = SMVGEAR 1-D grid box index
-         JLOOP = JLOP(I,J,L)
-
-         ! Take NO from the SMVGEAR array CSPEC
-         ! NO is defined only in the troposphere
-         IF ( JLOOP > 0 ) THEN
-            NO_MOLEC_CM3 = CSPEC(JLOOP,IDNO)
+         ! Take NO from State_Chm%Species [molec/cm3]
+         ! NO is defined only in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+            NO_MOLEC_CM3 = State_Chm%Species(I,J,L,IDNO)
          ELSE
             NO_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -8620,20 +8613,23 @@ ccc
 !
 ! !IROUTINE: get_ho2
 !
-! !DESCRIPTION: Function GET\_HO2 returns HO2 from SMVGEAR's CSPEC array 
+! !DESCRIPTION: Function GET\_HO2 returns HO2 from State_Chm%Species
 ! (for coupled runs). Created by Havala Pye (5/7/2010).
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_HO2( I, J, L, Input_Opt ) RESULT( HO2_MOLEC_CM3 )
+      FUNCTION GET_HO2( I, J, L, Input_Opt, State_Chm, State_Met )
+     &         RESULT( HO2_MOLEC_CM3 )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDHO2
 !
 ! !INPUT PARAMETERS:
@@ -8642,10 +8638,12 @@ ccc
       INTEGER,        INTENT(IN) :: J               ! Latitude index
       INTEGER,        INTENT(IN) :: L               ! Altitude index
       TYPE(OptInput), INTENT(IN) :: Input_Opt       ! Input Options object
+      TYPE(ChmState), INTENT(IN) :: State_Chm       ! Chemistry State object
+      TYPE(MetState), INTENT(IN) :: State_Met       ! Meteorology State object
 !
 ! !RETURN VALUE
 !
-      REAL(fp)                     :: HO2_MOLEC_CM3   ! HO2 conc [molec/cm3]
+      REAL(fp)                   :: HO2_MOLEC_CM3   ! HO2 conc [molec/cm3]
 !
 ! !REVISION HISTORY:
 !  (1 ) We assume SETTRACE has been called to define IDHO2 (bmy, 11/1/02)
@@ -8654,14 +8652,13 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: JLOOP
- 
       !=================================================================
       ! GET_HO2 begins here!
       !=================================================================
@@ -8671,13 +8668,10 @@ ccc
          ! Coupled simulation
          !---------------------
 
-         ! JLOOP = SMVGEAR 1-D grid box index
-         JLOOP = JLOP(I,J,L)
-
-         ! Take HO2 from the SMVGEAR array CSPEC
-         ! HO2 is defined only in the troposphere
-         IF ( JLOOP > 0 ) THEN
-            HO2_MOLEC_CM3 = CSPEC(JLOOP,IDHO2)
+         ! Take HO2 from the State_Chm%Species [molec/cm3]
+         ! HO2 is defined only in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+            HO2_MOLEC_CM3 = State_Chm%Species(I,J,L,IDHO2)
          ELSE
             HO2_MOLEC_CM3 = 0e+0_fp
          ENDIF
@@ -8708,15 +8702,16 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_ISOPNO3( I, J, L, Input_Opt, State_Met )
+      FUNCTION GET_ISOPNO3( I, J, L, Input_Opt, State_Chm, State_Met )
      &         RESULT( ISOPNO3 )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE TRACERID_MOD,       ONLY : IDTISOP
@@ -8727,6 +8722,7 @@ ccc
       INTEGER,        INTENT(IN) :: J           ! Latitude index
       INTEGER,        INTENT(IN) :: L           ! Altitude index
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE
@@ -8742,14 +8738,13 @@ ccc
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !  21 Dec 2015 - M. Sulprizio- Get grid box volume directly from State_Met
+!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Met%Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: JLOOP
-
       !=================================================================
       ! GET_ISOPNO3 begins here!
       !=================================================================
@@ -8760,30 +8755,26 @@ ccc
          ! Coupled simulation
          !--------------------
 
-         ! Get 1-D index from current 3-D position
-         JLOOP = JLOP(I,J,L)
-
-         ! comment out temporarily
-         ! Test if we are in the troposphere
-         IF ( JLOOP > 0 ) THEN 
+         ! Test if we are in the chemistry grid
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN 
  
             !-----------------------------------------------------------
-            ! Get ISOPNO3 from CSPEC [molec/cm3] and 
+            ! Get ISOPNO3 from State_Chm%Species [molec/cm3] and 
             ! convert to [kg C isop / box]
             ! 
-            ! CSPEC             : molec isop (lost to NO3) / cm3
+            ! State_Chm%Species : molec isop (lost to NO3) / cm3
             ! XNUMOL            : atom C / kg C isop
             ! TRACER_COEFF      : atom C / molec isop
             ! State_Met%AIRVOL  : m3 (converted here to cm3)
             !-----------------------------------------------------------
-            ISOPNO3 = CSPEC(JLOOP,ILISOPNO3)
+            ISOPNO3 = State_Chm%Species(I,J,L,ILISOPNO3)
      &              * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
      &              * Input_Opt%TRACER_COEFF(IDTISOP,1)
      &              / Input_Opt%XNUMOL(IDTISOP) 
  
          ELSE
 
-            ! Otherwise set DOH=0
+            ! Otherwise set ISOPNO3=0
             ISOPNO3 = 0e+0_fp
  
          ENDIF

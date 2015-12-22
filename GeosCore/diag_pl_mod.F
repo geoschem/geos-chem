@@ -604,9 +604,9 @@
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE COMODE_LOOP_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -638,6 +638,7 @@
 !                              running with the traditional driver main.F
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  21 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -645,7 +646,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL :: IS_PSO4
-      INTEGER :: I, J, L, JLOOP, N
+      INTEGER :: I, J, L, N
 
       !=================================================================
       ! DO_DIAG_PL begins here!
@@ -654,7 +655,7 @@
       ! and store in the AD65 array.  
       !
       ! Make sure that memory has already been allocated to arrays
-      ! FAMPL, JLOP, and CSPEC.
+      ! FAMPL and State_Chm%Species.
       !=================================================================
 
       ! Assume success
@@ -665,7 +666,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, JLOOP, IS_PSO4 )
+!$OMP+PRIVATE( I, J, L, N, IS_PSO4 )
 !$OMP+SCHEDULE( DYNAMIC ) 
       DO N = 1, NFAMILIES
 
@@ -685,16 +686,14 @@
       DO J = 1, NLAT
       DO I = 1, NLONG
          
-         ! JLOOP is the 1-D grid box index for SMVGEAR arrays
-         JLOOP = JLOP(I,J,L)
-
          ! If this is a valid grid box
-         IF ( JLOOP > 0 ) THEN
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
             ! Copy the concentration for the "fake" prodloss family
             ! (which have been appended to the SMVGEAR species list)
             ! to the FAM_PL diagnostic array.  Units are [molec/cm3/s].
-            FAM_PL(I,J,L,N)      = CSPEC(JLOOP,IFAM(N)) / CHEMINTV
+            FAM_PL(I,J,L,N)      = State_Chm%Species(I,J,L,IFAM(N)) /
+     &                             CHEMINTV
 
 #if   defined( TOMAS )
             !-------------------------------------------------------------
@@ -708,7 +707,7 @@
             ! Calculate H2SO4 production rate [kg s-1] in each time step 
             ! (win, 8/4/09)
             IF ( IS_PSO4 ) THEN 
-               H2SO4RATE(I,J,L) = CSPEC(JLOOP,IFAM(N)) / 
+               H2SO4RATE(I,J,L) = State_Chm%Species(I,J,L,IFAM(N)) / 
      &                            6.022e+23_fp  *
      &                            98.e-3_fp * State_Met%AIRVOL(I,J,L) *
      &                            1e+6_fp   / CHEMINTV
@@ -716,7 +715,7 @@
 #endif
 
             ! Zero each "fake" ND65 prod/loss family for next iteration
-            CSPEC(JLOOP,IFAM(N)) = 0.0e+0_fp
+            State_Chm%Species(I,J,L,IFAM(N)) = 0.0e+0_fp
 
             ! Also save into the AD65 diagnostic array
             AD65(I,J,L,N)        = AD65(I,J,L,N) + FAM_PL(I,J,L,N)
@@ -739,7 +738,7 @@
       ! from the fullchem simulation for a future tagged Ox run
       !=================================================================
       IF ( DO_SAVE_O3 ) THEN
-         CALL DIAG20( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL DIAG20( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
       ENDIF
 
       END SUBROUTINE DO_DIAG_PL
@@ -760,17 +759,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG20( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE DIAG20( am_I_Root, Input_Opt, State_Chm, State_Met,
+     &                   RC )
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE,   GET_NYMD
       USE TIME_MOD,           ONLY : GET_TAU,       GET_TAUb 
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
@@ -781,6 +782,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -849,7 +851,7 @@
       ! Scalars
       LOGICAL, SAVE     :: FIRST = .TRUE.
       LOGICAL           :: DO_WRITE
-      INTEGER           :: I, J, L, N, JLOOP
+      INTEGER           :: I, J, L, N
       REAL(fp)          :: P_Ox, L_Ox
       REAL(fp)          :: LT
 
@@ -906,7 +908,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, P_Ox, L_Ox, JLOOP, LT )
+!$OMP+PRIVATE( I, J, L, P_Ox, L_Ox, LT )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LD65
       DO J = 1, JJPAR
@@ -916,11 +918,8 @@
          P_Ox  = 0e+0_fp
          L_Ox  = 0e+0_fp
 
-         ! JLOOP is the 1-D grid box index for SMVGEAR arrays
-         JLOOP = JLOP(I,J,L)
-
          ! If this is a grid box where we have done chemistry, then ...
-         IF ( JLOOP > 0 ) THEN
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%% NOTE: If you want to restrict output to a given local

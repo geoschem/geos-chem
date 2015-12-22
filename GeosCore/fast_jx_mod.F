@@ -86,7 +86,6 @@
       USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
       USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR, LLPAR
       USE CMN_SIZE_MOD,       ONLY : NDUST,   MAXIJ
-      USE COMODE_MOD,         ONLY : JLOP, CSPEC
       USE COMODE_LOOP_MOD,    ONLY : CONSVAP,AVG,RSTARG
       USE ERROR_MOD,          ONLY : ERROR_STOP, ALLOC_ERR
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -212,6 +211,7 @@
 !                              EXTERNAL_GRID.
 !  09 Apr 2015 - R. Yantosca - Bug fixes: Add missing vars to !$OMP+PRIVATE
 !                              clause and error check for JLOOP > 0
+!  21 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -335,10 +335,7 @@
             O3_CTM          = 0e+0_fp
             LCHEM           = GET_CHEMGRID_LEVEL(NLON,NLAT,State_Met)
             DO L = 1, LCHEM
-               JLOOP        = JLOP(NLON,NLAT,L)
-               IF ( JLOOP > 0 ) THEN
-                  O3_CTM(L) = CSPEC(JLOOP,IDO3)
-               ENDIF
+               O3_CTM(L) = State_Chm%Species(NLON,NLAT,L,IDO3)
             ENDDO
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
