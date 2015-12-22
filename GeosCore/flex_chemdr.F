@@ -73,6 +73,8 @@
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
 !  18 Dec 2015 - M. Sulprizio- Add calls to OHSAVE and DO_DIAG_OH
+!  22 Dec 2015 - M. Sulprizio- Set NUMDEN to State_Met%AIRNUMDEN for conversions
+!                              between v/v and molec/cm3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -232,17 +234,7 @@
             State_Chm%AeroRadi(I,J,L,:) = ERADIUS(JLOOP,:)
 
          ENDIF
-!------------------------------------------------------------------------------
-! Prior to 12/16/15:
-! Make conversion factor from v/v to molec/cm3 consistent with CONST used
-! in INIT_FLEXCHEM (from the now obsolete GASCONC routine). (mps, 12/16/15)
-!         State_Met%NUMDEN(I,J,L)     = GET_PCENTER(I,J,L)*1e2*
-!     &                                 1d-6/(8.314d0*State_Met%T(I,J,L))
-!     &                                 *6.022d23
-!------------------------------------------------------------------------------
-         State_Met%NUMDEN(I,J,L)     = State_Met%PMID_DRY(I,J,L) *
-     &                                 1000e+0_fp /
-     &                                 ( State_Met%T(I,J,L) * BK )
+
       END DO
       END DO
       END DO
@@ -361,7 +353,7 @@
          PRESS  = GET_PCENTER(I,J,L)
 
          ! mje Calculate NUMDEN based on ideal gas law (# cm-3)
-         NUMDEN = State_Met%NUMDEN(I,J,L)
+         NUMDEN = State_Met%AIRNUMDEN(I,J,L)
 
          ! mje H2O arrives in g/kg needs to be in mol cm-3 
          H2O    = State_Met%SPHU(I,J,L)*
