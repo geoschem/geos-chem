@@ -579,33 +579,33 @@
       ENDDO
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-!<<      ! Write out Rate values
-!<<      DO N=1,NREACT
-!<<         ! Construct diagnostic name
-!<<         write(DiagnName,'(a)')
-!<<     &        'RR_' // TRIM( ADJUSTL(EQN_NAMES(N)) )
-!<<            
-!<<         ! Update the diagostics 
-!<<         CALL Diagn_Update( am_I_Root,
-!<<     &        cName   = TRIM( DiagnName ),
-!<<     &        Array3D = GLOB_RCONST(:,:,:,N),
-!<<     &        COL     = Input_Opt%DIAG_COLLECTION,
-!<<     &        RC      = HCRC )
-!<<
-!<<         ! Stop wieth error if the diagnostics were unsuccessful
-!<<         IF ( HCRC /= HCO_SUCCESS ) THEN
-!<<            CALL ERROR_STOP( 'Cannot update tracer 
-!<<     &           concentration diagnostics',
-!<<     &'Flex_Chemdr')
-!<<         ENDIF
-!<<      ENDDO
-!<<
-!<<! Stop with error if the diagnostics were unsuccessful
-!<<      IF ( HCRC /= HCO_SUCCESS ) THEN
-!<<         CALL ERROR_STOP( 'Cannot update tracer 
-!<<     &        concentration diagnostics',
-!<<     &        'Flex_Chemdr')
-!<<      ENDIF
+      ! Write out Rate values
+      DO N=1,NREACT
+         ! Construct diagnostic name
+         write(DiagnName,'(a)')
+     &        'RR_' // TRIM( ADJUSTL(EQN_NAMES(N)) )
+            
+         ! Update the diagostics 
+         CALL Diagn_Update( am_I_Root,
+     &        cName   = TRIM( DiagnName ),
+     &        Array3D = GLOB_RCONST(:,:,:,N),
+     &        COL     = Input_Opt%DIAG_COLLECTION,
+     &        RC      = HCRC )
+
+         ! Stop wieth error if the diagnostics were unsuccessful
+         IF ( HCRC /= HCO_SUCCESS ) THEN
+            CALL ERROR_STOP( 'Cannot update tracer 
+     &           concentration diagnostics',
+     &'Flex_Chemdr')
+         ENDIF
+      ENDDO
+
+! Stop with error if the diagnostics were unsuccessful
+      IF ( HCRC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'Cannot update tracer 
+     &        concentration diagnostics',
+     &        'Flex_Chemdr')
+      ENDIF
 
       ! mje set rid of the pointers created
       NULLIFY (STT)
