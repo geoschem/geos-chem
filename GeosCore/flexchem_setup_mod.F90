@@ -84,6 +84,8 @@ CONTAINS
 !  16 Sep 2009 - P. Le Sager - init
 !  09 Dec 2009 - C. Carouge  - R_KPP and CSPEC_FOR_KPP are not used anymore
 !  02 Aug 2012 - R. Yantosca - Now use am_I_Root to print on root CPU
+!  22 Dec 2015 - M. Sulprizio- Use State_Met%AIRNUMDEN to convert initial
+!                              species concentrations from v/v to molec/cm3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -97,7 +99,6 @@ CONTAINS
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'INIT_FLEXCHEM (flexchem_setup_mod.F90)' 
     LOGICAL            :: IT_EXISTS
-    REAL(fp)           :: CONST
 
     ! Assume success
     RC = 0
@@ -203,13 +204,10 @@ CONTAINS
                    DO J = 1, JJPAR
                    DO I = 1, IIPAR
 
-                      ! Conversion factor
-                      CONST = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp / &
-                            ( State_Met%T(I,J,L) * BK )
-
                       ! Copy default background conc. from globchem.dat
                       ! Convert from v/v to molec/cm3
-                      State_Chm%Species(I,J,L,N) = QBKGAS(N) * CONST
+                      State_Chm%Species(I,J,L,N) = QBKGAS(N) * &
+                                                   State_Met%AIRNUMDEN(I,J,L)
 
                       ! Make sure concentration is not negative (SMAL2 = 1d-99)
                       State_Chm%Species(I,J,L,N) = &
@@ -261,13 +259,10 @@ CONTAINS
                 DO J = 1, JJPAR
                 DO I = 1, IIPAR
 
-                   ! Conversion factor
-                   CONST = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp / &
-                         ( State_Met%T(I,J,L) * BK )
-
                    ! Copy default background conc. from globchem.dat
                    ! Convert from v/v to molec/cm3
-                   State_Chm%Species(I,J,L,N) = QBKGAS(N) * CONST
+                   State_Chm%Species(I,J,L,N) = QBKGAS(N) * &
+                                                State_Met%AIRNUMDEN(I,J,L)
 
                    ! Make sure concentration is not negative (SMAL2 = 1d-99)
                    State_Chm%Species(I,J,L,N) = &

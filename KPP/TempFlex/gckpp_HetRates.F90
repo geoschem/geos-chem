@@ -67,7 +67,7 @@ MODULE GCKPP_HETRATES
       KHETI_SLA_(:) = KH(I,J,L,:)
       ENDIF
 
-      ABSHUM        = SM%AVGW(I,J,L) * SM%NUMDEN(I,J,L)
+      ABSHUM        = SM%AVGW(I,J,L) * SM%AIRNUMDEN(I,J,L)
 
       IND        = get_indx('SO4',IO%ID_TRACER,IO%TRACER_NAME)
       IF (IND .le. 0) THEN
@@ -101,7 +101,7 @@ MODULE GCKPP_HETRATES
       XRADI(1:SC%nAero) = SC%AeroRadi(I,J,L,:)
 
       XTEMP = SM%T(I,J,L)
-      XDENA = SM%NUMDEN(I,J,L)
+      XDENA = SM%AIRNUMDEN(I,J,L)
 
       GAMMA_HO2 = IO%GAMMA_HO2
 
