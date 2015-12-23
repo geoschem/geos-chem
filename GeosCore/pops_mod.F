@@ -16,6 +16,7 @@
 ! !USES:
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
+      USE CMN_GCTM_MOD     ! For physical constants
 
       IMPLICIT NONE
       PRIVATE
@@ -37,13 +38,18 @@
 !  04 Jan 2011 - C.L. Friedman - Expansion on initial version
 !  21 Aug 2014 - M. Sulprizio  - Removed emissions routines now handled by HEMCO
 !  04 Mar 2015 - R. Yantosca   - Use REAL(f4) for pointer args to HCO_GetPtr 
+!  23 Dec 2015 - E. Lundgren   - Use global physical constants
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp), PARAMETER  :: XNUMOL_OH = 6.022e+23_fp / 17e-3_fp  ! molec OH / kg OH
+! ewl note: seems to use the molecular weight of OH here. get from species db?
+! prior to consistent physical parameters (ewl)
+!      REAL(fp), PARAMETER  :: XNUMOL_OH = 6.022e+23_fp / 17e-3_fp  ! molec OH / kg OH
+! Now use avogadro's number from CMN_GCTM_MOD (same value)
+      REAL(fp), PARAMETER  :: XNUMOL_OH = AVO / 17e-3_fp  ! molec OH / kg OH
       REAL(fp), PARAMETER  :: CM3PERM3  = 1.e+6_fp
       REAL(fp), PARAMETER  :: SMALLNUM  = 1e-20_fp
 
@@ -412,8 +418,10 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      ! R = universal gas constant for adjusting KOA for temp: 8.3145 [J/mol/K]
-      REAL(fp), PARAMETER :: R          = 8.31e+0_fp  
+! prior to consistent physical params (ewl)
+!      ! R = universal gas constant for adjusting KOA for temp: 8.3145 [J/mol/K]
+!      REAL(fp), PARAMETER :: R          = 8.31e+0_fp  
+! Now use RSTARG (8.31450e+0_fp) in CMN_GCTM_MOD
 
       ! DENS_OCT = density of octanol, needed for partitioning into OC
       ! 820 [kg/m^3]
@@ -439,12 +447,11 @@
       REAL(fp)          :: DTCHEM,        SUM_F
       REAL(fp)          :: KOA_T,         KBC_T
       REAL(fp)          :: KOC_BC_T,      KBC_OC_T
-      REAL(fp)          :: TK
       REAL(fp)          :: AREA_CM2
       REAL(fp)          :: F_PBL
       REAL(fp)          :: C_OH,          C_OC_CHEM,     C_BC_CHEM
       REAL(fp)          :: C_OC_CHEM1,    C_BC_CHEM1
-      REAL(fp)          :: K_OH,          AIR_VOL
+      REAL(fp)          :: K_OH
       REAL(fp)          :: K_OX,          C_O3
       REAL(fp)          :: E_KOX_T
       REAL(fp)          :: K_DEPG,        K_DEPP_OCPO,   K_DEPP_BCPO
@@ -691,19 +698,21 @@
          NET_OX_BCPO       = 0e+0_fp
          NET_OX_BCPI       = 0e+0_fp
 
-         ! Save local temperature in TK for convenience [K]
-         TK    = State_Met%T(I,J,L)
-
-         ! Grid box volume [cm3]
-         BOXVL = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+! prior to consistent physical parameters (ewl) - no longer need this cuz airden
+!         ! Grid box volume [cm3]
+!         BOXVL = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
          ! Get monthly mean OH concentrations
          C_OH  = GET_OH( I, J, L, State_Met )
 
          ! Get monthly mean O3 concentrations
          ! O3 is in v/v (from HEMCO), convert to molec/cm3 (mps, 9/10/14)
-         C_O3  = O3(I,J,L) * ( 6.022e+23_fp / 28.97e-3_fp ) * 
-     &           State_Met%AD(I,J,L)    /  BOXVL
+         ! NOTE: State_Met%AIRDEN is dry air density [kg/m3]
+! prior to consistent physical parameters (ewl)
+!         C_O3  = O3(I,J,L) * ( 6.022e+23_fp / 28.97e-3_fp ) * 
+         C_O3  = O3(I,J,L) * ( AVO / ( AIRMW * 1.e-3_fp ) ) * 
+!     &           State_Met%AD(I,J,L)    /  BOXVL
+     &           State_Met%AIRDEN(I,J,L)
 
          ! Fraction of box (I,J,L) underneath the PBL top [dimensionless]
          F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L )
@@ -756,14 +765,21 @@
      &               OLD_POPP_OCPO + OLD_POPP_BCPO +
      &               OLD_POPP_OCPI + OLD_POPP_BCPI
 
-         ! Define temperature-dependent partition coefficients:
-         KOA_T = KOA_298 * EXP((-DEL_H/R) * ((1e+0_fp/TK) - 
-     &                  (1e+0_fp/298e+0_fp))) 
+         ! Define temperature-dependent partition coefficients
+         ! NOTE: State_Met%T is in units of [K]
+! prior to consistent physical constants (ewl)
+!         KOA_T = KOA_298 * EXP((-DEL_H/R) * ((1e+0_fp/TK) - 
+         KOA_T = KOA_298 * EXP( ( -DEL_H / RSTARG ) * 
+     &                      ( ( 1e+0_fp / State_Met%T(I,J,L) ) - 
+     &                      ( 1e+0_fp / 298e+0_fp ) ) ) 
 
          ! Define KBC_T, the BC-air partition coeff at temp T [unitless]
          ! TURN OFF TEMPERATURE DEPENDENCY FOR SENSITIVITY ANALYSIS
-         KBC_T = KBC_298 * EXP((-DEL_H/R) * ((1e+0_fp/TK) - 
-     &                  (1e+0_fp/298e+0_fp)))
+         ! NOTE: State_Met%T is in units of [K]
+! prior to consistent physical constants (ewl)
+         KBC_T = KBC_298 * EXP( ( -DEL_H / RSTARG ) * 
+     &                      ( ( 1e+0_fp / State_Met%T(I,J,L) ) - 
+     &                      ( 1e+0_fp / 298e+0_fp ) ) )
 
          ! Define KOC_BC_T, theoretical OC-BC part coeff at temp T [unitless]
          KOC_BC_T = KOA_T / KBC_T
@@ -782,12 +798,9 @@
          C_OC_CHEM1 = C_OC_CHEM / DENS_OCT
          C_BC_CHEM1 = C_BC_CHEM / DENS_BC
 
-         ! Get AIRVOL
-         AIR_VOL = State_Met%AIRVOL(I,J,L)
-
          ! Define volume ratios:
          ! VR_OC_AIR = volume ratio of OC to air [unitless]     
-         VR_OC_AIR     = C_OC_CHEM1 / AIR_VOL ! could be zero
+         VR_OC_AIR     = C_OC_CHEM1 / State_Met%AIRVOL(I,J,L) ! could be zero
 
          ! VR_OC_BC = volume ratio of OC to BC [unitless]
          VR_OC_BC      = SAFE_DIV( C_OC_CHEM1, C_BC_CHEM1, 0e+0_fp )
