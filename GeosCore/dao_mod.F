@@ -261,6 +261,9 @@
       USE GRID_MOD,             ONLY : GET_AREA_M2
       USE PRESSURE_MOD      
       USE GIGC_ErrCode_Mod
+
+      ! Temporary fix for calculating air density (mps, 12/23/15)
+      USE COMODE_LOOP_MOD, ONLY : WTAIR, AVG
 !
 ! !INPUT PARAMETERS:
 !
@@ -596,9 +599,16 @@
 
          ! Set grid box dry air density [molec/cm3]
          ! This is neeed for the chemistry routines
-         State_Met%AIRNUMDEN(I,J,L) = State_Met%PMEAN_DRY(I,J,L) * PCONV
-     &                                / RSTARG / State_Met%T(I,J,L)
-     &                                * AVO * 1e-6_fp
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! As a temporary fix, restore old method for calculating air density (from
+! RURALBOX) to remove any differences caused by the unit conversions. This has
+! been moved to after AD is calculated since it uses that field. Once we are
+! satisfied with the FlexChem results, we can this AIRNUMDEN calculation
+! using the ideal gas law (mps, 12/23/15)
+!         State_Met%AIRNUMDEN(I,J,L) = State_Met%AIRDEN(I,J,L) / AIRMW
+!     &                                / MCONV * AVO * 1e-6_fp
+!
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          !=============================================================
          ! Set grid box moist molecular weight [g/mol]
@@ -717,6 +727,17 @@
 
          State_Met%AD(I,J,L) = State_Met%ADMOIST(I,J,L)
      &                         * ( 1.0e+0_fp - SPHU_kgkg ) 
+
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! As a temporary fix, restore old method for calculating air density (from
+! RURALBOX) to remove any differences caused by the unit conversions. Once we
+! are satisfied with the FlexChem results, we can restore the AIRNUMDEN
+! calculation above using the ideal gas law (mps, 12/23/15)
+         State_Met%AIRNUMDEN(I,J,L) = (State_Met%AD(I,J,L)*1000.e+0_fp) 
+     &                              / (State_Met%AIRVOL(I,J,L)*1e+6_fp)
+     &                              *  AVG / WTAIR
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ENDDO
       ENDDO
