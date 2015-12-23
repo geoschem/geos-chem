@@ -129,6 +129,7 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE CMN_GCTM_MOD,       ONLY : BOLTZ_erg
       USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, IXSAVE   
       USE COMODE_MOD,         ONLY : IYSAVE, IZSAVE,  JLOP       
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -176,7 +177,7 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER, SAVE :: N_CHEM_BOXES
       INTEGER       :: I, J, L, JLOOP
-      REAL(fp)      :: CONSEXP, TK, VPRESH2O
+      REAL(fp)      :: CONSEXP, TK, VPRESH2O, CONSVAP
       REAL(fp)      :: BOXVL
       
       !=================================================================
@@ -188,6 +189,12 @@
       NLAT   = JJPAR
       NVERT  = IVERT
       NPVERT = NVERT
+
+! After consistent physical parameters (ewl)
+! Now define comode_loop_mod parameter here as a variable
+! Commented as "Condensation vapor pressure?"
+! Use BOLTZ_erg from CMN_GCTM_MOD rather than BOLTG in comode_loop_mod
+      CONSVAP  = 6.1078e+03_fp / BOLTZ_erg
 
       !=================================================================
       ! Pre-save SMVGEAR loop indices on the first call

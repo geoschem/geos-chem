@@ -16,6 +16,7 @@
 !
 ! !USES:
 !
+      USE CMN_GCTM_MOD,       ONLY : BOLTZ_erg
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE CMN_DIAG_MOD
@@ -296,6 +297,7 @@
       !LOGICAL :: LWARWICK_VSLS
       LOGICAL :: LDICARB
       REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)  :: CONSVAP
 
       ! For HEMCO drydep values (ckeller, 10/13/14)
       INTEGER :: TRCID
@@ -478,6 +480,12 @@
 !
 ! ---------------------------     H2O     -----------------------------
 !
+! After consistent physical parameters (ewl)
+! Now define comode_loop_mod parameter here as a variable
+! Commented as "Condensation vapor pressure?"
+! Use BOLTZ_erg from CMN_GCTM_MOD rather than BOLTG in comode_loop_mod
+      CONSVAP  = 6.1078e+03_fp / BOLTZ_erg
+
       IF (IH2O.GT.NGAS) THEN
          DO KLOOP      = 1, KTLOOP 
             TK               = T3K(KLOOP) 

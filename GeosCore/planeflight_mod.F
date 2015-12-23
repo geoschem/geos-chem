@@ -1228,6 +1228,7 @@
       USE BPCH2_MOD,          ONLY : GET_TAU0
       USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
+      USE CMN_GCTM_MOD,       ONLY : BOLTZ_erg
       USE COMODE_LOOP_MOD          ! CSPEC, etc.
       USE COMODE_MOD,         ONLY : AIRDENS,        CSPEC,       JLOP
       USE COMODE_MOD,         ONLY : T3,             VOLUME,      ABSHUM
@@ -1305,6 +1306,7 @@
       INTEGER             :: LPLANE, IWV, ISPC, K
       REAL(fp)            :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
       REAL(fp)            :: VARI(NPVAR)
+      REAL(fp)            :: CONSVAP
 
       ! Aerosol types: SULF, BLKC, ORGC, SALA, SALC 
       INTEGER             :: IND(5) = (/ 22, 29, 36, 43, 50 /)
@@ -1497,6 +1499,12 @@
                            CONSEXP  = 17.2693882e+0_fp * 
      &                                (TK - 273.16e+0_fp) / 
      &                                (TK - 35.86e+0_fp)
+
+! After consistent physical parameters (ewl)
+! Now define comode_loop_mod parameter here as a variable
+! Commented as "Condensation vapor pressure?"
+! Use BOLTZ_erg from CMN_GCTM_MOD rather than BOLTG in comode_loop_mod
+                           CONSVAP  = 6.1078e+03_fp / BOLTZ_erg
                            
                            VPRESH2O = CONSVAP * EXP(CONSEXP) * 1e+0_fp 
      &                              / TK

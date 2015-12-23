@@ -18,6 +18,7 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CHEMGRID_MOD,       ONLY : COPY_FULL_CHEMGRID
+      USE CMN_GCTM_MOD,       ONLY : BOLTZ_erg
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE COMODE_MOD,         ONLY : ABSHUM
@@ -144,6 +145,7 @@
       REAL(fp)  :: S2CON,GRCONC1,GRCONC2,GRCONC3,SUMRMS,SUMFRACS,QNEW
       REAL(fp)  :: QACC,FRACDIF,FRACABS,AVGERR,RMSCUR
       REAL(fp)  :: TK,CONSEXP,VPRESH2O,CONST
+      REAL(fp)  :: CONSVAP
 
       ! For fields from Input_Opt
       INTEGER         :: NTRACER
@@ -217,8 +219,12 @@
                DO IX = 1, IIPAR
 
                   ! Conversion factor
-                  CONST = State_Met%PMID_DRY(IX,IY,IZ) * 1000e+0_fp / 
-     &                  ( State_Met%T(IX,IY,IZ) * BK )
+                  CONST = State_Met%PMID_DRY(IX,IY,IZ) * 1000e+0_fp /
+! prior to consistent physical parameters (ewl) 
+! BK in comode_loop_mod (1.38054e-16)
+!     &                  ( State_Met%T(IX,IY,IZ) * BK )
+! Now use Boltzmann's constant in CMN_GCTM_MOD (1.380648527e-16 erg/K)
+     &                  ( State_Met%T(IX,IY,IZ) * BOLTZ_erg )
                 
                   !------------------------------
                   ! Test for altitude
@@ -286,7 +292,11 @@
 
                   ! Conversion factor
                   CONST = State_Met%PMID_DRY(IX,IY,IZ) * 1000e+0_fp /
-     &                  ( State_Met%T(IX,IY,IZ) * BK )
+! prior to consistent physical parameters (ewl) 
+! BK in comode_loop_mod (1.38054e-16)
+!     &                  ( State_Met%T(IX,IY,IZ) * BK )
+! Now use Boltzmann's constant in CMN_GCTM_MOD (1.380648527e-16 erg/K)
+     &                  ( State_Met%T(IX,IY,IZ) * BOLTZ_erg )
                 
                   ! Copy default background conc. from "globchem.dat" to CSPEC
                   CSPEC_FULL(IX,IY,IZ,JGAS) = QBKCHEM(JGAS,NCS)* CONST
@@ -387,6 +397,12 @@
 ! ABSHUM   = RELATIVE HUMIDITY (FRACTION)    [output]
 ! TK       = TEMPERATURE (K)
 !
+! After consistent physical parameters (ewl)
+! Now define comode_loop_mod parameter here as a variable
+! Commented as "Condensation vapor pressure?"
+! Use BOLTZ_erg from CMN_GCTM_MOD rather than BOLTG in comode_loop_mod
+      CONSVAP  = 6.1078e+03_fp / BOLTZ_erg
+
       IF (IH2O.GT.NGAS) THEN
          DO 33 JLOOP    = 1, NTTLOOP
             TK            = T3(JLOOP)
