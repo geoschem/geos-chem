@@ -62,9 +62,12 @@
       REAL(fp), PARAMETER :: RSTARG   = 8.31450e+0_fp
       
       ! Molecules dry air per kg dry air
-      ! Keep same precision as in tracer_mod legacy code
-      ! during Unit Conversion testing (ewl, 3/25/15)
-      REAL(fp), PARAMETER :: XNUMOLAIR = AVO / 28.9644e-3_fp
+! prior to consistent physical constants (ewl)
+!      REAL(fp), PARAMETER :: XNUMOLAIR = AVO / 28.9644e-3_fp
+      REAL(fp), PARAMETER :: XNUMOLAIR = AVO / AIRMW
+
+      ! BOLTZ : Boltzmann's gas constant [J/K] 
+      REAL(fp), PARAMETER :: BOLTZ   = 1.3806485279e-23_fp
 
 ! !REVISION HISTORY:
 !  25 Jun 2002 - R. Yantosca - Initial version

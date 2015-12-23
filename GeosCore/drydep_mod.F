@@ -19,7 +19,8 @@
       USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE CMN_GCTM_MOD                          ! Physical constants
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
-      USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
+! prior to consistent physical constants (ewl) - used for phys params
+!      USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
       USE DAO_MOD                               ! Met field subroutines
 #if !defined( NO_BPCH )
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
@@ -190,13 +191,16 @@
 !  15 Jun 2015 - R. Yantosca - Disabled DRYFLXRnPbBe, also done in mixing_mod
 !  01 Oct 2015 - R. Yantosca - Remove DVZ_MINVAL function
 !  01 Oct 2015 - R. Yantosca - Added PRIVATE flag ID_ACET
+!  22 Dec 2015 - E. Lundgren - Use CMN_GCTM_MOD physical params in module
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(f8), PARAMETER :: XCKMAN    = 0.4e+0_f8 ! Von Karman's constant
+!     prior to consistent physical constants (ewl)
+!      REAL(f8), PARAMETER :: XCKMAN    = 0.4e+0_f8 ! Von Karman's constant
+! Now use VON_KARMAN in CMN_GCTM_MOD (0.4e+0_fp) (same value)
       INTEGER,  PARAMETER :: NR_MAX    = 200       ! # of seasalt bins 
       INTEGER,  PARAMETER :: NDRYDTYPE = 11        ! # of drydep land types
 !
@@ -205,7 +209,6 @@
       !========================================================================
       !  MODULE VARIABLES:
       !
-      !  XCKMAN    : Von Karman constant?
       !  DRYDHNO3  : Internal flag for location of HNO3 in DEPVEL
       !  DRYDNO2   : Internal flag for location of NO2  in DEPVEL
       !  DRYDPAN   : Internal flag for location of PAN  in DEPVEL
@@ -1421,7 +1424,10 @@
 !** exit for non-depositing species or aerosols.
                IF (.NOT. LDEP(K) .OR. AIROSOL(K)) GOTO 155
 
-               XMWH2O = 18.e-3_f8
+! prior to consistent physical constants (ewl)
+!               XMWH2O = 18.e-3_f8
+!              Now use H2OMW from CMN_GCTM_MOD (18.016 g/mol)
+               XMWH2O = H2OMW * 1.e-3_f8
                RIXX = RIX*DIFFG(TEMPK,PRESSU(IJLOOP),XMWH2O)/
      C              DIFFG(TEMPK,PRESSU(IJLOOP),XMW(K))
      C              + 1.e+0_f8/(HSTAR(K)/3000.e+0_f8+100.e+0_f8*F0(K))
@@ -1631,7 +1637,11 @@
             DO 200 IW=1,NWATER
                IF (IOLSON .NE. IWATER(IW)) GOTO 200
                ZO(LDT) = 1.4e-02_f8*USTAR(IJLOOP)*USTAR(IJLOOP)/
-     &                   9.8e+0_f8 + 1.1e-01_f8*XNU/USTAR(IJLOOP)   
+! prior to consistent physical constants (ewl)
+!     &                   9.8e+0_f8 + 1.1e-01_f8*XNU/USTAR(IJLOOP)
+! Now use g0 in CMN_GCTM_MOD (9.8e+0_fp)
+     &                   g0 + 1.1e-01_f8*XNU/USTAR(IJLOOP)   
+
                GOTO 210
  200        CONTINUE
             ZO(LDT) = DBLE(IZO(IOLSON))*1.e-4_f8
@@ -1718,7 +1728,10 @@
 !              where a=1.0, b=5.0 for 0 <= x <= 1, and
 !                    a=5.0, b=1.0 for x > 1.0 
 !*********************************************************************
-            CKUSTR = XCKMAN*USTAR(IJLOOP)
+
+! prior to consistent physical constants (ewl)
+!            CKUSTR = XCKMAN*USTAR(IJLOOP)
+            CKUSTR = VON_KARMAN * USTAR(IJLOOP)
 
             ! Define REYNO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
 #if   defined( GCAP )
@@ -1752,9 +1765,16 @@
             ENDIF
 !*                                 
             IF (CKUSTR.EQ.0.0e+0_f8) THEN
-               WRITE(6,212) IJLOOP,CKUSTR,XCKMAN,USTAR(IJLOOP)
+
+! prior to consistent physical constants (ewl)
+!               WRITE(6,212) IJLOOP,CKUSTR,XCKMAN,USTAR(IJLOOP)
+               WRITE(6,212) IJLOOP,CKUSTR,VON_KARMAN,USTAR(IJLOOP)
+
  212           FORMAT(1X,'IJLOOP= ',I4,1X,'CKUSTR=',E10.1,1X,
-     x              'XCKMAN= ',E12.4,1X,'USTAR(IJLOOP)= ',
+! prior to consistent physical constants (ewl)
+!     x              'XCKMAN= ',E12.4,1X,'USTAR(IJLOOP)= ',
+     x              'VON_KARMAN= ',E12.4,1X,'USTAR(IJLOOP)= ',
+
      x              E12.4)
                CLOSE(98)
                STOP             ! debug
@@ -2011,19 +2031,34 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(f8), PARAMETER  :: XMAIR  = 28.8e-3_f8 
+      REAL(f8), PARAMETER  :: XMAIR  = 28.8e-3_f8 ! Molec wt of moist air? (ewl)
       REAL(f8), PARAMETER  :: RADAIR = 1.2e-10_f8
-      REAL(f8), PARAMETER  :: PI     = 3.1415926535897932e+0_f8
+! prior to consistent physical constants (ewl)
+!      REAL(f8), PARAMETER  :: PI     = 3.1415926535897932e+0_f8
+! Now use Pi in CMN_GCTM_MOD (3.14159265358979323e+0_fp)
       REAL(f8), PARAMETER  :: RADX   = 1.5e-10_f8
-      REAL(f8), PARAMETER  :: RGAS   = 8.32e+0_f8
-      REAL(f8), PARAMETER  :: AVOGAD = 6.023e+23_f8
+! prior to consistent physical constants (ewl)
+!      REAL(f8), PARAMETER  :: RGAS   = 8.32e+0_f8
+! Now use RSTARG in CMN_GCTM_MOD (8.31450e+0_fp)
+!      REAL(f8), PARAMETER  :: AVOGAD = 6.023e+23_f8
+! Now use AVO in CMN_GCTM_MOD (6.022e+23_fp)
 
       !=================================================================
       ! DIFFG begins here!
       !=================================================================
 
+      ! DEBUGGING ( notes from ewl)
+      ! Can we use moist air density from state_met rather than calculate
+      ! here?  Are they the same equations, basically? Need it as # density
+      ! so perhaps this is the most straightforward way?
+      ! CAn we use the moist air molecular weight from state_met instead of
+      ! XMAIR (rough approx of moist air molecular weight)
+      ! END DEBUGGING
+
       ! Air density [molec/m3]
-      AIRDEN = ( PRESS * AVOGAD ) / ( RGAS * TK )
+! prior to consistent physical constants (ewl)
+!      AIRDEN = ( PRESS * AVOGAD ) / ( RGAS * TK )
+      AIRDEN = ( PRESS * AVO ) / ( RSTARG * TK )
 
       ! DIAM is the collision diameter for gas X with air.
       DIAM   = RADX + RADAIR
@@ -2035,7 +2070,9 @@
      &         ( DIAM**2 ) )
 
       ! Calculate average speed of gas X; eq. 15.47 of Levine [1988]
-      SPEED  = SQRT( 8e+0_f8 * RGAS * TK / ( PI * XM ) )
+! prior to consistent physical constants (ewl)
+!      SPEED  = SQRT( 8e+0_f8 * RGAS * TK / ( PI * XM ) )
+      SPEED  = SQRT( 8e+0_f8 * RSTARG * TK / ( PI * XM ) )
 
       ! Calculate diffusion coefficient of gas X in air; 
       ! eq. 8.9 of Seinfeld [1986]
@@ -2586,13 +2623,16 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: N
+      INTEGER               :: N
       REAL(f8), PARAMETER   :: C1 = 0.7674e+0_f8,  C2 = 3.079e+0_f8, 
-     &                       C3 = 2.573e-11_f8, C4 = -1.424e+0_f8
-
-      REAL(f8), PARAMETER   :: G0 = 9.8e+0_f8
+     &                         C3 = 2.573e-11_f8, C4 = -1.424e+0_f8
+! prior to consistent physical constants (ewl)
+!      REAL(f8), PARAMETER   :: G0 = 9.8e+0_f8
+! Now use g0 in CMN_GCTM_MOD (9.8e+0_fp) (same value)
       REAL(f8), PARAMETER   :: BETA  = 2.e+0_f8
-      REAL(f8), PARAMETER   :: BOLTZ = 1.381e-23_f8  ! Boltzmann constant (J/K)
+! prior to consistent physical constants (ewl)
+!      REAL(f8), PARAMETER   :: BOLTZ = 1.381e-23_f8  ! Boltzmann constant (J/K)
+! Now use BOLTZ in CMN_GCTM_MOD (1.3806485279e-23_fp)
       REAL(f8), PARAMETER   :: E0 = 3.e+0_f8
       REAL(f8)  :: AIRVS       ! kinematic viscosity of Air (m^2/s)
       REAL(f8)  :: DP          ! Diameter of aerosol [um]
@@ -2615,7 +2655,7 @@
       REAL(f8)  :: D0, D1  !lower and upper bounds of sea-salt dry diameter bins 
       REAL(f8)  :: DEDGE
       REAL(f8)  :: DEN1, WTP 
-      INTEGER :: ID,NR
+      INTEGER   :: ID,NR
       LOGICAL, SAVE          :: FIRST = .TRUE.
 
       !increment of radius for integration of settling velocity (um)
@@ -2638,8 +2678,9 @@
       ! 2) sigma of the size distribution
       REAL(f8),  PARAMETER     ::   SIG_A = 1.5e+0_f8
       REAL(f8),  PARAMETER     ::   SIG_C = 1.8e+0_f8
-      REAL(f8),  PARAMETER     :: PI =3.14159e+0_f8
-
+! prior to consistent physical constants (ewl)
+!      REAL(f8),  PARAMETER     :: PI =3.14159e+0_f8
+! Now use Pi in CMN_GCTM_MOD (3.14159265358979323e+0_fp)
 
 !=======================================================================
 !   #  LUC [Zhang et al., 2001]                GEOS-CHEM LUC (Corr. #)
@@ -2798,8 +2839,8 @@
       !      
       !      Other updates for ocean surfaces:
       !         a)   Over ocean surfaces the formulation from Slinn & Slinn for
-      !              the resistance in the viscous layer is 
-      !                Rs = 1 / (Cd/XCKMAN*U10m*(Eb+Eim)+VTS)
+      !              the resistance in the viscous layer is
+      !                Rs = 1 / (Cd/VON_KARMAN*U10m*(Eb+Eim)+VTS)
       !              with  Cd=(Ustar/U10m)**2, and VTS is the gravitational
       !              settling in the viscous layer. Note that the gravitational
       !              settling calculated here for the viscous layer is >> than
@@ -2891,8 +2932,10 @@
       ! Dp [um] = particle diameter
       DP    = DIAM * 1.e+6_f8 
  
-      ! Constant for settling velocity calculation       
-      CONST = DEN * DIAM**2 * G0 / 18.e+0_f8
+      ! Constant for settling velocity calculation
+! prior to consistent physical constants (ewl)   
+!      CONST = DEN * DIAM**2 * G0 / 18.e+0_f8
+      CONST = DEN * DIAM**2 * g0 / 18.e+0_f8
 
       !=================================================================
       !   # air molecule number density
@@ -2967,7 +3010,10 @@
 
       ! Brownian diffusion constant for particle (m2/s)
       DIFF = BOLTZ * TEMP * SLIP 
-     &      / (3.e+0_f8 * 3.141592e+0_f8 * VISC * DIAM)  
+! prior to consistent physical constants (ewl)
+!     &      / (3.e+0_f8 * 3.141592e+0_f8 * VISC * DIAM)  
+! Now use Pi in CMN_GCTM_MOD (3.14159265358979323e+0_fp)
+     &      / (3.e+0_f8 * Pi * VISC * DIAM)  
 
       ! Schmidt number 
       SC   = AIRVS / DIFF                            
@@ -2975,10 +3021,14 @@
 
        ! Stokes number  
       IF ( AA < 0e+0_f8 ) then
-         ST   = VTS * USTAR * USTAR / ( AIRVS * G0 ) ! for smooth surface 
+! prior to consistent physical constants (ewl)   
+!         ST   = VTS * USTAR * USTAR / ( AIRVS * G0 ) ! for smooth surface
+         ST   = VTS * USTAR * USTAR / ( AIRVS * g0 ) ! for smooth surface 
          EIN  = 0e+0_f8
       ELSE
-         ST   = VTS   * USTAR / ( G0 * AA )          ! for vegetated surfaces
+! prior to consistent physical constants (ewl)   
+!         ST   = VTS   * USTAR / ( G0 * AA )          ! for vegetated surfaces
+         ST   = VTS   * USTAR / ( g0 * AA )          ! for vegetated surfaces
          EIN  = 0.5e+0_f8 * ( DIAM / AA )**2
       ENDIF
 
@@ -3001,7 +3051,9 @@
       ! Use the formulation of Slinn and Slinn (1980) for the impaction over
       ! water surfaces (jaegle 5/11/11)
       IF (LUC == 14) THEN
-         RS   = 1.e+0_f8 / (USTAR**2.e+0_f8/ (W10*XCKMAN) * 
+! prior to consistent physical constants (ewl)
+!         RS   = 1.e+0_f8 / (USTAR**2.e+0_f8/ (W10*XCKMAN) * 
+         RS   = 1.e+0_f8 / (USTAR**2.e+0_f8/ (W10*VON_KARMAN) * 
      &          (EB + EIM ) + VTS)
       ELSE
          RS   = 1.e+0_f8 / (E0 * USTAR * (EB + EIM + EIN) * R1 )
@@ -3063,8 +3115,9 @@
       ! sigma of the size distribution
       REAL(f8), PARAMETER :: SIG_A = 1.5e+0_f8
       REAL(f8), PARAMETER :: SIG_C = 1.8e+0_f8
-      REAL(f8), PARAMETER :: PI    = 3.14159e+0_f8
-
+! prior to consistent physical constants (ewl)
+!      REAL(f8), PARAMETER :: PI    = 3.14159e+0_f8
+! Now use Pi in CMN_GCTM_MOD (3.14159265358979323e+0_fp)
 
       ! Number of bins between the lowest bound of of the accumulation mode
       ! sea salt and the upper bound of the coarse mode sea salt.
@@ -3152,10 +3205,14 @@
       INTEGER               :: N
       REAL(f8), PARAMETER   :: C1 = 0.7674e+0_f8,  C2 = 3.079e+0_f8, 
      &                         C3 = 2.573e-11_f8, C4 = -1.424e+0_f8
-      REAL(f8), PARAMETER   :: G0 = 9.8e+0_f8
+! prior to consistent physical constants (ewl)   
+!      REAL(f8), PARAMETER   :: G0 = 9.8e+0_f8
+! Now use g0 in CMN_GCTM_MOD (9.8e+0_fp) (same value)
       REAL(f8), PARAMETER   :: BETA  = 2.e+0_f8
-      REAL(f8), PARAMETER   :: BOLTZ = 1.381e-23_f8  ! Baltzmann constant (J/K)
-      rEAL(f8), PARAMETER   :: E0 = 1.e+0_f8
+! prior to consistent physical constants (ewl)   
+!      REAL(f8), PARAMETER   :: BOLTZ = 1.381e-23_f8  ! Baltzmann constant (J/K)
+! Now use BOLTZ in CMN_GCTM_MOD (1.3806485279e-23_fp)
+      REAL(f8), PARAMETER   :: E0 = 1.e+0_f8
       REAL(f8)  :: AIRVS       ! kinematic viscosity of Air (m^2/s)
       REAL(f8)  :: DP          ! Diameter of aerosol [um]
       REAL(f8)  :: PDP         ! Press * Dp      
@@ -3224,8 +3281,10 @@
       ! Dp [um] = particle diameter
       DP    = DIAM * 1.e+6_f8 
  
-      ! Constant for settling velocity calculation       
-      CONST = DEN * DIAM**2 * G0 / 18.e+0_f8
+      ! Constant for settling velocity calculation
+! prior to consistent physical constants (ewl)    
+!      CONST = DEN * DIAM**2 * G0 / 18.e+0_f8
+      CONST = DEN * DIAM**2 * g0 / 18.e+0_f8
        
       !=================================================================
       !   # air molecule number density
@@ -3262,15 +3321,20 @@
       VTS  = CONST * SLIP / VISC
 
       ! Brownian diffusion constant for particle (m2/s)
-      DIFF = BOLTZ * TEMP * SLIP 
-     &     / (3.e+0_f8 * 3.141592e+0_f8 * VISC * DIAM)  
+      DIFF = BOLTZ * TEMP * SLIP
+! prior to consistent physical constants (ewl) 
+!     &     / (3.e+0_f8 * 3.141592e+0_f8 * VISC * DIAM)  
+     &     / (3.e+0_f8 * Pi * VISC * DIAM)  
+! Now use Pi in CMN_GCTM_MOD (3.14159265358979323e+0_fp)
 
       ! Schmidt number and Diffusion term
       SC   = AIRVS / DIFF                            
       EB   = SC**(-0.666667e+0_f8)
 
       ! Stokes number and impaction term
-      ST   = VTS * USTAR * USTAR / ( AIRVS * G0 )
+! prior to consistent physical constants (ewl)   
+!      ST   = VTS * USTAR * USTAR / ( AIRVS * G0 
+      ST   = VTS * USTAR * USTAR / ( AIRVS * g0 )
       EIM  = 10.e+0_f8**(-3.e+0_f8 / ST) 
 
       ! surface resistance for particle
@@ -3328,9 +3392,13 @@
       INTEGER               :: N
       REAL(f8), PARAMETER   :: C1 = 0.7674e+0_f8,  C2 = 3.079e+0_f8, 
      &                         C3 = 2.573e-11_f8, C4 = -1.424e+0_f8
-      REAL(f8), PARAMETER   :: G0 = 9.8e+0_f8
+! prior to consistent physical constants (ewl)   
+!      REAL(f8), PARAMETER   :: G0 = 9.8e+0_f8
+! Now use g0 in CMN_GCTM_MOD (9.8e+0_fp) (same value)
       REAL(f8), PARAMETER   :: BETA  = 2.e+0_f8
-      REAL(f8), PARAMETER   :: BOLTZ = 1.381e-23_f8  ! Boltzmann constant (J/K)
+! prior to consistent physical constants (ewl)   
+!      REAL(f8), PARAMETER   :: BOLTZ = 1.381e-23_f8  ! Baltzmann constant (J/K)
+! Now use BOLTZ in CMN_GCTM_MOD (1.3806485279e-23_fp)
       REAL(f8), PARAMETER   :: E0 = 3.e+0_f8
       REAL(f8)  :: AIRVS       ! kinematic viscosity of Air (m^2/s)
       REAL(f8)  :: DP          ! Diameter of aerosol [um]
@@ -3493,8 +3561,10 @@
       ! Dp [um] = particle diameter
       DP    = DIAM * 1.e+6_f8 
  
-      ! Constant for settling velocity calculation       
-      CONST = DEN * DIAM**2 * G0 / 18.e+0_f8
+      ! Constant for settling velocity calculation
+! prior to consistent physical constants (ewl)      
+!      CONST = DEN * DIAM**2 * G0 / 18.e+0_f8
+      CONST = DEN * DIAM**2 * g0 / 18.e+0_f8
        
       !=================================================================
       !   # air molecule number density
@@ -3531,8 +3601,11 @@
       VTS  = CONST * SLIP / VISC
 
       ! Brownian diffusion constant for particle (m2/s)
-      DIFF = BOLTZ * TEMP * SLIP 
-     &      / (3.e+0_f8 * 3.141592e+0_f8 * VISC * DIAM)  
+      DIFF = BOLTZ * TEMP * SLIP
+! prior to consistent physical constants (ewl)  
+!     &      / (3.e+0_f8 * 3.141592e+0_f8 * VISC * DIAM)  
+     &      / (3.e+0_f8 * Pi * VISC * DIAM)  
+! Now use Pi in CMN_GCTM_MOD (3.14159265358979323e+0_fp)
 
       ! Schmidt number 
       SC   = AIRVS / DIFF                            
@@ -3540,10 +3613,14 @@
 
        ! Stokes number  
       IF ( AA < 0e+0_f8 ) then
-         ST   = VTS * USTAR * USTAR / ( AIRVS * G0 ) ! for smooth surface 
+! prior to consistent physical constants (ewl)   
+!         ST   = VTS * USTAR * USTAR / ( AIRVS * G0 ) ! for smooth surface
+         ST   = VTS * USTAR * USTAR / ( AIRVS * g0 ) ! for smooth surface 
          EIN  = 0e+0_f8
       ELSE
-         ST   = VTS   * USTAR / ( G0 * AA )          ! for vegetated surfaces
+! prior to consistent physical constants (ewl)   
+!         ST   = VTS   * USTAR / ( G0 * AA )          ! for vegetated surfaces
+         ST   = VTS   * USTAR / ( g0 * AA )          ! for vegetated surfaces
          EIN  = 0.5e+0_f8 * ( DIAM / AA )**2
       ENDIF
 
@@ -3613,9 +3690,13 @@
       INTEGER               :: N
       REAL(f8), PARAMETER   :: C1 = 0.7674e+0_f8,  C2 = 3.079e+0_f8, 
      &                         C3 = 2.573e-11_f8, C4 = -1.424e+0_f8
-      REAL(f8), PARAMETER   :: G0 = 9.8e+0_f8
+! prior to consistent physical constants (ewl)   
+!      REAL(f8), PARAMETER   :: G0 = 9.8e+0_f8
+! Now use g0 in CMN_GCTM_MOD (9.8e+0_fp) (same value)
       REAL(f8), PARAMETER   :: BETA  = 2.e+0_f8
-      REAL(f8), PARAMETER   :: BOLTZ = 1.381e-23_f8  ! Boltzmann constant (J/K)
+! prior to consistent physical constants (ewl)   
+!      REAL(f8), PARAMETER   :: BOLTZ = 1.381e-23_f8  ! Baltzmann constant (J/K)
+! Now use BOLTZ in CMN_GCTM_MOD (1.3806485279e-23_fp)
       REAL(f8), PARAMETER   :: E0 = 3.e+0_f8
       REAL(f8)  :: AIRVS       ! kinematic viscosity of Air (m^2/s)
       REAL(f8)  :: DP          ! Diameter of aerosol [um]
@@ -3771,8 +3852,10 @@
       ! Dp [um] = particle diameter
       DP    = DIAM * 1.e+6_f8 
  
-      ! Constant for settling velocity calculation       
-      CONST = DEN * DIAM**2 * G0 / 18.e+0_f8
+      ! Constant for settling velocity calculation
+! prior to consistent physical constants (ewl)     
+!      CONST = DEN * DIAM**2 * G0 / 18.e+0_f8
+      CONST = DEN * DIAM**2 * g0 / 18.e+0_f8
        
       !=================================================================
       !   # air molecule number density
@@ -3809,8 +3892,11 @@
       VTS  = CONST * SLIP / VISC
 
       ! Brownian diffusion constant for particle (m2/s)
-      DIFF = BOLTZ * TEMP * SLIP 
-     &      / (3.e+0_f8 * 3.141592e+0_f8 * VISC * DIAM)  
+      DIFF = BOLTZ * TEMP * SLIP
+! prior to consistent physical constants (ewl)  
+!     &      / (3.e+0_f8 * 3.141592e+0_f8 * VISC * DIAM)  
+     &      / (3.e+0_f8 * Pi * VISC * DIAM)  
+! Now use Pi in CMN_GCTM_MOD (3.14159265358979323e+0_fp)
 
       ! Schmidt number 
       SC   = AIRVS / DIFF                            
@@ -3818,10 +3904,14 @@
 
        ! Stokes number  
       IF ( AA < 0e+0_f8 ) then
-         ST   = VTS * USTAR * USTAR / ( AIRVS * G0 ) ! for smooth surface 
+! prior to consistent physical constants (ewl)   
+!         ST   = VTS * USTAR * USTAR / ( AIRVS * G0 ) ! for smooth surface
+         ST   = VTS * USTAR * USTAR / ( AIRVS * g0 ) ! for smooth surface 
          EIN  = 0e+0_f8
       ELSE
-         ST   = VTS   * USTAR / ( G0 * AA )          ! for vegetated surfaces
+! prior to consistent physical constants (ewl)   
+!         ST   = VTS   * USTAR / ( G0 * AA )          ! for vegetated surfaces
+         ST   = VTS   * USTAR / ( g0 * AA )          ! for vegetated surfaces
          EIN  = 0.5e+0_f8 * ( DIAM / AA )**2
       ENDIF
 
