@@ -45,10 +45,8 @@
 !
 ! !DEFINED PARAMETERS:
 !
-! ewl note: seems to use the molecular weight of OH here. get from species db?
-! prior to consistent physical parameters (ewl)
+      ! Now use avogadro's number from CMN_GCTM_MOD (same value) (ewl, 1/4/15)
 !      REAL(fp), PARAMETER  :: XNUMOL_OH = 6.022e+23_fp / 17e-3_fp  ! molec OH / kg OH
-! Now use avogadro's number from CMN_GCTM_MOD (same value)
       REAL(fp), PARAMETER  :: XNUMOL_OH = AVO / 17e-3_fp  ! molec OH / kg OH
       REAL(fp), PARAMETER  :: CM3PERM3  = 1.e+6_fp
       REAL(fp), PARAMETER  :: SMALLNUM  = 1e-20_fp
@@ -418,10 +416,9 @@
 !
 ! !DEFINED PARAMETERS:
 !
-! prior to consistent physical params (ewl)
+      ! Now use RSTARG (8.31450e+0_fp) in CMN_GCTM_MOD (ewl, 1/4/15)
 !      ! R = universal gas constant for adjusting KOA for temp: 8.3145 [J/mol/K]
 !      REAL(fp), PARAMETER :: R          = 8.31e+0_fp  
-! Now use RSTARG (8.31450e+0_fp) in CMN_GCTM_MOD
 
       ! DENS_OCT = density of octanol, needed for partitioning into OC
       ! 820 [kg/m^3]
@@ -586,9 +583,6 @@
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER   :: STT(:,:,:,:)
 
-      ! Grid box volume
-      REAL(fp)            :: BOXVL
-
       !=================================================================
       ! CHEM_POPGP begins here!
       !=================================================================
@@ -698,7 +692,7 @@
          NET_OX_BCPO       = 0e+0_fp
          NET_OX_BCPI       = 0e+0_fp
 
-! prior to consistent physical parameters (ewl) - no longer need this cuz airden
+         ! Remove AIRVOL for area-independence (ewl, 1/4/15)
 !         ! Grid box volume [cm3]
 !         BOXVL = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
@@ -707,12 +701,12 @@
 
          ! Get monthly mean O3 concentrations
          ! O3 is in v/v (from HEMCO), convert to molec/cm3 (mps, 9/10/14)
-         ! NOTE: State_Met%AIRDEN is dry air density [kg/m3]
-! prior to consistent physical parameters (ewl)
+         ! Now use State_Met%AIRDEN (dry air density in [kg/m3])
+         ! and use parameters from CMN_GCTM_MOD (ewl, 1/4/15)
 !         C_O3  = O3(I,J,L) * ( 6.022e+23_fp / 28.97e-3_fp ) * 
-         C_O3  = O3(I,J,L) * ( AVO / ( AIRMW * 1.e-3_fp ) ) * 
 !     &           State_Met%AD(I,J,L)    /  BOXVL
-     &           State_Met%AIRDEN(I,J,L)
+         C_O3  = O3(I,J,L) * ( AVO / ( AIRMW * 1.e-3_fp ) ) * 
+     &           State_Met%AIRDEN(I,J,L) * 1e-6_fp
 
          ! Fraction of box (I,J,L) underneath the PBL top [dimensionless]
          F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L )
@@ -767,7 +761,7 @@
 
          ! Define temperature-dependent partition coefficients
          ! NOTE: State_Met%T is in units of [K]
-! prior to consistent physical constants (ewl)
+         ! Use parameters from CMN_GCTM_MOD (ewl, 1/4/15)
 !         KOA_T = KOA_298 * EXP((-DEL_H/R) * ((1e+0_fp/TK) - 
          KOA_T = KOA_298 * EXP( ( -DEL_H / RSTARG ) * 
      &                      ( ( 1e+0_fp / State_Met%T(I,J,L) ) - 
@@ -776,7 +770,6 @@
          ! Define KBC_T, the BC-air partition coeff at temp T [unitless]
          ! TURN OFF TEMPERATURE DEPENDENCY FOR SENSITIVITY ANALYSIS
          ! NOTE: State_Met%T is in units of [K]
-! prior to consistent physical constants (ewl)
          KBC_T = KBC_298 * EXP( ( -DEL_H / RSTARG ) * 
      &                      ( ( 1e+0_fp / State_Met%T(I,J,L) ) - 
      &                      ( 1e+0_fp / 298e+0_fp ) ) )

@@ -292,12 +292,9 @@
       REAL(fp), PARAMETER :: BK       = 1.38054e-16_fp
       REAL(fp), PARAMETER :: BOLTG    = 1.38054e-16_fp
 
-! prior to consistent physical parameters (ew)
+! Now define CONSVAP locally in routines that use it (ewl, 1/4/15)
 !      ! Condensation vapor pressure ?????? 
 !      REAL(fp), PARAMETER :: CONSVAP  = 6.1078e+03_fp / BOLTG
-! Now define this param in the few routines that use it
-! (gasconc, aerosol_mod, calcrate, fast_jx_mod)
-! so far, this has been done for gasconc only (ewl)
       
       ! PI (same value as in CMN_GCTM) and related quantities
       REAL(fp), PARAMETER :: ONEPI    = 3.14159265358979323e+0_fp 
@@ -305,9 +302,10 @@
 
       ! Gas constant [erg/K/mole]
       REAL(fp), PARAMETER :: RGAS     = BOLTG * AVG
-      
-      ! Universal gas constant [g/cm2/s2/mole/K]
-      REAL(fp), PARAMETER :: RSTARG   = 8.31450e+07_fp
+
+! Now use RSTARG in CMN_GCTM_MOD multiplied by 1.e+07_fp (ewl, 1/4/15)
+!      ! Universal gas constant [g/cm2/s2/mole/K]
+!      REAL(fp), PARAMETER :: RSTARG   = 8.31450e+07_fp
 
       ! Seconds per day
       REAL(fp), PARAMETER :: SCDAY    = 86400.0e+0_fp

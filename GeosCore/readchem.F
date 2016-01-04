@@ -57,6 +57,8 @@
 !  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
 !  22 Sep 2015 - R. Yantosca - Use NUMDEP instead of MAXDEP
 !  23 Sep 2015 - E. Lundgren - Add Criegee chemistry (E. Marais, D. Millet)
+!  04 Jan 2015 - E. Lundgren - Use CMN_GCTM_MOD param RSTARG * 1.e+7 instead of
+!                              COMODE_LOOP_MOD parameter
 !******************************************************************************
 !
 ! !USES:
@@ -66,6 +68,7 @@
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE DIAG_PL_MOD,        ONLY : SETJFAM, SETPL
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE CMN_GCTM_MOD,       ONLY : RSTARG
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE GIGC_ErrCode_Mod
@@ -1230,7 +1233,7 @@
                   JGAS2            = IRM(2,NK,NCS) 
                   JGAS3            = IRM(3,NK,NCS) 
                   QTHERMG  = 0.25e+0_fp * SQRT( EIGHTDPI * RSTARG
-     &                       / WTGAS( JGAS1 ) ) 
+     &                       * 1.e+7_fp / WTGAS( JGAS1 ) ) 
                   ARR(NK,NCS)      = ARR(NK,NCS) * QTHERMG 
                   NKSURF(NS2)      = NK 
                   NCOATG(NS2)      = JGAS2  
