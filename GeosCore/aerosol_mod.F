@@ -129,7 +129,7 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE CMN_GCTM_MOD,       ONLY : BOLTZ_erg
+      USE CMN_GCTM_MOD,       ONLY : BOLTZ, AVO, AIRMW
       USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, IXSAVE   
       USE COMODE_MOD,         ONLY : IYSAVE, IZSAVE,  JLOP       
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -190,11 +190,9 @@
       NVERT  = IVERT
       NPVERT = NVERT
 
-! After consistent physical parameters (ewl)
-! Now define comode_loop_mod parameter here as a variable
-! Commented as "Condensation vapor pressure?"
-! Use BOLTZ_erg from CMN_GCTM_MOD rather than BOLTG in comode_loop_mod
-      CONSVAP  = 6.1078e+03_fp / BOLTZ_erg
+      ! Calculate condensation vapor pressure locally
+      ! and use Boltzmann's constant in CMN_GCTM_MOD [J/K] (ewl, 1/4/16)
+      CONSVAP  = 6.1078e+03_fp / ( BOLTZ * 1e+7_fp )
 
       !=================================================================
       ! Pre-save SMVGEAR loop indices on the first call
@@ -302,8 +300,11 @@
             BOXVL          = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
             ! Air density in [molec/cm3]
+            ! Now use physical parameters from CMN_GCTM_MOD (ewl, 1/4/16)
+!            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
+!     &                       BOXVL               * AVG  / WTAIR
             AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
-     &                       BOXVL               * AVG  / WTAIR
+     &                       BOXVL               * AVO  / AIRMW
 
             ! ABSHUM = absolute humidity [molec H2O/cm3 air]
             ABSHUM(JLOOP)  = State_Met%AVGW(I,J,L)  * AIRDENS(JLOOP)

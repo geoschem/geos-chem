@@ -18,7 +18,7 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CHEMGRID_MOD,       ONLY : COPY_FULL_CHEMGRID
-      USE CMN_GCTM_MOD,       ONLY : BOLTZ_erg
+      USE CMN_GCTM_MOD,       ONLY : BOLTZ
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE COMODE_MOD,         ONLY : ABSHUM
@@ -208,7 +208,7 @@
             ! the OH concentration and the methylchloroform lifetime.
             !
             ! We specify the MOH concentration as ppbv, but then we
-            ! need to multiply by PRESS3(JLOOP) / ( T3(JLOOP) * BK )
+            ! need to multiply by PRESS3(JLOOP) / ( T3(JLOOP) * BOLTZ * 1e7 )
             ! in order to convert to [molec/cm3].  (bdf, bmy, 2/22/02)
             !===========================================================
             IF ( NAMEGAS(JGAS) == 'MOH' ) THEN
@@ -219,12 +219,11 @@
                DO IX = 1, IIPAR
 
                   ! Conversion factor
+                  ! Now use Boltzmann's constant in CMN_GCTM_MOD [J/K], not 
+                  ! BK in COMODE_LOOP_MOD [erg/K]) (ewl, 1/4/16)
                   CONST = State_Met%PMID_DRY(IX,IY,IZ) * 1000e+0_fp /
-! prior to consistent physical parameters (ewl) 
-! BK in comode_loop_mod (1.38054e-16)
 !     &                  ( State_Met%T(IX,IY,IZ) * BK )
-! Now use Boltzmann's constant in CMN_GCTM_MOD (1.380648527e-16 erg/K)
-     &                  ( State_Met%T(IX,IY,IZ) * BOLTZ_erg )
+     &                  ( State_Met%T(IX,IY,IZ) * BOLTZ * 1e+7_fp )
                 
                   !------------------------------
                   ! Test for altitude
@@ -291,12 +290,11 @@
                DO IX = 1, IIPAR
 
                   ! Conversion factor
+                  ! Now use Boltzmann's constant in CMN_GCTM_MOD [J/K], not 
+                  ! BK in COMODE_LOOP_MOD [erg/K]) (ewl, 1/4/16)
                   CONST = State_Met%PMID_DRY(IX,IY,IZ) * 1000e+0_fp /
-! prior to consistent physical parameters (ewl) 
-! BK in comode_loop_mod (1.38054e-16)
 !     &                  ( State_Met%T(IX,IY,IZ) * BK )
-! Now use Boltzmann's constant in CMN_GCTM_MOD (1.380648527e-16 erg/K)
-     &                  ( State_Met%T(IX,IY,IZ) * BOLTZ_erg )
+     &                  ( State_Met%T(IX,IY,IZ) * BOLTZ * 1e+7_fp )
                 
                   ! Copy default background conc. from "globchem.dat" to CSPEC
                   CSPEC_FULL(IX,IY,IZ,JGAS) = QBKCHEM(JGAS,NCS)* CONST
@@ -397,11 +395,10 @@
 ! ABSHUM   = RELATIVE HUMIDITY (FRACTION)    [output]
 ! TK       = TEMPERATURE (K)
 !
-! After consistent physical parameters (ewl)
-! Now define comode_loop_mod parameter here as a variable
-! Commented as "Condensation vapor pressure?"
-! Use BOLTZ_erg from CMN_GCTM_MOD rather than BOLTG in comode_loop_mod
-      CONSVAP  = 6.1078e+03_fp / BOLTZ_erg
+      ! Calculate condensation vapor pressure locally
+      ! and use Boltzmann's constant in CMN_GCTM_MOD [J/K], not 
+      ! BK in COMODE_LOOP_MOD [erg/K]) (ewl, 1/4/16)
+      CONSVAP  = 6.1078e+03_fp / ( BOLTZ * 1e+7_fp )
 
       IF (IH2O.GT.NGAS) THEN
          DO 33 JLOOP    = 1, NTTLOOP

@@ -1228,7 +1228,7 @@
       USE BPCH2_MOD,          ONLY : GET_TAU0
       USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE CMN_GCTM_MOD,       ONLY : BOLTZ_erg
+      USE CMN_GCTM_MOD,       ONLY : BOLTZ
       USE COMODE_LOOP_MOD          ! CSPEC, etc.
       USE COMODE_MOD,         ONLY : AIRDENS,        CSPEC,       JLOP
       USE COMODE_MOD,         ONLY : T3,             VOLUME,      ABSHUM
@@ -1500,11 +1500,11 @@
      &                                (TK - 273.16e+0_fp) / 
      &                                (TK - 35.86e+0_fp)
 
-! After consistent physical parameters (ewl)
-! Now define comode_loop_mod parameter here as a variable
-! Commented as "Condensation vapor pressure?"
-! Use BOLTZ_erg from CMN_GCTM_MOD rather than BOLTG in comode_loop_mod
-                           CONSVAP  = 6.1078e+03_fp / BOLTZ_erg
+                           ! Define condensation vapor pressure locally.
+                           ! Use BOLTZ [J/K] from CMN_GCTM_MOD rather than 
+                           ! BOLTG [ergs/K] in comode_loop_mod (ewl, 1/4/16)
+                           CONSVAP  = 6.1078e+03_fp  
+     &                                / ( BOLTZ * 1e+7_fp)
                            
                            VPRESH2O = CONSVAP * EXP(CONSEXP) * 1e+0_fp 
      &                              / TK

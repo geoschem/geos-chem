@@ -77,7 +77,7 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  19 Dec 2014 - R. Yantosca - Now perform internal computations w/ REAL*8
 !  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
-!  04 Jan 2015 - E. Lundgren - Remove grid box area-dependence
+!  04 Jan 2016 - E. Lundgren - Remove grid box area-dependence
 !EOP
 !------------------------------------------------------------------------------
 !BOC

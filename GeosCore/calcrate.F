@@ -16,7 +16,7 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD,       ONLY : BOLTZ_erg
+      USE CMN_GCTM_MOD,       ONLY : BOLTZ
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE CMN_DIAG_MOD
@@ -393,10 +393,10 @@
 ! KTLOOP   = NUMBER OF GRID-CELLS IN A GRID-BLOCK
 ! AM       = MOLECULAR WEIGHT OF AIR (28.966 G MOLE-1)
 ! AVG      = AVOGADRO'S NUMBER (6.02252E+23  # MOLE-1)
-! BOLTG    = BOLTZMANN'S CONSTANT (1.38054E-16 ERG K-1) 
+! BOLTZ    = BOLTZMANN'S CONSTANT (1.3806485279e-23 J K-1) 
 ! RHO3     = DENSITY OF AIR         (G CM-3) = WTAIR*P(DYN CM-2)/(RSTARG*T) 
 ! RSTARG   = UNIVERSAL GAS CONSTANT [g/cm2/s2/mole/K]
-! DENAIR   = DENSITY OF AIR         (# CM-3) = P(DYNCM-2) / (T * BOLTG) 
+! DENAIR   = DENSITY OF AIR         (# CM-3) = P(DYNCM-2) / (T * BOLTZ *1e7) 
 ! CONCO2   = OXYGEN CONCENTRATION   (# CM-3)
 ! CONCN2   = NITROGEN CONCENTRATION (# CM-3)
 ! RRATE    = RATE CONST (EITHER S-1, CM**3-AIR #-1 S-1, CM**6 #-2 S-1,
@@ -480,11 +480,9 @@
 !
 ! ---------------------------     H2O     -----------------------------
 !
-! After consistent physical parameters (ewl)
-! Now define comode_loop_mod parameter here as a variable
-! Commented as "Condensation vapor pressure?"
-! Use BOLTZ_erg from CMN_GCTM_MOD rather than BOLTG in comode_loop_mod
-      CONSVAP  = 6.1078e+03_fp / BOLTZ_erg
+      ! Calculate condensation vapor pressure locally
+      ! and use Boltzmann's constant in CMN_GCTM_MOD [J/K] (ewl, 1/4/16)
+      CONSVAP  = 6.1078e+03_fp / ( BOLTZ * 1e+7_fp )
 
       IF (IH2O.GT.NGAS) THEN
          DO KLOOP      = 1, KTLOOP 

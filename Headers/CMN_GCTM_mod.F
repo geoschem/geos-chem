@@ -69,13 +69,6 @@
       ! BOLTZ : Boltzmann's constant [J/K] 
       REAL(fp), PARAMETER :: BOLTZ   = 1.3806485279e-23_fp
 
-      ! Add some additional parameters currently in comode_loop_mod
-      ! (but that have different names) (ewl, 12/23/2015)
-
-      ! Boltzmann's constant [erg/K] (in comode_loop_mod was 1.38054e-16)
-      ! was called BK
-      REAL(fp), PARAMETER :: BOLTZ_erg   = 1.380648527e-16_fp
-
 ! !REVISION HISTORY:
 !  25 Jun 2002 - R. Yantosca - Initial version
 !  23 Aug 2011 - M. Long     - Converted to Module from Header file
