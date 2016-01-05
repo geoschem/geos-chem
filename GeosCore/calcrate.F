@@ -16,7 +16,7 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD,       ONLY : BOLTZ
+      USE CMN_GCTM_MOD,       ONLY : BOLTZ, AVO ! Physical parameters
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE CMN_DIAG_MOD
@@ -392,7 +392,7 @@
 ! AERSURF  = PARTICLE SURFACE AREA (CM2 CM-3)
 ! KTLOOP   = NUMBER OF GRID-CELLS IN A GRID-BLOCK
 ! AM       = MOLECULAR WEIGHT OF AIR (28.966 G MOLE-1)
-! AVG      = AVOGADRO'S NUMBER (6.02252E+23  # MOLE-1)
+! AVG      = AVOGADRO'S NUMBER (# MOLE-1)
 ! BOLTZ    = BOLTZMANN'S CONSTANT (1.3806485279e-23 J K-1) 
 ! RHO3     = DENSITY OF AIR         (G CM-3) = WTAIR*P(DYN CM-2)/(RSTARG*T) 
 ! RSTARG   = UNIVERSAL GAS CONSTANT [g/cm2/s2/mole/K]
@@ -2465,10 +2465,6 @@ c new OH+CO rate from JPL2006.
       REAL(fp)              :: kaq, kmt, o2_ss, fluxrxn, DFKG
       REAL(fp)              :: TEST
 
-
-      ! Avogadro's number
-      REAL(fp),  PARAMETER   :: Na = 6.022e+23_fp
-
       ! Ideal gas constant [atm cm3/mol/K], Raq
       REAL(fp),  PARAMETER   :: Raq=82.e+0_fp
 
@@ -2570,7 +2566,7 @@ c new OH+CO rate from JPL2006.
             !use quadratic formula to obtain [O2-] in particle of radius RADIUS
             A = -2e+0_fp * kaq
             B = -3e+0_fp * kmt / RADIUS / (H_eff * 0.082 * TEMP)
-            C =  3e+0_fp * kmt * HO2DENS * 1000e+0_fp / RADIUS / Na
+            C =  3e+0_fp * kmt * HO2DENS * 1000e+0_fp / RADIUS / AVO
 
             ! Error check that B^2-(4e+0_fp*A*C) is not negative
             TEST= B**2-(4e+0_fp*A*C)
@@ -2581,7 +2577,7 @@ c new OH+CO rate from JPL2006.
                 o2_ss= ( -B  -sqrt(B**2-(4e+0_fp*A*C)) )/(2e+0_fp*A)
 
                 ! Calculate the reactive flux
-                fluxrxn = kmt*HO2DENS - o2_ss*Na*kmt/H_eff/Raq/TEMP
+                fluxrxn = kmt*HO2DENS - o2_ss*AVO*kmt/H_eff/Raq/TEMP
 
                 IF ( fluxrxn <= 0e0_fp ) THEN
                    GAMMA = 0e+0_fp
