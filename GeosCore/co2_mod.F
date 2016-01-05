@@ -71,8 +71,8 @@
 !     
 ! !USES:
 !     
+      USE CMN_GCTM_MOD     ! Physical parameters
       USE inquireMod, ONLY : findFreeLUN
-
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -129,7 +129,7 @@
       REAL(fp),  PARAMETER   :: FMOL_CO2   = 44e-3_fp
 
       ! XNUMOL_CO2   - molecules CO2 / kg CO2 
-      REAL(fp),  PARAMETER   :: XNUMOL_CO2 = 6.022e+23_fp / FMOL_CO2
+      REAL(fp),  PARAMETER   :: XNUMOL_CO2 = AVO / FMOL_CO2
 
       CONTAINS
 !EOC
