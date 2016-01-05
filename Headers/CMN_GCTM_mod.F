@@ -47,7 +47,7 @@
       REAL(fp), PARAMETER :: Re       = 6.375e+6_fp               
 
       ! Rd    : Gas Constant in Dry Air [J/K/kg] 
-      REAL(fp), PARAMETER :: Rd       = 287.0e+0_fp                 
+      REAL(fp), PARAMETER :: Rd       = 287.0e+0_fp 
 
       ! Rv    : Gas Constant for water vapor [J/K/kg] 
       REAL(fp), PARAMETER :: Rv       = 461.0e+0_fp   
@@ -73,13 +73,15 @@
       ! RSTARG : Universal gas constant [J/K/mol] 
       REAL(fp), PARAMETER :: RSTARG   = 8.31450e+0_fp
       
-      ! Molecules dry air per kg dry air
-! prior to consistent physical constants (ewl)
-!      REAL(fp), PARAMETER :: XNUMOLAIR = AVO / 28.9644e-3_fp
+      ! XNUMOLAIR : Molecules dry air per kg dry air
       REAL(fp), PARAMETER :: XNUMOLAIR = AVO / AIRMW
 
       ! BOLTZ : Boltzmann's constant [J/K] 
       REAL(fp), PARAMETER :: BOLTZ   = 1.3806485279e-23_fp
+
+      ! ATM : Standard atmosphere [Pa] 
+      REAL(fp), PARAMETER :: ATM     = 1.01325e+5_fp
+
 
 ! !REVISION HISTORY:
 !  25 Jun 2002 - R. Yantosca - Initial version
