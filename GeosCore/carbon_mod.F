@@ -16,8 +16,9 @@
 !
 ! !USES:
 !
-      USE HCO_ERROR_MOD    ! For HEMCO error reporting
-      USE PRECISION_MOD   ! For GEOS-Chem Precisions (fp, f4, f8)
+      USE CMN_GCTM_MOD, ONLY : AVO, AIRMW  ! For physical constants
+      USE HCO_ERROR_MOD                    ! For HEMCO error reporting
+      USE PRECISION_MOD                    ! For GEOS-Chem Precisions
 
       IMPLICIT NONE
       PRIVATE
@@ -196,6 +197,7 @@
 !  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  13 Nov 2014 - C. Keller   - Added EMISSCARBON to make sure that SESQ and POA
 !                              emissions are properly passed from HEMCO.
+!  05 Jan 2015 - E. Lundgren - Use global physical parameters (AIRMW and AVO)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -204,7 +206,7 @@
 !
 !
       ! Molecules OH  per kg OH [molec/kg]
-      REAL(fp), PARAMETER   :: XNUMOL_OH  = 6.022e+23_fp / 17e-3_fp
+      REAL(fp), PARAMETER   :: XNUMOL_OH  = AVO / 17e-3_fp
       REAL(fp), PARAMETER   :: CM3PERM3   = 1.e+6_fp
 
       ! OM/OC for POA (hotp 7/26/10)
@@ -1232,8 +1234,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                :: I, J, L, K
-      REAL(fp)                 :: DTCHEM
-      REAL(fp),  PARAMETER     :: TAU_HYDRO = 1.15e+0_fp  ! [=]day
+      REAL(fp)               :: DTCHEM
+      REAL(fp),  PARAMETER   :: TAU_HYDRO = 1.15e+0_fp  ! [=]day
 
       !=================================================================
       ! AGING_CARB begins here!
@@ -1349,8 +1351,6 @@
       REAL(fp) :: XSQMW       ! Square root of molecular weight [g/mole]
       REAL(fp) :: CRITRH      ! Critical RH [%], above which 
                               !  heteorogeneous chem takes place
-      REAL(fp) :: XNAVO       ! Avogadro number
-
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
@@ -1376,9 +1376,6 @@
 
       ! Critical RH, above which heteorogeneous chem takes place
       CRITRH = 35.0e+0_fp   ! [%]
-
-      ! Avogadro number
-      XNAVO = 6.022e+23_fp
 
       ! Uptake coefficient from Liggio et al. [2005b]
       XGAMMA = 2.9e-3_fp
@@ -1422,7 +1419,7 @@
             XGASM   = STT( I, J, L, IDTGLYX )
 
             ! Get gas concentration at grid box [molec/cm3]
-            XGASC   = XGASM / (XMW*1.e-3_fp) * XNAVO / (XAIRM3*1.e+6_fp)
+            XGASC   = XGASM / (XMW*1.e-3_fp) * AVO / (XAIRM3*1.e+6_fp)
 
             !---------------------------------------
             ! Gas phase diffusion coeff [cm2/s]           
@@ -1467,7 +1464,7 @@
                      !---------------------------------------
                      XUPTK0 = XARSL1K * XGASC * DTCHEM
                      XUPTK1 = XUPTK0 /
-     &                        XNAVO*(XMW*1.e-3_fp)*(XAIRM3*1.e+6_fp)
+     &                        AVO*(XMW*1.e-3_fp)*(XAIRM3*1.e+6_fp)
                      XUPTKSUM = XUPTKSUM + XUPTK1
 
 	            ENDIF
@@ -1596,7 +1593,6 @@
       REAL(fp) :: XSQMW       ! Square root of molecular weight [g/mole]
       REAL(fp) :: CRITRH      ! Critical RH [%], above which 
                               !  heteorogeneous chem takes place
-      REAL(fp) :: XNAVO       ! Avogadro number
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -1623,9 +1619,6 @@
 
       ! Critical RH, above which heteorogeneous chem takes place
       CRITRH = 35.0e+0_fp   ! [%]
-
-      ! Avogadro number
-      XNAVO = 6.022e+23_fp
 
       ! Uptake coefficient from Liggio et al. [2005b]
       XGAMMA = 2.9e-3_fp
@@ -1669,7 +1662,7 @@
             XGASM   = STT( I, J, L, IDTMGLY )
 
             ! Get gas concentration at grid box [molec/cm3]
-            XGASC   = XGASM / (XMW*1.e-3_fp) * XNAVO / (XAIRM3*1.e+6_fp)
+            XGASC   = XGASM / (XMW*1.e-3_fp) * AVO / (XAIRM3*1.e+6_fp)
 
             !---------------------------------------
             ! Gas phase diffusion coeff [cm2/s]           
@@ -1714,7 +1707,7 @@
                      !---------------------------------------
                      XUPTK0 = XARSL1K * XGASC * DTCHEM
                      XUPTK1 = XUPTK0 /
-     &                        XNAVO*(XMW*1.e-3_fp)*(XAIRM3*1.e+6_fp)
+     &                        AVO*(XMW*1.e-3_fp)*(XAIRM3*1.e+6_fp)
                      XUPTKSUM = XUPTKSUM + XUPTK1
 
 	            ENDIF
@@ -5459,9 +5452,9 @@ ccc
       REAL(fp)                 :: OCSRC(IIPAR, JJPAR, IBINS, 2)
       REAL(fp)                 :: NUMBSRC(IIPAR, JJPAR, IBINS)
       REAL(fp)                 :: AREA(IIPAR, JJPAR)
-      REAL*4               :: BOXVOL  ! calculated from State_Met
-      REAL*4               :: TEMPTMS ! calculated from State_Met
-      REAL*4               :: PRES    ! calculated from State_Met
+      REAL*4                   :: BOXVOL  ! calculated from State_Met
+      REAL*4                   :: TEMPTMS ! calculated from State_Met
+      REAL*4                   :: PRES    ! calculated from State_Met
 
       REAL(fp)                 :: TMP_MASS(IIPAR, JJPAR, IBINS)
 
@@ -6231,7 +6224,7 @@ ccc
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp),  PARAMETER :: XNUMOL_NO3 = 6.022e+23_fp / 62e-3_fp
+      REAL(fp),  PARAMETER :: XNUMOL_NO3 = AVO / 62e-3_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -6297,7 +6290,7 @@ ccc
 
             ! At night: Get NO3 [v/v] and convert it to [kg]
             NO3_MOLEC_CM3 = NO3(I,J,L) * State_Met%AD(I,J,L) *
-     &                      ( 62e+0_fp/28.97e+0_fp )
+     &                      ( 62e+0_fp/AIRMW )
 
             ! Convert NO3 from [kg] to [molec/cm3]
             BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -6417,7 +6410,7 @@ ccc
 
             ! Get O3 [v/v] and convert it to [kg]
             O3_MOLEC_CM3 = O3(I,J,L) * State_Met%AD(I,J,L) *
-     &                     ( 48e+0_fp/28.97e+0_fp )
+     &                     ( 48e+0_fp / AIRMW )
                
             ! Convert O3 from [kg] to [molec/cm3]
             BOXVL        = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -7010,7 +7003,6 @@ ccc
       REAL(fp), PARAMETER :: XCLDR_MARI = 10.e-4_fp ! Cloud droplet radius in marine
                                                !  warm clouds [cm]
       REAL(fp), PARAMETER :: XMW = 58.e+0_fp         ! Molec wt of glyoxal [g/mole]
-      REAL(fp), PARAMETER :: XNAVO = 6.023e+23_fp    ! Avogadro's number
       REAL(fp), PARAMETER :: MINDAT = 1.e-20_fp     ! Minimum GLYX mixing ratio to
                                                !  calculate cloud uptake
       REAL(fp), PARAMETER :: XGAMMA = 2.9e-3_fp     ! Uptake coefficient (Assume
@@ -7080,10 +7072,10 @@ ccc
          XGASM   = STT( I, J, L, IDTGLYX )
 
          ! Get gas concentration at grid box [molec/cm3]
-         XGASC   = XGASM / (XMW*1.e-3_fp) * XNAVO / (XAIRM3*1.e+6_fp) 
+         XGASC   = XGASM / (XMW*1.e-3_fp) * AVO / (XAIRM3*1.e+6_fp) 
 
          ! GET gas mixing ratio [v/v]
-         XGASMIX = XGASM / XMW / ( XAIRM / 28.97e+0_fp )
+         XGASMIX = XGASM / XMW / ( XAIRM / AIRMW )
 
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
@@ -7158,7 +7150,7 @@ ccc
             !---------------------------------------
             ! Maximum potential uptake of gas mass [kg/box]
             !---------------------------------------
-            XUPTKMAX = XDELTAC * 1.e+6_fp / XNAVO * XMW * 1.e-3_fp 
+            XUPTKMAX = XDELTAC * 1.e+6_fp / AVO * XMW * 1.e-3_fp 
      &               * XAIRM3
 
             !---------------------------------------
@@ -7251,7 +7243,6 @@ ccc
                                                !  warm clouds [cm]
       REAL(fp), PARAMETER :: XMW = 72.e+0_fp         ! Molec wt of methylglyoxal
                                                !  [g/mole]
-      REAL(fp), PARAMETER :: XNAVO = 6.023e+23_fp    ! Avogadro's number
       REAL(fp), PARAMETER :: MINDAT = 1.e-20_fp     ! Minimum GLYX mixing ratio to
                                                !  calculate cloud uptake
       REAL(fp), PARAMETER :: XGAMMA = 2.9e-3_fp     ! Uptake coefficient (Assume
@@ -7321,10 +7312,10 @@ ccc
          XGASM   = STT( I, J, L, IDTMGLY )
 
          ! Get gas concentration at grid box [molec/cm3]
-         XGASC   = XGASM / (XMW*1.e-3_fp) * XNAVO / (XAIRM3*1.e+6_fp) 
+         XGASC   = XGASM / (XMW*1.e-3_fp) * AVO / (XAIRM3*1.e+6_fp) 
 
          ! GET gas mixing ratio [v/v]
-         XGASMIX = XGASM / XMW / ( XAIRM / 28.97e+0_fp )
+         XGASMIX = XGASM / XMW / ( XAIRM / AIRMW )
 
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
@@ -7397,7 +7388,7 @@ ccc
             !---------------------------------------
             ! Maximum potential uptake of gas mass [kg/box]
             !---------------------------------------
-            XUPTKMAX = XDELTAC * 1.e6_fp / XNAVO * XMW * 1.e-3_fp 
+            XUPTKMAX = XDELTAC * 1.e6_fp / AVO * XMW * 1.e-3_fp 
      &               * XAIRM3
 
             !---------------------------------------
