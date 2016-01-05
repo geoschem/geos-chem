@@ -141,7 +141,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE TRACERID_MOD,  ONLY : IDTO3, IDTCO
+    USE TRACERID_MOD,  ONLY : IDTO3, IDTCO, IDTNO, IDTNO2
 !
 ! !INPUT PARAMETERS:
 !
@@ -196,6 +196,10 @@ CONTAINS
     CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM', IDTO3, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM', IDTCO, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM', IDTNO, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM', IDTNO2, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     CALL Tend_Add ( am_I_Root, Input_Opt, 'CONV', IDTCO, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -619,6 +623,7 @@ CONTAINS
        Ptr3D => ThisTend%Tendency(I)%Arr
 
        ! Fill 3D array with current values. Make sure it's in v/v
+       Ptr3D = 0.0_f4
        IF ( IsInvv ) THEN
           Ptr3D = State_Chm%Tracers(:,:,:,I)
        ELSE
@@ -675,6 +680,8 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  14 Jul 2015 - C. Keller   - Initial version 
 !  26 Oct 2015 - C. Keller   - Update to include tendency classes
+!  05 Jan 2015 - C. Keller   - Small updates to remove spurious tendencies
+!                              caused by floating point errors.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -686,6 +693,7 @@ CONTAINS
     INTEGER                  :: cID, I
     REAL(f4), POINTER        :: Ptr3D(:,:,:) => NULL()
     REAL(f4)                 :: TEND(IIPAR,JJPAR,LLPAR)
+    REAL(f4)                 :: TMP (IIPAR,JJPAR,LLPAR)
     TYPE(TendClass), POINTER :: ThisTend => NULL()
     CHARACTER(LEN=63)        :: DiagnName
     CHARACTER(LEN=255)       :: MSG
@@ -711,6 +719,14 @@ CONTAINS
        ZeroTend = .TRUE.
     ENDIF
 
+    ! Error check: DT must not be 0
+    IF ( DT == 0.0_fp ) THEN
+       IF ( am_I_Root ) THEN
+          WRITE(*,*) 'Warning: cannot calculate tendency for DT = 0: ', TRIM(TendName)
+       ENDIF
+       ZeroTend = .TRUE.
+    ENDIF
+
     ! Loop over # of tendencies species
     DO I = 1, nSpc 
 
@@ -728,13 +744,16 @@ CONTAINS
        IF ( ZeroTend ) THEN
           Tend = 0.0_f4
        ELSE
+          ! TMP is the current concentration in v/v
           IF ( IsInvv ) THEN
-             Tend = ( State_Chm%Tracers(:,:,:,I) - Ptr3D(:,:,:) ) / DT
+             TMP = State_Chm%Tracers(:,:,:,I)
           ELSE
-             Tend = ( ( State_Chm%Tracers(:,:,:,I)                &
-                      * Input_Opt%TCVV(I) / State_Met%AD(:,:,:) ) &
-                      - Ptr3D(:,:,:) ) / DT
+             TMP = State_Chm%Tracers(:,:,:,I) &
+                 * Input_Opt%TCVV(I) / State_Met%AD(:,:,:)
           ENDIF
+
+          ! Calculate tendency 
+          Tend = ( TMP - Ptr3D ) / REAL(DT,f4)
        ENDIF
 
        ! Update diagnostics array
@@ -747,8 +766,8 @@ CONTAINS
           RETURN
        ENDIF
 
-       ! Update values 
-       Ptr3D = Tend 
+       ! Reset values 
+       Ptr3D = 0.0_fp
        Ptr3D => NULL()
 
     ENDDO !I

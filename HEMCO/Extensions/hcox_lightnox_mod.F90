@@ -252,7 +252,10 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return if extension disabled 
-    IF ( ExtNr <= 0 ) RETURN
+    IF ( ExtNr <= 0 ) THEN
+       CALL HCO_LEAVE ( RC )
+       RETURN
+    ENDIF
 
     ! Update lightnox NOx emissions (fill SLBASE) 
     CALL LIGHTNOX ( am_I_Root, HcoState, ExtState, RC )
