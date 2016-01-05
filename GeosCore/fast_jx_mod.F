@@ -3943,6 +3943,7 @@ C---Always does PL(2) = P[1]
 !
 ! !USES:
 !
+      USE CMN_GCTM_MOD,       ONLY : AIRMW, AVO, g0, BOLTZ ! Physical parameters
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -3971,6 +3972,7 @@ C---Always does PL(2) = P[1]
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2013 - S. D. Eastham - Adapted from J. Mao code
+!  05 Jan 2016 - E. Lundgren   - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4030,8 +4032,8 @@ C---Always does PL(2) = P[1]
       PSTD(52) = 0.e+0_fp
 
       ! Mass factor - delta-Pressure [hPa] to delta-Column [molec/cm2]
-      MASFAC = 100.e+0_fp * 6.022e+23_fp / 
-     &        ( 28.97e+0_fp * 9.8e+0_fp * 10.e+0_fp )
+      MASFAC = 100.e+0_fp * AVO / 
+     &        ( AIRMW * g0 * 10.e+0_fp )
 
       ! Select appropriate monthly and latitudinal profiles
       ! Now use YLAT instead of Oliver's YDGRD(NSLAT) (bmy, 9/13/99) 
@@ -4069,7 +4071,7 @@ C---Always does PL(2) = P[1]
       !=================================================================
       Z_CLIM(1) = 0.e+0_fp
       DO I = 1, L_   
-         SCALEH = 1.3806e-19_fp * MASFAC * T_CLIM(I)
+         SCALEH = BOLTZ * 1.e+4_fp * MASFAC * T_CLIM(I)
 
          Z_CLIM(I+1) = Z_CLIM(I) - 
      &        ( LOG( P_CTM(I+1) / P_CTM(I) ) * SCALEH )
