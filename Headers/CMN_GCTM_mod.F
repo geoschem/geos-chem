@@ -49,6 +49,18 @@
       ! Rd    : Gas Constant in Dry Air [J/K/kg] 
       REAL(fp), PARAMETER :: Rd       = 287.0e+0_fp                 
 
+      ! Rv    : Gas Constant for water vapor [J/K/kg] 
+      REAL(fp), PARAMETER :: Rv       = 461.0e+0_fp   
+
+      ! cpair : Specific heat of dry air at constant pressure [J/K/kg] 
+      REAL(fp), PARAMETER :: cpair    = 1004.64e+0_fp                 
+
+      ! Lf    : Latent heat of fusion (H2O) [J/kg] 
+      REAL(fp), PARAMETER :: Lf       = 3.336e+5_fp 
+
+      ! Lv    : Latent heat of vaporization (H2O) [J/kg]
+      REAL(fp), PARAMETER :: Lv       = 2.5104+6_fp 
+      
       ! Rdg0   = Rd    / g0
       REAL(fp), PARAMETER :: Rdg0     = Rd / g0
 
