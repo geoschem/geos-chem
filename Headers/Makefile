@@ -177,6 +177,7 @@ gigc_input_opt_mod.o   : gigc_input_opt_mod.F90   \
                          precision_mod.o
 
 gigc_state_chm_mod.o   : gigc_state_chm_mod.F90   \
+                         CMN_GCTM_mod.o           \
                          gigc_errcode_mod.o       \
                          gigc_input_opt_mod.o     \
 		         comode_loop_mod.o        \
