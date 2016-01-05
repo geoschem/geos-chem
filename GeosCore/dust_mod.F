@@ -622,8 +622,8 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
+      USE CMN_GCTM_MOD,       ONLY : g0          ! Accel due to gravity [m/s2]
       USE CMN_SIZE_MOD
 #if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
@@ -737,7 +737,7 @@
          DEN   = Input_Opt%DUSTDEN(N)
          REFF  = Input_Opt%DUSTREFF(N)
          DP    = 2e+0_fp * REFF * 1.e+6_fp    ! Dp [um] = particle diameter
-         CONST = 2e+0_fp * DEN * REFF**2 * G0 / 9e+0_fp
+         CONST = 2e+0_fp * DEN * REFF**2 * g0 / 9e+0_fp
 
          ! Loop over latitudes
          DO J = 1, JJPAR
@@ -1711,6 +1711,7 @@
 !
 ! !USES:
 !
+      USE CMN_GCTM_MOD,       ONLY : PI
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_MOD,         ONLY : ERADIUS, JLOP,   TAREA
       USE ERROR_MOD,          ONLY : IT_IS_NAN
@@ -1754,13 +1755,13 @@
 !                              as arguments
 !  14 Nov 2013 - M. Sulprizio- Bug fix: Avoid div-by-zero in calculation of
 !                              gas-to-particle rate constants for SO2 and HNO3
+!  05 Jan 2016 - E. Lundgren - Use global PI
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp), PARAMETER :: PI = 3.14159265
       REAL(fp), PARAMETER :: MINDAT = 1.d-20
 
       ! Need this for dust
@@ -2189,6 +2190,7 @@
 !
 ! !USES:
 !
+      USE CMN_GCTM_MOD,       ONLY : PI
       USE CMN_SIZE_MOD
 !      USE DRYDEP_MOD,         ONLY : NTRAIND
       USE ERROR_MOD,          ONLY : ALLOC_ERR
@@ -2226,6 +2228,7 @@
 !                              we can use the species database
 !  30 Sep 2015 - R. Yantosca - DD_A_Density is now renamed to Density
 !  30 Sep 2015 - R. Yantosca - DD_A_Radius is now renamed to Radius
+!  05 Jan 2016 - E. Lundgren - Use global parameter PI
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2238,7 +2241,6 @@
 #if   defined( TOMAS )
       INTEGER            :: I
       INTEGER            :: BIN
-      REAL(fp),  PARAMETER :: PI = 3.14159265e+0_fp  !(win, 7/17/09)
 #endif
 
       ! Objects
