@@ -23,6 +23,7 @@
 ! !USES:
 !
       USE CMN_FJX_MOD            
+      USE CMN_GCTM_MOD             ! Physical parameters
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
 
@@ -71,6 +72,7 @@
 !  15 Dec 2014 - M. Sulprizio- Modified for Fast-JX. Now consistent with
 !                              subroutine SET_PROF in fast_jx_mod.F.
 !  20 Mar 2015 - M. Sulprizio- Modified for flexible precision
+!  05 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -109,8 +111,7 @@
       PSTD(52) = 0.e+0_fp
 
       ! Mass factor - delta-Pressure [hPa] to delta-Column [molec/cm2]
-      MASFAC = 100.e+0_fp * 6.022e+23_fp / 
-     &        ( 28.97e+0_fp * 9.8e+0_fp * 10.e+0_fp )
+      MASFAC = 100.e+0_fp * AVO / ( AIRMW * g0 * 10.e+0_fp )
 
       ! Select appropriate monthly and latitudinal profiles
       ! Now use YLAT instead of Oliver's YDGRD(NSLAT) (bmy, 9/13/99) 
@@ -148,7 +149,7 @@
       !=================================================================
       Z_CLIM(1) = 0.e+0_fp
       DO I = 1, L_   
-         SCALEH = 1.3806e-19_fp * MASFAC * T_CLIM(I)
+         SCALEH = BOLTZ * 1e+4_fp * MASFAC * T_CLIM(I)
          Z_CLIM(I+1) = Z_CLIM(I) - 
      &        ( LOG( P_CTM(I+1) / P_CTM(I) ) * SCALEH )
       ENDDO
