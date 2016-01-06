@@ -3527,6 +3527,7 @@
 !  18 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sim from HEMCO
 !  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod since
 !                              XNUMOLAIR now defined in CMN_GTCM_MOD
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3534,7 +3535,7 @@
 ! !DEFINED PARAMETERS:
 !
       REAL(fp),  PARAMETER :: MINDAT    = 1.0e-20_fp 
-      REAL(fp),  PARAMETER :: TCVV_HNO3 = 28.97e+0_fp / 63.0e+0_fp 
+      REAL(fp),  PARAMETER :: TCVV_HNO3 = AIRMW / 63.0e+0_fp 
 !
 ! !LOCAL VARIABLES:
 !
@@ -7216,7 +7217,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp), PARAMETER :: PI = 3.14159265
       REAL(fp)            :: N1, N2, Kt
       REAL(fp)            :: HGF, ALK
       REAL(fp)            :: RAD1, RAD2, RAD3

@@ -6332,7 +6332,7 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_GCTM_MOD,       ONLY : XNUMOLAIR
+      USE CMN_GCTM_MOD,       ONLY : XNUMOLAIR, AVO
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -6365,18 +6365,19 @@ ccc
 !  18 Sep 2014 - M. Sulprizio- Now get O3 for offline aerosol sim from HEMCO
 !  24 Mar 2015 - E. Lundgren - Replace dependency on tracer_mod with
 !                              CMN_GTCM_MOD for XNUMOLAIR
+!  06 Jan 2016 - E. Lundgren - Use global physical parameter AVO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp),  PARAMETER :: XNUMOL_O3 = 6.022e+23_fp / 48e-3_fp
+      REAL(fp),  PARAMETER :: XNUMOL_O3 = AVO / 48e-3_fp
 !
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: JLOOP
-      REAL(fp)             :: BOXVL
+      REAL(fp)           :: BOXVL
 
       !=================================================================
       ! GET_O3 begins here!

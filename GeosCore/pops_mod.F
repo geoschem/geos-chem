@@ -45,8 +45,6 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      ! Now use avogadro's number from CMN_GCTM_MOD (same value) (ewl, 1/4/16)
-!      REAL(fp), PARAMETER  :: XNUMOL_OH = 6.022e+23_fp / 17e-3_fp  ! molec OH / kg OH
       REAL(fp), PARAMETER  :: XNUMOL_OH = AVO / 17e-3_fp  ! molec OH / kg OH
       REAL(fp), PARAMETER  :: CM3PERM3  = 1.e+6_fp
       REAL(fp), PARAMETER  :: SMALLNUM  = 1e-20_fp

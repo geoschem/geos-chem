@@ -7692,6 +7692,7 @@
       USE APM_INIT_MOD,       ONLY : FE0
       USE APM_INIT_MOD,       ONLY : LAPM
       USE CHARPAK_MOD,        ONLY : STRREPL
+      USE CMN_GCTM_MOD,       ONLY : AIRMW, AVO
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
       USE GAMAP_MOD,          ONLY : DO_GAMAP
@@ -7721,6 +7722,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  06 Jan 2015 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7756,8 +7758,8 @@
 
       ! Increment the TCVV and XNUMOL arrays for APM tracers
       DO T = 1, N_APMTRA
-         Input_Opt%TCVV(N_TRACERS+T) = 28.97e+0_fp / APMTRACER_MW_G(T)
-         Input_Opt%XNUMOL(N_TRACERS+T) = 6.022e+23_fp / 
+         Input_Opt%TCVV(N_TRACERS+T) = AIRMW / APMTRACER_MW_G(T)
+         Input_Opt%XNUMOL(N_TRACERS+T) = AVO / 
      &                                   APMTRACER_MW_KG(T) 
       ENDDO
 

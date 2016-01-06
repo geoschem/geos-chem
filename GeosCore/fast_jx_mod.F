@@ -2708,6 +2708,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
 ! !USES:
 !
+      USE CMN_GCTM_MOD, ONLY : PI
 !
 ! !INPUT PARAMETERS:
 !
@@ -2728,19 +2729,19 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Adapted from Fast-JX v7.0
+!  06 Jan 2016 - E. Lundgren   - Use global PI rather than local definition
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)  PI, PI180
+      REAL(fp)  PI180
 
       !=================================================================
       ! SOLAR_JX begins here!
       !=================================================================
 
-      PI     = 3.141592653589793e+0_fp
       PI180  = PI/180.e+0_fp
       SZA    = acos(COSSZA)/PI180
 

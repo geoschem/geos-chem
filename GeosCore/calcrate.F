@@ -16,7 +16,7 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD,       ONLY : BOLTZ, AVO ! Physical parameters
+      USE CMN_GCTM_MOD,       ONLY : BOLTZ, AVO, PI, RSTARG ! Physical params
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE CMN_DIAG_MOD
@@ -2689,6 +2689,7 @@ c new OH+CO rate from JPL2006.
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2701,9 +2702,8 @@ c new OH+CO rate from JPL2006.
       ! Cloud droplet radius in marine warm clouds [cm]
       REAL(fp), PARAMETER :: XCLDR_MARI = 10.e-4_fp
 
-      REAL(fp), PARAMETER :: R = 8.314472                  ! [J/mol/K]
+      !REAL(fp), PARAMETER :: R = 8.314472    ! [J/mol/K] Now use global RSTARG
       REAL(fp), PARAMETER :: mw_brno3 = 0.142              ! [kg/mol]
-      rEAL(fp), PARAMETER :: pi = 3.14159265358979323846e+0_fp ! [unitless]
       REAL(fp), PARAMETER :: alpha = 0.3                   ! sticking coefficient
       REAL(fp), PARAMETER :: dens_h2o = 0.001e+0_fp            ! [kg/cm3]
 !
@@ -2744,7 +2744,7 @@ c new OH+CO rate from JPL2006.
       !   calculate the mean molecular speed of the
       !   molecules given the temperature.
       ! ----------------------------------------------
-      nu   = sqrt( 8.e+0_fp * R * T(I,J,L) / (mw_brno3 * pi) )
+      nu   = sqrt( 8.e+0_fp * RSTARG * T(I,J,L) / (mw_brno3 * PI) )
 
       ! ----------------------------------------------
       ! Test conditions to see if we want to continue
