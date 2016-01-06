@@ -1572,14 +1572,14 @@
      &                      MSDENS(N) )  
 
                   ! Add surface area to TAREA array
-                  TAREA(JLOOP,N+NDUST) = TAREA(JLOOP,N+NDUST) + DRYAREA
+                  TAREA(JLOOP,N+NDUST) = WTAREA(JLOOP,N+NDUST) + DRYAREA
 
                   ! Define a new effective radius that accounts 
                   ! for the hydrophobic aerosol 
-                  ERADIUS(JLOOP,NDUST+N) = ( ERADIUS(JLOOP,NDUST+N) *
-     &                                       TAREA(JLOOP,N+NDUST)   +
+                  ERADIUS(JLOOP,NDUST+N) = ( WERADIUS(JLOOP,NDUST+N) *
+     &                                       WTAREA(JLOOP,N+NDUST)   +
      &                                       RW(1) * DRYAREA )      / 
-     &                                     ( TAREA(JLOOP,N+NDUST)   +
+     &                                     ( WTAREA(JLOOP,N+NDUST)   +
      &                                       DRYAREA )
                ENDIF !Hydrophobic aerosol surface area
             ENDIF    !Surface area calcs
