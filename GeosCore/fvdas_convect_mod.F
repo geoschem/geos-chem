@@ -13,10 +13,9 @@
 !  (2 ) LIMCNV   (INTEGER) : Maximum CTM level for HACK convection
 !  (3 ) CMFTAU   (REAL(fp) ) : Characteristic adjustment time scale for HACK [s]
 !  (4 ) EPS      (REAL(fp) ) : A very small number [unitless]
-!  (5 ) GRAV     (REAL(fp) ) : Gravitational constant [m/s2]
-!  (6 ) SMALLEST (REAL(fp) ) : The smallest double-precision number 
-!  (7 ) TINYNUM  (REAL(fp) ) : 2 times EPS
-!  (8 ) TINYALT  (REAL(fp) ) : arbitrary small num used in transport estimates
+!  (5 ) SMALLEST (REAL(fp) ) : The smallest double-precision number 
+!  (6 ) TINYNUM  (REAL(fp) ) : 2 times EPS
+!  (7 ) TINYALT  (REAL(fp) ) : arbitrary small num used in transport estimates
 !
 !  Module Routines:
 !  ============================================================================
@@ -54,6 +53,7 @@
 !  27 Apr 2015 - M. Yannetti - Fixed SMALLEST
 !  23 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
+!  06 Jan 2016 - E. Lundgren - Use global parameter g0 instead of local GRAV
 !******************************************************************************
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -83,7 +83,7 @@
       LOGICAL, PARAMETER :: RLXCLM   = .TRUE.
       REAL(fp),  PARAMETER :: CMFTAU   = 3600.e+0_fp
       REAL(fp),  PARAMETER :: EPS      = 1.0e-13_fp   
-      REAL(fp),  PARAMETER :: GRAV     = 9.8e+0_fp
+      !REAL(fp),  PARAMETER :: GRAV     = 9.8e+0_fp ! Use global g0
       REAL(fp),  PARAMETER :: SMALLEST = TINY(1.0e+0_fp)
       REAL(fp),  PARAMETER :: TINYALT  = 1.0e-36_fp       
       REAL(fp),  PARAMETER :: TINYNUM  = 2*SMALLEST
@@ -359,7 +359,7 @@
 !  (8 ) EFAC1  (REAL(fp) ) : Ratio q to convectively induced change (bot level)
 !  (9 ) EFAC2  (REAL(fp) ) : Ratio q to convectively induced change (mid level)
 !  (10) EFAC3  (REAL(fp) ) : Ratio q to convectively induced change (top level)
-!  (11) ETAGDT (REAL(fp) ) : ETA * GRAV * DT
+!  (11) ETAGDT (REAL(fp) ) : ETA * G0 * DT
 !  (12) TOPFLX (REAL(fp) ) : Top constituent mixing ratio flux
 !
 !  NOTES:
@@ -441,7 +441,7 @@
          
          ! Only proceed for boxes with nonzero mass flux
          IF ( ETA(I,J,K) > 0e+0_fp ) THEN
-            ETAGDT = ETA(I,J,K) * GRAV * TDT * 0.01e+0_fp   ![hPa]
+            ETAGDT = ETA(I,J,K) * G0 * TDT * 0.01e+0_fp   ![hPa]
          ELSE
             CYCLE
          ENDIF
@@ -789,7 +789,7 @@
 !  23 Jun 2014 - R. Yantosca - Now accept Input_Opt
 !  23 Jun 2014 - R. Yantosca - Now remove references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
-!  27 Apr 2015 - E. Lundgren - Replace 100/GRAV with global param g0_100
+!  27 Apr 2015 - E. Lundgren - Replace 100/G0 with global param g0_100
 !  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
 !                              (previously v/v)
 !******************************************************************************
@@ -1100,7 +1100,7 @@
                ! These terms are computed as follows:
                ! -------------------------------------------------------
                !
-               ! AIRFLUX:  MU(I,K) * AREA_M2 * 100 / GRAV  
+               ! AIRFLUX:  MU(I,K) * AREA_M2 * 100 / G0  
                !            = air mass (upward) flux in kg/s
                !
                ! T1:      +AIRFLUX * CONU(I,K) 
@@ -1122,7 +1122,7 @@
                ! CONU     = Mixing ratio in updraft       [kg/kg   ]
                ! COND     = Mixing ratio in downdraft     [kg/kg   ]
                ! CMIX     = Gathered tracer array         [kg/kg   ]
-               ! GRAV     = Acceleration due to gravity   [m/s2    ]
+               ! G0     = Acceleration due to gravity   [m/s2    ]
                ! D_NSTEP  = # of convection timesteps     [unitless]
                !
                ! Dividing by the number of time steps within each 
@@ -1159,7 +1159,7 @@
                !
                ! The loss of soluble tracer is given by (cf ND14):
                !
-               !   MU(I,K+1) * AREA_M2 * 100 / GRAV  
+               !   MU(I,K+1) * AREA_M2 * 100 / G0  
                !      = Air mass (upward) flux from level K+1 -> K
                !        (Note that vertical levels are reversed)
                !
