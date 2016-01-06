@@ -1568,8 +1568,10 @@
                IF ((N.eq.2).or.(N.eq.3)) THEN
              
                   ! Dry surface area
+                  ! SDE 2015-10-27: RW is in um, but everything
+                  ! else is in terms of cm. Correct with 10^-4 factor
                   DRYAREA = 3.D0 * DAERSL(I,J,L,N-1) / ( RW(1) *
-     &                      MSDENS(N) )  
+     &                      1.0D-4 * MSDENS(N) )  
 
                   ! Add surface area to TAREA array
                   TAREA(JLOOP,N+NDUST) = WTAREA(JLOOP,N+NDUST) + DRYAREA
@@ -1578,7 +1580,7 @@
                   ! for the hydrophobic aerosol 
                   ERADIUS(JLOOP,NDUST+N) = ( WERADIUS(JLOOP,NDUST+N) *
      &                                       WTAREA(JLOOP,N+NDUST)   +
-     &                                       RW(1) * DRYAREA )      / 
+     &                                       RW(1) * 1.0D-4 * DRYAREA )/
      &                                     ( WTAREA(JLOOP,N+NDUST)   +
      &                                       DRYAREA )
                ENDIF !Hydrophobic aerosol surface area
