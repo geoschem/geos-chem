@@ -56,6 +56,7 @@
 !  06 Jan 2016 - E. Lundgren - Use global parameter g0 instead of local GRAV
 !******************************************************************************
 !
+      USE CMN_GCTM_MOD,  ONLY : g0
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
