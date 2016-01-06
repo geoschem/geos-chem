@@ -16,7 +16,6 @@ MODULE VDIFF_MOD
 ! !USES:
 !
   USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR    ! Grid dimensions
-  USE CMN_GCTM_MOD,  ONLY : cpair, Rd, Rv, g0, Lv, VON_KARMAN ! Phys params
   USE ERROR_MOD,     ONLY : DEBUG_MSG              ! Routine for debug output
   USE VDIFF_PRE_MOD, ONLY : plev  => LLPAR         ! # of levels
   USE VDIFF_PRE_MOD, ONLY : PCNST                  ! N_TRACERS
@@ -39,23 +38,22 @@ MODULE VDIFF_MOD
 
   integer :: plevp
 
-  ! Replace local physical constant parameters with global values (ewl, 1/5/16)
-!  real(fp), parameter ::          &
-!       rearth = 6.37122e+6_fp,      &  ! Not used
-!       cpwv   = 1.81e+3_fp,         &  ! Not used 
-!       cpair  = 1004.64e+0_fp,      &  ! Now use global cpair
-!       rair   = 287.04e+0_fp,       &  ! Now use global Rd
-!       rh2o   = 461.e+0_fp,         &  ! Now use global Rv
-!       zvir   = rh2o/rair - 1., &      ! Now use Rv/Rd-1   
-!       gravit = 9.80616e+0_fp,      &  ! Now use global g0
-!       ra     = 1.e+0_fp/rearth,    &  ! Not used
-!       epsilo = 0.622e+0_fp,        &  ! Not used
-!       latvap = 2.5104e+06_fp          ! Now use global Lv
-!       latice = 3.336e+5_fp,        &  ! Not used
-!       cappa  = rair/cpair,     &      ! Now use global Rd/cpair
-!       rhoh2o = 1.e+3_fp,           &  ! Not used
-!       r_g    = rair / gravit,  &      ! Now use Rd/g0
-!       tfh2o  = 273.16e+0_fp           ! Not used
+  real(fp), parameter ::          &
+       rearth = 6.37122e+6_fp,      & ! radius earth (m)
+       cpwv   = 1.81e+3_fp,         &
+       cpair  = 1004.64e+0_fp,      &
+       rair   = 287.04e+0_fp,       &
+       rh2o   = 461.e+0_fp,         &
+       zvir   = rh2o/rair - 1., &
+       gravit = 9.80616e+0_fp,      &
+       ra     = 1.e+0_fp/rearth,    &
+       epsilo = 0.622e+0_fp,        &
+       latvap = 2.5104e+06_fp,      &
+       latice = 3.336e+5_fp,        &
+       cappa  = rair/cpair,     &
+       rhoh2o = 1.e+3_fp,           &
+       r_g    = rair / gravit,  &
+       tfh2o  = 273.16e+0_fp
 
 !-----------------------------------------------------------------------
 ! 	... pbl constants
@@ -69,15 +67,14 @@ MODULE VDIFF_MOD
        fak    =  8.5e+0_fp,  & ! constant in surface temperature excess         
        fakn   =  7.2e+0_fp,  & ! constant in turbulent prandtl number
        ricr   =   .3e+0_fp,  & ! critical richardson number
-       sffrac =   .1e+0_fp     ! surface layer fraction of boundary layer
-!       vk     =   .4e+0_fp    ! von karmans constant ! Now use global 
-                                                       ! VON_KARMAN
+       sffrac =   .1e+0_fp,  & ! surface layer fraction of boundary layer
+       vk     =   .4e+0_fp     ! von karmans constant
 
   ! These are assigned later, so we can't use the PARAMETER tag
   real(fp) ::              & 
        g,                & ! gravitational acceleration
        onet,             & ! 1/3 power in wind gradient expression
-       ccon,             & ! fak * sffrac * VON_KARMAN
+       ccon,             & ! fak * sffrac * vk
        binm,             & ! betam * sffrac
        binh                ! betah * sffrac
 
@@ -130,7 +127,6 @@ MODULE VDIFF_MOD
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  24 Jun 2014 - R. Yantosca - Now get PCNST from vdiff_pre_mod.F90
 !  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  05 Jan 2016 - E. Lundgren - Use global constants instead of local defs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -179,7 +175,7 @@ contains
 !-----------------------------------------------------------------------
 ! 	... derived constants
 !-----------------------------------------------------------------------
-    ccon = fak*sffrac*VON_KARMAN
+    ccon = fak*sffrac*vk
     binm = betam*sffrac
     binh = betah*sffrac
     
@@ -313,8 +309,8 @@ contains
          kvn, &                    ! neutral kv
          tmp2, &                   ! temporary storage
          rcpair, &                 ! 1./cpair
-         ztodtgor, &               ! ztodt*g0/Rd
-         gorsq                     ! (g0/Rd)**2
+         ztodtgor, &               ! ztodt*gravit/rair
+         gorsq                     ! (gravit/rair)**2
     real(fp) :: &
          cah(plonl,plev), &        ! -upper diag for heat and constituts
          cam(plonl,plev), &        ! -upper diagonal for momentum
@@ -415,7 +411,7 @@ contains
 !-----------------------------------------------------------------------
     rcpair = 1.e+0_fp/cpair
     do i = 1,plonl
-       tmp1(i)      = ztodt*g0*rpdel(i,plev)
+       tmp1(i)      = ztodt*gravit*rpdel(i,plev)
        ! simplified treatment -- dubot and dvbot are not used under current PBL scheme, anyway
 !ccc       if (present(taux) .and. present(tauy)) then 
        if (present(taux_arg) .and. present(tauy_arg)) then 
@@ -449,7 +445,7 @@ contains
 !-----------------------------------------------------------------------
 !      call virtem( thp, shp1, thv, plonl )
     do k = 1,plev
-       thv(:,k) = thp(:,k)*(1. + ( Rv/Rd - 1.) *shp1(:,k))
+       thv(:,k) = thp(:,k)*(1. + zvir*shp1(:,k))
     end do
     
 !      !### Debug
@@ -473,7 +469,7 @@ contains
 !-----------------------------------------------------------------------
 ! 	... static stability (use virtual potential temperature)
 !-----------------------------------------------------------------------
-          sstab = g0*2.e+0_fp*(thv(i,k) - thv(i,k+1))/((thv(i,k) &
+          sstab = gravit*2.e+0_fp*(thv(i,k) - thv(i,k+1))/((thv(i,k) &
                  + thv(i,k+1))*dz)
 !-----------------------------------------------------------------------
 ! 	... richardson number, stable and unstable modifying functions
@@ -565,7 +561,7 @@ contains
 !-----------------------------------------------------------------------
 ! 	... now focus on the boundary layer
 !-----------------------------------------------------------------------
-    ztodtgor = ztodt*g0/Rd
+    ztodtgor = ztodt*gravit/rair
     do k = plev-npbl+1,plev
        do i = 1,plonl
           tmp1(i) = ztodtgor*rpdel(i,k)
@@ -652,7 +648,7 @@ contains
 !           solver
 !-----------------------------------------------------------------------
 
-    gorsq = (g0/Rd)**2
+    gorsq = (gravit/rair)**2
     do k = ntopfl,plev-1
        do i = 1,plonl
           tmp2 = ztodt*gorsq*rpdeli(i,k)*(potbar(i,k+1)**2)
@@ -921,7 +917,7 @@ contains
 ! 	... compute kinematic surface fluxes
 !------------------------------------------------------------------------
     do i = 1,plonl
-       rrho(i)  = Rd*t(i,plev)/pmid(i,plev)
+       rrho(i)  = rair*t(i,plev)/pmid(i,plev)
        if (present(taux) .and. present(tauy)) then
           ustr     = sqrt( sqrt( taux(i)**2 + tauy(i)**2 )*rrho(i) )
           ustar(i) = max( ustr,.01e+0_fp )
@@ -962,7 +958,7 @@ contains
        fak3(i)   = 0.e+0_fp  
        zh(i)     = 0.e+0_fp  
        obklen(i) = -thvsrf(i)*ustar(i)**3 &
-                   /(g*VON_KARMAN*(heatv(i) + sign( 1.d-10,heatv(i) )))
+                   /(g*vk*(heatv(i) + sign( 1.d-10,heatv(i) )))
     end do
 
     if (pblh_ar) then  ! use archived PBLH
@@ -1113,7 +1109,7 @@ contains
 !------------------------------------------------------------------------
     do i = 1,plonl
        pblk(i) = 0.e+0_fp
-       fak1(i) = ustar(i)*pblh(i)*VON_KARMAN
+       fak1(i) = ustar(i)*pblh(i)*vk
 !------------------------------------------------------------------------
 ! 	... do additional preparation for unstable cases only, set temperature
 !           and moisture perturbations depending on stability.
@@ -1122,7 +1118,7 @@ contains
           phiminv(i) = (1.e+0_fp - binm*pblh(i)/obklen(i))**onet
           phihinv(i) = sqrt(1.e+0_fp - binh*pblh(i)/obklen(i))
           wm(i)      = ustar(i)*phiminv(i)
-          fak2(i)    = wm(i)*pblh(i)*VON_KARMAN
+          fak2(i)    = wm(i)*pblh(i)*vk
           wstr(i)    = (heatv(i)*g*pblh(i)/thvref(i))**onet 
           fak3(i)    = fakn*wstr(i)/wm(i)
           tpert(i)   = max( khfs(i)*fak/wm(i),0.e+0_fp )   
@@ -1417,8 +1413,8 @@ contains
          potbar(plonl,plevp), &   ! pintm1(k)/(.5*(tm1(k)+tm1(k-1))
          tmp1(plonl), &           ! temporary storage
          tmp2, &                  ! temporary storage
-         ztodtgor, &              ! ztodt*g0/Rd
-         gorsq, &                 ! (g0/Rd)**2
+         ztodtgor, &              ! ztodt*gravit/rair
+         gorsq, &                 ! (gravit/rair)**2
          dqbot(plonl,pcnst), &    ! lowest layer q change from const flx
          qmx(plonl,plev,pcnst), & ! constituents input + counter grad
          zeh(plonl,plev), &       ! term in tri-diag. matrix system (t & q)
@@ -1464,7 +1460,7 @@ contains
 ! 	... convert the surface fluxes to lowest level tendencies
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       tmp1(i) = ztodt*g0*rpdel(i,plev)
+       tmp1(i) = ztodt*gravit*rpdel(i,plev)
     end do
     do m = 1,pcnst
        do i = 1,plonl
@@ -1498,7 +1494,7 @@ contains
 !-----------------------------------------------------------------------
 ! 	... now focus on the boundary layer
 !-----------------------------------------------------------------------
-    ztodtgor = ztodt*g0/Rd
+    ztodtgor = ztodt*gravit/rair
     do k = plev-npbl+1,plev
        do i = 1,plonl
           tmp1(i) = ztodtgor*rpdel(i,k)
@@ -1550,7 +1546,7 @@ contains
 !           combination of ca and cc; they are not explicitly provided to the 
 !           solver
 !-----------------------------------------------------------------------
-    gorsq = (g0/Rd)**2
+    gorsq = (gravit/rair)**2
     do k = ntopfl,plev-1
        do i = 1,plonl
           tmp2 = ztodt*gorsq*rpdeli(i,k)*(potbar(i,k+1)**2)
@@ -1657,7 +1653,7 @@ contains
 !------------------------------------------------------------------------
 ! 	... compute kinematic surface fluxes
 !------------------------------------------------------------------------
-    rrho(:) = Rd*t(:,plev)/pmid(:,plev)
+    rrho(:) = rair*t(:,plev)/pmid(:,plev)
     do m = 1,pcnst
        kqfs(:,m) = cflx(:,m)*rrho(:)
     end do
@@ -1787,7 +1783,7 @@ contains
 !-----------------------------------------------------------------------
 ! 	... initialize pbl variables
 !-----------------------------------------------------------------------
-    call pbinti( g0 )
+    call pbinti( gravit)
 
   END SUBROUTINE VDINTI
 !EOC
@@ -2054,7 +2050,7 @@ contains
 
     dtime = GET_TS_CONV()*60e+0_fp ! min -> second
     
-    shflx = State_Met%EFLUX / Lv ! latent heat -> water vapor flux
+    shflx = State_Met%EFLUX / latvap ! latent heat -> water vapor flux
 
     ! On first call, get pointers to the PARANOX loss fluxes. These are
     ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and 
@@ -2088,7 +2084,7 @@ contains
        pmid(I,J,L) = State_Met%PMID(I,J,L)*100.e+0_fp ! hPa -> Pa
        pint(I,J,L) = State_Met%PEDGE(I,J,L)*100.e+0_fp   ! hPa -> Pa
        ! calculate potential temperature
-       thp(I,J,L) = State_Met%T(I,J,L)*(p0/pmid(I,J,L))**(Rd/cpair)
+       thp(I,J,L) = State_Met%T(I,J,L)*(p0/pmid(I,J,L))**cappa
     enddo
     pint(I,J,LLPAR+1) = State_Met%PEDGE(I,J,LLPAR+1)
 
@@ -2106,7 +2102,7 @@ contains
        ! (ewl, 3/3/15)
        zm(I,J,L) = sum( State_Met%BXHEIGHT(I,J,1:L)) &
                  - log( pmid(I,J,L)/pint(I,J,L+1) )  &
-                 * (Rd/g0) * State_Met%TV(I,J,L)
+                 * r_g * State_Met%TV(I,J,L)
 
     enddo
     enddo
@@ -2464,9 +2460,9 @@ contains
        endif
 
        ! virtual temperature in the lowest model layer
-       ! vtemp = tadv(I,J,1)*(1. + (Rv/Rd - 1)*shp(I,J,1))
+       ! vtemp = tadv(I,J,1)*(1. + zvir*shp(I,J,1))
        ! for deposition: additional step to convert from s-1 to kg/m2/s
-       ! dflx(I,J,:) = dflx(I,J,:) * pmid(I,J,1) / Rd / vtemp * BXHEIGHT(I,J,1)
+       ! dflx(I,J,:) = dflx(I,J,:) * pmid(I,J,1) / rair / vtemp * BXHEIGHT(I,J,1)
        ! alternate method to convert from s-1 to kg/m2/s
        dflx(I,J,:) = dflx(I,J,:) * State_Met%AD(I,J,1) / &
                      GET_AREA_M2( I, J, 1 ) 
