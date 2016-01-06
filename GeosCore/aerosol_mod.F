@@ -1560,8 +1560,8 @@
      &                                ( ERADIUS(JLOOP,NDUST+N) * 
      &                                  MSDENS(N) )  
 
-               WTAREA(JLOOP, N)   = TAREA(JLOOP, N+NDUST)
-               WERADIUS(JLOOP, N) = ERADIUS(JLOOP, N+NDUST)             
+               WTAREA(JLOOP, N+NDUST)   = TAREA(JLOOP, N+NDUST)
+               WERADIUS(JLOOP, N+NDUST) = ERADIUS(JLOOP, N+NDUST)     
 
                !include hydrophobic BC and OC
                !stored separate to hydrophillic in RT variables
