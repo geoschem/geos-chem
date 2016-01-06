@@ -16,6 +16,7 @@ MODULE VDIFF_MOD
 ! !USES:
 !
   USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR    ! Grid dimensions
+  USE CMN_GCTM_MOD,  ONLY : AVO                    ! Physical constants
   USE ERROR_MOD,     ONLY : DEBUG_MSG              ! Routine for debug output
   USE VDIFF_PRE_MOD, ONLY : plev  => LLPAR         ! # of levels
   USE VDIFF_PRE_MOD, ONLY : PCNST                  ! N_TRACERS
@@ -2603,7 +2604,7 @@ contains
                 ! consider timestep difference between convection and emissions
 		IF(ND44 > 0 .or. LGTMM) THEN                
 		AD44(:,:,N,1) = AD44(:,:,N,1) + dflx(:,:,NN) &
-                       / TRACER_MW_KG(NN) * 6.022e+23_fp * 1.e-4_fp &
+                       / TRACER_MW_KG(NN) * AVO * 1.e-4_fp &
                        * GET_TS_CONV() / GET_TS_EMIS() 
 		ENDIF
 #endif
@@ -2616,7 +2617,7 @@ contains
                    DO J = 1, JJPAR
                    DO I = 1, IIPAR
                       soilflux = dflx(I,J,NN) &
-		        / TRACER_MW_KG(NN) * 6.022e+23_fp * 1.e-4_fp &
+		        / TRACER_MW_KG(NN) * AVO * 1.e-4_fp &
                         * GET_TS_CONV() / GET_TS_EMIS()
 
                       CALL SOIL_DRYDEP ( I, J, 1, NN, soilflux)
@@ -2635,7 +2636,7 @@ contains
              ! Convert : kg/m2/s -> molec/cm2/s
              ! Consider timestep difference between convection and emissions
              AD44(:,:,N,1) = AD44(:,:,N,1) + dflx(:,:,N) &
-                       / TRACER_MW_KG(1) * 6.022e+23_fp * 1.e-4_fp &
+                       / TRACER_MW_KG(1) * AVO * 1.e-4_fp &
                        * GET_TS_CONV() / GET_TS_EMIS()
              AD44(:,:,N,2) = AD44(:,:,1,2) ! drydep velocity
 #endif
