@@ -5352,12 +5352,15 @@ ccc
 
          ! For POA, add emissions to POAEMISS array. Mix entire
          ! column emissions evenly in the PBL.
+         ! Units are kgC/m2/s, convert to kgC/box here.
          IF ( HCOPOA1 > 0 ) THEN
             TMPFLX = SUM(HcoState%Spc(HCOPOA1)%Emis%Val(I,J,:))
+     &               * GET_TS_EMIS() * 60.0e+0_fp  * GET_AREA_M2(I,J,1)
             POAEMISS(I,J,L,1) = F_OF_PBL * TMPFLX
          ENDIF 
          IF ( HCOPOG1 > 0 ) THEN
             TMPFLX = SUM(HcoState%Spc(HCOPOG1)%Emis%Val(I,J,:))
+     &               * GET_TS_EMIS() * 60.0e+0_fp  * GET_AREA_M2(I,J,1)
             POAEMISS(I,J,L,2) = F_OF_PBL * TMPFLX
          ENDIF 
       ENDDO
