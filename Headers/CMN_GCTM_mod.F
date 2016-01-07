@@ -29,6 +29,7 @@
       REAL(fp), PARAMETER :: H2OMW   = 18.016e+0_fp
 
       ! AVO   : Avogadro's number [particles/mol]
+      ! Change to NIST value?  6.022140857e+23
       REAL(fp), PARAMETER :: AVO      = 6.022e+23_fp
 
       ! g0    : Acceleration due to gravity at earth's surface [m/s^2]
@@ -52,15 +53,6 @@
       ! Rv    : Gas Constant for water vapor [J/K/kg] 
       REAL(fp), PARAMETER :: Rv       = 461.0e+0_fp   
 
-      ! cpair : Specific heat of dry air at constant pressure [J/K/kg] 
-      REAL(fp), PARAMETER :: cpair    = 1004.64e+0_fp                 
-
-      ! Lf    : Latent heat of fusion (H2O) [J/kg] 
-      REAL(fp), PARAMETER :: Lf       = 3.336e+5_fp 
-
-      ! Lv    : Latent heat of vaporization (H2O) [J/kg]
-      REAL(fp), PARAMETER :: Lv       = 2.5104+6_fp 
-      
       ! Rdg0   = Rd    / g0
       REAL(fp), PARAMETER :: Rdg0     = Rd / g0
 
@@ -70,14 +62,16 @@
       ! VON_KARMAN : Von Karman's constant [.]
       REAL(fp), PARAMETER :: VON_KARMAN   = 0.4e+0_fp
 
-      ! RSTARG : Universal gas constant [J/K/mol] 
+      ! RSTARG : Molar gas constant [J/K/mol]
+      ! Use NIST value? 8.3144598 J/K/mol
       REAL(fp), PARAMETER :: RSTARG   = 8.31450e+0_fp
       
       ! XNUMOLAIR : Molecules dry air per kg dry air
       REAL(fp), PARAMETER :: XNUMOLAIR = AVO / AIRMW
 
       ! BOLTZ : Boltzmann's constant [J/K] 
-      REAL(fp), PARAMETER :: BOLTZ   = 1.3806485279e-23_fp
+      ! Source: NIST
+      REAL(fp), PARAMETER :: BOLTZ   = 1.38064852e-23_fp
 
       ! ATM : Standard atmosphere [Pa] 
       REAL(fp), PARAMETER :: ATM     = 1.01325e+5_fp

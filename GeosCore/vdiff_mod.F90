@@ -16,7 +16,7 @@ MODULE VDIFF_MOD
 ! !USES:
 !
   USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR    ! Grid dimensions
-  USE CMN_GCTM_MOD,  ONLY : AVO                    ! Physical constants
+  USE CMN_GCTM_MOD                                 ! Physical constants
   USE ERROR_MOD,     ONLY : DEBUG_MSG              ! Routine for debug output
   USE VDIFF_PRE_MOD, ONLY : plev  => LLPAR         ! # of levels
   USE VDIFF_PRE_MOD, ONLY : PCNST                  ! N_TRACERS
@@ -31,7 +31,7 @@ MODULE VDIFF_MOD
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   public :: DO_PBL_MIX_2 
-!
+!x
 ! !PRIVATE DATA MEMBERS:
 !  
   save
@@ -39,22 +39,31 @@ MODULE VDIFF_MOD
 
   integer :: plevp
 
-  real(fp), parameter ::          &
-       rearth = 6.37122e+6_fp,      & ! radius earth (m)
-       cpwv   = 1.81e+3_fp,         &
+  real(fp), parameter ::            &
        cpair  = 1004.64e+0_fp,      &
-       rair   = 287.04e+0_fp,       &
-       rh2o   = 461.e+0_fp,         &
-       zvir   = rh2o/rair - 1., &
-       gravit = 9.80616e+0_fp,      &
-       ra     = 1.e+0_fp/rearth,    &
-       epsilo = 0.622e+0_fp,        &
        latvap = 2.5104e+06_fp,      &
-       latice = 3.336e+5_fp,        &
-       cappa  = rair/cpair,     &
        rhoh2o = 1.e+3_fp,           &
-       r_g    = rair / gravit,  &
-       tfh2o  = 273.16e+0_fp
+       tfh2o  = 273.16e+0_fp,       &
+       rair   = Rd,                 & 
+       rh2o   = Rv,                 &         
+       gravit = g0,                 & 
+       zvir   = rh2o/rair - 1.,     &
+       cappa  = Rd/cpair,           &       
+       r_g    = Rd / g0                       
+
+  ! Obsolete variables and variables that are now defined with global params
+  ! (ewl, 1/7/16)
+!  real(fp), parameter ::          &
+!       rearth = 6.37122e+6_fp,      & ! not used
+!       cpwv   = 1.81e+3_fp,         & ! not used
+!       ra     = 1.e+0_fp/rearth,    & ! not used
+!       epsilo = 0.622e+0_fp,        & ! not used
+!       latice = 3.336e+5_fp,        & ! not used
+!       rair   = 287.04e+0_fp,       & ! now use global Rd
+!       rh2o   = 461.e+0_fp,         & ! now use global Rv
+!       gravit = 9.80616e+0_fp,      & ! now use global g0
+!       cappa  = rair/cpair,     &     ! now use global Rd
+!       r_g    = rair / gravit,  &     ! now use global Rd and g0
 
 !-----------------------------------------------------------------------
 ! 	... pbl constants
@@ -128,6 +137,8 @@ MODULE VDIFF_MOD
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  24 Jun 2014 - R. Yantosca - Now get PCNST from vdiff_pre_mod.F90
 !  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  07 Jan 2016 - E. Lundgren - Replace hard-coded physical params w/ global and
+!                              remove unused parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
