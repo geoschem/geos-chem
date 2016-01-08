@@ -35,7 +35,7 @@
       REAL(fp), PARAMETER :: g0       =   9.8e+0_fp                 
 
       ! g0_100 : 100 / g0
-      REAL(fp), PARAMETER :: g0_100   = 100e+0_fp / g0
+      REAL(fp), PARAMETER :: g0_100   = 100.e+0_fp / g0
 
       ! PI    : Double-Precision value of PI          
       REAL(fp), PARAMETER :: PI       = 3.14159265358979323e+0_fp 
@@ -65,7 +65,7 @@
       REAL(fp), PARAMETER :: Rdg0     = Rd / g0
 
       ! SCALE_HEIGHT : Scale height of atmosphere [m]
-      REAL(fp), PARAMETER :: SCALE_HEIGHT = 7600e+0_fp
+      REAL(fp), PARAMETER :: SCALE_HEIGHT = 7600.e+0_fp
 
       ! VON_KARMAN : Von Karman's constant [.]
       REAL(fp), PARAMETER :: VON_KARMAN   = 0.4e+0_fp
@@ -74,7 +74,7 @@
       REAL(fp), PARAMETER :: RSTARG   = 8.31450e+0_fp
       
       ! XNUMOLAIR : Molecules dry air per kg dry air
-      REAL(fp), PARAMETER :: XNUMOLAIR = AVO / AIRMW
+      REAL(fp), PARAMETER :: XNUMOLAIR = AVO / ( AIRMW * 1.e-3_fp)
 
       ! BOLTZ : Boltzmann's constant [J/K] 
       REAL(fp), PARAMETER :: BOLTZ   = 1.3806485279e-23_fp

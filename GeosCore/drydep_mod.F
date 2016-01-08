@@ -19,6 +19,7 @@
       USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE CMN_GCTM_MOD                          ! Physical constants
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
+      !USE COMODE_LOOP_MOD                      ! Now use global physical param
       USE DAO_MOD                               ! Met field subroutines
 #if !defined( NO_BPCH )
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
