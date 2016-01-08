@@ -722,7 +722,7 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD,       ONLY : AIRMW
+      USE PHYSCONSTANTS,      ONLY : AIRMW
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN

@@ -43,7 +43,7 @@
       USE inquireMod, ONLY : findFreeLUN
       USE CMN_SIZE_MOD                       ! Size parameters
       USE COMODE_LOOP_MOD                    ! SMVGEAR II arrays
-      USE CMN_GCTM_MOD                       ! Re, PI
+      USE PHYSCONSTANTS                      ! Re, PI
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE

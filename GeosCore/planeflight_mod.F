@@ -1228,7 +1228,7 @@
       USE BPCH2_MOD,          ONLY : GET_TAU0
       USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE CMN_GCTM_MOD,       ONLY : BOLTZ
+      USE PHYSCONSTANTS,      ONLY : BOLTZ
       USE COMODE_LOOP_MOD          ! CSPEC, etc.
       USE COMODE_MOD,         ONLY : AIRDENS,        CSPEC,       JLOP
       USE COMODE_MOD,         ONLY : T3,             VOLUME,      ABSHUM
@@ -1501,7 +1501,7 @@
      &                                (TK - 35.86e+0_fp)
 
                            ! Define condensation vapor pressure locally.
-                           ! Use BOLTZ [J/K] from CMN_GCTM_MOD rather than 
+                           ! Use BOLTZ [J/K] from PHYSCONSTANTS rather than 
                            ! BOLTG [ergs/K] in comode_loop_mod (ewl, 1/4/16)
                            CONSVAP  = 6.1078e+03_fp  
      &                                / ( BOLTZ * 1e+7_fp)

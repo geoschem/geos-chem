@@ -16,7 +16,7 @@ MODULE VDIFF_MOD
 ! !USES:
 !
   USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR    ! Grid dimensions
-  USE CMN_GCTM_MOD                                 ! Physical constants
+  USE PHYSCONSTANTS                                ! Physical constants
   USE ERROR_MOD,     ONLY : DEBUG_MSG              ! Routine for debug output
   USE VDIFF_PRE_MOD, ONLY : plev  => LLPAR         ! # of levels
   USE VDIFF_PRE_MOD, ONLY : PCNST                  ! N_TRACERS

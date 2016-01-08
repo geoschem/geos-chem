@@ -71,7 +71,7 @@
 !     
 ! !USES:
 !     
-      USE CMN_GCTM_MOD     ! Physical parameters
+      USE PHYSCONSTANTS    ! Physical parameters
       USE inquireMod, ONLY : findFreeLUN
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
@@ -151,7 +151,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_GCTM_MOD
       USE GIGC_ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE DIAG04_MOD,         ONLY : AD04, ND04

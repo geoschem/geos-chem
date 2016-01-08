@@ -7692,7 +7692,7 @@
       USE APM_INIT_MOD,       ONLY : FE0
       USE APM_INIT_MOD,       ONLY : LAPM
       USE CHARPAK_MOD,        ONLY : STRREPL
-      USE CMN_GCTM_MOD,       ONLY : AIRMW, AVO
+      USE PHYSCONSTANTS,      ONLY : AIRMW, AVO
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
       USE GAMAP_MOD,          ONLY : DO_GAMAP

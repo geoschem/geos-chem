@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD, ONLY : AVO, AIRMW
+      USE PHYSCONSTANTS,ONLY : AVO, AIRMW
       USE HCO_ERROR_MOD    ! For HEMCO error reporting
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 

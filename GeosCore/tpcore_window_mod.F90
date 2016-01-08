@@ -457,7 +457,7 @@ CONTAINS
 !----------------------------------------------------------------------------
 
 ! Uses:
-    USE CMN_GCTM_MOD   ! Physical constants g0_100 and AIRMW
+    USE PHYSCONSTANTS  ! Physical constants g0_100 and AIRMW
 
  implicit none
 
@@ -1286,7 +1286,7 @@ CONTAINS
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ! Uses:
-    USE CMN_GCTM_MOD   ! Physical constants g0_100
+    USE PHYSCONSTANTS  ! Physical constants g0_100
 
  implicit none
 

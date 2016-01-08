@@ -16,7 +16,7 @@
 ! !USES:
 !
       ! Modules from Headers directory
-      USE CMN_GCTM_MOD,       ONLY : AVO     ! Avogadro's #
+      USE PHYSCONSTANTS,      ONLY : AVO     ! Avogadro's #
       USE CMN_SIZE_MOD                       ! Size parameters
       USE CMN_O3_MOD                         ! FMOL, XNUMOL
       USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays

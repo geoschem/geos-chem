@@ -129,7 +129,7 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE CMN_GCTM_MOD,       ONLY : BOLTZ, AVO, AIRMW
+      USE PHYSCONSTANTS,      ONLY : BOLTZ, AVO, AIRMW
       USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, IXSAVE   
       USE COMODE_MOD,         ONLY : IYSAVE, IZSAVE,  JLOP       
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -191,7 +191,7 @@
       NPVERT = NVERT
 
       ! Calculate condensation vapor pressure locally
-      ! and use Boltzmann's constant in CMN_GCTM_MOD [J/K] (ewl, 1/4/16)
+      ! and use Boltzmann's constant in PHYSCONSTANTS [J/K] (ewl, 1/4/16)
       CONSVAP  = 6.1078e+03_fp / ( BOLTZ * 1e+7_fp )
 
       !=================================================================
@@ -300,7 +300,7 @@
             BOXVL          = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
             ! Air density in [molec/cm3]
-            ! Now use physical parameters from CMN_GCTM_MOD (ewl, 1/4/16)
+            ! Now use physical parameters from PHYSCONSTANTS (ewl, 1/4/16)
 !            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
 !     &                       BOXVL               * AVG  / WTAIR
             AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 

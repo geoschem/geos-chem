@@ -22,7 +22,7 @@ MODULE GIGC_State_Chm_Mod
 !
 ! USES:
 !
-  USE CMN_GCTM_MOD     ! Physical constants
+  USE PhysConstants    ! Physical constants
   USE Precision_Mod    ! GEOS-Chem precision types 
   USE Species_Mod      ! For species database object
 

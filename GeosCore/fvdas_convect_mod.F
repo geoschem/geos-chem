@@ -56,7 +56,7 @@
 !  06 Jan 2016 - E. Lundgren - Use global parameter g0 instead of local GRAV
 !******************************************************************************
 !
-      USE CMN_GCTM_MOD,  ONLY : g0
+      USE PHYSCONSTANTS, ONLY : g0
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -809,7 +809,7 @@
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND38, LD38, ND14, LD14
-      USE CMN_GCTM_MOD             ! Universal constants
+      USE PHYSCONSTANTS            ! Universal constants
 
       ! Arguments
       INTEGER,        INTENT(IN)     :: J

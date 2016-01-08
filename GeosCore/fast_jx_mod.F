@@ -2708,7 +2708,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD, ONLY : PI
+      USE PHYSCONSTANTS,ONLY : PI
 !
 ! !INPUT PARAMETERS:
 !
@@ -3944,7 +3944,7 @@ C---Always does PL(2) = P[1]
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD,       ONLY : AIRMW, AVO, g0, BOLTZ ! Physical parameters
+      USE PHYSCONSTANTS,      ONLY : AIRMW, AVO, g0, BOLTZ ! Physical parameters
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:

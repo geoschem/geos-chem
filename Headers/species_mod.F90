@@ -383,7 +383,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_GCTM_Mod, ONLY : AIRMW, AVO              ! Physical constants
+    USE PhysConstants, ONLY : AIRMW, AVO              ! Physical constants
 !
 ! !INPUT PARAMETERS:
 ! 

@@ -221,7 +221,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_GCTM_MOD
+    USE PHYSCONSTANTS
 !
 ! !INPUT PARAMETERS: 
 !
@@ -389,7 +389,7 @@ CONTAINS
 ! !USES:
 !
     ! Include files w/ physical constants and met values
-    USE CMN_GCTM_MOD
+    USE PHYSCONSTANTS
 !
 ! !INPUT PARAMETERS: 
 !

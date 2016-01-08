@@ -84,7 +84,7 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD,       ONLY : ATM
+      USE PHYSCONSTANTS,      ONLY : ATM
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState

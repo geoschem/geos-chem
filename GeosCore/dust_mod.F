@@ -623,7 +623,7 @@
 ! !USES:
 !
       USE CMN_DIAG_MOD
-      USE CMN_GCTM_MOD,       ONLY : g0          ! Accel due to gravity [m/s2]
+      USE PHYSCONSTANTS,      ONLY : g0          ! Accel due to gravity [m/s2]
       USE CMN_SIZE_MOD
 #if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
@@ -1711,7 +1711,7 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD,       ONLY : PI
+      USE PHYSCONSTANTS,      ONLY : PI
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_MOD,         ONLY : ERADIUS, JLOP,   TAREA
       USE ERROR_MOD,          ONLY : IT_IS_NAN
@@ -2190,7 +2190,7 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD,       ONLY : PI
+      USE PHYSCONSTANTS,      ONLY : PI
       USE CMN_SIZE_MOD
 !      USE DRYDEP_MOD,         ONLY : NTRAIND
       USE ERROR_MOD,          ONLY : ALLOC_ERR

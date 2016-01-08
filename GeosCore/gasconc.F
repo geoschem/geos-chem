@@ -18,7 +18,7 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CHEMGRID_MOD,       ONLY : COPY_FULL_CHEMGRID
-      USE CMN_GCTM_MOD,       ONLY : BOLTZ
+      USE PHYSCONSTANTS,      ONLY : BOLTZ
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE COMODE_MOD,         ONLY : ABSHUM
@@ -219,7 +219,7 @@
                DO IX = 1, IIPAR
 
                   ! Conversion factor
-                  ! Now use Boltzmann's constant in CMN_GCTM_MOD [J/K], not 
+                  ! Now use Boltzmann's constant in PHYSCONSTANTS [J/K], not 
                   ! BK in COMODE_LOOP_MOD [erg/K]) (ewl, 1/4/16)
                   CONST = State_Met%PMID_DRY(IX,IY,IZ) * 1000e+0_fp /
 !     &                  ( State_Met%T(IX,IY,IZ) * BK )
@@ -290,7 +290,7 @@
                DO IX = 1, IIPAR
 
                   ! Conversion factor
-                  ! Now use Boltzmann's constant in CMN_GCTM_MOD [J/K], not 
+                  ! Now use Boltzmann's constant in PHYSCONSTANTS [J/K], not 
                   ! BK in COMODE_LOOP_MOD [erg/K]) (ewl, 1/4/16)
                   CONST = State_Met%PMID_DRY(IX,IY,IZ) * 1000e+0_fp /
 !     &                  ( State_Met%T(IX,IY,IZ) * BK )
@@ -396,7 +396,7 @@
 ! TK       = TEMPERATURE (K)
 !
       ! Calculate condensation vapor pressure locally
-      ! and use Boltzmann's constant in CMN_GCTM_MOD [J/K], not 
+      ! and use Boltzmann's constant in PHYSCONSTANTS [J/K], not 
       ! BK in COMODE_LOOP_MOD [erg/K]) (ewl, 1/4/16)
       CONSVAP  = 6.1078e+03_fp / ( BOLTZ * 1e+7_fp )
 

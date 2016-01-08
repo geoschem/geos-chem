@@ -16,7 +16,7 @@
 ! !USES:
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
-      USE CMN_GCTM_MOD     ! For physical constants
+      USE PHYSCONSTANTS    ! For physical constants
 
       IMPLICIT NONE
       PRIVATE
@@ -414,7 +414,7 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      ! Now use RSTARG (8.31450e+0_fp) in CMN_GCTM_MOD (ewl, 1/4/16)
+      ! Now use RSTARG (8.31450e+0_fp) in PHYSCONSTANTS (ewl, 1/4/16)
 !      ! R = universal gas constant for adjusting KOA for temp: 8.3145 [J/mol/K]
 !      REAL(fp), PARAMETER :: R          = 8.31e+0_fp  
 
@@ -700,7 +700,7 @@
          ! Get monthly mean O3 concentrations
          ! O3 is in v/v (from HEMCO), convert to molec/cm3 (mps, 9/10/14)
          ! Now use State_Met%AIRDEN (dry air density in [kg/m3])
-         ! and use parameters from CMN_GCTM_MOD (ewl, 1/4/16)
+         ! and use parameters from PHYSCONSTANTS (ewl, 1/4/16)
 !         C_O3  = O3(I,J,L) * ( 6.022e+23_fp / 28.97e-3_fp ) * 
 !     &           State_Met%AD(I,J,L)    /  BOXVL
          C_O3  = O3(I,J,L) * ( AVO / ( AIRMW * 1.e-3_fp ) ) * 
@@ -759,7 +759,7 @@
 
          ! Define temperature-dependent partition coefficients
          ! NOTE: State_Met%T is in units of [K]
-         ! Use parameters from CMN_GCTM_MOD (ewl, 1/4/16)
+         ! Use parameters from PHYSCONSTANTS (ewl, 1/4/16)
 !         KOA_T = KOA_298 * EXP((-DEL_H/R) * ((1e+0_fp/TK) - 
          KOA_T = KOA_298 * EXP( ( -DEL_H / RSTARG ) * 
      &                      ( ( 1e+0_fp / State_Met%T(I,J,L) ) - 
@@ -1655,7 +1655,6 @@
       USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 
       USE CMN_SIZE_MOD   ! Size parameters
-      USE CMN_GCTM_MOD   ! Physical constants
 !
 ! !REVISION HISTORY: 
 !  20 September 2010 - N.E. Selin - Initial Version for POPS_MOD

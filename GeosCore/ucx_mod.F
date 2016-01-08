@@ -17,7 +17,7 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD         ! Physical parameters
+      USE PHYSCONSTANTS        ! Physical parameters
       USE inquireMod,   ONLY : findFreeLUN
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE CMN_SIZE_MOD

@@ -21,7 +21,7 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_GCTM_MOD,       ONLY : g0
+      USE PHYSCONSTANTS,      ONLY : g0
       USE DIAG_MOD,           ONLY : AD44
       USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, NTRAIND 
       USE DUST_MOD,           ONLY : SETTLEDUST   

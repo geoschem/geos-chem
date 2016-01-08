@@ -3,15 +3,15 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: CMN_GCTM_mod
+! !MODULE: physconstants
 !
-! !DESCRIPTION: CMN\_GCTM\_mod contains GEOS-Chem specific PHYSICAL CONSTANTS
+! !DESCRIPTION: PhysConstants contains GEOS-Chem specific PHYSICAL CONSTANTS
 !  and DERIVED QUANTITIES.
 !\\
 !\\
 ! !INTERFACE: 
 !
-      MODULE CMN_GCTM_MOD
+      MODULE PHYSCONSTANTS
 !
 ! !USES:
 !
@@ -89,8 +89,12 @@
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  06 Jan 2014 - E. Lundgren - Added constants and clarified comments
 !  24 Mar 2015 - E. Lundgren - Add xnumolair, previously in tracer_mod
+!  08 Jan 2016 - E. Lundgren - Update values to NIST 2014 and use AIRMW in
+!                              definition of XNUMOLAIR. Add BOLTZ.
+!  08 Jan 2016 - E. Lundgren - Rename this file to physconstants.F. Previously
+!                              it was called CMN_GCTM_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      END MODULE CMN_GCTM_MOD
+      END MODULE PHYSCONSTANTS
 !EOC

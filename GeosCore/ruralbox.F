@@ -24,7 +24,7 @@
       USE COMODE_MOD,         ONLY : PRESS3, T3,       VOLUME 
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_GCTM_MOD,       ONLY : AVO, AIRMW 
+      USE PHYSCONSTANTS,      ONLY : AVO, AIRMW 
       USE COMODE_LOOP_MOD          ! NPVERT
       USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
 
@@ -76,7 +76,7 @@
 !  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
-!  04 Jan 2016 - E. Lundgren - Use physical parameters in CMN_GCTM_MOD
+!  04 Jan 2016 - E. Lundgren - Use physical parameters in PHYSCONSTANTS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -191,7 +191,7 @@
             VOLUME(JLOOP)  = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
             ! get air density in (molecs cm^-3)
-            ! Now use paramters from CMN_GCTM_MOD (ewl, 1/4/16)
+            ! Now use paramters from PHYSCONSTANTS (ewl, 1/4/16)
 !            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
 !     &                       VOLUME(JLOOP) * AVG / WTAIR
             AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 

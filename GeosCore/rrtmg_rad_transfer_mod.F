@@ -135,7 +135,7 @@
       USE CMN_FJX_MOD,         ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV 
       USE CMN_FJX_MOD,         ONLY : WVAA,       NWVAA
       USE CMN_FJX_MOD,         ONLY : NWVAA0
-      USE CMN_GCTM_MOD,        ONLY : AIRMW, PI
+      USE PHYSCONSTANTS,       ONLY : AIRMW, PI
       USE COMODE_MOD,          ONLY : AIRDENS,        CSPEC,       JLOP
       USE COMODE_LOOP_MOD,     ONLY : ICH4, AVG, WTAIR
       USE DIAG_MOD,            ONLY : AD72

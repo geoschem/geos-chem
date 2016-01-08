@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD, ONLY : AVO, AIRMW 
+      USE PHYSCONSTANTS
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -946,7 +946,6 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD
       USE CMN_SIZE_MOD
       USE GRID_MOD, ONLY : GET_YMID_R
       USE TIME_MOD, ONLY : ITS_A_NEW_DAY, GET_MINUTE,      GET_HOUR

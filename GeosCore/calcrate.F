@@ -16,7 +16,7 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD,       ONLY : BOLTZ, AVO, PI, RSTARG ! Physical params
+      USE PHYSCONSTANTS,      ONLY : BOLTZ, AVO, PI, RSTARG ! Physical params
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE CMN_DIAG_MOD
@@ -481,7 +481,7 @@
 ! ---------------------------     H2O     -----------------------------
 !
       ! Calculate condensation vapor pressure locally
-      ! and use Boltzmann's constant in CMN_GCTM_MOD [J/K] (ewl, 1/4/16)
+      ! and use Boltzmann's constant in PHYSCONSTANTS [J/K] (ewl, 1/4/16)
       CONSVAP  = 6.1078e+03_fp / ( BOLTZ * 1e+7_fp )
 
       IF (IH2O.GT.NGAS) THEN

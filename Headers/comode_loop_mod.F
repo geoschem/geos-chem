@@ -285,12 +285,12 @@
       ! (now make these PARAMETERS instead of COMMON block variables)
       !---------------------------------------------------------------
 
-      ! Now use AVO in CMN_GCTM_MOD and comment out definition here 
+      ! Now use AVO in PHYSCONSTANTS and comment out definition here 
       ! (ewl, 1/4/16)
       ! Avogadro's #
       !REAL(fp), PARAMETER :: AVG      = 6.02252e+23_fp
 
-      ! Now use BOLTZ in CMN_GCTM_MOD [J/K] multiplied by 1e+7 and comment 
+      ! Now use BOLTZ in PHYSCONSTANTS [J/K] multiplied by 1e+7 and comment 
       ! out definition here (ewl, 1/4/16)
       ! Boltzmann's constant [erg/K]
       !REAL(fp), PARAMETER :: BK       = 1.38054e-16_fp
@@ -301,7 +301,7 @@
       ! Condensation vapor pressure ?????? 
       !REAL(fp), PARAMETER :: CONSVAP  = 6.1078e+03_fp / BOLTG
       
-      ! Now use PI from CMN_GCTM_MOD and calculate 8/PI locally (ewl, 1/4/16)
+      ! Now use PI from PHYSCONSTANTS and calculate 8/PI locally (ewl, 1/4/16)
       !REAL(fp), PARAMETER :: ONEPI    = 3.14159265358979323e+0_fp 
       !REAL(fp), PARAMETER :: EIGHTDPI = 8.e+0_fp / ONEPI
 
@@ -309,7 +309,7 @@
       ! Gas constant [erg/K/mole]
       !REAL(fp), PARAMETER :: RGAS     = BOLTG * AVG
 
-      ! Now use RSTARG in CMN_GCTM_MOD multiplied by 1.e+07_fp and
+      ! Now use RSTARG in PHYSCONSTANTS multiplied by 1.e+07_fp and
       ! comment out definition here (ewl, 1/4/16)
       ! Universal gas constant [g/cm2/s2/mole/K]
       !REAL(fp), PARAMETER :: RSTARG   = 8.31450e+07_fp
@@ -317,7 +317,7 @@
       ! Seconds per day
       REAL(fp), PARAMETER :: SCDAY    = 86400.0e+0_fp
 
-      ! Now use AIRMW from CMN_GCTM_MOD (ewl, 1/4/16)
+      ! Now use AIRMW from PHYSCONSTANTS (ewl, 1/4/16)
       ! Molecular weight of air [g/mol]
       !REAL(fp), PARAMETER :: WTAIR    = 28.966e+0_fp
 

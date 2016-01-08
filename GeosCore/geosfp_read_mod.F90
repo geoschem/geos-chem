@@ -23,7 +23,7 @@ MODULE GeosFp_Read_Mod
 
   ! GEOS-Chem modules
   USE CMN_SIZE_MOD                        ! Size parameters
-  USE CMN_GCTM_MOD                        ! Physical constants
+  USE PHYSCONSTANTS                       ! Physical constants
   USE CMN_DIAG_MOD                        ! Diagnostic arrays & counters
   USE DIAG_MOD,      ONLY : AD66          ! Array for ND66 diagnostic  
   USE DIAG_MOD,      ONLY : AD67          ! Array for ND67 diagnostic

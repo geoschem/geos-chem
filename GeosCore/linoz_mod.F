@@ -212,7 +212,7 @@
 !
       USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL 
       USE CHEMGRID_MOD,       ONLY : GET_MAX_CHEMGRID_LEVEL
-      USE CMN_GCTM_MOD,       ONLY : AIRMW, AVO ! Physical params
+      USE PHYSCONSTANTS,      ONLY : AIRMW, AVO ! Physical params
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput

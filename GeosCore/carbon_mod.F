@@ -16,7 +16,7 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD, ONLY : AVO, AIRMW  ! For physical constants
+      USE PHYSCONSTANTS
       USE HCO_ERROR_MOD                    ! For HEMCO error reporting
       USE PRECISION_MOD                    ! For GEOS-Chem Precisions
 
@@ -5917,7 +5917,6 @@ ccc
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD
       USE CMN_SIZE_MOD
       USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
       USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
@@ -6332,7 +6331,6 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_GCTM_MOD,       ONLY : XNUMOLAIR, AVO
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput

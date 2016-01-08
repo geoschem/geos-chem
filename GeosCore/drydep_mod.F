@@ -17,7 +17,7 @@
 !
       USE CMN_SIZE_MOD                          ! Size parameters
       USE CMN_DIAG_MOD                          ! Diag counters & flags
-      USE CMN_GCTM_MOD                          ! Physical constants
+      USE PHYSCONSTANTS                         ! Physical constants
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
       !USE COMODE_LOOP_MOD                      ! Now use global physical param
       USE DAO_MOD                               ! Met field subroutines
@@ -190,7 +190,6 @@
 !  15 Jun 2015 - R. Yantosca - Disabled DRYFLXRnPbBe, also done in mixing_mod
 !  01 Oct 2015 - R. Yantosca - Remove DVZ_MINVAL function
 !  01 Oct 2015 - R. Yantosca - Added PRIVATE flag ID_ACET
-!  22 Dec 2015 - E. Lundgren - Use CMN_GCTM_MOD physical params in module
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------

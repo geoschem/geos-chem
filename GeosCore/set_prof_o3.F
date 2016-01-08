@@ -23,7 +23,7 @@
 ! !USES:
 !
       USE CMN_FJX_MOD            
-      USE CMN_GCTM_MOD             ! Physical parameters
+      USE PHYSCONSTANTS            ! Physical parameters
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
 

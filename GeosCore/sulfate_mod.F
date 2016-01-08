@@ -17,7 +17,7 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD     ! Physical parameters
+      USE PHYSCONSTANTS    ! Physical parameters
       USE HCO_ERROR_MOD    ! For HEMCO error handling
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 

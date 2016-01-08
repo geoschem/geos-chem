@@ -290,7 +290,7 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD
+      USE PHYSCONSTANTS
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
 #if !defined( NO_BPCH )

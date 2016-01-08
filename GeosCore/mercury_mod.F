@@ -1,4 +1,4 @@
-cd !------------------------------------------------------------------------------
+c     d !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -17,7 +17,7 @@ cd !----------------------------------------------------------------------------
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD,      ONLY : Rd, AIRMW, ATM, AVO ! physical params
+      USE PHYSCONSTANTS             ! physical parameters
       USE DEPO_MERCURY_MOD , ONLY : ADD_HG2_SNOWPACK
       USE DEPO_MERCURY_MOD , ONLY : LHGSNOW
       USE OCEAN_MERCURY_MOD, ONLY : LDYNSEASALT
@@ -4068,7 +4068,6 @@ cd !----------------------------------------------------------------------------
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_GCTM_MOD
       USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
       USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
       USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
@@ -4339,7 +4338,7 @@ cd !----------------------------------------------------------------------------
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD
+      USE PHYSCONSTANTS
       USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID_R
