@@ -59,6 +59,14 @@ MODULE HCOX_GFED_MOD
 !
 ! Field NAMASK must be defined in section mask of the HEMCO configuration file.
 !                                                                             
+! For SOA_SVPOA mechanism:
+! * If tracer POG1 is specified, emissions are calculated from OC, multiplied
+!   by a POG scale factor (Scaling_POG1) that must be specified in the HEMCO
+!   configuration file.
+! * If tracer NAP is specified, emissions are calculated from CO, multiplied
+!   by a NAP scale factor (Scaling_NAP) that must be specified in the HEMCO
+!   configuration file.
+!
 !  References:
 !  ============================================================================
 !  (1 ) Original GFED3 database from Guido van der Werf 
@@ -147,20 +155,10 @@ MODULE HCOX_GFED_MOD
   !              emission factor type. The filename of the emissions
   !              emissions factor table is specified in the HEMCO
   !              configuration file. All scale factors in kg/kgDM.
-  ! COScale    : CO scale factor to account for production from 
-  !              VOCs. Read from HEMCO configuration file.
   ! OCPIfrac   : Fraction of OC that converts into hydrophilic OC.
   !              Can be set in HEMCO configuration file (default=0.5)
   ! BCPIfrac   : Fraction of BC that converts into hydrophilic BC.
   !              Can be set in HEMCO configuration file (default=0.2)
-  ! POASCALE  : Scale factor for POA. If tracer POA1 is specified, 
-  !             emissions are calculated from OC, multiplied by a
-  !             POA scale factor that must be specified in the HEMCO
-  !             configuration file (POA scale).
-  ! NAPSCALE  : Scale factor for NAP. If tracer NAP is specified, 
-  !             emissions are calculated from CO, multiplied by a
-  !             NAP scale factor that must be specified in the HEMCO
-  !             configuration file (NAP scale).
   !=================================================================
   REAL(hp), ALLOCATABLE, TARGET  :: GFED3_EMFAC(:,:)
   REAL(hp), ALLOCATABLE, TARGET  :: GFED4_EMFAC(:,:)
@@ -456,6 +454,9 @@ CONTAINS
 !  11 Nov 2014 - C. Keller     - Now get hydrophilic fractions via config file
 !  22 Apr 2015 - R. Yantosca   - Now explicitly test for "POA scale factor"
 !                                and "NAP scale factor" to avoid search errors
+!  07 Jan 2016 - M. Sulprizio  - Change 'POA1' to 'POG1' to better reflect that
+!                                SVOC emissions are added to the gas-phase
+!                                species in carbon_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -686,7 +687,7 @@ CONTAINS
              SpcName = 'OC'
           ENDIF
        ENDIF
-       IF ( TRIM(SpcName) == 'POA1' ) SpcName = 'OC'
+       IF ( TRIM(SpcName) == 'POG1' ) SpcName = 'OC'
        IF ( TRIM(SpcName) == 'NAP'  ) SpcName = 'CO'
 
        ! Search for matching GFED species by name
