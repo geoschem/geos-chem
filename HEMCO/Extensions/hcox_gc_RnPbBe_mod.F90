@@ -64,6 +64,7 @@ MODULE HCOX_GC_RnPbBe_Mod
 !  04 Sep 2014 - R. Yantosca - Remove IDTPb; Pb210 only has a chemical source
 !  04 Sep 2014 - R. Yantosca - Modified for GCAP simulation
 !  05 Nov 2014 - C. Keller   - Now allow Rn or Pb to be not specified.
+!  07 Jan 2016 - E. Lundgren - Update Avogadro's # to NIST 2014 value
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -87,8 +88,8 @@ MODULE HCOX_GC_RnPbBe_Mod
 ! !DEFINED PARAMETERS:
 !
   ! To convert kg to atoms
-  REAL*8,  PARAMETER            :: XNUMOL_Rn = ( 6.0225d23 / 222.0d-3 )    
-  REAL*8,  PARAMETER            :: XNUMOL_Be = ( 6.0225d23 /   7.0d-3 )
+  REAL*8,  PARAMETER            :: XNUMOL_Rn = ( 6.022140857d23 / 222.0d-3 )    
+  REAL*8,  PARAMETER            :: XNUMOL_Be = ( 6.022140857d23 /   7.0d-3 )
 
 CONTAINS
 !EOC
