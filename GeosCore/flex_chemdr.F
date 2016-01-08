@@ -32,7 +32,7 @@
       USE FLEXCHEM_SETUP_MOD,   ONLY : STTTOCSPEC, CSPECTOKPP, HSAVE_KPP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-      USE GIGC_State_Chm_Mod,   ONLY : ChmState
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState, Get_Indx
       USE GIGC_State_Met_Mod,   ONLY : MetState
       USE HCO_DIAGN_MOD,        ONLY : Diagn_Update
       USE HCO_ERROR_MOD,        ONLY : HCO_SUCCESS
@@ -81,7 +81,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, L, N, N1, JLOOP, MONTH, YEAR
+      INTEGER             :: I, J, L, N, S1, S2, JLOOP, MONTH, YEAR
       INTEGER             :: WAVELENGTH
       INTEGER             :: HCRC
       INTEGER             :: N_TRACERS
@@ -117,6 +117,10 @@
       REAL(kind=fp)       :: Mass, Start, Finish, rtim, itim
 
       CHARACTER(LEN=255)  :: ERR_MSG
+
+      ! MSL - Temporary variables for the family kludge (see below)
+      REAL(kind=fp)       ::   SUM(IIPAR,JJPAR,LLPAR)
+      REAL(kind=fp)       :: QTEMP(IIPAR,JJPAR,LLPAR)
 
       prtDebug = Input_Opt%LPRT
       LDUST    = Input_Opt%LDUST
@@ -265,6 +269,60 @@
             State_Chm%Species(:,:,:,STTTOCSPEC(N))=STT(:,:,:,N)
          ENDIF
       ENDDO
+      
+      ! K -- L -- U -- D -- G -- E -- C -- O -- D -- E -- ! -- ! -- ! -- !
+      ! THIS IS A TEMPORARY FIX AND NEEDS TO BE RESOLVED THROUGHOUT
+      ! THE MODEL AS SOON AS IT APPEARS POSSIBLE TO DO SO!
+      ! -- The following code ensures that the two remaining tracer
+      !    families are dealt with appropriately.
+      !    The Tracer MMN is a sum of the species MVKN and MACRN
+      !    The Tracer ISOPN is a sum of ISOPND and ISOPNB
+      !       The tracer restart file for the pre-flex GEOS-Chem, includes
+      !    these families, but the removal of the routines
+      !    "lump" and "partition" killed the code resposible for them.
+      !       Here, we want to install a hard-code fix with the complete
+      !    expectation that we will no longer use species families. Thus,
+      !    when possible, the two remaining families need to be removed, 
+      !    and this kludge disabled.
+      !   M.S.L. - Jan., 5 2016
+      !
+      ! Part 1: From Tracers to Species
+      ! -- Process MMN family
+      ! -- Get the tracer and species indices. Currently hardwired.
+      N  = 60   ! MMN
+      S1 = 122  ! MVKN
+      S2 = 121  ! MACRN
+      write(*,'(3a,3i)') NAMEGAS(N), NAMEGAS(S1), NAMEGAS(S2),N,S1,S2
+      STT(:,:,:,N) = STT(:,:,:,N)*Input_Opt%TRACER_COEFF(N,1) ! A correction...
+      ! ... to account for the division by TRACER_COEFF above.
+      SUM   = (State_Chm%Species(:,:,:,S1)*Input_Opt%TRACER_COEFF(N,1))
+     &       +(State_Chm%Species(:,:,:,S2)*Input_Opt%TRACER_COEFF(N,2))
+      ! -- -- First, do MVKN
+      QTEMP = (State_Chm%Species(:,:,:,S1)*Input_Opt%TRACER_COEFF(N,1))
+     &        / SUM
+      State_Chm%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      ! -- -- Then, do MACRN
+      QTEMP = (State_Chm%Species(:,:,:,S2)*Input_Opt%TRACER_COEFF(N,2))
+     &        / SUM
+      State_Chm%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      ! -- Process ISOPN family
+      ! -- Get the tracer and species indices
+      N  = 55  ! ISOPN Tracer
+      S1 = 109 ! ISOPND Species Index
+      S2 = 110 ! ISOPNB Species Index
+      STT(:,:,:,N) = STT(:,:,:,N)*Input_Opt%TRACER_COEFF(N,1) ! A correction...
+      ! ... to account for the division by TRACER_COEFF above.
+      SUM   = (State_Chm%Species(:,:,:,S1)*Input_Opt%TRACER_COEFF(N,1))
+     &       +(State_Chm%Species(:,:,:,S2)*Input_Opt%TRACER_COEFF(N,2))
+      ! -- -- First, do ISOPND
+      QTEMP = (State_Chm%Species(:,:,:,S1)*Input_Opt%TRACER_COEFF(N,1))
+     &        / SUM
+      State_Chm%Species(:,:,:,S1) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      ! -- -- Then, do ISOPNB
+      QTEMP = (State_Chm%Species(:,:,:,S2)*Input_Opt%TRACER_COEFF(N,2))
+     &        / SUM
+      State_Chm%Species(:,:,:,S2) = MAX( QTEMP*STT(:,:,:,N), 1.E-99_fp )
+      ! E -- N -- D -- O -- F -- K -- L -- U -- D -- G -- E -- -- P -- T -- 1
  
       ! Debug
       write(*,*) 'STT = ', STT(10,10,10,1), ' molec/cm3'
@@ -480,6 +538,26 @@
 !         WRITE (6,*) SPC_NAMES(N), AVERAGEVAR(N)/MASS
 !      ENDDO	
 
+      ! K -- L -- U -- D -- G -- E -- -- P -- T -- 2
+      ! Part 2: From Species to Tracers
+      ! -- Process MMN family
+      ! -- Get the tracer and species indices
+      N  = 60  ! MMN
+      S1 = 122 ! MVKN
+      S2 = 121 ! MACRN
+      STT(:,:,:,N) = 
+     &        (State_Chm%Species(:,:,:,S1)*Input_Opt%TRACER_COEFF(N,1))
+     &       +(State_Chm%Species(:,:,:,S2)*Input_Opt%TRACER_COEFF(N,2))
+      ! -- Process ISOPN family
+      ! -- Get the tracer and species indices
+      N  = 55  ! ISOPN
+      S1 = 109 ! ISOPND
+      S2 = 110 ! ISOPNB
+      STT(:,:,:,N) = 
+     &        (State_Chm%Species(:,:,:,S1)*Input_Opt%TRACER_COEFF(N,1))
+     &       +(State_Chm%Species(:,:,:,S2)*Input_Opt%TRACER_COEFF(N,2))
+      ! E -- N -- D -- O -- F -- K -- L -- U -- D -- G -- E -- -- P -- T -- 2
+
       ! Loop over tracers
       DO N=1,N_TRACERS
 
@@ -487,7 +565,7 @@
          IF (STTTOCSPEC(N) .NE. 0) THEN
             STT(:,:,:,N)=State_Chm%Species(:,:,:,STTTOCSPEC(N))
          ENDIF
-
+         
          ! Convert STT from molec/cm3 back to kg
          DO L = 1, LLPAR
          DO J = 1, JJPAR
