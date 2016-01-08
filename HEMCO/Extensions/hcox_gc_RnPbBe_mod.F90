@@ -660,6 +660,7 @@ CONTAINS
 !  26 Feb 2015 - R. Yantosca - Now inline the code that used to be in the
 !                              include file hcox_gc_RnPbBe_include.H.  This
 !                              will result in faster compilation.
+!  08 Jan 2016 - R. Yantosca - Change 54_hp to 54.0_hp to avoid error
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -770,7 +771,7 @@ CONTAINS
                         85.0_hp,     85.0_hp  /)
 
     BESOU(:,22) = (/    25.5_hp,     26.5_hp,     32.0_hp,    40.5_hp,    &
-                          54_hp,     67.5_hp,     69.5_hp,    69.5_hp,    &
+                        54.0_hp,     67.5_hp,     69.5_hp,    69.5_hp,    &
                         69.5_hp,     69.5_hp  /)
 
     BESOU(:,23) = (/    20.5_hp,     21.6_hp,     25.5_hp,    33.0_hp,    &
