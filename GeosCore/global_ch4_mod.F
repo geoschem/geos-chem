@@ -46,6 +46,7 @@
 #endif
 
       ! Make CH4_EMIS now public so that it can be used by vdiff_mod.F90
+      ! Methane emissions units are [kg/m2/s]
       REAL(fp),  ALLOCATABLE, PUBLIC :: CH4_EMIS(:,:,:)
 ! 
 ! !REVISION HISTORY: 
@@ -166,7 +167,6 @@
 !
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
 
@@ -198,6 +198,9 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  17 Sep 2014 - C. Keller   - Removed legacy code (unused variables).
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
+!                              remove dependency on pressure_mod
+!  01 Apr 2015 - E. Lundgren - Change State_Met%PMID to State_Met%PMID_DRY
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -287,7 +290,7 @@
       DO I = 1, IIPAR
                   
          ! Archive pressure
-         Pavg(I,J,L) = Pavg(I,J,L) + GET_PCENTER(I,J,L)
+         Pavg(I,J,L) = Pavg(I,J,L) + State_Met%PMID_DRY(I,J,L)
 
          ! Archive temperature
          Tavg(I,J,L) = Tavg(I,J,L) + State_Met%T(I,J,L)
@@ -325,7 +328,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE EMISSCH4( am_I_Root, Input_Opt,
-     &                     State_Met, State_Chm, RC )
+     &                     State_Met, RC )
 !
 ! !USES:
 !
@@ -333,7 +336,6 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -348,10 +350,6 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -392,6 +390,9 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  11 Apr 2014 - R. Yantosca - Remove call to INIT_GLOBAL_CH4
 !  09 Sep 2014 - C. Keller   - Implemented HEMCO
+!  11 Sep 2015 - E. Lundgren - Remove area-dependency (except for global mass
+!                              sums) by outputting diagnostics as kg/m2 not kg
+!  11 Sep 2015 - E. Lundgren - Remove State_Chm from arg list since not used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -457,7 +458,7 @@
       ! HEMCO stores emissions of all tracers internally in the HEMCO
       ! state object. Here, we pass these emissions into module array 
       ! CH4_EMIS. These values are then either added to the tracers 
-      ! array (full mixing scheme) or used lateron in vdiff_mod.F90 if 
+      ! array (full mixing scheme) or used later on in vdiff_mod.F90 if 
       ! the non-local PBL mixing scheme is used.
       ! The CH4_EMIS array is mostly used for backwards compatibility
       ! (especially the diagnostics). It is also used to ensure that 
@@ -656,37 +657,41 @@
          IREF = I + I0
 
          ! Grid box surface area [m2]
-         AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
+         ! No longer needed since ND58 is now area-independent with 
+         ! units kg/m2 (ewl, 9/11/15)
+!         AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
 
-         ! Offline CH4 only
-         ! Convert kg/m2/s to kg.
-         IF ( ITS_A_CH4_SIM ) THEN
-
-            ! Pass directly to tracers array (surface level) if
-            ! non-local scheme is not used.
-            ! For the non-local PBL scheme, CH4_EMIS will
-            ! be used directly in vdiff_mod.F90
-            IF ( .NOT. Input_Opt%LNLPBL ) THEN
-               DO N = 1, N_TRACERS
-                  State_Chm%Tracers(IREF,JREF,1,N)
-     &            = State_Chm%Tracers(IREF,JREF,1,N)
-     &            + CH4_EMIS(IREF,JREF,ID_TRACER(N))
-     &            * DTSRCE * AREA_M2
-               ENDDO
-            ENDIF
-         ENDIF
+         ! The following is now done in mixing_mod.F90 (ckeller, 3/4/15)
+!         ! Offline CH4 only
+!         ! Convert kg/m2/s to kg.
+!         IF ( ITS_A_CH4_SIM ) THEN
+!
+!            ! Pass directly to tracers array (surface level) if
+!            ! non-local scheme is not used.
+!            ! For the non-local PBL scheme, CH4_EMIS will
+!            ! be used directly in vdiff_mod.F90
+!            IF ( .NOT. Input_Opt%LNLPBL ) THEN
+!               DO N = 1, N_TRACERS
+!                  State_Chm%Tracers(IREF,JREF,1,N)
+!     &            = State_Chm%Tracers(IREF,JREF,1,N)
+!     &            + CH4_EMIS(IREF,JREF,ID_TRACER(N))
+!     &            * DTSRCE * AREA_M2
+!               ENDDO
+!            ENDIF
+!         ENDIF
 
          ! Update diagnostics
          IF ( ND58 > 0 ) THEN
 
             ! All emission sources excluding soil absorption
+            ! Units of ND58 are now kg/m2 (previously kg) (ewl, 9/11/15)
             AD58(IREF,JREF,1) = AD58(IREF,JREF,1) + 
      &         ( CH4_EMIS(IREF,JREF,1) + CH4_EMIS(IREF,JREF,11) )
-     &           * DTSRCE * AREA_M2 
+     &           * DTSRCE
 
             DO N = 2, PD58
                AD58(IREF,JREF,N) = AD58(IREF,JREF,N) + 
-     &            CH4_EMIS(IREF,JREF,N) * DTSRCE * AREA_M2
+     &            CH4_EMIS(IREF,JREF,N) * DTSRCE
             ENDDO
          ENDIF
 
@@ -700,6 +705,11 @@
          ! Sum up CH4 budgets
          !
          ! TCH4      - # molecules emitted from different sources
+         !
+         ! NOTE: The CH4 budget variable TCH4 is area-dependent. 
+         ! We will keep as part of specialty sim option USE_CH4_BUDGET_DIAG
+         ! temporarily (ewl, 9/11/15)
+         !
          !===============================================================
 
          DO J = 1,JJPAR
@@ -754,6 +764,12 @@
          !
          ! SUMANTHRO - Total anthropogenic emissions [molec/cm2/s]
          ! SUMBIOG   - Total biogenic      emissions [molec/cm2/s]
+         !
+         ! NOTE: The CH4 budgets DBGANTHRO(N) and DBGBIO(N) are 
+         ! area-dependent. We will keep calculating the mass budgets 
+         ! internally temporarily until we are set up to convert 
+         ! kg/m2 to kg during post-processing. (ewl, 9/11/15)
+         !
          !===============================================================
 
          ! Debug counters
@@ -1553,6 +1569,7 @@
 !                              derived type object
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root and RC
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  24 Mar 2015 - E. Lundgren - Now pass Input_Opt to Check_STT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1696,7 +1713,8 @@
 !      FIRSTCHEM = .FALSE.
 
       ! Check STT for negatives and NaN
-      CALL CHECK_STT( State_Chm, 'IN global_ch4_mod.F: CH4_STRAT' )
+      CALL CHECK_STT( State_Chm, Input_Opt,
+     &                'IN global_ch4_mod.F: CH4_STRAT' )
 
       ! Free pointer
       NULLIFY( STT )

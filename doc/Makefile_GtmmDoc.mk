@@ -26,6 +26,7 @@
 #  16 Dec 2010 - R. Yantosca - Renamed output files to "GC_Ref_Vol_4.*"
 #  19 Jul 2011 - R. Yantosca - Changed *.f* to *.F* for ESMF compatibility
 #  15 Jan 2014 - R. Yantosca - Now only save *.pdf output 
+#  10 Jul 2015 - R. Yantosca - Use ./protex to avoid problems on some systems
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -81,7 +82,7 @@ PDF4 := GC_Ref_Vol_4.pdf
 # Make commands
 gtmmdoc: 
 	rm -f $(TEX4)
-	protex -sf $(SRC4) > $(TEX4)
+	./protex -sf $(SRC4) > $(TEX4)
 	latex $(TEX4)
 	latex $(TEX4)
 	latex $(TEX4)

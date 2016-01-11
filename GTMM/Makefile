@@ -40,6 +40,7 @@
 #                              "make -C int" calls
 #  21 Sep 2009 - C. Carouge  - Adapted to use with GTMM model. 
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
+#  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -50,24 +51,34 @@
 ###                                                                         ###
 ###############################################################################
 
-# Define variables
-SHELL := /bin/sh
-ROOT  :=..
-HDR   :=$(ROOT)/Headers
-HELP  :=$(ROOT)/help
-LIB   :=$(ROOT)/lib
-MOD   :=$(ROOT)/mod
-LGTMM :=-L$(LIB) -lHg
+# Directories
+ROOT    :=..
+LIB     :=$(ROOT)/lib
+MOD     :=$(ROOT)/mod
+
+# Link command
+LGTMM   :=-L$(LIB) -lHg
 
 # Include header file.  This returns variables CC, F90, FREEFORM, LD, R8,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOT)/Makefile_header.mk
 
 # Source code files
-SRC  = $(wildcard *.F90)
+SOURCES := $(wildcard *.F90)
 
 # Object files
-OBJ  = $(SRC:.F90=.o)
+OBJECTS := $(SOURCES:.F90=.o)
+
+# List of module files.  Convert to lowercase, then prefix directory name.
+MODULES :=$(OBJECTS:.o=.mod)
+MODULES :=$(shell echo $(MODULES) | tr A-Z a-z)
+MODULES :=$(foreach I,$(MODULES),$(MOD)/$(I))
+
+# Library file
+LIBRARY :=libHg.a
+
+# Executable file
+EXEFILE :=gtmm
 
 ###############################################################################
 ###                                                                         ###
@@ -75,24 +86,36 @@ OBJ  = $(SRC:.F90=.o)
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean help gtmm
+.PHONY: clean gtmm debug slowclean
 
-lib: $(OBJ)
-	$(AR) crs libHg.a $(OBJ)
-	mv libHg.a $(LIB)
+lib: $(OBJECTS)
+	$(AR) crs $(LIBRARY) $(OBJECTS)
+	mv $(LIBRARY) $(LIB)
 
 gtmm:
 	@$(MAKE) lib
 	@$(MAKE) exe
 
 exe: 
-	$(LD) $(OBJ) $(LGTMM) -o gtmm
+	$(LD) $(OBJECTS) $(LGTMM) -o $(EXEFILE)
 
 clean:
-	rm -f *.o *.mod gtmm
+	@echo "===> Making clean in directory: GTMM <==="
+	@rm -f *.o *.mod *.a *.x $(EXEFILE)
 
-help:
-	@$(MAKE) -C $(HELP)
+slowclean:
+	@echo "===> Making slowclean in directory: GTMM <==="
+	@rm -f *$(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY) $(EXEFILE)
+
+debug:
+	@echo "Targets : $(MAKECMDGOALS)"
+	@echo "ROOT    : $(ROOT)"
+	@echo "LIB     : $(LIB)"
+	@echo "MOD     : $(MOD)"
+	@echo "F90     : $(F90)"
+	@echo "OBJECTS : $(OBJECTS)"
+	@echo "MODULES : $(MODULES)"
+	@echo "LIBRARY : $(LIBRARY)"
 
 ###############################################################################
 ###                                                                         ###

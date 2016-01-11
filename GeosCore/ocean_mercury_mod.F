@@ -10,49 +10,50 @@
 !  ============================================================================
 !  (1 ) Hg_RST_FILE (CHAR   )  : Name of restart file with ocean tracers
 !  (2 ) USE_CHECKS  (LOGICAL)  : Flag for turning on error-checking  
-!  (3 ) MAX_RELERR  (REAL(fpp) )  : Max error for total-tag error check [unitless]
-!  (4 ) MAX_ABSERR  (REAL(fpp) )  : Max abs error for total-tag err chk [unitless]
-!  (5 ) MAX_FLXERR  (REAL(fpp) )  : Max error tol for flux error check  [unitless]
-!  (6 ) Hg2aq_tot   (REAL(fpp) )  : Total Hg2 conc. in the mixed layer  [kg      ]
-!  (7 ) DD_Hg2      (REAL(fpp) )  : Array for Hg(II) dry dep'd to ocean [kg      ]
-!  (8 ) Hgaq_tot    (REAL(fpp) )  : Total Hg conc. in the mixed layer   [kg      ]
-!  (9 ) Hg0aq       (REAL(fpp) )  : Array for ocean mass of Hg(0)       [kg      ]
-!  (10) Hg2aq       (REAL(fpp) )  : Array for ocean mass of Hg(II)      [kg      ]
-!  (11) HgPaq       (REAL(fpp) )  : Array for ocean mass of HgP         [kg      ]
-!  (12) dMLD        (REAL(fpp) )  : Array for Change in ocean MLD       [cm      ]
-!  (13) MLD         (REAL(fpp) )  : Array for instantaneous ocean MLD   [cm      ]
-!  (14) MLDav       (REAL(fpp) )  : Array for monthly mean ocean MLD    [cm      ]
-!  (15) newMLD      (REAL(fpp) )  : Array for next month's ocean MLD    [cm      ]
-!  (16) NPP         (REAL(fpp) )  : Array for mean net primary prod.    [unitless]
-!  (17) RAD         (REAL(fpp) )  : Array for mean solar radiation      [W/m2    ]
-!  (18) UPVEL       (REAL(fpp) )  : Array for ocean upwelling velocity  [m/s     ]
-!  (19) WD_Hg2      (REAL(fpp) )  : Array for Hg(II) wet dep'd to ocean [kg      ]
-!  (20) CHL         (REAL(fpp) )  : Chl surface concentration           [mg(m3   ]
-!  (21) CDEEPATL    (REAL(fpp) )  : Conc. Hg0, Hg2, HgP below MLD-Atl   [pM      ]
-!  (22) CDEEP       (REAL(fpp) )  : Conc. of Hg0, Hg2, HgP below MLD    [pM      ]
-!  (23) CDEEPNAT    (REAL(fpp) )  : Conc. Hg0, Hg2, HgP below MLD-NAtl  [pM      ]
-!  (24) CDEEPSAT    (REAL(fpp) )  : Conc. Hg0, Hg2, HgP below MLD-SAtl  [pM      ]
-!  (25) CDEEPANT    (REAL(fpp) )  : Conc. Hg0, Hg2, HgP below MLD-Ant   [pM      ]
-!  (26) CDEEPARC    (REAL(fpp) )  : Conc. Hg0, Hg2, HgP below MLD-Arc   [pM      ]
+!  (3 ) MAX_RELERR  (REAL(fpp)): Max error for total-tag error check [unitless]
+!  (4 ) MAX_ABSERR  (REAL(fpp)): Max abs error for total-tag err chk [unitless]
+!  (5 ) MAX_FLXERR  (REAL(fpp)): Max error tol for flux error check  [unitless]
+!  (6 ) Hg2aq_tot   (REAL(fpp)): Total Hg2 conc. in the mixed layer  [kg      ]
+!  (7 ) DD_Hg2      (REAL(fpp)): Array for Hg(II) dry dep'd to ocean [kg      ]
+!  (8 ) Hgaq_tot    (REAL(fpp)): Total Hg conc. in the mixed layer   [kg      ]
+!  (9 ) Hg0aq       (REAL(fpp)): Array for ocean mass of Hg(0)       [kg      ]
+!  (10) Hg2aq       (REAL(fpp)): Array for ocean mass of Hg(II)      [kg      ]
+!  (11) HgPaq       (REAL(fpp)): Array for ocean mass of HgP         [kg      ]
+!  (12) dMLD        (REAL(fpp)): Array for Change in ocean MLD       [cm      ]
+!  (13) MLD         (REAL(fpp)): Array for instantaneous ocean MLD   [cm      ]
+!  (14) MLDav       (REAL(fpp)): Array for monthly mean ocean MLD    [cm      ]
+!  (15) newMLD      (REAL(fpp)): Array for next month's ocean MLD    [cm      ]
+!  (16) NPP         (REAL(fpp)): Array for mean net primary prod.    [unitless]
+!  (17) RAD         (REAL(fpp)): Array for mean solar radiation      [W/m2    ]
+!  (18) UPVEL       (REAL(fpp)): Array for ocean upwelling velocity  [m/s     ]
+!  (19) WD_Hg2      (REAL(fpp)): Array for Hg(II) wet dep'd to ocean [kg      ]
+!  (20) CHL         (REAL(fpp)): Chl surface concentration           [mg(m3   ]
+!  (21) CDEEPATL    (REAL(fpp)): Conc. Hg0, Hg2, HgP below MLD-Atl   [pM      ]
+!  (22) CDEEP       (REAL(fpp)): Conc. of Hg0, Hg2, HgP below MLD    [pM      ]
+!  (23) CDEEPNAT    (REAL(fpp)): Conc. Hg0, Hg2, HgP below MLD-NAtl  [pM      ]
+!  (24) CDEEPSAT    (REAL(fpp)): Conc. Hg0, Hg2, HgP below MLD-SAtl  [pM      ]
+!  (25) CDEEPANT    (REAL(fpp)): Conc. Hg0, Hg2, HgP below MLD-Ant   [pM      ]
+!  (26) CDEEPARC    (REAL(fpp)): Conc. Hg0, Hg2, HgP below MLD-Arc   [pM      ]
 !
 !
 !  Module Routines:
 !  ============================================================================
-!  (1 ) ADD_Hg2_DD             : Archives Hg2 lost to drydep in DD_HG2
-!  (2 ) ADD_Hg2_WD             : Archives Hg2 lost to wetdep in WD_HG2
+!  (1 ) READ_HG2_PARTITIONING  : Calculates fraction of Hg2 in gas phase
+!  (2 ) DELIVER_SNOW_HG        : Delivers Hg stored in snowpack to ocean
 !  (3 ) OCEAN_MERCURY_FLUX     : Routine to compute flux of oceanic mercury
 !  (4 ) OCEAN_MERCURY_READ     : Routine to read MLD, NPP, RADSWG data fields
 !  (5 ) GET_MLD_FOR_NEXT_MONTH : Routine to read MLD for the next month
-!  (6 ) MLD_ADJUSTMENT         : Adjusts MLD 
-!  (7 ) READ_OCEAN_Hg_RESTART  : Reads restart file with ocean Hg tracers
-!  (8 ) CHECK_DIMENSIONS       : Checks dims of data blocks from restart file
+!  (6 ) GET_MLD_FOR_LAST_MONTH : Routine to read MLD for the last month
+!  (7 ) MLD_ADJUSTMENT         : Adjusts MLD 
+!  (8 ) READ_OCEAN_Hg_RESTART  : Reads restart file with ocean Hg tracers
 !  (9 ) CHECK_DATA_BLOCKS      : Checks for missing/multiple data blocks
 !  (10) MAKE_OCEAN_Hg_RESTART  : Writes new restart file with ocean Hg tracers
 !  (11) CHECK_ATMOS_MERCURY    : Checks mass of total & tagged atm Hg0 & Hg2 
 !  (12) CHECK_OCEAN_MERCURY    : Checks mass of total & tagged oc Hg0 & Hg2
 !  (13) CHECK_OCEAN_FLUXES     : Checks mass of total & tagged DD & WD fluxes
-!  (14) INIT_OCEAN_MERCURY     : Allocates and zeroes all module variables
-!  (15) CLEANUP_OCEAN_MERCURY  : Deallocates all module variables
+!  (14) CHECK_FLUX_OUT         : Checks mass of total & tagged sums
+!  (15) INIT_OCEAN_MERCURY     : Allocates and zeroes all module variables
+!  (16) CLEANUP_OCEAN_MERCURY  : Deallocates all module variables
 !
 !  GEOS-CHEM modules referenced by ocean_mercury_mod.f
 !  ============================================================================
@@ -93,6 +94,9 @@
 !  (8 ) Corbitt, E.S. et al. (2011), Global source-receptor relationsihps for
 !       mercury deposition under present-day and 2050 emissions scenarios,
 !       Environ. Sci. Technol., 45, 10477-10484, 2011.
+!  (9 ) Toole, J. M. et al. (2010), Influences of the ocean surface mixed layer
+!        and thermohaline stratification on Arctic Sea ice in the central
+!        Canada Basin, J. Geophys. Res., 115, C10018, doi:10.1029/2009JC005660.
 !  
 !  Nomenclature: 
 !  ============================================================================
@@ -117,6 +121,17 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  23 Feb 2015 - J. Fisher   - Add Arctic MLD (orig. 28/11/11)
+!  05 Aug 2015 - J. Fisher   - Compute ocean chemistry in all ocean boxes
+!			       irrespective of ice cover and reduce radiation,
+!			       Hg deposition accordingly in partial-ice boxes
+!                              (orig. 28/11/11)
+!  06 Aug 2015 - J. Fisher   - Added delivery of snow Hg to ocean (orig. 28/11/11)
+!  11 Aug 2015 - J. Fisher   - Remove obsolete parameters LOCEANFIX, FUDGE
+!  12 Aug 2015 - J. Fisher   - Added input of Hg from Arctic rivers to ocean
+!                              (orig. 8/12/11)
+!  17 Aug 2015 - J. Fisher   - Add Arctic NPP, Chl from Anne Soerensen
+!                              (orig. 3/19/13)
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
@@ -152,6 +167,7 @@
       PUBLIC :: READ_HG2_PARTITIONING
       PUBLIC :: Fp, Fg        ! hma 
       PUBLIC :: LNEI2005,               LInPlume     ! yzh
+      PUBLIC :: LOCEANCOEF        ! sjs 
          
       !=================================================================
       ! MODULE VARIABLES
@@ -159,7 +175,6 @@
 
       ! Scalars
       LOGICAL              :: USE_CHECKS
-      CHARACTER(LEN=255)   :: Hg_RST_FILE
 
       ! Parameters
       REAL*4,  PARAMETER   :: MAX_RELERR = 5.0d-2
@@ -174,6 +189,13 @@
       REAL(fpp)   :: CDEEPARC(3)
       REAL(fpp)   :: CDEEPNPA(3)
 
+      ! For Arctic rivers (jaf, 12/8/11)
+      REAL(fpp)   :: RIVERFLOW(12)
+      REAL(fpp)   :: dFLOW
+      REAL(fpp)   :: dFLOW1
+      REAL(fpp)   :: dFLOW2
+      REAL(fpp)   :: FLOWNOW 
+
       ! Arrays
       REAL(fpp),  ALLOCATABLE :: dMLD(:,:)
       REAL(fpp),  ALLOCATABLE :: Hg0aq(:,:,:)
@@ -184,14 +206,13 @@
       REAL(fpp),  ALLOCATABLE :: HgPaq_SUNK(:,:,:) !eds 5/15/12 fix
       REAL(fpp),  ALLOCATABLE :: Hgaq_tot(:,:,:)
 !--------------------------------------------------------------------
-      REAL(fpp),  ALLOCATABLE :: MLD(:,:)
+!      REAL(fpp),  ALLOCATABLE :: MLD(:,:)
       REAL(fpp),  ALLOCATABLE :: MLDav(:,:)
       REAL(fpp),  ALLOCATABLE :: newMLD(:,:)
       REAL(fpp),  ALLOCATABLE :: prevMLD(:,:) !eds 10/19/10 debugging restart
-      REAL(fpp),  ALLOCATABLE :: NPP(:,:)
+!      REAL(fpp),  ALLOCATABLE :: NPP(:,:)
       REAL(fpp),  ALLOCATABLE :: RAD(:,:)
-      REAL(fpp),  ALLOCATABLE :: UPVEL(:,:)
-      REAL(fpp),  ALLOCATABLE :: CHL(:,:)                              
+!      REAL(fpp),  ALLOCATABLE :: UPVEL(:,:)
 ! added by hma for Hg2 partitioning --------------------------------------
       REAL(fpp),  ALLOCATABLE :: BULK_CONC(:,:,:)  
       REAL(fpp),  ALLOCATABLE :: Fp(:,:,:)     
@@ -207,6 +228,9 @@
       REAL(fpp),  ALLOCATABLE :: SO4_CONC(:,:,:) 
 !-------------------------------------------------------------------------
 
+      ! For IAV in NPP (jaf, 3/19/13)
+      REAL(fpp)   :: NPP_SCF
+
       ! Logical switches for the mercury simulation, all of which are 
       ! set in INIT_MERCURY (cdh, 9/1/09)
       LOGICAL   :: LDYNSEASALT, LGCAPEMIS, LPOLARBR, LBRCHEM, LBROCHEM
@@ -218,7 +242,8 @@
       LOGICAL   :: LGCBROMINE !eds 4/19/12
       LOGICAL   :: LnoUSAemis
       LOGICAL   :: LNEI2005, LInPlume    ! yzh
-      REAL(fpp)    :: STRAT_BR_FACTOR
+      LOGICAL   :: LOCEANCOEF    ! sjs
+      REAL(fpp) :: STRAT_BR_FACTOR
 
       ! CDH Set this TRUE to use corrected area-flux relationship
       ! Set this to FALSE to use original Strode et al. (2007) model
@@ -226,6 +251,17 @@
       ! CDH average ocean area per grid box: 1.67d11 m2/box
       ! used when eliminating AREA * FRAC_O
       REAL(fpp), PARAMETER :: FUDGE=1.67e+11_fpp
+
+      ! Pointers to fields in the HEMCO data structure.
+      ! These need to be declared REAL(f4), aka REAL*4.
+      REAL(f4), POINTER :: CHL   (:,:) => NULL()
+      REAL(f4), POINTER :: CHL_A (:,:) => NULL()
+      REAL(f4), POINTER :: MLD   (:,:) => NULL()
+      REAL(f4), POINTER :: NPP   (:,:) => NULL()
+      REAL(f4), POINTER :: NPP_A (:,:) => NULL()
+      REAL(f4), POINTER :: UPVEL (:,:) => NULL()
+      REAL(f4), POINTER :: dMLD1 (:,:) => NULL()
+      REAL(f4), POINTER :: dMLD2 (:,:) => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -332,17 +368,18 @@
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!  13 Mar 2015 - R. Yantosca - Now remove bpch input
 !*****************************************************************************
 !
 ! !USES:
 !     
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT ,  GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0,       READ_BPCH2
       USE DIAG03_MOD,         ONLY : ND03                
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : SET_Hg2_DIAG        
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
       USE CMN_SIZE_MOD
@@ -361,23 +398,23 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Arrays to hold aerosol concentrations  
-      REAL*4               :: ARRAYso4(  IGLOB, JGLOB, LGLOB )  ! so4
-      REAL*4               :: ARRAYnit(  IGLOB, JGLOB, LGLOB )  ! nit
-      REAL*4               :: ARRAYnh4(  IGLOB, JGLOB, LGLOB )  ! nh4
-      REAL*4               :: ARRAYbcpi( IGLOB, JGLOB, LGLOB )  ! bcpi
-      REAL*4               :: ARRAYocpi( IGLOB, JGLOB, LGLOB )  ! ocpi
-      REAL*4               :: ARRAYbcpo( IGLOB, JGLOB, LGLOB )  ! bcpo
-      REAL*4               :: ARRAYocpo( IGLOB, JGLOB, LGLOB )  ! ocpo
-      REAL*4               :: ARRAYdst1( IGLOB, JGLOB, LGLOB )  ! dst1
-      REAL*4               :: ARRAYtemp( IGLOB, JGLOB, LGLOB )  ! temporary
+      ! Pointers to fields in the HEMCO data structure
+      ! These have to be declared REAL(f4), aka REAL*4.
+      REAL(f4), POINTER       :: ARRAYso4 (:,:,:) => NULL() ! so4
+      REAL(f4), POINTER       :: ARRAYnit (:,:,:) => NULL() ! nit
+      REAL(f4), POINTER       :: ARRAYnh4 (:,:,:) => NULL() ! nh4
+      REAL(f4), POINTER       :: ARRAYbcpi(:,:,:) => NULL() ! bcpi
+      REAL(f4), POINTER       :: ARRAYocpi(:,:,:) => NULL() ! ocpi
+      REAL(f4), POINTER       :: ARRAYbcpo(:,:,:) => NULL() ! bcpo
+      REAL(f4), POINTER       :: ARRAYocpo(:,:,:) => NULL() ! ocpo
+      REAL(f4), POINTER       :: ARRAYdst1(:,:,:) => NULL() ! dst1
 
       ! Arrays to hold bulk concentration and surface area
-      REAL*4               :: ARRAYconc(IGLOB,JGLOB,LGLOB)  ! concentration
+      REAL(f4)                :: ARRAYtemp(IGLOB,JGLOB,LGLOB)
+      REAL(f4)                :: ARRAYconc(IGLOB,JGLOB,LGLOB)  ! concentration
 
       ! Local variables
-      REAL(f8)                :: XTAU
-      INTEGER                 :: I, J, L, NN
+      INTEGER                 :: I, J, L, NN, LL
       CHARACTER(LEN=155)      :: FILENAME
       CHARACTER(LEN=2)        :: MON                 ! for months 10-12
       CHARACTER(LEN=1)        :: SMON                ! for months 1-9
@@ -386,9 +423,15 @@
       REAL(fpp)               :: AIR_MW = 2.897e-02_fpp  ! avg molecular weight of air 
       REAL(fpp), DIMENSION(5) :: CU                  ! ratio of aerosol/air MW
 
+      ! Strings
+      CHARACTER(LEN=255) :: LOC = 
+     &     'READ_HG2_PARTITIONING (ocean_mercury_mod.F)'
+
       ! Assume success
       RC        =  GIGC_SUCCESS
 
+      ! Initialize
+      
       !----------------------------------------!
       ! Molecular weights, for unit conversion !
       !----------------------------------------!
@@ -403,92 +446,101 @@
       ! ratio of aerosol molecular weight / air molecular weight
       CU = AERO_MW / AIR_MW   !  [kg aerosol / kg air]
 
-#if defined( GRID4x5 ) || defined( GRID2x25 )
-      ! tropospheric aerosols (v8-02-03, GEOS5, 4x5)
-      FILENAME = TRIM( Input_Opt%DATA_DIR )        //
-     &           'mercury_201007/Hg_partitioning/' //
-     &           'aero.IJ_AVG.2007.'               //
-     &           GET_NAME_EXT()     // '.'         //
-     &           GET_RES_EXT()
-#else
-      CALL ERROR_STOP( "You need to make an aerosols file. ", 
-     &                 "PARTITION_Hg2")
-#endif
-
-      ! Echo some information to the standard output
-      WRITE( 6, 110 )  FILENAME 
- 110  FORMAT( '     -READ_HG2_PARTITIONING: Reading ', a )
-
       !------------------------------------------------------!
       ! Put aerosol mixing ratio (mol/mol) into arrays.     
       !------------------------------------------------------!
 
       !---------------------------
-      ! Tropospheric aerosols
+      ! Read SO4 from HEMCO
       !---------------------------
-      
-      ! Get the TAU0 value for the start of the given month
-      ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
-      XTAU = GET_TAU0( THISMONTH, 1, 2007 )  
-
-
-      ! so4, tracer = 27
-      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 27,      
-     &                 XTAU,      IGLOB,     JGLOB,
-     &                 LGLOB,     ARRAYso4,  QUIET=.TRUE. )
+      CALL HCO_GetPtr( am_I_Root, 'AERO_SO4', ARRAYso4, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to AERO_SO4', LOC )
+      ENDIF
 
       ! convert REAL*4 to REAL(fpp) 
       SO4_GC(:,:,1:LLCHEM_FIX) = ARRAYso4(:,:,1:LLCHEM_FIX)
 
-      ! nh4, tracer = 31
-      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 31,      
-     &                 XTAU,      IGLOB,     JGLOB,
-     &                 LGLOB,     ARRAYnh4,  QUIET=.TRUE. )
+      !---------------------------
+      ! Read NH4 from HEMCO
+      !---------------------------
+      CALL HCO_GetPtr( am_I_Root, 'AERO_NH4', ARRAYnh4, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to AERO_SO4', LOC )
+      ENDIF
 
       ! convert REAL*4 to REAL(fpp) 
       NH4_CONC(:,:,1:LLCHEM_FIX) = ARRAYnh4(:,:,1:LLCHEM_FIX)
 
-      ! nit, tracer = 32
-      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 32,      
-     &                 XTAU,      IGLOB,     JGLOB,
-     &                 LGLOB,     ARRAYnit,  QUIET=.TRUE. )
-
+      !---------------------------
+      ! Read NIT from HEMCO
+      !---------------------------
+      CALL HCO_GetPtr( am_I_Root, 'AERO_NIT', ARRAYnit, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to AERO_SO4', LOC )
+      ENDIF
+      
       ! convert REAL*4 to REAL(fpp) 
       NIT_CONC(:,:,1:LLCHEM_FIX) = ARRAYnit(:,:,1:LLCHEM_FIX)
 
-      ! bcpi, tracer = 34
-      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 34,      
-     &                 XTAU,      IGLOB,     JGLOB,
-     &                 LGLOB,     ARRAYbcpi, QUIET=.TRUE. )
+      !---------------------------
+      ! Read BCPI+BCPO from HEMCO
+      !---------------------------
 
-      ! bcpo, tracer = 36
-      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 36,      
-     &                 XTAU,      IGLOB,     JGLOB,
-     &                 LGLOB,     ARRAYbcpo, QUIET=.TRUE. )
+      ! BCPI
+      CALL HCO_GetPtr( am_I_Root, 'AERO_BCPI', ARRAYbcpi, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to AERO_BCPI', LOC )
+      ENDIF
+
+      ! BCPO
+      CALL HCO_GetPtr( am_I_Root, 'AERO_BCPO', ARRAYbcpo, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to AERO_BCPO', LOC )
+      ENDIF
+
+      ! First get the size of ARRAYbcpi.  ARRAYbcpo is the same size
+      ! since they are both stored in the same file (bmy, 3/13/15)
+      LL = size( ARRAYbcpi, 3 )
 
       ! convert REAL*4 to REAL(fpp) 
-      ARRAYtemp = ARRAYbcpi + ARRAYbcpo
+      ARRAYtemp                 = 0.e0_f4
+      ARRAYtemp(:,:,1:LL)       = ARRAYbcpi + ARRAYbcpo
       BC_CONC(:,:,1:LLCHEM_FIX) = ARRAYtemp(:,:,1:LLCHEM_FIX)
 
-      ! ocpi, tracer = 35
-      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 35,      
-     &                 XTAU,      IGLOB,     JGLOB,
-     &                 LGLOB,     ARRAYocpi, QUIET=.TRUE. )
+      !---------------------------
+      ! Read OCPI+OCPO from HEMCO
+      !---------------------------
 
-      ! ocpo, tracer = 37
-      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 37,      
-     &                 XTAU,      IGLOB,     JGLOB,
-     &                 LGLOB,     ARRAYocpo, QUIET=.TRUE. )
+      ! OCPI
+      CALL HCO_GetPtr( am_I_Root, 'AERO_OCPI', ARRAYocpi, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to AERO_OCPI', LOC )
+      ENDIF
+
+      ! OCPO
+      CALL HCO_GetPtr( am_I_Root, 'AERO_OCPO', ARRAYocpo, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to AERO_OCPO', LOC )
+      ENDIF
+
+      ! First get the size of ARRAYbcpi.  ARRAYbcpo is the same size
+      ! since they are both stored in the same file (bmy, 3/13/15)
+      LL = size( ARRAYocpi, 3 )
 
       ! convert REAL*4 to REAL(fpp) 
-      ARRAYtemp = ARRAYocpi + ARRAYocpo
+      ARRAYtemp                 = 0.e0_f4
+      ARRAYtemp(:,:,1:LL)       = ARRAYocpi + ARRAYocpo
       OC_CONC(:,:,1:LLCHEM_FIX) = ARRAYtemp(:,:,1:LLCHEM_FIX)
 
-      ! dst1, tracer = 38   
-      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 49,  
-     &                 XTAU,      IGLOB,     JGLOB,
-     &                 LGLOB,     ARRAYdst1, QUIET=.TRUE. )
- 
+      !---------------------------
+      ! Read DST1 from HEMCO
+      !---------------------------
+      CALL HCO_GetPtr( am_I_Root, 'AERO_DST1', ARRAYdst1, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to AERO_DST1', LOC )
+      ENDIF
+
       ! convert REAL*4 to REAL(fpp) 
       DST_CONC(:,:,1:LLCHEM_FIX) = ARRAYdst1(:,:,1:LLCHEM_FIX)
 
@@ -518,7 +570,7 @@
         !       (hma, 20120104)
         ! 0..5x0.666 file is regridded from 4x5 file, yzh, 12/15/12
 #if defined( GRID4x5 ) || defined( GRID05x0666 )
-        BULK_CONC(I,J,L) = 1e+9_fpp * ( BULK_CONC(I,J,L) *
+        BULK_CONC(I,J,L) = ( BULK_CONC(I,J,L) *
      &                     State_Met%AIRDEN(I,J,L)  )
 #elif defined( GRID2x25 )
         BULK_CONC(I,J,L) = ( BULK_CONC(I,J,L) * State_Met%AIRDEN(I,J,L))
@@ -568,9 +620,142 @@
       ! Increment diagnostic timestep counter. 
       CALL SET_Hg2_DIAG( INCREMENT=.TRUE. )
 
+      ! Free pointers
+      ARRAYso4  => NULL()
+      ARRAYnit  => NULL()
+      ARRAYnh4  => NULL()
+      ARRAYbcpi => NULL()
+      ARRAYocpi => NULL()
+      ARRAYbcpo => NULL()
+      ARRAYocpo => NULL()
+      ARRAYdst1 => NULL()
+
       ! Return to calling program.
       END SUBROUTINE READ_HG2_PARTITIONING
 
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: deliver_snow_hg
+!
+! !DESCRIPTION: Subroutine DELIVER\_SNOW\_HG delivers Hg accumulated in snow
+!  to the ocean.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DELIVER_SNOW_HG( SNOW_Hg2aq, I, J, State_Met )
+!
+! !USES:
+!
+      USE DAO_MOD,            ONLY : IS_ICE,  IS_LAND
+      USE DIAG03_MOD,         ONLY : AD03,    ND03 
+      USE DEPO_MERCURY_MOD,   ONLY : LHGSNOW
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC,  SNOW_HG_STORED_OC
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_LN,  SNOW_HG_STORED_LN
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACERID_MOD,       ONLY : N_Hg_CATS
+
+      USE CMN_SIZE_MOD      ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)        :: I, J 
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL(fpp), INTENT(OUT)     :: SNOW_Hg2aq(N_Hg_CATS)  ! Hg2 from snow
+
+!
+! !REMARKS:
+!  Snowpack Hg is delivered to the ocean instantaneously in an ionic pulse 
+!  at the start of snowmelt (i.e. when the temperature exceeds 276K). At
+!  this point, both the non-reducible Hg deposited to the snowpack and the
+!  remaining reducible Hg are delivered to the ocean. Over land, the snow Hg
+!  reservoirs are also emptied, but this Hg is not yet added to the land.
+! 
+! !REVISION HISTORY: 
+!  17 Jun 2011 - J. Fisher - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC  
+!     
+! !LOCAL VARIABLES:
+!
+      INTEGER       :: NN
+      REAL(fpp)     :: FROCSNOW, FRLNSNOW
+      LOGICAL       :: IS_MELT, IS_SNOWHG_OC, IS_SNOWHG_LN
+      LOGICAL       :: IS_OPEN_OCEAN, IS_OPEN_LAND
+
+      !=================================================================
+      ! DELIVER_SNOW_HG begins here!
+      !=================================================================
+
+      ! Return to calling program if snowpack model is disabled
+      IF (.NOT. LHGSNOW) RETURN
+
+      ! Intialize
+      SNOW_Hg2aq = 0d0
+
+! FRSEAICE, FRSNO only defined in MERRA, so need to treat these differently
+! in older code versions (jaf, 6/19/13)
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+      IS_OPEN_OCEAN = ( ( State_Met%FROCEAN(I,J) - 
+     &                    State_Met%FRSEAICE(I,J) ) > 0e+0_fpp )
+      IS_OPEN_LAND  = ( ( State_Met%FRLAND(I,J)  - 
+     &                    State_Met%FRSNO(I,J)    ) > 0e+0_fpp )
+#elif defined( GEOS_5 )
+      IS_OPEN_OCEAN = ( State_Met%FROCEAN(I,J) > 0e+0_fpp .AND.
+     &                  .NOT. IS_ICE( I, J, State_Met ) )
+      IS_OPEN_LAND  = ( IS_LAND( I, J, State_Met ) .AND.
+     &                  ( State_Met%SNOMAS(I,J) < 10e+0_fpp ) )
+#else
+      IS_OPEN_OCEAN = ( .NOT. IS_ICE( I, J, State_Met ) )
+      IS_OPEN_LAND  = ( IS_LAND( I, J, State_Met) .AND.
+     &                  ( State_Met%SNOW(I,J) < 10e+0_fpp ) )
+#endif
+
+      IS_MELT = ( State_Met%TS(I,J) >= 276e+0_fpp )
+
+      DO NN = 1, N_Hg_CATS
+
+         IS_SNOWHG_OC = ( (SNOW_HG_OC(I,J,NN)        > 0e+0_fpp) .OR.
+     &                 (SNOW_HG_STORED_OC(I,J,NN) > 0e+0_fpp) )
+         IS_SNOWHG_LN = ( (SNOW_HG_LN(I,J,NN)        > 0e+0_fpp) .OR.
+     &                 (SNOW_HG_STORED_LN(I,J,NN) > 0e+0_fpp) )
+
+         ! OCEAN
+         ! Check if melt conditions reached and snow in grid box
+         IF ( IS_MELT .AND. IS_SNOWHG_OC .AND. IS_OPEN_OCEAN ) THEN
+
+            ! Add all snow Hg to aqueous Hg2 reservoir
+            SNOW_Hg2aq(NN) =
+     &            ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
+                  
+            ! Store diagnostic of meltwater delivery to ocean
+            IF ( ND03 > 0 ) AD03(I,J,19,1) = AD03(I,J,19,1) +
+     &         ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
+
+            ! Zero reservoirs over ocean box, since we've added it
+            ! all to the ocean
+            SNOW_HG_OC(I,J,NN) = 0e+0_fpp
+            SNOW_HG_STORED_OC(I,J,NN) = 0e+0_fpp
+               
+         ENDIF ! ocean box
+               
+         ! Zero reservoirs if there is exposed land
+         IF ( IS_MELT .AND. IS_SNOWHG_LN .AND. IS_OPEN_LAND ) THEN
+              SNOW_HG_LN(I,J,NN) = 0e+0_fpp
+              SNOW_HG_STORED_LN(I,J,NN) = 0e+0_fpp
+         ENDIF
+      
+      ENDDO ! Hg Tracers
+      
+      END SUBROUTINE DELIVER_SNOW_HG
+!EOC
 !------------------------------------------------------------------------------
 
       SUBROUTINE OCEAN_MERCURY_FLUX( am_I_Root, Input_Opt, State_Met, 
@@ -736,30 +921,41 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  25 Jul 2014 - R. Yantosca - Now remove reference to function SFCWINDSQR
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
+!
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+!  05 Aug 2015 - J. Fisher   - Compute ocean chemistry in all ocean boxes
+!			       irrespective of ice cover and reduce radiation,
+!			       Hg deposition accordingly in partial-ice boxes
+!                              (orig. 28/11/11)
+!  06 Aug 2015 - J. Fisher   - Added delivery of snow Hg to ocean (orig. 28/11/11)
+!  12 Aug 2015 - J. Fisher   - Added input of Hg from Arctic rivers to ocean
+!                              (orig. 8/12/11)
+!  14 Aug 2015 - J. Fisher   - Reduce partitioning coefficient Kd in Arctic 
+!                              (orig. 3/23/12)
+!  17 Aug 2015 - J. Fisher   - Add scaling of reducible HgII based on UV-B
+!                              (orig. 3/24/12)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,            ONLY : IS_WATER 
+      USE DAO_MOD,            ONLY : IS_WATER, IS_ICE
       USE DEPO_MERCURY_MOD,   ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
-      USE DIAG03_MOD,         ONLY : AD03, ND03
+      USE DIAG03_MOD,         ONLY : AD03, ND03, AD03_RIV
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
-      USE TIME_MOD,           ONLY : GET_TS_EMIS,     GET_MONTH 
-      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_MIDMONTH
-      USE TIME_MOD,           ONLY : GET_YEAR 
-!- eds 8/31/10 -------------------------------------------------------------
-!      USE TRACERID_MOD,  ONLY : ID_Hg_tot,       ID_Hg_oc
-      USE TRACERID_MOD,       ONLY : ID_Hg_tot
-      USE TRACERID_MOD,       ONLY : ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
-      USE TRACERID_MOD,       ONLY : ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
-      USE TRACERID_MOD,       ONLY : ID_Hg_ocn
-!---------------------------------------------------------------------------
-      USE TRACERID_MOD,       ONLY : ID_Hg0,          N_Hg_CATS
-
+      USE TIME_MOD
+      USE TRACERID_MOD
       USE CMN_SIZE_MOD             ! Size parameters
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr 
 !
 ! !INPUT PARAMETERS:
 !
@@ -773,75 +969,110 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fpp),         INTENT(OUT)   :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
+      REAL(fpp),      INTENT(OUT)   :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !LOCAL VARIABLES:
 !
       ! Local variables
-      LOGICAL, SAVE         :: FIRST = .TRUE.
-      LOGICAL               :: IS_OCEAN_BOX ! jaf
-      CHARACTER(LEN=255)    :: FILENAME
-      INTEGER               :: I,         J,        NN, C
-      INTEGER               :: N,         N_tot_oc
-      INTEGER               :: NEXTMONTH, THISMONTH
-      INTEGER               :: THISYEAR
+      LOGICAL, SAVE        :: FIRST = .TRUE.
+      LOGICAL              :: IS_OCEAN_BOX ! jaf
+      CHARACTER(LEN=255)   :: FILENAME
+      INTEGER              :: I,         J,        NN, C
+      INTEGER              :: N,         N_tot_oc
+      INTEGER              :: NEXTMONTH, THISMONTH
+      INTEGER              :: THISYEAR
 
-      REAL(fpp)                :: A_M2,     DTSRCE,   MLDCM
-      REAL(fpp)                :: CHg0aq,   CHg0,     vi,       JorgC_kg 
-      REAL(fpp)                :: TC,       TK,       Kw
-      REAL(fpp)                :: Sc,       ScCO2,    USQ,      MHg
-      REAL(fpp)                :: Hg2_RED,  Hg2_GONE, Hg2_CONV  !HgPaq_SUNK
-      REAL(fpp)                :: FRAC_L,   FRAC_O,   H,        TOTDEP
-      REAL(fpp)                :: oldMLD,   XTAU,     TOTDEPall          
-      REAL(fpp)                :: FUP(IIPAR,JJPAR,N_Hg_CATS)
-      REAL(fpp)                :: FDOWN(IIPAR,JJPAR,N_Hg_CATS)
-      REAL(fpp)                :: X,        Y,        D                  
-      REAL(fpp)                :: NPP_tot,  A_ocean,  NPP_avg,  RADz     
-      REAL(fpp)                :: EC         
-      REAL(fpp)                :: k_red,    k_red_rad,  k_red_bio        
-      REAL(fpp)                :: k_ox    
-      REAL(fpp)                :: SPM,      Frac_Hg2, OC_tot_kg          
-      !REAL(fpp)                :: Hgaq_tot 
-      REAL(fpp)                ::Hg2aq_tot                      
-      REAL(fpp)                :: C_tot,    Ze,       OC_tot,   Hg0_OX  
+      REAL(fpp)            :: A_M2,     DTSRCE,   MLDCM
+      REAL(fpp)            :: CHg0aq,   CHg0,     vi,       JorgC_kg 
+      REAL(fpp)            :: TC,       TK,       Kw
+      REAL(fpp)            :: Sc,       ScCO2,    USQ,      MHg
+      REAL(fpp)            :: Hg2_RED,  Hg2_GONE, Hg2_CONV  !HgPaq_SUNK
+      REAL(fpp)            :: FRAC_L,   FRAC_O,   H,        TOTDEP
+      REAL(fpp)            :: oldMLD,   XTAU,     TOTDEPall          
+      REAL(fpp)            :: FUP(IIPAR,JJPAR,N_Hg_CATS)
+      REAL(fpp)            :: FDOWN(IIPAR,JJPAR,N_Hg_CATS)
+      REAL(fpp)            :: X,        Y,        D                  
+      REAL(fpp)            :: NPP_tot,  A_ocean,  NPP_avg,  RADz     
+      REAL(fpp)            :: EC         
+      REAL(fpp)            :: k_red,    k_red_rad,  k_red_bio        
+      REAL(fpp)            :: k_ox    
+      REAL(fpp)            :: SPM,      Frac_Hg2, OC_tot_kg          
+      !REAL(fpp)            :: Hgaq_tot 
+      REAL(fpp)            ::Hg2aq_tot                      
+      REAL(fpp)            :: C_tot,    Ze,       OC_tot,   Hg0_OX  
+      REAL(fpp)            :: Kd_part, k_ox_dark ! sjs
+      REAL(fpp)            :: FRAC_OPEN_OCEAN,    FRAC_OCEAN_OR_ICE
+      REAL(fpp)            :: OLDFLOW,            RIVER_HG
+      REAL(fpp)            :: FRAC_REDUCIBLE,     UVI_RATIO
+      REAL(fpp)            :: SNOW_Hg2aq(N_Hg_CATS)
 
       ! Parameters
-      REAL(fpp), PARAMETER     :: EC_w      = 0.0145e+0_fpp       
-      REAL(fpp), PARAMETER     :: EC_doc    = 0.654e+0_fpp
-      REAL(fpp), PARAMETER     :: C_doc     = 1.5e+0_fpp 
-      !REAL(fpp), PARAMETER     :: k_radbase = 1.73d-6    
+      REAL(fpp), PARAMETER :: EC_w      = 0.0145e+0_fpp       
+      REAL(fpp), PARAMETER :: EC_doc    = 0.654e+0_fpp
+      REAL(fpp), PARAMETER :: C_doc     = 1.5e+0_fpp 
+      !REAL(fpp), PARAMETER :: k_radbase = 1.73d-6    
       !decrease photoreduction in atm & surf ocean
       ! per H. Amos 23 Sep 2011 to multiply by 0.9e+0_fpp
       ! implemented by eck 10/19/11
-      REAL(fpp), PARAMETER     :: k_radbase = 1.557e-6_fpp
-      REAL(fpp), PARAMETER     :: k_biobase = 4.1e-10_fpp    
-      REAL(fpp), PARAMETER     :: k_oxbase  = 6.64e-6_fpp 
-#if defined ( LINUX_PGI )
-      REAL(fpp), PARAMETER     :: Kd_part   = 316227.76601684
-#else
-      REAL(fpp), PARAMETER     :: Kd_part   = 10e+0_fpp**(5.5e+0_fpp)
-#endif
-      REAL(fpp), PARAMETER     :: k_ox_dark = 1e-7_fpp  
-      REAL(fpp), PARAMETER     :: ECchla    = 31e+0_fpp     
+
+      REAL(fpp), PARAMETER :: k_radbase = 1.557e-6_fpp
+      REAL(fpp), PARAMETER :: k_biobase = 4.1e-10_fpp    
+      REAL(fpp), PARAMETER :: k_oxbase  = 6.64e-6_fpp 
+      REAL(fpp), PARAMETER :: ECchla    = 31e+0_fpp     
 
       ! Conversion factor from [cm/h * ng/L] --> [kg/m2/s]
-      REAL(fpp),  PARAMETER    :: TO_KGM2S = 1.0e-11_fpp / 3600e+0_fpp 
+      REAL(fpp), PARAMETER :: TO_KGM2S = 1.0e-11_fpp / 3600e+0_fpp 
+
+      ! Monthly Arctic river Hg concentrations (jaf, 12/8/11)
+      ! These assume no river Hg flux in Nov-Apr and concentrations at 
+      ! freshet (May-June) 3x higher than in summer (Leitch et al., 2009). 
+      ! These values are chosen to maximize agreement with atmospheric
+      ! Hg0 observations at Arctic sites (Alert, Zeppelin, Amderma).
+      ! They were calculated using:
+      ! Flux = CHg*Flow = CHg_may*Flow_may + CHg_jun*Flow_jun + ...
+      ! If (e.g. here) CHg is 3x higher in May-June, you end up with
+      ! Flux = 3CHg_jul*Flow_may + 3CHg_jul*Flow_jun + CHG_jul*Flow_jul + ...
+      !      = CHg_jul * ( 3*Flow_may + 3*Flow_jun + Flow_jul + ...)
+      ! You can then calculate CHg_jul and use it to calculate CHg for
+      ! other months.
+      ! This is in kg/km3 = ng/L
+      REAL*8,  PARAMETER :: RIVER_CHg(12) = (/0d0,  0d0,  0d0,  0d0,
+     &                                       80d0, 80d0, 27d0, 27d0,
+     &                                       27d0, 27d0,  0d0,  0d0 /)
+      REAL*8             :: A_ARCTIC_OCEAN
 
       ! Small numbers to avoid dividing by zero
-      REAL(fpp),  PARAMETER   :: SMALLNUM   = 1e-32_fpp
-      REAL(fpp),  PARAMETER   :: NPPMINNUM   = 5e-2_fpp       
-      REAL(fpp),  PARAMETER   :: CHLMINNUM   = 1e-1_fpp       
+      REAL(fpp), PARAMETER :: SMALLNUM   = 1e-32_fpp
+      REAL(fpp), PARAMETER :: NPPMINNUM   = 5e-2_fpp       
+      REAL(fpp), PARAMETER :: CHLMINNUM   = 1e-1_fpp       
 
       ! For values from Input_Opt
-      LOGICAL         :: LSPLIT
-      INTEGER         :: N_TRACERS
-      REAL(fpp)          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+      LOGICAL              :: LSPLIT
+      INTEGER              :: N_TRACERS
+      REAL(fpp)            :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+      LOGICAL              :: LArcticRiv,  LKRedUV
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fpp), POINTER :: STT(:,:,:,:)
+      REAL(fpp), POINTER   :: STT(:,:,:,:)
+
+      ! Pointers to fields in the HEMCO data structure
+      REAL(f4), POINTER    :: TOMS   (:,:) => NULL() ! O3   
+      REAL(f4), POINTER    :: TOMS_PD(:,:) => NULL() ! present day O3
+      REAL(f4), POINTER    :: TOMS_LT(:,:) => NULL() ! long-term O3
+
+      ! Strings
+      CHARACTER(LEN=255) :: 
+     & LOC = 'OCEAN_MERCURY_FLUX (GeosCore/ocean_mercury_mod.f)'
+
+      
+      IF (LOCEANCOEF) THEN
+         k_ox_dark = 10d0**(-5.2d0)
+      ELSE
+         k_ox_dark = 1d-7  
+      ENDIF
 
       !=================================================================
       ! OCEAN_MERCURY_FLUX begins here!
@@ -849,6 +1080,8 @@
 
       ! Copy values from Input_Opt
       LSPLIT       = Input_Opt%LSPLIT
+      LArcticRiv   = Input_Opt%LArcticRiv
+      LKRedUV      = Input_Opt%LKRedUV
       N_TRACERS    = Input_Opt%N_TRACERS
       TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
 
@@ -862,6 +1095,12 @@
       ! Molecular weight of Hg (applicable to all tagged tracers)
       MHg = TRACER_MW_KG(ID_Hg_tot)
 
+      ! Get current month
+      THISMONTH = GET_MONTH()
+
+      ! Get current year to check if leap year (jaf, 8/12/11)
+      THISYEAR  = GET_YEAR()
+
       !-----------------------------------------------
       ! Check tagged & total sums (if necessary)
       !-----------------------------------------------
@@ -872,13 +1111,40 @@
          CALL CHECK_OCEAN_FLUXES ( 'start of OCEAN_MERCURY_FLUX' )
       ENDIF
 
-      !-----------------------------------------------
-      ! Read monthly NPP, RADSW, MLD, UPVEL data
-      !-----------------------------------------------
-      IF ( ITS_A_NEW_MONTH() ) THEN
+      !-----------------------------------------------------------------
+      ! Read O3 data from HEMCO
+      !-----------------------------------------------------------------
 
-         ! Get current month
-         THISMONTH = GET_MONTH()
+      ! Now also read TOMS O3 column data
+      IF ( LKRedUV ) THEN
+
+         ! TOMS O3 columns [dobsons]
+         CALL HCO_GetPtr( am_I_Root, 'TOMS_O3_COL', TOMS, RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
+         ENDIF
+   
+         ! TOMS O3 columns, present-day [dobsons]
+         CALL HCO_GetPtr( am_I_Root, 'TOMS_O3_PD', TOMS_PD, RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to TOMSPD_O3_COL', 
+     &                        LOC )
+         ENDIF
+   
+         ! TOMS O3 columns, long-term [dobsons]
+         CALL HCO_GetPtr( am_I_Root, 'TOMS_O3_LT', TOMS_LT, RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to TOMSLT_O3_COL', 
+     &                        LOC )
+         ENDIF
+
+      ENDIF
+
+      !-----------------------------------------------
+      ! Read monthly NPP, RADSW, MLD, UPVEL, dMLD data
+      !-----------------------------------------------
+
+      IF ( ITS_A_NEW_MONTH() ) THEN
 
          ! Get monthly MLD, NPP, CHL etc.                         
          CALL OCEAN_MERCURY_READ
@@ -888,32 +1154,21 @@
 
       !eds 10/19/10
       IF ( FIRST ) THEN
-         CALL GET_MLD_FOR_LAST_MONTH
-     &      ( am_I_Root, Input_Opt, THISMONTH, RC )
+         MLDav = MLD
          FIRST = .FALSE.
       ENDIF
-
-
+      
       !-----------------------------------------------
       ! MLD and entrainment change in middle of month
       !-----------------------------------------------
+      
+      dMLD = dMLD1 
+      dFLOW = dFLOW1 
+
       IF ( ITS_MIDMONTH() ) THEN
-
-         ! Get current month
-         THISMONTH = GET_MONTH()
-
-!--jaf.start
-         ! Get current year to check if leap year (jaf, 7/6/11)
-         THISYEAR = GET_YEAR()
-
-         ! Read next month's MLD
-         !CALL GET_MLD_FOR_NEXT_MONTH( THISMONTH )
-         CALL GET_MLD_FOR_NEXT_MONTH
-     &        ( am_I_Root, Input_Opt, THISMONTH, THISYEAR, RC )
-!--jaf.end
-         
+         dMLD = dMLD2
+         dFLOW = dFLOW2
       ENDIF
-
 
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60e+0_fpp
@@ -924,6 +1179,7 @@
       ! Initialize values
       NPP_tot = 0e+0_fpp
       A_ocean = 0e+0_fpp
+      A_ARCTIC_OCEAN = 0e+0_fpp
 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -931,25 +1187,61 @@
          ! Grid box surface area [m2]
          A_M2 = GET_AREA_M2( I, J, 1 )
 
-!--jaf.start
+         ! Grid-box latitude [degrees]
+         Y = GET_YMID( I, J, 1 )
+
          ! Use fractional land type information in MERRA (jaf, 4/26/11)
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction.
-#if   defined( MERRA ) || defined( GEOS_FP )
-         NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * 
-     &             ( State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J) )
-         A_ocean = A_ocean + A_M2 * 
-     &             ( State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J) )
+         ! We now compute ocean chemistry for entire ocean grid box,
+         ! irrespective of ice cover (jaf, 11/28/11)
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+         NPP_tot = NPP_tot + NPP(I,J) * A_M2 * State_Met%FROCEAN(I,J)
+         A_ocean = A_ocean + A_M2 * State_Met%FROCEAN(I,J)
+         IF ( Y >= 70 ) THEN
+         !IF ( (State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J)) > 0d0 )
+         IF ( State_Met%FROCEAN(I,J) > 0d0 )
+     &      A_ARCTIC_OCEAN = A_ARCTIC_OCEAN + A_M2 
+     &                     * State_Met%FROCEAN(I,J)
+         ENDIF
+#elif defined(GEOS_5)
+         NPP_tot = NPP_tot + NPP(I,J) * A_M2 * State_Met%FROCEAN(I,J)
+         A_ocean = A_ocean + A_M2 * State_Met%FROCEAN(I,J)
+         IF ( Y >= 70 ) THEN
+            IF ( State_Met%FROCEAN(I,J) > 0d0 )
+     &      A_ARCTIC_OCEAN = A_ARCTIC_OCEAN + A_M2 
+     &                     * State_Met%FROCEAN(I,J)
+         ENDIF
 #else
          NPP_tot = NPP_tot+ NPP(I,J) * A_M2 *
      &             ( 1e+0_fpp - State_Met%FRCLND(I,J))
-         A_ocean = A_ocean + A_M2 * ( 1 - State_Met%FRCLND(I,J) ) 
+         A_ocean = A_ocean + A_M2 * ( 1e+0_fpp - State_Met%FRCLND(I,J) ) 
+         IF ( Y >= 70 ) THEN
+            IF ( State_Met%FROCEAN(I,J) > 0d0 )
+     &      A_ARCTIC_OCEAN = A_ARCTIC_OCEAN + A_M2 
+     &                     * ( 1e+0_fpp - State_Met%FRCLND(I,J) )
+         ENDIF
 #endif
 
       ENDDO
       ENDDO
 
       NPP_avg = NPP_tot / A_ocean
+
+      !----------------------------------------------------------------
+      ! Calculate Arctic river flow and Hg flux (jaf, 12/8/11)
+      !---------------------------------------------------------------- 
+      ! FLOW is in m3/s; RIVER_CHg in kg/km3; RIVERHG in kg/m2/s
+      OLDFLOW = FLOWNOW 
+      FLOWNOW = OLDFLOW + dFLOW * DTSRCE
+
+      ! For some months / met fields, there may be no non-ice ocean
+      IF ( A_ARCTIC_OCEAN == 0e+0_fpp ) THEN
+         RIVER_HG = 0e+0_fpp
+      ELSE
+         RIVER_HG = FLOWNOW * RIVER_CHg(THISMONTH) * 1e-9_fpp /
+     &              A_ARCTIC_OCEAN
+      ENDIF
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -958,22 +1250,28 @@
       ! Loop over surface boxes  
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,   vi,   A_M2,    Hg2_RED                       )
-!$OMP+PRIVATE( J,   NN,   k_ox,    OC_tot,  Hg2_CONV             )
-!$OMP+PRIVATE( N,   TK,   CHg0,    FRAC_L,  k_red_bio            )
-!$OMP+PRIVATE( C,   TC,   RADz,    Hg0_OX,  k_red_rad            )
-!$OMP+PRIVATE( D,   EC,   k_red,   OLDMLD,  TOTDEPall            )
-!$OMP+PRIVATE( Y,   Ze,   ScCO2,   FRAC_O,  Frac_Hg2,  Hg2aq_tot )
-!$OMP+PRIVATE( H,   Kw,   MLDCM,   TOTDEP,  OC_tot_kg            )
-!$OMP+PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE                      )
-!$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg                      )
-!$OMP+PRIVATE( IS_OCEAN_BOX                                      )
+!$OMP+PRIVATE( I,   vi,   A_M2,    Hg2_RED                         )
+!$OMP+PRIVATE( J,   NN,   k_ox,    OC_tot,  Hg2_CONV               )
+!$OMP+PRIVATE( N,   TK,   CHg0,    k_red_bio                       )
+!$OMP+PRIVATE( C,   TC,   RADz,    Hg0_OX,  k_red_rad              )
+!$OMP+PRIVATE( D,   EC,   k_red,   OLDMLD,  TOTDEPall              )
+!$OMP+PRIVATE( Y,   Ze,   ScCO2,   FRAC_O,  Frac_Hg2,  Hg2aq_tot   )
+!$OMP+PRIVATE( H,   Kw,   MLDCM,   TOTDEP,  OC_tot_kg              )
+!$OMP+PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE                        )
+!$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg                        )
+!$OMP+PRIVATE( IS_OCEAN_BOX                                        )
+!$OMP+PRIVATE( FRAC_OPEN_OCEAN,    FRAC_OCEAN_OR_ICE,  Snow_Hg2aq  )
+!$OMP+PRIVATE( FRAC_REDUCIBLE,     UVI_RATIO                       )
+!$OMP+PRIVATE( Kd_part                                             )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
          A_M2       = GET_AREA_M2( I, J, 1 )
+
+         ! Grid-box latitude [degrees]
+         Y = GET_YMID( I, J, 1 )
 
          ! Initialize values
          Kw         = 0e+0_fpp
@@ -998,17 +1296,20 @@
          OC_tot_kg  = 0e+0_fpp 
          Hg0_OX     = 0e+0_fpp
          D          = 0e+0_fpp
+         TOTDEP     = 0e+0_fpp
          TOTDEPall  = 0e+0_fpp
          k_ox       = 0e+0_fpp
+         SNOW_Hg2aq = 0e+0_fpp
+         UVI_RATIO  = 0e+0_fpp 
+         FRAC_REDUCIBLE = 0e+0_fpp
 
          OLDMLD     = MLDav(I,J)
          MLDav(I,J) = MLDav(I,J) + dMLD(I,J) * DTSRCE
          MLDcm      = MLDav(I,J)
-!--jaf.start
+
          ! Add error trap to prevent new MLD from being negative
          ! (jaf, 7/6/11)
          IF (MLDcm .LT. 0e+0_fpp) MLDcm = 0e+0_fpp
-!--jaf.end
 
          ! Get fractions of land and ocean in the grid box [unitless]
          ! Use fractional land type information in MERRA. Also make sure
@@ -1016,54 +1317,117 @@
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction. Don't let the fraction
          ! be less than zero (jaf, 4/26/11)
-#if   defined( MERRA ) || defined( GEOS_FP )
-         FRAC_L       = State_Met%FRLAND(I,J)
-         FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
-     &                       State_Met%FRSEAICE(I,J), 0e+0_fpp )
-         IS_OCEAN_BOX = ( ( FRAC_O > 0e+0_fpp                  ) .and.
-     &                   ( State_Met%SEAICE00(I,J)  > 0.5e+0_fpp ) )
+         !---------------------------------------------------------------
+         ! Updated to distinguish between the fraction of the box that is
+         ! open ocean and that which is ocean at depth (i.e. surface is
+         ! either ocean or ice). Unless MERRA is used, these are equal.
+         ! For MERRA, we perform ocean chemistry whether or not there is
+         ! ice cover, but ice will reduce both solar radiation input to
+         ! ocean and mercury deposition to ocean (jaf, 11/28/11)
+         !---------------------------------------------------------------
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+!         FRAC_L       = State_Met%FRLAND(I,J)
+!         FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
+!     &                       State_Met%FRSEAICE(I,J), 0e+0_fpp )
+!         IS_OCEAN_BOX = ( ( FRAC_O > 0e+0_fpp                  ) .and.
+!     &                   ( State_Met%SEAICE00(I,J)  > 0.5e+0_fpp ) )
+         FRAC_OPEN_OCEAN   = MAX( State_Met%FROCEAN(I,J) - 
+     &                            State_Met%FRSEAICE(I,J), 0e+0_fpp) 
+         FRAC_OCEAN_OR_ICE = State_Met%FROCEAN(I,J)
+         FRAC_O            = FRAC_OCEAN_OR_ICE 
+         IS_OCEAN_BOX      = ( FRAC_OCEAN_OR_ICE > 0e+0_fpp ) 
+#elif defined(GEOS_5)
+! Update to make these more appropriate in GEOS-5 (jaf, 05/27/13)
+! If it's a sea ice box, then ocean/ice fraction=1, open ocean frac=0
+! If it's a non-sea ice ocean box, then ocean/ice fraction=1, open ocean
+! frac = frac_o
+! Note that GEOS-5 met includes FRLAND, FRLANDICE, and FROCEAN but not
+! FRSEAICE
+         FRAC_OCEAN_OR_ICE = State_Met%FROCEAN(I,J)
+         FRAC_O            = FRAC_OCEAN_OR_ICE
+         IS_OCEAN_BOX      = ( FRAC_OCEAN_OR_ICE > 0d0 ) 
+         IF ( IS_ICE( I, J, State_Met ) ) THEN
+           FRAC_OPEN_OCEAN = 0e+0_fpp
+         ELSE
+           FRAC_OPEN_OCEAN = 1e+0_fpp
+         ENDIF
 #else
-         FRAC_L       = State_Met%FRCLND(I,J)
-         FRAC_O       = 1e+0_fpp - FRAC_L
+!         FRAC_L       = State_Met%FRCLND(I,J)
+!         FRAC_O       = 1e+0_fpp - FRAC_L
+         FRAC_O            = 1e+0_fpp - State_Met%FRCLND(I,J)
+         FRAC_OPEN_OCEAN   = FRAC_O
+         FRAC_OCEAN_OR_ICE = FRAC_O
          IS_OCEAN_BOX = ( IS_WATER( I, J, State_Met ) )
 #endif
-
-!--jaf.end
 
          ! Change ocean mass due to mixed layer depth change
          ! Keep before next IF so that we adjust mass in ice-covered boxes
          CALL MLD_ADJUSTMENT( I, J, OLDMLD*1e-2_fpp, MLDcm*1e-2_fpp, 
      &                        Input_Opt, State_Met )
 
+         !---------------------------------------------------------------
+         ! Deliver snowpack Hg to ocean if snow has melted
+         ! Call before IF statement so that snow Hg is zeroed in land
+         ! boxes as well as ocean boxes (jaf, 11/29/11)
+         CALL DELIVER_SNOW_HG( SNOW_Hg2aq, I, J, State_Met )
+
+         ! Loop over total Hg (and ocean Hg if necessary)
+         DO C = 1, N_tot_oc
+
+            ! Get Hg category #
+            IF ( C == 1 ) NN = ID_Hg_tot
+            IF ( C == 2 ) NN = ID_Hg_ocn
+
+            ! Add snowpack Hg to ocean reservoirs
+            Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + SNOW_Hg2aq(NN)
+
+         ENDDO
+
          !===========================================================
          ! Make sure we are in an ocean box
          !===========================================================
-         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
-!         IF ( ( ALBD(I,J) <= 0.4e+0_fpp ) .and. 
-!     &        ( FRAC_L    <  0.8e+0_fpp ) .and.
-!     &        ( MLDCM     > 0.99e+0_fpp )      ) THEN
-!--jaf.start
-          ! Use consistent criteria for Ocean/Land/Ice categories
-          ! with snowpack and terrestrial emissions  !CDH 5/18/2010
-          !IF ( ( IS_WATER(I,J) ) .AND. ( MLDCM > 0.99e+0_fpp ) ) THEN
+         ! Use consistent criteria for Ocean/Land/Ice categories
+         ! with snowpack and terrestrial emissions  !CDH 5/18/2010
+         ! Use ocean criteria developed above (jaf, 11/29/11)
          IF ( (IS_OCEAN_BOX) .and. (MLDCM > 0.99e+0_fpp) ) THEN
-!--jaf.end
 
             !===========================================================
             ! Reduction and oxidation coefficients
             !===========================================================    
             ! Avoid having NPP or CHL to be zero
-            NPP(I,J) = MAX ( NPP(I,J) , NPPMINNUM )  
-
-            CHL(I,J)    = MAX ( CHL(I,J) , CHLMINNUM )                  
+            ! Moved to OCEAN_MERCURY_READ
+!            !GanLuo+NPP(I,J) = MAX ( NPP(I,J) , NPPMINNUM )
+!            NPP(I,J) = MAX ( NPP(I,J)*1.d0 , NPPMINNUM )
+!
+!            !GanLuo+CHL(I,J) = MAX ( CHL(I,J) , CHLMINNUM )
+!            CHL(I,J) = MAX ( CHL(I,J)*1.d0 , CHLMINNUM )
 
             ! Light attenuation (RADz) is calculated
             EC     = (EC_w + ( EC_doc * C_doc * ( NPP(I,J) / NPP_avg ) )
      &               + ( ECchla * CHL(I,J) / 1000 ) )             
 
+            ! NOTE: State_Met%RADSWG is net radiation at ground for all
+            ! MET fields except GEOS-FP and MERRA2. For those data sets,
+            ! net radiation was not processed and therefore we use
+            ! incident radiation at ground. We split them up below for
+            ! clarity, using the new SWGDN field for incident radiation.
+            ! SWGDN is also available for MERRA but we do not use it
+            ! here to preserve the legacy method (ewl, 9/23/15)
+#if defined ( GEOS_FP ) || defined ( MERRA2 )
+            RADz   = ( 1 / ( MLDcm * 1e-2_fpp ))
+     &               * (State_Met%SWGDN(I,J) / EC )    
+     &               * ( 1 - EXP( -EC * ( MLDcm * 1e-2_fpp) ) )
+#else
             RADz   = ( 1 / ( MLDcm * 1e-2_fpp ))
      &               * (State_Met%RADSWG(I,J) / EC )    
      &               * ( 1 - EXP( -EC * ( MLDcm * 1e-2_fpp) ) )
+#endif
+
+            ! Reduce RADz in fractional sea ice boxes to only include
+            ! the fraction of open ocean (i.e. assume zero light
+            ! penetration through sea ice (jaf, 11/28/11)
+            IF ( FRAC_OCEAN_OR_ICE > FRAC_OPEN_OCEAN )
+     &         RADz = RADz * FRAC_OPEN_OCEAN
 
             !--------------------------------------------------------
             ! Hg(tot)aq reduction rate constants
@@ -1117,7 +1481,6 @@
 
             OC_tot_kg   = OC_tot * 1e-6_fpp * A_M2 * FRAC_O
 
-
             ! Total biomas is a proxy for SPM (mg/m3) used in Hg(II)
             ! partitioning. Calculated by multiplying the standing 
             ! stock of organic carbon with 10 (exp Bundy 2004)
@@ -1133,8 +1496,30 @@
 
             ! SPM = Suspended particulate matter (kg/L)
 
-            Frac_Hg2    = 1 / ( 1 + Kd_part * SPM * 1e-9_fpp)
+            ! For Arctic, log10(Kd)=5.0, see Fisher et al. 2012 (jaf, 3/23/12)
+            ! For Arctic, now use log10(Kd)=4.5 to match Fisher et al. (2013)
+            ! When not in the arctic and LOCEANCOEF is true, use Kd_part 
+            ! and k_ox_dark from Song et al. ACP 2015, otherwise use ocean 
+            ! coefficients from Soerensen et al. EST 2010 ! sjs,08/12/2015
+#if defined ( LINUX_PGI )
+            IF ( Y >= 70.0e+0_fpp ) THEN
+               Kd_part = 31622.776601684
+            ELSE IF ( LOCEANCOEF ) THEN
+               Kd_part = 15848.93192461
+            ELSE
+               Kd_part = 316227.76601684
+            ENDIF
+#else
+            IF ( Y >= 70.0e+0_fpp ) THEN
+               Kd_part = 10e+0_fpp**(4.5e+0_fpp)
+            ELSE IF ( LOCEANCOEF ) THEN
+               Kd_part = 10e+0_fpp**(4.2e+0_fpp)
+            ELSE
+               Kd_part = 10e+0_fpp**(5.5e+0_fpp)
+            ENDIF
+#endif
 
+            Frac_Hg2    = 1 / ( 1 + Kd_part * SPM * 1e-9_fpp)
 
             !--------------------------------------------------------------
             ! Sea surface temperature in both [K] and [C]
@@ -1251,8 +1636,9 @@
             ! Loop over total Hg (and ocean Hg if necessary)
             DO C = 1, N_tot_oc
 
+               ! Move to start of loop for use earlier (jaf, 12/8/11)
                ! Grid-box latitude [degrees]
-               Y = GET_YMID( I, J, 1 )
+               !Y = GET_YMID( I, J, 1 )
          
                ! Grid box longitude [degrees]
                X = GET_XMID( I, J, 1 )
@@ -1498,6 +1884,19 @@
                FUP(I,J,NN)   = 0e+0_fpp
                FDOWN(I,J,NN) = 0e+0_fpp
 
+               !--------------------------------------------------------
+               ! Calculate new Hg(II) mass
+               !--------------------------------------------------------
+               ! Add flux of Hg(II) from rivers in Arctic (jaf, 12/8/11)
+               ! Convert to kg/box/timestep and add to Hg2aq
+               IF ( (LArcticRiv) .AND. (Y >= 70) ) THEN
+                  Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + RIVER_HG *
+     &                            A_M2 * DTSRCE * FRAC_O
+
+                  IF ( ND03 .and. NN == ID_Hg_tot )
+     &                AD03_riv(I,J) = AD03_riv(I,J) + RIVER_HG *
+     &                                A_M2 * DTSRCE * FRAC_O
+               ENDIF
                   
                !--------------------------------------------------------
                ! Calculate new Hg(II) mass
@@ -1513,7 +1912,10 @@
                TOTDEPall = (WD_Hg2(I,J,NN) + DD_Hg2(I,J,NN) +
      &                   WD_HgP(I,J,NN) + DD_HgP(I,J,NN) ) 
 
-               TOTDEP        = TOTDEPall * FRAC_O
+               ! When distinguishing open ocean vs ice, only deposition
+               ! to ocean should be included in Hg exchange (jaf, 11/28/11)
+               !TOTDEP        = TOTDEPall * FRAC_O
+               TOTDEP        = TOTDEPall * FRAC_OPEN_OCEAN
 
                ! Add deposited Hg(II) to the Hg(II)tot ocean mass [kg]
                Hg2aq_tot     = Hg2aq(I,J,NN) + HgPaq(I,J,NN) + TOTDEP  
@@ -1522,8 +1924,79 @@
 
 
                ! Mass of Hg(II)  -->  Hg(0) 
+               !---------------------------
                ! Only a certain percentage of Hg(II) is considered reducible
-               Hg2_RED    = Hg2aq(I,J,NN) * 0.4e+0_fpp * k_red * DTSRCE 
+
+               ! Previously this value was set as 40%. Now it is determined
+               ! dynamically. Based on lab studies of Hg photoreduction,
+               ! UV-B radiation leads to more DGM production than UV-A. We
+               ! assume that this difference reflects the ability of higher
+               ! energy UV-B to break bonds that UV-A can't. In other words
+               ! UV-B increases the reducible fraction of Hg(II).
+               ! Changes in O3 columns are leading to changes in UV radiation
+               ! especially in the UV-B portion of the spectrum. Based on
+               ! realistic present-day conditions, we assume 50% of the 
+               ! reducible pool (20% of total Hg(II) can be reduced by any 
+               ! wavelength, but the remaining 50% by UV-B only, and this 
+               ! fraction changes with time.
+               !
+               ! The relative change in UV is computed from the change in
+               ! O3 column. O3 column data is provided from TOMS satellite
+               ! data. UV is approximated using the UV Index (UVI), which
+               ! is heavily weighted to the UV-B portion of the spectrum.
+               ! To compute the UVI, we use the simplified analytical
+               ! formula from Madronich, 2007, Photochem & Photobio.
+               ! This formula does not apply to high albedo, but we use it
+               ! here only for radiation entering the water column. It also
+               ! assumes clear-sky, aerosol-free conditions. However, we
+               ! are considering only a ratio between present day and
+               ! current model time step, so we can assume on average those
+               ! conditions haven't changed (or we don't know enough about
+               ! how they have). Errors are induced for high solar zenith
+               ! angle, but for a given grid box / date-time, we can assume
+               ! no variation between years and therefore this should
+               ! have minimal impact on the ratio. Finally, SZA in a
+               ! given grid box at a given day/time doesn't change from
+               ! year to year, so we can simplify the formula by
+               ! excluding all common factors and do not need to rely on
+               ! SZA (which is occasionally negative even when there is
+               ! some incoming solar radiation, especially at the
+               ! equinox (jaf, 2/27/12, 8/3/12)
+               !
+               ! Some years have missing ozone data. In this case, we
+               ! replace the missing values with the longterm mean,
+               ! which will be >0 unless it is a region in polar
+               ! darkness. In that case, the darkness component should
+               ! already be caught with the RADz term used in the
+               ! reduction part of the code. (jaf, 8/2/12)
+               !
+               ! Use fraction=0.4 as error trapping default value
+               ! to prevent catastrophically low reduction. This
+               ! should basically never be used since in case of no
+               ! O3 , RADSWG will also be zero and there will be no
+               ! photo-reduction below. (jaf, 8/2/12)
+
+               ! Default: 40% HgII photo-reducible
+               FRAC_REDUCIBLE = 0.4e+0_fpp
+               IF ( LKRedUV ) THEN
+
+                  IF ( (TOMS(I,J) < 0) .AND. (TOMS_LT(I,J) > 0) )
+     &               TOMS(I,J) = TOMS_LT(I,J)
+
+                  IF ( (TOMS(I,J) > 0) .AND. (TOMS_PD(I,J) > 0) ) THEN 
+                     UVI_RATIO = ( TOMS(I,J) / 
+     &                           TOMS_PD(I,J) )**(-1.23e+0_fpp) 
+                     FRAC_REDUCIBLE = 0.2e+0_fpp + 0.2e+0_fpp * 
+     &                                ( UVI_RATIO )
+                  ENDIF
+               ENDIF
+
+               ! Now use new FRAC_REDUCIBLE for photo-reduction only.
+               ! Retain 40% for biological reduction
+               !Hg2_RED       = Hg2aq(I,J,NN) * 0.4d0 * k_red * DTSRCE
+               Hg2_RED = Hg2aq(I,J,NN) * DTSRCE * ( 0.4e+0_fpp * 
+     &                   k_red_bio + FRAC_REDUCIBLE * k_red_rad )    
+
                ! Mass of Hg(0) --> Hg(II)
                Hg0_OX        = Hg0aq(I,J,NN) * k_ox * DTSRCE
 
@@ -1621,7 +2094,18 @@
 
                ! Convert [cm/h*ng/L] --> [kg/m2/s] --> [kg/s]
                ! Also account for ocean fraction of grid box
-               FLUX(I,J,NN)  = FLUX(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O 
+               !FLUX(I,J,NN)  = FLUX(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O 
+               ! Assume fast horizontal equilibration w/in the grid box
+               ! therefore no need to scale by open ocean fraction
+               ! (jaf, 6/22/11)
+               ! Evasive flux only if there is some open ocean in the
+               ! grid box (not 100% sea ice)
+               IF ( FRAC_OPEN_OCEAN > 0d0 ) THEN
+                 FLUX(I,J,NN)  = FLUX(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
+               ELSE
+                 FLUX(I,J,NN)  = 0e+0_fp
+               ENDIF
+
 
                !Prior to 09 Nov 2011, H Amos ---------------------             
                !FUP(I,J,NN)  = FUP(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
@@ -1726,6 +2210,9 @@
 
               ENDDO
 
+               ! Total HgII/HgP dep to open ocean [kg]
+               AD03(I,J,20,1) = AD03(I,J,20,1) + TOTDEP
+
             ENDIF
 
            
@@ -1750,8 +2237,11 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Free pointer
-      NULLIFY( STT )
+      ! Free pointers
+      NULLIFY( STT     )
+      NULLIFY( TOMS    )
+      NULLIFY( TOMS_PD )
+      NULLIFY( TOMS_LT )
 
       !=================================================================
       ! Check tagged & total sums (if necessary)
@@ -1787,16 +2277,24 @@
 !        from DATA_DIR_1x1/mercury_200511. (sas, cdh, bmy, 3/28/06)
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!  13 Mar 2015 - R. Yantosca - Now read netCDF data via HEMCO
+!  23 Feb 2015 - J. Fisher   - Add Arctic MLD (orig. 28/11/11)
+!  12 Aug 2015 - J. Fisher   - Added input of Hg from Arctic rivers to ocean
+!                              (orig. 8/12/11)
+!  17 Aug 2015 - J. Fisher   - Added Arctic NPP, Chl from Anne Soerensen
+!                              (orig. 3/19/13)
 !******************************************************************************
 !
 ! !USES:
 !
-      USE BPCH2_MOD
       USE CMN_SIZE_MOD
+      USE Error_Mod,          ONLY : Error_Stop
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE TIME_MOD,	      ONLY : ITS_A_LEAPYEAR
-      USE FILE_MOD,	      ONLY : IOERROR, IU_FILE
+      USE GRID_MOD,           ONLY : GET_XMID, GET_YMID 
 !
 ! !INPUT PARAMETERS:
 !
@@ -1814,14 +2312,28 @@
       ! Local Variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
       REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
-      REAL(f8)               :: TAU
-      CHARACTER(LEN=255)     :: FILENAME
+      INTEGER                :: I, J, X, Y
+
       ! Add time variables to get correct number of seconds per month
       ! and prevent negative flow later (jaf, 12/8/11)
-      INTEGER	   :: DAYS_IN_MONTH, LASTMONTH
+      INTEGER	   :: LASTMONTH, DAYS_IN_LAST_MONTH
+      INTEGER	   :: NEXTMONTH, DAYS_IN_THIS_MONTH
       INTEGER	   :: M(12) = (/ 31, 28, 31, 30, 31, 30,
      &                           31, 31, 30, 31, 30, 31 /)
-     
+      REAL*8,  PARAMETER :: SEC_PER_DAY = 3.6e+3_fpp * 24e+0_fpp
+
+      ! Moved from ocean_mercury_flux (jaf,3/20/13)
+      REAL*8,  PARAMETER   :: NPPMINNUM   = 5e-2_fpp
+      REAL*8,  PARAMETER   :: CHLMINNUM   = 1e-1_fpp
+
+      ! Arctic MLD parameters
+      REAL*8,  PARAMETER   :: ArcticMLD_summer = 15e+2_fpp
+      REAL*8,  PARAMETER   :: ArcticMLD_other  = 20e+2_fpp
+
+      ! Strings
+      CHARACTER(LEN=255) :: 
+     & LOC = 'OCEAN_MERCURY_READ (GeosCore/ocean_mercury_mod.f)'
+
       !=================================================================
       ! OCEAN_MERCURY_READ begins here!
       !=================================================================
@@ -1836,405 +2348,477 @@
          LASTMONTH = THISMONTH - 1
       ENDIF
 
-      ! Calculate days in this month (jaf, 12/8/11)
-      IF ( LASTMONTH == 2 .and. ITS_A_LEAPYEAR( THISYEAR ) ) THEN
-         DAYS_IN_MONTH = M(LASTMONTH) + 1
-      ELSE
-         DAYS_IN_MONTH = M(LASTMONTH)
-      ENDIF
-
-      !------------------------------
-      ! Mixed layer depth [cm]
-      !------------------------------
-
-      ! MLD file name
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-     &           'mercury_201203/MLD_DReqDT.'      // 
-     &           GET_NAME_EXT()    // '.'          //
-     &           GET_RES_EXT()
-#else
-      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-     &           'mercury_201007/MLD_DReqDT.geos.' // 
-     &           GET_RES_EXT()
-#endif
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME )
- 100     FORMAT( '     - OCEAN_MERCURY_READ: Reading ', a )  
-      ENDIF
-
-      ! TAU0 value (uses year 2003) !(uses year 1985, anls)
-      TAU = GET_TAU0( THISMONTH, 1, 1985 )
-
-      ! Read from disk; original units are [m]
-      CALL READ_BPCH2( FILENAME, 'BXHGHT-$',    5,  
-     &                 TAU,       IIPAR,        JJPAR,      
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-
-      ! Resize and cast to REAL(fpp)
-      MLD = ARRAY(:,:,1)
-
-      ! Convert [m] to [cm]
-      MLD = MLD * 100e+0_fpp
-
-      ! First-time only: Set MDLav [cm] to MLD of first month
-      IF ( FIRST ) THEN   
-!-eds 10/19/10 causes differences dep. on restart date -----------
-!         MLDav = MLD   
-!         dMLD  = 0.0
-!         MLDav = MLDprev
-!----------------------------------------------------------------
-         FIRST = .FALSE.
-      ENDIF
-
-!-------------------------------------------------      (anls, 090520) chl
-! Chl from Modis [mg/m3]                                only for 4x5 for now  
-!-------------------------------------------------
-
-      ! Chl file name
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-     &           'mercury_201203/Chl_2003.'        // 
-     &           GET_NAME_EXT()     // '.'         //
-     &           GET_RES_EXT()
-#else
-      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-     &           'mercury_201007/Chl_2003.geos.'   //
-     &           GET_RES_EXT()
-#endif
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME )
-      ENDIF
-
-      ! TAU0 values (uses year 2003)
-      TAU = GET_TAU0( THISMONTH, 1, 2003 )      
-#if defined (GRID2x25)
-      ! Read data
-      CALL READ_BPCH2( FILENAME, 'CHLO-A-$',    0,  
-     &                 TAU,       IIPAR,        JJPAR,      
-     &                 1,         ARRAY(:,:,1), QUIET=.FALSE. )
-#else 
-
-      CALL READ_BPCH2( FILENAME, 'CHLO-A-$',    1,
-     &                 TAU,       IIPAR,        JJPAR,
-     &                 1,         ARRAY(:,:,1), QUIET=.FALSE. )
-#endif
-
-      ! Resize and cast to REAL(fpp)
-      CHL = ARRAY(:,:,1)
-
-
-      !--------------------------------
-      ! Net primary productivity [mg/m2/day]
-      !--------------------------------
- 
-      ! NPP file name (anls, 100111)
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-     &           'mercury_201203/NPP_2003.'        // 
-     &          GET_NAME_EXT()     // '.'          //
-     &          GET_RES_EXT()  
-#else
-      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-     &           'mercury_201007/NPP_2003.geos.'   //
-     &           GET_RES_EXT()
-#endif
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME )
-      ENDIF
-
-      ! TAU0 values (uses year 2003)
-      TAU = GET_TAU0( THISMONTH, 1, 2003 )
- 
-      ! Read data
-      CALL READ_BPCH2( FILENAME, 'GLOB-NPP',    1,  
-     &                 TAU,       IIPAR,        JJPAR,      
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-
-      ! Resize and cast to REAL(fpp)
-      NPP = ARRAY(:,:,1)
-  
-
-      !---------------------------------
-      ! Ekman upwelling velocity [cm/s]
-      !---------------------------------
-
-      ! NPP file name
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-      FILENAME = TRIM( Input_Opt%DATA_DIR )         // 
-     &           'mercury_201203/ekman_upvel.'      // 
-     &           GET_NAME_EXT()    // '.'           //
-     &           GET_RES_EXT() 
-#else
-      FILENAME = TRIM(Input_Opt% DATA_DIR_1x1 )     // 
-     &           'mercury_200511/ekman_upvel.geos.' //
-     &           GET_RES_EXT()
-#endif
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME )
-      ENDIF
-
-      ! TAU0 value (uses year 1985)
-      TAU = GET_TAU0( THISMONTH, 1, 1985 )
-
-      ! Read from disk; original units are [cm/s]
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      CALL READ_BPCH2( FILENAME, 'BXHGHT-$',    6,  
-     &                 TAU,       IIPAR,        JJPAR,      
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-#else
-      CALL READ_BPCH2( FILENAME, 'EKMAN-V',     1,  
-     &                 TAU,       IIPAR,        JJPAR,      
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-#endif
-
-      ! Resize and cast to REAL(fpp)
-      UPVEL = ARRAY(:,:,1)
-
-      ! convert [cm/s] to [m/s]
-      UPVEL = UPVEL * 1.e-2_fpp
-  
-      ! Return to calling program
-      END SUBROUTINE OCEAN_MERCURY_READ
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE GET_MLD_FOR_NEXT_MONTH( am_I_Root, Input_Opt,
-     &                                   THISMONTH, THISYEAR, RC )
-!
-!******************************************************************************
-!  Subroutine GET_MLD_FOR_NEXT_MONTH reads the mixed-layer depth (MLD) 
-!  values for the next month. (sas, cdh, bmy, 3/28/06)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) THISMONTH (INTEGER) : Current month number (1-12)
-!  (2 ) THISYEAR (INTEGER)  : Current year 
-!
-!  NOTES:
-!  (1 ) Now read files from DATA_DIR_1x1/mercury_200511 (bmy, 3/28/06)
-!  (2 ) Now use actual number of days in given month (jaf, 7/6/11)
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE BPCH2_MOD,          ONLY : GET_TAU0, GET_RES_EXT, READ_BPCH2
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT
-      USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TIME_MOD,           ONLY : ITS_A_LEAPYEAR
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      INTEGER,        INTENT(IN)  :: THISMONTH
-      INTEGER,        INTENT(IN)  :: THISYEAR
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER                :: I, J, NEXTMONTH
-      REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
-      REAL(f8)               :: TAU
-      CHARACTER(LEN=255)     :: FILENAME
-      INTEGER                :: DAYS_IN_MONTH
-      INTEGER                :: M(12) = (/ 31, 28, 31, 30, 31, 30,
-     &                                     31, 31, 30, 31, 30, 31 /)
-
-      !=================================================================
-      ! GET_MLD_FOR_NEXT_MONTH begins here!
-      !=================================================================
-      
-      ! Assume success
-      RC = GIGC_SUCCESS
-
-      ! Calculate days in this month (jaf, 7/6/11)
-      IF ( THISMONTH == 2 .and. ITS_A_LEAPYEAR( THISYEAR ) ) THEN
-         DAYS_IN_MONTH = M(THISMONTH) + 1
-      ELSE
-         DAYS_IN_MONTH = M(THISMONTH)
-      ENDIF
-
-      ! MLD file name
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011 
-      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-     &           'mercury_201203/MLD_DReqDT.'      // 
-     &           GET_NAME_EXT()    // '.'          //
-     &           GET_RES_EXT()   
-#else
-      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-     &           'mercury_201007/MLD_DReqDT.geos.' //
-     &            GET_RES_EXT()
-#endif
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME )
- 100     FORMAT( '     - GET_MLD_FOR_NEXT_MONTH: Reading ', a )  
-      ENDIF
-
       ! Get the next month
       NEXTMONTH = MOD( THISMONTH, 12 ) +1
 
-      ! TAU0 value for next month (uses year 1985)
-      TAU       = GET_TAU0( NEXTMONTH, 1, 1985 )
+      ! Calculate days in last month (jaf, 12/8/11)
+      IF ( LASTMONTH == 2 .and. ITS_A_LEAPYEAR( THISYEAR ) ) THEN
+         DAYS_IN_LAST_MONTH = M(LASTMONTH) + 1
+      ELSE
+         DAYS_IN_LAST_MONTH = M(LASTMONTH)
+      ENDIF
 
-      ! Read from disk; original units are [m]
-      CALL READ_BPCH2( FILENAME, 'BXHGHT-$',    5,  
-     &                 TAU,       IIPAR,        JJPAR,      
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
+      ! Calculate days in this month (jaf, 12/8/11)
+      IF ( THISMONTH == 2 .and. ITS_A_LEAPYEAR( THISYEAR ) ) THEN
+         DAYS_IN_THIS_MONTH = M(THISMONTH) + 1
+      ELSE
+         DAYS_IN_THIS_MONTH = M(THISMONTH)
+      ENDIF
 
-      ! Resize and cast to REAL(fpp)
-      newMLD = ARRAY(:,:,1)
+      !-----------------------------------------------------------------
+      ! Mixed layer depth [cm]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_MLD', MLD, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_MLD', LOC )
+      ENDIF
 
       ! Convert [m] to [cm]
-      newMLD = newMLD * 100e+0_fpp
+      MLD = MLD * 100e+0_f4
 
-      ! get rate of change of MLD; convert [cm/month] -> [cm/s] 
+      !-----------------------------------------------------------------
+      ! Chl from Modis [kg/m3] --> [mg/m3]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_CHLA', CHL, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_CHLA', LOC )
+      ENDIF
+
+      ! Convert [kg/m3] to [mg/m3]
+      CHL = CHL * 1e6_f4
+
+      !-----------------------------------------------------------------
+      ! Arctic Chl from Jin et al 2012 [mg/m3]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_CHLA_A', CHL_A, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_ACHLA', LOC )
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Net primary productivity [kg/m2] -> [mg/m2]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_NPP', NPP, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_NPP', LOC )
+      ENDIF
+
+      ! Convert [kg/m2] -> [mg/m2]
+      NPP = NPP * 1e6_f4
+
+      !-----------------------------------------------------------------
+      ! Arctic Net primary productivity [mg/m2/day]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_NPP_A', NPP_A, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_ANPP', LOC )
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Ekman upwelling velocity [m/s]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_EKMAN_V', UPVEL, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_EKMAN_V', LOC )
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! MLD tendency, first half of month [cm/s]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_dMLD1', dMLD1, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to dMLD1', LOC )
+      ENDIF
+
+       ! Convert [m/s] to [cm/s]
+      dMLD1 = dMLD1 * 100e+0_f4
+
+      !-----------------------------------------------------------------
+      ! MLD tendency, second half of month [cm/s]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_dMLD2', dMLD2, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to dMLD2', LOC )
+      ENDIF
+
+      ! Convert [m/s] to [cm/s]
+      dMLD2 = dMLD2 * 100e+0_f4
+
+      !-----------------------------------------------------------------
+      ! Overwrite fields with Arctic specific parameters
+      !-----------------------------------------------------------------
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         ! This calculation can result in negative values of MLD at the
-         ! end of the the month when there are more than 30.5 days in
-         ! the month. Now use actual number of days per month (jaf, 
-         ! 7/6/11)
-         !dMLD(I,J) = (newMLD(I,J) - MLD(I,J)) / ( 3.6d3 *24e+0_fpp * 30.5e+0_fpp )
-         dMLD(I,J) = (newMLD(I,J) - MLD(I,J)) /
-     &               ( 3.6e+3_fpp *24e+0_fpp * DAYS_IN_MONTH )
+
+         ! Grid-box longitude [degrees]
+         X = GET_XMID( I, J, 1 )
+         ! Grid-box latitude [degrees]
+         Y = GET_YMID( I, J, 1 )
+
+          ! In central Arctic, overwrite MLD values where global MLD
+          ! dataset is based on very limited information. Instead use
+          ! values from climatology of Toole et al. (2010). (jaf, 11/28/11)
+          IF ( (Y >= 80e+0_fpp) .OR.
+     &         ( (Y >= 70e+0_fpp) .AND. ( X >= 50e+0_fpp .OR. 
+     &                                    X <= 0e+0_fpp ) ) ) THEN
+               SELECT CASE ( THISMONTH )
+                  CASE( 7, 8, 9 ) ! summer
+                      MLD(I,J) = ArcticMLD_summer
+                  CASE DEFAULT    ! rest of year
+                      MLD(I,J) = ArcticMLD_other
+               END SELECT
+
+               ! Also set up MLD tendency in cm/s for each half month
+               ! Months with change are 6-7, 9-10
+               SELECT CASE ( THISMONTH )
+                   CASE( 6 ) ! june
+                      dMLD1(I,J) = 0e+0_fpp
+                      dMLD2(I,J) = (ArcticMLD_summer - ArcticMLD_other)/
+     &                             ( SEC_PER_DAY * DAYS_IN_LAST_MONTH )
+                   CASE( 7 ) ! july
+                      dMLD1(I,J) = (ArcticMLD_summer - ArcticMLD_other)/
+     &                             ( SEC_PER_DAY * DAYS_IN_LAST_MONTH )
+                      dMLD2(I,J) = 0e+0_fpp
+                  CASE( 9 ) ! september
+                      dMLD1(I,J) = 0e+0_fpp 
+                      dMLD2(I,J) = (ArcticMLD_other - ArcticMLD_summer)/
+     &                             ( SEC_PER_DAY * DAYS_IN_LAST_MONTH )
+                   CASE ( 10 ) ! october
+                      dMLD1(I,J) = (ArcticMLD_other - ArcticMLD_summer)/
+     &                             ( SEC_PER_DAY * DAYS_IN_LAST_MONTH )
+                      dMLD2(I,J) = 0e+0_fpp
+                   CASE DEFAULT ! rest of year
+                      dMLD1(I,J) = 0e+0_fpp
+                      dMLD2(I,J) = 0e+0_fpp
+               END SELECT
+
+
+          ENDIF
+
+         ! Added NPP for the Arctic from Jin et al. 2012. (anls)
+         IF ( Y >= 60 ) THEN
+            IF ( NPP_A(I,J) > NPP(I,J) ) NPP(I,J) = NPP_A(I,J)
+            IF ( CHL_A(I,J) > CHL(I,J) ) CHL(I,J) = CHL_A(I,J)
+            ! Apply interannual scaling
+            IF ( Y >= 70 ) THEN
+              NPP(I,J) = NPP(I,J) * NPP_SCF
+              CHL(I,J) = CHL(I,J) * NPP_SCF
+            ENDIF
+         ENDIF
+
+         ! Avoid having NPP or CHL to be zero
+         NPP(I,J) = MAX ( NPP(I,J) , NPPMINNUM )
+         CHL(I,J) = MAX ( CHL(I,J) , CHLMINNUM )
+
       ENDDO
       ENDDO
+! OMP END PARALLEL DO
+
+      !-------------------------------------------------
+      ! River flow
+      !-------------------------------------------------
+      dFLOW1 = ( RIVERFLOW(THISMONTH) - RIVERFLOW(LASTMONTH) ) /
+     &         ( SEC_PER_DAY * DAYS_IN_LAST_MONTH )
+      dFLOW2 = ( RIVERFLOW(NEXTMONTH) - RIVERFLOW(THISMONTH) ) /
+     &         ( SEC_PER_DAY * DAYS_IN_THIS_MONTH )
+
+      ! Set FLOWNOW first time (jaf, 12/8/11)
+      IF ( FIRST ) THEN
+         FLOWNOW = RIVERFLOW(LASTMONTH) + dFLOW *
+     &             SEC_PER_DAY * ( DAYS_IN_LAST_MONTH - 15 )
+         FIRST = .FALSE.
+      ENDIF
 
       ! Return to calling program
-      END SUBROUTINE GET_MLD_FOR_NEXT_MONTH
+      END SUBROUTINE OCEAN_MERCURY_READ
 
+! prior to 8/26/15 (ewl) 
 !------------------------------------------------------------------------------
-
-      SUBROUTINE GET_MLD_FOR_LAST_MONTH( am_I_Root, Input_Opt,
-     &                                   THISMONTH, RC         )
 !
-!******************************************************************************
-!  Subroutine GET_MLD_FOR_LAST_MONTH reads the mixed-layer depth (MLD)
-!  values for the next month. Modified from GET_MLD_FOR_NEXT_MONTH (eds 10/19/10)
+!      SUBROUTINE GET_MLD_FOR_NEXT_MONTH( am_I_Root, Input_Opt,
+!     &                                   THISMONTH, THISYEAR, RC )
+!!
+!!******************************************************************************
+!!  Subroutine GET_MLD_FOR_NEXT_MONTH reads the mixed-layer depth (MLD) 
+!!  values for the next month. (sas, cdh, bmy, 3/28/06)
+!!
+!!  Arguments as Input:
+!!  ============================================================================
+!!  (1 ) THISMONTH (INTEGER) : Current month number (1-12)
+!!  (2 ) THISYEAR (INTEGER)  : Current year 
+!!
+!!  NOTES:
+!!  (1 ) Now read files from DATA_DIR_1x1/mercury_200511 (bmy, 3/28/06)
+!!  (2 ) Now use actual number of days in given month (jaf, 7/6/11)
+!!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!!
+!!  ##########################################################################
+!!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!!  ##########################################################################
+!!  23 Feb 2015 - J. Fisher   - Add Arctic MLD (orig. 28/11/11)
+!!******************************************************************************
+!!
+!      ! References to F90 modules
+!      USE BPCH2_MOD,          ONLY : GET_TAU0, GET_RES_EXT, READ_BPCH2
+!      USE BPCH2_MOD,          ONLY : GET_NAME_EXT
+!      USE CMN_SIZE_MOD
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE TIME_MOD,           ONLY : ITS_A_LEAPYEAR
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!      INTEGER,        INTENT(IN)  :: THISMONTH
+!      INTEGER,        INTENT(IN)  :: THISYEAR
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!!
+!! !LOCAL VARIABLES:
+!!
+!!
+!      INTEGER                :: I, J, NEXTMONTH
+!      INTEGER                :: Y, X
+!      REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
+!      REAL(f8)               :: TAU
+!      CHARACTER(LEN=255)     :: FILENAME
+!      INTEGER                :: DAYS_IN_MONTH
+!      INTEGER                :: M(12) = (/ 31, 28, 31, 30, 31, 30,
+!     &                                     31, 31, 30, 31, 30, 31 /)
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) THISMONTH (INTEGER) : Current month number (1-12)
+!      !=================================================================
+!      ! GET_MLD_FOR_NEXT_MONTH begins here!
+!      !=================================================================
+!      
+!      ! Assume success
+!      RC = GIGC_SUCCESS
 !
-!  NOTES:
-!  (1 ) Now read files from DATA_DIR_1x1/mercury_200511 (bmy, 3/28/06)
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!******************************************************************************
+!      ! Calculate days in this month (jaf, 7/6/11)
+!      IF ( THISMONTH == 2 .and. ITS_A_LEAPYEAR( THISYEAR ) ) THEN
+!         DAYS_IN_MONTH = M(THISMONTH) + 1
+!      ELSE
+!         DAYS_IN_MONTH = M(THISMONTH)
+!      ENDIF
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,          ONLY : GET_TAU0, GET_RES_EXT, READ_BPCH2
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT   
-      USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      ! MLD file name
+!#if defined( GRID05x0666 ) && defined( NESTED_NA )
+!      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011 
+!      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
+!     &           TRIM( Input_Opt%RES_DIR  )        //
+!     &           'mercury_201203/MLD_DReqDT.'      // 
+!     &           GET_NAME_EXT()    // '.'          //
+!     &           GET_RES_EXT()   
+!#else
+!      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
+!     &           TRIM( Input_Opt%RES_DIR  )        //
+!     &           'mercury_201007/MLD_DReqDT.geos.' //
+!     &            GET_RES_EXT()
+!#endif
 !
-! !INPUT PARAMETERS:
+!      ! Echo info
+!      IF ( am_I_Root ) THEN
+!         WRITE( 6, 100 ) TRIM( FILENAME )
+! 100     FORMAT( '     - GET_MLD_FOR_NEXT_MONTH: Reading ', a )  
+!      ENDIF
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      INTEGER,        INTENT(IN)  :: THISMONTH
 !
-! !OUTPUT PARAMETERS:
+!      ! TAU0 value for next month (uses year 1985)
+!      TAU       = GET_TAU0( NEXTMONTH, 1, 1985 )
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!      ! Read from disk; original units are [m]
+!      CALL READ_BPCH2( FILENAME, 'BXHGHT-$',    5,  
+!     &                 TAU,       IIPAR,        JJPAR,      
+!     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
 !
-! !LOCAL VARIABLES:
+!      ! Resize and cast to REAL(fpp)
+!      newMLD = ARRAY(:,:,1)
 !
-      INTEGER            :: I, J, LASTMONTH
-      REAL*4             :: ARRAY(IGLOB,JGLOB,1)
-      REAL(f8)           :: TAU
-      CHARACTER(LEN=255) :: FILENAME
-
-      !=================================================================
-      ! GET_MLD_FOR_NEXT_MONTH begins here!
-      !=================================================================
-
-      ! Assume success
-      RC        =  GIGC_SUCCESS
-
-      ! MLD file name
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011 
-      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-     &           'mercury_201203/MLD_DReqDT.'      // 
-     &           GET_NAME_EXT()    // '.'          //
-     &           GET_RES_EXT()   
-#else
-      FILENAME = TRIM( Input_Opt%DATA_DIR )        //
-     &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()
-#endif
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME )
- 100     FORMAT( '     - GET_MLD_FOR_LAST_MONTH: Reading ', a )
-      ENDIF
-
-      ! Get the next month
-!      LASTMONTH = MOD( (THISMONTH-2), 12 ) +1
-      IF (THISMONTH .EQ. 1) THEN
-         LASTMONTH = 12
-      ELSE 
-        LASTMONTH = THISMONTH -1
-      ENDIF
-     
-      IF ( am_I_Root ) THEN
-         PRINT *, 'LAST MONTH: '
-         PRINT *, LASTMONTH
-      ENDIF
-
-      ! TAU0 value for next month (uses year 1985)
-      TAU	= GET_TAU0( LASTMONTH, 1, 1985 )
-
-      ! Read from disk; original units are [m]
-      CALL READ_BPCH2( FILENAME, 'BXHGHT-$',    5,
-     &                 TAU,	  IGLOB,        JGLOB,
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-
-      ! Resize and cast to REAL(fpp)
-      prevMLD = ARRAY(:,:,1)
-
-      ! Convert [m] to [cm]
-      prevMLD = prevMLD * 100e+0_fpp
-
-      ! get rate of change of MLD; convert [cm/month] -> [cm/s]
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         dMLD(I,J) = (MLD(I,J) - prevMLD(I,J)) / (3.6e+3_fpp 
-     &             * 24e+0_fpp * 30.5e+0_fpp)
-         ! set current MLD to intermediate b/w last month and this month
-         MLDav(I,J) = prevMLD(I,J) + 0.5e+0_fpp * (MLD(I,J) - 
-     &                prevMLD(I,J))
-      ENDDO
-      ENDDO
-
-
-      ! Return to calling program
-      END SUBROUTINE GET_MLD_FOR_LAST_MONTH
-
+!      ! Convert [m] to [cm]
+!      newMLD = newMLD * 100e+0_fpp
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y )
+!      ! get rate of change of MLD; convert [cm/month] -> [cm/s] 
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!         ! Grid-box longitude [degrees] (jaf, 11/28/11)
+!         X = GET_XMID( I, J, 1 )
+!         ! Grid-box latitude [degrees] (jaf, 11/28/11)
+!         Y = GET_YMID( I, J, 1 )
+!
+!         !----------------------------------------------------------------
+!         ! In central Arctic, overwrite MLD values where global MLD
+!         ! dataset is based on very limited information. Instead use
+!         ! values from climatology of Toole et al. (2010). (jaf, 11/28/11)
+!         !----------------------------------------------------------------
+!          IF ( (Y >= 80d0) .OR.
+!     &         ( (Y >= 70d0) .AND. (X >= 50d0 .OR. X <= 0d0) ) ) THEN
+!
+!               SELECT CASE ( NEXTMONTH )
+!                  CASE( 7, 8, 9 ) ! summer
+!                      newMLD(I,J) = 15d2
+!                  CASE DEFAULT    ! rest of year
+!                      newMLD(I,J) = 20d2
+!               END SELECT
+!          ENDIF
+!         !----------------------------------------------------------------
+!
+!         ! This calculation can result in negative values of MLD at the
+!         ! end of the the month when there are more than 30.5 days in
+!         ! the month. Now use actual number of days per month (jaf, 
+!         ! 7/6/11)
+!         !dMLD(I,J) = (newMLD(I,J) - MLD(I,J)) / ( 3.6d3 *24e+0_fpp * 30.5e+0_fpp )
+!         dMLD(I,J) = (newMLD(I,J) - MLD(I,J)) /
+!     &               ( 3.6e+3_fpp *24e+0_fpp * DAYS_IN_MONTH )
+!      ENDDO
+!      ENDDO
+!! OMP END PARALLEL DO
+!
+!      ! Now also get rate of change of river flow, which isn't grid box
+!      ! dependent. Flow is in m3/s, so dFLOW is in m3/s2 (jaf, 12/8/11)
+!      dFLOW = ( RIVERFLOW(NEXTMONTH) - RIVERFLOW(THISMONTH) ) /  
+!     &        ( 3.6d3 * 24d0 * DAYS_IN_MONTH )
+!
+!      ! Return to calling program
+!      END SUBROUTINE GET_MLD_FOR_NEXT_MONTH
+!
+!!------------------------------------------------------------------------------
+!
+!      SUBROUTINE GET_MLD_FOR_LAST_MONTH( am_I_Root, Input_Opt,
+!     &                                   THISMONTH, RC         )
+!!
+!!******************************************************************************
+!!  Subroutine GET_MLD_FOR_LAST_MONTH reads the mixed-layer depth (MLD)
+!!  values for the next month. Modified from GET_MLD_FOR_NEXT_MONTH (eds 10/19/10)
+!!
+!!  Arguments as Input:
+!!  ============================================================================
+!!  (1 ) THISMONTH (INTEGER) : Current month number (1-12)
+!!
+!!  NOTES:
+!!  (1 ) Now read files from DATA_DIR_1x1/mercury_200511 (bmy, 3/28/06)
+!!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!!
+!!  ##########################################################################
+!!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!!  ##########################################################################
+!!******************************************************************************
+!!
+!      ! References to F90 modules
+!      USE BPCH2_MOD,          ONLY : GET_TAU0, GET_RES_EXT, READ_BPCH2
+!      USE BPCH2_MOD,          ONLY : GET_NAME_EXT   
+!      USE CMN_SIZE_MOD
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!      INTEGER,        INTENT(IN)  :: THISMONTH
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER            :: I, J, LASTMONTH
+!      REAL*4             :: ARRAY(IGLOB,JGLOB,1)
+!      REAL(f8)           :: TAU
+!      CHARACTER(LEN=255) :: FILENAME
+!
+!      !=================================================================
+!      ! GET_MLD_FOR_NEXT_MONTH begins here!
+!      !=================================================================
+!
+!      ! Assume success
+!      RC        =  GIGC_SUCCESS
+!
+!      ! MLD file name
+!#if defined( GRID05x0666 ) && defined( NESTED_NA )
+!      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011 
+!      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
+!     &           TRIM( Input_Opt%RES_DIR  )        //
+!     &           'mercury_201203/MLD_DReqDT.'      // 
+!     &           GET_NAME_EXT()    // '.'          //
+!     &           GET_RES_EXT()   
+!#else
+!      FILENAME = TRIM( Input_Opt%DATA_DIR )        //
+!     &           TRIM( Input_Opt%RES_DIR  )        //
+!     &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()
+!#endif
+!
+!      ! Echo info
+!      IF ( am_I_Root ) THEN
+!         WRITE( 6, 100 ) TRIM( FILENAME )
+! 100     FORMAT( '     - GET_MLD_FOR_LAST_MONTH: Reading ', a )
+!      ENDIF
+!
+!      ! Get the next month
+!!      LASTMONTH = MOD( (THISMONTH-2), 12 ) +1
+!      IF (THISMONTH .EQ. 1) THEN
+!         LASTMONTH = 12
+!      ELSE 
+!        LASTMONTH = THISMONTH -1
+!      ENDIF
+!     
+!      IF ( am_I_Root ) THEN
+!         PRINT *, 'LAST MONTH: '
+!         PRINT *, LASTMONTH
+!      ENDIF
+!
+!      ! TAU0 value for next month (uses year 1985)
+!      TAU	= GET_TAU0( LASTMONTH, 1, 1985 )
+!
+!      ! Read from disk; original units are [m]
+!      CALL READ_BPCH2( FILENAME, 'BXHGHT-$',    5,
+!     &                 TAU,	  IGLOB,        JGLOB,
+!     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
+!
+!      ! Resize and cast to REAL(fpp)
+!      prevMLD = ARRAY(:,:,1)
+!
+!      ! Convert [m] to [cm]
+!      prevMLD = prevMLD * 100e+0_fpp
+!
+!      ! get rate of change of MLD; convert [cm/month] -> [cm/s]
+!   !   DO J = 1, JJPAR
+!   !   DO I = 1, IIPAR
+!   !      dMLD(I,J) = (MLD(I,J) - prevMLD(I,J)) / (3.6e+3_fpp 
+!   !  &             * 24e+0_fpp * 30.5e+0_fpp)
+!         ! set current MLD to intermediate b/w last month and this month
+!   !      MLDav(I,J) = prevMLD(I,J) + 0.5e+0_fpp * (MLD(I,J) - 
+!   !  &                prevMLD(I,J))
+!   !   ENDDO
+!   !   ENDDO
+!
+!      ! add Shaojie bug-fix for hot spots
+!      MLDav = MLD
+!      dMlD = 0.0e+0_fpp
+!
+!
+!      ! Return to calling program
+!      END SUBROUTINE GET_MLD_FOR_LAST_MONTH
+!
 !------------------------------------------------------------------------------
 
       SUBROUTINE MLD_ADJUSTMENT( I, J, MLDold, MLDnew, 
@@ -2251,10 +2835,10 @@
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) I      (INTEGER) : GEOS-CHEM longitude index
-!  (2 ) J      (INTEGER) : GEOS-CHEM latitude index
-!  (3 ) MLDold (REAL(fpp) ) : Old ocean mixed layer depth [m]
-!  (4 ) MLDnew (REAL(fpp) ) : New ocean mixed layer depth [m]
+!  (1 ) I      (INTEGER)  : GEOS-CHEM longitude index
+!  (2 ) J      (INTEGER)  : GEOS-CHEM latitude index
+!  (3 ) MLDold (REAL(fpp)): Old ocean mixed layer depth [m]
+!  (4 ) MLDnew (REAL(fpp)): New ocean mixed layer depth [m]
 !
 !  NOTES:
 !  (1 ) Now use MERRA land fraction information (jaf, 4/26/11)
@@ -2266,6 +2850,11 @@
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  05 Aug 2015 - J. Fisher   - Compute MLD adjustment in all ocean boxes
+!			       irrespective of ice cover and reduce radiation,
+!			       Hg deposition accordingly in partial-ice boxes
+!                              (orig. 28/11/11)
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !******************************************************************************
 !
       ! Reference to fortran90 modules
@@ -2284,20 +2873,20 @@
       
       ! Arguments
       INTEGER,        INTENT(IN)  :: I, J 
-      REAL(fpp),         INTENT(IN)  :: MLDold, MLDnew  
+      REAL(fpp),      INTENT(IN)  :: MLDold, MLDnew  
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       INTEGER               :: C,    NN,     N_tot_oc    
       INTEGER               :: K, L
-      REAL(fpp)                :: A_M2, DELTAH, FRAC_O,  MHg
-      REAL(fpp)                :: X, Y                   !(added anls 01/05/09)
+      REAL(fpp)             :: A_M2, DELTAH, FRAC_O,  MHg
+      REAL(fpp)             :: X, Y                   !(added anls 01/05/09)
 
       ! For fields from Input_Opt
       LOGICAL               :: LSPLIT
       INTEGER               :: N_TRACERS
-      REAL(fpp)                :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+      REAL(fpp)             :: TRACER_MW_KG(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! MLD_ADJUSTMENT begins here!
@@ -2322,9 +2911,13 @@
       ! Use fractional land type information in MERRA (jaf, 4/26/11)
       ! FROCEAN is a constant, so to get correct ocean fraction we
       ! need to subtract the sea ice fraction.
-#if   defined( MERRA ) || defined( GEOS_FP )
-      FRAC_O     = MAX( State_Met%FROCEAN(I,J) - 
-     &                  State_Met%FRSEAICE(I,J), 0e+0_fpp)
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+      ! We now apply ocean processes, including MLD adjustment, to
+      ! entire ocean grid box, irrespective of sea ice cover (jaf,
+      ! 11/28/11)
+!      FRAC_O     = MAX( State_Met%FROCEAN(I,J) - 
+!     &                  State_Met%FRSEAICE(I,J), 0d0)
+      FRAC_O     = State_Met%FROCEAN(I,J)
 #else
       FRAC_O = 1e+0_fpp - State_Met%FRCLND(I,J)
 #endif
@@ -2590,12 +3183,17 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !  23 Jun 2014 - R. Yantosca - Now use Input_Opt instead of directory_mod.F
+!  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
+!  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig. 11/29/11)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
       USE CMN_SIZE_MOD
-      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG, CHECK_DIMENSIONS
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC, SNOW_HG_LN
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_STORED_OC
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_STORED_LN
+      USE DEPO_MERCURY_MOD,   ONLY : CHECK_DIMENSIONS
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE FILE_MOD,           ONLY : IOERROR
@@ -2625,7 +3223,7 @@
       INTEGER             :: NTRACER,   NSKIP
       INTEGER             :: HALFPOLAR, CENTER180
       REAL*4              :: LONRES,    LATRES
-      REAL(fpp)              :: ZTAU0,     ZTAU1
+      REAL(f8)              :: ZTAU0,     ZTAU1
       CHARACTER(LEN=20)   :: MODELNAME
       CHARACTER(LEN=40)   :: CATEGORY
       CHARACTER(LEN=40)   :: UNIT     
@@ -2637,7 +3235,7 @@
       LOGICAL             :: LFUTURE
       INTEGER             :: N_TRACERS
       CHARACTER(LEN=14)   :: TRACER_NAME(Input_Opt%N_TRACERS)
-      REAL(fpp)              :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+      REAL(fpp)           :: TRACER_MW_KG(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! READ_OCEAN_Hg_RESTART begins here!
@@ -2658,7 +3256,7 @@
       IU_FILE         = findFreeLUN()
 
       ! Copy input file name to a local variable
-      FILENAME        = TRIM( Input_Opt%RUN_DIR ) // TRIM( Hg_RST_FILE )
+      FILENAME        = TRIM( Input_Opt%IN_HG_RST_FILE )
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
@@ -2672,7 +3270,7 @@
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
-      
+
       ! Echo more output
       WRITE( 6, 120 )
  120  FORMAT( /, 'Min and Max of each tracer, as read from the file:',
@@ -2773,12 +3371,30 @@
                ! Particulate Hg
                HgPaq(:,:,NN)        = Hg_OCEAN(:,:,1)
 
+               ! Check for negative concentrations (jaf, 7/6/11)
+               DO I = 1, IIPAR
+               DO J = 1, JJPAR
+                  IF ( HgPaq(I,J,NN) < 0 ) HgPaq(I,J,NN) = 0e+0_fpp
+               ENDDO
+               ENDDO
+
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
 
             ENDIF
 
-            ! CDH snowpack (added following IF)
+         ! Non-reducible Hg in ocean snowpack (jaf, 6/17/11)
+         ELSE IF ( CATEGORY(1:8) == 'SNOW-HGN' ) THEN
+               !----------
+               ! Non-reducible Hg in snow
+               !----------
+            
+               ! Get the Hg category #
+               NN              = GET_Hg0_CAT( NTRACER )
+               
+               ! Store ocean Hg(0) in Hg0aq array
+               SNOW_HG_STORED_OC(:,:,NN)   = Hg_OCEAN(:,:,1)
+            
          ELSE IF ( CATEGORY(1:7) == 'SNOW-HG' ) THEN  
                !----------
                ! Hg in snow
@@ -2788,10 +3404,31 @@
                NN              = GET_Hg0_CAT( NTRACER )
 
                ! Store ocean Hg(0) in Hg0aq array
-               SNOW_HG(:,:,NN)   = Hg_OCEAN(:,:,1)
+               SNOW_HG_OC(:,:,NN)   = Hg_OCEAN(:,:,1)
                
-               ! Increment NCOUNT
-!               NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
+         ! Non-reducible Hg in land  snowpack (jaf, 6/17/11)
+         ELSE IF ( CATEGORY(1:8) == 'SNHGN-LN' ) THEN
+               !----------
+               ! Non-reducible Hg in snow on land
+               !----------
+
+               ! Get the Hg category #
+               NN              = GET_Hg0_CAT( NTRACER )
+
+               ! Store ocean Hg(0) in Hg0aq array
+               SNOW_HG_STORED_LN(:,:,NN)   = Hg_OCEAN(:,:,1)
+
+         ELSE IF ( CATEGORY(1:7) == 'SNHG-LN' ) THEN
+               !----------
+               ! Hg in snow
+               !----------
+
+               ! Get the Hg category #
+               NN              = GET_Hg0_CAT( NTRACER )
+
+               ! Store ocean Hg(0) in Hg0aq array
+               SNOW_HG_LN(:,:,NN)   = Hg_OCEAN(:,:,1)
+
          ENDIF
       ENDDO
 
@@ -2818,7 +3455,15 @@
       PRINT*, 'N_oc', N_oc
 
       ! Check for missing or duplicate data blocks
-      CALL CHECK_DATA_BLOCKS( N_oc, NCOUNT )    
+      CALL CHECK_DATA_BLOCKS( N_oc, NCOUNT )
+
+!##############################################################################
+!### DEBUG: SET OCEAN RESTART VALUES TO ZERO FOR TESTING (uncomment if needed)
+!###      Hg0aq   = 0.0e+0_fpp
+!###      Hg2aq   = 0.0e+0_fpp
+!###      HgPaq   = 0.0e+0_fpp
+!###      SNOW_Hg = 0.0e+0_fpp
+!##############################################################################
 
       !=================================================================
       ! Print totals
@@ -2835,15 +3480,20 @@
 
       ! Hg2
       DO NN = 1, N_Hg_CATS
-!     Bug fixed, Y. Zhang, 11/1/2011
-!         WRITE( 6, 140 ) ID_Hg2(NN), TRACER_NAME( Id_Hg2(NN) ), 
-!     &                   SUM( Hg0aq(:,:,NN) ), 'kg'
          WRITE( 6, 140 ) ID_Hg2(NN), TRACER_NAME( Id_Hg2(NN) ), 
      &                   SUM( Hg2aq(:,:,NN) ), 'kg'
       ENDDO
 
       ! HgP
       WRITE( 6, 140 ) 3, 'HgP       ', SUM( HgPaq ), 'kg'
+
+      ! Snow Hg (jaf, 6/17/11)
+      WRITE( 6, 140 ) 1, 'Reducible snow Hg ocean',SUM(SNOW_HG_OC), 'kg'
+      WRITE( 6, 140 ) 1, 'Non-reducible snow Hg ocean',
+     &                   SUM(SNOW_HG_STORED_OC), 'kg'
+      WRITE( 6, 140 ) 1, 'Reducible snow Hg land', SUM(SNOW_HG_LN), 'kg'
+      WRITE( 6, 140 ) 1, 'Non-reducible snow Hg land',
+     &                   SUM(SNOW_HG_STORED_LN), 'kg'
 
       ! Format strings
  130  FORMAT( /, 'Total masses for each ocean tracer: ' ) 
@@ -2941,11 +3591,15 @@
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !  23 Jun 2014 - R. Yantosca - Now use Input_Opt instead of directory_mod.F
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
+!  06 Aug 2015 - J. Fisher   - Add stored snow Hg reservoirs (orig. 11/29/11)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC, SNOW_HG_LN
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_STORED_OC
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_STORED_LN
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,           ONLY : EXPAND_DATE, GET_TAU
@@ -2997,7 +3651,7 @@
       IU_FILE   = findFreeLUN()
 
       ! Expand date in filename
-      FILENAME  = TRIM( Input_Opt%RUN_DIR ) // Hg_RST_FILE
+      FILENAME  = TRIM( Input_Opt%OUT_HG_RST_FILE )
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
 
       ! Echo info
@@ -3090,15 +3744,60 @@
       ENDIF
 
       !---------------------------
-      ! Total Hg in snowpack
+      ! Total reducible Hg in snowpack on ocean
       !---------------------------
          DO NN = 1, N_Hg_CATS
             CATEGORY     = 'SNOW-HG'
             N            = ID_Hg0(NN)
-            ARRAY(:,:,1) = SNOW_HG(:,:,NN)
+            ARRAY(:,:,1) = SNOW_HG_OC(:,:,NN)
 
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N, 
+     &                  UNIT,      TAU,       TAU,      RESERVED,
+     &                  IIPAR,     JJPAR,     1,        IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ENDDO
+
+      !-----------------------------------
+      ! Total non-reducible Hg in snowpack on ocean
+      !-----------------------------------
+         DO NN = 1, N_Hg_CATS
+            CATEGORY     = 'SNOW-HGN'
+            N            = ID_Hg0(NN)
+            ARRAY(:,:,1) = SNOW_HG_STORED_OC(:,:,NN)
+
+            CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT,      TAU,       TAU,      RESERVED,
+     &                  IIPAR,     JJPAR,     1,        IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ENDDO
+
+      !-----------------------------------
+      ! Total reducible Hg in snowpack on land
+      !-----------------------------------
+         DO NN = 1, N_Hg_CATS
+            CATEGORY     = 'SNHG-LN'
+            N            = ID_Hg0(NN)
+            ARRAY(:,:,1) = SNOW_HG_LN(:,:,NN)
+
+            CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT,      TAU,       TAU,      RESERVED,
+     &                  IIPAR,     JJPAR,     1,        IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ENDDO
+
+      !-----------------------------------
+      ! Total non-reducible Hg in snowpack on land
+      !-----------------------------------
+         DO NN = 1, N_Hg_CATS
+            CATEGORY     = 'SNHGN-LN'
+            N            = ID_Hg0(NN)
+            ARRAY(:,:,1) = SNOW_HG_STORED_LN(:,:,NN)
+
+            CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT,      TAU,       TAU,      RESERVED,
      &                  IIPAR,     JJPAR,     1,        IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -3137,19 +3836,19 @@
       USE TRACERID_MOD,        ONLY : ID_Hg0,    ID_Hg2,   ID_HgP
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
 
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD              ! Size parameters
 
       ! Arguments as Input
-      CHARACTER(LEN=*), INTENT(IN) :: LOC
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      CHARACTER(LEN=*), INTENT(IN)    :: LOC
+      TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
       LOGICAL                      :: FLAG
       INTEGER                      :: I,       J,       L
       INTEGER                      :: N,       NN
-      REAL(fpp)                   :: Hg0_tot, Hg0_tag, RELERR0, ABSERR0
-      REAL(fpp)                   :: Hg2_tot, Hg2_tag, RELERR2, ABSERR2
-      REAL(fpp)                   :: HgP_tot, HgP_tag, RELERRP, ABSERRP
+      REAL(fpp)                    :: Hg0_tot, Hg0_tag, RELERR0, ABSERR0
+      REAL(fpp)                    :: Hg2_tot, Hg2_tag, RELERR2, ABSERR2
+      REAL(fpp)                    :: HgP_tot, HgP_tag, RELERRP, ABSERRP
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -3334,7 +4033,7 @@
       USE ERROR_MOD,           ONLY : ERROR_STOP
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
 
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD              ! Size parameters
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: LOC
@@ -3343,8 +4042,8 @@
       LOGICAL, SAVE                :: FIRST = .TRUE.
       LOGICAL                      :: FLAG
       INTEGER                      :: I,       J
-      REAL(fpp)                   :: Hg0_tot, Hg0_tag, RELERR0, ABSERR0
-      REAL(fpp)                   :: Hg2_tot, Hg2_tag, RELERR2, ABSERR2
+      REAL(fpp)                    :: Hg0_tot, Hg0_tag, RELERR0, ABSERR0
+      REAL(fpp)                    :: Hg2_tot, Hg2_tag, RELERR2, ABSERR2
 
       !=================================================================
       ! CHECK_OCEAN_MERCURY begins here!
@@ -3450,10 +4149,10 @@
       ! Local variables
       LOGICAL                      :: FLAG
       INTEGER                      :: I,         J
-      REAL(fpp)                       :: DD_tot,    DD_tag 
-      REAL(fpp)                       :: DD_RELERR, DD_ABSERR      
-      REAL(fpp)                       :: WD_tot,    WD_tag
-      REAL(fpp)                       :: WD_RELERR, WD_ABSERR
+      REAL(fpp)                    :: DD_tot,    DD_tag 
+      REAL(fpp)                    :: DD_RELERR, DD_ABSERR      
+      REAL(fpp)                    :: WD_tot,    WD_tag
+      REAL(fpp)                    :: WD_RELERR, WD_ABSERR
 
       !=================================================================
       ! CHECK_OCEAN_MERCURY begins here!
@@ -3547,7 +4246,7 @@
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) FLUX (REAL(fpp))   : Flux array (output of OCEAN_MERCURY_FLUX)
+!  (1 ) FLUX (REAL(fpp)): Flux array (output of OCEAN_MERCURY_FLUX)
 !  (2 ) LOC (CHARACTER) : Name of routine where CHECK_FLUX_OUT is called
 !
 !  NOTES:
@@ -3557,17 +4256,17 @@
       USE ERROR_MOD,           ONLY : ERROR_STOP
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
 
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD              ! Size parameters
 
       ! Arguments
-      REAL(fpp),         INTENT(IN) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)       
+      REAL(fpp),        INTENT(IN) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)       
       CHARACTER(LEN=*), INTENT(IN) :: LOC
 
       ! Local variables
       LOGICAL                      :: FLAG
       INTEGER                      :: I,          J
-      REAL(fpp)                       :: FLX_tot,    FLX_tag
-      REAL(fpp)                       :: FLX_RELERR, FLX_ABSERR
+      REAL(fpp)                    :: FLX_tot,    FLX_tag
+      REAL(fpp)                    :: FLX_RELERR, FLX_ABSERR
 
       !=================================================================
       ! CHECK_FLUX_OUT begins here!
@@ -3644,6 +4343,14 @@
 !        via the argument list. (cdh, sas, bmy, 2/27/06)
 !  29 Nov 2011 - R. Yantosca - Updated erroneous comment.  "Southern Ocean"
 !                               should be "South Atlantic Ocean".
+!  23 Feb 2015 - J. Fisher   - change intermediate water Hg2/HgP speciation in
+!			        Arctic so Hg2 dominates over HgP (orig. 28/11/11)
+!  12 Aug 2015 - J. Fisher   - Added interannual river flow variability
+!                              (orig. 23/3/12)
+!  17 Aug 2015 - J. Fisher   - Added interannual Arctic NPP variability
+!                              (orig. 22/3/13)
+!  27 Aug 2015 - E. Lundgren - Hard-code interannual scaling of riverflow
+!                              and NPP to avoid reading ASCII
 !******************************************************************************
 !
 ! !USES:
@@ -3653,6 +4360,22 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE TRACERID_MOD,       ONLY : N_Hg_CATS
+      USE FILE_MOD,      ONLY : IOERROR,   IU_FILE
+      USE TIME_MOD,      ONLY : GET_YEAR,  EXPAND_DATE
+
+      ! For riverflow and NPP interannual scaling (jaf, 3/26/12)
+      INTEGER               :: THISYEAR, THISYEARINDEX
+      REAL(fpp), DIMENSION(31) :: RSCF_05, RSCF_06, RSCF_07 
+      REAL(fpp), DIMENSION(31) :: RSCF_08, RSCF_09, RSCF_10 
+      REAL(fpp), DIMENSION(31) :: NSCF
+!      REAL(fpp), DIMENSION(12) :: RIVERFLOW
+!      REAL(fpp)                :: NPP_SCF
+
+      !=================================================================
+      ! INIT_OCEAN_MERCURY begins here!
+      !=================================================================
+! end
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -3667,102 +4390,12 @@
       ! INIT_OCEAN_MERCURY begins here!
       !=================================================================
 
-      ! Ocean Hg restart file name
-      Hg_RST_FILE = Input_Opt%Hg_RST_FILE
-      
-      ! Turn on error checks for tagged & total sums?
-      USE_CHECKS  = Input_Opt%USE_CHECKS
+      !-----------------------------------------------------------------
+      ! Allocate these arrays regardless of whether you are using
+      ! the dynamic ocean.  These are needed for Hg2 partitioning.
+      ! (bmy, 3/30/15)
+      !-----------------------------------------------------------------
 
-      ! Set up concentrations of Hg(0), Hg(II), Hg(C) in deep ocean REDALERT
-      IF ( Input_Opt%LPREINDHG) THEN
-         CDEEP    = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
-         CDEEPATL = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
-         CDEEPNAT = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
-         CDEEPSAT = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)         
-         CDEEPANT = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
-         CDEEPARC = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
-         CDEEPNPA = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
-      ELSE
-         CDEEP    = (/ 1.0e-10_fpp, 4.0e-10_fpp, 4.0e-10_fpp /)
-         CDEEPATL = (/ 1.4e-10_fpp, 9.3e-10_fpp, 9.3e-10_fpp /)  
-         CDEEPNAT = (/ 1.5e-10_fpp, 8.2e-10_fpp, 8.2e-10_fpp /)
-!         CDEEPSAT = (/ 1.0e-10_fpp, 5.0e-10_fpp, 5.0e-10_fpp /)   !(anls,100114)
-         CDEEPSAT = (/0.8e-10_fpp,4.1e-10_fpp,4.1e-10_fpp/)  !eck, 10/19/11
-         !reduce intermediate water mercury concentration in
-         !South Atlantic Ocean to 0.9pM total
-         !ref: low end of uncertainty range Sunderland and Mason '07
-         CDEEPANT = (/ 1.0e-10_fpp, 3.2e-10_fpp, 3.2e-10_fpp /)
-         CDEEPARC = (/ 1.2e-10_fpp, 7.5e-10_fpp, 7.5e-10_fpp /)
-         CDEEPNPA = (/ 1.0e-10_fpp, 6.0e-10_fpp, 6.0e-10_fpp /)        
-      ENDIF
-
-      
-      ! Allocate arrays     
-      ALLOCATE( dMLD( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'dMLD' )
-      dMLD = 0e+0_fpp
-
-      ALLOCATE( Hg0aq( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hg0aq' )
-      Hg0aq = 0e+0_fpp
-
-      ALLOCATE( Hg2aq( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hg2aq' )
-      Hg2aq = 0e+0_fpp
-
-!- eds 8/31/10 ---------------------------------------------
-! Added NN to HgPaq throughout module
-!      ALLOCATE( HgPaq( IIPAR, JJPAR ), STAT=RC )
-      ALLOCATE( HgPaq (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'HgPaq' )
-      HgPaq = 0e+0_fpp
-
-      !eds 5/15/12 fix
-      ALLOCATE( Hgaq_tot (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hgaq_tot' )
-      HgPaq = 0e+0_fpp
-
-      ALLOCATE( HgPaq_SUNK (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'HgPaq_SUNK' )
-      HgPaq = 0e+0_fpp
-
-      ALLOCATE( MLD( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'MLD' )
-      MLD = 0e+0_fpp
-
-      ALLOCATE( MLDav( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'MLDav' )
-      MLDav = 0e+0_fpp
-
-      ALLOCATE( newMLD( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'newMLD' )
-      newMLD = 0e+0_fpp
-
-      !eds 10/19/10 fixing restart bug
-      ALLOCATE( prevMLD( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /=0 ) CALL ALLOC_ERR( 'prevMLD' )
-      prevMLD = 0e+0_fpp
-
-      ALLOCATE( NPP( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NPP' )
-      NPP = 0e+0_fpp
-
-      ALLOCATE( CHL( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'CHL' )
-      CHL = 0e+0_fpp
-
-      ALLOCATE( UPVEL( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'UPVEL' )
-      UPVEL = 0e+0_fpp
-
-      ALLOCATE( Fg( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Fg' )
-      Fg = 0e+0_fpp    
-
-      ALLOCATE( Fp( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Fp' )
-      Fp = 0e+0_fpp  
-     
       ALLOCATE( BULK_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'BULK_CONC' )
       BULK_CONC = 0e+0_fpp  
@@ -3799,6 +4432,178 @@
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO4_CONC' )
       SO4_CONC = 0e+0_fpp 
 
+      ALLOCATE( Fg( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Fg' )
+      Fg = 0e+0_fpp    
+
+      ALLOCATE( Fp( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Fp' )
+      Fp = 0e+0_fpp  
+     
+      !-----------------------------------------------------------------
+      ! Exit if you are not using the dynamic ocean
+      !-----------------------------------------------------------------
+      IF ( .not. Input_Opt%LDYNOCEAN ) RETURN
+      
+      !-----------------------------------------------------------------
+      ! These variables are only needed for the dynamic ocean option
+      !-----------------------------------------------------------------
+
+      ! Turn on error checks for tagged & total sums?
+      USE_CHECKS  = Input_Opt%USE_CHECKS
+
+      ! Get current year for scale factor application
+      THISYEAR = GET_YEAR()
+
+      ! Set up concentrations of Hg(0), Hg(II), Hg(C) in deep ocean REDALERT
+      IF ( Input_Opt%LPREINDHG) THEN
+         CDEEP    = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
+         CDEEPATL = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
+         CDEEPNAT = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
+         CDEEPSAT = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)         
+         CDEEPANT = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
+         CDEEPARC = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
+         CDEEPNPA = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
+      ELSE
+         CDEEP    = (/ 1.0e-10_fpp, 4.0e-10_fpp, 4.0e-10_fpp /)
+         CDEEPATL = (/ 1.4e-10_fpp, 9.3e-10_fpp, 9.3e-10_fpp /)  
+         CDEEPNAT = (/ 1.5e-10_fpp, 8.2e-10_fpp, 8.2e-10_fpp /)
+!         CDEEPSAT = (/ 1.0e-10_fpp, 5.0e-10_fpp, 5.0e-10_fpp /)   !(anls,100114)
+         CDEEPSAT = (/0.8e-10_fpp,4.1e-10_fpp,4.1e-10_fpp/)  !eck, 10/19/11
+         !reduce intermediate water mercury concentration in
+         !South Atlantic Ocean to 0.9pM total
+         !ref: low end of uncertainty range Sunderland and Mason '07
+         CDEEPANT = (/ 1.0e-10_fpp, 3.2e-10_fpp, 3.2e-10_fpp /)
+         ! Redistribute Hg fractions so Hg2 /= HgP (jaf, 11/28/11)
+         !CDEEPARC = (/ 1.2e-10_fpp, 7.5e-10_fpp, 7.5e-10_fpp /)
+         CDEEPARC = (/ 1.2e-10_fpp, 1.2e-9_fpp,  2.8e-10_fpp /)
+         CDEEPNPA = (/ 1.0e-10_fpp, 6.0e-10_fpp, 6.0e-10_fpp /)        
+      ENDIF
+
+
+      ! Set monthly Arctic river flow rate in m3/s (jaf, 12/8/11)
+      ! These come from the 8 largest Arctic rivers, with data
+      ! from UNH/GRDC
+      RIVERFLOW = (/ 2.2d4,  1.9d4,  1.8d4, 1.9d4, 9.6d4, 24.6d4,
+     &               14.4d4, 10.2d4, 8.4d4, 6.2d4, 3.0d4, 2.3d4   /)
+
+      ! Initialize default interannual NPP scaling factor (jaf, 3/19/13)
+      NPP_SCF = 1e+0_fpp
+
+      !-----------------------------------------------------------------
+      ! Apply riverflow and set NPP scale factors if 2009 or prior
+      !-----------------------------------------------------------------
+
+      ! Use interannual flow scaling factors for May-Oct (jaf, 3/23/11)
+      ! NOTE: scale factors are hard-coded to avoid reading ascii (ewl, 8/27/15)
+      IF ( THISYEAR <= 2009) THEN
+
+         ! May 1979-2009 river scale factors
+         RSCF_05 =
+     &    (/ 0.63, 0.61, 1.12, 1.09, 0.50, 1.10, 0.68, 0.69, 0.59, 0.92, 
+     &       1.11, 1.61, 1.02, 1.04, 0.59, 0.84, 1.13, 0.55, 2.03, 0.43,
+     &       1.46, 1.54, 1.13, 1.34, 1.00, 0.58, 1.31, 0.57, 1.58, 1.20,
+     &       1.00  /)  
+ 
+         ! Jun 1979-2009 river scale factors
+         RSCF_06 =
+     &    (/ 1.18, 1.00, 0.89, 0.93, 1.15, 1.00, 0.94, 1.02, 0.90, 1.03, 
+     &       1.17, 0.94, 1.00, 1.03, 1.00, 1.12, 0.87, 1.05, 0.79, 1.12, 
+     &       0.95, 0.91, 1.14, 1.05, 0.91, 0.99, 0.85, 1.01, 1.01, 1.01, 
+     &       1.06  /) 
+ 
+         ! Jul 1979-2009 river scale factors
+         RSCF_07 =
+     &    (/ 0.97, 1.12, 1.03, 0.88, 1.17, 0.83, 0.92, 0.90, 1.08, 1.06, 
+     &       1.11, 0.89, 0.94, 1.00, 1.00, 1.02, 0.97, 1.07, 1.03, 1.22, 
+     &       1.03, 0.98, 0.88, 0.96, 0.93, 1.06, 0.89, 0.99, 1.13, 0.98, 
+     &       0.97  /) 
+ 
+         ! Aug 1979-2009 river scale factors
+         RSCF_08 =
+     &    (/ 1.20, 1.01, 1.00, 0.85, 1.03, 0.92, 1.05, 0.96, 0.99, 1.19, 
+     &       0.95, 0.78, 0.83, 0.89, 0.96, 0.97, 0.85, 0.80, 1.09, 1.13, 
+     &       1.08, 1.03, 1.13, 1.14, 0.88, 0.93, 1.02, 0.90, 1.37, 1.15, 
+     &       0.91  /) 
+ 
+         ! Sep 1979-2008 river scale factors 
+         RSCF_09 =
+     &    (/ 1.42, 0.91, 1.02, 1.04, 1.06, 0.78, 0.95, 0.89, 0.67, 1.09, 
+     &       1.03, 0.75, 0.84, 0.71, 0.89, 0.79, 0.92, 0.85, 1.20, 0.96, 
+     &       0.92, 1.07, 0.97, 1.35, 0.83, 0.95, 1.13, 1.30, 1.45, 1.26,
+     &       1.00  /) ! Use 1.00 for 2009 since no scale factor available
+  
+         ! Oct 1979-2008 river scale factors
+         RSCF_10 =
+     &    (/ 0.96, 0.89, 0.89, 0.80, 1.14, 0.79, 0.88, 1.04, 0.73, 1.11, 
+     &       0.92, 0.90, 0.86, 0.94, 1.04, 1.04, 1.05, 1.06, 1.12, 0.90, 
+     &       0.99, 1.09, 0.93, 1.14, 0.95, 1.17, 1.09, 1.29, 1.19, 1.10,
+     &       1.00  /) ! Use 1.00 for 2009 since no scale factor available
+
+         ! 1979-2009 NPP scale factors (scaled to 2009)
+         NSCF =
+     &     (/ 0.857, 0.807, 0.853, 0.835, 0.831, 0.857, 0.880, 0.823, 
+     &        0.827, 0.827, 0.864, 0.933, 0.913, 0.823, 0.917, 0.857, 
+     &        0.939, 0.798, 0.896, 0.914, 0.868, 0.927, 0.969, 0.955, 
+     &        0.927, 0.894, 0.917, 1.035, 1.153, 1.073, 1.000 /) 
+
+         ! Calculate year index for this year given factors start in 1979
+         THISYEARINDEX = THISYEAR - 1978
+           
+         ! Apply riverflow scale factors for May thru Oct
+         RIVERFLOW(5)  = RIVERFLOW(5)  * RSCF_05( THISYEARINDEX )
+         RIVERFLOW(6)  = RIVERFLOW(6)  * RSCF_06( THISYEARINDEX )
+         RIVERFLOW(7)  = RIVERFLOW(7)  * RSCF_07( THISYEARINDEX )
+         RIVERFLOW(8)  = RIVERFLOW(8)  * RSCF_08( THISYEARINDEX )
+         RIVERFLOW(9)  = RIVERFLOW(9)  * RSCF_09( THISYEARINDEX )
+         RIVERFLOW(10) = RIVERFLOW(10) * RSCF_10( THISYEARINDEX )
+
+         ! Set NPP scaling factor
+         NPP_SCF = NSCF( THISYEARINDEX )
+
+      ENDIF
+
+      ! Allocate arrays     
+      ALLOCATE( dMLD( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'dMLD' )
+      dMLD = 0e+0_fpp
+
+      ALLOCATE( Hg0aq( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hg0aq' )
+      Hg0aq = 0e+0_fpp
+
+      ALLOCATE( Hg2aq( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hg2aq' )
+      Hg2aq = 0e+0_fpp
+
+!- eds 8/31/10 ---------------------------------------------
+! Added NN to HgPaq throughout module
+!      ALLOCATE( HgPaq( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( HgPaq (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'HgPaq' )
+      HgPaq = 0e+0_fpp
+
+      !eds 5/15/12 fix
+      ALLOCATE( Hgaq_tot (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hgaq_tot' )
+      HgPaq = 0e+0_fpp
+
+      ALLOCATE( HgPaq_SUNK (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'HgPaq_SUNK' )
+      HgPaq = 0e+0_fpp
+
+      ALLOCATE( MLDav( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'MLDav' )
+      MLDav = 0e+0_fpp
+
+      ALLOCATE( newMLD( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'newMLD' )
+      newMLD = 0e+0_fpp
+
+      !eds 10/19/10 fixing restart bug
+      ALLOCATE( prevMLD( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /=0 ) CALL ALLOC_ERR( 'prevMLD' )
+      prevMLD = 0e+0_fpp
 
       ! Return to calling program
       END SUBROUTINE INIT_OCEAN_MERCURY
@@ -3828,13 +4633,9 @@
       IF ( ALLOCATED( Hg0aq     ) ) DEALLOCATE( Hg0aq     )  
       IF ( ALLOCATED( Hg2aq     ) ) DEALLOCATE( Hg2aq     )
       IF ( ALLOCATED( HgPaq     ) ) DEALLOCATE( HgPaq     )  
-      IF ( ALLOCATED( MLD       ) ) DEALLOCATE( MLD       )
       IF ( ALLOCATED( MLDav     ) ) DEALLOCATE( MLDav     )
       IF ( ALLOCATED( newMLD    ) ) DEALLOCATE( newMLD    )
       IF ( ALLOCATED( prevMLD   ) ) DEALLOCATE( prevMLD   ) !eds 10/19/10
-      IF ( ALLOCATED( NPP       ) ) DEALLOCATE( NPP       )
-      IF ( ALLOCATED( CHL       ) ) DEALLOCATE( CHL       )
-      IF ( ALLOCATED( UPVEL     ) ) DEALLOCATE( UPVEL     )
       IF ( ALLOCATED( BULK_CONC ) ) DEALLOCATE( BULK_CONC )
       IF ( ALLOCATED( Fg        ) ) DEALLOCATE( Fg        )
       IF ( ALLOCATED( Fp        ) ) DEALLOCATE( Fp        )
@@ -3846,6 +4647,16 @@
       IF ( ALLOCATED( DST_CONC  ) ) DEALLOCATE( DST_CONC  )
       IF ( ALLOCATED( R         ) ) DEALLOCATE( R         )
       IF ( ALLOCATED( SO4_CONC  ) ) DEALLOCATE( SO4_CONC  )
+
+      ! Free pointers
+      CHL   => NULL()
+      CHL_A => NULL()
+      MLD   => NULL()
+      NPP   => NULL()
+      NPP_A => NULL()
+      UPVEL => NULL()
+      dMLD1 => NULL()
+      dMLD2 => NULL()
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_OCEAN_MERCURY

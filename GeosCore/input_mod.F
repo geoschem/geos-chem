@@ -39,6 +39,7 @@
       PRIVATE :: READ_EMISSIONS_MENU
       PRIVATE :: READ_FUTURE_MENU
       PRIVATE :: READ_CHEMISTRY_MENU
+      PRIVATE :: READ_RADIATION_MENU
       PRIVATE :: READ_TRANSPORT_MENU
       PRIVATE :: READ_CONVECTION_MENU
       PRIVATE :: READ_DEPOSITION_MENU
@@ -53,8 +54,6 @@
       PRIVATE :: READ_PROD_LOSS_MENU 
       PRIVATE :: READ_UNIX_CMDS_MENU
       PRIVATE :: READ_NESTED_GRID_MENU
-      PRIVATE :: READ_ARCHIVED_OH_MENU
-      PRIVATE :: READ_O3PL_MENU
       PRIVATE :: READ_BENCHMARK_MENU  
       PRIVATE :: READ_CH4_MENU
       PRIVATE :: VALIDATE_DIRECTORIES  
@@ -229,7 +228,11 @@
 !                              ".rc" to input.geos (instead of ___.rc)
 !  04 Apr 2013 - R. Yantosca - Now pass objects to DO_GAMAP routine
 !  23 Jun 2014 - R. Yantosca - Now do not call INIT_INPUT, this is replaced
-!                              by the INIT_GIGC_INPUT_OPT routine.   
+!                              by the INIT_GIGC_INPUT_OPT routine
+!  15 Apr 2015 - R. Yantosca - Also define Input_Opt%ITS_A_NESTED_GRID here
+!                              so that we can pass it to INITIALIZE_GEOS_GRID
+!  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
+!  16 Dec 2015 - R. Yantosca - Now pass State_Chm to READ_TRACER_MENU
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -261,12 +264,6 @@
 
       ! Assume success
       RC       = GIGC_SUCCESS
-
-#if defined( ESMF_ )
-      ! We need to add the ".rc" extension to the "input.geos" file
-      ! so that GEOS-5 will copy it to the proper run directory.
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
 
       ! Open file
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
@@ -308,7 +305,7 @@
             CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )             
 
          ELSE IF ( INDEX( LINE, 'TRACER MENU'      ) > 0 ) THEN
-            CALL READ_TRACER_MENU( am_I_Root, Input_Opt, RC )                 
+            CALL READ_TRACER_MENU( am_I_Root, Input_Opt, RC )
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
             CALL READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )              
@@ -341,6 +338,9 @@
                                              
          ELSE IF ( INDEX( LINE, 'DEPOSITION MENU'  ) > 0 ) THEN
             CALL READ_DEPOSITION_MENU( am_I_Root, Input_Opt, RC )             
+
+         ELSE IF ( INDEX( LINE, 'RADIATION MENU'   ) > 0 ) THEN
+            CALL READ_RADIATION_MENU( am_I_Root, Input_Opt, RC )
 
          ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN
             CALL READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
@@ -384,12 +384,6 @@
          ELSE IF ( INDEX( LINE, 'NESTED GRID MENU' ) > 0 ) THEN 
             CALL READ_NESTED_GRID_MENU( am_I_Root, Input_Opt, RC )
 
-         ELSE IF ( INDEX( LINE, 'ARCHIVED OH MENU' ) > 0 ) THEN 
-            CALL READ_ARCHIVED_OH_MENU( am_I_Root, Input_Opt, RC  )
-
-         ELSE IF ( INDEX( LINE, 'O3 P/L MENU'      ) > 0 ) THEN 
-            CALL READ_O3PL_MENU( am_I_Root, Input_Opt, RC  )
-
          ELSE IF ( INDEX( LINE, 'BENCHMARK MENU'   ) > 0 ) THEN 
             CALL READ_BENCHMARK_MENU( am_I_Root, Input_Opt, RC  )
          
@@ -416,7 +410,7 @@
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! Do not initialize diagnostics when we are connecting to
       ! the GEOS-5 GCM via ESMF. (bmy, 11/2/12)
@@ -424,15 +418,12 @@
 #else
 
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! We only need to initialize GEOS-5 diagnostics if we are not
       ! using ESMF.  The GEOS-5 GCM has its own History component
       ! for diagnostic output (bmy, 3/4/13)
       !-----------------------------------------------------------------
-
-      ! Define GEOS-Chem diagnostic info
-      CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
 
       ! Make sure all directories are valid
       CALL VALIDATE_DIRECTORIES( am_I_Root, Input_Opt, RC )
@@ -442,13 +433,13 @@
       ! Check GEOS-CHEM timesteps
       CALL CHECK_TIME_STEPS( am_I_Root, Input_Opt, RC )
 
-      ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
-      CALL DO_GAMAP( am_I_Root, Input_Opt, RC )
-
-      ! Echo output
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      ENDIF
+      !---------------------------------------------
+      ! Prior to 12/16/15:
+      !! Echo output
+      !IF ( am_I_Root ) THEN
+      !   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      !ENDIF
+      !---------------------------------------------
 
       END SUBROUTINE READ_INPUT_FILE
 !EOC
@@ -702,6 +693,9 @@
 !                              to ACCEPT_EXTERNAL_DATE_TIME
 !  19 May 2014 - C. Keller   - Now read HEMCO configuration file.
 !  23 Jun 2014 - R. Yantosca - Remove references to logical_mod.F
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2
+!  12 Aug 2015 - R. Yantosca - Add support for 05x0625 grids
+!  13 Aug 2015 - R. Yantosca - Bug fix: prefix RES_DIR in front of MERRA2_DIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -715,6 +709,10 @@
       INTEGER            :: N,       NDIAGTIME
       INTEGER            :: NYMDb,   NHMSb 
       INTEGER            :: NYMDe,   NHMSe
+      INTEGER            :: C
+
+      ! Strings
+      CHARACTER(LEN=255) :: TMP_CHAR
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -771,9 +769,110 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%MERRA_DIR
 
+      ! MERRA2 subdir
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%MERRA2_DIR
+
       ! 1x1  dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%DATA_DIR_1x1
+!      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%DATA_DIR_1x1
+      READ( SUBSTRS(1:N), '(a)' ) TMP_CHAR
+
+!##############################################################################
+!### Modifications to facilitate high-performance GEOS-Chem (bmy, 3/13/15)
+!### 
+!### (1) DATA_DIR now poings to the ExtData directory 
+!### (2) ExtData/HEMCO is where the HEMCO data files are located
+!### (3) ExtData/CHEM_INPUTS is where non-HEMCO chemistry files are located
+!### (4) Resolution-dependent files are now in ExtData/GEOS_4x5, etc.
+!### (5) DATA_DIR_1x1 is now obsolete.  We'll keep it for backwards
+!###      compatibility.  Define it w/r/t ExtData.
+      
+      !-----------------------------------------------------------------
+      ! Make sure DATA-DIR ends with a "/" character
+      !-----------------------------------------------------------------
+      C = LEN_TRIM( Input_Opt%DATA_DIR )
+      IF ( Input_Opt%DATA_DIR(C:C) /= '/' ) THEN
+         Input_Opt%DATA_DIR = TRIM( Input_Opt%DATA_DIR ) // '/'
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Create CHEM_INPUTS directory
+      !-----------------------------------------------------------------
+      Input_Opt%CHEM_INPUTS_DIR = TRIM( Input_Opt%DATA_DIR ) // 
+     &                            'CHEM_INPUTS/'
+
+      !-----------------------------------------------------------------
+      ! For now, define the DATA_DIR_1x1 w/r/t ExtData.  
+      ! This is going to be eventually removed from the code.
+      !-----------------------------------------------------------------    
+      Input_Opt%DATA_DIR_1x1 = TRIM( Input_Opt%DATA_DIR ) // 
+     &                         'GEOS_NATIVE/'
+
+      !-----------------------------------------------------------------
+      ! Define resolution-specific directory name RES_DIR
+      !-----------------------------------------------------------------
+#if   defined( GRID4x5 )
+# if defined( GCAP )
+      Input_Opt%RES_DIR = 'GCAP_4x5/'
+# else
+      Input_Opt%RES_DIR = 'GEOS_4x5/'
+# endif
+#elif defined( GRID2x25 ) 
+      Input_Opt%RES_DIR = 'GEOS_2x2.5/'
+#elif defined( GRID1x125 ) 
+      Input_Opt%RES_DIR = 'GEOS_1x1.25/'
+#elif defined( GRID1x1 ) 
+      Input_Opt%RES_DIR = 'GEOS_1x1/'
+#elif defined( GRID05x0625 ) && defined( NESTED_CH )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_CH/'
+#elif defined( GRID05x0625 ) && defined( NESTED_EU )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_EU/'
+#elif defined( GRID05x0625 ) && defined( NESTED_NA )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_NA/'
+#elif defined( GRID05x0625 ) && defined( NESTED_SE )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_SE/'
+#elif defined( GRID05x0666 ) && defined( NESTED_CH )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.666_CH/'
+#elif defined( GRID05x0666 ) && defined( NESTED_EU )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.666_EU/'
+#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.666_NA/'
+#elif defined( GRID05x0666 ) && defined( NESTED_SE )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.666_SE/'
+#elif defined( GRID025x03125 ) && defined( NESTED_CH ) 
+      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_CH/'
+#elif defined( GRID025x03125 ) && defined( NESTED_EU ) 
+      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_EU/'
+#elif defined( GRID025x03125 ) && defined( NESTED_NA ) 
+      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_NA/'
+#elif defined( GRID025x03125 ) && defined( NESTED_SE ) 
+      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_SE/'
+#endif
+
+      !-----------------------------------------------------------------
+      ! Append the resolution specific directory name 
+      ! to each of the met field subdirectories
+      !-----------------------------------------------------------------
+      Input_Opt%GCAP_DIR    = 'GCAP_4x5/'                   // 
+     &                        TRIM( Input_Opt%GCAP_DIR    )
+
+      Input_Opt%GEOS_4_DIR  = TRIM( Input_Opt%RES_DIR     ) //
+     &                        TRIM( Input_Opt%GEOS_4_DIR  )
+
+      Input_Opt%GEOS_5_DIR  = TRIM( Input_Opt%RES_DIR     ) //
+     &                        TRIM( Input_Opt%GEOS_5_DIR  )
+
+      Input_Opt%GEOS_FP_DIR = TRIM( Input_Opt%RES_DIR     ) //
+     &                        TRIM( Input_Opt%GEOS_FP_DIR )
+
+      Input_Opt%MERRA_DIR  =  TRIM( Input_Opt%RES_DIR     ) //
+     &                        TRIM( Input_Opt%MERRA_DIR   )
+
+      Input_Opt%MERRA2_DIR =  TRIM( Input_Opt%RES_DIR     ) //
+     &                        TRIM( Input_Opt%MERRA2_DIR  )
+
+!##############################################################################
 
       ! Temp dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
@@ -802,7 +901,7 @@
       !=================================================================
       ! Add safety checks for logical switches
       !=================================================================
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       ! Turn unzipping off for MERRA met fields
       LUNZIP = .FALSE. 
 #endif
@@ -812,7 +911,7 @@
       !=================================================================
 #if defined( ESMF_ ) 
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! If we are connecting to the ESMF interface, we need to take
       ! the start & end dates as defined in the ESMF resource file.
@@ -843,7 +942,7 @@
       NHMSe                   = Input_Opt%NHMSe
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Current practice in the standard GEOS-Chem is to initialize 
       ! the fields Input_Opt%NYMDb, Input_Opt%NYMDe, Input_Opt%NHMSb, 
@@ -861,6 +960,14 @@
       Input_Opt%LWAIT         = LWAIT
       Input_Opt%LVARTROP      = LVARTROP
 
+      !=================================================================
+      ! Determine if we are running a nested-grid simulation based on
+      ! the settings of the C-preprocessor switches.  We have to set
+      ! this here before the call to INITIALIZE_GEOS_GRID below.
+      !=================================================================
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_SE) || defined( SEAC4RS )
+      Input_Opt%ITS_A_NESTED_GRID = .TRUE.
+#endif
       ! Return success
       RC = GIGC_SUCCESS
 
@@ -876,6 +983,10 @@
      &                    TRIM( Input_Opt%RUN_DIR )
          WRITE( 6, 110 ) 'Data Directory              : ',
      &                    TRIM( Input_Opt%DATA_DIR )
+         WRITE( 6, 110 ) 'CHEM_INPUTS directory       : ',
+     &                    TRIM( Input_Opt%CHEM_INPUTS_DIR )
+         WRITE( 6, 110 ) 'Resolution-specific dir     : ',
+     &                    TRIM( Input_Opt%RES_DIR )
          WRITE( 6, 110 ) 'GCAP       sub-directory    : ', 
      &                    TRIM( Input_Opt%GCAP_DIR )
          WRITE( 6, 110 ) 'GEOS-4     sub-directory    : ', 
@@ -898,6 +1009,8 @@
          WRITE( 6, 120 ) 'Unzip met fields?           : ', LUNZIP
          WRITE( 6, 120 ) 'Wait for met fields?        : ', LWAIT
          WRITE( 6, 120 ) 'Use variable tropopause?    : ', LVARTROP
+         WRITE( 6, 120 ) 'Is this a nested-grid sim?  : ', 
+     &                    Input_Opt%ITS_A_NESTED_GRID
          WRITE( 6, 130 ) 'Global offsets I0, J0       : ', 
      &                    Input_Opt%NESTED_I0, 
      &                    Input_Opt%NESTED_J0
@@ -915,7 +1028,7 @@
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! If we are connecting to the GEOS-5 GCM via ESMF, then pass the
       ! values for the start & end times of the simulation directly to
@@ -934,7 +1047,7 @@
 
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! If we are not using ESMF, then call the traditional GEOS-Chem
       ! timing routines (from GeosUtil/time_mod.F) to set the start &
@@ -1050,11 +1163,11 @@
       !-----------------------------
       JSP           = 1                  ! Lat index of S Pole
       JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 5.0e+0_fp              ! Delta-longitude array [degrees]
-      DLAT          = 4.0e+0_fp              ! Delta-latitude array [degrees]
+      DLON          = 5.0e+0_fp          ! Delta-longitude array [degrees]
+      DLAT          = 4.0e+0_fp          ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-      DLAT(:,JSP,:) = 2.0e+0_fp              !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 2.0e+0_fp              !  Half-sized N Pole boxes
+      DLAT(:,JSP,:) = 2.0e+0_fp          !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 2.0e+0_fp          !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID2x25 )
@@ -1064,11 +1177,11 @@
       !-----------------------------
       JSP           = 1                  ! Lat index of S Pole
       JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 2.5e+0_fp              ! Delta-longitude array [degrees]
-      DLAT          = 2.0e+0_fp              ! Delta-latitude array [degrees]
+      DLON          = 2.5e+0_fp          ! Delta-longitude array [degrees]
+      DLAT          = 2.0e+0_fp          ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-      DLAT(:,JSP,:) = 1.0e+0_fp              !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 1.0e+0_fp              !  Half-sized N Pole boxes
+      DLAT(:,JSP,:) = 1.0e+0_fp          !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 1.0e+0_fp          !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID1x125 )
@@ -1078,11 +1191,11 @@
       !-----------------------------
       JSP           = 1                  ! Lat index of S Pole
       JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 1.25e+0_fp             ! Delta-longitude array [degrees]
-      DLAT          = 1.0e+0_fp              ! Delta-latitude array [degrees]
+      DLON          = 1.25e+0_fp         ! Delta-longitude array [degrees]
+      DLAT          = 1.0e+0_fp          ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-      DLAT(:,JSP,:) = 0.5e+0_fp              !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 0.5e+0_fp              !  Half-sized N Pole boxes
+      DLAT(:,JSP,:) = 0.5e+0_fp          !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 0.5e+0_fp          !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID1x1 )
@@ -1092,11 +1205,11 @@
       !-----------------------------
       JSP           = 1                  ! Lat index of S Pole
       JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 1.0e+0_fp              ! Delta-longitude array [degrees]
-      DLAT          = 1.0e+0_fp              ! Delta-latitude array [degrees]
+      DLON          = 1.0e+0_fp          ! Delta-longitude array [degrees]
+      DLAT          = 1.0e+0_fp          ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-      DLAT(:,JSP,:) = 0.5e+0_fp              !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 0.5e+0_fp              !  Half-sized N Pole boxes
+      DLAT(:,JSP,:) = 0.5e+0_fp          !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 0.5e+0_fp          !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID05x0666 )
@@ -1106,8 +1219,18 @@
       !-----------------------------
       JSP           = 0                  ! Lat index of S Pole
       JNP           = 0                  ! Lat index of N pole
-      DLON          = 2e+0_fp/3e+0_fp            ! Delta-longitude array [degrees]
-      DLAT          = 0.5e+0_fp              ! Delta-latitude array [degrees]
+      DLON          = 2e+0_fp/3e+0_fp    ! Delta-longitude array [degrees]
+      DLAT          = 0.5e+0_fp          ! Delta-latitude array [degrees]
+
+#elif defined( GRID05x0625 )
+
+      !-------------------=---------
+      ! Nested 0.5 x 0.625 grids
+      !-----------------------------
+      JSP           = 0                  ! Lat index of S Pole
+      JNP           = 0                  ! Lat index of N pole
+      DLON          = 0.625e+0_fp        ! Delta-longitude array [degrees]
+      DLAT          = 0.5e+0_fp          ! Delta-latitude array [degrees]
 
 #elif defined( GRID025x03125 )
 
@@ -1116,8 +1239,8 @@
       !-----------------------------
       JSP           = 0                  ! Lat index of S Pole
       JNP           = 0                  ! Lat index of N pole
-      DLON          = 0.3125e+0_fp           ! Delta-longitude array [degrees]
-      DLAT          = 0.25e+0_fp             ! Delta-latitude array [degrees]
+      DLON          = 0.3125e+0_fp       ! Delta-longitude array [degrees]
+      DLAT          = 0.25e+0_fp         ! Delta-latitude array [degrees]
 
 #elif defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 
@@ -1139,6 +1262,7 @@
 
       ! Allocate module arrays in grid_mod.F90
       CALL Init_Grid   ( am_I_Root = am_I_Root,     ! Are we on the root CPU?
+     &                   Input_Opt = Input_Opt,     ! Input Options object
      &                   IM        = IIPAR,         ! # of lons on this CPU
      &                   JM        = JJPAR,         ! # of lats on this CPU
      &                   LM        = LLPAR,         ! # of levs on this CPU
@@ -1183,7 +1307,9 @@
       USE CHARPAK_MOD,        ONLY : ISDIGIT
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
+#if defined( APM )
       USE TRACER_MOD,         ONLY : INIT_TRACER
+#endif
       USE TRACERID_MOD,       ONLY : TRACERID
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
@@ -1220,6 +1346,7 @@
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !  21 Aug 2014 - R. Yantosca - Bug fix: add ITS_A_RnPbBe_SIM to the test
 !                              that defines the ITS_A_SPECIALTY_SIM flag
+!  24 Mar 2015 - E. Lundgren - Move init_tracer to within APM ifdef block 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1229,6 +1356,7 @@
       INTEGER            :: N,  T,  C
       CHARACTER(LEN=255) :: C1, C2, LINE, NAME
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+      REAL(fp)           :: DUMMY
 
       !=================================================================
       ! READ_TRACER_MENU begins here!
@@ -1258,7 +1386,7 @@
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! Set Input_Opt%ITS_A_SPECIALTY_SIM to FALSE, which will skip
       ! reading/allocating T_FULLGRID and AIRDEN_FULLGRID arrays.
@@ -1268,7 +1396,7 @@
       Input_Opt%ITS_A_SPECIALTY_SIM    = .FALSE.
 #else
       !-----------------------------------------------------------------
-      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Set Input_Opt%ITS_A_SPECIALTY_SIM to TRUE if we are performing
       ! any of the offline (non-full-chemistry) simulations that use
@@ -1359,17 +1487,29 @@
          ! Save tracer name
          Input_Opt%TRACER_NAME(T)  = TRIM( SUBSTRS(2) )
 
-         ! Save tracer molecular wt [g/mole]
-         READ( SUBSTRS(3), * ) Input_Opt%TRACER_MW_G(T) 
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%% These fields will be overwritten with information from the 
+         !%%% GEOS-Chem Species Database.  This will eliminate inconsistencies
+         !%%% caused by multiple definitions of the same quantity.
+         !%%% (bmy, 12/16/15)
+         !%%%
+         !%%%! Save tracer molecular wt [g/mole]
+         !%%%READ( SUBSTRS(3), * ) Input_Opt%TRACER_MW_G(T) 
+         !%%%
+         !%%%! Save tracer molecular wt [kg/mole]
+         !%%%Input_Opt%TRACER_MW_KG(T) = Input_Opt%TRACER_MW_G(T) * 1e-3_fp
+         !%%%
+         !%%%! Ratio of MW dry air / MW tracer 
+         !%%%Input_Opt%TCVV(T) = 28.97e+0_fp / Input_Opt%TRACER_MW_G(T)
+         !%%%
+         !%%%! Molecules tracer / kg tracer
+         !%%%Input_Opt%XNUMOL(T) = 6.022e+23_fp / Input_Opt%TRACER_MW_KG(T)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         ! Save tracer molecular wt [kg/mole]
-         Input_Opt%TRACER_MW_KG(T) = Input_Opt%TRACER_MW_G(T) * 1e-3_fp
-
-         ! Ratio of MW air / MW tracer 
-         Input_Opt%TCVV(T) = 28.97e+0_fp / Input_Opt%TRACER_MW_G(T)
-
-         ! Molecules tracer / kg tracer
-         Input_Opt%XNUMOL(T) = 6.022e+23_fp / Input_Opt%TRACER_MW_KG(T)
+         ! Read a dummy placeholder in place of molecular weight
+         ! The molecular weight will be taken from the species database
+         ! in routine INIT_GIGC_STATE_CHM. (bmy, 12/16/15)
+         READ( SUBSTRS(3), * ) DUMMY
          
          !----------------------------------------------------
          ! If this is a family tracer, get member species
@@ -1490,48 +1630,51 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:5' )
 
-      !=================================================================
-      ! Print to screen
-      !=================================================================
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(/,a)' ) 
-     &       'TRACER MENU (==> denotes SMVGEAR emitted species)' 
-         WRITE( 6, '(  a)' ) REPEAT( '-', 48 )
-         WRITE( 6, '(  a)' ) '  # Tracer          g/mole'
-
-         ! Print info about each tracer
-         DO T = 1, Input_Opt%N_TRACERS
-
-            ! Write tracer number, name, & mol wt
-            WRITE( 6, 100 ) Input_Opt%ID_TRACER(T), 
-     &                      Input_Opt%TRACER_NAME(T), 
-     &                      Input_Opt%TRACER_MW_G(T)
-            
-            ! If a family tracer (or just a tracer w/ emission)
-            ! then also print info about species
-            IF ( Input_Opt%TRACER_N_CONST(T) > 1 .or. 
-     &           Input_Opt%ID_EMITTED(T) > 0 ) THEN
-            
-               ! Loop over member species
-               DO C = 1, Input_Opt%TRACER_N_CONST(T)
-
-                   ! Also flag which is the emitted tracer
-                  IF ( Input_Opt%ID_EMITTED(T) == C ) THEN
-                     WRITE( 6,110 ) Input_Opt%TRACER_COEFF(T,C), 
-     &                              Input_Opt%TRACER_CONST(T,C) 
-                  ELSE
-                     WRITE( 6,120 ) Input_Opt%TRACER_COEFF(T,C), 
-     &                              Input_Opt%TRACER_CONST(T,C)
-                  ENDIF
-               ENDDO
-            ENDIF
-         ENDDO
-      ENDIF
-
-      ! Format statement
- 100  FORMAT( I3, 1x, A10, 6x, F6.1 )
- 110  FORMAT( 5x, '===> ', f4.1, 1x, A6  )
- 120  FORMAT( 5x, '---> ', f4.1, 1x, A4  )
+!-----------------------------------------------------------------------------
+!
+!      !=================================================================
+!      ! Print to screen
+!      !=================================================================
+!      IF ( am_I_Root ) THEN
+!         WRITE( 6, '(/,a)' ) 
+!     &       'TRACER MENU (==> denotes SMVGEAR emitted species)' 
+!         WRITE( 6, '(  a)' ) REPEAT( '-', 48 )
+!         WRITE( 6, '(  a)' ) '  # Tracer          g/mole'
+!
+!         ! Print info about each tracer
+!         DO T = 1, Input_Opt%N_TRACERS
+!
+!            ! Write tracer number, name, & mol wt
+!            WRITE( 6, 100 ) Input_Opt%ID_TRACER(T), 
+!     &                      Input_Opt%TRACER_NAME(T), 
+!     &                      Input_Opt%TRACER_MW_G(T)
+!            
+!            ! If a family tracer (or just a tracer w/ emission)
+!            ! then also print info about species
+!            IF ( Input_Opt%TRACER_N_CONST(T) > 1 .or. 
+!     &           Input_Opt%ID_EMITTED(T) > 0 ) THEN
+!            
+!               ! Loop over member species
+!               DO C = 1, Input_Opt%TRACER_N_CONST(T)
+!
+!                   ! Also flag which is the emitted tracer
+!                  IF ( Input_Opt%ID_EMITTED(T) == C ) THEN
+!                     WRITE( 6,110 ) Input_Opt%TRACER_COEFF(T,C), 
+!     &                              Input_Opt%TRACER_CONST(T,C) 
+!                  ELSE
+!                     WRITE( 6,120 ) Input_Opt%TRACER_COEFF(T,C), 
+!     &                              Input_Opt%TRACER_CONST(T,C)
+!                  ENDIF
+!               ENDDO
+!            ENDIF
+!         ENDDO
+!      ENDIF
+!
+!      ! Format statement
+! 100  FORMAT( I3, 1x, A10, 6x, F6.1 )
+! 110  FORMAT( 5x, '===> ', f4.1, 1x, A6  )
+! 120  FORMAT( 5x, '---> ', f4.1, 1x, A4  )
+!-----------------------------------------------------------------------------
 
       !=================================================================
       ! Call setup routines from other F90 modules
@@ -1561,8 +1704,10 @@
       ! Set up tracer flags
       CALL TRACERID( am_I_Root, Input_Opt, RC )
 
-      ! Store the # of tracers internally in tracer_mod.F
+#if defined( APM ) 
+      ! Store the # of APM tracers in tracer_mod.F
       CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
+#endif
 
       ! Set counter
       CT1 = CT1 + 1
@@ -1589,32 +1734,11 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE UCX_MOD,      ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
-      USE TRACERID_MOD, ONLY : IDTDMS,   IDTSO2,   IDTSO4,  IDTSO4s 
-      USE TRACERID_MOD, ONLY : IDTMSA,   IDTNH3,   IDTNH4,  IDTNITs 
-      USE TRACERID_MOD, ONLY : IDTAS,    IDTAHS,   IDTLET,  IDTNH4aq 
-      USE TRACERID_MOD, ONLY : IDTSO4aq, IDTBCPO,  IDTBCPI, IDTOCPO 
-      USE TRACERID_MOD, ONLY : IDTOCPI
-      USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
-      USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
-      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
-      ! SOAupdate: remove old tracers and add new mtp (hotp 5/24/10)
-      USE TRACERID_MOD, ONLY : IDTMTPA,  IDTLIMO,  IDTMTPO
-      USE TRACERID_MOD, ONLY : IDTBENZ,  IDTTOLU,  IDTXYLE
-      USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD, ONLY : IDTASOA1, IDTASOA2, IDTASOA3, IDTASOAN
-      ! semivolpoa : add POA (hotp 8/23/09)
-      ! POA now 1 and 2 (hotp 10/11/09), and NAP (hotp 7/28/10)
-      USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOA2,  IDTPOG1,  IDTPOG2
-      USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOA2, IDTOPOG1, IDTOPOG2
-      USE TRACERID_MOD, ONLY : IDTNAP
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#if defined( TOMAS )
-      USE TRACERID_MOD,       ONLY : IDTDUST1
-#endif
+      USE TRACERID_MOD
+      USE UCX_MOD,            ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
 !
 ! !INPUT PARAMETERS:
 !
@@ -1648,9 +1772,16 @@
 !  11 Apr 2013 - S.D. Eastham- Added gravitational settling flag
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
+!  12 Sep 2013 - M. Sulprizio- Add modifications for acid uptake on dust
+!                              aerosols (T.D. Fairlie)
 !  16 Apr 2014 - M. Sulprizio- Now read path for PSC restart file
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  09 Apr 2015 - M. Sulprizio- Removed options for DEAD dust emissions, NAP
+!                              emissions, POA emissions scale, and the PSC
+!                              restart file. These options are now handled
+!                              by HEMCO.
+!  08 Jul 2015 - E. Lundgren - Added LMPOA option for marine organic aerosols
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1658,13 +1789,13 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LSULF,      LCARB,      LSOA
-      LOGICAL            :: LSVPOA,     LDUST,      LDEAD
+      LOGICAL            :: LSULF,      LCARB,    LBRC,  LSOA
+      LOGICAL            :: LSVPOA,     LDUST,    LDSTUP
       LOGICAL            :: LSSALT,     LCRYST,     LDICARB
       LOGICAL            :: LGRAVSTRAT, LHOMNUCNAT, LSOLIDPSC
-      LOGICAL            :: LPSCCHEM,   LSTRATOD
+      LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA
       INTEGER            :: N,          T,          I 
-      CHARACTER(LEN=255) :: MSG,        LOCATION,   PSC_RST_FILE
+      CHARACTER(LEN=255) :: MSG,        LOCATION
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -1682,99 +1813,94 @@
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
-      ! Use online sulfate aerosols 
+      ! Use online sulfate aerosols? 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:1' )
       READ( SUBSTRS(1:N), * ) LSULF
 
-      ! Use crystalline sulfate aerosols  
+      ! Use crystalline sulfate aerosols?  
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:2' )
       READ( SUBSTRS(1:N), * ) LCRYST
 
-      ! Use online carbon aerosols 
+      ! Use online carbon aerosols? 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:3' )
       READ( SUBSTRS(1:N), * ) LCARB
+      
+      ! Use brown carbon aerosols? 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:4' )
+      READ( SUBSTRS(1:N), * ) LBRC
 
       ! Use secondary organic aerosols?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:5' )
       READ( SUBSTRS(1:N), * ) LSOA
 
       ! SOAupdate: Add Semi-volatile POA switch (hotp 8/9/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
       READ( SUBSTRS(1:N), * ) LSVPOA
 
-      ! SOAupdate: Add NAP/IVOC surrogate emissions (hotp 8/9/09)
-      ! SOAupdate: set NAP emissions (in Tg/yr)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
-      READ( SUBSTRS(1:N), * ) Input_Opt%NAPEMISS
-
-      ! SOAupdate: Add scaling for POA emiss (hotp 9/21/09)
-      ! Fractional scaling, recommended value: 1.27
+      ! Use online dust aerosols ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
-      READ( SUBSTRS(1:N), * ) Input_Opt%POAEMISSSCALE
-
-      ! Use online dust aerosols 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:8' )
       READ( SUBSTRS(1:N), * ) LDUST
 
-      ! Use DEAD dust mobilization (=T) or GINOUX (=F)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:9' )
-      READ( SUBSTRS(1:N), * ) LDEAD      
+      !tdf
+      ! Use SO2 and HNO3 uptake on dust aerosols 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:9.5' )
+      READ( SUBSTRS(1:N), * ) LDSTUP
 
       ! Use online sea-salt aerosols?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:8' )
       READ( SUBSTRS(1:N), * ) LSSALT      
 
       ! Accum mode seasalt radii bin edges [um]
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:11' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:9' )
       DO T = 1, N
          READ( SUBSTRS(T), * ) Input_Opt%SALA_REDGE_um(T)
       ENDDO
 
       ! Coarse mode seasalt radii bin edges [um]
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:10' )
       DO T = 1, N
          READ( SUBSTRS(T), * ) Input_Opt%SALC_REDGE_um(T)
       ENDDO
 
+      ! Use marine organic aerosols?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:11' )
+      READ( SUBSTRS(1:N), * ) LMPOA
+
       ! Switch to comment the SOG condensation in carbon_mod.f (ccc, 3/10/09)
       ! Use online dicarbonyl chemistry 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:12' )
       READ( SUBSTRS(1:N), * ) LDICARB
 
       ! Apply gravitational settling in stratosphere?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:13' )
       READ( SUBSTRS(1:N), * ) LGRAVSTRAT  
 
       ! Use solid polar stratospheric clouds (PSCs)?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:14' )
       READ( SUBSTRS(1:N), * ) LSOLIDPSC   
 
-      ! PSC restart file name
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15b' )
-      READ( SUBSTRS(1:N), '(a)' ) PSC_RST_FILE
-
       ! Allow homogeneous nucleation of NAT?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15' )
       READ( SUBSTRS(1:N), * ) LHOMNUCNAT 
 
       ! NAT supercooling requirement (K)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:16' )
       READ( SUBSTRS(1:N), * ) T_NAT_SUPERCOOL
 
       ! Ice supersaturation ratio requirement
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:17' )
       READ( SUBSTRS(1:N), * ) P_ICE_SUPERSAT
 
       ! Perform PSC-related heterogeneous chemistry?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:18' )
       READ( SUBSTRS(1:N), * ) LPSCCHEM 
 
       ! Include stratospheric aerosols optical depths?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:19' )
       READ( SUBSTRS(1:N), * ) LSTRATOD
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:21' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:20' )
 
       !=================================================================
       ! Error checks
@@ -1793,10 +1919,11 @@
          LSULF  = .FALSE.
          LCRYST = .FALSE.
          LCARB  = .FALSE.
+         LBRC   = .FALSE.
          LSOA   = .FALSE.
          LDUST  = .FALSE.
-         LDEAD  = .FALSE.
          LSSALT = .FALSE.
+         LMPOA  = .FALSE.
          LSVPOA = .FALSE.
       ENDIF
 
@@ -1818,6 +1945,27 @@
       ELSE
          IF ( I > 0 ) THEN
             MSG = 'Cannot use ONLINE SEASALT AEROSOLS if LSSALT=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      !------------------------------------
+      ! Error check MARINE ORGANIC AEROSOLS
+      !------------------------------------
+      I = IDTMOPO + IDTMOPI
+
+      IF ( LMPOA ) THEN
+         IF ( .not. LSSALT ) THEN
+            MSG = 'LMPOA=T but LSSALT=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+         IF ( I == 0 ) THEN
+            MSG = 'LMPOA=T but MARINE ORGANIC AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use MARINE ORGANIC AEROSOLS if LMPOA=F!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ENDIF
@@ -1957,16 +2105,13 @@
       !---------------------------------
       ! Error check DUST AEROSOLS
       !---------------------------------
+! JKODROS - Uncomment this if the dust fixes are back working. 
 #if defined( TOMAS )
-
       ! For TOMAS only: If DUST1 is present, the other dust tracers are too
       I = IDTDUST1
-
 #else
-
       ! Non-TOMAS simulations: Need all DST1-DST4 tracers
       I = IDTDST1 + IDTDST2 + IDTDST3 + IDTDST4
-
 #endif
 
       IF ( LDUST ) THEN
@@ -1977,6 +2122,27 @@
       ELSE
          IF ( I > 0 ) THEN
             MSG = 'Cannot use ONLINE DUST AEROSOLS if LDUST=F!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ENDIF
+
+      !--------------------------------------
+      ! Error check DUST NITRATE    AEROSOLS
+      !             DUST SULFATE    AEROSOLS
+      !             DUST ALKALINITY AEROSOLS
+      !--------------------------------------
+      I = IDTNITd1 + IDTNITd2 + IDTNITd3 + IDTNITd4 +
+     &    IDTSO4d1 + IDTSO4d2 + IDTSO4d3 + IDTSO4d4 +
+     &    IDTDAL1  + IDTDAL2  + IDTDAL3  + IDTDAL4
+
+      IF ( LDSTUP ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LDSTUP=T but COATED DUST AEROSOLS are undefined!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
+      ELSE
+         IF ( I > 0 ) THEN
+            MSG = 'Cannot use COATED DUST AEROSOLS if LDSTUP=F!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ENDIF
@@ -2004,15 +2170,16 @@
       Input_Opt%LSULF              = LSULF  
       Input_Opt%LCRYST             = LCRYST
       Input_Opt%LCARB              = LCARB
+      Input_Opt%LBRC               = LBRC
       Input_Opt%LSOA               = LSOA 
       Input_Opt%LSVPOA             = LSVPOA
       Input_Opt%LDUST              = LDUST 
-      Input_Opt%LDEAD              = LDEAD
+      Input_Opt%LDSTUP             = LDSTUP
       Input_Opt%LSSALT             = LSSALT
+      Input_Opt%LMPOA              = LMPOA 
       Input_Opt%LDICARB            = LDICARB  
       Input_Opt%LGRAVSTRAT         = LGRAVSTRAT
       Input_Opt%LSOLIDPSC          = LSOLIDPSC
-      Input_Opt%PSC_RST_FILE       = PSC_RST_FILE
       Input_Opt%LHOMNUCNAT         = LHOMNUCNAT
       Input_Opt%T_NAT_SUPERCOOL    = T_NAT_SUPERCOOL
       Input_Opt%P_ICE_SUPERSAT     = P_ICE_SUPERSAT
@@ -2031,14 +2198,12 @@
          WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ', LSULF
          WRITE( 6, 100     ) 'Online CRYST & AQ AEROSOLS? : ', LCRYST
          WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', LCARB
+         WRITE( 6, 100     ) 'Brown Carbon Aerosol?       : ', LBRC
          WRITE( 6, 100     ) 'Online 2dy ORGANIC AEROSOLS?: ', LSOA
          WRITE( 6, 100     ) 'Semivolatile POA?           : ', LSVPOA
-         WRITE( 6, 105     ) 'Annual NAP emiss [TgC/yr]   : ',
-     &                        Input_Opt%NAPEMISS
-         WRITE( 6, 105     ) 'POA emission scale [dimless]: ', 
-     &                        Input_Opt%POAEMISSSCALE
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
-         WRITE( 6, 100     ) 'Use DEAD dust emissions?    : ', LDEAD
+         WRITE( 6, 100     ) 'Acid uptake on dust?        : ', LDSTUP
+
          WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
          WRITE( 6, 110     ) 'Accum  SEA SALT radii [um]  : ', 
      &                        Input_Opt%SALA_REDGE_um(1), 
@@ -2046,10 +2211,9 @@
          WRITE( 6, 110     ) 'Coarse SEA SALT radii [um]  : ',
      &                        Input_Opt%SALC_REDGE_um(1), 
      &                        Input_Opt%SALC_REDGE_um(2)
+         WRITE( 6, 100     ) 'MARINE ORGANIC AEROSOLS?    : ', LMPOA
          WRITE( 6, 100     ) 'Settle strat. aerosols?     : ',LGRAVSTRAT
          WRITE( 6, 100     ) 'Online SOLID PSC aerosols?  : ',LSOLIDPSC
-         WRITE( 6, 130     ) 'PSC restart file name?      : ',
-     &                        TRIM( PSC_RST_FILE )
          WRITE( 6, 100     ) 'Allow hom. NAT nucleation?  : ',LHOMNUCNAT
          WRITE( 6, 120     ) 'NAT supercooling requirement: ',
      &                                                 T_NAT_SUPERCOOL
@@ -2333,6 +2497,7 @@
 !  25 Jun 2014 - R. Yantosca - Move call to INIT_MODIS_LAIT to GIGC_INIT_EXTRA
 !  04 Sep 2014 - R. Yantosca - Bug fix: Now use Input_Opt%OTDLOC since we have
 !                              now removed logical_mod.F
+!  24 Jun 2015 - R. Yantosca - Now always turn off emissions for mass cons test
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2619,6 +2784,28 @@
 
 #endif
 
+#if defined( MASSCONS )
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%  MASS CONSERVATION TEST:                                  %%%
+      !%%%  Always turn off emissions for the mass conservation      %%%
+      !%%%  test.  (ewl, 6/24/15)                                    %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+      ! Reset quantities
+      LEMIS      = .FALSE.
+
+      ! Print info to stdout stating that rint results
+      WRITE( 6, '(a)' )
+      WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+      WRITE( 6, 200   ) 
+      WRITE( 6, 205   )
+      WRITE( 6, 210   )
+      WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+ 200  FORMAT( '%%% MASS CONSERVATION TEST'                             )
+ 205  FORMAT( '%%% Automatically reset these EMISSIONS MENU settings:' )
+ 210  FORMAT( '%%% LEMIS is now FALSE'                                 )
+#endif
+
       !=================================================================
       ! Set fields of Input Options object
       ! Input_Opt%TS_EMIS is set externally in ESMF environment!
@@ -2747,6 +2934,7 @@
 !  03 Jun 2014 - R. Yantosca - Now specify biomass, biofuel options in HEMCO
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  13 Apr 2015 - R. Nassar - Simplified CO2 menu since options are now in HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2754,14 +2942,22 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LGENFF,      LANNFF,      LMONFF
-      LOGICAL            :: LCHEMCO2,    LBIODAILY,   LBIODIURNAL
-      LOGICAL            :: LBIONETORIG, LBIONETCLIM, LOCN1997
-      LOGICAL            :: LOCN2009ANN, LOCN2009MON, LSHIPEDG
-      LOGICAL            :: LSHIPICO,    LPLANE,      LFFBKGRD
+      LOGICAL          :: LFOSSIL
+      LOGICAL          :: LCHEMCO2
+	LOGICAL          :: LBIODIURNAL
+      LOGICAL          :: LBIONETCLIM
+      LOGICAL          :: LOCEAN
+      LOGICAL          :: LSHIP
+      LOGICAL          :: LPLANE
+	LOGICAL          :: LFFBKGRD
+!      LOGICAL            :: LGENFF,      LANNFF,      LMONFF
+!      LOGICAL            :: LCHEMCO2,    LBIODAILY,   LBIODIURNAL
+!      LOGICAL            :: LBIONETORIG, LBIONETCLIM, LOCN1997
+!      LOGICAL            :: LOCN2009ANN, LOCN2009MON, LSHIPEDG
+!      LOGICAL            :: LSHIPICO,    LPLANE,      LFFBKGRD
       LOGICAL            :: LBIOSPHTAG,  LFOSSILTAG,  LSHIPTAG
       LOGICAL            :: LPLANETAG
-      INTEGER            :: N
+	INTEGER            :: N
       CHARACTER(LEN=255) :: MSG, LOC
 
       ! Arrays
@@ -2780,170 +2976,69 @@
          CALL ERROR_STOP( MSG, LOC )
       ENDIF
 
-      !---------------------------------------------------------------
-      ! Fossil Fuel Emissions
-      !---------------------------------------------------------------
-      ! Separator line
+      !=================================================================
+
+	! Use Fossil Fuel emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:1' )
+      READ( SUBSTRS(1:N), * ) LFOSSIL
 
-      ! Use Generic Fossil Fuel emissions?
+      ! Use Ocean Exchange?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:2' )
-      READ( SUBSTRS(1:N), * ) LGENFF
+      READ( SUBSTRS(1:N), * ) LOCEAN
 
-      ! Use annual Fossil Fuel emissions?
+       ! Turn on (balanced) biosphere with diurnal cycle?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:3' )
-      READ( SUBSTRS(1:N), * ) LANNFF
-
-      ! Use monthly Fossil Fuel emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:4' )
-      READ( SUBSTRS(1:N), * ) LMONFF
-
-      !---------------------------------------------------------------
-      ! Chemical source of CO2 from oxidation of fossil fuel CO, CH4 etc.
-      !---------------------------------------------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:5' )
-
-      ! Chemical source of CO2 from oxidation of CO, CH4 and organics?
-      READ( SUBSTRS(1:N), * ) LCHEMCO2
-
-      !---------------------------------------------------------------
-      ! Terrestrial Exchange
-      !---------------------------------------------------------------
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:13' )
-
-      ! Turn on CASA biosphere daily average?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:14' )
-      READ( SUBSTRS(1:N), * ) LBIODAILY
-
-      ! Turn on CASA biosphere with diurnal cycle?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:15' )
       READ( SUBSTRS(1:N), * ) LBIODIURNAL
 
-      ! Use original Net Terrestrial Exchange?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:16' )
-      READ( SUBSTRS(1:N), * ) LBIONETORIG
-
       ! Use Net Terrestrial Exchange Climatology?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:4' )
       READ( SUBSTRS(1:N), * ) LBIONETCLIM
 
-      !---------------------------------------------------------------
-      ! Ocean Exchange
-      !---------------------------------------------------------------
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:18' )
+      ! Turn on Ship emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:5' )
+      READ( SUBSTRS(1:N), * ) LSHIP
 
-      ! Use Ocean Exchange from Takahashi 1997?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:19' )
-      READ( SUBSTRS(1:N), * ) LOCN1997
-
-      ! Use annual Ocean Exchange from Takahashi 2009?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:20' )
-      READ( SUBSTRS(1:N), * ) LOCN2009ANN
-
-      ! Use monthly Ocean Exchange from Takahashi 2009?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:21' )
-      READ( SUBSTRS(1:N), * ) LOCN2009MON
-
-      !---------------------------------------------------------------
-      ! Ship and Aircraft CO2 Emissions
-      !---------------------------------------------------------------
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:22' )
-
-      ! Turn on EDGAR ship emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:23' )
-      READ( SUBSTRS(1:N), * ) LSHIPEDG
-
-      ! Turn on ICOADS ship emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:24' )
-      READ( SUBSTRS(1:N), * ) LSHIPICO
-
-      ! Turn on Aircraft emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:25' )
+      ! Turn on Aviation emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:6' )
       READ( SUBSTRS(1:N), * ) LPLANE
 
-      !---------------------------------------------------------------
-      ! Tagged CO2
-      !---------------------------------------------------------------
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:26' )
+      ! Turn on CO2 3D chemical source and surface correction?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:7' )
+      READ( SUBSTRS(1:N), * ) LCHEMCO2
+
+      ! Tagged CO2 Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu' )
 
       !Background CO2 (no emissions or exchange) for Tagged-CO2 runs
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:27' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:8' )
       READ( SUBSTRS(1:N), * ) LFFBKGRD
 
       ! Turn on biosphere and ocean exchange region tagged tracers?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:28' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:9' )
       READ( SUBSTRS(1:N), * ) LBIOSPHTAG
 
       ! Turn on fossil fuel emission region tagged tracers?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:27' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:10' )
       READ( SUBSTRS(1:N), * ) LFOSSILTAG
 
       ! Turn on global ship emissions tagged tracer?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:29' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:11' )
       READ( SUBSTRS(1:N), * ) LSHIPTAG
 
       ! Turn on global aircraft emissions tagged tracer?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:30' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:12' )
       READ( SUBSTRS(1:N), * ) LPLANETAG
-
-      !=================================================================
-      ! Resolve conflicting selections by assuming the 'best' choice
-      !=================================================================
-
-	!--- Fossil Fuel ----------------
-	IF (LMONFF) THEN
-           LGENFF = .FALSE.
-           LANNFF = .FALSE.
-	ENDIF
-	IF (LANNFF) THEN
-           LGENFF = .FALSE.
-	ENDIF
-
-	!--- CASA Biosphere -------------
-	IF (LBIODIURNAL) THEN
-           LBIODAILY = .FALSE.
-	ENDIF
-
-	!--- Net Terrestrial Exchange ---
-	IF (LBIONETCLIM) THEN
-           LBIONETORIG = .FALSE.
-	ENDIF
-	
-	!--- Ocean Exchange -------------
-	IF (LOCN2009MON) THEN
-           LOCN2009ANN = .FALSE.
-           LOCN1997 = .FALSE.
-	ENDIF
-	IF (LOCN2009ANN) THEN
-		LOCN1997 = .FALSE.
-	ENDIF
-
-	!--- Ship Emissions -------------
-	IF (LSHIPICO) THEN
-           LSHIPEDG = .FALSE.
-	ENDIF
 
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
-      Input_Opt%LGENFF      = LGENFF
-      Input_Opt%LANNFF      = LANNFF
-      Input_Opt%LMONFF      = LMONFF
-      Input_Opt%LCHEMCO2    = LCHEMCO2
-      Input_Opt%LBIODAILY   = LBIODAILY
+	Input_Opt%LFOSSIL     = LFOSSIL
+	Input_Opt%LOCEAN      = LOCEAN
       Input_Opt%LBIODIURNAL = LBIODIURNAL
-      Input_Opt%LBIONETORIG = LBIONETORIG
       Input_Opt%LBIONETCLIM = LBIONETCLIM
-      Input_Opt%LOCN1997    = LOCN1997
-      Input_Opt%LOCN2009ANN = LOCN2009ANN
-      Input_Opt%LOCN2009MON = LOCN2009MON
-      Input_Opt%LSHIPEDG    = LSHIPEDG
-      Input_Opt%LSHIPICO    = LSHIPICO
+	Input_Opt%LSHIP       = LSHIP
       Input_Opt%LPLANE      = LPLANE
+      Input_Opt%LCHEMCO2    = LCHEMCO2
       Input_Opt%LFFBKGRD    = LFFBKGRD
       Input_Opt%LBIOSPHTAG  = LBIOSPHTAG
       Input_Opt%LFOSSILTAG  = LFOSSILTAG
@@ -2960,24 +3055,13 @@
          WRITE(6,'(/,a)') 'CO2 SIMULATION MENU ' //
      &        '(overwrites any other settings related to CO2)'
          WRITE(6,'(  a)') '-------------------------------------'
-         WRITE(6, 90    ) 'Fossil Fuel emissions'
-         WRITE(6,100    ) '  Generic FF emissions        :', LGENFF
-         WRITE(6,100    ) '  Annual FF emissions         :', LANNFF
-         WRITE(6,100    ) '  Monthly FF emissions        :', LMONFF
+         WRITE(6,100    ) 'National Fossil Fuel Emission :', LFOSSIL
+         WRITE(6,100    ) 'Ocean CO2 Uptake/Emission     :', LOCEAN
+         WRITE(6,100    ) 'Biosphere seas/diurnal cycle  :', LBIODIURNAL
+         WRITE(6,100    ) 'Net Terr Exch - Climatology   :', LBIONETCLIM
+         WRITE(6,100    ) 'Intl/Domestic Ship emissions  :', LSHIP 
+         WRITE(6,100    ) 'Intl/Domestic Aviation emiss  :', LPLANE 
          WRITE(6,100    ) 'CO2 from oxidation (CO,CH4,..):', LCHEMCO2
-         WRITE(6, 90    ) 'Terrestrial Exchange'
-         WRITE(6,100    ) '  CASA Biosphere daily average:', LBIODAILY
-         WRITE(6,100    ) '  CASA Biosphere diurnal cycle:', LBIODIURNAL
-         WRITE(6,100    ) '  Net Terr Exch - Original    :', LBIONETORIG
-         WRITE(6,100    ) '  Net Terr Exch - Climatology :', LBIONETCLIM
-         WRITE(6,90     ) 'Ocean Exchange' 
-         WRITE(6,100    ) '  Takahashi 1997              :', LOCN1997 
-         WRITE(6,100    ) '  Takahashi 2009 annual       :', LOCN2009ANN 
-         WRITE(6,100    ) '  Takahashi 2009 monthly      :', LOCN2009MON
-         WRITE(6,90     ) 'Ship and Plane Emissions' 
-         WRITE(6,100    ) '  EDGAR ship emissions        :', LSHIPEDG 
-         WRITE(6,100    ) '  ICOADS ship emissions       :', LSHIPICO 
-         WRITE(6,100    ) '  Aviation emissions          :', LPLANE 
          WRITE(6, 90    ) 'Tagged CO2 settings'
          WRITE(6,100    ) '  Save Fossil CO2 in Bckgrnd  :', LFFBKGRD 
          WRITE(6,100    ) '  Tag Biosphere/Ocean CO2     :', LBIOSPHTAG 
@@ -3292,7 +3376,7 @@
       !=================================================================
 #if defined( ESMF_ ) && defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! If we are connecting to the ESMF interface, we need to take
       ! the chemistry timestep as defined in the ESMF resource file.
@@ -3329,7 +3413,7 @@
       TS_CHEM                 = Input_Opt%TS_CHEM
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Current practice in the standard GEOS-Chem is to initialize 
       ! the field Input_OPt%TS_CHEM with the value read in from 
@@ -3383,6 +3467,199 @@
  140  FORMAT( A, F4.2 )
 
       END SUBROUTINE READ_CHEMISTRY_MENU  
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_radiation_menu
+!
+! !DESCRIPTION: Subroutine READ\_RADIATION\_MENU reads the RADIATION
+! MENU section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_RADIATION_MENU( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE CMN_FJX_MOD              ! Fast-JX flux diagnostics
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : SET_CT_RAD
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  18 Jun 2013 - D. Ridley   - Initial version
+!  03 Dec 2014 - M. Sulprizio- Now save fields to the Input_Opt object
+!  10 Dec 2014 - M. Sulprizio- Add error checks for RRTMG switches
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL            :: LRAD, LLWRAD, LSWRAD, LSKYRAD(2)
+      INTEGER            :: N
+      INTEGER            :: TS_RAD
+      CHARACTER(LEN=255) :: MSG, LOCATION
+
+      ! Arrays
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+
+      !=================================================================
+      ! READ_RADIATION_MENU begins here!
+      !=================================================================
+
+      ! Location for err msg
+      LOCATION = 'READ_RADIATION_MENU ("input_mod.f")'
+
+      ! Error check
+      IF ( CT1 /= 2 ) THEN
+         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         CALL ERROR_STOP( MSG, 'READ_RADIATION_MENU ("input_mod.f")' )
+      ENDIF
+
+      ! AOD wavelength selection?
+      CALL SPLIT_ONE_LINE( SUBSTRS, NWVSELECT,
+     &                     -1, 'read_radiation_menu:1' )
+      STRWVSELECT(1)=''
+      STRWVSELECT(2)=''
+      STRWVSELECT(3)=''
+
+      DO N = 1, NWVSELECT
+         READ( SUBSTRS(N), * ) WVSELECT(N)
+         ! save the string version also
+         STRWVSELECT(N) = TRIM(SUBSTRS(N))
+      ENDDO
+
+      ! Turn on RRTMG?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:2' )
+      READ( SUBSTRS(1:N), * ) LRAD
+
+      ! Turn on LW radiation calculation?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:3' )
+      READ( SUBSTRS(1:N), * ) LLWRAD
+
+      ! Turn on SW radiation calculation?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:4' )
+      READ( SUBSTRS(1:N), * ) LSWRAD
+
+      ! Calculate for clear-sky?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:5' )
+      READ( SUBSTRS(1:N), * ) LSKYRAD(1)
+
+      ! Calculate for all-sky?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:6' )
+      READ( SUBSTRS(1:N), * ) LSKYRAD(2)
+
+      ! Radiation timestep?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:7' )
+      READ( SUBSTRS(1:N), * ) TS_RAD
+
+      ! Selection of species flux changes
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, NSPECRADMENU,
+     &                     'read_radiation_menu:8' )
+      DO N = 1, NSPECRADMENU
+       READ( SUBSTRS(N), * ) LSPECRADMENU(N)
+      ENDDO
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:9' )
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:11' )
+
+      !=================================================================
+      ! Error check settings
+      !=================================================================       
+
+      ! Use of RRTMG necessitates recompilation 
+#if !defined( RRTMG )
+      IF ( LRAD ) THEN
+         MSG = 'LRAD=T but RRTMG not defined at compile time!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+#else
+      IF ( .not. LRAD ) THEN
+         MSG = 'LRAD=F but RRTMG defined at compile time!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+#endif
+
+      ! Make sure radiation switches are turned off if RRTMG is off
+      IF ( ( .not. LRAD ) .and. LLWRAD ) THEN
+         MSG = 'Cannot have LW fluxes turned on without RRTMG'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+      IF ( ( .not. LRAD ) .and. LSWRAD ) THEN
+         MSG = 'Cannot have SW fluxes turned on without RRTMG'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+      IF ( ( .not. LRAD ) .and. LSKYRAD(1) ) THEN
+         MSG = 'Cannot have clear-sky flux turned on without RRTMG'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+      IF ( ( .not. LRAD ) .and. LSKYRAD(2) ) THEN
+         MSG = 'Cannot have all-sky flux turned on without RRTMG'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LRAD       = LRAD
+      Input_Opt%LLWRAD     = LLWRAD
+      Input_Opt%LSWRAD     = LSWRAD
+      Input_Opt%LSKYRAD(1) = LSKYRAD(1)
+      Input_Opt%LSKYRAD(2) = LSKYRAD(2)
+      Input_Opt%TS_RAD     = TS_RAD
+
+      ! Return success
+      RC                   = GIGC_SUCCESS
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      WRITE( 6, '(/,a)' ) 'RADIATION MENU'
+      WRITE( 6, '(  a)' ) '--------------'
+      DO N=1, NWVSELECT
+      WRITE( 6, 115     ) 'AOD output wavelength (nm)  : ', WVSELECT(N)
+      ENDDO
+      WRITE( 6, 100     ) 'Turn on radiation?          : ', LRAD
+      WRITE( 6, 100     ) 'Consider LW                 : ', LLWRAD
+      WRITE( 6, 100     ) 'Consider SW                 : ', LSWRAD
+      WRITE( 6, 125     ) 'Clear-sky/All-sky           : ',
+     &                    LSKYRAD(1),'/',LSKYRAD(2)
+      WRITE( 6, 110     ) 'Radiation timestep [min]    : ', TS_RAD
+      WRITE( 6, 120     ) 'Flux output selection       : ', LSPECRADMENU
+
+      ! FORMAT statements
+ 100  FORMAT( A, L5  )
+ 110  FORMAT( A, I5  )
+ 115  FORMAT( A, F7.1)
+#if defined( UCX )
+ 120  FORMAT( A, 11I1 )
+#else
+ 120  FORMAT( A, 10I1 )
+#endif
+ 125  FORMAT( A,L5,A,L5 )
+
+      END SUBROUTINE READ_RADIATION_MENU
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3503,7 +3780,7 @@
       MAX_DYN = 10
 #elif defined( GRID1x1   ) 
       MAX_DYN = 10
-#elif defined( GRID05x0666   )
+#elif defined( GRID05x0666   ) || defined( GRID05x0625 )
       MAX_DYN = 10 
 #elif defined( GRID025x03125 )
       MAX_DYN = 5
@@ -3522,7 +3799,7 @@
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! If we are connecting to the ESMF interface, we need to take
       ! the dynamic timestep as defined in the ESMF resource file.
@@ -3540,7 +3817,7 @@
       ! Also pass the chemistry timestep value directly to module
       ! GeosUtil/time_mod.F via subroutine ACCEPT_EXTERNAL_DATE_TIME.
       !
-      ! Ideallly it would be good to have one single version of 
+      ! Ideally it would be good to have one single version of 
       ! "input.geos" that can double as the GEOS-Chem input file as 
       ! well as the ESMF resource.  We may be a way off from that.
       ! One potential solution is to use a Perl script to generate
@@ -3556,10 +3833,13 @@
       !-----------------------------------------------------------------
       
       ! Save to local variables for printing below
+      ! In GCHP, this is irrelevant since dynamics is a separate ESMF
+      ! component. It's settings cannot be controlled through the
+      ! chemistry component (where we are now) - MSL.
       TS_DYN                = Input_Opt%TS_DYN
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Current practice in the standard GEOS-Chem is to initialize 
       ! the field Input_Optt%TS_DYN with the value read in from 
@@ -3570,9 +3850,11 @@
 #endif
 
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error
+      IF ( .not. Input_Opt%HPC ) THEN
       IF ( Input_Opt%TS_DYN > MAX_DYN .and. LTRAN ) THEN
-         MSG = 'Transport timestep is too big!'
+         write(*,*) '<>', Input_Opt%TS_DYN, Input_Opt%HPC
          CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
       ENDIF
 
       ! Return success
@@ -3604,6 +3886,9 @@
       ! Pass parameters to "transport_mod.f"
       CALL SET_TRANSPORT( IORD, JORD, KORD )
 #endif
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       END SUBROUTINE READ_TRANSPORT_MENU
 !EOC
@@ -3655,6 +3940,7 @@
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  01 Mar 2013 - R. Yantosca - Now set TS_CONV to the same value as TS_DYN
 !                              when connecting to the GEOS-5 GCM. 
+!  12 Aug 2015 - R. Yantosca - Now allow non-local PBL mixing for MERRA2 met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3702,13 +3988,13 @@
       ! Further error checks and initializations
       !=================================================================
 
-#if !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
+#if !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
       ! The non-local PBL scheme is valid only with GEOS-5/MERRA/GEOS-FP
       IF ( LNLPBL ) THEN
          IF( am_I_Root ) THEN
             WRITE(6,*) REPEAT( '=', 79 )
             WRITE(6,*) 'The non-local PBL scheme is only valid for'
-            WRITE(6,*) 'GEOS-5, GEOS-FP, and MERRA met fields!'
+            WRITE(6,*) 'GEOS-5, GEOS-FP, MERRA, and MERRA2 met fields!'
             WRITE(6,*) 'LNLPBL is automatically turned to false !'
             WRITE(6,*) REPEAT( '=', 79 )
          ENDIF
@@ -3725,7 +4011,8 @@
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
+      !
       ! In an ESMF environment, all time steps must become defined 
       ! externally previous to the READ_INPUT_FILE call!
       ! (ckeller, 11/24/14)
@@ -3738,6 +4025,7 @@
 #endif
 
       ! Return success
+    
       RC = GIGC_SUCCESS
 
       !=================================================================
@@ -3776,12 +4064,7 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE DRYDEP_MOD,  ONLY : INIT_DRYDEP
-      USE WETSCAV_MOD, ONLY : WETDEPID
-#if   defined( APM )
-      USE APM_WETS_MOD, ONLY : WETDEPBINID
-#endif
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -3816,6 +4099,11 @@
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !  25 Jun 2014 - R. Yantosca - Now set USE_OLSON_2001 = T for GEOS-FP met;
 !                              this was originally done in INIT_INPUT
+!  05 Mar 2015 - C. Keller   - Added PBL_DRYDEP to define if dry 
+!                              deposition rates are calculated over
+!                              full PBL or 1st model level only.
+!                              Set to .TRUE. (full PBL) if full PBL
+!                              mixing is used, to false otherwise.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3866,7 +4154,7 @@
       IF ( Input_Opt%ITS_A_C2H6_SIM    ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_CH4_SIM     ) Input_Opt%LWETD = .FALSE.
 
-#if   defined( GEOS_FP ) 
+#if   defined( GEOS_FP ) || defined( MERRA2 )
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%% KLUDGE FOR TESTING GEOS-FP (bmy, 3/26/12)
       !%%% Use the Olson 2001 land map, which is at 0.25 x 0.25 resolution
@@ -3876,6 +4164,17 @@
       Input_Opt%USE_OLSON_2001 = .TRUE.
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #endif
+
+      ! Set the PBL drydep flag. This determines if dry deposition is 
+      ! applied (and drydep frequencies are calculated) over the entire 
+      ! PBL or the first model layer only. For now, set this value 
+      ! automatically based upon the selected PBL scheme: 1st model layer 
+      ! for the non-local PBL scheme, full PBL for the full-mixing scheme.
+      IF ( Input_Opt%LNLPBL ) THEN 
+         Input_Opt%PBL_DRYDEP = .FALSE.
+      ELSE
+         Input_Opt%PBL_DRYDEP = .TRUE.
+      ENDIF 
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -3888,6 +4187,8 @@
          WRITE( 6, '(  a)' ) '---------------'
          WRITE( 6, 100     ) 'Turn on dry deposition?     : ', 
      &                        Input_Opt%LDRYD
+         WRITE( 6, 100     ) 'Dry dep over full PBL?      : ', 
+     &                        Input_Opt%PBL_DRYDEP
          WRITE( 6, 100     ) 'Turn on wet deposition?     : ', 
      &                        Input_Opt%LWETD
          WRITE( 6, 100     ) 'Use Olson 2001 land map?    : ', 
@@ -3897,42 +4198,6 @@
       ! FORMAT statements
  100  FORMAT( A, L5 )
  110  FORMAT( A, I5 )
-
-      !=================================================================
-      ! Call setup routines from other F90 modules
-      !=================================================================
-
-      ! Initialize dry deposition arrays
-      IF ( Input_Opt%LDRYD ) THEN
-
-         ! Setup for dry deposition
-         CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
-      
-         ! Print extra info message for Hg simulation
-         IF ( Input_Opt%ITS_A_MERCURY_SIM  .and. 
-     &        Input_Opt%LSPLIT            ) THEN
-            WRITE ( 6, 120 )
-            WRITE ( 6, 121 )
-         ENDIF
-      ENDIF
-
-      ! Initialize wet deposition tracers
-      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
-         CALL WETDEPID( am_I_Root, Input_Opt, RC )
-      ENDIF
-
-#if   defined( APM )
-      ! Initialize wet deposition tracers for APM
-      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
-         CALL WETDEPBINID
-      ENDIF
-#endif
-
-      ! FORMAT strings
- 120  FORMAT( /, 'All tagged Hg2 tracers have the same dep velocity '
-     &           'as the total Hg2 tracer.' )
- 121  FORMAT( 'All tagged HgP tracers have the same dep velocity '
-     &        'as the total HgP tracer.' )
 
       END SUBROUTINE READ_DEPOSITION_MENU
 !EOC
@@ -4116,7 +4381,7 @@
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
       ! When we connect to the GEOS-5 GCM via ESMF, we let the GCM
       ! handle all timing and diagnostic output via the GEOS-5 History
@@ -4126,7 +4391,7 @@
       !-----------------------------------------------------------------
 #else
       !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
       !
       ! Current practice in the std GEOS-Chem is to not let the run
       ! proceed unless the user has scheduled output for the last day.
@@ -4169,11 +4434,8 @@
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE FILE_MOD,     ONLY : IU_BPCH
       USE TIME_MOD,     ONLY : GET_NYMDb, GET_NHMSb, EXPAND_DATE
-      USE TRACERID_MOD, ONLY : NEMANTHRO
-      USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
-
       USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! NDxx flags
+      USE CMN_DIAG_MOD       ! NDxx flags, TINDEX, TCOUNT, TMAX
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -4221,6 +4483,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  06 Mar 2013 - H. Amos     - merge C. Friedman's POP code
 !  08 Nov 2013 - M. Sulprizio- Remove HR1_NO, and HR2_NO from ND43 diagnostic.
 !  03 Feb 2014 - R. Yantosca - Remove references to TINDEX, TCOUNT, and TMAX
 !                              from diag_mod.  They are in CMN_SIZE_mod.F.
@@ -4229,8 +4492,10 @@
 !  23 Jun 2014 - R. Yantosca - Now pass Input_Opt, RC to INIT_DIAG_OH
 !  24 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
-!  15 Jan 2015 - R. Yantosca - Now define Input_Opt%DIAG_COLLECTION
- 
+!  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND71 to ND72 to
+!                              avoid conflicts with hourly max ppbv diagnostic.
+!  15 Jan 2015 - R. Yantosca - Now define Input_Opt%DIAG_COLLECTION 
+!  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4243,11 +4508,6 @@
       !=================================================================
       ! READ_DIAGNOSTIC_MENU begins here!
       !=================================================================
-
-      ! Define collection number for netCDF diagnostics
-      ! (this number can be between 2 and 5)
-      !%%% NOTE, hardwire this for now, but eventually read from file
-      Input_Opt%DIAG_COLLECTION = 2
 
       ! Get fields from Input_Opt
       N_TRACERS = Input_Opt%N_TRACERS
@@ -4366,6 +4626,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:11' )
       READ( SUBSTRS(1), * ) ND09
+      ND09 = 0
       CALL SET_TINDEX( am_I_Root, 
      &     09, ND09, SUBSTRS(2:N), N-1, N_TRACERS+PD09 )
 
@@ -4630,7 +4891,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:37' )
       READ( SUBSTRS(1), * ) ND36
       CALL SET_TINDEX( am_I_Root, 
-     &                 36, ND36, SUBSTRS(2:N), N-1, NEMANTHRO )      
+     &                 36, ND36, SUBSTRS(2:N), N-1, N_TRACERS )      
 
       !--------------------------
       ! ND37: Updraft scav frac
@@ -4651,6 +4912,10 @@
       ENDIF
       CALL SET_TINDEX( am_I_Root, 38, ND38, SUBSTRS(2:N), N-1, N_TMP )
 
+      ! For netCDF diagnostics
+      Input_Opt%ND38_OUTPUT_FREQ = 'Daily'   ! Note, can change later
+      Input_Opt%ND38_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND39: Wet scav losses
       !--------------------------
@@ -4659,6 +4924,10 @@
       READ( SUBSTRS(1), * ) ND39
       IF ( .not. Input_Opt%LWETD ) ND39 = 0
       CALL SET_TINDEX( am_I_Root, 39, ND39, SUBSTRS(2:N), N-1, N_TMP )
+
+      ! For netCDF diagnostics
+      Input_Opt%ND39_OUTPUT_FREQ = 'Daily'   ! Note, can change later
+      Input_Opt%ND39_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
       ! ND41: Afternoon PBL ht
@@ -4854,6 +5123,10 @@
       READ( SUBSTRS(1), * ) ND68
       CALL SET_TINDEX( am_I_Root, 68, ND68, SUBSTRS(2:N), N-1, PD68 )
 
+      ! For netCDF diagnostics
+      Input_Opt%ND68_OUTPUT_FREQ = 'Daily'   ! Note, can change later
+      Input_Opt%ND68_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND69: Surface areas
       !--------------------------
@@ -4880,8 +5153,26 @@
       Input_Opt%ND71_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
       Input_Opt%ND71_OUTPUT_TYPE = 'Mean'
 
+      !--------------------------
+      ! ND72: Radiation output
+      !--------------------------
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:70' )
+      READ( SUBSTRS(1), * ) ND72
+
+      !output fields are nspecies*nradfields but user can only specify
+      !rad fields (e.g. SW TOA ALL-SKY) so we set the max to the total
+      !divided by number of allowed species (PD72R)
+      CALL SET_TINDEX( am_I_Root, 72, ND72, SUBSTRS(2:N), N-1, PD72R )
+
+      !If LRAD is on then ND72 must be on (so the diagnostic is
+      !available to write into). Check for this
+      IF ( (Input_Opt%LRAD) .AND. (ND72.EQ.0) ) THEN
+       MSG = 'If LRAD is true then ND72 diagnostic must be switched on'
+       CALL ERROR_STOP( MSG, 'READ_DIAGNOSTIC_MENU ("input_mod.f")' )
+      ENDIF
+
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:70' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:71' )
 
       !=================================================================
       ! Call other setup routines
@@ -4956,6 +5247,7 @@
       Input_Opt%ND69               = ND69
       Input_Opt%ND70               = ND70
       Input_Opt%ND71               = ND71
+      Input_Opt%ND72               = ND72
       Input_Opt%LPRT               = ( ND70 > 0 )
 
       ! Loop over # of diagnostics
@@ -5557,6 +5849,34 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd49_menu:8' )
+
+#if defined( MASSCONS )
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%  MASS CONSERVATION TEST:                                  %%%
+      !%%%  Always turn on ND49 for the mass conservation test.      %%%
+      !%%%  Also specify a single tracer for ND49 (in this case,     %%%
+      !%%%  it will be total CO2). (ewl, 6/24/15)                    %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+      ! Reset quantities: Turn on ND49 but with 1 tracer
+      DO_ND49    = .TRUE.
+      N_ND49     = 1
+      TRACERS    = 0
+      TRACERS(1) = 1
+
+      ! Print info to stdout stating that we have changed some quantities
+      WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+      WRITE( 6, 200   ) 
+      WRITE( 6, 205   )
+      WRITE( 6, 210   )
+      WRITE( 6, 215   )
+      WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+ 200  FORMAT( '%%% MASS CONSERVATION TEST'                         )
+ 205  FORMAT( '%%% Automatically reset these ND49 MENU settings: ' )
+ 210  FORMAT( '%%% DO_ND49 is now TRUE'                            )
+ 215  FORMAT( '%%% TRACERS is now 1 (i.e. Total CO2 only)'         )
+#endif
+
 
       !=================================================================
       ! Set fields of Input Options object
@@ -6719,6 +7039,7 @@
       INTEGER            :: I0W,         J0W,         I1 
       INTEGER            :: I2,          J1,          J2
       INTEGER            :: N,           TS
+      INTEGER            :: I0E,         J0E
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -6787,9 +7108,9 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:15' )
       READ( SUBSTRS(1:N), * ) I2, J2
 
-      ! 1x1 transport region offsets 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:16' )
-      READ( SUBSTRS(1:N), * ) I0W, J0W     
+      ! Nested grid transport offsets 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'read_nested_grid_menu:16' )
+      READ( SUBSTRS(1:N), * ) I0W, J0W, I0E, J0E
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:15' )
@@ -6797,20 +7118,22 @@
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
-      Input_Opt%LWINDO      = LWINDO
-      Input_Opt%LWINDO2x25  = LWINDO2x25
-      Input_Opt%LWINDO_NA   = LWINDO_NA
-      Input_Opt%LWINDO_EU   = LWINDO_EU
-      Input_Opt%LWINDO_CH   = LWINDO_CH
-      Input_Opt%LWINDO_SE   = LWINDO_SE
-      Input_Opt%LWINDO_CU   = LWINDO_CU
-      Input_Opt%NESTED_TS   = TS
-      Input_Opt%NESTED_I1   = I1
-      Input_Opt%NESTED_J1   = J1
-      Input_Opt%NESTED_I2   = I2
-      Input_Opt%NESTED_J2   = J2
-      Input_Opt%NESTED_I0W  = I0W
-      Input_Opt%NESTED_J0W  = J0W
+      Input_Opt%LWINDO     = LWINDO
+      Input_Opt%LWINDO2x25 = LWINDO2x25
+      Input_Opt%LWINDO_NA  = LWINDO_NA
+      Input_Opt%LWINDO_EU  = LWINDO_EU
+      Input_Opt%LWINDO_CH  = LWINDO_CH
+      Input_Opt%LWINDO_SE  = LWINDO_SE
+      Input_Opt%LWINDO_CU  = LWINDO_CU
+      Input_Opt%NESTED_TS  = TS
+      Input_Opt%NESTED_I1  = I1
+      Input_Opt%NESTED_J1  = J1
+      Input_Opt%NESTED_I2  = I2
+      Input_Opt%NESTED_J2  = J2
+      Input_Opt%NESTED_I0W = I0W
+      Input_Opt%NESTED_J0W = J0W
+      Input_Opt%NESTED_I0E = I0E
+      Input_Opt%NESTED_J0E = J0E
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -6827,20 +7150,22 @@
          WRITE( 6, 120 ) 'Timestep for 4x5 BC''s [min] : ', TS
          WRITE( 6, 120 ) 'Bot left  box of 4x5 BC area : ', I1,  J1
          WRITE( 6, 120 ) 'Top right box of 4x5 BC area : ', I2,  J2
-         WRITE( 6, 120 ) '1 x 1 window offsets         : ', I0W, J0W
+         WRITE( 6, 130 ) 'Nested grid window offsets   : ', I0W, J0W,
+     &                                                      I0E, J0E
       END IF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
  110  FORMAT( A, A   )
  120  FORMAT( A, 2I5 )
+ 130  FORMAT( A, 4I5 )
     
       !=================================================================
       ! Call setup routines from other F90 modules
       !=================================================================
 
       ! Pass values to "tpcore_bc_mod.f"
-      CALL INIT_TPCORE_BC( TS, I0W, J0W, I1, J1, I2, J2, Input_Opt )
+      CALL INIT_TPCORE_BC( am_I_Root, Input_Opt, RC )
 
       END SUBROUTINE READ_NESTED_GRID_MENU
 !EOC
@@ -6947,155 +7272,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_archived_oh_menu( am_I_Root )
-!
-! !DESCRIPTION: Subroutine READ\_ARCHIVED\_OH\_MENU reads the ARCHIVED OH MENU 
-!  section of the GEOS-Chem input file.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_ARCHIVED_OH_MENU( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
-!  20 Jul 2004 - R. Yantosca - Initial version
-!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-
-      !=================================================================
-      ! READ_ARCHIVED_OH_MENU begins here!
-      !=================================================================
-
-      ! Directory where offline OH files are stored
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%OH_DIR
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
-
-      ! Return success
-      RC = GIGC_SUCCESS
-
-      !=================================================================
-      ! Print to screen
-      !=================================================================
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(/,a)' ) 'ARCHIVED OH MENU'
-         WRITE( 6, '(  a)' ) '-----------------'          
-         WRITE( 6, 100 ) 'Dir w/ archived OH files    : ', 
-     &        TRIM( Input_Opt%OH_DIR )
-      ENDIF
-
-      ! FORMAT statements
- 100  FORMAT( A, A )
-    
-      END SUBROUTINE READ_ARCHIVED_OH_MENU
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_o3pl_menu
-!
-! !DESCRIPTION: Subroutine READ\_O3PL\_MENU reads the O3 P/L MENU section 
-!  of the GEOS-Chem input file.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_O3PL_MENU( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
-!  20 Jul 2004 - R. Yantosca - Initial version
-!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-
-      !=================================================================
-      ! READ_O3PL_MENU begins here!
-      !=================================================================
-
-      ! Directory where archived P(O3) and L(O3) files are stored
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%O3PL_DIR
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:2' )
-
-      ! Return success
-      RC = GIGC_SUCCESS
-
-      !=================================================================
-      ! Print to screen
-      !=================================================================
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(/,a)' ) 'ARCHIVED O3PL MENU'
-         WRITE( 6, '(  a)' ) '-------------------'          
-         WRITE( 6, 100     ) 'Dir w/ archived O3 P/L files: ', 
-     &                       TRIM( Input_Opt%O3PL_DIR )
-      ENDIF
-
-      ! FORMAT statements
- 100  FORMAT( A, A )
-    
-      END SUBROUTINE READ_O3PL_MENU
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: read_mercury_menu
 !
 ! !DESCRIPTION: Subroutine READ\_MERCURY\_MENU reads the BENCHMARK MENU 
@@ -7147,9 +7323,11 @@
       ! Scalars
       LOGICAL            :: LDYNOCEAN,      LPREINDHG
       LOGICAL            :: LGTMM,          USE_CHECKS
+      LOGICAL            :: LARCTICRIV,     LKRedUV
       INTEGER            :: ANTHRO_Hg_YEAR, N 
       CHARACTER(LEN=255) :: HG_SCENARIO
-      CHARACTER(LEN=255) :: Hg_RST_FILE
+      CHARACTER(LEN=255) :: IN_HG_RST_FILE
+      CHARACTER(LEN=255) :: OUT_HG_RST_FILE
       CHARACTER(LEN=255) :: GTMM_RST_FILE
 
       ! Arrays
@@ -7179,9 +7357,13 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read mercury_menu:5' )
       READ( SUBSTRS(1:N), * ) LPREINDHG
 
-      ! Name of ocean restart file
+      ! Name of input ocean restart file
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:6' )
-      READ( SUBSTRS(1:N), '(a)' ) Hg_RST_FILE
+      READ( SUBSTRS(1:N), '(a)' ) IN_HG_RST_FILE
+
+      ! Name of output ocean restart file
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:6' )
+      READ( SUBSTRS(1:N), '(a)' ) OUT_HG_RST_FILE
 
       ! Use GTMM ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:7' )
@@ -7191,13 +7373,23 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:8' )
       READ( SUBSTRS(1:N), * ) GTMM_RST_FILE
 
-      ! Separator line
+      ! Use Arctic river Hg?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:9' )
+      READ( SUBSTRS(1:N), * ) LARCTICRIV
+
+      ! Tie reducible HgII(aq) to UV-B?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:10' )
+      READ( SUBSTRS(1:N), * ) LKRedUV
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:11' )
 
       ! Check on logical
       IF (.NOT.( Input_Opt%ITS_A_MERCURY_SIM ) ) THEN
          LGTMM     = .FALSE.
          LDYNOCEAN = .FALSE.
+         LARCTICRIV = .FALSE.
+         LKRedUV    = .FALSE.
       ENDIF
 
       !=================================================================
@@ -7213,11 +7405,15 @@
          WRITE( 6, 110 ) 'Error check tag & total Hg? : ', USE_CHECKS
          WRITE( 6, 110 ) 'Use dynamic ocean Hg model? : ', LDYNOCEAN
          WRITE( 6, 110 ) 'Preindustrial simulation?   : ', LPREINDHG
-         WRITE( 6, 120 ) 'Ocean Hg restart file       : ',
-     &                    TRIM( Hg_RST_FILE )
+         WRITE( 6, 120 ) 'Input  ocean Hg restart file: ',
+     &                    TRIM( IN_HG_RST_FILE )
+         WRITE( 6, 120 ) 'Output ocean Hg restart file: ',
+     &                    TRIM( OUT_HG_RST_FILE )
          WRITE( 6, 110 ) 'Use GTMM ?                  : ', LGTMM
          WRITE( 6, 120 ) '=> GTMM restart file        : ',
      &                        TRIM( GTMM_RST_FILE )
+         WRITE( 6, 110 ) 'Use Arctic river Hg ?       : ', LARCTICRIV
+         WRITE( 6, 110 ) 'Tie HgII(aq) red. to UV-B?  : ', LKRedUV
       END IF
 
       ! FORMAT statements
@@ -7233,9 +7429,12 @@
       Input_Opt%USE_CHECKS     = USE_CHECKS
       Input_Opt%LDYNOCEAN      = LDYNOCEAN
       Input_Opt%LPREINDHG      = LPREINDHG
-      Input_Opt%Hg_RST_FILE    = Hg_RST_FILE
+      Input_Opt%In_HG_RST_FILE = IN_HG_RST_FILE
+      Input_Opt%OUT_HG_RST_FILE= OUT_HG_RST_FILE
       Input_Opt%LGTMM          = LGTMM
       Input_Opt%GTMM_RST_FILE  = GTMM_RST_FILE
+      Input_Opt%LARCTICRIV     = LARCTICRIV
+      Input_Opt%LKRedUV        = LKRedUV
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -7244,14 +7443,10 @@
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN 
 
          ! Initialize Mercury simulation routines
-         CALL INIT_MERCURY     ( am_I_Root, Input_Opt, RC )
-         CALL INIT_LAND_MERCURY( am_I_Root, Input_Opt, RC )
-         CALL INIT_DEPO_MERCURY( am_I_Root, Input_Opt, RC )
-
-         ! Initialize "ocean_mercury_mod.f"
-         IF ( LDYNOCEAN ) THEN
-            CALL INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, RC )
-         ENDIF
+         CALL INIT_MERCURY      ( am_I_Root, Input_Opt, RC )
+         CALL INIT_LAND_MERCURY ( am_I_Root, Input_Opt, RC )
+         CALL INIT_DEPO_MERCURY ( am_I_Root, Input_Opt, RC )
+         CALL INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, RC )
 
       ENDIF
 
@@ -7479,10 +7674,10 @@
       ! Scalars
       INTEGER            :: N
       LOGICAL            :: CHEM_PROCESS
-      REAL(fp)             :: POP_XMW, POP_KOA, POP_KBC
-      REAL(fp)             :: POP_K_POPG_OH
-      REAL(fp)             :: POP_K_POPP_O3A, POP_K_POPP_O3B
-      REAL(fp)             :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      REAL(fp)           :: POP_XMW, POP_KOA, POP_KBC
+      REAL(fp)           :: POP_K_POPG_OH
+      REAL(fp)           :: POP_K_POPP_O3A, POP_K_POPP_O3B
+      REAL(fp)           :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
       CHARACTER(LEN=3)   :: POP_TYPE
 
       ! Arrays
@@ -7763,6 +7958,8 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  20 Jun 2014 - R. Yantosca - Now use fields from Input_Opt
+!  05 Mar 2015 - R. Yantosca - Now also check CHEM_INPUTS_DIR
+!  12 Aug 2015 - R. Yantosca - Now validate Input_Opt%MERRA2_DIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7784,11 +7981,10 @@
       NYMDe = GET_NYMDe()
 
       ! Check directories
-      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%DATA_DIR     )
-      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%DATA_DIR_1x1 )
-      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%RUN_DIR      )
-      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%OH_DIR       )
-      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%O3PL_DIR     )
+      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%DATA_DIR        )
+      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%DATA_DIR_1x1    )
+      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%CHEM_INPUTS_DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%RUN_DIR         )
 
       ! Only validate the TEMP_DIR if we are unzipping met fields
       IF ( Input_Opt%LUNZIP ) THEN
@@ -7827,7 +8023,6 @@
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
-
       ! Check GEOS-4 met field directory (ending date)
       DIR = Input_Opt%GEOS_4_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
@@ -7864,28 +8059,41 @@
 
 #elif defined( MERRA )
 
-      ! Check GEOS-5 met field directory (starting date)
+      ! Check MERRA met field directory (starting date)
       DIR = Input_Opt%MERRA_DIR
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
-      ! Check GEOS-5 met field directory (ending date)
+      ! Check MERRA met field directory (ending date)
       DIR = Input_Opt%MERRA_DIR
+      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
+
+#elif defined( MERRA2 )
+
+      ! Check MERRA2 met field directory (starting date)
+      DIR = Input_Opt%MERRA2_DIR
+      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
+      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, DIR )
+
+      ! Check MERRA2 met field directory (ending date)
+      DIR = Input_Opt%MERRA2_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
 #elif defined( GCAP )
 
-      ! Check GEOS-5 met field directory (starting date)
+      ! Check GCAP met field directory (starting date)
       DIR = Input_Opt%GCAP_DIR
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR )
 
-
-      ! Check GEOS-5 met field directory (ending date)
+      ! Check GCAP met field directory (ending date)
       DIR = Input_Opt%GCAP_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
@@ -8022,7 +8230,7 @@
       LOGICAL :: LEMIS, LTRAN,       LTURB 
       INTEGER :: I,     J,           K 
       INTEGER :: L,     TS_SMALLEST, TS_DIAG
-      INTEGER :: TS_CHEM, TS_EMIS, TS_CONV, TS_DYN, TS_UNIT
+      INTEGER :: TS_CHEM, TS_EMIS, TS_CONV, TS_DYN, TS_UNIT, TS_RAD
 
       !=================================================================
       ! CHECK_TIME_STEPS begins here!
@@ -8040,6 +8248,7 @@
       TS_EMIS = Input_Opt%TS_EMIS
       TS_CONV = Input_Opt%TS_CONV
       TS_DYN  = Input_Opt%TS_DYN 
+      TS_RAD  = Input_Opt%TS_RAD
  
       ! NUNIT is time step in minutes for unit conversion
       TS_UNIT = -1
@@ -8162,7 +8371,8 @@
       CALL SET_TIMESTEPS( am_I_Root,
      &                    CHEMISTRY  = TS_CHEM, EMISSION  = TS_EMIS, 
      &                    DYNAMICS   = TS_DYN,  UNIT_CONV = TS_UNIT,
-     &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG)
+     &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG,
+     &                    RADIATION  = TS_RAD )
 
  100  FORMAT( A, ' time step must be a multiple of the smallest one:',
      &        i5, i5 )
@@ -8252,21 +8462,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GIGC_Init_Extra( am_I_Root, Input_Opt, RC )
+      SUBROUTINE GIGC_Init_Extra( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
       USE Aerosol_Mod,        ONLY : Init_Aerosol
       USE Carbon_Mod,         ONLY : Init_Carbon
+      USE CO2_Mod,            ONLY : Init_CO2
       USE C2H6_Mod,           ONLY : Init_C2H6
       USE Chemgrid_Mod,       ONLY : Init_Chemgrid
       USE Drydep_Mod,         ONLY : Init_Drydep
       USE Dust_Mod,           ONLY : Init_Dust
       USE Error_Mod,          ONLY : Debug_Msg
+      USE Gamap_Mod,          ONLY : Do_Gamap
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE Global_CH4_Mod,     ONLY : Init_Global_CH4
-      USE HCN_CH3CN_Mod,      ONLY : Init_HCN_CH3CN
       USE Linoz_Mod,          ONLY : Init_Linoz
       USE Modis_Lai_Mod,      ONLY : Init_Modis_Lai
       USE POPs_Mod,           ONLY : Init_POPs
@@ -8274,7 +8486,12 @@
       USE Sulfate_Mod,        ONLY : Init_Sulfate
       USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
       USE Tagged_Ox_Mod,      ONLY : Init_Tagged_Ox
+      USE Toms_Mod,           ONLY : Init_Toms
       USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
+      USE WetScav_Mod,        ONLY : Init_WetScav
+!#if   defined( APM )
+!      USE APM_WETS_MOD, ONLY : WETDEPBINID
+!#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -8283,6 +8500,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -8311,6 +8529,16 @@
 !  25 Jun 2014 - R. Yantosca - Now call INIT_MODIS_LAI      
 !  25 Jun 2014 - R. Yantosca - Now call SET_VDIFF_VALUES (vdiff_pre_mod.F90)
 !  25 Aug 2014 - M. Sulprizio- Now call INIT_POPS
+!  16 Mar 2015 - R. Yantosca - Now call INIT_TOMS here
+!  28 Aug 2015 - R. Yantosca - Now initialize drydep & wetdep here, so that
+!                              we can take advantage of the species database
+!  03 Sep 2015 - R. Yantosca - Now call INIT_WETSCAV instead of WETDEPID
+!  21 Sep 2015 - R. Yantosca - Now pass State_Chm to INIT_POPS
+!  22 Sep 2015 - R. Yantosca - Bug fix: only call INIT_WETSCAV if convection,
+!                              wetdep, or chemistry ist turned on.  This
+!                              replicates the prior behavior,
+!  23 Sep 2015 - R. Yantosca - Now pass State_Chm to INIT_SEASALT
+!  23 Sep 2015 - R. Yantosca - Now pass State_Chm to INIT_SULFATE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8329,17 +8557,63 @@
       ! Set a flag for debugging
       prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
 
+      !=================================================================
+      ! Call setup routines for drydep and wetdep
+      !=================================================================
+
+      ! Initialize dry deposition arrays
+      IF ( Input_Opt%LDRYD ) THEN
+
+         ! Setup for dry deposition
+         CALL Init_DryDep( am_I_Root, Input_Opt, State_Chm, RC )
+      
+         ! Print extra info message for Hg simulation
+         IF ( Input_Opt%ITS_A_MERCURY_SIM  .and. 
+     &        Input_Opt%LSPLIT            ) THEN
+            WRITE ( 6, 120 )
+            WRITE ( 6, 121 )
+         ENDIF
+      ENDIF
+
+      ! FORMAT strings
+ 120  FORMAT( /, 'All tagged Hg2 tracers have the same dep velocity '
+     &           'as the total Hg2 tracer.' )
+ 121  FORMAT( 'All tagged HgP tracers have the same dep velocity '
+     &        'as the total HgP tracer.' )
+
+      ! We need to initialize the wetdep module if either wet deposition 
+      ! or convection is turned on, so that we can do the large-scale and 
+      ! convective scavenging.  Also initialize the wetdep module if both 
+      ! wetdep and convection are turned off, but chemistry is turned on.
+      ! The INIT_WETSCAV routine will also allocate the H2O2s and SO2s 
+      ! arrays that are referenced in the convection code. (bmy, 9/23/15)
+      IF ( Input_Opt%LCONV   .or. 
+     &     Input_Opt%LWETD   .or.    
+     &     Input_Opt%LCHEM ) THEN
+         CALL Init_WetScav( am_I_Root, Input_Opt, State_Chm, RC )
+      ENDIF
+         
+! This might be obsolete now
+!#if   defined( APM )
+!     ! Initialize wet deposition tracers for APM
+!      IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
+!         CALL WETDEPBINID
+!      ENDIF
+!#endif
+
+      !=================================================================
+      ! Call setup routines from other F90 modules
+      !=================================================================
+
       ! Initialize the MODIS leaf area index module
-      CALL INIT_MODIS_LAI( am_I_Root, Input_Opt, RC )
+      CALL Init_Modis_LAI( am_I_Root, Input_Opt, RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
       ! Call SET_VDIFF_VALUES so that we can pass several values from 
       ! Input_Opt to the vdiff_mod.F90.  This replaces the funcitionality
       ! of logical_mod.F and tracer_mod.F..  This has to be called
       ! after the input.geos file has been read from disk.
-      CALL Set_VDIFF_VALUES( am_I_Root, Input_Opt, RC )
-
-      !%%% NOTE: Should call INIT_PBL_MIX etc from here %%%
+      CALL Set_Vdiff_Values( am_I_Root, Input_Opt, RC )
 
       ! Initialize "carbon_mod.F"
       IF ( Input_Opt%LCARB ) THEN
@@ -8350,28 +8624,28 @@
     
       ! Initialize "dust_mod.F"
       IF ( Input_Opt%LDUST ) then
-         CALL Init_Dust( am_I_Root, Input_Opt, RC )
+         CALL Init_Dust( am_I_Root, Input_Opt, State_Chm, RC )
          IF ( RC /= GIGC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_DUST' )
       ENDIF
 
       ! Initialize "seasalt_mod.F
       IF ( Input_Opt%LSSALT ) THEN
-         CALL Init_Seasalt( am_I_Root, Input_Opt, RC )
+         CALL Init_Seasalt( am_I_Root, Input_Opt, State_Chm, RC )
          IF ( RC /= GIGC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SEASALT' )
       ENDIF
 
       ! Initialize "sulfate_mod.F"
       IF ( Input_Opt%LSULF ) THEN
-         CALL Init_Sulfate( am_I_Root, Input_Opt, RC )
+         CALL Init_Sulfate( am_I_Root, Input_Opt, State_Chm, RC )
          IF ( RC /= GIGC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SULFATE' )
       ENDIF
 
       ! Initialize "aerosol_mod.F"
       IF ( Input_Opt%LSULF .or. Input_Opt%LCARB   .or. 
-     &     Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
+     &     Input_Opt%LDUST .or. Input_Opt%LSSALT) THEN
          CALL Init_Aerosol( am_I_Root, Input_Opt, RC )
          IF ( RC /= GIGC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_AEROSOL' )
@@ -8379,13 +8653,17 @@
 
       ! Initialize "linoz_mod.F"
       IF ( Input_Opt%LLINOZ ) THEN
-         CALL INIT_LINOZ( am_I_Root, Input_Opt, RC )
+         CALL Init_Linoz( am_I_Root, Input_Opt, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_LINOZ' )
       ENDIF
 
       ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
-      CALL INIT_CHEMGRID( am_I_Root, Input_Opt, RC )
+      CALL Init_ChemGrid( am_I_Root, Input_Opt, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_CHEMGRID' )
+
+      ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
+      CALL Init_Toms( am_I_Root, Input_Opt, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_TOMS' )
 
       !-----------------------------------------------------------------
       ! Also initialize specialty simulation modules here
@@ -8394,36 +8672,47 @@
       ! POPS modules are initialized in READ_POPS_MENU
       !-----------------------------------------------------------------
 
+      ! Initialize "co2_mod.F"
+      IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
+         CALL Init_CO2( am_I_Root, Input_Opt, RC )
+      ENDIF
+
       ! Initialize "c2h6_mod.F"
       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. 
      &     Input_Opt%ITS_A_C2H6_SIM     ) THEN
-         CALL INIT_C2H6( am_I_Root, Input_Opt, RC )
+         CALL Init_C2H6( am_I_Root, Input_Opt, RC )
       ENDIF
 
       ! Initialize "global_ch4_mod.F"
       IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-         CALL INIT_GLOBAL_CH4( am_I_Root, Input_Opt, RC )
-      ENDIF
-
-      ! Initialize "hcn_ch3cn_mod.F"
-      IF ( Input_Opt%ITS_A_HCN_SIM ) THEN
-         CALL INIT_HCN_CH3CN( am_I_Root, Input_Opt, RC )
+         CALL Init_Global_Ch4( am_I_Root, Input_Opt, RC )
       ENDIF
 
       ! Initialize "tagged_co_mod.F"
       IF ( Input_Opt%ITS_A_TAGCO_SIM   .or.
      &     Input_Opt%ITS_A_H2HD_SIM  ) THEN
-         CALL INIT_TAGGED_CO( am_I_Root, Input_Opt, RC )
+         CALL Init_Tagged_CO( am_I_Root, Input_Opt, RC )
       ENDIF
 
       ! Initialize "tagged_ox_mod.F"
       IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
-         CALL INIT_TAGGED_OX( am_I_Root, Input_Opt, RC )
+         CALL Init_Tagged_Ox( am_I_Root, Input_Opt, RC )
       ENDIF
 
       IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
-         CALL INIT_POPS( am_I_Root, Input_Opt, RC )
+         CALL Init_POPs( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
+
+      !=================================================================
+      ! Initialize GEOS-Chem bpch diagnostics here.  This allows us to
+      ! take advantage of the species database object. (bmy, 8/31/15)
+      !=================================================================
+
+      ! Allocate and initialize variables
+      CALL NDXX_SETUP( am_I_Root, Input_Opt, State_Chm, RC )
+
+      ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
+      CALL DO_GAMAP( am_I_Root, Input_Opt, State_Chm, RC )
 
       END SUBROUTINE GIGC_Init_Extra
 !EOC

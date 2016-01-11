@@ -326,11 +326,14 @@
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE m_netcdf_io_open
+      USE m_netcdf_io_read
+      USE m_netcdf_io_readattr
+      USE m_netcdf_io_close
 !
 ! !INPUT PARAMETERS:
 !     
@@ -341,6 +344,13 @@
 !
       INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
 ! 
+! !REMARKS:
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+!
 ! !REVISION HISTORY: 
 !  13 Dec 1999 - Q. Li, R. Yantosca - Initial version
 !  (1 ) Call READ_BPCH2 to read in the annual mean tropopause data
@@ -374,6 +384,8 @@
 !  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!  06 Mar 2015 - R. Yantosca - Now read ann mean trop from netCDF 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -383,6 +395,13 @@
       INTEGER            :: I, J, COUNT
       REAL(f4)           :: ARRAY(IIPAR,JJPAR,1)
       CHARACTER(LEN=255) :: FILENAME
+
+      ! Variables for netCDF
+      INTEGER            :: fId                 ! netCDF file ID
+      INTEGER            :: st3d(3), ct3d(3)    ! For 3D arrays 
+      CHARACTER(LEN=255) :: v_name              ! netCDF variable name 
+      CHARACTER(LEN=255) :: a_name              ! netCDF attribute name
+      CHARACTER(LEN=255) :: a_val               ! netCDF attribute value
 
       !=================================================================
       ! READ_TROPOPAUSE begins here!
@@ -394,21 +413,54 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-      ! Create filename
-      FILENAME = TRIM( Input_Opt%DATA_DIR )            // 
-     &           'ann_mean_trop_200202/ann_mean_trop.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+      !=================================================================
+      ! Open and read data from the netCDF file
+      !=================================================================
 
-      ! Write file name to stdout
+      ! Create filename
+      FILENAME = TRIM( Input_Opt%CHEM_INPUTS_DIR )      // 
+     &           'ann_mean_trop_200202/ann_mean_trop.'  //
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
+
+      ! Open netCDF file
+      CALL Ncop_Rd( fId, TRIM( FILENAME ) )
+      
+      ! Echo info to stdout
       IF ( am_I_Root ) THEN
-         WRITE( 6, 110 ) TRIM( FILENAME )
- 110     FORMAT( '     - READ_TROPOPAUSE: Reading ', a )
+         WRITE( 6, 200 ) REPEAT( '%', 79 )
+         WRITE( 6, 210 ) TRIM( FILENAME )
+      ENDIF
+    
+      !----------------------------------------
+      ! VARIABLE: TP_LEVEL
+      !----------------------------------------
+
+      ! Variable and attribute names
+      v_name = "TP_LEVEL"
+      a_name = "units"
+
+      ! Read TP_LEVEL from file
+      st3d   = (/ 1,     1,     1 /)
+      ct3d   = (/ IIPAR, JJPAR, 1 /)
+      CALL NcRd( ARRAY, fId, TRIM( v_name ), st3d, ct3d )
+      
+      ! Read the TP_LEVEL:units attribute
+      a_name = "units"
+      CALL NcGet_Var_Attributes(fId, TRIM(v_name), TRIM(a_name), a_val)
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN 
+         WRITE( 6, 220 ) TRIM(v_name), TRIM(a_val)
       ENDIF
 
-      ! Annual mean tropopause is tracer #1  
-      CALL READ_BPCH2( FILENAME, 'TR-PAUSE', 1, 
-     &                 0e+0_f8,   IIPAR,     JJPAR,     
-     &                 1,         ARRAY,     QUIET=.TRUE. )
+      ! Close netCDF file
+      CALL NcCl( fId )
+    
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN 
+         WRITE( 6, 230 )
+         WRITE( 6, 200 ) REPEAT( '%', 79 )
+      ENDIF
 
       ! Copy from REAL*4 to INTEGER and resize to (IIPAR,JJPAR)
       TROPOPAUSE = ARRAY(:,:,1)
@@ -465,6 +517,11 @@
        WRITE( 6, 150 ) ( IIPAR * JJPAR * LLPAR ) - COUNT
  150   FORMAT( '     - READ_TROPOPAUSE: # of stratospheric boxes: ', i8)
       ENDIF
+
+ 200  FORMAT( a                                              )
+ 210  FORMAT( '%% Opening file  : ',         a               )
+ 220  FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
+ 230  FORMAT( '%% Successfully closed file!'                 )
 
       END SUBROUTINE READ_TROPOPAUSE
 !EOC
@@ -694,7 +751,6 @@
 !
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 
       USE CMN_SIZE_MOD             ! Size parameters
 !
@@ -713,6 +769,8 @@
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  10 Sep 2010 - R. Yantosca - Update comments, remove obsolete documentation
 !  21 Feb 2014 - M. Sulprizio- Now pass State_Met object via the arg list
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -738,7 +796,7 @@
          DO
 
             ! Pressure [hPa] at the bottom edge of grid box (I,J,L) 
-            PRESS_BEDGE = GET_PEDGE( I, J, L )
+            PRESS_BEDGE = State_Met%PEDGE( I, J, L )
 
             ! Break out of this loop if we encounter the box (I,J,L_TP)
             ! where the tropopause occurs.  This box is partially in the
@@ -797,7 +855,6 @@
 ! !USES:
 !
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
 !
 ! !INPUT PARAMETERS: 
 !
@@ -818,6 +875,8 @@
 !  (1 ) Modified for variable tropopause (phs, 9/14/06)
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  21 Feb 2014 - M. Sulprizio- Now pass State_Met object via the arg list
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -832,7 +891,7 @@
       IF ( LVARTROP ) THEN
 
          ! Get bottom pressure edge
-         PRESS_BEDGE = GET_PEDGE(I,J,L)
+         PRESS_BEDGE = State_Met%PEDGE(I,J,L)
 
          ! Check against actual tropopause pressure
          IS_TROP     = ( PRESS_BEDGE > State_Met%TROPP(I,J) )
@@ -1110,8 +1169,6 @@
       USE CMN_DIAG_MOD             ! Diagnostic switches
       USE DIAG_MOD,           ONLY : AD55
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1161,11 +1218,14 @@
 !  10 Sep 2010 - R. Yantosca - Renamed to DIAG_TROPOPAUSE and bundled into
 !                              tropopause_mod.f
 !  21 Feb 2014 - M. Sulprizio- Now pass State_Met object via the arg list
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
+!                              State_Met%PEDGE and State_Met%PMID.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 !
 ! !LOCAL VARIABLES:
 ! 
@@ -1202,8 +1262,8 @@
 
             ! Get the pressures [hPa] at the bottom and top edges
             ! of the grid box in which the tropopause occurs
-            Pb   = GET_PEDGE( I, J, L_TP   )  
-            Pt   = GET_PEDGE( I, J, L_TP+1 )
+            Pb   = State_Met%PEDGE( I, J, L_TP   )  
+            Pt   = State_Met%PEDGE( I, J, L_TP+1 )
 
             ! FRAC is the fraction of the grid box (I,J,L_TP) 
             ! that lies totally within the troposphere
@@ -1292,7 +1352,7 @@
             ! tropopause level.  Archive the pressure at the midpoint
             ! of the level in which the tropopause occurs.  NOTE: this may
             ! result in lower minimum tropopause pressure than reality.
-            AD55(I,J,3) = AD55(I,J,3) + GET_PCENTER(I,J,L)
+            AD55(I,J,3) = AD55(I,J,3) + State_Met%PMID(I,J,L)
 
          ENDDO
          ENDDO

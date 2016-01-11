@@ -41,6 +41,7 @@
 #  18 Sep 2013 - M. Long     - Add Makefile target "hpc"
 #  15 Jan 2014 - R. Yantosca - Updated comments
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
+#  04 Jun 2015 - R. Yantosca - Now add "wipeout" and "debug" targets
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -56,8 +57,9 @@ GTMM    :=GTMM
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: all lib libkpp libnc libutil exe clean realclean doc docclean help
-.PHONY: tauclean
+.PHONY: all lib libcore libheaders libkpp libiso libnc librad libutil
+.PHONY: exe clean realclean doc docclean tauclean help wipeout debug
+.PHONY: realclean_except_rrtmg
 
 all:
 	@$(MAKE) -C $(GEOSDIR) all
@@ -71,6 +73,9 @@ lib:
 libcore:
 	@$(MAKE) -C $(GEOSDIR) libcore
 
+libheaders:
+	@$(MAKE) -C $(GEOSDIR) libheaders
+
 libiso:
 	@$(MAKE) -C $(GEOSDIR) libiso
 
@@ -83,11 +88,11 @@ libnc:
 ncdfcheck:
 	@$(MAKE) -C $(GEOSDIR) ncdfcheck
 
+librad:
+	@$(MAKE) -C $(GEOSDIR) librad
+
 libutil:
 	@$(MAKE) -C $(GEOSDIR) libutil
-
-libheaders:
-	@$(MAKE) -C $(GEOSDIR) libheaders
 
 exe:
 	@$(MAKE) -C $(GEOSDIR) exe
@@ -101,6 +106,9 @@ distclean:
 realclean:
 	@$(MAKE) -C $(GEOSDIR) realclean
 
+realclean_except_rrtmg:
+	@$(MAKE) -C $(GEOSDIR) realclean_except_rrtmg
+
 doc:
 	@$(MAKE) -C $(GEOSDIR) doc
 
@@ -109,6 +117,12 @@ docclean:
 
 tauclean:
 	find . -name '*.pdb' -o -name '*.inst.*' -o -name '*.pp.*' -o -name '*.continue.*' | xargs rm -f
+
+debug:
+	@$(MAKE) -C $(GEOSDIR) debug
+
+wipeout:
+	@$(MAKE) -C $(GEOSDIR) wipeout
 
 help:
 	@$(MAKE) -C $(GEOSDIR) help

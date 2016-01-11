@@ -27,29 +27,14 @@
 !
       PUBLIC  :: AVGPOLE
       PUBLIC  :: AIRQNT
-      PUBLIC  :: AIRQNT_FULLGRID
-      PUBLIC  :: CLEANUP_DAO
-      PUBLIC  :: CONVERT_UNITS
       PUBLIC  :: COPY_I3_I6_FIELDS
       PUBLIC  :: GET_COSINE_SZA
       PUBLIC  :: GET_OBK
       PUBLIC  :: INTERP
-      PUBLIC  :: INIT_DAO
       PUBLIC  :: IS_LAND
       PUBLIC  :: IS_WATER
       PUBLIC  :: IS_ICE
-      PUBLIC  :: IS_NEAR
-      PUBLIC  :: MAKE_AVGW
-      PUBLIC  :: MAKE_RH
-!
-! !PUBLIC DATA MEMBERS:
-!
-      ! Arrays AIRDEN_FULLGRID and T_FULLGRID are used to correct vertical
-      ! regridding of OH for offline simulations (mpayer, 3/14/13)
-      REAL(fp),  ALLOCATABLE, PUBLIC :: AIRDEN_FULLGRID(:,:,:)
-      REAL(fp),  ALLOCATABLE, PUBLIC :: T_FULLGRID     (:,:,:)
-      REAL(fp),  ALLOCATABLE, PUBLIC :: T_FULLGRID_1   (:,:,:)
-      REAL(fp),  ALLOCATABLE, PUBLIC :: T_FULLGRID_2   (:,:,:)
+      PUBLIC  :: IS_NEAR      
 !
 ! !REVISION HISTORY:
 !  26 Jun 2010 - R. Yantosca - Initial version
@@ -137,6 +122,17 @@
 !                              regridding of OH for offline simulations.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  23 Feb 2015 - E. Lundgren - Change AIRQNT and formulas to take into
+!                              account the presence of water vapor
+!  26 Feb 2015 - E. Lundgren - Move calculations of RH and AVGW from MAKE_RH
+!                              and MAKE_AVGW to AIRQNT. Update algorithms
+!                              to account for the presence of water vapor
+!                              and to use [g water / kg moist air] for the
+!                              definition of specific humidity (SPHU).
+!  16 Apr 2015 - R. Yantosca - Removed AIRQNT_FULLGRID, this was used to regrid
+!                              OH fields, but that is now done by HEMCO
+!  16 Apr 2015 - R. Yantosca - Also remove INIT_DAO and CLEANUP_DAO, since
+!                              these allocated/deallocated the FULLGRID arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -198,7 +194,7 @@
       ! AVGPOLE begins here!                                                  
       !=================================================================
 
-#if defined( GRID1x1   ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
+#if defined( GRID1x1   ) || defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125 )
 #if defined( NESTED_CH ) || defined( NESTED_NA   ) || defined( NESTED_EU     )
       ! NOTE: Only do this for 1x1 nested grids (bmy, 12/1/04)
       ! 1x1 window grid does not extend to poles
@@ -250,35 +246,67 @@
 !
 ! !IROUTINE: airqnt
 !
-! !DESCRIPTION: Subroutine AIRQNT calculates the volume [m\^3 and cm\^3], mass 
-!  [kg], density, [kg/m\^3], and pressure thickness [hPa] of air for each grid 
-!  box (I,J,L).   The quantity (surface pressure - PTOP) [hPa] at each surface 
-!  grid box (I,J) is also computed. 
+! !DESCRIPTION: Subroutine AIRQNT sets several members of State\_Met, the
+!  meteorology object of derived type MetState, and optionally updates
+!  the tracer concentrations to conserve tracer mass when air quantities
+!  change. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AIRQNT( State_Met )
+      SUBROUTINE AIRQNT( am_I_Root, Input_Opt, State_Met, State_Chm, 
+     &                   RC, update_mixing_ratio )
 !
 ! !USES:
 !
+      USE ERROR_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GIGC_State_Met_Mod,   ONLY : MetState
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE GRID_MOD,             ONLY : GET_AREA_M2
-      USE PRESSURE_MOD,         ONLY : GET_BP, GET_PEDGE
+      USE PRESSURE_MOD    
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)           :: am_I_Root  ! On the root CPU?
+      TYPE(OptInput), INTENT(IN)           :: Input_Opt  ! Input options
+      LOGICAL,        INTENT(IN), OPTIONAL :: update_mixing_ratio 
+                                                         ! Update mixing ratio?
+                                                         ! Default is yes
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Obj for met fields
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  DAO met fields updated by AIRQNT:
 !  ========================================================================
-!  (1 ) BXHEIGHT (REAL(fp) ) : Vertical extent of a grid box   [m       ]
-!  (2 ) DELP     (REAL(fp) ) : Delta-P extent  of a grid box   [mb      ]
-!  (3 ) AIRVOL   (REAL(fp) ) : Volume  of air  in a grid box   [m^3     ]
-!  (4 ) AD       (REAL(fp) ) : Mass    of air  in a grid box   [kg      ]
-!  (5 ) AIRDEN   (REAL(fp) ) : Density of air  in a grid box   [kg/m^3  ]
-! 
+!  (1)  PEDGE     (REAL(fp)) : Moist air pressure at grid box bottom      [hPa]
+!  (2)  PEDGE_DRY (REAL(fp)) : Dry air partial pressure at box bottom     [hPa]
+!  (3)  PMID      (REAL(fp)) : Moist air pressure at grid box centroid    [hPa]
+!  (4)  PMID_DRY  (REAL(fp)) : Dry air partial pressure at box centroid   [hPa]
+!  (5)  PMEAN     (REAL(fp)) : Altitude-weighted mean moist air pressure  [hPa]
+!  (6)  PMEAN_DRY (REAL(fp)) : Alt-weighted mean dry air partial pressure [hPa]
+!  (7)  DELP      (REAL(fp)) : Delta-P extent of grid box                 [hPa]
+!                              (Same for both moist and dry air since we
+!                              assume constant water vapor pressure 
+!                              across box) 
+!  (8)  AIRDEN    (REAL(fp)) : Mean grid box dry air density            [kg/m^3]
+!                              (defined as total dry air mass/box vol)
+!  (9)  MAIRDEN   (REAL(fp)) : Mean grid box moist air density          [kg/m^3]
+!                              (defined as total moist air mass/box vol)
+!  (10) AD        (REAL(fp)) : Total dry air mass in grid box             [kg]
+!  (11) ADMOIST   (REAL(fp)) : Total moist air mass in grid box           [kg]
+!  (12) BXHEIGHT  (REAL(fp)) : Vertical height of grid box                [m]   
+!  (13) AIRVOL    (REAL(fp)) : Volume of grid box                         [m^3]
+!  (14) MOISTMW   (REAL(fp)) : Molecular weight of moist air in box     [g/mol]
+!  (15) DELP_PREV (REAL(fp)) : Prev delta-P for trcr mixing ratio update  [hPa]
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) AIRQNT is written in Fixed-Form Fortran 90.  Use F90 syntax
@@ -327,56 +355,335 @@
 !                              type object
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%DELP(I,J,L)
+!  07 Jan 2015 - E. Lundgren - Add new Met field MAIRDEN (moist air density)
+!  13 Feb 2015 - E. Lundgren - Incorporate water vapor in calculations of 
+!                              densities. Calculate dry air pressures.
+!  23 Feb 2015 - E. Lundgren - Change box height formula to include water vapor
+!  24 Feb 2015 - E. Lundgren - Add calculation of RH to subroutine. Use new
+!                              formulate for H20 saturation pressure.
+!  03 Mar 2015 - E. Lundgren - Set State_Met%TV (virtual temperature)
+!  16 Apr 2015 - E. Lundgren - Add new State_Met variables PMEAN, PMEAN_DRY, 
+!                              MOISTMW, and ADMOIST
+!  28 Oct 2015 - E. Lundgren - Pass update_mixing_ratio flag, Input_Opt, and
+!                              State_Chm to optionally update tracer units
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      INTEGER   :: I,  J,  L,  N    
+      REAL(fp)  :: PEdge_Top, Esat, Ev_mid, Ev_edge, Ev_mean  
+      REAL(fp)  :: EsatA, EsatB, EsatC, EsatD
+      REAL(fp)  :: AREA_M2, SPHU_kgkg, SPHU_kgkg_prev, AVGW_moist
 
-      INTEGER :: I,  J,  L
-      REAL(fp)  :: P1, P2, AREA_M2
+      ! Error handling
+      CHARACTER(LEN=255) :: MSG, LOC
+
+      ! Conversion factors
+      REAL(fp), PARAMETER   :: TOFFSET = -2.7315e+2_fp   ! K -> deg C
+      REAL(fp), PARAMETER   :: PCONV   = 1.00e+2_fp      ! hPa -> Pa 
+      REAL(fp), PARAMETER   :: RHCONV  = 1.00e-2_fp      ! % -> fraction
+      REAL(fp), PARAMETER   :: MCONV   = 1.00e-3_fp      ! g -> kg
+
+      ! Empirical parameters for water vapor saturation pressure
+      ! (Source: Nordquist, 1973. "Numerical Approximiations of
+      !  Selected Meteorological Parameters Related to Cloud Physics"
+      !  Text quality clarifications from Stipanuk, 1973. "Algorithms
+      !  for Generating a Skew-T, Log P Diagram and Computing Selected
+      !  Meteorological Quantities") 
+      REAL(fp), PARAMETER   :: ESATP1  = 2.3832241e+1_fp   
+      REAL(fp), PARAMETER   :: ESATP2  = -5.02808e+0_fp       
+      REAL(fp), PARAMETER   :: ESATP3  = 8.1328e-3_fp    
+      REAL(fp), PARAMETER   :: ESATP4  = 3.49149e+0_fp     
+      REAL(fp), PARAMETER   :: ESATP5  = -1.3028844e+3_fp
+      REAL(fp), PARAMETER   :: ESATP6  = -1.3816e-7_fp
+      REAL(fp), PARAMETER   :: ESATP7  = 1.1344e+1_fp
+      REAL(fp), PARAMETER   :: ESATP8  = -3.03998e-2_fp
+      REAL(fp), PARAMETER   :: ESATP9  = -2.949076e+3_fp
 
       !=================================================================
       ! AIRQNT begins here! 
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      !=============================================================
+      ! Update air quantities
+      !=============================================================  
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, AREA_M2, P1, P2 )
+!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( PEdge_Top, Esat, Ev_mid, Ev_edge, Ev_mean )
+!$OMP+PRIVATE( EsatA, EsatB, EsatC, EsatD )
+!$OMP+PRIVATE( AREA_M2, SPHU_kgkg, AVGW_moist )
+
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Grid box surface area [m2]
-#if defined( ESMF_ )
-         AREA_M2                   = State_Met%AREA_M2(I,J,1)
-#else
-         AREA_M2                   = GET_AREA_M2( I, J, L )
-#endif
-  
+         !=============================================================
+         ! Set wet air pressures [hPa] 
+         ! (lower edge, delta, centroid, and spatially-weighted mean)
+         !=============================================================  
+
          ! Pressure at bottom edge of grid box [hPa]
-         P1                        = GET_PEDGE( I, J, L )
+         State_Met%PEDGE( I,J,L )  = GET_PEDGE( I,J,L )
 
          ! Pressure at top edge of grid box [hPa]
-         P2                        = GET_PEDGE( I, J, L+1 )
+         PEdge_Top                 = GET_PEDGE( I,J,L+1 )
+
+         ! Pressure at bottom edge of grid box [hPa] (level LLPAR+1 only)
+         IF (L == LLPAR) THEN
+            State_Met%PEDGE( I,J,L+1 ) = PEdge_Top
+         ENDIF
+         
+         ! Set previous pressure difference to current pressure difference
+         State_Met%DELP_PREV( I,J,L ) = State_Met%DELP( I,J,L )
 
          ! Pressure difference between top & bottom edges [hPa]
-         State_Met%DELP(I,J,L)     = P1 - P2
+         State_Met%DELP( I,J,L )   = State_Met%PEDGE( I,J,L ) 
+     &                                - PEdge_Top
 
-         !===========================================================
-         ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
-         ! in meters. 
+         ! Arithmetic average pressure in grid box [hPa] defined as
+         ! ( PEDGE(L) + PEDGE(L+1) ) / 2. This represents the grid box 
+         ! mass centroid pressure. Use in the ideal gas law yields
+         ! a local air density at the centroid.
+         State_Met%PMID( I,J,L )   = GET_PCENTER( I,J,L )
+
+         ! Mean altitude-weighted pressure in grid box [hPa] defined as 
+         ! average P(z) over z. Use in the ideal gas law yields a
+         ! mean density equivalent to total mass per volume in grid box.
+         ! NOTE: Use of PMEAN is a temporary fix to preserve current
+         ! usage of AIRDEN as total mass per volume.
+         State_Met%PMEAN( I,J,L ) = State_Met%DELP(I,J,L) /
+     &                              log( State_Met%PEDGE(I,J,L) /
+     &                                   PEdge_Top ) 
+
+         !=============================================================
+         ! Calculate water vapor saturation pressure [hPa]
+         ! from temperature
+         !=============================================================  
+
+         EsatA = ESATP1 + ESATP2 * log10( State_Met%T(I,J,L) ) 
+         EsatB = ESATP3 * 10**( ESATP4 + ESATP5 / State_Met%T(I,J,L) )
+         EsatC = ESATP6 * 10**( ESATP7 + ESATP8 * State_Met%T(I,J,L) )
+         EsatD = ESATP9 / State_Met%T(I,J,L)
+
+         ! Saturation water vapor pressure [mb]
+         Esat = 10**( EsatA + EsatB + EsatC + EsatD ) 
+
+         !=============================================================
+         ! Set AVGW, the water vapor volume mixing ratio from 
+         ! specific humidity [mol H2O / mol dry air]
+         !=============================================================  
          !
-         ! The formula for BXHEIGHT is just the hydrostatic eqn.  
-         ! Rd = 287 J/K/kg is the value for the ideal gas constant
-         ! R for air (M.W = 0.02897 kg/mol),  or 
-         ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
-         !===========================================================
-         State_Met%BXHEIGHT(I,J,L) = Rdg0 
-     &                             * State_Met%T(I,J,L) 
-     &                             * LOG( P1 / P2 )
+         ! vol H2O       dry air    H2O         kg H2O      kg wet air
+         ! ----------  = molec wt / molec wt * ---------- * ---------
+         ! vol dry air   [g/mol]    [g/mol]    kg wet air   kg dry air
+         !
+         !      thus AVGW = AIRMW * SPHU_kgkg / ( H2OMW * (1-SPHU_kgkg) )
+         !
+         ! where, 
+         !        SPHU_kgkg = specific humidity in [kg/kg]
+         !
+
+         ! Convert specific humidity from [g/kg] to [kg/kg]
+         SPHU_kgkg = State_Met%SPHU(I,J,L) * MCONV     
+         
+         ! Water vapor volume mixing ratio [v/v dry air]
+         State_Met%AVGW(I,J,L) = AIRMW * SPHU_kgkg 
+     &                           / ( H2OMW * (1.0e+0_fp - SPHU_kgkg ) )
+
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
+
+         !=============================================================
+         ! Calculate water vapor partial pressure from specific humidity
+         ! if using GEOS-4 or GCAP
+         !============================================================= 
+
+         ! Mol water vapor per mol moist air from specific humidity
+         ! (this formulation is derived from the ideal gas law
+         !  and the definition of specific humidity)
+         AVGW_moist = AIRMW * SPHU_kgkg / ( AIRMW * SPHU_kgkg 
+     &                      + H2OMW * ( 1.0e+0_fp - SPHU_kgkg ) )
+
+         ! Water vapor partial pressure at grid box centroid [hPa]
+         Ev_mid = State_Met%PMID(I,J,L) * AVGW_moist
+
+         !=============================================================
+         ! Set grid box relative humidity [%] if using GEOS-4 or GCAP
+         !============================================================= 
+         !
+         ! RH is the ratio of water vapor partial pressure to the
+         ! saturation pressure of water, expressed as a percentage.
+         !
+         ! If RH is not externally input, first calculate the
+         ! water vapor partial pressure from specific humidity.
+         ! Then use it with the saturation pressure of water
+         ! calculated above to set RH.
+         !    
+         !          Grid box           mol H2O
+         !  Ev   =  moist air * ---------------------- 
+         ! [hPa]    pressure     mol H2O + mol dry air 
+         !          [hPa]       
+         !                             
+         !          H2O vapor partial pressure
+         !  RH   =  -------------------------- * 100
+         !           H2O saturation pressure
+         !
+
+         ! Relative humidity [%]
+         State_Met%RH(I,J,L) = ( Ev_mid / Esat ) * 100e+0_fp 
+
+#elif defined( GEOS_5 ) || defined ( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+
+         !=============================================================
+         ! Calculate water vapor partial pressures [hPa] from relative
+         ! humidity if using GEOS-5, MERRA, or GEOS-FP. 
+         !============================================================= 
+
+         Ev_mid = State_Met%RH( I,J,L ) * RHCONV * Esat
+
+#endif
+
+         !=============================================================
+         ! Set grid box dry air partial pressures [hPa]
+         ! at grid box centroid (arithmetic mean pressure level)
+         !=============================================================  
+
+         ! Partial pressure of dry air at box centroid [hPa]
+         State_Met%PMID_DRY( I,J,L ) = State_Met%PMID(I,J,L) - Ev_mid
+
+         !=============================================================
+         ! Set grid box dry air partial pressures at grid box edges [hPa]
+         ! Assume constant humidity across grid box.
+         !=============================================================  
+
+         Ev_edge = State_Met%PEDGE(I,J,L) * Ev_mid
+     &             / State_Met%PMID(I,J,L)
+
+         ! Partial pressure of dry air at lower edge of grid box [hPa]
+         State_Met%PEDGE_DRY( I,J,L ) = State_Met%PEDGE(I,J,L) - Ev_edge
+
+         ! Set dry air partial pressure for level LLPAR+1 lower edge
+         IF ( L == LLPAR ) THEN     
+            State_Met%PEDGE_DRY( I,J,L+1 ) = Pedge_Top - Ev_edge
+         ENDIF
+
+         !=============================================================
+         ! Set grid box dry air partial pressures at grid box 
+         ! altitude-weighted mean pressure [hPa]
+         ! Assume constant humidity across grid box.
+         !=============================================================  
+
+         Ev_mean = State_Met%PMEAN(I,J,L) * Ev_mid
+     &             / State_Met%PMID(I,J,L)
+
+         ! Altitude-weighted mean dry air partial pressure of grid box [hPa]
+         State_Met%PMEAN_DRY( I,J,L ) = State_Met%PMEAN(I,J,L) - Ev_mean
 
          !===========================================================
+         ! Set grid box densities [kg/m3] using the ideal gas law.
+         !
+         ! For now we will be consistent with the legacy definition of
+         ! density as total grid box mass over volume and so must use the 
+         ! altitude-weighted mean pressure (PMEAN) rather than the 
+         ! arithmetic mean pressure (PMID). The density here is therefore 
+         ! the altitude-weighted mean grid box density rather than the 
+         ! local density at pressure level PMID.
+         !==========================================================
+         !
+         !  MAIRDEN = density of moist air [kg/m^3],
+         !  given by:
+         !           
+         !            Partial      Molec     Partial       Molec
+         !            pressure   * wt of   + pressure of * wt of 
+         !            of dry air   air       water vapor   water     
+         ! Moist      [hPa]        [g/mol]   [hPa]         [g/mol]  
+         ! Air     =  ------------------------------------------------        
+         ! Density    Universal gas constant * Temp * 1000  * 0.01
+         !                   [J/K/mol]         [K]   [g/kg]   [hPa/Pa]
+         !
+         State_Met%MAIRDEN(I,J,L) = ( State_Met%PMEAN_DRY(I,J,L) 
+     &                                * AIRMW + Ev_mean * H2OMW ) 
+     &                                * PCONV * MCONV
+     &                                / RSTARG / State_Met%T(I,J,L)
+
+         ! Set grid box dry air density [kg/m3]
+         State_Met%AIRDEN(I,J,L) = State_Met%PMEAN_DRY(I,J,L) * AIRMW 
+     &                             * PCONV * MCONV
+     &                             / RSTARG / State_Met%T(I,J,L)
+
+         !=============================================================
+         ! Set grid box moist molecular weight [g/mol]
+         ! This quantity is useful if using TCVV with moist mixing ratio.
+         ! Since we assume constant moisture and T across the grid box,
+         ! MOISTMW is constant within the box. 
+         !=============================================================  
+
+         ! Grid box moist air molecular weight [g/mol]
+         State_Met%MOISTMW(I,J,L) = ( State_Met%PMID_DRY(I,J,L) 
+     &                              * AIRMW + Ev_mid * H2OMW )
+     &                              / State_Met%PMID(I,J,L) 
+
+         !=============================================================
+         ! Set grid box height [m] 
+         !=============================================================
+         !
+         ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
+         ! in meters. It is calculated using the hypsometric equation.
+         ! A virtual temperature is calculated to enable use of 
+         ! of moist air pressure with dry air molecular weight.
+         !  
+         !              Gas constant   virtual
+         !              for dry air  * grid box
+         !              [J/K/mol]      temp [K]       bottom edge P
+         ! height [m] = ----------------------- * ln(---------------)  
+         !                     g [m/s2]                top edge P
+         !                           
+         !  where,
+         !
+         !                         Grid box temperature [K]
+         !    Virtual  = -------------------------------------------
+         !    Temp [K]       H20 partial pressure          MW_H2O
+         !               1 - -------------------- * ( 1 - --------- )
+         !                    moist air  pressure         MW_dryair
+         !
+         ! Source: Wallace and Hobbes "Atmospheric Science: An 
+         !         Introductory Survey" 
+         !
+         ! Assume constant temperature and moisture acros grid box.
+         !
+
+         ! Grid box virtual temperature [K]
+         State_Met%TV( I,J,L ) = State_Met%T(I,J,L) / (1 -  
+     &                           Ev_edge / State_Met%PEDGE(I,J,L) 
+     &                           * ( 1 - H2OMW / AIRMW ) )
+
+         ! Grid box box height [m]
+         State_Met%BXHEIGHT( I,J,L ) = Rdg0 * State_Met%TV(I,J,L)
+     &                                 * LOG( State_Met%PEDGE(I,J,L) 
+     &                                 / PEdge_Top )
+
+         !=============================================================
+         ! Set grid box surface area [m2]
+         ! NOTE: We intend to gradually remove area use by
+         ! changing tracer units to mixing ratio
+         !=============================================================
+
+#if defined( ESMF_ )
+            AREA_M2                   = State_Met%AREA_M2(I,J,1)
+#else
+            AREA_M2                   = GET_AREA_M2( I,J,L )
+#endif
+
+         !=============================================================
+         ! Set grid box volume [m3] 
+         !=============================================================
+         !
          ! AIRVOL is the volume of grid box (I,J,L) in meters^3
          !
          ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
@@ -392,35 +699,101 @@
          ! boxes that are above the earth's surface will be 
          ! approx. the same as AREA_M2.  Thus we are justified 
          ! in using AREA_M2 for grid boxes (I, J, L > 1)
-         !===========================================================
-         State_Met%AIRVOL(I,J,L) = State_Met%BXHEIGHT(I,J,L) * AREA_M2
+         !
+         State_Met%AIRVOL( I,J,L ) = State_Met%BXHEIGHT(I,J,L) * AREA_M2
 
-         !===========================================================
-         ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
+         !===============================================================
+         ! Set mass of dry air in grid box [kg]
+         !==============================================================
+         !
+         ! AD = mass of dry air in grid box (I,J,L) 
+         !    = mass of wet air * mass ratio of dry air to wet air
+         !
          ! given by:        
+         ! 
+         !        Air pressure   Grid box   Mass       100 [Pa]   1 [s2]
+         ! Mass = difference   * surface  * ratio of * -------- * -----
+         !        across grid    area       dry to     1 [hPa]    g [m]
+         !        box [hPa]      [m2]       wet air                  
          !
-         !  Mass    Pressure        100      1        Surface area 
-         !        = difference   *  ---  *  ---   *   of grid box 
-         !          in grid box      1       g          AREA_M2
+         ! where,
          !
-         !   kg         mb          Pa      s^2           m^2
-         !  ----  =    ----      * ----  * -----  *      -----
-         !    1          1          mb       m             1
-         !===========================================================
-         State_Met%AD(I,J,L) = State_Met%DELP(I,J,L) 
-     &                       * G0_100 
-     &                       * AREA_M2
+         !  Ratio of dry     mass density of dry air 
+         !  to wet air   =  --------------------------
+         !  mass [.]         mass density of moist air
+         !
+         ! NOTES: 
+         !    (1) Air pressure difference across grid box is the same for 
+         !        wet (DELP) and dry air partial pressures due to
+         !        the assumption of constant humidity within the grid box.
+         !    (2) Specific humidity in GEOS-Chem (SPHU) is stored in [g/kg]
+         !
+         !==============================================================
+         State_Met%ADMOIST(I,J,L) = ( State_Met%DELP(I,J,L) * G0_100 ) 
+     &                              * AREA_M2 
 
-         !===========================================================
-         ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
-         !===========================================================
-         State_Met%AIRDEN(I,J,L) = State_Met%AD(I,J,L) 
-     &                           / State_Met%AIRVOL(I,J,L)
+         State_Met%AD(I,J,L) = State_Met%ADMOIST(I,J,L)
+     &                         * ( 1.0e+0_fp - SPHU_kgkg ) 
 
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      !=============================================================
+      ! Update tracer concentrations with updated air quantities
+      ! if update mixing ratio flag indicates to do so
+      !=============================================================  
+
+      ! Update the mixing ratio with new air quantities such that tracer
+      ! mass is conserved if (1) update_mixing_ratio flag is not passed, 
+      ! or (2) update_mixing_ratio flag is passed as true.
+      ! NOTE: The only places where mixing ratio is not currently updated
+      ! following air quantity change is during GEOS-Chem initialization and  
+      ! in transport after the pressure fixer is applied 
+      IF ( .not. PRESENT( update_mixing_ratio )  
+     &               .or. update_mixing_ratio ) THEN
+
+         ! The concentration update formula works only for dry mixing ratios
+         ! (kg/kg or v/v) so check if units are correct
+         IF ( State_Chm%Trac_units == 'kg/kg dry' .or.
+     &        State_Chm%Trac_units == 'v/v dry' ) THEN
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, SPHU_kgkg, SPHU_kgkg_prev )
+            
+            DO N = 1, Input_Opt%N_TRACERS
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+
+               ! Conver specific humidities from [g/kg] to [kg/kg]
+               SPHU_kgkg_prev = State_Met%SPHU_prev(I,J,L) * MCONV
+               SPHU_kgkg  = State_Met%SPHU(I,J,L) * MCONV
+   
+               ! Update concentration by multiplying by previous air kg/m2
+               ! and dividing by new air kg/m2. Note that the acceleration
+               ! due to gravity and the dry air molecular wt cancel out.
+               State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)
+     &                           * ( ( 1.0e+0_fp - SPHU_kgkg_prev )      
+     &                               * State_Met%DELP_prev(I,J,L) )           
+     &                           / ( ( 1.0e+0_fp - SPHU_kgkg )      
+     &                               * State_Met%DELP(I,J,L) )
+
+            ENDDO
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE
+            MSG = 'Incorrect tracer units: ' 
+     &              // TRIM(State_Chm%Trac_Units)
+            LOC = 'DAO_MOD: AIRQNT'
+            CALL GIGC_Error( TRIM(MSG), RC, TRIM(LOC) )
+         ENDIF
+      ENDIF
 
       END SUBROUTINE AIRQNT
 !EOC
@@ -429,156 +802,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: airqnt_fullgrid
-!
-! !DESCRIPTION: Subroutine AIRQNT\_FULLGRID calculates the same quantities as 
-!  AIRQNT, but for the full, unlumped vertical grid of the GEOS GCM.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE AIRQNT_FULLGRID( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE_FULLGRID
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  DAO met fields updated by AIRQNT_FULLGRID:
-!  ========================================================================
-!  (1 ) AIRDEN_FULLGRID (REAL(fp) ) : Density of air  in a grid box   [kg/m^3  ]
-!
-!  NOTES:
-!  (1 ) Modified from AIRQNT in DAO_MOD (cdh, 1/22/09)
-!  05 Sep 2013 - R. Yantosca - Prevent an out-of-bounds error in the call
-!                              to GET_AREA_CM2.
-!  23 Oct 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I,  J,  L
-      REAL(fp)  :: P1, P2, AREA_M2, DELP_TMP
-      REAL(fp)  :: BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP
-
-      !=================================================================
-      ! AIRQNT_FULLGRID begins here! 
-      !=================================================================
-
-      ! Assume success
-      RC = GIGC_SUCCESS
-
-      ! Exit if it's not a fullchem simulation
-      IF ( .not. Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
-         RC = GIGC_FAILURE
-         RETURN
-      ENDIF
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, AREA_M2, P1, P2 )
-!$OMP+PRIVATE( DELP_TMP, BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP )
-      DO L = 1, LGLOB
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Grid box surface area [m2]
-         ! NOTE: AREA_M2 is defined on the reduced grid, so L > LLPAR will 
-         ! cause an out-of-bounds error.  In the "traditional" GEOS-Chem, 
-         ! all of the grid box areas in a column are identical, so we can 
-         ! replace this with (I,J,1).  This bug was found by the GEOS-Chem 
-         ! unit tester. (bmy, 9/5/13)
-         AREA_M2     = GET_AREA_M2( I, J, 1 )
-               
-         ! Pressure at bottom edge of grid box [hPa]
-         P1          = GET_PEDGE_FULLGRID(I,J,L)
-
-         ! Pressure at top edge of grid box [hPa]
-         P2          = GET_PEDGE_FULLGRID(I,J,L+1)
-
-         ! Pressure difference between top & bottom edges [hPa]
-         DELP_TMP    = P1 - P2
-            
-         !===========================================================
-         ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
-         ! in meters. 
-         !
-         ! The formula for BXHEIGHT is just the hydrostatic eqn.  
-         ! Rd = 287 J/K/kg is the value for the ideal gas constant
-         ! R for air (M.W = 0.02897 kg/mol),  or 
-         ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
-         !===========================================================
-         BXHEIGHT_TMP = Rdg0 * T_FULLGRID(I,J,L) * LOG( P1 / P2 )
-
-         !===========================================================
-         ! AIRVOL is the volume of grid box (I,J,L) in meters^3
-         !
-         ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
-         ! boxes (I,J,L=1), that is, at the earth's surface.
-         !
-         ! Since the thickness of the atmosphere is much smaller 
-         ! than the radius of the earth, we can make the "thin 
-         ! atmosphere" approximation, namely:
-         !
-         !               (Rearth + h) ~ Rearth
-         !
-         ! Therefore, the Delta-X * Delta-Y surface area of grid
-         ! boxes that are above the earth's surface will be 
-         ! approx. the same as AREA_M2.  Thus we are justified 
-         ! in using AREA_M2 for grid boxes (I, J, L > 1)
-         !===========================================================
-         AIRVOL_TMP = BXHEIGHT_TMP * AREA_M2
-
-         !===========================================================
-         ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
-         ! given by:        
-         !
-         !  Mass    Pressure        100      1        Surface area 
-         !        = difference   *  ---  *  ---   *   of grid box 
-         !          in grid box      1       g          AREA_M2
-         !
-         !   kg         mb          Pa      s^2           m^2
-         !  ----  =    ----      * ----  * -----  *      -----
-         !    1          1          mb       m             1
-         !===========================================================
-         AD_TMP = DELP_TMP * G0_100 * AREA_M2
-
-         !===========================================================
-         ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
-         !===========================================================
-         AIRDEN_FULLGRID(I,J,L) = AD_TMP / AIRVOL_TMP
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE AIRQNT_FULLGRID
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: interp
 !
-! !DESCRIPTION: Subroutine INTERP linearly interpolates GEOS-Chem I6 fields 
-!  (winds, surface pressure, temperature, surface albedo, specific humidity
-!   etc.)  to the current dynamic timestep.
+! !DESCRIPTION: Subroutine INTERP linearly interpolates GEOS-Chem I6 and I3
+!  fields (winds, surface pressure, temperature, surface albedo, specific 
+!  humidity etc.)  to the current dynamic timestep.
 !\\
 !\\
 ! !INTERFACE:
@@ -605,10 +833,10 @@
       TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
 ! 
 ! !REMARKS:
-!  Different met fields are archived at I6 (instantaneous 6-hr) time 
-!  resolution depending on the specific product.  For example, relative 
-!  humidity is an instantaneous 6hr field in MERRA and a 6-hr time averaged
-!  field in GEOS-5.
+!  Different met fields are archived at I6 (instantaneous 6-hr) and
+!  I3 (instantaneous 3-hr) time resolution depending on the specific product.  
+!  For example, relative humidity is an instantaneous 6hr field in MERRA and 
+!  a 6-hr time averaged field in GEOS-5.
 !
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
@@ -656,13 +884,17 @@
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  29 Oct 2013 - R. Yantosca - Now interpolate T_FULLGRID field for GEOS-FP met
+!  12 May 2015 - E. Lundgren - Fix I3 interpolation bug where time fraction
+!                              spans from 1 to 2, not 0 to 1, for hrs 3 to 6
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
+!  28 Oct 2015 - E. Lundgren - Set previous SPHU to current SPHU before update
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I,        J,        L
+      INTEGER   :: I,        J,        L
       REAL(fp)  :: D_NTIME0, D_NTIME1, D_NDT
       REAL(fp)  :: D_NTDT,   TM,       TC2
       REAL(fp)  :: YSOUTH,   YNORTH
@@ -676,17 +908,25 @@
       D_NTIME1 = DBLE( NTIME1 )
       D_NTDT   = DBLE( NTDT   )
 
-#if   defined( GEOS_FP )
+#if   defined( GEOS_FP ) || defined( MERRA2 )
       D_NDT    = 10800e+0_fp              ! For 3-hr instantaneous fields
 #else
       D_NDT    = 21600e+0_fp              ! For 6-hr instantaneous fields
 #endif      
 
-      ! Fraction of 6h timestep elapsed at mid point of this dyn timestep
+      ! Fraction of timestep elapsed at mid point of this dyn timestep
       TM  = ( D_NTIME1 + D_NTDT/2e+0_fp - D_NTIME0 ) / D_NDT
       
-      ! Fraction of 6h timestep elapsed at the end of this dyn timestep
+      ! Fraction of timestep elapsed at the end of this dyn timestep
       TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
+
+#if   defined( GEOS_FP ) || defined( MERRA2 )
+      ! For I3 fields, need to reset fraction after 3 hours (ewl, 5/12/2015)
+      IF ( TM > 1.0e+0_fp ) THEN
+         TM  = TM  - 1.0e+0_fp
+         TC2 = TC2 - 1.0e+0_fp
+      ENDIF
+#endif
 
 #if   defined( GEOS_4 ) || defined( GCAP )
 
@@ -823,10 +1063,10 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#elif defined( GEOS_FP )
+#elif defined( GEOS_FP ) || defined( MERRA2 )
 
       !=================================================================
-      ! Do the interpolation for GEOS-FP met fields 
+      ! Do the interpolation for GEOS-FP and MERRA2 met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -856,7 +1096,8 @@
             ! altitude.  Set TROPP in the polar regions to 200 hPa.
             ! (jal, phs, bmy, 9/18/07)
             IF ( Input_Opt%LVARTROP ) THEN
-               IF ( YSOUTH >= 60e+0_fp .or. YNORTH <= -60e+0_fp ) THEN
+
+               IF ( YSOUTH >= 60.0_fp .OR. YNORTH <= -60.0_fp ) THEN
                   State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
      &                                        200e+0_fp )
                ENDIF
@@ -866,10 +1107,17 @@
          !----------------------------------------------------
          ! Interpolate 3D variables
          !----------------------------------------------------
+
+         ! Interpolate temperature
          State_Met%T   (I,J,L) = State_Met%TMPU1(I,J,L)   +
      &                         ( State_Met%TMPU2(I,J,L)   -
      &                           State_Met%TMPU1(I,J,L) ) * TM
 
+         ! Set previous SPHU to current SPHU prior to interpolateion
+         ! update (ewl, 10/28/15)
+         State_Met%SPHU_prev(I,J,L) = State_Met%SPHU(I,J,L)
+
+         ! Interpolate specific humidity
          State_Met%SPHU(I,J,L) = State_Met%SPHU1(I,J,L)   +
      &                         ( State_Met%SPHU2(I,J,L)   -
      &                           State_Met%SPHU1(I,J,L) ) * TM 
@@ -878,25 +1126,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-      !-------------------------------------------------------
-      ! For offline simulations, we also need to interpolate
-      ! the T_FULLGRID field (temperature on full vertical
-      ! grid) from the values at time=T and time=T+3h.
-      ! (bmy, 10/29/13)
-      !-------------------------------------------------------
-      IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
-         DO L = 1, LGLOB
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            T_FULLGRID(I,J,L) =  T_FULLGRID_1(I,J,L)   +
-     &                         ( T_FULLGRID_2(I,J,L)   -
-     &                           T_FULLGRID_1(I,J,L) ) * TM
-         ENDDO
-         ENDDO
-         ENDDO
-      ENDIF
-
 #endif
 
       END SUBROUTINE INTERP
@@ -1250,7 +1479,7 @@
                GOTO 999
             ENDIF
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
             !---------------------------------------------------
             ! GEOS-4 / GEOS-5 / MERRA met fields
@@ -1283,183 +1512,6 @@
  999  CONTINUE
 
       END FUNCTION IS_NEAR
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: make_avgw
-!
-! !DESCRIPTION: Subroutine MAKE\_AVGW converts DAO specific humidity SPHU 
-!  to AVGW, which is the mixing ratio of water vapor. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE MAKE_AVGW( State_Met )
-!
-! !USES:
-!
-      USE GIGC_State_Met_Mod,   ONLY : MetState
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-! 
-! !REVISION HISTORY: 
-!  30 Jan 1998 - R. Yantosca - Initial version
-!  (1 ) AVGW was originally indexed by (L,I,J).  Reorder the indexing to
-!        (I,J,L) to take advantage of the way FORTRAN stores by columns.
-!        An (L,I,J) ordering can lead to excessive disk swapping.
-!  (2 ) Now dimension AVGW as (IIPAR,JJPAR,LLPAR).  Also use parallel
-!        DO-loop to compute AVGW.  Updated comments. (bmy, 9/24/01)
-!  (3 ) Removed obsolete code from 9/01 (bmy, 10/23/01)
-!  (4 ) SPHU and AVGW are declared w/in "dao_mod.f", so we don't need to pass
-!        these as arguments anymore (bmy, 11/15/02)
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER             :: I, IREF, J, JREF, L      
-!
-! !DEFINED PARAMETERS:
-!
-      ! Conversion factor
-      REAL(fp), PARAMETER   :: HCONV = 28.97e-3_fp / 18.0e+0_fp 
-
-      !=================================================================
-      ! MAKE_AVGW begins here!
-      !
-      ! In the original Harvard/GISS/Irvine CTM subroutines, 
-      !    AVGW = log10( mixing ratio of water vapor ).  
-      !
-      ! In order to avoid costly log and exponentiation operations, 
-      ! redefine AVGW, so that AVGW is the actual mixing ratio of water 
-      ! vapor, and not the log10 of the mixing ratio.
-      !
-      ! The conversion from SPHU [g H2O/kg air] to [v/v] mixing ratio is:
-      !
-      !   g H2O  | mol H2O  | 28.97e-3 kg air    mol H2O     vol H2O
-      ! ---------+----------+---------------- = --------- = ---------
-      !   kg air | 18 g H2O |    mol air         mol air     vol air
-      !
-      !      thus AVGW (V/V) = SPHU (g/kg) * HCONV, 
-      !
-      ! where HCONV = the conversion factor ( 28.97e-3 / 18.0 ), 
-      ! which is defined as a parameter at the top of this routine.
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         State_Met%AVGW(I,J,L) = HCONV * State_Met%SPHU(I,J,L)
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE MAKE_AVGW
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: make_rh
-!
-! !DESCRIPTION: Subroutine MAKE\_RH computes relative humidity from specific 
-!  humidity and temperature. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE MAKE_RH( State_Met )
-!
-! !USES:
-!
-      USE GIGC_State_Met_Mod,   ONLY : MetState
-      USE PRESSURE_MOD,         ONLY : GET_PCENTER
-!
-! !INPUT PARAMETERS: 
-!
-      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-!
-! !REMARKS:
-!  Module variables used:
-!  ===========================================================================
-!  (1 ) SPHU (REAL(fp)) : Array containing 3-D specific humidity [g H2O/kg air]
-!  (2 ) TMPU (REAL(fp)) : Array containing 3-D temperature field [K]
-!  (3 ) RH   (REAL(fp)) : Output array for relative humidity     [%]
-! 
-! !REVISION HISTORY: 
-!  13 Oct 1999 - R. Yantosca - Initial version
-!  (1 ) Use F90 syntax for declarations, etc. 
-!  (2 ) Cosmetic changes (bmy, 10/12/99)
-!  (3 ) Now use GET_PCENTER from "pressure_mod.f" to compute the pressure
-!        at the midpoint of grid box (I,J,L).  Updated comments, cosmetic
-!        changes.  Added parallel DO-loops.  Remove reference to "CMN" 
-!        header file.  Added to "dao_mod.f" (dsa, bdf, bmy, 8/27/02)
-!  (4 ) Removed obsolete code from 8/02 (bmy, 9/18/02)
-!  (5 ) Now remove SPHU, TMPU, RH from the arg list, since these are now
-!        all contained w/in this dao_mod.f as module variables. (bmy, 9/23/02)
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL(fp)              :: ESAT, SHMB, PRES, TEMP
-      INTEGER             :: I, J, L
-!
-! !DEFINED PARAMETERS:
-!
-      REAL(fp), PARAMETER   :: A =   23.5518e+0_fp
-      REAL(fp), PARAMETER   :: B = 2937.4e+0_fp
-      REAL(fp), PARAMETER   :: C =   -4.9283e+0_fp
-
-      !=================================================================
-      ! MAKE_RH begins here!
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, PRES, TEMP, ESAT, SHMB )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Pressure at midpoint of box (I,J,L)
-         PRES = GET_PCENTER(I,J,L)
-
-         ! Temperature at grid box (I,J,L)
-         TEMP = State_Met%T(I,J,L)
-
-         ! Saturation water vapor pressure in mbar 
-         ! (from NASA GTE PEM-Tropics handbook)
-         ESAT = ( 10e+0_fp**( A - ( B / TEMP ) ) ) * ( TEMP**C )
-            
-         ! Specific humidity in mb
-         SHMB = State_Met%SPHU(I,J,L) * 1.6072e-3_fp * PRES
-            
-         ! Relative humidity as a percentage
-         State_Met%RH(I,J,L) = ( SHMB / ESAT ) * 100e+0_fp 
-
-      ENDDO
-      ENDDO
-      ENDDO  
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE MAKE_RH
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1639,20 +1691,23 @@
       ! Compute cosine(SZA) quantities for the current time
       CALL COSSZA( DOY, HOUR,  .FALSE., State_Met )
 
-      !=================================================================
-      ! Get cosine (SZA) at 5 hours behind the current time (SUNCOS_5hr)
-      ! and at the midpt of the chemistry timestep 5h ago (SUNCOS_MID_5hr)
-      !=================================================================
-
-      ! Time 5h ago
-      JDJan0 = JULDAY( YEAR, 1, 0d0 )                  ! Julian date on Jan 0
-      JD5    = JD  - ( 5d0 / 24d0 )                    ! Julian date 5h ago
-      DOY5   = JD5 - JDJan0                            ! Day of year 5h ago
-      GMT5   = GMT - 5d0                               ! GMT 5h ago
-      HOUR5  = INT( GMT5 )
-
-      ! Compute cosine(SZA) quantities for 5h ago
-      CALL COSSZA( DOY5, HOUR5, .TRUE., State_Met )
+! The following is now obsolete. SZA 5 hours ago is calculated in HEMCO
+! PARANOx extension (ckeller, 5/22/15).
+!
+!      !=================================================================
+!      ! Get cosine (SZA) at 5 hours behind the current time (SUNCOS_5hr)
+!      ! and at the midpt of the chemistry timestep 5h ago (SUNCOS_MID_5hr)
+!      !=================================================================
+!
+!      ! Time 5h ago
+!      JDJan0 = JULDAY( YEAR, 1, 0d0 )                  ! Julian date on Jan 0
+!      JD5    = JD  - ( 5d0 / 24d0 )                    ! Julian date 5h ago
+!      DOY5   = JD5 - JDJan0                            ! Day of year 5h ago
+!      GMT5   = GMT - 5d0                               ! GMT 5h ago
+!      HOUR5  = INT( GMT5 )
+!
+!      ! Compute cosine(SZA) quantities for 5h ago
+!      CALL COSSZA( DOY5, HOUR5, .TRUE., State_Met )
 
       END SUBROUTINE GET_COSINE_SZA
 !EOC
@@ -1794,7 +1849,7 @@
       R        = ( 2e+0_fp * PI / 365e+0_fp ) * DBLE( DOY - 1 ) 
 
       ! Solar declination angle (low precision formula) [radians]
-      DEC      = A0 - A1*COS(     R ) + B1*SIN(     R )
+      DEC      = A0 - A1*COS(         R ) + B1*SIN(         R )
      &              - A2*COS( 2e+0_fp*R ) + B2*SIN( 2e+0_fp*R )
      &              - A3*COS( 3e+0_fp*R ) + B3*SIN( 3e+0_fp*R )
 
@@ -1853,9 +1908,9 @@
          !==============================================================
          IF ( DO_5hr_AGO ) THEN
 
-            ! COS(SZA) at midpt of chemistry timestep that was 5h ago
-            ! This is needed for the PARANOX ship plume model
-            State_Met%SUNCOSmid5(I,J) = SUNCOS_MID
+!            ! COS(SZA) at midpt of chemistry timestep that was 5h ago
+!            ! This is needed for the PARANOX ship plume model
+!            State_Met%SUNCOSmid5(I,J) = SUNCOS_MID
 
          ELSE
 
@@ -1873,159 +1928,159 @@
 
       END SUBROUTINE COSSZA
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: convert_units
+!!
+!! !DESCRIPTION: Subroutine CONVERT\_UNITS converts the units of STT from [kg] 
+!!  to [v/v] mixing ratio, or vice versa.  
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE CONVERT_UNITS( IFLAG, N_TRACERS, TCVV, AD, STT ) 
+!!
+!! !USES:
+!!
+!      USE ERROR_MOD,  ONLY : ERROR_STOP
+!!
+!! !INPUT PARAMETERS: 
+!!
 !
-! !IROUTINE: convert_units
+!      ! =1 then convert from [kg ] --> [v/v]
+!      ! =2 then convert from [v/v] --> [kg ]
+!      INTEGER, INTENT(IN)    :: IFLAG
 !
-! !DESCRIPTION: Subroutine CONVERT\_UNITS converts the units of STT from [kg] 
-!  to [v/v] mixing ratio, or vice versa.  
-!\\
-!\\
-! !INTERFACE:
+!      ! Number of tracers
+!      INTEGER, INTENT(IN)    :: N_TRACERS 
 !
-      SUBROUTINE CONVERT_UNITS( IFLAG, N_TRACERS, TCVV, AD, STT ) 
+!      ! Array containing [Air MW / Tracer MW] for tracers
+!      REAL(fp),  INTENT(IN)    :: TCVV(N_TRACERS)
 !
-! !USES:
+!      ! Array containing grid box air masses
+!      REAL(fp),  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      !  Array containing tracer conc. [kg] or [v/v]
+!      REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+!!
+!! !REMARKS
+!!  Most of the GEOS-Chem subroutines require the tracer array STT to be in 
+!!  units of [kg].  However, the cloud convection, PBL mixing, and transport
+!!  routines require STT to be in volume mixing ratio [v/v].   
+!!                                                                             .
+!!  Therefore, we need to call CONVERT_UNITS to convert STT from [kg] to [v/v]
+!!  before calling convection, PBL mixing, or transport.  We also need to
+!!  call CONVERT_UNITS after these routines to make the inverse conversion
+!!  from [v/v] to [kg].
 !
-      USE ERROR_MOD,  ONLY : ERROR_STOP
+!! !REVISION HISTORY: 
+!!  15 Jun 1998 - R. Yantosca - Initial version
+!!  (1 ) CONVERT_UNITS is written in Fixed-Form Fortran 90.
+!!  (2 ) Cosmetic changes, updated comments (bmy, 4/19/00)
+!!  (3 ) Now use SELECT CASE statement.  Also added parallel DO-loops
+!!        with the new Open-MP compiler directives. (bmy, 4/27/00)
+!!  (4 ) Bundled into "dao_mod.f".  Now pass NTRACE, TCVV, AD, STT as args.
+!!        Now use explicit DO-loops for I-J-L w/in parallel loops.  Updated
+!!        comments, cosmetic changes. (bmy, 3/29/02)
+!!  (5 ) Removed obsolete, commented-out code.  Also now use F90 intrinsic
+!!        REPEAT to write a line of "="'s to the screen. (bmy, 6/25/02)
+!!  (6 ) Updated comments.  Now reference ERROR_STOP from "error_mod.f" 
+!!        (bmy, 10/15/02)
+!!  (7 ) Renamed NTRACE to N_TRACERS for consistency (bmy, 7/19/04)
+!!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER :: I, J, L, N
 !
-! !INPUT PARAMETERS: 
+!      !=================================================================
+!      ! CONVERT_UNITS begins here!
+!      !=================================================================
+!      SELECT CASE ( IFLAG )
 !
-
-      ! =1 then convert from [kg ] --> [v/v]
-      ! =2 then convert from [v/v] --> [kg ]
-      INTEGER, INTENT(IN)    :: IFLAG
-
-      ! Number of tracers
-      INTEGER, INTENT(IN)    :: N_TRACERS 
-
-      ! Array containing [Air MW / Tracer MW] for tracers
-      REAL(fp),  INTENT(IN)    :: TCVV(N_TRACERS)
-
-      ! Array containing grid box air masses
-      REAL(fp),  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
+!         !==============================================================
+!         ! IFLAG = 1: Convert from [kg] -> [v/v] 
+!         !
+!         !  The conversion is as follows:
+!         !
+!         !   kg tracer(N)       1        Air mol wt     
+!         !   -----------  * -------- *  -------------   
+!         !        1          kg air     tracer mol wt   
+!         !
+!         !       moles tracer     volume tracer
+!         !   =   ------------  =  -------------
+!         !        moles air        volume air
+!         !
+!         ! Since the volume of a gas depends on the number of moles.
+!         ! Therefore, with:
+!         !
+!         !  TCMASS(N) = mol. wt. of tracer (AMU)
+!         !  TCVV(N)   = 28.97 / TCMASS(N)
+!         !            = mol. wt. of air (AMU) / mol. wt. of tracer (AMU)
+!         !  AD(I,J,L) = mass of air (kg) in grid box (I,J,L)
+!         !     
+!         ! the conversion is:
+!         ! 
+!         !  STT(I,J,L,N) [kg] * TCVV(N) / AD(I,J,L) = STT(I,J,L,N) [v/v]
+!         !==============================================================
+!         CASE ( 1 )
 !
-! !OUTPUT PARAMETERS:
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED ) 
+!!$OMP+PRIVATE( I, J, L, N ) 
+!            DO N = 1, N_TRACERS
+!            DO L = 1, LLPAR
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!               STT(I,J,L,N) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
 !
-      !  Array containing tracer conc. [kg] or [v/v]
-      REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+!         !==============================================================
+!         ! IFLAG = 2: Convert from [v/v] -> [kg] 
+!         !
+!         ! From the above discussion, the reverse unit conversion 
+!         ! is given by:
+!         !
+!         !  STT(I,J,L,N) [v/v] * AD(I,J,L) / TCVV(N) = STT(I,J,L,N) [kg]
+!         !==============================================================
+!         CASE ( 2 )
 !
-! !REMARKS
-!  Most of the GEOS-Chem subroutines require the tracer array STT to be in 
-!  units of [kg].  However, the cloud convection, PBL mixing, and transport
-!  routines require STT to be in volume mixing ratio [v/v].   
-!                                                                             .
-!  Therefore, we need to call CONVERT_UNITS to convert STT from [kg] to [v/v]
-!  before calling convection, PBL mixing, or transport.  We also need to
-!  call CONVERT_UNITS after these routines to make the inverse conversion
-!  from [v/v] to [kg].
-
-! !REVISION HISTORY: 
-!  15 Jun 1998 - R. Yantosca - Initial version
-!  (1 ) CONVERT_UNITS is written in Fixed-Form Fortran 90.
-!  (2 ) Cosmetic changes, updated comments (bmy, 4/19/00)
-!  (3 ) Now use SELECT CASE statement.  Also added parallel DO-loops
-!        with the new Open-MP compiler directives. (bmy, 4/27/00)
-!  (4 ) Bundled into "dao_mod.f".  Now pass NTRACE, TCVV, AD, STT as args.
-!        Now use explicit DO-loops for I-J-L w/in parallel loops.  Updated
-!        comments, cosmetic changes. (bmy, 3/29/02)
-!  (5 ) Removed obsolete, commented-out code.  Also now use F90 intrinsic
-!        REPEAT to write a line of "="'s to the screen. (bmy, 6/25/02)
-!  (6 ) Updated comments.  Now reference ERROR_STOP from "error_mod.f" 
-!        (bmy, 10/15/02)
-!  (7 ) Renamed NTRACE to N_TRACERS for consistency (bmy, 7/19/04)
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!!$OMP PARALLEL DO 
+!!$OMP+DEFAULT( SHARED ) 
+!!$OMP+PRIVATE( I, J, L, N )
+!            DO N = 1, N_TRACERS
+!            DO L = 1, LLPAR
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!               STT(I,J,L,N) = STT(I,J,L,N) * AD(I,J,L) / TCVV(N)
+!            ENDDO     
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
 !
-! !LOCAL VARIABLES:
+!         !==============================================================
+!         ! Otherwise halt with an error message
+!         !==============================================================
+!         CASE DEFAULT
+!            CALL ERROR_STOP( 'Invalid IFLAG value (must be 1 or 2)!', 
+!     &                       'CONVERT_UNITS (dao_mod.f)' )
+!      END SELECT
 !
-      INTEGER :: I, J, L, N
-
-      !=================================================================
-      ! CONVERT_UNITS begins here!
-      !=================================================================
-      SELECT CASE ( IFLAG )
-
-         !==============================================================
-         ! IFLAG = 1: Convert from [kg] -> [v/v] 
-         !
-         !  The conversion is as follows:
-         !
-         !   kg tracer(N)       1        Air mol wt     
-         !   -----------  * -------- *  -------------   
-         !        1          kg air     tracer mol wt   
-         !
-         !       moles tracer     volume tracer
-         !   =   ------------  =  -------------
-         !        moles air        volume air
-         !
-         ! Since the volume of a gas depends on the number of moles.
-         ! Therefore, with:
-         !
-         !  TCMASS(N) = mol. wt. of tracer (AMU)
-         !  TCVV(N)   = 28.97 / TCMASS(N)
-         !            = mol. wt. of air (AMU) / mol. wt. of tracer (AMU)
-         !  AD(I,J,L) = mass of air (kg) in grid box (I,J,L)
-         !     
-         ! the conversion is:
-         ! 
-         !  STT(I,J,L,N) [kg] * TCVV(N) / AD(I,J,L) = STT(I,J,L,N) [v/v]
-         !==============================================================
-         CASE ( 1 )
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, N ) 
-            DO N = 1, N_TRACERS
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               STT(I,J,L,N) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         !==============================================================
-         ! IFLAG = 2: Convert from [v/v] -> [kg] 
-         !
-         ! From the above discussion, the reverse unit conversion 
-         ! is given by:
-         !
-         !  STT(I,J,L,N) [v/v] * AD(I,J,L) / TCVV(N) = STT(I,J,L,N) [kg]
-         !==============================================================
-         CASE ( 2 )
-
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, N )
-            DO N = 1, N_TRACERS
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               STT(I,J,L,N) = STT(I,J,L,N) * AD(I,J,L) / TCVV(N)
-            ENDDO     
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         !==============================================================
-         ! Otherwise halt with an error message
-         !==============================================================
-         CASE DEFAULT
-            CALL ERROR_STOP( 'Invalid IFLAG value (must be 1 or 2)!', 
-     &                       'CONVERT_UNITS (dao_mod.f)' )
-      END SELECT
-
-      ! Return to calling program
-      END SUBROUTINE CONVERT_UNITS
+!      ! Return to calling program
+!      END SUBROUTINE CONVERT_UNITS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2066,6 +2121,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves in the same way as GEOS-FP
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2075,7 +2132,7 @@
       INTEGER :: I, J, L
 
       !=================================================================
-      ! COPY_I6_FIELDS begins here!
+      ! COPY_I3_I6_FIELDS begins here!
       !=================================================================
 
 #if   defined( GCAP )
@@ -2101,7 +2158,7 @@
       !------------------
       State_Met%PS1    = State_Met%PS2     ! I6 surface pressure    [hPa] 
 
-#elif defined( GEOS_FP )
+#elif defined( GEOS_FP ) || defined( MERRA2 )
 
       !------------------
       ! GEOS-FP met
@@ -2121,184 +2178,5 @@
 #endif
 
       END SUBROUTINE COPY_I3_I6_FIELDS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_dao
-!
-! !DESCRIPTION: Subroutine INIT\_DAO allocates memory for all allocatable 
-!  module arrays. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INIT_DAO( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!     
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!
-! !REVISION HISTORY: 
-!  26 Jun 2000 - R. Yantosca - Initial version
-!  (1 ) Now allocate AVGW for either NSRCX == 3 or NSRCX == 5 (bmy, 9/24/01)
-!  (2 ) Removed obsolete code from 9/01 (bmy, 10/23/01)
-!  (3 ) Add PSC2 array for TPCORE mixing ratio fix.   (bmy, 3/27/02)
-!  (4 ) Elimintated PS, PSC arrays for floating-pressure fix.
-!        (dsa, bdf, bmy, 8/20/02)
-!  (5 ) Added AD, BXHEIGHT, T to "dao_mod.f" as allocatable arrays, to remove
-!        historical baggage and centralize variables.  Also remove GEOS_2 
-!        flag from C-preprocessor statements.  Also allocate RH array
-!        but only if we are doing a sulfate simulation.  Now references
-!        ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
-!  (6 ) Now allocate PHIS array (bmy, 3/11/03)
-!  (7 ) Now allocate SUNCOSB array for SMVGEAR II.  Also removed KZZ array,
-!        that is now obsolete. (bdf, bmy, 4/28/03)
-!  (8 ) Now order all arrays in alphabetical order.  Also added new fields
-!        for GEOS-4/fvDAS: HKBETA, HKETA, ZMEU, ZMMD, ZMMU, TSKIN, PARDF,
-!        and PARDR. (bmy, 6/25/03)
-!  (9 ) Now allocate CLDFRC, RADLWG, RADSWG, SNOW arrays.  USTAR, CLDFRC,
-!        and Z0 and RADSWG are now 2-D arrays. (bmy, 12/9/03)
-!  (10) Allocate RADLWG and SNOW for both GEOS-3 & GEOS-4 (bmy, 4/2/04)
-!  (11) Now reference inquiry functions from "tracer_mod.f".  Now reference
-!        LWETD, LDRYD, LCHEM from "logical_mod.f".  Now allocate RH regardless
-!        of simulation. (bmy, 7/20/04)
-!  (12) Now also allocate AVGW for offline aerosol simulations (bmy, 9/27/04)
-!  (13) Now modified for GCAP met fields.  Removed references to CO-OH param 
-!        simulation.  Now allocate AVGW only for fullchem or offline aerosol
-!        simulations. (bmy, 6/24/05)
-!  (14) Now allocate SNOW and GWETTOP for GCAP (bmy, 8/17/05)
-!  (15) Now also add TSKIN for GEOS-3 (bmy, 10/20/05)
-!  (16) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (17) Reorganized for GEOS-5 met fields (bmy, 1/17/07)
-!  (18) Bug fix: should be CMFMC=0 after allocating CMFMC (jaf, bmy, 6/11/08)
-!  (19) Remove obsolete SUNCOSB array (bmy, 4/28/10)
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  18 Aug 2010 - R. Yantosca - Now allocate met fields for MERRA
-!  20 Aug 2010 - R. Yantosca - Bug fix, now allocate REEVAPCN
-!  14 Mar 2013 - M. Payer    - Now allocate AIRDEN_FULLGRID and T_FULLGRID
-!                              arrays used to correct vertical regridding of OH
-!                              for offline simulations (C. Holmes)
-!  23 Oct 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
-!  23 Oct 2013 - R. Yantosca - Now only allocate T_FULLGRID and AIRDEN_FULLGRID
-!                              if we are using an offline (non-fullchem) sim
-!  23 Oct 2013 - R. Yantosca - Also allocate T_FULLGRID_1 and T_FULLGRID_2
-!                              which are needed for GEOS-FP met only
-!   6 Nov 2014 - R. Yantosca - Now use AIRDEN_FULLGRID(I,J,L)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! INIT_DAO begins here!
-      !=================================================================
- 
-      ! Assume success 
-      RC = GIGC_SUCCESS
-
-      ! Only allocate arrays for non-fullchem simulations
-      IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN 
-
-         ! Number density of air on full vertical grid
-         ALLOCATE( AIRDEN_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=RC ) 
-         IF ( RC /= 0 ) CALL ALLOC_ERR( 'AIRDEN_FULLGRID' )
-         AIRDEN_FULLGRID = 0e+0_fp
-
-         ! Temperature on full vertical grid 
-         ALLOCATE( T_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=RC )
-         IF ( RC /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID' )
-         T_FULLGRID = 0e+0_fp
-
-#if defined( GEOS_FP )
-
-         !--------------------------------------------------------------
-         ! For GEOS-FP, temperature is an I3 field.  Therefore, we must
-         ! interpolate T_FULLGRID from the time=T and time=T+3hrs.
-         !--------------------------------------------------------------
-
-         ! Temperature on full vertical grid 
-         ALLOCATE( T_FULLGRID_1( IIPAR, JJPAR, LGLOB ), STAT=RC )
-         IF ( RC /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID_1' )
-         T_FULLGRID_1 = 0e+0_fp
-
-         ! Temperature on full vertical grid 
-         ALLOCATE( T_FULLGRID_2( IIPAR, JJPAR, LGLOB ), STAT=RC )
-         IF ( RC /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID_2' )
-         T_FULLGRID_2 = 0e+0_fp
-
-#endif
-
-      ENDIF
-
-      END SUBROUTINE INIT_DAO
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_dao
-!
-! !DESCRIPTION: Subroutine CLEANUP\_DAO deallocates all met field arrays. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CLEANUP_DAO
-! 
-! !REVISION HISTORY: 
-!  26 Jun 2000 - R. Yantosca - Initial version
-!  (1 ) Now deallocate SLP met field for GEOS-3 (bmy, 10/10/00)
-!  (2 ) Now deallocate OPTDEP met field for GEOS-3 (bmy, 8/15/01)
-!  (3 ) Now deallocate AVGW (bmy, 9/24/01)
-!  (4 ) Remove TAUCLD deallocation -- it's obsolete (bmy, 10/23/01)
-!  (5 ) Add call to deallocate PSC2 array (bmy, 3/27/02)
-!  (6 ) Elimintated PS, PSC arrays for floating-pressure fix.
-!        (dsa, bdf, bmy, 8/20/02)
-!  (7 ) Now deallocate AD, BXHEIGHT, and T arrays (bmy, 9/18/02)
-!  (8 ) Now deallocate PHIS array (bmy, 3/11/03)
-!  (9 ) Now deallocate SUNCOSB array.  Remove reference to KZZ, since
-!        that is now obsolete. (bmy, 4/28/03)
-!  (10) Now list all arrays in order.  Now also deallocate new arrays
-!        for GEOS-4/fvDAS. (bmy, 6/25/03)
-!  (11) Now deallocate CLDFRC, RADLWG, RADSWG, SNOW arrays (bmy, 12/9/03)
-!  (12) Now deallocate GCAP met fields (bmy, 5/25/05)
-!  (13) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (14) Deallocate additional arrays for GEOS-5 (bmy, 1/17/07)
-!  (15) Remove obsolete SUNCOSB (bmy, 4/28/10)
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  18 Aug 2010 - R. Yantosca - Now deallocate MERRA met field arrays
-!  05 Oct 2011 - R. Yantosca - Now deallocate SUNCOS_MID
-!  14 Mar 2013 - M. Payer    - Now deallocate AIRDEN_FULLGRID and T_FULLGRID
-!                              arrays used to correct vertical regridding of OH
-!                              for offline simulations (C. Holmes)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      !=================================================================
-      ! CLEANUP_DAO begins here!
-      !=================================================================
-
-      IF ( ALLOCATED( AIRDEN_FULLGRID ) ) DEALLOCATE( AIRDEN_FULLGRID )
-      IF ( ALLOCATED( T_FULLGRID      ) ) DEALLOCATE( T_FULLGRID      )
-      IF ( ALLOCATED( T_FULLGRID_1    ) ) DEALLOCATE( T_FULLGRID_1    )
-      IF ( ALLOCATED( T_FULLGRID_2    ) ) DEALLOCATE( T_FULLGRID_2    )
-
-      END SUBROUTINE CLEANUP_DAO
 !EOC
       END MODULE DAO_MOD

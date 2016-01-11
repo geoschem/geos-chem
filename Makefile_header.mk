@@ -113,6 +113,7 @@
 #  09 May 2012 - R. Yantosca - Now try to get the proper linking sequence 
 #                              for netCDF etc w/ nf-config and nc-config.
 #  11 May 2012 - R. Yantosca - Now export NCL (netCDF linking sequence)
+#  17 Aug 2012 - R. Yantosca - Now add RRTMG=yes option for RRTMG rad transfer
 #  07 Sep 2012 - R. Yantosca - Now add OPT variable to set global opt levels
 #  07 Sep 2012 - R. Yantosca - Also set TRACEBACK for PGI compiler
 #  17 Apr 2013 - R. Yantosca - Add switch to set -DKPP_SOLVE_ALWAYS, which 
@@ -152,7 +153,36 @@
 #  21 Nov 2014 - R. Yantosca - Add special compilation command for ISORROPIA
 #  21 Nov 2014 - R. Yantosca - Add cosmetic changes and indentation 
 #  06 Jan 2015 - R. Yantosca - Add two-way nesting options from Y. Y. Yan
+#  09 Jan 2015 - M. Sulprizio- Now properly link to the RRTMG directory
 #  13 Jan 2015 - R. Yantosca - Add fix for GEOS-Chem-Libraries library path
+#  08 Apr 2015 - R. Yantosca - Bug fix: set RRTMG=yes if it passes the regexp
+#  10 Apr 2015 - R. Yantosca - Export RRTMG_NEEDED var to be used elsewhere
+#  10 Apr 2015 - R. Yantosca - Bug fix: -l rad should be -lrad in link var
+#  12 May 2015 - R. Yantosca - Bug fix for PGI compiler: remove extra "-"
+#                              in front of $(NC_INC_CMD) in the PGI section
+#  12 May 2015 - R. Yantosca - Now use GC_BIN, GC_INCLUDE to point to the
+#                              netCDF library paths and GC_F_BIN, GC_F_INCLUDE
+#                              to point to netCDF-Fortran library paths.
+#                              (In some cases, these are the same).
+#  20 May 2015 - R. Yantosca - Test if GC_F_BIN and GC_F_INCLUDE are defined
+#                              as env variables before trying to use them.
+#  29 May 2015 - R. Yantosca - Now set KPP_CHEM for KPP.  We can't redefine
+#                              the CHEM variable because it is an env var.
+#  04 Jun 2015 - R. Yantosca - Now use RRTMG_NO_CLEAN=y or RRTMG_NOCLEAN=y to 
+#                              removing RRTMG objects, modules, and libraries.
+#  04 Jun 2015 - R. Yantosca - Bug fix: don't turn on UCX except for CHEM=UCX
+#  15 Jun 2015 - R. Yantosca - Now define the HEMCO standalone link command
+#                              separately from the GEOS-Chem link command
+#  07 Jul 2015 - M. Sulprizio- Add option for CHEM=SOA_SVPOA
+#  17 Jul 2015 - E. Lundgren - Remove BSTATIC option when picking pgi options 
+#                              for debug run or regular run 
+#  30 Jul 2015 - M. Yannetti - Added TIMERS.
+#  03 Aug 2015 - M. Sulprizio- NEST=cu to now sets CPP switch w/ -DNESTED_CU for
+#                              custom nested grids
+#  11 Aug 2015 - R. Yantosca - Add MERRA2 as a met field option
+#  24 Aug 2015 - R. Yantosca - Bug fix: Add missing | when testing USER_DEFS
+#  07 Dec 2015 - R. Yantosca - Add "realclean_except_rrtmg" target that
+#                              replaces the RRTMG_CLEAN variabe
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -170,13 +200,13 @@ SHELL                :=/bin/bash
 ERR_CMPLR            :="Select a compiler: COMPILER=ifort, COMPILER=pgi"
 
 # Error message for bad MET input
-ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp)"
+ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp, MET=merra2)"
 
 # Error message for bad GRID input
-ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=025x03125"
+ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=05x0625, GRID=025x03125"
 
 # Error message for bad NEST input
-ERR_NEST             :="Select a nested grid: NEST=ch, NEST=eu, NEST=na NEST=se"
+ERR_NEST             :="Select a nested grid: NEST=ch, NEST=eu, NEST=na NEST=se, NEST=cu"
 
 # Error message for bad two-way coupled model input (yanyy,6/18/14)
 ERR_COUPLECH         :="Select a coupled grid for Asia         : COUPLECH=2x25ch, COUPLECH=4x5ch"
@@ -230,6 +260,11 @@ ifndef PRECISION
  PRECISION           :=8
 endif
 
+# %%%%% Default to Timers disabled %%%%%
+ifndef TIMERS
+ TIMERS              :=0
+endif
+
 # %%%%% Set default compiler %%%%%
 ifndef COMPILER
   COMPILER           :=ifort
@@ -258,7 +293,7 @@ ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
 endif
 
 #------------------------------------------------------------------------------
-# Grid-Independent GEOS-Chem (aka "Mega-Chem") settings
+# GEOS-Chem HP settings
 #------------------------------------------------------------------------------
 
 # %%%%% DEVEL %%%%%
@@ -295,6 +330,57 @@ ifeq ($(shell [[ "$(NO_BPCH)" =~ $(REGEXP) ]] && echo true),true)
 endif
 
 #------------------------------------------------------------------------------
+# KPP settings chemistry solver settings.  NOTE: We can't redefine CHEM 
+# (since it is an environent variable), so define a shadow variable KPP_CHEM.
+# %%%%% NOTE: These will probably be obsolete when FLEXCHEM is added. %%%%%
+#------------------------------------------------------------------------------
+
+# Test if the CHEM value is set
+IS_CHEM_SET          :=0
+
+# %%%%% Test if CHEM=UCX (will also turn on UCX) %%%%%
+REGEXP               :=(^[Uu][Cc][Xx])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  UCX                :=y
+  KPP_CHEM           :=UCX
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=SOA %%%%%
+REGEXP               :=(^[Ss][Oo][Aa])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=SOA
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=SOA_SVPOA %%%%%
+REGEXP               :=(^[Ss][Oo][Aa]_[Ss][Vv][Pp][Oo][Aa])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=SOA_SVPOA
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=NOx_Ox_HC_Aer_Br %%%%%
+REGEXP               :=(^[Nn][Oo][Xx]_[Oo][Xx]_[Hh][Cc]_[Aa][Ee][Rr]_[Bb][Rr])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=NOx_Ox_HC_Aer_Br
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%% Test if CHEM=tropchem (synonym for NOx_Ox_HC_Aer_Br) %%%%%
+REGEXP               :=(^[Tt][Rr][Oo][Pp][Cc][Hh][Ee][Mm])
+ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
+  KPP_CHEM           :=NOx_Ox_HC_Aer_Br
+  IS_CHEM_SET        :=1
+endif
+
+# %%%%%  Default setting: CHEM=benchmark %%%%%
+ifeq ($(IS_CHEM_SET),0)
+  KPP_CHEM           :=benchmark
+  IS_CHEM_SET        :=1
+endif
+
+#------------------------------------------------------------------------------
 # UCX stratospheric-tropospheric chemistry settings
 #------------------------------------------------------------------------------
 
@@ -303,7 +389,18 @@ REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(UCX)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DUCX
   NO_REDUCED         :=yes
-  CHEM               :=UCX
+endif
+
+#------------------------------------------------------------------------------
+# RRTMG radiative transfer model settings
+#------------------------------------------------------------------------------
+
+# %%%%% RRTMG %%%%%
+RRTMG_NEEDED         :=0
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(RRTMG)" =~ $(REGEXP) ]] && echo true),true)
+  RRTMG_NEEDED       :=1
+  USER_DEFS          += -DRRTMG
 endif
 
 #------------------------------------------------------------------------------
@@ -314,7 +411,7 @@ endif
 # to compile with "clean", "distclean", "realclean", "doc", "help",
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of MET.
 ifndef MET
-  REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout.|baselib.)
+  REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout|wipeout.|baselib.)
   ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ $(REGEXP) ]] && echo true),true)
     NO_MET_NEEDED    :=1
   else
@@ -343,10 +440,17 @@ ifndef NO_MET_NEEDED
     USER_DEFS        += -DGEOS_5
   endif
 
-  # %%%%% MERRA %%%%%
+  # %%%%% MERRA or MERRA2 %%%%%
+  # We have to employ a double regexp test in order to prevent
+  # inadvertently setting MERRA if we want MERRA2. (bmy, 8/11/15)
   REGEXP             :=(^[Mm][Ee][Rr][Rr][Aa])
   ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DMERRA
+    REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2|^[Mm][Ee][Rr][Rr][Aa].2)
+    ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+      USER_DEFS      += -DMERRA2
+    else
+      USER_DEFS      += -DMERRA
+    endif
   endif
 
   # %%%%% GEOS-FP %%%%%
@@ -365,7 +469,7 @@ ifndef NO_MET_NEEDED
   endif
 
   # %%%%% ERROR CHECK!  Make sure our MET selection is valid! %%%%%
-  REGEXP             :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP)
+  REGEXP             :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP|\-DMERRA2)
   ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
     $(error $(ERR_MET))
   endif
@@ -383,7 +487,7 @@ endif  # NO_MET_NEEDED
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of GRID.
 ifndef NO_GRID_NEEDED
   ifndef GRID
-    REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout.|baselib.)
+    REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout|wipeout.|baselib.|^wipeout)
     ifeq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
       NO_GRID_NEEDED :=1
     else
@@ -432,6 +536,25 @@ ifndef NO_GRID_NEEDED
     endif
   endif
 
+  # %%%%% 0.5 x 0.625 %%%%%
+  REGEXP             :=(^05.0625|^0\.5.0\.625)
+  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
+
+    # Ensure that MET=geos-fp
+    REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2)|(^[Mm][Ee][Rr][Rr][Aa].2)
+    ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+      $(error When GRID=05x0625, you can only use MET=merra2)
+    endif
+
+    # Ensure that a nested-grid option is selected
+    ifndef NEST
+      $(error $(ERR_NEST))
+    else
+      NEST_NEEDED    :=1
+      USER_DEFS      += -DGRID05x0625
+    endif
+  endif
+
   # %%%%% 0.25 x 0.3125 %%%%%
   REGEXP             :=(^025.03125|^0\.25.0\.3125)
   ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
@@ -452,7 +575,7 @@ ifndef NO_GRID_NEEDED
   endif
 
   # %%%%% ERROR CHECK!  Make sure our GRID selection is valid! %%%%%
-  REGEXP             := ((\-DGRID)?4x5|2x25|1x125|05x0666|025x03125)
+  REGEXP             := ((\-DGRID)?4x5|2x25|1x125|05x0666|05x0625|025x03125)
   ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
     $(error $(ERR_GRID))
   endif
@@ -485,9 +608,15 @@ ifndef NO_GRID_NEEDED
     USER_DEFS        += -DNESTED_SE
   endif
 
+  # %%%%% Custom (CU) %%%%%
+  REGEXP             :=(^[Cc][Uu])
+  ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DNESTED_CU
+  endif
+
   # %%%%% ERROR CHECK!  Make sure our NEST selection is valid! %%%%%
   ifdef NEST_NEEDED
-    REGEXP           :=((\-DNESTED_)?CH|NA|EU)
+    REGEXP           :=((\-DNESTED_)?CH|NA|EU|SE|CU)
     ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
       $(error $(ERR_NEST))
     endif
@@ -629,14 +758,27 @@ ifeq ($(COMPILER),ifort)
   endif
 endif
 
+#------------------------------------------------------------------------------
+# Add test for mass conservation
+#------------------------------------------------------------------------------
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(MASSCONS)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DMASSCONS
+endif
+
 ###############################################################################
 ###                                                                         ###
 ###  Set linker commands for local and external libraries (incl. netCDF)    ###
 ###                                                                         ###
 ###############################################################################
 
-# Library include path
-NC_INC_CMD           := -I$(GC_INCLUDE)
+# netCDF Library include path.  
+# Test if a separate netcdf-fortran library is specified.
+ifdef GC_F_INCLUDE
+  NC_INC_CMD         := -I$(GC_INCLUDE) -I$(GC_F_INCLUDE)
+else
+  NC_INC_CMD         := -I$(GC_INCLUDE)
+endif
 
 # Get the version number (e.g. "4130"=netCDF 4.1.3; "4200"=netCDF 4.2, etc.)
 NC_VERSION           :=$(shell $(GC_BIN)/nc-config --version)
@@ -658,8 +800,13 @@ ifeq ($(AT_LEAST_NC_4200),1)
   #-------------------------------------------------------------------------
   # netCDF 4.2 and higher:
   # Use "nf-config --flibs" and "nc-config --libs"
+  # Test if a separate netcdf-fortran path is specified
   #-------------------------------------------------------------------------
-  NC_LINK_CMD        := $(shell $(GC_BIN)/nf-config --flibs)
+  ifdef GC_F_BIN 
+    NC_LINK_CMD      := $(shell $(GC_F_BIN)/nf-config --flibs)
+  else
+    NC_LINK_CMD      := $(shell $(GC_BIN)/nf-config --flibs)
+  endif
   NC_LINK_CMD        += $(shell $(GC_BIN)/nc-config --libs)
 
 else
@@ -701,14 +848,34 @@ endif
 # Save for backwards compatibility
 NCL                  := $(NC_LINK_CMD)
 
-# Command to link to local library files
+#----------------------------
+# For GEOS-Chem 
+#----------------------------
+
+# Base linker command: specify the library directory
+LINK                 :=-L$(LIB)
+
+# Append library for GTMM, if necessary
 ifeq ($(GTMM_NEEDED),1)
-  LINK               :=-L$(LIB) -lHg
-else
-  LINK               :=-L$(LIB)
+  LINK               :=$(LINK) -lHg
 endif
+
+# Append library for RRTMG, if necessary
+ifeq ($(RRTMG_NEEDED),1)
+  LINK               :=$(LINK) -lrad
+endif
+
+# Create linker command to create the GEOS-Chem executable
 LINK                 :=$(LINK) -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp
 LINK                 :=$(LINK) -lHeaders -lNcUtils $(NC_LINK_CMD)
+
+#----------------------------
+# For the HEMCO standalone
+#----------------------------
+
+# Create linker command to create the HEMCO standalone executable
+LINK_HCO             :=-L$(LIB) -lHCOI -lHCOX -lHCO -lGeosUtil -lHeaders
+LINK_HCO             :=$(LINK_HCO) -lNcUtils $(NC_LINK_CMD)
 
 ###############################################################################
 ###                                                                         ###
@@ -822,6 +989,11 @@ ifeq ($(COMPILER),ifort)
     USER_DEFS        += -DUSE_REAL8
   endif
 
+  # Add timers declaration
+  ifeq ($(TIMERS),1)
+    USER_DEFS        += -DUSE_TIMERS
+  endif
+
   # Append the user options in USER_DEFS to FFLAGS
   FFLAGS             += $(USER_DEFS)
 
@@ -866,10 +1038,10 @@ ifeq ($(COMPILER),pgi)
   # Pick compiler options for debug run or regular run 
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           :=-byteswapio -Mpreprocess -Bstatic -g -O0 
+    FFLAGS           :=-byteswapio -Mpreprocess -g -O0 
     USER_DEFS        += -DDEBUG
   else
-    FFLAGS           :=-byteswapio -Mpreprocess -Bstatic $(OPT)
+    FFLAGS           :=-byteswapio -Mpreprocess $(OPT)
   endif
 
   # Add options for medium memory model.  This is to prevent G-C from 
@@ -911,11 +1083,16 @@ ifeq ($(COMPILER),pgi)
     USER_DEFS        += -DUSE_REAL8
   endif
 
+  # Add timers declaration
+  ifeq ($(TIMERS),1)
+    USER_DEFS        += -DUSE_TIMERS
+  endif
+
   # Append the user options in USER_DEFS to FFLAGS
   FFLAGS             += $(USER_DEFS)
 
   # Include options (i.e. for finding *.h, *.mod files)
-  INCLUDE            := -module $(MOD) -$(NC_INC_CMD)
+  INCLUDE            := -module $(MOD) $(NC_INC_CMD)
 
   # Do not append the ESMF/MAPL/FVDYCORE includes for ISORROPIA, because it 
   # will not compile.  ISORROPIA is slated for removal shortly. (bmy, 11/21/14)
@@ -959,19 +1136,25 @@ endif
 ###  Export global variables so that the main Makefile will see these       ###
 ###                                                                         ###
 ###############################################################################
-
+ 
 export CC
 export F90
 export F90ISO
 export FREEFORM
 export LD
 export LINK
+export LINK_HCO
 export R8
 export SHELL
 export NCL
 export NC_LINK_CMD
 export HPC
 export PRECISION
+export RRTMG_NEEDED
+export RRTMG_CLEAN
+export RRTMG_NO_CLEAN
+export KPP_CHEM
+export TIMERS
 
 #EOC
 
@@ -984,11 +1167,13 @@ export PRECISION
 
 #headerinfo:
 #	@@echo '####### in Makefile_header.mk ########' 
-#	@@echo "compiler: $(COMPILER)"
-#	@@echo "debug   : $(DEBUG)"
-#	@@echo "bounds  : $(BOUNDS)"
-#	@@echo "f90     : $(F90)"
-#	@@echo "cc      : $(CC)"
-#	@@echo "include : $(INCLUDE)"
-#	@@echo "link    : $(LINK)"
-#	@@echo "userdefs: $(USER_DEFS)"
+#	@@echo "COMPILER    : $(COMPILER)"
+#	@@echo "DEBUG       : $(DEBUG)"
+#	@@echo "BOUNDS      : $(BOUNDS)"
+#	@@echo "F90         : $(F90)"
+#	@@echo "CC          : $(CC)"
+#	@@echo "INCLUDE     : $(INCLUDE)"
+#	@@echo "LINK        : $(LINK)"
+#	@@echo "USERDEFS    : $(USER_DEFS)"
+#	@@echo "NC_INC_CMD  : $(NC_INC_CMD)"
+#	@@echo "NC_LINK_CMD : $(NC_LINK_CMD)"

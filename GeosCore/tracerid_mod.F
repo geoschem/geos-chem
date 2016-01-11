@@ -67,6 +67,8 @@
 !                              semivolatile POA simulations; Removed tracers
 !                              for old SOA simulation (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  12 Sep 2013 - M. Sulprizio- Added Flags for NIT/dust, SO4/dust, and dust
+!                              alkalinity (tdf 04/08/08)
 !  15 Aug 2014 - R. Yantosca - We can remove the IDBF* flags as all biofuel
 !                              emissions are now handled in HEMCO
 !  15 Aug 2014 - R. Yantosca - We can remove the IDF* flags as all biomass
@@ -74,6 +76,9 @@
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  29 Jan 2015 - E. Lundgren - Removed IDTHg0, IDTHg2, and IDTHgP since no
 !                              longer used in code.
+!  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
+!  07 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
+!  18 Nov 2015 - M. Sulprizio- Add passive tracer IDTPASV to RnPbBe simulation
 !******************************************************************************
 !
       ! for CTM tracers
@@ -95,7 +100,7 @@
       INTEGER            :: IDPAN,   IDGLPAN,  IDGPAN,  IDPMN,   IDPPN
       INTEGER            :: IDHNO3,  IDOH,     IDHO2,   IDH2O2,  IDACET
       INTEGER            :: IDMEK,   IDALD2,   IDRCHO,  IDMVK,   IDMACR
-      INTEGER            :: IDISN2,  IDR4N2,   IDCH2O,  IDC2H6,  IDMP
+      INTEGER            :: IDISN1,  IDR4N2,   IDCH2O,  IDC2H6,  IDMP
       INTEGER            :: IDDMS,   IDSO2,    IDSO4,   IDMSA
       INTEGER            :: IDDRYO3, IDDRYPAN, IDDRYNO2, IDSO4s         
       ! IDs of aromatics not use (hotp 8/1/09)
@@ -140,7 +145,7 @@
       INTEGER            :: IDTPAN,  IDTCO,    IDTALK4
       INTEGER            :: IDTISOP, IDTHNO3,  IDTH2O2, IDTACET, IDTMEK
       INTEGER            :: IDTALD2, IDTRCHO,  IDTMVK,  IDTMACR, IDTPMN
-      INTEGER            :: IDTPPN,  IDTISN2,  IDTR4N2, IDTPRPE, IDTC3H8
+      INTEGER            :: IDTPPN,  IDTISN1,  IDTR4N2, IDTPRPE, IDTC3H8
       INTEGER            :: IDTCH2O, IDTMP,    IDTN2O5, IDTHNO4, IDTC2H6
       INTEGER            :: IDTDMS,  IDTSO2,   IDTSO4,  IDTMSA,  IDTNH3
       INTEGER            :: IDTNH4,  IDTNIT,   IDTRN,   IDTPB,   IDTBE7
@@ -165,6 +170,10 @@
       INTEGER            :: IDTPYPAN,IDTMAP
       INTEGER            :: IDTAP
       INTEGER            :: IDTMPN
+      INTEGER            :: IDTPASV
+
+      ! Hydrophobic and hydrophilic marine organic aerosols (ewl, 7/7/15)
+      INTEGER            :: IDTMOPO, IDTMOPI
 
       ! For tagged Ox simulation
       INTEGER            :: IDTO3Strt
@@ -175,7 +184,8 @@
       INTEGER            :: IDTCH4
 
       ! For POPs simulation (clf, 2/11/2011)
-      INTEGER            :: IDTPOPPOC,  IDTPOPPBC,   IDTPOPG
+      INTEGER              :: IDTPOPPOCPO,  IDTPOPPBCPO,   IDTPOPG
+      INTEGER              :: IDTPOPPOCPI,  IDTPOPPBCPI
 
       ! For H2/HD simulation
       INTEGER            :: IDTH2, IDTHD ! (hup, phs, 9/18/07)
@@ -197,6 +207,11 @@
 
       ! Reservoirs
       INTEGER            :: IDTN2O, IDTOCS, IDTCLOCK
+
+      ! Extra Flags for NIT/dust, SO4/dust, and dust alkalinity (tdf 04/08/08)
+      INTEGER            :: IDTNITd1,IDTNITd2, IDTNITd3,IDTNITd4
+      INTEGER            :: IDTSO4d1,IDTSO4d2, IDTSO4d3,IDTSO4d4
+      INTEGER            :: IDTDAL1, IDTDAL2,  IDTDAL3, IDTDAL4
 
       ! SOAudpate (hotp 6/15/09)
       ! semivolpoa: replace OCPO and OCPI with POA (hotp 2/17/09)
@@ -336,46 +351,6 @@
       INTEGER              :: ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
       INTEGER              :: ID_Hg_ocn,  ID_Hg_str
 
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% Emission ID's, keep for backwards compatibility for now
-      !%%% But these are really obsolete and we can remove them soon.
-      !%%% (bmy, 8/15/14)
-      INTEGER :: NEMANTHRO
-      INTEGER :: NEMBIOG
-      INTEGER :: IDENO
-      INTEGER :: IDECO
-      INTEGER :: IDEPRPE
-      INTEGER :: IDEC3H8
-      INTEGER :: IDEALK4
-      INTEGER :: IDEC2H6
-      INTEGER :: IDEISOP
-      INTEGER :: IDEACET
-      INTEGER :: IDEMEK
-      INTEGER :: IDEALD2
-      INTEGER :: IDECH2O
-      INTEGER :: IDEO3
-      INTEGER :: IDEHNO3
-      INTEGER :: IDECH4
-      INTEGER :: IDEGLYX
-      INTEGER :: IDEMGLY
-      INTEGER :: IDEBENZ
-      INTEGER :: IDETOLU
-      INTEGER :: IDEXYLE
-      INTEGER :: IDEMONX
-      INTEGER :: IDEC2H4
-      INTEGER :: IDEC2H2
-      INTEGER :: IDERCHO
-      INTEGER :: IDEHCOOH
-      INTEGER :: IDEACTA
-      INTEGER :: IDEMBO
-      INTEGER :: IDEGLYC
-      INTEGER :: IDEHAC
-      INTEGER :: IDECHBr3
-      INTEGER :: IDECH2Br2
-      INTEGER :: IDEBr2
-      INTEGER :: IDENAP
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
       CONTAINS
 
 !------------------------------------------------------------------------------
@@ -424,6 +399,8 @@
 !  (21) Add IDEMS definitions for new species (fp, hotp, 01/10)
 !  (22) Add writing check on IDs. (hotp, 01/10)
 !  (23) Added IDTPOPG, IDTPOPPOC, and IDTPOPPBC for POPs simulation (eck, 9/20/10)
+!  (24) Changed IDTPOPPOC and IDTPOPPBC to IDTPOPPOCPO and IDTPOPPBCPO, 
+!        added IDTPOPPOCPI and IDTPOPPBCPI for POPs (CLF, 2/11/2012)
 !  17 Aug 2011 - R. Yantosca - Print values of 3 extra emission IDExxx flags
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  16 Feb 2012 - M. Payer    - Account for alternate spellings of the Rn and Pb
@@ -435,17 +412,20 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations; Removed tracers
 !                              for old SOA simulation (H. Pye)
+!  12 Sep 2013 - M. Sulprizio- Added Flags for NIT/dust, SO4/dust, and dust
+!                              alkalinity (tdf 04/08/08)
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !  15 Aug 2014 - R. Yantosca - Removed obsolete IDBF* and IDB* indices
+!  10 Aug 2015 - M. Sulprizio- Removed COUNT variable made obsolete by HEMCO
 !******************************************************************************
 !
       ! References to F90 modules
-      USE CHARPAK_MOD, ONLY : TRANUC
+      USE CHARPAK_MOD,        ONLY : TRANUC
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : ERROR_STOP
 !
 ! !INPUT PARAMETERS:
 !
@@ -458,12 +438,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER              :: N, COUNT, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
-      CHARACTER(LEN=14)    :: NAME
-
-      !(fp, 6/09)
-      ! COUNT_BB is the number of BB tracers for a given sim
-      INTEGER              :: COUNT_BB
+      INTEGER                     :: N, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
+      CHARACTER(LEN=14)           :: NAME
 
       !=================================================================
       ! TRACERID begins here!
@@ -492,7 +468,6 @@
       CALL INIT_TRACERID( am_I_Root, Input_Opt, RC )
       
       ! Initialize counters
-      COUNT     = 0
       COUNT_Hg0 = 0
       COUNT_Hg2 = 0
       COUNT_HgP = 0
@@ -515,7 +490,6 @@
             ! Full chem tracers
             !------------------------
             CASE ( 'NO' )
-               COUNT    = COUNT + 1
                IDTNO    = N
 
             CASE ( 'NO2' )
@@ -534,7 +508,6 @@
                IDTPAN   = N
                
             CASE ( 'CO' )
-               COUNT    = COUNT + 1
                IDTCO    = N
 
                ! Special case: Tagged CO
@@ -543,7 +516,7 @@
                ! EMFOSSIL, we need to set IDECO=1 instead of IDECO=2.
                ! (jaf, mak, bmy, 2/14/08)
                IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN 
-                  NEMANTHRO = 1
+                  !NEMANTHRO = 1
                   IDTISOP   = 1
                   EXIT
                ENDIF
@@ -556,13 +529,12 @@
             ! (hup, lyj, phs, 9/18/07)
             !-----------------------------------
             CASE ( 'H2' )
-               COUNT    = COUNT + 1
                IDTCO    = N
 
                ! Special case: Tagged H2 (hup 4/28/2004)
                ! Set some emissions flags then exit
                IF ( Input_Opt%ITS_A_H2HD_SIM ) THEN
-                  NEMANTHRO = 1
+                  !NEMANTHRO = 1
                   IDTISOP   = 1
                   IDTH2     = 1 ! (hup 7/14/2004)
 
@@ -571,11 +543,9 @@
 
             ! ... and HD
             CASE ( 'HD' )
-               COUNT    = COUNT + 1
                IDTHD    = N
 
             CASE ( 'ALK4' )
-               COUNT    = COUNT + 1
                IDTALK4  = N
 
             CASE ( 'ISOP' )
@@ -588,15 +558,12 @@
                IDTH2O2  = N
 
             CASE ( 'ACET' )
-               COUNT    = COUNT + 1
                IDTACET  = N
 
             CASE ( 'MEK' )
-               COUNT    = COUNT + 1
                IDTMEK   = N
 
             CASE ( 'ALD2' )
-               COUNT    = COUNT + 1
                IDTALD2  = N
 
             CASE ( 'RCHO' )
@@ -618,25 +585,21 @@
                IDTR4N2  = N
 
             CASE ( 'PRPE' )
-               COUNT    = COUNT + 1
                IDTPRPE  = N
 
             CASE ( 'C3H8' )
-               COUNT    = COUNT + 1
                IDTC3H8  = N
 
             CASE ( 'CH2O' )
-               COUNT    = COUNT + 1
                IDTCH2O  = N
 
             CASE ( 'C2H6' )
-               COUNT    = COUNT + 1
                IDTC2H6  = N
 
                ! Special case: tagged C2H6
                ! Set emission flags and then exit
                IF ( Input_Opt%ITS_A_C2H6_SIM ) THEN
-                  NEMANTHRO = 1
+                  !NEMANTHRO = 1
                   EXIT
                ENDIF
 
@@ -681,6 +644,31 @@
 
             CASE ( 'NITS' )
                IDTNITs  = N
+
+            ! Add extra cases for nitrate on dust   tdf 04/16/08
+            CASE ( 'NITD1' )
+               IDTNITd1  = N
+
+            CASE ( 'NITD2' )
+               IDTNITd2  = N
+
+            CASE ( 'NITD3' )
+               IDTNITd3  = N
+
+            CASE ( 'NITD4' )
+               IDTNITd4  = N
+
+            ! Add extra cases for sulfate on dust   tdf 04/16/08
+            CASE ( 'SO4D1' )
+               IDTSO4d1  = N
+            CASE ( 'SO4D2' )
+               IDTSO4d2  = N
+
+            CASE ( 'SO4D3' )
+               IDTSO4d3  = N
+
+            CASE ( 'SO4D4' )
+               IDTSO4d4  = N
 
             !--------------------------------
             ! Crystalline & aqueous aerosols
@@ -837,6 +825,19 @@
             CASE ( 'DST4' )
                IDTDST4  = N
 
+            ! Add extra cases for dust alkalinity   tdf 04/16/08
+            CASE ( 'DSTAL1' )
+               IDTDAL1  = N
+
+            CASE ( 'DSTAL2' )
+               IDTDAL2  = N
+
+            CASE ( 'DSTAL3' )
+               IDTDAL3  = N
+
+            CASE ( 'DSTAL4' )
+               IDTDAL4  = N
+
             !--------------------------------
             ! Seasalt aerosols
             !--------------------------------
@@ -845,6 +846,17 @@
 
             CASE ( 'SALC' )
                IDTSALC  = N
+
+            !-------------------------------
+            ! Marine organic aerosols
+            !-------------------------------
+
+            CASE ( 'MOPO' )
+               IDTMOPO  = N
+
+            CASE ( 'MOPI' )
+               IDTMOPI  = N
+
 
             !--------------------------------
             ! Bromine (jpp, 6/13/07)
@@ -977,26 +989,21 @@
             ! Dicarbonyls GLYX & MGLY
             !--------------------------------
             CASE ( 'GLYX' )
-               COUNT    = COUNT + 1
                IDTGLYX  = N
 
             CASE ( 'MGLY' )
-               COUNT    = COUNT + 1
                IDTMGLY  = N
 
             !--------------------------------
             ! Aromatics tracers
             !--------------------------------
             CASE ( 'BENZ' )
-               COUNT    = COUNT + 1
                IDTBENZ  = N
 
             CASE ( 'TOLU' )
-               COUNT    = COUNT + 1
                IDTTOLU  = N
 
             CASE ( 'XYLE' )
-               COUNT    = COUNT + 1
                IDTXYLE  = N
 
             ! SOAupdate: for gas phase NAP chemistry (hotp 6/24/09)
@@ -1004,7 +1011,6 @@
             ! semivolpoa5: IVOC tracer (hotp 3/30/09)
             !-------------------------------
             CASE ( 'NAP' )
-               COUNT    = COUNT + 1
                IDTNAP   = N
 
             !--------------------------------
@@ -1026,14 +1032,12 @@
             ! C2H4
             !--------------------------------
             CASE ( 'C2H4' )
-               COUNT    = COUNT + 1
                IDTC2H4  = N
 
             !--------------------------------
             ! C2H2
             !--------------------------------
             CASE ( 'C2H2' )
-               COUNT    = COUNT + 1
                IDTC2H2  = N
                
             !--------------------------------
@@ -1046,14 +1050,12 @@
             ! GLYC
             !--------------------------------
             CASE ( 'GLYC' )
-               COUNT    = COUNT + 1
                IDTGLYC  = N
 
             !--------------------------------
             ! HAC
             !--------------------------------
             CASE ( 'HAC' )
-               COUNT    = COUNT + 1
                IDTHAC   = N
 
             !--------------------------------
@@ -1127,20 +1129,22 @@
             CASE ( 'BE7' )
                IDTBE7   = N
 
+            ! Passive tracer (mps, 11/18/15)
+            CASE ( 'PASV' )
+               IDTPASV  = N
+
             !--------------------------------
             ! CH3I and HCN tracers
             !--------------------------------
 
             ! Special case: CH3I needs CO biomass/biofuel
             CASE ( 'CH3I', 'CH3IOC' )
-               COUNT    = COUNT + 1
                IDTCO    = 1
-               NEMANTHRO= 8      ! Reset NEMANTHRO here too (bmy, 7/25/06)
+               !NEMANTHRO= 8      ! Reset NEMANTHRO here too (bmy, 7/25/06)
                EXIT
 
             ! Special case: HCN needs CO biomass/biofuel
             CASE ( 'HCN' )
-               COUNT    = COUNT + 1
                IDTCO    = 1
                EXIT
 
@@ -1525,23 +1529,25 @@
             CASE ( 'HGP_STR' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
-!--------------------------------------------------------------------------------
 
             !--------------------------------
             ! POPs
             ! (eck, 9/20/10); (clf, 2/11/2011)
             !--------------------------------
-            CASE ( 'POPG' )
-               COUNT     = COUNT+1              
-               IDTPOPG         = N
+            CASE ( 'POPG'     )
+               IDTPOPG      = N
                
-            CASE ( 'POPPOC' )
-               COUNT     = COUNT+1
-               IDTPOPPOC       = N
+            CASE ( 'POPPOCPO' )
+               IDTPOPPOCPO  = N
 
-            CASE ( 'POPPBC' )
-               COUNT     = COUNT+1
-               IDTPOPPBC       = N
+            CASE ( 'POPPOCPI' )
+               IDTPOPPOCPI  = N
+
+            CASE ( 'POPPBCPO' )
+               IDTPOPPBCPO  = N
+
+            CASE ( 'POPPBCPI' )
+               IDTPOPPBCPI  = N
 
 #if   defined( TOMAS )
             !-----------------------------------
@@ -2342,254 +2348,6 @@
          END SELECT
       ENDDO
      
-      !=================================================================
-      ! Initialize the IDExxx flags, which denote tracers that
-      ! are emitted.  Remove the old previous hardwiring
-      ! (hotp, bmy, 8/17/11)
-      !=================================================================
-      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-
-         ! Initialize counters
-         ! Number of anthro emissions handled in anthroems and SMVGEAR:
-         NEMANTHRO = 0
-
-         ! Number of additional emissions handled in SMVGEAR:
-         NEMBIOG   = 0
-
-         ! The first 12 tracers are in the original order and thus
-         ! IDEs are the same as listed below
-         IF ( IDTNO > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDENO     = NEMANTHRO
-         ENDIF
-         IF ( IDTCO > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDECO     = NEMANTHRO
-         ENDIF
-         IF ( IDTPRPE > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDEPRPE   = NEMANTHRO
-         ENDIF
-         IF ( IDTC3H8 > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDEC3H8   = NEMANTHRO
-         ENDIF
-         IF ( IDTALK4 > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDEALK4   = NEMANTHRO
-         ENDIF
-         IF ( IDTC2H6 > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDEC2H6   = NEMANTHRO
-         ENDIF
-         IF ( IDTACET > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDEACET   = NEMANTHRO
-         ENDIF
-         IF ( IDTMEK  > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDEMEK    = NEMANTHRO
-         ENDIF
-         IF ( IDTALD2 > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDEALD2   = NEMANTHRO
-         ENDIF
-         IF ( IDTCH2O > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDECH2O   = NEMANTHRO
-         ENDIF
-         IF ( IDTO3 > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDEO3     = NEMANTHRO
-         ENDIF
-         IF ( IDTHNO3 > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDEHNO3   = NEMANTHRO
-         ENDIF
-         IF ( IDTCH4  > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDECH4    = NEMANTHRO
-         ENDIF
-         IF ( IDTBENZ > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDEBENZ   = NEMANTHRO
-         ENDIF
-         IF ( IDTTOLU > 0 ) THEN
-            IDETOLU   = NEMANTHRO
-            IDETOLU   = NEMANTHRO
-         ENDIF
-         IF ( IDTXYLE > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDEXYLE   = NEMANTHRO
-         ENDIF
-         IF ( IDTNAP  > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDENAP    = NEMANTHRO
-         ENDIF
-         IF ( IDTC2H4 > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDEC2H4   = NEMANTHRO
-         ENDIF
-         IF ( IDTC2H2 > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDEC2H2   = NEMANTHRO
-         ENDIF
-         ! For now, comment this out, as RETRO does not have RCHO emissions
-         ! (bmy, 8/17/11)
-         !IF ( IDTRCHO > 0 ) THEN
-         !   NEMANTHRO = NEMANTHRO + 1
-         !   IDERCHO  = NEMANTHRO
-         !ENDIF
-         IF ( IDTHCOOH > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDEHCOOH  = NEMANTHRO
-         ENDIF
-         IF ( IDTACTA > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDEACTA   = NEMANTHRO
-         ENDIF
-
-         !%%% BIOGENICS START HERE %%%%%%%%%%%%%%%%%
-         IF ( IDTISOP > 0 ) THEN
-            NEMBIOG    = NEMBIOG   + 1
-            IDEISOP    = NEMANTHRO + NEMBIOG
-         ENDIF
-         IF ( IDTGLYX > 0 ) THEN
-            NEMBIOG   = NEMBIOG   + 1
-            IDEGLYX   = NEMANTHRO + NEMBIOG
-         ENDIF
-         IF ( IDTMGLY > 0 ) THEN
-            NEMBIOG   = NEMBIOG + 1
-            IDEMGLY   = NEMANTHRO + NEMBIOG
-         ENDIF
-         IF ( IDTGLYC > 0 ) THEN
-            NEMBIOG   = NEMBIOG + 1
-            IDEGLYC   = NEMANTHRO + NEMBIOG
-         ENDIF
-         IF ( IDTHAC > 0 ) THEN
-            NEMBIOG   = NEMBIOG + 1
-            IDEHAC    = NEMANTHRO + NEMBIOG
-         ENDIF
-         IF ( IDTMONX > 0 ) THEN
-            NEMBIOG   = NEMBIOG + 1
-            IDEMONX   = NEMANTHRO + NEMBIOG
-         ENDIF
-         IF ( IDTMBO > 0 ) THEN
-            NEMBIOG   = NEMBIOG + 1
-            IDEMBO    = NEMANTHRO + NEMBIOG
-         ENDIF
-         IF ( IDTCHBr3 > 0 ) THEN
-            NEMBIOG   = NEMBIOG + 1
-            IDECHBr3  = NEMANTHRO + NEMBIOG
-         ENDIF
-         IF ( IDTCH2Br2 > 0 ) THEN
-            NEMBIOG   = NEMBIOG + 1
-            IDECH2Br2 = NEMANTHRO + NEMBIOG
-         ENDIF
-         IF ( IDTBr2 > 0 ) THEN
-            NEMBIOG   = NEMBIOG + 1
-            IDEBr2    = NEMANTHRO + NEMBIOG
-         ENDIF
-      ENDIF
-      
-      !=================================================================
-      ! Fill IDEMS with appropriate tracer ID #'s
-      !
-      ! NOTE: IDEMS is in "comode.h", maybe later split this off into
-      ! an F90 module somehow.  Think about this later. (bmy, 11/12/02)
-      !=================================================================
-      IF ( IDENO     /= 0 ) IDEMS(IDENO    ) = IDTNO
-      IF ( IDECO     /= 0 ) IDEMS(IDECO    ) = IDTCO
-      IF ( IDEPRPE   /= 0 ) IDEMS(IDEPRPE  ) = IDTPRPE
-      IF ( IDEC3H8   /= 0 ) IDEMS(IDEC3H8  ) = IDTC3H8
-      IF ( IDEALK4   /= 0 ) IDEMS(IDEALK4  ) = IDTALK4
-      IF ( IDEC2H6   /= 0 ) IDEMS(IDEC2H6  ) = IDTC2H6
-      IF ( IDEISOP   /= 0 ) IDEMS(IDEISOP  ) = IDTISOP
-      IF ( IDEACET   /= 0 ) IDEMS(IDEACET  ) = IDTACET
-      IF ( IDEMEK    /= 0 ) IDEMS(IDEMEK   ) = IDTMEK
-      IF ( IDEALD2   /= 0 ) IDEMS(IDEALD2  ) = IDTALD2
-      IF ( IDECH2O   /= 0 ) IDEMS(IDECH2O  ) = IDTCH2O
-      IF ( IDEO3     /= 0 ) IDEMS(IDEO3    ) = IDTO3
-      IF ( IDEHNO3   /= 0 ) IDEMS(IDEHNO3  ) = IDTHNO3
-      IF ( IDECH4    /= 0 ) IDEMS(IDECH4   ) = IDTCH4
-      IF ( IDEGLYX   /= 0 ) IDEMS(IDEGLYX  ) = IDTGLYX
-      IF ( IDEMGLY   /= 0 ) IDEMS(IDEMGLY  ) = IDTMGLY
-      IF ( IDEBENZ   /= 0 ) IDEMS(IDEBENZ  ) = IDTBENZ
-      IF ( IDETOLU   /= 0 ) IDEMS(IDETOLU  ) = IDTTOLU
-      IF ( IDEXYLE   /= 0 ) IDEMS(IDEXYLE  ) = IDTXYLE
-      IF ( IDEMONX   /= 0 ) IDEMS(IDEMONX  ) = IDTMONX
-      IF ( IDEC2H4   /= 0 ) IDEMS(IDEC2H4  ) = IDTC2H4
-      IF ( IDEC2H2   /= 0 ) IDEMS(IDEC2H2  ) = IDTC2H2
-      IF ( IDERCHO   /= 0 ) IDEMS(IDERCHO  ) = IDTRCHO
-      IF ( IDEHCOOH  /= 0 ) IDEMS(IDEHCOOH ) = IDTHCOOH
-      IF ( IDEACTA   /= 0 ) IDEMS(IDEACTA  ) = IDTACTA
-      IF ( IDEMBO    /= 0 ) IDEMS(IDEMBO   ) = IDTMBO
-      IF ( IDEGLYC   /= 0 ) IDEMS(IDEGLYC  ) = IDTGLYC
-      IF ( IDEHAC    /= 0 ) IDEMS(IDEHAC   ) = IDTHAC
-      IF ( IDECHBr3  /= 0 ) IDEMS(IDECHBr3 ) = IDTCHBr3
-      IF ( IDECH2Br2 /= 0 ) IDEMS(IDECH2Br2) = IDTCH2Br2
-      IF ( IDEBr2    /= 0 ) IDEMS(IDEBr2   ) = IDTBr2
-      IF ( IDENAP    /= 0 ) IDEMS(IDENAP   ) = IDTNAP
-
-      ! Echo anthro & biogenic emitted tracers
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) IDEMS ( 1:NEMANTHRO+NEMBIOG )
- 100     FORMAT( /, 'TRACERID: Emitted tracers (anthro & bio) :', 27i3 )
-
-         ! print additional information (hotp 8/4/09)
-         WRITE( 6, 115 ) 'TRACERID: CHECK FULLCHEM IDEs'
-         WRITE( 6, 115 ) '---------------------------------------------'
-         WRITE( 6, 115 ) 'NEMANTHRO: 10 for standard sims b4 v811'
-         WRITE( 6, 115 ) '          + 2 for HNO3 and Ox'
-         WRITE( 6, 115 ) '          + 5 for aromatics (B,T,X,C2H2,C2H4)'
-         WRITE( 6, 115 ) '          + 1 for CH4'
-         WRITE( 6, 115 ) '          + 1 for NAP'  ! hotp
-         WRITE( 6, 115 ) 'NEMANTHRO: 19 max'
-         WRITE( 6, 120 ) 'THIS NEMANTHRO: ', NEMANTHRO
-         WRITE( 6, 115 ) '---------------------------------------------'
-         WRITE( 6, 115 ) 'NEMBIOG:    1 for isoprene'
-         WRITE( 6, 115 ) '          + 6 for dicarbonyls'
-         WRITE( 6, 115 ) '          + 3 for bromine'
-         WRITE( 6, 115 ) 'NEMBIOG:   10 max'
-         WRITE( 6, 120 ) 'THIS NEMBIOG:   ', NEMBIOG
-         WRITE( 6, 115 ) '---------------------------------------------'
-         WRITE( 6, 120 ) 'IDENO    ', IDENO
-         WRITE( 6, 120 ) 'IDECO    ', IDECO
-         WRITE( 6, 120 ) 'IDEPRPE  ', IDEPRPE
-         WRITE( 6, 120 ) 'IDEC3H8  ', IDEC3H8
-         WRITE( 6, 120 ) 'IDEALK4  ', IDEALK4
-         WRITE( 6, 120 ) 'IDEC2H6  ', IDEC2H6
-         WRITE( 6, 120 ) 'IDEACET  ', IDEACET
-         WRITE( 6, 120 ) 'IDEMEK   ', IDEMEK
-         WRITE( 6, 120 ) 'IDEALD2  ', IDEALD2
-         WRITE( 6, 120 ) 'IDECH2O  ', IDECH2O
-         WRITE( 6, 120 ) 'IDEO3    ', IDEO3
-         WRITE( 6, 120 ) 'IDEHNO3  ', IDEHNO3
-         WRITE( 6, 120 ) 'IDECH4   ', IDECH4
-         WRITE( 6, 120 ) 'IDEISOP  ', IDEISOP
-         WRITE( 6, 120 ) 'IDEGLYX  ', IDEGLYX
-         WRITE( 6, 120 ) 'IDEMGLY  ', IDEMGLY
-         WRITE( 6, 120 ) 'IDEBENZ  ', IDEBENZ
-         WRITE( 6, 120 ) 'IDETOLU  ', IDETOLU
-         WRITE( 6, 120 ) 'IDEXYLE  ', IDEXYLE
-         WRITE( 6, 120 ) 'IDEMONX  ', IDEMONX
-         WRITE( 6, 120 ) 'IDEC2H4  ', IDEC2H4
-         WRITE( 6, 120 ) 'IDEC2H2  ', IDEC2H2
-         WRITE( 6, 120 ) 'IDERCHO  ', IDERCHO
-         WRITE( 6, 120 ) 'IDEHCOOH ', IDEHCOOH
-         WRITE( 6, 120 ) 'IDEACTA  ', IDEACTA
-         WRITE( 6, 120 ) 'IDEMBO   ', IDEMBO
-         WRITE( 6, 120 ) 'IDEGLYC  ', IDEGLYC
-         WRITE( 6, 120 ) 'IDEHAC   ', IDEHAC
-         WRITE( 6, 120 ) 'IDECHBr3 ', IDECHBr3 
-         WRITE( 6, 120 ) 'IDECH2Br2', IDECH2Br2 
-         WRITE( 6, 120 ) 'IDEBr2   ', IDEBr2 
-         WRITE( 6, 120 ) 'IDENAP   ', IDENAP
-         WRITE( 6, 115 ) '---------------------------------------------' 
-      ENDIF
- 115  FORMAT( a )
- 120  FORMAT( a, i3 )
-
       END SUBROUTINE TRACERID
 
 !------------------------------------------------------------------------------
@@ -2718,7 +2476,7 @@
          IF ( NAMEGAS(I) == 'RCHO'   ) IDRCHO   = I
          IF ( NAMEGAS(I) == 'MVK'    ) IDMVK    = I
          IF ( NAMEGAS(I) == 'MACR'   ) IDMACR   = I
-         IF ( NAMEGAS(I) == 'ISN2'   ) IDISN2   = I
+         IF ( NAMEGAS(I) == 'ISN1'   ) IDISN1   = I
          IF ( NAMEGAS(I) == 'R4N2'   ) IDR4N2   = I
          IF ( NAMEGAS(I) == 'CH2O'   ) IDCH2O   = I
          IF ( NAMEGAS(I) == 'C2H6'   ) IDC2H6   = I
@@ -3753,6 +3511,7 @@
 !                              semivolatile POA simulations (H. Pye)
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  25 Jun 2014 - R. Yantosca - Now remove references to tracer_mod.F
+!  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3802,7 +3561,7 @@
       IDRCHO    = 0 
       IDMVK     = 0
       IDMACR    = 0
-      IDISN2    = 0
+      IDISN1    = 0
       IDR4N2    = 0
       IDCH2O    = 0
       IDC2H6    = 0
@@ -3904,7 +3663,7 @@
       IDTMACR   = 0
       IDTPMN    = 0
       IDTPPN    = 0
-      IDTISN2   = 0
+      IDTISN1   = 0
       IDTR4N2   = 0
       IDTPRPE   = 0
       IDTC3H8   = 0
@@ -3936,9 +3695,12 @@
       IDTDST4   = 0
       IDTSALA   = 0
       IDTSALC   = 0
+      IDTMOPO   = 0
+      IDTMOPI   = 0
       IDTRN     = 0
       IDTPB     = 0
       IDTBE7    = 0
+      IDTPASV   = 0
       IDTGLYX   = 0
       IDTMGLY   = 0
       IDTBENZ   = 0
@@ -4017,6 +3779,20 @@
       ! Online CH4 emissions
       ! (mpayer 1/24/12)
       IDTCH4     = 0
+
+      ! GEOS-CHEM Coated dust tracers ( tdf 04/08/08 )
+      IDTNITd1  = 0
+      IDTNITd2  = 0
+      IDTNITd3  = 0
+      IDTNITd4  = 0
+      IDTSO4d1  = 0
+      IDTSO4d2  = 0
+      IDTSO4d3  = 0
+      IDTSO4d4  = 0
+      IDTDAL1   = 0
+      IDTDAL2   = 0
+      IDTDAL3   = 0
+      IDTDAL4   = 0
 
       ! SOAupdate: convert all POA/POG to 1 and 2 (hotp 10/11/09)
        !semivolpoa (hotp 8/24/09)
@@ -4487,10 +4263,6 @@
 # endif
 
 #endif
-
-      ! GEOS-CHEM Emission ID #'s
-      NEMANTHRO = 0
-      NEMBIOG   = 0
 
       !-----------------------------------
       ! Initialize tagged Hg index arrays

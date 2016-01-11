@@ -25,9 +25,13 @@ MODULE HCO_FluxArr_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: HCO_EmisAdd
-  PUBLIC :: HCO_DepvAdd
-  PUBLIC :: HCO_FluxarrReset
+  PUBLIC  :: HCO_EmisAdd
+  PUBLIC  :: HCO_DepvAdd
+  PUBLIC  :: HCO_FluxarrReset
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  PRIVATE :: DiagnCheck
 !
 ! !REMARKS:
 !                                                                             
@@ -151,26 +155,37 @@ CONTAINS
 !
 ! !DESCRIPTION: Routine HCO\_EmisAdd\_3D adds the 3D-array Arr3D 
 ! to the emissions array of species HcoID in HEMCO object HcoState.
+! This routine also updates all autofill diagnostics that are defined
+! for the givne species, extension number, emission category and
+! hierarchy.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_EmisAdd_3D_Dp( HcoState, Arr3D, HcoID, RC )
+  SUBROUTINE HCO_EmisAdd_3D_Dp( am_I_Root, HcoState, Arr3D, HcoID, &
+                                RC,        ExtNr,    Cat,   Hier,  &
+                                MinDiagnLev )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT) :: HcoState
-    REAL(dp),        INTENT(INOUT) :: Arr3D( HcoState%NX, &
-                                             HcoState%NY, &
-                                             HcoState%NZ )
-    INTEGER,         INTENT(INOUT) :: RC 
+    TYPE(HCO_State), INTENT(INOUT)           :: HcoState
+    REAL(dp),        INTENT(INOUT)           :: Arr3D( HcoState%NX, &
+                                                       HcoState%NY, &
+                                                       HcoState%NZ )
+    INTEGER,         INTENT(INOUT)           :: RC 
 !
 ! !INPUT PARAMETERS:
 ! 
-    INTEGER,         INTENT(IN   ) :: HcoID 
+    LOGICAL,         INTENT(IN   )           :: am_I_Root
+    INTEGER,         INTENT(IN   )           :: HcoID 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
+    INTEGER,         INTENT(IN   ), OPTIONAL :: Hier
+    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev 
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
+!  20 Apr 2015 - C. Keller - Added DiagnCheck
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -208,6 +223,12 @@ CONTAINS
     HcoState%Spc(HcoID)%Emis%Val(:,:,:) = &
        HcoState%Spc(HcoID)%Emis%Val(:,:,:) + Arr3D(:,:,:)
 
+    ! Check for diagnostics
+    CALL DiagnCheck( am_I_Root, HcoState,    ExtNr=ExtNr, Cat=Cat, &
+                     Hier=Hier, HcoID=HcoID, Arr3D=Arr3D,          &
+                     MinDiagnLev=MinDiagnLev, RC=RC     )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Return w/ success
     RC = HCO_SUCCESS 
 
@@ -222,26 +243,37 @@ CONTAINS
 !
 ! !DESCRIPTION: Routine HCO\_EmisAdd\_3D adds the 3D-array Arr3D to the 
 ! emissions array of species HcoID in HEMCO object HcoState.
+! This routine also updates all autofill diagnostics that are defined
+! for the givne species, extension number, emission category and
+! hierarchy.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_EmisAdd_3D_Sp ( HcoState, Arr3D, HcoID, RC )
+  SUBROUTINE HCO_EmisAdd_3D_Sp ( am_I_Root, HcoState, Arr3D, HcoID, &
+                                 RC,        ExtNr,    Cat,   Hier,  &
+                                 MinDiagnLev )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT)   :: HcoState
-    REAL(sp),        INTENT(INOUT)   :: Arr3D( HcoState%NX, &
-                                               HcoState%NY, &
-                                               HcoState%NZ )
-    INTEGER,         INTENT(INOUT)   :: RC 
+    TYPE(HCO_State), INTENT(INOUT)           :: HcoState
+    REAL(sp),        INTENT(INOUT)           :: Arr3D( HcoState%NX, &
+                                                       HcoState%NY, &
+                                                       HcoState%NZ )
+    INTEGER,         INTENT(INOUT)           :: RC 
 !
 ! !INPUT PARAMETERS:
 ! 
-    INTEGER,         INTENT(IN   )   :: HcoID 
+    LOGICAL,         INTENT(IN   )           :: am_I_Root
+    INTEGER,         INTENT(IN   )           :: HcoID 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
+    INTEGER,         INTENT(IN   ), OPTIONAL :: Hier
+    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev 
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
+!  20 Apr 2015 - C. Keller - Added DiagnCheck
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -279,6 +311,12 @@ CONTAINS
     HcoState%Spc(HcoID)%Emis%Val(:,:,:) = &
        HcoState%Spc(HcoID)%Emis%Val(:,:,:) + Arr3D(:,:,:)
 
+    ! Check for diagnostics
+    CALL DiagnCheck( am_I_Root, HcoState,    ExtNr=ExtNr,   Cat=Cat, &
+                     Hier=Hier, HcoID=HcoID, Arr3Dsp=Arr3D,          & 
+                     MinDiagnLev=MinDiagnLev, RC=RC     )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Return w/ success
     RC = HCO_SUCCESS
 
@@ -293,24 +331,35 @@ CONTAINS
 !
 ! !DESCRIPTION: Routine HCO\_EmisAdd\_2D\_Dp adds the real*8 2D-array Arr2D 
 ! to the emission array of species HcoID in HEMCO object HcoState.
+! This routine also updates all autofill diagnostics that are defined
+! for the givne species, extension number, emission category and
+! hierarchy.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_EmisAdd_2D_Dp( HcoState, Arr2D, HcoID, RC )
+  SUBROUTINE HCO_EmisAdd_2D_Dp( am_I_Root, HcoState, Arr2D, HcoID, &
+                                RC,        ExtNr,    Cat,   Hier,  &
+                                MinDiagnLev )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(HCO_State), INTENT(INOUT) :: HcoState
-    REAL(dp),        INTENT(INOUT) :: Arr2D(HcoState%NX,HcoState%NY)
-    INTEGER,         INTENT(INOUT) :: RC 
+    TYPE(HCO_State), INTENT(INOUT)           :: HcoState
+    REAL(dp),        INTENT(INOUT)           :: Arr2D(HcoState%NX,HcoState%NY)
+    INTEGER,         INTENT(INOUT)           :: RC 
 !                                  
 ! !INPUT PARAMETERS:        
 !                                  
-    INTEGER,         INTENT(IN   ) :: HcoID 
+    LOGICAL,         INTENT(IN   )           :: am_I_Root
+    INTEGER,         INTENT(IN   )           :: HcoID 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
+    INTEGER,         INTENT(IN   ), OPTIONAL :: Hier
+    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev 
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
+!  20 Apr 2015 - C. Keller - Added DiagnCheck
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -348,6 +397,12 @@ CONTAINS
     HcoState%Spc(HcoID)%Emis%Val(:,:,1) = &
        HcoState%Spc(HcoID)%Emis%Val(:,:,1) + Arr2D(:,:)
 
+    ! Check for diagnostics
+    CALL DiagnCheck( am_I_Root, HcoState,    ExtNr=ExtNr, Cat=Cat, &
+                     Hier=Hier, HcoID=HcoID, Arr2D=Arr2D,          & 
+                     MinDiagnLev=MinDiagnLev, RC=RC     )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Return w/ success
     RC = HCO_SUCCESS 
 
@@ -362,25 +417,36 @@ CONTAINS
 !
 ! !DESCRIPTION: Routine HCO\_EmisAdd\_2D\_Sp adds the real*4 2D-array Arr2D 
 ! to the emission array of species HcoID in HEMCO object HcoState.
+! This routine also updates all autofill diagnostics that are defined
+! for the givne species, extension number, emission category and
+! hierarchy.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_EmisAdd_2D_Sp( HcoState, Arr2D, HcoID, RC )
+  SUBROUTINE HCO_EmisAdd_2D_Sp( am_I_Root, HcoState, Arr2D, HcoID, &
+                                RC,        ExtNr,    Cat,   Hier,  &
+                                MinDiagnLev )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
 !
-    TYPE(HCO_State), INTENT(INOUT) :: HcoState
-    REAL(sp),        INTENT(INOUT) :: Arr2D(HcoState%NX,HcoState%NY)
-    INTEGER,         INTENT(INOUT) :: RC 
+    TYPE(HCO_State), INTENT(INOUT)           :: HcoState
+    REAL(sp),        INTENT(INOUT)           :: Arr2D(HcoState%NX,HcoState%NY)
+    INTEGER,         INTENT(INOUT)           :: RC 
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,         INTENT(IN   ) :: HcoID 
+    LOGICAL,         INTENT(IN   )           :: am_I_Root
+    INTEGER,         INTENT(IN   )           :: HcoID 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
+    INTEGER,         INTENT(IN   ), OPTIONAL :: Hier
+    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev 
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
+!  20 Apr 2015 - C. Keller - Added DiagnCheck
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -417,6 +483,12 @@ CONTAINS
     ! Add array
     HcoState%Spc(HcoID)%Emis%Val(:,:,1) = &
        HcoState%Spc(HcoID)%Emis%Val(:,:,1) + Arr2D(:,:)
+
+    ! Check for diagnostics
+    CALL DiagnCheck( am_I_Root, HcoState,    ExtNr=ExtNr,   Cat=Cat, &
+                     Hier=Hier, HcoID=HcoID, Arr2Dsp=Arr2D,          & 
+                     MinDiagnLev=MinDiagnLev, RC=RC     )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
     RC = HCO_SUCCESS
@@ -833,5 +905,145 @@ CONTAINS
     RC = HCO_SUCCESS 
 
   END SUBROUTINE HCO_DepvAdd_Sp
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagnCheck 
+!
+! !DESCRIPTION: Subroutine DiagnCheck checks if the given emission array needs
+!               to be added to any auto-fill diagnostics. The diagnostics to be
+!               filled (if any) depend on the passed extension number, emission
+!               category and hierarchy, and the HEMCO species ID.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagnCheck( am_I_Root, HcoState, ExtNr,   Cat,     &
+                         Hier,      HcoID,    Arr3D,   Arr3Dsp, &
+                         Arr2D,     Arr2Dsp,  MinDiagnLev,  RC   ) 
+!
+! !USES:
+!
+    USE HCO_DIAGN_MOD
+!
+! !INPUT PARAMETERS:
+! 
+    LOGICAL,         INTENT(IN   )           :: am_I_Root
+    INTEGER,         INTENT(IN   )           :: HcoID 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
+    INTEGER,         INTENT(IN   ), OPTIONAL :: Hier
+    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev 
+!
+! !INPUT/OUTPUT PARAMETERS:
+! 
+    TYPE(HCO_State), INTENT(INOUT)           :: HcoState
+    REAL(dp),        INTENT(INOUT), OPTIONAL :: Arr3D(   HcoState%NX, &
+                                                         HcoState%NY, &
+                                                         HcoState%NZ )
+    REAL(sp),        INTENT(INOUT), OPTIONAL :: Arr3Dsp( HcoState%NX, &
+                                                         HcoState%NY, &
+                                                         HcoState%NZ )
+    REAL(dp),        INTENT(INOUT), OPTIONAL :: Arr2D(   HcoState%NX, &
+                                                         HcoState%NY ) 
+    REAL(sp),        INTENT(INOUT), OPTIONAL :: Arr2Dsp( HcoState%NX, &
+                                                         HcoState%NY )
+    INTEGER,         INTENT(INOUT)           :: RC 
+!
+! !REVISION HISTORY: 
+!  20 Apr 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: AFL, XT, CT, HR
+
+    !=====================================================================
+    ! DiagnCheck begins here!
+    !=====================================================================
+
+    ! Initialize values
+
+    ! Autofill level: 
+    ! 1=species level, 2=ExtNr level, 3=Cat level, 4=Hier level
+    AFL =  1  
+
+    ! ExtNr, Cat & Hier
+    XT  = -1
+    CT  = -1
+    HR  = -1
+
+    ! Set extension number, category, and hierarchy
+    IF ( PRESENT(ExtNr) ) THEN
+       XT  = ExtNr
+       AFL = 2
+
+       ! Consider category only within extension ...
+       IF ( PRESENT(Cat) ) THEN
+          IF ( Cat > 0 ) THEN
+             CT  = Cat
+             AFL = 3
+          ENDIF
+
+          ! Consider hierarchy only within category ...
+          IF ( AFL==3 .AND. PRESENT(Hier) ) THEN
+             IF ( Hier > 0 ) THEN
+                HR  = Hier
+                AFL = 4
+             ENDIF
+          ENDIF
+       ENDIF
+    ENDIF
+
+    IF ( PRESENT(MinDiagnLev) ) THEN
+       AFL = MIN(AFL,MinDiagnLev)
+    ENDIF
+
+    ! Check if we need to call diagnostics
+    IF ( Diagn_AutoFillLevelDefined(AFL) ) THEN 
+   
+       ! 3D HP array
+       IF ( PRESENT(Arr3D) ) THEN
+          CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
+                             HcoID=HcoID, AutoFill=1, Array3D=Arr3D, &
+                             MinDiagnLev=MinDiagnLev, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN          
+       ENDIF
+
+       ! 3D SP array
+       IF ( PRESENT(Arr3Dsp) ) THEN
+          CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
+                             HcoID=HcoID, AutoFill=1, Array3D=Arr3Dsp, &
+                             MinDiagnLev=MinDiagnLev, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN          
+       ENDIF
+
+       ! 2D HP array
+       IF ( PRESENT(Arr2D) ) THEN
+          CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
+                             HcoID=HcoID, AutoFill=1, Array2D=Arr2D, & 
+                             MinDiagnLev=MinDiagnLev, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN          
+       ENDIF
+
+       ! 2D SP array
+       IF ( PRESENT(Arr2Dsp) ) THEN
+          CALL Diagn_Update( am_I_Root, ExtNr=XT, Cat=CT, Hier=HR, &
+                             HcoID=HcoID, AutoFill=1, Array2D=Arr2Dsp, & 
+                             MinDiagnLev=MinDiagnLev, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN          
+       ENDIF
+
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE DiagnCheck 
 !EOC
 END MODULE HCO_FluxArr_Mod

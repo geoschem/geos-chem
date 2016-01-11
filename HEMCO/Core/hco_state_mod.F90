@@ -22,6 +22,7 @@ MODULE HCO_State_Mod
 !
   USE HCO_Error_Mod
   USE HCO_Arr_Mod
+  USE HCO_VertGrid_Mod
 
 #if defined(ESMF_)
   USE ESMF
@@ -74,10 +75,11 @@ MODULE HCO_State_Mod
      LOGICAL                     :: isESMF     ! Are we using ESMF?
      TYPE(HcoOpt),       POINTER :: Options    ! HEMCO run options
 
-     !%%%%%  ESMF state objects
+     !%%%%%  ESMF objects
 #if defined(ESMF_)
-     TYPE(ESMF_State),   POINTER :: IMPORT
-     TYPE(ESMF_State),   POINTER :: EXPORT
+     TYPE(ESMF_GridComp), POINTER :: GridComp 
+     TYPE(ESMF_State),    POINTER :: IMPORT
+     TYPE(ESMF_State),    POINTER :: EXPORT
 #endif
   END TYPE HCO_State
 !
@@ -115,18 +117,32 @@ MODULE HCO_State_Mod
   ! HcoOpt: Derived type for HEMCO run options
   !=========================================================================
   TYPE :: HcoOpt
-     INTEGER :: ExtNr         ! ExtNr to be used 
-     INTEGER :: SpcMin        ! Smallest HEMCO species ID to be considered 
-     INTEGER :: SpcMax        ! Highest HEMCO species ID to be considered
-     INTEGER :: CatMin        ! Smallest category to be considered
-     INTEGER :: CatMax        ! Highest category to be considered
-     LOGICAL :: AutoFillDiagn ! Write into AutoFill diagnostics?
-     LOGICAL :: FillBuffer    ! Write calculated emissions into buffer
-                              ! instead of emission array? 
-     INTEGER :: NegFlag       ! Negative value flag (from configfile):
-                              ! 2 = allow negative values
-                              ! 1 = set neg. values to zero and prompt warning 
-                              ! 0 = return w/ error if neg. value
+     INTEGER  :: ExtNr          ! ExtNr to be used 
+     INTEGER  :: SpcMin         ! Smallest HEMCO species ID to be considered 
+     INTEGER  :: SpcMax         ! Highest HEMCO species ID to be considered
+     INTEGER  :: CatMin         ! Smallest category to be considered
+     INTEGER  :: CatMax         ! Highest category to be considered
+     LOGICAL  :: HcoWritesDiagn ! If set to .TRUE., HEMCO will schedule the
+                                ! output of the default HEMCO diagnostics 
+                                ! (in hco_driver_mod.F90).
+     LOGICAL  :: AutoFillDiagn  ! Write into AutoFill diagnostics?
+     LOGICAL  :: FillBuffer     ! Write calculated emissions into buffer
+                                ! instead of emission array? 
+     INTEGER  :: NegFlag        ! Negative value flag (from configfile):
+                                ! 2 = allow negative values
+                                ! 1 = set neg. values to zero and prompt warning 
+                                ! 0 = return w/ error if neg. value
+     LOGICAL  :: PBL_DRYDEP     ! If true, dry deposition frequencies will
+                                ! be calculated over the full PBL. If false, 
+                                ! they are calculated over the first layer only.
+     REAL(hp) :: MaxDepExp      ! Maximum value of deposition freq. x time step.
+     LOGICAL  :: MaskFractions  ! If TRUE, masks are treated as binary, e.g.  
+                                ! grid boxes are 100% inside or outside of a
+                                ! mask. 
+     LOGICAL  :: Field2Diagn    ! When reading fields from disk, check if there
+                                ! is a diagnostics with the same name and write
+                                ! field to that diagnostics? Defaults to yes in
+                                ! standalone mode and no in other setups.
   END TYPE HcoOpt
 
   !=========================================================================
@@ -146,7 +162,10 @@ MODULE HCO_State_Mod
      TYPE(Arr3D_Hp), POINTER :: PEDGE      ! pressure edges (Pa) 
      TYPE(Arr2D_Hp), POINTER :: YSIN       ! sin of y-direction grid edges*
      TYPE(Arr2D_Hp), POINTER :: AREA_M2    ! grid box areas (m2)
+     TYPE(Arr2D_Hp), POINTER :: ZSFC       ! surface geopotential height (m)**
+     TYPE(Arr2D_Hp), POINTER :: PSFC       ! surface pressure (Pa) 
      TYPE(Arr3D_Hp), POINTER :: BXHEIGHT_M ! grid box heights (m)** 
+     TYPE(VertGrid), POINTER :: ZGRID      ! vertical grid description
   END TYPE HcoGrid
 
   !=========================================================================
@@ -155,6 +174,7 @@ MODULE HCO_State_Mod
   TYPE :: HcoPhys
      REAL(dp) :: Avgdr   ! Avogadro number (mol-1)
      REAL(dp) :: PI      ! Pi
+     REAL(dp) :: PI_180  ! Pi / 180
      REAL(dp) :: Re      ! Earth radius [m] 
      REAL(dp) :: AIRMW   ! Molecular weight of air (g/mol)
      REAL(dp) :: g0      ! Gravity at surface of earth (m/s2)
@@ -176,6 +196,8 @@ MODULE HCO_State_Mod
 !                              gigc_state_chm_mod.F90
 !  07 Jul 2014 - R. Yantosca - Cosmetic changes
 !  30 Sep 2014 - R. Yantosca - Add HcoMicroPhys derived type to HcoState
+!  08 Apr 2015 - C. Keller   - Added MaskFractions to HcoState options.
+!  13 Jul 2015 - C. Keller   - Added option 'Field2Diagn'. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -201,6 +223,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_EXTLIST_MOD,    ONLY : GetExtOpt, CoreNr
+    USE HCO_UNIT_MOD,       ONLY : HCO_UnitTolerance
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -220,8 +243,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: I, AS
-    LOGICAL :: FOUND
+    INTEGER            :: I, AS
+    INTEGER            :: UnitTolerance 
+    LOGICAL            :: FOUND
+    CHARACTER(LEN=255) :: MSG
 
     !=====================================================================
     ! HcoState_Init begins here!
@@ -270,15 +295,12 @@ CONTAINS
        ! will just create a pointer to the data array (XX%Val). 
        ! Will specify the arrays in HEMCO-model interface routine 
        ! or when writing to them for the first time.
-!       HcoState%Spc(I)%Emis => NULL()
        CALL Hco_ArrInit( HcoState%Spc(I)%Emis, 0, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-!       HcoState%Spc(I)%Conc => NULL()
        CALL Hco_ArrInit( HcoState%Spc(I)%Conc, 0, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-!       HcoState%Spc(I)%Depv => NULL()
        CALL Hco_ArrInit( HcoState%Spc(I)%Depv, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDDO !I
@@ -314,6 +336,15 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     CALL HCO_ArrInit ( HcoState%Grid%BXHEIGHT_M, 0, 0, 0, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL HCO_ArrInit ( HcoState%Grid%ZSFC,       0, 0,    RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL HCO_ArrInit ( HcoState%Grid%PSFC,       0, 0,    RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Initialize vertical grid 
+    HcoState%Grid%ZGRID => NULL()
+    CALL HCO_VertGrid_Init( am_I_Root, HcoState%Grid%ZGRID, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     !=====================================================================
     ! Set misc. parameter
@@ -328,13 +359,14 @@ CONTAINS
        CALL HCO_ERROR( 'HEMCO physical constants', RC )
        RETURN
     ENDIF
-    HcoState%Phys%Avgdr = 6.022e23_dp
-    HcoState%Phys%PI    = 3.14159265358979323_dp
-    HcoState%Phys%Re    = 6.375e6_dp
-    HcoState%Phys%AIRMW = 28.97_dp
-    HcoState%Phys%g0    = 9.8_dp
-    HcoState%Phys%Rd    = 287.0_dp
-    HcoState%Phys%Rdg0  = HcoState%Phys%Rd / HcoState%Phys%g0
+    HcoState%Phys%Avgdr  = 6.022e23_dp
+    HcoState%Phys%PI     = 3.14159265358979323_dp
+    HcoState%Phys%PI_180 = HcoState%Phys%PI / 180.0_dp 
+    HcoState%Phys%Re     = 6.375e6_dp
+    HcoState%Phys%AIRMW  = 28.97_dp
+    HcoState%Phys%g0     = 9.8_dp
+    HcoState%Phys%Rd     = 287.0_dp
+    HcoState%Phys%Rdg0   = HcoState%Phys%Rd / HcoState%Phys%g0
 
     ! Timesteps
     HcoState%TS_EMIS = 0.0_sp 
@@ -361,13 +393,14 @@ CONTAINS
     ! Default HEMCO options
     ! ==> execute HEMCO core; use all species and categories
     ALLOCATE( HcoState%Options )
-    HcoState%Options%ExtNr         =  0
-    HcoState%Options%SpcMin        =  1
-    HcoState%Options%SpcMax        = -1
-    HcoState%Options%CatMin        =  1
-    HcoState%Options%CatMax        = -1
-    HcoState%Options%AutoFillDiagn = .TRUE.
-    HcoState%Options%FillBuffer    = .FALSE.
+    HcoState%Options%ExtNr          =  0
+    HcoState%Options%SpcMin         =  1
+    HcoState%Options%SpcMax         = -1
+    HcoState%Options%CatMin         =  1
+    HcoState%Options%CatMax         = -1
+    HcoState%Options%AutoFillDiagn  = .TRUE.
+    HcoState%Options%HcoWritesDiagn = .FALSE.
+    HcoState%Options%FillBuffer     = .FALSE.
 
     ! Get negative flag value from configuration file. If not found, set to 0. 
     CALL GetExtOpt ( CoreNr, 'Negative values', &
@@ -375,8 +408,58 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%NegFlag = 0
 
-    !-----------------------------------------------------------------
-    ! Initialize variables 
+    ! Get PBL_DRYDEP flag from configuration file. If not found, set to default
+    ! value of false. 
+    CALL GetExtOpt ( CoreNr, 'PBL dry deposition', &
+                     OptValBool=HcoState%Options%PBL_DRYDEP, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. Found ) HcoState%Options%PBL_DRYDEP = .FALSE. 
+
+    ! Get MaxDepExp from configuration file. If not found, set to default
+    ! value of 20. 
+    CALL GetExtOpt ( CoreNr, 'Maximum dep x ts', &
+                     OptValHp=HcoState%Options%MaxDepExp, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. Found ) HcoState%Options%MaxDepExp = 20.0_hp 
+
+    ! Get binary mask flag from configuration file. If not found, set to default
+    ! value of TRUE. 
+    CALL GetExtOpt ( CoreNr, 'Mask fractions', &
+                     OptValBool=HcoState%Options%MaskFractions, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. Found ) HcoState%Options%MaskFractions = .FALSE.
+
+    CALL GetExtOpt ( CoreNr, 'ConfigField to diagnostics', &
+                     OptValBool=HcoState%Options%Field2Diagn, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. Found ) HcoState%Options%Field2Diagn = .FALSE.
+
+    ! Make sure ESMF pointers are not dangling 
+#if defined(ESMF_)
+    HcoState%GridComp => NULL()
+    HcoState%IMPORT   => NULL()
+    HcoState%EXPORT   => NULL()
+#endif
+
+    ! Read unit tolerance
+    UnitTolerance = HCO_UnitTolerance()
+
+    ! Verbose mode 
+    IF ( HCO_IsVerb(1) ) THEN
+       WRITE(MSG,'(A68)') 'Initialized HEMCO state. Will use the following settings:'
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,'(A33,I2)') 'Unit tolerance                 : ', UnitTolerance 
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,'(A33,I2)') 'Negative values                : ', HcoState%Options%NegFlag 
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,'(A33,L2)') 'Mask fractions                 : ', HcoState%Options%MaskFractions
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,'(A33,L2)') 'Do drydep over entire PBL      : ', HcoState%Options%PBL_DRYDEP
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,'(A33,F6.2)') 'Upper limit for deposition x ts: ', HcoState%Options%MaxDepExp
+       CALL HCO_MSG(MSG,SEP2='-')
+    ENDIF
+
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
 
@@ -431,14 +514,17 @@ CONTAINS
 
     ! Deallocate grid information
     IF ( ASSOCIATED ( HcoState%Grid) ) THEN
-       CALL HCO_ArrCleanup( HcoState%Grid%XMID       )
-       CALL HCO_ArrCleanup( HcoState%Grid%YMID       )
-       CALL HCO_ArrCleanup( HcoState%Grid%XEDGE      )
-       CALL HCO_ArrCleanup( HcoState%Grid%YEDGE      )
-       CALL HCO_ArrCleanup( HcoState%Grid%PEDGE      )
-       CALL HCO_ArrCleanup( HcoState%Grid%YSIN       )
-       CALL HCO_ArrCleanup( HcoState%Grid%AREA_M2    )
-       CALL HCO_ArrCleanup( HcoState%Grid%BXHEIGHT_M )
+       CALL HCO_VertGrid_Cleanup( HcoState%Grid%ZGRID )
+       CALL HCO_ArrCleanup( HcoState%Grid%XMID        )
+       CALL HCO_ArrCleanup( HcoState%Grid%YMID        )
+       CALL HCO_ArrCleanup( HcoState%Grid%XEDGE       )
+       CALL HCO_ArrCleanup( HcoState%Grid%YEDGE       )
+       CALL HCO_ArrCleanup( HcoState%Grid%PEDGE       )
+       CALL HCO_ArrCleanup( HcoState%Grid%YSIN        )
+       CALL HCO_ArrCleanup( HcoState%Grid%AREA_M2     )
+       CALL HCO_ArrCleanup( HcoState%Grid%BXHEIGHT_M  )
+       CALL HCO_ArrCleanup( HcoState%Grid%ZSFC        )
+       CALL HCO_ArrCleanup( HcoState%Grid%PSFC        )
        DEALLOCATE(HcoState%Grid)
     ENDIF
 
@@ -457,8 +543,9 @@ CONTAINS
     IF ( ASSOCIATED ( HcoState%Phys    ) ) DEALLOCATE ( HcoState%Phys    )
 
 #if defined(ESMF_)
-    HcoState%IMPORT => NULL()
-    HcoState%EXPORT => NULL()
+    HcoState%GridComp => NULL()
+    HcoState%IMPORT   => NULL()
+    HcoState%EXPORT   => NULL()
 #endif
 
   END SUBROUTINE HcoState_Final
@@ -481,7 +568,7 @@ CONTAINS
 !
 ! !USES:
 !
-      USE HCO_CHARTOOLS_MOD,   ONLY : HCO_WCD
+      USE HCO_EXTLIST_MOD,     ONLY : HCO_GetOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -509,7 +596,7 @@ CONTAINS
     Indx = -1
 
     ! Return 0 if wildcard character
-    IF ( TRIM(name) == HCO_WCD() ) THEN
+    IF ( TRIM(name) == TRIM(HCO_GetOpt('Wildcard')) ) THEN
        Indx = 0
        RETURN
     ENDIF
@@ -545,7 +632,7 @@ CONTAINS
 !
 ! !USES:
 !
-      USE HCO_CHARTOOLS_MOD,   ONLY : HCO_WCD
+      USE HCO_EXTLIST_MOD,   ONLY : HCO_GetOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -570,14 +657,14 @@ CONTAINS
     Indx = -1
 
     ! Return 0 if wildcard character
-    IF ( TRIM(name) == HCO_WCD() ) THEN
+    IF ( TRIM(name) == TRIM(HCO_GetOpt('Wildcard')) ) THEN
        Indx = 0
        RETURN
     ENDIF
 
     ! Loop over all species names
     DO N = 1, HcoState%nSpc
-
+ 
        ! Return the index of the sought-for species
        IF( TRIM( name ) == TRIM( HcoState%Spc(N)%SpcName ) ) THEN
           Indx = N 
@@ -608,7 +695,7 @@ CONTAINS
 !
     USE CHARPAK_MOD,         ONLY : STRSPLIT 
     USE HCO_EXTLIST_MOD,     ONLY : GetExtSpcStr
-    USE HCO_CHARTOOLS_MOD,   ONLY : HCO_SEP
+    USE HCO_EXTLIST_MOD,     ONLY : HCO_GetOpt 
 !
 ! !INPUT PARAMETERS:
 !
@@ -651,7 +738,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Split character into species string. 
-    CALL STRSPLIT( SpcStr, HCO_SEP(), SUBSTR, nSpc )
+    CALL STRSPLIT( SpcStr, HCO_GetOpt('Separator'), SUBSTR, nSpc )
 
     ! nothing to do if there are no species
     IF ( nSpc == 0 ) RETURN 

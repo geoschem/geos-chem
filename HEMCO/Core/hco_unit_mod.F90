@@ -43,6 +43,10 @@ MODULE HCO_Unit_Mod
 !  24 Jul 2014 - C. Keller   - Now define unitless & 'standard' units as
 !                              parameter
 !  13 Aug 2014 - C. Keller   - Interface for sp & dp arrays
+!  13 Mar 2015 - R. Yantosca - Add m and m2 to the "unitless" list
+!  16 Mar 2015 - R. Yantosca - Also allow "kg m-2 s-1" and similar units
+!  16 Mar 2015 - R. Yantosca - Add dobsons and dobsons/day units
+!  16 Jun 2015 - R. Yantosca - Add % and percent to the unitless list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -64,44 +68,63 @@ MODULE HCO_Unit_Mod
   ! add more units if you don't want HEMCO to attempt to convert data
   ! in these units.
   ! All characters in this list should be lower case!
-  INTEGER,           PARAMETER :: NUL = 21
-  CHARACTER(LEN=15), PARAMETER :: UL(NUL) = (/ '1',        &
-                                               'count',    &
-                                               'unitless', &
-                                               'fraction', &
-                                               'factor',   &
-                                               'scale',    &
-                                               'hours',    &
-                                               'v/v',      &
-                                               'v/v/s',    &
-                                               's-1',      &
-                                               's^-1',     &
-                                               'm2/m2',    & 
-                                               'k',        & 
-                                               'w/m2',     & 
-                                               'pptv',     & 
-                                               'ppt',      & 
-                                               'ppbv',     & 
-                                               'ppb',      & 
-                                               'ppmv',     & 
-                                               'ppm',      & 
-                                               'cm2cm-2'    /)
+  INTEGER,           PARAMETER :: NUL = 37
+  CHARACTER(LEN=15), PARAMETER :: UL(NUL) = (/ '1',             &
+                                               'count',         &
+                                               'unitless',      &
+                                               'fraction',      &
+                                               'factor',        &
+                                               'scale',         &
+                                               'hours',         &
+                                               'v/v',           &
+                                               'v/v/s',         &
+                                               's-1',           &
+                                               's^-1',          &
+                                               'm2/m2',         & 
+                                               'm2m-2',         &
+                                               'kg/kg',         & 
+                                               'kgkg-1',        &
+                                               'mg/m3',         &
+                                               'mg/m2/d',       &
+                                               'k',             & 
+                                               'w/m2',          & 
+                                               'wm-2',          &
+                                               'pptv',          & 
+                                               'ppt',           & 
+                                               'ppbv',          & 
+                                               'ppb',           & 
+                                               'ppmv',          & 
+                                               'ppm',           & 
+                                               'm/s',           &
+                                               'ms-1',          &
+                                               'm',             &
+                                               'cm2cm-2',       &
+                                               'dobsons',       &
+                                               'dobsons/day',   &
+                                               'DU',            &
+                                               'pa',            &
+                                               'hpa',           &
+                                               '%',             &
+                                               'percent'      /)
 
   ! Accepted units for data on HEMCO standard units. No unit conversion 
   ! is applied to data with any of these units.
   ! All characters in this list should be lower case!
 
   ! Emission units
-  INTEGER,           PARAMETER :: NHE = 3
-  CHARACTER(LEN=15), PARAMETER :: HE(NHE) = (/ 'kg/m2/s',   &
-                                               'kgc/m2/s',  &
-                                               'kg(c)/m2/s'  /)
+  INTEGER,           PARAMETER :: NHE = 6
+  CHARACTER(LEN=15), PARAMETER :: HE(NHE) = (/ 'kg/m2/s',       &
+                                               'kgc/m2/s',      &
+                                               'kg(c)/m2/s',    &
+                                               'kgm-2s-1',      &
+                                               'kgcm-2s-1',     &
+                                               'kg(c)m-2s-1'  /)
 
   ! Concentration units
   INTEGER,           PARAMETER :: NHC = 3
-  CHARACTER(LEN=15), PARAMETER :: HC(NHC) = (/ 'kg/m3', &
-                                               'kgm-3', &
-                                               'kgm^-3'  /)
+  CHARACTER(LEN=15), PARAMETER :: HC(NHC) = (/ 'kg/m3',         &
+                                               'kgm-3',         &
+                                               'kgm^-3'       /)
 
   ! Interfaces:
   INTERFACE HCO_UNIT_CHANGE
@@ -127,23 +150,28 @@ CONTAINS
 !
   SUBROUTINE HCO_Unit_Change_SP( ARRAY,       UNITS, MW_IN, MW_OUT,   &
                                  MOLEC_RATIO, YYYY,  MM,    AreaFlag, &
-                                 TimeFlag,    RC                       )
+                                 TimeFlag,    FACT,  RC,    KeepSpec   )
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN )     :: UNITS          ! Data unit
-    REAL(hp),         INTENT(IN )     :: MW_IN          ! MW g/mol 
-    REAL(hp),         INTENT(IN )     :: MW_OUT         ! MW g/mol
-    REAL(hp),         INTENT(IN )     :: MOLEC_RATIO    ! molec. ratio
-    INTEGER,          INTENT(IN )     :: YYYY           ! Data year 
-    INTEGER,          INTENT(IN )     :: MM             ! Data month
+    CHARACTER(LEN=*), INTENT(IN )             :: UNITS          ! Data unit
+    REAL(hp),         INTENT(IN )             :: MW_IN          ! MW g/mol 
+    REAL(hp),         INTENT(IN )             :: MW_OUT         ! MW g/mol
+    REAL(hp),         INTENT(IN )             :: MOLEC_RATIO    ! molec. ratio
+    INTEGER,          INTENT(IN )             :: YYYY           ! Data year 
+    INTEGER,          INTENT(IN )             :: MM             ! Data month
+    LOGICAL,          INTENT(IN ), OPTIONAL   :: KeepSpec       ! Keep input species? 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)   :: AreaFlag       ! 2 if per area, 3 if per volume, 0 otherwise
-    INTEGER,          INTENT(INOUT)   :: TimeFlag       ! 1 if per time, 0 otherwise
-    REAL(sp),         POINTER         :: ARRAY(:,:,:,:) ! Data
-    INTEGER,          INTENT(INOUT)   :: RC
+    INTEGER,          INTENT(INOUT)           :: AreaFlag       ! 2 if per area, 3 if per volume, 0 otherwise
+    INTEGER,          INTENT(INOUT)           :: TimeFlag       ! 1 if per time, 0 otherwise
+    REAL(sp),         POINTER                 :: ARRAY(:,:,:,:) ! Data
+    INTEGER,          INTENT(INOUT)           :: RC
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL(hp),         INTENT(  OUT), OPTIONAL :: FACT           ! Applied factor
 !
 ! !REVISION HISTORY:
 !  13 Aug 2014 - C. Keller - Initial Version
@@ -159,12 +187,17 @@ CONTAINS
     ! HCO_UNIT_CHANGE_SP begins here
     !=================================================================
 
-    CALL HCO_Unit_Factor( UNITS, MW_IN,    MW_OUT,   MOLEC_RATIO, YYYY, &
-                          MM,    AreaFlag, TimeFlag, Factor,      RC     )
+    CALL HCO_Unit_Factor( UNITS,    MW_IN,    MW_OUT, MOLEC_RATIO, YYYY, MM, &
+                          AreaFlag, TimeFlag, Factor, RC, KeepSpec=KeepSpec   )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Apply correction factor
-    ARRAY(:,:,:,:) = ARRAY(:,:,:,:) * Factor
+    IF ( Factor /= 1.0_hp ) THEN
+       ARRAY(:,:,:,:) = ARRAY(:,:,:,:) * Factor
+    ENDIF
+
+    ! Eventually return factor
+    IF ( PRESENT(FACT) ) FACT = Factor
 
     ! Leave
     RC = HCO_SUCCESS
@@ -187,23 +220,28 @@ CONTAINS
 !
   SUBROUTINE HCO_Unit_Change_DP( ARRAY,       UNITS, MW_IN, MW_OUT,   &
                                  MOLEC_RATIO, YYYY,  MM,    AreaFlag, &
-                                 TimeFlag,    RC                       )
+                                 TimeFlag,    FACT,  RC,    KeepSpec   )
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN )     :: UNITS          ! Data unit
-    REAL(hp),         INTENT(IN )     :: MW_IN          ! MW g/mol 
-    REAL(hp),         INTENT(IN )     :: MW_OUT         ! MW g/mol
-    REAL(hp),         INTENT(IN )     :: MOLEC_RATIO    ! molec. ratio
-    INTEGER,          INTENT(IN )     :: YYYY           ! Data year 
-    INTEGER,          INTENT(IN )     :: MM             ! Data month
+    CHARACTER(LEN=*), INTENT(IN )             :: UNITS          ! Data unit
+    REAL(hp),         INTENT(IN )             :: MW_IN          ! MW g/mol 
+    REAL(hp),         INTENT(IN )             :: MW_OUT         ! MW g/mol
+    REAL(hp),         INTENT(IN )             :: MOLEC_RATIO    ! molec. ratio
+    INTEGER,          INTENT(IN )             :: YYYY           ! Data year 
+    INTEGER,          INTENT(IN )             :: MM             ! Data month
+    LOGICAL,          INTENT(IN ), OPTIONAL   :: KeepSpec       ! Keep input species? 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)   :: AreaFlag       ! 2 if per area, 3 if per volume, 0 otherwise
-    INTEGER,          INTENT(INOUT)   :: TimeFlag       ! 1 if per time, 0 otherwise
-    REAL(dp),         POINTER         :: ARRAY(:,:,:,:) ! Data
-    INTEGER,          INTENT(INOUT)   :: RC
+    INTEGER,          INTENT(INOUT)           :: AreaFlag       ! 2 if per area, 3 if per volume, 0 otherwise
+    INTEGER,          INTENT(INOUT)           :: TimeFlag       ! 1 if per time, 0 otherwise
+    REAL(dp),         POINTER                 :: ARRAY(:,:,:,:) ! Data
+    INTEGER,          INTENT(INOUT)           :: RC
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL(hp),         INTENT(  OUT), OPTIONAL :: FACT           ! Applied factor
 !
 ! !REVISION HISTORY:
 !  13 Aug 2014 - C. Keller - Initial Version
@@ -219,12 +257,17 @@ CONTAINS
     ! HCO_UNIT_CHANGE_DP begins here
     !=================================================================
 
-    CALL HCO_Unit_Factor( UNITS, MW_IN,    MW_OUT,   MOLEC_RATIO, YYYY, &
-                          MM,    AreaFlag, TimeFlag, Factor,      RC     )
+    CALL HCO_Unit_Factor( UNITS,    MW_IN,    MW_OUT, MOLEC_RATIO, YYYY, MM, &
+                          AreaFlag, TimeFlag, Factor, RC, KeepSpec=KeepSpec   )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Apply correction factor
-    ARRAY(:,:,:,:) = ARRAY(:,:,:,:) * Factor
+    IF ( Factor /= 1.0_hp ) THEN
+       ARRAY(:,:,:,:) = ARRAY(:,:,:,:) * Factor
+    ENDIF
+
+    ! Eventually return factor
+    IF ( PRESENT(FACT) ) FACT = Factor
 
     ! Leave
     RC = HCO_SUCCESS
@@ -300,7 +343,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE HCO_Unit_Factor( UNITS, MW_IN,    MW_OUT,   MOLEC_RATIO, YYYY, &
-                              MM,    AreaFlag, TimeFlag, Factor,      RC     )
+                              MM,    AreaFlag, TimeFlag, Factor,      RC, KeepSpec )
 !
 ! !USES:
 !
@@ -308,22 +351,23 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN )     :: UNITS          ! Data unit
-    REAL(hp),         INTENT(IN )     :: MW_IN          ! MW g/mol 
-    REAL(hp),         INTENT(IN )     :: MW_OUT         ! MW g/mol
-    REAL(hp),         INTENT(IN )     :: MOLEC_RATIO    ! molec. ratio
-    INTEGER,          INTENT(IN )     :: YYYY           ! Data year 
-    INTEGER,          INTENT(IN )     :: MM             ! Data month
+    CHARACTER(LEN=*), INTENT(IN )           :: UNITS       ! Data unit
+    REAL(hp),         INTENT(IN )           :: MW_IN       ! MW g/mol 
+    REAL(hp),         INTENT(IN )           :: MW_OUT      ! MW g/mol
+    REAL(hp),         INTENT(IN )           :: MOLEC_RATIO ! molec. ratio
+    INTEGER,          INTENT(IN )           :: YYYY        ! Data year 
+    INTEGER,          INTENT(IN )           :: MM          ! Data month
+    LOGICAL,          INTENT(IN ), OPTIONAL :: KeepSpec    ! Keep input species? 
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(  OUT)   :: AreaFlag 
-    INTEGER,          INTENT(  OUT)   :: TimeFlag 
-    REAL(hp),         INTENT(  OUT)   :: Factor         ! Conversion factor
+    INTEGER,          INTENT(  OUT)         :: AreaFlag 
+    INTEGER,          INTENT(  OUT)         :: TimeFlag 
+    REAL(hp),         INTENT(  OUT)         :: Factor         ! Conversion factor
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)   :: RC
+    INTEGER,          INTENT(INOUT)         :: RC
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - C. Keller - Initial Version
@@ -365,28 +409,30 @@ CONTAINS
  
     ! unitless data
     IF ( CHECK == 0 ) THEN
+
        AreaFlag = -1
        TimeFlag = -1
        RETURN    
 
-    ! emissions
-    ELSEIF ( CHECK == 1 ) THEN
-       AreaFlag = 2
-       TimeFlag = 1
-       RETURN
-
-    ! concentrations
-    ELSEIF ( CHECK == 2 ) THEN
-       AreaFlag = 3
-       TimeFlag = 0
-       RETURN
+!    ! emissions
+!    ELSEIF ( CHECK == 1 ) THEN
+!       AreaFlag = 2
+!       TimeFlag = 1
+!       RETURN
+!
+!    ! concentrations
+!    ELSEIF ( CHECK == 2 ) THEN
+!       AreaFlag = 3
+!       TimeFlag = 0
+!       RETURN
 
     ENDIF
 
     !=================================================================
     ! Get scale factor for mass. Force to be a valid factor.
     !=================================================================
-    CALL HCO_UNIT_GetMassScal ( unt, MW_IN, MW_OUT, MOLEC_RATIO, Coef1 )
+    CALL HCO_UNIT_GetMassScal ( unt, MW_IN, MW_OUT, MOLEC_RATIO, &
+                                Coef1, KeepSpec=KeepSpec )
     IF ( Coef1 < 0.0_hp ) THEN
        MSG = 'cannot do unit conversion. Mass unit: ' // TRIM(unt)
        CALL HCO_ERROR ( MSG, RC, ThisLoc = LOC )
@@ -423,13 +469,16 @@ CONTAINS
 ! !IROUTINE: HCO_Unit_GetMassScal
 !
 ! !DESCRIPTION: Returns the mass scale factors for the given unit.
-! This is the scale factor required to convert from unit 'Unit' to
-! HEMCO units (i.e. kg).
+! This is the scale factor required to convert from input units to
+! HEMCO units (i.e. kg). If KeepSpec is set to true, the molecular
+! weight of the input data is preserved, e.g. data in kgC is kept in
+! kgC, data in molecC is converted to kgC, etc. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_UNIT_GetMassScal( unt, MW_IN, MW_OUT, MOLEC_RATIO, Scal )
+  SUBROUTINE HCO_UNIT_GetMassScal( unt, MW_IN, MW_OUT, MOLEC_RATIO, &
+                                   Scal, KeepSpec )
 !
 ! !USES:
 !
@@ -437,14 +486,15 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN)   :: unt 
-    REAL(hp),         INTENT(IN)   :: MW_IN          ! MW g/mol 
-    REAL(hp),         INTENT(IN)   :: MW_OUT         ! MW g/mol
-    REAL(hp),         INTENT(IN)   :: MOLEC_RATIO    ! molec. ratio
+    CHARACTER(LEN=*), INTENT(IN)            :: unt         ! Input units 
+    REAL(hp),         INTENT(IN)            :: MW_IN       ! MW g/mol 
+    REAL(hp),         INTENT(IN)            :: MW_OUT      ! MW g/mol
+    REAL(hp),         INTENT(IN)            :: MOLEC_RATIO ! molec. ratio
+    LOGICAL,          INTENT(IN ), OPTIONAL :: KeepSpec    ! Keep input species?
 !
 ! !OUTPUT PARAMETER:
 !
-    REAL(hp),         INTENT(OUT)  :: Scal           ! Scale factor
+    REAL(hp),         INTENT(OUT)           :: Scal        ! Scale factor
 !
 ! !REVISION HISTORY:
 !  13 Mar 2013 - C. Keller - Initial version
@@ -452,6 +502,9 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+    LOGICAL             :: KEEP
+    REAL(hp)            :: MW_N, MW_C
+    REAL(hp)            :: MR
     CHARACTER(LEN=255)  :: MSG
 
     !=================================================================
@@ -460,6 +513,17 @@ CONTAINS
 
     ! Init
     Scal = -999.0_hp
+
+    ! Keep same species
+    IF ( PRESENT(KeepSpec) ) THEN
+       KEEP = KeepSpec
+    ELSE
+       KEEP = .FALSE.
+    ENDIF
+
+    ! Set molecular weights of N and C
+    MW_N = MW_OUT
+    MW_C = MW_OUT
  
     ! Mass unit of '1': keep as is. Note: this has to be the first
     ! entry of the unit string (e.g. 1/m2/s or 1 cm^-3). Don't
@@ -474,7 +538,7 @@ CONTAINS
     IF ( MW_IN       <= 0.0_hp .OR. &
          MW_OUT      <= 0.0_hp .OR. &
          MOLEC_RATIO <= 0.0_hp       ) THEN
-       IF ( IsInWord(unt,'kg') ) THEN
+       IF ( IsInWord(unt,'kg') .OR. KEEP ) THEN
           Scal = 1.0_hp
           RETURN
        ELSE 
@@ -487,31 +551,77 @@ CONTAINS
 
     ! Molecules / atoms of carbon: convert to kg carbon
     ! Molecules / atoms of nitrogen: convert to kg output tracer
-    IF ( IsInWord(unt,'molecC'  ) .OR. IsInWord(unt,'molecN')   .OR. &
-         IsInWord(unt,'atomC'   ) .OR. IsInWord(unt,'atomsC' )  .OR. &
-         IsInWord(unt,'molec(C)') .OR. IsInWord(unt,'atoms(C)') .OR. &
-         IsInWord(unt,'atomN'   ) .OR. IsInWord(unt,'atomsN' )  .OR. &
-         IsInWord(unt,'molec(N)') .OR. IsInWord(unt,'atoms(N)') .OR. &
-         IsInWord(unt,'molectracer') ) THEN
-       Scal = MW_OUT * 1e-3_hp / N_0
+    IF ( IsInWord(unt,'molecC'  ) .OR. IsInWord(unt,'atomC' )   .OR. &
+         IsInWord(unt,'atomsC'  ) .OR. IsInWord(unt,'molec(C)') .OR. &
+         IsInWord(unt,'atoms(C)') ) THEN 
+       IF ( KEEP ) THEN
+          Scal = MW_C * 1e-3_hp / N_0
+       ELSE
+          Scal = MW_OUT * 1e-3_hp / N_0
+       ENDIF
+
+    ELSEIF ( IsInWord(unt,'molecN') .OR. IsInWord(unt,'atomN') .OR. &
+             IsInWord(unt,'atomsN') .OR. IsInWord(unt,'molec(N)') .OR. &
+             IsInWord(unt,'atoms(N)') ) THEN 
+       IF ( KEEP ) THEN
+          Scal = MW_N * 1e-3_hp / N_0
+       ELSE
+          Scal = MW_OUT * 1e-3_hp / N_0
+       ENDIF
 
     ! Molecules / atoms of species: convert to kg output species.
     ELSEIF ( IsInWord(unt,'molec') .OR. IsInWord(unt,'atom') ) THEN
        Scal = MOLEC_RATIO * MW_OUT * 1e-3_hp / N_0
 
     ! Mols carbon / nitrogen of species
-    ELSEIF ( IsInWord(unt,'nmolC') .OR. IsInWord(unt,'nmol(C)') .OR. &
-             IsInWord(unt,'nmolN') .OR. IsInWord(unt,'nmol(N)') ) THEN
-       Scal = 1e-9_hp * MW_OUT * 1e-3_hp
-    ELSEIF ( IsInWord(unt,'umolC') .OR. IsInWord(unt,'umol(C)') .OR. &
-             IsInWord(unt,'umolN') .OR. IsInWord(unt,'umol(N)') ) THEN
-       Scal = 1e-6_hp * MW_OUT * 1e-3_hp 
-    ELSEIF ( IsInWord(unt,'mmolC') .OR. IsInWord(unt,'mmol(C)') .OR. &
-             IsInWord(unt,'mmolN') .OR. IsInWord(unt,'mmol(N)') ) THEN
-       Scal = 1e-3_hp * MW_OUT * 1e-3_hp 
-    ELSEIF ( IsInWord(unt,'molC') .OR. IsInWord(unt,'mol(C)')   .OR. &
-             IsInWord(unt,'molN') .OR. IsInWord(unt,'mol(N)') ) THEN
-       Scal = MW_OUT * 1e-3_hp 
+    ELSEIF ( IsInWord(unt,'nmolC') .OR. IsInWord(unt,'nmol(C)') ) THEN
+       IF ( KEEP ) THEN
+          Scal = 1e-9_hp * MW_C * 1e-3_hp
+       ELSE
+          Scal = 1e-9_hp * MW_OUT * 1e-3_hp
+       ENDIF
+    ELSEIF ( IsInWord(unt,'nmolN') .OR. IsInWord(unt,'nmol(N)') ) THEN
+       IF ( KEEP ) THEN
+          Scal = 1e-9_hp * MW_N * 1e-3_hp
+       ELSE
+          Scal = 1e-9_hp * MW_OUT * 1e-3_hp
+       ENDIF
+    ELSEIF ( IsInWord(unt,'umolC') .OR. IsInWord(unt,'umol(C)') ) THEN
+       IF ( KEEP ) THEN
+          Scal = 1e-6_hp * MW_C * 1e-3_hp
+       ELSE
+          Scal = 1e-6_hp * MW_OUT * 1e-3_hp
+       ENDIF
+    ELSEIF ( IsInWord(unt,'umolN') .OR. IsInWord(unt,'umol(N)') ) THEN
+       IF ( KEEP ) THEN
+          Scal = 1e-6_hp * MW_N * 1e-3_hp
+       ELSE
+          Scal = 1e-6_hp * MW_OUT * 1e-3_hp
+       ENDIF
+    ELSEIF ( IsInWord(unt,'mmolC') .OR. IsInWord(unt,'mmol(C)') ) THEN
+       IF ( KEEP ) THEN
+          Scal = 1e-3_hp * MW_C * 1e-3_hp
+       ELSE
+          Scal = 1e-3_hp * MW_OUT * 1e-3_hp
+       ENDIF
+    ELSEIF ( IsInWord(unt,'mmolN') .OR. IsInWord(unt,'mmol(N)') ) THEN
+       IF ( KEEP ) THEN
+          Scal = 1e-3_hp * MW_N * 1e-3_hp
+       ELSE
+          Scal = 1e-3_hp * MW_OUT * 1e-3_hp
+       ENDIF
+    ELSEIF ( IsInWord(unt,'molC') .OR. IsInWord(unt,'mol(C)') ) THEN  
+       IF ( KEEP ) THEN
+          Scal = MW_C * 1e-3_hp
+       ELSE
+          Scal = MW_OUT * 1e-3_hp
+       ENDIF
+    ELSEIF ( IsInWord(unt,'molN') .OR. IsInWord(unt,'mol(N)') ) THEN
+       IF ( KEEP ) THEN
+          Scal = MW_N * 1e-3_hp
+       ELSE
+          Scal = MW_OUT * 1e-3_hp
+       ENDIF
 
     ! Mols of species
     ELSEIF ( IsInWord(unt,'nmol') ) THEN
@@ -524,40 +634,100 @@ CONTAINS
        Scal = MOLEC_RATIO * MW_OUT * 1e-3_hp
 
     ! Mass Carbon of species
-    ELSEIF ( IsInWord(unt,'ngC') .OR. IsInWord(unt,'ng(C)') ) THEN 
-       Scal = 1e-12_hp / 12_hp * MW_OUT 
+    ELSEIF ( IsInWord(unt,'ngC') .OR. IsInWord(unt,'ng(C)') ) THEN
+       IF ( KEEP ) THEN 
+          Scal = 1e-12_hp 
+       ELSE 
+          Scal = 1e-12_hp / 12_hp * MW_OUT
+       ENDIF
     ELSEIF ( IsInWord(unt,'ugC') .OR. IsInWord(unt,'ug(C)') ) THEN 
-       Scal = 1e-9_hp / 12_hp * MW_OUT 
+       IF ( KEEP ) THEN 
+          Scal = 1e-9_hp 
+       ELSE 
+          Scal = 1e-9_hp / 12_hp * MW_OUT 
+       ENDIF
     ELSEIF ( IsInWord(unt,'mgC') .OR. IsInWord(unt,'mg(C)') ) THEN 
-       Scal = 1e-6_hp / 12_hp * MW_OUT 
+       IF ( KEEP ) THEN 
+          Scal = 1e-6_hp 
+       ELSE 
+          Scal = 1e-6_hp / 12_hp * MW_OUT 
+       ENDIF
     ELSEIF ( IsInWord(unt,'kgC') .OR. IsInWord(unt,'kg(C)') ) THEN 
-       Scal = 1.0_hp / 12_hp * MW_OUT 
+       IF ( KEEP ) THEN 
+          Scal = 1.0_hp 
+       ELSE 
+          Scal = 1.0_hp / 12_hp * MW_OUT 
+       ENDIF
     ELSEIF ( IsInWord(unt,'gC') .OR. IsInWord(unt,'g(C)') ) THEN 
-       Scal = 1e-3_hp / 12_hp * MW_OUT
+       IF ( KEEP ) THEN 
+          Scal = 1e-3_hp 
+       ELSE 
+          Scal = 1e-3_hp / 12_hp * MW_OUT
+       ENDIF
 
     ! Mass Nitrogen of species
     ELSEIF ( IsInWord(unt,'ngN') .OR. IsInWord(unt,'ng(N)') ) THEN 
-       Scal = 1e-12_hp / 14_hp * MW_OUT 
+       IF ( KEEP ) THEN 
+          Scal = 1e-12_hp 
+       ELSE 
+          Scal = 1e-12_hp / 14_hp * MW_OUT 
+       ENDIF
     ELSEIF ( IsInWord(unt,'ugN') .OR. IsInWord(unt,'ug(N)') ) THEN 
-       Scal = 1e-9_hp / 14_hp * MW_OUT 
+       IF ( KEEP ) THEN 
+          Scal = 1e-9_hp 
+       ELSE 
+          Scal = 1e-9_hp / 14_hp * MW_OUT 
+       ENDIF
     ELSEIF ( IsInWord(unt,'mgN') .OR. IsInWord(unt,'mg(N)') ) THEN 
-       Scal = 1e-6_hp / 14_hp * MW_OUT 
+       IF ( KEEP ) THEN 
+          Scal = 1e-6_hp 
+       ELSE 
+          Scal = 1e-6_hp / 14_hp * MW_OUT 
+       ENDIF
     ELSEIF ( IsInWord(unt,'kgN') .OR. IsInWord(unt,'kg(N)') ) THEN 
-       Scal = 1.0_hp / 14_hp * MW_OUT 
+       IF ( KEEP ) THEN 
+          Scal = 1.0_hp 
+       ELSE 
+          Scal = 1.0_hp / 14_hp * MW_OUT 
+       ENDIF
     ELSEIF ( IsInWord(unt,'gN') .OR. IsInWord(unt,'g(N)') ) THEN 
-       Scal = 1e-3_hp / 14_hp * MW_OUT
+       IF ( KEEP ) THEN 
+          Scal = 1e-3_hp 
+       ELSE 
+          Scal = 1e-3_hp / 14_hp * MW_OUT
+       ENDIF
 
     ! Mass of species
     ELSEIF ( IsInWord(unt,'ng') ) THEN
-       Scal = 1e-12_hp * MOLEC_RATIO * MW_OUT / MW_IN 
+       IF ( KEEP ) THEN
+          Scal = 1e-12_hp
+       ELSE 
+          Scal = 1e-12_hp * MOLEC_RATIO * MW_OUT / MW_IN
+       ENDIF
     ELSEIF ( IsInWord(unt,'ug') ) THEN
-       Scal = 1e-9_hp * MOLEC_RATIO * MW_OUT / MW_IN 
+       IF ( KEEP ) THEN
+          Scal = 1e-9_hp
+       ELSE 
+          Scal = 1e-9_hp * MOLEC_RATIO * MW_OUT / MW_IN 
+       ENDIF
     ELSEIF ( IsInWord(unt,'mg') ) THEN
-       Scal = 1e-6_hp * MOLEC_RATIO * MW_OUT / MW_IN 
+       IF ( KEEP ) THEN
+          Scal = 1e-6_hp
+       ELSE 
+          Scal = 1e-6_hp * MOLEC_RATIO * MW_OUT / MW_IN 
+       ENDIF
     ELSEIF ( IsInWord(unt,'kg') ) THEN
-       Scal = MOLEC_RATIO * MW_OUT / MW_IN 
+       IF ( KEEP ) THEN
+          Scal = 1.0_hp
+       ELSE 
+          Scal = MOLEC_RATIO * MW_OUT / MW_IN 
+       ENDIF
     ELSEIF ( IsInWord(unt,'g') ) THEN
-       Scal = 1e-3_hp * MOLEC_RATIO * MW_OUT / MW_IN 
+       IF ( KEEP ) THEN
+          Scal = 1e-3_hp
+       ELSE 
+          Scal = 1e-3_hp * MOLEC_RATIO * MW_OUT / MW_IN 
+       ENDIF
     ENDIF
 
   END SUBROUTINE HCO_Unit_GetMassScal
@@ -943,7 +1113,7 @@ CONTAINS
        IF ( .NOT. FOUND ) Tolerance = 0
 
        ! Verbose mode: write to log file
-       IF ( HCO_VERBOSE_CHECK() ) THEN
+       IF ( HCO_IsVerb(2) ) THEN
           WRITE(MSG,*) 'Unit tolerance set to ', Tolerance
           CALL HCO_MSG(MSG,SEP1=' ',SEP2=' ')
        ENDIF

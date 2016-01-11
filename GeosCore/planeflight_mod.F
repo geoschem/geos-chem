@@ -1226,7 +1226,8 @@
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_TAU0
-      USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD
+      USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
+      USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE COMODE_LOOP_MOD          ! CSPEC, etc.
       USE COMODE_MOD,         ONLY : AIRDENS,        CSPEC,       JLOP
       USE COMODE_MOD,         ONLY : T3,             VOLUME,      ABSHUM
@@ -1239,7 +1240,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD
       USE OCEAN_MERCURY_MOD,  ONLY : Fg !eds 10/27/11
       USE OCEAN_MERCURY_MOD,  ONLY : OMMFp => Fp
@@ -1288,6 +1288,10 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  19 Nov 2014 - M. Yannetti - Edited OCEAN_MERCURY_MOD Fp to OMMFP
 !  12 Jan 2015 - L. Schiferl - Allow for more precision in TAUE computation
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod. 
+!  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1295,10 +1299,10 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
-      LOGICAL             :: PCHEM
+      LOGICAL             :: PCHEM, LINTERP
       INTEGER             :: I, IP, IRHN, J, L, JLOOP, M, N, R, RH, V
       INTEGER             :: LL     !eds
-      INTEGER             :: LPLANE
+      INTEGER             :: LPLANE, IWV, ISPC, K
       REAL(fp)            :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
       REAL(fp)            :: VARI(NPVAR)
 
@@ -1338,15 +1342,20 @@
       HOUR   = GET_HOUR()
       MINUTE = GET_MINUTE()
 
+      !Determine if optical properties need interpolating
+      !The LUT wavelengths in IWVSELECT will match if no interpolation
+      !is needed. (output is only for the first requested wavelength)
+      !(DAR 10/2013)
+      IF(IWVSELECT(1,1).EQ.IWVSELECT(2,1)) THEN
+         LINTERP=.FALSE.
+      ELSE
+         LINTERP=.TRUE.
+      ENDIF
+
       ! Loop over all the locations that have not yet been found
       DO M = PPOINT, NPOINTS
 
          ! Starting & end times of chemistry interval
-!-----------------------------------------------------------------------------
-! Prior to 1/12/15:
-! Allow for more accurate computation of PTAUE (L. Schiferl, 1/12/15)
-!        PTAUE = GET_TAU()
-!-----------------------------------------------------------------------------
          PTAUE = GET_TAU0( MONTH, DAY, YEAR, HOUR, MINUTE, 0 )
          PTAUS = PTAUE - ( GET_TS_DIAG() / 60e+0_fp )
 
@@ -1393,7 +1402,8 @@
 
             ! Return grid box indices for the chemistry region
             ! NOTE: PCHEM and JLOOP are only defined for SMVGEAR runs!
-            CALL TEST_VALID( M, PCHEM, JLOOP, I, J, L, Input_Opt )
+            CALL TEST_VALID( M, PCHEM, JLOOP, I, J, L, 
+     &                       Input_Opt, State_Met )
 
             ! Initialize SMVGEAR reaction counter
             R = 0
@@ -1513,7 +1523,7 @@
                   ! GMAO sfc pressure [hPa]
                   !--------------------------
                   CASE ( 1004 )
-                     VARI(V) = GET_PEDGE(I,J,1)
+                     VARI(V) = State_Met%PEDGE(I,J,1)
 
                   !-------------------------
                   ! GMAO U-wind [m/s]
@@ -1545,7 +1555,7 @@
                   CASE ( 1009 )
                      VARI(V) = L
 
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
                   !--------------------------
                   ! GEOS-Chem SEAICE frac's
                   !--------------------------
@@ -1577,33 +1587,65 @@
                   !--------------------------
                   CASE ( 2001:2005 )
                   
-                     ! Only archive where SMVGEAR chem is done
+                   ! Only archive where SMVGEAR chem is done
                   
-                        ! Remove MISSING flag
-                        VARI(V) = 0e+0_fp
+                   ! Remove MISSING flag
+                   VARI(V) = 0e+0_fp
                   
-                        ! Aerosol number
-                        N = PVAR(V) - 2000
+                   ! Aerosol number
+                   N = PVAR(V) - 2000
                   
-                        ! Loop over RH bins
-                        DO RH = 1, NRH
-                        
-                           ! Scaling factor for wavelength specified in
-                           ! jv_spec_aod.dat
-    !                       SAODnm  = QAA_AOD(IND(N)+RH-1) / 
-    ! &                               QAA(IND999,IND(N)+RH-1)
-                           ! We no longer need to scale by wavelength
-                           ! (skim, 02/03/11)
-                           SAODnm = 1.0
+                   ! Loop over RH bins
+                   DO  ISPC= 1, NAER
+                    IF ( .not. LINTERP ) THEN
+                     DO LL = 1, LLPAR
+                      ! Accumulate
+                      VARI(V) = VARI(V) +
+     &                ODAER(I,J,LL,IWVSELECT(1,1),ISPC)
+                     ENDDO
+                    ELSE
+                     DO LL = 1, LLPAR
+                      ! Interpolated using angstrom exponent between
+                      ! Closest available wavelengths
+                      ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                      !catch any zero values before interpolation
+                      IF ((ODAER(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                    (ODAER(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                           VARI(V) = VARI(V) +
+     &              (ODAER(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,LL,IWVSELECT(1,1),ISPC)/
+     &                              ODAER(I,J,LL,IWVSELECT(2,1),ISPC))))
+                      ENDIF
+                     ENDDO
+                    ENDIF
+                   ENDDO
 
-                           ! Index for type of aerosol and RH value
-                           IRHN    = ( (N-1) * NRH ) + RH
-                        
-                           ! Sum AOD over all RH bins and store in VARI(V)
-                           ! Sum over all vertical levels (bmy, 10/24/05)
-                           VARI(V) = VARI(V) + 
-     &                               SUM( SAODnm * ODAER(I,J,:,IRHN) )
-                        ENDDO
+                   !now add in the dust
+                   IF ( .not. LINTERP ) THEN
+                    DO LL = 1, LLPAR
+                     DO ISPC = 1, NDUST
+                      ! Accumulate
+                      VARI(V) = VARI(V) +
+     &                   ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)
+                     ENDDO
+                    ENDDO
+                   ELSE
+                    DO LL = 1, LLPAR
+                     ! Interpolated using angstrom exponent between
+                     ! Closest available wavelengths
+                     ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                     !catch any zero values before interpolation
+                     DO ISPC = 1, NDUST
+                      IF ((ODAER(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                    (ODAER(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                           VARI(V) = VARI(V) +
+     &              (ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &           (BCOEF_WV(1)*LOG(ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)/
+     &                            ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC))))
+                      ENDIF
+                     ENDDO
+                    ENDDO
+                   ENDIF
 
                   !--------------------------
                   ! Aerosol optical depths
@@ -1611,41 +1653,75 @@
                   !--------------------------
                   CASE ( 3001:3005 )
                   
-                     IF ( PCHEM ) THEN
+                   IF ( PCHEM ) THEN
 
-                       ! Remove MISSING flag
-                        VARI(V) = 0e+0_fp
+                   ! Remove MISSING flag
+                   VARI(V) = 0e+0_fp
                   
-                        ! Aerosol number
-                        N = PVAR(V) - 3000
-                  
-                        ! Loop over RH bins
-                        DO RH = 1, NRH
-                        
-                           ! Scaling factor for wavelength specified in
-                           ! jv_spec_aod.dat
-    !                       SAODnm  = QAA_AOD(IND(N)+RH-1) / 
-    ! &                               QAA(IND999,IND(N)+RH-1)
-                           ! We no longer need to scale by wavelength
-                           ! (skim, 02/03/11)
-                           SAODnm = 1.0 
+                   ! Aerosol number
+                   N = PVAR(V) - 3000
 
-                           ! Index for type of aerosol and RH value
-                           IRHN    = ( (N-1) * NRH ) + RH
-                          
-                           ! Level of the plane.  AOD's are only computed
-                           ! up to the tropopause, so if the plane goes into
-                           ! the stratosphere, the AOD below plane will be
-                           ! the same as the trop column at that point.
-                           ! (bmy, 10/24/05)
-                           LPLANE  = MIN( L, LLCHEM )
+                   ! Level of the plane.  AOD's are only computed
+                   ! up to the tropopause, so if the plane goes into
+                   ! the stratosphere, the AOD below plane will be
+                   ! the same as the trop column at that point.
+                   ! (bmy, 10/24/05)
+                   LPLANE  = MIN( L, LLTROP )
 
-                           ! Sum AOD over all RH bins and store in VARI(V)
-                           ! Sum from surface to level where the plane is
-                           VARI(V) = VARI(V) + 
-     &                          SUM( SAODnm * ODAER(I,J,1:LPLANE,IRHN) )
-                        ENDDO
-                     ENDIF
+                   ! Loop over RH bins
+                   DO  ISPC= 1, NAER
+
+                    IF ( .not. LINTERP ) THEN
+                     DO LL = 1, LPLANE
+                      ! Accumulate
+                      VARI(V) = VARI(V) +
+     &                ODAER(I,J,LL,IWVSELECT(1,1),ISPC)
+                     ENDDO
+                    ELSE
+                     DO LL = 1, LPLANE
+                      ! Interpolated using angstrom exponent between
+                      ! Closest available wavelengths
+                      ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                      !catch any zero values before interpolation
+                      IF ((ODAER(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                    (ODAER(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                           VARI(V) = VARI(V) +
+     &              (ODAER(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,LL,IWVSELECT(1,1),ISPC)/
+     &                              ODAER(I,J,LL,IWVSELECT(2,1),ISPC))))
+                      ENDIF
+                     ENDDO
+                    ENDIF
+                   ENDDO
+
+                   !now add in the dust
+                   IF ( .not. LINTERP ) THEN
+                    DO LL = 1, LPLANE
+                     DO ISPC = 1, NDUST
+                      ! Accumulate
+                      VARI(V) = VARI(V) +
+     &                   ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)
+                      ENDDO
+                     ENDDO
+                    ELSE
+                     DO LL = 1, LPLANE
+                      ! Interpolated using angstrom exponent between
+                      ! Closest available wavelengths
+                      ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                      !catch any zero values before interpolation
+                      DO ISPC = 1, NDUST
+                       IF ((ODAER(I,J,LL,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                    (ODAER(I,J,LL,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                           VARI(V) = VARI(V) +
+     &              (ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &           (BCOEF_WV(1)*LOG(ODMDUST(I,J,LL,IWVSELECT(1,1),ISPC)/
+     &                            ODMDUST(I,J,LL,IWVSELECT(2,1),ISPC))))
+                       ENDIF
+                      ENDDO
+                     ENDDO
+                    ENDIF
+
+                   ENDIF
 
                   !--------------------------
                   ! Hg(II) partitioning eds 10/27/11
@@ -1679,9 +1755,8 @@
                      ! Chemistry State object (mpayer, 12/6/12)
                      STT => State_Chm%Tracers
                      
-                     ! Convert from [kg] --> [v/v]
-                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N) /
-     &                         State_Met%AD(I,J,L)
+                     ! Convert from [kg/kg] --> [v/v] (ewl, 8/11/15)
+                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N)
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 
@@ -1742,21 +1817,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TEST_VALID( IND, PCHEM, JLOOP, I, J, L, Input_Opt ) 
+      SUBROUTINE TEST_VALID( IND, PCHEM, JLOOP, I, J, L, 
+     &                       Input_Opt, State_Met ) 
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : JLOP
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE GRID_MOD,           ONLY : GET_XOFFSET
       USE GRID_MOD,           ONLY : GET_YOFFSET
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN) :: IND         ! # of the flight track point
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1782,6 +1859,8 @@
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  08 Sep 2011 - L. Schiferl - Added correct definitions for I and J 
 !                              based on nested regions
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1818,7 +1897,8 @@
       ! Get L corresponding to PRESS(IND)
       L = 1
       DO IL = 1, LLPAR
-         IF ( GET_PEDGE(I,J,IL) <= PPRESS(IND) .AND..NOT. FOUND ) THEN
+         IF ( State_Met%PEDGE(I,J,IL) <= PPRESS(IND) 
+     &                            .AND..NOT. FOUND ) THEN
             L     = IL-1
             FOUND =.TRUE.
             EXIT

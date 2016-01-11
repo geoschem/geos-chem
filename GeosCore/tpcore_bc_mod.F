@@ -36,6 +36,7 @@
       ! Please also see the diagram in the REMARKS section.
       !------------------------------------------------------------
       INTEGER, PUBLIC :: I0_W, J0_W  
+      INTEGER, PUBLIC :: I0_E, J0_E
       INTEGER, PUBLIC :: I1_W, J1_W   
       INTEGER, PUBLIC :: I2_W, J2_W
       INTEGER, PUBLIC :: IM_W, JM_W
@@ -151,6 +152,9 @@
 !  07 Sep 2012 - R. Yantosca - Minor fixes for numerical stability
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  01 Apr 2015 - R. Yantosca - Now add I0_E and J0_E
+!  03 Aug 2015 - M. Sulprizio- Now make BC and BC_CU separate arrays to avoid
+!                              confusion and error
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -170,8 +174,8 @@
       ! J1_BC    : Lower left-hand  lat index of 4x5 WINDOW 
       ! I2_BC    : Upper right-hand lon index of 4x5 WINDOW 
       ! J2_BC    : Upper right-hand lat index of 4x5 WINDOW
-      ! BC       : Array containing CU tracers on coarse grid
-      !            / any input region coarse grid
+      ! BC       : Any input region coarse grid
+      ! BC_CU    : Array containing CU tracers on coarse grid
       ! BC_NA    : Array containing NA tracers on coarse grid
       ! BC_EU    : Array containing EU tracers on coarse grid
       ! BC_CH    : Array containing CH tracers on coarse grid
@@ -194,6 +198,7 @@
 
       ! Logical unit numbers
       INTEGER              :: IU_BC      ! LUN for input  BC's
+      INTEGER              :: IU_BC_CU   ! LUN for output BC's, Custom grid
       INTEGER              :: IU_BC_NA   ! LUN for output BC's, N. Amer. grid
       INTEGER              :: IU_BC_EU   ! LUN for output BC's, Europe grid
       INTEGER              :: IU_BC_CH   ! LUN for output BC's, China grid
@@ -202,6 +207,7 @@
       ! Arrays
       INTEGER, ALLOCATABLE :: MAP1x1(:,:,:  )
       REAL*4,  ALLOCATABLE :: BC    (:,:,:,:)
+      REAL*4,  ALLOCATABLE :: BC_CU (:,:,:,:)
       REAL*4,  ALLOCATABLE :: BC_NA (:,:,:,:)
       REAL*4,  ALLOCATABLE :: BC_EU (:,:,:,:)
       REAL*4,  ALLOCATABLE :: BC_CH (:,:,:,:)
@@ -377,15 +383,15 @@
             IF ( PRESENT( FOR_WRITE ) ) THEN
 
                ! Close previously opened file
-               INQUIRE( IU_BC, OPENED=IS_OPEN )
-               IF ( IS_OPEN ) CLOSE( IU_BC )
+               INQUIRE( IU_BC_CU, OPENED=IS_OPEN )
+               IF ( IS_OPEN ) CLOSE( IU_BC_CU )
 
                ! Find a free LUN
-               IU_BC = findFreeLun()
+               IU_BC_CU = findFreeLun()
 
                ! Open file for output
-               WRITE( 6, 100 ) TRIM( FILENAME ), IU_BC
-               CALL OPEN_BPCH2_FOR_WRITE( IU_BC,    FILENAME )
+               WRITE( 6, 100 ) TRIM( FILENAME ), IU_BC_CU
+               CALL OPEN_BPCH2_FOR_WRITE( IU_BC_CU,    FILENAME )
             ENDIF
 
          ELSE IF ( WINDOW .eq. 2 ) THEN
@@ -477,6 +483,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_NYMD,  GET_NHMS
       USE TIME_MOD,           ONLY : GET_TAU,   TIMESTAMP_STRING
+      USE UNITCONV_MOD
 #if   defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
@@ -509,6 +516,9 @@
 !                              instead of from GeosUtil/file_mod.F
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  17 Feb 2014 - E. Lundgren - Move temporary unit change to vol/vol to within
+!                              this subroutine
+!  13 Aug 2015 - E. Lundgren - Tracer units are now [kg/kg dry air]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -577,7 +587,7 @@
       MODELNAME = GET_MODELNAME()
       TAU       = GET_TAU()
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -598,16 +608,21 @@
 
                ! Save concentrations in WINDOW REGION to disk
                DO L = 1, LLPAR
-                  BC(1:IM_BC,1:JM_BC,L,N) = 
+                  BC_CU(1:IM_BC,1:JM_BC,L,N) = 
      &               STT(I1_BC:I2_BC,J1_BC:J2_BC,L,N) 
                ENDDO
 
                ! Write boundary conditions to binary punch file
-               CALL BPCH2( IU_BC,     MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      TAU,       TAU,      RESERVED,
-     &               IM_BC,     JM_BC,     LLPAR,    I1_BC,
-     &               J1_BC,     1,   BC(1:IM_BC, 1:JM_BC, 1:LLPAR, N) )
+               CALL BPCH2( IU_BC_CU,  MODELNAME,
+     &                     LONRES,    LATRES,
+     &                     HALFPOLAR, CENTER180,
+     &                     CATEGORY,  N,
+     &                     UNIT,      TAU,
+     &                     TAU,       RESERVED,
+     &                     IM_BC,     JM_BC,
+     &                     LLPAR,     I1_BC,
+     &                     J1_BC,     1,
+     &                     BC_CU(1:IM_BC, 1:JM_BC, 1:LLPAR, N) )
 
                ENDDO
 
@@ -635,12 +650,16 @@
                ENDDO
 
                ! Write boundary conditions to binary punch file
-               CALL BPCH2( IU_BC_NA,  MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,   TAU,       TAU,      RESERVED,
-     &               IM_BC_NA,  JM_BC_NA,   LLPAR,  I1_BC_NA,
-     &               J1_BC_NA, 1, BC_NA(1:IM_BC_NA, 1:JM_BC_NA, 
-     &               1:LLPAR, N) )
+               CALL BPCH2( IU_BC_NA,  MODELNAME,
+     &                     LONRES,    LATRES,
+     &                     HALFPOLAR, CENTER180,
+     &                     CATEGORY,  N,
+     &                     UNIT,      TAU,
+     &                     TAU,       RESERVED,
+     &                     IM_BC_NA,  JM_BC_NA,
+     &                     LLPAR,     I1_BC_NA,
+     &                     J1_BC_NA,  1,
+     &                     BC_NA(1:IM_BC_NA, 1:JM_BC_NA, 1:LLPAR, N) )
 
             ENDDO
 
@@ -668,12 +687,16 @@
                ENDDO
  
                ! Write boundary conditions to binary punch file
-               CALL BPCH2( IU_BC_EU,  MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,   TAU,       TAU,      RESERVED,
-     &               IM_BC_EU,  JM_BC_EU,   LLPAR,  I1_BC_EU,
-     &               J1_BC_EU, 1, BC_EU(1:IM_BC_EU, 1:JM_BC_EU, 
-     &               1:LLPAR, N) )
+               CALL BPCH2( IU_BC_EU,  MODELNAME,
+     &                     LONRES,    LATRES,
+     &                     HALFPOLAR, CENTER180,
+     &                     CATEGORY,  N,
+     &                     UNIT,      TAU,
+     &                     TAU,       RESERVED,
+     &                     IM_BC_EU,  JM_BC_EU,
+     &                     LLPAR,     I1_BC_EU,
+     &                     J1_BC_EU,  1,
+     &                     BC_EU(1:IM_BC_EU, 1:JM_BC_EU, 1:LLPAR, N) )
 
             ENDDO
 
@@ -701,12 +724,16 @@
                ENDDO
  
                ! Write boundary conditions to binary punch file
-               CALL BPCH2( IU_BC_CH,  MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,   TAU,       TAU,      RESERVED,
-     &               IM_BC_CH,  JM_BC_CH,   LLPAR,  I1_BC_CH,
-     &               J1_BC_CH, 1, BC_CH(1:IM_BC_CH, 1:JM_BC_CH,
-     &               1:LLPAR, N) )
+               CALL BPCH2( IU_BC_CH,  MODELNAME,
+     &                     LONRES,    LATRES,
+     &                     HALFPOLAR, CENTER180,
+     &                     CATEGORY,  N,
+     &                     UNIT,      TAU,
+     &                     TAU,       RESERVED,
+     &                     IM_BC_CH,  JM_BC_CH,
+     &                     LLPAR,     I1_BC_CH,
+     &                     J1_BC_CH,  1,
+     &                     BC_CH(1:IM_BC_CH, 1:JM_BC_CH,  1:LLPAR, N) )
 
             ENDDO
 
@@ -774,7 +801,7 @@
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-
+!  13 Aug 2014 - E. Lundgren - Tracer units are now [kg/kg dry air]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -811,7 +838,7 @@
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
 #endif
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -851,7 +878,7 @@
               ENDDO
 
               ! East BC
-              DO I = IIPAR-I0_W+1, IIPAR
+              DO I = IIPAR-I0_E+1, IIPAR
                  STT(I,J,L,N) = GET_4x5_BC(I,J,L,N)
               ENDDO
            ENDDO
@@ -865,7 +892,7 @@
               ENDDO
 
               ! North BC
-              DO J = JJPAR-J0_W+1, JJPAR
+              DO J = JJPAR-J0_E+1, JJPAR
                  STT(I,J,L,N) = GET_4x5_BC(I,J,L,N)
               ENDDO
            ENDDO
@@ -895,7 +922,7 @@
               ENDDO
 
               ! East BC
-              DO I = IIPAR-I0_W+1, IIPAR
+              DO I = IIPAR-I0_E+1, IIPAR
                  STT(I,J,L,N) = GET_2x25_BC(I,J,L,N)
               ENDDO
            ENDDO
@@ -909,7 +936,7 @@
               ENDDO
 
               ! North BC
-              DO J = JJPAR-J0_W+1, JJPAR
+              DO J = JJPAR-J0_E+1, JJPAR
                  STT(I,J,L,N) = GET_2x25_BC(I,J,L,N)
               ENDDO
            ENDDO
@@ -996,12 +1023,12 @@
       LWINDO_SE = Input_Opt%LWINDO_SE
       N_TRACERS = Input_Opt%N_TRACERS
 
-#if   defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU )
+#if   defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( NESTED_CU )
       BC = 0e+0_fp
 #endif
 
       IF ( LWINDO_CU ) THEN
-         BC = 0e+0_fp
+         BC_CU = 0e+0_fp
       ENDIF
 
       IF ( LWINDO_NA ) THEN
@@ -1499,7 +1526,7 @@
 
             ! If the 1x1 center lon lies w/in the 2x25 lon edges
             ! then we have found the proper 2x25 box!
-            IF ( X > XE2x25(II) .and. X < XE2x25(II+1) ) THEN
+            IF ( X >= XE2x25(II) .and. X < XE2x25(II+1) ) THEN
                MAP1x1(I,J,1) = II
                MAP1x1(I,J,2) = 0
                EXIT
@@ -1691,24 +1718,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TPCORE_BC( TS, I0W, J0W, I1, 
-     &                           J1, I2,  J2,  Input_Opt )
+      SUBROUTINE INIT_TPCORE_BC( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
       USE GRID_MOD,           ONLY : ITS_A_NESTED_GRID
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN) :: TS          ! Timestep for BC data
-      INTEGER,        INTENT(IN) :: I0W, J0W    ! Transport region offsets
-      INTEGER,        INTENT(IN) :: I1,  J1     ! Lon, lat indices @ LL corner 
-      INTEGER,        INTENT(IN) :: I2,  J2     ! Lon, lat indices @ UR corner
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  10 Feb 2003 - R. Yantosca - Initial version
@@ -1725,6 +1753,8 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  01 Apr 2015 - L. Zhang    - IM_W, JM_W are no longer symmetric, but are
+!                              computed from I0_E and J0_E
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1749,31 +1779,34 @@
       LWINDO_CU  = Input_Opt%LWINDO_CU
       LWINDO_EU  = Input_Opt%LWINDO_EU
       LWINDO_CH  = Input_Opt%LWINDO_CH
+      LWINDO_SE  = Input_Opt%LWINDO_SE
       LWINDO2x25 = Input_Opt%LWINDO2x25
       N_TRACERS  = Input_Opt%N_TRACERS
 
       ! Timestep for BC's [min]
-      TS_BC = TS
+      TS_BC      = Input_Opt%NESTED_TS
 
       !-----------------------------------------------------------------
       !       ****** NESTED GRID TPCORE TRANSPORT REGION ******
       !-----------------------------------------------------------------
 
       ! TPCORE transport region offsets
-      I0_W = I0W
-      J0_W = J0W
+      I0_W = Input_Opt%NESTED_I0W
+      J0_W = Input_Opt%NESTED_J0W
+      I0_E = Input_Opt%NESTED_I0E
+      J0_E = Input_Opt%NESTED_J0E
 
       ! Extent of TPCORE transport region
-      IM_W = IIPAR - ( 2 * I0_W )
-      JM_W = JJPAR - ( 2 * J0_W )
+      IM_W = IIPAR - I0_W - I0_E
+      JM_W = JJPAR - J0_W - J0_E
 
       ! I and J at lower-left corner of TPCORE transport region
       I1_W = GET_XOFFSET( GLOBAL=.TRUE. ) + I0_W + 1
       J1_W = GET_YOFFSET( GLOBAL=.TRUE. ) + J0_W + 1
 
       ! I and J at upper-right corner of TPCORE transport region
-      I2_W = GET_XOFFSET( GLOBAL=.TRUE. ) + IIPAR - I0_W
-      J2_W = GET_YOFFSET( GLOBAL=.TRUE. ) + JJPAR - J0_W
+      I2_W = GET_XOFFSET( GLOBAL=.TRUE. ) + IIPAR - I0_E
+      J2_W = GET_YOFFSET( GLOBAL=.TRUE. ) + JJPAR - J0_E
 
       ! IGZD = ?
       IGZD = I0_W - 1
@@ -1783,10 +1816,10 @@
       !-----------------------------------------------------------------
 
       ! BC window region on the coarse grid
-      I1_BC = I1                             ! Lon index, LL corner
-      J1_BC = J1                             ! Lat index, LL corner
-      I2_BC = I2                             ! Lon index, UR corner
-      J2_BC = J2                             ! Lat index, UR corner
+      I1_BC = Input_Opt%NESTED_I1            ! Lon index, LL corner
+      J1_BC = Input_Opt%NESTED_J1            ! Lat index, LL corner
+      I2_BC = Input_Opt%NESTED_I2            ! Lon index, UR corner
+      J2_BC = Input_Opt%NESTED_J2            ! Lat index, UR corner
 
       ! Extent of coarse-grid BC REGION
       IM_BC = I2_BC - I1_BC + 1
@@ -1809,6 +1842,14 @@
          J1_BC_NA = 26                       ! 4x5  lat index, LL corner
          I2_BC_NA = 25                       ! 4x5  lon index, UR corner
          J2_BC_NA = 39                       ! 4x5  lat index, UR corner
+
+#elif defined( MERRA2 )
+         !%%%%% 4x5 BC REGION FOR NORTH AMERICA NESTED GRID (MERRA2)
+         I1_BC_NA = 9                        ! 4x5  lon index, LL corner
+         J1_BC_NA = 26                       ! 4x5  lat index, LL corner
+         I2_BC_NA = 29                       ! 4x5  lon index, UR corner
+         J2_BC_NA = 41                       ! 4x5  lat index, UR corner
+
 #else
          !%%%%% 4x5 BC REGION FOR NORTH AMERICA NESTED GRID %%%%%
          I1_BC_NA = 9                        ! 4x5  lon index, LL corner
@@ -1829,6 +1870,14 @@
          J1_BC_NA = 51                       ! 2x25 lat index, LL corner
          I2_BC_NA = 49                       ! 2x25 lon index, UR corner
          J2_BC_NA = 76                       ! 2x25 lat index, UR corner
+
+#elif defined( MERRA2 )
+         !%%%%% 2x25 BC REGION FOR NORTH AMERICA NESTED GRID (MERRA2)
+         I1_BC_NA = 17                       ! 2x25 lon index, LL corner
+         J1_BC_NA = 51                       ! 2x25 lat index, LL corner
+         I2_BC_NA = 57                       ! 2x25 lon index, UR corner
+         J2_BC_NA = 81                       ! 2x25 lat index, UR corner
+
 #else
          !%%%%% 2x25 BC REGION FOR NORTH AMERICA NESTED GRID %%%%%
          I1_BC_NA = 17                       ! 2x25 lon index, LL corner
@@ -1891,15 +1940,25 @@
 
 #if   defined( GEOS_FP )
 
-         !%%%%% 4x5 BC REGION FOR NESTED CHINA GRID (GEOS-FP only) %%%%%
+         !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
+         !%%%%% NESTED CHINA GRID (GEOS-FP only)       %%%%%
          I1_BC_CH = 51                       ! 4x5 lon index, LL corner
          J1_BC_CH = 27                       ! 4x5 lat index, LL corner
          I2_BC_CH = 65                       ! 4x5 lon index, UR corner
          J2_BC_CH = 37                       ! 4x5 lat index, UR corner
 
+#elif defined( MERRA2 )
+         !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
+         !%%%%% NESTED CHINA GRID (MERRA2 only)        %%%%%
+         I1_BC_CH = 49                       ! 4x5 lon index, LL corner
+         J1_BC_CH = 21                       ! 4x5 lat index, LL corner
+         I2_BC_CH = 67                       ! 4x5 lon index, UR corner
+         J2_BC_CH = 37                       ! 4x5 lat index, UR corner
+
 #else
 
-         !%%%%% 4x5 BC REGION FOR TRADITIONAL GEOS-5 CHINA NESTED GRID %%%%%
+         !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
+         !%%%%% GEOS-5 CHINA NESTED GRID (GEOS-5 only) %%%%%
          I1_BC_CH = 51                       ! 4x5 lon index, LL corner
          J1_BC_CH = 21                       ! 4x5 lat index, LL corner
          I2_BC_CH = 67                       ! 4x5 lon index, UR corner
@@ -1915,15 +1974,26 @@
 
 #if   defined( GEOS_FP )
 
-         !%%%%% 2x25 BC REGION FOR NESTED CHINA GRID (GEOS-FP only) %%%%%
+         !%%%%% 2x25 BC REGION FOR "GEOS-Chem CLASSIC" %%%%%
+         !%%%%% NESTED CHINA GRID (GEOS-FP only)       %%%%%
          I1_BC_CH = 101                      ! 2x25 lon index, LL corner
          J1_BC_CH = 53                       ! 2x25 lat index, LL corner
          I2_BC_CH = 129                      ! 2x25 lon index, UR corner
          J2_BC_CH = 74                       ! 2x25 lat index, UR corner
 
+#elif defined( MERRA2 )
+
+         !%%%%% 2x25 BC REGION FOR "GEOS-Chem CLASSIC" %%%%%
+         !%%%%% NESTED CHINA GRID (MERRA2 only)       %%%%%
+         I1_BC_CH = 97                       ! 2x25 lon index, LL corner
+         J1_BC_CH = 41                       ! 2x25 lat index, LL corner
+         I2_BC_CH = 133                      ! 2x25 lon index, UR corner
+         J2_BC_CH = 74                       ! 2x25 lat index, UR corner
+
 #else
 
-         !%%%%% 2x25 BC REGION FOR TRADITIONAL GEOS-5 CHINA NESTED GRID %%%%%
+         !%%%%% 2x25 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
+         !%%%%% GEOS-5 CHINA NESTED GRID (GEOS_5 only)  %%%%%
          I1_BC_CH = 101                      ! 2x25 lon index, LL corner
          J1_BC_CH = 40                       ! 2x25 lat index, LL corner
          I2_BC_CH = 133                      ! 2x25 lon index, UR corner
@@ -1963,9 +2033,9 @@
       
       ! Boundary condition array for CUSTOM NESTED REGION
       IF ( LWINDO_CU ) THEN
-         ALLOCATE( BC( IM_BC, JM_BC, LLPAR, N_TRACERS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC' )
-         BC = 0e+0_fp
+         ALLOCATE( BC_CU( IM_BC, JM_BC, LLPAR, N_TRACERS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_CU' )
+         BC_CU = 0e+0_fp
       ENDIF
 
       ! Boundary condition array for NESTED CHINA/SE ASIA REGION
@@ -2040,6 +2110,9 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MAP1x1' )
       MAP1x1 = 0
 
+      ! Return 
+      RC = GIGC_SUCCESS
+
       END SUBROUTINE INIT_TPCORE_BC
 !EOC
 !------------------------------------------------------------------------------
@@ -2066,6 +2139,7 @@
       ! CLEANUP_TPCORE_BC begins here!
       !=================================================================
       IF ( ALLOCATED( BC     ) ) DEALLOCATE( BC     )
+      IF ( ALLOCATED( BC_CU  ) ) DEALLOCATE( BC_CU  )
       IF ( ALLOCATED( BC_NA  ) ) DEALLOCATE( BC_NA  )
       IF ( ALLOCATED( BC_EU  ) ) DEALLOCATE( BC_EU  )
       IF ( ALLOCATED( BC_CH  ) ) DEALLOCATE( BC_CH  )

@@ -36,19 +36,6 @@
 ! !AUTHOR:
 !  Paul Ginoux (ginoux@rondo.gsfc.nasa.gov) 
 !
-! !REVISION HISTORY:
-!  08 Apr 2004 - T. D. Fairlie - Initial version
-!  (1 ) Added OpenMP parallelization (bmy, 4/8/04)
-!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
-!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  26 Feb 2013 - R. Yantosca - Now accept Input_Opt via the arg list
-!  11 Dec 2013 - C. Keller   - Now a HEMCO extension.
-!
 ! !INTERFACE:
 !
 MODULE HCOX_DustGinoux_Mod
@@ -71,18 +58,20 @@ MODULE HCOX_DustGinoux_Mod
   PUBLIC :: HcoX_DustGinoux_GetChDust
 !
 ! !REVISION HISTORY:
-!  (1 ) Added parallel DO loop in GET_ORO (bmy, 4/14/04)
-!  (2 ) Now references "directory_mod.f" (bmy, 7/20/04)
-!  (3 ) Fixed typo in ORO_IS_LND for PGI compiler (bmy, 3/1/05)
-!  (4 ) Modified for GEOS-5 and GCAP met fields (swu, bmy, 8/16/05)
-!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (6 ) Now uses GOCART source function (tdf, bmy, 1/25/07)
-!  (7 ) Modifications for 0.5 x 0.667 grid (yxw, dan, bmy, 11/6/08)
-!  (8 ) Updates for nested grids (amv, bmy, 12/18/09)
-!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
-!  11 Dec 2013 - C. Keller   - Now a HEMCO extension
+!  08 Apr 2004 - T. D. Fairlie - Initial version
+!  (1 ) Added OpenMP parallelization (bmy, 4/8/04)
+!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  26 Feb 2013 - R. Yantosca - Now accept Input_Opt via the arg list
+!  11 Dec 2013 - C. Keller   - Now a HEMCO extension.
 !  29 Sep 2014 - R. Yantosca - Now make NBINS a variable and not a parameter
 !  29 Sep 2014 - R. Yantosca - Now use F90 free-format indentation
+!  08 Jul 2015 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -91,12 +80,14 @@ MODULE HCOX_DustGinoux_Mod
 !
   ! Quantities related to dust bins
   INTEGER              :: NBINS
-  INTEGER              :: ExtNr = -1
-  INTEGER, ALLOCATABLE :: HcoIDs  (:)       ! HEMCO species IDs
-  INTEGER, ALLOCATABLE :: IPOINT  (:)       ! 1=sand, 2=silt, 3=clay 
-  REAL,    ALLOCATABLE :: FRAC_S  (:)       !  
-  REAL,    ALLOCATABLE :: DUSTDEN (:)       ! dust density     [kg/m3] 
-  REAL,    ALLOCATABLE :: DUSTREFF(:)       ! effective radius [um] 
+  INTEGER              :: ExtNr    = -1     ! Extension number  for DustGinoux
+  INTEGER              :: ExtNrAlk = -1     ! Extension number  for DustAlk
+  INTEGER, ALLOCATABLE :: HcoIDs    (:)     ! HEMCO species IDs for DustGinoux
+  INTEGER, ALLOCATABLE :: HcoIDsAlk (:)     ! HEMCO species IDs for DustAlk
+  INTEGER, ALLOCATABLE :: IPOINT    (:)     ! 1=sand, 2=silt, 3=clay 
+  REAL,    ALLOCATABLE :: FRAC_S    (:)     !  
+  REAL,    ALLOCATABLE :: DUSTDEN   (:)     ! dust density     [kg/m3] 
+  REAL,    ALLOCATABLE :: DUSTREFF  (:)     ! effective radius [um] 
 
   ! Source functions (get from HEMCO core) 
   REAL(sp), POINTER    :: SRCE_SAND(:,:) => NULL()
@@ -169,6 +160,8 @@ CONTAINS
 !  11 Dec 2013 - C. Keller   - Now a HEMCO extension
 !  29 Sep 2014 - R. Yantosca - Bug fix: SRCE_CLAY should have been picked when
 !                              M=3 but was picked when M=2.  Now corrected.
+!  26 Jun 2015 - E. Lundgren - Add L. Zhang new dust size distribution scheme
+!  08 Jul 2015 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -193,7 +186,9 @@ CONTAINS
     CHARACTER(LEN=63) :: MSG
 
     ! Arrays
+    REAL*8            :: DUST_EMI_TOTAL(HcoState%NX, HcoState%NY)
     REAL(hp), TARGET  :: FLUX(HcoState%NX,HcoState%NY,NBINS)
+    REAL(hp), TARGET  :: FLUX_ALK(HcoState%NX,HcoState%NY,NBINS)
 
     ! Pointers
     REAL(hp), POINTER :: Arr2D(:,:) => NULL()
@@ -215,11 +210,15 @@ CONTAINS
     ! Emission timestep [s]
     DTSRCE  = HcoState%TS_EMIS
 
+    ! Initialize total dust emissions array [kg/m2/s]
+    DUST_EMI_TOTAL = 0.0d0
+
     ! Error check
     ERR     = .FALSE.
 
     ! Init
-    FLUX    = 0.0_hp
+    FLUX     = 0.0_hp
+    FLUX_ALK = 0.0_hp
 
     !=================================================================
     ! Point to DUST source functions 
@@ -245,11 +244,11 @@ CONTAINS
     !=================================================================
     ! Compute dust emisisons
     !=================================================================
-!$OMP PARALLEL DO                                           &
-!$OMP DEFAULT( SHARED )                                     &
-!$OMP PRIVATE( I,      J,     M,      N,      DEN,   DIAM ) &
-!$OMP PRIVATE( REYNOL, ALPHA, BETA,   GAMMA,  U_TS0, U_TS ) &
-!$OMP PRIVATE( CW,     W10M,  SRCE_P, RC                  ) &
+!$OMP PARALLEL DO                                             &
+!$OMP DEFAULT( SHARED )                                       &
+!$OMP PRIVATE( I,      J,     M,      N,      DEN,   DIAM   ) &
+!$OMP PRIVATE( REYNOL, ALPHA, BETA,   GAMMA,  U_TS0, U_TS   ) &
+!$OMP PRIVATE( CW,     W10M,  SRCE_P, RC                    ) &
 !$OMP SCHEDULE( DYNAMIC )
     DO N = 1, NBINS
 
@@ -306,7 +305,7 @@ CONTAINS
 
           ENDIF
 
-          ! 10m wind speed [m/s]
+          ! 10m wind speed squared [m2/s2]
           W10M = ExtState%U10M%Arr%Val(I,J)**2 &
                + ExtState%V10M%Arr%Val(I,J)**2
 
@@ -330,6 +329,16 @@ CONTAINS
           ! Not less than zero
           IF ( FLUX(I,J,N) < 0.d0 ) FLUX(I,J,N) = 0.d0
 
+          ! Increment total dust emissions [kg/m2/s] (L. Zhang, 6/26/15)
+          DUST_EMI_TOTAL(I,J) = DUST_EMI_TOTAL(I,J) + FLUX(I,J,N)
+
+          ! Include DUST Alkalinity SOURCE, assuming an alkalinity
+          ! of 4% by weight [kg].                  !tdf 05/10/08
+          !tdf 3% Ca + equ 1% Mg = 4% alkalinity
+          IF ( ExtNrAlk > 0 ) THEN
+             FLUX_ALK(I,J,N) = 0.04 * FLUX(I,J,N)
+          ENDIF
+
        ENDDO
        ENDDO
     ENDDO
@@ -341,6 +350,29 @@ CONTAINS
        RETURN 
     ENDIF
 
+    ! Redistribute dust emissions across bins (L. Zhang, 6/26/15)
+!$OMP PARALLEL DO                                           &
+!$OMP DEFAULT( SHARED )                                     &
+!$OMP PRIVATE( I, J, N )                                    &
+!$OMP SCHEDULE( DYNAMIC )
+     DO N=1,NBINS
+     DO J=1,HcoState%NY
+     DO I=1,HcoState%NX
+        SELECT CASE( N )
+           CASE( 1 ) 
+              FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.0766d0
+           CASE( 2 )
+              FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.1924d0
+           CASE( 3 ) 
+              FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.3491d0
+           CASE( 4 )
+              FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.3819d0
+        END SELECT
+     ENDDO
+     ENDDO
+     ENDDO
+!$OMP END PARALLEL DO
+
     !=======================================================================
     ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
     !=======================================================================
@@ -348,23 +380,29 @@ CONTAINS
        IF ( HcoIDs(N) > 0 ) THEN
 
           ! Add flux to emission array
-          CALL HCO_EmisAdd( HcoState, FLUX(:,:,N), HcoIDs(N), RC)
+          CALL HCO_EmisAdd( am_I_Root, HcoState, FLUX(:,:,N), & 
+                            HcoIDs(N), RC,       ExtNr=ExtNr   )
           IF ( RC /= HCO_SUCCESS ) THEN
              WRITE(MSG,*) 'HCO_EmisAdd error: dust bin ', N
              CALL HCO_ERROR( MSG, RC )
              RETURN 
           ENDIF
 
-          ! Eventually update diagnostics
-          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-             Arr2D => FLUX(:,:,N)
-             CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                                Cat=-1, Hier=-1, HcoID=HcoIDs(N), &
-                                AutoFill=1, Array2D=Arr2D, RC=RC   )
-             IF ( RC /= HCO_SUCCESS ) RETURN 
-             Arr2D => NULL() 
-          ENDIF
        ENDIF
+
+       IF ( HcoIDsAlk(N) > 0 ) THEN
+
+          ! Add flux to emission array
+          CALL HCO_EmisAdd( am_I_Root,    HcoState, FLUX_Alk(:,:,N), & 
+                            HcoIDsAlk(N), RC,       ExtNr=ExtNrAlk   )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             WRITE(MSG,*) 'HCO_EmisAdd error: dust alkalinity bin ', N
+             CALL HCO_ERROR( MSG, RC )
+             RETURN 
+          ENDIF
+
+       ENDIF
+
     ENDDO
 
     ! Leave w/ success
@@ -414,13 +452,14 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                        :: N, nSpc
+    INTEGER                        :: N, nSpc, nSpcAlk
     CHARACTER(LEN=255)             :: MSG
     REAL(dp)                       :: Mp, Rp, TmpScal
     LOGICAL                        :: FOUND
 
     ! Arrays
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
+    CHARACTER(LEN=31), ALLOCATABLE :: SpcNamesAlk(:)
 
     !=======================================================================
     ! HCOX_DUSTGINOUX_INIT begins here!
@@ -429,6 +468,9 @@ CONTAINS
     ! Extension Nr.
     ExtNr = GetExtNr( TRIM(ExtName) )
     IF ( ExtNr <= 0 ) RETURN
+
+    ! Check for dust alkalinity option
+    ExtNrAlk = GetExtNr('DustAlk')
 
     ! Enter
     CALL HCO_ENTER('HCOX_DustGinoux_Init (hcox_dustginoux_mod.F90)',RC)
@@ -440,6 +482,13 @@ CONTAINS
     ! Get the actual number of dust species defined for DustGinoux extension
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Get the dust alkalinity species defined for DustAlk option
+    IF ( ExtNrAlk > 0 ) THEN
+       CALL HCO_GetExtHcoID( HcoState,    ExtNrAlk, HcoIDsAlk, &
+                             SpcNamesAlk, nSpcAlk,  RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
 
     ! Make sure the # of dust species is as expected
     IF ( nSpc /= NBINS ) THEN
@@ -475,12 +524,23 @@ CONTAINS
        MSG = 'Use Ginoux dust emissions (extension module)'
        CALL HCO_MSG( MSG )
 
+       IF ( ExtNrAlk > 0 ) THEN
+          MSG = 'Use dust alkalinity option'
+          CALL HCO_MSG ( MSG, SEP1='-' )
+       ENDIF
+
        MSG = 'Use the following species (Name: HcoID):'
        CALL HCO_MSG(MSG)
        DO N = 1, nSpc
           WRITE(MSG,*) TRIM(SpcNames(N)), ':', HcoIDs(N)
           CALL HCO_MSG(MSG)
        ENDDO
+       IF ( ExtNrAlk > 0 ) THEN
+          DO N = 1, nSpcAlk
+             WRITE(MSG,*) TRIM(SpcNamesAlk(N)), ':', HcoIDsAlk(N)
+             CALL HCO_MSG(MSG)
+          ENDDO
+       ENDIF
 
        WRITE(MSG,*) 'Global mass flux tuning factor: ', CH_DUST
        CALL HCO_MSG(MSG,SEP2='-')
@@ -693,10 +753,12 @@ CONTAINS
     SRCE_CLAY => NULL()
 
     ! Cleanup option object
-    IF ( ALLOCATED( IPOINT   ) ) DEALLOCATE( IPOINT   )
-    IF ( ALLOCATED( FRAC_S   ) ) DEALLOCATE( FRAC_S   )
-    IF ( ALLOCATED( DUSTDEN  ) ) DEALLOCATE( DUSTDEN  )
-    IF ( ALLOCATED( DUSTREFF ) ) DEALLOCATE( DUSTREFF )
+    IF ( ALLOCATED( IPOINT    ) ) DEALLOCATE( IPOINT    )
+    IF ( ALLOCATED( FRAC_S    ) ) DEALLOCATE( FRAC_S    )
+    IF ( ALLOCATED( DUSTDEN   ) ) DEALLOCATE( DUSTDEN   )
+    IF ( ALLOCATED( DUSTREFF  ) ) DEALLOCATE( DUSTREFF  )
+    IF ( ALLOCATED( HcoIDs    ) ) DEALLOCATE( HcoIDs    )
+    IF ( ALLOCATED( HcoIDsALK ) ) DEALLOCATE( HcoIDsALK )
 
   END SUBROUTINE HcoX_DustGinoux_Final
 !EOC

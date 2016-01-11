@@ -45,6 +45,8 @@
 #                              now added to FFLAGS in Makefile_header.mk
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #  21 Nov 2014 - R. Yantosca - Compile w/o includes for ESMF, MAPL, FVdycore
+#  04 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
+#  04 Jun 2015 - R. Yantosca - Add debug target, remove help
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -55,23 +57,29 @@
 ###                                                                         ###
 ###############################################################################
 
-# Define variables
-SHELL :=/bin/bash
-ROOT  :=..
-HELP  :=$(ROOT)/help
-LIB   :=$(ROOT)/lib
-MOD   :=$(ROOT)/mod
+# Directories
+ROOT    :=..
+LIB     :=$(ROOT)/lib
+MOD     :=$(ROOT)/mod
 
 # Include header file.  This returns variables CC, F90, FREEFORM, LD, R8,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOT)/Makefile_header.mk
 
 # List of source files
-SRC   :=$(wildcard *.F) $(wildcard *.F90)
+SOURCES :=$(wildcard *.F) $(wildcard *.F90)
 
-# Replace .F and .F90 extensions with *.o
-TMP   :=$(SRC:.F=.o)
-OBJ   :=$(TMP:.F90=.o)
+# List of object files (replace .F and .F90 extensions with *.o)
+TMP     :=$(SOURCES:.F=.o)
+OBJECTS :=$(TMP:.F90=.o)
+
+# List of module files.  Convert to lowercase, then prefix directory name.
+MODULES :=$(OBJECTS:.o=.mod)
+MODULES :=$(shell echo $(MODULES) | tr A-Z a-z)
+MODULES :=$(foreach I,$(MODULES),$(MOD)/$(I))
+
+# Library file
+LIBRARY :=libIsoropia.a
 
 ###############################################################################
 ###                                                                         ###
@@ -79,17 +87,29 @@ OBJ   :=$(TMP:.F90=.o)
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean help
+.PHONY: clean debug
 
-lib: $(OBJ)
-	$(AR) crs libIsoropia.a $(OBJ)
-	mv libIsoropia.a $(LIB)
+lib: $(OBJECTS)
+	$(AR) crs $(LIBRARY) $(OBJECTS)
+	mv $(LIBRARY) $(LIB)
 
 clean:
-	rm -f *.o *.mod
+	@echo "===> Making clean in directory: ISOROPIA <==="
+	@rm -f *.o *.mod *.a *.x
 
-help:
-	@$(MAKE) -C $(HELP)
+slowclean:
+	@echo "===> Making slowclean in directory: ISOROPIA <==="
+	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
+
+debug:
+	@echo "Targets : $(MAKECMDGOALS)"
+	@echo "ROOT    : $(ROOT)"
+	@echo "LIB     : $(LIB)"
+	@echo "MOD     : $(MOD)"
+	@echo "F90     : $(F90)"
+	@echo "OBJECTS : $(OBJECTS)"
+	@echo "MODULES : $(MODULES)"
+	@echo "LIBRARY : $(LIBRARY)"
 
 ###############################################################################
 ###                                                                         ###
@@ -110,6 +130,11 @@ help:
 ###############################################################################
 
 isoropiaIIcode.o:  isoropiaIIcode.F  isrpia.inc
+ifeq ($(PRECISION),8)
 	$(F90ISO) $(R8) -c $<
+endif
+ifeq ($(PRECISION),4)
+	$(F90ISO) $(R8) -c $<
+endif
 #EOC
 

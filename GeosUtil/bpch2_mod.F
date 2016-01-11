@@ -44,7 +44,13 @@
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: GET_TAU0_6A
-
+!
+! !REMARKS:
+!  ###########################################################################
+!  ##### BINARY PUNCH INPUT IS BEING PHASED OUT.  MOST INPUT IS NOW READ #####
+!  ##### FROM COARDS-COMPLIANT netCDF FILES VIA HEMCO (bmy, 4/1/15)      #####
+!  ###########################################################################
+!
 ! !REVISION HISTORY:
 !  (1 ) Added routine GET_TAU0 (bmy, 7/20/00)
 !  (2 ) Added years 1985-2001 for routine GET_TAU0 (bmy, 8/1/00)
@@ -89,6 +95,7 @@
 !  19 Jul 2012 - R. Yantosca - Bug fix in GET_NAME_EXT_2D
 !  03 Aug 2012 - R. Yantosca - Reference file LUN routines from inquireMod.F90
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
+!  11 Aug 2015 - R. Yantosca - Add modifications for MERRA2 data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -122,6 +129,12 @@
 ! !OUTPUT PARAMETERS:
 !
       CHARACTER(LEN=80), INTENT(OUT), OPTIONAL :: TITLE     ! File title string
+!
+! !REMARKS:
+!  ###########################################################################
+!  ##### BINARY PUNCH INPUT IS BEING PHASED OUT.  MOST INPUT IS NOW READ #####
+!  ##### FROM COARDS-COMPLIANT netCDF FILES VIA HEMCO (bmy, 4/1/15)      #####
+!  ###########################################################################
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now references ERROR_STOP from "error_mod.f" (bmy, 10/15/02)
@@ -219,6 +232,12 @@
 !
       CHARACTER(LEN=80), INTENT(OUT), OPTIONAL :: TITLE     ! File title string
 !
+! !REMARKS:
+!  ###########################################################################
+!  ##### BINARY PUNCH INPUT IS BEING PHASED OUT.  MOST INPUT IS NOW READ #####
+!  ##### FROM COARDS-COMPLIANT netCDF FILES VIA HEMCO (bmy, 4/1/15)      #####
+!  ###########################################################################
+!
 ! !REVISION HISTORY:
 !  30 Jul 2002 - R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
@@ -286,6 +305,12 @@
 !
       INTEGER,           INTENT(IN) :: IUNIT   ! LUN for file I/O
       CHARACTER(LEN=80), INTENT(IN) :: TITLE   ! Top-of-file title string
+!
+! !REMARKS:
+!  ###########################################################################
+!  ##### BINARY PUNCH INPUT IS BEING PHASED OUT.  MOST INPUT IS NOW READ #####
+!  ##### FROM COARDS-COMPLIANT netCDF FILES VIA HEMCO (bmy, 4/1/15)      #####
+!  ###########################################################################
 !
 ! !REVISION HISTORY:
 !  (1 ) Added this routine to "bpch_mod.f" (bmy, 6/28/00)
@@ -359,6 +384,12 @@
       INTEGER,           INTENT(IN) :: JFIRST           !  the first grid box
       INTEGER,           INTENT(IN) :: LFIRST           !  in Fortran notation
       REAL*4,            INTENT(IN) :: ARRAY(NI,NJ,NL)  ! Data array
+!
+! !REMARKS:
+!  ############################################################################
+!  ##### BINARY PUNCH OUTPUT IS BEING PHASED OUT.  IT WILL BE COMPLETELY  #####
+!  ##### REMOVED IN THE VERISON FOLLOWING GEOS-Chem v10-01. (bmy, 4/1/15) #####
+!  ############################################################################
 !
 ! !REVISION HISTORY:
 !  (1 ) Added indices to IOERROR calls (e.g. "bpch2:1", "bpch2:2", etc.) 
@@ -450,6 +481,12 @@
 !
       REAL*4,            INTENT(OUT) :: ARRAY(IX,JX,LX)  ! Data array from file
 !
+! !REMARKS:
+!  ###########################################################################
+!  ##### BINARY PUNCH INPUT IS BEING PHASED OUT.  MOST INPUT IS NOW READ #####
+!  ##### FROM COARDS-COMPLIANT netCDF FILES VIA HEMCO (bmy, 4/1/15)      #####
+!  ###########################################################################
+!
 ! !REVISION HISTORY:
 !  (1 ) Assumes that we are reading in a global-size data block.
 !  (2 ) Trap all I/O errors with subroutine IOERROR.F.
@@ -480,6 +517,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  01 Apr 2015 - R. Yantosca - Increase size of TEMPARRAY for nested-grid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -502,8 +540,10 @@
       ! Also use the same limits for GRID025x03125.  We do not need to set
       ! the global limits since we will never run the model at the full
       ! global resolution, due to memory restrictions. (bmy, 5/25/12)
-#if   defined( GRID05x0666 ) || defined( GRID025x03125 )
-      REAL*4             :: TEMPARRAY(540,361,73)   
+#if   defined( GRID05x0666 )
+      REAL*4             :: TEMPARRAY(540,361,73)  
+#elif defined( GRID025x03125 ) 
+      REAL*4             :: TEMPARRAY(1152,721,73)  
 #else
       REAL*4             :: TEMPARRAY(360,181,73)   
 #endif
@@ -658,6 +698,11 @@
 !
       CHARACTER(LEN=20) :: MODELNAME   ! Model name for the current met field
 !
+! !REMARKS:
+!  We now read many data files via HEMCO, so we don't have much of a need
+!  of constructing file names w/in the code.  This routine is now pretty
+!  much obsolete and is slated for eventual removal.
+!
 ! !REVISION HISTORY:
 !  (1 ) Now use special model name for GEOS-3 w/ 30 layers (bmy, 10/9/01)
 !  (2 ) Added modelname for GEOS-4/fvDAS model type (bmy, 11/20/01)
@@ -674,6 +719,7 @@
 !  11 Dec 2012 - R. Yantosca - Bug fix: Need to specify both EXTERNAL_GRID and
 !                              EXTERNAL_FORCING Cpp switches
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  11 Aug 2015 - R. Yantosca - Add support for MERRA2 data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -704,6 +750,12 @@
 
 #elif defined( GEOS_FP )
       MODELNAME = 'GEOSFP'
+
+#elif defined( MERRA2 ) && defined( GRIDREDUCED )
+      MODELNAME = 'MERRA2_47L'
+      
+#elif defined( MERRA2 ) 
+      MODELNAME = 'MERRA2'
 
 #elif defined( EXTERNAL_FORCING ) || defined ( EXTERNAL_GRID ) 
       MODELNAME = 'EXTERNAL'
@@ -747,6 +799,10 @@
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'merra'
 
+#elif defined( MERRA2 )
+      CHARACTER(LEN=6) :: NAME_EXT
+      NAME_EXT = 'merra2'
+
 #elif defined( EXTERNAL_GRID ) || ( EXTERNAL_FORCING )
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'ext'
@@ -754,6 +810,10 @@
 #endif
 !
 ! !REMARKS:
+!  We now read many data files via HEMCO, so we don't have much of a need
+!  of constructing file names w/in the code.  This routine is now pretty
+!  much obsolete and is slated for eventual removal.
+!
 !  NOTE: GEOS-FP and GEOS-5 met products use the same vertical grid, so we 
 !  can return the name extension "geos5" for both.
 !
@@ -770,6 +830,7 @@
 !  11 Dec 2012 - R. Yantosca - Bug fix: Need to specify both EXTERNAL_GRID and
 !                              EXTERNAL_FORCING Cpp switches
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  11 Aug 2015 - R. Yantosca - Add support for MERRA2 data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -795,6 +856,11 @@
 !
       CHARACTER(LEN=4) :: NAME_EXT_2D   ! Return 1st 4 chars of "geos", "gcap"
 !
+! !REMARKS:
+!  We now read many data files via HEMCO, so we don't have much of a need
+!  of constructing file names w/in the code.  This routine is now pretty
+!  much obsolete and is slated for eventual removal.
+!
 ! !REVISION HISTORY:
 !  (1 ) Added name string for GEOS-4/fvDAS model type (bmy, 11/20/01)
 !  (2 ) Remove obsolete "geos2" model name strning (bmy, 11/3/03)
@@ -818,7 +884,7 @@
       ! Get the name extension
       TEMP_NAME   = GET_NAME_EXT()
 
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( MERRA2 )
 
       ! Return "geos" for MERRA meteorology, to denote data
       ! that is only defined at the surface. (bmy, 7/19/12)
@@ -871,6 +937,10 @@
       CHARACTER(LEN=7) :: RES_EXT
       RES_EXT = '05x0666'
 
+#elif defined( GRID05x0625 )
+      CHARACTER(LEN=7) :: RES_EXT
+      RES_EXT = '05x0625'
+
 #elif defined( GRID025x03125 )
       CHARACTER(LEN=9) :: RES_EXT
       RES_EXT = '025x03125'
@@ -881,12 +951,18 @@
 
 #endif
 !
+! !REMARKS:
+!  We now read many data files via HEMCO, so we don't have much of a need
+!  of constructing file names w/in the code.  This routine is now pretty
+!  much obsolete and is slated for eventual removal.
+!
 ! !REVISION HISTORY:
 !  (1 ) Added extension for 1 x 1.25 grid (bmy, 12/1/04)
 !  (2 ) Added extension for 0.5 x 0.666 grid (yxw, dan, bmy, 11/6/08)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  10 Feb 2012 - R. Yantosca - Added extension for 0.25 x 0.3125 grids
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  11 Aug 2015 - R. Yantosca - Added extension for 0.5 x 0.625 grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC

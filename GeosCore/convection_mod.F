@@ -66,6 +66,8 @@
 !  22 Oct 2012 - R. Yantosca - Now reference Headers/gigc_errcode_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  23 Jun 2015 - E. Lundgren - Convert tracer units from v/v dry air to
+!                              kg/kg total air for convection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -92,22 +94,33 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : CONVFLUP
+      USE ERROR_MOD,          ONLY : GIGC_ERROR
+      USE UNITCONV_MOD
+#if   !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD38
+#endif
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TRACERID_MOD
       USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE TIME_MOD,           ONLY : GET_TS_CONV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
 #if   defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
+
+#if   defined ( DEVEL )
+      USE HCO_ERROR_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+#endif
+      USE TENDENCIES_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -166,6 +179,14 @@
 !  18 Apr 2014 - R. Yantosca - Now use proper # of tracers for APM in the
 !                              call to DO_MERRA_CONVECTION (MERRA & GEOS-FP)
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod
+!  28 Apr 2015 - E. Lundgren - Consolidate NFCLDMX arguments to remove 
+!                              passing State_Met array slice
+!  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
+!                              (previously v/v)
+!  10 Aug 2015 - E. Lundgren - Incoming tracer units are now kg/kg dry air
+!  11 Aug 2015 - R. Yantosca - Added support for MERRA2 data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -173,18 +194,104 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER         :: N_TOT_TRC             ! # of tracers to convect
-      INTEGER         :: N_TRACERS
+      INTEGER           :: N_TOT_TRC             ! # of tracers to convect
+      INTEGER           :: N_TRACERS
       REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
       REAL(fp)          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+      REAL(fp)          :: DT_TEND
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      ! Define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. Units are 
+      ! initially kg/kg dry air but will be converted to
+      ! kg/kg total air for convection (ewl, 8/10/15)
       REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
+      ! MERRA or GEOS-FP met fields definitions
+      !=================================================================
+#if defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+      
+      ! Scalars          
+      INTEGER           :: I, J, L, N, NN, TS_DYN
+      REAL(fp)          :: AREA_M2, DT
+      LOGICAL           :: DO_ND14
+      LOGICAL           :: DO_ND38
+      
+      ! Arrays        
+      REAL(fp)          :: PEDGE  (LLPAR+1)
+#if defined( APM )
+      INTEGER           :: ISOL   (      Input_Opt%N_TRACERS+N_APMTRA)
+      REAL(fp)          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
+      REAL(fp)          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
+      REAL(fp)          :: F      (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
+      REAL(fp), TARGET  :: FSOL   ( IIPAR, JJPAR, LLPAR,   
+     &                                 Input_Opt%N_TRACERS+N_APMTRA)
+#else
+      INTEGER           :: ISOL   (      Input_Opt%N_TRACERS )
+      REAL(fp)          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS )
+      REAL(fp)          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS )
+      REAL(fp)          :: F      (LLPAR,Input_Opt%N_TRACERS )
+      REAL(fp), TARGET  :: FSOL   (IIPAR,JJPAR,LLPAR,
+     &                                 Input_Opt%N_TRACERS )
+#endif
+
+      ! Pointers
+      REAL(fp), POINTER :: p_FSOL (:,:,:)
+#endif
+
+#if   defined ( DEVEL )
+      ! For new diagnostics
+      INTEGER                :: IT, cID, HCRC
+      REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
+      REAL(fp), POINTER      :: TMP3D(:,:,:) => NULL()
+      REAL(fp), POINTER      :: TMP2D(:,:  ) => NULL()
+      REAL(fp)               :: DTIME
+#endif
+
+      !=================================================================
       ! DO_CONVECT begins here!
+      !=================================================================
+
+      !=================================================================
+      ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
+      !=================================================================
+#if defined( DEVEL )
+      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
+     &                  State_Chm, 'CONV', .TRUE., RC )
+#endif
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      N_TRACERS         = Input_Opt%N_TRACERS
+
+      ! Convert State_Chm%Tracers from [kg/kg dry air] to 
+      ! [kg/kg total air] prior to convection (ewl, 8/10/15)
+      CALL Convert_KgKgDry_to_KgKgTotal( am_I_Root, Input_Opt,  
+     &                                   State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'DO_CONVECTION in convection_mod.F')
+         RETURN
+      ENDIF  
+
+      ! For new diagnostics, archive old species concentration. At the 
+      ! moment, the new ND38 diagnostics only returns the total column 
+      ! loss due to convection. For these values, we don't need to 
+      ! write the diagnostics within the convection schemes but can
+      ! simply take the difference between the original and updated 
+      ! tracer field column.
+#if   defined( DEVEL )
+      IF ( Input_Opt%ND38 > 0 ) THEN
+         ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
+         BEFORE = State_Chm%Tracers
+      ENDIF
+#endif
+
+      !=================================================================
+      ! Call met field specific convection routines 
       !=================================================================
 
 #if   defined( GCAP ) 
@@ -222,9 +329,6 @@
       ! Assume success
       RC                =  GIGC_SUCCESS
 
-      ! Copy values from Input_Opt
-      N_TRACERS         = Input_Opt%N_TRACERS
-
       ! Pick the proper # of tracers
 #if   defined( APM )  
       N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
@@ -234,50 +338,14 @@
 #endif
 
       ! Call the S-J Lin convection routine for GEOS-5
-      CALL NFCLDMX( am_I_Root, 
-     &              Input_Opt, 
-     &              State_Met%CMFMC(:,:,2:LLPAR+1),
-     &              State_Met%DTRAIN,
-     &              State_Met, 
-     &              State_Chm, 
-     &              RC                               )
+      CALL NFCLDMX( am_I_Root, Input_Opt, State_Met, 
+     &              State_Chm, RC )
 
-#elif defined( MERRA ) || defined( GEOS_FP )
+#elif defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
       !=================================================================
       ! MERRA or GEOS-FP met fields
       !=================================================================
-      
-      ! Scalars          
-      INTEGER         :: I, J, L, N, NN, TS_DYN
-      REAL(fp)          :: AREA_M2, DT
-      LOGICAL         :: DO_ND14
-      LOGICAL         :: DO_ND38
-      
-      ! Arrays        
-      REAL(fp)          :: PEDGE  (LLPAR+1)
-#if defined( APM )
-      INTEGER         :: ISOL   (      Input_Opt%N_TRACERS+N_APMTRA)
-      REAL(fp)          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
-      REAL(fp)          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
-      REAL(fp)          :: F      (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
-      REAL(fp), TARGET  :: FSOL   ( IIPAR, JJPAR, LLPAR,   
-     &                                 Input_Opt%N_TRACERS+N_APMTRA)
-#else
-      INTEGER         :: ISOL   (      Input_Opt%N_TRACERS )
-      REAL(fp)          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS )
-      REAL(fp)          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS )
-      REAL(fp)          :: F      (LLPAR,Input_Opt%N_TRACERS )
-      REAL(fp), TARGET  :: FSOL   (IIPAR,JJPAR,LLPAR,
-     &                                 Input_Opt%N_TRACERS )
-#endif
-
-      ! Pointers
-      REAL(fp), POINTER :: p_FSOL (:,:,:)
-
-      !-----------------------------------------------------------------
-      ! Initialization
-      !-----------------------------------------------------------------
 
       ! Initialize
       RC        =  GIGC_SUCCESS                   ! Assume success
@@ -285,7 +353,7 @@
       DO_ND38   = ( Input_Opt%ND38 > 0 )          ! Should we use ND38 diag?
       TS_DYN    = GET_TS_DYN()                    ! Dynamic timestep [min]
       DT        = DBLE( TS_DYN )                  ! Dynamic timestep [min]
-      FSOL      = 0e+0_fp                             ! Zero the FSOL array
+      FSOL      = 0e+0_fp                         ! Zero the FSOL array
 
       ! Pick the proper # of tracers
 #if   defined( APM )  
@@ -301,8 +369,8 @@
          p_FSOL => FSOL(:,:,:,N)
 
          ! Fraction of soluble tracer
-         CALL COMPUTE_F( N,         p_FSOL,    ISOL(N), 
-     &                   Input_Opt, State_Met, State_Chm ) 
+         CALL COMPUTE_F( am_I_Root, N, p_FSOL, ISOL(N), 
+     &                   Input_Opt, State_Met, State_Chm, RC ) 
 
          ! Free pointer memory
          NULLIFY( p_FSOL )
@@ -319,12 +387,20 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
+         ! Skip buffer zone for nested grids (lzh, 4/1/15)
+         IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
+            IF ( J <=         Input_Opt%NESTED_J0W  ) CYCLE
+            IF ( J >  JJPAR - Input_Opt%NESTED_J0E  ) CYCLE
+            IF ( I <=         Input_Opt%NESTED_I0W  ) CYCLE
+            IF ( I >  IIPAR - Input_Opt%NESTED_I0E  ) CYCLE
+         ENDIF
+
          ! Grid box surface area [m2]
          AREA_M2     =  GET_AREA_M2( I, J, 1 ) 
 
          ! Pressure edges
          DO L = 1, LLPAR+1
-            PEDGE(L) =  GET_PEDGE( I, J, L )
+            PEDGE(L) =  State_Met%PEDGE( I, J, L )
          ENDDO
 
          ! NOTE: For some reason the code chokes when we try
@@ -367,6 +443,7 @@
             ENDDO
          ENDIF
 
+#if !defined(NO_BPCH)
          !--------------------------
          ! ND38 diagnostic [kg/s]
          !--------------------------
@@ -384,10 +461,87 @@
                ENDIF
             ENDDO
          ENDIF
+#endif
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
+#endif
+
+      !-----------------------------------------------------------------
+      ! New diagnostics (ND38)
+      ! Write out the column mass difference before and after 
+      ! convection.
+      ! Note: The ND38 diagnostics is defined as a 2D diagnostics
+      ! (--> diagnostics_mod.F90). We pass here a 3D array to the
+      ! diagnostics, which will automatically be collapsed to a 2D
+      ! array within the diagnostics module (the vertical sum is taken).
+      !-----------------------------------------------------------------
+#if   defined( DEVEL )
+      IF ( Input_Opt%ND38 > 0 ) THEN
+
+         ! Time step
+         DTIME = GET_TS_DYN() * 60e+0_fp
+
+         ! Allocate temporary pointer
+         ALLOCATE(TMP3D(IIPAR,JJPAR,LLPAR), TMP2D(IIPAR,JJPAR) )
+        
+         ! Loop over all tracers
+         DO IT = 1, Input_Opt%N_TRACERS
+
+            ! Is this a tracer selected for diagnostics?
+            IF ( ANY( Input_Opt%TINDEX(38,:) == IT ) ) THEN
+
+               ! Loss rate (kg/kg total air/s)
+               TMP3D = ( BEFORE(:,:,:,IT) - State_Chm%Tracers(:,:,:,IT))
+     &               / DTIME 
+
+               ! Convert to kg/s
+               ! Now use moist air mass rather than dry air mass (ewl, 6/23/15)
+               TMP3D = TMP3D * State_Met%ADMOIST  
+
+               TMP2D = SUM(TMP3D,DIM=3) 
+
+               ! Update diagnostics. Pass 3D array. Will be collapsed to
+               ! column total in Diagn_Update.
+               cID = 38000 + IT
+               CALL Diagn_Update ( am_I_Root,
+     &                             cID     = cID,
+     &                             Array2D = TMP2D,
+     &                             COL     = Input_Opt%DIAG_COLLECTION,
+     &                             PosOnly = .TRUE.,
+     &                             RC      = HCRC )
+               IF ( HCRC /= HCO_SUCCESS ) THEN
+                  CALL ERROR_STOP ( 'Error updating conv loss diagn ' //
+     &               'for species ' // TRIM(Input_Opt%TRACER_NAME(IT)), 
+     &               'DO_CONVECTION (convection_mod.F)' )
+               ENDIF
+            ENDIF
+         ENDDO
+
+         ! Cleanup
+         DEALLOCATE( BEFORE, TMP3D, TMP2D )
+      ENDIF
+#endif
+
+      ! Convert tracer concentration from kg/kg total air to 
+      ! kg/kg dry air after convection (ewl, 8/10/15)
+      CALL Convert_KgKgTotal_to_KgKgDry( am_I_Root, Input_Opt,  
+     &                                   State_Met, State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'DO_CONVECTION in convection_mod.F')
+         RETURN
+      ENDIF  
+
+      !=================================================================
+      ! Calculate tendencies and write to diagnostics 
+      ! (ckeller,7/15/2015)
+      !=================================================================
+#if defined( DEVEL )
+      DT_TEND = GET_TS_CONV() * 60.0_fp
+      CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
+     &                  State_Chm, 'CONV', .TRUE., DT_TEND, RC )
 #endif
 
       END SUBROUTINE DO_CONVECTION
@@ -420,7 +574,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_TS_CONV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
 #if   defined( APM ) 
@@ -458,44 +611,48 @@
 !                              F array to subroutine COMPUTE_F
 !  23 Jun 2014 - R. Yantosca - Now pass Input_Opt to CONVTRAN
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE differences with 
+!                              State_Met%DELP. Remove dependency on 
+!                              pressure_mod
+!  23 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
+!                              (previously v/v)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE   :: FIRST = .TRUE.
-      INTEGER         :: I, ISOL, J, L, L2, N, NSTEP
-      INTEGER         :: CONVDT
-      REAL(fp)          :: RPDEL(IIPAR,JJPAR,LLPAR)
-      REAL(fp)          :: DP(IIPAR,JJPAR,LLPAR)
+      LOGICAL, SAVE     :: FIRST = .TRUE.
+      INTEGER           :: I, ISOL, J, L, L2, N, NSTEP
+      INTEGER           :: CONVDT
+      REAL(fp)          :: RPDEL( IIPAR, JJPAR, LLPAR )
+      REAL(fp)          :: DP( IIPAR, JJPAR, LLPAR )
       REAL(fp)          :: P1, P2, TDT
-      INTEGER         :: N_TOT_TRC
+      INTEGER           :: N_TOT_TRC
 #if   defined( APM )  
-      INTEGER         :: INDEXSOL(Input_Opt%N_TRACERS+N_APMTRA)
-      REAL(fp), TARGET  :: F       (IIPAR,JJPAR,LLPAR,
-     &                            Input_Opt%N_TRACERS+N_APMTRA)
+      INTEGER           :: INDEXSOL( Input_Opt%N_TRACERS + N_APMTRA )
+      REAL(fp), TARGET  :: F( IIPAR, JJPAR, LLPAR,
+     &                            Input_Opt%N_TRACERS + N_APMTRA )
 #else                 
-      INTEGER         :: INDEXSOL(Input_Opt%N_TRACERS)
-      REAL(fp), TARGET  :: F       (IIPAR,JJPAR,LLPAR,
-     &                            Input_Opt%N_TRACERS)
+      INTEGER           :: INDEXSOL( Input_Opt%N_TRACERS )
+      REAL(fp), TARGET  :: F( IIPAR, JJPAR, LLPAR,
+     &                            Input_Opt%N_TRACERS )
 #endif
 
       ! For fields from Input_Opt
-      LOGICAL         :: LPRT
-      INTEGER         :: N_TRACERS
-      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
+      LOGICAL           :: LPRT
+      INTEGER           :: N_TRACERS
 
       ! Pointers
-      REAL(fp), POINTER :: STT     (:,:,:,:)   ! Ptr to State_Chm%TRACERS
-      REAL(fp), POINTER :: p_HKETA (:,:,:  )   ! Ptr to HKETA  (flipped in vert)
-      REAL(fp), POINTER :: p_HKBETA(:,:,:  )   ! Ptr to HKBETA (flipped in vert)
-      REAL(fp), POINTER :: p_ZMMU  (:,:,:  )   ! Ptr to ZMMU   (flipped in vert)
-      REAL(fp), POINTER :: p_ZMMD  (:,:,:  )   ! Ptr to ZMMD   (flipped in vert)
-      REAL(fp), POINTER :: p_ZMEU  (:,:,:  )   ! Ptr to ZMEU   (flipped in vert)
-      REAL(fp), POINTER :: p_STT   (:,:,:,:)   ! Ptr to STT    (flipped in vert)
-      REAL(fp), POINTER :: p_F     (:,:,:,:)   ! Ptr to F      (flipped in vert)
-      REAL(fp), POINTER :: p_FSOL  (:,:,:  )   ! Ptr to F      (for COMPUTE_F)
+      REAL(fp), POINTER :: STT     (:,:,:,:) ! Ptr to State_Chm%TRACERS
+      REAL(fp), POINTER :: p_HKETA (:,:,:  ) ! Ptr to HKETA  (flipped in vert)
+      REAL(fp), POINTER :: p_HKBETA(:,:,:  ) ! Ptr to HKBETA (flipped in vert)
+      REAL(fp), POINTER :: p_ZMMU  (:,:,:  ) ! Ptr to ZMMU   (flipped in vert)
+      REAL(fp), POINTER :: p_ZMMD  (:,:,:  ) ! Ptr to ZMMD   (flipped in vert)
+      REAL(fp), POINTER :: p_ZMEU  (:,:,:  ) ! Ptr to ZMEU   (flipped in vert)
+      REAL(fp), POINTER :: p_STT   (:,:,:,:) ! Ptr to STT    (flipped in vert)
+      REAL(fp), POINTER :: p_F     (:,:,:,:) ! Ptr to F      (flipped in vert)
+      REAL(fp), POINTER :: p_FSOL  (:,:,:  ) ! Ptr to F      (for COMPUTE_F)
 
       !=================================================================
       ! DO_GEOS4_CONVECT begins here!
@@ -507,7 +664,6 @@
       ! Copy values from Input_Opt
       LPRT      = Input_Opt%LPRT
       N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Pick the proper # of tracers for convection
 #if   defined( APM )
@@ -529,7 +685,7 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_FVDAS_CONVECT( am_I_Root )
+         CALL INIT_FVDAS_CONVECT( am_I_Root, State_Met )
          FIRST = .FALSE.
       ENDIF
 
@@ -552,8 +708,8 @@
 
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
-         CALL COMPUTE_F( N,         p_FSOL,    ISOL, 
-     &                   Input_Opt, State_Met, State_Chm ) 
+         CALL COMPUTE_F( am_I_Root, N, p_FSOL, ISOL, 
+     &                   Input_Opt, State_Met, State_Chm, RC ) 
          
          ! Free pointer memory
          NULLIFY( p_FSOL )
@@ -599,12 +755,10 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
                
-            ! Pressure at bottom and top edges of grid box [hPa]
-            P1 = GET_PEDGE(I,J,L)
-            P2 = GET_PEDGE(I,J,L+1)
-
             ! DP = Pressure difference between top & bottom edges [Pa]
-            DP(I,J,L2) = ( P1 - P2 ) * 100.0e+0_fp
+            ! Now use DELP, equivalent to delta pressure level [hPa]
+            ! (ewl, 3/2/15)
+            DP(I,J,L2) = State_Met%DELP(I,J,L) * 100.0e+0_fp
 
             ! RPDEL = reciprocal of DP [1/hPa]
             RPDEL(I,J,L2) = 100.0e+0_fp / DP(I,J,L2) 
@@ -620,8 +774,8 @@
       ! Flip arrays in the vertical and call FVDAS_CONVECT
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
+      ! Initialize GEOS-Chem tracer array from Chemistry State object
+      ! [kg/kg total air] (ewl, 6/23/15)
       STT      => State_Chm%Tracers
 
       ! Point to various fields and flip in vertical.  This avoids 
@@ -647,7 +801,6 @@
      &                    DP,     
      &                    NSTEP,    
      &                    p_F,
-     &                    TCVV,   
      &                    INDEXSOL,
      &                    Input_Opt,
      &                    State_Met )
@@ -705,7 +858,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CONV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
 #if   defined( APM )
@@ -744,46 +896,50 @@
 !  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
 !                              F array to subroutine COMPUTE_F
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
+!                              Replace PEDGE difference with State_Met%DELP.
+!                              Remove dependency on pressure_mod.
+!  23 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
+!                              (previously v/v)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE    :: FIRST = .TRUE.
-      INTEGER          :: I, ISOL, J, L, L2, N, NSTEP  
-      INTEGER          :: CONVDT    
-      REAL(fp)           :: DP(IIPAR,JJPAR,LLPAR)
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      INTEGER            :: I, ISOL, J, L, L2, N, NSTEP  
+      INTEGER            :: CONVDT    
+      REAL(fp)           :: DP( IIPAR, JJPAR, LLPAR )
       REAL(fp)           :: P1, P2, TDT   
       REAL(fp)           :: GAINMASS
-      INTEGER          :: N_TOT_TRC      
+      INTEGER            :: N_TOT_TRC      
 #if   defined( APM )
-      INTEGER          :: INDEXSOL(Input_Opt%N_TRACERS+N_APMTRA) 
-      REAL(fp),  TARGET  :: F       (IIPAR,JJPAR,LLPAR,
-     &                            Input_Opt%N_TRACERS+N_APMTRA)
+      INTEGER            :: INDEXSOL( Input_Opt%N_TRACERS + N_APMTRA ) 
+      REAL(fp),  TARGET  :: F( IIPAR, JJPAR, LLPAR,
+     &                            Input_Opt%N_TRACERS + N_APMTRA )
 #else
-      INTEGER          :: INDEXSOL(Input_Opt%N_TRACERS) 
-      REAL(fp),  TARGET  :: F       (IIPAR,JJPAR,LLPAR,
-     &                            Input_Opt%N_TRACERS)
+      INTEGER            :: INDEXSOL( Input_Opt%N_TRACERS ) 
+      REAL(fp),  TARGET  :: F( IIPAR, JJPAR, LLPAR,
+     &                            Input_Opt%N_TRACERS )
 #endif
 
       ! For fields from Input_Opt
-      LOGICAL          :: LPRT
-      INTEGER          :: N_TRACERS
-      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
+      LOGICAL            :: LPRT
+      INTEGER            :: N_TRACERS
 
       ! Pointers
-      REAL(fp),  POINTER :: STT        (:,:,:,:)   ! Ptr to Tracer concentrations
-      REAL(fp),  POINTER :: p_UPDE     (:,:,:  )   ! Ptr to UPDE     met field
-      REAL(fp),  POINTER :: p_DNDE     (:,:,:  )   ! Ptr to DNDE     met field
-      REAL(fp),  POINTER :: p_ENTRAIN  (:,:,:  )   ! Ptr to ENTRAIN  met field
-      REAL(fp),  POINTER :: p_DETRAINE (:,:,:  )   ! Ptr to DETRAINE met field
-      REAL(fp),  POINTER :: p_UPDN     (:,:,:  )   ! Ptr to UPDN     met field
-      REAL(fp),  POINTER :: p_DNDN     (:,:,:  )   ! Ptr to DNDN     met field
-      REAL(fp),  POINTER :: p_DETRAINN (:,:,:  )   ! Ptr to DETRAINN met field
-      REAL(fp),  POINTER :: p_STT      (:,:,:,:)   ! Ptr to STT (flipped)
-      REAL(fp),  POINTER :: p_F        (:,:,:,:)   ! Ptr to F   (flipped)
-      REAL(fp),  POINTER :: p_FSOL     (:,:,:  )   ! Ptr to F   (for COMPUTE_F)
+      REAL(fp),  POINTER :: STT        (:,:,:,:) ! Ptr to Tracer concentrations
+      REAL(fp),  POINTER :: p_UPDE     (:,:,:  ) ! Ptr to UPDE     met field
+      REAL(fp),  POINTER :: p_DNDE     (:,:,:  ) ! Ptr to DNDE     met field
+      REAL(fp),  POINTER :: p_ENTRAIN  (:,:,:  ) ! Ptr to ENTRAIN  met field
+      REAL(fp),  POINTER :: p_DETRAINE (:,:,:  ) ! Ptr to DETRAINE met field
+      REAL(fp),  POINTER :: p_UPDN     (:,:,:  ) ! Ptr to UPDN     met field
+      REAL(fp),  POINTER :: p_DNDN     (:,:,:  ) ! Ptr to DNDN     met field
+      REAL(fp),  POINTER :: p_DETRAINN (:,:,:  ) ! Ptr to DETRAINN met field
+      REAL(fp),  POINTER :: p_STT      (:,:,:,:) ! Ptr to STT (flipped)
+      REAL(fp),  POINTER :: p_F        (:,:,:,:) ! Ptr to F   (flipped)
+      REAL(fp),  POINTER :: p_FSOL     (:,:,:  ) ! Ptr to F   (for COMPUTE_F)
 
       !=================================================================
       ! DO_GCAP_CONVECT begins here!
@@ -795,7 +951,6 @@
       ! Copy values from Input_Opt
       LPRT      = Input_Opt%LPRT
       N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Pick the proper # of tracers for convection
 #if   defined( APM )
@@ -837,8 +992,8 @@
 
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
-         CALL COMPUTE_F( N,         p_FSOL,    ISOL, 
-     &                   Input_Opt, State_Met, State_Chm ) 
+         CALL COMPUTE_F( am_I_Root, N, p_FSOL, ISOL, 
+     &                   Input_Opt, State_Met, State_Chm, RC ) 
          
          ! Free pointer memory
          NULLIFY( p_FSOL )
@@ -853,7 +1008,7 @@
 
             ! Shut off scavenging in shallow convection for GCAP
             ! (swu, bmy, 11/1/05)
-            IF ( GET_PCENTER( I, J, L ) > 700e+0_fp ) 
+            IF ( State_Met%PMID( I, J, L ) > 700e+0_fp ) 
      &            F(I,J,L,N) = 0e+0_fp
 
             ! ND37 diagnostic: store fraction of tracer 
@@ -889,12 +1044,10 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
                
-            ! Pressure at bottom and top edges of grid box [hPa]
-            P1 = GET_PEDGE(I,J,L)
-            P2 = GET_PEDGE(I,J,L+1)
-
-            ! DP = Pressure difference between top & bottom edges [Pa]
-            DP(I,J,L2) = ( P1 - P2 ) * 100.0e+0_fp
+             ! DP = Pressure difference between top & bottom edges [Pa]
+             ! Now use DELP, equivalent to delta pressure level [hPa]
+             ! (ewl, 3/2/15)
+             DP(I,J,L2) = State_Met%DELP(I,J,L) * 100.0e+0_fp
          ENDDO
          ENDDO
       ENDDO
@@ -904,11 +1057,11 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_GCAP_CONV: a DP, RPDEL' )
    
       !=================================================================
-      ! Flip arrays in the vertical and call FVDAS_CONVECT
+      ! Flip arrays in the vertical and call GCAP_CONVECT
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
+      ! Initialize GEOS-Chem tracer array from Chemistry State object
+      ! [kg/kg total air]
       STT        => State_Chm%Tracers
 
       ! Point to met fields and flip in vertical
@@ -929,7 +1082,6 @@
      &                   DP, ! I think this is the correct way (bmy, 5/25/05)
      &                   NSTEP, 
      &                   p_F,
-     &                   TCVV,   
      &                   INDEXSOL, 
      &                   p_UPDE,
      &                   p_DNDE,
@@ -956,9 +1108,9 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer
-      NULLIFY( STT,    p_STT,  p_F                   )
-      NULLIFY( p_UPDE, p_DNDE, p_ENTRAIN, p_DETRAINE )
-      NULLIFY( p_UPDN, p_DNDN, p_DETRAINN            )
+      NULLIFY( STT,    p_STT,  p_F                    )
+      NULLIFY( p_UPDE, p_DNDE, p_ENTRAIN,  p_DETRAINE )
+      NULLIFY( p_UPDN, p_DNDN, p_DETRAINN )
 
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_GCAP_CONV: a GCAP_CONVECT' )
@@ -984,8 +1136,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE NFCLDMX( am_I_Root, Input_Opt, CLDMAS, 
-     &                    DTRN,      State_Met, State_Chm, RC )
+      SUBROUTINE NFCLDMX( am_I_Root, Input_Opt, State_Met, 
+     &                    State_Chm, RC )
 !
 ! !USES:
 !
@@ -995,7 +1147,9 @@
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
       USE DIAG_MOD,           ONLY : AD37
+#if   !defined ( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD38
+#endif
       USE DIAG_MOD,           ONLY : CONVFLUP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1003,7 +1157,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE PRESSURE_MOD,       ONLY : GET_BP
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_TS_CONV
       USE TRACERID_MOD,       ONLY : IS_Hg2
       USE TRACERID_MOD,       ONLY : IS_HgP 
@@ -1017,12 +1170,6 @@
 !
       ! Are we on the root CPU
       LOGICAL,        INTENT(IN)    :: am_I_Root
-
-      ! CLDMAS : Cloud mass flux (at upper edges of each level) [kg/m2/s]
-      REAL(fp),         INTENT(IN)    :: CLDMAS(IIPAR,JJPAR,LLPAR)
-
-      ! Detrainment mass flux [kg/m2/s]
-      REAL(fp),         INTENT(IN)    :: DTRN(IIPAR,JJPAR,LLPAR)
 
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
@@ -1185,45 +1332,55 @@
 !  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
 !                              F array to subroutine COMPUTE_F
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE differences with DELP and
+!                              remove dependency on pressure_mod
+!  20 Apr 2015 - E. Lundgren - Use DELP*100/g instead of AD/area for BMASS
+!                              to keep definition as grid box moist mass/area
+!  28 Apr 2015 - E. Lundgren - Remove CLDMAS and DTRM as arguments since 
+!                              now included in State_Met
+!  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
+!                              whether the dynamic ocean is used
+!  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
+!                              (previously v/v)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE          :: FIRST = .TRUE.
-      LOGICAL, SAVE          :: IS_Hg = .TRUE.
-      INTEGER                :: I, J, K, KTOP, L, N, NDT
-      INTEGER                :: IC, ISTEP, JUMP, JS, JN, NS
-      INTEGER                :: IMR, JNP, NLAY, AS
+      LOGICAL, SAVE            :: FIRST = .TRUE.
+      LOGICAL, SAVE            :: IS_Hg = .TRUE.
+      INTEGER                  :: I, J, K, KTOP, L, N, NDT
+      INTEGER                  :: IC, ISTEP, JUMP, JS, JN, NS
+      INTEGER                  :: IMR, JNP, NLAY, AS
       REAL(fp)                 :: SDT, CMOUT, ENTRN, DQ, AREA_M2
       REAL(fp)                 :: T0, T1, T2, T3, T4, TSUM, DELQ
-      REAL(fp)                 :: DTCSUM(IIPAR,JJPAR,LLPAR,
-     &                          Input_Opt%N_TRACERS)
+      REAL(fp)                 :: DTCSUM( IIPAR, JJPAR, LLPAR,
+     &                                    Input_Opt%N_TRACERS )
 
       REAL(fp), ALLOCATABLE, SAVE :: DSIG(:)
 
       ! F is the fraction of tracer lost to wet scavenging in updrafts
-      REAL(fp), TARGET         :: F(IIPAR,JJPAR,LLPAR,
-     &                            Input_Opt%N_TRACERS)
+      REAL(fp), TARGET         :: F( IIPAR, JJPAR, LLPAR,
+     &                               Input_Opt%N_TRACERS )
 
       ! Local Work arrays
-      REAL(fp)                 :: BMASS(IIPAR,JJPAR,LLPAR)
-      REAL(fp)                 :: QB(IIPAR,JJPAR)
-      REAL(fp)                 :: MB(IIPAR,JJPAR)
-      REAL(fp)                 :: QC(IIPAR,JJPAR) 
+      REAL(fp)                 :: BMASS( IIPAR, JJPAR, LLPAR )
+      REAL(fp)                 :: QB( IIPAR, JJPAR )
+      REAL(fp)                 :: MB( IIPAR, JJPAR )
+      REAL(fp)                 :: QC( IIPAR, JJPAR ) 
 
       ! TINY = a very small number
 #if defined( TOMAS )
-      REAL(fp), PARAMETER      :: TINY  = 1e-60_fp   ! Set to 1d-60 for TOMAS code
+      REAL(fp), PARAMETER      :: TINY  = 1e-60_fp ! Set to 1d-60 for TOMAS code
 #else
-      REAL(fp), PARAMETER      :: TINY  = 1e-14_fp   ! Leave as 1d-14 for std GEOS-Chem
+      REAL(fp), PARAMETER      :: TINY  = 1e-14_fp ! Leave as 1d-14 for std G-C
 #endif
       REAL(fp), PARAMETER      :: TINY2 = 1e-30_fp 
 
       ! ISOL is an index for the diagnostic arrays
-      INTEGER                :: ISOL
-      INTEGER                :: ISOL_SAVE(Input_Opt%N_TRACERS)
+      INTEGER                  :: ISOL
+      INTEGER                  :: ISOL_SAVE( Input_Opt%N_TRACERS )
 
       ! QC_PRES and QC_SCAV are the amounts of tracer 
       ! preserved against and lost to wet scavenging
@@ -1237,17 +1394,19 @@
       REAL(fp)                 :: WET_HgP 
 
       ! For fields from Input_Opt
-      LOGICAL                :: ITS_A_MERCURY_SIM
-      LOGICAL                :: LDYNOCEAN
-      LOGICAL                :: LGTMM
-      INTEGER                :: NC
-      REAL(fp)                 :: TCVV(Input_Opt%N_TRACERS)
+      LOGICAL                  :: ITS_A_MERCURY_SIM
+      LOGICAL                  :: LDYNOCEAN
+      LOGICAL                  :: LGTMM
+      INTEGER                  :: NC
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER        :: Q     (:,:,:,:)
-      REAL(fp), POINTER        :: p_FSOL(:,:,:  ) 
+      ! from the Chemistry State (State_Chm) object (mpayer, 12/6/12)
+      ! and the Meteorology State (State_Met) Object
+      REAL(fp), POINTER        :: Q        (:,:,:,:)
+      REAL(fp), POINTER        :: CLDMAS   (:,:,:  ) 
+      REAL(fp), POINTER        :: DTRN     (:,:,:  ) 
+      REAL(fp), POINTER        :: p_FSOL   (:,:,:  ) 
       
       !=================================================================
       ! NFCLDMX begins here!
@@ -1261,11 +1420,18 @@
       LDYNOCEAN         = Input_Opt%LDYNOCEAN
       LGTMM             = Input_Opt%LGTMM
       NC                = Input_Opt%N_TRACERS
-      TCVV              = Input_Opt%TCVV(1:NC)
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
+      ! Initialize GEOS-Chem tracer array from Chemistry State object
+      ! [kg/kg total air]
       Q                 => State_Chm%Tracers
+
+      ! Initialize cloud mass flux at upper edge of each level [kg/m2/s]
+      ! from Meteorology State object (ewl, 4/28/15)
+      CLDMAS            => State_Met%CMFMC(:,:,2:LLPAR+1)
+
+      ! Initialize detrainment mass flux [kg/m2/s] from Meterology State
+      ! object (ewl, 4/28/15)
+      DTRN              => State_Met%DTRAIN
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -1292,7 +1458,7 @@
 #endif
 
          ! Flag to denote if this is a mercury simulation (sas, bmy, 1/19/05)
-         IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
+         IS_Hg = ITS_A_MERCURY_SIM
 
          ! Reset first time flag
          FIRST = .FALSE.
@@ -1304,7 +1470,7 @@
       NLAY = LLPAR
 
       ! Convection timestep [s]
-      NDT  = GET_TS_CONV() * 60e+0_fp
+      NDT  = GET_TS_CONV() * 60
 
       !=================================================================
       ! Define active convective region, from J = JS(outh) to 
@@ -1315,7 +1481,7 @@
       !
       ! We initialize the ND14 diagnostic each time we start a new 
       ! time step loop.  Only initialize DTCSUM array if the ND14 
-      ! diagnostic is turned on.  This saves a quite a bit of time. 
+      ! diagnostic is turned on.  This saves quite a bit of time. 
       ! (bmy, 12/15/99)       
       !=================================================================
       IF ( ND14 > 0 ) DTCSUM = 0e+0_fp
@@ -1348,6 +1514,12 @@
 !
 !  Now use routine GET_AREA_M2 from "grid_mod.f" to get surface area of
 !  grid boxes in m2. (bmy, 2/4/03)
+!
+!  Now using delta pressure * 100 / g for BMASS calculation. Removed
+!  area-dependent AD / AREA_M2. Note that BMASS is the moist air kg/m2 and 
+!  the change of AD from moist to dry in AIRQNT precludes its legacy usage 
+!  here (ewl, 4/28/15)
+!
 !=============================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1356,8 +1528,7 @@
       DO K = 1, NLAY
       DO J = 1, JJPAR
       DO I = 1, IMR
-         AREA_M2      = GET_AREA_M2( I, J, K )
-         BMASS(I,J,K) = State_Met%AD(I,J,K) / AREA_M2
+         BMASS(I,J,K) = State_Met%DELP(I,J,K) * G0_100
       ENDDO
       ENDDO
       ENDDO
@@ -1393,8 +1564,8 @@
          p_FSOL => F(:,:,:,IC)
 
          ! Compute the fraction of tracer IC scavenged in updrafts
-         CALL COMPUTE_F( IC,        p_FSOL,    ISOL, 
-     &                   Input_Opt, State_Met, State_Chm ) 
+         CALL COMPUTE_F( am_I_Root, IC, p_FSOL, ISOL, 
+     &                   Input_Opt, State_Met, State_Chm, RC ) 
 
          ! Free pointer memory
          NULLIFY( p_FSOL )
@@ -1474,10 +1645,13 @@
 
                   ! Need to replace DSIG w/ the difference 
                   ! of pressure edges for GEOS-5 (bmy, 6/27/07)
+                  ! Now use DELP, equivalent to delta pressure level [hPa]
+                  ! (ewl, 3/2/15)
                   QB(I,J) = 
-     &       ( Q(I,J,1,IC) * ( GET_PEDGE(I,J,1) - GET_PEDGE(I,J,2) )   + 
-     &         Q(I,J,2,IC) * ( GET_PEDGE(I,J,2) - GET_PEDGE(I,J,3) ) ) / 
-     &                       ( GET_PEDGE(I,J,1) - GET_PEDGE(I,J,3) )
+     &                      ( Q(I,J,1,IC) * State_Met%DELP(I,J,1) + 
+     &                      Q(I,J,2,IC) * State_Met%DELP(I,J,2) ) / 
+     &                      ( State_Met%DELP(I,J,1) 
+     &                      + State_Met%DELP(I,J,2) )
 
 #else
                   ! for GEOS-3
@@ -1509,20 +1683,6 @@
                   ! Subtract DQ from Q(*,*,K=1,*) and from Q(*,*,K=2,*), 
                   ! but do not make Q(*,*,K=1,*) or Q(*,*,K=2,*) < 0.
                   !=====================================================
-!-----------------------------------------------------------------------------
-!  Prior to 1/4/00:
-!  This ensures additivity when using tagged CO tracers (bey, bmy, 1/4/00)
-!                  DQ = QB(I,J) - QC(I,J)
-!                  
-!                  IF ( DQ .GT. Q(I,J,1,IC)   .OR. 
-!     &                 DQ .GT. Q(I,J,2,IC) ) THEN
-!                     Q(I,J,2,IC) = QC(I,J)
-!                     Q(I,J,1,IC) = QC(I,J)
-!                  ELSE
-!                     Q(I,J,2,IC) = Q(I,J,2,IC) - DQ
-!                     Q(I,J,1,IC) = Q(I,J,1,IC) - DQ
-!                  ENDIF
-!-----------------------------------------------------------------------------
                   Q(I,J,2,IC) = QC(I,J)
                   Q(I,J,1,IC) = QC(I,J)
 
@@ -1664,13 +1824,15 @@
                      ! DTCSUM(I,J,K,IC) is the flux (kg/box/sec) in 
                      ! the box (I,J), for the tracer IC going out of 
                      ! the top of the layer K to the layer above (K+1) 
-                     ! (bey, 11/10/99).                     
+                     ! (bey, 11/10/99).      
                      !==================================================
+
                      IF ( ND14 > 0 ) THEN
-                        DTCSUM(I,J,K,IC) = DTCSUM(I,J,K,IC) +  
-     &                       (-T2-T3) * AREA_M2 / TCVV(IC)  
+                        DTCSUM(I,J,K,IC) = DTCSUM(I,J,K,IC) + (-T2-T3)  
+     &                                     * AREA_M2 
                      ENDIF
 
+#if !defined(NO_BPCH)
                      !==================================================
                      ! ND38 Diagnostic: loss of soluble tracer to wet
                      ! scavenging in cloud updrafts [kg/s].  We must 
@@ -1683,9 +1845,12 @@
 !                           print *, I, J, K, IC, ISOL, TCVV(IC)
 !                        endif
 !#endif
-                        AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) +
-     &                       ( T0 * AREA_M2 / ( TCVV(IC) * DNS ) )
+
+                        AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) 
+     &                              + T0 * AREA_M2 / DNS  
+
                      ENDIF
+#endif
   
                      !=================================================
                      ! Pass the amount of Hg2 and HgP lost in wet 
@@ -1696,12 +1861,10 @@
                      !=================================================
                      IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
-                        ! Wet scavenged Hg(II) in [kg/s]
-                        WET_Hg2 = ( T0 * AREA_M2 ) / ( TCVV(IC) * DNS )
-
-                        ! Convert [kg/s] to [kg]
-                        WET_Hg2 = WET_Hg2 * NDT 
-
+                        ! Wet scavenged Hg(II) in [kg/s], converted
+                        ! to [kg] by multiplying by NDT
+                        WET_Hg2 = T0 * AREA_M2 / DNS * NDT
+                        
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_Hg2_WD( I, J, IC, WET_Hg2 )
                         CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2,
@@ -1710,11 +1873,9 @@
 
                      IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
 
-                        ! Wet scavenged Hg(P) in [kg/s]
-                        WET_HgP = ( T0 * AREA_M2 ) / ( TCVV(IC) * DNS )
-
-                        ! Convert [kg/s] to [kg]
-                        WET_HgP = WET_HgP * NDT 
+                        ! Wet scavenged Hg(P) in [kg/s], converted 
+                        ! to [kg] by multiplying by NDT
+                        WET_HgP = T0 * AREA_M2 / DNS * NDT
 
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_HgP_WD( I, J, IC, WET_HgP )
@@ -1811,7 +1972,7 @@
 !$OMP END PARALLEL DO
 
       ! Free pointer memory
-      NULLIFY( Q )
+      NULLIFY( Q, CLDMAS, DTRN )
 
       END SUBROUTINE NFCLDMX
 !EOC
@@ -1849,6 +2010,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE CMN_GCTM_MOD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
@@ -1860,37 +2022,37 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IS_Hg2
       USE TRACERID_MOD,       ONLY : IS_HgP
-      USE WETSCAV_MOD,        ONLY : H2O2s_3D => H2O2s
-      USE WETSCAV_MOD,        ONLY : SO2s_3D  => SO2s
+      USE WETSCAV_MOD,        ONLY : H2O2s_3D => H2O2s ! [v/v]
+      USE WETSCAV_MOD,        ONLY : SO2s_3D  => SO2s  ! [v/v]
       USE WETSCAV_MOD,        ONLY : WASHOUT
       USE WETSCAV_MOD,        ONLY : LS_K_RAIN
       USE WETSCAV_MOD,        ONLY : LS_F_PRIME
 !
 ! !INPUT PARAMETERS:
 !  
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      INTEGER,        INTENT(IN)    :: I, J        ! Lon & lat indices
-      INTEGER,        INTENT(IN)    :: N_TRACERS   ! # of convected tracers
-      REAL(fp),         INTENT(IN)    :: AREA_M2     ! Surface area [m2]
-      REAL(fp),         INTENT(IN)    :: F(:,:)      ! Fraction of soluble tracer
-                                                   !  for updraft scavenging 
-                                                   !  [unitless].  Computed by
-                                                   !  routine  COMPUTE_F.
-      REAL(fp),         INTENT(IN)    :: PEDGE(:)    ! P @ level box edges [hPa]
-      REAL(fp),         INTENT(IN)    :: TS_DYN      ! Dynamic timestep [min]
-      LOGICAL,        INTENT(IN)    :: USE_DIAG14  ! Archive DIAG14?
-      LOGICAL,        INTENT(IN)    :: USE_DIAG38  ! Archive DIAG38?
+      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
+      INTEGER,        INTENT(IN)    :: I, J       ! Lon & lat indices
+      INTEGER,        INTENT(IN)    :: N_TRACERS  ! # of convected tracers
+      REAL(fp),       INTENT(IN)    :: AREA_M2    ! Surface area [m2]
+      REAL(fp),       INTENT(IN)    :: F(:,:)     ! Fraction of soluble tracer
+                                                  !  for updraft scavenging 
+                                                  !  [unitless].  Computed by
+                                                  !  routine  COMPUTE_F.
+      REAL(fp),       INTENT(IN)    :: PEDGE(:)   ! P @ level box edges [hPa]
+      REAL(fp),       INTENT(IN)    :: TS_DYN     ! Dynamic timestep [min]
+      LOGICAL,        INTENT(IN)    :: USE_DIAG14 ! Archive DIAG14?
+      LOGICAL,        INTENT(IN)    :: USE_DIAG38 ! Archive DIAG38?
 !                                                  
 ! !INPUT/OUTPUT PARAMETERS:                        
 !        
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
 !                                                  
 ! !OUTPUT PARAMETERS:                              
 !                     
-      REAL(fp),         INTENT(OUT)   :: DIAG14(:,:) ! Array for ND14 diagnostic
-      REAL(fp),         INTENT(OUT)   :: DIAG38(:,:) ! Array for ND38 diagnostic
+      REAL(fp),       INTENT(OUT)   :: DIAG14(:,:) ! Array for ND14 diagnostic
+      REAL(fp),       INTENT(OUT)   :: DIAG38(:,:) ! Array for ND38 diagnostic
       INTEGER,        INTENT(OUT)   :: RC          ! Return code
 !
 ! !REMARKS:
@@ -1949,6 +2111,25 @@
 !  18 Apr 2014 - R. Yantosca - Remove code that we don't need anymore
 !  04 Feb 2015 - M. Sulprizio- Fix calculation of WETLOSS for non-aerosol 
 !                              tracers below the cloud base (C. Friedman)
+!  20 Apr 2015 - E. Lundgren - Use DELP*100/g instead of AD/area as grid box
+!                              moist mass per area and remove AD from routine
+!  20 May 2015 - M. Sulprizio- Apply bug fixes provided by Viral Shah:
+!                              -- Remove F(K,IC) > 0 condition that prevents
+!                                 archiving of deposited mass in DIAG38
+!                              -- Add statement that subtracts the wet deposited
+!                                 amount from the atmospheric mass
+!                              -- Fix inconsistency in units when T0_SUM is used
+!  04 Jun 2015 - E. Lundgren - Adapt Viral Shah bug fixes to moist mixing ratio
+!  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
+!                              whether the dynamic ocean is used
+!  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
+!                              (previously v/v)
+!  22 Jun 2015 - E. Lundgren - Move QB_NUM calculation to within timestep loop
+!  12 Aug 2015 - R. Yantosca - Treat MERRA2 in same way as we do for GEOS-FP
+!  14 Sep 2015 - E. Lundgren - Apply bug fixes provided by Viral Shah:
+!                              -- Prevent ALPHA > 1 in washout of aerosols 
+!                              -- Add tracer GAINED to Q before WETLOSS
+!                                 calculation in aerosol washout
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1960,59 +2141,59 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL           :: AER,         IS_Hg 
-      INTEGER           :: IC,          ISTEP,    K,       KTOP
-      INTEGER           :: NC,          NDT,      NLAY,    NS    
-      INTEGER           :: CLDBASE
+      LOGICAL             :: AER,         IS_Hg 
+      INTEGER             :: IC,          ISTEP,    K,       KTOP
+      INTEGER             :: NC,          NDT,      NLAY,    NS    
+      INTEGER             :: CLDBASE
       REAL(fp)            :: CMFMC_BELOW, ALPHA,    ALPHA2
       REAL(fp)            :: CMOUT,       DELQ,     DQ,      DNS
       REAL(fp)            :: ENTRN,       QC,       QC_PRES, QC_SCAV 
       REAL(fp)            :: SDT,         T0,       T0_SUM,  T1    
-      REAL(fp)            :: T2,          T3,       T4,      TCVV   
-      REAL(fp)            :: TCVV_DNS,    TSUM,     DT_DNS
+      REAL(fp)            :: T2,          T3,       T4 
+      REAL(fp)            :: TSUM
       REAL(fp)            :: LOST,        GAINED,   WETLOSS, MASS_WASH
       REAL(fp)            :: MASS_NOWASH, QDOWN,    DT,      F_WASHOUT
       REAL(fp)            :: K_RAIN,      WASHFRAC, WET_Hg2, WET_HgP 
-      REAL(fp)            :: MB,          QB
+      REAL(fp)            :: MB,          QB,       QB_NUM
 
       ! Arrays
-      REAL(fp)            :: BMASS    (LLPAR        )    
-      REAL(fp)            :: PDOWN    (LLPAR        )
-      REAL(fp)            :: QB_NUM   (N_TRACERS    )
+      REAL(fp)            :: BMASS       (LLPAR    )    
+      REAL(fp)            :: PDOWN       (LLPAR    )
 
       ! Pointers
-      REAL(fp),  POINTER  :: AD       (:            )
-      REAL(fp),  POINTER  :: BXHEIGHT (:            )
-      REAL(fp),  POINTER  :: CMFMC    (:            )
-      REAL(fp),  POINTER  :: DQRCU    (:            )
-      REAL(fp),  POINTER  :: DTRAIN   (:            )
-      REAL(fp),  POINTER  :: PFICU    (:            )
-      REAL(fp),  POINTER  :: PFLCU    (:            )
-      REAL(fp),  POINTER  :: REEVAPCN (:            )
-      REAL(fp),  POINTER  :: T        (:            )
-      REAL(fp),  POINTER  :: H2O2s    (:            )
-      REAL(fp),  POINTER  :: SO2s     (:            )
-      REAL(fp),  POINTER  :: Q        (:,:          )
+      REAL(fp),  POINTER  :: BXHEIGHT (:        )
+      REAL(fp),  POINTER  :: CMFMC    (:        )
+      REAL(fp),  POINTER  :: DQRCU    (:        )
+      REAL(fp),  POINTER  :: DTRAIN   (:        )
+      REAL(fp),  POINTER  :: PFICU    (:        )
+      REAL(fp),  POINTER  :: PFLCU    (:        )
+      REAL(fp),  POINTER  :: REEVAPCN (:        )
+      REAL(fp),  POINTER  :: DELP     (:        )
+      REAL(fp),  POINTER  :: T        (:        )
+      REAL(fp),  POINTER  :: H2O2s    (:        )
+      REAL(fp),  POINTER  :: SO2s     (:        )
+      REAL(fp),  POINTER  :: Q        (:,:      )
 
       !========================================================================
       ! (0)  I n i t i a l i z a t i o n
       !========================================================================
       
       ! Point to columns of derived-type object fields
-      AD       => State_Met%AD      (I,J,:        ) ! Air mass [kg]    
       BXHEIGHT => State_Met%BXHEIGHT(I,J,:        ) ! Box height [m]
       CMFMC    => State_Met%CMFMC   (I,J,2:LLPAR+1) ! Cloud mass flux [kg/m2/s] 
       DQRCU    => State_Met%DQRCU   (I,J,:        ) ! Precip production rate:
       DTRAIN   => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
       REEVAPCN => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
+      DELP     => State_Met%DELP    (I,J,:        ) ! Edge pressure diff [hPa]
       T        => State_Met%T       (I,J,:        ) ! Air temperature [K]
       H2O2s    => H2O2s_3D          (I,J,:        ) ! H2O2s from sulfate_mod
       SO2s     => SO2s_3D           (I,J,:        ) ! SO2s from sulfate_mod
-      Q        => State_Chm%TRACERS (I,J,:,:      ) ! Tracer conc. [mol/mol] 
+      Q        => State_Chm%TRACERS (I,J,:,:      ) ! Tracer concentration
+                                                    ! [mol/mol total air] 
+                                                
+#if   defined( GEOS_FP ) || defined( MERRA2 )
 
-#if   defined( GEOS_FP )
-
-      !%%%%% FOR GEOS-FP, PFICU and PFLCU are on level edges %%%%%
+      !%%%%% FOR GEOS-FP/MERRA2, PFICU and PFLCU are on level edges %%%%%
       PFICU    => State_Met%PFICU   (I,J,2:LLPAR+1) ! Dwnwd flx of conv 
                                                     !  ice precip [kg/m2/s]
       PFLCU    => State_Met%PFLCU   (I,J,2:LLPAR+1) ! Dwnwd flux of conv   
@@ -2037,11 +2218,10 @@
 
       ! Internal time step for convective mixing is 300 sec.
       ! Doug Rotman (LLNL) says that 450 sec works just as well.       
-      NS       = NDT / 300
-      NS       = MAX( NS, 1 )
-      SDT      = DBLE( NDT ) / DBLE( NS )
-      DNS      = DBLE( NS )
-      DT_DNS   = NDT * DNS
+      NS       = NDT / 300                ! Num internal timesteps (int)
+      NS       = MAX( NS, 1 )             ! Set lower bound to 1
+      DNS      = DBLE( NS )               ! Num internal timesteps (real)
+      SDT      = DBLE( NDT ) / DBLE( NS ) ! seconds in internal timestep
       
       !-----------------------------------------------------------------
       ! Determine location of the cloud base, which is the level where
@@ -2065,40 +2245,34 @@
       DO K = 1, NLAY
 
          ! PDOWN is the convective precipitation leaving each
-         ! box [cm3 H2O/cm2 air/s].This accounts for the 
-         ! contribution from both liquid & ice precip
+         ! box [cm3 H2O/cm2 air/s]. This accounts for the 
+         ! contribution from both liquid & ice precip.
+         ! PFLCU and PFICU are converted from kg/m2/s to m3/m2/s
+         ! using water and ice densities, respectively.
+         ! m3/m2/s becomes cm3/cm2/s using a factor of 100.
          PDOWN(K) = ( ( PFLCU(K) / 1000e+0_fp ) 
      &            +   ( PFICU(K) /  917e+0_fp ) ) * 100e+0_fp
 
-         ! BMASS has units of kg/m^2 and is equivalent to AD(K) / AREA_M2
+         ! BMASS is the total air mass per unit area for the grid box
+         ! bounded by level K and K+1 [kg/m2] 
+         ! BMASS is equivalent to deltaP * 100 / g
          ! This is done to keep BMASS in the same units as CMFMC * SDT
-         BMASS(K) = AD(K)    / AREA_M2
+         BMASS(K) = DELP(K) * G0_100
 
       ENDDO
 
       !-----------------------------------------------------------------
-      ! Compute MB (the total mass of air below the cloud base)
-      ! and QB_NUM (the numerator of QB, the weighted avg mixing ratio
-      ! below the cloud base)   
+      ! Compute MB, the mass per unit area of total air below the cloud
+      ! base [kg/m2]. Calculate MB by looping over levels below the 
+      ! cloud base.
       !-----------------------------------------------------------------
-
-      ! Zero variables
-      MB      = 0e+0_fp
-      QB_NUM  = 0e+0_fp
-
-      ! Loop over up to just below the cloud base
-      DO K  = 1, CLDBASE-1
-         
-         ! Total mass of air below the cloud base
-         MB        = MB + BMASS(K)
-
-         ! numerator of QB
-         QB_NUM(:) = QB_NUM(:) + Q(K,:) * ( PEDGE(K) - PEDGE(K+1) )
-
+      MB = 0e+0_fp 
+      DO K = 1, CLDBASE-1
+         MB = MB + BMASS(K)
       ENDDO
 
       ! Is this a Hg simulation?
-      IS_Hg = ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LDYNOCEAN )
+      IS_Hg = Input_Opt%ITS_A_MERCURY_SIM
 
       !========================================================================
       ! (1)  T r a c e r   L o o p 
@@ -2106,10 +2280,8 @@
       DO IC = 1, NC
 
          ! Initialize
-         DIAG14(:,IC) = 0e+0_fp                            ! ND14 diag array      
-         DIAG38(:,IC) = 0e+0_fp                            ! ND38 diag array
-         TCVV         = Input_Opt%TCVV(IC)             ! Air MW/tracer MW
-         TCVV_DNS     = TCVV * DNS                     ! TCVV * DNS
+         DIAG14(:,IC) = 0e+0_fp                    ! ND14 diag array      
+         DIAG38(:,IC) = 0e+0_fp                    ! ND38 diag array
 
          !=====================================================================
          ! (2)  I n t e r n a l   T i m e   S t e p   L o o p
@@ -2117,17 +2289,18 @@
          DO ISTEP = 1, NS
 
             ! Initialize
-            QC     = 0e+0_fp                      
-            T0_SUM = 0e+0_fp  
+            QC     = 0e+0_fp    ! [kg tracer/kg total air]                  
+            T0_SUM = 0e+0_fp    ! [kg tracer/m2/timestep]
 
             !----------------------------------------------------------
             ! B e l o w   C l o u d   B a s e   (K < CLDBASE) 
             !
             ! QB is the "weighted avg" mixing ratio below the cloud
-            ! base. QB is used to compute QC, which is the mixing 
-            ! ratio of the air that moved in cumulus transport up to
-            ! the next level. MB is the total mass of air below the
-            ! the cloud base
+            ! base [kg/kg total air].
+            ! QC is the mixing ratio of the air that moved in cumulus 
+            ! transport up to the next level [kg/kg total air]. 
+            ! MB is the total mass of air below the cloud base per 
+            ! unit area [kg/m2] (see calculation before loop).
             !-----------------------------------------------------------
 
             ! We need to make this a nested IF statement so that we don't
@@ -2140,10 +2313,24 @@
                   ! %%% Non-negligible Cloud mass flux %%% 
                   !-----------------------------------------------------
 
-                  ! Compute the weighted avg mixing ratio below
-                  ! the cloud base
-                  QB = QB_NUM(IC) / ( PEDGE(1) - PEDGE(CLDBASE) )
+                  ! Calculate QB_NUM, the numerator for QB. QB is the 
+                  ! weighted average mixing ratio below the cloud base.
+                  ! QB_NUM is equal to the grid box tracer concentrations 
+                  ! [kg/kg total air] weighted by the adjacent level pressure 
+                  ! differences and summed over all levels up to just 
+                  ! below the cloud base (ewl, 6/22/15)           
+                  QB_NUM  = 0e+0_fp  
+                  DO K  = 1, CLDBASE-1
+                     QB_NUM = QB_NUM + Q(K,IC) * DELP(K)
+                  ENDDO
 
+                  ! Compute QB, the weighted avg mixing ratio below
+                  ! the cloud base [kg/kg total air]
+                  QB = QB_NUM / ( PEDGE(1) - PEDGE(CLDBASE) )
+
+                  ! Compute QC, the mixing ratio of the air that moved
+                  ! in cumulus transport up to the next level [kg/kg]
+                  !
                   !        Total mass of tracer below cloud base  +   
                   !        Subsidence into cloud base from above  
                   ! QC =  --------------------------------------------
@@ -2153,9 +2340,8 @@
      &                           Q(CLDBASE,IC)    * SDT  ) /
      &                 ( MB    + CMFMC(CLDBASE-1) * SDT  ) 
 
-
                   ! Copy QC to all levels of the tracer array Q
-                  ! that are below the cloud base level
+                  ! that are below the cloud base level [kg/kg]
                   Q(1:CLDBASE-1,IC) = QC
 
                ELSE                  
@@ -2164,8 +2350,8 @@
                   ! %%% Negligible cloud mass flux %%% 
                   !-----------------------------------------------------
 
-                  ! When CMFMC is negligible, then set to the tracer
-                  ! concentration at the cloud base level
+                  ! When CMFMC is negligible, then set QC to the tracer
+                  ! concentration at the cloud base level [kg/kg]
                   QC = Q(CLDBASE,IC)
    
                ENDIF
@@ -2174,7 +2360,8 @@
                
                !-----------------------------------------------------
                ! If the cloud base happens at level 1, then just
-               ! set QC to the tracer at the surface level
+               ! set QC to the tracer concentration at the surface 
+               ! level [kg/kg]
                !-----------------------------------------------------
                QC = Q(CLDBASE,IC) 
 
@@ -2228,16 +2415,16 @@
                   ! point exception.
                   !------------------------------------------------------------
 
-                  ! Air mass flowing out of cloud at grid box (K)
+                  ! Air mass flowing out of cloud at grid box (K) [kg/m2/s]
                   CMOUT   = CMFMC(K) + DTRAIN(K)
 
-                  ! Air mass flowing into cloud at grid box (K)
+                  ! Air mass flowing into cloud at grid box (K) [kg/m2/s]
                   ENTRN   = CMOUT - CMFMC_BELOW
 
-                  ! Amount of QC preserved against scavenging
+                  ! Amount of QC preserved against scavenging [kg/kg]
                   QC_PRES = QC * ( 1e+0_fp - F(K,IC) )
 
-                  ! Amount of QC lost to scavenging
+                  ! Amount of QC lost to scavenging [kg/kg]
                   ! QC_SCAV = 0 for non-soluble tracer
                   QC_SCAV = QC * F(K,IC)
 
@@ -2261,9 +2448,16 @@
 
                            ! Define ALPHA, the fraction of raindrops that 
                            ! re-evaporate when falling from grid box
-                           ! (I,J,L+1) to (I,J,L)
-                           ALPHA = ( REEVAPCN(K) * AD(K)           )
-     &                           / ( PDOWN(K+1)  * AREA_M2 * 10e+0_fp  )
+                           ! (I,J,L+1) to (I,J,L):
+                           ! NOTE:
+                           !   REEVAPCN is in units of [kg/kg/s]
+                           !   Now use BMASS [kg/m2] instead of AD/area to
+                           !   remove area dependency
+                           !   PDOWN is in units of [cm3/cm2/s]
+                           !   Factor of 10 in denom for unit conversion
+                           !     1000 kg/m3 * 0.01 m/cm = 10 kg/m2/cm
+                           ALPHA = REEVAPCN(K) * BMASS(K) 
+     &                             / ( PDOWN(K+1)  * 10e+0_fp )
 
                            ! Restrict ALPHA to be less than 1 
                            ! (>1 is unphysical)  (hma, 24-Dec-2010)  
@@ -2289,7 +2483,7 @@
                      ENDIF
                     
                      ! The resuspension takes 1/2 the amount of the scavenged
-                     ! aerosol (QC_SCAV) and adds that back to QC_PRES ...
+                     ! aerosol (QC_SCAV) and adds that back to QC_PRES
                      QC_PRES  = QC_PRES + ( ALPHA2 * QC_SCAV )
                     
                      ! ... then we decrement QC_SCAV accordingly
@@ -2298,7 +2492,7 @@
                   ENDIF
                   !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-                  ! Update QC taking entrainment into account
+                  ! Update QC taking entrainment into account [kg/kg]
                   ! Prevent div by zero condition
                   IF ( ENTRN >= 0e+0_fp .and. CMOUT > 0e+0_fp ) THEN
                      QC   = ( CMFMC_BELOW * QC_PRES   + 
@@ -2320,11 +2514,11 @@
                   ! For convenience we denote:
                   !
                   !  QC_SCAV = Amount of tracer wet-scavenged in updrafts
-                  !          = QC_k-1 * F(k,IC)
+                  !          = QC_k-1 * F(k,IC)    [kg/kg]
                   !
                   !  QC_PRES = Amount of tracer preserved against
-                  !            wet-scavenging in updrafts
-                  !          = QC_k-1 * ( 1 - F(k,IC) )
+                  !            wet-scavenging in updrafts [kg/kg]
+                  !          = QC_k-1 * ( 1 - F(k,IC) )   
                   !
                   ! Where F(k,IC) is the fraction of tracer IC in level k
                   ! that is available for wet-scavenging by cloud updrafts.
@@ -2370,23 +2564,26 @@
                   !
                   ! The term T0 is the amount of tracer that is scavenged 
                   ! out of the box.
+                  !
+                  ! Units of T0, T1, T2, T3, T4, and TSUM are
+                  ! [kg/m2/s * kg tracer / kg total air]
                   !------------------------------------------------------------
-                  T0      =  CMFMC_BELOW * QC_SCAV   
-                  T1      =  CMFMC_BELOW * QC_PRES
+                  T0      =  CMFMC_BELOW * QC_SCAV      
+                  T1      =  CMFMC_BELOW * QC_PRES       
                   T2      = -CMFMC(K  )  * QC
                   T3      =  CMFMC(K  )  * Q(K+1,IC)
                   T4      = -CMFMC_BELOW * Q(K,  IC)
                  
-                  TSUM    = T1 + T2 + T3 + T4 
+                  TSUM    = T1 + T2 + T3 + T4          
                   
-                  DELQ    = ( SDT / BMASS(K) ) * TSUM
+                  DELQ    = ( SDT / BMASS(K) ) * TSUM    ! change in [kg/kg]
 
                   ! If DELQ > Q then do not make Q negative!!!
                   IF ( Q(K,IC) + DELQ < 0 ) THEN
                      DELQ = -Q(K,IC)
                   ENDIF
 
-                  ! Increment the tracer array [v/v]
+                  ! Increment the tracer array [kg/kg]
                   Q(K,IC) = Q(K,IC) + DELQ
 
                   ! check for infinity
@@ -2404,20 +2601,27 @@
                      RETURN
                   ENDIF
 
-                  ! Archive T0 for use in the next section
-                  T0_SUM  = T0_SUM + T0
- 
+                  ! Pass T0_SUM in units of [kg tracer/m2/timestep].
+                  ! Converting kg total air to kg tracer requires use
+                  ! of the molecular weight of air including moisture
+                  ! (ewl, 6/5/15)
+                  T0_SUM = T0_SUM + T0 * SDT
+
                   !------------------------------------------------------------
                   ! (3.3)  N D 1 4   D i a g n o s t i c
                   !
-                  ! Archive upward mass flux due to wet convection.  
-                  ! DTCSUM(K,IC) is the flux [kg/sec] in the box (I,J), 
-                  ! for the tracer IC going out of the top of the layer K 
-                  ! to the layer above (K+1)  (bey, 11/10/99). 
+                  ! Archive upward mass flux due to wet convection  
+                  ! [kg/sec] in the box (I,J), for the tracer IC going out 
+                  ! of the top of the layer K to the layer above (K+1)  
+                  ! (bey, 11/10/99). We must divide by DNS, the # of internal 
+                  ! timesteps so that the sum represents the average loss rate 
+                  ! across all internal timesteps.
                   !------------------------------------------------------------
                   IF ( USE_DIAG14 ) THEN
-                     DIAG14(K,IC) = DIAG14(K,IC) 
-     &                            + ( ( -T2-T3 ) * AREA_M2 / TCVV_DNS )
+ 
+                    DIAG14(K,IC) = DIAG14(K,IC) + ( -T2-T3 ) * AREA_M2 
+     &                              / DNS   
+
                   ENDIF
 
                   !------------------------------------------------------------
@@ -2425,11 +2629,12 @@
                   !
                   ! Archive the loss of soluble tracer to wet scavenging in 
                   ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
-                  ! internal timesteps.
+                  ! internal timesteps so that the sum represents the
+                  ! average loss rate across all internal timesteps.
                   !------------------------------------------------------------
-                  IF ( USE_DIAG38 .and. F(K,IC) > 0e+0_fp ) THEN
-                     DIAG38(K,IC) = DIAG38(K,IC)
-     &                            + ( T0 * AREA_M2 / TCVV_DNS )
+                  IF ( USE_DIAG38 ) THEN
+
+                     DIAG38(K,IC) = DIAG38(K,IC) + T0 * AREA_M2 / DNS  
 
                      ! check for infinity (added by hma, 20101117)
                      IF ( .not. IT_IS_FINITE( DIAG38(K,IC) ) ) THEN
@@ -2444,8 +2649,8 @@
                   ! (3.5)  N o   C l o u d   M a s s   F l u x   B e l o w 
                   !------------------------------------------------------------
 
-                  ! If there is no cloud mass flux coming from below
-                  ! just set QC to the tracer concentration at this level
+                  ! If there is no cloud mass flux coming from below, set
+                  ! QC to the tracer concentration at this level [kg/kg]
                   QC = Q(K,IC)
                   
                   ! Bug fix for the cloud base layer, which is not necessarily
@@ -2456,12 +2661,14 @@
                   IF ( CMFMC(K) > TINYNUM ) THEN 
 
                      ! Tracer convected from K -> K+1 
+                     ! [kg/m2/s * kg tracer/kg total air]
                      T2   = -CMFMC(K) * QC
 
-                     ! Tracer subsiding from K+1 -> K 
+                     ! Tracer subsiding from K+1 -> K [kg/m2/s]
+                     ! [kg/m2/s * kg tracer/kg total air]
                      T3   =  CMFMC(K) * Q(K+1,IC)
 
-                     ! Change in tracer concentration
+                     ! Change in tracer concentration [kg/kg]
                      DELQ = ( SDT / BMASS(K) ) * (T2 + T3)
 
                      ! If DELQ > Q then do not make Q negative!!!
@@ -2469,12 +2676,12 @@
                         DELQ = -Q(K,IC)
                      ENDIF
   
-                     ! Add change in tracer to Q array
+                     ! Add change in tracer to Q array [kg/kg]
                      Q(K,IC) = Q(K,IC) + DELQ
 
                   ENDIF
                ENDIF
-            ENDDO 
+            ENDDO     ! End of loop over levels above cloud base
             
             !==================================================================
             ! (4)  B e l o w   C l o u d   B a s e
@@ -2503,24 +2710,24 @@
      &              T0_SUM      > 0        ) THEN
 
                   ! Compute F_WASHOUT, the fraction of grid box (I,J,L)
-                  ! experiencing washout 
-               
-                  ! Convert PDOWN the downward flux of precip leaving grid
-                  ! box (K+1) from [cm3 H20/cm2 area/s] to [cm3 H20/cm3 air/s]
+                  ! experiencing washout. First, convert units of PDOWN, 
+                  ! the downward flux of precip leaving grid box (K+1) 
+                  ! from [cm3 H20/cm2 area/s] to [cm3 H20/cm3 air/s]
+                  ! by dividing by box height in cm
                   QDOWN = PDOWN(K+1) / ( BXHEIGHT(K+1) * 100e+0_fp  )
 
                   ! Compute K_RAIN and F_WASHOUT based on the flux of precip 
                   ! leaving grid box (K+1). 
                   K_RAIN   = LS_K_RAIN( QDOWN )
                   F_WASHOUT= LS_F_PRIME( QDOWN, K_RAIN ) 
-                  
+
                   ! Call WASHOUT to compute the fraction of tracer lost
                   ! to washout in grid box (I,J,K)
-                  CALL WASHOUT( I, J, K,   IC,       BXHEIGHT(K), 
+                  CALL WASHOUT( am_I_Root, I, J, K, IC, BXHEIGHT(K), 
      &                          T(K),      QDOWN,    SDT,   
      &                          F_WASHOUT, H2O2s(K), SO2s(K), 
      &                          WASHFRAC,  AER,      Input_Opt,
-     &                          State_Met, State_Chm            )
+     &                          State_Met, State_Chm, RC         )
 
                   ! Check if the tracer is an aerosol or not
                   IF ( AER == .TRUE. ) THEN
@@ -2532,30 +2739,83 @@
 
                      ! Define ALPHA, the fraction of raindrops that 
                      ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
-                     ALPHA   = ( REEVAPCN(K) * AD(K)          )
-     &                       / ( PDOWN(K+1)  * AREA_M2 * 10e+0_fp )
+                     ! NOTE:
+                     !   REEVAPCN is in units of [kg/kg/s]
+                     !   Now use BMASS [kg/m2] instead of AD/area to
+                     !   remove area dependency
+                     !   PDOWN is in units of [cm3/cm2/s]
+                     !   Factor of 10 in denom for unit conversion
+                     !     1000 kg/m3 * 0.01 m/cm = 10 kg/m2/cm
+                      
+!                    ! Prior to 9/14/15 - the value of ALPHA, which should be 
+!                    ! less than or equal to 1, is sometimes much higher than 
+!                    ! 1. Since ALPHA is used to calculate resuspension of 
+!                    ! precipitating mass from above, these high values of      
+!                    ! ALPHA lead to a gain in tracer mass at the lower levels 
+!                    ! in excess of what is coming from above (V. Shah, 9/14/15)
+!                    ALPHA   = REEVAPCN(K) * BMASS(K)
+!     &                          / ( PDOWN(K+1) * 10e+0_fp )
+!                    ! ALPHA2 is the fraction of the rained-out aerosols
+!                    ! that gets resuspended in grid box (I,J,L)
+!                    ALPHA2  = 0.5e+0_fp * ALPHA
 
-                     ! ALPHA2 is the fraction of the rained-out aerosols
-                     ! that gets resuspended in grid box (I,J,L)
-                     ALPHA2  = 0.5e+0_fp * ALPHA
+                     ! %%%% CASE 1 %%%%
+                     ! Partial re-evaporation. Less precip is leaving
+                     ! the grid box then entered from above (V. Shah, 9/14/15)
+                     IF ( PDOWN(K+1) > PDOWN(K) .AND.
+     &                    PDOWN(K)   > TINYNUM        ) THEN
+
+                        ! Define ALPHA, the fraction of raindrops that
+                        ! re-evaporate when falling from grid box
+                        ! (I,J,L+1) to (I,J,L)
+                        ALPHA = REEVAPCN(K) * BMASS(K)
+     &                          / ( PDOWN(K+1) * 10e+0_fp  )   
+
+                        ! For safety
+                        ALPHA = MIN( ALPHA, 1e+0_fp ) 
+
+                        ! ALPHA2 is the fraction of the rained-out aerosols
+                        ! that gets resuspended in grid box (I,J,L)
+                        ALPHA2  = 0.5e+0_fp * ALPHA
+
+                     ENDIF
+
+                     ! %%%% CASE 2 %%%%
+                     ! Total re-evaporation. Precip entered from above,
+                     ! but no precip is leaving grid box (ALPHA = 2 so
+                     ! that  ALPHA2 = 1) (V. Shah, 9/14/15)
+                     IF ( PDOWN(K) < TINYNUM ) THEN
+                        ALPHA2 = 1e+0_fp
+                     ENDIF
 
                      ! GAINED is the rained out aerosol coming down from 
                      ! grid box (I,J,L+1) that will evaporate and re-enter 
-                     ! the atmosphere in the gas phase in grid box (I,J,L).
+                     ! the atmosphere in the gas phase in grid box (I,J,L)
+                     ! [kg tracer/m2/timestep]
                      GAINED  = T0_SUM * ALPHA2
 
-                     ! Amount of aerosol lost to washout in grid box
-                     WETLOSS = Q(K,IC) * WASHFRAC - GAINED
+                     ! Amount of aerosol lost to washout in grid box [kg/m2]
+                     ! (V. Shah, 9/14/15)
+!                    ! Prior to 9/14/15 - the amount of tracer GAINED is 
+!                    ! (mistakenly) not added to Q before WETLOSS is calculated
+!                    !   WETLOSS = Q(K,IC) * BMASS(K) * WASHFRAC - GAINED
+                     WETLOSS = ( Q(K,IC) * BMASS(K) + GAINED ) *
+     &                         WASHFRAC - GAINED
 
                      ! LOST is the rained out aerosol coming down from
                      ! grid box (I,J,L+1) that will remain in the liquid
-                     ! phase in grid box (I,J,L) and will NOT re-evaporate.
-                     LOST    = T0_SUM - GAINED
+                     ! phase in grid box (I,J,L) and will NOT re-evaporate
+                     ! [kg/m2/timestep]
+ 1                   LOST    = T0_SUM - GAINED
+
+                     ! Update tracer concentration (V. Shah, mps, 5/20/15)
+                     ! [kg/kg]
+                     Q(K,IC) = Q(K,IC) - WETLOSS / BMASS(K) 
 
                      ! Update T0_SUM, the total amount of scavenged
                      ! tracer that will be passed to the grid box below
+                     ! [kg/m2/timestep]
                      T0_SUM = T0_SUM + WETLOSS  
-
 
                   ELSE
 
@@ -2566,35 +2826,35 @@
 
                      ! MASS_NOWASH is the amount of non-aerosol tracer in 
                      ! grid box (I,J,L) that is NOT available for washout.
+                     ! Calculate in units of [kg/kg]
                      MASS_NOWASH = ( 1e+0_fp - F_WASHOUT ) * Q(K,IC)
-               
+
                      ! MASS_WASH is the total amount of non-aerosol tracer
                      ! that is available for washout in grid box (I,J,L).
                      ! It consists of the mass in the precipitating
                      ! part of box (I,J,L), plus the previously rained-out
                      ! tracer coming down from grid box (I,J,L+1).
-                     ! (Eq. 15, Jacob et al, 2000).
-                     MASS_WASH   = ( F_WASHOUT * Q(K,IC) ) + T0_SUM
+                     ! (Eq. 15, Jacob et al, 2000)
+                     ! Units are [kg tracer/m2/timestep]
+                     MASS_WASH = ( F_WASHOUT * Q(K,IC) ) * BMASS(K)
+     &                            + T0_SUM
 
                      ! WETLOSS is the amount of tracer mass in 
                      ! grid box (I,J,L) that is lost to washout.
                      ! (Eq. 16, Jacob et al, 2000)
-!------------------------------------------------------------------------------
-! Prior to 2/4/15:
-! Bug fix: Make sure mass of scavenged tracer passed to depo_mercury_mod.F
-! is the same as mass archived in ND38 (clf, mps, 2/4/15)
-!                     WETLOSS     = MASS_WASH * WASHFRAC - T0_SUM
-!------------------------------------------------------------------------------
-                     WETLOSS     = ( MASS_WASH - T0_SUM ) * WASHFRAC
+                     ! [kg tracer/m2/timestep]
+                     WETLOSS     = MASS_WASH * WASHFRAC - T0_SUM
                      
                      ! The tracer left in grid box (I,J,L) is what was
-                     ! in originally in the non-precipitating fraction 
+                     ! originally in the non-precipitating fraction 
                      ! of the box, plus MASS_WASH, less WETLOSS. 
-                     Q(K,IC)     = Q(K,IC) - WETLOSS
+                     ! [kg/kg]
+                     Q(K,IC) = Q(K,IC) - WETLOSS / BMASS(K) 
                      
-                     ! Updated T0_SUM, the total scavenged tracer
+                     ! Update T0_SUM, the total scavenged tracer
                      ! that will be passed to the grid box below
-                     T0_SUM      = T0_SUM + WETLOSS 
+                     ! [kg tracer/m2/timestep]
+                     T0_SUM      = T0_SUM + WETLOSS
 
                   ENDIF
 
@@ -2602,25 +2862,32 @@
                   ! N D 1 4   D i a g n o s t i c
                   !
                   ! Archive upward mass flux due to wet convection.  
-                  ! DTCSUM(K,IC) is the flux [kg/sec] in the box (I,J), 
-                  ! for the tracer IC going out of the top of the layer K 
-                  ! to the layer above (K+1)  (bey, 11/10/99). 
+                  ! [kg/sec] in the box (I,J), for the tracer IC going 
+                  ! out of the top of the layer K to the layer above (K+1)  
+                  ! (bey, 11/10/99). We must divide by DNS, the # of internal 
+                  ! timesteps so that the sum represents the average loss 
+                  ! rate across all internal timesteps.
                   !------------------------------------------------------------
                   IF ( USE_DIAG14 ) THEN
+
                      DIAG14(K,IC) = DIAG14(K,IC) 
-     &                            + ( ( -T2-T3 ) * AREA_M2 / TCVV_DNS )
+     &                              + ( -T2-T3 ) * AREA_M2 / DNS 
+
                   ENDIF
 
                   !------------------------------------------------------------
                   !  N D 3 8   D i a g n o s t i c
                   !
                   ! Archive the loss of soluble tracer to wet scavenging in 
-                  ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
-                  ! internal timesteps.
+                  ! cloud updrafts [kg/s].  We must divide by NDT, the # of 
+                  ! seconds in the convective timestep, equal to DNS * SDT, 
+                  ! in order to make diag38 represent the average loss rate 
+                  ! across all internal timesteps. Note that the units of
+                  ! WETLOSS are [kg/m2/timestep].
                   !------------------------------------------------------------
                   IF ( USE_DIAG38 .and. F(K,IC) > 0e+0_fp ) THEN
-                     DIAG38(K,IC) = DIAG38(K,IC)
-     &                            + ( WETLOSS * AREA_M2 / TCVV_DNS )
+                     DIAG38(K,IC) = DIAG38(K,IC) +
+     &                              ( WETLOSS * AREA_M2 / NDT )
                   ENDIF
                 
                   ! CHECK for infinity (added by hma, 20101117)
@@ -2629,7 +2896,7 @@
                      CALL GEOS_CHEM_STOP
                   ENDIF
                ENDIF
-            ENDDO  
+            ENDDO     ! End of loop over levels below cloud base  
 
             !==================================================================
             ! (5)  M e r c u r y   O c e a n   M o d e l   A r c h i v a l
@@ -2645,11 +2912,8 @@
             !--------------------------------------
             IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
-               ! Wet scavenged Hg(II) in [kg/s]
-               WET_Hg2 = ( T0_SUM * AREA_M2 / TCVV_DNS )
-               
-               ! Convert [kg/s] to [kg]
-               WET_Hg2 = WET_Hg2 * NDT 
+               ! Wet scavenged Hg(II) in [kg]
+               WET_Hg2 = ( T0_SUM * AREA_M2 )
 
                ! Pass to "ocean_mercury_mod.f"
                CALL ADD_Hg2_WD      ( I, J, IC, WET_Hg2 )
@@ -2661,26 +2925,22 @@
             !--------------------------------------
             IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
 
-               ! Wet scavenged Hg(P) in [kg/s]
-               WET_HgP = ( T0_SUM * AREA_M2 / TCVV_DNS )
-
-               ! Convert [kg/s] to [kg]
-               WET_HgP = WET_HgP * NDT 
+               ! Wet scavenged Hg(P) in [kg]
+               WET_HgP = ( T0_SUM * AREA_M2 )
 
                ! Pass to "ocean_mercury_mod.f"
                CALL ADD_HgP_WD      ( I, J, IC, WET_HgP )
                CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP, State_Met )
             ENDIF
 
-         ENDDO 
-      ENDDO      
+         ENDDO      ! End internal timestep loop
+      ENDDO      ! End loop over tracers
 
       !================================================================
       ! Succesful return!
       !================================================================
       
       ! Nullify pointers
-      NULLIFY( AD       )
       NULLIFY( BXHEIGHT )
       NULLIFY( CMFMC    )
       NULLIFY( DQRCU    )
@@ -2688,6 +2948,7 @@
       NULLIFY( PFICU    )
       NULLIFY( PFLCU    )
       NULLIFY( REEVAPCN )
+      NULLIFY( DELP     )
       NULLIFY( T        )
       NULLIFY( H2O2s    )
       NULLIFY( SO2s     )

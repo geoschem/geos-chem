@@ -28,7 +28,6 @@ MODULE EMISSIONS_MOD
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: EMISSVOC
 !
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller   - Initial version. 
@@ -104,7 +103,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+  SUBROUTINE EMISSIONS_RUN( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, EmisTime,  Phase,     RC ) 
 !
 ! !USES:
 !
@@ -112,13 +112,19 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE ERROR_MOD,          ONLY : GIGC_ERROR
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
-    USE DUST_MOD,           ONLY : DUSTMIX
     USE CARBON_MOD,         ONLY : EMISSCARBON
+#if defined ( TOMAS )
+    USE CARBON_MOD,         ONLY : EMISSCARBONTOMAS !jkodros
+    USE SULFATE_MOD,        ONLY : EMISSSULFATETOMAS !jkodros
+#endif
     USE CO2_MOD,            ONLY : EMISSCO2
     USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
     USE TRACERID_MOD,       ONLY : IDTCH4
+    USE TRACERID_MOD,       ONLY : IDTCH3Br, IDTBrO
+    USE BROMOCARB_MOD,      ONLY : SET_BRO
+    USE BROMOCARB_MOD,      ONLY : SET_CH3BR
 
     ! Use old mercury code for now (ckeller, 09/23/2014)
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
@@ -131,10 +137,13 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
+    LOGICAL,          INTENT(IN   )  :: EmisTime   ! Emissions in this time step? 
+    INTEGER,          INTENT(IN   )  :: Phase      ! Run phase
+ 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(MetState),   INTENT(INOUT)  :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state 
     TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
@@ -147,6 +156,9 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! LOCAL VARIABLES:
+!
  
     !=================================================================
     ! EMISSIONS_RUN begins here!
@@ -155,64 +167,92 @@ CONTAINS
     ! Assume success
     RC = GIGC_SUCCESS
 
-    ! Run HEMCO
-    CALL HCOI_GC_RUN( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
-    IF ( RC /= GIGC_SUCCESS ) RETURN 
-  
-    ! PBL mixing is not applied to dust emissions. Instead, they become 
-    ! directly added to the tracer arrays.
-    CALL DUSTMIX( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+    ! Run HEMCO. Phase 1 will only update the HEMCO clock and the 
+    ! HEMCO data list, phase 2 will perform the emission calculations.
+    CALL HCOI_GC_RUN( am_I_Root, Input_Opt, State_Met, State_Chm, & 
+                      EmisTime,  Phase,     RC                     ) 
     IF ( RC /= GIGC_SUCCESS ) RETURN 
 
-    ! Call carbon emissions module to make sure that sesquiterpene
-    ! emissions calculated in HEMCO (SESQ) are passed to the internal
-    ! species array in carbon, as well as to ensure that POA emissions
-    ! are correctly treated.
-    CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN 
+    ! The following only needs to be done in phase 2
+    IF ( Phase /= 1 ) THEN 
 
-    ! Aircraft emissions may go beyond the tropopause, which may cause 
-    ! a build up of VOCs in the  
-    CALL EMISSVOC( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN 
-
-    ! For CO2 simulation, emissions are not added to Trac_Tend and hence
-    ! not passed to the Tracers array during PBL mixing. Thus, need to add 
-    ! emissions explicitly to the tracers array here.
-    IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
-       CALL EMISSCO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+       ! Call carbon emissions module to make sure that sesquiterpene
+       ! emissions calculated in HEMCO (SESQ) are passed to the internal
+       ! species array in carbon, as well as to ensure that POA emissions
+       ! are correctly treated.
+       CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN 
-    ENDIF
 
-    ! For CH4 simulation or if CH4 is defined, call EMISSCH4. 
-    ! This will get the individual CH4 emission terms (gas, coal, wetlands, 
-    ! ...) and write them into the individual emissions arrays defined in
-    ! global_ch4_mod (CH4_EMIS), from where the final emission array is
-    ! assembled and passed to STT or Trac_Tend.
-    ! This is a wrapper for backwards consistency, in particular for the
-    ! ND58 diagnostics.
-    IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
-       ( IDTCH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
-       CALL EMISSCH4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN 
-    ENDIF
-
-    ! For UCX, use Seb's routines for stratospheric species for now.
+    ! Call TOMAS emission routines (JKodros 6/2/15)
+#if defined ( TOMAS )
+       CALL EMISSCARBONTOMAS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+    
+       CALL EMISSSULFATETOMAS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+#endif
+   
+       ! For CO2 simulation, emissions are not added to STT in mixing_mod.F90 
+       ! because the HEMCO CO2 species are not GEOS-Chem tracers. The emissions
+       ! thus need to be added explicitly, which is done in EMISSCO2.
+       IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
+          CALL EMISSCO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+          IF ( RC /= GIGC_SUCCESS ) RETURN 
+       ENDIF
+   
+       ! For CH4 simulation or if CH4 is defined, call EMISSCH4. 
+       ! This will get the individual CH4 emission terms (gas, coal, wetlands, 
+       ! ...) and write them into the individual emissions arrays defined in
+       ! global_ch4_mod (CH4_EMIS). Emissions are all done in mixing_mod, the
+       ! call to EMISSCH4 is for backwards consistency, in particular for the
+       ! ND58 diagnostics.
+       IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
+          ( IDTCH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
+          CALL EMISSCH4( am_I_Root, Input_Opt, State_Met, RC )
+          IF ( RC /= GIGC_SUCCESS ) RETURN 
+       ENDIF
+   
+       ! For UCX, use Seb's routines for stratospheric species for now.
 #if defined( UCX )
-    IF ( Input_Opt%LBASICEMIS ) THEN
-       CALL EMISS_BASIC( am_I_Root, Input_Opt, State_Met, State_Chm )
-    ENDIF
+       IF ( Input_Opt%LBASICEMIS ) THEN
+          CALL EMISS_BASIC( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+       ENDIF
 #endif
 
-    ! For mercury, use old emissions code for now
-    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-       CALL EMISSMERCURY ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-    ENDIF
+       ! For mercury, use old emissions code for now
+       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+          CALL EMISSMERCURY ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+       ENDIF
 
+       ! Prescribe some concentrations if needed
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+  
+          !========================================================
+          !jpp, 2/12/08: putting a call to SET_CH3Br
+          !              which is in bromocarb_mod.f
+          !       ***** Fix CH3Br Concentration in PBL *****
+          ! Kludge: eventually I want to keep the concentration
+          !         entirely fixed! Ask around on how to...
+          !========================================================
+          IF ( Input_Opt%LEMIS .AND. ( IDTCH3Br > 0 ) ) THEN
+             CALL SET_CH3BR( am_I_Root, Input_Opt, State_Met, &
+                             State_Chm, RC )
+          ENDIF
+   
+          ! ----------------------------------------------------
+          ! If selected in input.geos, then set the MBL
+          ! concentration of BrO equal to 1 pptv during daytime.
+          ! ----------------------------------------------------
+          IF ( Input_Opt%LEMIS .AND. ( IDTBrO > 0 ) ) THEN
+             CALL SET_BRO( am_I_Root, Input_Opt, State_Met, & 
+                           State_Chm, RC          )
+          ENDIF
+   
+       ENDIF
+    ENDIF ! Phase/=1  
+    
     ! Return w/ success
     RC = GIGC_SUCCESS
-
-  END SUBROUTINE EMISSIONS_RUN
+   
+   END SUBROUTINE EMISSIONS_RUN
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -227,7 +267,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EMISSIONS_FINAL( am_I_Root )
+  SUBROUTINE EMISSIONS_FINAL( am_I_Root, ERROR )
 !
 ! !USES:
 !
@@ -236,6 +276,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
+    LOGICAL,          INTENT(IN   )  :: ERROR      ! Cleanup after crash? 
 !
 ! !REVISION HISTORY: 
 !  27 Aug 2014 - C. Keller    - Initial version 
@@ -247,126 +288,8 @@ CONTAINS
     ! EMISSIONS_FINAL begins here!
     !=================================================================
 
-    CALL HCOI_GC_Final( am_I_Root )
+    CALL HCOI_GC_Final( am_I_Root, ERROR )
 
   END SUBROUTINE EMISSIONS_FINAL
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: emissvoc
-!
-! !DESCRIPTION: Subroutine EMISSVOC makes sure that VOCs are not emitted 
-! above the tropopause to prevent build up of VOC in the stratosphere.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE EMISSVOC( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!
-! !USES:
-!
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-      USE GIGC_State_Chm_Mod,    ONLY : ChmState
-      USE GIGC_State_Met_Mod,    ONLY : MetState
-      USE CHEMGRID_MOD,          ONLY : GET_CHEMGRID_LEVEL
-      USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
-      USE TRACERID_MOD,          ONLY : IDTMACR, IDTRCHO, IDTACET
-      USE TRACERID_MOD,          ONLY : IDTALD2, IDTALK4, IDTC2H6
-      USE TRACERID_MOD,          ONLY : IDTC3H8, IDTCH2O, IDTPRPE
-      USE HCOI_GC_MAIN_MOD,      ONLY : GetHcoState, GetHcoID
-      USE HCO_STATE_MOD,         ONLY : HCO_STATE
-      USE HCO_ERROR_MOD
-!
-! !INPUT PARAMETERS:
-!      
-      LOGICAL,         INTENT(IN   )  :: am_I_Root   ! Root CPU?
-      TYPE(OptInput),  INTENT(IN   )  :: Input_Opt   ! Input Options object
-      TYPE(MetState),  INTENT(IN   )  :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(ChmState),  INTENT(INOUT)  :: State_Chm   ! Chemistry State object
-      INTEGER,         INTENT(INOUT)  :: RC          ! Failure?
-! 
-! !REVISION HISTORY:
-!  11 Nov 2014 - C. Keller   - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      TYPE(HCO_STATE), POINTER :: HcoState => NULL()
-      INTEGER                  :: I, J, N, LMAX
-      INTEGER                  :: ID, HcoID
-
-      !=================================================================
-      ! EMISSVOC begins here!
-      !=================================================================
-
-      ! Get HEMCO state object
-      CALL GetHcoState( HcoState )
-
-!$OMP PARALLEL DO DEFAULT( SHARED )      &
-!$OMP PRIVATE( I, J, LMAX, N, ID, HcoID )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Highest level w/ emissions
-         LMAX = GET_CHEMGRID_LEVEL( I, J, State_Met )
-
-         ! We want to zero emissions above LMAX 
-         LMAX = MIN(LLPAR,LMAX+1)
-
-         ! Set emissions of the following VOCs to zero above LMAX
-         ! Adopted from aeic_mod.F
-         DO N = 1, 9
-            SELECT CASE ( N ) 
-               CASE ( 1 )
-                  ID = IDTMACR
-               CASE ( 2 )
-                  ID = IDTRCHO
-               CASE ( 3 )
-                  ID = IDTACET
-               CASE ( 4 )
-                  ID = IDTALD2
-               CASE ( 5 )
-                  ID = IDTALK4
-               CASE ( 6 )
-                  ID = IDTC2H6
-               CASE ( 7 )
-                  ID = IDTC3H8
-               CASE ( 8 )
-                  ID = IDTCH2O
-               CASE ( 9 )
-                  ID = IDTPRPE
-               CASE DEFAULT
-                  ID = -1
-            END SELECT
-            IF ( ID <= 0 ) CYCLE
-
-            ! Does corresponding HEMCO tracer exist?
-            HcoID = GetHcoID( TrcID=ID )
-            IF ( HcoID <= 0 ) CYCLE
-
-            ! Make sure all emissions above LMAX are zero
-            IF ( ASSOCIATED( HcoState%Spc(HcoID)%Emis%Val) ) THEN
-               HcoState%Spc(HcoID)%Emis%Val(I,J,LMAX:LLPAR) = 0.0_hp
-            ENDIF
-         ENDDO !N
-
-      ENDDO !I
-      ENDDO !J
-!$OMP END PARALLEL DO
-
-      ! Return w/ success
-      HcoState => NULL()
-      RC = GIGC_SUCCESS
-
-      END SUBROUTINE EMISSVOC
 !EOC
 END MODULE EMISSIONS_MOD

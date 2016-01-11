@@ -38,7 +38,7 @@ MODULE HCO_Config_Mod
   USE HCO_DIAGN_MOD
   USE HCO_CHARTOOLS_MOD
   USE HCO_FILEDATA_MOD,       ONLY : FileData
-  USE HCO_DATACONT_MOD,       ONLY : DataCont, ListCont, SclMax 
+  USE HCO_DATACONT_MOD,       ONLY : DataCont, ListCont
   USE HCO_STATE_MOD,          ONLY : HCO_State
 
   IMPLICIT NONE
@@ -59,7 +59,6 @@ MODULE HCO_Config_Mod
   PRIVATE :: ReadSettings
   PRIVATE :: ExtSwitch2Buffer
   PRIVATE :: ConfigList_AddCont
-  PRIVATE :: Config_ReadLine
   PRIVATE :: Config_ReadCont
   PRIVATE :: RegisterPrepare
   PRIVATE :: Get_targetID 
@@ -102,12 +101,12 @@ MODULE HCO_Config_Mod
   ! be added to ConfigList
   TYPE(ListCont), POINTER     :: ConfigList => NULL()
 
-  ! Configuration file read or not? 
-  LOGICAL              :: ConfigFileRead = .FALSE. 
-
   ! SetReadList called or not?
   LOGICAL              :: SetReadListCalled = .FALSE.
 
+  ! Configuration file read or not? 
+  LOGICAL              :: ConfigFileRead = .FALSE.
+ 
   !----------------------------------------------------------------
   ! MODULE ROUTINES follow below
   !----------------------------------------------------------------
@@ -131,25 +130,26 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Config_ReadFile( am_I_Root, ConfigFile, Phase, RC )
+  SUBROUTINE Config_ReadFile( am_I_Root, ConfigFile, Phase, RC, IsNest )
 !
 ! !USES:
 !
-    USE inquireMod,       ONLY : findFreeLUN
-    USE CharPak_Mod,      ONLY : STRREPL
-    USE HCO_EXTLIST_MOD,  ONLY : AddExt, CoreNr, ExtNrInUse 
+    USE inquireMod,        ONLY : findFreeLUN
+    USE CharPak_Mod,       ONLY : STRREPL
+    USE HCO_EXTLIST_MOD,   ONLY : AddExt, CoreNr, ExtNrInUse 
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,            INTENT(IN)    :: am_I_Root   ! root CPU?
-    CHARACTER(LEN=*),   INTENT(IN)    :: ConfigFile  ! Full file name
-    INTEGER,            INTENT(IN)    :: Phase       ! 0: all
-                                                     ! 1: Settings and switches only
-                                                     ! 2: fields only 
+    LOGICAL,            INTENT(IN)              :: am_I_Root  ! root CPU?
+    CHARACTER(LEN=*),   INTENT(IN)              :: ConfigFile ! Full file name
+    INTEGER,            INTENT(IN)              :: Phase      ! 0: all
+                                                              ! 1: Settings and switches only
+                                                              ! 2: fields only
+    LOGICAL,            INTENT(IN   ), OPTIONAL :: IsNest     ! Nested call? 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,            INTENT(INOUT) :: RC          ! Success?
+    INTEGER,            INTENT(INOUT)           :: RC         ! Success?
 !
 ! !REVISION HISTORY:
 !  17 Sep 2012 - C. Keller   - Initialization
@@ -158,6 +158,8 @@ CONTAINS
 !                              us handle extra-long species lists
 !  13 Feb 2015 - C. Keller   - Removed section extension data: these are now
 !                              listed in section base emissions.
+!  11 Dec 2015 - C. Keller   - Read settings and extension switches even for
+!                              nested configuration files.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -167,7 +169,9 @@ CONTAINS
     INTEGER              :: NN
     INTEGER              :: IU_HCO, IOS
     LOGICAL              :: AIR,    EOF
+    LOGICAL              :: EXISTS, NEST
     CHARACTER(LEN=255)   :: MSG,    LOC
+    CHARACTER(LEN=2047)  :: CFDIR 
     CHARACTER(LEN=2047)  :: LINE
 
     !======================================================================
@@ -186,24 +190,65 @@ CONTAINS
     ! For convenience only
     AIR = am_I_Root
 
+    ! Nested call?
+    IF ( PRESENT(IsNest) ) THEN
+       NEST = IsNest
+    ELSE
+       NEST = .FALSE.
+    ENDIF
+
+    ! Prompt to standard output
+    IF ( am_I_Root ) THEN
+       WRITE(6,*) ' '
+       IF ( Phase == 1 ) THEN 
+          WRITE(6,*) 'Reading part 1 of HEMCO configuration file: ', TRIM(ConfigFile)
+       ELSEIF ( Phase == 2 ) THEN
+          WRITE(6,*) 'Reading part 2 of HEMCO configuration file: ', TRIM(ConfigFile)
+       ELSE
+          WRITE(6,*) 'Reading part 1+2 of HEMCO configuration file: ', TRIM(ConfigFile)
+       ENDIF
+    ENDIF
+
+    ! Extract configuration file directory. This is the directory containing the
+    ! configuration file. Any tokens $CFDIR in the given configuration file will
+    ! be replaced with the configuration file directory
+    CALL HCO_GetBase( ConfigFile, CFDIR, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Find free LUN
     IU_HCO = findFreeLUN()
+
+    INQUIRE( FILE=TRIM(ConfigFile), EXIST=EXISTS )
+    IF ( .NOT. EXISTS ) THEN
+       IF ( am_I_Root ) THEN
+          WRITE(*,*) 'Cannot read file - it does not exist: ', TRIM(ConfigFile)
+       ENDIF
+       RC = HCO_FAIL
+       RETURN
+    ENDIF
 
     ! Open configuration file
     OPEN ( IU_HCO, FILE=TRIM( ConfigFile ), STATUS='OLD', IOSTAT=IOS )
     IF ( IOS /= 0 ) THEN
        IF ( am_I_Root ) THEN
-          WRITE(*,*) 'Error reading ' // TRIM(ConfigFile)
+          WRITE(*,*) 'Error reading ', TRIM(ConfigFile)
        ENDIF 
        RC = HCO_FAIL
        RETURN 
     ENDIF 
 
-    ! Register HEMCO core as extension Nr. 0 (default). The core 
-    ! module is used by all HEMCO simulations, and the overall
+    ! Register HEMCO core as extension Nr. CoreNr (default). The 
+    ! core module is used by all HEMCO simulations, and the overall
     ! HEMCO settings are stored as options of this extension.
+    ! Note: cannot use HCO_GetOpt('Wildcard') for species here because 
+    ! this is linked to the core extension... 
     IF ( .NOT. ExtNrInUse( CoreNr ) ) THEN
-       CALL AddExt ( 'CORE', CoreNr, 'all' )
+       CALL AddExt ( am_I_Root, 'CORE', CoreNr, .TRUE., 'all', RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          WRITE(*,*) 'Error adding CORE extension' 
+          RC = HCO_FAIL
+          RETURN
+       ENDIF
     ENDIF
 
     ! NN counts how many sections have ben read already
@@ -213,11 +258,12 @@ CONTAINS
     DO
 
        ! Read a line from the file, exit if EOF
-       LINE = Config_ReadLine ( IU_HCO, EOF )
+       CALL HCO_ReadLine ( IU_HCO, LINE, EOF, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( EOF ) EXIT
 
        ! Replace tab characters in LINE (if any) w/ spaces
-       CALL STRREPL( LINE, HCO_TAB(), HCO_SPC() )
+       CALL STRREPL( LINE, HCO_TAB, HCO_SPC )
 
        ! Read settings if this is beginning of settings section 
        IF ( INDEX ( LINE, 'BEGIN SECTION SETTINGS' ) > 0 ) THEN
@@ -256,7 +302,7 @@ CONTAINS
 
           ! Read data and write into container
           IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
-             CALL Config_ReadCont( AIR, IU_HCO, 1, EOF, RC )
+             CALL Config_ReadCont( AIR, IU_HCO, CFDIR, HCO_DCTTYPE_BASE, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
 
@@ -268,7 +314,7 @@ CONTAINS
        ! scale factor.
        ELSE IF ( INDEX ( LINE, 'BEGIN SECTION SCALE FACTORS' ) > 0 ) THEN
 
-          CALL Config_ReadCont( AIR, IU_HCO, 2, EOF, RC )
+          CALL Config_ReadCont( AIR, IU_HCO, CFDIR, HCO_DCTTYPE_SCAL, EOF, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( EOF ) EXIT
 
@@ -276,7 +322,7 @@ CONTAINS
        ELSE IF ( INDEX ( LINE, 'BEGIN SECTION MASKS' ) > 0 ) THEN
 
           IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
-             CALL Config_ReadCont( AIR, IU_HCO, 3, EOF, RC )
+             CALL Config_ReadCont( AIR, IU_HCO, CFDIR, HCO_DCTTYPE_MASK, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
 
@@ -289,7 +335,7 @@ CONTAINS
 
     ! Check if we caught all sections. Do that only for phase 1. 
     ! Sections SETTINGS and extension switches are needed.
-    IF ( PHASE == 1 .AND. NN /= 2 ) THEN
+    IF ( PHASE == 1 .AND. NN /= 2 .AND. .NOT. NEST ) THEN
        WRITE(*,*) 'Expected 2 sections, found/read ', NN
        WRITE(*,*) 'Should read SETTINGS and EXTENSION SWITCHES'
        RC = HCO_FAIL
@@ -305,8 +351,10 @@ CONTAINS
     ENDIF 
 
     ! Configuration file is now read
-    IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
-       ConfigFileRead = .TRUE.
+    IF ( .NOT. NEST ) THEN
+       IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
+          ConfigFileRead = .TRUE.
+       ENDIF
     ENDIF
 
     ! Leave w/ success
@@ -415,35 +463,41 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Config_ReadCont( am_I_Root, IU_HCO, DctType, EOF, RC )
+  SUBROUTINE Config_ReadCont( am_I_Root, IU_HCO, CFDIR, DctType, EOF, RC )
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,  ONLY : ExtNrInUse
+    USE HCO_EXTLIST_MOD,  ONLY : ExtNrInUse, HCO_GetOpt
     USE HCO_TIDX_Mod,     ONLY : HCO_ExtractTime
     USE HCO_FILEDATA_Mod, ONLY : FileData_Init
     USE HCO_DATACONT_Mod, ONLY : CatMax, ZeroScalID
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL, INTENT(IN   ) :: am_I_Root  ! Root CPU?
-    INTEGER, INTENT(IN   ) :: IU_HCO     ! Logfile LUN
-    INTEGER, INTENT(IN   ) :: DctType    ! 1=base; 2=scale; 3=mask
+    LOGICAL,          INTENT(IN   ) :: am_I_Root ! Root CPU?
+    INTEGER,          INTENT(IN   ) :: IU_HCO    ! Logfile LUN
+    CHARACTER(LEN=*), INTENT(IN   ) :: CFDIR     ! Configuration file directory
+    INTEGER,          INTENT(IN   ) :: DctType   ! 1=base; 2=scale; 3=mask
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    LOGICAL, INTENT(INOUT) :: EOF        ! end of file encountered?
+    LOGICAL,          INTENT(INOUT) :: EOF       ! end of file encountered?
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(  OUT) :: RC         ! error code
+    INTEGER,          INTENT(  OUT) :: RC        ! error code
 ! 
 ! !REVISION HISTORY: 
 !  03 Jan 2014 - C. Keller - Initial version 
 !  29 Dec 2014 - C. Keller - Added optional 11th element for scale factors. This
 !                            value will be interpreted as mask field (applied to
 !                            this scale factor only).
-!  27 Feb 2015 - C. Keller - Added CycleFlag 4 (interpolation)
+!  27 Feb 2015 - C. Keller - Added CycleFlag 'I' (interpolation)
+!  13 Mar 2015 - C. Keller - Added include files (nested configuration files)
+!                            and CFDIR argument.
+!  23 Sep 2015 - C. Keller - Added cycle flags 'A' and 'RA' (for averaging).
+!  06 Oct 2015 - C. Keller - Added cycle flags 'EF' and 'RF' (fields must be 
+!                            found).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -460,12 +514,15 @@ CONTAINS
     INTEGER                   :: Int4
     INTEGER                   :: nCat
     INTEGER                   :: Cats(CatMax)
+    INTEGER                   :: STRLEN
     LOGICAL                   :: SKIP
     CHARACTER(LEN= 31)        :: cName
     CHARACTER(LEN=255)        :: srcFile
     CHARACTER(LEN= 31)        :: srcVar
     CHARACTER(LEN= 31)        :: srcTime
-    CHARACTER(LEN=  1)        :: TmCycle 
+    CHARACTER(LEN=  2)        :: TmCycle 
+    CHARACTER(LEN=  1)        :: WildCard
+    CHARACTER(LEN=  1)        :: Separator
     CHARACTER(LEN= 31)        :: srcDim
     CHARACTER(LEN= 31)        :: srcUnit
     CHARACTER(LEN= 31)        :: SpcName 
@@ -475,7 +532,7 @@ CONTAINS
     CHARACTER(LEN=255)        :: LINE
 
     ! Arrays
-    INTEGER                   :: SplitInts(SclMax)
+    INTEGER                   :: SplitInts(255)
 
     ! Pointers
     TYPE(ListCont), POINTER   :: Lct => NULL()
@@ -493,6 +550,10 @@ CONTAINS
     SKIP           = .FALSE.
     nCat           = -1
 
+    ! Get tokens
+    WildCard  = HCO_GetOpt( 'Wildcard'  )
+    Separator = HCO_GetOpt( 'Separator' )
+
     ! Repeat until end of the given section is found 
     DO
 
@@ -502,7 +563,7 @@ CONTAINS
        ! configuration file input parameter, need to use a different
        ! call for the three data types.
        !==============================================================
-       IF ( DctType == 1 ) THEN
+       IF ( DctType == HCO_DCTTYPE_BASE ) THEN
           CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,    2,  &
                                    srcFile,   3,      srcVar,   4,  &
                                    srcTime,   5,      TmCycle,  6,  &
@@ -513,7 +574,7 @@ CONTAINS
                                    Int3,      1,      STAT,         &
                                    OutLine=LINE                      )
 
-       ELSE IF ( DctType == 2 ) THEN
+       ELSEIF ( DctType == HCO_DCTTYPE_SCAL ) THEN
           CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,    2,  &
                                    srcFile,   3,      srcVar,   4,  &
                                    srcTime,   5,      TmCycle,  6,  &
@@ -522,17 +583,18 @@ CONTAINS
                                    Char2,    -1,                    &
                                    Int1,      1,      Int2,     9,  &
                                    Int3,     10,      STAT,         &
-                                   optcl=10                          )
+                                   optcl=10    ,      OutLine=LINE   )
   
-       ELSE IF ( DctType == 3 ) THEN
+       ELSEIF ( DctType == HCO_DCTTYPE_MASK ) THEN
           CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,    2,  &
                                    srcFile,   3,      srcVar,   4,  &
                                    srcTime,   5,      TmCycle,  6,  &
                                    srcDim,    7,      srcUnit,  8,  &
                                    SpcName,  -1,      Char1,   10,  &
-                                   Char2,    -1,                    &
+                                   Char2,    11,                    &
                                    Int1,      1,      Int2,     9,  &
-                                   Int3,     -1,      STAT           )
+                                   Int3,     -1,      STAT,         &
+                                   optcl=11,          OutLine=LINE   )
        ENDIF
 
        !--------------------------------------------------------------
@@ -554,7 +616,7 @@ CONTAINS
        IF ( STAT == 10 ) THEN
           EXIT
        ENDIF
-               
+       
        ! Error if not enough entries found 
        IF ( STAT == 100 ) THEN
           CALL HCO_ERROR ( 'STAT == 100', RC, THISLOC=LOC )
@@ -562,21 +624,36 @@ CONTAINS
        ENDIF
 
        ! -------------------------------------------------------------
-       ! Check for emission shortcuts. Base emissions can be bracketed
-       ! into 'collections'. 
+       ! Check for emission shortcuts. Fields can be bracketed into 
+       ! 'collections'. 
        ! -------------------------------------------------------------
-       IF ( DctType == 1 ) THEN
-
-          CALL BracketCheck( am_I_Root, STAT, LINE, SKIP, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL BracketCheck( am_I_Root, STAT, LINE, SKIP, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
  
-          ! Skip if needed
-          IF ( SKIP ) CYCLE
+       ! Skip if needed
+       IF ( SKIP ) CYCLE
 
-          ! Can advance to next line if this was a bracket line: nothing
-          ! else to do with this line.
-          IF ( STAT == 5 .OR. STAT == 6 ) CYCLE
+       ! Can advance to next line if this was a bracket line: nothing
+       ! else to do with this line.
+       IF ( STAT == 5 .OR. STAT == 6 ) CYCLE
 
+       ! Read include file. Configuration files can be 'nested', e.g. 
+       ! configuration files can be included into the 'main' configuration
+       ! file. These files must be listed as '>>>include FileName', where
+       ! FileName is the actual path of the file. 
+       IF ( STAT == 1000 ) THEN
+
+          ! Call the parser. This is to make sure that any $ROOT statements
+          ! will be evaluated properly. The configuration file must not 
+          ! contain any data tokens ($YR, $MM, etc.).
+          CALL HCO_CharParse ( LINE, 0, 0, 0, 0, 0, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          CALL Config_ReadFile( am_I_Root, LINE, 0, RC, IsNest=.TRUE. )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! All done with this line
+          CYCLE
        ENDIF
 
        ! Output status should be 0 if none of the statuses above applies 
@@ -589,7 +666,7 @@ CONTAINS
        ! use. Otherwise, we can ignore this line completely! The 
        ! extension switches are read and evaluated prior to the 
        ! extension data!
-       IF ( DctType == 1 .AND. .NOT. ExtNrInUse( Int3 ) ) CYCLE 
+       IF ( DctType == HCO_DCTTYPE_BASE .AND. .NOT. ExtNrInUse( Int3 ) ) CYCLE 
 
        !==============================================================
        ! Create and fill list container and add to ConfigList 
@@ -609,7 +686,7 @@ CONTAINS
        Lct%Dct%cName        = cName
 
        ! Base container specific attributes
-       IF ( DctType == 1 ) THEN       
+       IF ( DctType == HCO_DCTTYPE_BASE ) THEN       
   
           ! Set species name, extension number, emission category, 
           ! hierarchy
@@ -619,7 +696,7 @@ CONTAINS
 
           ! Extract category from character 2. This can be up to 
           ! CatMax integers, or empty. 
-          CALL HCO_CharSplit( Char2, HCO_SEP(), HCO_WCD(), Cats, nCat, RC ) 
+          CALL HCO_CharSplit( Char2, Separator, Wildcard, Cats, nCat, RC ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( nCat == 0 ) THEN
              Lct%Dct%Cat = -999
@@ -629,13 +706,14 @@ CONTAINS
 
           ! Set scale factor IDs into Scal_cID. These values will be
           ! replaced lateron with the container IDs (in register_base)!
-          ! Note: SplitInts is of same lenghth SclMax as Scal_cID.
-          ALLOCATE ( Lct%Dct%Scal_cID(SclMax) )
-          Lct%Dct%Scal_cID(:) = -999
-          CALL HCO_CharSplit( Char1, HCO_SEP(), HCO_WCD(), &
+          CALL HCO_CharSplit( Char1, Separator, Wildcard, &
                               SplitInts, nScl, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          Lct%Dct%Scal_cID(1:nScl) = SplitInts(1:nScl)
+          IF ( nScl > 0 ) THEN
+             ALLOCATE ( Lct%Dct%Scal_cID(nScl) )
+             Lct%Dct%Scal_cID(1:nScl) = SplitInts(1:nScl)
+             Lct%Dct%nScalID          = nScl                
+          ENDIF
 
           ! Register species name. A list of all species names can be
           ! returned to the atmospheric model to match HEMCO species 
@@ -644,7 +722,8 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN
     
        ! Scale factor & mask specific attributes
-       ELSE IF ( DctType == 2 .OR. DctType == 3 ) THEN
+       ELSE IF ( DctType == HCO_DCTTYPE_SCAL .OR. &
+                 DctType == HCO_DCTTYPE_MASK       ) THEN
             
           ! Set scale factor ID and data operator
           Lct%Dct%ScalID = Int1 
@@ -680,11 +759,18 @@ CONTAINS
           Dta => NULL()
           CALL FileData_Init ( Dta )
 
-          ! Set source file name, file variable, and original data unit.
-          ! In an ESMF environment, the source data will be imported 
-          ! through ExtData by name, hence need to set ncFile equal to
-          ! container name!
+          ! Set source file name. Check if the read file name starts 
+          ! with the configuration file token '$CFDIR', in which case
+          ! we replace this value with the passed CFDIR value.
+          STRLEN = LEN(srcFile)
+          IF ( STRLEN > 6 ) THEN
+             IF ( srcFile(1:6) == '$CFDIR' ) THEN
+                srcFile = TRIM(CFDIR) // TRIM(srcFile(7:STRLEN))
+             ENDIF
+          ENDIF
           Dta%ncFile    = srcFile
+
+          ! Set source variable and original data unit.
           Dta%ncPara    = srcVar
           Dta%OrigUnit  = srcUnit
 
@@ -718,23 +804,38 @@ CONTAINS
 #endif
 
           ! Set time cycling behaviour. Possible values are: 
-          ! - "C": cycling     (CycleFlag = 1) --> Default
-          ! - "R": range       (CycleFlag = 2)
-          ! - "E": exact       (CycleFlag = 3)
-          ! - "I": interpolate (CycleFlag = 4)
+          ! - "C" : cycling --> Default
+          ! - "R" : range
+          ! - "RF": range forced (error if not in range)
+          ! - "E" : exact
+          ! - "EF": exact forced (error if not exist)
+          ! - "I" : interpolate 
+          ! - "A" : average
+          ! - "RA": range, average outside 
+          Dta%MustFind  = .FALSE.
           IF ( TRIM(TmCycle) == "R" ) THEN
-             Dta%CycleFlag = 2
+             Dta%CycleFlag = HCO_CFLAG_RANGE
+          ELSEIF ( TRIM(TmCycle) == "RF" ) THEN
+             Dta%CycleFlag = HCO_CFLAG_RANGE
+             Dta%MustFind  = .TRUE.
           ELSEIF ( TRIM(TmCycle) == "E" ) THEN
-             Dta%CycleFlag = 3
+             Dta%CycleFlag = HCO_CFLAG_EXACT
+          ELSEIF ( TRIM(TmCycle) == "EF" ) THEN
+             Dta%CycleFlag = HCO_CFLAG_EXACT
+             Dta%MustFind  = .TRUE.
           ELSEIF ( TRIM(TmCycle) == "I" ) THEN
-             Dta%CycleFlag = 4
+             Dta%CycleFlag = HCO_CFLAG_INTER
           ELSEIF ( TRIM(TmCycle) == "C" ) THEN
-             Dta%CycleFlag = 1
+             Dta%CycleFlag = HCO_CFLAG_CYCLE
+          ELSEIF ( TRIM(TmCycle) == "A" ) THEN
+             Dta%CycleFlag = HCO_CFLAG_AVERG
+          ELSEIF ( TRIM(TmCycle) == "RA" ) THEN
+             Dta%CycleFlag = HCO_CFLAG_RANGEAVG
           ELSEIF ( TRIM(TmCycle) == "-" ) THEN
-             Dta%CycleFlag = 1
+             Dta%CycleFlag = HCO_CFLAG_CYCLE
           ELSE
              MSG = 'Invalid time cycling attribute: ' // &
-                  TRIM(TmCycle) // ' --> ' // TRIM(cName)
+                   TRIM(TmCycle) // ' - in ' // TRIM(cName)
              CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
@@ -742,29 +843,32 @@ CONTAINS
           ! Set space dimension. This will determine the dimension of the
           ! data array vector, i.e. 3D or 2D. Different time slices will
           ! be stored as different vector elements.
-          IF ( TRIM(srcDim) == 'xy' ) THEN
-             Dta%SpaceDim = 2
-          ELSEIF ( TRIM(srcDim) == 'xyz' ) THEN
-             Dta%SpaceDim = 3
-          ENDIF
+          ! For 3D data, it is now possible to explicitly set the number 
+          ! of vertical levels to be used, as well as the 'reading 
+          ! direction' (up or down). These information is also extracted
+          ! from srcDim and will be stored in variable Dta%Levels.
+          ! (ckeller, 5/20/15)
+
+          CALL ExtractSrcDim( am_I_Root, srcDim, Dta, RC ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! For scale factors: check if a mask is assigned to this scale
           ! factor. In this case, pass mask ID to first slot of Scal_cID
           ! vector. This value will be set to the container ID of the
           ! corresponding mask field lateron.
-          IF ( DctType == 2 .AND. Int3 > 0 ) THEN
-             ALLOCATE ( Lct%Dct%Scal_cID(SclMax) )
-             Lct%Dct%Scal_cID(:) = -999
+          IF ( DctType == HCO_DCTTYPE_SCAL .AND. Int3 > 0 ) THEN
+             ALLOCATE ( Lct%Dct%Scal_cID(1) )
              Lct%Dct%Scal_cID(1) = Int3
+             Lct%Dct%nScalID     = 1
           ENDIF 
 
           ! For masks: extract grid box edges. These will be used later 
           ! on to determine if emissions have to be considered by this
           ! CPU.
-          IF ( DctType == 3 ) THEN
+          IF ( DctType == HCO_DCTTYPE_MASK ) THEN
                
              ! Extract grid box edges. Need to be four values.
-             CALL HCO_CharSplit ( Char1, HCO_SEP(), HCO_WCD(), & 
+             CALL HCO_CharSplit ( Char1, Separator, Wildcard, & 
                                   SplitInts, N, RC ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( N /= 4 ) THEN
@@ -780,6 +884,12 @@ CONTAINS
              Dta%ncYrs(2) = SplitInts(2)
              Dta%ncMts(1) = SplitInts(3)
              Dta%ncMts(2) = SplitInts(4)
+
+             ! Make sure that masks are always being read if specified so.
+             IF ( Char2(1:1) == 'y' .OR. Char2(1:1) == 'Y' ) THEN
+                CALL ScalID2List( Lct%Dct%ScalID, RC )
+                IF ( RC /= HCO_SUCCESS ) RETURN 
+             ENDIF
           ENDIF
        ENDIF
 
@@ -821,7 +931,25 @@ CONTAINS
 ! !IROUTINE: BracketCheck
 !
 ! !DESCRIPTION: Subroutine BracketCheck checks if base emission data is within
-! a bracket and if that field shall be ignored or not. 
+! a bracket and if that field shall be ignored or not. Brackets can be used to
+! lump entires of the HEMCO configuration file into collections that can be
+! collectively enabled or disabled. The first entry of a collection is marked
+! adding an 'opening bracket' to the HEMCO configuration file (on the line
+! above the entry). Opening brackets must start with three opening brackets,
+! e.g.: '(((TEST'. Similarly, the end of a collection is marked by placing a
+! closing bracket after the last entry of the collection: '))))TEST'. 
+! Brackets can be enabled / disabled in the EXTENSION SWITCH section of the
+! HEMCO configuration file:
+! \# ExtNr ExtName           on/off  Species 
+! 0       Base              : on    *
+!     --> TEST              :       true
+!\\
+!\\
+! It is also possible to use 'opposite' brackets, e.g. to use a collection 
+! only if the given setting is *disabled*. This can be achieved by precede
+! the collection word with '.not.', e.g. '(((.not.TEST' and '))).not.TEST'.
+! Similarly, multiple collections can be combined to be evaluated together,
+! e.g. NAME1.or.NAME2. 
 !\\
 !\\
 ! !INTERFACE:
@@ -830,7 +958,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
+    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, GetExtNr
 !
 ! !INPUT PARAMETERS:
 !
@@ -845,6 +973,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Feb 2015 - C. Keller   - Initial version.
+!  12 Mar 2015 - C. Keller   - Added 'mirror' option. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -853,14 +982,16 @@ CONTAINS
 !
     ! Maximum number of nested brackets
     INTEGER, PARAMETER            :: MAXBRACKNEST = 5
-    INTEGER                       :: STRLEN
+    INTEGER                       :: IDX, STRLEN, ExtNr
     LOGICAL                       :: FOUND
-    LOGICAL                       :: UseBracket
+    LOGICAL                       :: UseBracket, UseThis
     LOGICAL                       :: verb
+    LOGICAL                       :: REV
     INTEGER, SAVE                 :: NEST      = 0
     INTEGER, SAVE                 :: SKIPLEVEL = 0
     CHARACTER(LEN=255), SAVE      :: AllBrackets(MAXBRACKNEST) = ''
-    CHARACTER(LEN=255)            :: MSG, TmpBracket
+    CHARACTER(LEN=255)            :: TmpBracket, CheckBracket, ThisBracket
+    CHARACTER(LEN=255)            :: MSG
 
     CHARACTER(LEN=255), PARAMETER :: LOC = 'BracketCheck (hco_config_mod.F90)'
 
@@ -869,7 +1000,7 @@ CONTAINS
     !======================================================================
 
     ! Init
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+    verb = HCO_IsVerb( 1 ) 
 
     ! Get name of this bracket
     IF ( STAT == 5 .OR. STAT == 6 ) THEN
@@ -902,22 +1033,88 @@ CONTAINS
        ! if this is a nested bracket in an already skipped bracket. 
        IF ( .NOT. SKIP ) THEN
 
-          ! Check if this bracket has been registered as being used.
-          ! Scan all extensions, including the core one.
-          CALL GetExtOpt( -999, TRIM(TmpBracket), &
-             OptValBool=UseBracket, FOUND=FOUND, RC=RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Check for 'inverse' bracket. These start with '.not.'
+          CheckBracket = TmpBracket
+          REV          = .FALSE.
+          IF ( STRLEN > 5 ) THEN
+             IF ( TmpBracket(1:5) == '.not.' ) THEN
+                STRLEN       = LEN(TmpBracket)
+                CheckBracket = TmpBracket(6:STRLEN)
+                REV          = .TRUE.
+             ENDIF
+          ENDIF
 
-          ! If bracket name not found in options, skip content.
-          IF ( .NOT. FOUND ) THEN
-             MSG = 'This data collection is not defined - skip: '// &
-                   TRIM(TmpBracket)
-             CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
-             SKIP = .TRUE.
+          ! Check if the evaluation of CheckBracket returns true, i.e.
+          ! if any of the elements of CheckBracket is enabled. These 
+          ! can be multiple settings separated by '.or.'.
+          ! By default, don't use the content of the bracket
+          UseBracket = .FALSE.
 
-          ! Use value defined in HEMCO configuration file.
-          ELSE
-            SKIP = .NOT. UseBracket
+          ! Make sure variable ThisBracket is initialized. Needed in the
+          ! DO loop below
+          ThisBracket = ''
+
+          ! Pack the following into a DO loop to check for multiple 
+          ! flags separated by '.or.'.
+          DO
+
+             ! Leave do loop if ThisBracket is equal to CheckBracket. 
+             ! In this case, the entire bracket has already been 
+             ! evaluated.
+             IF ( TRIM(CheckBracket) == TRIM(ThisBracket) ) EXIT 
+
+             ! Evaluate bracket for '.or.':
+             IDX = INDEX(TRIM(CheckBracket),'.or.')
+
+             ! If '.or.' is a substring of the whole bracket, get
+             ! substring up to the first '.or.' and write it into variable
+             ! ThisBracket, which will be evaluated below. The tail
+             ! (everything after the first '.or.') is written into 
+             ! CheckBracket.
+             IF ( IDX > 0 ) THEN
+                ThisBracket  = CheckBracket(1:(IDX-1))
+                STRLEN       = LEN(CheckBracket)
+                CheckBracket = CheckBracket((IDX+4):STRLEN)
+
+             ! If there is no '.or.' in the bracket, simply evaluate the
+             ! whole bracket. 
+             ELSE
+                ThisBracket = CheckBracket
+             ENDIF
+
+             ! Check if this bracket has been registered as being used.
+             ! Scan all extensions, including the core one.
+             CALL GetExtOpt( -999, TRIM(ThisBracket), &
+                OptValBool=UseThis, FOUND=FOUND, RC=RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+   
+             ! If bracket name was found in options, update the UseBracket
+             ! variable accordingly.
+             IF ( FOUND ) THEN
+                UseBracket = UseThis
+ 
+             ! If bracket name was not found, check if this is an extension
+             ! name 
+             ELSE
+                ExtNr = GetExtNr( TRIM(ThisBracket) )
+                IF ( ExtNr > 0 ) THEN
+                   UseBracket = .TRUE.
+                ENDIF
+ 
+             ENDIF
+
+             ! As soon as UseBracket is true, we don't need to evaluate 
+             ! further
+             IF ( UseBracket ) EXIT
+
+          ENDDO 
+
+          ! We need to skip the content of this bracket?
+          SKIP = .NOT. UseBracket
+
+          ! Eventually reverse the skip flag 
+          IF ( REV ) THEN
+             SKIP = .NOT. SKIP
           ENDIF
 
           ! If bracket is skipped, adjust skip level accordingly.
@@ -1031,22 +1228,26 @@ CONTAINS
     ENDIF
 
     ! Init
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+    verb = HCO_IsVerb( 1 )  
 
-    ! Get number of currently used scale factors
-    N = 0
-    DO I = 1, SclMax 
-       IF ( Lct%Dct%Scal_cID(I) < 0 ) EXIT
-       N = N + 1
-    ENDDO
+!    ! Get number of currently used scale factors
+!    N = 0
+!    DO I = 1, SclMax 
+!       IF ( Lct%Dct%Scal_cID(I) < 0 ) EXIT
+!       N = N + 1
+!    ENDDO
+!
+!    ! There has to be space for scale factor zero.
+!    IF ( N >= SclMax ) THEN
+!       MSG = 'Cannot add shadow scale factor (zeros) - : ' // &
+!             'All scale factors already used: ' // TRIM(Lct%Dct%cName)
+!       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+!       RETURN
+!    ENDIF
 
-    ! There has to be space for scale factor zero.
-    IF ( N >= SclMax ) THEN
-       MSG = 'Cannot add shadow scale factor (zeros) - : ' // &
-             'All scale factors already used: ' // TRIM(Lct%Dct%cName)
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
+    ! Get number of scale factor IDs. Will add one more scale factor of
+    ! zero to this list.
+    N = Lct%Dct%nScalID
 
     ! Create 'shadow' container for every additional category.
     ! Add scale factor zero to it, so that emissions will all be zero.
@@ -1067,12 +1268,12 @@ CONTAINS
        Shd%Dct%Cat           = Cats(I)
 
        ! Pass scale factors, add scale factor of zero to it
-       ALLOCATE ( Shd%Dct%Scal_cID(SclMax) )
-       Shd%Dct%Scal_cID(:) = -999
+       ALLOCATE ( Shd%Dct%Scal_cID(N+1) )
        IF ( N > 0 ) THEN
           Shd%Dct%Scal_cID(1:N) = Lct%Dct%Scal_cID(1:N)
        ENDIF       
        Shd%Dct%Scal_cID(N+1) = ZeroScalID
+       Shd%Dct%nScalID       = N + 1
 
        ! Connect to data from main container. Make sure the new container
        ! is not identified as the home container (only points to the file
@@ -1156,7 +1357,7 @@ CONTAINS
        ! Add new container to configuration list and set data container
        ! attributes. 
        CALL ConfigList_AddCont ( Lct, ConfigList )
-       Lct%Dct%DctType      = 2
+       Lct%Dct%DctType      = HCO_DCTTYPE_SCAL 
        Lct%Dct%cName        = 'DUMMYSCALE_ZERO' 
        Lct%Dct%ScalID       = ZeroScalID 
        Lct%Dct%Oper         = 1
@@ -1166,7 +1367,7 @@ CONTAINS
        Dta%ncFile    = '0.0'
        Dta%ncPara    = '-'
        Dta%OrigUnit  = 'unitless'
-       Dta%CycleFlag = 1
+       Dta%CycleFlag = HCO_CFLAG_CYCLE 
        Dta%SpaceDim  = 2
        Dta%ncRead    = .FALSE.
        Dta%IsLocTime = .TRUE.
@@ -1175,7 +1376,7 @@ CONTAINS
        Lct%Dct%Dta => Dta
 
        ! verbose mode
-       IF ( am_I_Root .AND. HCO_VERBOSE_CHECK() ) THEN
+       IF ( HCO_IsVerb( 2 ) ) THEN 
           MSG = 'Created a fake scale factor with zeros'
           CALL HCO_MSG(MSG)
           MSG = 'This field will be used to artificially expand ' // &
@@ -1212,7 +1413,8 @@ CONTAINS
 ! !USES:
 !
     USE CHARPAK_Mod,        ONLY : STRREPL, STRSPLIT, TRANLC
-    USE HCO_EXTLIST_MOD,    ONLY : AddExt, AddExtOpt
+    USE HCO_EXTLIST_MOD,    ONLY : AddExt, AddExtOpt, HCO_GetOpt
+    USE HCO_EXTLIST_MOD,    ONLY : GetExtNr
 !
 ! !INPUT PARAMETERS:
 !
@@ -1228,6 +1430,12 @@ CONTAINS
 !  17 Sep 2013 - C. Keller   - Initialization (update)
 !  30 Sep 2014 - R. Yantosca - Declare SUBSTR and SPECS w/ 2047 characters,
 !                              which lets us handle extra-long species lists
+!  21 Apr 2015 - R. Yantosca - Bug fix: now look for END_SECTION before
+!                              testing if the line is a comment.  This will
+!                              allow for tags labeled "### END SECTION".
+!  12 Dec 2015 - C. Keller   - Added argument IgnoreIfExist to AddExtOpt to
+!                              make sure that nested configuration files do
+!                              use the settings set at highest level. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1235,7 +1443,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER               :: I, N, Idx, ExtNr
-    LOGICAL               :: Enabled
+    LOGICAL               :: Enabled, NewExt
     CHARACTER(LEN=255)    :: LOC
     CHARACTER(LEN=1023)   :: OPTS
     CHARACTER(LEN=2047)   :: LINE
@@ -1254,69 +1462,100 @@ CONTAINS
     DO 
 
        ! Read line 
-       LINE = Config_ReadLine ( IU_HCO, EOF )
+       CALL HCO_ReadLine ( IU_HCO, LINE, EOF, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Return if EOF
        IF ( EOF ) RETURN 
 
-       ! Jump to next line if line is commented out
-       IF ( LINE(1:1) == HCO_CMT() ) CYCLE
-
-       ! Exit here if end of section encountered 
+       ! Exit here if end of section encountered.  Place this before the 
+       ! test for comment to allow for "### END SECTION" tags (bmy, 4/21/15)
        IF ( INDEX ( LINE, 'END SECTION' ) > 0 ) RETURN 
+
+       ! Jump to next line if line is commented out
+       IF ( LINE(1:1) == HCO_CMT ) CYCLE
 
        ! Check if these are options
        IF ( INDEX(LINE,'-->') > 0 ) THEN
           ! Only add if extension is defined!
           IF ( ExtNr >= 0 .AND. Enabled ) THEN 
-             CALL AddExtOpt( TRIM(LINE), ExtNr, RC )
+             CALL AddExtOpt( am_I_Root, TRIM(LINE), ExtNr, RC, &
+                             IgnoreIfExist=.TRUE. )
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
           CYCLE
        ENDIF
 
+       ! ---------------------------------------------------------------------
+       ! If the line is not an extension option, treat it as an extension
+       ! definition (e.g. 108 MEGAN : on ISOP/ACET/PRPE/C2H4/ALD2)
+       ! ---------------------------------------------------------------------
+
        ! Split character string
-       CALL STRREPL ( LINE, HCO_TAB(), HCO_TAB() )
-       CALL STRSPLIT( LINE, HCO_SPC(), SUBSTR, N )    
+       CALL STRREPL ( LINE, HCO_TAB, HCO_TAB )
+       CALL STRSPLIT( LINE, HCO_SPC, SUBSTR, N )    
 
        ! Jump to next line if this line is empty
        IF ( N <= 1 ) CYCLE
-        
-       ! Check for on-switch. This is either the 
-       ! 3rd or the 4th substring, depending on the
-       ! location of the colon sign!
-       IF ( TRIM(SUBSTR(3)) /= ':' ) THEN
-          idx = 3
-       ELSE
-          idx = 4
-       ENDIF
-       CALL TRANLC( TRIM(SUBSTR(idx)) )
-       IF ( TRIM(SUBSTR(idx)) == 'on' ) THEN 
+
+       ! Check if extension already exists, e.g. if this is a nested HEMCO configuration
+       ! file and the same extension has already been defined. In that case, use the 
+       ! on/off toggle that has already been defined.
+       ExtNr = GetExtNr( TRIM(SUBSTR(2)) ) 
+       
+       ! Three possibilities: 
+       ! - ExtNr is -999              --> extension does not yet exist
+       ! - ExtNr is a positive number --> extension exists and is enabled 
+       ! - ExtNr is -1                --> extension exists and is disabled
+       IF ( ExtNr == -999 ) THEN
+          NewExt = .TRUE. 
+       ELSEIF ( ExtNr >= 0 ) THEN
+          NewExt  = .FALSE. 
           Enabled = .TRUE.
        ELSE
+          NewExt  = .FALSE. 
           Enabled = .FALSE.
        ENDIF
 
-       ! Register extension if enabled
-       IF ( Enabled ) THEN
-
+       ! The following needs to be done for new extensions only
+       IF ( NewExt ) THEN
+        
+          ! Check for on-switch. This is either the 
+          ! 3rd or the 4th substring, depending on the
+          ! location of the colon sign!
+          IF ( TRIM(SUBSTR(3)) /= ':' ) THEN
+             idx = 3
+          ELSE
+             idx = 4
+          ENDIF
+          CALL TRANLC( TRIM(SUBSTR(idx)) )
+          IF ( TRIM(SUBSTR(idx)) == 'on' ) THEN 
+             Enabled = .TRUE.
+          ELSE
+             Enabled = .FALSE.
+          ENDIF
+   
           ! Register extension name, number and species
           ! idx is the position of the species names
           idx = idx+1 
           READ( SUBSTR(1), * ) ExtNr
-          CALL AddExt ( TRIM(SUBSTR(2)), ExtNr, SUBSTR(idx) )
-
+          CALL AddExt ( am_I_Root, TRIM(SUBSTR(2)), ExtNr, Enabled, SUBSTR(idx), RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+   
           ! Register species (specNames)
-          CALL STRSPLIT( SUBSTR(idx), HCO_SEP(), SPECS, N ) 
-          IF ( N < 1 ) THEN
-             CALL HCO_ERROR ( 'No species defined', RC, THISLOC=LOC )
-             RETURN
+          IF ( Enabled ) THEN
+   
+             CALL STRSPLIT( SUBSTR(idx), HCO_GetOpt('Separator'), SPECS, N ) 
+             IF ( N < 1 ) THEN
+                CALL HCO_ERROR ( 'No species defined', RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+             DO I = 1, N
+                CALL SpecName_Register ( SPECS(I), RC )
+                IF ( RC /= HCO_SUCCESS ) RETURN
+             ENDDO
           ENDIF
-          DO I = 1, N
-             CALL SpecName_Register ( SPECS(I), RC )
-             IF ( RC /= HCO_SUCCESS ) RETURN
-          ENDDO
-       ENDIF
+       ENDIF ! NextExt
     ENDDO
 
     ! Leave w/ success
@@ -1343,6 +1582,8 @@ CONTAINS
 ! !USES:
 !
     USE HCO_EXTLIST_MOD,    ONLY : AddExtOpt, GetExtOpt, CoreNr
+    USE HCO_EXTLIST_MOD,    ONLY : HCO_SetDefaultToken 
+    USE HCO_EXTLIST_MOD,    ONLY : HCO_GetOpt
     USE CHARPAK_MOD,        ONLY : STRREPL, STRSPLIT, TRANLC
 !
 ! !INPUT PARAMETERS:
@@ -1356,7 +1597,13 @@ CONTAINS
     INTEGER, INTENT(INOUT) :: RC          ! Success/failure
 !
 ! !REVISION HISTORY:
-!  17 Sep 2013 - C. Keller: Initialization (update)
+!  17 Sep 2013 - C. Keller   - Initialization (update)
+!  21 Apr 2015 - R. Yantosca - Bug fix: now look for END_SECTION before
+!                              testing if the line is a comment.  This will
+!                              allow for tags labeled "### END SECTION".
+!  12 Dec 2015 - C. Keller   - Added argument IgnoreIfExist to AddExtOpt to
+!                              make sure that nested configuration files do
+!                              use the settings set at highest level. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1364,10 +1611,13 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER               :: I, N, POS
-    LOGICAL               :: verb, warn, track
+    INTEGER               :: verb
+    INTEGER               :: warn
     CHARACTER(LEN=255)    :: LINE, LOC
     CHARACTER(LEN=255)    :: LogFile
     CHARACTER(LEN=255)    :: DiagnPrefix
+    LOGICAL               :: FOUND
+    LOGICAL, SAVE         :: FIRST = .TRUE. 
 
     !======================================================================
     ! ReadSettings begins here
@@ -1375,12 +1625,6 @@ CONTAINS
 
     ! Enter
     LOC = 'ReadSettings (hco_config_mod.F90)'
-
-    ! Defaults
-    LogFile   = 'HEMCO.log'
-    verb      = .FALSE.
-    track     = .FALSE.
-    warn      = .TRUE.
 
     !-----------------------------------------------------------------------
     ! Read settings and add them as options to core extensions
@@ -1390,124 +1634,83 @@ CONTAINS
     DO 
 
        ! Read line 
-       LINE = Config_ReadLine ( IU_HCO, EOF )
+       CALL HCO_ReadLine ( IU_HCO, LINE, EOF, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Return if EOF
        IF ( EOF ) EXIT 
 
-       ! Jump to next line if line is commented out
-       IF ( LINE(1:1) == HCO_CMT() ) CYCLE
-
        ! Exit here if end of section encountered 
        IF ( INDEX ( LINE, 'END SECTION' ) > 0 ) EXIT 
+
+       ! Jump to next line if line is commented out
+       IF ( LINE(1:1) == HCO_CMT ) CYCLE
 
        ! Ignore empty lines
        IF ( TRIM(LINE) == '' ) CYCLE
 
        ! Add this option to HEMCO core 
-       CALL AddExtOpt ( TRIM(LINE), CoreNr, RC )
+       CALL AddExtOpt ( am_I_Root, TRIM(LINE), CoreNr, RC, &
+          IgnoreIfExist=.TRUE. )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     ENDDO
 
     !-----------------------------------------------------------------------
     ! Extract values to initialize error module and set some further
-    ! HEMCO variables. 
+    ! HEMCO variables. Only the first time the settings are read (settings
+    ! can be read multiple times if nested HEMCO configuration files are
+    ! used) 
     !-----------------------------------------------------------------------
 
-    ! Verbose mode?
-    CALL GetExtOpt( CoreNr, 'Verbose', OptValBool=verb, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( FIRST ) THEN
 
-    ! Logfile to write into
-    CALL GetExtOpt( CoreNr, 'Logfile', OptValChar=Logfile, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Verbose mode?
+       CALL GetExtOpt( CoreNr, 'Verbose', OptValInt=verb, FOUND=FOUND, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( .NOT. FOUND ) THEN
+          verb = 3
+          WRITE(*,*) 'Setting `Verbose` not found in HEMCO logfile - use 3'
+       ENDIF
+   
+       ! Logfile to write into
+       CALL GetExtOpt( CoreNr, 'Logfile', OptValChar=Logfile, FOUND=FOUND, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( .NOT. FOUND ) THEN
+          LogFile = 'HEMCO.log' 
+          WRITE(*,*) 'Setting `Logfile` not found in HEMCO logfile - use `HEMCO.log`'
+       ENDIF
+   
+       ! Prompt warnings to logfile? 
+       CALL GetExtOpt( CoreNr, 'Warnings', OptValInt=warn, FOUND=FOUND, RC=RC  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( .NOT. FOUND ) THEN
+          warn = 3
+          WRITE(*,*) 'Setting `Warnings` not found in HEMCO logfile - use 3' 
+       ENDIF
 
-    ! Prompt warnings to logfile? 
-    CALL GetExtOpt( CoreNr, 'Show warnings', OptValBool=warn, RC=RC  )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Initialize (standard) HEMCO tokens
+       CALL HCO_SetDefaultToken ( am_I_Root, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Track code? 
-    CALL GetExtOpt( CoreNr, 'Track', OptValBool=track, RC=RC  )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! If LogFile is equal to wildcard character, set LogFile to asterik 
-    ! character. This will ensure that all output is written to standard
-    ! output!
-    IF ( TRIM(LogFile) == HCO_WCD() ) LogFile = '*'
-
-    ! We should now have everything to define the HEMCO error settings
-    CALL HCO_ERROR_SET ( LogFile, verb, warn, track, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
+       ! If LogFile is equal to wildcard character, set LogFile to asterik 
+       ! character. This will ensure that all output is written to standard
+       ! output!
+       IF ( TRIM(LogFile) == HCO_GetOpt('Wildcard') ) LogFile = '*'
+   
+       ! We should now have everything to define the HEMCO error settings
+       CALL HCO_ERROR_SET ( am_I_Root, LogFile, verb, warn, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+       ! Update first flag
+       FIRST = .FALSE.
+ 
+    ENDIF
+ 
     ! Leave w/ success
     RC = HCO_SUCCESS
 
   END SUBROUTINE ReadSettings
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Config_ReadLine 
-!
-! !DESCRIPTION: Subroutine ConfigRead\_Line reads a line from the
-! emissions configuration file. 
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION Config_ReadLine( IU_HCO, EOF ) RESULT( LINE )
-!
-! !INPUT PARAMETERS: 
-!
-    INTEGER, INTENT(IN)  :: IU_HCO   ! HEMCO configfile LUN
-!
-! !OUTPUT PARAMETERS:
-!
-    LOGICAL, INTENT(OUT) :: EOF      ! End of file?
-! 
-! !REVISION HISTORY: 
-!  18 Sep 2013 - C. Keller - Initial version (adapted from B. Yantosca's code) 
-!  15 Jul 2014 - R. Yantosca - Remove dependency on routine IOERROR
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER            :: IOS
-!    CHARACTER(LEN=255) :: LINE, MSG
-    CHARACTER(LEN=255)  :: MSG
-    CHARACTER(LEN=2047) :: LINE
-
-    !=================================================================
-    ! Config_ReadLine begins here!
-    !=================================================================
-
-    ! Initialize
-    EOF = .FALSE.
-
-    ! Read a line from the file
-    READ( IU_HCO, '(a)', IOSTAT=IOS ) LINE
-
-    ! IO Status < 0: EOF condition
-    IF ( IOS < 0 ) THEN
-       EOF = .TRUE.
-       RETURN
-    ENDIF
-
-    ! IO Status > 0: true I/O error condition
-    IF ( IOS > 0 ) THEN
-       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-       WRITE( 6, 100   ) IOS
-100    FORMAT( 'ERROR ', i5, ' in Config_Readline (hco_config_mod.F90)' )
-       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-       STOP
-    ENDIF
-
-  END FUNCTION Config_ReadLine
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -1561,7 +1764,6 @@ CONTAINS
     INTEGER                      :: lon1, lon2, lat1, lat2
     INTEGER                      :: cpux1, cpux2, cpuy1, cpuy2
     CHARACTER(LEN=255)           :: MSG
-    LOGICAL                      :: verb
 
     !=================================================================
     ! RegisterPrepare begins here!
@@ -1570,9 +1772,6 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER ( 'RegisterPrepare', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN 
-
-    ! Check for verbose flag
-    verb = HCO_VERBOSE_CHECK() .and. am_I_Root
 
     ! Grid boundaries on this CPU. Will be needed to calculate 
     ! coverages. 
@@ -1584,8 +1783,12 @@ CONTAINS
     cpuy1 = CEILING(MINVAL(HcoState%Grid%YMID%Val))
     cpuy2 = CEILING(MAXVAL(HcoState%Grid%YMID%Val))
 
+    ! Make sure values are within -180.0 to 180.0
+    IF ( cpux1 >= 180 ) cpux1 = cpux1 - 360
+    IF ( cpux2 >= 180 ) cpux2 = cpux2 - 360
+
     ! verbose
-    IF ( verb ) THEN
+    IF ( HCO_IsVerb(1) ) THEN
        WRITE(MSG,*) 'Start to prepare fields for registering!'
        CALL HCO_MSG(MSG)
        WRITE(MSG,*) 'This CPU x-range: ', cpux1, cpux2
@@ -1606,14 +1809,14 @@ CONTAINS
        ENDIF
 
        ! verbose
-       IF ( verb ) THEN
+       IF ( HCO_IsVerb(3) ) THEN
           WRITE(MSG,*) 'Prepare ', TRIM(Lct%Dct%cName) 
           CALL HCO_MSG(MSG)
        ENDIF
  
        ! For base fields or data fields used in one of the HEMCO
        ! extensions:
-       IF ( Lct%Dct%DctType == 1 ) THEN
+       IF ( Lct%Dct%DctType == HCO_DCTTYPE_BASE ) THEN
 
           ! Only do for entries that will be used! 
           IF ( ExtNrInUse( Lct%Dct%ExtNr ) ) THEN
@@ -1624,7 +1827,7 @@ CONTAINS
              Lct%Dct%HcoID = ThisHcoID
 
              ! verbose
-             IF ( verb ) THEN
+             IF ( HCO_IsVerb(3) ) THEN
                 WRITE(MSG,*) 'Assigned HEMCO species ID: ', Lct%Dct%HcoID
                 CALL HCO_MSG(MSG)
              ENDIF
@@ -1636,8 +1839,8 @@ CONTAINS
           ENDIF
 
        ! Calculate coverage for masks 
-       ELSE IF ( Lct%Dct%DctType   == 3    .AND. &
-                 Lct%Dct%Dta%Cover == -999        ) THEN
+       ELSE IF ( Lct%Dct%DctType   == HCO_DCTTYPE_MASK .AND. &
+                 Lct%Dct%Dta%Cover == -999                   ) THEN
 
           ! Get mask edges
           lon1 = Lct%Dct%Dta%ncYrs(1)
@@ -1655,7 +1858,7 @@ CONTAINS
           Lct%Dct%Dta%ncYrs(:) = -999
           Lct%Dct%Dta%ncMts(:) = -999
 
-          IF ( verb ) THEN
+          IF ( HCO_IsVerb(3) ) THEN
              WRITE(MSG,*) 'Coverage: ', Lct%Dct%Dta%Cover
              CALL HCO_MSG(MSG)
           ENDIF
@@ -1717,7 +1920,7 @@ CONTAINS
     ! Scalars
     INTEGER               :: N, cID, HcoID
     INTEGER               :: targetID, FLAG
-    LOGICAL               :: Ignore, Add, Verb
+    LOGICAL               :: Ignore, Add
     CHARACTER(LEN=255)    :: MSG
 
     !======================================================================
@@ -1727,7 +1930,6 @@ CONTAINS
       ! Enter
     CALL HCO_ENTER ( 'Register_Base (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
 
     ! Point to next (first) line in ConfigList 
     CALL GetNextCont ( Lct, FLAG )
@@ -1744,7 +1946,7 @@ CONTAINS
        ENDIF
 
        ! Skip entry if it's not a base field 
-       IF ( (Lct%Dct%DctType /= 1) ) THEN
+       IF ( (Lct%Dct%DctType /= HCO_DCTTYPE_BASE) ) THEN
           CALL GetNextCont ( Lct, FLAG ); CYCLE
        ENDIF
 
@@ -1765,7 +1967,7 @@ CONTAINS
        ENDIF
 
        IF ( Ignore ) THEN
-          IF ( Verb ) THEN
+          IF ( HCO_IsVerb(1) ) THEN
              WRITE(MSG,*) &
                   'Register_Base: Ignore (and remove) base field ', &
                   TRIM(Lct%Dct%cName)
@@ -1779,7 +1981,7 @@ CONTAINS
        ENDIF
 
        ! Verbose mode 
-       IF ( Verb ) THEN
+       IF ( HCO_IsVerb(3) ) THEN
           WRITE(MSG,*) 'Register_Base: Checking ', TRIM(Lct%Dct%cName)
           CALL HCO_MSG(MSG)
        ENDIF
@@ -1790,18 +1992,8 @@ CONTAINS
        ! contains the scale factor IDs, hence need to convert to 
        ! container IDs. Beforehand, add scale factor IDs to internal 
        ! list of used scale factors (UnqScalIDs).
-       CALL ScalID_Register ( Lct%Dct%Scal_cID, RC )
+       CALL ScalID_Register ( Lct%Dct, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-
-       DO N = 1,SclMax
-          IF ( Lct%Dct%Scal_cID(N) <= 0 ) CYCLE 
-          CALL Get_cID ( Lct%Dct%Scal_cID(N), cID, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          Lct%Dct%Scal_cID(N) = cID
-
-          ! Vector Scal_cID of this container now points to cIDs
-          Lct%Dct%Scal_cID_Set = .TRUE.
-       ENDDO
 
        ! Get target ID of this container. The targetID corresponds
        ! to the container ID cID into which emissions data of the
@@ -1818,7 +2010,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! verbose 
-       IF ( Verb ) THEN
+       IF ( HCO_IsVerb(3) ) THEN
           WRITE(MSG,*) 'Container ID     : ', Lct%Dct%cID
           CALL HCO_MSG(MSG)
           WRITE(MSG,*) 'Assigned targetID: ', targetID
@@ -1846,7 +2038,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Print some information if verbose mode is on 
-       IF ( Verb ) THEN
+       IF ( HCO_IsVerb(2) ) THEN
           WRITE(MSG,*) 'Base field registered: ', TRIM(Lct%Dct%cName)
           CALL HCO_MSG(MSG)
        ENDIF
@@ -1908,7 +2100,6 @@ CONTAINS
     CHARACTER(LEN=255)        :: MSG
     CHARACTER(LEN=  5)        :: strID
     INTEGER                   :: ThisScalID
-    LOGICAL                   :: Verb
   
     !======================================================================
     ! Register_Scal begins here
@@ -1917,7 +2108,6 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER ( 'Register_Scal (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
 
     ! Loop over all scale factor ids
     TmpScalIDCont => ScalIDList
@@ -1952,7 +2142,7 @@ CONTAINS
        ENDIF
  
        ! Return w/ error if container not scale factor or mask
-       IF ( Lct%Dct%DctType == 1 ) THEN
+       IF ( Lct%Dct%DctType == HCO_DCTTYPE_BASE ) THEN
           WRITE ( strID, * ) ThisScalID 
           MSG = 'Container ID belongs to base field: ' // strID
           CALL HCO_ERROR ( MSG, RC)
@@ -1965,20 +2155,10 @@ CONTAINS
        ! We can do this while evaluating ScalIDList due to the dynamic 
        ! structure of the linked list with new containers simply being
        ! added to the end of the list.
-       IF ( ASSOCIATED(Lct%Dct%Scal_cID) ) THEN
+       IF ( Lct%Dct%nScalID > 0 ) THEN
 
-          CALL ScalID_Register ( Lct%Dct%Scal_cID, RC )
+          CALL ScalID_Register ( Lct%Dct, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-
-          ! Get container ID of mask and update cID value of the data
-          ! container accordingly.
-          CALL Get_cID ( Lct%Dct%Scal_cID(1), cID, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          Lct%Dct%Scal_cID(1) = cID
-
-          ! Vector Scal_cID of this container now points to cIDs
-          Lct%Dct%Scal_cID_Set = .TRUE.
-
        ENDIF
 
        ! Register container in ReadList. Containers will be listed 
@@ -1987,7 +2167,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Print some information if verbose mode is on 
-       IF ( Verb ) THEN
+       IF ( HCO_IsVerb(2) ) THEN
           WRITE(MSG,*) 'Scale field registered: ', TRIM(Lct%Dct%cName)
           CALL HCO_MSG(MSG)
        ENDIF
@@ -2056,7 +2236,9 @@ CONTAINS
 ! container contents! 
 !
 ! !REVISION HISTORY:
-!  11 Apr 2013 - C. Keller: Initialization
+!  11 Apr 2013 - C. Keller - Initialization
+!  07 Dec 2015 - C. Keller - Make sure emissions with limited time range do
+!                            never erase lower hierarchy base emissions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2071,7 +2253,7 @@ CONTAINS
     INTEGER                   :: HcoID, Cat, Hier, Scal, ExtNr, cID
     INTEGER                   :: tmpID
     INTEGER                   :: I, J, FLAG1, tmpCov
-    LOGICAL                   :: found, verb, sameCont
+    LOGICAL                   :: found, sameCont
     CHARACTER(LEN=255)        :: MSG
     CHARACTER(LEN=  7)        :: strID
 
@@ -2082,9 +2264,6 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER ( 'Get_targetID (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Get verbose flag from HCO_State
-    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
 
     ! Get Tracer ID, category and hierarchy of entry to be checked
     cID   = Lct%Dct%cID
@@ -2117,45 +2296,47 @@ CONTAINS
     ! of them is a mask that has no valid entries over the domain of 
     ! this CPU. In this case we don't have to consider this field at 
     ! all!
-    DO I = 1, SclMax
-
-       ! Check if it's a valid scale factor
-       IF ( Lct%Dct%Scal_cID(I) < 0 ) CYCLE
-
-       ! Find container with this container ID
-       ! Note: this should always look up the container ID, but make
-       ! check for safety's sake. 
-       tmpID = Lct%Dct%Scal_cID(I)
-       IF ( .NOT. Lct%Dct%Scal_cID_set ) THEN
-          CALL ListCont_Find ( ConfigList, tmpID, 1, FOUND, mskLct )
-       ELSE
-          CALL ListCont_Find ( ConfigList, tmpID, 0, FOUND, mskLct )
-       ENDIF
-
-       ! Error if scale factor not found
-       IF ( .NOT. FOUND ) THEN
-          WRITE ( strID, * ) Lct%Dct%Scal_cID(I) 
-          MSG = 'No scale factor with cID: ' // TRIM(strID) 
-          CALL HCO_ERROR ( MSG, RC)
-          RETURN
-       ENDIF
-
-       ! Check if this is a mask with zero coverage over this CPU, in
-       ! which case we don't need to consider the base field at all! 
-       IF ( (mskLct%Dct%DctType  == 3 ) .AND. &
-            (mskLct%Dct%Dta%Cover == 0 )        ) THEN 
-          targetID = -999 
-          IF ( verb ) THEN 
-             WRITE(MSG,*) 'Data not defined over this CPU, skip ' // &
-                  TRIM(Lct%Dct%cName)
-             CALL HCO_MSG(MSG)
+    IF ( Lct%Dct%nScalID > 0 ) THEN
+       DO I = 1, Lct%Dct%nScalID
+   
+          ! Check if it's a valid scale factor
+          IF ( Lct%Dct%Scal_cID(I) < 0 ) CYCLE
+   
+          ! Find container with this container ID
+          ! Note: this should always look up the container ID, but make
+          ! check for safety's sake. 
+          tmpID = Lct%Dct%Scal_cID(I)
+          IF ( .NOT. Lct%Dct%Scal_cID_set ) THEN
+             CALL ListCont_Find ( ConfigList, tmpID, 1, FOUND, mskLct )
+          ELSE
+             CALL ListCont_Find ( ConfigList, tmpID, 0, FOUND, mskLct )
           ENDIF
+   
+          ! Error if scale factor not found
+          IF ( .NOT. FOUND ) THEN
+             WRITE ( strID, * ) Lct%Dct%Scal_cID(I) 
+             MSG = 'No scale factor with cID: ' // TRIM(strID) 
+             CALL HCO_ERROR ( MSG, RC)
+             RETURN
+          ENDIF
+   
+          ! Check if this is a mask with zero coverage over this CPU, in
+          ! which case we don't need to consider the base field at all! 
+          IF ( (mskLct%Dct%DctType  == HCO_DCTTYPE_MASK ) .AND. &
+               (mskLct%Dct%Dta%Cover == 0 )        ) THEN 
+             targetID = -999 
+             IF ( HCO_IsVerb(1) ) THEN 
+                WRITE(MSG,*) 'Data not defined over this CPU, skip ' // &
+                     TRIM(Lct%Dct%cName)
+                CALL HCO_MSG(MSG)
+             ENDIF
 
-          ! Return
-          CALL HCO_LEAVE ( RC )
-          RETURN 
-       ENDIF
-    ENDDO ! I 
+             ! Return
+             CALL HCO_LEAVE ( RC )
+             RETURN 
+          ENDIF
+       ENDDO ! I 
+    ENDIF 
       
     ! Now find out if there is another base field for the same species, 
     ! emission category and extension number, but higher hierarchy.
@@ -2180,7 +2361,7 @@ CONTAINS
        ENDIF
 
        ! Advance to next container if this is not a base field
-       IF ( tmpLct%Dct%DctType /= 1 ) THEN
+       IF ( tmpLct%Dct%DctType /= HCO_DCTTYPE_BASE ) THEN
           CALL GetNextCont ( tmpLct, FLAG1 ); CYCLE
        ENDIF
 
@@ -2204,43 +2385,58 @@ CONTAINS
           CALL GetNextCont ( tmpLct, FLAG1 ); CYCLE
        ENDIF
 
+       ! Advance to next container if this container has limited time 
+       ! coverage. Emissions with limited time coverage may not be used
+       ! during all of the simulation time, so it's important to keep the
+       ! lower hierarchy emission fields in memory in case that those need
+       ! to be used instead (e.g. if EDGAR shall only be used between years
+       ! 2005 and 2013, we should keep GEIA in case that we are outside of
+       ! that time window). 
+       IF ( ( tmpLct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE    ) .OR. &
+            ( tmpLct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT    ) .OR. &
+            ( tmpLct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGEAVG )      ) THEN 
+          CALL GetNextCont ( tmpLct, FLAG1 ); CYCLE
+       ENDIF
+
        ! Check for coverage of tmpLct. Default = full coverage (1) 
        tmpCov = 1 
 
        ! Check all scale factors of tmpLct to see if this base 
        ! field has full coverage over this CPU domain or not. 
-       DO I = 1, SclMax
-
-          ! Check if it's a valid scale factor
-          IF ( tmpLct%Dct%Scal_cID(I) < 0 ) CYCLE
-
-          tmpID = tmpLct%Dct%Scal_cID(I)
-          IF ( .NOT. tmpLct%Dct%Scal_cID_set ) THEN
-             CALL ListCont_Find ( ConfigList, tmpID, 1, FOUND, mskLct )
-          ELSE
-             CALL ListCont_Find ( ConfigList, tmpID, 0, FOUND, mskLct )
-          ENDIF
-
-          ! Error if container not found
-          IF ( .NOT. FOUND ) THEN
-             MSG = 'No container with cID: ' // TRIM(tmpLct%Dct%cName)
-             CALL HCO_ERROR ( MSG, RC)
-             RETURN
-          ENDIF
-
-          ! Write out coverage.
-          ! Note: If one mask has only partial coverage, retain that
-          ! value! If we encounter a mask with no coverage, set coverage
-          ! to zero and leave immediately. 
-          IF ( (mskLct%Dct%DctType == 3) ) THEN
-             IF ( mskLct%Dct%Dta%Cover == -1 ) THEN
-                tmpCov = -1
-             ELSEIF ( mskLct%Dct%Dta%Cover == 0 ) THEN
-                tmpCov = 0
-                EXIT
+       IF ( tmpLct%Dct%nScalID > 0 ) THEN
+          DO I = 1, tmpLct%Dct%nScalID
+   
+             ! Check if it's a valid scale factor
+             IF ( tmpLct%Dct%Scal_cID(I) < 0 ) CYCLE
+   
+             tmpID = tmpLct%Dct%Scal_cID(I)
+             IF ( .NOT. tmpLct%Dct%Scal_cID_set ) THEN
+                CALL ListCont_Find ( ConfigList, tmpID, 1, FOUND, mskLct )
+             ELSE
+                CALL ListCont_Find ( ConfigList, tmpID, 0, FOUND, mskLct )
              ENDIF
-          ENDIF
-       ENDDO ! I 
+   
+             ! Error if container not found
+             IF ( .NOT. FOUND ) THEN
+                WRITE(MSG,*) 'No scale factor with ID: ', tmpID
+                CALL HCO_ERROR ( MSG, RC)
+                RETURN
+             ENDIF
+   
+             ! Write out coverage.
+             ! Note: If one mask has only partial coverage, retain that
+             ! value! If we encounter a mask with no coverage, set coverage
+             ! to zero and leave immediately. 
+             IF ( (mskLct%Dct%DctType == HCO_DCTTYPE_MASK) ) THEN
+                IF ( mskLct%Dct%Dta%Cover == -1 ) THEN
+                   tmpCov = -1
+                ELSEIF ( mskLct%Dct%Dta%Cover == 0 ) THEN
+                   tmpCov = 0
+                   EXIT
+                ENDIF
+             ENDIF
+          ENDDO ! I
+       ENDIF
 
        ! If tmpLct has no coverage, we can ignore this tmpLct as 
        ! it will never overwrite data of currCont
@@ -2257,7 +2453,7 @@ CONTAINS
          ! replace all values of Lct. Hence, set targetID to -999
          ! (= ignore container) and return here.
        IF ( (tmpLct%Dct%Hier > Hier) .AND. (tmpCov==1) ) THEN
-          IF ( verb ) THEN
+          IF ( HCO_IsVerb(1) ) THEN
              WRITE(MSG,*) 'Skip container ', TRIM(Lct%Dct%cName), &
                           ' because of ', TRIM(tmpLct%Dct%cName)
              CALL HCO_MSG(MSG)
@@ -2285,13 +2481,17 @@ CONTAINS
           sameCont = .TRUE.
 
           ! Check for same scale factors
-          DO I = 1, SclMax
-             IF (  tmpLct%Dct%Scal_cID(I) /= &
-                  Lct%Dct%Scal_cID(I)     ) THEN
-                sameCont = .FALSE.
-                EXIT
-             ENDIF
-          ENDDO
+          IF ( tmpLct%Dct%nScalID /= Lct%Dct%nScalID ) THEN
+             sameCont = .FALSE.
+          ELSE
+             DO I = 1, tmpLct%Dct%nScalID
+                IF (  tmpLct%Dct%Scal_cID(I) /= &
+                     Lct%Dct%Scal_cID(I)     ) THEN
+                   sameCont = .FALSE.
+                   EXIT
+                ENDIF
+             ENDDO
+          ENDIF
 
           ! Check for same update frequencies
           IF ( sameCont ) THEN
@@ -2314,9 +2514,20 @@ CONTAINS
              ENDIF
           ENDIF
 
+          ! Check for same emitted level
+          IF ( sameCont ) THEN
+             IF ( ( tmpLct%Dct%Dta%SpaceDim /= Lct%Dct%Dta%SpaceDim ) .OR. &
+                  ( tmpLct%Dct%Dta%Levels   /= Lct%Dct%Dta%Levels   ) .OR. &
+                  ( tmpLct%Dct%Dta%Lev2D    /= Lct%Dct%Dta%Lev2D    )       ) THEN 
+                sameCont = .FALSE.
+             ENDIF
+          ENDIF
+
           ! Finally, check for "same" container names. This checks the 
-          ! container names ignoring the name 'tags'. 
-          sameCont = Check_ContNames( tmpLct, Lct )
+          ! container names ignoring the name 'tags'.
+          IF ( sameCont ) THEN 
+             sameCont = Check_ContNames( tmpLct, Lct )
+          ENDIF
 
           ! If "same" containers, set target ID to container ID of 
           ! tmpLct if this value is lower than current target ID. 
@@ -2492,13 +2703,14 @@ CONTAINS
 !  11 Dec 2013 - C. Keller - Added optional arguments inLine and outLine 
 !  29 Dec 2014 - C. Keller - Added optional argument optcl. Now use wrapper
 !                            routines READCHAR and READINT. 
+!  13 Mar 2015 - C. Keller - Added check for include files.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER               :: N, OPT
+    INTEGER               :: N, OPT, STRLEN, RC
     CHARACTER(LEN=255)    :: LINE
     CHARACTER(LEN=255)    :: SUBSTR(255) 
     LOGICAL               :: EOF
@@ -2516,7 +2728,16 @@ CONTAINS
     IF ( PRESENT(inLINE) ) THEN
        LINE = inLINE
     ELSE
-       LINE = Config_ReadLine ( IU_HCO, EOF )
+       ! Read line
+       CALL HCO_READLINE( IU_HCO, LINE, EOF, RC )
+
+       ! Return w/ error
+       IF ( RC /= HCO_SUCCESS ) THEN
+          STAT = 999
+          RETURN
+       ENDIF
+
+       ! End of file
        IF ( EOF ) THEN
           STAT = -999
           RETURN
@@ -2533,13 +2754,16 @@ CONTAINS
     ENDIF
 
     ! Return here with flag = 1 if line is commented 
-    IF ( LINE(1:1) == HCO_CMT() ) THEN
+    IF ( LINE(1:1) == HCO_CMT ) THEN
        STAT = 1
        RETURN
     ENDIF
 
+    ! Get string length
+    STRLEN = LEN(TRIM(LINE))
+
     ! Return here with flag = 5 is line is opening a (shortcut) bracket.
-    IF ( LEN(TRIM(LINE)) > 3 ) THEN
+    IF ( STRLEN > 3 ) THEN
        IF ( LINE(1:3) == '(((' ) THEN
           STAT = 5
           RETURN
@@ -2552,9 +2776,18 @@ CONTAINS
        ENDIF 
     ENDIF
 
+    ! Return with flag = 1000 if this is a link to an include file.
+    IF ( STRLEN > 11 ) THEN
+       IF ( LINE(1:10) == '>>>include' ) THEN
+          IF ( PRESENT(outLINE) ) outLINE = outLINE(12:STRLEN)
+          STAT = 1000
+          RETURN
+       ENDIF
+    ENDIF 
+
     ! Split line into columns
-    CALL STRREPL ( LINE, HCO_TAB(), HCO_SPC() )
-    CALL STRSPLIT( LINE, HCO_SPC(), SUBSTR, N ) 
+    CALL STRREPL ( LINE, HCO_TAB, HCO_SPC )
+    CALL STRSPLIT( LINE, HCO_SPC, SUBSTR, N ) 
 
     ! Also ignore empty lines 
     IF ( N <= 1 ) THEN
@@ -2673,6 +2906,10 @@ CONTAINS
 !
   SUBROUTINE READINT ( LINE, SUBSTR, N, intcl, intout, OPT, STAT )
 !
+! !USES:
+!
+    USE HCO_EXTLIST_MOD, ONLY : HCO_GetOpt
+!
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=255), INTENT(IN   )    :: LINE 
@@ -2703,7 +2940,7 @@ CONTAINS
           ENDIF
        ELSE
           ! Check for wildcard
-          IF ( SUBSTR(intcl) == HCO_WCD() ) THEN
+          IF ( SUBSTR(intcl) == TRIM(HCO_GetOpt('Wildcard')) ) THEN
              intout = -999
           ELSE
              READ( SUBSTR(intcl), * ) intout
@@ -3043,15 +3280,78 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ScalID_Register( ScalIDs, RC ) 
+  SUBROUTINE ScalID_Register( Dct, RC ) 
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN   ) :: ScalIDs(SclMax)
+    TYPE(DataCont), POINTER :: Dct 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(INOUT) :: RC 
+    INTEGER, INTENT(INOUT)  :: RC 
+!
+! !REVISION HISTORY:
+!  10 Jan 2014 - C. Keller: Initialization (update)
+!  29 Dec 2014 - C. Keller: Now add new container to end of list to allow
+!                           list being updated while calling Register_Scal.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER                    :: N, cID
+      
+    !======================================================================
+    ! ScalID_Register begins here
+    !======================================================================
+
+    ! Check for every element of ScalIDs, if this scale factor ID is
+    ! already a member of ScalIDList. If not, add it. 
+    DO N = 1, Dct%nScalID 
+       IF ( Dct%Scal_cID(N) < 0 ) CYCLE
+    
+       CALL ScalID2List( Dct%Scal_cID(N), RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+       ! Replace scale factor ID with container ID.
+       CALL Get_cID ( Dct%Scal_cID(N), cID, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       Dct%Scal_cID(N) = cID
+
+    ENDDO
+
+    ! Vector Scal_cID of this container now points to cIDs
+    Dct%Scal_cID_Set = .TRUE.
+
+    ! Leave w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE ScalID_Register
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ScalID2List
+!
+! !DESCRIPTION: Subroutine ScalID2List adds the scale factor IDs ScalIDs
+! to the list of scale factor IDs. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ScalID2List( ID, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER, INTENT(IN   )  :: ID
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(INOUT)  :: RC 
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
@@ -3069,7 +3369,6 @@ CONTAINS
     TYPE(ScalIDCont), POINTER  :: PrvScalIDCont => NULL() 
 
     ! Scalars
-    INTEGER                    :: N
     LOGICAL                    :: IsInList
       
     !======================================================================
@@ -3077,45 +3376,43 @@ CONTAINS
     !======================================================================
 
     ! Check for every element of ScalIDs, if this scale factor ID is
-    ! already a member of ScalIDList. If not, add to it. 
-    DO N = 1, SclMax
-       IF ( ScalIDs(N) < 0 ) CYCLE
+    ! already a member of ScalIDList. If not, add it. 
      
-       ! Check if already in list 
-       IsInList = .FALSE.
-       TmpScalIDCont => ScalIDList
-       PrvScalIDCont => TmpScalIDCont
-       DO WHILE ( ASSOCIATED(TmpScalIDCont) ) 
-          IF ( TmpScalIDCont%ScalID == ScalIDs(N) ) THEN
-             IsInList = .TRUE.
-             EXIT
-          ENDIF
-          PrvScalIDCont => TmpScalIDCont
-          TmpScalIDCont => TmpScalIDCont%NEXT
-       ENDDO
-
-       ! Add new container w/ this scal ID to (end of) list 
-       IF ( .NOT. IsInList ) THEN
-          ALLOCATE ( NewScalIDCont ) 
-          NewScalIDCont%ScalID =  ScalIDs(N)
-          NewScalIDCont%NEXT   => NULL()
-          IF ( .NOT. ASSOCIATED(PrvScalIDCont) ) THEN
-             ScalIDList => NewScalIDCont
-          ELSE
-             PrvScalIDCont%NEXT => NewScalIDCont
-          ENDIF
-!          NewScalIDCont%NEXT   => ScalIDList
-!          ScalIDList           => NewScalIDCont
-!          NewScalIDCont        => NULL()
+    ! Check if already in list 
+    IsInList = .FALSE.
+    TmpScalIDCont => ScalIDList
+    PrvScalIDCont => TmpScalIDCont
+    DO WHILE ( ASSOCIATED(TmpScalIDCont) ) 
+       IF ( TmpScalIDCont%ScalID == ID ) THEN
+          IsInList = .TRUE.
+          EXIT
        ENDIF
-  
-       TmpScalIDCont => NULL()
+       PrvScalIDCont => TmpScalIDCont
+       TmpScalIDCont => TmpScalIDCont%NEXT
     ENDDO
+
+    ! Add new container w/ this scal ID to (end of) list 
+    IF ( .NOT. IsInList ) THEN
+       ALLOCATE ( NewScalIDCont ) 
+       NewScalIDCont%ScalID =  ID
+       NewScalIDCont%NEXT   => NULL()
+       IF ( .NOT. ASSOCIATED(PrvScalIDCont) ) THEN
+          ScalIDList => NewScalIDCont
+       ELSE
+          PrvScalIDCont%NEXT => NewScalIDCont
+       ENDIF
+!       NewScalIDCont%NEXT   => ScalIDList
+!       ScalIDList           => NewScalIDCont
+!       NewScalIDCont        => NULL()
+    ENDIF
+    
+    ! Cleanup
+    TmpScalIDCont => NULL()
 
     ! Leave w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE ScalID_Register
+  END SUBROUTINE ScalID2List
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -3182,6 +3479,10 @@ CONTAINS
 !
   SUBROUTINE SpecName_Register( SpecName, RC ) 
 !
+! !USES:
+!
+    USE HCO_EXTLIST_MOD, ONLY : HCO_GetOpt
+!
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN   ) :: SpecName 
@@ -3208,7 +3509,7 @@ CONTAINS
     !======================================================================
 
     ! Ignore if wildcard character. These fields will always be used!
-    IF ( TRIM(SpecName) == TRIM(HCO_WCD() ) ) THEN
+    IF ( TRIM(SpecName) == TRIM(HCO_GetOpt('Wildcard')) ) THEN
        RC = HCO_SUCCESS
        RETURN
     ENDIF
@@ -3416,7 +3717,7 @@ CONTAINS
     IF ( PRESENT(SpecNames) ) THEN
        IF ( .NOT. ASSOCIATED(SpecNames) ) THEN
           IF ( N <= 0 ) THEN
-             CALL HCO_ERROR ( 'Cannot allocate SpecNames', RC, THISLOC=LOC )
+             CALL HCO_ERROR ( 'Cannot allocate SpecNames - N is size 0 or smaller', RC, THISLOC=LOC )
              RETURN
           ENDIF
           ALLOCATE(SpecNames(N), STAT=AS )
@@ -3590,5 +3891,161 @@ CONTAINS
     ENDIF
 
   END FUNCTION Check_ContNames
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ExtractSrcDim 
+!
+! !DESCRIPTION: Subroutine ExtractSrcDim extracts the source dimension
+! attribute. Specifically, it checks if the field is expected to be 2D 
+! (xy) or 3D. Default 3D data is xyz, but it is also possible to explicitly
+! define the number of vertical levels to be read, as well as the reading
+! direction (up or down). For example, 'xy1' will be interpreted as reading
+! only the first level, and 'xy27' will only read the first 27 levels. To
+! reverse the vertical axis, use e.g. 'xy-1' to read only the top level, 
+! or 'xy-27' to read the top 27 levels, with the topmost level being put
+! into the surface level.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ExtractSrcDim( am_I_Root, SrcDim, Dta, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )   :: am_I_Root
+    CHARACTER(LEN=*), INTENT(IN   )   :: SrcDim
+    TYPE(FileData),   POINTER         :: Dta
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC 
+!
+! !REVISION HISTORY:
+!  20 May 2015 - C. Keller: Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: idx
+    INTEGER            :: strLen
+    CHARACTER(LEN=255) :: str1, str2
+    CHARACTER(LEN=255) :: MSG    
+    CHARACTER(LEN=255) :: LOC = 'ExtractSrcDim (hco_config_mod.F90)' 
+
+    !======================================================================
+    ! ExtractSrcDim begins here
+    !======================================================================
+
+    MSG = 'Illegal source dimension ' // TRIM(srcDim) // &
+          ' for file ' // TRIM(Dta%ncFile) // &
+          '. Valid entries are e.g. xy or xyz.'
+
+    ! See if there is an arbitrary additional dimension. This must be added
+    ! at the end of the string and be separated by a '+' sign
+    idx = INDEX( TRIM(srcDim), '+' )
+    IF ( idx > 0 ) THEN
+       str1 = srcDim(1:(idx-1))
+       str2 = srcDim((idx+1):LEN(srcDim))
+    ELSE
+       str1 = srcDim
+       str2 = ''
+    ENDIF
+
+    ! 2D data:
+    IF ( TRIM(str1) == 'xy' .OR. TRIM(str1) == '-' ) THEN
+       Dta%SpaceDim = 2
+
+    ! All other cases
+    ELSE
+       ! Character length
+       strLen = LEN(TRIM(str1))
+
+       ! There must be at least 3 characters (e.g. xyz)
+       IF ( strLen < 3 ) THEN
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! First two entries must be xy
+       IF ( str1(1:2) /= 'xy' ) THEN
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! If third entry is 'L', this means we have 2D data that shall be put
+       ! into a particular level, e.g. xyL4 will cause the 2D data to be 
+       ! emitted into level 4.
+       IF ( str1(3:3) == 'L' .OR. str1(3:3) == 'l' ) THEN
+          IF ( strLen < 4 ) THEN
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF       
+          Dta%SpaceDim = 2
+          READ(str1(4:strLen),*) Dta%Lev2D
+       ELSE
+
+          ! If we get to here, it's 3D data 
+          Dta%SpaceDim = 3
+
+          ! The third entry determines the vertical dimension. 
+          ! This can be 'z' (standard) or a number to explicitly define
+          ! the vertical extension and direction.
+          IF ( str1(3:3) /= 'z' ) THEN
+             READ(str1(3:strLen),*) Dta%Levels
+          ENDIF
+       ENDIF
+    ENDIF
+
+    ! Eventually set additional dimension name and value
+    IF ( TRIM(str2) /= '' ) THEN
+       MSG = 'Cannot extract arbitrary dimension from ' &
+           // TRIM(srcDim) // ' for file ' // TRIM(Dta%ncFile) &
+           // ' - arbitrary dimensions must follow a `+` sign ' &
+           // 'and contain the name/value pair, e.g. xyz+"ens"=3' 
+       idx = INDEX( TRIM(str2), '=' ) 
+       IF ( idx <= 0 ) THEN
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF 
+
+       ! Extract dimension name. Eventually remove '"' character at 
+       ! beginning
+       IF ( str2(1:1) == '"' .OR. &
+            str2(1:1) == '`'       ) THEN
+          Dta%ArbDimName = str2(2:(idx-1))   
+       ELSE
+          Dta%ArbDimName = str2(1:(idx-1))   
+       ENDIF
+
+       ! Extract dimension value. Eventually remove trailing '"'
+       ! character. The string value itself will be evaluated when
+       ! reading the file (in hcoio_dataread_mod.F90).
+       strlen = LEN(TRIM(str2))
+       IF ( str2(strlen:strlen) == '"' .OR. &
+            str2(strlen:strlen) == '`'       ) THEN
+          Dta%ArbDimVal = str2((idx+1):(strlen-1))
+       ELSE
+          Dta%ArbDimVal = str2((idx+1):(strlen))
+       ENDIF
+
+       ! Verbose
+       IF ( am_I_Root .AND. HCO_IsVerb(2) ) THEN
+          WRITE(MSG,*) 'Will use additional dimension on file ', &
+             TRIM(Dta%ncFile), & ': ', TRIM(Dta%ArbDimName), ' = ', &
+             TRIM(Dta%ArbDimVal)
+          CALL HCO_MSG(MSG)
+       ENDIF
+    ENDIF
+
+    ! Leave w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE ExtractSrcDim 
 !EOC
 END MODULE HCO_Config_Mod

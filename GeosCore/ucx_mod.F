@@ -21,20 +21,20 @@
       USE ERROR_MOD,  ONLY : DEBUG_MSG
       USE CMN_SIZE_MOD
 
-#if !defined(ESMF_)
+!#if !defined(ESMF_)
       ! NcdfUtil modules for netCDF I/O
       USE m_netcdf_io_open                    ! netCDF open
       USE m_netcdf_io_get_dimlen              ! netCDF dimension queries
       USE m_netcdf_io_read                    ! netCDF data reads
       USE m_netcdf_io_close                   ! netCDF close
-#endif
+!#endif
 
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
-#if !defined(ESMF_)
+!#if !defined(ESMF_)
 #     include "netcdf.inc"
-#endif!  14 Jan 2015 - R. Yantosca -  
+!#endif
 
       PRIVATE
 
@@ -45,8 +45,8 @@
       CHARACTER(LEN=255), PUBLIC :: NOON_FILE_ROOT ! Directory for noontime data
       CHARACTER(LEN=255), PUBLIC :: MONTREAL_FILE_ROOT ! Root directoy for WHO data 
                           PUBLIC :: T_STS ! Max temperature of STS formation (K)
-      REAL(fp),             PUBLIC :: T_NAT_SUPERCOOL ! NAT supercooling (K)
-      REAL(fp),             PUBLIC :: P_ICE_SUPERSAT ! Ice supersaturation (-)
+      REAL(fp),           PUBLIC :: T_NAT_SUPERCOOL ! NAT supercooling (K)
+      REAL(fp),           PUBLIC :: P_ICE_SUPERSAT ! Ice supersaturation (-)
                           PUBLIC :: KHETI_SLA ! Reaction cofactors for SLA
                           PUBLIC :: NDENS_AER ! See below
       INTEGER,            PUBLIC :: CFCYEAR ! Year for CFC emissions
@@ -69,18 +69,18 @@
       PUBLIC  :: INIT_UCX
       PUBLIC  :: DIAGINIT_UCX
       PUBLIC  :: CLEANUP_UCX
+      PUBLIC  :: READ_PSC_FILE
+      PUBLIC  :: WRITE_STATE_PSC
 !
 ! PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: APPLY_2DTRAC
       PRIVATE :: READ_SFC
       PRIVATE :: SET_MONTREAL
-      !PRIVATE :: GET_MONTREAL
       PRIVATE :: SET_MONTREAL_NCDF
       PRIVATE :: GET_MONTREAL_NCDF
       PRIVATE :: MONTREAL_SCALEFAC
       PRIVATE :: TERNARY
-      PRIVATE :: READ_PSC_FILE
       PRIVATE :: CARSLAW_DENSITY
       PRIVATE :: CALC_H2SO4_GAS
       PRIVATE :: CALC_SLA_GAMMA
@@ -101,6 +101,8 @@
 !                                Now map NOx coefficients onto grids other than
 !                                4x5 or 2x25.
 !  14 Jan 2014 - C. Keller     - Now read and diagnose STATE_PSC through HEMCO.
+!  08 Apr 2015 - R. Yantosca   - Now make READ_PSC_FILE a PUBLIC routine
+!  08 May 2015 - C. Keller     - Added WRITE_STATE_PSC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -241,7 +243,6 @@
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: RHO_AER
       !INTEGER,DIMENSION(:,:,:),ALLOCATABLE  :: STATE_PSC
       REAL(f4),DIMENSION(:,:,:),POINTER       :: STATE_PSC => NULL()
-      LOGICAL                                 :: GOT_STATE_PSC = .FALSE.
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: KHETI_SLA
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: AERFRAC
       INTEGER,DIMENSION(:),ALLOCATABLE      :: AERFRACIND
@@ -405,6 +406,7 @@
 !  18 Jun 2014 - S. D. Eastham - Now read data for individual NOx species
 !  24 Nov 2014 - C. Keller     - Update for stratospheric NOy (as suggested by 
 !                                Seb Eastham)
+!  16 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -461,7 +463,7 @@
 
       ! Set module variable
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Initialize GEOS-Chem tracer array [kg/kg]
       STT => State_Chm%Tracers
 
       IF ( am_I_Root ) THEN
@@ -887,7 +889,8 @@
      &                     C3090S, C0030S, C0030N, C3090N,
      &                     am_I_Root, Input_Opt )
 
-         ! Convert from [vv] to [kg CH4/mol air]
+         ! Convert from [vv] to [kg CH4/kg air]
+         ! (ewl, 3/16/15) 
          C3090S = C3090S / TCVV(IDTCH4)
          C0030S = C0030S / TCVV(IDTCH4)
          C0030N = C0030N / TCVV(IDTCH4)
@@ -904,14 +907,15 @@
             YLAT  = GET_YMID( I,J,L )
 
             ! Set CH4 according to latitude
+            ! STT now in [kg/kg] (ewl, 3/16/15)
             IF ( YLAT < -30e+0_fp ) THEN
-               STT(I,J,L,IDTCH4) = C3090S * State_Met%AD(I,J,L)
+               STT(I,J,L,IDTCH4) = C3090S
             ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
-               STT(I,J,L,IDTCH4) = C0030S * State_Met%AD(I,J,L)
+               STT(I,J,L,IDTCH4) = C0030S
             ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
-               STT(I,J,L,IDTCH4) = C0030N * State_Met%AD(I,J,L)
+               STT(I,J,L,IDTCH4) = C0030N
             ELSE
-               STT(I,J,L,IDTCH4) = C3090N * State_Met%AD(I,J,L)
+               STT(I,J,L,IDTCH4) = C3090N
             ENDIF
          ENDDO
          ENDDO
@@ -1028,7 +1032,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_MONTH
@@ -1053,6 +1056,9 @@
 !                                parallel DO loop.  Switch loop order to L-J-I.
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
 !                                objects via the arg list
+!  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
+!                                air pressure, with State_Met%PMID_DRY.
+!                                Remove dependency on PRESSURE_MOD.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1270,7 +1276,8 @@
          TINV  = 1.e+0_fp/T3K
 
          ! Calculate air number density (molec/cm3)
-         NDAIR = GET_PCENTER(I,J,L)*1.d-4*AVOGADRO/(R_UNIV*T3K)
+         ! Now using dry air partial pressure (ewl, 3/2/15)
+         NDAIR = State_Met%PMID_DRY(I,J,L)*1.d-4*AVOGADRO/(R_UNIV*T3K)
          XAIR  = NDAIR / State_Met%AD(I,J,L)
 
          ! Calculate local NOx, N2O and O3 number density
@@ -1408,7 +1415,6 @@
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1425,6 +1431,9 @@
 !  14 Feb 2014 - R. Yantosca   - Parallelize main DO loop 
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt and State_Met objects via
 !                                the arg list
+!  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
+!                                air pressure, with State_Met%PMID and
+!                                remove dependency on PRESSURE_MOD.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1653,7 +1662,7 @@
             IF (ITS_IN_THE_CHEMGRID(I,J,L,State_Met)) CYCLE
 
             ! Pressure at center of cell
-            PCENTER = GET_PCENTER(I,J,L)
+            PCENTER = State_Met%PMID(I,J,L)
             FOUNDLEV = (PCENTER.gt.UCX_PLEVS(VERTCOUNT))
             DO WHILE (.not. FOUNDLEV)
                IF (VERTCOUNT.eq.1) THEN
@@ -1731,7 +1740,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1755,6 +1763,10 @@
 !  14 Feb 2014 - R. Yantosca   - Now parallelize main DO loop
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
+!  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
+!                                air pressure, with State_Met%PMID and
+!                                remove dependency on PRESSURE_MOD.
+!  19 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1793,7 +1805,7 @@
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV = Input_Opt%TCVV(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Initialize GEOS-Chem tracer array [kg/kg]
       STT => State_Chm%Tracers
 
       ! Filename
@@ -1915,7 +1927,7 @@
                   SET_CELL = .TRUE.
                ENDIF
                ! Pressure at center of cell
-               PCENTER = GET_PCENTER(I,J,L)
+               PCENTER = State_Met%PMID(I,J,L)
                FOUNDLEV = (PCENTER.gt.UCX_PLEVS(VERTCOUNT))
                DO WHILE (.not. FOUNDLEV)
                   IF (VERTCOUNT.eq.1) THEN
@@ -1944,9 +1956,10 @@
                ENDIF
                ! Send to STT (currently kg/box)
                IF (SET_CELL) THEN
-                  ! Convert from [ppbv] to [kg]
-                  TRACMASS = SCALEFAC * TRACMR * State_Met%AD(I,J,L) /
-     &                       TCVV(TRAC_IDX)
+
+                  ! Convert from [ppbv] to [kg/kg] (ewl, 3/19/15)
+                  TRACMASS = SCALEFAC * TRACMR / TCVV(TRAC_IDX)
+
                   IF (TRAC_ADD) THEN
                      STT(I,J,L,TRAC_IDX) = STT(I,J,L,TRAC_IDX)+TRACMASS
                   ELSE
@@ -1978,14 +1991,16 @@
 ! !INTERFACE:
 !
       SUBROUTINE EMISS_BASIC( am_I_Root, Input_Opt, State_Met,
-     &                        State_Chm  )
+     &                        State_Chm, RC  )
 !
 ! !USES:
 !
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_MONTH
+      USE ERROR_MOD,              ONLY : GIGC_Error
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,     ONLY : OptInput     
+      USE GIGC_State_Chm_Mod,     ONLY : ChmState
+      USE GIGC_State_Met_Mod,     ONLY : MetState
+      USE TIME_MOD,               ONLY : GET_MONTH
 !
 ! !INPUT PARAMETERS:
 !
@@ -1996,6 +2011,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      INTEGER,          INTENT(INOUT)  :: RC       ! Failure or success
 !
 ! !REMARKS:
 !  
@@ -2006,20 +2022,21 @@
 !  14 Feb 2014 - R. Yantosca   - Now parallelize main DO loop
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
+!  10 Sep 2015 - E. Lundgren   - Tracer units are now kg/kg dry air (prev v/v)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: I, J, N, N_EMITTED
+      INTEGER              :: I, J, N, N_EMITTED
       REAL(fp)             :: N2O_MULT,OCS_MULT,CFC_MULT,HCFC_MULT
       REAL(fp)             :: DT_YR
-      CHARACTER(LEN=255) :: OUTMSG
+      CHARACTER(LEN=255)   :: OUTMSG
 
       ! Local variables for quantities from Input_Opt
-      LOGICAL            :: LPRT
-      INTEGER            :: N_TRACERS
+      LOGICAL              :: LPRT
+      INTEGER              :: N_TRACERS
       REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
@@ -2029,12 +2046,23 @@
       ! EMISS_BASIC begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Check that tracer units are in kg/kg dry air (ewl, 9/10/15)
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
+         CALL GIGC_Error( 'Incorrect tracer units: ' //
+     &                    State_Chm%Trac_Units, RC, 
+     &                    'Routine EMISS_BASIC in ucx_mod.F' )
+         RETURN
+      ENDIF
+
+      ! Initialize GEOS-Chem tracer array [kg/kg dry]
       STT => State_Chm%Tracers
 
        ! If not correct hour block and day read in new fields
@@ -2068,9 +2096,8 @@
              DO J = 1, JJPAR
              DO I = 1, IIPAR
            
-                ! Set kg/box using vol/vol (see CONVERT_UNITS in DAO_MOD)
+                ! Set kg/kg dry air using vol/vol (ewl, 9/10/15)
                 STT(I,J,1,N_EMITTED) = GRID_EMIT(J,N)
-     &                               * State_Met%AD(I,J,1)   
      &                               / TCVV(N_EMITTED)
 
              ENDDO
@@ -2460,135 +2487,6 @@
       ! Return to calling routine
       END SUBROUTINE SET_MONTREAL
 !EOC
-!!------------------------------------------------------------------------------
-!!               MIT Laboratory for Aviation and the Environment               !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: get_montreal
-!!
-!! !DESCRIPTION: Function GET\_MONTREAL gets mean surface mixing ratio of a 
-!!  given species based on forecasts from WHO estimates. Values are
-!!  interpolated between two monthly averages.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      FUNCTION GET_MONTREAL (TRAC_NAME,TARG_LINE) RESULT (MEAN_MIXRATIO)
-!!
-!! !USES:
-!!
-!      USE ERROR_MOD,   ONLY : ERROR_STOP, ALLOC_ERR
-!      USE FILE_MOD,    ONLY : IOERROR
-!!
-!! !INPUT PARAMETERS:
-!!
-!      REAL(fp)                         :: MEAN_MIXRATIO
-!      CHARACTER*(*),INTENT(IN)       :: TRAC_NAME
-!      INTEGER,INTENT(IN)             :: TARG_LINE
-!!
-!! !REVISION HISTORY: 
-!!  04 Apr 2013 - S. D. Eastham - Initial version
-!!  10 Oct 2013 - S. D. Eastham - Split into two routines (GET and SET)
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      CHARACTER(LEN=255)             :: FILENAME, DBGMSG
-!      REAL(fp)                         :: CURRLINE
-!      REAL(fp)                         :: SCALEFAC
-!      REAL(fp)                         :: TEMPMR,TEMPYR
-!      INTEGER                        :: ILINE
-!      INTEGER                        :: IU_FILE, IOS, AS
-!      ! For NetCDF
-!      INTEGER                        :: fId, st1d, ct1d
-!
-!      !=================================================================
-!      ! GET_MONTREAL begins here!
-!      !=================================================================
-!
-!      ! Read from ASCII files
-!      FILENAME = TRIM(MONTREAL_FILE_ROOT) // TRIM(TRAC_NAME) // 
-!     &          '_boundary'
-!
-!      IF ( doPrint ) THEN
-!         WRITE(DBGMSG,'(a,a,a,a)') ' ### UCX: Reading ', 
-!     &        TRIM(TRAC_NAME), ' from ', TRIM( FILENAME )
-!         CALL DEBUG_MSG( TRIM(DBGMSG) )
-!      ENDIF
-!
-!      ! Get a free LUN
-!      IU_FILE = findFreeLUN()
-!
-!      IOS=1
-!
-!      OPEN( IU_FILE, FILE=TRIM( FILENAME ), IOSTAT=IOS )
-!      IF ( IOS /= 0 ) THEN 
-!         WRITE(6,*) 'UCX: FAILED TO FIND ', TRIM(FILENAME)
-!          CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
-!      ENDIF
-!
-!      ! First line not important
-!      READ(IU_FILE,*,IOSTAT=IOS)
-!      IF ( IOS /= 0 ) THEN
-!         WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
-!          CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
-!      ENDIF
-!
-!      ! Second line contains scaling factor
-!      READ(IU_FILE,101,IOSTAT=IOS) SCALEFAC
-!
-!101   FORMAT(E7.1)
-!
-!      ! Third and fourth line also to be ignored
-!      DO ILINE=1,2
-!         READ(IU_FILE,*,IOSTAT=IOS)
-!         IF ( IOS /= 0 ) THEN
-!            WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
-!             CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
-!         ENDIF
-!      ENDDO
-!
-!      ! Skip to line specified
-!      DO ILINE=1,(TARG_LINE-1)
-!         READ(IU_FILE,*,IOSTAT=IOS) ! Skip line
-!         IF ( IOS /= 0 ) THEN 
-!            WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
-!             CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
-!         ENDIF
-!      ENDDO
-!
-!      ! Read relevant line
-!      IF (TRAC_NAME.eq.'C2BR2F4') THEN
-!         WRITE(6,*) 'C2Br2F4 encountered - reading...'
-!         READ(IU_FILE,103,IOSTAT=IOS) TEMPYR,TEMPMR
-!      ELSE
-!         READ(IU_FILE,102,IOSTAT=IOS) TEMPYR,TEMPMR
-!      ENDIF
-!      IF ( IOS /= 0 ) THEN
-!         WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
-!          CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
-!      ENDIF
-!
-!      CLOSE(IU_FILE)
-!
-!      MEAN_MIXRATIO = TEMPMR * SCALEFAC
-!
-!102   FORMAT(F7.2,F11.2)
-!      ! C2Br2F4 only
-!103   FORMAT(F7.2,F8.2)
-!
-!      IF ( doPrint ) THEN
-!         WRITE(DBGMSG,'(a,E16.4)') ' ### UCX: Retrieved value: ', 
-!     &        MEAN_MIXRATIO
-!         CALL DEBUG_MSG( TRIM(DBGMSG) )
-!      ENDIF
-!
-!      ! Return to calling program
-!      END FUNCTION GET_MONTREAL
-!!EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
 !------------------------------------------------------------------------------
@@ -2621,7 +2519,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_ErrCode_Mod
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER, GET_PEDGE
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTNIT,IDTBCPI,IDTH2O,IDTHNO3
 !
@@ -2642,6 +2539,12 @@
 !  07 Feb 2014 - R. Yantosca - Cosmetic changes
 !  21 Feb 2014 - M. Sulprizio- Now pass Input_Opt, State_Met, and State_Chm 
 !                              objects via the arg list
+!  24 Feb 2014 - E. Lundgren - Replace GET_PCENTER and GET_PEDGE with 
+!                              State_Met%PMID and State_Met%PEDGE
+!  24 Feb 2014 - E. Lundgren - Remove dependency on PRESSURE_MOD
+!  24 Feb 2014 - E. Lundgren - Use State_Met%DELP in place of PEDGE difference
+!  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
+!                                now done from DO_CHEMISTRY (chemistry_mod.F)  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2650,28 +2553,28 @@
 !
       ! Common
       INTEGER                :: I,      J,     L,        DTCHEM
-      REAL(fp)                 :: DELZ,   DELZ1
-      REAL(fp)                 :: P,      TEMP,  DP,       PDP     
-      REAL(fp)                 :: CONST,  SLIP,  VISC,     FAC1
-      REAL(fp)                 :: FAC2,   FLUX,  AREA_CM2, RHB
-      REAL(fp)                 :: RCM
-      REAL(fp)                 :: TOT1,   TOT2
+      REAL(fp)               :: DELZ,   DELZ1
+      REAL(fp)               :: P,      TEMP,  DP,       PDP     
+      REAL(fp)               :: CONST,  SLIP,  VISC,     FAC1
+      REAL(fp)               :: FAC2,   FLUX,  AREA_CM2, RHB
+      REAL(fp)               :: RCM
+      REAL(fp)               :: TOT1,   TOT2
       INTEGER                :: KLOOP, K
       LOGICAL                :: NATCOL
      
       ! Specific to each class
-      REAL(fp)                 :: RWET(2),CONST_V(2)
-      REAL(fp)                 :: RHO(2),RATIO_R(2),REFF(2)
-      REAL(fp)                 :: VTS(LLPAR,2)
+      REAL(fp)               :: RWET(2),CONST_V(2)
+      REAL(fp)               :: RHO(2),RATIO_R(2),REFF(2)
+      REAL(fp)               :: VTS(LLPAR,2)
  
       ! Used for old Seinfeld & Pandis slip factor calc
-      REAL(fp)                 :: sp_Lambda, sp_Num
+      REAL(fp)               :: sp_Lambda, sp_Num
 
       ! Parameters
 #if defined( APM )
-      REAL(fp), PARAMETER      :: BCDEN = 1800.e+0_fp
+      REAL(fp), PARAMETER    :: BCDEN = 1800.e+0_fp
 #else
-      REAL(fp), PARAMETER      :: BCDEN = 1000.e+0_fp ! density (kg/m3)
+      REAL(fp), PARAMETER    :: BCDEN = 1000.e+0_fp ! density (kg/m3)
 #endif
 
       ! Indexing
@@ -2682,13 +2585,13 @@
       LOGICAL                :: RUNCALC
 
       ! Partitioning
-      REAL(fp), DIMENSION(3,2) :: PHASEMASS
-      REAL(fp)                 :: SEDMASS
+      REAL(fp)               :: PHASEMASS(3,2)
+      REAL(fp)               :: SEDMASS
       INTEGER                :: IDTCURRENT
 
       ! NAT only
-      REAL(fp)                 :: VFALLMAX
-      REAL(fp),DIMENSION(LLPAR):: VNAT
+      REAL(fp)               :: VFALLMAX
+      REAL(fp)               :: VNAT(LLPAR)
       INTEGER                :: MAXALT, MINALT
       REAL(fp)               :: BXMIN, SEDSTEP, TEMPREAL, P_0, P_ABOVE
       REAL(fp)               :: PSED0, PSEDABOVE, INVAIR_0, INVAIR_ABOVE
@@ -2702,20 +2605,20 @@
       INTEGER                :: LOCALPROFILE, NUMSEDSTEPS, STARTPT, ISED
 
       ! SDE 2013-07-07: Debug variables
-      REAL(fp)                 :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
-      REAL(fp)                 :: D_ICE1, D_ICE0, D_H2O1, D_H2O0
-      REAL(fp)                 :: D_NAT1, D_NAT0, D_SEDQ, D_PSED, D_HNO3
-      REAL(fp)                 :: D_RMAX, D_VMAX, MAXLOSS, FRACLOSS
+      REAL(fp)               :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
+      REAL(fp)               :: D_ICE1, D_ICE0, D_H2O1, D_H2O0
+      REAL(fp)               :: D_NAT1, D_NAT0, D_SEDQ, D_PSED, D_HNO3
+      REAL(fp)               :: D_RMAX, D_VMAX, MAXLOSS, FRACLOSS
 
       ! Local variables for quantities from Input_Opt
       LOGICAL                :: LPRT
       LOGICAL                :: LGRAVSTRAT
       INTEGER                :: N_TRACERS
-      REAL(fp)                 :: XNUMOL(Input_Opt%N_TRACERS)
-      REAL(fp)                 :: TRACER_MW_G(Input_Opt%N_TRACERS)
+      REAL(fp)               :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)               :: TRACER_MW_G(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL(fp), POINTER        :: STT(:,:,:,:)
+      REAL(fp), POINTER      :: STT(:,:,:,:)
 
       !=================================================================
       ! SETTLE_STRAT_AER begins here!
@@ -2743,11 +2646,6 @@
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
 
-      ! Eventually get STATE_PSC
-      IF ( .NOT. GOT_STATE_PSC ) THEN
-         CALL READ_PSC_FILE( am_I_Root )
-      ENDIF
- 
       ! For debugging
       MAXLOSS= 0e+0_fp
       D_XHNO3= 0e+0_fp
@@ -2816,7 +2714,8 @@
             TEMP    = State_Met%T(I,J,L)
  
             ! Pressure at center of the level [kPa]
-            P       = GET_PCENTER(I,J,L) * 0.1e+0_fp
+            ! Use moist air pressure for mean free path (ewl, 3/2/15)
+            P       = State_Met%PMID(I,J,L)  * 0.1e+0_fp
 
             RUNCALC = ITS_IN_THE_STRATMESO(I,J,L,State_Met)
 
@@ -2827,7 +2726,7 @@
                   RWET(IBC) = WERADIUS(KLOOP,2)*1.e-2_fp
                ELSE
                   ! Use defaults, assume dry (!)
-                  RWET(IBC) = RAA(IND999,29)
+                  RWET(IBC) = RAA(IND999,29) * 1.0e-6_fp
                ENDIF
 
                ! Taken from aerosol_mod (MSDENS(2))
@@ -3036,7 +2935,7 @@
                ! per m3 in a grid box
                L = STARTPT
                !IF (STATE_PSC(I,J,L).lt.2) THEN
-               IF (STATE_PSC(I,J,L) < 2.0_f4 ) THEN
+               IF (STATE_PSC(I,J,L) < 2.0e+0_f4 ) THEN
                   XNO3_0 = 0e+0_fp
                   XNAT_0 = 0e+0_fp
                   XICE_0 = 0e+0_fp
@@ -3050,12 +2949,12 @@
      &                     State_Met%AD(I,J,L))
                ENDIF
                XPSC_0   = XNAT_0 + XICE_0
-               P_0      = 100.0e+0_fp * GET_PCENTER(I,J,L)
+               P_0      = 100.0e+0_fp * State_Met%PMID(I,J,L) 
                INVAIR_0 = AIRMW/State_Met%AD(I,J,L)
                IF (L .lt. (LLPAR-1)) THEN
                   INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+1)
                   !IF (STATE_PSC(I,J,L+1).lt.2) THEN
-                  IF (STATE_PSC(I,J,L+1) < 2.0_f4 ) THEN
+                  IF (STATE_PSC(I,J,L+1) < 2.0e+0_f4 ) THEN
                      XNO3_ABOVE = 0e+0_fp
                      XNAT_ABOVE = 0e+0_fp
                      XICE_ABOVE = 0e+0_fp
@@ -3071,10 +2970,14 @@
      &                   STT(I,J,L+1,IDTNIT)))*INVAIR_ABOVE/ICEMW
                   ENDIF
                   XPSC_ABOVE = XNAT_ABOVE + XICE_ABOVE
-                  P_ABOVE    = 100.0e+0_fp * GET_PCENTER(I,J,L+1)
-                  PSEDABOVE  = VNAT(L+1)*SEDSTEP*1.e+2_fp*
-     &                         (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))/
-     &                         State_Met%BXHEIGHT(I,J,L+1)
+                  P_ABOVE    = 100.0e+0_fp * State_Met%PMID(I,J,L+1)
+
+                  ! Replace PEDGE(I,J,L+1) - PEDGE(I,J,L+2)
+                  ! with equivalent State_Met%DELP(I,J,L+1)
+                  ! (ewl, 3/2/15)
+                  PSEDABOVE  = VNAT(L+1) * SEDSTEP * 1.e+2_fp *
+     &                         State_Met%DELP(I,J,L+1)
+     &                         / State_Met%BXHEIGHT(I,J,L+1)
 !                  PSEDABOVE=g0 * (1.0d3*AIRMW) * P_ABOVE * 
 !     &               VNAT(L+1) / (Rd * T(I,J,L+1))*SEDSTEP
                ELSE
@@ -3083,7 +2986,7 @@
                   XNAT_ABOVE = 0.0e+0_fp
                   XICE_ABOVE = 0.0e+0_fp
                   XPSC_ABOVE = 0.0e+0_fp
-                  P_ABOVE = GET_PEDGE(I,J,L+2) * 100.0e+0_fp
+                  P_ABOVE = State_Met%PEDGE(I,J,L+2) * 100.0e+0_fp
                   PSEDABOVE = 0.0e+0_fp
                ENDIF
                ABOVEGRAD = (XPSC_ABOVE-XPSC_0)/(P_0-P_ABOVE)
@@ -3109,7 +3012,7 @@
                   IF (L.lt.(LLPAR-1)) THEN
                      INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+2)
                      !IF (STATE_PSC(I,J,L+2).ge.2) THEN
-                     IF (STATE_PSC(I,J,L+2) >= 2.0_f4 ) THEN
+                     IF (STATE_PSC(I,J,L+2) >= 2.0e+0_f4 ) THEN
                         XNO3_ABOVE = STT(I,J,L+2,IDTNIT)*INVAIR_ABOVE/ 
      &                                TRACER_MW_G(IDTNIT)
                         XNAT_ABOVE = XNO3_ABOVE! * 4.e+0_fp
@@ -3122,10 +3025,15 @@
                         XICE_ABOVE = 0e+0_fp
                      ENDIF
                      XPSC_ABOVE = XNAT_ABOVE + XICE_ABOVE
-                     P_ABOVE    = GET_PCENTER(I,J,L+2) * 100.0e+0_fp
-                     PSEDABOVE  = VNAT(L+2)*SEDSTEP*1.e+2_fp*
-     &                          (GET_PEDGE(I,J,L+2)-GET_PEDGE(I,J,L+3))/
-     &                          State_Met%BXHEIGHT(I,J,L+2)
+                     P_ABOVE    = State_Met%PMID(I,J,L+2) 
+     &                            * 100.0e+0_fp
+
+                     ! Replace PEDGE(I,J,L+2) - PEDGE(I,J,L+3) 
+                     ! with equivalent State_Met%DELP(I,J,L+2)
+                     ! (ewl, 3/2/15)
+                     PSEDABOVE  = VNAT(L+2) * SEDSTEP * 1.e+2_fp *
+     &                            State_Met%DELP(I,J,L+2)
+     &                            / State_Met%BXHEIGHT(I,J,L+2)
 !                     PSEDABOVE = g0 * (1.0d3*AIRMW) * P_ABOVE *
 !     &                  VNAT(L+2)/(Rd * T(I,J,L+2))*SEDSTEP
                   ELSE
@@ -3134,7 +3042,8 @@
                      XNAT_ABOVE = 0.0e+0_fp
                      XICE_ABOVE = 0.0e+0_fp
                      XPSC_ABOVE = 0.0e+0_fp
-                     P_ABOVE = GET_PEDGE(I,J,L+2) * 100.0e+0_fp
+                     P_ABOVE = State_Met%PEDGE(I,J,L+2) 
+     &                         * 100.0e+0_fp
                      PSEDABOVE = 0.0e+0_fp
                   ENDIF
                   ! Note reversal of pressure values as pressure falls with
@@ -3194,12 +3103,16 @@
                   ! Note conversion from hPa to Pa for denominator, ie
                   ! multiply numerator by (1/100)
                   IF (L .ne. LLPAR) THEN
+
+                     ! Replace PEDGE(I,J,L+1) - PEDGE(I,J,L+2) 
+                     ! with equivalent State_Met%DELP(I,J,L+1)
+                     ! (ewl, 3/2/15)
                      SEDQUANT = (1.e-2_fp) * SEDQUANT /
-     &                  (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))
+     &                          State_Met%DELP(I,J,L+1)
                      SEDNO3 = (1.e-2_fp) * SEDNO3 / 
-     &                  (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))
+     &                          State_Met%DELP(I,J,L+1)
                      SEDICE = (1.e-2_fp) * SEDICE / 
-     &                  (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))
+     &                          State_Met%DELP(I,J,L+1)
                   ELSE
                      ! This shouldn't be possible?
                      CALL ERROR_STOP('Unknown sedimentation error',
@@ -3320,7 +3233,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTSO4
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
 !
 ! !INPUT PARAMETERS:
 !
@@ -3335,6 +3247,9 @@
 !                                which is the most efficient configuration
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
 !                                objects via the arg list
+!  24 Feb 2015 - E. Lundgren   - Replace GET_PCENTER with State_Met%PMID_DRY
+!  24 Feb 2015 - E. Lundgren   - Remove dependency on PRESSURE_MOD
+!  26 Mar 2015 - E. Lundgren   - Now use moist and dry air partial pressures
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3356,7 +3271,8 @@
       REAL(fp)             :: GF_PP,GF_PVAP,GF_DIFF
 
       INTEGER            :: I, J, L
-      REAL(fp)             :: PCENTER, TCENTER, H2SO4SUM, INVAIR
+      REAL(fp)             :: PCENTER, PCENTER_P, TCENTER, H2SO4SUM 
+      REAL(fp)             :: INVAIR
 
       ! Local variables for quantities from Input_Opt
       LOGICAL            :: LPRT
@@ -3390,7 +3306,8 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( J,          I,              L       )
-!$OMP+PRIVATE( PCENTER,    TCENTER,        INVAIR  )
+!$OMP+PRIVATE( PCENTER,    PCENTER_P,      TCENTER )
+!$OMP+PRIVATE( INVAIR )
 !$OMP+PRIVATE( H2SO4SUM,   GF_PP,          GF_INVT )
 !$OMP+PRIVATE( GF_CFACTOR, GF_LOGPSULFATE, GF_PVAP )
 !$OMP+PRIVATE( GF_DIFF                             )
@@ -3399,8 +3316,13 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          ! Only interested in low-pressure boxes
-         PCENTER = GET_PCENTER(I,J,L)
          TCENTER = State_Met%T(I,J,L)
+
+         ! Use moist air pressure thresholding (ewl, 3/26/15)
+         PCENTER = State_Met%PMID(I,J,L)
+         ! Use dry air partial pressure for part. P calc (ewl, 3/26/15)
+         PCENTER_P = State_Met%PMID_DRY(I,J,L)
+
          INVAIR  = AIRMW / State_Met%AD(I,J,L)
          IF (PCENTER.ge.1.e+2_fp) THEN
             AERFRAC(I,J,L,1) = 1e+0_fp
@@ -3410,7 +3332,8 @@
          ELSE
             H2SO4SUM = STT(I,J,L,IDTSO4  )*INVAIR/TRACER_MW_G(IDTSO4  )
             ! Use approximation from Kumala (1990)
-            GF_PP = H2SO4SUM*PCENTER
+            ! Use dry air partial pressure (ewl, 3/26/15)
+            GF_PP = H2SO4SUM*PCENTER_P
             GF_INVT = 1./TCENTER
             GF_CFACTOR = 1.e+0_fp+(LOG(GF_T0*GF_INVT))-(GF_T0*GF_INVT)
             GF_LOGPSULFATE = GF_LOGP0 + (GF_DELTAHBYR*(GF_INVT0 -
@@ -3511,7 +3434,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       !USE GRID_MOD,           ONLY : GET_YEDGE
       USE GRID_MOD,           ONLY : GET_YMID
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTH2O
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTNIT, IDTBrNO3, IDTHBr
       USE TRACERID_MOD,       ONLY : IDTHOBr, IDTHCl, IDTClNO3, IDTHOCl
@@ -3537,6 +3459,11 @@
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
 !  06 Nov 2014 - R. Yantosca   - Now use State_Met%CLDF(I,J,L)
+!  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
+!                                air pressure, with State_Met%PMID_DRY and
+!                                remove dependency on PRESSURE_MOD.
+!  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
+!                                now done from DO_CHEMISTRY (chemistry_mod.F)  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3662,11 +3589,6 @@
          CALL DEBUG_MSG( '### UCX: start CALC_STRAT_AER' )
       ENDIF
 
-      ! Read in PSC state
-      IF ( .NOT. GOT_STATE_PSC ) THEN
-         CALL READ_PSC_FILE( am_I_Root )
-      ENDIF
-
       ! Partition H2SO4 before proceeding
       CALL CALC_H2SO4_GAS( Input_Opt, State_Met, State_Chm )
 
@@ -3688,8 +3610,8 @@
 !$OMP+PRIVATE( INVAIR,       PSATHNO3,           PSATH2O       )
 !$OMP+PRIVATE( JLOOP,        VOL_NAT,            VOL_ICE       )
 !$OMP+PRIVATE( VOL_SLA,      PSATHNO3_SUPERCOOL, TCENTER       )
-!$OMP+PRIVATE( TINV,         IS_VALID,           BOX_LAT_S     )
-!$OMP+PRIVATE( BOX_LAT_N,    RAD_AER_BOX,        RHO_AER_BOX   )
+!$OMP+PRIVATE( TINV,         IS_VALID                          )
+!$OMP+PRIVATE( RAD_AER_BOX,  RHO_AER_BOX                       )
 !$OMP+PRIVATE( KG_AER_BOX,   NDENS_AER_BOX,      SAD_AER_BOX   )
 !$OMP+PRIVATE( KG_NAT,       KG_ICE,             KG_NO3        )
 !$OMP+PRIVATE( GAMMA_BOX,    PSATH2O_SUPERSAT,   H2OSUM        )
@@ -3714,11 +3636,6 @@
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
-!         BOX_LAT_S = GET_YEDGE(1,J,1)
-!         BOX_LAT_N = GET_YEDGE(1,J+1,1)
-!         IS_POLAR = ((BOX_LAT_S.lt.PSC_MINLAT).or.
-!     &               (BOX_LAT_N.gt.PSC_MAXLAT))
-         ! Loop over longitudinal boxes
          DO I = 1, IIPAR
 
                ! Now do IS_POLAR check for every grid box separately
@@ -3729,7 +3646,8 @@
      &                      (BOX_LAT >= PSC_MAXLAT)     )
 
                ! Get local conditions
-               PCENTER    = GET_PCENTER(I,J,L) 
+               ! Now using dry air partial pressure (ewl, 3/2/15)
+               PCENTER    = State_Met%PMID_DRY(I,J,L)
                PCENTER_PA = PCENTER*1.e+2_fp
                TCENTER    = State_Met%T(I,J,L)
                TINV       = 1.e+0_fp/TCENTER
@@ -4336,23 +4254,28 @@
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,INTENT(IN)          :: I,J,L      ! Grid indices
-      INTEGER,INTENT(IN)          :: IAER       ! Aerosol index
-                                                ! 1 = Liquid aerosols
-                                                ! 2 = Solid PSC
+      INTEGER,  INTENT(IN)  :: I, J, L    ! Grid indices
+      INTEGER,  INTENT(IN)  :: IAER       ! Aerosol index
+                                          ! 1 = Liquid aerosols
+                                          ! 2 = Solid PSC
 !
 ! !OUTPUT VARIABLES:
 !
-      REAL(fp), INTENT(OUT)         :: REFF       ! Effective radius (cm)
-      REAL(fp), INTENT(OUT)         :: RAER       ! Physical radius (cm)
-      REAL(fp), INTENT(OUT)         :: SAD        ! Surface area density (cm2/cm3)
-      REAL(fp), INTENT(OUT)         :: XSA        ! X-S area density (m2/m3)
+      REAL(fp), INTENT(OUT) :: REFF       ! Effective radius (cm)
+      REAL(fp), INTENT(OUT) :: RAER       ! Physical radius (cm)
+      REAL(fp), INTENT(OUT) :: SAD        ! Surface area density (cm2/cm3)
+      REAL(fp), INTENT(OUT) :: XSA        ! X-S area density (m2/m3)
 !
 ! !REMARKS:
-! (1) A remark
+!  Seb Eastham writes: "I would edit GET_STRAT_OPT so that, when SAD is less
+!  than some small value (say 1 nm2/cm3,  which is a vanishingly small surface
+!  area), it returns SADSTRAT=XSASTRAT=0.d0 and RAER=REFF=0.1d0 for safety's
+!  sake. I think that will prevent code blow-up later on."
 ! 
 ! !REVISION HISTORY: 
 !  17 Apr 2013 - S. D. Eastham - Initial version
+!  07 Apr 2015 - R. Yantosca   - Add error check to prevent div-by-zero errors
+!                                in other areas of GEOS-Chem caused by low SAD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4361,18 +4284,40 @@
       ! GET_STRAT_OPT begins here!
       !=================================================================
 
+      ! Surface area density [cm2/cm3]
       SAD  = SAD_AER(I,J,L,IAER)
-      ! For SLA, convert liquid radius to effective optical radius
-      RAER = RAD_AER(I,J,L,IAER)
-      IF (IAER.eq.I_SLA) THEN
-         REFF = RAER/SLA_RR
-      ELSE
-         REFF = RAER
-      ENDIF
+      
+      ! Add error check: threshold is 1e-14 cm2/cm3 (bmy, 4/7/15)
+      IF ( SAD < 1e-14_fp ) THEN
 
-      ! Standard log-normal distribution approach
-      ! Probably OK for PSCs too? Note cm2/cm3 to m2/m3 = x100
-      XSA = 0.25e+2_fp*SAD
+         !--------------------------------------------------------------
+         ! FOR SAFETY'S SAKE: Set outputs to "safe" values and 
+         ! exit if very small SAD is encountered. (bmy, 4/7/15)
+         !--------------------------------------------------------------
+         SAD  = 0.0e+0_fp
+         XSA  = 0.0e+0_fp
+         RAER = 0.1e+0_fp
+         REFF = 0.1e+0_fp
+         
+      ELSE 
+
+         !--------------------------------------------------------------
+         ! Otherwise, compute RAER, REFF, XSA normally
+         !--------------------------------------------------------------
+
+         ! For SLA, convert liquid radius to effective optical radius
+         RAER = RAD_AER(I,J,L,IAER)
+         IF (IAER.eq.I_SLA) THEN
+            REFF = RAER/SLA_RR
+         ELSE
+            REFF = RAER
+         ENDIF
+
+         ! Standard log-normal distribution approach
+         ! Probably OK for PSCs too? Note cm2/cm3 to m2/m3 = x100
+         XSA = 0.25e+2_fp*SAD
+
+      ENDIF
 
       END SUBROUTINE GET_STRAT_OPT
 !EOC
@@ -4420,6 +4365,8 @@
 !  17 Apr 2013 - S. D. Eastham - Initial version
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
 !                                objects via the arg list
+!  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
+!                                now done from DO_CHEMISTRY (chemistry_mod.F) 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4427,10 +4374,6 @@
       !=================================================================
       ! CHECK_NAT begins here!
       !=================================================================
-
-      IF ( .NOT. GOT_STATE_PSC ) THEN
-         CALL READ_PSC_FILE( am_I_Root )
-      ENDIF
 
       IS_STRAT = ITS_IN_THE_STRAT(I,J,L,State_Met)
 
@@ -4471,6 +4414,7 @@
 
       ! Temporary - for debug
       USE ERROR_MOD,     ONLY : IT_IS_NAN,ERROR_STOP     ! Test for NaN
+      USE ERROR_MOD,     ONLY : SAFE_EXP,SAFE_DIV, DEBUG_MSG
 !
 ! !INPUT PARAMETERS:
 !
@@ -4503,6 +4447,7 @@
 !
 ! !REVISION HISTORY: 
 !  19 Apr 2013 - S. D. Eastham - Initial version
+!  16 Apr 2015 - M. Yannetti   - Changed EXP to SAFE_EXP in H_HCL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4698,10 +4643,13 @@
 
          PVAP_HNO3=M_HNO3/(H_HNO3_BIN*M_HNO3/(M_HNO3+
      &      M_H2SO4)+H_H2SO4_BIN*M_H2SO4/(M_HNO3+M_H2SO4))
-         W_HNO3 = M_HNO3*0.063012e+0_fp/(1.0e+0_fp+M_H2SO4*
+         W_HNO3 = (M_HNO3*0.063012e+0_fp)/(1.0e+0_fp+M_H2SO4*
      &      0.098076e+0_fp+M_HNO3*0.063012e+0_fp)
+
          HNO3GASFRAC=(1.0e+0_fp-(PATMHNO3-PVAP_HNO3)/PATMHNO3)
          M_HNO3=MAX(M_HNO3,0.0e+0_fp)
+         W_HNO3=MAX(W_HNO3,0.0e+0_fp) ! needed for small underflow (mdy 04/15)
+
       ELSE
          ! Solution is pure H2SO4/H2O
          M_H2SO4 = M_H2SO4_BIN
@@ -4712,7 +4660,6 @@
          PVAP_HNO3 = 0.0e+0_fp
          HNO3GASFRAC=1.0e+0_fp
       ENDIF
-
       ! Handle HCl (Luo et al., Vapor pressures of
       ! H2SO4/HNO3/HCl/HBr/H2O solutions to low stratospheric
       ! temperatures, 1995)
@@ -4989,69 +4936,70 @@
 !
 ! !REVISION HISTORY: 
 !  10 Oct 2012 - S. D. Eastham - Initial version
+!  15 Apr 2015 - M. Yannetti   - Adjustment to f8 from fp due to overflow concerns
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)               :: WT      ! Weight percentage H2SO4 (100*kg/kg)
-      REAL(fp)               :: H2OPP   ! Partial pressure of H2O (hPa)
-      REAL(fp)               :: HClPP   ! Partial pressure of HCl (atm)
-      REAL(fp)               :: HBrPP   ! Partial pressure of HBr (atm)
-      REAL(fp)               :: HOBrPP  ! Partial pressure of HOBr (atm)
-      REAL(fp)               :: ClNO3PP ! Partial p. of ClONO2 (atm)
-      REAL(fp)               :: BrNO3PP ! Partial p. of BrONO2 (atm)
-      REAL(fp)               :: PSATH2O ! Water vapor sat. pressure (hPa)
-      REAL(fp)               :: ACTH2O  ! Activity of water
-      REAL(fp)               :: MOLAL   ! Molality of H2SO4 (mol H2SO4/kg solvent)
-      REAL(fp), DIMENSION(3) :: Z       ! Parameters for H2SO4 sol'n
-      REAL(fp)               :: M_H2SO4 ! Mass of H2SO4
+      REAL(f8)               :: WT      ! Weight percentage H2SO4 (100*kg/kg)
+      REAL(f8)               :: H2OPP   ! Partial pressure of H2O (hPa)
+      REAL(f8)               :: HClPP   ! Partial pressure of HCl (atm)
+      REAL(f8)               :: HBrPP   ! Partial pressure of HBr (atm)
+      REAL(f8)               :: HOBrPP  ! Partial pressure of HOBr (atm)
+      REAL(f8)               :: ClNO3PP ! Partial p. of ClONO2 (atm)
+      REAL(f8)               :: BrNO3PP ! Partial p. of BrONO2 (atm)
+      REAL(f8)               :: PSATH2O ! Water vapor sat. pressure (hPa)
+      REAL(f8)               :: ACTH2O  ! Activity of water
+      REAL(f8)               :: MOLAL   ! Molality of H2SO4 (mol H2SO4/kg solvent)
+      REAL(f8), DIMENSION(3) :: Z       ! Parameters for H2SO4 sol'n
+      REAL(f8)               :: M_H2SO4 ! Mass of H2SO4
 
       ! HOBr parameters
-      REAL(fp)               :: c_HOBr
-      REAL(fp)               :: SHOBr
-      REAL(fp)               :: HHOBr
-      REAL(fp)               :: DHOBr
-      REAL(fp)               :: kHOBr_HCl
-      REAL(fp)               :: GHOBrrxn
-      REAL(fp)               :: lHOBr
-      REAL(fp)               :: fHOBr
-      REAL(fp)               :: gHOBr_HCl
+      REAL(f8)               :: c_HOBr
+      REAL(f8)               :: SHOBr
+      REAL(f8)               :: HHOBr
+      REAL(f8)               :: DHOBr
+      REAL(f8)               :: kHOBr_HCl
+      REAL(f8)               :: GHOBrrxn
+      REAL(f8)               :: lHOBr
+      REAL(f8)               :: fHOBr
+      REAL(f8)               :: gHOBr_HCl
 
       ! HOCl parameters
-      REAL(fp)               :: c_HOCl
-      REAL(fp)               :: SHOCl
-      REAL(fp)               :: HHOCl
-      REAL(fp)               :: DHOCl
-      REAL(fp)               :: kHOCl_HCl
-      REAL(fp)               :: GHOClrxn
-      REAL(fp)               :: lHOCl
-      REAL(fp)               :: fHOCl
-      REAL(fp)               :: gHOCl_HCl
+      REAL(f8)               :: c_HOCl
+      REAL(f8)               :: SHOCl
+      REAL(f8)               :: HHOCl
+      REAL(f8)               :: DHOCl
+      REAL(f8)               :: kHOCl_HCl
+      REAL(f8)               :: GHOClrxn
+      REAL(f8)               :: lHOCl
+      REAL(f8)               :: fHOCl
+      REAL(f8)               :: gHOCl_HCl
 
       ! ClNO3 parameters
-      REAL(fp)               :: c_ClNO3
-      REAL(fp)               :: SClNO3
-      REAL(fp)               :: HClNO3
-      REAL(fp)               :: DClNO3
-      REAL(fp)               :: GClNO3rxn
-      REAL(fp)               :: lClNO3
-      REAL(fp)               :: fClNO3
-      REAL(fp)               :: gClNO3
-      REAL(fp)               :: gClNO3_HCl
-      REAL(fp)               :: gClNO3_H2O
+      REAL(f8)               :: c_ClNO3
+      REAL(f8)               :: SClNO3
+      REAL(f8)               :: HClNO3
+      REAL(f8)               :: DClNO3
+      REAL(f8)               :: GClNO3rxn
+      REAL(f8)               :: lClNO3
+      REAL(f8)               :: fClNO3
+      REAL(f8)               :: gClNO3
+      REAL(f8)               :: gClNO3_HCl
+      REAL(f8)               :: gClNO3_H2O
  
       ! N2O5 parameters
-      REAL(fp), DIMENSION(3) :: AK
+      REAL(f8), DIMENSION(3) :: AK
 
       ! Other parameters
-      REAL(fp) :: kH2O,kH,khdr,GbH2O,HHCl,MHCl,kHCl,GbHCl,Gs,FHCl,Gsp
-      REAL(fp) :: GbHClp, Gb, khydr, kII, k_dl
+      REAL(f8) :: kH2O,kH,khdr,GbH2O,HHCl,MHCl,kHCl,GbHCl,Gs,FHCl,Gsp
+      REAL(f8) :: GbHClp, Gb, khydr, kII, k_dl
 
       ! Interim variables
-      REAL(fp)               :: X,A,H,T_THRESHOLD,aH
-      REAL(fp), PARAMETER    :: MAX_T_DIFF = 6.0e+0_fp
+      REAL(f8)               :: X,A,H,T_THRESHOLD,aH
+      REAL(f8), PARAMETER    :: MAX_T_DIFF = 6.0e+0_fp
 
       ! Control whether to run calculations
       LOGICAL              :: HClOK, HOBrOK
@@ -5063,16 +5011,16 @@
       ! CALC_SLA_GAMMA begins here!
       !=================================================================
 
-      PSATH2O = EXP(18.452406985e+0_fp-3505.1578807e+0_fp
-     &     /T-330918.55082e+0_fp/(T*T)
-     &     +12725068.262e+0_fp/(T*T*T))       ! Saturation pressure of H2O
+      PSATH2O = EXP(18.452406985e+0_f8-3505.1578807e+0_f8
+     &     /T-330918.55082e+0_f8/(T*T)
+     &     +12725068.262e+0_f8/(T*T*T))       ! Saturation pressure of H2O
       H2OPP = H2OSUM * P                  ! Partial pressure of H2O
-      ACTH2O = MAX((H2OPP/PSATH2O),1.0e+0_fp) ! Water activity
+      ACTH2O = MAX((H2OPP/PSATH2O),1.0e+0_f8) ! Water activity
 
       ! Calculate molality of solution
       !WT = MIN(100.0e+0_fp,100.0e+0_fp*WT_FRC) ! Convert from fraction to %
-      WT = 100.0e+0_fp*WT_FRC ! Convert from fraction to %
-      MOLAL = 1000.0e+0_fp * (WT/98.0e+0_fp/(100.0-WT))
+      WT = 100.0e+0_f8*WT_FRC ! Convert from fraction to %
+      MOLAL = 1000.0e+0_f8 * (WT/98.0e+0_f8/(100.0-WT))
 
       ! Parameters for H2SO4 solution
       !----------------------------------------------------------
@@ -5090,71 +5038,71 @@
       !----------------------------------------------------------
       M_H2SO4 =   RHO*WT/9.8 ! Molality (mol H2SO4/kg solvent)
       X    =   WT/(WT+(100.-WT)*98./18.)
-      A    =   169.5+5.18*WT-0.0825*WT*WT+3.27e-3_fp*WT*WT*WT
-      T_THRESHOLD = 144.11+0.166*WT-0.015*WT*WT+2.18e-4_fp*WT*WT*WT
+      A    =   169.5+5.18*WT-0.0825*WT*WT+3.27e-3_f8*WT*WT*WT
+      T_THRESHOLD = 144.11+0.166*WT-0.015*WT*WT+2.18e-4_f8*WT*WT*WT
       IF ((T-T_THRESHOLD).gt.MAX_T_DIFF) THEN
          H = A*T**(-1.43)*EXP(448./(T-T_THRESHOLD))
       ELSE
          H = A*T**(-1.43)*EXP(448./MAX_T_DIFF)
       ENDIF
 
-      aH   =   EXP(60.51-0.095*WT+0.0077*WT*WT-1.61e-5*WT*WT*WT
-     &     -(1.76+2.52e-4_fp*WT*WT)*SQRT(T) +
+      aH   =   EXP(60.51-0.095*WT+0.0077*WT*WT-1.61e-5_f8*WT*WT*WT
+     &     -(1.76+2.52e-4_f8*WT*WT)*SQRT(T) +
      &     (-805.89+253.05*WT**0.076)/SQRT(T))
 
-      HClPP = HClSUM*P/1013.25e+0_fp ! Note atm, not hPa
-      ClNO3PP = ClNO3SUM*P/1013.25e+0_fp
-      BrNO3PP = BrNO3SUM*P/1013.25e+0_fp
+      HClPP = HClSUM*P/1013.25e+0_f8 ! Note atm, not hPa
+      ClNO3PP = ClNO3SUM*P/1013.25e+0_f8
+      BrNO3PP = BrNO3SUM*P/1013.25e+0_f8
       HOBrPP = HOBrSUM*P/1013.25 ! Note atm, not hPa
  
       ! Should we bother running calculations?
-      HClOK = (HClPP .gt. 1.e-30_fp)
-      HOBrOK = (HOBrPP .gt. 1.e-30_fp)
+      HClOK = (HClPP .gt. 1.e-30_f8)
+      HOBrOK = (HOBrPP .gt. 1.e-30_f8)
 
       ! Reaction 1. N2O5 + H2O (hydrolysis of N2O5)
-      AK(1)=-25.5265-0.133188*WT+0.0093084*WT**2-9.0194E-5*WT**3
+      AK(1)=-25.5265-0.133188*WT+0.0093084*WT**2-9.0194E-5_f8*WT**3
       AK(2)=9283.76+115.345*WT-5.19258*WT**2+0.0483464*WT**3
       AK(3)=-851801-22191.2*WT+766.916*WT**2-6.85427*WT**3
       RXNGAMMA(1)=exp(AK(1)+AK(2)/T+AK(3)/T**2)
       
       ! Reaction 2. N2O5 + HCl
       ! JPL 10-06 suggests near-zero gamma
-      RXNGAMMA(2) = TINY(1e+0_fp)
+      RXNGAMMA(2) = TINY(1e+0_f8)
 
       ! Reactions 3/4. ClNO3 + H2O/HCl
       ! Now od only if HCl concentrations are large enough
       ! (to avoid div-by-zero errors), ckeller, 2/10/15.
       IF (HClOK) THEN
-         c_ClNO3     =  1474.e+0_fp*SQRT(T)
-         SClNO3      =  0.306e+0_fp+24.e+0_fp/T
-         HClNO3      =  1.6e-6_fp*EXP(4710.e+0_fp/T)
+         c_ClNO3     =  1474.e+0_f8*SQRT(T)
+         SClNO3      =  0.306e+0_f8+24.e+0_f8/T
+         HClNO3      =  1.6e-6_f8*EXP(4710.e+0_f8/T)
      &               *  EXP(-SClNO3*M_H2SO4)
-         DClNO3      =  5e-8_fp*T/h
-         kH2O        =  1.95e+10_fp*EXP(-2800.e+0_fp/T)
-         kH          =  1.22e+12_fp*EXP(-6200.e+0_fp/T)
+         DClNO3      =  5e-8_f8*T/h
+         kH2O        =  1.95e+10_f8*EXP(-2800.e+0_f8/T)
+         kH          =  1.22e+12_f8*EXP(-6200.e+0_f8/T)
          khydr       =  kH2O*ACTH2O + kH*aH*ACTH2O
-         GbH2O       =  4_fp*HClNO3*0.082_fp*T*SQRT(DClNO3*khydr)
+         GbH2O       =  4*HClNO3*0.082*T*SQRT(DClNO3*khydr)
      &               /  c_ClNO3
-         HHCl        =  (0.094e+0_fp-0.61e+0_fp*X+1.2e+0_fp*X*X)
-     &               *  EXP(-8.68_fp+(8515_fp-10718_fp*X**0.7)/T)
+         HHCl        =  (0.094e+0_f8-0.61e+0_f8*X+1.2e+0_f8*X*X)
+     &               *  EXP(-8.68+(8515-10718*X**0.7)/T)
          MHCl        =  HHCl *HClPP
-         kHCl        =  7.9e+11_fp*aH*DClNO3*MHCl
+         kHCl        =  7.9e+11_f8*aH*DClNO3*MHCl
          lClNO3      =  SQRT(DClNO3/(khydr+kHCl))
-         if (lClNO3.gt.(1.e+5_fp*arad)) then
+         if (lClNO3.gt.(1.e+5_f8*arad)) then
             ! Limiting rate
-            fClNO3   =  arad/(3.e+0_fp*lClNO3)
+            fClNO3   =  arad/(3.e+0_f8*lClNO3)
          else
-            fClNO3   =  1.e+0_fp/tanh(arad/lClNO3)- lClNO3/arad
+            fClNO3   =  1.e+0_f8/tanh(arad/lClNO3)- lClNO3/arad
          endif
-         GClNO3rxn   =  fClNO3*GbH2O *SQRT(1.e+0_fp+kHCl/khydr)
+         GClNO3rxn   =  fClNO3*GbH2O *SQRT(1.e+0_f8+kHCl/khydr)
          GbHCl       =  GClNO3rxn* kHCl/(kHCl+ khydr)
-         Gs          =  66.12e+0_fp*EXP(-1374.e+0_fp/T)*HClNO3*MHCl
-         FHCl        =  1.e+0_fp/(1.e+0_fp+0.612e+0_fp*(Gs+GbHCl)*
+         Gs          =  66.12e+0_f8*EXP(-1374.e+0_f8/T)*HClNO3*MHCl
+         FHCl        =  1.e+0_f8/(1.e+0_f8+0.612e+0_f8*(Gs+GbHCl)*
      &                ClNO3PP/ HClPP)
          Gsp         =  FHCl*Gs
          GbHClp      =  FHCl*GbHCl
          Gb          =  GbHClp  + GClNO3rxn* khydr/( kHCl+ khydr)
-         gClNO3      =  1.e+0_fp/(1.e+0_fp+1.e+0_fp/(Gsp + Gb))
+         gClNO3      =  1.e+0_f8/(1.e+0_f8+1.e+0_f8/(Gsp + Gb))
          gClNO3_HCl  =  gClNO3 *(Gsp + GbHClp)/(Gsp + Gb)
          gClNO3_H2O  =  gClNO3 - gClNO3_HCl
    
@@ -5162,46 +5110,46 @@
          RXNGAMMA(3) =  gClNO3_H2O
          RXNGAMMA(4) =  gClNO3_HCl
       ELSE
-         RXNGAMMA(3) = TINY(1e+0_fp)
-         RXNGAMMA(4) = TINY(1e+0_fp)
+         RXNGAMMA(3) = TINY(1e+0_f8)
+         RXNGAMMA(4) = TINY(1e+0_f8)
       ENDIF
 
       ! Reaction 5. ClNO3 + HBr
       ! Not present in JPL 10-06 for H2SO4
-      RXNGAMMA(5) = TINY(1e+0_fp)
+      RXNGAMMA(5) = TINY(1e+0_f8)
 
       ! Reaction 6. BrNO3 + H2O
 !      RXNGAMMA(6) = 1.0/(1.0/0.88+exp(-17.832+0.245*WT))
-      RXNGAMMA(6) = 1.e+0_fp/(1.e+0_fp/0.80e+0_fp+1.e+0_fp/
-     &             (exp(29.2e+0_fp-0.4e+0_fp*WT )+0.11))
+      RXNGAMMA(6) = 1.e+0_f8/(1.e+0_f8/0.80e+0_f8+1.e+0_f8/
+     &             (exp(29.2e+0_f8-0.4e+0_f8*WT )+0.11))
       
       ! Reaction 7. BrNO3 + HCl
-      RXNGAMMA(7) = 0.9e+0_fp ! JPL 10-06
+      RXNGAMMA(7) = 0.9e+0_f8 ! JPL 10-06
 
       ! Reaction 8. HOCl + HCl
       IF (HClOK) THEN
-         c_HOCl    =  MOLEC_SPEED(T,52.46e+0_fp)
-         SHOCl     =  0.0776e+0_fp+59.18e+0_fp/T
-         HHOCl     =  1.91e-6_fp*EXP(5862.4e+0_fp/T)*EXP(-SHOCl*M_H2SO4)
-         DHOCl     =  6.4e-8_fp*T/H
-         kHOCl_HCl =  1.25e+9_fp*aH*DHOCl*MHCl
+         c_HOCl    =  MOLEC_SPEED(T,52.46e+0_fp) ! input variable, fp
+         SHOCl     =  0.0776e+0_f8+59.18e+0_f8/T
+         HHOCl     =  1.91e-6_f8*EXP(5862.4e+0_f8/T)*EXP(-SHOCl*M_H2SO4)
+         DHOCl     =  6.4e-8_f8*T/H
+         kHOCl_HCl =  1.25e+9_f8*aH*DHOCl*MHCl
          lHOCl     =  SQRT(DHOCl/kHOCl_HCl)
-         if (lHOCl.gt.(1.e+5_fp*arad)) then
+         if (lHOCl.gt.(1.e+5_f8*arad)) then
             ! Limiting rate
-            fHOCl = arad/(3.e+0_fp*lHOCl)
+            fHOCl = arad/(3.e+0_f8*lHOCl)
          else
-            fHOCl     =  1.e+0_fp/tanh(arad/lHOCl)- lHOCl/arad
+            fHOCl     =  1.e+0_f8/tanh(arad/lHOCl)- lHOCl/arad
          endif
-         GHOClrxn  =  4.e+0_fp*HHOCl*0.082e+0_fp*T*
+         GHOClrxn  =  4.e+0_f8*HHOCl*0.082e+0_f8*T*
      &                sqrt(DHOCl*kHOCl_HCl)/c_HOCl
          IF (fHOCl.eq.0.) THEN
-            gHOCl_HCl =  TINY(1e+0_fp)
+            gHOCl_HCl =  TINY(1e+0_f8)
          ELSE
-            gHOCl_HCl =  1.e+0_fp/(1.e+0_fp+1.e+0_fp/
+            gHOCl_HCl =  1.e+0_f8/(1.e+0_f8+1.e+0_f8/
      &                 (fHOCl*GHOClrxn*FHCl))
          ENDIF
       ELSE
-         gHOCl_HCl = TINY(1e+0_fp)
+         gHOCl_HCl = TINY(1e+0_f8)
       ENDIF
    
       RXNGAMMA(8) = gHOCl_HCl
@@ -5210,38 +5158,45 @@
       ! Not yet implemented for STS; JPL 10-06 suggests complex
       ! relationship, not yet sufficiently well understood or
       ! parameterized for the purposes of simulation. Ignore for now
-      RXNGAMMA(9) = TINY(1e+0_fp)
+      RXNGAMMA(9) = TINY(1e+0_f8)
 
       ! Reaction 10. HOBr + HCl
       IF ((HClOK).and.(HOBrOK)) THEN
-         c_HOBr    =  MOLEC_SPEED(T,96.91e+0_fp)
-         SHOBr     =  0.0776e+0_fp+59.18e+0_fp/T
+         c_HOBr    =  MOLEC_SPEED(T,96.91e+0_fp) ! input variable, fp
+         SHOBr     =  0.0776e+0_f8+59.18e+0_f8/T
 !         HHOBr     =  30.D0
-         HHOBR     = exp(-9.86e+0_fp+5427.e+0_fp/T)
-         DHOBr     =  1.E-8
-         kII       = exp(154.e+0_fp-1.63e+0_fp*WT)*exp(-(3.85e+4_fp-
-     &               478.e+0_fp*WT)/T)
-         k_dl      = 7.5e+14_fp*(DHOBr*arad*1.e7)
+         HHOBR     = exp(-9.86e+0_f8+5427.e+0_f8/T)
+         DHOBr     =  1.E-8_f8
+         kII       = exp(154.e+0_f8-1.63e+0_f8*WT)*exp(-(3.85e+4_f8-
+     &               478.e+0_f8*WT)/T)
+         k_dl      = 7.5e+14_f8*(DHOBr*arad*1.e7_f8)
          IF (kII.gt.k_dl) kII=k_dl
          kHOBr_HCl =  kII*HHOBr*HOBrPP
-         GHOBrrxn  =  4.e+0_fp*HHCl*0.082e+0_fp*T*sqrt(DHOBr*kHOBr_HCl)/
+!         IF (kHOBr_HCl.eq.0.) THEN   ! catch for zero (mdy, 04/15)
+!           kHOBr_HCl = TINY(1e+0_fp)
+!         ENDIF
+         GHOBrrxn  =  4.e+0_f8*HHCl*0.082e+0_f8*T*sqrt(DHOBr*kHOBr_HCl)/
      &              c_HOBr
          lHOBr     =  sqrt(DHOBr/kHOBr_HCl)
-         if (lHOBr.gt.(1.e+3_fp*arad)) then
+         if (lHOBr.gt.(1.e+3_f8*arad)) then
             ! Limiting rate
-            fHOBr = arad/(3.e+0_fp*lHOBr)
+            fHOBr = arad/(3.e+0_f8*lHOBr)
          else
-            fHOBr     =  1.e+0_fp/tanh(arad/lHOBr)- lHOBr/arad
+            fHOBr     =  1.e+0_f8/tanh(arad/lHOBr)- lHOBr/arad
          endif
-         gHOBr_HCl =  1.e+0_fp/(1.e+0_fp+1.e+0_fp/(fHOBr*GHOBrrxn))
+!         IF ((fHOBr*GHOBrrxn).eq.0.) THEN
+!           gHOBr_HCl =  1.e+0_fp/(1.e+0_fp+1.e+0_fp/TINY(1e+0_fp))
+!         ELSE
+           gHOBr_HCl =  1.e+0_f8/(1.e+0_f8+1.e+0_f8/(fHOBr*GHOBrrxn))
+!         ENDIF
          RXNGAMMA(10) = gHOBr_HCl
       ELSE
-         RXNGAMMA(10) = TINY(1e+0_fp)
+         RXNGAMMA(10) = TINY(1e+0_f8)
       ENDIF
 
       ! Reaction 11. HOBr + HBr
       ! Data from JPL limited; ignore for now
-      RXNGAMMA(11) = TINY(1e+0_fp)
+      RXNGAMMA(11) = TINY(1e+0_f8)
 
       ! SDE 2013-10-18: DEBUG
       DO I=1,11
@@ -5330,17 +5285,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PSC_FILE( am_I_Root )
+      SUBROUTINE READ_PSC_FILE( am_I_Root, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
-      USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE HCO_ERROR_MOD
+      USE HCO_RESTART_MOD,    ONLY : HCO_RestartGet
+      USE HCO_STATE_MOD,      ONLY : HCO_State
+      USE HCO_CLOCK_MOD,      ONLY : HcoClock_First 
+      USE HCO_CLOCK_MOD,      ONLY : HcoClock_Rewind
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(INOUT) :: RC
 ! 
 ! !REVISION HISTORY: 
 !  28 Apr 2013 - S. D. Eastham - Initial version, based on READ_CSPEC_FILE
@@ -5349,6 +5313,7 @@
 !  23 Jul 2014 - R. Yantosca   - Remove reference to obsolete CMN_mod.F
 !  14 Jan 2015 - C. Keller     - Now read from HEMCO
 !   4 Mar 2015 - R. Yantosca   - Declare pointer args to HCO_GetPtr w/ REAL(f4)
+!  25 Mar 2015 - C. Keller     - Now use HEMCO restart module
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5357,51 +5322,54 @@
 !     
       ! Scalars
       LOGICAL            :: IT_EXISTS 
-      LOGICAL            :: LPRT
-      INTEGER            :: RC
 
       ! Strings
       CHARACTER(LEN=255) :: MSG
-      CHARACTER(LEN=255) :: cName 
- 
-      ! Pointer to fields in the HEMCO data structure.
-      ! Declare this with REAL(f4), aka REAL*4. (bmy, 3/4/15)
-      REAL(f4), POINTER  :: Ptr3D(:,:,:) => NULL()
+     
+      ! Pointer to HEMCO state obj.
+      TYPE(HCO_State), POINTER  :: HcoState => NULL()
 
       !=================================================================
       ! READ_PSC_FILE begins here!
       !=================================================================
 
-      ! Now read restart file through HEMCO
-      cName = 'STATE_PSC'
-      CALL HCO_GetPtr( am_I_Root, TRIM(cName), Ptr3D, RC, 
-     &                 FOUND=IT_EXISTS )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         MSG = 'Cannot read PSC initial state: '//TRIM(cName)
+      ! Assume success until otherwise 
+      RC = GIGC_SUCCESS 
+ 
+      ! Only read on first call or after rewind
+      IF ( .NOT. HcoClock_First ( .FALSE. ) .AND. 
+     &     .NOT. HcoClock_Rewind( .FALSE. )      ) THEN
+         RETURN
+      ENDIF
+ 
+      ! Get HEMCO state obj.
+      CALL GetHcoState( HcoState )
+
+      ! Get restart variable
+      CALL HCO_RestartGet( am_I_Root, HcoState, 'STATE_PSC',  
+     &                     STATE_PSC, RC, FILLED=IT_EXISTS ) 
+      IF ( RC /= HCO_SUCCESS ) THEN
+         MSG = 'Cannot get PSC restart variable'
          CALL ERROR_STOP ( MSG, 'READ_PSC_FILE (ucx_mod.F)' )
       ENDIF
+
+      ! Cleanup
+      HcoState => NULL()
+
+      ! On first call, prompt some messages
 
       ! If restart exists, point to this field. Eventually deallocate
       ! pointer first.
       IF ( IT_EXISTS ) THEN
-         STATE_PSC(:,:,:) = Ptr3D(:,:,:)
          IF (am_I_Root ) THEN
             WRITE(6,*) '    - UCX: Initialize PSC from restart' 
          ENDIF
       ELSE
          IF (am_I_Root ) THEN
          WRITE(6,*) 
-     &     '    - UCX: PSC restart not found, initialize PSC-free'
+     &      '    - UCX: PSC restart not found, initialize PSC-free'
          ENDIF
       ENDIF
-
-      ! Cleanup
-      Ptr3D => NULL()
-
-      ! Update flag
-      GOT_STATE_PSC = .TRUE.
-
-      IF ( LPRT ) CALL DEBUG_MSG( '### READ_PSC_FILE: read file' )
 
       END SUBROUTINE READ_PSC_FILE
 !EOC
@@ -5490,21 +5458,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_H2O_TRAC ( SETSTRAT, Input_Opt, State_Met,
-     &                          State_Chm )
+      SUBROUTINE SET_H2O_TRAC ( am_I_Root, SETSTRAT, Input_Opt, 
+     &                          State_Met, State_Chm, RC )
 !
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CMN_SIZE_MOD
+      USE CMN_GCTM_MOD
+      USE ERROR_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE DAO_MOD,            ONLY : AIRQNT
       USE TRACERID_MOD,       ONLY : IDTH2O
+      USE GIGC_ErrCode_Mod
+      USE UNITCONV_MOD 
 !
 ! !INPUT PARAMETERS:
-!
+!      
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       LOGICAL,        INTENT(IN)    :: SETSTRAT    ! Set strat H2O?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
 !
@@ -5513,11 +5486,25 @@
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Initial version
 !  14 Feb 2014 - R. Yantosca   - Reordered DO loop for efficiency
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
+!  24 Feb 2015 - E. Lundgren   - Replace GET_PCENTER with State_Met%PMID and
+!                                remove dependency on PRESSURE_MOD
+!  24 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg 
+!  29 Apr 2015 - E. Lundgren   - Now pass am_I_Root and RC to SET_H2O_TRAC
+!  29 Apr 2015 - E. Lundgren   - Now use grid box moist air mass ADMOIST 
+!                                with SPHU since AD is now dry air mass
+!  29 Apr 2015 - E. Lundgren   - Replace RH calculation method with Nordquist,
+!                                1973 and call AirQnt if moisture vars
+!                                are updated using H2O tracer concentration
+!  28 Oct 2015 - E. Lundgren   - Tracer units are now kg/kg dry air
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5526,16 +5513,30 @@
 !
       INTEGER           :: I,J,L
 
-      REAL(fp)            :: ESAT, SHMB, PRES, TEMP
-      REAL(fp), PARAMETER :: A =  23.5518e+0_fp
-      REAL(fp), PARAMETER :: B =  2937.4e+0_fp
-      REAL(fp), PARAMETER :: C = -4.9283e+0_fp
-
       LOGICAL           :: READ_SPHU
+      REAL(fp)          :: SPHU_kgkg, H2OVV_moist, Ev_mid
+      REAL(fp)          :: Esat, EsatA, EsatB, EsatC, EsatD
+      CHARACTER(LEN=255):: MSG, LOC
 
       ! Local variables for quantities from Input_Opt
       LOGICAL           :: LACTIVEH2O
 
+      ! Empirical parameters for water vapor saturation pressure
+      ! (Source: Nordquist, 1973. "Numerical Approximiations of
+      !  Selected Meteorological Parameters Related to Cloud Physics"
+      !  Text quality clarifications from Stipanuk, 1973. "Algorithms
+      !  for Generating a Skew-T, Log P Diagram and Computing Selected
+      !  Meteorological Quantities") 
+      REAL(fp), PARAMETER   :: ESATP1  = 2.3832241e+1_fp   
+      REAL(fp), PARAMETER   :: ESATP2  = -5.02808e+0_fp       
+      REAL(fp), PARAMETER   :: ESATP3  = 8.1328e-3_fp    
+      REAL(fp), PARAMETER   :: ESATP4  = 3.49149e+0_fp     
+      REAL(fp), PARAMETER   :: ESATP5  = -1.3028844e+3_fp
+      REAL(fp), PARAMETER   :: ESATP6  = -1.3816e-7_fp
+      REAL(fp), PARAMETER   :: ESATP7  = 1.1344e+1_fp
+      REAL(fp), PARAMETER   :: ESATP8  = -3.03998e-2_fp
+      REAL(fp), PARAMETER   :: ESATP9  = -2.949076e+3_fp
+      
       ! Pointers
       REAL(fp), POINTER   :: STT(:,:,:,:)
 
@@ -5543,49 +5544,98 @@
       ! SET_H2O_TRAC begins here!
       !=================================================================
 
+      ! Assume success
+      RC  = GIGC_SUCCESS   
+
       ! Copy fields from INPUT_OPT
       LACTIVEH2O = Input_Opt%LACTIVEH2O
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Check that tracer concentration units are as expected
+      IF ( TRIM( State_Chm%Trac_Units ) /= 'kg/kg dry' ) THEN
+         MSG = 'Incorrect tracer units: ' // TRIM(State_Chm%Trac_Units)
+         LOC = 'UCX_MOD: SET_H2O_TRAC'
+         CALL GIGC_Error( TRIM(MSG), RC, TRIM(LOC) )
+      ENDIF
+
+      ! Initialize GEOS-Chem tracer array [kg/kg dry]
       STT => State_Chm%Tracers
+
+      ! If specific humidity will be updated, set previous humidity to
+      ! to current humidity prior to change. This is used to preserve
+      ! tracer mass in mixing ratio update following moisture change
+      ! (ewl, 10/29/15)
+      IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
+         State_Met%SPHU_prev = State_Met%SPHU
+      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, PRES, TEMP, ESAT, SHMB, READ_SPHU )
+!$OMP+PRIVATE( I, J, L, READ_SPHU)
+!$OMP+PRIVATE( SPHU_kgkg, H2OVV_moist, Ev_mid )
+!$OMP+PRIVATE( Esat, EsatA, EsatB, EsatC, EsatD )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
          READ_SPHU = ( ITS_IN_THE_TROP( I, J, L, State_Met ) .or.
      &                 SETSTRAT .or. ( .not. LACTIVEH2O )  )
 
          IF ( READ_SPHU ) THEN
+            
+            ! Set H2O tracer concentration [kg/kg dry] using SPHU 
+            ! (ewl, 11/4/15)
             STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
-     &                          State_Met%AD(I,J,L)
+     &                          ( State_Met%ADMOIST(I,J,L)
+     &                            / State_Met%AD(I,J,L) )
+
          ELSE
-            ! Set specific humidity to transported H2O
-            State_Met%SPHU(I,J,L) = STT(I,J,L,IDTH2O) * 1.e+3_fp /
-     &                              State_Met%AD(I,J,L)
 
-            ! Pressure at midpoint of box (I,J,L)
-            PRES = GET_PCENTER(I,J,L)
+            ! Calculate specific humidity [g/kg total air] from 
+            ! transported H2O [kg/kg dry] (ewl, 9/17/15)
+            SPHU_kgkg = STT(I,J,L,IDTH2O) * State_Met%AD(I,J,L)
+     &                  / State_Met%ADMOIST(I,J,L)
 
-            ! Temperature at grid box (I,J,L)
-            TEMP = State_Met%T(I,J,L)
+            ! Set previous humidity to current humidity prior to update
+            ! (ewl, 10/28/15)
+            State_Met%SPHU_prev(I,J,L) = State_Met%SPHU(I,J,L)
 
-            ! Saturation water vapor pressure in mbar 
-            ! (from NASA GTE PEM-Tropics handbook)
-            ESAT = ( 10e+0_fp**( A - ( B / TEMP ) ) ) * ( TEMP**C )
-               
-            ! Specific humidity in mb
-            SHMB = State_Met%SPHU(I,J,L) * 1.6072e-3_fp * PRES
-               
-            ! Relative humidity as a percentage
-            State_Met%RH(I,J,L) = ( SHMB / ESAT ) * 100e+0_fp 
+            ! Set State_Met specific humidity [g/kg]
+            State_Met%SPHU(I,J,L) = SPHU_kgkg * 1.e+3_fp
+            
+            ! Calculate water vapor saturation pressure [hPa] from T
+            ! (see local variables above for method reference)
+            EsatA = ESATP1 + ESATP2 * log10( State_Met%T(I,J,L) ) 
+            EsatB = ESATP3 * 10**( ESATP4 + ESATP5/State_Met%T(I,J,L) )
+            EsatC = ESATP6 * 10**( ESATP7 + ESATP8*State_Met%T(I,J,L) )
+            EsatD = ESATP9 / State_Met%T(I,J,L)
+            Esat = 10**( EsatA + EsatB + EsatC + EsatD ) 
+
+            ! Calculate mol water vapor per mol moist air from SPHU
+            ! Note that SPHU must be converted to [kg/kg] to use 1-SPHU
+            ! as mass dry air / mass moist air
+            H2OVV_moist = SPHU_kgkg * AIRMW 
+     &               / ( SPHU_kgkg * AIRMW + ( 1 - SPHU_kgkg ) * H2OMW )
+   
+            ! Calculate water vapor partial pressure at grid box center [hPa]
+            ! Note that grid box center is defined as the arithmetic average
+            ! of the grid box pressure edges not the vertical mid-point.
+            Ev_mid = State_Met%PMID(I,J,L) * H2OVV_MOIST
+    
+            ! Set State_Met relative humidity [%]
+            State_Met%RH(I,J,L) = ( Ev_mid / Esat ) * 100e+0_fp 
+
          ENDIF
       ENDDO ! L
       ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
+
+      ! If humidity was updated, update all moist-dependent air quantities
+      ! and tracer mixing ratio with the new moisture content (ewl, 4/29/15) 
+      IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
+         CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
+     &                update_mixing_ratio=.TRUE. )
+      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -6515,6 +6565,9 @@
       LOGICAL :: LSETN2O
 !      LOGICAL :: LBASICEMIS
 
+      ! Return code
+      INTEGER :: RC
+
       !=================================================================
       ! INIT_UCX begins here!
       !=================================================================
@@ -6578,13 +6631,13 @@
        RETURN
 #endif
          WRITE( AVG_FILE_ROOT,'(a,a)') 
-     &        TRIM(Input_Opt%DATA_DIR_1x1),
+     &        TRIM(Input_Opt%CHEM_INPUTS_DIR),
      &      'UCX_201403/Init2D/DiurnalAvg.nc'
          WRITE( NOON_FILE_ROOT,'(a,a)') 
-     &        TRIM(Input_Opt%DATA_DIR_1x1), 
+     &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
      &        'UCX_201403/Init2D/Noontime.nc'
          WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
-     &        TRIM(Input_Opt%DATA_DIR_1x1), 
+     &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
      &        'UCX_201403/Init1D/Montreal.nc'
 
       ! For ASCII input, use 2x25 grid for all other grids than 4x5. 
@@ -6599,13 +6652,13 @@
          GRIDSPEC = 'Grid2x25/InitCFC_'
 #endif
          WRITE( AVG_FILE_ROOT,'(a,a,a)') 
-     &        TRIM(Input_Opt%DATA_DIR_1x1),
+     &        TRIM(Input_Opt%CHEM_INPUTS_DIR),
      &      'UCX_201403/DiurnalAvg/', TRIM(GRIDSPEC)
          WRITE(   NOON_FILE_ROOT,'(a,a,a)') 
-     &        TRIM(Input_Opt%DATA_DIR_1x1), 
+     &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
      &        'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
          WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
-     &        TRIM(Input_Opt%DATA_DIR_1x1), 
+     &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
      &      'UCX_201403/Montreal/'
       ENDIF
   
@@ -6823,7 +6876,7 @@
       ALLOCATE( STATE_PSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'STATE_PSC' )
       !STATE_PSC = 0e+0_fp
-      STATE_PSC     = 0.0_f4
+      STATE_PSC     = 0.0e+0_f4
       
       ! Mass fraction of tracers contained in liquid aerosol
       ! Indices: 1 - SO4
@@ -6919,6 +6972,9 @@
          CALL NOXCOEFF_INIT( am_I_Root, Input_Opt ) 
       ENDIF
 
+      ! Initialize diagnostics
+      CALL DIAGINIT_UCX ( am_I_Root, Input_Opt, RC )
+
       END SUBROUTINE INIT_UCX
 !EOC
 !------------------------------------------------------------------------------
@@ -6940,52 +6996,43 @@
 !
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE HCO_RESTART_MOD,    ONLY : HCO_RestartDefine
+      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
       USE HCO_ERROR_MOD
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
       INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  14 Jan 2015 - C. Keller     - Initial version
+!  25 Mar 2015 - C. Keller     - Now use HEMCO restart module
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      INTEGER            :: N
-      CHARACTER(LEN= 63) :: DiagnName 
-      CHARACTER(LEN=255) :: MSG
-      CHARACTER(LEN=255) :: LOC = 'DIAGINIT_DRYDEP (drydep_mod.F)' 
+      TYPE(HCO_State), POINTER :: HcoState => NULL()
+      CHARACTER(LEN=255)       :: MSG
+      CHARACTER(LEN=255)       :: LOC = 'DIAGINIT_UCX (ucx_mod.F)' 
 
       !=================================================================
       ! DIAGINIT_UCX begins here!
       !=================================================================
-      
-      ! Add diagnostics
-      DiagnName = 'STATE_PSC'
-      CALL Diagn_Create ( am_I_Root, 
-     &                    cName     = TRIM(DiagnName), 
-     &                    ExtNr     = -1, 
-     &                    Cat       = -1, 
-     &                    Hier      = -1, 
-     &                    HcoID     = -1, 
-     &                    SpaceDim  =  3, 
-     &                    AutoFill  =  0, 
-     &                    OutUnit   = 'count',
-     &                    OutOper   = 'Instantaneous',
-     &                    Trgt3D    = STATE_PSC,
-     &                    WriteFreq = 'End',
-     &                    cID       = N,
-     &                    RC        = RC,
-     &                    COL       = Input_Opt%DIAG_COLLECTION )
+
+      ! Define restart quantity    
+      CALL GetHcoState( HcoState ) 
+      CALL HCO_RestartDefine ( am_I_Root, HcoState, 
+     &                       'STATE_PSC', STATE_PSC, 'count', RC )
+      HcoState => NULL() 
+
       IF ( RC /= HCO_SUCCESS ) THEN
-         MSG = 'Cannot created diagnostics: ' // TRIM(DiagnName)
+         MSG = 'Cannot define STATE_PSC restart'
          CALL ERROR_STOP ( MSG, LOC ) 
       ENDIF
 
@@ -6999,6 +7046,69 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: write_state_psc
+!
+! !DESCRIPTION: Subroutine WRITE\_STATE\_PSC saves the STATE\_PSC array into
+! diagnostics. This is only of relevance in an ESMF environment, where 
+! STATE\_PSC is not automatically written into the HEMCO restart diagnostics
+! but needs to be passed explicitly to the internal state. This should be
+! done on every time step to make sure that replay simulations will always
+! have the most current STATE\_PSC values in the internal state (important
+! for checkpointing!).
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE WRITE_STATE_PSC ( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE HCO_ERROR_MOD
+      USE HCO_RESTART_MOD,  ONLY : HCO_RestartWrite
+      USE HCO_STATE_MOD,    ONLY : HCO_STATE
+      USE HCOI_GC_MAIN_MOD, ONLY : GetHcoState
+! 
+! !INPUT ARGUMENTS:
+!
+      LOGICAL, INTENT(IN)     :: am_I_Root
+! 
+! !INPUT/OUTPUT ARGUMENTS:
+!
+      INTEGER, INTENT(INOUT)  :: RC
+!
+! !REVISION HISTORY: 
+!  08 May 2015 - C. Keller     - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      TYPE(HCO_STATE), POINTER  :: HcoState => NULL()
+
+      !=================================================================
+      ! WRITE_STATE_PSC begins here!
+      !=================================================================
+
+      ! Eventually write PSC_STATE to restart. 
+      CALL GetHcoState ( HcoState )
+
+      CALL HCO_RestartWrite( am_I_Root,   HcoState, 
+     &                       'STATE_PSC', STATE_PSC, RC )
+      HcoState => NULL()
+      IF ( RC /= HCO_SUCCESS ) THEN
+         RC = GIGC_FAILURE
+         RETURN
+      ENDIF
+
+      ! Return w/ success
+      RC = GIGC_SUCCESS
+
+      END SUBROUTINE WRITE_STATE_PSC 
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: cleanup_ucx
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_UCX deallocates module variables.
@@ -7006,7 +7116,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_UCX
+      SUBROUTINE CLEANUP_UCX ( am_I_Root )
+! 
+! !INPUT ARGUMENTS:
+!
+      LOGICAL, INTENT(IN)     :: am_I_Root
 !
 ! !REVISION HISTORY: 
 !  04 Apr 2013 - S. D. Eastham - Initial version

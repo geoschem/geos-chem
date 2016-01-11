@@ -22,8 +22,8 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      INTEGER, PUBLIC, PARAMETER   :: PD03    = 18         ! Dim of AD03 array
-      INTEGER, PUBLIC, PARAMETER   :: PD03_PL = 10         ! # of PL-HG2 diags
+      INTEGER, PUBLIC, PARAMETER   :: PD03    = 22         ! Dim of AD03 array
+      INTEGER, PUBLIC, PARAMETER   :: PD03_PL = 13         ! # of PL-HG2 diags
 
 !
 ! !PUBLIC DATA MEMBERS:
@@ -54,6 +54,7 @@
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Br(:,:,:,:)     !
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_RGM(:,:,:)      !
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_PBM(:,:,:)      !
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_RIV(:,:)        !
 
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -85,6 +86,8 @@
 !  07 Feb 2012 - E. Corbitt  - Added new diagnostics for tagged simulation.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  10 Aug 2015 - J. Fisher   - Add polar Br/BrO/O3 diagnostics
+!  11 Aug 2015 - J. Fisher   - Add snow, deposition diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -119,6 +122,7 @@
 !        rather than nested DO loops and single precision 0E0. (cdh, 8/14/08)
 !  (3 ) Now zeros RGM and PBM diagnostics. (hma 20100219)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  12 Aug 2015 - Add Arctic river Hg diagnostic
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -146,6 +150,7 @@
       AD03_Br      = 0e+0_fp  
       AD03_RGM     = 0e+0_fp     
       AD03_PBM     = 0e+0_fp
+      AD03_RIV     = 0e+0_fp
 
       END SUBROUTINE ZERO_DIAG03
 !EOC
@@ -213,15 +218,23 @@
 !  (15) HG-SRCE  : Emissions from soils            : kg       : 1
 !  (16) HG-SRCE  : Flux-up Hg0 volat from ocean    : kg       : 1
 !  (17) HG-SRCE  : Flux-down Hg0 dry dep to ocean  : kg       : 1
-!  (18) PL-HG2-$ : Production of Hg2 from Hg0      : kg       : 1
-!  (19) PL-HG2-$ : Production of Hg2 from rxn w/OH : kg       : 1
-!  (20) PL-HG2-$ : Production of Hg2 from rxn w/O3 : kg       : 1
-!  (21) PL-HG2-$ : Loss of Hg2 from rxn w/ seasalt : kg       : 1 
-!  (22) PL-HG2-$ : Prod of Hg2 form rxn w/ Br      : kg       : 1
-!  (23) PL-HG2-$ : Br concentration                : molec/cm3: 1
-!  (24) PL-HG2-$ : Br concentration                : molec/cm3: 1
-!  (27) PL-HG2-$ : Reactive gaseous mercury        : pptv     : 1
-!  (28) PL-HG2-$ : Reactice particule mercury      : pptv     : 1
+!  (18) HG-SRCE  : Snow emission of Hg0            : kg       : 1
+!  (19) HG-SRCE  : Delivery of snow Hg2 to ocean   : kg       : 1
+!  (20) HG-SRCE  : Hg2/HgP deposition to ocean     : kg       : 1
+!  (21) HG-SRCE  : Hg2/HgP deposition to snow/ice  : kg       : 1
+!  ( 1) PL-HG2-$ : Production of Hg2 from Hg0      : kg       : 1
+!  ( 2) PL-HG2-$ : Production of Hg2 from rxn w/OH : kg       : 1
+!  ( 3) PL-HG2-$ : Production of Hg2 from rxn w/O3 : kg       : 1
+!  ( 4) PL-HG2-$ : Loss of Hg2 from rxn w/ seasalt : kg       : 1 
+!  ( 5) PL-HG2-$ : Loss of Hg2 from rxn w/ seasalt : 1/s      : 1 
+!  ( 6) PL-HG2-$ : Prod of Hg2 form rxn w/ Br      : kg       : 1
+!  ( 7) PL-HG2-$ : Br concentration                : molec/cm3: 1
+!  ( 8) PL-HG2-$ : BrO concentration               : molec/cm3: 1
+!  ( 9) PL-HG2-$ : Reactive gaseous mercury        : pptv     : 1
+!  (10) PL-HG2-$ : Reactive particule mercury      : pptv     : 1
+!  (11) PL-HG2-$ : Polar Br concentration          : pptv     : 1
+!  (12) PL-HG2-$ : Polar BrO concentration         : pptv     : 1
+!  (13) PL-HG2-$ : Polar O3 concentration          : ppbv     : 1
 !
 !  NOTES:
 ! 
@@ -733,7 +746,7 @@
 
       ENDDO 
 
-      ELSE
+      ELSE ! Total Hg simulation
 
       !=================================================================
       ! Write data to the bpch file
@@ -758,7 +771,7 @@
             NN                = N
             ARRAY(:,:,1)      = AD03(:,:,N,1) / SCALE
                
-         ELSE IF ( N <= 18 ) THEN
+         ELSE IF ( N <= 21 ) THEN
             
             !--------------------------------
             ! #1,3,4,5,6,9,13,14,15,18: Hg emissions
@@ -766,6 +779,10 @@
             ! #12: Carbon sinking               !anls
             ! #16: Flux-up (Hg0 volat from ocean)
             ! #17: Flux-down (Hg0 dry dep to ocean)
+            ! #18: Snow emissions of Hg0
+            ! #19: Snow Hg2 delivery to ocean
+            ! #20: Hg2/HgP deposited to open ocean
+            ! #21: Hg2/HgP deposited to snow/ice
             !--------------------------------
             CATEGORY          = 'HG-SRCE'
             UNIT              = 'kg'
@@ -773,6 +790,17 @@
             NN                = N
             ARRAY(:,:,1)      = AD03(:,:,N,1)
 
+        ELSE IF ( N == 22 ) THEN
+
+            !--------------------------------
+            ! #22: Hg2 from rivers !jaf
+            !--------------------------------
+            CATEGORY          = 'HG-SRCE'
+            UNIT              = 'kg'
+            LMAX              = 1 
+            NN                = N 
+            ARRAY(:,:,1)      = AD03_riv(:,:)
+    
          ELSE
 
             !--------------------------------
@@ -884,18 +912,6 @@
             NN                = N
             ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,2) / NCHEMSTEP
 
-!This is a duplicate of N==7, must be a bug (H Amos, 26 Oct 2011)
-!         ELSE IF ( N == 9 ) THEN
-!
-!            !--------------------------------
-!            ! #8: Br concentration
-!            !--------------------------------
-!            CATEGORY          = 'PL-HG2-$'
-!            UNIT              = 'molec/cm3'
-!            LMAX              = LD03
-!            NN                = N
-!            ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,2) / NCHEMSTEP
-
          ELSE IF ( N == 9 ) THEN
             !--------------------------------
             ! #9: Reactive particulate mercury
@@ -916,6 +932,36 @@
             NN                = N
             ARRAY(:,:,1:LMAX) = AD03_RGM(:,:,1:LMAX) / NDIAGSTEP 
 
+         ELSE IF ( N == 11 ) THEN
+            !--------------------------------
+            ! #13: Polar Br concentration    
+            !--------------------------------
+            CATEGORY          = 'PL-HG2-$'
+            UNIT              = 'pptv'
+            LMAX              = LD03
+            NN                = N
+            ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,3) / NCHEMSTEP
+            
+         ELSE IF ( N == 12 ) THEN
+            !--------------------------------
+            ! #14: Polar BrO concentration   
+            !--------------------------------
+            CATEGORY          = 'PL-HG2-$'
+            UNIT              = 'pptv'
+            LMAX              = LD03
+            NN                = N
+            ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,4) / NCHEMSTEP
+            
+         ELSE IF ( N == 13 ) THEN
+            !--------------------------------
+            ! #15: Polar O3 concentration    
+            !--------------------------------
+            CATEGORY          = 'PL-HG2-$'
+            UNIT              = 'ppbv'
+            LMAX              = LD03
+            NN                = N
+            ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,5) / NCHEMSTEP
+ 
          ELSE
 
             !--------------------------------
@@ -1042,7 +1088,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_SSR' )
 !-----------------------------------------------------------------
 
-      ALLOCATE( AD03_Br( IIPAR, JJPAR, LLPAR, 2 ), STAT=AS )
+      ALLOCATE( AD03_Br( IIPAR, JJPAR, LLPAR, 5 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_BR' )
       !End CDH
 
@@ -1055,6 +1101,10 @@
       ALLOCATE( AD03_RGM( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_RGM' )
 !------------------------------------------------------------------------
+
+      ! Arctic river Hg
+      ALLOCATE( AD03_RIV( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_RIV' )
 
       ! Zero arrays
       CALL ZERO_DIAG03
@@ -1099,6 +1149,7 @@
       IF ( ALLOCATED( AD03_PBM     ) ) DEALLOCATE( AD03_PBM     )
       IF ( ALLOCATED( AD03_RGM     ) ) DEALLOCATE( AD03_RGM     )
 !------------------------------------------------------------------------------
+      IF ( ALLOCATED( AD03_RIV     ) ) DEALLOCATE( AD03_RIV     )
 
       END SUBROUTINE CLEANUP_DIAG03
 !EOC

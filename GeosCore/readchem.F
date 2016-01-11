@@ -54,11 +54,15 @@
 !                              to avoid conflict with HAC + OH reaction. Now
 !                              initialize NKHAC, NKMCO3, NKGLYC. (S.D. Eastham)
 !  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  04 Aug 2015 - M. Long     - Removed ".rc" file specifier. Not necessary.
+!  22 Sep 2015 - R. Yantosca - Use NUMDEP instead of MAXDEP
+!  23 Sep 2015 - E. Lundgren - Add Criegee chemistry (E. Marais, D. Millet)
 !******************************************************************************
 !
 ! !USES:
 !
-      USE DRYDEP_MOD,         ONLY : MAXDEP
+!      USE DRYDEP_MOD,         ONLY : MAXDEP
+      USE DRYDEP_MOD,         ONLY : NUMDEP
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE DIAG_PL_MOD,        ONLY : SETJFAM, SETPL
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -280,11 +284,6 @@
       ! Name of file to open
       FILENAME   ='globchem.dat' 
 
-#if defined( ESMF_ ) 
-      ! We need to add the ".rc" extension to the "globchem.dat" file
-      ! so that GEOS-5 will copy it to the proper run directory.
-      FILENAME   = TRIM( FILENAME ) // '.rc'
-#endif
       KGLC       = IU_CHEMDAT
 
       IF ( am_I_Root ) THEN 
@@ -959,12 +958,18 @@
             NK                 = NRATCUR(NCS)
             IF (XINP(NPRODLO).EQ.'DRYDEP') THEN
                NDRYDEP(NCS)           = NDRYDEP(NCS) + 1
-               IF (NDRYDEP(NCS) .GT. MAXDEP) THEN
-                  WRITE(*,*) 'ERROR NDRYDEP Greater then MAXDEP',
-     x                 ' NDRYDEP(NCS)=',NDRYDEP(NCS),'MAXDEP=',MAXDEP
-                  IF ( am_I_Root ) WRITE( 6, '(a)' ) 'STOP 125'
-                  CALL GEOS_CHEM_STOP
-               ENDIF
+!------------------------------------------------------------------------------
+!               IF (NDRYDEP(NCS) .GT. MAXDEP) THEN
+!                  WRITE(*,*) 'ERROR NDRYDEP Greater then MAXDEP',
+!     x                 ' NDRYDEP(NCS)=',NDRYDEP(NCS),'MAXDEP=',MAXDEP
+!------------------------------------------------------------------------------
+! Disable this test for now
+!               IF (NDRYDEP(NCS) .GT. NUMDEP) THEN
+!                  WRITE(*,*) 'ERROR NDRYDEP Greater then NUMDEP',
+!     x                 ' NDRYDEP(NCS)=',NDRYDEP(NCS),'MAXDEP=',NUMDEP
+!                  IF ( am_I_Root ) WRITE( 6, '(a)' ) 'STOP 125'
+!                  CALL GEOS_CHEM_STOP
+!               ENDIF
                NKDRY(NDRYDEP(NCS),NCS)   = NK
             ENDIF
          ENDIF
@@ -1203,6 +1208,13 @@
                IF (SPECL(1).EQ.'Z') THEN
                   NKSPECZ(NCS) = NK
                ENDIF
+
+               ! Criegee chemistry (eam, dbm)
+               IF ( SPECL(1) .eq. '@' ) THEN
+                  WRITE (6,*) '@@@', NCS
+                  NNADDAT(NCS)=NNADDAT(NCS)+1
+                  NKSPECAT(NNADDAT(NCS),NCS) = NK
+               ENDIF
 !
 ! *********************************************************************
 ! *                       SURFACE REACTIONS                           * 
@@ -1417,12 +1429,6 @@
 
       ! Name of file to open
       FILENAME = 'chemga.dat'
-
-#if defined( ESMF_)
-      ! We need to add the ".rc" extension to the "chemga.dat" file
-      ! so that GEOS-5 will copy it to the proper run directory.
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
 
       IF ( am_I_Root ) THEN
          WRITE( 6, 300 ) TRIM( FILENAME ), I

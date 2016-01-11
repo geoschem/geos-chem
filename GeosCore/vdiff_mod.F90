@@ -37,7 +37,7 @@ MODULE VDIFF_MOD
   
 
   integer :: plevp
-  
+
   real(fp), parameter ::          &
        rearth = 6.37122e+6_fp,      & ! radius earth (m)
        cpwv   = 1.81e+3_fp,         &
@@ -401,7 +401,7 @@ contains
     qpert  = qpert_arg(:,lat)
     cgs    = cgs_arg(:,lat,:)
     pblh   = pblh_arg(:,lat)
-        
+
     IF (PRESENT(taux_arg )) taux  = taux_arg(:,lat)
     IF (PRESENT(tauy_arg )) tauy  = tauy_arg(:,lat)
     IF (PRESENT(ustar_arg)) ustar = ustar_arg(:,lat)
@@ -508,6 +508,7 @@ contains
 !           the perturbation temperature and moisture (tpert and qpert)
 !           the free atmosphere kv is returned above the boundary layer top.
 !-----------------------------------------------------------------------
+
     ! ustar must always be inputted 
 !ccc    if (present(taux) .and. present(tauy)) then
     if (present(taux_arg) .and. present(tauy_arg)) then
@@ -516,7 +517,7 @@ contains
                     kvm, kvh, &
                     cgh, cgq, cgs, pblh, tpert, qpert, &
                     wvflx, cgsh, plonl, & 
-                    taux=taux, tauy=tauy, ustar=ustar)
+                    taux=taux, tauy=tauy, ustar=ustar )     
     else
        call pbldif( thp, shp1, zm, um1, vm1, &
                     tm1, pmidm1, kvf, cflx, shflx, &
@@ -524,7 +525,7 @@ contains
                     cgh, cgq, cgs, pblh, tpert, qpert, &
                     wvflx, cgsh, plonl, ustar=ustar )
     endif
-    
+
     !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: after pbldif' )
@@ -646,6 +647,7 @@ contains
 !           combination of ca and cc; they are not explicitly provided to the 
 !           solver
 !-----------------------------------------------------------------------
+
     gorsq = (gravit/rair)**2
     do k = ntopfl,plev-1
        do i = 1,plonl
@@ -656,6 +658,7 @@ contains
           ccm(i,k+1) = kvm(i,k+1)*tmp2*rpdel(i,k+1)
        end do
     end do
+
 !-----------------------------------------------------------------------
 ! 	... the last element of the upper diagonal is zero.
 !-----------------------------------------------------------------------
@@ -663,6 +666,7 @@ contains
        cah(i,plev) = 0.e+0_fp
        cam(i,plev) = 0.e+0_fp
     end do
+
 !-----------------------------------------------------------------------
 ! 	... calculate e(k) for heat & momentum vertical diffusion.  this term is 
 !           required in solution of tridiagonal matrix defined by implicit diffusion eqn.
@@ -683,7 +687,7 @@ contains
           zem(i,k)   = cam(i,k)*termm(i,k)
        end do
     end do
-    
+
     !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: starting diffusion' )
@@ -691,6 +695,7 @@ contains
 !-----------------------------------------------------------------------
 ! 	... diffuse constituents
 !-----------------------------------------------------------------------
+
     call qvdiff( pcnst, qmx, dqbot, cch, zeh, &
 	         termh, qp1, plonl )
 
@@ -706,8 +711,9 @@ contains
 !-----------------------------------------------------------------------
 ! 	... diffuse sh
 !-----------------------------------------------------------------------
+
     call qvdiff( 1, shmx, dshbot, cch, zeh, &
-	         termh, shp1, plonl )
+	         termh, shp1, plonl ) 
 
 !-----------------------------------------------------------------------
 ! 	... correct sh
@@ -734,7 +740,7 @@ contains
     qpert_arg(:,lat) = qpert  
     cgs_arg(:,lat,:)   = cgs    
     pblh_arg(:,lat)  = pblh   
-        
+
     IF (PRESENT(taux_arg )) taux_arg(:,lat)  = taux   
     IF (PRESENT(tauy_arg )) tauy_arg(:,lat)  = tauy   
     IF (PRESENT(ustar_arg)) ustar_arg(:,lat) = ustar  
@@ -801,7 +807,7 @@ contains
                      kvm     ,kvh, &
                      cgh     ,cgq     ,cgs     ,pblh    ,tpert, &
                      qpert   ,wvflx   ,cgsh    ,plonl, &
-                     taux    ,tauy    ,ustar)
+                     taux    ,tauy    ,ustar )
 !
 ! !USES:
 ! 
@@ -954,7 +960,7 @@ contains
        obklen(i) = -thvsrf(i)*ustar(i)**3 &
                    /(g*vk*(heatv(i) + sign( 1.d-10,heatv(i) )))
     end do
-    
+
     if (pblh_ar) then  ! use archived PBLH
        
        do i = 1,plonl
@@ -1008,7 +1014,7 @@ contains
              end if
           end do
        end do
-       
+
 !------------------------------------------------------------------------
 ! 	... set pbl height to maximum value where computation exceeds number of
 !           layers allowed
@@ -1098,7 +1104,6 @@ contains
        
     endif ! if pblh_ar
 
-
 !------------------------------------------------------------------------
 ! 	... pblh is now available; do preparation for diffusivity calculation:
 !------------------------------------------------------------------------
@@ -1159,6 +1164,7 @@ contains
              end if
           end if
        end do
+
 !------------------------------------------------------------------------
 ! 	... stable and neutral points; set diffusivities; counter-gradient
 !           terms zero for stable case:
@@ -1174,6 +1180,7 @@ contains
              kvh(i,k) = kvm(i,k)
           end if
        end do
+
 !------------------------------------------------------------------------
 ! 	... unssrf, unstable within surface layer of pbl
 !           unsout, unstable within outer   layer of pbl
@@ -1189,6 +1196,7 @@ contains
              end if
           end if
        end do
+
 !------------------------------------------------------------------------
 ! 	... unstable for surface layer; counter-gradient terms zero
 !------------------------------------------------------------------------
@@ -1199,6 +1207,7 @@ contains
              pr(i)   = term/sqrt(1.e+0_fp - betah*zl(i))
           end if
        end do
+
 !------------------------------------------------------------------------
 ! 	... unstable for outer layer; counter-gradient terms non-zero:
 !------------------------------------------------------------------------
@@ -1218,6 +1227,7 @@ contains
              end if
           end do
        end do
+
 !------------------------------------------------------------------------
 ! 	... for all unstable layers, set diffusivities
 !------------------------------------------------------------------------
@@ -1229,7 +1239,7 @@ contains
        end do
 
     end do
-    
+
   end subroutine pbldif
 !EOC
 !------------------------------------------------------------------------------
@@ -1297,6 +1307,7 @@ contains
     !=================================================================
     ! qvdiff begins here!
     !=================================================================
+
 !-----------------------------------------------------------------------
 ! 	... calculate fq(k).  terms fq(k) and e(k) are required in solution of 
 !           tridiagonal matrix defined by implicit diffusion eqn.
@@ -1310,6 +1321,7 @@ contains
        do k = ntopfl+1,plev-1
           do i = 1,plonl
              zfq(i,k,m) = (qm1(i,k,m) + cc(i,k)*zfq(i,k-1,m))*term(i,k)
+             
           end do
        end do
     end do
@@ -1796,7 +1808,7 @@ contains
 !
 ! !INTERFACE:
 !
-  SUBROUTINE VDIFFDR( as2, Input_Opt, State_Met, State_Chm )
+  SUBROUTINE VDIFFDR( am_I_Root, as2, Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
 ! 
@@ -1820,20 +1832,32 @@ contains
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
     USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_m, COMPUTE_PBL_HEIGHT, &
                                    GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
-    USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
     USE TRACERID_MOD
-    USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND44, &
-                                   NDRYDEP, emis_save
+!------------------------------------------------------------------------------
+! Prior to 5/22/15:
+! Remove variables made obsolete by HEMCO (bmy, 5/22/15)
+!    USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, IDEMS, NEMIS NCS, ND44, &
+!                                   NDRYDEP, emis_save
+!------------------------------------------------------------------------------
+    USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, NCS, ND44, NDRYDEP
     USE MERCURY_MOD,        ONLY : HG_EMIS
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
+    USE TENDENCIES_MOD
+
     ! HEMCO update
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
+    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
+#if defined( DEVEL )
+    USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+#endif
 
     implicit none
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+    ! is this the root CPU?
+    LOGICAL,        INTENT(IN)            :: am_I_Root
+
     ! Input options object
     TYPE(OptInput), INTENT(IN)            :: Input_Opt
     
@@ -1887,6 +1911,12 @@ contains
 !  25 Jun 2014 - R. Yantosca - Now get N_MEMBERS from input_mod.F
 !  16 Oct 2014 - C. Keller   - Bug fix: now add deposition rates instead of
 !                              overwriting them.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
+!                              State_Met%PEDGE and State_Met%PMID.
+!                              Remove dependency on pressure_mod.
+!                              Use virtual temperature in hypsometric eqn.
+!  10 Apr 2015 - C. Keller   - Now exchange PARANOX loss fluxes via HEMCO 
+!                              diagnostics.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1956,7 +1986,23 @@ contains
     ! HEMCO update
     LOGICAL            :: FND
     REAL(fp)           :: TMPFLX, EMIS, DEP
-    INTEGER            :: TOPMIX
+    INTEGER            :: RC,     HCRC, TOPMIX
+
+    ! For HEMCO diagnostics
+#if defined( DEVEL )
+    REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+    REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
+    REAL(fp)           :: Total
+    INTEGER            :: cID
+#endif
+
+    ! PARANOX loss fluxes (kg/m2/s), imported from 
+    ! HEMCO PARANOX extension module (ckeller, 4/15/2015)
+    REAL(f4), POINTER, SAVE :: PNOXLOSS_O3  (:,:) => NULL()
+    REAL(f4), POINTER, SAVE :: PNOXLOSS_HNO3(:,:) => NULL()
+
+    ! First call?
+    LOGICAL,           SAVE :: FIRST = .TRUE.
 
     !=================================================================
     ! vdiffdr begins here!
@@ -2006,6 +2052,27 @@ contains
     
     shflx = State_Met%EFLUX / latvap ! latent heat -> water vapor flux
 
+    ! On first call, get pointers to the PARANOX loss fluxes. These are
+    ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and 
+    ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers 
+    ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
+    ! respective diagnostics. The pointers will remain unassociated if
+    ! the diagnostics do not exist (ckeller, 4/10/2015). 
+    IF ( FIRST ) THEN
+       CALL GetHcoDiagn( am_I_Root, 'PARANOX_O3_DEPOSITION_FLUX'  , &
+                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_O3         ) 
+       CALL GetHcoDiagn( am_I_Root, 'PARANOX_HNO3_DEPOSITION_FLUX', &
+                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_HNO3       ) 
+       FIRST = .FALSE.
+    ENDIF
+
+    ! Archive concentrations for tendencies calculations. Tracers array
+    ! is already in v/v (ckeller, 7/15/2015).
+#if defined(DEVEL)
+    CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
+                      State_Chm, 'PBLMIX', .TRUE., RC )
+#endif
+
 ! (Turn off parallelization for now, skim 6/20/12)
     
 !$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, L )
@@ -2014,13 +2081,13 @@ contains
 
     ! calculate variables related to pressure
     do L = 1, LLPAR
-       pmid(I,J,L) = GET_PCENTER(I,J,L)*100.e+0_fp ! hPa -> Pa
-       pint(I,J,L) = GET_PEDGE(I,J,L)*100.e+0_fp   ! hPa -> Pa
+       pmid(I,J,L) = State_Met%PMID(I,J,L)*100.e+0_fp ! hPa -> Pa
+       pint(I,J,L) = State_Met%PEDGE(I,J,L)*100.e+0_fp   ! hPa -> Pa
        ! calculate potential temperature
        thp(I,J,L) = State_Met%T(I,J,L)*(p0/pmid(I,J,L))**cappa
     enddo
-    pint(I,J,LLPAR+1) = GET_PEDGE(I,J,LLPAR+1)
-    
+    pint(I,J,LLPAR+1) = State_Met%PEDGE(I,J,LLPAR+1)
+
     enddo
     enddo
 !$OMP END PARALLEL DO
@@ -2029,13 +2096,14 @@ contains
     do J = 1, JJPAR
     do I = 1, IIPAR
     do L = 1, LLPAR
-    ! Corrected calculation of zm.
-    ! Use temperature instead of virtual temperature to be consistent with 
-    ! the calculation of BXHEIGHT. (lin, 06/02/08)
-    !zm(I,J,L) = sum(BXHEIGHT(I,J,1:L))
+       ! Corrected calculation of zm.
+       ! Box height calculation now uses virtual temperature.
+       ! Therefore, use virtual temperature in hypsometric equation.
+       ! (ewl, 3/3/15)
        zm(I,J,L) = sum( State_Met%BXHEIGHT(I,J,1:L)) &
                  - log( pmid(I,J,L)/pint(I,J,L+1) )  &
-                 * r_g * State_Met%T(I,J,L)
+                 * r_g * State_Met%TV(I,J,L)
+
     enddo
     enddo
     enddo
@@ -2095,6 +2163,12 @@ contains
        !----------------------------------------------------------------
        DO N = 1, N_TRACERS
 
+!          ! Exclude dust (ckeller 3/5/15)
+!          IF ( NN == IDTDST1 .OR. &
+!               NN == IDTDST2 .OR. &
+!               NN == IDTDST3 .OR. &
+!               NN == IDTDST4       ) CYCLE
+
           ! Add total emissions in the PBL to the EFLX array
           ! which tracks emission fluxes.  Units are [kg/m2/s].
           tmpflx = 0.0e+0_fp
@@ -2115,36 +2189,6 @@ contains
           ENDIF
        ENDDO
        
-!       !----------------------------------------------------------------
-!       ! Add emissions for offline aerosol simulation
-!       !----------------------------------------------------------------
-!       IF ( IS_AEROSOL ) THEN
-!
-!          ! add surface emis of aerosols 
-!          ! (after converting kg/box/timestep to kg/m2/s)
-!          ! Should NOT use ID_EMITTED here, since it is only for gases 
-!          ! for SMVGEAR. (Lin, 06/10/08)
-!          do N = 1, N_TRACERS
-!             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)       &
-!                                       / GET_AREA_M2( I, J, 1 ) &
-!                                       / GET_TS_EMIS() / 60.e+0_fp
-!          enddo
-!
-!       ENDIF
-!
-!       !----------------------------------------------------------------
-!       ! Zero emissions for tagged CO simulation
-!       !
-!       ! CO emis are considered in tagged_co_mod.f.  This over-
-!       ! simplified treatment may be inconsistent with the full 
-!       ! chemistry simulation. Hopefully this simplification wouldn't 
-!       ! cause too much problem, since the std. tagged_co simulation 
-!       ! is also approximate, anyway. (Lin, 06/20/09) 
-!       !----------------------------------------------------------------
-!       IF ( IS_TAGCO ) THEN
-!          eflx(I,J,:) = 0e+0_fp 
-!       ENDIF
-!
        !----------------------------------------------------------------
        ! Overwrite emissions for offline CH4 simulation.
        ! CH4 emissions become stored in CH4_EMIS in global_ch4_mod.F.
@@ -2184,11 +2228,11 @@ contains
           NN   = NTRAIND(N)
           if (NN == 0) CYCLE
 
-          ! Now include sea salt dry deposition (jaegle 5/11/11)
-          IF ( NN == IDTDST1 .OR. &
-               NN == IDTDST2 .OR. &
-               NN == IDTDST3 .OR. &
-               NN == IDTDST4       ) CYCLE
+!          ! Now include sea salt dry deposition (jaegle 5/11/11)
+!          IF ( NN == IDTDST1 .OR. &
+!               NN == IDTDST2 .OR. &
+!               NN == IDTDST3 .OR. &
+!               NN == IDTDST4       ) CYCLE
 
 !          IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
 !              TRIM( DEPNAME(N) ) == 'DST2'.OR. &
@@ -2341,7 +2385,7 @@ contains
           ! if conditions are met (jaf, 4/26/11)
           FRAC_NO_HG0_DEP = 1e+0_fp
 
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
           FRAC_NO_HG0_DEP = MIN( State_Met%FROCEAN(I,J) + &
                                  State_Met%FRSNO(I,J)   + &
                                  State_Met%FRLANDIC(I,J), 1e+0_fp)
@@ -2423,6 +2467,19 @@ contains
        dflx(I,J,:) = dflx(I,J,:) * State_Met%AD(I,J,1) / &
                      GET_AREA_M2( I, J, 1 ) 
 
+       ! Now that dflx is in kg/m2/s, add PARANOX loss to this term. The PARANOX
+       ! loss term is already in kg/m2/s. PARANOX loss (deposition) is calculated
+       ! for O3 and HNO3 by the PARANOX module, and data is exchanged via the 
+       ! HEMCO diagnostics. The data pointers PNOXLOSS_O3 and PNOXLOSS_HNO3 have
+       ! been linked to these diagnostics at the beginning of this routine
+       ! (ckeller, 4/10/15).
+       IF ( ASSOCIATED( PNOXLOSS_O3 ) .AND. IDTO3 > 0 ) THEN
+          dflx(I,J,IDTO3) = dflx(I,J,IDTO3) + PNOXLOSS_O3(I,J)
+       ENDIF
+       IF ( ASSOCIATED( PNOXLOSS_HNO3 ) .AND. IDTHNO3 > 0 ) THEN
+          dflx(I,J,IDTHNO3) = dflx(I,J,IDTHNO3) + PNOXLOSS_HNO3(I,J)
+       ENDIF
+
        ! surface flux = emissions - dry deposition
        sflx(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
 
@@ -2469,6 +2526,51 @@ contains
     enddo
 #endif
 
+    ! Write (surface) emissions into diagnostics
+#if defined( DEVEL )
+
+    ! Allocate temporary data array
+    ALLOCATE(Ptr3D(IIPAR,JJPAR,LLPAR))
+    Ptr3D = 0.0_fp
+
+    DO N = 1, N_TRACERS
+
+       ! Emission fluxes
+       IF ( ANY(eflx(:,:,N) > 0.0_fp ) ) THEN
+          Ptr3D(:,:,1) = eflx(:,:,N)
+          cID = GetHcoID ( TrcID=N )
+          IF ( cID > 0 ) THEN
+             cID = 10000 + cID
+             ! Total in kg
+             Total = SUM(Ptr3D(:,:,1) * State_Met%AREA_M2(:,:,1)) * dtime 
+             CALL Diagn_Update( am_I_Root,                           &
+                                cID     = cID,                       &
+                                Array3D = Ptr3D,                     &
+                                Total   = Total,                     &
+                                COL     = Input_Opt%DIAG_COLLECTION, &
+                                RC      = HCRC                        )
+             Ptr3D = 0.0_fp
+          ENDIF
+       ENDIF
+
+       ! Drydep fluxes
+       IF ( (ND44>0) .AND. (ANY(dflx(:,:,N) > 0.0_fp) ) ) THEN
+          Ptr2D => dflx(:,:,N)
+          cID = 44500 + N
+          CALL Diagn_Update( am_I_Root,                           &
+                             cID     = cID,                       &
+                             Array2D = Ptr2D,                     &
+                             COL     = Input_Opt%DIAG_COLLECTION, &
+                             RC      = HCRC                        )
+          Ptr2D => NULL()
+       ENDIF
+    ENDDO
+
+    DEALLOCATE(Ptr3D)
+
+#endif
+
+
     ! drydep fluxes diag. for SMVGEAR mechanism 
     ! for gases -- moved from DRYFLX in drydep_mod.f to here
     ! for aerosols -- 
@@ -2488,11 +2590,12 @@ contains
 
           ! Locate position of each tracer in DEPSAV
           NN = NTRAIND(N)
-          IF (NN == 0 .OR.       &
-              NN == IDTDST1 .OR. & 
-              NN == IDTDST2 .OR. &
-              NN == IDTDST3 .OR. &
-              NN == IDTDST4       ) CYCLE
+          IF ( NN == 0 ) CYCLE 
+!          IF (NN == 0 .OR.       &
+!              NN == IDTDST1 .OR. & 
+!              NN == IDTDST2 .OR. &
+!              NN == IDTDST3 .OR. &
+!              NN == IDTDST4       ) CYCLE
 
 #if !defined( NO_BPCH )
                 ! only for the lowest model layer
@@ -2690,6 +2793,12 @@ contains
        CALL COMPUTE_PBL_HEIGHT( State_Met )
     endif
 
+    ! Compute tendencies and write to diagnostics (ckeller, 7/15/2015)
+#if defined(DEVEL)
+    CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, &
+                      State_Chm, 'PBLMIX', .TRUE., dtime, RC )
+#endif
+
 !      !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
 
@@ -2723,6 +2832,7 @@ contains
     USE PBL_MIX_MOD,        ONLY : INIT_PBL_MIX
     USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
+    USE DAO_MOD,            ONLY : AIRQNT
 
     IMPLICIT NONE
 !
@@ -2753,6 +2863,8 @@ contains
 !  01 Aug 2013 - R. Yantosca - Now pass the Input_Opt object to VDIFFDR
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  22 Aug 2014 - R. Yantosca - Renamed DO_TURBDAY to DO_VDIFF for clarity
+!  16 Nov 2015 - E. Lundgren - Update air quantities after VDIFFDR call
+!                              since specific humidity is updated
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2773,7 +2885,7 @@ contains
     ! Assume success
     RC  =  GIGC_SUCCESS
 
-    ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+    ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
     ! (mpayer, 12/6/12)
     STT => State_Chm%Tracers
 
@@ -2786,14 +2898,29 @@ contains
     ENDIF
 
     ! Compute PBL height and related quantities
-    CALL COMPUTE_PBL_HEIGHT( State_Met )
+    ! -> now done in main.F (ckeller, 3/5/15)
+!    CALL COMPUTE_PBL_HEIGHT( State_Met )
 
     ! Do mixing of tracers in the PBL (if necessary)
     IF ( DO_VDIFF ) THEN
-       CALL VDIFFDR( STT, Input_Opt, State_Met, State_Chm )
+
+       ! Set previous specific humidity to current specific humidity 
+       ! prior to humidity update in vdiffdr (ewl, 10/28/15)
+       State_Met%SPHU_prev = State_Met%SPHU
+
+       CALL VDIFFDR( am_I_Root, STT, Input_Opt, State_Met, State_Chm )
        IF( LPRT .and. am_I_Root ) THEN
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
        ENDIF
+
+       ! Update air quantities and tracer concentrations with updated
+       ! specific humidity (ewl, 10/28/15)
+       ! NOTE: Prior to October 2015, air quantities were not updated
+       ! with specific humidity modified in VDIFFDR at this point in
+       ! the model
+       CALL AIRQNT( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                    RC, update_mixing_ratio=.TRUE. )
+
     ENDIF
 
     ! Free pointer

@@ -24,6 +24,9 @@
 #                              emissions data. This facilitates I/O for ESMF.
 #  20 Aug 2014 - M. Sulprizio- Add hcox_gc_POPs_mod.F90
 #  01 Oct 2014 - R. Yantosca - Add hcox_tomas_seasalt_mod.F90
+#  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
+#  04 Jun 2015 - R. Yantosca - Remove EF_MGN20.F, this isn't used anymore
+#  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -34,25 +37,32 @@
 ###                                                                         ###
 ###############################################################################
 
-# Define variables
-ROOT :=../..
-BIN  :=$(ROOT)/bin
-LIB  :=$(ROOT)/lib
-MOD  :=$(ROOT)/mod
+# Directories
+ROOT    :=../..
+LIB     :=$(ROOT)/lib
+MOD     :=$(ROOT)/mod
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOT)/Makefile_header.mk
 
 # List of source files to compile (everything ending in .F and .F90)
-SRC  :=$(wildcard *.F) $(wildcard *.F90)
+SOURCES :=$(wildcard *.F) $(wildcard *.F90)
 
 # For now, skip commsoil_mod.F90 till we figure out what to do with it
-SRC  :=$(filter-out commsoil_mod.F90,$(SRC))
+SOURCES :=$(filter-out commsoil_mod.F90,$(SOURCES))
 
-# Replace .f and .f90 extensions with *.o
-TMP  :=$(SRC:.F=.o)
-OBJ  :=$(TMP:.F90=.o)
+# List of object files (replace .f and .f90 extensions with *.o)
+TMP     :=$(SOURCES:.F=.o)
+OBJECTS :=$(TMP:.F90=.o)
+
+# List of module files.  Convert to lowercase, then prefix directory name.
+MODULES :=$(OBJECTS:.o=.mod)
+MODULES :=$(shell echo $(MODULES) | tr A-Z a-z)
+MODULES :=$(foreach I,$(MODULES),$(MOD)/$(I))
+
+# Library file
+LIBRARY :=libHCOX.a
 
 ###############################################################################
 ###                                                                         ###
@@ -60,24 +70,31 @@ OBJ  :=$(TMP:.F90=.o)
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean debug
+.PHONY: clean debug slowclean
 
 all: lib
 
-lib: $(OBJ)
-	$(AR) crs libHCOX.a $(OBJ)
-	mv libHCOX.a $(LIB)
+lib: $(OBJECTS)
+	$(AR) crs $(LIBRARY) $(OBJECTS)
+	mv $(LIBRARY) $(LIB)
 
 clean:
-	rm -f *.o *.mod *.a *.x
+	@echo "===> Making clean in directory: HEMCO/Extensions <==="
+	@rm -f *.o *.mod *.a *.x
+
+slowclean:
+	@echo "===> Making slowclean in directory: HEMCO/Extensions <==="
+	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 debug:
 	@echo "Targets : $(MAKECMDGOALS)"
 	@echo "ROOT    : $(ROOT)"
-	@echo "BIN     : $(BIN)"
 	@echo "LIB     : $(LIB)"
 	@echo "MOD     : $(MOD)"
 	@echo "F90     : $(F90)"
+	@echo "OBJECTS : $(OBJECTS)"
+	@echo "MODULES : $(MODULES)"
+	@echo "LIBRARY : $(LIBRARY)"
 
 ###############################################################################
 ###                                                                         ###
@@ -99,23 +116,28 @@ debug:
 
 drydep_toolbox_mod.o        : drydep_toolbox_mod.F90
 
-EF_MGN20_mod.o              : EF_MGN20_mod.F
+hcox_aerocom_mod.o          : hcox_aerocom_mod.F90            \
+                              hcox_state_mod.o		      \
+                              hcox_tools_mod.o
 
 hcox_ch4wetland_mod.o       : hcox_ch4wetland_mod.F90         \
-                              hcox_state_mod.o		      
+                              hcox_state_mod.o		      \
+                              hcox_tools_mod.o
 
 hcox_custom_mod.o           : hcox_custom_mod.F90             \
                               hcox_state_mod.o		      
 
 hcox_driver_mod.o           : hcox_driver_mod.F90             \
+                              hcox_aerocom_mod.o              \
                               hcox_ch4wetland_mod.o           \
                               hcox_custom_mod.o               \
                               hcox_dustdead_mod.o             \
+                              hcox_tomas_dustdead_mod.o       \
                               hcox_dustginoux_mod.o           \
                               hcox_finn_mod.o                 \
                               hcox_gc_POPs_mod.o              \
                               hcox_gc_RnPbBe_mod.o            \
-                              hcox_gfed3_mod.o                \
+                              hcox_gfed_mod.o                 \
                               hcox_paranox_mod.o              \
                               hcox_lightnox_mod.o             \
                               hcox_megan_mod.o                \
@@ -124,7 +146,8 @@ hcox_driver_mod.o           : hcox_driver_mod.F90             \
                               hcox_seasalt_mod.o              \
                               hcox_soilnox_mod.o              \
                               hcox_state_mod.o		      \
-                              hcox_tomas_seasalt_mod.o       
+                              hcox_tomas_seasalt_mod.o        
+
 
 hcox_dustdead_mod.o         : hcox_dustdead_mod.F             \
                               hcox_state_mod.o		      
@@ -138,20 +161,23 @@ hcox_gc_POPs_mod.o          : hcox_gc_POPs_mod.F90            \
 hcox_gc_RnPbBe_mod.o        : hcox_gc_RnPbBe_mod.F90          \
                               hcox_state_mod.o                
 
-hcox_gfed3_mod.o            : hcox_gfed3_mod.F90              \
-                              hcox_gfed3_include.H            \
-                              hcox_state_mod.o		      
+hcox_gfed_mod.o             : hcox_gfed_mod.F90               \
+                              hcox_gfed_include_gfed3.H       \
+                              hcox_gfed_include_gfed4.H       \
+                              hcox_state_mod.o		      \
+                              hcox_tools_mod.o
 
 hcox_finn_mod.o             : hcox_finn_mod.F90               \
                               hcox_finn_include.H             \
-                              hcox_state_mod.o		      
+                              hcox_state_mod.o		      \
+                              hcox_tools_mod.o
 
 hcox_lightnox_mod.o         : hcox_lightnox_mod.F90           \
-                              hcox_state_mod.o
+                              hcox_state_mod.o                \
+                              hcox_tools_mod.o
 
 hcox_megan_mod.o            : hcox_megan_mod.F                \
-                              hcox_state_mod.o                \
-                              EF_MGN20_mod.o		      
+                              hcox_state_mod.o
 
 hcox_paranox_mod.o          : hcox_paranox_mod.F90            \
                               hcox_state_mod.o
@@ -165,11 +191,17 @@ hcox_seasalt_mod.o          : hcox_seasalt_mod.F90            \
 
 hcox_soilnox_mod.o          : hcox_soilnox_mod.F90            \
                               hcox_state_mod.o                \
+                              hcox_tools_mod.o                \
                               drydep_toolbox_mod.o
 
 hcox_state_mod.o            : hcox_state_mod.F90
 
 hcox_tomas_seasalt_mod.o    : hcox_tomas_seasalt_mod.F90      \
+                              hcox_state_mod.o
+
+hcox_tools_mod.o            : hcox_tools_mod.F90
+
+hcox_tomas_dustdead_mod.o   : hcox_tomas_dustdead_mod.F       \
                               hcox_state_mod.o
 
 ocean_toolbox_mod.o         : ocean_toolbox_mod.F90

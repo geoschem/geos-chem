@@ -35,7 +35,7 @@
 !       1 will be added to container 5 if it has a target ID of 5). 
 !       Internal use only.  
 ! \item DctType: container type. 1 for base emissions, 2 for scale
-!       factors, 3 for masks.
+!       factors, 3 for masks (set parameter in HCO\_ERROR\_MOD)
 ! \item SpcName: Species name associated with this data container, as
 !       read from the configuration file. Only relevant for base 
 !       emission arrays.
@@ -111,7 +111,7 @@ MODULE HCO_DataCont_Mod
 ! !DEFINED PARAMETERS:
 !
   ! Maximum number of scale factor fields per base field
-  INTEGER, PARAMETER,     PUBLIC :: SclMax = 10
+!  INTEGER, PARAMETER,     PUBLIC :: SclMax = 10
 
   ! Maximum number of emission categories that can be assigned to a
   ! base field. If multiple emission categories are assigned to one
@@ -149,6 +149,7 @@ MODULE HCO_DataCont_Mod
      INTEGER                     :: Hier           ! Hierarchy
      INTEGER                     :: ScalID         ! Scale factor ID
      INTEGER                     :: Oper           ! Operator
+     INTEGER                     :: nScalID        ! # of scale factor IDs 
      INTEGER,            POINTER :: Scal_cID(:)    ! assoc. scalefactor IDs
      LOGICAL                     :: Scal_cID_set   ! cIDs or scalIDs 
   END TYPE DataCont
@@ -237,6 +238,7 @@ CONTAINS
     Dct%Cat          = -999
     Dct%Hier         = -999
     Dct%Oper         = 1
+    Dct%nScalID      = 0
     Dct%Scal_cID_set = .FALSE. 
 
     ! Assign container ID.
@@ -311,6 +313,7 @@ CONTAINS
           IF(ASSOCIATED(Dct%Scal_cID)) DEALLOCATE(Dct%Scal_cID)
           DEALLOCATE ( Dct )
        ENDIF
+
     ENDIF
 
   END SUBROUTINE DataCont_Cleanup
@@ -457,7 +460,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set verbose flag
-    verbose = HCO_VERBOSE_CHECK() .AND. am_I_Root
+    verbose = HCO_IsVerb ( 3 ) 
 
     ! Eventually cleanup the list
     IF ( ASSOCIATED ( cIDList ) ) THEN

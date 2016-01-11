@@ -15,9 +15,8 @@
 !
 ! !USES:
 !
-      USE HCO_ERROR_MOD   ! For real precisions (hp)
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE HCO_ERROR_MOD    ! For real precisions (hp)
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 
       IMPLICIT NONE
       PRIVATE
@@ -108,6 +107,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -129,8 +129,7 @@
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, NN )
-!!$OMP+PRIVATE( REEMFRAC, SNOW_HT )  
+!$OMP+PRIVATE( I,              J,                NN                 )
 !$OMP+PRIVATE( REEMFRAC,       FRAC_SNOW_OR_ICE, FRAC_SNOWFREE_LAND )  
 !$OMP+PRIVATE( IS_SNOW_OR_ICE, IS_LAND_OR_ICE                       )
       DO J  = 1, JJPAR
@@ -143,10 +142,10 @@
          ! Assume here default of land box with no snow. We will reset
          ! fractions for MERRA here and for prior versions snow/ice boxes
          ! below (jaf, 4/26/11)
-         FRAC_SNOW_OR_ICE = 0e+0_fp
+         FRAC_SNOW_OR_ICE    = 0e+0_fp
          FRAC_SNOWFREE_LAND  = 1e+0_fp
 
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          ! Distinguish between ice/snow and snow-free land
          FRAC_SNOW_OR_ICE    = MIN( State_Met%FRSNO(I,J)     +
      &                              State_Met%FRSEAICE(I,J)  + 
@@ -240,8 +239,6 @@
       USE CMN_DIAG_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!      USE GRID_MOD,           ONLY : GET_AREA_CM2
-!      USE TIME_MOD,           ONLY : GET_TS_EMIS
 
       ! HEMCO update
       USE HCO_ERROR_MOD
@@ -314,12 +311,8 @@
       ! BIOMASSHG begins here!
       !=================================================================
 
-      ! DTSRCE is the number of seconds per emission timestep
-!      DTSRCE = GET_TS_EMIS() * 60e+0_fp
-
       ! Do biomass Hg emissions if biomass burning is on and it is a 
       ! present-day simulation (i.e. not preindustrial)
-!      IF ( LBIOMASS .AND. ( .NOT. LPREINDHG ) ) THEN
       IF ( .NOT. Input_Opt%LPREINDHG ) THEN
        
          CALL GetHcoState ( HcoState )
@@ -335,28 +328,6 @@
          CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
          EHg0_bb = Ptr2D(:,:) * HcoState%Grid%AREA_M2%Val(:,:)
-
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J )
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-! 
-!!            ! Grid box surface area, cm2
-!!            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-!
-!!            ! Convert molec CO /cm3 /s -> mol CO /gridbox /s 
-!!            E_CO = ( BIOMASS(I,J,IDBCO) / 6.022D23 ) * AREA_CM2
-!
-!            ! Convert mol CO /gridbox /s to kg Hg /gridbox /s
-!!            EHg0_bb(I,J) = E_CO * BBRatio_Hg_CO * FMOL_HG 
-!
-!            ! kg/m2/s to kg/gridbox/s
-!            EHg0_bb(I,J) = Ptr2D(I,J) * HcoState%Grid%AREA_M2%Val(I,J)
-!        
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
 
       ELSE
 
@@ -474,52 +445,8 @@
       ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
       ! (jaf, eds, 4/1/11)
       !IF (LGCAPEMIS) THEN
-      IF (.NOT. LVEGEMIS) THEN
 
          EHg0_vg = 0e+0_fp
-
-      ELSE
-
-         ! read GISS TRANSP monthly average
-         IF ( ITS_A_NEW_MONTH() ) THEN 
-            CALL READ_NASA_TRANSP( am_I_Root, Input_Opt, RC )
-         ENDIF 
-
-         ! loop over I,J
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, SOILWATER_HG, DRYSOIL_HG, VEG_EMIS, AREA_M2 ) 
-         DO J=1, JJPAR
-         DO I=1, IIPAR
-        
-            IF (IS_LAND( I, J, State_Met )) THEN
-
-               ! Dry soil Hg concentration, ng Hg /g soil
-               DRYSOIL_HG = DRYSOIL_PREIND_HG * EHg0_dist(I,J)
-
-               ! Hg concentration in soil water, ng /m3
-               SOILWATER_HG =  DRYSOIL_HG / Kd
-
-               ! Emission from vegetation, ng /m2
-               VEG_EMIS = SOILWATER_HG * TRANSP(I,J)
-
-               ! convert from ng /m2 /s -> kg/gridbox/s
-               ! Grid box surface area [m2]
-               AREA_M2      = GET_AREA_M2( I, J, 1 )
-               EHg0_vg(I,J) = VEG_EMIS * AREA_M2 * 1e-12_fp
-
-            ELSE
-
-               ! No emissions from water and ice
-               EHg0_vg(I,J) = 0e+0_fp
-
-            ENDIF
-
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-      ENDIF
 
       END SUBROUTINE VEGEMIS
 !EOC
@@ -598,18 +525,19 @@
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 ! 
 ! !LOCAL VARIABLES:
 !     
-      REAL(fp)             :: SOIL_EMIS, DIMLIGHT, TAUZ, LIGHTFRAC
-      REAL(fp)             :: AREA_M2, DRYSOIL_HG
-      INTEGER            :: I, J, JLOOP
-      REAL(fp)             :: SUNCOSVALUE
-      REAL(fp)             :: FRAC_SNOWFREE_LAND 
-      LOGICAL            :: IS_SNOWFREE_LAND 
+      LOGICAL             :: IS_SNOWFREE_LAND 
+      INTEGER             :: I, J, JLOOP
+      REAL(fp)            :: SOIL_EMIS, DIMLIGHT, TAUZ, LIGHTFRAC
+      REAL(fp)            :: AREA_M2, DRYSOIL_HG
+      REAL(fp)            :: SUNCOSVALUE
+      REAL(fp)            :: FRAC_SNOWFREE_LAND 
 !
 ! !DEFINED PARAMETERS:
 !
@@ -624,11 +552,20 @@
       ! This parameter is tuned in the preindustrial simulation 
       ! so that total deposition to soil equals total emission from soil,
       ! while also requiring global mean soil Hg concentration of 45 ng/g 
-!      REAL(fp), PARAMETER  :: SOIL_EMIS_FAC = 3.3D13
 #if defined (GRID4x5)
-      REAL(fp), PARAMETER  :: SOIL_EMIS_FAC = 1.6e-2_fp ! for sunlight function, yzh
+      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp ! for sunlight function, yzh
 #elif defined(GRID2x25)
       REAL(fp), PARAMETER :: SOIL_EMIS_FAC=1.6e-2_fp
+#elif defined(GRID05x0625)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! bmy, 8/12/15, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
+      ! This is a non-physical value and would need to be changed for an
+      ! actual mercury simulation
+      !
+      ! %%% NOTE: Bob Y. used same value as for GRID05x0666  %%%
+      ! %%% Team Hg will have to supply a better value later %%%
+      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp  ! yzh
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #elif defined(GRID05x0666)
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! lhu, 1/5/2012, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
@@ -644,7 +581,7 @@
       REAL(fp), PARAMETER :: SOIL_EMIS_FAC = -9.0e+99_fp
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #else  ! This sets a default value for GCM & ESMF COUPLING
-      REAL(fp), PARAMETER ::SOIL_EMIS_FAC = 2.4e-2_fp*.5742e+0_fp ! for sunlight function
+      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 2.4e-2_fp*.5742e+0_fp ! for sunlight function
 #endif
 
       !=================================================================
@@ -653,8 +590,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, SOIL_EMIS, JLOOP,      SNOW_HT              ) 
-!$OMP+PRIVATE( I,          J,    SOIL_EMIS, JLOOP                ) 
+!$OMP+PRIVATE( I,          J,    SOIL_EMIS                       ) 
 !$OMP+PRIVATE( DRYSOIL_HG, TAUZ, LIGHTFRAC, AREA_M2, SUNCOSVALUE ) 
 !$OMP+PRIVATE( IS_SNOWFREE_LAND, FRAC_SNOWFREE_LAND              )
       DO J=1, JJPAR
@@ -664,7 +600,7 @@
          ! (jaf, 4/26/11)
          FRAC_SNOWFREE_LAND = 1e+0_fp
 
-#if   defined( MERRA ) || defined( GEOS_FP )
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          FRAC_SNOWFREE_LAND = MAX( State_Met%FRLAND(I,J) - 
      &                             State_Met%FRSNO(I,J), 0e+0_fp )
          IS_SNOWFREE_LAND   = ( FRAC_SNOWFREE_LAND > 0e+0_fp )
@@ -682,9 +618,6 @@
 
          IF ( IS_SNOWFREE_LAND ) THEN
 
-            ! 1-D grid box index for SUNCOS
-            JLOOP = ( (J-1) * IIPAR ) + I
-         
             ! attenuate solar radiation based on function of leaf area index
             ! Jacob and Wofsy 1990 equations 8 & 9
             TAUZ = ISOLAI(I,J) * 0.5e+0_fp
@@ -701,10 +634,22 @@
             DRYSOIL_HG = DRYSOIL_PREIND_HG * EHg0_dist(I,J)           
 
             ! Soil emissions, ng /m2 /h
+            ! NOTE: State_Met%RADSWG is net radiation at ground for all
+            ! MET fields except GEOS-FP and MERRA2. For those data sets,
+            ! net radiation was not processed and therefore we use
+            ! incident radiation at ground. We split them up below for
+            ! clarity, using the new SWGDN field for incident radiation.
+            ! SWGDN is also available for MERRA but we do not use it
+            ! here to preserve the legacy method (ewl, 9/23/15)
+#if defined( GEOS_FP ) || defined( MERRA2 )
+            SOIL_EMIS = 
+     &           EXP( 0.0011 * State_Met%SWGDN(I,J) * LIGHTFRAC ) *
+     &           DRYSOIL_HG * SOIL_EMIS_FAC
+#else
             SOIL_EMIS = 
      &           EXP( 0.0011 * State_Met%RADSWG(I,J) * LIGHTFRAC ) *
      &           DRYSOIL_HG * SOIL_EMIS_FAC
-     
+#endif     
             ! Grid box surface area [m2]
             AREA_M2   = GET_AREA_M2( I, J, 1 )
  
@@ -733,102 +678,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_nasa_transp
-!
-! !DESCRIPTION: Subroutine READ\_NASA\_TRANSP reads monthly average 
-!  transpiration [m/s] from NASA:
-!  for input into the vegetation emissions.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_NASA_TRANSP( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE BPCH2_MOD,      ONLY : GET_TAU0,   READ_BPCH2
-      USE BPCH2_MOD,      ONLY : GET_RES_EXT
-      USE TIME_MOD,       ONLY : GET_MONTH,  ITS_A_NEW_MONTH
-      USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?!
-! !REMARKS:
-!  Data source:
-!   http://gcmd.nasa.gov/records/GCMD_MINTZ_WALKER_SOIL_AND_EVAPO.html
-!
-!  References:
-!  -----------
-!  Mintz, Y and G.K. Walker (1993). "Global fields of soil moisture
-!   and land surface evapotranspiration derived from observed
-!   precipitation and surface air temperature." J. Appl. Meteorol. 32 (8), 
-!  1305-1334. 
-! 
-! !REVISION HISTORY: 
-!  15 Sep 2006 - N. E. Selin - Initial version
-!  30 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER             :: I, J, L, MONTH, N
-      REAL*4              :: ARRAY(IIPAR,JJPAR,1)
-      REAL(f8)            :: XTAU
-      CHARACTER(LEN=255)  :: FILENAME
-      CHARACTER(LEN=2)    :: CMONTH(12) = (/ '01','02','03','04',
-     &                                       '05','06','07','08',
-     &                                       '09','10','11','12'/)
-  
-      !=================================================================
-      ! READ_NASA_TRANSP begins here!
-      !=================================================================
-
-      ! Assume success
-      RC        =  GIGC_SUCCESS
-
-      ! Get the current month
-      MONTH = GET_MONTH() 
-     
-      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 
-     &           'mercury_201007/nasatransp_' 
-     &           // GET_RES_EXT() // '.'// CMONTH(MONTH) // '.bpch'
-
-      XTAU     = GET_TAU0(MONTH, 1, 1995 )
-
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - TRANSP_NASA: Reading ', a )     
- 
-      CALL READ_BPCH2( FILENAME, 'TRANSP-$', 1, 
-     &                 XTAU,      IIPAR,     JJPAR,    
-     &                 1,         ARRAY,   QUIET=.TRUE. )
-
-      ! Cast
-      TRANSP = ARRAY(:,:,1)
-      
-      ! convert from mm/month to m/s
-      TRANSP = TRANSP * 1e-3_fp * 12e+0_fp / ( 365e+0_fp * 24e+0_fp * 
-     &          60e+0_fp * 60e+0_fp )
-      
-      END SUBROUTINE READ_NASA_TRANSP
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: snowpack_mercury_flux
 !
 ! !DESCRIPTION: Subroutine SNOWPACK\_MERCURY\_FLUX calculates emission of 
@@ -841,7 +690,7 @@
 !
 ! !USES:
 !
-      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC, SNOW_HG_LN
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TRACERID_MOD,       ONLY : N_Hg_CATS
@@ -855,7 +704,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),         INTENT(OUT) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)  ! Hg0 flux
+      REAL(fp),       INTENT(OUT) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)  ! Hg0 flux
                                                                   !  [kg/s]
 !
 ! !REMARKS:
@@ -867,22 +716,41 @@
 !  These time constants reflect the time scales of emission observed in the 
 !  Arctic and in field studies. Holmes et al 2010
 ! 
+!  Formulation from Holmes et al. 2010 is now obsolete. Instead, emissions
+!  from snow are tied to solar radiation, not temperature. Effective rate
+!  constant is in the mid-range of values estimated by Durnford and Dastoor
+!  (2011) and consistent with surface air Hg0 observations, as described in
+!  Fisher et al. (2011, in review).
+!
+!  Note that only MERRA provides incident shortwave radiation; other met
+!  fields only provide *net* shortwave radiation. The parameterization was
+!  designed and tested using MERRA, and therefore may not work as well with
+!  other met fields
+! 
 ! !REVISION HISTORY: 
 !  15 Sep 2009 - C. Holmes, S. Carouge - Initial version
 !  30 Aug 2010 - R. Yantosca - Added ProTex headers
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
+!  18 Nov 2011 - J. Fisher   - Update to radiation-dependent formulation
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  30 Mar 2015 - R. Yantosca - Remove obsolete variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER       :: I, J, NN, JLOOP
-      LOGICAL, SAVE :: FIRST
-      REAL(fp)        :: DTSRCE, SNOW_HG_NEW, K_EMIT
+      INTEGER       :: I, J, NN, JLOOP, MONTH
+      LOGICAL, SAVE :: FIRSTTIME = .TRUE.
+      REAL(fp)      :: DTSRCE, SNOW_HG_OC_NEW, K_EMIT, SWRAD
+      REAL(fp)      :: SNOW_HG_LN_NEW, FLUX_TMP
+      ! For solar flux dependent photo-reduction (jaf, 11/18/11)
+      ! This is in units of m2/W/s so that when multiplied by SWRAD we
+      ! end up with units of 1/s. This corresponds to k ~0.001 1/h
+      ! when SWRAD = 100 W/m2
+      REAL(fp), PARAMETER :: K_EMIT_0 = 2.5e-9_fp
 
       !=================================================================
       ! SNOWPACK_MERCURY_FLUX begins here!
@@ -892,61 +760,118 @@
       FLUX = 0e+0_fp
 
       ! Return to calling program if snowpack model is disabled
-      IF (.NOT. LHGSNOW) RETURN
+      IF ( .NOT. LHGSNOW ) RETURN
 
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60e+0_fp      
 
-      ! Emit Hg(0) at a steady rate, based on 180 d residence
-      ! time in snowpack, based on cycle observed at Alert 
-      ! (e.g. Steffen et al. 2008)
-      K_EMIT = 6e-8_fp
+! Warning for non-MERRA (jaf, 6/19/13)
+! NOTE:  Incident shortwave radiation is currently only available for
+! GEOS-FP and MERRA-2 in GEOS-Chem. It is available from MERRA data sets
+! but is not currently stored in State_Met (ewl, 9/14/15) 
+      IF ( FIRSTTIME ) THEN 
+#if !defined( MERRA2 ) || !defined( GEOS_FP )
+         WRITE( 6, * ) 'WARNING: Snow emission parameterization '//
+     &        'designed for use with incident '
+         WRITE( 6, * ) 'shortwave radiation. Only net shortwave '//
+     &        'radiation available.'
+#endif
+         FIRSTTIME = .FALSE.
+      ENDIF
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, NN )
-!$OMP+PRIVATE( SNOW_HG_NEW, JLOOP, K_EMIT )
+!$OMP+PRIVATE( SNOW_HG_OC_NEW, JLOOP, K_EMIT, SWRAD, SNOW_HG_LN_NEW )
+!$OMP+PRIVATE( FLUX_TMP )
       DO J  = 1, JJPAR
       DO I  = 1, IIPAR
-
-         ! 1-D grid box index for SUNCOS
-         JLOOP = ( (J-1) * IIPAR ) + I
 
          ! If the sun is set, then no emissions, go to next box
          IF ( State_Met%SUNCOS(I,J) < 0e+0_fp ) CYCLE 
 
-            ! Decrease residence time to 1 week when T > -3C
-            ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
-            ! Emit Hg(0) at a steady rate, based on 180 d residence
-            ! time in snowpack, based on cycle observed at Alert 
-            ! (e.g. Steffen et al. 2008)
-            IF ( State_Met%T(I,J,1) > 270e+0_fp) THEN
-               ! NOW USE 3 weeks for broader summer peak
-               !K_EMIT = 1.6D-6
-               K_EMIT = 5e-7_fp
-            ELSE
-               K_EMIT = 6e-8_fp
-            ENDIF
+         !----------------------------------------------------------
+         ! Prior to 11/18/11, Holmes (2010) parameterization (jaf)
+         !! Decrease residence time to 1 week when T > -3C
+         !! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+         !! Emit Hg(0) at a steady rate, based on 180 d residence
+         !! time in snowpack, based on cycle observed at Alert 
+         !! (e.g. Steffen et al. 2008)
+         !IF ( State_Met%T(I,J,1) > 270D0) THEN
+         !   ! NOW USE 3 weeks for broader summer peak
+         !   !K_EMIT = 1.6D-6
+         !   K_EMIT = 5D-7
+         !ELSE
+         !   K_EMIT = 6D-8
+         !ENDIF
+         !----------------------------------------------------------
 
+         ! Zero variables
+         K_EMIT = 0e+0_fp
+         SWRAD  = 0e+0_fp
+
+         ! Set solar radiation @ ground
+         ! NOTE: State_Met%RADSWG represents surface incident shortwave
+         ! flux for GEOS-FP and MERRA-2 and net shortwave radiation at 
+         ! ground for all other MET fields. Surface incident shortwave
+         ! flux is available for GMAO but is not stored globally 
+         ! (ewl, 8/26/15)
+! KLUDGE: can't get SWGDN in State_Met; add this later (jaf)
+! Use incident radiation at ground (State_Met%SWGDN) where available. 
+! Otherwise, use net radiation at ground (State_Met%RADSWG)
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+         SWRAD = State_Met%SWGDN(I,J)
+#else       
+         SWRAD = State_Met%RADSWG(I,J)
+#endif
+! END KLUDGE
+
+         ! Compute K_EMIT
+         K_EMIT = K_EMIT_0 * SWRAD
+
+         ! SWRAD can be very small at edge of sunlit zone, probably due to
+         ! averaging. This can make K_EMIT unrealistically small (e.g.:
+         ! 1d-13 * 1d-9 ~ 1d-22). In IF statement below, we only use & save
+         ! K_EMIT if it is >= K_EMIT_0 (jaf, 5/19/11)
+         IF ( K_EMIT >= K_EMIT_0 ) THEN
+
+         ! Loop over # of categories 
          DO NN = 1, N_Hg_CATS
 
+            ! Zero temporary reservoir on each iteration
+            FLUX_TMP = 0D0
+
             ! Check if there is Hg that could be emitted
-            IF (SNOW_HG(I,J,NN)>0e+0_fp) THEN
+            IF ( SNOW_HG_OC(I,J,NN) > 0e+0_fp ) THEN
 
                ! New mass of snow in Hg
-               SNOW_HG_NEW = SNOW_HG(I,J,NN) * EXP( - K_EMIT * DTSRCE )
+               SNOW_HG_OC_NEW = SNOW_HG_OC(I,J,NN) * EXP(-K_EMIT*DTSRCE)
 
-               FLUX(I,J,NN) = MAX( SNOW_HG(I,J,NN) - SNOW_HG_NEW,
-     &                        0e+0_fp )
+               FLUX_TMP = MAX(SNOW_HG_OC(I,J,NN) - 
+     &                    SNOW_HG_OC_NEW, 0e+0_fp)
 
-               ! Convert mass -> flux
-               FLUX(I,J,NN) = FLUX(I,J,NN) / DTSRCE
+               SNOW_HG_OC(I,J,NN) = SNOW_HG_OC_NEW
 
-               SNOW_HG(I,J,NN) = SNOW_HG_NEW
+            ENDIF !SNOW_HG_OC > 0
 
-            ENDIF
+            ! Check if there is Hg in land snow that could be emitted
+            IF ( SNOW_HG_LN(I,J,NN) > 0e+0_fp ) THEN
 
-         ENDDO
+               ! New mass of snow in Hg
+               SNOW_HG_LN_NEW = SNOW_HG_LN(I,J,NN) * EXP(-K_EMIT*DTSRCE)
+
+               FLUX_TMP = FLUX_TMP +
+     &                    MAX(SNOW_HG_LN(I,J,NN)-SNOW_HG_LN_NEW,0D0)
+
+               SNOW_HG_LN(I,J,NN) = SNOW_HG_LN_NEW
+
+            ENDIF !SNOW_HG_LN > 0
+
+            ! Convert mass -> flux
+            FLUX(I,J,NN) = FLUX_TMP / DTSRCE
+
+         ENDDO !Loop over NN
+         ENDIF !K_EMIT >= K_EMIT_0
 
       ENDDO
       ENDDO
@@ -999,9 +924,17 @@
       ! Success or failure?
       INTEGER,        INTENT(OUT) :: RC
 ! 
+! !REMARKS:
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+!
 ! !REVISION HISTORY:
 !  15 Sep 2009 - C. Carouge  - Initial version
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  05 Mar 2015 - R. Yantosca - Now add Input_Opt%RES_DIR to data path
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1074,7 +1007,8 @@
       IU_FILE  = findFreeLun()
 
       ! File name
-      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'mercury_201007/' //
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) //
+     &           TRIM( Input_Opt%RES_DIR  ) // 'mercury_201007/' //
      &           'mean_metfields/' // GET_NAME_EXT() // 
      &           '/mean_YYYYMM.bpch'
 
@@ -1231,11 +1165,6 @@
       ! INIT_MERCURY begins here!
       !=================================================================
 
-      ! Allocate arrays
-      ALLOCATE( TRANSP( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'TRANSP' )
-      TRANSP = 0e+0_fp
-
       END SUBROUTINE INIT_LAND_MERCURY
 !EOC
 !------------------------------------------------------------------------------
@@ -1258,9 +1187,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-      ! Deallocate arrays
-      IF ( ALLOCATED( TRANSP      ) ) DEALLOCATE( TRANSP      )
 
       END SUBROUTINE CLEANUP_LAND_MERCURY
 !EOC

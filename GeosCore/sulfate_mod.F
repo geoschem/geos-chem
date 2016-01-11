@@ -17,9 +17,6 @@
 !
 ! !USES:
 !
-      USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
-      USE inquireMod,    ONLY : findFreeLUN
-
       USE HCO_ERROR_MOD    ! For HEMCO error handling
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 
@@ -31,6 +28,9 @@
       PUBLIC :: CHEMSULFATE       
       PUBLIC :: CLEANUP_SULFATE   
       PUBLIC :: INIT_SULFATE
+#if defined( TOMAS )
+      PUBLIC :: EMISSSULFATETOMAS ! JKodros (6/2/15 - this is to connect TOMAS to HEMCO)
+#endif
 !
 ! 
 ! !REMARKS:
@@ -142,12 +142,20 @@
 !                                SOIL_DRYDEP routine even when ND44 is off
 !  30 May 2013 - S. Farina     - Merged TOMAS code into sulfate_mod.F
 !  20 Aug 2013 - R. Yantosca   - Removed "define.h", this is now obsolete
+!  12 Sep 2013 - M. Sulprizio  - Add modifications for acid uptake on dust
+!                                aerosol (T.D. Fairlie)
 !  18 Sep 2014 - M. Sulprizio  - Get oxidant fields for offline aerosol
 !                                simulation from HEMCO 
 !  03 Nov 2014 - C. Keller     - Incorporated GET_ALK from seasalt_mod.F
 !  20 Nov 2014 - M. Yannetti   - Added PRECISION_MOD
 !  04 Mar 2015 - R. Yantosca   - Remove obsolete, commented-out code
 !  04 Mar 2015 - R. Yantosca   - Use REAL(f4) for pointer args to HCO_GetPtr
+!  22 May 2015 - R. Yantosca   - Remove variables made obsolete by HEMCO
+!  12 Jun 2015 - R. Yantosca   - Now remove orphaned ND44 variables
+!  12 Jun 2015 - R. Yantosca   - Remove CHEM_NH3 and CHEM_NH4 routines
+!                                because drydep is now done in mixing_mod.F90
+!  23 Sep 2015 - R. Yantosca   - Remove DRY* flags for most species except
+!                                for those used in GRAV_SETTLING
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -167,6 +175,7 @@
       REAL(fp),  PARAMETER   :: XNUMOL_NO3  = 6.022e+23_fp / 62e-3_fp
       REAL(fp),  PARAMETER   :: XNUMOL_H2O2 = 6.022e+23_fp / 34e-3_fp
       REAL(fp),  PARAMETER   :: TCVV_S      = 28.97e+0_fp  / 32e+0_fp 
+      REAL(fp),  PARAMETER   :: TCVV_N      = 28.97e+0_fp  / 14e+0_fp ! tdf
       REAL(fp),  PARAMETER   :: SMALLNUM    = 1e-20_fp
       REAL(fp),  PARAMETER   :: CM3PERM3    = 1.e6_fp
 
@@ -183,32 +192,24 @@
       ! MODULE VARIABLES:
       !
       ! DMSo       : DMS oceanic emissions            [v/v/timestep]
-      ! DRYH2O2    : Pointer to H2O2  in DEPVEL array [unitless] 
-      ! DRYSO2     : Pointer to SO2   in DEPVEL array [unitless]
-      ! DRYSO4     : Pointer to SO4   in DEPVEL array [unitless]
       ! DRYSO4s    : Pointer to SO4s  in DEPVEL array [unitless]
-      ! DRYMSA     : Pointer to MSA   in DEPVEL array [unitless]
-      ! DRYNH3     : Pointer to NH3   in DEPVEL array [unitless]
-      ! DRYNH4     : Pointer to NH4   in DEPVEL array [unitless]
-      ! DRYNIT     : Pointer to NIT   in DEPVEL array [unitless]
       ! DRYNITs    : Pointer to NITs  in DEPVEL array [unitless]
-      ! DRYSO4aq   : Pointer to SO4aq in DEPVEL array [unitless]
-      ! DRYAS      : Pointer to AS    in DEPVEL array [unitless]  
-      ! DRYAHS     : Pointer to AHS   in DEPVEL array [unitless]
-      ! DRYLET     : Pointer to LET   in DEPVEL array [unitless]
-      ! DRYNH4aq   : Pointer to NH4aq in DEPVEL array [unitless]
-      ! ENH3_an    : NH3 anthropogenic emissions      [kg NH3/box/s]
-      ! ENH3_bb    : NH3 biomass emissions            [kg NH3/box/s]
-      ! ENH3_bf    : NH3 biofuel emissions            [kg NH3/box/s]
-      ! ENH3_na    : NH73 natural source emissions    [kg NH3/box/s]
-      ! ESO2_ac    : SO2 aircraft emissions           [kg SO2/box/s]
-      ! ESO2_an    : SO2 anthropogenic emissions      [kg SO2/box/s]
-      ! ESO2_ev    : SO2 eruptive volcanic em.        [kg SO2/box/s]
-      ! ESO2_nv    : SO2 non-eruptive volcanic em.    [kg SO2/box/s]
-      ! ESO2_bb    : SO2 biomass burning emissions    [kg SO2/box/s]
-      ! ESO2_bf    : SO2 biofuel burning emissions    [kg SO2/box/s]
-      ! ESO2_sh    : SO2 ship emissions               [kg SO2/box/s]
-      ! ESO4_an    : SO4 anthropogenic emissions      [kg SO4/box/s]
+      !
+      !%%% NOTE: THESE ARE NOW OBTAINED VIA HEMCO (bmy, 5/22/15) %%%%%%%%%%%
+      !% ENH3_an    : NH3 anthropogenic emissions      [kg NH3/box/s]
+      !% ENH3_bb    : NH3 biomass emissions            [kg NH3/box/s]
+      !% ENH3_bf    : NH3 biofuel emissions            [kg NH3/box/s]
+      !% ENH3_na    : NH73 natural source emissions    [kg NH3/box/s]
+      !% ESO2_ac    : SO2 aircraft emissions           [kg SO2/box/s]
+      !% ESO2_an    : SO2 anthropogenic emissions      [kg SO2/box/s]
+      !% ESO2_ev    : SO2 eruptive volcanic em.        [kg SO2/box/s]
+      !% ESO2_nv    : SO2 non-eruptive volcanic em.    [kg SO2/box/s]
+      !% ESO2_bb    : SO2 biomass burning emissions    [kg SO2/box/s]
+      !% ESO2_bf    : SO2 biofuel burning emissions    [kg SO2/box/s]
+      !% ESO2_sh    : SO2 ship emissions               [kg SO2/box/s]
+      !% ESO4_an    : SO4 anthropogenic emissions      [kg SO4/box/s]
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !
       ! JH2O2      : Monthly mean J(H2O2) values      [s-1]
       ! O3m        : Monthly mean O3 concentration    [v/v]
       ! PH2O2m     : Monthly mean P(H2O2)             [molec/cm3/s]
@@ -227,27 +228,17 @@
       !========================================================================
 
       ! Time variable
-      INTEGER              :: ELAPSED_SEC
+      INTEGER                :: ELAPSED_SEC
 
       ! Allocatable arrays
       REAL(fp),  ALLOCATABLE :: DMSo(:,:) 
-      REAL(fp),  ALLOCATABLE :: ENH3_an(:,:)
-      REAL(fp),  ALLOCATABLE :: ENH3_bb(:,:)
-      REAL(fp),  ALLOCATABLE :: ENH3_bf(:,:)
-      REAL(fp),  ALLOCATABLE :: ENH3_na(:,:)
-      REAL(fp),  ALLOCATABLE :: ESO2_ac(:,:,:) 
-      REAL(fp),  ALLOCATABLE :: ESO2_an(:,:,:)
-      REAL(fp),  ALLOCATABLE :: ESO2_bb(:,:)     
-      REAL(fp),  ALLOCATABLE :: ESO2_bf(:,:)
-      REAL(fp),  ALLOCATABLE :: ESO2_ev(:,:,:)
-      REAL(fp),  ALLOCATABLE :: ESO2_nv(:,:,:)
-      REAL(fp),  ALLOCATABLE :: ESO2_sh(:,:) 
-      REAL(fp),  ALLOCATABLE :: ESO4_an(:,:,:) 
       REAL(fp),  ALLOCATABLE :: PMSA_DMS(:,:,:)
       REAL(fp),  ALLOCATABLE :: PSO2_DMS(:,:,:)
       REAL(fp),  ALLOCATABLE :: PSO4_SO2(:,:,:)
       REAL(fp),  ALLOCATABLE :: PSO4_SS(:,:,:)
       REAL(fp),  ALLOCATABLE :: PNITs(:,:,:)
+      REAL(fp),  ALLOCATABLE :: PNIT_dust(:,:,:,:) ! tdf
+      REAL(fp),  ALLOCATABLE :: PSO4_dust(:,:,:,:) ! tdf
       REAL(f4),  ALLOCATABLE :: SOx_SCALE(:,:)
       REAL(fp),  ALLOCATABLE :: SSTEMP(:,:)
       REAL(fp),  ALLOCATABLE :: TCOSZ(:,:)
@@ -260,13 +251,9 @@
       ! For TOMAS microphysics: Define PSO4_SO2aq array
       !---------------------------------------------------------------
       REAL(fp),  ALLOCATABLE :: PSO4_SO2AQ(:,:,:)
+      REAL(fp),  ALLOCATABLE :: SO4_ANTH(:,:,:)
+      REAL(fp),  ALLOCATABLE :: SO4_BIOF(:,:)
 #endif
-
-      ! Pointers to drydep species w/in DEPSAV
-      INTEGER                :: DRYSO2,  DRYSO4,   DRYMSA,  DRYNH3  
-      INTEGER                :: DRYNH4,  DRYNIT,   DRYSO4s, DRYNITs
-      INTEGER                :: DRYH2O2, DRYSO4aq, DRYAS,   DRYAHS
-      INTEGER                :: DRYLET,  DRYNH4aq
 
       ! These are pointers to fields in the HEMCO data structure.
       ! Declare these with REAL(fp), aka REAL*4. (bmy, 3/4/15)
@@ -281,6 +268,11 @@
 
       ! Emission timestep (imported from HEMCO)
       REAL(fp)               :: TS_EMIS
+      
+      ! Flags to drydep indices for certain species
+      INTEGER                :: DRYSO4s,  DRYNITs
+      INTEGER                :: DRYNITd1, DRYNITd2, DRYNITd3, DRYNITd4
+      INTEGER                :: DRYSO4d1, DRYSO4d2, DRYSO4d3, DRYSO4d4
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -307,8 +299,6 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 !
 ! !INPUT PARAMETERS:
 !
@@ -330,18 +320,22 @@
 !  14 Nov 2012 - R. Yantosca - Added am_I_Root, RC arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER and GET_PEDGE with 
+!                              State_Met%PMID and State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp),  PARAMETER   :: ZRT = 0.60e+0_fp, ZRS = 0.99e+0_fp
+      REAL(fp),  PARAMETER :: ZRT = 0.60e+0_fp, ZRS = 0.99e+0_fp
 !
 ! !LOCAL VARIABLES:
 !
       INTEGER              :: I,    J,    L
-      REAL(fp)               :: PRES, PSFC, RH2, R0, B0
+      REAL(fp)             :: PRES, PSFC, RH2, R0, B0
 	
       !=================================================================
       ! GET_VCLDF begins here!
@@ -362,10 +356,10 @@
       DO I = 1, IIPAR
 	
          ! Surface pressure
-         PSFC = GET_PEDGE(I,J,1)
+         PSFC = State_Met%PEDGE(I,J,1)
 
          ! Pressure at the center of the grid box
-         PRES = GET_PCENTER(I,J,L)
+         PRES = State_Met%PMID(I,J,L)
 
          ! RH (from "dao_mod.f") is relative humidity [%]
          ! Convert to fraction and store in RH2
@@ -468,10 +462,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD                   
-      USE DAO_MOD,            ONLY : CONVERT_UNITS
-      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -485,7 +476,12 @@
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE TRACERID_MOD,       ONLY : IDTNITs
       USE TRACERID_MOD,       ONLY : IDTSO4s
+      USE TRACERID_MOD,       ONLY : IDTSO4d1, IDTSO4d2
+      USE TRACERID_MOD,       ONLY : IDTSO4d3, IDTSO4d4
+      USE TRACERID_MOD,       ONLY : IDTNITd1, IDTNITd2
+      USE TRACERID_MOD,       ONLY : IDTNITd3, IDTNITd4
       USE UCX_MOD,            ONLY : SETTLE_STRAT_AER
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -540,9 +536,13 @@
 !                              with either TOMAS=yes or TOMAS40=yes
 !  31 May 2013 - R. Yantosca - Now pass am_I_root, Input_Opt, State_Chm
 !                              and RC to TOMAS routine CHEM_SO4_AQ
+!  12 Sep 2013 - M. Sulprizio- Include gravitational settling of dust_sulfate
+!                              and dust_nitrate. Changes made to CHEM_SO2 and
+!                              CHEM_SO4 (tdf, 04/07/08)
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !  18 Sep 2014 - M. Sulprizio- Get oxidant fields for offline aerosol
 !                              simulation from HEMCO
+!  30 Sep 2015 - E. Lundgren - Now use UNITCONV_MOD conversion routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -557,14 +557,13 @@
       LOGICAL           :: IT_IS_AN_AEROSOL_SIM
       LOGICAL           :: prtDebug
       INTEGER           :: I, J, L, N, MONTH
-      REAL(fp)            :: DTCHEM
+      REAL(fp)          :: DTCHEM
 
       ! For fields from Input_Opt
       LOGICAL           :: LCRYST
       LOGICAL           :: LPRT
       LOGICAL           :: LGRAVSTRAT
-      INTEGER           :: N_TRACERS
-      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
+      LOGICAL           :: LDSTUP
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -592,8 +591,7 @@
       LCRYST               = Input_Opt%LCRYST
       LPRT                 = Input_Opt%LPRT
       LGRAVSTRAT           = Input_Opt%LGRAVSTRAT
-      N_TRACERS            = Input_Opt%N_TRACERS
-      TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
+      LDSTUP               = Input_Opt%LDSTUP
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -660,11 +658,13 @@
       ENDIF
 
       ! Initialize module arrays
-      PSO2_DMS = 0e+0_fp
-      PMSA_DMS = 0e+0_fp
-      PSO4_SO2 = 0e+0_fp
-      PSO4_SS  = 0e+0_fp
-      PNITs    = 0e+0_fp
+      PSO2_DMS   = 0e+0_fp
+      PMSA_DMS   = 0e+0_fp
+      PSO4_SO2   = 0e+0_fp
+      PSO4_SS    = 0e+0_fp
+      PNITs      = 0e+0_fp
+      PSO4_dust  = 0e+0_fp     ! tdf 04/17/08
+      PNIT_dust  = 0e+0_fp     ! tdf 04/17/08
 #if   defined( TOMAS )
       PSO4_SO2AQ = 0e+0_fp     ! For TOMAS microphysics
 #endif
@@ -687,8 +687,74 @@
          CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
       ENDIF
 
+      IF ( LDSTUP ) THEN
+         !tdf
+         ! DUST_SO4 [kg] gravitational settling
+         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                       STT(:,:,:,IDTSO4d1), 3,         RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_SO4')
+         ENDIF
+   
+         !tdf
+         ! DUST_SO4 [kg] gravitational settling
+         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                       STT(:,:,:,IDTSO4d2), 4,         RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_SO4')
+         ENDIF
+   
+         !tdf
+         ! DUST_SO4 [kg] gravitational settling
+         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                       STT(:,:,:,IDTSO4d3), 5,         RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_SO4')
+         ENDIF
+   
+         !tdf
+         ! DUST_SO4 [kg] gravitational settling
+         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                       STT(:,:,:,IDTSO4d4), 6,         RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_SO4')
+         ENDIF
+   
+         !tdf
+         ! DUST_NIT [kg] gravitational settling
+         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                       STT(:,:,:,IDTNITd1), 7,         RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST1_NIT')
+         ENDIF
+   
+         !tdf
+         ! DUST_NIT [kg] gravitational settling
+         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                       STT(:,:,:,IDTNITd2), 8,         RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST2_NIT')
+         ENDIF
+   
+         !tdf
+         ! DUST_NIT [kg] gravitational settling
+         CALL GRAV_SETTLING( am_I_Root,           Input_Opt, State_Met, 
+     &                       STT(:,:,:,IDTNITd3), 9,         RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST3_NIT')
+         ENDIF
+   
+         !tdf
+         ! DUST_NIT [kg] gravitational settling
+         CALL GRAV_SETTLING( am_I_Root,           Input_Opt,  State_Met,
+     &                       STT(:,:,:,IDTNITd4), 10,         RC )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, DST4_NIT')
+         ENDIF
+      ENDIF
+
 #if defined( UCX )
-      ! Stratospheric aerosol graviational settling
+      ! Stratospheric aerosol gravitational settling
       IF ( LGRAVSTRAT ) THEN
          CALL SETTLE_STRAT_AER( am_I_Root, Input_Opt, 
      &                          State_Met, State_Chm, RC )
@@ -699,7 +765,13 @@
 #endif
 
       ! Convert all tracers in STT from [kg] -> [v/v]
-      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT )
+      CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,
+     &                          State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'CHEM_SULFATE in sulfate_mod.F')
+         RETURN
+      ENDIF
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
       ENDIF
@@ -722,18 +794,20 @@
 
       ENDIF
 
-      ! SO2
       CALL GET_VCLDF( am_I_Root, State_Met, RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a get VCLDF' )
       ENDIF
 
+      ! SO2
+      ! CHEM_SO2 now includes the effect of dust chemistry  tdf 04/07/08
       CALL CHEM_SO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2' )
       ENDIF
 
       ! SO4
+      ! CHEM_SO4 now includes the effect of dust chemistry  tdf 04/07/08
       CALL CHEM_SO4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
@@ -760,26 +834,22 @@
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_MSA' )
       ENDIF
 
-      ! NH3
-      CALL CHEM_NH3( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH3' )
-      ENDIF
-
-      ! NH4 (gas-phase)
-      CALL CHEM_NH4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4' )
-      ENDIF
-
-      ! Sulfur Nitrate
+      ! Sulfur Nitrate.
+      ! CHEM_NIT includes a source term from sea salt aerosols, so keep
+      ! here.
       CALL CHEM_NIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
       ENDIF
 
       ! Convert STT from [v/v] -> [kg]
-      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT )
+      CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt, 
+     &                          State_Met, State_Chm, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'CHEM_SULFATE in sulfate_mod.F')
+         RETURN
+      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -788,6 +858,585 @@
       FIRSTCHEM = .FALSE. 
          
       END SUBROUTINE CHEMSULFATE
+!EOC
+#if defined( TOMAS )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emisssulfatetomas
+!
+! !DESCRIPTION: Subroutine EMISSSULFATETOMAS connects HEMCO bulk emissions to 
+! the TOMAS tracers. Only use this for TOMAS sims. This should be quite similar 
+! to the TOMAS relevant parts of 'emisssulfate' in v9 (Jkodros 6/2/15)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE EMISSSULFATETOMAS( am_I_Root, Input_Opt,
+     &                         State_Met, State_Chm, RC )
+
+! !USES:
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACERID_MOD,       ONLY : IDTSF1,     IDTAW1,  IDTNH4
+      USE TRACERID_MOD,       ONLY : IDTNK1
+      USE TOMAS_MOD,          ONLY : IBINS,      ICOMP,   IDIAG
+      USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
+      USE TOMAS_MOD,          ONLY : SRTNH4
+      USE UNITCONV_MOD
+!#endif
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State objectt
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+
+! Local variables
+      ! Fields for TOMAS simulation
+      REAL*8        :: BINMASS(IIPAR,JJPAR,LLPAR,IBINS*ICOMP)
+      REAL*8        :: tempnh4(ibins)
+      INTEGER       :: TID, I, J, L
+      REAL*8        :: MK_TEMP(IBINS)
+      INTEGER       :: ii=53, jj=29, ll=1
+      
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
+      !=================================================================
+      ! EMISSSULFATETOMAS begins here!
+      !=================================================================
+
+      ! Convert State_Chm%Tracers from [kg/kg dry air] to [kg] for TOMAS.
+      ! This will be removed once TOMAS uses mixing ratio instead of mass 
+      ! as tracer units (ewl, 9/11/15)
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
+     &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'Routine EMISSSULFATETOMAS in sulfate_mod.F')
+         RETURN
+      ENDIF 
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      STT => State_Chm%Tracers
+
+      IF (IDTSF1 > 0 .and. IDTNK1 > 0 ) THEN
+
+      !!!  Get NH4 and aerosol water into the same array
+         BINMASS(:,:,:,1:IBINS*(ICOMP-IDIAG)) =
+     &        STT(:,:,:,IDTSF1:IDTSF1+IBINS*(ICOMP-IDIAG) - 1)
+
+         IF ( SRTNH4 > 0 ) THEN
+            TID = IBINS*(ICOMP-IDIAG) + 1
+
+!%%%OMP PARALLEL DO
+!%%%OMP+DEFAULT( SHARED )
+!%%%OMP+PRIVATE( I, J, L, TMPNH4, MKTEMP )
+!%%%OMP+SCHEDULE( DYNAMIC )
+            DO L=1,LLPAR
+            DO J=1,JJPAR
+            DO I=1,IIPAR
+
+               ! Take a slice of size IBINS from STT
+               MK_TEMP = STT(I,J,L,IDTSF1:IDTSF1-1+IBINS)
+
+               ! Avoid array tmeporaries in subroutine call (bmy, 1/29/14)
+               CALL NH4BULKTOBIN( MK_TEMP, STT(I,J,L,IDTNH4), TEMPNH4 )
+
+               BINMASS(I,J,L,TID:TID+IBINS-1) = TEMPNH4(1:IBINS)
+            Enddo
+            ENDDO
+            ENDDO
+!%%%OMP END PARALLEL DO
+
+         ENDIF
+
+         TID = IBINS*(ICOMP-1) +1
+         BINMASS(:,:,:,TID:TID+IBINS-1) =
+     &           STT(:,:,:,IDTAW1:IDTAW1+IBINS-1)
+
+      !IF ( IDTSF1 > 0 ) THEN
+         CALL SRCSF30(  STT(:,:,:,IDTNK1:IDTNK1+IBINS-1),
+     &         BINMASS(:,:,:,:), am_I_Root, Input_Opt, State_Met, RC )
+
+         ! Return the aerosol mass after emission subroutine to STT
+         ! excluding the NH4 aerosol and aerosol water (win, 9/27/08)
+         STT(:,:,:,IDTSF1:IDTSF1+IBINS*(ICOMP-IDIAG)-1) =
+     &        BINMASS(:,:,:,1:IBINS*(ICOMP-IDIAG))
+      ENDIF
+
+      ! Free pointer
+      NULLIFY( STT )
+
+      ! Convert State_Chm%Tracers back to kg (ewl, 9/11/15)
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
+     &                             State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'Routine EMISSSULFATETOMAS in sulfate_mod.F')
+         RETURN
+      ENDIF  
+
+      END SUBROUTINE EMISSSULFATETOMAS
+!EOC
+#endif
+!
+!-----------------------------------------------------------------------------
+!                  Jack Kodros re-writing this
+!-----------------------------------------------------------------------------
+#if defined( TOMAS )
+      SUBROUTINE SRCSF30( TC1, TC2,
+     &     am_I_Root, Input_Opt, State_Met, RC )
+
+      USE DIAG_MOD,           ONLY : AD59_SULF,     AD59_NUMB
+      USE ERROR_MOD,          ONLY : ERROR_STOP,  IT_IS_NAN
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+
+      USE TOMAS_MOD,          ONLY : IBINS, AVGMASS, ICOMP
+      USE TOMAS_MOD,          ONLY : Xk,  SUBGRIDCOAG, MNFIX
+      USE TOMAS_MOD,          ONLY : SRTSO4, SRTNH4,  DEBUGPRINT
+      USE TRACERID_MOD
+
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND13 (for now)
+      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
+
+      ! HEMCO update
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState, GetHcoDiagn
+      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+! !INPUT/OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(INOUT) :: TC1(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL*8,  INTENT(INOUT) :: TC2(IIPAR,JJPAR,LLPAR,IBINS*ICOMP)
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+
+! Local variables
+      INTEGER                :: I, J, K, L, DOW_LT, NTOP, C
+      REAL*8                 :: SO4(LLPAR), DTSRCE  , EFRAC(LLPAR)
+      REAL*8                 :: TSO4,       FEMIS
+      REAL*8                 :: AREA_CM2
+      REAL*8                 :: SO4an(IIPAR,JJPAR,2)
+      REAL*8                 :: SO4bf(IIPAR,JJPAR)
+      REAL*8                 :: SO4anbf(IIPAR,JJPAR,2)
+      REAL*8 BFRAC(IBINS)     ! Mass fraction emitted to each bin
+
+#if  defined( TOMAS12) || defined( TOMAS15)
+      DATA BFRAC/
+# if  defined( TOMAS15)
+     &           0.0d0     , 0.0d0     , 0.0d0,
+# endif
+     &           4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02,
+     &           4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01,
+     &           1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04/
+
+#else
+
+      DATA BFRAC/
+# if  defined( TOMAS40)
+     &           0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 ,
+     &           0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 ,
+# endif
+     &           1.728d-02, 2.648d-02, 3.190d-02, 3.024d-02, 2.277d-02,
+     &           1.422d-02, 9.029d-03, 9.241d-03, 1.531d-02, 2.741d-02,
+     &           4.529d-02, 6.722d-02, 8.932d-02, 1.062d-01, 1.130d-01,
+     &           1.076d-01, 9.168d-02, 6.990d-02, 4.769d-02, 2.912d-02,
+     &           1.591d-02, 7.776d-03, 3.401d-03, 1.331d-03, 4.664d-04,
+     &           1.462d-04, 4.100d-05, 1.029d-05, 2.311d-06, 4.645d-07/
+#endif
+
+      REAL*8                 :: NDISTINIT(IBINS)
+      REAL*8                 :: NDISTFINAL(IBINS)
+      REAL*8                 :: MADDFINAL(IBINS)
+      REAL*8                 :: NDIST(IBINS),  MDIST(IBINS,ICOMP)
+      REAL*8                 :: NDIST2(IBINS), MDIST2(IBINS,ICOMP)
+      REAL*4                 :: TSCALE, BOXVOL, TEMP, PRES
+
+      REAL*8                 :: N0(LLPAR,IBINS), M0(LLPAR,IBINS)
+
+      REAL(fp)               :: AREA(IIPAR, JJPAR)
+      REAL(fp)               :: AREA3D(IIPAR, JJPAR,2)
+
+      ! Pointers
+      TYPE(HCO_State), POINTER :: HcoState   => NULL()
+      REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()
+      REAL(f4),        POINTER :: Ptr3D(:,:,:) => NULL()
+
+      INTEGER                  :: N_TRACERS
+      REAL(fp)                 :: XNUMOL(Input_Opt%N_TRACERS)
+
+      LOGICAL                :: ERRORSWITCH, SGCOAG = .TRUE.
+      INTEGER                :: FLAG, ERR
+      logical                :: pdbug !(temporary) win, 10/24/07
+      !integer                :: ii, jj, ll
+      !data ii, jj, ll / 61, 1, 7 /
+      INTEGER                :: ii=53, jj=29, ll=1
+
+      ! Ratio of molecular weights: S/SO4
+      REAL*8,  PARAMETER     :: S_SO4 = 32d0 / 96d0
+
+      ! debugging
+      real*8   dummy
+
+      ! For fields from Input_Opt
+      LOGICAL :: LPRT, LNLPBL
+      LOGICAL                 :: jkdbg=.true.
+
+      ! Strings
+      CHARACTER(LEN= 63)       :: DgnName
+      CHARACTER(LEN=255)       :: MSG
+      CHARACTER(LEN=255)       :: LOC='srcsf30 (sulfate_mod.F)'
+
+      !=================================================================
+      ! SRCSF30 begins here!
+      !=================================================================
+
+      ! COpy values from Input_Opt
+      LPRT    = Input_Opt%LPRT
+      LNLPBL  = Input_Opt%LNLPBL
+
+      ! Import emissions from HEMCO (through HEMCO state)
+      CALL GetHcoState( HcoState )
+      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+         CALL ERROR_STOP ( 'HcoState not defined!', LOC )
+      ENDIF
+
+      ! Emission timestep [seconds]
+      DTSRCE = HcoState%TS_EMIS
+
+      ! Grid box aarea
+      AREA = HcoState%Grid%AREA_M2%Val(:,:)
+      AREA3D(:,:,1) = AREA(:,:)
+      AREA3D(:,:,2) = AREA(:,:)
+
+      !================================================================
+      ! READ IN HEMCO EMISSIONS
+      !================================================================
+      DgnName = 'SO4_ANTH'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
+     &  Ptr3D=Ptr3D )
+      IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         SO4_ANTH = Ptr3D(:,:,:)
+      ENDIF
+      Ptr3D => NULL()
+
+      DgnName = 'SO4_BIOF'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
+     &  Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         SO4_BIOF = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      ! convert to kg/box/sec
+      SO4an = SO4_ANTH(:,:,:) * AREA3d(:,:,:)
+      SO4bf = SO4_BIOF(:,:) * AREA(:,:)
+
+      !=================================================================
+      ! Compute SO4 emissions
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS, EFRAC, N0, M0, K )
+!$OMP+PRIVATE( NDISTINIT, NDIST, MDIST, NDISTFINAL, MADDFINAL )
+!$OMP+PRIVATE( NDIST2, MDIST2, C )
+!$OMP+PRIVATE( BOXVOL, TEMP, PRES, TSCALE, pdbug )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Top level of boundary layer at (I,J)
+         NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
+
+         ! Zero SO4 array at all levels
+         DO L = 1, LLPAR
+            SO4(L) = 0.0
+         ENDDO
+
+         ! Compute total anthro SO4 (surface + 100m) plus biofuel SO4
+         TSO4 = 0.d0
+         TSO4 = SUM( SO4an(I,J,:) ) + SO4bf(I,J)
+         IF ( TSO4 == 0d0 ) CYCLE
+
+
+!debug         if(i==60.and.j==35) print *,'TSO4',TSO4
+         !=============================================================
+         ! First calculate emission distribution vertically within PBL
+         !=============================================================
+         ! EFRAC(30) = fraction of total emission splitted for each
+         !             level until reaching PBL top.
+         EFRAC = 0d0
+         !==============================================================
+         ! Partition the total anthro SO4 emissions thru the entire
+         ! boundary layer (if PBL top is higher than level 2)
+         !==============================================================
+         ! Add option for non-local PBL (Lin, 03/31/09)
+         IF (.NOT. LNLPBL) THEN
+         IF ( NTOP > 2 ) THEN
+
+            ! Loop thru boundary layer
+            DO L = 1, NTOP
+
+               ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+               EFRAC(L)  = GET_FRAC_OF_PBL( I, J, L )
+
+            ENDDO
+         ELSE
+            EFRAC(1) = ( SO4an(I,J,1) + SO4bf(I,J) ) / TSO4
+            EFRAC(2) = SO4an(I,J,2) / TSO4
+         ENDIF
+
+         IF ( ABS( SUM( EFRAC(:)) - 1.d0 ) > 1.D-5 ) THEN
+            PRINT*, '### ERROR in SRCSF30!'
+            PRINT*, '### I, J : ', I, J
+            print*, 'EFRAC',EFRAC(:)
+            PRINT*, '### SUM(EFRAC) : ', SUM( EFRAC(:) )
+            PRINT*, '### This should exactly 1.00'
+            CALL ERROR_STOP( 'Check SO4 redistribution',
+     &                       'SRCSF30 (sulfate_mod.f)' )
+         ENDIF
+
+         ELSE
+            ! stop the program for now since I don't totally implement
+            ! the subgrid coagulation option w/ Lin's new PBL scheme (win, 1/25/10)
+            print *,'If the program stops here, that means you are ',
+     &           'running TOMAS simulation with the new PBL scheme ',
+     &           'implemented since GEOS-Chem v.8-02-01.',
+     &           '-----> Try not using the non-local PBL option'
+            CALL ERROR_STOP( 'Code does not support new PBL scheme',
+     &                       'SRCSF30 (sulfate_mod.f)')
+
+         ENDIF  ! .not. LNLPBL
+         !=============================================================
+         ! Add the size-resolved SO4 emission to tracer array
+         ! Having the options to do sub-grid coagulation or simply
+         ! emit.
+         ! Sub-grid coagulation reduces the number being emitted
+         ! and modifies the mass size distribution of existing particle
+         ! as well as the size distribution being emitted.
+         ! (win, 10/4/07)
+         !=============================================================
+         IF ( SGCOAG ) THEN
+
+            N0(:,:) = TC1(I,J,:,:)
+            M0(:,:) = TC2(I,J,:,1:IBINS)
+
+          DO L = 1, LLPAR
+            SO4(L) = TSO4 * EFRAC(L) * DTSRCE
+            IF ( SO4(L) == 0.d0 ) CYCLE
+            DO K = 1, IBINS
+               NDISTINIT(K) = SO4(L) * BFRAC(K) /
+     &                                ( SQRT( XK(K)*XK(K+1) ) )
+               NDIST(K) = TC1(I,J,L,K)
+               DO C = 1, ICOMP
+                  MDIST(K,C) = TC2(I,J,L,K+(C-1)*IBINS)
+                  IF( IT_IS_NAN( MDIST(K,C) ) ) THEN
+                     PRINT *,'+++++++ Found NaN in SRCSF30  +++++++'
+                     PRINT *,'Location (I,J,L):',I,J,L,'Bin',K,'comp',C
+                     CALL  ERROR_STOP('SRCSF30 SGCCOAG','sulfate_mod.f')
+                  ENDIF
+               ENDDO
+               NDISTFINAL(K) = 0
+               MADDFINAL(K)  = 0
+            ENDDO
+            CALL MNFIX( NDIST, MDIST, ERRORSWITCH )
+            IF( ERRORSWITCH ) PRINT *,'SRCSF30: MNFIX found error ',
+     &              'before SUBGRIDCOAG at ',I,J,L
+            ERRORSWITCH = .FALSE.
+
+            ! Overwrite number and mass before emission for diagnostic
+            ! just in case there was any change by MNFIX (win, 10/27/08)
+            N0(L,:) = NDIST(:)
+            M0(L,:) = MDIST(:,SRTSO4)
+
+!debug            if (I== ii .and. J==jj .and. L==ll)
+!     &           CALL DEBUGPRINT(NDIST,MDIST,I,J,L,
+!     &           'SRCSF30 Before SUBGRIDCOAG ')
+
+
+      ! Define subgrid coagulation timescale (win, 10/28/08)
+#if   defined( GRID4x5   )
+            TSCALE = 10.*3600.  ! 10 hours
+#elif defined( GRID2x25  )
+            TSCALE = 5.*3600.
+#elif defined( GRID1x125 )
+            TSCALE = 2.*3600.
+#elif defined( GRID1x1   )
+            TSCALE = 2.*3600.
+#elif defined( GRID05x0625 )
+            TSCALE = 1.*3600.  ! Placeholder: the 0.5 x 0.666 value
+#elif defined( GRID05x0666 )
+            TSCALE = 1.*3600.
+#elif defined( GRID025x03125 )
+            !%%% KLUDGE, just copied the 0.5 x 0.666 value
+            !%%% Someone needs to add the right value (bmy, 2/16/12)
+            TSCALE = 1.*3600.
+#endif
+            !Prior to 10/28/08 (win)
+            !TSCALE = 10.*3600.
+            BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
+            TEMP    = State_Met%T(I,J,L)
+            PRES    = State_Met%PMID(i,j,l)*100.0 ! in Pa
+
+!            print *, 'Now doing subgrid coag with timescale ',
+!     &           TSCALE/3600.,'hr'
+            pdbug=.false.
+!debug            if (I.eq.II.and.J.eq.JJ .and. L==LL) pdbug=.true.
+
+            CALL SUBGRIDCOAG( NDISTINIT, NDIST, MDIST, BOXVOL,TEMP,
+     &                        PRES, TSCALE, NDISTFINAL, MADDFINAL,pdbug)
+            DO K = 1, IBINS
+               NDIST(K) = NDIST(K) + NDISTFINAL(K)
+               MDIST(K,SRTSO4) = MDIST(K,SRTSO4) +
+     &                           NDISTFINAL(K) * (SQRT(XK(K)*XK(K+1)))+
+     &                           MADDFINAL(K)
+!debug               if (I.eq.II.and.J.eq.JJ .and. L==ll) then
+!                  print *,(NDISTFINAL(K) * (SQRT(XK(K)*XK(K+1)))+
+!     &                 MADDFINAL(K) )
+!               endif
+!debug---
+            ENDDO
+            DO K= 1, IBINS
+               NDIST2(K) = NDIST(K)
+               DO C = 1, ICOMP
+                  MDIST2(K,C) = MDIST(K,C)
+               ENDDO
+            ENDDO
+!debug            if(i==ii.and.j==jj.and.l==ll  )
+!     &          CALL DEBUGPRINT(NDIST2,MDIST2,I,J,L,
+!     &                         'SRCSF30 : After SUBGRIDCOAG')
+
+
+            ERRORSWITCH = .FALSE.
+!debug            if(i==ii.and.j==ii.and.l==ll) errorswitch=.true.
+!      print *, 'mnfix in sulfate_mod:6430'
+            CALL MNFIX( NDIST2, MDIST2, ERRORSWITCH )
+
+            IF( ERRORSWITCH ) PRINT *,'SRCSF30: MNFIX found error ',
+     &           'after SUBGRIDCOAG at ',I,J,L
+
+!debug            if(i==ii .and.j==jj .and.l==ll)
+!     &          CALL DEBUGPRINT(NDIST2,MDIST2,I,J,L,
+!     &                         'SRCSF30 : After MNFIX')
+
+            DO K = 1, IBINS
+               TC1(I,J,L,K) = NDIST2(K)
+               DO C=1,ICOMP
+                  TC2(I,J,L,K+(C-1)*IBINS) = MDIST2(K,C)
+               ENDDO
+            ENDDO
+
+         ENDDO ! L loop
+           !==============================================================
+           ! ND59 Diagnostic: Size-resolved primary sulfate emission in
+           !                 [kg S/box/timestep] and the corresponding
+           !                  number emission [no./box/timestep]
+           !==============================================================
+            IF ( ND59 > 0 ) THEN
+               !print*, 'JACK IN ND59 SULFATE'
+               DO L = 1, LLPAR
+               DO K = 1, IBINS
+                  if(TC2(I,J,L,K)-M0(L,K) < 0d0)
+     &              print *,'Negative SF emis ',TC2(I,J,L,K)-M0(L,K),
+     &                 'at',I,J,L,K
+                  if(TC1(I,J,L,K)-N0(L,K) < 0d0)
+     &              print *,'Negative NK emis ',TC1(I,J,L,K)-N0(L,K),
+     &                 'at',I,J,L,K
+               !   if(I==ii .and. J==jj) then
+               !      print*, 'TC2: ', TC2(ii,jj,0,:)
+               !      print*, 'M0: ', M0(0,:)
+               !      print*, 'S_SO4: ', S_SO4
+               !   ENDIF
+                  AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) +
+     &                                  (TC2(I,J,L,K)-M0(L,K))*S_SO4
+                  AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) +
+     &                                  TC1(I,J,L,K)-N0(L,K)
+               ENDDO
+               ENDDO
+            ENDIF
+
+         ELSE
+         ! Distributing primary emission without sub-grid coagulation
+         !=============================================================
+         ! Add SO4 emissions to tracer array
+         ! For SF: Convert from [kg SO4/box/s] -> [kg SO4/box/timestep]
+         ! For NK: Convert from [kg SO4/box/s] -> [No.   /box/timestep]
+         !=============================================================
+            DO L = 1, LLPAR
+               SO4(L) = TSO4 * EFRAC(L)
+               DO K = 1, IBINS
+                  TC1(I,J,L,K) = TC1(I,J,L,K) +
+     &                    ( SO4(L) * DTSRCE * BFRAC(K) / AVGMASS(K) )
+                  TC2(I,J,L,K) = TC2(I,J,L,K) +
+     &                    ( SO4(L) * DTSRCE * BFRAC(K)               )
+               ENDDO
+            ENDDO
+
+           !==============================================================
+           ! ND59 Diagnostic: Size-resolved primary sulfate emission in
+           !                 [kg S/box/timestep] and the corresponding
+           !                  number emission [no./box/timestep]
+           !==============================================================
+            IF ( ND59 > 0 ) THEN
+               SO4anbf(:,:,1) = SO4an(:,:,1) + SO4bf(:,:)
+               SO4anbf(:,:,2) = SO4an(:,:,2)
+
+               DO L = 1, 2
+               DO K = 1, IBINS
+                  AD59_SULF(I,J,L,K) = AD59_SULF(I,J,L,K) +
+     &                                ( SO4anbf(I,J,L) * BFRAC(K)
+     &                                    * S_SO4 * DTSRCE         )
+                  AD59_NUMB(I,J,L,K) = AD59_NUMB(I,J,L,K) +
+     &                                ( SO4anbf(I,J,L) * BFRAC(K)
+     &                                    / AVGMASS(K) * DTSRCE   )
+               ENDDO
+               ENDDO
+
+            ENDIF
+
+         ENDIF !SGCOAG
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+      IF ( LPRT ) print *,'   ### Finish SRCSF30'
+
+      END SUBROUTINE SRCSF30
+#endif
+
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -814,14 +1463,17 @@
 #if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
 #endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TRACERID_MOD,       ONLY : IDTSO4s
       USE TRACERID_MOD,       ONLY : IDTNITs
+      USE TRACERID_MOD,       ONLY : IDTSO4d1, IDTNITd1
+      USE TRACERID_MOD,       ONLY : IDTSO4d2, IDTNITd2
+      USE TRACERID_MOD,       ONLY : IDTSO4d3, IDTNITd3
+      USE TRACERID_MOD,       ONLY : IDTSO4d4, IDTNITd4
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
@@ -838,8 +1490,18 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Tracer [kg]
+      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Tracer [kg]
 ! 
+! !REMARKS:
+!  N=1 is SO4S; N=2 is NITS
+!                                                                             .
+!  tdf Include Coarse Mode DUST size bins
+!  N=3 is SO4d2; N=4  is NIT_d1
+!  N=5 is SO4d3; N=6  is NIT_d2
+!  N=7 is SO4d4; N=8  is NIT_d3
+!  N=9 is SO4d4; N=10 is NIT_d4
+!  tdf Treat these coated DUSTs as DRY for now
+!
 ! !REVISION HISTORY:
 !  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
 !        (bmy, 7/20/04)
@@ -855,55 +1517,74 @@
 !  14 Nov 2012 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  12 Sep 2013 - M. Sulprizio- Include Coarse Mode DUST size bins (T.D. Fairlie)
 !  06 Jan 2015 - M. Yannetti - Changed some variables to f8 as needed
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
+!                              remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp),  PARAMETER     :: C1   =  0.7674e+0_fp 
-      REAL(fp),  PARAMETER     :: C2   =  3.079e+0_fp 
-      REAL(fp),  PARAMETER     :: C3   =  2.573e-11_fp
-      REAL(fp),  PARAMETER     :: C4   = -1.424e+0_fp
-      REAL(fp),  PARAMETER     :: DEN  = 2200.0e+0_fp ! [kg/m3] sea-salt density
+      REAL(fp),  PARAMETER   :: C1     =  0.7674e+0_fp 
+      REAL(fp),  PARAMETER   :: C2     =  3.079e+0_fp 
+      REAL(fp),  PARAMETER   :: C3     =  2.573e-11_fp
+      REAL(fp),  PARAMETER   :: C4     = -1.424e+0_fp
+      REAL(fp),  PARAMETER   :: DEN_SS = 2200.0e+0_fp ! [kg/m3] sea-salt density
 
       ! Parameters for polynomial coefficients to derive seawater
       ! density. From Tang et al. (1997) (bec, jaegle, 5/11/11)
-      REAL(fp),  PARAMETER     :: A1   =  7.93e-3_fp
-      REAL(fp),  PARAMETER     :: A2   = -4.28e-5_fp
-      REAL(fp),  PARAMETER     :: A3   =  2.52e-6_fp
-      REAL(fp),  PARAMETER     :: A4   = -2.35e-8_fp
-      REAL(f8),  PARAMETER     :: EPSI = 1.0e-4_f8 
+      REAL(fp),  PARAMETER   :: A1   =  7.93e-3_fp
+      REAL(fp),  PARAMETER   :: A2   = -4.28e-5_fp
+      REAL(fp),  PARAMETER   :: A3   =  2.52e-6_fp
+      REAL(fp),  PARAMETER   :: A4   = -2.35e-8_fp
+      REAL(f8),  PARAMETER   :: EPSI = 1.0e-4_f8 
 !
 ! !LOCAL VARIABLES:
 !
+      !tdf from dry_settling
+      ! P    Pressure in Kpa 1 mb = 100 pa = 0.1 kPa
+      ! Dp   Diameter of aerosol [um]
+      ! PDp  Pressure * DP
+      ! TEMP Temperature (K)
+      ! Slip Slip correction factor
+      ! Visc Viscosity of air (Pa s)
+      ! VTS  Settling velocity of particle (m/s)
+      LOGICAL                :: LDSTUP
       INTEGER                :: I,      J,     L,        DTCHEM
-      REAL(fp)                 :: DELZ,   DELZ1, REFF
-      REAL(fp)                 :: P,      DP,    PDP,      TEMP        
-      REAL(fp)                 :: CONST,  SLIP,  VISC,     FAC1
-      REAL(fp)                 :: FAC2,   FLUX,  AREA_CM2, RHB
+      REAL(fp)               :: DELZ,   DELZ1, REFF
+      REAL(fp)               :: P,      DP,    PDP,      TEMP        
+      REAL(fp)               :: CONST,  SLIP,  VISC,     FAC1
+      REAL(fp)               :: FAC2,   FLUX,  AREA_CM2, RHB
       ! replace RCM (radius in CM with RUM radius in microns) jaegle 5/11/11
-      REAL(fp)                 :: RUM,    RWET,  RATIO_R
-      REAL(fp)                 :: TOT1,   TOT2
-      REAL(fp)                 :: VTS(LLPAR)  
-      REAL(fp)                 :: TC0(LLPAR)
+      REAL(fp)               :: RUM,    RWET,  RATIO_R
+      REAL(fp)               :: TOT1,   TOT2
+      REAL(fp)               :: VTS(LLPAR)  
+      REAL(fp)               :: TC0(LLPAR)
       ! added variables for density calculation (jaegle, bec 5/11/11)
-      REAL(f8)                 :: RHO1, WTP, RHO
+      REAL(f8)               :: RHO1, WTP, RHO
+      REAL(fp)               :: DEN !tdf
  
       ! Arrays
-      INTEGER                :: IDDEP(2)
-      INTEGER                :: IDTRC(2)	
-      REAL(fp)                 :: SALA_REDGE_um(2)
-      REAL(fp)                 :: SALC_REDGE_um(2)
-      REAL(fp)                 :: XNUMOL(Input_Opt%N_TRACERS)
+      INTEGER                :: IDDEP(10)
+      INTEGER                :: IDTRC(10)	
+      REAL(fp)               :: SALA_REDGE_um(2)
+      REAL(fp)               :: SALC_REDGE_um(2)
+      REAL(fp)               :: XNUMOL(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! GRAV_SETTLING begins here!
       !=================================================================
 
+      ! Copy fields from INPUT_OPT to local variables for use below
+      LDSTUP = Input_Opt%LDSTUP
+
       ! Return if tracers are undefined
-      IF ( IDTSO4s == 0 .and. IDTNITs == 0 ) RETURN
+      IF ( IDTSO4s  == 0 .and. IDTNITs  == 0 ) RETURN
+      IF ( LDSTUP ) THEN
+         IF ( IDTSO4d1 == 0 .and. IDTNITd1 == 0 ) RETURN ! tdf
+      ENDIF
 
       ! Return if it's the start of the run
       IF ( GET_ELAPSED_SEC() == 0 ) RETURN
@@ -920,15 +1601,72 @@
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
 
       ! Store in IDDEP array
-      IDDEP(1) = DRYSO4s
-      IDDEP(2) = DRYNITs
+      IDDEP(1)  = DRYSO4s
+      IDDEP(2)  = DRYNITs
+      IF ( LDSTUP ) THEN
+         !tdf
+         IDDEP(3)  = DRYSO4d1
+         IDDEP(4)  = DRYSO4d2
+         IDDEP(5)  = DRYSO4d3
+         IDDEP(6)  = DRYSO4d4
+         !tdf
+         IDDEP(7)  = DRYNITd1
+         IDDEP(8)  = DRYNITd2
+         IDDEP(9)  = DRYNITd3
+         IDDEP(10) = DRYNITd4
+      ENDIF
 
       ! Tracer array
-      IDTRC(1) = IDTSO4s
-      IDTRC(2) = IDTNITs
+      IDTRC(1)  = IDTSO4s
+      IDTRC(2)  = IDTNITs
+      IF ( LDSTUP ) THEN
+         !tdf
+         IDTRC(3)  = IDTSO4d1
+         IDTRC(4)  = IDTSO4d2
+         IDTRC(5)  = IDTSO4d3
+         IDTRC(6)  = IDTSO4d4
+         !tdf
+         IDTRC(7)  = IDTNITd1
+         IDTRC(8)  = IDTNITd2
+         IDTRC(9)  = IDTNITd3
+         IDTRC(10) = IDTNITd4
+      ENDIF
 
       ! Coarse mode
-      REFF = 0.5e-6_fp * ( SALC_REDGE_um(1) + SALC_REDGE_um(2) )
+      !tdf
+      IF ( N < 3 ) THEN  ! Sea salt
+         REFF = 0.5e-6_fp * ( SALC_REDGE_um(1) + SALC_REDGE_um(2) )
+         DEN  = DEN_SS
+
+      !tdf Use the same density for dust-sulfate as for dust
+      ELSE IF ( N == 3 ) THEN  ! Dust sulfate size bin 1 (um)
+         REFF = Input_Opt%DUSTREFF(1)
+         DEN  = Input_Opt%DUSTDEN(1)
+      ELSE IF ( N == 4 ) THEN  ! Dust sulfate size bin 2 (um)
+         REFF = Input_Opt%DUSTREFF(2)
+         DEN  = Input_Opt%DUSTDEN(2)
+      ELSE IF ( N == 5 ) THEN  ! Dust sulfate size bin 3 (um)
+         REFF = Input_Opt%DUSTREFF(3)
+         DEN  = Input_Opt%DUSTDEN(3)
+      ELSE IF ( N == 6 ) THEN  ! Dust sulfate size bin 4 (um)
+         REFF = Input_Opt%DUSTREFF(4)
+         DEN  = Input_Opt%DUSTDEN(4)
+
+      !tdf Use the same density for dust-nitrate as for dust
+      ELSE IF ( N == 7 ) THEN  ! Dust nitrate size bin 1 (um)
+         REFF = Input_Opt%DUSTREFF(1)
+         DEN  = Input_Opt%DUSTDEN(1)
+      ELSE IF ( N == 8 ) THEN  ! Dust nitrate size bin 2 (um)
+         REFF = Input_Opt%DUSTREFF(2)
+         DEN  = Input_Opt%DUSTDEN(2)
+      ELSE IF ( N == 9 ) THEN  ! Dust nitrate size bin 3 (um)
+         REFF = Input_Opt%DUSTREFF(3)
+         DEN  = Input_Opt%DUSTDEN(3)
+      ELSE IF ( N == 10 ) THEN  ! Dust nitrate size bin 4 (um)
+         REFF = Input_Opt%DUSTREFF(4)
+         DEN  = Input_Opt%DUSTDEN(4)
+
+      ENDIF
             
       ! Sea salt radius [cm]
       ! The Gerber formula for hygroscopic growth uses the radius in
@@ -961,7 +1699,8 @@
          DO L = 1, LLPAR
 
             ! Pressure at center of the level [kPa]
-            P       = GET_PCENTER(I,J,L) * 0.1e+0_fp
+            ! Use moist air pressure for mean free path (ewl, 3/2/15)
+            P       = State_Met%PMID(I,J,L) * 0.1e+0_fp
 
             ! Temperature [K]
             TEMP    = State_Met%T(I,J,L)
@@ -1023,11 +1762,22 @@
             ! Dp = particle diameter [um]
             DP      = 2.e+0_fp * RWET * 1.e+6_fp        
 
+            !tdf
+            IF ( N > 2 ) THEN  ! Keep dust dry for now
+               DP   = 2.e+0_fp * REFF * 1.e+6_fp
+            ENDIF
+
             ! PdP = P * dP [hPa * um]
             PDp     = P * Dp
 
             ! Constant
             CONST   = 2.e+0_fp * RHO * RWET**2 * g0 / 9.e+0_fp
+
+            !tdf
+            IF ( N > 2 ) THEN  ! Keep dust dry for now
+               ! Constant
+               CONST = 2.e+0_fp * DEN * REFF**2 * g0 / 9.e+0_fp
+            ENDIF
 
             !===========================================================
             ! NOTE: Slip correction factor calculations following 
@@ -1052,6 +1802,13 @@
             ! Slip correction factor (as function of P*dp)
             Slip = 1.e+0_fp+(15.60e+0_fp + 7.0e+0_fp * 
      &             EXP(-0.059e+0_fp * PDp)) / PDp
+
+            !=====================================================
+            ! NOTE, Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
+            ! which produce slip correction factor with small
+            ! error compared to the above with less computation.
+            ! tdf
+            !=====================================================
 
             ! Viscosity [Pa*s] of air as a function of temperature 
             VISC = 1.458e-6_fp * (Temp)**(1.5e+0_fp) / 
@@ -1102,7 +1859,7 @@
             ! Surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
-            ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
+            ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
             FLUX     = FLUX * XNUMOL(IDTRC(N)) / AREA_CM2 
    
@@ -1140,7 +1897,6 @@
       USE CMN_DIAG_MOD         
       USE CMN_SIZE_MOD         
       USE DIAG_MOD,           ONLY : AD05
-      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -1232,14 +1988,14 @@
 !
       ! Scalars
       INTEGER           :: I,    J,    L
-      REAL(fp)            :: TK,   O2,   RK1,    RK2,    RK3,   F  
-      REAL(fp)            :: DMS,  DMS0, DMS_OH, DTCHEM, XOH,   XN3 
-      REAL(fp)            :: XX,   OH,   OH0,    XNO3,   XNO30, LOH
-      REAL(fp)            :: LNO3, BOXVL
+      REAL(fp)          :: TK,   O2,   RK1,    RK2,    RK3,   F  
+      REAL(fp)          :: DMS,  DMS0, DMS_OH, DTCHEM, XOH,   XN3 
+      REAL(fp)          :: XX,   OH,   OH0,    XNO3,   XNO30, LOH
+      REAL(fp)          :: LNO3, BOXVL
                         
       ! For fields from Input_Opt
       LOGICAL           :: IS_FULLCHEM
-      REAL(fp)            :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -1258,7 +2014,7 @@
       IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
       XNUMOL      = Input_Opt%XNUMOL
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -1459,7 +2215,6 @@
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT
       USE BPCH2_MOD,          ONLY : GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0
-      USE BPCH2_MOD,          ONLY : READ_BPCH2
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
@@ -1467,12 +2222,10 @@
 #if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44 
 #endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -1535,7 +2288,9 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  18 Sep 2014 - M. Sulprizio- Now get J(H2O2) and PH2O2m from HEMCO
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
-!EOP
+!  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
+!  23 Sep 2015 - R. Yantosca - Remove reference to obsolete DRYH2O2 flag
+!EOC
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -1546,19 +2301,17 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LNLPBL
       LOGICAL            :: FIRST     = .TRUE.
       INTEGER, SAVE      :: LASTMONTH = -99
       INTEGER            :: I, J, L, JLOOP, N_TRACERS
-      REAL(fp)             :: DT,    Koh,  DH2O2, M,    F ,   XTAU   
-      REAL(fp)             :: H2O20, H2O2, ALPHA, FLUX, FREQ, PHOTJ
+      REAL(fp)           :: DT,    Koh,  DH2O2, M,    F ,   XTAU   
+      REAL(fp)           :: H2O20, H2O2, ALPHA, FREQ, PHOTJ
       CHARACTER(LEN=255) :: FILENAME
 
       ! Arrays
       REAL*4             :: ARRAY(IIPAR,JJPAR,LLCHEM)
-      REAL(fp)             :: TCVV  (Input_Opt%N_TRACERS)
-      REAL(fp)             :: XNUMOL(Input_Opt%N_TRACERS)
-      REAL(fp)             :: ND44_TMP(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: TCVV  (Input_Opt%N_TRACERS)
+      REAL(fp)           :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -1568,7 +2321,7 @@
       !=================================================================
       ! CHEM_H2O2 begins here!
       !=================================================================
-      IF ( IDTH2O2 == 0 .or. DRYH2O2 == 0 ) RETURN 
+      IF ( IDTH2O2 == 0 ) RETURN 
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -1577,9 +2330,8 @@
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-      LNLPBL    = Input_Opt%LNLPBL
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT    => State_Chm%Tracers
 
@@ -1589,17 +2341,12 @@
       ! Factor to convert AIRDEN from kgair/m3 to molecules/cm3:
       F         = 1000.e+0_fp / AIRMW * 6.022d23 * 1.e-6_fp
       
-      ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) THEN
-         ND44_TMP = 0e+0_fp
-      ENDIF
-
       !=================================================================
       ! Loop over tropopsheric grid boxes and do chemistry
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2, FLUX )
+!$OMP+PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2 )
 !$OMP+PRIVATE( JLOOP, PHOTJ )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L  = 1, LLPAR
@@ -1607,7 +2354,6 @@
       DO I  = 1, IIPAR
 
          ! Initialize for safety's sake 
-         FLUX = 0e+0_fp
          FREQ = 0e+0_fp
 
          ! Skip non-chemistry boxes
@@ -1623,12 +2369,8 @@
          KOH   = A * EXP( -160.e+0_fp / State_Met%T(I,J,L) ) * 
      &           GET_OH( I, J, L, Input_Opt, State_Met )
 
-         ! H2O2 drydep frequency [1/s].  Account for the fraction
-         ! of grid box (I,J,L) that is located beneath the PBL top.
-         FREQ  = DEPSAV(I,J,DRYH2O2) * GET_FRAC_UNDER_PBLTOP( I, J, L ) 
-
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF ( LNLPBL ) FREQ = 0.e+0_fp
+         ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+         FREQ = 0.e+0_fp
 
          ! 1-D grid box index for SUNCOS
          JLOOP = ( (J-1) * IIPAR ) + I
@@ -1658,44 +2400,10 @@
          ! Store final H2O2 in STT
          STT(I,J,L,IDTH2O2) = H2O2
 
-         !==============================================================
-         ! ND44 diagnostics: H2O2 drydep loss [molec/cm2/s]
-         !==============================================================
-         IF ( ND44 > 0 .AND. FREQ > 0e+0_fp ) THEN
-
-            ! Convert H2O2 from [v/v] to H2O2 [molec/cm2/s]
-            FLUX = H2O20 * FREQ * DT / ( 1.e+0_fp + FREQ * DT )
-            FLUX = FLUX * State_Met%AD(I,J,L) / TCVV(IDTH2O2)
-            FLUX = FLUX * XNUMOL(IDTH2O2) 
-     &            / ( GET_AREA_CM2( I, J, L ) * DT )
-
-            ! Save dryd flx in ND44_TMP as a placeholder
-            ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-         ENDIF
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-      
-#if !defined( NO_BPCH )
-      !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !===============================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DRYH2O2,1) = AD44(I,J,DRYH2O2,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -1726,10 +2434,7 @@
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_WATER
       USE DIAG_MOD,           ONLY : AD05
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE DUST_MOD,           ONLY : GET_DUST_ALK      ! tdf 04/08/08
       USE ERROR_MOD,          ONLY : IS_SAFE_EXP
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE GIGC_ErrCode_Mod
@@ -1737,8 +2442,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
@@ -1749,7 +2452,7 @@
       USE TRACERID_MOD,       ONLY : IDTDST4, IDTSALA, IDTSALC
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal, GetHcoDiagn
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoDiagn
 !
 ! !INPUT PARAMETERS:
 !
@@ -1835,6 +2538,8 @@
 !  05 Sep 2013 - M. Sulprizio- Add modifications for cloud pH (B. Alexander)
 !  06 Sep 2013 - M. Sulprizio- Bug fix: Prevent divide-by-zero if LWC=0. Only
 !                              do aqueous SO2 chemistry when LWC>0.
+!  12 Sep 2013 - M. Sulprizio- Modified for SO4d, NITd.  Also modified for
+!                              alkalinity w/in the dust chemistry. (tdf 4/07/08)
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  28 Jan 2014 - R. Yantosca - Bug fix for TOMAS. Set ALKdst=0 since TOMAS
 !                              carries its own dust tracers instead of DST1-4.
@@ -1843,6 +2548,10 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  12 Jan 2015 - C. Keller   - Now allow NDENS_SALA and NDENS_SALC to be empty.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
+!                              Remove dependency on pressure_mod.
+!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
+!  23 Sep 2015 - R. Yantosca - Remove reference to obsolete DRYSO2 flag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1857,30 +2566,47 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL               :: LNLPBL
       LOGICAL               :: IS_OFFLINE
       LOGICAL               :: IS_FULLCHEM
+      LOGICAL               :: LDSTUP
       INTEGER               :: I,      J,       L       !,      I1,   I2
       INTEGER               :: II,     NSTEP,   N_TRACERS
       INTEGER               :: BULK,   SIZE_RES 
+      INTEGER               :: IBIN  ! tdf
       REAL(fp)              :: K0,     Ki,      KK,     M,    L1
       REAL(fp)              :: L2,     L3,      Ld,     F,    Fc
       REAL(fp)              :: RK,     RKT,     DTCHEM, DT_T, TK
       REAL(fp)              :: F1,     RK1,     RK2,    RK3,  SO20
       REAL(fp)              :: SO2_cd, H2O20,   O3,     L2S,  L3S
-      REAL(fp)              :: LWC,    KaqH2O2, KaqO3,  PATM, FLUX
+      REAL(fp)              :: LWC,    KaqH2O2, KaqO3,  PATM
       REAL(fp)              :: ALK,    ALK1,    ALK2,    SO2_ss
       REAL(fp)              :: Kt1,    Kt2,     AREASS1, AREASS2
       REAL(fp)              :: PSO4E,  PSO4F,   Kt1N,    Kt2N
-      REAL(fp)              :: XX,     AREA_CM2
+      REAL(fp)              :: XX
       REAL(fp)              :: HPLUS,  SO4nss, TNH3,   TNO3,  GNO3, ANIT
       REAL(fp)              :: LSTOT,  ALKdst, ALKss,  ALKds, NH3
       REAL(fp)              :: SSCvv,  aSO4,   SO2_sr, SR,    TANIT
+      !tdf 03/02/2K9
+      REAL(fp)              :: PSO4d_tot, PNITd_tot
+      REAL(fp)              :: SO2_gas,   PH2SO4d_tot
+      !tdf
+      REAL(fp)              :: H2SO4_cd,  H2SO4_gas
 
       ! Arrays
-      REAL(fp)              :: ND44_TMP(IIPAR,JJPAR,LLPAR)
       REAL(fp)              :: TCVV  (Input_Opt%N_TRACERS)
       REAL(fp)              :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)              :: ALK_d   (NDSTBIN)  ! tdf 04/07/08
+      REAL(fp)              :: ALKA_d  (NDSTBIN)  ! tdf 04/07/08
+      REAL(fp)              :: PSO4_d  (NDSTBIN)  ! tdf 04/07/08
+      REAL(fp)              :: PNIT_d  (NDSTBIN)  ! tdf 06/25/08
+      REAL(fp)              :: PH2SO4_d(NDSTBIN)  ! tdf 03/02/09
+      !tdf
+      REAL(fp)              :: KTN(NDSTBIN)
+      REAL(fp)              :: KTS(NDSTBIN)  
+      REAL(fp)              :: KTH(NDSTBIN)
+      !tdf KTH now contains the fraction of uptake of H2SO4 on to each of the
+      ! dust size bins, based on a size- and area-weighted formulism
+      ! (GET_DUST_ALK)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -1896,7 +2622,7 @@
       ! CHEM_SO2 begins here!
       !=================================================================
 
-      IF ( IDTH2O2 == 0 .or. IDTSO2 == 0 .or. DRYSO2 == 0 ) RETURN
+      IF ( IDTH2O2 == 0 .or. IDTSO2 == 0 ) RETURN
 
       ! Assume success
       RC          = GIGC_SUCCESS
@@ -1907,9 +2633,9 @@
       N_TRACERS   = Input_Opt%N_TRACERS
       TCVV        = Input_Opt%TCVV  (1:N_TRACERS)
       XNUMOL      = Input_Opt%XNUMOL(1:N_TRACERS)
-      LNLPBL      = Input_Opt%LNLPBL
+      LDSTUP      = Input_Opt%LDSTUP
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -1918,9 +2644,6 @@
 
       ! Factor to convert AIRDEN from [kg air/m3] to [molec air/cm3]
       F        = 1000.e+0_fp / AIRMW * 6.022e+23_fp * 1.e-6_fp
-
-      ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) ND44_TMP = 0e+0_fp
 
       ! On first call, get pointers to HEMCO diagnostics arrays.
       ! These are the sea salt aerosol number densities for the fine
@@ -1935,13 +2658,13 @@
 
          ! Sea salt density, fine mode
          CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_FINE', 
-     &                     FORCE=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
+     &          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
          IF ( RC /= HCO_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_FINE', LOC )
 
          ! Sea salt density, coarse mode 
          CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_COARSE', 
-     &                     FORCE=.FALSE., RC=RC, Ptr2D=NDENS_SALC )
+     &          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALC )
          IF ( RC /= HCO_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_COARSE', LOC )
          
@@ -1954,20 +2677,21 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, SO20, H2O20, O3, PATM, TK, K0, M, KK, F1, RK1  )
 !$OMP+PRIVATE( RK2, RK, RKT, SO2_cd, L1, Ld, L2, L2S, L3, L3S, FC, LWC )
-!$OMP+PRIVATE( KaqH2O2, KaqO3, AREA_CM2, FLUX, ALK, ALK1, ALK2         )
+!$OMP+PRIVATE( KaqH2O2, KaqO3, ALK, ALK1, ALK2                         )
 !$OMP+PRIVATE( Kt1, Kt2, AREASS1, AREASS2, SO2_ss, Kt1N, Kt2N          )
 !$OMP+PRIVATE( PSO4E, PSO4F, XX                                        )
 !$OMP+PRIVATE( HPLUS, SO4nss, TNH3, TNO3,  GNO3, ANIT,   LSTOT, ALKdst )
 !$OMP+PRIVATE( ALKds, ALKss,  NH3,  SSCvv, aSO4, SO2_sr, SR,    TANIT  )
 !$OMP+PRIVATE( BULK,  SIZE_RES,     RC                                 )
+!$OMP+PRIVATE( ALK_d, KTS, KTN, PSO4_d, PH2SO4_d, PNIT_d, SO2_gas      ) !tdf
+!$OMP+PRIVATE( KTH, H2SO4_cd, H2SO4_gas, Ki                            ) !tdf
+!$OMP+PRIVATE( IBIN, PSO4d_tot, PH2SO4d_tot, PNITd_tot, ALKA_d         )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Initialize for safety's sake 
-         AREA_CM2 = 0e+0_fp
-         FLUX     = 0e+0_fp
          Ld       = 0e+0_fp
 
          ! Skip non-chemistry boxes
@@ -1979,17 +2703,19 @@
          O3     = GET_O3( I, J, L, Input_Opt, State_Met )
 
          ! PATM  : Atmospheric pressure in atm
-         PATM   = GET_PCENTER( I, J, L ) / 1013.25e+0_fp
+         ! Now use dry air partial pressure (ewl, 4/28/15)
+         PATM   = State_Met%PMID_DRY( I, J, L ) / 1013.25e+0_fp
 
          ! TK : Temperature [K]
          TK     = State_Met%T(I,J,L)
 
+         ! Updated to match JPL 2006 + full chem (jaf, 10/14/09)
+         K0  = 3.3e-31_fp * ( 300.e+0_fp / TK )**4.3e+0_fp
+         Ki  = 1.6e-12_fp
+
          IF ( IS_OFFLINE ) THEN
 
             ! Gas phase SO4 production is done here in offline run only 
-            ! Updated to match JPL 2006 + full chem (jaf, 10/14/09)
-            K0  = 3.3e-31_fp * ( 300.e+0_fp / TK )**4.3e+0_fp
-            Ki  = 1.6e-12_fp
             M   = State_Met%AIRDEN(I,J,L) * F
             KK  = K0 * M / Ki
             F1  = ( 1.e+0_fp + ( LOG10( KK ) )**2 )**( -1 )
@@ -2000,7 +2726,6 @@
 
             ! For online runs, SMVGEAR deals w/ this computation,
             ! so we can simply set RK1 = 0 (rjp, bmy, 3/23/03)
-            K0  = 0.e+0_fp
             M   = 0.e+0_fp
             KK  = 0.e+0_fp
             F1  = 0.e+0_fp
@@ -2008,12 +2733,8 @@
 
          ENDIF
 
-         ! SO2 drydep frequency [1/s].  Also accounts for the fraction
-         ! of grid box (I,J,L) that is located beneath the PBL top.
-         RK2    = DEPSAV(I,J,DRYSO2) * GET_FRAC_UNDER_PBLTOP( I, J, L )
-
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF ( LNLPBL ) RK2 = 0.e+0_fp
+         ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+         RK2  = 0.e+0_fp
 
          ! RK: total reaction rate [1/s]
          RK     = ( RK1 + RK2 )
@@ -2035,6 +2756,26 @@
          ELSE
             SO2_cd = SO20
             L1     = 0.e+0_fp
+         ENDIF
+
+         ! Isolate H2SO4 for reaction with dust    tdf 3/6/2K9
+         IF ( LDSTUP ) THEN
+            ! Compute gas phase SO4 production again, as in offline case 
+            ! RK1: SO2 + OH(g) [s-1]  (rjp, bmy, 3/23/03)
+            M    = State_Met%AIRDEN(I,J,L) * F
+            KK   = K0 * M / Ki
+            F1   = ( 1.e+0_fp + ( LOG10( KK ) )**2 )**( -1 )
+            RK1  = ( K0 * M / ( 1.e+0_fp + KK ) ) * 0.6e+0_fp**F1 *
+     &             GET_OH( I, J, L, Input_Opt, State_Met)
+            RKT  =  RK1 * DTCHEM  ! [unitless] (bmy, 6/1/00)
+            SO20 = SO2_cd
+            H2SO4_cd = SO20 * ( 1.e+0_fp - EXP( -RKT ) ) 
+
+            !tdf Reset these constants to zero to avoid any problems below
+            M   = 0.e+0_fp
+            KK  = 0.e+0_fp
+            F1  = 0.e+0_fp
+            RK1 = 0.e+0_fp
          ENDIF
 
          !==============================================================
@@ -2072,11 +2813,77 @@
 
          ENDIF
 
+         IF ( LDSTUP ) THEN
+
+            !==============================================================
+            ! Update SO2 conc. after DUST chemistry (tdf, 04/07/08)
+            !==============================================================
+
+            ! Get dust alkalinity ALK_d (NDSTBIN) [v/v], Uptake rates for
+            ! sulfate, KTS(NDSTBIN), and nitrate, KTN(NDSTBIN) on dust [s-1]
+            CALL GET_DUST_ALK( I, J, L, ALK_d, KTS, KTN, KTH,
+     &                         Input_Opt, State_Met, State_Chm )
+
+            ! Total alkalinity [kg]
+            ALK = 0.0e+0_fp
+
+            DO IBIN = 1, NDSTBIN
+               ALK = ALK + ALK_d (IBIN)
+            END DO
+
+            ! If (1) there is alkalinity, (2) there is SO2 present, and
+            ! (3) O3 is in excess, then compute dust SO2 chemistry
+            IF  ( ( ALK    > MINDAT )  .AND.
+     &            ( SO2_cd > MINDAT )  .AND.
+     &            ( SO2_cd < O3     ) ) THEN
+
+               ! Compute oxidation of SO2 -> SO4 and condensation of
+               ! HNO3 -> nitrate within the dust aerosol
+
+               !tdf Call DUST_CHEM using updated SO2_ss after sea salt chemistry
+               CALL DUST_CHEM( I,         J,         L,
+     &                         ALK_d,     SO2_ss,    H2SO4_cd,
+     &                         KTS,       KTN,       KTH,
+     &                         SO2_gas,   H2SO4_gas, PSO4_d,
+     &                         PH2SO4_d,  PNIT_d,    ALKA_d,
+     &                         Input_Opt, State_Met, State_Chm, RC )
+
+               ! tdf "SO2_ss" is SO2 mixing ratio remaining after interaction
+               ! with dust
+               SO2_ss = SO2_gas
+
+               ! tdf "H2SO4_cd" is H2SO4 remaining after interaction with dust
+               H2SO4_cd = H2SO4_gas
+
+            ELSE
+
+               ! Otherwise set equal to zero
+               SO2_ss  = SO2_ss
+               DO IBIN = 1, NDSTBIN
+                  PSO4_d    (IBIN)   = 0.e+0_fp
+                  PH2SO4_d  (IBIN)   = 0.e+0_fp
+                  PNIT_d    (IBIN)   = 0.e+0_fp
+               END DO
+
+            ENDIF
+
+         ELSE 
+
+            ! Otherwise set equal to zero
+            SO2_ss  = SO2_ss
+            DO IBIN = 1, NDSTBIN
+               PSO4_d    (IBIN)   = 0.e+0_fp
+               PH2SO4_d  (IBIN)   = 0.e+0_fp
+               PNIT_d    (IBIN)   = 0.e+0_fp
+            END DO
+
+         ENDIF    !tdf end of if (LDSTUP) condition 
+
          !==============================================================
          ! Update SO2 concentration after cloud chemistry          
          ! SO2 chemical loss rate = SO4 production rate [v/v/timestep]
          !==============================================================
-#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -2522,11 +3329,33 @@
          ! SO2 chemical loss rate  = SO4 production rate [v/v/timestep]
 !         PSO4_SO2(I,J,L) = L1 + L2S + L3S + PSO4E
          PSO4_SO2(I,J,L) = L1 + L2S + L3S + PSO4E + SR
+
+         ! Production of sulfate on sea salt
          PSO4_ss (I,J,L) = PSO4F
 
 #if   defined( TOMAS )
-         PSO4_SO2AQ(I,J,L) = L2S + L3S  ! For TOMAS microphysics
+         PSO4_SO2AQ(I,J,L) = L2S + L3S + SR ! For TOMAS microphysics
 #endif
+
+         ! tdf Production of sulfate and nitrate on dust
+         IF ( LDSTUP ) THEN
+
+            ! NB Fine dust mass excluded from PSO4_SO2 - kept separately
+            ! (tdf 07/24/08)
+            ! tdf PNIT_d, PH2SO4_d, and PSO4_d computed in DUST_CHEM
+
+            DO IBIN = 1, NDSTBIN
+               ! included P(SO4) due to uptake of H2SO4(g)        !tdf 3/2/2K9
+               PSO4_dust(I,J,L,IBIN) = PSO4_d(IBIN) + PH2SO4_d(IBIN)
+               PNIT_dust(I,J,L,IBIN) = PNIT_d(IBIN)
+            END DO
+
+            ! tdf Subtract from PSO4_SO2 that which is now diverted to dust
+            DO IBIN = 1, NDSTBIN
+               PSO4_SO2(I,J,L) =  PSO4_SO2(I,J,L) - PH2SO4_d(IBIN)
+            END DO
+
+         ENDIF    !tdf end of if (LDSTUP) condition
 
          !=================================================================
          ! ND05 Diagnostics [kg S/timestep]
@@ -2552,47 +3381,41 @@
      &                      ( (PSO4E + PSO4F) * State_Met%AD(I,J,L) /
      &                      TCVV_S )
 
-         ENDIF
+            !tdf
+            PSO4d_tot   = 0.e+0_fp
+            PH2SO4d_tot = 0.e+0_fp
+            PNITd_tot   = 0.e+0_fp
 
-         !=================================================================
-         ! ND44 Diagnostic: Drydep flux of SO2 [molec/cm2/s]
-         !=================================================================
-         IF ( ND44 > 0 .AND. Ld > 0e+0_fp ) THEN
+            IF ( LDSTUP ) THEN
+               DO IBIN = 1, NDSTBIN
+                  PSO4d_tot = PSO4d_tot + PSO4_d(IBIN)
+                  PNITd_tot = PNITd_tot + PNIT_d(IBIN)
+                  ! included P(SO4) due to uptake of H2SO4(g)     !tdf 3/2/2K9
+                  PH2SO4d_tot = PH2SO4d_tot + PH2SO4_d(IBIN)
+               END DO
 
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, L )
+               ! P(SO4) from O3 oxidation on dust aerosols [kg S/timestep]
+               AD05(I,J,L,11) = AD05(I,J,L,11) +
+     &                       ( PSO4d_tot * State_Met%AD(I,J,L) /
+     &                         TCVV_S )
 
-            ! Convert [v/v/timestep] to [molec/cm2/s]
-            FLUX = Ld   * State_Met%AD(I,J,L)      / TCVV(IDTSO2)
-            FLUX = FLUX * XNUMOL(IDTSO2) / AREA_CM2 / DTCHEM
-            
-            ! Store dryd flx in ND44_TMP as a placeholder
-            ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
+               ! P(NIT) from HNO3 uptake on dust [kg N/timestep]
+               AD05(I,J,L,12) = AD05(I,J,L,12) +
+     &                       ( PNITd_tot * State_Met%AD(I,J,L) /
+     &                         TCVV_N )
+
+               ! Included P(SO4) due to uptake of H2SO4(g)        !tdf 3/2/2K9
+               ! P(SO4) from uptake of H2SO4 on dust aerosols [kg S/timestep]
+               AD05(I,J,L,13) = AD05(I,J,L,13) +
+     &                       ( PH2SO4d_tot * State_Met%AD(I,J,L) /
+     &                         TCVV_S )
+            ENDIF
+
          ENDIF
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-#if !defined( NO_BPCH )
-      !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !===============================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DRYSO2,1) = AD44(I,J,DRYSO2,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -2627,11 +3450,13 @@
       !USE CMN_DIAG_MOD          ! ND19
       !USE DIAG_MOD,        ONLY : AD09
       !---------------------------------------------------------------
+      USE CMN_DIAG_MOD             ! ND05, LD05
       USE CMN_GCTM_MOD          
       USE CMN_SIZE_MOD          
       USE COMODE_MOD,         ONLY : CSPEC
       USE COMODE_MOD,         ONLY : JLOP
       USE COMODE_MOD,         ONLY : VOLUME
+      USE DIAG_MOD,           ONLY : AD05
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE GIGC_ErrCode_Mod
@@ -2642,7 +3467,6 @@
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_MONTH 
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTHNO3
       USE TRACERID_MOD,       ONLY : IDTNITs
       USE TRACERID_MOD,       ONLY : IDTSO2
@@ -2653,15 +3477,15 @@
 !
 
       INTEGER,        INTENT(IN)   :: I, J, L    ! Grid box indices
-      REAL(fp),         INTENT(IN)   :: SO2_cd     ! SO2 mixing ratio [v/v] after 
+      REAL(fp),       INTENT(IN)   :: SO2_cd     ! SO2 mixing ratio [v/v] after 
                                                  !  gas phase chemistry and 
                                                  !  dry deposition
-      REAL(fp),         INTENT(IN)   :: Kt1, Kt2   ! Rate constant [s-1] for 
+      REAL(fp),       INTENT(IN)   :: Kt1, Kt2   ! Rate constant [s-1] for 
                                                  !  sulfate formation on sea
                                                  !  salt aerosols from GET_ALK 
                                                  !  (1=fine; 2=coarse)
-      REAL(fp),         INTENT(IN)   :: Kt1N, Kt2N 
-      REAL(fp),         INTENT(IN)   :: ALK1, ALK2 ! Alkalinity [kg] from 
+      REAL(fp),       INTENT(IN)   :: Kt1N, Kt2N 
+      REAL(fp),       INTENT(IN)   :: ALK1, ALK2 ! Alkalinity [kg] from 
                                                  !  seasalt_mod
       TYPE(MetState), INTENT(IN)   :: State_Met  ! Meteorology State object
       TYPE(OptInput), INTENT(IN)   :: Input_Opt  ! Input Options object
@@ -2673,12 +3497,12 @@
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(OUT)   :: SO2_ss    ! SO2 mixing ratio [v/v] 
+      REAL(fp),       INTENT(OUT)   :: SO2_ss    ! SO2 mixing ratio [v/v] 
                                                  !  after sea salt chemistry
-      REAL(fp),         INTENT(OUT)   :: PSO4E     ! SO4E (sulfate produced by 
+      REAL(fp),       INTENT(OUT)   :: PSO4E     ! SO4E (sulfate produced by 
                                                  !  S(IV)+O3 on fine seasalt) 
                                                  !  mixing ratio [v/v]
-      REAL(fp),         INTENT(OUT)   :: PSO4F     ! SO4F (sulfate produced by 
+      REAL(fp),       INTENT(OUT)   :: PSO4F     ! SO4F (sulfate produced by 
                                                  !  S(IV)+O3 on coarse seasalt)
       INTEGER,        INTENT(OUT)   :: RC        ! Success or failure?
 !
@@ -2702,7 +3526,11 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  12 Sep 2013 - M. Sulprizio- Added loss of HNO3 on sea salt diagnostic
+!                              (T.D. Fairlie)
 !  18 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sim from HEMCO
+!  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod since
+!                              XNUMOLAIR now defined in CMN_GTCM_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2717,34 +3545,34 @@
       ! Scalars
       LOGICAL            :: IT_IS_A_FULLCHEM_SIM
       INTEGER            :: JLOOP,       N_TRACERS
-      REAL(fp)             :: SO2_chem,    DTCHEM
-      REAL(fp)             :: O3_cspec,    O3_lost
-      REAL(fp)             :: EQ_1_C,      EQ_2_C
-      REAL(fp)             :: SO4E,        SO2_new,    SO4F
-      REAL(fp)             :: SO2_eq,      N_FLUX_A,   N_FLUX_C
-      REAL(fp)             :: END_ALK,     L5A,        L5C
-      REAL(fp)             :: EQ1,         EQ2,        TITR_SO2
-      REAL(fp)             :: TITR_HNO3,   NIT_vv,     NITs_vv
-      REAL(fp)             :: NIT0,        NITS0
-      REAL(fp)             :: F_SO2,       FALK_A_SO2, FALK_C_SO2
-      REAL(fp)             :: EQ_BEG,      F_SO2_A,    F_SO2_C
-      REAL(fp)             :: ALKA,        ALKC,       TOTAL_ACID_FLUX
-      REAL(fp)             :: HNO3_EQ,     TOT_FLUX_A, TOT_FLUX_C
-      REAL(fp)             :: FALK_A_HNO3, HNO3_vv
-      REAL(fp)             :: FALK_C_HNO3, F_HNO3_A,   F_HNO3_C
-      REAL(fp)             :: EQ_1_N,      EQ_2_N,     F_HNO3
-      REAL(fp)             :: HNO3_SSA,    HNO3_SSC,   N_FLUX
-      REAL(fp)             :: HNO3_EQ_C,   L6A,        L6C   
-      REAL(fp)             :: C_FLUX_A,    C_FLUX_C,   C_FLUX
-      REAL(fp)             :: HNO3_ss,     HNO3_kg
+      REAL(fp)           :: SO2_chem,    DTCHEM
+      REAL(fp)           :: O3_cspec,    O3_lost
+      REAL(fp)           :: EQ_1_C,      EQ_2_C
+      REAL(fp)           :: SO4E,        SO2_new,    SO4F
+      REAL(fp)           :: SO2_eq,      N_FLUX_A,   N_FLUX_C
+      REAL(fp)           :: END_ALK,     L5A,        L5C
+      REAL(fp)           :: EQ1,         EQ2,        TITR_SO2
+      REAL(fp)           :: TITR_HNO3,   NIT_vv,     NITs_vv
+      REAL(fp)           :: NIT0,        NITS0
+      REAL(fp)           :: F_SO2,       FALK_A_SO2, FALK_C_SO2
+      REAL(fp)           :: EQ_BEG,      F_SO2_A,    F_SO2_C
+      REAL(fp)           :: ALKA,        ALKC,       TOTAL_ACID_FLUX
+      REAL(fp)           :: HNO3_EQ,     TOT_FLUX_A, TOT_FLUX_C
+      REAL(fp)           :: FALK_A_HNO3, HNO3_vv
+      REAL(fp)           :: FALK_C_HNO3, F_HNO3_A,   F_HNO3_C
+      REAL(fp)           :: EQ_1_N,      EQ_2_N,     F_HNO3
+      REAL(fp)           :: HNO3_SSA,    HNO3_SSC,   N_FLUX
+      REAL(fp)           :: HNO3_EQ_C,   L6A,        L6C   
+      REAL(fp)           :: C_FLUX_A,    C_FLUX_C,   C_FLUX
+      REAL(fp)           :: HNO3_ss,     HNO3_kg
 
       ! Arrays
-      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL(fp), POINTER    :: STT(:,:,:,:)
-      REAL(fp), POINTER    :: AD(:,:,:)
-      REAL(fp), POINTER    :: AIRVOL(:,:,:)
+      REAL(fp), POINTER  :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: AD(:,:,:)
+      REAL(fp), POINTER  :: AIRVOL(:,:,:)
 
       !=================================================================
       ! SEASALT_CHEM begins here!
@@ -2767,6 +3595,8 @@
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
 
       ! Convert SO2 [v/v] to  [eq/gridbox]
+      !tdf Note 0.064 is Mw of SO2 in kg
+      !    so RHS of SO2_eq is 2. * moles(SO2) / gridbox
       SO2_eq = ( 2.e+0_fp * SO2_cd  * AD(I,J,L) ) / 
      &         ( TCVV(IDTSO2) * 0.064e+0_fp )
       SO2_eq = MAX( SO2_eq, MINDAT )
@@ -2775,6 +3605,9 @@
 
  	 ! Convert HNO3 [v/v] to [equivalents]
          HNO3_vv = STT(I,J,L,IDTHNO3)
+
+         !tdf Note 28.97/63.0 = Mw(air)/Mw(HNO3)
+         !    so RHS of HNO3_eq is  moles(HNO3) / gridbox
          HNO3_eq = HNO3_vv * AD(I,J,L) / ( 28.97e+0_fp / 63e+0_fp ) 
      &           / 63.e-3_fp
 
@@ -2859,6 +3692,12 @@
       TOTAL_ACID_FLUX = TOT_FLUX_A + TOT_FLUX_C
 
       ! Total available alkalinity [eq]
+      !----------------------------------------------------------------------
+      ! From Alexander et al., buffering capacity (or alkalinity) of sea-salt
+      ! aerosols is equal to 0.07 equivalents per kg dry sea salt emitted
+      ! Gurciullo et al., 1999. JGR 104(D17) 21,719-21,731.
+      ! tdf
+      !----------------------------------------------------------------------
       EQ1 = ALK1 * 0.07e+0_fp
       EQ2 = ALK2 * 0.07e+0_fp
 
@@ -2998,6 +3837,13 @@
 
       ENDIF
 
+      !tdf Added loss of HNO3 on sea salt diagnostic
+      IF ( ND05 > 0 ) THEN
+         ! L(HNO3) on sea-salt aerosols [kg N/timestep]
+         AD05(I,J,L,14) = AD05(I,J,L,14) +
+     &                  ( HNO3_ss * State_Met%AD(I,J,L) / TCVV_N )
+      ENDIF
+
       ! NITS produced converted from [eq/timestep] to [v/v/timestep] 
       PNITs(I,J,L) = HNO3_SSC * 0.063 * TCVV(IDTNITS) / AD(I,J,L)
 	 
@@ -3042,6 +3888,589 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: dust_chem
+!
+! !DESCRIPTION: Subroutine DUST\_CHEM computes SO4 formed from S(IV) + O3 on
+!  dust aerosols as a function of dust alkalinity  (tdf 3/28/2K8)
+!  Based on routine SEASALT\_CHEM (bec, bmy, 4/13/05, 10/25/05)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DUST_CHEM ( I,         J,         L,
+     &                       ALK,       SO2_cd,    H2SO4_cd, 
+     &                       KTS,       KTN,       KTH, 
+     &                       SO2_gas,   H2SO4_gas, PSO4d, 
+     &                       PH2SO4d,   PNITd,     ALKA,
+     &                       Input_Opt, State_Met, State_Chm, RC )
+!
+! !USES:
+!
+      ! References to F90 modules
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE ERROR_MOD,          ONLY : IT_IS_NAN
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM,        GET_ELAPSED_SEC
+      USE TRACERID_MOD
+      USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,    GET_MONTH
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+!
+! !INPUT PARAMETERS: 
+!
+
+      INTEGER,        INTENT(IN)    :: I, J, L       ! Grid box indices
+      REAL(fp),       INTENT(IN)    :: SO2_cd        ! SO2 mixing ratio after 
+                                                     !  gas phase chemistry and
+                                                     !  dry deposition [v/v]
+      REAL(fp),       INTENT(IN)    :: H2SO4_cd      ! H2SO4 mixing ratio after
+                                                     !  gas phase chemistry and
+                                                     !  dry deposition [v/v]
+      REAL(fp),       INTENT(IN)    :: ALK(NDSTBIN)  ! Dust Alkalinity [v/v]
+      REAL(fp),       INTENT(IN)    :: KTS(NDSTBIN)  ! Rate constant for uptake
+                                                     !  of SO2 on dust [s-1]
+      REAL(fp),       INTENT(IN)    :: KTN(NDSTBIN)  ! Rate constant for uptake
+                                                     !  of HNO3 on dust [s-1]
+      REAL(fp),       INTENT(IN)    :: KTH(NDSTBIN)  ! Size- and area-weighted
+                                                     !  FRACTION for uptake of
+                                                     !  H2SO4 on dust
+      TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology State object
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt     ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm     ! Chemistry State object
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL(fp),       INTENT(OUT)   :: SO2_gas         ! SO2 mixing ratio after
+                                                       !  dust chem [v/v]
+      REAL(fp),       INTENT(OUT)   :: PSO4d(NDSTBIN)  ! Sulfate produced by
+                                                       !  S(IV)+O3 on dust in
+                                                       !  each size bin
+      REAL(fp),       INTENT(OUT)   :: H2SO4_gas       ! H2SO4 mixing ratio
+                                                       !  after dust chem [v/v]
+      REAL(fp),       INTENT(OUT)   :: PNITd (NDSTBIN) ! Nitrate produced by
+                                                       !  HNO3 uptake on dust
+                                                       !  in each size bin
+      REAL(fp),       INTENT(OUT)   :: PH2SO4d(NDSTBIN)! Sulfate produced by
+                                                       !  uptake of H2SO4 on
+                                                       !  dust in each size bin
+      REAL(fp),       INTENT(OUT)   :: ALKA(NDSTBIN)   ! Dust Alkalinity after
+                                                       !  dust chemistry [v/v]
+      INTEGER,        INTENT(OUT)   :: RC              ! Success or failure?
+!
+! !REMARKS:
+!  Chemical reactions:
+!  ============================================================================
+!  (R1) SO2 + O3 + CaCO3 => CaSO4 + O2 + CO2
+!                                                                             .
+!  (R2) 2(HNO3) + CaCO3 => Ca(NO3)2 + CO2 + H2O
+!                                                                             .
+! Added sulfate production due to H2SO4 adsorption tdf 2/13/2K9
+!  (R3) H2SO4  + CaCO3 => CaSO4 + H2O + CO2
+!
+! !REVISION HISTORY:
+!  28 Mar 2008 - T.D. Fairlie- Initial version
+!  16 Sep 2013 - M. Sulprizio- Added ProTeX headers
+!  17 Sep 2013 - M. Sulprizio- Now pass Input_Opt, State_Met, State_Chm, and RC
+!                              as arguments
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      REAL(fp), PARAMETER  :: MINDAT = 1.0e-20_fp
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL              :: IT_IS_A_FULLCHEM_SIM
+      INTEGER              :: JLOOP,       N_TRACERS
+      INTEGER              :: IBIN
+      REAL(fp)             :: EQ1
+      REAL(fp)             :: HNO3_gas
+      REAL(fp)             :: T_SO2, T_HNO3, T_H2SO4, KT1
+      REAL(fp)             :: RH2
+      REAL(fp)             :: SO2_chem,    DTCHEM
+      REAL(fp)             :: SO2_eq,      SO2_new,    SO4d
+      REAL(fp)             :: H2SO4_eq,    H2SO4_new
+      REAL(fp)             :: HNO3_eq,     HNO3_vv,    HNO3_new
+      REAL(fp)             :: HNO3_kg,     HNO3d
+      REAL(fp)             :: F_SO2_A,     F_SO2_T,    F_SO2
+      REAL(fp)             :: S_FLUX_A,    S_FLUX_T,   S_FLUX(NDSTBIN)
+      REAL(fp)             :: F_H2SO4_A,   F_H2SO4_T,  F_H2SO4
+      REAL(fp)             :: H_FLUX_A,    H_FLUX_T,   H_FLUX(NDSTBIN)
+      REAL(fp)             :: F_HNO3_A,    F_HNO3_T,   F_HNO3
+      REAL(fp)             :: N_FLUX_A,    N_FLUX_T,   N_FLUX(NDSTBIN)
+      REAL(fp)             :: T_FLUX_A,    TOT_FLUX(NDSTBIN)
+      REAL(fp)             :: FALK_SO2,    FALK_HNO3,  FALK_H2SO4
+      REAL(fp)             :: ALK_EQ_S (NDSTBIN), ALK_EQ_N (NDSTBIN)
+      REAL(fp)             :: ALK_EQ_H (NDSTBIN), TITR_H2SO4(NDSTBIN)
+      REAL(fp)             :: TITR_SO2 (NDSTBIN), TITR_HNO3(NDSTBIN)
+      REAL(fp)             :: ALK1_vv,     ALK1_kg,    ALK1_eq
+      REAL(fp)             :: ALKA_vv,     ALKA_kg,    ALKA_eq
+      REAL(fp)             :: END_ALK,     L5A,        L6A,      L7A
+      REAL(fp)             :: EQ_BEG
+      REAL(fp)             :: O3_cspec,    O3_lost
+
+      ! Arrays
+      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      REAL(fp), POINTER    :: STT(:,:,:,:)
+      REAL(fp), POINTER    :: AD(:,:,:)
+      REAL(fp), POINTER    :: AIRVOL(:,:,:)
+
+      !=================================================================
+      ! DUST_CHEM begins here!
+      !=================================================================
+
+      ! Assume success
+      RC                   = GIGC_SUCCESS
+
+      N_TRACERS            = Input_Opt%N_TRACERS
+      TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
+      IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      STT                 => State_Chm%Tracers
+      AD                  => State_Met%AD
+      AIRVOL              => State_Met%AIRVOL
+
+      ! DTCHEM is the chemistry timestep in seconds
+      DTCHEM = GET_TS_CHEM() * 60e+0_fp
+
+      ! Convert SO2 [v/v] to  [eq/gridbox]
+
+      !tdf Equivalence defined as moles of a substance * its valence
+      !tdf Note 0.064D0 is Mw of SO2 in kg
+      !    Hence, SO2_eq =  2 * moles(SO2) / gridbox
+
+      SO2_eq = ( 2.e+0_fp * SO2_cd * AD(I,J,L) ) /
+     &         ( TCVV(IDTSO2) * 0.064e+0_fp )
+      SO2_eq = MAX( SO2_eq, MINDAT )
+
+      !tdf 2/13/2K9
+      ! Convert H2SO4 [v/v] to  [eq/gridbox]
+      ! Note: H2SO4_cd [v/v] provided by H2SO4 production * DTCHEM
+
+      !tdf Equivalence defined as moles of a substance * its valence
+      !tdf Note 0.098D0 is Mw of H2SO4 in kg
+      !    Hence, H2SO4_eq =  2 * moles(H2SO4) / gridbox
+
+      H2SO4_eq = ( 2.e+0_fp * H2SO4_cd * AD(I,J,L) ) 
+     &         / ( 28.97e+0_fp / 98.e+0_fp ) / 98.e-3_fp
+      H2SO4_eq = MAX( H2SO4_eq, MINDAT )
+      !tdf 2/13/2K9
+
+      ! HNO3 mixing ratio
+      IF ( IT_IS_A_FULLCHEM_SIM ) THEN
+
+         ! Convert HNO3 [v/v] to [equivalents]
+
+         !tdf Note 28.97/63.0 = Mw(air)/Mw(HNO3)
+         !    Hence, HNO3_eq =  1. * moles(HNO3) / gridbox
+
+         HNO3_vv = STT(I,J,L,IDTHNO3)
+         HNO3_eq = HNO3_vv * AD(I,J,L) /
+     &             ( 28.97e+0_fp / 63.e+0_fp ) / 63.e-3_fp
+
+      ELSE
+
+         ! HNO3 is in v/v (from HEMCO)
+         HNO3_vv = HNO3(I,J,L)
+
+         ! Convert HNO3 [v/v] to [equivalents]
+         HNO3_eq = HNO3_vv * AD(I,J,L) / ( 28.97e+0_fp / 63e+0_fp ) 
+     &           / 63.e-3_fp
+
+      ENDIF
+
+      !--------------------------------------------------------
+      ! Compute Available SO2 fluxes to dust, S_FLUX (NDSTBIN)
+      !--------------------------------------------------------
+
+      S_FLUX_T = 0.0e+0_fp
+      F_SO2_T  = 0.0e+0_fp
+      RH2      = State_Met%RH(I,J,L) * 1.0e-2_fp
+
+      DO IBIN = 1, NDSTBIN
+
+         KT1      = 0.e+0_fp
+
+         ! Choose a threshold of 18% RH for SO2 uptake flux    tdf 4/22/08
+         IF ( RH2 >= 0.18e+0_fp ) THEN
+            KT1      = KTS(IBIN)
+         ENDIF
+
+         ! Available flux of SO2 to dust aerosols [v/v/timestep]
+         L5A      = EXP( -KT1 * DTCHEM )
+         F_SO2_A  = SO2_cd * ( 1.e+0_fp - L5A )
+         F_SO2_A  = MAX( F_SO2_A, 1.e-32_fp )
+
+         ! Available flux of SO2 converted to [eq/timestep]
+         S_FLUX_A = 2.e+0_fp * F_SO2_A * AD(I,J,L) /
+     &              TCVV(IDTSO2) / 0.064e+0_fp
+         S_FLUX (IBIN) = S_FLUX_A
+
+         ! Total available flux of SO2 [v/v/timestep]
+         F_SO2_T  = F_SO2_T + F_SO2_A
+
+         ! Total available flux of SO2 [eq/timestep]
+         S_FLUX_T = S_FLUX_T + S_FLUX_A 
+
+      END DO
+
+      !--------------------------------------------------------
+      ! Compute Available H2SO4 fluxes to dust, H_FLUX (NDSTBIN)
+      ! tdf 2/13/2K9
+      !--------------------------------------------------------
+
+      H_FLUX_T  = 0.0e+0_fp
+      F_H2SO4_T = 0.0e+0_fp
+
+      DO IBIN = 1, NDSTBIN
+
+         ! Supplied uptake rates, KTH, for H2SO4 uptake tdf 2/13/2K9
+         ! Now KTH is a fraction, so the flux is H2SO4_cd * KTH(IBIN)
+         !tdf 08/20/09
+         KT1      = KTH(IBIN)
+
+         ! Available flux of H2SO4 to dust aerosols [v/v/timestep]
+!tdf         L7A      = EXP( -KT1 * DTCHEM )
+!tdf         F_H2SO4_A  = H2SO4_cd * ( 1.e+0_fp - L7A )
+         F_H2SO4_A  = H2SO4_cd * KT1
+
+         F_H2SO4_A  = MAX( F_H2SO4_A, 1.e-32_fp )
+
+         ! Available flux of H2SO4 converted to [eq/timestep]
+         H_FLUX_A = 2.e+0_fp * F_H2SO4_A * AD(I,J,L) 
+     &            / ( 28.97e+0_fp / 98.e+0_fp ) / 0.098e+0_fp
+         H_FLUX (IBIN) = H_FLUX_A
+
+         ! Total available flux of H2SO4 [v/v/timestep]
+         F_H2SO4_T  = F_H2SO4_T + F_H2SO4_A
+
+         ! Total available flux of H2SO4 [eq/timestep]
+         H_FLUX_T = H_FLUX_T + H_FLUX_A 
+
+      END DO
+
+      !--------------------------------------------------------
+      ! Compute Available HNO3 fluxes to dust, N_FLUX (NDSTBIN)
+      !--------------------------------------------------------
+
+      F_HNO3_T = 0.0e+0_fp
+      N_FLUX_T = 0.0e+0_fp
+
+      DO IBIN = 1, NDSTBIN
+
+         ! Available flux of HNO3 to dust aerosols [v/v/timestep]
+         L6A = EXP( - KTN(IBIN) * DTCHEM )
+         F_HNO3_A = HNO3_vv * ( 1.e+0_fp - L6A )
+         F_HNO3_A = MAX( F_HNO3_A, 1.0e-32_fp )
+
+         ! Available flux of HNO3 converted to [eq/timestep]
+         N_FLUX_A = F_HNO3_A * AD(I,J,L) /
+     &              ( 28.97e+0_fp / 63.e+0_fp ) / 0.063e+0_fp
+         N_FLUX (IBIN) = N_FLUX_A
+
+         !tdf 3/28/2K8
+         ! Accumulate Total available flux of HNO3
+         F_HNO3_T = F_HNO3_T + F_HNO3_A ![v/v/timestep]
+         N_FLUX_T = N_FLUX_T + N_FLUX_A ![eq/timestep]
+
+      END DO
+
+      !------------------------------------------
+      ! Compute Total Available Acid Flux to dust
+      !------------------------------------------
+
+      DO IBIN = 1, NDSTBIN
+
+         ! Total acid flux to DUST aerosols [eq/box/timestep] by size bin
+!tdf         T_FLUX_A  = S_FLUX (IBIN) + N_FLUX (IBIN)
+         !tdf Include sulfuric acid flux                       tdf 2/13/2K9
+         T_FLUX_A  = S_FLUX (IBIN) + N_FLUX (IBIN) + H_FLUX (IBIN)
+         T_FLUX_A  = MAX( T_FLUX_A, MINDAT )
+
+         ! Total acid flux to DUST aerosols
+         TOT_FLUX (IBIN) = T_FLUX_A
+
+      END DO
+
+      !-------------------------------------
+      ! Find Total Available Alkalinity [eq]
+      !-------------------------------------
+
+      DO IBIN = 1, NDSTBIN
+
+         ALK1_vv = ALK (IBIN)
+
+         !tdf 04/08/08
+         ! Convert dust alkalinity from vv to eq., using Mw(Ca) for
+         ! Mw (alkalinity). Recall, Equvalents = moles * valency
+         ! In this case, we have taken the valency of alkalinity as 2.
+         ! Units of ALK1_eq (below) work out to be moles * 2.
+         ALK1_eq     = 2.e+0_fp * ALK1_vv * AD(I,J,L)
+     &               / ( 28.97e+0_fp / 40.e+0_fp ) / 40.e-3_fp
+
+         !---------------------------------------------------------------
+         ! DIAGNOSTIC -- leave uncommented for now (bec, bmy, 4/13/05)
+         ! Write out beginning alkalinity [eq SO4]
+         !EQ_BEG = EQ1 + EQ2
+         !IF ( ND09 > 0 ) AD09(I,J,L,1) = AD09(I,J,L,1) + EQ_BEG
+         !---------------------------------------------------------------
+
+         ! total acid flux available; exclude flux from H2SO4, since it is
+         ! not limited by dust alkalinity               ! tdf 3/02/2K9
+         T_FLUX_A = S_FLUX (IBIN) + N_FLUX (IBIN)
+         T_FLUX_A = MAX ( T_FLUX_A, MINDAT )
+
+         ! if the total acid flux available exceeds the available alkalinity
+         ! then compute the fraction of the available alkalinity for each acid
+         IF ( T_FLUX_A > ALK1_eq ) THEN
+
+            S_FLUX_A  = S_FLUX (IBIN)
+            N_FLUX_A  = N_FLUX (IBIN)
+
+            ! Fraction of alkalinity available for each acid
+            FALK_SO2  = S_FLUX_A / T_FLUX_A
+            FALK_SO2  = MAX( FALK_SO2, MINDAT )
+            FALK_HNO3 = N_FLUX_A / T_FLUX_A
+            FALK_HNO3 = MAX( FALK_HNO3, MINDAT )
+
+         ELSE
+
+            ! Fraction of alkalinity available for each acid
+            FALK_SO2  = 1.0e+0_fp
+            FALK_HNO3 = 1.0e+0_fp
+
+         ENDIF
+
+         !tdf Add sulfuric acid flux (not limited by alkalinity)    tdf 2/13/2K9
+         FALK_H2SO4 = 1.0e+0_fp
+
+         ! Alkalinity available for S(IV) --> S(VI)
+         EQ1             = ALK1_eq * FALK_SO2
+         EQ1             = MAX( EQ1, MINDAT )
+         ALK_EQ_S (IBIN) = EQ1
+
+         ! Alkalinity available for HNO3 update    tdf 04/07/08
+         EQ1             = ALK1_eq * FALK_HNO3
+         EQ1             = MAX( EQ1, MINDAT )
+         ALK_EQ_N (IBIN) = EQ1
+
+         ! H2SO4 not limited by dust alkalinity     tdf 3/02/2K9
+
+      END DO
+
+      !-------------------
+      ! Sulfate production
+      !-------------------
+
+      SO2_new       = SO2_eq
+
+      ! Don't produce more SO4 than available ALK or SO2
+      DO IBIN = 1, NDSTBIN
+
+         S_FLUX_A = S_FLUX (IBIN)
+         EQ1      = ALK_EQ_S (IBIN)
+         SO4d     = MIN( S_FLUX_A, EQ1, SO2_new )
+         SO4d     = MAX( SO4d, MINDAT )
+
+         ! Update SO2 concentration [eq/box]
+         SO2_new    = SO2_new - SO4d
+         SO2_new    = MAX( SO2_new, MINDAT )
+
+         ! Alkalinity titrated by S(IV) --> S(VI) [eq]
+         TITR_SO2 (IBIN) =  SO4d
+
+         !SO4d produced converted from [eq/timestep] to [v/v/timestep]
+         PSO4d (IBIN) = SO4d * 0.096e+0_fp * TCVV(IDTSO4) /
+     &                  AD(I,J,L) / 2.0e+0_fp
+
+         ! tdf
+!         if (I .eq. 1 .and. J .eq. 63 .and. L .eq. 6) then
+!            print *,' CHEM_SO4: SO4 production, SO2'
+!            write (6,30) IBIN, KTS(IBIN)
+!            print *,' IBIN,EQ1,S_FLUX_A,SO2_new,SO4d,PSO4d(IBIN)'
+!            write (6,31) IBIN,EQ1,S_FLUX_A,SO2_new,SO4d,PSO4d(IBIN)
+! 30         format (' IBIN, KTS(IBIN) ',I4,E12.3)
+! 31         format (' ',I4,5E12.3)
+!         endif
+
+      END DO
+
+      !Modified SO2 [eq] converted back to [v/v]
+      SO2_gas       = SO2_new * 0.064e+0_fp * TCVV(IDTSO2) /
+     &                AD(I,J,L) / 2.0e+0_fp
+      SO2_gas       = MAX( SO2_gas, MINDAT )
+
+      !------------------------------------------------
+      ! Additional sulfate production from H2SO4 uptake
+      !------------------------------------------------
+
+      H2SO4_new   = H2SO4_eq
+
+      ! Don't produce more SO4 than available H2SO4
+      ! Uptake not limited by alkalinity
+      DO IBIN = 1, NDSTBIN
+
+         H_FLUX_A = H_FLUX (IBIN)
+
+         ! H2SO4 uptake not limited by dust alkalinity, EQ1
+         SO4d     = MIN( H_FLUX_A, H2SO4_new )
+         SO4d     = MAX( SO4d, MINDAT )
+
+         ! Update H2SO4 concentration [eq/box]
+         H2SO4_new    = H2SO4_new - SO4d
+         H2SO4_new    = MAX( H2SO4_new, MINDAT )
+
+         ! Alkalinity titrated by H2SO4 uptake [eq]
+         TITR_H2SO4 (IBIN) =  SO4d
+
+         !SO4d produced converted from [eq/timestep] to [v/v/timestep]
+         PH2SO4d (IBIN) = SO4d * 0.096e+0_fp * TCVV(IDTSO4) /
+     &                    AD(I,J,L) / 2.0e+0_fp
+
+         ! tdf
+!         if (I .eq. 1 .and. J .eq. 63 .and. L .eq. 6) then
+!            print *,' CHEM_SO4: SO4 production, H2SO4'
+!            write (6,40) IBIN, KTH(IBIN)
+!            print *,' IBIN,H_FLUX_A,H2SO4_new,SO4d,PH2SO4d(IBIN)'
+!            write (6,41) IBIN,H_FLUX_A,H2SO4_new,SO4d,PH2SO4d(IBIN)
+! 40         format (' IBIN, KTH(IBIN) ',I4,E12.3)
+! 41         format (' ',I4,4E12.3)
+!         endif
+
+      END DO
+
+      !Modified H2SO4 [eq] converted back to [v/v]
+      H2SO4_gas       = H2SO4_new * 0.098e+0_fp * ( 28.97e+0_fp
+     &                  / 98.e+0_fp ) / AD(I,J,L) / 2.0e+0_fp
+      H2SO4_gas       = MAX( H2SO4_gas, MINDAT )
+
+      !-------------------------------------------------------------------
+      ! DIAGNOSTIC -- leave uncommented for now
+      !! write out in diagnostic
+      !IF ( ND09 > 0 ) AD09(I,J,L,2) = AD09(I,J,L,2) + TITR_SO2
+      !-------------------------------------------------------------------
+
+      !-------------------
+      ! Nitrate production
+      !-------------------
+
+      HNO3_new    = HNO3_eq
+
+      ! Alkalinity titrated by HNO3 in dust
+      DO IBIN = 1, NDSTBIN
+
+         N_FLUX_A = N_FLUX (IBIN)
+         EQ1      = ALK_EQ_N (IBIN)
+         HNO3d    = MIN( N_FLUX_A, EQ1, HNO3_new )
+         HNO3d    = MAX( HNO3d, MINDAT )
+
+         ! Update HNO3 concentration [eq/box]
+         HNO3_new = HNO3_new - HNO3d
+         HNO3_new = MAX( HNO3_new, MINDAT )
+
+         ! Alkalinity titrated by HNO3 [eq]
+         TITR_HNO3 (IBIN) = HNO3d
+
+         ! NIT produced converted from [eq/timestep] to [v/v/timestep]
+         PNITd (IBIN) = HNO3d * 0.063e+0_fp * TCVV(IDTNIT) / AD(I,J,L)
+
+         ! tdf
+!         if (I .eq. 1 .and. J .eq. 63 .and. L .eq. 6) then
+!            print *,' CHEM_SO4: NIT production, HNO3'
+!            write (6,50) IBIN, KTN(IBIN)
+!            print *,' IBIN,EQ1,N_FLUX_A,HNO3_new,HNO3d,PNITd(IBIN)'
+!            write (6,51) IBIN,EQ1,N_FLUX_A,HNO3_new,HNO3d,PNITd(IBIN)
+! 50         format (' IBIN, KTN(IBIN) ',I4,E12.3)
+! 51         format (' ',I4,5E12.3)
+!         endif
+
+      END DO
+
+      !----------------------------------------------------------------------
+      ! DIAGNOSTIC -- leave commented out for now
+      ! !write out alkalinity titrated by HNO3(g)
+      !IF ( ND09 > 0 ) AD09(I,J,L,3) = AD09(I,J,L,3) + TITR_HNO3
+      !----------------------------------------------------------------------
+
+      !Modified HNO3 [eq/timestep] converted back to [v/v/timestep]
+      HNO3_gas      = HNO3_new * 0.063e+0_fp * TCVV(IDTHNO3) / AD(I,J,L)
+      HNO3_gas      = MAX( HNO3_gas, MINDAT )
+
+      ! HNO3 [v/v]
+      IF ( IDTHNO3 > 0 ) THEN
+         STT(I,J,L,IDTHNO3) = MAX( HNO3_gas, MINDAT )
+      ENDIF
+
+      DO IBIN = 1, NDSTBIN
+
+         ALK1_vv     = ALK (IBIN)
+         ALK1_eq     = 2.e+0_fp * ALK1_vv * AD(I,J,L)
+     &               / ( 28.97e+0_fp / 40.e+0_fp ) / 40.e-3_fp
+         T_SO2       = TITR_SO2 (IBIN)
+         T_HNO3      = TITR_HNO3 (IBIN)
+
+         !tdf Include alkalinity titrated by sulfuric acid flux 2/13/2K9
+         T_H2SO4     = TITR_H2SO4 (IBIN)
+
+         ! tdf
+!         if (I .eq. 1 .and. J .eq. 63 .and. L .eq. 6) then
+!            print *,' CHEM_DUST: Titrate Alkalinity'
+!            print *,' IBIN,  ALK1_eq,  T_SO2,   T_HNO3,   T_H2SO4'
+!            write (6,61) IBIN,ALK1_eq,T_SO2,T_HNO3,T_H2SO4
+! 61         format (' ',I4,4E12.3)
+!         endif
+
+         ! Titrate DUST alkalinity  [eq]
+         ALKA_eq     = ALK1_eq - ( T_SO2 + T_HNO3 + T_H2SO4 )
+         ALKA_eq     = MAX( ALKA_eq, MINDAT )
+
+         ! Note:  Although we don't let the alkalinity go negative,
+         ! the uptake of H2SO4 can continue when the alkalinity is
+         ! fully titrated.                            ! tdf 3/02/2K9
+
+         ! Return remaining DUST Alkalinity [v/v]
+         ALKA_vv     = ALKA_eq / AD(I,J,L)
+     &               * ( 28.97e+0_fp / 40.e+0_fp ) * 40e-3_fp / 2.e+0_fp
+         ALKA (IBIN) = ALKA_vv
+
+      END DO
+
+      ! Update dust alkalinity
+      ! NB Hardwired for 4 size bins                    tdf 04/08/08
+
+      STT(I,J,L,IDTDAL1) = MAX( ALKA(1), MINDAT )
+      STT(I,J,L,IDTDAL2) = MAX( ALKA(2), MINDAT )
+      STT(I,J,L,IDTDAL3) = MAX( ALKA(3), MINDAT )
+      STT(I,J,L,IDTDAL4) = MAX( ALKA(4), MINDAT )
+
+      !------------------------------------------------------------------------
+      ! DIAGNOSTIC -- leave commented out for now (bec, bmy, 4/13/05)
+      !! write out ending alkalinity
+      !IF ( ND09 > 0 ) AD09(I,J,L,4) = AD09(I,J,L,4) + END_ALK
+      !------------------------------------------------------------------------
+
+      ! Free pointer
+      NULLIFY( STT )
+
+      END SUBROUTINE DUST_CHEM
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: get_hplus
 !
 ! !DESCRIPTION: Subroutine GET\_HPLUS computes H+ concentrations in cloud
@@ -3066,7 +4495,7 @@
       REAL(fp),  INTENT(IN)    :: TNH3   ! NH3 mixing ratio [v/v]
       REAL(fp),  INTENT(IN)    :: SO2    ! SO2 mixing ratio [v/v] 
       REAL(fp),  INTENT(IN)    :: T      ! Temperature [K]
-      REAL(fp),  INTENT(IN)    :: PRES   ! Pressure [atm]
+      REAL(fp),  INTENT(IN)    :: PRES   ! Dry air partial ressure [atm]
       REAL(fp),  INTENT(IN)    :: LWC    ! Cloud liquid water content [m3/m3]
       REAL(fp),  INTENT(IN)    :: iHPLUS ! Initial [H+] [M]
 !
@@ -3091,6 +4520,7 @@
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
 !  06 Jan 2015 - M. Yannetti - Set some variables to f8 that required it
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3099,21 +4529,21 @@
 !
 
       ! Water dissociation constants
-      REAL(fp),  PARAMETER     :: Kw   = 1.0e-14_fp
-      REAL(fp),  PARAMETER     :: DhrKw = -6710.e+0_fp
-      REAL(fp),  PARAMETER     :: MINVAL = 0.01
+      REAL(fp),  PARAMETER   :: Kw   = 1.0e-14_fp
+      REAL(fp),  PARAMETER   :: DhrKw = -6710.e+0_fp
+      REAL(fp),  PARAMETER   :: MINVAL = 0.01
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)                 :: D, Kw_T, ipH, newpH, nHPLUS
-      REAL(fp)                 :: kCO2p, kCO2p2
-      REAL(fp)                 :: kSO2p, kSO2p2
-      REAL(fp)                 :: kHNO3p, kNH3p, kHClp
+      REAL(fp)               :: D, Kw_T, ipH, newpH, nHPLUS
+      REAL(fp)               :: kCO2p, kCO2p2
+      REAL(fp)               :: kSO2p, kSO2p2
+      REAL(fp)               :: kHNO3p, kNH3p, kHClp
       INTEGER                :: count
-      REAL(fp)                 :: E, F, G, H, P, Q, R
-      REAL(fp)                 :: X, Y
-      REAL(fp)                 :: CRUTES( 3 ) ! Coeff and roots of cubic equation
-      REAL(f8)                 :: A, B, A1, A2, A0
+      REAL(fp)               :: E, F, G, H, Q, R
+      REAL(fp)               :: X, Y
+      REAL(fp)               :: CRUTES( 3 ) ! Coeff and roots of cubic equation
+      REAL(f8)               :: A, B, A1, A2, A0, P
       INTEGER                :: NR          ! Number of roots to cubic equation
 
       !=================================================================
@@ -3256,6 +4686,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3321,6 +4752,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3387,6 +4819,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3451,6 +4884,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3516,6 +4950,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3575,6 +5010,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3634,6 +5070,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3690,8 +5127,8 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER           :: NR
-      REAL(f8)            :: A2, A1, A0
-      REAL(fp)            :: CRUTES(3)
+      REAL(f8)          :: A2, A1, A0
+      REAL(fp)          :: CRUTES(3)
 !
 ! !REMARKS:
 ! Formulae can be found in numer. recip.  on page 145
@@ -3812,7 +5249,7 @@
 !
       REAL(fp), INTENT(IN)  :: LWC     ! Liq water content [m3/m3]=1.E-6*L [g/m3]
       REAL(fp), INTENT(IN)  :: T       ! Temperature [K]
-      REAL(fp), INTENT(IN)  :: P       ! Pressure [atm]
+      REAL(fp), INTENT(IN)  :: P       ! Dry air partial pressure [atm]
       REAL(fp), INTENT(IN)  :: SO2     ! SO2  mixing ratio [v/v]
       REAL(fp), INTENT(IN)  :: H2O2    ! H2O2 mixing ratio [v/v]
       REAL(fp), INTENT(IN)  :: O3      ! O3   mixing ratio [v/v]
@@ -3869,6 +5306,7 @@
 ! !REVISION HISTORY:
 !  (1 ) Updated by Rokjin Park (rjp, bmy, 12/12/02)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  28 Apr 2015 - E. Lundgren - Input pressure is now dry air partial pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4043,19 +5481,19 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN)  :: I, J, L
-      REAL(fp),         INTENT(IN)  :: LSTOT
-      REAL(fp),         INTENT(IN)  :: SSCvv
-      REAL(fp),         INTENT(IN)  :: aSO4
-      REAL(fp),         INTENT(IN)  :: GNH3
-      REAL(fp),         INTENT(IN)  :: SO2_sr
-      REAL(fp),         INTENT(IN)  :: H2O20
-      REAL(fp),         INTENT(IN)  :: GNO3
+      REAL(fp),       INTENT(IN)  :: LSTOT
+      REAL(fp),       INTENT(IN)  :: SSCvv
+      REAL(fp),       INTENT(IN)  :: aSO4
+      REAL(fp),       INTENT(IN)  :: GNH3
+      REAL(fp),       INTENT(IN)  :: SO2_sr
+      REAL(fp),       INTENT(IN)  :: H2O20
+      REAL(fp),       INTENT(IN)  :: GNO3
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(OUT) :: SR ! Sulfate production rate
+      REAL(fp),       INTENT(OUT) :: SR ! Sulfate production rate
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
@@ -4239,16 +5677,10 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTSO4
       USE TRACERID_MOD,       ONLY : IDTSO4s
@@ -4257,6 +5689,8 @@
       USE TRACERID_MOD,       ONLY : IDTLET
       USE TRACERID_MOD,       ONLY : IDTSO4aq
       USE TRACERID_MOD,       ONLY : IDTNH4aq
+      USE TRACERID_MOD,       ONLY : IDTSO4d1, IDTSO4d2
+      USE TRACERID_MOD,       ONLY : IDTSO4d3, IDTSO4d4
 !
 ! !INPUT PARAMETERS:
 !
@@ -4273,13 +5707,9 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !                                                                           
 ! !REMARKS:
-!  Reaction List (by Mian Chin, chin@rondo.gsfc.nasa.gov)                  
-!  ============================================================================
-!  The Only production is from SO2 oxidation (save in CHEM_SO2), and the only  
-!  loss is dry depsition here.  Wet deposition will be treated in "wetdep.f".
-!                                                                             .
-!  SO4 = SO4_0 * exp(-kt) + PSO4_SO2/kt * (1.-exp(-kt))                    
-!    where k = dry deposition.                                             
+!  The only production is from SO2 oxidation (save in CHEM_SO2).  Dry
+!  deposition is now handled in mixing_mod.F90, so we can must add the
+!  production from SO2 into the SO4 tracers.
 !                                                                             .
 ! !REVISION HISTORY:
 !  (1 ) Now reference AD from "dao_mod.f".  Added parallel DO-loops.  
@@ -4315,28 +5745,34 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
 !                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  12 Sep 2013 - M. Sulprizio- Now include references to dust-sulfate chemistry
+!                              (tdf 04/07/08)
+!  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
+!  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
+!                              so we can greatly collapse this code
+!  23 Sep 2015 - R. Yantosca - Remove references to DRYSO4 and DRYSO4s
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL               :: LNLPBL, LCRYST, LSSALT
-      INTEGER               :: N_TRACERS
-      INTEGER               :: I,      J,      L,        N,     N_ND44
-      REAL(fp)                :: AS,     AS0,    AHS,      AHS0,  LET   
-      REAL(fp)                :: LET0,   SO4,    SO40,     SO4aq, SO4aq0
-      REAL(fp)                :: SO4s,   SO40s,  RKT,      RKTs,  E_RKT
-      REAL(fp)                :: E_RKTs, DTCHEM, AREA_CM2, FLUX
+      LOGICAL           :: LDSTUP
+      INTEGER           :: I,   J,    L,    N
+      INTEGER           :: IBIN  ! tdf
+      REAL(fp)          :: SO4, SO40, SO4s, SO40s 
+      REAL(fp)          :: PSO4d, SO40_dust ! tdf 04/07/08
 
       ! Arrays
-      REAL(fp)                :: TCVV  (Input_Opt%N_TRACERS)
-      REAL(fp)                :: XNUMOL(Input_Opt%N_TRACERS)
-      REAL(fp)                :: T44(IIPAR,JJPAR,LLPAR,6) 
+      REAL(fp)          :: SO4d (NDSTBIN)  ! tdf 04/07/08
+      REAL(fp)          :: SO40d(NDSTBIN)  ! tdf 04/07/08
+
+      ! Following are index arrays to hold pointers to STT
+      ! tdf 04/07/08
+      INTEGER           :: IDTRC(NDSTBIN)
 
       ! Pointers
-      REAL(fp), POINTER       :: STT(:,:,:,:)
-      REAL(fp), POINTER       :: AD(:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHEM_SO4 begins here!
@@ -4344,83 +5780,34 @@
 
       ! Return if tracers are not defined
       IF ( IDTSO4 == 0 .or. IDTSO4s == 0 ) RETURN
-      IF ( DRYSO4 == 0 .or. DRYSO4s == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LCRYST    = Input_Opt%LCRYST
-      LNLPBL    = Input_Opt%LNLPBL
-      LSSALT    = Input_Opt%LSSALT
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV  (1:N_TRACERS) 
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+      LDSTUP    = Input_Opt%LDSTUP
 
       ! Initialize pointers
       STT      => State_Chm%Tracers
-      AD       => State_Met%AD
-
-      ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
-
-      ! Number of drydep tracers to save
-      N_ND44    = 2
-
-!------------------------------------------------------------------------------
-!%%% Currently under development (rjp, bmy, 4/13/05)
-!%%%       ! Number of drydep tracers to save
-!%%%       IF ( LCRYST ) THEN 
-!%%%          N_ND44 = 6
-!%%%       ELSE
-!%%%          N_ND44 = 2
-!%%%       ENDIF
-!------------------------------------------------------------------------------
-
-      ! Zero T44 array
-      IF ( ND44 > 0 ) THEN
-         T44 = 0e+0_fp
-      ENDIF
 
       ! Loop over chemistry grid boxes
-!------------------------------------------------------------------------------
-!%%% Currently under development (rjp, bmy, 3/15/05)
-!%%% $OMP PARALLEL DO
-!%%% $OMP+DEFAULT( SHARED )
-!%%% $OMP+PRIVATE( I,     J,      L,    AREA_CM2, RKT,   RKTs   )
-!%%% $OMP+PRIVATE( E_RKT, E_RKTs, FLUX, SO4,      SO4s,  SO4aq  )
-!%%% $OMP+PRIVATE( AS,    AHS,    LET,  SO40,     SO40s, SO4aq0 )
-!%%% $OMP+PRIVATE( AS0,   AHS0,   LET0                          )
-!%%% $OMP+SCHEDULE( DYNAMIC ) 
-!------------------------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,      J,    L,   AREA_CM2, RKT,   RKTs, E_RKT )
-!$OMP+PRIVATE( E_RKTs, FLUX, SO4, SO4s,     SO40,  SO40s       )
+!$OMP+PRIVATE( I, J, L, SO4, SO4s, SO40, SO40s )
+!$OMP+PRIVATE( SO4d, SO40d, SO40_dust          ) ! tdf 04/07/08
+!$OMP+PRIVATE( IBIN, PSO4d, IDTRC              )
 !$OMP+SCHEDULE( DYNAMIC ) 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Initialize for safety's sake
-         AREA_CM2 = 0e+0_fp
-         RKT      = 0e+0_fp
-         RKTs     = 0e+0_fp
-         E_RKT    = 0e+0_fp
-         E_RKTs   = 0e+0_fp
-         FLUX     = 0e+0_fp
-         SO4      = 0e+0_fp
-         SO4s     = 0e+0_fp
-!------------------------------------------------------------------------------
-!%%% Currently under development (rjp, bmy, 3/15/05)
-!%%%         SO4aq    = 0e+0_fp
-!%%%         AS       = 0e+0_fp
-!%%%         AHS      = 0e+0_fp
-!%%%         LET      = 0e+0_fp
-!------------------------------------------------------------------------------
-
          ! Skip non-chemistry boxes
          IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+
+         ! Initialize for safety's sake
+         SO4  = 0e+0_fp
+         SO4s = 0e+0_fp
+         SO4d = 0e+0_fp  ! tdf 04/07/08
 
          !==============================================================
          ! Initial concentrations before chemistry
@@ -4432,141 +5819,54 @@
          ! SO4 within coarse seasalt aerosol [v/v]
          SO40s = STT(I,J,L,IDTSO4s)
 
-!------------------------------------------------------------------------------
-!%%% Currently under development (rjp, bmy, 3/15/05)
-!%%%          ! SO4aq, AS, LET, AHS (if necessary) [v/v]
-!%%%          IF ( LCRYST ) THEN
-!%%%             SO4aq0 = STT(I,J,L,IDTSO4aq)
-!%%%             AS0    = STT(I,J,L,IDTAS)
-!%%%             AHS0   = STT(I,J,L,IDTAHS)
-!%%%             LET0   = STT(I,J,L,IDTLET)          
-!%%%          ENDIF
-!------------------------------------------------------------------------------
-
-         !==============================================================
-         ! SO4 chemistry: 
-         !
-         ! (CASE 1) SO4 production from SO2 and loss by drydep
-         !          --> see equation in header notes above
-         !
-         ! (CASE 2) SO4 production from SO2 with no SO4 loss by drydep
-         !==============================================================
-
-         ! SO4 drydep frequency [1/s].  Also accounts for the fraction
-         ! of each vertical level that is located below the PBL top
-         RKT  = DEPSAV(I,J,DRYSO4)  * GET_FRAC_UNDER_PBLTOP( I, J, L )
-
-         ! Add option for non-local PBL (Lin, 03/31/09) 
-         IF ( LNLPBL ) RKT = 0.e+0_fp
-
-         ! RKT > 0 denotes that we have SO4 drydep occurring
-         IF ( RKT > 0e+0_fp ) THEN
-            
-            !-----------------------------------------------------------
-            ! CASE 1: SO4 production from SO2 and SO4 loss by drydep
-            !-----------------------------------------------------------
-
-            ! Fraction of SO4 lost to drydep [unitless]
-            RKT   = RKT * DTCHEM
-            
-            ! Pre-compute exponential term for use below
-            E_RKT = EXP( -RKT ) 
-
-            ! Updated SO4 (gas phase) [v/v]
-            SO4   = ( SO40                *          E_RKT ) + 
-     &              ( PSO4_SO2(I,J,L)/RKT * ( 1.e+0_fp - E_RKT ) )
-
-!------------------------------------------------------------------------------
-!%%% Currently under development (rjp, bmy, 3/15/05)
-!%%%             IF ( LCRYST ) THEN
-!%%% 
-!%%%                ! Updated SO4 (aqueous phase) [v/v]
-!%%%                SO4aq = ( SO4aq0              *          E_RKT   ) + 
-!%%%      &                 ( PSO4_SO2(I,J,L)/RKT * ( 1.e+0_fp - E_RKT ) ) 
-!%%% 
-!%%%                ! Updated AS, AHS, LET [v/v] 
-!%%%                AS    = AS0  * E_RKT
-!%%%                AHS   = AHS0 * E_RKT
-!%%%                LET   = LET0 * E_RKT
-!%%% 
-!%%%             ENDIF
-!------------------------------------------------------------------------------
-
-         ELSE
-
-            !-----------------------------------------------------------
-            ! CASE 2: Production of SO4 from SO2; no SO4 drydep loss
-            !-----------------------------------------------------------
-
-!-----------------------------------------------------------------------------
-!%%% Currently under development (rjp, bmy, 3/15/05)
-!%%%            IF ( LCRYST ) THEN
-!%%%
-!%%%               ! SO4 production from SO2 (both gas-phase & aqueous)
-!%%%               SO4   = SO40   + ( 2e+0_fp * PSO4_SO2(I,J,L) )
-!%%%               SO4aq = SO4aq0 + ( 2e+0_fp * PSO4_SO2(I,J,L) )
-!%%%
-!%%%               ! No production from AS, AHS, LET
-!%%%               AS    = AS0
-!%%%               AHS   = AHS0
-!%%%               LET   = LET0
-!%%%
-!%%%            ELSE
-!%%%
-!%%%               ! SO4 production from SO2 [v/v/timestep]
-!%%%               SO4 = SO40 + PSO4_SO2(I,J,L)
-!%%%
-!%%%            ENDIF
-!-----------------------------------------------------------------------------
-
-               ! SO4 production from SO2 [v/v/timestep]
-               SO4 = SO40 + PSO4_SO2(I,J,L)
-
+         IF ( LDSTUP ) THEN
+            ! Initial Sulfate w/in dust bins [v/v]   ! tdf 04/07/08
+            SO40d(1) = STT(I,J,L,IDTSO4d1)
+            SO40d(2) = STT(I,J,L,IDTSO4d2)
+            SO40d(3) = STT(I,J,L,IDTSO4d3)
+            SO40d(4) = STT(I,J,L,IDTSO4d4)
          ENDIF
+
+         !==============================================================
+         ! SO4 chemistry
+         !==============================================================
+
+         ! SO4 production from SO2 [v/v/timestep]
+         SO4 = SO40 + PSO4_SO2(I,J,L)
 
          !==============================================================
          ! SO4s (SO4 w/in seasalt aerosol) chemistry: 
-         !
-         ! (CASE 3) SO4s production from seasalt and loss by drydep
-         !          --> see equation in header notes above
-         !
-         ! (CASE 4) SO4s prod from seasalt w/ no SO4s loss by drydep
          !==============================================================
 
-         ! SO4s drydep frequency [1/s].   Also accounts for the fraction
-         ! of each vertical level that is located below the PBL top
-         RKTs = DEPSAV(I,J,DRYSO4s) * GET_FRAC_UNDER_PBLTOP( I, J, L )
+         ! SO4 production from SO2 [v/v/timestep]
+         SO4s = SO40s + PSO4_ss(I,J,L)
 
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF ( LNLPBL ) RKTs = 0.e+0_fp
-        
-         ! RKTs > 0 indicates that SO4s drydep occurs
-         IF ( RKTs > 0e+0_fp ) THEN
-            
-            !-----------------------------------------------------------
-            ! CASE 3: SO4s prod from seasalt SO4s loss by drydep
-            !-----------------------------------------------------------
+         !tdf
+         IF ( LDSTUP ) THEN
 
-            ! Fraction of SO4s lost to drydep [unitless]
-            RKTs   = RKTs * DTCHEM
-            
-            ! Pre-compute exponential term for use below
-            E_RKTs = EXP( -RKTs ) 
-               
-            ! Updated SO4 (gas phase) [v/v]
-            SO4s   = ( SO40s               *          E_RKTs ) + 
-     &               ( PSO4_ss(I,J,L)/RKTs * ( 1.e+0_fp - E_RKTs ) )
+            !==============================================================
+            ! SO4d (SO4 w/in dust aerosol) chemistry:     tdf 04/07/08
+            !==============================================================
 
-         ELSE
+            IDTRC(1) = IDTSO4d1
+            IDTRC(2) = IDTSO4d2
+            IDTRC(3) = IDTSO4d3
+            IDTRC(4) = IDTSO4d4
 
-            !--------------------------------------------------------
-            ! CASE 4: Prod of SO4s from seasalt; no SO4s drydep loss
-            !--------------------------------------------------------
+            ! tdf Loop over size bins
+            DO IBIN = 1, NDSTBIN
 
-            ! SO4 production from SO2 [v/v/timestep]
-            SO4s = SO40s + PSO4_ss(I,J,L)
+               ! Initial amount of sulfate on dust size bin IBIN
+               SO40_dust = SO40d(IBIN)
 
-         ENDIF
+               ! Production of sulfate on dust [v/v/timestep]
+               PSO4d = PSO4_dust(I,J,L,IBIN)
+
+               ! SO4 production from SO2 [v/v/timestep]
+               SO4d(IBIN) = SO40_dust + PSO4d
+
+            ENDDO
+         ENDIF    !tdf end of if ( LDSTUP) condition
 
          !==============================================================
          ! Final concentrations after chemistry
@@ -4580,122 +5880,22 @@
          STT(I,J,L,IDTSO4)  = SO4
          STT(I,J,L,IDTSO4s) = SO4s
 
-!-----------------------------------------------------------------------------
-!%%% Currently under development (bmy, 3/15/05)
-!%%%          ! SO4aq, AS, AHS, LET (if necessary)
-!%%%          IF ( LCRYST ) THEN
-!%%% 
-!%%%             ! Error check
-!%%%             IF ( SO4aq < SMALLNUM ) SO4aq = 0e+0_fp
-!%%%             IF ( AS    < SMALLNUM ) AS    = 0e+0_fp
-!%%%             IF ( AHS   < SMALLNUM ) AHS   = 0e+0_fp
-!%%%             IF ( LET   < SMALLNUM ) LET   = 0e+0_fp
-!%%% 
-!%%%             ! Final SO4aq, AS, AHS, LET [v/v]
-!%%%             STT(I,J,L,IDTSO4aq) = SO4aq
-!%%%             STT(I,J,L,IDTAS)    = AS
-!%%%             STT(I,J,L,IDTAHS)   = AHS
-!%%%             STT(I,J,L,IDTLET)   = LET
-!%%% 
-!%%%          ENDIF
-!-----------------------------------------------------------------------------
+         !tdf
+         IF ( LDSTUP ) THEN
+            DO IBIN = 1, NDSTBIN
+               SO40_dust = SO4d(IBIN)
+               IF ( SO40_dust < SMALLNUM ) SO40_dust = 0e+0_fp
+               STT(I,J,L,IDTRC(IBIN)) = SO40_dust ! dust sulfate
+            ENDDO
+         ENDIF    !tdf end of if ( LDSTUP) condition
 
-         !==============================================================
-         ! ND44 Diagnostic: Drydep flux of SO4 and the crystalline & 
-         ! aqueous tracers (AS, AHS, LET, SO4aq) in [molec/cm2/s]
-         !==============================================================
-         IF ( ND44 > 0 ) THEN
-
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, L )
-
-            ! SO4 drydep flux [molec/cm2/s]
-            FLUX = SO40  - SO4 + PSO4_SO2(I,J,L) 
-            FLUX = FLUX  * AD(I,J,L) / TCVV(IDTSO4)
-            FLUX = FLUX  * XNUMOL(IDTSO4)      / AREA_CM2 / DTCHEM
-            T44(I,J,L,1) = T44(I,J,L,1) + FLUX
-
-            ! SO4s drydep flux [molec/cm2/s]
-            FLUX = SO40s - SO4s + PSO4_ss(I,J,L) 
-            FLUX = FLUX  * AD(I,J,L) / TCVV(IDTSO4s)
-            FLUX = FLUX  * XNUMOL(IDTSO4s)     / AREA_CM2 / DTCHEM
-            T44(I,J,L,2) = T44(I,J,L,2) + FLUX
-
-!------------------------------------------------------------------------------
-!%%% Currently under development (rjp, bmy, 3/15/05)
-!%%%             ! SO4aq, AS, AHS, LET drydep fluxes (if necessary)
-!%%%             IF ( LCRYST ) THEN
-!%%% 
-!%%%                ! SO4aq drydep flux [molec/cm2/s]
-!%%%                FLUX = SO4aq0 - SO4aq + PSO4_SO2(I,J,L)     
-!%%%                FLUX = FLUX  * AD(I,J,L) / TCVV(IDTSO4aq)
-!%%%                FLUX = FLUX  * XNUMOL(IDTSO4aq)    / AREA_CM2 / DTCHEM
-!%%%                T44(I,J,L,3) = T44(I,J,L,3) + FLUX
-!%%% 
-!%%%                ! AS drydep flux [molec/cm2/s]
-!%%%                FLUX = AS0   - AS
-!%%%                FLUX = FLUX  * AD(I,J,L) / TCVV(IDTAS)
-!%%%                FLUX = FLUX  * XNUMOL(IDTAS)       / AREA_CM2 / DTCHEM
-!%%%                T44(I,J,L,4) = T44(I,J,L,4) + FLUX
-!%%% 
-!%%%                ! AHS drydep flux [molec/cm2/s]
-!%%%                FLUX = AHS0  - AHS
-!%%%                FLUX = FLUX  * AD(I,J,L) / TCVV(IDTAHS)
-!%%%                FLUX = FLUX  * XNUMOL(IDTAHS)      / AREA_CM2 / DTCHEM
-!%%%                T44(I,J,L,5) = T44(I,J,L,5) + FLUX
-!%%% 
-!%%%                ! LET drydep flux [molec/cm2/s]
-!%%%                FLUX = LET0  - LET
-!%%%                FLUX = FLUX  * AD(I,J,L) / TCVV(IDTLET)
-!%%%                FLUX = FLUX  * XNUMOL(IDTLET)      / AREA_CM2 / DTCHEM
-!%%%                T44(I,J,L,6) = T44(I,J,L,6) + FLUX
-!%%% 
-!%%%             ENDIF
-!------------------------------------------------------------------------------
-         ENDIF
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-#if !defined( NO_BPCH )
-      !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that we get the same results w/ sp or mp 
-      !===============================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-
-            ! Sum SO4, SO4s drydep fluxes in the vertical [molec/cm2/s]
-            AD44(I,J,DRYSO4, 1) = AD44(I,J,DRYSO4, 1) + T44(I,J,L,1)
-            AD44(I,J,DRYSO4s,1) = AD44(I,J,DRYSO4s,1) + T44(I,J,L,2)
-
-!------------------------------------------------------------------------------
-!%%% Currently under development (rjp, bmy, 3/15/05)
-!%%%             ! Sum SO4aq, AS, AHS, LET drydep fluxes (if necessary)
-!%%%             IF ( LCRYST ) THEN
-!%%%                AD44(I,J,DRYSO4aq,1) = AD44(I,J,DRYSO4aq,1)+T44(I,J,L,3)
-!%%%                AD44(I,J,DRYAS,   1) = AD44(I,J,DRYAS,   1)+T44(I,J,L,4)
-!%%%                AD44(I,J,DRYAHS,  1) = AD44(I,J,DRYAHS,  1)+T44(I,J,L,5)
-!%%%                AD44(I,J,DRYLET,  1) = AD44(I,J,DRYLET,  1)+T44(I,J,L,6)
-!%%%             ENDIF
-!------------------------------------------------------------------------------
-
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-#endif
 
       ! Free pointers
       NULLIFY( STT )
-      NULLIFY( AD  )
 
       END SUBROUTINE CHEM_SO4
 !EOC
@@ -4722,13 +5922,23 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
-      USE DAO_MOD,            ONLY : CONVERT_UNITS 
+      USE ERROR_MOD
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptINput 
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN
+      USE UNITCONV_MOD
+! JKodros (6/2/15 - Allow for different TOMAS bin lengths)
+# if   defined( TOMAS12 )
+      USE TRACERID_MOD,       ONLY : IDTSO4, IDTNK5
+# elif defined( TOMAS15 )
+      USE TRACERID_MOD,       ONLY : IDTSO4, IDTNK8
+# elif defined( TOMAS30 )
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTNK10
+# else
+      USE TRACERID_MOD,       ONLY : IDTSO4, IDTNK20
+# endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -4759,39 +5969,39 @@
 !  31 May 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm
 !                              and RC arguments
 !  31 May 2013 - R. Yantosca - Now pass State_Chm to TOMAS routines
+!  30 Sep 2015 - E. Lundgren - Now use UNITCONV_MOD conversion routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L
-      integer :: k, binact1, binact2
-      INTEGER :: KMIN
-      REAL(fp)  :: SO4OXID
+      INTEGER           :: I, J, L
+      integer           :: k, binact1, binact2
+      INTEGER           :: KMIN
+      REAL(fp)          :: SO4OXID
 
       ! For values from Input_Opt
-      INTEGER :: N_TRACERS
-      REAL(fp)  :: TCVV(Input_Opt%N_TRACERS)
-      REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
-
-      ! Pointers
-      REAL(fp), POINTER :: AD(:,:,:)
+      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! CHEM_SO4_AQ begins here!
       !=================================================================
  
-      ! Copy values from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+      ! Assume success
+      RC  = GIGC_SUCCESS
 
-      ! Initialize pointers
-      AD     => State_Met%AD
+      ! Copy values from Input_Opt
+      XNUMOL    = Input_Opt%XNUMOL(1:Input_Opt%N_TRACERS)
 
       ! Convert STT from [v/v] -> [kg] 
-      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, State_Chm%Tracers )
+      CALL Convert_VVDry_to_Kg( am_I_Root, Input_Opt,
+     &                          State_Met, State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'CHEM_SO4_AQ in sulfate_mod.F')
+         RETURN
+      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -4805,21 +6015,41 @@
          ! Skip non-chemistry boxes
          IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
-         SO4OXID = PSO4_SO2AQ(I,J,L) * AD(I,J,L)/ TCVV(IDTSO4)
+         SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L)
+     &               / Input_Opt%TCVV(IDTSO4)
 
          IF ( SO4OXID > 0e+0_fp ) THEN
-
-            ! The activating bin of the composition of BIN10
-            ! is, in most any case, the same as activating bin of other bins.
+! JKodros (6/2/15 - Set activating bin based on which TOMAS bin length being used)
+# if   defined( TOMAS12 )
             CALL GETACTBIN
-     &         ( I, J, L, IDTNK10, .TRUE. , BINACT1, State_Chm )
+     &         ( I, J, L, IDTNK5, .TRUE. , BINACT1, State_Chm, RC )
 
             CALL GETACTBIN
-     &         ( I, J, L, IDTNK10, .FALSE., BINACT2, State_Chm )
+     &         ( I, J, L, IDTNK5, .FALSE., BINACT2, State_Chm, RC )
+# elif defined ( TOMAS15 )
+            CALL GETACTBIN
+     &         ( I, J, L, IDTNK8, .TRUE. , BINACT1, State_Chm, RC )
+
+            CALL GETACTBIN
+     &         ( I, J, L, IDTNK8, .FALSE., BINACT2, State_Chm, RC )
+# elif defined ( TOMAS30 )
+            CALL GETACTBIN
+     &         ( I, J, L, IDTNK10, .TRUE. , BINACT1, State_Chm, RC )
+
+            CALL GETACTBIN
+     &         ( I, J, L, IDTNK10, .FALSE., BINACT2, State_Chm, RC )
+# else
+            CALL GETACTBIN
+     &         ( I, J, L, IDTNK20, .TRUE. , BINACT1, State_Chm, RC )
+
+            CALL GETACTBIN
+     &         ( I, J, L, IDTNK20, .FALSE., BINACT2, State_Chm, RC )
+# endif
 
             KMIN = ( BINACT1 + BINACT2 )/ 2.
 
-            CALL AQOXID( SO4OXID, KMIN, I, J, L, State_Met, State_Chm )
+            CALL AQOXID( am_I_Root, SO4OXID, KMIN, I, J, L, Input_Opt,
+     &                   State_Met, State_Chm, RC )
          ENDIF
       ENDDO
       ENDDO
@@ -4827,11 +6057,14 @@
 !$OMP END PARALLEL DO
 
        ! Convert STT from [kg] -> [v/v] 
-      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, State_Chm%Tracers )
+      CALL Convert_Kg_to_VVDry( am_I_Root, Input_Opt,
+     &                          State_Met, State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'CHEM_SO4_AQ in sulfate_mod.F')
+         RETURN
+      ENDIF
       
-      ! Free pointers
-      NULLIFY( AD )
-
       END SUBROUTINE CHEM_SO4_AQ
 !EOC
 #endif
@@ -4858,17 +6091,10 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTMSA
 !
@@ -4887,13 +6113,8 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  Reaction List (by Mian Chin, chin@rondo.gsfc.nasa.gov)                  
-!  ============================================================================
-!  The Only production is from DMS oxidation (saved in CHEM_DMS), and the only
-!  loss is dry depsition here.  Wet deposition will be treated in "wetdep.f".
-!                                                                             .
-!  MSA = MSA_0 * exp(-dt) + PMSA_DMS/kt * (1.-exp(-kt))                    
-!    where k = dry deposition.                                             
+!  The only production is from DMS oxidation (saved in CHEM_DMS).
+!  Dry deposition is now treaded in mixing_mod.F90.
 !        
 ! !REVISION HISTORY:
 !  (1 ) Now reference AD from "dao_mod.f".  Added parallel DO-loops.  
@@ -4927,6 +6148,10 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
 !                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
+!  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
+!                              so we can greatly collapse this code
+!  23 Sep 2015 - R. Yantosca - Remove references to obsolete DRYMSA flag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4934,52 +6159,28 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL               :: LNLPBL
-      INTEGER               :: N_TRACERS
-      INTEGER               :: I,      J,    L,        PBL_MAX
-      REAL(fp)                :: DTCHEM, MSA0, MSA,      RK       
-      REAL(fp)                :: RKT,    FLUX, AREA_CM2, F_UNDER_TOP
-
-      ! Arrays
-      REAL(fp)                :: ND44_TMP(IIPAR,JJPAR,LLPAR)
-      REAL(fp)                :: TCVV  (Input_Opt%N_TRACERS)
-      REAL(fp)                :: XNUMOL(Input_Opt%N_TRACERS)
+      INTEGER           :: I,    J,    L
+      REAL(fp)          :: MSA0, MSA
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHEM_MSA begins here!
       !=================================================================
-      IF ( IDTMSA == 0 .or. DRYMSA == 0 ) RETURN
+      IF ( IDTMSA == 0 ) RETURN
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC  = GIGC_SUCCESS
 
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-      LNLPBL    = Input_Opt%LNLPBL
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-
-      ! DTCHEM is the chemistry interval in seconds
-      DTCHEM  = GET_TS_CHEM() * 60e+0_fp 
-
-      ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) THEN
-         ND44_TMP = 0e+0_fp
-      ENDIF
 
       ! Loop over chemistry grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, F_UNDER_TOP, MSA0, RKT, MSA, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I, J, L, MSA0, MSA )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -4988,578 +6189,25 @@
          ! Skip non-chemistry boxes
          IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE      
 
-         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
-         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
-
          ! Initial MSA [v/v]
          MSA0 = STT(I,J,L,IDTMSA) 
 
-         ! MSA drydep frequency [1/s].  Also accounts for the fraction
-         ! of each grid box (I,J,L) that is located beneath the PBL top
-         RKT = DEPSAV(I,J,DRYMSA) * F_UNDER_TOP
-
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF ( LNLPBL ) RKT = 0.e+0_fp
-         
-         ! RKT > 0 denotes that we have drydep occurring
-         IF ( RKT > 0.e+0_fp ) THEN
-
-            ! Fraction of MSA lost to drydep [unitless]
-            RKT = RKT * DTCHEM
-            
-            ! Modified MSA concentration 
-            MSA = ( MSA0 * EXP( -RKT )                        ) +
-     &            ( PMSA_DMS(I,J,L)/RKT * ( 1e+0_fp - EXP( -RKT ) ) )
-
-         ELSE
-            
-            ! MSA production from DMS [v/v/timestep]
-            MSA = MSA0 + PMSA_DMS(I,J,L)
-
-         ENDIF
+         ! MSA production from DMS [v/v/timestep]
+         MSA = MSA0 + PMSA_DMS(I,J,L)
 
          ! Final MSA [v/v]
          IF ( MSA < SMALLNUM ) MSA = 0e+0_fp
          STT(I,J,L,IDTMSA) = MSA
 
-         !===========================================================
-         ! ND44 Diagnostic: Drydep flux of MSA [molec/cm2/s]
-         !===========================================================
-         IF ( ND44 > 0 .and. RKT > 0e+0_fp ) THEN
-                     
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, L )
-
-            ! Convert [v/v/timestep] to [molec/cm2/s]
-            FLUX = MSA0 - MSA + PMSA_DMS(I,J,L)                    
-            FLUX = FLUX * State_Met%AD(I,J,L) / TCVV(IDTMSA)            
-            FLUX = FLUX * XNUMOL(IDTMSA) / AREA_CM2 / DTCHEM    
-
-            ! Store dryd flux in ND44_TMP as a placeholder
-            ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-         ENDIF
-      
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-#if !defined( NO_BPCH )
-      !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !===============================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-#endif
 
       ! Free pointer
       NULLIFY( STT )
 
       END SUBROUTINE CHEM_MSA
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: chem_nh3
-!
-! !DESCRIPTION:  Subroutine CHEM\_NH3 removes NH3 from the surface via dry
-!  deposition. (rjp, bdf, bmy, 1/2/02, 10/25/05)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CHEM_NH3( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, RC )
-!
-! !USES:
-!
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTNH3
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!                                                                          
-! !REMARKS:
-!  If you are using the non-local PBL mixing scheme (VDIFF), then routine
-!  SOIL_DRYDEP and the ND44 diagnostic updating will be done there.  
-!                                                                             .
-!  If you are using the full TURBDAY PBL mixing scheme, then we have to 
-!  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
-!                                                                             .
-!  Reaction List:
-!  ============================================================================
-!  (1 ) NH3 = NH3_0 * EXP( -dt )  where d = dry deposition rate [s-1]
-!        
-! !REVISION HISTORY:
-!  (1 ) Now reference AD from "dao_mod.f".  Added parallel DO-loops.  
-!        Updated comments, cosmetic changes. (rjp, bmy, bdf, 9/16/02)
-!  (2 ) Now replace DXYP(J+J0)*1d4 with routine GET_AREA_CM2 from "grid_mod.f"
-!        Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
-!  (3 ) Now reference PBLFRAC from "drydep_mod.f".  Now apply dry deposition
-!        to the entire PBL.  Added L and FREQ variables.  Recode to avoid 
-!        underflow from the EXP() function. (rjp, bmy, 8/1/03) 
-!  (4 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
-!        sum into AD44 array.  This preents numerical differences when using
-!        multiple processors. (bmy, 3/24/04)    
-!  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
-!  (6 ) Now references STT & TCVV from "tracer_mod.f" Also remove reference to
-!        CMN, it's not needed(bmy, 7/20/04)
-!  (7 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
-!        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
-!        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
-!  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
-!  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
-!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
-!  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
-!  13 Mar 2013 - R. Yantosca - Bug fix: make sure we pass values to the
-!                              SOIL_DRYDEP routine even when ND44 is off
-!                              (this happens when LNLPBL = F)
-!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
-!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
-!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      LOGICAL :: LNLPBL, LSOILNOX
-      INTEGER :: I,      J,        L,    N_TRACERS
-      REAL(fp)  :: DTCHEM, NH30,     NH3
-      REAL(fp)  :: FREQ,   AREA_CM2, FLUX, F_UNDER_TOP
-
-      ! Arrays
-      REAL(fp)  :: DRYD_FLX(IIPAR,JJPAR,LLPAR)
-      REAL(fp)  :: TCVV  (Input_Opt%N_TRACERS)
-      REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
-
-      !=================================================================
-      ! CHEM_NH3 begins here!
-      !=================================================================
-      IF ( IDTNH3 == 0 .or. DRYNH3 == 0 ) RETURN
-
-      ! Assume success
-      RC        = GIGC_SUCCESS
-
-      ! Copy fields from INPUT_OPT to local variables for use below
-      LNLPBL    = Input_Opt%LNLPBL
-      LSOILNOX  = Input_Opt%LSOILNOX
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
-
-      ! DTCHEM is the chemistry interval in seconds
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
-
-      ! Zero DRYD_FLX array.  This will store drydep values even if 
-      ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
-      DRYD_FLX  = 0e+0_fp
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, F_UNDER_TOP, FREQ, NH30, NH3, AREA_CM2, FLUX )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
-         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
-         
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( F_UNDER_TOP > 0e+0_fp ) THEN
-
-            ! NH3 drydep frequency [1/s].  Also accounts for the fraction
-            ! of each grid box (I,J,L) that is located beneath the PBL top
-            FREQ = DEPSAV(I,J,DRYNH3) * F_UNDER_TOP
-
-            ! Add option for non-local PBL (Lin, 03/31/09)
-            IF ( LNLPBL ) FREQ = 0.e+0_fp
-
-            ! Only compute drydep loss if FREQ is nonzero
-            IF ( FREQ > 0e+0_fp ) THEN
-
-               ! Initial NH3 [v/v]
-               NH30 = STT(I,J,L,IDTNH3)
-            
-               ! Amount of NH3 lost to drydep [v/v]
-               NH3 = NH30 * ( 1e+0_fp - EXP( -FREQ * DTCHEM ) )
-
-               ! Prevent underflow condition
-               IF ( NH3 < SMALLNUM ) NH3 = 0e+0_fp
-
-               ! Subtract NH3 lost to drydep from initial NH3 [v/v]
-               STT(I,J,L,IDTNH3) = NH30 - NH3
-
-               !========================================================
-               ! Archive drydep flux of NH3 [molec/cm2/s]
-               ! This is needed for SOIL_DRYDEP and the ND44 diagnostic
-               !========================================================
-               IF ( NH3 > 0e+0_fp ) THEN
-
-                  ! Surface area [cm2]
-                  AREA_CM2 = GET_AREA_CM2( I, J, L )
-                  
-                  ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
-                  FLUX = NH3  * State_Met%AD(I,J,L) / TCVV(IDTNH3)
-                  FLUX = FLUX * XNUMOL(IDTNH3) / AREA_CM2 / DTCHEM
-
-                  ! Store dryd flx in DRYD_TMP for use below                  
-                  DRYD_FLX(I,J,L) = DRYD_FLX(I,J,L) + FLUX
-               ENDIF
-            ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      !===============================================================
-      ! If we are not using the non-local PBL scheme, then:
-      !===============================================================
-      IF ( .not. LNLPBL ) THEN 
-
-         !------------------------------------------------------------
-         ! (1) Call SOIL_DRYDEP to archive the NH3 drydep fluxes.
-         !------------------------------------------------------------
-         IF ( LSOILNOX ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IDTNH3 )
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               CALL SOIL_DRYDEP( I, J, L, IDTNH3, DRYD_FLX(I,J,L) )
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-
-#if !defined( NO_BPCH )
-         !------------------------------------------------------------
-         ! (2) Save archived NH3 drydep fluxes into the AD44 array
-         !------------------------------------------------------------
-         IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-            DO L = 1, LLPAR
-               AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + DRYD_FLX(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-#endif
-      ENDIF
-
-      ! Free pointer
-      NULLIFY( STT )
-
-      END SUBROUTINE CHEM_NH3
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: chem_nh4
-!
-! !DESCRIPTION: Subroutine CHEM\_NH4 removes NH4 from the surface via dry
-!  deposition. (rjp, bdf, bmy, 1/2/02, 10/25/05) 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CHEM_NH4( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, RC )
-!
-! !USES:
-!
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACERID_MOD,       ONLY : IDTNH4
-      USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!   
-! !REMARKS:
-!  If you are using the non-local PBL mixing scheme (VDIFF), then routine
-!  SOIL_DRYDEP and the ND44 diagnostic updating will be done there.  
-!                                                                             .
-!  If you are using the full TURBDAY PBL mixing scheme, then we have to 
-!  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
-!                                                                             .
-!  Reaction List:
-!  ============================================================================
-!  (1 ) NH4 = NH4_0 * EXP( -dt )  where d = dry deposition rate [s-1]
-!        
-! !REVISION HISTORY:
-!  (1 ) Now reference AD from "dao_mod.f".  Added parallel DO-loops.  
-!        Updated comments, cosmetic changes. (rjp, bmy, bdf, 9/16/02)
-!  (2 ) Now replace DXYP(JREF)*1d4 with routine GET_AREA_CM2 of "grid_mod.f".
-!        Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
-!  (3 ) Now reference PBLFRAC from "drydep_mod.f".  Now apply dry deposition
-!        to the entire PBL.  Added L and FREQ variables.  Recode to avoid 
-!        underflow from EXP(). (rjp, bmy, 8/1/03) 
-!  (4 ) Now use ND44_TMP array to store vertical levels of drydep flux, then 
-!        sum into AD44 array.  This preents numerical differences when using
-!        multiple processors. (bmy, 3/24/04)    
-!  (5 ) Now use parallel DO-loop to zero ND44_TMP (bmy, 4/14/04)
-!  (6 ) Now reference STT & TCVV from "tracer_mod.f".   Also remove reference 
-!        to CMN, it's not needed (bmy, 7/20/04)
-!  (7 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
-!        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
-!        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
-!  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
-!  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
-!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
-!  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
-!  13 Mar 2013 - R. Yantosca - Bug fix: make sure we pass values to the
-!                              SOIL_DRYDEP routine even when ND44 is off
-!                              (this happens when LNLPBL = F)
-!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
-!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
-!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      LOGICAL :: LNLPBL, LSOILNOX
-      INTEGER :: I,      J,    L,        N_TRACERS
-      REAL(fp)  :: DTCHEM, NH4,  NH40
-      REAL(fp)  :: FREQ,   FLUX, AREA_CM2, F_UNDER_TOP
-
-      ! Arrays
-      REAL(fp)  :: DRYD_FLX(IIPAR,JJPAR,LLPAR)
-      REAL(fp)  :: TCVV  (Input_Opt%N_TRACERS)
-      REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
-
-      !=================================================================
-      ! CHEM_NH4 begins here!
-      !=================================================================
-      IF ( IDTNH4 == 0 .or. DRYNH4 == 0 ) RETURN
-
-      ! Assume success
-      RC        = GIGC_SUCCESS
-
-      ! Copy fields from INPUT_OPT to local variables for use below
-      LNLPBL    = Input_Opt%LNLPBL
-      LSOILNOX  = Input_Opt%LSOILNOX
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
-
-      ! DTCHEM is the chemistry interval in seconds
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp 
-
-      ! Zero DRYD_FLX array.  This will store drydep values even if 
-      ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
-      DRYD_FLX = 0e+0_fp
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, F_UNDER_TOP, FREQ, NH40, NH4, AREA_CM2, FLUX )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
-         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )       
-
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( F_UNDER_TOP > 0e+0_fp ) THEN
-
-            ! NH4 drydep frequency [1/s].  Also accounts for the fraction
-            ! of each grid box (I,J,L) that is located beneath the PBL top
-            FREQ = DEPSAV(I,J,DRYNH4) * F_UNDER_TOP
-
-            ! Add option for non-local PBL (Lin, 03/31/09)
-            IF ( LNLPBL ) FREQ = 0.D0
-
-            ! Only apply drydep loss if FREQ is nonzero
-            IF ( FREQ > 0e+0_fp ) THEN
-
-               ! Initial NH4 [v/v]
-               NH40 = STT(I,J,L,IDTNH4)
-         
-               ! Amount of NH4 lost to drydep [v/v]
-               NH4 = NH40 * ( 1e+0_fp - EXP( -FREQ * DTCHEM ) )
-
-               ! Prevent underflow condition
-               IF ( NH4 < SMALLNUM ) NH4 = 0e+0_fp
-
-               ! Subtract NH4 lost to drydep from initial NH4 [v/v]
-               STT(I,J,L,IDTNH4) = NH40 - NH4
-
-               !========================================================
-               ! Archive drydep flux of NH4 [molec/cm2/s]
-               !========================================================
-               IF ( NH4 > 0e+0_fp ) THEN
-         
-                  ! Surface area [cm2]
-                  AREA_CM2 = GET_AREA_CM2( I, J, L )
-                  
-                  ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
-                  FLUX = NH4  * State_Met%AD(I,J,L) / TCVV(IDTNH4)
-                  FLUX = FLUX * XNUMOL(IDTNH4) / AREA_CM2 / DTCHEM
-
-                  ! Store dryd flx in DRYD_FLX as a placeholder
-                  DRYD_FLX(I,J,L) = DRYD_FLX(I,J,L) + FLUX
-               ENDIF
-            ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      !===============================================================
-      ! If we are not using the non-local PBL scheme, then:
-      !===============================================================
-      IF ( .not. LNLPBL ) THEN 
-
-         !------------------------------------------------------------
-         ! (1) Call SOIL_DRYDEP to archive the NH4 drydep fluxes.
-         !------------------------------------------------------------
-         IF ( LSOILNOX ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IDTNH4 )
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               CALL SOIL_DRYDEP( I, J, L, IDTNH4, DRYD_FLX(I,J,L) )
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-
-#if !defined( NO_BPCH )
-         !------------------------------------------------------------
-         ! (2) Save archived NH4 drydep fluxes into the AD44 array
-         !------------------------------------------------------------
-         IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-            DO L = 1, LLPAR
-               AD44(I,J,DRYNH4,1) = 
-     &         AD44(I,J,DRYNH4,1) + DRYD_FLX(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-#endif
-      ENDIF
-
-      ! Free pointer
-      NULLIFY( STT )
-
-      END SUBROUTINE CHEM_NH4
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -5579,23 +6227,18 @@
 !
 ! !USES:
 !
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTNIT
       USE TRACERID_MOD,       ONLY : IDTNITs
+      USE TRACERID_MOD,       ONLY : IDTNITd1, IDTNITd2
+      USE TRACERID_MOD,       ONLY : IDTNITd3, IDTNITd4
 !
 ! !INPUT PARAMETERS:
 !
@@ -5610,13 +6253,10 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!#endif
-!  
-!  If you are using the non-local PBL mixing scheme (VDIFF), then routine
-!  SOIL_DRYDEP and the ND44 diagnostic updating will be done there.  
-!                                                                             .
-!  If you are using the full TURBDAY PBL mixing scheme, then we have to 
-!  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
+
+!
+! !REMARKS:
+!  Dry deposition is now applied in mixing_mod.F90.  Therefore we can 
 !                                                                             .
 ! !REMARKS:
 !  Reaction List:
@@ -5655,6 +6295,14 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
 !                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  12 Sep 2013 - M. Sulprizio- Now include references to nitrate on dust
+!                              (tdf, 04/07/08)
+!  23 Sep 2013 - M. Sulprizio- Bug fix: Skip stratospheric boxes to prevent
+!                              out-of-bounds error in PNIT_DUST
+!  12 Jun 2015 - R. Yantosca - Now remove orphaned ND44 variables
+!  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
+!                              so we can greatly collapse this code
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRYNIT, DRYNITs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5662,20 +6310,21 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL :: LNLPBL,   LSOILNOX,     LSSALT
-      INTEGER :: I,        J,      L,    N,     N_TRACERS
-      REAL(fp)  :: DTCHEM,   NIT,    NITs, NIT0,  NIT0s,  E_RKT
-      REAL(fp)  :: E_RKTs,   FLUX,   FREQ, FREQs, RKT,    RKTs   
-      REAL(fp)  :: AREA_CM2, F_UNDER_TOP
+      LOGICAL           :: LDSTUP
+      INTEGER           :: I,   J,    L,    N
+      INTEGER           :: IBIN ! tdf
+      REAL(fp)          :: NIT, NITs, NIT0, NIT0s, F_UNDER_TOP
+      REAL(fp)          :: PNITd           ! tdf 04/07/08
 
       ! Arrays
-      REAL(fp)  :: DRYD_FLX(IIPAR,JJPAR,LLPAR,2)
-      REAL(fp)  :: TCVV  (Input_Opt%N_TRACERS)
-      REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)          :: NITd (NDSTBIN)  ! tdf 04/07/08
+      REAL(fp)          :: NIT0d(NDSTBIN)  ! tdf 04/07/08
+
+      ! Following are index arrays to hold pointers to DEPVEL and STT
+      ! tdf 04/07/08
+      INTEGER           :: IDTRC(NDSTBIN)
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
@@ -5684,39 +6333,29 @@
 
       ! Return if tracers are not defined
       IF ( IDTNIT == 0 .or. IDTNITs == 0 ) RETURN
-      IF ( DRYNIT == 0 .or. DRYNITs == 0 ) RETURN
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC  = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LNLPBL    = Input_Opt%LNLPBL
-      LSOILNOX  = Input_Opt%LSOILNOX
-      LSSALT    = Input_Opt%LSSALT
-      N_TRACERS = Input_Opt%N_TRACERS
-      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+      LDSTUP    = Input_Opt%LDSTUP
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [v/v dry] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
-      ! DTCHEM is the chemistry interval in seconds
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp 
-
-      ! Zero DRYD_FLX array.  This will store drydep values even if 
-      ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
-      DRYD_FLX  = 0e+0_fp
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,    J,      L,        NIT0,        NIT0s, NIT   )
-!$OMP+PRIVATE( NITs, FREQ,   FREQs,    F_UNDER_TOP, RKT,   E_RKT ) 
-!$OMP+PRIVATE( RKTs, E_RKTs, AREA_CM2, FLUX                      )
+!$OMP+PRIVATE( I, J, L, NIT0, NIT0s, NIT, NITs, F_UNDER_TOP )
+!$OMP+PRIVATE( NITd, NIT0d                                  )! tdf 04/07/08
+!$OMP+PRIVATE( IBIN, PNITd, IDTRC                           )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          ! Initial NITRATE [v/v]
          NIT0  = STT(I,J,L,IDTNIT)
@@ -5724,11 +6363,18 @@
          ! Initial NITRATE w/in seasalt [v/v]
          NIT0s = STT(I,J,L,IDTNITs)
 
+         IF ( LDSTUP ) THEN
+            ! Initial NITRATE w/in dust bins [v/v]   ! tdf 04/07/08
+            NIT0d(1) = STT(I,J,L,IDTNITd1)
+            NIT0d(2) = STT(I,J,L,IDTNITd2)
+            NIT0d(3) = STT(I,J,L,IDTNITd3)
+            NIT0d(4) = STT(I,J,L,IDTNITd4)
+         ENDIF
+
          ! Initialize variables
          NIT   = 0e+0_fp
          NITs  = 0e+0_fp
-         FREQ  = 0e+0_fp
-         FREQs = 0e+0_fp
+         NITd  = 0e+0_fp  !tdf 04/07/08
 
          ! Fraction of box (I,J,L) underneath the PBL top [unitless]
          F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )     
@@ -5737,166 +6383,54 @@
          IF ( F_UNDER_TOP > 0e+0_fp ) THEN 
 
             !===========================================================
-            ! NIT chemistry
-            !===========================================================
-
-            ! NIT drydep frequency [1/s].  Also accounts for the fraction
-            ! of each vertical level that is located below the PBL top
-            FREQ  = DEPSAV(I,J,DRYNIT)  * F_UNDER_TOP
-
-            ! Add option for non-local PBL (Lin, 03/31/09)
-            IF ( LNLPBL ) FREQ = 0.e+0_fp
-
-            ! If there is drydep ...
-            IF ( FREQ > 0e+0_fp ) THEN
-
-               ! Fraction of NIT lost to drydep [unitless] (bec, 12/15/04)
-               RKT  = FREQ  * DTCHEM
-
-               ! Pre-compute the exponential term
-               E_RKT = EXP( -RKT )
-
-               ! Amount of NITRATE lost to drydep [v/v]
-               NIT = NIT0 * ( 1e+0_fp - E_RKT )
-
-               ! Prevent underflow condition
-               IF ( NIT < SMALLNUM ) NIT = 0e+0_fp
-
-               ! Subtract NITRATE lost to drydep from initial NITRATE [v/v]
-               STT(I,J,L,IDTNIT) = NIT0 - NIT
-
-            ELSE
-	
-               ! No deposition occurs
-               NIT = 0e+0_fp
-
-            ENDIF
-
-            !===========================================================
             ! NITs chemistry
             !===========================================================
 
-            ! NITs drydep frequency [1/s].  Also accounts for the fraction
-            ! of each vertical level that is located below the PBL top
-            FREQs = DEPSAV(I,J,DRYNITs) * F_UNDER_TOP
-               
-            ! Add option for non-local PBL (Lin, 03/31/09)
-            IF ( LNLPBL ) FREQs = 0.e+0_fp
+            ! NIT prod from HNO3 uptake on fine sea-salt [v/v/timestep]
+            NITs = NIT0s + PNITs(I,J,L)
 
-            ! If there is drydep ...
-            IF ( FREQs > 0e+0_fp ) THEN
-
-               ! Fraction of NIT lost to drydep [unitless] (bec, 12/15/04)
-               RKTs   = FREQs * DTCHEM
-
-               ! Pre-compute the exponential term
-               E_RKTs = EXP( -RKTs )
-
-               ! Compute new NIT concentration [v/v],
-               ! updated for seasalt chemistry
-               NITs   = ( NIT0s             *          E_RKTs ) + 
-     &                  ( PNITs(I,J,L)/RKTs * ( 1.e+0_fp - E_RKTs ) )
-
-            ELSE
-
-               ! NIT prod from HNO3 uptake on fine sea-salt [v/v/timestep]
-               NITs = NIT0s + PNITs(I,J,L)
-
-            ENDIF
-            
             ! Store final concentration in STT [v/v]
             STT(I,J,L,IDTNITs) = NITs
             
-            !========================================================
-            ! Archive drydep flux of NIT and NITs [molec/cm2/s]
-            !========================================================
-         
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, L )
-            
-            !-------------------
-            ! NIT drydep flux
-            !-------------------
-             
-            ! If NIT drydep occurs ...
-            IF ( FREQ > 0e+0_fp ) THEN
-
-               ! Convert from [v/v/timestep] to [molec/cm2/s]
-               FLUX = NIT * State_Met%AD(I,J,L) / TCVV(IDTNIT)
-               FLUX = FLUX * XNUMOL(IDTNIT) / AREA_CM2 / DTCHEM
- 
-               ! Store NITs drydep flx [molec/cm2/s] for use below
-               DRYD_FLX(I,J,L,1) = DRYD_FLX(I,J,L,1) + FLUX
-
-            ENDIF
-                  
-            !-------------------
-            ! NITs drydep flux
-            !-------------------
-            
-            ! NOTE: if drydep doesn't occur then we still have
-            ! production from seasalt (bec, bmy, 4/13/05)
-
-            ! Convert from [v/v/timestep] to [molec/cm2/s]
-            FLUX = NIT0s - NITs + PNITs(I,J,L) 
-            FLUX = FLUX * State_Met%AD(I,J,L) / TCVV(IDTNITs)
-            FLUX = FLUX * XNUMOL(IDTNITs) / AREA_CM2 / DTCHEM
-
-            ! Store NITs drydep flx [molec/cm2/s] for use below
-            DRYD_FLX(I,J,L,2) = DRYD_FLX(I,J,L,2) + FLUX
-
-         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      !===============================================================
-      ! If we are not using the non-local PBL scheme, then:
-      !===============================================================
-      IF ( .not. LNLPBL ) THEN 
-
-         !------------------------------------------------------------
-         ! (1) Call SOIL_DRYDEP to archive NIT & NITs drydep fluxes
-         !------------------------------------------------------------
-         IF ( LSOILNOX ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IDTNIT, IDTNITs )
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               CALL SOIL_DRYDEP( I, J, L, IDTNIT,  DRYD_FLX(I,J,L,1) )
-               CALL SOIL_DRYDEP( I, J, L, IDTNITs, DRYD_FLX(I,J,L,2) )
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
          ENDIF
 
-#if !defined( NO_BPCH )
-         !------------------------------------------------------------
-         ! (2) Save archived NIT & NITs drydep fluxes into AD44 array
-         !------------------------------------------------------------
-         IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-            DO L = 1, LLPAR
-               AD44(I,J,DRYNIT, 1) = 
-     &         AD44(I,J,DRYNIT, 1) + DRYD_FLX(I,J,L,1)
+         !tdf
+         IF ( LDSTUP ) THEN
 
-               AD44(I,J,DRYNITs,1) = 
-     &         AD44(I,J,DRYNITs,1) + DRYD_FLX(I,J,L,2)
+            !===========================================================
+            ! NITd chemistry                              ! tdf 04/07/08
+            !===========================================================
+
+            ! Assign pointers to STT arrays for loop over dust size bins
+            !tdf
+            IDTRC(1) = IDTNITd1
+            IDTRC(2) = IDTNITd2
+            IDTRC(3) = IDTNITd3
+            IDTRC(4) = IDTNITd4
+
+            ! tdf Loop over size bins
+            DO IBIN = 1, NDSTBIN
+
+               ! Initial amount of nitrate on dust size bin IBIN
+               NIT0 = NIT0d(IBIN)
+
+               ! Production of nitrate on dust [v/v/timestep]
+               PNITd = PNIT_dust(I,J,L,IBIN)
+
+               ! NIT prod from HNO3 uptake on dust [v/v/timestep]
+               NITd(IBIN) = NIT0 + PNITd
+
+               ! Store final concentration in STT [v/v]
+               STT(I,J,L,IDTRC(IBIN)) = NITd(IBIN)
+
             ENDDO
-            ENDDO
-            ENDDO
+
+         ENDIF    !tdf end of if ( LDSTUP) condition
+
+      ENDDO
+      ENDDO
+      ENDDO
 !$OMP END PARALLEL DO
-         ENDIF         
-#endif
-      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -5929,14 +6463,14 @@
 !
 ! !INPUT PARAMETERS:
 !             
-      INTEGER, INTENT(IN)    :: PBL_TOP ! Top level of boundary layer
-      LOGICAL, INTENT(IN)    :: IS_LOCAL ! mixing scheme
-      REAL(fp),  INTENT(IN)    :: FRAC_OF_PBL(:) ! 
-      REAL(fp),  INTENT(IN)    :: EMISS(:)  
+      INTEGER,  INTENT(IN)    :: PBL_TOP ! Top level of boundary layer
+      LOGICAL,  INTENT(IN)    :: IS_LOCAL ! mixing scheme
+      REAL(fp), INTENT(IN)    :: FRAC_OF_PBL(:) ! 
+      REAL(fp), INTENT(IN)    :: EMISS(:)  
 !     
 ! !OUTPUT PARAMETERS:
 !             
-      REAL(fp),  INTENT(INOUT) :: SULFATE(:) ! partitioned emissions
+      REAL(fp), INTENT(INOUT) :: SULFATE(:) ! partitioned emissions
 !
 ! !REVISION HISTORY: 
 !  27 Oct 2009 - P. Le Sager - initial
@@ -5948,7 +6482,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                :: TOPMIX, TOPEMISS
-      REAL(fp)                 :: TSULFATE
+      REAL(fp)               :: TSULFATE
 
       ! Zero  at all levels 
       SULFATE  = 0.0
@@ -6043,7 +6577,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: JLOOP
-      REAL(fp)              :: OH_MOLEC_CM3
+      REAL(fp)            :: OH_MOLEC_CM3
  
       !=================================================================
       ! GET_OH begins here!
@@ -6132,8 +6666,8 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I, J, L ! Indices for lon, lat, vertical level
-      REAL(fp),  INTENT(IN) :: OH      ! OH at (I,J,L) to be saved into CSPEC
+      INTEGER,  INTENT(IN) :: I, J, L ! Indices for lon, lat, vertical level
+      REAL(fp), INTENT(IN) :: OH      ! OH at (I,J,L) to be saved into CSPEC
 !
 ! !REVISION HISTORY:
 !  (1 ) We assume SETTRACE has been called to define IDOH (bmy, 12/16/02)
@@ -6214,9 +6748,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: JLOOP
-      REAL(fp)  :: NO3_MOLEC_CM3
-      REAL(fp)  :: BOXVL
+      INTEGER  :: JLOOP
+      REAL(fp) :: NO3_MOLEC_CM3
+      REAL(fp) :: BOXVL
 
       !=================================================================
       ! GET_NO3 begins here!
@@ -6326,8 +6860,8 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I, J, L ! Indices for lon, lat, vertical level
-      REAL(fp),  INTENT(IN) :: NO3     ! NO3 at (I,J,L) to be saved into CSPEC
+      INTEGER,  INTENT(IN) :: I, J, L ! Indices for lon, lat, vertical level
+      REAL(fp), INTENT(IN) :: NO3     ! NO3 at (I,J,L) to be saved into CSPEC
 !
 ! !REVISION HISTORY:
 !  (1 ) We assume SETTRACE has been called to define IDNO3. (bmy, 12/16/02)
@@ -6373,11 +6907,11 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE CMN_GCTM_MOD
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_MOd, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDO3
 !
 ! !INPUT PARAMETERS: 
@@ -6397,6 +6931,8 @@
 !  04 Mar 2013 - R. Yantosca - Now pass Input_Opt%ITS_A_FULLCHEM_SIM and
 !                              Input_Opt%ITS_AN_AEROSOL_SIM
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  24 Mar 2015 - E. Lundgren - Replace dependency on tracer_mod with
+!                              CMN_GTCM_MOD to get XNUMOLAIR.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6404,7 +6940,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER               :: JLOOP
-      REAL(fp)                :: O3_VV
+      REAL(fp)              :: O3_VV
  
       !=================================================================
       ! GET_O3 begins here!
@@ -6497,9 +7033,9 @@
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
       INTEGER             :: I, IJLOOP, J, L, N, NT, NDYSTEP
-      REAL(fp)              :: A0, A1, A2, A3, B1, B2, B3
-      REAL(fp)              :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-      REAL(fp)              :: SUNTMP(MAXIJ)
+      REAL(fp)            :: A0, A1, A2, A3, B1, B2, B3
+      REAL(fp)            :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
+      REAL(fp)            :: SUNTMP(MAXIJ)
       
       !=================================================================
       ! OHNO3TIME begins here!
@@ -6646,6 +7182,9 @@
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
       USE TRACERID_MOD,       ONLY : IDTSALA, IDTSALC
+! (jas, 8/4/15) calculate kt using sea salt surface area concentration
+      USE CMN_SIZE_MOD,       ONLY : NDUST
+      USE COMODE_MOD,         ONLY : JLOP, ERADIUS, TAREA
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6656,8 +7195,8 @@
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(OUT)   :: ALK1, ALK2  ! [kg]
-      REAL(fp),         INTENT(OUT)   :: Kt1, Kt2, Kt1N, Kt2N ! [s-1]
+      REAL(fp),       INTENT(OUT)   :: ALK1, ALK2  ! [kg]
+      REAL(fp),       INTENT(OUT)   :: Kt1, Kt2, Kt1N, Kt2N ! [s-1]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6668,6 +7207,9 @@
 !  (2 ) Bug fix to remove a double-substitution.  Replace code lines for 
 !        TERM{123}A, TERM{123}B, TERM{123}AN, TERM{123}BN. (bec, bmy, 7/18/08)
 !  (3 ) Updated hygroscopic growth parameters (bec, bmy, 11/23/09)
+!  (4 ) Fixed bug when calculating rate constants for uptake of SO2 and HNO3
+!       (kt). The bug caused kt to be too small and prevented acidification 
+!       of SSA. (jas, 8/4/15)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
@@ -6682,27 +7224,31 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp),  PARAMETER :: PI = 3.14159265
-      REAL(fp)             :: N1, N2, Kt
-      REAL(fp)             :: HGF, ALK
-      REAL(fp)             :: RAD1, RAD2, RAD3
-      REAL(fp)             :: term1a, term2a, term3a
-      REAL(fp)             :: term1b, term2b, term3b
-      REAL(fp)             :: term1aN, term2aN, term3aN
-      REAL(fp)             :: term1bN, term2bN, term3bN
-      REAL(fp)             :: const1, const2, const1N, const2N
-      REAL(fp)             :: a1, a2, b1, b2, a1N, a2N, b1N, b2N
-      REAL(fp),  PARAMETER :: MINDAT = 1.e-20_fp
-      INTEGER            :: IRH
-      REAL(fp),  PARAMETER :: gamma_SO2 = 0.11e+0_fp !from Worsnop et al. (1989)
-      REAL(fp),  PARAMETER :: gamma_HNO3 = 0.2e+0_fp !from JPL [2001] 
-      REAL(fp),  PARAMETER :: Dg = 0.2e+0_fp !gas phase diffusion coeff. [cm2/s]
-      REAL(fp),  PARAMETER :: v = 3.0e+4_fp  !cm/s
+      REAL(fp), PARAMETER :: PI = 3.14159265
+      REAL(fp)            :: N1, N2, Kt
+      REAL(fp)            :: HGF, ALK
+      REAL(fp)            :: RAD1, RAD2, RAD3
+      REAL(fp)            :: term1a, term2a, term3a
+      REAL(fp)            :: term1b, term2b, term3b
+      REAL(fp)            :: term1aN, term2aN, term3aN
+      REAL(fp)            :: term1bN, term2bN, term3bN
+      REAL(fp)            :: const1, const2, const1N, const2N
+      REAL(fp)            :: a1, a2, b1, b2, a1N, a2N, b1N, b2N
+      REAL(fp), PARAMETER :: MINDAT = 1.e-20_fp
+      INTEGER             :: IRH
+      REAL(fp), PARAMETER :: gamma_SO2 = 0.11e+0_fp !from Worsnop et al. (1989)
+      REAL(fp), PARAMETER :: gamma_HNO3 = 0.2e+0_fp !from JPL [2001] 
+      REAL(fp), PARAMETER :: Dg = 0.2e+0_fp !gas phase diffusion coeff. [cm2/s]
+      REAL(fp), PARAMETER :: v = 3.0e+4_fp  !cm/s
+      REAL(fp)            :: SA1, SA2 ! SSA surface area [cm2/cm3]
+      REAL(fp)            :: R1, R2 ! SSA radius [cm]
+      INTEGER             :: JLOOP
+
 
       ! HEMCO update
-      REAL(fp)                       :: FEMIS
-      INTEGER                      :: NTOP
-      LOGICAL                      :: FOUND
+      REAL(fp)            :: FEMIS
+      INTEGER             :: NTOP
+      LOGICAL             :: FOUND
  
       !=================================================================
       ! GET_ALK begins here!
@@ -6756,14 +7302,14 @@
      &        * State_Met%AREA_M2(I,J,1) * TS_EMIS * FEMIS 
 
          ! Get number densities in # / cm3. Weight by fraction of PBL
-         IF ( ASSOCIATED(NDENS_SALA) ) THEN
-            N1 = NDENS_SALA(I,J) / State_Met%AIRVOL(I,J,L) 
-     &         * 1.e-6_fp        * FEMIS
-         ENDIF
-         IF ( ASSOCIATED(NDENS_SALC) ) THEN
-            N2 = NDENS_SALC(I,J) / State_Met%AIRVOL(I,J,L) 
-     &         * 1.e-6_fp        * FEMIS
-         ENDIF
+!         IF ( ASSOCIATED(NDENS_SALA) ) THEN
+!            N1 = NDENS_SALA(I,J) / State_Met%AIRVOL(I,J,L) 
+!     &         * 1.e-6_fp        * FEMIS
+!         ENDIF
+!         IF ( ASSOCIATED(NDENS_SALC) ) THEN
+!            N2 = NDENS_SALC(I,J) / State_Met%AIRVOL(I,J,L) 
+!     &         * 1.e-6_fp        * FEMIS
+!         ENDIF
 
       ENDIF
 
@@ -6787,26 +7333,34 @@
       ! If there is any alkalinity ...
       IF ( ALK > MINDAT ) THEN
 
+         JLOOP = JLOP(I,J,L)
+
+         SA1= TAREA(JLOOP,4+NDUST) !in cm2/cm3
+         SA2= TAREA(JLOOP,5+NDUST) !in cm2/cm3
+
+         R1 = ERADIUS(JLOOP,4+NDUST) !in cm
+         R2 = ERADIUS(JLOOP,5+NDUST) !in cm
+
          ! set humidity index IRH as a percent
-         IRH = State_Met%RH(I,J,L)
-         IRH = MAX(  1, IRH )
-         IRH = MIN( 99, IRH )
+         !IRH = State_Met%RH(I,J,L)
+         !IRH = MAX(  1, IRH )
+         !IRH = MIN( 99, IRH )
 
          ! Hygroscopic growth factor for sea-salt from Chin et al. (2002)
          ! Updated (bec, bmy, 11/23/09)
-         IF ( IRH < 100 ) HGF = 4.8e+0_fp
-         IF ( IRH < 99  ) HGF = 2.9e+0_fp
-         IF ( IRH < 95  ) HGF = 2.4e+0_fp
-         IF ( IRH < 90  ) HGF = 2.0e+0_fp
-         IF ( IRH < 80  ) HGF = 1.8e+0_fp
-         IF ( IRH < 70  ) HGF = 1.6e+0_fp
-         IF ( IRH < 50  ) HGF = 1.0e+0_fp
+         !IF ( IRH < 100 ) HGF = 4.8e+0_fp
+         !IF ( IRH < 99  ) HGF = 2.9e+0_fp
+         !IF ( IRH < 95  ) HGF = 2.4e+0_fp
+         !IF ( IRH < 90  ) HGF = 2.0e+0_fp
+         !IF ( IRH < 80  ) HGF = 1.8e+0_fp
+         !IF ( IRH < 70  ) HGF = 1.6e+0_fp
+         !IF ( IRH < 50  ) HGF = 1.0e+0_fp
 
          ! radius of sea-salt aerosol size bins [cm] accounting for 
          ! hygroscopic growth
-         RAD1 = Input_Opt%SALA_REDGE_um(1) * HGF * 1.e-4_fp 
-         RAD2 = Input_Opt%SALA_REDGE_um(2) * HGF * 1.e-4_fp 
-         RAD3 = Input_Opt%SALC_REDGE_um(2) * HGF * 1.e-4_fp 
+         !RAD1 = Input_Opt%SALA_REDGE_um(1) * HGF * 1.e-4_fp 
+         !RAD2 = Input_Opt%SALA_REDGE_um(2) * HGF * 1.e-4_fp 
+         !RAD3 = Input_Opt%SALC_REDGE_um(2) * HGF * 1.e-4_fp 
 
          !----------------------------------
          ! SO2 uptake onto fine particles 
@@ -6815,12 +7369,14 @@
 	 ! calculate gas-to-particle rate constant for uptake of 
 	 ! SO2 onto fine sea-salt aerosols [Jacob, 2000] analytical solution
          CONST1 = 4.e+0_fp/(V*GAMMA_SO2)
-         A1     = (RAD1/DG)+CONST1
-         B1     = (RAD2/DG)+CONST1
-         TERM1A = ((B1**2)/2.0e+0_fp) - ((A1**2)/2.0e+0_fp)
-         TERM2A = 2.e+0_fp*CONST1*(B1-A1)
-         TERM3A = (CONST1**2)*LOG(B1/A1)
-         KT1    = 4.e+0_fp*PI*N1*(DG**3)*(TERM1A - TERM2A + TERM3A)
+         !A1     = (RAD1/DG)+CONST1
+         !B1     = (RAD2/DG)+CONST1
+         !TERM1A = ((B1**2)/2.0e+0_fp) - ((A1**2)/2.0e+0_fp)
+         !TERM2A = 2.e+0_fp*CONST1*(B1-A1)
+         !TERM3A = (CONST1**2)*LOG(B1/A1)
+         !KT1    = 4.e+0_fp*PI*N1*(DG**3)*(TERM1A - TERM2A + TERM3A)
+         ! now calculate rate of uptake as kt = [SSA]/( r/Dg + 4/(v*gamma) )
+         KT1    = SA1/((R1/DG) + CONST1)
 
          !----------------------------------
          ! SO2 uptake onto coarse particles 
@@ -6829,12 +7385,13 @@
 	 ! calculate gas-to-particle rate constant for uptake of 
 	 ! SO2 onto coarse sea-salt aerosols [Jacob, 2000] analytical solution
          CONST2 = 4.e+0_fp/(V*GAMMA_SO2)
-         A2     = (RAD2/DG)+CONST2
-         B2     = (RAD3/DG)+CONST2
-         TERM1B = ((B2**2)/2.0e+0_fp) - ((A2**2)/2.0e+0_fp)
-         TERM2B = 2.e+0_fp*CONST2*(B2-A2)
-         TERM3B = (CONST2**2)*LOG(B2/A2)
-         KT2    = 4.e+0_fp*PI*N2*(DG**3)*(TERM1B - TERM2B + TERM3B)
+         !A2     = (RAD2/DG)+CONST2
+         !B2     = (RAD3/DG)+CONST2
+         !TERM1B = ((B2**2)/2.0e+0_fp) - ((A2**2)/2.0e+0_fp)
+         !TERM2B = 2.e+0_fp*CONST2*(B2-A2)
+         !TERM3B = (CONST2**2)*LOG(B2/A2)
+         !KT2    = 4.e+0_fp*PI*N2*(DG**3)*(TERM1B - TERM2B + TERM3B)
+         KT2    = SA2/((R2/DG) + CONST2)
          KT     = KT1 + KT2
 
          !----------------------------------
@@ -6844,12 +7401,13 @@
          ! calculate gas-to-particle rate constant for uptake of 
          ! HNO3 onto fine sea-salt aerosols [Jacob, 2000] analytical solution
          CONST1N = 4.e+0_fp/(V*GAMMA_HNO3)
-         A1N     = (RAD1/DG)+CONST1N
-         B1N     = (RAD2/DG)+CONST1N
-         TERM1AN = ((B1N**2)/2.0e+0_fp) - ((A1N**2)/2.0e+0_fp)
-         TERM2AN = 2.e+0_fp*CONST1N*(B1N-A1N)
-         TERM3AN = (CONST1N**2)*LOG(B1N/A1N)
-         KT1N    = 4.e+0_fp*PI*N1*(DG**3)*(TERM1AN - TERM2AN + TERM3AN)
+         !A1N     = (RAD1/DG)+CONST1N
+         !B1N     = (RAD2/DG)+CONST1N
+         !TERM1AN = ((B1N**2)/2.0e+0_fp) - ((A1N**2)/2.0e+0_fp)
+         !TERM2AN = 2.e+0_fp*CONST1N*(B1N-A1N)
+         !TERM3AN = (CONST1N**2)*LOG(B1N/A1N)
+         !KT1N    = 4.e+0_fp*PI*N1*(DG**3)*(TERM1AN - TERM2AN + TERM3AN)
+         KT1N    = SA1/((R1/DG) + CONST1N)
 
          !----------------------------------
          ! HNO3 uptake onto coarse particles 
@@ -6858,12 +7416,13 @@
 	 ! calculate gas-to-particle rate constant for uptake of 
 	 ! HNO3 onto coarse sea-salt aerosols [Jacob, 2000] analytical solution
          CONST2N = 4.e+0_fp/(V*GAMMA_HNO3)
-         A2N     = (RAD2/DG)+CONST2N
-         B2N     = (RAD3/DG)+CONST2N
-         TERM1BN = ((B2N**2)/2.0e+0_fp) - ((A2N**2)/2.0e+0_fp)
-         TERM2BN = 2.e+0_fp*CONST2N*(B2N-A2N)
-         TERM3BN = (CONST2N**2)*LOG(B2N/A2N)
-         KT2N    = 4.e+0_fp*PI*N2*(DG**3)*(TERM1BN - TERM2BN + TERM3BN)
+         !A2N     = (RAD2/DG)+CONST2N
+         !B2N     = (RAD3/DG)+CONST2N
+         !TERM1BN = ((B2N**2)/2.0e+0_fp) - ((A2N**2)/2.0e+0_fp)
+         !TERM2BN = 2.e+0_fp*CONST2N*(B2N-A2N)
+         !TERM3BN = (CONST2N**2)*LOG(B2N/A2N)
+         !KT2N    = 4.e+0_fp*PI*N2*(DG**3)*(TERM1BN - TERM2BN + TERM3BN)
+         KT2N    = SA2/((R2/DG) + CONST2N)
 
 
       ELSE
@@ -6896,20 +7455,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_SULFATE( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_SULFATE( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6940,14 +7501,21 @@
 !  04 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%ITS_AN_AEROSOL_SIM
 !  30 May 2013 - S. Farina   - Allocate PSO4_SO2AQ for TOMAS
+!  12 Sep 2013 - M. Sulprizio- Add PSO4_dust and PNIT_dust for acid update on
+!                              dust aerosols (T.D. Fairlie)
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: AS, I, J, N
+      ! Scalars
+      INTEGER :: AS, I, J, N
+
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc => NULL()
 
       !=================================================================
       ! INIT_SULFATE begins here!
@@ -6964,54 +7532,6 @@
       ALLOCATE( DMSo( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMSo' )
       DMSo = 0e+0_fp
-
-      ALLOCATE( ENH3_an( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENH3_an' )
-      ENH3_an = 0e+0_fp
-
-      ALLOCATE( ENH3_bb( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENH3_bb' )
-      ENH3_bb = 0e+0_fp
-
-      ALLOCATE( ENH3_bf( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENH3_bf' )
-      ENH3_bf = 0e+0_fp
-
-      ALLOCATE( ENH3_na( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENH3_na' )
-      ENH3_na = 0e+0_fp
-
-      ALLOCATE( ESO2_ac( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_ac' )
-      ESO2_ac = 0e+0_fp
-
-      ALLOCATE( ESO2_an( IIPAR, JJPAR, NOXLEVELS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_an' )
-      ESO2_an = 0e+0_fp
-
-      ALLOCATE( ESO2_bb( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_bb' )
-      ESO2_bb = 0e+0_fp
-
-      ALLOCATE( ESO2_bf( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_bf' )
-      ESO2_bf = 0e+0_fp
-
-      ALLOCATE( ESO2_ev( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_ev' )
-      ESO2_ev = 0e+0_fp
-
-      ALLOCATE( ESO2_nv( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_nv' )
-      ESO2_nv = 0e+0_fp
-
-      ALLOCATE( ESO2_sh( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_sh' )
-      ESO2_sh = 0e+0_fp
-
-      ALLOCATE( ESO4_an( IIPAR, JJPAR, NOXLEVELS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO4_an' )
-      ESO4_an = 0e+0_fp
 
       ALLOCATE( PMSA_DMS( IIPAR, JJPAR, LLCHEM ), STAT=AS ) 
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PMSA_DMS' )
@@ -7033,11 +7553,23 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PNITs' )
       PNITs = 0e+0_fp
 
+      !tdf
+      ALLOCATE( PSO4_dust( IIPAR, JJPAR, LLCHEM, NDSTBIN ),
+     &          STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4_dust' )
+      PSO4_dust = 0e+0_fp
+
+      !tdf
+      ALLOCATE( PNIT_dust( IIPAR, JJPAR, LLCHEM, NDSTBIN ),
+     &          STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PNIT_dust' )
+      PNIT_dust = 0e+0_fp
+
       ALLOCATE( SOx_SCALE( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOx_SCALE' )
       SOx_SCALE = 0e+0_fp
 
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
       ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
       ! directly from the met fields.  (skim, bmy, 1/14/10)
       ALLOCATE( VCLDF( IIPAR, JJPAR, LLCHEM ), STAT=AS )
@@ -7050,6 +7582,14 @@
       ALLOCATE( PSO4_SO2AQ( IIPAR, JJPAR, LLCHEM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4_SO2AQ' )
       PSO4_SO2AQ = 0e+0_fp
+
+      ALLOCATE( SO4_ANTH( IIPAR, JJPAR, LLCHEM ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_ANTH' )
+      SO4_ANTH = 0e+0_fp
+
+      ALLOCATE( SO4_BIOF( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_BIOF' )
+      SO4_BIOF = 0e+0_fp
 #endif
 
       !=================================================================
@@ -7075,56 +7615,54 @@
       !=================================================================
 
       ! Initialize flags
-      DRYH2O2  = 0
-      DRYSO2   = 0
-      DRYSO4   = 0
       DRYSO4s  = 0
-      DRYMSA   = 0
-      DRYNH3   = 0
-      DRYNH4   = 0
-      DRYNIT   = 0
-      DRYSO4s  = 0
-      DRYAS    = 0
-      DRYAHS   = 0
-      DRYLET   = 0
-      DRYSO4aq = 0
-      DRYNH4aq = 0  
+      DRYNITs  = 0
+      DRYSO4d1 = 0
+      DRYSO4d2 = 0
+      DRYSO4d3 = 0
+      DRYSO4d4 = 0
+      DRYNITd1 = 0
+      DRYNITd2 = 0
+      DRYNITd3 = 0
+      DRYNITd4 = 0
 
       ! Locate position of each tracer in DEPSAV
       IF ( Input_Opt%LDRYD ) THEN
-         DO N = 1, Input_Opt%NUMDEP
-            SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
-               CASE ( 'H2O2'   )
-                  DRYH2O2  = N
-               CASE ( 'SO2'   )
-                  DRYSO2   = N
-               CASE ( 'SO4'   )
-                  DRYSO4   = N
-               CASE ( 'SO4S'   )
-                  DRYSO4s  = N
-               CASE ( 'MSA'   )
-                  DRYMSA   = N
-               CASE ( 'NH3'   )
-                  DRYNH3   = N
-               CASE ( 'NH4'   )
-                  DRYNH4   = N
-               CASE ( 'NIT'   )
-                  DRYNIT   = N
-               CASE ( 'NITS'   )
-                  DRYNITs  = N
-               CASE ( 'AS'    )
-                  DRYAS    = N
-               CASE ( 'AHS'   )
-                  DRYAHS   = N
-               CASE ( 'LET'   )
-                  DRYLET   = N
-               CASE ( 'SO4aq' )
-                  DRYSO4aq = N
-               CASE ( 'NH4aq' )
-                  DRYNH4aq = N
+
+         ! Loop over all species
+         DO N = 1, State_Chm%nSpecies
+
+            ! Get info for each species from the species database
+            ThisSpc => State_Chm%SpcData(N)%Info
+
+            ! Save dry deposition indices for selected species
+            SELECT CASE ( TRIM( ThisSpc%Name ) )
+               CASE ( 'SO4s'   )
+                  DRYSO4s  = ThisSpc%DryDepId
+               CASE ( 'NITs'   )
+                  DRYNITs  = ThisSpc%DryDepId
+               CASE ( 'SO4D1' )
+                  DRYSO4d1 = ThisSpc%DryDepId
+               CASE ( 'SO4D2' )
+                  DRYSO4d2 = ThisSpc%DryDepId
+               CASE ( 'SO4D3' )
+                  DRYSO4d3 = ThisSpc%DryDepId
+               CASE ( 'SO4D4' )
+                  DRYSO4d4 = ThisSpc%DryDepId
+               CASE ( 'NITD1' )
+                  DRYNITd1 = ThisSpc%DryDepId
+               CASE ( 'NITD2' )
+                  DRYNITd2 = ThisSpc%DryDepId
+               CASE ( 'NITD3' )
+                  DRYNITd3 = ThisSpc%DryDepId
+               CASE ( 'NITD4' )
+                  DRYNITd4 = ThisSpc%DryDepId
                CASE DEFAULT
                   ! Nothing
-            END SELECT        
+            END SELECT  
+
+            ! Free pointer
+            ThisSpc => NULL()
          ENDDO
       ENDIF
 
@@ -7144,7 +7682,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_SULFATE  
+      SUBROUTINE CLEANUP_SULFATE()  
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Now also deallocates IJSURF. (bmy, 11/12/02)
@@ -7160,6 +7698,7 @@
 !  30 May 2013 - S. Farina   - Deallocate PSO4_SO2AQ for TOMAS
 !  04 Mar 2015 - R. Yantosca - Remove EEV, NEV.  Volcano eruptions are now
 !                              handled via HEMCO.
+!  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7169,26 +7708,19 @@
       ! CLEANUP_SULFATE begins here!
       !=================================================================
       IF ( ALLOCATED( DMSo       ) ) DEALLOCATE( DMSo       )
-      IF ( ALLOCATED( ENH3_an    ) ) DEALLOCATE( ENH3_an    )
-      IF ( ALLOCATED( ENH3_bb    ) ) DEALLOCATE( ENH3_bb    )
-      IF ( ALLOCATED( ENH3_bf    ) ) DEALLOCATE( ENH3_bf    )
-      IF ( ALLOCATED( ENH3_na    ) ) DEALLOCATE( ENH3_na    )
-      IF ( ALLOCATED( ESO2_ac    ) ) DEALLOCATE( ESO2_ac    )
-      IF ( ALLOCATED( ESO2_an    ) ) DEALLOCATE( ESO2_an    )
-      IF ( ALLOCATED( ESO2_nv    ) ) DEALLOCATE( ESO2_nv    )
-      IF ( ALLOCATED( ESO2_ev    ) ) DEALLOCATE( ESO2_ev    )
-      IF ( ALLOCATED( ESO2_bb    ) ) DEALLOCATE( ESO2_bb    )
-      IF ( ALLOCATED( ESO2_bf    ) ) DEALLOCATE( ESO2_bf    )
-      IF ( ALLOCATED( ESO2_sh    ) ) DEALLOCATE( ESO2_sh    )
-      IF ( ALLOCATED( ESO4_an    ) ) DEALLOCATE( ESO4_an    )
       IF ( ALLOCATED( PMSA_DMS   ) ) DEALLOCATE( PMSA_DMS   )
       IF ( ALLOCATED( PNITs      ) ) DEALLOCATE( PNITs      )
       IF ( ALLOCATED( PSO2_DMS   ) ) DEALLOCATE( PSO2_DMS   )
       IF ( ALLOCATED( PSO4_SO2   ) ) DEALLOCATE( PSO4_SO2   )
 #if   defined( TOMAS )
       IF ( ALLOCATED( PSO4_SO2AQ ) ) DEALLOCATE( PSO4_SO2AQ ) 
+      IF ( ALLOCATED( SO4_ANTH   ))  DEALLOCATE( SO4_ANTH   )
+      IF ( ALLOCATED( SO4_BIOF   ))  DEALLOCATE( SO4_BIOF   )
 #endif
       IF ( ALLOCATED( PSO4_ss    ) ) DEALLOCATE( PSO4_ss    )
+      
+      IF ( ALLOCATED( PSO4_dust  ) ) DEALLOCATE( PSO4_dust  ) !tdf
+      IF ( ALLOCATED( PNIT_dust  ) ) DEALLOCATE( PNIT_dust  ) !tdf
       IF ( ALLOCATED( SOx_SCALE  ) ) DEALLOCATE( SOx_SCALE  )
       IF ( ALLOCATED( SSTEMP     ) ) DEALLOCATE( SSTEMP     )
       IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )

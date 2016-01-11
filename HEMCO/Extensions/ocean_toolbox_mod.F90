@@ -52,7 +52,7 @@ MODULE Ocean_ToolBox_Mod
   PRIVATE :: D_HM
   PRIVATE :: Schmidt_W
   PRIVATE :: Schmidt_Saltzmann
-  PRIVATE :: schmidt_Acet
+  PRIVATE :: Schmidt_Acet
   PRIVATE :: N_Air
   PRIVATE :: P_Air
   PRIVATE :: V_Air
@@ -890,7 +890,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Schmidt_gG
+! !IROUTINE: Schmidt_G
 !
 ! !DESCRIPTION: Schmidt\_G returns the schmidt number of the gas in the air.
 !\\
@@ -929,4 +929,3 @@ CONTAINS
   END FUNCTION Schmidt_G
 !EOC
 END MODULE Ocean_ToolBox_Mod
-!EOM

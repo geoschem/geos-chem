@@ -15,24 +15,24 @@
 !\\
 !\\
 ! MEGAN calculates gamma activity factor based upon temperature and 
-! radiation information from the past 10 days. In the original GEOS-Chem 
+! radiation information from the past. In the original GEOS-Chem 
 ! code, the initial 10-d averages were explicitly calculated during 
 ! initialization of MEGAN. This is not feasible in an ESMF environment,
 ! and the following restart variables can now be provided through the 
 ! HEMCO configuration file:
 ! \begin{itemize}
-! \item T\_DAVG: temperature (10 day average) 
-! \item PARDR\_DAVG: direct radiation (10 day average) 
-! \item PARDF\_DAVG: diffuse radiation (10 day average)
-! \item T\_PREVDAY: temperature (1 day average) 
+! \item T\_DAVG: long-term historical temperature 
+! \item PARDR\_DAVG: long-term historical direct radiation 
+! \item PARDF\_DAVG: long-term historical diffuse radiation 
+! \item T\_PREVDAY: short-term historical temperature
 ! \end{itemize}
-! These variables are automatically searched for on the first run
-! call. If not defined, the current tempeature/radiation value is 
-! used instead. Especially for the radiation (PARDR and PARDF), this 
-! may result in very different average values - which in turn may 
-! result in local differences of >50%. HEMCO emissions are identical 
-! to original GEOS-Chem emissions once we pass the first 10 days 
-! (ckeller, 10/8/2013).
+! These variables are automatically searched for on the first call of
+! the run call. If not defined, default values will be used. The values
+! of T\_DAVG, T\_PREVDAY, PARDR\_DAVG, and PARDF\_DAVG are continuously
+! updated at the end of the run sequence, e.g. they represent the 
+! instantaneous running average. The e-folding times to be used when
+! calculating the short=term and long-term running averages are defined 
+! as module parameter below (parameter TAU_HOURS and TAU_DAYS) 
 !\\
 !\\
 ! A similar procedure is also applied to the leaf area index variables.
@@ -40,12 +40,12 @@
 ! LAI (LAI\_CM), previous month LAI (LAI\_PM), and instantaneous LAI (LAI), 
 ! which was a daily interpolation of LAI\_CM and next month' LAI, (LAI\_NM). 
 ! The HEMCO implementation uses only the instantaneous LAI, assuming it is
-! updated every day. The previous day LAI is kept in memory and used to
-! determine the LAI change over time (used to calculate the gamma leaf age).
+! updated every day. The short term historical LAI is kept in memory and 
+! used to determine the LAI change over time (used to calculate the gamma 
+! leaf age). It is also updated on every time step.
 ! For the first simulation day, the previous' day LAI is taken from the 
 ! restart file (field LAI\_PREVDAY). If no restart variable is defined, a 
-! LAI change of zero is assumed.
-! (ckeller, 10/9/2014)
+! LAI change of zero is assumed (ckeller, 10/9/2014).
 !\\
 !\\
 ! !References:
@@ -54,7 +54,7 @@
 !  \item Guenther, A., et al., \emph{The Model of Emissions of Gases and
 !        Aerosols from Nature version 2.1 (MEGAN2.1): an extended and updated
 !        framework for modeling biogenic emissions}, \underline{Geosci. Model
-!        Dev/}, \testbf{5}, 1471-1792, 2012.
+!        Dev.}, \textbf{5}, 1471-1792, 2012.
 !  \item Guenther, A., et al., \emph{A global model of natural volatile 
 !        organic compound emissions}, \underline{J.Geophys. Res.}, 
 !        \textbf{100}, 8873-8892, 1995.
@@ -104,8 +104,8 @@
 !
       PRIVATE :: GET_MEGAN_EMISSIONS  ! dbm, new MEGAN driver routine
                                       ! for all compounds (6/21/2012)
-      PRIVATE :: UPDATE_HCOT_DAY      
-      PRIVATE :: UPDATE_HCOT_15_AVG   
+!      PRIVATE :: UPDATE_T_DAY      
+!      PRIVATE :: UPDATE_T_15_AVG   
       PRIVATE :: GET_MEGAN_PARAMS
       PRIVATE :: GET_MEGAN_AEF
       PRIVATE :: GET_GAMMA_PAR_PCEEA
@@ -118,6 +118,7 @@
       PRIVATE :: SOLAR_ANGLE
       PRIVATE :: FILL_RESTART_VARS 
       PRIVATE :: CALC_AEF
+      PRIVATE :: GET_GAMMA_CO2  ! (Tai, Jan 2013)
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Original code (biogen_em_mod.f) by Dorian Abbot (6/2003).  Updated to 
@@ -176,16 +177,24 @@
 !                              scheme exclusively now.
 !                              Restore emissions of individual MEGAN species to
 !                              diagnostics for consistency with pre-HEMCO code.
+!  10 Jun 2015 - M. Sulprizio- Bug fix for SOA simulation: Now convert AEFs for
+!                              sesquiterpenes to kg/m2/s.
+!  15 Sep 2015 - M. Sulprizio- Add CO2 inhibition effect on isoprene emissions
+!                              from Amos Tai (Jan 2013)
+!  05 Nov 2015 - C. Keller   - Reorganize restart variables to running averages.
+!  08 Dec 2015 - C. Keller   - Now treat previous' day LAI as running avg, too.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !MODULE VARIABLES:
 ! 
-      INTEGER                 :: ExtNr
-      INTEGER                 :: ExtNrMono 
-      INTEGER                 :: ExtNrSoa
-      REAL(hp)                :: ISOP_SCALING
+      INTEGER                 :: ExtNr        ! Extension number for MEGAN
+      INTEGER                 :: ExtNrMono    ! Extension number for MEGAN_Mono
+      INTEGER                 :: ExtNrSoa     ! Extension number for MEGAN_SOA
+      REAL(hp)                :: ISOP_SCALING ! Isoprene emissions scaling
+      REAL(hp)                :: GLOBCO2      ! Global CO2 conc (ppmv)
+      LOGICAL                 :: LISOPCO2     ! Include CO2 inhibition of ISOP?
 
       ! Physical parameter
       REAL(hp)                :: D2RAD  ! Degrees to radians 
@@ -260,33 +269,43 @@
       REAL(hp), ALLOCATABLE   :: NORM_FAC(:)
 
       ! Scalars
-      INTEGER,  PARAMETER  :: DAY_DIM        = 24       ! # of 1-hr periods/day
+!      INTEGER,  PARAMETER  :: DAY_DIM        = 24       ! # of 1-hr periods/day
 !      INTEGER, PARAMETER  :: DAY_DIM        = 8        ! # of 3-hr periods/day
-      INTEGER,  PARAMETER  :: NUM_DAYS       = 10       ! # of days to avg 
+      !INTEGER,  PARAMETER  :: NUM_DAYS       = 10       ! # of days to avg 
+      REAL(hp), PARAMETER  :: TAU_DAYS       = 5.0_hp   ! e-folding time to be applied to
+                                                        ! long-term past conditions (in days) 
+      REAL(hp), PARAMETER  :: TAU_HOURS      = 12.0_hp  ! e-folding time to be applied to
+                                                        ! short-term past conditions (in hours)
       REAL(hp), PARAMETER  :: WM2_TO_UMOLM2S = 4.766_hp ! W/m2 -> umol/m2/s
 
       ! Past light & temperature conditions (mpb,2009)
       ! (1) Temperature at 2m (TS):
 !      REAL(hp), ALLOCATABLE, TARGET :: HCOT_DAILY(:,:)       ! Daily averaged sfc temp
-      REAL(sp), POINTER             :: T_PREVDAY(:,:)        ! Pointer to previous day T.
-      REAL(sp), ALLOCATABLE, TARGET :: HCOT_DAY(:,:,:)       ! Holds 1 day of sfc temp data
-      REAL(sp), ALLOCATABLE, TARGET :: HCOT_15(:,:,:)        ! Holds 15 days of daily avg T
-      REAL(sp), ALLOCATABLE, TARGET :: HCOT_15_AVG(:,:)      ! Sfc temp avg'd over NUM_DAYS
+!      REAL(sp), POINTER             :: T_PREVDAY(:,:)        ! Pointer to previous day T.
+!      REAL(sp), ALLOCATABLE, TARGET :: T_DAY(:,:,:)       ! Holds 1 day of sfc temp data
+!      REAL(sp), ALLOCATABLE, TARGET :: T_15(:,:,:)        ! Holds 15 days of daily avg T
+!      REAL(sp), ALLOCATABLE, TARGET :: T_15_AVG(:,:)      ! Sfc temp avg'd over NUM_DAYS
+!
+!      ! (2) PAR Direct: 
+!!      REAL(hp), ALLOCATABLE, TARGET :: PARDR_DAILY(:,:)   ! Average daily PARDR
+!      REAL(sp), ALLOCATABLE, TARGET :: PARDR_DAY(:,:,:)   ! Holds 1 day of PARDR data
+!      REAL(sp), ALLOCATABLE, TARGET :: PARDR_15(:,:,:)    ! 10 days of daily avg'd PARDR
+!      REAL(sp), ALLOCATABLE, TARGET :: PARDR_15_AVG(:,:)  ! PARDR averaged over NUM_DAYS
+!
+!      ! (3) PAR Diffuse: 
+!!      REAL(hp), ALLOCATABLE, TARGET :: PARDF_DAILY(:,:)   ! Average daily PARDR
+!      REAL(sp), ALLOCATABLE, TARGET :: PARDF_DAY(:,:,:)   ! Holds 1-day of PARDR data
+!      REAL(sp), ALLOCATABLE, TARGET :: PARDF_15(:,:,:)    ! 10 days of daily avg'd PARDR 
+!      REAL(sp), ALLOCATABLE, TARGET :: PARDF_15_AVG(:,:)  ! PARDF averaged over NUM_DAYS
 
-      ! (2) PAR Direct: 
-!      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDR_DAILY(:,:)   ! Average daily PARDR
-      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDR_DAY(:,:,:)   ! Holds 1 day of PARDR data
-      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDR_15(:,:,:)    ! 10 days of daily avg'd PARDR
-      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDR_15_AVG(:,:)  ! PARDR averaged over NUM_DAYS
-
-      ! (3) PAR Diffuse: 
-!      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDF_DAILY(:,:)   ! Average daily PARDR
-      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDF_DAY(:,:,:)   ! Holds 1-day of PARDR data
-      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDF_15(:,:,:)    ! 10 days of daily avg'd PARDR 
-      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDF_15_AVG(:,:)  ! PARDF averaged over NUM_DAYS
+      ! New restart variables (ckeller, 11/05/2015)
+      REAL(sp), ALLOCATABLE         :: T_LASTXDAYS    (:,:)  ! Avg. temperature of last NUM_DAYS
+      REAL(sp), ALLOCATABLE         :: T_LAST24H      (:,:)  ! Avg. temperature of last 24 hours
+      REAL(sp), ALLOCATABLE         :: PARDF_LASTXDAYS(:,:)  ! Avg. PARDF of last NUM_DAYS
+      REAL(sp), ALLOCATABLE         :: PARDR_LASTXDAYS(:,:)  ! Avg. PARDR of last NUM_DAYS
 
       ! previous LAI values (ckeller, 10/09/2014)
-      REAL(sp), ALLOCATABLE, TARGET :: LAI_PREVSTEP(:,:)     ! LAI of prev. time step
+!      REAL(sp), ALLOCATABLE, TARGET :: LAI_PREVSTEP(:,:)     ! LAI of prev. time step
       REAL(sp), ALLOCATABLE, TARGET :: LAI_PREVDAY(:,:)      ! LAI of prev. day
 
       ! Days between mid-months (updated by HEMCO clock)
@@ -319,8 +338,10 @@
 !
       USE HCO_FLUXARR_MOD,     ONLY : HCO_EmisAdd 
       USE HCO_CLOCK_MOD,       ONLY : HcoClock_First 
+      USE HCO_CLOCK_MOD,       ONLY : HcoClock_Rewind
       USE HCO_CLOCK_MOD,       ONLY : HcoClock_NewHour 
       USE HCO_CLOCK_MOD,       ONLY : HcoClock_NewDay
+      USE HCO_Restart_Mod,     ONLY : HCO_RestartWrite
 !
 ! !INPUT PARAMETERS: 
 !
@@ -333,11 +354,16 @@
       INTEGER,         INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY: 
-!  05 Aug 2013 - C. Keller - Initial version 
-!  08 Oct 2014 - C. Keller - Now use HEMCO clock to get days between months
-!  09 Oct 2014 - C. Keller - Now use only GC_LAI. This makes days between months
-!                            obsolete
-!  16 Oct 2014 - C. Keller - Initialize flux arrays to avoid float invalid
+!  05 Aug 2013 - C. Keller   - Initial version 
+!  08 Oct 2014 - C. Keller   - Now use HEMCO clock to get days between months
+!  09 Oct 2014 - C. Keller   - Now use only GC_LAI. This makes days between months
+!                              obsolete
+!  16 Oct 2014 - C. Keller   - Initialize flux arrays to avoid float invalid
+!   9 Mar 2015 - R. Yantosca - Bug fix: add EMIS_ALD2 to $OMP PRIVATE clause
+!  08 May 2015 - C. Keller   - Now read/write restart variables from here to
+!                              accomodate replay runs in GEOS-5.
+!  30 Sep 2015 - C. Keller   - Now add OCPI flux to BIOGENIC_OCPI diagnostics.
+!  12 Dec 2015 - C. Keller   - Apply e-folding times to past conditions.
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -357,6 +383,11 @@
       REAL(hp)            :: X, Y 
       REAL(hp)            :: DIURFACT, DIURORVC
       REAL(hp)            :: TMP
+      REAL(hp)            :: TS_EMIS
+      REAL(hp)            :: DNEWFRAC 
+      REAL(hp)            :: DOLDFRAC
+      REAL(hp)            :: HNEWFRAC 
+      REAL(hp)            :: HOLDFRAC
       LOGICAL             :: ERR
       LOGICAL             :: FIRST, IsNewHour, IsNewDay 
 
@@ -464,25 +495,40 @@
       IF ( FIRST ) THEN
          ! Generate annual emission factors for MEGAN inventory
          CALL CALC_AEF( am_I_Root, HcoState, ExtState, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
 
          ! Calculate normalization factor (dbm, 11/2012)
          CALL CALC_NORM_FAC( am_I_Root, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
       ENDIF
 
-      ! On first call, fill previous day LAI with current LAI since we
-      ! don't know the previous day values yet... 
-      IF ( FIRST ) THEN
+      ! Fill restart variables. This has to be done on the first call
+      ! or after rewinding the clock (in replay simulations). 
+      IF ( FIRST .OR. HcoClock_Rewind( .TRUE. ) ) THEN
          CALL FILL_RESTART_VARS( am_I_Root, HcoState, ExtState, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
-
-      ! On a new day, copy previous LAI values to array that holds
-      ! previous day LAI.
-      ELSEIF ( IsNewDay ) THEN
-         LAI_PREVDAY = LAI_PREVSTEP
       ENDIF
+
+      ! LAI_PREVDAY is now continuously updated (ckeller, 12/8/15)
+!      ! On a new day, copy previous LAI values to array that holds
+!      ! previous day LAI.
+!      ELSEIF ( IsNewDay ) THEN
+!         LAI_PREVDAY = LAI_PREVSTEP
+!      ENDIF
 
       ! Set to 1 day since we know that LAI is updated every day.
       DAYS_BTW_M = 1
+
+      ! Calculate weights for running means of historic variables
+      ! DNEWFRAC and DOLDFRAC are the weights given to the current
+      ! and existing value, respectively, when updating running means
+      ! over the last X days. HNEWFRAC and HOLDFRAC are the same but
+      ! for the 24H means. (ckeller, 11/05/2015)
+      TS_EMIS  = HcoState%TS_EMIS
+      DNEWFRAC = TS_EMIS / ( TAU_DAYS * 24.0_hp * 3600.0_hp )
+      DOLDFRAC = 1.0_hp - DNEWFRAC
+      HNEWFRAC = TS_EMIS / ( TAU_HOURS * 3600.0_hp )
+      HOLDFRAC = 1.0_hp - HNEWFRAC
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -490,9 +536,9 @@
 !$OMP+PRIVATE( EMIS_LIMO, EMIS_SABI, EMIS_MYRC, EMIS_CARE, EMIS_OCIM   )
 !$OMP+PRIVATE( EMIS_OMON, EMIS_MONO, EMIS_MOHX, EMIS_ETOH, EMIS_FAXX   )
 !$OMP+PRIVATE( EMIS_AAXX, EMIS_ACET, EMIS_PRPE, EMIS_C2H4              )
-!$OMP+PRIVATE( EMIS_FARN, EMIS_BCAR, EMIS_OSQT                         )
+!$OMP+PRIVATE( EMIS_FARN, EMIS_BCAR, EMIS_OSQT, EMIS_ALD2              )
 !$OMP+PRIVATE( MONO_MOL,  TMP,       MBOX_MOL                          )
-!$OMP+PRIVATE( DIURFACT, DIURORVC, BIOG_ALPH                           ) 
+!$OMP+PRIVATE( DIURFACT,  DIURORVC,  BIOG_ALPH                         ) 
 !$OMP+PRIVATE( BIOG_LIMO, BIOG_ALCO, X, Y, RC                          )
 
       !-----------------------------------------------------------------
@@ -526,36 +572,36 @@
          EMIS_OSQT  = 0.0_hp
 
          !-----------------------------------------------------------------
-         ! Update internal temperature arrays 
+         ! Update historical temperature / radiation values
          !-----------------------------------------------------------------
    
-         ! Arrays holding hourly temperature bins. Update every hour. 
-         ! For now, all historical values are set to the current values
-         ! on first call. This avoids reading all met-fields of the past
-         ! 10 days, but introduces errors in the MEGAN emissions of the
-         ! first 10 days.
-         IF ( IsNewHour .AND. .NOT. FIRST ) THEN 
-            CALL UPDATE_HCOT_DAY ( HcoState, ExtState, I, J, RC )
-            IF ( RC /= HCO_SUCCESS ) THEN
-               CALL HCO_ERROR( 'UPDATE_HCOT_DAY', RC )
-               ERR = .TRUE.
-               EXIT
-            ENDIF
-         ENDIF
-   
-         ! Arrays holding the daily temperatures. Update every new day
-         ! or on first call. 
-         ! This routine relies on the arrays filled in UPDATE_HCOT_DAY, so
-         ! make sure it's called afterwards!
-         IF ( IsNewDay .AND. .NOT. FIRST ) THEN
-            CALL UPDATE_HCOT_15_AVG ( HcoState, I, J, RC )
-            IF ( RC /= HCO_SUCCESS ) THEN
-               CALL HCO_ERROR( 'UPDATE_HCOT_15_AVG', RC )
-               ERR = .TRUE.
-               EXIT
-            ENDIF
-         ENDIF
-
+!         ! Arrays holding hourly temperature bins. Update every hour. 
+!         ! For now, all historical values are set to the current values
+!         ! on first call. This avoids reading all met-fields of the past
+!         ! 10 days, but introduces errors in the MEGAN emissions of the
+!         ! first 10 days.
+!         IF ( IsNewHour .AND. .NOT. FIRST ) THEN 
+!            CALL UPDATE_T_DAY ( HcoState, ExtState, I, J, RC )
+!            IF ( RC /= HCO_SUCCESS ) THEN
+!               CALL HCO_ERROR( 'UPDATE_T_DAY', RC )
+!               ERR = .TRUE.
+!               EXIT
+!            ENDIF
+!         ENDIF
+!   
+!         ! Arrays holding the daily temperatures. Update every new day
+!         ! or on first call. 
+!         ! This routine relies on the arrays filled in UPDATE_T_DAY, so
+!         ! make sure it's called afterwards!
+!         IF ( IsNewDay .AND. .NOT. FIRST ) THEN
+!            CALL UPDATE_T_15_AVG ( HcoState, I, J, RC )
+!            IF ( RC /= HCO_SUCCESS ) THEN
+!               CALL HCO_ERROR( 'UPDATE_T_15_AVG', RC )
+!               ERR = .TRUE.
+!               EXIT
+!            ENDIF
+!         ENDIF
+ 
          !--------------------------------------------------------------
          ! Calculate VOC emissions 
          !
@@ -850,6 +896,7 @@
       
             ! Lon and lat of grid box (I,J) in degrees
             X = HcoState%Grid%XMID%Val( I, J )
+            IF ( X >= 180.0_hp ) X = X - 360.0_hp
             Y = HcoState%Grid%YMID%Val( I, J )
       
             ! Methyl butenol is emitted only in North America, where
@@ -1199,10 +1246,42 @@
             ENDIF
          ENDIF
 
+         !-----------------------------------------------------------------
+         ! Update historical temperature / radiation values
+         !-----------------------------------------------------------------
+         ! Do this now on every time step. The arrays are simply the
+         ! the running means over the intentend time window (24 hours
+         ! and NUM_DAYS, respectively). This hugely faciliates warm
+         ! model restarts, irrespective of simulation start/end dates
+         ! and times. It also makes sure that all environmental
+         ! variables are incorporated into the time averages (e.g. if
+         ! emission time step is less than 60 minutes, all values will
+         ! be used to calculate the daily mean).  
+         ! (ckeller, 11/05/2015)
+
+         ! Updated LAI of last 24 hours 
+         LAI_PREVDAY(I,J) = ( HOLDFRAC * LAI_PREVDAY(I,J)          )
+     &                    + ( HNEWFRAC * ExtState%LAI%Arr%Val(I,J) )
+
+         ! Updated temperature of last 24 hours
+         T_LAST24H(I,J) = ( HOLDFRAC * T_LAST24H(I,J)            )
+     &                  + ( HNEWFRAC * ExtState%T2M%Arr%Val(I,J) )
+
+         ! Updated temperature of last NUM_DAYS
+         T_LASTXDAYS(I,J) = ( DOLDFRAC * T_LASTXDAYS(I,J)          )
+     &                    + ( DNEWFRAC * ExtState%T2M%Arr%Val(I,J) )
+
+         ! Updated direct radiation of last NUM_DAYS
+         PARDR_LASTXDAYS(I,J) = ( DOLDFRAC * PARDR_LASTXDAYS(I,J)    )
+     &                      + ( DNEWFRAC * ExtState%PARDR%Arr%Val(I,J) )
+
+         ! Updated diffuse radiation of last NUM_DAYS
+         PARDF_LASTXDAYS(I,J) = ( DOLDFRAC * PARDF_LASTXDAYS(I,J)    )
+     &                      + ( DNEWFRAC * ExtState%PARDF%Arr%Val(I,J) )
+
       ENDDO !I
       ENDDO !J
 !$OMP END PARALLEL DO
-
       IF ( ERR ) THEN
          RC = HCO_FAIL
          RETURN
@@ -1217,20 +1296,11 @@
       IF ( IDTISOP > 0 ) THEN
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXISOP, IDTISOP, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXISOP, IDTISOP, RC,
+     &                     ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXISOP', RC )
             RETURN 
-         ENDIF
-
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXISOP
-            CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
-     &                         Cat=-1, Hier=-1, HcoID=IDTISOP,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
          ENDIF
       ENDIF
 
@@ -1240,21 +1310,13 @@
 
          IF ( IDTMONX > 0 ) THEN
             ! Add flux to emission array
-            CALL HCO_EmisAdd( HcoState, FLUXMONO, IDTMONX, RC)
+            CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMONO, IDTMONX, 
+     &                        RC,        ExtNr=ExtNr )
             IF ( RC /= HCO_SUCCESS ) THEN
                CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMONO', RC )
                RETURN 
             ENDIF
          ENDIF
-
-         ! Update diagnostic even if MONX is not a tracer (mps, 2/23/15)
-         Arr2D => FLUXMONO
-         DiagnName =  'BIOGENIC_MONX'
-         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr2D => NULL() 
-
       ENDIF
 
       ! ----------------------------------------------------------------
@@ -1262,20 +1324,11 @@
       IF ( IDTALD2 > 0 ) THEN
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXALD2, IDTALD2, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXALD2, IDTALD2, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXALD2', RC )
             RETURN 
-         ENDIF
-
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXALD2
-            CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
-     &                         Cat=-1, Hier=-1, HcoID=IDTALD2,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
          ENDIF
       ENDIF
 
@@ -1286,40 +1339,28 @@
          ! Eventually add individual diagnostics. These are assumed to
          ! have names MEGAN_ACET_MONO, MEGAN_ACET_MBO, and 
          ! MEGAN_ACET_DIRECT
-         Arr2D     => FLUXACETmo 
          DiagnName =  'MEGAN_ACET_MONO'
          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+     &      cName=TRIM(DiagnName), Array2D=FLUXACETmo, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
 
-         Arr2D     => FLUXACETmb
          DiagnName =  'MEGAN_ACET_MBO'
          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+     &      cName=TRIM(DiagnName), Array2D=FLUXACETmb, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
 
-         Arr2D     => FLUXACETbg 
          DiagnName =  'MEGAN_ACET_DIRECT'
          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+     &      cName=TRIM(DiagnName), Array2D=FLUXACETbg, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
 
          ! Add flux to emission array
          FLUXACETbg = FLUXACETbg + FLUXACETmo + FLUXACETmb
-         CALL HCO_EmisAdd( HcoState, FLUXACETbg, IDTACET, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXACETbg, IDTACET, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXACETbg', RC )
             RETURN 
-         ENDIF
-
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXACETbg
-            CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
-     &                         Cat=-1, Hier=-1, HcoID=IDTACET,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
          ENDIF
       ENDIF
 
@@ -1328,21 +1369,19 @@
       IF ( ( ExtNrMono > 0 ) .AND. ( IDTCO > 0 ) ) THEN
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXCO, IDTCO, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXCO, IDTCO, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXCO', RC )
             RETURN 
          ENDIF
 
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXCO
-            CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono,
-     &                         Cat=-1, Hier=-1, HcoID=IDTCO,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
-         ENDIF
+         ! Also archive the BIOGENIC_CO diagnostic (bmy, 4/29/15)
+         DiagnName =  'BIOGENIC_CO'
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono,
+     &      cName=TRIM(DiagnName), Array2D=FLUXCO, RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN
+         Arr2D => NULL()
       ENDIF
 
       ! ----------------------------------------------------------------
@@ -1350,20 +1389,11 @@
       IF ( IDTPRPE > 0 ) THEN
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXPRPE, IDTPRPE, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXPRPE, IDTPRPE, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXPRPE', RC )
             RETURN 
-         ENDIF
-
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXPRPE
-            CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
-     &                         Cat=-1, Hier=-1, HcoID=IDTPRPE,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
          ENDIF
       ENDIF
 
@@ -1372,20 +1402,11 @@
       IF ( IDTC2H4 > 0 ) THEN
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXC2H4, IDTC2H4, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXC2H4, IDTC2H4, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXC2H4', RC )
             RETURN 
-         ENDIF
-
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXC2H4
-            CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
-     &                         Cat=-1, Hier=-1, HcoID=IDTC2H4,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
          ENDIF
       ENDIF
 
@@ -1396,21 +1417,19 @@
       IF ( IDTOCPI > 0 ) THEN 
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXOCPI, IDTOCPI, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXOCPI, IDTOCPI, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXOCPI', RC )
             RETURN 
          ENDIF
 
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXOCPI
-            CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono,
-     &                         Cat=-1, Hier=-1, HcoID=IDTOCPI,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
-         ENDIF
+         ! Also archive the BIOGENIC_OCPI diagnostic (ckeller, 9/30/15)
+         DiagnName =  'BIOGENIC_OCPI'
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
+     &      cName=TRIM(DiagnName), Array2D=FLUXOCPI, RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN
+         Arr2D => NULL()
       ENDIF
 
       ! ----------------------------------------------------------------
@@ -1418,7 +1437,8 @@
       IF ( ( ExtNrSoa > 0 ) .AND. ( IDTMTPA > 0 ) ) THEN 
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXMTPA, IDTMTPA, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMTPA, IDTMTPA, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMTPA', RC )
             RETURN 
@@ -1431,7 +1451,8 @@
       IF ( ( ExtNrSoa > 0 ) .AND. ( IDTMTPO > 0 ) ) THEN 
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXMTPO, IDTMTPO, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMTPO, IDTMTPO, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMTPO', RC )
             RETURN 
@@ -1444,7 +1465,8 @@
       IF ( ( ExtNrSoa > 0 ) .AND. ( IDTLIMO > 0 ) ) THEN
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXLIMO, IDTLIMO, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXLIMO, IDTLIMO, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXLIMO', RC )
             RETURN 
@@ -1457,7 +1479,8 @@
       IF ( (ExtNrSoa>0) .AND. (IDTSESQ>0) ) THEN
 
          ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXSESQ, IDTSESQ, RC)
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSESQ, IDTSESQ, 
+     &                     RC,        ExtNr=ExtNr )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSESQ', RC )
             RETURN 
@@ -1472,114 +1495,94 @@
 
          ! -------------------------------------------------------------
          ! Methyl butenol
-         Arr2D => FLUXMBOX
          DiagnName =  'BIOGENIC_MBOX'
          CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+     &     cName=TRIM(DiagnName), Array2D=FLUXMBOX, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr2D => NULL() 
 
          ! -------------------------------------------------------------
          ! Alpha Pinene
-         Arr2D => FLUXAPIN
          DiagnName =  'BIOGENIC_APIN'
          CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+     &      cName=TRIM(DiagnName), Array2D=FLUXAPIN, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr2D => NULL() 
 
          ! -------------------------------------------------------------
          ! Beta Pinene
-         Arr2D => FLUXBPIN
          DiagnName =  'BIOGENIC_BPIN'
          CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+     &      cName=TRIM(DiagnName), Array2D=FLUXBPIN, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr2D => NULL() 
 
          ! -------------------------------------------------------------
          ! Limonene
-         Arr2D => FLUXLIMO
          DiagnName =  'BIOGENIC_LIMO'
          CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+     &      cName=TRIM(DiagnName), Array2D=FLUXLIMO, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr2D => NULL() 
 
          ! -------------------------------------------------------------
          ! Sabinene
-         Arr2D => FLUXSABI
          DiagnName =  'BIOGENIC_SABI'
          CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+     &      cName=TRIM(DiagnName), Array2D=FLUXSABI, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr2D => NULL() 
 
          ! -------------------------------------------------------------
          ! Mycrene
-         Arr2D => FLUXMYRC
          DiagnName =  'BIOGENIC_MYRC'
          CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+     &      cName=TRIM(DiagnName), Array2D=FLUXMYRC, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr2D => NULL() 
 
          ! -------------------------------------------------------------
          ! 3-Carene
-         Arr2D => FLUXCARE
          DiagnName =  'BIOGENIC_CARE'
          CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+     &      cName=TRIM(DiagnName), Array2D=FLUXCARE, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr2D => NULL() 
 
          ! -------------------------------------------------------------
          ! Ocimene
-         Arr2D => FLUXOCIM
          DiagnName =  'BIOGENIC_OCIM'
          CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+     &      cName=TRIM(DiagnName), Array2D=FLUXOCIM, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr2D => NULL() 
 
          ! -------------------------------------------------------------
          ! Other monoterpenes
-         Arr2D => FLUXOMON
          DiagnName =  'BIOGENIC_OMON'
          CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+     &      cName=TRIM(DiagnName), Array2D=FLUXOMON, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr2D => NULL() 
+
+         ! -------------------------------------------------------------
+         ! Total monoterpenes
+         DiagnName =  'BIOGENIC_MONX'
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
+     &      cName=TRIM(DiagnName), Array2D=FLUXMONO, RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN 
 
          ! -------------------------------------------------------------
          ! a-Farnesene
-         Arr2D => FLUXFARN
          DiagnName =  'BIOGENIC_FARN'
          CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D,
-     &                      RC=RC)
+     &      cName=TRIM(DiagnName), Array2D=FLUXFARN, RC=RC )
          IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr2D => NULL() 
 
          ! -------------------------------------------------------------
          ! b_Caryophyllene
-         Arr2D => FLUXBCAR
          DiagnName =  'BIOGENIC_BCAR'
          CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D,
-     &                      RC=RC)
+     &      cName=TRIM(DiagnName), Array2D=FLUXBCAR, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr2D => NULL()
 
          ! -------------------------------------------------------------
          ! Other sesquiterpenes
-         Arr2D => FLUXOSQT
          DiagnName =  'BIOGENIC_OSQT'
          CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D,
-     &                      RC=RC)
+     &      cName=TRIM(DiagnName), Array2D=FLUXOSQT, RC=RC )
          IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr2D => NULL()
 
       ENDIF
 
@@ -1594,39 +1597,80 @@
       !  above (mps, 2/19/15)
       ! ----------------------------------------------------------------
       ! Methanol
-      Arr2D => FLUXMOHX
       DiagnName =  'BIOGENIC_MOHX'
       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, 
-     &                   cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+     &   cName=TRIM(DiagnName), Array2D=FLUXMOHX, RC=RC)
       IF ( RC /= HCO_SUCCESS ) RETURN 
-      Arr2D => NULL() 
 
       ! ----------------------------------------------------------------
       ! Ethanol
-      Arr2D => FLUXETOH
       DiagnName =  'BIOGENIC_ETOH'
       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, 
-     &                   cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+     &   cName=TRIM(DiagnName), Array2D=FLUXETOH, RC=RC)
       IF ( RC /= HCO_SUCCESS ) RETURN 
-      Arr2D => NULL() 
 
       ! ----------------------------------------------------------------
       ! Formic acid
-      Arr2D => FLUXFAXX
       DiagnName =  'BIOGENIC_FAXX'
       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, 
-     &                   cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+     &   cName=TRIM(DiagnName), Array2D=FLUXFAXX, RC=RC)
       IF ( RC /= HCO_SUCCESS ) RETURN 
-      Arr2D => NULL() 
 
       ! ----------------------------------------------------------------
       ! Acetic acid
-      Arr2D => FLUXAAXX
       DiagnName =  'BIOGENIC_AAXX'
       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, 
-     &                   cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+     &   cName=TRIM(DiagnName), Array2D=FLUXAAXX, RC=RC)
       IF ( RC /= HCO_SUCCESS ) RETURN 
-      Arr2D => NULL() 
+
+      ! ----------------------------------------------------------------
+      ! Eventually copy internal values to ESMF internal state object
+      ! ----------------------------------------------------------------
+
+      ! LAI_PREVDAY
+      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+     &                       'LAI_PREVDAY', LAI_PREVDAY, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+!      ! T_DAVG
+!      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+!     &                       'T_DAVG', T_15_AVG, RC ) 
+!      IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!      ! T_PREVDAY
+!      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+!     &                       'T_PREVDAY', T_15(:,:,1), RC ) 
+!      IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!      ! PARDR_DAVG
+!      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+!     &                       'PARDR_DAVG', PARDR_15_AVG, RC ) 
+!      IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!      ! PARDF_DAVG
+!      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+!     &                       'PARDF_DAVG', PARDF_15_AVG, RC ) 
+!      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! T_LAST24H 
+      CALL HCO_RestartWrite( am_I_Root,    HcoState, 
+     &                       'T_PREVDAY',  T_LAST24H, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! T_LASTXDAYS 
+      CALL HCO_RestartWrite( am_I_Root,    HcoState, 
+     &                       'T_DAVG',     T_LASTXDAYS, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! PARDR_LASTXDAYS 
+      CALL HCO_RestartWrite( am_I_Root,    HcoState, 
+     &                       'PARDR_DAVG', PARDR_LASTXDAYS, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! PARDF_LASTXDAYS 
+      CALL HCO_RestartWrite( am_I_Root,    HcoState, 
+     &                       'PARDF_DAVG', PARDF_LASTXDAYS, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
 
       !=================================================================
       ! ALL DONE! 
@@ -1644,8 +1688,9 @@
 !      write(*,*) 'total OCPI: ', SUM(FLUXOCPI)
 !      write(*,*) ''
 
-      ! Keep LAI in memory (ckeller, 10/9/2014)
-      LAI_PREVSTEP = ExtState%GC_LAI%Arr%Val
+!      ! Keep LAI in memory (ckeller, 10/9/2014)
+       ! LAI_PREVDAY is now continuously being updated (ckeller, 12/8/15)
+!      LAI_PREVSTEP = ExtState%LAI%Arr%Val
 
       ! Return w/ success
       CALL HCO_LEAVE ( RC )
@@ -1659,8 +1704,8 @@
 !
 ! !IROUTINE: Get_Megan_Emissions
 !
-! !DESCRIPTION: Subroutine Get\_EmIsop\_Megan computes isoprene emissions in 
-!  units of [atoms C/box] using the MEGAN inventory. (dbm, 12/2012)
+! !DESCRIPTION: Subroutine Get\_Megan\Emissions computes biogenic emissions in 
+!  units of [kgC/m2/s] or [kg/m2/s] using the MEGAN inventory. (dbm, 12/2012)
 !\\
 !\\
 ! !INTERFACE:
@@ -1677,8 +1722,8 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(hp),         INTENT(OUT) :: MEGAN_EMIS ! VOC emission in atomsC/box 
-                                                  ! or molec/box, depending on
+      REAL(hp),         INTENT(OUT) :: MEGAN_EMIS ! VOC emission in kgC/m2/s 
+                                                  ! or kg/m2/s, depending on
                                                   ! units the compound is
                                                   ! carried in
 !
@@ -1707,6 +1752,8 @@
 !  11 Apr 2012 - R. Yantosca - Cosmetic changes
 !  26 Jan 2015 - M. Sulprizio- Update from D. Millet (21 Jun 2012): New driver
 !                              routine for all MEGAN compounds
+!  15 Sep 2015 - M. Sulprizio- Add CO2 inhibition effect on isoprene emissions
+!                              from Amos Tai (Jan 2013)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1719,6 +1766,7 @@
       REAL(hp)  :: GAMMA_T_LD
       REAL(hp)  :: GAMMA_T_LI
       REAL(hp)  :: GAMMA_SM
+      REAL(hp)  :: GAMMA_CO2  ! (Tai, Jan 2013)
       REAL(hp)  :: AEF
       REAL(hp)  :: D_BTW_M
       REAL(hp)  :: TS, SUNCOS
@@ -1740,6 +1788,7 @@
       GAMMA_T_LI = 0.0_hp
       GAMMA_PAR  = 0.0_hp
       GAMMA_SM   = 0.0_hp
+      GAMMA_CO2  = 0.0_hp  ! (Tai, Jan 2013)
       BETA       = 0.0_hp
       AEF        = 0.0_hp
       LDF        = 0.0_hp
@@ -1754,12 +1803,12 @@
       ! Number of days between MISOLAI and PMISOLAI
       D_BTW_M  = DBLE( DAYS_BTW_M )
 
-      ! Pass met variables. Now use only GC_LAI (ckeller, 10/9/2014)
-      ISOLAI   = ExtState%GC_LAI%Arr%Val(I,J)
+      ! Pass met variables. Now use only LAI (ckeller, 10/9/2014)
+      ISOLAI   = ExtState%LAI%Arr%Val(I,J)
       PMISOLAI = LAI_PREVDAY(I,J)
       MISOLAI  = ISOLAI
       TS       = ExtState%T2M%Arr%Val(I,J)
-      SUNCOS   = ExtState%SUNCOSmid%Arr%Val(I,J)
+      SUNCOS   = ExtState%SUNCOS%Arr%Val(I,J)
 
       ! Convert Q_DIR and Q_DIFF from (W/m2) to (micromol/m2/s)
       Q_DIR_2  = ExtState%PARDR%Arr%Val(I,J) * WM2_TO_UMOLM2S
@@ -1773,7 +1822,7 @@
 
       ! --------------------------------------------
       ! Get base emission factor for this compound and grid square
-      ! Units: atomsC/box or molec/box
+      ! Units: kgC/m2/s or kg/m2/s
       ! --------------------------------------------
       CALL GET_MEGAN_AEF ( I, J, CMPD, AEF, RC )
      
@@ -1792,8 +1841,10 @@
 
             GAMMA_PAR = GET_GAMMA_PAR_PCEEA(HcoState, ExtState, I, J, 
      &                                      Q_DIR_2,  Q_DIFF_2,
-     &                                      HCOPARDR_15_AVG(I,J),
-     &                                      HCOPARDF_15_AVG(I,J)  )
+     &                                      PARDR_LASTXDAYS(I,J), 
+     &                                      PARDF_LASTXDAYS(I,J) )
+!     &                                      PARDR_15_AVG(I,J),
+!     &                                      PARDF_15_AVG(I,J)  )
 
          ELSE             
  
@@ -1812,8 +1863,10 @@
          ! GAMMA_T_LD (temperature activity factor for
          ! light-dependent fraction)
          ! --------------------------------------------------
-         GAMMA_T_LD = GET_GAMMA_T_LD( TS, HCOT_15_AVG(I,J), 
-     &        HCOT_15(I,J,1), CT1, CEO )
+         GAMMA_T_LD = GET_GAMMA_T_LD( TS, T_LASTXDAYS(I,J), 
+     &        T_LAST24H(I,J), CT1, CEO )
+!         GAMMA_T_LD = GET_GAMMA_T_LD( TS, T_15_AVG(I,J), 
+!     &        T_15(I,J,1), CT1, CEO )
 
          ! --------------------------------------------------
          ! GAMMA_LAI (leaf area index activity factor)
@@ -1824,12 +1877,20 @@
          ! GAMMA_AGE (leaf age activity factor)
          ! --------------------------------------------------
          GAMMA_AGE = GET_GAMMA_AGE( MISOLAI, PMISOLAI, 
-     &        D_BTW_M, HCOT_15_AVG(I,J), ANEW, AGRO, AMAT, AOLD )
+     &        D_BTW_M, T_LASTXDAYS(I,J), ANEW, AGRO, AMAT, AOLD )
+!     &        D_BTW_M, T_15_AVG(I,J), ANEW, AGRO, AMAT, AOLD )
 
          ! --------------------------------------------------
          ! GAMMA_SM (soil moisture activity factor)
          ! --------------------------------------------------
          GAMMA_SM = GET_GAMMA_SM( ExtState, I, J, CMPD )
+
+         ! CO2 inhibition of isoprene (Tai, Jan 2013)
+         IF ( LISOPCO2 ) THEN
+            GAMMA_CO2 = GET_GAMMA_CO2( GLOBCO2 )
+         ELSE
+            GAMMA_CO2 = 1.0_hp
+         ENDIF
 
       ELSE
 
@@ -1840,17 +1901,30 @@
          GAMMA_LAI  = 0.0_hp
          GAMMA_AGE  = 0.0_hp
          GAMMA_SM   = 0.0_hp
+         GAMMA_CO2  = 0.0_hp  ! (Tai, Jan 2013)
 
       END IF
 
       ! Emission is the product of all of these.
-      ! Units here are atomsC/box or molec/box as appropriate for the compound.
+      ! Units here are kgC/m2/s or kg/m2/s as appropriate for the compound.
       ! Normalization factor ensures product of GAMMA values is 1.0 under
       !  standard conditions. 
-      MEGAN_EMIS = NORM_FAC(1) * AEF * GAMMA_AGE * GAMMA_SM * GAMMA_LAI
-     &           * ((1.0_hp - LDF) * GAMMA_T_LI +
-     &             (LDF * GAMMA_PAR * GAMMA_T_LD))
-
+      IF ( CMPD == 'ISOP' ) THEN
+         ! Only apply CO2 inhibition to isoprene (mps, 9/15/15)
+         ! Amos Tai wrote: 
+         !  In my opinion, we should not apply the CO2 inhibition factor on
+         !  other monoterpene species yet, because the empirical data I've used
+         !  are for isoprene emissions only. But we generally agree that CO2
+         !  inhibition should affect monoterpenes too, so we'll leave room for
+         !  future incorporation when new data arise.
+         MEGAN_EMIS = NORM_FAC(1) * AEF * GAMMA_AGE * GAMMA_SM *
+     &                GAMMA_LAI * ((1.0_hp - LDF) * GAMMA_T_LI +
+     &                (LDF * GAMMA_PAR * GAMMA_T_LD)) * GAMMA_CO2
+      ELSE
+         MEGAN_EMIS = NORM_FAC(1) * AEF * GAMMA_AGE * GAMMA_SM *
+     &                GAMMA_LAI * ((1.0_hp - LDF) * GAMMA_T_LI +
+     &                (LDF * GAMMA_PAR * GAMMA_T_LD))
+      ENDIF
 
 !      ! testing only
 !      if ( i==ix .and. j==iy ) then
@@ -1868,10 +1942,10 @@
 !         write(*,*) 'GAMMA_PAR      : ', GAMMA_PAR
 !         write(*,*) 'GAMMA_SM       : ', GAMMA_SM
 !         write(*,*) 'TS             : ', TS
-!         write(*,*) 'HCOT_15_AVG    : ', HCOT_15_AVG(I,J)
+!         write(*,*) 'T_15_AVG    : ', T_15_AVG(I,J)
 !         write(*,*) 'HCOT_DAILY     : ', HCOT_DAILY(I,J)
-!         write(*,*) 'HCOPARDR_15_AVG: ', HCOPARDR_15_AVG(I,J)
-!         write(*,*) 'HCOPARDF_15_AVG: ', HCOPARDF_15_AVG(I,J)
+!         write(*,*) 'PARDR_15_AVG: ', PARDR_15_AVG(I,J)
+!         write(*,*) 'PARDF_15_AVG: ', PARDF_15_AVG(I,J)
 !         write(*,*) 'ISOLAI         : ', ISOLAI
 !         write(*,*) 'MISOLAI        : ', MISOLAI
 !         write(*,*) 'PMISOLAI       : ', PMISOLAI
@@ -2152,7 +2226,7 @@
 ! !OUTPUT PARAMETERS: 
 !
       REAL(hp),          INTENT(OUT) :: EMFAC       ! MEGAN base emission factor
-                                                    ! (molec/box or atomsC/box)
+                                                    ! (kgC/m2/s or kg/m2/s)
                                                     ! for grid cell (I,J)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -2253,8 +2327,8 @@
 ! !INTERFACE:
 !
       FUNCTION GET_GAMMA_PAR_PCEEA( HcoState, ExtState, I, J, Q_DIR_2, 
-     &                              Q_DIFF_2, HCOPARDR_AVG_SIM, 
-     &                              HCOPARDF_AVG_SIM )
+     &                              Q_DIFF_2, PARDR_AVG_SIM, 
+     &                              PARDF_AVG_SIM )
      &              RESULT( GAMMA_P_PCEEA )
 !
 ! !USES:
@@ -2266,8 +2340,8 @@
       TYPE(HCO_State), POINTER    :: HcoState
       TYPE(Ext_State), POINTER    :: ExtState
       INTEGER,         INTENT(IN) :: I,  J             ! Lon & lat indices 
-      REAL(sp),        INTENT(IN) :: HCOPARDR_AVG_SIM  ! Avg direct PAR [W/m2]
-      REAL(sp),        INTENT(IN) :: HCOPARDF_AVG_SIM  ! Avg diffuse PAR [W/m2]
+      REAL(sp),        INTENT(IN) :: PARDR_AVG_SIM     ! Avg direct PAR [W/m2]
+      REAL(sp),        INTENT(IN) :: PARDF_AVG_SIM     ! Avg diffuse PAR [W/m2]
       REAL(hp),        INTENT(IN) :: Q_DIR_2           ! Direct PAR [umol/m2/s]
       REAL(hp),        INTENT(IN) :: Q_DIFF_2          ! Diffuse PAR [umol/m2/s]
 !
@@ -2296,8 +2370,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(hp)   :: mmHCOPARDR_DAILY
-      REAL(hp)   :: mmHCOPARDF_DAILY
+      REAL(hp)   :: mmPARDR_DAILY
+      REAL(hp)   :: mmPARDF_DAILY
       REAL(hp)   :: PAC_DAILY, PAC_INSTANT, C_PPFD
       REAL(hp)   :: PTOA, PHI
       REAL(hp)   :: BETA,   SINbeta 
@@ -2315,11 +2389,11 @@
       PTOA     = 0.0_hp
 
       ! Convert past light conditions to micromol/m2/s 
-      mmHCOPARDR_DAILY   = HCOPARDR_AVG_SIM  * WM2_TO_UMOLM2S
-      mmHCOPARDF_DAILY   = HCOPARDF_AVG_SIM  * WM2_TO_UMOLM2S
+      mmPARDR_DAILY   = PARDR_AVG_SIM  * WM2_TO_UMOLM2S
+      mmPARDF_DAILY   = PARDF_AVG_SIM  * WM2_TO_UMOLM2S
 
       ! Work out the light at the top of the canopy.
-      PAC_DAILY    = mmHCOPARDR_DAILY + mmHCOPARDF_DAILY
+      PAC_DAILY    = mmPARDR_DAILY + mmPARDF_DAILY
       PAC_INSTANT  = Q_DIR_2       +  Q_DIFF_2
 
       ! Get latitude
@@ -2448,8 +2522,8 @@
 !
 ! !IROUTINE: Get_Gamma_T_LI
 !
-! !DESCRIPTION: Function Get\_Gamma\_T\_LI computes the temperature 
-!  activity factor (GAMMA\_T_LI) for the light-independent fraction of emissions
+! !DESCRIPTION: Function Get\_Gamma\_T\_LI computes the temperature activity
+!  factor (GAMMA\_T\_LI) for the light-independent fraction of emissions
 !\\
 !\\
 ! !INTERFACE:
@@ -2847,6 +2921,12 @@
 !  (1 ) Created by dbm (6/2012). We are not currently using a soil moisture
 !       effect for isoprene. For all compounds other than acetaldehyde and
 !       ethanol, gamma_sm =1 presently.
+!  16 Apr 2015 - C. Keller   - Now restrict GWETROOT to values between 0.0 and
+!                              1.0. This only seems to be a problem within the
+!                              GEOS-5 ESM, where GWETROOT values over the ocean
+!                              become 1e+15 (= missing value).
+!  12 Aug 2015 - R. Yantosca - Extend #ifdef for MERRA2 meteorology
+ 
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -2862,9 +2942,11 @@
       GAMMA_SM = 1.0_hp
 
       ! GWETROOT is only defined for GEOS-5
-#if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
+#if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
 
-      GWETROOT = ExtState%GWETROOT%Arr%Val(I,J)
+      !GWETROOT = ExtState%GWETROOT%Arr%Val(I,J)
+      ! Error trap: GWETROOT must be between 0.0 and 1.0 (ckeller, 4/16/15)
+      GWETROOT = MIN(MAX(ExtState%GWETROOT%Arr%Val(I,J),0.0_hp),1.0_hp)
 
       IF ( TRIM( CMPD ) == 'ALD2' .OR. TRIM ( CMPD ) == 'ETOH' ) THEN
          
@@ -2884,6 +2966,139 @@
       ! return to calling program
       END FUNCTION GET_GAMMA_SM
 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_gamma_co2
+!
+! !DESCRIPTION: Function GET\_GAMMA\_CO2 computes the CO2 activity factor  
+!  associated with CO2 inhibition of isoprene emission. Called from
+!  GET\_MEGAN\_EMISSIONS only.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_GAMMA_CO2( CO2a ) RESULT( GAMMA_CO2 )
+!
+! !INPUT PARAMETERS: 
+      REAL(hp), INTENT(IN) :: CO2a       ! Atmospheric CO2 conc [ppmv]
+!
+! !RETURN VALUE:
+      REAL(hp)             :: GAMMA_CO2  ! CO2 activity factor [unitless]
+!
+! !LOCAL VARIABLES:
+      REAL(hp)             :: CO2i       ! Intercellular CO2 conc [ppmv]
+      REAL(hp)             :: ISMAXi     ! Asymptote for intercellular CO2
+      REAL(hp)             :: HEXPi      ! Exponent for intercellular CO2
+      REAL(hp)             :: CSTARi     ! Scaling coef for intercellular CO2
+      REAL(hp)             :: ISMAXa     ! Asymptote for atmospheric CO2
+      REAL(hp)             :: HEXPa      ! Exponent for atmospheric CO2
+      REAL(hp)             :: CSTARa     ! Scaling coef for atmospheric CO2
+      LOGICAL              :: LPOSSELL   ! Use Possell & Hewitt (2011)?
+      LOGICAL              :: LWILKINSON ! Use Wilkinson et al. (2009)?
+
+!
+! !REMARKS:
+!  References:
+!  ============================================================================
+!  (1 ) Heald, C. L., Wilkinson, M. J., Monson, R. K., Alo, C. A., 
+!       Wang, G. L., and Guenther, A.: Response of isoprene emission 
+!       to ambient co(2) changes and implications for global budgets, 
+!       Global Change Biology, 15, 1127-1140, 2009.
+!  (2 ) Wilkinson, M. J., Monson, R. K., Trahan, N., Lee, S., Brown, E.,
+!       Jackson, R. B., Polley, H. W., Fay, P. A., and Fall, R.: Leaf 
+!       isoprene emission rate as a function of atmospheric CO2 
+!       concentration, Global Change Biology, 15, 1189-1200, 2009.
+!  (3 ) Possell, M., and Hewitt, C. N.: Isoprene emissions from plants 
+!       are mediated by atmospheric co2 concentrations, Global Change 
+!       Biology, 17, 1595-1610, 2011.
+! 
+! !REVISION HISTORY: 
+!  (1 ) Implemented in the standard code by A. Tai (Jun 2012).
+!  15 Sep 2015 - M. Sulprizio- Implemented into hcox_megan_mod.F
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      !----------------------------------------------------------
+      ! Choose between two alternative CO2 inhibition schemes
+      !----------------------------------------------------------
+
+      ! Empirical relationship of Possell & Hewitt (2011) based on nine
+      ! experimental studies including Wilkinson et al. (2009). This is
+      ! especially recommended for sub-ambient CO2 concentrations:
+      LPOSSELL    = .TRUE.   ! Default option
+
+      ! Semi-process-based parameterization of Wilkinson et al. (2009),
+      ! taking into account of sensitivity to intercellular CO2
+      ! fluctuation, which is here set as a constant fraction of 
+      ! atmospheric CO2:
+      LWILKINSON  = .FALSE.   ! Set .TRUE. only if LPOSSELL = .FALSE.
+
+      !-----------------------
+      ! Compute GAMMA_CO2
+      !-----------------------
+      
+      IF ( LPOSSELL ) THEN
+
+         ! Use empirical relationship of Possell & Hewitt (2011):
+         GAMMA_CO2 = 8.9406_hp / 
+     &               ( 1.0_hp + 8.9406_hp * 0.0024_hp * CO2a )
+
+      ELSEIF ( LWILKINSON ) THEN
+
+         ! Use parameterization of Wilkinson et al. (2009):
+
+         ! Parameters for intercellular CO2 using linear interpolation:
+         IF ( CO2a <= 600.0_hp ) THEN
+            ISMAXi = 1.036_hp  - (1.036_hp - 1.072_hp) / 
+     &               (600.0_hp - 400.0_hp) * (600.0_hp - CO2a)
+            HEXPi  = 2.0125_hp - (2.0125_hp - 1.7000_hp) /
+     &               (600.0_hp - 400.0_hp) * (600.0_hp - CO2a)
+            CSTARi = 1150.0_hp - (1150.0_hp - 1218.0_hp) /
+     &               (600.0_hp - 400.0_hp) * (600.0_hp - CO2a)
+         ELSEIF ( CO2a > 600.0_hp .AND. CO2a < 800.0_hp ) THEN
+            ISMAXi = 1.046_hp  - (1.046_hp - 1.036_hp) /
+     &               (800.0_hp - 600.0_hp) * (800.0_hp - CO2a)
+            HEXPi  = 1.5380_hp - (1.5380_hp - 2.0125_hp) /
+     &               (800.0_hp - 600.0_hp) * (800.0_hp - CO2a)
+            CSTARi = 2025.0_hp - (2025.0_hp - 1150.0_hp) /
+     &               (800.0_hp - 600.0_hp) * (800.0_hp - CO2a)
+         ELSE
+            ISMAXi = 1.014_hp - (1.014_hp - 1.046_hp) /
+     &               (1200.0_hp - 800.0_hp) * (1200.0_hp - CO2a)
+            HEXPi  = 2.8610_hp - (2.8610_hp - 1.5380_hp) /
+     &               (1200.0_hp - 800.0_hp) * (1200.0_hp - CO2a)
+            CSTARi = 1525.0_hp - (1525.0_hp - 2025.0_hp) /
+     &               (1200.0_hp - 800.0_hp) * (1200.0_hp - CO2a)
+         ENDIF
+      
+         ! Parameters for atmospheric CO2:
+         ISMAXa    = 1.344_hp
+         HEXPa     = 1.4614_hp
+         CSTARa    = 585.0_hp
+
+         ! For now, set CO2_Ci = 0.7d0 * CO2_Ca as recommended by Heald
+         ! et al. (2009):
+         CO2i      = 0.7_hp * CO2a
+
+         ! Compute GAMMA_CO2:
+         GAMMA_CO2 = ( ISMAXi -  ISMAXi * CO2i**HEXPi / 
+     &                ( CSTARi**HEXPi + CO2i**HEXPi ) ) 
+     &                * ( ISMAXa - ISMAXa * ( 0.7_hp * CO2a )**HEXPa /
+     &                ( CSTARa**HEXPa + ( 0.7_hp * CO2a )**HEXPa ) )
+
+      ELSE
+
+         ! No CO2 inhibition scheme is used; GAMMA_CO2 set to unity:
+         GAMMA_CO2 = 1.0_hp
+
+      ENDIF
+
+      END FUNCTION GET_GAMMA_CO2
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -3048,7 +3263,7 @@
 !
 ! !USES:
 !
-      USE HCO_EMISLIST_MOD,    ONLY : HCO_GetPtr
+      USE HCO_Restart_Mod,    ONLY : HCO_RestartGet
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3061,7 +3276,8 @@
       INTEGER,         INTENT(INOUT)  :: RC
 ! 
 ! !REVISION HISTORY: 
-!  19 Dec 2014 - C. Keller   - Initial version 
+!  19 Dec 2014 - C. Keller    - Initial version 
+!  09 Mar 2015 - C. Keller    - Now use HCO_RestartGet to fill restarts 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3070,7 +3286,6 @@
 !
       INTEGER           :: I
       LOGICAL           :: FND
-      REAL(sp), POINTER :: Ptr2D(:,:) => NULL()
 
       !=================================================================
       ! FILL_RESTART_VARS begins here!
@@ -3085,287 +3300,278 @@
       ! we can determine a trend in the daily average temperatures
       ! (between the long term daily averages and the most recent daily
       ! average).
+      ! We now first call HCO_CopyFromInt_ESMF to check if the variable
+      ! is found in the (ESMF) internal state object. In an non-ESMF
+      ! environment, this call will always return FND=.FALSE.
+      ! (ckeller, 3/9/15).
 
       !-----------------------------------------------------------------
       ! LAI
       !-----------------------------------------------------------------
+      CALL HCO_RestartGet( am_I_Root,     HcoState, 
+     &                     'LAI_PREVDAY', LAI_PREVDAY, RC, FILLED=FND )
 
-      ! Get data
-      CALL HCO_GetPtr( am_I_Root, 'LAI_PREVDAY', Ptr2D, RC, FOUND=FND )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-      
-      ! Fill variables
+      ! Default value
       IF ( .NOT. FND ) THEN
-         LAI_PREVDAY = ExtState%GC_LAI%Arr%Val
-      ELSE
-         LAI_PREVDAY = Ptr2D 
+         LAI_PREVDAY = ExtState%LAI%Arr%Val
       ENDIF
 
-      ! Cleanup
-      Ptr2D => NULL()
+!      !-----------------------------------------------------------------
+!      ! TEMPERATURE
+!      !-----------------------------------------------------------------
+!      CALL HCO_RestartGet( am_I_Root, HcoState, 
+!     &                    'T_DAVG',  T_15_AVG, RC, FILLED=FND )
+!
+!      ! Default value
+!      IF ( .NOT. FND ) THEN
+!         T_15_AVG = ExtState%T2M%Arr%Val
+!      ENDIF
+!
+!      ! Set all daily averages to this value. 
+!      DO I = 1, NUM_DAYS
+!         T_15(:,:,I) = T_15_AVG 
+!      ENDDO 
+!
+!      ! -------------------------------------------------------------
+!      ! Check for most recent daily average. This will overwrite the
+!      ! first slice of T_15.
+!      CALL HCO_RestartGet( am_I_Root,   HcoState, 
+!     &                    'T_PREVDAY', T_15(:,:,1), RC, FILLED=FND )
+!
+!      ! Default value
+!      IF ( .NOT. FND ) THEN
+!         T_15(:,:,1) = T_15_AVG
+!      ENDIF
+!
+!      ! Set hourly variables
+!      DO I = 1, DAY_DIM 
+!         T_DAY(:,:,I) = T_15(:,:,1)
+!      ENDDO
+!
+!      !-----------------------------------------------------------------
+!      ! DIRECT RADIATION ( PARDR )
+!      !-----------------------------------------------------------------
+!      CALL HCO_RestartGet( am_I_Root,    HcoState, 
+!     &                    'PARDR_DAVG', PARDR_15_AVG, RC, FILLED=FND)
+!
+!      ! Default value
+!      IF ( .NOT. FND ) THEN
+!         PARDR_15_AVG = ExtState%PARDR%Arr%Val
+!      ENDIF
+!
+!      ! Set daily averages
+!      DO I = 1, NUM_DAYS
+!         PARDR_15(:,:,I) = PARDR_15_AVG
+!      ENDDO 
+!
+!      ! Set hourly variables
+!      DO I = 1, DAY_DIM 
+!         PARDR_DAY(:,:,I) = PARDR_15(:,:,1) 
+!      ENDDO
+!
+!      !-----------------------------------------------------------------
+!      ! DIFFUSE RADIATION ( PARDF )
+!      !-----------------------------------------------------------------
+!      CALL HCO_RestartGet( am_I_Root,    HcoState, 
+!     &                    'PARDF_DAVG', PARDF_15_AVG, RC, FILLED=FND)
+!
+!      ! Default value
+!      IF ( .NOT. FND ) THEN
+!         PARDF_15_AVG = ExtState%PARDF%Arr%Val
+!      ENDIF
+!
+!      ! Set daily averages
+!      DO I = 1, NUM_DAYS
+!         PARDF_15(:,:,I) = PARDF_15_AVG
+!      ENDDO 
+!
+!      ! Set hourly variables
+!      DO I = 1, DAY_DIM 
+!         PARDF_DAY(:,:,I) = PARDF_15(:,:,1)
+!      ENDDO
 
-      !-----------------------------------------------------------------
-      ! TEMPERATURE
-      !-----------------------------------------------------------------
+      ! Temperature over last 24 hours
+      CALL HCO_RestartGet( am_I_Root, HcoState, 'T_PREVDAY',
+     &                     T_LAST24H, RC,       DefVal = 288.15 )
 
-      ! Get data
-      CALL HCO_GetPtr( am_I_Root, 'T_DAVG', Ptr2D, RC, FOUND=FND )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-     
-      ! Set average of HCOT_15 array
-      ! Use current temperature if restart not found 
-      IF ( .NOT. FND ) THEN
-         HCOT_15_AVG = ExtState%T2M%Arr%Val
-      ELSE
-         HCOT_15_AVG = Ptr2D 
-      ENDIF
+      ! Temperature over last X days 
+      CALL HCO_RestartGet( am_I_Root,   HcoState, 'T_DAVG',
+     &                     T_LASTXDAYS, RC,       DefVal = 288.15 )
 
-      ! Set all daily averages to this value. 
-      DO I = 1, NUM_DAYS
-         HCOT_15(:,:,I) = HCOT_15_AVG 
-      ENDDO 
+      ! Direct radiation (PARDR) over last X days 
+      CALL HCO_RestartGet( am_I_Root,       HcoState, 'PARDR_DAVG',
+     &                     PARDR_LASTXDAYS, RC,       DefVal = 30.0 )
 
-      ! Cleanup
-      Ptr2D => NULL() 
-
-      ! Check for most recent daily average
-      CALL HCO_GetPtr( am_I_Root, 'T_PREVDAY', Ptr2D, RC, FOUND=FND )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      ! Eventually overwrite most recent entry in HCOT_15. 
-      IF ( FND ) THEN
-         HCOT_15(:,:,1) = Ptr2D
-      ENDIF
-
-      ! Set hourly variables
-      DO I = 1, DAY_DIM 
-         HCOT_DAY(:,:,I) = HCOT_15(:,:,1)
-      ENDDO
-
-      !-----------------------------------------------------------------
-      ! DIRECT RADIATION ( PARDR )
-      !-----------------------------------------------------------------
-
-      ! Get data
-      CALL HCO_GetPtr( am_I_Root, 'PARDR_DAVG', Ptr2D, RC, FOUND=FND )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-     
-      ! Set daily average
-      ! Use current value if not found 
-      IF ( .NOT. FND ) THEN
-         HCOPARDR_15_AVG = ExtState%PARDR%Arr%Val
-      ELSE
-         HCOPARDR_15_AVG = Ptr2D 
-      ENDIF
-
-      ! Set hourly variables
-      DO I = 1, DAY_DIM 
-         HCOPARDR_DAY(:,:,I) = HCOPARDR_15_AVG 
-      ENDDO
-
-      ! Set daily averages
-      DO I = 1, NUM_DAYS
-         HCOPARDR_15(:,:,I) = HCOPARDR_15_AVG
-      ENDDO 
-
-      ! Cleanup
-      Ptr2D => NULL()
-
-      !-----------------------------------------------------------------
-      ! DIFFUSE RADIATION ( PARDF )
-      !-----------------------------------------------------------------
-
-      ! Get data
-      CALL HCO_GetPtr( am_I_Root, 'PARDF_DAVG', Ptr2D, RC, FOUND=FND )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-     
-      ! Set daily average
-      ! Use current value if not found 
-      IF ( .NOT. FND ) THEN
-         HCOPARDF_15_AVG = ExtState%PARDF%Arr%Val
-      ELSE
-         HCOPARDF_15_AVG = Ptr2D 
-      ENDIF
-
-      ! Set hourly variables
-      DO I = 1, DAY_DIM 
-         HCOPARDF_DAY(:,:,I) = HCOPARDF_15_AVG 
-      ENDDO
-
-      ! Set daily averages
-      DO I = 1, NUM_DAYS
-         HCOPARDF_15(:,:,I) = HCOPARDF_15_AVG
-      ENDDO 
-
-      ! Cleanup
-      Ptr2D => NULL()
+      ! Diffuse radiation (PARDF) over last X days 
+      CALL HCO_RestartGet( am_I_Root,       HcoState, 'PARDF_DAVG',
+     &                     PARDF_LASTXDAYS, RC,       DefVal = 48.0 )
 
       ! Return w/ success
       RC = HCO_SUCCESS
-       
+        
       END SUBROUTINE FILL_RESTART_VARS 
 !EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: Update_HCOT_Day
+!!
+!! !DESCRIPTION: Subroutine Update\_HCOT\_Day must be called every time the 
+!!  A-3 fields are updated. Each 3h TS value for each gridbox is moved up one 
+!!  spot in the matrix and the current value is put in the last spot.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE UPDATE_T_DAY( HcoState, ExtState, I, J, RC )
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      TYPE(HCO_State), POINTER        :: HcoState 
+!      TYPE(Ext_State), POINTER        :: ExtState
+!      INTEGER,         INTENT(IN   )  :: I 
+!      INTEGER,         INTENT(IN   )  :: J 
+!!
+!! !INPUT/OUTPUT PARAMETERS: 
+!!
+!      INTEGER,         INTENT(INOUT)  :: RC
+!! 
+!! !REVISION HISTORY: 
+!!  (1 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
+!!        met field. TS is the surface air temperature, which should be 
+!!        carefully distinguished from TSKIN. (tmf, 11/20/04)
+!!  (2 ) In GEOS4, TS are originally T2M in the A3 files, read in 
+!!        'a3_read_mod.f'. 
+!!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!!                              derived type object
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER           :: D
 !
-! !IROUTINE: Update_HCOT_Day
+!      !=================================================================
+!      ! UPDATE_T_DAY begins here!
+!      !=================================================================
 !
-! !DESCRIPTION: Subroutine Update\_HCOT\_Day must be called every time the 
-!  A-3 fields are updated. Each 3h TS value for each gridbox is moved up one 
-!  spot in the matrix and the current value is put in the last spot.
-!\\
-!\\
-! !INTERFACE:
+!      ! Move each day up
+!      DO D = DAY_DIM, 2, -1
+!         ! Need PAR as well as Temp  (mpb,2009)
+!         T_DAY(I,J,D)     = T_DAY(I,J,D-1)
+!         PARDR_DAY(I,J,D) = PARDR_DAY(I,J,D-1)
+!         PARDF_DAY(I,J,D) = PARDF_DAY(I,J,D-1)
+!      ENDDO
+!      
+!      ! Store 
+!      T_DAY(I,J,1)     = ExtState%T2M%Arr%Val(I,J)
+!      PARDF_DAY(I,J,1) = ExtState%PARDF%Arr%Val(I,J)
+!      PARDR_DAY(I,J,1) = ExtState%PARDR%Arr%Val(I,J)
 !
-      SUBROUTINE UPDATE_HCOT_DAY( HcoState, ExtState, I, J, RC )
+!      ! Return w/ success
+!      RC = HCO_SUCCESS
+!       
+!      END SUBROUTINE UPDATE_T_DAY
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: Update_T_15_Avg
+!!
+!! !DESCRIPTION: Subroutine Update\_HCOT\_15\_Avg should be called at the 
+!!  beginning of each day. It loops through the gridboxes doing the following:
+!!
+!!  \begin{enumerate}
+!!  \item Average T\_DAY over the 8 TS values during the day.  
+!!  \item Push the daily average TS values through T\_15, throwing out the 
+!!        oldest and putting the newest (the T\_DAY average) in the last spot 
+!!  \item Get T\_15\_AVG by averaging T\_15 over the 15 day period. 
+!!  \end{enumerate}
+!!
+!! !INTERFACE:
+!!
+!      SUBROUTINE UPDATE_T_15_AVG ( HcoState, I, J, RC )
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      TYPE(HCO_State), POINTER       :: HcoState
+!      INTEGER,         INTENT(IN   ) :: I 
+!      INTEGER,         INTENT(IN   ) :: J 
+!!
+!! !INPUT/OUTPUT PARAMETERS: 
+!!
+!      INTEGER,         INTENT(INOUT) :: RC
+!! 
+!! !REVISION HISTORY: 
+!!  01 Oct 1995 - M. Prather  - Initial version
+!!  (1 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
+!!        met field. TS is the surface air temperature, which should be 
+!!        carefully distinguished from TSKIN. (tmf, 11/20/04)
+!!  (2 ) In GEOS4, TS are originally T2M in the A3 files, read in 
+!!        'a3_read_mod.f'. 
+!!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER           :: D
+!      REAL(hp)          :: D_DIM, D_DAYS, TMP_T
+!      REAL(hp)          :: TMP_PARDR , TMP_PARDF ! (mpb,2009)
 !
-! !INPUT PARAMETERS: 
+!      !=================================================================
+!      ! UPDATE_T_15_AVG begins here!
+!      !=================================================================
 !
-      TYPE(HCO_State), POINTER        :: HcoState 
-      TYPE(Ext_State), POINTER        :: ExtState
-      INTEGER,         INTENT(IN   )  :: I 
-      INTEGER,         INTENT(IN   )  :: J 
+!      ! Convert to REAL*8
+!      D_DIM  = REAL( DAY_DIM , KIND=hp )
+!      D_DAYS = REAL( NUM_DAYS, KIND=hp )
 !
-! !INPUT/OUTPUT PARAMETERS: 
+!      ! Average T_DAY over the TS values during the day.
+!      TMP_T = SUM( T_DAY(I,J,:) ) / D_DIM
+!         
+!      ! Do the same for light (mpb,2009)
+!      TMP_PARDR = SUM( PARDR_DAY(I,J,:) ) / D_DIM
+!      TMP_PARDF = SUM( PARDF_DAY(I,J,:) ) / D_DIM
 !
-      INTEGER,         INTENT(INOUT)  :: RC
-! 
-! !REVISION HISTORY: 
-!  (1 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
-!        met field. TS is the surface air temperature, which should be 
-!        carefully distinguished from TSKIN. (tmf, 11/20/04)
-!  (2 ) In GEOS4, TS are originally T2M in the A3 files, read in 
-!        'a3_read_mod.f'. 
-!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      ! Push the daily average TS values through T_15,
+!      ! throwing out the oldest 
+!      DO D = NUM_DAYS, 2, -1
+!         T_15(I,J,D)     = T_15(I,J,D-1)
+!         PARDR_15(I,J,D) = PARDR_15(I,J,D-1)
+!         PARDF_15(I,J,D) = PARDF_15(I,J,D-1)
+!      ENDDO
 !
-! !LOCAL VARIABLES:
+!      ! Put the newest daily average TS value in the first spot
+!      T_15(I,J,1) = TMP_T
 !
-      INTEGER           :: D
-
-      !=================================================================
-      ! UPDATE_HCOT_DAY begins here!
-      !=================================================================
-
-      ! Move each day up
-      DO D = DAY_DIM, 2, -1
-         ! Need PAR as well as Temp  (mpb,2009)
-         HCOT_DAY(I,J,D)     = HCOT_DAY(I,J,D-1)
-         HCOPARDR_DAY(I,J,D) = HCOPARDR_DAY(I,J,D-1)
-         HCOPARDF_DAY(I,J,D) = HCOPARDF_DAY(I,J,D-1)
-      ENDDO
-      
-      ! Store 
-      HCOT_DAY(I,J,1)     = ExtState%T2M%Arr%Val(I,J)
-      HCOPARDF_DAY(I,J,1) = ExtState%PARDF%Arr%Val(I,J)
-      HCOPARDR_DAY(I,J,1) = ExtState%PARDR%Arr%Val(I,J)
-
-      ! Return w/ success
-      RC = HCO_SUCCESS
-       
-      END SUBROUTINE UPDATE_HCOT_DAY
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
+!      ! Get T_15_AVG by averaging T_15 over the 15 day period.
+!      T_15_AVG(I,J) = SUM( T_15(I,J,:) ) / D_DAYS 
 !
-! !IROUTINE: Update_HCOT_15_Avg
+!      ! Assign daily average temperature to HCOT_DAILY (mpb,2009)
+!      ! HCOT_DAILY(I,J)  = TMP_T
 !
-! !DESCRIPTION: Subroutine Update\_HCOT\_15\_Avg should be called at the 
-!  beginning of each day. It loops through the gridboxes doing the following:
+!      ! Repeat for PAR diffuse & direct (mpb,2009)
+!      PARDR_15(I,J,1)   = TMP_PARDR
+!      PARDR_15_AVG(I,J) = SUM( PARDR_15(I,J,:) ) / D_DAYS 
+!      ! PARDR_DAILY(I,J)  = TMP_PARDR
 !
-!  \begin{enumerate}
-!  \item Average T\_DAY over the 8 TS values during the day.  
-!  \item Push the daily average TS values through T\_15, throwing out the 
-!        oldest and putting the newest (the T\_DAY average) in the last spot 
-!  \item Get T\_15\_AVG by averaging T\_15 over the 15 day period. 
-!  \end{enumerate}
+!      PARDF_15(I,J,1)   = TMP_PARDF
+!      PARDF_15_AVG(I,J) = SUM( PARDF_15(I,J,:) ) / D_DAYS 
+!      ! PARDF_DAILY(I,J)  = TMP_PARDF
 !
-! !INTERFACE:
+!      ! Return w/ success 
+!      RC = HCO_SUCCESS
 !
-      SUBROUTINE UPDATE_HCOT_15_AVG ( HcoState, I, J, RC )
-!
-! !INPUT PARAMETERS: 
-!
-      TYPE(HCO_State), POINTER       :: HcoState
-      INTEGER,         INTENT(IN   ) :: I 
-      INTEGER,         INTENT(IN   ) :: J 
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      INTEGER,         INTENT(INOUT) :: RC
-! 
-! !REVISION HISTORY: 
-!  01 Oct 1995 - M. Prather  - Initial version
-!  (1 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
-!        met field. TS is the surface air temperature, which should be 
-!        carefully distinguished from TSKIN. (tmf, 11/20/04)
-!  (2 ) In GEOS4, TS are originally T2M in the A3 files, read in 
-!        'a3_read_mod.f'. 
-!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER           :: D
-      REAL(hp)          :: D_DIM, D_DAYS, TMP_T
-      REAL(hp)          :: TMP_PARDR , TMP_PARDF ! (mpb,2009)
-
-      !=================================================================
-      ! UPDATE_HCOT_15_AVG begins here!
-      !=================================================================
-
-      ! Convert to REAL*8
-      D_DIM  = REAL( DAY_DIM , KIND=hp )
-      D_DAYS = REAL( NUM_DAYS, KIND=hp )
-
-      ! Average HCOT_DAY over the TS values during the day.
-      TMP_T = SUM( HCOT_DAY(I,J,:) ) / D_DIM
-         
-      ! Do the same for light (mpb,2009)
-      TMP_PARDR = SUM( HCOPARDR_DAY(I,J,:) ) / D_DIM
-      TMP_PARDF = SUM( HCOPARDF_DAY(I,J,:) ) / D_DIM
-
-      ! Push the daily average TS values through HCOT_15,
-      ! throwing out the oldest 
-      DO D = NUM_DAYS, 2, -1
-         HCOT_15(I,J,D)     = HCOT_15(I,J,D-1)
-         HCOPARDR_15(I,J,D) = HCOPARDR_15(I,J,D-1)
-         HCOPARDF_15(I,J,D) = HCOPARDF_15(I,J,D-1)
-      ENDDO
-
-      ! Put the newest daily average TS value in the first spot
-      HCOT_15(I,J,1) = TMP_T
-
-      ! Get HCOT_15_AVG by averaging HCOT_15 over the 15 day period.
-      HCOT_15_AVG(I,J) = SUM( HCOT_15(I,J,:) ) / D_DAYS 
-
-      ! Assign daily average temperature to HCOT_DAILY (mpb,2009)
-      ! HCOT_DAILY(I,J)  = TMP_T
-
-      ! Repeat for PAR diffuse & direct (mpb,2009)
-      HCOPARDR_15(I,J,1)   = TMP_PARDR
-      HCOPARDR_15_AVG(I,J) = SUM( HCOPARDR_15(I,J,:) ) / D_DAYS 
-      ! HCOPARDR_DAILY(I,J)  = TMP_PARDR
-
-      HCOPARDF_15(I,J,1)   = TMP_PARDF
-      HCOPARDF_15_AVG(I,J) = SUM( HCOPARDF_15(I,J,:) ) / D_DAYS 
-      ! HCOPARDF_DAILY(I,J)  = TMP_PARDF
-
-      ! Return w/ success 
-      RC = HCO_SUCCESS
-
-      END SUBROUTINE UPDATE_HCOT_15_AVG
-!EOC
+!      END SUBROUTINE UPDATE_T_15_AVG
+!!EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -3384,7 +3590,6 @@
 ! !USES:
 !
       ! References to F90 modules
-      USE HCO_FLUXARR_MOD,     ONLY : HCO_EmisAdd 
       USE HCO_EMISLIST_MOD,    ONLY : HCO_GetPtr
 !
 ! !INPUT PARAMETERS: 
@@ -3414,6 +3619,8 @@
 !  (7 ) Also, now read in the EF values already gridded to model resolution.
 !       (dbm, 11/2012)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  10 Jun 2015 - M. Sulprizio- Bug fix: Now convert sesquiterpenes (FARN, BCAR,
+!                              OSQT) from ug compound/m2/h to kg C/m2/s
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3421,7 +3628,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                 :: I, J, P, ARR_IND
-      REAL(hp)                :: FACTOR
+      REAL(hp)                :: FACTOR, SPECIES2CARBON
       REAL(hp)                :: ARRAY_16(HcoState%NX,HcoState%NY,16)
       REAL(hp)                :: PFT_EF_OMON(15), PFT_EF_MOHX(15)
       REAL(hp)                :: PFT_EF_ACET(15), PFT_EF_BIDR(15)
@@ -3864,15 +4071,29 @@
          ! Multiply arrays by FACTOR and ratio [g C/g compound]
          ! NOTE: AEFs for ISOP, MBOX, BPIN, CARE, LIMO, OCIM, SABI 
          ! are read from file in [kgC/m2/s], so no need to convert here
-         AEF_APIN(I,J) = AEF_APIN(I,J) * FACTOR * 120.0_hp / 136.234_hp
-         AEF_MYRC(I,J) = AEF_MYRC(I,J) * FACTOR * 120.0_hp / 136.234_hp
-         AEF_OMON(I,J) = AEF_OMON(I,J) * FACTOR * 120.0_hp / 136.234_hp
+         IF ( ExtNrMono > 0 ) THEN
+            AEF_APIN(I,J) = AEF_APIN(I,J) 
+     &                    * FACTOR * 120.0_hp / 136.234_hp
+            AEF_MYRC(I,J) = AEF_MYRC(I,J) 
+     &                    * FACTOR * 120.0_hp / 136.234_hp
+            AEF_OMON(I,J) = AEF_OMON(I,J) 
+     &                    * FACTOR * 120.0_hp / 136.234_hp
+
+            ! Sesquiterpenes
+            SPECIES2CARBON = 15.d0 * 12.01d0 / 
+     &                     ( 15.d0 * 12.01d0 + 24.d0 * 1.01d0 )
+            AEF_FARN(I,J) = AEF_FARN(I,J) * FACTOR * SPECIES2CARBON
+            AEF_BCAR(I,J) = AEF_BCAR(I,J) * FACTOR * SPECIES2CARBON
+            AEF_OSQT(I,J) = AEF_OSQT(I,J) * FACTOR * SPECIES2CARBON
+
+         ENDIF
+
          AEF_ACET(I,J) = AEF_ACET(I,J) * FACTOR *  36.0_hp /  58.079_hp 
          AEF_ETOH(I,J) = AEF_ETOH(I,J) * FACTOR *  24.0_hp /  46.068_hp 
          AEF_ALD2(I,J) = AEF_ALD2(I,J) * FACTOR *  24.0_hp /  44.053_hp 
-         AEF_C2H4(I,J) = AEF_C2H4(I,J) * FACTOR *  24.0_hp /  28.053_hp  
+         AEF_C2H4(I,J) = AEF_C2H4(I,J) * FACTOR *  24.0_hp /  28.053_hp
          AEF_TOLU(I,J) = AEF_TOLU(I,J) * FACTOR *  84.0_hp /  92.138_hp 
-         AEF_PRPE(I,J) = AEF_PRPE(I,J) * FACTOR *  36.0_hp /  42.080_hp  
+         AEF_PRPE(I,J) = AEF_PRPE(I,J) * FACTOR *  36.0_hp /  42.080_hp
 
          ! Methanol, formaldehyde, formic acid, acetic acid, HCN are
          ! carried in kg, not kg C
@@ -3912,6 +4133,7 @@
       USE HCO_STATE_MOD,    ONLY : Hco_GetHcoID
       USE HCO_STATE_MOD,    ONLY : HCO_GetExtHcoID
       USE HCO_ExtList_Mod,  ONLY : GetExtNr, GetExtOpt
+      USE HCO_Restart_Mod,  ONLY : HCO_RestartDefine
 !
 ! !INPUT PARAMETERS:
 !
@@ -3933,7 +4155,7 @@
 !  01 Sep 2010 - R. Yantosca - Now read in NUM_DAYS of sfc temp data (this had
 !                              been hardwired to 15 days previously)
 !  07 Feb 2011 - R. Yantosca - Fix typos: make sure to zero out the proper 
-!                              HCOPARDF_* and HCOPARDR_* arrays after allocation
+!                              PARDF_* and PARDR_* arrays after allocation
 !  22 Nov 2011 - R. Yantosca - Do not use erroneous AEF's for nested grids
 !  08 Feb 2012 - R. Yantosca - Now read surface temperature for GEOS-5.7.x
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
@@ -3978,6 +4200,23 @@
       CALL GetExtOpt ( ExtNr, 'Isoprene scaling', 
      &                 OptValHp=ISOP_SCALING, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
+      CALL GetExtOpt ( ExtNr, 'CO2 inhibition', 
+     &                 OptValBool=LISOPCO2, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+      CALL GetExtOpt ( ExtNr, 'CO2 conc (ppmv)', 
+     &                 OptValHp=GLOBCO2, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! Check GLOBCO2 if CO2 inhibition is turned on (LISOPCO2 = .TRUE.)
+      ! GLOBCO2 should be between 150-1250 ppmv. Isoprene response to
+      ! CO2 outside this range has no empirical basis. (Tai, Jan 2013)
+      IF ( LISOPCO2 ) THEN
+         IF ( GLOBCO2 < 150.0_hp .OR. GLOBCO2 > 1250.0_hp ) THEN
+            MSG = 'Global CO2 outside valid range of 150-1250 ppmv!'
+            CALL HCO_ERROR( MSG, RC )
+            RETURN
+         ENDIF
+      ENDIF
 
       ! Verbose mode
       IF ( am_I_Root ) THEN
@@ -4029,6 +4268,12 @@
       ! Verbose mode
       IF ( am_I_Root ) THEN
          WRITE(MSG,*) ' --> Isoprene scale factor is ', ISOP_SCALING
+         CALL HCO_MSG( MSG )
+         WRITE(MSG,*) ' --> Use CO2 inhibition on isoprene option ', 
+     &                LISOPCO2
+         CALL HCO_MSG( MSG )
+         WRITE(MSG,*) ' --> Global atmospheric CO2 concentration : ', 
+     &                GLOBCO2, ' ppmv'
          CALL HCO_MSG( MSG )
       ENDIF
 
@@ -4179,28 +4424,28 @@
       NX = HcoState%NX
       NY = HcoState%NY
 
-      ! Allocate arrays
-      ALLOCATE( HCOT_DAY( NX, NY, DAY_DIM ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOT_DAY', RC )
-        RETURN
-      ENDIF
-      HCOT_DAY = 0.0_sp
-
-      ALLOCATE( HCOT_15( NX, NY, NUM_DAYS ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOT_15', RC )
-        RETURN
-      ENDIF
-      HCOT_15 = 0.0_sp
-      T_PREVDAY => HCOT_15(:,:,1)
-
-      ALLOCATE( HCOT_15_AVG( NX, NY ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOT_15_AVG', RC )
-        RETURN
-      ENDIF
-      HCOT_15_AVG = 0.0_sp
+!      ! Allocate arrays
+!      ALLOCATE( T_DAY( NX, NY, DAY_DIM ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'T_DAY', RC )
+!        RETURN
+!      ENDIF
+!      T_DAY = 0.0_sp
+!
+!      ALLOCATE( T_15( NX, NY, NUM_DAYS ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'T_15', RC )
+!        RETURN
+!      ENDIF
+!      T_15 = 0.0_sp
+!      T_PREVDAY => T_15(:,:,1)
+!
+!      ALLOCATE( T_15_AVG( NX, NY ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'T_15_AVG', RC )
+!        RETURN
+!      ENDIF
+!      T_15_AVG = 0.0_sp
 
 !      ! Daily averaged temperature (mpb,2009)
 !      ALLOCATE( HCOT_DAILY( NX, NY ), STAT=AS )
@@ -4210,72 +4455,101 @@
 !      ENDIF
 !      HCOT_DAILY = 0.0_hp
  
-      ! Allocate arrays for light (mpb,2009)
-      ! -- Direct --
-      ALLOCATE( HCOPARDR_DAY( NX, NY, DAY_DIM ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOPARDR_DAY', RC )
-        RETURN
-      ENDIF
-      HCOPARDR_DAY = 0.0_sp
-
-      ALLOCATE( HCOPARDR_15( NX, NY, NUM_DAYS ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOPARDR_15', RC )
-        RETURN
-      ENDIF
-      HCOPARDR_15 = 0.0_sp
-
-      ALLOCATE( HCOPARDR_15_AVG( NX, NY ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOPARDR_15_AVG', RC )
-        RETURN
-      ENDIF
-      HCOPARDR_15_AVG = 0.0_sp
-
-!      ALLOCATE( HCOPARDR_DAILY( NX, NY ), STAT=AS )
+!      ! Allocate arrays for light (mpb,2009)
+!      ! -- Direct --
+!      ALLOCATE( PARDR_DAY( NX, NY, DAY_DIM ), STAT=AS )
 !      IF ( AS /= 0 ) THEN 
-!        CALL HCO_ERROR( 'HCOPARDR_DAILY', RC )
+!        CALL HCO_ERROR( 'PARDR_DAY', RC )
 !        RETURN
 !      ENDIF
-!      HCOPARDR_DAILY = 0.0_hp
+!      PARDR_DAY = 0.0_sp
+!
+!      ALLOCATE( PARDR_15( NX, NY, NUM_DAYS ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'PARDR_15', RC )
+!        RETURN
+!      ENDIF
+!      PARDR_15 = 0.0_sp
+!
+!      ALLOCATE( PARDR_15_AVG( NX, NY ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'PARDR_15_AVG', RC )
+!        RETURN
+!      ENDIF
+!      PARDR_15_AVG = 0.0_sp
+
+!      ALLOCATE( PARDR_DAILY( NX, NY ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'PARDR_DAILY', RC )
+!        RETURN
+!      ENDIF
+!      PARDR_DAILY = 0.0_hp
  
-      ! -- Diffuse --
-      ALLOCATE( HCOPARDF_DAY( NX, NY, DAY_DIM ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOPARDF_DAY', RC )
-        RETURN
-      ENDIF
-      HCOPARDF_DAY = 0.0_sp
-
-      ALLOCATE( HCOPARDF_15( NX, NY, NUM_DAYS ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOPARDF_15', RC )
-        RETURN
-      ENDIF
-      HCOPARDF_15 = 0.0_sp
-
-      ALLOCATE( HCOPARDF_15_AVG( NX, NY ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOPARDF_15_AVG', RC )
-        RETURN
-      ENDIF
-      HCOPARDF_15_AVG = 0.0_sp
-
-!      ALLOCATE( HCOPARDF_DAILY( NX, NY ), STAT=AS )
+!      ! -- Diffuse --
+!      ALLOCATE( PARDF_DAY( NX, NY, DAY_DIM ), STAT=AS )
 !      IF ( AS /= 0 ) THEN 
-!        CALL HCO_ERROR( 'HCOPARDF_DAILY', RC )
+!        CALL HCO_ERROR( 'PARDF_DAY', RC )
 !        RETURN
 !      ENDIF
-!      HCOPARDF_DAILY = 0d0
+!      PARDF_DAY = 0.0_sp
+!
+!      ALLOCATE( PARDF_15( NX, NY, NUM_DAYS ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'PARDF_15', RC )
+!        RETURN
+!      ENDIF
+!      PARDF_15 = 0.0_sp
+!
+!      ALLOCATE( PARDF_15_AVG( NX, NY ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'PARDF_15_AVG', RC )
+!        RETURN
+!      ENDIF
+!      PARDF_15_AVG = 0.0_sp
+!
+!      ALLOCATE( PARDF_DAILY( NX, NY ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'PARDF_DAILY', RC )
+!        RETURN
+!      ENDIF
+!      PARDF_DAILY = 0d0
+
+      ALLOCATE( T_LAST24H( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'T_LAST24H', RC )
+         RETURN
+      ENDIF
+      T_LAST24H = 0.0_hp
+
+      ALLOCATE( T_LASTXDAYS( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'T_LASTXDAYS', RC )
+         RETURN
+      ENDIF
+      T_LASTXDAYS = 0.0_hp
+
+      ALLOCATE( PARDR_LASTXDAYS( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'PARDR_LASTXDAYS', RC )
+         RETURN
+      ENDIF
+      PARDR_LASTXDAYS = 0.0_hp
+
+      ALLOCATE( PARDF_LASTXDAYS( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'PARDF_LASTXDAYS', RC )
+         RETURN
+      ENDIF
+      PARDF_LASTXDAYS = 0.0_hp
 
       ! LAI from previous time step
-      ALLOCATE( LAI_PREVSTEP( NX, NY ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'LAI_PREVSTEP', RC )
-        RETURN
-      ENDIF
-      LAI_PREVSTEP = 0.0_sp
+      ! LAI_PREVDAY is now continuously being updated (ckeller, 12/8/15)
+!      ALLOCATE( LAI_PREVSTEP( NX, NY ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'LAI_PREVSTEP', RC )
+!        RETURN
+!      ENDIF
+!      LAI_PREVSTEP = 0.0_sp
 
       ALLOCATE( LAI_PREVDAY( NX, NY ), STAT=AS )
       IF ( AS /= 0 ) THEN 
@@ -4421,86 +4695,42 @@
       ! Initialize internal diagnostics. These are the restart variables
       ! that can be used for a 'warm' start of MEGAN.
       !=================================================================
-      CALL Diagn_Create ( am_I_Root, 
-     &                    HcoState   = HcoState,
-     &                    cName      = 'T_DAVG',
-     &                    ExtNr      = ExtNr,
-     &                    Cat        = -1,  
-     &                    Hier       = -1,
-     &                    HcoID      = -1, 
-     &                    SpaceDim   = 2,   
-     &                    OutUnit    = 'K',  
-     &                    WriteFreq  = 'End', 
-     &                    AutoFill   = 0,      
-     &                    Trgt2D     = HCOT_15_AVG, 
-     &                    cID        = I,    
-     &                    RC         = RC            )
+!      CALL HCO_RestartDefine ( am_I_Root, HcoState, 
+!     &                         'T_DAVG',  T_15_AVG, 'K', RC )
+!      IF ( RC /= HCO_SUCCESS ) RETURN
+!   
+!      CALL HCO_RestartDefine ( am_I_Root,   HcoState, 
+!     &                         'T_PREVDAY', T_PREVDAY, 'K', RC )
+!      IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+      CALL HCO_RestartDefine ( am_I_Root,     HcoState, 
+     &                         'LAI_PREVDAY', LAI_PREVDAY, '1', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL Diagn_Create ( am_I_Root, 
-     &                    HcoState   = HcoState,
-     &                    cName      = 'T_PREVDAY',
-     &                    ExtNr      = ExtNr,  
-     &                    Cat        = -1,
-     &                    Hier       = -1, 
-     &                    HcoID      = -1, 
-     &                    SpaceDim   = 2,   
-     &                    OutUnit    = 'K',  
-     &                    WriteFreq  = 'End', 
-     &                    AutoFill   = 0,     
-     &                    Trgt2D     = T_PREVDAY, 
-     &                    cID        = I,      
-     &                    RC         = RC            )
+!      CALL HCO_RestartDefine ( am_I_Root,    HcoState, 
+!     &                         'PARDR_DAVG', PARDR_15_AVG, 
+!     &                         'W/m2',       RC )
+!
+!      CALL HCO_RestartDefine ( am_I_Root,    HcoState, 
+!     &                         'PARDF_DAVG', PARDF_15_AVG, 
+!     &                         'W/m2',       RC )
+
+      CALL HCO_RestartDefine ( am_I_Root,       HcoState, 'T_PREVDAY',  
+     &                         T_LAST24H,       'K',      RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL Diagn_Create ( am_I_Root,
-     &                    HcoState   = HcoState,
-     &                    cName      = 'LAI_PREVDAY',
-     &                    ExtNr      = ExtNr,
-     &                    Cat        = -1, 
-     &                    Hier       = -1, 
-     &                    HcoID      = -1,  
-     &                    SpaceDim   = 2,    
-     &                    OutUnit    = '1',  
-     &                    WriteFreq  = 'End',
-     &                    AutoFill   = 0,    
-     &                    Trgt2D     = LAI_PREVDAY,
-     &                    cID        = I,    
-     &                    RC         = RC            )
+      CALL HCO_RestartDefine ( am_I_Root,       HcoState, 'T_DAVG',   
+     &                         T_LASTXDAYS,     'K',      RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
-
-      CALL Diagn_Create ( am_I_Root,
-     &                    HcoState   = HcoState,
-     &                    cName      = 'PARDR_DAVG',
-     &                    ExtNr      = ExtNr,
-     &                    Cat        = -1, 
-     &                    Hier       = -1,
-     &                    HcoID      = -1, 
-     &                    SpaceDim   = 2,   
-     &                    OutUnit    = 'W/m2',
-     &                    WriteFreq  = 'End', 
-     &                    AutoFill   = 0,   
-     &                    Trgt2D     = HCOPARDR_15_AVG,
-     &                    cID        = I,
-     &                    RC         = RC            )
+ 
+      CALL HCO_RestartDefine ( am_I_Root,       HcoState, 'PARDR_DAVG',
+     &                         PARDR_LASTXDAYS, 'W/m2',   RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
-
-      CALL Diagn_Create ( am_I_Root, 
-     &                    HcoState   = HcoState,
-     &                    cName      = 'PARDF_DAVG',
-     &                    ExtNr      = ExtNr,
-     &                    Cat        = -1,
-     &                    Hier       = -1,
-     &                    HcoID      = -1,
-     &                    SpaceDim   = 2,   
-     &                    OutUnit    = 'W/m2',
-     &                    WriteFreq  = 'End',
-     &                    AutoFill   = 0,   
-     &                    Trgt2D     = HCOPARDF_15_AVG,
-     &                    cID        = I,
-     &                    RC         = RC            )
+ 
+      CALL HCO_RestartDefine ( am_I_Root,       HcoState, 'PARDF_DAVG',
+     &                         PARDF_LASTXDAYS, 'W/m2',   RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
-
+  
       !=================================================================
       ! The original MEGAN code used to read the emission factors here.
       ! We now get the emisson factors through HEMCO, hence no need to
@@ -4514,12 +4744,16 @@
 
       ! Enable met. fields
       ExtState%T2M%DoUse       = .TRUE.
-      ExtState%SUNCOSmid%DoUse = .TRUE.
+      ExtState%SUNCOS%DoUse    = .TRUE.
       ExtState%PARDR%DoUse     = .TRUE.
       ExtState%PARDF%DoUse     = .TRUE.
-      ExtState%SZAFACT%DoUse   = .TRUE.
-      ExtState%GC_LAI%DoUse    = .TRUE.
+      ExtState%LAI%DoUse       = .TRUE.
       ExtState%GWETROOT%DoUse  = .TRUE.
+
+      ! SZAFACT field is only used for SOA simulation
+      IF ( ExtNrSoa > 0 ) THEN
+         ExtState%SZAFACT%DoUse = .TRUE.
+      ENDIF
 
       ! Enable module 
       ExtState%Megan = .TRUE.
@@ -4544,15 +4778,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCOX_MEGAN_FINAL
+      SUBROUTINE HCOX_MEGAN_FINAL ( am_I_Root, HcoState, RC )
+!
+! !USES
+!
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,         INTENT(IN   )  :: am_I_Root     ! Root CPU?
+      TYPE(HCO_State), POINTER        :: HcoState      ! HEMCO State obj
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,         INTENT(INOUT)  :: RC 
 ! 
 ! !REVISION HISTORY: 
-!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  16 Aug 2013 - C. Keller   - Now a HEMCO extension 
-!  18 Feb 2015 - M. Sulprizio- Added AEF arrays
+!  17 Dec 2009 - R. Yantosca  - Added ProTeX headers
+!  16 Aug 2013 - C. Keller    - Now a HEMCO extension 
+!  18 Feb 2015 - M. Sulprizio - Added AEF arrays
+!  09 Mar 2015 - C. Keller    - Write variables to internal state in ESMF mode
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+
       !=================================================================
       ! HCOX_MEGAN_FINAL begins here!
       !=================================================================
@@ -4568,21 +4819,25 @@
       AEF_SABI  => NULL()
 
       ! Cleanup module arrays
-      T_PREVDAY => NULL()
-      IF ( ALLOCATED( HCOT_DAY        ) ) DEALLOCATE( HCOT_DAY        )
-      IF ( ALLOCATED( HCOT_15         ) ) DEALLOCATE( HCOT_15         )
-      IF ( ALLOCATED( HCOT_15_AVG     ) ) DEALLOCATE( HCOT_15_AVG     )
+!      T_PREVDAY => NULL()
+!      IF ( ALLOCATED( T_DAY           ) ) DEALLOCATE( T_DAY           )
+!      IF ( ALLOCATED( T_15            ) ) DEALLOCATE( T_15            )
+!      IF ( ALLOCATED( T_15_AVG        ) ) DEALLOCATE( T_15_AVG        )
 !      IF ( ALLOCATED( HCOT_DAILY      ) ) DEALLOCATE( HCOT_DAILY      )
-      IF ( ALLOCATED( HCOPARDR_DAY    ) ) DEALLOCATE( HCOPARDR_DAY    )
-      IF ( ALLOCATED( HCOPARDR_15     ) ) DEALLOCATE( HCOPARDR_15     )
-      IF ( ALLOCATED( HCOPARDR_15_AVG ) ) DEALLOCATE( HCOPARDR_15_AVG )
-!      IF ( ALLOCATED( HCOPARDR_DAILY  ) ) DEALLOCATE( HCOPARDR_DAILY  )
-      IF ( ALLOCATED( HCOPARDF_DAY    ) ) DEALLOCATE( HCOPARDF_DAY    )
-      IF ( ALLOCATED( HCOPARDF_15     ) ) DEALLOCATE( HCOPARDF_15     )
-      IF ( ALLOCATED( HCOPARDF_15_AVG ) ) DEALLOCATE( HCOPARDF_15_AVG )
-!      IF ( ALLOCATED( HCOPARDF_DAILY  ) ) DEALLOCATE( HCOPARDF_DAILY  )
-      IF ( ALLOCATED( LAI_PREVSTEP    ) ) DEALLOCATE( LAI_PREVSTEP    )
+!      IF ( ALLOCATED( PARDR_DAY       ) ) DEALLOCATE( PARDR_DAY       )
+!      IF ( ALLOCATED( PARDR_15        ) ) DEALLOCATE( PARDR_15        )
+!      IF ( ALLOCATED( PARDR_15_AVG    ) ) DEALLOCATE( PARDR_15_AVG    )
+!      IF ( ALLOCATED( PARDR_DAILY  ) ) DEALLOCATE( PARDR_DAILY  )
+!      IF ( ALLOCATED( PARDF_DAY       ) ) DEALLOCATE( PARDF_DAY       )
+!      IF ( ALLOCATED( PARDF_15        ) ) DEALLOCATE( PARDF_15        )
+!      IF ( ALLOCATED( PARDF_15_AVG    ) ) DEALLOCATE( PARDF_15_AVG    )
+!      IF ( ALLOCATED( PARDF_DAILY  ) ) DEALLOCATE( PARDF_DAILY  )
+!      IF ( ALLOCATED( LAI_PREVSTEP    ) ) DEALLOCATE( LAI_PREVSTEP    )
       IF ( ALLOCATED( LAI_PREVDAY     ) ) DEALLOCATE( LAI_PREVDAY     )
+      IF ( ALLOCATED( T_LASTXDAYS     ) ) DEALLOCATE( T_LASTXDAYS     )
+      IF ( ALLOCATED( T_LAST24H       ) ) DEALLOCATE( T_LAST24H       )
+      IF ( ALLOCATED( PARDF_LASTXDAYS ) ) DEALLOCATE( PARDF_LASTXDAYS )
+      IF ( ALLOCATED( PARDR_LASTXDAYS ) ) DEALLOCATE( PARDR_LASTXDAYS )
       IF ( ALLOCATED( NORM_FAC        ) ) DEALLOCATE( NORM_FAC        )
       IF ( ALLOCATED( AEF_APIN        ) ) DEALLOCATE( AEF_APIN        )
       IF ( ALLOCATED( AEF_MYRC        ) ) DEALLOCATE( AEF_MYRC        )

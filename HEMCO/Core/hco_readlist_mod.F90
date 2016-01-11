@@ -48,6 +48,8 @@ MODULE HCO_ReadList_Mod
 !
   PRIVATE :: DtCont_Add
   PRIVATE :: ReadList_Fill
+  PRIVATE :: GetFileLUN 
+  PRIVATE :: SaveFileLUN 
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller   - Initial version
@@ -71,6 +73,11 @@ MODULE HCO_ReadList_Mod
 
   ! Internally used ReadLists
   TYPE(RdList),      POINTER :: ReadLists => NULL()
+
+  ! To manage file open/close
+  INTEGER, PARAMETER       :: MaxFileOpen = 5 ! Max. # of open streams
+  INTEGER                  :: FileLuns (MaxFileOpen) = -1
+  CHARACTER(LEN=255)       :: FileNames(MaxFileOpen) = ''
 
 CONTAINS
 !EOC
@@ -126,25 +133,31 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+    verb = HCO_IsVerb( 2 ) 
 
     ! Add container to ReadList according to update freqency.
     ! Fields in list 'Hour' will be updated (i.e. re-read) every hour, 
     ! fields in list 'Day' every day, etc.
     ! If a time range instead of a single time stamp is given,
     ! categorize the field according to the most rapidly changing time
-    ! stamp. If no time attribute exist, put the field into the 'Once'
-    ! list which reads the file only at the beginning. 
-    IF (     Dct%Dta%ncHrs(1) /= Dct%Dta%ncHrs(2) ) THEN
-       intv = 1  
+    ! stamp. 
+    ! If no time attribute exist, put the field into the 'Once' list 
+    ! which reads the file only at the beginning. Similarly, fields
+    ! with an update flag of 'always' will be put into the 'Always'
+    ! list. The always update flag is set in routine HCO_ExtractTime,
+    ! which is called from Config_ReadCont (hco_config_mod.F90).
+    IF     ( Dct%Dta%UpdtFlag == HCO_UFLAG_ALWAYS ) THEN
+       intv = 1
+    ELSEIF ( Dct%Dta%ncHrs(1) /= Dct%Dta%ncHrs(2) ) THEN
+       intv = 2  
     ELSEIF ( Dct%Dta%ncDys(1) /= Dct%Dta%ncDys(2) ) THEN
-       intv = 2
-    ELSEIF ( Dct%Dta%ncMts(1) /= Dct%Dta%ncMts(2) ) THEN
        intv = 3
-    ELSEIF ( Dct%Dta%ncYrs(1) /= Dct%Dta%ncYrs(2) ) THEN
+    ELSEIF ( Dct%Dta%ncMts(1) /= Dct%Dta%ncMts(2) ) THEN
        intv = 4
-    ELSE
+    ELSEIF ( Dct%Dta%ncYrs(1) /= Dct%Dta%ncYrs(2) ) THEN
        intv = 5
+    ELSE
+       intv = 6 
     ENDIF
 
     ! NOTE: In an ESMF environment, data I/O is organized through 
@@ -155,27 +168,28 @@ CONTAINS
     ! Hence, make sure that all containers are added to the one-time
     ! reading list! 
     IF ( HcoState%isESMF .AND. Dct%Dta%ncRead ) THEN
-       intv = 5
+       intv = 6
     ENDIF
 
-    IF ( intv == 1 ) THEN 
-       CALL DtCont_Add( ReadLists%Hour,  Dct ) 
+    IF (     intv == 1 ) THEN 
+       CALL DtCont_Add( ReadLists%Always, Dct ) 
     ELSEIF ( intv == 2 ) THEN 
-       CALL DtCont_Add( ReadLists%Day,   Dct ) 
+       CALL DtCont_Add( ReadLists%Hour,   Dct ) 
     ELSEIF ( intv == 3 ) THEN 
-       CALL DtCont_Add( ReadLists%Month, Dct ) 
+       CALL DtCont_Add( ReadLists%Day,    Dct ) 
     ELSEIF ( intv == 4 ) THEN 
-       CALL DtCont_Add( ReadLists%Year,  Dct ) 
+       CALL DtCont_Add( ReadLists%Month,  Dct ) 
+    ELSEIF ( intv == 5 ) THEN 
+       CALL DtCont_Add( ReadLists%Year,   Dct ) 
     ELSE
-       CALL DtCont_Add( ReadLists%Once,  Dct ) 
+       CALL DtCont_Add( ReadLists%Once,   Dct ) 
     ENDIF
-!    ENDIF
 
     ! Verbose
     IF ( Verb ) THEN
-       write(MSG,*) 'New container set to ReadList:'
+       WRITE(MSG,*) 'New container set to ReadList:'
        CALL HCO_MSG(MSG,SEP1='-')
-       CALL HCO_PrintDataCont( Dct, Verb )
+       CALL HCO_PrintDataCont( Dct, 3 )
     ENDIF
 
     ! Leave w/ success
@@ -237,7 +251,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+    verb = HCO_IsVerb( 1 ) 
 
     ! Read all fields?
     RdAll = .FALSE.
@@ -338,6 +352,7 @@ CONTAINS
     USE HCOIO_DataRead_Mod, ONLY : HCOIO_DataRead
     USE HCOIO_DataRead_Mod, ONLY : HCOIO_ReadOther
     USE HCO_FileData_Mod,   ONLY : FileData_ArrIsDefined
+    USE HCO_FileData_Mod,   ONLY : FileData_ArrIsTouched
     USE HCO_EmisList_Mod,   ONLY : EmisList_Pass
     USE HCO_DataCont_Mod,   ONLY : DataCont_Cleanup
     USE HCO_TIDX_MOD,       ONLY : tIDx_Assign 
@@ -364,6 +379,8 @@ CONTAINS
 !  02 Feb 2015 - C. Keller - Now call tIDx_Assign here instead of in 
 !                            hco_emislist_mod. This way, hco_emislist_mod 
 !                            can also be used by hco_clock_mod.
+!  24 Mar 2015 - C. Keller - Now avoid closing/reopening the same file all
+!                            the time. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -373,6 +390,10 @@ CONTAINS
     TYPE(ListCont), POINTER  :: Lct => NULL()
     LOGICAL                  :: verb
     CHARACTER(LEN=255)       :: MSG
+  
+    ! To manage file open/close
+    INTEGER                  :: ILUN, LUN
+    LOGICAL                  :: CLS
 
     ! ================================================================
     ! ReadList_Fill begins here
@@ -383,13 +404,13 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode?
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+    verb = HCO_IsVerb ( 2 ) 
 
     ! Loop over all containers
     Lct => ReadList
     DO WHILE ( ASSOCIATED ( Lct ) ) 
 
-       ! Check if data has already been read. Multiple data
+       ! Check if data has already been touched. Multiple data
        ! containers can have the same file data object, and we
        ! only need to read it once. For each file data object,
        ! we assign a 'home container'. Reading will only be
@@ -401,7 +422,7 @@ CONTAINS
        ! flag to 0 (not home), but make sure that the DoShare flag
        ! of the corresponding data file object is enabled.
        IF ( Lct%Dct%DtaHome < 0 ) THEN
-          IF ( FileData_ArrIsDefined(Lct%Dct%Dta) ) THEN
+          IF ( FileData_ArrIsTouched(Lct%Dct%Dta) ) THEN
              Lct%Dct%DtaHome     = 0
              Lct%Dct%Dta%DoShare = .TRUE.
           ELSE
@@ -419,10 +440,26 @@ CONTAINS
 
           ! Read from netCDF file otherwise
           ELSE
-             CALL HCOIO_DATAREAD ( am_I_Root, HcoState, Lct, RC )
+
+             ! Get file LUN
+             CALL GetFileLUN( am_I_Root, HcoState, Lct, CLS, ILUN, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
 
+             ! Store input LUN in local variable. Needed for SaveFileLUN.
+             LUN = ILUN
+
+             ! Read data
+             CALL HCOIO_DATAREAD ( am_I_Root, HcoState, Lct, CLS, LUN, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+
+             ! Eventually save file LUN
+             CALL SaveFileLUN( am_I_Root, HcoState, Lct, CLS, ILUN, LUN, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
+
+          ! We now have touched this data container
+          Lct%Dct%Dta%IsTouched = .TRUE.
+
        ENDIF
 
        ! Pass container to EmisList (only if array is defined)
@@ -478,6 +515,193 @@ CONTAINS
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetFileLUN
+!
+! !DESCRIPTION: Subroutine GetFileLUN is a helper routine to inquire the file
+! LUN and if the file should be closed or not. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetFileLUN ( am_I_Root, HcoState, Lct, CLS, LUN, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object
+    TYPE(ListCont),   POINTER        :: Lct        ! HEMCO list container
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(  OUT)  :: CLS        ! Close file after reading?
+    INTEGER,          INTENT(  OUT)  :: LUN        ! LUN of file.
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC         ! Success or failure?
+!
+! !REVISION HISTORY:
+!  03 Apr 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                  :: I
+    TYPE(ListCont), POINTER  :: TmpLct => NULL()
+
+    ! ================================================================
+    ! GetFileLUN begins here
+    ! ================================================================
+
+    ! Check if this file stream has already been opened, and if
+    ! we need to close the file after reading. Default is open
+    ! file from scratch and close it afterwards.
+    LUN = -1
+    CLS = .TRUE.
+
+#if !defined(ESMF_)
+    ! Check if there is a file coming up in this ReadList that
+    ! has the same file but a different variable. In this case,
+    ! keep the file open. Don't count containers with same file 
+    ! and variable name, as those are likely to be just pointers
+    ! to the same data file! 
+    TmpLct => Lct%NextCont
+
+    ! Loop over all upcoming containers
+    DO WHILE ( ASSOCIATED(TmpLct) )
+       ! Same file ...
+       IF ( TRIM(Lct%Dct%Dta%ncFile) == TRIM(TmpLct%Dct%Dta%ncFile) ) THEN
+          ! ... not the same variable 
+          IF ( ( TRIM(Lct%Dct%Dta%ncPara)  == TRIM(TmpLct%Dct%Dta%ncPara)  ) .AND. &
+               (      Lct%Dct%Dta%ncYrs(2) ==      TmpLct%Dct%Dta%ncYrs(2) ) .AND. & 
+               (      Lct%Dct%Dta%ncMts(2) ==      TmpLct%Dct%Dta%ncMts(2) ) .AND. & 
+               (      Lct%Dct%Dta%ncDys(2) ==      TmpLct%Dct%Dta%ncDys(2) ) .AND. & 
+               (      Lct%Dct%Dta%ncHrs(2) ==      TmpLct%Dct%Dta%ncHrs(2) )       & 
+             ) THEN
+             ! ... do close ...
+             CLS = .TRUE.
+          ELSE
+             ! ... don't close:
+             CLS = .FALSE.
+             EXIT
+          ENDIF
+       ENDIF
+       ! Get next container in list
+       TmpLct => TmpLct%NextCont
+    ENDDO
+    TmpLct => NULL()
+
+    ! Check if this file has been opened previously. In this case, just
+    ! pass the LUN.
+    ! Loop over all entries
+    DO I = 1, MaxFileOpen
+       ! Same file?
+       IF ( TRIM(FileNames(I)) == TRIM(Lct%Dct%Dta%ncFile) ) THEN
+          ! Sanity check: LUN must be valid
+          IF ( FileLuns(I) > 0 ) THEN
+             LUN = FileLuns(I)
+          ENDIF
+
+          ! If file will be closed, update LUN to -1. This is to make
+          ! sure that this slot is made available for another file.
+          IF ( CLS ) THEN
+             FileLuns(I) = -1
+          ENDIF
+
+          ! Can leave here
+          EXIT
+       ENDIF
+    ENDDO
+#endif
+
+    ! Return w/ success 
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE GetFileLUN
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SaveFileLUN
+!
+! !DESCRIPTION: Subroutine SaveFileLUN is a helper routine to save out the
+! file LUN (if necessary). 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE SaveFileLUN ( am_I_Root, HcoState, Lct, CLS, ILUN, LUN, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object
+    TYPE(ListCont),   POINTER        :: Lct        ! HEMCO list container
+    LOGICAL,          INTENT(IN   )  :: CLS        ! Close file after reading?
+    INTEGER,          INTENT(IN   )  :: ILUN        ! LUN of file.
+    INTEGER,          INTENT(IN   )  :: LUN        ! LUN of file.
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC         ! Success or failure?
+!
+! !REVISION HISTORY:
+!  03 Apr 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: I, N
+    CHARACTER(LEN=255) :: MSG
+
+    ! ================================================================
+    ! SaveFileLUN begins here
+    ! ================================================================
+
+#if !defined(ESMF_)
+    ! Eventually save out LUN for later usage. Need to do this only
+    ! for files that have not been closed and that are not an element
+    ! of FileNames and FileLuns already. In case of the latter, LUN
+    ! has been passed to HCOIO_DATAREAD (it's -1 otherwise).
+    IF ( .NOT. CLS .AND. ( LUN /= ILUN ) ) THEN
+
+       ! N is the position this LUN will be save in
+       N = -1
+
+       DO I = 1, MaxFileOpen
+          IF ( FileLuns(I) == -1 ) THEN
+             FileLuns(I)  = LUN
+             FileNames(I) = Lct%Dct%Dta%ncFile
+             N            = I
+             EXIT
+          ENDIF
+       ENDDO
+
+       ! Prompt warning if too many streams are open
+       IF ( N == -1 ) THEN 
+          MSG = 'Too many file streams open! Cannot keep file in ' // &
+                'memory: ' // TRIM(Lct%Dct%Dta%ncFile)
+          CALL HCO_MSG(MSG) 
+       ENDIF
+    ENDIF
+#endif
+
+    ! Return w/ success 
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE SaveFileLUN
+!EOC
+!------------------------------------------------------------------------------
+!         Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -624,56 +848,61 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Print()
+  SUBROUTINE ReadList_Print( verb )
 !
 ! !USES:
 !
     USE HCO_LOGFILE_MOD,  ONLY : HCO_PrintList
 !
+! !INPUT ARGUMENTS
+!
+    INTEGER,  INTENT(IN)    :: verb   ! verbose number
+!
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
+!  15 Mar 2015 - C. Keller - Added verbose number as input argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     CHARACTER(LEN=255) :: MSG
-    LOGICAL            :: verb
 
     ! ================================================================
     ! ReadList_Print begins here
     ! ================================================================
 
-    verb = .TRUE.
+    ! Nothing to do if HEMCO verbose level is below passed verbose number
+    IF ( .NOT. HCO_IsVerb(verb) ) RETURN
 
     ! Print content of all lists
     IF ( ASSOCIATED(ReadLists) ) THEN 
 
-       write(MSG,*) 'Content of one-time list:'
+       WRITE(MSG,*) 'Content of one-time list:'
        CALL HCO_MSG(MSG,SEP1='=')
        CALL HCO_PrintList ( ReadLists%Once, verb )
 
-       write(MSG,*) 'Content of year-list:'
+       WRITE(MSG,*) 'Content of year-list:'
        CALL HCO_MSG(MSG,SEP1='=')
        CALL HCO_PrintList ( ReadLists%Year, verb )
 
-       write(MSG,*) 'Content of month-list:'
+       WRITE(MSG,*) 'Content of month-list:'
        CALL HCO_MSG(MSG,SEP1='=')
        CALL HCO_PrintList ( ReadLists%Month, verb )
 
-       write(MSG,*) 'Content of day-list:'
+       WRITE(MSG,*) 'Content of day-list:'
        CALL HCO_MSG(MSG,SEP1='=')
        CALL HCO_PrintList ( ReadLists%Day, verb )
 
-       write(MSG,*) 'Content of hour-list:'
+       WRITE(MSG,*) 'Content of hour-list:'
        CALL HCO_MSG(MSG,SEP1='=')
        CALL HCO_PrintList ( ReadLists%Hour, verb )
 
-       write(MSG,*) 'Content of always-to-read list:'
+       WRITE(MSG,*) 'Content of always-to-read list:'
        CALL HCO_MSG(MSG,SEP1='=')
        CALL HCO_PrintList ( ReadLists%Always, verb )
 
     ELSE
-       write(MSG,*) 'ReadList not defined yet!!'
+       WRITE(MSG,*) 'ReadList not defined yet!!'
        CALL HCO_MSG(MSG,SEP1='=')
     ENDIF
 

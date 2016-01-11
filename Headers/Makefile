@@ -51,6 +51,10 @@
 #  23 Jul 2014 - R. Yantosca - Move CMN_mod.F to obsolete/ dir
 #  23 Jul 2014 - R. Yantosca - Move CMN_NOX_mod.F to obsolete/ dir
 #  23 Jul 2014 - R. Yantosca - Move gigc_state_phy_mod.F90 to obsolete/ dir
+#  04 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
+#  04 Jun 2015 - R. Yantosca - Add debug target, remove help
+#  28 Aug 2015 - R. Yantosca - Add species_mod.F90
+#  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -61,22 +65,29 @@
 ###                                                                         ###
 ###############################################################################
 
-# Define variables
-ROOT := ..
-HELP := $(ROOT)/help
-LIB  := $(ROOT)/lib
-MOD  := $(ROOT)/mod
+# Directories
+ROOT    :=..
+LIB     :=$(ROOT)/lib
+MOD     :=$(ROOT)/mod
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOT)/Makefile_header.mk
 
 # List of source files
-SRC  :=$(wildcard *.F) $(wildcard *.F90)
+SOURCES :=$(wildcard *.F) $(wildcard *.F90)
 
-# Replace .f and .f90 extensions with *.o
-TMP  :=$(SRC:.F=.o)
-OBJ  :=$(TMP:.F90=.o)
+# List of object files (replace .F and .F90 extensions with *.o)
+TMP     :=$(SOURCES:.F=.o)
+OBJECTS :=$(TMP:.F90=.o)
+
+# List of module files.  Convert to lowercase, then prefix directory name.
+MODULES :=$(OBJECTS:.o=.mod)
+MODULES :=$(shell echo $(MODULES) | tr A-Z a-z)
+MODULES :=$(foreach I,$(MODULES),$(MOD)/$(I))
+
+# Library file
+LIBRARY :=libHeaders.a
 
 ###############################################################################
 ###                                                                         ###
@@ -84,17 +95,29 @@ OBJ  :=$(TMP:.F90=.o)
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean help
+.PHONY: clean debug slowclean
 
-lib: $(OBJ)
-	$(AR) crs libHeaders.a $(OBJ)
-	mv libHeaders.a $(LIB)
+lib: $(OBJECTS)
+	$(AR) crs $(LIBRARY) $(OBJECTS)
+	mv $(LIBRARY) $(LIB)
 
 clean:
-	rm -f *.o *.mod
+	@echo "===> Making clean in directory: Headers <==="
+	@rm -f *.o *.mod *.a *.x
 
-help:
-	@$(MAKE) -C $(HELP)
+slowclean:
+	@echo "===> Making slowclean in directory: Headers <==="
+	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
+
+debug:
+	@echo "Targets : $(MAKECMDGOALS)"
+	@echo "ROOT    : $(ROOT)"
+	@echo "LIB     : $(LIB)"
+	@echo "MOD     : $(MOD)"
+	@echo "F90     : $(F90)"
+	@echo "OBJECTS : $(OBJECTS)"
+	@echo "MODULES : $(MODULES)"
+	@echo "LIBRARY : $(LIBRARY)"
 
 ###############################################################################
 ###                                                                         ###
@@ -114,54 +137,66 @@ help:
 ###                                                                         ###
 ###############################################################################
 
-CMN_DIAG_mod.o       : CMN_DIAG_mod.F           \
-                       CMN_SIZE_mod.o           \
-                       CMN_FJX_MOD.o            \
-                       gigc_errcode_mod.o       \
-                       precision_mod.o
+CMN_DIAG_mod.o         : CMN_DIAG_mod.F           \
+                         CMN_SIZE_mod.o           \
+                         CMN_FJX_MOD.o            \
+                         gigc_errcode_mod.o       \
+                         precision_mod.o
 
-CMN_GCTM_mod.o       : CMN_GCTM_mod.F           \
-                       precision_mod.o
+CMN_GCTM_mod.o         : CMN_GCTM_mod.F           \
+                         precision_mod.o
 
-CMN_FJX_MOD.o        : CMN_FJX_MOD.F            \
-                       CMN_SIZE_mod.o           \
-                       precision_mod.o
+CMN_FJX_MOD.o          : CMN_FJX_MOD.F            \
+                         CMN_SIZE_mod.o           \
+                         precision_mod.o
 
-CMN_O3_mod.o         : CMN_O3_mod.F             \
-                       CMN_SIZE_mod.o           \
-                       gigc_errcode_mod.o       \
-                       precision_mod.o
+CMN_O3_mod.o           : CMN_O3_mod.F             \
+                         CMN_SIZE_mod.o           \
+                         gigc_errcode_mod.o       \
+                         precision_mod.o
 
-CMN_SIZE_mod.o       : CMN_SIZE_mod.F           \
-                       gigc_errcode_mod.o       \
-                       precision_mod.o
+CMN_SIZE_mod.o         : CMN_SIZE_mod.F           \
+                         gigc_errcode_mod.o       \
+                         precision_mod.o
 
-commsoil_mod.o       : commsoil_mod.F90         \
-                       CMN_SIZE_mod.o           \
-                       gigc_errcode_mod.o
+commsoil_mod.o         : commsoil_mod.F90         \
+                         CMN_SIZE_mod.o           \
+                         gigc_errcode_mod.o
 
-comode_loop_mod.o    : comode_loop_mod.F        \
-                       CMN_SIZE_mod.o           \
-                       gigc_errcode_mod.o       \
-                       gigc_input_opt_mod.o     \
-                       precision_mod.o
+comode_loop_mod.o      : comode_loop_mod.F        \
+                         CMN_SIZE_mod.o           \
+                         gigc_errcode_mod.o       \
+                         gigc_input_opt_mod.o     \
+                         precision_mod.o
 
-gigc_errcode_mod.o   : gigc_errcode_mod.F90
+gigc_errcode_mod.o     : gigc_errcode_mod.F90
 
-gigc_input_opt_mod.o : gigc_input_opt_mod.F90   \
-                       gigc_errcode_mod.o       \
-                       CMN_SIZE_mod.o           \
-                       precision_mod.o
+gigc_input_opt_mod.o   : gigc_input_opt_mod.F90   \
+                         gigc_errcode_mod.o       \
+                         CMN_SIZE_mod.o           \
+                         precision_mod.o
 
-gigc_state_chm_mod.o : gigc_state_chm_mod.F90   \
-                       gigc_errcode_mod.o       \
-                       gigc_input_opt_mod.o     \
-		       comode_loop_mod.o        \
-                       precision_mod.o
+gigc_state_chm_mod.o   : gigc_state_chm_mod.F90   \
+                         gigc_errcode_mod.o       \
+                         gigc_input_opt_mod.o     \
+		         comode_loop_mod.o        \
+                         precision_mod.o          \
+                         species_mod.o            \
+                         species_database_mod.o
 
-gigc_state_met_mod.o : gigc_state_met_mod.F90   \
-                       gigc_errcode_mod.o       \
-                       CMN_SIZE_mod.o           \
-                       precision_mod.o
+gigc_state_met_mod.o   : gigc_state_met_mod.F90   \
+                         gigc_errcode_mod.o       \
+                         CMN_SIZE_mod.o           \
+                         precision_mod.o
+
+species_mod.o          : species_mod.F90          \
+                         CMN_GCTM_mod.o           \
+                         precision_mod.o 
+
+species_database_mod.o : species_database_mod.F90 \
+                         gigc_errcode_mod.o       \
+                         gigc_input_opt_mod.o     \
+                         precision_mod.o          \
+                         species_mod.o
 
 #EOC

@@ -19,6 +19,7 @@
 # \item Platform-specific error handling
 # \item Manipulating string variables
 # \item Regridding data (horizontally) from fine to coarse resolution
+# \item Converting gas concentration units
 # \end{itemize}
 #
 # !REMARKS:
@@ -65,6 +66,9 @@
 #                              files in GeosUtil
 #  21 Jul 2014 - R. Yantosca - Removed regrid_1x1_mod.F; it's obsolete
 #  23 Jul 2014 - R. Yantosca - Removed global_grid_mod.F90; it's obsolete
+#  08 Jan 2015 - E. Lundgren - Add module for unit conversion
+#  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
+#  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -76,31 +80,39 @@
 ###############################################################################
 
 # Define variables
-ROOT := ..
-HELP := $(ROOT)/help
-LIB  := $(ROOT)/lib
-MOD  := $(ROOT)/mod
+ROOT      :=..
+HELP      :=$(ROOT)/help
+LIB       :=$(ROOT)/lib
+MOD       :=$(ROOT)/mod
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOT)/Makefile_header.mk
 
 # List of source files: everything ending in .F and .F90
-SRC  := $(wildcard *.F) $(wildcard *.F90)
+SOURCES   :=$(wildcard *.F) $(wildcard *.F90)
 
 # Replace .f and .f90 extensions with *.o
-TMP  := $(SRC:.F=.o)
-OBJ  := $(TMP:.F90=.o)
+TMP       :=$(SOURCES:.F=.o)
+OBJECTS   :=$(TMP:.F90=.o)
 
 # Special files just for IFORT
 ifeq ($(COMPILER),ifort) 
-OBJ  += ifort_errmsg.o
+  OBJECTS += ifort_errmsg.o
 endif
 
 # Special files just for PGI
 ifeq ($(COMPILER),pgi) 
-OBJ  += linux_err.o
+  OBJECTS += linux_err.o
 endif
+
+# List of module files.  Convert to lowercase, then prefix directory name.
+MODULES   :=$(OBJECTS:.o=.mod)
+MODULES   :=$(shell echo $(MODULES) | tr A-Z a-z)
+MODULES   :=$(foreach I,$(MODULES),$(MOD)/$(I))
+
+# Library file
+LIBRARY   :=libGeosUtil.a
 
 ###############################################################################
 ###                                                                         ###
@@ -108,17 +120,32 @@ endif
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean help
+.PHONY: clean help debug slowclean
 
-lib: $(OBJ)
-	$(AR) crs libGeosUtil.a $(OBJ)
-	mv libGeosUtil.a $(LIB)
+lib: $(OBJECTS)
+	$(AR) crs $(LIBRARY) $(OBJECTS)
+	mv $(LIBRARY) $(LIB)
 
 clean:
-	rm -f *.o *.mod
+	@echo "===> Making clean in directory: GeosUtil <==="
+	@rm -f *.o *.mod *.a *.x
+
+slowclean:
+	@echo "===> Making slowclean in directory: GeosUtil <==="
+	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 help:
 	@$(MAKE) -C $(HELP)
+
+debug:
+	@echo "Targets : $(MAKECMDGOALS)"
+	@echo "ROOT    : $(ROOT)"
+	@echo "LIB     : $(LIB)"
+	@echo "MOD     : $(MOD)"
+	@echo "F90     : $(F90)"
+	@echo "OBJECTS : $(OBJECTS)"
+	@echo "MODULES : $(MODULES)"
+	@echo "LIBRARY : $(LIBRARY)"
 
 ###############################################################################
 ###                                                                         ###
@@ -146,7 +173,8 @@ bpch2_mod.o       : bpch2_mod.F           \
 
 charpak_mod.o     : charpak_mod.F
 
-error_mod.o       : error_mod.F
+error_mod.o       : error_mod.F           \
+                    geos_timers_mod.o
 
 file_mod.o        : file_mod.F            \
                     error_mod.o
@@ -179,6 +207,11 @@ time_mod.o        : time_mod.F            \
 
 transfer_mod.o    : transfer_mod.F        \
                     error_mod.o
+
+unitconv_mod.o	  : unitconv_mod.F90      \
+                    error_mod.o
+
+geos_timers_mod.o : geos_timers_mod.F
 
 #%%% NOTE: THIS IS NOW OBSOLETE, WE SHOULD REMOVE IT %%% 
 # NOTE: if HDF5=yes then we need to also look for the hdf5.mod 

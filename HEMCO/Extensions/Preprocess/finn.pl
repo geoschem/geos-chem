@@ -147,8 +147,8 @@ sub getProTeXHeader() {
 ! !IROUTINE: hcox_finn_include.H
 !
 ! !DESCRIPTION: Include file with FINN emission factor data that was 
-!  originally contained in files FINN\_EFratios\_CO2.csv and
-!  FINN\_VOC\_speciation.csv.  We transform these data into hardwired F90
+!  originally contained in files FINN\\_EFratios\\_CO2.csv and
+!  FINN\\_VOC\\_speciation.csv.  We transform these data into hardwired F90
 !  assignment statements so that we can avoid reading ASCII files in the 
 !  ESMF environment.
 !

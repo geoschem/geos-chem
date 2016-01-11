@@ -38,11 +38,21 @@
 !       model time is outside of the source file range. If CycleFlag is
 !       set to 3, an error is returned if none of the file time slices
 !       matches the model time. 
+! \item MustFind: if yes, the code returns with an error if no field
+!       can be found for the given simulation time (and according to
+!       the cycle flag and time attribute settings). Only of relevance
+!       for cycle flags range and exact.
+! \item UpdtFlag: determines the update frequency of the data. This is
+!       currently only used to distinguish containers that are updated
+!       on every time step (always) or according to the frequency 
+!       provided in the HEMCO configuration file via attribute 'srcTime'. 
 ! \item ncRead: logical denoting whether or not we need to read this
 !       data container. ncRead is set to false for containers whose
 !       data is directly specified in the configuration file. For
 !       internal use only. 
 ! \item OrigUnit: original unit of data.
+! \item ArbDimName: name of additional (arbitrary) file dimension.
+! \item ArbDimVal : desired value of arbitrary dimension.
 ! \item IsConc: Set to true if data is concentration. Concentration 
 !       data will be added to the concentration array instead of the
 !       emission array.
@@ -63,6 +73,8 @@
 !       specified in the configuration file. 
 ! \item SpaceDim: spatial dimension of data array: 1 = spatially uniform
 !       (x=y=z=1); 2 = 2D data (x,y); 3 = 3D data (x,y,z).
+! \item Levels: handling of vertical levels (3D data only). For internal
+!       use only. 
 ! \item nt: time dimension. length of vector V3 or V2. For internal use 
 !       only.
 ! \item DeltaT: time interval between time slices. For internal use only.
@@ -71,6 +83,8 @@
 !       by multiple data containers. For internal use only. 
 ! \item IsInList: will be set to True if this file data object is part
 !       of the emissions list EmisList. For internal use only.
+! \item IsTouched: will be set to True as soon as the container becomes 
+!       touched for the first time. For internal use only.
 ! \end{itemize}
 !
 ! !INTERFACE: 
@@ -91,6 +105,7 @@ MODULE HCO_FileData_Mod
   PUBLIC  :: FileData_Cleanup 
   PUBLIC  :: FileData_ArrCheck
   PUBLIC  :: FileData_ArrIsDefined
+  PUBLIC  :: FileData_ArrIsTouched
   PUBLIC  :: FileData_ArrInit
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -103,7 +118,8 @@ MODULE HCO_FileData_Mod
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  21 Aug 2014 - C. Keller   - Added concentration
-!  23 Dec 2-14 - C. Keller   - Added argument IsInList
+!  23 Dec 2014 - C. Keller   - Added argument IsInList
+!  06 Oct 2015 - C. Keller   - Added argument MustFind 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -121,19 +137,26 @@ MODULE HCO_FileData_Mod
      INTEGER                     :: ncDys(2)  ! day range
      INTEGER                     :: ncHrs(2)  ! hour range
      INTEGER                     :: CycleFlag ! cycle flag
+     LOGICAL                     :: MustFind  ! file must be found
+     INTEGER                     :: UpdtFlag  ! update flag 
      LOGICAL                     :: ncRead    ! read from source?
      TYPE(Arr3D_SP),     POINTER :: V3(:)     ! vector of 3D fields
      TYPE(Arr2D_SP),     POINTER :: V2(:)     ! vector of 2D fields
      TYPE(TimeIdx),      POINTER :: tIDx      ! for time slice indexing 
      CHARACTER(LEN= 31)          :: OrigUnit  ! original data units 
+     CHARACTER(LEN= 63)          :: ArbDimName! name of additional dimension 
+     CHARACTER(LEN= 63)          :: ArbDimVal ! desired value of additional dimension 
      INTEGER                     :: Cover     ! data coverage
      INTEGER                     :: SpaceDim  ! space dimension: 1, 2 or 3 
+     INTEGER                     :: Levels    ! vertical level handling 
+     INTEGER                     :: Lev2D     ! level to use for 2D data 
      INTEGER                     :: nt        ! time dimension: length of Arr
      INTEGER                     :: DeltaT    ! temp. resolution of array [h]
      LOGICAL                     :: IsLocTime ! local time? 
      LOGICAL                     :: IsConc    ! concentration data?
      LOGICAL                     :: DoShare   ! shared object?
      LOGICAL                     :: IsInList  ! is in emissions list? 
+     LOGICAL                     :: IsTouched ! Has container been touched yet? 
   END TYPE FileData
 
   !-------------------------------------------------------------------------
@@ -206,17 +229,24 @@ CONTAINS
     NewFDta%ncMts(:)     = -999
     NewFDta%ncDys(:)     = -999
     NewFDta%ncHrs(:)     = -999
-    NewFDta%CycleFlag    = 1
+    NewFDta%CycleFlag    = HCO_CFLAG_CYCLE
+    NewFDta%UpdtFlag     = HCO_UFLAG_FROMFILE
+    NewFDta%MustFind     = .FALSE.
     NewFDta%ncRead       = .TRUE.
     NewFDta%Cover        = -999 
     NewFDta%DeltaT       = 0
     NewFDta%nt           = 0
     NewFDta%SpaceDim     = -1
+    NewFDta%Levels       = 0
+    NewFDta%Lev2D        = 1
     NewFDta%OrigUnit     = ''
+    NewFDta%ArbDimName   = 'none'
+    NewFDta%ArbDimVal    = ''
     NewFDta%IsLocTime    = .FALSE.
     NewFDta%IsConc       = .FALSE.
     NewFDta%DoShare      = .FALSE.
     NewFDta%IsInList     = .FALSE.
+    NewFDta%IsTouched    = .FALSE.
 
     ! Return
     FileDta => NewFDta
@@ -441,6 +471,9 @@ CONTAINS
     ! Init
     IsDefined = .FALSE.
 
+    ! Return here if passed FileDta object is not defined
+    IF ( .NOT. ASSOCIATED( FileDta ) ) RETURN
+
     ! nt must be larger than zero! 
     IF ( FileDta%nt <= 0 ) Return 
 
@@ -455,6 +488,54 @@ CONTAINS
     ENDIF
 
   END FUNCTION FileData_ArrIsDefined
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FileData_ArrIsTouched
+!
+! !DESCRIPTION: Function FileData\_ArrIsTouched returns true if the data 
+! array of the given file data object has already been touched, e.g. if 
+! the data has already been read (or at least attempted to being read). 
+! This information is mostly important for file data objects that are shared 
+! by multiple data containers. See ReadList\_Fill in hco\_readlist\_mod.F90
+! for more details. 
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION FileData_ArrIsTouched( FileDta ) RESULT( IsTouched )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(FileData), POINTER :: FileDta  ! Container
+!
+! !RETURN VALUE:
+!
+    LOGICAL                 :: IsTouched
+!
+! !REVISION HISTORY:
+!  17 Mar 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! ================================================================
+    ! FileData_ArrIsTouched begins here
+    ! ================================================================
+     
+    ! Init
+    IsTouched = .FALSE.
+
+    ! Return touched flag
+    IF ( ASSOCIATED( FileDta ) ) THEN
+       IsTouched = FileDta%IsTouched
+    ENDIF
+
+
+  END FUNCTION FileData_ArrIsTouched
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

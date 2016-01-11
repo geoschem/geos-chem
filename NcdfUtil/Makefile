@@ -43,6 +43,7 @@
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #  10 Jul 2014 - R. Yantosca - Now compile ncdf_mod.F90
 #  02 Dec 2014 - R. Yantosca - Now use NC_LINK_CMD variable instead of NCL
+#  04 Jun 2015 - R. Yantosca - Now remove *.a and *.mod files with make clean
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -54,21 +55,21 @@
 ###############################################################################
 
 # Directories
-ROOT   :=..
-BIN    :=$(ROOT)/bin
-DOC    :=$(ROOT)/doc
-LIB    :=$(ROOT)/lib
-MOD    :=$(ROOT)/mod
+ROOT     :=..
+BIN      :=$(ROOT)/bin
+DOC      :=$(ROOT)/doc
+LIB      :=$(ROOT)/lib
+MOD      :=$(ROOT)/mod
 
 # Executables
-EXE    :=TestNcdfUtil.x
+EXE      :=TestNcdfUtil.x
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOT)/Makefile_header.mk
 
 # Include these files in the library libNcUtils.a
-OBJlib :=                  \
+OBJlib   :=                  \
 m_do_err_out.o             \
 m_netcdf_io_checks.o	   \
 m_netcdf_io_close.o	   \
@@ -85,10 +86,23 @@ ncdf_mod.o
 # But compile all of these files.  The modules charpak_mod.F and julday_mod.F
 # are needed to build ncdf_mod.F90, but don't need to be added into library
 # libNcUtils.a.  These modules already get packaged into libGeosUtil.a.
-OBJ    :=charpak_mod.o julday_mod.o $(OBJlib)
+OBJECTS  :=charpak_mod.o julday_mod.o $(OBJlib)
 
-# Files for standalone test driver (code, object, exe)
-OBJx   :=$(EXE:.x=.o)
+# List of module files.  Convert to lowercase, then prefix directory name.
+MODULES  :=$(OBJECTS:.o=.mod)
+MODULES  :=$(shell echo $(MODULES) | tr A-Z a-z)
+MODULES  :=$(foreach I,$(MODULES),$(MOD)/$(I))
+
+# Compile this file to build the test driver
+OBJECTSx :=$(EXE:.x=.o)
+
+# Module file for the executable
+MODULESx :=$(OBJECTSx:.o=.mod)
+MODULESx :=$(shell echo $(MODULESx) | tr A-Z a-z)
+MODULESx :=$(foreach I,$(MODULESx),$(MOD)/$(I))
+
+# Library file
+LIBRARY  :=libNcUtils.a
 
 ###############################################################################
 ###                                                                         ###
@@ -175,23 +189,29 @@ TestNcdfUtil.o           : TestNcdfUtil.F90             \
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: clean help libnc ncdfcheck test
+.PHONY: clean help libnc ncdfcheck slowclean test
 
-libnc: $(OBJ)
-	$(AR) crs libNcUtils.a $(OBJlib)
-	mv libNcUtils.a $(LIB)
+libnc: $(OBJECTS)
+	$(AR) crs $(LIBRARY) $(OBJlib)
+	mv $(LIBRARY) $(LIB)
 
 lib: libnc
 
-ncdfcheck: $(OBJx)
-	$(LD) $(OBJx) -L$(LIB) -lNcUtils $(NC_LINK_CMD) -o $(EXE)
+ncdfcheck: $(OBJECTSx)
+	$(LD) $(OBJECTSx) -L$(LIB) -lNcUtils $(NC_LINK_CMD) -o $(EXE)
 	./$(EXE) 
 
 check: ncdfcheck
 test: ncdfcheck
 
 clean:
-	rm -f *.a *.mod *.o *.nc *.x 
+	@echo "===> Making clean in directory: NcdfUtil <==="
+	@rm -f *.o *.mod *.x *.a $(EXE)
+
+slowclean:
+	@echo "===> Making slowclean in directory: NcdfUtil <==="
+	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
+	@rm -f $(OBJECTSx) $(MODULESx) $(EXE)
 
 print:
 	@echo $(LINK)

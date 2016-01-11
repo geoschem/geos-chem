@@ -7,10 +7,8 @@
 !
 ! !DESCRIPTION: Module HCO\_CHARTOOLS\_MOD contains a collection of 
 ! helper routines to handle character strings and parse tokens. It also 
-! contains definitions of special characters, including space, tab, wildcard, 
-! separator, colon, and comment. Some of these characters (wildcard, separator, 
-! colon, as well as tokens ROOT, MET, RES) may be manually set in the settings 
-! section of the HEMCO configuration file.
+! contains definitions of special characters such as space, tab and 
+! comment. 
 ! \\
 ! !INTERFACE: 
 !
@@ -28,17 +26,11 @@ MODULE HCO_CharTools_Mod
   PUBLIC :: HCO_CharSplit
   PUBLIC :: HCO_CharMatch
   PUBLIC :: HCO_CharParse
+  PUBLIC :: HCO_GetBase
   PUBLIC :: IsInWord
   PUBLIC :: NextCharPos
-  PUBLIC :: HCO_WCD
-  PUBLIC :: HCO_SPC
-  PUBLIC :: HCO_SEP
-  PUBLIC :: HCO_COL
-  PUBLIC :: HCO_CMT
-  PUBLIC :: HCO_TAB
-  PUBLIC :: HCO_ROOTTOKEN
-  PUBLIC :: HCO_METTOKEN
-  PUBLIC :: HCO_RESTOKEN
+  PUBLIC :: GetNextLine
+  PUBLIC :: HCO_READLINE
 !
 ! !REVISION HISTORY:
 !  18 Dec 2013 - C. Keller   - Initialization
@@ -46,6 +38,9 @@ MODULE HCO_CharTools_Mod
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  11 Jul 2014 - C. Keller   - Characters added
 !  17 Oct 2014 - C. Keller   - Added parser and tokens ROOT, MET, and RES.
+!  12 Aug 2015 - R. Yantosca - Add new value of DEF_MET for MERRA2
+!  12 Aug 2015 - R. Yantosca - Add new value of DEF_RES for 0.5 x 0.625 grids
+!  20 Sep 2015 - C. Keller   - Moved tokens to hco_extlist_mod.F90 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -61,58 +56,9 @@ MODULE HCO_CharTools_Mod
 ! !MODULE PARAMETER:
 !
   ! Fixed characters
-  CHARACTER(LEN=1), PARAMETER :: DEF_SPACE     = ' '
-  CHARACTER(LEN=1), PARAMETER :: DEF_TAB       = ACHAR(9)
-  CHARACTER(LEN=1), PARAMETER :: DEF_COMMENT   = '#'
-
-  ! Default values for characters that can be changed 
-  ! through the configuration file
-  CHARACTER(LEN=1), PARAMETER :: DEF_COLON     = ':'
-  CHARACTER(LEN=1), PARAMETER :: DEF_SEPARATOR = '/'
-  CHARACTER(LEN=1), PARAMETER :: DEF_WILDCARD  = '*'
-
-  !---------------------------------------------------------------------------
-  ! Default tokens
-  ! HEMCO has three tokens that can be specified in the HEMCO configuration
-  ! file: ROOT (root directory), MET (met fields), and RES (horizontal 
-  ! resolution). These tokens can be used in file names to be dynamically
-  ! replaced, e.g. file.$MET.$RES.nc becomes file.geos5.4x5.nc if MET is set
-  ! to 'geos5' and RES to '4x5'. Tokens are also allowed for dates ($YYYY,
-  ! $MM, $DD, $HH, see routine HCO_CharParse).
-  ! The default tokens below will be used if by default, i.e. if the
-  ! corresponding token is not specified in the HEMCO configuration file.
-  !---------------------------------------------------------------------------
-
-  ! Default root directory
-  CHARACTER(LEN=1023), PARAMETER :: DEF_ROOT = '/path/do/dir'
-
-  ! Default met field token
-#if defined( GEOS_FP )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'geosfp'
-#elif defined( GEOS_5 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'geos5'
-#elif defined( GEOS_4 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'geos4'
-#elif defined( MERRA )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'merra'
-#elif defined( GCAP )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'gcap'
-#else
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'unknown_model'
-#endif 
-
-  ! Default resolution token
-#if defined( GRID4x5 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '4x5'
-#elif defined( GRID2x25 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '2x25'
-#elif defined( GRID1x125 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '1x125'
-#elif defined( GRID05x0666 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '05x0666'
-#else
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = 'unknown_res'
-#endif
+  CHARACTER(LEN=1), PARAMETER, PUBLIC :: HCO_SPC     = ' '
+  CHARACTER(LEN=1), PARAMETER, PUBLIC :: HCO_TAB     = ACHAR(9)
+  CHARACTER(LEN=1), PARAMETER, PUBLIC :: HCO_CMT     = '#'
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -176,7 +122,8 @@ CONTAINS
     Reals(:) = -999_dp
 
     ! Extract strings to be translated into integers 
-    CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Reals,1) ) THEN
        CALL HCO_ERROR( 'Too many substrings!', RC, THISLOC=LOC )
        RETURN
@@ -259,7 +206,8 @@ CONTAINS
     Reals(:) = -999_sp
 
     ! Extract strings to be translated into integers 
-    CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Reals,1) ) THEN
        CALL HCO_ERROR( 'Too many substrings!', RC, THISLOC=LOC )
        RETURN
@@ -341,8 +289,16 @@ CONTAINS
     ! Init
     Ints(:) = -999
 
+    ! If input string is wildcard or otherwise empty, return here.
+    IF ( TRIM(CharStr) == TRIM(WC) .OR. &
+         TRIM(CharStr) == '-'            ) THEN
+       N = 0
+       RETURN
+    ENDIF
+
     ! Extract strings to be translated into integers 
-    CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
+    CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Ints,1) ) THEN
        CALL HCO_ERROR( 'Too many substrings!', RC, THISLOC=LOC )
        RETURN
@@ -351,16 +307,9 @@ CONTAINS
     ! Return here if no entry found
     IF ( N == 0 ) RETURN 
 
-    ! Pass all extracted strings to integer vector. Replace wildcard
-    ! character with -999!
+    ! Pass all extracted strings to integer vector.
     DO I = 1, N
-       IF ( TRIM(SUBSTR(I)) == TRIM(WC) ) THEN
-          Ints(I) = -999
-       ELSEIF ( TRIM(SUBSTR(I)) == '-' ) THEN
-          Ints(I) = -999
-       ELSE
-          READ( SUBSTR(I), * ) Ints(I) 
-       ENDIF
+       READ( SUBSTR(I), * ) Ints(I) 
     ENDDO
 
     ! Leave w/ success
@@ -445,10 +394,15 @@ CONTAINS
 ! replacing those values by the intendend characters. 
 !\\
 !\\
-! At the moment, the following tokens are searched and replaced:
+! The following list shows the 'default' HEMCO tokens. These are available
+! in any HEMCO simulation. Tokens $ROOT, $MET, and $RES are internally 
+! stored as a HEMCO option in module hco\_extlist\_mod.F90 (see subroutine
+! HCO\_SetDefaultToken). 
 !\begin{itemize}
 !\item \$ROOT: will be replaced by the root path specified in the settings
 ! section of the configuration file.
+!\item \$MET: will be replaced by the met-field token. 
+!\item \$RES: will be replaced by the resolution token. 
 !\item \$YYYY: will be replaced by the (4-digit) year according to the 
 ! source time settings set in the configuration file.
 !\item \$MM: will be replaced by the (2-digit) month according to the
@@ -457,13 +411,15 @@ CONTAINS
 ! source time settings set in the configuration file.
 !\item \$HH: will be replaced by the (2-digit) hour according to the
 ! source time settings set in the configuration file.
+!\item \$MN: will be replaced by the (2-digit) minute.
 !\end{itemize}
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_CharParse ( str, yyyy, mm, dd, hh, RC )
+  SUBROUTINE HCO_CharParse ( str, yyyy, mm, dd, hh, mn, RC )
 !
 ! !USES:
 !
+    USE HCO_ExtList_Mod, ONLY  : HCO_GetOpt, HCO_Root
 !
 ! !INPUT PARAMETERS:
 !
@@ -471,6 +427,7 @@ CONTAINS
     INTEGER,          INTENT(IN   )  :: mm    ! replace $MM with this value 
     INTEGER,          INTENT(IN   )  :: dd    ! replace $DD with this value
     INTEGER,          INTENT(IN   )  :: hh    ! replace $HH with this value
+    INTEGER,          INTENT(IN   )  :: mn    ! replace $MN with this value
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -482,6 +439,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Oct 2014 - C. Keller - Initial version
+!  20 Sep 2015 - C. Keller - Tokens can now be any option setting set in the
+!                            HEMCO configuration file.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -490,31 +449,19 @@ CONTAINS
 !
     CHARACTER(LEN=255)  :: MSG
     CHARACTER(LEN=255)  :: LOC = 'HCO_CharParse (HCO_CharTools_Mod.F90)'
+    CHARACTER(LEN=255)  :: TOKEN
     CHARACTER(LEN=2047) :: TMPSTR, BEFORE, AFTER
-    INTEGER             :: LN, IDX, OFF
+    INTEGER             :: I, LN, IDX, OFF
     CHARACTER(LEN=4)    :: str4
     CHARACTER(LEN=2)    :: str2
+    CHARACTER(LEN=1)    :: SEP
 
     !=================================================================
     ! HCO_CharParse begins here
     !=================================================================
 
-    ! Check for root token
-    !-------------------------------------------------------------------
-    IDX = INDEX( str, '$ROOT' )
-    IF ( IDX > 0 ) THEN
-       LN = LEN(str)
-       IF ( IDX > 1 ) THEN
-          BEFORE = str(1:(IDX-1))
-       ELSE
-          BEFORE = ''
-       ENDIF
-       OFF   = 5
-       AFTER = str((IDX+OFF):LN)
-
-       ! Updated string
-       str = TRIM(BEFORE) // TRIM(HCO_ROOTTOKEN()) // TRIM(AFTER)
-    ENDIF
+    ! Get characters
+    SEP = HCO_GetOpt('Separator')
 
     ! Check for year token
     !-------------------------------------------------------------------
@@ -596,10 +543,10 @@ CONTAINS
        str = TRIM(BEFORE) // TRIM(str2) // TRIM(AFTER)
     ENDDO
 
-    ! Check for met. model token 
+    ! Check for minute token
     !-------------------------------------------------------------------
     DO
-       IDX = INDEX( str, '$MET' )
+       IDX = INDEX( str, '$MN' )
        IF ( IDX <= 0 ) EXIT 
        LN = LEN(str)
        IF ( IDX > 1 ) THEN
@@ -607,35 +554,164 @@ CONTAINS
        ELSE
           BEFORE = ''
        ENDIF
-       OFF   = 4
+       OFF   = 3
        AFTER = str((IDX+OFF):LN)
 
+       WRITE(str2,'(i2.2)') mn
+
        ! Updated string
-       str = TRIM(BEFORE) // TRIM(HCO_METTOKEN()) // TRIM(AFTER)
+       str = TRIM(BEFORE) // TRIM(str2) // TRIM(AFTER)
     ENDDO
 
-    ! Check for met. resolution token 
+    ! Check for root token
     !-------------------------------------------------------------------
-    DO
-       IDX = INDEX( str, '$RES' )
-       IF ( IDX <= 0 ) EXIT 
+    IDX = INDEX( str, '$ROOT' )
+    IF ( IDX > 0 ) THEN
        LN = LEN(str)
        IF ( IDX > 1 ) THEN
           BEFORE = str(1:(IDX-1))
        ELSE
           BEFORE = ''
        ENDIF
-       OFF   = 4
+       OFF   = 5
        AFTER = str((IDX+OFF):LN)
 
        ! Updated string
-       str = TRIM(BEFORE) // TRIM(HCO_RESTOKEN()) // TRIM(AFTER)
-    ENDDO
+       str = TRIM(BEFORE) // TRIM(HCO_ROOT()) // TRIM(AFTER)
+    ENDIF
+
+    ! Check for any other token
+    !-------------------------------------------------------------------
+    DO 
+       IDX = INDEX( str, '$' )
+       IF ( IDX <= 0 ) EXIT
+       LN = LEN(TRIM(str))
+
+       ! Determine token name:
+       ! Find end of token by starting at the first character after the 
+       ! token and then advance in string until a 'token end character' 
+       ! is encountered.
+       DO I = IDX+1,LN
+
+          ! Special case that end of string is encountered:
+          IF ( I == LN ) THEN
+             TOKEN = str( (IDX+1) : I )
+             OFF   = I
+             EXIT
+          ENDIF
+
+          ! Scan for token cap:
+          IF ( str(I:I) == ' '  .OR. &
+               str(I:I) == '.'  .OR. &
+               str(I:I) == ':'  .OR. &
+               str(I:I) == '$'  .OR. &
+               str(I:I) == '%'  .OR. &
+               str(I:I) == '+'  .OR. &
+               str(I:I) == '_'  .OR. &
+               str(I:I) == '-'  .OR. &
+               str(I:I) == 'x'  .OR. &
+               str(I:I) == '0'  .OR. &
+               str(I:I) == '1'  .OR. &
+               str(I:I) == '2'  .OR. &
+               str(I:I) == '3'  .OR. &
+               str(I:I) == '4'  .OR. &
+               str(I:I) == '5'  .OR. &
+               str(I:I) == '6'  .OR. &
+               str(I:I) == '7'  .OR. &
+               str(I:I) == '8'  .OR. &
+               str(I:I) == '9'  .OR. &
+               str(I:I) == SEP        ) THEN 
+
+             TOKEN = str( (IDX+1) : (I-1) )
+             OFF   = I
+             EXIT
+          ENDIF
+       ENDDO
+
+       IF ( IDX > 1 ) THEN
+          BEFORE = str(1:(IDX-1))
+       ELSE
+          BEFORE = ''
+       ENDIF
+       IF ( OFF >= LN ) THEN
+          AFTER = ''
+       ELSE
+          AFTER = str(OFF:LN)
+       ENDIF
+
+       ! Update string
+       str = TRIM(BEFORE) // TRIM(HCO_GetOpt(TOKEN)) // TRIM(AFTER)
+
+    ENDDO 
 
     ! Return w/ success
     RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_CharParse
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_GetBase
+!
+! !DESCRIPTION: Routine HCO\_GetBase returns the base location of the given
+! file. This is the entire file path up to the last forward slash, e.g. for
+! file '/home/dir/Config.rc', the base is '/home/dir/'
+!
+! !INTERFACE:
+!
+  SUBROUTINE HCO_GetBase ( str, base, RC ) 
+!
+! !USES:
+!
+    USE CharPak_Mod, ONLY : StrSplit
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN   )  :: str   ! string to be checked 
+!
+! !OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(  OUT)  :: base  ! base 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC         ! return code
+!
+! !REVISION HISTORY:
+!  16 Mar 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    INTEGER             :: I, N
+    CHARACTER(LEN=255)  :: SUBSTR(255)
+
+    !=================================================================
+    ! HCO_GetBase begins here
+    !=================================================================
+
+    CALL STRSPLIT( str, '/', SUBSTR, N )
+    IF ( N <= 1 ) THEN
+       base = '.'
+    ELSE
+       base = '/' // TRIM(SUBSTR(1)) 
+       IF ( N > 2 ) THEN
+          DO I = 2,(N-1)
+             base = TRIM(base) // '/' // TRIM(SUBSTR(I)) 
+          ENDDO
+       ENDIF
+    ENDIF
+
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_GetBase
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -743,407 +819,147 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: HCO_WCD
+! !IROUTINE: GetNextLine 
 !
-! !DESCRIPTION: Function HCO\_WCD returns the HEMCO WILDCARD character. 
+! !DESCRIPTION: Subroutine GetNextLine returns the next line. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_WCD() RESULT( WILDCARD )
+  SUBROUTINE GetNextLine( am_I_Root, LUN, LINE, EOF, RC ) 
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=1) :: WILDCARD 
+    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+    INTEGER,          INTENT(IN   ) :: LUN         ! Stream to read from
+!
+! !OUTPUT PARAMETERS
+!
+    CHARACTER(LEN=*), INTENT(  OUT) :: LINE        ! Next (valid) line in stream
+!
+! !INPUT/OUTPUT PARAMETERS
+!
+    LOGICAL,          INTENT(INOUT) :: EOF         ! End of file encountered? 
+    INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
-!
+!  10 Apr 2015 - C. Keller - Initial Version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    LOGICAL,          SAVE      :: FIRST = .TRUE.
-    CHARACTER(LEN=1), SAVE      :: WCD
-    LOGICAL                     :: FOUND
-    INTEGER                     :: myRC
+!
+! LOCAL VARIABLES:
+!
+    INTEGER             :: IOS
+    CHARACTER(LEN=2047) :: DUM
 
-    !======================================================================
-    ! HCO_WCD begins here 
-    !======================================================================
+    !=================================================================
+    ! GetNextLine begins here
+    !=================================================================
 
-    ! On first call, check if WildCard character has been set in settings.
-    ! Use default value otherwise.
-    IF ( FIRST ) THEN 
-       CALL GetExtOpt( CoreNr, 'Wildcard', OptValChar=WCD, Found=FOUND, RC=myRC )
-       IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) WCD = DEF_WILDCARD 
-       FIRST = .FALSE.
+    ! Init
+    RC = HCO_SUCCESS
+
+    ! Repeat until valid line is encountered
+    DO
+       CALL HCO_ReadLine( LUN, DUM, EOF, RC )
+       IF ( EOF .OR. RC /= HCO_SUCCESS ) RETURN
+
+       ! Skip if empty or commented line 
+       IF ( TRIM(DUM) == ''      ) CYCLE
+       IF ( DUM(1:1)  == HCO_CMT ) CYCLE
+
+       ! If we get here, exit loop
+       LINE = DUM
+       EXIT
+    ENDDO
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE GetNextLine 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_ReadLine 
+!
+! !DESCRIPTION: Subroutine HCO\_Line reads a line from the provided stream.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ReadLine( LUN, LINE, EOF, RC )
+!
+! !INPUT PARAMETERS: 
+!
+    INTEGER,          INTENT(IN   ) :: LUN      ! Stream LUN 
+!
+! !OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(INOUT) :: LINE     ! Line
+    LOGICAL,          INTENT(INOUT) :: EOF      ! End of file?
+    INTEGER,          INTENT(INOUT) :: RC       ! Return code 
+! 
+! !REVISION HISTORY: 
+!  18 Sep 2013 - C. Keller - Initial version (adapted from B. Yantosca's code) 
+!  15 Jul 2014 - R. Yantosca - Remove dependency on routine IOERROR
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER             :: IOS
+    CHARACTER(LEN=255)  :: MSG
+    CHARACTER(LEN=4095) :: DUM
+
+    !=================================================================
+    ! HCO_ReadLine begins here!
+    !=================================================================
+
+    ! Initialize
+    EOF = .FALSE.
+    RC  = HCO_SUCCESS
+
+    ! Read a line from the file
+    READ( LUN, '(a)', IOSTAT=IOS ) DUM
+
+    ! IO Status < 0: EOF condition
+    IF ( IOS < 0 ) THEN
+       EOF = .TRUE.
+       RETURN
     ENDIF
 
-    ! Return
-    WILDCARD = WCD
-
-  END FUNCTION HCO_WCD
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: HCO_SPC
-!
-! !DESCRIPTION: Function HCO\_SPC returns the HEMCO space character. 
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION HCO_SPC() RESULT( SPACE )
-!
-! !ARGUMENTS:
-!
-    CHARACTER(LEN=1) :: SPACE 
-!
-! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    !======================================================================
-    ! HCO_SPC begins here 
-    !======================================================================
-
-    ! Return
-    SPACE = DEF_SPACE 
-
-  END FUNCTION HCO_SPC
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: HCO_SEP
-!
-! !DESCRIPTION: Function HCO\_SEP returns the HEMCO SEPARATOR character. 
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION HCO_SEP() RESULT( SEPARATOR )
-!
-! !USES:
-!
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
-!
-! !ARGUMENTS:
-!
-    CHARACTER(LEN=1) :: SEPARATOR 
-!
-! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-    LOGICAL,          SAVE      :: FIRST = .TRUE.
-    CHARACTER(LEN=1), SAVE      :: SEP
-    LOGICAL                     :: FOUND
-    INTEGER                     :: myRC
-
-    !======================================================================
-    ! HCO_SEP begins here 
-    !======================================================================
-
-    ! On first call, check if Separator character has been set in settings.
-    ! Use default value otherwise.
-    IF ( FIRST ) THEN 
-       CALL GetExtOpt( CoreNr, 'Separator', OptValChar=SEP, Found=FOUND, RC=myRC )
-       IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) SEP = DEF_SEPARATOR
-       FIRST = .FALSE.
+    ! IO Status > 0: true I/O error condition
+    IF ( IOS > 0 ) THEN
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+       WRITE( 6, 100   ) IOS
+100    FORMAT( 'ERROR ', i5, ' in HCO_Readline (hco_chartools_mod.F90)' )
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+       RC = HCO_FAIL
+       RETURN 
     ENDIF
 
-    ! Return wildcard character
-    SEPARATOR = SEP
-
-  END FUNCTION HCO_SEP
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: HCO_COL
-!
-! !DESCRIPTION: Function HCO\_COL returns the HEMCO COLON character. 
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION HCO_COL() RESULT( COLON )
-!
-! !USES:
-!
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
-!
-! !ARGUMENTS:
-!
-    CHARACTER(LEN=1) :: COLON 
-!
-! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-    LOGICAL,          SAVE      :: FIRST = .TRUE.
-    CHARACTER(LEN=1), SAVE      :: COL
-    LOGICAL                     :: FOUND
-    INTEGER                     :: myRC
-
-    !======================================================================
-    ! HCO_COL begins here 
-    !======================================================================
-
-    ! On first call, check if Colon character has been set in settings.
-    ! Use default value otherwise.
-    IF ( FIRST ) THEN 
-       CALL GetExtOpt( CoreNr, 'Colon', OptValChar=COL, Found=FOUND, RC=myRC )
-       IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) COL = DEF_COLON
-       FIRST = .FALSE.
+    ! Make sure that character string DUM is not longer than LINE
+    IF ( LEN(TRIM(DUM)) > LEN(LINE) ) THEN
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+       WRITE( 6, * ) ' Line is too long - cannot read line ', TRIM(DUM)   
+       WRITE( 6, * ) ' '
+       WRITE( 6, * ) ' To fix this, increase length of argument `LINE` in '
+       WRITE( 6, * ) ' HCO_ReadLine (hco_chartools_mod.F90)' 
+       RC = HCO_FAIL
+       RETURN 
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    ELSE
+       LINE = DUM(1:LEN(LINE))
     ENDIF
 
-    ! Return 
-    COLON = COL
-
-  END FUNCTION HCO_COL
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: HCO_ROOTTOKEN
-!
-! !DESCRIPTION: Function HCO\_ROOTTOKEN returns the HEMCO root character
-! as specified in the HEMCO configuration file settings (ROOT: /set/path). 
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION HCO_ROOTTOKEN() RESULT( ROOTOUT )
-!
-! !USES:
-!
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
-!
-! !ARGUMENTS:
-!
-    CHARACTER(LEN=2047) :: ROOTOUT
-!
-! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-    LOGICAL,             SAVE   :: FIRST = .TRUE.
-    CHARACTER(LEN=1023), SAVE   :: ROOT 
-    LOGICAL                     :: FOUND
-    INTEGER                     :: myRC
-
-    !======================================================================
-    ! HCO_ROOTTOKEN begins here 
-    !======================================================================
-
-    ! On first call, check if Colon character has been set in settings.
-    ! Use default value otherwise.
-    IF ( FIRST ) THEN 
-       CALL GetExtOpt( CoreNr, 'ROOT', OptValChar=ROOT, Found=FOUND, RC=myRC )
-       IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) ROOT = DEF_ROOT
-       FIRST = .FALSE.
-    ENDIF
-
-    ! Return 
-    ROOTOUT = ROOT
-
-  END FUNCTION HCO_ROOTTOKEN
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: HCO_METTOKEN
-!
-! !DESCRIPTION: Function HCO\_METTOKEN returns the HEMCO met field character
-! (e.g. GEOS\_FP) specified in the HEMCO configuration file settings (e.g. 
-! MET: GEOS\_FP). If not set in the HEMCO config. file, a default value is 
-! taken based on the compiler switches.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION HCO_METTOKEN() RESULT( METOUT )
-!
-! !USES:
-!
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
-!
-! !ARGUMENTS:
-!
-    CHARACTER(LEN=15) :: METOUT
-!
-! !REVISION HISTORY:
-!  17 Oct 2014 - C. Keller - Initialization
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-    LOGICAL,           SAVE   :: FIRST = .TRUE.
-    CHARACTER(LEN=15), SAVE   :: MET
-    LOGICAL                   :: FOUND
-    INTEGER                   :: myRC
-
-    !======================================================================
-    ! HCO_METTOKEN begins here 
-    !======================================================================
-
-    ! On first call, check if Colon character has been set in settings.
-    ! Use default value otherwise.
-    IF ( FIRST ) THEN 
-       CALL GetExtOpt( CoreNr, 'MET', OptValChar=MET, Found=FOUND, RC=myRC )
-       IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) MET = DEF_MET
-       FIRST = .FALSE.
-    ENDIF
-
-    ! Return 
-    METOUT = MET
-
-  END FUNCTION HCO_METTOKEN
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: HCO_RESTOKEN
-!
-! !DESCRIPTION: Function HCO\_RESTOKEN returns the HEMCO resolution character
-! (e.g. 2x25) specified in the HEMCO configuration file settings (e.g. 
-! RES: 2x25). If not set in the HEMCO config. file, a default value is 
-! taken based on the compiler switches.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION HCO_RESTOKEN() RESULT( RESOUT )
-!
-! !USES:
-!
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
-!
-! !ARGUMENTS:
-!
-    CHARACTER(LEN=15) :: RESOUT
-!
-! !REVISION HISTORY:
-!  17 Oct 2014 - C. Keller - Initialization
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-    LOGICAL,           SAVE   :: FIRST = .TRUE.
-    CHARACTER(LEN=15), SAVE   :: RES
-    LOGICAL                   :: FOUND
-    INTEGER                   :: myRC
-
-    !======================================================================
-    ! HCO_RESTOKEN begins here 
-    !======================================================================
-
-    ! On first call, check if Colon character has been set in settings.
-    ! Use default value otherwise.
-    IF ( FIRST ) THEN 
-       CALL GetExtOpt( CoreNr, 'RES', OptValChar=RES, Found=FOUND, RC=myRC )
-       IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) RES = DEF_RES
-       FIRST = .FALSE.
-    ENDIF
-
-    ! Return 
-    RESOUT = RES
-
-  END FUNCTION HCO_RESTOKEN
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: HCO_CMT
-!
-! !DESCRIPTION: Function HCO\_CMT returns the HEMCO COMMENT character. 
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION HCO_CMT() RESULT( COMMENT )
-!
-! !ARGUMENTS:
-!
-    CHARACTER(LEN=1) :: COMMENT 
-!
-! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    !======================================================================
-    ! HCO_CMT begins here 
-    !======================================================================
-
-    ! Return wildcard character
-    COMMENT = DEF_COMMENT 
-
-  END FUNCTION HCO_CMT
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: HCO_TAB
-!
-! !DESCRIPTION: Function HCO\_TAB returns the HEMCO TAB character. 
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION HCO_TAB() RESULT( TAB )
-!
-! !ARGUMENTS:
-!
-    CHARACTER(LEN=1) :: TAB
-!
-! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    !======================================================================
-    ! HCO_TAB begins here 
-    !======================================================================
-
-    ! Return
-    TAB = DEF_TAB
-
-  END FUNCTION HCO_TAB
+  END SUBROUTINE HCO_ReadLine
 !EOC
 END MODULE HCO_CharTools_Mod

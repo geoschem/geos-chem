@@ -16,6 +16,7 @@ MODULE HcoX_FINN_Mod
 ! 
   USE HCO_Error_Mod
   USE HCO_Diagn_Mod
+  USE HCOX_TOOLS_MOD
   USE HCO_State_Mod,  ONLY : HCO_State
   USE HCOX_State_Mod, ONLY : Ext_State
 
@@ -49,7 +50,24 @@ MODULE HcoX_FINN_Mod
 !     (10) C2H6 [kgC/m2/s]     (22) CO2  [ kg/m2/s]
 !     (11) SO2  [ kg/m2/s]     (23) CH4  [ kg/m2/s]
 !     (12) NH3  [ kg/m2/s]     (24) 
-!                                                                             .
+!
+!
+! All species to be used must be listed in the settings section of the HEMCO
+! configuration file. For every listed species, individual scale factors as 
+! well as masks can be defined. For example, to scale FINN CO emissions by a 
+! factor of 1.05 and restrict them to North America, as well as to scale NO
+! emissions by a factor of 1.5: 
+!
+!114     FINN              : on    NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C3H8/CH2O/C2H6/SO2/NH3/BCPI/BCPO/OCPI/OCPO/GLYC/HAC
+!    --> FINN_daily        :       false
+!    --> hydrophilic BC    :       0.2
+!    --> hydrophilic OC    :       0.5
+!    --> Mask_CO           :       NAMASK 
+!    --> Scaling_CO        :       1.05 
+!    --> Scaling_NO        :       1.5 
+!
+! Field NAMASK must be defined in section mask of the HEMCO configuration file.
+!                                                                             
 !  References:
 !  ============================================================================
 !  (1 ) Original FINN database from Christine Wiedinmyer
@@ -71,6 +89,8 @@ MODULE HcoX_FINN_Mod
 !                              hard-coded statements in hcox_finn_include.H
 !  11 Aug 2014 - R. Yantosca - Now use F90 free-form indentation
 !  11 Aug 2014 - R. Yantosca - Cosmetic changes to ProTeX subroutine headers
+!  11 Jun 2015 - C. Keller   - Update to include individual scale factors and
+!                              masks.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -113,6 +133,7 @@ MODULE HcoX_FINN_Mod
   !=================================================================
   INTEGER                        :: nSpc
   CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
+  CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
   INTEGER,           ALLOCATABLE :: HcoIDs(:)
   INTEGER,           ALLOCATABLE :: FinnIDs(:)
   CHARACTER(LEN=6),  ALLOCATABLE :: FINN_SPEC_NAME(:)
@@ -125,22 +146,17 @@ MODULE HcoX_FINN_Mod
   !             emissions factor table is specified in the HEMCO
   !             configuration file. The scale factors are converted
   !             to kg species/kg CO2 when reading them from disk.
-  ! COScale   : CO scale factor to account for production from 
-  !             VOCs. Read from HEMCO configuration file.
   ! OCPIfrac  : Fraction of OC that converts into hydrophilic OC.
   !             Can be set in HEMCO configuration file (default=0.5)
   ! BCPIfrac  : Fraction of BC that converts into hydrophilic BC.
   !             Can be set in HEMCO configuration file (default=0.2)
-  ! POASCALE  : Scale factor for POA. If tracer POA1 is specified, 
-  !             emissions are calculated from OC, multiplied by a
-  !             POA scale factor that must be specified in the HEMCO
-  !             configuration file (POA scale).
+  ! SpcScal  : Additional scaling factors assigned to species through
+  !            the HEMCO configuration file (e.g. Scaling_CO). 
   !=================================================================
   REAL(dp),          ALLOCATABLE :: FINN_EMFAC(:,:)
-  REAL(sp)                       :: COScale
+  REAL(sp),          ALLOCATABLE :: SpcScal(:)
   REAL(sp)                       :: OCPIfrac
   REAL(sp)                       :: BCPIfrac
-  REAL(sp)                       :: POASCALE 
 
   !=================================================================
   ! DATA ARRAY POINTERS 
@@ -215,8 +231,6 @@ CONTAINS
 
     ! Pointers
     REAL(sp), POINTER   :: THISTYP(:,:) => NULL()
-    REAL(hp), POINTER   :: Arr2D  (:,:) => NULL()
-
 
     !=======================================================================
     ! HCOX_FINN_Run begins here!
@@ -345,9 +359,13 @@ CONTAINS
        ENDDO !NF
 
        ! Apply species specific scale factors
+       SpcArr = SpcArr * SpcScal(N)
+
+       ! Check for masking
+       CALL HCOX_SCALE( am_I_Root, HcoState, SpcArr, TRIM(SpcScalFldNme(N)), RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
        SELECT CASE ( SpcNames(N) )
-          CASE ( 'CO' )
-             SpcArr = SpcArr * COScale
           CASE ( 'OCPI' )
              SpcArr = SpcArr * OCPIfrac
           CASE ( 'OCPO' )
@@ -356,12 +374,11 @@ CONTAINS
              SpcArr = SpcArr * BCPIfrac
           CASE ( 'BCPO' )
              SpcArr = SpcArr * (1.0_sp - BCPIfrac)
-          CASE ( 'POA1' )
-             SpcArr = POASCALE * SpcArr
        END SELECT
 
        ! Add flux to HEMCO emission array
-       CALL HCO_EmisAdd( HcoState, SpcArr, HcoID, RC ) 
+       CALL HCO_EmisAdd( am_I_Root, HcoState,    SpcArr, HcoID, &
+                         RC,        ExtNr=ExtNr, Cat=-1, Hier=-1 ) 
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'HCO_EmisAdd error: ' // TRIM(HcoState%Spc(HcoID)%SpcName)
           CALL HCO_ERROR( MSG, RC )
@@ -388,22 +405,11 @@ CONTAINS
              ENDIF
           ENDIF
        ENDIF
-
-       ! Eventually update diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => SpcArr
-          CALL Diagn_Update(am_I_Root, ExtNr=ExtNr,               &
-                            Cat=-1,    Hier=-1,      HcoID=HcoID, &
-                            AutoFill=1,Array2D=Arr2D,RC=RC         )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          Arr2D => NULL()
-       ENDIF
   
     ENDDO !N
 
     ! Nullify pointers
     THISTYP   => NULL()
-    Arr2D     => NULL()
 
     ! Leave w/ success
     CALL HCO_LEAVE ( RC )
@@ -430,6 +436,7 @@ CONTAINS
     USE HCO_State_Mod,   ONLY : HCO_GetHcoID
     USE HCO_State_Mod,   ONLY : HCO_GetExtHcoID
     USE HCO_ExtList_Mod, ONLY : GetExtNr, GetExtOpt
+    USE HCO_ExtList_Mod, ONLY : GetExtSpcVal
 !
 ! !INPUT PARAMETERS:
 !
@@ -462,6 +469,7 @@ CONTAINS
     INTEGER               :: IU_FILE, L, N_LUMPED, tmpNr
     INTEGER               :: AS, IOS, M, N, NDUM
     INTEGER               :: N_SPECSTRS, N_NMOCSTRS
+    INTEGER               :: NCHAR 
     LOGICAL               :: IS_NMOC, Matched, Missing, FOUND
     CHARACTER(LEN=1023)   :: ADUM
     CHARACTER(LEN=255)    :: SDUM(255)
@@ -498,7 +506,6 @@ CONTAINS
     ! the speciation of carbon aerosols into hydrophilic and hydrophobic
     ! fractions can be specified in the configuration file, e.g.:
     ! 100     GFED3           : on    NO/CO/OCPI/OCPO/BCPI/BCPO
-    !     --> CO scale factor :       1.05
     !     --> hydrophilic BC  :       0.2
     !     --> hydrophilic OC  :       0.5
     !
@@ -507,16 +514,6 @@ CONTAINS
     ! corresponding species (CO, BCPI/BCPO, OCPI/OCPO) are listed as species
     ! to be used.
     !----------------------------------------------------------------------- 
-
-    ! Try to read CO scale factor. Defaults to 1.0
-    CALL GetExtOpt ( ExtNr, 'CO scale factor', &
-                     OptValSp=ValSp, FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( .NOT. FOUND ) THEN
-       COScale = 1.0
-    ELSE
-       COScale = ValSp
-    ENDIF
 
     ! Try to read hydrophilic fractions of BC. Defaults to 0.2.
     CALL GetExtOpt ( ExtNr, 'hydrophilic BC', &
@@ -548,11 +545,9 @@ CONTAINS
     ENDIF
  
     ! Use daily data?
-    tmpName = TRIM(ExtName) // "_daily"
-    tmpNr   = GetExtNr( TRIM(tmpName) )
-    IF ( tmpNr > 0 ) THEN
-       UseDay = .TRUE.
-    ELSE
+    CALL GetExtOpt ( ExtNr, 'FINN_daily', OptValBool=UseDay, FOUND=FOUND, RC=RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND ) THEN 
        UseDay = .FALSE.
     ENDIF
 
@@ -701,6 +696,32 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Get species scale factors
+    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'Scaling', 1.0_sp, SpcScal, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Get species mask fields
+    CALL GetExtSpcVal( ExtNr, nSpc, SpcNames, 'ScaleField', HCOX_NOSCALE, SpcScalFldNme, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Error trap: in previous versions, CO, POA and NAP scale factor were given as
+    ! 'CO scale factor', etc. Make sure those attributes do not exist any more!
+    CALL GetExtOpt ( ExtNr, 'CO scale factor', OptValSp=ValSp, FOUND=FOUND, RC=RC )
+    IF ( .NOT. FOUND ) THEN
+       CALL GetExtOpt ( ExtNr, 'POA scale factor', OptValSp=ValSp, FOUND=FOUND, RC=RC )
+    ENDIF
+    IF ( .NOT. FOUND ) THEN
+       CALL GetExtOpt ( ExtNr, 'NAP scale factor', OptValSp=ValSp, FOUND=FOUND, RC=RC )
+    ENDIF
+    IF ( FOUND ) THEN
+       MSG = 'Found old definition of CO, POA and/or NAP scale factor! '  // & 
+             'This version of HEMCO expects species scale factors to be ' // &
+             'set as `Scaling_XX` instead of `XX scale factor`. '         // &
+             'Please update the FINN settings section accordingly.'
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+    ENDIF
+
     ! Find matching FINN index for each specified species. 
     ! Also get appropriate emission ratios to CO2 (jaf, 10/2/13).
     ! Do this only for species selected for emission calculation. For
@@ -712,25 +733,29 @@ CONTAINS
        Matched  = .FALSE.
        Missing  = .TRUE.
 
+       ! Reduce species if needed
+       NCHAR   = LEN(SpcName)
+       IF ( NCHAR > 3 ) THEN
+          IF ( SpcName(1:3) == 'CO2' ) THEN
+             SpcName = 'CO2'
+          ELSEIF ( SpcName(1:3) == 'CH4' ) THEN
+             SpcName = 'CH4'
+          ELSEIF ( SpcName(1:3) == 'CO_' ) THEN
+             SpcName = 'CO'
+          ELSEIF ( SpcName(1:2) == 'BC' ) THEN
+             SpcName = 'BC'
+          ELSEIF ( SpcName(1:2) == 'OC' ) THEN
+             SpcName = 'OC'
+          ENDIF
+       ENDIF
        ! For model species NO, the emission factors are taken from FINN  
        ! species NOx.  For model species MTPA, the emission factors are 
        ! taken from FINN species APINE (BPINE and CARENE will be lumped 
        ! into it as well).
-       ! Also reduce 'CO2bb' to 'CO2'.
-       SELECT CASE ( TRIM(SpcName) )
-          CASE ( 'NO' )
-            SpcName = 'NOx'
-          CASE ('MTPA' )
-            SpcName = 'APINE'
-          CASE ('CO2bb' )
-            SpcName = 'CO2'
-          CASE ('CH4_bb', 'CH4_tot' )
-            SpcName = 'CH4'
-          CASE ( 'BC', 'BCPI', 'BCPO' )
-             SpcName = 'BC'
-          CASE ( 'OC', 'OCPI', 'OCPO', 'POA1' )
-             SpcName = 'OC'
-       END SELECT
+       IF ( TRIM(SpcName) == 'POA1' ) SpcName = 'OC'
+       IF ( TRIM(SpcName) == 'NAP'  ) SpcName = 'CO'
+       IF ( TRIM(SpcName) == 'NO'   ) SpcName = 'NOx'
+       IF ( TRIM(SpcName) == 'MTPA' ) SpcName = 'APINE'
 
        ! For lumped species, we have to repeat the lookup multiple times,
        ! so use a while loop here.  For example, for species TOLU this will 
@@ -748,6 +773,10 @@ CONTAINS
                    MSG = '   - FINN species ' // TRIM(FINN_SPEC_NAME(N)) // &
                          '     will be emitted as ' // TRIM(SpcNames(L))
                    CALL HCO_MSG( MSG )
+                WRITE(MSG,*) '     --> Uniform scale factor : ', SpcScal(N)
+                CALL HCO_MSG( MSG )
+                WRITE(MSG,*) '     --> Scale field          : ', TRIM(SpcScalFldNme(N)) 
+                CALL HCO_MSG( MSG )
                 ENDIF   
 
                 ! Reset variables
@@ -773,7 +802,7 @@ CONTAINS
                          AdjFact = 1.0_dp / MW_CO2
                       ELSE
                          AdjFact = 1.0_dp / MW_CO2 * &
-                                   HcoState%Spc(HcoIDs(L))%MW_g
+                                   HcoState%Spc(HcoIDs(L))%EmMW_g
                       ENDIF
                       FINN_EMFAC(N,:) = AdjFact / EMFAC_IN(M,:)
                       IF ( am_I_Root ) THEN
@@ -817,7 +846,7 @@ CONTAINS
                 IF ( IS_NMOC ) THEN
                    DO M = 1, N_EMFAC
                       C_MOLEC         = HcoState%Spc(HcoIDs(L))%MolecRatio
-                      AdjFact         = HcoState%Spc(HcoIDs(L))%MW_g
+                      AdjFact         = HcoState%Spc(HcoIDs(L))%EmMW_g
                       FINN_EMFAC(N,M) = NMOC_EMFAC(M)             * &
                                         ( NMOC_RATIO(M) * C_MOLEC ) * &
                                         ( AdjFact       * 1e-3_hp )
@@ -872,20 +901,6 @@ CONTAINS
           ENDIF
 
        ENDDO !While missing
-
-       ! For tracer POA1, the POA scale factor must be defined in the HEMCO 
-       ! configuration file
-       IF ( TRIM(SpcNames(L)) == 'POA1' ) THEN
-          CALL GetExtOpt ( ExtNr, 'POA scale', &
-                           OptValSp=ValSp, FOUND=FOUND, RC=RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          IF ( .NOT. FOUND ) THEN
-             MSG = 'You must specify a POA scale factor for species POA1'
-             CALL HCO_ERROR( MSG, RC )
-             RETURN
-          ENDIF
-          POASCALE = ValSp
-       ENDIF
 
        ! Error check: we must not specify a species that is not defined
        ! in FINN.
@@ -947,6 +962,8 @@ CONTAINS
     IF ( ALLOCATED( FinnIDs        )) DEALLOCATE( FinnIDs        )
     IF ( ALLOCATED( HcoIDs         )) DEALLOCATE( HcoIDs         )
     IF ( ALLOCATED( SpcNames       )) DEALLOCATE( SpcNames       )
+    IF ( ALLOCATED( SpcScalFldNme  )) DEALLOCATE( SpcScalFldNme  )
+    IF ( ALLOCATED( SpcScal        )) DEALLOCATE( SpcScal        )
     IF ( ALLOCATED( FINN_SPEC_NAME )) DEALLOCATE( FINN_SPEC_NAME )
 
   END SUBROUTINE HCOX_FINN_Final

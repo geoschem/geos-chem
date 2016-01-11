@@ -272,7 +272,7 @@ CONTAINS
 ! that are too far away from the GEOS-CHEM GRID BOX.  This can speed up
 ! the Olson computation by a factor of 100 or more!
 !
-#if defined( GRID05x0666 ) || defined( GRID025x03125 )
+#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125 )
     REAL(fp), PARAMETER :: latThresh = 1e+0_fp   ! Lat threshold, nested grid
     REAL(fp), PARAMETER :: lonThresh = 1e+0_fp   ! Lon threshold, nested grid
 #else
@@ -606,6 +606,7 @@ CONTAINS
 !  29 Nov 2012 - R. Yantosca - Add am_I_Root to the argument list
 !  26 Feb 2013 - M. Long     - Now pass DATA_DIR_1x1 via the argument list
 !  24 Jun 2014 - R. Yantosca - Now accept Input_Opt, RC via the arg list
+!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/CHEM_INPUTS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -673,8 +674,8 @@ CONTAINS
     !======================================================================
 
     ! Construct file path from directory & file name
-    nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'Olson_Land_Map_201203/'
-    nc_path = TRIM( nc_dir )                 // TRIM( nc_file )
+    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'Olson_Land_Map_201203/'
+    nc_path = TRIM( nc_dir )                    // TRIM( nc_file )
 
     ! Open file for read
     CALL Ncop_Rd( fId, TRIM(nc_path) )

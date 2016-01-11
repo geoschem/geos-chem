@@ -201,17 +201,18 @@
 !
       LOGICAL, SAVE            :: FIRST = .TRUE.
       INTEGER                  :: I,    J,    L,    N
-      REAL(fp)                   :: ANO3, GNO3, RHI,  TEMPI
+      REAL(fp)                   :: ANO3, GNO3
+      REAL(f8)                   :: RHI, TEMPI
       REAL(fp)                   :: TCA,  TMG,  TK,   HNO3_DEN
       REAL(fp)                   :: TNA,  TCL,  TNH3, TNH4
       REAL(fp)                   :: TNIT, TNO3, TSO4, VOL
-      REAL(fp)                   :: AERLIQ(NIONSA+NGASAQA+2)
-      REAL(fp)                   :: AERSLD(NSLDSA) 
-      REAL(fp)                   :: GAS(NGASAQA) 
-      REAL(fp)                   :: OTHER(NOTHERA)
-      REAL(fp)                   :: WI(NCOMPA)    
-      REAL(fp)                   :: WT(NCOMPA)
-      REAL(fp)                   :: CNTRL(NCTRLA)
+      REAL(f8)                   :: AERLIQ(NIONSA+NGASAQA+2)
+      REAL(f8)                   :: AERSLD(NSLDSA) 
+      REAL(f8)                   :: GAS(NGASAQA) 
+      REAL(f8)                   :: OTHER(NOTHERA)
+      REAL(f8)                   :: WI(NCOMPA)    
+      REAL(f8)                   :: WT(NCOMPA)
+      REAL(f8)                   :: CNTRL(NCTRLA)
       CHARACTER(LEN=255)       :: X 
       CHARACTER(LEN=15)        :: SCASI  
 #if   defined( APM )
@@ -548,7 +549,7 @@
             ! Convert total inorganic nitrate from [mole/m3] to [ug/m3] 
             ! and save for next time
             ! WT(4) is in [mole/m3] -- unit conv is necessary!
-            CALL SET_HNO3( I, J, L, 63.e+6_fp * WT(4) )
+            CALL SET_HNO3( I, J, L, 63.e+6_f8 * WT(4) )
 
             ! Save for use in sulfate_mod (SEASALT_CHEM) for offline
             ! aerosol simulations (bec, 4/15/05)
@@ -789,16 +790,21 @@
       INTEGER, INTENT(IN) :: I           ! GEOS-Chem longitude index
       INTEGER, INTENT(IN) :: J           ! GEOS-Chem longitude index
       INTEGER, INTENT(IN) :: L           ! GEOS-Chem longitude index
-      REAL(fp),  INTENT(IN) :: HNO3_UGM3   ! HNO3 concentration [ug/m3]
+      REAL(f8),  INTENT(IN) :: HNO3_UGM3   ! HNO3 concentration [ug/m3]
 ! 
 ! !REVISION HISTORY: 
 !  16 Dec 2002 - R. Yantosca  - Initial version, in ISORROPIA I
 !  06 Jul 2007 - H. O. T. Pye - Initial version, in ISORROPIA II
 !  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
+!  11 Jan 2015 - M. Yannetti  - Some precision edits, for safety.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      HNO3_sav(I,J,L) = HNO3_UGM3
+#IF !defined ( USE_REAL_8 )
+      HNO3_sav(I,J,L) = SNGL(HNO3_UGM3) ! if we are not using real*8
+#ELIF
+      HNO3_sav(I,J,L) = HNO3_UGM3 ! if we are using real*8
+#ENDIF
 
       END SUBROUTINE SET_HNO3
 !EOC

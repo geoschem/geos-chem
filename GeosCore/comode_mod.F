@@ -52,7 +52,10 @@
       INTEGER,  ALLOCATABLE, PUBLIC :: IYSAVE(:)
       INTEGER,  ALLOCATABLE, PUBLIC :: IZSAVE(:)
       INTEGER,  ALLOCATABLE, PUBLIC :: JLOP(:,:,:)
+#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       INTEGER,  ALLOCATABLE, PUBLIC :: JLOP_PREVIOUS(:,:,:)
+#endif
+
       REAL(fp), ALLOCATABLE, PUBLIC :: PRESS3(:)
       REAL(fp), ALLOCATABLE, PUBLIC :: REMIS(:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: T3(:)
@@ -217,9 +220,11 @@
          JLOP = 0
       
          !vartrop fix (dkh, 05/08/11)
+#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
          ALLOCATE( JLOP_PREVIOUS( ILONG, ILAT, IPVERT ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP_PREVIOUS' )
          JLOP_PREVIOUS = 0
+#endif
 
          ALLOCATE( PRESS3( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRESS3' )
@@ -285,9 +290,11 @@
          JLOP = 0
 
          !vartrop fix (dkh, 05/08/11)
+#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
          ALLOCATE( JLOP_PREVIOUS(ILONG, ILAT, IPVERT ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'JLOP_PREVIOUS' )
          JLOP_PREVIOUS = 0
+#endif
 
          ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAREA' )
@@ -343,7 +350,9 @@
       IF ( ALLOCATED( IYSAVE        ) ) DEALLOCATE( IYSAVE        )
       IF ( ALLOCATED( IZSAVE        ) ) DEALLOCATE( IZSAVE        )
       IF ( ALLOCATED( JLOP          ) ) DEALLOCATE( JLOP          )
+#if !defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       IF ( ALLOCATED( JLOP_PREVIOUS ) ) DEALLOCATE( JLOP_PREVIOUS )
+#endif
       IF ( ALLOCATED( PRESS3        ) ) DEALLOCATE( PRESS3        )     
       IF ( ALLOCATED( REMIS         ) ) DEALLOCATE( REMIS         )
       IF ( ALLOCATED( T3            ) ) DEALLOCATE( T3            )     

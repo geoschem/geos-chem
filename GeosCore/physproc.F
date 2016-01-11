@@ -28,10 +28,10 @@
       USE COMODE_MOD,         ONLY : IYSAVE
       USE COMODE_MOD,         ONLY : T3
       USE COMODE_LOOP_MOD
-#IF DEFINED( USE_REAL8 )
+#if defined( USE_REAL8 )
       USE CHEMISTRY_MOD,      ONLY : GCKPP_DRIVER
       USE GCKPP_GLOBAL,       ONLY : NTT
-#ENDIF
+#endif
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -118,6 +118,7 @@
 !  15 Dec 2014 - M. Yannetti - Added filtering for KPP
 !  08 Jan 2015 - M. Sulprizio- Now restrict KPP to REAL*8 to allow for KPP code
 !                              to compile properly
+!  12 May 2015 - R. Yantosca - Bug fix: PGI expects #ifdefs to be lower-case
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -321,9 +322,9 @@
 ! *********************************************************************
 !
 !--- Moved from chemdr.f (ccc, 12/9/09)
-#IF DEFINED ( USE_REAL8 )
+#if defined( USE_REAL8 )
           IF ( LKPP) NTT = NTTLOOP
-#ENDIF
+#endif
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( JLOOP,KLOOP,KBLK2,JNEW,JOLD)
@@ -371,11 +372,12 @@
 !    NSPEC(1) is the # of active species for urban chemistry.
 !    (ccc, 01/20/10)
           call CPU_TIME(start)
-#IF DEFINED ( USE_REAL8 )
+#if defined( USE_REAL8 )
           IF ( LKPP ) THEN
-             CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP, NSPEC(1))
+             CALL GCKPP_DRIVER( KTLOOP, JLOOPLO, RRATE_FOR_KPP, 
+     &                          NSPEC(1), Input_Opt )
           ELSE
-#ENDIF
+#endif
              CALL SMVGEAR( am_I_Root, Input_Opt, RC )
 
 !
@@ -398,9 +400,9 @@
                       CSPEC(JLOOP,JOLD) = MAX(CNEW(KLOOP,JNEW),SMAL2)
  620            CONTINUE
              ENDIF
-#IF DEFINED ( USE_REAL8 )
+#if defined( USE_REAL8 )
           ENDIF
-#ENDIF
+#endif
           call CPU_TIME(finish)
 !
           

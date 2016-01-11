@@ -25,7 +25,7 @@
      &                               REMIS,  T3,      TAREA,    CSPEC
       USE DAO_MOD,            ONLY : IS_ICE
       USE DIAG_MOD,           ONLY : AD22,   LTJV, AD52
-      USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, DEPNAME  !SHIPO3DEP
+!      USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, DEPNAME  !SHIPO3DEP
       USE DRYDEP_MOD,         ONLY : NTRAIND
       USE ERROR_MOD,          ONLY : is_safe_div
       USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
@@ -178,6 +178,8 @@
 !                              already applied in vdiff_mod.F90
 !  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  12 Dec 2014 - M. Yannetti - Updated HEMCO variable Dep from REAL*8 to REAL(hp)
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
+!  23 Sep 2015 - E. Lundgren - Add Criegee chemistry (dbm, mje, eam, 2015)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -446,7 +448,7 @@
             ! Vertical index
             IZ                = IZSAVE(JLOOP)
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
             
             ! GEOS-5 / MERRA / GEOS-5.7 have QI and QL defined as met fields
             ! so use these to define the QICE, QLIQ arrays.  Also, QICE and
@@ -780,6 +782,13 @@
            ENDDO
          ENDDO
 
+! --- Criegee chemistry (dbm, mje, eam, 2015)
+         DO I=1, NNADDAT(NCS)
+            NK = NKSPECAT(I,NCS)
+            DO KLOOP=1, KTLOOP
+               RRATE(KLOOP,NK)=RRATE(KLOOP,NK)*CBLK(KLOOP,IH2O)
+            ENDDO
+         ENDDO
 
 ! ---  K = K1 + K2  ---- 
          IF (NKSPECW(NCS).GT.0) THEN
@@ -1952,167 +1961,174 @@ c new OH+CO rate from JPL2006.
 !
 ! *********************************************************************
 ! ******                   SET EMISSION RATES                    ******
+! As of Mar 5, 2015, emissions and dry deposition are entirely done 
+! outside of chemistry (in mixing_mod.F90). We thus don't need below
+! any more.
 ! *********************************************************************
+!!
+!! Add option for non-local PBL mixing (Lin, 03/31/09)
 !
-! Add option for non-local PBL mixing (Lin, 03/31/09)
-
-      IF (LNLPBL) THEN
-
-         DO I = 1,NEMIS(NCS)
-! get tracer number corresponding to emission species I
-            NN = IDEMS(I)
-            IF (NN.NE.0) THEN
-! find reaction number for emission of tracer NN
-               NK = NTEMIS(NN,NCS)
-               IF (NK.NE.0) THEN
-                  DO KLOOP = 1,KTLOOP
-                     JLOOP = LREORDER(KLOOP+JLOOPLO)
-                     RRATE(KLOOP,NK) = 0.e+0_fp
-                     ! Surface emissions of gases are constrained to the 
-                     ! lowest model layer, and are considered in the 
-                     ! PBL mixing module vdiff_mod, not anymore in SMVGEAR.
-                     ! Emissions at higher levels (e.g. aircraft) are still
-                     ! managed by SMVGEAR. 
-                     !*** As of 05/02/08, REMIS only contains emissions of 
-                     ! gases for the SMVGEAR mechanism. (Lin, 05/02/08)
-                     !RRATE(KLOOP,NK) = REMIS(JLOOP,I)
-                     IZ    = IZSAVE(JLOOP)
-                     if (IZ .EQ. 1) then
-                        RRATE(KLOOP,NK) = 0.E+0_fp
-                     else
-                        RRATE(KLOOP,NK) = REMIS(JLOOP,I)
-                     endif
-                  ENDDO
-               ENDIF
-            ENDIF
-         ENDDO
-
-      ELSE
-
-         DO I = 1,NEMIS(NCS)
-! get tracer number corresponding to emission species I
-            NN = IDEMS(I)
-            IF (NN.NE.0) THEN
-! find reaction number for emission of tracer NN
-               NK = NTEMIS(NN,NCS)
-               IF (NK.NE.0) THEN
-                  DO KLOOP = 1,KTLOOP
-                     RRATE(KLOOP,NK) = 0.e+0_fp
-                     JLOOP = LREORDER(KLOOP+JLOOPLO)
-                     RRATE(KLOOP,NK) = REMIS(JLOOP,I)
-                  ENDDO
-               ENDIF
-            ENDIF
-         ENDDO
-
-      ENDIF
+!      IF (LNLPBL) THEN
 !
-! *********************************************************************
-! ******                SET DRY DEPOSITION RATES                 ******
-! ******                                                         ******
-! ******   NOTE: Now compute drydep throughout the mixed layer   ******
-! ******   (a.k.a. PBL) in order to prevent short-lived species  ******
-! ******   such as HNO3 from being depleted in the shallow       ******
-! ******   surface layer. (rjp, bmy, 7/30/03)                    ******   
-! *********************************************************************
+!         DO I = 1,NEMIS(NCS)
+!! get tracer number corresponding to emission species I
+!            NN = IDEMS(I)
+!            IF (NN.NE.0) THEN
+!! find reaction number for emission of tracer NN
+!               NK = NTEMIS(NN,NCS)
+!               IF (NK.NE.0) THEN
+!                  DO KLOOP = 1,KTLOOP
+!                     JLOOP = LREORDER(KLOOP+JLOOPLO)
+!                     RRATE(KLOOP,NK) = 0.e+0_fp
+!                     ! Surface emissions of gases are constrained to the 
+!                     ! lowest model layer, and are considered in the 
+!                     ! PBL mixing module vdiff_mod, not anymore in SMVGEAR.
+!                     ! Emissions at higher levels (e.g. aircraft) are still
+!                     ! managed by SMVGEAR. 
+!                     !*** As of 05/02/08, REMIS only contains emissions of 
+!                     ! gases for the SMVGEAR mechanism. (Lin, 05/02/08)
+!                     !RRATE(KLOOP,NK) = REMIS(JLOOP,I)
+!                     IZ    = IZSAVE(JLOOP)
+!                     if (IZ .EQ. 1) then
+!                        RRATE(KLOOP,NK) = 0.E+0_fp
+!                     else
+!                        RRATE(KLOOP,NK) = REMIS(JLOOP,I)
+!                     endif
+!                  ENDDO
+!               ENDIF
+!            ENDIF
+!         ENDDO
 !
-! Add option for non-local PBL mixing (Lin, 03/31/09)
-      IF (LNLPBL) THEN      
-
-         DO I = 1,NUMDEP
-            NK = NTDEP(I)
-            IF (NK.NE.0) THEN
-               DO KLOOP = 1,KTLOOP
-
-                  ! 1-D grid box index (accounts for reordering)
-                  JLOOP = LREORDER(KLOOP+JLOOPLO)
-
-                  ! 3-D grid box index
-                  IX    = IXSAVE(JLOOP)
-                  IY    = IYSAVE(JLOOP)
-                  IZ    = IZSAVE(JLOOP)
-               
-                  ! constrain the dry deposition to the lowest model layer
-                  ! (Lin, 04/28/08)
-                  if (IZ .NE. 1) then
-                     RRATE(KLOOP,NK) = 0.E+0_fp 
-                  else
-
-                     ! This used to include dust and sea salt aerosols,
-                     ! but sea salt deposition is already done in PBL 
-                     ! code. So exclude now from here 
-                     ! No need to check here for HEMCO drydep rates of
-                     ! dust (that shouldn't exist anyways!) since those
-                     ! would have been added to the tracers array in 
-                     ! DUSTMIX already (ckeller, 10/13/14).
-                     SELECT CASE ( DEPNAME(I) )
-!                        CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', 
-!     &                         'SALC' )
-                        CASE ( 'DST1', 'DST2', 'DST3', 'DST4' )
-                           ! dusts 
-                           RRATE(KLOOP,NK) = DEPSAV(IX,IY,I)
-                        CASE DEFAULT
-                           ! gases + aerosols for full chemistry
-                           RRATE(KLOOP,NK) = 0.E+0_fp
-                     END SELECT
-                  endif
-               ENDDO
-            ENDIF
-         ENDDO
-
-      ELSE
-  
-         DO I = 1,NUMDEP
-            NK = NTDEP(I)
-            IF (NK.NE.0) THEN
-               DO KLOOP = 1,KTLOOP
-
-                  ! 1-D grid box index (accounts for reordering)
-                  JLOOP = LREORDER(KLOOP+JLOOPLO)
-
-                  ! 3-D grid box index
-                  IX    = IXSAVE(JLOOP)
-                  IY    = IYSAVE(JLOOP)
-                  IZ    = IZSAVE(JLOOP)
-
-                  ! Now compute drydep throughout the entire PBL
-                  ! GET_FRAC_UNDER_PBLTOP returns the fraction of layer
-                  ! (IX, IY, IZ) that is beneath the PBL top
-                  RRATE(KLOOP,NK) = DEPSAV(IX,IY,I) * 
-     &                              GET_FRAC_UNDER_PBLTOP( IX, IY, IZ )
-
-                  ! Also add deposition values from HEMCO. (ckeller, 10/13/14)
-                  TRCID = NTRAIND(N)
-                  IF ( TRCID > 0 ) THEN
-                     CALL GetHcoVal( TRCID, IX, IY, 1, Fnd, Dep=Dep )
-                     IF ( Fnd ) THEN
-                       RRATE(KLOOP,NK) = RRATE(KLOOP,NK)
-     &                                 + Dep
-     &                                 * GET_FRAC_UNDER_PBLTOP(IX,IY,IZ)
-                     ENDIF          
-                  ENDIF          
-
-                  ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
-                  ! when there is O3 destruction in subgrid ship plume 
-                  ! parameterization. This is roughly equivalent to negative
-                  ! emissions, which were used previously by PARANOX,
-                  ! but caused instability in the chemical solver
-                  ! (cdh, 3/21/2013)
-                  ! 
-                  ! This is now handled through HEMCO.
-                  ! (ckeller, 10/13/14)
-!                  SELECT CASE ( TRIM(DEPNAME(I)) )
-!                     CASE ( 'O3' )
-!                        RRATE(KLOOP,NK) = RRATE(KLOOP,NK) + 
-!     &                              SHIPO3DEP(IX,IY) * 
+!      ELSE
+!
+!         DO I = 1,NEMIS(NCS)
+!! get tracer number corresponding to emission species I
+!            NN = IDEMS(I)
+!            IF (NN.NE.0) THEN
+!! find reaction number for emission of tracer NN
+!               NK = NTEMIS(NN,NCS)
+!               IF (NK.NE.0) THEN
+!                  DO KLOOP = 1,KTLOOP
+!                     RRATE(KLOOP,NK) = 0.e+0_fp
+!                     JLOOP = LREORDER(KLOOP+JLOOPLO)
+!                     RRATE(KLOOP,NK) = REMIS(JLOOP,I)
+!                  ENDDO
+!               ENDIF
+!            ENDIF
+!         ENDDO
+!
+!      ENDIF
+!!
+!! *********************************************************************
+!! ******                SET DRY DEPOSITION RATES                 ******
+!! ******                                                         ******
+!! ******   NOTE: Now compute drydep throughout the mixed layer   ******
+!! ******   (a.k.a. PBL) in order to prevent short-lived species  ******
+!! ******   such as HNO3 from being depleted in the shallow       ******
+!! ******   surface layer. (rjp, bmy, 7/30/03)                    ******   
+!
+! As of Mar 5, 2015, emissions and dry deposition are entirely done 
+! outside of chemistry (in mixing_mod.F90). We thus don't need below
+! any more.
+!! *********************************************************************
+!
+!! Add option for non-local PBL mixing (Lin, 03/31/09)
+!      IF (LNLPBL) THEN      
+!
+!         DO I = 1,NUMDEP
+!            NK = NTDEP(I)
+!            IF (NK.NE.0) THEN
+!               DO KLOOP = 1,KTLOOP
+!
+!                  ! 1-D grid box index (accounts for reordering)
+!                  JLOOP = LREORDER(KLOOP+JLOOPLO)
+!
+!                  ! 3-D grid box index
+!                  IX    = IXSAVE(JLOOP)
+!                  IY    = IYSAVE(JLOOP)
+!                  IZ    = IZSAVE(JLOOP)
+!               
+!                  ! constrain the dry deposition to the lowest model layer
+!                  ! (Lin, 04/28/08)
+!                  if (IZ .NE. 1) then
+!                     RRATE(KLOOP,NK) = 0.E+0_fp 
+!                  else
+!
+!                     ! This used to include dust and sea salt aerosols,
+!                     ! but sea salt deposition is already done in PBL 
+!                     ! code. So exclude now from here 
+!                     ! No need to check here for HEMCO drydep rates of
+!                     ! dust (that shouldn't exist anyways!) since those
+!                     ! would have been added to the tracers array in 
+!                     ! DUSTMIX already (ckeller, 10/13/14).
+!                     SELECT CASE ( DEPNAME(I) )
+!!                        CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', 
+!!     &                         'SALC' )
+!                        CASE ( 'DST1', 'DST2', 'DST3', 'DST4' )
+!                           ! dusts 
+!                           RRATE(KLOOP,NK) = DEPSAV(IX,IY,I)
+!                        CASE DEFAULT
+!                           ! gases + aerosols for full chemistry
+!                           RRATE(KLOOP,NK) = 0.E+0_fp
+!                     END SELECT
+!                  endif
+!               ENDDO
+!            ENDIF
+!         ENDDO
+!
+!      ELSE
+!  
+!         DO I = 1,NUMDEP
+!            NK = NTDEP(I)
+!            IF (NK.NE.0) THEN
+!               DO KLOOP = 1,KTLOOP
+!
+!                  ! 1-D grid box index (accounts for reordering)
+!                  JLOOP = LREORDER(KLOOP+JLOOPLO)
+!
+!                  ! 3-D grid box index
+!                  IX    = IXSAVE(JLOOP)
+!                  IY    = IYSAVE(JLOOP)
+!                  IZ    = IZSAVE(JLOOP)
+!
+!                  ! Now compute drydep throughout the entire PBL
+!                  ! GET_FRAC_UNDER_PBLTOP returns the fraction of layer
+!                  ! (IX, IY, IZ) that is beneath the PBL top
+!                  RRATE(KLOOP,NK) = DEPSAV(IX,IY,I) * 
 !     &                              GET_FRAC_UNDER_PBLTOP( IX, IY, IZ )
-!                     CASE DEFAULT  ! Do nothing
-!                  END SELECT
-               ENDDO
-            ENDIF
-         ENDDO
-
-      ENDIF
+!
+!                  ! Also add deposition values from HEMCO. (ckeller, 10/13/14)
+!                  TRCID = NTRAIND(N)
+!                  IF ( TRCID > 0 ) THEN
+!                     CALL GetHcoVal( TRCID, IX, IY, 1, Fnd, Dep=Dep )
+!                     IF ( Fnd ) THEN
+!                       RRATE(KLOOP,NK) = RRATE(KLOOP,NK)
+!     &                                 + Dep
+!     &                                 * GET_FRAC_UNDER_PBLTOP(IX,IY,IZ)
+!                     ENDIF          
+!                  ENDIF          
+!
+!                  ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
+!                  ! when there is O3 destruction in subgrid ship plume 
+!                  ! parameterization. This is roughly equivalent to negative
+!                  ! emissions, which were used previously by PARANOX,
+!                  ! but caused instability in the chemical solver
+!                  ! (cdh, 3/21/2013)
+!                  ! 
+!                  ! This is now handled through HEMCO.
+!                  ! (ckeller, 10/13/14)
+!!                  SELECT CASE ( TRIM(DEPNAME(I)) )
+!!                     CASE ( 'O3' )
+!!                        RRATE(KLOOP,NK) = RRATE(KLOOP,NK) + 
+!!     &                              SHIPO3DEP(IX,IY) * 
+!!     &                              GET_FRAC_UNDER_PBLTOP( IX, IY, IZ )
+!!                     CASE DEFAULT  ! Do nothing
+!!                  END SELECT
+!!               ENDDO
+!            ENDIF
+!         ENDDO
+!
+!      ENDIF
 !
 ! *********************************************************************
 ! *********************************************************************
@@ -2215,7 +2231,6 @@ c new OH+CO rate from JPL2006.
       NULLIFY( QL        )
       NULLIFY( SUNCOSmid )
       NULLIFY( T         )
-
 !
 ! *********************************************************************
 !                     RETURN TO CALLING PROGRAM
@@ -2735,7 +2750,7 @@ c new OH+CO rate from JPL2006.
       ! ----------------------------------------------
 
       ! continental or marine clouds only...
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       IF ( (FRLAND (I,J) > 0) .or. (FROCEAN(I,J) > 0) ) THEN
 #else
       ! Above line is to skip over land ice (Greenland and Antartica). This
@@ -2812,7 +2827,7 @@ c new OH+CO rate from JPL2006.
       !     AREA =  -----------------
       !              AIRVOL x RADIUS      (in cm)
       ! ----------------------------------------------
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       IF ( FRLAND(I,J) > FROCEAN(I,J) ) THEN
 #else
       IF ( IS_LAND(I,J, State_Met) ) THEN
@@ -2830,7 +2845,7 @@ c new OH+CO rate from JPL2006.
       XAIRM3 = XAIRM3 * (100.e+0_fp)**3
 
       ! get the volume of cloud [cm3]
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       ! QL is [g/g]
       Vc = CLDF(I,J,L) * QL * AD(I,J,L) / dens_h2o
 #else

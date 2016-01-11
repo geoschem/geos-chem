@@ -63,7 +63,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Run( am_I_Root, HcoState, RC ) 
+  SUBROUTINE HCO_Run( am_I_Root, HcoState, Phase, RC ) 
 !
 ! !USES:
 !
@@ -71,10 +71,12 @@ CONTAINS
     USE HCO_ReadList_Mod, ONLY : ReadList_Read 
     USE HCO_Clock_Mod,    ONLY : HcoClock_Get
     USE HCO_Clock_Mod,    ONLY : HcoClock_InitTzPtr
+    USE HCOIO_DIAGN_MOD,  ONLY : HcoDiagn_Write
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN   ) :: am_I_Root   ! root CPU?
+    INTEGER,         INTENT(IN   ) :: Phase       ! Run phase (1 or 2) 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -90,6 +92,7 @@ CONTAINS
 !  23 Feb 2015 - R. Yantosca - Now call HcoClock_InitTzPtr on the first
 !                              emissions timestep to initialize the pointer 
 !                              to the timezones data (i.e. hours from UTC)
+!  01 Apr 2015 - C. Keller   - Added run phases
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -114,43 +117,58 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !--------------------------------------------------------------
-    ! 2. Read/update data
+    ! 2. Write HEMCO diagnostics. Do this only if the corresponding
+    ! option is enabled. Otherwise, let the user decide when to 
+    ! call HcoDiagn_Write. 
+    !--------------------------------------------------------------
+    IF ( HcoState%Options%HcoWritesDiagn ) THEN
+       CALL HcoDiagn_Write( am_I_Root, HcoState, .FALSE., RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------------------------
+    ! 3. Read/update data
     ! Check if there are any data files that need to be read or 
     ! updated, e.g. on the first call of HEMCO or if we enter a new
     ! month, year, etc. 
     !--------------------------------------------------------------
 
     ! Update data, as specified in ReadList.
-    CALL ReadList_Read( am_I_Root, HcoState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( Phase /= 2 ) THEN
+       CALL ReadList_Read( am_I_Root, HcoState, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! If we are reading timezone data (i.e. offsets from UTC in hours)
-    ! from a file, then we need to initialize the TIMEZONES pointer 
-    ! variable in hco_clock_mod.F90.  This has to be done only on the
-    ! very first emissions timestep, after the call to READLIST_READ.
-    ! We must leave this call here (instead of in the more customary
-    ! initialization routine HCO_INIT) because the HEMCO configuration
-    ! file has to be read in its entirety before the timezone data
-    ! is loaded into a data container. (bmy, 2/23/15)
-    IF ( FIRST ) THEN
-       CALL HcoClock_InitTzPtr( RC )
-       FIRST = .FALSE.
+       ! If we are reading timezone data (i.e. offsets from UTC in hours)
+       ! from a file, then we need to initialize the TIMEZONES pointer 
+       ! variable in hco_clock_mod.F90.  This has to be done only on the
+       ! very first emissions timestep, after the call to READLIST_READ.
+       ! We must leave this call here (instead of in the more customary
+       ! initialization routine HCO_INIT) because the HEMCO configuration
+       ! file has to be read in its entirety before the timezone data
+       ! is loaded into a data container. (bmy, 2/23/15)
+       IF ( FIRST ) THEN
+          CALL HcoClock_InitTzPtr( am_I_Root, RC )
+          FIRST = .FALSE.
+       ENDIF
+
     ENDIF
 
     !-----------------------------------------------------------------
-    ! 3. Calculate the emissions for current time stamp based on the
+    ! 4. Calculate the emissions for current time stamp based on the
     ! content of EmisList. Emissions become written into HcoState.
     ! Do this only if it's time for emissions. 
     !-----------------------------------------------------------------
-    IF ( IsEmisTime ) THEN
+    IF ( IsEmisTime .AND. Phase /= 1 ) THEN
 
        ! Use emission data only
        CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Use concentration data only
-       CALL HCO_CalcEmis( am_I_Root, HcoState, .TRUE., RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       ! This is currently not being used. Concentrations can be read
+       ! through HEMCO but should be assembled manually.
+       !CALL HCO_CalcEmis( am_I_Root, HcoState, .TRUE., RC ) 
+       !IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
     ! Leave w/ success
@@ -178,12 +196,12 @@ CONTAINS
 !
 ! !USES:
 !
+    USE HCO_Diagn_Mod,    ONLY : HcoDiagn_Init
     USE HCO_tIdx_Mod,     ONLY : tIDx_Init
     USE HCO_Clock_Mod,    ONLY : HcoClock_Init
     USE HCO_ReadList_Mod, ONLY : ReadList_Init
     USE HCO_ReadList_Mod, ONLY : ReadList_Read
     USE HCO_Config_Mod,   ONLY : SetReadList 
-    USE HCO_Diagn_Mod,    ONLY : DiagnCollection_Create
 !
 ! !INPUT PARAMETERS:
 !
@@ -203,6 +221,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
+!
+! !LOCAL VARIABLES:
+!
     !=================================================================
     ! HCO_INIT begins here!
     !=================================================================
@@ -219,19 +240,8 @@ CONTAINS
     CALL HcoClock_Init( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Initialize the HEMCO emissions diagnostics collection. Collection
-    ! will be placed at position 1 (default position). The empty
-    ! prefix will make sure that the prefix is obtained from the 
-    ! HEMCO configuration file settings.
-    CALL DiagnCollection_Create( am_I_Root,                          &
-                                 NX     = HcoState%NX,               &
-                                 NY     = HcoState%NY,               &
-                                 NZ     = HcoState%NZ,               &
-                                 TS     = HcoState%TS_EMIS,          &
-                                 AM2    = HcoState%Grid%AREA_M2%Val, &
-                                 PREFIX = '',                        & 
-                                 RC     = RC                          )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Initialize the HEMCO diagnostics
+    CALL HcoDiagn_Init( am_I_Root, HcoState, RC )
  
     ! Initialize the HEMCO ReadList. This has to be done before
     ! the call to SetReadList below. 
@@ -258,7 +268,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Final() 
+  SUBROUTINE HCO_Final( am_I_Root, HcoState, ERROR, RC ) 
 !
 ! !USES:
 !
@@ -270,7 +280,17 @@ CONTAINS
     USE HCO_DataCont_Mod,  ONLY : cIDList_Cleanup
     USE HCO_DataCont_Mod,  ONLY : Reset_nnDataCont
     USE HCO_ExtList_Mod,   ONLY : ExtFinal
-    USE HCO_Diagn_Mod,     ONLY : DiagnCollection_Cleanup
+    USE HCOIO_DIAGN_MOD,   ONLY : HcoDiagn_Write
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   ) :: am_I_Root  ! root CPU?
+    LOGICAL,          INTENT(IN   ) :: ERROR      ! Cleanup because of crash? 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HCO_State),  POINTER       :: HcoState   ! HcoState object
+    INTEGER,          INTENT(INOUT) :: RC         ! Failure or success
 !
 ! !REMARKS:
 !  (1) ConfigFile_Cleanup also cleans up the data containers, while routine
@@ -291,7 +311,12 @@ CONTAINS
     ! HCO_FINAL begins here 
     !=================================================================
 
-    CALL DiagnCollection_Cleanup()
+    ! Write diagnostics if needed
+    IF ( HcoState%Options%HcoWritesDiagn .AND. .NOT. ERROR ) THEN
+       CALL  HcoDiagn_Write( am_I_Root, HcoState, .FALSE., RC )
+       CALL  HcoDiagn_Write( am_I_Root, HcoState, .TRUE.,  RC )
+    ENDIF
+
     CALL cIDList_Cleanup  (         ) 
     CALL HcoClock_Cleanup (         )
     CALL tIDx_Cleanup     (         )
@@ -299,13 +324,16 @@ CONTAINS
     CALL ReadList_Cleanup ( .FALSE. )
     CALL Config_Cleanup   ( .TRUE.  )
     CALL Reset_nnDataCont
-
+ 
     ! Cleanup the extension list object
     CALL ExtFinal         (         )
 
     ! Close the logfile and cleanup error object. 
     CALL HCO_Error_Final  (         )
 
+    ! Return w/ success
+    RC = HCO_SUCCESS
+ 
   END SUBROUTINE HCO_Final
 !EOC
 END MODULE HCO_Driver_Mod

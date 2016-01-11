@@ -97,7 +97,6 @@ CONTAINS
     INTEGER             :: tmpID
     REAL*8              :: W10M
     LOGICAL             :: ERR
-    REAL(hp), POINTER   :: Arr2D(:,:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
@@ -173,36 +172,18 @@ CONTAINS
     DO N = 1, nOcWind
 
        ! Emissions array
-       CALL HCO_EmisAdd( HcoState, FLUXWIND, OcWindIDs(N), RC )
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXWIND, OcWindIDs(N), &
+                         RC,        ExtNr=ExtNr )
        IF ( RC /= HCO_SUCCESS ) RETURN
-
-       ! Eventually add to diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => FLUXWIND
-          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                             Cat=-1, Hier=-1, HcoID=OcWindIDs(N), &
-                             AutoFill=1, Array2D=Arr2D, RC=RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          Arr2D => NULL() 
-       ENDIF
     ENDDO !N
 
     ! Add ice fluxes to emission arrays & diagnostics 
     DO N = 1, nIceSrc
 
        ! Emissions array
-       CALL HCO_EmisAdd( HcoState, FLUXICE, IceSrcIDs(N), RC )
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXICE, IceSrcIDs(N), &
+                         RC,        ExtNr=ExtNr )
        IF ( RC /= HCO_SUCCESS ) RETURN
-
-       ! Eventually add to diagnostics
-       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-          Arr2D => FLUXICE
-          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                             Cat=-1, Hier=-1, HcoID=IceSrcIDs(N), &
-                             AutoFill=1, Array2D=Arr2D, RC=RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          Arr2D => NULL() 
-       ENDIF
     ENDDO !N
 
     ! Return w/ success
@@ -269,7 +250,7 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER ( 'HCOX_Custom_Init (hcox_custom_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+    verb = HCO_IsVerb(1) 
 
     ! Set species IDs      
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )

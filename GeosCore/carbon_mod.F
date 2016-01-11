@@ -16,7 +16,7 @@
 !
 ! !USES:
 !
-!
+      USE HCO_ERROR_MOD    ! For HEMCO error reporting
       USE PRECISION_MOD   ! For GEOS-Chem Precisions (fp, f4, f8)
 
       IMPLICIT NONE
@@ -28,6 +28,9 @@
       PUBLIC :: EMISSCARBON
       PUBLIC :: CLEANUP_CARBON
       PUBLIC :: INIT_CARBON
+#if defined ( TOMAS )
+      PUBLIC :: EMISSCARBONTOMAS
+#endif
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -251,24 +254,6 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL               :: USE_BOND_BIOBURN = .FALSE.
-      INTEGER               :: DRYBCPI, DRYOCPI, DRYBCPO, DRYOCPO
-      ! SOAupdate: update dry deposited species (hotp 5/20/10)
-      INTEGER               :: DRYPOA1,  DRYPOA2,  DRYPOG1,  DRYPOG2
-      INTEGER               :: DRYOPOA1, DRYOPOA2, DRYOPOG1, DRYOPOG2
-      INTEGER               :: DRYMTPA,  DRYLIMO,  DRYMTPO
-      INTEGER               :: DRYTSOA1, DRYTSOG1
-      INTEGER               :: DRYTSOA2, DRYTSOG2
-      INTEGER               :: DRYTSOA3, DRYTSOG3
-      INTEGER               :: DRYTSOA0, DRYTSOG0
-      INTEGER               :: DRYISOA1, DRYISOG1
-      INTEGER               :: DRYISOA2, DRYISOG2
-      INTEGER               :: DRYISOA3, DRYISOG3
-      INTEGER               :: DRYASOAN
-      INTEGER               :: DRYASOA1, DRYASOG1
-      INTEGER               :: DRYASOA2, DRYASOG2
-      INTEGER               :: DRYASOA3, DRYASOG3
-      INTEGER               :: DRYSOAG,  DRYSOAM
       INTEGER               :: I1_NA,    J1_NA
       INTEGER               :: I2_NA,    J2_NA
       ! Rate constant for RO2+NO and RO2+HO2
@@ -300,6 +285,24 @@
 
       REAL(fp), ALLOCATABLE :: GLOB_DARO2(:,:,:,:,:) ! Diagnostic (dkh, 11/10/06) 
 
+#if defined( TOMAS )
+      REAL(fp), ALLOCATABLE :: BCPI_ANTH_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: BCPO_ANTH_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: BCPI_BIOF_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: BCPO_BIOF_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: BCPI_BIOB_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: BCPO_BIOB_BULK(:,:)
+
+      REAL(fp), ALLOCATABLE :: OCPI_ANTH_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: OCPO_ANTH_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: OCPI_BIOF_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: OCPO_BIOF_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: OCPI_BIOB_BULK(:,:)
+      REAL(fp), ALLOCATABLE :: OCPO_BIOB_BULK(:,:)
+
+      REAL(fp), ALLOCATABLE :: TERP_ORGC(:,:)
+      REAL(fp), ALLOCATABLE :: CO_ANTH(:,:)
+#endif 
       ! Cloud fraction - for cloud droplet uptake of dicarbonyls 
       ! (tmf, 12/07/07) 
       REAL(fp), ALLOCATABLE :: VCLDF(:,:,:)
@@ -556,50 +559,6 @@
 
          ! Reset first-time flag
          FIRSTCHEM = .FALSE.
-
-         ! Debug info (hotp 5/17/10)
-         !IF ( prtDebug ) THEN
-         !   print*,'The following species have been identified'
-         !   print*,'as dry dep species in CHEMCARBON (carbon_mod.f)'
-         !   print*, 'ASOAN ', DEPNAME(DRYASOAN)
-         !   print*, 'ASOA1 ', DEPNAME(DRYASOA1)
-         !   print*, 'ASOA2 ', DEPNAME(DRYASOA2)
-         !   print*, 'ASOA3 ', DEPNAME(DRYASOA3)
-         !   print*, 'ASOG1 ', DEPNAME(DRYASOG1)
-         !   print*, 'ASOG2 ', DEPNAME(DRYASOG2)
-         !   print*, 'ASOG3 ', DEPNAME(DRYASOG3)
-         !   IF ( IDTPOA1 > 0 ) THEN
-         !      print*, 'POA1  ', DEPNAME(DRYPOA1)
-         !      print*, 'POA2  ', DEPNAME(DRYPOA2)
-         !      print*, 'POG1  ', DEPNAME(DRYPOG1)
-         !      print*, 'POG2  ', DEPNAME(DRYPOG2)
-         !      print*, 'OPOA1 ', DEPNAME(DRYOPOA1)
-         !      print*, 'OPOA2 ', DEPNAME(DRYOPOA2)
-         !      print*, 'OPOG1 ', DEPNAME(DRYOPOG1)
-         !      print*, 'OPOG2 ', DEPNAME(DRYOPOG2)
-         !   ENDIF
-         !   ! isoprene semivols (hotp 5/20/10)
-         !   print*, 'ISOA1 ', DEPNAME(DRYISOA1)
-         !   print*, 'ISOA2 ', DEPNAME(DRYISOA2)
-         !   print*, 'ISOA3 ', DEPNAME(DRYISOA3)
-         !   print*, 'ISOG1 ', DEPNAME(DRYISOG1)
-         !   print*, 'ISOG2 ', DEPNAME(DRYISOG2)
-         !   print*, 'ISOG3 ', DEPNAME(DRYISOG3)
-         !   ! mono+sesq semivols (hotp 5/20/10)
-         !   print*, 'TSOA1 ', DEPNAME(DRYTSOA1)
-         !   print*, 'TSOA2 ', DEPNAME(DRYTSOA2)
-         !   print*, 'TSOA3 ', DEPNAME(DRYTSOA3)
-         !   print*, 'TSOA0 ', DEPNAME(DRYTSOA0)
-         !   print*, 'TSOG1 ', DEPNAME(DRYTSOG1)
-         !   print*, 'TSOG2 ', DEPNAME(DRYTSOG2)
-         !   print*, 'TSOG3 ', DEPNAME(DRYTSOG3)
-         !   print*, 'TSOG0 ', DEPNAME(DRYTSOG0)
-         !   ! gas precursors (hotp 5/20/10)
-         !   print*, 'MTPA  ', DEPNAME(DRYMTPA) 
-         !   print*, 'LIMO  ', DEPNAME(DRYLIMO) 
-         !   print*, 'MTPO  ', DEPNAME(DRYMTPO) 
-         !ENDIF
-
       ENDIF
 
       !=================================================================
@@ -758,16 +717,10 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_BC 
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TRACERID_MOD,       ONLY : IDTBCPO
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACERID_MOD,       ONLY : IDTBCPO
 !
 ! !INPUT PARAMETERS:
 !
@@ -783,6 +736,7 @@
       INTEGER,        INTENT(OUT)   :: RC                    ! Success?
 !
 ! !REMARKS:
+!  Drydep is now applied in mixing_mod.F90.
 ! 
 ! !REVISION HISTORY:
 !  01 Apr 2004 - R. Park - Initial version
@@ -796,6 +750,11 @@
 !  26 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
+!  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
+!  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
+!  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
+!                              so we can greatly collapse this code
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRYBCPO, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -803,14 +762,8 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL             :: LNLPBL
-      INTEGER             :: I,       J,   L,   N_TRACERS
-      REAL(fp)            :: DTCHEM, FLUX, KBC, FREQ
-      REAL(fp)            :: TC0,    CNEW, RKT, AREA_CM2, BL_FRAC
-
-      ! Arrays
-      REAL(fp)            :: ND44_TMP(IIPAR,JJPAR,LLPAR)     
-      REAL(fp)            :: XNUMOL(Input_Opt%N_TRACERS)
+      INTEGER             :: I,      J,   L
+      REAL(fp)            :: DTCHEM, KBC, FREQ, TC0, CNEW, RKT
 !
 ! !DEFINED PARAMETERS:
 !
@@ -821,23 +774,15 @@
       !=================================================================
 
       ! Return if BCPO isn't defined
-      IF ( IDTBCPO == 0 .or. DRYBCPO == 0 ) RETURN
+      IF ( IDTBCPO == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
-
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-      LNLPBL    = Input_Opt%LNLPBL
 
       ! Initialize
       KBC       = 1.e+0_fp / ( 86400e+0_fp * BC_LIFE )
       DTCHEM    = GET_TS_CHEM() * 60e+0_fp
       BCCONV    = 0e+0_fp
-
-      ! Initialize for drydep diagnostic
-      IF ( ND44 > 0 ) ND44_TMP = 0e+0_fp
 
       !=================================================================
       ! For tracers with dry deposition, the loss rate of dry dep is 
@@ -854,7 +799,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, TC0, FREQ, BL_FRAC, RKT, CNEW, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I, J, L, TC0, FREQ, RKT, CNEW )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -864,22 +809,9 @@
          TC0  = TC(I,J,L)
 
          ! Zero drydep freq
+         ! ### NOTE: Remove this later, but need to make
+         ! ### sure we don't incur numerical diffs (bmy, 6/12/15)
          FREQ = 0e+0_fp
-
-         ! Fraction of grid box underneath PBL top [unitless]
-         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
-
-         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08)
-         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
-
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( BL_FRAC > 0e+0_fp ) THEN
-
-            ! BC drydep frequency [1/s] -- BL_FRAC accounts for the fraction
-            ! of each grid box (I,J,L) that is located beneath the PBL top
-            FREQ = DEPSAV(I,J,DRYBCPO) * BL_FRAC
-
-         ENDIF
 
          ! Amount of BCPO left after chemistry and drydep [kg]
          RKT  = ( KBC + FREQ ) * DTCHEM
@@ -890,23 +822,6 @@
 
          ! Amount of BCPO converted to BCPI [kg/timestep]
          BCCONV(I,J,L) = ( TC0 - CNEW ) * KBC / ( KBC + FREQ )
-
-         !==============================================================
-         ! ND44 diagnostic: drydep loss [atoms C/cm2/s]
-         !==============================================================
-         IF ( ND44 > 0 .AND. FREQ > 0e+0_fp ) THEN
-
-             ! Surface area [cm2]
-             AREA_CM2 = GET_AREA_CM2( I, J, L )
-
-             ! Convert drydep loss from [kg/timestep] to [atoms C/cm2/s]  
-             ! XNUMOL is the ratio [molec tracer/kg tracer]   
-             FLUX     = TC0 - CNEW - BCCONV(I,J,L) 
-             FLUX     = FLUX * XNUMOL(IDTBCPO) / ( DTCHEM * AREA_CM2 )
-
-             ! Store in ND44_TMP as a placeholder
-             ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-         ENDIF
 
          !==============================================================
          ! ND07 diagnostic: H-philic BC from H_phobic BC [kg/timestep]
@@ -921,26 +836,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO  
-
-#if !defined( NO_BPCH )
-      !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !===============================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DRYBCPO,1) = AD44(I,J,DRYBCPO,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF      
-#endif
 
       END SUBROUTINE CHEM_BCPO
 !EOC
@@ -963,16 +858,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44 
-#endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TRACERID_MOD,       ONLY : IDTBCPI
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -988,6 +876,7 @@
       INTEGER,        INTENT(OUT)   :: RC                    ! Success?
 !
 ! !REMARKS:
+!  Drydep is now applied in mixing_mod.F90.
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Park - Initial version
@@ -1000,6 +889,11 @@
 !  26 Nov 2012 - R. Yantosca - Added ProTeX Headers
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
+!  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90
+!  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
+!  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
+!                              so we can greatly collapse this code
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRYBCPI, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1007,39 +901,22 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL  :: LNLPBL
-      INTEGER  :: I,      J,    L,       N_TRACERS
-      REAL(fp) :: DTCHEM, FLUX, BL_FRAC, AREA_CM2
-      REAL(fp) :: TC0,    CNEW, CCV,     FREQ
-
-      ! Arrays
-      REAL(fp) :: ND44_TMP(IIPAR,JJPAR,LLPAR)
-      REAL(fp) :: XNUMOL(Input_Opt%N_TRACERS)
+      INTEGER  :: I,      J,      L
+      REAL(fp) :: L_FRAC, TC0, CNEW, CCV
 
       !=================================================================
       ! CHEM_BCPI begins here!
       !=================================================================
 
       ! Return if BCPI isn't defined
-      IF ( IDTBCPI == 0 .or. DRYBCPI == 0 ) RETURN
+      IF ( IDTBCPI == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
 
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-      LNLPBL    = Input_Opt%LNLPBL
-
-      ! Chemistry timestep [s]
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
-
-      ! Initialize for ND44 diagnostic
-      IF ( ND44 > 0 ) ND44_TMP = 0e+0_fp
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, TC0, CCV, FREQ, BL_FRAC, CNEW, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I, J, L, TC0, CCV, CNEW )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -1051,55 +928,8 @@
          ! H-philic BC that used to be H-phobic BC [kg]
          CCV = BCCONV(I,J,L)
          
-         ! Fraction of grid box under the PBL top [unitless]
-         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L ) 
-
-         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08)
-         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
-
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( BL_FRAC > 0e+0_fp ) THEN
-
-            ! Drydep frequency
-            FREQ = DEPSAV(I,J,DRYBCPI) * BL_FRAC
-            
-            !===========================================================
-            ! Note, This is an analytical solution of first order 
-            ! partial differential equations (w/ 2 solutions):
-            !
-            ! #1) CNEW = Cphi * exp(-RKT) + Cconv/RKT * (1.-exp(-RKT)) 
-            ! #2) CNEW = ( Cphi + Cconv ) * exp(-RKT)
-            !===========================================================
-
-            ! Comment out for now
-            !CNEW = TC0 * EXP( -FREQ * DTCHEM ) 
-            !     + CCV / FREQ * ( 1.e+0_fp - EXP( -FREQ * DTCHEM ) )
-
-            ! Amount of BCPI left after drydep [kg]
-            CNEW = ( TC0 + CCV ) * EXP( -FREQ * DTCHEM )
-
-            !===========================================================
-            ! ND44 diagnostic: drydep flux [atoms C/cm2/s]
-            !===========================================================
-            IF ( ND44 > 0 .and. FREQ > 0e+0_fp ) THEN
-  
-               ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( I, J, L )
-
-               ! Convert drydep loss from [kg/timestep] to [molec/cm2/s]
-               FLUX = ( TC0 + CCV - CNEW ) 
-               FLUX = FLUX * XNUMOL(IDTBCPI) / ( AREA_CM2 * DTCHEM )
-             
-               ! Store in ND44_TMP as a placeholder
-               ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-            ENDIF
-
-         ELSE
-
-            ! Otherwise, omit the exponential to save on clock cycles
-            CNEW = TC0 + CCV
-
-         ENDIF
+         ! Add the amount of converted BCPO to BCPI
+         CNEW = TC0 + CCV
       
          ! Prevent underflow condition
          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
@@ -1116,26 +946,6 @@
       ! Zero out the BCCONV array for the next iteration
       !=================================================================
       BCCONV = 0e+0_fp
-
-#if !defined( NO_BPCH )
-      !=================================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !=================================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DRYBCPI,1) = AD44(I,J,DRYBCPI,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF      
-#endif
 
       END SUBROUTINE CHEM_BCPI
 !EOC
@@ -1158,15 +968,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44
-#endif
       USE DIAG_MOD,           ONLY : AD07_OC 
-      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TRACERID_MOD,       ONLY : IDTOCPO
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
@@ -1196,6 +1000,9 @@
 !  26 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
+!  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
+!  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRYOCPO, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1203,14 +1010,8 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL              :: LNLPBL
-      INTEGER              :: I,      J,    L,    N_TRACERS
-      REAL(fp)             :: DTCHEM, FLUX, KOC,  BL_FRAC
-      REAL(fp)             :: TC0,    FREQ, CNEW, RKT, AREA_CM2
-
-      ! Arrays
-      REAL(fp)             :: ND44_TMP(IIPAR,JJPAR,LLPAR)
-      REAL(fp)             :: XNUMOL(Input_Opt%N_TRACERS)
+      INTEGER              :: I,      J,   L
+      REAL(fp)             :: DTCHEM, KOC, TC0, CNEW, RKT, FREQ
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1221,23 +1022,15 @@
       !=================================================================
 
       ! Return if OCPO isn't defined
-      IF ( IDTOCPO == 0 .or. DRYOCPO == 0 ) RETURN
+      IF ( IDTOCPO == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
-
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
-      LNLPBL    = Input_Opt%LNLPBL
 
       ! Initialize
       KOC       = 1.e+0_fp / ( 86400e+0_fp * OC_LIFE )
       DTCHEM    = GET_TS_CHEM() * 60e+0_fp
       OCCONV    = 0e+0_fp
-
-      ! Initialize for drydep diagnostic
-      IF ( ND44 > 0 ) ND44_TMP = 0e+0_fp
 
       !=================================================================
       ! For tracers with dry deposition, the loss rate of dry dep is 
@@ -1253,7 +1046,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, TC0, FREQ, BL_FRAC, RKT, CNEW, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I, J, L, TC0, FREQ, RKT, CNEW )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -1262,23 +1055,10 @@
          ! Initial OC [kg]
          TC0  = TC(I,J,L)
 
-         ! Zero drydep freq 
+         ! Zero drydep freq
+         ! ### NOTE: Remove this later, but need to make
+         ! ### sure we don't incur numerical diffs (bmy, 6/12/15)
          FREQ = 0e+0_fp
-
-         ! Fraction of grid box under the PBL top [unitless]
-         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
-
-         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
-         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
-
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( BL_FRAC > 0e+0_fp ) THEN
-
-            ! OC drydep frequency [1/s] -- BL_FRAC accounts for the fraction
-            ! of each grid box (I,J,L) that is located beneath the PBL top
-            FREQ = DEPSAV(I,J,DRYOCPO) * BL_FRAC
-
-         ENDIF
 
          ! Amount of OCPO left after chemistry and drydep [kg]
          RKT  = ( KOC + FREQ ) * DTCHEM
@@ -1289,23 +1069,6 @@
 
          ! Amount of OCPO converted to OCPI [kg/timestep]
          OCCONV(I,J,L) = ( TC0 - CNEW ) * KOC / ( KOC + FREQ )
-
-         !==============================================================
-         ! ND44 diagnostic: drydep loss [atoms C/cm2/s]
-         !==============================================================
-         IF ( ND44 > 0 .AND. FREQ > 0e+0_fp ) THEN
-
-             ! Surface area [cm2]
-             AREA_CM2 = GET_AREA_CM2( I, J, L )
-
-             ! Convert drydep loss from [kg/timestep] to [atoms C/cm2/s]
-             ! XNUMOL is the ratio [molec tracer/kg tracer]     
-             FLUX     = TC0 - CNEW - OCCONV(I,J,L)
-             FLUX     = FLUX * XNUMOL(IDTOCPO) / ( DTCHEM * AREA_CM2 )
-
-             ! Store in ND44_TMP as a placeholder
-             ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-         ENDIF
 
          !==============================================================
          ! ND07 diagnostic: H-Philic OC from H-phobic [kg/timestep]
@@ -1321,26 +1084,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO  
-
-#if !defined( NO_BPCH )
-      !=================================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !=================================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DRYOCPO,1) = AD44(I,J,DRYOCPO,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF   
-#endif
 
       END SUBROUTINE CHEM_OCPO
 !EOC
@@ -1363,14 +1106,8 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44 
-#endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TRACERID_MOD,       ONLY : IDTOCPI
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
@@ -1402,6 +1139,9 @@
 !  26 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
+!  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
+!  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRYOCPI, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1409,37 +1149,20 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL  :: LNLPBL
-      INTEGER  :: I,      J,    L,       N_TRACERS 
-      REAL(fp) :: DTCHEM, FLUX, BL_FRAC
-      REAL(fp) :: TC0,    CNEW, CCV,     FREQ,      AREA_CM2
-
-      ! Arrays
-      REAL(fp) :: ND44_TMP(IIPAR,JJPAR,LLPAR)
-      REAL(fp) :: XNUMOL(Input_Opt%N_TRACERS)
+      INTEGER  :: I,   J,     L
+      REAL(fp) :: TC0, CNEW, CCV
 
       !=================================================================
       ! CHEM_OCPI begins here!
       !=================================================================
-      IF ( IDTOCPI == 0 .or. DRYOCPI == 0 ) RETURN
+      IF ( IDTOCPI == 0 ) RETURN
 
       ! Assume success
       RC        = GIGC_SUCCESS
 
-      ! Copy fields from INPUT_OPT to local variables for use below
-      N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL
-      LNLPBL    = Input_Opt%LNLPBL
-
-      ! Chemistry timestep [s]
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
-
-      ! Initialize for drydep diagnostic
-      IF ( ND44 > 0 ) ND44_TMP = 0e+0_fp
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, TC0, CCV, BL_FRAC, FREQ, CNEW, AREA_CM2, FLUX )
+!$OMP+PRIVATE( I, J, L, TC0, CCV, CNEW )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -1451,56 +1174,9 @@
          ! H-philic OC that used to be H-phobic OC [kg]
          CCV = OCCONV(I,J,L)
 
-         ! Fraction of box under the PBL top [unitless]
-         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
+         ! Add the amount of converted OCPO to OCPI
+         CNEW = TC0 + CCV
 
-         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
-         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
-
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( BL_FRAC > 0e+0_fp ) THEN
-
-            ! Drydep frequency [1/s]
-            FREQ = DEPSAV(I,J,DRYOCPI) * BL_FRAC
-
-            !===========================================================
-            ! Note, This is an analytical solution of first order 
-            ! partial differential equations (w/ 2 solutions):
-            !
-            ! #1) CNEW = Cphi * exp(-RKT) + Cconv/RKT * (1.-exp(-RKT))
-            ! #2) CNEW = ( Cphi + Cconv ) * exp(-RKT)
-            !===========================================================
-
-            ! CNEW = TC0 * EXP( -FREQ * DTCHEM ) 
-            !       + CCV / FREQ * ( 1.e+0_fp - EXP( -FREQ * DTCHEM ) )
-
-            ! Amount of BCPI left after drydep [kg]
-            CNEW = ( TC0 + CCV ) * EXP( -FREQ * DTCHEM )
-
-            !===========================================================
-            ! ND44 diagnostic: drydep loss [atoms C/cm2/s]
-            !===========================================================
-            IF ( ND44 > 0 ) THEN
-
-               ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( I, J, L )
-
-               ! Convert drydep loss from [kg/timestep] to [atoms C/cm2/s]
-               FLUX = ( TC0 + CCV - CNEW ) 
-               FLUX = FLUX * XNUMOL(IDTOCPI) / ( AREA_CM2 * DTCHEM )
-             
-               ! Store in ND44_TMP as a placeholder
-               ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-            ENDIF
-
-         ELSE
-
-            ! Otherwise, avoid doing the exponential
-            ! to preserve precision and clock cycles
-            CNEW = TC0 + CCV
-
-         ENDIF
-      
          ! Prevent underflow condition
          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
 
@@ -1516,26 +1192,6 @@
       ! Zero OCCONV array for next timestep
       !=================================================================
       OCCONV = 0e+0_fp
-
-#if !defined( NO_BPCH )
-      !=================================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !=================================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DRYOCPI,1) = AD44(I,J,DRYOCPI,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF    
-#endif
 
       END SUBROUTINE CHEM_OCPI
 !EOC
@@ -1843,11 +1499,6 @@
       ENDDO
       ENDDO
 
-      !=================================================================       
-      ! Calculate dry-deposition
-      !=================================================================
-      CALL SOA_DEPO( STT(:,:,:,IDTSOAG), DRYSOAG, IDTSOAG, Input_Opt )
-
       ! Free pointer
       NULLIFY( STT )
 
@@ -2095,11 +1746,6 @@
       ENDDO
       ENDDO
 
-      !=================================================================       
-      ! Calculate dry-deposition
-      !=================================================================
-      CALL SOA_DEPO( STT(:,:,:,IDTSOAM), DRYSOAM, IDTSOAM, Input_Opt )
-
       ! Free pointer
       NULLIFY( STT )
 
@@ -2317,6 +1963,7 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  12 Jun 2015 - R. Yantosca - Removed SOA_DEPO; ND44 is now done in mixing_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2876,58 +2523,6 @@
 
       ENDIF
       !------------------------------------------------------------------------
-
-      !=================================================================       
-      ! Calculate dry-deposition
-      !=================================================================
-      ! new mtp formulation (hotp 5/20/10)
-      ! precursors
-      CALL SOA_DEPO(STT(:,:,:,IDTMTPA ), DRYMTPA,  IDTMTPA,  Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTLIMO ), DRYLIMO,  IDTLIMO,  Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTMTPO ), DRYMTPO,  IDTMTPO , Input_Opt)
-
-      ! mono + sesq
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOA1), DRYTSOA1, IDTTSOA1, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOA2), DRYTSOA2, IDTTSOA2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOA3), DRYTSOA3, IDTTSOA3, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOA0), DRYTSOA0, IDTTSOA0, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOG1), DRYTSOG1, IDTTSOG1, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOG2), DRYTSOG2, IDTTSOG2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOG3), DRYTSOG3, IDTTSOG3, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTTSOG0), DRYTSOG0, IDTTSOG0, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTISOA1), DRYISOA1, IDTISOA1, Input_Opt)
-
-      ! isop
-      CALL SOA_DEPO(STT(:,:,:,IDTISOA2), DRYISOA2, IDTISOA2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTISOA3), DRYISOA3, IDTISOA3, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTISOG1), DRYISOG1, IDTISOG1, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTISOG2), DRYISOG2, IDTISOG2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTISOG3), DRYISOG3, IDTISOG3, Input_Opt)
-
-      ! Now perform depo for lumped AROM (hotp 5/13/10)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOAN), DRYASOAN, IDTASOAN, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOA1), DRYASOA1, IDTASOA1, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOA2), DRYASOA2, IDTASOA2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOA3), DRYASOA3, IDTASOA3, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOG1), DRYASOG1, IDTASOG1, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOG2), DRYASOG2, IDTASOG2, Input_Opt)
-      CALL SOA_DEPO(STT(:,:,:,IDTASOG3), DRYASOG3, IDTASOG3, Input_Opt)
-
-      ! semivolpoa: call SOA_DEPO for POA (hotp 2/26/09)
-      IF ( IDTPOA1 > 0 ) THEN
-       CALL SOA_DEPO(STT(:,:,:,IDTPOA1 ), DRYPOA1,  IDTPOA1, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTPOA2 ), DRYPOA2,  IDTPOA2, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTPOG1 ), DRYPOG1,  IDTPOG1, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTPOG2 ), DRYPOG2,  IDTPOG2, Input_Opt)
-      ENDIF
-
-      ! semivolpoa4opoa: call SOA_DEPO for OPOA, OPOG (hotp 3/18/09)
-      IF ( IDTOPOA1 > 0 ) THEN
-       CALL SOA_DEPO(STT(:,:,:,IDTOPOA1), DRYOPOA1, IDTOPOA1, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTOPOA2), DRYOPOA2, IDTOPOA2, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTOPOG1), DRYOPOG1, IDTOPOG1, Input_Opt)
-       CALL SOA_DEPO(STT(:,:,:,IDTOPOG2), DRYOPOG2, IDTOPOG2, Input_Opt)
-      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -5123,185 +4718,6 @@
 
       END SUBROUTINE SOA_LUMP
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: soa_depo
-!
-! !DESCRIPTION: Subroutine SOA\_DEPO computes dry-deposition of a particular
-!  SOA species. (rjp, bmy, 7/8/04, 10/25/05)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SOA_DEPO( TC, DEPID, TRID, Input_Opt )
-!
-! !USES:
-!
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD44 
-#endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-!
-! !INPUT PARAMTERS:
-!
-      INTEGER,        INTENT(IN)    :: DEPID                 ! Drydep ID #
-      INTEGER,        INTENT(IN)    :: TRID                  ! Tracer ID #
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Tracer [kg]
-! 
-! !REVISION HISTORY:
-!  (1 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
-!  (2 ) Replace PBLFRAC from "drydep_mod.f" with  GET_FRAC_UNDER_PBLTOP from 
-!        "pbl_mix_mod.f" (bmy, 2/17/05)
-!  (3 ) Bug fix: Add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
-!  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  (5 ) Add non-local PBL scheme option for dry deposition (lin, 06/09/08)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
-!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL   :: LNLPBL
-      INTEGER   :: I, J, L
-      REAL(fp)  :: DTCHEM, FLUX, BL_FRAC
-      REAL(fp)  :: TC0, CNEW, FREQ, AREA_CM2
-      REAL(fp)  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
-
-      ! For fields in Input_Opt
-      INTEGER   :: N_TRACERS
-      REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
-
-      !=================================================================
-      ! SOA_DEPO begins here!
-      !=================================================================
-
-      ! Copy values from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS )
-
-      ! Return if tracer ID or tracer ID is undefined
-      IF ( TRID == 0 .OR. DEPID == 0 ) RETURN
-
-      ! Use fields from Input_Opt
-      LNLPBL = Input_Opt%LNLPBL
-
-      ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
-
-      ! Initialize for drydep diagnostic
-      IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            ND44_TMP(I,J,L) = 0e+0_fp
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, TC0, BL_FRAC, FREQ, CNEW, AREA_CM2, FLUX )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Initial SOA [kg]
-         TC0 = TC(I,J,L)
-
-         ! Fraction of box under the PBL top [unitless]
-         BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
-
-         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
-         IF ( LNLPBL ) BL_FRAC = 0.e+0_fp
-
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( BL_FRAC > 0e+0_fp ) THEN
-
-            ! Drydep frequency [1/s]
-            FREQ = DEPSAV(I,J,DEPID) * BL_FRAC
-
-            ! Amount of SOA[G] left after drydep [kg]
-            CNEW = TC0 * EXP( -FREQ * DTCHEM )
-
-            !===========================================================
-            ! ND44 diagnostic: drydep loss [atoms C/cm2/s]
-            !===========================================================
-            IF ( ND44 > 0 ) THEN
-
-               ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( I, J, L )
-
-               ! Convert drydep loss from [kg/timestep] to [atoms C/cm2/s]
-               FLUX = ( TC0 - CNEW ) 
-               FLUX = FLUX * XNUMOL(TRID) / ( AREA_CM2 * DTCHEM )
-             
-               ! Store in ND44_TMP as a placeholder
-               ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-            ENDIF
-
-         ELSE
-
-            ! Otherwise, avoid doing the exponential
-            ! to preserve precision and clock cycles
-            CNEW = TC0
-
-         ENDIF
-      
-         ! Prevent underflow condition
-         IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
-
-         ! Store modified concentration back in tracer array [kg]
-         TC(I,J,L) = CNEW
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO  
-
-#if !defined( NO_BPCH )
-      !=================================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !=================================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DEPID,1) = AD44(I,J,DEPID,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-#endif  
-
-      END SUBROUTINE SOA_DEPO
-!!EOC
 #if   defined( TOMAS )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -5331,7 +4747,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1
       USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1
       USE TRACERID_MOD,       ONLY : IDTNH4,   IDTAW1
@@ -5357,6 +4772,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
+!                              remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5471,9 +4888,12 @@
       TSCALE = 2.*3600.    
 #elif defined( GRID05x0666 ) 
       TSCALE = 1.*3600.
+#elif defined( GRID05x0625 )
+      ! Copy the 05x0666 timescale for now
+      TSCALE = 1.*3600.
+#elif defined( GRID025x03125 )
       ! Copy the 05x0666 timescale for now
       ! (skim, 5/20/12)
-#elif defined( GRID025x03125 )
       TSCALE = 1.*3600.
 #endif
         !Prior to 10/28/08 (win)     
@@ -5483,7 +4903,7 @@
 
          BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
          TEMP    = State_Met%T(I,J,L)
-         PRES    = GET_PCENTER(i,j,l)*100.0 ! in Pa
+         PRES    = State_Met%PMID(i,j,l)*100.0 ! in Pa
 
          PDBUG = .FALSE.
 !temp debug
@@ -5793,11 +5213,11 @@ ccc
 ! defined) are properly passed to the internal arrays. 
 !\\
 !\\
-! POA emissions are expected to be fully calculated by HEMCO, e.g. its emissions
-! need be specified in the HEMCO configuration file. In the original code, the
-! emissions were calculated by scaling anthropogenic, biofuel and biomass burning
-! OC emissions. The same behavior can be achieved in HEMCO by assigning the desired
-! POA tracer name to the given source type, e.g.:
+! POA emissions are expected to be fully calculated by HEMCO, e.g. its 
+! emissions need be specified in the HEMCO configuration file. In the original 
+! code, the emissions were calculated by scaling anthropogenic, biofuel and 
+! biomass burning OC emissions. The same behavior can be achieved in HEMCO 
+! by assigning the desired POA tracer name to the given source type, e.g.:
 !
 !0 BOND\_ANTH .../Bond\_fossil.nc OC 2000/1-12/1/0 C xy kg/m2/s POA1 70/300 1 1
 !
@@ -5805,21 +5225,21 @@ ccc
 ! represent tracer POA1 and POAEMISS(:,:,:,2) represent tracer POG1.
 !\\
 !\\
-! IMPORTANT: the POA emissions scale factor should be applied through HEMCO. In
-! the example above, scale factor 300 represents the scale POA scale factor. The
-! same scale factor should also be applied to the biomass burning extensions.
+! IMPORTANT: the POA emissions scale factor should be applied through HEMCO. 
+! In the example above, scale factor 300 represents the scale POA scale factor.
+! The same scale factor should also be applied to the biomass burning 
+! extensions.
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE EMISSCARBON( am_I_Root, Input_Opt, 
-     &                        State_Met, State_Chm, RC )
+     &                        State_Met, RC )
 !
 ! !USES:
 !
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-      USE GIGC_State_Chm_Mod,    ONLY : ChmState
       USE GIGC_State_Met_Mod,    ONLY : MetState
       USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR
       USE TRACERID_MOD,          ONLY : IDTPOA1, IDTPOG1
@@ -5839,11 +5259,11 @@ ccc
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState),  INTENT(INOUT)  :: State_Chm   ! Chemistry State object
       INTEGER,         INTENT(INOUT)  :: RC          ! Failure?
 ! 
 ! !REVISION HISTORY:
 !  11 Nov 2014 - C. Keller   - Initial version
+!  11 Sep 2015 - E. Lundgren - Remove State_Chm from arguments since not used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5862,12 +5282,12 @@ ccc
       ! EMISSCARBON begins here!
       !=================================================================
 
-      ! Assume failure until successful return
-      RC       = GIGC_FAILURE
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! Reset POAEMISS
       POAEMISS = 0e+0_fp
- 
+
       ! Get pointer to HEMCO state object
       CALL GetHcoState ( HcoState )
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
@@ -5878,7 +5298,12 @@ ccc
       IF ( SESQID == -999 ) THEN
          SESQID = GetHcoID( 'SESQ' )
       ENDIF
-
+      IF ( SESQID > 0 ) THEN
+         IF ( .NOT. ASSOCIATED(HcoState%Spc(SESQID)%Emis%Val) ) THEN
+            SESQID = -1
+         ENDIF
+      ENDIF
+ 
       ! Get HEMCO ID of tracer POA1 and POG1
       HCOPOA1 = GetHcoID( TrcID=IDTPOA1 )
       HCOPOG1 = GetHcoID( TrcID=IDTPOG1 )
@@ -5895,6 +5320,9 @@ ccc
          ENDIF
       ENDIF
 
+      ! Nothing to do if none of the species is defined
+      IF ( SESQID <= 0 .AND. HCOPOA1 <= 0 .AND. HCOPOG1 <= 0 ) RETURN
+ 
       ! Maximum extent of PBL [model levels]
       PBL_MAX = GET_PBL_MAX_L()
 
@@ -5942,10 +5370,413 @@ ccc
       IF ( HCOPOA1>0) HcoState%Spc(HCOPOA1)%Emis%Val = 0.0d0
       IF ( HCOPOG1>0) HcoState%Spc(HCOPOG1)%Emis%Val = 0.0d0
 
-      ! Return w/ success
-      RC = GIGC_SUCCESS
-
       END SUBROUTINE EMISSCARBON
+!EOC
+#if defined( TOMAS )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emisscarbontomas
+!
+! !DESCRIPTION: Subroutine emisscarbontomas scales BULK HEMCO emissions into 
+! TOMAS arrays. Only use for TOMAS simulations. This is essential a re-write of
+! the TOMAS portions of the v9 emisscarbon (JKodros 6/2/15)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE EMISSCARBONTOMAS( am_I_Root, Input_Opt,
+     &                     State_Met, State_Chm, RC )
+!
+! !USES:
+!
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE ERROR_MOD
+      USE UNITCONV_MOD
+!
+! TOMAS DIAGNs:
+!
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TOMAS_MOD,          ONLY : IBINS,     AVGMASS, SOACOND
+      USE TOMAS_MOD,          ONLY : ICOMP,     IDIAG, xSOA
+      USE TRACERID_MOD,       ONLY : IDTECIL1,  IDTECOB1, IDTNK1
+      USE TRACERID_MOD,       ONLY : IDTOCIL1,  IDTOCOB1
+
+      ! HEMCO update
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState, GetHcoDiagn
+      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY:
+!  12 Jun 2015 - J. Kodros   - Initial version
+!  12 Jun 2015 - R. Yantosca - Bug fix: also add reference to DEBUG_MSG
+!  10 Jul 2015 - R. Yantosca - Fixed typo in ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER                  :: I, I0, IREF, J, J0, JREF, N
+      INTEGER                  :: FLAG, ERR
+      REAL(fp)                 :: DTSRCE, AREA_M2
+
+      ! Arrays
+      REAL(fp)                 :: BCFF(IIPAR, JJPAR, IBINS, 2)
+      REAL(fp)                 :: OCFF(IIPAR, JJPAR, IBINS, 2)
+      REAL(fp)                 :: BCBF(IIPAR, JJPAR, IBINS, 2)
+      REAL(fp)                 :: OCBF(IIPAR, JJPAR, IBINS, 2)
+      REAL(fp)                 :: BCBB(IIPAR, JJPAR, IBINS, 2)
+      REAL(fp)                 :: OCBB(IIPAR, JJPAR, IBINS, 2)
+
+      REAL(fp)                 :: XTRA_ORG_A(IIPAR, JJPAR)
+      REAL(fp)                 :: CO_ANTH_TOTAL
+
+      REAL(fp)                 :: BCSRC(IIPAR, JJPAR, IBINS, 2)
+      REAL(fp)                 :: OCSRC(IIPAR, JJPAR, IBINS, 2)
+      REAL(fp)                 :: NUMBSRC(IIPAR, JJPAR, IBINS)
+      REAL(fp)                 :: AREA(IIPAR, JJPAR)
+      REAL*4               :: BOXVOL  ! calculated from State_Met
+      REAL*4               :: TEMPTMS ! calculated from State_Met
+      REAL*4               :: PRES    ! calculated from State_Met
+
+      REAL(fp)                 :: TMP_MASS(IIPAR, JJPAR, IBINS)
+
+      REAL(fp)                 :: OC2OM = 1.8d0
+
+      LOGICAL                  :: SGCOAG = .True.
+      !LOGICAL                  :: XSOA = .True.  !add SDD antrho SOA?
+
+      INTEGER                  :: K
+
+      INTEGER                  :: ii=53, jj=29
+
+      ! Strings
+      CHARACTER(LEN= 63)       :: DgnName
+      CHARACTER(LEN=255)       :: MSG
+      CHARACTER(LEN=255)       :: LOC='EMISSCARBONTOMAS (carbon_mod.F)'
+      LOGICAL                  :: LPRT
+
+      ! For fields from Input_Opt
+      INTEGER                  :: N_TRACERS
+      INTEGER                  :: ID_TRACER(Input_Opt%N_TRACERS)
+      ! Pointers
+      TYPE(HCO_State), POINTER :: HcoState   => NULL()
+      REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()
+      !=================================================================
+      ! EMISSCARBONTOMAS begins here!
+      !=================================================================
+
+      ! Assume success
+      RC                  = GIGC_SUCCESS
+
+      ! Get nested-grid offsets
+      I0                  = GET_XOFFSET()
+      J0                  = GET_YOFFSET()
+
+      ! Copy values from Input_Opt
+      N_TRACERS           = Input_Opt%N_TRACERS
+      ID_TRACER           = Input_Opt%ID_TRACER(1:N_TRACERS)
+
+      ! Import emissions from HEMCO (through HEMCO state)
+      CALL GetHcoState( HcoState )
+      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+         CALL ERROR_STOP ( 'HcoState not defined!', LOC )
+      ENDIF
+
+      ! Emission timestep [seconds]
+      DTSRCE = HcoState%TS_EMIS
+
+      ! Grid box aarea
+      AREA = HcoState%Grid%AREA_M2%Val(:,:)
+
+      ! Convert State_Chm%Tracers from [kg/kg dry air] to [kg] for TOMAS.
+      ! This will be removed once TOMAS uses mixing ratio instead of mass 
+      ! as tracer units (ewl, 9/11/15)
+      CALL Convert_KgKgDry_to_Kg( am_I_Root, Input_Opt, State_Met,  
+     &                            State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                     'Routine EMISSCARBONTOMAS in carbon_mod.F')
+         RETURN
+      ENDIF 
+
+      ! ---------BC---------------------------------------------------
+      DgnName = 'BCPI_ANTH'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
+     &  Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         BCPI_ANTH_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'BCPO_ANTH'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         BCPO_ANTH_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'BCPI_BF'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         BCPI_BIOF_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'BCPO_BF'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         BCPO_BIOF_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+
+      DgnName = 'BCPI_BB'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         BCPI_BIOB_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'BCPO_BB'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         BCPO_BIOB_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      ! ----- OC -----------------------------------------------------
+      DgnName = 'OCPI_ANTH'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         OCPI_ANTH_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'OCPO_ANTH'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         OCPO_ANTH_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'OCPI_BF'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+            IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         OCPI_BIOF_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'OCPO_BF'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
+     & Ptr2D=Ptr2D )
+            IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         OCPO_BIOF_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'OCPI_BB'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
+     & Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         OCPI_BIOB_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      DgnName = 'OCPO_BB'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
+     & Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+      OCPO_BIOB_BULK = Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      ! [kg/box/time step]
+      BCPI_ANTH_BULK = BCPI_ANTH_BULK(:,:) * AREA(:,:) * DTSRCE
+      BCPO_ANTH_BULK = BCPO_ANTH_BULK(:,:) * AREA(:,:) * DTSRCE
+      BCPI_BIOF_BULK = BCPI_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
+      BCPO_BIOF_BULK = BCPO_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
+      BCPI_BIOB_BULK = BCPI_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
+      BCPO_BIOB_BULK = BCPO_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
+
+      OCPI_ANTH_BULK = OCPI_ANTH_BULK(:,:) * AREA(:,:) * DTSRCE
+      OCPO_ANTH_BULK = OCPO_ANTH_BULK(:,:) * AREA(:,:) * DTSRCE
+      OCPI_BIOF_BULK = OCPI_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
+      OCPO_BIOF_BULK = OCPO_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
+      OCPI_BIOB_BULK = OCPI_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
+      OCPO_BIOB_BULK = OCPO_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
+
+      ! ---- SCALE INTO TOMAS BINS ---------------------------
+      IF ( IDTNK1 > 0 .AND. IDTECIL1 > 0 .AND.
+     &     IDTECOB1 > 0 .AND. IDTOCIL1 > 0 .AND. IDTOCOB1 > 1 ) THEN
+
+         BCFF(:,:,:,1) = SCALECARB( BCPI_ANTH_BULK(:,:), 1, 1 )
+         BCBF(:,:,:,1) = SCALECARB( BCPI_BIOF_BULK(:,:), 2, 1 ) 
+         BCBB(:,:,:,1) = SCALECARB( BCPI_BIOB_BULK(:,:), 3, 1 )
+
+         BCFF(:,:,:,2) = SCALECARB( BCPO_ANTH_BULK(:,:), 1, 1 )
+         BCBF(:,:,:,2) = SCALECARB( BCPO_BIOF_BULK(:,:), 2, 1 ) 
+         BCBB(:,:,:,2) = SCALECARB( BCPO_BIOB_BULK(:,:), 3, 1 )
+
+         OCFF(:,:,:,1) = OC2OM * SCALECARB( OCPI_ANTH_BULK(:,:), 1, 2 )
+         OCBF(:,:,:,1) =OC2OM*SCALECARB( OCPI_BIOF_BULK(:,:), 2, 2 ) 
+         OCBB(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOB_BULK(:,:), 3, 2 )
+
+         OCFF(:,:,:,2) = OC2OM * SCALECARB( OCPO_ANTH_BULK(:,:), 1, 2 )
+         OCBF(:,:,:,2) =OC2OM*SCALECARB( OCPO_BIOF_BULK(:,:), 2, 2 )
+         OCBB(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOB_BULK(:,:), 3, 2 )
+
+         ! Add into BCSRC and OCSRC
+         BCSRC(:,:,:,1) = BCFF(:,:,:,1) + BCBF(:,:,:,1) +
+     &        BCBB(:,:,:,1)
+
+         BCSRC(:,:,:,2) = BCFF(:,:,:,2) + BCBF(:,:,:,2) +
+     &        BCBB(:,:,:,2)
+
+         OCSRC(:,:,:,1) = OCFF(:,:,:,1) + OCBF(:,:,:,1) +
+     &        OCBB(:,:,:,1)
+
+         OCSRC(:,:,:,2) = OCFF(:,:,:,2) + OCBF(:,:,:,2) +
+     &        OCBB(:,:,:,2)
+
+      IF ( SGCOAG ) THEN
+
+         ! SUM mass terms into TEMP_MASS and pass to EMITSFC
+         TMP_MASS = BCSRC(:,:,:,1) + BCSRC(:,:,:,2)
+         CALL EMITSGC( TMP_MASS, 1, Input_Opt, State_Met, State_Chm )
+
+         TMP_MASS = OCSRC(:,:,:,1) + OCSRC(:,:,:,2)
+         CALL EMITSGC( TMP_MASS, 2, Input_Opt, State_Met, State_Chm )
+      ELSE
+           !-----------------------------------------
+           ! Add emission w/o sub-grid coagulation
+           !-----------------------------------------
+
+           ! Convert the total mass emission to number emisison [No.]
+           DO K = 1, IBINS
+              NUMBSRC(:,:,K) = ( BCSRC(:,:,K,1) + BCSRC(:,:,K,2) +
+     &                          OCSRC(:,:,K,1) + OCSRC(:,:,K,2) )/
+     &                          AVGMASS(K)
+           ENDDO
+
+           CALL EMITHIGH2( BCSRC, OCSRC, NUMBSRC,
+     &                     Input_Opt, State_Chm )
+
+      ENDIF  !sgcoag
+
+      ! READ IN BIOGENIC SOA
+      DgnName = 'BIOGENIC_MONX'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+!         print*, 'NOT ASSOCIATED TERP_ORGC'
+      ENDIF
+      TERP_ORGC = Ptr2D(:,:)
+      Ptr2D => NULL()
+
+      ! READ IN ANTRHO CO and SCALE TO ANTRHO SOA
+      DgnName = 'CO_ANTH'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+         print*, 'NOT ASSOCIATED CO ANTH'
+      ENDIF
+      CO_ANTH = Ptr2D(:,:)
+      Ptr2D => NULL()
+
+      ! Convert to kg/box/timestpe
+      CO_ANTH = CO_ANTH(:,:) * AREA(:,:) * DTSRCE
+      CO_ANTH_TOTAL = sum(CO_ANTH)
+      !print*, 'CO_ANTH_TOTAL: ', CO_ANTH_TOTAL
+
+      ! Multiply by 10% and convert to [kg/box/time step]
+      TERP_ORGC = TERP_ORGC(:,:) * 0.1 * AREA(:,:) * DTSRCE
+
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         ! Scale CO into SOA - 100 Tg/yr,
+         XTRA_ORG_A(I,J) = 100.d9 * CO_ANTH(I,J)/CO_ANTH_TOTAL /
+     &        (60*60*24*365/DTSRCE)
+
+         !print*, 'XTRA_ORG_A: ', XTRA_ORG_A(ii,jj)
+         BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6 !convert from m3 -> cm3
+         TEMPTMS = State_Met%T(I,J,1)
+         PRES    = GET_PCENTER(i,j,1)*100.0 ! in Pa
+         IF ( TERP_ORGC(I,J) > 0.d0 )
+     &        CALL SOACOND( am_I_Root, OC2OM * TERP_ORGC(I,J), I, J, 1,
+     &               BOXVOL, TEMPTMS, PRES, State_Chm, RC )
+            IF ( xSOA == 1) Then  !JKodros, switch from tomas_mod (6/15)
+               IF ( XTRA_ORG_A(I,J) > 0.d0 )  ! (SDD, 01/14)
+     &            CALL SOACOND( am_I_Root, XTRA_ORG_A(I,J), I, J, 1,
+     &               BOXVOL, TEMPTMS, PRES, State_Chm, RC )
+
+            ENDIF
+      ENDDO
+      ENDDO
+      IF ( LPRT )
+     &    CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
+
+      ENDIF  ! size resolved > 0
+
+      ! Convert State_Chm%Tracers back to kg (ewl, 9/11/15)
+      CALL Convert_Kg_to_KgKgDry( am_I_Root, Input_Opt, State_Met,  
+     &                             State_Chm, RC ) 
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL GIGC_Error('Unit conversion error', RC, 
+     &                   'Routine EMISSCARBONTOMAS in carbon_mod.F')
+         RETURN
+      ENDIF  
+
+      END SUBROUTINE EMISSCARBONTOMAS
+#endif
 !EOC
 #if defined( TOMAS )
 !------------------------------------------------------------------------------
@@ -5974,7 +5805,6 @@ ccc
       USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1
       USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1
       USE TOMAS_MOD,          ONLY : IBINS
-      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE 
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6509,12 +6339,12 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE CMN_GCTM_MOD,       ONLY : XNUMOLAIR
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDO3
 !
 ! !INPUT PARAMETERS: 
@@ -6540,6 +6370,8 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  18 Sep 2014 - M. Sulprizio- Now get O3 for offline aerosol sim from HEMCO
+!  24 Mar 2015 - E. Lundgren - Replace dependency on tracer_mod with
+!                              CMN_GTCM_MOD for XNUMOLAIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6987,7 +6819,6 @@ ccc
 !
       USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER, GET_PEDGE
 !
 ! !INPUT PARAMETERS:
 !
@@ -7005,6 +6836,9 @@ ccc
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
+!                              State_Met%PEDGE and State_Met%PMID.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7035,10 +6869,10 @@ ccc
       DO I = 1, IIPAR
 	
          ! Surface pressure
-         PSFC = GET_PEDGE(I,J,1)
+         PSFC = State_Met%PEDGE(I,J,1)
 
          ! Pressure at the center of the grid box
-         PRES = GET_PCENTER(I,J,L)
+         PRES = State_Met%PMID(I,J,L)
 
          ! RH (from "dao_mod.f") is relative humidity [%]
          ! Convert to fraction and store in RH2
@@ -7164,6 +6998,7 @@ ccc
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7250,7 +7085,7 @@ ccc
          ! GET gas mixing ratio [v/v]
          XGASMIX = XGASM / XMW / ( XAIRM / 28.97e+0_fp )
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -7403,6 +7238,7 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7490,7 +7326,7 @@ ccc
          ! GET gas mixing ratio [v/v]
          XGASMIX = XGASM / XMW / ( XAIRM / 28.97e+0_fp )
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -8983,6 +8819,9 @@ ccc
 !  26 Sep 2013 - R. Yantosca - Removed SEAC4RS Cpp switch, this is supplanted
 !                              by NESTED_NA
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  11 Aug 2015 - R. Yantosca - Add support for MERRA2 data
+!  23 Sep 2015 - R. Yantosca - Remove reference to DRY* flags, they're obsolete
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9055,6 +8894,68 @@ ccc
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'POAEMISS' )
       POAEMISS = 0e+0_fp
 
+      ! JKODROS
+#if defined( TOMAS )
+      ! BC 
+      ALLOCATE( BCPI_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI_ANTH_BULK' )
+      BCPI_ANTH_BULK = 0e+0_fp
+
+      ALLOCATE( BCPO_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPO_ANTH_BULK' )
+      BCPO_ANTH_BULK = 0e+0_fp
+
+      ALLOCATE( BCPI_BIOF_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI_BIOF_BULK' )
+      BCPI_BIOF_BULK = 0e+0_fp
+
+      ALLOCATE( BCPO_BIOF_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPO_BIOF_BULK' )
+      BCPO_BIOF_BULK = 0e+0_fp
+
+      ALLOCATE( BCPI_BIOB_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI_BIOB_BULK' )
+      BCPI_BIOB_BULK = 0e+0_fp
+
+      ALLOCATE( BCPO_BIOB_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPO_BIOB_BULK' )
+      BCPO_BIOB_BULK = 0e+0_fp
+
+      ! OC ----------------
+      ALLOCATE( OCPI_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPI_ANTH_BULK' )
+      OCPI_ANTH_BULK = 0e+0_fp
+
+      ALLOCATE( OCPO_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPO_ANTH_BULK' )
+      OCPO_ANTH_BULK = 0e+0_fp
+
+      ALLOCATE( OCPI_BIOF_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPI_BIOF_BULK' )
+      OCPI_BIOF_BULK = 0e+0_fp
+
+      ALLOCATE( OCPO_BIOF_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPO_BIOF_BULK' )
+      OCPO_BIOF_BULK = 0e+0_fp
+
+      ALLOCATE( OCPI_BIOB_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPI_BIOB_BULK' )
+      OCPI_BIOB_BULK = 0e+0_fp
+
+      ALLOCATE( OCPO_BIOB_BULK( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPO_BIOB_BULK' )
+      OCPO_BIOB_BULK = 0e+0_fp
+      
+      !biogenic
+      ALLOCATE( TERP_ORGC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TERP_ORGC' )
+      TERP_ORGC = 0e+0_fp
+
+      ! CO anth for scaling xtraSOA
+      ALLOCATE( CO_ANTH( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_ANTH' )
+      CO_ANTH = 0e+0_fp
+#endif
       !=================================================================
       ! SOA arrays only have to be allocated if LSOA = T
       !=================================================================
@@ -9068,7 +8969,7 @@ ccc
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_SESQ' )
          ORVC_SESQ = 0e+0_fp
 
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
          ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
          ! directly from the met fields.  (skim, bmy, 1/14/10)
          ALLOCATE( VCLDF( IIPAR, JJPAR, LLCHEM ), STAT=AS )
@@ -9176,147 +9077,6 @@ ccc
 
 #endif
 #endif
-          
-      !=================================================================
-      ! Find drydep species in DEPSAV
-      !=================================================================
-
-      ! Initialize flags
-      DRYBCPI  = 0
-      DRYOCPI  = 0
-      DRYBCPO  = 0
-      DRYOCPO  = 0
-      DRYPOA1  = 0
-      DRYPOA2  = 0
-      DRYPOG1  = 0
-      DRYPOG2  = 0
-      DRYOPOA1 = 0
-      DRYOPOA2 = 0
-      DRYOPOG1 = 0
-      DRYOPOG2 = 0
-      DRYMTPA  = 0
-      DRYLIMO  = 0
-      DRYMTPO  = 0
-      DRYTSOA1 = 0
-      DRYTSOG1 = 0
-      DRYTSOA2 = 0
-      DRYTSOG2 = 0
-      DRYTSOA3 = 0
-      DRYTSOG3 = 0
-      DRYTSOA0 = 0
-      DRYTSOG0 = 0
-      DRYISOA1 = 0
-      DRYISOG1 = 0
-      DRYISOA2 = 0
-      DRYISOG2 = 0
-      DRYISOA3 = 0
-      DRYISOG3 = 0
-      DRYASOAN = 0
-      DRYASOA1 = 0
-      DRYASOG1 = 0
-      DRYASOA2 = 0
-      DRYASOG2 = 0
-      DRYASOA3 = 0
-      DRYASOG3 = 0
-      DRYSOAG  = 0
-      DRYSOAM  = 0
-
-      ! Locate drydep indices for each carbon or SOA aerosol 
-      ! in the list of dry depositing species.
-      IF ( Input_Opt%LDRYD ) THEN
-         DO N = 1, Input_Opt%NUMDEP
-            SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
-               CASE ( 'BCPI' )
-                  DRYBCPI = N
-               CASE ( 'OCPI' )
-                  DRYOCPI = N
-               CASE ( 'BCPO' )
-                  DRYBCPO = N
-               CASE ( 'OCPO' )
-                  DRYOCPO = N
-               ! semivolpoa: add POA (hotp 2/26/09)
-               CASE ( 'POA1'  )
-                  DRYPOA1  = N
-               CASE ( 'POA2'  )
-                  DRYPOA2  = N
-               ! semivolpoa2: add POG (hotp 3/2/09)
-               CASE ( 'POG1'  )
-                  DRYPOG1  = N
-               CASE ( 'POG2'  )
-                  DRYPOG2  = N
-               ! semivolpoa4opoa: add OPOA and OPOG (hotp 3/18/09)
-               CASE ( 'OPOA1' )
-                  DRYOPOA1 = N
-               CASE ( 'OPOA2' )
-                  DRYOPOA2 = N
-               CASE ( 'OPOG1' )
-                  DRYOPOG1 = N
-               CASE ( 'OPOG2' )
-                  DRYOPOG2 = N
-               ! Lumped arom/IVOC (hotp 5/13/10)
-               CASE ( 'ASOAN' )
-                  DRYASOAN = N 
-               CASE ( 'ASOA1' )
-                  DRYASOA1 = N 
-               CASE ( 'ASOA2' )
-                  DRYASOA2 = N 
-               CASE ( 'ASOA3' )
-                  DRYASOA3 = N 
-               CASE ( 'ASOG1' )
-                  DRYASOG1 = N 
-               CASE ( 'ASOG2' )
-                  DRYASOG2 = N 
-               CASE ( 'ASOG3' )
-                  DRYASOG3 = N
-               ! removed ALPH,LIMO,ALCO,SOA1-4,SOG1-4
-               ! and replaced with new mtp (hotp 5/20/10)
-               ! precursors
-               CASE ( 'MTPA' )
-                  DRYMTPA = N 
-               CASE ( 'LIMO' )
-                  DRYLIMO = N 
-               CASE ( 'MTPO' )
-                  DRYMTPO = N 
-               ! terpenes (hotp 7/29/10)
-               CASE ( 'TSOA1' )
-                  DRYTSOA1 = N 
-               CASE ( 'TSOA2' )
-                  DRYTSOA2 = N 
-               CASE ( 'TSOA3' )
-                  DRYTSOA3 = N 
-               CASE ( 'TSOA0' )
-                  DRYTSOA0 = N 
-               CASE ( 'TSOG1' )
-                  DRYTSOG1 = N 
-               CASE ( 'TSOG2' )
-                  DRYTSOG2 = N 
-               CASE ( 'TSOG3' )
-                  DRYTSOG3 = N 
-               CASE ( 'TSOG0' )
-                  DRYTSOG0 = N
-               ! isoprene (hotp 7/29/10)
-               CASE ( 'ISOA1' )
-                  DRYISOA1 = N 
-               CASE ( 'ISOA2' )
-                  DRYISOA2 = N 
-               CASE ( 'ISOA3' )
-                  DRYISOA3 = N 
-               CASE ( 'ISOG1' )
-                  DRYISOG1 = N 
-               CASE ( 'ISOG2' )
-                  DRYISOG2 = N 
-               CASE ( 'ISOG3' )
-                  DRYISOG3 = N
-               CASE ( 'SOAG' )
-                  DRYSOAG = N
-               CASE ( 'SOAM' )
-                  DRYSOAM = N
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT        
-         ENDDO
-      ENDIF
-
       END SUBROUTINE INIT_CARBON
 !EOC
 !------------------------------------------------------------------------------
@@ -9359,6 +9119,23 @@ ccc
       IF ( ALLOCATED( BETANOSAVE    ) ) DEALLOCATE( BETANOSAVE    )
       IF ( ALLOCATED( SPECSOAPROD   ) ) DEALLOCATE( SPECSOAPROD   )
       IF ( ALLOCATED( SPECSOAEVAP   ) ) DEALLOCATE( SPECSOAEVAP   )
+
+#if defined ( TOMAS )
+      IF ( ALLOCATED( BCPI_ANTH_BULK )) DEALLOCATE( BCPI_ANTH_BULK)
+      IF ( ALLOCATED( BCPO_ANTH_BULK )) DEALLOCATE( BCPO_ANTH_BULK)
+      IF ( ALLOCATED( BCPI_BIOF_BULK )) DEALLOCATE( BCPI_BIOF_BULK)
+      IF ( ALLOCATED( BCPO_BIOF_BULK )) DEALLOCATE( BCPO_BIOF_BULK)
+      IF ( ALLOCATED( BCPI_BIOB_BULK )) DEALLOCATE( BCPI_BIOB_BULK)
+      IF ( ALLOCATED( BCPO_BIOB_BULK )) DEALLOCATE( BCPO_BIOB_BULK)
+      IF ( ALLOCATED( OCPI_ANTH_BULK )) DEALLOCATE( OCPI_ANTH_BULK)
+      IF ( ALLOCATED( OCPO_ANTH_BULK )) DEALLOCATE( OCPO_ANTH_BULK)
+      IF ( ALLOCATED( OCPI_BIOF_BULK )) DEALLOCATE( OCPI_BIOF_BULK)
+      IF ( ALLOCATED( OCPO_BIOF_BULK )) DEALLOCATE( OCPO_BIOF_BULK)
+      IF ( ALLOCATED( OCPI_BIOB_BULK )) DEALLOCATE( OCPI_BIOB_BULK)
+      IF ( ALLOCATED( OCPO_BIOB_BULK )) DEALLOCATE( OCPO_BIOB_BULK)
+      IF ( ALLOCATED( TERP_ORGC      )) DEALLOCATE( TERP_ORGC     )
+      IF ( ALLOCATED( CO_ANTH        )) DEALLOCATE( CO_ANTH       )
+#endif
 
       END SUBROUTINE CLEANUP_CARBON
 !EOC

@@ -79,6 +79,7 @@ MODULE Regrid_A2A_Mod
 !
 ! !PRIVATE TYPES:
 !
+
   !---------------------------------------------------------------------------
   ! These are now kept locally, to "shadow" variables from other parts of
   ! GEOS-Chem.  This avoids depending on GEOS-Chem code within the core
@@ -253,7 +254,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Map_A2A_r8r8( im, jm, lon1, sin1, q1, &
-                           in, jn, lon2, sin2, q2, ig, iv)
+                           in, jn, lon2, sin2, q2, ig, iv, missval)
 !
 ! !INPUT PARAMETERS:
 !
@@ -279,11 +280,16 @@ CONTAINS
 
     ! Quantity on INPUT grid
     REAL*8,  INTENT(IN)  :: q1(im,jm)
+
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Regridded quantity on OUTPUT grid
     REAL*8,  INTENT(OUT) :: q2(in,jn)
+!
+! !OPTIONAL ARGUMENTS
+!
+    REAL*8,  INTENT(IN), OPTIONAL :: missval
 !
 ! !REMARKS:
 !  This routine is overloaded by the MAP_A2A interface.
@@ -295,6 +301,7 @@ CONTAINS
 !      Also updated comments. (bmy, 9/21/00)
 !  21 Sep 2000 - R. Yantosca - Initial version
 !  27 Aug 2012 - R. Yantosca - Add parallel DO loops
+!  02 Mar 2015 - C. Keller   - Added optional argument missval
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -303,6 +310,15 @@ CONTAINS
 !
     INTEGER :: i,j,k
     REAL*8  :: qtmp(in,jm)
+
+    ! Init
+    IF ( PRESENT(missval) ) THEN
+       qtmp = missval
+       q2   = missval
+    ELSE
+       qtmp = 0.0d0
+       q2   = 0.0d0
+    ENDIF
 
     !===================================================================
     ! E-W regridding
@@ -373,7 +389,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Map_A2A_r4r4( im, jm, lon1, sin1, q1, &
-                           in, jn, lon2, sin2, q2, ig, iv)
+                           in, jn, lon2, sin2, q2, ig, iv, missval)
 !
 ! !INPUT PARAMETERS:
 !
@@ -405,6 +421,10 @@ CONTAINS
     ! Regridded quantity on OUTPUT grid
     REAL*4,  INTENT(OUT) :: q2(in,jn)
 !
+! !OPTIONAL ARGUMENTS
+!
+    REAL*4,  INTENT(IN), OPTIONAL :: missval
+!
 ! !REMARKS:
 !  This routine is overloaded by the MAP_A2A interface.
 !
@@ -415,6 +435,7 @@ CONTAINS
 !      Also updated comments. (bmy, 9/21/00)
 !  21 Sep 2000 - R. Yantosca - Initial version
 !  27 Aug 2012 - R. Yantosca - Add parallel DO loops
+!  02 Mar 2015 - C. Keller   - Added optional argument missval
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -423,6 +444,15 @@ CONTAINS
 !
     INTEGER :: i,j,k
     REAL*4  :: qtmp(in,jm)
+
+    ! Init
+    IF ( PRESENT(missval) ) THEN
+       qtmp = missval
+       q2   = missval
+    ELSE
+       qtmp = 0.0
+       q2   = 0.0
+    ENDIF
 
     !===================================================================
     ! E-W regridding
@@ -449,7 +479,7 @@ CONTAINS
        CALL xmap_r4r4(im, jm-ig, lon1, q1(1,1+ig),in, lon2, qtmp(1,1+ig) )
 
     ENDIF
-    
+
     !===================================================================
     ! N-S regridding
     !===================================================================    
@@ -494,7 +524,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Map_A2A_r4r8( im, jm, lon1, sin1, q1, &
-                           in, jn, lon2, sin2, q2, ig, iv)
+                           in, jn, lon2, sin2, q2, ig, iv, missval)
 !
 ! !INPUT PARAMETERS:
 !
@@ -526,6 +556,10 @@ CONTAINS
     ! Regridded quantity on OUTPUT grid
     REAL*8,  INTENT(OUT) :: q2(in,jn)
 !
+! !OPTIONAL ARGUMENTS
+!
+    REAL*8,  INTENT(IN), OPTIONAL :: missval
+!
 ! !REMARKS:
 !  This routine is overloaded by the MAP_A2A interface.
 !
@@ -536,6 +570,7 @@ CONTAINS
 !      Also updated comments. (bmy, 9/21/00)
 !  21 Sep 2000 - R. Yantosca - Initial version
 !  27 Aug 2012 - R. Yantosca - Add parallel DO loops
+!  02 Mar 2015 - C. Keller   - Added optional argument missval
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -544,6 +579,15 @@ CONTAINS
 !
     INTEGER :: i,j,k
     REAL*8  :: qtmp(in,jm)
+
+    ! Init
+    IF ( PRESENT(missval) ) THEN
+       qtmp = missval
+       q2   = missval
+    ELSE
+       qtmp = 0.0d0
+       q2   = 0.0d0
+    ENDIF
 
     !===================================================================
     ! E-W regridding
@@ -615,7 +659,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Map_A2A_r8r4( im, jm, lon1, sin1, q1, &
-                           in, jn, lon2, sin2, q2, ig, iv)
+                           in, jn, lon2, sin2, q2, ig, iv, missval)
 !
 ! !INPUT PARAMETERS:
 !
@@ -647,6 +691,10 @@ CONTAINS
     ! Regridded quantity on OUTPUT grid
     REAL*4,  INTENT(OUT) :: q2(in,jn)
 !
+! !OPTIONAL ARGUMENTS
+!
+    REAL*4,  INTENT(IN), OPTIONAL :: missval
+!
 ! !REMARKS:
 !  This routine is overloaded by the MAP_A2A interface.
 !
@@ -657,6 +705,7 @@ CONTAINS
 !      Also updated comments. (bmy, 9/21/00)
 !  21 Sep 2000 - R. Yantosca - Initial version
 !  27 Aug 2012 - R. Yantosca - Add parallel DO loops
+!  02 Mar 2015 - C. Keller   - Added optional argument missval
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -665,6 +714,15 @@ CONTAINS
 !
     INTEGER :: i,j,k
     REAL*4  :: qtmp(in,jm)
+
+    ! Init
+    IF ( PRESENT(missval) ) THEN
+       qtmp = missval
+       q2   = missval
+    ELSE
+       qtmp = 0.0
+       q2   = 0.0
+    ENDIF
 
     !===================================================================
     ! E-W regridding
@@ -785,6 +843,8 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
+!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined 
+!                                values in nested grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -809,6 +869,7 @@ CONTAINS
     !$OMP DEFAULT( SHARED                    ) &
     !$OMP PRIVATE( I, J0, J, M, QSUM, MM, DY )
     do 1000 i=1,im
+       qsum = 0.0d0
        j0 = 1
        do 555 j=1,jn-ig
        do 100 m=j0,jm-ig
@@ -951,6 +1012,8 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
+!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined 
+!                                values in nested grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -975,6 +1038,7 @@ CONTAINS
     !$OMP DEFAULT( SHARED                    ) &
     !$OMP PRIVATE( I, J0, J, M, QSUM, MM, DY )
     do 1000 i=1,im
+       qsum = 0.0d0
        j0 = 1
        do 555 j=1,jn-ig
        do 100 m=j0,jm-ig
@@ -1117,6 +1181,8 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
+!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined 
+!                                values in nested grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1141,6 +1207,7 @@ CONTAINS
     !$OMP DEFAULT( SHARED                    ) &
     !$OMP PRIVATE( I, J0, J, M, QSUM, MM, DY )
     do 1000 i=1,im
+       qsum = 0.0d0
        j0 = 1
        do 555 j=1,jn-ig
        do 100 m=j0,jm-ig
@@ -1283,6 +1350,8 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
+!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined 
+!                                values in nested grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1307,6 +1376,7 @@ CONTAINS
     !$OMP DEFAULT( SHARED                    ) &
     !$OMP PRIVATE( I, J0, J, M, QSUM, MM, DY )
     do 1000 i=1,im
+       qsum = 0.0
        j0 = 1
        do 555 j=1,jn-ig
        do 100 m=j0,jm-ig
@@ -1326,7 +1396,7 @@ CONTAINS
                 
                 ! South most fractional area
                 qsum=(sin1(m+1)-sin2(j))*q1(i,m)
-                
+ 
                 do mm=m+1,jm-ig
                    
                    ! locate the northern edge: sin2(j+1)
@@ -1378,7 +1448,6 @@ CONTAINS
         do i=1,im
            q2(i,jn) = sum
         enddo
-
      endif
 
    END SUBROUTINE ymap_r4r4
@@ -1441,6 +1510,10 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
+!  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
+!                                to valid range n1:(n2-1). Do not initialize q2
+!                                to zero after pointer assignment. This seems to
+!                                cause problems with some compilers. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1492,6 +1565,9 @@ CONTAINS
        enddo
     endif    
 
+    ! maxlon must represent the easter edge of the grid:
+    maxlon = maxlon + ( lon1(im+1)-lon1(im) )
+
     ! Reduce input grid
     n1 = 1
     n2 = iin+1
@@ -1501,8 +1577,8 @@ CONTAINS
     enddo
     in = n2 - n1
     lon2 => ilon2(n1:n2)
-    q2   => iq2(n1:n2,:)
-    
+    q2   => iq2(n1:(n2-1),:)
+ 
     !===================================================================
     ! check to see if ghosting is necessary
     ! Western edge:
@@ -1552,7 +1628,8 @@ CONTAINS
        !=================================================================
        ! Area preserving mapping
        !================================================================
-       
+      
+       qtmp(:) = 0.0d0 
        qtmp(0)=q1(im,j)
        do i=1,im
           qtmp(i)=q1(i,j)
@@ -1683,6 +1760,10 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
+!  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
+!                                to valid range n1:(n2-1). Do not initialize q2
+!                                to zero after pointer assignment. This seems to
+!                                cause problems with some compilers. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1719,7 +1800,7 @@ CONTAINS
     ! to be used. Remapping will be restricted to this
     ! domain. This procedure allows remapping of nested
     ! domains onto larger (e.g. global) domains. 
-    ! ckeller, 2/11/15).
+    ! ckeller, (2/11/15).
     !===================================================================
     minlon = minval(lon1)
     maxlon = maxval(lon1)
@@ -1734,7 +1815,10 @@ CONTAINS
        enddo
     endif    
 
-    ! Reduce input grid
+    ! maxlon must represent the easter edge of the grid:
+    maxlon = maxlon + ( lon1(im+1)-lon1(im) )
+
+    ! Reduce output grid
     n1 = 1
     n2 = iin+1
     do i=1,iin+1
@@ -1743,7 +1827,7 @@ CONTAINS
     enddo
     in = n2 - n1
     lon2 => ilon2(n1:n2)
-    q2   => iq2(n1:n2,:)
+    q2   => iq2(n1:(n2-1),:)
 
     ! shadow variables to selected range
  
@@ -1797,6 +1881,7 @@ CONTAINS
        ! Area preserving mapping
        !================================================================
        
+       qtmp(:) = 0.0
        qtmp(0)=q1(im,j)
        do i=1,im
           qtmp(i)=q1(i,j)
@@ -1927,6 +2012,10 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
+!  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
+!                                to valid range n1:(n2-1). Do not initialize q2
+!                                to zero after pointer assignment. This seems to
+!                                cause problems with some compilers. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1978,6 +2067,9 @@ CONTAINS
        enddo
     endif    
 
+    ! maxlon must represent the easter edge of the grid:
+    maxlon = maxlon + ( lon1(im+1)-lon1(im) )
+
     ! Reduce input grid
     n1 = 1
     n2 = iin+1
@@ -1987,7 +2079,7 @@ CONTAINS
     enddo
     in = n2 - n1
     lon2 => ilon2(n1:n2)
-    q2   => iq2(n1:n2,:)
+    q2   => iq2(n1:(n2-1),:)
     
     !===================================================================
     ! check to see if ghosting is necessary
@@ -2039,6 +2131,7 @@ CONTAINS
        ! Area preserving mapping
        !================================================================
        
+       qtmp(:) = 0.0d0
        qtmp(0)=q1(im,j)
        do i=1,im
           qtmp(i)=q1(i,j)
@@ -2169,6 +2262,10 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
+!  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
+!                                to valid range n1:(n2-1). Do not initialize q2
+!                                to zero after pointer assignment. This seems to
+!                                cause problems with some compilers. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2220,6 +2317,9 @@ CONTAINS
        enddo
     endif    
 
+    ! maxlon must represent the easter edge of the grid:
+    maxlon = maxlon + ( lon1(im+1)-lon1(im) )
+
     ! Reduce input grid
     n1 = 1
     n2 = iin+1
@@ -2229,7 +2329,7 @@ CONTAINS
     enddo
     in = n2 - n1
     lon2 => ilon2(n1:n2)
-    q2   => iq2(n1:n2,:)
+    q2   => iq2(n1:(n2-1),:)
     
     !===================================================================
     ! check to see if ghosting is necessary
@@ -2280,7 +2380,8 @@ CONTAINS
        !=================================================================
        ! Area preserving mapping
        !================================================================
-       
+      
+       qtmp(:) = 0.0
        qtmp(0)=q1(im,j)
        do i=1,im
           qtmp(i)=q1(i,j)

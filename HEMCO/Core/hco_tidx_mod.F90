@@ -70,6 +70,7 @@ MODULE HCO_tIdx_Mod
   PUBLIC :: tIDx_Init
   PUBLIC :: tIDx_GetIndx
   PUBLIC :: tIDx_Cleanup
+  PUBLIC :: tIDx_IsInRange
   PUBLIC :: HCO_GetPrefTimeAttr
   PUBLIC :: HCO_ExtractTime
 !
@@ -100,11 +101,6 @@ MODULE HCO_tIdx_Mod
      TYPE(TimeIdx), POINTER :: HOURLY
      TYPE(TimeIdx), POINTER :: HOURLY_GRID 
      TYPE(TimeIdx), POINTER :: WEEKDAY
-!------------------------------------------------------------------------------
-! Prior to 2/25/15:
-! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
-!     TYPE(TimeIdx), POINTER :: WEEKDAY_GRID
-!------------------------------------------------------------------------------
      TYPE(TimeIdx), POINTER :: MONTHLY
   END TYPE TimeIdxCollection
 
@@ -188,17 +184,6 @@ CONTAINS
     AlltIDx%WEEKDAY%TypeID       = 7
     AlltIDx%WEEKDAY%TempRes      = "Weekday"
 
-!------------------------------------------------------------------------------
-! Prior to 2/25/15:
-! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
-!    ! ----------------------------------------------------------------
-!    ! "WEEKDAY_GRID" => changes every weekday, longitude-independent
-!    ! ----------------------------------------------------------------
-!    ALLOCATE ( AlltIDx%WEEKDAY_GRID )
-!    AlltIDx%WEEKDAY_GRID%TypeID       = 71
-!    AlltIDx%WEEKDAY_GRID%TempRes      = "Weekday_Grid"
-!------------------------------------------------------------------------------
-
     ! ----------------------------------------------------------------
     ! "MONTHLY" => changes every month, longitude-dependent
     ! ----------------------------------------------------------------
@@ -265,13 +250,6 @@ CONTAINS
        CASE ( 7 )
           ctIDx => AlltIDx%WEEKDAY
 
-!------------------------------------------------------------------------------
-! Prior to 2/25/15:
-! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
-!       CASE ( 71 )
-!          ctIDx => AlltIDx%WEEKDAY_GRID
-!------------------------------------------------------------------------------
-
        CASE ( 12 )
           ctIDx => AlltIDx%MONTHLY
 
@@ -325,14 +303,6 @@ CONTAINS
           DEALLOCATE(AlltIDx%WEEKDAY) 
        ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 2/25/15:
-! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
-!       IF ( ASSOCIATED(AlltIDx%WEEKDAY_GRID) ) THEN
-!          DEALLOCATE(AlltIDx%WEEKDAY_GRID) 
-!       ENDIF
-!------------------------------------------------------------------------------
-  
        IF ( ASSOCIATED(AlltIDx%MONTHLY) ) THEN
           DEALLOCATE(AlltIDx%MONTHLY) 
        ENDIF
@@ -675,6 +645,77 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !ROUTINE: tIDx_IsInRange
+!
+! !DESCRIPTION: Subroutine tIDx\_IsInRange returns true if the passed datetime
+! is within the range of the date ranges of the data container.
+!\\
+! !INTERFACE:
+!
+  FUNCTION tIDx_IsInRange ( Lct, Yr, Mt, Dy, Hr ) RESULT ( InRange )
+!
+! !USES:
+!
+    USE HCO_DATACONT_MOD, ONLY : ListCont
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(ListCont),  POINTER    :: Lct       ! File data object 
+    INTEGER,         INTENT(IN) :: Yr
+    INTEGER,         INTENT(IN) :: Mt
+    INTEGER,         INTENT(IN) :: Dy
+    INTEGER,         INTENT(IN) :: Hr
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    LOGICAL                     :: InRange
+!
+! !REVISION HISTORY:
+!  04 Mar 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Init 
+    InRange = .TRUE.
+
+    IF ( Lct%Dct%Dta%ncYrs(1) /= Lct%Dct%Dta%ncYrs(2) ) THEN
+       IF ( Yr < Lct%Dct%Dta%ncYrs(1) .OR. &
+            Yr > Lct%Dct%Dta%ncYrs(2)       ) THEN 
+          InRange = .FALSE.
+       ENDIF
+    ENDIF
+
+    IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) ) THEN
+       IF ( Mt < Lct%Dct%Dta%ncMts(1) .OR. &
+            Mt > Lct%Dct%Dta%ncMts(2)       ) THEN 
+          InRange = .FALSE.
+       ENDIF
+    ENDIF
+
+    IF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) ) THEN
+       IF ( Dy < Lct%Dct%Dta%ncDys(1) .OR. &
+            Dy > Lct%Dct%Dta%ncDys(2)       ) THEN 
+          InRange = .FALSE.
+       ENDIF
+    ENDIF
+
+    IF ( Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2) ) THEN
+       IF ( Hr < Lct%Dct%Dta%ncHrs(1) .OR. &
+            Hr > Lct%Dct%Dta%ncHrs(2)       ) THEN 
+          InRange = .FALSE.
+       ENDIF
+    ENDIF
+
+  END FUNCTION tIDx_IsInRange
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: HCO_GetPrefTimeAttr
 !
 ! !DESCRIPTION: Subroutine HCO\_GetPrefTimeAttr returns the preferred time
@@ -693,7 +734,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE HCO_GetPrefTimeAttr( Lct,    readYr, readMt, &
-                                  readDy, readHr, RC       ) 
+                                  readDy, readHr, readMn, RC ) 
 !
 ! !USES:
 !
@@ -710,6 +751,7 @@ CONTAINS
     INTEGER,         INTENT(  OUT) :: readMt    ! preferred month 
     INTEGER,         INTENT(  OUT) :: readDy    ! preferred day
     INTEGER,         INTENT(  OUT) :: readHr    ! preferred hour 
+    INTEGER,         INTENT(  OUT) :: readMn    ! preferred minute 
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -723,7 +765,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER   :: cYr, cMt, cDy, cHr 
+    INTEGER   :: cYr, cMt, cDy, cHr, cMn 
     LOGICAL   :: InRange
 
     !-----------------------------------
@@ -734,48 +776,23 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Get current time
-    CALL HcoClock_Get( cYYYY = cYr, cMM = cMt,        &
-                       cDD   = cDy, cH  = cHr, RC = RC ) 
+    CALL HcoClock_Get( cYYYY = cYr, cMM = cMt, cDD = cDy, &
+                       cH  = cHr,   cM  = cMn, RC  = RC    ) 
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
+    ! preferred minute is always current one
+    readMn = cMn
+
     ! ------------------------------------------------------------- 
-    ! If CycleFlag is set to 2 (range), the preferred datetime is 
+    ! If CycleFlag is set to range, the preferred datetime is 
     ! the current date if we are within the provided range, and 
     ! invalid otherwise.
     ! ------------------------------------------------------------- 
-    IF ( Lct%Dct%Dta%CycleFlag == 2 ) THEN
+    IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN
 
-       ! Check if we are inside of valid range
-       InRange = .TRUE.
+       ! Are we in range?
+       InRange = tIDx_IsInRange ( Lct, cYr, cMt, cDy, cHr )
 
-       IF ( Lct%Dct%Dta%ncYrs(1) /= Lct%Dct%Dta%ncYrs(2) ) THEN
-          IF ( cYr < Lct%Dct%Dta%ncYrs(1) .OR. &
-               cYr > Lct%Dct%Dta%ncYrs(2)       ) THEN 
-             InRange = .FALSE.
-          ENDIF
-       ENDIF
-
-       IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) ) THEN
-          IF ( cMt < Lct%Dct%Dta%ncMts(1) .OR. &
-               cMt > Lct%Dct%Dta%ncMts(2)       ) THEN 
-             InRange = .FALSE.
-          ENDIF
-       ENDIF
-
-       IF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) ) THEN
-          IF ( cDy < Lct%Dct%Dta%ncDys(1) .OR. &
-               cDy > Lct%Dct%Dta%ncDys(2)       ) THEN 
-             InRange = .FALSE.
-          ENDIF
-       ENDIF
-
-       IF ( Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2) ) THEN
-          IF ( cHr < Lct%Dct%Dta%ncHrs(1) .OR. &
-               cHr > Lct%Dct%Dta%ncHrs(2)       ) THEN 
-             InRange = .FALSE.
-          ENDIF
-       ENDIF
- 
        IF ( InRange ) THEN
           readYr = cYr
           readMt = cMt
@@ -797,10 +814,10 @@ CONTAINS
     ENDIF
 
     ! ------------------------------------------------------------- 
-    ! If CycleFlag is set to 3 (exact), the preferred datetime is 
+    ! If CycleFlag is set to exact, the preferred datetime is 
     ! always the current date.
     ! ------------------------------------------------------------- 
-    IF ( Lct%Dct%Dta%CycleFlag == 3 ) THEN
+    IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) THEN
        readYr = cYr
        readMt = cMt
        readDy = cDy
@@ -905,7 +922,7 @@ CONTAINS
 !
     USE CHARPAK_MOD,        ONLY : STRSPLIT
     USE HCO_FILEDATA_MOD,   ONLY : FileData 
-    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_WCD, HCO_SEP
+    USE HCO_EXTLIST_MOD,    ONLY : HCO_GetOpt
 !
 ! !INPUT PARAMETERS: 
 !
@@ -933,11 +950,26 @@ CONTAINS
     ! HCO_ExtractTime begins here!
     !=================================================================
 
+    ! Check for case where time flag is set to just one wildcard 
+    ! character. In this case, we want to update the file on every
+    ! HEMCO time step, i.e. it will be added to readlist 'Always'
+    ! (in hco_readlist_mod.F90).
+    IF ( TRIM(CharStr) == HCO_GetOpt('Wildcard') ) THEN
+       Dta%UpdtFlag = HCO_UFLAG_ALWAYS
+       Dta%ncYrs    = -999 
+       Dta%ncMts    = -999 
+       Dta%ncDys    = -999 
+       Dta%ncHrs    = -999 
+
+       RC = HCO_SUCCESS
+       RETURN
+    ENDIF
+
     ! Init
     TimeVec(:) = -1
 
     ! Extract strings to be translated into integers 
-    CALL STRSPLIT( CharStr, HCO_SEP(), SUBSTR, N )
+    CALL STRSPLIT( CharStr, HCO_GetOpt('Separator'), SUBSTR, N )
     IF ( N /= 4 ) THEN
        MSG = 'Time stamp must have 4 elements: ' // TRIM(CharStr)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -956,7 +988,7 @@ CONTAINS
 
        ! For wildcard character, set lower and upper limit both to -1.
        ! In this case, the whole time slice will be read into file!
-       IF ( TRIM(SUBSTR(I)) == TRIM(HCO_WCD() ) ) THEN
+       IF ( TRIM(SUBSTR(I)) == TRIM(HCO_GetOpt('Wildcard') ) ) THEN
           TimeVec(I0:I1) = -1 
 
        ! Characters YYYY, MM, DD, and/or HH can be used to ensure that

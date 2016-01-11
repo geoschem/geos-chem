@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP( am_I_Root, Input_Opt, RC )
+      SUBROUTINE CLEANUP( am_I_Root, Input_Opt, ERROR, RC )
 !
 ! !USES:
 !
@@ -22,7 +22,6 @@
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
       USE COMODE_MOD,              ONLY : CLEANUP_COMODE
       USE GCKPP_COMODE_MOD,        ONLY : CLEANUP_GCKPP_COMODE
-      USE DAO_MOD,                 ONLY : CLEANUP_DAO
       USE DIAG_MOD,                ONLY : CLEANUP_DIAG
       USE DIAG03_MOD,              ONLY : CLEANUP_DIAG03
       USE DIAG04_MOD,              ONLY : CLEANUP_DIAG04
@@ -35,12 +34,10 @@
       USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
       USE DUST_MOD,                ONLY : CLEANUP_DUST
       USE ERROR_MOD,               ONLY : DEBUG_MSG
+      USE GEOSFP_READ_MOD,         ONLY : CLEANUP_GEOSFP_READ
       USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
-      USE GLOBAL_NOX_MOD,          ONLY : CLEANUP_GLOBAL_NOX
-      USE GLOBAL_OH_MOD,           ONLY : CLEANUP_GLOBAL_OH
       USE GRID_MOD,                ONLY : CLEANUP_GRID
-      USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
@@ -49,6 +46,7 @@
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
       USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
       USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
+      USE MERRA2_READ_MOD,         ONLY : CLEANUP_MERRA2_READ
       USE PBL_MIX_MOD,             ONLY : CLEANUP_PBL_MIX
       USE PJC_PFIX_MOD,            ONLY : CLEANUP_PJC_PFIX
       USE PLANEFLIGHT_MOD,         ONLY : CLEANUP_PLANEFLIGHT
@@ -62,8 +60,7 @@
 #endif
       USE TOMS_MOD,                ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
-      USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
-      USE TPCORE_GEOSFP_WINDOW_MOD,ONLY : EXIT_GEOSFP_TPCORE_WINDOW !clb
+      USE TPCORE_WINDOW_MOD,       ONLY : EXIT_TPCORE_WINDOW
       USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
 #if   defined( APM )
@@ -91,12 +88,20 @@
       USE DIAGNOSTICS_MOD,         ONLY : DIAGNOSTICS_FINAL
 #endif
 
+#if   defined( RRTMG )
+      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_SURFACE_RAD
+      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_STRAT_CLIM
+      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_MCICA_CLOUDS
+#endif
+
+
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input Options object 
+      LOGICAL,        INTENT(IN)  :: ERROR        ! Cleanup after error? 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -189,6 +194,8 @@
 !  (46) Added call to CLEANUP_GLOBAL_BC, which deallocates arrays from
 !       "global_bc_mod.f"  (clf, 2/28/2011) 
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2011 - C. Friedman - Added call to CLEANUP_GLOBAL_OC, which 
+!                              deallocates arrays from "global_oc_mod.f"
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
 !  19 Mar 2012 - M. Payer    - Remove call to CLEANUP_ACETONE. It is no longer
@@ -203,6 +210,7 @@
 !                              removed all allocatable arrays from dao_mod.F
 !  03 Dec 2012 - R. Yantosca - Now call Cleanup_CMN_SIZE
 !  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
+!  06 Mar 2013 - H. Amos     - Merge C. Friedman's PAH code
 !  14 Mar 2013 - M. Payer    - Restore reference to CLEANUP_DAO. Some arrays
 !                              have been restored to dao_mod.F for use in
 !                              the vertical regridding of OH for offline
@@ -234,6 +242,11 @@
 !  23 Sep 2014 - M. Sulprizio- Remove references to global_hno3_mod.F and
 !                              global_no3_mod.F
 !  12 Jan 2015 - R. Yantosca - Remove CLEANUP_UVALBEDO routine
+!  11 Mar 2015 - R. Yantosca - Remove call to CLEANUP_GLOBAL_OH
+!  11 Mar 2015 - R. Yantosca - Remove call to CLEANUP_GLOBAL_NOX
+!  16 Mar 2015 - R. Yantosca - Remove call to CLEANUP_HCN_CH3CN
+!  25 Mar 2015 - C. Keller   - Now cleanup UCX before emissisions.
+!  16 Apr 2015 - R. Yantosca - Remove call to CLEANUP_DAO; it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -245,17 +258,20 @@
       WRITE( 6, 100 ) 
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
+      ! UCX needs to be cleaned up before emissions, because the UCX 
+      ! restart variables needs to be passed to the HEMCO diagnostics
+      ! first.
+      CALL CLEANUP_UCX( am_I_Root )
+
 #if defined( DEVEL )
       ! Cleanup the new netCDF diagnostics structure
       CALL DIAGNOSTICS_FINAL( am_I_Root, Input_Opt, RC )
 #endif
 
-      ! Cleanup HEMCO 
-!#if !defined(ESMF_) 
+      ! Cleanup HEMCO
       IF ( Input_Opt%LEMIS ) THEN
-         CALL EMISSIONS_FINAL ( am_I_Root )
+         CALL EMISSIONS_FINAL ( am_I_Root, ERROR )
       ENDIF
-!#endif
 
       ! Call cleanup routines from individual F90 modules
       CALL CLEANUP_AEROSOL()
@@ -265,7 +281,6 @@
       CALL CLEANUP_CO2()
       CALL CLEANUP_COMODE()
       CALL CLEANUP_GCKPP_COMODE()
-      CALL CLEANUP_DAO()
       CALL CLEANUP_DIAG()
       CALL CLEANUP_DIAG03()
       CALL CLEANUP_DIAG04()
@@ -278,10 +293,7 @@
       CALL CLEANUP_DRYDEP()
       CALL CLEANUP_DUST()
       CALL CLEANUP_GLOBAL_CH4()
-      CALL CLEANUP_GLOBAL_NOX()
-      CALL CLEANUP_GLOBAL_OH()
       CALL CLEANUP_GRID()
-      CALL CLEANUP_HCN_CH3CN()
       CALL CLEANUP_HDF()
       CALL CLEANUP_ISOROPIAII()
       CALL CLEANUP_LINOZ()
@@ -303,22 +315,24 @@
       CALL CLEANUP_TRANSPORT()
 #endif
       CALL CLEANUP_TOMS()
-      CALL CLEANUP_UCX()
       CALL CLEANUP_WETSCAV()
 
 #if   defined( APM )
       CALL CLEANUP_WETSCAVBIN()  ! Cleanup arrays for APM wet scavenging
 #endif
 
-
 #if   defined( TOMAS )
       CALL CLEANUP_TOMAS()
 #endif
-#if   defined( GEOS_5 ) && defined( GRID05x0666 )
-      CALL EXIT_GEOS5_TPCORE_WINDOW() 
-#elif defined( GEOS_FP) && defined( GRID025x03125)
-      ! clb
-      CALL EXIT_GEOSFP_TPCORE_WINDOW()
+
+#if   defined( RRTMG )
+      CALL CLEANUP_SURFACE_RAD  ! Cleanup arrays for surface properties
+      CALL CLEANUP_STRAT_CLIM
+      CALL CLEANUP_MCICA_CLOUDS
+#endif
+
+#if   defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125)
+      CALL EXIT_TPCORE_WINDOW() 
 #else
       CALL EXIT_TPCORE()
 #endif
@@ -331,5 +345,12 @@
       CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
       CALL Cleanup_CMN_FJX    ( am_I_Root, RC )
 
+      ! Close GEOS-FP or MERRA2 met field files that may still be open
+#if defined( GEOS_FP )
+      CALL Cleanup_GeosFp_Read()
+#elif defined( MERRA2 )
+      CALL Cleanup_Merra2_Read()
+#endif
+      
       END SUBROUTINE CLEANUP
 !EOC

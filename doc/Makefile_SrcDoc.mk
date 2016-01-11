@@ -84,7 +84,10 @@
 #  08 Jul 2014 - R. Yantosca - Removed obsolete routines from the list
 #  06 Jan 2015 - M. Sulprizio- Remove additional routines made obsolete by HEMCO
 #  07 Jan 2015 - R. Yantosca - Added exchange_mod (i.e. 2-way nesting)
-#  04 Mar 2015 - R. Yantosca - Add uvalbedo_mod.
+#  15 Jan 2015 - M. Sulprizio- Added rrtmg_rad_transfer_mod.F and set_prof_o3.F
+#  04 Mar 2015 - R. Yantosca - Add uvalbedo_mod.F
+#  10 Jul 2015 - R. Yantosca - Use ./protex to avoid problems on some systems
+#  10 Jul 2015 - R. Yantosca - Updated list of files as of v11-01b
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -93,6 +96,7 @@
 SRC1 :=                               \
 ./intro.geos-chem                     \
 ./headers.geos-chem                   \
+$(HDR)/precision_mod.F                \
 $(HDR)/CMN_SIZE_mod.F                 \
 $(HDR)/CMN_DIAG_mod.F                 \
 $(HDR)/CMN_GCTM_mod.F                 \
@@ -127,11 +131,12 @@ $(CORE)/diag51b_mod.F                 \
 $(CORE)/diag53_mod.F                  \
 $(CORE)/diag56_mod.F                  \
 $(CORE)/diag63_mod.F                  \
+$(CORE)/diag_mod.F                    \
 $(CORE)/diag_pl_mod.F                 \
 $(CORE)/diag_oh_mod.F                 \
-$(CORE)/diag_mod.F                    \
 $(CORE)/drydep_mod.F                  \
 $(CORE)/dust_mod.F                    \
+$(CORE)/emissions_mod.F90             \
 $(CORE)/exchange_mod.F                \
 $(CORE)/fast_jx_mod.F                 \
 $(CORE)/gamap_mod.F                   \
@@ -139,11 +144,7 @@ $(CORE)/gcap_read_mod.F               \
 $(CORE)/get_ndep_mod.F                \
 $(CORE)/gigc_environment_mod.F90      \
 $(CORE)/geosfp_read_mod.F90           \
-$(CORE)/global_br_mod.F               \
 $(CORE)/global_ch4_mod.F              \
-$(CORE)/global_nox_mod.F              \
-$(CORE)/global_o3_mod.F               \
-$(CORE)/global_oh_mod.F               \
 $(CORE)/i6_read_mod.F                 \
 $(CORE)/input_mod.F                   \
 $(CORE)/isoropiaII_mod.F              \
@@ -162,6 +163,7 @@ $(CORE)/pjc_pfix_mod.F                \
 $(CORE)/planeflight_mod.F             \
 $(CORE)/pops_mod.F                    \
 $(CORE)/RnPbBe_mod.F                  \
+$(CORE)/rrtmg_rad_transfer_mod.F      \
 $(CORE)/strat_chem_mod.F90            \
 $(CORE)/sulfate_mod.F                 \
 $(CORE)/tagged_co_mod.F               \
@@ -178,9 +180,10 @@ $(CORE)/vdiff_mod.F90                 \
 $(CORE)/vdiff_pre_mod.F90             \
 ./subs.geos-chem                      \
 $(CORE)/cldice_HBrHOBr_rxn.F          \
+$(CORE)/cleanup.F                     \
 $(CORE)/diag1.F                       \
-$(CORE)/diag3.F                       \
 $(CORE)/diag_2pm.F                    \
+$(CORE)/diag3.F                       \
 $(CORE)/diagoh.F                      \
 $(CORE)/gasconc.F                     \
 $(CORE)/initialize.F                  \
@@ -189,6 +192,7 @@ $(CORE)/ndxx_setup.F                  \
 $(CORE)/ohsave.F                      \
 $(CORE)/partition.F                   \
 $(CORE)/physproc.F                    \
+$(CORE)/set_prof_o3.F                 \
 $(CORE)/setemdep.F                    \
 $(CORE)/ruralbox.F                    \
 $(CORE)/setemis.F
@@ -203,7 +207,7 @@ PDF1 := GC_Ref_Vol_3.pdf
 # Make commands
 srcdoc: 
 	rm -f $(TEX1)
-	protex -sf $(SRC1) > $(TEX1)
+	./protex -sf $(SRC1) > $(TEX1)
 	latex $(TEX1)
 	latex $(TEX1)
 	latex $(TEX1)
