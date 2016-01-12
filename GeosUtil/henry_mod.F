@@ -46,6 +46,7 @@
 !  08 Aug 2014 - C. Keller   - Moved coefficients into separate module
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  08 Dec 2015 - R. Yantosca - Make parameters REAL*8 instead of REAL(fp)
+!  12 Jan 2016 - E. Lundgren - Update molar gas constant (R) value to NIST 2014
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -53,7 +54,7 @@
 ! !DEFINED PARAMETERS:
 !
       REAL*8, PARAMETER :: TREF = 298.15d0      ! [K          ]
-      REAL*8, PARAMETER :: R    = 8.3144621d0   ! [J K-1 mol-1]
+      REAL*8, PARAMETER :: R    = 8.3144598d0   ! [J K-1 mol-1]
       REAL*8, PARAMETER :: ATM  = 101.325d0     ! [mPa (!)    ]
 
       CONTAINS
