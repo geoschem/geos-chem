@@ -818,12 +818,12 @@ CONTAINS
                                    InUse=FOUND, ThisColl=ThisColl )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-!<<<<<<< HEAD - merge conflict (ewl, 1/8/16)
-!    ! DEBUGGING - ewl, 2/6/15
-!    PRINT *, " "
-!    PRINT *, "In ", TRIM( LOC )
-!    ! END DEBUGGING
-!
+      ! DEBUGGING - ewl, 2/6/15
+      PRINT *, " "
+      PRINT *, "In ", TRIM( LOC )
+      ! END DEBUGGING
+
+!<<<<<<< HEAD - merge conflict - comment out old code (ewl, 1/8/16)
 !    ! Get collection position
 !    PS = 1
 !    IF ( PRESENT(COL) ) PS = COL
@@ -1139,8 +1139,8 @@ CONTAINS
     PRINT *, "   Creating container for diag ", TRIM( cName )
     ! END DEBUGGING
 
-    IF ( Collections(PS)%nnDiagn > 0 ) THEN
-       ThisDiagn%NextCont => Collections(PS)%DiagnList
+    IF ( ThisColl%nnDiagn > 0 ) THEN
+       ThisDiagn%NextCont => ThisColl%DiagnList
        
        ! DEBUGGING - ewl, 2/2/15
        PRINT *, "   NextCont now points to previous diag"
@@ -1155,19 +1155,19 @@ CONTAINS
     ! Increase diagnostics counter and set container ID accordingly.
     ThisColl%nnDiagn = ThisColl%nnDiagn + 1
 
-    ! Verbose mode
-    IF ( HCO_IsVerb( 1 ) ) THEN
-       WRITE(MSG,*) 'Successfully added diagnostics to collection ' , PS
-       CALL HCO_MSG ( MSG )
-       CALL Diagn_Print( ThisDiagn, 3 )
-    ENDIF
-
     ! DEBUGGING - ewl, 2/2/15
     PRINT *, "   Collection: ", PS 
     PRINT *, "   Index in collection: ", ThisDiagn%cID
     PRINT *, "   Counter: ", ThisDiagn%Counter
     PRINT *, "Exiting ", TRIM( LOC ), " for ", TRIM( ThisDiagn%cName )
     ! END DEBUGGING
+
+    ! Verbose mode
+    IF ( HCO_IsVerb( 1 ) ) THEN
+       WRITE(MSG,*) 'Successfully added diagnostics to collection ' , PS
+       CALL HCO_MSG ( MSG )
+       CALL Diagn_Print( ThisDiagn, 3 )
+    ENDIF
 
     ! Cleanup
     ThisDiagn => NULL()

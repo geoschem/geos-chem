@@ -752,7 +752,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: cId,      Collection
-    CHARACTER(LEN=15)  :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)  :: OutOper
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGINIT_PB_EMISS (diagnostics_mod.F90)' 
@@ -770,7 +770,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND01_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND01_OUTPUT_FREQ
     
     ! If the tracer number for lead is scheduled for output in input.geos, 
     ! then define the diagnostic container for 210Pb emissions.
@@ -794,9 +793,8 @@ CONTAINS
                           HcoID     = -1,                &
                           SpaceDim  =  3,                &
                           LevIDx    = -1,                &
-                          OutUnit   = 'kg/s',             &
+                          OutUnit   = 'kg/s',            &
                           OutOper   = TRIM( OutOper   ), &
-                          WriteFreq = TRIM( WriteFreq ), &
                           cId       = cId,               &
                           RC        = RC )
 
@@ -852,7 +850,7 @@ CONTAINS
     INTEGER              :: cId, Collection, M
     INTEGER, PARAMETER   :: NumTracers = 3        ! Does a var exist for this?
     INTEGER              :: TracersN ( NumTracers ) 
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_RN_DECAY (diagnostics_mod.F90)' 
@@ -870,7 +868,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND02_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND02_OUTPUT_FREQ
     
     ! Assign array of tracer numbers corresponding to decaying species
     TracersN = (/ IDTPb, IDTRN, IDTBe7 /)
@@ -901,9 +898,8 @@ CONTAINS
                              HcoID     = -1,                &
                              SpaceDim  =  3,                &
                              LevIDx    = -1,                &
-                             OutUnit   = 'kg/s',             &
+                             OutUnit   = 'kg/s',            &
                              OutOper   = TRIM( OutOper   ), &
-                             WriteFreq = TRIM( WriteFreq ), &
                              cId       = cId,               &
                              RC        = RC )
 
@@ -961,7 +957,7 @@ CONTAINS
 !    INTEGER              :: cId,      Collection, N
 !!    INTEGER, PARAMETER   :: NUMTRC = 3
 !!    INTEGER              :: TRCN ( NUMTRC )
-!    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+!    CHARACTER(LEN=15)    :: OutOper
 !    CHARACTER(LEN=60)    :: DiagnName
 !    CHARACTER(LEN=255)   :: MSG
 !    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_HG_SOURCE (diagnostics_mod.F90)' 
@@ -979,7 +975,6 @@ CONTAINS
 !    ! Get diagnostic parameters from the Input_Opt object
 !    Collection = Input_Opt%DIAG_COLLECTION
 !    OutOper    = Input_Opt%ND03_OUTPUT_TYPE
-!    WriteFreq  = Input_Opt%ND03_OUTPUT_FREQ
 !    
 !    ! Assign array of tracer numbers corresponding to decaying species
 !    TRCN(1) = IDTPB
@@ -1013,7 +1008,6 @@ CONTAINS
 !                             LevIDx    = -1,                &
 !                             OutUnit   = 'kg' ,             &
 !                             OutOper   = TRIM( OutOper   ), &
-!                             WriteFreq = TRIM( WriteFreq ), &
 !                             cId       = cId,               &
 !                             RC        = RC )
 !
@@ -1068,7 +1062,7 @@ CONTAINS
 !! !LOCAL VARIABLES:
 !!
 !    INTEGER              :: cId,      Collection, N
-!    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+!    CHARACTER(LEN=15)    :: OutOper
 !    CHARACTER(LEN=60)    :: DiagnName
 !    CHARACTER(LEN=255)   :: MSG
 !    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_SULFATE_PL (diagnostics_mod.F90)' 
@@ -1086,7 +1080,6 @@ CONTAINS
 !    ! Get diagnostic parameters from the Input_Opt object
 !    Collection = Input_Opt%DIAG_COLLECTION
 !    OutOper    = Input_Opt%ND05_OUTPUT_TYPE
-!    WriteFreq  = Input_Opt%ND05_OUTPUT_FREQ
 !    
 !    ! Loop over # of diagnostics (only ones with units kg S)
 !    DO N = 1, NumDiagND05
@@ -1115,7 +1108,6 @@ CONTAINS
 !                             LevIDx    = -1,                &
 !                             OutUnit   = 'kg S' ,           &
 !                             OutOper   = TRIM( OutOper   ), &
-!                             WriteFreq = TRIM( WriteFreq ), &
 !                             cId       = cId,               &
 !                             RC        = RC )
 !
@@ -1144,7 +1136,6 @@ CONTAINS
 !                             LevIDx    = -1,                &
 !                             OutUnit   = 'kg OH' ,          &
 !                             OutOper   = TRIM( OutOper   ), &
-!                             WriteFreq = TRIM( WriteFreq ), &
 !                             cId       = cId,               &
 !                             RC        = RC )
 !
@@ -1172,7 +1163,6 @@ CONTAINS
 !                             LevIDx    = -1,                &
 !                             OutUnit   = 'kg NO3' ,         &
 !                             OutOper   = TRIM( OutOper   ), &
-!                             WriteFreq = TRIM( WriteFreq ), &
 !                             cId       = cId,               &
 !                             RC        = RC )
 !
@@ -1227,7 +1217,7 @@ CONTAINS
 !! !LOCAL VARIABLES:
 !!
 !    INTEGER              :: cId,      Collection, N
-!    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+!    CHARACTER(LEN=15)    :: OutOper
 !    CHARACTER(LEN=60)    :: DiagnName
 !    CHARACTER(LEN=255)   :: MSG
 !    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_C_AERSRC (diagnostics_mod.F90)' 
@@ -1245,7 +1235,6 @@ CONTAINS
 !    ! Get diagnostic parameters from the Input_Opt object
 !    Collection = Input_Opt%DIAG_COLLECTION
 !    OutOper    = Input_Opt%ND07_OUTPUT_TYPE
-!    WriteFreq  = Input_Opt%ND07_OUTPUT_FREQ
 !    
 !    ! Loop over # of diagnostics (NOTE: diags 10-23 only if SOA simulation)
 !    DO N = 1, NumDiagND07
@@ -1274,7 +1263,6 @@ CONTAINS
 !                             LevIDx    = -1,                &
 !                             OutUnit   = 'kg' ,             &
 !                             OutOper   = TRIM( OutOper   ), &
-!                             WriteFreq = TRIM( WriteFreq ), &
 !                             cId       = cId,               &
 !                             RC        = RC )
 !
@@ -1329,7 +1317,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_BL_FRAC (diagnostics_mod.F90)' 
@@ -1347,7 +1335,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND12_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND12_OUTPUT_FREQ
 
     ! Check if certain tracer(s) listed for ND12 in input.geos???
 
@@ -1371,7 +1358,6 @@ CONTAINS
                        LevIDx    = -1,                &
                        OutUnit   = '.' ,              &
                        OutOper   = TRIM( OutOper   ), &
-                       WriteFreq = TRIM( WriteFreq ), &
                        cId       = cId,               &
                        RC        = RC )
 
@@ -1424,7 +1410,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_CLDCONV_FLX (diagnostics_mod.F90)' 
@@ -1442,7 +1428,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND14_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND14_OUTPUT_FREQ
 
     ! Check if certain tracer(s) listed for ND14 in input.geos???
     ! NEED TO ADD LOOP OVER TRACERS
@@ -1474,7 +1459,6 @@ CONTAINS
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/s' ,           &
                              OutOper   = TRIM( OutOper   ), &
-                             WriteFreq = TRIM( WriteFreq ), &
                              cId       = cId,               &
                              RC        = RC )
       
@@ -1529,7 +1513,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_BLMIX_FLX (diagnostics_mod.F90)' 
@@ -1547,7 +1531,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND15_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND15_OUTPUT_FREQ
     
     ! Check if certain tracer(s) listed for ND15 in input.geos???
 
@@ -1568,7 +1551,7 @@ CONTAINS
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
                              Col       = Collection,        & 
-                             cName     = TRIM( DiagnName ),  &
+                             cName     = TRIM( DiagnName ), &
                              AutoFill  = 0,                 &
                              ExtNr     = -1,                &
                              Cat       = -1,                &
@@ -1576,9 +1559,8 @@ CONTAINS
                              HcoID     = -1,                &
                              SpaceDim  =  3,                &
                              LevIDx    = -1,                &
-                             OutUnit   = 'kg/s' ,             &
+                             OutUnit   = 'kg/s' ,           &
                              OutOper   = TRIM( OutOper   ), &
-                             WriteFreq = TRIM( WriteFreq ), &
                              cId       = cId,               &
                              RC        = RC )
       
@@ -1633,7 +1615,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, M
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_PRECIP_FRAC (diagnostics_mod.F90)' 
@@ -1651,8 +1633,7 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND16_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND16_OUTPUT_FREQ
-    
+
     DO M = 1, 2          
        SELECT CASE ( M )
           CASE ( 1 )
@@ -1688,7 +1669,6 @@ CONTAINS
                           LevIDx    = -1,                &
                           OutUnit   = '.' ,              &
                           OutOper   = TRIM( OutOper   ), &
-                          WriteFreq = TRIM( WriteFreq ), &
                           cId       = cId,               &
                           RC        = RC )
    
@@ -1742,7 +1722,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N, M
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_RAIN_FRAC (diagnostics_mod.F90)' !
@@ -1759,7 +1739,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND17_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND17_OUTPUT_FREQ
     
     ! Check if certain tracer(s) listed for ND17 in input.geos???
 
@@ -1808,7 +1787,6 @@ CONTAINS
                                 LevIDx    = -1,                &
                                 OutUnit   = '.' ,              &
                                 OutOper   = TRIM( OutOper   ), &
-                                WriteFreq = TRIM( WriteFreq ), &
                                 cId       = cId,               &
                                 RC        = RC )
          
@@ -1864,7 +1842,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N, M
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_WASH_FRAC (diagnostics_mod.F90)' 
@@ -1882,7 +1860,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND18_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND18_OUTPUT_FREQ
  
     ! Check if certain tracer(s) listed for ND18 in input.geos???
 
@@ -1929,7 +1906,6 @@ CONTAINS
                                 LevIDx    = -1,                &
                                 OutUnit   = '.' ,              &
                                 OutOper   = TRIM( OutOper   ), &
-                                WriteFreq = TRIM( WriteFreq ), &
                                 cId       = cId,               &
                                 RC        = RC )
          
@@ -1985,7 +1961,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_CH4_LOSS (diagnostics_mod.F90)' 
@@ -2003,7 +1979,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND19_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND19_OUTPUT_FREQ
     
     ! Check if certain tracer(s) listed for ND19 in input.geos???
 
@@ -2027,7 +2002,6 @@ CONTAINS
                        LevIDx    = -1,                &
                        OutUnit   = 'kg CH4' ,         &
                        OutOper   = TRIM( OutOper   ), &
-                       WriteFreq = TRIM( WriteFreq ), &
                        cId       = cId,               &
                        RC        = RC )
 
@@ -2080,7 +2054,7 @@ CONTAINS
 !! !LOCAL VARIABLES:
 !!
 !    INTEGER              :: cId,      Collection, N
-!    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+!    CHARACTER(LEN=15)    :: OutOper
 !    CHARACTER(LEN=60)    :: DiagnName
 !    CHARACTER(LEN=255)   :: MSG
 !    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_CLD_OD (diagnostics_mod.F90)' 
@@ -2098,7 +2072,6 @@ CONTAINS
 !    ! Get diagnostic parameters from the Input_Opt object
 !    Collection = Input_Opt%DIAG_COLLECTION
 !    OutOper    = Input_Opt%ND21_OUTPUT_TYPE
-!    WriteFreq  = Input_Opt%ND21_OUTPUT_FREQ
 !    
 !    ! Loop over # of cloud OD and fractions diagnostics
 !    DO N = 1, NumDiagND21
@@ -2127,7 +2100,6 @@ CONTAINS
 !                             LevIDx    = -1,                &
 !                             OutUnit   = 'kg' ,             &
 !                             OutOper   = TRIM( OutOper   ), &
-!                             WriteFreq = TRIM( WriteFreq ), &
 !                             cId       = cId,               &
 !                             RC        = RC )
 !
@@ -2182,7 +2154,7 @@ CONTAINS
 !! !LOCAL VARIABLES:
 !!
 !    INTEGER              :: cId,      Collection, N
-!    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+!    CHARACTER(LEN=15)    :: OutOper
 !    CHARACTER(LEN=60)    :: DiagnName
 !    CHARACTER(LEN=255)   :: MSG
 !    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_PHOTOLYSIS (diagnostics_mod.F90)' 
@@ -2200,7 +2172,6 @@ CONTAINS
 !    ! Get diagnostic parameters from the Input_Opt object
 !    Collection = Input_Opt%DIAG_COLLECTION
 !    OutOper    = Input_Opt%ND22_OUTPUT_TYPE
-!    WriteFreq  = Input_Opt%ND22_OUTPUT_FREQ
 !    
 !    ! Loop over # of photolysis rate diagnostics
 !    DO N = 1, NumDiagND22 (NO2, HNO3, H2O2, CH2O, O3, OH source from O3)
@@ -2229,7 +2200,6 @@ CONTAINS
 !                          LevIDx    = -1,                &
 !                          OutUnit   = '1/s' ,            &
 !                          OutOper   = TRIM( OutOper   ), &
-!                          WriteFreq = TRIM( WriteFreq ), &
 !                          cId       = cId,               &
 !                          RC        = RC )
 !
@@ -2286,7 +2256,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_EW_FLX (diagnostics_mod.F90)' 
@@ -2304,7 +2274,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND24_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND24_OUTPUT_FREQ
  
     ! Loop over tracers
     DO N = 1, Input_Opt%N_TRACERS
@@ -2333,7 +2302,6 @@ CONTAINS
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/s' ,           &
                              OutOper   = TRIM( OutOper   ), &
-                             WriteFreq = TRIM( WriteFreq ), &
                              cId       = cId,               &
                              RC        = RC )
       
@@ -2388,7 +2356,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_NS_FLX (diagnostics_mod.F90)' 
@@ -2406,7 +2374,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND25_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND25_OUTPUT_FREQ
  
     ! Loop over tracers
     DO N = 1, Input_Opt%N_TRACERS
@@ -2435,7 +2402,6 @@ CONTAINS
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/s' ,           &
                              OutOper   = TRIM( OutOper   ), &
-                             WriteFreq = TRIM( WriteFreq ), &
                              cId       = cId,               &
                              RC        = RC )
       
@@ -2490,7 +2456,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_VERT_FLX (diagnostics_mod.F90)' 
@@ -2508,7 +2474,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND26_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND26_OUTPUT_FREQ
  
     ! Loop over tracers
     DO N = 1, Input_Opt%N_TRACERS
@@ -2537,7 +2502,6 @@ CONTAINS
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/s' ,           &
                              OutOper   = TRIM( OutOper   ), &
-                             WriteFreq = TRIM( WriteFreq ), &
                              cId       = cId,               &
                              RC        = RC )
       
@@ -2592,7 +2556,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_STRAT_FLX (diagnostics_mod.F90)' 
@@ -2610,7 +2574,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND27_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND27_OUTPUT_FREQ
     
     IF ( Input_Opt%SIM_TYPE == 3 ) THEN     ! NOx-Ox-HC simulation (full chem)
 
@@ -2636,7 +2599,6 @@ CONTAINS
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/s' ,           &
                           OutOper   = TRIM( OutOper   ), &
-                          WriteFreq = TRIM( WriteFreq ), &
                           cId       = cId,               &
                           RC        = RC )
 
@@ -2669,7 +2631,6 @@ CONTAINS
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/s' ,           &
                           OutOper   = TRIM( OutOper   ), &
-                          WriteFreq = TRIM( WriteFreq ), &
                           cId       = cId,               &
                           RC        = RC )
 
@@ -2702,7 +2663,6 @@ CONTAINS
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/s' ,           &
                           OutOper   = TRIM( OutOper   ), &
-                          WriteFreq = TRIM( WriteFreq ), &
                           cId       = cId,               &
                           RC        = RC )
 
@@ -2757,7 +2717,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper 
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_LANDMAP (diagnostics_mod.F90)' 
@@ -2775,7 +2735,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND30_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND30_OUTPUT_FREQ
    
     !----------------------------------------------------------------
     ! Create container for the GMAO land-water indices [.]
@@ -2797,7 +2756,6 @@ CONTAINS
                        LevIDx    = -1,                &
                        OutUnit   = '.' ,              &
                        OutOper   = TRIM( OutOper   ), &
-                       WriteFreq = TRIM( WriteFreq ), &
                        cId       = cId,               &
                        RC        = RC )
 
@@ -2851,7 +2809,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper 
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_PEDGE (diagnostics_mod.F90)'
@@ -2870,7 +2828,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND31_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND31_OUTPUT_FREQ
 
     ! TODO Check if certain tracer(s) listed for ND31 in input.geos 
 
@@ -2894,7 +2851,6 @@ CONTAINS
                        LevIDx    = -1,                &
                        OutUnit   = 'mb',              &
                        OutOper   = TRIM( OutOper   ), &
-                       WriteFreq = TRIM( WriteFreq ), &
                        cId       = cId,               &
                        RC        = RC )
 
@@ -2949,7 +2905,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N, M
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper 
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_COLUMNT (diagnostics_mod.F90)'
@@ -2968,7 +2924,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND33_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND33_OUTPUT_FREQ
 
     ! TODO Check if certain tracer(s) listed for ND33 in input.geos 
 
@@ -2997,7 +2952,6 @@ CONTAINS
                        LevIDx    = -1,                &
                        OutUnit   = 'kg' ,             &
                        OutOper   = TRIM( OutOper   ), &
-                       WriteFreq = TRIM( WriteFreq ), &
                        cId       = cId,               &
                        RC        = RC )
 
@@ -3053,7 +3007,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N, M
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper 
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=40)    :: THEUNIT
@@ -3073,7 +3027,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND55_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND55_OUTPUT_FREQ
 
     ! TODO Check if certain tracer(s) listed for ND55 in input.geos 
 
@@ -3117,7 +3070,6 @@ CONTAINS
                        LevIDx    = -1,                &
                        OutUnit   = TRIM( THEUNIT   ), &
                        OutOper   = TRIM( OutOper   ), &
-                       WriteFreq = TRIM( WriteFreq ), &
                        cId       = cId,               &
                        RC        = RC )
 
@@ -3173,7 +3125,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N, M
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper 
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_LIGHTNING (diagnostics_mod.F90)'
@@ -3192,7 +3144,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND56_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND56_OUTPUT_FREQ
 
     ! TODO Check if certain tracer(s) listed for ND56 in input.geos 
 
@@ -3231,7 +3182,6 @@ CONTAINS
                        LevIDx    = -1,                &
                        OutUnit   = 'flashes/min/km2', &
                        OutOper   = TRIM( OutOper   ), &
-                       WriteFreq = TRIM( WriteFreq ), &
                        cId       = cId,               &
                        RC        = RC )
 
@@ -3286,7 +3236,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper 
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_THETA (diagnostics_mod.F90)'
@@ -3305,7 +3255,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND57_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND57_OUTPUT_FREQ
 
     ! TODO Check if certain tracer(s) listed for ND57 in input.geos 
 
@@ -3332,7 +3281,6 @@ CONTAINS
                        LevIDx    = -1,                &
                        OutUnit   = 'K' ,              &
                        OutOper   = TRIM( OutOper   ), &
-                       WriteFreq = TRIM( WriteFreq ), &
                        cId       = cId,               &
                        RC        = RC )
 
@@ -3387,7 +3335,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N, M
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper 
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_TRACER_MIXING (diagnostics_mod.F90)'
@@ -3406,7 +3354,6 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND71_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND71_OUTPUT_FREQ
 
     ! TODO Check if certain tracer(s) listed for ND71 in input.geos 
 
@@ -3424,7 +3371,7 @@ CONTAINS
 !       ARRAY(:,:,1) = AD71(:,:,N)/AD71_COUNT
 
        ! Create container
-       CALL Diagn_Create( am_I_Root,                     &
+       CALL Diagn_Create( am_I_Root,                  &
                        Col       = Collection,        &
                        cName     = TRIM( DiagnName ), &
                        AutoFill  = 0,                 &
@@ -3434,9 +3381,8 @@ CONTAINS
                        HcoID     = -1,                &
                        SpaceDim  =  3,                &
                        LevIDx    = -1,                &
-                       OutUnit   = 'v/v' ,              &
+                       OutUnit   = 'v/v' ,            &
                        OutOper   = TRIM( OutOper   ), &
-                       WriteFreq = TRIM( WriteFreq ), &
                        cId       = cId,               &
                        RC        = RC )
 
@@ -3497,7 +3443,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N
-    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=15)    :: OutOper 
     CHARACTER(LEN=255)   :: DiagnName
     CHARACTER(LEN=255)   :: MSG
     CHARACTER(LEN=255)   :: LOC = 'DIAGNUPDATE_NTRACERS_3D (diagnostics_mod.F90)' 
@@ -3539,8 +3485,7 @@ CONTAINS
           CALL Diagn_Update( am_I_Root,                                &
                              cName     = TRIM( DiagnName ),            &
                              Array3D   = Ptr3D,                        &
-                             COL       = Input_Opt%DIAG_COLLECTION,    &
-                             RC        = HCRC )
+                             RC        = RC )
 
           ! Free the point before error handling
           Ptr3D => NULL()
@@ -3572,7 +3517,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE TRACER_MOD,         ONLY : XNUMOLAIR
+    USE CMN_GCTM_MOD,       ONLY : XNUMOLAIR
     USE Error_Mod,          ONLY : Error_Stop
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -3599,8 +3544,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: cId, Collection, N
+    INTEGER            :: SpaceDim 
     REAL(hp)           :: ScaleFact
-    CHARACTER(LEN=15)  :: OutOper, OutUnit, WriteFreq
+    CHARACTER(LEN=15)  :: OutOper, OutUnit
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGINIT_GRIDBOX (diagnostics_mod.F90)' 
@@ -3618,56 +3564,8 @@ CONTAINS
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND68_OUTPUT_TYPE
-!    WriteFreq  = Input_Opt%ND68_OUTPUT_FREQ (in early 2015 NewDiag, ewl)
       
-! early 2015 NewDiag (ewl, 1/11/16)
-!    ! There are four diagnostics 
-!    DO N = 1, 4 
-!
-!       !----------------------------------------------------------------
-!       ! Create containers
-!       !----------------------------------------------------------------
-!
-!       SELECT CASE ( N )
-!          CASE ( 1 )
-!             DiagnName = 'BOXHEIGHT'
-!             OutUnit   = 'm'
-!             ScaleFact = 1.0_hp
-!          CASE ( 2 )
-!             DiagnName = 'AIRMASS'
-!             OutUnit   = 'kg'
-!             ScaleFact = 1.0_hp
-!          CASE ( 3 )
-!             DiagnName = 'AIRDENS'
-!             OutUnit   = 'molecules air m-3'
-!             ScaleFact = XNUMOLAIR 
-!          CASE ( 4 )
-!             IF ( .NOT. ASSOCIATED(State_Met%AVGW) ) CYCLE
-!             DiagnName = 'AVGW'
-!             OutUnit   = 'v/v'
-!             ScaleFact = 1.0_hp
-!       END SELECT
-!
-!       ! Create container
-!       CALL Diagn_Create( am_I_Root,                     &
-!                          Col       = Collection,        & 
-!                          cName     = TRIM( DiagnName ), &
-!                          AutoFill  = 0,                 &
-!                          ExtNr     = -1,                &
-!                          Cat       = -1,                &
-!                          Hier      = -1,                &
-!                          HcoID     = -1,                &
-!                          SpaceDim  =  3,                &
-!                          LevIDx    = -1,                &
-!                          OutUnit   = TRIM( OutUnit   ), &
-!                          OutOper   = TRIM( OutOper   ), &
-!                          WriteFreq = TRIM( WriteFreq ), &
-!                          ScaleFact = ScaleFact,         &
-!                          cId       = cId,               &
-!                          RC        = RC )
-! end (ewl)
-! New code since early 2015 NewDiag (ewl, 1/11/16)
-    ! There are four diagnostics 
+    ! There are six diagnostics 
     DO N = 1,6
 
        !----------------------------------------------------------------

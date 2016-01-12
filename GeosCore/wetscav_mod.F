@@ -293,7 +293,7 @@
 
       ! For new diagnostics
 #if   defined( DEVEL )
-      INTEGER                :: N, cID, HCRC
+      INTEGER                :: N, L, cID, HCRC
       REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
       REAL(fp), POINTER      :: TMP3D(:,:,:) => NULL()
       REAL(fp), POINTER      :: TMP2D(:,:  ) => NULL()
@@ -418,13 +418,19 @@
             ! Is this a tracer selected for diagnostics?
             IF ( ANY( Input_Opt%TINDEX(39,:) == N ) ) THEN
 
-               ! Loss rate [kg/s] (eventually will be kg/m2/s)
-               ! Convert kg/kg/s to kg/s so that the vertical
+               ! Loss rate [kg/m2/s] 
+               ! Convert kg/kg/s to kg/m2/s so that the vertical
                ! sum makes physical sense (ewl, 8/14/15)
                TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N) )
      &                 * State_Met%DELP * 1.e+2_fp 
      &                 * ( 1.e+0_fp - 1.e-3_fp * State_Met%SPHU ) 
-     &                 / ( G0_100 * DT ) * State_Met%AREA_M2(I,J,1) 
+     &                 / ( G0_100 * DT )
+
+               ! Convert loss rate [kg/m2/s] to [kg/s] for diagnostics 
+               ! NOTE: eventually diagnostic unit will be kg/m2/s
+               DO L = 1, LLPAR
+                  TMP3d(:,:,L) = TMP3d(:,:,L) * State_Met%AREA_M2(:,:,1)
+               ENDDO
 
                TMP2D = SUM(TMP3D,DIM=3)
 

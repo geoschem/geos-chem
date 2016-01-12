@@ -185,7 +185,7 @@
 
       ! For netCDF diagnostics via HEMCO
       REAL(fp), TARGET   :: Landmap(IIPAR, JJPAR)
-      INTEGER            :: TPL, HCRC
+      INTEGER            :: TPL
       REAL(fp)           :: PRESS
       REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
       REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
@@ -663,14 +663,13 @@
          CALL Diagn_Update( am_I_Root,
      &                      cName   = TRIM( DiagnName ),
      &                      Array2D = Ptr2D,
-     &                      COL     = Input_Opt%DIAG_COLLECTION,
-     &                      RC      = HCRC )
+     &                      RC      = RC )
     
          ! Free the pointer before error handling
          Ptr2D => NULL()
     
          ! Stop with error if the diagnostics were unsuccessful
-         IF ( HCRC /= HCO_SUCCESS ) THEN
+         IF ( RC /= HCO_SUCCESS ) THEN
             CALL ERROR_STOP(
      &           'Cannot update landmap diagnostic (ND30)',
      &           'DIAG1 (diag1.F)')
@@ -708,8 +707,7 @@
                   CALL Diagn_Update( am_I_Root,
      &                               cName   = TRIM( DiagnName ),
      &                               Array3D = Ptr3D,
-     &                               COL     = Input_Opt%DIAG_COLLECTION,
-     &                               RC      = HCRC )
+     &                               RC      = RC )
 
                   !-------------------------------------
                   ! Passive tracer in v/v total air
@@ -727,8 +725,7 @@
                   CALL Diagn_Update( am_I_Root,
      &                               cName   = TRIM( DiagnName ),
      &                               Array3D = Ptr3D,
-     &                               COL     = Input_Opt%DIAG_COLLECTION,
-     &                               RC      = HCRC )
+     &                               RC      = RC )
 
                   !-------------------------------------
                   ! Passive tracer in kg/kg total air
@@ -746,8 +743,7 @@
                   CALL Diagn_Update( am_I_Root,
      &                               cName   = TRIM( DiagnName ),
      &                               Array3D = Ptr3D,
-     &                               COL     = Input_Opt%DIAG_COLLECTION,
-     &                               RC      = HCRC )
+     &                               RC      = RC )
 
                ELSE
 
@@ -762,8 +758,7 @@
                   CALL Diagn_Update( am_I_Root,
      &                               cName   = TRIM( DiagnName ),
      &                               Array3D = Ptr3D,
-     &                               COL     = Input_Opt%DIAG_COLLECTION,
-     &                               RC      = HCRC )
+     &                               RC      = RC )
 
                ENDIF
 
@@ -771,7 +766,7 @@
                Ptr3D => NULL()
 
                ! STOP wieth error if the diagnostics were unsuccessful
-               IF ( HCRC /= HCO_SUCCESS ) THEN
+               IF ( RC /= HCO_SUCCESS ) THEN
                   CALL ERROR_STOP(
      &                 'Cannot update TRACER_CONC diag diagnostics',
      &                 'DIAG1 (diag1.F)')
@@ -795,14 +790,13 @@
                CALL Diagn_Update( am_I_Root,
      &                            cName   = TRIM( DiagnName ),
      &                            Array3D = Ptr3D,
-     &                            COL     = Input_Opt%DIAG_COLLECTION,
-     &                            RC      = HCRC )
+     &                            RC      = RC )
    
                ! Free the pointer
                Ptr3D => NULL()
    
                ! STOP wieth error if the diagnostics were unsuccessful
-               IF ( HCRC /= HCO_SUCCESS ) THEN
+               IF ( RC /= HCO_SUCCESS ) THEN
                   CALL ERROR_STOP(
      &                    'Cannot update SPECIES_CONC diag diagnostics',
      &                    'DIAG1 (diag1.F)')
@@ -882,14 +876,13 @@
                CALL Diagn_Update( am_I_Root,
      &                            cName   = TRIM( DiagnName ),
      &                            Array3D = Ptr3D,
-     &                            COL     = Input_Opt%DIAG_COLLECTION,
-     &                            RC      = HCRC )
+     &                            RC      = RC )
 
                ! Free the pointer
                Ptr3D => NULL()
    
                ! STOP with error if the diagnostics were unsuccessful
-               IF ( HCRC /= HCO_SUCCESS ) THEN
+               IF ( RC /= HCO_SUCCESS ) THEN
                   CALL ERROR_STOP(
      &                 'Cannot update diagnostics '//TRIM(DiagnName),  
      &                 'DIAG1 (diag1.F)')
@@ -901,7 +894,7 @@
          DiagnName = 'TROPP_PRESSURE'
          Ptr2D => State_Met%TROPP
          CALL Diagn_Update( am_I_Root, cName=DiagnName, 
-     &      Array2D=Ptr2D, COL=Input_Opt%DIAG_COLLECTION, RC=HCRC )
+     &      Array2D=Ptr2D, RC=RC )
          Ptr2D => NULL()
          
          DiagnName = 'TROPP_LEVEL'
@@ -916,7 +909,7 @@
          ENDDO
 !$OMP END PARALLEL DO   
          CALL Diagn_Update( am_I_Root, cName=DiagnName, 
-     &      Array2D=Arr2D, COL=Input_Opt%DIAG_COLLECTION, RC=HCRC )
+     &      Array2D=Arr2D, RC=RC )
  
       ENDIF ! ND68
 #endif

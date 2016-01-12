@@ -1044,25 +1044,25 @@
       ENDIF 
 
       ! Do the advection
-      CALL TPCORE_GEOSFP_WINDOW( D_DYN,    Re,        IIPAR,    JJPAR,
-     &                           LLPAR,    JFIRST,    JLAST,    NG,
-     &                           MG,       N_TOT_TRC, Ap,       Bp,
-     &                           p_UWND,   p_VWND,    P_TP1,    P_TP2,
-     &                           P_TEMP,   p_STT,     IORD,     JORD,      
-     &                           KORD,     N_ADJ,     p_XMASS,  p_YMASS,
+      CALL TPCORE_WINDOW( 
+     &      D_DYN,   Re,       IM_W1,   JM_W1,   LLPAR, 
+     &      JFIRST,  JLAST,    NG,      MG,      N_TOT_TRC, 
+     &      Ap,      Bp,       p_UWND,  p_VWND,  p_P_TP1, 
+     &      p_P_TP2, p_P_TEMP, p_STT,   IORD,    JORD, 
+     &      KORD,    N_ADJ,    p_XMASS, p_YMASS, 
 #if !defined( NO_BPCH )
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
-     &                          MASSFLEW, MASSFLNS,  MASSFLUP,         
+     &                         p_MFLEW, p_MFLNS, p_MFLUP,
 #endif
 #if defined( DEVEL )
-      ! Pass new local diagnostic arrays for netcdf output - ewl, 2/12/2015
+      ! Pass new local diagnostic arrays for netcdf output (ewl, 1/11/2016)
      &                          DiagnArray_EW_Flx, DiagnArray_NS_Flx,
      &                          DiagnArray_Vert_Flx,
 #endif
-     &                          TCVV, A_M2, ND24, ND25, ND26 )
+     &                          p_A_M2,   ND24,      ND25,     ND26 ) 
 
 #if defined( DEVEL )
       CALL DiagnUpdate_Transport( am_I_Root, 'ND24', Input_Opt%LD24, 
@@ -1075,15 +1075,6 @@
      &                            DiagnArray_Vert_Flx, 
      &                            Input_Opt, RC )
 #endif
-
-      CALL TPCORE_WINDOW( 
-     &      D_DYN,   Re,       IM_W1,   JM_W1,   LLPAR, 
-     &      JFIRST,  JLAST,    NG,      MG,      N_TOT_TRC, 
-     &      Ap,      Bp,       p_UWND,  p_VWND,  p_P_TP1, 
-     &      p_P_TP2, p_P_TEMP, p_STT,   IORD,    JORD, 
-     &      KORD,    N_ADJ,    p_XMASS, p_YMASS, p_MFLEW, 
-     &      p_MFLNS, p_MFLUP,  p_A_M2,  ND24,    ND25,    
-     &      ND26 ) 
 
       ! Convert tracer concentration from kg/kg wet air to 
       ! kg/kg dry air after advection (ewl, 6/15/15)
