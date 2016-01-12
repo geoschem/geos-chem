@@ -1158,10 +1158,12 @@
 
             CASE ( 'HG2' )
                COUNT_Hg2         = COUNT_Hg2 + 1
+               IDTHg2            = N
                ID_Hg2(COUNT_Hg2) = N
 
             CASE ( 'HGP' )
                COUNT_HgP         = COUNT_HgP + 1
+               IDTHgP            = N
                ID_HgP(COUNT_HgP) = N
 
             ! New Tagged Hg Simulation (eds 8/31/10)

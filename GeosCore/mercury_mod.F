@@ -365,6 +365,7 @@ c     d !-----------------------------------------------------------------------
       USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
@@ -591,6 +592,9 @@ c     d !-----------------------------------------------------------------------
       ! DonohoueYBBalabanov used by Holmes et al. 2010
       CHARACTER(LEN=*), PARAMETER  :: METHOD='GoodsiteUpdate'
 
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc => NULL()
+
       !================================================================
       ! CHEMMERCURY begins here!
       !=================================================================
@@ -611,8 +615,11 @@ c     d !-----------------------------------------------------------------------
       STT      => State_Chm%Tracers
       T        => State_Met%T
 
+      ! Get info about this species from the database
+      ThisSpc => State_Chm%SpcData(IDTHG2)%Info
+
       ! Get Henry's Law constant for Hg2 [mol/L/atm] (ewl, 1/5/16)
-      K0 = State_Chm%SpcData(IDTHG2)%Info%Henry_K0
+      K0 = ThisSpc%Henry_K0
 
       ! Calculate dry air gas constant in [L atm/K/mol] (ewl, 1/5/16)
       R_DRY = Rd * AIRMW / ATM
@@ -1186,6 +1193,7 @@ c     d !-----------------------------------------------------------------------
       ! Free pointer memory
       NULLIFY( STT )
       NULLIFY( T   )
+      NULLIFY( ThisSpc )
 
       IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a CHEM_HgP' )
 
