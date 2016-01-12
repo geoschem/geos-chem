@@ -34,7 +34,7 @@
       PRIVATE :: GEOS4_GEOS5_GLOBAL_ADV      
       PRIVATE :: GCAP_GLOBAL_ADV             
       PRIVATE :: DO_WINDOW_TRANSPORT
-#if defined( DEVEL )
+#if defined( NETCDF )
       PRIVATE :: DIAGNUPDATE_TRANSPORT
 #endif
 !
@@ -136,7 +136,9 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TPCORE_BC_MOD,      ONLY : INIT_TPCORE_BC
       USE TIME_MOD,           ONLY : GET_TS_DYN
+#if defined( DEVEL )
       USE TENDENCIES_MOD
+#endif
       USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
@@ -275,7 +277,7 @@
 !
 ! !USES:
 !
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
 #endif
       USE ERROR_MOD
@@ -362,7 +364,7 @@
       LOGICAL            :: LWINDO
       INTEGER            :: N_TRACERS
 
-#if defined( DEVEL )
+#if defined( NETCDF )
       ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
       REAL(fp) :: DiagnArray_EW_Flx(IIPAR,JJPAR,LLPAR,NNPAR)        
       REAL(fp) :: DiagnArray_NS_Flx(IIPAR,JJPAR,LLPAR,NNPAR)
@@ -461,21 +463,21 @@
      &                   p_UWND, p_VWND,    P_TP1,    P_TP2,
      &                   P_TEMP, p_STT,     IORD,     JORD,      
      &                   KORD,   N_ADJ,     p_XMASS,  p_YMASS, LFILL,  
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
      &                   MASSFLEW,  MASSFLNS, MASSFLUP,
 #endif    
-#if defined( DEVEL )
+#if defined( NETCDF )
       ! Pass new local diagnostic arrays for netcdf output - ewl, 2/12/2015
      &                   DiagnArray_EW_Flx, DiagnArray_NS_Flx,
      &                   DiagnArray_Vert_Flx,
 #endif
      &                   A_M2, ND24, ND25, ND26 )
 
-#if defined( DEVEL )
+#if defined( NETCDF )
       CALL DiagnUpdate_Transport( am_I_Root, 'ND24', Input_Opt%LD24, 
      &                            DiagnArray_EW_Flx,
      &                            Input_Opt, RC )
@@ -536,7 +538,7 @@
 !
 ! !USES:
 !
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
 #endif
       USE ERROR_MOD
@@ -623,7 +625,7 @@
       LOGICAL            :: LWINDO
       INTEGER            :: N_TRACERS
 
-#if defined( DEVEL )
+#if defined( NETCDF )
       ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
       REAL(fp) :: DiagnArray_EW_Flx(IIPAR,JJPAR,LLPAR,NNPAR)        
       REAL(fp) :: DiagnArray_NS_Flx(IIPAR,JJPAR,LLPAR,NNPAR)
@@ -727,21 +729,21 @@
      &                   p_UWND,  p_VWND,    P_TP1,    P_TP2,
      &                   P_TEMP,  p_STT,     IORD,     JORD,      
      &                   KORD,    N_ADJ,     p_XMASS,  p_YMASS, LFILL,
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
      &                   MASSFLEW,  MASSFLNS, MASSFLUP,
 #endif    
-#if defined( DEVEL )
+#if defined( NETCDF )
       ! Pass new local diagnostic arrays for netcdf output - ewl, 2/12/2015
      &                   DiagnArray_EW_Flx, DiagnArray_NS_Flx,
      &                   DiagnArray_Vert_Flx,
 #endif
      &                   A_M2, ND24, ND25, ND26 )
 
-#if defined( DEVEL )
+#if defined( NETCDF )
       CALL DiagnUpdate_Transport( am_I_Root, 'ND24', Input_Opt%LD24, 
      &                            DiagnArray_EW_Flx,
      &                            Input_Opt, RC )
@@ -804,7 +806,7 @@
 ! !USES:
 !
       ! References to F90 modules
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
 #endif
       USE ERROR_MOD
@@ -899,7 +901,7 @@
       INTEGER          :: N_TRACERS
       REAL(fp)         :: TCVV(Input_Opt%N_TRACERS)
 
-#if defined( DEVEL )
+#if defined( NETCDF )
       ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
       REAL(fp) :: DiagnArray_EW_Flx(IIPAR,JJPAR,LLPAR,NNPAR)        
       REAL(fp) :: DiagnArray_NS_Flx(IIPAR,JJPAR,LLPAR,NNPAR)
@@ -1019,6 +1021,7 @@
       p_P_TEMP => P_TEMP(           I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1        )
                                    
+#if defined( BPCH )
       p_MFLEW => MASSFLEW(          I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1,  
      &                              :,                         : )
@@ -1030,6 +1033,7 @@
       p_MFLUP => MASSFLUP(          I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1,  
      &                              :,                         : )
+#endif
 
       p_A_M2  => A_M2( J0_W1+1 : J0_W1+JM_W1                     )
 
@@ -1050,21 +1054,21 @@
      &      Ap,      Bp,       p_UWND,  p_VWND,  p_P_TP1, 
      &      p_P_TP2, p_P_TEMP, p_STT,   IORD,    JORD, 
      &      KORD,    N_ADJ,    p_XMASS, p_YMASS, 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
      &                         p_MFLEW, p_MFLNS, p_MFLUP,
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
       ! Pass new local diagnostic arrays for netcdf output (ewl, 1/11/2016)
      &                          DiagnArray_EW_Flx, DiagnArray_NS_Flx,
      &                          DiagnArray_Vert_Flx,
 #endif
      &                          p_A_M2,   ND24,      ND25,     ND26 ) 
 
-#if defined( DEVEL )
+#if defined( NETCDF )
       CALL DiagnUpdate_Transport( am_I_Root, 'ND24', Input_Opt%LD24, 
      &                            DiagnArray_EW_Flx,
      &                            Input_Opt, RC )
@@ -1484,7 +1488,7 @@
 
       END SUBROUTINE CLEANUP_TRANSPORT
 !EOC
-#if defined( DEVEL )
+#if defined( NETCDF )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

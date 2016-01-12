@@ -293,7 +293,7 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -690,7 +690,7 @@
      &                *  TC(I,J,L+1) )
          ENDDO
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
          !==============================================================
          ! ND44 diagnostic: sea salt loss [molec/cm2/s]
          !==============================================================

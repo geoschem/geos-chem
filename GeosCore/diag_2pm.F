@@ -31,7 +31,7 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE DIAG_MOD,           ONLY : LTJV,  CTJV
       USE DIAG_MOD,           ONLY : LTOH,  CTOH
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       USE DIAG_MOD,           ONLY : LTOTH, CTOTH
 #endif
       USE DIAG_MOD,           ONLY : LTHO2, CTHO2
@@ -134,7 +134,7 @@
 !$OMP+PRIVATE( I, J, L )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-#if !defined( NO_BPCH )
+#if defined( BPCH )
          !-----------------------------
          ! ND45 -- mixing ratios
          !-----------------------------

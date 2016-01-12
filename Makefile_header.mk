@@ -221,6 +221,9 @@ ERR_GIGC             :="Unable to find the GIGC configuration file. Have you dow
 # Error message for bad GIGC config
 ERR_GIGC             :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
 
+# Error message for diagnostics
+ERR_DIAG             :="Select one diagnostic output type: NETCDF=y or BPCH=y"
+
 ###############################################################################
 ###                                                                         ###
 ###  Set C-preprocessor switches representing user options.  These are not  ###
@@ -323,10 +326,40 @@ ifeq ($(shell [[ "$(EXTERNAL_FORCING)" =~ $(REGEXP) ]] && echo true),true)
   NO_GRID_NEEDED     :=1
 endif
 
-# %%%%% NO_BPCH (for disabling old diagnostic arrays) %%%%%
+#------------------------------------------------------------------------------
+# Diagnostic settings
+#------------------------------------------------------------------------------
+
+# %%%%% Use netCDF diagnostics if DEVEL=y %%%%%
+ifdef DEVEL
+  NETCDF             :=yes
+  BPCH               :=no
+endif
+
+# %%%%% Test for diagnostic output type, set to bpch if not specified %%%%%
+ifndef BPCH
+  ifndef NETCDF
+    BPCH             :=yes
+  endif
+endif
+
+# %%%%% ERROR CHECK!  Make sure only one diagnostic output type is selected %%%%%
+ifeq ($(BPCH),y)
+  ifeq ($(NETCDF),y)
+    $(error $(ERR_DIAG))
+  endif
+endif 
+
+# %%%%% BPCH (for using old BPCH diagnostic output) %%%%%
 REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(NO_BPCH)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DNO_BPCH
+ifeq ($(shell [[ "$(BPCH)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DBPCH
+endif
+
+# %%%%% NETCDF (for using new netCDF diagnostic output) %%%%%
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(NETCDF)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DNETCDF
 endif
 
 #------------------------------------------------------------------------------

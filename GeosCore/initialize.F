@@ -165,7 +165,7 @@
 
          ! Allocatable arrays are zeroed only if their
          ! respective diagnostics are turned on (bmy, 2/17/00)
-#if !defined( NO_BPCH )
+#if defined( BPCH )
          IF ( ND01 > 0 ) AD01     = 0e0
          IF ( ND02 > 0 ) AD02     = 0e0
 #endif
@@ -180,7 +180,7 @@
          IF ( ND18 > 0 ) AD18     = 0e0         
          IF ( ND19 > 0 ) AD19     = 0e0
          IF ( ND22 > 0 ) AD22     = 0e0
-#if !defined( NO_BPCH )
+#if defined( BPCH )
          IF ( ND24 > 0 ) MASSFLEW = 0e+0_fp
          IF ( ND25 > 0 ) MASSFLNS = 0e+0_fp
          IF ( ND26 > 0 ) MASSFLUP = 0e+0_fp
@@ -190,12 +190,12 @@
          IF ( ND33 > 0 ) AD33     = 0e0
          IF ( ND35 > 0 ) AD35     = 0e0
          IF ( ND37 > 0 ) AD37     = 0e0
-#if !defined( NO_BPCH )
+#if defined( BPCH )
          IF ( ND38 > 0 ) AD38     = 0e0
          IF ( ND39 > 0 ) AD39     = 0e0
 #endif
          IF ( ND43 > 0 ) AD43     = 0e0
-#if !defined( NO_BPCH )
+#if defined( BPCH )
          IF ( ND44 > 0 ) AD44     = 0e0
          IF ( ND45 > 0 ) AD45     = 0e0
 #endif
@@ -209,7 +209,7 @@
          IF ( ND64 > 0 ) AD64     = 0e0
          IF ( ND66 > 0 ) AD66     = 0e0
          IF ( ND67 > 0 ) AD67     = 0e0
-#if !defined( NO_BPCH )
+#if defined( BPCH )
          IF ( ND68 > 0 ) AD68     = 0e0
 #endif
          IF ( ND69 > 0 ) AD69     = 0e0
@@ -349,7 +349,7 @@
          IF ( ND43 >               0 ) CTOH       = 0
          IF ( ND43 >               0 ) CTO1D      = 0
          IF ( ND43 >               0 ) CTO3P      = 0
-#if !defined(NO_BPCH)
+#if defined( BPCH )
          IF ( ND45 >               0 ) CTOTH      = 0
 #endif
          IF ( ND47 > 0 .OR. ND65 > 0 ) CTO3_24h   = 0

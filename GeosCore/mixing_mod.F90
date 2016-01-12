@@ -242,7 +242,9 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
+#if defined( DEVEL )
     USE TENDENCIES_MOD
+#endif
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -262,10 +264,10 @@ CONTAINS
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE CMN_GCTM_MOD,       ONLY : AVO
     USE CMN_DIAG_MOD,       ONLY : ND44
-#if !defined( NO_BPCH )
+#if defined( BPCH )
     USE DIAG_MOD,           ONLY : AD44
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
     USE HCO_ERROR_MOD
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
@@ -316,7 +318,7 @@ CONTAINS
     LOGICAL            :: DryDepSpec, EmisSpec
 
     ! For diagnostics
-#if defined( DEVEL )
+#if defined( NETCDF )
     INTEGER            :: cID
     REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
     REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
@@ -391,7 +393,7 @@ CONTAINS
     ENDIF
 
     ! Init diagnostics
-#if defined( DEVEL )
+#if defined( NETCDF )
     DEP     = 0.0_fp
     EMIS    = 0.0_fp
     TOTFLUX = 0.0_fp
@@ -593,7 +595,7 @@ CONTAINS
                       FLUX = FLUX + ( PNOXLOSS * TS )
                    ENDIF 
 
-#if defined( DEVEL )
+#if defined( NETCDF )
                    ! Archive deposition flux in kg/m2/s
                    DEP(I,J,N) = DEP(I,J,N) + ( FLUX / TS )
                    TOTDEP(N)  = TOTDEP(N) + FLUX
@@ -620,7 +622,7 @@ CONTAINS
 
                    ! Diagnostics. These are the same as DRYFLX.
                    ! Diagnostics are in molec/cm2/s.
-#if !defined( NO_BPCH )
+#if defined( BPCH )
                    ! ND44 diagnostics
                    IF ( ND44 > 0 .and. DryDepID > 0 ) THEN
                       AD44(I,J,DryDepID,1) = AD44(I,J,DryDepID,1) + FLUX
@@ -654,7 +656,7 @@ CONTAINS
                                               + FLUX 
 
                    ! Update diagnostics
-#if defined( DEVEL )
+#if defined( NETCDF )
                    EMIS(I,J,L,N) = TMP
                    TOTFLUX(N)    = TOTFLUX(N) + FLUX 
 #endif
@@ -674,12 +676,12 @@ CONTAINS
 #endif
 
 
-#if defined( DEVEL )
+#if defined( NETCDF )
     !-------------------------------------------------------------------
     ! Update diagnostics that will get saved to netCDF files.
     ! These are defined in diagnostics_mod.F90
     ! 
-    ! NOTE: For now, this is only activated by compiling with DEVEL=y,
+    ! NOTE: For now, this is only activated by compiling with NETCDF=y,
     ! but in the future this will replace the bpch diagnostics!
     !-------------------------------------------------------------------
     DO N = 1, Input_Opt%N_TRACERS

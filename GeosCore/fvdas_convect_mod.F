@@ -797,7 +797,7 @@
       ! References to F90 modules
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD, ADD_HgP_WD !eck/eds
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK !CDH
-#if !defined ( NO_BPCH )
+#if defined( BPCH )
       USE DIAG_MOD,           ONLY : AD38
 #endif
       USE DIAG_MOD,           ONLY : CONVFLUP 
@@ -1179,7 +1179,7 @@
 
                ! Only save to ND38 if it's turned on, if there are soluble 
                ! tracers, and if we are below the LD38 level limit
-#if !defined ( NO_BPCH )
+#if defined( BPCH )
                IF ( ( ND38 > 0 .or. Input_Opt%LGTMM ) .and. 
      &              NN > 0 ) THEN
 

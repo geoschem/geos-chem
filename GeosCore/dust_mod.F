@@ -259,7 +259,7 @@
 !
 ! !USES:
 ! 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE DRYDEP_MOD,         ONLY : NUMDEP, NTRAIND
@@ -416,7 +416,7 @@
 !               endif
 !debug-----
             ENDDO
-#if !defined( NO_BPCH )
+#if defined( BPCH )
          !========================================================      
          ! ND44: Dry deposition diagnostic [#/cm2/s]
          !========================================================
@@ -625,7 +625,7 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE GIGC_ErrCode_Mod
@@ -838,7 +838,7 @@
                   FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
                   FLUX = FLUX * XNUMOL(INDEX) / AREA_CM2 
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
                   ! Save in AD44
 !tdf                  AD44(I,J,Input_Opt%IDDEP(N),1) = 
 !tdf     &            AD44(I,J,Input_OPt%IDDEP(N),1) + FLUX

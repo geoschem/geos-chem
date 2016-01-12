@@ -292,7 +292,7 @@
       N_TRC_TOT = N_TRACERS              ! G-C advected tracers only
 #endif
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       !=================================================================
       ! ND01: Rn, Pb, Be emissions
       !=================================================================
@@ -588,7 +588,7 @@
          LD24 = MIN( ND24, LLPAR )
          NMAX = MIN( N_TRACERS, NNPAR )
 
-#if !defined( NO_BPCH )      
+#if defined( BPCH )      
          ALLOCATE( MASSFLEW( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLEW' )
       ELSE
@@ -605,7 +605,7 @@
          LD25 = MIN( ND25, LLPAR )
          NMAX = MIN( N_TRACERS, NNPAR )
 
-#if !defined( NO_BPCH )      
+#if defined( BPCH )      
          ALLOCATE( MASSFLNS( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLNS' ) 
       ELSE
@@ -622,7 +622,7 @@
          LD26 = MIN( ND26, LLPAR )
          NMAX = MIN( N_TRACERS, NNPAR )
 
-#if !defined( NO_BPCH )      
+#if defined( BPCH )      
          ALLOCATE( MASSFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLUP' )
       ELSE
@@ -631,7 +631,7 @@
 #endif
       ENDIF
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       !=================================================================
       ! ND30: Land/water/ice flags
       !=================================================================      
@@ -696,7 +696,7 @@
          ENDIF
       ENDIF
 
-#if !defined(NO_BPCH)
+#if defined( BPCH )
       !=================================================================
       ! ND38: Rainout of tracer (nfcldmx.f) 
       !       --> uses AD38 array (allocatable)
@@ -858,7 +858,7 @@
 
       ENDIF
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       !=================================================================
       ! ND44: Drydep fluxes [s-1] and drydep velocities [cm/s]
       !       --> uses AD44 arrays (allocatable)
@@ -896,7 +896,7 @@
       ! ND45: Tracer concentrations [v/v] between HR1_OTH and HR2_OTH
       !       --> uses AD45 array (allocatable)
       !=================================================================
-#if !defined(NO_BPCH)
+#if defined( BPCH )
       IF ( ND45 > 0 ) THEN
          LD45 = MIN( ND45,        LLPAR   )
          NMAX = MIN( N_TRC_TOT+2, NNPAR+2 )
@@ -1152,7 +1152,7 @@
       !=================================================================
       IF ( ND68 > 0 ) THEN
          LD68 = MIN( ND68, LLPAR )
-#if !defined(NO_BPCH)
+#if defined( BPCH )
          ALLOCATE( AD68( IIPAR, JJPAR, LD68, PD68 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD68' )
 #endif

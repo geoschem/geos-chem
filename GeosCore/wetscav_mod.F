@@ -233,11 +233,12 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+#if defined( DEVEL )
       USE TENDENCIES_MOD
+#endif
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE UNITCONV_MOD
-
-#if   defined ( DEVEL )
+#if defined( NETCDF )
       USE HCO_ERROR_MOD
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
@@ -291,8 +292,8 @@
       LOGICAL  :: doPrt
       REAL(fp) :: DT_TEND
 
-      ! For new diagnostics
-#if   defined( DEVEL )
+      ! For netCDF diagnostics
+#if defined( NETCDF )
       INTEGER                :: N, L, cID, HCRC
       REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
       REAL(fp), POINTER      :: TMP3D(:,:,:) => NULL()
@@ -327,8 +328,8 @@
 #endif
 
       !=================================================================
-      ! For new diagnostics, mirror old species
-#if   defined( DEVEL )
+      ! For netCDF diagnostics, mirror old species
+#if   defined( NETCDF )
       IF ( Input_Opt%ND39 > 0 ) THEN
          ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
          BEFORE = State_Chm%Tracers
@@ -401,9 +402,9 @@
 #endif
 
       !---------------------
-      ! New diagnostics 
+      ! NetCDF diagnostics 
       !---------------------
-#if   defined( DEVEL )
+#if   defined( NETCDF )
       IF ( Input_Opt%ND39 > 0 ) THEN
 
          ! Time step
@@ -4203,7 +4204,7 @@
       USE CMN_SIZE_MOD                                 ! Size parameters
       USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
       USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
-#if !defined(NO_BPCH)
+#if defined( BPCH )
       USE DIAG_MOD,           ONLY : AD39              ! ND39 diag array
 #endif
       USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
@@ -4380,7 +4381,7 @@
      &           AD17(I,J,L,NN,IDX) + RAINFRAC / F_RAINOUT
          ENDIF
 
-#if !defined(NO_BPCH)
+#if defined( BPCH )
          ! ND39 diag -- save rainout losses in [kg/s] 
          ! NOTE: eventually change this to kg/m2/s (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
@@ -4459,7 +4460,7 @@
       USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
       USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
       USE DIAG_MOD,           ONLY : AD18              ! ND18 diag array
-#if !defined(NO_BPCH)
+#if defined( BPCH )
       USE DIAG_MOD,           ONLY : AD39              ! ND39 diag array
 #endif
       USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
@@ -4876,7 +4877,7 @@
             ENDIF
          ENDIF
 
-#if !defined(NO_BPCH)
+#if defined( BPCH )
          ! ND39 diag -- save rainout losses in [kg/s]
          ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
@@ -4950,7 +4951,7 @@
       USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
       USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
       USE DIAG_MOD,           ONLY : AD18              ! ND18 diag array
-#if !defined(NO_BPCH)
+#if defined( BPCH )
       USE DIAG_MOD,           ONLY : AD39              ! ND39 diag array
 #endif
       USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
@@ -5132,7 +5133,7 @@
          ! Diagnostics
          !--------------------------------------------------------------
 
-#if !defined(NO_BPCH)
+#if defined( BPCH )
          ! ND39 diag -- save rainout losses in [kg/s]
          ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
@@ -5207,7 +5208,7 @@
       USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
       USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
       USE DIAG_MOD,           ONLY : AD18              ! ND18 diag array
-#if !defined(NO_BPCH)
+#if defined( BPCH )
       USE DIAG_MOD,           ONLY : AD39              ! ND39 diag array
 #endif
       USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
@@ -5356,7 +5357,7 @@
             AD18(I,J,L,NN,IDX) = AD18(I,J,L,NN,IDX) + TMP
          ENDIF
 
-#if !defined(NO_BPCH)
+#if defined( BPCH )
          ! ND39 diag -- save washout loss in [kg/s]
          ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)

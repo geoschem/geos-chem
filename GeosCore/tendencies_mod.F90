@@ -1,3 +1,4 @@
+#if defined( DEVEL )
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -76,8 +77,6 @@ MODULE Tendencies_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  ! All of the following is currently only active in development mode:
-#if defined( DEVEL )
   PUBLIC :: Tend_Init
   PUBLIC :: Tend_CreateClass
   PUBLIC :: Tend_Add
@@ -837,5 +836,5 @@ CONTAINS
 
   END SUBROUTINE Tend_Get
 !EOC
-#endif
 END MODULE Tendencies_Mod
+#endif

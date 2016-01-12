@@ -96,7 +96,7 @@
       USE DIAG_MOD,           ONLY : CONVFLUP
       USE ERROR_MOD,          ONLY : GIGC_ERROR
       USE UNITCONV_MOD
-#if   !defined( NO_BPCH )
+#if defined( BPCH )
       USE DIAG_MOD,           ONLY : AD38
 #endif
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
@@ -111,16 +111,18 @@
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
-#if   defined( APM )
+#if defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 
-#if   defined ( DEVEL )
+#if defined ( NETCDF )
       USE HCO_ERROR_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
+#if defined( DEVEL )
       USE TENDENCIES_MOD
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -240,8 +242,8 @@
       REAL(fp), POINTER :: p_FSOL (:,:,:)
 #endif
 
-#if   defined ( DEVEL )
-      ! For new diagnostics
+#if defined ( NETCDF )
+      ! For netCDF diagnostics
       INTEGER                :: IT, cID, HCRC
       REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
       REAL(fp), POINTER      :: TMP3D(:,:,:) => NULL()
@@ -277,13 +279,13 @@
          RETURN
       ENDIF  
 
-      ! For new diagnostics, archive old species concentration. At the 
+      ! For netCDF diagnostics, archive old species concentration. At the 
       ! moment, the new ND38 diagnostics only returns the total column 
       ! loss due to convection. For these values, we don't need to 
       ! write the diagnostics within the convection schemes but can
       ! simply take the difference between the original and updated 
       ! tracer field column.
-#if   defined( DEVEL )
+#if defined( NETCDF )
       IF ( Input_Opt%ND38 > 0 ) THEN
          ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
          BEFORE = State_Chm%Tracers
@@ -443,7 +445,7 @@
             ENDDO
          ENDIF
 
-#if !defined(NO_BPCH)
+#if defined( BPCH )
          !--------------------------
          ! ND38 diagnostic [kg/s]
          !--------------------------
@@ -469,7 +471,7 @@
 #endif
 
       !-----------------------------------------------------------------
-      ! New diagnostics (ND38)
+      ! NetCDF diagnostics (ND38)
       ! Write out the column mass difference before and after 
       ! convection.
       ! Note: The ND38 diagnostics is defined as a 2D diagnostics
@@ -477,7 +479,7 @@
       ! diagnostics, which will automatically be collapsed to a 2D
       ! array within the diagnostics module (the vertical sum is taken).
       !-----------------------------------------------------------------
-#if   defined( DEVEL )
+#if defined( NETCDF )
       IF ( Input_Opt%ND38 > 0 ) THEN
 
          ! Time step
@@ -1147,7 +1149,7 @@
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
       USE DIAG_MOD,           ONLY : AD37
-#if   !defined ( NO_BPCH )
+#if defined ( BPCH )
       USE DIAG_MOD,           ONLY : AD38
 #endif
       USE DIAG_MOD,           ONLY : CONVFLUP
@@ -1832,7 +1834,7 @@
      &                                     * AREA_M2 
                      ENDIF
 
-#if !defined(NO_BPCH)
+#if defined( BPCH )
                      !==================================================
                      ! ND38 Diagnostic: loss of soluble tracer to wet
                      ! scavenging in cloud updrafts [kg/s].  We must 
@@ -1840,11 +1842,6 @@
                      !==================================================
                      IF ( ( ND38 > 0 .or. LGTMM )
      &                    .and. ISOL > 0 .and. K <= LD38 ) THEN
-!#if defined ( DEBUG )
-!                        if(TCVV(IC) <= 0.e+0_fp) then
-!                           print *, I, J, K, IC, ISOL, TCVV(IC)
-!                        endif
-!#endif
 
                         AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) 
      &                              + T0 * AREA_M2 / DNS  

@@ -400,7 +400,7 @@
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
          CALL ERROR_STOP ( 'HcoState not defined!', LOC ) 
       ENDIF
-#if !defined( NO_BPCH )
+#if defined( BPCH )
 !
 !******************************************************************************
 !  ND01: Rn, Pb, Be emissions (Category: "RN--SRCE")
@@ -1416,7 +1416,7 @@
 
          ENDDO
       ENDIF
-#if !defined( NO_BPCH )
+#if defined( BPCH )
 !
 !******************************************************************************
 !  ND12: distribution of surface emissions in the boundry layer: [fraction]
@@ -1599,7 +1599,7 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
       ENDIF    
-#if !defined( NO_BPCH )
+#if defined( BPCH )
 !
 !******************************************************************************
 !  ND14: Upward mass flux from wet convection (NFCLDMX)
@@ -2243,7 +2243,7 @@
             ENDIF
          ENDDO    
       ENDIF     
-#if !defined( NO_BPCH )
+#if defined( BPCH )
 !
 !******************************************************************************
 !  ND24: Eastward mass flux from transport (TPCORE, XTP)
@@ -2717,7 +2717,7 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDDO
       ENDIF
-#if !defined( NO_BPCH)
+#if defined( BPCH)
 !
 !******************************************************************************
 !  ND30: Land map diagnostic
@@ -2745,7 +2745,7 @@
       ENDIF
 #endif
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
 !
 !******************************************************************************
 !  ND31: Surface pressure diagnostic
@@ -2925,7 +2925,7 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
       ENDIF
-#if !defined( NO_BPCH )
+#if defined( BPCH )
 !
 !******************************************************************************
 !  ND33: Atmospheric column sum of Tracer
@@ -3351,7 +3351,7 @@
       ENDIF
 !
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
 
 !******************************************************************************
 !  ND38: Rainout loss of tracer in convective updrafts
@@ -3617,7 +3617,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD43) )
          ENDDO
       ENDIF
-#if !defined( NO_BPCH )
+#if defined( BPCH )
 !
 !******************************************************************************
 !  ND44: Drydep flux (molec/cm2/s) and velocity (cm/s) diagnostics
@@ -4940,7 +4940,7 @@
      &               IIPAR,     JJPAR,     LD54,     IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD54) )
       ENDIF
-#if !defined( NO_BPCH )
+#if defined( BPCH )
 !
 !******************************************************************************
 !  ND55: Tropopause diagnostics
@@ -4981,7 +4981,7 @@
       ENDIF
 #endif
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
 !
 !******************************************************************************
 !  ND56: Lightning flash rate diagnostics (ltm, bmy, 5/5/06))
@@ -5042,7 +5042,7 @@
       ENDIF
 #endif
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
 !
 !******************************************************************************
 !  ND57: THETA
@@ -5949,7 +5949,7 @@
          ENDDO
       ENDIF
 
-#if !defined(NO_BPCH)
+#if defined( BPCH )
 !******************************************************************************
 !  ND68: Grid box diagnostics
 !
@@ -6032,7 +6032,7 @@
 
          CALL UPDATE_DEP( N )
       ENDIF
-#if !defined( NO_BPCH )            
+#if defined( BPCH )
 !
 !******************************************************************************
 !  ND71: Tracer Mixing Ratio (v/v) at surface, maximum value

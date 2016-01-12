@@ -454,14 +454,14 @@ CONTAINS
  !%%% (bdf, bmy, 9/28/04). 
  !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%% Added DiagnArrays for writing diagnostics to netcdf (ewl, 1/11/16).
- !%%% MASSFLEW, MASSFLNS, and MASSFLUP are cumulative. New diagnostic
+ !%%% MASSFLEW, MASSFLNS, and MASSFLUP are cumulative. NetCDF diagnostic
  !%%% arrays are instantaneous since cumulative sum is abstracted to
  !%%% to high-level diagnostic container update code.
  !%%%
-#if !defined( NO_BPCH )
+#if defined( BPCH )
                         MASSFLEW, MASSFLNS, MASSFLUP,                   &
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
                         DiagnArray_EW_Flx, DiagnArray_NS_Flx,           &
                         DiagnArray_Vert_Flx,                            &
 #endif
@@ -583,12 +583,12 @@ CONTAINS
  !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%% Added netcdf diagnostic arrays (ewl, 1/11/16)
  !%%%
-#if !defined( NO_BPCH )
+#if defined( BPCH )
  REAL,    INTENT(INOUT) :: MASSFLEW(:,:,:,:) ! east/west mass flux
  REAL,    INTENT(INOUT) :: MASSFLNS(:,:,:,:) ! north/south mass flux
  REAL,    INTENT(INOUT) :: MASSFLUP(:,:,:,:) ! up/down vertical mass flux
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
  REAL,    INTENT(INOUT) :: DiagnArray_EW_Flx(:,:,:,:)
  REAL,    INTENT(INOUT) :: DiagnArray_NS_Flx(:,:,:,:)
  REAL,    INTENT(INOUT) :: DiagnArray_Vert_Flx(:,:,:,:)
@@ -618,12 +618,12 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if !defined( NO_BPCH )
+#if defined( BPCH )
 ! Local arrays for mass fluxes to save memory if diagnostics not used.
 ! (ccc, 9/9/10)
  real MFLEW(im, jm), MFLNS(im, jm)
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
  real Diagn_EW_Flx(im, jm)
  real Diagn_NS_Flx(im, jm)
 #endif
@@ -789,11 +789,9 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if !defined( NO_BPCH )
+#if defined( BPCH )
 !$omp private( i, j, k, q2, MFLEW, MFLNS )
-#elif !defined( NO_BPCH ) && defined( DEVEL ) 
-!$omp private( i, j, k, q2, MFLEW, MFLNS, Diagn_EW_Flx, Diagn_NS_FLX )
-#elif defined( DEVEL )
+#elif defined( NETCDF )
 !$omp private( i, j, k, q2, Diagn_EW_Flx, Diagn_NS_FLX )
 #else
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -813,11 +811,11 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if !defined( NO_BPCH )
+#if defined( BPCH )
     MFLEW(:,:) = 0.d0
     MFLNS(:,:) = 0.d0
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
     Diagn_EW_Flx(:,:) = 0.d0
     Diagn_NS_Flx(:,:) = 0.d0
 #endif
@@ -838,7 +836,7 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if !defined( NO_BPCH )
+#if defined( BPCH )
     IF ( ND24 > 0 ) THEN 
        MFLEW = MASSFLEW(:,:,K,IQ)
     ELSE
@@ -851,7 +849,7 @@ CONTAINS
        MFLNS(1,1) = MASSFLNS(1,1,1,1)
     ENDIF
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
     ! Initialize local diagnostic 2D arrays before passing to routine TP2G
     IF ( ND24 > 0 ) THEN 
        Diagn_EW_Flx = DiagnArray_EW_Flx(:,:,K,IQ)
@@ -900,10 +898,10 @@ CONTAINS
  !%%% (bdf, bmy, 9/28/04). 
  !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%%
-#if !defined( NO_BPCH )
+#if defined( BPCH )
                MFLEW, MFLNS,                                &
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
                Diagn_EW_Flx, Diagn_NS_Flx,                  &
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -915,7 +913,7 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if !defined( NO_BPCH )
+#if defined( BPCH )
     ! Save mass flux diagnostics (clb, 7/2/12)
     IF ( ND24 > 0 ) THEN
        MASSFLEW(:,:,K,IQ) = MFLEW
@@ -925,7 +923,7 @@ CONTAINS
        MASSFLNS(:,:,K,IQ) = MFLNS
     ENDIF
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
     IF ( ND24 > 0 ) THEN
        DiagnArray_EW_Flx(:,:,K,IQ) = Diagn_EW_Flx
     ENDIF
@@ -1036,11 +1034,11 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if !defined( NO_BPCH)
+#if defined( BPCH )
        MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ) / DT
 
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
        DiagnArray_Vert_Flx(I,J,K,IQ) = DTC(I,J,K,IQ) / DT
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1406,10 +1404,10 @@ CONTAINS
  !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%% Add diagnostics for writing to netcdf (ewl, 1/11/16)
  !%%%
-#if !defined( NO_BPCH )
+#if defined( BPCH )
                 MFLEW, MFLNS,                          &
 #endif 
-#if defined( DEVEL )
+#if defined( NETCDF )
                 Diagn_EW_Flx, Diagn_NS_Flx,            &
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1447,17 +1445,17 @@ CONTAINS
  !%%% GEOS-CHEM mass-flux diagnostics (bdf, bmy, 9/28/04)
  !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%% 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
    REAL,    INTENT(INOUT) :: MFLEW(IM,JM)   ! E/W mass flux array
    REAL,    INTENT(INOUT) :: MFLNS(IM,JM)   ! N/S mass flux array
-   REAL,    INTENT(IN)    :: AREA_M2(JM)    ! Grid bos surface area [m2]
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
    REAL,    INTENT(INOUT) :: Diagn_EW_Flx(IM,JM) ! E/W diagnostic array 
    REAL,    INTENT(INOUT) :: Diagn_NS_Flx(IM,JM) ! N/S diagnostic array
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+   REAL,    INTENT(IN)    :: AREA_M2(JM)    ! Grid bos surface area [m2]
    INTEGER, INTENT(IN)    :: ND24           ! flux diag
    INTEGER, INTENT(IN)    :: ND25           ! flux diag
    REAL,    INTENT(IN)    :: DT             ! time step for flux diagnostic
@@ -1533,10 +1531,10 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if !defined( NO_BPCH )
+#if defined( BPCH )
             MFLEW(I,J) = MFLEW(I,J) + DTC
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
             Diagn_EW_Flx(I,J) = DTC
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1551,10 +1549,10 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if !defined( NO_BPCH )
+#if defined( BPCH )
          MFLEW(IM,J) = MFLEW(I,J) + DTC
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
          Diagn_EW_Flx(IM,J) = DTC
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1580,10 +1578,10 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if !defined( NO_BPCH )
+#if defined( BPCH )
          MFLNS(I,J) = MFLNS(I,J) + DTC
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
          Diagn_NS_Flx(I,J) = DTC
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1603,10 +1601,10 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if !defined( NO_BPCH )
+#if defined( BPCH )
             MFLNS(I,1) = MFLNS(I,1) + DTC
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
             Diagn_NS_Flx(I,1) = DTC
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1626,10 +1624,10 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if !defined( NO_BPCH )
+#if defined( BPCH )
             MFLNS(I,JM) = MFLNS(I,JM) + DTC
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
             Diagn_NS_Flx(I,JM) = DTC
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

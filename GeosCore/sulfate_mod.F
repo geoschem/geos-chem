@@ -1460,7 +1460,7 @@
       USE CMN_GCTM_MOD        
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       USE DIAG_MOD,           ONLY : AD44
 #endif
 !      USE DRYDEP_MOD,         ONLY : DEPSAV
@@ -1840,7 +1840,7 @@
      &                *  TC(I,J,L+1) )
          ENDDO
          
-#if !defined( NO_BPCH )
+#if defined( BPCH )
          !==============================================================
          ! ND44 diagnostic: sea salt loss [molec/cm2/s]
          !==============================================================
@@ -2219,7 +2219,7 @@
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE CMN_GCTM_MOD
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       USE DIAG_MOD,           ONLY : AD44 
 #endif
       USE GIGC_ErrCode_Mod

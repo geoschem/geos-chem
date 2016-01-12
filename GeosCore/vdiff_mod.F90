@@ -1816,7 +1816,7 @@ contains
     USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
-#if !defined( NO_BPCH )
+#if defined( BPCH )
     USE DIAG_MOD,           ONLY : AD44
 #endif
     USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP, NTRAIND, DEPSAV
@@ -1843,11 +1843,13 @@ contains
     USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, NCS, ND44, NDRYDEP
     USE MERCURY_MOD,        ONLY : HG_EMIS
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
+#if defined( DEVEL )
     USE TENDENCIES_MOD
+#endif
 
     ! HEMCO update
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
-#if defined( DEVEL )
+#if defined( NETCDF )
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
 
@@ -1989,7 +1991,7 @@ contains
     INTEGER            :: RC,     HCRC, TOPMIX
 
     ! For HEMCO diagnostics
-#if defined( DEVEL )
+#if defined( NETCDF )
     REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
     REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
     REAL(fp)           :: Total
@@ -2527,7 +2529,7 @@ contains
 #endif
 
     ! Write (surface) emissions into diagnostics
-#if defined( DEVEL )
+#if defined( NETCDF )
 
     ! Allocate temporary data array
     ALLOCATE(Ptr3D(IIPAR,JJPAR,LLPAR))
@@ -2597,7 +2599,7 @@ contains
 !              NN == IDTDST3 .OR. &
 !              NN == IDTDST4       ) CYCLE
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
                 ! only for the lowest model layer
                 ! Convert : kg/m2/s -> molec/cm2/s
                 ! consider timestep difference between convection and emissions
@@ -2631,7 +2633,7 @@ contains
        IF ( IS_TAGOX ) THEN
           ! The first species, Ox, has been done above
           do N = 2, N_TRACERS 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
              ! Convert : kg/m2/s -> molec/cm2/s
              ! Consider timestep difference between convection and emissions
              AD44(:,:,N,1) = AD44(:,:,N,1) + dflx(:,:,N) &

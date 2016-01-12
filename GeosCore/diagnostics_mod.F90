@@ -30,8 +30,8 @@ MODULE Diagnostics_Mod
 !
   PUBLIC :: Diagnostics_Write
 
-  ! All of the following is currently only active in development mode:
-#if defined( DEVEL )
+  ! All of the following is currently only active for NETCDF=y
+#if defined( NETCDF )
   PUBLIC  :: Diagnostics_Init
   PUBLIC  :: Diagnostics_Final
   PUBLIC  :: DiagnUpdate_NTracers_3D ! added by ewl in early 2015 NewDiag
@@ -83,7 +83,7 @@ MODULE Diagnostics_Mod
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
-#if defined( DEVEL )
+#if defined( NETCDF )
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -105,7 +105,9 @@ CONTAINS
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
     USE GRID_MOD,           ONLY : AREA_M2
     USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( DEVEL )
     USE TENDENCIES_MOD,     ONLY : TEND_INIT
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -391,11 +393,13 @@ CONTAINS
        CALL ERROR_STOP( 'Error in DIAGINIT_DOBSON', LOC ) 
     ENDIF
 
+#if defined( DEVEL )
     ! Initialize tendencies
     CALL TEND_INIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in TENDENCIES_INIT', LOC ) 
     ENDIF
+#endif
 
     ! Leave with success
     RC = GIGC_SUCCESS
@@ -419,7 +423,9 @@ CONTAINS
 !
 ! !USES:
 !
+#if defined( DEVEL )
     USE TENDENCIES_MOD,     ONLY : TEND_CLEANUP
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -439,7 +445,10 @@ CONTAINS
 
 !    ! Finalize diagnostics
 !    CALL DiagnCollection_Cleanup( COL = Input_Opt%DIAG_COLLECTION )
+
+#if defined( DEVEL )
     CALL TEND_CLEANUP()
+#endif
 
     ! Return with success
     RC = GIGC_SUCCESS
@@ -4379,8 +4388,8 @@ CONTAINS
     CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, RESTART, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ! Write new GEOS-Chem diagnostics
-#if defined( DEVEL )
+    ! Write netCDF GEOS-Chem diagnostics
+#if defined( NETCDF )
     ! Get pointer to HEMCO state object.
     CALL GetHcoState( HcoState )
     IF ( .NOT. ASSOCIATED(HcoState) ) THEN

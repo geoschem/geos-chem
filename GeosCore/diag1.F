@@ -20,14 +20,11 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE DAO_MOD,            ONLY : IS_ICE, IS_WATER, IS_LAND
       USE DIAG_MOD,           ONLY : AD31, AD33, AD35, AD54 
-      USE DIAG_MOD,           ONLY : AD47, AD67, AD68, AD69
-#if !defined( NO_BPCH )
-      USE DIAG_MOD,           ONLY : AD30, AD45, LTOTH
+      USE DIAG_MOD,           ONLY : AD47, AD67, AD69
+#if defined( BPCH )
+      USE DIAG_MOD,           ONLY : AD30, AD45, AD68, LTOTH
 #endif
       USE DIAG_MOD,           ONLY : AD57, AD71
-#if !defined(NO_BPCH)
-      USE DIAG_MOD,           ONLY : AD45, AD68, LTOTH
-#endif
       USE DIAG_MOD,           ONLY : AD71_DAY,   AD71_HR
       USE DIAG_MOD,           ONLY : AD71_LDAY,  AD71_LHR
       USE DIAG_MOD,           ONLY : AD71_COUNT, AD71_HRCT
@@ -47,7 +44,7 @@
       USE TIME_MOD,           ONLY : GET_HOUR
       USE ERROR_MOD,          ONLY : SAFE_DIV
 
-#if   defined( APM )
+#if defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 
@@ -61,7 +58,7 @@
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE HCO_ERROR_MOD
       USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
-# if  defined( DEVEL ) 
+#if defined( NETCDF ) 
       USE DIAGNOSTICS_MOD,    ONLY : DiagnSpec
 #endif
 
@@ -259,7 +256,7 @@
 
 ! H Amos, 25 Oct 2011--------------------------------------------------
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       !-----------------------------------------------!
       ! Write ND03 diagnostics for RGM and PBM (pptv) !
       !-----------------------------------------------!
@@ -377,7 +374,7 @@
 !$OMP END PARALLEL DO
       ENDIF
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       !================================================================= 
       ! ND45: Tracer (V/V) at level 1 to level LD45, averaged over 
       !       the time period OTH_HR1 to OTH_HR2.  
@@ -512,7 +509,7 @@
          ENDDO
       ENDIF
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       !================================================================= 
       ! ND68: 1:  BXHEIGHT     - box height [m] 
       !       2:  AD           - dry air mass [kg]
@@ -627,10 +624,10 @@
 !###                                                                        ###
 !##############################################################################
 
-#if defined( DEVEL )
+#if defined( NETCDF )
 
       !=================================================================
-      ! ND30: Landmap diagnostics (new diagnostic structure)
+      ! ND30: Landmap diagnostics (netCDF diagnostic structure)
       !=================================================================
       IF ( Input_Opt%ND30 > 0 ) THEN
 
@@ -678,7 +675,7 @@
       ENDIF
 
       !=================================================================
-      ! ND45: Tracer concentrations (new diagnostic structure)
+      ! ND45: Tracer concentrations (netCDF diagnostic structure)
       !=================================================================
       IF ( Input_Opt%ND45 > 0 ) THEN
 

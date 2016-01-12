@@ -84,7 +84,7 @@
       USE DIAG63_MOD            ! For ND63  (PARANOX timeseries  ) diag
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
-      USE DIAGNOSTICS_MOD       ! New diagnostics module (C. Keller)
+      USE DIAGNOSTICS_MOD       ! NetCDF diagnostics module (C. Keller)
 
       !-----------------------------------------------------------------
       ! GEOS-Chem dynamics modules
@@ -790,7 +790,7 @@
       !      ***** INITIALIZE DIAGNOSTICS ***** 
       !=================================================================      
 
-#if defined( DEVEL )
+#if defined( NETCDF )
       ! Initialize diagnostics other than the default HEMCO diagnostics
       ! initialized above (ckeller, 1/13/15).
       CALL Diagnostics_Init( am_I_Root, Input_Opt, 
@@ -1716,7 +1716,7 @@
 #endif
 
          ! Eventually write dobson columns into diagnostics array
-#if defined(DEVEL)
+#if defined( NETCDF )
          CALL CalcDobsonColumn ( am_I_Root, Input_Opt,
      &                           State_Met, State_Chm, RC )
 #endif
@@ -1854,7 +1854,7 @@
          !   IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a ND52' )
          !ENDIF
 
-!#if defined( DEVEL )
+!#if defined( NETCDF )
 !         ! Write diagnostic data to the GEOS-Chem diagnostics netCDF file.
 !         ! Each diagnostic has a specified averaging period specified 
 !         ! in Input_Opt. (ckeller, bmy, 1/15/15)
@@ -1929,7 +1929,7 @@
       ! Print the mass-weighted mean OH concentration (if applicable)
       CALL PRINT_DIAG_OH( am_I_Root, Input_Opt, RC )
 
-!#if defined( DEVEL )
+!#if defined( NETCDF )
 !      ! Write diagnostic data to the GEOS-Chem restart netCDF file.
 !      ! Each diagnostic has a specified averaging period specified 
 !      ! in Input_Opt. (ckeller, bmy, 1/15/15)
@@ -2130,7 +2130,7 @@
       !-------------------------------------------------
 #if   defined( DEVEL ) 
       WRITE( 6, '(a)' ) REPEAT( '#', 39 )
-      WRITE( 6, '(a)' ) '# USING -DDEVEL FOR TESTING THE GIGC  #'
+      WRITE( 6, '(a)' ) '# USING -DDEVEL FOR TESTING GCHP  #'
       WRITE( 6, '(a)' ) REPEAT( '#', 39 )
 #endif
 

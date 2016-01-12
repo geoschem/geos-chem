@@ -438,7 +438,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-#if !defined ( NO_BPCH )
+#if defined( BPCH )
       USE DIAG_MOD,     ONLY : AD38
 #endif
       USE DIAG_MOD,     ONLY : CONVFLUP
@@ -719,7 +719,7 @@
                !==================================================
                NN = INDEXSOL(M)
 
-#if !defined ( NO_BPCH )
+#if defined( BPCH )
                IF ( ND38 > 0 .and. NN > 0 ) THEN
  
                   ! Grid box indices 

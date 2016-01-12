@@ -21,7 +21,7 @@
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
       USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
       USE DAO_MOD                               ! Met field subroutines
-#if !defined( NO_BPCH )
+#if defined( BPCH )
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
 #endif
       USE ERROR_MOD                             ! Error handling routines
@@ -439,7 +439,7 @@
       LOGICAL       :: PBL_DRYDEP 
       LOGICAL       :: LPRT
 
-#if defined( DEVEL )
+#if defined( NETCDF )
       ! Variables for netCDF diagnostics routines
       INTEGER           :: HCRC
       INTEGER           :: cID
@@ -457,7 +457,7 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-#if defined( DEVEL )
+#if defined( NETCDF )
       ! Zero deposition velocity array
       SAVE_DEPVEL = 0.0_fp
 #endif
@@ -579,14 +579,14 @@
             ! Dry deposition frequency [1/s]
             DEPSAV(I,J,N) = ( DVZ / 100.e+0_f8 ) / THIK
 
-#if defined( DEVEL )
+#if defined( NETCDF )
             ! Need to save dep velocity into 2-D array for netCDF diags
             ! Now save out frequency instead of velocity. We can change
             ! that if needed (ckeller, 3/11/15).
             SAVE_DEPVEL(I,J,N) = DEPSAV(I,J,N) 
 #endif
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
             ! ND44 diagnostic: drydep velocity [cm/s]
             IF ( ND44 > 0 ) THEN 
                AD44(I,J,N,2) = AD44(I,J,N,2) + DVZ
@@ -600,9 +600,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
+#if defined( NETCDF )
       !=================================================================
-      ! Update drydep velocity into new diagnostics structure
+      ! Update drydep velocity into netCDF diagnostics structure
       !=================================================================
       IF ( Input_Opt%ND44 > 0 ) THEN
 

@@ -385,12 +385,12 @@ CONTAINS
                            ak,       bk,       u,        v,       ps1,      &
                            ps2,      ps,       q,        iord,    jord,     &
                            kord,     n_adj,    XMASS,    YMASS,   FILL,     &
-#if !defined( NO_BPCH )
+#if defined( BPCH )
                            MASSFLEW, MASSFLNS, MASSFLUP,                    &
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
  !%%% Added DiagnArrays for writing diagnostics to netcdf (ewl, 2/12/15).
- !%%% MASSFLEW, MASSFLNS, and MASSFLUP are cumulative. New diagnostic
+ !%%% MASSFLEW, MASSFLNS, and MASSFLUP are cumulative. NetCDF diagnostic
  !%%% arrays are instantaneous since cumulative sum is abstracted to
  !%%% to high-level diagnostic container update code.
                            DiagnArray_EW_Flx, DiagnArray_NS_Flx,            &
@@ -478,13 +478,13 @@ CONTAINS
     ! Tracer "mixing ratios" [kg tracer/moist air kg]
     REAL(fp),  INTENT(INOUT), TARGET :: q(:,:,:,:)
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
     ! E/W, N/S, and up/down diagnostic mass fluxes
     REAL(fp),  INTENT(INOUT) :: MASSFLEW(:,:,:,:)  ! for ND24 diagnostic
     REAL(fp),  INTENT(INOUT) :: MASSFLNS(:,:,:,:)  ! for ND25 diagnostic
     REAL(fp),  INTENT(INOUT) :: MASSFLUP(:,:,:,:)  ! for ND26 diagnostic 
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
     ! Netcdf diagnostic arrays (ewl, 2/12/15)
     REAL(fp),  INTENT(INOUT) :: DiagnArray_EW_Flx(:,:,:,:)
     REAL(fp),  INTENT(INOUT) :: DiagnArray_NS_Flx(:,:,:,:)
@@ -1012,11 +1012,11 @@ CONTAINS
              ! Compute mass flux
              DTC(I,J,K) = FX(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT 
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
              ! Save into MASSFLEW diagnostic array
              MASSFLEW(I,J,K,IQ) = MASSFLEW(I,J,K,IQ) + DTC(I,J,K)
 #endif 
-#if defined( DEVEL )
+#if defined( NETCDF )
              ! Save into diagnostic array for writing to netcdf (ewl, 2/12/15)
              DiagnArray_EW_Flx(I,J,K,IQ) = DTC(I,J,K)
 #endif
@@ -1053,11 +1053,11 @@ CONTAINS
              ! Compute mass flux
              DTC(I,J,K) = FY(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT 
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
              ! Save into MASSFLNS diagnostic array
              MASSFLNS(I,J,K,IQ) = MASSFLNS(I,J,K,IQ) + DTC(I,J,K) 
 #endif
-#if defined( DEVEL )
+#if defined( NETCDF )
              ! Save into diagnostic array for writing to netcdf (ewl, 2/12/15)
              DiagnArray_NS_Flx(I,J,K,IQ) = DTC(I,J,K)
 #endif
@@ -1114,10 +1114,10 @@ CONTAINS
              ! Uncomment now, since this is upflow into the box from its
              ! bottom (phs, 3/4/08)
 
-#if !defined( NO_BPCH )
+#if defined( BPCH )
              MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)/DT
 #endif 
-#if defined( DEVEL )
+#if defined( NETCDF )
              ! Save into diagnostic array for writing to netcdf (ewl, 2/12/15)  
              DiagnArray_Vert_Flx(I,J,K,IQ) = DTC(I,J,K) / DT
 #endif
@@ -1145,11 +1145,11 @@ CONTAINS
                 ! Compute mass flux
                 DTC(I,J,K)         = DTC(I,J,K-1) + TRACE_DIFF
 
-#if !defined( NO_BPCH )                  
+#if defined( BPCH )
                 ! Save to the MASSFLUP diagnostic array 
                 MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)/DT
 #endif 
-#if defined( DEVEL )
+#if defined( NETCDF )
              ! Save into diagnostic array for writing to netcdf (ewl, 2/12/15)  
              DiagnArray_Vert_Flx(I,J,K,IQ) = DTC(I,J,K) / DT
 #endif
