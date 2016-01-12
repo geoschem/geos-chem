@@ -935,10 +935,8 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE CMN_SIZE_MOD        ! Size parameters
       USE FILE_MOD,      ONLY : IOERROR
-
-      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1160,10 +1158,8 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE CMN_SIZE_MOD        ! Size parameters
       USE FILE_MOD,      ONLY : IOERROR
-
-      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1314,10 +1310,8 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE CMN_SIZE_MOD        ! Size parameters
       USE FILE_MOD,      ONLY : IOERROR
-
-      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !OUTPUT PARAMETERS:
 !
