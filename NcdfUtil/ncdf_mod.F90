@@ -3258,7 +3258,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE NC_CREATE( NcFile, nLon,  nLat,  nLev,  nTime, &
-                        fId,    lonID, latId, levId, timeId, VarCt,
+                        fId,    lonID, latId, levId, timeId, VarCt, &
                         CREATE_NC4 )
 !
 ! !USES:
