@@ -172,14 +172,15 @@ MODULE HCO_State_Mod
   ! HcoPhys: Derived type for HEMCO physical constants
   !=========================================================================
   TYPE :: HcoPhys
-     REAL(dp) :: Avgdr   ! Avogadro number (mol-1)
+     REAL(dp) :: Avgdr   ! Avogadro number [mol-1]
      REAL(dp) :: PI      ! Pi
      REAL(dp) :: PI_180  ! Pi / 180
      REAL(dp) :: Re      ! Earth radius [m] 
-     REAL(dp) :: AIRMW   ! Molecular weight of air (g/mol)
-     REAL(dp) :: g0      ! Gravity at surface of earth (m/s2)
-     REAL(dp) :: Rd      ! Gas Constant (R) in dry air (J/K/kg)
+     REAL(dp) :: AIRMW   ! Molecular weight of air [g/mol]
+     REAL(dp) :: g0      ! Acc due to gravity at surface of earth [m/s2]
+     REAL(dp) :: Rd      ! Gas Constant (R) in dry air [J/K/kg]
      REAL(dp) :: Rdg0    ! Rd/g0
+     REAL(dp) :: RSTARG  ! Universal gas constant [J/K/mol]
   END TYPE HcoPhys 
 
   !=========================================================================
@@ -198,6 +199,8 @@ MODULE HCO_State_Mod
 !  30 Sep 2014 - R. Yantosca - Add HcoMicroPhys derived type to HcoState
 !  08 Apr 2015 - C. Keller   - Added MaskFractions to HcoState options.
 !  13 Jul 2015 - C. Keller   - Added option 'Field2Diagn'. 
+!  07 Jan 2016 - E. Lundgren - Add physical constant RSTARG and updated
+!                              Avgdr and g0 to NIST 2014 values
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -359,14 +362,15 @@ CONTAINS
        CALL HCO_ERROR( 'HEMCO physical constants', RC )
        RETURN
     ENDIF
-    HcoState%Phys%Avgdr  = 6.022e23_dp
+    HcoState%Phys%Avgdr  = 6.022140857e23_dp
     HcoState%Phys%PI     = 3.14159265358979323_dp
     HcoState%Phys%PI_180 = HcoState%Phys%PI / 180.0_dp 
     HcoState%Phys%Re     = 6.375e6_dp
     HcoState%Phys%AIRMW  = 28.97_dp
-    HcoState%Phys%g0     = 9.8_dp
+    HcoState%Phys%g0     = 9.80665_dp
     HcoState%Phys%Rd     = 287.0_dp
     HcoState%Phys%Rdg0   = HcoState%Phys%Rd / HcoState%Phys%g0
+    HcoState%Phys%RSTARG = 8.31450_dp
 
     ! Timesteps
     HcoState%TS_EMIS = 0.0_sp 

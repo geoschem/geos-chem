@@ -17,7 +17,7 @@
 !
       USE CMN_SIZE_MOD                     ! Size parameters
       USE CMN_DIAG_MOD                     ! NDxx flags
-      USE CMN_GCTM_MOD                     ! g0
+      USE PHYSCONSTANTS                    ! g0
       USE inquireMod, ONLY : findFreeLUN   ! Routine to find free LUNs
 
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)

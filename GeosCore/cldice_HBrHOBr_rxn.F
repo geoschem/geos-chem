@@ -77,14 +77,13 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  19 Dec 2014 - R. Yantosca - Now perform internal computations w/ REAL*8
 !  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as GEOS-FP
+!  04 Jan 2016 - E. Lundgren - Remove grid box area-dependence
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(f8), PARAMETER :: R        = 8.314472                    ! [J/mol/K]
-      REAL(f8), PARAMETER :: pi       = 3.14159265358979323846e+0_f8  ! [unitless]
       REAL(f8), PARAMETER :: dens_ice = 0.9167e-3_f8                ! [kg/cm3]
       REAL(f8), PARAMETER :: mw_hbr   = 0.081                       ! [kg/mol]
       REAL(f8), PARAMETER :: mw_hobr  = 0.097                       ! [kg/mol]
@@ -95,11 +94,9 @@
       REAL(f8)            :: RADIUS   ! Radius of ice particles        [cm]
       REAL(f8)            :: STK      ! Square root of the temperature [K]
       REAL(f8)            :: DFKG     ! Gas diffusion coefficient      [cm2/s]
-      REAL(f8)            :: Vc       ! Volume of ice in cloud         [cm3]
       REAL(f8)            :: SQM_hbr  ! Square root of molec. weight   [g/mol]
       REAL(f8)            :: SQM_hobr ! Square root of molec. weight   [g/mol]
       REAL(f8)            :: b_param
-      REAL(f8)            :: XAIRCM3  ! Volume of air                  [cm3]
       REAL(f8)            :: iwc
       REAL(f8)            :: gamma
       REAL(f8)            :: gamma_hobr, gamma_hbr
@@ -111,8 +108,7 @@
       LOGICAL             :: yn_stop
 
       ! Pointers
-      REAL(fp), POINTER   :: AD(:,:,:)
-      REAL(fp), POINTER   :: AIRVOL(:,:,:)
+      REAL(fp), POINTER   :: AIRDEN(:,:,:)
       REAL(fp), POINTER   :: CLDF(:,:,:)
       REAL(fp), POINTER   :: T(:,:,:)
 
@@ -121,8 +117,7 @@
       !=================================================================
 
       ! Initialize pointers
-      AD     => State_Met%AD
-      AIRVOL => State_Met%AIRVOL
+      AIRDEN => State_Met%AIRDEN
       CLDF   => State_Met%CLDF
       T      => State_Met%T
 
@@ -138,7 +133,7 @@
 
       ! IWC in [g/cm3]
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-      iwc = CLDF(I,J,L) * QI * AD(I,J,L) / AIRVOL(I,J,L)
+      iwc = CLDF(I,J,L) * QI * AIRDEN(I,J,L)
       iwc = iwc / 1.e+3_f8
 #else
       ! Convert cm3/cm3 to g/cm3
@@ -277,17 +272,14 @@
          RETURN
       ENDIF
 
-      ! store the volume of air [cm3]
-      XAIRCM3 = AIRVOL(I,J,L) * (100.e+0_f8)**3
-
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-      ! get the volume of cloud ice [cm3]
-      Vc = CLDF(I,J,L) * QI * AD(I,J,L) / dens_ice
-#else
-      ! Doesn't matter, Vc is not used.
-#endif
-
-      ! now calculate the cloud ice surface area [cm2_ice/ cm3_air]
+!#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+!      ! get the volume of cloud ice [cm3]
+!      Vc = CLDF(I,J,L) * QI * AD(I,J,L) / dens_ice
+!#else
+!      ! Doesn't matter, Vc is not used.
+!#endif
+!      ! now calculate the cloud ice surface area [cm2_ice/ cm3_air]
+!         XAIRCM3 = AIRVOL(I,J,L) * (100.e+0_f8)**3 ! volume of air [cm3]
 !jpt      AREA    = 3.d0 * (Vc/XAIRCM3) / (RADIUS) ! keep Radius in [cm]
 
       ! Convert cross-sectional area to surface area, making assumption
@@ -417,8 +409,7 @@
       ENDIF
 
       ! Free pointers
-      NULLIFY( AD     )
-      NULLIFY( AIRVOL )
+      NULLIFY( AIRDEN )
       NULLIFY( CLDF   )
       NULLIFY( T      )
 

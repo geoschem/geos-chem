@@ -2670,7 +2670,7 @@ CONTAINS
     USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 
     USE CMN_SIZE_MOD  ! Size parameters
-    USE CMN_GCTM_MOD
+    USE PHYSCONSTANTS
 !
 ! !REMARKS:
 !  Moved here from the obsolete global_oh_mod.F.

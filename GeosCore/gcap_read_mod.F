@@ -453,7 +453,7 @@
 
       USE CMN_SIZE_MOD                                     ! Size parameters
       USE CMN_DIAG_MOD                                     ! ND67
-      USE CMN_GCTM_MOD                                     ! g0
+      USE PHYSCONSTANTS                                    ! g0
 !
 ! !INPUT PARAMETERS: 
 !

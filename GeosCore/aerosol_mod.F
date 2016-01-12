@@ -129,6 +129,7 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE PHYSCONSTANTS,      ONLY : BOLTZ, AVO, AIRMW
       USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, IXSAVE   
       USE COMODE_MOD,         ONLY : IYSAVE, IZSAVE,  JLOP       
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -176,7 +177,7 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER, SAVE :: N_CHEM_BOXES
       INTEGER       :: I, J, L, JLOOP
-      REAL(fp)      :: CONSEXP, TK, VPRESH2O
+      REAL(fp)      :: CONSEXP, TK, VPRESH2O, CONSVAP
       REAL(fp)      :: BOXVL
       
       !=================================================================
@@ -188,6 +189,10 @@
       NLAT   = JJPAR
       NVERT  = IVERT
       NPVERT = NVERT
+
+      ! Calculate condensation vapor pressure locally
+      ! and use Boltzmann's constant in PHYSCONSTANTS [J/K] (ewl, 1/4/16)
+      CONSVAP  = 6.1078e+03_fp / ( BOLTZ * 1e+7_fp )
 
       !=================================================================
       ! Pre-save SMVGEAR loop indices on the first call
@@ -295,8 +300,11 @@
             BOXVL          = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
             ! Air density in [molec/cm3]
+            ! Now use physical parameters from PHYSCONSTANTS (ewl, 1/4/16)
+!            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
+!     &                       BOXVL               * AVG  / WTAIR
             AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
-     &                       BOXVL               * AVG  / WTAIR
+     &                       BOXVL               * AVO  / AIRMW
 
             ! ABSHUM = absolute humidity [molec H2O/cm3 air]
             ABSHUM(JLOOP)  = State_Met%AVGW(I,J,L)  * AIRDENS(JLOOP)

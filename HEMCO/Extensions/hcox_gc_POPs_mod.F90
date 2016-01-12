@@ -157,14 +157,15 @@ CONTAINS
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  14 Apr 2014 - R. Yantosca - Prevent div-by-zero error w/ SUM_OF_ALL
 !  19 Aug 2014 - M. Sulprizio- Now a HEMCO extension
+!  07 Jan 2016 - E. Lundgren - Update molar gas constant to NIST 2014
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-    ! Universal gas constant for adjusting KOA for temp: 8.3145 [J/mol/K]
-    REAL(hp), PARAMETER :: R          = 8.31e+0_hp
+    ! Universal gas constant for adjusting KOA for temp: 8.3144598 [J/mol/K]
+    REAL(hp), PARAMETER :: R          = 8.3144598e+0_hp
 
     ! Density of octanol, needed for partitioning into OC: 820 [kg/m^3]
     REAL(hp), PARAMETER :: DENS_OCT   = 82e+1_hp
@@ -622,6 +623,7 @@ CONTAINS
 !  21 Aug 2012 - C.L. Friedman - Initial version based on LAND_MERCURY_MOD
 !  25 Aug 2015 - M. Sulprizio  - Moved to hcox_gc_POPs_mod.F90
 !  02 Oct 2015 - E. Lundgren   - ExtState%POPG is now kg/kg dry air (prev kg)
+!  07 Jan 2016 - E. Lundgren   - Update molar gas constant to NIST 2014
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -663,8 +665,8 @@ CONTAINS
       REAL(hp)            :: DEL_H
 
       ! R = universal gas constant for adjusting KOA for temp:
-      ! 8.3145 [J/mol/K OR m3*Pa/K/mol]
-      REAL(hp), PARAMETER :: R = 8.31d0 
+      ! 8.3144598 [J/mol/K OR m3*Pa/K/mol]
+      REAL(hp), PARAMETER :: R = 8.3144598d0 
 
       ! Molecular weight
       ! For phe, 0.17823 kg/mol
@@ -969,6 +971,8 @@ CONTAINS
 !  21 Aug 2012 - C.L. Friedman - Initial version based on LAND_MERCURY_MOD
 !  25 Aug 2015 - M. Sulprizio  - Moved to hcox_gc_POPs_mod.F90
 !  02 Oct 2015 - E. Lundgren   - ExtState%POPG is now kg/kg dry air (prev kg)
+!  07 Jan 2016 - E. Lundgren   - Update molar gas constant to NIST 2014
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1002,8 +1006,8 @@ CONTAINS
       REAL(hp)            :: DEL_HW
 
       ! R = universal gas constant for adjusting KOA for temp:
-      ! 8.3145d-3 [kJ/mol/K]
-      REAL(hp), PARAMETER :: R = 8.31d-3 
+      ! 8.3144598d-3 [kJ/mol/K]
+      REAL(hp), PARAMETER :: R = 8.3144598d-3 
 
       ! Molecular weight
       ! For phe, 0.17823 kg/mol
@@ -1338,6 +1342,7 @@ CONTAINS
 !  21 Aug 2012 - C.L. Friedman - Initial version based on LAND_MERCURY_MOD
 !  25 Aug 2015 - M. Sulprizio  - Moved to hcox_gc_POPs_mod.F90
 !  02 Oct 2015 - E. Lundgren   - ExtState%POPG is now kg/kg dry air (prev kg)
+!  07 Jan 2016 - E. Lundgren   - Update molar gas constant to NIST 2014
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1389,8 +1394,8 @@ CONTAINS
       REAL(hp)            :: DEL_HW     
 
       ! R = universal gas constant for adjusting KOA for temp:
-      ! 8.3145 [J/mol/K OR m3*Pa/K/mol]
-      REAL(hp), PARAMETER :: R = 8.31e+0_hp 
+      ! 8.314 [J/mol/K OR m3*Pa/K/mol]
+      REAL(hp), PARAMETER :: R = 8.3144598e+0_hp 
 
       ! Molecular weight
       ! For phe, 0.17823 kg/mol

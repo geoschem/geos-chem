@@ -290,7 +290,7 @@
 
       USE CMN_SIZE_MOD             ! Size parameters        
       USE CMN_DIAG_MOD             ! NDxx flags
-      USE CMN_GCTM_MOD             ! Physical constants
+      USE PHYSCONSTANTS            ! Physical constants
 !
 ! !INPUT PARAMETERS:
 !
@@ -522,7 +522,7 @@
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! NDxx flags
-      USE CMN_GCTM_MOD             ! Physical constants
+      USE PHYSCONSTANTS            ! Physical constants
 !
 ! !INPUT PARAMETERS:
 !
@@ -766,7 +766,7 @@
 
       USE CMN_SIZE_MOD                    ! Size parameters
       USE CMN_DIAG_MOD                    ! NDxx flags
-      USE CMN_GCTM_MOD                    ! Physical constants
+      USE PHYSCONSTANTS                   ! Physical constants
 !
 ! !INPUT PARAMETERS:
 !
@@ -1080,7 +1080,7 @@
       USE TPCORE_FVDAS_MOD,   ONLY : INIT_TPCORE
 
       USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_GCTM_MOD         ! Re
+      USE PHYSCONSTANTS        ! Re
 !
 ! !INPUT PARAMETERS:
 !
@@ -1230,7 +1230,7 @@
       USE TPCORE_WINDOW_MOD,       ONLY : INIT_WINDOW
 
       USE CMN_SIZE_MOD                  ! Size parameters
-      USE CMN_GCTM_MOD                  ! Re
+      USE PHYSCONSTANTS                 ! Re
 
 !
 ! !INPUT PARAMETERS:

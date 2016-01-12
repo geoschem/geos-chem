@@ -17,7 +17,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD           ! Size parameters
-      USE CMN_GCTM_MOD           ! Physical constants
+      USE PHYSCONSTANTS          ! Physical constants
       USE PRECISION_MOD          ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE

@@ -212,6 +212,7 @@
 !
       USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL 
       USE CHEMGRID_MOD,       ONLY : GET_MAX_CHEMGRID_LEVEL
+      USE PHYSCONSTANTS,      ONLY : AIRMW, AVO ! Physical params
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -263,6 +264,7 @@
 !                              State_Met%PMID and State_Met%PEDGE. Remove
 !                              dependency on pressure_mod.
 !  19 Oct 2015 - C. Keller   - TLSTT is now 4D to work on curvilinear grids
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -458,14 +460,14 @@
                   dcolo3(i,j,l) = (stt(i,j,l,NTRACER) *
      &                 State_Met%AD(I,J,L) /
      &                 TCVV(NTRACER))      / GET_AREA_CM2(I,J,L) *
-     &                 6.022e+23_fp / (28.97/TCVV(NTRACER)*1e-3_fp) / 
+     &                 AVO / (AIRMW/TCVV(NTRACER)*1e-3_fp) / 
      &                 2.687e+16_fp
                   colo3(i,j,l) = dcolo3(i,j,l)*0.5
                else
                   dcolo3(i,j,l) = (stt(i,j,l,NTRACER) * 
      &                 State_Met%AD(I,J,L) / 
      &                 TCVV(NTRACER))      / GET_AREA_CM2(I,J,L) *
-     &                 6.022e+23_fp / (28.97/TCVV(NTRACER)*1e-3_fp) / 
+     &                 AVO / (AIRMW/TCVV(NTRACER)*1e-3_fp) / 
      &                 2.687e+16_fp
                   colo3(i,j,l) = colo3(i,j,l+1) +
      &                 (dcolo3(i,j,l)+dcolo3(i,j,l+1))*0.5

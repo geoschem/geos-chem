@@ -55,6 +55,8 @@
 #  04 Jun 2015 - R. Yantosca - Add debug target, remove help
 #  28 Aug 2015 - R. Yantosca - Add species_mod.F90
 #  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
+#  08 Jan 2016 - E. Lundgren - Move CMN_GCTM_mod.F to obsolete/ dir and replace
+#                              with physconstants.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -143,9 +145,6 @@ CMN_DIAG_mod.o         : CMN_DIAG_mod.F           \
                          gigc_errcode_mod.o       \
                          precision_mod.o
 
-CMN_GCTM_mod.o         : CMN_GCTM_mod.F           \
-                         precision_mod.o
-
 CMN_FJX_MOD.o          : CMN_FJX_MOD.F            \
                          CMN_SIZE_mod.o           \
                          precision_mod.o
@@ -177,6 +176,7 @@ gigc_input_opt_mod.o   : gigc_input_opt_mod.F90   \
                          precision_mod.o
 
 gigc_state_chm_mod.o   : gigc_state_chm_mod.F90   \
+                         physconstants.o          \
                          gigc_errcode_mod.o       \
                          gigc_input_opt_mod.o     \
 		         comode_loop_mod.o        \
@@ -189,8 +189,11 @@ gigc_state_met_mod.o   : gigc_state_met_mod.F90   \
                          CMN_SIZE_mod.o           \
                          precision_mod.o
 
+physconstants.o        : physconstants.F          \
+                         precision_mod.o
+
 species_mod.o          : species_mod.F90          \
-                         CMN_GCTM_mod.o           \
+                         physconstants.o          \
                          precision_mod.o 
 
 species_database_mod.o : species_database_mod.F90 \

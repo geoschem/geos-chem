@@ -17,7 +17,7 @@ MODULE Grid_Mod
 ! 
 ! !USES:
 !
-  USE CMN_GCTM_Mod     ! Physical constants
+  USE PHYSCONSTANTS    ! Physical constants
   USE Error_Mod        ! Error-handling routines
   USE Precision_Mod    ! For GEOS-Chem Precision (fp)
 

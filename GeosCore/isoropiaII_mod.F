@@ -722,6 +722,7 @@
 !
 ! !USES:
 !
+      USE PHYSCONSTANTS,      ONLY : AIRMW
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
@@ -741,6 +742,7 @@
 !  06 Jul 2007 - H. O. T. Pye - Initial version, in ISORROPIA II
 !  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
 !  23 Sep 2014 - M. Sulprizio - Now get HNO3 for offline aerosol sims from HEMCO
+!  06 Jan 2016 - E. Lundgren  - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -759,7 +761,7 @@
          ! HNO3 is in v/v (from HEMCO), convert to ug/m3
          ! First convert HNO3 from [v/v] to [kg]
          HNO3_UGM3 = HNO3( I, J, L ) * State_Met%AD(I,J,L) /
-     &               ( 28.97e+0_fp / 63e+0_fp )
+     &               ( AIRMW / 63e+0_fp )
 
          ! Then convert HNO3 from [kg] to [ug/m3]
          HNO3_UGM3 = HNO3_UGM3 * 1.e+9_fp / State_Met%AIRVOL(I,J,L)
