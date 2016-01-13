@@ -276,6 +276,11 @@ CONTAINS
     ELSE
        DoWrite = DiagnCollection_IsTimeToWrite( PS )
        EOI     = .TRUE.
+
+!       ! DEBUGGING (ewl)
+!       PRINT *, "DoWrite: ", DoWrite
+!       ! END DEBUGGING
+
     ENDIF
 
     ! Create current time stamps (to be used to archive time stamps) 
@@ -437,10 +442,10 @@ CONTAINS
     ! Write diagnostics 
     !-----------------------------------------------------------------
 
-    ! DEBUGGING - ewl, 2/6/15
-    PRINT *, " "
-    PRINT *, "In HcoIO_Diagn_Writeout (hcoio_diagn_mod.F90)"
-    ! END DEBUGGING
+!    ! DEBUGGING - ewl, 2/6/15
+!    PRINT *, " "
+!    PRINT *, "In HcoIO_Diagn_Writeout (hcoio_diagn_mod.F90)"
+!    ! END DEBUGGING
 
     ! Loop over all diagnostics in diagnostics list 
     ThisDiagn => NULL()
@@ -464,20 +469,20 @@ CONTAINS
        ! this container and time step. 
        IF ( ThisDiagn%nnGetCalls > 1 ) THEN
 
-          ! DEBUGGING - ewl, 2/2/15
-          PRINT *, "   At container for " // TRIM( ThisDiagn%cName )
-          PRINT *, "      Skipping diag since ThisDiagn%nnGetCalls = ", &
-               ThisDiagn%nnGetCalls
-          ! END DEBUGGING
+!          ! DEBUGGING - ewl, 2/2/15
+!          PRINT *, "   At container for " // TRIM( ThisDiagn%cName )
+!          PRINT *, "      Skipping diag since ThisDiagn%nnGetCalls = ", &
+!               ThisDiagn%nnGetCalls
+!          ! END DEBUGGING
           
           CYCLE
        ENDIF
-
-       ! DEBUGGING - ewl, 2/2/15
-       PRINT *, " "
-       PRINT *, "   Got diagnostic for writing: ", ThisDiagn%cName
-       PRINT *, " "
-       ! END DEBUGGING
+!
+!       ! DEBUGGING - ewl, 2/2/15
+!       PRINT *, " "
+!       PRINT *, "   Got diagnostic for writing: ", ThisDiagn%cName
+!       PRINT *, " "
+!       ! END DEBUGGING
 
        ! NOTE: This may have been left over by a Git merge (bmy, 3/5/15)
        ! this container and time step.

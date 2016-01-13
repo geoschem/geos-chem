@@ -157,6 +157,9 @@ CONTAINS
     CALL DiagnCollection_GetDefaultDelta ( am_I_Root, deltaYMD, deltaHMS, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! Temporarily manually set to hourly. Eventually this will be set
+    ! per collection in input.geos or a new diagnostics input file
+    !  (ewl, 1/13/16)
     CALL DiagnCollection_Create( am_I_Root,                      &
                                  NX           = IIPAR,           &
                                  NY           = JJPAR,           &
@@ -164,8 +167,10 @@ CONTAINS
                                  TS           = TS,              &
                                  AM2          = AM2,             &
                                  PREFIX       = DGN,             &
-                                 deltaYMD     = deltaYMD,        &
-                                 deltaHMS     = deltaHMS,        &
+!                                 deltaYMD     = deltaYMD,        &
+!                                 deltaHMS     = deltaHMS,        &
+                                 deltaYMD     = 00000000,        &
+                                 deltaHMS     = 010000,          &
                                  COL          = CollectionID,    &
                                  OutTimeStamp = HcoDiagnEnd,     &
                                  RC           = RC                )
@@ -4451,6 +4456,7 @@ CONTAINS
     ! Not restart: write out regular diagnostics. Use current time stamp.
     !-----------------------------------------------------------------------
     ELSE
+
        CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                & 
                                   HcoState,                                 &
                                   ForceWrite  = .FALSE.,                    &
