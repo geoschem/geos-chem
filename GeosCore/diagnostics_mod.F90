@@ -350,6 +350,7 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_CONC', LOC ) 
     ENDIF
+
     ! Tropopause diagnostics (ND55)
     CALL DIAGINIT_TR_PAUSE( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
@@ -616,6 +617,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  20 Jan 2015 - R. Yantosca - Initial version
+!  13 Jan 2016 - E. Lundgren - Define diagnostic ID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -656,6 +658,9 @@ CONTAINS
           ! Diagnostic name
           DiagnName = 'TRACER_CONC_' // TRIM( Input_Opt%TRACER_NAME(N) )
 
+          ! Diagnostic ID
+          cID = N
+
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
                              Col       = Collection,        & 
@@ -669,6 +674,7 @@ CONTAINS
                              LevIDx    = -1,                &
                              OutUnit   = 'v/v',             &
                              OutOper   = TRIM( OutOper   ), &
+                             cID       = cID,               &
                              RC        = RC )
 
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -3009,6 +3015,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  28 Jan 2015 - M. Yannetti - Initial version
+!  13 Jan 2016 - E. Lundgren - Define cID diagnostic info number and
+!                              different name per diagnostic tracer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3043,13 +3051,10 @@ CONTAINS
     ! Create containers for Tropopause Diags
     !----------------------------------------------------------------
 
-    ! Diagnostic name
-    DiagnName = 'TR-PAUSE'
-
     ! Loop over ND55 diagnostic tracers
     DO M = 1, Input_Opt%TMAX(55)
 
-    ! Define quantities
+      ! Define quantities
       N = Input_Opt%TINDEX(55,M)
       IF ( N > PD55 ) CYCLE
 
@@ -3063,25 +3068,31 @@ CONTAINS
           THEUNIT = 'mb'
       END SELECT
 
+      ! Define diagnostic name based on units
+      DiagnName = 'TR-PAUSE_' // TRIM( THEUNIT )
+      
+      ! Diagnostics ID
+      cID = 26000 + N
+
     ! pulled from diag3... not sure where these vars are... (mdy)
 !     ARRAY(:,:,1) = AD55(:,:,N) / SCALEDYN
 
     ! Create container
-      CALL Diagn_Create( am_I_Root,                     &
-                       Col       = Collection,        &
-                       cName     = TRIM( DiagnName ), &
-                       AutoFill  = 0,                 &
-                       ExtNr     = -1,                &
-                       Cat       = -1,                &
-                       Hier      = -1,                &
-                       HcoID     = -1,                &
-                       SpaceDim  =  3,                &
-                       LevIDx    = -1,                &
-                       OutUnit   = TRIM( THEUNIT   ), &
-                       OutOper   = TRIM( OutOper   ), &
-                       cId       = cId,               &
+      CALL Diagn_Create( am_I_Root,                       &
+                       Col       = Collection    ,        &
+                       cName     = TRIM( DiagnName ),     &
+                       AutoFill  = 0,                     &
+                       ExtNr     = -1,                    &
+                       Cat       = -1,                    &
+                       Hier      = -1,                    &
+                       HcoID     = -1,                    &
+                       SpaceDim  =  3,                    &
+                       LevIDx    = -1,                    &
+                       OutUnit   = TRIM( THEUNIT   ),     &
+                       OutOper   = TRIM( OutOper   ),     &
+                       cId       = cId,                   &
                        RC        = RC )
-
+      
       IF ( RC /= HCO_SUCCESS ) THEN
          MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
          CALL ERROR_STOP( MSG, LOC )
@@ -3127,6 +3138,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  28 Jan 2015 - M. Yannetti - Initial version
+!  13 Jan 2016 - E. Lundgren - Define diagnostics ID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3178,21 +3190,24 @@ CONTAINS
            CALL ERROR_STOP ( MSG, LOC )
        END SELECT
 
+       ! Diagnostics ID
+       cID = 42000 + N
+
        ! Create container
        CALL Diagn_Create( am_I_Root,                     &
-                       Col       = Collection,        &
-                       cName     = TRIM( DiagnName ), &
-                       AutoFill  = 0,                 &
-                       ExtNr     = -1,                &
-                       Cat       = -1,                &
-                       Hier      = -1,                &
-                       HcoID     = -1,                &
-                       SpaceDim  =  3,                &
-                       LevIDx    = -1,                &
-                       OutUnit   = 'flashes/min/km2', &
-                       OutOper   = TRIM( OutOper   ), &
-                       cId       = cId,               &
-                       RC        = RC )
+                          Col       = Collection,        &
+                          cName     = TRIM( DiagnName ), &
+                          AutoFill  = 0,                 &
+                          ExtNr     = -1,                &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  =  3,                &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'flashes/min/km2', &
+                          OutOper   = TRIM( OutOper   ), &
+                          cId       = cId,               &
+                          RC        = RC )
 
        IF ( RC /= HCO_SUCCESS ) THEN
            MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
@@ -3238,6 +3253,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  28 Jan 2015 - M. Yannetti - Initial version
+!  13 Jan 2016 - E. Lundgren - Define diagnostic ID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3273,6 +3289,9 @@ CONTAINS
 
     ! Diagnostic name
     DiagnName = 'THETA'
+
+    ! Diagnostic ID
+    cID = 57001
 
     ! another import from diag3... (mdy)
 !    ARRAY(:,:,1:LD57) = AD57(:,:,1:LD57) / SCALEDIAG
@@ -3546,6 +3565,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  21 Jan 2015 - E. Lundgren - Initial version
+!  13 Jan 2016 - E. Lundgren - Define diagnostic ID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3615,6 +3635,9 @@ CONTAINS
              SpaceDim  = 2
        END SELECT
 
+       ! Diagnostic ID
+       cID = 24000 + N
+
        ! Create container
        CALL Diagn_Create( am_I_Root,                     &
                           Col       = Collection,        & 
@@ -3628,6 +3651,7 @@ CONTAINS
                           LevIDx    = -1,                &
                           OutUnit   = TRIM( OutUnit   ), &
                           OutOper   = TRIM( OutOper   ), &
+                          cID       = cID,               &
                           ScaleFact = ScaleFact,         &
                           RC        = RC )
 

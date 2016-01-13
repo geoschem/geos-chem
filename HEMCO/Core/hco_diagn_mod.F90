@@ -816,12 +816,8 @@ CONTAINS
     LOC = 'Diagn_Create (hco_diagn_mod.F90)'
     CALL DiagnCollection_DefineID( PS, RC, COL=COL, &
                                    InUse=FOUND, ThisColl=ThisColl )
-    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! DEBUGGING - ewl, 2/6/15
-      PRINT *, " "
-      PRINT *, "In ", TRIM( LOC )
-      ! END DEBUGGING
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
 !<<<<<<< HEAD - merge conflict - comment out old code (ewl, 1/8/16)
 !    ! Get collection position
@@ -1135,17 +1131,8 @@ CONTAINS
     ! Insert at the beginning of the list.
     !-----------------------------------------------------------------------
     
-    ! DEBUGGING - ewl, 2/2/15
-    PRINT *, "   Creating container for diag ", TRIM( cName )
-    ! END DEBUGGING
-
     IF ( ThisColl%nnDiagn > 0 ) THEN
-       ThisDiagn%NextCont => ThisColl%DiagnList
-       
-       ! DEBUGGING - ewl, 2/2/15
-       PRINT *, "   NextCont now points to previous diag"
-       ! END DEBUGGING
-
+       ThisDiagn%NextCont => ThisColl%DiagnList   
     ENDIF
     ThisColl%DiagnList => ThisDiagn
 
@@ -1155,12 +1142,15 @@ CONTAINS
     ! Increase diagnostics counter and set container ID accordingly.
     ThisColl%nnDiagn = ThisColl%nnDiagn + 1
 
-    ! DEBUGGING - ewl, 2/2/15
-    PRINT *, "   Collection: ", PS 
-    PRINT *, "   Index in collection: ", ThisDiagn%cID
-    PRINT *, "   Counter: ", ThisDiagn%Counter
-    PRINT *, "Exiting ", TRIM( LOC ), " for ", TRIM( ThisDiagn%cName )
-    ! END DEBUGGING
+!    ! DEBUGGING - ewl, 2/2/15
+!    PRINT *, " "
+!    PRINT *, " Creating diagnostic:", TRIM( cName )
+!    PRINT *, "   Collection: ", PS 
+!    PRINT *, "   Index in collection: ", ThisDiagn%cID
+!    PRINT *, "   Counter: ", ThisDiagn%Counter
+!    PRINT *, "   Success!"
+!    PRINT *, " "
+!    ! END DEBUGGING
 
     ! Verbose mode
     IF ( HCO_IsVerb( 1 ) ) THEN
@@ -2067,13 +2057,13 @@ CONTAINS
 
     ENDDO ! loop over collections
 
-    ! DEBUGGING - ewl, 2/2/15
-    IF ( PRESENT ( cName ) ) THEN
-       PRINT *, "Exiting Diagn_Update for diagnostic: " // TRIM( cName )
-    ELSE
-       PRINT *, "Exiting Diagn_Update for unnamed diagnostic."
-    ENDIF
-    ! END DEBUGGING
+!    ! DEBUGGING - ewl, 2/2/15
+!    IF ( PRESENT ( cName ) ) THEN
+!       PRINT *, "Exiting Diagn_Update for diagnostic: " // TRIM( cName )
+!    ELSE
+!       PRINT *, "Exiting Diagn_Update for unnamed diagnostic."
+!    ENDIF
+!    ! END DEBUGGING
 
     ! Cleanup
     IF (PRESENT(Array3D_SP) ) THEN
@@ -2189,14 +2179,14 @@ CONTAINS
     CALL DiagnCollection_DefineID( PS, RC, COL=COL, ThisColl=ThisColl )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! DEBUGGING - ewl, 2/2/15
-    PRINT *, "   In subroutine Diagn_Get in hco_diagn_mod.F90"
-    IF ( PRESENT (cName) ) THEN
-       PRINT *, "      Diag name passed as argument: " // TRIM( cName )
-    ELSE
-       PRINT *, "      Name not passed to subroutine."
-    ENDIF
-    ! END DEBUGGING
+!    ! DEBUGGING - ewl, 2/2/15
+!    PRINT *, "   In subroutine Diagn_Get in hco_diagn_mod.F90"
+!    IF ( PRESENT (cName) ) THEN
+!       PRINT *, "      Diag name passed as argument: " // TRIM( cName )
+!    ELSE
+!       PRINT *, "      Name not passed to subroutine."
+!    ENDIF
+!    ! END DEBUGGING
 
     ! Set AutoFill flag
     AF = -1
@@ -2223,9 +2213,9 @@ CONTAINS
 
        IF ( .NOT. FOUND ) THEN
 
-          ! DEBUGGING - ewl, 2/2/15
-          PRINT *, "      Diagnostic with name " // TRIM(cName) // " not found."
-          ! END DEBUGGING
+!          ! DEBUGGING - ewl, 2/2/15
+!          PRINT *, "      Diagnostic with name " // TRIM(cName) // " not found."
+!          ! END DEBUGGING
           
           DgnCont => NULL()
        ELSE
@@ -2271,9 +2261,9 @@ CONTAINS
                             AF, FOUND, DgnCont, COL=PS )
        IF ( .NOT. FOUND ) THEN
 
-          ! DEBUGGING - ewl, 2/2/15
-          PRINT *, "      Diagnostic with that id not found."
-          ! END DEBUGGING
+!          ! DEBUGGING - ewl, 2/2/15
+!          PRINT *, "      Diagnostic with that id not found."
+!          ! END DEBUGGING
 
           DgnCont => NULL()
        ELSE
@@ -2293,9 +2283,9 @@ CONTAINS
 !>>>>>>> 3b284a4fa7678e998e0607353d6e57e4287be0be
              DgnCont => NULL()
 
-             ! DEBUGGING - ewl, 2/2/15
-             PRINT *, "      Diagnostic at wrong time interval or counter is 0."
-             ! END DEBUGGING
+!             ! DEBUGGING - ewl, 2/2/15
+!             PRINT *, "      Diagnostic at wrong time interval or counter is 0."
+!             ! END DEBUGGING
 
           ENDIF
        ENDIF
@@ -2307,9 +2297,9 @@ CONTAINS
     ! Number of updates since last output must be larger than zero!
     IF ( .NOT. CF ) THEN 
 
-       ! DEBUGGING - ewl, 2/2/15
-       PRINT *, "      No container selected yet."
-       ! END DEBUGGING
+!       ! DEBUGGING - ewl, 2/2/15
+!       PRINT *, "      No container selected yet."
+!       ! END DEBUGGING
 
        IF ( .NOT. ASSOCIATED( DgnCont ) ) THEN
 !<<<<<<< HEAD - merge conflict (ewl, 1/8/16)
@@ -2325,9 +2315,9 @@ CONTAINS
        ELSE
           DgnCont => DgnCont%NextCont
 
-          ! DEBUGGING - ewl, 2/2/15
-          PRINT *, "      DiagCont associated so pointing to next container."
-          ! END DEBUGGING
+!          ! DEBUGGING - ewl, 2/2/15
+!          PRINT *, "      DiagCont associated so pointing to next container."
+!          ! END DEBUGGING
 
        ENDIF
 ! <<<<<<< HEAD - merge conflict (ewl, 1/8/16)
@@ -2390,15 +2380,15 @@ CONTAINS
        ! Diagn_Get
        DgnCont%nnGetCalls = DgnCont%nnGetCalls + 1
 
-       ! DEBUGGING - ewl, 2/2/15
-       PRINT *, "      Diagnostic prepared for output and Diagn_Get is done."
-       ! END DEBUGGING
+!       ! DEBUGGING - ewl, 2/2/15
+!       PRINT *, "      Diagnostic prepared for output and Diagn_Get is done."
+!       ! END DEBUGGING
 
     ENDIF
 
-    ! DEBUGGING - ewl, 2/2/15
-    PRINT *, "   Exiting Diagn_Get."
-    ! END DEBUGGING
+!    ! DEBUGGING - ewl, 2/2/15
+!    PRINT *, "   Exiting Diagn_Get."
+!    ! END DEBUGGING
 
     ! Cleanup
     ThisColl => NULL()
@@ -3953,7 +3943,7 @@ CONTAINS
     TmpColl => Collections
     DO WHILE ( ASSOCIATED(TmpColl) ) 
 
-       ! Check if this is the collection of insterest
+       ! Check if this is the collection of interest
        IF ( TmpColl%CollectionID == PS ) THEN
           FOUND = .TRUE.
           EXIT
