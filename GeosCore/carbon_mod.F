@@ -196,10 +196,8 @@
 !  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  13 Nov 2014 - C. Keller   - Added EMISSCARBON to make sure that SESQ and POA
 !                              emissions are properly passed from HEMCO.
-!  08 Jan 2016 - M. Sulprizio- Remove last dimension from array POAEMISS. We
-!                              no longer need to separate anthro SVOC emissions
-!                              from biofuel and biomass burning emissions since
-!                              this was done for debugging purposes only.
+!  14 Jan 2016 - M. Sulprizio- POAEMISS(:,:,:,1) now represents POG1 and
+!                              POAEMISS(:,:,:,2) now represents POG2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -323,7 +321,7 @@
       REAL(fp), SAVE, ALLOCATABLE :: BETANOSAVE(:,:,:)
 
       ! semivolpoa2: array for POA emissions (hotp 2/27/09)
-      REAL(fp), SAVE, ALLOCATABLE :: POAEMISS(:,:,:)
+      REAL(fp), SAVE, ALLOCATABLE :: POAEMISS(:,:,:,:)
 
       ! Array for initial OA+OG (hotp 5/17/10)
       ! Diagnostic only, dims: I,J,L,MPROD,MSV (hotp 5/22/10)
@@ -2060,11 +2058,14 @@
             print*,'OPOG2',SUM(STT(:,:,:,IDTOPOG2))
          ENDIF
 
-         ! semivolpoa3: BB + BF + anth
-         print*, 'POAEMISS tot',
-     &                 SUM(POAEMISS(:,:,:)),POAEMISS(20,33,2),
-     &                     POAEMISS(20,33,10)
-      
+         ! semivolpoa3: debug POAEMISS
+         print*, 'POAEMISS,1,POG1',
+     &                 SUM(POAEMISS(:,:,:,1)),POAEMISS(20,33,2,1),
+     &                     POAEMISS(20,33,10,1)
+         print*, 'POAEMISS,2,POG2',
+     &                 SUM(POAEMISS(:,:,:,2)),POAEMISS(20,33,2,2),
+     &                     POAEMISS(20,33,10,2)
+
          ! 10/12/09 debug
          IF ( Input_Opt%LSVPOA ) THEN
             print*,'POAG tot', SUM(STT(:,:,:,IDTPOA1))+
@@ -2435,9 +2436,11 @@
          print*, 'POGRXN p1', SUM(GLOB_POGRXN(:,:,:,1))
          print*, 'POGRXN p2', SUM(GLOB_POGRXN(:,:,:,2))
 
-         ! semivolpoa3: BB + BF + anth
-         print*, 'POAEMISS tot', SUM(POAEMISS(:,:,:)),
-     &                           POAEMISS(20,33,2), POAEMISS(20,33,10)
+         ! semivolpoa3: POG1 + POG2
+         print*, 'POAEMISS tot',
+     &              SUM(POAEMISS(:,:,:,:)),
+     &              POAEMISS(20,33,2,1)+POAEMISS(20,33,2,2),
+     &              POAEMISS(20,33,10,1)+POAEMISS(20,33,10,2)
 
          ! semivolpoa4opoa: add OPOA (hotp 3/27/09)
          IF ( IDTOPOA1 > 0 ) THEN ! hotp 8/24/09 ! hotp 10/11/09
@@ -3917,7 +3920,8 @@
              ! DO IPR = 1, NPROD(JHC)
              ! DO NOX =1, NNOX(JHC)
              !    ! DELHC is now emission of POA
-             !    DELHC(IPR) = POAEMISS(I,J,L)
+             !    DELHC(IPR) = POAEMISS(I,J,L) ! DELHC not a function of IPR
+             !    DELHC(IPR) = POAEMISS(I,J,L,NOX) 
              !    GM0(NOX,IPR,JHC) = GM0(NOX,IPR,JHC) 
              ! &                     + ALPHA(NOX,IPR,JHC)*DELHC(IPR)
              ! ENDDO
@@ -3987,8 +3991,8 @@
    
          DO IPR = 1, NPROD(JSV)
          DO NOX = 1, NNOX(JSV)   ! update dims (hotp 5/22/10)
-            ! DELHC is now emission of SVOC
-            DELHC(IPR)   = POAEMISS(I,J,L)
+            ! DELHC is now emission of SVOC (POG1 + POG2)
+            DELHC(IPR)   = POAEMISS(I,J,L,1) + POAEMISS(I,J,L,2) 
             GM0(IPR,JSV) = GM0(IPR,JSV) 
      &                   + ALPHA(NOX,IPR,JHC)*DELHC(IPR)
    
@@ -5192,11 +5196,12 @@ ccc
 !
 ! 0 BOND\_ANTH\_POG1 Bond\_fossil.nc OC 2000/1-12/1/0 C xy kg/m2/s POG1 74 1 1
 !
-! All emissions (anthropogenic + biofuel + biomass burning) will go into array
-! POAEMISS(:,:,:). We no longer separate anthropogenic from biofuel and biomass
-! burning since this appears to have been done only for debugging purposes.
-! We assign the SVOC emissions to species POG1 in HEMCO, but routine CHEM_NVOC
-! handles adding POAEMISS to the two gas-phase semivolatile species in the
+! All POG1 emissions (anthropogenic + biofuel + biomass burning) will go into
+! POAEMISS(:,:,:,1) and all POG2 emissions will go into POAEMISS(:,:,:,2). SVOC
+! emissions are assigned to POG1 and POG2 in HEMCO using a ratio of 0.49:0.51.
+! We no longer separate anthropogenic from biofuel and biomass burning since
+! this appears to have been done only for debugging purposes. Routine CHEM_NVOC
+! handles passing POAEMISS to the two gas-phase semivolatile species in the
 ! GM0 array.
 !
 ! IMPORTANT: The SVOC emissions scale factor should be applied through HEMCO.
@@ -5208,9 +5213,9 @@ ccc
 ! !REVISION HISTORY:
 !  11 Nov 2014 - C. Keller   - Initial version
 !  11 Sep 2015 - E. Lundgren - Remove State_Chm from arguments since not used
-!  08 Jan 2016 - M. Sulprizio- Emit all SVOC emissions as POG1, not POA1, in
-!                              HEMCO to better reflect that these emissions are
-!                              added to the gas-phase species in CHEM_NVOC
+!  14 Jan 2016 - M. Sulprizio- Emit SVOC emissions as POG1 and POG2 (not POA1
+!                              and POG1) in HEMCO to better reflect that these
+!                              emissions are added to the gas-phase species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5219,7 +5224,7 @@ ccc
 !
       TYPE(HCO_STATE), POINTER :: HcoState => NULL()
       INTEGER                  :: I, J, L, PBL_MAX
-      INTEGER                  :: HCOPOG1
+      INTEGER                  :: HCOPOG1, HCOPOG2
       REAL(fp)                 :: EMIS, TMPFLX
       REAL(fp)                 :: F_OF_PBL      
       LOGICAL                  :: FOUND
@@ -5251,16 +5256,22 @@ ccc
          ENDIF
       ENDIF
  
-      ! Get HEMCO ID of species POG1
+      ! Get HEMCO ID of species POG1 and POG2
       HCOPOG1 = GetHcoID( TrcID=IDTPOG1 )
       IF ( HCOPOG1 > 0 ) THEN
          IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG1)%Emis%Val) ) THEN
             HCOPOG1 = -1
          ENDIF
       ENDIF
+      HCOPOG2 = GetHcoID( TrcID=IDTPOG2 )
+      IF ( HCOPOG2 > 0 ) THEN
+         IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG2)%Emis%Val) ) THEN
+            HCOPOG2 = -1
+         ENDIF
+      ENDIF
 
       ! Nothing to do if none of the species are defined
-      IF ( SESQID <= 0 .AND. HCOPOG1 <= 0 ) RETURN
+      IF ( SESQID <= 0 .AND. HCOPOG1 <= 0 .AND. HCOPOG2 <=0 ) RETURN
  
       ! Maximum extent of PBL [model levels]
       PBL_MAX = GET_PBL_MAX_L()
@@ -5291,18 +5302,24 @@ ccc
          ! Add SVOC emissions from HEMCO to POAEMISS array.
          ! Mix entire column emissions evenly in the PBL.
          !
-         ! All SVOC emissions are now assigned to the POG1 tracer in HEMCO
-         ! to reflect that these emissions are added to the gas-phase
+         ! All SVOC emissions are now assigned to the POG1 and POG2 species in
+         ! HEMCO to reflect that these emissions are added to the gas-phase
          ! species. The assignment of SVOC emissions to the two gas-phase
          ! species is actually performed in routine CHEM_NVOC. We also no
          ! longer separate anthropogenic from BF and BB emissions because
          ! this appears to have been done only for debugging purposes.
-         ! (mps, 1/8/16)
+         ! (mps, 1/14/16)
          IF ( HCOPOG1 > 0 ) THEN
             ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
             TMPFLX = SUM(HcoState%Spc(HCOPOG1)%Emis%Val(I,J,:))
      &               * GET_TS_EMIS() * 60.0e+0_fp  * GET_AREA_M2(I,J,1)
-            POAEMISS(I,J,L) = F_OF_PBL * TMPFLX
+            POAEMISS(I,J,L,1) = F_OF_PBL * TMPFLX
+         ENDIF 
+         IF ( HCOPOG2 > 0 ) THEN
+            ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
+            TMPFLX = SUM(HcoState%Spc(HCOPOG2)%Emis%Val(I,J,:))
+     &               * GET_TS_EMIS() * 60.0e+0_fp  * GET_AREA_M2(I,J,1)
+            POAEMISS(I,J,L,2) = F_OF_PBL * TMPFLX
          ENDIF 
       ENDDO
       ENDDO
@@ -8832,9 +8849,8 @@ ccc
       OCCONV = 0e+0_fp
 
       ! semivolpoa2: for POA emissions (hotp 2/27/09)
-      ! Remove last array dimension because we no longer need to separate
-      ! anthropogenic from BF and BB emissions (mps, 1/8/16)
-      ALLOCATE( POAEMISS( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ! Store POG1 and POG2 separately (mps, 1/14/16)
+      ALLOCATE( POAEMISS( IIPAR, JJPAR, LLPAR, 2 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'POAEMISS' )
       POAEMISS = 0e+0_fp
 
