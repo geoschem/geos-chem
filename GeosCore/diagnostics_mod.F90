@@ -35,13 +35,14 @@ MODULE Diagnostics_Mod
   PUBLIC  :: Diagnostics_Init
   PUBLIC  :: Diagnostics_Final
   PUBLIC  :: DiagnUpdate_NTracers_3D ! added by ewl in early 2015 NewDiag
+#if defined( DEVEL )
   PUBLIC  :: CalcDobsonColumn        ! added by ck
-
+#endif
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: DiagInit_Drydep        ! ND44 init
-  PRIVATE :: DiagInit_Tracer_Conc   ! ND45 init
+  PRIVATE :: DiagnInit_NChemTracers ! generic routine to initialize diags with
+                                    ! chemical tracer dimension
   PRIVATE :: DiagInit_Pb_Emiss      ! ND01 init
   PRIVATE :: DiagInit_Rn_Decay      ! ND02 init
   PRIVATE :: DiagInit_BL_Frac       ! ND12 init
@@ -56,11 +57,15 @@ MODULE Diagnostics_Mod
   PRIVATE :: DiagInit_Vert_Flx      ! ND26 init
   PRIVATE :: DiagInit_Strat_Flx     ! ND27 init
   PRIVATE :: DiagInit_Landmap       ! ND30 init
-  PRIVATE :: DiagInit_GridBox       ! General init
+  PRIVATE :: DiagInit_GridBox       ! ND68 init
   PRIVATE :: DiagInit_Conv_Loss     ! added by ck
   PRIVATE :: DiagInit_Wetdep_Loss   ! added by ck
   PRIVATE :: DiagInit_Tracer_Emis   ! added by ck
+  PRIVATE :: DiagInit_Drydep        ! ND44 init
+  PRIVATE :: DiagInit_Tracer_Conc   ! ND45 init
+#if defined( DEVEL )
   PRIVATE :: DiagInit_Dobson        ! added by ck
+#endif
 !
 ! !DEFINED PARAMETERS:
 !
@@ -69,7 +74,7 @@ MODULE Diagnostics_Mod
   ! frequency is set to 'End' or the run finishes and these diagnostics
   ! haven't reached the end of their output interval yet).
   CHARACTER(LEN=31), PARAMETER :: RST = 'GEOSCHEM_Restart'
-  CHARACTER(LEN=31), PARAMETER :: DGN = 'GEOSCHEM_Diagnostics'
+  CHARACTER(LEN=31), PARAMETER :: DGN = 'GEOSCHEM_Diagnostics_Hrly'
 
   ! Toggle to enable species diagnostics. This will write out species 
   ! concentrations (in addition to the tracers). Not recommended unless
@@ -79,6 +84,7 @@ MODULE Diagnostics_Mod
 !
 ! !REVISION HISTORY:
 !  09 Jan 2015 - C. Keller   - Initial version. 
+!  14 Jan 2016 - E. Lundgren - Add several GEOS-Chem diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -356,23 +362,28 @@ CONTAINS
        CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_CONC', LOC ) 
     ENDIF
 
-    ! Tropopause diagnostics (ND55)
-    CALL DIAGINIT_TR_PAUSE( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL ERROR_STOP( 'Error in DIAGINIT_TR_PAUSE', LOC )
-    ENDIF
-
-    ! Lightning Flashes diagnostic (ND56)
-    CALL DIAGINIT_LIGHTNING( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL ERROR_STOP( 'Error in DIAGINIT_LIGHTNING', LOC )
-    ENDIF
-
-    ! Potential Temperature (THETA) diagnostic (ND57)
-    CALL DIAGINIT_THETA( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL ERROR_STOP( 'Error in DIAGINIT_THETA', LOC )
-    ENDIF
+! The following diagnostics will be added to the MET field diagnostic:
+! (ewl, 1/14/16)
+!
+!    ! NOTE: This diagnostic is currently calculated in GeosCore/chemgrid_mod.F
+!    !       and is not stored in State_Met
+!    ! Tropopause diagnostics (ND55)
+!    CALL DIAGINIT_TR_PAUSE( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_TR_PAUSE', LOC )
+!    ENDIF
+!
+!    ! Lightning Flashes diagnostic (ND56)
+!    CALL DIAGINIT_LIGHTNING( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_LIGHTNING', LOC )
+!    ENDIF
+!
+!    ! Potential Temperature (THETA) diagnostic (ND57)
+!    CALL DIAGINIT_THETA( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_THETA', LOC )
+!    ENDIF
 
     ! Tracer Mixing Ratio (IJ-MAX) Diagnostic (ND71)
     CALL DIAGINIT_TRACER_MIXING( am_I_Root, Input_Opt, RC )
@@ -380,7 +391,7 @@ CONTAINS
        CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_MIXING', LOC )
     ENDIF
 
-    ! Grid box quantities (ND68)
+    ! State_Met quantities (ND68)
     CALL DIAGINIT_GRIDBOX( am_I_Root, Input_Opt, State_Met, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DIAGINIT_GRIDBOX', LOC )
@@ -394,12 +405,12 @@ CONTAINS
        ENDIF
     ENDIF
 
+#if defined( DEVEL )
     CALL DIAGINIT_DOBSON( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DIAGINIT_DOBSON', LOC ) 
     ENDIF
 
-#if defined( DEVEL )
     ! Initialize tendencies
     CALL TEND_INIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
@@ -645,6 +656,22 @@ CONTAINS
     ! Skip if ND45 diagnostic is turned off
     IF ( Input_Opt%ND45 <= 0 ) RETURN
 
+    !----------------------------------------------------------------
+    ! Create containers for drydep velocity [m/s]
+    !----------------------------------------------------------------
+    
+!    ! Diagnostics of form TRACER_CONC_{TRACER_NAME}
+!    CALL DiagnInit_NChemTracers( am_I_Root,                                &
+!                                 Input_Opt,                                &
+!                                 Prefix      = 'TRACER_CONC_',             & 
+!                                 OutputType  = Input_Opt%ND45_OUTPUT_TYPE, &
+!                                 Units       = 'v/v',                      &
+!                                 InfoNum     = 0,                          &
+!                                 Collection  = Input_Opt%DIAG_COLLECTION,  &
+!                                 Dim         = 3,                          &
+!                                 ChemTracers = Input_Opt%TINDEX(45,:),     &
+!                                 RC          = RC )
+!
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND45_OUTPUT_TYPE
@@ -655,17 +682,17 @@ CONTAINS
        ! If this tracer number N is scheduled for output in input.geos, 
        ! then define the diagnostic containers for drydep velocity & flux
        IF ( ANY( Input_Opt%TINDEX(45,:) == N ) ) THEN
-
+    
           !----------------------------------------------------------------
           ! Create containers for drydep velocity [m/s]
           !----------------------------------------------------------------
-
+    
           ! Diagnostic name
           DiagnName = 'TRACER_CONC_' // TRIM( Input_Opt%TRACER_NAME(N) )
-
+    
           ! Diagnostic ID
           cID = N
-
+    
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
                              Col       = Collection,        & 
@@ -681,7 +708,7 @@ CONTAINS
                              OutOper   = TRIM( OutOper   ), &
                              cID       = cID,               &
                              RC        = RC )
-
+    
           IF ( RC /= HCO_SUCCESS ) THEN
              MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
              CALL ERROR_STOP( MSG, LOC ) 
@@ -3428,7 +3455,6 @@ CONTAINS
   END SUBROUTINE DiagInit_Tracer_Mixing
 
 !EOC
-  
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -3437,7 +3463,7 @@ CONTAINS
 ! !IROUTINE: diagnupdate_ntracers_3D
 !
 ! !DESCRIPTION: Subroutine DIAGNUPDATE\_NTRACERS\_3D updates a generic set of
-!  3D diagnostics that are distinguished from each other by tracer.
+!  3D diagnostics that are distinguished from each other by chemical tracer.
 !  
 !\\
 !\\
@@ -3532,6 +3558,114 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE DiagnUpdate_NTracers_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diagninit_nchemtracers
+!
+! !DESCRIPTION: Subroutine DIAGNINIT\_NCHEMTRACERS initializes a single
+!  set of diagnostics that are distinguished from each other by chemical 
+!  tracer.
+!  
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagnInit_NChemTracers( am_I_Root,  Input_Opt, Prefix,       & 
+                                     OutputType, Units,     InfoNum,      &
+                                     Collection, Dim,       ChemTracers,  &
+                                     RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN)           :: am_I_Root  ! Is this the root CPU?
+    TYPE(OptInput),   INTENT(IN)           :: Input_Opt  ! Input Options object
+    CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: Prefix     ! diag name prefix
+    CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: OutputType ! output type
+    CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: Units      ! units
+    INTEGER,          INTENT(IN), OPTIONAL :: InfoNum    ! diaginfo.dat #
+    INTEGER,          INTENT(IN), OPTIONAL :: Collection ! Collection id
+    INTEGER,          INTENT(IN), OPTIONAL :: Dim        ! Array space dimension
+    INTEGER,          INTENT(IN), OPTIONAL :: ChemTracers(:) ! list of chem trcr
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)        :: RC      ! Success or failure
+! 
+! !REVISION HISTORY: 
+! 14 Jan 2016 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId, N, NumChemTracers
+    CHARACTER(LEN=255)   :: Name, MSG
+    CHARACTER(LEN=255)   :: LOC = 'DiagnInit_NChemTracers (diagnostics_mod.F90)'
+
+    !=======================================================================
+    ! DIAGNINIT_NCHEMTRACERS begins here!
+    !=======================================================================
+      
+    ! NOTE: This routine is a work in progress and there is currently no
+    ! elegant handling if optional arguments are not provided.
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Number of chemical tracers for this diagnostic
+    NumChemTracers = SIZE( ChemTracers )
+
+    ! Loop over tracers
+    DO N = 1, NumChemTracers
+
+       !----------------------------------------------------------------
+       ! Create diagnostic container
+       !----------------------------------------------------------------
+
+       ! Diagnostic name
+       Name = TRIM( Prefix ) // TRIM( Input_Opt%TRACER_NAME( ChemTracers(N) ) )
+
+       ! Diagnostic id
+       cId = InfoNum + N
+
+       ! Create container
+       CALL Diagn_Create( am_I_Root,                      &
+                          Col       = Collection,         & 
+                          cName     = Name,               &
+                          AutoFill  = 0,                  &
+                          ExtNr     = -1,                 &
+                          Cat       = -1,                 &
+                          Hier      = -1,                 &
+                          HcoID     = -1,                 &
+                          SpaceDim  = Dim,                &
+                          LevIDx    = -1,                 &
+                          OutUnit   = TRIM( Units ),      &
+                          OutOper   = TRIM( OutputType ), &
+                          cId       = cId,                &
+                          RC        = RC )
+
+
+       ! Stop with error if fail
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot initialize diagnostic: ' // Name
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF
+  
+    ENDDO
+
+  END SUBROUTINE DiagnInit_NChemTracers
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3716,7 +3850,7 @@ CONTAINS
     CHARACTER(LEN=255) :: LOC = 'DIAGINIT_TRACER_EMIS (diagnostics_mod.F90)' 
 
     !=======================================================================
-    ! DIAGINIT_TRACER_CONC begins here!
+    ! DIAGINIT_TRACER_EMIS begins here!
     !=======================================================================
       
     ! Assume successful return
@@ -4020,6 +4154,7 @@ CONTAINS
 
   END SUBROUTINE DIAGINIT_WETDEP_LOSS
 !EOC
+#if defined( DEVEL )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -4245,6 +4380,7 @@ CONTAINS
    
   END SUBROUTINE CalcDobsonColumn
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------

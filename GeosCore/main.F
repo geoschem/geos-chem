@@ -1716,7 +1716,7 @@
 #endif
 
          ! Eventually write dobson columns into diagnostics array
-#if defined( NETCDF )
+#if defined( DEVEL )
          CALL CalcDobsonColumn ( am_I_Root, Input_Opt,
      &                           State_Met, State_Chm, RC )
 #endif
