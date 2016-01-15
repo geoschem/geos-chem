@@ -35,12 +35,17 @@ MODULE Diagnostics_Mod
   PUBLIC  :: Diagnostics_Init
   PUBLIC  :: Diagnostics_Final
   PUBLIC  :: DiagnUpdate_NTracers_3D ! added by ewl in early 2015 NewDiag
+  PUBLIC  :: DiagUpdate_Met          ! ND31, 55, 56, 57, 66, 67, 68, 
+                                     ! and 69 update
 #if defined( DEVEL )
   PUBLIC  :: CalcDobsonColumn        ! added by ck
 #endif
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
+! NOTE: consider clumping some of the existing diagnostic groups into larger
+! groups and consolidating the init into group-level only
+! (e.g. transport flux). This has already been done for Met (ewl, 1/15/16)
   PRIVATE :: DiagnInit_NChemTracers ! generic routine to initialize diags with
                                     ! chemical tracer dimension
   PRIVATE :: DiagInit_Pb_Emiss      ! ND01 init
@@ -57,7 +62,8 @@ MODULE Diagnostics_Mod
   PRIVATE :: DiagInit_Vert_Flx      ! ND26 init
   PRIVATE :: DiagInit_Strat_Flx     ! ND27 init
   PRIVATE :: DiagInit_Landmap       ! ND30 init
-  PRIVATE :: DiagInit_GridBox       ! ND68 init
+  PRIVATE :: DiagInit_Met           ! ND31, 55, 56, 57, 66, 67, 68, 
+                                    ! and 69 init
   PRIVATE :: DiagInit_Conv_Loss     ! added by ck
   PRIVATE :: DiagInit_Wetdep_Loss   ! added by ck
   PRIVATE :: DiagInit_Tracer_Emis   ! added by ck
@@ -192,10 +198,11 @@ CONTAINS
     Input_Opt%DIAG_COLLECTION = CollectionID
 
     !-----------------------------------------------------------------------
-    ! Add diagnostics to collection 
+    ! Create diagnostics containers and add to collections by initializing
+    ! each diagnostic group
     ! (Add calls to additional subroutines for other diagnostics here!)
     !
-    ! NOTE: Right now there is only 1 GEOS-Chem collection, but eventually
+    ! NOTE: Right now there is only one GEOS-Chem collection, but eventually
     ! we may want to add more (i.e. hourly, instantaneous, monthly, etc.)
     !-----------------------------------------------------------------------
 
@@ -313,12 +320,6 @@ CONTAINS
        CALL ERROR_STOP( 'Error in DIAGINIT_LANDMAP', LOC ) 
     ENDIF
 
-    ! Surface Pressure diagnostic (ND31)
-    CALL DIAGINIT_PEDGE( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL ERROR_STOP( 'Error in DIAGINIT_PEDGE', LOC )
-    ENDIF
-
     ! Trop. Column Sum of Tracer (ND33)
     CALL DIAGINIT_COLUMNT( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
@@ -361,40 +362,20 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_CONC', LOC ) 
     ENDIF
-
-! The following diagnostics will be added to the MET field diagnostic:
-! (ewl, 1/14/16)
 !
-!    ! NOTE: This diagnostic is currently calculated in GeosCore/chemgrid_mod.F
-!    !       and is not stored in State_Met
-!    ! Tropopause diagnostics (ND55)
-!    CALL DIAGINIT_TR_PAUSE( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_TR_PAUSE', LOC )
-!    ENDIF
-!
-!    ! Lightning Flashes diagnostic (ND56)
-!    CALL DIAGINIT_LIGHTNING( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_LIGHTNING', LOC )
-!    ENDIF
-!
-!    ! Potential Temperature (THETA) diagnostic (ND57)
-!    CALL DIAGINIT_THETA( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_THETA', LOC )
-!    ENDIF
-
     ! Tracer Mixing Ratio (IJ-MAX) Diagnostic (ND71)
     CALL DIAGINIT_TRACER_MIXING( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_MIXING', LOC )
     ENDIF
 
-    ! State_Met quantities (ND68)
-    CALL DIAGINIT_GRIDBOX( am_I_Root, Input_Opt, State_Met, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL ERROR_STOP( 'Error in DIAGINIT_GRIDBOX', LOC )
+    ! Meteorology state diagnostic (ND31, 55, 56, 57, 66, 67, 68, and 69)
+    ! For now, use ND68 as indicator for entire diagnostic group
+    IF ( Input_Opt%ND68 > 0 ) THEN
+       CALL DIAGINIT_MET( am_I_Root, Input_Opt, State_Met, RC )
+       IF ( RC /= GIGC_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Error in DIAGINIT_MET', LOC )
+       ENDIF
     ENDIF
 
     ! Tracer emission diagnostics (NEW)
@@ -2814,103 +2795,6 @@ CONTAINS
   END SUBROUTINE DiagInit_LandMap
 
 !EOC
-
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: diaginit_pedge
-!
-! !DESCRIPTION: Subroutine DIAGINIT\_PEDGE initializes the diagnostics
-!  for Pressure (aka ND31).
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE DiagInit_Pedge( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-    USE Error_Mod,          ONLY : Error_Stop
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE HCO_Error_Mod
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
-!
-! !REVISION HISTORY:
-!  28 Jan 2015 - M. Yannetti - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER              :: cId,      Collection, N
-    CHARACTER(LEN=15)    :: OutOper 
-    CHARACTER(LEN=60)    :: DiagnName
-    CHARACTER(LEN=255)   :: MSG
-    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_PEDGE (diagnostics_mod.F90)'
-
-    !=======================================================================
-    ! DIAGINIT_PEDGE begins here!
-    !=======================================================================
-
-    ! Assume successful return
-    RC = GIGC_SUCCESS
-
-    ! Skip if ND31 diagnostic is turned off
-
-      IF ( Input_Opt%ND31 <= 0 ) RETURN
-
-    ! Get diagnostic parameters from the Input_Opt object
-    Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = Input_Opt%ND31_OUTPUT_TYPE
-
-    ! TODO Check if certain tracer(s) listed for ND31 in input.geos 
-
-    !----------------------------------------------------------------
-    ! Create containers for Pressure
-    !----------------------------------------------------------------
-
-    ! Diagnostic name
-    DiagnName = 'PEDGE'
-
-    ! Create container
-    CALL Diagn_Create( am_I_Root,                     &
-                       Col       = Collection,        &
-                       cName     = TRIM( DiagnName ), &
-                       AutoFill  = 0,                 &
-                       ExtNr     = -1,                &
-                       Cat       = -1,                &
-                       Hier      = -1,                &
-                       HcoID     = -1,                &
-                       SpaceDim  =  3,                &
-                       LevIDx    = -1,                &
-                       OutUnit   = 'mb',              &
-                       OutOper   = TRIM( OutOper   ), &
-                       cId       = cId,               &
-                       RC        = RC )
-
-    IF ( RC /= HCO_SUCCESS ) THEN
-       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-       CALL ERROR_STOP( MSG, LOC )
-    ENDIF
-
-  END SUBROUTINE DiagInit_Pedge
-
-!EOC
-
-
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -3010,350 +2894,6 @@ CONTAINS
   END SUBROUTINE DiagInit_ColumnT
 
 !EOC
-
-
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: diaginit_tr_pause
-!
-! !DESCRIPTION: Subroutine DIAGINIT\_TR\_PAUSE initializes the diagnostics
-!  for Tropopause height/level/pressure. (aka ND55).
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE DiagInit_Tr_Pause( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-    USE Error_Mod,          ONLY : Error_Stop
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE HCO_Error_Mod
-    USE CMN_DIAG_MOD,       ONLY : PD55
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
-!
-! !REVISION HISTORY:
-!  28 Jan 2015 - M. Yannetti - Initial version
-!  13 Jan 2016 - E. Lundgren - Define cID diagnostic info number and
-!                              different name per diagnostic tracer
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER              :: cId,      Collection, N, M
-    CHARACTER(LEN=15)    :: OutOper 
-    CHARACTER(LEN=60)    :: DiagnName
-    CHARACTER(LEN=255)   :: MSG
-    CHARACTER(LEN=40)    :: THEUNIT
-    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_TR_PAUSE (diagnostics_mod.F90)'
-
-    !=======================================================================
-    ! DIAGINIT_TR_PAUSE begins here!
-    !=======================================================================
-
-    ! Assume successful return
-    RC = GIGC_SUCCESS
-
-    ! Skip if ND55 diagnostic is turned off
-
-      IF ( Input_Opt%ND55 <= 0 ) RETURN
-
-    ! Get diagnostic parameters from the Input_Opt object
-    Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = Input_Opt%ND55_OUTPUT_TYPE
-
-    ! TODO Check if certain tracer(s) listed for ND55 in input.geos 
-
-    !----------------------------------------------------------------
-    ! Create containers for Tropopause Diags
-    !----------------------------------------------------------------
-
-    ! Loop over ND55 diagnostic tracers
-    DO M = 1, Input_Opt%TMAX(55)
-
-      ! Define quantities
-      N = Input_Opt%TINDEX(55,M)
-      IF ( N > PD55 ) CYCLE
-
-      ! Pick the appropriate unit string
-      SELECT CASE ( N )
-        CASE ( 1 )
-          THEUNIT = 'unitless'
-        CASE ( 2 )
-          THEUNIT = 'km'
-        CASE ( 3 )
-          THEUNIT = 'mb'
-      END SELECT
-
-      ! Define diagnostic name based on units
-      DiagnName = 'TR-PAUSE_' // TRIM( THEUNIT )
-      
-      ! Diagnostics ID
-      cID = 26000 + N
-
-    ! pulled from diag3... not sure where these vars are... (mdy)
-!     ARRAY(:,:,1) = AD55(:,:,N) / SCALEDYN
-
-    ! Create container
-      CALL Diagn_Create( am_I_Root,                       &
-                       Col       = Collection    ,        &
-                       cName     = TRIM( DiagnName ),     &
-                       AutoFill  = 0,                     &
-                       ExtNr     = -1,                    &
-                       Cat       = -1,                    &
-                       Hier      = -1,                    &
-                       HcoID     = -1,                    &
-                       SpaceDim  =  3,                    &
-                       LevIDx    = -1,                    &
-                       OutUnit   = TRIM( THEUNIT   ),     &
-                       OutOper   = TRIM( OutOper   ),     &
-                       cId       = cId,                   &
-                       RC        = RC )
-      
-      IF ( RC /= HCO_SUCCESS ) THEN
-         MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-         CALL ERROR_STOP( MSG, LOC )
-      ENDIF
-
-  ENDDO
-
-  END SUBROUTINE DiagInit_Tr_Pause
-
-!EOC
-
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: diaginit_lightning
-!
-! !DESCRIPTION: Subroutine DIAGINIT\_LIGHTNING initializes the diagnostics
-!  for Lightning Flashrate (aka ND56).
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE DiagInit_Lightning( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-    USE Error_Mod,          ONLY : Error_Stop
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE HCO_Error_Mod
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
-!
-! !REVISION HISTORY:
-!  28 Jan 2015 - M. Yannetti - Initial version
-!  13 Jan 2016 - E. Lundgren - Define diagnostics ID
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER              :: cId,      Collection, N, M
-    CHARACTER(LEN=15)    :: OutOper 
-    CHARACTER(LEN=60)    :: DiagnName
-    CHARACTER(LEN=255)   :: MSG
-    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_LIGHTNING (diagnostics_mod.F90)'
-
-    !=======================================================================
-    ! DIAGINIT_LIGHTNING begins here!
-    !=======================================================================
-
-    ! Assume successful return
-    RC = GIGC_SUCCESS
-
-    ! Skip if ND56 diagnostic is turned off
-
-    IF ( Input_Opt%ND56 <= 0 ) RETURN
-
-    ! Get diagnostic parameters from the Input_Opt object
-    Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = Input_Opt%ND56_OUTPUT_TYPE
-
-    ! TODO Check if certain tracer(s) listed for ND56 in input.geos 
-
-    !----------------------------------------------------------------
-    ! Create containers for Lightning
-    !----------------------------------------------------------------
-
-    ! Loop over ND56 diagnostic tracers
-    DO M = 1, 3
-
-    ! Define quantities
-      N = Input_Opt%TINDEX(56,M)
-
-      SELECT CASE ( N )
-         CASE ( 1 )
-           DiagnName = 'LIGHTNING_TOTAL_FLASHRATE'
-         CASE ( 2 )
-           DiagnName = 'LIGHTNING_INTRACLOUD_FLASHRATE'
-         CASE ( 3 )
-           DiagnName = 'LIGHTNING_CLOUDGROUND_FLASHRATE'
-         CASE DEFAULT
-           MSG = 'Lightning index N must not exceed 3!'
-           CALL ERROR_STOP ( MSG, LOC )
-       END SELECT
-
-       ! Diagnostics ID
-       cID = 42000 + N
-
-       ! Create container
-       CALL Diagn_Create( am_I_Root,                     &
-                          Col       = Collection,        &
-                          cName     = TRIM( DiagnName ), &
-                          AutoFill  = 0,                 &
-                          ExtNr     = -1,                &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
-                          SpaceDim  =  3,                &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'flashes/min/km2', &
-                          OutOper   = TRIM( OutOper   ), &
-                          cId       = cId,               &
-                          RC        = RC )
-
-       IF ( RC /= HCO_SUCCESS ) THEN
-           MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-           CALL ERROR_STOP( MSG, LOC )
-       ENDIF
-    ENDDO
-  END SUBROUTINE DiagInit_Lightning
-
-!EOC
-
-
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: diaginit_theta
-!
-! !DESCRIPTION: Subroutine DIAGINIT\_THETA initializes the diagnostics
-!  for Potential Temperature (aka ND57).
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE DiagInit_Theta( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-    USE Error_Mod,          ONLY : Error_Stop
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE HCO_Error_Mod
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
-!
-! !REVISION HISTORY:
-!  28 Jan 2015 - M. Yannetti - Initial version
-!  13 Jan 2016 - E. Lundgren - Define diagnostic ID
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER              :: cId,      Collection, N
-    CHARACTER(LEN=15)    :: OutOper 
-    CHARACTER(LEN=60)    :: DiagnName
-    CHARACTER(LEN=255)   :: MSG
-    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_THETA (diagnostics_mod.F90)'
-
-    !=======================================================================
-    ! DIAGINIT_THETA begins here!
-    !=======================================================================
-
-    ! Assume successful return
-    RC = GIGC_SUCCESS
-
-    ! Skip if ND57 diagnostic is turned off
-
-      IF ( Input_Opt%ND57 <= 0 ) RETURN
-
-    ! Get diagnostic parameters from the Input_Opt object
-    Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = Input_Opt%ND57_OUTPUT_TYPE
-
-    ! TODO Check if certain tracer(s) listed for ND57 in input.geos 
-
-    !----------------------------------------------------------------
-    ! Create containers for Potential Temperature
-    !----------------------------------------------------------------
-
-    ! Diagnostic name
-    DiagnName = 'THETA'
-
-    ! Diagnostic ID
-    cID = 57001
-
-    ! another import from diag3... (mdy)
-!    ARRAY(:,:,1:LD57) = AD57(:,:,1:LD57) / SCALEDIAG
-
-    ! Create container
-    CALL Diagn_Create( am_I_Root,                     &
-                       Col       = Collection,        &
-                       cName     = TRIM( DiagnName ), &
-                       AutoFill  = 0,                 &
-                       ExtNr     = -1,                &
-                       Cat       = -1,                &
-                       Hier      = -1,                &
-                       HcoID     = -1,                &
-                       SpaceDim  =  3,                &
-                       LevIDx    = -1,                &
-                       OutUnit   = 'K' ,              &
-                       OutOper   = TRIM( OutOper   ), &
-                       cId       = cId,               &
-                       RC        = RC )
-
-    IF ( RC /= HCO_SUCCESS ) THEN
-       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-       CALL ERROR_STOP( MSG, LOC )
-    ENDIF
-
-  END SUBROUTINE DiagInit_Theta
-
-!EOC
-
-
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -3619,7 +3159,8 @@ CONTAINS
     !=======================================================================
       
     ! NOTE: This routine is a work in progress and there is currently no
-    ! elegant handling if optional arguments are not provided.
+    ! elegant handling if optional arguments are not provided. It does not
+    ! yet work.
 
     ! Assume successful return
     RC = GIGC_SUCCESS
@@ -3672,15 +3213,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: diaginit_gridbox
+! !IROUTINE: diaginit_met
 !
-! !DESCRIPTION: Subroutine DIAGINIT\_GRIDBOX initializes the grid box quantity 
-!  diagnostic (aka ND68).
+! !DESCRIPTION: Subroutine DIAGINIT\_MET initializes the meteorology state
+!  diagnostics (aka ND31, ND55, ND56, ND57, ND66, ND67, ND68, and ND69).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DIAGINIT_GRIDBOX( am_I_Root, Input_Opt, State_Met, RC )
+  SUBROUTINE DiagInit_Met( am_I_Root, Input_Opt, State_Met, RC )
 !
 ! !USES:
 !
@@ -3704,78 +3245,108 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  21 Jan 2015 - E. Lundgren - Initial version
-!  13 Jan 2016 - E. Lundgren - Define diagnostic ID
+!  15 Jan 2016 - E. Lundgren - Revise for all MET-related diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: cId, Collection, N
+    INTEGER            :: cId, Collection, N, Num2D, Num3D
     INTEGER            :: SpaceDim 
     REAL(hp)           :: ScaleFact
     CHARACTER(LEN=15)  :: OutOper, OutUnit
-    CHARACTER(LEN=60)  :: DiagnName
+    CHARACTER(LEN=30)  :: NameSuffix, DiagnName
     CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_GRIDBOX (diagnostics_mod.F90)' 
+    CHARACTER(LEN=255) :: LOC = 'DiagInit_Met (diagnostics_mod.F90)' 
 
     !=======================================================================
-    ! DIAGINIT_GRIDBOX begins here!
+    ! DIAGINIT_MET begins here!
     !=======================================================================
       
     ! Assume successful return
     RC = GIGC_SUCCESS
 
-    ! Skip if ND68 diagnostic is turned off
-    IF ( Input_Opt%ND68 <= 0 ) RETURN
-
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND68_OUTPUT_TYPE
-      
-    ! There are six diagnostics 
-    DO N = 1,6
 
-       !----------------------------------------------------------------
-       ! Create containers
-       !----------------------------------------------------------------
+    ! Set default scale factor as 1.0
+    ScaleFact  = 1.0_fp
+
+    ! Set number of 3D and 2D MET diagnostics
+    Num3d = 12
+    Num2d = 28
+
+    !----------------------------------------------------------------
+    ! Create containers
+    !----------------------------------------------------------------
+  
+    ! Loop over 3D diagnostics within Met category
+    DO N = 1, Num3D
 
        SELECT CASE ( N )
           CASE ( 1 )
-             DiagnName = 'BOXHEIGHT'
-             OutUnit   = 'm'
-             ScaleFact = 1.0_hp
-             SpaceDim  = 3
+             NameSuffix = 'THETA'           ! ND57, trcr 1
+             OutUnit    = 'K'
+             cId        = 57001
           CASE ( 2 )
-             DiagnName = 'AIRMASS'
-             OutUnit   = 'kg'
-             ScaleFact = 1.0_hp
-             SpaceDim  = 3
+             NameSuffix = 'UWND'            ! ND66, trcr 1 
+             OutUnit    = 'm/s'
+             cId        = 12001
           CASE ( 3 )
-             DiagnName = 'AIRDENSITY'
-             OutUnit   = 'kg m-3'
-             ScaleFact = 1.0_hp
-             SpaceDim  = 3
+             NameSuffix = 'VWND'            ! ND66, trcr 2
+             OutUnit    = 'm/s'
+             cId        = 12002
           CASE ( 4 )
-             IF ( .NOT. ASSOCIATED(State_Met%AVGW) ) CYCLE
-             DiagnName = 'AVGW'
-             OutUnit   = 'v/v'
-             ScaleFact = 1.0_hp
-             SpaceDim  = 3
+             NameSuffix = 'TMPU'            ! ND66, trcr 3
+             OutUnit    = 'K'
+             cId        = 12003
           CASE ( 5 )
-             DiagnName = 'TROPP_PRESSURE'
-             OutUnit   = 'hPa'
-             ScaleFact = 1.0_hp
-             SpaceDim  = 2
+             NameSuffix = 'SPHU'            ! ND66, trcr 4
+             OutUnit    = 'g H2O/kg air'
+             cId        = 12004
           CASE ( 6 )
-             DiagnName = 'TROPP_LEVEL'
-             OutUnit   = 'count'
-             ScaleFact = 1.0_hp
-             SpaceDim  = 2
+             NameSuffix = 'CLDMAS'          ! ND66, trcr 5
+             OutUnit    = 'kg/m2/s'
+             cId        = 12005
+          CASE ( 7 )
+             NameSuffix = 'DTRAIN'          ! ND66, trcr 6
+             OutUnit    = 'kg/m2/s'
+             cId        = 12006
+          CASE ( 8 )
+             NameSuffix = 'BXHEIGHT'        ! ND68, trcr 1
+             OutUnit    = 'm'
+             cID        = 24001
+          CASE ( 9 )
+             NameSuffix = 'DRYAIRMASS'      ! ND68, trcr 2
+             OutUnit    = 'kg'
+             cID        = 24002
+          CASE ( 10 )
+             IF ( .NOT. ASSOCIATED(State_Met%AVGW) ) CYCLE
+             NameSuffix = 'AVGW'            ! ND68, trcr 3
+             OutUnit    = 'v/v'
+             cID        = 24004
+          CASE ( 11 )
+             NameSuffix = 'NAIR'            ! ND68, trcr 4
+             OutUnit    = 'molec dry air/m3'
+             cID        = 24003
+          CASE ( 12 )
+             NameSuffix = 'PEDGE'           ! ND31, trcr 1
+             OutUnit    = 'hPa'
+             cID        = 10001
+          CASE DEFAULT
+             IF ( N < Num3D ) THEN
+                MSG = 'Num3D is less than number of named 3D MET diagnostics'
+             ELSE
+                MSG = 'Undefined 3D diagnostic in MET diagnostic group'
+             ENDIF
+             CALL ERROR_STOP( MSG, LOC ) 
        END SELECT
 
-       ! Diagnostic ID
-       cID = 24000 + N
+       ! Diagnostic info
+       DiagnName = 'MET_' // NameSuffix
+       SpaceDim   = 3
 
        ! Create container
        CALL Diagn_Create( am_I_Root,                     &
@@ -3795,12 +3366,423 @@ CONTAINS
                           RC        = RC )
 
        IF ( RC /= HCO_SUCCESS ) THEN
-          MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+          MSG = 'Cannot create MET diagnostic ' // TRIM(DiagnName)
           CALL ERROR_STOP( MSG, LOC ) 
        ENDIF
     ENDDO
 
-  END SUBROUTINE DiagInit_GridBox
+    ! Loop over 2D diagnostics within Met category
+    DO N = 1, Num2D
+
+       SELECT CASE ( N )
+          CASE ( 1 )
+             NameSuffix = 'TR-PAUSE_Level'  ! ND55, trcr 1
+             OutUnit    = 'Level index'
+             cId        = 26001
+          CASE ( 2 )
+             NameSuffix = 'TR-PAUSE_km'     ! ND55, trcr 2
+             OutUnit    = 'km'
+             cId        = 26002
+          CASE ( 3 )
+             NameSuffix = 'TR-PAUSE_mb'     ! ND55, trcr 3
+             OutUnit    = 'mb'
+             cId        = 26003
+          CASE ( 4 )
+             NameSuffix = 'LFLASH_TOTAL'    ! ND56, trcr 1
+             OutUnit    = 'flashes/min/km2'
+             cId        = 42001
+          CASE ( 5 )
+             NameSuffix = 'LFLASH_INTRA'    ! ND56, trcr 2
+             OutUnit    = 'flashes/min/km2'
+             cId        = 42002
+          CASE ( 6 )
+             NameSuffix = 'LFLASH_CLDGND'  ! ND56, trcr 3
+             OutUnit    = 'flashes/min/km2'
+             cId        = 42003
+          CASE ( 7 )
+             NameSuffix = 'HFLUX'           ! ND67, trcr 1
+             OutUnit    = 'W/m2'
+             cId        = 11001
+          CASE ( 8 )
+             NameSuffix = 'RADSWG'          ! ND67, trcr 2
+             OutUnit    = 'W/m2'
+             cId        = 11002
+          CASE ( 9 )
+             NameSuffix = 'PREACC'          ! ND67, trcr 3
+             OutUnit    = 'mm/day'
+             cId        = 11003
+          CASE ( 10 )
+             NameSuffix = 'PRECON'          ! ND67, trcr 4
+             OutUnit    = 'mm/day'
+             cId        = 11004
+          CASE ( 11 )
+             NameSuffix = 'TS'              ! ND67, trcr 5
+             OutUnit    = 'K'
+             cId        = 11005
+          CASE ( 12 )
+             NameSuffix = 'RADSWT'          ! ND67, trcr 6
+             OutUnit    = 'W/m2'
+             cId        = 11006
+          CASE ( 13 )
+             NameSuffix = 'USTAR'           ! ND67, trcr 7
+             OutUnit    = 'm/s'
+             cId        = 11007
+          CASE ( 14 )
+             NameSuffix = 'Z0'              ! ND67, trcr 8
+             OutUnit    = 'm'
+             cId        = 11008
+          CASE ( 15 )
+             NameSuffix = 'PBL'             ! ND67, trcr 9
+             OutUnit    = 'hPa'
+             cId        = 11009
+          CASE ( 16 )
+             NameSuffix = 'CLDFRC'          ! ND67, trcr 10
+             OutUnit    = '0-1'
+             cId        = 11010
+          CASE ( 17 )
+             NameSuffix = 'U10M'            ! ND67, trcr 11
+             OutUnit    = 'm/s'
+             cId        = 11011
+          CASE ( 18 )
+             NameSuffix = 'V10M'            ! ND67, trcr 12
+             OutUnit    = 'm/s'
+             cId        = 11012
+          CASE ( 19 )
+             NameSuffix = 'PS-PBL'          ! ND67, trcr 13
+             OutUnit    = 'hPa'
+             cId        = 11013
+          CASE ( 20 )
+             NameSuffix = 'ALBD'            ! ND67, trcr 14
+             OutUnit    = 'unitless'
+             cId        = 11014
+          CASE ( 21 )
+             NameSuffix = 'PHIS'            ! ND67, trcr 15
+             OutUnit    = 'm'
+             cId        = 11015
+          CASE ( 22 )
+             NameSuffix = 'CLTOP'           ! ND67, trcr 16
+             OutUnit    = 'levels'
+             cId        = 11016
+          CASE ( 23 )
+             NameSuffix = 'TROPP'           ! ND67, trcr 17
+             OutUnit    = 'hPa'
+             cId        = 11017
+          CASE ( 24 )
+             NameSuffix = 'SLP'             ! ND67, trcr 18
+             OutUnit    = 'hPa'
+             cId        = 11018
+          CASE ( 25 )
+             NameSuffix = 'TSKIN'           ! ND67, trcr 19
+             OutUnit    = 'K'
+             cId        = 11019
+          CASE ( 26 )
+             NameSuffix = 'PARDF'           ! ND67, trcr 20
+             OutUnit    = 'W/2'
+             cId        = 11020
+          CASE ( 27 )
+             NameSuffix = 'PARDR'           ! ND67, trcr 21
+             OutUnit    = 'W/m2'
+             cId        = 11021
+          CASE ( 28 )
+             NameSuffix = 'GWETTOP'         ! ND67, trcr 22
+             OutUnit    = 'unitless'
+             cId        = 11022
+          CASE DEFAULT
+             IF ( N < Num2D ) THEN
+                MSG = 'Num2D is less than number of named 2D MET diagnostics'
+             ELSE
+                MSG = 'Undefined 2D diagnostic in MET diagnostic group'
+             ENDIF
+             CALL ERROR_STOP( MSG, LOC ) 
+       END SELECT
+
+       ! Diagnostic info
+       DiagnName = 'MET_' // NameSuffix
+       SpaceDim   = 2
+
+       ! Create container
+       CALL Diagn_Create( am_I_Root,                     &
+                          Col       = Collection,        & 
+                          cName     = TRIM( DiagnName ), &
+                          AutoFill  = 0,                 &
+                          ExtNr     = -1,                &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  =  SpaceDim,         &
+                          LevIDx    = -1,                &
+                          OutUnit   = TRIM( OutUnit   ), &
+                          OutOper   = TRIM( OutOper   ), &
+                          cID       = cID,               &
+                          ScaleFact = ScaleFact,         &
+                          RC        = RC )
+
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot create MET diagnostic ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE DiagInit_Met
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diagupdate_met
+!
+! !DESCRIPTION: Subroutine DIAGUPDATE\_MET updates the meteorology state
+!  diagnostics (aka ND31, ND55, ND56, ND57, ND66, ND67, ND68, and ND69).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagUpdate_Met( am_I_Root, Input_Opt, State_Met, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create, Diagn_Update
+    USE HCO_Error_Mod
+    USE PHYSCONSTANTS,      ONLY : XNUMOLAIR
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(MetState), INTENT(IN   ) :: State_Met  ! Met state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  21 Jan 2015 - E. Lundgren - Initial version
+!  15 Jan 2016 - E. Lundgren - Revise for all MET-related diagnostics
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: Collection, N, Num2D, Num3D
+    CHARACTER(LEN=30)  :: NameSuffix, DiagnName
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DiagUpdate_Met (diagnostics_mod.F90)'
+    REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+    REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
+
+    !=======================================================================
+    ! DIAGUPDATE_MET begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Get diagnostic parameters from the Input_Opt object
+    ! This is not currently used, but keep for possible later use/editing
+    Collection = Input_Opt%DIAG_COLLECTION
+
+    ! Set number of 3D and 2D MET diagnostics
+    Num3d = 12
+    Num2d = 28
+
+    !----------------------------------------------------------------
+    ! Update containers
+    !----------------------------------------------------------------
+  
+    ! Loop over 3D diagnostics within Met category
+    DO N = 1, Num3D
+
+       SELECT CASE ( N )
+          CASE ( 1 )
+             NameSuffix = 'THETA'           ! ND57, trcr 1
+             Ptr3D => State_Met%T  ! placeholder for all
+          CASE ( 2 )
+             NameSuffix = 'UWND'            ! ND66, trcr 1 
+             Ptr3D => State_Met%T  ! placeholder for all
+          CASE ( 3 )
+             NameSuffix = 'VWND'            ! ND66, trcr 2
+             Ptr3D => State_Met%T  ! placeholder for all
+          CASE ( 4 )
+             NameSuffix = 'TMPU'            ! ND66, trcr 3
+             Ptr3D => State_Met%T  ! placeholder for all
+          CASE ( 5 )
+             NameSuffix = 'SPHU'            ! ND66, trcr 4
+             Ptr3D => State_Met%T  ! placeholder for all
+          CASE ( 6 )
+             NameSuffix = 'CLDMAS'          ! ND66, trcr 5
+             Ptr3D => State_Met%T  ! placeholder for all
+          CASE ( 7 )
+             NameSuffix = 'DTRAIN'          ! ND66, trcr 6
+             Ptr3D => State_Met%T  ! placeholder for all
+          CASE ( 8 )
+             NameSuffix = 'BXHEIGHT'        ! ND68, trcr 1
+             Ptr3D => State_Met%T  ! placeholder for all
+          CASE ( 9 )
+             NameSuffix = 'DRYAIRMASS'      ! ND68, trcr 2
+             Ptr3D => State_Met%T  ! placeholder for all
+          CASE ( 10 )
+             IF ( .NOT. ASSOCIATED(State_Met%AVGW) ) CYCLE
+             NameSuffix = 'AVGW'            ! ND68, trcr 3
+             Ptr3D => State_Met%T  ! placeholder for all
+          CASE ( 11 )
+             NameSuffix = 'NAIR'            ! ND68, trcr 4
+             Ptr3D => State_Met%T  ! placeholder for all
+          CASE ( 12 )
+             NameSuffix = 'PEDGE'           ! ND31, trcr 1
+             Ptr3D => State_Met%T  ! placeholder for all
+          CASE DEFAULT
+             IF ( N < Num3D ) THEN
+                MSG = 'Num3D is less than number of named 3D MET diagnostics'
+             ELSE
+                MSG = 'Undefined 3D diagnostic in MET diagnostic group'
+             ENDIF
+             CALL ERROR_STOP( MSG, LOC ) 
+       END SELECT
+
+       ! Diagnostic name
+       DiagnName = 'MET_' // NameSuffix
+
+       ! Update diagnostics
+       IF ( ASSOCIATED(Ptr3D) ) THEN 
+          CALL Diagn_Update( am_I_Root,                    &
+                             cName   = TRIM( DiagnName ),  &
+                             Array3D = Ptr3D,              &
+                             RC      = RC )
+
+          ! Free the pointer
+          Ptr3D => NULL()
+ 
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot update MET diagnostic ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF
+       ENDIF
+    ENDDO
+
+    ! Loop over 2D diagnostics within Met category
+    DO N = 1, Num2D
+
+       SELECT CASE ( N )
+          CASE ( 1 )
+             NameSuffix = 'TR-PAUSE_Level'  ! ND55, trcr 1
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 2 )
+             NameSuffix = 'TR-PAUSE_km'     ! ND55, trcr 2
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 3 )
+             NameSuffix = 'TR-PAUSE_mb'     ! ND55, trcr 3
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 4 )
+             NameSuffix = 'LFLASH_TOTAL'    ! ND56, trcr 1
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 5 )
+             NameSuffix = 'LFLASH_INTRA'    ! ND56, trcr 2
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 6 )
+             NameSuffix = 'LFLASH_CLDGND'   ! ND56, trcr 3
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 7 )
+             NameSuffix = 'HFLUX'           ! ND67, trcr 1
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 8 )
+             NameSuffix = 'RADSWG'          ! ND67, trcr 2
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 9 )
+             NameSuffix = 'PREACC'          ! ND67, trcr 3
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 10 )
+             NameSuffix = 'PRECON'          ! ND67, trcr 4
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 11 )
+             NameSuffix = 'TS'              ! ND67, trcr 5
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 12 )
+             NameSuffix = 'RADSWT'          ! ND67, trcr 6
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 13 )
+             NameSuffix = 'USTAR'           ! ND67, trcr 7
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 14 )
+             NameSuffix = 'Z0'              ! ND67, trcr 8
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 15 )
+             NameSuffix = 'PBL'             ! ND67, trcr 9
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 16 )
+             NameSuffix = 'CLDFRC'          ! ND67, trcr 10
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 17 )
+             NameSuffix = 'U10M'            ! ND67, trcr 11
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 18 )
+             NameSuffix = 'V10M'            ! ND67, trcr 12
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 19 )
+             NameSuffix = 'PS-PBL'          ! ND67, trcr 13
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 20 )
+             NameSuffix = 'ALBD'            ! ND67, trcr 14
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 21 )
+             NameSuffix = 'PHIS'            ! ND67, trcr 15
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 22 )
+             NameSuffix = 'CLTOP'           ! ND67, trcr 16
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 23 )
+             NameSuffix = 'TROPP'           ! ND67, trcr 17
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 24 )
+             NameSuffix = 'SLP'             ! ND67, trcr 18
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 25 )
+             NameSuffix = 'TSKIN'           ! ND67, trcr 19
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 26 )
+             NameSuffix = 'PARDF'           ! ND67, trcr 20
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 27 )
+             NameSuffix = 'PARDR'           ! ND67, trcr 21
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE ( 28 )
+             NameSuffix = 'GWETTOP'         ! ND67, trcr 22
+             Ptr2D => State_Met%TROPP  ! placeholder for all
+          CASE DEFAULT
+             IF ( N < Num2D ) THEN
+                MSG = 'Num2D is less than number of named 2D MET diagnostics'
+             ELSE
+                MSG = 'Undefined 2D diagnostic in MET diagnostic group'
+             ENDIF
+             CALL ERROR_STOP( MSG, LOC ) 
+       END SELECT
+
+       ! Diagnostic info
+       DiagnName = 'MET_' // NameSuffix
+
+       ! Update diagnostics
+       IF ( ASSOCIATED(Ptr2D) ) THEN 
+          CALL Diagn_Update( am_I_Root,                   &
+                             cName   = TRIM( DiagnName ), &
+                             Array2D = Ptr2D,             &
+                             RC      = RC )
+
+          ! Free the pointer
+          Ptr2D => NULL()
+ 
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot update 2D MET diagnostic ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE DiagUpdate_Met
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
