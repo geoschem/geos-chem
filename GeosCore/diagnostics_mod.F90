@@ -99,7 +99,7 @@ CONTAINS
 ! !IROUTINE: Diagnostics_Init
 !
 ! !DESCRIPTION: Subroutine Diagnostics\_Init initializes the GEOS-Chem 
-! diagnostics collection. 
+! diagnostics collections and populates them with diagnostics containers. 
 !\\
 !\\
 ! !INTERFACE:

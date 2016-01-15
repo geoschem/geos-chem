@@ -157,9 +157,9 @@
 
       ! For ND45 -- Tracer concentration diagnostic
       REAL*4,  ALLOCATABLE :: AD45(:,:,:,:)
-#endif      
       INTEGER, ALLOCATABLE :: LTOTH(:,:)
       INTEGER, ALLOCATABLE :: CTOTH(:,:)
+#endif      
 
       ! For ND47 -- 24-h tracer concentration diagnostic
       REAL*4,  ALLOCATABLE :: AD47(:,:,:,:)      
