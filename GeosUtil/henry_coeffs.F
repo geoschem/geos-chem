@@ -6,7 +6,7 @@
 ! !MODULE: henry_coeffs.F
 !
 ! !DESCRIPTION: Module HENRY\_COEFFS contains Henry coefficients for a
-! suite of species. 
+! suite of species.
 !
 ! !INTERFACE: 
 !
@@ -22,6 +22,24 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC :: GET_HENRY_CONSTANT
+!
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%% NOTE: Module henry_coeffs.F is only needed for the HEMCO standalone %%%
+!  %%% code.  When running within GEOS-Chem, HEMCO will get the Henry's    %%%
+!  %%% law coefficients from the GEOS-Chem Species Database.  These are    %%%
+!  %%% the stored in the following fields of the State_Chm object:         %%%
+!  %%%                                                                     %%%
+!  %%%    State_Chm%SpcData(N)%Info%Henry_K0                               %%%
+!  %%%    State_Chm%SpcData(N)%Info%Henry_CR                               %%%
+!  %%%    State_Chm%SpcData(N)%Info%Henry_pKa                              %%%
+!  %%%                                                                     %%%
+!  %%% If you add additional species to the HEMCO seaflux extension for    %%%
+!  %%% use with the HEMCO standalone code, then you will need to add the   %%%
+!  %%% additional Henry's law constants below.                             %%%
+!  %%%                                                                     %%%
+!  %%%    -- Bob Yantosca (07 Jan 2016)                                    %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  16 Apr 2013 - C. Keller   - Initial version

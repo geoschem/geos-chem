@@ -844,7 +844,7 @@
 !
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE CMN_GCTM_MOD
+      USE PHYSCONSTANTS
       USE DIAG_MOD,           ONLY : AD66
       USE DIAG_MOD,           ONLY : AD67
       USE FILE_MOD,           ONLY : IOERROR

@@ -3684,13 +3684,13 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_GCTM_MOD,       ONLY : XNUMOLAIR
     USE Error_Mod,          ONLY : Error_Stop
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
     USE HCO_Error_Mod
+    USE PHYSCONSTANTS,      ONLY : XNUMOLAIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -4261,7 +4261,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_GCTM_MOD,       ONLY : AIRMW, AVO,   g0
+    USE PHYSCONSTANTS,      ONLY : AIRMW, AVO,   g0
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
     USE TRACERID_MOD,       ONLY : IDTO3
     USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP

@@ -43,7 +43,7 @@
       USE inquireMod, ONLY : findFreeLUN
       USE CMN_SIZE_MOD                       ! Size parameters
       USE COMODE_LOOP_MOD                    ! SMVGEAR II arrays
-      USE CMN_GCTM_MOD                       ! Re, PI
+      USE PHYSCONSTANTS                      ! Re, PI
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -337,21 +337,7 @@
             WRITE( IO93, '(a)' )
          ENDIF
       ENDIF
-!
-! *********************************************************************
-! *******             THE VALUES OF BASIC PARAMETERS            *******
-! *********************************************************************
-! BOLTG   = BOLTZMANN"S CONSTANT, 1.381E-16 ERG DEG K**-1 = RGAS / AVG 
-!         = (1 J = 10**7 ERG = 1 N-M = 1 KG M2 S-2)
-! RSTARG  = UNIVERSAL GAS CONSTANT = 8.3145E+07 G CM2 S-2 MOLE-1 K-1
-! AVG     = AVOGADRO"S NUMBER,MOL**-1
-! WTAIR   = MOLECULAR WEIGHT OF AIR; 
-! RGAS    = GAS CONSTANT             (ERG DEG K-1 MOL-1) 
-!           1 ERG = 1 DYNE-CM = 10**-7 J
-!           1 ATM = 1.013 BAR = 10**5 PA. 1PA = 1 N M-2 = 10 DYNES CM-2.
-! SCDAY   = SECONDS PER DAY
-!
-!
+
       NMASBAL     = 9 
       NAMEMB(  1) = 'SULFUR ATOMS'
       NAMEMB(  2) = 'NITROGEN NO3'

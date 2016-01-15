@@ -1,4 +1,4 @@
-cd !------------------------------------------------------------------------------
+c     d !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -17,6 +17,7 @@ cd !----------------------------------------------------------------------------
 !
 ! !USES:
 !
+      USE PHYSCONSTANTS             ! physical parameters
       USE DEPO_MERCURY_MOD , ONLY : ADD_HG2_SNOWPACK
       USE DEPO_MERCURY_MOD , ONLY : LHGSNOW
       USE OCEAN_MERCURY_MOD, ONLY : LDYNSEASALT
@@ -186,6 +187,7 @@ cd !----------------------------------------------------------------------------
 !  12 Mar 2015 - R. Yantosca - Remove GET_GLOBAL_JNO2 routine
 !  10 Aug 2015 - J. Fisher   - Updated treatment of polar BrO chemistry
 !                              (orig. 29/11/11)
+!  05 Jan 2016 - E. Lundgren - Now use global dry air gas and Henry's Law consts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -311,7 +313,8 @@ cd !----------------------------------------------------------------------------
 ! !DEFINED PARAMETERS:
 !
       ! Henry's Law constant for Hg2 [mol /L /atm]
-      REAL(fp), PARAMETER    :: HL = 1.4e+6_fp
+      ! Now use Henry's Law constant defined in species database (ewl, 1/5/15)
+!      REAL(fp), PARAMETER    :: HL = 1.4e+6_fp
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -362,6 +365,7 @@ cd !----------------------------------------------------------------------------
       USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
@@ -371,6 +375,8 @@ cd !----------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : ID_HgP
       USE TRACERID_MOD,       ONLY : ID_HG_TOT
       USE TRACERID_MOD,       ONLY : N_HG_CATS
+      USE TRACERID_MOD,       ONLY : IDTHG2
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -486,6 +492,8 @@ cd !----------------------------------------------------------------------------
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
 !  12 Aug 2015 - R. Yantosca - Added support for MERRA2 meteorology
+!  05 Jan 2016 - E. Lundgren - Use Henry's constant from species database and
+!                              calculate dry air gas constant from global params
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -510,6 +518,7 @@ cd !----------------------------------------------------------------------------
       REAL(fp)        :: KMAX
       REAL(fp)        :: A(9,9), Xold(9), Xnew(9)
       REAL(fp)        :: s1(9), s2(9), s3(9), s4(9)
+      REAL(fp)        :: K0, R_DRY
 
       ! For values from Input_Opt
       LOGICAL         :: LDYNOCEAN
@@ -529,8 +538,10 @@ cd !----------------------------------------------------------------------------
 !
 ! !DEFINED PARAMETERS:
 !
+      ! Now calculate the dry air gas constant in [L atm/K/mol] from
+      ! global parameters that are in SI units (ewl, 1/5/16)
       ! Gas constant [L atm /K /mol]
-      REAL(fp), PARAMETER     :: R        = 8.2e-2_fp
+      !REAL(fp), PARAMETER     :: R        = 8.2e-2_fp
 
       ! K for reaction Hg0 + O3  [cm3 /molecule /s] (Source: Hall 1995)
       REAL(fp), PARAMETER     :: K_HG_O3  = 3.0e-20_fp !3.0d-20 (Gas phase)
@@ -581,6 +592,9 @@ cd !----------------------------------------------------------------------------
       ! DonohoueYBBalabanov used by Holmes et al. 2010
       CHARACTER(LEN=*), PARAMETER  :: METHOD='GoodsiteUpdate'
 
+      ! Objects
+      TYPE(Species), POINTER :: ThisSpc => NULL()
+
       !================================================================
       ! CHEMMERCURY begins here!
       !=================================================================
@@ -600,6 +614,15 @@ cd !----------------------------------------------------------------------------
       ! Initialize pointers
       STT      => State_Chm%Tracers
       T        => State_Met%T
+
+      ! Get info about this species from the database
+      ThisSpc => State_Chm%SpcData(IDTHG2)%Info
+
+      ! Get Henry's Law constant for Hg2 [mol/L/atm] (ewl, 1/5/16)
+      K0 = ThisSpc%Henry_K0
+
+      ! Calculate dry air gas constant in [L atm/K/mol] (ewl, 1/5/16)
+      R_DRY = Rd * AIRMW / ATM
 
       ! Override the default value of LGCBROMINE and LRED_JNO2 depending 
       ! on the settings in the HEMCO configuration file.  NOTE: This cannot
@@ -880,13 +903,13 @@ cd !----------------------------------------------------------------------------
 
          ! Define fraction of in-cloud Hg(II) which is in aqueous solution
          ! [dimensionless]
-         Faq  = ( HL * R * T(I,J,L) * LWC )
+         Faq  = ( K0 * R_DRY * T(I,J,L) * LWC )
          Faq  = Faq / ( 1e+0_fp + Faq )
 
          ! Cl- in sea-salt aerosol enhances solubility 2000X in MBL
          IF (LRED_JNO2 .AND. (F_PBL >0.1) .AND. 
      &        IS_WATER(I,J, State_Met )) THEN
-            Faq = ( HL * 2e+3_fp * R * T(I,J,L) * LWC )
+            Faq = ( K0 * 2e+3_fp * R_DRY * T(I,J,L) * LWC )
             Faq = Faq / ( 1e+0_fp + Faq )
          ENDIF
          
@@ -1170,6 +1193,7 @@ cd !----------------------------------------------------------------------------
       ! Free pointer memory
       NULLIFY( STT )
       NULLIFY( T   )
+      NULLIFY( ThisSpc )
 
       IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a CHEM_HgP' )
 
@@ -1199,7 +1223,7 @@ cd !----------------------------------------------------------------------------
       ! P      : Pressure [hPa]
       ! OH     : Concentration of OH [molec/cm3]
       ! METHOD : Set of rate constants to use in calculation
-      REAL(fp),           INTENT(IN)  :: BR, OH, T, P
+      REAL(fp),         INTENT(IN)  :: BR, OH, T, P
       CHARACTER(LEN=*), INTENT(IN)  :: METHOD 
 !
 ! !RETURN VALUE:
@@ -1249,6 +1273,7 @@ cd !----------------------------------------------------------------------------
 ! 
 ! !REVISION HISTORY: 
 !  06 Jul 2006 - C. Holmes   - Initial version
+!  05 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1261,20 +1286,16 @@ cd !----------------------------------------------------------------------------
 !
 ! !DEFINED PARAMETERS:
 !
-      !molar gas constant
-      REAL(fp), PARAMETER ::  R = 287e+0_fp
 
       !=================================================================
       ! GET_HGBR_RATE begins here!
       !=================================================================
 
       !number density of air [molec/cm3]
-      Nair = P * 1e+2_fp / (0.029e+0_fp * R * T ) * 6.02e+23_fp /
-     &   1e+6_fp
+      Nair = P * 1e+2_fp / (AIRMW * Rd * T ) * AVO / 1e+3_fp
 
       !standard air density at STP: 1 atm, 273K [molec/cm3]
-      N0 = 1013e+2_fp / (0.029e+0_fp * R * 273e+0_fp ) * 6.02e+23_fp / 
-     &   1e+6_fp
+      N0 = ATM / (AIRMW * Rd * 273e+0_fp ) * AVO / 1e+3_fp
 
       SELECT CASE( METHOD )
       CASE( 'Goodsite' )
@@ -3609,7 +3630,7 @@ cd !----------------------------------------------------------------------------
 
       ! Get ozone [v/v] for this gridbox & month
       ! and convert to [molec/cm3] (eck, 12/2/04)
-      O3_MOLEC_CM3 = O3(I,J,L)       * ( 6.022e+23_fp / 28.97e-3_fp ) * 
+      O3_MOLEC_CM3 = O3(I,J,L)       * ( AVO * 1e+3_fp / AIRMW ) * 
      &               State_Met%AD(I,J,L) / BOXVL
 
       ! Return to calling program
@@ -3730,12 +3751,12 @@ cd !----------------------------------------------------------------------------
       INTEGER,        INTENT(IN)  :: I              ! Longitude index
       INTEGER,        INTENT(IN)  :: J              ! Latitude index
       INTEGER,        INTENT(IN)  :: L              ! Level index
-      REAL(fp),         INTENT(OUT) :: BrO_MOLEC_CM3  ! BrO conc [molec/cm3]
+      REAL(fp),       INTENT(OUT) :: BrO_MOLEC_CM3  ! BrO conc [molec/cm3]
       TYPE(MetState), INTENT(IN)  :: State_Met      ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                      :: BR_MOLEC_CM3   ! Br conc [molec/cm3]
+      REAL(fp)                    :: BR_MOLEC_CM3   ! Br conc [molec/cm3]
 ! 
 ! !REVISION HISTORY: 
 !  06 Jul 2006 - C. Holmes   - Initial version
@@ -3997,8 +4018,8 @@ cd !----------------------------------------------------------------------------
             ENDIF
 
             ! Convert O3 to molec/cm3
-            O3_POLAR = O3_POLAR_PPB * 1e-9_fp * ( 6.022e+23_fp / 
-     &                 28.97e-3_fp ) * State_Met%AD(I,J,L) / 
+            O3_POLAR = O3_POLAR_PPB * 1e-9_fp * ( AVO * 1e+3_fp / 
+     &                 AIRMW ) * State_Met%AD(I,J,L) / 
      &                 BOXVL
 
             ! Compute polar Br, BrO concentrations in pptv
@@ -4027,10 +4048,10 @@ cd !----------------------------------------------------------------------------
 
       ! Convert pptv mixing ratio -> molec/cm3
       BR_MOLEC_CM3  = BR_PPTV             * 1e-12_fp      *
-     &                ( 6.022e+23_fp      / 28.97e-3_fp ) * 
+     &                ( AVO * 1e+3_fp     / AIRMW ) * 
      &                State_Met%AD(I,J,L) / BOXVL
       BRO_MOLEC_CM3 = BRO_PPTV            * 1e-12_fp      *
-     &                ( 6.022e+23_fp      / 28.97e-3_fp ) * 
+     &                ( AVO * 1e+3_fp     / AIRMW ) * 
      &                State_Met%AD(I,J,L) / BOXVL
 
       ! Return to calling program
@@ -4055,7 +4076,6 @@ cd !----------------------------------------------------------------------------
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_GCTM_MOD
       USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
       USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
       USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
@@ -4326,7 +4346,7 @@ cd !----------------------------------------------------------------------------
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD
+      USE PHYSCONSTANTS
       USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID_R

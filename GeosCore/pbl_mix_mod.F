@@ -247,7 +247,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
 
       USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_GCTM_MOD             ! Scale height
+      USE PHYSCONSTANTS            ! Scale height
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !

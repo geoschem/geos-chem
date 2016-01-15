@@ -29,7 +29,7 @@
       ! Basic GEOS-Chem modules
       !-----------------------------------------------------------------
       USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_GCTM_MOD          ! Physical constants
+      USE PHYSCONSTANTS         ! Physical constants
       USE ERROR_MOD             ! For error checking
       USE FILE_MOD              ! For file I/O
       USE GRID_MOD              ! For defining the lons/lats/areas of the grid

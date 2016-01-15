@@ -17,6 +17,7 @@
 !
 ! !USES:
 !
+      USE PHYSCONSTANTS    ! Physical parameters
       USE HCO_ERROR_MOD    ! For HEMCO error handling
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 
@@ -156,6 +157,7 @@
 !                                because drydep is now done in mixing_mod.F90
 !  23 Sep 2015 - R. Yantosca   - Remove DRY* flags for most species except
 !                                for those used in GRAV_SETTLING
+!  05 Jan 2016 - E. Lundgren   - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -170,12 +172,12 @@
       ! XNUMOL_NO3 : Molecules NO3 per kg NO3         [molec/kg]
       ! TCVV_S     : Ratio: Molwt air / Molwt S       [unitless]
       !=======================================================================
-      REAL(fp),  PARAMETER   :: XNUMOL_OH   = 6.022e+23_fp / 17e-3_fp
-      REAL(fp),  PARAMETER   :: XNUMOL_O3   = 6.022e+23_fp / 48e-3_fp
-      REAL(fp),  PARAMETER   :: XNUMOL_NO3  = 6.022e+23_fp / 62e-3_fp
-      REAL(fp),  PARAMETER   :: XNUMOL_H2O2 = 6.022e+23_fp / 34e-3_fp
-      REAL(fp),  PARAMETER   :: TCVV_S      = 28.97e+0_fp  / 32e+0_fp 
-      REAL(fp),  PARAMETER   :: TCVV_N      = 28.97e+0_fp  / 14e+0_fp ! tdf
+      REAL(fp),  PARAMETER   :: XNUMOL_OH   = AVO / 17e-3_fp
+      REAL(fp),  PARAMETER   :: XNUMOL_O3   = AVO / 48e-3_fp
+      REAL(fp),  PARAMETER   :: XNUMOL_NO3  = AVO / 62e-3_fp
+      REAL(fp),  PARAMETER   :: XNUMOL_H2O2 = AVO / 34e-3_fp
+      REAL(fp),  PARAMETER   :: TCVV_S      = AIRMW / 32e+0_fp 
+      REAL(fp),  PARAMETER   :: TCVV_N      = AIRMW / 14e+0_fp ! tdf
       REAL(fp),  PARAMETER   :: SMALLNUM    = 1e-20_fp
       REAL(fp),  PARAMETER   :: CM3PERM3    = 1.e6_fp
 
@@ -1019,7 +1021,6 @@
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND13 (for now)
-      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
 
       ! HEMCO update
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState, GetHcoDiagn
@@ -1029,7 +1030,7 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1457,7 +1458,6 @@
 !
 ! !USES:
 !
-      USE CMN_GCTM_MOD        
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
 #if defined( BPCH )
@@ -1893,7 +1893,6 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_GCTM_MOD         
       USE CMN_DIAG_MOD         
       USE CMN_SIZE_MOD         
       USE DIAG_MOD,           ONLY : AD05
@@ -2022,7 +2021,7 @@
       DTCHEM      = GET_TS_CHEM() * 60e+0_fp
 
       ! Factor to convert AIRDEN from kgair/m3 to molecules/cm3:
-      f           = 1000.e+0_fp / AIRMW * 6.022e+23_fp * 1.e-6_fp
+      f           = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
       
       !=================================================================
       ! Do the chemistry over all chemically-active grid boxes!
@@ -2215,8 +2214,7 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE CMN_GCTM_MOD
-#if defined( BPCH )
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44 
 #endif
       USE GIGC_ErrCode_Mod
@@ -2336,7 +2334,7 @@
       DT        = GET_TS_CHEM() * 60e+0_fp
 
       ! Factor to convert AIRDEN from kgair/m3 to molecules/cm3:
-      F         = 1000.e+0_fp / AIRMW * 6.022d23 * 1.e-6_fp
+      F         = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
       
       !=================================================================
       ! Loop over tropopsheric grid boxes and do chemistry
@@ -2426,7 +2424,6 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_WATER
@@ -2558,7 +2555,7 @@
 !      REAL(fp),  PARAMETER    :: HPLUS  = 3.16227766016837953d-5  !pH = 4.5
       REAL(fp),  PARAMETER  :: HPLUS_45  = 3.16227766016837953e-5_fp  !pH = 4.5
       REAL(fp),  PARAMETER  :: HPLUS_50  = 1.0e-5_fp  !pH = 5.0
-      REAL(fp),  PARAMETER  :: MINDAT = 1.e-20_fp
+      REAL(fp),  PARAMETER  :: MINDAT    = 1.e-20_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -2640,7 +2637,7 @@
       DTCHEM   = GET_TS_CHEM() * 60e+0_fp
 
       ! Factor to convert AIRDEN from [kg air/m3] to [molec air/cm3]
-      F        = 1000.e+0_fp / AIRMW * 6.022e+23_fp * 1.e-6_fp
+      F        = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
 
       ! On first call, get pointers to HEMCO diagnostics arrays.
       ! These are the sea salt aerosol number densities for the fine
@@ -2701,7 +2698,7 @@
 
          ! PATM  : Atmospheric pressure in atm
          ! Now use dry air partial pressure (ewl, 4/28/15)
-         PATM   = State_Met%PMID_DRY( I, J, L ) / 1013.25e+0_fp
+         PATM   = State_Met%PMID_DRY( I, J, L ) / ( ATM * 1.e-2_fp )
 
          ! TK : Temperature [K]
          TK     = State_Met%T(I,J,L)
@@ -3017,7 +3014,7 @@
             ! [moles/liter]
 	    ! Use a cloud scavenging ratio of 0.7 
 	    SO4nss  =  STT(I,J,L,IDTSO4) * State_Met%AIRDEN(I,J,L) *
-     &                 0.7e+0_fp / ( 28.97e+0_fp * LWC )
+     &                 0.7e+0_fp / ( AIRMW * LWC )
 
 	    ! Get total ammonia (NH3 + NH4+) concentration [v/v]
 	    ! Use a cloud scavenging ratio of 0.7 for NH4+
@@ -3448,7 +3445,6 @@
       !USE DIAG_MOD,        ONLY : AD09
       !---------------------------------------------------------------
       USE CMN_DIAG_MOD             ! ND05, LD05
-      USE CMN_GCTM_MOD          
       USE CMN_SIZE_MOD          
       USE COMODE_MOD,         ONLY : CSPEC
       USE COMODE_MOD,         ONLY : JLOP
@@ -3528,6 +3524,7 @@
 !  18 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sim from HEMCO
 !  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod since
 !                              XNUMOLAIR now defined in CMN_GTCM_MOD
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3535,7 +3532,7 @@
 ! !DEFINED PARAMETERS:
 !
       REAL(fp),  PARAMETER :: MINDAT    = 1.0e-20_fp 
-      REAL(fp),  PARAMETER :: TCVV_HNO3 = 28.97e+0_fp / 63.0e+0_fp 
+      REAL(fp),  PARAMETER :: TCVV_HNO3 = AIRMW / 63.0e+0_fp 
 !
 ! !LOCAL VARIABLES:
 !
@@ -3605,7 +3602,7 @@
 
          !tdf Note 28.97/63.0 = Mw(air)/Mw(HNO3)
          !    so RHS of HNO3_eq is  moles(HNO3) / gridbox
-         HNO3_eq = HNO3_vv * AD(I,J,L) / ( 28.97e+0_fp / 63e+0_fp ) 
+         HNO3_eq = HNO3_vv * AD(I,J,L) / ( AIRMW / 63e+0_fp ) 
      &           / 63.e-3_fp
 
       ELSE
@@ -3614,7 +3611,7 @@
          HNO3_vv = HNO3(I,J,L)
 
          ! Convert HNO3 [v/v] to [equivalents]
-         HNO3_eq = HNO3_vv * AD(I,J,L) / ( 28.97e+0_fp / 63e+0_fp ) 
+         HNO3_eq = HNO3_vv * AD(I,J,L) / ( AIRMW / 63e+0_fp ) 
      &           / 63.e-3_fp
 
       ENDIF
@@ -3657,7 +3654,7 @@
       F_HNO3_A = MAX( F_HNO3_A, 1.0e-32_fp )
 
       ! Convert to [eq/timestep] 
-      N_FLUX_A = F_HNO3_A * AD(I,J,L) / ( 28.97e+0_fp / 63e+0_fp ) 
+      N_FLUX_A = F_HNO3_A * AD(I,J,L) / ( AIRMW / 63e+0_fp ) 
      &         / 0.063e+0_fp
 
       ! Available flux of HNO3 to coarse sea salt aerosols [v/v/timestep]
@@ -3666,7 +3663,7 @@
       F_HNO3_C = MAX( F_HNO3_C, 1.0e-32_fp )
 
       ! convert to [eq/timestep] 
-      N_FLUX_C = F_HNO3_C * AD(I,J,L) / ( 28.97e+0_fp / 63e+0_fp ) 
+      N_FLUX_C = F_HNO3_C * AD(I,J,L) / ( AIRMW / 63e+0_fp ) 
      &         / 0.063e+0_fp
 
       ! Total flux of HNO3
@@ -4061,7 +4058,7 @@
       !    Hence, H2SO4_eq =  2 * moles(H2SO4) / gridbox
 
       H2SO4_eq = ( 2.e+0_fp * H2SO4_cd * AD(I,J,L) ) 
-     &         / ( 28.97e+0_fp / 98.e+0_fp ) / 98.e-3_fp
+     &         / ( AIRMW / 98.e+0_fp ) / 98.e-3_fp
       H2SO4_eq = MAX( H2SO4_eq, MINDAT )
       !tdf 2/13/2K9
 
@@ -4075,7 +4072,7 @@
 
          HNO3_vv = STT(I,J,L,IDTHNO3)
          HNO3_eq = HNO3_vv * AD(I,J,L) /
-     &             ( 28.97e+0_fp / 63.e+0_fp ) / 63.e-3_fp
+     &             ( AIRMW / 63.e+0_fp ) / 63.e-3_fp
 
       ELSE
 
@@ -4083,7 +4080,7 @@
          HNO3_vv = HNO3(I,J,L)
 
          ! Convert HNO3 [v/v] to [equivalents]
-         HNO3_eq = HNO3_vv * AD(I,J,L) / ( 28.97e+0_fp / 63e+0_fp ) 
+         HNO3_eq = HNO3_vv * AD(I,J,L) / ( AIRMW / 63e+0_fp ) 
      &           / 63.e-3_fp
 
       ENDIF
@@ -4147,7 +4144,7 @@
 
          ! Available flux of H2SO4 converted to [eq/timestep]
          H_FLUX_A = 2.e+0_fp * F_H2SO4_A * AD(I,J,L) 
-     &            / ( 28.97e+0_fp / 98.e+0_fp ) / 0.098e+0_fp
+     &            / ( AIRMW / 98.e+0_fp ) / 0.098e+0_fp
          H_FLUX (IBIN) = H_FLUX_A
 
          ! Total available flux of H2SO4 [v/v/timestep]
@@ -4174,7 +4171,7 @@
 
          ! Available flux of HNO3 converted to [eq/timestep]
          N_FLUX_A = F_HNO3_A * AD(I,J,L) /
-     &              ( 28.97e+0_fp / 63.e+0_fp ) / 0.063e+0_fp
+     &              ( AIRMW / 63.e+0_fp ) / 0.063e+0_fp
          N_FLUX (IBIN) = N_FLUX_A
 
          !tdf 3/28/2K8
@@ -4215,7 +4212,7 @@
          ! In this case, we have taken the valency of alkalinity as 2.
          ! Units of ALK1_eq (below) work out to be moles * 2.
          ALK1_eq     = 2.e+0_fp * ALK1_vv * AD(I,J,L)
-     &               / ( 28.97e+0_fp / 40.e+0_fp ) / 40.e-3_fp
+     &               / ( AIRMW / 40.e+0_fp ) / 40.e-3_fp
 
          !---------------------------------------------------------------
          ! DIAGNOSTIC -- leave uncommented for now (bec, bmy, 4/13/05)
@@ -4349,7 +4346,7 @@
       END DO
 
       !Modified H2SO4 [eq] converted back to [v/v]
-      H2SO4_gas       = H2SO4_new * 0.098e+0_fp * ( 28.97e+0_fp
+      H2SO4_gas       = H2SO4_new * 0.098e+0_fp * ( AIRMW
      &                  / 98.e+0_fp ) / AD(I,J,L) / 2.0e+0_fp
       H2SO4_gas       = MAX( H2SO4_gas, MINDAT )
 
@@ -4414,7 +4411,7 @@
 
          ALK1_vv     = ALK (IBIN)
          ALK1_eq     = 2.e+0_fp * ALK1_vv * AD(I,J,L)
-     &               / ( 28.97e+0_fp / 40.e+0_fp ) / 40.e-3_fp
+     &               / ( AIRMW / 40.e+0_fp ) / 40.e-3_fp
          T_SO2       = TITR_SO2 (IBIN)
          T_HNO3      = TITR_HNO3 (IBIN)
 
@@ -4439,7 +4436,7 @@
 
          ! Return remaining DUST Alkalinity [v/v]
          ALKA_vv     = ALKA_eq / AD(I,J,L)
-     &               * ( 28.97e+0_fp / 40.e+0_fp ) * 40e-3_fp / 2.e+0_fp
+     &               * ( AIRMW / 40.e+0_fp ) * 40e-3_fp / 2.e+0_fp
          ALKA (IBIN) = ALKA_vv
 
       END DO
@@ -5502,7 +5499,6 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp), PARAMETER   :: PI    = 3.14159e+0_fp
       REAL(fp), PARAMETER   :: SS_DEN = 2200.e+0_fp !dry sea-salt density [kg/m3]
       ! sigma of the size distribution for sea-salt (Jaegle et al., 2011)
       REAL(fp), PARAMETER   :: SIG_S = 1.8e+0_fp
@@ -6085,7 +6081,6 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
@@ -6812,7 +6807,7 @@
 
             ! At night: Get NO3 [v/v] and convert it to [kg]
             NO3_MOLEC_CM3 = NO3(I,J,L)     * State_Met%AD(I,J,L) *
-     &                      ( 62e+0_fp/28.97e+0_fp ) 
+     &                      ( 62e+0_fp/AIRMW ) 
 
             ! Convert NO3 from [kg] to [molec/cm3]
             NO3_MOLEC_CM3 = NO3_MOLEC_CM3  * XNUMOL_NO3 / BOXVL
@@ -6904,7 +6899,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_GCTM_MOD
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_MOd, ONLY : OptInput
@@ -7006,7 +7000,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_GCTM_MOD
       USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
       USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
       USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
@@ -7221,7 +7214,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp), PARAMETER :: PI = 3.14159265
       REAL(fp)            :: N1, N2, Kt
       REAL(fp)            :: HGF, ALK
       REAL(fp)            :: RAD1, RAD2, RAD3

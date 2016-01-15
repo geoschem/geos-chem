@@ -17,7 +17,7 @@
 ! !USES:
 !
       USE GIGC_Errcode_Mod
-      USE CMN_GCTM_Mod
+      USE PHYSCONSTANTS    ! Physical parameters
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -2007,7 +2007,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_GCTM_MOD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD

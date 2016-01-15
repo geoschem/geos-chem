@@ -227,7 +227,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_GCTM_MOD
+      USE PHYSCONSTANTS
       USE ERROR_MOD 
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput

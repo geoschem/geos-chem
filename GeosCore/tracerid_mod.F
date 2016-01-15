@@ -74,8 +74,6 @@
 !  15 Aug 2014 - R. Yantosca - We can remove the IDF* flags as all biomass
 !                              emissions are now handled in HEMCO
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  29 Jan 2015 - E. Lundgren - Removed IDTHg0, IDTHg2, and IDTHgP since no
-!                              longer used in code.
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !  07 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !  18 Nov 2015 - M. Sulprizio- Add passive tracer IDTPASV to RnPbBe simulation
@@ -91,7 +89,7 @@
       INTEGER            :: NMEMBER(NNNTRID) 
       INTEGER            :: IDTRMB(NNNTRID,MMMEMBER)
       INTEGER            :: IDEMIS(NNNTRID)
-      REAL(fp)             :: CTRMB(NNNTRID,MMMEMBER)
+      REAL(fp)           :: CTRMB(NNNTRID,MMMEMBER)
      
       ! ID's for SMVGEAR species
       INTEGER            :: IDO3,    IDNO2,    IDNO3,   IDNO,    IDHNO2
@@ -151,7 +149,7 @@
       INTEGER            :: IDTNH4,  IDTNIT,   IDTRN,   IDTPB,   IDTBE7
       INTEGER            :: IDTBCPI, IDTBCPO,  IDTOCPI, IDTOCPO, IDTDST1
       INTEGER            :: IDTDST2, IDTDST3,  IDTDST4, IDTSALA, IDTSALC
-      INTEGER            :: IDTAS
+      INTEGER            :: IDTHG0,  IDTHg2,    IDTHgP, IDTAS
       INTEGER            :: IDTAHS,  IDTLET,   IDTNH4aq,IDTSO4aq,IDTSO4s
       INTEGER            :: IDTNITs
       INTEGER            :: IDTBENZ, IDTTOLU,   IDTXYLE,  IDTMONX
@@ -184,8 +182,8 @@
       INTEGER            :: IDTCH4
 
       ! For POPs simulation (clf, 2/11/2011)
-      INTEGER              :: IDTPOPPOCPO,  IDTPOPPBCPO,   IDTPOPG
-      INTEGER              :: IDTPOPPOCPI,  IDTPOPPBCPI
+      INTEGER            :: IDTPOPPOCPO,  IDTPOPPBCPO,   IDTPOPG
+      INTEGER            :: IDTPOPPOCPI,  IDTPOPPBCPI
 
       ! For H2/HD simulation
       INTEGER            :: IDTH2, IDTHD ! (hup, phs, 9/18/07)
@@ -1153,15 +1151,18 @@
             ! (eck, cdh, bmy, 12/15/05)
             !--------------------------------
             CASE ( 'HG0' )
+               IDTHg0            = N
                COUNT_Hg0         = COUNT_Hg0 + 1              
                ID_Hg_tot         = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
 
             CASE ( 'HG2' )
+               IDTHg2            = N
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
 
             CASE ( 'HGP' )
+               IDTHgP            = N
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
 

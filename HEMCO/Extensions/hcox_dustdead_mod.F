@@ -73,6 +73,9 @@
 !  06 Oct 2014 - C. Keller   - Allow mass flux tuning factor be set in
 !                              configuration file.
 !  08 Jul 2015 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
+!  07 Jan 2016 - E. Lundgren - Change dry air gas constant and molec wt to 
+!                              match main GC and update acc due to gravity and 
+!                              universal gas constant to NIST 2014
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -111,12 +114,12 @@
       REAL(sp), POINTER           :: VAI_DST(:,:) => NULL()
 
       ! Fundamental physical constants
-      REAL*8,  PARAMETER   :: GAS_CST_UNV      = 8.31441d0
+      REAL*8,  PARAMETER   :: GAS_CST_UNV      = 8.3144598d0
       REAL*8,  PARAMETER   :: MMW_H2O          = 1.8015259d-02
-      REAL*8,  PARAMETER   :: MMW_DRY_AIR      = 28.9644d-3
+      REAL*8,  PARAMETER   :: MMW_DRY_AIR      = 28.97d-3
       REAL*8,  PARAMETER   :: CST_VON_KRM      = 0.4d0
-      REAL*8,  PARAMETER   :: GRV_SFC          = 9.80616d0
-      REAL*8,  PARAMETER   :: GAS_CST_DRY_AIR  = 287.05d0
+      REAL*8,  PARAMETER   :: GRV_SFC          = 9.80665d0
+      REAL*8,  PARAMETER   :: GAS_CST_DRY_AIR  = 287.0d0
       REAL*8,  PARAMETER   :: RDS_EARTH        = 6.37122d+6
       REAL*8,  PARAMETER   :: GAS_CST_H2O      = 461.65D0
       REAL*8,  PARAMETER   :: SPC_HEAT_DRY_AIR = 1005.0d0
@@ -259,7 +262,7 @@
 ! !DEFINED PARAMETERS:
 !
 !      REAL*8, PARAMETER      :: Ch_dust = 9.375d-10
-!      REAL*8, PARAMETER      :: g0      = 9.8d0 
+!      REAL*8, PARAMETER      :: g0      = 9.80665d0 
 !      REAL*8, PARAMETER      :: G       = g0 * 1.D2
 !      REAL*8, PARAMETER      :: RHOA    = 1.25D-3
       REAL*8, PARAMETER      :: CP      = 1004.16d0

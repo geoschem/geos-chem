@@ -835,7 +835,7 @@
       USE DIAG_MOD,     ONLY : AD44
 #endif
       USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_CHEM 
-      USE TRACERID_MOD, ONLY : ID_Hg0, ID_Hg2
+      USE TRACERID_MOD, ONLY : IDTHg0, IDTHg2
 !
 ! !INPUT PARAMETERS:
 !
@@ -843,8 +843,6 @@
 !
 ! !REVISION HISTORY:
 !  04 June 2010  - C. Carouge  - Initial version
-!  29 Jan  2015  - E. Lundgren - Replaced outdated tracer indexes IDTHg0 and 
-!                                IDTHg2 with arrays ID_Hg0 and ID_Hg2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -869,11 +867,11 @@
      &                      / SCALEDYN
 
       ! Hg0 total dry deposition at the surface
-      N = ID_Hg0(1)
+      N = IDTHg0
       HG0mth_dd = HG0mth_dd + AD44(:,:,N,1) / SCALECHEM
 
       ! Hg2 total dry deposition at the surface
-      N = ID_Hg2(2)
+      N = IDTHg2
       HG2mth_dd = HG2mth_dd + AD44(:,:,N,1) / SCALECHEM
 #endif
 

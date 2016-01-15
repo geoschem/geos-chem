@@ -353,9 +353,11 @@
 !  (1 ) Now use function GET_ELAPSED_MIN() from the new "time_mod.f" to
 !        get the elapsed minutes since the start of run. (bmy, 3/24/03)
 !  23 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sims from HEMCO
+!  06 Jan 2016 - E. Lundgren - Use global physical parameters
 !******************************************************************************
 !
-      ! References to F90 modules
+! References to F90 modules
+      USE PHYSCONSTANTS,      ONLY : AIRMW
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
 
@@ -376,7 +378,7 @@
          ! HNO3 is in v/v (from HEMCO), convert to ug/m3
          ! First convert HNO3 from [v/v] to [kg]
          HNO3_UGM3 = HNO3( I, J, L ) * State_Met%AD(I,J,L) /
-     &               ( 28.97e+0_fp / 63e+0_fp )
+     &               ( AIRMW / 63e+0_fp )
 
          ! Then convert HNO3 from [kg] to [ug/m3]
          HNO3_UGM3 = HNO3_UGM3 * 1.e+9_fp / State_Met%AIRVOL(I,J,L)
@@ -559,7 +561,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP, IS_SAFE_DIV
+      USE ERROR_MOD,       ONLY : GEOS_CHEM_STOP, IS_SAFE_DIV
 
       !=================================================================
       ! ARGUMENTS and their descriptions
@@ -591,7 +593,6 @@
       REAL(fp), PARAMETER :: MWNH4  = 18.03858e+0_fp               ! NH4
       REAL(fp), PARAMETER :: MWORG  = 16.0e+0_fp                   ! Organic Species
       REAL(fp), PARAMETER :: MWCL   = 35.453e+0_fp                 ! Chloride
-      REAL(fp), PARAMETER :: MWAIR  = 28.964e+0_fp                 ! AIR
       REAL(fp), PARAMETER :: MWLCT  = 3.0e+0_fp * MWNH4 +          ! Letovicite
      &                            2.0e+0_fp * MWSO4 + 1.0080e+0_fp  
       REAL(fp), PARAMETER :: MWAS   = 2.0e+0_fp * MWNH4 + MWSO4    ! Amm. Sulfate

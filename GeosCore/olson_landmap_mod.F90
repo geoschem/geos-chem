@@ -18,7 +18,7 @@ MODULE Olson_LandMap_Mod
 !
 ! !USES:
 !
-  USE CMN_GCTM_MOD                      ! Physical constants
+  USE PHYSCONSTANTS                     ! Physical constants
   USE CMN_SIZE_MOD                      ! Size parameters
   USE ERROR_MOD                         ! Error checking routines
   USE GRID_MOD                          ! Horizontal grid definition
