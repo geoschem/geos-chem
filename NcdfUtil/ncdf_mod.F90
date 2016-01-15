@@ -3257,8 +3257,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_CREATE( NcFile, nLon,  nLat,  nLev,  nTime, &
-                        fId,    lonID, latId, levId, timeId, VarCt )
+  SUBROUTINE NC_CREATE( NcFile, title, nLon,  nLat,  nLev,   &
+                        nTime,  fId,   lonID, latId, levId,  &
+                        timeId, VarCt )
 !
 ! !USES:
 !
@@ -3269,6 +3270,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN   )  :: ncFile   ! ncdf file path + name 
+    CHARACTER(LEN=*), INTENT(IN   )  :: title    ! ncdf file title
     INTEGER,          INTENT(IN   )  :: nLon     ! # of lons 
     INTEGER,          INTENT(IN   )  :: nLat     ! # of lats 
     INTEGER,          INTENT(IN   )  :: nLev     ! # of levs 
@@ -3293,6 +3295,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jun 2012 - C. Keller   - Initial version
+!  14 Jan 2016 - E. Lundgren - Pass title string for netcdf metadata
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3310,7 +3313,8 @@ CONTAINS
     !--------------------------------
     ! SET GLOBAL ATTRIBUTES
     !--------------------------------
-    CALL NcDef_Glob_Attributes( fId, 'title',   'HEMCO diagnostics' ) 
+!    CALL NcDef_Glob_Attributes( fId, 'title',   'HEMCO diagnostics' ) 
+    CALL NcDef_Glob_Attributes( fId, 'title',   TRIM(title)         ) 
     CALL NcDef_Glob_Attributes( fId, 'history', 'NC_CREATE.F90'     ) 
     CALL NcDef_Glob_Attributes( fId, 'format',  'netCDF-3'          )
 
