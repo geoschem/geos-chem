@@ -481,7 +481,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
        IF ( FND ) THEN
           FixYY = DUM
-          WRITE(MSG,*) 'Emission year will be fixed to day ', FixYY
+          WRITE(MSG,*) 'Emission year will be fixed to year ', FixYY
           CALL HCO_MSG(MSG)
        ENDIF
 
@@ -490,7 +490,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
        IF ( FND ) THEN
           FixMM = DUM
-          WRITE(MSG,*) 'Emission month will be fixed to day ', FixMM
+          WRITE(MSG,*) 'Emission month will be fixed to month ', FixMM
           CALL HCO_MSG(MSG)
        ENDIF
 
@@ -508,7 +508,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
        IF ( FND ) THEN
           Fixhh = DUM
-          WRITE(MSG,*) 'Emission hour will be fixed to day ', Fixhh
+          WRITE(MSG,*) 'Emission hour will be fixed to hour ', Fixhh
           CALL HCO_MSG(MSG)
        ENDIF
 
