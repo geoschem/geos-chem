@@ -199,6 +199,7 @@ MODULE Tpcore_FvDas_Mod
 !                             processing time.
 ! 20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 ! 21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+! 19 Jan 2016 - E. Lundgren - Consolidated bpch and netcdf diagnostics code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -385,16 +386,12 @@ CONTAINS
                            ak,       bk,       u,        v,       ps1,      &
                            ps2,      ps,       q,        iord,    jord,     &
                            kord,     n_adj,    XMASS,    YMASS,   FILL,     &
-#if defined( BPCH )
+#if defined( BPCH ) || defined( NETCDF )
+ !%%% Adding DiagnArrays for writing diagnostics to netcdf (ewl, 2/12/15).
+ !%%% MASSFLEW, MASSFLNS, and MASSFLUP are cumulative when BPCH=y. 
+ !%%% They are instanteous when using NETCDF=arrays are instantaneous
+ !%%% since HEMCO handles averaging.
                            MASSFLEW, MASSFLNS, MASSFLUP,                    &
-#endif
-#if defined( NETCDF )
- !%%% Added DiagnArrays for writing diagnostics to netcdf (ewl, 2/12/15).
- !%%% MASSFLEW, MASSFLNS, and MASSFLUP are cumulative. NetCDF diagnostic
- !%%% arrays are instantaneous since cumulative sum is abstracted to
- !%%% to high-level diagnostic container update code.
-                           DiagnArray_EW_Flx, DiagnArray_NS_Flx,            &
-                           DiagnArray_Vert_Flx,                             &
 #endif
                            AREA_M2, ND24, ND25, ND26 )
 !
@@ -478,17 +475,11 @@ CONTAINS
     ! Tracer "mixing ratios" [kg tracer/moist air kg]
     REAL(fp),  INTENT(INOUT), TARGET :: q(:,:,:,:)
 
-#if defined( BPCH )
+#if defined( BPCH ) || defined( NETCDF )
     ! E/W, N/S, and up/down diagnostic mass fluxes
     REAL(fp),  INTENT(INOUT) :: MASSFLEW(:,:,:,:)  ! for ND24 diagnostic
     REAL(fp),  INTENT(INOUT) :: MASSFLNS(:,:,:,:)  ! for ND25 diagnostic
     REAL(fp),  INTENT(INOUT) :: MASSFLUP(:,:,:,:)  ! for ND26 diagnostic 
-#endif
-#if defined( NETCDF )
-    ! Netcdf diagnostic arrays (ewl, 2/12/15)
-    REAL(fp),  INTENT(INOUT) :: DiagnArray_EW_Flx(:,:,:,:)
-    REAL(fp),  INTENT(INOUT) :: DiagnArray_NS_Flx(:,:,:,:)
-    REAL(fp),  INTENT(INOUT) :: DiagnArray_Vert_Flx(:,:,:,:)
 #endif
 
 !
@@ -1017,8 +1008,8 @@ CONTAINS
              MASSFLEW(I,J,K,IQ) = MASSFLEW(I,J,K,IQ) + DTC(I,J,K)
 #endif 
 #if defined( NETCDF )
-             ! Save into diagnostic array for writing to netcdf (ewl, 2/12/15)
-             DiagnArray_EW_Flx(I,J,K,IQ) = DTC(I,J,K)
+             ! Save into diagnostic array for writing to netcdf
+             MASSFLEW(I,J,K,IQ) = DTC(I,J,K)
 #endif
 
           ENDDO
@@ -1058,8 +1049,8 @@ CONTAINS
              MASSFLNS(I,J,K,IQ) = MASSFLNS(I,J,K,IQ) + DTC(I,J,K) 
 #endif
 #if defined( NETCDF )
-             ! Save into diagnostic array for writing to netcdf (ewl, 2/12/15)
-             DiagnArray_NS_Flx(I,J,K,IQ) = DTC(I,J,K)
+             ! Save into diagnostic array for writing to netcdf
+             MASSFLNS(I,J,K,IQ) = DTC(I,J,K)
 #endif
 
           ENDDO
@@ -1118,8 +1109,8 @@ CONTAINS
              MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)/DT
 #endif 
 #if defined( NETCDF )
-             ! Save into diagnostic array for writing to netcdf (ewl, 2/12/15)  
-             DiagnArray_Vert_Flx(I,J,K,IQ) = DTC(I,J,K) / DT
+             ! Save into diagnostic array for writing to netcdf
+             MASSFLUP(I,J,K,IQ) = DTC(I,J,K) / DT
 #endif
 
           ENDDO
@@ -1150,8 +1141,8 @@ CONTAINS
                 MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)/DT
 #endif 
 #if defined( NETCDF )
-             ! Save into diagnostic array for writing to netcdf (ewl, 2/12/15)  
-             DiagnArray_Vert_Flx(I,J,K,IQ) = DTC(I,J,K) / DT
+                ! Save into diagnostic array for writing to netcdf 
+                MASSFLUP(I,J,K,IQ) = DTC(I,J,K) / DT
 #endif
 
              ENDDO
