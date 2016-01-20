@@ -311,12 +311,12 @@ CONTAINS
     ! HCOX_SoilNOx_RUN begins here!
     !=================================================================
 
+    ! Return if extension disabled 
+    IF ( .NOT. ExtState%SoilNOx ) RETURN
+
     ! Enter 
     CALL HCO_ENTER ( 'HCOX_SoilNox_Run (hcox_soilnox_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Return if extension disabled 
-    IF ( .NOT. ExtState%SoilNOx ) RETURN
 
     ! Pass arguments from options object
     aIR   = am_I_Root

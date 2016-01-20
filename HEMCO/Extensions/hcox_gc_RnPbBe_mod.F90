@@ -155,15 +155,15 @@ CONTAINS
     ! HCOX_GC_RnPbBe_RUN begins here!
     !=======================================================================
 
+    ! Sanity check: return if extension not turned on
+    IF ( .NOT. ExtState%Gc_RnPbBe ) RETURN
+
     ! Enter
     CALL HCO_ENTER( 'HCOX_GC_RnPbBe_Run (hcox_gc_RnPbBe_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set error flag
     !ERR = .FALSE.
-
-    ! Sanity check: return if extension not turned on
-    IF ( .NOT. ExtState%Gc_RnPbBe ) RETURN
 
     ! Emission timestep [s]
     DTSRCE = HcoState%TS_EMIS 

@@ -107,15 +107,15 @@ CONTAINS
     ! HCOX_CUSTOM_RUN begins here!
     !=================================================================
 
+    ! Sanity check: return if extension not turned on
+    IF ( .NOT. ExtState%Custom ) RETURN
+
     ! Enter
     CALL HCO_ENTER ( 'HCOX_Custom_Run (hcox_custom_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set error flag
     ERR = .FALSE.
-
-    ! Sanity check: return if extension not turned on
-    IF ( .NOT. ExtState%Custom ) RETURN
 
     ! Initialize flux arrays
     ALLOCATE ( FLUXICE( HcoState%NX,HcoState%NY),        &

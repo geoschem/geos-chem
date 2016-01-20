@@ -172,12 +172,12 @@ CONTAINS
     ! HCOX_SeaFlux_Run begins here!
     !=================================================================
 
+    ! Return if extension disabled 
+    IF ( .NOT. ExtState%SeaFlux ) RETURN
+
     ! Enter
     CALL HCO_ENTER( 'HCOX_SeaFlux_Run (hcox_seaflux_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Return if extension disabled 
-    IF ( .NOT. ExtState%SeaFlux ) RETURN
 
     ! Verbose?
     verbose = HCO_IsVerb(1) 

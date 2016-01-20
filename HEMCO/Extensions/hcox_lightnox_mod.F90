@@ -247,15 +247,12 @@ CONTAINS
     ! HCOX_LIGHTNOX_RUN begins here!
     !=================================================================
 
+    ! Nothing to do if extension is disabled
+    IF ( ExtNr <= 0 ) RETURN
+ 
     ! Enter
     CALL HCO_ENTER( 'HCOX_LightNOx_Run (hcox_lightnox_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Return if extension disabled 
-    IF ( ExtNr <= 0 ) THEN
-       CALL HCO_LEAVE ( RC )
-       RETURN
-    ENDIF
 
     ! Update lightnox NOx emissions (fill SLBASE) 
     CALL LIGHTNOX ( am_I_Root, HcoState, ExtState, RC )

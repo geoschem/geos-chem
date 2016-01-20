@@ -164,12 +164,12 @@ CONTAINS
     ! HCOX_CH4WETLAND_Run begins here!
     !=================================================================
 
+    ! Return if extension disabled 
+    IF ( .NOT. ExtState%Wetland_CH4 ) RETURN
+
     ! Enter
     CALL HCO_ENTER( LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Return if extension disabled 
-    IF ( .NOT. ExtState%Wetland_CH4 ) RETURN
 
     ! ---------------------------------------------------------------
     ! On first call, get pointers to data and check if manual 
