@@ -37,12 +37,7 @@
       ! For ND05 -- Sulfate prod/loss diagnostics
       REAL*4,  ALLOCATABLE :: AD05(:,:,:,:)
 
-      ! For ND06 -- Dust aerosol emission
-      REAL*4,  ALLOCATABLE :: AD06(:,:,:)
-
       ! For ND07 -- Carbon aerosol emission
-      !%%% NOTE: SOME OF THESE ARE OBSOLETE NOW (bmy, 8/18/14)
-      REAL*4,  ALLOCATABLE :: AD07(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_BC(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_OC(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_HC(:,:,:,:)
@@ -51,9 +46,6 @@
 #if   defined( APM )
       REAL*4,  ALLOCATABLE :: AD07_OM(:,:)
 #endif 
-
-      ! For ND08 -- seasalt emission
-      REAL*4,  ALLOCATABLE :: AD08(:,:,:)
 
       ! For ND09 -- HCN / CH3CN simulation
       REAL*4,  ALLOCATABLE :: AD09(:,:,:,:)
@@ -310,6 +302,8 @@
 !  12 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  20 Jan 2015 - R. Yantosca - Added DIAGINIT_TRACER_CONC routine
 !  15 Apr 2015 - R. Yantosca - Add TARGET spec to MASSFLEW, MASSFLNS, MASSFLUP
+!  20 Jan 2016 - M. Sulprizio- Remove AD06, AD07, and AD08 arrays since these
+!                              diagnostics are tracked by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -361,13 +355,10 @@
       IF ( ALLOCATED( AD01        ) ) DEALLOCATE( AD01        )
       IF ( ALLOCATED( AD02        ) ) DEALLOCATE( AD02        )
 #endif
-      IF ( ALLOCATED( AD06        ) ) DEALLOCATE( AD06        )
-      IF ( ALLOCATED( AD07        ) ) DEALLOCATE( AD07        )
       IF ( ALLOCATED( AD07_BC     ) ) DEALLOCATE( AD07_BC     )
       IF ( ALLOCATED( AD07_OC     ) ) DEALLOCATE( AD07_OC     )
       IF ( ALLOCATED( AD07_HC     ) ) DEALLOCATE( AD07_HC     )
       IF ( ALLOCATED( AD07_SOAGM  ) ) DEALLOCATE( AD07_SOAGM  )
-      IF ( ALLOCATED( AD08        ) ) DEALLOCATE( AD08        )
       IF ( ALLOCATED( AD09        ) ) DEALLOCATE( AD09        )
       IF ( ALLOCATED( AD09_em     ) ) DEALLOCATE( AD09_em     )
       IF ( ALLOCATED( AD12        ) ) DEALLOCATE( AD12        )

@@ -143,6 +143,8 @@
 !  17 Sep 2014 - M. Sulprizio- Now initialize AD61 for TOMAS
 !  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  17 Nov 2014 - C. Keller   - Now reset ND45 if IFLAG is set to 2.
+!  20 Jan 2016 - M. Sulprizio- Remove AD06, AD07, and AD08. These diagnostics
+!                              are tracked by HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -170,8 +172,6 @@
          IF ( ND02 > 0 ) AD02     = 0e0
 #endif
          IF ( ND05 > 0 ) AD05     = 0e0
-         IF ( ND06 > 0 ) AD06     = 0e0
-         IF ( ND08 > 0 ) AD08     = 0e0
          IF ( ND12 > 0 ) AD12     = 0e0
          IF ( ND14 > 0 ) CONVFLUP = 0e+0_fp
          IF ( ND15 > 0 ) TURBFLUP = 0e+0_fp
@@ -243,7 +243,6 @@
 
          ! ND07 -- carbon aerosol emissions (rjp, tdf, bmy, 4/5/04)
          IF ( ND07 > 0 ) THEN
-            AD07       = 0e0
             AD07_BC    = 0e0
             AD07_OC    = 0e0
             AD07_HC    = 0e0

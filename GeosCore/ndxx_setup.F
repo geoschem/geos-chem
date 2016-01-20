@@ -211,6 +211,8 @@
 !  22 May 2015 - R. Yantosca - Removed variables made obsolete by HEMCO
 !  03 Sep 2015 - R. Yantosca - Now pass State_Chm to this routine so that
 !                              we can take advantage of the species database
+!  20 Jan 2016 - M. Sulprizio- Remove code to allocate the AD06, AD07, and AD08
+!                              arrays. These diagnostics are tracked by HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -325,23 +327,11 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD05' )
       ENDIF
 
-      !================================================================
-      ! ND06: Dust emissions
-      !================================================================
-      IF ( ND06 > 0 .and. LDUST ) THEN 
-         !tdf Include dust alkalinity tracers
-         ALLOCATE( AD06( IIPAR, JJPAR, NDSTBIN*2 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD06' )
-      ENDIF
-
       !=================================================================
       ! ND07: Carbonaceous aerosols emissions and chemical conversion
       !=================================================================
       IF ( ND07 > 0 .and. LCARB ) THEN 
          LD07 = MIN( ND07, LLPAR )
-
-         ALLOCATE( AD07( IIPAR, JJPAR, PD07 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07' )
 
          ALLOCATE( AD07_BC( IIPAR, JJPAR, LD07 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_BC' )
@@ -367,14 +357,6 @@
 #endif
 
       ENDIF  
-
-      !================================================================
-      ! ND08: Dust emissions
-      !================================================================
-      IF ( ND08 > 0 .and. LSSALT ) THEN 
-         ALLOCATE( AD08( IIPAR, JJPAR, PD08 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD08' )
-      ENDIF
 
       !=================================================================
       ! ND09: HCN / CH3CN source & sink
@@ -510,7 +492,6 @@
       ENDIF 
 
       !=================================================================
-      !
       ! ND20: Save O3 P-L losses to disk for single-tracer O3 run
       !       in the PL24H array.  Also turn on ND65, since the P-L 
       !       rates are computed by ND65.  
