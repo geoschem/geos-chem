@@ -329,13 +329,13 @@
       CHARACTER(LEN=255)       :: MSG
       TYPE(DiagnCont), POINTER :: DiagnCnt => NULL() 
       TYPE(HCO_State), POINTER :: HcoState => NULL()
-      REAL(hp)                 :: FACTOR
-      REAL(hp), PARAMETER      :: GPERKG   = 1000e+0_hp
-      REAL(hp), PARAMETER      :: MWC      = 12e+0_hp
-      REAL(hp), PARAMETER      :: CM2PERM2 = 10000e+0_hp
-      REAL(hp), PARAMETER      :: S_DMS    = 32e+0_hp / 62e+0_hp
-      REAL(hp), PARAMETER      :: S_SO2    = 32e+0_hp / 64e+0_hp
-      REAL(hp), PARAMETER      :: S_SO4    = 32e+0_hp / 96e+0_hp
+      REAL(fp)                 :: FACTOR
+      REAL(fp), PARAMETER      :: GPERKG   = 1000e+0_fp
+      REAL(fp), PARAMETER      :: MWC      = 12e+0_fp
+      REAL(fp), PARAMETER      :: CM2PERM2 = 10000e+0_fp
+      REAL(fp), PARAMETER      :: S_DMS    = 32e+0_fp / 62e+0_fp
+      REAL(fp), PARAMETER      :: S_SO2    = 32e+0_fp / 64e+0_fp
+      REAL(fp), PARAMETER      :: S_SO4    = 32e+0_fp / 96e+0_fp
 
       CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG3 (diag3.F)'
 
@@ -437,7 +437,7 @@
          IF ( IDTRn > 0 ) THEN
             DiagnName    = 'AD01_Rn_SOURCE'
             N            = IDTRn
-            FACTOR       = 1.0e+0_hp
+            FACTOR       = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,     N, 1, -1, .TRUE., FACTOR, RC    )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -581,7 +581,7 @@
          ! Category & unit string
          UNIT     = 'kg'
          CATEGORY = 'DUSTSRCE'
-         FACTOR   = 1.0e+0_hp
+         FACTOR   = 1.0e+0_fp
 
          ! Loop over # of dust bins
          DO N = 1, Input_Opt%N_DUST_BINS
@@ -1581,7 +1581,7 @@
          DiagnName = 'AD13_NH3_ANTHROPOGENIC'
          UNIT      = 'kg'
          CATEGORY  = 'NH3-ANTH'
-         FACTOR    = 1.0e+0_hp
+         FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &                   UNIT, IDTNH3, 1, -1, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
@@ -1589,7 +1589,7 @@
          !%%%%%  Natural source NH3 %%%%%
          DiagnName = 'AD13_NH3_NATURAL'
          CATEGORY  = 'NH3-NATU'
-         FACTOR    = 1.0e+0_hp
+         FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &                   UNIT, IDTNH3, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
@@ -1605,7 +1605,7 @@
          !%%%%% Biofuel NH3 %%%%%
          DiagnName = 'AD13_NH3_BIOFUEL'
          CATEGORY  = 'NH3-BIOF'
-         FACTOR    = 1.0e+0_hp
+         FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &                   UNIT, IDTNH3, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
@@ -4317,7 +4317,7 @@
          UNIT      = 'molec/cm2/s'
          N         = 14
          ! Conversion factor from kg/m2/s to molec/cm2/s
-         FACTOR    = ( AVO / 46.025e+0_hp ) / CM2PERM2
+         FACTOR    = ( AVO / 46.025e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4329,7 +4329,7 @@
          UNIT      = 'molec/cm2/s'
          N         = 15
          ! Conversion factor from kg/m2/s to molec/cm2/s
-         FACTOR    = ( AVO / 60.052e+0_hp ) / CM2PERM2
+         FACTOR    = ( AVO / 60.052e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4367,7 +4367,7 @@
          UNIT      = 'molec/cm2/s'
          N         = 18
          ! Conversion factor from kg/m2/s to molec/cm2/s
-         FACTOR    =  ( AVO / 32.042e+0_hp )/ CM2PERM2
+         FACTOR    =  ( AVO / 32.042e+0_fp )/ CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)

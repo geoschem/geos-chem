@@ -3713,7 +3713,7 @@ CONTAINS
 !
     INTEGER            :: cId, Collection, N
     INTEGER            :: SpaceDim 
-    REAL(hp)           :: ScaleFact
+    REAL(fp)           :: ScaleFact
     CHARACTER(LEN=15)  :: OutOper, OutUnit
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
@@ -3744,33 +3744,33 @@ CONTAINS
           CASE ( 1 )
              DiagnName = 'BOXHEIGHT'
              OutUnit   = 'm'
-             ScaleFact = 1.0_hp
+             ScaleFact = 1.0_fp
              SpaceDim  = 3
           CASE ( 2 )
              DiagnName = 'AIRMASS'
              OutUnit   = 'kg'
-             ScaleFact = 1.0_hp
+             ScaleFact = 1.0_fp
              SpaceDim  = 3
           CASE ( 3 )
              DiagnName = 'AIRDENSITY'
              OutUnit   = 'kg m-3'
-             ScaleFact = 1.0_hp
+             ScaleFact = 1.0_fp
              SpaceDim  = 3
           CASE ( 4 )
              IF ( .NOT. ASSOCIATED(State_Met%AVGW) ) CYCLE
              DiagnName = 'AVGW'
              OutUnit   = 'v/v'
-             ScaleFact = 1.0_hp
+             ScaleFact = 1.0_fp
              SpaceDim  = 3
           CASE ( 5 )
              DiagnName = 'TROPP_PRESSURE'
              OutUnit   = 'hPa'
-             ScaleFact = 1.0_hp
+             ScaleFact = 1.0_fp
              SpaceDim  = 2
           CASE ( 6 )
              DiagnName = 'TROPP_LEVEL'
              OutUnit   = 'count'
-             ScaleFact = 1.0_hp
+             ScaleFact = 1.0_fp
              SpaceDim  = 2
        END SELECT
 
