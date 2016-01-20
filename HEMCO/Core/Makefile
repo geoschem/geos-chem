@@ -253,6 +253,7 @@ hcoio_diagn_mod.o      : hcoio_diagn_mod.F90     \
                          hco_clock_mod.o         \
                          hco_diagn_mod.o         \
                          hco_error_mod.o         \
+                         hco_extlist_mod.o       \
                          hco_state_mod.o
 
 hcoio_dataread_mod.o   : hcoio_dataread_mod.F90  \

@@ -436,6 +436,7 @@ CONTAINS
 !  17 Apr 2015 - C. Keller   - Passed option OptName must now exactly match the
 !                              stored option name to avoid ambiguity.
 !  20 Sep 2015 - C. Keller   - Options are now linked list.
+!  20 Jan 2016 - C. Keller   - Bug fix: boolean options are now case insensitive.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -500,7 +501,7 @@ CONTAINS
        ENDIF
     ELSEIF ( PRESENT(OptValBool) ) THEN
        IF ( OptFound ) THEN
-          CALL TRANLC( TRIM(OptValue) )
+          CALL TRANLC( OptValue )
           IF ( INDEX( TRIM(OptValue), 'true' ) > 0 ) THEN
              OptValBool = .TRUE.
           ELSE

@@ -191,8 +191,11 @@ CONTAINS
     USE Ncdf_Mod,            ONLY : NC_Close
     USE Ncdf_Mod,            ONLY : NC_Var_Def
     USE Ncdf_Mod,            ONLY : NC_Var_Write
+    USE Ncdf_Mod,            ONLY : NC_Get_RefDateTime
+    USE CHARPAK_Mod,         ONLY : TRANLC
     USE HCO_State_Mod,       ONLY : HCO_State
     USE JulDay_Mod,          ONLY : JulDay
+    USE HCO_ExtList_Mod,     ONLY : GetExtOpt, CoreNr
     USE HCO_Clock_Mod
 !
 ! !INPUT PARAMETERS:
@@ -219,6 +222,7 @@ CONTAINS
 !                              out lon & lat as float instead of double
 !  06 Nov 2015 - C. Keller   - Output time stamp is now determined from 
 !                              variable OutTimeStamp.
+!  20 Jan 2016 - C. Keller   - Added options DiagnRefTime and DiagnNoLevDim.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -239,15 +243,19 @@ CONTAINS
     CHARACTER(LEN=255)        :: ncFile
     CHARACTER(LEN=255)        :: Pfx 
     CHARACTER(LEN=255)        :: MSG 
+    CHARACTER(LEN=255)        :: RefTime 
     CHARACTER(LEN=4 )         :: Yrs
     CHARACTER(LEN=2 )         :: Mts, Dys, hrs, mns 
-    CHARACTER(LEN=31)         :: timeunit, myName, myUnit, OutOper
+    CHARACTER(LEN=31)         :: myName, myUnit, OutOper
+    CHARACTER(LEN=63)         :: timeunit
     INTEGER                   :: fId, lonId, latId, levId, TimeId
     INTEGER                   :: VarCt
     INTEGER                   :: nLon, nLat, nLev, nTime 
     INTEGER                   :: Prc
     INTEGER                   :: lymd, lhms 
-    LOGICAL                   :: EOI, DoWrite, PrevTime
+    INTEGER                   :: refYYYY, refMM, refDD, refh, refm, refs 
+    LOGICAL                   :: EOI, DoWrite, PrevTime, FOUND
+    LOGICAL                   :: NoLevDim 
  
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DIAGN_WRITEOUT (hcoio_diagn_mod.F90)' 
 
@@ -304,6 +312,41 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
+    ! Don't define level dimension if there are no 3D fields to write
+    ! This is an optional feature. By default, all diagnostics have
+    ! the full dimension definitions (lon,lat,lev,time) even if all
+    ! output fields are only 2D. If the flag DiagnNoLevDim is 
+    ! enabled, the lev dimension is not defined if there are no 3D
+    ! fields on the file. 
+    !-----------------------------------------------------------------
+    NoLevDim = .FALSE.
+    CALL GetExtOpt ( CoreNr, 'DiagnNoLevDim', &
+                     OptValBool=NoLevDim, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( Found ) THEN 
+       IF ( NoLevDim ) THEN
+
+          ! Loop over all diagnostics to see if any is 3D
+          ThisDiagn => NULL()
+          DO WHILE ( .TRUE. )
+
+             ! Get next diagnostics in list. This will return the next 
+             ! diagnostics container that contains content. 
+             CALL Diagn_Get ( am_I_Root, EOI, ThisDiagn, FLAG, RC, COL=PS ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN 
+             IF ( FLAG /= HCO_SUCCESS ) EXIT
+              
+             ! If this is a 3D diagnostics, we must write the level 
+             ! coordinate
+             IF ( ThisDiagn%SpaceDim == 3 ) THEN
+                NoLevDim = .FALSE.
+                EXIT
+             ENDIF
+          ENDDO
+       ENDIF
+    ENDIF
+
+    !-----------------------------------------------------------------
     ! Create output file
     !-----------------------------------------------------------------
 
@@ -347,10 +390,19 @@ CONTAINS
        MSG = 'Write diagnostics into file '//TRIM(ncFile)
        CALL HCO_MSG( MSG )
     ENDIF
+    IF ( HCO_IsVerb(3) .AND. PS==1 ) THEN
+       WRITE(MSG,*) '--> write level dimension: ', .NOT.NoLevDim
+       CALL HCO_MSG( MSG )
+    ENDIF
 
     ! Create output file
-    CALL NC_CREATE( ncFile, nLon,  nLat,  nLev,  nTime, &
-                    fId,    lonId, latId, levId, timeId, VarCt ) 
+    IF ( NoLevDim ) THEN
+       CALL NC_CREATE( ncFile, nLon,  nLat,    -1,  nTime, &
+                       fId,    lonId, latId, levId, timeId, VarCt ) 
+    ELSE
+       CALL NC_CREATE( ncFile, nLon,  nLat,  nLev,  nTime, &
+                       fId,    lonId, latId, levId, timeId, VarCt ) 
+    ENDIF
 
     !-----------------------------------------------------------------
     ! Write grid dimensions (incl. time) 
@@ -373,22 +425,68 @@ CONTAINS
     DEALLOCATE( Arr1D )
 
     ! Add level 
-    CALL NC_VAR_DEF ( fId, -1, levId, -1, -1, &
-                      'lev', 'GEOS-Chem level', 'unitless', 1, VarCt )
-    allocate(Int1D(nLev))
-    DO I = 1, nLev
-       Int1D(I) = I
-    ENDDO
-    CALL NC_VAR_WRITE ( fId, 'lev', Arr1D=Int1D )
-    deallocate(Int1D)
+    IF ( .NOT. NoLevDim ) THEN
+       CALL NC_VAR_DEF ( fId, -1, levId, -1, -1, &
+                         'lev', 'GEOS-Chem level', 'unitless', Prc, VarCt )
+       allocate(Arr1D(nLev))
+       DO I = 1, nLev
+          Arr1D(I) = REAL(I)
+       ENDDO
+       CALL NC_VAR_WRITE ( fId, 'lev', Arr1D=Arr1D )
+       deallocate(Arr1D)
+!    CALL NC_VAR_DEF ( fId, -1, levId, -1, -1, &
+!                      'lev', 'GEOS-Chem level', 'unitless', 1, VarCt )
+!    allocate(Int1D(nLev))
+!    DO I = 1, nLev
+!       Int1D(I) = I
+!    ENDDO
+!    CALL NC_VAR_WRITE ( fId, 'lev', Arr1D=Int1D )
+!    deallocate(Int1D)
+    ENDIF
 
     ! Add time 
-    timeunit = 'hours since 1985-01-01 00:00:00 GMT'
-    GMT = REAL(h,dp) + (REAL(m,dp)/60.0_dp) + (REAL(s,dp)/3600.0_dp)
-    THISDAY  = DD + ( GMT / 24.0_dp )
-    JD1      = JULDAY ( YYYY, MM, THISDAY )
-    JD1985   = JULDAY ( 1985, 1,  0.0_dp  ) + 1.0_dp
-    JD_DELTA = (JD1 - JD1985 ) * 24.0_dp
+    ! JD1 is the julian day of the data slice
+    GMT     = REAL(h,dp) + (REAL(m,dp)/60.0_dp) + (REAL(s,dp)/3600.0_dp)
+    THISDAY = DD + ( GMT / 24.0_dp )
+    JD1     = JULDAY ( YYYY, MM, THISDAY )
+
+    ! Check if reference time is given in HEMCO configuration file
+    CALL GetExtOpt ( CoreNr, 'DiagnRefTime', &
+                     OptValChar=RefTime, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Use specified reference time (if given)
+    IF ( Found ) THEN
+       timeunit = ADJUSTL(TRIM(RefTime))
+       CALL TRANLC( timeunit )
+       CALL NC_GET_REFDATETIME( timeunit, refYYYY, refMM, refDD, refh, refm, refs, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       
+       GMT     = REAL(MAX(refh,0),dp) + (REAL(MAX(refm,0),dp)/60.0_dp) + (REAL(MAX(refs,0),dp)/3600.0_dp)
+       THISDAY = refDD + ( GMT / 24.0_dp )
+       JD1985  = JULDAY ( refYYYY, refMM, THISDAY ) 
+    ELSE
+       WRITE(timeunit,100) YYYY,MM,DD,h,m,s
+       JD1985 = JD1
+    ENDIF
+100 FORMAT ( 'hours since ',i4.4,'-',i2.2,'-',i2.2,' ',i2.2,':',i2.2,':',i2.2,' GMT' )
+
+    ! Calculate time since reference datetime
+    JD_DELTA = (JD1 - JD1985 ) 
+
+    ! Adjust to correct units. Default is 'days since'
+    IF ( timeunit(1:4) == 'days' ) THEN
+       ! all ok
+    ELSEIF ( timeunit(1:5) == 'hours' ) THEN
+       JD_DELTA = JD_DELTA * 24.0_dp
+    ELSEIF ( timeunit(1:7) == 'minutes' ) THEN
+       JD_DELTA = JD_DELTA * 24.0_dp * 60.0_dp
+    ELSEIF ( timeunit(1:7) == 'seconds' ) THEN
+       JD_DELTA = JD_DELTA * 24.0_dp * 3600.0_dp
+    ELSE
+       MSG = 'Unrecognized output reference time unit, will assume `days since`: '//TRIM(timeunit)
+       CALL HCO_WARNING( MSG, WARNLEV=2, THISLOC=LOC, RC=RC )
+    ENDIF
 
     ! Round to 2 digits after comma 
     JD_DELTA_RND = REAL(JD_DELTA,sp) * 100.0_sp
@@ -438,6 +536,13 @@ CONTAINS
           levIdTmp = levId
        ELSE
           levIdTmp = -1
+       ENDIF
+
+       ! Error check: this should never happen!
+       IF ( levIdTmp > 0 .AND. NoLevDim ) THEN
+          MSG = 'Level dimension undefined but 3D container found: ' // TRIM(myName)
+          CALL HCO_ERROR(MSG,RC,THISLOC=LOC)
+          RETURN 
        ENDIF
 
        ! Write out in single precision
