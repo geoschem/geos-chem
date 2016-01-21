@@ -34,9 +34,6 @@
       PRIVATE :: GEOS4_GEOS5_GLOBAL_ADV      
       PRIVATE :: GCAP_GLOBAL_ADV             
       PRIVATE :: DO_WINDOW_TRANSPORT
-#if defined( NETCDF )
-      PRIVATE :: DIAGNUPDATE_TRANSPORT
-#endif
 !
 ! !REVISION HISTORY:
 !  10 Mar 2003 - Y. Wang, R. Yantosca - Initial version
@@ -82,6 +79,8 @@
 !                              when using kg/kg total air in advection
 !  13 Aug 2015 - E. Lundgren - Tracer units are now input as kg/kg dry air 
 !                              (previously v/v)
+!  19 Jan 2016 - E. Lundgren - Move DiagnUpdate_Transport to diagnostics_mod
+!                              and consolidate netcdf and bpch diagnostic code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -280,6 +279,9 @@
 #if defined( BPCH )
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
 #endif
+#if defined( NETCDF )
+      USE DIAGNOSTICS_MOD, ONLY : DIAGNUPDATE_TRANSPORT_FLUX
+#endif
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -356,6 +358,11 @@
       REAL(fp),  POINTER :: p_VWND   (:,:,:  )
       REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
       REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
+#if defined( BPCH ) || defined( NETCDF )
+      REAL(fp),  POINTER :: p_MFLEW  (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLNS  (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLUP  (:,:,:,:) => NULL()
+#endif
       REAL(fp),  POINTER :: p_STT    (:,:,:,:)
 
       ! For fields from Input_Opt
@@ -366,9 +373,10 @@
 
 #if defined( NETCDF )
       ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
-      REAL(fp) :: DiagnArray_EW_Flx(IIPAR,JJPAR,LLPAR,NNPAR)        
-      REAL(fp) :: DiagnArray_NS_Flx(IIPAR,JJPAR,LLPAR,NNPAR)
-      REAL(fp) :: DiagnArray_Vert_Flx(IIPAR,JJPAR,LLPAR,NNPAR) 
+      ! Note that these are different than if writing to bpch
+      REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,NNPAR)        
+      REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,NNPAR)
+      REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,NNPAR) 
 #endif
 
       !=================================================================
@@ -445,6 +453,16 @@
       p_STT     => State_Chm%Tracers(:,:,LLPAR:1:-1,:) ! v/v
       p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
+#if defined( BPCH )
+      p_MFLEW   => MASSFLEW         (:,:,LLPAR:1:-1,:)
+      p_MFLNS   => MASSFLNS         (:,:,LLPAR:1:-1,:)
+      p_MFLUP   => MASSFLUP         (:,:,LLPAR:1:-1,:)
+#endif
+#if defined( NETCDF )
+      p_MFLEW   => MASSFLEW_NC      (:,:,LLPAR:1:-1,:)
+      p_MFLNS   => MASSFLNS_NC      (:,:,LLPAR:1:-1,:)
+      p_MFLUP   => MASSFLUP_NC      (:,:,LLPAR:1:-1,:)
+#endif
 
       ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg total  air before advection (ewl, 6/15/15)
@@ -463,30 +481,20 @@
      &                   p_UWND, p_VWND,    P_TP1,    P_TP2,
      &                   P_TEMP, p_STT,     IORD,     JORD,      
      &                   KORD,   N_ADJ,     p_XMASS,  p_YMASS, LFILL,  
-#if defined( BPCH )
+#if defined( BPCH ) || defined( NETCDF )
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
-     &                   MASSFLEW,  MASSFLNS, MASSFLUP,
+     &                   p_MFLEW,  p_MFLNS, p_MFLUP,
 #endif    
-#if defined( NETCDF )
-      ! Pass new local diagnostic arrays for netcdf output - ewl, 2/12/2015
-     &                   DiagnArray_EW_Flx, DiagnArray_NS_Flx,
-     &                   DiagnArray_Vert_Flx,
-#endif
      &                   A_M2, ND24, ND25, ND26 )
 
 #if defined( NETCDF )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND24', Input_Opt%LD24, 
-     &                            DiagnArray_EW_Flx,
-     &                            Input_Opt, RC )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND25', Input_Opt%LD25, 
-     &                            DiagnArray_NS_Flx,
-     &                            Input_Opt, RC )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND26', Input_Opt%LD26,
-     &                            DiagnArray_Vert_Flx, 
-     &                            Input_Opt, RC )
+      IF ( Input_Opt%ND24 > 0 ) THEN
+         CALL DiagnUpdate_Transport_Flux( am_I_Root, p_MFLEW, p_MFLNS, 
+     &                                    p_MFLUP, Input_Opt, RC )
+      ENDIF
 #endif
 
       ! Convert tracer concentration from kg/kg wet air to 
@@ -500,7 +508,11 @@
       ENDIF 
 
       ! Free pointer memory
-      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
+      NULLIFY( p_UWND,  p_VWND,  p_STT   )
+      NULLIFY( p_XMASS, p_YMASS          )
+#if defined( BPCH ) || defined( NETCDF )
+      NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP )
+#endif
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -540,6 +552,9 @@
 !
 #if defined( BPCH )
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
+#endif
+#if defined( NETCDF )
+      USE DIAGNOSTICS_MOD, ONLY : DIAGNUPDATE_TRANSPORT_FLUX
 #endif
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
@@ -617,6 +632,11 @@
       REAL(fp),  POINTER :: p_VWND   (:,:,:  )
       REAL(fp),  POINTER :: p_XMASS  (:,:,:  )
       REAL(fp),  POINTER :: p_YMASS  (:,:,:  )
+#if defined( BPCH ) || defined( NETCDF )
+      REAL(fp),  POINTER :: p_MFLEW (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLNS (:,:,:,:) => NULL()
+      REAL(fp),  POINTER :: p_MFLUP (:,:,:,:) => NULL()
+#endif
       REAL(fp),  POINTER :: p_STT    (:,:,:,:) ! v/v
 
       ! For fields from Input_Opt
@@ -627,9 +647,10 @@
 
 #if defined( NETCDF )
       ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
-      REAL(fp) :: DiagnArray_EW_Flx(IIPAR,JJPAR,LLPAR,NNPAR)        
-      REAL(fp) :: DiagnArray_NS_Flx(IIPAR,JJPAR,LLPAR,NNPAR)
-      REAL(fp) :: DiagnArray_Vert_Flx(IIPAR,JJPAR,LLPAR,NNPAR) 
+      ! Note that these are different than if writing to bpch
+      REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,NNPAR)        
+      REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,NNPAR)
+      REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,NNPAR) 
 #endif
 
       !=================================================================
@@ -711,6 +732,17 @@
       p_STT     => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
       p_XMASS   => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS   => YMASS            (:,:,LLPAR:1:-1  )
+#if defined( BPCH )
+      p_MFLEW   => MASSFLEW         (:,:,LLPAR:1:-1,:)
+      p_MFLNS   => MASSFLNS         (:,:,LLPAR:1:-1,:)
+      p_MFLUP   => MASSFLUP         (:,:,LLPAR:1:-1 ,:)
+#endif
+#if defined( NETCDF )
+      p_MFLEW   => MASSFLEW_NC      (:,:,LLPAR:1:-1,:)
+      p_MFLNS   => MASSFLNS_NC      (:,:,LLPAR:1:-1,:)
+      p_MFLUP   => MASSFLUP_NC      (:,:,LLPAR:1:-1,:)
+#endif
+
 
       ! Convert tracer concentration from kg/kg dry air to 
       ! kg/kg total air before advection (ewl, 6/15/15)
@@ -729,30 +761,20 @@
      &                   p_UWND,  p_VWND,    P_TP1,    P_TP2,
      &                   P_TEMP,  p_STT,     IORD,     JORD,      
      &                   KORD,    N_ADJ,     p_XMASS,  p_YMASS, LFILL,
-#if defined( BPCH )
+#if defined( BPCH ) || defined( NETCDF )
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
-     &                   MASSFLEW,  MASSFLNS, MASSFLUP,
+     &                   p_MFLEW,  p_MFLNS, p_MFLUP,
 #endif    
-#if defined( NETCDF )
-      ! Pass new local diagnostic arrays for netcdf output - ewl, 2/12/2015
-     &                   DiagnArray_EW_Flx, DiagnArray_NS_Flx,
-     &                   DiagnArray_Vert_Flx,
-#endif
      &                   A_M2, ND24, ND25, ND26 )
 
 #if defined( NETCDF )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND24', Input_Opt%LD24, 
-     &                            DiagnArray_EW_Flx,
-     &                            Input_Opt, RC )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND25', Input_Opt%LD25, 
-     &                            DiagnArray_NS_Flx,
-     &                            Input_Opt, RC )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND26', Input_Opt%LD26,
-     &                            DiagnArray_Vert_Flx, 
-     &                            Input_Opt, RC )
+      IF ( Input_Opt%ND24 > 0 ) THEN
+         CALL DiagnUpdate_Transport_Flux( am_I_Root, p_MFLEW, p_MFLNS, 
+     &                                    p_MFLUP, Input_Opt, RC )
+      ENDIF
 #endif
 
       ! Convert tracer concentration from kg/kg total air to 
@@ -766,7 +788,11 @@
       ENDIF 
 
       ! Free pointer memory
-      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
+      NULLIFY( p_UWND,  p_VWND,  p_STT   )
+      NULLIFY( p_XMASS, p_YMASS          )
+#if defined( BPCH ) || defined( NETCDF )
+      NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP )
+#endif
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -808,6 +834,9 @@
       ! References to F90 modules
 #if defined( BPCH )
       USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
+#endif
+#if defined( NETCDF )
+      USE DIAGNOSTICS_MOD, ONLY : DIAGNUPDATE_TRANSPORT_FLUX
 #endif
       USE ERROR_MOD
       USE GIGC_ErrCode_Mod
@@ -889,9 +918,11 @@
       REAL(fp),  POINTER :: p_VWND  (:,:,:  ) => NULL()
       REAL(fp),  POINTER :: p_XMASS (:,:,:  ) => NULL()
       REAL(fp),  POINTER :: p_YMASS (:,:,:  ) => NULL()
+#if defined( BPCH ) || defined( NETCDF )
       REAL(fp),  POINTER :: p_MFLEW (:,:,:,:) => NULL()
       REAL(fp),  POINTER :: p_MFLNS (:,:,:,:) => NULL()
       REAL(fp),  POINTER :: p_MFLUP (:,:,:,:) => NULL()
+#endif
       REAL(fp),  POINTER :: p_STT   (:,:,:,:) => NULL()
 
       ! For fields from Input_Opt
@@ -903,10 +934,12 @@
 
 #if defined( NETCDF )
       ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
-      REAL(fp) :: DiagnArray_EW_Flx(IIPAR,JJPAR,LLPAR,NNPAR)        
-      REAL(fp) :: DiagnArray_NS_Flx(IIPAR,JJPAR,LLPAR,NNPAR)
-      REAL(fp) :: DiagnArray_Vert_Flx(IIPAR,JJPAR,LLPAR,NNPAR) 
+      ! Note that these are different than if writing to bpch
+      REAL(fp), TARGET :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,NNPAR)        
+      REAL(fp), TARGET :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,NNPAR)
+      REAL(fp), TARGET :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,NNPAR) 
 #endif
+
 
       !=================================================================
       ! DO_FVDAS_WINDOW_TRANSPORT begins here!
@@ -1034,6 +1067,20 @@
      &                              J0_W1+1 : J0_W1+JM_W1,  
      &                              :,                         : )
 #endif
+#if defined( NETCDF )
+      p_MFLEW => MASSFLEW_NC(       I0_W1+1 : I0_W1+IM_W1,
+     &                              J0_W1+1 : J0_W1+JM_W1,  
+     &                              :,                         : )
+                                   
+      p_MFLNS => MASSFLNS_NC(       I0_W1+1 : I0_W1+IM_W1,
+     &                              J0_W1+1 : J0_W1+JM_W1,  
+     &                              :,                         : )
+                                   
+      p_MFLUP => MASSFLUP_NC(       I0_W1+1 : I0_W1+IM_W1,
+     &                              J0_W1+1 : J0_W1+JM_W1,  
+     &                              :,                         : )
+#endif
+
 
       p_A_M2  => A_M2( J0_W1+1 : J0_W1+JM_W1                     )
 
@@ -1054,30 +1101,20 @@
      &      Ap,      Bp,       p_UWND,  p_VWND,  p_P_TP1, 
      &      p_P_TP2, p_P_TEMP, p_STT,   IORD,    JORD, 
      &      KORD,    N_ADJ,    p_XMASS, p_YMASS, 
-#if defined( BPCH )
+#if defined( BPCH ) || defined( NETCDF )
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
      &                         p_MFLEW, p_MFLNS, p_MFLUP,
 #endif
-#if defined( NETCDF )
-      ! Pass new local diagnostic arrays for netcdf output (ewl, 1/11/2016)
-     &                          DiagnArray_EW_Flx, DiagnArray_NS_Flx,
-     &                          DiagnArray_Vert_Flx,
-#endif
      &                          p_A_M2,   ND24,      ND25,     ND26 ) 
 
 #if defined( NETCDF )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND24', Input_Opt%LD24, 
-     &                            DiagnArray_EW_Flx,
-     &                            Input_Opt, RC )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND25', Input_Opt%LD25, 
-     &                            DiagnArray_NS_Flx,
-     &                            Input_Opt, RC )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND26', Input_Opt%LD26,
-     &                            DiagnArray_Vert_Flx, 
-     &                            Input_Opt, RC )
+      IF ( Input_Opt%ND24 > 0 ) THEN
+         CALL DiagnUpdate_Transport_Flux( am_I_Root, p_MFLEW, p_MFLNS, 
+     &                                    p_MFLUP, Input_Opt, RC )
+      ENDIF
 #endif
 
       ! Convert tracer concentration from kg/kg wet air to 
@@ -1094,8 +1131,10 @@
 
       ! Free pointer memory
       NULLIFY( p_UWND,  p_VWND,  p_STT,   p_XMASS  ) 
-      NULLIFY( p_YMASS, p_P_TP1, p_P_TP2, p_P_TEMP )
-      NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP, p_A_M2   )
+      NULLIFY( p_YMASS, p_P_TP1, p_P_TP2, p_P_TEMP, p_A_M2 )
+#if defined( BPCH ) || defined( NETCDF )
+      NULLIFY( p_MFLEW, p_MFLNS, p_MFLUP )
+#endif
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -1488,106 +1527,5 @@
 
       END SUBROUTINE CLEANUP_TRANSPORT
 !EOC
-#if defined( NETCDF )
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: diagnupdate_transport
-!
-! !DESCRIPTION: Subroutine DIAGNUPDATE\_TRANSPORT updates the transport 
-!  mass flux diagnostics (zonal ND24, meridional ND25, and vertical ND26) 
-!  that are written to netCDF. This routine is called within various
-!  TPCORE routines.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE DiagnUpdate_Transport( am_I_Root, NDxx, NumLevels,
-     &                                  MassFlxArray4D, Input_Opt, RC )
-!
-! !USES:
-!
-      USE Error_Mod 
-      USE GIGC_ErrCode_Mod
-      USE CMN_SIZE_MOD                    
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput    
-      USE Diagnostics_Mod,    ONLY : DiagnUpdate_NTracers_3D
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,            INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      CHARACTER(LEN=4),   INTENT(IN)  :: NDxx        ! Diagnostic id
-      INTEGER,            INTENT(IN)  :: NumLevels   ! # levels for this NDxx
-      REAL(fp),           INTENT(IN)  :: MassFlxArray4D(:,:,:,:)
-      TYPE(OptInput),     INTENT(IN)  :: Input_Opt   ! Input options object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      INTEGER,           INTENT(INOUT) :: RC          ! Success or failure
-!
-! !REVISION HISTORY:
-!  12 Feb 2015 - E. Lundgren   - Initial version
-! 
-! !REMARKS:
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      CHARACTER(LEN=60)   :: DiagnPrefix
-      CHARACTER(LEN=255)  :: MSG
-      CHARACTER(LEN=255)  :: LOC = 'DIAGNUPDATE_TRANSPORT'
-     &                              // ' (Transport_mod.F)'
-      INTEGER             :: DiagnNum
-
-      ! Array to hold input mass flux array with reverse-order levels
-      ! and only levels that have data (ie. less than LLPAR if input.geos
-      ! levels for the diagnostic are less than LLPAR).
-      REAL(fp)   :: FlxArray_ReverseLevels(IIPAR,JJPAR,NumLevels,NNPAR)
-
-      !=================================================================
-      ! DIAGNUPDATE_TRANSPORT begins here!
-      !=================================================================
-      
-       ! Assume successful return
-       RC = GIGC_SUCCESS
-
-       ! Skip if diagnostic is turned off. 
-       If ( NumLevels <= 0 ) THEN
-          RETURN
-       ENDIF
-          
-       ! Otherwise, set diagnostic name prefix and diagnostic #
-       SELECT CASE ( NDxx )
-          CASE ( 'ND24' )
-                DiagnPrefix = 'EW_FLX_'
-                DiagnNum = 24
-          CASE ( 'ND25' )
-                DiagnPrefix = 'NS_FLX_'
-                DiagnNum = 25
-          CASE ( 'ND26' )
-                DiagnPrefix = 'VERT_FLX_'
-                DiagnNum = 26
-          CASE DEFAULT
-             MSG = 'Undefined transport diagnostic: ' // NDxx
-             CALL ERROR_STOP( TRIM( MSG ), LOC )
-       END SELECT
-
-       ! Reverse-order the levels such that index 1 corresponds to surface. 
-       FlxArray_ReverseLevels(:,:,1:NumLevels,:) =
-     &                MassFlxArray4D(:,:,LLPAR:LLPAR-NumLevels+1:-1,:)
-
-       ! Update the diagnostic container using routine in diagnostics module
-       CALL DiagnUpdate_NTracers_3D( am_I_Root, DiagnPrefix, DiagnNum, 
-     &                               FlxArray_ReverseLevels, Input_Opt, 
-     &                               RC )
-
-      END SUBROUTINE DiagnUpdate_Transport
-!EOC
-#endif
 
       END MODULE TRANSPORT_MOD

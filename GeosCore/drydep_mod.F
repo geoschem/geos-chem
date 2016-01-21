@@ -317,6 +317,9 @@
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE UNITCONV_MOD
       USE Species_Mod,        ONLY : Species
+#if defined( NETCDF )
+      USE TRACERID_MOD,       ONLY : IDTISOPN, IDTMMN
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -444,6 +447,9 @@
       ! Variables for netCDF diagnostics routines
       INTEGER           :: HCRC
       INTEGER           :: cID
+      LOGICAL           :: First_ISOPN
+      LOGICAL           :: First_MMN
+      CHARACTER(LEN=30) :: DryDepName, DiagnName
       REAL(fp), TARGET  :: SAVE_DEPVEL(IIPAR,JJPAR,Input_Opt%NUMDEP)
       REAL(hp), POINTER :: Ptr2D(:,:) => NULL()
 #endif
@@ -607,6 +613,13 @@
       !=================================================================
       IF ( Input_Opt%ND44 > 0 ) THEN
 
+         ! Special cases if ISOPN or MMN since there are two 
+         ! corresponding dry deposition species each, ISOPND and 
+         ! ISOPNB for ISOPN, and MACRN and MAVKN for MMN. Therefore, 
+         ! track when ISOPN and MMN are first encountered (ewl, 1/20/16)
+         First_ISOPN = .TRUE.
+         First_MMN = .TRUE.
+
          ! Loop over all depositing species
          DO N = 1, Input_Opt%NUMDEP
 
@@ -617,15 +630,28 @@
             ! then archive the latest depvel data into the diagnostic structure
             IF ( ANY( Input_Opt%TINDEX(44,:) == NN ) ) THEN
 
-               ! Construct diagnostic ID
-               cID = 44000 + NN
-            
+               ! Construct diagnostic name
+               IF ( N == IDTISOPN .AND. First_ISOPN ) THEN
+                  DryDepName = 'ISOPND'
+                  First_ISOPN = .FALSE.
+               ELSE IF ( N == IDTISOPN .AND. .NOT. First_ISOPN ) THEN
+                  DryDepName = 'ISOPNB'
+               ELSE IF ( N == IDTMMN .AND. First_MMN ) THEN
+                  DryDepName = 'MACRN'
+                  First_MMN = .FALSE.
+               ELSE IF ( N == IDTMMN .AND. .NOT. First_MMN ) THEN
+                  DryDepName = 'MAVKN'
+               ELSE
+                  DryDepName =  Input_Opt%TRACER_NAME(N)
+               ENDIF
+               DiagnName = 'DRYDEP_VEL_' // TRIM( DryDepName )
+
                ! Point to the proper slice of the DEPSAV array
                Ptr2D => SAVE_DEPVEL(:,:,N)
 
                ! Update the deposition velocity diagostics 
                CALL Diagn_Update( am_I_Root,
-     &                            cID     = cID,               
+     &                            cName   = TRIM( DiagnName ),               
      &                            Array2D = Ptr2D,
      &                            COL     = Input_Opt%DIAG_COLLECTION,
      &                            RC      = HCRC )
@@ -634,7 +660,7 @@
                Ptr2D => NULL()
 
                ! Stop with error if the diagnostics were unsuccessful
-               IF ( HCRC /= HCO_SUCCESS ) THEN
+               IF ( RC /= HCO_SUCCESS ) THEN
                   CALL ERROR_STOP( 'Cannot update Depvel diagnostics',
      &                             'DO_DRYDEP (drydep_mod.F)')
                ENDIF
