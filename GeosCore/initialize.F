@@ -181,38 +181,40 @@
          IF ( ND19 > 0 ) AD19     = 0e0
          IF ( ND22 > 0 ) AD22     = 0e0
 #if defined( BPCH )
-         IF ( ND24 > 0 ) MASSFLEW = 0e+0_fp
-         IF ( ND25 > 0 ) MASSFLNS = 0e+0_fp
-         IF ( ND26 > 0 ) MASSFLUP = 0e+0_fp
-         IF ( ND30 > 0 ) AD30     = 0e0
+         IF ( ND24 > 0 ) MASSFLEW = 0e+0_fp  ! netcdf TRANSPORT diag group
+         IF ( ND25 > 0 ) MASSFLNS = 0e+0_fp  ! netcdf TRANSPORT diag group
+         IF ( ND26 > 0 ) MASSFLUP = 0e+0_fp  ! netcdf TRANSPORT diag group
+         IF ( ND30 > 0 ) AD30     = 0e0      ! netcdf LANDMAP (remove?)
+         IF ( ND31 > 0 ) AD31     = 0e0      ! netcdf MET diag group
 #endif
-         IF ( ND31 > 0 ) AD31     = 0e0
          IF ( ND33 > 0 ) AD33     = 0e0
          IF ( ND35 > 0 ) AD35     = 0e0
          IF ( ND37 > 0 ) AD37     = 0e0
 #if defined( BPCH )
-         IF ( ND38 > 0 ) AD38     = 0e0
-         IF ( ND39 > 0 ) AD39     = 0e0
+         IF ( ND38 > 0 ) AD38     = 0e0      ! netcdf WETSCAV diag group
+         IF ( ND39 > 0 ) AD39     = 0e0      ! netcdf WETSCAV diag group
 #endif
          IF ( ND43 > 0 ) AD43     = 0e0
 #if defined( BPCH )
-         IF ( ND44 > 0 ) AD44     = 0e0
-         IF ( ND45 > 0 ) AD45     = 0e0
+         IF ( ND44 > 0 ) AD44     = 0e0      ! netcdf DRYDEP diag group
+         IF ( ND45 > 0 ) AD45     = 0e0      ! netcdf TRACER diag group
 #endif
          IF ( ND47 > 0 ) AD47     = 0e0
          IF ( ND52 > 0 ) AD52     = 0e0
          IF ( ND54 > 0 ) AD54     = 0e0
-         IF ( ND55 > 0 ) AD55     = 0e0
-         IF ( ND57 > 0 ) AD57     = 0e0
+#if defined( BPCH )
+         IF ( ND55 > 0 ) AD55     = 0e0      ! netcdf MET diag group
+         IF ( ND57 > 0 ) AD57     = 0e0      ! netcdf MET diag group
+#endif
          IF ( ND58 > 0 ) AD58     = 0e0
          IF ( ND60 > 0 ) AD60     = 0e0
          IF ( ND64 > 0 ) AD64     = 0e0
-         IF ( ND66 > 0 ) AD66     = 0e0
-         IF ( ND67 > 0 ) AD67     = 0e0
+         IF ( ND66 > 0 ) AD66     = 0e0      ! netcdf MET diag group
+         IF ( ND67 > 0 ) AD67     = 0e0      ! netcdf MET diag group
 #if defined( BPCH )
-         IF ( ND68 > 0 ) AD68     = 0e0
+         IF ( ND68 > 0 ) AD68     = 0e0      ! netcdf MET diag group
 #endif
-         IF ( ND69 > 0 ) AD69     = 0e0
+         IF ( ND69 > 0 ) AD69     = 0e0      ! netcdf MET diag group
          IF ( ND72 > 0 ) AD72     = 0e0
 
          ! Daily max mean hourly surface v/v

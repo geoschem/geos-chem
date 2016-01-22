@@ -119,6 +119,8 @@
       USE HCO_ERROR_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+      USE WETSCAV_MOD,        ONLY : GET_WETDEP_IDWETD
+
 #endif
 #if defined( DEVEL )
       USE TENDENCIES_MOD
@@ -243,8 +245,9 @@
 #endif
 
 #if defined ( NETCDF )
-      ! For netCDF diagnostics
-      INTEGER                :: IT, cID, HCRC
+      ! For netCDF diagnostics\
+      INTEGER                :: D, HCRC
+      CHARACTER(LEN=60)      :: DiagnName
       REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
       REAL(fp), POINTER      :: TMP3D(:,:,:) => NULL()
       REAL(fp), POINTER      :: TMP2D(:,:  ) => NULL()
@@ -469,18 +472,18 @@
 !$OMP END PARALLEL DO
 
 #endif
-
+#if defined( NETCDF )
       !-----------------------------------------------------------------
       ! NetCDF diagnostics (ND38)
       ! Write out the column mass difference before and after 
       ! convection.
       ! Note: The ND38 diagnostics is defined as a 2D diagnostics
-      ! (--> diagnostics_mod.F90). We pass here a 3D array to the
-      ! diagnostics, which will automatically be collapsed to a 2D
-      ! array within the diagnostics module (the vertical sum is taken).
+      ! (--> diagnostics_mod.F90).
       !-----------------------------------------------------------------
-#if defined( NETCDF )
       IF ( Input_Opt%ND38 > 0 ) THEN
+
+         ! Assume success
+         HCRC = HCO_SUCCESS
 
          ! Time step
          DTIME = GET_TS_DYN() * 60e+0_fp
@@ -488,34 +491,39 @@
          ! Allocate temporary pointer
          ALLOCATE(TMP3D(IIPAR,JJPAR,LLPAR), TMP2D(IIPAR,JJPAR) )
         
-         ! Loop over all tracers
-         DO IT = 1, Input_Opt%N_TRACERS
+         ! Loop over all soluble tracers
+         DO D = 1, State_Chm%nWetDep
 
-            ! Is this a tracer selected for diagnostics?
-            IF ( ANY( Input_Opt%TINDEX(38,:) == IT ) ) THEN
+            ! Get GEOS-Chem tracer number
+            N = GET_WETDEP_IDWETD( D )
 
-               ! Loss rate (kg/kg total air/s)
-               TMP3D = ( BEFORE(:,:,:,IT) - State_Chm%Tracers(:,:,:,IT))
+            ! Is this a tracer selected for this diagnostics type?
+            IF ( ANY( Input_Opt%TINDEX(38,:) == N ) ) THEN
+
+               ! Loss rate [kg/kg total air per seconnd]
+               TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N))
      &               / DTIME 
 
-               ! Convert to kg/s
+               ! Convert to [kg/s]
                ! Now use moist air mass rather than dry air mass (ewl, 6/23/15)
                TMP3D = TMP3D * State_Met%ADMOIST  
 
+               ! Sum over the column
                TMP2D = SUM(TMP3D,DIM=3) 
 
-               ! Update diagnostics. Pass 3D array. Will be collapsed to
-               ! column total in Diagn_Update.
-               cID = 38000 + IT
+               ! Update diagnostics based on name
+               DiagnName = 'WETSCAV_CONVLOSS_' 
+     &                     // TRIM( Input_Opt%TRACER_NAME(N) )
+
                CALL Diagn_Update ( am_I_Root,
-     &                             cID     = cID,
+     &                             cName   = TRIM( DiagnName ),
      &                             Array2D = TMP2D,
      &                             COL     = Input_Opt%DIAG_COLLECTION,
      &                             PosOnly = .TRUE.,
      &                             RC      = HCRC )
                IF ( HCRC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP ( 'Error updating conv loss diagn ' //
-     &               'for species ' // TRIM(Input_Opt%TRACER_NAME(IT)), 
+                  CALL ERROR_STOP ( 'Error updating wetscav conv loss '
+     &               // 'diagnostic: ' // TRIM( DiagnName ), 
      &               'DO_CONVECTION (convection_mod.F)' )
                ENDIF
             ENDIF

@@ -1178,7 +1178,17 @@
          CALL GET_COSINE_SZA( am_I_Root, Input_Opt, State_Met, RC )
 
          ! Compute tropopause height for ND55 diagnostic
-         IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE( State_Met )
+         ! Consider updating all Met diagnostics here (ewl, 1/22/16) 
+#if defined( BPCH )
+         IF ( Input_Opt%ND55 > 0 ) THEN
+            CALL DIAG_TROPOPAUSE( am_I_root, Input_Opt, State_Met, RC )
+         ENDIF
+#elif defined( NETCDF )
+         ! If netcdf diagnostics, output if Met diagnostic group is on
+         IF ( Input_Opt%ND68 > 0 ) THEN
+            CALL DIAG_TROPOPAUSE( am_I_root, Input_Opt, State_Met, RC )
+         ENDIF
+#endif
 
          ! Update dynamic timestep
          CALL SET_CT_DYN( INCREMENT=.TRUE. )

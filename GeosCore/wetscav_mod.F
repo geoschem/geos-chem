@@ -295,6 +295,7 @@
       ! For netCDF diagnostics
 #if defined( NETCDF )
       INTEGER                :: N, L, cID, HCRC
+      CHARACTER(LEN=60)      :: DiagnName
       REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
       REAL(fp), POINTER      :: TMP3D(:,:,:) => NULL()
       REAL(fp), POINTER      :: TMP2D(:,:  ) => NULL()
@@ -405,7 +406,11 @@
       ! NetCDF diagnostics 
       !---------------------
 #if   defined( NETCDF )
-      IF ( Input_Opt%ND39 > 0 ) THEN
+      ! Use ND38 as indicator for entire wet scavenging diagnostic group
+      IF ( Input_Opt%ND38 > 0 ) THEN
+
+         ! Assume success
+         HCRC = HCO_SUCCESS
 
          ! Time step
          DT = GET_TS_DYN() * 60e+0_fp
@@ -416,11 +421,10 @@
          ! Loop over all tracers
          DO N = 1, Input_Opt%N_TRACERS
 
-            ! Is this a tracer selected for diagnostics?
-            IF ( ANY( Input_Opt%TINDEX(39,:) == N ) ) THEN
+            ! Is this a tracer selected for wetscav diagnostics?
+            IF ( ANY( Input_Opt%TINDEX(38,:) == N ) ) THEN
 
-               ! Loss rate [kg/m2/s] 
-               ! Convert kg/kg/s to kg/m2/s so that the vertical
+               ! Convert [kg/kg/s] to [kg/m2/s] so that the vertical
                ! sum makes physical sense (ewl, 8/14/15)
                TMP3D = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N) )
      &                 * State_Met%DELP * 1.e+2_fp 
@@ -428,24 +432,25 @@
      &                 / ( G0_100 * DT )
 
                ! Convert loss rate [kg/m2/s] to [kg/s] for diagnostics 
-               ! NOTE: eventually diagnostic unit will be kg/m2/s
+               ! NOTE: eventually diagnostic unit will be [kg/m2/s]
                DO L = 1, LLPAR
                   TMP3d(:,:,L) = TMP3d(:,:,L) * State_Met%AREA_M2(:,:,1)
                ENDDO
-
                TMP2D = SUM(TMP3D,DIM=3)
 
-               ! Update diagnostics
-               cID = 39000 + N
+               ! Update diagnostics using diagnostic name
+               DiagnName = 'WETSCAV_DEPLOSS_' 
+     &                     // TRIM( Input_Opt%TRACER_NAME(N) )
+
                CALL Diagn_Update ( am_I_Root,
-     &                             cID     = cID,
+     &                             cName   = DiagnName,
      &                             Array2D = TMP2D,
      &                             COL     = Input_Opt%DIAG_COLLECTION,
      &                             PosOnly = .TRUE., 
      &                             RC      = HCRC )
                IF ( HCRC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP ( 'Error updating wetscav diagn ' // 
-     &               'for species ' // TRIM(Input_Opt%TRACER_NAME(N)), 
+                  CALL ERROR_STOP ( 'Error updating wetscav wetdep ' 
+     &               // ' loss diagnostic: ' // TRIM( DiagnName ), 
      &               'DO_WETDEP (wetscav_mod.F)' )
                ENDIF
             ENDIF

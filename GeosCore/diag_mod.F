@@ -96,10 +96,10 @@
 
       ! For ND30 -- land / water / ice flags
       REAL*4,  ALLOCATABLE :: AD30(:,:)
-#endif
 
       ! For ND31 -- surface pressures
       REAL*4,  ALLOCATABLE :: AD31(:,:,:)
+#endif
 
       ! For ND33 -- tropopsheric sum of tracer
       REAL*4,  ALLOCATABLE :: AD33(:,:,:)
@@ -168,11 +168,13 @@
       ! For ND54 -- tropopause diagnostics
       REAL*4,  ALLOCATABLE :: AD54(:,:,:)
 
+#if defined( BPCH )
       ! For ND55 -- tropopause diagnostics
       REAL*4,  ALLOCATABLE :: AD55(:,:,:)
 
       ! For ND57 -- theta, potential temp (FP 6/2009)
       REAL*4,  ALLOCATABLE :: AD57(:,:,:)
+#endif
 
       ! -- for methane simulation diagnostics
       REAL*4,  ALLOCATABLE :: AD19(:,:,:)
@@ -211,12 +213,10 @@
 
       ! For ND67 -- DAO surface fields diagnostic
       REAL*4,  ALLOCATABLE :: AD67(:,:,:)      
-
-      ! For ND68 -- BXHEIGHT, AD, AVGW diagnostic
 #if defined( BPCH )
+      ! For ND68 -- BXHEIGHT, AD, AVGW diagnostic
       REAL*4,  ALLOCATABLE :: AD68(:,:,:,:)      
 #endif
-
       ! For ND69 -- DXYP diagnostic
       REAL*4,  ALLOCATABLE :: AD69(:,:,:)      
 
@@ -370,8 +370,8 @@
       IF ( ALLOCATED( AD22        ) ) DEALLOCATE( AD22        ) 
 #if defined( BPCH )
       IF ( ALLOCATED( AD30        ) ) DEALLOCATE( AD30        ) 
-#endif
       IF ( ALLOCATED( AD31        ) ) DEALLOCATE( AD31        ) 
+#endif
       IF ( ALLOCATED( AD33        ) ) DEALLOCATE( AD33        )
       IF ( ALLOCATED( AD35        ) ) DEALLOCATE( AD35        )
       IF ( ALLOCATED( AD37        ) ) DEALLOCATE( AD37        )
@@ -387,8 +387,10 @@
       IF ( ALLOCATED( AD47        ) ) DEALLOCATE( AD47        )
       IF ( ALLOCATED( AD52        ) ) DEALLOCATE( AD52        )
       IF ( ALLOCATED( AD54        ) ) DEALLOCATE( AD54        )
+#if defined( BPCH )
       IF ( ALLOCATED( AD55        ) ) DEALLOCATE( AD55        )
       IF ( ALLOCATED( AD57        ) ) DEALLOCATE( AD57        )
+#endif
       IF ( ALLOCATED( AD19        ) ) DEALLOCATE( AD19        )
       IF ( ALLOCATED( AD58        ) ) DEALLOCATE( AD58        )
 #if   defined( TOMAS )

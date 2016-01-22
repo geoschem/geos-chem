@@ -19,7 +19,6 @@
       USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE PHYSCONSTANTS                         ! Physical constants
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
-      !USE COMODE_LOOP_MOD                      ! Now use global physical param
       USE DAO_MOD                               ! Met field subroutines
 #if defined( BPCH )
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
@@ -404,6 +403,7 @@
 !                              enforce a minimum Vd for aerosol species
 !  01 Oct 2015 - R. Yantosca - Remove references to tracerid_mod.F (except
 !                              for TOMAS for now)
+!  21 Jan 2016 - E. Lundgren - Update netcdf diagnostics for drydep trcr names
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -411,7 +411,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER       :: I,   J,   L,  N, IJLOOP, NN, NDVZ, N_TRACERS
+      INTEGER       :: I,   J,   L,   D,   N, IJLOOP, NDVZ, N_TRACERS
       REAL(f8)      :: DVZ, THIK
 
       ! Arrays
@@ -446,7 +446,6 @@
 #if defined( NETCDF )
       ! Variables for netCDF diagnostics routines
       INTEGER           :: HCRC
-      INTEGER           :: cID
       LOGICAL           :: First_ISOPN
       LOGICAL           :: First_MMN
       CHARACTER(LEN=30) :: DryDepName, DiagnName
@@ -493,7 +492,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, THIK, N, NN, NDVZ, DVZ, ThisSpc )
+!$OMP+PRIVATE( I, J, IJLOOP, THIK, D, N, NDVZ, DVZ, ThisSpc )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -512,17 +511,17 @@
          IF (PBL_DRYDEP) THIK = MAX( ZH(IJLOOP), THIK )
 
          ! Loop over drydep species
-         DO N = 1, NUMDEP
+         DO D = 1, NUMDEP
 
             ! GEOS-CHEM tracer number
-            NN      =  NTRAIND(N)
+            N      =  NTRAIND(D)
 
             ! Get info about this species from the database
-            ThisSpc => State_Chm%SpcData(NN)%Info
+            ThisSpc => State_Chm%SpcData(N)%Info
 
             ! Index of drydep species in the DVEL array 
             ! as passed back from subroutine DEPVEL
-            NDVZ    =  NDVZIND(N)
+            NDVZ    =  NDVZIND(D)
 
             ! Dry deposition velocity [cm/s]
             DVZ     =  DVEL(IJLOOP,NDVZ) * 100.e+0_f8
@@ -571,7 +570,7 @@
 
             ! For ACET, we need to only do drydep over the land
             ! and not over the oceans.
-            IF ( NN == ID_ACET ) THEN
+            IF ( N == ID_ACET ) THEN
                IF ( IS_LAND( I, J, State_Met ) ) THEN
                   DVZ = 0.1e+0_f8
                ELSE
@@ -584,19 +583,19 @@
             !-----------------------------------------------------------
 
             ! Dry deposition frequency [1/s]
-            DEPSAV(I,J,N) = ( DVZ / 100.e+0_f8 ) / THIK
+            DEPSAV(I,J,D) = ( DVZ / 100.e+0_f8 ) / THIK
 
 #if defined( NETCDF )
             ! Need to save dep velocity into 2-D array for netCDF diags
             ! Now save out frequency instead of velocity. We can change
             ! that if needed (ckeller, 3/11/15).
-            SAVE_DEPVEL(I,J,N) = DEPSAV(I,J,N) 
+            SAVE_DEPVEL(I,J,D) = DEPSAV(I,J,D) 
 #endif
 
 #if defined( BPCH )
             ! ND44 diagnostic: drydep velocity [cm/s]
             IF ( ND44 > 0 ) THEN 
-               AD44(I,J,N,2) = AD44(I,J,N,2) + DVZ
+               AD44(I,J,D,2) = AD44(I,J,D,2) + DVZ
             ENDIF
 #endif
 
@@ -613,6 +612,9 @@
       !=================================================================
       IF ( Input_Opt%ND44 > 0 ) THEN
 
+         ! Assume success
+         HCRC = HCO_SUCCESS
+
          ! Special cases if ISOPN or MMN since there are two 
          ! corresponding dry deposition species each, ISOPND and 
          ! ISOPNB for ISOPN, and MACRN and MAVKN for MMN. Therefore, 
@@ -621,14 +623,14 @@
          First_MMN = .TRUE.
 
          ! Loop over all depositing species
-         DO N = 1, Input_Opt%NUMDEP
+         DO D = 1, Input_Opt%NUMDEP
 
             ! Get the corresponding GEOS-Chem tracer number
-            NN = Input_Opt%NTRAIND(N)
+            N = Input_Opt%NTRAIND(D)
 
             ! If this tracer number NN is scheduled for output in input.geos, 
             ! then archive the latest depvel data into the diagnostic structure
-            IF ( ANY( Input_Opt%TINDEX(44,:) == NN ) ) THEN
+            IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
 
                ! Construct diagnostic name
                IF ( N == IDTISOPN .AND. First_ISOPN ) THEN
@@ -647,7 +649,7 @@
                DiagnName = 'DRYDEP_VEL_' // TRIM( DryDepName )
 
                ! Point to the proper slice of the DEPSAV array
-               Ptr2D => SAVE_DEPVEL(:,:,N)
+               Ptr2D => SAVE_DEPVEL(:,:,D)
 
                ! Update the deposition velocity diagostics 
                CALL Diagn_Update( am_I_Root,
@@ -660,8 +662,9 @@
                Ptr2D => NULL()
 
                ! Stop with error if the diagnostics were unsuccessful
-               IF ( RC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP( 'Cannot update Depvel diagnostics',
+               IF ( HCRC /= HCO_SUCCESS ) THEN
+                  CALL ERROR_STOP( 'Cannot update drydep velocity' //
+     &                             ' diagnostic: ' // TRIM( DiagnName), 
      &                             'DO_DRYDEP (drydep_mod.F)')
                ENDIF
             ENDIF

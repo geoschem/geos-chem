@@ -294,14 +294,15 @@
       N_TRC_TOT = N_TRACERS              ! G-C advected tracers only
 #endif
 
-#if defined( BPCH )
       !=================================================================
       ! ND01: Rn, Pb, Be emissions
       !=================================================================
       IF ( ND01 > 0 ) THEN 
          LD01 = MIN( ND01, LLPAR )
+#if defined( BPCH )
          ALLOCATE( AD01( IIPAR, JJPAR, LD01 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD01' )
+#endif
       ENDIF
 
       !=================================================================
@@ -309,11 +310,11 @@
       !=================================================================
       IF ( ND02 > 0 ) THEN 
          LD02 = MIN( ND02, LLPAR )
-
+#if defined( BPCH )
          ALLOCATE( AD02( IIPAR, JJPAR, LD02, N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD02' )
-      ENDIF
 #endif
+      ENDIF
 
       !=================================================================
       ! ND04: CO2 source - see ??
@@ -568,7 +569,6 @@
       IF ( ND24 > 0 ) THEN
          LD24 = MIN( ND24, LLPAR )
          NMAX = MIN( N_TRACERS, NNPAR )
-
 #if defined( BPCH )      
          ALLOCATE( MASSFLEW( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLEW' )
@@ -585,7 +585,6 @@
       IF ( ND25 > 0 ) THEN
          LD25 = MIN( ND25, LLPAR )
          NMAX = MIN( N_TRACERS, NNPAR )
-
 #if defined( BPCH )      
          ALLOCATE( MASSFLNS( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLNS' ) 
@@ -602,7 +601,6 @@
       IF ( ND26 > 0 ) THEN
          LD26 = MIN( ND26, LLPAR )
          NMAX = MIN( N_TRACERS, NNPAR )
-
 #if defined( BPCH )      
          ALLOCATE( MASSFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLUP' )
@@ -612,24 +610,25 @@
 #endif
       ENDIF
 
-#if defined( BPCH )
       !=================================================================
       ! ND30: Land/water/ice flags
       !=================================================================      
       IF ( ND30 > 0 ) THEN
+#if defined( BPCH )
          ALLOCATE( AD30( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD30' )
-      ENDIF
 #endif
+      ENDIF
 
       !=================================================================
       ! ND31: 3-D pressure edges [hPa] --> Uses AD31 array (allocatable)
       !=================================================================
       IF ( ND31 > 0 ) THEN
          LD31 = MIN( ND31, LLPAR+1 )
-
+#if defined( BPCH )
          ALLOCATE( AD31( IIPAR, JJPAR, LD31 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD31' )
+#endif
       ENDIF
 
       !=================================================================
@@ -677,7 +676,6 @@
          ENDIF
       ENDIF
 
-#if defined( BPCH )
       !=================================================================
       ! ND38: Rainout of tracer (nfcldmx.f) 
       !       --> uses AD38 array (allocatable)
@@ -687,20 +685,18 @@
 
          ! Get # of soluble tracers for this simulation
          NMAX = State_Chm%nWetDep
-         
-         
-
-
          LD38 = MIN( ND38, LLPAR )
 
          ! If GTMM on and LD38 off, ND38 should be LLPAR, (ccc, 10/29/09)
          IF ( ND38 == 0 ) LD38 = LLPAR
          
+#if defined( BPCH )
          ! Allocate AD38 array accordingly
          IF ( NMAX > 0 ) THEN
             ALLOCATE( AD38( IIPAR, JJPAR, LD38, NMAX ), STAT=AS )
             IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD38' )
          ENDIF
+#endif
       ENDIF
 
       !=================================================================
@@ -716,14 +712,15 @@
 
          ! Get # of soluble tracers for this simulation
          NMAX = State_Chm%nWetDep
-        
+
+#if defined( BPCH )        
          ! Allocate AD39 array accordingly
          IF ( NMAX > 0 ) THEN
             ALLOCATE( AD39( IIPAR, JJPAR, LD39, NMAX ), STAT=AS )
             IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD39' )
          ENDIF
-      ENDIF
 #endif
+      ENDIF
 
       !=================================================================
       ! ND42: SOA concentration
@@ -839,7 +836,6 @@
 
       ENDIF
 
-#if defined( BPCH )
       !=================================================================
       ! ND44: Drydep fluxes [s-1] and drydep velocities [cm/s]
       !       --> uses AD44 arrays (allocatable)
@@ -849,9 +845,7 @@
       IF ( .not. LDRYD ) ND44 = 0
 
       IF ( ND44 > 0 ) THEN
-
 #if   defined( TOMAS )
-
          ! add space in diag array for TOMAS aerosol mass (win, 7/14/09)
          ! Now use State_Chm%nDryDep for # dry depositing species
          ! (ewl, 10/14/15)
@@ -861,27 +855,25 @@
             NMAX = State_Chm%nDryDep
          ENDIF
 #else
-
          ! Number of dry depositing species
          NMAX = State_Chm%nDryDep
-
 #endif
-
+#if defined( BPCH )
          ! Allocate AD44 array
          ALLOCATE( AD44( IIPAR, JJPAR, NMAX, 2 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD44' )
-      ENDIF
 #endif
+      ENDIF
       
       !=================================================================
       ! ND45: Tracer concentrations [v/v] between HR1_OTH and HR2_OTH
       !       --> uses AD45 array (allocatable)
       !=================================================================
-#if defined( BPCH )
       IF ( ND45 > 0 ) THEN
          LD45 = MIN( ND45,        LLPAR   )
          NMAX = MIN( N_TRC_TOT+2, NNPAR+2 )
 
+#if defined( BPCH )
          ! Accumulating diagnostic array
          ! Resize to NMAX to save memory (bmy, 10/18/00)
          ALLOCATE( AD45( IIPAR, JJPAR, LD45, NMAX ), STAT=AS )
@@ -894,8 +886,8 @@
          ! Number of times LT is between HR1_OTH and HR2_OTH
          ALLOCATE( CTOTH( IIPAR, JJPAR ), STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'CTOTH' )
-      ENDIF
 #endif
+      ENDIF
 
       !=================================================================
       ! ND47: 24-h averaged tracer concentration [v/v]
@@ -951,6 +943,7 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD54' )
       ENDIF
 
+#if defined( BPCH )
       !=================================================================
       ! ND55: Tropopause diagnostics [level, height, and pressure]
       !       --> uses AD55 array (allocatable)
@@ -959,6 +952,7 @@
          ALLOCATE( AD55( IIPAR, JJPAR, PD55 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD55' )
       ENDIF
+#endif
 
       !=================================================================
       ! ND56: Lightning flash rate diagnostics
@@ -970,10 +964,10 @@
       !=================================================================
       IF ( ND57 > 0 ) THEN
          LD57 = MIN( ND57, LLPAR)
-
+#if defined( BPCH )
          ALLOCATE( AD57( IIPAR, JJPAR, LD57 ), STAT=AS )
-
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD57' )
+#endif
       ENDIF
 
       !=================================================================
@@ -1071,10 +1065,8 @@
       ! ND60: WETLAND FRACTION 
       !=================================================================
       IF ( ND60 > 0 ) THEN 
- 
          ALLOCATE( AD60( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60' )
-
       ENDIF
 
 #endif
@@ -1113,7 +1105,6 @@
       !=================================================================
       IF ( ND66 > 0 ) THEN
          LD66 = MIN( ND66, LLPAR )
-
          ALLOCATE( AD66( IIPAR, JJPAR, LD66, PD66 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD66' )
       ENDIF

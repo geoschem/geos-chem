@@ -271,6 +271,7 @@ CONTAINS
     USE HCO_ERROR_MOD
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+    USE TRACERID_MOD,       ONLY : IDTISOPN, IDTMMN
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -308,7 +309,6 @@ CONTAINS
 !
     INTEGER            :: I, J, L, L1, L2, N, NN
     INTEGER            :: DRYDEPID
-    INTEGER            :: HCRC
     INTEGER            :: PBL_TOP, DRYD_TOP, EMIS_TOP
     REAL(fp)           :: TS, TMP, FRQ, RKT, FRAC, FLUX, AREA_M2
     REAL(fp)           :: MWkg, DENOM
@@ -319,7 +319,9 @@ CONTAINS
 
     ! For diagnostics
 #if defined( NETCDF )
-    INTEGER            :: cID
+    INTEGER            :: cID, D, HCRC
+    LOGICAL            :: First_ISOPN, First_MMN
+    CHARACTER(LEN=30)  :: DryDepName, DiagnName
     REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
     REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
     REAL(fp), TARGET   :: EMIS(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) 
@@ -385,9 +387,9 @@ CONTAINS
     IF ( FIRST ) THEN
        IF ( .NOT. Input_Opt%LNLPBL ) THEN
           CALL GetHcoDiagn( am_I_Root, 'PARANOX_O3_DEPOSITION_FLUX'  , &
-                            .FALSE.,   HCRC, Ptr2D = PNOXLOSS_O3         ) 
+                            .FALSE.,   RC, Ptr2D = PNOXLOSS_O3          ) 
           CALL GetHcoDiagn( am_I_Root, 'PARANOX_HNO3_DEPOSITION_FLUX', &
-                            .FALSE.,   HCRC, Ptr2D = PNOXLOSS_HNO3       ) 
+                            .FALSE.,   RC, Ptr2D = PNOXLOSS_HNO3        ) 
        ENDIF
        FIRST = .FALSE.
     ENDIF
@@ -655,8 +657,8 @@ CONTAINS
                    State_Chm%Tracers(I,J,L,N) = State_Chm%Tracers(I,J,L,N) & 
                                               + FLUX 
 
-                   ! Update diagnostics
 #if defined( NETCDF )
+                   ! Update new tracer emissions diagnostics
                    EMIS(I,J,L,N) = TMP
                    TOTFLUX(N)    = TOTFLUX(N) + FLUX 
 #endif
@@ -684,24 +686,32 @@ CONTAINS
     ! NOTE: For now, this is only activated by compiling with NETCDF=y,
     ! but in the future this will replace the bpch diagnostics!
     !-------------------------------------------------------------------
+
+    ! Assume success
+    HCRC = HCO_SUCCESS
+
+    ! For now, always output tracer emissions diagnostic since there
+    ! is no logical switch for it in Input_Mod, nor an entry in input.geos
     DO N = 1, Input_Opt%N_TRACERS
  
        ! Skip if there are no emissions
        IF ( TOTFLUX(N) == 0.0_fp ) CYCLE
 
        ! Only if HEMCO tracer is defined
+       ! NOTE: For other netcdf diagnostics we look at Input_Opt%TINDEX
+       ! to see which tracers are turned on for the diagnostic
        cID = GetHcoID( TrcID=N )
        IF ( cID > 0 ) THEN 
 
           ! Define diagnostics name
-          cID = 10000 + cID
+          DiagnName = 'TRACER_EMIS_' // TRIM( Input_Opt%TRACER_NAME(N) )
 
           ! Point to species slice 
           Ptr3D => EMIS(:,:,:,N)
 
           ! Update the emissions diagnostics
           CALL Diagn_Update( am_I_Root,                           &
-                             cID     = cID,                       &
+                             cName   = TRIM( DiagnName ),         &
                              Array3D = Ptr3D,                     &
                              Total   = TOTFLUX(N),                &
                              COL     = Input_Opt%DIAG_COLLECTION, &
@@ -712,24 +722,68 @@ CONTAINS
 
           ! Error check
           IF ( HCRC /= HCO_SUCCESS ) THEN
-             CALL ERROR_STOP ('Error updating diagnostics: '// &
-                              'TRACER_EMIS_'//TRIM(Input_Opt%TRACER_NAME(N)), &
+             CALL ERROR_STOP ('Error updating diagnostics: '// DiagnName, &
                               'DO_TEND (mixing_mod.F90)' )
           ENDIF
        ENDIF
-
-       ! Drydep fluxes
-       IF ( Input_Opt%ND44 > 0 .AND. ( TOTDEP(N) > 0.0_fp ) ) THEN
-          Ptr2D => DEP(:,:,N)
-          cID = 44500 + N
-          CALL Diagn_Update( am_I_Root,                           &
-                             cID     = cID,                       &
-                             Array2D = Ptr2D,                     &
-                             COL     = Input_Opt%DIAG_COLLECTION, &
-                             RC      = HCRC                        )
-          Ptr2D => NULL()
-       ENDIF
     ENDDO
+
+    ! Update drydep flux diagnostic: ND44
+    IF ( Input_Opt%ND44 > 0 ) THEN
+
+       ! Special cases if ISOPN or MMN since there are two 
+       ! corresponding dry deposition species each, ISOPND and 
+       ! ISOPNB for ISOPN, and MACRN and MAVKN for MMN. Therefore, 
+       ! track when ISOPN and MMN are first encountered (ewl, 1/20/16)
+       First_ISOPN = .TRUE.
+       First_MMN = .TRUE.
+       
+       ! Loop over all depositing species
+       DO D = 1, Input_Opt%NUMDEP
+       
+          ! Get the corresponding GEOS-Chem tracer number
+          N = Input_Opt%NTRAIND(D)
+       
+          ! If this tracer number NN is scheduled for output in input.geos, 
+          ! then archive the latest depvel data into the diagnostic structure
+          IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
+       
+             ! Construct diagnostic name
+             IF ( N == IDTISOPN .AND. First_ISOPN ) THEN
+                DryDepName = 'ISOPND'
+                First_ISOPN = .FALSE.
+             ELSE IF ( N == IDTISOPN .AND. .NOT. First_ISOPN ) THEN
+                DryDepName = 'ISOPNB'
+             ELSE IF ( N == IDTMMN .AND. First_MMN ) THEN
+                DryDepName = 'MACRN'
+                First_MMN = .FALSE.
+             ELSE IF ( N == IDTMMN .AND. .NOT. First_MMN ) THEN
+                DryDepName = 'MAVKN'
+             ELSE
+                DryDepName =  Input_Opt%TRACER_NAME(N)
+             ENDIF
+             DiagnName = 'DRYDEP_FLX_' // TRIM( DryDepName )
+       
+             Ptr2D => DEP(:,:,D)
+       
+             CALL Diagn_Update( am_I_Root,                           &
+                                cName     = TRIM( DiagnName),        &
+                                Array2D = Ptr2D,                     &
+                                COL     = Input_Opt%DIAG_COLLECTION, &
+                                RC      = RC                          )
+       
+             ! Fre the pointer
+             Ptr2D => NULL()
+       
+             ! Stop with error if the diagnostics were unsuccessful
+             IF ( RC /= HCO_SUCCESS ) THEN
+                CALL ERROR_STOP( 'Cannot update drydep flux' //       &
+                                 ' diagnostic: ' // TRIM( DiagnName), &
+                                 'DO_TEND (mixing_mod.F)')
+             ENDIF
+          ENDIF
+       ENDDO
+    ENDIF
 #endif
 
     ! Convert State_Chm%TRACERS back: kg/m2 --> v/v (ewl, 9/30/15)
