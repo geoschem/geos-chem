@@ -63,7 +63,6 @@
 !
 ! !USES:
 !
-!      USE DRYDEP_MOD,         ONLY : MAXDEP
       USE DRYDEP_MOD,         ONLY : NUMDEP
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE DIAG_PL_MOD,        ONLY : SETJFAM, SETPL

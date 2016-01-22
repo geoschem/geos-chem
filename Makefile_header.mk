@@ -282,7 +282,7 @@ endif
 REGEXP               :=(^[Pp][Gg][Ii])
 ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
   COMPILER           :=pgi
-  COMPILE_CMD        :=pgf90
+  COMPILE_CMD        :=pgfortran
   USER_DEFS          += -DLINUX_PGI
 endif
 
@@ -816,7 +816,6 @@ else
   # Use "nc-config --flibs" and nc-config --libs
   #-----------------------------------------------------------------------
   NC_LINK_CMD        := $(shell $(GC_BIN)/nc-config --flibs)
-  NC_LINK_CMD        += $(shell $(GC_BIN)/nc-config --libs)
 
 endif
 
@@ -1032,26 +1031,28 @@ ifeq ($(COMPILER),pgi)
 
   # Default optimization level for all routines (-fast)
   ifndef OPT
-    OPT              :=-fast
+#    OPT              :=-fast
+    OPT              :=-O2
    endif
 
   # Pick compiler options for debug run or regular run 
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           :=-byteswapio -Mpreprocess -g -O0 
+    FFLAGS           :=-byteswapio -Mpreprocess -m64 -g -O0 
     USER_DEFS        += -DDEBUG
   else
-    FFLAGS           :=-byteswapio -Mpreprocess $(OPT)
+    FFLAGS           :=-byteswapio -Mpreprocess -m64 $(OPT)
   endif
 
   # Add options for medium memory model.  This is to prevent G-C from 
   # running out of memory at hi-res, especially when using netCDF I/O.
-  FFLAGS             += -mcmodel=medium
+#  FFLAGS             += -mcmodel=medium
+  FFLAGS             += -fPIC
 
   # Turn on OpenMP parallelization
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(OMP)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -mp -Mnosgimp -Dmultitask
+    FFLAGS           += -mp
   endif
 
   # Add option for suppressing PGI non-uniform memory access (numa) library 
@@ -1076,6 +1077,12 @@ ifeq ($(COMPILER),pgi)
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
     USER_DEFS        += -DKPP_SOLVE_ALWAYS
+  endif
+
+  # Turn on checking for floating-point exceptions
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(FPE)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -Ktrap=fp
   endif
 
   # Add flexible precision declaration
