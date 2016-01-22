@@ -125,8 +125,8 @@
       ENDIF
 
       IF (TheMode .lt. 1) THEN
-         PRINT*, "GEOS_Timer_Setup: WARNING: INVALID TIMER TYPE! "
-     &           "The following timer modes are supported: "
+         PRINT*, "GEOS_Timer_Setup: WARNING: INVALID TIMER TYPE! ",
+     &           "The following timer modes are supported: ",
      &           "(1) CPU time, (2) Real time, or (3) MPI time."
          RETURN
       ENDIF
