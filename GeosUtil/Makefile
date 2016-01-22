@@ -69,6 +69,7 @@
 #  08 Jan 2015 - E. Lundgren - Add module for unit conversion
 #  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
 #  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
+#  22 Jan 2016 - R. Yantosca - Remove linux_err.o
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -99,11 +100,6 @@ OBJECTS   :=$(TMP:.F90=.o)
 # Special files just for IFORT
 ifeq ($(COMPILER),ifort) 
   OBJECTS += ifort_errmsg.o
-endif
-
-# Special files just for PGI
-ifeq ($(COMPILER),pgi) 
-  OBJECTS += linux_err.o
 endif
 
 # List of module files.  Convert to lowercase, then prefix directory name.
@@ -191,8 +187,6 @@ ifort_errmsg.o    : ifort_errmsg.F
 inquireMod.o      : inquireMod.F90
 
 julday_mod.o      : julday_mod.F
-
-linux_err.o       : linux_err.c
 
 pressure_mod.o    : pressure_mod.F        \
                     error_mod.o
