@@ -846,7 +846,7 @@ CONTAINS
                              Hier      = -1,                &
                              HcoID     = -1,                &
                              SpaceDim  =  2,                &
-                             OutUnit   = 's-1',             &
+                             OutUnit   = 'cm/s-1',          &
                              OutOper   = TRIM( OutOper   ), &
                              OkIfExist = .TRUE.,            &
                              RC        = RC )
@@ -875,7 +875,7 @@ CONTAINS
                              Hier      = -1,                &
                              HcoID     = -1,                &
                              SpaceDim  =  2,                &
-                             OutUnit   = 'kg m-2 s-1',      &
+                             OutUnit   = 'molec cm-2 s-1',  &
                              OutOper   = TRIM( OutOper   ), &
                              OkIfExist = .TRUE.,            &
                              RC        = RC )

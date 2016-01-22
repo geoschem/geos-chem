@@ -589,7 +589,11 @@
             ! Need to save dep velocity into 2-D array for netCDF diags
             ! Now save out frequency instead of velocity. We can change
             ! that if needed (ckeller, 3/11/15).
-            SAVE_DEPVEL(I,J,D) = DEPSAV(I,J,D) 
+            ! NOTE: for comparison with bpch, no longer save as frequency,
+            ! save instead as cm/s which is the bpch unit for this diag
+            ! (ewl, 1/22/16)
+            !SAVE_DEPVEL(I,J,D) = DEPSAV(I,J,D)
+            SAVE_DEPVEL(I,J,D) = DVZ
 #endif
 
 #if defined( BPCH )
@@ -626,7 +630,7 @@
          DO D = 1, Input_Opt%NUMDEP
 
             ! Get the corresponding GEOS-Chem tracer number
-            N = Input_Opt%NTRAIND(D)
+            N = NTRAIND(D)
 
             ! If this tracer number NN is scheduled for output in input.geos, 
             ! then archive the latest depvel data into the diagnostic structure
