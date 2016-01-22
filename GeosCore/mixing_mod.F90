@@ -260,7 +260,7 @@ CONTAINS
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal, GetHcoDiagn
     USE TIME_MOD,           ONLY : GET_TS_DYN
     USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
-    USE DRYDEP_MOD,         ONLY : NTRAIND, DEPSAV
+    USE DRYDEP_MOD,         ONLY : DEPSAV
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE PHYSCONSTANTS,      ONLY : AVO
     USE CMN_DIAG_MOD,       ONLY : ND44
@@ -324,10 +324,14 @@ CONTAINS
     CHARACTER(LEN=30)  :: DryDepName, DiagnName
     REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
     REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
-    REAL(fp), TARGET   :: EMIS(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) 
-    REAL(fp), TARGET   :: DEP (IIPAR,JJPAR,      Input_Opt%N_TRACERS) 
-    REAL(fp)           :: TOTFLUX(Input_Opt%N_TRACERS)
-    REAL(fp)           :: TOTDEP (Input_Opt%N_TRACERS)
+
+    ! drydep flux diagnostic
+    REAL(fp)           :: DepFluxes( IIPAR, JJPAR, Input_Opt%NUMDEP ) 
+    REAL(fp), TARGET   :: ThisDepFlux( IIPAR, JJPAR )
+
+    ! tracer emissions diagnostic
+    REAL(fp), TARGET   :: EMIS( IIPAR, JJPAR, LLPAR, Input_Opt%N_TRACERS ) 
+    REAL(fp)           :: TOTFLUX( Input_Opt%N_TRACERS )
 #endif
 
     ! PARANOX loss fluxes (kg/m2/s). These are obtained from the 
@@ -396,10 +400,9 @@ CONTAINS
 
     ! Init diagnostics
 #if defined( NETCDF )
-    DEP     = 0.0_fp
-    EMIS    = 0.0_fp
-    TOTFLUX = 0.0_fp
-    TOTDEP  = 0.0_fp
+    DepFluxes   = 0.0_fp
+    EMIS        = 0.0_fp
+    TOTFLUX     = 0.0_fp
 #endif
 
     ! Archive concentrations for tendencies (ckeller, 7/15/2015) 
@@ -432,7 +435,7 @@ CONTAINS
           ! Get dry deposition index DRYDEPID. This is the ID used by
           ! drydep_mod.F90 for this species. 
           DO NN = 1, Input_Opt%NUMDEP
-             IF ( NTRAIND(NN) == N ) THEN
+             IF ( Input_Opt%NTRAIND(NN) == N ) THEN
                 DRYDEPID = NN
                 EXIT
              ENDIF
@@ -587,9 +590,10 @@ CONTAINS
                    FRAC = EXP(-RKT)
 
                    ! Apply dry deposition
-                   State_Chm%Tracers(I,J,L,N) = FRAC * State_Chm%Tracers(I,J,L,N)
+                   State_Chm%Tracers(I,J,L,N) = FRAC *    &
+                                                State_Chm%Tracers(I,J,L,N)
 
-                   ! Loss in kg
+                   ! Loss in kg/m2
                    FLUX = ( 1.0_fp - FRAC ) * State_Chm%Tracers(I,J,L,N) 
 
                    ! Eventually add PARANOX loss. PNOXLOSS is in kg/m2/s. 
@@ -598,9 +602,8 @@ CONTAINS
                    ENDIF 
 
 #if defined( NETCDF )
-                   ! Archive deposition flux in kg/m2/s
-                   DEP(I,J,N) = DEP(I,J,N) + ( FLUX / TS )
-                   TOTDEP(N)  = TOTDEP(N) + FLUX
+                   ! Prior to 1/22/16, archive deposition flux in kg/m2/s:
+                   !DepFluxes(I,J,N) = DepFluxes(I,J,N) + ( FLUX / TS )
 #endif
 !                   IF (AREA_M2 .eq. 0.0_fp) THEN
 !                     PRINT*, "FLUX: ", FLUX
@@ -617,25 +620,33 @@ CONTAINS
                    !
                    ! NOTE: The original computation was:
                    !   FLUX = FLUX / MWkg * AVO / TS / ( AREA_M2 * 1.0e4_fp ) ]
-                   ! so we the denominator as we had it was wrong.
+                   ! so the denominator as we had it was wrong.
                    ! Now corrected (elundgren, bmy, 6/12/15)
                    DENOM = ( MWkg * TS * 1.0e+4_fp ) / AVO
-                   FLUX  = SAFE_DIV( FLUX, DENOM, 0.0e+0_fp ) 
+                   FLUX  = SAFE_DIV( FLUX, DENOM, 0.0e+0_fp )  ! molec/cm2/s
 
-                   ! Diagnostics. These are the same as DRYFLX.
-                   ! Diagnostics are in molec/cm2/s.
-#if defined( BPCH )
-                   ! ND44 diagnostics
-                   IF ( ND44 > 0 .and. DryDepID > 0 ) THEN
-                      AD44(I,J,DryDepID,1) = AD44(I,J,DryDepID,1) + FLUX
-                   ENDIF
-#endif
                    ! Eventually add to SOIL_DRYDEP
                    IF ( Input_Opt%LSOILNOX ) THEN
                       CALL SOIL_DRYDEP( I, J, L, N, FLUX )
                    ENDIF
-                ENDIF
 
+                   !----------------------------------------------
+                   ! Dry deposition flux diagnostic (ND44)
+                   !----------------------------------------------
+                   IF ( ND44 > 0 .and. DryDepID > 0 ) THEN
+#if defined( BPCH )
+                      ! ND44 bpch diagnostics [molec/cm2/s]
+                      AD44(I,J,DryDepID,1) = AD44(I,J,DryDepID,1) + FLUX
+#endif
+#if defined( NETCDF )
+                      ! ND44 netcdf diagnostics - Now archive deposition 
+                      ! flux in molec/cm2/s to compare to bpch (ewl, 1/22/16)
+                      DepFluxes(I,J,DryDepID) = DepFluxes(I,J,DryDepID) &
+                                                + FLUX
+#endif
+                   ENDIF
+
+                ENDIF ! apply drydep
              ENDIF ! L <= PBLTOP
 
              !----------------------------------------------------------
@@ -659,8 +670,8 @@ CONTAINS
 
 #if defined( NETCDF )
                    ! Update new tracer emissions diagnostics
-                   EMIS(I,J,L,N) = TMP
-                   TOTFLUX(N)    = TOTFLUX(N) + FLUX 
+                   EMIS(I,J,L,N) = TMP                 ! kg/m2/s
+                   TOTFLUX(N)    = TOTFLUX(N) + FLUX   ! kg/m2/s
 #endif
                 ENDIF
              ENDIF
@@ -689,6 +700,70 @@ CONTAINS
 
     ! Assume success
     HCRC = HCO_SUCCESS
+
+    ! Update drydep flux diagnostic: ND44
+    IF ( Input_Opt%ND44 > 0 ) THEN
+
+       ! Assume success
+       HCRC = HCO_SUCCESS
+
+       ! Special cases if ISOPN or MMN since there are two 
+       ! corresponding dry deposition species each, ISOPND and 
+       ! ISOPNB for ISOPN, and MACRN and MAVKN for MMN. Therefore, 
+       ! track when ISOPN and MMN are first encountered (ewl, 1/20/16)
+       First_ISOPN = .TRUE.
+       First_MMN = .TRUE.
+       
+       ! Loop over all depositing species
+       DO D = 1, Input_Opt%NUMDEP
+       
+          ! Get the corresponding GEOS-Chem tracer number
+          N = Input_Opt%NTRAIND(D)
+       
+          ! If this tracer number NN is scheduled for output in input.geos, 
+          ! then archive the latest depvel data into the diagnostic structure
+          IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
+       
+             ! Initialization
+             ThisDepFlux = 0.0e+0_fp
+
+             ! Construct diagnostic name
+             IF ( N == IDTISOPN .AND. First_ISOPN ) THEN
+                DryDepName = 'ISOPND'
+                First_ISOPN = .FALSE.
+             ELSE IF ( N == IDTISOPN .AND. .NOT. First_ISOPN ) THEN
+                DryDepName = 'ISOPNB'
+             ELSE IF ( N == IDTMMN .AND. First_MMN ) THEN
+                DryDepName = 'MACRN'
+                First_MMN = .FALSE.
+             ELSE IF ( N == IDTMMN .AND. .NOT. First_MMN ) THEN
+                DryDepName = 'MAVKN'
+             ELSE
+                DryDepName =  Input_Opt%TRACER_NAME(N)
+             ENDIF
+             DiagnName = 'DRYDEP_FLX_' // TRIM( DryDepName )
+       
+             ThisDepFlux = DepFluxes(:,:,D)
+             Ptr2D => ThisDepFlux
+       
+             CALL Diagn_Update( am_I_Root,                           &
+                                cName     = TRIM( DiagnName),        &
+                                Array2D = Ptr2D,                     &
+                                COL     = Input_Opt%DIAG_COLLECTION, &
+                                RC      = HCRC                          )
+       
+             ! Free the pointer
+             Ptr2D => NULL()
+       
+             ! Stop with error if the diagnostics were unsuccessful
+             IF ( HCRC /= HCO_SUCCESS ) THEN
+                CALL ERROR_STOP( 'Cannot update drydep flux' //       &
+                                 ' diagnostic: ' // TRIM( DiagnName), &
+                                 'DO_TEND (mixing_mod.F)')
+             ENDIF
+          ENDIF
+       ENDDO
+    ENDIF
 
     ! For now, always output tracer emissions diagnostic since there
     ! is no logical switch for it in Input_Mod, nor an entry in input.geos
@@ -728,62 +803,6 @@ CONTAINS
        ENDIF
     ENDDO
 
-    ! Update drydep flux diagnostic: ND44
-    IF ( Input_Opt%ND44 > 0 ) THEN
-
-       ! Special cases if ISOPN or MMN since there are two 
-       ! corresponding dry deposition species each, ISOPND and 
-       ! ISOPNB for ISOPN, and MACRN and MAVKN for MMN. Therefore, 
-       ! track when ISOPN and MMN are first encountered (ewl, 1/20/16)
-       First_ISOPN = .TRUE.
-       First_MMN = .TRUE.
-       
-       ! Loop over all depositing species
-       DO D = 1, Input_Opt%NUMDEP
-       
-          ! Get the corresponding GEOS-Chem tracer number
-          N = Input_Opt%NTRAIND(D)
-       
-          ! If this tracer number NN is scheduled for output in input.geos, 
-          ! then archive the latest depvel data into the diagnostic structure
-          IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
-       
-             ! Construct diagnostic name
-             IF ( N == IDTISOPN .AND. First_ISOPN ) THEN
-                DryDepName = 'ISOPND'
-                First_ISOPN = .FALSE.
-             ELSE IF ( N == IDTISOPN .AND. .NOT. First_ISOPN ) THEN
-                DryDepName = 'ISOPNB'
-             ELSE IF ( N == IDTMMN .AND. First_MMN ) THEN
-                DryDepName = 'MACRN'
-                First_MMN = .FALSE.
-             ELSE IF ( N == IDTMMN .AND. .NOT. First_MMN ) THEN
-                DryDepName = 'MAVKN'
-             ELSE
-                DryDepName =  Input_Opt%TRACER_NAME(N)
-             ENDIF
-             DiagnName = 'DRYDEP_FLX_' // TRIM( DryDepName )
-       
-             Ptr2D => DEP(:,:,D)
-       
-             CALL Diagn_Update( am_I_Root,                           &
-                                cName     = TRIM( DiagnName),        &
-                                Array2D = Ptr2D,                     &
-                                COL     = Input_Opt%DIAG_COLLECTION, &
-                                RC      = RC                          )
-       
-             ! Fre the pointer
-             Ptr2D => NULL()
-       
-             ! Stop with error if the diagnostics were unsuccessful
-             IF ( RC /= HCO_SUCCESS ) THEN
-                CALL ERROR_STOP( 'Cannot update drydep flux' //       &
-                                 ' diagnostic: ' // TRIM( DiagnName), &
-                                 'DO_TEND (mixing_mod.F)')
-             ENDIF
-          ENDIF
-       ENDDO
-    ENDIF
 #endif
 
     ! Convert State_Chm%TRACERS back: kg/m2 --> v/v (ewl, 9/30/15)
