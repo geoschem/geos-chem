@@ -38,6 +38,9 @@
       PUBLIC  :: CLOSE_FILES
       PUBLIC  :: FILE_EXISTS
       PUBLIC  :: IOERROR
+#if defined( LINUX_PGI )
+      PUBLIC :: SET_BUFFER_SIZE
+#endif
 
       INTERFACE FILE_EXISTS
          MODULE PROCEDURE FILE_EX_C
@@ -77,6 +80,7 @@
 !  06 Aug 2012 - R. Yantosca - Remove several IU_* variables, as these have
 !                              now been moved to various other modules
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  22 Jan 2016 - R. Yantosca - Add SET_BUFFER_SIZE routine for PGI compiler
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -381,6 +385,81 @@
       CLOSE( IU_FILE    )
 
       END SUBROUTINE CLOSE_FILES
-!EOC      
+!EOC
+#if defined( LINUX_PGI )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_buffer_size
+!
+! !DESCRIPTION: Manually defines the buffering options for Fortran files.
+!  This is necessary in order to view files while a Fortran program is
+!  still running.  SET\_BUFFER\_SIZE has to be called after a Fortran file
+!  is opened, but before any data is written to the file.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_BUFFER_SIZE( UNIT, OPTION, BUFSIZE, RC )
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: UNIT     ! Fortran logical unit number
+      INTEGER, INTENT(IN)  :: OPTION   ! 0 = Full buffering 
+                                       ! 1 = Line buffering
+                                       ! 2 = No buffering
+      INTEGER, INTENT(IN)  :: BUFSIZE  ! Buffer size in bytes
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC
+!
+! !REMARKS:
+!  From the PGI Fortran Reference Manual:
+!     http://www.pgroup.com/doc/pgifortref.pdf
+!  
+!  Fortran I/O supports 3 types of buffering., described in detail in the 
+!  description of setvbuf.  
+!
+!    * Logical units 5 (stdin) and 6 (stdout) are line buffered. 
+!    * Logical unit 0 (stderr) is unbuffered.  
+!    * Disk files are fully buffered.  
+!
+!  These defaults generally give the expected behavior. You can use setvbuf3f 
+!  to change a unit's buffering type and size of the buffer.
+!
+!  This function must be called after the unit is opened and before any I/O 
+!  is done on the unit.
+!
+!  The OPTION parameter can have the following values, 0 specifies full 
+!  buffering, 1 specifies line buffering, and 2 specifies unbuffered.
+!  The size parameter specifies the size of the buffer.
+!  
+!  This function returns zero on success and non-zero on failure.
+!
+!  An example of a program in which this function might be useful is a 
+!  long-running program that periodically writes a small amount of data to 
+!  a log file. If the log file is line buffered, you could check the log file
+!  for progress. If the log file is fully buffered (the default), the data 
+!  may not be written to disk until the program terminates.
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Reference to external SETVBUF3F function
+      INTEGER, EXTERNAL :: SETVBUF3F
+
+      RC = SETVBUF3F( UNIT, OPTION, BUFSIZE )
+
+      END SUBROUTINE SET_BUFFER_SIZE
+#endif
+  
       ! End of module
       END MODULE FILE_MOD

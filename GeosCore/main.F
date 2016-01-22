@@ -254,7 +254,7 @@
 !  26 Mar 2013 - S.D. Eastham- Added initialization of rare tracers
 !  29 Mar 2013 - R. Yantosca - Bring code out of DEVEL blocks
 !  30 May 2013 - R. Yantosca - Now pass Input_Opt object to STDRUN routine
-!  03 Jun 2013 - R. Yantosca - Use routines from updated mercury_mod.F
+!  03 Jun 2013 - R. Yanosca - Use routines from updated mercury_mod.F
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  23 Oct 2013 - R. Yantosca - Now pass am_I_root, Input_Opt, RC to INIT_DAO
 !  13 Dec 2013 - M. Sulprizio- Now set USE_O3_FROM_MET logical flag during
@@ -389,6 +389,11 @@
       !=================================================================
       ! GEOS-CHEM starts here!                                            
       !=================================================================
+#if defined( LINUX_PGI ) 
+      ! Tell PGI compiler to line-buffer STDOUT, so that we can pipe the 
+      ! screen output to a log file and see the results while GC is running.
+      CALL SET_BUFFER_SIZE( 6, 1, 16000, RC )
+#endif
 
 #if defined( TOMAS )
       !(sfarina, 6/19/2013) It may seem strange, but this welcome message
@@ -550,7 +555,6 @@
       !
       CALL GIGC_Init_All
      &   ( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
-
       !
       ! Also allocate arrays in GEOS-Chem modules that have not yet
       ! been initialized (i.e. SEASALT_MOD, CARBON_MOD,  DUST_MOD, 
@@ -565,7 +569,7 @@
       ! N_TRACERS, which is obtained by reading the input.geos file.
       !
       CALL Fill_Chem_State_Name_IDs( am_I_Root, Input_Opt, State_Chm )
-
+      !
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)
       ! NOTE: Most routines now use either mixing ratio or kg/m2
@@ -845,6 +849,11 @@
       !=================================================================
       DO N_STEP = 1, N_DYN_STEPS
     
+#if defined( LINUX_PGI )
+         ! Flush the buffer each timestep so we get output
+         CALL FLUSH( 6 )
+#endif
+
          ! Compute & print time quantities at start of dyn step
          CALL SET_CURRENT_TIME
          CALL PRINT_CURRENT_TIME
@@ -1995,6 +2004,9 @@
 
       ! Print ending time of simulation
       CALL DISPLAY_END_TIME
+
+      ! Flush the buffer to get output
+      CALL FLUSH( 6 )
 
       CONTAINS
 !EOC
