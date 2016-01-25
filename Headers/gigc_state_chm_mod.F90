@@ -323,10 +323,14 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: LM          ! # longitudes on this PET
     INTEGER,        INTENT(IN)    :: nTracers    ! # advected tracers
     INTEGER,        INTENT(IN)    :: nSpecies    ! # chemical species
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!-----------------------------------------------------------------------------
+! Prior to 1/25/15:
+!    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!-----------------------------------------------------------------------------
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
