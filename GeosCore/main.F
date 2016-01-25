@@ -282,6 +282,8 @@
 !  16 Apr 2015 - R. Yantosca - Remove call to INIT_DAO; it's obsolete
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !  03 Sep 2015 - R. Yantosca - Now call SETUP_WETSCAV instead of INIT_WETSCAV
+!  25 Jan 2016 - R. Yantosca - Call LINE_BUFFER to force PGI compiler to flush
+!                               STDOUT (unit=6) output to disk during a run
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -389,11 +391,10 @@
       !=================================================================
       ! GEOS-CHEM starts here!                                            
       !=================================================================
-#if defined( LINUX_PGI ) 
+
       ! Tell PGI compiler to line-buffer STDOUT, so that we can pipe the 
       ! screen output to a log file and see the results while GC is running.
-      CALL SET_BUFFER_SIZE( 6, 1, 16000, RC )
-#endif
+      CALL LINE_BUFFER( 6 )
 
 #if defined( TOMAS )
       !(sfarina, 6/19/2013) It may seem strange, but this welcome message
@@ -1989,7 +1990,6 @@
 
       ! Free the shadow variables in error_mod.F
       CALL CLEANUP_ERROR()
-
 #if defined( GTMM_Hg )
       ! Deallocate arrays from GTMM model for mercury simulation
       IF ( LGTMM ) CALL CleanupCASAarrays

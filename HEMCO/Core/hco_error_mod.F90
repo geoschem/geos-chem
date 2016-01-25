@@ -780,12 +780,6 @@ CONTAINS
        ! Inquire if file is already open
        INQUIRE( FILE=TRIM(Err%LogFile), OPENED=isOpen, EXIST=exists, NUMBER=LUN )
        
-#if defined( LINUX_PGI )
-       ! Tell PGI compiler to line-buffer the HEMCO log file, so that we
-       ! can see the results while GC is running. (bmy, 1/22/16)
-       RC = SETVBUF3F( FREELUN, 1, 16000 )
-#endif
-
        ! File exists and is opened ==> nothing to do
        IF ( exists .AND. isOpen ) THEN
           Err%LUN       = LUN
@@ -803,6 +797,14 @@ CONTAINS
                 RC = HCO_FAIL
                 RETURN
              ENDIF
+#if defined( LINUX_PGI )
+             ! Tell PGI compiler to line-buffer the HEMCO log file, so that we
+             ! can see the results while GC is running. (bmy, 1/22/16)
+             RC = SETVBUF3F( FREELUN, 1, 80 )
+#endif
+
+       ! File exists and is opened ==> nothing to do
+
 
           ! Reopen otherwise
           ELSE
@@ -814,6 +816,11 @@ CONTAINS
                 RC = HCO_FAIL
                 RETURN
              ENDIF
+#if defined( LINUX_PGI )
+             ! Tell PGI compiler to line-buffer the HEMCO log file, so that we
+             ! can see the results while GC is running. (bmy, 1/22/16)
+             RC = SETVBUF3F( FREELUN, 1, 80 )
+#endif
           ENDIF
 
           Err%LUN       = FREELUN
@@ -829,6 +836,11 @@ CONTAINS
              RC = HCO_FAIL
              RETURN
           ENDIF
+#if defined( LINUX_PGI )
+          ! Tell PGI compiler to line-buffer the HEMCO log file, so that we
+          ! can see the results while GC is running. (bmy, 1/22/16)
+          RC = SETVBUF3F( FREELUN, 1, 80 )
+#endif
           Err%LUN       = FREELUN
           Err%LogIsOpen = .TRUE.
        ENDIF

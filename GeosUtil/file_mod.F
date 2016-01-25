@@ -38,9 +38,7 @@
       PUBLIC  :: CLOSE_FILES
       PUBLIC  :: FILE_EXISTS
       PUBLIC  :: IOERROR
-#if defined( LINUX_PGI )
-      PUBLIC :: SET_BUFFER_SIZE
-#endif
+      PUBLIC  :: LINE_BUFFER 
 
       INTERFACE FILE_EXISTS
          MODULE PROCEDURE FILE_EX_C
@@ -80,7 +78,7 @@
 !  06 Aug 2012 - R. Yantosca - Remove several IU_* variables, as these have
 !                              now been moved to various other modules
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  22 Jan 2016 - R. Yantosca - Add SET_BUFFER_SIZE routine for PGI compiler
+!  22 Jan 2016 - R. Yantosca - Add LINE_BUFFER routine for PGI compiler
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -386,35 +384,27 @@
 
       END SUBROUTINE CLOSE_FILES
 !EOC
-#if defined( LINUX_PGI )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_buffer_size
+! !IROUTINE: line_buffer
 !
-! !DESCRIPTION: Manually defines the buffering options for Fortran files.
-!  This is necessary in order to view files while a Fortran program is
-!  still running.  SET\_BUFFER\_SIZE has to be called after a Fortran file
-!  is opened, but before any data is written to the file.
+! !DESCRIPTION: Manually sets a Fortran file to line-buffered output,
+!  with a buffer size of 80 characters.  This is necessary in order to 
+!  be able to view logfile output while a GEOS-Chem simulation is still
+!  running.  This is only meant to be used with the pgfortran compiler,
+!  which by default will only flush output to disk at the end of a run.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_BUFFER_SIZE( UNIT, OPTION, BUFSIZE, RC )
+      SUBROUTINE LINE_BUFFER( UNIT )
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: UNIT     ! Fortran logical unit number
-      INTEGER, INTENT(IN)  :: OPTION   ! 0 = Full buffering 
-                                       ! 1 = Line buffering
-                                       ! 2 = No buffering
-      INTEGER, INTENT(IN)  :: BUFSIZE  ! Buffer size in bytes
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER, INTENT(OUT) :: RC
+      INTEGER, INTENT(IN)  :: UNIT  ! Fortran logical unit number
 !
 ! !REMARKS:
 !  From the PGI Fortran Reference Manual:
@@ -450,16 +440,19 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
+
+#if defined( LINUX_PGI )
+
       ! Reference to external SETVBUF3F function
       INTEGER, EXTERNAL :: SETVBUF3F
+      INTEGER           :: RC
+      
+      ! Set unit to line buffering w/ 80-character buffer
+      RC = SETVBUF3F( UNIT, 1, 80 )
 
-      RC = SETVBUF3F( UNIT, OPTION, BUFSIZE )
-
-      END SUBROUTINE SET_BUFFER_SIZE
 #endif
+
+      END SUBROUTINE LINE_BUFFER
   
       ! End of module
       END MODULE FILE_MOD

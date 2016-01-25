@@ -46,9 +46,7 @@
       USE COMODE_LOOP_MOD                    ! SMVGEAR II arrays
       USE PHYSCONSTANTS                      ! Re, PI
       USE PRECISION_MOD                      ! For GEOS-Chem Precision (fp)
-#if defined( LINUX_PGI )
-      USE FILE_MOD,  ONLY : SET_BUFFER_SIZE
-#endif
+      USE FILE_MOD,   ONLY : LINE_BUFFER
 
       IMPLICIT NONE
 
@@ -107,11 +105,6 @@
       REAL(fp)              :: ERRMAXS, YLOWS, YHIS, HMAXDAYS
       REAL(fp)              :: ABHI,    ABLO
       CHARACTER(LEN=255)  :: FILENAME
-
-#if defined( LINUX_PGI )
-      ! Flag for SET_BUFFER_SIZE (bmy, 1/22/16)
-      INTEGER             :: RC
-#endif
 
       NAMELIST /CTLFLG/ IFSOLVE, ITESTGEAR,   
      1                  IFURBAN, IFTROP,  IFSTRAT
@@ -290,11 +283,10 @@
 
          IO93 = IU_SMV2LOG
          OPEN( IO93, FILE='smv2.log', STATUS='UNKNOWN' )
-#if defined( LINUX_PGI ) 
+
          ! Tell PGI compiler to line-buffer smv2.log, so that 
          ! we can see the results while GC is running.
-         CALL SET_BUFFER_SIZE( 6, 1, 16000, RC )
-#endif
+         CALL LINE_BUFFER( IO93 )
 !
 ! *********************************************************************
 ! *                    PRINT INFORMATION FROM m.dat                   *
