@@ -1862,6 +1862,8 @@ contains
     ! HEMCO update
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
 #if defined( NETCDF )
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
 
@@ -2002,12 +2004,14 @@ contains
     REAL(fp)           :: TMPFLX, EMIS, DEP
     INTEGER            :: RC,     HCRC, TOPMIX
 
-    ! For HEMCO diagnostics
+    ! For diagnostics
+    REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR ) 
 #if defined( NETCDF )
     REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
     REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
     REAL(fp)           :: Total
     INTEGER            :: cID
+    CHARACTER(LEN=30)  :: DiagnName
 #endif
 
     ! PARANOX loss fluxes (kg/m2/s), imported from 
@@ -2567,23 +2571,27 @@ contains
           ENDIF
        ENDIF
 
-       ! Drydep fluxes
-       IF ( (ND44>0) .AND. (ANY(dflx(:,:,N) > 0.0_fp) ) ) THEN
-          Ptr2D => dflx(:,:,N)
-          cID = 44500 + N
-          CALL Diagn_Update( am_I_Root,                           &
-                             cID     = cID,                       &
-                             Array2D = Ptr2D,                     &
-                             COL     = Input_Opt%DIAG_COLLECTION, &
-                             RC      = HCRC                        )
-          Ptr2D => NULL()
-       ENDIF
+       !! Drydep fluxes
+       !! Now update drydep flux diag below using molec/cm2/s
+       !IF ( (ND44>0) .AND. (ANY(dflx(:,:,N) > 0.0_fp) ) ) THEN
+       !   Ptr2D => dflx(:,:,N)
+       !   cID = 44500 + N
+       !   CALL Diagn_Update( am_I_Root,                           &
+       !                      cID     = cID,                       &
+       !                      Array2D = Ptr2D,                     &
+       !                      COL     = Input_Opt%DIAG_COLLECTION, &
+       !                      RC      = HCRC                        )
+       !   Ptr2D => NULL()
+       !ENDIF
     ENDDO
 
     DEALLOCATE(Ptr3D)
 
 #endif
 
+    !==============================================================
+    ! Calculate ND44 diagnostic: drydep flux loss [molec/cm2/s]
+    !==============================================================
 
     ! drydep fluxes diag. for SMVGEAR mechanism 
     ! for gases -- moved from DRYFLX in drydep_mod.f to here
@@ -2611,33 +2619,62 @@ contains
 !              NN == IDTDST3 .OR. &
 !              NN == IDTDST4       ) CYCLE
 
+	  IF( ND44 > 0 .or. LGTMM) THEN                
+             ! only for the lowest model layer
+             ! Convert : kg/m2/s -> molec/cm2/s
+             ! consider timestep difference between convection and emissions
+             ! Calculate flux [molec/cm2/s]
+             DryDepFlux = dflx(:,:,NN) / TRACER_MW_KG(NN) * AVO  &
+                          * 1.e-4_fp * GET_TS_CONV() / GET_TS_EMIS()
 #if defined( BPCH )
-                ! only for the lowest model layer
-                ! Convert : kg/m2/s -> molec/cm2/s
-                ! consider timestep difference between convection and emissions
-		IF(ND44 > 0 .or. LGTMM) THEN                
-		AD44(:,:,N,1) = AD44(:,:,N,1) + dflx(:,:,NN) &
-                       / TRACER_MW_KG(NN) * AVO * 1.e-4_fp &
-                       * GET_TS_CONV() / GET_TS_EMIS() 
-		ENDIF
+             ! for bpch output
+	     AD44(:,:,N,1) = AD44(:,:,N,1) + DryDepFlux
+                    !+ dflx(:,:,NN) &
+                    !/ TRACER_MW_KG(NN) * AVO * 1.e-4_fp &
+                    !* GET_TS_CONV() / GET_TS_EMIS() 
 #endif
+#if defined( NETCDF )
+             ! for netcdf output (ewl, 1/22/16)
+             
+             ! If this tracer number NN is scheduled for output in input.geos, 
+             ! then archive the latest depvel data into the diagnostic structure
+             IF ( ANY( Input_Opt%TINDEX(44,:) == NN ) ) THEN
 
-                ! If Soil NOx is turned on, then call SOIL_DRYDEP to
-                ! archive dry deposition fluxes for nitrogen species
-                ! (SOIL_DRYDEP will exit if it can't find a match.)
-		IF ( LSOILNOX ) THEN
-                   soilflux = 0e+0_fp
-                   DO J = 1, JJPAR
-                   DO I = 1, IIPAR
-                      soilflux = dflx(I,J,NN) &
-		        / TRACER_MW_KG(NN) * AVO * 1.e-4_fp &
-                        * GET_TS_CONV() / GET_TS_EMIS()
+                ! Update diagnostic container
+                DiagnName = 'DRYDEP_FLX_' // TRIM( Input_OPt%DEPNAME(N) )
+                Ptr2D => DryDepFlux
+                CALL Diagn_Update( am_I_Root,                           &
+                                   cName   = TRIM( DiagnName),          &
+                                   Array2D = Ptr2D,                     & 
+                                   COL     = Input_Opt%DIAG_COLLECTION, &
+                                   RC      = HCRC                        )
+                Ptr2D => NULL()
+             
+                ! Stop with error if the diagnostic was unsuccessful
+                IF ( HCRC /= HCO_SUCCESS ) THEN
+                   CALL ERROR_STOP( 'Cannot update drydep flux' //       & 
+                                    ' diagnostic: ' // TRIM( DiagnName), &
+                                    'VDIFFDR (vdiff_mod.F)')
+                ENDIF
+             ENDIF
+#endif
+          ENDIF
 
-                      CALL SOIL_DRYDEP ( I, J, 1, NN, soilflux)
-                   ENDDO
-                   ENDDO
-		ENDIF
-
+          ! If Soil NOx is turned on, then call SOIL_DRYDEP to
+          ! archive dry deposition fluxes for nitrogen species
+          ! (SOIL_DRYDEP will exit if it can't find a match.)
+	  IF ( LSOILNOX ) THEN
+             soilflux = 0e+0_fp
+             DO J = 1, JJPAR
+             DO I = 1, IIPAR
+                soilflux = dflx(I,J,NN) &
+	          / TRACER_MW_KG(NN) * AVO * 1.e-4_fp &
+                  * GET_TS_CONV() / GET_TS_EMIS()
+          
+                CALL SOIL_DRYDEP ( I, J, 1, NN, soilflux)
+             ENDDO
+             ENDDO
+	  ENDIF
 !          END SELECT
        enddo
 

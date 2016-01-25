@@ -697,11 +697,6 @@ CONTAINS
     ! NOTE: For now, this is only activated by compiling with NETCDF=y,
     ! but in the future this will replace the bpch diagnostics!
     !-------------------------------------------------------------------
-
-    ! Assume success
-    HCRC = HCO_SUCCESS
-
-    ! Update drydep flux diagnostic: ND44
     IF ( Input_Opt%ND44 > 0 ) THEN
 
        ! Assume success
@@ -726,26 +721,9 @@ CONTAINS
        
              ! Initialization
              ThisDepFlux = 0.0e+0_fp
-
-             ! Construct diagnostic name
-             IF ( N == IDTISOPN .AND. First_ISOPN ) THEN
-                DryDepName = 'ISOPND'
-                First_ISOPN = .FALSE.
-             ELSE IF ( N == IDTISOPN .AND. .NOT. First_ISOPN ) THEN
-                DryDepName = 'ISOPNB'
-             ELSE IF ( N == IDTMMN .AND. First_MMN ) THEN
-                DryDepName = 'MACRN'
-                First_MMN = .FALSE.
-             ELSE IF ( N == IDTMMN .AND. .NOT. First_MMN ) THEN
-                DryDepName = 'MAVKN'
-             ELSE
-                DryDepName =  Input_Opt%TRACER_NAME(N)
-             ENDIF
-             DiagnName = 'DRYDEP_FLX_' // TRIM( DryDepName )
-       
+             DiagnName = 'DRYDEP_FLX_' // TRIM( Input_OPt%DEPNAME(D) )
              ThisDepFlux = DepFluxes(:,:,D)
              Ptr2D => ThisDepFlux
-       
              CALL Diagn_Update( am_I_Root,                           &
                                 cName     = TRIM( DiagnName),        &
                                 Array2D = Ptr2D,                     &

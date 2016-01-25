@@ -1476,6 +1476,11 @@
       USE TRACERID_MOD,       ONLY : IDTSO4d4, IDTNITd4
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( NETCDF )
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE HCO_ERROR_MOD,      ONLY : HCO_SUCCESS
+      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1521,6 +1526,7 @@
 !  06 Jan 2015 - M. Yannetti - Changed some variables to f8 as needed
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod.
+!  22 Jan 2016 - E. Lundgren - Update drydep netcdf diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1566,6 +1572,14 @@
       REAL(f8)               :: RHO1, WTP, RHO
       REAL(fp)               :: DEN !tdf
  
+#if defined( NETCDF )
+      ! for netcdf diagnostics (ND44)
+      INTEGER            :: HCRC
+      CHARACTER(LEN=30)  :: DiagnName
+      REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
+      REAL(fp), TARGET   :: DryDepFlux( IIPAR, JJPAR ) 
+#endif
+
       ! Arrays
       INTEGER                :: IDDEP(10)
       INTEGER                :: IDTRC(10)	
@@ -1840,9 +1854,9 @@
      &                *  TC(I,J,L+1) )
          ENDDO
          
-#if defined( BPCH )
          !==============================================================
-         ! ND44 diagnostic: sea salt loss [molec/cm2/s]
+         ! Calculate ND44 diagnostic: drydep flux [molec/cm2/s]
+         ! (specifically sea salt loss diagnostics)
          !==============================================================
          IF ( ND44 > 0 ) THEN
 
@@ -1862,14 +1876,54 @@
             ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
             FLUX     = FLUX * XNUMOL(IDTRC(N)) / AREA_CM2 
-   
-            ! Store in AD44 array
+
+#if defined( BPCH )   
+            ! Store in AD44 array for bpch output
             AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
-         ENDIF
 #endif
+#if defined( NETCDF )
+            DryDepFlux(I,J) = FLUX
+#endif
+         ENDIF
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( NETCDF )
+      !===============================================================
+      ! Update dry deposition flux diagnostic for netcdf output (ND44) 
+      !===============================================================
+      IF  ( Input_Opt%ND44 > 0 ) THEN
+       
+         ! Assume success
+         HCRC = HCO_SUCCESS
+         
+         ! Define diagnostic name
+         DiagnName = 'DRYDEP_FLX_' // 
+     &               TRIM( Input_Opt%TRACER_NAME( IDDEP(N) ) )
+
+         ! Point to the flux data
+         Ptr2D => DryDepFlux
+
+         ! Update diagnostics container
+         CALL Diagn_Update( am_I_Root,                           
+     &                      cName   = TRIM( DiagnName),        
+     &                      Array2D = Ptr2D,                     
+     &                      COL     = Input_Opt%DIAG_COLLECTION, 
+     &                      RC      = HCRC                          )
+         
+         ! Free the pointer
+         Ptr2D => NULL()
+         
+         ! Stop with error if the diagnostics were unsuccessful
+         IF ( HCRC /= HCO_SUCCESS ) THEN
+            CALL ERROR_STOP( 'Cannot update drydep flux' //       
+     &                       ' diagnostic: ' // TRIM( DiagnName), 
+     &                       'DO_TEND (mixing_mod.F)')
+         ENDIF
+      ENDIF
+#endif
+
 
       END SUBROUTINE GRAV_SETTLING
 !EOC
