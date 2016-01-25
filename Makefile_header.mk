@@ -265,24 +265,23 @@ ifndef TIMERS
  TIMERS              :=0
 endif
 
-# %%%%% Set default compiler %%%%%
+# %%%%% If COMPILER is not defined, default to the $(FC) variable, which %%%%%
+# %%%%% is set in your .bashrc, or when you load the compiler module     %%%%%
 ifndef COMPILER
-  COMPILER           :=ifort
+  COMPILER           :=$(FC)
 endif
 
-# %%%%% Test if IFORT compiler is selected %%%%%
+# %%%%% Test if Intel Fortran Compiler is selected %%%%%
 REGEXP               :=(^[Ii][Ff][Oo][Rr][Tt])
 ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
-  COMPLER            :=ifort
-  COMPILE_CMD        :=ifort
+  COMPILE_CMD        :=$(FC)
   USER_DEFS          += -DLINUX_IFORT
 endif
 
-# %%%%% Test if PGI compiler is selected  %%%%%
-REGEXP               :=(^[Pp][Gg][Ii])
+# %%%%% Test if PGI Fortran compiler is selected  %%%%%
+REGEXP               :=(^[Pp][Gg])
 ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
-  COMPILER           :=pgi
-  COMPILE_CMD        :=pgfortran
+  COMPILE_CMD        :=$(FC)
   USER_DEFS          += -DLINUX_PGI
 endif
 
@@ -1027,27 +1026,27 @@ endif
 ###                                                                         ###
 ###############################################################################
 
-ifeq ($(COMPILER),pgi) 
+ifeq ($(COMPILER),pgfortran) 
 
   # Default optimization level for all routines (-fast)
   ifndef OPT
-#    OPT              :=-fast
+#    OPT              :=-fast -Mipa=fast,inline
     OPT              :=-O2
    endif
 
   # Pick compiler options for debug run or regular run 
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           :=-byteswapio -Mpreprocess -m64 -g -O0 
+    FFLAGS           :=-Kieee -byteswapio -Mpreprocess -m64 -g -O0
     USER_DEFS        += -DDEBUG
   else
-    FFLAGS           :=-byteswapio -Mpreprocess -m64 $(OPT)
+    FFLAGS           :=-Kieee -byteswapio -Mpreprocess -m64 $(OPT)
   endif
 
   # Add options for medium memory model.  This is to prevent G-C from 
   # running out of memory at hi-res, especially when using netCDF I/O.
 #  FFLAGS             += -mcmodel=medium
-  FFLAGS             += -fPIC
+# FFLAGS             += -fPIC
 
   # Turn on OpenMP parallelization
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
@@ -1173,7 +1172,7 @@ export TIMERS
 ###############################################################################
 
 #headerinfo:
-#	@@echo '####### in Makefile_header.mk ########' 
+#	@@echo '####### in Makefile_header.mk ########'
 #	@@echo "COMPILER    : $(COMPILER)"
 #	@@echo "DEBUG       : $(DEBUG)"
 #	@@echo "BOUNDS      : $(BOUNDS)"
