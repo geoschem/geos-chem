@@ -214,13 +214,6 @@
          CALL DEBUG_MSG( '### FLEX_CHEMDR: after RDUST' )
       ENDIF
 
-      !     imje  Calculate photolysis rates
-      !=================================================================
-      ! Call photolysis routine to compute J-Values
-      !=================================================================
-      CALL FAST_JX( WAVELENGTH, am_I_Root, Input_Opt, State_Met, 
-     &              State_Chm,  RC )
-
       !     imsl  Calculate hetchem rates
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -270,6 +263,13 @@
          ENDIF
       ENDDO
       
+      !     imje  Calculate photolysis rates
+      !=================================================================
+      ! Call photolysis routine to compute J-Values
+      !=================================================================
+      CALL FAST_JX( WAVELENGTH, am_I_Root, Input_Opt, State_Met, 
+     &              State_Chm,  RC )
+
       ! K -- L -- U -- D -- G -- E -- C -- O -- D -- E -- ! -- ! -- ! -- !
       ! THIS IS A TEMPORARY FIX AND NEEDS TO BE RESOLVED THROUGHOUT
       ! THE MODEL AS SOON AS IT APPEARS POSSIBLE TO DO SO!
@@ -426,7 +426,7 @@
          CALL PHOTRATE_ADJ( am_I_root, State_Met, 
      &                      State_Chm, Input_Opt, 
      &                      I, J, L, H2O, NUMDEN, IERR )
-         PHOTOL(1:JVN_) = 0.    !ZPJ(L,1:JVN_,I,J)
+         PHOTOL(1:JVN_) =    ZPJ(L,1:JVN_,I,J)
 
          ! mje Set up the initial conditions of the variable species
          ! mje The Integrator works in # cm-3
