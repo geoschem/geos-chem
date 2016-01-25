@@ -2424,7 +2424,7 @@ CONTAINS
              ENDIF
    
              ! Write out coverage.
-             ! Note: If one mask has only partial coverage, retain that
+             ! Note: If a mask has only partial coverage, retain that
              ! value! If we encounter a mask with no coverage, set coverage
              ! to zero and leave immediately. 
              IF ( (mskLct%Dct%DctType == HCO_DCTTYPE_MASK) ) THEN
@@ -2449,9 +2449,9 @@ CONTAINS
        ! and a higher (or the same) hierarchy as Lct. 
 
        ! If hierarchy of tmpLct is higher than Lct and this 
-         ! container has total coverage over this CPU, it will always 
-         ! replace all values of Lct. Hence, set targetID to -999
-         ! (= ignore container) and return here.
+       ! container has total coverage over this CPU, it will always 
+       ! replace all values of Lct. Hence, set targetID to -999
+       ! (= ignore container) and return here.
        IF ( (tmpLct%Dct%Hier > Hier) .AND. (tmpCov==1) ) THEN
           IF ( HCO_IsVerb(1) ) THEN
              WRITE(MSG,*) 'Skip container ', TRIM(Lct%Dct%cName), &
@@ -2574,6 +2574,10 @@ CONTAINS
   FUNCTION Calc_Coverage( msk_x1, msk_x2, msk_y1, msk_y2,  &
                           cpu_x1, cpu_x2, cpu_y1, cpu_y2 ) RESULT ( COVERAGE ) 
 !
+! !USES:
+!
+    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN) :: msk_x1
@@ -2590,17 +2594,49 @@ CONTAINS
     INTEGER             :: COVERAGE
 !
 ! !REVISION HISTORY:
-!  11 Apr 2013 - C. Keller: Initialization
+!  11 Apr 2013 - C. Keller - Initialization
+!  25 Jan 2016 - C. Keller - Now use option 'FullMaskCoverage' to determine
+!                            default coverage: full or partial (default). 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER             :: RC
+    LOGICAL             :: IsOn, FOUND
 
     !======================================================================
     ! CALC_COVERAGE begins here
     !======================================================================
 
+    ! ckeller, 01/25/16: Assign full overlap to masks only if option
+    ! 'FullMaskCoverageOn' is set to true. Otherwise, treat all masks as
+    ! partial (default). This is because the full coverage can cause problems 
+    ! in MPI applications where individual CPUs cover only small parts of the 
+    ! world. It can then happen that 90% of a CPU lies within a nested 
+    ! inventory region (e.g. NA) but it thinks that this inventory covers 100% 
+    ! of the CPU region because the approximate mask bounds provided in the 
+    ! HEMCO configuration file cannot be perfect. This would then make HEMCO 
+    ! ignore the underlying base emissions entirely, failing to compute 
+    ! emissions for the 10% that are not covered by the regional emission 
+    ! inventory. This problem is easily avoided by setting the coverage to 
+    ! 'partial' or 'none' only. This way regional emission inventories that
+    ! are outside the CPU bounds are still ignored but global emission 
+    ! inventories are kept in case that the regional inventory does not fully 
+    ! cover the CPU.
+    CALL GetExtOpt( CoreNr, 'FullMaskCoverage', OptValBool=IsOn, &
+                    FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS .OR. .NOT. FOUND ) IsOn = .FALSE.
+
+    ! Set default value
+    IF ( IsOn ) THEN
+       COVERAGE = 1
+    ELSE
+       COVERAGE = -1
+    ENDIF
+
     ! Check if specified area does not overlap with inventory
-    COVERAGE = 1
     IF ( (msk_x1 > cpu_x2) .OR. (msk_x2 < cpu_x1) .OR. &
          (msk_y1 > cpu_y2) .OR. (msk_y2 < cpu_y1)        ) THEN
        COVERAGE = 0
