@@ -219,9 +219,9 @@ CONTAINS
        CALL ERROR_STOP( 'Error in DIAGINIT_KPP', LOC ) 
     ENDIF
 
-    CALL DIAGINIT_KPP_SPEC( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_KPP_SPEC( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL ERROR_STOP( 'Error in DIAGINIT_KPP', LOC ) 
+!       CALL ERROR_STOP( 'Error in DIAGINIT_KPP', LOC ) 
     ENDIF
 
     ! Leave with success

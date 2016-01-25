@@ -19,3 +19,4 @@ GIGC
 *.inst.*
 *.continue.*
 *.ppk
+*.log

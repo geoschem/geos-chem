@@ -989,6 +989,9 @@
       ! Change in Vol vs RH 
       REAL(fp)            :: SCALEVOL 
 
+      ! Convert AbsHum to RelHum
+      REAL(fp)  :: TK,CONSEXP,VPRESH2O,RELHUM
+
       ! Relative Humidities
       REAL(fp),  SAVE     :: RH(NRH)   = (/0e+0_fp,0.5e+0_fp, 
      &   0.7e+0_fp,0.8e+0_fp,0.9e+0_fp/)
@@ -1333,16 +1336,26 @@
             J = IYSAVE(JLOOP)
             L = IZSAVE(JLOOP)
 
+            ! Calculate RH from AbsHum - scavenged from gasconc.f
+            ! in GC-Classic (MSL)
+            ! -- THIS SHOULD BE A TEMPORARY FIX!
+            ! JLOOP and COMODE_MOD will be REMOVED
+            TK            = State_Met%T(I,J,L)
+            CONSEXP       = 17.2693882e+0_fp * (TK - 273.16e+0_fp) /
+     1           (TK - 35.86e+0_fp)
+            VPRESH2O      = CONSVAP * EXP(CONSEXP) / TK 
+            RELHUM = ABSHUM(JLOOP) / VPRESH2O 
+
             ! Sort into relative humidity bins
             ! Currently uses the 0, 50, 70, 80, 90% RH bins
             ! (95 and 99% also stored in data files but not used)
-            IF (      ABSHUM(JLOOP) <= RH(2) ) THEN   
+            IF (      RELHUM <= RH(2) ) THEN   
                IRH = 1
-            ELSE IF ( ABSHUM(JLOOP) <= RH(3) ) THEN
+            ELSE IF ( RELHUM <= RH(3) ) THEN
                IRH = 2
-            ELSE IF ( ABSHUM(JLOOP) <= RH(4) ) THEN
+            ELSE IF ( RELHUM <= RH(4) ) THEN
                IRH = 3
-            ELSE IF ( ABSHUM(JLOOP) <= RH(5) ) THEN
+            ELSE IF ( RELHUM <= RH(5) ) THEN
                IRH = 4
             ELSE 
                IRH = 5
@@ -1389,7 +1402,7 @@
                SCALEASY = ASYW(NRH) / ASYW0
             ELSE                
                ! Interpolate between different RH
-               FRAC = (ABSHUM(JLOOP)-RH(IRH)) / (RH(IRH+1)-RH(IRH))
+               FRAC = (RELHUM-RH(IRH)) / (RH(IRH+1)-RH(IRH))
                IF ( FRAC > 1.0d0 ) FRAC = 1.0d0
                REFF    = FRAC*RW(IRH+1)  + (1.d0-FRAC)*RW(IRH)
                SCALEA  =(FRAC*AW(IRH+1)  + (1.d0-FRAC)*AW(IRH))/AW0
