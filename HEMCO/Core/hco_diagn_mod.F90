@@ -167,6 +167,7 @@ MODULE HCO_Diagn_Mod
 !  06 Nov 2015 - C. Keller   - Added argument OutTimeStamp to collection to 
 !                              control the file output time stamp (beginning, 
 !                              middle, end of diagnostics interval).
+!  25 Jan 2016 - R. Yantosca - Added bug fixes for pgfortran compiler
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2152,12 +2153,15 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE DiagnList_Cleanup ( DiagnList )
-! !INPUT ARGUMENTS:
+!
+! !INPUT PARAMETERS:
 !
     TYPE(DiagnCont), POINTER  :: DiagnList   ! List to be removed 
 !
 ! !REVISION HISTORY:
-!  19 Dec 2013 - C. Keller: Initialization
+!  19 Dec 2013 - C. Keller   - Initialization
+!  25 Jan 2016 - R. Yantosca - Bug fix for pgfortran compiler: Test if the
+!                              TMPCONT object is associated before deallocating
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2181,7 +2185,13 @@ CONTAINS
 
        ! Clean up this container 
        CALL DiagnCont_Cleanup( TmpCont )
-       DEALLOCATE ( TmpCont )
+!-------------------------------------------------------------------------
+! Prior to 1/25/16:
+! Make sure that TMPCONT is associated before deallocating.
+! The pgfortran compiler will choke on this (bmy, 1/25/16)
+!       DEALLOCATE ( TmpCont )
+!-------------------------------------------------------------------------
+       IF ( ASSOCIATED( TmpCont ) ) DEALLOCATE ( TmpCont )
 
        ! Advance
        TmpCont => NxtCont
