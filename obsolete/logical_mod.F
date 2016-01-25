@@ -103,6 +103,7 @@
       LOGICAL :: LHOMNUCNAT      ! Allow homogeneous NAT nucleation?
       LOGICAL :: LPSCCHEM        ! Perform PSC heterogeneous chemistry?
       LOGICAL :: LSTRATOD        ! Add stratospheric aerosolsin OD calculation?
+      LOGICAL :: LBCAE           ! BC absorption enhancement
 
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?

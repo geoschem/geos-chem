@@ -933,6 +933,8 @@
       REAL(fp)            :: TEMP2(IIPAR,JJPAR,LLPAR)
       REAL(fp)            :: MSDENS(NAER), DRYAREA
       REAL(f8)            :: XTAU
+      REAL*8              :: BCSCAT_AE  !(xnw, 8/24/15)
+      REAL(fp)            :: BCAE_1, BCAE_2
 
       ! Variables for speed diagnostics
       INTEGER             :: ITIMEVALS(8)
@@ -1000,8 +1002,10 @@
       LOGICAL             :: LSULF
       LOGICAL             :: LSTRATOD
       LOGICAL             :: LRAD
+      LOGICAL             :: LBCAE  ! (xnw, 8/24/15)
 
-      ! Pointers
+
+      ! Pointers      
       REAL(fp), POINTER   :: BXHEIGHT(:,:,:)
 
       !=================================================================
@@ -1022,6 +1026,9 @@
       LSULF                = Input_Opt%LSULF
       LSTRATOD             = Input_Opt%LSTRATOD
       LRAD                 = Input_Opt%LRAD
+      LBCAE                = Input_Opt%LBCAE !(xnw, 8/24/15)
+      BCAE_1               = Input_Opt%BCAE_1
+      BCAE_2               = Input_Opt%BCAE_2
 
       ! Initialize pointers
       BXHEIGHT            => State_Met%BXHEIGHT
@@ -1399,7 +1406,36 @@
      &                         * WAERSL(I,J,L,N) * QQAA(IWV,1,N) / 
      &                         ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
 
-            IF ((N.eq.2).or.(N.eq.3)) THEN
+            !Include BC absorption enhancement (xnw, 8/24/15)
+            IF (N.eq.2) THEN
+
+               IF (LBCAE) THEN 
+                  BCSCAT_AE = ODAER(I,J,L,IWV,N)*SCALESSA*SSAA(IWV,1,N)
+                  ODAER(I,J,L,IWV,N) = ODAER(I,J,L,IWV,N) *
+     &                           ( BCAE_1 + SCALESSA*SSAA(IWV,1,N) - 
+     &                             SCALESSA*SSAA(IWV,1,N)*BCAE_1 )   
+                  !now combine with hydrophilic OD as before
+                  BCSCAT_AE = BCSCAT_AE + SSAA(IWV,1,N) *
+     &                             0.75d0 * BXHEIGHT(I,J,L) *
+     &                             DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  /
+     &                             ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+                  ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) +
+     &                (BCAE_2+SSAA(IWV,1,N) - SSAA(IWV,1,N)*BCAE_2) *
+     &                             0.75d0 * BXHEIGHT(I,J,L) *
+     &                             DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  /
+     &                             ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+               
+               ELSE 
+                  !now combine with hydrophilic OD as before
+                  ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) +
+     &                             0.75d0 * BXHEIGHT(I,J,L) *
+     &                             DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  /
+     &                             ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+               ENDIF
+
+            ENDIF
+
+            IF (N.eq.3) THEN
                !now combine with hydrophilic OD as before
                ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) +
      &                             0.75d0 * BXHEIGHT(I,J,L) *
@@ -1445,6 +1481,10 @@
              !(NRHAER+1,2) but before dust
              RTODAER(I,J,L,IWV,NRT)     = ODAER(I,J,L,IWV,N)
              RTSSAER(I,J,L,IWV,NRT)     = SCALESSA*SSAA(IWV,1,N)
+             !for BC SSA with absorption enhancement (xnw 8/24/15)
+             IF ((N .EQ. 2) .AND. (LBCAE)) THEN
+                RTSSAER(I,J,L,IWV,NRT) = BCSCAT_AE / ODAER(I,J,L,IWV,N)
+             ENDIF 
              RTASYMAER(I,J,L,IWV,NRT)   = SCALEASY*ASYMAA(IWV,1,N)
             ENDIF
 #endif

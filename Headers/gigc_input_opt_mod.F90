@@ -129,6 +129,10 @@ MODULE GIGC_Input_Opt_Mod
      REAL(fp)                    :: P_ICE_SUPERSAT
      LOGICAL                     :: LPSCCHEM
      LOGICAL                     :: LSTRATOD
+     !for BC absorption enhancement, (xnw, 8/24/15)
+     LOGICAL                     :: LBCAE
+     REAL(fp)                    :: BCAE_1
+     REAL(fp)                    :: BCAE_2
 
      !----------------------------------------
      ! EMISSIONS MENU fields
